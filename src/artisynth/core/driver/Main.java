@@ -2905,6 +2905,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    /**
+    * set the file with probes
+    * 
+    * @param file with probe data
+    */
+   public void setProbesFile (File file) {
+      myProbeFile = file;
+   }
+
+   /**
     * load the probes into the model
     * 
     * @param file file containing probe information
@@ -2917,8 +2926,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
       ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);
       getWorkspace().scanProbes (rtok);
       rtok.close();
-
-      myProbeFile = file;
 
       if (myTimeline != null) {
          myTimeline.requestResetAll();
@@ -2946,7 +2953,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       IndentingPrintWriter pw = ArtisynthIO.newIndentingPrintWriter (file);
       getWorkspace().writeProbes (pw, null);
-      myProbeFile = file;
       return true;
    }
 
@@ -3242,6 +3248,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
             myViewerManager.setCursor (getDefaultCursor());
             // myREnderDriver.setSelectionEnabled(true);
          }
+
+         if (mySelectionMode == SelectionMode.AddMarker) {
+            // switching out of a marker selection ...
+            myViewerManager.setSelectOnPress (false);
+            mySelectionManager.removeSelectionListener (myAddMarkerHandler);
+            myViewerManager.removeMouseListener (myAddMarkerHandler);
+         }
+         else if (mySelectionMode == SelectionMode.Pull) {
+            // switching out of a Pull selection ...
+            myViewerManager.setSelectOnPress (false);
+            RootModel root = getRootModel();
+            if (root != null) {
+               root.removeController (myPullController);
+            }
+            mySelectionManager.removeSelectionListener (myPullController);
+            //myViewerManager.removeRenderable (myPullController);
+            myViewerManager.removeMouseListener (myPullController);
+         }
+
          if (selectionMode == SelectionMode.Pull) {
             // switching into a Pull selection ...
             myViewerManager.setSelectOnPress (true);
@@ -3255,30 +3280,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
                root.addController (myPullController, findMechSystem(root));
             }
          }
-         else if (mySelectionMode == SelectionMode.Pull) {
-            // switching out of a Pull selection ...
-            myViewerManager.setSelectOnPress (false);
-            RootModel root = getRootModel();
-            if (root != null) {
-               root.removeController (myPullController);
-            }
-            mySelectionManager.removeSelectionListener (myPullController);
-            //myViewerManager.removeRenderable (myPullController);
-            myViewerManager.removeMouseListener (myPullController);
-         }
-         if (selectionMode == SelectionMode.AddMarker) {
+         else if (selectionMode == SelectionMode.AddMarker) {
             // switching into a marker selection ...
             myViewerManager.setSelectOnPress (true);
             myViewerManager.addMouseListener (myAddMarkerHandler);
             mySelectionManager.clearSelections();
             mySelectionManager.addSelectionListener (myAddMarkerHandler);
          }
-         else if (mySelectionMode == SelectionMode.AddMarker) {
-            // switching out of a marker selection ...
-            myViewerManager.setSelectOnPress (false);
-            mySelectionManager.removeSelectionListener (myAddMarkerHandler);
-            myViewerManager.removeMouseListener (myAddMarkerHandler);
-         }
+
          if (selectionMode == SelectionMode.EllipticSelect) {
             myViewerManager.setEllipticSelection (true);
          }

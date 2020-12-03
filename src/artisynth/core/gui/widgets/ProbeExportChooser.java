@@ -18,6 +18,7 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.filechooser.FileFilter;
 
 import artisynth.core.util.ArtisynthPath;
+import artisynth.core.util.ExtensionFileFilter;
 import artisynth.core.probes.*;
 import artisynth.core.probes.Probe.*;
 import maspack.widgets.*;
@@ -31,29 +32,8 @@ public class ProbeExportChooser extends JFileChooser
    implements ActionListener, PropertyChangeListener {
 
    private static final long serialVersionUID = 1L;
-   
-   class ExportFileFilter extends FileFilter {
 
-      ImportExportFileInfo myInfo;
-      
-      ExportFileFilter (ImportExportFileInfo info) {
-         myInfo = info;
-      }
-
-      public boolean accept (File file) {
-         return file.getName().endsWith (myInfo.getExt());
-      }
-
-      public String getDescription() {
-         return myInfo.getDescription() + " (*." + myInfo.getExt() + ")";
-      }
-
-      public String toString() {
-         return "ExportFileFilter for "+myInfo.getExt();
-      }
-   }
-
-   ExportFileFilter myCurrentFilter;
+   ExtensionFileFilter myCurrentFilter;
    Probe myProbe;
    JPanel myLastPanel;
    int myPropPanelIndex;
@@ -79,12 +59,12 @@ public class ProbeExportChooser extends JFileChooser
    public void propertyChange(PropertyChangeEvent evt) {
       if (JFileChooser.FILE_FILTER_CHANGED_PROPERTY.equals (
              evt.getPropertyName())) {
-         ExportFileFilter newFilter = null;
-         if (getFileFilter() instanceof ExportFileFilter) {
-            newFilter = (ExportFileFilter)getFileFilter();
+         ExtensionFileFilter newFilter = null;
+         if (getFileFilter() instanceof ExtensionFileFilter) {
+            newFilter = (ExtensionFileFilter)getFileFilter();
          }
          if (myCurrentFilter != newFilter) {
-            updatePropPanel (newFilter);
+            updatePropPanel (newFilter.getExtensions()[0]);
             myCurrentFilter = newFilter;
          }
       }
@@ -107,7 +87,7 @@ public class ProbeExportChooser extends JFileChooser
       }
    }
 
-   private void updatePropPanel (ExportFileFilter filter) {
+   private void updatePropPanel (String extension) {
       if (myLastPanel != null) {
          restorePropertyValues();
          myControls.clear();
@@ -117,7 +97,7 @@ public class ProbeExportChooser extends JFileChooser
             myLastPanel.remove (myPropPanelIndex);
             myLastPanel.remove (myPropPanelIndex);
          }
-         ExportProps props = myProbe.getExportProps (filter.myInfo.getExt());
+         ExportProps props = myProbe.getExportProps (extension);
          if (props != null) {
             PropertyPanel propPanel = new PropertyPanel();
             for (PropertyInfo info : props.getAllPropertyInfo()) {
@@ -173,7 +153,10 @@ public class ProbeExportChooser extends JFileChooser
       addPropertyChangeListener (this);
 
       for (ImportExportFileInfo info : fileInfo) {
-         ExportFileFilter filter = new ExportFileFilter (info);
+         String description =
+            info.getDescription() + " (*." + info.getExt() + ")";
+         ExtensionFileFilter filter =
+            new ExtensionFileFilter (description, info.getExt());
          if (file != null &&
              ArtisynthPath.getFileExtension(file).equalsIgnoreCase (
                 info.getExt())){
@@ -185,7 +168,7 @@ public class ProbeExportChooser extends JFileChooser
          setFileFilter (myCurrentFilter);
       }
       else {
-         myCurrentFilter = (ExportFileFilter)getFileFilter();
+         myCurrentFilter = (ExtensionFileFilter)getFileFilter();
       }
 
       int lastPanelIndex = getLastJPanelIndex (this);
@@ -193,12 +176,12 @@ public class ProbeExportChooser extends JFileChooser
          myLastPanel = (JPanel)getComponent(lastPanelIndex);
          myPropPanelIndex = getLastJPanelIndex (myLastPanel);
       }
-      updatePropPanel (myCurrentFilter);
+      updatePropPanel (myCurrentFilter.getExtensions()[0]);
    }
 
    public String getSelectedExt() {
-      if (getFileFilter() instanceof ExportFileFilter) {
-         return ((ExportFileFilter)getFileFilter()).myInfo.getExt();
+      if (getFileFilter() instanceof ExtensionFileFilter) {
+         return ((ExtensionFileFilter)getFileFilter()).getExtensions()[0];
       }
       else {
          return null;

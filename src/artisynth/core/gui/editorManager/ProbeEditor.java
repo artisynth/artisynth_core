@@ -13,6 +13,7 @@ import java.awt.Window;
 import javax.swing.*;
 
 import artisynth.core.modelbase.*;
+import artisynth.core.workspace.RootModel;
 import artisynth.core.driver.Main;
 import artisynth.core.probes.*;
 import artisynth.core.util.ArtisynthPath;
@@ -66,10 +67,10 @@ public class ProbeEditor extends EditorBase {
             actions.add (this, "Load data from ...");
          }
          if (allHaveExportFiles) {
-            actions.add (this, "Export");
+            actions.add (this, "Export data");
          }
          if (selection.size() == 1) {
-            actions.add (this, "Export as ...");
+            actions.add (this, "Export data as ...");
          }
          if (allNumeric && myMain.hasMatlabConnection()) {
             actions.add (this, "Save to MATLAB");
@@ -118,7 +119,7 @@ public class ProbeEditor extends EditorBase {
             loadDataFrom ((Probe)selection.get(0), myMain.getMainFrame());
             myMain.rerender();
          }
-         else if (actionCommand.equals ("Export")) {
+         else if (actionCommand.equals ("Export data")) {
             for (ModelComponent c : selection) {
                Probe probe = (Probe)c;
                if (!export (probe, myMain.getMainFrame())) {
@@ -126,7 +127,7 @@ public class ProbeEditor extends EditorBase {
                }
             }
          }
-         else if (actionCommand.equals ("Export as ...")) {
+         else if (actionCommand.equals ("Export data as ...")) {
             exportAs ((Probe)selection.get(0), myMain.getMainFrame());
          }
          else if (actionCommand.equals ("Save to MATLAB")) {
@@ -278,6 +279,40 @@ public class ProbeEditor extends EditorBase {
       }
    }
 
+   static public boolean saveAllInputData (RootModel root, Window win) {
+      for (Probe probe : root.getInputProbes()) {
+         if (!saveData (probe, win)) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   static public boolean saveAllOutputData (RootModel root, Window win) {
+      for (Probe probe : root.getOutputProbes()) {
+         if (!saveData (probe, win)) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   static public boolean saveWayPointData (RootModel root, Window win) {
+      WayPointProbe wayPoints = root.getWayPoints();
+      try {
+         wayPoints.save();
+      }
+      catch (IOException e) {
+         GuiUtils.showError (
+            win, 
+            "Error saving waypoints to \"" + wayPoints.getAttachedFile() +
+            "\":\n" + e.getMessage());
+         wayPoints.setAttachedFileName (null);
+         return false;
+      }
+      return true;
+   }
+
    static public void saveDataAs (Probe probe, Window win) {
       File current = null;
       String workspace = new String (ArtisynthPath.getWorkingDirPath());
@@ -286,7 +321,7 @@ public class ProbeEditor extends EditorBase {
       if (current == null) {
          current = new File (workspace);
       }
-      File file = chooseFile (win, current, JFileChooser.FILES_ONLY, "Save");
+      File file = chooseFile (win, current, JFileChooser.FILES_ONLY, "Save As");
       if (file != null) {
          if (file.exists() && !GuiUtils.confirmOverwrite (win, file)) {
             return;
@@ -335,7 +370,7 @@ public class ProbeEditor extends EditorBase {
 
    static public void exportAs (Probe probe, Window win) {
       ProbeExportChooser chooser = new ProbeExportChooser (probe);
-      if (chooser.showDialog (win, "Export As") ==
+      if (chooser.showDialog (win, "Export data as") ==
           JFileChooser.APPROVE_OPTION) {
          String oldPath = probe.getExportFileName();
          File file = chooser.getSelectedFile();
@@ -362,4 +397,70 @@ public class ProbeEditor extends EditorBase {
          }         
       }
    }
+
+   private static File selectFile (
+      String approveMsg, File existingFile, Window win) {
+      File dir = ArtisynthPath.getWorkingDir(); // is always non-null
+
+      JFileChooser chooser = new JFileChooser(dir);
+      if (existingFile != null) {
+         chooser.setSelectedFile (existingFile);
+         chooser.setCurrentDirectory (existingFile);
+      }
+      int retval = chooser.showDialog (win, approveMsg);
+      return ((retval == JFileChooser.APPROVE_OPTION) ?
+         chooser.getSelectedFile() : null);
+   }
+
+   public static boolean saveProbes (Main main, Window win) {
+      File probeFile = main.getProbesFile();
+      if (probeFile != null) {
+         try {
+            main.saveProbesFile(probeFile);
+            return true;
+         }
+         catch (IOException e) {
+            GuiUtils.showError (win, "Error writing "+probeFile.getPath(), e);
+            main.setProbesFile (null);
+         }
+      }
+      return false;
+   }
+
+   public static boolean saveProbesAs (Main main, Window win) {
+      File probeFile = selectFile("Save As", main.getProbesFile(), win);
+      if (probeFile != null) {
+         if (probeFile.exists()) {
+            if (!GuiUtils.confirmOverwrite (win, probeFile)) {
+               return false;
+            }
+         }
+         try {
+            main.saveProbesFile (probeFile);
+            main.setProbesFile (probeFile);
+            return true;
+         }
+         catch (IOException e) {
+            GuiUtils.showError (win, "Error writing "+probeFile.getPath(), e);
+         }
+      }
+      return false;
+   }
+
+   public static boolean loadProbes (Main main, Window win) {
+      File probeFile = selectFile("Load", main.getProbesFile(), win);
+      if (probeFile != null) {
+         try {
+            main.loadProbesFile(probeFile);
+            main.setProbesFile (probeFile);
+            return true;
+         }
+         catch (IOException e) {
+            GuiUtils.showError (win, "Error reading "+probeFile.getPath(), e);
+         }
+      }
+      return false;
+   }
+
+   
 }

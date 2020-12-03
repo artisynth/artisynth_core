@@ -37,7 +37,7 @@ public abstract class Timeline extends JFrame {
    //public abstract void fastForwardTimeline();
    //   public abstract void addWayPointFromRoot (WayPoint way);
    public abstract void removeWayPointFromRoot (WayPoint way);
-   public abstract void saveAllProbes();
+   //public abstract void saveAllProbes();
    public abstract void addProbeEditor (NumericProbeEditor editor);
    public abstract void setAllTracksExpanded (boolean expanded);
    public abstract void updateComponentLocations();
@@ -50,7 +50,6 @@ public abstract class Timeline extends JFrame {
 
    public abstract boolean setWayPointsFileFromUser(JFrame frame, String text);
    public abstract boolean loadWayPointsFromAttachedFile(JFrame frame);
-   public abstract boolean saveWayPointsToAttachedFile(JFrame frame);
    public abstract boolean refreshWayPoints(RootModel root);
    public abstract void clearWayPoints();
    

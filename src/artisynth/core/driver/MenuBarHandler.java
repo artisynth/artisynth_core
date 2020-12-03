@@ -47,12 +47,14 @@ import javax.swing.filechooser.FileFilter;
 
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.editorManager.Command;
+import artisynth.core.gui.editorManager.ProbeEditor;
 import artisynth.core.gui.editorManager.RemoveComponentsCommand;
 import artisynth.core.gui.probeEditor.InputNumericProbeEditor;
 import artisynth.core.gui.probeEditor.NumericProbeEditor;
 import artisynth.core.gui.probeEditor.OutputNumericProbeEditor;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.timeline.GuiStorage;
+import artisynth.core.gui.widgets.ImageFileChooser;
 import artisynth.core.inverse.InverseManager;
 import artisynth.core.inverse.TrackingController;
 import artisynth.core.mechmodels.MechModel;
@@ -146,7 +148,7 @@ ModelActionListener {
    protected int myGridDisplayIndex;
    protected JMenuBar myMenuBar;
    protected JPanel myToolBar;
-   protected JFileChooser myViewerImageFileChooser = null;
+   protected File myViewerImageFile = null;
    protected final JColorChooser colorChooser = new JColorChooser();
    protected JMenu myApplicationMenu;
    protected boolean myApplicationMenuAddedP = false;
@@ -812,52 +814,54 @@ ModelActionListener {
       myMain.getUndoManager().undoLastCommand();
    }
 
-   /**
-    * save the probes
-    * 
-    */
-   private void doSaveProbes() {
-      File probeFile = myMain.getProbesFile();
-      if (probeFile != null) {
-         try {
-            myMain.saveProbesFile(probeFile);
-         } catch (IOException e) {
-            e.printStackTrace();
-            GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath());
-         }
-         // also save all probe data files
-         myMain.getTimeline().saveAllProbes();        
+   // /**
+   //  * save the probes
+   //  * 
+   //  */
+   // private void doSaveProbes() {
+   //    File probeFile = myMain.getProbesFile();
+   //    if (probeFile != null) {
+   //       try {
+   //          myMain.saveProbesFile(probeFile);
+   //       }
+   //       catch (IOException e) {
+   //          GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath(), e);
+   //          myMain.setProbesFile (null);
+   //       }
+   //    }
+   // }
+
+   // private void doSaveProbesAs() {
+   //    File probeFile = selectFile("Save As", myMain.getProbesFile());
+   //    if (probeFile != null) {
+   //       if (probeFile.exists()) {
+   //          if (!GuiUtils.confirmOverwrite (myFrame, probeFile)) {
+   //             return;
+   //          }
+   //       }
+   //       try {
+   //          myMain.saveProbesFile (probeFile);
+   //          myMain.setProbesFile (probeFile);
+   //       }
+   //       catch (IOException e) {
+   //          GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath(), e);
+   //       }
+   //    }
+   // }
+
+   private void doSaveOutputProbeData() {
+      RootModel root = myMain.getRootModel();
+      if (root != null) {
+         ProbeEditor.saveAllOutputData (root, myFrame);
       }
    }
 
-   private void doSaveProbesAs() {
-      File probeFile = selectFile("Save", myMain.getProbesFile());
-      if (probeFile != null) {
-         try {
-            myMain.saveProbesFile(probeFile);
-         } catch (IOException e) {
-            e.printStackTrace();
-            GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath());
-         }
-         // also save all probe data files
-         myMain.getTimeline().saveAllProbes();
-      }
-   }
-
-   /**
-    * load the probes into the model
-    */
-
-   private void doLoadProbes() {
-      File probeFile =
-      selectFile("Load", null/* always select from working dir */);
-      if (probeFile != null) {
-         try {
-            myMain.loadProbesFile(probeFile);
-         } catch (IOException e) {
-            e.printStackTrace();
-            GuiUtils.showError (myFrame, "Error reading "+probeFile.getPath());
-         }
+   private void doSaveAllProbeData() {
+      RootModel root = myMain.getRootModel();
+      if (root != null) {
+         ProbeEditor.saveAllInputData (root, myFrame);
+         ProbeEditor.saveAllOutputData (root, myFrame);
+         ProbeEditor.saveWayPointData (root, myFrame);
       }
    }
 
@@ -867,8 +871,8 @@ ModelActionListener {
       chooser.setApproveButtonText(approveMsg);
       chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
       int retval;
-      if (approveMsg == "Save") {
-         retval = chooser.showSaveDialog(myFrame);
+      if (approveMsg.startsWith ("Save")) {
+         retval = chooser.showDialog (myFrame, approveMsg);
       }
       else {
          retval = chooser.showOpenDialog(myFrame);
@@ -921,11 +925,11 @@ ModelActionListener {
     * save the probes in a new directory
     */
    private void newSaveProbesIn() {
-      File dir = selectProbeDir("Save", myMain.getProbeDirectory());
+      File dir = selectProbeDir("Save As", myMain.getProbeDirectory());
       if (dir != null) {
          if (saveProbesFile(dir)) {
             myMain.setProbeDirectory(dir);
-            myMain.getTimeline().saveAllProbes();
+            doSaveAllProbeData();
          }
       }
    }
@@ -935,7 +939,7 @@ ModelActionListener {
     */
    private void newSaveProbes() {
       if (saveProbesFile(myMain.getProbeDirectory())) {
-         myMain.getTimeline().saveAllProbes();
+         doSaveAllProbeData();
       }
    }
 
@@ -955,10 +959,9 @@ ModelActionListener {
     */
    private void doSaveWayPoints() {
       RootModel root = myMain.getRootModel();
-      if (root == null) {
-         return;
+      if (root != null) {
+         ProbeEditor.saveWayPointData (root, myFrame);
       }
-      myMain.getTimeline().saveWayPointsToAttachedFile (myFrame);
    }
 
    private void doSaveWayPointsAs() {
@@ -969,7 +972,7 @@ ModelActionListener {
       WayPointProbe wayPoints = root.getWayPoints();
       String oldFileName = wayPoints.getAttachedFileName();
       if (myMain.getTimeline().setWayPointsFileFromUser (myFrame, "Save As")) {
-         if (!myMain.getTimeline().saveWayPointsToAttachedFile (myFrame)) {
+         if (!ProbeEditor.saveWayPointData (root, myFrame)) {
             wayPoints.setAttachedFileName(oldFileName);
          }
       }
@@ -1029,71 +1032,31 @@ ModelActionListener {
    }
 
    private void saveViewerImage() {
-      JFileChooser chooser;
-      if ((chooser = myViewerImageFileChooser) == null) {
-         chooser = new JFileChooser();
-         chooser.setApproveButtonText("Save");
-         chooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
-
-         for (FileFilter ff : chooser.getChoosableFileFilters()) {
-            chooser.removeChoosableFileFilter(ff);
-         }
-
-         // create filters
-         String[] fmts = ImageIO.getWriterFormatNames();
-         for (String fmt : fmts) {
-            ExtensionFileFilter filter = 
-            new ExtensionFileFilter("." + fmt + " files", fmt);
-            chooser.addChoosableFileFilter(filter);
-         }
-
-         chooser.setFileFilter(chooser.getChoosableFileFilters()[0]);
-         myViewerImageFileChooser = chooser;
-      }
-      int returnVal = chooser.showSaveDialog(myFrame);
+      ImageFileChooser chooser = new ImageFileChooser (myViewerImageFile);
+      int returnVal = chooser.showValidatedDialog(myFrame, "Save");
       if (returnVal == JFileChooser.APPROVE_OPTION) {
-         ExtensionFileFilter filter =
-         (ExtensionFileFilter)chooser.getFileFilter();
-         String ext = filter.getExtensions()[0];
-         File file = chooser.getSelectedFile();
-
-         if (!file.getName().toLowerCase().endsWith(ext.toLowerCase())) {
-            file = new File(file.getPath() + "." + ext);
-         }
-
-         int confirmation = JOptionPane.YES_OPTION;
+         File file = chooser.getSelectedFileWithExtension();
+         boolean confirm = true;
          if (file.exists()) {
-            confirmation =
-            JOptionPane.showConfirmDialog(
-               myFrame, "File " + file.getName()
-               + " aleady exists. Proceed?",
-               "Confirm", JOptionPane.YES_NO_OPTION,
-               JOptionPane.QUESTION_MESSAGE);
+            confirm = GuiUtils.confirmOverwrite (myFrame, file);
          }
-         if (confirmation == JOptionPane.YES_OPTION) {
+         if (confirm) {
             GLViewer viewer = myMain.getViewer();
             viewer.setupScreenShot(
-               viewer.getScreenWidth(), viewer.getScreenHeight(), file, ext);
+               viewer.getScreenWidth(), viewer.getScreenHeight(),
+               file, chooser.getSelectedFileExtension());
             viewer.repaint();
-
-            // while (viewer.grabPending()) {
-            // try {
-            // Thread.sleep (10);
-            // }
-            // catch (Exception e){
-            // }
-            // }
          }
-
+         myViewerImageFile = file;
       }
    }
 
-   private void doSwitchWorkspace() {
+   private void doSetWorkingDirectory() {
       JFileChooser chooser = new JFileChooser();
       chooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
       chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
       chooser.setAcceptAllFileFilterUsed(false);
-      int returnVal = chooser.showDialog(myFrame, "Set directory");
+      int returnVal = chooser.showDialog(myFrame, "Set working directory");
       if (returnVal == JFileChooser.APPROVE_OPTION) {
          System.out.println(chooser.getSelectedFile());
          ArtisynthPath.setWorkingDir(chooser.getSelectedFile());
@@ -1471,8 +1434,8 @@ ModelActionListener {
       else if (cmd.equals("Load from class ...")) {
          doLoadFromClass();
       }
-      else if (cmd.equals("Switch workspace ...")) {
-         doSwitchWorkspace();
+      else if (cmd.equals("Set working directory ...")) {
+         doSetWorkingDirectory();
       }
       else if (cmd.equals("Open MATLAB connection")) {
          doOpenMatlab();
@@ -1481,13 +1444,16 @@ ModelActionListener {
          doCloseMatlab();
       }
       else if (cmd.equals("Load probes ...")) {
-         doLoadProbes();
+         ProbeEditor.loadProbes (myMain, myFrame);
       }
       else if (cmd.equals("Save probes")) {
-         doSaveProbes();
+         ProbeEditor.saveProbes (myMain, myFrame);
       }
       else if (cmd.equals("Save probes as ...")) {
-         doSaveProbesAs();
+         ProbeEditor.saveProbesAs (myMain, myFrame);
+      }
+      else if (cmd.equals("Save output probe data")) {
+         doSaveOutputProbeData();
       }
       else if (cmd.equals("Load probes from ...")) {
          newLoadProbesFrom();
@@ -2037,8 +2003,7 @@ ModelActionListener {
    }
 
    private void createFileMenu(JMenu menu) {
-      boolean rootModelExists = (myMain.getRootModel() != null);
-      boolean workspaceExists = (myMain.getWorkspace() != null);
+      boolean hasRootModel = (myMain.getRootModel() != null);
 
       JMenuItem item;
 
@@ -2049,7 +2014,7 @@ ModelActionListener {
       item.setEnabled(myMain.getModelFile() != null);
 
       item = addMenuItem(menu, "Save model as ...");
-      item.setEnabled(rootModelExists);
+      item.setEnabled(hasRootModel);
       menu.add(new JSeparator());
 
       item = addMenuItem(menu, "Reload model");
@@ -2071,10 +2036,15 @@ ModelActionListener {
          saveProbesItem = addMenuItem(menu, "Save probes", "Save probes new");
          saveProbesAsItem = addMenuItem(menu, "Save probes in ...");
       }
-      loadProbesItem.setEnabled(workspaceExists);
+      loadProbesItem.setEnabled(hasRootModel);
       saveProbesItem.setEnabled(
-         workspaceExists && myMain.getProbesFile() != null);
-      saveProbesAsItem.setEnabled(workspaceExists);
+         hasRootModel && myMain.getProbesFile() != null);
+      saveProbesAsItem.setEnabled(hasRootModel);
+
+      JMenuItem saveProbeDataItem =
+         addMenuItem(menu, "Save output probe data");
+      saveProbeDataItem.setEnabled(hasRootModel);
+
 
       menu.add(new JSeparator());
 
@@ -2086,15 +2056,15 @@ ModelActionListener {
 
       boolean hasWayPointFile = (myMain.getWayPointsFile() != null);
 
-      saveWayPointsItem.setEnabled(rootModelExists && hasWayPointFile);
-      saveWayPointsAsItem.setEnabled(rootModelExists);      
-      loadWayPointsItem.setEnabled(rootModelExists);
-      reloadWayPointsItem.setEnabled(rootModelExists && hasWayPointFile);
-      deleteWayPointsItem.setEnabled(rootModelExists);         
+      saveWayPointsItem.setEnabled(hasRootModel && hasWayPointFile);
+      saveWayPointsAsItem.setEnabled(hasRootModel);      
+      loadWayPointsItem.setEnabled(hasRootModel);
+      reloadWayPointsItem.setEnabled(hasRootModel && hasWayPointFile);
+      deleteWayPointsItem.setEnabled(hasRootModel);         
 
       menu.add(new JSeparator());
       addMenuItem(menu, "Save viewer image ...");
-      addMenuItem(menu, "Switch workspace ...");
+      addMenuItem(menu, "Set working directory ...");
 
       if (myMain.hasMatlabConnection()) {
          addMenuItem(menu, "Close MATLAB connection");
@@ -2108,27 +2078,27 @@ ModelActionListener {
    }
 
    private void createEditMenu(JMenu menu) {
-      boolean rootModelExists = (myMain.getRootModel() != null);
+      boolean hasRootModel = (myMain.getRootModel() != null);
 
       JMenuItem item;
 
       item = addMenuItem(menu, "Add input probe");
-      item.setEnabled(rootModelExists);
+      item.setEnabled(hasRootModel);
 
       item = addMenuItem(menu, "Add output probe");
-      item.setEnabled(rootModelExists);
+      item.setEnabled(hasRootModel);
 
       item = addMenuItem(menu, "Add control panel");
-      item.setEnabled(rootModelExists);
+      item.setEnabled(hasRootModel);
 
       item = addMenuItem(menu, "Load control panel");
-      item.setEnabled(rootModelExists);
+      item.setEnabled(hasRootModel);
 
       addMenuItem(menu, "Print selection");
 
       JMenuItem undoItem = makeMenuItem("Undo", "Undo");
       Command cmd = myMain.getUndoManager().getLastCommand();
-      if (cmd != null && rootModelExists) {
+      if (cmd != null && hasRootModel) {
          undoItem.setEnabled(true);
          String text = "Undo";
          if (cmd.getName() != null) {

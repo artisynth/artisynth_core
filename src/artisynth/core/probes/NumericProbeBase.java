@@ -48,7 +48,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    protected NumericConverter[] myConverters;
    protected PyStringMap myJythonLocals; // maintained by createDrivers
 
-   protected NumericProbePanel mySmallDisplay = null;
+   public NumericProbePanel mySmallDisplay = null;
    protected ArrayList<NumericProbePanel> myDisplays =
       new ArrayList<NumericProbePanel>();
    protected LegendDisplay myLegend = null;
@@ -138,7 +138,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       if (isLargeDisplay) {
          display = new NumericProbePanel (this);
          display.setLargeDisplay (true);
-         display.setDefaultDomain(); // reset for large display
+         display.setDefaultXRange(); // reset for large display
          myDisplays.add (display);
       }
       else {
@@ -308,7 +308,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
     */
    public void increaseDisplayRanges() {
       for (NumericProbePanel display : myDisplays)
-         display.increaseRange();
+         display.increaseYRange();
    }
 
    /**
@@ -316,12 +316,12 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
     */
    public void decreaseDisplayRanges() {
       for (NumericProbePanel display : myDisplays)
-         display.decreaseRange();
+         display.decreaseYRange();
    }
 
    public void applyDefaultDisplayRanges() {
       for (NumericProbePanel display : myDisplays) {
-         display.setAutoRange();
+         //display.setAutoRange();
          display.resetDisplay();
       }
    }
@@ -351,28 +351,12 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       return myNumericList.isEmpty();
    }
 
-   public double[] getRange() {
-      // double[] range = new double[] {
-      // Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
-
-      // Iterator<NumericListKnot> it = myNumericList.iterator();
-      // while(it.hasNext())
-      // {
-      // NumericListKnot knot = it.next();
-      // for(int v = 0; v < knot.v.size(); v++)
-      // {
-      // double value = knot.v.get(v);
-      // if(value < range[0])
-      // range[0] = value;
-      // if(value > range[1])
-      // range[1] = value;
-      // }
-      // }
-
+   public static double[] getRange (NumericList list) {
       double[] range = new double[2];
 
-      if (myNumericList != null)
-	 myNumericList.getMinMaxValues (range);
+      if (list != null) {
+         list.getMinMaxValues (range);
+      }
 
       if (Math.abs (range[0] - range[1]) < (Double.MIN_VALUE * 1e3)) {
          range[0] -= 1;
@@ -385,43 +369,32 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
 
       return range;
    }
-
-   public void setRangeHints (double[] ranges) {
-      myDefaultDisplayMin = ranges[2];
-      myDefaultDisplayMax = ranges[3];
+   
+   public double[] getRange() {
+      return getRange (myNumericList);
    }
 
-   public void getRangeHints (double[] ranges) {
-      ranges[0] = 0;
-      ranges[1] = 0;
-      ranges[2] = myDefaultDisplayMin;
-      ranges[3] = myDefaultDisplayMax;
-   }
+//   public void setRangeHints (double[] ranges) {
+//      myDefaultDisplayMin = ranges[2];
+//      myDefaultDisplayMax = ranges[3];
+//   }
+//
+//   public void getRangeHints (double[] ranges) {
+//      ranges[0] = 0;
+//      ranges[1] = 0;
+//      ranges[2] = myDefaultDisplayMin;
+//      ranges[3] = myDefaultDisplayMax;
+//   }
 
    /**
     * Scales the values of a numberic probe. Method added by Chad. author: Chad
     * Scales the values of a numberic probe.
     * 
-    * @param scale
+    * @param s scale factor
     * the parameter by which to scale the values.
     */
-   public void scaleNumericList (double scale) {
-      Iterator numericListIterator = myNumericList.iterator();
-      NumericListKnot datavalue = null;
-      VectorNd yVector = null;
-      double[] vectorArray = null;
-
-      while (numericListIterator.hasNext()) {
-         datavalue = (NumericListKnot)numericListIterator.next();
-         yVector = datavalue.v;
-         vectorArray = yVector.getBuffer();
-         for (int i = 0; i < yVector.size(); i++) {
-            // System.out.print(vectorArray[i]+ ",");
-            vectorArray[i] *= scale;
-            // System.out.println(vectorArray[i]);
-         }
-      }
-
+   public void scaleNumericList (double s) {
+      myNumericList.scale(s);
       updateDisplays();
    }
 
@@ -740,6 +713,10 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       myPlotTraceManager.resetTraceColors();
       updateDisplays();
    }
+   
+   public PlotTraceManager getTraceManager() {
+      return myPlotTraceManager;
+   }
 
    public void setTraceLabel (int idx, String label) {
       getPlotTraceInfo(idx).setLabel (label);
@@ -750,10 +727,11 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    }
 
    public LegendDisplay getLegend () {
-      if (myLegend == null) {
-         myLegend = new LegendDisplay (this);
-      }
       return myLegend;
+   }
+   
+   public void setLegend (LegendDisplay legend) {
+      myLegend = legend;
    }
 
    public void removeLegend () {

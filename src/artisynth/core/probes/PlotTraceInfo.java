@@ -37,6 +37,10 @@ public class PlotTraceInfo {
       public String getName() {
          return myName;
       }
+      
+      public TraceColor copy() {
+         return new TraceColor (myName, getRed(), getGreen(), getBlue());
+      }
    }
 
    private static TraceColor[] myPaletteColors = new TraceColor[] {
@@ -88,6 +92,13 @@ public class PlotTraceInfo {
       myLabel = label;
       myColor = color;
       myVisible = visible;
+   }
+   
+   public PlotTraceInfo (PlotTraceInfo info) {
+      myOrder = info.myOrder;
+      myLabel = info.myLabel;
+      myColor = info.myColor;
+      myVisible = info.myVisible;
    }
 
    public int getOrder() {

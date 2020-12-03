@@ -30,20 +30,34 @@ import maspack.widgets.ValueChangeListener;
 
 public class LegendDisplay extends PropertyFrame {
    
-   private NumericProbeBase myProbe;
-   private JButton myCloseButton;
+   private PlotTraceManager myTraceManager;
+   
    private boolean myLabelsEditable = false;
-
+   private NumericProbePanel myDataPanel;
+   
    private LabeledComponent myCaption;
    private JLabel myColorLabel;
    private JLabel myVisibleLabel;
 
-   public LegendDisplay (NumericProbeBase probe) {
+   /**
+    * Create a LegendDisplay for data associated with a panel
+    * showing numeric probe data.
+    * 
+    * @param panel panel displaying the data
+    * @param traceManager manager for the data plot traces
+    */  
+   public LegendDisplay (
+      NumericProbePanel panel, PlotTraceManager traceManager) {
       super ("Display legend");
+      myDataPanel = panel;
+      myTraceManager = traceManager;
+      build();
+   }
+   
+   protected void build() {
       initialize();
       addOptionPanel ("Close");
       setPanel (new Panel());
-      myProbe = probe;
 
       myCaption = createCaptionWidget();
 
@@ -53,9 +67,13 @@ public class LegendDisplay extends PropertyFrame {
       //enableAutoRerendering (true);
       setDefaultCloseOperation (DISPOSE_ON_CLOSE);
       addComponentListener (new ResizeHandler());
-      pack();
+      pack();     
    }
 
+   void updateDisplaysWithoutAutoRanging() {
+      myDataPanel.updateDisplaysWithoutAutoRanging();
+   }
+   
    LabeledComponent createCaptionWidget() {
       LabeledComponent caption = new LabeledComponent (" ");
       myColorLabel = new JLabel ("color");
@@ -72,9 +90,9 @@ public class LegendDisplay extends PropertyFrame {
 
    private void buildWidgets() {
       addWidget (myCaption);
-      for (int order=0; order<myProbe.getVsize(); order++) {
-         int index = myProbe.getOrderedTraceIndex(order);
-         PlotTraceInfo pti = myProbe.getPlotTraceInfo (index);
+      for (int order=0; order<myTraceManager.numTraces(); order++) {
+         int index = myTraceManager.getOrderedTraceIndex(order);
+         PlotTraceInfo pti = myTraceManager.getTraceInfo (index);
          Widget widget = new Widget (pti, index);
          if (myLabelsEditable) {
             widget.setLabelEditable (true);
@@ -91,7 +109,9 @@ public class LegendDisplay extends PropertyFrame {
 
    public void dispose() {
       super.dispose();
-      myProbe.removeLegend();
+      if (myDataPanel != null) {
+         myDataPanel.removeLegend();
+      }
    }
 
    private class ResizeHandler extends ComponentAdapter {
@@ -145,7 +165,8 @@ public class LegendDisplay extends PropertyFrame {
       protected void moveWidgets (JComponent comp) {
          super.moveWidgets (comp);
          Component[] comps = getComponents();
-         int[] indices = new int[myProbe.getVsize()];
+         int numTraces = myTraceManager.numTraces();
+         int[] indices = new int[numTraces];
          int order = 0;
          for (int i=0; i<comps.length; i++) {
             if (comps[i] instanceof Widget) {
@@ -157,17 +178,13 @@ public class LegendDisplay extends PropertyFrame {
                indices[order++] = idx;
             }         
          }
-         if (order != myProbe.getVsize()) {
+         if (order != numTraces) {
             throw new InternalErrorException (
-               "Number of widgets = " + order +
-               ", number of traces=" + myProbe.getVsize());
+               "Number of widgets = "+order+", number of traces="+numTraces);
          }
-         myProbe.setTraceOrder (indices);      
+         myTraceManager.setTraceOrder (indices);
+         updateDisplaysWithoutAutoRanging();
       }
-
-      //      public void resetMaxLabelWidth () {
-      //         super.resetMaxLabelWidth();
-      //}
 
       public Widget getFirstWidget() {
          for (int i=0; i<getComponentCount(); i++) {
@@ -223,9 +240,10 @@ public class LegendDisplay extends PropertyFrame {
       private boolean myLabelIsEditable;
 
       Widget (PlotTraceInfo pti, int idx) {
-         super (myProbe.getTraceLabel(idx), myProbe.getTraceColor(idx));
+         super (myTraceManager.getTraceLabel(idx), 
+                myTraceManager.getTraceColor(idx));
          myVisibilitySelector =
-            new BooleanSelector ("", myProbe.isTraceVisible(idx));
+            new BooleanSelector ("", myTraceManager.isTraceVisible(idx));
          addMajorComponent (myVisibilitySelector);
          addValueChangeListener (this);
          myVisibilitySelector.addValueChangeListener (this);
@@ -236,15 +254,18 @@ public class LegendDisplay extends PropertyFrame {
 
       public void valueChange (ValueChangeEvent e) {
          if (e.getSource() == this) {
-            myProbe.setTraceColor (myPlotTraceIdx, getColor());
+            myTraceManager.setTraceColor (myPlotTraceIdx, getColor());
+            updateDisplaysWithoutAutoRanging();
          }
          else if (e.getSource() == myVisibilitySelector) {
-            myProbe.setTraceVisible (
+            myTraceManager.setTraceVisible (
                myPlotTraceIdx, myVisibilitySelector.getBooleanValue());
+            updateDisplaysWithoutAutoRanging();
          }
          else if (e.getSource() == myLabelField) {
-            myProbe.setTraceLabel (
+            myTraceManager.setTraceLabel (
                myPlotTraceIdx, myLabelField.getStringValue());
+            updateDisplaysWithoutAutoRanging();
          }
          else {
             throw new InternalErrorException (
@@ -266,7 +287,7 @@ public class LegendDisplay extends PropertyFrame {
          if (enable != myLabelIsEditable) {
             if (enable) {
                myLabelField = new StringField (
-                  "", myProbe.getTraceLabel(myPlotTraceIdx), 20);
+                  "", myTraceManager.getTraceLabel(myPlotTraceIdx), 20);
                myLabelField.setStretchable (true);
                setStretchable (true);
                myLabelField.addValueChangeListener (this);
@@ -277,7 +298,7 @@ public class LegendDisplay extends PropertyFrame {
                myLabelField.dispose();
                setStretchable (false);
                removeMajorComponent (myLabelField);
-               setLabelText (myProbe.getTraceLabel(myPlotTraceIdx));
+               setLabelText (myTraceManager.getTraceLabel(myPlotTraceIdx));
             }
             myLabelIsEditable = enable;
          }

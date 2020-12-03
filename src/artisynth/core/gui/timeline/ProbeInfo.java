@@ -906,13 +906,13 @@ public class ProbeInfo implements Clonable, ActionListener {
       myLoadItem.addActionListener (this);
       myLoadItem.setActionCommand ("Load data");
 
-      JMenuItem myExportItem = new JMenuItem ("Export");
+      JMenuItem myExportItem = new JMenuItem ("Export data");
       myExportItem.addActionListener (this);
-      myExportItem.setActionCommand ("Export");
+      myExportItem.setActionCommand ("Export data");
 
-      JMenuItem myExportAsItem = new JMenuItem ("Export as ...");
+      JMenuItem myExportAsItem = new JMenuItem ("Export data as ...");
       myExportAsItem.addActionListener (this);
-      myExportAsItem.setActionCommand ("Export as");
+      myExportAsItem.setActionCommand ("Export data as");
 
       // JMenuItem myImportItem = new JMenuItem ("Import");
       // myImportItem.addActionListener (this);
@@ -1158,10 +1158,10 @@ public class ProbeInfo implements Clonable, ActionListener {
       else if (nameOfAction == "Save to MATLAB") {
          saveToMatlab(myProbe);
       }
-      else if (nameOfAction == "Export") {
+      else if (nameOfAction == "Export data") {
          ProbeEditor.export (myProbe, myController);
       }
-      else if (nameOfAction == "Export as") {
+      else if (nameOfAction == "Export data as") {
          ProbeEditor.exportAs (myProbe, myController);
       }
       else if (nameOfAction == "Set") {
@@ -1625,11 +1625,11 @@ public class ProbeInfo implements Clonable, ActionListener {
 
             // reset the display times of the probe if they exist
             if (pInfo.smallDisplay != null) {
-               pInfo.smallDisplay.setDefaultDomain();
+               pInfo.smallDisplay.setDefaultXRange();
             }
 
             if (pInfo.largeDisplay != null) {
-               pInfo.largeDisplay.getPanel().setDefaultDomain();
+               pInfo.largeDisplay.getPanel().setDefaultXRange();
             }
          }
          myController.requestUpdateWidgets();

@@ -24,32 +24,32 @@ public interface Displayable {
    // */
    // public void display (Component c, Graphics g);
 
-   /**
-    * Gets the range hints associated with this displayable object. Ranges hints
-    * that are unused should be given values of 0.
-    * 
-    * @param ranges
-    * range hints. The first and second elements are the minimum and maximum
-    * horizontal values, and the third and fourth elements are the minimun and
-    * maximum vertical values.
-    * @see #setRangeHints
-    */
+//   /**
+//    * Gets the range hints associated with this displayable object. Ranges hints
+//    * that are unused should be given values of 0.
+//    * 
+//    * @param ranges
+//    * range hints. The first and second elements are the minimum and maximum
+//    * horizontal values, and the third and fourth elements are the minimun and
+//    * maximum vertical values.
+//    * @see #setRangeHints
+//    */
+//
+//   public void getRangeHints (double[] ranges);
+//
+//   /**
+//    * Sets the range hints associated with this displayable object. This is
+//    * optional information which specifies minimum and maximum values in both
+//    * the horizontal and vertical directions.
+//    * 
+//    * @param ranges
+//    * range hints. The first and second elements are the minimum and maximum
+//    * horizontal values, and the third and fourth elements are the minimun and
+//    * maximum vertical values.
+//    * @see #getRangeHints
+//    */
 
-   public void getRangeHints (double[] ranges);
-
-   /**
-    * Sets the range hints associated with this displayable object. This is
-    * optional information which specifies minimum and maximum values in both
-    * the horizontal and vertical directions.
-    * 
-    * @param ranges
-    * range hints. The first and second elements are the minimum and maximum
-    * horizontal values, and the third and fourth elements are the minimun and
-    * maximum vertical values.
-    * @see #getRangeHints
-    */
-
-   public void setRangeHints (double[] ranges);
+//   public void setRangeHints (double[] ranges);
 
    // myProbe is needed by large probe display to refresh the small display
    public JPanel getDisplay (

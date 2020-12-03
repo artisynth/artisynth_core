@@ -59,7 +59,7 @@ public class PlotTraceManager {
       myPlotTraceOrdering = new int[16];
       myDefaultPrefix = defaultPrefix;
    }
-
+   
    private void growOrderingListIfNecessary (int size) {
       if (myPlotTraceOrdering.length < size) {
          int[] newlist = new int[(size*5)/4];
@@ -117,6 +117,7 @@ public class PlotTraceManager {
          myPlotTraceOrdering[idx] = idx;
       }
    }
+ 
 
    private String getFullName (Object propOrDimen, int idx) {
       if (propOrDimen instanceof Integer) {
@@ -252,6 +253,10 @@ public class PlotTraceManager {
       }
    }
 
+   public int numTraces() {
+      return myPlotTraceList.size();
+   }
+   
    public PlotTraceInfo getTraceInfo (int idx) {
       checkBounds (idx);
       return myPlotTraceList.get (idx);
@@ -328,6 +333,14 @@ public class PlotTraceManager {
       return myPlotTraceList.get(idx).getColor();
    }
 
+   public void setTraceLabel (int idx, String label) {
+      myPlotTraceList.get(idx).setLabel (label);
+   }
+
+   public String getTraceLabel (int idx) {
+      return myPlotTraceList.get(idx).getLabel();
+   }
+
    public void rebuild (Object[] propsOrDimens, PlotTraceInfo[] allInfos) {
       
       myPlotTraceMap.clear();
@@ -388,7 +401,20 @@ public class PlotTraceManager {
       }
    }
 
-
+   public PlotTraceManager copy() {
+      PlotTraceManager ptm = new PlotTraceManager(myDefaultPrefix);
+      for (Map.Entry<Object,PlotTraceInfo[]> entry : 
+           myPlotTraceMap.entrySet()) {
+         ptm.myPlotTraceMap.put (entry.getKey(), entry.getValue());
+      }
+      for (PlotTraceInfo pti : myPlotTraceList) {
+         ptm.myPlotTraceList.add (new PlotTraceInfo(pti));
+      }
+      ptm.myPlotTraceOrdering = ArraySupport.copy (myPlotTraceOrdering);
+      ptm.myFreeColorIdx = myFreeColorIdx;
+      ptm.myFreeColors.addAll (myFreeColors);
+      return ptm;
+   }
    // describing the possible changes that can be made to an
    // existing set of variables:
 

@@ -16,34 +16,56 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
-import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.Toolkit;
+import java.awt.Shape;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.Iterator;
+import java.util.ArrayList;
+import java.io.*;
 
+import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
+import javax.swing.JMenu;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import javax.swing.event.MouseInputListener;
+import javax.imageio.ImageIO;
 
 import maspack.interpolation.Interpolation;
+import maspack.interpolation.Interpolation.Order;
 import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
 import maspack.matrix.VectorNd;
-import maspack.widgets.GuiUtils;
+import maspack.matrix.Point2d;
+import maspack.widgets.*;
+import maspack.util.*;
+import maspack.properties.*;
 import artisynth.core.driver.Main;
 import artisynth.core.probes.NumericProbeBase;
 import artisynth.core.probes.PlotTraceInfo;
+import artisynth.core.probes.PlotTraceManager;
 import artisynth.core.probes.Probe;
 import artisynth.core.util.ArtisynthPath;
+import artisynth.core.util.ExtensionFileFilter;
+import artisynth.core.gui.widgets.ImageFileChooser;
+import artisynth.core.gui.DataRenderer.TextAlign;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
 
 /**
  * @author Chad Added to display a thin line for outputprobes, and not to
@@ -53,13 +75,19 @@ import artisynth.core.util.ArtisynthPath;
  * @version 2.0 reimplemented May 10/2006
  */
 
-public class NumericProbePanel extends JPanel {
+public class NumericProbePanel extends JPanel
+   implements HasProperties, ValueChangeListener {
    // private NumericProbeDisplayLarge largeDisplayToUpdate = null;
 
-   Double xTime = null, yTime = null;
-   Integer xPosition = null, yPosition = null;
-   VectorNd yVector = new VectorNd();
-   int[] drawOrder;
+   // indices into the margins array:
+   private static final int LEFT = 0;
+   private static final int RIGHT = 1;
+   private static final int TOP = 2;
+   private static final int BOTTOM = 3;
+
+   private static final double EPS = 1e-15;
+
+   float[] myMargins = new float[4];
 
    public static Color DARK_GREEN = new Color (0f, 0.5f, 0f);
    public static Color DarkOliveGreen = new Color (85, 107, 47);
@@ -69,10 +97,38 @@ public class NumericProbePanel extends JPanel {
    public static Color NavajoWhite = new Color (255, 222, 173);
    public static Color PeachPuff = new Color (255, 218, 185);
 
-   boolean largeDisplay = false;
+   boolean myLargeDisplay = false;
    // Virtual time means that the time scale is in probe virtual coordinates.
    // Otherwise, it is in timeline coordinates.
-   boolean useVirtualTime = false;
+   protected boolean useVirtualTime = true;
+
+   // properties
+
+   protected static final boolean DEFAULT_AUTO_RANGING = true;
+   protected boolean myAutoRangingP = DEFAULT_AUTO_RANGING;
+
+   protected static final boolean DEFAULT_DRAW_GRID = false;
+   protected boolean myDrawGrid = DEFAULT_DRAW_GRID;
+
+   protected static final int DEFAULT_TICK_LENGTH = 4;
+   protected int myTickLength = DEFAULT_TICK_LENGTH;
+
+   protected static final int DEFAULT_LINE_WIDTH = 1;
+   protected int myLineWidth = DEFAULT_LINE_WIDTH;
+
+   protected static final int DEFAULT_KNOT_SIZE = 5;
+   protected int myKnotSize = DEFAULT_KNOT_SIZE;
+
+   protected static final boolean DEFAULT_KNOTS_VISIBLE = false;
+   protected boolean myKnotsVisible = DEFAULT_KNOTS_VISIBLE;
+
+   protected static DoubleInterval DEFAULT_X_RANGE = new DoubleInterval(0,1);
+   protected DoubleInterval myXRange = new DoubleInterval(DEFAULT_X_RANGE);
+
+   protected static DoubleInterval DEFAULT_Y_RANGE = new DoubleInterval(-1,1);
+   protected DoubleInterval myYRange = new DoubleInterval(DEFAULT_Y_RANGE);
+   // if true, do not disable auto ranging when setting YRange
+   protected boolean myMaskAutoRangingDisable = false;
 
    // colors used for plotting
    public static Color[] colorList =
@@ -80,17 +136,27 @@ public class NumericProbePanel extends JPanel {
        DarkOrange, Color.PINK, BlueViolet, NavajoWhite, Color.GRAY,
        DarkOliveGreen, IndianRed, DarkOrange };
 
-   public Color[] myColorList;
+   protected enum CursorMode {
+      SELECT,
+      ZOOM_IN,
+      ZOOM_OUT,
+      TRANSLATE
+   };
 
-   // this is the probe obejct
-   // the probe object
-   NumericProbeBase myProbe = null;
+   NumericProbeBase myProbe = null;  // probe associated with panel data
+   
+   // data and associated parameters for when there is no probe: 
+   NumericList myNumericList;
+   PlotTraceManager myTraceManager;
+   double myScale = 1.0;
+   double myStartTime = 0.0;
+   double myStopTime = 1.0;
+   boolean myInputDataP = true;
+   
    //ProbeInfo myProbeInfo = null;
 
    // cache this value to see if we need to redraw when interpolation changes
    Interpolation.Order myLastInterpolationOrder = null;
-
-   protected Boolean[] skipIndicies;
 
    // ===========================================================
    // swing components and handlers
@@ -98,8 +164,10 @@ public class NumericProbePanel extends JPanel {
 
    protected DisplayListener displayListener;
    protected WheelListener wheelListener;
-   protected boolean drawKnotsP;
-   private NumericProbeRangeSelectorDialog newRangeSelector;
+
+   protected PropertyDialog myPropertyDialog = null;
+   protected LegendDisplay myLegendDisplay = null;
+   protected File myExportFile = null;
 
    // ===========================================================
    // variables needed for editing
@@ -107,8 +175,6 @@ public class NumericProbePanel extends JPanel {
 
    protected NumericListKnot coincidentKnot;
    protected Point initialMousePos;
-   protected Point tempCoor;
-   protected Point finalCoor;
    protected boolean editingP;
    protected NumericListKnot oldKnot;
    protected NumericListKnot newKnot;
@@ -118,14 +184,6 @@ public class NumericProbePanel extends JPanel {
    // variables needed for plotting
    // ===========================================================
 
-   protected boolean myAutoRangingP = true;
-   //protected long ticksPerPixel;
-   protected double secondsPerPixel;
-   protected double yValuePerPixel;
-   private double minYRange, maxYRange;
-   private double minXRange, maxXRange;
-
-   protected boolean displayOutputProbeDataPoints = false;
    protected static final int SELECT_MARGIN = 3;
    protected static final int DRAG_MARGIN = 3;
    protected static final long serialVersionUID = 0xdeadbeef;
@@ -133,24 +191,388 @@ public class NumericProbePanel extends JPanel {
    // ===========================================================
    // used for zooming and moving the display, only one can be true at a time
    // ===========================================================
-   private Cursor zoomInCursor, zoomOutCursor, moveDisplayCursor;
-   private Point zoomSelectPoint; // the initial point of the select rectangle
-   private Rectangle zoomSelectRect = null;
-   protected boolean zoomIn, zoomOut, moveDisplay;
+   
+   private Cursor zoomInCursor, zoomOutCursor, translateCursor;
+   private Point zoomPnt0; // initial point of zoom selection
+   private Point zoomPnt1; // second point of zoom selection
+   protected CursorMode myCursorMode = CursorMode.SELECT;
    private Point previousPoint = null; // the previous point that was dragged to
-   private int zoomLevel = 0;
-   private int rangeLevel = 0;
-   private double[] defaultRange = new double[2];
 
-   // the first spacing value that is set for the display
-   private double initialXSpacing = 0;
-   private double initialYSpacing = 0;
-   private boolean setRangeManually = false;
+   private ArrayList<PropertyChangeListener> myPropListeners = new ArrayList<>();
 
-   // Changed
-   // Replaced 8 line function into 1 liner - optimization
-   protected NumericList getNumericList() {
-      return (myProbe != null) ? myProbe.getNumericList() : null;
+   private PlotLabelFormat myLabelFormat = new PlotLabelFormat();
+
+   public ScreenTransform createScreenTransform() {
+      return new ScreenTransform (
+         myXRange, getPlotWidth(), myMargins[LEFT],
+         myYRange, getPlotHeight(), myMargins[TOP],
+         /*scale=*/!useVirtualTime ? getScale() : 1.0);
+   }
+
+   /**
+    * Describes the value and spacing between plot ticks. The value
+    * is expressed 
+    * <pre>
+    *   value  = m * 10^e
+    * </pre>
+    * where {@code m} and {@code e} are both integers.
+    */
+   protected static class TickValue {
+      long myM;
+      int myE;
+      double myValue;
+
+      public TickValue (double value, long m, int e) {
+         myValue = value;
+         myM = m;
+         myE = e;
+      }
+
+      public TickValue (TickValue tval) {
+         myValue = tval.myValue;
+         myM = tval.myM;
+         myE = tval.myE;
+      }
+
+      public double getValue() {
+         return myValue;
+      }
+
+      public long getM() {
+         return myM;
+      }
+
+      public int getE() {
+         return myE;
+      }
+
+      public void add (TickValue spacing) {
+         if (spacing.getE() != myE) {
+            throw new IllegalArgumentException (
+               "spacing has incompatible exponent "+spacing.getE()+
+               ", expected " + myE);
+         }
+         myM += spacing.getM();
+         myValue += spacing.getValue();
+      }
+
+   }
+
+   /**
+    * Maps x and y values to and from pixel coordinates.
+    */
+   public static class ScreenTransform {
+
+      double xvelPerPixel;
+      double yvalPerPixel;
+      double pixelsPerXval;
+      double pixelsPerYval;
+      public double minXval;
+      double maxYval;
+      public float leftMargin;
+      float topMargin;
+
+      ScreenTransform (
+         DoubleInterval xrange, double plotWidth, float left,
+         DoubleInterval yrange, double plotHeight, float top, double scale) {
+
+         xvelPerPixel = xrange.getRange()/(plotWidth-1)/scale;
+         minXval = xrange.getLowerBound();
+         pixelsPerXval = 1/xvelPerPixel;
+         leftMargin = left;
+         yvalPerPixel = yrange.getRange()/(plotHeight-1);
+         maxYval = yrange.getUpperBound();
+         pixelsPerYval = 1/yvalPerPixel;        
+         topMargin = top;
+      }
+
+      public double yvaluePerPixel() {
+         return yvalPerPixel;
+      }
+
+      public double xvaluePerPixel() {
+         return xvelPerPixel;
+      }
+
+      public double pixelToXvalue (int xp) {
+         return xvelPerPixel*(xp-leftMargin) + minXval;
+      }
+
+      public float xvalueToPixel (double x) {
+         return Math.round((x-minXval)*pixelsPerXval) + leftMargin;
+      }
+
+      public double pixelToYvalue (int yp) {
+         return yvalPerPixel*(topMargin-yp) + maxYval;
+      }
+
+      public float yvalueToPixel (double y) {
+         double yp = Math.round((maxYval-y)*pixelsPerYval) + topMargin;
+         if (yp > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+         }
+         else if (yp < Integer.MIN_VALUE) {
+            return Integer.MIN_VALUE;
+         }
+         else {
+            return (int)yp;
+         }
+      }
+   }
+
+   private static class PanelRenderer implements DataRenderer {
+
+      Graphics2D myG;
+      boolean mySolid = false;
+      Shape mySavedClip = null;
+
+      PanelRenderer (Graphics2D g) {
+         myG = g;
+      }
+
+      public void beginPlot (float width, float height, boolean antialiasing) {
+         RenderingHints rh;
+         if (antialiasing) {
+            rh = new RenderingHints(
+               RenderingHints.KEY_ANTIALIASING,
+               RenderingHints.VALUE_ANTIALIAS_ON);
+         }
+         else {
+            rh = new RenderingHints(
+               RenderingHints.KEY_ANTIALIASING,
+               RenderingHints.VALUE_ANTIALIAS_OFF);
+         }
+         myG.setRenderingHints(rh);
+      }
+      
+      public void endPlot () {
+      }
+      
+      public void beginLineGraphics (float lineWidth, Color color) {
+         myG.setStroke (new BasicStroke ((int)lineWidth));
+         myG.setColor (color);
+         mySolid = false;
+      }
+
+      public void beginSolidGraphics (Color color) {
+         myG.setColor (color);
+         mySolid = true;
+      }
+
+      public void beginTextGraphics (float fontHeight, Color color) {
+         myG.setColor (color);
+         myG.setFont (new Font (null, 0, (int)fontHeight));      
+         mySolid = false;
+      }
+
+      public void drawLine (float x1, float y1, float x2, float y2) {
+         myG.drawLine ((int)x1, (int)y1, (int)x2, (int)y2);
+      }
+
+      public void drawRect (float x, float y, float w, float h) {
+         if (mySolid) {
+            myG.fillRect ((int)x, (int)y, (int)w, (int)h);
+         }
+         else {
+            myG.drawRect ((int)x, (int)y, (int)w, (int)h);
+         }
+      }
+
+      public void drawCircle (float cx, float cy, float size) {
+         int r = (int)Math.floor(size/2f);
+         if (mySolid) {
+            myG.fillOval ((int)cx-r, (int)cy-r, (int)size, (int)size);
+         }
+         else {
+            myG.drawOval ((int)cx-r, (int)cy-r, (int)size, (int)size);
+         }
+      }
+
+      public void drawText (String text, float x, float y, TextAlign alignment) {
+         Rectangle2D rect = myG.getFontMetrics().getStringBounds (text, myG);
+         switch (alignment) {
+            case LEFT: {
+               myG.drawString (text, x, y);
+               break;
+            }
+            case CENTER: {
+               myG.drawString (text, x-(float)rect.getWidth()/2f, y);
+               break; 
+            }
+            case RIGHT: {
+               myG.drawString (text, x-(float)rect.getWidth(), y);
+               break;
+            }
+            default: {
+               throw new InternalErrorException (
+                  "Unimplemented alignment "+alignment);
+            }
+         }
+      }
+
+      public boolean allowsFloatPolylines() {
+         return false;
+      }
+
+      public void drawPolyline (float[] xvals, float[] yvals, int cnt) {
+         throw new UnsupportedOperationException();
+      }
+
+      public void drawPolyline (int[] xvals, int[] yvals, int cnt) {
+         myG.drawPolyline (xvals, yvals, cnt);
+      }
+
+      public void endGraphics() {
+         mySolid = false;
+      }
+
+      public void beginClipping (float x, float y, float w, float h) {
+         mySavedClip = myG.getClip();
+         myG.setClip ((int)x, (int)y, (int)w, (int)h);
+      }
+
+      public void endClipping () {
+         myG.setClip (mySavedClip);
+      }
+   }
+
+   public static PropertyList myProps =
+      new PropertyList (NumericProbePanel.class);
+
+   static {
+      myProps.add (
+         "xRange", "x axis range in display", DEFAULT_X_RANGE);
+      myProps.add (
+         "yRange", "y axis range in display", DEFAULT_Y_RANGE);
+      myProps.add (
+         "autoRanging isAutoRanging setAutoRanging",
+         "grid range is adjusted automatically", DEFAULT_AUTO_RANGING);
+      myProps.add (
+         "drawGrid", "enable drawinog the grid", DEFAULT_DRAW_GRID);
+      myProps.add (
+         "tickLength", "length of label ticks", DEFAULT_TICK_LENGTH);
+      myProps.add (
+         "lineWidth", "width of trace lines", DEFAULT_LINE_WIDTH);
+      myProps.add (
+         "knotSize", "knot point size (pixels)", DEFAULT_KNOT_SIZE);
+      myProps.add (
+         "knotsVisible", "draw knot points if true", DEFAULT_KNOTS_VISIBLE);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Property getProperty (String path) {
+      return PropertyList.getProperty (path, this);
+   }
+
+   //
+   // Properties
+   //
+
+   public void setDrawGrid (boolean enable) {
+      if (myDrawGrid != enable) {
+         myDrawGrid = enable;
+         firePropertyChangeListeners ("drawGrid");
+         repaint();
+      }
+   }
+
+   public boolean getDrawGrid() {
+      return myDrawGrid;
+   }
+
+
+   public void setXRange (DoubleInterval range) {
+      if (!range.equals (myXRange)) {
+         myXRange = new DoubleInterval (range);
+      }
+   }
+
+   public void setXRange (double min, double max) {
+      setXRange (new DoubleInterval (min, max));
+   }
+
+   public void setDefaultXRange () {
+      setXRange (getDefaultXRange());
+   }
+
+   public DoubleInterval getXRange() {
+      return new DoubleInterval (myXRange);
+   }
+
+   public Range getXRangeRange() {
+      return new NumericIntervalRange(null, /*allowEmpty=*/false);
+   }
+
+   public void setYRange (DoubleInterval range) {
+      if (!range.equals (myYRange)) {
+         myYRange = new DoubleInterval (range);
+      }
+   }
+
+   public void setYRange (double min, double max) {
+      setYRange (new DoubleInterval (min, max));
+   }
+
+   public void setDefaultYRange () {
+      setYRange (getDefaultYRange());
+   }
+
+   public DoubleInterval getYRange() {
+      return new DoubleInterval (myYRange);
+   }
+
+   public Range getYRangeRange() {
+      return new NumericIntervalRange(null, /*allowEmpty=*/false);
+   }
+
+   public void setTickLength (int len) {
+      if (myTickLength != len) {
+         myTickLength = len;
+         firePropertyChangeListeners ("tickLength");
+      }
+   }
+
+   public int getTickLength() {
+      return myTickLength;
+   }
+
+   public void setLineWidth (int width) {
+      if (myLineWidth != width) {
+         myLineWidth = width;
+         firePropertyChangeListeners ("lineWidth");
+      }
+   }
+
+   public int getLineWidth() {
+      return myLineWidth;
+   }
+   
+   public int getKnotSize() {
+      return myKnotSize;
+   }
+   
+   public void setKnotSize (int size) {
+      if (myKnotSize != size) {
+         myKnotSize = size;
+         firePropertyChangeListeners ("knotSize");
+      }
+   }
+
+   public boolean getKnotsVisible() {
+      return myKnotsVisible;
+   }
+   
+   public void setKnotsVisible (boolean enable) {
+      if (myKnotsVisible != enable) {
+         myKnotsVisible = enable;
+         firePropertyChangeListeners ("knotsVisible");
+      }
    }
 
    public boolean isAutoRanging() {
@@ -158,9 +580,120 @@ public class NumericProbePanel extends JPanel {
    }
 
    public void setAutoRanging (boolean enable) {
-      myAutoRangingP = enable;
+      if (myAutoRangingP != enable) {
+         myAutoRangingP = enable;
+         firePropertyChangeListeners ("autoRanging");
+         if (enable) {
+            fitDisplayRange();
+         }
+      }
    }
 
+
+   // Changed
+   // Replaced 8 line function into 1 liner - optimization
+   protected NumericList getNumericList() {
+      return myNumericList;
+   }
+
+   public Interpolation.Order getInterpolationOrder() {
+      return getInterpolation().getOrder ();
+   }
+   
+   public void setInterpolationOrder (Interpolation.Order order) {
+      if (order != getInterpolationOrder()) {
+         if (myProbe != null) {
+            myProbe.setInterpolationOrder(order);
+         }
+         else {
+            myNumericList.setInterpolationOrder(order);
+         }
+         Main.getMain().rewidgetUpdate();
+      }
+   }
+   
+   public Interpolation getInterpolation() {
+      if (myProbe != null) {
+         return myProbe.getInterpolation();
+      }
+      else {
+         return myNumericList.getInterpolation();
+      }
+   }
+   
+   protected void updateDisplaysWithoutAutoRanging() {
+      if (myProbe != null) {
+         myProbe.updateDisplaysWithoutAutoRanging();
+      }
+      else {
+         repaintWithoutAutoRanging();
+      }
+   }
+   
+   protected void updateDisplays() {
+      if (myProbe != null) {
+         myProbe.updateDisplays();
+      }
+      else {
+         repaint();
+      }
+   }
+
+   protected double getScale() {
+      if (myProbe != null) {
+         return myProbe.getScale();
+      }
+      else {
+         return myScale;
+      }
+   }
+   
+   protected double getStartTime() {
+      if (myProbe != null) {
+         return myProbe.getStartTime();
+      }
+      else {
+         return myStartTime;
+      }
+   }
+   
+   protected double getStopTime() {
+      if (myProbe != null) {
+         return myProbe.getStopTime();
+      }
+      else {
+         return myStopTime;
+      }
+   }
+   
+   protected LegendDisplay getLegend() {
+      if (myProbe != null) {
+         return myProbe.getLegend();
+      }
+      else {
+         return myLegendDisplay;         
+      }
+   }
+   
+   protected void setLegend (LegendDisplay legend) {
+      if (myProbe != null) {
+         myProbe.setLegend(legend);
+      }
+      else {
+         myLegendDisplay = legend;         
+      }
+   }
+   
+   protected void removeLegend() {
+      LegendDisplay legend = getLegend();
+      if (legend != null) {
+         if (legend.isVisible()) {
+            legend.dispose();
+         }
+         setLegend (null);
+      }        
+   }
+   
    public void setDisplaySize (int width, int height) {
       width = (width <= 0 ? 1 : width);
       // to resolve a bug when probed are created with a display size of zero
@@ -171,139 +704,50 @@ public class NumericProbePanel extends JPanel {
       this.setPreferredSize (size);
    }
 
-   public void toggleZoomIn() {
-      if (zoomIn) {
-         zoomIn = false;
+   public CursorMode getCursorMode() {
+      return myCursorMode;
+   }
+
+   public void setCursorMode (CursorMode mode) {
+      myCursorMode = mode;
+   }
+
+   public DoubleInterval getDefaultYRange() {
+      double[] range;
+      if (myProbe != null) {
+         range = myProbe.getDefaultDisplayRange();
       }
       else {
-         zoomIn = true;
-         zoomOut = false;
-         moveDisplay = false;
-      }
+         range = NumericProbeBase.getRange (myNumericList);
+      }     
+      return new DoubleInterval (range[0], range[1]);
    }
 
-   public void toggleZoomOut() {
-      if (zoomOut) {
-         zoomOut = false;
-      }
-      else {
-         zoomOut = true;
-         zoomIn = false;
-         moveDisplay = false;
-      }
-   }
-
-   public void toggleMoveDisplay() {
-      if (moveDisplay) {
-         moveDisplay = false;
-      }
-      else {
-         moveDisplay = true;
-         zoomIn = false;
-         zoomOut = false;
-      }
-   }
-
-   public void setAutoRange() {
-      double[] autoRange = getAutoRange();
-      setDefaultRange (autoRange[0], autoRange[1]);
-   }
-
-   public double[] getAutoRange() {
-      return myProbe.getDefaultDisplayRange();
-   }
-
-   /**
-    * Sets the default range to the desired value. The default range is the range
-    * the probe display returns to after zooming. Also sets the default range of
-    * the small probe display through the probe info.
-    * 
-    * @param min minimum value
-    * @param max maximum value
-    */
-   public void setDefaultRange (double min, double max) {
-      defaultRange[0] = min;
-      defaultRange[1] = max;
-   }
-
-   public double[] getDefaultRange() {
-      return defaultRange;
-   }
-
-   public double[] getDefaultDomain() {
+   public DoubleInterval getDefaultXRange() {
       double min, max;
       if (useVirtualTime) {
          min = 0;
          max =
-            (myProbe.getStopTime() - myProbe.getStartTime())
-            / myProbe.getScale();
+            (getStopTime() - getStartTime())
+            / getScale();
       }
       else {
-         min = myProbe.getStartTime();
-         max = myProbe.getStopTime();
+         min = getStartTime();
+         max = getStopTime();
       }
-      return new double[] { min, max };
-   }
-
-   public void setDefaultDomain() {
-      double[] domain = getDefaultDomain();
-      setDisplayDomain (domain[0], domain[1]);
-   }
-
-   public void setDisplayRange (double min, double max) {
-      myAutoRangingP = false;
-      minYRange = min;
-      maxYRange = max;
-   }
-   
-   public void setDisplayRangeManually (double min, double max) {
-      setDisplayRange (min, max);
-      setRangeManually  = true;
-   }
-
-   public double[] getDisplayRange() {
-      return new double[] { minYRange, maxYRange };
-   }
-
-   public void setDisplayDomain (double min, double max) {
-      minXRange = min;
-      maxXRange = max;
-   }
-
-   public double[] getDisplayDomain() {
-      return new double[] { minXRange, maxXRange };
+      return new DoubleInterval (min, max);      
    }
 
    public void resetDisplay() {
-      zoomLevel = 0;
-      rangeLevel = 0;
-      double[] range = getDefaultRange();
-      setDisplayRange (range[0], range[1]);
-      setDefaultDomain();
+      //rangeLevel = 0;
+      setDefaultYRange();
+      setDefaultXRange();
       repaint();
-   }
-
-   public void determineTimePerPixel() {
-//      ticksPerPixel =
-//         ((long)((maxXRange-minXRange)/TimeBase.ticksToSeconds (getWidth())));
-//      if (!useVirtualTime) {
-//         ticksPerPixel /= myProbe.getScale();
-//      }
-//      ticksPerPixel = (ticksPerPixel <= 0 ? 1 : ticksPerPixel);
-      secondsPerPixel = (maxXRange-minXRange)/getWidth();
-      if (!useVirtualTime) {
-         secondsPerPixel /= myProbe.getScale();
-      }      
-   }
-
-   public void determineYValuePerPixel()// boolean isAutoScale)
-   {
-      yValuePerPixel = (maxYRange - minYRange) / getHeight();
    }
 
    // repaint required to draw timeline cursor in ProbeDisplayArea JPanel
    public void repaint() {
-      if (myAutoRangingP) {
+      if (isAutoRanging()) {
          adjustRangeIfNecessary();
       }
       if (this.getParent() != null) {
@@ -317,22 +761,32 @@ public class NumericProbePanel extends JPanel {
       }
    }
 
+   protected void addPropertyChangeListener (PropertyChangeListener l) {
+      myPropListeners.add (l);
+   }
+
+   protected boolean removePropertyChangeListener (PropertyChangeListener l) {
+      return myPropListeners.remove (l);
+   }
+
+   protected void firePropertyChangeListeners (String propName) {
+      PropertyChangeEvent e = new PropertyChangeEvent (this, propName);
+      for (PropertyChangeListener l : myPropListeners) {
+         l.propertyChanged (e);
+      }
+      // refresh property dialog if necessary
+      if (myPropertyDialog != null) {
+         myPropertyDialog.updateWidgetValues();
+      }
+   }
+
    protected void fieldInitialization() {
 
-      setAutoRange();
-      double[] defaultDisplayRange = getDefaultRange();
-      double[] defaultDomain = getDefaultDomain();
-
-      minYRange = defaultDisplayRange[0];
-      maxYRange = defaultDisplayRange[1];
-
-      minXRange = defaultDomain[0];
-      maxXRange = defaultDomain[1];
-
-      defaultRange = new double[] { minYRange, maxYRange };
+      //setAutoRange();
+      setDefaultYRange();
+      setDefaultXRange();
 
       editingP = false;
-      drawKnotsP = true;
    }
 
    protected void appearanceInitialization() {
@@ -379,73 +833,25 @@ public class NumericProbePanel extends JPanel {
    private void zoomCursorInitialization() {
       zoomInCursor = createCursor ("ZoomIn.gif", "zoom in");
       zoomOutCursor = createCursor ("ZoomOut.gif", "zoom out");
-      moveDisplayCursor = createCursor ("Hand.gif", "move display");
-   }
-
-   /**
-    * author: Chad version: 1.0
-    * 
-    * Alpha Code for Changing the display range of a probe is still under
-    * development.
-    */
-   protected void setDisplayRange() {
-      newRangeSelector = new NumericProbeRangeSelectorDialog (this);
-      newRangeSelector.setAlwaysOnTop (true);
-      newRangeSelector.setTitle ("Probe range selector");
-
-      // setDataBuffer(true);
-      repaint();
+      translateCursor = createCursor ("Hand.gif", "move display");
    }
 
    protected void fitDisplayRange() {
-      double[] range = myProbe.getRange();
-      setDisplayRange (range[0], range[1]);
+      double[] range = NumericProbeBase.getRange(getNumericList());
+      setYRange (range[0], range[1]);
       // setDataBuffer(true);
       repaint();
+      
    }
 
-   /**
-    * version 2.0:
-    * 
-    * The previous version of Numeric probe diaplay used the time of a
-    * particular knot, to find out where in the graph coordinates this knot
-    * lies, this revision of the code does the opposite. Instead for every x
-    * pixel we have in the viewing area, a time will be calculated based on the
-    * x coordinate value. This time will then be used to interpolate the y value
-    * based upon t (using various methods of interpolation) This method has
-    * three main advantages. 1. While there may be more overhead associated with
-    * sparcely knotted probes, the resolution of the datapoints will in fact be
-    * higher. 2. Under the previous model if the knots were densely packed, the
-    * xBuffer constructed would contain more x values, then there are x pixels,
-    * resulting in overdrawing pixels. 3. The interpolation of the model is now
-    * done by the numeric list, and not the GUI display components allowing for
-    * proper abstraction of functionality.
-    * 
-    */
-
-   private void drawZeroLine (Graphics g) {
-      if (!myProbe.isInput()) {
-         // System.out.println("printing zero line on output probe");
+   private void drawZeroLine (DataRenderer r, ScreenTransform xform) {
+      float zpixel = xform.yvalueToPixel (0);
+      if (zpixel >= myMargins[TOP] && zpixel < myMargins[TOP]+getPlotHeight()) {
+         r.beginLineGraphics (1, Color.LIGHT_GRAY);
+         float xs = myMargins[LEFT];
+         r.drawLine (xs, zpixel, xs+getPlotWidth()-1, zpixel);
+         r.endGraphics();
       }
-
-      int zero;
-
-      // plot zero line
-      if (maxYRange <= 0) {
-         // when both max and min < 0
-         zero = 0;
-      }
-      else if (minYRange >= 0) {
-         // when both max and min > 0
-         zero = getHeight();
-      }
-      else {
-         // when max > 0 and min < 0
-         zero = (int)((maxYRange) / yValuePerPixel);
-      }
-
-      g.setColor (Color.LIGHT_GRAY);
-      g.drawLine (0, zero, this.getWidth(), zero);
    }
 
    int fontHeight = 10;
@@ -454,16 +860,17 @@ public class NumericProbePanel extends JPanel {
     * Repaint if probe property changes require it.
     */
    public void repaintForPropertyChanges() {
-      if (myProbe.getInterpolationOrder() != myLastInterpolationOrder) {
+      if (getInterpolationOrder() != myLastInterpolationOrder) {
          repaint();
       }
    }
 
    public void adjustRangeIfNecessary() {
-      double[] minMax = myProbe.getMinMaxValues();
+      double[] minMax = new double[2];
+      myNumericList.getMinMaxValues(minMax);
       double range = minMax[1] - minMax[0];
 
-      if (myProbe.isEmpty() || range < 1e-13) {
+      if (myNumericList.isEmpty() || range < 1e-13) {
          minMax[0] = -1;
          minMax[1] = 1;
          range = 2;
@@ -472,183 +879,471 @@ public class NumericProbePanel extends JPanel {
          minMax[0] -= 0.1 * range;
          minMax[1] += 0.1 * range;
       }
-      double maxY = maxYRange;
-      double minY = minYRange;
+      double maxY = myYRange.getUpperBound();
+      double minY = myYRange.getLowerBound();
       if (maxY < minMax[1]) {
          maxY = minMax[1] + 0.25 * range;
       }
       if (minY > minMax[0]) {
          minY = minMax[0] - 0.25 * range;
       }
-      minYRange = minY;
-      maxYRange = maxY;
+      setYRange (minY, maxY);
    }
 
-   public void paint (Graphics g) {
-      determineTimePerPixel();
-      determineYValuePerPixel();
+   protected float getPlotWidth() {
+      return getWidth() - (myMargins[LEFT]+myMargins[RIGHT]);
+   }
 
-      g.setFont (new Font (null, 0, fontHeight));
+   protected float getPlotHeight() {
+      return getHeight() - (myMargins[TOP]+myMargins[BOTTOM]);
+   }
 
+   protected PlotTraceManager getTraceManager() {
+      return myTraceManager;
+   }
+
+   protected void updateMargins (float[] margins, boolean largeDisplay) {
       if (largeDisplay) {
-         drawGrids (g);
+         margins[BOTTOM] = 20f;
+         margins[TOP] = 15f;
+         margins[LEFT] = 30f;
+         margins[RIGHT] = 15f;
+
+         // Adjust left and right margins to make sure they are large enough
+         // for labels. We do this by computing the string bounds on tentative
+         // max or min label values.
+
+         // For left margin, we need to make sure it is large enough for the
+         // y-axis labels.
+         double valuePerYPixel = myYRange.getRange()/getPlotHeight();
+         TickValue ySpacing = getTickSpacing (valuePerYPixel);
+
+         double maxY = myYRange.getUpperBound();
+         double minY = myYRange.getLowerBound();
+
+         // most digit characters are 8 pixels wide, except for '.' and '-'
+         int pixelsPerChar = 8;
+
+         String str;
+         str = createLabelString (getTickValueAbove(minY,ySpacing), false);
+         margins[LEFT] =
+            Math.max (str.length()*pixelsPerChar+5, margins[LEFT]);
+         str = createLabelString (getTickValueBelow(maxY,ySpacing), false);
+         margins[LEFT] =
+            Math.max (str.length()*pixelsPerChar+5, margins[LEFT]);
+
+         // For right margin, we need to make sure it is large enough for the
+         // final x-axis label.
+         double maxTime = myXRange.getUpperBound();
+         double timePerYPixel = myXRange.getRange()/getPlotWidth();
+         TickValue xSpacing = getTickSpacing (timePerYPixel);
+
+         str = createLabelString (getTickValueBelow (maxTime,xSpacing), false);
+         margins[RIGHT] =
+            Math.max (str.length()/2*pixelsPerChar+5, margins[RIGHT]);
       }
       else {
-         drawZeroLine (g);
+         // no margins for small display
+         margins[LEFT] = 0f;
+         margins[BOTTOM] = 0f;
+         margins[TOP] = 0f;
+         margins[RIGHT] = 0f;
+      }
+   }         
+
+   protected void clipToMargins (Point p) {
+      int left = (int)myMargins[LEFT];
+      int right = (int)(getPlotWidth()+myMargins[LEFT]-1);
+      int top = (int)myMargins[TOP];
+      int bottom = (int)(myMargins[TOP]+getPlotHeight()-1);
+
+      if (p.x < left) {
+         p.x = left;
+      }
+      else if (p.x > right) {
+         p.x = right;
+      }
+      if (p.y < top) {
+         p.y = top;
+      }
+      else if (p.y > bottom) {
+         p.y = bottom;
+      }
+   }
+   
+   public void drawPlot (DataRenderer r, boolean largeDisplay) {
+      updateMargins (myMargins, largeDisplay);
+      ScreenTransform xform = createScreenTransform();
+
+      r.beginPlot (getWidth(), getHeight(), /*antialiasing=*/true);
+      if (largeDisplay) {
+         TickValue[] xticks = getXTickValues();
+         TickValue[] yticks = getYTickValues();
+         if (myDrawGrid) {
+            drawGrid (r, xform, xticks, yticks);
+         }
+         drawLabels (r, xform, xticks, yticks);
+         drawTicks (r, xform, xticks, yticks);
+      }
+      else {
+         drawZeroLine (r, xform);
       }
 
       // ======================================================
       // Actual data plotting
-      if (myProbe != null) {
+      if (myNumericList != null) {
          // Draw plot lines
-         drawPlotLines (g);
-         if (myProbe.isInput() || displayOutputProbeDataPoints) {
+         drawPlotLines (r, xform);
+         if (myKnotsVisible) {
             // Draw Knot Points
-            drawKnots (g);
+            drawKnots (r, xform);
          }
       }
-
-      // draw the zoom selecting rectangle if it exists
-      g.setColor (Color.GRAY);
-
-      if (zoomSelectRect != null) {
-         g.drawRect (
-            zoomSelectRect.x, zoomSelectRect.y, zoomSelectRect.width,
-            zoomSelectRect.height);
-      }
-
+      r.endPlot();
    }
 
-   private void drawPlotLines (Graphics g) {
-      Graphics2D g2 = (Graphics2D)g;
+   public void paint (Graphics g) {
 
-      NumericList list = myProbe.getNumericList();
+      //setAntialiasing (g, true);
+      DataRenderer r = new PanelRenderer((Graphics2D)g);
+      if (myLargeDisplay) {
+         // don't need to do this in small display for some reason ...
+         r.beginSolidGraphics (getBackground());
+         r.drawRect(0, 0, getWidth(), getHeight());
+         r.endGraphics();
+      }
+      drawPlot (r, myLargeDisplay);
+      // draw the zoom selecting rectangle if it exists
+      if (zoomPnt0 != null && zoomPnt1 != null) {
+         g.setColor (Color.GRAY);
+         int x = Math.min (zoomPnt0.x, zoomPnt1.x);
+         int y = Math.min (zoomPnt0.y, zoomPnt1.y);
+         int w = Math.abs (zoomPnt1.x - zoomPnt0.x);
+         int h = Math.abs (zoomPnt1.y - zoomPnt0.y);
+         g.drawRect (x, y, w, h);
+      }
+   }
 
+   void interpolateValues (
+      int[] segNums, float[][] yBuffer, ScreenTransform xform) {
+
+      Order interpOrder = getInterpolationOrder();
+      boolean linearInterp =
+         (interpOrder == Order.Linear || interpOrder == Order.Step);
+
+      NumericList list = getNumericList();
       if (list != null) {
-         int numXPixels = this.getWidth();
-         NumericListKnot tempKnot;
-         int yVectorSize = 0;
-         int[] xInterpolationBuffer = null;
-         int[][] yInterpolationBuffer = null;
-
-         tempKnot = null;
-
-         // Fix by Ian for interpolation before 1st knot point
-         yVectorSize = list.getVectorSize();
-         // VectorNd yVector = new VectorNd(yVectorSize);
-         yVector.setSize (yVectorSize);
-
-         xInterpolationBuffer = new int[numXPixels];
-         yInterpolationBuffer = new int[yVectorSize][numXPixels + 1];
-
-         double timePerPixel = (maxXRange - minXRange) / getWidth();
-
-         tempKnot = null;
-         double t;
-
-         // used only if we are not working in virtual time
-         double probeScale = myProbe.getScale();
-         double probeStartTime =
-            myProbe.getStartTime();
+         int maxXPixels = segNums.length;
+         NumericListKnot prevKnot = null;
+         VectorNd yvec = new VectorNd (list.getVectorSize());
 
          // Create line plot
-         for (int index = 0; index < numXPixels; index++) {
-            t = minXRange + timePerPixel * index;
-            if (!useVirtualTime) { // convert t back to virtual time
-               t = (t - probeStartTime) / probeScale;
-            }
-
-            // we have to offset the time increment by the minimum x range
-            // because we are not starting from zero
-            tempKnot =
-               list.interpolate (
-                  yVector, t, myProbe.getInterpolation(), tempKnot);
-
-            xInterpolationBuffer[index] = index;
-
-            for (int k = 0; k < yVectorSize; k++) {
-               if (k < yVector.size()) {
-                  yInterpolationBuffer[k][index] =
-                     (int)-((yVector.get (k) - maxYRange) / yValuePerPixel);
+         int segNum = -1;
+         double prevt = -1;
+         for (int i = 0; i < maxXPixels; i++) {
+            float xpixel = i + myMargins[LEFT];
+            double x = xform.pixelToXvalue ((int)xpixel);
+            if (linearInterp) {
+               NumericListKnot nextKnot = list.findKnotAtOrBefore (x, prevKnot);
+               if (nextKnot != prevKnot) {
+                  segNum++;
                }
+               segNums[i] = segNum;
             }
-         }
-
-         if (largeDisplay) {
-            g2.setStroke (new BasicStroke (2));
-         }
-
-         // Draw line plot
-         for (int k = yVectorSize - 1; k >= 0; k--) {
-
-            int idx = myProbe.getOrderedTraceIndex (k);
-            PlotTraceInfo pti = myProbe.getPlotTraceInfo (idx);
-            if (pti.isVisible()) {
-               g2.setColor (pti.getColor());
-               g2.drawPolyline (
-                  xInterpolationBuffer, yInterpolationBuffer[idx],
-                  numXPixels);
+            else {
+               segNums[i] = i;
+            }
+            prevKnot = list.interpolate (yvec, x, getInterpolation(), prevKnot);
+            for (int k = 0; k < yvec.size(); k++) {
+               yBuffer[k][i] = xform.yvalueToPixel (yvec.get(k));
             }
          }
       }
-      myLastInterpolationOrder = myProbe.getInterpolationOrder();
    }
 
-   private void drawKnots (Graphics g) {
-      if (drawKnotsP) {
-         double timePerPixel = (maxXRange - minXRange) / getWidth();
-         double yFactor = 1.0 / yValuePerPixel;
+   /**
+    * Stores a list of x and y points for drawing a polyline using
+    * java.awt.Graphics.
+    */
+   private interface PolylineBuffer {
+      
+      void addPoint (float x, float y);
 
-         NumericList list = myProbe.getNumericList();
-         Iterator<NumericListKnot> it = list.iterator();
+      void drawAndClear (DataRenderer r);
+   }
 
-         // used only if we are not working in virtual time
-         double probeScale = myProbe.getScale();
-         double probeStartTime =
-            myProbe.getStartTime();
+   private class FloatPolylineBuffer implements PolylineBuffer {
 
-         while (it.hasNext()) {
-            NumericListKnot knot = it.next();
-            double t = knot.t;
-            if (!useVirtualTime) { // convert t to timeline time
-               t = t * probeScale + probeStartTime;
+      float[] myXbuf;
+      float[] myYbuf;
+      int myCnt;
+
+      FloatPolylineBuffer (int size) {
+         myXbuf = new float[size];
+         myYbuf = new float[size];
+      }
+
+      public void addPoint (float x, float y) {
+         myXbuf[myCnt] = x;
+         myYbuf[myCnt] = y;
+         myCnt++;
+      }
+
+      public void drawAndClear (DataRenderer r) {
+         if (myCnt > 0) {
+            r.drawPolyline (myXbuf, myYbuf, myCnt);
+            myCnt = 0;
+         }
+      }
+   }
+
+   private class IntPolylineBuffer implements PolylineBuffer  {
+
+      int[] myXbuf;
+      int[] myYbuf;
+      int myCnt;
+
+      IntPolylineBuffer (int size) {
+         myXbuf = new int[size];
+         myYbuf = new int[size];
+      }
+
+      public void addPoint (float x, float y) {
+         myXbuf[myCnt] = (int)x;
+         myYbuf[myCnt] = (int)y;
+         myCnt++;
+      }
+
+      public void drawAndClear (DataRenderer r) {
+         if (myCnt > 0) {
+            r.drawPolyline (myXbuf, myYbuf, myCnt);
+            myCnt = 0;
+         }
+      }
+   }
+
+   /**
+    * Queries whether a given y value is out of range. If it is not, the method
+    * returns -1. If it is, returns the range value (min or max) that the value
+    * is below or above.
+    */
+   protected static float clipY (float y, float min, float max) {
+      if (y < min) {
+         return min;
+      }
+      else if (y > max) {
+         return max;
+      }
+      else {
+         return -1f;
+      }
+   }
+
+   private void drawPlotLines (DataRenderer r, ScreenTransform xform) {
+
+      NumericList list = getNumericList();
+      if (list == null) {
+         // just in case ...
+         return;
+      }
+
+      int numXPixels = (int)getPlotWidth();
+      int yVectorSize = list.getVectorSize();
+
+      float[][] yBuffer = new float[yVectorSize][numXPixels];
+      int[] segNums = new int[numXPixels];
+
+      interpolateValues (segNums, yBuffer, xform);
+
+      PolylineBuffer lineBuf;
+      if (r.allowsFloatPolylines()) {
+         lineBuf = new FloatPolylineBuffer (numXPixels);
+      }
+      else {
+         lineBuf = new IntPolylineBuffer (numXPixels);
+      }
+
+      // shrink ymin/ymax by 1 pixel to account spaced used by drawing the plot
+      // border
+      float ymin = myMargins[TOP]+1;
+      float ymax = myMargins[TOP]+getPlotHeight()-1;
+      float xmin = myMargins[LEFT];
+
+      r.beginClipping (
+         xmin+1, ymin, getPlotWidth()-2, getPlotHeight()-2);
+
+      // iterate through each plot trace, in the appropriate order.
+      for (int k = yVectorSize - 1; k >= 0; k--) {
+
+         int idx = myTraceManager.getOrderedTraceIndex (k);
+         PlotTraceInfo pti = myTraceManager.getTraceInfo (idx);
+
+         if (pti.isVisible()) {
+            // if plot trace is visible, then go through all the x,y point
+            // pairs and create a polyline sequence for each contiguous set of
+            // points whose y values are not out of range.  For
+            // efficiency and the improve rendering quality, we also do not add
+            // polyline points which lie on the same (linearly interpolated)
+            // segment.
+            r.beginLineGraphics (myLineWidth, pti.getColor());
+
+            float prevOutOfRange = -1; // previous value out of range
+            float prevY = -1;          // previous y value
+            float lastXAdded = -1;     // last x value added to current polyline
+
+            for (int i = 0; i < numXPixels; i++) {
+               float y = yBuffer[idx][i];
+               float x = i + xmin;
+
+               float outOfRange = clipY (y, ymin, ymax);
+
+               if (outOfRange == -1) {
+                  // current y is in range.
+                  //
+                  // add the previous y if it was out of range, or linear
+                  //   segments have changed and it was not already added
+                  // add the current y if:
+                  //   the previous y was out of range OR
+                  //   there is no previous y (i == 0)
+                  //   linear segments have changed
+                  if (prevOutOfRange != -1) {
+                     lineBuf.addPoint (x-1, prevY);
+                     lineBuf.addPoint (x, y);
+                     lastXAdded = x;
+                  }
+                  else if (i == 0) {
+                     lineBuf.addPoint (x, y);
+                     lastXAdded = x;
+                  }
+                  else if (segNums[i-1] != segNums[i]) {
+                     if (lastXAdded != x-1) {
+                        // ensure previous point added to avoid sampling issues
+                        lineBuf.addPoint (x-1, prevY);
+                     }
+                     lineBuf.addPoint (x, y);
+                     lastXAdded = x;
+                  }
+               }
+               else {
+                  // current y is OUT of range.
+                  //
+                  // if there was a previous y value that was in range,
+                  // or out of range in a different way, then:
+                  //   add the previous y value if it was not already added
+                  //   add the current y value and close off the polyline
+                  if (i > 0 && prevOutOfRange != outOfRange) {
+                     if (lastXAdded != x-1) {
+                        lineBuf.addPoint (x-1, prevY);
+                     }
+                     lineBuf.addPoint (x, y);
+                     lineBuf.drawAndClear (r);
+                     lastXAdded = -1;
+                  }
+               }
+               prevY = y;
+               prevOutOfRange = outOfRange;
             }
-            int x = (int)((t - minXRange) / timePerPixel);
-            for (int v = knot.v.size() - 1; v >= 0; v--) {
+            // if last point was in range, then add it if it was not previously
+            // added and close off the polyline
+            if (prevOutOfRange == -1) {
+               if (lastXAdded != xmin+numXPixels-1) {
+                  lineBuf.addPoint (xmin+numXPixels-1, prevY);
+               }
+               lineBuf.drawAndClear(r);
+            }
+            r.endGraphics();
+         }
+      }
+      r.endClipping();
+      myLastInterpolationOrder = getInterpolationOrder();
+   }
 
-               int idx = myProbe.getOrderedTraceIndex (v);
-               PlotTraceInfo pti = myProbe.getPlotTraceInfo (idx);
-               if (pti.isVisible()){
-                  g.setColor (pti.getColor());
-                  double y = -(knot.v.get (idx) - maxYRange) * yFactor;
-                  if (largeDisplay)
-                     g.fillOval (x - 4, (int)y - 4, 8, 8);
-                  else
-                     g.fillRect (x - 2, (int)y - 2, 5, 5);
+   private void drawKnots (DataRenderer r, ScreenTransform xform) {
+
+      float xmin = myMargins[LEFT];
+      float xmax = myMargins[LEFT]+getPlotWidth()-1;
+      float ymin = myMargins[TOP];
+      float ymax = myMargins[TOP]+getPlotHeight()-1;
+
+      ArrayList<NumericListKnot> visibleKnots
+         = new ArrayList<>((int)getPlotWidth());
+      NumericList list = getNumericList();
+      Iterator<NumericListKnot> it = list.iterator();
+      float xprev = -1;
+      while (it.hasNext()) {
+         NumericListKnot knot = it.next();
+         float x = xform.xvalueToPixel (knot.t);
+         if (x != xprev && x >= xmin && x <= xmax) {
+            visibleKnots.add (knot);
+         }
+         xprev = x;
+      }
+      for (int k = list.getVectorSize()-1; k >= 0; k--) {
+         int idx = myTraceManager.getOrderedTraceIndex (k);
+         PlotTraceInfo pti = myTraceManager.getTraceInfo (idx);
+         if (pti.isVisible()) {
+            r.beginSolidGraphics (pti.getColor());
+            for (NumericListKnot knot : visibleKnots) {
+               float y = xform.yvalueToPixel (knot.v.get(idx));
+               if (y >= ymin && y <= ymax) {
+                  float x = xform.xvalueToPixel (knot.t);
+                  float size = myKnotSize;
+                  if (myLargeDisplay) {
+                     r.drawCircle (x, y, size);
+                  }
+                  else {
+                     float hs = (int)Math.floor(size/2f);
+                     r.drawRect (x-hs, y-hs, size, size);
+                  }
                }
             }
+            r.endGraphics();
          }
       }
    }
 
    static private double[] units = new double[] { 5, 2, 1 };
-   static private int maxPixels = 45;
+   static private int maxPixels = 90;
 
-   private double getSpacing (double valuePerPixel) {
+   protected TickValue getTickSpacing (double valuePerPixel) {
       double maxUnits = maxPixels * valuePerPixel;
-
       double exp = Math.floor (Math.log10 (maxUnits));
       double base = Math.pow (10, exp);
-
       int u;
-      for (u = 0; u < units.length - 1; u++)
-         if (base * units[u] < maxUnits)
+      for (u = 0; u < units.length - 1; u++) {
+         if (base * units[u] < maxUnits) {
             break;
-      double spacing = base * units[u];
+         }
+      }
+      return new TickValue (base*units[u], (int)units[u], (int)exp);
+   }
 
-      return spacing;
+   protected TickValue getTickValueBelow (double max, TickValue spacing) {
+      long m = (long)Math.floor (max/spacing.getValue());
+      return new TickValue (
+         m*spacing.getValue(), m*spacing.getM(), spacing.getE());
    }
    
+   protected TickValue getTickValueAbove (double min, TickValue spacing) {
+      long m = (long)Math.ceil (min/spacing.getValue());
+      return new TickValue (
+         m*spacing.getValue(), m*spacing.getM(), spacing.getE());
+   }
+   
+   protected double getSpacing (double valuePerPixel) {
+      double maxUnits = maxPixels * valuePerPixel;
+      double exp = Math.floor (Math.log10 (maxUnits));
+      double base = Math.pow (10, exp);
+      int u;
+      for (u = 0; u < units.length - 1; u++) {
+         if (base * units[u] < maxUnits) {
+            break;
+         }
+      }
+      double spacing = base * units[u];
+      return spacing;
+   }
+
    public static double round (double d, int decimalPlace){
       BigDecimal bd = new BigDecimal (Double.toString (d));
       bd = bd.setScale (decimalPlace, BigDecimal.ROUND_HALF_UP);
@@ -656,100 +1351,146 @@ public class NumericProbePanel extends JPanel {
       return bd.doubleValue();
     }
 
-
-   // draw the grid lines for the large display
-   private void drawGrids (Graphics g) {
-      double yFactor = 1.0 / yValuePerPixel;
-      double ySpacing = getSpacing (yValuePerPixel);
-      double yPos = ySpacing * Math.ceil (minYRange / ySpacing);
-
-//      double xFactor = 1.0 / TimeBase.ticksToSeconds (ticksPerPixel);
-//      double xSpacing = getSpacing (TimeBase.ticksToSeconds (ticksPerPixel));
-      double xFactor = 1.0/secondsPerPixel;
-      double xSpacing = getSpacing (secondsPerPixel);
-      
-      if (initialXSpacing == 0) {
-         // if the initialXSpacing value has NOT been set yet
-         initialXSpacing = xSpacing;
+   private boolean labelHasExponent (String str) {
+      for (int i=0; i<str.length(); i++) {
+         char c = str.charAt (i);
+         if (c == 'e' || c == 'E') {
+            return true;
+         }
       }
+      return false;
+   }
 
-      if (initialYSpacing == 0) {
-         // if the initialYSpacing value has NOT been set yet
-         initialYSpacing = ySpacing;
+   String createLabelString (TickValue tval, boolean forceExponent) {
+      return myLabelFormat.createLabel (
+         tval.getM(), tval.getE(), forceExponent);
+   }
+
+   TickValue[] getYTickValues () {
+      ScreenTransform xform = createScreenTransform();
+      TickValue spacing = getTickSpacing (xform.yvaluePerPixel());
+      TickValue ytick = getTickValueAbove (myYRange.getLowerBound(), spacing);
+
+      ArrayList<TickValue> values = new ArrayList<>();
+      double maxY = myYRange.getUpperBound();
+      double tol = EPS*maxY;
+      for (int i = 0; ytick.getValue() <= maxY+tol; i++) {
+         values.add (new TickValue(ytick));
+         ytick.add (spacing);
       }
+      return values.toArray(new TickValue[0]);
+   }
 
-      // used to setup number printing so that 0 is always shown
-      int lines = Math.abs ((int)roundDouble ((yPos / ySpacing)) % 2);
+   TickValue[] getXTickValues () {
+      ScreenTransform xform = createScreenTransform();
+      TickValue spacing = getTickSpacing (xform.xvaluePerPixel());
+      TickValue xtick = getTickValueAbove (myXRange.getLowerBound(), spacing);
 
-      String yPosStr = "" + yPos;
-      String ySpacingStr = "" + ySpacing;
-      int round = Math.max (yPosStr.substring (yPosStr.indexOf (".") + 1).length (),
-         ySpacingStr.substring (ySpacingStr.indexOf (".") + 1).length ()); // TODO rounding?
-      
-      for (int i = 0; yPos < maxYRange; yPos += ySpacing, i++) {
-         int yi = (int)(-(yPos - maxYRange) * yFactor);
+      ArrayList<TickValue> values = new ArrayList<>();
+      double maxX = myXRange.getUpperBound();
+      double tol = EPS*maxX;
+      for (int i = 0; xtick.getValue() <= maxX+tol; i++) {
+         values.add (new TickValue(xtick));
+         xtick.add (spacing);
+      }
+      return values.toArray(new TickValue[0]);
+   }
 
-         g.setColor (Color.LIGHT_GRAY);
-         g.drawLine (0, yi, getWidth(), yi);
+   private void drawLabels (
+      DataRenderer r, ScreenTransform xform,
+      TickValue[] xticks, TickValue[] yticks) {
 
-         if (i % 2 == lines) {
-            String str = Double.toString (roundDouble (yPos)/*round (yPos, round)*/);
-            Rectangle2D rect = g.getFontMetrics().getStringBounds (str, g);
-            int h = (int)rect.getHeight();
-            int w = (int)rect.getWidth();
-            int xs = 1;
-            int ys = yi + h / 2;
+      r.beginTextGraphics (fontHeight, Color.BLACK);
 
-            g.setColor (getBackground());
-            g.fillRect (xs - 1, ys - h, w + 2, h + 2);
-            g.setColor (Color.BLACK);
-            g.drawString (str, xs, ys);
+      // If max/min y tick labels have exponents, force exponents for all:
+      boolean forceLabelExponent = false;
+      String label = createLabelString (yticks[0], false);
+      if (myLabelFormat.containsExponent(label)) {
+         forceLabelExponent = true;
+      }
+      else {
+         label = createLabelString (yticks[yticks.length-1], false);
+         if (myLabelFormat.containsExponent(label)) {
+            forceLabelExponent = true;
          }
       }
 
-      double xPos = 0;
-      double xOffset = xSpacing * Math.ceil (minXRange / xSpacing);
-
-      if (!largeDisplay) {
-         xSpacing = xSpacing * myProbe.getScale();
-         xFactor = xFactor / myProbe.getScale();
+      for (int i=0; i<yticks.length; i++) {
+         float yi = xform.yvalueToPixel(yticks[i].getValue());
+         label = createLabelString (yticks[i], forceLabelExponent);
+         float xs = myMargins[LEFT] - 4;
+         float ys = yi + fontHeight/2 - 1;
+         // g.setColor (getBackground());
+         // g.fillRect (xs - 1, ys - h, w + 2, h + 2);
+         r.drawText (label, xs, ys, TextAlign.RIGHT);
       }
-      
-      for (int i = 0; xPos < maxXRange; xPos += xSpacing, i++) {
-         int xi = (int)(xPos * xFactor);
-         g.setColor (Color.LIGHT_GRAY);
-         g.drawLine (xi, 0, xi, getHeight());
-         
-         if (i % 2 == 0 && i > 0) {
-            String str = Double.toString (roundDouble (xPos + xOffset));
-            Rectangle2D rect = g.getFontMetrics().getStringBounds (str, g);
-            int h = (int)rect.getHeight();
-            int w = (int)rect.getWidth();
-            int xs = xi - w / 2;
-            int ys = getHeight() - 1;
 
-            g.setColor (getBackground());
-            g.fillRect (xs - 1, ys - h, w + 2, h + 2);
-            g.setColor (Color.BLACK);
-            g.drawString (str, xs, ys);
-         }
+      // If max x tick label has an exponent, force exponents for all:
+      label = createLabelString (xticks[xticks.length-1], false);
+      forceLabelExponent = myLabelFormat.containsExponent(label);
+
+      for (int i = 0; i<xticks.length; i++) {
+         float xi = xform.xvalueToPixel (xticks[i].getValue());
+         label = createLabelString (xticks[i], forceLabelExponent);
+         float xs = xi;
+         float ys = getHeight() - myMargins[BOTTOM] + fontHeight;
+         // g.setColor (getBackground());
+         // g.fillRect (xs - 1, ys - h, w + 2, h + 2);
+         r.drawText (label, xs, ys, TextAlign.CENTER);
       }
+      r.endGraphics();
    }
 
-   private static double displayDigits = 8;
+   private void drawTicks (
+      DataRenderer r, ScreenTransform xform,
+      TickValue[] xticks, TickValue[] yticks) {
 
-   public double roundDouble (double value) {
-      double exp = Math.floor (Math.log10 (Math.abs (value)));
-      double base = Math.pow (10, displayDigits - exp);
-      
-      return Math.round (value * base) / base;
+      r.beginLineGraphics (1, Color.BLACK);
+      // y axis ticks
+      for (int i=0; i<yticks.length; i++) {
+         float yi = xform.yvalueToPixel(yticks[i].getValue());
+         float x0 = myMargins[LEFT];
+         r.drawLine (x0, yi, x0+myTickLength, yi);
+      }
+
+      // x axis ticks
+      for (int i = 0; i<xticks.length; i++) {
+         float xi = xform.xvalueToPixel (xticks[i].getValue());
+         float y0 = myMargins[TOP]+getPlotHeight()-1;
+         r.drawLine (xi, y0, xi, y0-myTickLength);
+      }
+      // box around the whole graph:
+      r.drawRect (
+         myMargins[LEFT], myMargins[TOP], getPlotWidth()-1, getPlotHeight()-1);
+
+      r.endGraphics();
    }
 
+   private void drawGrid (
+      DataRenderer r, ScreenTransform xform,
+      TickValue[] xticks, TickValue[] yticks) {
+
+      r.beginLineGraphics (1, Color.LIGHT_GRAY);
+      // horizontal lines
+      for (int i=0; i<yticks.length; i++) {
+         float yi = xform.yvalueToPixel(yticks[i].getValue());
+         float x0 = myMargins[LEFT];
+         r.drawLine (x0, yi, x0+getPlotWidth()-1, yi);
+      }
+      // vertical lines
+      for (int i = 0; i<xticks.length; i++) {
+         float xi = xform.xvalueToPixel (xticks[i].getValue());
+         float y0 = myMargins[TOP]+getPlotHeight()-1;
+         r.drawLine (xi, myMargins[TOP], xi, y0);
+      }
+      r.endGraphics();
+   }
    
    public void swapDrawIndicies (int a, int b) {
-      PlotTraceInfo ptiA = myProbe.getPlotTraceInfo (a);
-      PlotTraceInfo ptiB = myProbe.getPlotTraceInfo (b);
-      myProbe.swapPlotTraceOrder (ptiA, ptiB);
+      PlotTraceInfo ptiA = myTraceManager.getTraceInfo (a);
+      PlotTraceInfo ptiB = myTraceManager.getTraceInfo (b);
+      myTraceManager.swapTraceOrder (ptiA, ptiB);
+      updateDisplaysWithoutAutoRanging();
    }         
 
    /**
@@ -771,7 +1512,8 @@ public class NumericProbePanel extends JPanel {
       }
 
       if (scaleFactor != null && !scaleFactor.isNaN()) {
-         myProbe.scaleNumericList (scaleFactor);
+         myNumericList.scale (scaleFactor);
+         updateDisplays();
       }
    }
 
@@ -782,59 +1524,39 @@ public class NumericProbePanel extends JPanel {
     * The point to zoom in on.
     */
    public void zoomIn (Point zoomPoint) {
-      // determine what the increment level is (divide by 2, 2, 2.5)
-      zoomLevel++;
+      ScreenTransform xform = createScreenTransform();
       double scalingFactor = 2;
-      if (zoomLevel % 3 == 0) {
-         scalingFactor = 2.5;
-      }
 
       // zoom in on the y range
-      double[] curDisplayRange = getDisplayRange();
-      double[] defaultRange = getDefaultRange();
+      DoubleInterval defYRange = getDefaultYRange();
 
-      double rangeSize =
-         (curDisplayRange[1] - curDisplayRange[0]) / scalingFactor;
-      double yCenterPoint = maxYRange - (zoomPoint.getY() * yValuePerPixel);
+      double rangeSize = myYRange.getRange()/scalingFactor;
+      double yCenterPoint = xform.pixelToYvalue (zoomPoint.y);
       double newYMin = yCenterPoint - (rangeSize / 2);
       double newYMax = yCenterPoint + (rangeSize / 2);
 
-      if (newYMin < defaultRange[0]) {
+      if (newYMin < defYRange.getLowerBound()) {
          // the new y minimum is outside the range, default the range
-         newYMin = defaultRange[0];
+         newYMin = defYRange.getLowerBound();
          newYMax = newYMin + rangeSize;
       }
-      else if (newYMax > defaultRange[1]) {
+      else if (newYMax > defYRange.getUpperBound()) {
          // the new y maximum is outside the range, default the range
-         newYMax = defaultRange[1];
+         newYMax = defYRange.getUpperBound();
          newYMin = newYMax - rangeSize;
       }
 
-      setDisplayRange (newYMin, newYMax);
+      setYRange (newYMin, newYMax);
+      setAutoRanging (false);
 
-      // zoom in on the x domain
-      double[] curDisplayDomain = getDisplayDomain();
-      double[] defaultDomain = getDefaultDomain();
+      // zoom in on the time domain
+      double domainSize = myXRange.getRange()/scalingFactor;
+      double xCenterPoint = xform.pixelToXvalue (zoomPoint.x);
+      DoubleInterval newXRange = new DoubleInterval (
+         xCenterPoint - (domainSize / 2), xCenterPoint + (domainSize / 2));
 
-      double domainSize =
-         (curDisplayDomain[1] - curDisplayDomain[0]) / scalingFactor;
-//      double xCenterPoint =
-//         minXRange
-//         + (zoomPoint.getX() * TimeBase.ticksToSeconds (ticksPerPixel));
-      double xCenterPoint = minXRange + (zoomPoint.getX() * secondsPerPixel);
-      double newXMin = xCenterPoint - (domainSize / 2);
-      double newXMax = xCenterPoint + (domainSize / 2);
-
-      if (newXMin < defaultDomain[0]) {
-         newXMin = defaultDomain[0];
-         newXMax = newXMin + domainSize;
-      }
-      else if (newXMax > defaultDomain[1]) {
-         newXMax = defaultDomain[1];
-         newXMin = newXMax - domainSize;
-      }
-
-      setDisplayDomain (newXMin, newXMax);
+      newXRange.intersect (getDefaultXRange());
+      setXRange (newXRange);
    }
 
    /**
@@ -845,82 +1567,73 @@ public class NumericProbePanel extends JPanel {
     * The point to zoom out on.
     */
    public void zoomOut (Point zoomPoint) {
-      // determine what the increment level is (divide by 2, 2, 2.5)
-      zoomLevel--;
+      
+      ScreenTransform xform = createScreenTransform();
+      
       double scalingFactor = 2;
-      if (zoomLevel % 3 == 0) {
-         scalingFactor = 2.5;
-      }
 
       // zoom out on the y range
-      double[] curDisplayRange = getDisplayRange();
-      double[] defaultRange = getDefaultRange();
-      double defaultRangeSize = defaultRange[1] - defaultRange[0];
+      DoubleInterval defYRange = getDefaultYRange();
+      double defYmin = defYRange.getLowerBound();
+      double defYmax = defYRange.getUpperBound();
+      double defaultRangeSize = defYRange.getRange();
 
-      double rangeSize =
-         (curDisplayRange[1] - curDisplayRange[0]) * scalingFactor;
-      double yCenterPoint = maxYRange - (zoomPoint.getY() * yValuePerPixel);
+      double rangeSize = myYRange.getRange()*scalingFactor;
+      double yCenterPoint = xform.pixelToYvalue (zoomPoint.y);
       double newYMin = yCenterPoint - (rangeSize / 2);
       double newYMax = yCenterPoint + (rangeSize / 2);
 
-      if (newYMin < defaultRange[0] && newYMax <= defaultRange[1] &&
+      if (newYMin < defYmin && newYMax <= defYmax &&
           rangeSize <= defaultRangeSize) {
          // just the y min is out of range and the new display height is not
          // greater than the default
-         newYMin = defaultRange[0];
+         newYMin = defYmin;
          newYMax = newYMin + rangeSize;
       }
-      else if (newYMin >= defaultRange[0] && newYMax > defaultRange[1] &&
+      else if (newYMin >= defYmin && newYMax > defYmax &&
                rangeSize <= defaultRangeSize) {
          // just the y max is out of range and the new display height is not
          // greater than the default
-         newYMax = defaultRange[1];
+         newYMax = defYmax;
          newYMin = newYMax - rangeSize;
       }
-      else if (newYMin < defaultRange[0] || newYMax > defaultRange[1]) {
+      else if (newYMin < defYmin || newYMax > defYmax) {
          // either the y min or the y max or both are out of range
-         newYMin = defaultRange[0];
-         newYMax = defaultRange[1];
+         newYMin = defYmin;
+         newYMax = defYmax;
       }
+      setYRange (newYMin, newYMax);
+      setAutoRanging (false);
 
-      if (curDisplayRange[0] == defaultRange[0] && 
-          curDisplayRange[1] == defaultRange[1]) {
-         // if we didn't zoom because the display is already at the default
-         // Range then reset the zoomed in value by one
-         zoomLevel++;
-      }
+      // zoom out on the time domain
+      DoubleInterval defXRange = getDefaultXRange();
+      double defXmin = defXRange.getLowerBound();
+      double defXmax = defXRange.getUpperBound();
+      double defaultDomainSize = defXRange.getRange();
 
-      setDisplayRange (newYMin, newYMax);
-
-      // zoom out on the x domain
-      double[] curDisplayDomain = getDisplayDomain();
-      double[] defaultDomain = getDefaultDomain();
-      double defaultDomainSize = defaultDomain[1] - defaultDomain[0];
-
-      double domainSize =
-         (curDisplayDomain[1] - curDisplayDomain[0]) * scalingFactor;
-      double xCenterPoint = minXRange + (zoomPoint.getX() * secondsPerPixel);
+      double domainSize = myXRange.getRange()*scalingFactor;
+      double xCenterPoint = xform.pixelToXvalue (zoomPoint.x);
       double newXMin = xCenterPoint - (domainSize / 2);
       double newXMax = xCenterPoint + (domainSize / 2);
 
-      if (newXMin < defaultDomain[0] && newXMax <= defaultDomain[1] &&
+      if (newXMin < defXmin && newXMax <= defXmax &&
           domainSize <= defaultDomainSize) {
          // just the x min is out of range and the new display width is not
          // greater than the default
-         newXMin = defaultDomain[0];
+         newXMin = defXmin;
          newXMax = newXMin + domainSize;
       }
-      else if (newXMin >= defaultDomain[0] && newXMax > defaultDomain[1] &&
+      else if (newXMin >= defXmin && newXMax > defXmax &&
                domainSize <= defaultDomainSize) {
-         newXMax = defaultDomain[1];
+         newXMax = defXmax;
          newXMin = newXMax - domainSize;
       }
-      else if (newXMin < defaultDomain[0] || newXMax > defaultDomain[1]) {
-         newXMin = defaultDomain[0];
-         newXMax = defaultDomain[1];
+      else if (newXMin < defXmin || newXMax > defXmax) {
+         newXMin = defXmin;
+         newXMax = defXmax;
       }
 
-      setDisplayDomain (newXMin, newXMax);
+      setXRange (newXMin, newXMax);
    }
 
    /**
@@ -934,190 +1647,111 @@ public class NumericProbePanel extends JPanel {
     */
    public void moveDisplay (long xDistance, long yDistance) {
       
-      //double xDist = TimeBase.ticksToSeconds (xDistance * ticksPerPixel);
-      double xDist = xDistance * secondsPerPixel;
-      double yDist = yDistance * yValuePerPixel;
+      ScreenTransform xform = createScreenTransform();
+      double xDist = xDistance * xform.xvaluePerPixel();
+      double yDist = yDistance * xform.yvaluePerPixel();
+
+      double maxTime = myXRange.getUpperBound();
+      double minTime = myXRange.getLowerBound();
 
       // get the maximum values of the display so we dont display past these
       // points
-      double[] maxDomain = getDefaultDomain();
-      double[] maxRange = getAutoRange();
+      DoubleInterval defYRange = getDefaultYRange();
+      DoubleInterval defXRange = getDefaultXRange();
 
-      if ((minXRange + xDist) > maxDomain[0] &&
-          (maxXRange + xDist) < maxDomain[1]) {
-         double newXMin = minXRange + xDist;
-         double newXMax = maxXRange + xDist;
-         setDisplayDomain (newXMin, newXMax);
+      if ((minTime + xDist) > defXRange.getLowerBound() &&
+          (maxTime + xDist) < defXRange.getUpperBound()) {
+         setXRange (minTime+xDist, maxTime+xDist);
          repaint();
       }
 
-      if ((minYRange + yDist) > maxRange[0] &&
-          (maxYRange + yDist) < maxRange[1]) {
-         double newYMin = minYRange + yDist;
-         double newYMax = maxYRange + yDist;
-         setDisplayRange (newYMin, newYMax);
+      double maxY = myYRange.getUpperBound();
+      double minY = myYRange.getLowerBound();
+      if ((minY + yDist) > defYRange.getLowerBound() &&
+          (maxY + yDist) < defYRange.getUpperBound()) {
+         setYRange (minY+yDist, maxY+yDist);
+         setAutoRanging (false);
          repaint();
       }
    }
 
    /**
-    * Increase the range that is being viewed without any zooming constraints.
-    * This is different from zooming because we can increase the range past the
-    * original display range.
-    * 
+    * Increase the y range that is being viewed.  This is different from
+    * zooming because we can increase the range past the original display
+    * range.
     */
-   public void increaseRange() {
-      rangeLevel++;
+   public void increaseYRange() {
       double scalingFactor = 2;
-      if (rangeLevel % 3 == 0) {
-         scalingFactor = 2.5;
-      }
 
       // get the center point of the probe
-
-      double[] curDisplayRange = getDisplayRange();
-      
-      double rangeSize = (curDisplayRange[1] - curDisplayRange[0]);      
-      double yCenterPoint = maxYRange - (rangeSize / 2);
+      double rangeSize = myYRange.getRange();
+      double yCenterPoint = myYRange.getUpperBound() - (rangeSize / 2);
       
       double newYMin = yCenterPoint - (rangeSize * scalingFactor / 2);
       double newYMax = yCenterPoint + (rangeSize * scalingFactor / 2);
       
-      if (setRangeManually) {
-         setRangeManually = false;
-         
-         double[] autoRange = getAutoRange();
-         double newRangeSize = autoRange[1] - autoRange[0];
-         int tmpRangeLevel = 1;  
-         
-         if (newRangeSize > rangeSize) {
-            
-            while (newRangeSize > rangeSize) {
-               rangeLevel = tmpRangeLevel--;
-               double tmpScalingFactor = 2;
-               if (tmpRangeLevel % 3 == 0) {
-                  tmpScalingFactor = 2.5;
-               }
-               
-               double tmpYMin = yCenterPoint - (newRangeSize / tmpScalingFactor / 2);
-               double tmpYMax = yCenterPoint + (newRangeSize / tmpScalingFactor / 2);
-               
-               if (tmpYMax - tmpYMin < rangeSize) {
-                  break;
-               }
-               
-               newYMin = tmpYMin;
-               newYMax = tmpYMax;
-               
-               newRangeSize = newYMax - newYMin;
-            }
-         }
-         else if (newRangeSize < rangeSize) {
-            
-            while (newRangeSize < rangeSize) {
-               rangeLevel = ++tmpRangeLevel;
-               double tmpScalingFactor = 2;
-               if (tmpRangeLevel % 3 == 0) {
-                  tmpScalingFactor = 2.5;
-               }
-               
-               newYMin = yCenterPoint - (newRangeSize * tmpScalingFactor / 2);
-               newYMax = yCenterPoint + (newRangeSize * tmpScalingFactor / 2);
-               
-               newRangeSize = newYMax - newYMin;
-            }
-         }
-      }
-
-      setDisplayRange (newYMin, newYMax);
-
-      // only change the default range if the display is not currently zoomed
-      // in or out
-      if (zoomLevel == 0) {
-         setDefaultRange (newYMin, newYMax);
-      }
+      setYRange (newYMin, newYMax);
+      setAutoRanging (false);
+      repaint();
    }
 
    /**
-    * Decrease the range that is being viewed. When the range is increased this
+    * Decrease the y range that is being viewed. When the range is increased this
     * function undoes those increases.
-    * 
     */
-   public void decreaseRange() {
-      rangeLevel--;
+   public void decreaseYRange() {
       double scalingFactor = 2;
-      if (rangeLevel % 3 == 2) {
-         scalingFactor = 2.5;
-      }
 
       // zoom in on the y range
-      double[] curDisplayRange = getDisplayRange();
-
-      double rangeSize = (curDisplayRange[1] - curDisplayRange[0]);
-      double yCenterPoint = maxYRange - (rangeSize / 2);
+      double rangeSize = myYRange.getRange();
+      double yCenterPoint = myYRange.getUpperBound() - (rangeSize / 2);
       
       double newYMin = yCenterPoint - (rangeSize / scalingFactor / 2);
       double newYMax = yCenterPoint + (rangeSize / scalingFactor / 2);
-      
-      if (setRangeManually) {
-         setRangeManually = false;
-         
-         double[] autoRange = getAutoRange();
-         double newRangeSize = autoRange[1] - autoRange[0];
-         int tmpRangeLevel = 1;  
-         
-         if (newRangeSize > rangeSize) {
-            
-            while (newRangeSize > rangeSize) {
-               rangeLevel = --tmpRangeLevel;
-               double tmpScalingFactor = 2;
-               if (tmpRangeLevel % 3 == 2) {
-                  tmpScalingFactor = 2.5;
-               }
-               
-               newYMin = yCenterPoint - (newRangeSize / tmpScalingFactor / 2);
-               newYMax = yCenterPoint + (newRangeSize / tmpScalingFactor / 2);
-               
-               newRangeSize = newYMax - newYMin;
-            }
-         }
-         else if (newRangeSize < rangeSize) {
-            
-            while (newRangeSize < rangeSize) {
-               rangeLevel = tmpRangeLevel++;
-               double tmpScalingFactor = 2;
-               if (tmpRangeLevel % 3 == 2) {
-                  tmpScalingFactor = 2.5;
-               }
-               
-               double tmpYMin = yCenterPoint - (newRangeSize * tmpScalingFactor / 2);
-               double tmpYMax = yCenterPoint + (newRangeSize * tmpScalingFactor / 2);
-               
-               if (tmpYMax - tmpYMin > rangeSize) {
-                  break;
-               }
-               
-               newYMin = tmpYMin;
-               newYMax = tmpYMax;
-               
-               newRangeSize = newYMax - newYMin;
-            }
-         }
-      }
 
-      setDisplayRange (newYMin, newYMax);
+      setYRange (newYMin, newYMax);
+      setAutoRanging (false);
+      repaint();
+   }
 
-      // only change the default range if the display is not currently zoomed
-      // in or out
-      if (zoomLevel == 0) {
-         setDefaultRange (newYMin, newYMax);
-      }
+   /**
+    * Increase the x range that is being viewed.  This is different from
+    * zooming because we can increase the range past the original display
+    * range.
+    */
+   public void increaseXRange() {
+      double scalingFactor = 2;
+
+      double rangeSize = myXRange.getRange();
+      double newTMin = myXRange.getLowerBound();
+      double newTMax = newTMin + rangeSize*scalingFactor;
+      setXRange (newTMin, newTMax);
+      repaint();
+   }
+
+   /**
+    * Decrease the x range that is being viewed. When the range is increased this
+    * function undoes those increases.
+    */
+   public void decreaseXRange() {
+      double scalingFactor = 0.5;
+
+      double rangeSize = myXRange.getRange();
+      double newTMin = myXRange.getLowerBound();
+      double newTMax = newTMin + rangeSize*scalingFactor;
+      setXRange (newTMin, newTMax);
+      repaint();
+   }
+
+   public Point2d pixelsToCoords (Point p) {
+      ScreenTransform xform = createScreenTransform();
+      return new Point2d (xform.pixelToXvalue (p.x), xform.pixelToYvalue (p.y));
    }
 
    protected class WheelListener implements MouseWheelListener {
 
       public void mouseWheelMoved (MouseWheelEvent e) {
-         if (zoomIn || zoomOut) {
+         if (myCursorMode != CursorMode.SELECT) {
             // determine if we are zooming in or out based on the direction the
             // mouse wheel is moved
             int wheelRotation = e.getWheelRotation();
@@ -1136,53 +1770,23 @@ public class NumericProbePanel extends JPanel {
       }
    }
 
-   /**
-    * Returns the virtual time corresponding to a particular x pixel value.
-    */
-   public double xpixelToVirtualTime (int x) {
-//      long ticks = x * ticksPerPixel;
-//      if (!useVirtualTime) {
-//         ticks -= myProbe.getStartTimeTicks();
-//      }
-//      return TimeBase.ticksToSeconds (ticks) + minXRange;
-      double secs = x * secondsPerPixel;
-      if (!useVirtualTime) {
-         secs -= myProbe.getStartTime();
-      }
-      return secs + minXRange;
-   }
-
-   /**
-    * Returns the x pixel value corresponding to a particular virtual time.
-    */
-   public int virtualTimeToXpixel (double t) {
-//      long ticks = TimeBase.secondsToTicks (t - minXRange);
-//      if (!useVirtualTime) {
-//         ticks += myProbe.getStartTimeTicks();
-//      }
-//      return (int)(ticks / ticksPerPixel);
-      double secs = t - minXRange;
-      if (!useVirtualTime) {
-         secs += myProbe.getStartTime();
-      }
-      return (int)(secs / secondsPerPixel);
-   }
-
    protected class DisplayListener implements MouseInputListener,
    ActionListener {
       
       
       private NumericListKnot checkSelection(Point initialMousePos) {
          boolean found = false;
-         double initTimeInSec = xpixelToVirtualTime (initialMousePos.x);
+         ScreenTransform xform = createScreenTransform();
+
+         double initTimeInSec = xform.pixelToXvalue (initialMousePos.x);
          NumericListKnot closestKnot =
             getNumericList().findKnotClosest (initTimeInSec);
 
          // enter the loop only if closest exists, in other words we got the
          // knot
          if (closestKnot != null) {
-            int closestXPixel = virtualTimeToXpixel (closestKnot.t);
-
+            int closestXPixel = (int)xform.xvalueToPixel (closestKnot.t);
+            
             // see if delta-t is small enough to trigger a selection
             if ((closestXPixel - initialMousePos.x) <= SELECT_MARGIN &&
                 (closestXPixel - initialMousePos.x) >= -SELECT_MARGIN) {
@@ -1194,13 +1798,12 @@ public class NumericProbePanel extends JPanel {
 
                   double scannedYValue = (double)closestKnot.v.get (j);
 
-                  int YPixel =
-                     ((int)((-(scannedYValue - maxYRange)) / yValuePerPixel));
+                  int YPixel = (int)xform.yvalueToPixel (scannedYValue);
                   if ((YPixel - initialMousePos.y) <= SELECT_MARGIN &&
                       (YPixel - initialMousePos.y >= -SELECT_MARGIN) &&
                       found == false) {
                      for (int v = 0; v < closestKnot.v.size(); v++) {
-                        int idx = myProbe.getOrderedTraceIndex (v);
+                        int idx = myTraceManager.getOrderedTraceIndex (v);
 
                         if (closestKnot.v.get (j) -
                             closestKnot.v.get (idx) == 0) {
@@ -1221,10 +1824,11 @@ public class NumericProbePanel extends JPanel {
       
       // the mouse is pressed on the pane where the knots are to move the knots
       public void mousePressed (MouseEvent e) {
-         if (zoomIn && e.getButton() == MouseEvent.BUTTON1) {
+         if (myCursorMode == CursorMode.ZOOM_IN &&
+             e.getButton() == MouseEvent.BUTTON1) {
             // zooming in is true so set the initial point for if we drag to
             // select an area to zoom in on
-            zoomSelectPoint = e.getPoint();
+            zoomPnt0 = e.getPoint();
          }
 
          if (e.isPopupTrigger()) {
@@ -1237,10 +1841,10 @@ public class NumericProbePanel extends JPanel {
                   JPopupMenu editMenu = new JPopupMenu();
 
                   JMenuItem deleteDataPoint =
-                     new JMenuItem ("Delete Data Point");
+                     new JMenuItem ("Delete knot point");
                   deleteDataPoint.addActionListener (displayListener);
 
-                  JMenuItem editDataPoint = new JMenuItem ("Edit Data Point");
+                  JMenuItem editDataPoint = new JMenuItem ("Edit knot point");
                   editDataPoint.addActionListener (displayListener);
 
                   editMenu.add (deleteDataPoint);
@@ -1257,7 +1861,7 @@ public class NumericProbePanel extends JPanel {
          }
          
          // perform editing only on press of primary mouse button
-         if (e.getButton() == MouseEvent.BUTTON1 && myProbe.isInput()) {
+         if (e.getButton() == MouseEvent.BUTTON1 && myInputDataP) {
             // get the initial location of the mouse press
             initialMousePos = e.getPoint();
 
@@ -1288,65 +1892,84 @@ public class NumericProbePanel extends JPanel {
          JPopupMenu.setDefaultLightWeightPopupEnabled (false);
          JPopupMenu popupMenu = new JPopupMenu();
 
-         if (drawKnotsP) {
-            popupMenu.add (createMenuItem ("Hide Knot Points"));
+         JMenuItem menuItem = createMenuItem ("Edit range and properties ...");
+         popupMenu.add (menuItem);
+         if (myPropertyDialog != null) {
+            menuItem.setEnabled (false);
+         }
+         if (getKnotsVisible()) {
+            popupMenu.add (createMenuItem ("Hide knot points"));
          }
          else {
-            popupMenu.add (createMenuItem ("Show Knot Points"));
+            popupMenu.add (createMenuItem ("Show knot points"));
          }
-         popupMenu.add (createMenuItem ("Legend"));
-
-         if (myProbe.isInput()) {
-            popupMenu.addSeparator();
-            popupMenu.add (createMenuItem ("Step Interpolation"));
-            popupMenu.add (createMenuItem ("Linear Interpolation"));
-            popupMenu.add (createMenuItem ("Cubic Interpolation"));
-            popupMenu.add (createMenuItem ("CubicStep Interpolation"));
+         if (getLegend() == null) {
+            popupMenu.add (createMenuItem ("Show legend ..."));
+         }
+         else {
+            popupMenu.add (createMenuItem ("Hide legend"));
+         }
+         if (myInputDataP) {
+            //popupMenu.addSeparator();
+            JMenu submenu = new JMenu("Interpolation");
+            submenu.add (createMenuItem ("Step"));
+            submenu.add (createMenuItem ("Linear"));
+            submenu.add (createMenuItem ("Cubic"));
+            submenu.add (createMenuItem ("CubicStep"));
             if (getVectorSize() == 4) {
-               popupMenu.add (createMenuItem ("Spherical Linear Interpolation"));
-               popupMenu.add (createMenuItem ("Spherical Cubic Interpolation"));
+               submenu.add (createMenuItem ("SphericalLinear"));
+               submenu.add (createMenuItem ("SphericalCubic"));
             }
             else if (getVectorSize() == 16) {
-               popupMenu.add (createMenuItem ("Spherical Linear Interpolation"));
-               popupMenu.add (createMenuItem ("Spherical Cubic Interpolation"));
+               submenu.add (createMenuItem ("SphericalLinear"));
+               submenu.add (createMenuItem ("SphericalCubic"));
             }
+            popupMenu.add (submenu);
          }
 
-         popupMenu.addSeparator();
-         popupMenu.add (createMenuItem ("Scale Data Values"));
-         
-         if (!isLargeDisplay ()) {
-            popupMenu.add (createMenuItem ("Set Display Range ..."));
-            popupMenu.add (createMenuItem ("Fit Display Range"));
+         if (isLargeDisplay()) {
+            popupMenu.addSeparator();
+            popupMenu.add (createMenuItem ("Clone display"));
+            popupMenu.add (createMenuItem ("Export image as ..."));
          }
-         
+         popupMenu.addSeparator();
+         popupMenu.add (createMenuItem ("Scale data ..."));
+         popupMenu.add (createMenuItem ("Fit ranges to data"));
+
          return popupMenu;
       }
 
       public void mouseReleased (MouseEvent e) {
-         if (moveDisplay) {
+         if (myCursorMode == CursorMode.TRANSLATE) {
             // set the previous point that was moved from to null because we
             // are no longer moving the display
             previousPoint = null;
          }
-         if (e.getButton() == MouseEvent.BUTTON1 && zoomSelectRect != null) {
+         if (e.getButton() == MouseEvent.BUTTON1 &&
+             zoomPnt0 != null && zoomPnt1 != null) {
+            ScreenTransform xform = createScreenTransform();
             // an area has been zoom selected, so zoom in on that area
-            double newYMin =
-               (maxYRange - ((zoomSelectRect.y + zoomSelectRect.height) * yValuePerPixel));
-            double newYMax = maxYRange - (zoomSelectRect.y * yValuePerPixel);
+            int xpmin = Math.min (zoomPnt0.x, zoomPnt1.x);
+            int xpmax = Math.max (zoomPnt0.x, zoomPnt1.x);
+            int ypmin = Math.min (zoomPnt0.y, zoomPnt1.y);
+            int ypmax = Math.max (zoomPnt0.y, zoomPnt1.y);
 
-            double newXMin = minXRange + zoomSelectRect.x * secondsPerPixel;
-            //   TimeBase.ticksToSeconds ((zoomSelectRect.x * ticksPerPixel));
-            double newXMax = minXRange +
-               (zoomSelectRect.x + zoomSelectRect.width) * secondsPerPixel;
-               // TimeBase.ticksToSeconds (
-                  //((zoomSelectRect.x + zoomSelectRect.width) * ticksPerPixel));
+            DoubleInterval newYRange = new DoubleInterval (
+               xform.pixelToYvalue (ypmax), xform.pixelToYvalue (ypmin));
+            DoubleInterval newXRange = new DoubleInterval (
+               xform.pixelToXvalue (xpmin), xform.pixelToXvalue (xpmax));
 
-            setDisplayRange (newYMin, newYMax);
-            setDisplayDomain (newXMin, newXMax);
+            // clip x to allowed range
+            newXRange.intersect (getDefaultXRange());
+
+            setYRange (newYRange);
+            setAutoRanging (false);
+
+            setXRange (newXRange);
             repaint();
 
-            zoomSelectRect = null;
+            zoomPnt0 = null;
+            zoomPnt1 = null;
          }
 
          // display of popup menu only on press of secondary mouse button
@@ -1363,9 +1986,9 @@ public class NumericProbePanel extends JPanel {
 
                JPopupMenu editMenu = new JPopupMenu();
                JMenuItem deleteDataPoint =
-                  new JMenuItem ("Delete Data Point");
+                  new JMenuItem ("Delete knot point");
                deleteDataPoint.addActionListener (displayListener);
-               JMenuItem editDataPoint = new JMenuItem ("Edit Data Point");
+               JMenuItem editDataPoint = new JMenuItem ("Edit knot point");
                editDataPoint.addActionListener (displayListener);
                editMenu.add (deleteDataPoint);
                editMenu.add (editDataPoint);
@@ -1380,44 +2003,26 @@ public class NumericProbePanel extends JPanel {
          }
 
          // perform editing only on press of primary mouse button
-         if (e.getButton() == MouseEvent.BUTTON1 && myProbe.isInput()) {
+         if (e.getButton() == MouseEvent.BUTTON1 && myInputDataP) {
             // get the initial location of the mouse press
-            finalCoor = e.getPoint();
-
-            // limit finalCoor to the bounds of the display
-            if (finalCoor.x < 0)
-               finalCoor.x = 0;
-            else if (finalCoor.x > getWidth())
-               finalCoor.x = getWidth();
-            if (finalCoor.y < 0)
-               finalCoor.y = 0;
-            else if (finalCoor.y > getHeight())
-               finalCoor.y = getHeight();
-
+            clipToMargins (e.getPoint());
             editingP = false;
          }
          
-         if (myAutoRangingP) {
+         if (isAutoRanging()) {
             repaint();
          }
       }
 
       public void mouseDragged (MouseEvent e) {
          // only enter this loop when the initial mouse press is close
-         // enough to a data point
-         if (editingP == true && myProbe.isInput()) {
+         // enough to a knot point
+         if (editingP == true && myInputDataP) {
             double tempTime, tempYValue;
-            tempCoor = e.getPoint();
+            Point tempCoor = e.getPoint();
 
             // limit tempCoor to the bounds of the display
-            if (tempCoor.x < 0)
-               tempCoor.x = 0;
-            else if (tempCoor.x > getWidth())
-               tempCoor.x = getWidth();
-            if (tempCoor.y < 0)
-               tempCoor.y = 0;
-            else if (tempCoor.y > getHeight())
-               tempCoor.y = getHeight();
+            clipToMargins (tempCoor);            
 
             // only allows dragging when there is a minimum number of
             // pixel deviation from the initial mouse press
@@ -1432,10 +2037,10 @@ public class NumericProbePanel extends JPanel {
                // and make changes to the new knot
 
                // the new way of setting time
-               tempTime = xpixelToVirtualTime (tempCoor.x);
+               ScreenTransform xform = createScreenTransform();
+               tempTime = xform.pixelToXvalue (tempCoor.x);
 
-               tempYValue =
-                  (double)(-(((double)tempCoor.y) * yValuePerPixel) + maxYRange);
+               tempYValue = xform.pixelToYvalue (tempCoor.y);
                newKnot.t = tempTime;
                newKnot.v.set (dirtyIndex, tempYValue);
 
@@ -1451,14 +2056,9 @@ public class NumericProbePanel extends JPanel {
                // replace oldKnot with the new knot, anticipating
                // that newKnot will be removed on the next drag event
                oldKnot = newKnot;
-
-               xPosition = tempCoor.x;
-               yPosition = tempCoor.y;
-               xTime = tempTime;
-               yTime = tempYValue;
             }
          }
-         else if (moveDisplay) {
+         else if (myCursorMode == CursorMode.TRANSLATE) {
             if (previousPoint == null) {
                previousPoint = e.getPoint();
             }
@@ -1468,80 +2068,36 @@ public class NumericProbePanel extends JPanel {
                previousPoint = e.getPoint();
             }
          }
-         else if (zoomIn && e.getModifiers() == MouseEvent.BUTTON1_MASK) {
-            if (zoomSelectRect == null) {
-               // a zoom selecting rectangle has not already been made so make
-               // one
-               zoomSelectRect = new Rectangle();
-            }
-
-            // get the frame bounds so we can check if we're beyond them
-            Rectangle frameBounds = getBounds();
-
-            // get the bounds for the x-axis
-            if (e.getX() < frameBounds.x) {
-               // out of bounds below zero
-               zoomSelectRect.x = 0;
-            }
-            else if (e.getX() >= zoomSelectPoint.x &&
-                     e.getX() < frameBounds.width) {
-               // normal
-               zoomSelectRect.width = Math.abs (e.getX() - zoomSelectPoint.x);
-               zoomSelectRect.x = zoomSelectPoint.x;
-            }
-            else if (e.getX() < frameBounds.width) {
-               // flip the x coordinates
-               zoomSelectRect.width = Math.abs (e.getX() - zoomSelectPoint.x);
-               zoomSelectRect.x = e.getX();
-            }
-
-            // get the bounds for the y-axis
-            if (e.getY() < frameBounds.y) {
-               // out of bounds below zero
-               zoomSelectRect.y = 0;
-            }
-            else if (e.getY() >= zoomSelectPoint.y &&
-                     e.getY() < frameBounds.height) {
-               // normal
-               zoomSelectRect.height = Math.abs (e.getY() - zoomSelectPoint.y);
-               zoomSelectRect.y = zoomSelectPoint.y;
-            }
-            else if (e.getY() < frameBounds.height) {
-               // flip the y coordinates
-               zoomSelectRect.height = Math.abs (e.getY() - zoomSelectPoint.y);
-               zoomSelectRect.y = e.getY();
-            }
+         else if (myCursorMode == CursorMode.ZOOM_IN &&
+                  e.getModifiers() == MouseEvent.BUTTON1_MASK) {
+            zoomPnt1 = new Point (e.getX(), e.getY());
          }
          // repaint();
-         myProbe.updateDisplaysWithoutAutoRanging();
+         updateDisplaysWithoutAutoRanging();
       }
 
       public void mouseClicked (MouseEvent e) {
-         if ((zoomIn || zoomOut || moveDisplay) &&
-             e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
-            // we are in a zoom or move display mode and a double click occurs,
-            // reset to the default range TODO is this logical?
-            resetDisplay();
-         }
-         else if (zoomIn && e.getButton() == MouseEvent.BUTTON1) {
+         if (myCursorMode == CursorMode.ZOOM_IN &&
+             e.getButton() == MouseEvent.BUTTON1) {
             // zoom in
             zoomIn (e.getPoint());
             repaint();
          }
-         else if (zoomOut && e.getButton() == MouseEvent.BUTTON1) {
+         else if (myCursorMode == CursorMode.ZOOM_OUT &&
+                  e.getButton() == MouseEvent.BUTTON1) {
             // zoom out
             zoomOut (e.getPoint());
             repaint();
          }
-         else if (myProbe.isInput()) // only add knots for input probes
+         else if (myInputDataP) // only add knots for input probes
          {
             if (e.getClickCount() == 2) {
-               int size = myProbe.getVsize();
+               int size = getVectorSize();
 
-               tempCoor = e.getPoint();
-               double tempTime = xpixelToVirtualTime (tempCoor.x);
+               ScreenTransform xform = createScreenTransform();
+               double tempTime = xform.pixelToXvalue (e.getPoint().x);
                newKnot = new NumericListKnot (size);
-               NumericList list = myProbe.getNumericList();
+               NumericList list = getNumericList();
                VectorNd vec = new VectorNd (size);
                if (getNumericList().getNumKnots() == 0) {
                   vec.setZero();
@@ -1551,12 +2107,34 @@ public class NumericProbePanel extends JPanel {
                newKnot.v = vec;
                getNumericList().add (newKnot);
                System.out.println ("adding new knot at" + newKnot.t);
-               myProbe.updateDisplaysWithoutAutoRanging();
+               updateDisplaysWithoutAutoRanging();
             }
          }
       }
 
       public void mouseEntered (MouseEvent e) {
+         switch (myCursorMode) {
+            case SELECT: {
+               setCursor (Cursor.getDefaultCursor());  
+               break;
+            }
+            case ZOOM_IN: {
+               setCursor (zoomInCursor);
+               break;
+            }
+            case ZOOM_OUT: {
+               setCursor (zoomOutCursor);
+               break;
+            }
+            case TRANSLATE: {
+               setCursor (translateCursor);
+               break;
+            }
+            default: {
+               throw new InternalErrorException (
+                  "Cursor not defined for CursorMode " + myCursorMode);
+            }
+         }
       }
 
       public void mouseExited (MouseEvent e) {
@@ -1574,7 +2152,8 @@ public class NumericProbePanel extends JPanel {
 
          // System.out.println("Initial: " + initialMousePos);
 
-         double initTimeInSec = xpixelToVirtualTime (initialMousePos.x);
+         ScreenTransform xform = createScreenTransform();
+         double initTimeInSec = xform.pixelToXvalue (initialMousePos.x);
 
          NumericListKnot closestKnot =
             getNumericList().findKnotClosest (initTimeInSec);
@@ -1583,101 +2162,82 @@ public class NumericProbePanel extends JPanel {
          // knot and only if we are not currently zooming
          if (closestKnot != null) {
             // changes to add y-scanning into the code June10th
-            int closestXPixel = virtualTimeToXpixel (closestKnot.t);
+            int closestXPixel = (int)xform.xvalueToPixel (closestKnot.t);
 
             for (int i = 0; i < closestKnot.v.size(); i++) {
-               tempCoor = e.getPoint();
                if ((closestXPixel - initialMousePos.x) <= SELECT_MARGIN &&
                    (closestXPixel - initialMousePos.x) >= -SELECT_MARGIN &&
-                   myProbe.isInput()) {
+                   myInputDataP) {
                   break;
                }
             }
 
             // see if delta-t is small enough to trigger a selection
-            if (moveDisplay) {
-               setCursor (moveDisplayCursor);
-            }
-            else if (zoomIn) {
-               setCursor (zoomInCursor);
-            }
-            else if (zoomOut) {
-               setCursor (zoomOutCursor);
-            }
-            else if ((closestXPixel - initialMousePos.x) <= SELECT_MARGIN &&
-                     (closestXPixel - initialMousePos.x) >= -SELECT_MARGIN &&
-                     myProbe.isInput()) {
-               setCursor (Cursor.getPredefinedCursor (1));
-            }
-            else {
-               setCursor (Cursor.getDefaultCursor());
+            if (myCursorMode == CursorMode.SELECT) {
+               if ((closestXPixel - initialMousePos.x) <= SELECT_MARGIN &&
+                   (closestXPixel - initialMousePos.x) >= -SELECT_MARGIN &&
+                   myInputDataP) {
+                  setCursor (Cursor.getPredefinedCursor (1));
+               }
+               else {
+                  setCursor (Cursor.getDefaultCursor());
+               }
             }
          }// end changes
 
-      }
-
-      private void setInterpolationOrder (Interpolation.Order order) {
-         if (myProbe.getInterpolationOrder() != order) {
-            myProbe.setInterpolationOrder (order);
-            Main.getMain().rewidgetUpdate();
-         }
       }
 
       // sort out the performed action on the display
       public void actionPerformed (ActionEvent e) {
          String nameOfAction = e.getActionCommand();
 
-         System.out.println ("action=" + nameOfAction);
-         if (nameOfAction == "Step Interpolation") {
-            if (myProbe.isInput()) {
+         if (nameOfAction == "Step") {
+            if (myInputDataP) {
                setInterpolationOrder (Interpolation.Order.Step);
             }
          }
-         else if (nameOfAction == "Linear Interpolation") {
-            if (myProbe.isInput()) {
+         else if (nameOfAction == "Linear") {
+            if (myInputDataP) {
                setInterpolationOrder (Interpolation.Order.Linear);
             }
          }
-         else if (nameOfAction == "Cubic Interpolation") {
-            if (myProbe.isInput()) {
+         else if (nameOfAction == "Cubic") {
+            if (myInputDataP) {
                setInterpolationOrder (Interpolation.Order.Cubic);
             }
          }
-         else if (nameOfAction == "CubicStep Interpolation") {
-            if (myProbe.isInput()) {
+         else if (nameOfAction == "CubicStep") {
+            if (myInputDataP) {
                setInterpolationOrder (Interpolation.Order.CubicStep);
             }
          }
-         else if (nameOfAction == "Spherical Linear Interpolation") {
-            if (myProbe.isInput()) {
+         else if (nameOfAction == "SphericalLinear") {
+            if (myInputDataP) {
                System.out.println ("setting");
                setInterpolationOrder (Interpolation.Order.SphericalLinear);
             }
          }
-         else if (nameOfAction == "Spherical Cubic Interpolation") {
-            if (myProbe.isInput()) {
+         else if (nameOfAction == "SphericalCubic") {
+            if (myInputDataP) {
                setInterpolationOrder (Interpolation.Order.SphericalCubic);
             }
          }
-         else if (nameOfAction == "Set Display Range ...") {
-            setDisplayRange();
-         }
-         else if (nameOfAction == "Fit Display Range") {
+         else if (nameOfAction == "Reset ranges") {
             fitDisplayRange();
          }
-         else if (nameOfAction == "Scale Data Values") {
+         else if (nameOfAction == "Scale data ...") {
             scaleProbeValues();
          }
-         else if (nameOfAction == "Show Knot Points") {
-            drawKnotsP = true;
+         else if (nameOfAction == "Show knot points") {
+            setKnotsVisible (true);
          }
-         else if (nameOfAction == "Hide Knot Points") {
-            drawKnotsP = false;
+         else if (nameOfAction == "Hide knot points") {
+            setKnotsVisible (false);
          }
-         else if (nameOfAction == "Delete Data Point") {
+         else if (nameOfAction == "Delete knot point") {
             getNumericList().remove (newKnot);
          }
-         else if (nameOfAction == "Edit Data Point") {
+         else if (nameOfAction == "Edit knot point") {
             double oldVal = newKnot.v.get (dirtyIndex);
             String input =
                JOptionPane.showInputDialog (
@@ -1692,87 +2252,251 @@ public class NumericProbePanel extends JPanel {
                }
             }
          }
-         else if (nameOfAction == "Legend") {
-            LegendDisplay legend = myProbe.getLegend();
+         else if (nameOfAction == "Clone display") {
+            Window win = 
+               SwingUtilities.windowForComponent (NumericProbePanel.this);
+            if (win instanceof NumericProbeDisplayLarge) {
+               NumericProbeDisplayLarge newDisplay = 
+                  new NumericProbeDisplayLarge ((NumericProbeDisplayLarge)win);
+               GuiUtils.locateBelow (newDisplay, NumericProbePanel.this);
+               newDisplay.setVisible (true);
+            }
+         }
+         else if (nameOfAction == "Export image as ...") {
+            exportImageAs();
+         }
+         else if (nameOfAction == "Edit range and properties ...") {
+            if (myPropertyDialog == null) {
+               myPropertyDialog = createPropertyDialog("OK");
+               myPropertyDialog.addWindowListener (
+                  new WindowAdapter() {
+                     public void windowClosed (WindowEvent e) {
+                        myPropertyDialog = null;
+                     }
+                  });
+               myPropertyDialog.setVisible (true);
+            }
+         }
+         else if (nameOfAction == "Show legend ...") {
+            LegendDisplay legend = getLegend();
+            if (legend == null) {
+               legend = new LegendDisplay (
+                  NumericProbePanel.this, myTraceManager);
+               setLegend (legend);
+            }
             if (!legend.isVisible()) {
                GuiUtils.locateRight (legend, NumericProbePanel.this);
                legend.setVisible (true);
             }
-            
          }
-
-         myProbe.updateDisplaysWithoutAutoRanging();
+         else if (nameOfAction == "Hide legend") {
+            LegendDisplay legend = getLegend();
+            if (legend != null) {
+               legend.dispose();
+               setLegend (null);
+            }
+         }
+         updateDisplaysWithoutAutoRanging();
       }
 
+   }
+
+   private PropertyDialog createPropertyDialog (String controlStr) {
+      PropertyDialog dialog =
+         new PropertyDialog (
+            "Display range and properties", new PropertyPanel(), controlStr);
+
+      if (isLargeDisplay()) {
+         dialog.addWidget ("x range", this, "xRange");
+      }
+      LabeledControl yrangeWidget =
+         (LabeledControl)dialog.addWidget ("y range", this, "yRange");
+      dialog.addWidget (this, "autoRanging");
+      if (isLargeDisplay()) {
+         dialog.addWidget (this, "drawGrid");
+         dialog.addWidget (this, "tickLength");
+         dialog.addWidget (this, "lineWidth");
+      }
+      dialog.addWidget (this, "knotsVisible");
+      dialog.addWidget (this, "knotSize");
+
+      yrangeWidget.addValueChangeListener (
+         new ValueChangeListener() {
+            public void valueChange (ValueChangeEvent e) {
+               setAutoRanging (false);
+            }
+         });
+
+      dialog.pack();
+      dialog.locateRight (this);
+      dialog.addGlobalValueChangeListener (this);
+
+      //registerDialog (dialog);
+      return dialog;
+   }
+
+   public void exportImageAs () {
+      ArrayList<ExtensionFileFilter> extraFilters = new ArrayList<>();
+      extraFilters.add (
+         new ExtensionFileFilter ("Encapsulated PostScript (*.eps)", "eps"));
+      extraFilters.add (
+         new ExtensionFileFilter ("Scalable vector graphics (*.svg)", "svg"));
+      ImageFileChooser chooser =
+         new ImageFileChooser (myExportFile, extraFilters);
+      if (chooser.showValidatedDialog (this, "Export as") ==
+          JFileChooser.APPROVE_OPTION) {
+         File file = chooser.getSelectedFileWithExtension();
+         boolean confirm = true;
+         if (file.exists()) {
+            confirm = GuiUtils.confirmOverwrite (this, file);
+         }
+         if (confirm) { 
+            String format = chooser.getSelectedFileExtension();
+            if (chooser.isImageFile (file)) {
+               try {
+                  BufferedImage img =
+                     new BufferedImage(
+                        getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
+                  Graphics g = img.getGraphics();
+                  g.setColor(getForeground());
+                  g.setFont(getFont());
+                  paintAll(g);
+                  if (!ImageIO.write (img, format, file)) {
+                     throw new IOException (
+                        "writer not found for file type '"+format+"'");
+                  }
+                  myExportFile = file;
+               }
+               catch (Exception e) {
+                  GuiUtils.showError (
+                     this, "Error saving image: " + e.getMessage());
+               }
+            }
+            else if (format.equalsIgnoreCase ("svg")) {
+               try {
+                  SvgRenderer r = new SvgRenderer (file);
+                  drawPlot (r, /*large=*/true);
+                  myExportFile = file;
+               }
+               catch (Exception e) {
+                  GuiUtils.showError (
+                     this, "Error saving image: " + e.getMessage());
+               }
+            }
+            else if (format.equalsIgnoreCase ("ps") || 
+                     format.equalsIgnoreCase ("eps")) {
+               try {
+                  PostScriptRenderer r = new PostScriptRenderer (file);
+                  drawPlot (r, /*large=*/true);
+                  myExportFile = file;
+               }
+               catch (IOException e) {
+                  GuiUtils.showError (
+                     this, "Error saving image: " + e.getMessage());
+               }
+            }
+            else {
+               throw new InternalErrorException (
+                  "Export not supported for for file type ." + format);
+            }
+         }
+      }
+   }
+   
+   public void valueChange (ValueChangeEvent e) {
+      repaint();
    }
 
    public NumericProbePanel (Probe probe) {
       if (probe instanceof NumericProbeBase) {
          myProbe = (NumericProbeBase)probe;
+         myNumericList = myProbe.getNumericList();
+         myTraceManager = myProbe.getTraceManager();
+         myInputDataP = myProbe.isInput();
+         myKnotsVisible = myInputDataP;
       }
-      else
+      else {
          throw new IllegalArgumentException ("probe is of not a numeric type");
-
+      }
+      build();
+   }
+   
+   public NumericProbePanel (NumericProbePanel panel) {
+      myProbe = null;
+      myNumericList = (NumericList)panel.myNumericList.clone();
+      myNumericList.setInterpolation (panel.getInterpolation());
+      myTraceManager = panel.myTraceManager.copy();
+      myStartTime = panel.getStartTime();
+      myStopTime = panel.getStopTime();
+      myScale = panel.getScale();
+      myInputDataP = panel.myInputDataP;
+      myDrawGrid = panel.myDrawGrid;
+      myAutoRangingP = panel.myAutoRangingP;
+      myTickLength = panel.myTickLength;
+      myLineWidth = panel.myLineWidth;
+      myKnotSize = panel.myKnotSize;
+      myKnotsVisible = panel.myKnotsVisible;
+      build();
+      if (panel.isLargeDisplay()) {
+         setLargeDisplay (true);
+      }
+      setXRange (panel.getXRange());
+      setYRange (panel.getYRange());
+      setDisplaySize (panel.getWidth(), panel.getHeight());
+   }
+   
+   protected void build() {
       fieldInitialization();
       appearanceInitialization();
       listenerInitialization();
       zoomCursorInitialization();
-      skipIndiciesInit();
-      int size = myProbe.getNumericList().getVectorSize();
-      drawOrder = new int[size];
-      myColorList = new Color[size];
-      // System.out.println("draworder and colorlist size = "+size);
-      for (int i = 0; i < size; i++) {
-         drawOrder[i] = i;
-         myColorList[i] = colorList[i % colorList.length];
-      }
    }
 
    public void resetDrawOrder (int size) {
-      myProbe.resetTraceOrder();
+      myTraceManager.resetTraceOrder();
+      updateDisplaysWithoutAutoRanging();
    }
 
 
    public void resetColors() {
-      myProbe.resetTraceColors();
-   }
-
-   private void skipIndiciesInit() {
-      skipIndicies = new Boolean[myProbe.getNumericList().getVectorSize()];
-      for (int i = 0; i < skipIndicies.length; i++) {
-         skipIndicies[i] = false;
-      }
-   }
-
-   public void setSkipIndicies (boolean[] skip) {
-//       skipIndicies = new Boolean[skip.length];
-//       for (int i = 0; i < skipIndicies.length; i++) {
-//          skipIndicies[i] = skip[i];
-//       }
-//       myProbe.updateDisplaysWithoutAutoRanging();
+      myTraceManager.resetTraceColors();
+      updateDisplaysWithoutAutoRanging();
    }
 
    public void setLineColor (int index, Color color) {
-      myProbe.setTraceColor (index, color);
-      myProbe.updateDisplaysWithoutAutoRanging();
+      myTraceManager.setTraceColor (index, color);
+      updateDisplaysWithoutAutoRanging();
    }
 
-   // @Override
-   // protected void finalize() throws Throwable {
-   //    myProbe.removeDisplay (this);
-   //    super.finalize();
-   // }
-
    public boolean isLargeDisplay() {
-      return largeDisplay;
+      return myLargeDisplay;
    }
 
    public void setLargeDisplay (boolean isLargeDisplay) {
-      this.largeDisplay = isLargeDisplay;
+      this.myLargeDisplay = isLargeDisplay;
+      setBackground (Color.WHITE);
       useVirtualTime = isLargeDisplay;
+      setLineWidth (2);
+      setKnotSize (7);
    }
 
    public int getVectorSize() {
-      return myProbe.getVsize();
+      if (myProbe != null) {
+         return myProbe.getVsize();
+      }
+      else {
+         return myNumericList.getVectorSize();
+      }
+   }
+
+   public void dispose() {
+      if (myPropertyDialog != null) {
+         myPropertyDialog.dispose();
+         myPropertyDialog = null;
+      }
+      if (myLegendDisplay != null) {
+         myLegendDisplay.dispose();
+         myLegendDisplay = null;
+      }
    }
 }

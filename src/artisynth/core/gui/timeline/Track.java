@@ -429,6 +429,7 @@ public class Track extends JPanel {
       if (confirmDelete ("Delete this probe?", confirm)) {
          RemoveComponentsCommand rmCmd = new RemoveComponentsCommand (
             "delete probe", pinfo.getProbe());
+         myController.selectedProbes.remove (pinfo);
          myController.myMain.getUndoManager().saveStateAndExecute (rmCmd);
          myController.myMain.rerender();
       }

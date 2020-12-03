@@ -55,13 +55,12 @@ ActionListener, ValueChangeListener {
    public void valueChange (ValueChangeEvent e) {
       if (e.getSource() == maxYField || e.getSource() == minYField) {
          if (minYField.getDoubleValue() >= maxYField.getDoubleValue()) {
-            double[] range = display.getDisplayRange ();
             
             minYField.removeValueChangeListener (this);
             maxYField.removeValueChangeListener (this);
             
-            minYField.setValue (range[0]);
-            maxYField.setValue (range[1]);
+            minYField.setValue (0);
+            maxYField.setValue (0);
             
             minYField.addValueChangeListener (this);
             maxYField.addValueChangeListener (this);
@@ -69,24 +68,24 @@ ActionListener, ValueChangeListener {
             GuiUtils.showError (this, "Minimum Y must be lower than maximum Y");
          }
          else {
-            display.setDisplayRange (
+            display.setYRange (
                minYField.getDoubleValue(), maxYField.getDoubleValue());
             if (!maskAutoRangeDisable) {
-               autoRangeField.setValue (new Boolean (false));
+               display.setAutoRanging (false);
             }
             display.repaint();
          }
       }
       else if (e.getSource() == autoRangeField) {
          boolean enabled = autoRangeField.getBooleanValue();
-         if (enabled) {
-            double[] range = display.getAutoRange();
-            maskAutoRangeDisable = true;
-            minYField.setValue (range[0]);
-            maxYField.setValue (range[1]);
-            maskAutoRangeDisable = false;
-            display.repaint();
-         }
+//         if (enabled) {
+//            double[] range = display.getDefaultRange();
+//            maskAutoRangeDisable = true;
+//            minYField.setValue (range[0]);
+//            maxYField.setValue (range[1]);
+//            maskAutoRangeDisable = false;
+//            display.repaint();
+//         }
          display.setAutoRanging (enabled);
       }
       else {
@@ -98,9 +97,8 @@ ActionListener, ValueChangeListener {
    private void commonProbeRangeSelectorInit (NumericProbePanel DisplayProbe) {
       display = DisplayProbe;
       super.setModal (true);
-      double[] range = display.getDisplayRange();
-      minYRange = range[0];
-      maxYRange = range[1];
+      minYRange = display.getYRange().getLowerBound();
+      maxYRange = display.getYRange().getUpperBound();
       autoRanging = display.isAutoRanging();
 
       getContentPane().setLayout (
@@ -115,7 +113,7 @@ ActionListener, ValueChangeListener {
       sep.setAlignmentX (Component.CENTER_ALIGNMENT);
       getContentPane().add (sep);
 
-      OptionPanel options = new OptionPanel ("OK Cancel", this);
+      OptionPanel options = new OptionPanel ("OK", this);
       options.setAlignmentX (Component.CENTER_ALIGNMENT);
       getContentPane().add (options);
 
@@ -144,8 +142,8 @@ ActionListener, ValueChangeListener {
    public void actionPerformed (ActionEvent e) {
       String nameOfAction = e.getActionCommand();
       if (nameOfAction.equals ("OK")) {
-         display.setDefaultRange (minYField.getDoubleValue(),
-                                  maxYField.getDoubleValue());
+//         display.setDefaultRange (minYField.getDoubleValue(),
+//                                  maxYField.getDoubleValue());
          // display.setDisplayRange(
          // minYField.getDoubleValue(), maxYField.getDoubleValue());
 
@@ -155,13 +153,13 @@ ActionListener, ValueChangeListener {
          display.repaint();
          setVisible (false);
       }
-      else if (nameOfAction.equals ("Cancel")) {
-         display.setDisplayRange (minYRange, maxYRange);
-         // set auto-ranging last because setDisplayRange will clear it
-         display.setAutoRanging (autoRanging);
-         display.repaint();
-         setVisible (false);
-      }
+      // else if (nameOfAction.equals ("Cancel")) {
+      //    display.setDisplayRange (minYRange, maxYRange);
+      //    // set auto-ranging last because setDisplayRange will clear it
+      //    display.setAutoRanging (autoRanging);
+      //    display.repaint();
+      //    setVisible (false);
+      // }
       else {
          throw new InternalErrorException ("Unknown action: " + nameOfAction);
       }

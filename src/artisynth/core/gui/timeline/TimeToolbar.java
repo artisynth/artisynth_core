@@ -123,7 +123,7 @@ public class TimeToolbar extends JToolBar {
       // addSeparator();
 
       add (makeButton (GuiStorage.SAVE_ALL_PROBES_ICON,
-                       "Save probes", "Save all probes"));
+                       "Save output probe data", "Save output probe data"));
 
       //timestepInitialization();
 
@@ -317,8 +317,8 @@ public class TimeToolbar extends JToolBar {
          else if (nameOfAction == "Set") {
             parent.setAllInputProbes();
          }
-         else if (nameOfAction == "Save probes") {
-            parent.saveAllProbes();
+         else if (nameOfAction == "Save output probe data") {
+            parent.saveOutputProbeData();
          }
          
          updateToolbarState(parent.myMain.getRootModel());

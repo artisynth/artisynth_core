@@ -35,7 +35,6 @@ import maspack.util.Disposable;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
-import artisynth.core.mechmodels.MechSystemSolver.MatrixSolver;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentList;
@@ -112,18 +111,11 @@ TransformableGeometry, ScalableUnits {
    // stiffness is used
    protected boolean myAddFrameMarkerStiffness = false;
 
-   protected static Integrator DEFAULT_INTEGRATOR =
-      Integrator.ConstrainedBackwardEuler;
-   protected static MatrixSolver DEFAULT_MATRIX_SOLVER = MatrixSolver.Pardiso;
-
    protected static double DEFAULT_POINT_DAMPING = 0;
    protected static double DEFAULT_FRAME_DAMPING = 0;
    protected static double DEFAULT_ROTARY_DAMPING = 0;
    protected static PosStabilization DEFAULT_STABILIZATION =
       PosStabilization.GlobalMass;
-
-   protected Integrator myIntegrationMethod;
-   protected MatrixSolver myMatrixSolver;
 
    protected static final Vector3d DEFAULT_GRAVITY = new Vector3d (0, 0, -9.8);
 
@@ -148,10 +140,6 @@ TransformableGeometry, ScalableUnits {
    static {
       myProps.addInheritable (
          "gravity:Inherited", "acceleration of gravity", DEFAULT_GRAVITY);
-      myProps.add ("integrator * *", "integration method ", DEFAULT_INTEGRATOR);
-      myProps.add (
-         "matrixSolver * *", "matrix solver for implicit integration ",
-         DEFAULT_MATRIX_SOLVER);
       myProps.add (
          "stabilization", "position stabilization method", DEFAULT_STABILIZATION);
       myProps.addInheritable (
@@ -214,8 +202,6 @@ TransformableGeometry, ScalableUnits {
       myMaxBound = null;
       myExcitationColor = null;
       myMaxColoredExcitation = 1.0;
-      setMatrixSolver (DEFAULT_MATRIX_SOLVER);
-      setIntegrator (DEFAULT_INTEGRATOR);
       setMaxStepSize (0.01);
    }
    
@@ -290,9 +276,6 @@ TransformableGeometry, ScalableUnits {
 
       addFixed (myCollisionManager);         
  
-      setMatrixSolver (DEFAULT_MATRIX_SOLVER);
-      setIntegrator (DEFAULT_INTEGRATOR);
-      
       // set these to -1 so that they will be computed automatically
       // when their "get" methods are called.
       //myCollisionManager.setRigidPointTol (-1);
@@ -970,43 +953,8 @@ TransformableGeometry, ScalableUnits {
       return myCollisionManager;
    }
 
-   // ZZZ
-
-   public void setMatrixSolver (MatrixSolver method) {
-      myMatrixSolver = method;
-      if (mySolver != null) {
-         mySolver.setMatrixSolver (method);
-         myMatrixSolver = mySolver.getMatrixSolver();
-      }
-   }
-
-   public Object validateMatrixSolver (
-      MatrixSolver method, StringHolder errMsg) {
-      if (mySolver != null && !mySolver.hasMatrixSolver (method)) {
-         return PropertyUtils.correctedValue (getMatrixSolver(), "Solver not "
-         + method + " not available", errMsg);
-      }
-      else {
-         return PropertyUtils.validValue (method, errMsg);
-      }
-   }
-
-   public MatrixSolver getMatrixSolver() {
-      return myMatrixSolver;
-   }
-
-   public void setIntegrator (Integrator integrator) {
-      myIntegrationMethod = integrator;
-      if (mySolver != null) {
-         mySolver.setIntegrator (integrator);
-         if (mySolver.getIntegrator() != integrator) {
-            myIntegrationMethod = mySolver.getIntegrator();
-         }
-      }
-   }
-
    public Integrator getIntegrator() {
-      return myIntegrationMethod;
+      return myIntegrator;
    }
    
    public void setStaticTikhonovFactor(double eps) {
@@ -1992,10 +1940,16 @@ TransformableGeometry, ScalableUnits {
    public void render (Renderer renderer, int flags) {
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void transformGeometry (AffineTransform3dBase X) {
       TransformGeometryContext.transform (this, X, 0);      
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       
@@ -2007,8 +1961,11 @@ TransformableGeometry, ScalableUnits {
       if (myMaxBound != null) {
          gtr.transformPnt (myMaxBound);
       }     
-   }   
+   }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags) {
       context.addTransformableDescendants (this, flags);

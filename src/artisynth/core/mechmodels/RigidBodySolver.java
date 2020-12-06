@@ -12,6 +12,7 @@ import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.solvers.KKTSolver;
+import maspack.solvers.SparseSolverId;
 import maspack.spatialmotion.*;
 
 /** 
@@ -78,8 +79,15 @@ public class RigidBodySolver {
    private int[] myDTMap;
 
    private MechSystem mySys;
+   private SparseSolverId myMatrixSolver = SparseSolverId.Pardiso;
 
    public RigidBodySolver (MechSystem sys) {
+      if (sys instanceof MechSystemBase) {
+         myMatrixSolver = ((MechSystemBase)sys).getMatrixSolver();
+      }
+      else {
+         myMatrixSolver = MechSystemBase.getDefaultMatrixSolver();
+      }
       mySys = sys;
    }
 
@@ -273,7 +281,7 @@ public class RigidBodySolver {
    public boolean updateStructure (
       SparseBlockMatrix M, SparseBlockMatrix GT, int GTversion) {
       if (mySolver == null) {
-         mySolver = new KKTSolver();
+         mySolver = new KKTSolver(myMatrixSolver);
       }
       if (myStructureVersion != mySys.getStructureVersion() ||
           myBilateralVersion != GTversion || 

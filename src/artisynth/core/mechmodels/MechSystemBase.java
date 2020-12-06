@@ -28,12 +28,16 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.RenderableUtils;
+import maspack.solvers.SparseSolverId;
 import maspack.util.DataBuffer;
 import maspack.util.IntHolder;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.FunctionTimer;
+import maspack.util.Range;
+import maspack.util.EnumRange;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
+import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.TimeBase;
@@ -97,6 +101,18 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected boolean myDynamicsEnabled = DEFAULT_DYNAMICS_ENABLED; 
    protected boolean myProfilingP = DEFAULT_PROFILING;
    protected int myProfilingCnt = 0;
+
+   protected static Integrator DEFAULT_INTEGRATOR =
+      Integrator.ConstrainedBackwardEuler;
+   protected Integrator myIntegrator = DEFAULT_INTEGRATOR;
+
+   protected static SparseSolverId DEFAULT_MATRIX_SOLVER =
+      SparseSolverId.Pardiso;
+   // define a separate default matrix solver that can be overridden
+   protected static SparseSolverId myDefaultMatrixSolver =
+      DEFAULT_MATRIX_SOLVER;
+   protected SparseSolverId myMatrixSolver = DEFAULT_MATRIX_SOLVER;
+
    protected boolean myInsideAdvanceP = false;
    protected double myAvgSolveTime;
    protected StepAdjustment myStepAdjust;
@@ -212,6 +228,9 @@ public abstract class MechSystemBase extends RenderableModelBase
          DEFAULT_UPDATE_FORCES_AT_STEP_END);
       myProps.add (
          "profiling", "print step time and computation time", DEFAULT_PROFILING);
+      myProps.add ("integrator", "integration method", DEFAULT_INTEGRATOR);
+      myProps.add ("matrixSolver", "matrix solver", DEFAULT_MATRIX_SOLVER);
+
    }
 
    public void setPenetrationLimit (double lim) {
@@ -242,6 +261,8 @@ public abstract class MechSystemBase extends RenderableModelBase
          setStabilization (myDefaultStabilization);
          mySolver.setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
       }
+      setMatrixSolver (myDefaultMatrixSolver);
+      setIntegrator (DEFAULT_INTEGRATOR);
    }
 
    public boolean getDynamicsEnabled() {
@@ -260,11 +281,15 @@ public abstract class MechSystemBase extends RenderableModelBase
          mySolver = new MechSystemSolver (this);
          mySolver.setStabilization (getStabilization());
          mySolver.setUpdateForcesAtStepEnd (getUpdateForcesAtStepEnd());
+         mySolver.setIntegrator (getIntegrator());
+         mySolver.setMatrixSolver (getMatrixSolver());
       }
    }
 
    public MechSystemBase (String name) {
       super (name);
+      setMatrixSolver (myDefaultMatrixSolver);
+      setIntegrator (DEFAULT_INTEGRATOR);     
       allocateSolver (/*oldSolver=*/null);
       myAttachmentWorker = new DynamicAttachmentWorker();
       //setStabilization (myDefaultStabilization);
@@ -1454,7 +1479,56 @@ public abstract class MechSystemBase extends RenderableModelBase
    public boolean getProfiling() {
       return myProfilingP;
    }
+
+   public static void setDefaultMatrixSolver (SparseSolverId solverType) {
+      if (!solverType.isCompatible (Matrix.SYMMETRIC)) {
+         throw new IllegalArgumentException (
+            "Solver "+solverType+" will not solve symmetric indefinite matrices");
+      }
+      if (!solverType.isDirect()) {
+         throw new IllegalArgumentException (
+            "Solver "+solverType+" is not a direct solver");
+      }
+      myDefaultMatrixSolver = solverType;
+   }
    
+   public static SparseSolverId getDefaultMatrixSolver() {
+      return myDefaultMatrixSolver;
+   }
+
+   public void setMatrixSolver (SparseSolverId method) {
+      myMatrixSolver = method;
+      if (mySolver != null) {
+         mySolver.setMatrixSolver (method);
+         myMatrixSolver = mySolver.getMatrixSolver();
+      }
+   }
+
+   public SparseSolverId getMatrixSolver() {
+      return myMatrixSolver;
+   }
+
+   public Range getMatrixSolverRange() {
+      return new EnumRange<SparseSolverId>(
+         SparseSolverId.class, new SparseSolverId[] {
+            SparseSolverId.Pardiso,
+            SparseSolverId.Umfpack });
+   }
+
+   public void setIntegrator (Integrator integrator) {
+      myIntegrator = integrator;
+      if (mySolver != null) {
+         mySolver.setIntegrator (integrator);
+         if (mySolver.getIntegrator() != integrator) {
+            myIntegrator = mySolver.getIntegrator();
+         }
+      }
+   }
+
+   public Integrator getIntegrator () {
+      return myIntegrator;
+   }
+
    protected void clearCachedData (ComponentChangeEvent e) {
       myDynamicComponents = null;
       myAttachments = null;
@@ -1987,6 +2061,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       msb.myBg = new VectorNd(0);
       msb.myRn = new VectorNd(0);
       msb.myBn = new VectorNd(0);
+
+      msb.setIntegrator (myIntegrator);
+      msb.setMatrixSolver (myMatrixSolver);
 
       return msb;
    }

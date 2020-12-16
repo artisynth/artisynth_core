@@ -47,9 +47,11 @@ public class GenericMarker extends Marker {
       return myPointAttachment;
    }
    
-   public boolean hasState() {
-      return myPointAttachment.hasState ();
-   }
+// John Lloyd, Dec 2020: markers now have state, since state is
+// now saved and restored for attached components (since Nov 26)  
+//   public boolean hasState() {
+//      return myPointAttachment.hasState ();
+//   }
    
    /** 
     * {@inheritDoc}

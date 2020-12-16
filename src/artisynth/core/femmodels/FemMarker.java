@@ -70,13 +70,11 @@ public class FemMarker extends Marker {
       super.setAttached (ax);
    }
    
-   /** 
-    * FemMarkers don't have state that needs to be saved and restored,
-    * since their state is derived from nodes to which they are attached.
-    */
-   public boolean hasState() {
-      return false;
-   }
+// John Lloyd, Dec 2020: markers now have state, since state is
+// now saved and restored for attached components (since Nov 26)  
+//   public boolean hasState() {
+//      return false;
+//   }
 
    public VectorNd getCoordinates() {
       return myNodeAttachment.getCoordinates();

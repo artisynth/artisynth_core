@@ -132,12 +132,10 @@ public class FrameMarker extends Marker {
 
    protected void setFrame (Frame frame, boolean updateRefPos) {
       if (frame != null) {
-         removeBackRefsIfConnected();
          if (updateRefPos) {
             myRefPos.transform (frame.myState.XFrameToWorld, getLocation());
          }
          myFrameAttachment.setFrame (frame, getLocation());
-         addBackRefsIfConnected();
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);         
       }
       else {

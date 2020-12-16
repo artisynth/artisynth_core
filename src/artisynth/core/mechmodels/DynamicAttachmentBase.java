@@ -164,7 +164,12 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
     * connected to the hierarchy.
     */
    protected void addBackRefsIfConnected() {
-      addBackRefsIfConnected (this, this);
+      if (getSlave() instanceof Marker) {
+         addBackRefsIfConnected (getSlave(), this);
+      }
+      else {
+         addBackRefsIfConnected (this, this);
+      }
       // if (isConnectedToHierarchy()) {
       //    addBackRefs();
       // }
@@ -175,7 +180,12 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
     * connected to the hierarchy.
     */
    protected void removeBackRefsIfConnected() {
-      removeBackRefsIfConnected (this, this);
+      if (getSlave() instanceof Marker) {
+         removeBackRefsIfConnected (getSlave(), this);
+      }
+      else {
+         removeBackRefsIfConnected (this, this);
+      }
       // if (isConnectedToHierarchy()) {
       //    removeBackRefs();
       // }

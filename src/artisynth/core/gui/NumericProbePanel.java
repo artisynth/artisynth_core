@@ -1916,11 +1916,7 @@ public class NumericProbePanel extends JPanel
             submenu.add (createMenuItem ("Linear"));
             submenu.add (createMenuItem ("Cubic"));
             submenu.add (createMenuItem ("CubicStep"));
-            if (getVectorSize() == 4) {
-               submenu.add (createMenuItem ("SphericalLinear"));
-               submenu.add (createMenuItem ("SphericalCubic"));
-            }
-            else if (getVectorSize() == 16) {
+            if (getVectorSize() == 4 || getVectorSize() == 7 || getVectorSize() == 16) {
                submenu.add (createMenuItem ("SphericalLinear"));
                submenu.add (createMenuItem ("SphericalCubic"));
             }

@@ -9,11 +9,28 @@ package artisynth.core.mechmodels;
 import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Deque;
 
+import artisynth.core.materials.FrameMaterial;
+import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
+import artisynth.core.materials.RotAxisFrameMaterial;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
@@ -22,35 +39,21 @@ import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
-import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
-import maspack.util.*;
-import artisynth.core.materials.FrameMaterial;
-import artisynth.core.materials.MaterialBase;
-import artisynth.core.materials.MaterialChangeEvent;
-import artisynth.core.materials.RotAxisFrameMaterial;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.CompositeComponentBase;
-import artisynth.core.modelbase.CopyableComponent;
-import artisynth.core.modelbase.DynamicActivityChangeEvent;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.RenderableComponent;
-import artisynth.core.modelbase.RenderableComponentBase;
-import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.util.*;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 public class FrameSpring extends Spring
-   implements RenderableComponent, ScalableUnits,
+   implements RenderableComponent, ScalableUnits, TransformableGeometry,
               CopyableComponent, ForceTargetComponent {
 
    protected Frame myFrameA;
@@ -60,8 +63,8 @@ public class FrameSpring extends Spring
    /**
     * 1 is the attachment frame for A, and 2 is the attachment frame for B
     */
-   protected RigidTransform3d myX1A = RigidTransform3d.IDENTITY;
-   protected RigidTransform3d myX2B = RigidTransform3d.IDENTITY;
+   protected RigidTransform3d myX1A = new RigidTransform3d();
+   protected RigidTransform3d myX2B = new RigidTransform3d();
 
    protected double myStiffness;
    protected double myDamping;
@@ -400,7 +403,7 @@ public class FrameSpring extends Spring
       else {
          myVel21.negate (myVel1);
       }
-   }   
+   }
 
    // Computes the force as seen in frame 1 and places the resukt in myF.
    protected void computeForces () {
@@ -408,9 +411,7 @@ public class FrameSpring extends Spring
       FrameMaterial mat = myMaterial;
 
       if (mat != null) { // just in case implementation allows null material ...
-
          computeRelativeDisplacements();
-
          mat.computeF (myF, myX21, myVel21, myInitialX21);
       }
    }
@@ -1021,6 +1022,64 @@ public class FrameSpring extends Spring
    }
 
    /* --- End MinimizeForceComponent interface --- */
+
+   /* --- TransformableGeometry --- */
+
+   public void transformGeometry (AffineTransform3dBase X) {
+      TransformGeometryContext.transform (this, X, 0);
+   }
+
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      // nothing to add
+   }
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // Quantities that may need to be changed include: X1A, X2B
+      // 
+      // Transforming a FrameSpring is similar to transforming a
+      // BodyConnector. However, we do not currently handle cases where one or
+      // both frames are transforming while the FrameSpring is not.  That's
+      // because we don't have a quick way to tell what FrameSprings are
+      // connected to a Frame.
+
+      boolean frameATransforming = context.contains(myFrameA);
+      boolean frameBTransforming = (myFrameB!=null && context.contains(myFrameA));
+
+      if (!frameATransforming || !gtr.isRigid()) {
+         // need to update myX1A
+         if (!context.isTransformed(myFrameA)) {
+            RigidTransform3d T1W = new RigidTransform3d();
+            T1W.mul (myFrameA.getPose(), myX1A);
+            gtr.transform (T1W);
+            myX1A.mulInverseLeft (myFrameA.getPose(), T1W);
+         }
+         else {
+            System.out.println (
+               "WARNING: cannot apply non-rigid transforms to FrameSprings");
+         }
+      }
+      if (!frameBTransforming || !gtr.isRigid()) {
+         // need to update myX2B
+         if (myFrameB == null) {
+            gtr.transform (myX2B);
+         }
+         else if (!context.isTransformed(myFrameB)) {
+            RigidTransform3d T2W = new RigidTransform3d();
+            T2W.mul (myFrameB.getPose(), myX2B);
+            gtr.transform (T2W);
+            myX2B.mulInverseLeft (myFrameB.getPose(), T2W);
+         }
+         else {
+            System.out.println (
+               "WARNING: cannot apply non-rigid transforms to FrameSprings");
+         }
+      }
+   }
+
+   /* --- ScalableUnits --- */
 
    public void scaleDistance (double s) {
       if (myMaterial != null) {

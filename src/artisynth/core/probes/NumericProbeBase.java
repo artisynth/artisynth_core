@@ -652,7 +652,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       + getData(sec).toString (myFormatStr) + " ]");
    }
 
-   public void setLegendLabels (ArrayList<String> labels) {
+   public void setLegendLabels (List<String> labels) {
       if (labels.size() == myNumericList.getVectorSize()) {
          for (int i = 0; i < labels.size (); i++) {
             myPlotTraceManager.getTraceInfo (i).setLabel (labels.get (i));

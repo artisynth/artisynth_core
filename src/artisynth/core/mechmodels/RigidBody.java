@@ -14,7 +14,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,15 +37,10 @@ import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
-import maspack.matrix.MatrixBlock;
-import maspack.matrix.Matrix6x2Block;
-import maspack.matrix.MatrixBlockBase;
-import maspack.matrix.Matrix6x1Block;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
-import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
@@ -388,12 +382,7 @@ public class RigidBody extends Frame
    }
 
    /**
-    * Adjusts the pose so that it reflects the rigid body's center of mass.
-    * Returns the previous center of mass position, with respect to body
-    * coordinates. The negative of this gives the previous location of body
-    * frame's origin, also with respect to body coordinates.
-    *
-    * @return previous center of mass position
+    * Adjusts the pose so that it reflects the rigid body's center of mass
     */
    public Vector3d centerPoseOnCenterOfMass() {
       Point3d com = new Point3d(getCenterOfMass());
@@ -1861,9 +1850,8 @@ public class RigidBody extends Frame
       return false;
    }
 
-   public void collectVertexMasters (
-      List<ContactMaster> mlist, Vertex3d vtx) {
-      mlist.add (this);
+   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
+      mlist.add (new ContactMaster (this, 1));
    }
    
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
@@ -2089,6 +2077,5 @@ public class RigidBody extends Frame
    public boolean hasChildren() {
       return myComponents != null && myComponents.size() > 0;
    }
-
 
 }

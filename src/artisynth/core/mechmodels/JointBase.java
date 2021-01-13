@@ -31,7 +31,7 @@ public abstract class JointBase extends BodyConnector  {
    protected boolean myDrawFrameC = DEFAULT_DRAW_FRAME_C;
    
    public static PropertyList myProps =
-      new PropertyList (SolidJoint.class, BodyConnector.class);
+      new PropertyList (JointBase.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointLineProps (host);

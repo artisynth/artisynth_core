@@ -182,9 +182,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /**
-    * If body A is a Frame, computes the wrench acting on body A
-    * in response to the most recent bilateral constraint forces.
-    * If body A is not a Frame, the computed wrench is set to zero.
+    * If body A is a Frame, computes the wrench acting on body A in response to
+    * the most recent bilateral constraint forces.  If body A is not a Frame,
+    * the computed wrench is set to zero.
     *
     * @param wr returns the bilateral constraint wrench acting on A,
     * in the coordinates of A
@@ -192,18 +192,11 @@ public abstract class BodyConnector extends RenderableComponentBase
    public void getBilateralForceInA (Wrench wr) {
       computeForceInA (wr, myCoupling.getBilateralForceG());
    }
-
+   
    /**
-    * For debugging only
-    */
-   public void printConstraintInfo() {
-      myCoupling.printConstraintInfo();
-   }
-
-   /**
-    * If body A is a Frame, computes the wrench acting on body A
-    * in response to the most recent bilateral constraint forces.
-    * If body A is not a Frame, the computed wrench is set to zero.
+    * If body A is a Frame, computes and returns the wrench acting on body A in
+    * response to the most recent bilateral constraint forces.  If body A is
+    * not a Frame, the computed wrench is set to zero.
     *
     * @return the bilateral constraint wrench acting on A,
     * in the coordinates of A
@@ -215,9 +208,44 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /**
-    * If body A is a Frame, computes the wrench acting on body A
-    * in response to the most recent unilateral constraint forces.
-    * If body A is not a Frame, the computed wrench is set to zero.
+    * Gets the most recent bilateral constraint wrench acting on constraint
+    * frame G. If the constraint error is negligible, frame G is the same as
+    * frame C. The force and moment vectors of the wrench are given in world
+    * coordinates.
+    *
+    * @param wr returns the bilateral constraint wrench acting on G, in world
+    * coordinates.
+    * 
+    */
+   public void getBilateralForceInG (Wrench wr) {
+      wr.set (myCoupling.getBilateralForceG());
+   }
+
+   /**
+    * Returns the most recent bilateral constraint wrench acting on constraint
+    * frame G. If the constraint error is negligible, frame G is the same as
+    * frame C. The force and moment vectors of the wrench are given in world
+    * coordinates.
+    *
+    * @return the bilateral constraint wrench acting on G, in world
+    * coordinates.
+    * 
+    */
+   public Wrench getBilateralForceInG () {
+      return new Wrench(myCoupling.getBilateralForceG());
+   }
+
+   /**
+    * For debugging only
+    */
+   public void printConstraintInfo() {
+      myCoupling.printConstraintInfo();
+   }
+
+   /**
+    * If body A is a Frame, computes the wrench acting on body A in response to
+    * the most recent unilateral constraint forces.  If body A is not a Frame,
+    * the computed wrench is set to zero.
     *
     * @param wr returns the unilateral constraint wrench acting on A,
     * in the coordinates of A
@@ -227,9 +255,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /**
-    * If body A is a Frame, computes the wrench acting on body A
-    * in response to the most recent unilateral constraint forces.
-    * If body A is not a Frame, the computed wrench is set to zero.
+    * If body A is a Frame, computes and returns the wrench acting on body A in
+    * response to the most recent unilateral constraint forces.  If body A is
+    * not a Frame, the computed wrench is set to zero.
     *
     * @return the unilateral constraint wrench acting on A,
     * in the coordinates of A
@@ -238,6 +266,34 @@ public abstract class BodyConnector extends RenderableComponentBase
       Wrench wr = new Wrench();
       getUnilateralForceInA (wr);
       return wr;
+   }
+
+   /**
+    * Gets the most recent unilateral constraint wrench acting on constraint
+    * frame G. If the constraint error is negligible, frame G is the same as
+    * frame C. The force and moment vectors of the wrench are given in world
+    * coordinates.
+    *
+    * @param wr returns the unilateral constraint wrench acting on G, in world
+    * coordinates.
+    * 
+    */
+   public void getUnilateralForceInG (Wrench wr) {
+      wr.set (myCoupling.getUnilateralForceG());
+   }
+
+   /**
+    * Returns the most recent unilateral constraint wrench acting on constraint
+    * frame G. If the constraint error is negligible, frame G is the same as
+    * frame C. The force and moment vectors of the wrench are given in world
+    * coordinates.
+    *
+    * @return the unilateral constraint wrench acting on G, in world
+    * coordinates.
+    * 
+    */
+   public Wrench getUnilateralForceInG () {
+      return new Wrench(myCoupling.getUnilateralForceG());
    }
 
    /**

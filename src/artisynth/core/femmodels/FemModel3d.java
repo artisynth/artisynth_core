@@ -589,15 +589,15 @@ PointAttachable, ConnectableBody {
 
    protected void setDefaultValues() {
       super.setDefaultValues();
-      myDensity = DEFAULT_DENSITY;
-      myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
-      myMassDamping = DEFAULT_MASS_DAMPING;
+      //myDensity = DEFAULT_DENSITY;
+      //myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
+      //myMassDamping = DEFAULT_MASS_DAMPING;
       myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
       myElementWidgetSizeMode = PropertyMode.Inherited;
       myHardIncompMethod = DEFAULT_HARD_INCOMP;
       mySoftIncompMethod = DEFAULT_SOFT_INCOMP;
       myColorMap = createDefaultColorMap();
-      setMaterial(createDefaultMaterial());
+      //setMaterial(createDefaultMaterial());
       myAutoGenerateSurface = defaultAutoGenerateSurface;
    }
 
@@ -605,9 +605,8 @@ PointAttachable, ConnectableBody {
    
    public <T extends FemMaterial> void setMaterial (T mat) {
       mySoftIncompMethodValidP = false;
-      /*T newMat=*/super.setMaterial(mat);
+      super.setMaterial(mat);
       updateSoftIncompMethod();
-      //return newMat;
    }
 
    public FemMaterial getElementMaterial (FemElement3dBase e) {
@@ -681,7 +680,15 @@ PointAttachable, ConnectableBody {
 
    public FemModel3d (String name) {
       super(name);
-      setDefaultValues();
+      // XXX Big hack to preserve legacy behavior. We used to have a redundant
+      // call to setDefaultValues() here. That in turn caused
+      // updateSoftIncompMethod() to be called with the softIncompMethod set to
+      // the default value, which tended to result in the softIncompMethod
+      // being set to ELEMENT instead of the default value AUTO. We leave this
+      // effect in place just to preserve legacy behavior.
+      mySoftIncompMethod = DEFAULT_SOFT_INCOMP;
+      updateSoftIncompMethod();
+      // end legacy behavior hack
       for (int i = 0; i < MAX_NODAL_INCOMP_NODES; i++) {
          myNodalConstraints[i] = new Vector3d();
       }

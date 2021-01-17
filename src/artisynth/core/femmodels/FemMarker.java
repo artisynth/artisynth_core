@@ -70,13 +70,11 @@ public class FemMarker extends Marker {
       super.setAttached (ax);
    }
    
-   /** 
-    * FemMarkers don't have state that needs to be saved and restored,
-    * since their state is derived from nodes to which they are attached.
-    */
-   public boolean hasState() {
-      return false;
-   }
+// John Lloyd, Dec 2020: markers now have state, since state is
+// now saved and restored for attached components (since Nov 26)  
+//   public boolean hasState() {
+//      return false;
+//   }
 
    public VectorNd getCoordinates() {
       return myNodeAttachment.getCoordinates();
@@ -99,10 +97,8 @@ public class FemMarker extends Marker {
 
    public void setFromElement (FemElement elem) {
       if (elem != null) {
-         removeBackRefsIfConnected();
          myNodeAttachment.setFromElement (getPosition(), elem);
          myNodeAttachment.updateAttachment();
-         addBackRefsIfConnected();         
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       }
       else {
@@ -112,40 +108,34 @@ public class FemMarker extends Marker {
    
    private void finishSet() {
       myNodeAttachment.updateAttachment();
-      addBackRefsIfConnected();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);      
    }
 
    public void setFromFem (FemModel3d fem) {
-      removeBackRefsIfConnected();
       myNodeAttachment.setFromFem (getPosition(), fem);
       finishSet();
    }
 
    public void setFromNodes (
       Collection<? extends FemNode> nodes, VectorNd weights) {
-      removeBackRefsIfConnected();
       myNodeAttachment.setFromNodes (nodes, weights);
       finishSet();
    }
 
    public void setFromNodes (
       FemNode[] nodes, double[] weights) {
-      removeBackRefsIfConnected();
       myNodeAttachment.setFromNodes (nodes, weights);
       finishSet();
    }
 
    public boolean setFromNodes (
       Collection<? extends FemNode> nodes) {
-      removeBackRefsIfConnected();
       boolean status = myNodeAttachment.setFromNodes (getPosition(), nodes);
       finishSet();
       return status;
    }
 
    public boolean setFromNodes (FemNode[] nodes) {
-      removeBackRefsIfConnected();
       boolean status = myNodeAttachment.setFromNodes (getPosition(), nodes);
       finishSet();
       return status;

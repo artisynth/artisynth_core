@@ -494,8 +494,11 @@ public class PardisoSolverTest implements ActionListener {
       SparseMatrixNd S = new SparseMatrixNd (2529, 2529);
       try {
          ReaderTokenizer rtok =
-            new ReaderTokenizer (new BufferedReader (new FileReader (
-                                                        "testMatrix.mat")));
+            new ReaderTokenizer (
+               new BufferedReader (
+                  new FileReader (
+                     PathFinder.getSourceRelativePath (
+                        this, "testMatrix.mat"))));
          S.scan (rtok);
       }
       catch (Exception e) {

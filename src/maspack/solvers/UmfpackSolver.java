@@ -66,26 +66,26 @@ public class UmfpackSolver implements DirectSolver {
    }
    
    private native int umfpack_di_symbolic (
-      int n_row, int n_col, int[] Ap, int[] Ai, double[] Ax, int[] Symbolic,
+      int n_row, int n_col, int[] Ap, int[] Ai, double[] Ax, long[] Symbolic,
       double[] Control, double[] Info);
 
    private native int umfpack_di_numeric (
-      int[] Ap, int[] Ai, double[] Ax, int[] Symbolic, int[] Numeric,
+      int[] Ap, int[] Ai, double[] Ax, long[] Symbolic, long[] Numeric,
       double[] Control, double[] Info);
 
    private native int umfpack_di_solve (
       int sys, int[] Ap, int[] Ai, double[] Ax, double[] X, double[] B,
-      int Numeric[], double[] Control, double[] Info);
+      long[] Numeric, double[] Control, double[] Info);
 
-   private native void umfpack_di_free_symbolic (int[] Sym);
+   private native void umfpack_di_free_symbolic (long[] Sym);
 
-   private native void umfpack_di_free_numeric (int[] Num);
+   private native void umfpack_di_free_numeric (long[] Num);
 
    private native void umfpack_di_defaults (double[] Control);
 
-   int[] symbolic = new int[] { 0 };
+   long[] symbolic = new long[] { 0 };
 
-   int[] numeric = new int[] { 0 };
+   long[] numeric = new long[] { 0 };
 
    // int[] Ap = null, Ai = null;
    // double[] Ax = null;
@@ -94,7 +94,8 @@ public class UmfpackSolver implements DirectSolver {
 
    private static void doLoadLibraries() {
       try {
-         NativeLibraryManager.load ("SolversUmfpack");
+         NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
+         NativeLibraryManager.load ("UmfpackJNI");
          myInitStatus = INIT_OK;
       }
       catch (UnsatisfiedLinkError e) {

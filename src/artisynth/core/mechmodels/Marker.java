@@ -16,19 +16,19 @@ public abstract class Marker extends Point implements HasAttachments {
 
    public abstract void updateState();
 
-   protected void removeBackRefsIfConnected() {
-      DynamicAttachmentBase.removeBackRefsIfConnected (this, getAttachment());
-      // if (isConnectedToHierarchy()) {
-      //    DynamicAttachmentBase.removeBackRefs (getAttachment());
-      // }
-   }
-
-   protected void addBackRefsIfConnected() {
-      DynamicAttachmentBase.addBackRefsIfConnected (this, getAttachment());
-      // if (isConnectedToHierarchy()) {
-      //    DynamicAttachmentBase.addBackRefs (getAttachment());
-      // }
-   }
+//   protected void removeBackRefsIfConnected() {
+//      DynamicAttachmentBase.removeBackRefsIfConnected (this, getAttachment());
+//      // if (isConnectedToHierarchy()) {
+//      //    DynamicAttachmentBase.removeBackRefs (getAttachment());
+//      // }
+//   }
+//
+//   protected void addBackRefsIfConnected() {
+//      DynamicAttachmentBase.addBackRefsIfConnected (this, getAttachment());
+//      // if (isConnectedToHierarchy()) {
+//      //    DynamicAttachmentBase.addBackRefs (getAttachment());
+//      // }
+//   }
 
    /**
     * {@inheritDoc}

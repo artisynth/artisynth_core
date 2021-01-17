@@ -36,6 +36,7 @@ import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.solvers.KKTSolver;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.UmfpackSolver;
+import maspack.solvers.SparseSolverId;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -192,10 +193,6 @@ public class MechSystemSolver {
       myAlwaysAnalyze = enable;
    }
 
-   public static enum MatrixSolver {
-      Pardiso, Umfpack, ConjugateGradient, None
-   }
-
    public static enum Integrator {
       ForwardEuler,
       SymplecticEuler,
@@ -241,7 +238,7 @@ public class MechSystemSolver {
    KKTSolver myConSolver;
    KKTSolver myStaticSolver;
 
-   MatrixSolver myMatrixSolver = MatrixSolver.None;
+   private SparseSolverId myMatrixSolver = SparseSolverId.Pardiso;
    Integrator myIntegrator = Integrator.SymplecticEuler;
    boolean myComplianceSupported = false;
    double myTol = 0.01;
@@ -407,65 +404,6 @@ public class MechSystemSolver {
       }
    }
 
-   private Integrator getIntegratorForSolver (
-      Integrator integrator, MatrixSolver solver) {
-      Integrator result = integrator;
-      switch (integrator) {
-         case BackwardEuler: {
-            if (solver != MatrixSolver.Umfpack &&
-               solver != MatrixSolver.Pardiso) {
-               return Integrator.SymplecticEuler;
-            }
-            break;
-         }
-         case Trapezoidal:
-         case FullBackwardEuler:
-         case ConstrainedBackwardEuler: {
-            if (solver != MatrixSolver.Pardiso) {
-               if (solver == MatrixSolver.Umfpack) {
-                  return Integrator.BackwardEuler;
-               }
-               else {
-                  return Integrator.SymplecticEuler;
-               }
-            }
-         }
-         default: {
-         }
-      }
-      return result;
-   }
-
-   RigidBody getBody () {
-      if (mySys instanceof MechModel) {
-         MechModel mech = ((MechModel)mySys);
-         RigidBody bod = mech.rigidBodies().get ("link2");
-         if (bod != null) {
-            return bod;
-         }
-         bod = mech.rigidBodies().get ("link1");
-         if (bod != null) {
-            return bod;
-         }
-      }
-      return null;
-   }
-
-   BodyConnector getConnector () {
-      if (mySys instanceof MechModel) {
-         MechModel mech = ((MechModel)mySys);
-         BodyConnector con = mech.bodyConnectors().get ("joint2");
-         if (con != null) {
-            return con;
-         }
-         con = mech.bodyConnectors().get ("joint1");
-         if (con != null) {
-            return con;
-         }
-      }
-      return null;
-   }
-
    public void setIntegrator (Integrator integrator) {
       myIntegrator = integrator;
       switch (integrator) {
@@ -533,39 +471,22 @@ public class MechSystemSolver {
       return myMaxIterations;
    }
 
-   public void setMatrixSolver (MatrixSolver solver) {
+   public void setMatrixSolver (SparseSolverId solver) {
       if (solver != myMatrixSolver) {
          switch (solver) {
-            case Pardiso: {
-               if (!PardisoSolver.isAvailable()) {
-                  System.out.println ("Pardiso unavailable");
-                  return;
-               }
-               break;
-            }
+            case Pardiso: 
             case Umfpack: {
-               if (!UmfpackSolver.isAvailable()) {
-                  System.out.println ("Umfpack unavailable");
-                  return;
-               }
-               break;
-            }
-            case ConjugateGradient: {
-               setIterativeSolver (new CGSolver());
-               break;
-            }
-            case None: {
                break;
             }
             default: {
-               System.out.println ("Unknown solver " + solver);
-               solver = MatrixSolver.None;
-               break;
+               System.out.println ("Matrix solver "+solver+" not supported");
+               return;
             }
          }
          mySolveMatrix = null;
          //myKKTSolveMatrix = null;
          myMatrixSolver = solver;
+         disposeSolvers(); // remove existing solvers
       }
    }
 
@@ -606,66 +527,60 @@ public class MechSystemSolver {
             myUseDirectSolver = false;
             break;
          }
-         case None: {
-            myUseDirectSolver = false;
-            break;
-         }
          default: {
-            System.out.println ("Unknown solver " + myMatrixSolver);
-            myUseDirectSolver = false;
-            break;
+            throw new InternalErrorException (
+               "Unknown solver " + myMatrixSolver);
          }
       }
    }
 
-   public boolean isPardisoAvailable () {
-      return PardisoSolver.isAvailable();
-   }
+   // public boolean isPardisoAvailable () {
+   //    return PardisoSolver.isAvailable();
+   // }
 
-   public boolean hasMatrixSolver (MatrixSolver solver) {
-      switch (solver) {
-         case Pardiso: {
-            return PardisoSolver.isAvailable();
-         }
-         case Umfpack: {
-            return UmfpackSolver.isAvailable();
-         }
-         case ConjugateGradient: {
-            return true;
-         }
-         case None: {
-            return true;
-         }
-         default: {
-            System.out.println ("Unknown solver " + solver);
-            return false;
-         }
-      }
-   }
+   // public boolean hasMatrixSolver (SparseSolverType solver) {
+   //    switch (solver) {
+   //       case Pardiso: {
+   //          return PardisoSolver.isAvailable();
+   //       }
+   //       case Umfpack: {
+   //          return UmfpackSolver.isAvailable();
+   //       }
+   //       case ConjugateGradient: {
+   //          return true;
+   //       }
+   //       default: {
+   //          System.out.println ("Unknown solver " + solver);
+   //          return false;
+   //       }
+   //    }
+   // }
 
-   public MatrixSolver getMatrixSolver() {
+   public SparseSolverId getMatrixSolver() {
       return myMatrixSolver;
    }
 
-   private void initializeSolvers() {
-      if (PardisoSolver.isAvailable()) {
-         setMatrixSolver (MatrixSolver.Pardiso);
-      }
-      // Umfpack no longer supported ...
-      // else if (UmfpackSolver.isAvailable()) {
-      //    setMatrixSolver (MatrixSolver.Umfpack);
-      // }
-   }
+   // private void initializeSolvers() {
+   //    if (PardisoSolver.isAvailable()) {
+   //       setMatrixSolver (SparseSolverType.Pardiso);
+   //    }
+   //    // Umfpack no longer supported ...
+   //    // else if (UmfpackSolver.isAvailable()) {
+   //    //    setMatrixSolver (SparseSolverType.Umfpack);
+   //    // }
+   // }
 
    /** 
     * Create a new MechSystem solver for a specified MechSystem.
     */
    public MechSystemSolver (MechSystem system) {
       mySys = system;
-      myRBSolver = new RigidBodySolver (system);
+      //myRBSolver = new RigidBodySolver (system);
       setIntegrator (Integrator.SymplecticEuler);
       setHybridSolve (myDefaultHybridSolveP);
-      initializeSolvers();
+      if (system instanceof MechSystemBase) {
+         setMatrixSolver (((MechSystemBase)system).getMatrixSolver());
+      }
    }
 
    /** 
@@ -1048,10 +963,6 @@ public class MechSystemSolver {
 
       boolean analyze = myAlwaysAnalyze;
 
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
       double h = t1 - t0;
       // timer.start();
 
@@ -1105,8 +1016,6 @@ public class MechSystemSolver {
 
       addActiveMassMatrix (mySys, mySolveMatrix);
 
-      int n = myB.size();
-
       //mySolveMatrix.writeToFileCRS ("solveMat_foo.txt", "%g");
 
       if (mySolveMatrixVersion != myRegSolveMatrixVersion) {
@@ -1149,22 +1058,7 @@ public class MechSystemSolver {
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
    }
 
-   private int mySolveChangeCnt;
-   private int myGTChangeCnt;
-
-   private void printSysMatrix (SparseBlockMatrix S, String fmt, int size) {
-      MatrixNd SS = new MatrixNd (size, size);
-      for (int i=0; i<size; i++) {
-         for (int j=0; j<size; j++) {
-            SS.set (i, j, S.get(i,j));
-         }
-      }
-      System.out.println ("S=[\n" + SS.toString ("%12.7f"));
-      System.out.println ("]");
-   }
-
    private static PrintWriter myLogWriter;
-
 
    static FunctionTimer timerX = new FunctionTimer();
    static boolean solveModePrinted = false;
@@ -1449,7 +1343,7 @@ public class MechSystemSolver {
       }
 
       if (myKKTSolver == null) {
-         myKKTSolver = new KKTSolver();
+         myKKTSolver = new KKTSolver(myMatrixSolver);
       }
       if (profileKKTSolveTime) {
          timerStop("    KKT solve: build matrix");
@@ -1720,7 +1614,7 @@ public class MechSystemSolver {
       }
       
       if (myStaticSolver == null) {
-         myStaticSolver = new KKTSolver();
+         myStaticSolver = new KKTSolver(myMatrixSolver);
       }
 
       updateBilateralConstraints ();
@@ -2036,6 +1930,9 @@ public class MechSystemSolver {
       
       // assumes that updateMassMatrix() has been called
       int version = (myAlwaysAnalyze ? -1 : myGTVersion);
+      if (myRBSolver == null) {
+         myRBSolver = new RigidBodySolver (mySys);
+      }
       myRBSolver.updateStructure (myMass, myGT, version);
 
       myRBSolver.projectFriction (
@@ -2071,8 +1968,6 @@ public class MechSystemSolver {
                phiMax = info.getMaxFriction (myThe);
             }
             int bj = DTmap[i];
-            int j = myDT.getBlockColOffset(bj);
-            //double doff = myBd.get(j);
             projectSingleFrictionConstraint (
                myPhi, vel, myDT, myBd, bj, phiMax, /*ignore rigid bodies=*/true);
          }
@@ -2092,14 +1987,6 @@ public class MechSystemSolver {
 
       int nactive = mySys.numActiveComponents();
       int nparam = mySys.numParametricComponents();
-
-      int nlimit = nactive;
-      if (MechSystemBase.myParametricsInSystemMatrix) {
-         nlimit += nparam;
-      }
-
-      Vector3d d = new Vector3d();
-      Vector3d r = new Vector3d();
 
       double[] vbuf = vel.getBuffer();
       double[] pbuf = myUpar.getBuffer();
@@ -2198,7 +2085,7 @@ public class MechSystemSolver {
          return;
       }            
       if (myConSolver == null) {
-         myConSolver = new KKTSolver();
+         myConSolver = new KKTSolver(myMatrixSolver);
       }
       updateBilateralConstraints ();
       updateUnilateralConstraints ();
@@ -2292,7 +2179,7 @@ public class MechSystemSolver {
          return;
       }            
       if (myConSolver == null) {
-         myConSolver = new KKTSolver();
+         myConSolver = new KKTSolver(myMatrixSolver);
       }
       updateBilateralConstraints ();
       updateUnilateralConstraints ();
@@ -2415,7 +2302,7 @@ public class MechSystemSolver {
          return false;
       }            
       if (myConSolver == null) {
-         myConSolver = new KKTSolver();
+         myConSolver = new KKTSolver(myMatrixSolver);
       }
       updateBilateralConstraints ();
       updateUnilateralConstraints ();
@@ -2443,6 +2330,9 @@ public class MechSystemSolver {
          myThe.setZero();
 
          int version = (myAlwaysAnalyze ? -1 : myGTVersion);
+         if (myRBSolver == null) {
+            myRBSolver = new RigidBodySolver (mySys);
+         }
          myRBSolver.updateStructure (myMass, myGT, version);
          if (myRBSolver.projectPosition (myMass,
             myGT, myNT, myBg, myBn, myVel, myLam, myThe)) {
@@ -2488,7 +2378,7 @@ public class MechSystemSolver {
       mySys.addPosJacobian (S, null, -1);
       addActiveMassMatrix (mySys, S);
       if (myKKTSolver == null) {
-         myKKTSolver = new KKTSolver();
+         myKKTSolver = new KKTSolver(myMatrixSolver);
          analyze = true;
       }
       if (myKKTGTVersion != myGTVersion) {
@@ -2560,7 +2450,7 @@ public class MechSystemSolver {
          return false;
       }            
       if (myConSolver == null) {
-         myConSolver = new KKTSolver();
+         myConSolver = new KKTSolver(myMatrixSolver);
       }
       updateBilateralConstraints ();
       updateUnilateralConstraints ();
@@ -2638,143 +2528,6 @@ public class MechSystemSolver {
       }
    } 
 
-   private void rotate (Matrix6d MR, Matrix6d M1, RotationMatrix3d R) {
-      Matrix6d RR = new Matrix6d();
-      RR.setSubMatrix00 (R);
-      RR.setSubMatrix33 (R);
-      MR.mul (RR, M1);
-      MR.mulTransposeRight (MR, RR);
-   }
-
-//   private RotationMatrix3d[] getRBW() {
-//      RotationMatrix3d[] RBW = new RotationMatrix3d[2*myNumActive];
-//      MechSystemBase base = (MechSystemBase)mySys;
-//      for (int i=0; i<myNumActive; i++) {
-//         DynamicComponent c = base.myDynamicComponents.get(i);
-//         RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
-//         RBW[i*2+0] = R;         
-//         RBW[i*2+1] = R;
-//      }
-//      return RBW;
-//   }
-//
-//   private RotationMatrix3d[] getRWB() {
-//      RotationMatrix3d[] RWB = new RotationMatrix3d[2*myNumActive];
-//      MechSystemBase base = (MechSystemBase)mySys;
-//      for (int i=0; i<myNumActive; i++) {
-//         DynamicComponent c = base.myDynamicComponents.get(i);
-//         RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
-//         R.transpose();
-//         RWB[i*2+0] = R;         
-//         RWB[i*2+1] = R;
-//      }
-//      return RWB;
-//   }
-
-   private MatrixNd preRotate (MatrixNd M1, RotationMatrix3d[] R) {
-      int nbr = R.length;
-      MatrixNd MR = new MatrixNd (M1.rowSize(), M1.colSize());
-      Vector3d v3 = new Vector3d();
-      for (int bi=0; bi<nbr; bi++) {
-         for (int j=0; j<M1.colSize(); j++) {
-            v3.x = M1.get(bi*3+0, j);
-            v3.y = M1.get(bi*3+1, j);
-            v3.z = M1.get(bi*3+2, j);
-            v3.transform (R[bi]);
-            MR.set (bi*3+0, j, v3.x);
-            MR.set (bi*3+1, j, v3.y);
-            MR.set (bi*3+2, j, v3.z);
-         }
-      }
-      return MR;
-   }
-
-   private MatrixNd fullRotate (MatrixNd M1, RotationMatrix3d[] R) {
-      int nbr = R.length;
-      MatrixNd MT = new MatrixNd (M1.rowSize(), M1.colSize());
-      MatrixNd MR = new MatrixNd (M1.rowSize(), M1.colSize());
-      Vector3d v3 = new Vector3d();
-      for (int bi=0; bi<nbr; bi++) {
-         for (int j=0; j<M1.colSize(); j++) {
-            v3.x = M1.get(bi*3+0, j);
-            v3.y = M1.get(bi*3+1, j);
-            v3.z = M1.get(bi*3+2, j);
-            v3.transform (R[bi]);
-            MT.set (bi*3+0, j, v3.x);
-            MT.set (bi*3+1, j, v3.y);
-            MT.set (bi*3+2, j, v3.z);
-         }
-      }
-      for (int bj=0; bj<nbr; bj++) {
-         for (int i=0; i<M1.rowSize(); i++) {
-            v3.x = MT.get(i, bj*3+0);
-            v3.y = MT.get(i, bj*3+1);
-            v3.z = MT.get(i, bj*3+2);
-            v3.transform (R[bj]);
-            MR.set (i, bj*3+0, v3.x);
-            MR.set (i, bj*3+1, v3.y);
-            MR.set (i, bj*3+2, v3.z);
-         }
-      }
-      return MR;
-   }
-
-   private VectorNd preRotate (VectorNd vec, RotationMatrix3d R) {
-      int nblks = vec.size()/3;
-      RotationMatrix3d[] Rlist = new RotationMatrix3d[nblks];
-      for (int i=0; i<nblks; i++) {
-         Rlist[i] = R;
-      }
-      return preRotate (vec, Rlist);
-   }         
-
-   private VectorNd preRotate (VectorNd vec, RotationMatrix3d[] R) {
-      int nbr = R.length;
-      VectorNd vr = new VectorNd (vec.size());
-      Vector3d v3 = new Vector3d();
-      for (int bi=0; bi<nbr; bi++)  {
-         v3.x = vec.get(bi*3+0);
-         v3.y = vec.get(bi*3+1);
-         v3.z = vec.get(bi*3+2);
-         v3.transform (R[bi]);
-         vr.set (bi*3+0, v3.x);
-         vr.set (bi*3+1, v3.y);
-         vr.set (bi*3+2, v3.z);
-      }
-      return vr;
-   }
-
-   private void rotate (VectorNd vr, VectorNd v1, RotationMatrix3d R) {
-      Vector3d v3 = new Vector3d();
-      v3.x = v1.get(0);
-      v3.y = v1.get(1);
-      v3.z = v1.get(2);
-      v3.transform (R);
-      vr.set (0, v3.x);
-      vr.set (1, v3.y);
-      vr.set (2, v3.z);
-      v3.x = v1.get(3);
-      v3.y = v1.get(4);
-      v3.z = v1.get(5);
-      v3.transform (R);
-      vr.set (3, v3.x);
-      vr.set (4, v3.y);
-      vr.set (5, v3.z);
-   }
-
-   private void printTvel (String name, VectorNd vel, String fmt) {
-      System.out.print (name + " ");
-      for (int i=0; i<myNumActive; i++) {
-         Vector3d vt =
-            new Vector3d (vel.get(i*6  ), vel.get(i*6+1), vel.get(i*6+2));
-         System.out.print (vt.toString (fmt));
-         if (i < myNumActive-1) {
-            System.out.print (" ");
-         }
-      }
-      System.out.println ("");
-   }
-
    ModelComponent findComponent () {
       MechSystemBase sys = (MechSystemBase)mySys;
       return sys.findComponent ("models/fem0/nodes/39");
@@ -2788,40 +2541,9 @@ public class MechSystemSolver {
       }
    }
 
-   // protected void computeImplicitParametricForces (VectorNd vel, VectorNd pfict) {
-   //    // back solve for parametric forces for an implicit integrator
-   //    int velSize = myActiveVelSize;
-   //    int parVelSize = myParametricVelSize;
-   //    if (parVelSize > 0) {
-   //       mySys.getParametricForces (myFpar, 0);
-   //       mySolveMatrix.mulAdd (
-   //          myFpar, vel, velSize, parVelSize, 0, velSize);
-   //       mySolveMatrix.mulAdd (
-   //          myFpar, myUpar, velSize, parVelSize, velSize, parVelSize);
-   //       myFpar.add (pfict);
-   //       mySys.setParametricForces (myFpar, 0);
-   //    }
-   // }
-
-   // protected void computeExplicitParametricForces (VectorNd vel) {
-   //    // back solve for parametric forces for an implicit integrator
-   //    int velSize = myActiveVelSize;
-   //    int parVelSize = myParametricVelSize;
-   //    if (parVelSize > 0) {
-   //       mySys.getParametricForces (myFpar, 0);
-   //       myMassMatrix.mulAdd (
-   //          myFpar, myUpar, velSize, parVelSize, velSize, parVelSize);
-   //       mySys.setParametricForces (myFpar, 0);
-   //    }
-   // }
-
    public void constrainedBackwardEuler (
       double t0, double t1, StepAdjustment stepAdjust) {
 
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
       double h = t1 - t0;
 
       int velSize = myActiveVelSize; // active velocity state size
@@ -2949,7 +2671,6 @@ public class MechSystemSolver {
       }
       myFx.scale (-1/h);
 
-      double fxMag = myFx.norm();
       mySys.getActiveForces (myF);
       // XXX mass forces need to be updated?
       myF.add (myMassForces);
@@ -2968,10 +2689,6 @@ public class MechSystemSolver {
    public void fullBackwardEuler (
       double t0, double t1, StepAdjustment stepAdjust) {
 
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
       double h = t1 - t0;
 
       int velSize = myActiveVelSize;
@@ -3064,10 +2781,7 @@ public class MechSystemSolver {
    }
 
    public void trapezoidal (double t0, double t1, StepAdjustment stepAdjust) {
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
+ 
       double h = t1 - t0;
 
       int velSize = myActiveVelSize;
@@ -3169,12 +2883,9 @@ public class MechSystemSolver {
     * @param alpha step factor
     * @param stepAdjust step adjustment description
     */
-   public void staticIncrementalStep(double t1, double alpha, StepAdjustment stepAdjust) {
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
-      
+   public void staticIncrementalStep (
+      double t1, double alpha, StepAdjustment stepAdjust) {
+
       int velSize = myActiveVelSize;
       int posSize = myActivePosSize;
 
@@ -3219,12 +2930,9 @@ public class MechSystemSolver {
       }
    }
    
-   public void staticIncremental(double t1, int nincrements, StepAdjustment stepAdjust) {
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
-      
+   public void staticIncremental (
+      double t1, int nincrements, StepAdjustment stepAdjust) {
+
       int velSize = myActiveVelSize;
       int posSize = myActivePosSize;
 
@@ -3513,11 +3221,7 @@ public class MechSystemSolver {
    }
    
    public void staticLineSearch(double t1, StepAdjustment stepAdjust) {
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
-      
+
       int velSize = myActiveVelSize;
       int posSize = myActivePosSize;
 
@@ -3661,10 +3365,7 @@ public class MechSystemSolver {
     * @param stepAdjust step adjustment
     */
    public void trapezoidal2 (double t0, double t1, StepAdjustment stepAdjust) {
-      if (myMatrixSolver == MatrixSolver.None) {
-         throw new UnsupportedOperationException (
-            "MatrixSolver cannot be 'None' for this integrator");
-      }
+
       double h = t1 - t0;
 
       int velSize = myActiveVelSize;
@@ -3717,16 +3418,6 @@ public class MechSystemSolver {
       mySys.addPosJacobian (S, null, h);
       int nactive = mySys.numActiveComponents();
       return S.createSubMatrix (nactive, nactive);
-//    if (mySolveMatrixVersion != mySys.getStructureVersion()) {
-//         mySolveMatrixVersion = mySys.getStructureVersion();
-//         mySolveMatrix =
-//            new SparseNumberedBlockMatrix();
-//         mySys.buildSolveMatrix (mySolveMatrix);
-//      }
-//      mySolveMatrix.setZero();
-//      mySys.addPosJacobian (mySolveMatrix, null, h);
-//      int nactive = mySys.numActiveComponents();
-//      return mySolveMatrix.createSubMatrix (nactive, nactive);
    }
 
    public SparseBlockMatrix createActiveBilateralMatrix (double t) {
@@ -3734,22 +3425,6 @@ public class MechSystemSolver {
       updateBilateralConstraints ();
       int nactive = mySys.numActiveComponents();
       return myGT.createSubMatrix (nactive, myGT.numBlockCols());
-   }
-
-   private MatrixNd buildA (
-      SparseBlockMatrix S, int sizeS, SparseBlockMatrix GT, int sizeG) {
-
-      MatrixNd A = new MatrixNd (sizeS+sizeG, sizeS+sizeG);
-      for (int i=0; i<sizeS; i++) {
-         for (int j=0; j<sizeS; j++) {
-            A.set (i, j, S.get(i,j));
-         }
-         for (int j=0; j<sizeG; j++) {
-            A.set (i, j+sizeS, GT.get(i, j));
-            A.set (j+sizeS, i, GT.get(i, j));
-         }
-      }
-      return A;
    }
 
    /**
@@ -3768,7 +3443,7 @@ public class MechSystemSolver {
       }
    }
 
-   public void dispose() {
+   private void disposeSolvers() {
       if (myPardisoSolver != null) {
          myPardisoSolver.dispose();
          myPardisoSolver = null;
@@ -3793,6 +3468,10 @@ public class MechSystemSolver {
          myRBSolver.dispose();
          myRBSolver = null;
       }
+   }
+
+   public void dispose() {
+      disposeSolvers();
    }
 
    public void finalize() {

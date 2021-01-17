@@ -87,13 +87,11 @@ public class FrameMarker extends Marker {
       super.setAttached (ax);
    }
 
-   /** 
-    * FrameMarkers don't have state that needs to be saved and restored,
-    * since their state is derived from their attached frames.
-    */
-   public boolean hasState() {
-      return false;
-   }
+// John Lloyd, Dec 2020: markers now have state, since state is
+// now saved and restored for attached components (since Nov 26)
+//   public boolean hasState() {
+//      return false;
+//   }
 
    public void getLocation (Point3d loc) {
       loc.set (myFrameAttachment.getLocation());
@@ -134,12 +132,10 @@ public class FrameMarker extends Marker {
 
    protected void setFrame (Frame frame, boolean updateRefPos) {
       if (frame != null) {
-         removeBackRefsIfConnected();
          if (updateRefPos) {
             myRefPos.transform (frame.myState.XFrameToWorld, getLocation());
          }
          myFrameAttachment.setFrame (frame, getLocation());
-         addBackRefsIfConnected();
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);         
       }
       else {

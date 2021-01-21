@@ -28,6 +28,7 @@ import maspack.render.Renderer.DrawMode;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
@@ -83,6 +84,8 @@ public class PointPlaneForce extends RenderableComponentBase
          "stiffness", "force proportionality constant", DEFAULT_STIFFNESS);
       myProps.add (
          "forceType", "formula by which force is computed", DEFAULT_FORCE_TYPE);
+      myProps.addReadOnly (
+         "force", "current force along the normal");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -229,24 +232,38 @@ public class PointPlaneForce extends RenderableComponentBase
    }
 
    /**
-    * {@inheritDoc}
+    * Computes the current force along the plane normal
     */
-   public void applyForces (double t) {
+   protected double computeForce () {
       double d = distance();
       double ddot = distanceDot();
       double sgn = 1;
       if (myUnilateral && d > 0) {
          // no force to apply
-         return;
+         return 0;
       }
       else if (d < 0) {
          sgn = -1;
          d = -d;
          ddot = -d;
       }
-      double f = computeF (d, ddot);
+      return sgn*computeF (d, ddot);
+   }
+
+   /**
+    * Cpmputes and returns the current force along the plane normal.
+    * @return force along the normal
+    */
+   public double getForce () {
+      return computeForce();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void applyForces (double t) {
       Vector3d tmp = new Vector3d();
-      tmp.scale (sgn*f, myNrm);
+      tmp.scale (computeForce(), myNrm);
       myPoint.addForce (tmp);
    }
 
@@ -389,7 +406,10 @@ public class PointPlaneForce extends RenderableComponentBase
       throws IOException {
 
       rtok.nextToken();
-      if (scanAttributeName (rtok, "center")) {
+      if (scanAndStoreReference (rtok, "point", tokens)) {
+         return true;
+      }
+      else if (scanAttributeName (rtok, "center")) {
          myCenter.scan (rtok);
          myOff = myNrm.dot(myCenter);
          return true;
@@ -407,9 +427,24 @@ public class PointPlaneForce extends RenderableComponentBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      super.writeItems (pw, fmt, ancestor);      
+      super.writeItems (pw, fmt, ancestor);   
+      if (myPoint != null) {
+         pw.println (
+            "point="+ComponentUtils.getWritePathName (ancestor,myPoint));
+      }
       pw.println ("normal=[" + myNrm.toString (fmt) + "]");
       pw.println ("center=[" + myCenter.toString (fmt) + "]");
+   }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      
+      if (postscanAttributeName (tokens, "point")) {
+         myPoint = 
+            postscanReference (tokens, Point.class, ancestor);
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
    }
 
 }     

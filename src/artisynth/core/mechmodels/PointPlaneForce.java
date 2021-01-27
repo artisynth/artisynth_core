@@ -58,6 +58,9 @@ public class PointPlaneForce extends RenderableComponentBase
    public static double DEFAULT_STIFFNESS = 1.0;
    protected double myStiffness = DEFAULT_STIFFNESS;
 
+   public static double DEFAULT_DAMPING = 0.0;
+   protected double myDamping = DEFAULT_DAMPING;
+
    public static ForceType DEFAULT_FORCE_TYPE = ForceType.LINEAR;
    protected ForceType myForceType = DEFAULT_FORCE_TYPE;
 
@@ -82,6 +85,8 @@ public class PointPlaneForce extends RenderableComponentBase
          DEFAULT_UNILATERAL);
       myProps.add (
          "stiffness", "force proportionality constant", DEFAULT_STIFFNESS);
+      myProps.add (
+         "damping", "velocity based damping force", DEFAULT_DAMPING);
       myProps.add (
          "forceType", "formula by which force is computed", DEFAULT_FORCE_TYPE);
       myProps.addReadOnly (
@@ -191,6 +196,16 @@ public class PointPlaneForce extends RenderableComponentBase
       }
    }
 
+   public double getDamping() {
+      return myDamping;
+   }
+
+   public void setDamping (double damping) {
+      if (damping != myDamping) {
+         myDamping = damping;
+      }
+   }
+
    // ----- ForceEffector interface ------
 
    protected double distance() {
@@ -201,7 +216,7 @@ public class PointPlaneForce extends RenderableComponentBase
       return myNrm.dot (myPoint.getVelocity());
    }
 
-   protected double computeF (double d, double ddot) {
+   protected double computeF (double d) {
       switch (myForceType) {
          case LINEAR: {
             return -myStiffness*d;
@@ -216,7 +231,7 @@ public class PointPlaneForce extends RenderableComponentBase
       }
    }
 
-   protected double computeDfdd (double d, double ddot) {
+   protected double computeDfdd (double d) {
       switch (myForceType) {
          case LINEAR: {
             return -myStiffness;
@@ -245,9 +260,10 @@ public class PointPlaneForce extends RenderableComponentBase
       else if (d < 0) {
          sgn = -1;
          d = -d;
-         ddot = -d;
       }
-      return sgn*computeF (d, ddot);
+      double f = sgn*computeF (d);
+      f += (-myDamping*ddot);
+      return f;
    }
 
    /**
@@ -288,13 +304,12 @@ public class PointPlaneForce extends RenderableComponentBase
       else if (d < 0) {
          sgn = -1;
          d = -d;
-         ddot = -d;
       }
       int idx = myPoint.getSolveIndex();
       if (idx != -1) {
          Matrix3d K = new Matrix3d();
          K.outerProduct (myNrm, myNrm);
-         double dfdd = computeDfdd (d, ddot);
+         double dfdd = computeDfdd (d);
          K.scale (s*dfdd);
          M.getBlock(idx,idx).add (K);
       }
@@ -304,7 +319,18 @@ public class PointPlaneForce extends RenderableComponentBase
     * {@inheritDoc}
     */
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
-      // no need to do anything unless we add damping
+      double d = distance();
+      if (myUnilateral && d > 0) {
+         // no force to apply
+         return;
+      }
+      int idx = myPoint.getSolveIndex();
+      if (idx != -1 && myDamping != 0) {
+         Matrix3d K = new Matrix3d();
+         K.outerProduct (myNrm, myNrm);
+         K.scale (-s*myDamping);
+         M.getBlock(idx,idx).add (K);
+      }
    }
 
    /**

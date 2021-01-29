@@ -64,6 +64,9 @@ public class PointPlaneForce extends RenderableComponentBase
    public static ForceType DEFAULT_FORCE_TYPE = ForceType.LINEAR;
    protected ForceType myForceType = DEFAULT_FORCE_TYPE;
 
+   public static boolean DEFAULT_ENABLED = true;
+   protected boolean myEnabledP = DEFAULT_ENABLED;
+
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createFaceProps (null);
       props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
@@ -89,6 +92,8 @@ public class PointPlaneForce extends RenderableComponentBase
          "damping", "velocity based damping force", DEFAULT_DAMPING);
       myProps.add (
          "forceType", "formula by which force is computed", DEFAULT_FORCE_TYPE);
+      myProps.add (
+         "enabled", "enables/disables forces", DEFAULT_ENABLED);
       myProps.addReadOnly (
          "force", "current force along the normal");
    }
@@ -206,6 +211,16 @@ public class PointPlaneForce extends RenderableComponentBase
       }
    }
 
+   public boolean getEnabled() {
+      return myEnabledP;
+   }
+
+   public void setEnabled (boolean enabled) {
+      if (enabled != myEnabledP) {
+         myEnabledP = enabled;
+      }
+   }
+
    // ----- ForceEffector interface ------
 
    protected double distance() {
@@ -278,6 +293,9 @@ public class PointPlaneForce extends RenderableComponentBase
     * {@inheritDoc}
     */
    public void applyForces (double t) {
+      if (!myEnabledP) {
+         return;
+      }
       Vector3d tmp = new Vector3d();
       tmp.scale (computeForce(), myNrm);
       myPoint.addForce (tmp);
@@ -287,6 +305,9 @@ public class PointPlaneForce extends RenderableComponentBase
     * {@inheritDoc}
     */
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
+      if (!myEnabledP) {
+         return;
+      }
       // no need to add anything unless the plane is attached to a Frame
    }
 
@@ -294,6 +315,9 @@ public class PointPlaneForce extends RenderableComponentBase
     * {@inheritDoc}
     */
    public void addPosJacobian (SparseNumberedBlockMatrix M, double s) {
+      if (!myEnabledP) {
+         return;
+      }
       double d = distance();
       double ddot = distanceDot();
       double sgn = 1;
@@ -319,6 +343,9 @@ public class PointPlaneForce extends RenderableComponentBase
     * {@inheritDoc}
     */
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
+      if (!myEnabledP) {
+         return;
+      }
       double d = distance();
       if (myUnilateral && d > 0) {
          // no force to apply

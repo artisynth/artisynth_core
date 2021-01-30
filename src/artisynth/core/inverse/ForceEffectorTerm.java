@@ -96,7 +96,7 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
    /**
     * Adds a force component to the term for force control
     * @param fcomp
-    * @param weight
+    * @param staticOnly
     */
    private ForceEffectorTarget doAddForce (
       ForceTargetComponent fcomp, boolean staticOnly) {
@@ -156,28 +156,33 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
     * @param fcomp force component 
     * @param weight used for the component
     * @param staticOnly {@code true} if only static forces should be controlled
+    * @return ForceEffectorTarget for managing the target forces
     */
-   public void addForce (
+   public ForceEffectorTarget addForce (
       ForceTargetComponent fcomp, double weight, boolean staticOnly) {
       ForceEffectorTarget mtarg = doAddForce (fcomp, staticOnly);
       mtarg.setWeight (weight);
+      return mtarg;
    }
    
    /**
     * Adds a force component whose force should be controlled
     * @param fcomp force component 
     * @param weight used for the component
+    * @return ForceEffectorTarget for managing the target forces
     */
-   public void addForce (ForceTargetComponent fcomp, double weight) {
-      addForce (fcomp, weight, /*staticOnly=*/true);
+   public ForceEffectorTarget addForce (
+      ForceTargetComponent fcomp, double weight) {
+      return addForce (fcomp, weight, /*staticOnly=*/true);
    }
    
    /**
     * Adds a force component whose force should be controlled
     * @param fcomp force component
+    * @return ForceEffectorTarget for managing the target forces
     */
-   public void addForce (ForceTargetComponent fcomp) {
-      addForce (fcomp, /*weight=*/1.0, /*staticOnly=*/true);
+   public ForceEffectorTarget addForce (ForceTargetComponent fcomp) {
+      return addForce (fcomp, /*weight=*/1.0, /*staticOnly=*/true);
    }
    
    /**
@@ -185,8 +190,9 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
     * @param fcomp force component 
     * @param weights used for the component
     * @param staticOnly {@code true} if only static forces should be controlled
+    * @return ForceEffectorTarget for managing the target forces
     */
-   public void addForce (
+   public ForceEffectorTarget addForce (
       ForceTargetComponent fcomp, VectorNd weights, boolean staticOnly) {
       if (weights.size() < fcomp.getForceSize()) {
          throw new IllegalArgumentException (
@@ -195,6 +201,7 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
       }
       ForceEffectorTarget mtarg = doAddForce (fcomp, staticOnly);
       mtarg.setSubWeights (weights);
+      return mtarg;
    }
 
    /**

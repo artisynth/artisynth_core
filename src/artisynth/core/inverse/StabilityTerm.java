@@ -22,6 +22,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.matrix.Matrix;
 import maspack.util.ArraySort;
 import maspack.util.BooleanHolder;
 import maspack.properties.PropertyList;
@@ -40,8 +41,18 @@ public class StabilityTerm extends LeastSquaresTermBase {
 
    boolean debug = false;
 
+   public enum StiffnessType {
+      FULL,
+      SYMMETRIC,
+      SYMPART_FULL
+   };
+
    public static final boolean DEFAULT_USE_SYMMETRIC_PART = true;
    boolean myUseSymmetricPart = DEFAULT_USE_SYMMETRIC_PART;
+
+   public static final StiffnessType DEFAULT_STIFFNESS_TYPE =
+      StiffnessType.SYMMETRIC;
+   StiffnessType myStiffnessType = DEFAULT_STIFFNESS_TYPE;
 
    // property attributes
 
@@ -81,6 +92,9 @@ public class StabilityTerm extends LeastSquaresTermBase {
          "useSymmetricPart",
          "use only the symmetric part of the stiffness matrix",
          DEFAULT_USE_SYMMETRIC_PART);
+      myProps.add (
+         "stiffnessType", "what type of stiffness to use for control",
+         DEFAULT_STIFFNESS_TYPE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -139,6 +153,14 @@ public class StabilityTerm extends LeastSquaresTermBase {
       myUseSymmetricPart = enable;
    }
    
+   public StiffnessType getStiffnessType() {
+      return myStiffnessType;
+   }
+   
+   public void setStiffnessType (StiffnessType type) {
+      myStiffnessType = type;
+   }
+   
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
     * @param A LHS matrix to fill
@@ -161,31 +183,65 @@ public class StabilityTerm extends LeastSquaresTermBase {
       return rowoff;
    }      
 
+
+   /**
+    * Returns the negated stiffness matrix, determined from the MechSystem
+    * according to the stiffness type and the modifiers (if any).
+    */
+   public static Matrix getStiffnessMatrix (
+      MechSystemBase mech, StiffnessType type,
+      ArrayList<SolveMatrixModifier> modifiers) {
+
+      SparseBlockMatrix K;
+      switch (type) {
+         case FULL: {
+            if (mech instanceof MechModel) {
+               K = ((MechModel)mech).getYPRStiffnessMatrix(modifiers);
+            }
+            else {
+               K = mech.getActiveStiffnessMatrix();
+            }
+            K.negate();
+            return K;
+         }
+         case SYMPART_FULL: {
+            if (mech instanceof MechModel) {
+               K = ((MechModel)mech).getYPRStiffnessMatrix(modifiers);
+            }
+            else {
+               K = mech.getActiveStiffnessMatrix();
+            }
+            K.negate();
+            MatrixNd Ksym = new MatrixNd (K);
+            MatrixNd KT = new MatrixNd();
+            KT.transpose (Ksym);
+            Ksym.add (KT);
+            Ksym.scale (0.5);
+            return Ksym;
+         }
+         case SYMMETRIC: {
+            if (mech instanceof MechModel) {
+               K = ((MechModel)mech).getStiffnessMatrix(modifiers);
+            }
+            else {
+               K = mech.getActiveStiffnessMatrix();
+            }
+            K.negate();
+            return K;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented stiffness type " + type);
+         }
+      }
+   }
+
    private double computeDet (
       MechSystemBase mech, BooleanHolder posDef, boolean debug) {
-      SparseBlockMatrix K;
-      if (mech instanceof MechModel) {
-         K = ((MechModel)mech).getYPRStiffnessMatrix(myModifiers);
-      }
-      else {
-         K = mech.getActiveStiffnessMatrix();
-      }
-      K.negate();
 
+      Matrix K = getStiffnessMatrix (mech, myStiffnessType, myModifiers);
       EigenDecomposition ed = new EigenDecomposition();
-
-      if (myUseSymmetricPart) {
-         // compute symmetric part Ksym = 1/2 (K + K^T)
-         MatrixNd Ksym = new MatrixNd (K);
-         MatrixNd KT = new MatrixNd();
-         KT.transpose (Ksym);
-         Ksym.add (KT);
-         Ksym.scale (0.5);
-         ed.factor (Ksym);
-      }
-      else {
-         ed.factor (K);
-      }
+      ed.factor (K);
 
       if (debug) {
          VectorNd eigs = ed.getEigReal();

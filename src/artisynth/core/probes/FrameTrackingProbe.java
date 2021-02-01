@@ -44,7 +44,7 @@ public class FrameTrackingProbe extends NumericControlProbe {
 
       this (frame, mkrs);
       setStartTime (startTime);
-      setStopTime (startTime);
+      setStopTime (stopTime);
    }
 
    protected RigidPoseEstimator getEstimator() {

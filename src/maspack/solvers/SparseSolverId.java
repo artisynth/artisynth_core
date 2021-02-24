@@ -45,7 +45,7 @@ public enum SparseSolverId {
    /**
     * Queries if this solver type is compatible with the indicated matrix type.
     *
-    * @param type matrix type to check
+    * @param matrixType matrix type to check
     * @return {@code true} if the matrix type is compatible
     */
 

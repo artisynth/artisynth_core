@@ -13,6 +13,7 @@ public abstract class MeshWriterBase implements MeshWriter {
    OutputStream myOstream;
    File myFile;
    int myWriteNormals = -1;
+   int myWriteColors = -1;
 
    // XXX stub - get rid of this when refactoring done
    protected MeshWriterBase() {
@@ -73,6 +74,26 @@ public abstract class MeshWriterBase implements MeshWriter {
       }
       else {
          return mesh.getWriteNormals();
+      }
+   }
+   
+   public void setWriteColors (int enable) {
+      myWriteColors = enable;
+   }
+
+   public int getWriteColors () {
+      return myWriteColors;
+   }
+
+   protected boolean getWriteColors (MeshBase mesh) {
+      if (myWriteColors == 0) {
+         return false;
+      }
+      else if (myWriteColors == 1) {
+         return true;
+      }
+      else {
+         return mesh.hasColors();
       }
    }
    

@@ -486,6 +486,9 @@ public class KKTSolver {
             timerStop ("buildLCP m=" + NT.colSize() + ":");
          }
       }
+      // System.out.println ("M=\n" + M.toString ("%10.6f"));
+      // System.out.println ("GT=\n" + GT.toString ("%10.6f"));
+      // System.out.println ("NT=\n" + NT.toString ("%10.6f"));
       myState = State.FACTORED;
       long t1 = System.nanoTime();
       //System.out.println ("factor " + (t1-t0)*1e-6);
@@ -851,8 +854,8 @@ public class KKTSolver {
       for (int i = 0; i < myQ.size(); i++) {
          myZBasic[i] = false;
       }
-      // System.out.println ("LCP M=[\n" + myLcpM + "]");
-      // System.out.println ("Q=" + myQ);
+      //System.out.println ("LCP M=[\n" + myLcpM + "]");
+      //System.out.println ("Q=" + myQ);
 
       myDantzig.setComputeResidual (true);
       if (myTimeSolves) timerStart();
@@ -860,7 +863,7 @@ public class KKTSolver {
          myDantzig.solve (myZ, myLcpM, myQ, myZBasic);
       if (myTimeSolves) timerStop("solveLCP:");
       myDantzig.setComputeResidual (false);
-      // System.out.println ("status=" + status + " res=" + myDantzig.getResidual());
+      //System.out.println ("status=" + status + " res=" + myDantzig.getResidual());
       // System.out.println ("M=\n" + myLcpM);
       // System.out.println ("q=\n" + myQ);
       // System.out.println ("z=\n" + myZ);

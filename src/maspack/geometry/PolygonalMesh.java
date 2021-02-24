@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -955,6 +956,43 @@ public class PolygonalMesh extends MeshBase {
          for (int i=0; i<myFaces.size(); i++) {
             Face f = myFaces.get(i);
             if (k < deleteIdxs.size() && i == deleteIdxs.get(k)) {
+               f.disconnect();
+               k++;
+            }
+            else {
+               f.setIndex (newFaceList.size());
+               newFaceList.add (f);
+            }
+         }
+         myFaces = newFaceList;
+         myTriQuadCountsValid = false;
+         adjustAttributesForRemovedFeatures (deleteIdxs);
+         notifyStructureChanged();
+         return deleteIdxs;
+      }
+      else {
+         return null;
+      }
+   }
+
+   /**
+    * Removes a set of faces from this mesh, as indicated by a collection.
+    *
+    * @param faces Collection of faces to remove
+    */
+   public ArrayList<Integer> removeFacesX (Collection<Face> faces) {
+      LinkedHashSet<Face> deleteFaces = new LinkedHashSet<>();
+      deleteFaces.addAll (faces);
+      ArrayList<Integer> deleteIdxs = new ArrayList<>();
+      
+      if (deleteFaces.size() > 0) {
+         ArrayList<Face> newFaceList =
+            new ArrayList<Face>(myFaces.size()-deleteFaces.size());
+         int k = 0;
+         for (int i=0; i<myFaces.size(); i++) {
+            Face f = myFaces.get(i);
+            if (deleteFaces.contains(f)) {
+               deleteIdxs.add (f.getIndex());
                f.disconnect();
                k++;
             }

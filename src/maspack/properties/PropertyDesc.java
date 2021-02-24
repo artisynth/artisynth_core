@@ -179,6 +179,7 @@ public class PropertyDesc implements PropertyInfo {
       myAutoWriteP = desc.myAutoWriteP;
       myEdit = desc.myEdit;
       myWidgetExpandState = desc.myWidgetExpandState;
+      mySliderAllowed = desc.mySliderAllowed;
       myDimension = desc.myDimension;
       myReadOnlyP = desc.myReadOnlyP;
       myInheritableP = desc.myInheritableP;

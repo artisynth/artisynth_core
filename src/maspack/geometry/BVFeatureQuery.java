@@ -872,7 +872,7 @@ public class BVFeatureQuery {
     * @return the nearest vertex to the point, or <code>null</code> if the mesh
     * contains no vertices.
     */
-   public Vertex3d nearestVertexToPoint (PolygonalMesh mesh, Point3d pnt) {
+   public Vertex3d nearestVertexToPoint (MeshBase mesh, Point3d pnt) {
 
       return nearestVertexToPoint (mesh.getBVTree(), pnt);
    }
@@ -918,8 +918,11 @@ public class BVFeatureQuery {
     * contains no edges.
     */
    public Boundable nearestEdgeToPoint (
-      Point3d nearPnt, DoubleHolder sval, PolygonalMesh mesh, Point3d pnt) {
+      Point3d nearPnt, DoubleHolder sval, MeshBase mesh, Point3d pnt) {
 
+      if (mesh instanceof PointMesh) {
+         return null;
+      }
       return nearestEdgeToPoint (nearPnt, sval, mesh.getBVTree(), pnt);
    }
 

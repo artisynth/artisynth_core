@@ -214,7 +214,7 @@ public class PolarDecomposition3d {
             addSymmetricProduct (H, -2*mySig.z, myU.m02, myU.m12, myU.m22);
          }
          else {
-            addSymmetricProduct (H, -2*mySig.z, myV.m02, myV.m12, myV.m22);            
+            addSymmetricProduct (H, -2*mySig.z, myV.m02, myV.m12, myV.m22);
          }
       }
    }

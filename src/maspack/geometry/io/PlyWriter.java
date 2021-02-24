@@ -62,21 +62,35 @@ public class PlyWriter extends MeshWriterBase {
    // public static void write (
    //    PrintWriter writer, PolygonalMesh mesh, NumberFormat fmt) {
    // }
+
+   private int colorToInt (float c) {
+      return (int)(255*c);
+   }
    
    private void writeVertexInfo (
-      PrintWriter pw, ArrayList<Vertex3d> vertices, ArrayList<Vector3d> normals) {
+      PrintWriter pw,
+      ArrayList<Vertex3d> vertices,
+      ArrayList<Vector3d> normals,
+      ArrayList<float[]> colors) {
 
       for (int i=0; i<vertices.size(); i++) {
          Point3d pos = vertices.get(i).getPosition();
-         pw.println(myFmt.format(pos.x) + " " + 
-                    myFmt.format(pos.y) + " " +
-                    myFmt.format(pos.z));
+         pw.print (myFmt.format(pos.x) + " " + 
+                   myFmt.format(pos.y) + " " +
+                   myFmt.format(pos.z));
          if (normals != null && i < normals.size()) {
             Vector3d nrm = normals.get(i);
-            pw.println(myFmt.format(nrm.x) + " " + 
-                       myFmt.format(nrm.y) + " " +
-                       myFmt.format(nrm.z));
+            pw.print (" " + myFmt.format(nrm.x) + 
+                      " " + myFmt.format(nrm.y) +
+                      " " + myFmt.format(nrm.z));
          }
+         if (colors != null && i < colors.size()) {
+            float[] color = colors.get(i);
+            pw.print (" " + colorToInt(color[0]) + 
+                      " " + colorToInt(color[1]) +
+                      " " + colorToInt(color[2]));
+         }
+         pw.println ("");
       }
    }
 
@@ -101,8 +115,9 @@ public class PlyWriter extends MeshWriterBase {
 
    private void writeVertexInfo (
       BinaryOutputStream bos,
-      ArrayList<Vertex3d> vertices, ArrayList<Vector3d> normals)
-      throws IOException {
+      ArrayList<Vertex3d> vertices, 
+      ArrayList<Vector3d> normals,
+      ArrayList<float[]> colors) throws IOException {
 
       for (int i=0; i<vertices.size(); i++) {
          Point3d pos = vertices.get(i).getPosition();
@@ -115,6 +130,12 @@ public class PlyWriter extends MeshWriterBase {
             writeNumber (bos, nrm.y);
             writeNumber (bos, nrm.z);
          }
+         if (colors != null && i < colors.size()) {
+            float[] color = colors.get(i);
+            bos.writeByte (colorToInt(color[0]));
+            bos.writeByte (colorToInt(color[1]));
+            bos.writeByte (colorToInt(color[2]));
+         }
       }
    }
 
@@ -125,10 +146,19 @@ public class PlyWriter extends MeshWriterBase {
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
       ArrayList<Vector3d> normals = null;
+      ArrayList<float[]> vertexColors = null;
+      ArrayList<float[]> featureColors = null;
       if (getWriteNormals (mesh)) {
          normals = mesh.getNormals();
       }
-
+      if (getWriteColors (mesh)) {
+         if (mesh.isVertexColored()) {
+            vertexColors = mesh.getColors();
+         }
+         else if (mesh.isFeatureColored()) {
+            featureColors = mesh.getColors();
+         }
+      }
       String dsize = getFloatType().toString().toLowerCase();
 
       pw.println("ply");
@@ -143,8 +173,18 @@ public class PlyWriter extends MeshWriterBase {
          pw.println("property "+dsize+" ny");
          pw.println("property "+dsize+" nz");
       }
+      if (vertexColors != null) {
+         pw.println("property uchar red");
+         pw.println("property uchar green");
+         pw.println("property uchar blue");
+      }
       pw.println("element face " + mesh.numFaces());
       pw.println("property list uchar int vertex_indices");
+      if (featureColors != null) {
+         pw.println("property uchar red");
+         pw.println("property uchar green");
+         pw.println("property uchar blue");
+      }
       pw.println("end_header");
       pw.flush();
 
@@ -158,12 +198,19 @@ public class PlyWriter extends MeshWriterBase {
       }
       
       if (myDataFormat == DataFormat.ASCII) {
-         writeVertexInfo (pw, vertices, normals);
-      
-         for (Face face : mesh.getFaces()) {
+         writeVertexInfo (pw, vertices, normals, vertexColors);
+
+         for (int i=0; i<mesh.numFaces(); i++) {
+            Face face = mesh.getFace(i);
             pw.print(face.numVertices());
-            for (int i=0; i<face.numVertices(); i++) {
-               pw.print(" " + face.getVertex(i).getIndex());
+            for (int k=0; k<face.numVertices(); k++) {
+               pw.print(" " + face.getVertex(k).getIndex());
+            }
+            if (featureColors != null) {
+               float[] color = featureColors.get(i);
+               pw.print (" " + colorToInt(color[0]) + 
+                         " " + colorToInt(color[1]) +
+                         " " + colorToInt(color[2]));
             }
             pw.println();
          }
@@ -175,12 +222,19 @@ public class PlyWriter extends MeshWriterBase {
          if (myDataFormat == DataFormat.BINARY_LITTLE_ENDIAN) {
             bos.setLittleEndian (true);
          }
-         writeVertexInfo (bos, vertices, normals);
+         writeVertexInfo (bos, vertices, normals, vertexColors);
       
-         for (Face face : mesh.getFaces()) {
+         for (int i=0; i<mesh.numFaces(); i++) {
+            Face face = mesh.getFace(i);
             bos.writeByte (face.numVertices());
-            for (int i=0; i<face.numVertices(); i++) {
-               bos.writeInt (face.getVertex(i).getIndex());
+            for (int k=0; k<face.numVertices(); k++) {
+               bos.writeInt (face.getVertex(k).getIndex());
+            }
+            if (featureColors != null) {
+               float[] color = featureColors.get(i);
+               bos.writeByte (colorToInt(color[0]));
+               bos.writeByte (colorToInt(color[1]));
+               bos.writeByte (colorToInt(color[2]));
             }
          }
          bos.flush();
@@ -201,8 +255,14 @@ public class PlyWriter extends MeshWriterBase {
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
       ArrayList<Vector3d> normals = null;
+      ArrayList<float[]> vertexColors = null;
       if (getWriteNormals(mesh)) {
          normals = mesh.getNormals();
+      }
+      if (getWriteColors (mesh)) {
+         if (mesh.isVertexColored()) {
+            vertexColors = mesh.getColors();
+         }
       }
       String dsize = getFloatType().toString().toLowerCase();
 
@@ -218,13 +278,18 @@ public class PlyWriter extends MeshWriterBase {
          pw.println("property "+dsize+" ny");
          pw.println("property "+dsize+" nz");
       }
+      if (vertexColors != null) {
+         pw.println("property uchar red");
+         pw.println("property uchar green");
+         pw.println("property uchar blue");
+      }
       pw.println("element face 0");
       pw.println("property list uchar int vertex_indices");
       pw.println("end_header");
       pw.flush();
 
       if (myDataFormat == DataFormat.ASCII) {
-         writeVertexInfo (pw, vertices, normals);
+         writeVertexInfo (pw, vertices, normals, vertexColors);
          pw.flush();
       }
       else {
@@ -233,7 +298,7 @@ public class PlyWriter extends MeshWriterBase {
          if (myDataFormat == DataFormat.BINARY_LITTLE_ENDIAN) {
             bos.setLittleEndian (true);
          }
-         writeVertexInfo (bos, vertices, normals);
+         writeVertexInfo (bos, vertices, normals, vertexColors);
          bos.flush();
       }
    }
@@ -275,7 +340,4 @@ public class PlyWriter extends MeshWriterBase {
          }
       }     
    }      
-
-
-   
 }

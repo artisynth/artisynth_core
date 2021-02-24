@@ -916,6 +916,14 @@ public abstract class GeometryTransformer {
    }
 
    public void transform (MeshBase mesh, Constrainer constrainer) {
+      // if there is a constrainer, apply it to the linearization of this
+      // transform at the origin, and use the resulting affine transform XC to
+      // transform the mesh.
+      AffineTransform3dBase XC = null;
+      if (constrainer != null) {
+         XC = computeLinearizedTransform (Vector3d.ZERO);
+         constrainer.apply (XC);
+      }
       if (isRestoring()) {
          restoreVertices (mesh);
          if (mesh.hasExplicitNormals()) {
@@ -932,14 +940,6 @@ public abstract class GeometryTransformer {
          if (mesh.hasExplicitNormals()) {
             saveNormals (mesh);
          }
-      }
-      // if there is a constrainer, apply it to the linearization of this
-      // transform at the origin, and use the resulting affine transform XC to
-      // transform the mesh.
-      AffineTransform3dBase XC = null;
-      if (constrainer != null) {
-         XC = computeLinearizedTransform (Vector3d.ZERO);
-         constrainer.apply (XC);
       }
       // transform normals first because we need unmodified vertex points
       if (mesh.hasExplicitNormals()) {
@@ -963,7 +963,7 @@ public abstract class GeometryTransformer {
                Vector3d nrm = normals.get(ni);
                if (XC == null) {
                   // transform normal using this transformer
-                  transformNormal (nrm, refs[ni]);
+                  computeTransformNormal (nrm, nrm, refs[ni]);
                }
                else {
                   // transform normal using the constrained XC
@@ -979,7 +979,7 @@ public abstract class GeometryTransformer {
       for (Vertex3d v : mesh.getVertices()) {
          if (XC == null) {
             // transform point using this transformer
-            transformPnt (v.pnt);
+            computeTransformPnt (v.pnt, v.pnt);
          }
          else {
             // transform point using the constrained XC
@@ -1292,6 +1292,19 @@ public abstract class GeometryTransformer {
       else 
          throw new IllegalArgumentException (
             "Unknown argument type: " + X.getClass());
+   }
+
+   /**
+    * Return the current size of the undo data buffer, or -1 if the buffer is
+    * null. Used for debugging only.
+    */ 
+   public int getUndoDataSize() {
+      if (myUndoData != null) {
+         return myUndoData.size();
+      }
+      else {
+         return -1;
+      }
    }
 
 }

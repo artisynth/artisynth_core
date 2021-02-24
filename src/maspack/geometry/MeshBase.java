@@ -273,8 +273,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * the color and index sets are automatically adjusted whenever vertices or
     * features are added or removed.
     *
-    * Vertex coloring is disabled by any call to {@link #setColors} or {@link
-    * #clearColors}.
+    * <p> 
+    * Vertex coloring is disabled by {@link #clearColors}, {@link
+    * #setFeatureColoringEnabled}, or any call to {@link #setColors}.
     */
    public void setVertexColoringEnabled () { 
       if (!myVertexColoringP) {
@@ -300,6 +301,25 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
 
    /**
+    * Returns {@code true} if the colors for this mesh are assigned on a
+    * per-vertex basis. This will be true if vertex coloring is explicitly
+    * enabled, <i>or</i> if the number of colors equals the number of vertices
+    * and the vertex and color indexing is the same.
+    */
+   public boolean isVertexColored() {
+      if (myVertexColoringP) {
+         return true;
+      }
+      else if (myColors != null && myColors.size() == numVertices()) {
+         int[] vertexIndices = createVertexIndices();
+         return Arrays.equals (vertexIndices, myColorIndices);
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
     * Enables feature coloring for this mesh. This creates a default color for
     * each existing feature, and sets the color indices to the same as those
     * returned by {@link #createFeatureIndices}.  The application can
@@ -309,8 +329,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * enabled, the color and index sets are automatically adjusted whenever
     * features are added or removed.
     *
-    * Feature coloring is disabled by any call to {@link #setColors} or {@link
-    * #clearColors}.
+    * <p> 
+    * Feature coloring is disabled by {@link #clearColors}, {@link
+    * #setVertexColoringEnabled}, or any call to {@link #setColors}.
     */
    public void setFeatureColoringEnabled () {
       if (!myFeatureColoringP) {
@@ -333,6 +354,25 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public boolean getFeatureColoringEnabled () {
       return myFeatureColoringP;
+   }
+
+   /**
+    * Returns {@code true} if the colors for this mesh are assigned on a
+    * per-feature basis. This will be true if feature coloring is explicitly
+    * enabled, <i>or</i> if the number of colors equals the number of vertices
+    * and the feature and color indexing is the same.
+    */
+   public boolean isFeatureColored() {
+      if (myFeatureColoringP) {
+         return true;
+      }
+      else if (myColors != null && myColors.size() == numFeatures()) {
+         int[] featureIndices = createFeatureIndices();
+         return Arrays.equals (featureIndices, myColorIndices);
+      }
+      else {
+         return false;
+      }
    }
 
    /**
@@ -2600,6 +2640,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * length three (or four) giving the RGB (or RGBA) values for the color in
     * the range 0 to 1.
     *
+    * <p>Calling this method clears vertex or feature coloring, if either of
+    * those had been set. However, {@link #isVertexColored} or {@link
+    * #isFeatureColored} may still return true if colors and their indexing
+    * match either.
+    *
     * @param colors colors to be set for this mesh
     * @param indices color indices, or <code>null</code> if the indices are to
     * be automatically generated.
@@ -2948,4 +2993,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
    }
 
+   /**
+    * Returns a bounding volume tree to be used for proximity queries
+    * involving this mesh.
+    *
+    * @return bounding volume tree
+    */
+   public abstract BVTree getBVTree();
 }

@@ -1488,7 +1488,9 @@ public class RotationMatrix3d extends Matrix3dBase {
    private final int Z_MAX = 3;
 
    /**
-    * Gets the rotation axis-angle representation for this rotation.
+    * Gets the rotation axis-angle representation for this rotation.  To keep
+    * the representation unique, the axis is normalized and the angle is kept
+    * in the range 0 {@code <=} angle {@code <} Math.PI.
     * 
     * @param axis
     * returns the rotation axis
@@ -1892,10 +1894,18 @@ public class RotationMatrix3d extends Matrix3dBase {
    public static void main (String[] args) {
       RotationMatrix3d X = new RotationMatrix3d();
 
-      X.mulRotX (Math.PI);
-      System.out.println ("180=\n" + X);
-      X.mulRotX (Math.PI);
-      System.out.println ("360=\n" + X);
+      int cnt = 10000000;
+      RotationMatrix3d R = new RotationMatrix3d();
+      Vector3d u = new Vector3d();
+      int neg = 0;
+      for (int i=0; i<cnt; i++) {
+         R.setRandom();
+         double ang = R.getAxisAngle (u);
+         if (ang < 0) {
+            neg++;
+         }
+      }
+      System.out.println ("neg=" + neg);
    }
 
 }

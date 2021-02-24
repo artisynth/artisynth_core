@@ -2422,39 +2422,6 @@ public class MeshFactory {
       return createQuadRoundedBox (wx, wy, wz, 1, 1, 1, nslices, false);
    }
 
-   //    if (nslices < 1) {
-   //       throw new IllegalArgumentException("nslices must be at least 1");
-   //    }
-
-   //    // do this the easy way: create a prism in which the rounding is at
-   //    // the ends of the x axis in the z-x plane, and then rotate the
-   //    // whole thing to place the rounded ends along the z axis.
-
-   //    int numVertices = 2 * (nslices + 1);
-   //    double radius = wy / 2;
-   //    double[] xy = new double[2 * numVertices];
-   //    xy[0] = wx / 2;
-   //    xy[1] = -radius;
-   //    for (int i = 0; i <= nslices; i++) {
-   //       double ang = Math.PI * (i / (double)nslices - 0.5);
-   //       xy[i * 2 + 0] = radius * Math.cos(ang) + wx / 2;
-   //       xy[i * 2 + 1] = radius * Math.sin(ang);
-   //    }
-   //    int ibase = 2 * (nslices + 1);
-   //    for (int i = 0; i <= nslices; i++) {
-   //       double ang = Math.PI * (i / (double)nslices + 0.5);
-   //       xy[i * 2 + ibase + 0] = radius * Math.cos(ang) - wx / 2;
-   //       xy[i * 2 + ibase + 1] = radius * Math.sin(ang);
-   //    }
-   //    PolygonalMesh mesh = createPrism(xy, xy, wz);
-
-   //    // rotate to place rounded ends on the z-axis ...
-   //    RigidTransform3d X = new RigidTransform3d();
-   //    X.R.setAxisAngle(1, 1, 1, 2 * Math.PI / 3);
-   //    mesh.inverseTransform(X);
-   //    return mesh;
-   // }
-
    /**
     * Creates a box with rounded ends on the z-axis ends, and with a specified
     * mesh resolution in the x, y, and z directions. The rounding is done
@@ -2550,54 +2517,54 @@ public class MeshFactory {
    }
 
    /**
-    * Creates a triangule box mesh with rounded ends on the z-axis ends, and
+    * Creates a triangular box mesh with rounded ends on the z-axis ends, and
     * with a specified mesh resolution in the x, y, and z directions. The
     * rounding is done circularly, in the z-x plane. The z width (specified by
     * wz) gives the distance between the centers of each semi-circle which is
     * used to create the rounding.
     * 
+    * @param wz width along the z axis
     * @param wx width along the x axis
     * @param wy width along the y axis
-    * @param wz width along the z axis
+    * @param nz number of mesh divisions along z between the rounding centers
     * @param nx number of mesh divisions along x between the rounding centers
     * @param ny number of mesh divisions along y between the rounding centers
-    * @param nz number of mesh divisions along z between the rounding centers
     * @param nslices gives the number of sides used to approximate each
     * semi-circlar end
     */
    public static PolygonalMesh createRoundedBox(
-      double wx, double wy, double wz, 
-      int nx, int ny, int nz, int nslices) {
+      double wz, double wx, double wy, 
+      int nz, int nx, int ny, int nslices) {
 
       PolygonalMesh mesh = 
-         createQuadRoundedBox (wx, wy, wz, nx, ny, nz, nslices, false);
+         createQuadRoundedBox (wz, wx, wy, nz, nx, ny, nslices, false);
       mesh.triangulate();
       return mesh;
    }
       
    /**
-    * Creates a triangule box mesh with rounded ends on the z-axis ends, and
+    * Creates a triangular box mesh with rounded ends on the z-axis ends, and
     * with a specified mesh resolution in the x, y, and z directions. The
     * rounding is done circularly, in the z-x plane. The z width (specified by
-    * wz) gives the distance between the centers of each semi-circle which is
+    * wy) gives the distance between the centers of each semi-circle which is
     * used to create the rounding.
     * 
+    * @param wz width along the z axis
     * @param wx width along the x axis
     * @param wy width along the y axis
-    * @param wz width along the z axis
+    * @param nz number of mesh divisions along z between the rounding centers
     * @param nx number of mesh divisions along x between the rounding centers
     * @param ny number of mesh divisions along y between the rounding centers
-    * @param nz number of mesh divisions along z between the rounding centers
     * @param nslices gives the number of sides used to approximate each
     * semi-circlar end
     * @param flatBottom if true, make the bottom flat instead of rounded
     */
    public static PolygonalMesh createRoundedBox(
-      double wx, double wy, double wz, 
-      int nx, int ny, int nz, int nslices, boolean flatBottom) {
+      double wz, double wx, double wy, 
+      int nz, int nx, int ny, int nslices, boolean flatBottom) {
 
       PolygonalMesh mesh = 
-         createQuadRoundedBox (wx, wy, wz, nx, ny, nz, nslices, flatBottom);
+         createQuadRoundedBox (wz, wx, wy, nz, nx, ny, nslices, flatBottom);
       mesh.triangulate();
       return mesh;
    }
@@ -2605,18 +2572,18 @@ public class MeshFactory {
    /**
     * Creates a triangular box mesh with rounded ends on the z-axis ends. The
     * rounding is done circularly, in the z-x plane. The z width (specified by
-    * wz) gives the distance between the centers of each semi-circle which is
+    * wy) gives the distance between the centers of each semi-circle which is
     * used to create the rounding.
     * 
+    * @param wz width along the z axis
     * @param wx width along the x axis
     * @param wy width along the y axis
-    * @param wz width along the z axis
     * @param nslices gives the number of sides used to approximate each
     * semi-circlar end
     */
    public static PolygonalMesh createRoundedBox(
-      double wx, double wy, double wz, int nslices) {
-      PolygonalMesh mesh = createQuadRoundedBox(wx, wy, wz, nslices);
+      double wz, double wx, double wy, int nslices) {
+      PolygonalMesh mesh = createQuadRoundedBox(wz, wx, wy, nslices);
       mesh.triangulate();
       return mesh;
    }

@@ -70,13 +70,19 @@ public class PlyReader extends MeshReaderBase {
                pnt.z = readNumber (bis, myDataType);
                return pnt;
             }
-            case NORMAL:
-            case COLOR: {
+            case NORMAL: {
                Vector3d vec = new Vector3d();
                vec.x = readNumber (bis, myDataType);
                vec.y = readNumber (bis, myDataType);
                vec.z = readNumber (bis, myDataType);
                return vec;
+            }
+            case COLOR: {
+               float[] color = new float[3];
+               color[0] = (float)readNumber (bis, myDataType)/255f;
+               color[1] = (float)readNumber (bis, myDataType)/255f;
+               color[2] = (float)readNumber (bis, myDataType)/255f;
+               return color;
             }
             case UV: {
                Vector2d uv = new Vector2d();
@@ -104,13 +110,19 @@ public class PlyReader extends MeshReaderBase {
                pnt.z = rtok.scanNumber();
                return pnt;
             }
-            case NORMAL:
-            case COLOR: {
+            case NORMAL: {
                Vector3d vec = new Vector3d();
                vec.x = rtok.scanNumber();
                vec.y = rtok.scanNumber();
                vec.z = rtok.scanNumber();
                return vec;
+            }
+            case COLOR: {
+               float[] color = new float[3];
+               color[0] = (float)rtok.scanNumber()/255f;
+               color[1] = (float)rtok.scanNumber()/255f;
+               color[2] = (float)rtok.scanNumber()/255f;
+               return color;
             }
             case UV: {
                Vector2d uv = new Vector2d();
@@ -133,7 +145,8 @@ public class PlyReader extends MeshReaderBase {
    private class PropertyList extends Property {
       DataType mySizeType;
 
-      PropertyList (String name, PropertyType ptype, DataType stype, DataType vtype) {
+      PropertyList (String name, PropertyType ptype, DataType stype,
+                    DataType vtype) {
          super(name, ptype, vtype);
          mySizeType = stype;
       }
@@ -260,25 +273,8 @@ public class PlyReader extends MeshReaderBase {
    ArrayList<Property> myVertProps = new ArrayList<Property>();
    private int myNumFaces = 0;
    PropertyList myFaceVertexIndices = null;
+   ArrayList<Property> myFaceProps = new ArrayList<Property>();
    
-
-   // private double readFloat (DataInputStream in) throws IOException {
-   //    // convert from little-endian
-   //    int bytes = Integer.reverseBytes (in.readInt());
-   //    return (double)Float.intBitsToFloat (bytes);
-   // }
-
-   // private int readInt (DataInputStream in) throws IOException {
-   //    // convert from little-endian
-   //    int bytes = Integer.reverseBytes (in.readInt());
-   //    return bytes;
-   // }
-
-   // private int readByte (DataInputStream in) throws IOException {
-   //    // convert from little-endian
-   //    return in.readByte();
-   // }
-
    private String myLine = null;
    private boolean myLinePushed = false;
    private int myLineNum = 0;
@@ -309,7 +305,7 @@ public class PlyReader extends MeshReaderBase {
             }
          }
          while (myLine.startsWith ("comment") || myLine.startsWith ("obj_info"));
-         // some softwares (like VTK) write "obj_info" header data; ignore for now. 
+         // some software (like VTK) write "obj_info" header data; ignore for now
       }
    }
 
@@ -411,17 +407,9 @@ public class PlyReader extends MeshReaderBase {
       }
    }
 
-   private void scanHeaderVertexInfo (DataInputStream is) throws IOException {
-      String key = "element vertex ";
-
-      readLine(is);
-      if (myLine.startsWith (key)) {
-         myNumVerts = Integer.parseInt (myLine.substring (key.length()));
-      }
-      else {
-         throw new IOException (
-            "Unexpected vertex info: "+myLine+", line "+myLineNum);
-      }
+   private void scanProperties (
+      DataInputStream is, ArrayList<Property> propList) throws IOException {
+      
       while (true) {
          readLine (is);
          if (!myLine.startsWith ("property")) {
@@ -449,34 +437,59 @@ public class PlyReader extends MeshReaderBase {
          }
          if (propStr.equals ("x")) {
             scanHeaderProperties (is, typeStr, "y", "z");
-            myVertProps.add (new Property ("vertex", PropertyType.VERTEX, dataType));
+            propList.add (
+               new Property ("vertex", PropertyType.VERTEX, dataType));
          }
          else if (propStr.equals ("nx")) {
             scanHeaderProperties (is, typeStr, "ny", "nz");
-            myVertProps.add (new Property ("normal", PropertyType.NORMAL, dataType));
+            propList.add (
+               new Property ("normal", PropertyType.NORMAL, dataType));
+         }
+         else if (propStr.equals ("red")) {
+            scanHeaderProperties (is, typeStr, "green", "blue");
+            propList.add (
+               new Property ("color", PropertyType.COLOR, dataType));
          }
          else {
-            myVertProps.add (new Property (propStr, PropertyType.UNKNOWN, dataType));
+            propList.add (
+               new Property (propStr, PropertyType.UNKNOWN, dataType));
          }
       }
       while (myLine.startsWith ("property"));
       pushLine();
    }
 
+   private void scanHeaderVertexInfo (DataInputStream is) throws IOException {
+      String key = "element vertex ";
+
+      readLine(is);
+      if (myLine.startsWith (key)) {
+         myNumVerts = Integer.parseInt (myLine.substring (key.length()));
+      }
+      else {
+         throw new IOException (
+            "Unexpected vertex info: "+myLine+", line "+myLineNum);
+      }
+      scanProperties (is, myVertProps);
+   }
+
    private PropertyList parsePropertyList(String line) throws IOException {
       
       String[] parts = line.split ("\\s+", 5);
-      if (parts.length < 5 || !parts[0].equalsIgnoreCase("property") || !parts[1].equalsIgnoreCase("list")) {
-         throw new IOException("Line '" + line + "' does not specify a property list");
+      if (parts.length < 5 ||
+          !parts[0].equalsIgnoreCase("property") ||
+          !parts[1].equalsIgnoreCase("list")) {
+         throw new IOException(
+            "Line '" + line + "' does not specify a property list");
       }
       DataType sizeType = parseDataType(parts[2]);
       DataType valueType = parseDataType(parts[3]);
       String name = parts[4];
       PropertyType ptype = PropertyType.UNKNOWN;
-      if (name.equalsIgnoreCase("vertex_index") || name.equalsIgnoreCase("vertex_indices")) {
+      if (name.equalsIgnoreCase("vertex_index") ||
+          name.equalsIgnoreCase("vertex_indices")) {
          ptype = PropertyType.VERTEX_INDICES;
       }
-      
       return new PropertyList(name, ptype, sizeType, valueType);
    }
    
@@ -502,10 +515,11 @@ public class PlyReader extends MeshReaderBase {
          (!tline.endsWith ("vertex_indices") &&
           !tline.endsWith ("vertex_index"))) {
          throw new IOException (
-            "Expected 'property list <size type> <value type> vertex_indices' or " +
-            "'property list <size type> <value type> vertex_index' at line " + myLineNum);
+"Expected 'property list <size type> <value type> vertex_indices' or " +
+"'property list <size type> <value type> vertex_index' at line " + myLineNum);
       }
       myFaceVertexIndices = parsePropertyList(tline);
+      scanProperties (is, myFaceProps);
    }
 
    private void parseHeader (DataInputStream is) throws IOException {
@@ -524,7 +538,9 @@ public class PlyReader extends MeshReaderBase {
 
    private void readVertexInfo (
       ReaderTokenizer rtok,
-      ArrayList<Point3d> verts, ArrayList<Vector3d> nrmls) throws IOException {
+      ArrayList<Point3d> verts,
+      ArrayList<Vector3d> nrmls,
+      ArrayList<float[]> colors) throws IOException {
 
       for (int i=0; i<myNumVerts; i++) {
          for (Property prop : myVertProps) {
@@ -535,13 +551,17 @@ public class PlyReader extends MeshReaderBase {
             else if (prop.myPropType == PropertyType.NORMAL) {
                nrmls.add ((Vector3d)obj);
             }
+            else if (prop.myPropType == PropertyType.COLOR) {
+               colors.add ((float[])obj);
+            }
          }
       }
    }
 
    private void readFaceInfo (
-      ReaderTokenizer rtok, ArrayList<int[]> faces) throws IOException {
-
+      ReaderTokenizer rtok,
+      ArrayList<int[]> faces,
+      ArrayList<float[]> colors) throws IOException {
       
       for (int i=0; i<myNumFaces; i++) {
          
@@ -611,12 +631,28 @@ public class PlyReader extends MeshReaderBase {
          if (idxs != null) {
             faces.add (idxs);
          }
+
+         for (Property prop : myFaceProps) {
+            Object obj = prop.read (rtok);
+            if (prop.myPropType == PropertyType.VERTEX) {
+               // not implemented, ignore
+            }
+            else if (prop.myPropType == PropertyType.NORMAL) {
+               // not implemented, ignore
+            }
+            else if (prop.myPropType == PropertyType.COLOR) {
+               colors.add ((float[])obj);
+            }
+         }
       }
    }
 
    private void readVertexInfo (
       BinaryInputStream bis,
-      ArrayList<Point3d> verts, ArrayList<Vector3d> nrmls) throws IOException {
+      ArrayList<Point3d> verts, 
+      ArrayList<Vector3d> nrmls,
+      ArrayList<float[]> colors) throws IOException {
+
 
       for (int i=0; i<myNumVerts; i++) {
          for (Property prop : myVertProps) {
@@ -627,12 +663,17 @@ public class PlyReader extends MeshReaderBase {
             else if (prop.myPropType == PropertyType.NORMAL) {
                nrmls.add ((Vector3d)obj);
             }
+            else if (prop.myPropType == PropertyType.COLOR) {
+               colors.add ((float[])obj);
+            }
          }
       }
    }
 
    private void readFaceInfo (
-      BinaryInputStream bis, ArrayList<int[]> faces) throws IOException {
+      BinaryInputStream bis,
+      ArrayList<int[]> faces,
+      ArrayList<float[]> colors) throws IOException {
 
       for (int i=0; i<myNumFaces; i++) {
          
@@ -702,56 +743,20 @@ public class PlyReader extends MeshReaderBase {
          if (idxs != null) {
             faces.add (idxs);
          }
+         for (Property prop : myFaceProps) {
+            Object obj = prop.read (bis);
+            if (prop.myPropType == PropertyType.VERTEX) {
+               // not implemented, ignore
+            }
+            else if (prop.myPropType == PropertyType.NORMAL) {
+               // not implemented, ignore
+            }
+            else if (prop.myPropType == PropertyType.COLOR) {
+               colors.add ((float[])obj);
+            }
+         }
       }
    }
-
-   // public PolygonalMesh readMesh (PolygonalMesh mesh) throws IOException {
-
-   //    DataInputStream is = new DataInputStream (myIstream);
-
-   //    parseHeader (is);
-   //    if (mesh == null) {
-   //       mesh = new PolygonalMesh();
-   //    }
-   //    ArrayList<Point3d> verts = new ArrayList<Point3d>();
-   //    ArrayList<Vector3d> nrmls = new ArrayList<Vector3d>();
-   //    ArrayList<int[]> faces = new ArrayList<int[]>();
-
-   //    if (myDataFormat == DataFormat.ASCII) {
-   //       ReaderTokenizer rtok = new ReaderTokenizer (
-   //          new BufferedReader (new InputStreamReader (myIstream)));
-   //       readVertexInfo (rtok, verts, nrmls);
-   //       readFaceInfo (rtok, faces);
-   //    }
-   //    else {
-   //       BinaryInputStream bis = 
-   //          new BinaryInputStream (new BufferedInputStream (myIstream));
-   //       if (myDataFormat == DataFormat.BINARY_LITTLE_ENDIAN) {
-   //          bis.setLittleEndian (true);
-   //       }
-   //       readVertexInfo (bis, verts, nrmls);
-   //       readFaceInfo (bis, faces);
-   //    }
-
-   //    for (Point3d pnt : verts) {
-   //       mesh.addVertex (pnt);
-   //    }
-   //    for (int[] idxs : faces) {
-   //       mesh.addFace (idxs);
-   //    }
-   //    if (nrmls.size() > 0) {
-   //       mesh.setNormalList (nrmls);
-   //       // we have to assume here the there is one normal per vertex,
-   //       // and assign the normal indices accordingly
-   //       int[][] normalIndices = new int[faces.size()][];
-   //       for (int i=0; i<faces.size(); i++) {
-   //          normalIndices[i] = mesh.getFaces().get(i).getVertexIndices();
-   //       }
-   //       mesh.setNormalIndices (normalIndices);
-   //    }
-      
-   //    return mesh;
-   // }
 
    public DataFormat getDataFormat() {
       return myDataFormat;
@@ -760,39 +765,6 @@ public class PlyReader extends MeshReaderBase {
    public FloatType getFloatType() {
       return myFloatType;
    }
-
-   // public PointMesh readMesh (PointMesh mesh) throws IOException {
-      
-   //    DataInputStream is = new DataInputStream (myIstream);
-
-   //    parseHeader (is);
-   //    if (mesh == null) {
-   //       mesh = new PointMesh();
-   //    }
-   //    ArrayList<Point3d> verts = new ArrayList<Point3d>();
-   //    ArrayList<Vector3d> nrmls = new ArrayList<Vector3d>();
-
-   //    if (myDataFormat == DataFormat.ASCII) {
-   //       ReaderTokenizer rtok = new ReaderTokenizer (
-   //          new BufferedReader (new InputStreamReader (myIstream)));
-   //       readVertexInfo (rtok, verts, nrmls);
-   //    }
-   //    else {
-   //       BinaryInputStream bis = 
-   //          new BinaryInputStream (new BufferedInputStream (myIstream));
-   //       if (myDataFormat == DataFormat.BINARY_LITTLE_ENDIAN) {
-   //          bis.setLittleEndian (true);
-   //       }
-   //       readVertexInfo (bis, verts, nrmls);
-   //    }
-   //    mesh.set (verts.toArray(new Point3d[0]), nrmls.toArray(new Vector3d[0]));
-      
-   //    return mesh;
-   // }
-
-//   public MeshBase readMesh (MeshBase mesh) throws IOException {
-//      return read (mesh, myIstream);
-//   }
 
    @Override
    public PolygonalMesh readMesh() throws IOException {
@@ -806,13 +778,15 @@ public class PlyReader extends MeshReaderBase {
       parseHeader (is);
       ArrayList<Point3d> verts = new ArrayList<Point3d>();
       ArrayList<Vector3d> nrmls = new ArrayList<Vector3d>();
+      ArrayList<float[]> vertexColors = new ArrayList<float[]>();
+      ArrayList<float[]> faceColors = new ArrayList<float[]>();
       ArrayList<int[]> faces = new ArrayList<int[]>();
 
       if (myDataFormat == DataFormat.ASCII) {
          ReaderTokenizer rtok = new ReaderTokenizer (
             new BufferedReader (new InputStreamReader (myIstream)));
-         readVertexInfo (rtok, verts, nrmls);
-         readFaceInfo (rtok, faces);
+         readVertexInfo (rtok, verts, nrmls, vertexColors);
+         readFaceInfo (rtok, faces, faceColors);
       }
       else {
          BinaryInputStream bis = 
@@ -820,8 +794,8 @@ public class PlyReader extends MeshReaderBase {
          if (myDataFormat == DataFormat.BINARY_LITTLE_ENDIAN) {
             bis.setLittleEndian (true);
          }
-         readVertexInfo (bis, verts, nrmls);
-         readFaceInfo (bis, faces);
+         readVertexInfo (bis, verts, nrmls, vertexColors);
+         readFaceInfo (bis, faces, faceColors);
       }
 
       if (mesh == null) {
@@ -832,7 +806,6 @@ public class PlyReader extends MeshReaderBase {
             mesh = new PolygonalMesh();
          }
       }
-      
       if (mesh instanceof PolygonalMesh) {
          PolygonalMesh pmesh = (PolygonalMesh)mesh;
          int icnt = 0;
@@ -857,6 +830,12 @@ public class PlyReader extends MeshReaderBase {
             pmesh.setNormals (nrmls, normalIndices);
             pmesh.setHardEdgesFromNormals();
          }
+         if (faceColors.size() > 0) {
+            mesh.setFeatureColoringEnabled();
+            for (int i=0; i<faceColors.size(); i++) {
+               mesh.setColor (i, faceColors.get(i));
+            }
+         }
       }
       else if (mesh instanceof PointMesh) {
          PointMesh pmesh = (PointMesh)mesh;
@@ -866,6 +845,12 @@ public class PlyReader extends MeshReaderBase {
       else {
          throw new UnsupportedOperationException (
             "Mesh type "+mesh.getClass()+" not supported for '.ply' files");
+      }
+      if (vertexColors.size() > 0) {
+         mesh.setVertexColoringEnabled();
+         for (int i=0; i<vertexColors.size(); i++) {
+            mesh.setColor (i, vertexColors.get(i));
+         }
       }
       return mesh;   
    }

@@ -915,11 +915,15 @@ public class PolygonalMeshTest extends MeshTestBase {
       squareTest();
       mergeTest();      
       inertiaTest();
-      hardEdgeNormalTest();
       setColorsTest();
-      testIncidentHedgeSorting();
       testCopy();
       testWriteRead();
+
+      // John Lloyd, Mar 3, 2021: hard edge checks only work
+      // when Vertex3d.groupHalfEdgesByHardEdge = true
+      Vertex3d.groupHalfEdgesByHardEdge = true;
+      hardEdgeNormalTest();
+      testIncidentHedgeSorting();
    }
 
    public static void main (String[] args) {

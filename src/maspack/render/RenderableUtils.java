@@ -126,4 +126,64 @@ public class RenderableUtils {
          vmin.z = z;
       }
    }
+
+   /**
+    * Update bounds to account for a sphere with a given width and radius.
+    */
+   public static void updateSphereBounds (
+      Vector3d vmin, Vector3d vmax, Vector3d center, double radius) {
+
+      double x = center.x;
+      double y = center.y;
+      double z = center.z;
+      if (x - radius < vmin.x) {
+         vmin.x = x - radius;
+      }
+      if (x + radius > vmax.x) {
+         vmax.x = x + radius;
+      }
+      if (y - radius < vmin.y) {
+         vmin.y = y - radius;
+      }
+      if (y + radius > vmax.y) {
+         vmax.y = y + radius;
+      }
+      if (z - radius < vmin.z) {
+         vmin.z = z - radius;
+      }
+      if (z + radius > vmax.z) {
+         vmax.z = z + radius;
+      }
+   }
+
+   /**
+    * Update bounds to account for the coordinate frame TFW drawn with length
+    * len.
+    */
+   public static void updateFrameBounds (
+      Vector3d vmin, Vector3d vmax, RigidTransform3d TFW, double len) {
+
+      TFW.p.updateBounds (vmin, vmax);
+      RotationMatrix3d R = TFW.R;
+      Vector3d axisTip = new Vector3d();
+
+      // x axis
+      axisTip.set (R.m00, R.m10, R.m20);
+      axisTip.scale (len);
+      axisTip.add (TFW.p);
+      axisTip.updateBounds (vmin, vmax);
+
+      // y axis
+      axisTip.set (R.m01, R.m11, R.m21);
+      axisTip.scale (len);
+      axisTip.add (TFW.p);
+      axisTip.updateBounds (vmin, vmax);
+      
+      // z axis
+      axisTip.set (R.m02, R.m12, R.m22);
+      axisTip.scale (len);
+      axisTip.add (TFW.p);
+      axisTip.updateBounds (vmin, vmax);
+   }
+
 }

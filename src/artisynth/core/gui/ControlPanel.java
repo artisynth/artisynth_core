@@ -553,6 +553,7 @@ public class ControlPanel extends ModelComponentBase
          return;
       }
       LabeledComponentBase widget = (LabeledComponentBase)comp;
+      widget.setScanning (true);
       rtok.scanToken ('[');
       String propPath = null;
       while (rtok.nextToken() != ']') {
@@ -641,6 +642,7 @@ public class ControlPanel extends ModelComponentBase
          }
          if (widget != null) {
             addWidget (widget);
+            widget.setScanning (false);
          }
       }
       else {

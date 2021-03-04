@@ -20,6 +20,7 @@ import maspack.util.Disposable;
 public abstract class LabeledComponentBase extends JPanel
    implements HasProperties, LabeledWidget, Disposable, ActionListener {
    private static final long serialVersionUID = 1L;
+   protected boolean myScanningP = false;
    //protected int myPrelabelSpacing = 0;
    //protected int myLabelWidth = 0;
 
@@ -45,6 +46,24 @@ public abstract class LabeledComponentBase extends JPanel
       return PropertyList.getProperty (name, this);
    }
 
+   /**
+    * Queries if this component is in the process of being scanned.
+    * 
+    * @return
+    */
+   public boolean isScanning() {
+      return myScanningP;
+   }
+   
+   /**
+    * Sets whether or not this component is being scanned.
+    * 
+    * @param scanning
+    */
+   public void setScanning (boolean scanning) {
+      myScanningP = scanning;
+   }
+   
    public Color getLabelFontColor() {
       Color color;
       JLabel label = getLabel();

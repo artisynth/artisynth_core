@@ -326,7 +326,10 @@ public class DoubleFieldSlider extends DoubleField
          min = myRange.getLowerBound();
       }
       mySliderRange.set (min, max);
-      setFormat (automaticFormat (min, max));
+      if (!isScanning()) {
+         // scanning will set the format by itself
+         setFormat (automaticFormat (min, max));
+      }
       clipValueToRange (mySliderRange);
       updateSlider();
    }

@@ -17,7 +17,8 @@ JAVA_TEST_PROGRAMS = \
 	PointFem3dAttachmentTest \
 	QuadhexElementTest \
 	QuadpyramidElementTest \
-	QuadwedgeElementTest
+	QuadwedgeElementTest \
+	FemSkinDerivTest
 
 #	AnsysReaderWriterTest \
 #	FemModel3dTest \

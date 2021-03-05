@@ -840,7 +840,7 @@ given in Section \ref{RenderProperties:sec}.
 \end{center}
 \caption{Rigid body axes rendered with {\sf axisDrawStyle}
 set to {\tt LINE} (left) and {\tt ARROW} (right).}
-\label{Axisendering:fig}
+\label{AxisRendering:fig}
 \end{figure}
 
 In addition to mesh rendering, it is often useful to draw a rigid
@@ -850,7 +850,7 @@ positive value will cause the body's three coordinate axes to be
 drawn, with the indicated length, with the $x$, $y$ and $z$ axes
 colored red, green, and blue, respectively. The {\tt axisDrawStyle}
 property controls how the axes are rendered (Figure
-\ref{AxisRendering:sec}). It has the type
+\ref{AxisRendering:fig}). It has the type
 \javaclass[artisynth.core.mechmodels]{Frame\$AxisDrawStyle}, and can
 be set to the following values:
 %
@@ -2140,7 +2140,7 @@ such as way that the linkage still actually has 1 DOF.
 \fi
 \end{center}
 \caption{FourBarLinkage model, several steps into the simulation.}
-\label{RigidBodySpring:fig}
+\label{FourBarLinkage:fig}
 \end{figure}
 
 To model a four-bar in ArtiSynth presently requires adding compliance
@@ -2150,6 +2150,7 @@ to the hinge joints. An example of this is defined by the demo program
   artisynth.demos.tutorial.FourBarLinkage
 \end{verbatim}
 %
+shown in Figure \ref{FourBarLinkage:fig}.
 The code for the {\tt build()} method and a couple of supporting
 methods is given below:
 \lstset{numbers=left}

@@ -49,7 +49,7 @@ public abstract class LabeledComponentBase extends JPanel
    /**
     * Queries if this component is in the process of being scanned.
     * 
-    * @return
+    * @return true if component is being scanned
     */
    public boolean isScanning() {
       return myScanningP;
@@ -58,7 +58,7 @@ public abstract class LabeledComponentBase extends JPanel
    /**
     * Sets whether or not this component is being scanned.
     * 
-    * @param scanning
+    * @param scanning if {@code true}, component is being scanned
     */
    public void setScanning (boolean scanning) {
       myScanningP = scanning;

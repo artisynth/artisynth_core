@@ -1,13 +1,20 @@
 package artisynth.demos.tutorial;
 
-import java.awt.*;
+import java.awt.Color;
 
-import maspack.matrix.*;
-import maspack.util.PathFinder;
-import maspack.render.RenderProps;
-import artisynth.core.mechmodels.*;
 import artisynth.core.materials.SimpleAxialMuscle;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.HingeJoint;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MultiPointMuscle;
+import artisynth.core.mechmodels.MultiPointSpring;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.RigidCylinder;
 import artisynth.core.workspace.RootModel;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.render.RenderProps;
+import maspack.util.PathFinder;
 
 public class PhalanxWrapping extends RootModel {
 
@@ -31,34 +38,34 @@ public class PhalanxWrapping extends RootModel {
 
       // create the two phalanx bones, and offset them
       RigidBody proximal = createBody (mech, "proximal", "HP3ProximalLeft.obj");
-      RigidBody middle = createBody (mech, "middle", "HP3MiddleLeft.obj");
-      middle.setPose (new RigidTransform3d (0.02500, 0.00094, -0.03979));
+      RigidBody distal = createBody (mech, "distal", "HP3MiddleLeft.obj");
+      distal.setPose (new RigidTransform3d (0.02500, 0.00094, -0.03979));
 
-      // make the proximal phalanx non dynamic; add damping to the middle
+      // make the proximal phalanx non dynamic; add damping to the distal
       proximal.setDynamic (false);
-      middle.setFrameDamping (0.03);
+      distal.setFrameDamping (0.03);
 
-      // create a cylindrical joint between the bones      
+      // create a revolute joint between the bones      
       RigidTransform3d TJW = 
          new RigidTransform3d (0.018, 0, -0.022, 0, 0, -DTOR*90);
-      RevoluteJoint joint = new RevoluteJoint (proximal, middle, TJW);
-      RenderProps.setCylindricalLines (joint, 0.001, Color.BLUE);
-      joint.setAxisLength (0.02);
+      HingeJoint joint = new HingeJoint (proximal, distal, TJW);
+      joint.setShaftLength (0.02); // render joint as a blue cylinder
+      RenderProps.setFaceColor (joint, Color.BLUE);
       mech.addBodyConnector (joint);
 
       // create markers for muscle origin and insertion points
       FrameMarker origin = mech.addFrameMarkerWorld (
          proximal, new Point3d (0.0098, -0.0001, -0.0037));
       FrameMarker insertion = mech.addFrameMarkerWorld (
-         middle, new Point3d (0.0293, 0.0009, -0.0415));
+         distal, new Point3d (0.0293, 0.0009, -0.0415));
 
       // create a massless RigidCylinder to use as a wrapping surface and
-      // attach it to the middle bone
+      // attach it to the distal bone
       RigidCylinder cylinder = new RigidCylinder (
          "wrapSurface", /*rad=*/0.005, /*h=*/0.04, /*density=*/0, /*nsegs=*/32);
       cylinder.setPose (TJW);
       mech.addRigidBody (cylinder);
-      mech.attachFrame (cylinder, middle);
+      mech.attachFrame (cylinder, distal);
 
       // create a wrappable muscle using a SimpleAxialMuscle material
       MultiPointSpring muscle = new MultiPointMuscle ("muscle");

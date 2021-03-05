@@ -68,13 +68,14 @@ public class DuplicateAgent extends EditingAgent implements ActionListener {
       AddComponentsCommand cmd =
          new AddComponentsCommand ("duplicate", myCopyList, myParentList);
       myUndoManager.saveStateAndExecute (cmd);
+      ArrayList<TransformableGeometry> transformList = new ArrayList<>();
       for (ModelComponent c : myCopyList) {
          if (c instanceof TransformableGeometry) {
-            TransformableGeometry tg = (TransformableGeometry)c;
-            tg.transformGeometry (X);
+            transformList.add ((TransformableGeometry)c);
          }
          mySelectionManager.addSelected (c);
       }
+      TransformGeometryContext.transform (transformList, X, 0);
       // myMain.rerender();
       dispose();
    }

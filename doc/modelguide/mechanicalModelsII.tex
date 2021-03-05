@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{Mechanical Models II}
+\input{startdoc}
+\mainmatter
+\fi
 
 \chapter{Mechanical Models II}
 \label{MechModelsII:sec}
@@ -828,7 +833,7 @@ equivalent to the constitutive equation along the muscle fiber direction specifi
 
 \paragraph{\javaclass[artisynth.core.materials]{PeckAxialMuscle}}
 This muscle material generates a force as described in~\cite{peck2000dynamic}. 
-It has a typical Hill-type active force-length relationship (modelled as a cosine), but 
+It has a typical Hill-type active force-length relationship (modeled as a cosine), but 
 the passive force-length properties are linear. This muscle model was empirically
 verified for jaw muscles during wide jaw opening~\cite{peck2000dynamic}.
 
@@ -1285,15 +1290,17 @@ default penetration tolerance based on the overall size of the model.
 \item[compliance]\mbox{}
 
 A double which adds a compliance (inverse stiffness) to the collision
-behavior, so that the contact has a ``springiness''. The default
-value for this is 0 (no compliance).
+behavior, so that the contact has a ``springiness''. The default value
+for this is 0 (no compliance). See Section
+\ref{OverconstrainedContact:sec}.
 
 \item[damping]\mbox{}
 
 A double which, if {\sf compliance} is non-zero, specifies a damping
 to accompany the compliant behavior. The default value is 0.  When
 compliance is specified, it is usually necessary to set the damping to
-a non-zero value to prevent bouncing.
+a non-zero value to prevent bouncing. See Section
+\ref{OverconstrainedContact:sec}.
 
 \item[collisionPointTol]\mbox{}
 
@@ -1307,7 +1314,8 @@ default value for this based on the overall size of the model.
 A boolean which, if {\tt true}, indicates that the system should try
 to reduce the number of contacts between deformable bodies with
 limited degrees of freedom, so that the resulting contact problem is
-not ill-conditioned.  The default value is {\tt false}.
+not ill-conditioned.  The default value is {\tt false}. See Section
+\ref{OverconstrainedContact:sec}.
 
 \item[method]\mbox{}
 
@@ -1722,9 +1730,14 @@ mesh. This information may be queried with the following methods:
   // Queries if the collidables associated with this response are in contact
   boolean inContact(); 
 
-  // Returns a map specifying the contact forces acting on all the deformable 
-  // bodies associated with the first or second collidable, as specified by
-  // cidx=0 or cidx=1.
+  // Returns a map specifying the vertex-specific contact forces acting on all 
+  // the deformable bodies associated with the first or second collidable, as 
+  // specified by cidx=0 or cidx=1.
+  Map<Vertex3d,Vector3d> getContactForces(int cidx);
+
+  // Returns a map specifying the vertex-specific contact pressures acting on all
+  // the deformable bodies associated with the first or second collidable, as 
+  // specified by cidx=0 or cidx=1.
   Map<Vertex3d,Vector3d> getContactForces(int cidx);
 
   // Returns a list of all the penetration regions on either the first
@@ -1889,7 +1902,8 @@ degrees of freedom (DOF) that the resulting number of contacts does
 not overconstrain the system.  Using this method for collisions
 between rigid bodies, or low DOF deformable bodies, will generally
 result in an overconstrained system unless the constraints are either
-regularized using compliance or constraint reduction is enabled.
+regularized using compliance or constraint reduction is enabled
+(see Section \ref{OverconstrainedContact:sec}).
 
 \item[CONTOUR\_REGION]\mbox{}
 
@@ -1975,7 +1989,8 @@ Because the {\tt SIGNED\_DISTANCE} collider type currently supports
 only the {\tt VERTEX\_PENETRATION} method, its use between rigid
 bodies, or low DOF deformable bodies, will generally result in an
 overconstrained system unless the constraints are either regularized
-using compliance or constraint reduction is enabled.
+using compliance or constraint reduction is enabled. See Section
+\ref{OverconstrainedContact:sec}.
 \end{sideblock}
 
 \end{description}
@@ -2068,6 +2083,167 @@ possibly modify it by adjusting the grid resolution. The {\tt
 DistanceGridComp} returned by {\tt getDistanceGridComp()} exports
 properties to facilitate both of these requirements, as described in
 detail in Section \ref{DistanceGrids:sec}.
+
+\subsection{Overconstrained contact and regularization}
+\label{OverconstrainedContact:sec}
+
+An issue that can arise with the {\tt VERTEX\_PENETRATION} collision
+method (Section \ref{CollisionMethods:sec}), which by default is
+employed for deformable bodies but can also be set for rigid bodies,
+is the problem of overconstrained contact, in which the number of
+contact constraints exceeds the number of degrees of freedom (DOF)
+available amongst the dynamic components for handling the
+contact. When this occurs, an error message will typically appear in
+the application's terminal output, such as
+%
+\begin{verbatim}
+Pardiso: num perturbed pivots=12
+\end{verbatim}
+%
+and the simulation itself may go unstable. 
+
+Overconstrained contact does not typically occur with regular FEM
+models because the number of contact constraints does not usually
+exceed the number of FEM nodes impacted by the collision.  However, it
+can occur for collisions involving embedded meshes (Section
+\ref{FEMmeshEmbedding:sec}) when the mesh has a finer resolution than
+the embedding FEM, or skinned meshes (Chapter \ref{skinning:sec}) when
+the number of contacts exceeds the available DOF of the
+underlying master bodies.
+
+At present there are two general ways to handle overconstrained
+contact:
+
+\begin{enumerate}
+
+\item Contact constraint reduction
+
+\item Contact regularization
+
+\end{enumerate}
+
+Constraint reduction involves having the collision manager explicitly
+try to reduce the number of collision constraints to match the
+available DOFs, and is enabled by setting the {\sf reduceConstraints}
+property for either the collision manager
+{\it or} the \javaclass[artisynth.core.mechmodels]{CollisionBehavior}
+for a particular collision pair to {\tt true}. The default value of
+{\sf reduceConstraints} is {\tt false}. As with all properties, it can
+be set interactively in the GUI, or in code using the property's
+accessor methods,
+%
+\begin{lstlisting}[]
+  boolean getReduceContraints()
+  void setReduceContraints (boolean enable)
+\end{lstlisting}
+%
+as illustrated by the following code fragments:
+%
+\begin{lstlisting}[]
+  MechModel mech;
+  ...
+
+  // enable constraint reduction for all collisions:
+  mech.getCollisionManager().setReduceContraints (true);
+
+  // enable constraint reduction for collisions between bodyA and bodyB:
+  CollisionBehavior behav = 
+     mech.setCollisionBehavior (bodyA, bodyB, true);
+  behav.setReduceContraints (true);
+\end{lstlisting}
+%
+
+Contact regularization is a different technique in which contact
+constraints are made ``soft'' by adding compliance and damping
+terms. This means that they no longer remove DOFs from the system, and
+so overconstraining cannot occur, but contact penetration is no longer
+strictly enforced and the overall computation time can be increased.
+
+\begin{sideblock}
+The regularization described here is analagous to that used for joints
+and connectors, discussed in Section \ref{JointCompliance:sec}.
+\end{sideblock}
+
+Regularization can be enabled by setting the {\sf compliance} and {\sf
+damping} properties for either the collision manager {\it or} the
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} for a
+particular collision pair. Compliance is the {\it inverse} of
+stiffness, and so a value of 0 (the default) implies ``infinitely''
+stiff contact constraints. Regularization is enabled whenever the
+compliance is set to a value greater than 0, with stiffness decreasing
+as compliance increases. While it is not required to set the damping
+property, it is usually desirable to set it to a value that
+approximates critical damping in order to prevent ``bouncing'' contact
+behavior. Compliance and damping can be set in the GUI by editing the
+properties of either the collision manager or a specific collision
+behavior, or set in code using the accessor methods
+%
+\begin{lstlisting}[]
+  double getCompliance()
+  void setCompliance (double c)
+
+  double getDamping()
+  void setDamping (double d)
+\end{lstlisting}
+%
+as is illustrated by the following code fragments:
+%
+\begin{lstlisting}[]
+  MechModel mech;
+  double compliance;
+  double damping;
+
+  ... determine compliance and damping values ...
+
+  // set damping and compliance for all collisions:
+  mech.getCollisionManager().setCompliance (compliance);
+  mech.getCollisionManager().setDamping (damping);
+
+  // enable compliance and damping between bodyA and bodyB:
+  CollisionBehavior behav = 
+     mech.setCollisionBehavior (bodyA, bodyB, true);
+  behav.setCompliance (compliance);
+  behav.setDamping (damping);
+\end{lstlisting}
+%
+
+An important question is what values to choose for compliance and
+damping. At present, there is no automatic way to determine these, and
+so some experimental parameter tuning is often necessary.  Compliance
+introduces an approximately linear stiffness into each contact
+constraint, with a stiffness constant $K$ that results in a force
+acting along the constraint direction (i.e., the contact normal) with
+a magnitude $f$ is given by
+%
+\begin{equation}
+f = K d
+\end{equation}
+%
+where $d$ is the contact penetration depth. Appropriate values of $K$
+will depend on the desired maximum penetration depth and other
+loadings acting on the body. The mass of the collidable bodies may
+also be relevant if one wants to control how fast the contact
+stabilizes. (The mass of every
+\javaclass[artisynth.core.mechmodels]{CollidableBody} can be
+determined by its {\tt getMass()} method.)  Since $K$ acts on a
+per-contact basis, the resulting total force will increase with the
+number of contacts.
+
+Once $K$ is determined, the compliance value $C$ is simply the
+inverse: $C = 1/K$. Furthermore, the damping $D$ can then be estimated
+based on the desired damping ratio $\zeta$, using the formula
+%
+\begin{equation}
+D = 2 \zeta \sqrt{K M}
+\label{contactDamping:eqn}
+\end{equation}
+%
+where $M$ is the combined mass of the collidable bodies (or the mass
+of one body if the other is non-dynamic).  Typically, the desired
+damping will be close to critical damping, for which $\zeta = 1$.
+
+An example that allows a user to play with contact regularization is
+given in Section \ref{RenderingContactNormals:sec}.
 
 \subsection{Penetration tolerance and limitations}
 \label{ContactLimitations:sec}
@@ -2237,7 +2413,7 @@ at every render step).
 \item[colorMapInterpolation]\mbox{}
 
 An enum of type
-\javaclass[maspack.render]{Renderer\$ColorInterpolation} that explicity
+\javaclass[maspack.render]{Renderer\$ColorInterpolation} that explicitly
 specifies how colors in any rendered color map should be interpolated.
 {\tt RGB} and {\tt HSV} (the default) specify interpolation in RGB and
 HSV space, respectively. HSV interpolation is the default as it is
@@ -2276,16 +2452,19 @@ To access these properties on a read-only basis, one can do
 \end{lstlisting}
 
 \subsection{Example: Rendering normals and contours}
+\label{RenderingContactNormals:sec}
 
-A simple model showing contact rendering is defined in
+A simple model illustrating contact rendering is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.BallPlateCollide
 \end{verbatim}
 %
-This shows a rigid sphere colliding with a plane, while
-rendering the resulting contact normals in red and the
-intersection contours in blue. 
+This shows a ball colliding with a plate, while rendering the
+resulting contact normals in red and the intersection contours in
+blue. This demo also allows the user to experiment with contact
+regularization (Section \ref{OverconstrainedContact:sec}) by setting
+{\sf compliance} and {\sf damping} properties in a control panel.
 
 \begin{figure}[ht]
 \begin{center}
@@ -2306,10 +2485,43 @@ The complete source code is shown below:
 \lstinputlisting{../../src/artisynth/demos/tutorial/BallPlateCollide.java}
 \lstset{numbers=none}
 
+The {\tt build()} method starts by creating and adding a {\tt
+MechModel} in the usual way (lines 19-20). The ball and plate are both
+created as rigid bodies (lines 22-28), with the ball pose set so that
+its origin is above the plate at (0, 0, 2) and its orientation is
+perturbed so that it will not land on the plate symmetrically (line
+24). Collisions between the ball and plate are enabled at line 31, with
+a friction coefficient of 0.2. To allow better visualization of the
+contacts, the ball is made transparent by disabling the drawing of
+faces, and instead enabling the drawing of edges in white with no
+shading (lines 33-37).
+
+Rendering of contacts and normals is established by setting the render
+properties of the collision manager (lines 39-47). First, the
+collision manager is set visible (which it is not by default).  Then
+lines (used to render the contact normals) and edges (used to render
+to intersection contour) are set to red and blue, each with a pixel
+width of 3.  Drawing of the normals and contour is enabled at lines
+46-47.
+
+Lastly, for interactively controlling registration, a control panel is
+built to allow users to adjust the collision manager's {\sf
+compliance} and {\sf damping} properties (lines 49-53).
+
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 BallPlateCollide} from the {\sf Models} menu. When run, the ball
 will collide with the plate and the contact normals and collision 
 contours will be drawn as shown in Figure \ref{BallPlateCollide:fig}.
+
+To enable contact regularization, set the {\sf compliance} to a
+non-zero value. A value of 0.001 (which corresponds to a contact
+stiffness of 1000) causes the ball to bounce considerably when it
+lands. To counteract this bouncing, the {\sf damping} should be set to
+a non-zero value. Since the ball has a mass of ~0.21, formula
+(\ref{contactDamping:eqn}) suggests that critical damping (for which
+$\zeta=1$) can be achieved with $D \approx 30$. This does in fact stop
+the bouncing. Increasing the compliance to 0.01 results in the ball
+penetrating the plate by a noticeable amount.
 
 \subsection{Example: Rendering a color map}
 \label{renderingDepth:sec}
@@ -3392,3 +3604,997 @@ components added to such containers won't do anything, other than be
 rendered in the viewer if they are
 \javaclass[maspack.render]{Renderable}.
 
+\section{Custom Joints}
+
+If desired, it is also possible for applications to create their own
+custom joints. This involves creating two custom classes: a {\it
+coupling} class that does the constraint computations, and a {\it
+joint} class that wraps around it and allows it to connect connectable
+bodies. Details on how to create these classes are given in
+Sections \ref{CustomJointImplementation:sec} and
+\ref{CustomCoupling:sec}, after some explanation
+of the constraint mechanism that underlies joint operation.
+
+This section assumes that the reader is highly familiar with spatial
+kinematics and dynamics.
+
+\subsection{Joint constraints}
+\label{JointConstraints:sec}
+
+To create a custom joint, it is necessary to understand how joints are
+implemented. The basic function of a joint is to constraint the set of
+poses allowed by the joint transform $\T_{CD}$ that relates frame C to
+D. To do this, the joint imposes restrictions on the six-dimensional
+spatial velocity $\hat\v_{CD}$ that describes how frame C is moving
+with respect to D.  This restriction is done using a set of bilateral
+constraints $\G_k$ and (in some cases) unilateral constraints $\N_l$,
+each of which is a $1 \times 6$ matrix that acts to restrict a single
+degree of freedom in $\hat\v_{CD}$ (see Section
+\ref{SpatialVelocitiesAndForces:sec} for a review of
+spatial velocities and forces). Bilateral constraints take the form of
+an equality,
+%
+\begin{equation}
+\G_k \, \hat\v_{CD} = 0,
+\label{cbilateral:eqn}
+\end{equation}
+%
+while unilateral constraints take the form of an inequality:
+%
+\begin{equation}
+\N_l \, \hat\v_{CD} \ge 0.
+\label{cunilateral:eqn}
+\end{equation}
+%
+These constraints are defined with respect to frame C, and their total
+number equals the number of DOFs that the joint {\it removes}. A
+joint's main computational task is to specify these
+constraints. ArtiSynth then uses its own knowledge of how frames C and
+D are connected to bodies A and B (or ground, if there is no body B)
+to map the individual $\G_k$ and $\N_l$ onto the joint's full
+bilateral and unilateral constraint matrices $\G_\text{J}$ and $\N_\text{J}$ (see
+(\ref{bilateralG:eqn}) and (\ref{unilateralN:eqn})) that restrict the
+body velocities.
+
+As a simple example, consider a cylindrical joint, in which C is free
+to rotate about and translate along the $z$ axis of D but other
+motions are restricted. Letting $\v$ and $\Bom$ denote the
+translational and rotational components of $\hat\v_{CD}$, such that
+%
+\begin{equation*}
+\hat\v_{CD} = \matl \v \\ \Bom \matr,
+\end{equation*}
+%
+we see that the constraints must enforce
+%
+\begin{equation}
+v_x = v_y = \omega_x = \omega_y = 0.
+\end{equation}
+%
+This can be accomplished using four constraints defined as follows:
+%
+\begin{align*}
+\G_0 = & (1, 0, 0, 0, 0, 0) \\
+\G_1 = & (0, 1, 0, 0, 0, 0) \\
+\G_2 = & (0, 0, 0, 1, 0, 0) \\
+\G_3 = & (0, 0, 0, 0, 1, 0).
+\end{align*}
+%
+
+Constraining velocities is a necessary but insufficient condition for
+constraint enforcement. Because of numerical errors, as well as the
+fact that constraints are often nonlinear, the joint transform
+$\T_{CD}$ will tend to drift away from the joint restrictions as the
+simulation proceeds, leading to the error $\T_{err}$ described at the
+end of Section \ref{JointsAndFrames:sec}. These errors are corrected
+during a {\it position correction} at the end of every simulation time
+step: the joint first {\it projects} $\T_{CD}$ onto the nearest valid
+constraint surface to form $\T_{GD}$, and $\T_{err}$ is then computed from
+%
+\begin{equation}
+\T_{err} = \T_{CG} = \T_{GD}^{-1} \T_{CD}.
+\end{equation}
+%
+Because $\T_{err}$ is (usually) small, we can approximate it as
+a twist $\hat\Bdel_{err}$ representing a small displacement from frame
+G (which lies on the constraint surface) to frame C. During the
+position correction, ArtiSynth adjusts the pose of C relative to D in
+order to try and bring $\hat\Bdel_{err}$ to zero. To do this, it uses
+an estimate of the {\it distance} $d_k$ along each constraint to the
+constraint surface, which it computes from the dot product of $\G_k$
+and $\hat\Bdel_{err}$:
+%
+\begin{equation}
+d_k = \G_k \, \hat\Bdel_{err}.
+\end{equation}
+%
+ArtiSynth assembles these distances into a composite distance vector
+$\d_g$ for {\it all} bilateral constraints, and then uses the system
+solver to find a displacement $\Bdel \q$ of the system coordinates
+that satisfies
+%
+\begin{equation*}
+\G(\q) \, \Bdel \q = -\d_g.
+\end{equation*}
+%
+Adding $\Bdel \q$ to the system coordinates $\q$ then reduces the
+constraint errors. While for nonlinear constraints several steps may be
+required to bring the error to 0, the process usually converges
+quickly.
+
+Unlike bilateral constraints, unilateral constraints are one-sided,
+and take effect, or are {\it engaged}, only when $\T_{CD}$ encounters
+an inadmissible region.  The constraint then acts to prevent further
+penetration into the region, via the velocity restriction
+(\ref{cunilateral:eqn}), and also to push $\T_{CD}$ {\it out} of the
+inadmissible region, using a position correction analogous to that
+used for bilateral constraints.
+
+Whether or not a unilateral constraint is engaged is determined by its
+{\it engaged} value $E_l$, which takes one of the three values:
+$\{0, 1, -1\}$, and is updated by the joint implementation as the
+simulation proceeds.  A value of 0 means that the constraint is not
+engaged, and will {\it not} be included in the joint's unilateral
+constraint matrix $\N_\text{J}$. Otherwise, if $E_l$ is $1$ or $-1$, then the
+constraint is engaged and will be included in $\N_\text{J}$, using $\N_l$ if
+$E_l = 1$, or its negative $-\N_l$ if $E_l = -1$. $E_l$ therefore
+defines a {\it sign} for the constraint.  General details on how
+unilateral constraints should be engaged or disengaged are discussed
+in Section \ref{UnilateralEngagement:sec}.
+
+A common use of unilateral constraints is to implement limits on joint
+coordinate values; this also illustrates the utility of $E_l$.  For
+example, the cylindrical joint mentioned above may have two
+coordinates, $z$ and $\theta$, describing the translation and rotation
+along and about the D frame's $z$ axis.  Now suppose we wish to bound
+$z$, such that
+%
+\begin{equation}
+z_\text{min} \le z \le z_\text{max}.
+\label{zbounds:eqn}
+\end{equation}
+%
+When these limits are violated, a unilateral constraint can be engaged
+to limit motion along the $z$ axis.
+A constraint $\N_z$
+that will do this is 
+%
+\begin{equation*}
+\N_z = (0, 0, 1, 0, 0, 0).
+\end{equation*}
+%
+Whenever $z \le z_\text{min}$, using $\N_z$ in (\ref{cunilateral:eqn})
+will ensure that $\dot\z \ge 0$ and hence $z$ will not fall further
+below the lower bound.  On the other hand, when $z \ge z_\text{max}$,
+we want to employ $-\N_z$ in (\ref{cunilateral:eqn}) to ensure that
+$\dot\z \le 0$. In other words, lower bounds can be enforced by
+engaging $\N_l$ with $E_l = 1$, while upper bounds can be enforced
+with $E_l = -1$.
+
+As with bilateral constraints, constraining velocities is not
+sufficient; it is also necessary to correct position errors,
+particularly as unilateral constraints are typically not engaged until
+the inadmissible region is violated. The position correction procedure
+is the same: for each engaged unilateral constraint, find a distance
+$d_l$ along its constraint direction that indicates the distance to
+the inadmissible region boundary.  ArtiSynth will then assemble these
+$d_l$ into a composite distance vector $\d_n$ for all unilataral
+constraints, and solve for a system coordinate displacement $\Bdel \q$
+that satisfies
+%
+\begin{equation}
+\N(\q) \, \Bdel \q \ge -\d_n.
+\label{unilateralCorrection:eqn}
+\end{equation}
+%
+Because of the inequality direction in
+(\ref{unilateralCorrection:eqn}), distances $d_l$ representing
+penetration into a inadmissible region must be {\it negative}.  For
+coordinate bounds such as (\ref{zbounds:eqn}), we need to use $d_l = z
+- z_\text{min}$ for the lower bound and $d_l = z_\text{max} - z$ for
+the upper bound. Alternatively, if the unilateral constraint has been
+included into the projection of C onto G and hence into the error term
+$\hat\Bdel_{err}$, $d_l$ can be computed from
+%
+\begin{equation}
+d_l = E_l \N_l \, \hat\Bdel_{err}.
+\end{equation}
+%
+Note that unilateral constraints for coordinate limits are {\it not}
+usually incorporated into the $G$ projection; more on this details are
+given in Section \ref{CustomCoupling:sec}.
+
+As simulation proceeds, the velocity limits imposed by
+(\ref{cbilateral:eqn}) and (\ref{cunilateral:eqn}) are enforced by
+bilateral and unilateral 
+constraint forces $\f_k$ and $\f_l$ whose
+magnitudes are given by
+%
+\begin{equation}
+\f_k = \G_k^T \, \lambda_k, \qquad \f_l = \N_l^T \, \theta_l,
+\end{equation}
+%
+where $\lambda_k$ and $\theta_l$ are the Lagrange multipliers computed
+by the mechanical system solver (and are components of $\Blam$ or
+$\Bthe$ in (\ref{impulsesToForces:eqn}) and (\ref{KKTvelocity:eqn})).
+$\f_k$ and $\f_l$ are 6 DOF spatial force vectors, or {\it wrenches}
+(Section \ref{SpatialVelocitiesAndForces:sec}), which like $\G_k$ and
+$\N_l$ are expressed in frame C. Because $\G_k^T$ and $\N_l^T$ are
+proportional to spatial wrenches, they are often themselves referred
+to as {\it constraint wrenches}, and within the ArtiSynth codebase are
+described by a \javaclass[maspack.spatialmotion]{Wrench} object.
+
+\subsection{Unilateral constraint engagement}
+\label{UnilateralEngagement:sec}
+
+As mentioned above, joints which implement unilateral constraints must
+monitor $\T_{CD}$ and the joint coordinates as the simulation proceeds
+and decide when to engage or disengage them.
+
+Engagement is usually easy: a constraint is engaged whenever $\T_{CD}$
+or a joint coordinate hits an inadmissible region. The constraint
+$\N_l$ is itself a spatial vector that is (locally) perpendicular to
+the inadmissible region boundary, and $E_l$ is chosen to be either
+$1$ or $-1$ so that $E_l \N_l$ is directed {\it away} from the
+inadmissible region. In the remainder of this section, we shall assume
+$E_l = 1$.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[width=3.75in]{images/contactChatter}
+\else
+ \includegraphics[width=3.75in]{images/contactChatter}
+\fi
+\end{center}
+\caption{Left: A joint configuration at A inside an inadmissible
+region (gray) is pushed further outside the region than intended B,
+so that it reenters the region during the next simulation step,
+resulting in chattering. Right: a deadband solution, in which the
+position correction is reduced sufficiently so that the joint
+configuration remains inside the region.}
+\label{contactChatter:fig}
+\end{figure}
+
+To disengage, we usually want to ensure that the joint configuration
+is out of the inadmissible region. If we have a constraint $\N_l$,
+with a local distance $d_l$ defined such that $d_l < 0$ implies the
+joint is inside the region, then we are out of the region when
+$d_l > 0$.  However, if we use only this as the disengagement
+criterion, we may encounter a problem known as {\it chattering},
+illustrated in Figure \ref{contactChatter:fig} (left). An inadmissible
+region is shown in gray, with a unilateral constraint $N_1$
+perpendicular to its boundary. As simulation proceeds, the joint lands
+inside the region at an initial point A at the lower left, at a
+(negative) distance $d_1$ from the boundary. Ideally the position
+correction step will move the configuration by $-d_1$ so that it lands
+right on the region boundary. However, numerical errors and
+nonlinearities may mean that in fact it lands {\it outside} the
+region, at point B. Then on the next step it reenters the region, only
+to again be pushed out, etc.
+
+\begin{figure}[th]
+\begin{center}
+\iflatexml
+ \includegraphics[width=3.75in]{images/contactOscillation}
+\else
+ \includegraphics[width=3.75in]{images/contactOscillation}
+\fi
+\end{center}
+\caption{Left: constraint oscillation, in which a joint configuration
+starting at A oscillates between two overlapping inadmissible
+regions 1 and 2 whose boundaries are not perpendicular. Right:
+ensuring that constraints stay engaged for more than one simulation
+step allows the solver to quickly determine a stable solution at F,
+where the region boundaries intersect.}
+\label{contactOscillation:fig}
+\end{figure}
+
+ArtiSynth implements two solutions to chattering. One is to implement
+a {\it deadband}, so that instead of correcting the position by
+$-d_1$, we correct it by $-d_1 - p_\text{tol}$, where $p_\text{tol}$
+is a {\it penetration tolerance}. This means that the correction will
+try to leave the joint inside the region by a small amount (Figure
+\ref{contactChatter:fig}, right) so that chattering is suppressed. The
+penetration tolerance used depends on the constraint type. Those that
+are primarily linear use the value of the {\sf penetrationTol}
+property, while those that are primarily rotary use the value of the
+{\sf rotaryLimitTol} property; both of these are exported as
+inheritable properties by both
+\javaclass[artisynth.core.mechmodels]{MechModel} and
+\javaclass[artisynth.core.mechmodels]{BodyConnector}, with default
+values computed from the model's overall dimensions.
+
+The second chattering solution is to disengage only when the joint is
+actively moving away from the region, as determined by $\dot{d_l} > 0$.
+The disengagement criteria then become
+%
+\begin{equation}
+d_l > 0 \quad \text{and} \quad \dot{d_l} > 0.
+\label{disengage:eqn}
+\end{equation}
+%
+$\dot{d_l}$ is called the {\it contact speed} and can be computed from
+%
+\begin{equation}
+\dot{d_l} = \N_l \, \hat\v_{CD}.
+\end{equation}
+%
+
+Another problem, which we call {\it constraint oscillation}, can occur
+when we are near two or more overlapping inadmissible regions whose
+boundaries are not perpendicular.  See
+Figure \ref{contactOscillation:fig} (left), which shows two
+overlapping regions 1 and 2. The joint starts at point A, inside
+region 1 but just outside region 2. Since only constraint 1 is
+engaged, the position correction moves it toward the boundary of 1,
+overshooting and landing at point B outside of 1 but inside region 2.
+Constraint 2 now engages, moving the joint to C, where it is past the
+boundary of 2 but inside 1 again. While the example in the figure
+converges to the corner where the boundaries of 1 and 2 meet,
+convergence may be slow and may be prevented entirely by external
+forcing. While the mechanisms that prevent chattering {\it may} also
+prevent oscillation, we find that an additional measure is useful,
+which is to simply require that {\it a constraint must be engaged for
+at least two simulation steps}. The result is shown in
+Figure \ref{contactOscillation:fig} (right), where after the joint
+arrives at B, constraint 1 remains engaged along with constraint 2,
+and the subsequent solution takes the joint directly to point F at the
+corner where 1 and 2 meet.
+
+\subsection{Implementing a custom joint}
+\label{CustomJointImplementation:sec}
+
+All of the work of computing joint constraints and coordinates, as
+described in the previous sections, is done within a ``coupling''
+class which is a subclass of
+\javaclass[maspack.spatialmotion]{RigidBodyCoupling}.
+An instance of this is then embedded within a ``joint'' class 
+(which is a subclass of
+\javaclass[artisynth.core.mechmodels]{JointBase})
+that supports connections with other bodies, provides rendering,
+exports various properties, and allows the joint to be attached to a
+{\tt MechModel}.
+
+For purposes of this discussion, we will assume that these two custom
+classes are called {\tt CustomCoupling} and {\tt CustomJoint},
+respectively. The implementation of {\tt CustomJoint} can be as simple
+as this:
+%
+\begin{lstlisting}[]
+import artisynth.core.mechmodels.ConnectableBody;
+import artisynth.core.mechmodels.JointBase;
+import maspack.matrix.RigidTransform3d;
+
+public class CustomJoint extends JointBase {
+
+   public CustomJoint() {
+      setCoupling (new CustomCoupling());
+   }
+
+   public CustomJoint (
+      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
+      this(); // call the default constructor
+      setBodies(bodyA, bodyB, TDW);
+   }
+}
+\end{lstlisting}
+%
+This creates an instance of {\tt CustomCoupling} and sets it to the
+(inherited) {\tt myCoupling} attribute inside the default constructor
+(which is where this normally should be done). Another constructor is
+provided which uses {\tt setBodies()} to create a joint that is
+attached to two bodies with the D frame specified in world
+coordinates. In practice, a joint may also export some properties
+(such as joint coordinates), provide additional constructors, and
+implement rendering; one should examine the source code for some
+existing joints.
+
+\subsection{Implementing a custom coupling}
+\label{CustomCoupling:sec}
+
+Implementing a custom coupling constitutes most of the effort in
+creating a custom joint, since the coupling is responsible for
+maintaining the constraints $\G_k$ and $\N_l$ that enforce the joint
+behavior.
+
+Before proceeding, we discuss the coordinate frame in which these
+constraints are situated. It is often convenient to describe joint
+constraints with respect to frame C, since rotations are frequently
+centered there. However, the joint transform $\T_{CD}$ usually
+contains errors (Section \ref{JointsAndFrames:sec}) due to a
+combination of simulation error and possible joint compliance. To
+determine these errors, we project C onto another frame G, defined to
+be the nearest to C that is consistent with the bilateral (and possibly
+some unilateral) constraints. (This is done by the {\tt
+projectToConstraints()} method, described below).  The result is a
+joint transform $\T_{GD}$ that is ``error free'' with respect to
+bilateral constraints and also consistent with the coordinates (if
+supported). This makes it convenient to formulate constraints with
+respect to frame G instead of C, and so this is the convention
+ArtiSynth uses. In particular, the {\tt updateConstraints()} method,
+described below, uses $\T_{GD}$, together with the spatial velocity
+$\hat\v_{GD}$ describing the motion of G with respect to C.
+
+An actual custom coupling implementation involves subclassing
+\javaclass[maspack.spatialmotion]{RigidBodyCoupling} and then
+implementing five abstract methods, the outline of which looks like
+this:
+%
+\begin{lstlisting}[]
+import maspack.matrix.*;
+import maspack.spatialmotion.*;
+import maspack.util.*;
+
+class CustomCoupling extends RigidBodyCoupling {
+
+   public CustomCoupling() {
+      super();
+   }
+
+   // Initialize the constraints and coordinates.
+   public void initializeConstraints () {
+      ...
+   }
+
+   // If coordinates are implemented, set TCD from the supplied coordinates.
+   public void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords) {
+      ...
+   }
+
+   // If coordinates are implemented, set their values from TCD.
+   public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
+      ...
+   }
+
+   // Project TCD to the nearest transform TGD admissible to the
+   // bilateral constraints, and maybe some unilateral constraints.
+   public void projectToConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, boolean updateCoords) {
+      ...
+   }
+
+   // Update the constraint wrenches, and maybe the engaged
+   // and distance settings for some unilateral constraints.
+   public void updateConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
+      Twist velGD, boolean updateEngaged) {
+      ...
+   }
+}
+\end{lstlisting}
+%
+The implementations of these methods are now described in detail.
+
+\subsubsection*{initializeConstraints()}
+
+This method has the signature
+%
+\begin{lstlisting}[]
+  public void initializeConstraints ()
+\end{lstlisting}
+%
+and is called in the coupling's superclass constructor (i.e., the
+constructor for {\tt RigidBodyCoupling}).  It is responsible for
+initializing the coupling's constraints and (if supported)
+coordinates. 
+
+Constraints are added using one of the two superclass methods:
+%
+\begin{lstlisting}[]
+  RigidBodyConstraint addConstraint (int flags)
+
+  RigidBodyConstraint addConstraint (int flags, Wrench wrench)
+\end{lstlisting}
+%
+Each creates a new
+\javaclass[maspack.spatialmotion]{RigidBodyConstraint}
+and adds it to the coupling's constraint list.
+{\it flags} is an or-ed combination of the following flags 
+defined in
+\javaclass[maspack.spatialmotion]{RigidBodyConstraint}:
+\begin{description}
+
+\item[BILATERAL]\mbox{}
+
+Constraint is bilateral (i.e., an equality). If {\tt BILATERAL}
+is not specified, the constraint is considered unilateral.
+
+\item[ROTARY]\mbox{}
+
+Constraint primarily restricts rotary motion. If it is unilateral, the
+joint's {\sf rotaryLimitTol} property is used for its penetration tolerance.
+
+\item[LINEAR]\mbox{}
+
+Constraint primarily restricts translational motion. If it is
+unilateral, the joint's {\sf penetrationTol} property is used for its
+penetration tolerance.
+
+\item[CONSTANT]\mbox{}
+
+Constraint is constant with respect to frame G. This flag is set
+automatically if the constraint is created using {\tt
+addConstraint(flags,wrench)}.
+
+\item[LIMIT]\mbox{}
+
+Constraint is used to enforce limits for a coordinate.  This flag is
+set automatically if the constraint is specified as the limit
+constraint for a coordinate.
+
+\end{description}
+%
+The method {\tt addConstraint(flags,wrench)} takes an additional
+\javaclass[maspack.spatialmotion]{Wrench} argument specifying the
+(presumed constant) value of the constraint with respect to frame G,
+and sets the {\tt CONSTANT} flag just described.  
+
+Coordinates are added similarly using using one of the two superclass
+methods:
+%
+\begin{lstlisting}[]
+  CoordinateInfo addCoordinate ()
+
+  CoordinateInfo addCoordinate (
+     double min, double max, int flags, RigidBodyConstraint limCon)
+\end{lstlisting}
+%
+Each creates a new {\tt CoordinateInfo} object (which is an inner
+class of \javaclass[maspack.spatialmotion]{RigidBodyCoupling}), and
+adds it to the coupling's coordinate list. In the second method, {\tt
+min} and {\tt max} give the initial range limits, and {\tt limCon}, if
+non-{\tt null}, specifies a unilateral constraint (previously created
+using {\tt addConstraint}) for enforcing the limits and causes that
+constraint's {\tt LIMIT} to be set.  The argument {\tt flags} is
+reserved for future use and should be set to 0. If not specified, the
+default coordinate limits are $(-\inf, \inf)$.
+
+The implementation of {\tt initializeConstraints()} for a coupling
+that implements a hinge type joint might look like this:
+%
+\begin{lstlisting}[]
+public void initializeConstraints () {
+   addConstraint (BILATERAL|LINEAR, new Wrench (1, 0, 0, 0, 0, 0));
+   addConstraint (BILATERAL|LINEAR, new Wrench (0, 1, 0, 0, 0, 0));
+   addConstraint (BILATERAL|LINEAR, new Wrench (0, 0, 1, 0, 0, 0));
+   addConstraint (BILATERAL|ROTARY, new Wrench (0, 0, 0, 1, 0, 0));
+   addConstraint (BILATERAL|ROTARY, new Wrench (0, 0, 0, 0, 1, 0));
+   addConstraint (ROTARY, new Wrench (0, 0, 0, 0, 0, 1));
+
+   addCoordinate (-Math.PI, Math.PI, 0, getConstraint(5));
+}
+\end{lstlisting}
+%
+Six constraints are specified, with the sixth being a unilateral
+constraint that enforces the limits on the single coordinate
+describing the rotation angle.  Each constraint and coordinate has an
+integer index giving the location in its list, in the order it was
+added. This index can be used to later retrieve the {\tt
+RigidBodyConstraint} or {\tt CoordinateInfo} object for the constraint
+or coordinate, using the methods {\tt getConstraint(idx)} or {\tt
+getCoordinate(idx)}.
+
+\begin{sideblock}
+Because {\tt initializeConstraints()} is called in the superclass
+constructor, member attributes for the custom coupling will not yet be
+initialized when it is first called. Therefore, the method should not
+depend on the initial values of non-static member variables.  {\tt
+initializeConstraints()} can also be called later to rebuild the
+constraints if some defining setting is changed.
+\end{sideblock}
+
+\subsubsection*{coordinatesToTCD()}
+
+This method has the signature
+%
+\begin{lstlisting}[]
+  public void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords)
+\end{lstlisting}
+%
+and is called when needed by the system. If coordinates are supported,
+then the transform $\T_{CD}$ should be set from the coordinate values
+supplied in {\tt coords}, and returned in the argument {\tt TCD}.
+Otherwise, this method should do nothing.
+
+\subsubsection*{TCDToCoordinates()}
+
+This method has the signature
+%
+\begin{lstlisting}[]
+  public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD)
+\end{lstlisting}
+%
+and is called when needed by the system. It is the inverse of {\tt
+coordinatesToTCD()}: if coordinates are supported, then their values
+should be set from the joint transform $\T_{CD}$ supplied by {\tt TCD}
+and returned in {\tt coords}. Otherwise, this method should do
+nothing.
+
+When calling this method, it is assumed that {\tt TCD} is ``legal''
+with respect to the joint's constraints (as defined by {\tt
+projectToConstraints()}, described next). If this is not the case,
+then {\tt projectToConstraints()} should be called instead.
+
+One issue that can arise is when a coordinate represents an angle
+$\phi$ that has a range greater than $2 \pi$.  In that case, a common
+strategy is to compute a nominal value for $\phi$, and then add or
+subtract $2 \pi$ from it until the resulting value is as close as
+possible to the {\it current} value for the angular coordinate.  This
+allows the angle to wrap through its entire range. To implement this,
+one can use the method 
+%
+\begin{lstlisting}[]
+  double nearestAngle (double phi)
+\end{lstlisting}
+%
+in the coordinate's {\tt CoordinateInfo} object,
+which finds the angle equivalent to {\tt phi} that is nearest to the
+current coordinate value.
+
+\begin{sideblock}
+Coordinate values computed by this method should {\it not} be clipped
+to their ranges.
+\end{sideblock}
+
+\subsubsection*{projectToConstraints()}
+
+This method has the signature
+%
+\begin{lstlisting}[]
+  public void projectToConstraints (
+    RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords)
+\end{lstlisting}
+%
+and is called when needed by the system. It is responsible for
+projecting the joint transform $\T_{CD}$ (supplied by {\tt TCD}) onto
+the nearest transform $\T_{GD}$ that is valid for the {\it bilateral}
+constraints, and returning this in {\tt TGD}.  If coordinates are
+supported and {\tt coords} is non-{\tt null}, then the coordinate
+values corresponding to $\T_{GD}$ should also be computed and returned
+in {\tt coords}. The easiest way to do this is to simply call {\tt
+TCDToCoordinates(TGD,coords)}, although in some cases it may be
+computationally cheaper to compute both the coordinates and the
+projection at the same time.
+
+Optionally, the coupling may also extend the projection to include
+unilateral constraints that are {\it not} associated with coordinate
+limits. In particular, this should be done for constraints for which
+is it desired to have the constraint error included in $\T_{err}$ and
+the corresponding argument {\tt errC} that is passed to {\tt
+updateConstraints()}.
+
+\subsubsection*{updateConstraints()}
+
+This method has the signature
+%
+\begin{lstlisting}[]
+  public void updateConstraints (
+    RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
+    Twist velGD, boolean updateEngaged)
+\end{lstlisting}
+%
+and is usually called once per simulation time step. It is responsible
+for:
+
+\begin{itemize}
+
+\item Updating the values of all non-constant constraint wrenches,
+along with their derivatives;
+
+\item If {\tt updateEngaged} is {\tt true}, updating the {\sf engaged}
+and {\sf distance} attributes for all unilateral constraints not
+associated with a coordinate limit.
+
+\end{itemize}
+
+The method supplies several arguments: 
+
+\begin{itemize}
+
+\item {\tt TGD}, containing the idealized joint transform
+$\T_{GD}$ from frame G to D produced by calling {\tt
+projectToConstraints()}.
+
+\item {\tt TCD}, containing the joint transform $\T_{CD}$ from
+frame C to D and supplied for legacy reasons.
+
+\item {\tt errC}, representing the (hopefully small) error transform
+$\T_{err}$ from frame C to G as a spatial twist vector.
+
+\item {\tt velGD}, giving the spatial velocity $\hat\v_{GD}$ of frame
+G with respect to D, as seen in G; this is needed to compute wrench
+derivatives.
+
+\item {\tt updateEngaged}, which requests the updating of unilateral
+{\sf engaged} and {\sf distance} attributes as describe above.
+
+\end{itemize}
+
+If the coupling supports coordinates, their values will be updated
+before the method is called so as to correspond to $\T_{GD}$. If
+needed, a coordinate's value may be obtained from the {\sf value}
+attribute of its {\tt CoordinateInfo} object, which may in turn be
+obtained using {\tt getCoordinate(idx)}. Likewise, {\tt
+ConstraintInfo} objects for each constraint may be obtaining using
+{\tt getConstraint(idx)}.
+
+Constraint wrenches correspond to $\G_k$ and $\N_l$ in Section
+\ref{JointConstraints:sec}. These, along with their derivatives
+$\dot\G_k$ and $\dot\N_l$, are described by the {\sf wrenchG} and {\sf
+dotWrenchG} attributes of each constraint's
+\javaclass[maspack.spatialmotion]{RigidBodyConstraint} object, and may
+be managed by a variety of methods:
+%
+\begin{lstlisting}[]
+  Wrench getWrenchG()    // return the reference to wrenchG
+  void setWrenchG (
+     double fx, double fy, double fx, double mx, double my, double mx)
+  void setWrenchG (Vector3d f, Vector3d m) // either f or m may be null
+  void setWrenchG (Wrench wr)
+  void negateWrenchG()
+  void zeroWrenchG()
+
+  Wrench getDotWrenchG() // return the reference to dotWrenchG
+  void setDotWrenchG (
+     double fx, double fy, double fx, double mx, double my, double mx)
+  void setDotWrenchG (Vector3d f, Vector3d m) // either f or m may be null
+  void setDotWrenchG (Wrench wr)
+  void negateDotWrenchG()
+  void zeroDotWrenchG()
+\end{lstlisting}
+%
+
+\begin{sideblock}
+{\sf dotWrenchG} is used in computing the time derivative terms $\g$
+and $\n$ that appear in (\ref{constraints2:eqn}) and
+(\ref{KKTvelocity:eqn}). While these improve the computational
+accuracy of the simulation, their effect is often small, and so in
+practice one may be able to omit computing {\sf dotWrenchG} and
+instead leave its value as 0.
+\end{sideblock}
+
+Wrench information must also be computed for unilateral constraints
+which implement coordinate limits. While it is not necessary to
+compute the {\sf distance} and {\sf engaged} attributes for these
+constraints (this is done automatically), it {\it is} necessary to
+ensure that the wrench's magnitude is compatible with the coordinate's
+speed. More precisely, if the coordinate is given by $\phi$, then the
+limit wrench $\N_l$ must have a magnitude such that
+%
+\begin{equation}
+\dot\phi = \N_l \hat\v_{GD}.
+\end{equation}
+%
+As mentioned above, if {\tt updateEngaged} is {\tt true}, the {\sf
+engaged} and {\sf distance} attributes for unilateral constraints not
+associated with coordinate limits must be updated.  These correspond
+to $E_l$ and $d_l$ in Section \ref{JointConstraints:sec}, and are
+contained in the constraint's
+\javaclass[maspack.spatialmotion]{RigidBodyConstraint} object and may
+be queried using the methods
+%
+\begin{lstlisting}[]
+  double getDistance()
+  void setDistance (double d)
+
+  int getEngaged()
+  void setEngaged (int engaged)
+\end{lstlisting}
+%
+It is up to {\tt updateConstraints()} to compute the distance, with
+a negative value denoting penetration into the inadmissible
+region. If {\tt projectToConstraints()} is
+implemented so as to account for the constraint, then $\T_{GD}$ will
+be projected out of the inadmissible region and the distance will be
+implicitly present $\T_{err}$ and so can be recovered by taking
+the dot product of the constraint wrench and {\tt velGD}:
+%
+\begin{lstlisting}[]
+  RigidBodyConstraint cons = getConstraint (3); // assume constraint index is 3
+  ...
+  double dist = cons.getWrench().dot (velGD);
+\end{lstlisting}
+%
+Otherwise, if the constraint is not accounted for in {\tt
+projectToConstraints()}, the distance must be obtained by other means.
+
+To update {\sf engaged}, one may use the general convenience method
+%
+\begin{lstlisting}[]
+  void updateEngaged (
+     RigidBodyConstraint cons, double dist, 
+     double dmin, double dmax, Twist velGD)
+\end{lstlisting}
+%
+which sets {\sf engaged} according to the rules of Section
+\ref{UnilateralEngagement:sec}, for an inadmissible region
+corresponding to {\tt dist} < {\tt dmin} or {\tt dist} > {\tt
+dmax}. The upper or lower bounds may be removed by setting {\tt dmin}
+to {\tt -inf} or {\tt max} to {\tt inf}, respectively.
+
+\subsection{Example: a simple custom joint}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/slottedHingeJoint}&
+   \includegraphics[width=2.333in]{images/CustomJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/slottedHingeJoint}&
+   \includegraphics[width=2.333in]{images/CustomJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames for the {\tt CustomJoint} (left) and the
+associated {\tt CustomJointDemo} (right).}
+\label{CustomJoint:fig}
+\end{figure}
+
+An simple model illustrating custom joint creation is provided by
+\begin{verbatim}
+  artisynth.demos.tutorial.CustomJointDemo
+\end{verbatim}
+%
+This implements a joint class defined by {\tt CustomJoint} (also in
+the package {\tt artisynth.demos.tutorial}), which is actually just a
+simple implementation of
+\javaclass[artisynth.core.mechmodels]{SlottedHingeJoint} (Section
+\ref{SlottedHingeJoint:sec}). Certain details are omitted, such as
+exporting coordinate values and ranges as properties, and other things
+are simplified, such as the rendering code. One may consult the source
+code for {\tt SlottedHingeJoint} to obtain a more complete example.
+
+This section will focus on the implementation of the joint coupling,
+which is created as an inner class of {\tt CustomJoint} called {\tt
+CustomCoupling} and which (like all couplings) extends
+\javaclass[maspack.spatialmotion]{RigidBodyCoupling}. The joint
+itself creates an instance of the coupling in its default constructor,
+exactly as described in Section
+\ref{CustomJointImplementation:sec}.
+
+The coupling allows two DOFs (Figure \ref{CustomJoint:fig}, left):
+translation along the $x$ axis of D (described by the coordinate $x$),
+and rotation about the $z$ axis of D (described by the coordinate
+$\theta$), with $\T_{CD}$ related to the coordinates by
+(\ref{SlottedHingeTCD:eqn}). It implements
+{\tt initializeConstraints()} as follows:
+%
+\begin{lstlisting}[]
+   public void initializeConstraints () {
+      addConstraint (BILATERAL|LINEAR);
+      addConstraint (BILATERAL|LINEAR, new Wrench(0, 0, 1, 0, 0, 0));
+      addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 1, 0, 0));
+      addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 0, 1, 0));
+      addConstraint (LINEAR);
+      addConstraint (ROTARY, new Wrench(0, 0, 0, 0, 0, 1));
+   
+      addCoordinate (-1, 1, 0, getConstraint(4)); // x
+      addCoordinate (-2*Math.PI, 2*Math.PI, 0, getConstraint(5)); // theta
+   }
+\end{lstlisting}
+%
+Six constraints are added using {\tt addConstraint()}: two linear
+bilaterals to restrict translation along the $y$ and $z$ axes of D, two
+rotary bilaterals to restrict rotation about the $x$ and $y$ axes of D,
+and two unilaterals to enforce limits on $x$ and $\theta$. Four of the
+constraints are constant in frame G, and so are initialized with a
+wrench value. The other two are not constant in G and so will need to
+be updated in {\tt updateConstraints()}. The coordinates for
+$x$ and $\theta$ are added at the end, using {\tt addCoordinate()},
+with default joint limits and a reference to the constraint that will
+enforce the limit.
+
+The implementations for {\tt coordinatesToTCD()} and {\tt
+TCDToCoordinates()} simply use (\ref{SlottedHingeTCD:eqn}) to
+compute $\T_{CD}$ from the coordinates, or vice versa:
+%
+\begin{lstlisting}[]
+   public void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords) {
+      double x = coords.get (X_IDX);
+      double theta = coords.get (THETA_IDX);
+      TCD.setIdentity();
+      TCD.p.x = x;
+      double c = Math.cos (theta);
+      double s = Math.sin (theta);
+      TCD.R.m00 = c;
+      TCD.R.m11 = c;
+      TCD.R.m01 = -s;
+      TCD.R.m10 = s;
+   }
+   
+   public void TCDToCoordinates (VectorNd coords, RigidTransform3d TGD) {
+      coords.set (X_IDX, TGD.p.x);
+      double theta = Math.atan2 (TGD.R.m10, TGD.R.m00);
+      coords.set (THETA_IDX, getCoordinate(THETA_IDX).nearestAngle (theta));
+   }
+\end{lstlisting}
+%
+{\tt X\_IDX} and {\tt THETA\_IDX} are constants defining the
+coordinate indices for $x$ and $\theta$. In {\tt TCDToCoordinates()},
+note the use of the {\tt CoordinateInfo} method {\tt
+nearestAngle()}, as discussed in Section
+\ref{CustomCoupling:sec}.
+
+Projecting $\T_{CD}$ onto the error-free $\T_{GD}$ is done by {\tt
+projectToConstraints()}, implemented as follows:
+%
+\begin{lstlisting}[]
+   public void projectToConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
+      TGD.R.set (TCD.R);
+      TGD.R.rotateZDirection (Vector3d.Z_UNIT);
+      TGD.p.x = TCD.p.x;
+      TGD.p.y = 0;
+      TGD.p.z = 0;
+      if (coords != null) {
+         TCDToCoordinates (coords, TGD);
+      }
+   }
+\end{lstlisting}
+%
+The translational projection is easy - the y and z components of the
+translation vector {\tt p} are simply zeroed out. To project the
+rotation {\tt R}, we use its {\tt rotateZDirection()} method, which
+applies the shortest rotation aligning its $z$ axis with $(0, 0,
+1)$. The residual rotation will be a rotation in the $x$-$y$ plane.
+If {\tt coords} is non-{\tt null} and needs to be computed, we simply
+call {\tt TCDToCoordinates()}.
+
+Lastly, the implementation for {\tt projectToConstraints()} is as
+follows:
+%
+\begin{lstlisting}[]
+   public void updateConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
+      Twist velGD, boolean updateEngaged) {
+      RigidBodyConstraint cons = getConstraint(0); // constraint along y
+      double s = TGD.R.m10;  // sin (theta)
+      double c = TGD.R.m00;  // cos (theta)
+      // constraint wrench along y is constant in D but needs to be
+      // transformed to G
+      cons.setWrenchG (s, c, 0, 0, 0, 0);
+      // derivative term:
+      double dotTheta = velGD.w.z;
+      cons.setDotWrenchG (c*dotTheta, -s*dotTheta, 0, 0, 0, 0);
+      
+      // update x limit constraint if necessary
+      cons = getConstraint(4);
+      if (cons.getEngaged() != 0) {
+         // constraint wrench along x, transformed to G, is (-c, s, 0)
+         cons.setWrenchG (c, -s, 0, 0, 0, 0);
+         cons.setDotWrenchG (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
+      }
+      // theta limit constraint is constant; no need to do anything
+   }
+\end{lstlisting}
+%
+Only constraints 0 and 4 need to have their wrenches updated, since
+the rest are constant, and we obtain their constraint objects using
+{\tt getConstraint(idx)}. Constraint 0 restricts motion along the $y$
+axis in D, and while this is constant in D, it is {\it not} constant
+in G, which is where the wrench must be situated. The $y$ axis of D
+as seen in G is the given by the second row of the rotation matrix of
+$\T_{GD}$, which from (\ref{SlottedHingeTCD:eqn}) we see is
+$(s, c, 0)^T$, where $s \equiv \sin(\theta)$ and
+$c \equiv \cos(\theta)$.  We obtain $s$ and $c$ directly from {\tt
+TGD}, since this has been projected to lie on the constraint surface;
+alternatively, we could compute them from $\theta$. To obtain the
+wrench derivative, we note that $\dot s = c \dot\theta$ and
+$\dot c = -c \dot\theta$, and that $\dot\theta$ is simply the $z$
+component of the angular velocity of $G$ with respect to $D$, or {\tt
+velGD.w.z}. The wrench and its derivative are set using the
+constraint's {\tt setWrenchG()} and {\tt setDotWrenchG()} methods.
+
+The other non-constant constraint is the limit constraint for the $x$
+coordinate, which is the $x$ axis of D as seen in G. This is updated
+similarly, although we only need to do so if the limit constraint is
+engaged. Since all unilateral constraints are coordinate limits, there
+is no need to update their {\sf distance} or {\sf engaged} attributes
+as this is done automatically by the system.
+
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

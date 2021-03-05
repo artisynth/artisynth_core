@@ -278,22 +278,18 @@ public class AxialSpring extends PointSpringBase
       mySeg.addVelJacobian (M, s, dFdldot, Tmp);
    }
 
-   /* --- Begin MinimizeForceComponent interface (for inverse controller) --- */
+   /* --- Begin ForceTargetComponent interface (for inverse controller) --- */
 
    public int getForceSize() {
-      return 3;
+      return 1;
    }
    
    public void getForce (VectorNd minf, boolean staticOnly) {
-      Vector3d tmp = new Vector3d();
       double l = mySeg.updateU();
-      if (l > 0) {
-         double ldot = staticOnly ? 0.0 : mySeg.getLengthDot();
-         double F = computeF (l, ldot, 0);
-         tmp.scale (F, mySeg.uvec);
-      }
-      minf.setSize (3);
-      minf.set (tmp);
+      double ldot = staticOnly ? 0.0 : mySeg.getLengthDot();
+      double F = computeF (l, ldot, 0);
+      minf.setSize (1);
+      minf.set (0, F);
    }
 
    public int addForcePosJacobian (
@@ -303,11 +299,10 @@ public class AxialSpring extends PointSpringBase
       if (!staticOnly) {
          ldot = mySeg.getLengthDot();
       }
-      double F = computeF (l, ldot, 0);
       double dFdl = computeDFdl (l, ldot, 0);
       double dFdldot = computeDFdldot (l, ldot, 0);
       mySeg.addMinForcePosJacobian (
-         J, h, F, dFdl, dFdldot, l, staticOnly, bi);
+         J, h, dFdl, dFdldot, l, staticOnly, bi);
       return bi++;
    }
    
@@ -320,7 +315,7 @@ public class AxialSpring extends PointSpringBase
       return bi++;
    }
    
-   /* --- End MinimizeForceComponent interface --- */
+   /* --- End ForceTargetComponent interface --- */
    
    public int getJacobianType() {
       AxialMaterial mat = getEffectiveMaterial();

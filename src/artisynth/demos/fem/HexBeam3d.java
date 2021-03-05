@@ -80,12 +80,12 @@ public class HexBeam3d extends FemBeam3d {
       RenderProps.setLineColor (myFemMod.getElements().get(12), Color.RED);
 
       // System.out.println ("DGT=\n" + DGT.toString ("%11.8f"));
-      myFemMod.addMarker (new FemMarker(0.4, -0.05, 0.05));
+      //myFemMod.addMarker (new FemMarker(0.4, -0.05, 0.05));
 
-      addMarker (-0.1, 0.05, 2);
-      addMarker ( 0, 0, 2);
-      addMarker ( 0.1, -0.05, 2);
-      addMarker ( 2, -0.05, 0);
+      //    addMarker (-0.1, 0.05, 2);
+   //    addMarker ( 0, 0, 2);
+       addMarker ( 0.1, -0.05, 2);
+   //    addMarker ( 2, -0.05, 0);
    }
 
    private void addMarker (double x, double y, double z) {

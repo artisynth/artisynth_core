@@ -22,8 +22,10 @@ public interface ConnectableBody extends ModelComponent, FrameAttachable {
 
    public void removeConnector (BodyConnector c);
    
-   public List<BodyConnector> getConnectors();
+   public boolean containsConnector (BodyConnector c);
 
+   public List<BodyConnector> getConnectors();
+   
    public void transformPose (RigidTransform3d T);
 
    public boolean isFreeBody();

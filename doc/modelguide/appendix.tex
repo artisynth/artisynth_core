@@ -1,6 +1,11 @@
-%!TEX root = modelguide.tex
-
+\ifdefined\maindoc
 \appendix
+\else
+% typesetting this chapter as a standalone document
+\def\doctitle{Mathematical Review}
+\input{startdoc}
+\mainmatter
+\fi
 
 \chapter{Mathematical Review}
 \label{MathematicalReview:sec}
@@ -621,3 +626,8 @@ where $\c$ is the center of mass and $[\c]$ is defined by
 
 Like the rotational inertia, the spatial inertia is always symmetric
 positive definite if $m > 0$.
+
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

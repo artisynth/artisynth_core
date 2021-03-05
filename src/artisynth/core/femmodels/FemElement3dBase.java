@@ -31,6 +31,7 @@ public abstract class FemElement3dBase extends FemElement
    // used for corotated linear behavior and other things
    protected IntegrationData3d myWarpingData;
    protected StiffnessWarper3d myWarper = null;
+   protected ElementRotationData myRotationData = null;
 
     // per-element integration point data
    protected IntegrationData3d[] myIntegrationData;
@@ -306,6 +307,123 @@ public abstract class FemElement3dBase extends FemElement
 //         idata[i].clearState();
 //      }
 //   }
+
+   /* --- Element rotation data --- */
+
+   /**
+    * Returns the rotation of this element, computing it if necessary.
+    * The rotation R is computed from the deformation gradient F at
+    * the element's warping point, using the modified polar decomposition
+    * <pre>
+    * F = R H
+    * </pre>
+    * Here H is the deformation matrix, which is symmetric but not necessarily
+    * positive definite, in order to ensure that R is right-handed.
+    *
+    * @return element rotation matrix
+    */
+   public RotationMatrix3d getRotation () {
+      return getRotation (null);
+   }
+
+   /**
+    * Returns the rotation of this element, computing it if necessary.  See
+    * {@link #getRotation()} for more details.
+    *
+    * @param polard if non-null, supplies a PolarDecomposition3d to be
+    * used if needed for computing the polar decomposition 
+    * @return element rotation matrix
+    */
+   public RotationMatrix3d getRotation (PolarDecomposition3d polard) {
+      if (myRotationData == null) {
+         myRotationData = new ElementRotationData();
+      }
+      if ((myRotationData.myValidFlags & ElementRotationData.R_VALID) == 0) {
+         myRotationData.computeR (this, polard);
+      }
+      return myRotationData.myR;   
+   }
+
+   /**
+    * Returns the deformation matrix H of this element, computing it if
+    * necessary. See {@link #getRotation()} for more details.
+    *
+    * @return element deformation matrix
+    */
+   public Matrix3d getDeformation () {
+      return getDeformation (null);
+   }
+
+   /**
+    * Returns the deformation matrix H of this element, computing it if
+    * necessary. See {@link #getRotation()} for more details.
+    *
+    * @param polard if non-null, supplies a PolarDecomposition3d to be
+    * used if needed for computing the polar decomposition 
+    * @return element deformation matrix
+    */
+   public Matrix3d getDeformation (PolarDecomposition3d polard) {
+      if (myRotationData == null) {
+         myRotationData = new ElementRotationData();
+      }
+      if ((myRotationData.myValidFlags & ElementRotationData.R_VALID) == 0) {
+         myRotationData.computeR (this, polard);
+      }
+      return myRotationData.myH;
+   }
+
+   /**
+    * Returns the inverse B matrix of this element, computing it if necessary.
+    * The inverse B matrix is computed from the deformation matrix H using the
+    * formula
+    * <pre>
+    * inv(B) = inv (trace(H) - H)
+    * </pre>
+    * and is used in computing derivatives of quantities that depend on
+    * the rotation matrix R.
+    * See {@link #getRotation()} for details about R and H.
+    *
+    * @return element inverse B matrix
+    */
+   public Matrix3d getInvB () {
+      return getInvB (null);
+   }
+
+   /**
+    * Returns the inverse B matrix of this element, computing it if necessary.
+    * See {@link #getInvB()} for details.
+    *
+    * @param polard if non-null, supplies a PolarDecomposition3d to be
+    * used if needed for computing the polar decomposition 
+    * @return element inverse B matrix
+    */
+   public Matrix3d getInvB (PolarDecomposition3d polard) {
+      if (myRotationData == null) {
+         myRotationData = new ElementRotationData();
+      }
+      if ((myRotationData.myValidFlags & ElementRotationData.INVB_VALID) == 0) {
+         myRotationData.computeInvB (this, polard);
+      }
+      return myRotationData.myInvB;
+   }
+
+   /**
+    * Should be after node positions change and before subsequent calls to
+    * {@link #getRotation()}, {@link #getDeformation()}, or {@link #getInvB()}.
+    */
+   public void invalidateRotationData() {
+      if (myRotationData != null) {
+         myRotationData.invalidate();
+      }
+   }
+
+   /**
+    * Should be called only if we want to liberate rotation data memory for
+    * some reason.
+    */
+   public void clearRotationData() {
+      myRotationData = null;
+   }
 
    /* --- Stiffness warping --- */
 

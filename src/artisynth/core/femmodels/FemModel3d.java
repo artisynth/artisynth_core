@@ -1832,10 +1832,14 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   public boolean containsConnector (BodyConnector c) {
+      return (myConnectors != null && myConnectors.contains(c)); 
+   }
+
    public List<BodyConnector> getConnectors() {
       return myConnectors;
    }
-
+   
    public void transformPose (RigidTransform3d T) {
       if (isFrameRelative()) {
          RigidTransform3d TFW = new RigidTransform3d();
@@ -1984,6 +1988,15 @@ PointAttachable, ConnectableBody {
          myFrameConstraint.updateFramePose(/*frameRelative=*/false);
       }
    }
+
+   public void invalidateElementRotationData() {
+      for (FemElement3d elem : myElements) {
+         elem.invalidateRotationData();
+      }
+      for (ShellElement3d elem : myShellElements) {
+         elem.invalidateRotationData();
+      }
+   }      
 
    /* --- Volume and Inversion Methods --- */
 

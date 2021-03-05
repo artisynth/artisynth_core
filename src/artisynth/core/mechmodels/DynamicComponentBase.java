@@ -167,6 +167,7 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
       comp.myMasterAttachments = null;
       comp.mySolveIdx = -1;
       comp.myDynamicP = myDynamicP;
+      comp.myConstrainers = null;
       return comp;
    }
 

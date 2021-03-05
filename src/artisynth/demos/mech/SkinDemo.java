@@ -25,7 +25,7 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Particle;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
@@ -152,7 +152,7 @@ public class SkinDemo extends RootModel {
          return;
       }
         
-      RevoluteJoint j = new RevoluteJoint();
+      HingeJoint j = new HingeJoint();
       j.setName("elbow");
         
       RigidTransform3d TCA = new RigidTransform3d();
@@ -162,7 +162,8 @@ public class SkinDemo extends RootModel {
       TCW.R.setAxisAngle(1,0,0,Math.PI/2);
 
       j.setBodies (lowerArm, TCA, null, TCW);
-      j.setAxisLength(len/3);
+      j.setShaftLength(len/3);
+      RenderProps.setFaceColor (j, Color.BLUE);
       model.addBodyConnector(j);
         
       upperArm.setDynamic(false);
@@ -354,9 +355,9 @@ public class SkinDemo extends RootModel {
       mesh.scale (1, 1, 2.5);
       mesh.transform (new RigidTransform3d (-6, 0, 0, 0, Math.toRadians(22.5),0));
       SkinMeshBody skinMesh = new SkinMeshBody (mesh);
-      skinMesh.addFrame (model.rigidBodies().get(0));
-      skinMesh.addFrame (model.rigidBodies().get(1));
-      skinMesh.computeWeights();
+      skinMesh.addMasterBody (model.rigidBodies().get(0));
+      skinMesh.addMasterBody (model.rigidBodies().get(1));
+      skinMesh.computeAllVertexConnections();
       model.addMeshBody (skinMesh);
       RenderProps.setFaceStyle (skinMesh, Renderer.FaceStyle.NONE);
       RenderProps.setDrawEdges (skinMesh, true);
@@ -370,12 +371,14 @@ public class SkinDemo extends RootModel {
       mesh.scale (1, 1, 2.5);
       mesh.transform (new RigidTransform3d (-6, 0, 0, 0, Math.toRadians(22.5),0));
       SkinMeshBody fiberMesh = new SkinMeshBody (mesh);
-      fiberMesh.addFrame (model.rigidBodies().get(0));
-      fiberMesh.addFrame (model.rigidBodies().get(1));
+      fiberMesh.addMasterBody (model.rigidBodies().get(0));
+      fiberMesh.addMasterBody (model.rigidBodies().get(1));
       fiberMesh.computeWeights();
       model.addMeshBody (fiberMesh);
       RenderProps.setLineColor (fiberMesh, Color.CYAN);
       myFiberMesh = fiberMesh;
+      myFiberMesh.addMeshMarker (null, new Point3d (-14.5, 0, 0));
+      RenderProps.setSphericalPoints (myFiberMesh, 0.5, Color.WHITE);
    }
     
 }

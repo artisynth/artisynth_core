@@ -3,7 +3,7 @@ package maspack.spatialmotion;
 import maspack.util.*;
 import maspack.matrix.*;
 
-public class RollPitchCouplingTest extends UnitTest {
+public class UniversalCouplingTest extends UnitTest {
 
    private double toRange (double ang) {
       while (ang >= Math.PI) {
@@ -16,27 +16,30 @@ public class RollPitchCouplingTest extends UnitTest {
    }
 
    private void test (double skewAng) {
-      RollPitchCoupling rpc = new RollPitchCoupling (skewAng);
+      UniversalCoupling rpc = new UniversalCoupling (skewAng);
 
       int ntests = 10;
-      double[] angs = new double[3];
+      VectorNd angs = new VectorNd(2);
       for (int i=0; i<ntests; i++) {
 
          // test set/getRollPitch
          double roll = toRange(RandomGenerator.nextDouble());
          double pitch = toRange(RandomGenerator.nextDouble());
          RotationMatrix3d R = new RotationMatrix3d();
-         rpc.setRollPitch (R, roll, pitch);
-         rpc.getRollPitch (angs, R);
-         if (Math.abs(toRange(angs[0])-roll) > 1e-14) {
+         RigidTransform3d TGD = new RigidTransform3d();
+         angs.set (0, roll);
+         angs.set (1, pitch);
+         rpc.setCoordinateValues (angs, TGD);
+         rpc.getCoordinates (angs, TGD);
+         if (Math.abs(toRange(angs.get(0))-roll) > 1e-14) {
             System.out.println ("roll in:  " + roll);
-            System.out.println ("roll out: " + toRange(angs[0]));
+            System.out.println ("roll out: " + toRange(angs.get(0)));
             throw new TestException (
                "Roll angle not recovered, skew=" + skewAng);
          }
-         if (Math.abs(toRange(angs[1])-pitch) > 1e-14) {
+         if (Math.abs(toRange(angs.get(1))-pitch) > 1e-14) {
             System.out.println ("pitch in:  " + pitch);
-            System.out.println ("pitch out: " + toRange(angs[1]));
+            System.out.println ("pitch out: " + toRange(angs.get(1)));
             throw new TestException (
                "Pitch angle not recovered, skew=" + skewAng);
          }
@@ -50,16 +53,15 @@ public class RollPitchCouplingTest extends UnitTest {
          // RotationMatrix3d RDC = new RotationMatrix3d();
          // RDG.transpose (TGD.R);
          // rpc.getRollPitch (angs, RDG);
-         // rpc.setRollPitch (RDC, angs[0], angs[1]);
+         // rpc.setRollPitch (RDC, angs.get(0), angs.get(1));
          // if (!RDG.epsilonEquals (RDC, 1e-14)) {
          //    System.out.println ("i=" + i);
          //    throw new TestException ("Projection failed, skewAngle=" + skewAng);
          // }
 
          RigidTransform3d TCD = new RigidTransform3d();
-         RigidTransform3d TGD = new RigidTransform3d();
          TCD.R.transpose (R);
-         rpc.projectToConstraint (TGD, TCD);
+         rpc.projectToConstraints (TGD, TCD, null);
          if (!TGD.R.epsilonEquals (TCD.R, 1e-14)) {
             throw new TestException ("Projection failed, skewAngle=" + skewAng);
          }
@@ -77,7 +79,7 @@ public class RollPitchCouplingTest extends UnitTest {
 
    public static void main (String[] args) {
       RandomGenerator.setSeed (0x1234);
-      RollPitchCouplingTest tester = new RollPitchCouplingTest();
+      UniversalCouplingTest tester = new UniversalCouplingTest();
       tester.runtest();
    }
 

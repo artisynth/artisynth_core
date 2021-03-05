@@ -920,7 +920,7 @@ End
 
 Begin %I BSpl
 %I b 65535
-2 1 0 [] 0 SetB
+2 0 1 [] 0 SetB
 %I cfg Black
 0 0 0 SetCFg
 %I cbg White
@@ -948,19 +948,6 @@ Helvetica 24 SetF
 %I
 [
 (T)
-] Text
-End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-r-normal--18-*
-Helvetica 18 SetF
-%I t
-[ 1 0 0 1 382.814 482.027 ] concat
-%I
-[
-(BA)
 ] Text
 End
 
@@ -1050,6 +1037,19 @@ none SetP %I p n
 517 611
 8 BSpl
 %I 1
+End
+
+Begin %I Text
+%I cfg Black
+0 0 0 SetCFg
+%I f -*-helvetica-medium-r-normal--18-*
+Helvetica 18 SetF
+%I t
+[ 1 0 0 1 382.814 482.027 ] concat
+%I
+[
+(AB)
+] Text
 End
 
 End %I eop

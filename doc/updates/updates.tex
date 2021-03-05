@@ -4,6 +4,7 @@
 
 \def\mech{artisynth.core.mechmodels}
 \def\mgeo{maspack.geometry}
+\def\R{{\bf R}}
 
 \setcounter{tocdepth}{0}
 \setcounter{secnumdepth}{0}
@@ -65,13 +66,229 @@
 
 %\subsection*{connectToHierarchy() modified}
 
-% \subsection*{MAPStress and MAPStrain added to FemModel.SurfaceRender}
-
 % NEXT UPDATE
 
 % \subsection*{Query methods added directly to PolygonalMesh}
 
-% Renamed FemNode3d.getMaxAbsPrincipalStress/Strain to getMAPStress/Strain
+%\section*{Feb, 2021}
+
+% \subsection*{New joint types}
+
+% \subsection*{SkewedRollPitchJoint}
+
+\section*{Mar 4, 2021}
+
+\subsection*{New joint components}
+
+A number of new joints have been added to ArtiSynth, including:
+
+\begin{itemize}
+
+\item
+\javaclass[artisynth.core.mechmodels]{SliderJoint}:
+1 DOF joint allowing translation along the
+$z$ axis
+
+\item
+\javaclass[artisynth.core.mechmodels]{CylindricalJoint}:
+2 DOF joint allowing translation and
+rotation along the $z$ axis
+
+\item
+\javaclass[artisynth.core.mechmodels]{SkewedUniversalJoint}: 
+2 DOF roll-pitch joint in which the roll-pitch axes may be at a
+skewed angle relative to each other
+
+\item
+\javaclass[artisynth.core.mechmodels]{PlanarJoint}:
+3 DOF joint allowing translation and
+rotation in the $x$-$y$ plane
+
+\item
+\javaclass[artisynth.core.mechmodels]{PlanarTranslationJoint}: 
+2 DOF joint allowing translation
+in the $x$-$y$ plane
+
+\end{itemize}
+
+In addition, the following joints have been added to replace {\tt
+RevoluteJoint}, {\tt RollPitchJoint} and {\tt SphericalRpyJoint}:
+
+\begin{itemize}
+
+\item \javaclass[artisynth.core.mechmodels]{HingeJoint}: Indentical to
+{\tt RevoluteJoint}, except that its coordinate $\theta$ is oriented
+{\it counter-clockwise} about the $z$ axis instead of {\it clockwise}.
+
+\item
+\javaclass[artisynth.core.mechmodels]{UniversalJoint}:
+Identical to {\tt RollPitchJoint}, except
+that its roll-pitch coordinates $\theta, \phi$ are computed with
+respect to the rotation $\R_{CD}$ from frame C to D, instead of the
+rotation $\R_{DC}$ from frame D to C.
+
+\item \javaclass[artisynth.core.mechmodels]{SkewedUniversalJoint}:
+Identical to {\tt SphericalRpyJoint}, except that its roll-pitch-yaw
+coordinates $\theta, \phi, \psi$ are computed with respect to the
+rotation $\R_{CD}$ from frame C to D, instead of the rotation
+$\R_{DC}$ from frame D to C.
+
+\end{itemize}
+
+Rendering of the new joints is also controlled differently, with
+the properties {\sf shaftLength}, {\sf shaftRadius}, and {\sf jointRadius}
+used to control the size of the shaft and ball structures that are
+drawn for visualization.
+
+The old joints {\tt RevoluteJoint}, {\tt RollPitchJoint} and {\tt
+SphericalRpyJoint} are still supported for legacy purposes.
+
+Full details on the new joints, along with examples, are given in the
+``Joint components'' section of the
+\href{http://www.artisynth.org/doc/pdf/modelguide.pdf}
+{Modeling Guide}.
+
+\subsection*{New joint documentation and custom joints}
+
+The documentation in the
+\href{http://www.artisynth.org/doc/pdf/modelguide.pdf} {Modeling
+Guide} describing how joints and connectors are created, used and
+implemented has been enhanced, with new sections describing
+constraints, coordinates, constraint forces, and rendering.  In
+addition, the joint implementation has been refactored to make it
+easier to create custom joints, with full details given in the section
+``Custom Joints'' in the chapter ``Mechanical Models II''.
+
+\subsection*{API changes for joints and connectors}
+
+Some small changes have been made to the methods for joints and
+connectors:
+
+\begin{itemize}
+
+\item In joints and connectors which are subclasses of 
+\javaclass[artisynth.core.mechmodels]{BodyConnector}, {\tt
+numUnilateralConstraints()}, which returned the number of {\it
+engaged} unilateral constraints, has been renamed to {\tt
+numEnagedUnilateralConstraints()}. Similarly, in subclasses of
+\javaclass[maspack.spatialmotion]{RigidBodyCoupling}, {\tt
+numUnilaterals()} has been renamed to {\tt numEnagagedUnilaterals()}.
+
+\item In joints and connectors which are subclasses of
+\javaclass[artisynth.core.mechmodels]{BodyConnector}, {\tt
+numUnilateralConstraints()} now returns the total number of unilateral
+constraints, engaged or otherwise.  Similarly, in subclasses of
+\javaclass[maspack.spatialmotion]{RigidBodyCoupling}, {\tt
+maxUnilaterals()} has been renamed to {\tt numUnilaterals()}.
+
+\item In subclasses of
+\javaclass[artisynth.core.mechmodels]{BodyConnector}, the spatial
+forces returned by the methods {\tt getBilateralForceInA()} are now
+given in world coordinates. This was done to be consistent with {\tt
+Frame} and {\tt RigidBody}, whose forces (returned by {\tt getForce()})
+are also given in world coordinates.
+
+\item In \javaclass[artisynth.core.mechmodels]{SphericalJoint},
+rendering of the joint as a ball is now controlled by setting its {\sf
+jointRadius} property, together with the {\sf faceColor} rendering
+property, instead of the previous method of using point rendering
+properties.
+
+\end{itemize}
+
+In addition to these changes, the pentration tolerance for unilateral
+constraints which are {\it rotary} in nature is now controlled by the
+{\sf rotaryLimitTol} property, exported by both {\tt MechModel} and
+the joint classes.
+
+New methods are also provided for determining the constraint forces
+acting on a joint in different coordinate frames:
+%
+\begin{lstlisting}[]
+   // returns constraint forces on joint frame C (in frame C coordinates):
+   getBilteralForceInC()
+   getUnilteralForceInC()
+
+   // if bodyB is a frame, returns constraint forces on body B
+   getBilteralForceInB()
+   getUnilteralForceInB()
+\end{lstlisting}
+%
+
+\subsection*{Reimplementation of skinning}
+
+The class \javaclass[artisynth.core.femmodels]{SkinMeshBody}, which
+implements skinning, has been rewritten to allow skinned meshes which
+are connected to FEM models to behave properly under FEM rotation.
+
+The {\tt SkinMeshBody} API has also been refactored to allow greater
+flexibility in determining the connection weights between the mesh
+vertices and the underlying rigid bodies and FEM models. Markers and
+points can now be attached to a {\tt SkinMeshBody}, even in the
+absence of a mesh, and this can be used as an simpler, more
+approximate way to implement muscle wrapping behavior.
+
+Full details on the updated skinning mechanism and how to use it are
+given in the new chapter ``Skinning'' in the
+\href{http://www.artisynth.org/doc/info/modelguide/modelguide.html}
+{Modeling Guide}.
+
+\subsection*{Improvements to large probe displays}
+
+Large probe displays have been rewritten to provide higher quality
+plotting, better interactive control, and the ability to export plots
+to svg, postscript, and image files.
+
+Full details on these changes are given in the ``Large displays''
+section of the
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html} {User
+Interface Guide}. To give a sense of the difference, the old display
+looked like this,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/largeProbeDisplayOld}
+\else
+\includegraphics[width=0.66\textwidth]{images/largeProbeDisplayOld}
+\fi
+\end{center}
+%
+while the new display looks like this:
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/largeProbeDisplayNew}
+\else
+\includegraphics[width=0.66\textwidth]{images/largeProbeDisplayNew}
+\fi
+\end{center}
+%
+
+\subsection*{Solid arrow rendering of coordinate frames}
+
+Frames and rigid bodies now have a new property called {\sf
+axisDrawStyle}, that specifies how coordinate axes should be drawn.
+Its type is the enumerated type {\tt Frame.AxisDrawStyle}, with the
+possible values {\tt OFF}, {\tt LINE}, and {\tt ARROW}.  Setting it to
+{\tt ARROW} will cause coordinate axes to be rendered as solid arrow,
+as in this example:
+\begin{center}
+\iflatexml
+\includegraphics[]{images/hipBodyArrowAxes}
+\else
+\includegraphics[width=0.4\textwidth]{images/hipBodyArrowAxes}
+\fi
+\end{center}
+
+\subsection*{MAPStress and MAPStrain added to FEM surface rendering}
+
+The enumerated type
+\javaclass[artisynth.core.femmodels]{FemModel\$SurfaceRender}, which
+controls the rendering of FEM surface meshes through an FEM model's
+{\sf surfaceRendering} property, has been extended to include {\tt
+MAPStress} and {\tt MAPStrain}, which render the surface as a color
+map using the maximum absolute values of the principal stress and
+strain components, respectively.
 
 \section*{Apr 16, 2020}
 

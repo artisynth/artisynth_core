@@ -8,7 +8,7 @@ import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.SlottedRevoluteJoint;
+import artisynth.core.mechmodels.SlottedHingeJoint;
 import artisynth.core.workspace.RootModel;
 
 public class JointedFemBeams extends RootModel {
@@ -51,16 +51,15 @@ public class JointedFemBeams extends RootModel {
 
       // create a slotted revolute joint that connects the two fem beams
       RigidTransform3d TDW = new RigidTransform3d(0.5, 0, 0, 0, 0, Math.PI/2);
-      SlottedRevoluteJoint joint = new SlottedRevoluteJoint (fem2, fem1, TDW);
+      SlottedHingeJoint joint = new SlottedHingeJoint (fem2, fem1, TDW);
       mech.addBodyConnector (joint);
       
       // set ranges and rendering properties for the joint
-      joint.setAxisLength (0.8);
+      joint.setShaftLength (0.8);
       joint.setMinX (-0.5);
       joint.setMaxX (0.5);
-      joint.setSlotWidth (0.61);
-      RenderProps.setLineColor (joint, myJointColor);
-      RenderProps.setLineWidth (joint, 3);
-      RenderProps.setLineRadius (joint, 0.04);
+      joint.setSlotDepth (0.63);
+      joint.setSlotWidth (0.08);
+      RenderProps.setFaceColor (joint, myJointColor);
    }
 }

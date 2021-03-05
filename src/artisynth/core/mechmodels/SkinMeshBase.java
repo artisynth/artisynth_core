@@ -28,9 +28,9 @@ public abstract class SkinMeshBase extends DynamicMeshComponent
 
    private NavpanelDisplay myNavpanelDisplay = NavpanelDisplay.NORMAL;
 
-   public abstract int numAttachments();
+   public abstract int numVertexAttachments();
 
-   public abstract PointAttachment getAttachment (int idx);
+   public abstract PointAttachment getVertexAttachment (int idx);
 
    public static PropertyList myProps =
       new PropertyList (SkinMeshBase.class, MeshComponent.class);
@@ -236,6 +236,14 @@ public abstract class SkinMeshBase extends DynamicMeshComponent
       myComponents.writeComponentsByName (pw, fmt, ancestor);
    }
 
+   public Iterator<? extends HierarchyNode> getChildren() {
+      return myComponents.iterator();
+   }
+
+   public boolean hasChildren() {
+      return myComponents != null && myComponents.size() > 0;
+   }
+
    // ========== End CompositeComponent implementation ==========
 
    /**
@@ -246,9 +254,9 @@ public abstract class SkinMeshBase extends DynamicMeshComponent
       MeshBase mesh = getMesh();
       if (mesh != null) {
          Point3d pos = new Point3d();
-         int numa = numAttachments();
+         int numa = numVertexAttachments();
          for (int i=0; i<numa; i++) {
-            PointAttachment a = getAttachment(i);
+            PointAttachment a = getVertexAttachment(i);
             if (a != null) {
                Vertex3d vtx = mesh.getVertices().get(i);
                a.getCurrentPos (pos);
@@ -269,9 +277,9 @@ public abstract class SkinMeshBase extends DynamicMeshComponent
       // not needed because of later call updatePosState() *unless* some
       // vertices don't have attachments
       super.scaleDistance (s);
-      int numa = numAttachments();
+      int numa = numVertexAttachments();
       for (int i=0; i<numa; i++) {
-         PointAttachment a = getAttachment (i);
+         PointAttachment a = getVertexAttachment (i);
          if (a instanceof ScalableUnits) {
             ((ScalableUnits)a).scaleDistance (s);
          }

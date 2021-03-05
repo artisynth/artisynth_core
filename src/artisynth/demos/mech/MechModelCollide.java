@@ -12,7 +12,7 @@ import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.PlanarConnector;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.SphericalJoint;
@@ -95,17 +95,6 @@ public class MechModelCollide extends RootModel {
       double lenz2 = 2;
       RigidBody link2 = new RigidBody ("link2");
 
-      if (false) // useSphericalJoint)
-      {
-         mesh =
-            MeshFactory.createRoundedCylinder (
-               leny2 / 2, lenx2, nslices, /*nsegs=*/1, /*flatBottom=*/false);
-         link2.setInertia (SpatialInertia.createBoxInertia (
-            10, leny2, leny2, lenx2));
-         XLW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
-         XLW.p.set (lenx1 / 2, lenx2 / 2, lenx1);
-         link2.setPose (XLW);
-      }
       mesh =
          MeshFactory.createRoundedCylinder (
             leny2 / 2, lenx2, nslices, /*nsegs=*/1, /*flatBottom=*/false);
@@ -140,10 +129,9 @@ public class MechModelCollide extends RootModel {
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
          TCB.mul (XAB, TCA);
          SphericalJoint sjoint = new SphericalJoint (link2, TCA, link1, TCB);
-         // RevoluteJoint joint2 = new RevoluteJoint (link2, TCA, TCB);
          sjoint.setName ("joint2");
-         // RenderProps.setLineRadius(sjoint, 0.2);
-         sjoint.setAxisLength (4);
+         sjoint.setJointRadius (1.0);
+         RenderProps.setFaceColor (sjoint, Color.BLUE);
          mechMod.addBodyConnector (sjoint);
          joint2 = sjoint;
       }
@@ -153,13 +141,13 @@ public class MechModelCollide extends RootModel {
          // TCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
          TCB.mul (XAB, TCA);
-         RevoluteJoint rjoint = new RevoluteJoint (link2, TCA, link1, TCB);
+         HingeJoint rjoint = new HingeJoint (link2, TCA, link1, TCB);
 
          rjoint.setName ("joint2");
          rjoint.setAxisLength (4);
-         RenderProps.setLineRadius (rjoint, 0.2);
+         RenderProps.setFaceColor (rjoint, Color.BLUE);
          mechMod.addBodyConnector (rjoint);
-         rjoint.setTheta (35);
+         rjoint.setTheta (-35);
          joint2 = rjoint;
       }
 

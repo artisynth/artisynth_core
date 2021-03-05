@@ -280,12 +280,10 @@ public class ArticulatedDemo extends RootModel {
          TCW.mul (XLinkToWorld, TCA);
          SphericalJoint joint0;
          if (body0 == ground) {
-            joint0 = new SphericalJoint (link, TCA, TCW);
+            joint0 = new SphericalJoint (link, TCW);
          }
          else {
-            RigidTransform3d TCB = new RigidTransform3d();
-            TCB.mulInverseLeft (body0.getPose(), TCW);
-            joint0 = new SphericalJoint (link, TCA, body0, TCB);
+            joint0 = new SphericalJoint (link, body0, TCW);
          }
          mechMod.addBodyConnector (joint0);
       }
@@ -295,12 +293,10 @@ public class ArticulatedDemo extends RootModel {
          TCW.mul (XLinkToWorld, TCA);
          SphericalJoint joint1;
          if (body1 == ground) {
-            joint1 = new SphericalJoint (link, TCA, TCW);
+            joint1 = new SphericalJoint (link, TCW);
          }
          else {
-            RigidTransform3d TCB = new RigidTransform3d();
-            TCB.mulInverseLeft (body1.getPose(), TCW);
-            joint1 = new SphericalJoint (link, TCA, body1, TCB);
+            joint1 = new SphericalJoint (link, body1, TCW);
          }
          mechMod.addBodyConnector (joint1);
       }

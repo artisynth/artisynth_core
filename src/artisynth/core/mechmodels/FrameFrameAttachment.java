@@ -386,18 +386,12 @@ public class FrameFrameAttachment extends FrameAttachment {
             // master block expects force in world coordinates. Need to rotate
             // from coords of the attached frame
             wtmp.transform (myTFW.R);
-//            wtmp.transform (myTFM.R);
-//            if (myMaster instanceof DeformableBody) {
-//               wtmp.transform (myPolarD.getR());
-//            }
-//            wtmp.transform (myMaster.getPose().R);
          }
          wtmp.get (wbuf);
          // assumes that master blocks have been updated
          f.setSize (myMaster.getVelStateSize());
          f.setZero();
          myMasterBlocks[0].mulAdd (f.getBuffer(), 0, wbuf, 0);
-
       }
       else {
          f.setSize(6);
@@ -586,29 +580,6 @@ public class FrameFrameAttachment extends FrameAttachment {
    public void scaleDistance (double s) {
       myTFM.p.scale (s);
    }   
-
-//   public void transformGeometry (
-//      AffineTransform3dBase X, RigidTransform3d TFW) {
-//      PolarDecomposition3d pd = new PolarDecomposition3d();
-//      pd.factor (X.getMatrix());
-//
-//      if (TFW == null) {
-//         TFW = new RigidTransform3d();
-//         getCurrentTFW (TFW);
-//      }
-//      RigidTransform3d TFWnew = new RigidTransform3d();
-//      TFWnew.p.mulAdd (X.getMatrix(), TFW.p, X.getOffset());
-//      TFWnew.R.mul (pd.getR(), TFW.R);
-//      update
-//      if (myMaster != null) {
-//         RigidTransform3d TFMnew = new RigidTransform3d();
-//         TFMnew.mulInverseLeft (myMaster.getPose(), TFWnew);
-//         myTFM.set (TFMnew);
-//      }
-//      else {
-//         myTFM.set (TFWnew);
-//      }
-//   }
 
    public FrameFrameAttachment copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

@@ -1,10 +1,15 @@
 package artisynth.demos.tutorial;
 
 import java.awt.Color;
-import maspack.matrix.*;
-import maspack.render.*;
-import artisynth.core.workspace.*;
-import artisynth.core.mechmodels.*;
+
+import artisynth.core.gui.ControlPanel;
+import artisynth.core.mechmodels.CollisionManager;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.workspace.RootModel;
+import maspack.matrix.RigidTransform3d;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
 
 public class BallPlateCollide extends RootModel {
 
@@ -40,5 +45,11 @@ public class BallPlateCollide extends RootModel {
       RenderProps.setEdgeColor (cm, Color.BLUE);
       cm.setDrawContactNormals (true);
       cm.setDrawIntersectionContours (true);
+
+      // create a control panel to allow contact regularization to be set
+      ControlPanel panel = new ControlPanel();
+      panel.addWidget (mech.getCollisionManager(), "compliance");
+      panel.addWidget (mech.getCollisionManager(), "damping");
+      addControlPanel (panel);
    }
 }

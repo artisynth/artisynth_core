@@ -103,9 +103,9 @@ public abstract class FemMeshBase extends SkinMeshBase {
       setColorInterpolation (ColorInterpolation.HSV);
    }
 
-   public abstract int numAttachments ();
+   public abstract int numVertexAttachments ();
 
-   public abstract PointAttachment getAttachment (int idx);
+   public abstract PointAttachment getVertexAttachment (int idx);
 
    /** 
     * Initialize data structures prior to adding vertices and faces to

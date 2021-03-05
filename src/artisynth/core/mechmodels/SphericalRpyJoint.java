@@ -17,245 +17,134 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 /**
- * Auxiliary class used to solve constrained rigid body problems.
+ * Legacy class that implements a 3 DOF spherical joint parameterized by
+ * roll-pitch-yaw angles. It behaves identically to GimbalJoint, except that
+ * the roll-pitch-yaw angles describe the orientation of D with respect to C,
+ * instead of C with respect to D.
  */
-public class SphericalRpyJoint extends SphericalJointBase {
+public class SphericalRpyJoint extends GimbalJoint {
 
-   public static PropertyList myProps =
-      new PropertyList (SphericalRpyJoint.class, SphericalJointBase.class);
-   
-   private static double DOUBLE_PREC = 2.220446049250313e-16;
-   private static double EPSILON = 10 * DOUBLE_PREC;
-   
-   private static DoubleInterval DEFAULT_ANGLE_RANGE =
-      new DoubleInterval ("[-inf,inf])");
-
-   private DoubleInterval myRollRange = new DoubleInterval(DEFAULT_ANGLE_RANGE);
-   private DoubleInterval myPitchRange = new DoubleInterval(DEFAULT_ANGLE_RANGE);
-   private DoubleInterval myYawRange = new DoubleInterval(DEFAULT_ANGLE_RANGE);
-
-   static {
-      myProps.add (
-         "roll", "joint roll angle (degrees)", 0, "%8.3f 1E [-360,360]");
-      myProps.add (
-         "pitch", "joint pitch angle (degrees)", 0, "%8.3f 1E [-360,360]");
-      myProps.add (
-         "yaw", "joint yaw angle (degrees)", 0, "%8.3f 1E [-360,360]");
-      myProps.add (
-         "rollRange", "range for roll", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
-      myProps.add (
-         "pitchRange", "range for pitch", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
-      myProps.add (
-         "yawRange", "range for yaw", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
-      myProps.add (
-         "applyEuler", "enable/disable Euler filter", true);
-      myProps.add (
-         "compliance", "compliance for each constraint", ZERO_VEC);
-      myProps.add (
-         "damping", "damping for each constraint", ZERO_VEC);
-   }
-
-   public Vector3d getRpyRad() {
-      Vector3d rpy = new Vector3d();
-      RigidTransform3d TGD = null;
-      if (attachmentsInitialized()) {
-         // initialize TGD to TCD; it will get projected to TGD within
-         TGD = new RigidTransform3d();
-         getCurrentTCD (TGD);
-      }
-      ((SphericalCoupling)myCoupling).getRpy (rpy, TGD);
-      return rpy;
-   }
-
-   public void setRpyRad (Vector3d rpy) {
-      RigidTransform3d TGD = null;
-      if (isConnectedToBodies()) {
-         TGD = new RigidTransform3d();
-      }      
-      ((SphericalCoupling)myCoupling).setRpy (TGD, rpy);
-      if (TGD != null) {
-         // if we are connected to the hierarchy, adjust the poses of the
-         // attached bodies appropriately.         
-         adjustPoses (TGD);
-      }
-   }
-
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
-
+   /**
+    * Creates a {@code SphericalRpyJoint} which is not attached to any bodies.  It
+    * can subsequently be connected using one of the {@code setBodies} methods.
+    */
    public SphericalRpyJoint () {
-      ((SphericalCoupling)myCoupling).setRangeType (SphericalCoupling.RPY_LIMIT);
+      super();
+      // setting useRDC = true is what makes this differ from a GimbalJoint
+      ((GimbalCoupling)myCoupling).setUseRDC (true);
+      // use legacy rendering, with just point properties:
+      setJointRadius (-1);
    }
 
-   public SphericalRpyJoint (RigidBody bodyA, RigidTransform3d TCA,
-                             RigidTransform3d TDW) {
+   /**
+    * Creates a {@code SphericalRpyJoint} connecting two rigid bodies, {@code
+    * bodyA} and {@code bodyB}. If A and B describe the coordinate frames of
+    * {@code bodyA} and {@code bodyB}, then {@code TCA} and {@code TDB} give
+    * the (fixed) transforms from the joint's C and D frames to A and B,
+    * respectively. Since C and D are specified independently, the joint
+    * transform TCD may not necessarily be initialized to the identity.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground, with {@code TDB} then being the same as {@code
+    * TDW}.
+    *
+    * @param bodyA rigid body A
+    * @param TCA transform from joint frame C to body frame A
+    * @param bodyB rigid body B (or {@code null})
+    * @param TDB transform from joint frame D to body frame B
+    */   
+   public SphericalRpyJoint (
+      RigidBody bodyA, RigidTransform3d TCA,
+      RigidBody bodyB, RigidTransform3d TDB) {
       this();
-      setBodies (bodyA, TCA, null, TDW);
+      setBodies (bodyA, TCA, bodyB, TDB);
    }
 
-   public SphericalRpyJoint (RigidBody bodyA, RigidTransform3d TCA,
-                             RigidBody bodyB, RigidTransform3d XDB) {
+   /**
+    * Creates a {@code SphericalRpyJoint} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames C and D are located
+    * independently with respect to world coordinates by {@code TCW} and {@code
+    * TDW}.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground.
+    *
+    * @param bodyA body A
+    * @param bodyB body B (or {@code null})
+    * @param TCW initial transform from joint frame C to world
+    * @param TDW initial transform from joint frame D to world
+    */
+   public SphericalRpyJoint (
+      ConnectableBody bodyA, ConnectableBody bodyB,
+      RigidTransform3d TCW, RigidTransform3d TDW) {
       this();
-      setBodies (bodyA, TCA, bodyB, XDB);
+      setBodies (bodyA, bodyB, TCW, TDW);
    }
-   
-   public SphericalRpyJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XWJ) {
+
+   /**
+    * Creates a {@code SphericalRpyJoint} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames D and C are assumed to
+    * be initially coincident, so that {@code roll}, {@code pitch} and {@code
+    * yaw} with have initial values of 0. D (and C) is located by {@code TDW},
+    * which gives the transform from D to world coordinates.
+    *
+    * @param bodyA body A
+    * @param bodyB body B
+    * @param TDW initial transform from joint frames D and C to world
+    */   
+   public SphericalRpyJoint (
+      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
       this();
-      RigidTransform3d TCA = new RigidTransform3d();
-      RigidTransform3d XDB = new RigidTransform3d();
-      
-      TCA.mulInverseLeft(bodyA.getPose(), XWJ);
-      XDB.mulInverseLeft(bodyB.getPose(), XWJ);
-      
-      setBodies(bodyA, TCA, bodyB, XDB);
-      
+      setBodies(bodyA, bodyB, TDW);
    }
-   
-   public SphericalRpyJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+
+   /**
+    * Creates a {@code SphericalRpyJoint} connecting a single connectable body,
+    * {@code bodyA}, to ground. The joint frames D and C are assumed to be
+    * initially coincident, so that {@code roll}, {@code pitch} and {@code yaw}
+    * with have initial values of 0. D (and C) is located by {@code TDW}, which
+    * gives the transform from D to world coordinates.
+    *
+    * @param bodyA body A
+    * @param TDW initial transform from joint frames D and C to world
+    */
+   public SphericalRpyJoint (
+      ConnectableBody bodyA, RigidTransform3d TDW) {
       this();
-      setBodies(bodyA, bodyB, TFW);
-      
+      setBodies(bodyA, null, TDW);
    }
 
-   public double getRoll () {
-      return Math.toDegrees (getRpyRad().z);
+   /**
+    * Creates a {@code SphericalRpyJoint} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames D and C are assumed to
+    * be initially coincident, so that {@code roll}, {@code pitch} and {@code
+    * yaw} with have initial values of 0. D (and C) is located (with respect to
+    * world) so that its origin is at {@code pd} and its axes are aligned with
+    * the world.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground.
+    *
+    * @param bodyA body A
+    * @param bodyB body B, or {@code null} if {@code bodyA} is connected
+    * to ground.
+    * @param pd origin of frame D (world coordinates)
+    */
+   public SphericalRpyJoint (
+      ConnectableBody bodyA, ConnectableBody bodyB, Point3d pd) {
+      this();
+      RigidTransform3d TDW = new RigidTransform3d();
+      TDW.p.set (pd);
+      setBodies (bodyA, bodyB, TDW);
    }
 
-   public void setRoll (double roll) {
-      roll = myRollRange.makeValid (roll);
-      Vector3d rpy = getRpyRad();
-      rpy.z = Math.toRadians (roll);
-      setRpyRad (rpy);
-   }
-   
-   public DoubleInterval getRollRange () {
-      return myRollRange;
-   }
 
-   public void setRollRange (DoubleInterval range) {
-      SphericalCoupling coupling = (SphericalCoupling)myCoupling;
-      coupling.setRollRange (
-         Math.toRadians (range.getLowerBound()),
-         Math.toRadians (range.getUpperBound()));
-      myRollRange.set (range);
-      if (isConnectedToBodies()) {
-         // if we are connected to the hierarchy, might have to update theta
-         double roll = getRoll();
-         double clipped = myRollRange.clipToRange (roll);
-         if (clipped != roll) {
-            setRoll (clipped);
-         }
-      }      
-   }
-
-   public void setRollRange (double min, double max) {
-      setRollRange (new DoubleInterval (min, max));
-   }
-
-   public double getPitch () {
-      return Math.toDegrees (getRpyRad().y);
-   }
-
-   public void setPitch (double pitch) {
-      pitch = myPitchRange.makeValid (pitch);
-      Vector3d rpy = getRpyRad();
-      rpy.y = Math.toRadians (pitch);
-      setRpyRad (rpy);
-   }
-
-   public DoubleInterval getPitchRange () {
-      return myPitchRange;
-   }
-
-   public void setPitchRange (DoubleInterval range) {
-      SphericalCoupling coupling = (SphericalCoupling)myCoupling;
-      
-      // check if will likely lead to instabilities
-      double k = 0;
-      while(k*180-90 >= range.getLowerBound()) {
-         k--;
-      }
-      k++;
-      
-      while(k*180-90 <= range.getUpperBound()) {
-         if (range.withinRange(k*180-90)) {
-            //throw new RuntimeException("Pitch range leads to instabilities: " + range.toString());
-            System.err.println("Pitch range for " + getName()  + " contains a singularity at " +
-               (k*180-90) + " \u220a "+ range.toString());
-         }
-         k++;
-      }
-            
-      coupling.setPitchRange (
-         Math.toRadians (range.getLowerBound()),
-         Math.toRadians (range.getUpperBound()));
-      myPitchRange.set (range);
-      if (isConnectedToBodies()) {
-         // if we are connected to the hierarchy, might have to update theta
-         double pitch = getPitch();
-         double clipped = myPitchRange.clipToRange (pitch);
-         if (clipped != pitch) {
-            setPitch (clipped);
-         }
-      }      
-   }
-
-   public void setPitchRange (double min, double max) {
-      setPitchRange (new DoubleInterval (min, max));
-   }
-
-   public double getYaw () {
-      return Math.toDegrees (getRpyRad().x);
-   }
-
-   public void setYaw (double yaw) {
-      yaw = myYawRange.makeValid (yaw);
-      Vector3d rpy = getRpyRad();
-      rpy.x = Math.toRadians (yaw);
-      setRpyRad (rpy);
-   }
-
-   public DoubleInterval getYawRange () {
-      return myYawRange;
-   }
-
-   public void setYawRange (DoubleInterval range) {
-      SphericalCoupling coupling = (SphericalCoupling)myCoupling;
-      coupling.setYawRange (
-         Math.toRadians (range.getLowerBound()),
-         Math.toRadians (range.getUpperBound()));
-      myYawRange.set (range);
-      if (isConnectedToBodies()) {
-         // if we are connected to the hierarchy, might have to update theta
-         double yaw = getYaw();
-         double clipped = myYawRange.clipToRange (yaw);
-         if (clipped != yaw) {
-            setYaw (clipped);
-         }
-      }      
-   }
-
-   public void setYawRange (double min, double max) {
-      setYawRange (new DoubleInterval (min, max));
-   }
-
-   @Override
-   public ModelComponent copy (
-      int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      SphericalRpyJoint copy = (SphericalRpyJoint)super.copy (flags, copyMap);
-      copy.myRollRange = new DoubleInterval(myRollRange);
-      copy.myPitchRange = new DoubleInterval(myPitchRange);
-      copy.myYawRange = new DoubleInterval(myYawRange);
-      return copy;
-   }
-   
-   public void setApplyEuler(boolean apply) {
-      ((SphericalCoupling)myCoupling).applyEuler = apply;
-   }
-   
-   public boolean getApplyEuler() {
-      return ((SphericalCoupling)myCoupling).applyEuler;
+   public void printCoords (String msg) {
+      VectorNd coords = new VectorNd();
+      getCoordinates(coords);
+      coords.scale (180/Math.PI);
+      System.out.println (msg);
+      System.out.println (coords.toString ("%8.3f"));
    }
 
 }

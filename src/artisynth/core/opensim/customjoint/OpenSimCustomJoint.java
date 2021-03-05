@@ -29,16 +29,8 @@ public class OpenSimCustomJoint extends JointBase {
    public static PropertyList myProps = new PropertyList(
       OpenSimCustomJoint.class, JointBase.class);
 
-   protected static RenderProps defaultRenderProps(HasProperties host) {
-      RenderProps props = RenderProps.createPointProps(host);
-      return props;
-   }
-   
    //private void initializePropertyList() {
    static {
-      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
-      myProps.add("compliance", "compliance for each constraint", ZERO_VEC);
-      myProps.add("damping", "damping for each constraint", ZERO_VEC);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -66,10 +58,7 @@ public class OpenSimCustomJoint extends JointBase {
    
    public OpenSimCustomJoint(TransformAxis[] axes, Coordinate[] coords) {
       setDefaultValues();
-      myCoupling = new OpenSimCustomCoupling(axes, coords);
-      myCoupling.setBreakSpeed(1e-8);
-      myCoupling.setBreakAccel(1e-8);
-      myCoupling.setContactDistance(1e-8);
+      setCoupling (new OpenSimCustomCoupling(axes, coords));
       // initializePropertyList();
    }
    

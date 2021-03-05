@@ -4,14 +4,14 @@
 
 #include <iostream>
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1symbolic(JNIEnv *env, jobject obj, jint n_row, jint n_col, jintArray Ap, jintArray Ai, jdoubleArray Ax, jintArray Sym, jdoubleArray Control, jdoubleArray Info)
+JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1symbolic(JNIEnv *env, jobject obj, jint n_row, jint n_col, jintArray Ap, jintArray Ai, jdoubleArray Ax, jlongArray Sym, jdoubleArray Control, jdoubleArray Info)
 {
 	jboolean isCopy;
 
 	int *cAp = (int*)env->GetIntArrayElements(Ap, &isCopy);
 	int *cAi = (int*)env->GetIntArrayElements(Ai, &isCopy);
 	double *cAx = (Ax == NULL)?NULL:env->GetDoubleArrayElements(Ax, &isCopy);
-	int *cSym = (int*)env->GetIntArrayElements(Sym, &isCopy);
+	long *cSym = (long*)env->GetLongArrayElements(Sym, &isCopy);
 	double* cControl = (Control == NULL)?NULL:env->GetDoubleArrayElements(Control, &isCopy);
 	double* cInfo = (Info == NULL)?NULL:env->GetDoubleArrayElements(Info, &isCopy);
 	
@@ -20,22 +20,22 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1symbolic(
 	env->ReleaseIntArrayElements(Ap, (jint*)cAp, JNI_ABORT);
 	env->ReleaseIntArrayElements(Ai, (jint*)cAi, JNI_ABORT);
 	if(cAx != NULL) env->ReleaseDoubleArrayElements(Ax, cAx, JNI_ABORT);
-	env->ReleaseIntArrayElements(Sym, (jint*)cSym, 0);
+	env->ReleaseLongArrayElements(Sym, (jlong*)cSym, 0);
 	if(cControl != NULL) env->ReleaseDoubleArrayElements(Control, cControl, 0);
 	if(cInfo != NULL) env->ReleaseDoubleArrayElements(Info, cInfo, 0);
 	
 	return r;
 }
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1numeric(JNIEnv *env, jobject obj, jintArray Ap, jintArray Ai, jdoubleArray Ax, jintArray Sym, jintArray Num, jdoubleArray Control, jdoubleArray Info)
+JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1numeric(JNIEnv *env, jobject obj, jintArray Ap, jintArray Ai, jdoubleArray Ax, jlongArray Sym, jlongArray Num, jdoubleArray Control, jdoubleArray Info)
 {
 	jboolean isCopy;
 
 	int *cAp = (int*)env->GetIntArrayElements(Ap, &isCopy);
 	int *cAi = (int*)env->GetIntArrayElements(Ai, &isCopy);
 	double *cAx = env->GetDoubleArrayElements(Ax, &isCopy);
-	int *cSym = (int*)env->GetIntArrayElements(Sym, &isCopy);
-	int *cNum = (int*)env->GetIntArrayElements(Num, &isCopy);
+	long *cSym = (long*)env->GetLongArrayElements(Sym, &isCopy);
+	long *cNum = (long*)env->GetLongArrayElements(Num, &isCopy);
 	double* cControl = (Control == NULL)?NULL:env->GetDoubleArrayElements(Control, &isCopy);
 	double* cInfo = (Info == NULL)?NULL:env->GetDoubleArrayElements(Info, &isCopy);
 	
@@ -44,15 +44,15 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1numeric(J
 	env->ReleaseIntArrayElements(Ap, (jint*)cAp, JNI_ABORT);
 	env->ReleaseIntArrayElements(Ai, (jint*)cAi, JNI_ABORT);
 	env->ReleaseDoubleArrayElements(Ax, cAx, JNI_ABORT);
-	env->ReleaseIntArrayElements(Sym, (jint*)cSym, JNI_ABORT);
-	env->ReleaseIntArrayElements(Num, (jint*)cNum, 0);
+	env->ReleaseLongArrayElements(Sym, (jlong*)cSym, JNI_ABORT);
+	env->ReleaseLongArrayElements(Num, (jlong*)cNum, 0);
 	if(cControl != NULL) env->ReleaseDoubleArrayElements(Control, cControl, 0);
 	if(cInfo != NULL) env->ReleaseDoubleArrayElements(Info, cInfo, 0);
 	
 	return r;
 }
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1solve(JNIEnv *env, jobject obj, jint sys, jintArray Ap, jintArray Ai, jdoubleArray Ax, jdoubleArray X, jdoubleArray B, jintArray Num, jdoubleArray Control, jdoubleArray Info)
+JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1solve(JNIEnv *env, jobject obj, jint sys, jintArray Ap, jintArray Ai, jdoubleArray Ax, jdoubleArray X, jdoubleArray B, jlongArray Num, jdoubleArray Control, jdoubleArray Info)
 {
 	jboolean isCopy;
 
@@ -61,7 +61,7 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1solve(JNI
 	double *cAx = env->GetDoubleArrayElements(Ax, &isCopy);
 	double *cX = env->GetDoubleArrayElements(X, &isCopy);
 	double *cB = env->GetDoubleArrayElements(B, &isCopy);
-	int *cNum = (int*)env->GetIntArrayElements(Num, &isCopy);
+	long *cNum = (long*)env->GetLongArrayElements(Num, &isCopy);
 	double* cControl = (Control == NULL)?NULL:env->GetDoubleArrayElements(Control, &isCopy);
 	double* cInfo = (Info == NULL)?NULL:env->GetDoubleArrayElements(Info, &isCopy);
 	
@@ -72,31 +72,31 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1solve(JNI
 	env->ReleaseDoubleArrayElements(Ax, cAx, JNI_ABORT);
 	env->ReleaseDoubleArrayElements(X, cX, 0);
 	env->ReleaseDoubleArrayElements(B, cB, JNI_ABORT);
-	env->ReleaseIntArrayElements(Num, (jint*)cNum, JNI_ABORT);
+	env->ReleaseLongArrayElements(Num, (jlong*)cNum, JNI_ABORT);
 	if(cControl != NULL) env->ReleaseDoubleArrayElements(Control, cControl, 0);
 	if(cInfo != NULL) env->ReleaseDoubleArrayElements(Info, cInfo, 0);
 	
 	return r;
 }
 
-JNIEXPORT void JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1free_1symbolic(JNIEnv *env, jobject obj, jintArray Sym)
+JNIEXPORT void JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1free_1symbolic(JNIEnv *env, jobject obj, jlongArray Sym)
 {
 	jboolean isCopy;
-	int *cSym = (int*)env->GetIntArrayElements(Sym, &isCopy);
+	long *cSym = (long*)env->GetLongArrayElements(Sym, &isCopy);
 	
 	umfpack_di_free_symbolic((void**)cSym);
 	
-	env->ReleaseIntArrayElements(Sym, (jint*)cSym, 0);
+	env->ReleaseLongArrayElements(Sym, (jlong*)cSym, 0);
 }
 
-JNIEXPORT void JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1free_1numeric(JNIEnv *env, jobject obj, jintArray Num)
+JNIEXPORT void JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1free_1numeric(JNIEnv *env, jobject obj, jlongArray Num)
 {
 	jboolean isCopy;
-	int *cNum = (int*)env->GetIntArrayElements(Num, &isCopy);
+	long *cNum = (long*)env->GetLongArrayElements(Num, &isCopy);
 	
 	umfpack_di_free_numeric((void**)cNum);
 	
-	env->ReleaseIntArrayElements(Num, (jint*)cNum, 0);
+	env->ReleaseLongArrayElements(Num, (jlong*)cNum, 0);
 }
 
 JNIEXPORT void JNICALL Java_maspack_solvers_UmfpackSolver_umfpack_1di_1defaults(JNIEnv *env, jobject obj, jdoubleArray Control)

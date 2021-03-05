@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{ArtiSynth Overview}
+\input{startdoc}
+\mainmatter
+\fi
 
 \chapter{ArtiSynth Overview}
 \label{Overview:sec}
@@ -286,6 +291,7 @@ simple {\it symplectic Euler} integrator.
 
 In addition to forces, bilateral and unilateral constraints give rise to
 locally linear constraints on $\u$ of the form
+%
 \begin{equation}
 \G(\q) \u = 0, \qquad \N(\q) \u \ge 0.
 \label{constraints:eqn}
@@ -316,16 +322,16 @@ of the form
 \left(
 \begin{matrix}
 \u^{k+1} \\
-\Blam \\
-\z
+\tilde\Blam \\
+\tilde\Bthe
 \end{matrix}
 \right)
 +
 \left(
 \begin{matrix}
 -\M \u^{k} - h \hat\f^{k} \\
--\g^k \\
--\n^k
+-\g \\
+-\n
 \end{matrix}
 \right)
 =
@@ -336,18 +342,47 @@ of the form
 \w
 \end{matrix}
 \right), \notag \\
-0 \le \z \perp \w \ge 0,
+0 \le \Bthe \perp \w \ge 0,
 \label{KKTvelocity:eqn}
 \end{gather}
-where $\w$ is a slack variable, $\Blam$ and $\z$ give the force
-constraint impulses over the time step, and $\g$ and $\n$ are derivative
-terms arising if $\G$ and $\N$ are time varying.  In addition,
+where $\w$ is a slack variable, $\tilde\Blam$ and $\tilde\Bthe$ give the force
+constraint impulses over the time step, and $\g$ and $\n$ are
+derivative terms defined by
+%
+\begin{equation}
+\g \equiv -h \dot\G \u^k, \quad \n \equiv -h \dot\N \u^k,
+\end{equation}
+%
+to account for time variations in $\G$ and $\N$.
+In addition,
 $\hat\M$ and $\hat\f$ are $\M$ and $\bar\f$ augmented with stiffness
 and damping terms terms to accommodate implicit integration, which
 is often required for problems involving deformable bodies.
+The actual constraint forces $\Blam$ and $\Bthe$ can be determined
+by dividing the impulses by the time step $h$:
+%
+\begin{equation}
+\Blam = \tilde\Blam/h, \quad \Bthe = \tilde\Bthe/h.
+\label{impulsesToForces:eqn}
+\end{equation}
+%
 
-Attachments can be implemented by constraining the velocities of
-the attached components using special constraints of the form
+We note here that ArtiSynth uses a {\it full coordinate} formulation,
+in which the position of each dynamic body is solved using full, or
+unconstrained, coordinates, with constraint relationships acting to
+restrict these coordinates. In constract, some other simulation
+systems, including OpenSim \cite{delp2007opensim}, use {\it reduced}
+coordinates, in which the system dynamics are formulated using a
+smaller set of coordinates (such as joint angles) that implicitly take
+the system's constraints into account. Each methodology has its own
+advantages. Reduced formulations yield systems with fewer degrees of
+freedom and no constraint errors. On the other hand, full coordinates
+make it easier to combine and connect a wide range of components,
+including rigid bodies and FEM models.
+
+Attachments between components can be implemented by constraining the
+velocities of the attached components using special constraints of the
+form
 %
 \begin{equation}
 \u_j = -\G_{j\alpha} \u_\alpha
@@ -849,3 +884,8 @@ play/pause, single-step and skip-forward buttons.}%
 Comprehensive information on exploring and interacting with models is
 given in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

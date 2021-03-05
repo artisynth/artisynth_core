@@ -47,7 +47,7 @@ public class SkinCollisionTest extends FemSkinDemo {
 
 
       myMech.clearBodyConnectors();
-
+      //myMech.setProfiling (true);
       createControlPanel (myMech);
       setCollisionProperties (myMech);
    }

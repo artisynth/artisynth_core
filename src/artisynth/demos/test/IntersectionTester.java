@@ -233,30 +233,35 @@ public class IntersectionTester extends ControllerBase {
    
    void updateCSGMesh() {
       PolygonalMesh csgMesh = null;
-      switch (myCSGOperation) {
-         case INTERSECTION: {
-            csgMesh = myIntersector.findIntersection (myMesh0, myMesh1);
-            break;
-         }
-         case UNION: {
-            csgMesh = myIntersector.findUnion (myMesh0, myMesh1);
-            break;
-         }
-         case DIFFERENCE01: {
-            csgMesh = myIntersector.findDifference01 (myMesh0, myMesh1);
-            break;
-         }
-         case DIFFERENCE10: {
-            csgMesh = myIntersector.findDifference10 (myMesh0, myMesh1);
-            break;
-         }
-      }
       try {
-         SurfaceMeshIntersectorTest.writeProblem (
-            "csgop.obj", myMesh0, myMesh1, null, myCSGOperation);
+         switch (myCSGOperation) {
+            case INTERSECTION: {
+               csgMesh = myIntersector.findIntersection (myMesh0, myMesh1);
+               break;
+            }
+            case UNION: {
+               csgMesh = myIntersector.findUnion (myMesh0, myMesh1);
+               break;
+            }
+            case DIFFERENCE01: {
+               csgMesh = myIntersector.findDifference01 (myMesh0, myMesh1);
+               break;
+            }
+            case DIFFERENCE10: {
+               csgMesh = myIntersector.findDifference10 (myMesh0, myMesh1);
+               break;
+            }
+         }
       }
-      catch (IOException e) {
-         e.printStackTrace();
+      catch (InternalErrorException e) {
+         System.out.println (e);
+         try {
+            SurfaceMeshIntersectorTest.writeProblem (
+               "csgop.obj", myMesh0, myMesh1, null, myCSGOperation);
+         }
+         catch (IOException ioe) {
+            ioe.printStackTrace();
+         }
       }
       myCSGMesh = csgMesh;
    }
@@ -302,29 +307,41 @@ public class IntersectionTester extends ControllerBase {
       }
       else {
          timer.start();
-         if (myCSGOperation == SurfaceMeshIntersector.CSG.INTERSECTION) {
-            myContactInfo = myIntersector.findContoursAndRegions (
-               myMesh0, RegionType.INSIDE, myMesh1, RegionType.INSIDE);
-            csgMesh = myIntersector.createCSGMesh (myContactInfo);
+         try {
+            if (myCSGOperation == SurfaceMeshIntersector.CSG.INTERSECTION) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.INSIDE, myMesh1, RegionType.INSIDE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
+            else if (myCSGOperation == SurfaceMeshIntersector.CSG.UNION) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.OUTSIDE, myMesh1, RegionType.OUTSIDE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
+            else if (myCSGOperation == SurfaceMeshIntersector.CSG.DIFFERENCE01) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.OUTSIDE, myMesh1, RegionType.INSIDE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
+            else if (myCSGOperation == SurfaceMeshIntersector.CSG.DIFFERENCE10) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.INSIDE, myMesh1, RegionType.OUTSIDE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
+            else {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.INSIDE, myMesh1, RegionType.INSIDE);
+            }
          }
-         else if (myCSGOperation == SurfaceMeshIntersector.CSG.UNION) {
-            myContactInfo = myIntersector.findContoursAndRegions (
-               myMesh0, RegionType.OUTSIDE, myMesh1, RegionType.OUTSIDE);
-            csgMesh = myIntersector.createCSGMesh (myContactInfo);
-         }
-         else if (myCSGOperation == SurfaceMeshIntersector.CSG.DIFFERENCE01) {
-            myContactInfo = myIntersector.findContoursAndRegions (
-               myMesh0, RegionType.OUTSIDE, myMesh1, RegionType.INSIDE);
-            csgMesh = myIntersector.createCSGMesh (myContactInfo);
-         }
-         else if (myCSGOperation == SurfaceMeshIntersector.CSG.DIFFERENCE10) {
-            myContactInfo = myIntersector.findContoursAndRegions (
-               myMesh0, RegionType.INSIDE, myMesh1, RegionType.OUTSIDE);
-            csgMesh = myIntersector.createCSGMesh (myContactInfo);
-         }
-         else {
-            myContactInfo = myIntersector.findContoursAndRegions (
-               myMesh0, RegionType.INSIDE, myMesh1, RegionType.INSIDE);
+         catch (InternalErrorException e) {
+            System.out.println (e);
+            try {
+               SurfaceMeshIntersectorTest.writeProblem (
+                  "csgop.obj", myMesh0, myMesh1, null, myCSGOperation);
+            }
+            catch (IOException ioe) {
+               ioe.printStackTrace();
+            }
          }
          timer.stop();
          if (myContactInfo == null) {

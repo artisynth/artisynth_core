@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{Mechanical Models I}
+\input{startdoc}
+\mainmatter
+\fi
 
 \chapter{Mechanical Models I}
 \label{MechModelsI:sec}
@@ -51,7 +56,7 @@ artisynth.core.materials}. Setting or querying a spring's material
 may be done with the methods {\tt setMaterial()} and {\tt
 getMaterial()}.
 
-\subsection{Example: A simple particle-spring model}
+\subsection{Example: a simple particle-spring model}
 \label{ParticleSpringExample:sec}
 
 \begin{figure}[t]
@@ -366,7 +371,7 @@ location {\tt loc} with respect to the frame, while {\tt
 addFrameMarkerWorld(frame,pos)} places it at {\tt pos} with respect to
 {\it world} coordinates.
 
-\subsection{Example: A simple rigid body-spring model}
+\subsection{Example: a simple rigid body-spring model}
 \label{RigidBodySpringExample:sec}
 
 \begin{figure}[ht]
@@ -627,7 +632,7 @@ mass).
 When using {\tt DENSITY} to determine the inertia, it is generally
 assumed that the contributing meshes are both polygonal and
 closed. Meshes which are either open or non-polygonal generally do not
-have a well-defined volume which can be multipled by the density to
+have a well-defined volume which can be multiplied by the density to
 determine the mass.
 \end{sideblock}
 
@@ -710,6 +715,177 @@ Frame and rotary damping can also be set for individual bodies using
 their own (inherited) {\tt frameDamping} and {\tt rotaryDamping}
 properties.
 
+\subsection{Rendering rigid bodies}
+\label{rigidBodyRendering:sec}
+
+A rigid body is rendered in ArtiSynth by drawing its mesh (or meshes,
+Section \ref{rigidBodyMultipleMeshes:sec}) and/or coordinate frame.
+
+Meshes are drawn using the face rendering properties described in more
+detail in Section \ref{RenderProperties:sec}. The most commonly used
+of these are:
+
+\begin{itemize}
+
+\item {\sf faceColor}: A value of type {\tt java.awt.Color} giving the
+color of mesh faces. The default value is {\tt GRAY}.
+
+\item {\sf shading}: A value of type
+\javaclass[maspack.render]{Renderer\$Shading} indicating how the mesh
+should be shaded, with the options being {\tt FLAT}, {\tt SMOOTH},
+{\tt METAL}, and {\tt NONE}.  The default value is {\tt FLAT}.
+
+\item {\sf alpha}: A double value between 0 and 1 indicating
+transparency, with transparency increasing as value decreases from 1.
+The default value is 1.
+
+\item {\sf faceStyle}: A value of type
+\javaclass[maspack.render]{Renderer\$FaceStyle} indicating which face
+sides should be drawn, with the options being {\tt FRONT}, {\tt BACK},
+{\tt FRONT\_AND\_BACK}, and {\tt NONE}.  The default value is {\tt
+FRONT}.
+
+\item {\sf drawEdges}: A boolean indicating whether the mesh edges
+should also be drawn, using either the {\sf edgeColor} rendering
+property, or the {\sf lineColor} property if {\sf edgeColor} is not
+set. The default value is {\tt false}.
+
+\end{itemize}
+
+These properties, and others, can be set either interactively in the
+GUI, or in code. To set the render properties in the GUI, select the
+rigid body or its mesh component, and then right click the mouse and
+choose {\sf Edit render props ...}. More details are given in the
+section ``Render properties'' in the \artisynthManual{uiguide}{ArtiSynth
+User Interface Guide}.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{ccc}
+ \iflatexml
+   \includegraphics[]{images/hipBodyGray}&
+   \includegraphics[]{images/hipBodySmooth}&
+   \includegraphics[]{images/hipBodyEdges}\\
+ \else
+   \includegraphics[width=2in]{images/hipBodyGray}&
+   \includegraphics[width=2in]{images/hipBodySmooth}&
+   \includegraphics[width=2in]{images/hipBodyEdges}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Different rendering settings for a rigid body hip mesh
+showing the default (left), smooth rendering with a ligher color
+(center), and wireframe (right).}
+\label{HipRendering:fig}
+\end{figure}
+
+Properties can also be set in code, usually during the {\tt build()}
+method. Typically this is done using a static method of the
+\javaclass[maspack.render]{RenderProps} class that has the form
+%
+\begin{lstlisting}[]
+  RenderProps.setXXX (comp, value)
+\end{lstlisting}
+%
+where {\tt XXX} is the property name, {\tt comp} is the component for
+which the property should be set, and {\tt value} is the desired
+value. Some examples are shown in Figure \ref{HipRendering:fig} for a
+rigid body hip representation with a fairly coarse mesh.  The
+left image shows the default rendering, using a gray color and flat
+shading. The center image shows a lighter color and smooth shading,
+which could be set by the following code fragment:
+%
+\begin{lstlisting}[]
+import maspack.render.*;
+import maspack.render.Renderer.*;
+  ...
+
+  RigidBody hipBody;
+  ...
+
+  RenderProps.setFaceColor (hipBody, new Color (255, 255, 204));
+  RenderProps.setShading (hipBody, Shading.SMOOTH);
+\end{lstlisting}
+%
+Finally, the right image shows the body rendered as a wire
+frame, which can by done by setting {\sf faceStyle} to {\tt NONE}
+and {\sf drawEdges} to {\tt true}:
+\begin{lstlisting}[]
+  RenderProps.setFaceStyle (hip, FaceStyle.NONE);
+  RenderProps.setDrawEdges (hip, true);
+  RenderProps.setEdgeWidth (hip, 2);
+  RenderProps.setEdgeColor (hip, Color.CYAN);
+\end{lstlisting}
+%
+
+Render properties can also be set in higher level model components,
+from which their values will be inherited by lower level components
+that have not explicitly set their own values. For example, setting
+the {\sf faceColor} render property in the {\tt MechModel} will
+automatically set the face color for all subcomponents which have not
+explicitly set {\sf faceColor}. More details on render properties are
+given in Section \ref{RenderProperties:sec}.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+ \iflatexml
+   \includegraphics[]{images/hipBodyLineAxes}&
+   \includegraphics[]{images/hipBodyArrowAxes}\\
+ \else
+   \includegraphics[width=2.5in]{images/hipBodyLineAxes}&
+   \includegraphics[width=2.5in]{images/hipBodyArrowAxes}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Rigid body axes rendered with {\sf axisDrawStyle}
+set to {\tt LINE} (left) and {\tt ARROW} (right).}
+\label{Axisendering:fig}
+\end{figure}
+
+In addition to mesh rendering, it is often useful to draw a rigid
+body's coordinate frame, which can be done using its {\sf axisLength}
+and {\sf axisDrawStyle} properties. Setting {\sf axisLength} to a
+positive value will cause the body's three coordinate axes to be
+drawn, with the indicated length, with the $x$, $y$ and $z$ axes
+colored red, green, and blue, respectively. The {\tt axisDrawStyle}
+property controls how the axes are rendered (Figure
+\ref{AxisRendering:sec}). It has the type
+\javaclass[artisynth.core.mechmodels]{Frame\$AxisDrawStyle}, and can
+be set to the following values:
+%
+\begin{description}
+
+\item[OFF]\mbox{}
+
+Axes are not rendered.
+
+\item[LINE]\mbox{}
+
+Axes are rendered as simple red-green-blue lines,
+with a width given by the joint's {\sf lineWidth} rendering property.
+
+\item[ARROW]\mbox{}
+
+Axes are rendered as solid red-green-blue arrows.
+
+\end{description}
+%
+
+As with the rendering properities, the {\sf axisLength} and {\sf
+axisDrawStyle} properties can be managed either interactively in the
+GUI (by selecting the body, right clicking and choosing {\sf Edit
+properties ...}), or in code, using the following methods:
+%
+\begin{lstlisting}[]
+  double getAxisLength()
+  void setAxisLength (double len)
+
+  AxisDrawStyle getAxisDrawStyle()
+  void setAxisDrawStyle (AxisDrawStyle style)
+\end{lstlisting}
+%
+
 \subsection{Multiple meshes}
 \label{rigidBodyMultipleMeshes:sec}
 
@@ -751,14 +927,20 @@ the mesh is displayed and interacts with its rigid body:
 
 \begin{description}
 
-\item[renderProps] Render properties controlling how the mesh is
+\item[renderProps]\mbox{}
+
+Render properties controlling how the mesh is
 rendered (see Section \ref{RenderProperties:sec}).
 
-\item[hasMass] A boolean, which if {\tt true} means that the mesh
+\item[hasMass]\mbox{} 
+
+A boolean, which if {\tt true} means that the mesh
 will contribute to the body's inertia when the {\sf inertiaMethod}
 is either {\tt MASS} or {\tt DENSITY}. The default value is {\tt true}.
 
-\item[massDistribution] An enumerated type defined by
+\item[massDistribution]\mbox{} 
+
+An enumerated type defined by
 \javaclass[maspack.geometry]{MassDistribution} which specifies how the
 mesh's inertia contribution is determined for a given mass.  {\tt
 VOLUME}, {\tt AREA}, {\tt LENGTH}, and {\tt POINT} indicate,
@@ -771,27 +953,35 @@ PointMesh}. Applications can specify an alternate value providing the
 mesh has the features to support it. Specifying {\tt DEFAULT} will
 restore the default value.
 
-\item[isCollidable] A boolean, which if {\tt true}, and if the mesh is a
+\item[isCollidable]\mbox{} 
+
+A boolean, which if {\tt true}, and if the mesh is a
 {\tt PolygonalMesh}, means that the mesh will take part in collision
 and wrapping interactions (Sections \ref{sec:mechii:collisions} and
 \ref{GeneralSurfaceWrapping:sec}). The default value is {\tt true},
 and the get/set accessors have the names {\tt isCollidable()} and
 {\tt setIsCollidable()}.
 
-\item[volume] A double whose value is the volume of the mesh.  If the
+\item[volume]\mbox{} 
+
+A double whose value is the volume of the mesh.  If the
 mesh is a {\tt PolygonalMesh}, this is the value returned by its
 \javamethod[maspack.geometry.PolygonalMesh]{computeVolume()} method.
 Otherwise, the volume is 0, unless
 \javamethodAlt{\mech.RigidMeshComp.setVolume(double)}{setVolume(vol)} is
 used to explicitly set a non-zero volume value.
 
-\item[mass] A double whose default value is the product of the {\sf
+\item[mass]\mbox{} 
+
+A double whose default value is the product of the {\sf
 density} and {\sf volume} properties. Otherwise,
 if {\sf mass} has been explicitly set using
 \javamethodAlt{\mech.RigidMeshComp.setMass(double)}{setMass(mass)},
 the value is the explicit mass.
 
-\item[density] A double whose default value is the rigid body's
+\item[density]\mbox{}
+
+A double whose default value is the rigid body's
 density.  Otherwise, if {\sf density} has been explicitly set using
 \javamethodAlt{\mech.RigidMeshComp.setDensity(double)}{setDensity(density)},
 the value is the explicit density, or if {\sf mass} has been explicitly
@@ -959,55 +1149,220 @@ rigid body to fall and swing about under gravity, with the right ball
 
 In a typical mechanical model, many of the rigid bodies are
 interconnected, either using spring-type components that exert binding
-forces on the bodies, or through joint-type connectors that enforce
-the connection using hard constraints.
+forces on the bodies, or through joints and connectors that enforce
+the connection using hard constraints. This section describes the
+latter. While the discussion focuses on rigid bodies, joints and
+connectors can be used more generally with any body that implements
+the \javaclass[artisynth.core.mechmodels]{ConnectableBody}
+interface. In particular, this allows joints to also interconnect
+finite element models, as described in Section \ref{FEMJoints:sec}.
 
 \subsection{Joints and coordinate frames}
+\label{JointsAndFrames:sec}
 
-Consider two bodies A and B. The pose of body B with respect to body A
-can be described by the 6 DOF rigid transform $\T_{BA}$.  If bodies A
-and B are unconnected, $\T_{BA}$ may assume any possible value
-and has a full six degrees of freedom. A {\it joint} between A and B
-restricts the set of poses that are possible between the two bodies
-and reduces the degrees of freedom available to $\T_{BA}$.  For
-simplicity, joints have their own coordinate frames for describing
-their constraining actions, and then these frames are related to the
-frames A and B of the associated bodies by auxiliary transformations.
+Consider two rigid bodies A and B. The pose of body B with respect to
+body A can be described by the 6 DOF rigid transform $\T_{BA}$.  If A
+and B are unconnected, $\T_{BA}$ may assume any possible value and has
+a full six degrees of freedom. A {\it joint} between A and B
+constrains the set of poses that are possible between the two bodies
+and reduces the degrees of freedom available to $\T_{BA}$.  For ease
+of use, the constraining action of a joint is described with respect
+to a pair of local coordinate frames C and D that are connected to
+frames A and B, respectively, by auxiliary transformations.  This
+allows joints to be placed at locations that do not correspond
+directly to frames A or B.
 
 \begin{figure}[ht]
 \begin{center}
  \iflatexml
-   \includegraphics[width=2.5in]{images/jointExample}
+   \includegraphics[width=2in]{images/jointExample}
  \else
-   \includegraphics[width=2.5in]{images/jointExample}
+   \includegraphics[width=2in]{images/jointExample}
  \fi
 \end{center}
-\caption{Coordinate frames D and C for a revolute joint.}
+\caption{Coordinate frames D and C for a hinge joint.}
 \label{jointExample:fig}
 \end{figure}
 
-Each joint is associated with two coordinate frames C and D which move
-with respect to each other as the joint moves. The allowed joint
-motions therefore correspond to the allowed values of the {\it joint transform}
-$\T_{CD}$.  D is the {\it base} frame and C is the {\it motion}
-frame. For a revolute joint (Figure \ref{jointExample:fig}), C can
-move with respect to D by rotating about the z axis. Other motions are
-prohibited. $\T_{CD}$ should therefore always have the form
+The joint frames C and D move with respect to each other as the joint
+moves. The allowed joint motions therefore correspond to the allowed
+values of the {\it joint transform} $\T_{CD}$.  Although both frames
+typically move with their attached bodies, D is considered the {\it
+base} frame and C the {\it motion} frame (this is because when a joint
+is used to connect a single body to ground, body B is set to {\tt
+null} and the world frame takes its place).  As an example of a
+joint's constraining effect, consider a hinge joint (Figure
+\ref{jointExample:fig}), which allows C to move with respect to D {\it only} by
+rotating about the $z$ axis while the origins of C and D remain
+coincident. Other motions are prohibited. If we let $\theta$ describe
+the counter-clockwise rotation angle of C about the $z$ axis, then
+$\T_{CD}$ should always have the form
 %
 \begin{equation}
 \T_{CD} = \matl
-\cos(\theta) & -sin(\theta) & 0 \\
-\sin(\theta) &  cos(\theta) & 0 \\
-0 & 0 & 1\\
-\matr
+\cos(\theta) & -\sin(\theta) & 0 & 0 \\
+\sin(\theta) &  \cos(\theta) & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 
+\matr.
 \end{equation}
 %
-where $\theta$ is the angle of joint rotation and is known as the {\it
-joint parameter}. Other joints have different parameterizations, with
-the number of parameters equaling the number of degrees of freedom
-available to the joint. When $\T_{CD} = \I$ (where $\I$ is the
-identity transform), the parameters are all (usually) equal to zero,
-and the joint is said to be in the {\it zero state}.
+
+\begin{figure}[ht]
+\begin{center}
+ \iflatexml
+   \includegraphics[width=3.74in]{images/jointBodyFrames}
+ \else
+   \includegraphics[width=3.74in]{images/jointBodyFrames}
+ \fi
+\end{center}
+\caption{Transforms connecting joint coordinate frames C and D with
+rigid bodies A and B.}
+\label{jointBodyFrames:fig}
+\end{figure}
+
+When a joint is attached to bodies A and B, frame C is fixed to body A
+and frame D is fixed to body B. Except in special cases, the joint
+frames C and D are not coincident with the body frames A
+and B.  Instead, they are located relative to A and B by the
+transforms $\T_{CA}$ and $\T_{DB}$, respectively
+(Figure \ref{jointBodyFrames:fig}). Since $\T_{CA}$ and $\T_{DB}$ are
+both fixed, the joint constraints on $\T_{CD}$ constrain the relative
+poses of A and B, with $\T_{AB}$ determined from
+%
+\begin{equation}
+\T_{AB} = \T_{DB} \, \T_{CD} \, \T_{CA}^{-1}.
+\label{jointPose:eqn}
+\end{equation}
+%
+(See Section \ref{RigidTransforms:sec} for a discussion of determining
+transforms between related coordinate frames).
+
+\subsection{Joint coordinates, constraints, and errors}
+\label{JointCoordinates:sec}
+
+Each different joint and connector type restricts the motion between
+two bodies to $M$ degrees of freedom, for some $M < 6$.  Sometimes,
+the joint also defines a set of $M$ coordinates that parameterize
+these $M$ DOFs. For example, the hinge joint described above is
+parameterized by $\theta$. Other examples are given in
+Section \ref{JointTypes:sec}: a 2 DOF cylindrical has coordinates $z$
+and $\theta$, a 3 DOF gimbal joint is parameterized by the
+roll-pitch-yaw angles $\theta$, $\phi$, and $\psi$, etc.  When
+$\T_{CD} = \I$ (where $\I$ is the identity transform), the coordinates
+are usually all equal to zero, and the joint is said to be in the {\it
+zero state}.
+
+As explained in Section \ref{PhysicsSimulation:sec}, ArtiSynth uses a
+full coordinate formulation for dynamic simulation. That means that
+instead of using joint coordinates to describe system state, it uses
+the combined full coordinates $\q$ of all dynamic components. For
+example, a model consisting of a single rigid body connected to ground
+by a hinge joint will have 6 DOF (corresponding to the 6 DOF of the
+body), rather than the 1 DOF implied by the hinge joint.  The DOF
+restrictions imposed by the joints are then enforced by a set of
+linearized constraint relationships
+%
+\begin{equation}
+\G(\q) \u = \g, \qquad \N(\q) \u \ge \n
+\label{constraints2:eqn}
+\end{equation}
+%
+that restrict the body velocities $\u$ computed at each simulation
+step, usually by solving an MLCP like (\ref{KKTvelocity:eqn}). As
+explained in Section \ref{PhysicsSimulation:sec}, the right side
+vectors $\g$ and $\n$ in (\ref{constraints2:eqn}) contain time
+derivative terms, which for simplicity much of the following
+presentation will assume to be 0.
+
+Each joint contributes its own set of constraint equations to
+(\ref{constraints2:eqn}). Typically these take the form of {\it
+bilateral}, or equality, constraints
+%
+\begin{equation}
+\G_\text{J}(\q) \u = 0
+\label{bilateralG:eqn}
+\end{equation}
+%
+which are added to the system's global bilateral constraint matrix
+$\G$. $\G_\text{J}$ contains $6 - M$ rows providing $6 - M$ individual
+constraints $\G_k$.
+During simulation, these give rise to $6 - M$ constraint
+forces (corresponding to $\Blam$ in (\ref{impulsesToForces:eqn}))
+which enforce the constraints.
+
+In some cases, the joint also maintains {\it unilateral}, or inequality
+constraints, to keep $\T_{CD}$ out of inadmissible regions. These take
+the form
+%
+\begin{equation}
+\N_\text{J}(\q) \u \ge 0
+\label{unilateralN:eqn}
+\end{equation}
+%
+and are added to the system's global unilateral constraint matrix
+$\N$.  They give rise to constraint forces corresponding to $\Bthe$ in
+(\ref{impulsesToForces:eqn}). A common use of unilateral constraints
+is to enforce range limits of the joint coordinates, such as
+%
+\begin{equation}
+\theta_{\text{min}} \le \theta \le \theta_{\text{max}}.
+\end{equation}
+%
+A specific unilateral constraint is added to $\N_\text{J}$ only when
+$\T_{CD}$ is on or within the boundary of the inadmissible region
+associated with that constraint. The constraint is then said to be
+{\it engaged}. The combined number of bilateral and engaged unilateral
+constraints for a particular joint should not exceed 6; otherwise, the
+joint would be overconstrained.
+
+Joint coordinates, when supported for a particular joint, can be both
+read and set. Setting a coordinate causes the joint transform
+$\T_{CD}$ to change. To accommodate this, the system adjusts the poses
+of one or both bodies connected to the joint, along with adjacent
+bodies connected to them, with preference given to bodies that are not
+attached to ``ground''.  However, if this is done during simulation,
+and particularly if one or both of the bodies connected to the joint
+are moving dynamically, the results will be unpredictable and will
+likely conflict with the simulation.
+
+Joint coordinates are also often exported as properties. For example,
+the
+\javaclass[artisynth.core.mechmodels]{HingeJoint}
+class (Section \ref{JointTypes:sec}) exports its $\theta$ coordinate
+as the property {\sf theta}, which can be accessed in the GUI, or via
+the accessor methods
+%
+\begin{lstlisting}[]
+  double getTheta()          // get theta in degrees
+
+  void setTheta (double deg) // set theta in degrees
+\end{lstlisting}
+%
+
+Since joint constraints are generally nonlinear, their linearized
+enforcement at the velocity level by (\ref{constraints2:eqn}) will
+usually produce small errors as the simulation proceeds.  These errors
+are reduced using a position correction step described in
+Section \ref{JointConstraints:sec} and \cite{lloyd2012artisynth}.
+Errors can also be caused by joint compliance
+(Section \ref{JointCompliance:sec}).  Both effects mean that the joint
+transform $\T_{CD}$ may deviate from the allowed values dictated by
+the joint type. In ArtiSynth, this is accounted for by introducing an
+additional {\it constraint} frame G between D and C
+(Figure \ref{jointFrames:fig}).  G is computed to be the nearest frame
+to C that lies exactly in the joint constraint space. $\T_{GD}$ is
+therefore a valid joint transform, $\T_{GC}$ accommodates the error,
+and the whole joint transform is given by the composition
+%
+\begin{equation}
+\T_{CD} = \T_{GD} \; \T_{CG}.
+\end{equation}
+%
+If there is no compliance or joint error, then frames G and C are
+identical, $\T_{CG} = \I$, and $\T_{CD} = \T_{GD}$.  Because $\T_{CG}$
+describes the joint error, we sometimes refer to it as $\T_{err}
+= \T_{CG}$.
 
 \begin{figure}[ht]
 \begin{center}
@@ -1023,184 +1378,290 @@ and complaint motion.}
 \label{jointFrames:fig}
 \end{figure}
 
-In practice, due to numerical errors and/or compliance in the joint,
-%(Section \ref{JointCompliance:sec}), 
-the joint transform $\T_{CD}$ may
-sometimes deviate from the allowed set of values dictated by the joint
-type. In ArtiSynth, this is accounted for by introducing an additional
-{\it constraint} frame G between D and C (Figure \ref{jointFrames:fig}).
-G is computed to be the nearest frame to C that lies exactly 
-in the joint constraint space. $\T_{GD}$ is therefore a
-valid transform for the joint, $\T_{GC}$ accommodates the error,
-and the whole joint transform is given by the composition
-%
-\begin{equation}
-\T_{CD} = \T_{GD} \; \T_{CG}.
-\end{equation}
-%
-If there is no compliance or joint error, then frames G and C are the
-same, $\T_{CG} = \I$, and $\T_{CD} = \T_{GD}$.
-
-In general, each joint is attached to two rigid bodies A and B, with
-frame C being fixed to body A and frame D being fixed to body B. The
-restrictions of the joint transform $\T_{CD}$ therefore restrict the
-relative poses of A and B.
-
-\begin{figure}[ht]
-\begin{center}
- \iflatexml
-   \includegraphics[width=3.74in]{images/jointBodyFrames}
- \else
-   \includegraphics[width=3.74in]{images/jointBodyFrames}
- \fi
-\end{center}
-\caption{Transforms connecting joint coordinate frames C and D with
-rigid bodies A and B.}
-\label{jointBodyFrames:fig}
-\end{figure}
-
-Except in special cases, the joint coordinate frames C and D are not
-coincident with the body frames A and B.  Instead, they are located
-relative to A and B by the transforms $\T_{CA}$ and $\T_{DB}$,
-respectively (Figure \ref{jointBodyFrames:fig}). 
-Since $\T_{CA}$ and $\T_{DB}$ are both fixed, the pose
-of B relative to A can be determined from
-the joint transform $\T_{CD}$:
-%
-\begin{equation}
-\T_{BA} = \T_{CA} \, \T_{CD}^{-1} \, \T_{DB}^{-1}.
-\label{jointPose:eqn}
-\end{equation}
-%
-(See Section \ref{RigidTransforms:sec} for a discussion of determining
-transforms between related coordinate frames).
-
 \subsection{Creating Joints}
 \label{CreatingJoints:sec}
 
-Joint components in ArtiSynth are implemented by subclasses of
-\javaclass[artisynth.core.mechmodels]{BodyConnector}.  Some of
-the commonly used ones are described in Section
-\ref{CommonJoints:sec}.
+Joint and connector components in ArtiSynth are both derived from the
+superclass
+\javaclass[artisynth.core.mechmodels]{BodyConnector},
+with joints being further derived from
+\javaclass[artisynth.core.mechmodels]{JointBase},
+which provides support for coordinates.  Some of the commonly used
+joints and connectors are described in Section
+\ref{JointTypes:sec}.
 
 An application creates a joint by constructing it and adding it to a
-{\tt MechModel}. Most joints generally have a constructor of the form
+{\tt MechModel}. Many joints have constructors of the form
 %
 \begin{lstlisting}[]
-  JointType (bodyA, bodyB, TDW);
+  XXXJoint (bodyA, bodyB, TDW)
 \end{lstlisting}
 %
-which specifies the rigid bodies A and B which the joint connects,
+which specifies the bodies A and B which the joint connects,
 along with the transform $\T_{DW}$ giving the pose of the joint base
-frame D in world coordinates. Then constructor then assumes that the
+frame D in world coordinates. The constructor then assumes that the
 joint is in the zero state, so that C and D are the same and
 $\T_{CD} = \I$ and $\T_{CW} = \T_{DW}$, and then computes
 $\T_{CA}$ and $\T_{DB}$ from
 %
 \begin{align}
 \T_{CA} & = \T_{AW}^{-1} \; \T_{CW} \\
-\T_{DB} & = \T_{BW}^{-1} \; \T_{DW}
+\T_{DB} & = \T_{BW}^{-1} \; \T_{DW},
 \end{align}
 %
-where $\T_{AW}$ and $\T_{BW}$ are the poses of A and B.
-The same body and transform settings can be made on an existing
-joint using the method
+where $\T_{AW}$ and $\T_{BW}$ are the current poses of A and B.
+
+After the joint is created, it should be added to the system's {\tt
+MechModel} using
+\javamethod[artisynth.core.mechmodels.MechModel]{addBodyConnector()}, as
+shown in the following code fragment:
+%
+\begin{lstlisting}[]
+   MechModel mech; 
+   RigidBody bodyA, bodyB;
+   RigidTransform3d TDW;
+
+   ... initialize mech, bodyA, bodyB, and TDW ...
+   
+   HingeJoint joint = new HingeJoint (bodyA, bodyB, TDW);
+   mech.addBodyConnector (joint);
+\end{lstlisting}
+%
+It is also possible to create a joint using its default
+constructor and attach it to the bodies
+afterward, using the method 
 \javamethodAlt{%
 artisynth.core.mechmodels.BodyConnector.setBodies(,,)}
-{setBodies(bodyA,bodyB,TDW)}.
-
-Alternatively, if we prefer to explicitly specify $\T_{CA}$ or $\T_{DB}$, then we
-can determine $\T_{DW}$ from $\T_{AW}$ or $\T_{BW}$ using
-%
-\begin{align}
-\T_{DW} & = \T_{AW} \; \T_{CA} \\
-\T_{DW} & = \T_{BW} \; \T_{DB}.
-\end{align}
-%
-For example, if we know $\T_{CA}$, this can be accomplished using
-the following code fragment:
+{setBodies(bodyA,bodyB,TDW)}, as in the following:
 %
 \begin{lstlisting}[]
-   RigidBody bodyA, bodyB;
-   RigidTransform3d TCA;
-
-   ... initialize bodyA, bodyB, and TCA ...
-   
-   RigidTransform3d TDW = new RigidTransform3d();
-   TDW.mul (bodyA.getPose(), TCA);  // bodyA.getPose() returns TAW
-   RevoluteJoint joint = new RevoluteJoint (bodyA, bodyB, TDW);
+   HingeJoint joint = new HingeJoint ();
+   joint.setBodies (bodyA, bodyB, TDW);
+   mech.addBodyConnector (joint);
 \end{lstlisting}
 %
+One reason for doing this is that it allows the joint transform
+$\T_{CD}$ to be modified (by setting coordinate values) {\it before}
+{\tt setBodies()} is called; this is discussed further in
+Section \ref{workingWithCoordinates:sec}.
 
-Another method,
-\javamethodAlt{artisynth.core.mechmodels.BodyConnector.setBodies(,,,)}
-{setBodies(bodyA,TCA,bodyB,TDB)}, allows us to set both values of
-$\T_{CA}$ or $\T_{BA}$ explicitly. This is useful if the joint
-transform $\T_{CD}$ is known to be some value {\it other} than the
-identity, in which case $\T_{CA}$ or $\T_{BA}$ can be computed
-from (\ref{jointPose:eqn}), where $\T_{BA}$ is given by
+Joints usually offer a number of other constructors that let its world
+location and body relationships to be specified in different
+ways. These may include:
+%
+\begin{lstlisting}[]
+  XXXJoint (bodyA, TCA, bodyB, TDB)
+
+  XXXJoint (bodyA, bodyB, TCW, TDW)
+\end{lstlisting}
+%
+The first, which is restricted to rigid bodies, allows the application
+to explicitly specify transforms $\T_{CA}$ and $\T_{DB}$ connecting
+frames C and D to the body frames A and B, and is useful when
+$\T_{CA}$ and $\T_{DB}$ are explicitly known, or the initial value of
+$\T_{CD}$ is {\it not} the identity. Likewise, the second constructor
+allows $\T_{CW}$ and $\T_{DW}$ to be explicitly specified, with
+$\T_{CD} \ne \I$ if $\T_{CW} \ne \T_{DW}$.  For instance, suppose
+$\T_{CD}$ and $\T_{DW}$ are both known. Then we can use the
+relationship
 %
 \begin{equation}
-\T_{BA} = \T_{AW}^{-1} \; \T_{BW}.
+\T_{CW} = \T_{DW} \, \T_{CD}
 \end{equation}
 %
-For instance, if we know $\T_{CA}$ and the joint transform $\T_{CD}$,
-then we can compute $\T_{DB}$
-from
-%
-\begin{equation}
-\T_{DB} = \T_{BA}^{-1} \, \T_{CA} \, \T_{CD}^{-1} = 
-\T_{BW}^{-1}  \, \T_{AW} \, \T_{CA} \, \T_{CD}^{-1}
-\end{equation}
-%
-and set up the joint as follows:
+to create the joint as in the following code fragment:
 %
 \begin{lstlisting}[]
+   MechModel mech;
    RigidBody bodyA, bodyB;
-   RigidTransform3d TCA, TCD;
+   RigidTransform3d TDW, TCD;
 
-   ... initialize bodyA, bodyB, TCA, TCD ...
-   
-   RigidTransform3d TBD = new RigidTransform3d();
-   TDB.mulInverseLeft (bodyB.getPose(), bodyA.getPose());
-   TDB.mul (TCA);
-   TDB.mulInverse (TCD);
-   RevoluteJoint joint = new RevoluteJoint ();
-   joint.setBodies (bodyA, TCA, bodyB, TDB);
+   ... initialize mech, bodyA, bodyB, TDW, and TCD ...
+
+   // compute TCW:
+   RigidTransform3d TCW = new RigidTransform3d();
+   TCW.mul (TDW, TCD);
+   HingeJoint joint = new HingeJoint (bodyA, bodyB, TCW, TDW);
+   mech.addBodyConnector (joint);
 \end{lstlisting}
 %
 
-Some joint implementations provide the ability to explicitly set the
-joint parameter(s) after it has been created and added to the {\tt
-MechModel}, making it easy to ``move'' the joint to a specific
-configuration. For example, {\tt RevoluteJoint} provides the method
-\javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()}.
-This causes the transform $\T_{CD}$ to be explicitly set to the value
-implied by the joint parameters, and the pose of either body A or B is
-changed to accommodate this. Whether body A or B is moved depends on
-which one is the least connected to ``ground'', and other bodies that have
-joint connections to the moved body are moved as well.
-
-If desired, joints can be connected to only a single rigid body. In
-this case, the second body B is simply assumed to be ``ground'', and the
-coordinate frame B is instead taken
-to be the world coordinate frame W. The corresponding calls
-to the joint constructor or {\tt setBodies()} take the
-form
+As an alternative to specifying $\T_{DW}$ or its equivalents, some
+joint types provide constructors that let the application locate
+specific joint features. These may be easier to use in some cases. For
+instance, \javaclass[artisynth.core.mechmodels]{HingeJoint} provides a
+constructor
 %
 \begin{lstlisting}[]
-  JointType joint = new JointType (bodyA, null, TDW);
+   HingeJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
 %
-or
+that specifies origin of D and its $z$ axis (which is the rotation
+axis), with the remaining orientation of D aligned as closely as
+possible with the world.
+\javaclass[artisynth.core.mechmodels]{SphericalJoint} provides a
+constructor
 %
 \begin{lstlisting}[]
-  JointType joint = new JointType();
-  joint.setBodies (bodyA, null, TDW);
+   SphericalJoint (bodyA, bodyB, originD)
+\end{lstlisting}
+%
+that specifies origin of D and aligns its orientation with the world.
+Users should consult the source code or API documentation for specific
+joints to see what special constructors may be available.
+
+Finally, it is possible to use joints to connect a single body to
+ground (by convention, this is the A body). Most joints provide a
+constructor of the form
+%
+\begin{lstlisting}[]
+  XXXJoint (bodyA, TDW)
+\end{lstlisting}
+%
+which allows this to be done explicitly. Alternatively, most joint
+constructors which supply body B will allow this to be specified as
+{\tt null}, so that body A will be connected to ground by default.
+
+\subsection{Working with coordinates}
+\label{workingWithCoordinates:sec}
+
+As mentioned in Section \ref{JointCoordinates:sec}, some joints
+support coordinates that parameterize the valid motions within the
+joint transform $\T_{CD}$. All such joints are subclasses of
+\javaclass[artisynth.core.mechmodels]{JointBase},
+which provides some generic methods for querying and setting
+coordinate values ({\tt JointBase} is in turn a subclass of
+\javaclass[artisynth.core.mechmodels]{BodyConnector}).
+
+The number of coordinates is returned by the method {\tt
+numCoordinates()}; if this returns 0, then coordinates are not
+supported. Each coordinate has an index in the range $0 \ldots M-1$,
+where $M$ is the number of coordinates. Coordinate values can be
+queried or set using the following methods:
+%
+\begin{lstlisting}[]
+  getCoordinate (int idx)               // get coordinate value with index idx
+  getCoordinates (VectorNd coords)      // get all coordinates values
+
+  setCoordinate (int idx, double value) // set coordinate value with index idx
+  setCoordinates (VectorNd values)      // set all coordinates values
+\end{lstlisting}
+%
+Similarly, there are methods for managing coordinate ranges:
+%
+\begin{lstlisting}[]
+  // get/set range information for coordinate with index idx
+  DoubleInterval getCoordinateRange (int idx)	
+  double getMinCoordinate (int idx)
+  double getMaxCoordinate (int idx)
+  void setCoordinateRange (idx, DoubleInterval rng)
+
+  // get/set range information in degrees for coordinate with index idx
+  DoubleInterval getCoordinateRangeDeg (int idx)
+  double getMinCoordinateDeg (int idx)
+  double getMaxCoordinateDeg (int idx)
+  void setCoordinateRangeDeg (idx, DoubleInterval rng)
+\end{lstlisting}
+%
+Range checking can be disabled by setting the range to
+$(-\inf, \inf)$, or by specifying {\tt rng} as {\tt null}, which
+implicitly does the same thing.
+
+Specific joint types usually also provide names for their joint
+coordinates, along with integer constants describing their indices
+and methods for managing their ranges and
+values. For example,
+\javaclass[artisynth.core.mechmodels]{CylindricalJoint}
+supports two coordinates, $z$ and $\theta$, along with
+the following:
+%
+\begin{lstlisting}[]
+  // coordinate indices
+  static final int Z_IDX = 0;
+  static final int THETA_IDX = 1;
+
+  // set/get z value and range
+  double getZ()
+  void setZ (double z)
+  DoubleInterval getZRange()
+  void setZRange (double min, double max)
+
+  // set/get theta value and range in degrees
+  double getTheta()
+  void setTheta (double theta)
+  DoubleInterval getThetaRange()
+  void setThetaRange (double min, double max)
+  void setThetaRange (DoubleInterval rng)
+\end{lstlisting}
+%
+The coordinate value and range information is also exported as the
+properties {\sf z}, {\sf theta}, {\sf zRange} and {\sf thetaRange},
+allowing them to be set in the GUI. For convenience, particularly in
+GUI applications, the properties and methods controlling the value and
+range of angular coordinates generally use degrees instead of radians.
+
+As discussed in Section \ref{JointCoordinates:sec}, unlike in some
+multibody simulation systems (such as OpenSim), joint coordinates are
+{\it not} fundamental quantities that describe system state. As such,
+then, coordinates can usually only be set in specific circumstances
+that avoid simulation conflicts. In general, when joint coordinates
+are set, the system adjusts the poses of one or both bodies connected
+to this joint, along with adjacent bodies connected to them, with
+preference given to bodies that are not attached to ``ground''.
+However, if this is done during simulation, and particularly if one or
+both of the bodies connected to the joint are moving dynamically, the
+results will be unpredictable and will likely conflict with the
+simulation.
+
+If a joint has been created with its default constructor and not yet
+attached to any bodies, then setting joint values will simply set the
+joint transform $\T_{CD}$. This can be useful in situations where one
+needs to initialize a joint's $\T_{CD}$ to a non-identity value
+corresponding to a particular set of joint coordinates:
+%
+\begin{lstlisting}[]
+  RigidTransform3d TDW; // known location for D frame
+  double z, theta; // desired initial coordinate values
+  ...
+  CylindricalJoint joint = new CylindricalJoint();
+  joint.setZ (z);
+  joint.setTheta (thetaDeg);
+  joint.setBodies (bodyA, bodyB, TDW);
+\end{lstlisting}
+%
+This can also be done in vector form:
+%
+\begin{lstlisting}[]
+  RigidTransform3d TDW; // known location for D frame
+  VectorNd coordValues; // desired initial coordinate values
+  ...
+  CylindricalJoint joint = new CylindricalJoint();
+  joint.setCoordinates (coordValues);
+  joint.setBodies (bodyA, bodyB, TDW);
+\end{lstlisting}
+%
+In either of these cases, {\tt setBodies()} will not use $\T_{CD}
+= \I$ but instead use the value determined by the initial coordinate
+values.
+
+To determine the $\T_{CD}$ corresponding to a particular set of
+coordinates, one may use the method
+%
+\begin{lstlisting}[]
+  void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords)
 \end{lstlisting}
 %
 
-\subsection{Example:  A simple revolute joint}
+In some cases, within a model's {\tt build()} method, one may wish to
+set initial coordinates {\it after} a joint has been attached to its
+bodies, in order to move those bodies (along with the bodies attached
+to them) into an initial configuration without having to explicitly
+calculate the poses from the joint coordinates. As mentioned
+above, the system will make a decision about which attached bodies are
+most ``free'' and adjust their poses accordingly. This is done in the
+example of the next section.
+
+\subsection{Example: a simple hinge joint}
 \label{RigidBodyJoint:sec}
 
 \begin{figure}[ht]
@@ -1257,7 +1718,7 @@ The build method for this model is given below:
       // create the joint      
       RigidTransform3d TDW = 
          new RigidTransform3d (lenx1/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, bodyB, TDW);
+      HingeJoint joint = new HingeJoint (bodyA, bodyB, TDW);
 
       // add components to the mech model
       mech.addRigidBody (bodyB);
@@ -1267,8 +1728,9 @@ The build method for this model is given below:
       joint.setTheta (35);  // set joint position
 
       // set render properties for components
-      RenderProps.setLineRadius (joint, 0.2);
-      joint.setAxisLength (4);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftLength (4);
+      joint.setShaftRadius (0.2);
    }
 \end{lstlisting}
 \lstset{numbers=none}
@@ -1292,26 +1754,24 @@ and 25). The pose of the two bodies is set using {\tt
 RigidTransform3d} objects created with x, y, z translation and
 axis-angle orientation values (lines 18 and 26).
 
-The revolute joint is implemented using
-\javaclass[artisynth.core.mechmodels]{RevoluteJoint}, which is
+The hinge joint is implemented using
+\javaclass[artisynth.core.mechmodels]{HingeJoint}, which is
 constructed at line 32 with the joint coordinate frame D being located
 in world coordinates by {\tt TDW} 
 as described in Section \ref{CreatingJoints:sec}.
 
 Once the joint is created and added to the {\tt MechModel}, the method
-\javamethod*[artisynth.core.mechmodels.RevoluteJoint]{setTheta()} is
+\javamethod*[artisynth.core.mechmodels.HingeJoint]{setTheta()} is
 used to explicitly set the joint parameter to 35 degrees. The joint
 transform $\T_{CD}$ is then set appropriately and {\tt bodyA} is moved
-to accommodate this ({\tt bodyA} being chosen since it is the freest
-to move).
+to accommodate this ({\tt bodyA} being chosen since it is the most
+free to move).
 
-Finally, render properties are set starting at line 42. A revolute
-joint is rendered as a line segment, using the line render properties
-(Section \ref{RenderProperties:sec}), with {\tt lineStyle} and {\tt
-lineColor} set to {\tt Cylinder} and {\tt BLUE}, respectively, by
-default. The cylinder radius and length are specified by the line
-render property {\tt lineRadius} and the revolute joint property {\tt
-axisLength}, which are set explicitly in the code.
+Finally, joint rendering properties are set starting at line 42. We
+render the joint as a cylindrical shaft about the rotation axis, using
+its {\sf shaftLength} and {\sf shaftRadius} properties. Joint
+rendering is discussed in more detail in
+Section \ref{RenderingJoints:sec}).
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 RigidBodyJoint} from the {\sf Models} menu. The model should load and
@@ -1319,63 +1779,1598 @@ initially appear as in Figure \ref{RigidBodyJoint:fig}.  Running the
 model (Section \ref{LoadingAndRunning:sec}) will cause {\tt bodyA} to
 fall and swing under gravity.
 
-\subsection{Commonly used joints}
-\label{CommonJoints:sec}
+\subsection{Constraint forces}
 
-\begin{figure}
+During each simulation solve step, the joint velocity constraints
+described by (\ref{bilateralG:eqn}) and (\ref{unilateralN:eqn}) are
+enforced by bilateral and unilateral constraint forces $\f_g$ and
+$\f_n$:
+%
+\begin{equation}
+\f_g = \G_\text{J}^T \Blam_J, \quad \f_n = \N_\text{J}^T \Bthe_J.
+\end{equation}
+%
+Here, $\f_g$ and $\f_n$ are spatial forces (or {\it wrenches}, Section
+\ref{SpatialVelocitiesAndForces:sec}) acting in the joint coordinate
+frame C, and $\Blam_J$ and $\Bthe_J$ are the Lagrange multipliers
+computed as part of the mechanical system solve (see
+(\ref{KKTvelocity:eqn}) and (\ref{impulsesToForces:eqn})).  The sizes
+of $\Blam_J$ and $\Bthe_J$ equal the number of bilateral and {\it
+engaged} unilateral constraints in the joint; these numbers can be
+queried for a particular joint using the methods
+\javamethod[artisynth.core.mechmodels.BodyConnector]{numBilateralConstraints()}
+and
+\javamethod[artisynth.core.mechmodels.BodyConnector]{%
+numEngagedUnilateralConstraints()}.
+(The number of engaged unilateral constraints may be less than the
+total number of unilateral constraints; the latter may be queried with
+\javamethod[artisynth.core.mechmodels.BodyConnector]{numUnilateralConstraints()},
+while the total number of
+constraints is returned by
+\javamethod[artisynth.core.mechmodels.BodyConnector]{numConstraints()}.
+
+Applications may sometimes need to query the current constraint force
+values, typically from within a controller
+or monitor (Section \ref{ControllersAndMonitors:sec}).
+The Lagrange multipliers themselves may be obtained with
+%
+\begin{lstlisting}[]
+  void getBilateralForces (VectorNd lam)
+
+  void getUnilateralForces (VectorNd the)
+\end{lstlisting}
+%
+which load the multipliers into {\tt lam} or {\tt the} and set their
+sizes to the number of bilateral or engaged unilateral
+constraints. Alternatively, one can retrieve the individual multiplier
+for the constraint indexed by {\tt idx} using
+%
+\begin{lstlisting}[]
+  double getConstraintForce (int idx);
+\end{lstlisting}
+%
+
+Typically, it is more useful to find the spatial constraint forces
+$\f_g$ and $\f_n$, which can be obtained with respect to frame C:
+%
+\begin{lstlisting}[]
+  // place the forces in the wrench f
+  void getBilateralForcesInC (Wrench f)
+  void getUnilateralForcesInC (Wrench f)
+
+  // convenience methods that allocate the wrench and return it
+  Wrench getBilateralForcesInC();
+  Wrench getUnilateralForcesInC();
+\end{lstlisting}
+%
+If the attached bodies A and B are rigid bodies, it is also possible
+to obtain the constraint wrenches experienced by those bodies:
+%
+\begin{lstlisting}[]
+  // place the forces in the wrench f
+  void getBilateralForcesInA (Wrench f)
+  void getUnilateralForcesInA (Wrench f)
+  void getBilateralForcesInB (Wrench f)
+  void getUnilateralForcesInB (Wrench f)
+
+  // convenience methods that allocate the wrench and return it
+  Wrench getBilateralForcesInA();
+  Wrench getUnilateralForcesInA();
+  Wrench getBilateralForcesInB();
+  Wrench getUnilateralForcesInB();
+\end{lstlisting}
+%
+Constraint wrenches obtained for bodies A or B are given in world
+coordinates, which is consistent with the forces reported by rigid
+bodies via their {\tt getForce()} method. To orient the forces into
+body coordinates, one may use the inverse of the rotation matrix $\R$
+of the body's pose. For example:
+%
+\begin{lstlisting}[]
+   RigidBody bodyA;
+
+   // ... body A initialized, etc. ...
+
+   Wrench force = joint.getBilateralForceInA();
+   force.inverseTransform (bodyA.getPose().R);
+\end{lstlisting}
+%
+
+\subsection{Compliance and regularization}
+\label{JointCompliance:sec}
+
+By default, the constraints used to implement joints and couplings are
+treated as {\it hard}, so that the system tries to respect the
+constraint conditions (\ref{constraints2:eqn}) as exactly as possible
+as the simulation proceeds.  Sometimes, however, it is desirable to
+introduce some ``softness'' into the constraints, whereby constraint
+forces are determined as a linear function of their distance from the
+constraint. Adding compliance also allows an application to {\it
+regularize} a system of joint constraints that would otherwise be
+overconstrained, as illustrated in Section \ref{FourBar:sec}.
+
+To describe compliance precisely, consider the bilateral constraint
+portion of the MLCP in (\ref{KKTvelocity:eqn}), which solves for the
+updated system velocities $\u^{k+1}$ at each time step:
+%
+\begin{equation}
+\matl
+\hat\M^{k} & -\G^{T} \\
+\G & 0
+\matr
+\matl
+\u^{k+1} \\
+\tilde\Blam
+\matr
+=
+\matl
+\M \u^{k} - h \hat\f^{k} \\
+0
+\matr.
+\label{KKThard:eqn}
+\end{equation}
+%
+Here $\G$ is the system's bilateral constraint matrix, $\tilde\Blam$
+denotes the constraint impulses (from which the constraint forces
+$\Blam$ can be determined by $\Blam = \tilde\Blam/h$), and for
+simplicity we have assumed that $\G$ is constant and so the $\g$ term
+on the lower right side is $0$.
+
+Solving (\ref{KKThard:eqn}) results in constraint forces that satisfy
+$\G \u^{k+1} = 0$ precisely, corresponding to hard constraints. To
+implement soft constraints, start by defining a function $\Bphi(\q)$
+that defines the {\it distances} from each constraint, where $\q$ is the
+vector of system positions; these distances are
+the local translational and rotational deviations from each
+constraint's correct position and are discussed in more detail in
+Section \ref{JointConstraints:sec}. Then assume that the constraint
+forces are a linear function of these distances:
+%
+\begin{equation}
+\Blam = -\C^{-1} \Bphi(\q),
+\label{compliance:eqn}
+\end{equation}
+%
+where $\C$ is a diagonal {\it compliance} matrix that is equivalent to
+an inverse stiffness matrix. We also note that $\Bphi$ will be time
+varying, and that we can approximate its change between time steps as
+%
+\begin{equation}
+\Bphi^{k+1} \approx \Bphi^k + h \dot\Bphi^{k+1}, \quad \text{with}
+\quad \dot\Bphi^{k+1} = \G \u^{k+1}.
+\label{BphiApprox:eqn}
+\end{equation}
+%
+Next, assume that in using (\ref{compliance:eqn}) to determine $\Blam$
+for a particular time step, we use the {\it average} value of $\Bphi$
+over the step, represented by $\bar\Bphi = (\Bphi^{k+1} + \Bphi^k)/2$.
+Substituting this and (\ref{BphiApprox:eqn}) into
+(\ref{compliance:eqn}), multiplying by $\C$, and rearranging yields:
+%
+\begin{equation}
+\G \u^{k+1} + \frac{2 \C}{h} \Blam = -\frac{2}{h} \Bphi^k.
+\end{equation}
+%
+Then noting that $\tilde\Blam = h \Blam$, we obtain
+a revised form of (\ref{KKThard:eqn}),
+%
+\begin{equation}
+\matl
+\hat\M^{k} & -\G^{T} \\
+\G & 2 \C /h^2 
+\matr
+\matl
+\u^{k+1} \\
+\tilde\Blam
+\matr
+=
+\matl
+\M \u^{k} - h \hat\f^{k} \\
+- 2 \Bphi^k/h
+\matr,
+\label{KKTsoft:eqn}
+\end{equation}
+%
+in the which the zeros in the matrix and right hand side have been
+replaced by compliance terms.
+The resulting constraint behavior is different from that of
+(\ref{KKThard:eqn}) in two important ways:
+
+\begin{enumerate}
+
+\item The joint now allows 6 DOF, with motion along the constrained directions
+limited by restoring spring constants given by the reciprocals of the
+diagonal entries of $\C$.
+
+\item If $\C$ has no zero diagonal entries, then the system
+(\ref{KKTsoft:eqn}) is {\it regularized} by the $2 \C/h^2$ term in the
+lower right matrix block. This means that the matrix is always
+non-singular, even if $\G$ is rank deficient, and so compliance offers
+a way to handle overconstrained models, as discussed further in
+Section \ref{FourBar:sec}.
+
+\end{enumerate}
+
+Unilateral constraints can be regularized using the same approach,
+with a distance function defined such that $\Bphi(\q) \le 0$.  
+
+The reason for specifying soft constraints using compliance instead of
+stiffness is that by setting $\C = 0$ we can easily handle the case of
+{\it infinite} stiffness where the constraints are strictly enforced.
+The ArtiSynth compliance implementation uses a slightly more complex
+version of (\ref{KKTsoft:eqn}) that accounts for non-constant $\G$ and
+also allows for a damping term $-\D \dot\Bphi$, where $\D$ is again a
+diagonal matrix.  For more details, see \cite{lacoursiere2007ghosts}
+and \cite{servin2006interactive}.
+
+When using compliance, damping is often needed for stability, and, in
+the case of unilateral constraints, to prevent ``bouncing''.  A good
+choice for damping is usually {\it critical damping}, which is
+discussed further below.
+
+Any joint which is a subclass of
+\javaclass[artisynth.core.mechmodels]{BodyConnector} allows
+individual compliance values $C_i$ and damping values $D_i$ to be set
+for each of the joint's $i$ constraints. These values comprise the
+diagonal entries in the compliance and damping matrices $\C$ and $\D$,
+and can be queried and set using the methods
+%
+\begin{lstlisting}[]
+  VectorNd getCompliance()
+  void setCompliance (VectorNd compliance)
+
+  VectorNd getDamping()
+  void setCompliance (VectorNd damping)
+\end{lstlisting}
+%
+The vectors supplied to the above {\tt set} methods contain the
+requested compliance or damping values. If their size $n$ is less than
+{\tt numConstraints()}, then compliance or damping will be set for the
+first $n$ constraints.  Damping for a specific constraint only has an
+effect if the compliance for that constraint is nonzero.
+
+What compliance and damping values should be specified? Compliance is
+usually relatively easy to figure out. Each of the joint's individual
+constraints $i$ corresponds to a row in its bilateral constraint matrix
+$\G_\text{J}$ or unilateral constraint matrix $\N_\text{J}$, and represents a
+specific 6 DOF direction along which the spatial velocity
+$\hat\v_{CD}$ (of frame C with respect to D) is restricted (more
+details on this are given in Section \ref{JointConstraints:sec}).
+Each of these constraint directions is usually predominantly linear or
+rotational; specific descriptions for the constraints of different
+joints are provided in Section \ref{JointTypes:sec}. To determine
+compliance for a constraint $i$, estimate the typical force $f$ likely
+to act along its direction, decide how much displacement $\delta q$
+(translational or rotational) along that constraint is desirable, and
+then set the compliance $C_i$ to the associated inverse stiffness:
+%
+\begin{equation}
+C_k = \delta q/f.
+\end{equation}
+%
+Once $C_k$ is determined, the damping $D_k$ can be estimated based on
+the desired damping ratio $\zeta$, using the formula
+%
+\begin{equation}
+D_k = 2 \zeta \sqrt{M/C_k}
+\label{constraintDamping:eqn}
+\end{equation}
+%
+where $M$ is total mass of the bodies attached to the joint.
+Typically, the desired damping will be close to critical damping, for
+which $\zeta = 1$.
+
+Constraints associated with linear motion will typically require
+different compliance values from those associated with rotation.  To
+make this process easier, joint components allow the setting of
+collective compliance values for their linear and rotary constraints,
+using the methods
+%
+\begin{lstlisting}[]
+  void setLinearCompliance (double c)
+  double getLinearCompliance()
+
+  void setRotaryCompliance (double c)
+  double getRotaryCompliance()
+\end{lstlisting}
+%
+The {\tt set()} methods will set a uniform compliance for all linear or
+rotary constraints, except for unilateral constraints associated with
+coordinate limits. At the same time, they will also set an {\it
+automatically} computed critical damping value. Likewise, the {\tt
+get()} methods query these linear or rotary constraints for uniform
+compliance values (with the corresponding critical damping), and
+return either that value, or -1 if it does not exist.
+
+Most of the demonstration models for the joints described in
+Section \ref{JointTypes:sec} allow these linear and rotary compliance
+settings to be adjusted interactively using a control panel, enabling
+users to experimentally gain a feel for their behavior.
+
+To determine programmatically whether a particular constraint is linear
+or rotary, one can use the joint method
+%
+\begin{lstlisting}[]
+  VectorNi getConstraintFlags()
+\end{lstlisting}
+%
+which returns a vector of information flags for all its constraints.
+Linear and rotary constraints are indicated by the flags {\tt LINEAR}
+and {\tt ROTARY}, defined in 
+\javaclass[maspack.spatialmotion]{RigidBodyConstraint}.
+
+\subsection{Example: an overconstrained linkage}
+\label{FourBar:sec}
+
+Situations may occasionally arise in which a model is {\it
+overconstrained}, which means that the rows of the bilateral
+constraint matrix $\G$ in (\ref{constraints2:eqn}) are not all
+linearly dependent, or in other words, $\G$ does not have {\it full
+row rank}. At present, the ArtiSynth solver has difficultly handling
+overconstrained models, but these situations can often be handled by
+adding a small amount of compliance to the
+constraints. (Overconstraining is not a problem with unilateral
+constraints $\N$, because of the way they are handled by the solver.)
+
+One possible symptom of an overconstrained system is a error message
+in the application's terminal output, such as
+%
+\begin{verbatim}
+Pardiso: num perturbed pivots=12
+\end{verbatim}
+
+Overconstraining frequently occurs in closed-chain linkages, involving
+loops in which a jointed sequence of links is connected back on
+itself. Depending on how the constraints are configured and how
+redundant they are, the system may still be able to move.  A classical
+example is the {\it four-bar linkage}, a common version of which
+consists of four links, or ``bars'', arranged as a parallelogram and
+connected by hinge joints at the corners. One link is usually
+connected to ground, and so the remaining three links together have 18
+DOF, while the four hinge joints together remove 20 DOF,
+overconstraining the system. However, the constraints are redundant in
+such as way that the linkage still actually has 1 DOF.
+
+\begin{figure}[ht]
 \begin{center}
-\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/FourBarLinkage}
+\else
+ \includegraphics[width=3.75in]{images/FourBarLinkage}
+\fi
+\end{center}
+\caption{FourBarLinkage model, several steps into the simulation.}
+\label{RigidBodySpring:fig}
+\end{figure}
+
+To model a four-bar in ArtiSynth presently requires adding compliance
+to the hinge joints. An example of this is defined by the demo program
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.FourBarLinkage
+\end{verbatim}
+%
+The code for the {\tt build()} method and a couple of supporting
+methods is given below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly 
+  \lstset{firstnumber={-25}}
+  \lstinputlisting[firstline=1,lastline=73]{../../src/artisynth/demos/tutorial/FourBarLinkage.java}
+  \lstset{firstnumber={1}}
+\else
+  \lstinputlisting[firstline=27,lastline=99]{../../src/artisynth/demos/tutorial/FourBarLinkage.java}
+\fi
+\lstset{numbers=none}
+Two helper methods are used to construct the model: {\tt createLink()}
+(lines 6-17), and {\tt createJoint()} (lines 23-36).  {\tt
+createLink()} makes the individual rigid bodies used to build the
+linkage: a mesh is produced defining the body's shape (a box with
+rounded ends), and then passed to the
+\javaclass[artisynth.core.mechmodels]{RigidBody}
+{\tt createFromMesh()} method which creates the body and sets its
+inertia according to a specified density. The body's pose is then set
+so as to center it at $(x, 0, z)$ while rotating it about the $y$ axis
+by the angle {\tt deg} (in degrees). The completed body is then added to the
+{\tt MechModel} {\tt mech} and returned.
+
+The second helper method, {\tt createJoint()}, connects two rigid
+bodies ({\tt link0} and {\tt link1}) together using a {\tt
+HingeJoint}. Because we know the location of the joint in
+body-relative coordinates, it is easier to create the joint using the
+transforms $\T_{CA}$ and $\T_{DB}$ instead of $\T_{DW}$: $\T_{CA}$
+locates the joint at the top end of {\tt link0}, at $(0, 0, 0.5)$,
+with the $z$ axis parallel to the body's $y$ axis, while $\T_{DB}$
+similarly locates the joint at the bottom of {\tt link1}.  After the
+joint is created and added to the {\tt MechModel}, its render
+properties are set so that its axis drawn as a blue cylinder.
+
+The {\tt build()} method itself begins by creating a {\tt MechModel}
+and setting damping parameters for the rigid bodies (lines
+40-43). Next, {\tt createLink()} is used to create and store the four
+links (lines 46-50), and the left bar is attached to ground by making
+it non-dynamic (line 52). The links are then connected together using
+joints created by {\tt createJoint()} (lines 55-59). Finally, uniform
+compliance and damping values are set for each of the joint's
+bilateral constraints, using the {\tt setCompliance()} and {\tt
+setDamping()} methods (lines 63-72). Values are set for the first five
+constraints, since for a {\tt HingeJoint} these are the bilateral
+constraints. The compliance value of $C = 10^{-6}$ was found
+experimentally to be low enough so as to not cause noticeable
+deflections in the joints. Given $C$ and an
+average mass of around $M = 150$ for each link pair,
+(\ref{constraintDamping:eqn}) suggests the damping factor of $D =
+25000$. Note that for this example, very similar settings could be
+achieved by simply calling
+%
+\begin{lstlisting}[]
+  for (int i=0; i<joints.length; i++) {
+     joints[i].setLinearCompliance (0.000001);
+     joints[i].setRotaryCompliance (0.000001);
+  }
+\end{lstlisting}
+%
+In principle, we only need to set compliance for the constraints that
+are redundant, but it can sometimes be difficult to determine exactly
+which these are. Also, different values are often needed for linear
+and rotary constraints; that is not necessary here because the
+links have unit length and so the linear and rotary units have similar
+scales.
+
+\subsection{Rendering joints}
+\label{RenderingJoints:sec}
+
+Most joints provide a means to render themselves in order to provide a
+graphical representation of their position and configuration.  Control
+over this is achieved by setting various properties in the joint
+component, including both specialized properties and the standard
+render properties (Section \ref{RenderProperties:sec}) used by all
+renderable components.
+
+All joints which are subclasses of
+\javaclass[artisynth.core.mechmodels]{JointBase} support rendering of
+both their C and D coordinate frames, through the properties {\sf
+drawFrameC}, {\sf drawFrameD}, and {\sf axisLength}.  The first two
+properties are of the type
+\javaclass[artisynth.core.mechmodels]{Frame\$AxisDrawStyle} (described
+in detail in Section \ref{rigidBodyRendering:sec}), and can be set to
+{\tt LINE} or {\tt ARROW} to enable the coordinate axes to be drawn
+either as lines or solid arrows. The {\sf axisLength} property has
+type {\tt double} and specifies the length with which the axes are
+drawn. As with all properties, these properties can be set either in
+the GUI, or in code using accessor methods supplied by the joint:
+%
+\begin{lstlisting}[]
+  void setAxisLength (double l)
+  double getAxisLength()
+
+  void setDrawFrameC (AxisDrawStyle style)
+  (AxisDrawStyle getDrawFrameC()
+
+  void setDrawFrameD (AxisDrawStyle style)
+  (AxisDrawStyle getDrawFrameD()
+\end{lstlisting}
+%
+
+Another pair of properties used by several joints is {\sf shaftLength}
+and {\sf shaftRadius}, which specify the length and radius used to
+draw shaft or axis structures associated with the joint.  These are
+rendered as solid cylinders, using the color indicated by the {\sf
+faceColor} rendering property.  The default value of both properties
+is 0; if {\sf shaftLength} is 0, then the structures are not drawn,
+while if {\sf shaftRadius} is 0, a default value proportional to {\sf
+shaftLength} is used. For example, to enable rendering of a blue shaft
+along the rotation axis of a hinge joint, one may use the code
+fragment
+%
+\begin{lstlisting}[]
+  HingeJoint joint;
+  ...
+
+  joint.setShaftLength (0.5); // set shaft dimensions
+  joint.setShaftRadius (0.05);
+  RenderProps.setFaceColor (joint, Color.BLUE); // set the color
+\end{lstlisting}
+%
+As another example, to enable rendering of a green ball about the
+center of a spherical joint, one may use the fragment
+%
+\begin{lstlisting}[]
+  SphericalJoint joint;
+  ...
+
+  joint.setJointRadius (0.02); // set the ball size
+  RenderProps.setFaceColor (joint, Color.GREEN); // set the color
+\end{lstlisting}
+%
+
+Specific joints may define additional properties to control how they
+are rendered.
+
+\section{Joint components}
+\label{JointTypes:sec}
+
+ArtiSynth supplies a number of basic joints and connectors in the package {\tt
+artisynth.core.mechmodels}, the most common of which are described
+here. 
+
+Many of the descriptions are associated with a demonstration model,
+named {\tt XXXJointDemo}, where {\tt XXX} is the joint type.  These
+demos are located in the package {\tt artisynth.demos.mech}, and can
+be loaded by selecting {\sf All demos > mech > XXXJointDemo} from the
+{\sf Models} menu. When run, they can be interactively controlled,
+using either the pull tool (see the section ``Pull Manipulation'' in
+the \artisynthManual{uiguide}{ArtiSynth User Interface Guide}), or the
+interactive control panel. The control panel allows the adjustment of
+coordinate values and ranges (if supported), some of the render
+properties, and the different {\sf compliance} and {\sf damping}
+properties (Section \ref{JointCompliance:sec}).  One can inspect the
+source code for each demo in its {\tt .java} file located in the
+folder {\tt <ARTISYNTH\_HOME>/src/artisynth/demos/mech}.
+
+\subsection{Hinge Joint}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
  \iflatexml
-   \includegraphics[width=1.75in]{images/revoluteJoint}&
-   \includegraphics[width=1.75in]{images/rollPitchJoint}\\
-   \includegraphics[width=1.75in]{images/sphericalJoint}&
-   \includegraphics[width=1.75in]{images/planarConnector}\\
+   \includegraphics[width=1.75in]{images/hingeJoint}&
+   \includegraphics[width=2.333in]{images/HingeJointDemo}\\
  \else
-   \includegraphics[width=1.75in]{images/revoluteJoint}&
-   \includegraphics[width=1.75in]{images/rollPitchJoint}\\
-   \includegraphics[width=1.75in]{images/sphericalJoint}&
-   \includegraphics[width=1.75in]{images/planarConnector}\\
+   \includegraphics[width=1.75in]{images/hingeJoint}&
+   \includegraphics[width=2.333in]{images/HingeJointDemo}\\
  \fi
 \end{tabular}
 \end{center}
-\caption{Commonly used joints. Clockwise from
-top left: revolute, roll-pitch, spherical, planer connector.}
-\label{CommonJoints:fig}
+\caption{Coordinate frames (left) and demo model (right)
+for the hinge joint.}
+\label{HingeJoint:fig}
 \end{figure}
 
-Some of the joints commonly used by ArtiSynth are shown in Figure
-\ref{CommonJoints:fig}. Each illustration shows the allowed joint
-motion relative to the base coordinate frame D. Clockwise
-from the top-left, these joints are:
+The \javaclass[artisynth.core.mechmodels]{HingeJoint} 
+(Figure \ref{HingeJoint:fig}) is a 1 DOF joint that
+constrains motion between frames C and D to a simple rotation about
+the $z$ axis of D.  It implements six constraints and one coordinate
+$\theta$ (Table \ref{HingeConstraints:tbl}), to which the joint transform
+$\T_{CD}$ is related by
+%
+\begin{equation*}
+\T_{CD} = \matl
+\cos(\theta) & -\sin(\theta) & 0 & 0 \\
+\sin(\theta) &  \cos(\theta) & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 
+\matr.
+\end{equation*}
+%
+The value and ranges for $\theta$ are exported by the properties {\sf
+theta} and {\sf thetaRange}, and the $\theta$ coordinate index is
+defined by the constant {\tt THETA\_IDX}.  For rendering, the
+properties {\sf shaftLength} and {\sf shaftRadius} control the size of
+a shaft drawn about the rotation axis, using the {\sf faceColor}
+rendering property.  A demo is provided by \\ {\tt
+artisynth.demos.mech.HingeJointDemo}.
 
-\begin{description}
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  HingeJoint (bodyA, bodyB, originD, zaxis)
+\end{lstlisting}
+%
+creates a hinge joint with a specified origin and $z$ axis direction
+for frame D (in world coordinates), and frames C and D coincident.
 
-\item[Revolute joint]\mbox{}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $x$ \\
+1 & bilateral & restricts translation along $y$ \\
+2 & bilateral & restricts translation along $z$ \\
+3 & bilateral & restricts rotation about $x$ \\
+4 & bilateral & restricts rotation about $y$ \\
+5 & unilataral & enforces limits on $\theta$ \\
+\hline
+\hline
+0 & $\theta$ & counter-clockwise rotation of $C$ about the $z$ axis \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the hinge joint.}
+\label{HingeConstraints:tbl}
+\end{table}
 
-A one DOF joint which allows rotation by an angle $\theta$ about
-the z axis.
+\subsection{Slider Joint}
 
-\item[Roll-pitch joint]\mbox{}
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/sliderJoint}&
+   \includegraphics[width=2.333in]{images/SliderJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/sliderJoint}&
+   \includegraphics[width=2.333in]{images/SliderJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames (left) and demo model (right)
+for the slider joint.}
+\label{SliderJoint:fig}
+\end{figure}
 
-A two DOF joint, similar to the revolute joint, which allows the
-rotation about z to be followed by an additional rotation $\phi$ about
-the (new) y axis.
+The \javaclass[artisynth.core.mechmodels]{SliderJoint} 
+(Figure \ref{SliderJoint:fig}) is a 1 DOF joint
+that constrains motion between frames C and D to a simple translation
+along the $z$ axis of D.  It implements six constraints and one
+coordinate $z$ (Table \ref{SliderConstraints:tbl}), to which the joint
+transform $\T_{CD}$ is related by
+%
+\begin{equation*}
+\T_{CD} = \matl
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & z \\
+0 & 0 & 0 & 1 
+\matr.
+\end{equation*}
+%\
+The value and ranges for $z$ are exported by the properties {\sf z}
+and {\sf zRange}, and the $z$ coordinate index is defined by the
+constant {\tt Z\_IDX}.  For rendering, the properties {\sf
+shaftLength} and {\sf shaftRadius} control the size of a shaft drawn
+about the sliding axis, using the {\sf faceColor} rendering property.
+A demo is provided by {\tt artisynth.demos.mech.SliderJointDemo}.
 
-\item[Spherical joint]\mbox{}
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  SliderJoint (bodyA, bodyB, originD, zaxis)
+\end{lstlisting}
+%
+creates a slider joint with a specified origin and $z$ axis direction
+for frame D (in world coordinates), and frames C and D coincident.
 
-A three DOF joint in which the origin remains fixed but any orientation
-may be assumed.
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $x$ \\
+1 & bilateral & restricts translation along $y$ \\
+2 & bilateral & restricts rotation about $x$ \\
+3 & bilateral & restricts rotation about $y$ \\
+4 & bilateral & restricts rotation about $z$ \\
+5 & unilataral & enforces limits on the $z$ coordinate \\
+\hline
+\hline
+0 & $z$ & translation of $C$ along the $z$ axis \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the slider joint.}
+\label{SliderConstraints:tbl}
+\end{table}
 
-\item[Planar connector]\mbox{}
+\subsection{Cylindrical Joint}
 
-A five DOF joint which connects a point on a single rigid body to a
-plane in space. The point may slide freely in the x-y plane, and the
-body may assume any orientation about the point.
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/cylindricalJoint}&
+   \includegraphics[width=2.333in]{images/CylindricalJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/cylindricalJoint}&
+   \includegraphics[width=2.333in]{images/CylindricalJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames (left) and demo model (right)
+for the cylindrical joint.}
+\label{CylindricalJoint:fig}
+\end{figure}
 
-\end{description}
+The \javaclass[artisynth.core.mechmodels]{CylindricalJoint} 
+(Figure \ref{CylindricalJoint:fig}) is a 2 DOF
+joint that constrains motion between frames C and D to translation and
+rotation along and about the $z$ axis of D.  It implements six
+constraints and two coordinates $z$ and $\theta$
+(Table \ref{CylindricalConstraints:tbl}), to which the joint transform
+$\T_{CD}$ is related by
+%
+\begin{equation*}
+\T_{CD} = \matl
+\cos(\theta) & -\sin(\theta) & 0 & 0 \\
+\sin(\theta) &  \cos(\theta) & 0 & 0 \\
+0 & 0 & 1 & z \\
+0 & 0 & 0 & 1 
+\matr.
+\end{equation*}
+%\
+The value and ranges for $z$ and $\theta$ are exported by the
+properties {\sf z}, {\sf theta}, {\sf zRange} and {\sf thetaRange},
+and the coordinate indices are defined by the constants {\tt Z\_IDX}
+and {\tt THETA\_IDX}. For rendering, the properties {\sf shaftLength}
+and {\sf shaftRadius} control the size of a shaft drawn about the
+sliding/rotation axis, using the {\sf faceColor} rendering property.
+A demo is provided by {\tt artisynth.demos.mech.CylindricalJointDemo}.
 
-% LATER \subsection{Joint Compliance}
-% LATER \label{JointCompliance:sec}
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  CylindricalJoint (bodyA, bodyB, originD, zaxis)
+\end{lstlisting}
+%
+creates a cylindrical joint with a specified origin and $z$ axis direction
+for frame D (in world coordinates), and frames C and D coincident.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $x$ \\
+1 & bilateral & restricts translation along $y$ \\
+2 & bilateral & restricts rotation about $x$ \\
+3 & bilateral & restricts rotation about $y$ \\
+4 & unilataral & enforces limits on the $z$ coordinate \\
+5 & unilataral & enforces limits on the $\theta$ coordinate \\
+\hline
+\hline
+0 & $z$ & translation of $C$ along the $z$ axis \\
+1 & $\theta$ & rotation of $C$ about the $z$ axis \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the cylindrical joint.}
+\label{CylindricalConstraints:tbl}
+\end{table}
+
+\subsection{Slotted Hinge Joint}
+\label{SlottedHingeJoint:sec}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/slottedHingeJoint}&
+   \includegraphics[width=2.333in]{images/SlottedHingeJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/slottedHingeJoint}&
+   \includegraphics[width=2.333in]{images/SlottedHingeJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames (left) and demo model (right)
+for the slotted hinge joint.}
+\label{SlottedHingeJoint:fig}
+\end{figure}
+
+The \javaclass[artisynth.core.mechmodels]{SlottedHingeJoint} 
+(Figure \ref{SlottedHingeJoint:fig}) is
+a 2 DOF joint that constrains motion between frames C and D to
+translation along the $x$ axis and rotation about the $z$ axis of D.
+It implements six constraints and two coordinates $x$ and $\theta$
+(Table \ref{SlottedHingeConstraints:tbl}), to which the joint
+transform $\T_{CD}$ is related by
+%
+\begin{equation}
+\T_{CD} = \matl
+\cos(\theta) & -\sin(\theta) & 0 & x \\
+\sin(\theta) &  \cos(\theta) & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 
+\matr.
+\label{SlottedHingeTCD:eqn}
+\end{equation}
+%\
+The value and ranges for $x$ and $\theta$ are exported by the
+properties {\sf x}, {\sf theta}, {\sf xRange} and {\sf thetaRange},
+and the coordinate indices are defined by the constants {\tt X\_IDX}
+and {\tt THETA\_IDX}. For rendering, the properties {\sf shaftLength}
+and {\sf shaftRadius} control the size of a shaft drawn about the
+rotation axis, while {\sf slotWidth} and {\sf slotDepth} control the
+width and depth of a slot drawn along the sliding ($x$) axis; both are
+drawn using the {\sf faceColor} rendering property. When rendering the
+slot, its bounds along the $x$ axis are set to {\sf xRange} by
+default. However, this may be too large, particularly if {\sf xRange}
+is unbounded. As an alternate, the property {\sf slotRange} will be
+used instead if its range (i.e., the upper bound minus the lower
+bound) exceeds 0.  A demo of {\tt SlottedHingeJoint} is provided by
+{\tt artisynth.demos.mech.SlottedHingeJointDemo}.
+
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  SlottedHingeJoint (bodyA, bodyB, originD, zaxis)
+\end{lstlisting}
+%
+creates a slotted hinge joint with a specified origin and $z$ axis direction
+for frame D (in world coordinates), and frames C and D coincident.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $y$ \\
+1 & bilateral & restricts translation along $z$ \\
+2 & bilateral & restricts rotation about $x$ \\
+3 & bilateral & restricts rotation about $y$ \\
+4 & unilataral & enforces limits on the $x$ coordinate \\
+5 & unilataral & enforces limits on the $\theta$ coordinate \\
+\hline
+\hline
+0 & $x$ & translation of $C$ along the $x$ axis \\
+1 & $\theta$ & rotation of $C$ about the $z$ axis \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the slotted hinge joint.}
+\label{SlottedHingeConstraints:tbl}
+\end{table}
+
+\subsection{Universal Joint}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/universalJoint}&
+   \includegraphics[width=2.333in]{images/UniversalJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/universalJoint}&
+   \includegraphics[width=2.333in]{images/UniversalJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames (left) and demo model (right)
+for the universal joint.}
+\label{UniversalJoint:fig}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $x$ \\
+1 & bilateral & restricts translation along $y$ \\
+2 & bilateral & restricts translation along $z$ \\
+3 & bilateral & restricts rotation about the final $x$ axis of C \\
+4 & unilataral & enforces limits on the roll coordinate \\
+5 & unilataral & enforces limits on the pitch coordinate \\
+\hline
+\hline
+0 & $\theta$ (roll) & first rotation of $C$ about the $z$ axis of D \\
+1 & $\phi$ (pitch) & second rotation of $C$ about the rotated $y'$ axis \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the universal joint.}
+\label{UniversalConstraints:tbl}
+\end{table}
+
+The \javaclass[artisynth.core.mechmodels]{UniversalJoint} 
+(Figure \ref{UniversalJoint:fig}) is a 2 DOF joint
+that allows C two rotational degrees of freedom with respect to D: a
+{\it roll} rotation $\theta$ about D's $z$ axis, followed by a {\it
+pitch} rotation $\phi$ about the rotated $y'$ axis. It implements six
+constraints and the two coordinates $\theta$ and $\phi$
+(Table \ref{UniversalConstraints:tbl}), to which the joint transform
+$\T_{CD}$ is related by
+%
+\begin{equation*}
+\T_{CD} = \matl
+\Cr \Cp & -\Sr & \Cr \Sp & 0 \\
+\Sr \Cp & \Cr & \Sr \Sp & 0 \\
+-\Sp & 0 & \Cp & 0 \\
+0 & 0 & 0 & 1 
+\matr,
+\end{equation*}
+%\
+where 
+%
+\begin{equation*}
+\Cr \equiv \cos(\theta),\; 
+\Sr \equiv \sin(\theta),\;
+\Cp \equiv \cos(\phi),\;
+\Sp \equiv \sin(\phi).
+\end{equation*}
+%
+The value and ranges for $\theta$ and $\phi$ are exported by the
+properties {\sf roll}, {\sf pitch}, {\sf rollRange} and {\sf
+pitchRange}, and the coordinate indices are defined by the constants
+{\tt ROLL\_IDX} and {\tt PITCH\_IDX}.  For rendering, the properties
+{\sf shaftLength} and {\sf shaftRadius} control the size of shafts
+drawn about the roll and pitch axes, while {\sf jointRadius} specifies
+the radius of a ball drawn around the origin of D; both are drawn
+using the {\sf faceColor} rendering property. A demo is provided by
+{\tt artisynth.demos.mech.UniversalJointDemo}.
+
+\subsection{Skewed Universal Joint}
+
+The \javaclass[artisynth.core.mechmodels]{SkewedUniversalJoint}
+(Figure \ref{SkewedUniversalJoint:fig}) is a version of the universal
+joint in which the pitch axis is skewed relative to its nominal direction
+by an angle $\alpha$. More precisely, let $x'$ and $y'$ be the $x$ and
+$y$ axes of C after the initial roll rotation. For a regular universal
+joint, the pitch axis is $y'$, whereas for a skewed universal joint it
+is $y'$ rotated by $\alpha$ clockwise about $x'$. The joint still has
+2 DOF, but the space of allowed rotations is reduced.
+
+\begin{figure}[hhh]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/skewedUniversalJoint}&
+   \includegraphics[width=2.333in]{images/SkewedUniversalJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/skewedUniversalJoint}&
+   \includegraphics[width=2.333in]{images/SkewedUniversalJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Left: diagram for a skewed universal joint, showing the 
+pitch axis (dotted line) skewed by an angle $\alpha$ relative to its
+nominal direction along the $y'$ axis. Right: demo model with skew
+angle of $30^\circ$.}
+\label{SkewedUniversalJoint:fig}
+\end{figure}
+
+The constraints and the coordinates are the same as for the universal
+joint, although the relationship between $\T_{CD}$ is now more complicated.
+With $\Cr$, $\Sr$, $\Cp$, and $\Sp$ defined as for the universal
+joint, $\T_{CD}$ is given by
+%
+\begin{equation*}
+\T_{CD} = \matl
+\Cr\Cp - \Sr\Sa\Sp & -\Sr\beta - \Sa\Cr\Sp & \Ca(\Cr\Sp - \Sa\Sr\Vp) & 0 \\
+\Sr\Cp + \Cr\Sa\Sp & \Cr\beta - \Sa\Sr\Sp  & \Ca(\Sr\Sp + \Sa\Cr\Vp) & 0 \\
+-\Ca \Sp           & \Ca\Sa\Vp             &  \Sa^2 + \Ca^2\Cp       & 0 \\
+0 & 0 & 0 & 1 
+\matr,
+\end{equation*}
+%\
+where 
+%
+\begin{equation*}
+\Ca \equiv \cos(\alpha), \quad
+\Sa \equiv \sin(\alpha), \quad
+\Vp \equiv 1 - \Cp, \quad \beta \equiv \Ca^2 + \Sa^2 \Cp.
+\end{equation*}
+%
+Rendering is controlled using the properties {\sf shaftLength}, {\sf
+shaftRadius} and {\sf jointRadius} in the same way as for the {\tt
+UniversalJoint}.  A demo is provided by calling {\tt
+artisynth.demos.mech.UniversalJointDemo} with the model arguments {\tt
+-skew <angDeg>}, where {\tt <angDeg>} is the desired skew angle in
+degrees.
+
+Constructors for skewed universal joints take the standard forms
+described in Section \ref{CreatingJoints:sec}, with an additional
+argument at the end indicating the skew angle:
+%
+\begin{lstlisting}[]
+  SkewedUniveralJoint (bodyA, TCA, bodyB, TCB, skewAngle)
+
+  SkewedUniveralJoint (bodyA, bodyB, TDW, skewAngle)
+
+  SkewedUniveralJoint (bodyA, bodyB, TCW, TDW, skewAngle)
+\end{lstlisting}
+%
+In addition, the constructor
+%
+\begin{lstlisting}[]
+  SkewedUniveralJoint (bodyA, bodyB, originD, rollAxis, pitchAxis)
+\end{lstlisting}
+%
+creates a skewed universal joint specifying the origin of frame D
+together with the directions of the roll and pitch axes (in world
+coordinates). Frames C and D are coincident and the skew angle is
+inferred from the angle between the axes.
+
+\subsection{Gimbal Joint}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/sphericalJoint2}&
+   \includegraphics[width=2.333in]{images/GimbalJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/sphericalJoint2}&
+   \includegraphics[width=2.333in]{images/GimbalJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames (left; rotation angles not shown) 
+and demo model (right) for the gimbal joint.}
+\label{GimbalJoint:fig}
+\end{figure}
+
+The \javaclass[artisynth.core.mechmodels]{GimbalJoint}
+(Figure \ref{GimbalJoint:fig}) is a 3 DOF spherical joint that anchors
+the origins of C and D together but otherwise allows C complete
+rotational freedom. The rotational degrees of freedom are
+parameterized by three roll-pitch-yaw angles, denoted by
+$\theta, \phi, \psi$, which define a rotation $\theta$ about D's $z$
+axis, followed by a second rotation $\phi$ about the rotated $y'$
+axis, followed by a third rotation $\psi$ about the final $x''$ axis.
+It implements six constraints and the three coordinates
+$\theta, \phi, \psi$ (Table \ref{GimbalConstraints:tbl}), to which the
+joint transform $\T_{CD}$ is related by
+%
+\begin{equation*}
+\T_{CD} = \matl
+\Cr \Cp & \Cr \Sp \Sy - \Sr \Cy & \Cr \Sp \Cy + \Sr \Sy & 0 \\
+\Sr \Cp & \Sr \Sp \Sy + \Cr \Cy & \Sr \Sp \Cy - \Cr \Sy & 0 \\
+-\Sp & \Cp \Sy & \Cp \Cy & 0 \\
+0 & 0 & 0 & 1 
+\matr,
+\end{equation*}
+%\
+where 
+%
+\begin{equation*}
+\Cr \equiv \cos(\theta),\;
+\Sr \equiv \sin(\theta),\;
+\Cp \equiv \cos(\phi),\;
+\Sp \equiv \sin(\phi),\;
+\Cy \equiv \cos(\psi),\;
+\Sy \equiv \sin(\psi).
+\end{equation*}
+%
+The value and ranges for $\theta, \phi, \psi$ are exported by the
+properties {\sf roll}, {\sf pitch}, {\sf yaw}, {\sf rollRange}, {\sf
+pitchRange}, and {\sf yawRange}, and the coordinate indices are
+defined by the constants {\tt ROLL\_IDX}, {\tt PITCH\_IDX}, and {\tt
+YAW\_IDX}. For rendering, the property {\sf jointRadius} specifies the
+radius of a ball drawn around the origin of D, using the {\sf
+faceColor} rendering property.  A demo is provided by {\tt
+artisynth.demos.mech.GimbalJointDemo}.
+
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  GimbalJoint (bodyA, bodyB, originD)
+\end{lstlisting}
+%
+creates a gimbal joint with a specified origin for frame D (in world
+coordinates), and frames C and D coincident and world aligned.
+
+\begin{sideblock}
+The constraints implementing {\tt GimbalJoint} are designed so that it
+is immune to {\it gimbal lock}, in which a degree of freedom is lost
+when $\phi = \pm \pi/2$. However, the coordinate values themselves are
+not immune to this singularity, and neither are the unilateral
+constraints which enforce limits on their values. Therefore, if
+coordinate limits are implemented, the joint should be deployed so as try
+and avoid pitch values near $\pm \pi/2$.
+\end{sideblock}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $x$ \\
+1 & bilateral & restricts translation along $y$ \\
+2 & bilateral & restricts translation along $z$ \\
+3 & unilataral & enforces limits on the roll coordinate \\
+4 & unilataral & enforces limits on the pitch coordinate \\
+5 & unilataral & enforces limits on the yaw coordinate \\
+\hline
+\hline
+0 & $\theta$ (roll) & first rotation of $C$ about the $z$ axis of D \\
+1 & $\phi$ (pitch) & second rotation of $C$ about the rotated $y'$ axis \\
+2 & $\psi$ (yaw) & third rotation of $C$ about the final $x''$ axis \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the gimbal joint.}
+\label{GimbalConstraints:tbl}
+\end{table}
+
+\subsection{Spherical Joint}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/sphericalJoint3}&
+   \includegraphics[width=2.333in]{images/SphericalJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/sphericalJoint3}&
+   \includegraphics[width=2.333in]{images/SphericalJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Left: coordinate frames of the spherical joint, showing the
+tilt angle $\phi$ between the $z$ axes of C and D.  Right: demo model
+for the spherical joint.}
+\label{SphericalJoint:fig}
+\end{figure}
+
+The \javaclass[artisynth.core.mechmodels]{SphericalJoint} (Figure
+\ref{SphericalJoint:fig}) is a 3 DOF spherical joint that, like
+\javaclass[artisynth.core.mechmodels]{GimbalJoint}, anchors the
+origins of C and D together but otherwise allows C complete rotational
+freedom. {\tt SphericalJoint} does not implement any coordinates, and
+so is conceptually more like a {\it ball} joint.  However, it does
+provide two choices for limiting its rotation:
+
+\begin{itemize}
+
+\item A limit on the {\it tilt} angle $\phi$ between
+the $z$ axes of D and C, such that
+%
+\begin{equation}
+\phi \le \phi_\text{max}.
+\end{equation}
+%
+This is intended to emulate the limit imposed by a ball joint socket.
+
+\item A limit on the total rotation, defined as follows: Let $(\u, \theta)$
+be the axis-angle representation of the rotation matrix of $\T_{CD}$,
+normalized such that $\theta \ge 0$ and $\|u\| = 1$, and let
+$\r_\text{max}$ be a three-vector giving maximum rotation angles with
+$x$, $y$, and $z$ components. Then $\theta$ is constrained by
+%
+\begin{equation}
+\theta \le \| \r_\text{max} \circ \u \|,
+\end{equation}
+%
+where $\circ$ denotes the element-wise product. If the components of
+$\r_\text{max}$ are set to a uniform value $\theta_\text{max}$, this
+simplifies to $\theta \le \theta_\text{max}$.
+
+\end{itemize}
+
+These limits can be enabled by setting the joint's properties {\sf
+isTiltLimited} and {\sf isRotationLimited}, respectively, where
+enabling one disables the other. The limit values $\phi_\text{max}$
+and $\r_\text{max}$ are managed using the properties {\sf maxTilt} and
+{\sf maxRotation}, and setting either automatically enables tilt or
+rotation limiting, as appropriate. Finally, the tilt angle $\phi$ can
+be queried using the (read-only) {\sf tilt} property.  For rendering,
+the property {\sf jointRadius} specifies the radius of a ball drawn
+around the origin of D, using the {\sf faceColor} rendering
+property. A demo of the {\tt SphericalJoint} is provided by {\tt
+artisynth.demos.mech.SphericalJointDemo}.
+
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  SphericalJoint (bodyA, bodyB, originD)
+\end{lstlisting}
+%
+creates a spherical joint with a specified origin for frame D (in
+world coordinates), and frames C and D coincident and world aligned.
+
+\begin{sideblock}
+One should use the rotation limit with some caution, as the
+orientations which it prohibits can be somewhat hard to predict,
+particularly when $\r_\text{max}$ has non-uniform values.
+\end{sideblock}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $x$ \\
+1 & bilateral & restricts translation along $y$ \\
+2 & bilateral & restricts translation along $z$ \\
+3 & unilataral & enforces either the ``tilt'' or ``rotation'' limits\\
+\hline
+\end{tabular}
+\caption{Constraints for the spherical joint.}
+\label{SphericalConstraints:tbl}
+\end{table}
+
+\subsection{Planar Joint}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/planarJoint}&
+   \includegraphics[width=2.333in]{images/PlanarJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/planarJoint}&
+   \includegraphics[width=2.333in]{images/PlanarJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames (left) and demo model (right)
+for the planar joint.}
+\label{PlanarJoint:fig}
+\end{figure}
+
+The \javaclass[artisynth.core.mechmodels]{PlanarJoint} 
+(Figure \ref{PlanarJoint:fig}) is a 3 DOF
+joint that constrains C to translation in the $x$-$y$ plane 
+and rotation about the $z$ axis of D.  It implements six
+constraints and three coordinates $x$, $y$ and $\theta$
+(Table \ref{PlanarConstraints:tbl}), to which the joint transform
+$\T_{CD}$ is related by
+%
+\begin{equation*}
+\T_{CD} = \matl
+\cos(\theta) & -\sin(\theta) & 0 & x \\
+\sin(\theta) &  \cos(\theta) & 0 & y \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 
+\matr.
+\end{equation*}
+%\
+The value and ranges for $x$, $y$ and $\theta$ are exported by the
+properties {\sf x}, {\sf y}, {\sf theta}, {\sf xRange}, {\sf yRange}
+and {\sf thetaRange}, and the coordinate indices are defined by the
+constants {\tt X\_IDX}, {\tt Y\_IDX} and {\tt THETA\_IDX}.  For
+rendering, the properties {\sf shaftLength} and {\sf shaftRadius}
+control the size of a shaft drawn about the rotation axis, using
+the {\sf faceColor} rendering property.  A demo is provided by {\tt
+artisynth.demos.mech.PlanarJointDemo}.
+
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  PlanarJoint (bodyA, bodyB, originD, zaxis)
+\end{lstlisting}
+%
+creates a planar joint with a specified origin and $z$ axis direction
+for frame D (in world coordinates), and frames C and D coincident.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $z$ \\
+1 & bilateral & restricts rotation about $x$ \\
+2 & bilateral & restricts rotation about $y$ \\
+3 & unilataral & enforces limits on the $x$ coordinate \\
+3 & unilataral & enforces limits on the $y$ coordinate \\
+5 & unilataral & enforces limits on the $\theta$ coordinate \\
+\hline
+\hline
+0 & $x$ & translation of $C$ along the $x$ axis of D \\
+1 & $y$ & translation of $C$ along the $y$ axis of D \\
+2 & $\theta$ & rotation of $C$ about the $z$ axis of D\\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the planar joint.}
+\label{PlanarConstraints:tbl}
+\end{table}
+
+\subsection{Planar Translation Joint}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/planarTranslationJoint}&
+   \includegraphics[width=2.333in]{images/PlanarTranslationJointDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/planarTranslationJoint}&
+   \includegraphics[width=2.333in]{images/PlanarTranslationJointDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Coordinate frames (left) and demo model (right)
+for the planar translation joint.}
+\label{PlanarTranslationJoint:fig}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $z$ \\
+1 & bilateral & restricts rotation about $x$ \\
+2 & bilateral & restricts rotation about $y$ \\
+3 & bilateral & restricts rotation about $z$ \\
+4 & unilataral & enforces limits on the $x$ coordinate \\
+5 & unilataral & enforces limits on the $y$ coordinate \\
+\hline
+\hline
+0 & $x$ & translation of $C$ along the $x$ axis of D \\
+1 & $y$ & translation of $C$ along the $y$ axis of D \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the planar
+translation joint.}
+\label{PlanarTranslationConstraints:tbl}
+\end{table}
+
+The \javaclass[artisynth.core.mechmodels]{PlanarTranslationJoint} 
+(Figure \ref{PlanarTranslationJoint:fig}) is a 2 DOF joint
+that is the same as the planar joint without rotation:
+C is restricted to translation in the $x$-$y$ plane of D.
+It implements six
+constraints and two coordinates $x$ and $y$
+(Table \ref{PlanarTranslationConstraints:tbl}), to which the joint transform
+$\T_{CD}$ is related by
+%
+\begin{equation*}
+\T_{CD} = \matl
+1 & 0 & 0 & x \\
+0 & 1 & 0 & y \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 
+\matr.
+\end{equation*}
+%\
+The value and ranges for $x$ and $y$ are exported by the
+properties {\sf x}, {\sf y}, {\sf xRange} and {\sf yRange},
+and the coordinate indices are defined by the
+constants {\tt X\_IDX} and {\tt Y\_IDX}.  A demo is
+provided by {\tt artisynth.demos.mech.PlanarJointDemo}.
+
+In addition to the standard constructors described in
+Section \ref{CreatingJoints:sec},
+%
+\begin{lstlisting}[]
+  PlanarTranslationJoint (bodyA, bodyB, originD, zaxis)
+\end{lstlisting}
+%
+creates a planar translation joint with a specified origin and $z$
+axis direction for frame D (in world coordinates), and frames C and D
+coincident.
+
+\subsection{Solid Joint}
+
+The \javaclass[artisynth.core.mechmodels]{SolidJoint} 
+is a 0 DOF joint that rigidly constrains C to D.  It
+implements six constraints and no coordinates
+(Table \ref{SolidJointConstraints:tbl}) and the resulting $\T_{CD}$ is the
+identity.
+
+\begin{sideblock}
+There aren't normally many uses for solid joints. If one wishes to
+create a complex rigid body by joining together a variety of shapes,
+this can be done more efficiently by making these shapes mesh
+components of a single rigid body
+(Section \ref{rigidBodyMultipleMeshes:sec}).
+\end{sideblock}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts translation along $x$ \\
+1 & bilateral & restricts translation along $y$ \\
+2 & bilateral & restricts translation along $z$ \\
+3 & bilateral & restricts rotation about $x$ \\
+4 & bilateral & restricts rotation about $y$ \\
+5 & bilateral & restricts rotation about $z$ \\
+\hline
+\end{tabular}
+\caption{Constraints for the solid joint.}
+\label{SolidJointConstraints:tbl}
+\end{table}
+
+\subsection{Planar Connector}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c}
+ \iflatexml
+   \includegraphics[width=3.00in]{images/PlanarConnectorDemo}\\
+ \else
+   \includegraphics[width=3.00in]{images/PlanarConnectorDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Demo model for the planar connector, in which
+a corner point of a box is constrained to the $x$-$y$ plane of D.}
+\label{PlanarConnector:fig}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral {\it or} unilateral & restricts translation along $z$ \\
+\hline
+\end{tabular}
+\caption{Constraints for the planar connector.}
+\label{PlanarConnectorConstraints:tbl}
+\end{table}
+
+The \javaclass[artisynth.core.mechmodels]{PlanarConnector}
+(Figure \ref{PlanarConnector:fig}) is a 5 DOF connector that attaches
+the origin of C to the $x$-$y$ plane of D. C is completely free to
+rotate, and to translate within the $x$-$y$ plane. Only motion in the
+$z$ direction is restricted. {\tt PlanarConnector} implements one
+constraint and has no coordinates
+(Table \ref{PlanarConnectorConstraints:tbl}).
+
+A {\tt PlanarConnector} constrains a point on body A (located at the
+origin of C) to move within a plane on body B. Several planar
+connectors can be employed to constrain body motions in more
+complicated ways, although one must be careful to avoid
+overconstraining the system. The connector can also be configured to
+function {\it unilaterally}, via its {\sf unilateral} property, in
+which case the point is constrained to lie in the half-space defined by
+$z \ge 0$ with respect to D. Several unilateral {\tt PlanarConnector}s
+can therefore be used to implement a cheap and approximate collision
+mechanism with fixed collision points.
+
+\begin{sideblock}
+When set to function unilaterally, overconstraining the system is not
+an issue because of the way in which ArtiSynth solves unilateral
+constraints.
+\end{sideblock}
+
+A planar connector can be rendered as a square centered on the origin
+of D, using face rendering properties and with a size given by the
+{\sf planeSize} property. The point attached to A can also be rendered
+using point rendering properties. For example,
+%
+\begin{lstlisting}[]
+  PlanarConnector connector;
+  ...
+  connector.setPlaneSize (5.0);
+  RenderProps.setFaceColor (connector, Color.LIGHT_GRAY);
+  RenderProps.setSphericalPoints (connector, 0.1, Color.BLUE);
+\end{lstlisting}
+%
+will cause {\tt connector} to be drawn as a light grey square with
+size 5, and for the point on body A to be drawn as a blue sphere with
+radius 0.1. The default value of {\sf planeSize} is 0, and drawing the
+plane is disabled by default. Also, the default {\sf faceStyle}
+rendering property for {\tt PlanarConnector} is set to {\tt
+FRONT\_AND\_BACK}, so that the plane (when drawn) can be seen from
+both sides.
+
+Constructors for the {\tt PlanarConnector} include
+%
+\begin{lstlisting}[]
+  PlanarConnector (bodyA, pCA, bodyB, TDB)
+
+  PlanarConnector (bodyA, pCA, TDW)
+
+  PlanarConnector (bodyA, bodyA, TDW)
+\end{lstlisting}
+%
+where {\tt pCA} gives the connection point of body A {\it with respect
+to frame A}, {\tt TDB} gives the transform from frame D
+to frame B, and {\tt TDW} gives the transform from frame D to world.
+
+\subsection{Segmented Planar Connector}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=1.75in]{images/segmentedPlanarnnector}&
+   \includegraphics[width=2.333in]{images/SegmentedPlaneDemo}\\
+ \else
+   \includegraphics[width=1.75in]{images/segmentedPlanarConnector}&
+   \includegraphics[width=2.333in]{images/SegmentedPlaneDemo}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{Left: cross-section in the $x$-$z$ plane of frame $D$ showing
+the segments of a segmented planar connector, with the points defining
+the segments shown as black dots.  Right: demo model for the segmented
+planar connector.}
+\label{SegmentedPlanarConnector:fig}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral {\it or} unilateral & restricts translation normal to the surface \\
+\hline
+\end{tabular}
+\caption{Constraints for the segmented planar connector.}
+\label{SegmentedPlanarConstraints:tbl}
+\end{table}
+
+The \javaclass[artisynth.core.mechmodels]{SegmentedPlanarConnector}
+(Figure \ref{SegmentedPlanarConnector:fig}) is a 5 DOF connector that
+generalizes {\tt PlanarConnector} to a piecewise linear surface, to
+which the origin of $C$ is constrained while $C$ is otherwise
+completely free to rotate. The surface is specified by a sequence of
+2D points defining a piecewise linear curve in the $x$-$z$ plane of D
+(Figure \ref{SegmentedPlanarConnector:fig}, left). This curve does not
+need to be a function; the segment nearest to C is the one used to
+enforce the constraint at any given time. The surface has infinite
+extent and is extrapolated beyond the first and last segments.  It
+implements one constraint and has no coordinates (Table
+\ref{SegmentedPlanarConstraints:tbl}).
+
+By appropriate choice of segments, a {\tt SegmentedPlanarConnector}
+can approximate any surface defined by a curve in the $x$-$z$ plane.
+As with {\tt PlanarConnector}, it can also be configured as
+unilateral, constraining the origin of $C$ to lie on the side of the
+surface defined by the normal vectors $\n_k$ of each segment $k$. If
+$\p_{k-1}$ and $\p_k$ are the points in the $x$-$z$ plane defining the
+$k$-th segment, and $\hat\y$ is the $y$ axis unit vector, then $\n_k$
+is given by
+%
+\begin{equation}
+\n_k = \frac{\u \times \hat\y}{\| \u \times \hat\y\|},
+\quad \u \equiv \p_{k} -\p_{k-1}.
+\end{equation}
+%
+
+The properties controlling the rendering of a segmented planar
+connector are the same as for a planar connector, with each of the
+individual plane segments drawn as a rectangle whose length along the
+$y$ axis is controlled by {\sf planeSize}.
+
+Constructors for a {\tt SegmentedPlanarConnector} are analogous to
+those used for {\tt PlanarConnector},
+%
+\begin{lstlisting}[]
+  SegmentedPlanarConnector (bodyA, pCA, bodyB, TDB, segs)
+
+  SegmentedPlanarConnector (bodyA, pCA, TDW, segs)
+
+  SegmentedPlanarConnector (bodyA, bodyA, TDW, segs)
+\end{lstlisting}
+%
+where {\tt segs} is an additional argument of type {\tt double[]}
+giving the 2D coordinates defining the segments in the $x$-$z$ plane.
+
+\subsection{Legacy Joints}
+
+ArtiSynth maintains three legacy joint for compatibility with earlier
+software:
+
+\begin{itemize}
+
+\item \javaclass[artisynth.core.mechmodels]{RevoluteJoint} is identical
+to the \javaclass[artisynth.core.mechmodels]{HingeJoint}, except that
+its coordinate $\theta$ is oriented {\it clockwise} about the $z$ axis
+instead of {\it counter-clockwise}. Rendering is also done
+differently, with shafts about the rotation axis drawn using
+line rendering properties.
+
+\item \javaclass[artisynth.core.mechmodels]{RollPitchJoint} is identical
+to the \javaclass[artisynth.core.mechmodels]{UniversalJoint}, except
+that its roll-pitch coordinates $\theta, \phi$ are computed with
+respect to the rotation $\R_{DC}$ from frame D to C, instead of the
+rotation $\R_{CD}$ from frame C to D. Rendering is also done
+differently, with shafts along the roll and pitch axes drawn
+using line rendering properties, and the ball around the
+origin of D drawn using point rendering properties.
+
+\item \javaclass[artisynth.core.mechmodels]{SphericalRpyJoint}
+is identical to
+the \javaclass[artisynth.core.mechmodels]{GimbalJoint}, except that
+its roll-pitch-yaw coordinates $\theta, \phi, \psi$ are computed with
+respect to the rotation $\R_{DC}$ from frame D to C, instead of the
+rotation $\R_{CD}$ from frame C to D. Rendering is also done
+differently, with the ball around the origin of D drawn using point
+rendering properties.
+
+\end{itemize}
 
 \section{Frame springs}
 \label{FrameSprings:sec}
@@ -1509,7 +3504,7 @@ The material is set using
 \javamethod*[artisynth.core.mechmodels.FrameSpring]{setMaterial()}.
 The example above uses a {\tt LinearFrameMaterial}, created with a
 constructor that sets $\k_t$, $\k_r$, $\d_t$, and $\d_r$ to uniform
-isotropic values specified by {\tt kt}, {\tt kr}, {\tt dt}, and {\tt
+Isotropic values specified by {\tt kt}, {\tt kr}, {\tt dt}, and {\tt
 dr}. 
 
 The bodies and transforms can be set in the same manner as for joints
@@ -1532,7 +3527,7 @@ As with joints, a frame spring can be connected to only a single body,
 by specifying {\tt frameB} as {\tt null}. Frame B is then taken to be
 the world coordinate frame W.
 
-\subsection{Example: Two bodies connected by a frame spring}
+\subsection{Example: two bodies connected by a frame spring}
 \label{LumbarFrameSpring:sec}
 
 \begin{figure}[ht]
@@ -1596,14 +3591,14 @@ it non-dynamic (line 47).
 \fi
 \end{center}
 \caption{LumbarFrameSpring model as it would appear if not rotated
-about the x axis.}
+about the $x$ axis.}
 \label{LumbarFrameSpringNoflip:fig}
 \end{figure}
 
 At this point in the construction, if the model were to be loaded, it
 would appear as in Figure \ref{LumbarFrameSpringNoflip:fig}. To change
 the viewpoint to that seen in Figure \ref{LumbarFrameSpring:fig}, we
-rotate the entire model about the x axis (line 50).  This is done
+rotate the entire model about the $x$ axis (line 50).  This is done
 using
 \javamethodAlt{artisynth.core.mechmodels.MechModel.transformGeometry()}
 {transformGeometry(X)}, which transforms the geometry of an entire
@@ -1675,7 +3670,7 @@ This attaches {\tt p1} to {\tt body} at the point {\tt loc} specified
 in body coordinates.  Finite element attachments are discussed in
 Section \ref{sec:fem:nodeattachments}.
 
-Once at point is attached, it
+Once a point is attached, it
 will be in the {\it attached} state, as described in Section
 \ref{DynamicVsParametric:sec}.  Attachments can be removed by
 calling
@@ -1897,3 +3892,7 @@ frame attached to {\tt bodyA} is visible in the lower right corner.
 Running the model (Section \ref{LoadingAndRunning:sec}) will cause
 both bodies to fall and swing about the joint under gravity.
 
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

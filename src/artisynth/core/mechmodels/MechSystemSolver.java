@@ -2315,7 +2315,8 @@ public class MechSystemSolver {
          for (int i=0; i<myGsize; i++) {
             gbuf[i] = -myGInfo[i].dist;
          }
-         myRg.setZero();
+         // don't zero - compliance might be needed if G has redundancies
+         //myRg.setZero();
 
          //mySys.getUnilateralOffsets (myRn, myBn, 0, MechSystem.POSITION_MODE);
          mySys.getUnilateralInfo (myNInfo);
@@ -2323,7 +2324,8 @@ public class MechSystemSolver {
          for (int i=0; i<myNsize; i++) {
             nbuf[i] = -myNInfo[i].dist;
          }
-         myRn.setZero();
+         // don't zero - compliance might be needed if N has redundancies
+         //myRn.setZero();
 
          myVel.setZero();
          myLam.setZero();
@@ -2470,7 +2472,7 @@ public class MechSystemSolver {
                gbuf[i] = 0;
             }
          }
-         myRg.setZero();
+         //myRg.setZero();
 
          //mySys.getUnilateralOffsets (myRn, myBn, 0, MechSystem.POSITION_MODE);
          mySys.getUnilateralInfo (myNInfo);
@@ -2488,8 +2490,8 @@ public class MechSystemSolver {
          // only need to do the correction if some constraints are non-compliant
          if (!allConstraintsCompliant) {
             correctionNeeded = true;
-            myRg.setZero();
-            myRn.setZero();
+            //myRg.setZero();
+            //myRn.setZero();
 
             //System.out.println ("bn=" + myBn);
             myBf.setSize (velSize);

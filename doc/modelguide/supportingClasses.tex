@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{Supporting classes}
+\input{startdoc}
+\mainmatter
+\fi
 
 \chapter{Supporting classes}
 
@@ -1272,3 +1277,8 @@ it is downloaded from the remote location.
 The \javaclass[maspack.fileutil]{FileManager} contains other features
 and functionality, and one should consult its API documentation for
 more information.
+
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

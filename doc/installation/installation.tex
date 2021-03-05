@@ -76,12 +76,23 @@ To install ArtiSynth on \SYSTEM{}, you will need:
 
 \item A three-button mouse is recommended for GUI interaction
 
+\item A machine with a good graphics card and a decent
+amount of memory (16 Gbytes at least; 32 or more is better).
+
 \end{itemize}
 
 \begin{sideblock}
 We have stopped supporting 32 bit systems, for ease of maintenance and
 because ArtiSynth applications often require more memory than 32 bit
 systems can provide.
+\end{sideblock}
+
+\begin{sideblock}
+{\bf Important: Eclipse 2020-03 compile bug.} If you are using the Eclipse
+IDE (Section \ref{EclipseIDE}), note that Eclipse 2020-03 has a bug
+that prevents {\tt artisynth\_core} from compuling properly. Either
+install the workaround described in Section \ref{EclipseCompileBug},
+or use a different version of Eclipse.
 \end{sideblock}
 
 In this document, the location of the ArtiSynth installation \directory{}
@@ -392,6 +403,13 @@ Section \ref{EclipseIDE}.
 
 \subsection{Compiling with Eclipse}
 \label{CompilingWithEclipse}
+
+\begin{sideblock}
+Note: Eclipse 2020-03 has a bug that prevents {\tt artisynth\_core}
+from compuling properly. Either install the workaround described in
+Section \ref{EclipseCompileBug}, or use a different version of
+Eclipse.
+\end{sideblock}
 
 Before using Eclipse to work with ArtiSynth projects, you should
 follow some of the basic configuration steps described in
@@ -862,6 +880,31 @@ describes how to load ArtiSynth projects into Eclipse, and how to
 configure it for running ArtiSynth. A general introduction to Eclipse
 is beyond the scope of this document, but there are many Eclipse
 resources available online.
+
+\subsection{Eclipse 2020-03 compilation bug}
+\label{EclipseCompileBug}
+
+\begin{sideblock}
+Eclipse 2020-03 has a bug that prevents {\tt artisynth\_core} from
+compiling properly:
+%
+\begin{quote}
+\href{https://bugs.eclipse.org/bugs/show_bug.cgi?id=561287}%
+{bugs.eclipse.org/bugs/show\_bug.cgi?id=561287}
+\end{quote}
+%
+\end{sideblock}
+
+This should be fixed in subsequent versions of Eclipse. Meanwhile, you
+can either install a different version of Eclipse, or use the
+following workaround: Add the line
+%
+\begin{verbatim}
+-DmaxCompiledUnitsAtOnce=0
+\end{verbatim}
+%
+to the file {\tt eclipse.ini} in the Eclipse installation directory,
+and restart Eclipse.
 
 \subsection{Installing Eclipse}
 
@@ -1986,7 +2029,6 @@ configured by placing a block of commands similar to the following in
 one of your {\tt bash} initialization files (typically {\tt
 \textasciitilde/.bashrc}), located in your home \directory{}:
 
-\ifLinux
 \begin{lstlisting}[]
 # set ARTISYNTH_HOME to the appropriate location ...
 export ARTISYNTH_HOME=$HOME/artisynth_2_X
@@ -1996,18 +2038,6 @@ export PATH=$ARTISYNTH_HOME/bin:$PATH
 # Set to the number of cores on your machine:
 export OMP_NUM_THREADS=2 
 \end{lstlisting}
-\else\ifMacOS
-\begin{lstlisting}[]
-# set ARTISYNTH_HOME to the appropriate location ...
-setenv ARTISYNTH_HOME $HOME/artisynth_2_X
-setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
-setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
-setenv PATH $ARTISYNTH_HOME/bin":"$PATH
-# Set to the number of cores on your machine:
-setenv OMP_NUM_THREADS 2 
-\end{lstlisting}
-\fi % end Linux
-\fi % end not Windows
 
 Be sure to set {\tt ARTISYNTH\_HOME} to the proper location of your
 ArtiSynth installation \directory{}.

@@ -556,12 +556,15 @@ public class CollisionHandler extends ConstrainerBase
    protected boolean vertexAttachedToCollidable (
       Vertex3d vtx, CollidableBody collidable0, CollidableBody collidable1) {
       ArrayList<ContactMaster> masters = new ArrayList<ContactMaster>();
-      collidable0.getVertexMasters (masters, vtx);
+      collidable0.collectVertexMasters (masters, vtx);
       // vertex is considered attached if 
-      // (a) all masters are completely attached to collidable1, or
-      // (b) all masters are actually contained in collidable1
-      for (int i=0; i<masters.size(); i++) {
-         DynamicComponent comp = masters.get(i).myComp;
+      // (a) all master components are completely attached to collidable1, or
+      // (b) all master components are actually contained in collidable1
+      HashSet<DynamicComponent> dcomps = new HashSet<>();
+      for (ContactMaster cm : masters) {
+         cm.collectMasterComponents (dcomps, /*activeOnly=*/false);
+      }
+      for (DynamicComponent comp : dcomps) {
          if (!isCompletelyAttached (comp, collidable0, collidable1) &&
              !isContainedIn (comp, collidable1)) {
             return false;
@@ -569,7 +572,6 @@ public class CollisionHandler extends ConstrainerBase
       }
       return true;
    }
-
 
    protected HashSet<Vertex3d> computeAttachedVertices (
       CollidableBody collidable0, CollidableBody collidable1) {
@@ -652,10 +654,6 @@ public class CollisionHandler extends ConstrainerBase
 
       updateAttachedVertices();
 
-      // if (artisynth.core.driver.Main.getMain().getTime() == 0.44) {
-      //    System.out.println ("num cpp=" + points.size());
-      // }
-      
       for (PenetratingPoint cpp : points) {
          ContactPoint pnt0, pnt1;
          pnt0 = new ContactPoint (cpp.vertex);
@@ -719,11 +717,6 @@ public class CollisionHandler extends ConstrainerBase
             if (-dist > maxpen) {
                maxpen = -dist;
             }
-
-            // if (artisynth.core.driver.Main.getMain().getTime() == 0.44) {
-            //    System.out.println (" nrml="+cons.myNormal);
-            //    System.out.println (" dist="+cons.myDistance);
-            // }
          }
       }
       return maxpen;
@@ -879,7 +872,6 @@ public class CollisionHandler extends ConstrainerBase
          System.out.println (" " + c.toString(fmtStr));
       }
       it = myBilaterals1.values().iterator();
-      System.out.println ("mesh1");
       while (it.hasNext()) {
          ContactConstraint c = it.next();
          System.out.println (" " + c.toString(fmtStr));
@@ -914,9 +906,7 @@ public class CollisionHandler extends ConstrainerBase
    private void getConstraintComponents (
       HashSet<DynamicComponent> set, Collection<ContactConstraint> contacts) {
       for (ContactConstraint cc : contacts) {
-         for (ContactMaster cm : cc.getMasters()) {
-            set.add (cm.myComp);
-         }
+         cc.collectMasterComponents (set, /*activeOnly=*/false);
       }
    }
    

@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{Finite Element Models}
+\input{startdoc}
+\mainmatter
+\fi
 
 % Scale latexml image sizes 2x
 \newlength{\imglength}
@@ -924,11 +929,12 @@ additional mesh geometries to a finite element model, and the visibility
 settings can be changed so that the default surface mesh is not rendered.  
 
 \subsection{Embedding geometry within an FEM}
+\label{FEMmeshEmbedding:sec}
 
-Any geometry of type \javaclass[maspack.geometry]{MeshBase} can be added to
-a {\tt FemModel3d}.  To do so, first position the mesh so that its vertices 
-are in the desired locations inside the FEM, then call one of the 
-{\tt FemModel3d} methods:
+Any geometry of type \javaclass[maspack.geometry]{MeshBase} can be
+added to a {\tt FemModel3d}.  To do so, first position the mesh so
+that its vertices are in the desired locations inside the FEM, then
+call one of the {\tt FemModel3d} methods:
 \begin{lstlisting}[]
 FemMeshComp addMesh ( MeshBase mesh );                // creates and returns FemMeshComp
 FemMeshComp addMesh ( String name, MeshBase mesh );
@@ -1067,6 +1073,7 @@ attachments are explicitly created.  They could also have been attached using
 \end{lstlisting}
 
 \subsection{Connecting nodes directly to elements}
+\label{elementAttachment:sec}
 
 Typically, nodes do not align in a way that makes it
 possible to connect them to other FEM models and/or points based on
@@ -1076,11 +1083,11 @@ within an FEM model. This is done using an attachment component of
 type
 \javaclass[artisynth.core.femmodels]{PointFem3dAttachment}, which
 implements an attachment where the position $\p$ and velocity $\u$ of the
-attached point is determined by a weighted sum of the positions $\p_k$ 
+attached point is determined by a weighted sum of the positions $\x_k$ 
 and velocities $\u_k$ of selected fem nodes:
 %
 \begin{equation}
-\p = \sum w_k \p_k
+\p = \sum \alpha_k \x_k
 \label{pointFemAttachment:eqn}
 \end{equation}
 %
@@ -1088,14 +1095,14 @@ Any force $\f$ acting on the attached point is then propagated back
 to the nodes, according to the relation
 %
 \begin{equation}
-\f_k = w_k \f
+\f_k = \alpha_k \f
 \label{pointFemForces:eqn}
 \end{equation}
 %
 where $\f_k$ is the force acting on node $k$ due to $\f$.  This
 relation can be derived based on the conservation of energy.
-If $\p$ is embedded within a single element, then the $\p_k$ are
-simply the element nodes and the $w_i$ are corresponding shape
+If $\p$ is embedded within a single element, then the $\x_k$ are
+simply the element nodes and the $\alpha_i$ are corresponding shape
 function values; this is known as an {\it element-based} attachment.
 On the other hand, as described below, it is sometimes desirable to
 form an attachment using a more general set of nodes that extends
@@ -1456,11 +1463,11 @@ signatures for these include:
   boolean setFromNodes (Point3d pos, Collection<FemNode> nodes)
 \end{lstlisting}
 The last two methods determine the weights automatically, using an
-inverse-distance-based calculation in which each weight $w_k$
+inverse-distance-based calculation in which each weight $\alpha_k$
 is initially computed as
 %
 \begin{equation}
-w_k = \frac{d_{\text{max}}}{d_k + d_{max}}
+\alpha_k = \frac{d_{\text{max}}}{d_k + d_{max}}
 \label{invDistWeights:eqn}
 \end{equation}
 %
@@ -1912,6 +1919,7 @@ pull tool, causing the FEM model to deform
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
 
 \subsection{Adding joints to FEM models}
+\label{FEMJoints:sec}
 
 The ability to connect frames to FEM models, as described in Section
 \ref{sec:fem:frameattachments}, makes it possible to interconnect
@@ -1988,13 +1996,12 @@ joint. The build method is shown below:
       mech.addBodyConnector (joint);
       
       // set ranges and rendering properties for the joint
-      joint.setAxisLength (0.8);
+      joint.setShaftLength (0.8);
       joint.setMinX (-0.5);
       joint.setMaxX (0.5);
-      joint.setSlotWidth (0.61);
-      RenderProps.setLineColor (joint, myJointColor);
-      RenderProps.setLineWidth (joint, 3);
-      RenderProps.setLineRadius (joint, 0.04);
+      joint.setSlotDepth (0.63);
+      joint.setSlotWidth (0.08);
+      RenderProps.setFaceColor (joint, myJointColor);
    }
 \end{lstlisting}
 \lstset{numbers=none} Lines 3-16 create a {\tt MechModel} and
@@ -2003,7 +2010,7 @@ auxiliary method {\tt addFem()} defined in the model source file.  The
 leftmost nodes of {\tt fem1} are set fixed. A {\tt
 SlottedRevoluteJoint} is then created to interconnect {\tt fem1} and
 {\tt fem2} at a location specified by {\tt TDW} (lines 19-21).  Lines
-24-30 set some parameters for the joint, along with various render
+24-29 set some parameters for the joint, along with various render
 properties.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
@@ -3367,7 +3374,7 @@ are listed in Table \ref{tbl:fem:rendering}.
 	   {\tt elementWidgetSize} & size of element to render $\in [0,1]$\\
 	   {\tt directionRenderLen} & relative length to draw fibre direction indicator $\in [0, 1]$\\
 	   {\tt directionRenderType} & where to draw directions: {\tt ELEMENT}, {\tt INTEGRATION\_POINT}\\
-	   {\tt surfaceRendering} & how to render surface: {\tt None}, {\tt Shaded}, {\tt Stress}, {\tt Strain}\\
+	   {\tt surfaceRendering} & how to render surface: {\tt None}, {\tt Shaded}, {\tt Stress}, {\tt Strain}, {\tt MAPStress}, {\tt MAPStrain}\\
 	   {\tt stressPlotRange} & range of values for stress/strain plot\\
 	   {\tt stressPlotRanging} & how to determine stress/strain plot range: {\tt Auto}, {\tt Fixed}\\
 	   {\tt colorMap} & delegate object controlling the map of stress/strain values to color\\
@@ -3401,7 +3408,9 @@ visualizations.  The property {\tt surfaceRendering} sets what to draw:\\
 & {\tt None} & no surface\\
 & {\tt Shaded} & the face color specified by the mesh's {\tt RenderProps}\\
 & {\tt Stress} & the von Mises stress\\
-& {\tt Strain} & the von Mises strain
+& {\tt Strain} & the von Mises strain\\
+& {\tt MAPStress} & Maximum absolute value principal stress\\
+& {\tt MAPStrain} & Maximum absolute value principal strain
 \end{tabular}
 \medskip\\
 The {\tt stressPlotRange} controls the range of values to use when plotting 
@@ -3548,3 +3557,8 @@ To run this example in ArtiSynth, select {\sf All demos > tutorial >
 ContactPressureRender} from the {\sf Models} menu. When run, the FEM
 models will collide and render the contact pressure on the sheet, as
 shown in Figure \ref{ContactPressureRender:fig}.
+
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

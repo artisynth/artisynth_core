@@ -10,7 +10,7 @@ import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.PlanarConnector;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.SphericalJoint;
@@ -49,6 +49,7 @@ public class CompliantConstraintDemo extends RootModel {
       RigidTransform3d XLW = new RigidTransform3d();
       RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d TCB = new RigidTransform3d();
+      RigidTransform3d TCW = new RigidTransform3d();
       RigidTransform3d XAB = new RigidTransform3d();
       PolygonalMesh mesh;
       int nslices = 16; // number of slices for approximating a circle
@@ -91,17 +92,16 @@ public class CompliantConstraintDemo extends RootModel {
 
       // joint 1
       BodyConnector joint1 = null;
-      RevoluteJoint rjoint = null;
+      HingeJoint rjoint = null;
 
       TCA.setIdentity();
       TCA.p.set (-lenx1/2, 0, 0);
       // TCA.R.mulAxisAngle (0, 1, 0, Math.PI/4);
-      TCB.set (link1.getPose());
-      TCB.mul (TCA);
-      rjoint = new RevoluteJoint (link1, TCA, TCB);
+      TCW.mul (link1.getPose(), TCA);
+      rjoint = new HingeJoint (link1, TCW);
       rjoint.setName ("joint1");
-      rjoint.setAxisLength (4);
-      RenderProps.setLineRadius(rjoint, 0.2);
+      rjoint.setShaftLength (4);
+      RenderProps.setFaceColor(rjoint, Color.BLUE);
       joint1 = rjoint;
 
       // second link
@@ -110,17 +110,6 @@ public class CompliantConstraintDemo extends RootModel {
       double lenz2 = 2;
       RigidBody link2 = new RigidBody ("link2");
 
-      if (false) // useSphericalJoint)
-      {
-         mesh =
-            MeshFactory.createRoundedCylinder (
-               leny2 / 2, lenx2, nslices, /*nsegs=*/1, /*flatBottom=*/false);
-         link2.setInertia (SpatialInertia.createBoxInertia (
-            10, leny2, leny2, lenx2));
-         XLW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
-         XLW.p.set (lenx1 / 2, lenx2 / 2, lenx1);
-         link2.setPose (XLW);
-      }
       mesh =
          MeshFactory.createRoundedCylinder (
             leny2 / 2, lenx2, nslices, /*nsegs=*/1, /*flatBottom=*/false);
@@ -145,26 +134,22 @@ public class CompliantConstraintDemo extends RootModel {
       if (useSphericalJoint) {
          TCA.setIdentity();
          TCA.p.set (-lenx2 / 2, 0, 0);
-         XAB.mulInverseLeft (link1.getPose(), link2.getPose());
-         TCB.mul (XAB, TCA);
-         SphericalJoint sjoint = new SphericalJoint (link2, TCA, link1, TCB);
-         // RevoluteJoint joint2 = new RevoluteJoint (link2, TCA, TCB);
+         TCW.mul (link2.getPose(), TCA);
+         SphericalJoint sjoint = new SphericalJoint (link2, link1, TCW);
          sjoint.setName ("joint2");
-         // RenderProps.setLineRadius(sjoint, 0.2);
-         sjoint.setAxisLength (4);
+         sjoint.setJointRadius (1.0);
+         RenderProps.setFaceColor (sjoint, Color.BLUE);
          joint2 = sjoint;
       }
       else {
          TCA.setIdentity();
          TCA.p.set (-lenx2 / 2, 0, 0);
-         // TCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
-         XAB.mulInverseLeft (link1.getPose(), link2.getPose());
-         TCB.mul (XAB, TCA);
-         rjoint = new RevoluteJoint (link2, TCA, link1, TCB);
+         TCW.mul (link2.getPose(), TCA);
+         rjoint = new HingeJoint (link2, link1, TCW);
 
          rjoint.setName ("joint2");
-         rjoint.setAxisLength (4);
-         RenderProps.setLineRadius (rjoint, 0.2);
+         rjoint.setShaftLength (4);
+         RenderProps.setFaceColor (rjoint, Color.BLUE);
          joint2 = rjoint;
       }
 

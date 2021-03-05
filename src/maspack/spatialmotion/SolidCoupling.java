@@ -28,45 +28,36 @@ public class SolidCoupling extends RigidBodyCoupling {
 //   }
 
    @Override
-   public int numBilaterals() {
-      return 6;
-   }
-
-   @Override
-   public int maxUnilaterals() {
-      return 0;
-   }
-
-   @Override
-   public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
+   public void projectToConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
       TGD.R.setIdentity();
       TGD.p.setZero();
    }
 
-   public void initializeConstraintInfo (ConstraintInfo[] info) {
-      info[0].flags = (BILATERAL|LINEAR);
-      info[1].flags = (BILATERAL|LINEAR);
-      info[2].flags = (BILATERAL|LINEAR);
-      info[3].flags = (BILATERAL|ROTARY);
-      info[4].flags = (BILATERAL|ROTARY);
-      info[5].flags = (BILATERAL|ROTARY);
-
-      info[0].wrenchC.set (1, 0, 0, 0, 0, 0);
-      info[1].wrenchC.set (0, 1, 0, 0, 0, 0);
-      info[2].wrenchC.set (0, 0, 1, 0, 0, 0);
-      info[3].wrenchC.set (0, 0, 0, 1, 0, 0);
-      info[4].wrenchC.set (0, 0, 0, 0, 1, 0);
-      info[5].wrenchC.set (0, 0, 0, 0, 0, 1);
+   public void initializeConstraints () {
+      addConstraint (BILATERAL|LINEAR, new Wrench (1, 0, 0, 0, 0, 0));
+      addConstraint (BILATERAL|LINEAR, new Wrench (0, 1, 0, 0, 0, 0));
+      addConstraint (BILATERAL|LINEAR, new Wrench (0, 0, 1, 0, 0, 0));
+      addConstraint (BILATERAL|ROTARY, new Wrench (0, 0, 0, 1, 0, 0));
+      addConstraint (BILATERAL|ROTARY, new Wrench (0, 0, 0, 0, 1, 0));
+      addConstraint (BILATERAL|ROTARY, new Wrench (0, 0, 0, 0, 0, 1));
    }
 
    @Override
-   public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TCD,
-      RigidTransform3d XERR, boolean setEngaged) {
-      //projectToConstraint (TGD, TCD);
-
-      //myXFC.mulInverseLeft (TGD, TCD);
-      myErr.set (XERR);
-      setDistancesAndZeroDerivatives (info, 6, myErr);
+   public void updateConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
+      Twist velGD, boolean updateEngaged) {
+      // nothing to do - constraints are constant, and distances will
+      // have been computed automatically
    }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void coordinatesToTCD (
+      RigidTransform3d TCD, VectorNd coords) {
+      TCD.setIdentity();
+   }
+
+
 }

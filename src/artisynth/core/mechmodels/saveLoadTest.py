@@ -27,7 +27,7 @@ PardisoSolver.setDefaultNumThreads (1)
 main.maskFocusStealing (True)
 
 #testSaveLoad ("JawHemi") // Doesn't work
-#testSaveLoad ("Articulator") // Doesn't work
+#testSaveLoad ("Articulator") // Doesn'twork
 #testSaveLoad ("JawFemMuscleTongue") // Doesn't work
 
 testSaveLoad ("artisynth.demos.mech.SpringMeshDemo")
@@ -136,6 +136,26 @@ testSaveLoad ("artisynth.demos.test.ShellShellAttach")
 testSaveLoad ("artisynth.demos.test.ShellShellAttach", "-membrane1");
 testSaveLoad ("artisynth.demos.test.ShellShellAttach", "-membrane1", "-membrane2");
 testSaveLoad ("artisynth.demos.test.ShellShellAttach", "-membrane2");
+
+testSaveLoad ("artisynth.demos.fem.SkinCollisionTest");
+testSaveLoad ("artisynth.demos.tutorial.AllBodySkinning")
+testSaveLoad ("artisynth.demos.tutorial.PhalanxSkinWrapping")
+testSaveLoad ("artisynth.demos.tutorial.SkinBodyCollide")
+testSaveLoad ("artisynth.demos.test.ActuatedSkinning")
+testSaveLoad ("artisynth.demos.test.ActuatedSkinning", "-dq")
+
+testSaveLoad ("artisynth.demos.test.PointPlaneForceTest")
+testSaveLoad ("artisynth.demos.test.PointPlaneForceTest", "-quadratic")
+
+testSaveLoad ("artisynth.demos.mech.HingeJointDemo")
+testSaveLoad ("artisynth.demos.mech.SliderJointDemo")
+testSaveLoad ("artisynth.demos.mech.CylindricalJointDemo")
+testSaveLoad ("artisynth.demos.mech.SlottedHingeJointDemo")
+testSaveLoad ("artisynth.demos.mech.UniversalJointDemo")
+testSaveLoad ("artisynth.demos.mech.SphericalJointDemo")
+testSaveLoad ("artisynth.demos.mech.GimbalJointDemo")
+testSaveLoad ("artisynth.demos.mech.PlanarJointDemo")
+testSaveLoad ("artisynth.demos.mech.PlanarTranslationJointDemo")
 
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 

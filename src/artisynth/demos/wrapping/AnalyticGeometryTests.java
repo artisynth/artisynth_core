@@ -48,7 +48,7 @@ import maspack.widgets.LabeledComponentBase;
 public class AnalyticGeometryTests extends ParametricTestBase {
 
    boolean specialSphereTest = false;
-   boolean sphereOriginInsertion = true;
+   boolean sphereOriginInsertion = false;
 
    // settings for sphere animation frames in paper:
    // sphereOriginInsertion = true;

@@ -14,9 +14,10 @@ public class PlanarCoupling extends RigidBodyCoupling {
    private Vector3d myNrm = new Vector3d(0, 0, 1);
 
    public void setUnilateral (boolean unilateral) {
-      myUnilateral = unilateral;
-      // re-initialize
-      resetConstraintInfo();  // re-initialize based on changed info
+      if (myUnilateral != unilateral) {
+         getConstraint(0).setUnilateral (unilateral);
+         myUnilateral = unilateral;
+      }
    }
 
    public boolean isUnilateral() {
@@ -49,7 +50,7 @@ public class PlanarCoupling extends RigidBodyCoupling {
 //   }
 
    @Override
-   public int maxUnilaterals() {
+   public int numUnilaterals() {
       return myUnilateral ? 1 : 0;
    }
 
@@ -59,51 +60,42 @@ public class PlanarCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
+   public void projectToConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
       TGD.set (TCD);
       TGD.p.scaledAdd (-TGD.p.dot (myNrm), myNrm);
    }
 
-   public void initializeConstraintInfo (ConstraintInfo[] info) {
-      info[0].flags = LINEAR;
-      if (!myUnilateral) {
-         info[0].flags |= BILATERAL;
+   public void initializeConstraints () {
+      if (!myUnilateral){
+         addConstraint (BILATERAL|LINEAR);
+      }
+      else {
+         addConstraint (LINEAR);
       }
    }
 
    @Override
-   public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TCD, 
-      RigidTransform3d XERR, boolean setEngaged) {
-      
-      //projectToConstraint (TGD, TCD);
-
-      // wrench force is the plane normal, which is (0,0,1) in D
-      // coordinates, transformed to C, and so is given by the
-      // last column of inv(TGD.R), or the last row of TGD.R
-      myErr.set (XERR);
+   public void updateConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC, 
+      Twist velGD, boolean updateEngaged) {
       
       Vector3d nrmC = new Vector3d();
       nrmC.inverseTransform (TGD.R, myNrm);
 
-      //info[0].wrenchC.f.set (TGD.R.m20, TGD.R.m21, TGD.R.m22);
-      info[0].wrenchC.f.set (nrmC.x, nrmC.y, nrmC.z);
-      info[0].wrenchC.m.setZero();
-      //double d = TCD.p.z;
-      double d = info[0].wrenchC.dot (myErr);
-
-      info[0].distance = d;
-      info[0].coordinate = d;
-      info[0].dotWrenchC.setZero();
-      if (setEngaged) {
-         if (myUnilateral && d < getContactDistance()) {
-            info[0].engaged = 1;
-         }
+      RigidBodyConstraint cons = getConstraint(0);
+      cons.wrenchG.m.setZero();
+      cons.wrenchG.f.set (nrmC);
+      double d = cons.wrenchG.dot (errC);
+      if (updateEngaged && myUnilateral) {
+         updateEngaged (cons, d, 0, INF, velGD);
       }
+      cons.distance = d;
+      cons.dotWrenchG.setZero();
    }
 
    public void transformGeometry (
-      GeometryTransformer gt, RigidTransform3d TFW, RigidTransform3d TDW) {
+      GeometryTransformer gt, RigidTransform3d TCW, RigidTransform3d TDW) {
       
       Vector3d nrm = new Vector3d (myNrm);
       RotationMatrix3d RDW = new RotationMatrix3d(TDW.R);
@@ -122,15 +114,19 @@ public class PlanarCoupling extends RigidBodyCoupling {
       myNrm.set (nrm);
    }
 
-//   /**
-//    * For planar couplings, we do not change F relative to A when D changes
-//    * relative to the world. This method hence becomes a noop.
-//    * 
-//    * @param XAW
-//    * new pose of body A in world coordinates
-//    * @param XBW
-//    * pose of body B in world coordinates
-//    */
-//   public void updateXFA (RigidTransform3d XAW, RigidTransform3d XBW) {
-//   }
+   /**
+    * {@inheritDoc}
+    */
+   public void coordinatesToTCD (
+      RigidTransform3d TCD, VectorNd coords) {
+      TCD.setIdentity();
+   }
+
+   public PlanarCoupling clone() {
+      PlanarCoupling copy = (PlanarCoupling)super.clone();
+
+      copy.myNrm = new Vector3d(myNrm);
+      return copy;
+   }
+
 }

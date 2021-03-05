@@ -4,6 +4,9 @@ PDF_TARG = ../pdf/updates.pdf
 
 .PHONY: html pdf sectioned infocenter
 
+IMG_FILES = $(wildcard images/*.png images/*.jpg images/menu/*.png)
+EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
+
 html: $(HTML_DIR)/updates.html
 
 sectioned: # ignore
@@ -15,7 +18,7 @@ pdf: $(PDF_TARG)
 $(PDF_TARG): updates.pdf
 	cp updates.pdf $(PDF_TARG)
 
-updates.pdf: updates.tex
+updates.pdf: updates.tex $(EPS_FILES)
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) updates.ps
 

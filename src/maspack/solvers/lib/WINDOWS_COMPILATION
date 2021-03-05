@@ -1,3 +1,11 @@
+Mar 4, 2021
+-----------
+
+Upgraded to MKL on oneAPI, version 2020.1.1, which was installed under
+'Program Files (x86)\Intel\oneAPI'. A couple of path names changed,
+everything else is mostly the same, *except* that I couldn't find
+libiomp5md.lib in MKL 2021, so I used the version from MKL 2020.4.
+
 Dec 2, 2020
 -----------
 

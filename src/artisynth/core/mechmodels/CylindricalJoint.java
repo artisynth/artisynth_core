@@ -30,275 +30,364 @@ import maspack.util.DoubleInterval;
 import maspack.util.ReaderTokenizer;
 
 /**
- * Implements a 2 DOF cylindrical joint
+ * Implements a 2 DOF cylindrical joint, in which frame C rotates
+ * <i>clockwise</i> about the z axis of frame D by an angle {@code theta}, and
+ * also translates along the z axis of D by a distance {@code z}.
+ *
+ * <p>The {@code theta} and {@code z} values are available as properties (with
+ * {@code theta} given in degrees) which can be read and also, under
+ * appropriate circumstances, set.  Setting these values causes an adjustment
+ * in the positions of one or both bodies connected to this joint, along with
+ * adjacent bodies connected to them, with preference given to bodies that are
+ * not attached to ``ground''.  If this is done during simulation, and
+ * particularly if one or both of the bodies connected to this joint are moving
+ * dynamically, the results will be unpredictable and will likely conflict with
+ * the simulation.
  */
 public class CylindricalJoint extends JointBase 
    implements CopyableComponent {
 
-   public static PropertyList myProps =
-      new PropertyList (CylindricalJoint.class, JointBase.class);
+   public static final int Z_IDX = CylindricalCoupling.Z_IDX; 
+   public static final int THETA_IDX = CylindricalCoupling.THETA_IDX; 
 
    private static DoubleInterval DEFAULT_Z_RANGE =
       new DoubleInterval ("[-inf,inf])");
-   private DoubleInterval myZRange = new DoubleInterval(DEFAULT_Z_RANGE);
 
    private static DoubleInterval DEFAULT_THETA_RANGE =
       new DoubleInterval ("[-inf,inf])");
-   private DoubleInterval myThetaRange = new DoubleInterval(DEFAULT_THETA_RANGE);
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createPointLineProps (host);
-      props.setLineColor (Color.BLUE);
-      props.setLineStyle (LineStyle.CYLINDER);
-      return props;
-   }
-
-   protected static VectorNd ZERO_VEC = new VectorNd(6);
+   public static PropertyList myProps =
+      new PropertyList (CylindricalJoint.class, JointBase.class);
 
    static {
-      myProps.add ("theta", "joint angle", 0, "1E %8.3f [-360,360]");
+      myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
       myProps.add ("z", "slider distance", 0);
       myProps.add (
          "zRange", "range for z", DEFAULT_Z_RANGE);
-      myProps.get ("renderProps").setDefaultValue (defaultRenderProps (null));
-      myProps.add (
-         "compliance", "compliance for each constraint", ZERO_VEC);
-      myProps.add (
-         "damping", "damping for each constraint", ZERO_VEC);
    }
-
-   public double getTheta() {
-      RigidTransform3d TGD = null;
-      if (attachmentsInitialized()) {
-         // initialize TGD to TCD; it will get projected to TGD within
-         TGD = new RigidTransform3d();
-         getCurrentTCD (TGD);
-      }
-      double theta = Math.toDegrees (
-         ((CylindricalCoupling)myCoupling).getTheta(TGD));
-      return theta;
-   }
-
-   public void setTheta (double theta) {
-      theta = myThetaRange.makeValid (theta);
-      RigidTransform3d TGD = null;
-      if (isConnectedToBodies()) {
-         TGD = new RigidTransform3d();
-         getCurrentTCD (TGD);
-      }     
-      ((CylindricalCoupling)myCoupling).setTheta(TGD, Math.toRadians(theta));
-      if (TGD != null) {
-         // if we are connected to the hierarchy, adjust the poses of the
-         // attached bodies appropriately.
-         adjustPoses (TGD);
-      }
-   }
-
-   public DoubleInterval getThetaRange () {
-      return myThetaRange;
-   }
-
-   public void setThetaRange (DoubleInterval range) {
-      CylindricalCoupling coupling = (CylindricalCoupling)myCoupling;
-      coupling.setMaximumTheta (Math.toRadians(range.getUpperBound()));
-      coupling.setMinimumTheta (Math.toRadians(range.getLowerBound()));
-      myThetaRange.set (range);
-      if (isConnectedToBodies()) {
-         // if we are connected to the hierarchy, might have to update theta
-         double theta = getTheta();
-         double clipped = myThetaRange.clipToRange (theta);
-         if (clipped != theta) {
-            setTheta (clipped);
-         }
-      }
-   }
-   
-   public void setThetaRange(double min, double max) {
-      setThetaRange(new DoubleInterval(min, max));
-   }
-
-   public double getZ() {
-      RigidTransform3d TGD = null;
-      if (attachmentsInitialized()) {
-         // initialize TGD to TCD; it will get projected to TGD within
-         TGD = new RigidTransform3d();
-         getCurrentTCD (TGD);
-      }
-      double z = ((CylindricalCoupling)myCoupling).getZ(TGD);
-      return z;
-   }
-
-   public void setZ (double z) {
-      z = myZRange.makeValid (z);
-      RigidTransform3d TGD = null;
-      if (isConnectedToBodies()) {
-         TGD = new RigidTransform3d();
-         getCurrentTCD (TGD);
-      }     
-      ((CylindricalCoupling)myCoupling).setZ(TGD, z);
-      if (TGD != null) {
-         // if we are connected to the hierarchy, adjust the poses of the
-         // attached bodies appropriately.
-         adjustPoses (TGD);
-      }
-   }
-
-   public DoubleInterval getZRange () {
-      return myZRange;
-   }
-
-   public void setZRange (DoubleInterval range) {
-      CylindricalCoupling coupling = (CylindricalCoupling)myCoupling;
-      coupling.setMaximumZ (range.getUpperBound());
-      coupling.setMinimumZ (range.getLowerBound());
-      myZRange.set (range);
-      if (isConnectedToBodies()) {
-         // if we are connected to the hierarchy, might have to update z
-         double z = getZ();
-         double clipped = myZRange.clipToRange (z);
-         if (clipped != z) {
-            setZ (clipped);
-         }
-      }
-   }
-   
-   public void setZRange(double min, double max) {
-      setZRange(new DoubleInterval(min, max));
-   }
-
-   // public NumericIntervalRange getZRangeRange() {
-   //    return new NumericIntervalRange (DEFAULT_Z_RANGE);
-   // }
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
 
-   public void setDefaultValues() {
-      super.setDefaultValues();
-      //setZRange (DEFAULT_Z_RANGE);
-      setRenderProps (defaultRenderProps (null));
-   }
-
+   /**
+    * Creates a {@code CylindricalJoint} which is not attached to any bodies.  It
+    * can subsequently be connected using one of the {@code setBodies} methods.
+    */
    public CylindricalJoint() {
-      myZRange = new DoubleInterval();
-      myThetaRange = new DoubleInterval();
-      myCoupling = new CylindricalCoupling ();
+      CylindricalCoupling coupling = new CylindricalCoupling ();
+      coupling.setThetaClockwise (false);
+      setCoupling (coupling);
       setZRange (DEFAULT_Z_RANGE);
       setThetaRange (DEFAULT_THETA_RANGE);
-      myCoupling.setBreakSpeed (1e-8);
-      myCoupling.setBreakAccel (1e-8);
-      myCoupling.setContactDistance (1e-8);
    }
 
-   public CylindricalJoint (RigidBody bodyA, RigidTransform3d TCA,
-   RigidBody bodyB, RigidTransform3d XDB) {
-      this();
-      setBodies (bodyA, TCA, bodyB, XDB);
-   }
-
-   public CylindricalJoint (RigidBody bodyA, RigidTransform3d TCA,
-   RigidTransform3d TDW) {
-      this();
-      setBodies (bodyA, TCA, null, TDW);
-   }
-   
-   public CylindricalJoint (ConnectableBody bodyA, RigidTransform3d TCW) {
-      this();
-
-      setBodies (bodyA, null, TCW);
-   }
-
+   /**
+    * Creates a {@code CylindricalJoint} connecting two rigid bodies, {@code
+    * bodyA} and {@code bodyB}. If A and B describe the coordinate frames of
+    * {@code bodyA} and {@code bodyB}, then {@code TCA} and {@code TDB} give
+    * the (fixed) transforms from the joint's C and D frames to A and B,
+    * respectively. Since C and D are specified independently, the joint
+    * transform TCD may not necessarily be initialized to the identity.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground, with {@code TDB} then being the same as {@code
+    * TDW}.
+    *
+    * @param bodyA rigid body A
+    * @param TCA transform from joint frame C to body frame A
+    * @param bodyB rigid body B (or {@code null})
+    * @param TDB transform from joint frame D to body frame B
+    */
    public CylindricalJoint (
-      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TCW) {
+      RigidBody bodyA, RigidTransform3d TCA,
+      RigidBody bodyB, RigidTransform3d TDB) {
       this();
-      setBodies (bodyA, bodyB, TCW);
+      setBodies (bodyA, TCA, bodyB, TDB);
    }
 
+   /**
+    * Creates a {@code CylindricalJoint} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames C and D are located
+    * independently with respect to world coordinates by {@code TCW} and {@code
+    * TDW}.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground.
+    *
+    * @param bodyA body A
+    * @param bodyB body B (or {@code null})
+    * @param TCW initial transform from joint frame C to world
+    * @param TDW initial transform from joint frame D to world
+    */
    public CylindricalJoint (
-      RigidBody bodyA, ConnectableBody bodyB, Point3d pc, Vector3d axis) {
+      ConnectableBody bodyA, ConnectableBody bodyB,
+      RigidTransform3d TCW, RigidTransform3d TDW) {
       this();
-      RigidTransform3d TCW = new RigidTransform3d();
-      TCW.p.set (pc);
-      TCW.R.setZDirection (axis);
-      setBodies (bodyA, bodyB, TCW);
+      setBodies (bodyA, bodyB, TCW, TDW);
+   }
+
+   /**
+    * Creates a {@code CylindricalJoint} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames D and C are assumed to
+    * be initially coincident, so that {@code theta} and {@code z} will have
+    * initial values of 0. D (and C) is located by {@code TDW}, which gives the
+    * transform from D to world coordinates.
+    *
+    * @param bodyA body A
+    * @param bodyB body B
+    * @param TDW initial transform from joint frames D and C to world
+    */
+   public CylindricalJoint (
+      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
+      this();
+      setBodies (bodyA, bodyB, TDW);
+   }
+
+   /**
+    * Creates a {@code CylindricalJoint} connecting a single connectable body,
+    * {@code bodyA}, to ground. The joint frames D and C are assumed to be
+    * initially coincident, so that {@code theta} and {@code z} will have
+    * initial values of 0. D (and C) is located by {@code TDW}, which gives the
+    * transform from D to world coordinates.
+    *
+    * @param bodyA body A
+    * @param TDW initial transform from joint frames D and C to world
+    */
+   public CylindricalJoint (ConnectableBody bodyA, RigidTransform3d TDW) {
+      this();
+
+      setBodies (bodyA, null, TDW);
+   }
+
+   /**
+    * Creates a {@code CylindricalJoint} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames D and C are assumed to
+    * be initially coincident, so that {@code theta} and {@code z} will have
+    * initial values of 0. D (and C) is located (with respect to world) so that
+    * its origin is at {@code pd} and its z axis in the direction of {@code
+    * zaxis}.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground.
+    *
+    * @param bodyA body A
+    * @param bodyB body B, or {@code null} if {@code bodyA} is connected
+    * to ground.
+    * @param originD origin of frame D (world coordinates)
+    * @param zaxis direction of frame D's z axis (world coordinates)
+    */
+   public CylindricalJoint (
+      RigidBody bodyA, ConnectableBody bodyB, Point3d originD, Vector3d zaxis) {
+      this();
+      RigidTransform3d TDW = new RigidTransform3d();
+      TDW.p.set (originD);
+      TDW.R.setZDirection (zaxis);
+      setBodies (bodyA, bodyB, TDW);
    }   
 
-   public RenderProps createRenderProps() {
-      return defaultRenderProps (this);
+   /**
+    * Queries this joint's theta value, in degrees. See {@link #setTheta} for
+    * more details.
+    *
+    * @return current theta value
+    */
+   public double getTheta() {
+      return RTOD*getCoordinate (THETA_IDX);
    }
 
+   /**
+    * Sets this joint's theta value, in degrees. This describes the clockwise
+    * rotation of frame C about the z axis of frame D. See this class's Javadoc
+    * header for a discussion of what happens when this value is set.
+    *
+    * @param theta new theta value
+    */
+   public void setTheta (double theta) {
+      setCoordinate (THETA_IDX, DTOR*theta);
+   }
+
+   /**
+    * Queries the theta range limits for this joint, in degrees. See {@link
+    * #setThetaRange(DoubleInterval)} for more details.
+    *
+    * @return theta range limits for this joint
+    */
+   public DoubleInterval getThetaRange () {
+      return getCoordinateRangeDeg (THETA_IDX);
+   }
+
+   /**
+    * Queries the lower theta range limit for this joint, in degrees.
+    *
+    * @return lower theta range limit
+    */
+   public double getMinTheta () {
+      return getMinCoordinateDeg (THETA_IDX);
+   }
+
+   /**
+    * Queries the upper theta range limit for this joint, in degrees.
+    *
+    * @return upper theta range limit
+    */
+   public double getMaxTheta () {
+      return getMaxCoordinateDeg (THETA_IDX);
+   }
+
+   /**
+    * Sets the theta range limits for this joint, in degrees. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If theta travels beyond
+    * these limits during dynamic simulation, unilateral constraints will be
+    * activated to enforce them. Setting the lower limit to {@code -inf} or the
+    * upper limit to {@code inf} removes the lower or upper limit,
+    * respectively. Specifying {@code range} as {@code null} will set the range
+    * to {@code (-inf, inf)}.
+    *
+    * @param range theta range limits for this joint
+    */
+   public void setThetaRange (DoubleInterval range) {
+      setCoordinateRangeDeg (THETA_IDX, range);
+   }
+   
+   /**
+    * Sets the theta range limits for this joint, in degrees. This is a
+    * convenience wrapper for {@link #setThetaRange(DoubleInterval)}.
+    *
+    * @param min minimum theta value
+    * @param max maximum theta value
+    */
+   public void setThetaRange(double min, double max) {
+      setThetaRange(new DoubleInterval(min, max));
+   }
+
+   /**
+    * Sets the upper theta range limit for this joint, in degrees. Setting a
+    * value of {@code inf} removes the upper limit.
+    *
+    * @param max upper theta range limit
+    */
    public void setMaxTheta (double max) {
-      double min = myThetaRange.getLowerBound();
-      setThetaRange (new DoubleInterval (min, max));
+      setThetaRange (new DoubleInterval (getMinTheta(), max));
    }
 
+   /**
+    * Sets the lower theta range limit for this joint, in degrees. Setting a
+    * value of {@code -inf} removes the lower limit.
+    *
+    * @param min lower theta range limit
+    */
    public void setMinTheta (double min) {
-      double max = myThetaRange.getUpperBound();
-      setThetaRange (new DoubleInterval (min, max));
+      setThetaRange (new DoubleInterval (min, getMaxTheta()));
    }
 
+   /**
+    * Queries this joint's z value. See {@link #setZ} for more details.
+    *
+    * @return current z value
+    */
+   public double getZ() {
+      return getCoordinate (Z_IDX);
+   }
+
+   /**
+    * Sets this joint's z value. This describes the displacement of frame C
+    * along the z axis of frame D. See this class's Javadoc header for a
+    * discussion of what happens when this value is set.
+    *
+    * @param z new z value
+    */
+   public void setZ (double z) {
+      setCoordinate (Z_IDX, z);
+   }
+
+   /**
+    * Queries the z range limits for this joint. See {@link
+    * #setZRange(DoubleInterval)} for more details.
+    *
+    * @return z range limits for this joint
+    */
+   public DoubleInterval getZRange () {
+      return getCoordinateRange (Z_IDX);
+   }
+
+   /**
+    * Queries the lower z range limit for this joint, in degrees.
+    *
+    * @return lower z range limit
+    */
+   public double getMinZ () {
+      return getMinCoordinate (Z_IDX);
+   }
+
+   /**
+    * Queries the upper z range limit for this joint, in degrees.
+    *
+    * @return upper z range limit
+    */
+   public double getMaxZ () {
+      return getMaxCoordinate (Z_IDX);
+   }
+
+    /**
+    * Sets the z range limits for this joint. The default range is {@code
+    * [-inf, inf]}, which implies no limits. If z travels beyond these limits
+    * during dynamic simulation, unilateral constraints will be activated to
+    * enforce them. Setting the lower limit to {@code -inf} or the upper limit
+    * to {@code inf} removes the lower or upper limit, respectively. Specifying
+    * {@code range} as {@code null} will set the range to {@code (-inf, inf)}.
+    *
+    * @param range z range limits for this joint
+    */
+   public void setZRange (DoubleInterval range) {
+      setCoordinateRange (Z_IDX, range);
+   }
+   
+   /**
+    * Sets the z range limits for this joint. This is a
+    * convenience wrapper for {@link #setZRange(DoubleInterval)}.
+    *
+    * @param min minimum z value
+    * @param max maximum z value
+    */
+   public void setZRange(double min, double max) {
+      setZRange(new DoubleInterval(min, max));
+   }
+
+   /**
+    * Sets the upper z range limit for this joint. Setting a
+    * value of {@code inf} removes the upper limit.
+    *
+    * @param max upper z range limit
+    */
    public void setMaxZ (double max) {
-      double min = myZRange.getLowerBound();
-      setZRange (new DoubleInterval (min, max));
+      setZRange (new DoubleInterval (getMinZ(), max));
    }
 
+   /**
+    * Sets the lower z range limit for this joint. Setting a
+    * value of {@code -inf} removes the lower limit.
+    *
+    * @param min lower z range limit
+    */
    public void setMinZ (double min) {
-      double max = myZRange.getUpperBound();
-      setZRange (new DoubleInterval (min, max));
+      setZRange (new DoubleInterval (min, getMaxZ()));
    }
 
-   private void computeAxisEndPoints (
-      Point3d p0, Point3d p1, RigidTransform3d TDW) {
-      Vector3d uW = new Vector3d(); // joint axis vector in world coords
-
-      // first set p0 to contact center in world coords
-      p0.set (TDW.p);
-      // now get axis unit vector in world coords
-      uW.set (TDW.R.m02, TDW.R.m12, TDW.R.m22);
-      p0.scaledAdd (-0.5 * myAxisLength, uW, p0);
-      p1.scaledAdd (myAxisLength, uW, p0);
-   }
+   /* --- begin Renderable implementation --- */
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      Point3d p0 = new Point3d();
-      Point3d p1 = new Point3d();
-      computeAxisEndPoints (p0, p1, getCurrentTDW());
-      p0.updateBounds (pmin, pmax);
-      p1.updateBounds (pmin, pmax);
+      super.updateBounds (pmin, pmax);
+      updateZShaftBounds (pmin, pmax, getCurrentTDW(), getShaftLength());
    }
 
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
-
-      if (myAxisLength > 0) {
-         Point3d p0 = new Point3d();
-         Point3d p1 = new Point3d();
-         computeAxisEndPoints (p0, p1, myRenderFrameD);
-   
-         float[] coords0 = new float[] { (float)p0.x, (float)p0.y, (float)p0.z };
-         float[] coords1 = new float[] { (float)p1.x, (float)p1.y, (float)p1.z };
-   
-         renderer.drawLine (myRenderProps, coords0, coords1,
-                            /*color=*/null, /*capped=*/true, isSelected());
-      }
+      renderZShaft (renderer, myRenderFrameD);
    }
 
-   @Override
-   public ModelComponent copy (
-      int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      CylindricalJoint copy = (CylindricalJoint)super.copy (flags, copyMap);
-      copy.myCoupling = new CylindricalCoupling ();
-      // copy.setNumConstraints (5);
-      copy.setAxisLength (myAxisLength);
-      copy.setRenderProps (getRenderProps());
-      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
-      copy.setZRange (myZRange);
-      copy.setThetaRange (myThetaRange);
-      return copy;
-   }
-
+   /* --- end Renderable implementation --- */
 }
 

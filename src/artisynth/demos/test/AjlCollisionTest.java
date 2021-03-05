@@ -473,7 +473,7 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
 
-      if (true) {
+      if (false) {
          String dataDir = 
             PathFinder.expand (
                "${srcdir PolygonalMesh}/sampleData/");
@@ -511,6 +511,21 @@ public class AjlCollisionTest extends RootModel {
          try {
             mesh0 = new PolygonalMesh (dataDir+"ACLC01-R-femur-cart-072715.obj");
             mesh1 = new PolygonalMesh (dataDir+"ACLC01-R-tibia-cart-072715.obj");
+         }
+         catch (Exception e) {
+            e.printStackTrace(); 
+         }
+         setupBodies (myMech, mesh0, mesh1);
+      }
+      
+      if (true) {
+         String dataDir = 
+            PathFinder.expand (
+               "${srcdir AjlCollisionTest}/data/");
+         
+         try {
+            mesh1 = new PolygonalMesh (dataDir+"clipmesh.obj");
+            mesh0 = new PolygonalMesh (dataDir+"PatientMesh.obj");
          }
          catch (Exception e) {
             e.printStackTrace(); 

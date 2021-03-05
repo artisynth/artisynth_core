@@ -121,7 +121,7 @@ public class WrappedMuscleArm extends RootModel {
          return;
       }
         
-      RevoluteJoint j = new RevoluteJoint();
+      HingeJoint j = new HingeJoint();
       j.setName("elbow");
         
       RigidTransform3d TCA = new RigidTransform3d();
@@ -131,7 +131,8 @@ public class WrappedMuscleArm extends RootModel {
       TCW.R.setAxisAngle(1,0,0,Math.PI/2);
 
       j.setBodies (lowerArm, TCA, null, TCW);
-      j.setAxisLength(len/3);
+      j.setShaftLength(len/3);
+      RenderProps.setFaceColor (j, Color.BLUE);
       model.addBodyConnector(j);
         
       upperArm.setDynamic(false);

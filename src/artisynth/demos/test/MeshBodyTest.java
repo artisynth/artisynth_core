@@ -9,10 +9,13 @@ import artisynth.core.mechmodels.*;
 import artisynth.core.util.*;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.gui.*;
+import artisynth.core.probes.*;
 import maspack.geometry.*;
+import maspack.interpolation.Interpolation;
 import maspack.geometry.io.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.util.PathFinder;
 import maspack.render.Renderer.Shading;
 import maspack.properties.*;
 
@@ -211,17 +214,32 @@ public class MeshBodyTest extends RootModel {
          mesh = WavefrontReader.readFromString (outerDense, /*zeroIndexed=*/true);
       }
       
+      if (false) {
+         mesh = MeshFactory.createRoundedBox (
+            4.0, 2.0, 1.0, 4, 2, 1, 20);
+         mesh.transform (new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0));
+      }
+      
       if (true) {
+         String filePath = PathFinder.getSourceRelativePath (
+            this, "geometry/OsCoxaeLeft_Red4.obj");
+         try {
+            mesh = new PolygonalMesh (filePath);
+         }
+         catch (Exception e) {
+         }
+      }
+      
+      if (false) {
          mesh = MeshFactory.createBox (
             3.0, 2.0, 1.0, Point3d.ZERO, 5, 4, 3, false,
             MeshFactory.FaceType.ALT_TRI);
       }
       
-
       if (false) {
          try {
             mesh = new PolygonalMesh (
-               "/home/lloyd/Shared2/phuman/boneData/skeletonJ-19/ScapulaLeft_Red1.obj");
+"/home/lloyd/Shared2/phuman/boneData/skeletonJ-19/ScapulaLeft_Red1.obj");
          }
          catch (Exception e) {
             e.printStackTrace(); 
@@ -240,8 +258,23 @@ public class MeshBodyTest extends RootModel {
          e.printStackTrace(); 
       }
      
-      mech.addMeshBody (new FixedMeshBody (mesh));
+      FixedMeshBody body = new FixedMeshBody (mesh);
+      mech.addMeshBody (body);
+
+      addBodyProbe (body);
    }
+
+   public void addBodyProbe (FixedMeshBody body) {
+      NumericInputProbe inprobe =
+         new NumericInputProbe (body, "pose", 0, 10);
+      inprobe.addData (0, new RigidTransform3d());
+      inprobe.addData (2, new RigidTransform3d(0.2, 0.1, 0, .1, .2, .3));
+      inprobe.addData (4, new double[] {2, 0, 0, 0,  0, 2, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1});
+      inprobe.setInterpolationOrder (Interpolation.Order.SphericalLinear);
+      addInputProbe (inprobe);
+   }
+
+
 }
 
 

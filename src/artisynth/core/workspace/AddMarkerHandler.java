@@ -4,6 +4,7 @@ import artisynth.core.driver.Main;
 import artisynth.core.femmodels.FemMarker;
 import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.SkinMeshBody;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.GenericMarker;
 import artisynth.core.mechmodels.HasSurfaceMesh;
@@ -129,6 +130,10 @@ public class AddMarkerHandler {
                FemMarker mkr = new FemMarker (isect);
                mkr.setFromFem (fem);
                fem.addMarker (mkr);
+            }
+            else if (comp instanceof SkinMeshBody) {
+               SkinMeshBody skin = (SkinMeshBody)comp;
+               skin.addMeshMarker (null, isect);
             } else if (comp instanceof PointAttachable) {
                PointAttachable pa = (PointAttachable)comp;
                

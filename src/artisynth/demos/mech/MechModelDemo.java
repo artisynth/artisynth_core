@@ -13,7 +13,7 @@ import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.PlanarConnector;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.SphericalJoint;
@@ -24,6 +24,7 @@ import artisynth.core.driver.*;
 import artisynth.core.util.*;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import artisynth.core.workspace.PanController;
 import artisynth.core.gui.*;
 import maspack.render.*;
 
@@ -151,40 +152,6 @@ public class MechModelDemo extends RootModel {
       myMech.addFrameMarker (
          mk3, link1, new Point3d (-lenx1 / 2, 0, lenz1 / 2));
 
-      // // joint 1
-      // if (usePlanarJoint)
-      // {
-      // TCA.setIdentity();
-      // TCA.p.set (-lenx1/2, 0, 0);
-      // TCA.R.setAxisAngle (1, 0, 0, -Math.PI/2);
-      // TCB.p.set (0, 0, lenx1);
-      // // TCB.R.setAxisAngle (1, 0, 0, -Math.PI/2);
-      // PlanarConnector planar =
-      // new PlanarConnector (link1, TCA.p, TCB);
-      // planar.setName ("plane1");
-      // planar.setPlaneSize (20);
-      // RenderProps.setColor (planar, Color.BLUE);
-      // joint1 = planar;
-      // }
-      // else
-      // {
-      // TCA.setIdentity();
-      // TCA.p.set (-lenx1/2, 0, 0);
-      // // TCA.R.mulAxisAngle (0, 1, 0, Math.PI/4);
-      // TCB.set (link1.myState.XFrameToWorld);
-      // TCB.mul (TCA);
-      // RevoluteJoint rjoint = new RevoluteJoint (link1, TCA, TCB);
-      // rjoint.setName ("joint1");
-      // rjoint.setAxisLength (4);
-      // RenderProps.setLineRadius(rjoint, 0.2);
-      // joint1 = rjoint;
-      // // SphericalJoint sjoint = new SphericalJoint (
-      // // link1, TCA, TCB);
-      // // sjoint.setName ("joint1");
-      // // sjoint.setAxisLength (5);
-      // // joint1 = sjoint;
-      // }
-
       // second link
       double lenx2 = 10;
       double leny2 = 2;
@@ -229,45 +196,23 @@ public class MechModelDemo extends RootModel {
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
          TCB.mul (XAB, TCA);
          SphericalJoint sjoint = new SphericalJoint (link2, TCA, link1, TCB);
-         // RevoluteJoint joint2 = new RevoluteJoint (link2, TCA, TCB);
          sjoint.setName ("joint2");
-         // RenderProps.setLineRadius(sjoint, 0.2);
-         sjoint.setAxisLength (4);
+         sjoint.setJointRadius (1.0);
+         RenderProps.setFaceColor (sjoint, Color.BLUE);
          joint2 = sjoint;
       }
       else {
          TCA.setIdentity();
          TCA.p.set (-lenx2 / 2, 0, 0);
-         // TCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
          TCB.mul (XAB, TCA);
-         RevoluteJoint rjoint = new RevoluteJoint (link2, TCA, link1, TCB);
-
-         // TCB.mul (link2.getPose(), TCA);
-         // RevoluteJoint rjoint =
-         // new RevoluteJoint (link2, TCA, TCB);
-
-         // RigidTransform3d X = new RigidTransform3d();
-         // X.R.setAxisAngle (1, 0, 0, -Math.toRadians(90));
-         // X.mul (TCB, X);
-         // X.mulInverseRight (X, TCB);
-         // rjoint.transformGeometry (X);
-         // rjoint.printData();
-
+         HingeJoint rjoint = new HingeJoint (link2, TCA, link1, TCB);
          rjoint.setName ("joint2");
-         rjoint.setAxisLength (4);
-         RenderProps.setLineRadius (rjoint, 0.2);
-         // RigidTransform3d X = new RigidTransform3d();
-         // RigidTransform3d TDW = rjoint.getXDW();
-         // System.out.println ("getXDW=\n" + TDW.toString("%8.3f"));
-         // X.R.setAxisAngle (1, 0, 0, Math.toRadians(80));
-         // X.mulInverseRight (X, TDW);
-         // X.mul (TDW, X);
-         // rjoint.transformGeometry (X, rjoint);
+         rjoint.setShaftLength (4);
+         RenderProps.setFaceColor (rjoint, Color.BLUE);
          joint2 = rjoint;
       }
 
-      // myMech.addBodyConnector (joint1);
       if (joint2 != null) {
          myMech.addBodyConnector (joint2);
       }
@@ -279,8 +224,6 @@ public class MechModelDemo extends RootModel {
          TCA.setIdentity();
          TCA.p.set (lenx2 / 2 + leny2 / 2, 0, 0);
          TCB.setIdentity();
-         // TCB.p.set (0, 0, -lenx2/2);
-         // TCB.p.set (0, 0, lenx2/2);
 
          TCB.R.setIdentity();
          TCB.R.setAxisAngle (0, 0, 1, Math.PI / 2);
@@ -321,6 +264,8 @@ public class MechModelDemo extends RootModel {
       //myMech.setProfiling (true);
       //myMech.setIntegrator (Integrator.ForwardEuler);
       //addBreakPoint (0.57);
+
+      //addController (new PanController (this, 5.0, 1.0, 11.0));
 
    }
 

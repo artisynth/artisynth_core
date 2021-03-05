@@ -23,88 +23,46 @@ import maspack.spatialmotion.SolidCoupling;
  */
 public class SolidJoint extends JointBase implements CopyableComponent {
 
-   public static PropertyList myProps =
-      new PropertyList (SolidJoint.class, JointBase.class);
-   
-   protected static VectorNd ZERO_VEC = new VectorNd(6);
-
-   static {
-      myProps.add (
-         "compliance", "compliance for each constraint", ZERO_VEC);
-      myProps.add (
-         "damping", "damping for each constraint", ZERO_VEC);
-   } 
-   
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
-   
    public SolidJoint() {
-      myCoupling = new SolidCoupling ();
+      setCoupling (new SolidCoupling());
    }
 
-   public SolidJoint (RigidBody bodyA, RigidTransform3d TCA,
-   RigidBody bodyB, RigidTransform3d XDB) {
+   public SolidJoint (
+      RigidBody bodyA, RigidTransform3d TCA,
+      RigidBody bodyB, RigidTransform3d TDB) {
       this();
-      setBodies (bodyA, TCA, bodyB, XDB);
+      setBodies (bodyA, TCA, bodyB, TDB);
    }
 
-   public SolidJoint (RigidBody bodyA, RigidTransform3d TCA,
-   RigidTransform3d TDW) {
+   public SolidJoint (
+      RigidBody bodyA, RigidTransform3d TCA, RigidTransform3d TDW) {
       this();
       setBodies (bodyA, TCA, null, TDW);
    }
 
-   public SolidJoint (RigidBody bodyA, RigidTransform3d TCW) {
+   public SolidJoint (ConnectableBody bodyA, RigidTransform3d TCW) {
       this();
-      RigidTransform3d TCA = new RigidTransform3d();
-      TCA.mulInverseLeft(bodyA.getPose(), TCW);
       setBodies (bodyA, null, TCW);
    }
 
-   public SolidJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XWJ) {
-      this();
-      RigidTransform3d TCA = new RigidTransform3d();
-      RigidTransform3d XDB = new RigidTransform3d();
-      
-      TCA.mulInverseLeft(bodyA.getPose(), XWJ);
-      XDB.mulInverseLeft(bodyB.getPose(), XWJ);
-      
-      setBodies(bodyA, TCA, bodyB, XDB);
-      
-   }
-   
    public SolidJoint (
-      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
       this();
-      setBodies(bodyA, bodyB, TFW);
-      
+      setBodies(bodyA, bodyB, TDW);
    }
    
-   public SolidJoint(RigidBody bodyA, RigidBody bodyB) {
+   public SolidJoint (RigidBody bodyA, RigidBody bodyB) {
       this();
       RigidTransform3d TCA = new RigidTransform3d();  // identity
-      RigidTransform3d XDB = new RigidTransform3d();
+      RigidTransform3d TDB = new RigidTransform3d();
       
       if (bodyB != null) {
-         XDB.mulInverseLeft(bodyB.getPose(), bodyA.getPose());
-         setBodies(bodyA, TCA, bodyB, XDB);
-      } else {
+         TDB.mulInverseLeft(bodyB.getPose(), bodyA.getPose());
+         setBodies(bodyA, TCA, bodyB, TDB);
+      } 
+      else {
          setBodies (bodyA, bodyB, bodyA.getPose ());
       }
       
    }
-
-   @Override
-   public ModelComponent copy (
-      int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      SolidJoint copy = (SolidJoint)super.copy (flags, copyMap);
-      copy.myCoupling = new SolidCoupling ();
-      // copy.setNumConstraints (5);
-      copy.setAxisLength (myAxisLength);
-      copy.setRenderProps (getRenderProps());
-      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
-      return copy;
-   }
-
 }

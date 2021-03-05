@@ -1,12 +1,14 @@
 package artisynth.demos.tutorial;
 
+import java.awt.Color;
+
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.RenderProps;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.RootModel;
 
@@ -60,7 +62,7 @@ public class FrameBodyAttachment extends RootModel {
       // create the joint      
       RigidTransform3d TDW = 
          new RigidTransform3d (-lenx1/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2);
-      RevoluteJoint joint = new RevoluteJoint (bodyB, TDW);
+      HingeJoint joint = new HingeJoint (bodyB, TDW);
 
       // add components to the mech model
       mech.addRigidBody (bodyB);
@@ -68,8 +70,9 @@ public class FrameBodyAttachment extends RootModel {
       mech.addBodyConnector (joint);
 
       // set render properties for components
-      RenderProps.setLineRadius (joint, 0.2);
-      joint.setAxisLength (4);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftRadius (0.2);
+      joint.setShaftLength (4);
 
       // now connect bodyA to bodyB using a FrameAttachment
       mech.attachFrame (bodyA, bodyB);

@@ -83,7 +83,7 @@ public class FrameSpringDemo extends RootModel {
       return body;
    }
 
-   public RevoluteJoint addRevoluteJoint (
+   public HingeJoint addHingeJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
       RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
@@ -93,11 +93,10 @@ public class FrameSpringDemo extends RootModel {
       TDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setLineStyle (joint, Renderer.LineStyle.CYLINDER);
-      RenderProps.setLineColor (joint, Color.BLUE);
-      RenderProps.setLineRadius (joint, 0.025);
-      joint.setAxisLength (0.05);
+      HingeJoint joint = new HingeJoint (bodyA, TCA, bodyB, XDB);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftRadius (0.025);
+      joint.setShaftLength (0.05);
       myMechMod.addBodyConnector (joint);
       return joint;
    }
@@ -112,10 +111,8 @@ public class FrameSpringDemo extends RootModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
-      RenderProps.setPointColor (joint, Color.BLUE);
-      RenderProps.setPointRadius (joint, 0.025);
-      joint.setAxisLength (0.05);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setJointRadius (0.02);
       myMechMod.addBodyConnector (joint);
       return joint;
    }
@@ -128,10 +125,8 @@ public class FrameSpringDemo extends RootModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
-      RenderProps.setPointColor (joint, Color.BLUE);
-      RenderProps.setPointRadius (joint, 0.025);
-      joint.setAxisLength (0.05);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setJointRadius (0.02);
       myMechMod.addBodyConnector (joint);
       return joint;
    }
@@ -180,7 +175,7 @@ public class FrameSpringDemo extends RootModel {
       joint = addSphericalJoint (myHand2, myHand, TDW);
       joint.setMaxRotation (45);
 
-      // RevoluteJoint joint = addRevoluteJoint (myLowerArm, myHand, 0, 0, 0);
+      // HingeJoint joint = addHingeJoint (myLowerArm, myHand, 0, 0, 0);
       // joint.setMaximumTheta (Math.toRadians(30));
       // joint.setMinimumTheta (-Math.toRadians(30));
 

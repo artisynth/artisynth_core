@@ -62,15 +62,14 @@ public class BodyBodyJoint extends RootModel {
       RigidBody link1 = createLink ("link1", lx1, ly1, lz1, myLinkColor);
       mech.add (link1);
 
-      // revolute joint 
+      // hinge joint 
       RigidTransform3d TJW =
          new RigidTransform3d(-lx1/2, 0, 0,  0, 0, Math.toRadians(90));
-      RevoluteJoint rjoint =
-         new RevoluteJoint (link1, (ConnectableBody)null, TJW);
+      HingeJoint rjoint =
+         new HingeJoint (link1, (ConnectableBody)null, TJW);
       rjoint.setName ("joint1");
-      rjoint.setAxisLength (0.8);
-      RenderProps.setLineRadius(rjoint, 0.04);
-      RenderProps.setLineColor (rjoint, myJointColor);
+      rjoint.setShaftLength (0.8);
+      RenderProps.setFaceColor (rjoint, myJointColor);
       mech.addBodyConnector (rjoint);
 
       // second link

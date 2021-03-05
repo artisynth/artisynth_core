@@ -16,6 +16,7 @@ import java.io.IOException;
 import maspack.matrix.Matrix;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyInfo.Edit;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
@@ -403,6 +404,19 @@ public class Muscle extends AxialSpring
       return computeDFdldot (l, ldot, getNetExcitation());
    }
 
+
+   // /**
+   //  * Used by the ForceTargetComponent interface to obtain the force being
+   //  * controlled. Override here to include excitation.
+   //  */
+   // public void getForce (VectorNd minf, boolean staticOnly) {
+   //    double l = mySeg.updateU();
+   //    double ldot = staticOnly ? 0.0 : mySeg.getLengthDot();
+   //    double F = computeF (l, ldot, getNetExcitation());
+   //    minf.setSize (1);
+   //    minf.set (0, F);
+   // }  
+   
 
    /**
     * sets the opt length to current muscle length and max length with the

@@ -16,7 +16,10 @@ import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.spatialmotion.EulerFilter;
+import maspack.spatialmotion.Wrench;
 import maspack.spatialmotion.RigidBodyCoupling;
+import maspack.spatialmotion.RigidBodyConstraint;
+import maspack.spatialmotion.Twist;
 import maspack.util.DoubleInterval;
 
 /**
@@ -335,12 +338,20 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public int maxUnilaterals() {
+   public int numUnilaterals() {
       return unilaterals;
    }
 
    @Override
-   public void initializeConstraintInfo(ConstraintInfo[] info) {
+   public void initializeConstraints() {
+
+      if (bilaterals == 0 && unilaterals == 0) {
+         // XXX called in the RigidBodyCoupling constructor. Nothing to do
+         // yet. Will be callled again in OpenSimCustomCoupling constructor
+         return;
+      }
+      int[] flags = new int[6];
+      Wrench[] wrenches = new Wrench[6];
 
       this.order = new int[6];          // order places bilaterals first
       int biIdx = 0;
@@ -351,13 +362,14 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          if (transAxes[i].isFixed()) {
             int j = biIdx++;
             this.order[i] = j;
-            info[j].flags = (BILATERAL | LINEAR);  
-            info[j].wrenchC.f.set(transAxes[i].getAxis());
-            info[j].wrenchC.m.setZero();
+            flags[j] = (BILATERAL | LINEAR);
+            wrenches[j] = new Wrench();
+            wrenches[j].f.set(transAxes[i].getAxis());
+            wrenches[j].m.setZero();
          } else if (transAxes[i].isRestricted()){
             int j = uniIdx++;
             this.order[i] = j;
-            info[j].flags = LINEAR;
+            flags[j] = LINEAR;
          } else {
             this.order[i] = -1;
          }
@@ -368,28 +380,34 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          if (rotAxes[i].isFixed()) {
             int j = biIdx++;
             this.order[3+i] = j;
-            info[j].flags = (BILATERAL | ROTARY);
-            info[j].wrenchC.f.setZero();
-            info[j].wrenchC.m.set(rotAxes[i].getAxis()); // current axes, assuming no initial rotations
+            flags[j] = (BILATERAL | ROTARY);
+            wrenches[j] = new Wrench();
+            wrenches[j].f.setZero();
+            wrenches[j].m.set(rotAxes[i].getAxis()); // current axes, assuming no initial rotationsm.setZero();
          } else if (rotAxes[i].isRestricted()){
             int j = uniIdx++;
             this.order[3+i] = j;
-            info[j].flags = ROTARY;
+            flags[j] = ROTARY;
          } else {
             this.order[3+i] = -1;
+         }
+      }
+      for (int i=0; i<biIdx+uniIdx; i++) {
+         if (wrenches[i] != null) {
+            addConstraint (flags[i], wrenches[i]);
+         }
+         else {
+            addConstraint (flags[i]);
          }
       }
       
    }
    
    @Override
-   public void getConstraintInfo(
-      ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TCD,
-      RigidTransform3d TERR, boolean setEngaged) {
+   public void updateConstraints(
+      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
+      Twist velGD, boolean updateEngaged) {
 
-      // TERR in C coordinates, from G to C?
-      myErr.set(TERR);
-      
       // translations (applied to C?)
       // compute coordinates
       Vector3d t = new Vector3d();
@@ -399,12 +417,16 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          transAxes[i].updateCoords(t.get(i));
          int j = order[i];
          if (j >= 0) {
-            info[j].coordinate = t.get(i); // set coordinate translation
+            RigidBodyConstraint cinfo = getConstraint(j);
+            //cinfo.coordinate = t.get(i); // set coordinate translation
             // transform to frame C
-            info[j].wrenchC.f.mulTranspose(TCD.R, transAxes[i].getAxis ());
-            info[j].wrenchC.m.setZero();
-            info[j].distance = info[j].wrenchC.dot(myErr);
-            info[j].dotWrenchC.setZero();
+            Vector3d f = new Vector3d();
+            f.mulTranspose(TCD.R, transAxes[i].getAxis ());
+            cinfo.setWrenchG (f, Vector3d.ZERO);
+            //cinfo.wrenchC.f.mulTranspose(TCD.R, transAxes[i].getAxis ());
+            //cinfo.wrenchC.m.setZero();
+            //cinfo.distance = cinfo.wrenchC.dot(errC);
+            //cinfo.dotWrenchC.setZero();
             
             if (transAxes[i].isRestricted()) {
                
@@ -412,18 +434,16 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
                double val = transAxes[i].evaluate ();
                double lval = transAxes[i].getLowerBound();
                double uval = transAxes[i].getUpperBound();
-               if (setEngaged) {
+               if (updateEngaged) {
                   for (Coord coord : transAxes[i].coords) {
-                     maybeSetEngaged(info[j], coord.val, coord.getRange().getLowerBound(), coord.getRange().getUpperBound());
+                     maybeSetEngaged(cinfo, coord.val, coord.getRange().getLowerBound(), coord.getRange().getUpperBound());
                   }
                }
-               if (info[j].engaged == -1) {
+               if (cinfo.getEngaged() == 1) {
                   // distance between evaluated locations along translation axis
-                  info[j].distance = val-lval;
-               } else if (info[j].engaged == 1) {
-                  info[j].wrenchC.negate(); // other direction
-                  info[j].dotWrenchC.negate(); // other direction
-                  info[j].distance = uval-val;
+                  cinfo.setDistance (val-lval);
+               } else if (cinfo.getEngaged() == -1) {
+                  cinfo.setDistance (uval-val);
                }
             }
          }
@@ -491,31 +511,32 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          
          int j = order[3+i];
          if (j >= 0) {
-            info[j].coordinate = rpy[i]; // set coordinate angle
-            info[j].wrenchC.f.setZero();
-            info[j].dotWrenchC.setZero();
-            info[j].distance = info[j].wrenchC.dot(myErr);
-            Dypr.getRow(i, info[j].wrenchC.m);
+            RigidBodyConstraint cinfo = getConstraint(j);            
+            //cinfo.coordinate = rpy[i]; // set coordinate angle
+            //cinfo.wrenchC.f.setZero();
+            //cinfo.dotWrenchC.setZero();
+            //cinfo.distance = cinfo.wrenchC.dot(errC);
+            //Dypr.getRow(i, cinfo.wrenchC.m);
+            Vector3d m = new Vector3d();
+            Dypr.getRow(i, m);
+            cinfo.setWrenchG (Vector3d.ZERO, m);
             if (rotAxes[i].isRestricted()) {
                // maybe set engaged
-               if (setEngaged) {
+               if (updateEngaged) {
                   for (Coord coord : rotAxes[i].coords) {
-                     maybeSetEngaged(info[j], coord.val, coord.getRange().getLowerBound(), coord.getRange().getUpperBound());
+                     maybeSetEngaged(cinfo, coord.val, coord.getRange().getLowerBound(), coord.getRange().getUpperBound());
                   }
                }
                
                double val = rotAxes[i].evaluate ();
                double lval = rotAxes[i].getLowerBound();
                double uval = rotAxes[i].getUpperBound();
-               
-               if (info[j].engaged == -1) {
+
+               if (cinfo.getEngaged() == 1) {
                   // distance between evaluated locations along translation axis
-                  info[j].distance = val-lval;
-               } else if (info[j].engaged == 1) {
-                  info[j].distance = uval-val;
-                  // too high, apply wrench in opposite direction
-                  info[j].wrenchC.negate(); 
-                  info[j].dotWrenchC.negate();
+                  cinfo.setDistance (val-lval);
+               } else if (cinfo.getEngaged() == -1) {
+                  cinfo.setDistance (uval-val);
                }
             }
          }
@@ -591,7 +612,8 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    }
    
    @Override
-   public void projectToConstraint(RigidTransform3d TGD, RigidTransform3d TCD) {
+   public void projectToConstraints(
+      RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
       TGD.set(TCD);
       
       // assuming translation relative to D, not affected by rotations
@@ -643,6 +665,14 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          TGD.R.set(R);
       }
       
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void coordinatesToTCD (
+      RigidTransform3d TCD, VectorNd coords) {
+      TCD.setIdentity();
    }
 
 }

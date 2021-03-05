@@ -20,6 +20,11 @@ import maspack.geometry.DistanceGrid;
  */
 public interface CollidableBody extends Collidable {
 
+   /**
+    * Returns the mass of the body.
+    *
+    * @return mass of the body
+    */
    public double getMass();
 
    /**
@@ -34,15 +39,14 @@ public interface CollidableBody extends Collidable {
    public PolygonalMesh getCollisionMesh();
 
    /**
-    * Returns all the contact master components associated with a particular
-    * mesh vertex. Information for each contact master should be appended
-    * to <code>mlist</code>. The list should not be cleared. The vertex
+    * Collects the contact masters for a particular mesh vertex. The
+    * masters should be appended to <code>mlist</code>.  The vertex
     * should be a vertex of the mesh returned by {@link #getCollisionMesh()}.
     * 
-    * @param mlist collected master component information
+    * @param mlist collected master components
     * @param vtx vertex for which the master components are requested
     */
-   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx);
+   public void collectVertexMasters (List<ContactMaster> mlist, Vertex3d vtx);
    
    /**
     * Returns true if this Collidable contains a specified contact master

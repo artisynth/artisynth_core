@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{DICOM Images}
+\input{startdoc}
+\mainmatter
+\fi
 
 % listings description environment
 \let\olditem\item
@@ -523,3 +528,8 @@ initially appear as in Figure \ref{fig:dicom:demo}.
 %   \caption{DICOM model of the wrist, downloaded from \url{http://www.osirix-viewer.com}.
 %   \label{fig:dicom:wrist}}
 %\end{figure}
+
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

@@ -22,13 +22,13 @@ import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.DrawMode;
 import maspack.spatialmotion.PlanarCoupling;
-import maspack.spatialmotion.RigidBodyConstraint;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 
 /**
- * Auxiliary class used to solve constrained rigid body problems.
+ * Implements a 5 DOF connector in which the origin of C is constrained
+ * to lie on the x-y plane of D, and C is otherwise free to rotate.
  */
 public class PlanarConnector extends BodyConnector 
    implements CopyableComponent {
@@ -41,13 +41,13 @@ public class PlanarConnector extends BodyConnector
    public static PropertyList myProps =
       new PropertyList (PlanarConnector.class, BodyConnector.class);
 
+   protected static VectorNd ZERO_VEC1 = new VectorNd(1);   
+
    protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createPointFaceProps (null);
+      RenderProps props = RenderProps.createRenderProps (host);
       props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       return props;
    }
-
-   protected static VectorNd ZERO_VEC = new VectorNd(1);
 
    static {
       myProps.addReadOnly (
@@ -55,12 +55,11 @@ public class PlanarConnector extends BodyConnector
       myProps.add (
          "unilateral isUnilateral *", "unilateral constraint flag", false);
       myProps.add ("planeSize * *", "renderable size of the plane", null);
-      myProps.add (
-         "renderProps * *", "renderer properties", defaultRenderProps (null));
-      myProps.add (
-         "compliance", "compliance for each constraint", ZERO_VEC);
-      myProps.add (
-         "damping", "damping for each constraint", ZERO_VEC);
+      myProps.addReadOnly (
+         "engaged", "true if the coupling's constraint engaged");
+      myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
+      myProps.get ("compliance").setDefaultValue (ZERO_VEC1);
+      myProps.get ("damping").setDefaultValue (ZERO_VEC1);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -99,15 +98,18 @@ public class PlanarConnector extends BodyConnector
    }
    
    private void initializeCoupling() {
-      myCoupling = new PlanarCoupling ();
-      myCoupling.setBreakSpeed (1e-8);
-      myCoupling.setBreakAccel (1e-8);
-      myCoupling.setContactDistance (1e-8);
-   }
-   public RigidBodyConstraint getConstraint() {
-      return myCoupling.getConstraint (0); // only one constraint for a PlanarConnector
+      setCoupling (new PlanarCoupling());
    }
 
+   public int getEngaged() {
+      return myCoupling.getConstraint(0).getEngaged();
+   }
+
+   /**
+    * Creates a {@code PlanarConnector} which is not attached to any bodies.
+    * It can subsequently be connected using one of the {@code setBodies} or
+    * {@code set} methods.
+    */
    public PlanarConnector() {
       myTransformDGeometryOnly = true;
       myRenderVtxs = new Point3d[4];
@@ -118,30 +120,61 @@ public class PlanarConnector extends BodyConnector
       initializeCoupling();
    }
 
-   public PlanarConnector (RigidBody bodyA, Vector3d pCA, RigidBody bodyB,
-   RigidTransform3d XPB) {
+   /**
+    * Creates a {@code PlanarConnector} connecting two rigid bodies, {@code
+    * bodyA} and {@code bodyB}. If A and B describe the coordinate frames of
+    * {@code bodyA} and {@code bodyB}, and then {@code pCA} gives the origin of
+    * C with respect to A and {@code TDB} gives the pose of D with respect to
+    * B.
+    *
+    * @param bodyA rigid body A
+    * @param pCA origin of C with respect to A, as seen in A
+    * @param bodyB rigid body B (or {@code null})
+    * @param TDB transform from frame D to body frame B
+    */
+   public PlanarConnector (
+      RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d TDB) {
       this();
-      set (bodyA, pCA, bodyB, XPB);
-   }
-
-   public PlanarConnector (RigidBody bodyA, Vector3d pCA, RigidTransform3d XPW) {
-      this();
-      set (bodyA, pCA, XPW);
-   }
-   
-   public void set(RigidBody bodyA, Point3d pCA, Vector3d worldPlaneNormal) {
-      RigidTransform3d XPW = new RigidTransform3d ();
-      Point3d pCW = new Point3d();
-      pCW.transform (bodyA.getPose (), pCA);
-      XPW.p.set(pCW);
-      XPW.R.setZDirection (worldPlaneNormal);
-      set (bodyA, pCA, XPW);
+      set (bodyA, pCA, bodyB, TDB);
    }
 
    /**
-    * Sets this PlanarConnectorX to connect two rigid bodies. The first body (A)
-    * is the one in which the contact point is fixed, while the second body (B)
-    * is the one in which the plane is fixed.
+    * Creates a {@code PlanarConnector} connecting a single rigid body, {@code
+    * bodyA}, to ground. If A describes the coordinate frame of {@code bodyA},
+    * then {@code pCA} gives the origin of C with respect to A and {@code TDW}
+    * gives the pose of D with respect to world.
+    *
+    * @param bodyA rigid body A
+    * @param pCA origin of C with respect to A, as seen in A
+    * @param TDW transform from frame D to world coordinates
+    */
+   public PlanarConnector (RigidBody bodyA, Vector3d pCA, RigidTransform3d TDW) {
+      this();
+      set (bodyA, pCA, TDW);
+   }
+   
+   /**
+    * Creates a {@code PlanarConnector} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames D and C are assumed to
+    * be initially coincident.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground.
+    *
+    * @param bodyA body A
+    * @param bodyB body B
+    * @param TDW initial transform from connector frames D and C to world
+    */
+   public PlanarConnector (
+      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
+      this();
+      setBodies (bodyA, bodyB, TDW);
+   }   
+
+   /**
+    * Sets this PlanarConnectorX to connect two rigid bodies. The first body
+    * (A) is the one in which the contact point is fixed, while the second body
+    * (B) is the one in which the plane is fixed.
     * 
     * @param bodyA
     * first rigid body
@@ -149,15 +182,15 @@ public class PlanarConnector extends BodyConnector
     * location of contact point relative to body A
     * @param bodyB
     * second rigid body
-    * @param XPB
+    * @param TDB
     * plane coordinate frame with respect to body B. The plane normal is given
-    * by the z axis of this frame, and the plane's origin is given by XPB.p
+    * by the z axis of this frame, and the plane's origin is given by TDB.p
     */
    public void set (
-      RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d XPB) {
+      RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d TDB) {
       RigidTransform3d TCA = new RigidTransform3d();
       TCA.p.set (pCA);
-      setBodies (bodyA, TCA, bodyB, XPB);
+      setBodies (bodyA, TCA, bodyB, TDB);
    }
 
    /**
@@ -169,15 +202,24 @@ public class PlanarConnector extends BodyConnector
     * rigid body
     * @param pCA
     * location of contact point relative to body
-    * @param XPW
+    * @param TDW
     * plane coordinate frame with respect to the world. The plane normal is
     * given by the z axis of this frame, and the plane's origin is given by
-    * XPB.p
+    * TDB.p
     */
-   public void set (RigidBody bodyA, Vector3d pCA, RigidTransform3d XPW) {
+   public void set (RigidBody bodyA, Vector3d pCA, RigidTransform3d TDW) {
       RigidTransform3d TCA = new RigidTransform3d();
       TCA.p.set (pCA);
-      setBodies (bodyA, TCA, null, XPW);
+      setBodies (bodyA, TCA, null, TDW);
+   }
+
+   public void set (RigidBody bodyA, Point3d pCA, Vector3d worldPlaneNormal) {
+      RigidTransform3d TDW = new RigidTransform3d ();
+      Point3d pCW = new Point3d();
+      pCW.transform (bodyA.getPose (), pCA);
+      TDW.p.set(pCW);
+      TDW.R.setZDirection (worldPlaneNormal);
+      set (bodyA, pCA, TDW);
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
@@ -192,6 +234,7 @@ public class PlanarConnector extends BodyConnector
    }
 
    public void prerender (RenderList list) {
+      super.prerender (list);
       RigidTransform3d TCW = getCurrentTCW();
       myRenderCoords[0] = (float)TCW.p.x;
       myRenderCoords[1] = (float)TCW.p.y;
@@ -199,6 +242,7 @@ public class PlanarConnector extends BodyConnector
    }
 
    public void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
       Vector3d nrm = new Vector3d (0, 0, 1);
       RigidTransform3d TDW = getCurrentTDW();
 
@@ -240,7 +284,6 @@ public class PlanarConnector extends BodyConnector
    public void scaleDistance (double s) {
       super.scaleDistance (s);
       myPlaneSize *= s;
-      myRenderProps.scaleDistance (s);
    }
 
    public double getPlanarActivation() {
@@ -255,7 +298,6 @@ public class PlanarConnector extends BodyConnector
    public void setUnilateral (boolean unilateral) {
       if (isUnilateral() != unilateral) {
          ((PlanarCoupling)myCoupling).setUnilateral (unilateral);
-         // myUnilateralP[0] = unilateral;
          myStateVersion++;
          notifyParentOfChange (StructureChangeEvent.defaultEvent);
       }
@@ -268,8 +310,6 @@ public class PlanarConnector extends BodyConnector
       copy.initializeCoupling();
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
-      copy.setRenderProps (getRenderProps());
-      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       return copy;
    }
 

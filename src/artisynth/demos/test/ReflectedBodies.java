@@ -22,6 +22,7 @@ import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.util.PathFinder;
 
 public class ReflectedBodies extends RootModel {
 
@@ -68,21 +69,24 @@ public class ReflectedBodies extends RootModel {
       //    System.out.println();
       // }
 
+      String sphereFile =
+         PathFinder.getSourceRelativePath (this, "geometry/sphere.obj");
+
       RigidBody scaledSphere =
-         RigidBody.createFromMesh ("scaledSphere_L", "sphere.obj", 1000, 1);
+         RigidBody.createFromMesh ("scaledSphere_L", sphereFile, 1000, 1);
       scaledSphere.scaleSurfaceMesh (-1, 2, 1);
       scaledSphere.setPose(new RigidTransform3d(-2, 0, -4, -0.5, 0.3, 15));   
       mech.addRigidBody (scaledSphere);
       mech.addRigidBody (reflectBody ("scaledSphere_R", scaledSphere)); 
 
       FixedMeshBody ellipseBody_L = new FixedMeshBody ("ellipseMesh_L");
-      ellipseBody_L.setMesh (sphereMesh.copy(), "sphere.obj", null);
+      ellipseBody_L.setMesh (sphereMesh.copy(), sphereFile, null);
       ellipseBody_L.scaleMesh (1, 2, 3);
       ellipseBody_L.setPose (new RigidTransform3d(-2, 0, -6, -0.5, 0.3, 15)); 
       mech.addMeshBody (ellipseBody_L);
 
       FixedMeshBody ellipseBody_R = new FixedMeshBody ("ellipseMesh_R");
-      ellipseBody_R.setMesh (sphereMesh.copy(), "sphere.obj", null);
+      ellipseBody_R.setMesh (sphereMesh.copy(), sphereFile, null);
       ellipseBody_R.scaleMesh (1, 2, 3);
       ellipseBody_R.setPose (new RigidTransform3d(-2, 0, -6, -0.5, 0.3, 15)); 
       Matrix3d A = new Matrix3d(new double[] {-1,0,0, 0,1,0, 0,0,1});

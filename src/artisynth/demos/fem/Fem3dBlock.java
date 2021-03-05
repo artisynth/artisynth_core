@@ -35,7 +35,7 @@ import maspack.render.*;
 import artisynth.core.driver.*;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystem;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 
@@ -222,9 +222,10 @@ public class Fem3dBlock extends RootModel {
       TCA.p.set (0, 0, wz / 2);
       TCA.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
       TCW.mul (X, TCA);
-      RevoluteJoint joint = new RevoluteJoint (leftBody, TCA, TCW);
-      RenderProps.setCylindricalLines (joint, 0.01, Color.BLUE);
-      joint.setAxisLength (0.5);
+      HingeJoint joint = new HingeJoint (leftBody, TCW);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftLength (0.5);
+      joint.setShaftRadius (0.01);
       mechMod.addBodyConnector (joint);
 
       // right box

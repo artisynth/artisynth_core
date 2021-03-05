@@ -10,7 +10,7 @@ import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.RootModel;
 import maspack.geometry.MeshFactory;
@@ -143,33 +143,39 @@ public class ArticulatedFem extends RootModel {
 
          RigidTransform3d TCA = new RigidTransform3d();
          RigidTransform3d TCB = new RigidTransform3d();
-         RevoluteJoint joint;
+         RigidTransform3d TCW = new RigidTransform3d();
+         HingeJoint joint;
 
          TCA.p.set (-boxLength / 2, 0, boxHeight / 2);
          TCA.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
+         TCW.mul (leftBox.getPose(), TCA);
          if (lastBox == null) {
             TCB.mul (leftBox.getPose(), TCA);
             // TCB.mulInverseLeft (leftAnchorBox.getPose(), TCB);
-            joint = new RevoluteJoint (leftBox, TCA, TCB);
+            //joint = new HingeJoint (leftBox, TCA, null, TCB);
+            joint = new HingeJoint (leftBox, TCW);
          }
          else {
             TCB.p.set (boxLength / 2, 0, boxHeight / 2);
             TCB.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
-            joint = new RevoluteJoint (leftBox, TCA, lastBox, TCB);
+            //joint = new HingeJoint (leftBox, TCA, lastBox, TCB);
+            joint = new HingeJoint (leftBox, lastBox, TCW);
          }
-         RenderProps.setLineRadius (joint, 0.01);
-         RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
-         joint.setAxisLength (0.5);
+         RenderProps.setFaceColor (joint, new Color (0.15f, 0.15f, 1f));
+         joint.setShaftLength (0.5);
+         joint.setShaftRadius (0.01);
          myMechMod.addBodyConnector (joint);
 
          if (addLastJoint && i == nlinks - 1) {
             TCA.p.set (boxLength / 2, 0, boxHeight / 2);
+            TCW.mul (rightBox.getPose(), TCA);
             TCB.mul (rightBox.getPose(), TCA);
             // TCB.mulInverseLeft (rightAnchorBox.getPose(), TCB);
-            joint = new RevoluteJoint (rightBox, TCA, TCB);
-            RenderProps.setLineRadius (joint, 0.01);
-            RenderProps.setLineColor (joint, new Color (0.15f, 0.15f, 1f));
-            joint.setAxisLength (0.5);
+            //joint = new HingeJoint (rightBox, TCA, TCB);
+            joint = new HingeJoint (rightBox, TCW);
+            RenderProps.setFaceColor (joint, new Color (0.15f, 0.15f, 1f));
+            joint.setShaftLength (0.5);
+            joint.setShaftRadius (0.01);
             myMechMod.addBodyConnector (joint);
          }
 

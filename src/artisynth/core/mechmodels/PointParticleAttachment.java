@@ -18,7 +18,8 @@ import artisynth.core.util.*;
 
 import java.io.*;
 
-public class PointParticleAttachment extends PointAttachment {
+public class PointParticleAttachment 
+   extends PointAttachment implements ContactMaster {
    
    Particle myParticle;
 
@@ -74,44 +75,6 @@ public class PointParticleAttachment extends PointAttachment {
       super.applyForces();
       myParticle.addForce (myPoint.myForce);
    }
-   
-//   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
-//      myParticle.addScaledExternalForce(s, f);
-//   }
-
-//   protected MatrixBlock createRowBlock (int colSize) {
-//      return createRowBlockNew (colSize);
-//   }
-//
-//   protected MatrixBlock createColBlock (int rowSize) {
-//      return createColBlockNew (rowSize);
-//   }
-//
-//   protected MatrixBlock createRowBlockNew (int colSize) {
-//      switch (colSize) {
-//         case 1:
-//            return new Matrix3x1Block();
-//         case 3:
-//            return new Matrix3x3Block();
-//         case 6: 
-//            return new Matrix3x6Block();
-//         default:
-//            return new MatrixNdBlock(3, colSize);
-//      }
-//   }
-//
-//   protected MatrixBlock createColBlockNew (int rowSize) {
-//      switch (rowSize) {
-//         case 1:
-//            return new Matrix1x3Block();
-//         case 3:
-//            return new Matrix3x3Block();
-//         case 6: 
-//            return new Matrix6x3Block();
-//         default:
-//            return new MatrixNdBlock(rowSize, 3);
-//      }
-//   }
 
    public void mulSubGTM (MatrixBlock D, MatrixBlock M, int idx) {
       D.add (M);
@@ -184,46 +147,6 @@ public class PointParticleAttachment extends PointAttachment {
       return false;
    }
 
-//   @Override
-//   public void connectToHierarchy () {
-//      Point point = getPoint();
-//      Particle particle = getParticle();
-//      if (point == null) {
-//         throw new InternalErrorException ("null point");
-//      }
-//      if (particle == null) {
-//         throw new InternalErrorException ("null particle");
-//      }
-//      super.connectToHierarchy ();
-//      point.setAttached (this);
-//      particle.addMasterAttachment (this);
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      Point point = getPoint();
-//      Particle particle = getParticle();
-//      if (point == null || particle == null) {
-//         throw new InternalErrorException ("null point and/or particle");
-//      }
-//      super.disconnectFromHierarchy();
-//      point.setAttached (null);
-//      particle.removeMasterAttachment (this);
-//   }
-
-//   @Override
-//   public void getHardReferences (List<ModelComponent> refs) {
-//      super.getHardReferences (refs);
-//      Point point = getPoint();
-//      Particle particle = getParticle();
-//      if (point == null || particle == null) {
-//         throw new InternalErrorException ("null point and/or particle");
-//      }
-//      super.getHardReferences (refs);
-//      refs.add (point);
-//      refs.add (particle);
-//   }
-
    public PointParticleAttachment copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       PointParticleAttachment a =
@@ -237,5 +160,70 @@ public class PointParticleAttachment extends PointAttachment {
       return a;
    }
 
+   /* --- begin ContactMaster implementation --- */
 
+   public void add1DConstraintBlocks (
+      SparseBlockMatrix GT, int bj, double scale, 
+      ContactPoint cpnt, Vector3d dir) {
+      if (myParticle != null) {
+         int bi = myParticle.getSolveIndex();
+         if (bi != -1) {
+            Matrix3x1Block blk = (Matrix3x1Block)GT.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x1Block();
+               GT.addBlock (bi, bj, blk);
+            }
+            blk.scaledAdd (scale, dir);
+         }
+      }
+   }
+
+   public void add2DConstraintBlocks (
+      SparseBlockMatrix GT, int bj, double scale, 
+      ContactPoint cpnt, Vector3d dir0, Vector3d dir1) {
+      if (myParticle != null) {
+         int bi = myParticle.getSolveIndex();
+         if (bi != -1) {
+            Matrix3x2Block blk = (Matrix3x2Block)GT.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x2Block();
+               GT.addBlock (bi, bj, blk);
+            }
+            blk.m00 += scale*dir0.x;
+            blk.m10 += scale*dir0.y;
+            blk.m20 += scale*dir0.z;
+            blk.m01 += scale*dir1.x;
+            blk.m11 += scale*dir1.y;
+            blk.m21 += scale*dir1.z;
+         }
+      }
+   }
+   
+   public void addRelativeVelocity (
+      Vector3d vel, double scale, ContactPoint cpnt) {
+      if (myParticle != null) {
+         vel.scaledAdd (scale, myParticle.getVelocity());
+      }
+   }
+
+   public boolean isControllable() {
+      if (myParticle != null) {
+         return myParticle.isControllable();
+      }
+      else {
+         return false;
+      }
+   }
+   
+   public int collectMasterComponents (
+      HashSet<DynamicComponent> masters, boolean activeOnly) {
+      if (myParticle != null && (!activeOnly || myParticle.isActive())) {
+         if (masters.add (myParticle)) {
+            return 1;
+         }
+      }
+      return 0;
+   }
+
+   /* --- end ContactMaster implementation --- */
 }

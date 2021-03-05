@@ -6,14 +6,19 @@
 ROOT_DIR = ..\..\..\..
 LIB_TARGET_DIR = $(ROOT_DIR)\lib\Windows64
 # Pardiso compiled with MKL 2020.4
-PARDISO_MKL_TARGET = PardisoJNI.2020.4.dll
+PARDISO_MKL_TARGET = PardisoJNI.2021.1.dll
 CC_COMP = cl # Visual Studio C/C++ compiler
-CC_FLAGS = /O2 /WINDOWS_COMPILER 
+CC_FLAGS = /O2 /DWINDOWS_COMPILER 
 # location of current Java JDK:
 JAVA_HOME = "C:\Program Files\Java\jdk1.8.0_241"
 # location of Intel libraries:
-INTEL_HOME = "C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows"
-MKL_HOME = $(INTEL_HOME)\mkl
+INTEL_HOME = "C:\Program Files (x86)\Intel\oneAPI"
+INTEL_2020_HOME = "C:\Program Files (x86)\IntelSWTools\compilers_and_libraries"
+MKL_HOME = $(INTEL_HOME)\mkl\2021.1.1
+
+
+#THREAD_HOME = $(INTEL_HOME)\compiler\2021.1.1\windows\redist\intel64_win\compiler
+THREAD_HOME = $(INTEL_2020_HOME)\windows\compiler\lib\intel64
 # include directories:
 CC_INCS = /I. /I$(JAVA_HOME)\include /I$(JAVA_HOME)\include\win32 /I$(MKL_HOME)\include
 MKL_64 = $(MKL_HOME)"\lib\intel64"
@@ -22,7 +27,7 @@ MKL_64 = $(MKL_HOME)"\lib\intel64"
 PARDISO_LIBS_64 = /link /LIBPATH:$(MKL_64) mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib
 #PARDISO_LIBS_32 = mkl_intel_c.lib mkl_core.lib mkl_intel_thread.lib
 # multithreading library. Good news - works with older version as well
-LIBMP = /LIBPATH:$(INTEL_HOME)\compiler\lib\intel64 libiomp5md.lib
+LIBMP = /LIBPATH:$(THREAD_HOME) libiomp5md.lib
 
 default: libs
 

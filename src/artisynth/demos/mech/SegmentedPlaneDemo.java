@@ -1,123 +1,62 @@
 package artisynth.demos.mech;
 
-import maspack.geometry.*;
-import maspack.spatialmotion.*;
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.render.Renderer;
-import maspack.render.Renderer.PointStyle;
-import maspack.util.*;
-import artisynth.core.mechmodels.FrameMarker;
+import java.awt.Color;
+
+import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.SegmentedPlanarConnector;
-import artisynth.core.mechmodels.MechSystemSolver.Integrator;
-import artisynth.core.modelbase.*;
-import artisynth.core.driver.*;
-import artisynth.core.util.*;
-import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import artisynth.core.gui.*;
-import maspack.render.*;
-
-import java.awt.Color;
-import java.io.*;
-
-import javax.swing.*;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
 
 public class SegmentedPlaneDemo extends RootModel {
-   public static boolean debug = false;
-
-   boolean readDemoFromFile = false;
-
-   boolean writeDemoToFile = true;
 
    public void build (String[] args) {
 
-      // set up the mechmodel
+      // create mech model and set rigid body damping parameters
+      MechModel mech = new MechModel ("mech");
+      mech.setFrameDamping (10.0);
+      mech.setRotaryDamping (1.0);
+      addModel (mech);
+      mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler);
 
-      MechModel mechMod = new MechModel ("mechMod");
-      mechMod.setGravity (0, 0, -9.8);
-      mechMod.setFrameDamping (1.0);
-      mechMod.setRotaryDamping (4.0);
-      mechMod.setIntegrator (MechSystemSolver.Integrator.BackwardEuler);
+      // create box that will slide around on the plane
+      RigidBody box = RigidBody.createBox (
+         "box", 10.0, 5.0, 3.0, /*density=*/10.0);
+      box.setPose (new RigidTransform3d (0, 0, 1.5, 0, 0, 0)); 
+      mech.addRigidBody (box);
 
-      // set up the rigid body and the plane constraint
-
-      double lenx = 10;
-      double leny = 5;
-      double lenz = 3;
-      RigidBody box = new RigidBody ("box");
-      RigidTransform3d XBoxToWorld = new RigidTransform3d();
-      box.setInertia (SpatialInertia.createBoxInertia (
-         10, lenx, leny, lenz));
-      PolygonalMesh mesh = MeshFactory.createBox (lenx, leny, lenz);
-      box.setMesh (mesh, /* fileName= */null);
-
-      XBoxToWorld.p.set (0, 0, lenz / 2);
-      box.setPose (XBoxToWorld);
-      mechMod.addRigidBody (box);
-
-      // FrameMarker mkr = new FrameMarker (box, -5, 2.5, 1.5);
-      // mechMod.addFrameMarker (mkr);
-      // RenderProps props = mkr.createRenderProps();
-      // props.setPointColor (Color.blue);
-      // props.setPointStyle (RenderProps.PointStyle.SPHERE);
-      // props.setPointRadius (0.25);
-      // mkr.setRenderProps (props);
-
-      RigidTransform3d XPlanesToWorld = new RigidTransform3d();
-      // XPlanesToWorld.R.setAxisAngle(0,1,0,Math.PI);
-      SegmentedPlanarConnector segPlanes =
+      // connect corner point (-5, 2.5, 1.5) on the box (local coordinates) to
+      // a segmented plane, with 5 segments, whose coordinate system is
+      // centered on (and aligned with) world coordinates
+      RigidTransform3d TDW = new RigidTransform3d();
+      SegmentedPlanarConnector connector =
          new SegmentedPlanarConnector (
-            box, new Vector3d (-5, 2.5, 1.5), XPlanesToWorld,
-            // new double[]
-            // { -6, -4,
-            // -3, -1,
-            // -1, 0,
-            // 1, 0,
-            // 3, -1,
-            // 6, -4,
-            // });
+            box, new Vector3d (-5, 2.5, 1.5), TDW,
+            // coordinates of the segment corners in the x-y plane:
+            new double[] { -6,4,  -3,1,  -1,0,  1,0,  3,1,  6,4 });
+      connector.setUnilateral (true);  // make the connector unilateral
+      connector.setPlaneSize (10);     // visible width of the segments in z
+      mech.addBodyConnector (connector);
 
-            new double[] { -6, 4, -3, 1, -1, 0, 1, 0, 3, 1, 6, 4, });
-      segPlanes.setUnilateral (true);
-      segPlanes.setPlaneSize (10);
-      
-      RenderProps props = segPlanes.createRenderProps();
-      props.setPointColor (Color.blue);
-      props.setPointStyle (PointStyle.SPHERE);
-      props.setPointRadius (0.25);
-      segPlanes.setRenderProps (props);
+      // create a control panel to interactively adjust properties
+      ControlPanel panel = new ControlPanel();
+      panel.addWidget (connector, "unilateral");
+      panel.addWidget (connector, "drawFrameC");
+      panel.addWidget (connector, "drawFrameD");
+      panel.addWidget (connector, "axisLength");
+      panel.addWidget (connector, "linearCompliance");
+      panel.addWidget (connector, "compliance");
+      panel.addWidget (connector, "damping");
+      addControlPanel (panel);
 
-      // mechMod.addRigidBody (box);
-      mechMod.addBodyConnector (segPlanes);
+      // set rendering properties      
+      RenderProps.setSphericalPoints (mech, 0.25, Color.BLUE);
+      RenderProps.setFaceColor (box, new Color (0.5f, 1f, 1f));
+      RenderProps.setFaceColor (connector, Color.LIGHT_GRAY);
 
-      addModel (mechMod);
-      addControlPanel (mechMod);
-      
-      // AffineTransform3d X = new AffineTransform3d ();
-      // X.applyScaling (1, 1, 2);
-      // mechMod.transformGeometry (X);
-
-      // RigidTransform3d X = new RigidTransform3d (0, 0, 1.5);
-      // box.transformGeometry (X);
-   }
-
-   ControlPanel myControlPanel;
-
-   public void addControlPanel (MechModel mech) {
-      myControlPanel = new ControlPanel ("options", "");
-      myControlPanel.addWidget (mech, "integrator");
-      myControlPanel.addWidget (mech, "maxStepSize");
-      addControlPanel (myControlPanel);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public String getAbout() {
-      return "A demo to test segmented plane constraints";
    }
 }

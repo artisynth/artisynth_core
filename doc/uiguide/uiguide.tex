@@ -13,7 +13,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
-\setpubdate{Last update: Jan 22, 2020}
+\setpubdate{Last update: Jan 14, 2021}
 \iflatexml
 \date{}
 \fi
@@ -1548,6 +1548,19 @@ bounding box.
 Pulls on certain components using a spring-like force
 when simulation is running.
 
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/pullManipulation}
+\else
+\includegraphics[width=0.6\textwidth]{images/pullManipulation}
+\fi
+\end{center}
+\caption{Applying pull manipulation (blue arrow) to a rigid body 
+attached to a multi-point spring.}%
+\label{PullManipulationFig}
+\end{figure}
+
 Selecting the {\it pull} tool allows a user to interactively apply a
 spring-like force to certain component types by clicking on it and
 then dragging (Figure \ref{PullManipulationFig}). Double clicking on
@@ -1570,19 +1583,6 @@ manually by selecting {\sf PullController > properties} in the {\sf
 Settings} menu.  Render properties for the pull controller can be set
 from this menu also.
 
-\begin{figure}[h]
-\begin{center}
-\iflatexml
-\includegraphics[]{images/pullManipulation}
-\else
-\includegraphics[width=0.6\textwidth]{images/pullManipulation}
-\fi
-\end{center}
-\caption{Applying pull manipulation (blue arrow) to a rigid body 
-attached to a multi-point spring.}%
-\label{PullManipulationFig}
-\end{figure}
-
 \subsection{Marker tool}
 \label{MarkerTool}
 
@@ -1598,11 +1598,23 @@ Adds point markers to certain components.
 Selecting the {\it marker} tool allows a user to interactively add
 point markers to various components in the model.
 
-Markers can be added to rigid bodies, FEM models, and other components
-that implement the \javaclass[artisynth.core.mechmodels]{IsMarkable}
-interface. The markers themselves are components that are added to the
-current root model at a location that depends on the component being
-marked:
+Markers can be added by double-clicking on rigid bodies, FEM models,
+and other components that implement the
+\javaclass[artisynth.core.mechmodels]{IsMarkable} interface.
+
+\begin{sideblock}
+Markers are typically added to a component's surface mesh, and in such
+cases it is necessary that this surface mesh be visible. For FEM
+models in particular, the {\sf surfaceRendering} property should be
+set to something other than {\tt None}. To ensure this is the case,
+select the FEM model, right-click and choose {\sf Edit properties
+...}, and examine the setting for {\sf surfaceRendering}. An FEM model
+can sometimes {\it appear} to have a visible surface mesh, even if it
+doesn't, if its {\sf elementWidgetSize} property is close to 1.
+\end{sideblock}
+
+The markers themselves are added to the current root model at a
+location that depends on the component being marked:
 
 \begin{itemize}
 \item {\bf Rigid bodies:} marker is added to the {\tt frameMarker}
@@ -1614,6 +1626,30 @@ list for the body's parent {\tt MechModel};
 {\tt marker} list (which is created on demand if needed).
 
 \end{itemize}
+
+In order for added markers to be visible, the component list into
+which they are placed needs to be visible, with its point rendering
+properties set to appropriate values. That usually means that {\sf
+pointStyle} is set to {\tt SPHERE} or {\tt CUBE}, with {\tt
+pointRadius} set to a value commensurate with the model's dimensions,
+{\it or} {\sf pointStyle} is set to {\tt POINT}, with {\sf pointSize}
+set to a sufficiently large value in pixels.  If not set within the
+list itself, the point rendering properties will be inherited from
+ancestor components. For example, if a {\tt MechModel}'s point render
+properties are set for good visibility, then all points within
+subcomponents will be visible unless these setting have been
+overridden at a lower point in the hierarchy.
+
+\begin{sideblock}
+If markers are not appearing when using the marker tool, use the
+navigation panel to open the component list to which the markers are
+added (as described above). Verify that markers are actually being
+appended to the end of the list. If they are not, ensure that the
+component's surface mesh is visible. If they are, select the list
+itself, right-click, and choose {\sf Edit render props ...}. Check
+that {\sf visible} is {\tt true}, and that {\sf pointStyle} and {\sf
+pointRadius} (or {\sf pointSize}) are set appropriately.
+\end{sideblock}
 
 Once created, markers can be removed by selecting them and choosing
 {\sf Delete} from the context menu.

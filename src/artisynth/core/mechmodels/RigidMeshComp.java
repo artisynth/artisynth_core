@@ -505,21 +505,22 @@ public class RigidMeshComp extends DynamicMeshComponent
       return rb.getVelStateSize() > 6;
    }
    
-   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
-      RigidBody rb = getRigidBody();
-      if (rb == null) {
-         throw new IllegalStateException (
-            "RigidMeshComp not associated with a rigid body");
-      }
-      mlist.add (new ContactMaster (rb, 1));
-   }
-   
+//   public void createVertexMasters (
+//      List<ContactMaster> mlist, Vertex3d vtx, ContactPoint cpnt) {
+//      RigidBody rb = getRigidBody();
+//      if (rb == null) {
+//         throw new IllegalStateException (
+//            "RigidMeshComp not associated with a rigid body");
+//      }
+//      mlist.add (new CompContactMaster (rb, 1));
+//   }
+//   
    @Override
-   public PointAttachment getAttachment(int vidx) {
-      return getAttachment(getVertex(vidx));
+   public PointAttachment getVertexAttachment(int vidx) {
+      return getVertexAttachment(getVertex(vidx));
    }
    
-   public PointAttachment getAttachment(Vertex3d vtx) {
+   public PointAttachment getVertexAttachment(Vertex3d vtx) {
       if (getGrandParent() instanceof RigidBody) {
          RigidBody rb = (RigidBody)getGrandParent();
          return new PointFrameAttachment (rb, null, vtx.getPosition ());

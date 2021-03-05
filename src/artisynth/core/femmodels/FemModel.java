@@ -81,13 +81,42 @@ public abstract class FemModel extends MechSystemBase
    protected PointList<FemMarker> myMarkers;
    protected ComponentList<DynamicAttachmentComp> myAttachments;
 
+   /**
+    * Specifies how FEM surface meshes should be rendered.
+    */
    public enum SurfaceRender {
+      /**
+       * No surface rendering
+       */
       None,
+
+      /**
+       * Rendered as a shaded surface, using the model's face rendering
+       * proporties.
+       */
       Shaded,
       // Fine,
+
+      /**
+       * Render as a color map showing the von Mises stress.
+       */
       Stress,
+
+      /**
+       * Render as a color map showing the von Mises strain.
+       */
       Strain,
+
+      /**
+       * Render as a color map showing the maximum absolute principal stress
+       * component.
+       */
       MAPStress,
+
+      /**
+       * Render as a color map showing the maximum absolute principal strain
+       * component.
+       */
       MAPStrain;
 
       public boolean usesStress() {

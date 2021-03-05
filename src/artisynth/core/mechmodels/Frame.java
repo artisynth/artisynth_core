@@ -9,18 +9,22 @@ package artisynth.core.mechmodels;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
 
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix6x1Block;
+import maspack.matrix.Matrix6x2Block;
 import maspack.matrix.Matrix3x6;
 import maspack.matrix.Matrix6x3;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Matrix6x3Block;
 import maspack.matrix.MatrixBlock;
+import maspack.matrix.MatrixBlockBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
@@ -57,7 +61,27 @@ public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
               Traceable, MotionTargetComponent, CopyableComponent,
               HasCoordinateFrame, CollidableDynamicComponent,
-              PointAttachable, FrameAttachable {
+              PointAttachable, FrameAttachable, ContactMaster {
+
+   /**
+    * Describes how to render the axes of this frame.
+    */
+   public enum AxisDrawStyle {
+      /**
+       * Do not render the axes
+       */
+      OFF,
+
+      /**
+       * Render the axes as lines
+       */
+      LINE,
+
+      /**
+       * Render the axes as solid arrows
+       */
+      ARROW   
+   }
 
    public static boolean dynamicVelInWorldCoords = true;
 
@@ -70,6 +94,9 @@ public class Frame extends DynamicComponentBase
    protected Wrench myExternalForce;
    public RigidTransform3d myRenderFrame; // public for debugging
    double myAxisLength = 0;
+   protected static final AxisDrawStyle DEFAULT_AXIS_RENDER_STYLE =
+      AxisDrawStyle.LINE;
+   protected AxisDrawStyle myAxisDrawStyle = DEFAULT_AXIS_RENDER_STYLE;
    protected MatrixBlock mySolveBlock;
    protected int mySolveBlockNum = -1;
    // protected Activity myActivity = Activity.Unknown;
@@ -122,6 +149,9 @@ public class Frame extends DynamicComponentBase
          "externalForce * *", "external force wrench", null, "NW");
       myProps.add (
          "axisLength * *", "length of rendered frame axes", 1f);
+      myProps.add (
+         "axisDrawStyle", "rendering style for the frame axes",
+         DEFAULT_AXIS_RENDER_STYLE);
       myProps.addInheritable (
          "frameDamping:Inherited", "intrinsic translational damping", 0.0);
       myProps.addInheritable (
@@ -287,6 +317,14 @@ public class Frame extends DynamicComponentBase
 
    public void setAxisLength (double len) {
       myAxisLength = Math.max (0, len);
+   }
+
+   public AxisDrawStyle getAxisDrawStyle() {
+      return myAxisDrawStyle;
+   }
+
+   public void setAxisDrawStyle (AxisDrawStyle style) {
+      myAxisDrawStyle = style;
    }
 
    /**
@@ -904,12 +942,34 @@ public class Frame extends DynamicComponentBase
       myState.pos.updateBounds (pmin, pmax);
    }
 
+   public static void renderAxes (
+      Renderer renderer, RigidTransform3d TFW, AxisDrawStyle style,
+      double len, int width, boolean isSelected) {
+
+      switch (style) {
+         case OFF: {
+            break;
+         }
+         case LINE: {
+            renderer.drawAxes (TFW, len, width, isSelected);
+            break;
+         }
+         case ARROW:{
+            renderer.drawSolidAxes (TFW, len, len/60, isSelected);
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented axisDrawStyle " + style);
+         }
+      }
+   }
+
    public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         int lineWidth = myRenderProps.getLineWidth();
-         renderer.drawAxes (
-            myRenderFrame, myAxisLength, lineWidth, isSelected());
-         //renderer.setLineWidth (1);
+         renderAxes (
+            renderer, myRenderFrame, myAxisDrawStyle, 
+            myAxisLength, myRenderProps.getLineWidth(), isSelected());
       }
    }
 
@@ -1223,6 +1283,7 @@ public class Frame extends DynamicComponentBase
       comp.myExternalForce = new Wrench();
       comp.myRenderFrame = new RigidTransform3d();
       comp.myAxisLength = myAxisLength;
+      comp.myAxisDrawStyle = myAxisDrawStyle;
       comp.mySolveBlock = null;
       comp.mySolveBlockNum = -1;
       comp.mySolveBlockValidP = false;
@@ -1452,5 +1513,109 @@ public class Frame extends DynamicComponentBase
       force.setRandom();
       setForce (force);
    }
+
+   /* --- begin ContactMaster implementation --- */
+
+   void addColumn (MatrixBlock blk, double[] col, int j, int nrows) {
+      for (int i=0; i<nrows; i++) {
+         blk.set (i, j, blk.get(i,j) + col[i]);
+      }
+   }
+
+   public void add1DConstraintBlocks (
+      SparseBlockMatrix GT, int bj, double scale, 
+      ContactPoint cpnt, Vector3d dir) {
+      int bi = getSolveIndex();
+      if (bi != -1) {
+         int nrows = getVelStateSize();
+         MatrixBlock blk = GT.getBlock (bi, bj);
+         if (blk == null) {
+            blk = MatrixBlockBase.alloc (getVelStateSize(), 1);
+            GT.addBlock (bi, bj, blk);
+         }
+         double[] buf = new double[nrows];
+         // Compute block column in buf and add it to the block.
+         // Expand special cases for efficiency:
+         setContactConstraint (buf, scale, dir, cpnt);
+         if (nrows == 6) {
+            Matrix6x1Block cblk = (Matrix6x1Block)blk;
+            cblk.m00 += buf[0];
+            cblk.m10 += buf[1];
+            cblk.m20 += buf[2];
+            cblk.m30 += buf[3];
+            cblk.m40 += buf[4];
+            cblk.m50 += buf[5];
+         }
+         else {
+            addColumn (blk, buf, 0, nrows);
+         }
+      }
+   }
+
+   public void add2DConstraintBlocks (
+      SparseBlockMatrix GT, int bj, double scale,
+      ContactPoint cpnt, Vector3d dir0, Vector3d dir1) {
+      int bi = getSolveIndex();
+      if (bi != -1) {
+         int nrows = getVelStateSize();
+         MatrixBlock blk = GT.getBlock (bi, bj);
+         if (blk == null) {
+            blk = MatrixBlockBase.alloc (nrows, 2);
+            GT.addBlock (bi, bj, blk);
+         }
+         double[] buf = new double[nrows];
+         // Compute first block column in buf and add it to the block.
+         // Expand special cases for efficiency:
+         setContactConstraint (buf, scale, dir0, cpnt);
+         if (nrows == 6) {
+            Matrix6x2Block cblk = (Matrix6x2Block)blk;
+            cblk.m00 += buf[0];
+            cblk.m10 += buf[1];
+            cblk.m20 += buf[2];
+            cblk.m30 += buf[3];
+            cblk.m40 += buf[4];
+            cblk.m50 += buf[5];
+         }
+         else {
+            addColumn (blk, buf, 0, nrows);
+         }
+         // Compute second block column in buf and add it to the block.
+         // Expand special cases for efficiency:
+         setContactConstraint (buf, scale, dir1, cpnt);
+         if (nrows == 6) {
+            Matrix6x2Block cblk = (Matrix6x2Block)blk;
+            cblk.m01 += buf[0];
+            cblk.m11 += buf[1];
+            cblk.m21 += buf[2];
+            cblk.m31 += buf[3];
+            cblk.m41 += buf[4];
+            cblk.m51 += buf[5];
+         }
+         else {
+            addColumn (blk, buf, 1, nrows);
+         }
+      }
+   }
+   
+   public void addRelativeVelocity (
+      Vector3d vel, double scale, ContactPoint cpnt) {
+      addToPointVelocity (vel, scale, cpnt);
+   }
+
+   // isControllable already defined
+
+   public int collectMasterComponents (
+      HashSet<DynamicComponent> masters, boolean activeOnly) {
+
+      if (!activeOnly || isActive()) {
+         if (masters.add (this)) {
+            return 1;
+         }
+      }
+      return 0;
+   }
+
+   /* --- end ContactMaster implementation --- */
+
 
 }

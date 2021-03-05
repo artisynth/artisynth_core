@@ -225,7 +225,7 @@ public class MultiPointSpringTest extends UnitTest {
       // have to set myIgnoreCoriolisInJacobian to false since otherwise
       // non-symmetric Jacobian terms will not be computed and the Jacobian
       // will not match the numeric check
-      MultiPointSpring.myIgnoreCoriolisInJacobian = false;
+      PointSpringBase.myIgnoreCoriolisInJacobian = false;
       RandomGenerator.setSeed (0x1234);
       tester.runtest();
    }

@@ -39,7 +39,8 @@ FIX_PERMISSIONS = \
   ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) $(WEB_HOME)/bin/fixMagicPerms 
 
 # Junk files produced by LaTeX
-LATEX_JUNK_FILES = *.log *.aux *.out *.toc *.bbl *.blg *.cb *.cb2
+LATEX_JUNK_FILES = \
+  *.log *.aux *.out *.toc *.bbl *.blg *.cb *.cb2 *.run.xml *.bcf *.dvi
 
 # Location of binaries used for postprocessing.
 BIN_DIR = $(DOC_DIR_ROOT)/../bin
@@ -153,7 +154,7 @@ endef
 #
 define REMOVE_JUNK_FILES
 	rm -rf *~ *.pdf *.dvi *.xml *.html
-	rm -rf *.log *.aux *.out *.toc *.bbl *.blg
+	rm -rf *.log *.aux *.out *.toc *.bbl *.blg *.run.xml *.bcf
 	rm -rf LaTeXML????* *.cb *.cb2 # files produced by LaTeXML
 	rm -rf *.fdb_latexmk *.synctex.gz *.fls # files produced by latexmk
 endef     

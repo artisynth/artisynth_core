@@ -37,25 +37,24 @@ import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ScanToken;
 
 /**
- * Auxiliary class used to solve constrained rigid body problems.
+ * Implements a 5 DOF connector in which the origin of C is constrained to lie
+ * on a piecewise linear surface defined by a piecewise linear curve in the x-z
+ * plane of D.
+ *
+ * <p>The planar segments are defined by a sequence of x-z coordinate pairs in
+ * the D coordinate frame. The number of segments equals the number of pairs
+ * minus one, so there must be at least two pairs (which would define a single
+ * plane). Segments are assumed to be contiguous, and the normal for each is
+ * defined by u X y, where u is a vector in the direction of the segment (from
+ * first to last coordinate pair) and y is the direction of the y axis. The
+ * first and last plane segments are assumed to extend to infinity.
  */
 public class SegmentedPlanarConnector extends BodyConnector 
    implements CopyableComponent {
-   // protected Point3d myPCA;
 
-   // protected ArrayList<Plane> myPlanes;
-   // protected ArrayList<Point3d> myPoints;
-
-   // protected RigidTransform3d myXPB;
-   // private RigidTransform3d myXBA;
-   // private Twist myVelA;
-   // private Twist myVelB;
-   // private Vector3d myNrm; // scratch copy of the normal
    private double myPlaneSize;
    private static final double defaultPlaneSize = 1;
    private boolean myRenderNormalReversedP = false;
-   // private ArrayList<RigidBodyConstraint> myArray =
-   // new ArrayList<RigidBodyConstraint>();
 
    private SegmentedPlanarCoupling mySegPlaneCoupling;
    private Point3d[] myRenderVtxs;
@@ -66,12 +65,12 @@ public class SegmentedPlanarConnector extends BodyConnector
          SegmentedPlanarConnector.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createPointFaceProps (null);
+      RenderProps props = RenderProps.createRenderProps (host);
       props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       return props;
    }
 
-   protected static VectorNd ZERO_VEC = new VectorNd(1);
+   protected static VectorNd ZERO_VEC1 = new VectorNd(1);
 
    static {
       myProps.addReadOnly (
@@ -79,12 +78,11 @@ public class SegmentedPlanarConnector extends BodyConnector
       myProps.add (
          "unilateral isUnilateral *", "unilateral constraint flag", false);
       myProps.add ("planeSize * *", "renderable size of the plane", null);
-      myProps.add (
-         "renderProps * *", "renderer properties", defaultRenderProps (null));
-      myProps.add (
-         "compliance", "compliance for each constraint", ZERO_VEC);
-      myProps.add (
-         "damping", "damping for each constraint", ZERO_VEC);
+      myProps.addReadOnly (
+         "engaged", "true if the coupling's constraint engaged");
+      myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
+      myProps.get ("compliance").setDefaultValue (ZERO_VEC1);
+      myProps.get ("damping").setDefaultValue (ZERO_VEC1);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -111,13 +109,19 @@ public class SegmentedPlanarConnector extends BodyConnector
    }
 
    private void initializeCoupling() {
-      mySegPlaneCoupling = new SegmentedPlanarCoupling ();
-      myCoupling = mySegPlaneCoupling;
-      myCoupling.setBreakSpeed (1e-8);
-      myCoupling.setBreakAccel (1e-8);
-      myCoupling.setContactDistance (1e-8);
+      mySegPlaneCoupling = new SegmentedPlanarCoupling();
+      setCoupling (mySegPlaneCoupling);
    }
 
+   public int getEngaged() {
+      return myCoupling.getConstraint(0).getEngaged();
+   }
+
+   /**
+    * Creates a {@code SegmentedPlanarConnector} which is not attached to any
+    * bodies.  It can subsequently be connected using one of the {@code set}
+    * methods.
+    */
    public SegmentedPlanarConnector() {
       myTransformDGeometryOnly = true;
       setDefaultValues();
@@ -128,32 +132,78 @@ public class SegmentedPlanarConnector extends BodyConnector
       initializeCoupling();
    }
 
-   public SegmentedPlanarConnector (RigidBody bodyA, Vector3d pCA,
-   RigidBody bodyB, RigidTransform3d XPB, double[] segs) {
+   /**
+    * Creates a {@code SegmentedPlanarConnector} connecting two rigid bodies,
+    * {@code bodyA} and {@code bodyB}. If A and B describe the coordinate
+    * frames of {@code bodyA} and {@code bodyB}, and then {@code pCA} gives the
+    * origin of C with respect to A and {@code TDB} gives the pose of D with
+    * respect to B. The planar segments are defined by {@code segs}, as
+    * described in the header documentation for this class.
+    *
+    * @param bodyA rigid body A
+    * @param pCA origin of C with respect to A, as seen in A
+    * @param bodyB rigid body B (or {@code null})
+    * @param TDB transform from frame D to body frame B
+    * @param segs
+    * segment boundaries, given as pairs of coordinates in the x-z plane
+    */
+   public SegmentedPlanarConnector (
+      RigidBody bodyA, Vector3d pCA,
+      RigidBody bodyB, RigidTransform3d TDB, double[] segs) {
       this();
-      set (bodyA, pCA, bodyB, XPB, segs);
-   }
-
-   public SegmentedPlanarConnector (RigidBody bodyA, Vector3d pCA,
-   RigidTransform3d XPW, double[] segs) {
-      this();
-      set (bodyA, pCA, XPW, segs);
+      set (bodyA, pCA, bodyB, TDB, segs);
    }
 
    /**
-    * Sets this SegmentedPlanarConnectorX to connect two rigid bodies. The first
+    * Creates a {@code SegmentedPlanarConnector} connecting a single rigid
+    * body, {@code bodyA}, to ground. If A describes the coordinate frame of
+    * {@code bodyA}, then {@code pCA} gives the origin of C with respect to A
+    * and {@code TDW} gives the pose of D with respect to world. The planar
+    * segments are defined by {@code segs}, as described in the header
+    * documentation for this class.
+    *
+    * @param bodyA rigid body A
+    * @param pCA origin of C with respect to A, as seen in A
+    * @param TDW transform from frame D to world coordinates
+    * @param segs
+    * segment boundaries, given as pairs of coordinates in the x-z plane
+    */
+   public SegmentedPlanarConnector (
+      RigidBody bodyA, Vector3d pCA,
+      RigidTransform3d TDW, double[] segs) {
+      this();
+      set (bodyA, pCA, TDW, segs);
+   }
+
+   /**
+    * Creates a {@code SegmentedPlanarConnector} connecting two connectable
+    * bodies, {@code bodyA} and {@code bodyB}. The joint frames D and C are
+    * assumed to be initially coincident. The planar segments are defined by
+    * {@code segs}, as described in the header documentation for this class.
+    *
+    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
+    * be connected to ground.
+    *
+    * @param bodyA body A
+    * @param bodyB body B
+    * @param TDW initial transform from connector frames D and C to world
+    * @param segs
+    * segment boundaries, given as pairs of coordinates in the x-z plane
+    */
+   public SegmentedPlanarConnector (
+      ConnectableBody bodyA, ConnectableBody bodyB,
+      RigidTransform3d TDW, double[] segs) {
+      this();
+      setBodies (bodyA, bodyB, TDW);
+      mySegPlaneCoupling.setSegments (segs);
+   }   
+
+   /**
+    * Sets this SegmentedPlanarConnector to connect two rigid bodies. The first
     * body (A) is the one in which the contact point is fixed, while the second
-    * body (B) is the one in which the planes are fixed.
-    * 
-    * <p>
-    * The plane segments are defined by a sequence of x-z coordinate pairs in
-    * the D coordinate frame. The number of segments equals the number of pairs
-    * minus one, so there must be at least two pairs (which would define a
-    * single plane). Segments are assumed to be contiguous, and the normal for
-    * each is defined by u X y, where u is a vector in the direction of the
-    * segment (from first to last coordinate pair) and y is the direction of the
-    * y axis. The first and last plane segments are assumed to extend to
-    * infinity.
+    * body (B) is the one in which the planes are fixed. The planar segments
+    * are specfified by {@code segs}, as described in the header documentation
+    * for this class.
     * 
     * @param bodyA
     * first rigid body
@@ -161,23 +211,22 @@ public class SegmentedPlanarConnector extends BodyConnector
     * location of contact point relative to body A
     * @param bodyB
     * second rigid body
-    * @param XDB
+    * @param TDB
     * transformation from frame D to body B
     * @param segs
     * segment boundaries, given as pairs of coordinates in the x-z plane.
     */
    public void set (
-      RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d XDB,
-      double[] segs) {
-      doset (bodyA, pCA, bodyB, XDB, segs);
+      RigidBody bodyA, Vector3d pCA,
+      RigidBody bodyB, RigidTransform3d TDB, double[] segs) {
+      doset (bodyA, pCA, bodyB, TDB, segs);
    }
 
    /**
-    * Sets this SegmentedPlanarConnectorX to connect a rigid body with the world
+    * Sets this SegmentedPlanarConnector to connect a rigid body with the world
     * frame. The contact point is fixed in the body frame, while the planes are
-    * fixed in the world frame. Plane segments are defined as in the other
-    * {@link #set(RigidBody,Vector3d,RigidBody,RigidTransform3d,double[]) set}
-    * routine.
+    * fixed in the world frame. The planar segments are specfified by {@code
+    * segs}, as described in the header documentation for this class.
     * 
     * @param bodyA
     * rigid body
@@ -193,104 +242,14 @@ public class SegmentedPlanarConnector extends BodyConnector
       doset (bodyA, pCA, null, TDW, segs);
    }
 
-   // private void makePlanesFromSegments (
-   // RigidTransform3d XPB, ArrayList<Point3d> segPoints)
-   // {
-   // myPlanes = new ArrayList<Plane>();
-   // // now create the planes
-   // Vector3d u = new Vector3d();
-   // Vector3d nrm = new Vector3d();
-   // Vector3d y = new Vector3d (XPB.R.m01, XPB.R.m11, XPB.R.m21);
-   // for (int i=1; i<segPoints.size(); i++)
-   // { u.sub (segPoints.get(i), segPoints.get(i-1));
-   // nrm.cross (u, y);
-   // nrm.normalize();
-   // myPlanes.add (new Plane (nrm, nrm.dot(segPoints.get(i))));
-   // }
-   // }
-
-   // private void makeSegmentPoints (
-   // RigidTransform3d XPB, double[] segs)
-   // {
-   // myPoints = new ArrayList<Point3d>();
-   // // make private copy of the points
-   // for (int i=0; i<segs.length; i+=2)
-   // { Point3d pnt = new Point3d(segs[i], 0.0, segs[i+1]);
-   // pnt.transform (XPB);
-   // myPoints.add (pnt);
-   // }
-   // }
-
    private void doset (
-      RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d XDB,
+      RigidBody bodyA, Vector3d pCA, RigidBody bodyB, RigidTransform3d TDB,
       double[] segs) {
       RigidTransform3d TCA = new RigidTransform3d();
       TCA.p.set (pCA);
-      setBodies (bodyA, TCA, bodyB, XDB);
+      setBodies (bodyA, TCA, bodyB, TDB);
       mySegPlaneCoupling.setSegments (segs);
    }
-
-   // public Plane closestPlane (Point3d p)
-   // {
-   // int nearestIdx = -1;
-   // double dsqrMin = 0;
-
-   // // u will be a vector in the direction of the segment
-   // Vector3d u = new Vector3d();
-   // // v will be a vector from p to the first segment point
-   // Vector3d v = new Vector3d();
-
-   // for (int i=0; i<myPlanes.size(); i++)
-   // { double dplane = myPlanes.get(i).distance (p);
-   // double dsqr = dplane*dplane;
-
-   // u.sub (myPoints.get(i+1), myPoints.get(i));
-   // double segLength = u.norm();
-   // u.scale (1/segLength);
-
-   // v.sub (myPoints.get(i), p);
-   // double vdotu = v.dot(u);
-   // if (vdotu > 0 && i > 0)
-   // { dsqr += (vdotu*vdotu);
-   // }
-   // else if (vdotu < -segLength && i < myPlanes.size()-1)
-   // { dsqr += (vdotu+segLength)*(vdotu+segLength);
-   // }
-   // if (nearestIdx == -1 || dsqr < dsqrMin)
-   // { nearestIdx = i;
-   // dsqrMin = dsqr;
-   // }
-   // }
-   // return myPlanes.get(nearestIdx);
-   // }
-
-   // public void updateValues (double t)
-   // {
-   // super.updateValues (t);
-
-   // // closest plane and distances
-
-   // Point3d pCB = new Point3d();
-   // pCB.inverseTransform (mmXBA, myPCA);
-   // Plane plane = closestPlane (pCB);
-   // myDistances[0] = plane.distance (pCB);
-
-   // // wrenches
-   // myNrm.transform (mmXBA, plane.getNormal());
-   // myWrenches[0].f.set (myNrm);
-   // myWrenches[0].m.cross (myPCA, myNrm);
-
-   // // derivatives
-
-   // // get normal in A coordinates
-   // myNrm.transform (mmXBA, plane.getNormal());
-   // // can use either velBA or velAB because one is the negative
-   // // of the other and the signs will cancel
-   // Wrench Gdot = new Wrench();
-   // Gdot.f.cross (mmVelBA.w, myNrm);
-   // Gdot.m.cross (myPCA, Gdot.f);
-   // myDerivatives[0] = Gdot.dot (mmVelBA);
-   // }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       RigidTransform3d TDW = getCurrentTDW();
@@ -307,6 +266,7 @@ public class SegmentedPlanarConnector extends BodyConnector
    }
 
    public void prerender (RenderList list) {
+      super.prerender (list);
       RigidTransform3d TFW = getCurrentTCW();
       myRenderCoords[0] = (float)TFW.p.x;
       myRenderCoords[1] = (float)TFW.p.y;
@@ -314,6 +274,8 @@ public class SegmentedPlanarConnector extends BodyConnector
    }
 
    public void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
+
       Vector3d nrm = new Vector3d (0, 0, 1);
       RigidTransform3d TDW = getCurrentTDW();
 
@@ -402,31 +364,10 @@ public class SegmentedPlanarConnector extends BodyConnector
       }
    }
 
-   // private void updateCouplingTransforms()
-   // {
-   // RigidTransform3d TCA = new RigidTransform3d();
-   // TCA.p.set (myPCA);
-   // myCoupling.setConstraintToBodyA (TCA);
-   // }
-
    public void scaleDistance (double s) {
       super.scaleDistance (s);
       myPlaneSize *= s;
-      myRenderProps.scaleDistance (s);
    }
-
-   // public void transformGeometry (
-   // AffineTransform3dBase Xa, TransformableGeometry topObject)
-   // {
-   // // myPCA.mulAdd (Xa.getMatrix(), myPCA, Xa.getOffset());
-   // if (myBodies.size() == 1)
-   // { myXPB.mulAffineLeft (Xa, null);
-   // for (int i=0; i<myPoints.size(); i++)
-   // { myPoints.get(i).transform (Xa);
-   // }
-   // makePlanesFromSegments (myXPB, myPoints);
-   // }
-   // }
 
    public boolean isRenderNormalReversed() {
       return myRenderNormalReversedP;
@@ -435,11 +376,6 @@ public class SegmentedPlanarConnector extends BodyConnector
    public void setRenderNormalReversed (boolean reversed) {
       myRenderNormalReversedP = reversed;
    }
-
-   // public RigidTransform3d getTransformPB()
-   // {
-   // return myXPB;
-   // }
 
    public boolean isUnilateral() {
       return mySegPlaneCoupling.isUnilateral();
@@ -453,99 +389,6 @@ public class SegmentedPlanarConnector extends BodyConnector
       }
    }
 
-   // public int numBilateralConstraints()
-   // {
-   // return getUnilateral() ? 0 : 1;
-   // }
-
-   // private void updateConstraint()
-   // {
-   // myArray.clear();
-   // updateBodyVelocities();
-   // RigidTransform3d XAW = myBodies.get(0).getPose();
-   // RigidTransform3d XBW;
-   // if (numBodies() == 2)
-   // { XBW = myBodies.get(1).getPose();
-   // }
-   // else
-   // { XBW = RigidTransform3d.IDENTITY;
-   // }
-   // // need to dynamically set the coupling plane
-   // mmXBA.mulInverseLeft (XAW, XBW);
-   // Point3d pCB = new Point3d();
-   // pCB.inverseTransform (mmXBA, myPCA);
-   // myCoupling.setXCBFromPlane (closestPlane (pCB));
-   // myCoupling.getConstraints (
-   // myArray, 0, XAW, XBW, mmVelA, mmVelB);
-   // setBodyIndices (myArray, 0, 1);
-   // }
-
-   // public int getBilateralConstraints (
-   // ArrayList<RigidBodyConstraint> bilaterals)
-   // {
-   // if (getUnilateral())
-   // { return 0;
-   // }
-   // else
-   // { updateConstraint();
-   // bilaterals.add (myArray.get(0));
-   // return 1;
-   // }
-   // }
-
-   // @Override
-   // public boolean hasUnilateralConstraints()
-   // {
-   // return true;
-   // }
-
-   // @Override
-   // public int getUnilateralConstraints (
-   // ArrayList<RigidBodyConstraint> unilaterals, double dlimit)
-   // {
-   // if (getUnilateral())
-   // { updateConstraint();
-   // RigidBodyConstraint c = myArray.get(0);
-   // if (c.getDistance() < dlimit)
-   // { unilaterals.add (c);
-   // return 1;
-   // }
-   // }
-   // return 0;
-   // }
-
-   // @Override
-   // public int updateUnilateralConstraints (
-   // ArrayList<RigidBodyConstraint> unilaterals, int offset, int num)
-   // {
-   // if (getUnilateral() && num == 1)
-   // { updateConstraint();
-   // return offset + 1;
-   // }
-   // else
-   // { return offset;
-   // }
-   // }
-
-   // /**
-   // * {@inheritDoc}
-   // */
-   // @Override
-   // public void updateForBodyPositionChange (
-   // RigidBody body, RigidTransform3d XBodyToWorld)
-   // {
-   // if (body == myBodies.get(0))
-   // { // bodyA
-   // }
-   // else if (body == myBodies.get(1))
-   // { // bodyB
-   // }
-   // else
-   // { throw new IllegalArgumentException (
-   // "body is not referenced by this connector");
-   // }
-   // }
-
    @Override
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
@@ -554,8 +397,6 @@ public class SegmentedPlanarConnector extends BodyConnector
       copy.initializeCoupling();
       copy.setPlaneSize (myPlaneSize);
       copy.setUnilateral (isUnilateral());
-      copy.setRenderProps (getRenderProps());
-      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
       ArrayList<Point3d> segPnts = mySegPlaneCoupling.getSegmentPoints();
       double[] segs = new double[segPnts.size() * 2];
       for (int i = 0; i < segPnts.size(); i++) {

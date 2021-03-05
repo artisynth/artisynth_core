@@ -149,10 +149,8 @@ public class LaymanModel extends MechModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
-      RenderProps.setPointColor (joint, Color.BLUE);
-      RenderProps.setPointRadius (joint, 0.035);
-      joint.setAxisLength (0);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setJointRadius (0.035);
       addBodyConnector (joint);
       if (maxAng < 180) {
          joint.setMaxRotation (maxAng);
@@ -160,28 +158,27 @@ public class LaymanModel extends MechModel {
       return joint;
    }
 
-   public RevoluteJoint addRevoluteJoint (
+   public HingeJoint addHingeJoint (
       RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
       RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
 
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setLineStyle (joint, LineStyle.CYLINDER);
-      RenderProps.setLineColor (joint, Color.BLUE);
-      RenderProps.setLineRadius (joint, 0.025);
-      joint.setAxisLength (0.05);
+      HingeJoint joint = new HingeJoint (bodyA, TCA, bodyB, XDB);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftRadius (0.025);
+      joint.setShaftLength (0.05);
       addBodyConnector (joint);
       return joint;
    }
 
-   public RevoluteJoint addRevoluteJoint (
+   public HingeJoint addHingeJoint (
       RigidBody bodyA, RigidBody bodyB, double x, double y, double z) {
       RigidTransform3d TDW = new RigidTransform3d();
       TDW.p.set (x, y, z);
       TDW.R.setAxisAngle (Vector3d.Y_UNIT, Math.toRadians (90));
-      return addRevoluteJoint (bodyA, bodyB, TDW);
+      return addHingeJoint (bodyA, bodyB, TDW);
    }
    
    public LaymanModel() {
@@ -233,7 +230,7 @@ public class LaymanModel extends MechModel {
       RigidTransform3d TCW = new RigidTransform3d();
 
       SphericalJoint sjoint;
-      RevoluteJoint rjoint;
+      HingeJoint rjoint;
 
       TDW.p.set (-ARM_SEP / 2, 0, SHOULDER_Z);
       TDW.R.setRpy (-DTOR * 45, 0, DTOR * 80);
@@ -250,12 +247,12 @@ public class LaymanModel extends MechModel {
       TCW.mul (myLUppArm.getPose(), TCA);
       sjoint.setCurrentTCW (TCW);
 
-      rjoint = addRevoluteJoint (myRUppArm, myRLowArm, -ARM_SEP / 2, 0, elbowZ);
-      rjoint.setMaxTheta (5);
-      rjoint.setMinTheta (-160);
-      rjoint = addRevoluteJoint (myLUppArm, myLLowArm, ARM_SEP / 2, 0, elbowZ);
-      rjoint.setMaxTheta (5);
-      rjoint.setMinTheta (-160);
+      rjoint = addHingeJoint (myRUppArm, myRLowArm, -ARM_SEP / 2, 0, elbowZ);
+      rjoint.setMinTheta (-5);
+      rjoint.setMaxTheta (160);
+      rjoint = addHingeJoint (myLUppArm, myLLowArm, ARM_SEP / 2, 0, elbowZ);
+      rjoint.setMinTheta (-5);
+      rjoint.setMaxTheta (160);
 
       addSphericalJoint (myRHand, myRLowArm, -ARM_SEP / 2, 0, wristZ, 45);
       addSphericalJoint (myLHand, myLLowArm, ARM_SEP / 2, 0, wristZ, 45);
@@ -294,12 +291,12 @@ public class LaymanModel extends MechModel {
       sjoint = addSphericalJoint (myLUppLeg, myPelvis, TDW, 180);
       sjoint.setMaxRotation (90, 45, 45);
 
-      rjoint = addRevoluteJoint (myRUppLeg, myRLowLeg, -LEG_SEP / 2, 0, kneeZ);
-      rjoint.setMaxTheta (135);
-      rjoint.setMinTheta (-5);
-      rjoint = addRevoluteJoint (myLUppLeg, myLLowLeg, LEG_SEP / 2, 0, kneeZ);
-      rjoint.setMaxTheta (135);
-      rjoint.setMinTheta (-5);
+      rjoint = addHingeJoint (myRUppLeg, myRLowLeg, -LEG_SEP / 2, 0, kneeZ);
+      rjoint.setMinTheta (-135);
+      rjoint.setMaxTheta (5);
+      rjoint = addHingeJoint (myLUppLeg, myLLowLeg, LEG_SEP / 2, 0, kneeZ);
+      rjoint.setMinTheta (-135);
+      rjoint.setMaxTheta (5);
 
       addSphericalJoint (myRFoot, myRLowLeg, -LEG_SEP / 2, 0, ankleZ, 45);
       addSphericalJoint (myLFoot, myLLowLeg, LEG_SEP / 2, 0, ankleZ, 45);

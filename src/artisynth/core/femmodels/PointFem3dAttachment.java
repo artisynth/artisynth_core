@@ -18,6 +18,8 @@ import java.util.Map;
 import maspack.geometry.InverseDistanceWeights;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3x3Block;
+import maspack.matrix.Matrix3x1Block;
+import maspack.matrix.Matrix3x2Block;
 import maspack.matrix.Matrix3x3DiagBlock;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.Point3d;
@@ -32,6 +34,8 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.LinearPointConstraint;
@@ -47,7 +51,9 @@ import artisynth.core.util.ObjectToken;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 
-public class PointFem3dAttachment extends PointAttachment {
+public class PointFem3dAttachment
+   extends PointAttachment implements ContactMaster {
+                                          
    protected FemElement myElement;
    protected FemNode[] myNodes;
    protected VectorNd myCoords;
@@ -701,6 +707,76 @@ public class PointFem3dAttachment extends PointAttachment {
       
       return a;
    }
-  
+
+   /* --- begin ContactMaster implementation --- */
+
+   public void add1DConstraintBlocks (
+      SparseBlockMatrix GT, int bj, double scale, 
+      ContactPoint cpnt, Vector3d dir) {
+      for (int i=0; i<myNodes.length; i++) {
+         int bi = myNodes[i].getSolveIndex();
+         if (bi != -1) {
+            Matrix3x1Block blk = (Matrix3x1Block)GT.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x1Block();
+               GT.addBlock (bi, bj, blk);
+            }
+            blk.scaledAdd (scale*myCoords.get(i), dir);
+         }
+      }
+   }
+
+   public void add2DConstraintBlocks (
+      SparseBlockMatrix GT, int bj, double scale, 
+      ContactPoint cpnt, Vector3d dir0, Vector3d dir1) {
+      for (int i=0; i<myNodes.length; i++) {
+         int bi = myNodes[i].getSolveIndex();
+         if (bi != -1) {
+            Matrix3x2Block blk = (Matrix3x2Block)GT.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x2Block();
+               GT.addBlock (bi, bj, blk);
+            }
+            double s = scale*myCoords.get(i);
+            blk.m00 += s*dir0.x;
+            blk.m10 += s*dir0.y;
+            blk.m20 += s*dir0.z;
+            blk.m01 += s*dir1.x;
+            blk.m11 += s*dir1.y;
+            blk.m21 += s*dir1.z;
+         }
+      }
+   }
+   
+   public void addRelativeVelocity (
+      Vector3d vel, double scale, ContactPoint cpnt) {
+      for (int i=0; i<myNodes.length; i++) {
+         vel.scaledAdd (scale*myCoords.get(i), myNodes[i].getVelocity());
+      }
+   }
+
+   public boolean isControllable() {
+      for (FemNode node : myNodes) {
+         if (node.isControllable()) {
+            return true;
+         }
+      }
+      return false;
+   }
+   
+   public int collectMasterComponents (
+      HashSet<DynamicComponent> masters, boolean activeOnly) {
+      int num = 0;
+      for (FemNode node : myNodes) {
+         if (!activeOnly || node.isActive()) {
+            if (masters.add (node)) {
+               num++;
+            }
+         }
+      }
+      return num;
+   }
+
+   /* --- end ContactMaster implementation --- */  
 
 }

@@ -119,7 +119,6 @@ public class MultiPointSpring extends PointSpringBase
               CopyableComponent, RequiresPrePostAdvance,
               HasNumericStateComponents {
 
-   public static boolean myIgnoreCoriolisInJacobian = true;
    public static boolean myDrawWrapPoints = true;
    protected boolean myUpdateContactsP = true;
    protected int myStateVersion = 0;
@@ -197,7 +196,12 @@ public class MultiPointSpring extends PointSpringBase
 
    public int totalStuck;
    public int totalCalls;
+   public int totalFails;
    public int totalFalseStuck;
+   public double maxForceNorm;
+   public double sumForceNorm;
+   public double maxLengthErr;
+   public double sumLengthErr;
 
    protected boolean myPrintProfilingP = false;
 
@@ -3543,6 +3547,16 @@ public class MultiPointSpring extends PointSpringBase
          }
       }        
 
+
+      /**
+       * Returns the force tolerance for this segment that corresponds to the
+       * current convergence tolerance. See {@link #setConvergenceTol} for
+       * details.
+       */
+      public double getForceTol () {
+         return myWrapStiffness*myLength*myConvTol*Math.sqrt(1.0/numKnots());
+      }
+
       /**
        * Computes the elastic energy for the strand, given by the tension
        * between adjacent knots, plus the repulsion forces pushing knots out of
@@ -3917,7 +3931,6 @@ public class MultiPointSpring extends PointSpringBase
       }
 
       protected int totalIterations;
-      protected int totalFails;
 
       /**
        * Checks the value of the stiffness matrix against a numerically
@@ -4563,11 +4576,9 @@ public class MultiPointSpring extends PointSpringBase
          // assume contact info has already been updated
          updateForces(); 
 
-         // compute tolerance for the force norm from the convergence
-         // tolerance. See setConvergenceTol() for details.
-         double ftol =
-            myWrapStiffness*myLength*myConvTol*Math.sqrt(1.0/numKnots());
-
+         double ftol = getForceTol();
+         double lastLength = 0;
+         
          // knot positions and displacements, used to update the knot positions
          VectorNd pvec = new VectorNd(3*myNumKnots);
          VectorNd dvec = new VectorNd(3*myNumKnots);
@@ -4578,6 +4589,7 @@ public class MultiPointSpring extends PointSpringBase
          do {
             // save knot positions in pvec
             getKnotPositions (pvec);
+            lastLength = getLength();
 
             // compute knot displacements for a single Newton step.
             updateStiffness();
@@ -4749,6 +4761,11 @@ public class MultiPointSpring extends PointSpringBase
             }
             if (contacting) {
                myConvergedCnt++;
+               maxForceNorm = Math.max(maxForceNorm, forceNorm());
+               sumForceNorm += forceNorm();
+               double lenErr = Math.abs(lastLength-getLength())/getLength();
+               //maxLengthErr = Math.max(maxLengthErr, lenErr);
+               //sumLengthErr += lenErr;
             }
          }
          else {
@@ -4759,6 +4776,11 @@ public class MultiPointSpring extends PointSpringBase
                   icnt, numContacts(), forceNorm(), maxForce(), ftol);
             }
             totalFails++;
+            maxForceNorm = Math.max(maxForceNorm, forceNorm());
+            sumForceNorm += forceNorm();
+            double lenErr = Math.abs(lastLength-getLength())/getLength();
+            maxLengthErr = Math.max(maxLengthErr, lenErr);
+            sumLengthErr += lenErr;
          }
 
          myIterationCnt += icnt;

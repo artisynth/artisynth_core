@@ -6,6 +6,8 @@
  */
 package artisynth.core.mechmodels;
 
+import java.awt.Color;
+
 import java.util.*;
 import java.io.*;
 
@@ -13,14 +15,20 @@ import maspack.matrix.*;
 import maspack.geometry.GeometryTransformer;
 import maspack.properties.*;
 import maspack.util.*;
+import maspack.render.*;
 import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
+import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 import artisynth.core.util.*;
 
+/**
+ * Base class for implementing constraints between two connectable bodies, or
+ * between a single connectable body and ground.
+ */
 public abstract class BodyConnector extends RenderableComponentBase
-   implements ScalableUnits, TransformableGeometry, BodyConstrainer,
+   implements ScalableUnits, TransformableGeometry, HasNumericState,
               Constrainer, HasCoordinateFrame {
               
    protected ConnectableBody myBodyA;
@@ -28,6 +36,10 @@ public abstract class BodyConnector extends RenderableComponentBase
    protected FrameAttachment myAttachmentA;
    protected FrameAttachment myAttachmentB;
    protected FrameAttachment myAttachmentBG;
+
+   // copy of frames C and D for rendering 
+   protected RigidTransform3d myRenderFrameD = new RigidTransform3d();
+   protected RigidTransform3d myRenderFrameC = new RigidTransform3d();
    
    private boolean myEnabledP = true;
    protected RigidBodyCoupling myCoupling;
@@ -36,7 +48,8 @@ public abstract class BodyConnector extends RenderableComponentBase
    // use an old (and presumably inaccurate) method for computing constraint
    // derivatives, simply for compatibility
    public static boolean useOldDerivativeMethod = false;
-   private boolean myAdjustBodyAExplicitP = false;  // automatically select body to adjust
+   // automatically select body to adjust:
+   private boolean myAdjustBodyAExplicitP = false;  
 
    protected VectorNd myCompliance = null;
    protected VectorNd myDamping = null;
@@ -57,10 +70,33 @@ public abstract class BodyConnector extends RenderableComponentBase
    protected double myPenetrationTol = DEFAULT_PENETRATION_TOL;
    protected PropertyMode myPenetrationTolMode = PropertyMode.Inherited;
 
+   protected static final double DEFAULT_ROTARY_LIMIT_TOL = 0.0001;
+   protected double myRotaryLimitTol = DEFAULT_ROTARY_LIMIT_TOL;
+   protected PropertyMode myRotaryLimitTolMode = PropertyMode.Inherited;
+
+   protected static final double DEFAULT_AXIS_LENGTH = 1;
+   protected double myAxisLength;
+
+   protected static final AxisDrawStyle DEFAULT_DRAW_FRAME_D =
+      AxisDrawStyle.OFF;
+   protected AxisDrawStyle myDrawFrameD = DEFAULT_DRAW_FRAME_D;
+
+   protected static final AxisDrawStyle DEFAULT_DRAW_FRAME_C =
+      AxisDrawStyle.OFF;
+   protected AxisDrawStyle myDrawFrameC = DEFAULT_DRAW_FRAME_C;
+   
+   protected static VectorNd ZERO_VEC6 = new VectorNd(6);
+
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createRenderProps (host);
+      return props;
+   }
+
    public static PropertyList myProps =
       new PropertyList (
          BodyConnector.class, RenderableComponentBase.class);
 
+   // transform from C to G (equal to the error transform TERR)
    RigidTransform3d myTCG = new RigidTransform3d();
 
    // transform from D (but with world-aligned orientation) to G. 
@@ -73,15 +109,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    protected boolean myTransformDGeometryOnly = false;
 
    Twist myDotXv = new Twist();
-   Twist myVelBA = new Twist();
+   Twist myVelAB = new Twist(); // velocity of A wrt B as seen in G
 
    static {
-      myProps.add (
-         "linearCompliance",
-         "compliance along linear directions", 0, "[0,inf] NW");
-      myProps.add (
-         "rotaryCompliance",
-         "compliance along rotary directions", 0, "[0,inf] NW");
       myProps.add ("enabled isEnabled *", "constraint is enabled", true);
       myProps.addReadOnly (
          "bilateralForceInA", "bilateral constraint force as seen in body A");
@@ -89,19 +119,45 @@ public abstract class BodyConnector extends RenderableComponentBase
          "unilateralForceInA", "unilateral constraint force as seen in frame A");
       myProps.addInheritable (
          "penetrationTol:Inherited", "collision penetration tolerance",
-         DEFAULT_PENETRATION_TOL);      
+         DEFAULT_PENETRATION_TOL);
+      myProps.addInheritable (
+         "rotaryLimitTol:Inherited", "rotary limit tolerance",
+         DEFAULT_ROTARY_LIMIT_TOL);
+      myProps.add (
+         "axisLength", "length of the axis for this joint",
+         DEFAULT_AXIS_LENGTH);
+      myProps.add (
+         "drawFrameD", "if true, draw the D coordinate frame", 
+         DEFAULT_DRAW_FRAME_D);
+      myProps.add (
+         "drawFrameC", "if true, draw the C coordinate frame", 
+         DEFAULT_DRAW_FRAME_C);
+      myProps.add (
+         "renderProps * *", "renderer properties", defaultRenderProps (null));
+      myProps.add (
+         "linearCompliance",
+         "compliance along linear directions", 0, "NS NW");
+      myProps.add (
+         "rotaryCompliance",
+         "compliance along rotary directions", 0, "[-1,inf] NS NW");
+      myProps.add (
+         "compliance", "compliance for each constraint", ZERO_VEC6);
+      myProps.add (
+         "damping", "damping for each constraint", ZERO_VEC6);
    }
 
    protected boolean myHasTranslation = false;
 
-   public boolean hasTranslation() {
+   protected boolean hasTranslation() {
       return myHasTranslation;
    }
 
    /**
-    * Sets the penetration tolerance for this component. Setting a
-    * value of -1 will cause a default value to be computed based
-    * on the radius of the topmost MechModel.
+    * Sets the penetration tolerance for this connector. This is the default
+    * amount of penetration allowed for linear unilateral constraints. (Small
+    * amounts of penetration help prevent bouncing and chatter.) Setting a
+    * value of -1 will cause a default value to be computed based on the radius
+    * of the topmost MechModel.
     *
     * @param tol new penetration tolerance 
     */
@@ -114,8 +170,17 @@ public abstract class BodyConnector extends RenderableComponentBase
       myPenetrationTolMode =
          PropertyUtils.propagateValue (
             this, "penetrationTol", tol, myPenetrationTolMode);
+      if (myCoupling != null) {
+         myCoupling.setLinearLimitTol (tol);
+      }
    }
 
+   /**
+    * Queries the penetration tolerance for this connector. See {@link
+    * #getPenetrationTol}.
+    * 
+    * @return penetration tolerance 
+    */
    public double getPenetrationTol () {
       return myPenetrationTol;
    }
@@ -131,50 +196,121 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /**
+    * Sets the rotary limit tolerance for this connector. This is the default
+    * amount of penetration allowed for rotary unilateral constraints. (Small
+    * amounts of penetration help prevent bouncing and chatter.)
+    *
+    * @param tol new rotary limit tolerance 
+    */
+   public void setRotaryLimitTol (double tol) {
+      myRotaryLimitTol = tol;
+      myRotaryLimitTolMode =
+         PropertyUtils.propagateValue (
+            this, "rotaryLimitTol", tol, myRotaryLimitTolMode);
+      if (myCoupling != null) {
+         myCoupling.setRotaryLimitTol (tol);
+      }
+   }
+
+   /**
+    * Queries the rotary limit tolerance for this connector. See {@link
+    * #getRotaryLimitTol}.
+    * 
+    * @return rotary limit tolerance 
+    */
+   public double getRotaryLimitTol () {
+      return myRotaryLimitTol;
+   }
+
+   public PropertyMode getRotaryLimitTolMode() {
+      return myRotaryLimitTolMode;
+   }
+
+   public void setRotaryLimitTolMode (PropertyMode mode) {
+      myRotaryLimitTolMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "rotaryLimitTol", myRotaryLimitTolMode, mode);
+   }
+
+   public AxisDrawStyle getDrawFrameD() {
+      return myDrawFrameD;
+   }
+
+   public void setDrawFrameD (AxisDrawStyle style) {
+      myDrawFrameD = style;
+   }
+
+   public AxisDrawStyle getDrawFrameC() {
+      return myDrawFrameC;
+   }
+   
+   public void setDrawFrameC (AxisDrawStyle style) {
+      myDrawFrameC = style;
+   }
+
+   public double getAxisLength() {
+      return myAxisLength;
+   }
+
+   public void setAxisLength (double len) {
+      myAxisLength = len;
+   }
+
+   /**
     * Returns true if the constraint is associated with linear compliance.
-    * This will be true is the constraint is linear, and is also either
-    * bilateral *or* there is only a single constraint associated with the
-    * coupling. The latter condition is a hack to allow the planar constraints
-    * to accept linear compliance in either bilateral or unilateral mode;
-    * otherwise, unilateral constraints are not considered because we don't set
-    * compliance for the joint limit constraints.
+    * This will be true is the constraint is rotary and not associated with a
+    * coordinate limit constraint.
     */
    private boolean usesLinearCompliance (int flags) {
-      if ((flags & RigidBodyCoupling.LINEAR) != 0) {
-         if ((flags & RigidBodyCoupling.BILATERAL) != 0 ||
-             myCoupling.maxConstraints() == 1) {
-            return true;
-         }
-      }
-      return false;
+      return ((flags & RigidBodyConstraint.LINEAR) != 0 &&
+              (flags & RigidBodyConstraint.LIMIT) == 0);
    }
  
    /** 
     * Returns true if the constraint is associated with rotary compliance.
-    * This will be true is the constraint is rotary and bilateral.  Unilateral
-    * constraints are not considered because we don't set compliance for the
-    * joint limit constraints.
+    * This will be true is the constraint is rotary and not associated
+    * with a coordinate limit constraint.
     */
    private boolean usesRotaryCompliance (int flags) {
-      if ((flags & RigidBodyCoupling.ROTARY) != 0) {
-         if ((flags & RigidBodyCoupling.BILATERAL) != 0) {
-            return true;
-         }
-      }
-      return false;
+      return ((flags & RigidBodyConstraint.ROTARY) != 0 &&
+              (flags & RigidBodyConstraint.LIMIT) == 0);
    }
    
-   private void computeForceInA (Wrench wr, Wrench forceG) {
+   private void computeForceInA (Wrench wr, Wrench forceC) {
       if (myAttachmentA instanceof FrameFrameAttachment) {
          FrameFrameAttachment ffa = (FrameFrameAttachment)myAttachmentA;
          VectorNd f = new VectorNd(6);
-         ffa.getMasterForces (f, forceG);
+         ffa.getMasterForces (f, forceC);
          // wrench values will be the first 6 values of f
          wr.set (f.getBuffer());
-         Frame master = ffa.getMaster ();
-         if (master != null) {
-            wr.inverseTransform (master.getPose().R);
+      }
+      else {
+         wr.setZero();
+      }      
+   }
+
+   private void computeForceInB (Wrench wr, Wrench forceC) {
+      if (myAttachmentB instanceof FrameFrameAttachment) {
+         if (myBodyB == null) {
+            // special case - frame attachment just connected to world
+            RigidTransform3d TCW = new RigidTransform3d();
+            getCurrentTCW (TCW);
+            wr.transform (TCW, forceC);
          }
+         else {
+            // first convert force from C to D
+            Wrench forceD = new Wrench();
+            RigidTransform3d TCD = new RigidTransform3d();
+            getCurrentTCD (TCD);
+            forceD.transform (TCD, forceC);
+
+            FrameFrameAttachment ffb = (FrameFrameAttachment)myAttachmentB;
+            VectorNd f = new VectorNd(6);
+            ffb.getMasterForces (f, forceD);
+            // wrench values will be the first 6 values of f
+            wr.set (f.getBuffer());
+         }
+         wr.negate(); // since this is the opposite body
       }
       else {
          wr.setZero();
@@ -183,23 +319,21 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    /**
     * If body A is a Frame, computes the wrench acting on body A in response to
-    * the most recent bilateral constraint forces.  If body A is not a Frame,
-    * the computed wrench is set to zero.
+    * the most recent bilateral constraint forces. If body A is not a Frame,
+    * the wrench is set to zero. The wrench is in world coordinates.
     *
-    * @param wr returns the bilateral constraint wrench acting on A,
-    * in the coordinates of A
+    * @param wr returns the bilateral constraint wrench acting on A
     */
    public void getBilateralForceInA (Wrench wr) {
-      computeForceInA (wr, myCoupling.getBilateralForceG());
+      computeForceInA (wr, getBilateralForceInC());
    }
    
    /**
     * If body A is a Frame, computes and returns the wrench acting on body A in
-    * response to the most recent bilateral constraint forces.  If body A is
-    * not a Frame, the computed wrench is set to zero.
+    * response to the most recent bilateral constraint forces. If body A is not
+    * a Frame, the wrench is set to zero. The wrench is in world coordinates.
     *
-    * @return the bilateral constraint wrench acting on A,
-    * in the coordinates of A
+    * @return the bilateral constraint wrench acting on A
     */
    public Wrench getBilateralForceInA() {
       Wrench wr = new Wrench();
@@ -208,35 +342,60 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /**
-    * Gets the most recent bilateral constraint wrench acting on constraint
-    * frame G. If the constraint error is negligible, frame G is the same as
-    * frame C. The force and moment vectors of the wrench are given in world
-    * coordinates.
+    * If body B is a Frame, computes the wrench acting on body B in response to
+    * the most recent bilateral constraint forces. If body B is {@code null},
+    * this method computes the wrench acting on world coordinates. Otherwise,
+    * if body B is not a Frame, the wrench is set to zero. The wrench is in
+    * world coordinates.
     *
-    * @param wr returns the bilateral constraint wrench acting on G, in world
-    * coordinates.
+    * @param wr returns the bilateral constraint wrench acting on B (or world)
+    */
+   public void getBilateralForceInB (Wrench wr) {
+      computeForceInB (wr, getBilateralForceInC());
+   }
+   
+   /**
+    * If body B is a Frame, computes and returns the wrench acting on body B in
+    * response to the most recent bilateral constraint forces. If body B is
+    * {@code null}, this method computes the wrench acting on world
+    * coordinates. Otherwise, if body B is not a Frame, the wrench is set to
+    * zero. The wrench is in world coordinates.
+    *
+    * @return the bilateral constraint wrench acting on B (or world)
+    */
+   public Wrench getBilateralForceInB() {
+      Wrench wr = new Wrench();
+      getBilateralForceInB (wr);
+      return wr;
+   }
+
+   /**
+    * Gets the most recent bilateral constraint wrench acting on constraint
+    * frame C. The wrench is given in the coordinates of C.
+    *
+    * @param wr returns the bilateral constraint wrench acting on C
     * 
     */
-   public void getBilateralForceInG (Wrench wr) {
+   public void getBilateralForceInC (Wrench wr) {
       wr.set (myCoupling.getBilateralForceG());
+      wr.inverseTransform (myTCG);
    }
 
    /**
     * Returns the most recent bilateral constraint wrench acting on constraint
-    * frame G. If the constraint error is negligible, frame G is the same as
-    * frame C. The force and moment vectors of the wrench are given in world
-    * coordinates.
+    * frame C. The wrench is given in the coordinates of C.
     *
-    * @return the bilateral constraint wrench acting on G, in world
-    * coordinates.
+    * @return the bilateral constraint wrench acting on C
     * 
     */
-   public Wrench getBilateralForceInG () {
-      return new Wrench(myCoupling.getBilateralForceG());
+   public Wrench getBilateralForceInC () {
+      Wrench wr = new Wrench();
+      getBilateralForceInC (wr);
+      return wr;
    }
 
    /**
-    * For debugging only
+    * Prints constraint information to the standard output. For debugging only.
     */
    public void printConstraintInfo() {
       myCoupling.printConstraintInfo();
@@ -244,23 +403,22 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    /**
     * If body A is a Frame, computes the wrench acting on body A in response to
-    * the most recent unilateral constraint forces.  If body A is not a Frame,
-    * the computed wrench is set to zero.
+    * the most recent unilateral constraint forces. If body A is not a Frame,
+    * the computed wrench is set to zero. The wrench is in world coordinates.
     *
-    * @param wr returns the unilateral constraint wrench acting on A,
-    * in the coordinates of A
+    * @param wr returns the unilateral constraint wrench acting on A
     */
    public void getUnilateralForceInA (Wrench wr) {
-      computeForceInA (wr, myCoupling.getUnilateralForceG());
+      computeForceInA (wr, getUnilateralForceInC());
    }
 
    /**
     * If body A is a Frame, computes and returns the wrench acting on body A in
-    * response to the most recent unilateral constraint forces.  If body A is
-    * not a Frame, the computed wrench is set to zero.
+    * response to the most recent unilateral constraint forces. If body A is
+    * not a Frame, the wrench is set to zero. The wrench is in world
+    * coordinates.
     *
-    * @return the unilateral constraint wrench acting on A,
-    * in the coordinates of A
+    * @return the unilateral constraint wrench acting on A
     */
    public Wrench getUnilateralForceInA() {
       Wrench wr = new Wrench();
@@ -269,36 +427,75 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /**
-    * Gets the most recent unilateral constraint wrench acting on constraint
-    * frame G. If the constraint error is negligible, frame G is the same as
-    * frame C. The force and moment vectors of the wrench are given in world
-    * coordinates.
+    * If body B is a Frame, computes the wrench acting on body B in response to
+    * the most recent unilateral constraint forces. If body B is {@code null},
+    * this method computes the wrench acting on world coordinates. Otherwise,
+    * if body B is not a Frame, the wrench is set to zero. The wrench is in
+    * world coordinates.
     *
-    * @param wr returns the unilateral constraint wrench acting on G, in world
-    * coordinates.
+    * @param wr returns the unilateral constraint wrench acting on B (or world)
+    */
+   public void getUnilateralForceInB (Wrench wr) {
+      computeForceInB (wr, getUnilateralForceInC());
+   }
+
+   /**
+    * If body B is a Frame, computes and returns the wrench acting on body B in
+    * response to the most recent unilateral constraint forces. If body B is
+    * {@code null}, this method computes the wrench acting on world
+    * coordinates. Otherwise, if body B is not a Frame, the wrench is set to
+    * zero. The wrench is in world coordinates.
+    *
+    * @return the unilateral constraint wrench acting on B (or world)
+    */
+   public Wrench getUnilateralForceInB() {
+      Wrench wr = new Wrench();
+      getUnilateralForceInB (wr);
+      return wr;
+   }
+
+   /**
+    * Gets the most recent unilateral constraint wrench acting on constraint
+    * frame C. The wrench is given in the coordinates of C.
+    *
+    * @param wr returns the unilateral constraint wrench acting on C
     * 
     */
-   public void getUnilateralForceInG (Wrench wr) {
+   public void getUnilateralForceInC (Wrench wr) {
       wr.set (myCoupling.getUnilateralForceG());
+      wr.inverseTransform (myTCG);
    }
 
    /**
     * Returns the most recent unilateral constraint wrench acting on constraint
-    * frame G. If the constraint error is negligible, frame G is the same as
-    * frame C. The force and moment vectors of the wrench are given in world
-    * coordinates.
+    * frame C. The wrench is given in the coordinates of C.
     *
-    * @return the unilateral constraint wrench acting on G, in world
-    * coordinates.
-    * 
+    * @return the unilateral constraint wrench acting on C
     */
-   public Wrench getUnilateralForceInG () {
-      return new Wrench(myCoupling.getUnilateralForceG());
+   public Wrench getUnilateralForceInC () {
+      Wrench wr = new Wrench();
+      getUnilateralForceInC (wr);
+      return wr;
    }
 
+   /** 
+    * Returns flags for all this connector's constraints.
+    * Flags are or-ed combinations of 
+    * {@link RigidBodyConstraint#BILATERAL}, 
+    * {@link RigidBodyConstraint#LINEAR}, 
+    * {@link RigidBodyConstraint#ROTARY}, and
+    * {@link RigidBodyConstraint#CONSTANT}.
+    * 
+    * @return flags for this connector's constraints.
+    */
+   public VectorNi getConstraintFlags() {
+      return myCoupling.getConstraintFlags();
+   }
+   
    /**
     * Returns the uniform compliance value, if any, for the linear constraints
-    * of this connector. A uniform compliance value is also associated with a
+    * of this connector. Unilateral constraints associated with coordinate
+    * limits are ignored. A uniform compliance value is also associated with a
     * corresponding critical damping value. A value of {@code -1} indicate that
     * not uniform value exists.
     *  
@@ -319,6 +516,7 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    /**
     * Sets a uniform compliance for the linear constraints of this connector.
+    * Unilateral constraints associated with coordinate limits are ignored.
     * If the specified value {@code c} is {@code > 0}, then an appropriate
     * critical damping value is also set for each linear constraint. A value of
     * {@code c < 0} is ignored and leaves all compliance and damping values
@@ -334,7 +532,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       // compute damping to give critical damping
       if (c != -1) {
          double d = (c != 0) ? 2*Math.sqrt(getAverageBodyMass()/c) : 0;
-         VectorNi flags = myCoupling.getConstraintInfo();
+         VectorNi flags = myCoupling.getConstraintFlags();
          VectorNd compliance = new VectorNd(myCoupling.getCompliance());
          VectorNd damping = new VectorNd(myCoupling.getDamping());
          for (int i=0; i<flags.size(); i++) {
@@ -350,7 +548,8 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    /**
     * Returns the uniform compliance value, if any, for the rotary constraints
-    * of this connector. A uniform compliance value is also associated with a
+    * of this connector. Unilateral constraints associated with coordinate
+    * limits are ignored. A uniform compliance value is also associated with a
     * corresponding critical damping value. A value of {@code -1} indicate that
     * not uniform value exists.
     *  
@@ -371,7 +570,8 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    /**
     * Sets a uniform compliance for the rotary constraints of this connector.
-    * If the specified value {@code c} is {@code > 0}, then an appropriate
+    * Unilateral constraints associated with coordinate limits are ignored. If
+    * the specified value {@code c} is {@code > 0}, then an appropriate
     * critical damping value is also set for each rotary constraint. A value of
     * {@code c < 0} is ignored and leaves all compliance and damping values
     * unchanged.
@@ -385,7 +585,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       myRotaryCompliance = c;
       // compute damping to give critical damping
       double d = (c > 0) ? 2*Math.sqrt(getAverageRevoluteInertia()/c) : 0;
-      VectorNi flags = myCoupling.getConstraintInfo();
+      VectorNi flags = myCoupling.getConstraintFlags();
       VectorNd compliance = new VectorNd(myCoupling.getCompliance());
       VectorNd damping = new VectorNd(myCoupling.getDamping());
       for (int i=0; i<flags.size(); i++) {
@@ -402,8 +602,10 @@ public abstract class BodyConnector extends RenderableComponentBase
       return myProps;
    }
 
-   public VectorNd getCompliance() {
-      return myCoupling.getCompliance();
+   public void setDefaultValues() {
+      super.setDefaultValues();
+      myAxisLength = DEFAULT_AXIS_LENGTH;
+      setRenderProps (defaultRenderProps (null));
    }
 
    /** 
@@ -426,7 +628,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       double rc = 0;
       double rd = 0;
 
-      VectorNi flags = myCoupling.getConstraintInfo();
+      VectorNi flags = myCoupling.getConstraintFlags();
       for (int i=0; i<flags.size(); i++) {
          double c = compliance.get(i);
          double d = damping.get(i);
@@ -460,9 +662,31 @@ public abstract class BodyConnector extends RenderableComponentBase
       myComplianceUniformityUnknown = false;
    }
 
+   /**
+    * Returns the compliance settings for all the constraints in this
+    * connector. See {@link #setCompliance} for more information.
+    *
+    * @return compliance settings for all constraints
+    */
+   public VectorNd getCompliance() {
+      return myCoupling.getCompliance();
+   }
+
+   /**
+    * Sets the compliance settings for the constraints in this connector,
+    * including bilateral and unilateral constraints.  The default values are
+    * 0. Setting a compliance value &gt; 0 for a particular constraint causes
+    * that constraint to be enforced <i>softly</i>, with a stiffness equal to
+    * the inverse of the compliance.
+    * 
+    * <p>If the size <i>n</i> of {@code compliance} is less than {@link
+    * #numConstraints}, then {@code compliance} will only be set for the first
+    * <i>n</i> constraints.
+    *
+    * @param compliance vector containing new compliance settings
+    */
    public void setCompliance (VectorNd compliance) {
       myCoupling.setCompliance(compliance);
-      VectorNd damping = new VectorNd(myCoupling.getDamping());
       if (attachmentsInitialized()) {
          checkComplianceUniformity ();
       }
@@ -472,13 +696,31 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
    
+   /**
+    * Returns the damping settings for all the constraints in this
+    * connector. See {@link #setDamping} for more information.
+    *
+    * @return damping settings for all constraints
+    */
    public VectorNd getDamping() {
       return myCoupling.getDamping();
    }
    
+   /**
+    * Sets the damping settings for the constraints in this connector,
+    * including bilateral and unilateral constraints.  The default values are
+    * 0. Damping values only have effect for constraints with a compliance
+    * value &gt; 0, in which case they specify a damping factor for motion in
+    * the constraint direction.
+    *
+    * <p>If the size <i>n</i> of {@code damping} is less than {@link
+    * #numConstraints}, then {@code damping} will only be set for the first
+    * <i>n</i> constraints.
+    *
+    * @param damping vector containing new damping settings
+    */
    public void setDamping (VectorNd damping) {
       myCoupling.setDamping(damping);
-      VectorNd compliance = new VectorNd(myCoupling.getCompliance());
       if (attachmentsInitialized()) {
          checkComplianceUniformity ();
       }
@@ -488,14 +730,27 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
    
+   /**
+    * Sets whether or not this connector is enabled. Connectors are
+    * enabled by default. Disabled connectors exert no constraints
+    * on their associated bodies.
+    * 
+    * @param enabled if {@code true}, enables this connector
+    */
    public void setEnabled (boolean enabled) {
       if (enabled != myEnabledP) {
          myEnabledP = enabled;
       }
       myStateVersion++;
-      notifyParentOfChange (StructureChangeEvent.defaultEvent);
+      notifyParentOfChange (
+         new StructureChangeEvent (this, /*stateChanged=*/false));
    }
 
+   /**
+    * Queries whether this connector is enabled.
+    * 
+    * @return {@code true} if this connector is enabled
+    */
    public boolean isEnabled() {
       return myEnabledP;
    }
@@ -503,19 +758,50 @@ public abstract class BodyConnector extends RenderableComponentBase
    protected BodyConnector() {
    }
 
-   public int numBodies() {
-      return myBodyB == null ? 1 : 2;
+   /**
+    * Returns the coupling used by this connector.
+    *
+    * @return coupling used by this connector
+    */
+   public RigidBodyCoupling getCoupling () {
+      return myCoupling;
    }
 
+   /**
+    * Set the coupling for this connector. Generally used once
+    * in subclass constructors.
+    */
+   protected void setCoupling (RigidBodyCoupling coupling) {
+      myCoupling = coupling;
+      coupling.setLinearLimitTol (getPenetrationTol());
+      coupling.setRotaryLimitTol (getRotaryLimitTol());
+   }
+
+
+//   public int numBodies() {
+//      return myBodyB == null ? 1 : 2;
+//   }
+//
+   /**
+    * Returns the first body associated with this constrainer.
+    * 
+    * @return first body associated with this constrainer
+    */
    public ConnectableBody getBodyA() {
       return myBodyA;
    }
 
+   /**
+    * Returns the second body associated with this constrainer, or null if there
+    * is no such body.
+    * 
+    * @return second body associated with this constrainer
+    */
    public ConnectableBody getBodyB() {
       return myBodyB;
    }
    
-   public ConnectableBody getOtherBody (ConnectableBody body) {
+   protected ConnectableBody getOtherBody (ConnectableBody body) {
       if (body == myBodyA) {
          return myBodyB;
       }
@@ -559,24 +845,73 @@ public abstract class BodyConnector extends RenderableComponentBase
       return inertia/2;
    }
 
-   protected void getCurrentTCD (RigidTransform3d TCD) {
-      RigidTransform3d TDW = new RigidTransform3d ();
-      RigidTransform3d TCW = new RigidTransform3d ();
-      getCurrentTCW (TCW);
-      getCurrentTDW (TDW);
-      TCD.mulInverseLeft (TDW, TCW);
+   /**
+    * Queries the current transform from frame C to D. If the connector is
+    * attached to its bodies, this is computed from {@link #getCurrentTCW()} and
+    * {@link #getCurrentTDW()}. Otherwise, it is determined from the underling
+    * coupling and its joint coordinate settings (if any).
+    *
+    * @param TCD returns the transform from C to D
+    */
+   public void getCurrentTCD (RigidTransform3d TCD) {
+      if (attachmentsInitialized()) {
+         RigidTransform3d TDW = new RigidTransform3d ();
+         RigidTransform3d TCW = new RigidTransform3d ();
+         getCurrentTCW (TCW);
+         getCurrentTDW (TDW);
+         TCD.mulInverseLeft (TDW, TCW);
+      }
+      else {
+         // simply get TCD from the coupling
+         myCoupling.coordinatesToTCD (TCD);
+      }
    }
 
+   /**
+    * Returns the total number of constraints associated with this
+    * connector. This is the sum of {@link #numBilateralConstraints}
+    * and {@link #numUnilateralConstraints}.
+    * 
+    * @return total number of constraints
+    */
+   public int numConstraints() {
+      return myCoupling.numConstraints();
+   }
+   
+   /**
+    * Returns the number of bilateral constraints associated with this
+    * connector.
+    * 
+    * @return number of bilateral constraints
+    */
    public int numBilateralConstraints() {
       return myCoupling.numBilaterals();
    }
    
+   /**
+    * Returns the number of unilateral constraints associated with this
+    * connector (engaged or otherwise).
+    * 
+    * @return number of unilateral constraints
+    */
    public int numUnilateralConstraints() {
       return myCoupling.numUnilaterals();
    }
+   
+   /**
+    * Returns the number of unilateral constraints which are currently engaged.
+    * 
+    * @return number of currently engaged unilateral constraints
+    */
+   public int numEngagedUnilateralConstraints() {
+      return myCoupling.numEngagedUnilaterals();
+   }
 
-   // added to implement Constrainer
-
+   /* --- being Constrainer implementation --- */
+   
+   /**
+    * {@inheritDoc}
+    */
    public void getBilateralSizes (VectorNi sizes) {
       int numc = myCoupling.numBilaterals();
       if (numc > 0) {
@@ -584,13 +919,247 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public int addBilateralConstraints (
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
+
+      int nc = numBilateralConstraints();
+      if (nc > 0) {
+         MatrixNdBlock GC;
+         int bj = GT.numBlockCols();
+         GC = getConstraintMatrix (myBilaterals, myTCwG, 1);
+         addMasterBlocks (GT, bj, GC, myAttachmentA);
+         GC = getConstraintMatrix (myBilaterals, myTDwG, -1);
+         addMasterBlocks (GT, bj, GC, myAttachmentB);
+         if (dg != null) {
+            setDerivativeTerm (dg, myBilaterals, nc, numb);
+         }
+      }
+      return numb + nc;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
+
+      int nc = numBilateralConstraints();
+      if (nc > 0) {
+         if (nc != myBilaterals.size()) {
+            throw new InternalErrorException (
+               "nc=" + nc + " bilaterals.size()=" + myBilaterals.size());
+         }         
+         for (int j=0; j<nc; j++) {
+            RigidBodyConstraint bc = myBilaterals.get (j);
+            ConstraintInfo gi = ginfo[idx++];
+            gi.dist = bc.getDistance();
+            gi.compliance = bc.getCompliance();
+            gi.damping = bc.getDamping();
+            gi.force = 0;
+         }
+      }
+      return idx;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int setBilateralForces (VectorNd lam, double s, int idx) {
+      idx = myCoupling.setBilateralForces (lam, s, idx);
+      return idx;
+   }
+   
+   /**
+    * Returns the current bilateral constraint forces (Lagrange multipliers).
+    * They are returned in {@code lam}, whose size is set to 
+    * {@link #numBilateralConstraints()}.
+    * 
+    * @param lam returns the bilateral forces.
+    */
+   public void getBilateralForces (VectorNd lam) {
+      lam.setSize (numBilateralConstraints());
+      getBilateralForces (lam, 0);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int getBilateralForces (VectorNd lam, int idx) {
+      return myCoupling.getBilateralForces (lam, idx);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void zeroForces() {
+      myCoupling.zeroForces();
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
    public void getUnilateralSizes (VectorNi sizes) {
-      int numc = myCoupling.numUnilaterals();
+      int numc = myCoupling.numEngagedUnilaterals();
       if (numc > 0) {
          sizes.append (numc);
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public int addUnilateralConstraints (
+      SparseBlockMatrix NT, VectorNd dn, int numu) {
+
+      int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);      
+
+      if (nc > 0) {
+         MatrixNdBlock GC;
+         int bj = NT.numBlockCols();
+         GC = getConstraintMatrix (myUnilaterals, myTCwG, 1);
+         addMasterBlocks (NT, bj, GC, myAttachmentA);
+         GC = getConstraintMatrix (myUnilaterals, myTDwG, -1);
+         addMasterBlocks (NT, bj, GC, myAttachmentB);
+         if (dn != null) {
+            setDerivativeTerm (dn, myUnilaterals, nc, numu);
+         }
+      }  
+      return numu + nc;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
+
+      int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);
+
+      if (nc > 0) {
+         for (int j = 0; j < nc; j++) {
+            RigidBodyConstraint uc = myUnilaterals.get (j);
+            uc.setSolveIndex (idx);
+            ConstraintInfo ni = ninfo[idx++];
+            double tol = uc.isLinear() ? 
+               getPenetrationTol() : getRotaryLimitTol();
+            //tol = getPenetrationTol();
+            if (uc.getDistance() < -tol) {
+               ni.dist = uc.getDistance() + tol;
+            }
+            else {
+               ni.dist = 0;
+            }
+            ni.compliance = uc.getCompliance();
+            ni.damping = uc.getDamping();
+            ni.force = 0;
+         }
+      }
+      return idx;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int setUnilateralForces (VectorNd the, double s, int idx) {
+      idx = myCoupling.setUnilateralForces (the, s, idx);
+      return idx;
+   }
+   
+   /**
+    * Returns the current unilateral constraint forces (Lagrange multipliers).
+    * They are returned in {@code the}, whose size is set to 
+    * {@link #numUnilateralConstraints()}.
+    * 
+    * @param the returns the unilateral forces.
+    */
+   public void getUnilateralForces (VectorNd the) {
+      the.setSize (numEngagedUnilateralConstraints());
+      getUnilateralForces (the, 0);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int getUnilateralForces (VectorNd the, int idx) {
+      return myCoupling.getUnilateralForces (the, idx);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int maxFrictionConstraintSets() {
+      return (myUnilaterals != null ? myUnilaterals.size() : 0);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int addFrictionConstraints (
+      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
+
+      numf = addFrictionConstraints (DT, finfo, numf, myUnilaterals);
+      return numf;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public double updateConstraints (double t, int flags) {
+      boolean updateEngaged = (flags & MechSystem.UPDATE_CONTACTS) == 0;
+
+      double maxpen = 0;
+
+      updateBodyStates (t, updateEngaged);
+      if (numBilateralConstraints() > 0) {
+         if (myBilaterals == null) {
+            myBilaterals = new ArrayList<RigidBodyConstraint>();
+         }
+         myBilaterals.clear();
+         getBilateralConstraints (myBilaterals);
+         if (updateEngaged) {
+            //checkBilateralDerivatives ();
+            //checkBilateralDerivativesOld ();
+         }
+      }
+      if (hasUnilateralConstraints()) {
+         if (myUnilaterals == null) {
+            myUnilaterals = new ArrayList<RigidBodyConstraint>();
+         }
+         if (updateEngaged) {
+            myUnilaterals.clear();
+            double dist = getUnilateralConstraints (
+               myUnilaterals, updateEngaged);
+            if (dist > maxpen) {
+               maxpen = dist;
+            }            
+         }
+         else {
+            updateUnilateralConstraints (
+               myUnilaterals, 0, myUnilaterals.size());
+         }
+      }
+      return maxpen;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void getConstrainedComponents (List<DynamicComponent> list) {
+      if (myAttachmentA != null) {
+         for (DynamicComponent c : myAttachmentA.getMasters()) {
+            list.add (c);
+         }
+      }
+      if (myAttachmentB != null) {
+         for (DynamicComponent c : myAttachmentB.getMasters()) {
+            list.add (c);
+         }
+      }
+   }
+
+   /* --- end Constrainer implementation --- */
+   
    private double[] adjustBodyPose (DynamicComponent body, double h) {
       
       double[] savePos = new double[body.getPosStateSize()];
@@ -696,14 +1265,15 @@ public abstract class BodyConnector extends RenderableComponentBase
          computeDotXv (dotXv, CvelA, DvelB, TCD, dgA, dgB);
          CvelB.inverseTransform (TCD, DvelB);
          
-         Twist CvelBA = new Twist();
-         CvelBA.sub (CvelB, CvelA);
+         Twist CvelAB = new Twist();
+         CvelAB.sub (CvelA, CvelB);
 
          double[] cbuf = chk.getBuffer();
          for (int j=0; j<nc; j++) {
             RigidBodyConstraint b = myBilaterals.get (j);
-            dg.set (j, -b.getDotWrenchC().dot (CvelBA) + 
-                        b.getWrenchC().dot (dotXv));
+            double accel = 
+               b.getDotWrenchG().dot (CvelAB) + b.getWrenchG().dot (dotXv);
+            dg.set (j, b.getEngaged()*accel);
          }
          double h = 1e-8;
 
@@ -762,56 +1332,8 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
-   public double updateConstraints (double t, int flags) {
-      boolean setEngaged = (flags & MechSystem.UPDATE_CONTACTS) == 0;
-
-      double maxpen = 0;
-
-      updateBodyStates (t, setEngaged);
-      if (numBilateralConstraints() > 0) {
-         if (myBilaterals == null) {
-            myBilaterals = new ArrayList<RigidBodyConstraint>();
-         }
-         myBilaterals.clear();
-         getBilateralConstraints (myBilaterals);
-         if (setEngaged) {
-            //checkBilateralDerivatives ();
-            //checkBilateralDerivativesOld ();
-         }
-      }
-      if (hasUnilateralConstraints()) {
-         if (myUnilaterals == null) {
-            myUnilaterals = new ArrayList<RigidBodyConstraint>();
-         }
-         if (setEngaged) {
-            myUnilaterals.clear();
-            double dist = getUnilateralConstraints (myUnilaterals, setEngaged);
-            if (dist > maxpen) {
-               maxpen = dist;
-            }            
-         }
-         else {
-            updateUnilateralConstraints (
-               myUnilaterals, 0, myUnilaterals.size());
-         }
-      }
-      return maxpen;
-   }
-   
-   public void getConstrainedComponents (List<DynamicComponent> list) {
-      if (myAttachmentA != null) {
-         for (DynamicComponent c : myAttachmentA.getMasters()) {
-            list.add (c);
-         }
-      }
-      if (myAttachmentB != null) {
-         for (DynamicComponent c : myAttachmentB.getMasters()) {
-            list.add (c);
-         }
-      }
-   }
-   
-   public void addMasterBlocks (
+   // used by Constrainer implementation
+   protected void addMasterBlocks (
       SparseBlockMatrix GT, int bj,
       MatrixNdBlock GC, FrameAttachment attachment) {
 
@@ -852,9 +1374,10 @@ public abstract class BodyConnector extends RenderableComponentBase
       MatrixNdBlock GC = new MatrixNdBlock (6, nc);
       for (int j=0; j<nc; j++) {      
          RigidBodyConstraint c = constraints.get (j);
-         wtmp.inverseTransform (TXwG, c.getWrenchC());
-         if (scale != 1) {
-            wtmp.scale (scale);
+         double s = scale*c.getEngaged();
+         wtmp.inverseTransform (TXwG, c.getWrenchG());
+         if (s != 1) {
+            wtmp.scale (s);
          }
          setMatrixColumn (GC, j, wtmp);
       }
@@ -915,111 +1438,10 @@ public abstract class BodyConnector extends RenderableComponentBase
 
       for (int j=0; j<nc; j++) {
          RigidBodyConstraint c = constraints.get (j);
-         if (RigidBodyCoupling.useNewDerivatives) {
-            dbuf[idx+j] = 
-               -c.getDotWrenchC().dot (myVelBA) + c.getWrenchC().dot(myDotXv);
-         }
-         else {
-            dbuf[idx+j] = c.getDerivative();                  
-         }
+         double accel = 
+            c.getDotWrenchG().dot(myVelAB) + c.getWrenchG().dot(myDotXv);
+         dbuf[idx+j] = c.getEngaged()*accel;
       }
-   }
-
-   public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, int numb) {
-
-      int nc = numBilateralConstraints();
-      if (nc > 0) {
-         MatrixNdBlock GC;
-         int bj = GT.numBlockCols();
-         GC = getConstraintMatrix (myBilaterals, myTCwG, 1);
-         addMasterBlocks (GT, bj, GC, myAttachmentA);
-         GC = getConstraintMatrix (myBilaterals, myTDwG, -1);
-         addMasterBlocks (GT, bj, GC, myAttachmentB);
-         if (dg != null) {
-            setDerivativeTerm (dg, myBilaterals, nc, numb);
-         }
-      }
-      return numb + nc;
-   }
-
-   public int addUnilateralConstraints (
-      SparseBlockMatrix NT, VectorNd dn, int numu) {
-
-      int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);      
-
-      if (nc > 0) {
-         MatrixNdBlock GC;
-         int bj = NT.numBlockCols();
-         GC = getConstraintMatrix (myUnilaterals, myTCwG, 1);
-         addMasterBlocks (NT, bj, GC, myAttachmentA);
-         GC = getConstraintMatrix (myUnilaterals, myTDwG, -1);
-         addMasterBlocks (NT, bj, GC, myAttachmentB);
-         if (dn != null) {
-            setDerivativeTerm (dn, myUnilaterals, nc, numu);
-         }
-      }         
-      if (!MechModel.addConstraintForces) {
-         for (int j=0; j<nc; j++) {
-            RigidBodyConstraint u = myUnilaterals.get(j);
-            u.setContactSpeed (-u.getWrenchC().dot(myVelBA));
-         }
-      }
-      return numu + nc;
-   }
-
-   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
-
-      int nc = numBilateralConstraints();
-      if (nc > 0) {
-         if (nc != myBilaterals.size()) {
-            throw new InternalErrorException (
-               "nc=" + nc + " bilaterals.size()=" + myBilaterals.size());
-         }         
-         for (int j=0; j<nc; j++) {
-            RigidBodyConstraint bc = myBilaterals.get (j);
-            ConstraintInfo gi = ginfo[idx++];
-            gi.dist = bc.getDistance();
-            gi.compliance = bc.getCompliance();
-            gi.damping = bc.getDamping();
-            gi.force = 0;
-         }
-      }
-      return idx;
-   }
-
-   public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
-
-      int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);
-
-      if (nc > 0) {
-         for (int j = 0; j < nc; j++) {
-            RigidBodyConstraint uc = myUnilaterals.get (j);
-            uc.setSolveIndex (idx);
-            ConstraintInfo ni = ninfo[idx++];
-            if (uc.getDistance() < -myPenetrationTol) {
-               ni.dist = uc.getDistance() + myPenetrationTol;
-            }
-            else {
-               ni.dist = 0;
-            }
-            ni.compliance = uc.getCompliance();
-            ni.damping = uc.getDamping();
-            ni.force = 0;
-         }
-      }
-      return idx;
-   }
-
-   public int maxFrictionConstraintSets() {
-      return (myUnilaterals != null ? myUnilaterals.size() : 0);
-   }
-
-   public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
-
-      numf = addFrictionConstraints (DT, finfo, numf, myUnilaterals);
-      return numf;
    }
 
    private final double EPS = 1e-10;
@@ -1069,9 +1491,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    private void computeTangentDirection (
-      Vector3d tdir, Twist velBA, Vector3d nrm) {
+      Vector3d tdir, Twist velAB, Vector3d nrm) {
 
-      tdir.set (velBA.v);
+      tdir.negate (velAB.v); // negate because we used to use velBA
       // remove normal component of linear velocity
       tdir.scaledAdd (-nrm.dot (tdir), nrm, tdir);
             
@@ -1104,9 +1526,13 @@ public abstract class BodyConnector extends RenderableComponentBase
             // frction should be allowed to act. Only examine constraints with
             // mu != 0
             RigidBodyConstraint c = constraints.get (j);
-            Wrench g = c.getWrenchC();
             if (c.getFriction() > 0) {
-               int dim = accumulateFrictionDir (vdir, g.f, fdimv);
+               Wrench g = c.getWrenchG();
+               Vector3d vec = new Vector3d(g.f);
+               if (c.getEngaged() == -1) {
+                  vec.negate();
+               }
+               int dim = accumulateFrictionDir (vdir, vec, fdimv);
                if (dim != fdimv) {
                   fdimv = dim;
                   if (dim == 2) {
@@ -1133,7 +1559,7 @@ public abstract class BodyConnector extends RenderableComponentBase
                // Compute these directions and set them in two wrenches wr0 and
                // wr1
                Vector3d tdir = new Vector3d();
-               computeTangentDirection (tdir, myVelBA, vdir);
+               computeTangentDirection (tdir, myVelAB, vdir);
                wr0 = new Wrench();
                wr0.f.set (tdir);
                wr1 = new Wrench();
@@ -1189,6 +1615,23 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
+   /**
+    * Attaches two rigid bodies, {@code bodyA} and {@code bodyB}, to this
+    * connector. If A and B describe the coordinate frames of {@code bodyA} and
+    * {@code bodyB}, then {@code TCA} and {@code TDB} give the (fixed)
+    * transforms from the joint's C and D frames to A and B, respectively.
+    * Since C and D are specified independently, the joint transform TCD may
+    * not necessarily be initialized to the identity.
+    *
+    * <p>{@code bodyB} may be specified as {@code null}, in which case this
+    * connector will attach {@code bodyA} to ground and {@code TDB} gives
+    * the transform from D to world.
+    *
+    * @param bodyA first rigid body to attach
+    * @param TCA transform from connector frame C to body frame A
+    * @param bodyB second rigid body to attach (or {@code null})
+    * @param TDB transform from connector frame D to body frame B (or world)
+    */
    public void setBodies (
       RigidBody bodyA, RigidTransform3d TCA,
       RigidBody bodyB, RigidTransform3d TDB) {
@@ -1197,6 +1640,26 @@ public abstract class BodyConnector extends RenderableComponentBase
                  bodyB, createAttachmentWithTSM (bodyB, TDB));
    }
 
+   /**
+    * Attaches two connectable bodies, {@code bodyA} and {@code bodyB}, to this
+    * connector, using explicitly specified {@code Frame} attachments to attach
+    * the connector frames C and D to the coordinate frames A and B of the two
+    * bodies. This method is intended for situations in which applications wish
+    * to implement a body connector using custom {@code Frame} attachments. The
+    * poses of C and D after this method is called depend entirely on the
+    * configuration of the supplied attachments. 
+    *
+    * <p>{@code bodyB} may be specified as {@code null}, in which case this
+    * connector will attach {@code bodyA} to ground and {@code attachmentB}
+    * should attach D to world.
+    *
+    * @param bodyA first body to attach
+    * @param attachmentA {@code Frame} attachment connecting connector
+    * frame C to body frame A
+    * @param bodyB second body to attach (or {@code null})
+    * @param attachmentB {@code Frame} attachment connecting connector
+    * frame D to body frame B (or world)
+    */
    public void setBodies (
       ConnectableBody bodyA, FrameAttachment attachmentA, 
       ConnectableBody bodyB, FrameAttachment attachmentB) {
@@ -1209,12 +1672,46 @@ public abstract class BodyConnector extends RenderableComponentBase
       connectBodies();
    }
 
+   /**
+    * Attaches two connectable bodies, {@code bodyA} and {@code bodyB}, to this
+    * connector. The location of joint frame D is given by {@code TDW}, which
+    * gives the transform from D to world coordinates.  The location of joint
+    * frame C is then determined from the transform TCD returned by get {@link
+    * getCurrentTCD}. If bodies have not get been attached to this connector,
+    * TCD will then be determined by its joint coordinates, if any. If
+    * the joint coordinates have 0 values, TCD will be the identity and
+    * C and D will be coincident.
+    *
+    * <p>{@code bodyB} may be specified as {@code null}, in which case this
+    * connector will attach {@code bodyA} to ground.
+    * 
+    * @param bodyA first body to attach
+    * @param bodyB second body to attach (or {@code null})
+    * @param TDW initial transform from connector frame D to world
+    */
    public void setBodies (
       ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
-
-      setBodies (bodyA, bodyB, TDW, TDW);
+      RigidTransform3d TCD = new RigidTransform3d();
+      getCurrentTCD (TCD);
+      RigidTransform3d TCW = new RigidTransform3d();
+      TCW.mul (TDW, TCD);
+      setBodies (bodyA, bodyB, TCW, TDW);
    }
 
+   /**
+    * Attaches two connectable bodies, {@code bodyA} and {@code bodyB}, to this
+    * connector. The locations of joint frames D and C are given by {@code TCW}
+    * and {@code TDW}, which give the transforms from C and D to world
+    * coordinates.
+    *
+    * <p>{@code bodyB} may be specified as {@code null}, in which case this
+    * connector will attach {@code bodyA} to ground.
+    * 
+    * @param bodyA first body to attach
+    * @param TCW initial transform from connector frames C to world
+    * @param bodyB second body to attach (or {@code null})
+    * @param TDW initial transform from connector frames D to world
+    */
    public void setBodies (
       ConnectableBody bodyA, ConnectableBody bodyB,
       RigidTransform3d TCW, RigidTransform3d TDW) {
@@ -1223,14 +1720,29 @@ public abstract class BodyConnector extends RenderableComponentBase
                  bodyB, createAttachment (bodyB, TDW));
    }
 
+   /**
+    * Returns the current pose of the D frame, in world coordinates.
+    * 
+    * @return current pose of D
+    */
    public RigidTransform3d getCurrentTDW() {
       RigidTransform3d TDW = new RigidTransform3d();
       getCurrentTDW (TDW);
       return TDW;
    }
 
+   /**
+    * Returns the current pose of the D frame, in world coordinates.
+    * 
+    * @param TDW returns the current pose of D
+    */  
    public void getCurrentTDW (RigidTransform3d TDW) {
-      myAttachmentB.getCurrentTFW (TDW);
+      if (myAttachmentB == null) {
+         TDW.setIdentity();
+      }
+      else {
+         myAttachmentB.getCurrentTFW (TDW);
+      }
    }
 
    private void updateAttachment (FrameAttachment a, RigidTransform3d TFW) {
@@ -1243,39 +1755,61 @@ public abstract class BodyConnector extends RenderableComponentBase
          connectAttachmentMasters (a.getMasters());
       }
    }
-   
+ 
+   /**
+    * Sets the current pose of the D frame, in world coordinates, and
+    * updates the attachment between D and body B accordingly.
+    * 
+    * @param TDW new pose for the D frame
+    */    
    public void setCurrentTDW (RigidTransform3d TDW) {
       updateAttachment (myAttachmentB, TDW);
    }
 
-   public void getPose (RigidTransform3d X) {
-      X.set (getCurrentTDW());      
+   /**
+    * Returns the pose of this connector, which is defined by its
+    * D coordinate frame. This method is therefore equivalent to
+    * {@link #getCurrentTDW(RigidTransform3d)}.
+    * 
+    * @param TDW returns the connector pose
+    */
+   public void getPose (RigidTransform3d TDW) {
+      getCurrentTDW (TDW);      
    }
 
+   /**
+    * Returns the current pose of the C frame, in world coordinates.
+    * 
+    * @return current pose of C
+    */
    public RigidTransform3d getCurrentTCW() {
       RigidTransform3d TCW = new RigidTransform3d();
       getCurrentTCW (TCW);
       return TCW;
    }
 
+   /**
+    * Returns the current pose of the C frame, in world coordinates.
+    * 
+    * @param TCW returns the current pose of C
+    */   
    public void getCurrentTCW (RigidTransform3d TCW) {
-      myAttachmentA.getCurrentTFW (TCW);
-   }
-
-   public void setCurrentTCW (RigidTransform3d TCW) {
-      updateAttachment (myAttachmentA, TCW);
-   }
-
-   public RigidTransform3d getCurrentTXW (FrameAttachable body) {
-      if (body == myBodyA) {
-         return getCurrentTCW();
-      }
-      else if (body == myBodyB) {
-         return getCurrentTDW();
+      if (myAttachmentA == null) {
+         TCW.setIdentity();
       }
       else {
-         return null;
+         myAttachmentA.getCurrentTFW (TCW);
       }
+   }
+
+   /**
+    * Sets the current pose of the C frame, in world coordinates, and
+    * updates the attachment between C and body A accordingly.
+    * 
+    * @param TCW new pose for the C frame
+    */   
+   public void setCurrentTCW (RigidTransform3d TCW) {
+      updateAttachment (myAttachmentA, TCW);
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -1342,17 +1876,26 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /**
-    * Returns the activation level associated with a specific constraint.
+    * Returns the current force for the {@code idx}-th constraint in this
+    * connector. This is the Lagrange multiplier used to enforce the
+    * constraint.
     * 
     * @param idx
     * index of the constraint
-    * @return activation level of the constraint
+    * @return {@code idx}-th constraint force
     */
-   public double getActivation (int idx) {
-      return myCoupling.getConstraint (idx).getMultiplier();
+   public double getConstraintForce (int idx) {
+      return myCoupling.getConstraintForce(idx);
    }
 
-   public void updateBodyStates (double t, boolean setEngaged) {
+   /**
+    * @deprecated Use {@link #getConstraintForce(int)} instead.
+    */
+   public double getActivation (int idx) {
+      return myCoupling.getConstraintForce(idx);
+   }
+
+   protected void updateBodyStates (double t, boolean updateEngaged) {
 
       RigidTransform3d TCD = new RigidTransform3d();
       RigidTransform3d TGD = new RigidTransform3d();
@@ -1390,7 +1933,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          myAttachmentB.getUndeformedTFW (TDW0);
          myAttachmentBG.getUndeformedTFW (TCW0);
          TCD0.mulInverseLeft (TDW0, TCW0);
-         myCoupling.projectToConstraint (TGD0, TCD0);         
+         myCoupling.projectAndUpdateCoordinates (TGD0, TCD0);
 
          XERR.mulInverseLeft (TGD0, TCD0);
          myTCG.set (XERR); // ????
@@ -1424,13 +1967,14 @@ public abstract class BodyConnector extends RenderableComponentBase
          myTDwG.mulInverseLeft (TGD, RWD);
 
          computeDotXv (myDotXv, CvelA, DvelB, TCD, dgA, dgB);
-         myVelBA.sub (velB, velA);
-         myCoupling.updateBodyStates (TCD0, TGD0, XERR, setEngaged);
+         // velAB is the same as velGD, as seen in G
+         myVelAB.sub (velA, velB);
+         myCoupling.updateBodyStates (TCD0, TGD0, XERR, myVelAB, updateEngaged);
       }
       else {
 
          TCD.mulInverseLeft (TDW, TCW);
-         myCoupling.projectToConstraint (TGD, TCD);
+         myCoupling.projectAndUpdateCoordinates (TGD, TCD);
          XERR.mulInverseLeft (TGD, TCD);
          myTCG.set (XERR);
 
@@ -1451,8 +1995,10 @@ public abstract class BodyConnector extends RenderableComponentBase
          myTDwG.mulInverseLeft (TGD, RWD);
 
          computeDotXv (myDotXv, CvelA, DvelB, TCD, dgA, dgB);
-         myVelBA.sub (velB, velA);
-         myCoupling.updateBodyStates (TCD, TGD, XERR, setEngaged);
+         myVelAB.sub (velA, velB);
+
+         // velAB is the same as velGD, as seen in G
+         myCoupling.updateBodyStates (TCD, TGD, XERR, myVelAB, updateEngaged);
       }
       
    }
@@ -1463,80 +2009,39 @@ public abstract class BodyConnector extends RenderableComponentBase
    public void scaleMass (double m) {
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void scaleDistance (double s) {
       myAttachmentA.scaleDistance (s);
       myAttachmentB.scaleDistance (s);
       myCoupling.scaleDistance (s);
+      myAxisLength *= s;
+      myRenderProps.scaleDistance (s);
    }
 
-   public int getBilateralConstraints (
+   protected int getBilateralConstraints (
       ArrayList<RigidBodyConstraint> bilaterals) {
 
       return myCoupling.getBilateralConstraints (bilaterals);
    }
 
-   public int setBilateralForces (VectorNd lam, double s, int idx) {
-      idx = myCoupling.setBilateralForces (lam, s, idx);
-      return idx;
-   }
-
-   public int getBilateralForces (VectorNd lam, int idx) {
-      return myCoupling.getBilateralForces (lam, idx);
-   }
-
-   public void zeroForces() {
-      myCoupling.zeroForces();
+   protected boolean hasUnilateralConstraints() {
+      return myCoupling.numUnilaterals() > 0;
    }
    
-   public boolean hasUnilateralConstraints() {
-      return myCoupling.maxUnilaterals() > 0;
+   protected double getUnilateralConstraints (
+      ArrayList<RigidBodyConstraint> unilaterals, boolean updateEngaged) {
+      return myCoupling.getUnilateralConstraints (unilaterals, updateEngaged);
    }
 
-   public void setContactDistance (double d) {
-      myCoupling.setContactDistance (d);
-   }
-
-   public double getContactDistance() {
-      return myCoupling.getContactDistance();
-   }
-
-   public void setBreakSpeed (double s) {
-      myCoupling.setBreakSpeed (s);
-   }
-
-   public double getBreakSpeed() {
-      return myCoupling.getBreakSpeed();
-   }
-
-   public void setBreakAccel (double a) {
-      myCoupling.setBreakAccel (a);
-   }
-
-   public double getBreakAccel() {
-      return myCoupling.getBreakAccel();
-   }
-
-   public double getUnilateralConstraints (
-      ArrayList<RigidBodyConstraint> unilaterals, boolean setEngaged) {
-      return myCoupling.getUnilateralConstraints (unilaterals, setEngaged);
-   }
-
-   public void updateUnilateralConstraints (
+   protected void updateUnilateralConstraints (
       ArrayList<RigidBodyConstraint> unilaterals, int offset, int numc) {
       myCoupling.updateUnilateralConstraints (unilaterals, offset, numc);
    }
 
-   public int setUnilateralForces (VectorNd the, double s, int idx) {
-      idx = myCoupling.setUnilateralForces (the, s, idx);
-      return idx;
-   }
-
-   public int getUnilateralForces (VectorNd the, int idx) {
-      return myCoupling.getUnilateralForces (the, idx);
-   }
-
    /**
-    * Returns true if this RigidBodyConnectorX is enabled and at least one of
+    * Returns true if this connector is enabled and at least one of
     * it's underlying master components is active.
     */
    public boolean isActive() {
@@ -1560,7 +2065,12 @@ public abstract class BodyConnector extends RenderableComponentBase
    protected boolean attachmentsInitialized() {
       return myAttachmentA != null && myAttachmentB != null;
    }
+   
+   /* --- begin TransformableGeometry implementation --- */
 
+   /**
+    * {@inheritDoc}
+    */  
    public void transformGeometry (AffineTransform3dBase X) {
       TransformGeometryContext.transform (this, X, 0);
    }
@@ -1594,8 +2104,6 @@ public abstract class BodyConnector extends RenderableComponentBase
          myAttachment.updatePosStates();
       }
    }
-   
-   
 
    private boolean allMastersTransforming (
       FrameAttachment a, TransformGeometryContext context) {
@@ -1625,6 +2133,9 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       
@@ -1690,6 +2201,7 @@ public abstract class BodyConnector extends RenderableComponentBase
             updateAttachmentA = true;
          }
       }
+
       if (updateAttachmentA || updateAttachmentB) {
          boolean correctErrors = numBilateralConstraints() > 0;
          if (correctErrors) {
@@ -1697,7 +2209,7 @@ public abstract class BodyConnector extends RenderableComponentBase
             RigidTransform3d TCD = new RigidTransform3d();
             RigidTransform3d TGD = new RigidTransform3d();
             TCD.mulInverseLeft (TDW, TCW);
-            myCoupling.projectToConstraint (TGD, TCD);
+            myCoupling.projectToConstraints (TGD, TCD, null);
             if (updateAttachmentA) {
                // use C to correct the error
                TCW.mul (TDW, TGD);
@@ -1725,11 +2237,19 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags) {
       // no dependencies
    }
+   
+   /* --- end TransformableGeometry implementation --- */
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public void getHardReferences (List<ModelComponent> refs) {
       super.getHardReferences (refs);
@@ -1753,70 +2273,70 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
-   protected void connectNewlyConnectedBodies (
-      CompositeComponent connector) {
+   protected void connectBodies() { 
       
-      if (myBodyA != null && 
-          ComponentUtils.areConnectedVia (this, myBodyA, connector)) {
+      if (myBodyA != null && !myBodyA.containsConnector (this)) {
          myBodyA.addConnector (this);
          connectAttachmentMasters (myAttachmentA.getMasters());        
       }
-      if (myBodyB != null && 
-          ComponentUtils.areConnectedVia (this, myBodyB, connector)) {
+      if (myBodyB != null && !myBodyB.containsConnector (this)) {
          myBodyB.addConnector (this);
          connectAttachmentMasters (myAttachmentB.getMasters());        
       }
    }
    
-   protected void disconnectNewlyDisconnectedBodies (
-      CompositeComponent connector) {
+   protected void disconnectBodies () {
       
-      if (myBodyA != null && 
-          ComponentUtils.areConnectedVia (this, myBodyA, connector)) {
+      if (myBodyA != null && myBodyA.containsConnector (this)) {
          myBodyA.removeConnector (this);
          disconnectAttachmentMasters (myAttachmentA.getMasters());        
       }
-      if (myBodyB != null && 
-          ComponentUtils.areConnectedVia (this, myBodyB, connector)) {
+      if (myBodyB != null && myBodyB.containsConnector (this)) {
          myBodyB.removeConnector (this);
          disconnectAttachmentMasters (myAttachmentB.getMasters());        
       }
    }
    
-   private void connectBodies() {
-      // Note: in normal operation, bodyA is not null
-      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
-         myBodyA.addConnector (this);
-         connectAttachmentMasters (myAttachmentA.getMasters());
-      }
-      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
-         myBodyB.addConnector (this);
-         connectAttachmentMasters (myAttachmentB.getMasters());
-      }
-   }
+//   private void connectBodies() {
+//      // Note: in normal operation, bodyA is not null
+//      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
+//         myBodyA.addConnector (this);
+//         connectAttachmentMasters (myAttachmentA.getMasters());
+//      }
+//      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
+//         myBodyB.addConnector (this);
+//         connectAttachmentMasters (myAttachmentB.getMasters());
+//      }
+//   }
+//
+//   private void disconnectBodies() {
+//      // Note: in normal operation, bodyA is not null
+//      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
+//         myBodyA.removeConnector (this);
+//         disconnectAttachmentMasters (myAttachmentA.getMasters());
+//      }
+//      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
+//         myBodyB.removeConnector (this);
+//         disconnectAttachmentMasters (myAttachmentB.getMasters());
+//      }
+//   }
 
-   private void disconnectBodies() {
-      // Note: in normal operation, bodyA is not null
-      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
-         myBodyA.removeConnector (this);
-         disconnectAttachmentMasters (myAttachmentA.getMasters());
-      }
-      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
-         myBodyB.removeConnector (this);
-         disconnectAttachmentMasters (myAttachmentB.getMasters());
-      }
-   }
-
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public void connectToHierarchy (CompositeComponent hcomp) {
       super.connectToHierarchy (hcomp);
-      connectNewlyConnectedBodies (hcomp);
+      connectBodies ();
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public void disconnectFromHierarchy(CompositeComponent hcomp) {
       super.disconnectFromHierarchy(hcomp);
-      disconnectNewlyDisconnectedBodies (hcomp);
+      disconnectBodies ();
    }
 
    public boolean isDuplicatable() {
@@ -1868,6 +2388,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          // shouldn't be here since copy shouldn't be called in this case
          copy.myBodyB = null;
       }
+      connectBodies();
       copy.myEnabledP = myEnabledP;
 
       if (myCompliance != null) {
@@ -1883,30 +2404,32 @@ public abstract class BodyConnector extends RenderableComponentBase
       copy.myTDwG = new RigidTransform3d (myTDwG);
       copy.myTCwG = new RigidTransform3d (myTCwG);
       copy.myDotXv = new Twist(myDotXv);
-      copy.myVelBA = new Twist(myVelBA);
+      copy.myVelAB = new Twist(myVelAB);
+
+      copy.setCoupling (myCoupling.clone());
       
+      copy.setAxisLength (myAxisLength);
+      copy.setRenderProps (getRenderProps());
+      copy.myRenderFrameD = new RigidTransform3d (myRenderFrameD);
+      copy.myRenderFrameC = new RigidTransform3d (myRenderFrameC);
+
       return copy;
    }
 
-   public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      RigidTransform3d TDW = getCurrentTDW();
-      TDW.p.updateBounds (pmin, pmax);
-   }
-
-   public void updateForBodyPositionChange (
-      ConnectableBody body, RigidTransform3d TXW) {
-
-      if (body == myBodyA) {
-         myAttachmentA.setCurrentTFW (TXW);
-      }
-      else if (body == myBodyB) {
-         myAttachmentB.setCurrentTFW (TXW);
-      }
-      else {
-         // ignore for now
-      }
-   }
-
+//   public void updateForBodyPositionChange (
+//      ConnectableBody body, RigidTransform3d TXW) {
+//
+//      if (body == myBodyA) {
+//         myAttachmentA.setCurrentTFW (TXW);
+//      }
+//      else if (body == myBodyB) {
+//         myAttachmentB.setCurrentTFW (TXW);
+//      }
+//      else {
+//         // ignore for now
+//      }
+//   }
+//
    private void transformPoseAndUpdateConnectorAttachments (
       ConnectableBody body,  RigidTransform3d T) {
       body.transformPose (T);
@@ -1991,13 +2514,25 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
+   /* --- begin HasNumericState implementation --- */
+   
+   /**
+    * {@inheritDoc}
+    */
    public void advanceState (double t0, double t1) {
+      // nothing to do in the base class
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void getState (DataBuffer data) {
       myCoupling.getState (data);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setState (DataBuffer data) {
       myAttachmentA.updatePosStates();
       myAttachmentB.updatePosStates();
@@ -2009,10 +2544,13 @@ public abstract class BodyConnector extends RenderableComponentBase
          else {
             myUnilaterals.clear();
          }
-         getUnilateralConstraints (myUnilaterals, /*setEngaged=*/false);
+         getUnilateralConstraints (myUnilaterals, /*updateEngaged=*/false);
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public int getStateVersion () {
       return myStateVersion;
@@ -2025,6 +2563,8 @@ public abstract class BodyConnector extends RenderableComponentBase
       public boolean hasState() {
       return true;
    }
+   
+   /* --- end HasNumericState implementation --- */
    
    private static boolean recursivelyFindAttachedBodies (
       ConnectableBody body, List<ConnectableBody> list,
@@ -2057,6 +2597,21 @@ public abstract class BodyConnector extends RenderableComponentBase
       return isFree;
    }
 
+   /**
+    * Finds all connectable bodies which are attached to a given body via
+    * connectors.  The search starts at {@code body} and expands outward by
+    * recursively examining all bodies attached to all its connectors,
+    * <i>excluding</i> the body specified by {@code exclude} if {@code exclude}
+    * is non-{@code null}.  {@code body} itself will be included in the search
+    * results (unless {@code exclude} is also set to {@code body}, in which no
+    * bodies will be found). The results of the search are appended to {@code
+    * list}.
+    * 
+    * @param body starting body for the search
+    * @param exclude if non-{@code null}, body to be excluded from the search
+    * @param bodies collects the search results.
+    * @return {@code true} if the found bodies are not attached to ground.
+    */
    public static boolean findAttachedBodies (
       ConnectableBody body, ConnectableBody exclude,
       List<ConnectableBody> bodies) {
@@ -2069,82 +2624,125 @@ public abstract class BodyConnector extends RenderableComponentBase
          body, bodies, visited);
       return allFree;
    }   
-  
-   // private static boolean isTransforming (
-   //    ConnectableBody body, TransformGeometryContext context) {
-   //    if (context != null && body instanceof TransformableGeometry) {
-   //       return context.contains ((TransformableGeometry)body);
-   //    }
-   //    else {
-   //       return false;
-   //    }
-   // }      
-
-   // private static boolean recursivelyFindFreeAttachedBodies (
-   //    ConnectableBody body,
-   //    List<ConnectableBody> freeBodies,
-   //    List<BodyConnector> connectors, 
-   //    HashSet<ConnectableBody> visited,
-   //    TransformGeometryContext context) {      
-
-   //    ArrayList<ConnectableBody> free = new ArrayList<ConnectableBody>();
-   //    ArrayList<BodyConnector> cons = new ArrayList<BodyConnector>();
-
-   //    if (body.getConnectors() != null) {
-   //       for (BodyConnector c : body.getConnectors()) {
-   //          ConnectableBody otherBody = c.getOtherBody (body);
-            
-   //          if (otherBody == null) {
-   //             if (!c.myTransformDGeometryOnly) {
-   //                return false;
-   //             }
-   //          }
-   //          else if (!visited.contains(otherBody) &&
-   //                   !isTransforming (otherBody, context)) {
-   //             if (!otherBody.isFreeBody()) {
-   //                return false;
-   //             }
-   //             visited.add (otherBody);
-   //             free.clear();
-   //             cons.clear();
-   //             free.add (otherBody);
-   //             cons.add (c);
-   //             if (recursivelyFindFreeAttachedBodies (
-   //                    otherBody, free, cons, visited, context)) {
-   //                if (freeBodies != null) {
-   //                   freeBodies.addAll (free);
-   //                }
-   //                if (connectors != null) {
-   //                   connectors.addAll (cons);
-   //                }
-   //             }
-   //             else {
-   //                return false;
-   //             }
-   //          }
-   //       }
-   //    }
-   //    return true;
-   // }
-  
-   // public static boolean findFreeAttachedBodies (
-   //    ConnectableBody body,
-   //    List<ConnectableBody> freeBodies, 
-   //    List<BodyConnector> connectors,
-   //    TransformGeometryContext context) {
-
-   //    HashSet<ConnectableBody> visited = new HashSet<ConnectableBody>();
-   //    boolean allFree = recursivelyFindFreeAttachedBodies (
-   //       body, freeBodies, connectors, visited, context);
-   //    return allFree;
-   // }  
    
+   /**
+    * Returns the {@code Frame} attachment which attaches connector frame C to the
+    * coordinate frame of body A.
+    *
+    * @return attachment between frame C and body A
+    */
    public FrameAttachment getFrameAttachmentA() {
       return myAttachmentA;
    }
-   
+
+   /**
+    * Returns the {@code Frame} attachment which attaches connector frame D to
+    * the coordinate frame of body B (or to world if body B is {@code null}).
+    *
+    * @return attachment between frame D and body B
+    */
    public FrameAttachment getFrameAttachmentB() {
       return myAttachmentB;
    }
 
+   /**
+    * For debugging. Return the idx-th constraint of this connector's coupling.
+    */
+   public RigidBodyConstraint getConstraint (int idx) {
+      return myCoupling.getConstraint (idx);
+   }
+
+   /* --- begin Renderable implementation --- */
+   
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
+      RigidTransform3d TDW = getCurrentTDW();
+      if (myDrawFrameD != AxisDrawStyle.OFF) {
+         RenderableUtils.updateFrameBounds (pmin, pmax, TDW, myAxisLength);
+      }
+      else {
+         TDW.p.updateBounds (pmin, pmax);
+      }
+      RigidTransform3d TCW = getCurrentTCW();      
+      if (myDrawFrameC != AxisDrawStyle.OFF) {
+         RenderableUtils.updateFrameBounds (pmin, pmax, TCW, myAxisLength);
+      }
+      else {
+         TCW.p.updateBounds (pmin, pmax);
+      }
+   }
+
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
+   }
+
+   public void prerender (RenderList list) {
+      // Should be called by all subclasses
+      
+      // update attachment position states, which may have changed because of
+      // position correction at the end of the previous step
+      myAttachmentA.updatePosStates();
+      myAttachmentB.updatePosStates();
+
+      RigidTransform3d TDW = getCurrentTDW();
+      myRenderFrameD.set (TDW);
+      RigidTransform3d TCW = getCurrentTCW();
+      myRenderFrameC.set (TCW);
+   }
+
+   public void render (Renderer renderer, int flags) {
+      int lineWidth = myRenderProps.getLineWidth();
+      
+      if (myDrawFrameD != AxisDrawStyle.OFF) {
+         // render frame D
+         Frame.renderAxes (
+            renderer, myRenderFrameD, myDrawFrameD,
+            myAxisLength, lineWidth, isSelected());
+      }
+      
+      if (myDrawFrameC != AxisDrawStyle.OFF) {
+         // render frame C
+         Frame.renderAxes (
+            renderer, myRenderFrameC, myDrawFrameC,
+            myAxisLength, lineWidth, isSelected());
+      }
+      
+      if (myDrawFrameC != AxisDrawStyle.OFF &&
+          myDrawFrameD != AxisDrawStyle.OFF) {
+         // distinguish one from the other
+         Point3d pnt = new Point3d();
+         pnt.transform (myRenderFrameC);
+         renderer.setPointSize (myRenderProps.getPointSize ());
+         
+         pnt.scale (myAxisLength, Vector3d.X_UNIT);
+         pnt.transform (myRenderFrameC);
+         renderer.setColor (Color.RED);
+         renderer.drawPoint (pnt);
+         
+         pnt.scale (myAxisLength, Vector3d.Y_UNIT);
+         pnt.transform (myRenderFrameC);
+         renderer.setColor (Color.GREEN);
+         renderer.drawPoint (pnt);
+         
+         pnt.scale (myAxisLength, Vector3d.Z_UNIT);
+         pnt.transform (myRenderFrameC);
+         renderer.setColor (Color.BLUE);
+         renderer.drawPoint (pnt);
+      }
+   }
+
+   public RigidTransform3d getRenderFrame() {
+      return myRenderFrameD;
+   }
+
+   /* --- end Renderable implementation --- */
+
+   
+   /**
+    * XXX Update attachments prior to calling getCurrentTDW(), etc.
+    * Normally this is done in sync with the simulation.
+    */
+   public void updateAttachments() {
+      myAttachmentA.updatePosStates();
+      myAttachmentB.updatePosStates();     
+   }
 }

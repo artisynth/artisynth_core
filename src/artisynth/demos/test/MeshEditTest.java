@@ -51,9 +51,10 @@ public class MeshEditTest extends RootModel {
 
       if (args.length > 0) {
          try {
-            WavefrontReader reader = new WavefrontReader (args[0]);
-            reader.setZeroIndexed (true);
-            mesh = reader.readMesh();
+            mesh = new PolygonalMesh (args[0]);
+            // WavefrontReader reader = new WavefrontReader (args[0]);
+            // reader.setZeroIndexed (true);
+            // mesh = reader.readMesh();
          }
          catch (Exception e) {
             System.out.println ("Can't read mesh: " + e);

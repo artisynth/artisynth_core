@@ -11,6 +11,8 @@ import java.util.Map;
 
 import maspack.matrix.Matrix3d;
 import maspack.matrix.MatrixBlock;
+import maspack.matrix.Matrix1x3;
+import maspack.matrix.Matrix1x3Block;
 import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.MatrixBlockBase;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -383,12 +385,12 @@ public abstract class PointSpringBase extends Spring
       }
 
       protected void addMinForcePosJacobian (
-         SparseBlockMatrix J, double s, double F, double dFdl, double dFdldot,
+         SparseBlockMatrix J, double s, double dFdl, double dFdldot,
          double len, boolean staticOnly, int bi) {
 
-         Matrix3d K = new Matrix3d();
-         computeForcePositionJacobian (
-            K, F, dFdl, dFdldot, len, /*symmetric=*/false);
+         Matrix1x3 K = new Matrix1x3();
+         computeTensionPositionJacobian (
+            K, dFdl, dFdldot, len, /*symmetric=*/false);
          K.scale (s);
          addToMinForceJacobianBlocks (J, K, bi);
       }
@@ -396,20 +398,20 @@ public abstract class PointSpringBase extends Spring
       protected void addMinForceVelJacobian (
          SparseBlockMatrix J, double s, double dFdldot, int bi) {
 
-         Matrix3d D = new Matrix3d();
-         computeForceVelocityJacobian (D, dFdldot);
+         Matrix1x3 D = new Matrix1x3();
+         computeTensionVelocityJacobian (D, dFdldot);
          D.scale (s);
          addToMinForceJacobianBlocks (J, D, bi);
       }
 
       protected void addToMinForceJacobianBlocks (
-         SparseBlockMatrix J, Matrix3d K, int bi) {
+         SparseBlockMatrix J, Matrix1x3 K, int bi) {
 
          int bj;
          if ((bj = pnt0.getSolveIndex()) != -1) {
             MatrixBlock blk = J.getBlock (bi, bj);
             if (blk == null) {
-               blk = new Matrix3x3Block();
+               blk = new Matrix1x3Block();
                J.addBlock (bi, bj, blk);
             }
             blk.add (K);
@@ -417,7 +419,7 @@ public abstract class PointSpringBase extends Spring
          if ((bj = pnt1.getSolveIndex()) != -1) {
             MatrixBlock blk = J.getBlock (bi, bj);
             if (blk == null) {
-               blk = new Matrix3x3Block();
+               blk = new Matrix1x3Block();
                J.addBlock (bi, bj, blk);
             }
             blk.sub (K);
@@ -483,7 +485,7 @@ public abstract class PointSpringBase extends Spring
          Matrix3d T, double F, double dFdl, double dFdldot,
          double totalLen, boolean symmetric) {
 
-         if (len == 0) {
+         if (totalLen == 0 || len == 0) {
             T.setZero();
             return;
          }
@@ -566,13 +568,71 @@ public abstract class PointSpringBase extends Spring
          }
       }      
 
-      public void computeForceVelocityJacobian (Matrix3d T, double dFdldot) {
+      void computeForceVelocityJacobian (Matrix3d T, double dFdldot) {
          if (len == 0 || dFdldot == 0) {
             T.setZero();
             return;
          }
          T.outerProduct (uvec, uvec);
          T.scale (-dFdldot);
+      }
+
+      void computeTensionPositionJacobian (
+         Matrix1x3 T, double dFdl, double dFdldot,
+         double totalLen, boolean symmetric) {
+
+         if (totalLen == 0 || len == 0) {
+            T.setZero();
+            return;
+         }
+
+         // components of the open product u * u':
+         double uxx = uvec.x * uvec.x;
+         double uyy = uvec.y * uvec.y;
+         double uzz = uvec.z * uvec.z;
+         double uxy = uvec.x * uvec.y;
+         double uxz = uvec.x * uvec.z;
+         double uyz = uvec.y * uvec.z;
+
+         // Now compute T = (-dFdldot * (vel1-vel0)' - F I) / length
+         if (!symmetric && dFdldot != 0) {
+            Vector3d vel1 = pnt1.getVelocity();
+            Vector3d vel0 = pnt0.getVelocity();
+
+            double scale = -dFdldot/totalLen;
+            T.m00 = scale*(vel1.x-vel0.x);
+            T.m01 = scale*(vel1.y-vel0.y);
+            T.m02 = scale*(vel1.z-vel0.z);
+         }
+         else {
+            T.setZero();
+         }
+
+         // form the product T * (I - u u')
+         double m00 = -T.m00 * (uxx - 1) - T.m01 * uxy - T.m02 * uxz;
+         double m01 = -T.m00 * uxy - T.m01 * (uyy - 1) - T.m02 * uyz;
+         double m02 = -T.m00 * uxz - T.m01 * uyz - T.m02 * (uzz - 1);
+
+         // finally, add -dFdl * u' to final result
+
+         if (dFdl != 0) {
+            T.m00 = m00 - dFdl * uvec.x;
+            T.m01 = m01 - dFdl * uvec.y;
+            T.m02 = m02 - dFdl * uvec.z;
+         }
+         else {
+            T.m00 = m00;
+            T.m01 = m01;
+            T.m02 = m02;
+         }
+      }      
+
+      public void computeTensionVelocityJacobian (Matrix1x3 T, double dFdldot) {
+         if (len == 0 || dFdldot == 0) {
+            T.setZero();
+            return;
+         }
+         T.scale (-dFdldot, uvec);
       }
    }
 

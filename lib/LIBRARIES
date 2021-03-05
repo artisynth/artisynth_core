@@ -67,7 +67,7 @@ Windows64 gluegen-rt-2.3.2-natives-windows-amd64.jar
 Windows64 jogl-all-2.3.2-natives-windows-amd64.jar
 #
 # Native Libraries
-PardisoJNI.11.1.2.1
+PardisoJNI.2021.1
 RobustPreds.1.1
 TetgenJNI.1.5.1.1
 # OpenMP libraries for Pardiso

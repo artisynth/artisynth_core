@@ -206,6 +206,8 @@ public class CollisionBehavior extends CollisionComponent
       myFrictionMode = PropertyMode.Inherited;
       myMethod = defaultMethod;
       myMethodMode = PropertyMode.Inherited;
+      myColliderType = CollisionManager.myDefaultColliderType;
+      myColliderTypeMode = PropertyMode.Inherited;
       myBilateralVertexContact = defaultBilateralVertexContact;
       myBilateralVertexContactMode = PropertyMode.Inherited;
       myPenetrationTol = defaultPenetrationTol;

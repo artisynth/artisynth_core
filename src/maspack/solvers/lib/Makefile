@@ -40,17 +40,19 @@ JAVAH = javah
 # Pardiso version number based on MKL 11.1.2, with support for setting
 # the maximum number of threads. Make sure there is no whitespace at
 # the end.
-PARDISO_VERSION = 11.1.2.1
+PARDISO_VERSION = 2021.1
 
 ifeq ($(SYSTEM),Linux)
 	ifndef MKL_HOME
-	   MKL_HOME = /data/intel/composer_xe_2013_sp1.2.144
-	   #MKL_HOME = /data/intel/composer_xe_2015.2.164
+	   MKL_HOME = /data/intel/oneapi/mkl/2021.1.1
+        endif
+        ifndef MKL_THREAD_LIB
+	   MKL_THREAD_LIB = /data/intel/oneapi/compiler/2021.1.1/linux/compiler/lib
         endif
 	ifeq ($(ARCH), 64)
 	   NATIVE_DIR = Linux64
 	   PARDISO = pardisoX86_64
-	   MKL=$(MKL_HOME)/mkl/lib/intel64
+	   MKL=$(MKL_HOME)/lib/intel64
 	   # At last check, intel MKL blas were about 20% faster
            #
 	   # link with iomp5 because libiomp5 is more compatible when
@@ -64,17 +66,19 @@ ifeq ($(SYSTEM),Linux)
 	   # wrap_memcpy.c and which explicitly calls in a earlier
 	   # version of memcpy that does not depend on glbic 2.14
            #
-	   LDS_PARDISO_MKL = -L$(MKL_HOME)/compiler/lib/intel64 \
+
+           # -Wl,--wrap=memcpy
+	   LDS_PARDISO_MKL = -L$(MKL_THREAD_LIB)/intel64_lin \
 	     -Wl,--start-group \
              $(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
-             $(MKL)/libmkl_core.a -Wl,--end-group -Wl,--wrap=memcpy \
+             $(MKL)/libmkl_core.a -Wl,--end-group \
 	     -ldl -liomp5 -lpthread -lm
 	   CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fpermissive -fPIC -pthread -DLINUX
 	else
 	   # 32 bit Linux is no longer supported, so this may not work
 	   NATIVE_DIR = Linux
 	   PARDISO = pardisoX86
-	   MKL=$(MKL_HOME)/mkl/lib/ia32
+	   MKL=$(MKL_HOME)/lib/ia32
 	   LDS_PARDISO_MKL = -Wl,--start-group \
              $(MKL)/libmkl_intel.a $(MKL)/libmkl_gnu_thread.a \
              $(MKL)/libmkl_core.a -Wl,--end-group -Wl,--wrap=memcpy \
@@ -82,7 +86,7 @@ ifeq ($(SYSTEM),Linux)
 	   CC_FLAGS = -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX 
 	endif
 	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux \
-		-I$(MKL_HOME)/mkl/include -I.
+		-I$(MKL_HOME)/include -I.
 	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o wrap_memcpy.o
 	PARDISO_MKL_TARGET = libPardisoJNI.so.$(PARDISO_VERSION)
         # the use of rpath ensures that library dependencies can also be loaded
@@ -142,16 +146,20 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias
 else ifeq ($(SYSTEM),Darwin)
 	ifndef MKL_HOME
-	   MKL_HOME = /opt/intel/composer_xe_2013_sp1
+	   MKL_HOME = /opt/intel/oneapi/mkl/2021.1.1
+        endif
+        ifndef MKL_THREAD_LIB
+	   MKL_THREAD_LIB = /opt/intel/oneapi/compiler/2021.1.1/mac/compiler/lib
+        endif
+	ifndef JAVA_HOME
+	   JAVA_HOME = /Library/Java/JavaVirtualMachines/jdk1.8.0_271.jdk/Contents/Home
         endif
 	NATIVE_DIR = MacOS64
-        JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
-	COMPOSER_LIB=$(MKL_HOME)/lib
-	MKL=$(MKL_HOME)/mkl/lib
-	LDS_PARDISO_MKL = -L$(MKL) -L$(COMPOSER_LIB) \
+	MKL=$(MKL_HOME)/lib
+	LDS_PARDISO_MKL = -L$(MKL) -L$(MKL_THREAD_LIB) \
 		$(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
 		$(MKL)/libmkl_core.a -liomp5 -lpthread     
-	CC_INCS = -I$(JAVA_INC) -I$(MKL_HOME)/mkl/include -I.
+	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -I$(MKL_HOME)/include -I.
 	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
 	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o
 	PARDISO_MKL_TARGET = libPardisoJNI.$(PARDISO_VERSION).dylib
@@ -201,7 +209,7 @@ ifeq ($(SYSTEM),Darwin)
         # add to @loader_path to libiomp5 name so that we don't need to
         # set DYLD_LIBRARY_PATH in applications; see
         # http://dssheep.blogspot.ca/2011/11/how-to-avoid-dyldlibrarypath-with-jni.html
-	install_name_tool -change libiomp5.dylib "@loader_path/libiomp5.dylib" $@
+	install_name_tool -change "@rpath/libiomp5.dylib" "@loader_path/libiomp5.dylib" $@
 endif
 
 .PHONY: pardiso

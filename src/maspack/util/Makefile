@@ -31,4 +31,11 @@ cubicRoots.o: cubicRoots.cc
 cubicRoots: cubicRoots.o
 	$(CC) $^ -o $@ -lm
 
+ObjectSizeAgentJar: $(ROOT_DIR)/lib/ObjectSizeAgent.jar
+
+$(ROOT_DIR)/lib/ObjectSizeAgent.jar: ObjectSizeAgent.class
+	echo 'Premain-class: maspack.util.ObjectSizeAgent' > MANIFEST.MF
+	jar cmf MANIFEST.MF $@ $<
+	rm -f MANIFEST.MF
+
 -include $(ROOT_DIR)/Makefile.base

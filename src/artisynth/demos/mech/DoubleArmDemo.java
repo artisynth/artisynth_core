@@ -11,8 +11,8 @@ import artisynth.core.mechmodels.AxialSpring;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver;
-import artisynth.core.mechmodels.Muscle;
-import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.Muscle; 
+import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.RootModel;
@@ -123,7 +123,7 @@ public class DoubleArmDemo extends RootModel {
            return;
        }
        
-       RevoluteJoint j = new RevoluteJoint();
+       HingeJoint j = new HingeJoint();
        j.setName("elbow");
        RigidTransform3d TCA = new RigidTransform3d();
        TCA.p.z = -len/2;
@@ -132,12 +132,13 @@ public class DoubleArmDemo extends RootModel {
        TCW.R.setAxisAngle(1,0,0,Math.PI/2);
 
        j.setBodies (lowerArm, TCA, null, TCW);
-       j.setAxisLength(len/3);
+       j.setShaftLength(len/3);
+       RenderProps.setFaceColor (j, Color.BLUE);
        model.addBodyConnector(j);
        upperArm.setDynamic(false);
        
        // add joint between lower and third
-       j =new RevoluteJoint();
+       j =new HingeJoint();
        j.setName("wrist");
        TCA = new RigidTransform3d();
        TCA.p.z = -len/2;
@@ -146,7 +147,8 @@ public class DoubleArmDemo extends RootModel {
        TCW.p.z =len/2;
        TCW.R.setAxisAngle(1,0,0,Math.PI/2);
        j.setBodies(thirdArm, TCA, lowerArm, TCW);
-       j.setAxisLength(len/3);
+       j.setShaftLength(len/3);
+       RenderProps.setFaceColor (j, Color.BLUE);
        model.addBodyConnector(j);
        
    }

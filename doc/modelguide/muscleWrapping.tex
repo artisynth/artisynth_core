@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{Muscle Wrapping and Via Points}
+\input{startdoc}
+\mainmatter
+\fi
 
 \chapter{Muscle Wrapping and Via Points}
 \label{multipointSpringIntro:sec}
@@ -820,11 +825,11 @@ off. Instead, a \javaclass[\mech]{RigidCylinder} is used for the
 wrapping and attached to one of the bones. The code, with include
 directives excluded, is given below: \lstset{numbers=left} \iflatexml
 %% Hack: latexml lstinputlisting doesn't handle firstline correctly
-\lstset{firstnumber={-10}}
+\lstset{firstnumber={-17}}
 \lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/PhalanxWrapping.java}
 \lstset{firstnumber={1}}
 \else
-\lstinputlisting[firstline=12]{../../src/artisynth/demos/tutorial/PhalanxWrapping.java}
+\lstinputlisting[firstline=19]{../../src/artisynth/demos/tutorial/PhalanxWrapping.java}
 \fi
 \lstset{numbers=none}
 
@@ -836,12 +841,12 @@ the source directory, using the utility class
 
 Within the {\tt build()} method, a {\tt MechModel} is created
 containing two rigid bodies representing the bones, {\tt proximal} and
-{\tt middle}, with {\tt proximal} fixed and {\tt middle} free to move
+{\tt distal}, with {\tt proximal} fixed and {\tt distal} free to move
 with a frame damping of 0.03 (lines 18-28). A cylindrical joint is
 then added between the bones, along with markers describing the
 muscle's origin and insertion points (lines 31-42).  A {\tt
 RigidCylinder} is created to act as a wrapping obstacle and attached
-to the {\tt middle} bone in the same location as the joint (lines
+to the {\tt distal} bone in the same location as the joint (lines
 46-50); since it is created with a density of 0 it has no mass and
 hence does not affect the bone's inertia. The muscle itself is created
 at lines 53-64, using a
@@ -849,13 +854,13 @@ at lines 53-64, using a
 and an extra initial point specified to
 {\tt setSegmentWrappable()} to ensure that it wraps around
 the cylinder in the correct way (Section
-\ref{wrappingInit:sec}). Finally, render properties are set at lines
+\ref{wrappingInit:sec}). Finally, some render properties are set at lines
 67-69.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 PhalanxWrapping} from the {\sf Models} menu. The model should load and
 initially appear as in Figure \ref{PhalanxWrapping:fig}.  When running
-the model, one can move the {\tt middle} bone either
+the model, one can move the {\tt distal} bone either
 by using the pull tool (Section ``Pull
 Manipulation'' in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}),
@@ -1044,3 +1049,8 @@ the style and size given by the {\sf pointStyle}, {\sf pointRadius}
 properties, and the color given by the {\sf ABPointColor} property.
 
 \end{description}
+
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

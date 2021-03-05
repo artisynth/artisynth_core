@@ -24,7 +24,7 @@ public abstract class DynamicMeshComponent extends MeshComponent {
     * 
     * @return PointAttachment structure
     */
-   public abstract PointAttachment getAttachment(int vidx);
+   public abstract PointAttachment getVertexAttachment(int vidx);
    
    /**
     * Retrieves (or creates) a vertex attachment component associated with
@@ -34,6 +34,6 @@ public abstract class DynamicMeshComponent extends MeshComponent {
     * @param vtx vertex
     * @return PointAttachment structure
     */
-   public abstract PointAttachment getAttachment(Vertex3d vtx);
+   public abstract PointAttachment getVertexAttachment(Vertex3d vtx);
 
 }

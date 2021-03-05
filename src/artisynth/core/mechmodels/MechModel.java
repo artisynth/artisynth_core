@@ -126,6 +126,10 @@ TransformableGeometry, ScalableUnits {
    protected double myPenetrationTol = DEFAULT_PENETRATION_TOL;
    protected PropertyMode myPenetrationTolMode = PropertyMode.Inherited;
 
+   protected static final double DEFAULT_ROTARY_LIMIT_TOL = 0.0001;
+   protected double myRotaryLimitTol = DEFAULT_ROTARY_LIMIT_TOL;
+   protected PropertyMode myRotaryLimitTolMode = PropertyMode.Inherited;
+
    protected double myMaxTranslationalVel = 1e10;
    protected double myMaxRotationalVel = 1e10;
 
@@ -154,6 +158,9 @@ TransformableGeometry, ScalableUnits {
       myProps.addInheritable (
          "penetrationTol:Inherited", "collision penetration tolerance",
          DEFAULT_PENETRATION_TOL);
+      myProps.addInheritable (
+         "rotaryLimitTol:Inherited", "rotary limit tolerance",
+         DEFAULT_ROTARY_LIMIT_TOL);
       myProps.add("staticTikhonovFactor", "Tikhonov regularization factor for static solves", 0);
       myProps.add("staticIncrements", "Number of load increments for incremental static solves", 20);
       myProps.addInheritable (
@@ -401,6 +408,37 @@ TransformableGeometry, ScalableUnits {
          tol = defaultTol;
       }
       return tol;
+   }
+
+   /**
+    * Sets the rotary limit tolerance for this MechModel.
+    *
+    * @param tol new rotary limit tolerance 
+    */
+   public void setRotaryLimitTol (double tol) {
+      myRotaryLimitTol = tol;
+      myRotaryLimitTolMode =
+         PropertyUtils.propagateValue (
+            this, "rotaryLimitTol", tol, myRotaryLimitTolMode);
+   }
+
+   /**
+    * Queries the rotary limit tolerance for this MechModel.
+    * 
+    * @return rotary limit tolerance 
+    */
+   public double getRotaryLimitTol () {
+      return myRotaryLimitTol;
+   }
+
+   public PropertyMode getRotaryLimitTolMode() {
+      return myRotaryLimitTolMode;
+   }
+
+   public void setRotaryLimitTolMode (PropertyMode mode) {
+      myRotaryLimitTolMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "rotaryLimitTol", myRotaryLimitTolMode, mode);
    }
 
    public Color getExcitationColor() {

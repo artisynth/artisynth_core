@@ -64,6 +64,7 @@ public class ArticulatedBeamBody extends RootModel {
       RigidTransform3d XLW = new RigidTransform3d();
       RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d TCB = new RigidTransform3d();
+      RigidTransform3d TCW = new RigidTransform3d();
       RigidTransform3d XAB = new RigidTransform3d();
       PolygonalMesh mesh;
       int nslices = 16; // number of slices for approximating a circle
@@ -178,20 +179,12 @@ public class ArticulatedBeamBody extends RootModel {
          TCA.p.set (-lenx1/2, 0, 0);
          TCA.R.set (1, 0, 0, 0, 0, -1, 0, 1, 0);
          //TCA.R.mulAxisAngle (1, 0, 0, Math.PI/2);
-         TCB.set (link1.getPose());
-         TCB.mul (TCA);
-         RevoluteJoint rjoint = new RevoluteJoint (link1, TCA, TCB);
+         TCW.mul (link1.getPose(), TCA);
+         HingeJoint rjoint = new HingeJoint (link1, TCW);
          rjoint.setName ("joint1");
-         rjoint.setAxisLength (0.8);
-         RenderProps.setLineRadius(rjoint, 0.04);
-         RenderProps.setLineColor (rjoint, myJointColor);
+         rjoint.setShaftLength (0.8);
+         RenderProps.setFaceColor (rjoint, myJointColor);
          joint1 = rjoint;
-         // SphericalJoint sjoint = new SphericalJoint (
-         // link1, TCA, TCB);
-         // sjoint.setName ("joint1");
-         // sjoint.setAxisLength (5);
-         // joint1 = sjoint;
-         //joint1 = new SolidJoint (link1, TCA, TCB);
       }
 
       // second link
@@ -252,24 +245,21 @@ public class ArticulatedBeamBody extends RootModel {
          XAB.mulInverseLeft (link1.getPose(), link2.getPose());
          TCB.mul (XAB, TCA);
          SphericalJoint sjoint = new SphericalJoint (link2, TCA, link1, TCB);
-         // RevoluteJoint joint2 = new RevoluteJoint (link2, TCA, TCB);
          sjoint.setName ("joint2");
-         // RenderProps.setLineRadius(sjoint, 0.2);
-         sjoint.setAxisLength (1);
+         sjoint.setJointRadius (0.2);
+         RenderProps.setFaceColor (sjoint, myJointColor);         
          joint2 = sjoint;
       }
       else {
          TCA.setIdentity();
          TCA.p.set (-lenx2 / 2, 0, 0);
          TCA.R.set (1, 0, 0, 0, 0, -1, 0, 1, 0);
-         // TCA.R.mulAxisAngle (1, 0, 0, -Math.toRadians(90));
-         XAB.mulInverseLeft (link1.getPose(), link2.getPose());
+         TCW.mul (link2.getPose(), TCA);
          TCB.mul (XAB, TCA);
-         RevoluteJoint rjoint = new RevoluteJoint (link2, TCA, link1, TCB);
-         RenderProps.setLineColor (rjoint, myJointColor);
+         HingeJoint rjoint = new HingeJoint (link2, link1, TCW);
+         RenderProps.setFaceColor (rjoint, myJointColor);
          rjoint.setName ("joint2");
-         rjoint.setAxisLength (0.8);
-         RenderProps.setLineRadius (rjoint, 0.04);
+         rjoint.setShaftLength (0.8);
          joint2 = rjoint;
       }
 

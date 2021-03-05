@@ -92,6 +92,8 @@ implements CollidableBody, PointAttachable {
 
    HashMap<EdgeDesc,Vertex3d[]> myEdgeVtxs;
    private boolean isSurfaceMesh;
+   private boolean isGeneratedSurface;
+
    private int myNumSingleAttachments;
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
    protected int myCollidableIndex;
@@ -120,6 +122,7 @@ implements CollidableBody, PointAttachable {
       this();
       myFem = fem;
       isSurfaceMesh = false;
+      isGeneratedSurface = false;
    }
 
    public FemMeshComp(FemModel3d fem, String name) {
@@ -176,15 +179,15 @@ implements CollidableBody, PointAttachable {
       super.render(renderer, flags);
    }
 
-   public int numAttachments () {
+   public int numVertexAttachments () {
       return myVertexAttachments.size();
    }
 
-   public PointAttachment getAttachment(Vertex3d vtx) {
-      return getAttachment (vtx.getIndex());
+   public PointAttachment getVertexAttachment(Vertex3d vtx) {
+      return getVertexAttachment (vtx.getIndex());
    }
 
-   public PointAttachment getAttachment (int idx) {
+   public PointAttachment getVertexAttachment (int idx) {
       return myVertexAttachments.get (idx);
    }
 
@@ -373,7 +376,7 @@ implements CollidableBody, PointAttachable {
    }
 
    private void addVertexNodes (HashSet<FemNode3d> nodes, Vertex3d vtx) {
-      addVertexNodes (nodes, getAttachment(vtx.getIndex()));
+      addVertexNodes (nodes, getVertexAttachment(vtx.getIndex()));
    }
 
    protected ArrayList<FemElement3d> getAdjacentVolumetricElems (
@@ -766,6 +769,7 @@ implements CollidableBody, PointAttachable {
 
       // build from nodes/element filter
       createSurface(efilter);
+      isGeneratedSurface = true;
 
       if (resolution < 2) {
          // if resolution < 2, just return regular surface
@@ -976,6 +980,7 @@ implements CollidableBody, PointAttachable {
       createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
 
       finalizeSurfaceBuild();
+      isGeneratedSurface = true;
    }
 
    public void createShellSurface (Collection<ShellElement3d> elems) {
@@ -990,6 +995,7 @@ implements CollidableBody, PointAttachable {
       LinkedList<FaceNodes3d> faceNodes = createFaceNodes (null, elems, myFem);
       createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
       finalizeSurfaceBuild();
+      isGeneratedSurface = true;
    }
 
    public void createVolumetricShellSurface (
@@ -1017,6 +1023,7 @@ implements CollidableBody, PointAttachable {
       createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
 
       finalizeSurfaceBuild();
+      isGeneratedSurface = true;
    }
 
    // create a list of all faces for a collection of elements. If
@@ -1103,6 +1110,48 @@ implements CollidableBody, PointAttachable {
       return newNodes;
    }
 
+   private int indexOfNode (FemNode3d n, FemNode3d[] nodes) {
+      for (int i=0; i<nodes.length; i++) {
+         if (nodes[i] == n) {
+            return i;
+         }
+      }
+      return -1; // shouldn't happen
+   }
+
+   /**
+    * Mark the half edges in a triangular face which correspond to actual
+    * elements edges. To check this, we check the FEM nodes associated with
+    * each half edge. The nodes of element edges will appear in sequence in the
+    * set of face nodes.
+    *
+    * @param face face whose edges should be marked
+    * @param tnodes nodes associated with the triangle
+    * @param fnodes associated with the FEM face
+    */
+   private void markElementEdges (
+      Face face, FemNode3d[] tnodes, FemNode3d[] fnodes) {
+      
+      HalfEdge he = face.firstHalfEdge();
+      FemNode3d tailNode = tnodes[2];
+      for (int j = 0; j < 3; j++) {
+         FemNode3d headNode = tnodes[j];
+         // find the index of the tailNode in fnodes
+         int tidx = 0;
+         while (fnodes[tidx] != tailNode) {
+            tidx++;
+         }
+         // now see if the node at the next index equals the headNode
+         int nidx = (tidx < fnodes.length-1 ? tidx+1 : 0);
+         if (fnodes[nidx] == headNode) {
+            // mark edge
+            he.setFlag (HalfEdge.ELEM_EDGE);
+         }
+         tailNode = headNode;
+         he = he.getNext();
+      }
+   }
+
    protected void createMeshFromFaceNodes (
       PolygonalMesh mesh, LinkedList<FaceNodes3d> faceNodes) {
 
@@ -1127,6 +1176,9 @@ implements CollidableBody, PointAttachable {
                }
             }
             Face face = mesh.addFace(vtxs);
+            // mark edges which correspond to actual element edges.
+            markElementEdges (face, tri, fn.getNodes());
+
             if (triangulatedQuad && i == 0) {
                face.setFirstQuadTriangle(true);
             }
@@ -1215,7 +1267,7 @@ implements CollidableBody, PointAttachable {
    private void writeVertexInfo (PrintWriter pw, Vertex3d vtx, NumberFormat fmt) {
       PointAttachment pa = null;
       if (vtx.getIndex() < myVertexAttachments.size()) {
-         pa = getAttachment(vtx.getIndex());
+         pa = getVertexAttachment(vtx.getIndex());
       }
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
@@ -1336,7 +1388,7 @@ implements CollidableBody, PointAttachable {
             int vidx = he.head.getIndex();
             if (nodeFormat) {
                PointParticleAttachment ppa =
-                  (PointParticleAttachment)getAttachment(vidx);
+                  (PointParticleAttachment)getVertexAttachment(vidx);
                FemNode3d node = (FemNode3d)ppa.getParticle();
                pw.print (" " + node.getNumber());
             }
@@ -1569,6 +1621,10 @@ implements CollidableBody, PointAttachable {
          isSurfaceMesh = rtok.scanBoolean();
          return true;
       }
+      else if (scanAttributeName(rtok, "generatedSurface")) {
+         isGeneratedSurface = rtok.scanBoolean();
+         return true;
+      }
       else if (scanAttributeName (rtok, "attachments")) {
          tokens.offer (new StringToken ("attachments", rtok.lineno()));
          rtok.scanToken ('[');
@@ -1618,6 +1674,9 @@ implements CollidableBody, PointAttachable {
          pw.println (ComponentUtils.getWritePathName (ancestor, myFem));
       }
       pw.println("surfaceMesh=" + isSurfaceMesh());
+      if (isGeneratedSurface()) {
+         pw.println("generatedSurface=true");
+      }
       pw.println ("attachments=["); 
       IndentingPrintWriter.addIndentation (pw, 2);
       for (int i=0; i<myVertexAttachments.size(); i++) {
@@ -1693,12 +1752,23 @@ implements CollidableBody, PointAttachable {
       //      }
 
       fm.isSurfaceMesh = isSurfaceMesh();
+      fm.isGeneratedSurface = isGeneratedSurface();
 
       return fm;
    }
 
    public boolean isSurfaceMesh() {
       return isSurfaceMesh;
+   }
+
+   /**
+    * Returns {@code true} is this mesh was generated by one of the {@code
+    * createSurface} methdods.
+    *
+    * @return {@code true} if this is a generated surface
+    */
+   public boolean isGeneratedSurface() {
+      return isGeneratedSurface;
    }
 
    protected void markSurfaceMesh(boolean set) {
@@ -1777,18 +1847,16 @@ implements CollidableBody, PointAttachable {
       return myFem.getMass ();
    }
 
-   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
-      PointAttachment pa = getAttachment(vtx.getIndex());
+   public void collectVertexMasters (
+      List<ContactMaster> mlist, Vertex3d vtx) {
+      PointAttachment pa = getVertexAttachment(vtx.getIndex());
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-         FemNode[] masters = pfa.getNodes();
-         for (int j=0; j<masters.length; j++) {
-            mlist.add (new ContactMaster (masters[j], pfa.getCoordinate(j)));
-         }
+         mlist.add (pfa);
       }
       else {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
-         mlist.add (new ContactMaster ((FemNode3d)ppa.getParticle(), 1));
+         mlist.add (ppa);
       }      
    }
 

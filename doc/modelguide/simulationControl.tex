@@ -1,4 +1,9 @@
-%!TEX root = modelguide.tex
+\ifdefined\maindoc\else
+% typesetting this chapter as a standalone document
+\def\doctitle{Simulation Control}
+\input{startdoc}
+\mainmatter
+\fi
 
 \chapter{Simulation Control}
 \label{SimulationControl:sec}
@@ -1364,3 +1369,7 @@ example above might look like this:
 %
 
 %
+\ifdefined\maindoc
+\else
+\end{document}
+\fi

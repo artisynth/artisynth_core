@@ -9,12 +9,11 @@ package maspack.spatialmotion;
 import java.util.ArrayList;
 
 import maspack.geometry.GeometryTransformer;
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
-import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
 public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    private ArrayList<Plane> myPlanes;
@@ -78,7 +77,10 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    }
 
    public void setUnilateral (boolean unilateral) {
-      myUnilateral = unilateral;
+      if (myUnilateral != unilateral) {
+         getConstraint(0).setUnilateral (unilateral);
+         myUnilateral = unilateral;
+      }
    }
 
    public boolean isUnilateral() {
@@ -89,20 +91,6 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       super();
    }
 
-//   public SegmentedPlanarCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
-//      this();
-//      setXFA (TCA);
-//      setXDB (XDB);
-//   }
-
-//   public SegmentedPlanarCoupling (RigidTransform3d TCA, RigidTransform3d XDB,
-//   double[] segs) {
-//      this();
-//      setXFA (TCA);
-//      setXDB (XDB);
-//      setSegments (segs);
-//   }
-   
    public SegmentedPlanarCoupling (double[] segs) {
       this();
       setSegments (segs);
@@ -168,7 +156,7 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public int maxUnilaterals() {
+   public int numUnilaterals() {
       return myUnilateral ? 1 : 0;
    }
 
@@ -189,44 +177,39 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
+   public void projectToConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
       doProject (TGD, TCD);
    }
 
-   public void initializeConstraintInfo (ConstraintInfo[] info) {
-      info[0].flags = LINEAR;
-      if (!myUnilateral) {
-         info[0].flags |= BILATERAL;
+   public void initializeConstraints () {
+      if (!myUnilateral){
+         addConstraint (BILATERAL|LINEAR);
+      }
+      else {
+         addConstraint (LINEAR);
       }
    }
 
    @Override
-   public void getConstraintInfo (
-      ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TCD,
-      RigidTransform3d XERR, boolean setEngaged) {
+   public void updateConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
+      Twist velGD, boolean updateEngaged) {
       
-      myErr.set (XERR);
       Plane plane = doProject (null, TCD);
       myPnt.set (TCD.p);
 
       myNrm.inverseTransform (TGD, plane.normal);
 
-      info[0].flags = LINEAR;
-      if (!myUnilateral) {
-         info[0].flags |= BILATERAL;
+      RigidBodyConstraint cons = getConstraint(0);
+      cons.wrenchG.m.setZero();
+      cons.wrenchG.f.set (myNrm);
+      double d = cons.wrenchG.dot (errC);
+      if (updateEngaged && myUnilateral) {
+         updateEngaged (cons, d, 0, INF, velGD);
       }
-
-      info[0].wrenchC.set (myNrm, Vector3d.ZERO);
-      //double d = plane.distance (myPnt);
-      double d = info[0].wrenchC.dot (myErr);
-
-      info[0].distance = d;
-      info[0].dotWrenchC.setZero();
-      if (setEngaged) {
-         if (myUnilateral && d < getContactDistance()) {
-            info[0].engaged = 1;
-         }
-      }
+      cons.distance = d;
+      cons.dotWrenchG.setZero();
    }
 
    public void scaleDistance (double s) {
@@ -239,7 +222,7 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
 
 
    public void transformGeometry (
-      GeometryTransformer gt,  RigidTransform3d TFW, RigidTransform3d TDW) {
+      GeometryTransformer gt,  RigidTransform3d TCW, RigidTransform3d TDW) {
       
       // the points should be changed only by whatever cannot be accomodated
       // by the change to TDW. This is the same situation we have when we
@@ -258,16 +241,33 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       
    }
    
-   // /**
-   //  * For planar couplings, we do not change F relative to A when D changes
-   //  * relative to the world. This method hence becomes a noop.
-   //  * 
-   //  * @param XAW
-   //  * new pose of body A in world coordinates
-   //  * @param XBW
-   //  * pose of body B in world coordinates
-   //  */
-   // public void updateXFA (RigidTransform3d XAW, RigidTransform3d XBW) {
-   // }
+   /**
+    * {@inheritDoc}
+    */
+   public void coordinatesToTCD (
+      RigidTransform3d TCD, VectorNd coords) {
+      TCD.setIdentity();
+   }
+
+   public SegmentedPlanarCoupling clone() {
+      SegmentedPlanarCoupling copy = (SegmentedPlanarCoupling)super.clone();
+
+      if (myPlanes != null) {
+         copy.myPlanes = new ArrayList<>();
+         for (Plane plane : myPlanes) {
+            copy.myPlanes.add (new Plane(plane));
+         }
+      }
+      if (myPoints != null) {
+         copy.myPoints = new ArrayList<>();
+         for (Point3d point : myPoints) {
+            copy.myPoints.add (new Point3d(point));
+         }
+      }
+      copy.myPnt = new Point3d(); // temporary
+      copy.myTmp = new Point3d(); // temporary
+      copy.myNrm = new Vector3d(); // temporary
+      return copy;
+   }
 
 }

@@ -1726,7 +1726,7 @@ public class MFreeFactory {
       // manually build surface attachments
       for (Vertex3d vtx : mesh.getVertices()) {
          
-         PointAttachment pa = surfaceFem.getAttachment(vtx.getIndex());
+         PointAttachment pa = surfaceFem.getVertexAttachment(vtx.getIndex());
          
          if (pa instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
@@ -1736,7 +1736,7 @@ public class MFreeFactory {
             VectorNd coords = new VectorNd(masters.length);
             
             for (int j=0; j<masters.length; j++) {
-               //mlist.add (new ContactMaster (masters[j], pfa.getCoordinate(j)));
+               //mlist.add (new CompContactMaster (masters[j], pfa.getCoordinate(j)));
                deps[j] = nodeMap.get (masters[j]);
                coords.set (j, pfa.getCoordinate (j));
             }

@@ -144,9 +144,10 @@ public class ShellBlock extends RootModel {
 
       RigidTransform3d TCW = new RigidTransform3d();
       TCW.setXyzRpyDeg (-wx-myWidthX/2, 0, wz/2,  0, 0, 90.0);
-      RevoluteJoint joint = new RevoluteJoint (leftBox, TCW);
-      RenderProps.setCylindricalLines (joint, 0.01, Color.BLUE);
-      joint.setAxisLength (0.5);
+      HingeJoint joint = new HingeJoint (leftBox, TCW);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftLength (0.5);
+      joint.setShaftRadius (0.01);
       mechMod.addBodyConnector (joint);
 
       // right box

@@ -669,6 +669,7 @@ public class RenderDemo extends RootModel {
          Vector3d pos = new Vector3d(-0.6, 0, 0);
 
          // draw text at (0,0)
+         renderer.setShading (Shading.NONE);
          renderer.setColor (Color.WHITE);
          renderer.drawText ("Hello World!", pos, 0.2);
 

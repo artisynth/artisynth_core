@@ -171,15 +171,15 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
       super.render(renderer, flags);
    }
 
-   public int numAttachments () {
+   public int numVertexAttachments () {
       return myVertexAttachments.size();
    }
 
-   public PointAttachment getAttachment(Vertex3d vtx) {
-      return getAttachment (vtx.getIndex());
+   public PointAttachment getVertexAttachment(Vertex3d vtx) {
+      return getVertexAttachment (vtx.getIndex());
    }
 
-   public PointAttachment getAttachment (int idx) {
+   public PointAttachment getVertexAttachment (int idx) {
       return myVertexAttachments.get (idx);
    }
 
@@ -355,7 +355,7 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
 
    private void addVertexNodes (HashSet<MFreeNode3d> nodes, Vertex3d vtx) {
 
-      PointAttachment pa = getAttachment(vtx.getIndex());
+      PointAttachment pa = getVertexAttachment(vtx.getIndex());
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
          FemNode[] masters = pfa.getNodes();
@@ -618,7 +618,7 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
    private void writeVertexInfo (PrintWriter pw, Vertex3d vtx, NumberFormat fmt) {
       PointAttachment pa = null;
       if (vtx.getIndex() < myVertexAttachments.size()) {
-         pa = getAttachment(vtx.getIndex());
+         pa = getVertexAttachment(vtx.getIndex());
       }
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
@@ -739,7 +739,7 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
             int vidx = he.head.getIndex();
             if (nodeFormat) {
                PointParticleAttachment ppa =
-                  (PointParticleAttachment)getAttachment(vidx);
+                  (PointParticleAttachment)getVertexAttachment(vidx);
                MFreeNode3d node = (MFreeNode3d)ppa.getParticle();
                pw.print (" " + node.getNumber());
             }
@@ -1192,18 +1192,16 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
       return myModel.getMass ();
    }
 
-   public void getVertexMasters (List<ContactMaster> mlist, Vertex3d vtx) {
-      PointAttachment pa = getAttachment(vtx.getIndex());
+   public void collectVertexMasters (
+      List<ContactMaster> mlist, Vertex3d vtx) {
+      PointAttachment pa = getVertexAttachment(vtx.getIndex());
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-         FemNode[] masters = pfa.getNodes();
-         for (int j=0; j<masters.length; j++) {
-            mlist.add (new ContactMaster (masters[j], pfa.getCoordinate(j)));
-         }
+         mlist.add (pfa);
       }
       else {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
-         mlist.add (new ContactMaster ((MFreeNode3d)ppa.getParticle(), 1));
+         mlist.add (ppa);
       }      
    }
 

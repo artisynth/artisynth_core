@@ -16,6 +16,7 @@ SOURCES = \
 	simulationControl.tex \
 	femModels.tex \
 	muscleWrapping.tex \
+	skinning.tex \
         dicom.tex \
 	appendix.tex \
 	../texinputs/artisynthDoc.tex
@@ -37,17 +38,14 @@ pdf: $(PDF_TARG)
 $(PDF_TARG): modelguide.pdf
 	cp modelguide.pdf $(PDF_TARG)
 
-multipoint.pdf: multipoint.tex $(EPS_FILES)
+# individual chapters:
+%.pdf: %.tex $(EPS_FILES)
 	$(BUILD_PDF)
-	rm -rf $(LATEX_JUNK_FILES) multipoint.ps
-
-fields.pdf: fields.tex $(EPS_FILES)
-	$(BUILD_PDF)
-	rm -rf $(LATEX_JUNK_FILES) fields.ps
+	rm -rf $(LATEX_JUNK_FILES) $*.ps
 
 modelguide.pdf: $(SOURCES) $(EPS_FILES)
 	latex modelguide.tex #extra call because of bibtex
-	bibtex modelguide
+	biber modelguide
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) modelguide.ps
 

@@ -22,6 +22,9 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.Renderer;
+import maspack.render.RenderableUtils;
+import maspack.render.RenderList;
 import maspack.properties.PropertyList;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -29,12 +32,21 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 import artisynth.core.util.ScanToken;
 
 public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
 
    // use a FrameState to store the position even though we ignore velocity
    FrameState myState = new FrameState();
+   // double buffer the frame for rendering:
+   protected RigidTransform3d myRenderFrame = new RigidTransform3d();
+
+   protected static final double DEFAULT_AXIS_LENGTH = 0;
+   double myAxisLength = DEFAULT_AXIS_LENGTH;
+   protected static final AxisDrawStyle DEFAULT_AXIS_RENDER_STYLE =
+      AxisDrawStyle.LINE;
+   protected AxisDrawStyle myAxisDrawStyle = DEFAULT_AXIS_RENDER_STYLE;
 
    public static PropertyList myProps =
       new PropertyList (FixedMeshBody.class, MeshComponent.class);
@@ -44,6 +56,11 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       myProps.add ("position", "position of the body coordinate frame",null,"NW");
       myProps.add (
          "orientation", "orientation of the body coordinate frame", null, "NW");
+      myProps.add (
+         "axisLength * *", "length of rendered frame axes", DEFAULT_AXIS_LENGTH);
+      myProps.add (
+         "axisDrawStyle", "rendering style for the frame axes",
+         DEFAULT_AXIS_RENDER_STYLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -91,6 +108,22 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       updatePosState();
    }
 
+   public double getAxisLength() {
+      return myAxisLength;
+   }
+
+   public void setAxisLength (double len) {
+      myAxisLength = Math.max (0, len);
+   }
+
+   public AxisDrawStyle getAxisDrawStyle() {
+      return myAxisDrawStyle;
+   }
+
+   public void setAxisDrawStyle (AxisDrawStyle style) {
+      myAxisDrawStyle = style;
+   }
+
    public FixedMeshBody () {
       super();
    }
@@ -122,10 +155,6 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
          mesh.transform (X);
       }
       setMesh (mesh, fileName, X);            
-   }
-
-   public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      myMeshInfo.myMesh.updateBounds (pmin, pmax);
    }
 
    public void scaleDistance (double s) {
@@ -221,5 +250,25 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       pw.println ("rotation=[ " + myState.getRotation().toString (fmt) + "]");
    }
 
+   // overrides of the Renderable methods so we can draw axes
+
+   public void prerender (RenderList list) {
+      super.prerender (list);
+      myRenderFrame.set (myState.XFrameToWorld);
+   }
+
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
+      myMeshInfo.myMesh.updateBounds (pmin, pmax);
+      RenderableUtils.updateFrameBounds (pmin, pmax, getPose(), myAxisLength);
+   }
+
+   public void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
+      if (myAxisLength > 0) {
+         Frame.renderAxes (
+            renderer, myRenderFrame, myAxisDrawStyle, 
+            myAxisLength, myRenderProps.getLineWidth(), isSelected());
+      }
+   }
 
 }

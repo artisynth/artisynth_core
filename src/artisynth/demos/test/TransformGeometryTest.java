@@ -762,12 +762,19 @@ public class TransformGeometryTest {
    void checkTransformAndUndo (
       AffineTransform3dBase X, AttributeSet check,
       MechModel mech, TransformableGeometry... comps) {
+      
+      checkTransformAndUndo (X, check, mech, 1e-10, comps);
+   }
+
+   void checkTransformAndUndo (
+      AffineTransform3dBase X, AttributeSet check,
+      MechModel mech, double eps, TransformableGeometry... comps) {
 
       AttributeSet original = getCurrentAttributes (mech);
       GeometryTransformer transformer = transform (X, comps);
-      checkCurrentAttributes (mech, check, 1e-10);
+      checkCurrentAttributes (mech, check, eps);
       undo (transformer, comps);
-      checkCurrentAttributes (mech, original, 1e-10);
+      checkCurrentAttributes (mech, original, eps);
    }
 
    GeometryTransformer checkTransform (
@@ -797,8 +804,8 @@ public class TransformGeometryTest {
       AttributeSet original = getCurrentAttributes (mech);
       AttributeSet check = getCurrentAttributes (mech);
 
-      RevoluteJoint joint =
-         (RevoluteJoint)mech.findComponent ("bodyConnectors/joint2");
+      HingeJoint joint =
+         (HingeJoint)mech.findComponent ("bodyConnectors/joint2");
       PlanarConnector contact1 =
          (PlanarConnector)mech.findComponent ("bodyConnectors/contact1");
       PlanarConnector contact2 =
@@ -952,8 +959,8 @@ public class TransformGeometryTest {
       
       MechModel mech = (MechModel)demo.findComponent ("models/0");
 
-      RevoluteJoint joint =
-         (RevoluteJoint)mech.findComponent ("bodyConnectors/0");
+      HingeJoint joint =
+         (HingeJoint)mech.findComponent ("bodyConnectors/0");
       RigidBody leftBody = 
          (RigidBody)mech.findComponent ("rigidBodies/leftBody");
       RigidBody rightBody = 
@@ -1142,7 +1149,7 @@ public class TransformGeometryTest {
 
       // create a slotted revolute joint that connects the two fem beams
       RigidTransform3d TDW = new RigidTransform3d(0.5, 0, 0, 0, 0, Math.PI/2);
-      RevoluteJoint joint = new RevoluteJoint (fem2, fem1, TDW);
+      HingeJoint joint = new HingeJoint (fem2, fem1, TDW);
       mech.addBodyConnector (joint);
 
       AttributeSet original = getCurrentAttributes (mech);
@@ -1466,8 +1473,8 @@ public class TransformGeometryTest {
       
       MechModel mech = (MechModel)demo.findComponent ("models/0");
 
-      RevoluteJoint joint =
-         (RevoluteJoint)mech.findComponent ("bodyConnectors/0");
+      HingeJoint joint =
+         (HingeJoint)mech.findComponent ("bodyConnectors/0");
       RigidBody leftBlock = 
          (RigidBody)mech.findComponent ("rigidBodies/leftBlock");
       RigidBody rightBlock = 
@@ -1480,15 +1487,18 @@ public class TransformGeometryTest {
          (FemModel3d)mech.findComponent ("models/fem2");
       SkinMeshBody skin = 
          (SkinMeshBody)mech.findComponent ("meshBodies/skin");
-      RevoluteJoint joint0 = 
-         (RevoluteJoint)mech.findComponent ("bodyConnectors/0");
-      RevoluteJoint joint1 = 
-         (RevoluteJoint)mech.findComponent ("bodyConnectors/1");
+      HingeJoint joint0 = 
+         (HingeJoint)mech.findComponent ("bodyConnectors/0");
+      HingeJoint joint1 = 
+         (HingeJoint)mech.findComponent ("bodyConnectors/1");
 
       AttributeSet original = getCurrentAttributes (mech);
       AttributeSet check = getCurrentAttributes (mech);
 
       for (AffineTransform3dBase X : myRandomTransforms) {
+         // lower check tolerance for when skin recomputes weights, because
+         // weights have only float precision
+         double ftol = 1e-7;
          
          // just move the skin. Nothing else should move.
 
@@ -1501,7 +1511,7 @@ public class TransformGeometryTest {
          
          check = original.copy();
          setFemChecks (X, check, fem1);
-         checkTransformAndUndo (X, check, mech, fem1);
+         checkTransformAndUndo (X, check, mech, ftol, fem1);
 
          // move the middle block. Only the attached nodes should move
 
@@ -1528,7 +1538,7 @@ public class TransformGeometryTest {
             X, check, fem2.getSurfaceMeshComp(),
             movedNodes2.toArray (new FemNode3d[0]));
 
-         checkTransformAndUndo (X, check, mech, middleBlock);
+         checkTransformAndUndo (X, check, mech, ftol, middleBlock);
 
          // move the whole mech model.
 
@@ -1541,7 +1551,7 @@ public class TransformGeometryTest {
          setSkinMeshBodyChecks (X, check, skin);
          setJointChecks (X, check, joint0);
          setJointChecks (X, check, joint1);
-         checkTransformAndUndo (X, check, mech, mech);
+         checkTransformAndUndo (X, check, mech, ftol, mech);
 
       }
    }

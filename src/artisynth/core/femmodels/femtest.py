@@ -156,6 +156,7 @@ runTest ("CombinedShellFem", 0.5, dataFileName)
 
 loadModel ("artisynth.demos.fem.TetCube")
 fem = find ("models/mech/models/tet")
+fem.setSoftIncompMethod (FemModel3d.IncompMethod.ELEMENT)
 runTest ("TetBlock SoftIncomp=ELEMENT", 0.3, dataFileName)
 fem.setSoftIncompMethod (FemModel3d.IncompMethod.NODAL)
 runTest ("TetBlock SoftIncomp=NODAL", 0.3, dataFileName)

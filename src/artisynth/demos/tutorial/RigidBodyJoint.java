@@ -1,23 +1,15 @@
 package artisynth.demos.tutorial;
 
-import maspack.geometry.*;
-import maspack.spatialmotion.*;
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.util.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.probes.WayPoint;
-import artisynth.core.driver.*;
-import artisynth.core.util.*;
-import artisynth.core.workspace.RootModel;
-import artisynth.core.gui.*;
-import maspack.render.*;
-
 import java.awt.Color;
-import java.io.*;
 
-import javax.swing.*;
+import artisynth.core.mechmodels.HingeJoint;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.workspace.RootModel;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.RigidTransform3d;
+import maspack.render.RenderProps;
 
 /**
  * Demo of two rigid bodies connected by a revolute joint
@@ -69,7 +61,7 @@ public class RigidBodyJoint extends RootModel {
       // create the joint      
       RigidTransform3d TDW = 
          new RigidTransform3d (lenx1/2, 0, 1.5*lenx1, 1, 0, 0, Math.PI/2);
-      RevoluteJoint joint = new RevoluteJoint (bodyA, bodyB, TDW);
+      HingeJoint joint = new HingeJoint (bodyA, bodyB, TDW);
 
       // add components to the mech model
       mech.addRigidBody (bodyB);
@@ -79,7 +71,8 @@ public class RigidBodyJoint extends RootModel {
       joint.setTheta (35);  // set joint position
 
       // set render properties for components
-       RenderProps.setLineRadius (joint, 0.2);
-      joint.setAxisLength (4);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftLength (4);
+      joint.setShaftRadius (0.2);
    }
 }

@@ -151,9 +151,10 @@ public class FemSkinDemo extends RootModel {
 
       TCW.p.set (-transx-wx/2, 0, wz/2);
       TCW.R.mulAxisAngle (1, 0, 0, Math.PI / 2);
-      RevoluteJoint joint = new RevoluteJoint (leftBody, TCW);
-      RenderProps.setLineRadius (joint, 0.01);
-      joint.setAxisLength (0.4);
+      HingeJoint joint = new HingeJoint (leftBody, TCW);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftLength (0.4);
+      joint.setShaftRadius (0.01);
       myMech.addBodyConnector (joint);
 
       RigidBody middleBody = createBlock ("middleBlock", midw, 0.21, 0.21);
@@ -163,9 +164,10 @@ public class FemSkinDemo extends RootModel {
 
       TCW.p.set (transx+wx/2, 0, wz/2);
       TCW.R.setAxisAngle (1, 0, 0, Math.PI / 2);
-      joint = new RevoluteJoint (rightBody, TCW);
-      RenderProps.setLineRadius (joint, 0.01);
-      joint.setAxisLength (0.4);
+      joint = new HingeJoint (rightBody, TCW);
+      RenderProps.setFaceColor (joint, Color.BLUE);
+      joint.setShaftLength (0.4);
+      joint.setShaftRadius (0.01);
       myMech.addBodyConnector (joint);
 
       femMod1.transformGeometry (new RigidTransform3d (-midw, 0, 0));
@@ -191,11 +193,11 @@ public class FemSkinDemo extends RootModel {
       // flip aout y axis
       mesh.transform (new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0));
       SkinMeshBody skinBody = new SkinMeshBody (mesh);
-      skinBody.addFrame (rightBody);
-      skinBody.addFrame (middleBody);
-      skinBody.addFrame (leftBody);
-      skinBody.addFemModel (femMod1);
-      skinBody.addFemModel (femMod2);
+      skinBody.addMasterBody (rightBody);
+      skinBody.addMasterBody (middleBody);
+      skinBody.addMasterBody (leftBody);
+      skinBody.addMasterBody (femMod1);
+      skinBody.addMasterBody (femMod2);
       skinBody.computeWeights ();
       skinBody.setName("skin");
       

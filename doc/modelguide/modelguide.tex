@@ -1,82 +1,9 @@
-% Aug 27, 2014: has 118 sections. artisynth.tex and maspack.tex have
-%   about 28 and 23 sections, with about 375 words/sec, so we can
-%   expect this to be around 45,000 words, or about 120 pages.
+%!TEX root = modelguide.tex <- not sure what this does
 
-\documentclass{book}
+\def\maindoc{}% let subchapters know the entire manual is being typeset
+\def\doctitle{ArtiSynth Modeling Guide}
 
-\def\mech{artisynth.core.mechmodels}
-\def\mgeo{maspack.geometry}
-
-% Add search paths for input files
-\makeatletter
-\def\input@path{{../}{../../}{../texinputs/}}
-\makeatother
-
-\usepackage{amsmath}
-\usepackage{framed}
-%\usepackage{bibtopic}
-
-%\usepackage{layout}
-%\usepackage{showframe}
-\input{artisynthDoc}
-\input{mathdefs}
-
-\setcounter{tocdepth}{5}
-\setcounter{secnumdepth}{3}
-
-\title{ArtiSynth Modeling Guide}
-\author{John Lloyd and Antonio S\'anchez}
-\setpubdate{Last update: February, 2020}
-
-\iflatexml
-\date{}
-\fi
-
-% graphics paths
-\graphicspath{{./}{images/}}
-
-% Listings settings
-\definecolor{myblue}{rgb}{0,0,0.6}
-\definecolor{mygreen}{rgb}{0,0.6,0}
-\definecolor{mygray}{rgb}{0.5,0.5,0.5}
-\definecolor{mylightgray}{rgb}{0.95,0.95,0.95}
-\definecolor{mymauve}{rgb}{0.58,0,0.82}
-\definecolor{myblack}{rgb}{0,0,0}
-\lstset{
-   language=Java,                   % text highlighting for Java
-   breakatwhitespace=false,         % automatic breaks only at whitespace
-   breaklines=true,                 % automatic line breaking
-   commentstyle=\color{mygreen},    % comment style
-   keepspaces=true,                 % keeps spaces in text
-   keywordstyle=\color{myblue},     % keyword style
-   numbers=none,                    % line-numbers; values: (none, left, right)
-   numbersep=5pt,                   % how far the line-numbers are from code
-   numberstyle=\tiny\color{mygray}, % line-numbers style
-   showspaces=false,                % show spaces everywhere
-   showstringspaces=false,          % underline spaces within strings
-   showtabs=false,                  % show tabs
-   stepnumber=1,                    % the step between two line-numbers
-   stringstyle=\color{mymauve},     % string literal style
-   tabsize=3,                       % sets default tabsize to 3 spaces
-   backgroundcolor=\color{mylightgray}, % background color
-   frame=single, 					% adds a frame around the code
-   rulesepcolor=\color{mygray},
-   rulecolor=\color{myblack},
-   framerule=0pt,
-   xleftmargin=2.2ex,               % numbers inside box
-   framexleftmargin=2.2ex,			% indentation of frame
-}
-
-\begin{document}
-
-\frontmatter
-
-%\layout
-\maketitle
-
-\iflatexml{\large\pubdate}\fi
-
-\tableofcontents
+\input{startdoc}
 
 % basic links to other docs: http://www.artisynth.org/doc/html/xxx/xxx.html#sec
 
@@ -128,34 +55,25 @@ needed explanatory detail.
 \mainmatter
 
 \input{overview}
-
 \input{supportingClasses}
-
 \input{mechanicalModelsI}
-
 \input{mechanicalModelsII}
-
 \input{simulationControl}
-
 \input{femModels}
-
 \input{muscleWrapping}
-
+\input{skinning}
 \input{dicom}
-
 \input{appendix}
 
 \iflatexml
 \bibliographystyle{plain}
 \bibliography{references}
 \else
-\chapter*{References}
-%\addcontentsline{toc}{chapter}{\protect\numberline{}References}
-\bibliographystyle{plain}
-\bibliography{references}
-%\begin{btSect}{references}
-%\btPrintCited
-%\end{btSect}
+\printbibliography[title={References}]
+%\chapter*{References}
+%%\addcontentsline{toc}{chapter}{\protect\numberline{}References}
+%\bibliographystyle{plain}
+%\bibliography{references}
 \fi
 
 \end{document}

@@ -249,30 +249,23 @@ AddComponentAgent<BodyConnector> {
       TCW.R.set (myBodyA.getPose().R);
       TCW.p.set (origin);
 
-      RigidTransform3d TCA = new RigidTransform3d();
-      TCA.mulInverseLeft (myBodyA.getPose(), TCW);
-
       if (myComponentType == RevoluteJoint.class) {
          RevoluteJoint joint;
          if (myBodyB == null) {
-            joint = new RevoluteJoint (myBodyA, TCA, TCW);
+            joint = new RevoluteJoint (myBodyA, TCW);
          }
          else {
-            RigidTransform3d TCB = new RigidTransform3d();
-            TCB.mulInverseLeft (myBodyB.getPose(), TCW);
-            joint = new RevoluteJoint (myBodyA, TCA, myBodyB, TCB);
+            joint = new RevoluteJoint (myBodyA, myBodyB, TCW);
          }
          connector = joint;
       }
       else if (myComponentType == SphericalJoint.class) {
          SphericalJoint joint;
          if (myBodyB == null) {
-            joint = new SphericalJoint (myBodyA, TCA, TCW);
+            joint = new SphericalJoint (myBodyA, TCW);
          }
          else {
-            RigidTransform3d TCB = new RigidTransform3d();
-            TCB.mulInverseLeft (myBodyB.getPose(), TCW);
-            joint = new SphericalJoint (myBodyA, TCA, myBodyB, TCB);
+            joint = new SphericalJoint (myBodyA, myBodyB, TCW);
          }
          connector = joint;
       }

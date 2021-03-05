@@ -78,6 +78,11 @@
 
 \section*{Mar 4, 2021}
 
+\subsection*{Pardiso updated to MKL 2021}
+
+The Pardiso solver has been updated to MKL 2021.1. Users updating from
+github should also run the command {\tt updateArtisynthLibs}.
+
 \subsection*{New joint components}
 
 A number of new joints have been added to ArtiSynth, including:
@@ -87,27 +92,27 @@ A number of new joints have been added to ArtiSynth, including:
 \item
 \javaclass[artisynth.core.mechmodels]{SliderJoint}:
 1 DOF joint allowing translation along the
-$z$ axis
+$z$ axis.
 
 \item
 \javaclass[artisynth.core.mechmodels]{CylindricalJoint}:
 2 DOF joint allowing translation and
-rotation along the $z$ axis
+rotation along the $z$ axis.
 
 \item
 \javaclass[artisynth.core.mechmodels]{SkewedUniversalJoint}: 
 2 DOF roll-pitch joint in which the roll-pitch axes may be at a
-skewed angle relative to each other
+skewed angle relative to each other.
 
 \item
 \javaclass[artisynth.core.mechmodels]{PlanarJoint}:
 3 DOF joint allowing translation and
-rotation in the $x$-$y$ plane
+rotation in the $x$-$y$ plane.
 
 \item
 \javaclass[artisynth.core.mechmodels]{PlanarTranslationJoint}: 
 2 DOF joint allowing translation
-in the $x$-$y$ plane
+in the $x$-$y$ plane.
 
 \end{itemize}
 
@@ -148,7 +153,7 @@ Full details on the new joints, along with examples, are given in the
 \href{http://www.artisynth.org/doc/pdf/modelguide.pdf}
 {Modeling Guide}.
 
-\subsection*{New joint documentation and custom joints}
+\subsection*{Expanded joint documentation and custom joints}
 
 The documentation in the
 \href{http://www.artisynth.org/doc/pdf/modelguide.pdf} {Modeling

@@ -60,7 +60,7 @@ component can be added using the method
 {addWidget(awtcomp)}.
 
 Control panels can also be created interactively using the GUI; see
-the section ``Control Panels'' in the
+the section ``Control Panels'' in the\pdfbreak
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
 
 \subsection{Example: Creating a simple control panel}
@@ -664,8 +664,8 @@ $(k-1, \ldots, k+2)$ such that $t_k \le t \le t_{k+1}$.
 Each property bound to a numeric probe must have a value
 that can be mapped onto a scalar or vector value. Such properties
 are know as {\it numeric properties}, and whether or not
-a value is numeric can be tested
-using \javamethodAlt{maspack.properties.NumericConverter.isNumeric()}%
+a value is numeric can be tested using\pdfbreak
+\javamethodAlt{maspack.properties.NumericConverter.isNumeric()}%
 {NumericConverter.isNumeric(value)}.
 
 By default, the total number of scalar and vector values associated
@@ -776,7 +776,7 @@ createInputProbe()} and {\tt createOutputProbe()}. At line 14, {\tt
 createInputProbe()} creates a new input probe bound to the {\tt
 targetPosition} property for the component {\tt particles/p1} located
 relative to the {\tt MechModel} {\tt mech}. The same constructor
-attaches the probe to the file\\ {\tt simpleMuscleP1Pos.txt}, which is
+attaches the probe to the file\pdfbreak{\tt simpleMuscleP1Pos.txt}, which is
 read to load the probe data. The format of this and other probe data
 files is described in Section \ref{DataFileFormat:sec}.  The method
 \javamethod*[maspack.util]{PathFinder.getSourceRelativePath()}
@@ -966,8 +966,8 @@ using the following code:
 \end{lstlisting}
 
 When specifying data in code, the interpolation defaults to {\tt
-Linear} unless explicitly specified using {\tt
-setInterpolationOrder()}, as in, for example:
+Linear} unless explicitly specified using\pdfbreak
+{\tt setInterpolationOrder()}, as in, for example:
 %
 \begin{lstlisting}[]
    probe.setInterpolationOrder (Order.Cubic);

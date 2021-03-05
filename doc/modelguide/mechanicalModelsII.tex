@@ -58,7 +58,8 @@ First order backward order integrator. Generally stable for stiff systems.
 \item[Trapezoidal]\mbox{}
 
 Second order trapezoidal integrator. Generally stable for stiff
-systems, but slightly less so than {\tt ConstrainedBackwardEuler}.
+systems, but slightly less so than\pdfbreak
+{\tt ConstrainedBackwardEuler}.
 
 \end{description}
 
@@ -1772,8 +1773,8 @@ and then used in some runtime code as follows:
 \end{lstlisting}
 %
 If for some reason it is difficult to store a reference to the
-response between its construction and its use, then {\tt
-getCollisionResponse()} can be used to retrieve it:
+response between its construction and its use, then\pdfbreak
+{\tt getCollisionResponse()} can be used to retrieve it:
 %
 \begin{lstlisting}[]
    CollisionResponse resp = mech.getCollisionResponse (femA, femB);
@@ -3233,8 +3234,8 @@ artisynth.core.modelbase.TransformableGeometry.addTransformableDependencies()}%
 is called in step (a) to add to the context any additional components
 which should be transformed along with this component. This includes
 any descendants which should be transformed, since the
-transformation of these should not generally be done within {\tt
-transformGeometry(gtr,context,flags)}.
+transformation of these should not generally be done within\pdfbreak
+{\tt transformGeometry(gtr,context,flags)}.
 
 The second method, 
 \javamethodAlt{%
@@ -3419,7 +3420,7 @@ properties to be inherited by the list's descendants.
 A component list which declares {\tt ModelComponent} as its type can
 be used to store {\tt any} type of component, including other
 component lists. This allows the creation of arbitrary component
-hierarchies. Generally either\\
+hierarchies. Generally either\pdfbreak
 {\tt ComponentList<ModelComponent>} or 
 {\tt RenderableComponentList<ModelComponent>} are
 best suited to implement hierarchical groupings.
@@ -4419,8 +4420,8 @@ to {\tt -inf} or {\tt max} to {\tt inf}, respectively.
 \begin{center}
 \begin{tabular}{c@{\hskip .5in}c}
  \iflatexml
-   \includegraphics[width=1.75in]{images/slottedHingeJoint}&
-   \includegraphics[width=2.333in]{images/CustomJointDemo}\\
+   \includegraphics[width=2.333in]{images/slottedHingeJoint}&
+   \includegraphics[width=3.1in]{images/CustomJointDemo}\\
  \else
    \includegraphics[width=1.75in]{images/slottedHingeJoint}&
    \includegraphics[width=2.333in]{images/CustomJointDemo}\\

@@ -50,6 +50,9 @@ public class PlanarTranslationJoint extends JointBase
    public static final int X_IDX = PlanarTranslationCoupling.X_IDX; 
    public static final int Y_IDX = PlanarTranslationCoupling.Y_IDX; 
 
+   private static final double DEFAULT_PLANE_SIZE = 0;
+   private double myPlaneSize = DEFAULT_PLANE_SIZE;
+
    public static PropertyList myProps =
       new PropertyList (PlanarTranslationJoint.class, JointBase.class);
 
@@ -59,6 +62,12 @@ public class PlanarTranslationJoint extends JointBase
    private static DoubleInterval DEFAULT_Y_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createRenderProps (host);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
+      return props;
+   }
+
    static {
       myProps.add ("x", "x translation distance", 0);
       myProps.add (
@@ -66,10 +75,19 @@ public class PlanarTranslationJoint extends JointBase
       myProps.add ("y", "y translation distance", 0);
       myProps.add (
          "yRange", "range for y", DEFAULT_Y_RANGE);
+      myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
+      myProps.add (
+         "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
    }
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
+   }
+
+   public void setDefaultValues() {
+      super.setDefaultValues();
+      myPlaneSize = DEFAULT_PLANE_SIZE;
+      setRenderProps (defaultRenderProps (null));
    }
 
    /**
@@ -373,4 +391,42 @@ public class PlanarTranslationJoint extends JointBase
    public void setMinY (double min) {
       setYRange (new DoubleInterval (min, getMaxY()));
    }
+
+   /**
+    * Queries the size used to render this joint's plane as a square.
+    *
+    * @return size used to render the plane
+    */
+   public double getPlaneSize() {
+      return myPlaneSize;
+   }
+
+   /**
+    * Sets the size used to render this joint's plane as a square.
+    *
+    * @param size used to render the plane
+    */
+   public void setPlaneSize (double size) {
+      myPlaneSize = size;
+   }
+
+   /* --- begin Renderable implementation --- */
+
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
+   }
+
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
+      super.updateBounds (pmin, pmax);
+      PlanarConnector.updateXYSquareBounds (
+         pmin, pmax, getCurrentTDW(), myPlaneSize);
+   }
+
+   public void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
+      PlanarConnector.renderXYSquare (
+         renderer, myRenderProps, myRenderFrameD, myPlaneSize, isSelected());
+   }
+
+   /* --- end Renderable implementation --- */
 }

@@ -21,6 +21,7 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderable;
 import maspack.spatialmotion.PlanarCoupling;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
@@ -34,9 +35,6 @@ public class PlanarConnector extends BodyConnector
    implements CopyableComponent {
    private double myPlaneSize;
    private static final double defaultPlaneSize = 1;
-
-   private Point3d[] myRenderVtxs;
-   private float[] myRenderCoords = new float[3];
 
    public static PropertyList myProps =
       new PropertyList (PlanarConnector.class, BodyConnector.class);
@@ -76,12 +74,22 @@ public class PlanarConnector extends BodyConnector
       setRenderProps (defaultRenderProps (null));
    }
 
+   /**
+    * Queries the size used to render this connector's plane as a square.
+    *
+    * @return size used to render the plane
+    */
    public double getPlaneSize() {
       return myPlaneSize;
    }
 
-   public void setPlaneSize (double len) {
-      myPlaneSize = len;
+   /**
+    * Sets the size used to render this connector's plane as a square.
+    *
+    * @param size used to render the plane
+    */
+   public void setPlaneSize (double size) {
+      myPlaneSize = size;
    }
 
    /**
@@ -112,10 +120,6 @@ public class PlanarConnector extends BodyConnector
     */
    public PlanarConnector() {
       myTransformDGeometryOnly = true;
-      myRenderVtxs = new Point3d[4];
-      for (int i = 0; i < myRenderVtxs.length; i++) {
-         myRenderVtxs[i] = new Point3d();
-      }
       setDefaultValues();
       initializeCoupling();
    }
@@ -223,62 +227,90 @@ public class PlanarConnector extends BodyConnector
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      computeRenderVtxs (getCurrentTDW());
-      for (int i = 0; i < myRenderVtxs.length; i++) {
-         myRenderVtxs[i].updateBounds (pmin, pmax);
-      }
+      super.updateBounds (pmin, pmax);
+      updateXYSquareBounds (pmin, pmax, getCurrentTDW(), myPlaneSize);
+      Vector3d p = getCurrentTDW().p;
+      p.updateBounds (pmin, pmax);
    }
 
    public RenderProps createRenderProps() {
       return defaultRenderProps (this);
    }
 
-   public void prerender (RenderList list) {
-      super.prerender (list);
-      RigidTransform3d TCW = getCurrentTCW();
-      myRenderCoords[0] = (float)TCW.p.x;
-      myRenderCoords[1] = (float)TCW.p.y;
-      myRenderCoords[2] = (float)TCW.p.z;
+   // public void prerender (RenderList list) {
+   //    super.prerender (list);
+   //    RigidTransform3d TCW = getCurrentTCW();
+   //    myRenderCoords[0] = (float)TCW.p.x;
+   //    myRenderCoords[1] = (float)TCW.p.y;
+   //    myRenderCoords[2] = (float)TCW.p.z;
+   // }
+
+   public static void updateXYSquareBounds (
+      Vector3d pmin, Vector3d pmax, RigidTransform3d TDW, double size) {
+
+      if (size > 0) {
+         // create square verticea and transform them to world
+         Point3d vtx0 = new Point3d ( size/2,  size/2, 0);
+         Point3d vtx1 = new Point3d (-size/2,  size/2, 0);
+         Point3d vtx2 = new Point3d (-size/2, -size/2, 0);
+         Point3d vtx3 = new Point3d ( size/2, -size/2, 0);
+         vtx0.transform (TDW);
+         vtx1.transform (TDW);
+         vtx2.transform (TDW);
+         vtx3.transform (TDW);
+         
+         // use the verties to update bounds
+         vtx0.updateBounds (pmin, pmax);
+         vtx1.updateBounds (pmin, pmax);
+         vtx2.updateBounds (pmin, pmax);
+         vtx3.updateBounds (pmin, pmax);
+      }
+   }
+
+   public static void renderXYSquare (
+      Renderer renderer, RenderProps props,
+      RigidTransform3d TDW, double size, boolean selected) {
+      
+      if (size > 0) {
+         // save and set render properties
+         Shading savedShading = renderer.setPropsShading (props);
+         FaceStyle savedFaceStyle = renderer.getFaceStyle ();
+         renderer.setFaceStyle (props.getFaceStyle());
+         renderer.setFaceColoring (props, selected);
+         
+         // create square verticea and transform them to world
+         Point3d vtx0 = new Point3d ( size/2,  size/2, 0);
+         Point3d vtx1 = new Point3d (-size/2,  size/2, 0);
+         Point3d vtx2 = new Point3d (-size/2, -size/2, 0);
+         Point3d vtx3 = new Point3d ( size/2, -size/2, 0);
+         vtx0.transform (TDW);
+         vtx1.transform (TDW);
+         vtx2.transform (TDW);
+         vtx3.transform (TDW);
+         
+         // use the verties to draw a square:
+         Vector3d nrm = new Vector3d (TDW.R.m02, TDW.R.m12, TDW.R.m22);
+         renderer.beginDraw (DrawMode.TRIANGLE_STRIP);
+         renderer.setNormal (nrm.x, nrm.y, nrm.z);
+         renderer.addVertex (vtx1);
+         renderer.addVertex (vtx2);
+         renderer.addVertex (vtx0);
+         renderer.addVertex (vtx3);
+         renderer.endDraw();
+         
+         // restore render properties
+         renderer.setShading (savedShading);
+         renderer.setFaceStyle (savedFaceStyle);
+      }
    }
 
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
-      Vector3d nrm = new Vector3d (0, 0, 1);
-      RigidTransform3d TDW = getCurrentTDW();
-
-      computeRenderVtxs (TDW);
-      nrm.transform (TDW);
-      
-      RenderProps props = myRenderProps;
-
-      Shading savedShading = renderer.setPropsShading (props);
-      renderer.setFaceColoring (props, isSelected());
-      renderer.setFaceStyle (props.getFaceStyle());
-
-      renderer.beginDraw (DrawMode.TRIANGLE_STRIP);
-      renderer.setNormal (nrm.x, nrm.y, nrm.z);
-      renderer.addVertex (myRenderVtxs[3]);
-      renderer.addVertex (myRenderVtxs[0]);
-      renderer.addVertex (myRenderVtxs[2]);
-      renderer.addVertex (myRenderVtxs[1]);
-      renderer.endDraw();
-
-      renderer.setShading (savedShading);
-      renderer.setFaceStyle (FaceStyle.FRONT); // set default
-      renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());
-   }
-
-   protected void computeRenderVtxs (RigidTransform3d TDW) {
-      RotationMatrix3d RPD = new RotationMatrix3d();
-      RPD.setZDirection (((PlanarCoupling)myCoupling).getNormal());
-      myRenderVtxs[0].set (myPlaneSize / 2, myPlaneSize / 2, 0);
-      myRenderVtxs[1].set (-myPlaneSize / 2, myPlaneSize / 2, 0);
-      myRenderVtxs[2].set (-myPlaneSize / 2, -myPlaneSize / 2, 0);
-      myRenderVtxs[3].set (myPlaneSize / 2, -myPlaneSize / 2, 0);
-      for (int i = 0; i < myRenderVtxs.length; i++) {
-         myRenderVtxs[i].transform (RPD);
-         myRenderVtxs[i].transform (TDW);
-      }
+      renderXYSquare (
+         renderer, myRenderProps, myRenderFrameD, myPlaneSize, isSelected());
+      Vector3d p = myRenderFrameC.p;
+      float[] pnt = new float[] { (float)p.x, (float)p.y,(float) p.z };
+      renderer.drawPoint (myRenderProps, pnt, isSelected());
    }
 
    public void scaleDistance (double s) {

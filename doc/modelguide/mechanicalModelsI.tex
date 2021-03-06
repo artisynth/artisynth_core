@@ -3018,10 +3018,26 @@ $\T_{CD}$ is related by
 The value and ranges for $x$, $y$ and $\theta$ are exported by the
 properties {\sf x}, {\sf y}, {\sf theta}, {\sf xRange}, {\sf yRange}
 and {\sf thetaRange}, and the coordinate indices are defined by the
-constants {\tt X\_IDX}, {\tt Y\_IDX} and {\tt THETA\_IDX}.  For
-rendering, the properties {\sf shaftLength} and {\sf shaftRadius}
-control the size of a shaft drawn about the rotation axis, using
-the {\sf faceColor} rendering property.  A demo is provided by {\tt
+constants {\tt X\_IDX}, {\tt Y\_IDX} and {\tt THETA\_IDX}.  
+A planar joint can be rendered as a square centered on the origin
+of D, using face rendering properties and with a size given by the
+{\sf planeSize} property. For example,
+%
+\begin{lstlisting}[]
+  PlanarJoint joint;
+  ...
+  joint.setPlaneSize (5.0);
+  RenderProps.setFaceColor (joint, Color.LIGHT_GRAY);
+\end{lstlisting}
+%
+will cause {\tt joint} to be drawn as a light grey square with size
+5.0. The default value of {\sf planeSize} is 0, so drawing the plane
+is disabled by default. Also, the default {\sf faceStyle} rendering
+property for {\tt PlanarConnector} is set to {\tt FRONT\_AND\_BACK},
+so that the plane (when drawn) can be seen from both sides.  A shaft
+about the rotation axis can also be drawn, as controlled by the
+properties {\sf shaftLength} and {\sf shaftRadius} and using the {\sf
+faceColor} rendering property.  A demo is provided by {\tt
 artisynth.demos.mech.PlanarJointDemo}.
 
 In addition to the standard constructors described in
@@ -3117,11 +3133,14 @@ $\T_{CD}$ is related by
 \matr.
 \end{equation*}
 %\
-The value and ranges for $x$ and $y$ are exported by the
-properties {\sf x}, {\sf y}, {\sf xRange} and {\sf yRange},
-and the coordinate indices are defined by the
-constants {\tt X\_IDX} and {\tt Y\_IDX}.  A demo is
-provided by {\tt artisynth.demos.mech.PlanarJointDemo}.
+The value and ranges for $x$ and $y$ are exported by the properties
+{\sf x}, {\sf y}, {\sf xRange} and {\sf yRange}, and the coordinate
+indices are defined by the constants {\tt X\_IDX} and {\tt Y\_IDX}.  A
+planar translation joint can be rendered as a square centered on the
+origin of D, using face rendering properties and with a size given by
+the {\sf planeSize} property, in the same way as described for {\tt
+PlanarJoint}.  A demo is provided by {\tt
+artisynth.demos.mech.PlanarJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
@@ -3238,7 +3257,7 @@ using point rendering properties. For example,
 %
 will cause {\tt connector} to be drawn as a light grey square with
 size 5, and for the point on body A to be drawn as a blue sphere with
-radius 0.1. The default value of {\sf planeSize} is 0, and drawing the
+radius 0.1. The default value of {\sf planeSize} is 0, so drawing the
 plane is disabled by default. Also, the default {\sf faceStyle}
 rendering property for {\tt PlanarConnector} is set to {\tt
 FRONT\_AND\_BACK}, so that the plane (when drawn) can be seen from

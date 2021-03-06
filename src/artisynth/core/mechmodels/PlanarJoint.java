@@ -53,6 +53,9 @@ public class PlanarJoint extends JointBase
    public static final int Y_IDX = FullPlanarCoupling.Y_IDX; 
    public static final int THETA_IDX = FullPlanarCoupling.THETA_IDX; 
 
+   private static final double DEFAULT_PLANE_SIZE = 0;
+   private double myPlaneSize = DEFAULT_PLANE_SIZE;
+
    public static PropertyList myProps =
       new PropertyList (PlanarJoint.class, JointBase.class);
 
@@ -65,6 +68,12 @@ public class PlanarJoint extends JointBase
    private static DoubleInterval DEFAULT_THETA_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createRenderProps (host);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
+      return props;
+   }
+
    static {
       myProps.add ("x", "x translation distance", 0);
       myProps.add (
@@ -75,10 +84,19 @@ public class PlanarJoint extends JointBase
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+      myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
+      myProps.add (
+         "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
    }
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
+   }
+
+   public void setDefaultValues() {
+      super.setDefaultValues();
+      myPlaneSize = DEFAULT_PLANE_SIZE;
+      setRenderProps (defaultRenderProps (null));
    }
 
    /**
@@ -479,16 +497,42 @@ public class PlanarJoint extends JointBase
       setThetaRange (new DoubleInterval (min, getMaxTheta()));
    }
 
+   /**
+    * Queries the size used to render this joint's plane as a square.
+    *
+    * @return size used to render the plane
+    */
+   public double getPlaneSize() {
+      return myPlaneSize;
+   }
+
+   /**
+    * Sets the size used to render this joint's plane as a square.
+    *
+    * @param size used to render the plane
+    */
+   public void setPlaneSize (double size) {
+      myPlaneSize = size;
+   }
+
    /* --- begin Renderable implementation --- */
+
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
+   }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       super.updateBounds (pmin, pmax);
       updateZShaftBounds (pmin, pmax, getCurrentTCW(), getShaftLength());
+      PlanarConnector.updateXYSquareBounds (
+         pmin, pmax, getCurrentTDW(), myPlaneSize);
    }
 
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
       renderZShaft (renderer, myRenderFrameC);
+      PlanarConnector.renderXYSquare (
+         renderer, myRenderProps, myRenderFrameD, myPlaneSize, isSelected());
    }
 
    /* --- end Renderable implementation --- */

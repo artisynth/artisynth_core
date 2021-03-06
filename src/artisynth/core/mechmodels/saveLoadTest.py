@@ -66,7 +66,6 @@ testSaveLoad ("artisynth.demos.mech.FrameSpringDemo")
 testSaveLoad ("artisynth.demos.mech.RigidBodyCollision")
 testSaveLoad ("artisynth.demos.mech.RigidCompositeCollide")
 testSaveLoad ("artisynth.demos.mech.LaymanDemo")
-testSaveLoad ("artisynth.demos.mech.RollPitchJointDemo")
 testSaveLoad ("artisynth.demos.mech.WrappedMuscleArm")
 
 testSaveLoadFull (0, "%g", 0.2, 0.02, "artisynth.models.tongue3d.HexTongueDemo")

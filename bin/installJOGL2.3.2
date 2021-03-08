@@ -9,7 +9,7 @@ cd $ARTISYNTH_HOME/lib
 #
 # change 2.4.0 to 2.3.2 in lib/LIBRARIES
 #
-sed -s 's/2\.4\.0/2.3.2/' LIBRARIES > LIBRARIES_tmp_
+sed 's/2\.4\.0/2.3.2/' LIBRARIES > LIBRARIES_tmp_
 mv LIBRARIES_tmp_ LIBRARIES
 #
 # remove all 2.4.0 jar files
@@ -19,7 +19,7 @@ cd $ARTISYNTH_HOME
 #
 # change 2.4.0 to 2.3.2 in .classpath (for Eclipse)
 #
-sed -s 's/2\.4\.0/2.3.2/' .classpath > .classpath_tmp_
+sed 's/2\.4\.0/2.3.2/' .classpath > .classpath_tmp_
 mv .classpath_tmp_ .classpath
 #
 # run updateArtisynthLibs to get the new libraries

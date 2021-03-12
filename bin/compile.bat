@@ -15,6 +15,8 @@ if DEFINED JAVA_HOME (
 )
 rem set CP to classpath, including AH\classes and jar files in AH\lib
 set CP=%AH%\classes;%AH%\lib\*
+rem create classes folder if it does not exist
+if not exist "%AH%\classes\" mkdir "%AH%\classes"
 rem find all java files in and under the CWD, and list them in the
 rem _sources_.txt. 
 set cwd=%cd%

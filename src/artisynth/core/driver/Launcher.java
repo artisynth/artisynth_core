@@ -45,20 +45,32 @@ public class Launcher {
    
    public Object launch (String[] args) {
 
-      if (args == null) {
-         args = new String[0];
-      }
       boolean updateLibs = false;
-      for (int i=0; i<args.length; i++) {
-         if (args[i].equals ("-updateLibs")) {
-            updateLibs = true;
-            break;
+      String classpath = null;
+      ArrayList<String> mainArgs = new ArrayList<>();
+      if (args != null) {
+         for (int i=0; i<args.length; i++) {
+            if (args[i].equals ("-updateLibs")) {
+               updateLibs = true;
+            }
+            else if (args[i].equals ("-cp") || args[i].equals ("-classpath")) {
+               if (i == args.length-1) {
+                  System.err.println (
+                     "Error: option '"+args[i]+"' needs an additional argument");
+               }
+               classpath = args[++i];
+            }
+            else {
+               mainArgs.add (args[i]);
+            }
          }
       }
+      // arguments to pass to ArtiSynth Main class
+      args = mainArgs.toArray (new String[0]);
       verifyLibraries (updateLibs);
 
       ClassLoader loader =
-         new URLClassLoader (getClasspathURLs(), null);
+         new URLClassLoader (getClasspathURLs(classpath), null);
 
       // ensure that other classes in this thread use this class loader ...
       Thread.currentThread().setContextClassLoader(loader);
@@ -327,11 +339,14 @@ public class Launcher {
    }   
 
    /**
-    * Obtains all the jar file and class directory entries corresponding
-    * to the current CLASSPATH setting.
+    * Obtains all the jar file and class directory entries corresponding to the
+    * specified classpath, or the current CLASSPATH setting, if classpath is
+    * null.
     */
-   private void addClassPathFiles (LinkedList<File> files) {
-      String classpath = System.getProperty ("java.class.path");
+   private void addClassPathFiles (LinkedList<File> files, String classpath) {
+      if (classpath == null) {
+         classpath = System.getProperty ("java.class.path");
+      }
       if (classpath != null) {
          String[] entries = classpath.split (PSEP);
          for (int i=0; i<entries.length; i++) {
@@ -346,7 +361,7 @@ public class Launcher {
             else if (entry.endsWith (".jar")) {
                files.add (new File (entry));
             }
-            else {
+            else if (entry.length() > 0) { // avoid null string
                files.add (new File (entry));
             }
          }
@@ -357,13 +372,13 @@ public class Launcher {
     * Obtains URLs for all the jar files and class directories that should be
     * used by the class loader.
     */
-   private URL[] getClasspathURLs () {
+   private URL[] getClasspathURLs (String classpath) {
       LinkedList<File> files = new LinkedList<File>();
       LinkedHashSet<File> fileSet = new LinkedHashSet<File>();
 
       String ahome = ArtisynthPath.getHomeDir();
 
-      addClassPathFiles (files);
+      addClassPathFiles (files, classpath);
 
       try {
          for (File file : files) {
@@ -373,7 +388,6 @@ public class Launcher {
       catch (Exception e) {
          // ignore files that can't be converted to canonical form
       }
-
       addFileIfNeeded (files, fileSet, ahome+SEP+"classes");
 
       File[] jarFiles = getJarFiles (ahome+SEP+"lib");

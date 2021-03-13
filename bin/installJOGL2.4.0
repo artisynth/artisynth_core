@@ -1,0 +1,27 @@
+#!/bin/bash
+# script to switch JOGL from 2.3.2 to 2.4.0
+#
+# First, set ARTISYNTH_HOME:
+D=`dirname $0`/..
+export ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
+#
+cd $ARTISYNTH_HOME/lib
+#
+# change 2.3.2 to 2.4.0 in lib/LIBRARIES
+#
+sed 's/2\.3\.2/2.4.0/' LIBRARIES > LIBRARIES_tmp_
+mv LIBRARIES_tmp_ LIBRARIES
+#
+# remove all 2.3.2 jar files
+#
+rm -f *2.3.2*.jar 
+cd $ARTISYNTH_HOME
+#
+# change 2.3.2 to 2.4.0 in .classpath (for Eclipse)
+#
+sed 's/2\.3\.2/2.4.0/' .classpath > .classpath_tmp_
+mv .classpath_tmp_ .classpath
+#
+# run updateArtisynthLibs to get the new libraries
+#
+bin/updateArtisynthLibs

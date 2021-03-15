@@ -1,11 +1,42 @@
 #!/bin/bash
 D=`dirname $0`/..
-AT="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
-CP=$AT/classes:$AT/lib/*
+# check for windows
+if [[ ${OS:UNDEF} == *Windows* ]] ; then
+  windows=true
+fi
+# look for top level directory containing src/ and classes/ and exit
+# if not found
+curdir=`pwd`
+while [[ ! -d src || ! -d classes ]] ; do
+  if [ $PWD != '/' ] ; then
+    cd ..
+  else
+    echo top level directory containing src/ and classes/ not found
+    exit
+  fi
+done
+top=`pwd`
+cd $curdir
+if [[ $windows ]] ; then
+  AT="`cd \"$D\" 2>/dev/null && pwd -W || echo \"$D\"`"
+  ATW=`echo $AT | sed 's|/|\\\\|g'` # need to double \ inside backquote
+else
+  AT="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
+fi
+if [ -z "$CLASSPATH" ] ; then
+  if [[ $windows ]] ; then
+    CP="$ATW\classes;$ATW\lib\*"
+  else
+    CP="$AT/classes:$AT/lib/*"
+  fi
+else
+  if [[ $windows ]] ; then
+    CP="$ATW\classes;$ATW\lib\*;$CLASSPATH"
+  else
+    CP="$AT/classes:$AT/lib/*:$CLASSPATH"
+  fi
+fi
 JAVACFLAGS="-J-Xms500m -J-Xmx500m -source 1.8 -target 1.8 -encoding UTF-8"
 find . -name '*.java' > _sources_.txt
-if [ ! -d $AT/classes ]; then
-  mkdir $AT/classes
-fi
-javac -cp $CP -d $AT/classes -sourcepath $AT/src $JAVACFLAGS @_sources_.txt
+javac -cp $CP -d $top/classes -sourcepath $top/src $JAVACFLAGS @_sources_.txt
 rm -rf _sources_.txt

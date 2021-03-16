@@ -35,6 +35,7 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.AxialMuscleMaterial;
+import artisynth.core.materials.SimpleAxialMuscle;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.GenericMuscle;
 import artisynth.core.materials.MaterialBase;
@@ -494,6 +495,12 @@ public class MuscleBundle extends CompositeComponentBase
          if (mus.getMaterial() instanceof AxialMuscleMaterial) {
             AxialMuscleMaterial mat = 
                (AxialMuscleMaterial)mus.getMaterial().clone();
+            mat.setMaxForce (maxForce);
+            mus.setMaterial (mat);
+         }
+         else if (mus.getMaterial() instanceof SimpleAxialMuscle) {
+            SimpleAxialMuscle mat = 
+               (SimpleAxialMuscle)mus.getMaterial().clone();
             mat.setMaxForce (maxForce);
             mus.setMaterial (mat);
          }

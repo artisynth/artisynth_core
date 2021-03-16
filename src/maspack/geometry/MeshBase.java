@@ -909,7 +909,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public void read (File file, boolean zeroIndexed) throws IOException {
       clear();      
       GenericMeshReader reader = new GenericMeshReader (file);
-      reader.setZeroIndexed (true);
+      reader.setZeroIndexed (zeroIndexed);
       reader.readMesh (this);
    }
 
@@ -960,7 +960,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       if (fmtStr != null) {
          writer.setFormat (fmtStr);
       }
-      writer.setZeroIndexed (true);
+      writer.setZeroIndexed (zeroIndexed);
       writer.writeMesh (this);
    }
 

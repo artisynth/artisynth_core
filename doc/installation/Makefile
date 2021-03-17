@@ -104,6 +104,25 @@ $(HTML_DIR)/macos/macosInstallationToc.xml: $(HTML_DIR)/macos/macosInstallationT
 $(PDF_DIR)/quickInstallation.pdf: quickInstallation.pdf
 	cp quickInstallation.pdf $(PDF_DIR)
 
+macosGitEclipseInstall.pdf: macosGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
+	latex $<
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) macosGitEclipseInstall.ps
+
+windowsGitEclipseInstall.pdf: windowsGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
+	latex $<
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) windowsGitEclipseInstall.ps
+
+linuxGitEclipseInstall.pdf: linuxGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
+	latex $<
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) linuxGitEclipseInstall.ps
+
+%.pdf: %.tex $(EPS_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) $*.ps
+
 quickInstallation.pdf: $(QUICK_SOURCES) $(EPS_FILES)
 	latex $<
 	$(BUILD_PDF)

@@ -257,7 +257,10 @@ public class PointFrameAttachment extends PointAttachment {
       a.myMasterBlocks = null; // will be reinitialized
       if (myFrame != null) {
          Frame frame = (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrame);
-         a.setFrame (frame);
+         if (frame != myFrame) {
+            // Only need set frame if it is different.
+            a.setFrame (frame);
+         }
       }
       return a;
    }

@@ -51,6 +51,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \makeatletter
 
+% macro to enable line break if inside a PDF file
+\def\pdfbreak{\iflatexml\else\\\fi}
+
 % code inspired by http://stackoverflow.com/questions/2457780/latex-apply-an-operation-to-every-character-in-a-string
 \def\removeargs #1{\doremoveargs#1$\wholeString\unskip}
 \def\doremoveargs#1#2\wholeString{\if#1$%

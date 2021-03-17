@@ -2,13 +2,45 @@
 
 \title{ArtiSynth Installation Guide for \SYSTEM{}}
 \author{John Lloyd, Sebastian Kazenbroot-Guppy, and Antonio S{\'a}nchez}
-\setpubdate{Last updated: January, 2020}
+\setpubdate{Last updated: March, 2021}
 \iflatexml
 \date{}
 \fi
 
 \newif\ifNeedLibraryPath
 \NeedLibraryPathfalse
+
+% Listings settings
+\definecolor{myblue}{rgb}{0,0,0.6}
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mylightgray}{rgb}{0.95,0.95,0.95}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+\definecolor{myblack}{rgb}{0,0,0}
+\lstset{
+   language=Java,                   % text highlighting for Java
+   breakatwhitespace=false,         % automatic breaks only at whitespace
+   breaklines=true,                 % automatic line breaking
+   commentstyle=\color{myblack},    % comment style
+   keepspaces=true,                 % keeps spaces in text
+   keywordstyle=\color{myblue},     % keyword style
+   numbers=none,                    % line-numbers; values: (none, left, right)
+   numbersep=5pt,                   % how far the line-numbers are from code
+   numberstyle=\tiny\color{mygray}, % line-numbers style
+   showspaces=false,                % show spaces everywhere
+   showstringspaces=false,          % underline spaces within strings
+   showtabs=false,                  % show tabs
+   stepnumber=1,                    % the step between two line-numbers
+   stringstyle=\color{myblack},     % string literal style
+   tabsize=3,                       % sets default tabsize to 3 spaces
+   backgroundcolor=\color{mylightgray}, % background color
+   frame=single, 					% adds a frame around the code
+   rulesepcolor=\color{mygray},
+   rulecolor=\color{myblack},
+   framerule=0pt,
+   xleftmargin=2.2ex,               % numbers inside box
+   framexleftmargin=2.2ex,			% indentation of frame
+}
 
 \begin{document}
 
@@ -18,83 +50,92 @@
 
 \tableofcontents
 
-\section{Introduction}
+\section{Overview}
 
-This document describes how to install and run ArtiSynth
-on \FULLSYSTEM{} machines. There are two ways to obtain ArtiSynth:
-installing a precompiled release, or installing the latest development
-version from Github. Installing a precompiled release is the easiest
-way to try out some of the basic demo programs. Installing the
-development version is recommended for developers who want to keep
-their codebase current and be able to install new features and bug
-fixes.
+ArtiSynth is an open-source Java-based platform that supports combined
+multibody/FEM modeling in an interactive simulation environment. Users
+may build their own models using Java code, or load preexisting models
+from either files or Java classes. This document describes how to
+install and run ArtiSynth on \FULLSYSTEM{} machines.
 
-%The typical install sequence looks like this:
-%
-%\begin{description}
-%
-%\item[Download]\mbox{}
-%
-%Download either a precompiled release
-%(Section \ref{PrecompiledRelease}), or install the latest development
-%version (Section \ref{GitClone}).
-%
-%\item[Compile]\mbox{}
-%
-%If you have installed the latest development version, you will also
-%have to compile it (Section \ref{Compilation}).  For precompiled
-%releases, this step is not needed to run the demonstration models, but
-%compilation will be required if you modify any of the models or add
-%your own.
-%
-%\item[Run]\mbox{}
-%
-%Start ArtiSynth and run the demonstration models (Section \ref{Running}).
-%
-%\end{description}
+ArtiSynth's prerequisites are listed in Section \ref{Prerequisites}. A
+Java JDK must be installed on your system; information on this is
+given in Section \ref{InstallingJava}.
 
-Generally, users will also want to install and run external models and
-packages that have been created either by others or by themselves.  In
-particular, the package collection {\tt artisynth\_models} contains an
+There are two ways to obtain ArtiSynth:
+
+\begin{enumerate}
+
+\item {\bf Install a precompiled release} - the
+fastest way to quickly install ArtiSynth to try out some of the demo
+programs. Instructions for this are given in Section 
+\ref{PrecompiledRelease}.
+
+\item {\bf Install from GitHub} - recommended
+for more serious developers who want to keep their codebase current
+and easily install new features and bug fixes. When installing from
+GitHub, you also need to download the runtime libraries, and compile
+ArtiSynth. GitHub installation instructions are given in Section
+\ref{GitHubInstall}.
+
+\end{enumerate}
+
+Once ArtiSynth is installed, it can be run and various demonstration
+models can be loaded. Some simple details on this are given in
+Section \ref{Running}; complete instructions on running and
+interacting with models are provided in the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+
+Many users will want to create their own models in Java. This is done
+by creating Java classes to implement these models, as described in
+the \artisynthManual{modelguide}{ArtiSynth Modeling Guide}, and then
+integrating them into ArtiSynth, as described in
+Section \ref{AddingModels}.  When creating models, users may want to
+use an integrated development environment (IDE) for editing and
+compiling their Java code.  At present, most of the ArtiSynth
+community uses the Eclipse IDE (Section \ref{EclipseIDE}), but other
+IDEs such as NetBeans and IntelliJ could be used as well.
+
+Users may also want to install and run external models and projects
+that have been created either by others or by themselves.  In
+particular, the project {\tt artisynth\_models} contains an
 open source set of models primarily related to head and neck
-anatomy. Installation of this and other packages is discussed in
-Section \ref{AdditionalModelsAndPackages}.
+anatomy. Installation of {\tt artisynth\_models} is discussed in
+Section \ref{ArtiSynthModels}.
 
 \section{Prerequisites}
+\label{Prerequisites}
 
 To install ArtiSynth on \SYSTEM{}, you will need:
 
 \begin{itemize}
 
-\item A 64 bit version of \SYSTEM{}
+\item A 64 bit version of \SYSTEM{}.
 
-\item Java 8 (see Section \ref{InstallingJava})
+\item Java 8 (see Section \ref{InstallingJava}).
+
+\begin{sideblock}
+ArtiSynth will generally work with later versions of Java, but Java 8
+currently provides maximum compatibility with MATLAB, which still uses
+Java 8.
+\end{sideblock}
 
 \ifLinux
-\item Linux systems require GNU libc version 2.17 or higher
+\item Linux systems require GNU libc version 2.17 or higher.
 \fi
 
-\item A three-button mouse is recommended for GUI interaction
+\item A three-button mouse is useful for GUI interaction.
 
-\item A machine with a good graphics card and a decent
-amount of memory (16 Gbytes at least; 32 or more is better).
+\item A machine with a good graphics card and a decent amount of
+memory. We recommend 16 Gbytes, or more if you are doing FEM analysis
+with larger numbers of elements.
 
 \end{itemize}
 
-\begin{sideblock}
-We have stopped supporting 32 bit systems, for ease of maintenance and
-because ArtiSynth applications often require more memory than 32 bit
-systems can provide.
-\end{sideblock}
+\section{The ArtiSynth installation folder}
+\label{FileConventions}
 
-\begin{sideblock}
-{\bf Important: Eclipse 2020-03 compile bug.} If you are using the Eclipse
-IDE (Section \ref{EclipseIDE}), note that Eclipse 2020-03 has a bug
-that prevents {\tt artisynth\_core} from compuling properly. Either
-install the workaround described in Section \ref{EclipseCompileBug},
-or use a different version of Eclipse.
-\end{sideblock}
-
+You can install ArtiSynth in any location you like.
 In this document, the location of the ArtiSynth installation \directory{}
 will be denoted by \ArtHome[]. For example
 if ArtiSynth is installed in
@@ -118,26 +159,56 @@ and \ArtHome[\SEP lib] denotes the sub-\directory{}
 \end{verbatim}
 \fi % end not Windows
 
+\ifLinux\else % not linux
+\begin{sideblock}
+It recommended that ArtiSynth be installed in a location where none of
+the \directory{} names contain spaces (e.g., avoid placing it under
+{\tt Program Files}).  This will help ensure that all ArtiSynth
+utilities function correctly.
+\end{sideblock}
+\fi % end not Linux
+
 \section{Installing Java}
 \label{InstallingJava}
 
-By default, ArtiSynth is compiled to be compliant with Java 8. While
-it may be possible to run ArtiSynth under later Java versions, there
-have been reports of compatibility problems and warnings involving the
-Java OpenGL (JOGL) interface. Therefore we recommend using Java 8
-until these issues are resolved.
-
 ArtiSynth requires that you have a full Java development kit (JDK)
-installed, which comes with a Java compiler. A simple run time
-environment (JRE) will not be sufficient. We recommend Java SE
-Development Kit 8u{\it XXX} (where {\it XXX} is the latest revision
-number), which can be obtained from Oracle (registration required) at
-\begin{quote}
-\href{http://www.oracle.com/technetwork/java/javase/downloads/index.html}%
-{http://www.oracle.com/technetwork/java/javase/downloads/index.html}.
-\end{quote}
+installed, which comes with a Java compiler; a simple run time
+environment (JRE) will not be sufficient. 
+By default, ArtiSynth is compiled to be compliant with Java 8. While
+ArtiSynth will generally work under later Java versions, there have
+been occasional reports of compatibility issues involving the Java
+OpenGL (JOGL) interface. Therefore we currently recommend using Java
+8; this also provides maximum compatibility with MATLAB, as indicated
+above. We specifically recommend the Java SE Development Kit 8u{\it
+XXX} (where {\it XXX} is the latest revision number), which can be
+obtained from Oracle (registration required).  At the time of this
+writing, the download page is located at
 
-\subsection{Making the JDK visible to your system}
+\href{https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}%
+{www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}
+
+and the latest release is {\tt 8u281}. This page provides downloads
+for all systems; be sure to choose the download link appropriate to
+yours. 
+\ifWindows
+For \SYSTEM{}, this will be {\tt jdk-8u281-windows-x64.exe}.  After
+the file downloads, open it, and follow the installation wizard, using
+the default values provided. The installer will probably install {\it
+both} a JRE and a JDK, and place them in the \directories{}
+\begin{verbatim}
+C:\Program Files\Java\jre1.8.0_281
+C:\Program Files\Java\jdk1.8.0_281
+\end{verbatim}
+The second contains the JDK, and is your {\it JDK installation} \directory{}.
+\fi
+\ifMacOS
+For \SYSTEM{}, this will be {\tt jdk-8u281-macosx-x64.dmg}.
+\fi
+
+If the above Oracle link is no longer current, the search terms
+{\tt ``java 8 jdk download''} should get you to the right place.
+
+\subsection{Ensuring the JDK visible to your system}
 \label{MakingJDKVisible}
 
 After the JDK has been installed, it is important to ensure that it is
@@ -154,36 +225,40 @@ and run the command
 \end{verbatim}
 The output should match the version of the installed JDK. If it does
 not, or if the command {\tt javac} is not found,
-\ifMacOS
+\ifMacOS % IF MacOS
 then you can set the ``default'' JDK by setting the {\tt JAVA\_HOME}
 environment variable.  This can be done inside the
 initialization file for whichever command line shell you are using.
 
-Assume that the desired JDK has version number {\tt 1.8.0\_221} and
+Assume that the desired JDK has version number {\tt 1.8.0\_281} and
 that your home \directory{} is {\tt <HOMEDIR>}.  Then for the {\tt
 bash} shell, one can use a plain text editor to edit {\tt
 <HOMEDIR>/.bashrc} and insert a line of the form
 \begin{verbatim}
-  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_221`
+  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_281`
 \end{verbatim}
 while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
 <HOMEDIR>/.cshrc} and insert a line of the form
 \begin{verbatim}
-  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_221`
+  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_281`
 \end{verbatim}
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
 so each time a new terminal window is opened.
-\else % not MacOS
-then one fix is to add the \directory{} {\tt <JDK\_DIR>\SEP bin} to
-your system Path, as described in Section \ref{SettingPath}, where
-{\tt <JDK\_DIR>} is the JDK installation \directory{}. 
+\else % ELSE not MacOS
+then one fix is to add the \directory{} {\tt <JDK\_HOME>\SEP bin} to
+your system Path, as described in Section \ref{SettingPath},
+where {\tt <JDK\_HOME>} is the JDK installation directory.
 \ifWindows
-On \SYSTEM{}, {\tt <JDK\_DIR>} is likely to be located under {\tt
-Program Files\SEP Java}.
+On \SYSTEM{}, your JDK is likely to be installed under {\tt
+Program Files\SEP Java}. For example, if your JDK is {\tt 1.8.0\_281}, 
+then <JDK\_HOME> will likely be
+\begin{verbatim}
+  C:\Program Files\Java\jdk1.8.0_281
+\end{verbatim}
 \fi
-In particular, {\tt <JDK\_DIR>\SEP bin} should be added {\it ahead} of
+In particular, {\tt <JDK\_HOME>\SEP bin} should be added {\it ahead} of
 any other Java installations that might be specified on the Path. To
 see the current contents of the Path, open a
 \ifWindows
@@ -201,20 +276,7 @@ and run the command
  > echo $PATH
 \end{verbatim}
 \fi
-\fi % end not MacOS
-
-\begin{sideblock}
-It may not be necessary to 
-\ifMacOS
-set {\tt JAVA\_HOME}
-\else
-add {\tt <JDK\_DIR>\SEP bin} to your system Path
-\fi
-if you are intending to compile and run ArtiSynth exclusively
-within an integrated development environment (IDE), such as Eclipse,
-since you should be able to specify the JDK directly within the IDE
-(as described in Section \ref{ConfiguringEclipse}).
-\end{sideblock}
+\fi % END not MacOS
 
 \section{Installing a Precompiled Release}
 \label{PrecompiledRelease}
@@ -225,51 +287,103 @@ To do this, go to \href{http://www.artisynth.org/downloads}%
 {www.artisynth.org/downloads}, download the distribution you want, and
 unzip it in an appropriate location on your computer.
 
-\ifWindows
-\begin{sideblock}
-On \SYSTEM{}, it is recommended that ArtiSynth be
-installed in a location for which none of the \directory{} names
-contain spaces (i.e., {\tt Program Files}).  This can be important for
-some legacy ArtiSynth programs to run correctly.
-\end{sideblock}
-\else\fi % end Windows
+\ifLinux
+\else % not Linux
+\subsection{Running from the file browser}
+\label{runningFileBrowser}
 
 Once ArtiSynth is downloaded and unzipped, it should be possible to
-run it immediately by executing the
+run it immediately by using a file browser to locate and then
+double click on the batch file
 \ifWindows
-{\tt artisynth.bat} file located in \ArtHome[\SEP bin]
-(see Section \ref{artisynthBat}).
-\else
-{\tt artisynth} command located in \ArtHome[\SEP bin]
-(see Section \ref{artisynthCommandLine}).
+\begin{verbatim}
+  <ARTISYNTH_HOME>\bin\artisynth.bat
+\end{verbatim}
+
+You can create a shortcut to this batch file (by right clicking on it
+and selecting {\sf Create Shortcut}), and then place the shortcut in
+either the {\sf START} menu or on the Desktop. However, the file
+itself must remain in \ArtHome[\SEP bin].
 \fi
-More details on running ArtiSynth and its demo models are given in
+\ifMacOS
+\begin{verbatim}
+  <ARTISYNTH_HOME>/bin/artisynth.command
+\end{verbatim}
+Note that {\tt artisynth.command} is just a copy of the {\tt
+artisynth} {\tt bash} script; the {\tt .command} suffix makes it
+recognizable to the MacOS GUI as a command.
+\fi
+\fi % end not Linux
+
+\subsection{Running from a terminal window}
+\label{artisynthCommandLine}
+
+\ifLinux
+Once ArtiSynth is downloaded and unzipped, it can be
+run from a terminal window.
+\else % not Linux
+ArtiSynth can also be run from a terminal window.
+\fi % end not Linux
+
+To do this, open a terminal 
+\ifWindows
+({\tt CMD})
+\fi
+window, set the current \directory{} to {\tt <ARTISYNTH\_HOME>}, and
+run the command {\tt bin\SEP artisynth}:
+\ifWindows
+\begin{verbatim}
+ > cd <ARTISYNTH_HOME>
+ > bin\artsiynth
+\end{verbatim}
+\else
+\begin{verbatim}
+ > cd <ARTISYNTH_HOME>
+ > bin/artisynth
+\end{verbatim}
+\fi
+
+\begin{sideblock}
+If you place \ArtHome[\SEP bin] in your \PATH{} environment
+variable (Section \ref{SettingPath}), then ArtiSynth can be
+run from a terminal window with the simple command
+\begin{verbatim}
+ > artisynth
+\end{verbatim}
+regardless of the current \directory{}.
+\end{sideblock}
+
+Details on how to load and run demo models are given in
 Section \ref{Running}.
 
-If you modify any of the demonstration models, or add models of your
-own, it will be necessary to compile the changes. Compilation is
-discussed in Section \ref{Compilation}. 
+A precompiled ArtiSynth distribution can also be imported into an
+integrated development environment (IDE), such as Eclipse, to
+facilitate compilation and execution. To import ArtiSynth into
+Eclipse, follow the instructions in
+Section \ref{importingExternalProjects}, using {\tt <ARTISYNTH\_HOME>}
+as the project directory.
 
-\section{Installing from Github}
-\label{GitClone}
+\section{Installing from GitHub}
+\label{GitHubInstall}
 
-If you wish to obtain updates and bug fixes, we recommend installing
-the current development version from Github, which is a web-based
+For most users doing active modeling work, we recommend installing the
+current ArtiSynth development version from GitHub, which will provide
+ongoing access to updates and bug fixes.  GitHub is a web-based
 repository service based on the source control management system
 Git. A very brief summary of Git is given in Section \ref{GitSummary}.
 
-The latest ArtiSynth development version is available from Github at the URL
+ArtiSynth is available from GitHub at the URL
 \begin{verbatim}
    https://github.com/artisynth/artisynth_core.git
 \end{verbatim}
-Users who install from Github can continue to update their codebase to
-keep it current (Section \ref{UpdatingArtiSynth}).  In some cases,
-developers we work with closely can also obtain, by mutual
-arrangement, write access to our Github repository, allowing them to
-also commit changes.
+After installation, users can continually update the ArtiSynth
+codebase to the latest version using {\it pull} operations
+(Section \ref{UpdatingArtiSynth}).  In some cases, developers we work
+with closely can also obtain, by mutual arrangement, write access to
+our GitHub repository, allowing them to also commit changes.
 
 \begin{sideblock}
-Users who have a Github account combined with SSH keys may instead
+Users who have a GitHub account combined with SSH keys may instead
 wish to clone using the SSH URL
 \begin{verbatim}
    git@github.com:artisynth/artisynth_core.git
@@ -279,719 +393,1250 @@ perform subsequent {\tt push} operations without having to
 enter a username and password.
 \end{sideblock}
 
-Installing from Github entails the following steps:
+\subsection{Installation using Eclipse}
+\label{EclipseInstallation}
 
-\begin{itemize}
+If you are planning to use the Eclipse IDE (Section \ref{EclipseIDE}),
+you can install from GitHub directly into Eclipse.  Directions on
+installing Eclipse and configuring it for ArtiSynth development are
+given in Section
+\ref{InstallingEclipse}.
+Once Eclipse is installed, ArtiSynth can be installed
+as follows:
 
-\item Clone (i.e., checkout) the ArtiSynth repository
-(Section \ref{Cloning}).
+\begin{enumerate}
 
-\item Download the Java and native libraries 
-(Section \ref{DownloadingLibraries}).
+\item From the main menu, select ``{\sf File > Import ...}''.  This will
+cause an {\sf Import} dialog to appear, as shown
+below.
+%in Figure \ref{EclipseImport:fig}.
+Open ``{\sf Git > Projects from Git}'', and
+then click {\sf Next}.
 
-\item Compile the codebase (Section \ref{Compilation}).
+%\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/EclipseImport}
+\else
+   \includegraphics[width=0.55\textwidth]{images/EclipseImport}
+\fi
+\end{center}
+%\caption{Eclipse Import dialog.}
+%\label{EclipseImport:fig}
+%\end{figure}
 
-\end{itemize}
+\item In the next dialog, choose {\sf Clone URI}, and click {\sf Next}.
 
-It should then be possible to run ArtiSynth and its demo models as
-described in Section \ref{Running}.
+\item A {\sf Source Git Repository} dialog will appear, as shown
+below.
+%in Figure \ref{SourceGitRepoDialog:fig}.
+In the {\sf URI} field at the top, enter\\{\tt
+https://github.com/artisynth/artisynth\_core.git}\\This will
+automatically fill the {\sf Host} and {\sf Repository path} fields.
+Click {\sf Next}.
 
-\subsection{Cloning the repository}
-\label{Cloning}
+%\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/EclipseGitRepoDialog}
+\else
+   \includegraphics[width=0.55\textwidth]{images/EclipseGitRepoDialog}
+\fi
+\end{center}
+%\caption{Eclipse Source Git Repository dialog.}
+%\label{SourceGitRepoDialog:fig}
+%\end{figure}
 
-There are several ways to clone ArtiSynth from Github.
+\item A {\sf Branch Selection} dialog will appear; uncheck {\tt svn}, so
+that only {\tt master} is selected. Click {\sf Next}. 
 
+\item A {\sf Local Destination} dialog will appear as shown
+below,
+% in (Figure \ref{LocalDestinationDialog:fig}), 
+indicating the \directory{}
+into which ArtiSynth will be placed locally. Use the default location,
+or edit it to the desired location.  This will be your {\it ArtiSynth
+home} \directory{}, and will be referred to later in this document as
+{\tt <ARTISYNTH\_HOME>}. Click {\sf Next}.
+
+%\begin{figure}[ht]
+\begin{center}
+\iflatexml
+  \ifWindows
+     \includegraphics[]{images/LocalDestination}
+  \else
+     \includegraphics[]{images/LocalDestinationMacOS}
+  \fi
+\else
+  \ifWindows
+     \includegraphics[width=0.55\textwidth]{images/LocalDestination}
+  \else
+     \includegraphics[width=0.55\textwidth]{images/LocalDestinationMacOS}
+  \fi
+\fi
+\end{center}
+%\caption{Eclipse Local Destination dialog.}
+%\label{LocalDestinationDialog:fig}
+%\end{figure}
+
+\item ArtiSynth will now be downloaded; this may take a few minutes,
+depending on your network connection speed. Another dialog will
+appear, asking you to select to project import wizard.  Leave the
+default (``{\sf Import existing Eclipse projects}'') selected, and
+click {\sf Next}.
+
+\item An {\sf Import Projects} dialog will appear, confirming that you
+want to import {\tt artisynth\_core}. Leave everything as is, and
+click {\sf Finish}.
+
+\end{enumerate}
+
+%\iflatexml\else
+%\pagebreak
+%\fi
+
+{\tt artisynth\_core} has now been imported into Eclipse as a
+project. However, we are not quite done. Eclipse will try to compile
+{\tt artisynth\_core}, but will fail because some Java and native
+libraries are missing. (These libraries are not included in the GitHub
+repository because they are quite large.) The compile failure will be
+indicated by a red exclamation mark to the left of the {\tt
+artisynth\_core} project entry in the Package Explorer:
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/artisynthBuildError}
+\else
+   \includegraphics[width=0.35\textwidth]{images/artisynthBuildError}
+\fi
+\end{center}
+
+The Java and native libraries must be downloaded separately, {\it
+outside} of Eclipse.  
 \ifWindows
-
-\subsubsection{Clone using Git for Windows}
-\label{CloningUsingGitForWindows}
-
-Install Git for Windows (Section \ref{GitForWindows}), and then from
-either Git Bash or the {\tt CMD} console, enter the command
-%
-\begin{lstlisting}[]
-  git clone https://github.com/artisynth/artisynth_core.git [<dir>]
-\end{lstlisting}
-%
-The argument {\tt <dir>} is optional and gives the name of the
-\directory{} into which the repository and working copy should be
-extracted; if omitted, the \directory{} will be named {\tt
-artisynth\_core}.
-
-\subsubsection{Cloning using Cygwin}
-
-If you have Cygwin (Section \ref{Cygwin}) installed, along with the
-{\tt git} package, then you can check out ArtiSynth within a Cygwin
-shell window using the same {\tt git clone} command described
-in Section \ref{CloningUsingGitForWindows}.
-
-\else % not Windows
-\subsubsection{Cloning using the command line}
-
-Assuming your \SYSTEM{} distribution has Git installed, then you can
-clone ArtiSynth from Github using the following command:
-%
-\begin{lstlisting}[]
- > git clone https://github.com/artisynth/artisynth_core.git [<dir>]
-\end{lstlisting}
-%
-The argument {\tt <dir>} is optional and gives the name of the
-\directory{} into which the repository and working copy should be
-extracted; if omitted, the \directory{} will be named {\tt
-artisynth\_core}.
-\fi % end not Windows
-
-\subsubsection{Cloning using Eclipse}
-\label{ArtiSynthEclipseCheckout}
-
-If you are planning to develop ArtiSynth models in Java, and if you
-are planning to do this with the Eclipse IDE
-(Section \ref{EclipseIDE}), then it might be easier to do the Git
-clone directly in Eclipse.  Follow the instructions in
-Section \ref{importingFromGit}, using the URL {\tt
-https://github.com/artisynth/artisynth\_core.git} described above.
-
-\subsection{Downloading the libraries}
-\label{DownloadingLibraries}
-
-Because the {\tt jar} files and native libraries used by ArtiSynth
-are large, they are not stored in the Github repository.
-Instead, they must be downloaded separately. This can be
-done using the command \updateArtisynthLibs, located
-in \ArtHome[\SEP bin].
-\ifWindows
-You can execute it by double-clicking on it in a file-browser, or
-by opening a command console ({\tt CMD}), navigating
-to \ArtHome[], and entering the command
+Open a file explorer, navigate to the {\tt
+<ARTISYNTH\_HOME>} \directory{} (described above), open the {\tt bin}
+\directory{}, and click on the {\tt updateArtisynthLibs} batch file
+(Figure \ref{UpdateArtisynthLibs:fig}).
+This will load the libraries, temporarily displaying a terminal window
+while doing so.
+\else
+Open a terminal window, change directories to {\tt <ARTISYNTH\_HOME>},
+and run the command {\tt bin/updateArtisynthLibs}:
 \begin{verbatim}
- % bin\updateArtisynthLibs
-\end{verbatim}
-\else % not Windows
-You can execute it from the command line like this:
-\begin{verbatim}
- > cd <ARTISYNTH_HOME>
+ > cd /path/to/ARTISYNTH_HOME
  > bin/updateArtisynthLibs
 \end{verbatim}
-\fi % end not Windows
-
-\ifWindows
-If you have Cygwin (Section \ref{Cygwin}) installed, 
-the same command is available as {\tt
-updateArtisynthLibs}, also located in \ArtHome[\SEP bin].
-\else\fi % end Windows
-
-\section{Compiling ArtiSynth}
-\label{Compilation}
-
-Versions of ArtiSynth obtained from Github need to be compiled before
-they can be run. Precompiled releases do not need to be compiled in
-order to run the demonstration models, but will need to be compiled if
-models are modified or new ones are added.
-
-Java compilation and code development is typically done using an
-integrated development environment (IDE), although it is possible
-(particularly on Linux and MacOS) to use external text editors and
-command line tools. This section describes how to compile
-ArtiSynth using either the Eclipse IDE, or
-\ifWindows
-command line tools available in the Cygwin Unix emulator.
-\else
-shell-based command line tools.
 \fi
-For more information on Eclipse and how to obtain it, see
-Section \ref{EclipseIDE}.
+The process may take a few minutes, depending on network speed.
 
-\subsection{Compiling with Eclipse}
-\label{CompilingWithEclipse}
+\ifWindows
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/UpdateArtisynthLibs}
+\else
+   \includegraphics[width=0.6\textwidth]{images/UpdateArtisynthLibs}
+\fi
+\end{center}
+\caption{%
+{\tt updateArtisynthLibs} batch file in {\tt <ARTISYNTH\_HOME>\SEP bin}.}
+\label{UpdateArtisynthLibs:fig}
+\end{figure}
+\fi
 
+When the libraries are loaded, return to Eclipse, click on the {\tt
+artisynth\_core} project to select it, then ``refresh'', either by
+right clicking and selecting {\sf Refresh}, or by hitting the {\sf F5}
+key. Eclipse should now find the libraries and compile ArtiSynth; a
+green progress bar will appear at the lower right while compilation is
+in progress.
+
+After compilation is complete, ArtiSynth can be run by simply choosing
+{\sf Run > Run} from the main menu. This works by invoking a
+predefined {\it launch configuration} named ArtiSynth.  In some cases,
+one may wish to adjust this launch configuration to set environment
+variables, command line arguments, or Java JVM arguments that affect
+how ArtiSynth behaves.  Instructions for doing so are contained in
+Sections
+\ref{EclipseEnvironmentVariables} and \ref{EclipseCommandArguments}.
+
+\ifLinux
+It is also possible to run ArtiSynth from either a file browser or a
+terminal window, as described in Sections \ref{runningFileBrowser}
+and \ref{artisynthCommandLine}, respectively.
+\else % not Linux
+It is also possible to run ArtiSynth from a terminal window,
+as described in Section \ref{artisynthCommandLine}.
+\fi
+Detail on how to load and run demo models are given in
+Section \ref{Running}.
+
+\ifWindows
+\subsection{Installation using Git for Windows}
+\label{GitForWindows}
+
+Git for Windows is an application that provides the user with a
+terminal window interface that can be used for entering Git commands.
+Users can choose between {\tt GitBash}, which provides a Unix-like
+{\tt bash} shell, or {\tt GitCMD}, which provides a Windows {\tt CMD}
+shell. {\tt GitBash} has several advantages, such as allowing users
+to easily set environment variables in a {\tt .bashrc} file
+(Section \ref{GitBashEnvironmentSettings}), and supplying a number of
+Unix-like commands that can be convenient for tasks other than those
+involving Git.
+
+At the time of this writing, Git for Windows can be installed from
+\href{https://git-scm.com/download/win}{git-scm.com/download/win}.
+
+Once installed, ArtiSynth can then be installed and compiled by
+opening a {\tt GitBash} window and entering the following commands
+(where the `{\tt \$}' character indicates the {\tt GitBash} prompt
+and should not be entered):
+%
+\begin{lstlisting}[]
+ $ cd /path/to/install
+ $ git clone https://github.com/artisynth/artisynth_core
+ $ cd artisynth_core
+ $ bin/updateArtisynthLibs
+ $ make
+\end{lstlisting}
+%
+The first line simply sets the current folder to the one under which
+you wish to install ArtiSynth, as indicated by {\tt /path/to/install}.
+(Note that {\tt GitBash} follows the Unix convention of using forward
+slash ('/') instead of backslash ('\BKS ') to separate files.)  The
+{\tt git clone} command then downloads ArtiSynth and extracts it to a
+folder named {\tt artisynth\_core}, so that the ArtiSynth installation
+directory (or {\tt <ARTISYNTH\_HOME>}) is\pdfbreak 
+{\tt /path/to/install/artisynth\_core}. The {\tt updateArtisynthLibs}
+command fetches additional libraries that are not included in the
+GitHub repository for space reasons, and the {\tt make} command on the
+last line is a Unix build utility provided by {\tt GitBash}; in this
+situation, it compiles all the {\tt .java} files under {\tt
+artisynth\_core}.
+
+Once built, ArtiSynth can then be run (from within {\tt
+artisynth\_core}) using the command
+%
+\begin{lstlisting}[]
+  $ bin/artisynth
+\end{lstlisting}
+%
 \begin{sideblock}
-Note: Eclipse 2020-03 has a bug that prevents {\tt artisynth\_core}
-from compuling properly. Either install the workaround described in
-Section \ref{EclipseCompileBug}, or use a different version of
-Eclipse.
-\end{sideblock}
-
-Before using Eclipse to work with ArtiSynth projects, you should
-follow some of the basic configuration steps described in
-Section \ref{ConfiguringEclipse}.
-
-If your Github clone has been done outside of Eclipse (i.e.,
-not according to Section \ref{ArtiSynthEclipseCheckout}), then you
-need to first import ArtiSynth into Eclipse. Follow the instructions
-in Section \ref{importingExternalProjects}, using 
-\ArtHome[] as the top-level project \directory{}
-{\tt <PROJECT\_DIR>}.
-
-Once ArtiSynth has been imported, you should be able to compile it.  If
-necessary, first open a Java perspective by choosing {\sf Window >
-Open Perspective > Java}. The project {\tt artisynth\_core} (or
-whatever you might have named it) should appear in the {\sf Package
-Explorer} window. To compile the system, select the project in the {\sf
-Package Explorer} window, and then choose {\sf Project > Build
-Project}. Note that it may be necessary to deselect {\sf Build
-Automatically} in order to enable {\sf Build Project}.
-
-\ifWindows
-\subsection{Compiling with Cygwin}
-\label{CompilingWithCygwin}
-
-If you have Cygwin (Section \ref{Cygwin}) installed, 
-ArtiSynth can also be built from a Cygwin terminal by running
-a {\tt make} command in the top level \directory{}. Before doing this,
-you need to first set the environment variables {\tt ARTISYNTH\_HOME}
-and {\tt CLASSPATH} as described in Sections
-\ref{EnvironmentVariables} and \ref{CygwinEnvironmentSettings}.
-ArtiSynth can then be built by executing
-
-\begin{verbatim}
- > cd <ARTISYNTH_HOME>
- > make
-\end{verbatim}
-\else % not Windows
-\subsection{Compiling from the command line}
-\label{CompilingWithCygwin}
-
-ArtiSynth can also be built by running a {\tt make} command in the top
-level \directory{}. Before doing this, you need to first set the environment
-variables {\tt ARTISYNTH\_HOME} and {\tt CLASSPATH} as described in
-Sections \ref{EnvironmentVariables}. ArtiSynth can then be built by
-executing
-
-\begin{verbatim}
- > cd <ARTISYNTH_HOME>
- > make
-\end{verbatim}
-\fi % end not Windows
-
-\section{Running ArtiSynth}
-\label{Running}
-
-\ifWindows
-\subsection{Running using artisynth.bat}
-\label{artisynthBat}
-
-The most direct way to start ArtiSynth is to run the batch file
-{\tt artisynth.bat}, located in \ArtHome[\SEP bin].  This can be
-done by double-clicking on it in a file browser.
-
-You can also create a shortcut to this batch file (by right clicking
-on it and selecting {\sf Create Shortcut}), and then placing this shortcut
-in either the {\sf START} menu or on the Desktop. However, the batch file
-itself must remain in \ArtHome[\SEP bin].
-
-Alternatively, you can open a command console ({\tt CMD}), navigate
-to \ArtHome[], and enter the command
-%
-\begin{verbatim}
- % bin\artisynth
-\end{verbatim}
-%
-It is recommended to place \ArtHome[\SEP bin] 
-in your {\tt PATH} environment variable (Section \ref{EnvironmentVariables}),
-so that the console command simplifies to
+For convenience, if you place \ArtHome[\SEP bin] in your \PATH{}
+environment variable (Section \ref{SettingPath}), 
+then ArtiSynth can be run independently of the current
+directory using the simple command
 \begin{verbatim}
  % artisynth
 \end{verbatim}
-regardless of the current \directory{}.
-
-\begin{sideblock}
-{\bf Note:}\\ If the {\tt bin} directory for your {\tt JDK}
-installation is not in your systems's Path, the {\tt java} command may
-not be visible and this will cause {\tt artisynth.bat} to fail.
-See \ref{MakingJDKVisible} for a description of how to fix this.
 \end{sideblock}
 
-\subsection{Running using Cygwin}
-
-If you have Cygwin (Section \ref{Cygwin}) installed, 
-then you can run ArtiSynth directly with the {\tt artisynth} command
-located in \ArtHome[/bin]:
-\begin{verbatim}
- > cd <ARTISYNTH_HOME>
- > bin/artisynth
-\end{verbatim}
-If \ArtHome[/bin] has been placed in your {\tt PATH}
-variable (Section \ref{EnvironmentVariables}), then it
-is sufficient to do
-\begin{verbatim}
- > artisynth
-\end{verbatim}
-{\tt artisynth} can be called with a number of options; to see these, run
-\begin{verbatim}
- > artisynth -help
-\end{verbatim}
-
-\else % not Windows
-\subsection{Running from the command line}
-\label{artisynthCommandLine}
-
-The most direct way to start ArtiSynth is to run the command
-\ArtHome[\SEP bin\SEP artisynth]:
+ArtiSynth can also be installed and compiled using {\tt GitCMD},
+with an analogous command sequence:
 %
-\begin{verbatim}
- > cd <ARTISYNTH_HOME>
- > bin/artisynth
-\end{verbatim}
-It is recommended to place \ArtHome[/bin] in your {\tt PATH}
-environment variable (Section \ref{EnvironmentVariables}), so
-that the command simplifies to
-\begin{verbatim}
- > artisynth
-\end{verbatim}
-regardless of the current \directory{}.
+\begin{lstlisting}[]
+ > cd \path\to\install
+ > git clone https://github.com/artisynth/artisynth_core
+ > cd artisynth_core
+ > bin\updateArtisynthLibs
+ > bin\compile
+\end{lstlisting}
+%
+The only real difference is using backslash ('\BKS ') instead of
+forward slash ('/') as a file separator, and the use of {\tt bin\BKS
+compile} instead of {\tt make} (which is not supported in {\tt Git
+CMD}). {\tt compile} is a command supplied by ArtiSynth that compiles
+all {\tt .java} files located under the current folder.
+\else % not Windows
+\subsection{Installation using the command line}
 
-\begin{sideblock}
-{\bf Note:}\\ If the {\tt bin} directory for your {\tt JDK}
-installation is not in your systems's Path, the {\tt java} command may
-not be visible and this will cause the {\tt artisynth} command to fail.
-See \ref{MakingJDKVisible} for a description of how to fix this.
-\end{sideblock}
+If your \SYSTEM{} distribution has Git installed, then you can
+install ArtiSynth from a terminal window using the following
+commands:
+%
+\begin{lstlisting}[]
+ > cd /path/to/install
+ > git clone https://github.com/artisynth/artisynth_core
+ > cd artisynth_core
+ > bin/updateArtisynthLibs
+\end{lstlisting}
+%
+The first line simply sets the current folder to the one under which
+you wish to install ArtiSynth, as indicated by {\tt /path/to/install}.
+The {\tt git clone} command then downloads ArtiSynth and extracts it
+to a folder named {\tt artisynth\_core}, so that the ArtiSynth
+installation directory (or {\tt <ARTISYNTH\_HOME>}) is {\tt
+/path/to/install/artisynth\_core}. The {\tt updateArtisynthLibs}
+command fetches additional libraries that are not included in the
+GitHub repository for space reasons.
+\ifMacOS
+
+If your system has {\tt make} installed (usually via XCode or
+an equivalent), you can then compile ArtiSynth by simply entering
+the command 
+%
+\begin{lstlisting}[]
+ > make
+\end{lstlisting}
+%
+from within {\tt artisynth\_core}. {\tt make} is a Unix build utility
+which in this situation compiles all the {\tt .java} files under {\tt
+artisynth\_core}. If you don't have {\tt make}, you can do
+the following instead:
+%
+\begin{lstlisting}[]
+ > bin/compile
+\end{lstlisting}
+%
+{\tt compile} is an ArtiSynth command line utility that compiles all {\tt .java}
+files located under the current folder.
+\fi % end MacOS
+\ifLinux
+
+ArtiSynth can then be compiled using the command
+%
+\begin{lstlisting}[]
+ > make
+\end{lstlisting}
+%
+within the {\tt artisynth\_core} directory.
+\fi % end Linux
+
+Once compiled, ArtiSynth can be run from the command line as described
+in Section \ref{artisynthCommandLine}.
+\ifMacOS
+It can also be run from a file browser, as described
+in Section \ref{runningFileBrowser}.
+\fi
+%
+\fi % end not windows
+
+Details on how to load and run demo models are given in
+Section \ref{Running}.
+
+Note that once you have installed ArtiSynth, you still have the option
+to later import it into an IDE such as Eclipse. For Eclipse
+specifically, this is done by importing it as an {\it external
+project}, as described in Section \ref{importingExternalProjects}.
+
+\section{Loading and Running Models}
+\label{Running}
+
+After ArtiSynth starts up, you can load and run demonstration
+models. Do this by selecting {\sf Models > Demos} from the main menu
+and choosing a demo model (Figure \ref{ModelSelectionMenu:fig}).
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/ArtiSynthDemoMenu}
+\else
+   \includegraphics[width=0.65\textwidth]{images/ArtiSynthDemoMenu}
+\fi
+\end{center}
+\caption{The ArtiSynth model selection menu.}
+\label{ModelSelectionMenu:fig}
+\end{figure}
+
+\iflatexml\else\pagebreak\fi
 
 \ifMacOS
-\subsection{Running from the file browser}
-
-You can also run ArtiSynth from a file browser by double clicking on
+\begin{sideblock}
+On older versions of {\tt MacOS}, errors similar to the following
+may appear on the Eclipse Console output:
 \begin{verbatim}
-  <ARTISYNTH_HOME>/bin/artisynth.command
+ 2021-03-12 11:01:16.949 java[585:230b] invalid drawable 
 \end{verbatim}
-Note that {\tt artisynth.command} is just a copy of {\tt artisynth};
-the {\tt .command} suffix makes it recognizable to the MacOS GUI as a
-command.
-\fi % end MacOS
-\fi % end not Windows
+This is due to a problem in the default version of the Java-OpenGL
+(JOGL) interface. To fix it, go back to the terminal window, and
+from the ArtiSynth home directory run the command
+\begin{verbatim}
+ > bin/installJOGL2.3.2
+\end{verbatim}
+Then recompile ArtiSynth.
+\end{sideblock}
+\fi
 
-\subsection{Running using Eclipse}
+Once a model is loaded, it will appear in the viewer, and simulation
+can be controlled using the ``play'' controls located at the upper right
+of the application window:
 
-Once ArtiSynth has been imported into Eclipse (and built if
-necessary), it should contain a launch configuration called {\tt
-ArtiSynth} that will allow ArtiSynth to be run by choosing {\sf Run >
-Run}.
+\begin{center}
+\iflatexml
+  \includegraphics[]{../uiguide/images/playControls}
+\else
+  \includegraphics[width=2.5in]{../uiguide/images/playControls}
+\fi
+\end{center}
 
-In some cases, one may wish to adjust environment variables, command
-line arguments, or Java JVM arguments to affect how ArtiSynth behaves.
-Instructions for doing so are contained in Sections
-\ref{EclipseEnvironmentVariables} and \ref{EclipseCommandArguments}.
+From left to right, these are: step size control, which controls the
+simulation step size (in seconds); current simulation time (in
+seconds); and the {\sf reset}, {\sf skip-back}, {\sf play/pause}, {\sf
+single-step} and {\sf skip-forward} buttons.  Starting and stopping a
+simulation is done by clicking {\sf play/pause}, while {\sf reset}
+resets the simulation to time 0.  The {\sf single-step} button
+advances the simulation by one time step.
+
+\ifMacOS
+
+\begin{sideblock}
+On newer versions of {\tt MacOS}, another problem that may occur when
+trying to run ArtiSynth models is that MacOS may complain about using
+a nonvalidated external library. This will take the form of a console
+error that looks like this:
+\begin{verbatim}
+ ...
+ /Users/lloyd/git/artisynth_core/lib/MacOS64/libPardisoJNI.11.1.2.1.dylib)
+ not valid for use in process using Library Validation: library load disallowed
+ by system policy 
+ ...
+\end{verbatim}
+The problem here is that one or more of the native libraries are not
+``known'' to Apple and are therefore not trusted. General information
+on working around this problem is described here:
+
+\href{https://support.apple.com/en-ca/HT202491}{support.apple.com/en-ca/HT202491}
+
+The short version is to immediately open your Security and Privacy
+settings after the error occurs, and then, near the bottom of the {\sf
+General} tab, you should see a notification about the blocked
+application with a button to the right labeled {\sf Open
+Anyway}. Clicking that button will grant the application a security
+exception.
+\end{sideblock}
+
+\fi
+
+Detailed information on how to use the ArtiSynth GUI for model
+visualization, navigation and simulation control is given in the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+
+Figure \ref{SpringNetDemo:fig} shows ArtiSynth with the {\sf Spring
+Net} demo loaded.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/SpringNetDemo}
+\else
+   \includegraphics[width=0.60\textwidth]{images/SpringNetDemo}
+\fi
+\end{center}
+\caption{ArtiSynth with the Spring Net demo loaded.}
+\label{SpringNetDemo:fig}
+\end{figure}
 
 \subsection{Command line arguments}
 \label{CommandLineArguments}
 
-The {\tt artisynth} command accepts command line arguments, a full
-list of which can be seen by running {\tt artisynth} with the {\tt
--help} option:
+If you are running ArtiSynth from a terminal window
+(Section \ref{artisynthCommandLine}) 
 \ifWindows
-\begin{verbatim}
- % artisynth -help
-\end{verbatim}
-\else % not Windows
+or {\tt GitBash} (Section \ref{GitForWindows})
+\fi
+then you can supply it with
+command line arguments to control different aspects of its behavior.
+A full list of these can be seen by running {\tt artisynth} with the {\tt
+-help} option:
 \begin{verbatim}
  > artisynth -help
 \end{verbatim}
-\fi % end not Windows
 Descriptions of these options appear in various places within the
 ArtiSynth documentation. For example, one commonly used option is
 {\tt -model <modelClassName>}, which instructs ArtiSynth to preload a
 model associated with a given class name:
-\ifWindows
-\begin{verbatim}
- % artisynth -model artisynth.demos.mech.SpringMeshDemo
-\end{verbatim}
-\else % not Windows
 \begin{verbatim}
  > artisynth -model artisynth.demos.mech.SpringMeshDemo
 \end{verbatim}
-\fi % end not Windows
 
-When running under Eclipse, command line arguments can be set in the
-launch configuration, as described in
+If you are running under Eclipse, command line arguments can be set in
+the launch configuration, as described in
 Section \ref{EclipseCommandArguments}.
 
-\subsection{Loading and Running Models}
+\section{Creating and Adding Models}
+\label{AddingModels}
 
-Once ArtiSynth starts up, you can use it to load and run
-models. General instructions on how to load and run models are given
-in the section ``Loading and Simulating Models'' of the
-\artisynthManual{uiguide}{ArtiSynth User Interface Guide}. 
+Most users will want to develop their own ArtiSynth models using Java
+code. This is done by creating a special Java {\it model} class, which
+is a subclass of
+\javaclass[artisynth.core.workspace]{RootModel} and which contains a
+{\tt build()} method that assembles the model from the various Java
+components that ArtiSynth provides. For example, suppose your model
+class is called {\tt MyModel}. This will be implemented inside a Java
+source file called {\tt MyModel.java}, a skeleton implementation of
+which might look like this:
+%
+\lstset{commentstyle=\color{mygreen}}
+\begin{lstlisting}[]
+package artisynth.models.mymodels;
 
-By default, ArtiSynth comes with a number of demonstration models,
-which can be loaded and run as follows:
+// import statements to access classes:
+import maspack.matrix.*;                  // vectors and matrices
+import artisynth.core.mechmodels.*;       // mechanical models and components
+import artisynth.core.workspace.RootModel;
 
-From the menu bar, Select {\sf Models > Demos}.  This will display a
-submenu of demonstration models. Choosing one will cause that model to
-be loaded and displayed in the viewer.  Simulation of the model can
-then be started, paused, single-stepped, or reset using the play
-controls (Figure \ref{PlayControlsFig}) located at the upper right of
-the main ArtiSynth window.
+// model class definition:
+public class MyModel extends RootModel {
 
-Comprehensive information on exploring and interacting with models is
-given in the
-\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+   public void build (String[] args) {
+      // ... model is assembled here ...
+   }
+}
+\end{lstlisting}
+\lstset{commentstyle=\color{myblack}}
+%
+Full details on how to create a model in Java and the components that
+are available to do so are given in
+the\pdfbreak
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}. For this
+discussion, we will consider only how to add a model to ArtiSynth once
+it has been created. The easiest way to do this is to add its source
+code to the ArtiSynth source code, as described below. However, as
+a general practice, it is recommended that the model source code
+be kept separate from ArtiSynth, as described in
+Section \ref{IntegratingExternalModels}.
 
-\begin{figure}[h]
-\begin{center}
-\iflatexml
-\includegraphics[]{../uiguide/images/playControls}
-\else
-\includegraphics[width=2.5in]{../uiguide/images/playControls}
+\subsection{Model packages}
+
+A model should be implemented inside a Java {\it package}, which will
+contain the model class, and perhaps other supporting classes used to
+implement it. The package is defined by the {\tt package} statement at
+the beginning of each {\tt .java} file. For the {\tt MyModel} example
+above, the package is {\tt artisynth.models.mymodels}.
+
+Java enforces certain rules for how its source code is organized.  In
+particular, all the {\tt .java} files associated with a specific
+package must be placed in the same folder, which in turn must be located in a
+\directory{} tree that reflects the package hierarchy. For
+example, source code for the package {\tt pack.foo.bar} must be placed
+in a folder whose path (relative to the top of the source tree) is
+{\tt pack\SEP foo\SEP bar}.  For the {\tt MyModel} example, {\tt
+MyModel.java} must be placed in
+a folder {\tt artisynth\SEP models\SEP mymodels} relative to the top
+of the source tree.
+
+The source code tree for ArtiSynth is rooted at {\tt
+<ARTISYNTH\_HOME>\SEP src}. It already contains a large number of
+model classes located in packages such as {\tt
+artisynth.demo.mech}, whose source code is therefore located at
+
+{\tt <ARTISYNTH\_HOME>\SEP src\SEP artisynth\SEP demos\SEP mech}
+
+The easiest way to add your own model to ArtiSynth is to simply add
+the source code for its package to the appropriate location under {\tt
+<ARTISYNTH\_HOME>\SEP src}. For {\tt MyModel}, the source code would
+therefore be placed in
+
+{\tt <ARTISYNTH\_HOME>\SEP src\SEP artisynth\SEP models\SEP mymodels}
+
+Since the ArtiSynth source tree already contains the (empty) folder
+{\tt artisynth\SEP models}, in this case it would only be necessary to
+add the {\tt mymodels} folder below it.
+
+\begin{sideblock}
+Multiple models may be placed in any given package. For example, {\tt
+artisynth.demos.tutorial} contains a large number of models used as
+examples for the Modeling Guide.
+\end{sideblock}
+
+\subsection{Compiling models}
+
+When source code is added or modified within the ArtiSynth source
+tree, it needs to be compiled. How this is done depends on your
+development environment.
+
+If you are using Eclipse and automatic building is enabled for a
+project (such as {\tt artisynth\_core}), compilation will occur
+automatically whenever that project's {\tt .java} files are
+modified. To see if automatic building is enabled, select the project
+in the Package Explorer, open the {\sf Project} menu and check {\sf
+Build Automatically}. If automatic building is not enabled, the
+project can be built by selecting {\sf Build Project}.
+
+\begin{sideblock}
+If you add or edit source files from {\it outside} Eclipse, for
+example by using an external text editor, then you need to {\it
+refresh} the project in order for Eclipse to notice the changes.  To
+refresh, select the project in the Package Explorer, and then either
+right-click and choose {\sf Refresh}, or simply hit the {\sf F5} key.
+\end{sideblock}
+
+If you are compiling from the command line 
+\ifWindows
+or {\tt GitBash}%
 \fi
-\end{center}
-\caption{The ArtiSynth play controls. From left to right: step size
-control, current simulation time, and the reset, skip-back,
-play/pause, single-step and skip-forward buttons.}%
-\label{PlayControlsFig}
-\end{figure}
+, using either the {\tt make} or {\tt compile} commands described
+earlier, then running these in any given source \directory{}
+will compile all the {\tt .java} files contained below it. This will
+typically be faster than compiling the entire source tree by running
+{\tt make} or {\tt compile} from {\tt <ARTISYNTH\_HOME>}.
 
-\section{Installing {\tt artisynth\_models} and Other External Packages}
-\label{AdditionalModelsAndPackages}
+\begin{sideblock}
+To be able to run {\tt compile} from any \directory{},
+place \ArtHome[\SEP bin] in your \PATH{} environment variable
+(Section \ref{SettingPath}).
+\end{sideblock}
 
-Typically, an ArtiSynth developer will want to use external models and
-packages that exist outside of {\tt artisynth\_core}.  Some of these
-may be obtained from external sources.  For example, {\tt
-artisynth\_models} is an open source collection of anatomical models,
-focused primarily on the head and neck region
-(see \href{https://www.artisynth.org/models}{www.artisynth.org/models}).
+\begin{sideblock}
+If you add a {\it new} package \directory{} and want to run {\tt make}
+from that \directory{}, you will need to add a {\tt Makefile} to
+it. The easiest way to do this is to simply copy an existing {\tt
+Makefile} from another package and adjust the {\tt PACKAGE\_NAME} and
+{\tt ROOT\_DIR} entries; the number of `{\tt ..}'  entries in {\tt
+ROOT\_DIR} should equal the number of ``up'' steps needed to reach
+{\tt <ARTISYNTH\_HOME>}.
+\end{sideblock}
 
-Installing external models and packages requires a sequence of
-operations similar to that for installing ArtiSynth itself:
+\subsection{Finding models in the Models menu}
+
+Once a model has been added to ArtiSynth, it is useful to be able to
+run it directly from the {\sf Models} menu.
+
+By default, the {\sf Models} menu locates all models in the packages
+(and subpackages) of {\tt artisynth.demos} and\pdfbreak {\tt
+artisynth.model}, and makes then available under the entries {\sf All
+demos >} and {\sf All models >}, respectively. Therefore, if your
+model is located in one of these packages, it will automatically
+appear in the {\sf Models} menu. If your model is located in a
+different package, you can load it either by directly specifying its
+class path, or by customizing the {\sf Models} menu.  These options
+are described in the sections ``Loading by class path'' and
+``Customizing the Models Menu'' of the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide},
+
+\section{Integrating external models}
+\label{IntegratingExternalModels}
+
+While it is easiest to add a model to ArtiSynth by simply placing its
+source code under {\tt <ARTISYNTH\_HOME>\SEP src}, as described in
+Section \ref{AddingModels}, it is usually best practice to keep model
+source code separate from ArtiSynth. This is largely to avoid
+conflicts when ArtiSynth is updated (Section \ref{UpdatingArtiSynth})
+or reinstalled.
+
+When model source code is external to ArtiSynth, one must manage two
+things:
 
 \begin{enumerate}
 
-\item Downloading (either a precompiled version or repository checkout;
-Section \ref{DownloadingCollections}).
+\item Making the ArtiSynth classes visible to the Java compiler
+when compiling the code;
 
-\item Compiling (if necessary; Section \ref{CompilingCollections}).
-
-\item Making classes visible to ArtiSynth (Section \ref{MakingVisible}).
+\item Making the model classes visible to ArtiSynth when running
+the model.
 
 \end{enumerate}
 
-\subsection{Downloading}
-\label{DownloadingCollections}
+This involves managing the class path used by either the Java compiler
+or by ArtiSynth.
 
-Model and package collections are usually available from either Git or
-Subversion repositories. 
+For purposes of this discussion, we will assume that the model is
+contained under a top-level \directory{} denoted by {\tt <MYPROJECT>},
+and that the root \directories{} for the Java source code and class
+files are {\tt <MYPROJECT>\SEP src} and
+\pdfbreak
+{\tt <MYPROJECT>\SEP classes}, respectively. This Java file structure
+is common, and is used by {\tt artisynth\_core} and most other
+projects currently associated with ArtiSynth.
 
-For {\tt artisynth\_models}:
+\subsection{Making ArtiSynth visible to the compiler}
 
-\begin{itemize}
+How this is done depends on your development environment.
 
-\item A precompiled version is available
-from \href{https://www.artisynth.org/models}{www.artisynth.org/models}.
-To ensure compatibility, this should only be used in combination with
-the matching precompiled ArtiSynth version. For example, {\tt
-artisynth\_models\_3.5.zip} should only be used with {\tt
-artisynth\_core\_3.5.zip}.
+\subsection{Eclipse development}
 
-\item The current development version is available
-from Github at
+When using Eclipse, the project will also be associated with an
+Eclipse project name, which we will call {\tt myproject}.  In order
+for {\tt myproject} to compile, the ArtiSynth project {\tt
+artisynth\_core} should be added to the {\it build path} of {\tt
+myproject}, as described in
+Section \ref{AddingProjectsToBuildPath}. This will ensure that the
+ArtiSynth classes are added to the class path used by the Java
+compiler.
+
+\begin{sideblock}
+Some projects, such as {\tt artisynth\_models}, already have their
+build path preconfigured to contain {\tt artisynth\_core}, and so for
+them this step is unnecessary.
+\end{sideblock}
+
+\subsection{Command line development}
+\label{CommandLineDevel}
+
+If you are compiling from the command line 
+\ifWindows
+or {\tt GitBash}%
+\fi
+, then the {\tt compile} command described earlier will still work,
+provided that, as assumed above, {\tt <MYPROJECT>} contains the source
+and classes \directories{} {\tt src\SEP} and {\tt classes\SEP}. The
+{\tt compile} command will supply the Java compiler with a class path
+containing all the ArtiSynth classes, plus {\tt <MYPROJECT>\SEP
+classes}. If {\it additional} classes are needed (such as external
+JAR files or class \directories{} from other projects), they
+may be added by setting them in the {\tt CLASSPATH} environment
+variable (Section \ref{EnvironmentVariables}).
+
+Use of the {\tt make} command will require setting up {\tt Makefile}s
+in the \directories{} in which you wish to run {\tt make}. It will
+also (usually) require setting the {\tt CLASSPATH} environment
+variable to contain the ArtiSynth
+class path entries,
+\ifWindows
+\begin{verbatim}
+<ARTISYNTH_HOME>\classes;<ARTISYNTH_HOME>\lib\*
+\end{verbatim}
+\else
+\begin{verbatim}
+<ARTISYNTH_HOME>/classes;<ARTISYNTH_HOME>/lib/*
+\end{verbatim}
+\fi
+where as usual {\tt <ARTISYNTH\_HOME>} should be expanded to the path
+for the ArtiSynth installation directory.  The character `{\tt *}'
+functions as a wildcard to specify all the JAR files in
+{\tt <ARTISYNTH\_HOME>\SEP lib}.
+
+\subsection{Making external models visible to ArtiSynth}
+\label{MakingExternalModelsVisible}
+
+\subsection{Running from Eclipse}
+
+When running ArtiSynth under Eclipse, you can make {\tt myproject}'s
+models visible by adding {\tt myproject} to the ArtiSynth launch
+configuration, as described in Section
+\ref{AddingProjectsToLaunch}. 
+
+\subsection{Using EXTCLASSPATH}
+\label{UsingEXTCLASSPATH}
+
+External models can be made visible to ArtiSynth by adding any needed
+class \directories{} and JAR files to the {\tt EXTCLASSPATH} file,
+located in \ArtHome[], as described in Section \ref{EXTCLASSPATHFile}.
+As an example, assume that the model class files are contained under
+{\tt <MYPROJECT>\SEP classes}, and that the JAR file {\tt
+<MYPROJECT>\SEP lib\SEP dicom.jar} is also required.  If {\tt
+<MYPROJECT>} is located at
+\ifWindows
+{\tt C:\SEP research\SEP myproject}%
+\else
+{\tt /research/myproject}%
+\fi
+, then the following lines should be added to {\tt EXTCLASSPATH}:
+\ifWindows
+\begin{verbatim}
+C:\research\myproject\classes
+C:\research\myproject\lib\dicom.jar
+\end{verbatim}
+\else % not Windows
+\begin{verbatim}
+/research/myproject/classes
+/research/myproject/lib/dicom.jar
+\end{verbatim}
+\fi % end not Windows
+
+Class path entries in {\tt EXTCLASSPATH} will be {\it appended} to any
+specified through the {\tt CLASSPATH} environment variable.
+
+The {\tt EXTCLASSPATH} file can be used when running from Eclipse or
+some other IDE.
+
+\subsection{Setting the CLASSPATH environment variable}
+\label{SettingCLASSPATH}
+
+When running ArtiSynth from the command line, external models can also
+be made visible by adding class folders and JAR files to the {\tt
+CLASSPATH} environment variable, as described in
+Section \ref{EnvironmentVariables}. For the example of
+Section \ref{UsingEXTCLASSPATH}, we could instead add the following to
+{\tt CLASSPATH}:
+\ifWindows
+\begin{verbatim}
+   C:\research\myproject\classes;C:\research\myproject\lib\dicom.jar
+\end{verbatim}
+\else
+\begin{verbatim}
+   /research/myproject/classes;/research/myproject/lib/dicom.jar
+\end{verbatim}
+\fi
+Note that in this situation the ArtiSynth class files {\it do not}
+need to be included in {\tt CLASSPATH}, as they will be added
+automatically.
+
+\subsection{Using the {\tt -cp} option}
+
+ArtiSynth also provides the command line option {\tt -cp} which allows
+a class path to be specified directly:
+\ifWindows
+\begin{verbatim}
+   > artisynth -cp "C:\research\myproject\classes;C:\research\myproject\lib\dicom.jar"
+\end{verbatim}
+\else
+\begin{verbatim}
+   > artisynth -cp "/research/myproject/classes:/research/myproject/lib/dicom.jar"
+\end{verbatim}
+\fi
+Class paths specified using {\tt -cp} will {\it replace} any specified
+through the {\tt CLASSPATH} variable.
+
+\section{Installing {\tt artisynth\_models}}
+\label{ArtiSynthModels}
+
+{\tt artisynth\_models} is an open source collection of anatomical
+models, focused primarily on the head and neck region
+(see \href{https://www.artisynth.org/models}{www.artisynth.org/models}).
+It can be obtained either as a precompiled release, or from GitHub.
+
+Once installed, the models will appear in the ArtiSynth {\sf Models}
+menu under {\sf Models >} and {\sf All models >}.
+
+\subsection{Installing a precompiled release}
+
+If you are running a precompiled release of ArtiSynth,
+then you will need to use the corresponding precompiled release
+of {\tt artisynth\_models}, which can be 
+obtained from
+\begin{verbatim}
+  www.artisynth.org/Software/ModelsDownload
+\end{verbatim}
+Download the distribution you want and unzip it in your desired location;
+the recommended spot is right next to {\tt artisynth\_core}.
+
+{\tt artisynth\_models} comes preconfigured with Eclipse project
+files, and so can be immediately imported into Eclipse as an external
+project, as described in Section \ref{importingExternalProjects}.  To
+make the models visible to ArtiSynth when running from Eclipse, it
+will be necessary to add {\tt artisynth\_models} to the ArtiSynth
+launch configuration, as described in Section
+\ref{AddingProjectsToLaunch}.
+
+If you are running ArtiSynth from the command line
+\ifWindows
+or the {\tt artisynth.bat} file%
+\fi
+, you will need to ensure that the class \directory{} {\tt
+artisynth\_models\SEP classes} is visible to ArtiSynth, as described
+in Section \ref{MakingExternalModelsVisible}.
+
+\subsection{Installing from GitHub}
+
+The latest development version of {\tt artisynth\_models} is available
+from GitHub at the URL
 \begin{verbatim}
    https://github.com/artisynth/artisynth_models.git
 \end{verbatim}
-To ensure compatibility, this should only be used in combination with
-the most recent development version of ArtiSynth.
 
-\end{itemize}
+\subsubsection{Installation using Eclipse}
 
-Precompiled collections can simply be downloaded and unpacked into a
-desired location. Those available from Git or Subversion may be
-obtained as described in Sections \ref{GitSummary}
-or \ref{SubversionSummary}.  For convenience, we recommend placing
-each collection in a \directory{} adjacent to \ArtHome[].
+If you are using Eclipse, you can install {\tt artisynth\_models} in
+the same way as for {\tt artisynth\_core} (Section
+\ref{EclipseInstallation}):
 
-Repository-based collections that contain Eclipse project files (such
-as {\tt artisynth\_models}) can be imported directly into Eclipse as
-described in Section \ref{importingFromGit} (Git) or
-Section \ref{importingFromSubversion} (Subversion).  Other collections
-that contain the project files bundled inside an {\tt
-eclipseSettings.zip} file may be imported as described in
-Section \ref{cloningFromGit} (Git) or
-Section \ref{importingFromSubversion} (Subversion).
+\begin{enumerate}
 
-\subsection{Compiling}
-\label{CompilingCollections}
+\item Select {\sf File > Import ...}, open
+``{\sf Git > Projects from Git}'' in the Import dialog,
+and click {\sf Next}.
 
-Collections that are obtained from Git or Subversion will need to be
-compiled. Compilation will also be necessary if models in the
-collection are modified or if new ones are added.
+\item In the {\sf Select Repository Source}
+dialog, choose {\sf Clone URI}, and click {\sf Next}.
 
-\subsubsection{Compiling with Eclipse}
+\item In the {\sf Source Git Repository} dialog,
+enter\\
+{\tt https://github.com/artisynth/artisynth\_models.git}\\
+in the {\sf URI} field at the top, and click {\sf Next}.
 
-If compilation is being done with Eclipse, the collection will need to
-be imported into Eclipse as a project (if this has not already been
-done) by following the instructions in
-Section \ref{importingExternalProjects}.  Compilation can then be
-performed as described in Section
-\ref{CompilingWithEclipse}.
+\item In the {\sf Branch Selection} dialog, uncheck {\tt svn}
+and click {\sf Next}.
 
-\begin{sideblock}
-Important: for collection projects to compile properly in Eclipse, the
-{\tt artisynth\_core} project (and any other projects they depend on)
-will have to be added to their build path. The default Eclipse
-settings supplied with some projects may already contain the required
-build path dependencies. For example, the settings for {\tt
-artisynth\_models} contain the required reference to {\tt
-artisynth\_core}.  In other cases, it may be necessary to add projects
-to the build path explicitly, as described
-in \ref{AddingProjectsToBuildPath}.
-\end{sideblock}
+\item In the {\sf Local Destination} dialog,
+adjust the install location if desired, and click {\sf Next}.
 
-\subsubsection{Compiling from the command line}
+\item {\tt artisynth\_models} will now be downloaded.
+A ``wizard'' dialog will
+then appear. Leave the default (``{\sf Import existing Eclipse
+projects}'') selected, and click {\sf Next}.
 
-If the collection has a {\tt Makefile} in its root
-\directory{}, then it can be compiled from
+\item In the {\sf Import Projects} dialog, click {\sf Finish}.
+
+\end{enumerate}
+
+{\tt artisynth\_models} should now compile automatically; there is no
+need to download external libraries. However, to 
+make the models visible to ArtiSynth when running from Eclipse, it
+will be necessary to add {\tt artisynth\_models} to the ArtiSynth
+launch configuration, as described in Section
+\ref{AddingProjectsToLaunch}.
+
 \ifWindows
-a Cygwin terminal by running {\tt make} in the root \directory{},
+\subsubsection{Installation using Git for Windows}
+
+If you have Git for Windows installed (Section \ref{GitForWindows}),
+{\it and} you have placed {\tt <ARTISYNTH\_HOME>\SEP bin} in your {\tt
+Path} environment variable (Section \ref{SettingPath}), allowing
+the {\tt compile} command to be called from any folder, then {\tt
+artisynth\_models} can be installed from {\tt GitBash} as follows:
+%
+\begin{lstlisting}[]
+ $ cd /path/to/install
+ $ git clone https://github.com/artisynth/artisynth_models
+ $ cd artisynth_models
+ $ compile
+\end{lstlisting}
+%
 \else
-the command line by running {\tt make} in the root \directory{},
+\subsubsection{Installation from the command line}
+If you have placed {\tt <ARTISYNTH\_HOME>\SEP bin} in your \PATH{}
+environment variable (Section \ref{SettingPath}), so that the
+{\tt compile} command can be called from any \directory{}, then {\tt
+artisynth\_models} can be installed from a terminal window as follows:
+%
+\begin{lstlisting}[]
+ > cd /path/to/install
+ > git clone https://github.com/artisynth/artisynth_models
+ > cd artisynth_models
+ > compile
+\end{lstlisting}
+%
 \fi
-as described in Section \ref{CompilingWithCygwin}.
-Before doing this, the top-level \directory{} for the collection's {\tt
-class} files must to be added to the {\tt CLASSPATH} environment
-variable
-\ifWindows
-(Sections \ref{EnvironmentVariables} and \ref{CygwinEnvironmentSettings}).
-\else
-(Section \ref{EnvironmentVariables}).
-\fi
-In collections maintained by ArtiSynth, this will be the \directory{} {\tt
-classes}, located directly under the collection root \directory{} (e.g.,
-{\tt artisynth\_models\SEP classes}).
+The last line uses the {\tt compile} command instead of {\tt make}
+because the latter will not work unless the {\tt CLASSPATH}
+environment variable has been set to include the ArtiSynth class path
+entries, as described in Section \ref{CommandLineDevel}.
 
-\subsection{Making Classes Visible to ArtiSynth}
-\label{MakingVisible}
+If you run ArtiSynth from the command line, you will need to ensure
+that {\tt artisynth\_models\SEP classes} is visible to ArtiSynth, as
+described in Section \ref{MakingExternalModelsVisible}.
 
-Models in an external collection are executed by running ArtiSynth
-itself (Section
-\ref{Running}). However, the classes associated with these
-models must be made visible to ArtiSynth. This can be
-arranged in several different ways:
-
-\subsubsection{Using the Eclipse Classpath}
-
-If you are running from Eclipse, then you can make the classes of a
-collection visible to ArtiSynth by adding its associated Eclipse
-project to the {\sf Classpath} of your ArtiSynth launch configuration,
-as described in Section \ref{AddingProjectsToLaunch}.
-
-\subsubsection{Using the EXTCLASSPATH file}
-
-Alternatively, you can make the classes of external projects visible
-to ArtiSynth by adding the path names of all their top-level class
-\directories{} (or {\tt jar} files, if relevant) to the file 
-\ArtHome[\SEP EXTCLASSPATH] (described in Section
-\ref{EXTCLASSPATHFile}).
-
-For example, suppose the collection {\tt artisynth\_models}
-has been placed in {\tt \TOP projects\SEP artisynth\_models}.
-The top-level class \directory{} for this collection is located
-in {\tt artisynth\_models\SEP classes}, and so the following entry
-should be placed in the {\tt EXTCLASSPATH} file:
-
-\ifWindows
-\begin{verbatim}
-C:\projects\artisynth_models\classes
-\end{verbatim}
-\else % not Windows
-\begin{verbatim}
-/projects/artisynth_models/classes
-\end{verbatim}
-\fi % end not Windows
-
-\subsubsection{Using CLASSPATH environment variable}
-
-\ifWindows
-Finally, if you are running using {\tt artisynth.bat} (or {\tt
-artisynth} in Cygwin), then you can make external classes visible by
-adding them to your {\tt CLASSPATH} environment variable (see Sections
-\ref{EnvironmentVariables} and \ref{CygwinEnvironmentSettings}).
-\else % not Windows
-Finally, if you are running from the command line using the {\tt
-artisynth} command, then you can make external classes visible by adding
-them to your {\tt CLASSPATH} environment variable (see Section
-\ref{EnvironmentVariables}).
-\fi % end not Windows
-
-\section{Updating ArtiSynth and Other Packages}
+\section{Updating ArtiSynth}
 \label{UpdatingArtiSynth}
 
-One reason to use a clone of the latest ArtiSynth
-development version is to be able to migrate recent changes into your
-code base. When a significant update occurs, a posting is made to the
-ArtiSynth update log, currently located at
+One reason to install ArtiSynth from GitHub is to be able to update
+the codebase to incorporate new features and bug fixes.  When a
+significant update occurs, a posting is made to the ArtiSynth update
+log, currently located at
 \artisynthManual{updates}{www.artisynth.org/doc/html/updates/updates.html}.
 Users may also be notified via the {\tt artisynth-updates} email list.
 
-Users working from Eclipse may update simply by selecting
-the project in the {\sf Package Explorer} and selecting {\sf Team >
-Pull} from the context menu.
+Eclipse users may update simply by selecting the {\tt artisynth\_core}
+in the {\sf Package Explorer} and then right clicking and choosing
+{\sf Team > Pull}.
 
 \ifWindows
-Updating may also be done by issuing the 
+If Git for Windows is installed (Section \ref{GitForWindows}),
+then updating may be done using {\tt GitBash}:
 \begin{verbatim}
-   > git pull
+ $ cd <ARTISYNTH_HOME>
+ $ git pull
 \end{verbatim}
-command from within \ArtHome[], 
-using either Git for Windows (Section \ref{GitForWindows}),
-the Cygwin shell (Section \ref{Cygwin}), or another Git application.
 \else % not Windows 
-Updating may also be done from the command line by issuing the 
+Updating may also be done from a terminal window: 
 \begin{verbatim}
-   > git pull
+ > cd <ARTISYNTH_HOME>
+ > git pull
 \end{verbatim}
-command from within the ArtiSynth installation \directory{}.
 \fi % end not Windows
 
-Other Git-based packages may be updated similarly. 
+\begin{sideblock}
+If local changes have been made to {\tt artisynth\_core} that
+interfere with the changes made by the update, a Git pull operation
+may result in a {\it conflict}.  Conflict resolution is outside the
+scope of this document, but documentation on this is available online.
+Conflicts should not occur if local changes have not been made to {\tt
+artisynth\_core}.
+\end{sideblock}
 
-For Subversion-based packages, updating is done by issuing an {\tt
-update} request (Section \ref{SubversionSummary}). This can be done
-from within Eclipse (if a Subversion plugin has been installed;
-Section \ref{SubversionPlugIn}) by selecting the project in the {\sf
-Package Explorer} and selecting {\sf Team > Update} (or {\sf Team >
-Update to Head}) from the context menu. Subversion updates can also be
-done
-\ifWindows
-using either TortoiseSVN (Section \ref{TortoiseSVN}), or from the
-Cygwin command line by calling
-\else % not Windows 
-from the command line by calling
-\fi % end not Windows
-\begin{verbatim}
-   > svn update
-\end{verbatim}
-from inside the top-level project \directory{}.
+Other Git-based projects, such as {\tt artisynth\_models}, may be
+updated similarly.
 
 \subsection{Library updates}
 
 Occasionally, a software update will be accompanied by a change in the
 libraries located in \ArtHome[\SEP libs].  When this happens, it will
 be indicated on the ArtiSynth update log and appropriate instructions
-will be given. Sometimes, it will be necessary to explicitly update
-the libraries after doing the main update. This can be done by
-executing {\tt updateArtisynthLibs} as described in
-Section \ref{DownloadingLibraries}.
+will be given. In these cases, one should also run the
+command {\tt updateArtisynthLibs} located in
+{\tt <ARTISYNTH\_HOME>\SEP bin}. This can be
+done from a terminal window:
+\ifWindows
+\begin{verbatim}
+ > cd <ARTISYNTH_HOME>
+ > bin\updateArtisyntnLibs
+\end{verbatim}
+It can also be done from a file browser, by navigating
+to {\tt <ARTISYNTH\_HOME>} and clicking on {\tt updateArtisynthLibs.bat}.
+(Figure \ref{UpdateArtisynthLibs:fig}).
+\else
+\begin{verbatim}
+ > cd <ARTISYNTH_HOME>
+ > bin/updateArtisynthLibs
+\end{verbatim}
+\fi
 
 \section{The Eclipse IDE}
 \label{EclipseIDE}
 
 Eclipse is an integrated development environment (IDE) commonly used
 for Java code development, and many ArtiSynth developers use it for
-both developing models in Java and for running the system. This section
-describes how to load ArtiSynth projects into Eclipse, and how to
-configure it for running ArtiSynth. A general introduction to Eclipse
-is beyond the scope of this document, but there are many Eclipse
-resources available online.
-
-\subsection{Eclipse 2020-03 compilation bug}
-\label{EclipseCompileBug}
-
-\begin{sideblock}
-Eclipse 2020-03 has a bug that prevents {\tt artisynth\_core} from
-compiling properly:
-%
-\begin{quote}
-\href{https://bugs.eclipse.org/bugs/show_bug.cgi?id=561287}%
-{bugs.eclipse.org/bugs/show\_bug.cgi?id=561287}
-\end{quote}
-%
-\end{sideblock}
-
-This should be fixed in subsequent versions of Eclipse. Meanwhile, you
-can either install a different version of Eclipse, or use the
-following workaround: Add the line
-%
-\begin{verbatim}
--DmaxCompiledUnitsAtOnce=0
-\end{verbatim}
-%
-to the file {\tt eclipse.ini} in the Eclipse installation directory,
-and restart Eclipse.
+both developing models in Java and for running the system. This
+section describes how to install Eclipse and provides some other
+information relevant to ArtiSynth users.  A general introduction to
+Eclipse is beyond the scope of this document, but there are many
+Eclipse resources available online.
 
 \subsection{Installing Eclipse}
+\label{InstallingEclipse}
 
-Eclipse can be obtained from
-\href{http://www.eclipse.org/downloads/packages}%
-{www.eclipse.org/downloads/packages}.  A
-good version to obtain (at the time of this writing) is {\sf Eclipse
-IDE for Java Developers}.
+This document describes specifically the installation of Eclipse
+2020-12; other versions should be similar.
 
+Eclipse can be downloaded from
+\href{https://www.eclipse.org/downloads/packages}%
+{www.eclipse.org/downloads/packages}. From this page, choose ``{\sf
+Eclipse IDE for Java Developers}'',
+\ifWindows
+{\sf Windows x86\_64}, which will download the file
+\begin{verbatim}
+  eclipse-java-2020-12-R-win32-x86_64.zip
+\end{verbatim}
+Unzip this into a convenient \directory{}, such as for example:
+\begin{verbatim}
+  C:\eclipse\eclipse-2020-12
+\end{verbatim}
+Open this \directory{} with a file explorer, and you will see the eclipse
+application:
+
+\begin{center}
+   \includegraphics[width=0.25\textwidth]{images/EclipseApp}
+\end{center}
+
+Click on this to open it. 
+\fi
+\ifMacOS
+{\sf macOS x86\_64}, which will download the file
+\begin{verbatim}
+  eclipse-java-2020-12-R-macosx-cocoa-x86_64.dmg
+\end{verbatim}
+Open this file, click on the ``Eclipse Installer'',
+select ``Eclipse IDE for Java Developers'', and follow
+the install instructions. When the install is complete,
+click the {\sf Launch} button.
+\fi
+\ifLinux
+{\sf Linux x86\_64}, which will download the file
+\begin{verbatim}
+  eclipse-java-2020-12-R-linux-gtk-x86_64.tar.gz
+\end{verbatim}
+Untar this file into any desired install location,
+and then run the {\tt eclipse} executable in the
+top-level directory.
+\fi
+A dialog will appear, asking you to select a workspace \directory{}
+(Figure \ref{EclipseWorkspace:fig}).
+This is where Eclipse settings and project information will be
+stored. Unless you have a another Eclipse already installed, the
+default location should be fine. (Remember also to check the ``{\sf
+Use this as the default ...}''  box so that this query won't appear
+every time you open Eclipse.) 
+Next, click {\sf Launch}.  A welcome
+page will appear; close this. A ``donate'' panel may also appear;
+close this too.  You should then see an empty Eclipse display, similar
+to Figure \ref{EmptyEclipse:fig}.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+  \ifWindows
+     \includegraphics[]{images/EclipseWorkspaceDialog}
+  \else
+    \includegraphics[]{images/EclipseWorkspaceDialogMacOS}
+  \fi
+\else
+  \ifWindows
+     \includegraphics[width=0.7\textwidth]{images/EclipseWorkspaceDialog}
+  \else
+    \includegraphics[width=0.7\textwidth]{images/EclipseWorkspaceDialogMacOS}
+  \fi
+\fi
+\end{center}
+\caption{Eclipse Workspace dialog.}
+\label{EclipseWorkspace:fig}
+\end{figure}
+%
+This is where Eclipse settings and project information will be
+stored. Unless you have a another Eclipse already installed, the
+default location should be fine. (Remember also to check the ``{\sf
+Use this as the default ...}''  box so that this query won't appear
+every time you open Eclipse.) 
+Next, click {\sf Launch}.  A welcome
+page will appear; close this. A ``donate'' panel may also appear;
+close this too.  You should then see an Emily Eclipse display, similar
+to Figure \ref{EmptyEclipse:fig}.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/EmptyEclipse}
+\else
+   \includegraphics[width=0.7\textwidth]{images/EmptyEclipse}
+\fi
+\end{center}
+\caption{An empty, newly initialized Eclipse console.}
+\label{EmptyEclipse:fig}
+\end{figure}
+
+\ifMacOS
 \begin{sideblock}
-The Eclipse instructions described below are based on the ``Neon''
-distribution, but should be largely similar for later versions.
+Before closing Eclipse, you may want to pin its icon to your dock
+to make it easier to restart.
 \end{sideblock}
+\fi
 
-\subsection{Configuring Eclipse for ArtiSynth}
-\label{ConfiguringEclipse}
+\subsubsection{Setting Eclipse to use the correct Java JDK}
 
-There are a few things one should do to configure Eclipse for
-ArtiSynth related projects:
+Newer versions of Eclipse come with their own version of
+Java. However, since we generally want to use our own Java JDK (such
+as Java 8, as described in Section \ref{InstallingJava}), we need to
+configure Eclipse to use that instead. This can be done as follows:
 
-\begin{itemize}
+\begin{enumerate}
 
-\item {\it Open a Java perspective}, by choosing {\sf Window > Open Perspective >
-Java}. This will place Eclipse in a state suitable for editing Java
-projects. Individual projects can be viewed and navigated through the
-{\sf Package Explorer} window.
+\item From the main menu, select 
+\ifMacOS
+{\sf Eclipse > Preferences...}.
+\else
+{\sf Window > Preferences}.
+\fi
 
-\item {\it Check that Java is ArtiSynth compatible:}
-The Java version used by Eclipse needs to be set to one that is
-ArtiSynth compatible (which is at present Java 8).  To verify that
-this is the case, choose {\sf Window > Preferences > Java > Installed
-JREs} and verify that a compatible Java is installed and selected. If
-an appropriate JRE is not installed, it can be added by clicking the
-{\sf Add...} button on the right of the panel, and then finding the
-Java 8 distribution on your system.
+\item A {\sf Preferences} dialog will open. In the left panel, select
+``{\sf Java > Installed JREs}'', which will open an {\sf Installed JREs}
+panel.
+\ifMacOS % begin macOS
+On MacOS, all installed JDKs {\it should} appear in the panel
+(Figure \ref{InstalledJREs:fig}), including the Eclipse default and
+the JDK which you want to use.  Click on the box to the left of
+your JDK entry to select it; ignore warnings about Java 15
+compatibility.
+\else  % begin Not macOS
+Click the {\sf Add...} button at the right.
 
-\item {\it Configure building to prevent excess resource copying:}
-The steps required to do this are described in Section
-\ref{PreventingResourceCopying}, and will speed up project
-compilation by preventing unneeded files from being copied into the
-{\tt classes} \directory{}.
+\item A {\sf JRE Type} dialog will appear. Leave ``Standard VM''
+selected in the dialog and click {\sf Next}.
 
-\end{itemize}
+\item A {\sf JRE Definition} dialog will appear. In the ``{\sf JRE home}''
+field at the top, enter the installation \directory{} for your JDK.
+\ifWindows % begin Windows
+On Windows, this is likely to be a location like {\tt C:\BKS Program
+Files\BKS Java\BKS jdk1.8.0\_281}. Specifying the java
+home \directory{} will cause some other fields to fill in
+automatically, as seen in Figure \ref{JREDefinition:fig}.
+%
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/EclipseJREDefinition}
+\else
+   \includegraphics[width=0.6\textwidth]{images/EclipseJREDefinition}
+\fi
+\end{center}
+\caption{Eclipse JRE Definition dialog.}
+\label{JREDefinition:fig}
+\end{figure}
+\fi % end Windows
 
-\subsection{Importing ArtiSynth projects into Eclipse}
+\item Click {\sf Finish}. Your Java JDK will now show up in the list
+of installed JREs.
+\ifWindows % begin Windows
+Click on the left box to select it, as shown in
+Figure \ref{InstalledJREs:fig} (ignore any warnings about Java 15
+compatibility).
+\fi % end Windows
+\fi % end Not MacOS
+\ifLinux % begin Linux
+Click on the left box to select it; ignore any warnings about Java
+15 compatibility.
+\else % else NOT Linux
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+  \ifWindows
+     \includegraphics[]{images/EclipseInstalledJREs}
+  \else
+     \includegraphics[]{images/EclipseInstalledJREsMacOS}
+  \fi
+\else
+  \ifWindows
+     \includegraphics[width=0.6\textwidth]{images/EclipseInstalledJREs}
+  \else
+     \includegraphics[width=0.8\textwidth]{images/EclipseInstalledJREsMacOS}
+  \fi
+\fi
+\end{center}
+\caption{Eclipse Installed JREs dialog.}
+\label{InstalledJREs:fig}
+\end{figure}
+\fi % end NOT Linux
 
-ArtiSynth projects include the core distribution ({\tt
-artisynth\_core}), the open source models collection {\tt
-artisynth\_models} (which contains human anatomy models), as well as
-other model and code collections maintained by the ArtiSynth team and
-other users.
+\item Finish by clicking the ``{\sf Apply and Close}'' button at the
+bottom of the {\sf Preferences} dialog.
 
-There are several ways to import ArtiSynth projects into Eclipse.  If
-the project has already been downloaded or checked out from a
-repository, then it can be imported as an external project
-(Section \ref{importingExternalProjects}). Otherwise, Eclipse itself
-may sometimes be used to checkout the project directly from either Git
-or Subversion (Sections \ref{importingFromGit},
-\ref{cloningFromGit}, and \ref{importingFromSubversion}).
+\end{enumerate}
 
-\subsubsection{Importing external projects}
+\subsubsection{Preventing excess resource copying}
+
+By default, ArtiSynth classes are placed in file tree located beneath
+{\tt <ARTISYNTH\_HOME>\SEP classes} that is separate from the source
+tree located beneath {\tt <ARTISYNTH\_HOME>\SEP src}.
+That means that Eclipse will try to copy all non-Java files and
+\directories{} from the source tree into the build tree. For ArtiSynth,
+this is excessive, and results in many files being copied that don't
+need to be, since ArtiSynth looks for resources in the source tree
+anyway.
+
+To prevent this copying:
+
+\begin{enumerate}
+
+\item Choose
+\ifMacOS
+{\sf Eclipse > Preferences...}.
+\else
+{\sf Window > Preferences}.
+\fi
+
+\item Select {\sf Java > Compiler > Building}.
+
+\item Open {\sf Output folder}, and in the box entitled {\sf Filter resources},
+  enter the single character `{\tt *}'.
+
+\end{enumerate}
+
+%\subsection{Importing ArtiSynth projects into Eclipse}
+%
+%ArtiSynth projects include the core distribution ({\tt
+%artisynth\_core}), the open source models collection {\tt
+%artisynth\_models} (which contains human anatomy models), as well as
+%other model and code collections maintained by the ArtiSynth team and
+%other users.
+%
+%If the project has already been downloaded or checked out from a
+%repository, then it can be imported as an external project
+%(Section \ref{importingExternalProjects}). Git repositories that
+%contain Eclipse project files can be imported directly from within
+%Eclipse (Section \ref{importingFromGit}), while those that contain the
+%project files bundled up as a {\tt .zip} file can be cloned using
+%Eclipse (Section \ref{importingFromGit}) and then imported as an
+%external project after the project files have been unzipped into the
+%top level \directory{}.
+
+\subsection{Importing external projects}
 \label{importingExternalProjects}
 
-Let {\tt <PROJECT\_DIR>} denote the top-level project \directory{}.
-For the core distribution {\tt artisynth\_core}, this will also be
-\ArtHome[].
-
-First check the following:
-
-\begin{itemize}
-
-\item {\tt <PROJECT\_DIR>} should contain the
-Eclipse project files (including {\tt .project}). If it does not, it
-should contain a file {\tt eclipseSettings.zip}, which should be
-unzipped directly into {\tt <PROJECT\_DIR>} (not into a
-sub-\directory{}), as described in
-Section \ref{installingProjectFiles}, so that {\tt .project} and {\tt
-.classpath} then appear there.
-
-\item If the project is the ArtiSynth core distribution (i.e., 
-{\tt artisynth\_core}), and was obtained from Github, then make sure
-you have downloaded the required {\tt jar} files and native libraries
-as described in Section \ref{DownloadingLibraries}.
-
-\end{itemize}
-
-Then import the project into Eclipse as follows:
+Let {\tt <PROJECT\_DIR>} denote the top-level \directory{}
+of the project to be imported.
+(In the case of {\tt artisynth\_core}, this will also be
+\ArtHome[].) Assuming that {\tt <PROJECT\_DIR>} contains an Eclipse {\tt .project}
+file, you can import it into Eclipse as follows:
 
 \begin{enumerate}
 
@@ -1016,302 +1661,209 @@ If Eclipse complains that {\sf "No projects are found to import"}, or
 does not otherwise show the project as available for import,
 then most likely the {\tt <PROJECT\_DIR>}
 \directory{} does not contain a {\tt .project} file.
-In the case of repositories that keep Eclipse project
-files bundled in am {\tt eclipseSettings.zip} file, this usually
-means that the contents of that file were not properly unzipped into
-{\tt <PROJECT\_DIR>} (Section \ref{installingProjectFiles}).
 \end{sideblock}
 
 \begin{figure}
 \begin{center}
 \iflatexml
-   \includegraphics{images/EclipseImportProjectsLinuxSmall}
+  \ifWindows
+     \includegraphics[]{images/EclipseImportProjects}
+  \else
+     \includegraphics[]{images/EclipseImportProjectsMacOS}
+  \fi
 \else
-   \includegraphics[width=0.4\textwidth]{images/EclipseImportProjectsLinux}
+  \ifWindows
+     \includegraphics[width=0.7\textwidth]{images/EclipseImportProjects}
+  \else
+     \includegraphics[width=0.7\textwidth]{images/EclipseImportProjectsMacOS}
+  \fi
 \fi   
 \end{center}
-\caption{Eclipse Import Projects dialog.}%
+\caption{Partial view of the Eclipse Import Projects dialog.}%
 \label{EclipseImportProjects:fig}
 \end{figure}
 
-\subsubsection{Importing projects from a remote Git repository}
-\label{importingFromGit}
-
-Some source repositories contain Eclipse project files in their
-repositories, and so can be imported directly into Eclipse using the
-repository's URL. The Eclipse project associated with ArtiSynth is
-called {\tt artisynth\_core}, while the models project is called {\tt
-artisynth\_models}.
-
-To import these directly:
-
-\begin{enumerate}
-
-\item If necessary, open a Java perspective by choosing {\sf Window >
-Open Perspective > Java}.
-
-\item Choose {\sf File > Import... > Git > Projects from Git}
-from the main menu.
-
-\item A {\sf Select Repository Source} dialog will appear. Choose
-{\sf Clone URI} and click {\sf Next}.
-
-\item A {\sf Source Git Repository} dialog will appear
-(Figure \ref{EclipseGitImport:fig}, left).  Under {\sf Location},
-enter the project URI in the {\sf URL} field.  The default URL for
-ArtiSynth is {\tt https://github.com/artisynth/artisynth\_core.git}. In
-some cases, such as when using an SSH URL, or accessing a project with
-restricted access, it may also be necessary to provide a user name and
-password in the {\sf Authentication} fields. (This will be your Gitlab
-or Github account information for repositories stored on those sites.)
-After entering the required information, click {\sf Next}.
-
-\item A {\sf Branch Selection} dialog may appear. If it does,
-make sure only the {\sf master} branch is selected, and then click {\sf Next}.
-
-\item A {\sf Local Destination} dialog will appear (Figure
-\ref{EclipseGitImport:fig}, right). In the {\sf Directory} field, enter
-the path of the local \directory{}, which will contain both the cloned
-repository and the working copy.  For ArtiSynth itself, this will also
-be the ArtiSynth home \directory{} (\ArtHome[]).  After
-entering the \directory{} information, click {\sf Next}.
-
-\item A {\sf Select a wizard ...} dialog will appear.
-Select {\sf Import existing Eclipse projects} and click {\sf Next}.
-
-\item An {\sf Import Projects} dialog will appear.
-Make sure project you wish to import is selected and click {\sf
-Finish}.
-
-\item In the case of ArtiSynth (i.e., {\tt artisynth\_core}), from {\it outside}
-Eclipse, download the Java and native libraries, as described in
-Section \ref{DownloadingLibraries}. Then refresh the project from
-within Eclipse (by selecting it in the {\sf Package Explorer} window
-and choosing {\sf Refresh} from the context menu. The project should
-now be able to compile.
-
-\end{enumerate}
-
-\begin{figure}[h]
-\begin{center}
-\begin{tabular}{cc}
-\iflatexml
-   \includegraphics{images/EclipseSourceGitRepositorySmall} &
-   \includegraphics{images/EclipseLocalDestinationSmall}
-\else
-   \includegraphics[width=0.45\textwidth]{images/EclipseSourceGitRepository} &
-   \includegraphics[width=0.45\textwidth]{images/EclipseLocalDestination}
-\fi   
-\end{tabular}
-\end{center}
-\caption{Eclipse dialogs for importing a Git repository.}%
-\label{EclipseGitImport:fig}
-\end{figure}
-
-\subsubsection{Cloning a project from a remote Git repository}
-\label{cloningFromGit}
-
-Some source repositories (such as {\tt artisynth\_research}) do not
-directly contain Eclipse project files in their repositories.
-Instead, the project files is contained inside an {\tt
-eclipseSettings.zip} file that must be extracted into the project root
-\directory{}. This is to prevent undesired local changes to the project
-settings from being propagated to all users.
-
-In this case, we proceed as follows:
-
-\begin{enumerate}
-
-\item Choose {\sf Window > Show View > Other ... > Git > Git Repositories} 
-from the main menu to open a {\sf Git Repositories} view window.
-
-\item Within the {\sf Git Repositories} window, choose the
-button (or pull down menu item) that says {\sf Clone a repository}.
-
-\item 
-A {\sf Source Git Repository} dialog will appear (Figure
-\ref{EclipseGitImport:fig}, left). Enter the URL for the
-repository. Also, if the repository has read access restrictions, it
-will generally be necessary to specify a user name and password in the
-{\sf Authentication} fields.  (This will be your Gitlab or Github
-account information for repositories stored on those sites.)  After
-entering the required information, click {\sf Next}.
-
-\item A {\sf Branch Selection} dialog may appear. Usually
-you want to select only the {\sf master} branch, and then click {\sf
-Next}.
-
-\item A {\sf Local Destination} dialog will appear (Figure
-\ref{EclipseGitImport:fig}, right). In the {\sf Directory} field, enter
-the path of the local \directory{}, which will contain both the cloned
-repository and the working copy. After entering the \directory{}
-information, click {\sf Finish}.
-
-\item Finally, from {\it outside} Eclipse, locate the file
-{\tt eclipseSettings.zip} in the project's top \directory{}, and then
-unzip this file directly into that \directory{} (not into a
-sub-\directory{}), so that {\tt .project} and {\tt .classpath} appear
-in the top \directory{}.
-\ifMacOS
-MacOS users are strongly encouraged to read  
-Section \ref{installingProjectFiles} for details on how to do this.
-\else
-For details, see Section \ref{installingProjectFiles}.
-\fi % end MacOS
-
-\end{enumerate}
-
-The project can now be imported into Eclipse by following the steps in
-Section \ref{importingExternalProjects}, using the project's
-parent \directory{} as the ``root directory''.
-
-\subsubsection{Importing from a Subversion repository}
-\label{importingFromSubversion}
-
-If Eclipse has a Subversion plug-in installed (Section
-\ref{SubversionPlugIn}), you may import an ArtiSynth project by
-checking it out directly from the repository located by the project's
-{\it Subversion\_URL}. For the project {\tt artisynth\_projects}, this
-is
-\begin{verbatim}
-  https://svn.artisynth.org/svn/artisynth_models/trunk
-\end{verbatim}
-Other projects will have different URLs.
-
-The following instructions assume the Subversive plug-in.
-
-\begin{enumerate}
-
-\item Choose {\sf File > Import} from the main menu, select {\sf SVN >
-Project from SVN} and click {\sf Next}.
-
-\item You now need to specify a repository location, as specified by a
-{\it Subversion\_URL}.  If you've previously done an SVN checkout, a
-menu will appear allowing you to select a previously used URL. If one
-of these is sufficient, select it and click {\sf Next} to go to Step
-4. Otherwise, select {\sf Create a new repository location} and click
-{\sf Next} to enter a repository dialog. If no previous locations are
-known this dialog will appear automatically.
-
-\item If you are specifying a new location in the repository dialog:
-
-\begin{itemize}
-
-\item Under the {\sf General} tab, enter the {\it Subversion\_URL} in the
-{\sf URL} box. If you are just checking out the trunk of the
-repository (i.e., if your Subversion URL ends in {\tt /trunk}), then
-you should omit the final {\tt /trunk} since this is selectable in Step 4.
-
-\item If you are checking out a repository that is not available for
-anonymous access, or if you need write access to the repository, enter
-the appropriate user name and password in the {\sf Authentication}
-section of the dialog. (If the SVN repository is hosted by us, we will
-have given you this name and password.) You will probably want to
-check {\sf Save authentication} as well.
-
-%\item If you are just checking out the trunk of the repository (i.e.,
-%if your Subversion URL ends in {\tt /trunk}, as most examples in this
-%guide do), then go to the {\sf Advanced} tab and uncheck {\sf Enable
-%Structure Detection}.
-
-\item Click {\sf Next}.
-
-\end{itemize}
-
-\item In the {\sf Select Resource} dialog, use the {\sf URL} selector
-box to select the full URL to be used for the checkout. If you are
-just checking out the trunk of the repository, then choose {\tt
-Subversion\_URL/trunk} which should be available as a selection.
-
-\item Click {\sf Finish}
-
-\item In the {\sf Check Out As} dialog, select {\sf Check out as a
-project with name specified}, adjust the project name if desired,
-and click {\sf Next}.
-
-\item Specify the location for the check out. If you leave {\sf Use
-default workspace location} selected, this will be {\tt
-workspace/project\_name}, where {\tt workspace} is the Eclipse
-workspace \directory{} and {\tt project\_name} is the project name
-selected in the previous step. Otherwise, you can specify an explicit
-checkout location (which does not have to be located in the Eclipse
-workspace). For ArtiSynth core checkouts, the project name is
-typically {\tt artisynth\_core} and the the checkout location will
-become the ArtiSynth install \directory{} \ArtHome[].
-
-\item Click {\sf Finish}.
-
-\item If necessary, open a Java perspective by choosing {\sf Window >
-Open Perspective > Java}. The project should appear in the {\sf
-Package Explorer} window.
-
-\item From {\it outside} Eclipse, check to see if the file
-{\tt eclipseSettings.zip} exists in the project's top \directory{}.
-If it does, unzip this file directly into the top \directory{} (not
-into a sub-\directory{}), so that {\tt .project} and {\tt .classpath}
-appear there.
-\ifMacOS
-MacOS users are strongly encouraged to read  
-Section \ref{installingProjectFiles} for details on how to do this.
-\else
-For details, see Section \ref{installingProjectFiles}.
-\fi % end MacOS
-
-\item Finally, load the new settings into the project by selecting the
-project in the {\sf Package Explorer} window and selecting {\sf
-Refresh} from the context menu.
-
-\end{enumerate}
-
-\subsubsection{Installing project files}
-\label{installingProjectFiles}
-
-Some project repositories contain their eclipse project files bundled
-in the zip file {\tt eclipseSettings.zip}, instead of keeping them
-under direct repository control. This is to prevent unwanted local
-configuration changes from being propagated back into the repository.
-The project files need to be unzipped directly into the project
-\directory{} (not into a sub-\directory{}) to enable the project to be
-loaded into Eclipse.
-
-Let {\tt <PROJECT\_DIR>} denote the top-level project \directory{}.
+%\subsubsection{Importing projects from a remote Git repository}
+%\label{importingFromGit}
 %
-\ifWindows
-On Windows, project files can be extracted from within the 
-file browser. Double click on {\tt eclipseSettings.zip}
-and extract the files into {\tt <PROJECT\_DIR>}.
-\else % not Windows 
-Project files can be extracted using the command line.
-Open a command shell, 
-switch to the {\tt <PROJECT\_DIR>} \directory{}, and run {\tt unzip}:
-\begin{verbatim}
-  > cd <PROJECT_ROOT>
-  > unzip eclipseSettings.zip
-\end{verbatim}
-\fi % end not Windows
-This will create the files {\tt .project} and {\tt .classpath}, along
-with the \directory{} {\tt .settings}, in {\tt <PROJECT\_DIR>}.  In
-the case of {\tt artisynth\_core}, it will also create the file {\tt
-ArtiSynth.launch} containing the default launch configuration.
-
-\begin{sideblock}
-Note: if unzip queries about overwriting {\tt .project}, answer [y]es.
-\end{sideblock}
-
-\ifMacOS
-\begin{sideblock}
-{\bf Attention MacOS users:}\\[0.5em]
-While it is possible to unzip files from the file browser by clicking
-on {\tt eclipseSettings.zip} and then extracting directly, the default
-zip utility on MacOS will create a new sub-folder called {\tt
-eclipseSettings} and will extract the files there.
-\emph{You do not want this!!}
-Some of the files are then labeled as ``hidden'' by MacOS, which will
-prevent you from moving them to the correct place manually. 
-Either extract the files using the command line as described
-above, or use a more standard application like {\sf 7-Zip} ({\sf 7zX} for OSX).
-\end{sideblock}
-\fi % end MacOS
+%Some source repositories contain Eclipse project files in their
+%repositories, and so can be imported directly into Eclipse using the
+%repository's URL. The Eclipse project associated with ArtiSynth is
+%called {\tt artisynth\_core}, while the models project is called {\tt
+%artisynth\_models}.
+%
+%To import these directly:
+%
+%\begin{enumerate}
+%
+%\item If necessary, open a Java perspective by choosing {\sf Window >
+%Open Perspective > Java}.
+%
+%\item Choose {\sf File > Import... > Git > Projects from Git}
+%from the main menu.
+%
+%\item A {\sf Select Repository Source} dialog will appear. Choose
+%{\sf Clone URI} and click {\sf Next}.
+%
+%\item A {\sf Source Git Repository} dialog will appear
+%(Figure \ref{EclipseGitImport:fig}, left).  Under {\sf Location},
+%enter the project URI in the {\sf URL} field.  The default URL for
+%ArtiSynth is {\tt https://github.com/artisynth/artisynth\_core.git}. In
+%some cases, such as when using an SSH URL, or accessing a project with
+%restricted access, it may also be necessary to provide a user name and
+%password in the {\sf Authentication} fields. (This will be your Gitlab
+%or GitHub account information for repositories stored on those sites.)
+%After entering the required information, click {\sf Next}.
+%
+%\item A {\sf Branch Selection} dialog may appear. If it does,
+%make sure only the {\sf master} branch is selected, and then click {\sf Next}.
+%
+%\item A {\sf Local Destination} dialog will appear (Figure
+%\ref{EclipseGitImport:fig}, right). In the {\sf Directory} field, enter
+%the path of the local \directory{}, which will contain both the cloned
+%repository and the working copy.  For ArtiSynth itself, this will also
+%be the ArtiSynth home \directory{} (\ArtHome[]).  After
+%entering the \directory{} information, click {\sf Next}.
+%
+%\item A {\sf Select a wizard ...} dialog will appear.
+%Select {\sf Import existing Eclipse projects} and click {\sf Next}.
+%
+%\item An {\sf Import Projects} dialog will appear.
+%Make sure project you wish to import is selected and click {\sf
+%Finish}.
+%
+%\item In the case of ArtiSynth (i.e., {\tt artisynth\_core}), from {\it outside}
+%Eclipse, download the Java and native libraries, as described in
+%Section \ref{DownloadingLibraries}. Then refresh the project from
+%within Eclipse (by selecting it in the {\sf Package Explorer} window
+%and choosing {\sf Refresh} from the context menu. The project should
+%now be able to compile.
+%
+%\end{enumerate}
+%
+%\begin{figure}[h]
+%\begin{center}
+%\begin{tabular}{cc}
+%\iflatexml
+%   \includegraphics{images/EclipseSourceGitRepositorySmall} &
+%   \includegraphics{images/EclipseLocalDestinationSmall}
+%\else
+%   \includegraphics[width=0.45\textwidth]{images/EclipseSourceGitRepository} &
+%   \includegraphics[width=0.45\textwidth]{images/EclipseLocalDestination}
+%\fi   
+%\end{tabular}
+%\end{center}
+%\caption{Eclipse dialogs for importing a Git repository.}%
+%\label{EclipseGitImport:fig}
+%\end{figure}
+%
+%\subsubsection{Cloning a project from a remote Git repository}
+%\label{cloningFromGit}
+%
+%Some source repositories (such as {\tt artisynth\_research}) do not
+%directly contain Eclipse project files in their repositories.
+%Instead, the project files is contained inside an {\tt
+%eclipseSettings.zip} file that must be extracted into the project root
+%\directory{}. This is to prevent undesired local changes to the project
+%settings from being propagated to all users.
+%
+%In this case, we proceed as follows:
+%
+%\begin{enumerate}
+%
+%\item Choose {\sf Window > Show View > Other ... > Git > Git Repositories} 
+%from the main menu to open a {\sf Git Repositories} view window.
+%
+%\item Within the {\sf Git Repositories} window, choose the
+%button (or pull down menu item) that says {\sf Clone a repository}.
+%
+%\item 
+%A {\sf Source Git Repository} dialog will appear (Figure
+%\ref{EclipseGitImport:fig}, left). Enter the URL for the
+%repository. Also, if the repository has read access restrictions, it
+%will generally be necessary to specify a user name and password in the
+%{\sf Authentication} fields.  (This will be your Gitlab or GitHub
+%account information for repositories stored on those sites.)  After
+%entering the required information, click {\sf Next}.
+%
+%\item A {\sf Branch Selection} dialog may appear. Usually
+%you want to select only the {\sf master} branch, and then click {\sf
+%Next}.
+%
+%\item A {\sf Local Destination} dialog will appear (Figure
+%\ref{EclipseGitImport:fig}, right). In the {\sf Directory} field, enter
+%the path of the local \directory{}, which will contain both the cloned
+%repository and the working copy. After entering the \directory{}
+%information, click {\sf Finish}.
+%
+%\item Finally, from {\it outside} Eclipse, locate the file
+%{\tt eclipseSettings.zip} in the project's top \directory{}, and then
+%unzip this file directly into that \directory{} (not into a
+%sub-\directory{}), so that {\tt .project} and {\tt .classpath} appear
+%in the top \directory{}.
+%\ifMacOS
+%MacOS users are strongly encouraged to read  
+%Section \ref{installingProjectFiles} for details on how to do this.
+%\else
+%For details, see Section \ref{installingProjectFiles}.
+%\fi % end MacOS
+%
+%\end{enumerate}
+%
+%The project can now be imported into Eclipse by following the steps in
+%Section \ref{importingExternalProjects}, using the project's
+%parent \directory{} as the ``root directory''.
+%
+%\subsubsection{Installing project files}
+%\label{installingProjectFiles}
+%
+%Some project repositories contain their eclipse project files bundled
+%in the zip file {\tt eclipseSettings.zip}, instead of keeping them
+%under direct repository control. This is to prevent unwanted local
+%configuration changes from being propagated back into the repository.
+%The project files need to be unzipped directly into the project
+%\directory{} (not into a sub-\directory{}) to enable the project to be
+%loaded into Eclipse.
+%
+%Let {\tt <PROJECT\_DIR>} denote the top-level project \directory{}.
+%%
+%\ifWindows
+%On Windows, project files can be extracted from within the 
+%file browser. Double click on {\tt eclipseSettings.zip}
+%and extract the files into {\tt <PROJECT\_DIR>}.
+%\else % not Windows 
+%Project files can be extracted using the command line.
+%Open a command shell, 
+%switch to the {\tt <PROJECT\_DIR>} \directory{}, and run {\tt unzip}:
+%\begin{verbatim}
+%  > cd <PROJECT_ROOT>
+%  > unzip eclipseSettings.zip
+%\end{verbatim}
+%\fi % end not Windows
+%This will create the files {\tt .project} and {\tt .classpath}, along
+%with the \directory{} {\tt .settings}, in {\tt <PROJECT\_DIR>}.  In
+%the case of {\tt artisynth\_core}, it will also create the file {\tt
+%ArtiSynth.launch} containing the default launch configuration.
+%
+%\begin{sideblock}
+%Note: if unzip queries about overwriting {\tt .project}, answer [y]es.
+%\end{sideblock}
+%
+%\ifMacOS
+%\begin{sideblock}
+%{\bf Attention MacOS users:}\\[0.5em]
+%While it is possible to unzip files from the file browser by clicking
+%on {\tt eclipseSettings.zip} and then extracting directly, the default
+%zip utility on MacOS will create a new sub-folder called {\tt
+%eclipseSettings} and will extract the files there.
+%\emph{You do not want this!!}
+%Some of the files are then labeled as ``hidden'' by MacOS, which will
+%prevent you from moving them to the correct place manually. 
+%Either extract the files using the command line as described
+%above, or use a more standard application like {\sf 7-Zip} ({\sf 7zX} for OSX).
+%\end{sideblock}
+%\fi % end MacOS
+%
 
 \subsection{Configuring environment variables}
 \label{EclipseEnvironmentVariables}
@@ -1336,9 +1888,9 @@ explicitly.
 \item {\tt OMP\_NUM\_THREADS}: Specifies the maximum number of processor cores
 available for multicore execution.
 
-\item {\tt ARTISYNTH\_PATH}: A list of folders, separated by semi-colons ";", 
-which ArtiSynth uses to search for configuration files. 
-See Section \ref{EnvironmentVariables}.
+%\item {\tt ARTISYNTH\_PATH}: A list of folders, separated by semi-colons ";", 
+%which ArtiSynth uses to search for configuration files. 
+%See Section \ref{EnvironmentVariables}.
 
 \end{itemize}
 
@@ -1372,7 +1924,7 @@ ArtiSynth install \directory{}.
 \begin{sideblock}
 {\bf Note:} There is a bug in Eclipse 4.0+ on Windows where it will replace 
 the system's native {\tt \%PATH\%} variable rather than appending to it.  
-To correct this behavior, define {\tt PATH} as 
+To correct this behavior, define \PATH{} as 
 {\tt \$\{env\_var:path\};\$ARTISYNTH\_HOME\SEP lib\SEP \ARCH{}} 
 \end{sideblock}
 \fi % end Windows
@@ -1465,15 +2017,14 @@ should be specified in the {\sf VM arguments} box. See Figure
 \begin{figure}
 \begin{center}
 \iflatexml
-\includegraphics[]{images/EclipseRunArgumentsSmall}
+  \includegraphics[]{images/EclipseLaunchConfig}
 \else
-\includegraphics[width=5.0in]{images/EclipseRunArguments}
+  \includegraphics[width=6in]{images/EclipseLaunchConfig}
 \fi
 \end{center}
-\caption{Setting command line and JVM arguments for a run configuration.}%
+\caption{Editing command line and JVM arguments for a run configuration.}%
 \label{EclipseRunArguments:fig}
 \end{figure}
-
 
 \subsection{Adding projects to the build path}
 \label{AddingProjectsToBuildPath}
@@ -1530,103 +2081,6 @@ can be unchecked. Click {\sf OK}.
 
 \end{enumerate}
 
-\subsection{Installing a Subversion plug-in}
-\label{SubversionPlugIn}
-
-In order to work with Subversion from within Eclipse, either to check
-out ArtiSynth from the repository, or to update or commit changes, it
-is necessary to use a Subversion plug-in. First, check to see if your
-version of Eclipse contains an Subversion plug-in:
-
-Open an import panel using {\sf File > Import...}, and then look for
-{\sf SVN} in the set of available import sources. If you don't see SVN
-listed, it will be necessary to install a plug-in.
-
-We recommend the Eclipse-supported Subversive plug-in, but if this
-proves difficult for any reason, there are other options, such as
-Subclipse, currently obtainable from
-\href{http://subclipse.tigris.org/servlets/ProjectProcess?pageID=p4wYuA}%
-{subclipse.tigris.org}.
-
-Instructions for installing Subversive can be obtained at
-\href{http://www.eclipse.org/subversive/installation-instructions.php}%
-{www.eclipse.org/subversive/installation-instructions.php}.
-
-One way to install Subversive is through the Eclipse Marketplace.  If
-you have an older version of Eclipse that doesn't have Marketplace,
-you may be able to obtain it from
-\href{http://www.eclipse.org/mpc/}{www.eclipse.org/mpc}.  To access
-the Marketplace, click {\sf Help > Eclipse Marketplace}. Once the
-available applications have been displayed, type {\tt Subversive} into
-the {\sf Find} box in the top-left corner of the Marketplace
-window. Navigate to the package labeled {\sf Subversive - SVN Team
-Provider} and click {\sf Install}. On the {\sf Confirm Selected
-Features} screen, ensure all boxes are checked and click the button
-labeled {\sf Confirm >}. Restart Eclipse when prompted.
-
-One more step is now necessary. Re-open Eclipse, and you should be
-prompted to choose an SVN connector in the start menu.  SVN connectors
-interface Subversive to the SVN server, and are OS and
-server-specific. A recommended SVN Connector will be pre-selected for
-downloading; this is most likely the one you need.
-
-If Eclipse did not prompt you to choose a connector when it restarted,
-you can install SVN connectors separately (thanks to bmaupin at
-Stackoverflow for this information):
-
-\begin{enumerate}
-
-\item  Go to 
-\href{http://www.polarion.com/products/svn/subversive/download.php}%
-{www.polarion.com/products/svn/subversive/download.php}
-
-\item Under the latest {\sf Release}, copy the Subversive SVN
-Connectors URL. The current URL for Eclipse 4.3 Kepler
-is \href{http://community.polarion.com/projects/subversive/download/eclipse/3.0/kepler-site/}%
-{http://community.polarion.com/projects/subversive/download/eclipse/3.0/kepler-site}.
-
-\item In Eclipse, go to {\sf Help > Install New Software...} and 
-click {\sf Add...}  
-
-\item Copy the URL for the Subversive SVN Connectors into the {\sf
-Location} box and click {\sf OK}
-
-\item Check {\sf Subversive SVN Connectors}, click {\sf Next}, and
-then follow the instructions to complete installation.
-
-\end{enumerate}
-
-If in doubt about the connector you need, you can install multiple
-ones, and then adjust the one Subversive actually uses by going to
-{\sf Windows > Preferences}, opening {\sf Team > SVN}, and then
-opening the {\sf SVN Connector} tab.
-
-\subsection{Preventing excessive resource copying}
-\label{PreventingResourceCopying}
-
-By default, ArtiSynth classes are built in a directory tree ({\tt
-<PROJECT\_DIR>\SEP classes}) that is separate from the source tree ({\tt
-<PROJECT\_DIR>\SEP src}), where {\tt <PROJECT\_DIR>} denotes the project
-root \directory{} and is \ArtHome[] for ArtiSynth itself.
-That means that Eclipse will try to copy all non-Java files and
-\directories{} from the source tree into the build tree. For ArtiSynth,
-this is excessive, and results in many files being copied that don't
-need to be, since ArtiSynth looks for resources in the source tree
-anyway.
-
-It is possible to inhibit most of this copying:
-
-\begin{enumerate}
-
-\item Choose {\sf Window > Preferences} (or {\sf Eclipse > Preferences}).
-
-\item Select {\sf Java > Compiler > Building}.
-
-\item Open {\sf Output folder}, and in the box entitled {\sf Filter resources},
-  enter the single character `{\tt *}'.
-
-\end{enumerate}
-
 \section{Additional Information}
 
 \subsection{Adding Directories to the System Path}
@@ -1676,7 +2130,7 @@ and enter the full path name for each directory you wish to add.
 then {\sf Edit}. If {\sf Path} does not exist, click {\sf New}.
 
 \item In the edit window, add the full path name for each new directory,
-separated by semi-colons '{\tt ;}'.
+separated by semi-colons `{\tt ;}'.
 
 \item Close each dialog by clicking {\sf OK}.
 
@@ -1684,10 +2138,10 @@ separated by semi-colons '{\tt ;}'.
 
 For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
 artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
-Files\BKS Java\BKS jdk1.8.0\_221}, then we can add the {\tt bin}
+Files\BKS Java\BKS jdk1.8.0\_281}, then we can add the {\tt bin}
 directories for both by setting the User path to
 \begin{verbatim}
-  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_221\bin
+  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_281\bin
 \end{verbatim}
 
 \fi % end Windows
@@ -1703,7 +2157,7 @@ On Linux,
 directories can be added to the path by appending them to the {\tt
 PATH} environment variable, which is a list of directories separated
 by colons `{\tt :}'. The most direct way to do this is to redefine
-{\tt PATH} inside one of the initialization files for whichever
+\PATH{} inside one of the initialization files for whichever
 command line shell you are using.
 
 Assume that your home folder is {\tt <HOMEDIR>}. Then for the {\tt
@@ -1738,7 +2192,7 @@ text editor. For example:
 \item Add the full path name of each desired directory, one per line,
 and save the file.
 
-\item To test the revised {\tt PATH}, open a new terminal
+\item To test the revised \PATH{}, open a new terminal
 window and enter the command: {\tt echo \$PATH}.
 
 \end{enumerate}
@@ -1748,110 +2202,8 @@ window and enter the command: {\tt echo \$PATH}.
 
 \begin{sideblock}
 Most most command windows and applications need to be restarted in
-order to get them to notice changes to the {\tt PATH}.
+order to get them to notice changes to \PATH{}.
 \end{sideblock}
-
-\ifWindows
-
-\subsection{Git for Windows}
-\label{GitForWindows}
-
-A version of Git for Windows can be installed from
-\href{https://git-scm.com/downloads}{git-scm.com/downloads}.
-
-It installs a version of Git Bash for that can be used for entering
-Git commands.  While going through the install steps, there is an
-option to select between:
-
-\begin{enumerate}
-
-\item Use Git from Git Bash only
-\item Use Git from the Windows Command Prompt
-\item Use Git and optional Unix tools from the Windows Command Prompt
-
-\end{enumerate}
-
-Option 2 (Git from CMD) is often fine for most users, and allows them
-to run all git commands directly from a command console {\tt CMD}.  There are
-other options for setting the default editor, the default
-console to open when starting Git Bash, etc., but the defaults should
-work well in most cases.
-
-\subsection{The TortoiseSVN Client}
-\label{TortoiseSVN}
-
-As mentioned above, some ArtiSynth models may be distributed via
-Subversion (SVN), and access to these will require an SVN client
-program. A popular SVN client for Windows is TortoiseSVN, which can be
-acquired from
-\href{http://tortoisesvn.net}{tortoisesvn.net}. On that website,
-navigate to {\sf Downloads} and then select the package appropriate
-for your operating system (which presumably will be 64-bits).
-
-Once downloaded, run the MSI installer and follow the instructions in
-the installer. When the download completes, right-clicking in any file
-browser in Windows should now present you with SVN version control
-options, analogous to the command line instructions discussed in other
-parts of the documentation. We will briefly discuss the three
-most common operations:
-
-\begin{description}
-
-\item[Checking out a repository]
-
-To check out an SVN repository with TortoiseSVN, right-click in any
-file exploration window and select {\sf SVN Checkout...} from the
-context menu. The current \directory{} will be the default \directory{} for
-the {\sf Checkout directory} field, and the {\it Subversion\_URL} can
-be selected in the {\sf URL of repository} field. It is recommended
-that other fields remain as their default values.
-
-\item[Updating a working copy]
-
-While inside a working copy of a repository in a file browser window,
-updating that repository is as simple as right-clicking and selecting
-{\sf SVN Update}.
-
-\item[Committing changes]
-
-Users which have write-access to a Subversion repository may commit
-changes that they have made.  Right-click in a file browser window
-inside a working copy of a repository and select {\sf
-Commit...}. Write a commit message and the select {\sf OK}.
-
-\end{description}
-
-\subsection{Cygwin}
-\label{Cygwin}
-
-Cygwin provides Windows users with a Linux-like, shell-based command
-environment.  Its provides useful tools and enables ArtiSynth users to
-employ all the script-based commands in \ArtHome[\SEP bin], as well
-as various {\tt Makefile} commands.
-
-Cygwin can be downloaded from 
-\href{http://www.cygwin.com}{www.cygwin.com}. Run the
-executable that was just downloaded (setup.exe) to begin
-installation. After selecting a download source, an install directory,
-a package directory, an internet connection, and a download site, the
-installer will display a list of packages which the user can select
-for download. Normally, a default set of packages is already selected
-for installation. It is advisable to install these packages to ensure
-that Cygwin retains its basic capabilities. It is also recommended
-that you select the following additional packages:
-
-\begin{itemize}
-
-\item {\tt archive}
-\item {\tt git}, {\tt svn}, {\tt make} (located under {\tt devel})
-\item {\tt python} (located under {\tt interpreters}).
-\item {\tt openssh} (located under {\tt net})
-
-\end{itemize}
-
-If you are planning to compile C/C++ code, you may also want to
-install the various {\tt gcc} and {\tt gdb} packages (located under {\tt devel}).
-\fi % end Windows
 
 \subsection{Environment variables}
 \label{EnvironmentVariables}
@@ -1864,35 +2216,31 @@ desirable for the user to set them explicitly.
 
 \begin{description}
 
-\item[ARTISYNTH\_HOME]\mbox{}
+\item[{\tt ARTISYNTH\_HOME}]\mbox{}
  
 The path name of the ArtiSynth installation \directory{}.
 
-\item[ARTISYNTH\_PATH]\mbox{}
+%\item[ARTISYNTH\_PATH]\mbox{}
+%
+%A list of \directories{}, separated by \separatorDesc, which ArtiSynth
+%uses to search for configuration files such as {\tt .artisyntInit} or
+%{\tt .demoModels}.  A typical setting for {\tt ARTISYNTH\_PATH}
+%consists of the current \directory{} (indicated by "{\tt .}"), the user's
+%home \directory{}, and the ArtiSynth installation \directory{}. If {\tt
+%ARTISYNTH\_PATH} is not defined explicitly in the user's environment,
+%ArtiSynth assumes an implicit path consisting of the \directory{}
+%sequence just described.
 
-A list of \directories{}, separated by \separatorDesc, which ArtiSynth
-uses to search for configuration files such as {\tt .artisyntInit} or
-{\tt .demoModels}.  A typical setting for {\tt ARTISYNTH\_PATH}
-consists of the current \directory{} (indicated by "{\tt .}"), the user's
-home \directory{}, and the ArtiSynth installation \directory{}. If {\tt
-ARTISYNTH\_PATH} is not defined explicitly in the user's environment,
-ArtiSynth assumes an implicit path consisting of the \directory{}
-sequence just described.
+\item[{\tt CLASSPATH}]\mbox{}
 
-\item[CLASSPATH]\mbox{}
+A list of \directories{} and/or JAR files, separated by
+\separatorDesc, which Java uses to locate its class files.
 
-A list of \directories{} and/or {\tt jar} files, separated by
-\separatorDesc, which Java uses to locate its class files. This
-variable should be set to include \ArtHome[\SEP classes]
-and \ArtHome[\SEP lib\SEP *] (the latter uses the
-wildcard {\tt *} to specify all the {\tt jar} files in 
-\ArtHome[\SEP lib]).
-
-\item[PATH]\mbox{}
+\item[\PATH{}]\mbox{}
  
 A list of \directories{}, separated by \separatorDesc, which the
 operating system uses to locate executable programs and
-applications. Placing \ArtHome[\SEP bin] in your {\tt PATH} (as
+applications. Placing \ArtHome[\SEP bin] in \PATH{} (as
 described in Section \ref{SettingPath}) will allow you to run {\tt
 artisynth} and related commands directly from a command window.
 
@@ -1906,7 +2254,7 @@ Should be set to include \ArtHome[\SEP lib\SEP \ARCH{}].
 \fi % end not Windows
 \fi % end NeedLibraryPath
 
-\item[OMP\_NUM\_THREADS]\mbox{}
+\item[{\tt OMP\_NUM\_THREADS}]\mbox{}
  
 Specifies the maximum number of processor cores that are available for
 multicore execution. Setting this variable to the maximum number of
@@ -1966,8 +2314,8 @@ the following steps:
 
 \end{enumerate}
 
-Variable settings can reference other environment variables, by
-surrounding them with percent signs, as in {\tt \%VARIABLE\_NAME\%}.  For
+Variable settings can reference other environment variables by
+surrounding them with percent signs, as in {\tt \%VAR\_NAME\%}.  For
 example, suppose you already have an environment variable {\tt HOME} that
 gives the location of your home \directory{}, and your ArtiSynth
 distribution is located in {\tt packages\SEP artisynth\_core} relative to your
@@ -1986,38 +2334,35 @@ look like this:
 
 \begin{lstlisting}[]
 ARTISYNTH_HOME c:\users\joe\artisynth_core
-ARTISYNTH_PATH .;c:\users\joe;%ARTISYNTH_HOME%
 CLASSPATH %ARTISYNTH_HOME%\classes;%ARTISYNTH_HOME%\lib\*
 PATH %ARTISYNTH_HOME%\bin;%PATH%
-OMP_NUM_THREADS 2
+OMP_NUM_THREADS 4
 \end{lstlisting}
 
-\subsubsection{Cygwin environment settings}
-\label{CygwinEnvironmentSettings}
+\subsubsection{GitBash environment settings}
+\label{GitBashEnvironmentSettings}
 
-When running a Cygwin terminal, it is possible to set environment
-variables in the startup script for the terminal's shell. Assuming
-that this shell is {\tt bash}, then the environment settings described
-in \ref{TypicalEnvironment} can be set by inserting the following
-into one of {\tt bash}'s initialization files (typically {\tt
-\textasciitilde/.bashrc}):
+When using {\tt GitBash} (Section \ref{GitForWindows}), it is
+possible to set environment variables in a {\tt .bashrc} file located
+in the user's home \directory{}. The file entries corresponding
+to the settings of Section \ref{TypicalEnvironment}
+would look like this:
 
 \begin{lstlisting}[]
-# set AH to the location of the ArtiSynth install folder
-AH=$HOME/artisynth_core
-export PATH=$AH/bin:$PATH
-
-# Use Windows path style for ARTISYNTH_HOME, ARTISYNTH_PATH, and CLASSPATH:
-export ARTISYNTH_HOME=`cygpath -w $AH`
-export ARTISYNTH_PATH=".;`cygpath -w $HOME`;$ARTISYNTH_HOME"
-export CLASSPATH="$ARTISYNTH_HOME\classes;$ARTISYNTH_HOME\lib"'\*;'"$CLASSPATH"
-export OMP_NUM_THREADS=2
+# set ARTISYNTH_HOME to the appropriate location ...
+export ARTISYNTH_HOME=C:/users/joe/artisynth_core
+# Windows file notation is needed for CLASSPATH:
+AH="C:\users\joe\/artisynth_core"
+export CLASSPATH="$AH\classes;$AH\lib\*"
+export PATH=$ARTISYNTH_HOME/bin:$PATH
+# Set to the number of cores on your machine:
+export OMP_NUM_THREADS=4 
 \end{lstlisting}
 
-Note that even on Cygwin, the environment variables {\tt
-ARTISYNTH\_HOME}, {\tt ARTISYNTH\_PATH}, and {\tt CLASSPATH} should be
-set using Windows path conventions. That is because they may not
-necessarily be invoked in a Unix-like context.
+Note that the {\tt CLASSPATH} environment variable must be set using a
+Windows format, with backslash ('\BKS') to separate files and
+semicolon (';') to separate path entries. This requirement is
+imposed by the Java compiler.
 \fi % end Windows
 
 \ifWindows\else % not Windows 
@@ -2031,12 +2376,11 @@ one of your {\tt bash} initialization files (typically {\tt
 
 \begin{lstlisting}[]
 # set ARTISYNTH_HOME to the appropriate location ...
-export ARTISYNTH_HOME=$HOME/artisynth_2_X
-export ARTISYNTH_PATH=.:$HOME:$ARTISYNTH_HOME
-export CLASSPATH=$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/'*':$CLASSPATH
-export PATH=$ARTISYNTH_HOME/bin:$PATH
+export ARTISYNTH_HOME=$HOME/artisynth_core
+export CLASSPATH="$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*"
+export PATH="$ARTISYNTH_HOME/bin:$PATH"
 # Set to the number of cores on your machine:
-export OMP_NUM_THREADS=2 
+export OMP_NUM_THREADS=4 
 \end{lstlisting}
 
 Be sure to set {\tt ARTISYNTH\_HOME} to the proper location of your
@@ -2072,22 +2416,20 @@ to the following in your {\tt .cshrc} file, located in your home
 \ifLinux
 \begin{lstlisting}[]
 # set ARTISYNTH_HOME to the appropriate location ...
-setenv ARTISYNTH_HOME $HOME/artisynth_2_X
-setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
+setenv ARTISYNTH_HOME $HOME/artisynth_core
 setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
 setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 # Set to the number of cores on your machine:
-setenv OMP_NUM_THREADS 2 
+setenv OMP_NUM_THREADS 4 
 \end{lstlisting}
 \else\ifMacOS
 \begin{lstlisting}[]
 # set ARTISYNTH_HOME to the appropriate location ...
-setenv ARTISYNTH_HOME $HOME/artisynth_2_X
-setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
+setenv ARTISYNTH_HOME $HOME/artisynth_core
 setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
 setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 # Set to the number of cores on your machine:
-setenv OMP_NUM_THREADS 2 
+setenv OMP_NUM_THREADS 4 
 \end{lstlisting}
 \fi % end MacOS
 \fi % end not Linux
@@ -2115,30 +2457,31 @@ it {\it won't} set {\tt OMP\_NUM\_THREADS}).
 \subsection{ArtiSynth Libraries}
 
 ArtiSynth uses a set of libraries located under
-\ArtHome[\SEP lib].  These include a number of {\tt jar}
+\ArtHome[\SEP lib].  These include a number of JAR
 files, plus native libraries located in architecture-specific
 sub-\directories{} ({\tt \ARCH{}} for \FULLSYSTEM{} systems).
 
-As described in Section \ref{DownloadingLibraries}, these libraries
+As described in Section \ref{GitHubInstall}, these libraries
 need to be downloaded automatically if the system is obtained from the
-Github repository. The required libraries are listed in the file
+GitHub repository. The required libraries are listed in the file
 \ArtHome[\SEP lib\SEP LIBRARIES]. This file is checked
 into the repository, so that the system can always determine what
 libraries are needed for a particular checkout version.
 
-Occasionally the libraries are changed or upgraded.  If you run
-ArtiSynth with the {\tt -updateLibs} command line option, the program
-will ensure that not only are all the required libraries present, but
-that they also match the latest versions on the ArtiSynth server.
+Occasionally the libraries are changed or upgraded
+(Section \ref{UpdatingArtiSynth}).  If you run ArtiSynth with the {\tt
+-updateLibs} command line option, the program will ensure that not
+only are all the required libraries present, but that they also match
+the latest versions on the ArtiSynth server.
 
 \subsection{The EXTCLASSPATH File}
 \label{EXTCLASSPATHFile}
 
-In order to run an external model or package in ArtiSynth, all class
-paths (i.e., class \directories{} or {\tt jar} files) associated with
-those external classes must be made visible to ArtiSynth. One way to
-do this is to list these class paths as entries in the text file {\tt
-EXTCLASSPATH}, located in \ArtHome[].
+In order to run an external model in ArtiSynth, all
+class \directories{} and JAR files associated with those external
+models must be made visible to ArtiSynth. One way to do this is to
+list these as entries in the text file {\tt EXTCLASSPATH}, located
+in \ArtHome[].
 
 To add class paths to {\tt EXTCLASSPATH}, open it using a
 plain text editor
@@ -2147,25 +2490,23 @@ plain text editor
 \else
 (such as {\tt vim}, {\tt gedit}, or {\tt emacs}),
 \fi
-and add each required path. For clarity, each path is typically
-added on a separate line. However, multiple paths can be
-added on the same line if they are separated by the
-path separator character used for that OS.
+and add the required class \directories{} and JAR files.  Usually
+these are added one per line, but multiple entries can be made on the
+same line if separated by \separatorDesc{}.
 
 The syntax rules for {\tt EXTCLASSPATH} are:
 
 \begin{enumerate}
 
-\item Class path entries on the same line should be separated by a
-path separator character (a semi-colon '{\tt ;}' for Windows
-and a colon '{\tt :}' for MacOS and Linux).
+\item Entries on the same line should be separated
+\separatorDesc{}.
 
-\item The {\tt \#} character comments out all remaining characters
+\item The `{\tt \#}' character comments out all remaining characters
 to the end of line.
 
-\item The {\tt \$} character can be used to expand environment variables.
+\item The `{\tt \$}' character can be used to expand environment variables.
 
-\item Any spaces present {\it will} be included in the path name.
+\item Any spaces present {\it will} be included in the entry name.
 
 \end{enumerate}
 
@@ -2216,13 +2557,13 @@ A very simple workflow for a typical ArtiSynth user is summarized
 below. The actions are described in command-line form, but the same
 commands can generally be issued through Eclipse or other
 interfaces. First, clone the most recent version of the ArtiSynth
-repository on Github:
+repository on GitHub:
 
 \begin{verbatim}
   git clone https://github.com/artisynth/artisynth_core.git [<dir>]
 \end{verbatim}
 
-This will create a local copy of the Github repository, along with a
+This will create a local copy of the GitHub repository, along with a
 checked out ``working copy'', in the \directory{} specified by {\tt
 <dir>}, or in {\tt artisynth\_core} if {\tt <dir>} is
 omitted.  The repository itself will be located in a sub-\directory{}
@@ -2232,11 +2573,12 @@ Other Git repositories can be cloned in a similar manner.  If the
 repository has read access restrictions, then when performing a checkout it
 may also be necessary to specify a user name for which the repository
 has granted read access. This is typically done by embedding the user
-name in the URL, as in (for example)
-{\tt https://user@host.xz/path/to/repo.git}.
+name in the URL, as in (for example):
 
-Later, to fetch the latest updates from the Github repository and
-merge them into your working copy, then from within the working copy
+{\tt https://user@host.xz/path/to/repo.git}
+
+Later, to fetch the latest updates from the GitHub repository and
+merge them into your working copy, from within the working copy
 \directory{} you can do
 \begin{verbatim}
   git pull
@@ -2271,7 +2613,7 @@ use
   git log [ <filename> ... ]
 \end{verbatim}
 
-Finally, to push your changes back to the Github repository (assuming
+Finally, to push your changes back to the GitHub repository (assuming
 you have permission do so), you would do so using the command
 \begin{verbatim}
   git push origin master
@@ -2287,129 +2629,6 @@ include
    http://rogerdudler.github.io/git-guide
 \end{verbatim}
 
-\subsection{Quick Subversion Summary}
-\label{SubversionSummary}
-
-Subversion is a client/server source control management (SCM) system
-that is widely used in the software industry.  A full discussion of
-Subversion is beyond the scope of this document, but a large
-literature is available online. 
-
-Subversion allows you to {\it check out} a codebase from a (often
-remote) repository into a local {\it working copy}, {\it update}
-recent changes from the repository into the working copy, and (if one
-has the appropriate permissions) {\it commit} local changes back into
-to repository.
-
-A Subversion {\it client} application is used to access both
-Subversion repositories and local working copies. The remainder of
-this discussion will assume use of the command-line client {\tt svn},
-although other clients are available, including TortoiseSVN for
-Windows 
-\ifWindows
-(Section \ref{TortoiseSVN}) 
-\fi
-and the Subversion plug-ins for
-Eclipse (Section \ref{SubversionPlugIn}).
-
-Some ArtiSynth models collections and code extensions are distributed
-through Subversion, including the {\tt artisynth\_projects} package
-used by some collaborators. A very simple workflow involving one of
-these is summarized below.
-
-First, check out the most recent version from the repository, using
-the repository's URL. For example, the URL for {\tt artisynth\_projects}
-is {\tt https://svn.artisynth.org/svn/artisynth\_projects},
-and the associated checkout command is
-\begin{verbatim}
-  svn checkout https://svn.artisynth.org/svn/artisynth_projects/trunk [<dir>]
-\end{verbatim}
-This will create a local working copy of the ``trunk'' branch of {\tt
-artisynth\_projects} in the \directory{} specified by {\tt <dir>},
-or in {\tt artisynth\_projects} if {\tt <dir>} is omitted. Local
-repository information is stored in a sub-\directory{} called {\tt
-.svn}.
-
-If the SVN repository has read access restrictions (which 
-{\tt artisynth\_projects} actually does), then when performing a
-checkout it may also be necessary to specify a user name or email
-address for which the repository has granted read access. This may be
-done with the {\tt --username} option. The user will also
-typically be prompted for an access password.
-
-\begin{sideblock}
-{\bf Note:}\\ 
-If you omit the trailing {\tt /trunk} from the
-Subversion URL, then the checkout will contain the entire Subversion
-\directory{} structure, including the subdirectories {\tt trunk}, {\tt
-branches}, and {\tt tags}, which is generally not needed by most
-users.
-\end{sideblock}
-
-Later, to fetch the latest updates from the repository and
-merge them into your working copy, from within the local
-\directory{}, would you simply do
-\begin{verbatim}
-  svn update
-\end{verbatim}
-
-If you make changes to some files in your working copy and wish to
-commit these back to the repository (assuming you have the necessary
-permissions), then you can issue the command
-\begin{verbatim}
-  svn commit -m "commit message"
-\end{verbatim}
-To add or remove files from the repository, one may use
-the commands
-\begin{verbatim}
-  svn add <fileName> ...     # add files
-  svn delete <fileName> ...  # delete files
-\end{verbatim}
-prior to performing the commit.
-
-To see the current status of the files in your working copy,
-use the command
-\begin{verbatim}
-  svn status
-\end{verbatim}
-and to see the commit history for particular files or \directories{},
-use 
-\begin{verbatim}
-  svn log [ <filename> ... ]
-\end{verbatim}
-
-Note that the above commands all have various options not mentioned.
-There are also numerous topics that haven't been discussed, including
-the creation and merging of branches, but there are many useful online
-resources that describe these in detail. The most comprehensive
-is probably the \href{http://svnbook.red-bean.com}{Subversion ``Redbook''}.
 
 \end{document}
 
-%To obtain one of the packaged distributions:
-%
-%\begin{enumerate}
-%
-%\item Go to \href{http://www.artisynth.org}{http://www.artisynth.org}
-%
-%\item Select {\sf Software/Downloads}. This will bring up a page directing you 
-%to the {\sf ArtiSynth Download Form}.
-%
-%\item Select the link to the {\sf ArtiSynth Download Form}.
-%
-%\item Fill in and submit this form. An email containing a link and a password 
-%will automatically be sent to the e-mail address you provide in this form.
-%
-%\item Open the e-mail mentioned above and click on the given link to find a 
-%password protected webpage.
-%
-%\item Enter the password provided by the email. Take care that no spaces are 
-%included, as the system is sensitive to them.
-%
-%\item This will lead to a different webpage, with links to various ArtiSynth 
-%distributions. Select any one to download, and click it.
-%
-%\item Download the distribution, and unzip it in an appropriate
-%location on your computer.
-%
-%\end{enumerate}

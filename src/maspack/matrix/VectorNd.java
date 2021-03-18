@@ -99,7 +99,7 @@ public class VectorNd extends VectorBase
     * @param values
     * element values for the new vector
     */
-   public VectorNd (double[] values) {
+   public VectorNd (double... values) {
       resetSize (values.length);
       set (values);
    }
@@ -111,7 +111,7 @@ public class VectorNd extends VectorBase
     * @param values
     * element values for the new vector
     */
-   public VectorNd (float[] values) {
+   public VectorNd (float... values) {
       resetSize (values.length);
       set (values);
    }

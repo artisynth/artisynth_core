@@ -24,87 +24,88 @@ import maspack.util.ReaderTokenizer;
  */
 public class ModelHistory {
 
-      ArrayList<ModelHistoryInfo> info;
-      HashMap<ModelInfo,ModelHistoryInfo> infoMap;
+   ArrayList<ModelHistoryInfo> info;
+   HashMap<ModelInfo,ModelHistoryInfo> infoMap;
+
+   // purposely ascending so more efficient sorting on update
+   ModelHistoryTimeComparatorAscending cmp;
       
-      // purposely ascending so more efficient sorting on update
-      ModelHistoryTimeComparatorAscending cmp;
-      
-      public ModelHistory() {
-         info = new ArrayList<>();
-         infoMap = new HashMap<>();
-         cmp = new ModelHistoryTimeComparatorAscending();
+   public ModelHistory() {
+      info = new ArrayList<>();
+      infoMap = new HashMap<>();
+      cmp = new ModelHistoryTimeComparatorAscending();
+   }
+
+   private ModelHistoryInfo addOrUpdate(ModelInfo mi, Date dateTime) {
+
+      ModelHistoryInfo omhi = infoMap.get (mi);
+      int pidx = -1;
+      if (omhi != null) {
+         // update time
+         pidx = omhi.getIndex ();
+         omhi.setTime (dateTime);
       }
-        
-      private ModelHistoryInfo addOrUpdate(ModelInfo mi, Date dateTime) {
+      else {
+         // add
+         ModelHistoryInfo mhi = new ModelHistoryInfo(mi, dateTime);
+         infoMap.put (mi, mhi);
+         pidx = info.size ();
+         mhi.setIndex (pidx);
+         info.add (mhi);
+         omhi = mhi;
+      }
          
-         ModelHistoryInfo omhi = infoMap.get (mi);
-         int pidx = -1;
-         if (omhi != null) {
-            // update time
-            pidx = omhi.getIndex ();
-            omhi.setTime (dateTime);
+      // search down from pidx, updating indices
+      while (pidx > 0) {
+         ModelHistoryInfo prev = info.get (pidx-1);
+         if (cmp.compare (prev, omhi) >= 0 ) {
+            info.set (pidx, prev);
+            prev.idx = pidx;
+            --pidx;
          } else {
-            // add
-            ModelHistoryInfo mhi = new ModelHistoryInfo(mi, dateTime);
-            infoMap.put (mi, mhi);
-            pidx = info.size ();
-            mhi.setIndex (pidx);
-            info.add (mhi);
-            omhi = mhi;
+            break;
          }
-         
-         // search down from pidx, updating indices
-         while (pidx > 0) {
-            ModelHistoryInfo prev = info.get (pidx-1);
-            if (cmp.compare (prev, omhi) >= 0 ) {
-               info.set (pidx, prev);
-               prev.idx = pidx;
-               --pidx;
-            } else {
-               break;
-            }
-         }
-         
-         // search up from pidx, updating indices
-         while (pidx < info.size ()-1) {
-            ModelHistoryInfo next = info.get (pidx+1);
-            if (cmp.compare (omhi, next) > 0 ) {
-               info.set (pidx, next);
-               next.idx = pidx;
-               ++pidx;
-            } else {
-               break;
-            }
-         }
-         
-         info.set (pidx, omhi);
-         omhi.idx = pidx;
-         
-         return omhi;
       }
+         
+      // search up from pidx, updating indices
+      while (pidx < info.size ()-1) {
+         ModelHistoryInfo next = info.get (pidx+1);
+         if (cmp.compare (omhi, next) > 0 ) {
+            info.set (pidx, next);
+            next.idx = pidx;
+            ++pidx;
+         } else {
+            break;
+         }
+      }
+         
+      info.set (pidx, omhi);
+      omhi.idx = pidx;
+         
+      return omhi;
+   }
       
-      public ModelHistoryInfo update(ModelInfo mi, Date dateTime) {
-         return addOrUpdate (mi, dateTime);
-      }
+   public ModelHistoryInfo update(ModelInfo mi, Date dateTime) {
+      return addOrUpdate (mi, dateTime);
+   }
       
-      /**
-       * Returns the k most recently loaded models
-       */
-      public ModelHistoryInfo[] getRecent(int k) {
-         int size = info.size();
-         if (size < k) {
-            k = size;
-         }
-         ModelHistoryInfo[] mhis = new ModelHistoryInfo[k];
-         
-         // since list is sorted, get the last k
-         for (int i=0; i<k; ++i) {
-            mhis[i] = info.get(info.size()-1-i);
-         }
-         
-         return mhis;
+   /**
+    * Returns the k most recently loaded models
+    */
+   public ModelHistoryInfo[] getRecent(int k) {
+      int size = info.size();
+      if (size < k) {
+         k = size;
       }
+      ModelHistoryInfo[] mhis = new ModelHistoryInfo[k];
+         
+      // since list is sorted, get the last k
+      for (int i=0; i<k; ++i) {
+         mhis[i] = info.get(info.size()-1-i);
+      }
+         
+      return mhis;
+   }
 
    public static class ModelHistoryInfo {
       ModelInfo mi;
@@ -156,7 +157,7 @@ public class ModelHistory {
       implements Comparator<ModelHistoryInfo> {
 
       @Override
-      public int compare(ModelHistoryInfo o1, ModelHistoryInfo o2) {
+         public int compare(ModelHistoryInfo o1, ModelHistoryInfo o2) {
          return o1.getTime ().compareTo(o2.getTime ());
       }
       
@@ -199,7 +200,7 @@ public class ModelHistory {
       
       rtok.nextToken();
       while (rtok.ttype != ReaderTokenizer.TT_EOL 
-            && rtok.ttype != ReaderTokenizer.TT_EOF) {
+             && rtok.ttype != ReaderTokenizer.TT_EOF) {
          
          args.add (getTokenString(rtok));
          
@@ -266,7 +267,8 @@ public class ModelHistory {
       writer.println("# class \"shortname\" time [args]");
       for (ModelHistoryInfo mhi : info) {
          ModelInfo mi = mhi.mi;
-         writer.print(mi.getClassNameOrFile() + " \"" + mi.shortName + "\" " + mhi.time.getTime() );
+         writer.print(
+            mi.getClassNameOrFile()+" \""+mi.shortName+"\" "+mhi.time.getTime());
          if (mi.args != null) {
             for (String str : mi.args) {
                writer.print(" ");
@@ -279,5 +281,4 @@ public class ModelHistory {
       writer.close();
       
    }
-   
 }

@@ -104,6 +104,18 @@ public class AffineTransform3d extends AffineTransform3dBase {
       M = this.A;
       b = this.p;
    }
+   
+   /**
+    * Constructs using an array representing the 3x4 matrix [A|p] given in row-major format 
+    */
+   public AffineTransform3d (double[] m) {
+       if(m.length < 12) 
+           throw new IllegalArgumentException("Input array should at least be size 12");
+       this.A = new Matrix3d(m[0], m[1], m[2], m[4], m[5], m[6], m[8], m[9], m[10]);
+       this.p = new Vector3d(m[3], m[7], m[11]);
+       M = this.A;
+       b = this.p;
+    }
 
    /**
     * Multiplies this transformation transformation X and places the result in

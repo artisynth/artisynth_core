@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import artisynth.core.mechmodels.RigidMeshComp;
 import maspack.geometry.MeshBase;
+import maspack.geometry.PolygonalMesh;
 import maspack.geometry.io.GenericMeshReader;
 import maspack.matrix.Vector3d;
 
@@ -45,6 +46,13 @@ public class Mesh extends Geometry {
             //            if (transform != null) {
             //               mesh.transform (transform);
             //            }
+            if (mesh instanceof PolygonalMesh) {
+               // make triangular
+               PolygonalMesh pmesh = (PolygonalMesh)mesh;
+               if (!pmesh.isTriangular()) {
+                  pmesh.triangulate();
+               }
+            }
          }
          catch (IOException e) {
             e.printStackTrace();

@@ -17,14 +17,16 @@ public class ModelInfo {
    String shortName;
    ModelType type;
    String[] args;
-   
-   public ModelInfo(ModelType type, String classNameOrFile, String shortName, String[] args) {
+   boolean hashcodeValid = false;
+   int hashcode;
+
+   public ModelInfo (
+      ModelType type, String classNameOrFile, String shortName, String[] args) {
       
       this.classNameOrFile = classNameOrFile;
       this.shortName = shortName;
       this.args = args;
-      this.type = type;
-      
+      this.type = detectType(classNameOrFile);
    }
    
    public String getClassNameOrFile() {
@@ -44,17 +46,12 @@ public class ModelInfo {
    }
    
    public ModelType getType() {
-      // lazy initialization
-      if (type == null) {
-         type = detectType(classNameOrFile);
-      }
       return type;
    }
    
    public ModelInfo(String classNameOrFile, String shortName, String[] args) {
       this(null, classNameOrFile, shortName, args);
    }
-   
    
    private static ModelType detectType (String classNameOrFile) {
       
@@ -71,14 +68,18 @@ public class ModelInfo {
    
    @Override
    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + Arrays.hashCode(args);
-      result = prime * result
+      if (!hashcodeValid) {
+         final int prime = 31;
+         int hash = 1;
+         hash = prime*hash + Arrays.hashCode(args);
+         hash = prime*hash
             + ((classNameOrFile == null) ? 0 : classNameOrFile.hashCode());
-      result = prime * result + ((shortName == null) ? 0 : shortName.hashCode());
-      result = prime * result + ((type == null) ? 0 : type.hashCode());
-      return result;
+         hash = prime*hash + ((shortName == null) ? 0 : shortName.hashCode());
+         hash = prime*hash + ((type == null) ? 0 : type.hashCode());
+         hashcode = hash;
+         hashcodeValid = true;
+      }
+      return hashcode;
    }
 
    @Override
@@ -86,38 +87,35 @@ public class ModelInfo {
       if (this == obj) {
          return true;
       }
-      if (obj == null) {
-         return false;
-      }
-      if (getClass() != obj.getClass()) {
-         return false;
-      }
-      
-      ModelInfo other = (ModelInfo)obj;
-      if (!Arrays.equals(args, other.args)) {
-         return false;
-      }
-      
-      if (type != other.type) {
-         return false;
-      }
-      if (classNameOrFile == null) {
-         if (other.classNameOrFile != null) {
-            return false;  
-         }
-      } else if (!classNameOrFile.equals(other.classNameOrFile)) {
-         return false;
-      }
-      
-      if (shortName == null) {
-         if (other.shortName != null) {
+      if (obj instanceof ModelInfo) {
+         ModelInfo other = (ModelInfo)obj;
+         if (!Arrays.equals(args, other.args)) {
             return false;
          }
-      } else if (!shortName.equals(other.shortName)) {
-         return false;
-      }
       
-      return true;
+         if (type != other.type) {
+            return false;
+         }
+         if (classNameOrFile == null) {
+            if (other.classNameOrFile != null) {
+               return false;  
+            }
+         }
+         else if (!classNameOrFile.equals(other.classNameOrFile)) {
+            return false;
+         }
+      
+         if (shortName == null) {
+            if (other.shortName != null) {
+               return false;
+            }
+         }
+         else if (!shortName.equals(other.shortName)) {
+            return false;
+         }
+         return true;
+      }
+      return false;
    }
    
    @Override

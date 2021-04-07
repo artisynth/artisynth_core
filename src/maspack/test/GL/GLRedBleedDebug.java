@@ -6,16 +6,19 @@ import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JFrame;
 import javax.swing.event.MouseInputAdapter;
+import java.io.File;
 
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.render.GL.GL3.GL3Utilities;
+import maspack.render.GL.GL3.GL3Viewer;
 import maspack.render.*;
 import maspack.render.GL.*;
 import maspack.properties.*;
 import maspack.widgets.*;
 import maspack.render.Renderer.Shading;
 import maspack.util.Logger;
+import maspack.util.PathFinder;
 import maspack.util.Logger.LogLevel;
 
 /**
@@ -28,12 +31,21 @@ public class GLRedBleedDebug extends GL3Tester implements ActionListener {
    JFrame myFrame;
    GLViewer myViewer;
 
+     private static File[] debugShaders = {
+        new File(PathFinder.getSourceRelativePath(
+                    GLRedBleedDebug.class, "vertex_test.glsl")),
+        new File(PathFinder.getSourceRelativePath(
+                    GLRedBleedDebug.class, "fragment_test.glsl"))
+     };
+
    public GLRedBleedDebug() {
       
       MultiViewer.SimpleViewerApp app = rot.getWindows().get(0);
       myFrame = app.frame;
       myViewer = app.viewer;
       myViewer.setShading(Shading.FLAT);
+
+      ((GL3Viewer)myViewer).setShaderOverride (new Integer(1), debugShaders);
 
       myViewer.addMouseInputListener (new MouseInputAdapter() {
          public void mousePressed (MouseEvent e) {

@@ -42,13 +42,13 @@ layout (std140) uniform Lights {
 
 // light colors
 // required for modulation with vertex colors or texture
-flat out LightColorData {
-   vec3 front_ambient;  
-   vec3 front_diffuse;  
-   vec3 front_specular;  
-   vec3 back_ambient;  
-   vec3 back_diffuse;  
-   vec3 back_specular;  
+out LightColorData {
+   flat vec3 front_ambient;  
+   flat vec3 front_diffuse;  
+   flat vec3 front_specular;  
+   flat vec3 back_ambient;  
+   flat vec3 back_diffuse;  
+   flat vec3 back_specular;  
 } lightOut;
 
 // Blinn-Phong lighting equation coefficients, (diffuse, specular)

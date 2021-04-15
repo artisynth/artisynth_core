@@ -31,11 +31,11 @@ JNIEXPORT jint JNICALL
       JNIEnv *env, jobject obj, jlong handle, jint num)
 {
    // handle is ignored since setting is global
-   int prev = mkl_domain_get_max_threads (MKL_DOMAIN_PARDISO);
+   int prev = mkl_domain_get_max_threads (MKL_DOMAIN_ALL); //PARDISO);
    if (num < 0) {
       num = 0;
    }
-   mkl_domain_set_num_threads (num, MKL_DOMAIN_PARDISO);
+   mkl_domain_set_num_threads (num, MKL_DOMAIN_ALL); //PARDISO);
    return prev;
 }
 
@@ -44,7 +44,7 @@ JNIEXPORT jint JNICALL
       JNIEnv *env, jobject obj, jlong handle)
 {
    // handle is ignored since setting is global
-   return mkl_domain_get_max_threads (MKL_DOMAIN_PARDISO);
+   return mkl_domain_get_max_threads (MKL_DOMAIN_ALL); //PARDISO);
 }
 
 JNIEXPORT jint JNICALL

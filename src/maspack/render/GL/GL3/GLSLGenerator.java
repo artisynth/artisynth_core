@@ -1127,8 +1127,8 @@ public class GLSLGenerator {
                case FLAT:
                //case GOURAUD:
                      appendln(mb, "   // imported per-vertex lighting. Using mix() to overcome an intel OpenGL 4.6 bug.");
-                     appendln(mb, "   vec3 ff3 = vec3(gl_FrontFacing);");
-                     appendln(mb, "   vec4 ff4 = vec4(gl_FrontFacing);");
+                     appendln(mb, "   bvec3 ff3 = bvec3(gl_FrontFacing);");
+                     appendln(mb, "   bvec4 ff4 = bvec4(gl_FrontFacing);");
                      appendln(mb, "   ambient  = mix(lightIn.back_ambient, lightIn.front_ambient, ff3);");
                      appendln(mb, "   diffuse  = mix(lightIn.back_diffuse, lightIn.front_diffuse, ff3);");
                      appendln(mb, "   specular = mix(lightIn.back_specular, lightIn.front_specular, ff3);");
@@ -1165,8 +1165,8 @@ public class GLSLGenerator {
                         }
                      }
                      appendln(mb, "   // choose material based on face orientation. Using mix() to overcome an intel OpenGL 4.6 bug.");
-                     appendln(mb, "   vec3 ff3 = vec3(gl_FrontFacing);");
-                     appendln(mb, "   vec4 ff4 = vec4(gl_FrontFacing);");
+                     appendln(mb, "   bvec3 ff3 = bvec3(gl_FrontFacing);");
+                     appendln(mb, "   bvec4 ff4 = bvec4(gl_FrontFacing);");
                      appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, ff4);");
                      appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, ff4);");
                      appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, ff4);");
@@ -1216,7 +1216,7 @@ public class GLSLGenerator {
          } else {
             appendln(mb, "   // material to use; Using mix() to overcome an intel OpenGL 4.6 bug.");
             appendln(mb, "   Material material;");
-            appendln(mb, "   vec4 ff4 = vec4(gl_FrontFacing);");
+            appendln(mb, "   bvec4 ff4 = bvec4(gl_FrontFacing);");
             appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, ff4);");
             appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, ff4);");
             appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, ff4);");

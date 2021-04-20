@@ -192,6 +192,10 @@ public class GLRedBleedDebug extends GL3Tester implements ActionListener {
       Logger.getSystemLogger().setLogLevel(LogLevel.ALL);
       GL3Utilities.debug = false;
       
+      System.out.println ("os.arch: "+System.getProperty("os.arch"));
+      System.out.println ("os.name: "+System.getProperty("os.name"));
+      System.out.println ("os.version: "+System.getProperty("os.version"));
+
       final GLRedBleedDebug gldebug = new GLRedBleedDebug();
       gldebug.run();
    }

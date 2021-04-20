@@ -1116,18 +1116,14 @@ public class GLSLGenerator {
             switch (info.getShading()) {
                case FLAT:
                //case GOURAUD:
-                     appendln(mb, "   // imported per-vertex lighting");
-                     appendln(mb, "   if( gl_FrontFacing ) {");
-                     appendln(mb, "      ambient  = lightIn.front_ambient;");
-                     appendln(mb, "      diffuse  = lightIn.front_diffuse;");
-                     appendln(mb, "      specular = lightIn.front_specular;");
-                     appendln(mb, "      material = front_material;");
-                     appendln(mb, "   } else {");
-                     appendln(mb, "      diffuse  = lightIn.back_diffuse;");
-                     appendln(mb, "      ambient  = lightIn.back_ambient;");
-                     appendln(mb, "      specular = lightIn.back_specular;");
-                     appendln(mb, "      material = back_material;");
-                     appendln(mb, "   }");
+                     appendln(mb, "   // imported per-vertex lighting. Using mix() to overcome an intel OpenGL 4.6 bug.");
+                     appendln(mb, "   ambient  = mix(lightIn.back_ambient, lightIn.front_ambient, gl_FrontFacing);");
+                     appendln(mb, "   diffuse  = mix(lightIn.back_diffuse, lightIn.front_diffuse, gl_FrontFacing);");
+                     appendln(mb, "   specular = mix(lightIn.back_specular, lightIn.front_specular, gl_FrontFacing);");
+                     appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, gl_FrontFacing);");
+                     appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, gl_FrontFacing);");
+                     appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, gl_FrontFacing);");
+                     appendln(mb, "   material.power = mix(back_material.power, front_material.power, gl_FrontFacing);");
                      appendln(mb);
                      break;
                case SMOOTH:
@@ -1157,12 +1153,11 @@ public class GLSLGenerator {
                         }
                      }
                      appendln(mb, "   // choose material based on face orientation");
-                     appendln(mb, "   if (gl_FrontFacing) {");
-                     appendln(mb, "      material = front_material;");
-                     appendln(mb, "   } else {");
-                     appendln(mb, "      material = back_material;");
-                     appendln(mb, "      normal = -normal;  // flip fragment normal");
-                     appendln(mb, "   }");
+                     appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, gl_FrontFacing);");
+                     appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, gl_FrontFacing);");
+                     appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, gl_FrontFacing);");
+                     appendln(mb, "   material.power = mix(back_material.power, front_material.power, gl_FrontFacing);");
+                     appendln(mb, "   normal = mix(-normal, normal, gl_FrontFacing);");
                      appendln(mb, "   ");
                      
                      appendln(mb, "   // per-fragment lighting computations");
@@ -1207,11 +1202,10 @@ public class GLSLGenerator {
          } else {
             appendln(mb, "   // material to use;");
             appendln(mb, "   Material material;");
-            appendln(mb, "   if( gl_FrontFacing ) {");
-            appendln(mb, "      material = front_material;");
-            appendln(mb, "   } else {");
-            appendln(mb, "      material = back_material;");
-            appendln(mb, "   }");
+            appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, gl_FrontFacing);");
+            appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, gl_FrontFacing);");
+            appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, gl_FrontFacing);");
+            appendln(mb, "   material.power = mix(back_material.power, front_material.power, gl_FrontFacing);");
          }
          
          // combine colors

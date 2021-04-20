@@ -12,6 +12,15 @@ public class GLSLGenerator {
    static String VERSION_STRING = "#version 330";
    static String UNIFORM_LAYOUT = "std140";  // std140 or "shared"
 
+   // need to know if we are running MacOS to handle certain issues
+   static boolean runningMacOS;
+   static {
+      String osname = System.getProperty ("os.name");
+      runningMacOS = (osname != null &&
+                      (osname.startsWith ("Mac") ||
+                       osname.startsWith ("Darwin")));
+   }
+
    public static class StringIntPair {
       String str;
       int i;
@@ -1113,17 +1122,24 @@ public class GLSLGenerator {
             appendln(mb, "   vec3 specular = vec3(0.0);");
             appendln(mb, "   vec3 emission = vec3(0.0);");
             appendln(mb, "   Material material;");
+            if (runningMacOS) {
+               // hack because GLSL on some Macs doesn't accept bool in max()
+               appendln(mb, "   float frontFacing = float(gl_FrontFacing);");
+            }
+            else {
+               appendln(mb, "   bool frontFacing = gl_FrontFacing;");
+            }
             switch (info.getShading()) {
                case FLAT:
                //case GOURAUD:
                      appendln(mb, "   // imported per-vertex lighting. Using mix() to overcome an intel OpenGL 4.6 bug.");
-                     appendln(mb, "   ambient  = mix(lightIn.back_ambient, lightIn.front_ambient, gl_FrontFacing);");
-                     appendln(mb, "   diffuse  = mix(lightIn.back_diffuse, lightIn.front_diffuse, gl_FrontFacing);");
-                     appendln(mb, "   specular = mix(lightIn.back_specular, lightIn.front_specular, gl_FrontFacing);");
-                     appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, gl_FrontFacing);");
-                     appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, gl_FrontFacing);");
-                     appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, gl_FrontFacing);");
-                     appendln(mb, "   material.power = mix(back_material.power, front_material.power, gl_FrontFacing);");
+                     appendln(mb, "   ambient  = mix(lightIn.back_ambient, lightIn.front_ambient, frontFacing);");
+                     appendln(mb, "   diffuse  = mix(lightIn.back_diffuse, lightIn.front_diffuse, frontFacing);");
+                     appendln(mb, "   specular = mix(lightIn.back_specular, lightIn.front_specular, frontFacing);");
+                     appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, frontFacing);");
+                     appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, frontFacing);");
+                     appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, frontFacing);");
+                     appendln(mb, "   material.power = mix(back_material.power, front_material.power, frontFacing);");
                      appendln(mb);
                      break;
                case SMOOTH:
@@ -1153,11 +1169,11 @@ public class GLSLGenerator {
                         }
                      }
                      appendln(mb, "   // choose material based on face orientation");
-                     appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, gl_FrontFacing);");
-                     appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, gl_FrontFacing);");
-                     appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, gl_FrontFacing);");
-                     appendln(mb, "   material.power = mix(back_material.power, front_material.power, gl_FrontFacing);");
-                     appendln(mb, "   normal = mix(-normal, normal, gl_FrontFacing);");
+                     appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, frontFacing);");
+                     appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, frontFacing);");
+                     appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, frontFacing);");
+                     appendln(mb, "   material.power = mix(back_material.power, front_material.power, frontFacing);");
+                     appendln(mb, "   normal = mix(-normal, normal, frontFacing);");
                      appendln(mb, "   ");
                      
                      appendln(mb, "   // per-fragment lighting computations");
@@ -1202,10 +1218,17 @@ public class GLSLGenerator {
          } else {
             appendln(mb, "   // material to use;");
             appendln(mb, "   Material material;");
-            appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, gl_FrontFacing);");
-            appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, gl_FrontFacing);");
-            appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, gl_FrontFacing);");
-            appendln(mb, "   material.power = mix(back_material.power, front_material.power, gl_FrontFacing);");
+            if (runningMacOS) {
+               // hack because GLSL on some Macs doesn't accept bool in max()
+               appendln(mb, "   float frontFacing = float(gl_FrontFacing);");
+            }
+            else {
+               appendln(mb, "   bool frontFacing = gl_FrontFacing;");
+            }
+            appendln(mb, "   material.diffuse = mix(back_material.diffuse, front_material.diffuse, frontFacing);");
+            appendln(mb, "   material.specular = mix(back_material.specular, front_material.specular, frontFacing);");
+            appendln(mb, "   material.emission = mix(back_material.emission, front_material.emission, frontFacing);");
+            appendln(mb, "   material.power = mix(back_material.power, front_material.power, frontFacing);");
          }
          
          // combine colors

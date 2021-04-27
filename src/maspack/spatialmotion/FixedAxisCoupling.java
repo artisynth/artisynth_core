@@ -118,7 +118,7 @@ public class FixedAxisCoupling extends RigidBodyCoupling {
       RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
       Twist velGD, boolean updateEngaged) {
 
-      double roll = myCoordinates.get(ROLL_IDX).value;
+      double roll = myCoordinates.get(ROLL_IDX).getValue();
       double cr = Math.cos(roll);
       double sr = Math.sin(roll);
 

@@ -2,25 +2,20 @@ package artisynth.core.opensim.customjoint;
 
 import java.util.HashMap;
 
-import artisynth.core.opensim.components.Constant;
 import artisynth.core.opensim.components.Coordinate;
 import artisynth.core.opensim.components.FunctionBase;
 import artisynth.core.opensim.components.TransformAxis;
-import maspack.matrix.Matrix3d;
-import maspack.matrix.Matrix3dBase;
 import maspack.matrix.MatrixNd;
+import maspack.matrix.QRDecomposition;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
-import maspack.matrix.SVDecomposition;
-import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
-import maspack.spatialmotion.EulerFilter;
-import maspack.spatialmotion.Wrench;
-import maspack.spatialmotion.RigidBodyCoupling;
 import maspack.spatialmotion.RigidBodyConstraint;
+import maspack.spatialmotion.RigidBodyCoupling;
 import maspack.spatialmotion.Twist;
-import maspack.util.DoubleInterval;
+import maspack.spatialmotion.Wrench;
+import maspack.util.InternalErrorException;
 
 /**
  * OpenSim Custom Joint coupling
@@ -30,649 +25,382 @@ import maspack.util.DoubleInterval;
  */
 public class OpenSimCustomCoupling extends RigidBodyCoupling {
 
-   /**
-    * "Coordinate" that drives the motion
-    */
-   public static class Coord {
-      Coordinate info;
-      double val;
-      
-      public Coord (Coordinate coordinate) {
-         info = coordinate;
-         val = coordinate.getDefaultValue ();
-      }
-      
-      public double value() {
-         return val;
-      }
-      
-      public DoubleInterval getRange() {
-         return info.getRange ();
-      }
+   protected Coordinate[] myCoords;
+   protected TAxis[] myRotAxes;
+   protected TAxis[] myTransAxes;
 
-      public void projectCoordinates () {
-         if (info.getClamped ()) {
-            val = info.getRange ().clipToRange (val);
-         } else if (info.getLocked ()) {
-            val = info.getDefaultValue ();
-         }
-      }
-   }
-   
-   /**
-    * Axes (either translation or rotation) that is driven
-    * by the coordinates and a "function"
-    */
+   protected MatrixNd myH;
+   protected Twist[] myHVecs;
+   protected MatrixNd myQ;
+   protected QRDecomposition myQRD;
+
+   int myNumLocked = 0; // number of locked coordinates
+   int myNumClamped = 0; // number of clamped (range limited) coordinates
+
+   // value of myCoordValueCnt when constraints are last updated;
+   // used to see if we need to update constraints
+   int myUpdateConstraintCnt;
+
+   // Wrapper for TransformAxis that maps the entire set of generalized
+   // coordinates to those specifically used for the axis function.
    public static class TAxis {
-      TransformAxis info;
-      Coord[] coords;
-      DoubleInterval range;
-      
-      public TAxis (TransformAxis info, HashMap<String,Coordinate> cmap) {
-         this.info = info;
+      TransformAxis myInfo;
+
+      VectorNd myCvals; // local coordinate values
+      VectorNd myDvals; // local derivative values
+      int[] myCidxs; // local coordinate indices
+
+      public TAxis (TransformAxis info, HashMap<String,Integer> cmap) {
+         myInfo = info;
          String[] coordsNames = info.getCoordinates ();
          int len = 0;
          if (coordsNames != null) {
             len = coordsNames.length;
          }
-         
-         coords = new Coord[len];
+         myCvals = new VectorNd (len);
+         myDvals = new VectorNd (len);
+         myCidxs = new int[len];
          for (int i=0; i<len; ++i) {
-            coords[i] = new Coord(cmap.get(coordsNames[i]));
+            Integer idx = cmap.get(coordsNames[i]);
+            if (idx == null) {
+               throw new InternalErrorException (
+                  "No index foound for coordinate "+coordsNames[i]);
+            }
+            myCidxs[i] = idx;
          }
-         range = computeBounds ();
       }
+
+      // public double eval (VectorNd coords) {
+      //    FunctionBase func = myInfo.getFunction();
+      //    if (func != null) {
+      //       for (int i=0; i<myCvals.size(); i++) {
+      //          myCvals.set (i, coords.get(myCidxs[i]));
+      //       }
+      //       return func.evaluate(myCvals);
+      //    }
+      //    else {
+      //       return 0;
+      //    }
+      // }
+
+      /**
+       * Apply translation for a translation axis
+       */
+      public void applyTranslation (Vector3d p, VectorNd coords) {
+         FunctionBase func = myInfo.getFunction();
+         if (func != null) {
+            for (int i=0; i<myCvals.size(); i++) {
+               myCvals.set (i, coords.get(myCidxs[i]));
+            }
+            double tval = func.evaluate(myCvals);
+            p.scaledAdd (tval, myInfo.getAxis());
+         }
+      }     
+
+      /**
+       * For a translation axis, add the contribution to the v component of the
+       * mobility vectors.
+       */
+      public void addToHv (Twist[] H, VectorNd coords) {
+         FunctionBase func = myInfo.getFunction();
+         if (func != null) {
+            for (int i=0; i<myCvals.size(); i++) {
+               myCvals.set (i, coords.get(myCidxs[i]));
+            }
+            func.evaluateDerivative (myCvals, myDvals);
+            for (int i=0; i<myDvals.size(); i++) {
+               H[myCidxs[i]].v.scaledAdd (myDvals.get(i), myInfo.getAxis());
+            }
+         }
+      }
+
+      /**
+       * Apply rotation for a rotation axis
+       */
+      public void applyRotation (RotationMatrix3d R, VectorNd coords) {
+         FunctionBase func = myInfo.getFunction();
+         if (func != null) {
+            for (int i=0; i<myCvals.size(); i++) {
+               myCvals.set (i, coords.get(myCidxs[i]));
+            }
+            R.mulAxisAngle (myInfo.getAxis(), func.evaluate(myCvals));
+         }
+      }         
+
+      /**
+       * For a rotation axis, add the contribution to the w component of the
+       * mobility vectors.
+       */
+      public void addToHw (
+         Twist[] H, RotationMatrix3d R, VectorNd coords, boolean last) {
+
+         FunctionBase func = myInfo.getFunction();
+         if (func != null) {
+            for (int i=0; i<myCvals.size(); i++) {
+               myCvals.set (i, coords.get(myCidxs[i]));
+            }
+            func.evaluateDerivative (myCvals, myDvals);
+            Vector3d uvec = new Vector3d();
+            uvec.transform (R, myInfo.getAxis());
+            for (int i=0; i<myDvals.size(); i++) {
+               H[myCidxs[i]].w.scaledAdd (myDvals.get(i), uvec);
+            }
+            if (!last) {
+               R.mulAxisAngle (myInfo.getAxis(), func.evaluate(myCvals));
+            }
+         }
+      }
+
+      // // return true if the derivative is non-zero
+      // public boolean evalDeriv (VectorNd coords, VectorNd deriv) {
+      //    FunctionBase func = myInfo.getFunction();
+      //    deriv.setZero ();
+      //    boolean nonZero = false;
+      //    if (func != null) {
+      //       for (int i=0; i<myCvals.size(); i++) {
+      //          myCvals.set (i, coords.get(myCidxs[i]));
+      //       }
+      //       func.evaluateDerivative (myCvals, myDvals);
+      //       for (int i=0; i<myDvals.size(); i++) {
+      //          double dval = myDvals.get(i);
+      //          if (dval != 0) {
+      //             deriv.set (myCidxs[i], dval);
+      //             nonZero = true;
+      //          }
+      //       }
+      //    }
+      //    return nonZero;
+      // }
 
       public Vector3d getAxis() {
-         return info.getAxis ();
-      }
-      
-      public boolean isFixed() {
-         // fixed if no coords
-         if (coords.length == 0) {
-            return true;
-         }
-         // fixed if function is constant
-         FunctionBase func = info.getFunction ();
-         if (func == null || func instanceof Constant) {
-            return true;
-         }
-         // fixed if all coords are fixed
-         for (Coord c : coords) {
-            if (!c.info.getLocked ()) {
-               return false;
-            }
-         }
-         return true;
-      }
-      
-      public boolean isRestricted() {
-         // restricted if all coords are restricted
-         if (coords.length == 0) {
-            return true;
-         }
-         for (Coord c : coords) {
-            if (!c.info.getClamped ()) {
-               return false;
-            }
-         }
-         return true;
-      }
-      
-      public double evaluate() {
-         FunctionBase func = info.getFunction ();
-         if (func == null) {
-            return 0;
-         }
-         
-         // collect values
-         VectorNd cvals = new VectorNd(coords.length);
-         for (int i=0; i<coords.length; ++i) {
-            cvals.set(i, coords[i].val);
-         }
-         
-         double val = func.evaluate(cvals);
-         
-         return val;
-      }
-      
-      public double getLowerBound() {
-         return range.getLowerBound ();
-      }
-      
-      public double getUpperBound() {
-         return range.getUpperBound ();
-      }
-      
-      public DoubleInterval computeBounds() {
-         // check all coordinate bounds
-         double min = Double.POSITIVE_INFINITY;
-         double max = Double.NEGATIVE_INFINITY;
-         
-         FunctionBase f = info.getFunction ();
-         if (f == null) {
-            return new DoubleInterval();
-         }
-         
-         // XXX should really maximize/minimize rather than just evaluate at bounds
-         // try all bounds
-         VectorNd cvals = new VectorNd(coords.length);
-         int ninputs = 1<<coords.length;
-         for (int i=0; i<ninputs; ++i) {
-            for (int j = 0; j < coords.length; ++j) {
-               boolean set = ((1<<j) & i) != 0;
-               if (set) {
-                  cvals.set(j, coords[j].getRange().getLowerBound ());
-               } else {
-                  cvals.set(j, coords[j].getRange ().getUpperBound ());
-               }
-            }
-            double val = f.evaluate (cvals);
-            if (val < min) {
-               min = val;
-            }
-            if (val > max) {
-               max = val;
-            }
-         }
-         
-         return new DoubleInterval(min, max);
-      }
-      
-      
-      /**
-       * Update internal coordinate given a desired value, uses gradient descent
-       * respecting bounds
-       * @param fx f(x), we seek x
-       */
-      public void updateCoords(double fx) {
-         
-         FunctionBase func = info.getFunction ();
-         // fx = range.clipToRange (fx);
-         
-         int N = coords.length;
-         
-         // current value and coordinates
-         // collect values
-         VectorNd x = new VectorNd(N);
-         for (int i=0; i<N; ++i) {
-            x.set(i, coords[i].val);
-         }
-         VectorNd nx = new VectorNd(N);
-
-         // gradient descent respecting bounds
-         // minimize 0.5*|dx|^2 + lambda*(fx - f - df*dx)
-         MatrixNd J = new MatrixNd(N+1, N+1);
-         J.setIdentity ();
-         J.set(N, N, 0);
-         
-         VectorNd b = new VectorNd(N+1);
-         VectorNd h = new VectorNd(N+1);
-         
-         double f = func.evaluate(x);
-         VectorNd df = new VectorNd(coords.length);
-         func.evaluateDerivative(x, df);
-         
-         double err0 = Math.abs (f - fx);
-         double err = err0;
-         int niters = 0;
-         SVDecomposition svd = new SVDecomposition ();
-         while (err > 1e-5*err0 && niters < 100) {
-            
-            for (int i=0; i<N; ++i) {
-               J.set(N, i, df.get(i));
-               J.set(i, N, df.get(i));
-            }
-            b.set(N, fx-f);
-            
-            // factor and solve for new step and lambda
-            svd.factor (J);
-            svd.solve (h, b);
-            
-            @SuppressWarnings("unused")
-            double lambda = h.get (N);
-            
-            // search with step direction in h
-            double alpha = 1;
-            double perr = err;
-            do {
-               for (int i=0; i<N; ++i) {
-                  // only step part-way
-                  double nval = x.get (i) + alpha*h.get (i);
-                  // nval = coords[i].getRange ().clipToRange (nval);
-                  nx.set (i,nval);
-               }
-               
-               f = func.evaluate (nx);
-               func.evaluateDerivative (nx, df);
-               err = Math.abs(f - fx);
-               alpha = alpha*0.5;  // reduce step size for next iteration
-            } while (err > perr);
-            
-            // update x
-            x.set(nx);
-            niters++;
-         }
-         
-         // update coordinates
-         for (int i=0; i<N; ++i) {
-            coords[i].val = x.get(i);
-         }
-
-      }
-
-      public void projectCoordinates () {
-         if (coords != null) {
-            for (int j=0; j<coords.length; ++j) {
-               coords[j].projectCoordinates();   
-            }
-         }
+         return myInfo.getAxis();
       }
    }
    
-   TAxis[] rotAxes;
-   TAxis[] transAxes;
-   int[] order;
-   Matrix3d transMat;
-   Matrix3d invTransMat;
-   Matrix3d rotMat;
-   Matrix3d invRotMat;
-   int bilaterals;
-   int unilaterals;
-   
-   public OpenSimCustomCoupling(TransformAxis[] axes, Coordinate[] coords) {
-      rotAxes = new TAxis[3];
-      transAxes = new TAxis[3];
-      
-      // coordinate map
-      HashMap<String,Coordinate> cmap = new HashMap<> ();
-      for (Coordinate c : coords) {
-         cmap.put(c.getName (), c);
+   public OpenSimCustomCoupling (TransformAxis[] axes, Coordinate[] coords) {
+
+      myCoords = new Coordinate[coords.length];
+      HashMap<String,Integer> cmap = new HashMap<>();
+      for (int i=0; i<coords.length; i++) {
+         myCoords[i] = coords[i];
+         // note: coordinates can be both clamped and locked; locked takes
+         // priority
+         if (coords[i].getLocked()) {
+            myNumLocked++;
+         }
+         else if (coords[i].getClamped()) {
+            myNumClamped++;
+         }
+         cmap.put (coords[i].getName(), i);
       }
-      
-      for (int i=0; i<3; ++i) {
-         rotAxes[i] = new TAxis(axes[i], cmap);
-         transAxes[i] = new TAxis(axes[i+3], cmap);
+      if (axes.length != 6) {
+         throw new InternalErrorException (
+            "expected 6 axes, got "+axes.length);
       }
-      
-      bilaterals = 0;
-      unilaterals = 0;
-      order = null;
-       
-      transMat = new Matrix3d();
-      invTransMat = new Matrix3d();
-      rotMat = new Matrix3d();
-      invRotMat = new Matrix3d();
-      
+      myRotAxes = new TAxis[3];
+      myTransAxes = new TAxis[3];
       for (int i=0; i<3; i++) {
-         transMat.setColumn(i, transAxes[i].getAxis());
-         rotMat.setColumn(2-i, rotAxes[i].getAxis());  // first axes goes in z position (intrinsic angles)
-         if (transAxes[i].isFixed()) {
-            bilaterals++;
-         } else if (transAxes[i].isRestricted()) {
-            unilaterals++;
-         }
-         if (rotAxes[i].isFixed()) {
-            bilaterals++;
-         } else if (rotAxes[i].isRestricted()) {
-            unilaterals++;
-         }
+         myRotAxes[i] = new TAxis (axes[i], cmap);
+         myTransAxes[i] = new TAxis (axes[i+3], cmap);
       }
-      
-      invTransMat.set(transMat);
-      if (!invTransMat.invert()) {
-         SVDecomposition3d svd = new SVDecomposition3d(transMat);
-         svd.pseudoInverse(invTransMat);
-      }
-      invRotMat.set(rotMat);
-      if (!invRotMat.invert()) {
-         SVDecomposition3d svd = new SVDecomposition3d(rotMat);
-         svd.pseudoInverse(invRotMat);
-      }
-      
+      initializeConstraintInfo();
    }
 
    @Override
    public int numBilaterals() {
-      return bilaterals;
+      return 6 - numCoordinates() + myNumLocked;
    }
 
    @Override
    public int numUnilaterals() {
-      return unilaterals;
+      return myNumClamped;
    }
 
    @Override
    public void initializeConstraints() {
 
-      if (bilaterals == 0 && unilaterals == 0) {
+      if (myCoords == null) {
          // XXX called in the RigidBodyCoupling constructor. Nothing to do
          // yet. Will be callled again in OpenSimCustomCoupling constructor
          return;
       }
-      int[] flags = new int[6];
-      Wrench[] wrenches = new Wrench[6];
-
-      this.order = new int[6];          // order places bilaterals first
-      int biIdx = 0;
-      int uniIdx = numBilaterals();     // start after bilaterals
-      
-      for (int i=0; i<3; i++) {
-         // translation axes
-         if (transAxes[i].isFixed()) {
-            int j = biIdx++;
-            this.order[i] = j;
-            flags[j] = (BILATERAL | LINEAR);
-            wrenches[j] = new Wrench();
-            wrenches[j].f.set(transAxes[i].getAxis());
-            wrenches[j].m.setZero();
-         } else if (transAxes[i].isRestricted()){
-            int j = uniIdx++;
-            this.order[i] = j;
-            flags[j] = LINEAR;
-         } else {
-            this.order[i] = -1;
-         }
+      int numc = myCoords.length;
+      int numb = 6 - numc + myNumLocked;
+      // add bilateral constraints
+      for (int i=0; i<numb; i++) {
+         addConstraint (BILATERAL);
       }
-      
-      for (int i=0; i<3; i++) {
-         // rotation axes
-         if (rotAxes[i].isFixed()) {
-            int j = biIdx++;
-            this.order[3+i] = j;
-            flags[j] = (BILATERAL | ROTARY);
-            wrenches[j] = new Wrench();
-            wrenches[j].f.setZero();
-            wrenches[j].m.set(rotAxes[i].getAxis()); // current axes, assuming no initial rotationsm.setZero();
-         } else if (rotAxes[i].isRestricted()){
-            int j = uniIdx++;
-            this.order[3+i] = j;
-            flags[j] = ROTARY;
-         } else {
-            this.order[3+i] = -1;
-         }
+      // add unilateral constraints
+      for (int i=0; i<myNumClamped; i++) {
+         addConstraint (0);
       }
-      for (int i=0; i<biIdx+uniIdx; i++) {
-         if (wrenches[i] != null) {
-            addConstraint (flags[i], wrenches[i]);
+      // create coordinates with associated constraints if needed
+      int bidx = 6 - numc;
+      int uidx = numb;
+      myHVecs = new Twist[numc];
+      for (int i=0; i<numc; i++) {
+         Coordinate c = myCoords[i];
+         CoordinateInfo cinfo;
+         if (c.getLocked()) {
+            // coordinate is locked
+            cinfo = addCoordinate (-INF, INF, 0, getConstraint(bidx++));
+         }
+         else if (c.getClamped()) {
+            // range limited
+            cinfo = addCoordinate (
+               c.getRange().getLowerBound(), 
+               c.getRange().getUpperBound(), 
+               0, getConstraint(uidx++));
          }
          else {
-            addConstraint (flags[i]);
+            cinfo = addCoordinate ();
+         }
+         cinfo.setValue (c.getDefaultValue());
+         myHVecs[i] = new Twist();
+      }
+      myH = new MatrixNd (6, numc);
+      myQ = new MatrixNd (6, 6);
+      myQRD = new QRDecomposition();
+
+      updateConstraints(new RigidTransform3d());
+      // automatically set LINEAR/ROTARY flags based on whether the wrench
+      // constraint at the 0 position has a larger v or m component.
+      for (int i=0; i<numConstraints(); i++) {
+         RigidBodyConstraint cons = getConstraint(i);
+         Wrench wr = cons.getWrenchG();
+         if (wr.f.norm() >= wr.m.norm()) {
+            cons.setFlag (LINEAR);
+         }
+         else {
+            cons.setFlag (ROTARY);
          }
       }
-      
    }
    
+   private void updateConstraints (RigidTransform3d TGD) {
+      int numc = numCoordinates();
+      VectorNd coords = new VectorNd(numc);
+      doGetCoords (coords);
+      
+      // start by computing mobility vectors (myHVecs)
+      for (int j=0; j<numc; j++) {
+         myHVecs[j].setZero();
+      }
+      // rotation
+      RotationMatrix3d R = new RotationMatrix3d(); // intermediate rotation
+      for (int i=0; i<myRotAxes.length; i++) {
+         myRotAxes[i].addToHw (
+            myHVecs, R, coords, /*last=*/i==myRotAxes.length-1);
+      }
+      // translation
+      for (int i=0; i<myTransAxes.length; i++) {
+         myTransAxes[i].addToHv (myHVecs, coords);
+      }
+
+      // normalize and use them to set corresponding limit constraints
+      Wrench wr = new Wrench(); 
+      for (int j=0; j<numc; j++) {
+         myHVecs[j].normalize();
+         CoordinateInfo cinfo = getCoordinate(j);
+         if (cinfo.limitConstraint != null) {
+            Twist Hj =  myHVecs[j];
+            wr.set (Hj.v, Hj.w);
+            wr.inverseTransform (TGD);
+            cinfo.limitConstraint.setWrenchG (wr);
+         }
+      }
+      if (numc < 6) {
+         // non-coordinate constraints are given by the orthogonal complement
+         // of H, which we find using the QR decomposition
+         for (int j=0; j<numc; j++) {
+            myH.setColumn (j, myHVecs[j]);
+         }
+         myQRD.factor (myH);
+         myQRD.get (myQ, null);
+         for (int i=0; i<6-numc; i++) {
+            RigidBodyConstraint cons = getConstraint(i);
+            myQ.getColumn (numc+i, wr);
+            wr.inverseTransform (TGD);
+            cons.setWrenchG (wr);
+         }
+      }
+      myUpdateConstraintCnt = myCoordValueCnt;
+   }
+
    @Override
    public void updateConstraints(
       RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
       Twist velGD, boolean updateEngaged) {
 
-      // translations (applied to C?)
-      // compute coordinates
-      Vector3d t = new Vector3d();
-      invTransMat.mul(t, TCD.p);
-      
-      for (int i=0; i<3; i++) {
-         transAxes[i].updateCoords(t.get(i));
-         int j = order[i];
-         if (j >= 0) {
-            RigidBodyConstraint cinfo = getConstraint(j);
-            //cinfo.coordinate = t.get(i); // set coordinate translation
-            // transform to frame C
-            Vector3d f = new Vector3d();
-            f.mulTranspose(TCD.R, transAxes[i].getAxis ());
-            cinfo.setWrenchG (f, Vector3d.ZERO);
-            //cinfo.wrenchC.f.mulTranspose(TCD.R, transAxes[i].getAxis ());
-            //cinfo.wrenchC.m.setZero();
-            //cinfo.distance = cinfo.wrenchC.dot(errC);
-            //cinfo.dotWrenchC.setZero();
-            
-            if (transAxes[i].isRestricted()) {
-               
-               // maybe set engaged
-               double val = transAxes[i].evaluate ();
-               double lval = transAxes[i].getLowerBound();
-               double uval = transAxes[i].getUpperBound();
-               if (updateEngaged) {
-                  for (Coord coord : transAxes[i].coords) {
-                     maybeSetEngaged(cinfo, coord.val, coord.getRange().getLowerBound(), coord.getRange().getUpperBound());
-                  }
-               }
-               if (cinfo.getEngaged() == 1) {
-                  // distance between evaluated locations along translation axis
-                  cinfo.setDistance (val-lval);
-               } else if (cinfo.getEngaged() == -1) {
-                  cinfo.setDistance (uval-val);
-               }
-            }
-         }
-      }
-      
-      // rotations
-      Matrix3d R = new Matrix3d(TCD.R);
-      R.mul(rotMat);
-      R.mul(invRotMat, R);  
-      double[] rpy = new double[3];
-      double[] ref = new double[3];
-      for (int i=0; i<3; i++) {
-         ref[i] = rotAxes[i].evaluate();
-      }
-      getRPY(R, rpy);
-      // Resolve any ambiguity, keeping angles closest to previous
-      EulerFilter.filter(ref, rpy, 1e-5, rpy);
-      
-      // System.out.println("RPY: " + rpy[0] + " " + rpy[1] + " " + rpy[2]);
-      
-      RotationMatrix3d Rr = new RotationMatrix3d();
-      RotationMatrix3d Rp = new RotationMatrix3d();
-      
-      // applied to frame C, order of rotations is reversed?
-      Matrix3d Dypr = new Matrix3d();
-      
-      // intrinsically, rotate about rotAxis[0] then transformed [1] then transformed [2]?
-      Dypr.setColumn(0, rotAxes[0].getAxis());
-      Rr.setAxisAngle(rotAxes[0].getAxis(), rpy[0]);
-
-      // roll rotAxes[1]
-      Vector3d a = new Vector3d();
-      Rr.mul(a, rotAxes[1].getAxis());
-      Dypr.setColumn(1, a);
-      Rp.setAxisAngle(rotAxes[1].getAxis (), rpy[1]);  // t is rotated axis 1, new pivot for pitch
-      
-      // roll and pitch rotAxes[2]
-      Rp.mul(a, rotAxes[2].getAxis ());      
-      Rr.mul(a, a);
-      Dypr.setColumn(2, a);
-      
-      // Dypr has 3 axes relative to D, let's make them relative to C
-      Dypr.mulTransposeLeft(TCD.R, Dypr); 
-      
-      // XXX potential singularity!! 
-      boolean success = Dypr.invert();
-      if (!success) {
-         // need to rebuild, since previous invert attempt modified matrix
-         Dypr.setColumn(0, rotAxes[0].getAxis());
-         Rr.setAxisAngle(rotAxes[0].getAxis(), rpy[0]);
-         Rr.mul(a, rotAxes[1].getAxis());
-         Dypr.setColumn(1, a);
-         Rp.setAxisAngle(rotAxes[1].getAxis(), rpy[1]);
-         Rp.mul(a, rotAxes[2].getAxis());      
-         Rr.mul(a, a);
-         Dypr.setColumn(2, a);
-         Dypr.mulTransposeLeft(TCD.R, Dypr); 
-         
-         SVDecomposition3d svd = new SVDecomposition3d(Dypr);
-         svd.pseudoInverse(Dypr);
-      }
-      // columns should now give us wrenches
-      for (int i=0; i<3; i++) {
-         rotAxes[i].updateCoords(rpy[i]);
-         
-         int j = order[3+i];
-         if (j >= 0) {
-            RigidBodyConstraint cinfo = getConstraint(j);            
-            //cinfo.coordinate = rpy[i]; // set coordinate angle
-            //cinfo.wrenchC.f.setZero();
-            //cinfo.dotWrenchC.setZero();
-            //cinfo.distance = cinfo.wrenchC.dot(errC);
-            //Dypr.getRow(i, cinfo.wrenchC.m);
-            Vector3d m = new Vector3d();
-            Dypr.getRow(i, m);
-            cinfo.setWrenchG (Vector3d.ZERO, m);
-            if (rotAxes[i].isRestricted()) {
-               // maybe set engaged
-               if (updateEngaged) {
-                  for (Coord coord : rotAxes[i].coords) {
-                     maybeSetEngaged(cinfo, coord.val, coord.getRange().getLowerBound(), coord.getRange().getUpperBound());
-                  }
-               }
-               
-               double val = rotAxes[i].evaluate ();
-               double lval = rotAxes[i].getLowerBound();
-               double uval = rotAxes[i].getUpperBound();
-
-               if (cinfo.getEngaged() == 1) {
-                  // distance between evaluated locations along translation axis
-                  cinfo.setDistance (val-lval);
-               } else if (cinfo.getEngaged() == -1) {
-                  cinfo.setDistance (uval-val);
-               }
-            }
-         }
-      }
-      
-      
-            
+      // constraints are computed purely from the coordinates.
+      updateConstraints(TGD);
    }
-   
-   /**
-    * Gets the z-y-x (intrinsic) roll-pitch-yaw angles corresponding to a given rotation.
-    * @param M
-    * Matrix to compute rotations
-    * @param rpy
-    * returns the angles (roll, pitch, yaw, in that order) in radians.
-    */
-   public void getRPY (Matrix3dBase M, double[] rpy) {
-      double sroll, croll, nx, ny, p;
-         
-      double EPSILON = 2.220446049250313e-15;
-      nx = M.m00;
-      ny = M.m10;
-      if (Math.abs (nx) < EPSILON && Math.abs (ny) < EPSILON) {
-         rpy[0] = 0.;
-         rpy[1] = Math.atan2 (-M.m20, nx);
-         rpy[2] = Math.atan2 (-M.m12, M.m11);
-      }
-      else {
-         rpy[0] = (p = Math.atan2 (ny, nx));
-         sroll = Math.sin (p);
-         croll = Math.cos (p);
-         rpy[1] = Math.atan2 (-M.m20, croll * nx + sroll * ny);
-         rpy[2] =
-            Math.atan2 (sroll * M.m02 - croll * M.m12, croll * M.m11 - sroll * M.m01);
-      }
-   }
-   
-   /**
-    * Sets this rotation to one produced by intrinsic roll-pitch-yaw angles (z-y-x). The
-    * coordinate frame corresponding to these angles is produced by a rotation
-    * of roll about the z axis, followed by a rotation of pitch about the new y
-    * axis, and finally a rotation of yaw about the new x axis.
-    * 
-    * @param M
-    * Matrix to fill
-    * @param rpy
-    * roll, pitch, yaw, in order
-    */
-   public void setRPY (Matrix3dBase M, double[] rpy) {
-      double sroll, spitch, syaw, croll, cpitch, cyaw;
 
-      double roll = rpy[0];
-      double pitch = rpy[1];
-      double yaw = rpy[2];
-      sroll = Math.sin (roll);
-      croll = Math.cos (roll);
-      spitch = Math.sin (pitch);
-      cpitch = Math.cos (pitch);
-      syaw = Math.sin (yaw);
-      cyaw = Math.cos (yaw);
-
-      M.m00 = croll * cpitch;
-      M.m10 = sroll * cpitch;
-      M.m20 = -spitch;
-
-      M.m01 = croll * spitch * syaw - sroll * cyaw;
-      M.m11 = sroll * spitch * syaw + croll * cyaw;
-      M.m21 = cpitch * syaw;
-
-      M.m02 = croll * spitch * cyaw + sroll * syaw;
-      M.m12 = sroll * spitch * cyaw - croll * syaw;
-      M.m22 = cpitch * cyaw;
-   }
-   
    @Override
    public void projectToConstraints(
       RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
-      TGD.set(TCD);
-      
-      // assuming translation relative to D, not affected by rotations
-      Vector3d t = new Vector3d();
-      // compute translation w.r.t. supplied axes 
-      invTransMat.mul(t, TGD.p);
-      for (int i=0; i<3; i++) {
-         if (transAxes[i].isFixed()) {
-            // force to fixed value
-            t.set(i, transAxes[i].evaluate());
-         } else if (transAxes[i].isRestricted ()) {
-            // project coordinates
-            transAxes[i].projectCoordinates();
-            t.set(i, transAxes[i].evaluate ());
-         }
+
+      int numc = numCoordinates();
+      if (numc == 6) {
+         // nothing to do; there are no independent constraints
+         return;
       }
-      transMat.mul(TGD.p, t); // transform back to spatial
       
-      // Compute euler angles, by first changing basis
-      // and aligning axes s.t.
-      // [rot(2) rot(1) rot(0)]
-      Matrix3d R = new Matrix3d(TGD.R);
-      R.mul(rotMat);
-      R.mul(invRotMat, R);  
-      double[] rot = new double[3];
-      double[] ref = new double[3];
-      for (int i=0; i<3; i++) {
-         ref[i] = rotAxes[i].evaluate();
+      // projection is based on current coordinate values, so we need these
+      // regardless:
+
+      if (coords == null) {
+         coords = new VectorNd();
       }
-      getRPY(R, rot);
-      EulerFilter.filter(ref, rot, 1e-5, rot);
+      doGetCoords (coords);
+      coordinatesToTCD (TGD, coords);
+      // find differential displacement del from TGD to TCD:
+      Twist del = new Twist();
+      RigidTransform3d TDEL = new RigidTransform3d ();
+      TDEL.mulInverseLeft (TGD, TCD);
+      del.set (TDEL);
+
+      // make sure QR decomposition is updated
+      if (myUpdateConstraintCnt != myCoordValueCnt) {
+         updateConstraints(TGD);
+      }
+      VectorNd dq = new VectorNd(numc);
+      myQRD.solve (dq, del);
       boolean changed = false;
-      for (int i=0; i<3; i++) {
-         if (rotAxes[i].isFixed()) {
-            rot[i] = rotAxes[i].evaluate();
-            changed = true;
-         } else if (rotAxes[i].isRestricted ()) {
-            rotAxes[i].projectCoordinates();
-            rot[i] = rotAxes[i].evaluate ();
+      for (int j=0; j<numc; j++) {
+         if (myCoords[j].getLocked()) {
+            dq.set (j, 0);
+         }
+         else if (dq.get(j) != 0) {
             changed = true;
          }
       }
-      
       if (changed) {
-         // set angles and transform back
-         setRPY(R, rot);
-         R.mul(invRotMat);
-         R.mul(rotMat, R);
-         TGD.R.set(R);
+         coords.add (dq);
+         coordinatesToTCD (TGD, coords);
       }
-      
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public void coordinatesToTCD (
-      RigidTransform3d TCD, VectorNd coords) {
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public void coordinatesToTCD (
+   //    RigidTransform3d TCD, VectorNd coords) {
+   //    coordinatesToTCD (TCD);
+   // }
+
+   public boolean debug = false;
+
+   @Override
+   public void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords) {
       TCD.setIdentity();
+      // rotation
+      for (int i=0; i<myRotAxes.length; i++) {
+         myRotAxes[i].applyRotation (TCD.R, coords);
+      }
+      // translation
+      for (int i=0; i<myTransAxes.length; i++) {
+         myTransAxes[i].applyTranslation (TCD.p, coords);
+      }
    }
-
 }

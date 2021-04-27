@@ -244,8 +244,8 @@ public class UniversalCoupling extends RigidBodyCoupling {
       CoordinateInfo rollCoord = myCoordinates.get(ROLL_IDX);
       CoordinateInfo pitchCoord = myCoordinates.get(PITCH_IDX);
 
-      double roll = rollCoord.value;
-      double pitch = pitchCoord.value;
+      double roll = rollCoord.getValue();
+      double pitch = pitchCoord.getValue();
       double cr = Math.cos(roll);
       double sr = Math.sin(roll);
       double cp = Math.cos(pitch);

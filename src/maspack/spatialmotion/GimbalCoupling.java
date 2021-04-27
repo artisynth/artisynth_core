@@ -60,9 +60,9 @@ public class GimbalCoupling extends RigidBodyCoupling {
       CoordinateInfo pcoord = myCoordinates.get(1);
       CoordinateInfo ycoord = myCoordinates.get(2);
 
-      ang1.x = rcoord.value; // roll
-      ang1.y = pcoord.value; // pitch
-      ang1.z = ycoord.value; // yaw
+      ang1.x = rcoord.getValue(); // roll
+      ang1.y = pcoord.getValue(); // pitch
+      ang1.z = ycoord.getValue(); // yaw
       
       double[] rpyTrimmed = new double[3];
       rpyTrimmed[0] = rcoord.clipToRange (ang1.x);
@@ -136,8 +136,8 @@ public class GimbalCoupling extends RigidBodyCoupling {
 
          Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
          
-         double roll = rcoord.value;
-         double pitch = pcoord.value;
+         double roll = rcoord.getValue();
+         double pitch = pcoord.getValue();
 
          double cr = Math.cos(roll);
          double sr = Math.sin(roll);

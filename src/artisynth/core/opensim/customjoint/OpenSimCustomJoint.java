@@ -15,8 +15,7 @@ import artisynth.core.opensim.components.FunctionBase;
 import artisynth.core.opensim.customjoint.OpenSimCustomCoupling.TAxis;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.*;
-import maspack.properties.HasProperties;
-import maspack.properties.PropertyList;
+import maspack.properties.*;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.*;
@@ -39,6 +38,7 @@ public class OpenSimCustomJoint extends JointBase {
    // not static, so I can built it with custom properties
    public static PropertyList myProps = new PropertyList(
       OpenSimCustomJoint.class, JointBase.class);
+   //public LocalPropertyList myLocalProps = new LocalPropertyList (myProps);
 
    //private void initializePropertyList() {
    static {

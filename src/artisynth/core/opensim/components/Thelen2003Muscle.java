@@ -44,6 +44,7 @@ public class Thelen2003Muscle extends MuscleBase {
 
    }
    
+   @Override
    public double getDefaultActivation () {
       return default_activation;
    }

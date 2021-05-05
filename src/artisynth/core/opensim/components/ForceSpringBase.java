@@ -122,7 +122,11 @@ public abstract class ForceSpringBase extends ForceBase {
             String wrapObject = pw.getWrapObject ();
             WrapObject wo = componentMap.findObjectByName (WrapObject.class, wrapObject);
             RigidBody wrappable = (RigidBody)componentMap.get (wo);
-            wrappable.setRenderProps (grprops);
+            // John Lloyd, May 2021: think wrappable render props should be set
+            // elsewhere. Setting them using setRenderProps() doesn't allow
+            // correct propagation to underlying components.
+            //
+            //wrappable.setRenderProps (grprops);
             
             for (int i=0; i<markers.size ()-1; ++i) {
                // add wrap segment if frame markers are on different bodies
@@ -146,7 +150,6 @@ public abstract class ForceSpringBase extends ForceBase {
       markers.setRenderProps (grprops);
       mps.setRenderProps (createRenderProps());
      
-      
       return ff;
    }
 }

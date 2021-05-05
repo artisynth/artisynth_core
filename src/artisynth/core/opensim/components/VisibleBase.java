@@ -79,6 +79,7 @@ public abstract class VisibleBase extends OpenSimObject {
       }
       if (color != null) {
          rprops.setFaceColor (color);
+         rprops.setLineColor (color);
       }
       
       if (display_preference != null) {

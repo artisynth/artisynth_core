@@ -6,6 +6,7 @@ import artisynth.core.opensim.components.Coordinate;
 import artisynth.core.opensim.components.FunctionBase;
 import artisynth.core.opensim.components.TransformAxis;
 import maspack.matrix.MatrixNd;
+import maspack.matrix.VectorNi;
 import maspack.matrix.QRDecomposition;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
@@ -16,12 +17,12 @@ import maspack.spatialmotion.RigidBodyCoupling;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import maspack.util.InternalErrorException;
+import maspack.util.DataBuffer;
 
 /**
  * OpenSim Custom Joint coupling
  * - According to forums and documentation, OpenSim uses INTRINSIC rotations
  * - Tranlation is performed after rotation
- *
  */
 public class OpenSimCustomCoupling extends RigidBodyCoupling {
 
@@ -29,10 +30,15 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    protected TAxis[] myRotAxes;
    protected TAxis[] myTransAxes;
 
-   protected MatrixNd myH;
-   protected Twist[] myHVecs;
+   // H matrix maps coordinate velocities onto spatial velocity of C wrt D
+   protected MatrixNd myH; 
+   // G wreches map spatial velocity of C wrt D onto coordinate velocities, QR
+   // decomposition
+   protected Wrench[] myG;
+
+   // QR decomposition of H
+   protected QRDecomposition myQRD; 
    protected MatrixNd myQ;
-   protected QRDecomposition myQRD;
 
    int myNumLocked = 0; // number of locked coordinates
    int myNumClamped = 0; // number of clamped (range limited) coordinates
@@ -70,19 +76,6 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          }
       }
 
-      // public double eval (VectorNd coords) {
-      //    FunctionBase func = myInfo.getFunction();
-      //    if (func != null) {
-      //       for (int i=0; i<myCvals.size(); i++) {
-      //          myCvals.set (i, coords.get(myCidxs[i]));
-      //       }
-      //       return func.evaluate(myCvals);
-      //    }
-      //    else {
-      //       return 0;
-      //    }
-      // }
-
       /**
        * Apply translation for a translation axis
        */
@@ -101,15 +94,20 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
        * For a translation axis, add the contribution to the v component of the
        * mobility vectors.
        */
-      public void addToHv (Twist[] H, VectorNd coords) {
+      public void addToHv (MatrixNd H, VectorNd coords) {
          FunctionBase func = myInfo.getFunction();
          if (func != null) {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
             func.evaluateDerivative (myCvals, myDvals);
+            Vector3d uaxis = myInfo.getAxis();
             for (int i=0; i<myDvals.size(); i++) {
-               H[myCidxs[i]].v.scaledAdd (myDvals.get(i), myInfo.getAxis());
+               double dval = myDvals.get(i);
+               int j = myCidxs[i];
+               H.add (0, j, dval*uaxis.x);
+               H.add (1, j, dval*uaxis.y);
+               H.add (2, j, dval*uaxis.z);
             }
          }
       }
@@ -132,7 +130,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
        * mobility vectors.
        */
       public void addToHw (
-         Twist[] H, RotationMatrix3d R, VectorNd coords, boolean last) {
+         MatrixNd H, RotationMatrix3d R, VectorNd coords, boolean last) {
 
          FunctionBase func = myInfo.getFunction();
          if (func != null) {
@@ -140,37 +138,20 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
             func.evaluateDerivative (myCvals, myDvals);
-            Vector3d uvec = new Vector3d();
-            uvec.transform (R, myInfo.getAxis());
+            Vector3d uaxis = new Vector3d();
+            uaxis.transform (R, myInfo.getAxis());
             for (int i=0; i<myDvals.size(); i++) {
-               H[myCidxs[i]].w.scaledAdd (myDvals.get(i), uvec);
+               double dval = myDvals.get(i);
+               int j = myCidxs[i];
+               H.add (3, j, dval*uaxis.x);
+               H.add (4, j, dval*uaxis.y);
+               H.add (5, j, dval*uaxis.z);
             }
             if (!last) {
                R.mulAxisAngle (myInfo.getAxis(), func.evaluate(myCvals));
             }
          }
       }
-
-      // // return true if the derivative is non-zero
-      // public boolean evalDeriv (VectorNd coords, VectorNd deriv) {
-      //    FunctionBase func = myInfo.getFunction();
-      //    deriv.setZero ();
-      //    boolean nonZero = false;
-      //    if (func != null) {
-      //       for (int i=0; i<myCvals.size(); i++) {
-      //          myCvals.set (i, coords.get(myCidxs[i]));
-      //       }
-      //       func.evaluateDerivative (myCvals, myDvals);
-      //       for (int i=0; i<myDvals.size(); i++) {
-      //          double dval = myDvals.get(i);
-      //          if (dval != 0) {
-      //             deriv.set (myCidxs[i], dval);
-      //             nonZero = true;
-      //          }
-      //       }
-      //    }
-      //    return nonZero;
-      // }
 
       public Vector3d getAxis() {
          return myInfo.getAxis();
@@ -237,7 +218,6 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       // create coordinates with associated constraints if needed
       int bidx = 6 - numc;
       int uidx = numb;
-      myHVecs = new Twist[numc];
       for (int i=0; i<numc; i++) {
          Coordinate c = myCoords[i];
          CoordinateInfo cinfo;
@@ -256,9 +236,12 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
             cinfo = addCoordinate ();
          }
          cinfo.setValue (c.getDefaultValue());
-         myHVecs[i] = new Twist();
       }
       myH = new MatrixNd (6, numc);
+      myG = new Wrench[numc];
+      for (int i=0; i<numc; i++) {
+         myG[i] = new Wrench();
+      }
       myQ = new MatrixNd (6, 6);
       myQRD = new QRDecomposition();
 
@@ -281,49 +264,67 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       int numc = numCoordinates();
       VectorNd coords = new VectorNd(numc);
       doGetCoords (coords);
-      
-      // start by computing mobility vectors (myHVecs)
-      for (int j=0; j<numc; j++) {
-         myHVecs[j].setZero();
-      }
+      // start by computing H matrix
+      myH.setZero();
       // rotation
       RotationMatrix3d R = new RotationMatrix3d(); // intermediate rotation
       for (int i=0; i<myRotAxes.length; i++) {
          myRotAxes[i].addToHw (
-            myHVecs, R, coords, /*last=*/i==myRotAxes.length-1);
+            myH, R, coords, /*last=*/i==myRotAxes.length-1);
       }
       // translation
       for (int i=0; i<myTransAxes.length; i++) {
-         myTransAxes[i].addToHv (myHVecs, coords);
+         myTransAxes[i].addToHv (myH, coords);
+      }
+
+      myQRD.factorWithPivoting (myH);
+      int[] perm = new int[numc];
+      myQRD.get (myQ, null, perm);
+      if (myQRD.rank (1e-8) < numc) {
+         System.out.println (
+            "WARNING: joint has rank "+myQRD.rank(1e-8)+" vs. " + numc);
+         System.out.println ("coupling=" + this);
+      }
+      VectorNd gcol = new VectorNd(numc);
+      for (int i=0; i<6; i++) {
+         for (int j=0; j<numc; j++) {
+            gcol.set (j, myQ.get(i, j));
+         }
+         myQRD.solveR (gcol, gcol);
+         for (int j=0; j<numc; j++) {
+            myG[j].set (i, gcol.get(j));
+         }
+      }
+      // convert to G coords
+      for (int j=0; j<numc; j++) {
+         myG[j].inverseTransform (TGD.R);
       }
 
       // normalize and use them to set corresponding limit constraints
       Wrench wr = new Wrench(); 
       for (int j=0; j<numc; j++) {
-         myHVecs[j].normalize();
          CoordinateInfo cinfo = getCoordinate(j);
          if (cinfo.limitConstraint != null) {
-            Twist Hj =  myHVecs[j];
-            wr.set (Hj.v, Hj.w);
-            wr.inverseTransform (TGD);
-            cinfo.limitConstraint.setWrenchG (wr);
+            cinfo.limitConstraint.setWrenchG (myG[j]);
          }
       }
       if (numc < 6) {
          // non-coordinate constraints are given by the orthogonal complement
-         // of H, which we find using the QR decomposition
-         for (int j=0; j<numc; j++) {
-            myH.setColumn (j, myHVecs[j]);
-         }
-         myQRD.factor (myH);
-         myQRD.get (myQ, null);
+         // of H, which is given by the last numc-6 columns of Q
          for (int i=0; i<6-numc; i++) {
             RigidBodyConstraint cons = getConstraint(i);
             myQ.getColumn (numc+i, wr);
-            wr.inverseTransform (TGD);
+            wr.inverseTransform (TGD.R);
             cons.setWrenchG (wr);
          }
       }
+      // System.out.println ("Updated constraints:");
+      // for (int i=0; i<numConstraints(); i++) {
+      //    RigidBodyConstraint cinfo = getConstraint(i);
+      //    System.out.println (
+      //       ""+i+" "+cinfo.getWrenchG().toString ("%8.5f") + " engaged=" +
+      //       cinfo.getEngaged());
+      // }
       myUpdateConstraintCnt = myCoordValueCnt;
    }
 
@@ -336,19 +337,89 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       updateConstraints(TGD);
    }
 
+
+   private void doGetRpy (double[] rpy, RotationMatrix3d RDC) {
+
+      Vector3d ang1 = new Vector3d();
+      Vector3d ang2 = new Vector3d();
+      Vector3d ang3 = new Vector3d();
+
+      CoordinateInfo rcoord = myCoordinates.get(0); 
+      CoordinateInfo pcoord = myCoordinates.get(1);
+      CoordinateInfo ycoord = myCoordinates.get(2);
+
+      ang1.x = rcoord.getValue(); // roll
+      ang1.y = pcoord.getValue(); // pitch
+      ang1.z = ycoord.getValue(); // yaw
+      
+      double[] rpyTrimmed = new double[3];
+      rpyTrimmed[0] = rcoord.clipToRange (ang1.x);
+      rpyTrimmed[1] = pcoord.clipToRange (ang1.y);
+      rpyTrimmed[2] = ycoord.clipToRange (ang1.z);
+
+      
+      RDC.getRpy(rpy);
+
+      ang2.set (rpy);
+
+      // // adjust so that all angles as close as possible to mid-range
+      // if (applyEuler) {
+      //    // adjust so that all angles as close as possible to original angles
+      //    EulerFilter.filter(rpyTrimmed, rpy, 1e-2, rpy);
+      //    //       EulerFilter.filter(midRange, rpy, EPSILON, rpy);
+      // } else {
+         rpy[0] = findNearestAngle (ang1.x, rpy[0]);
+         rpy[1] = findNearestAngle (ang1.y, rpy[1]);
+         rpy[2] = findNearestAngle (ang1.z, rpy[2]);
+         //}
+      
+      if (Math.abs(rpy[0]-ang1.x) > Math.PI/2 ) {
+         System.out.println (
+            "SphericalRpyCoupling: roll more that PI/2 from previous value");
+      }
+      ang3.set (rpy);
+
+      Vector3d diff = new Vector3d();
+      diff.sub (ang3, ang1);
+      if (diff.norm() > Math.PI/4) {
+         ang1.scale (RTOD);
+         System.out.println ("deg1=" + ang1.toString ("%10.5f"));
+         ang2.scale (RTOD);
+         System.out.println ("deg2=" + ang2.toString ("%10.5f"));
+         ang3.scale (RTOD);
+         System.out.println ("deg3=" + ang3.toString ("%10.5f"));
+         System.out.println ("");
+      }
+   }
+
+   public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
+      double[] rpy = new double[3];
+      RotationMatrix3d R = new RotationMatrix3d();
+
+      R.set(TCD.R);
+      doGetRpy(rpy, R);
+      coords.set(0, rpy[0]);
+      coords.set(1, rpy[1]);
+      coords.set(2, rpy[2]);
+   }
+
+
    @Override
    public void projectToConstraints(
       RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
 
+      if (TCD.containsNaN()) {
+         System.out.println ("BAD TCD=\n" + TCD.toString("%10.5f"));
+      }
+      
       int numc = numCoordinates();
       if (numc == 6) {
          // nothing to do; there are no independent constraints
          return;
       }
-      
+
       // projection is based on current coordinate values, so we need these
       // regardless:
-
       if (coords == null) {
          coords = new VectorNd();
       }
@@ -364,21 +435,31 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       if (myUpdateConstraintCnt != myCoordValueCnt) {
          updateConstraints(TGD);
       }
-      VectorNd dq = new VectorNd(numc);
-      myQRD.solve (dq, del);
+      VectorNd delq = new VectorNd(numc);
       boolean changed = false;
       for (int j=0; j<numc; j++) {
          if (myCoords[j].getLocked()) {
-            dq.set (j, 0);
+            delq.set (j, 0);
          }
-         else if (dq.get(j) != 0) {
-            changed = true;
+         else {
+            double dq = myG[j].dot (del);
+            if (dq != 0) {
+               delq.set (j, dq);
+               changed = true;
+            }
          }
       }
       if (changed) {
-         coords.add (dq);
+         coords.add (delq);
          coordinatesToTCD (TGD, coords);
       }
+
+      // TGD.R.set(TCD.R);
+      // TGD.p.setZero();
+      // if (coords != null) {
+      //    TCDToCoordinates (coords, TGD);
+      // }  
+      
    }
 
    // /**

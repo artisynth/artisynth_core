@@ -20,17 +20,19 @@ import maspack.render.Renderer.*;
 import maspack.properties.*;
 
 public class ShoulderWrapping extends RootModel {
+   
    MechModel mech;
+   
    Point3d glenohumeral_left = new Point3d(-0.017555, -0.007, -0.17);
-//   Point3d superspinatus_insertion_anterior = new Point3d(-0.004107749730304505, 0.014835913809547088, -0.1769246865868313);
-   Point3d superspinatus_insertion_anterior = new Point3d(-0.01208957, 0.01589837, -0.18227027);
-   Point3d superspinatus_insertion_posterior = new Point3d(-0.02014608133362586, 0.012746715647106222, -0.18652378123514726);
    
-   Point3d superspinatus_origin_anterior = new Point3d(-0.024012412, 0.019970868, -0.13371966);
-   Point3d superspinatus_origin_posterior = new Point3d(-0.043480541, 0.019970868, -0.15330713);
-
+//   Point3d supraspinatus_insertion_anterior = new Point3d(-0.004107749730304505, 0.014835913809547088, -0.1769246865868313);
+   Point3d supraspinatus_insertion_anterior = new Point3d(-0.01208957, 0.01589837, -0.18227027);
+   Point3d supraspinatus_insertion_posterior = new Point3d(-0.02014608133362586, 0.012746715647106222, -0.18652378123514726);
    
-   int superspinatus_num_fibers = 10;
+   Point3d supraspinatus_origin_anterior = new Point3d(-0.024012412, 0.019970868, -0.13371966);
+   Point3d supraspinatus_origin_posterior = new Point3d(-0.043480541, 0.019970868, -0.15330713);
+  
+   int supraspinatus_num_fibers = 10;
    
    
    public void build (String[] args) throws IOException {
@@ -94,54 +96,8 @@ public class ShoulderWrapping extends RootModel {
       System.out.println ("setting grid resolution ...");
       DistanceGridComp gcomp = humerus.getDistanceGridComp();
       gcomp.setResolution (new Vector3i (30, 30, 30));
-
-      // add a muscle wrapping strand 
-//      System.out.println ("adding muscle ...");
-//      FrameMarker mkr = mech.addFrameMarkerWorld (
-//         humerus, new Point3d (-0.0037, 0.012, -0.04));
-//      mkr.setName ("insertion");
-//      Particle org = new Particle ("origin", 1.0, 0.0078, -0.0368, 0.025);
-//      org.setDynamic (false);
-//      mech.addParticle (org);
-//      MultiPointMuscle muscle = new MultiPointMuscle ("muscle");
-//      muscle.setMaterial (new SimpleAxialMuscle (0, 0, 10.0));
-//      muscle.addWrappable (humerus);
-//      muscle.addPoint (org);
-//      muscle.setSegmentWrappable (100, new Point3d[] {
-//            new Point3d (-0.0038, 0.024, 0.028)
-//         });
-//      muscle.addPoint (mkr);
-//      System.out.println ("updating wrap segments ...");
-//      muscle.updateWrapSegments();
-//      mech.addMultiPointSpring (muscle);
-
-      // rotate the whole model able the z axis
-//      mech.transformGeometry (new RigidTransform3d (0, 0, 0, Math.PI, 0, 0));
-
-      // add probe to control excitation
-//      NumericInputProbe inprobe =
-//         new NumericInputProbe (
-//            muscle, "excitation", 0.0, 6.0);
-//      inprobe.addData (
-//         new double[] { 0, 0, 1.5, 1.0, 3.0, 0, 4.5, 1.0, 6.0, 0},
-//         NumericInputProbe.EXPLICIT_TIME);
-//      addInputProbe (inprobe);
-
-      // add probe to control the origin point
-//      inprobe = new NumericInputProbe (
-//            org, "targetPosition", 0.0, 6.0);
-//      // note: origin data flipped 180 about from original pos
-//      inprobe.addData (
-//         new double[] { 0, -0.0078, 0.0368, 0.025,
-//                        3, -0.0078, 0.0368, 0.010,
-//                        6, -0.0078, 0.0368, 0.015},
-//         NumericInputProbe.EXPLICIT_TIME);
-//      addInputProbe (inprobe);
-
-      // add pan controller
-      //addController (new PanController (this, 6.0, 0.0, 6.0));
       
-      addSuperspinatusTendon();
+      addsupraspinatusTendon();
 
       // set rendering properties
       RenderProps.setSphericalPoints (mech, 0.003, new Color (102,102,255));
@@ -169,20 +125,20 @@ public class ShoulderWrapping extends RootModel {
       }
    }
    
-   public void addSuperspinatusTendon () {
+   public void addsupraspinatusTendon () {
       Point3d pos = new Point3d();
       RigidBody humerus = mech.rigidBodies ().get ("humerus");
       RigidBody scapula = mech.rigidBodies ().get ("scapula_l");      
       PolygonalMesh humerusMesh = humerus.getSurfaceMesh ();
       
-      for (int i = 0; i < superspinatus_num_fibers; i++) {
-         double alpha = i/(double)superspinatus_num_fibers;
-         pos.scale (alpha, superspinatus_origin_anterior);
-         pos.scaledAdd (1-alpha, superspinatus_origin_posterior);
+      for (int i = 0; i < supraspinatus_num_fibers; i++) {
+         double alpha = i/(double)supraspinatus_num_fibers;
+         pos.scale (alpha, supraspinatus_origin_anterior);
+         pos.scaledAdd (1-alpha, supraspinatus_origin_posterior);
          FrameMarker origin = mech.addFrameMarkerWorld (scapula, pos);
 
-         pos.scale (alpha, superspinatus_insertion_anterior);
-         pos.scaledAdd (1-alpha, superspinatus_insertion_posterior);
+         pos.scale (alpha, supraspinatus_insertion_anterior);
+         pos.scaledAdd (1-alpha, supraspinatus_insertion_posterior);
          humerusMesh.distanceToPoint (pos, pos);
          FrameMarker insertion = mech.addFrameMarkerWorld (humerus, pos);
          

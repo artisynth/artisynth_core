@@ -38,7 +38,7 @@ public class OpenSimCustomJoint extends JointBase {
    // not static, so I can built it with custom properties
    public static PropertyList myProps = new PropertyList(
       OpenSimCustomJoint.class, JointBase.class);
-   public LocalPropertyList myLocalProps = new LocalPropertyList (myProps);
+   //public LocalPropertyList myLocalProps = new LocalPropertyList (myProps);
 
    //private void initializePropertyList() {
    static {

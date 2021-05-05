@@ -22,6 +22,7 @@ import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentListImpl;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryAction;
@@ -1349,7 +1350,13 @@ public class RigidBody extends Frame
       }
       mySDRenderSurface = surf;
       list.addIfVisible (myDistanceGridComp);
-      //list.addIfVisible (myMeshList);
+      // check for other renderable components:
+      for (int idx=2; idx<numComponents(); idx++) {
+         ModelComponent comp = get(idx);
+         if (comp instanceof RenderableComponent) {
+            list.addIfVisible ((RenderableComponent)comp);
+         }
+      }
    }
    
    public void render (Renderer renderer, int flags) {

@@ -139,7 +139,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          updateEngaged (limitConstraint, value, minValue, maxValue, velCD);
       }
 
-      protected double clipToRange (double value) {
+      public double clipToRange (double value) {
          return clip (value, minValue, maxValue);
       }
 

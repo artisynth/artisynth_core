@@ -98,10 +98,11 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
       return new RigidTransform3d(loc, orient);
    }
    
-   private BodyAndTransform findBodyAndTransform(String path, ModelComponentMap componentMap) {
+   static BodyAndTransform findBodyAndTransform (
+      OpenSimObject refObj, String path, ModelComponentMap componentMap) {
       BodyAndTransform out = new BodyAndTransform ();
       
-      OpenSimObject obj = componentMap.findObjectByPath (this, path);
+      OpenSimObject obj = componentMap.findObjectByPath (refObj, path);
       while (obj != null) {
          
          if (obj instanceof Body || obj instanceof Ground) {
@@ -123,11 +124,11 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
    }
    
    public BodyAndTransform findParentBodyAndTransform(ModelComponentMap componentMap) {
-      return findBodyAndTransform (socket_parent_frame, componentMap);
+      return findBodyAndTransform (this, socket_parent_frame, componentMap);
    }
    
    public BodyAndTransform findChildBodyAndTransform(ModelComponentMap componentMap) {
-      return findBodyAndTransform (socket_child_frame, componentMap);
+      return findBodyAndTransform (this, socket_child_frame, componentMap);
    }
    
    public void setLocation(Point3d loc) {

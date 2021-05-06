@@ -1,28 +1,38 @@
 package artisynth.demos.wrapping;
 
 import java.awt.Color;
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
 
-import artisynth.core.workspace.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.femmodels.*;
-import artisynth.core.materials.*;
-import artisynth.core.probes.*;
-
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.geometry.*;
-import maspack.geometry.io.VtkXmlReader;
+import artisynth.core.femmodels.SkinMarker;
+import artisynth.core.femmodels.SkinMeshBody;
+import artisynth.core.femmodels.SkinMeshBody.FrameBlending;
+import artisynth.core.materials.SimpleAxialMuscle;
+import artisynth.core.mechmodels.DistanceGridComp;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.FrameSpring;
+import artisynth.core.mechmodels.GimbalJoint;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MultiPointMuscle;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.probes.NumericInputProbe;
+import artisynth.core.workspace.RootModel;
+import maspack.collision.SurfaceMeshIntersector;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
 import maspack.interpolation.Interpolation;
-import maspack.collision.*;
-import maspack.render.*;
-import maspack.render.Renderer.*;
-import maspack.properties.*;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
+import maspack.matrix.VectorNd;
+import maspack.properties.Property;
+import maspack.render.RenderProps;
+import maspack.util.PathFinder;
 
-public class ShoulderWrapping extends RootModel {
-   
-   MechModel mech;
+public class ShoulderSkinWrapping extends RootModel {
+ MechModel mech;
    
    Point3d glenohumeral_left = new Point3d(-0.017555, -0.007, -0.17);
    
@@ -32,9 +42,12 @@ public class ShoulderWrapping extends RootModel {
    
    Point3d supraspinatus_origin_anterior = new Point3d(-0.025174507, 0.025545887, -0.15162294);
    Point3d supraspinatus_origin_posterior = new Point3d(-0.041480541, 0.019970868, -0.15330713);
-  
+
+   Point3d wrapping_via_point_anterior = new Point3d(-0.02333586, 0.021560835, -0.16767841);
+   Point3d wrapping_via_point_posterior = new Point3d(-0.031311948, 0.019261175, -0.17091899);
+
    int supraspinatus_num_fibers = 4;
-   
+   int skinwrapping_num_viapoints = 7;          //needs to be an odd number for now
    
    public void build (String[] args) throws IOException {
       // create a mech model with appropriate rigid body damping
@@ -111,7 +124,7 @@ public class ShoulderWrapping extends RootModel {
       
       addShoulderController();
       RenderProps.setVisible (mech.rigidBodies ().get("thorax"), true);
-    
+      
       addBreakPoint (3);
    }
    
@@ -134,9 +147,20 @@ public class ShoulderWrapping extends RootModel {
    
    public void addsupraspinatusTendon () {
       Point3d pos = new Point3d();
+      Point3d pos_skin = new Point3d();
       RigidBody humerus = mech.rigidBodies ().get ("humerus");
       RigidBody scapula = mech.rigidBodies ().get ("scapula_l");      
       PolygonalMesh humerusMesh = humerus.getSurfaceMesh ();
+      Vector3d vec = new Vector3d ();
+      
+   // create a SkinMeshBody and use it to create "skinned" muscle via points
+      SkinMeshBody skinBody = new SkinMeshBody();
+      skinBody.addMasterBody (mech.rigidBodies ().get ("scapula_l"));
+      skinBody.addMasterBody (mech.rigidBodies ().get ("humerus"));
+      skinBody.setFrameBlending (FrameBlending.DUAL_QUATERNION_LINEAR);
+      mech.addMeshBody (skinBody);
+      
+
       
       for (int i = 0; i < supraspinatus_num_fibers; i++) {
          double alpha = i/(double)supraspinatus_num_fibers;
@@ -149,12 +173,35 @@ public class ShoulderWrapping extends RootModel {
          humerusMesh.distanceToPoint (pos, pos);
          FrameMarker insertion = mech.addFrameMarkerWorld (humerus, pos);
          
+         pos.scale (alpha, wrapping_via_point_anterior);
+         pos.scaledAdd (1-alpha, wrapping_via_point_posterior);
+
          MultiPointMuscle muscle = new MultiPointMuscle ("muscle"+i);
          muscle.setMaterial (new SimpleAxialMuscle (0, 0, 10.0));
          muscle.addWrappable (humerus);
          muscle.addPoint (origin);
-         muscle.setSegmentWrappable (100);
+         //muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
+         for (int j = 1; j <= (skinwrapping_num_viapoints-1)/2+1; j++) {
+            double b =
+               (double)j * 1 / ((skinwrapping_num_viapoints - 1) / 2 + 1);
+            vec.sub (pos, origin.getPosition ());
+            vec.scale (b);
+            pos_skin.add (origin.getPosition (), vec);
+            muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
+         }
+            
+         for (int j = 0; j < (skinwrapping_num_viapoints-1); j++) {
+            double b =
+               (double)j * 1 / ((skinwrapping_num_viapoints - 1) / 2 + 1);
+            vec.sub (insertion.getPosition (), pos);
+            vec.scale (b);
+            pos_skin.add (pos, vec);
+            muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
+         }
+
+
          muscle.addPoint (insertion);
+        
          System.out.println ("updating wrap segments ...");
          muscle.updateWrapSegments();
          mech.addMultiPointSpring (muscle);
@@ -174,4 +221,3 @@ public class ShoulderWrapping extends RootModel {
    }
 
 }
-

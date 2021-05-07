@@ -23,6 +23,7 @@ public class XyzToXyzb extends MeshConverter {
       XyzReader reader = new XyzReader(inputFile);
       MeshBase mesh = reader.readMesh ();
       XyzbWriter writer = new XyzbWriter(outputFile);
+      writer.setFormat (myFormatStr.value);
       writer.writeMesh (mesh);
    }
 

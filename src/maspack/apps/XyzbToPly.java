@@ -25,6 +25,7 @@ public class XyzbToPly extends MeshConverter {
       XyzbReader reader = new XyzbReader (inputFile);
       MeshBase mesh = reader.readMesh();
       PlyWriter writer = new PlyWriter (outputFile);
+      writer.setFormat (myFormatStr.value);
       writer.setDataFormat (DataFormat.BINARY_LITTLE_ENDIAN);
       writer.setFloatType (DataType.FLOAT);
       writer.writeMesh (mesh);

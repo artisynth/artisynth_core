@@ -19,6 +19,7 @@ public abstract class MeshConverter {
    protected ArgParser myArgParser;
    protected StringHolder myOutputName;
    protected StringHolder myInputName;
+   protected StringHolder myFormatStr;
    protected String myInSuffix;
    protected String myOutSuffix;
 
@@ -34,10 +35,14 @@ public abstract class MeshConverter {
       myOutSuffix = outSuffix;
       myOutputName = new StringHolder();
       myInputName = new StringHolder();
+      myFormatStr = new StringHolder("%g");
       String synopsis = "[options] <inputFile"+inSuffix+">";
       myArgParser = new ArgParser (synopsis);
       myOutputName = new StringHolder();
-      myArgParser.addOption ("-out %s #output file name", myOutputName);    
+      myArgParser.addOption (
+         "-out %s #output file name", myOutputName);    
+      myArgParser.addOption (
+         "-fmt %s #numeric output format for text files", myFormatStr);    
    }
 
    public abstract void convert (File inputFile, File outputFile)

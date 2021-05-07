@@ -26,6 +26,7 @@ public class PlyToObj extends MeshConverter {
       PlyReader reader = new PlyReader(inputFile);
       MeshBase mesh = reader.readMesh ();
       WavefrontWriter writer = new WavefrontWriter(outputFile);
+      writer.setFormat (myFormatStr.value);
       writer.writeMesh (mesh);
    }
 

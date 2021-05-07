@@ -47,7 +47,7 @@ public class ShoulderSkinWrapping extends RootModel {
    Point3d wrapping_via_point_posterior = new Point3d(-0.031311948, 0.019261175, -0.17091899);
 
    int supraspinatus_num_fibers = 4;
-   int skinwrapping_num_viapoints = 7;          //needs to be an odd number for now
+   int skinwrapping_num_viapoints = 4;          //needs to be an odd number for now
    
    public void build (String[] args) throws IOException {
       // create a mech model with appropriate rigid body damping
@@ -57,27 +57,10 @@ public class ShoulderSkinWrapping extends RootModel {
       mech.setGravity (0, -9.8, 0); // model is y-up
       addModel (mech);
 
-      // create and add the humerus bone
-      double density = 1000;
-
-      System.out.println ("creating humerus ...");
-      String meshPath = PathFinder.getSourceRelativePath (
-         this, "geometry/HumerusLeft.obj");
-      PolygonalMesh humerusMesh = new PolygonalMesh (meshPath);
-      
-      RigidBody humerus = RigidBody.createFromMesh (
-         "humerus", humerusMesh, density, /*scale=*/0.0036);
-      
-      // rotation mesh to neutral orientation
-      RigidTransform3d X = new RigidTransform3d ();
-      X.mulRotX (-Math.PI/2.0);
-      X.mulRotZ (-Math.PI/2.0);
-      humerusMesh.transform (X);
-      
-//      humerus.centerPoseOnCenterOfMass();
-      mech.addRigidBody (humerus);
-      
-      addStaticBones();
+      RigidBody humerus = addHumerus();
+      addStaticBody ("thorax", "thorax.obj");
+      addStaticBody ("scapula", "ScapulaLeft.obj");
+      addStaticBody ("clavicle", "ClavicleLeft.obj");
 
       // create a smaller mesh for just the proximal end of the humerus, and
       // set this to be the collidable mesh. We do this because we need a
@@ -128,39 +111,57 @@ public class ShoulderSkinWrapping extends RootModel {
       addBreakPoint (3);
    }
    
-   public void addStaticBones() throws IOException {
-      String[] meshNames = new String[] {"thorax.obj", "scapula_l.obj", "clavicle_l.obj"};
-      for (String meshName : meshNames) {
-//         VtkXmlReader reader = new VtkXmlReader(new File(PathFinder.getSourceRelativePath (
-//            this, "geometry/"+meshName)));
-//         reader.parse ();
-//         PolygonalMesh mesh = reader.getPolygonalMesh ();
-         PolygonalMesh mesh = new PolygonalMesh (PathFinder.getSourceRelativePath (
-            this, "geometry/"+meshName));
-         RigidBody body = new RigidBody (meshName.substring (0, meshName.length ()-4));
-         body.setDynamic (false);
-         body.addMesh (mesh);
-         mech.addRigidBody (body);
-         
+   protected PolygonalMesh readMesh (String meshName) {
+      String meshPath =
+         PathFinder.getSourceRelativePath (this, "geometry/"+meshName);
+      PolygonalMesh mesh = null;
+      try {
+         mesh = new PolygonalMesh (meshPath);
       }
+      catch (Exception e) {
+         System.out.println ("Can't read mesh file "+meshPath+": "+e);
+      }
+      return mesh;
    }
+
+   public RigidBody addHumerus () {
+      System.out.println ("creating humerus ...");
+      PolygonalMesh mesh = readMesh ("HumerusLeft.obj");
+      // rotate mesh to neutral orientation
+      RigidTransform3d X = new RigidTransform3d ();
+      X.mulRotX (-Math.PI/2.0);
+      X.mulRotZ (-Math.PI/2.0);
+      mesh.transform (X);
+      RigidBody humerus = RigidBody.createFromMesh (
+         "humerus", mesh, /*density=*/1000.0, /*scale=*/0.0036);
+      mech.addRigidBody (humerus);
+      return humerus;
+   }
+
+   public RigidBody addStaticBody (String name, String meshName) {
+      PolygonalMesh mesh = readMesh (meshName);
+      RigidBody body = RigidBody.createFromMesh (
+         name, mesh, /*density=*/1000, /*scale=*/1.0);
+      body.setDynamic (false);
+      body.centerPoseOnCenterOfMass();
+      mech.addRigidBody (body);
+      return body;
+   }      
    
    public void addsupraspinatusTendon () {
       Point3d pos = new Point3d();
       Point3d pos_skin = new Point3d();
       RigidBody humerus = mech.rigidBodies ().get ("humerus");
-      RigidBody scapula = mech.rigidBodies ().get ("scapula_l");      
+      RigidBody scapula = mech.rigidBodies ().get ("scapula");      
       PolygonalMesh humerusMesh = humerus.getSurfaceMesh ();
       Vector3d vec = new Vector3d ();
       
    // create a SkinMeshBody and use it to create "skinned" muscle via points
       SkinMeshBody skinBody = new SkinMeshBody();
-      skinBody.addMasterBody (mech.rigidBodies ().get ("scapula_l"));
+      skinBody.addMasterBody (mech.rigidBodies ().get ("scapula"));
       skinBody.addMasterBody (mech.rigidBodies ().get ("humerus"));
       skinBody.setFrameBlending (FrameBlending.DUAL_QUATERNION_LINEAR);
       mech.addMeshBody (skinBody);
-      
-
       
       for (int i = 0; i < supraspinatus_num_fibers; i++) {
          double alpha = i/(double)supraspinatus_num_fibers;
@@ -180,30 +181,45 @@ public class ShoulderSkinWrapping extends RootModel {
          muscle.setMaterial (new SimpleAxialMuscle (0, 0, 10.0));
          muscle.addWrappable (humerus);
          muscle.addPoint (origin);
-         //muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
-         for (int j = 1; j <= (skinwrapping_num_viapoints-1)/2+1; j++) {
-            double b =
-               (double)j * 1 / ((skinwrapping_num_viapoints - 1) / 2 + 1);
-            vec.sub (pos, origin.getPosition ());
-            vec.scale (b);
-            pos_skin.add (origin.getPosition (), vec);
-            muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
-         }
-            
-         for (int j = 0; j < (skinwrapping_num_viapoints-1); j++) {
-            double b =
-               (double)j * 1 / ((skinwrapping_num_viapoints - 1) / 2 + 1);
-            vec.sub (insertion.getPosition (), pos);
-            vec.scale (b);
-            pos_skin.add (pos, vec);
-            muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
+
+         VectorNd weights = new VectorNd(2);
+         for (int j=0; j<skinwrapping_num_viapoints; j++) {
+            double s = (j+1)/(double)(skinwrapping_num_viapoints+1);
+            pos_skin.combine (
+               s, insertion.getPosition(), (1-s), origin.getPosition());
+            // project point to surface if it is inside the humerus
+            if (humerusMesh.pointIsInside (pos_skin) == 1) {
+               humerusMesh.distanceToPoint (pos_skin, pos_skin);
+            }
+            weights.set (0, 1-s); // scapula weight
+            weights.set (1, s); // humerus weight
+            muscle.addPoint (
+               skinBody.addMarker (null, new Point3d (pos_skin), weights));
          }
 
+         // //muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
+         // for (int j = 1; j <= (skinwrapping_num_viapoints-1)/2+1; j++) {
+         //    double b =
+         //       (double)j * 1/((skinwrapping_num_viapoints-1)/2 + 1);
+         //    vec.sub (pos, origin.getPosition ());
+         //    vec.scale (b);
+         //    pos_skin.add (origin.getPosition (), vec);
+         //    muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
+         // }
+            
+         // for (int j = 0; j < (skinwrapping_num_viapoints-1); j++) {
+         //    double b =
+         //       (double)j * 1/((skinwrapping_num_viapoints-1)/2 + 1);
+         //    vec.sub (insertion.getPosition (), pos);
+         //    vec.scale (b);
+         //    pos_skin.add (pos, vec);
+         //    muscle.addPoint (skinBody.addMarker (new Point3d (pos_skin)));
+         // }
 
          muscle.addPoint (insertion);
         
          System.out.println ("updating wrap segments ...");
-         muscle.updateWrapSegments();
+         //muscle.updateWrapSegments();
          mech.addMultiPointSpring (muscle);
       }      
    }

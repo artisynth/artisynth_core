@@ -21,7 +21,10 @@ import maspack.render.Renderer.*;
 import maspack.properties.*;
 
 public class ShoulderWrapping extends RootModel {
-   
+   /**
+    * Bone meshes for the humerus, clavicle and scapula were derived from the
+    * "skeleton19" data set of the PHuman bone scanning project.
+    */
    MechModel mech;
    
    Point3d glenohumeral_left = new Point3d(-0.017555, -0.007, -0.17);
@@ -34,8 +37,7 @@ public class ShoulderWrapping extends RootModel {
    Point3d supraspinatus_origin_posterior = new Point3d(-0.041480541, 0.019970868, -0.15330713);
   
    int supraspinatus_num_fibers = 4;
-   
-   
+
    public void build (String[] args) throws IOException {
       // create a mech model with appropriate rigid body damping
       mech = new MechModel ("mech");
@@ -44,27 +46,10 @@ public class ShoulderWrapping extends RootModel {
       mech.setGravity (0, -9.8, 0); // model is y-up
       addModel (mech);
 
-      // create and add the humerus bone
-      double density = 1000;
-
-      System.out.println ("creating humerus ...");
-      String meshPath = PathFinder.getSourceRelativePath (
-         this, "geometry/HumerusLeft.obj");
-      PolygonalMesh humerusMesh = new PolygonalMesh (meshPath);
-      
-      RigidBody humerus = RigidBody.createFromMesh (
-         "humerus", humerusMesh, density, /*scale=*/0.0036);
-      
-      // rotation mesh to neutral orientation
-      RigidTransform3d X = new RigidTransform3d ();
-      X.mulRotX (-Math.PI/2.0);
-      X.mulRotZ (-Math.PI/2.0);
-      humerusMesh.transform (X);
-      
-//      humerus.centerPoseOnCenterOfMass();
-      mech.addRigidBody (humerus);
-      
-      addStaticBones();
+      RigidBody humerus = addHumerus();
+      addStaticBody ("thorax", "thorax.obj");
+      addStaticBody ("scapula", "ScapulaLeft.obj");
+      addStaticBody ("clavicle", "ClavicleLeft.obj");
 
       // create a smaller mesh for just the proximal end of the humerus, and
       // set this to be the collidable mesh. We do this because we need a
@@ -110,32 +95,53 @@ public class ShoulderWrapping extends RootModel {
       setDefaultViewOrientation (AxisAlignedRotation.NX_Y);
       
       addShoulderController();
-      RenderProps.setVisible (mech.rigidBodies ().get("thorax"), true);
+      //RenderProps.setVisible (mech.rigidBodies ().get("thorax"), true);
     
       addBreakPoint (3);
    }
-   
-   public void addStaticBones() throws IOException {
-      String[] meshNames = new String[] {"thorax.obj", "scapula_l.obj", "clavicle_l.obj"};
-      for (String meshName : meshNames) {
-//         VtkXmlReader reader = new VtkXmlReader(new File(PathFinder.getSourceRelativePath (
-//            this, "geometry/"+meshName)));
-//         reader.parse ();
-//         PolygonalMesh mesh = reader.getPolygonalMesh ();
-         PolygonalMesh mesh = new PolygonalMesh (PathFinder.getSourceRelativePath (
-            this, "geometry/"+meshName));
-         RigidBody body = new RigidBody (meshName.substring (0, meshName.length ()-4));
-         body.setDynamic (false);
-         body.addMesh (mesh);
-         mech.addRigidBody (body);
-         
+
+
+   protected PolygonalMesh readMesh (String meshName) {
+      String meshPath =
+         PathFinder.getSourceRelativePath (this, "geometry/"+meshName);
+      PolygonalMesh mesh = null;
+      try {
+         mesh = new PolygonalMesh (meshPath);
       }
+      catch (Exception e) {
+         System.out.println ("Can't read mesh file "+meshPath+": "+e);
+      }
+      return mesh;
    }
+
+   public RigidBody addHumerus () {
+      System.out.println ("creating humerus ...");
+      PolygonalMesh mesh = readMesh ("HumerusLeft.obj");
+      // rotate mesh to neutral orientation
+      RigidTransform3d X = new RigidTransform3d ();
+      X.mulRotX (-Math.PI/2.0);
+      X.mulRotZ (-Math.PI/2.0);
+      mesh.transform (X);
+      RigidBody humerus = RigidBody.createFromMesh (
+         "humerus", mesh, /*density=*/1000.0, /*scale=*/0.0036);
+      mech.addRigidBody (humerus);
+      return humerus;
+   }
+
+   public RigidBody addStaticBody (String name, String meshName) {
+      PolygonalMesh mesh = readMesh (meshName);
+      RigidBody body = RigidBody.createFromMesh (
+         name, mesh, /*density=*/1000, /*scale=*/1.0);
+      body.setDynamic (false);
+      body.centerPoseOnCenterOfMass();
+      mech.addRigidBody (body);
+      return body;
+   }      
    
    public void addsupraspinatusTendon () {
       Point3d pos = new Point3d();
       RigidBody humerus = mech.rigidBodies ().get ("humerus");
-      RigidBody scapula = mech.rigidBodies ().get ("scapula_l");      
+      RigidBody scapula = mech.rigidBodies ().get ("scapula");      
       PolygonalMesh humerusMesh = humerus.getSurfaceMesh ();
       
       for (int i = 0; i < supraspinatus_num_fibers; i++) {

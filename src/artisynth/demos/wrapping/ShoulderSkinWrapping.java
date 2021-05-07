@@ -47,7 +47,7 @@ public class ShoulderSkinWrapping extends RootModel {
    Point3d wrapping_via_point_posterior = new Point3d(-0.031311948, 0.019261175, -0.17091899);
 
    int supraspinatus_num_fibers = 4;
-   int skinwrapping_num_viapoints = 4;          //needs to be an odd number for now
+   int skinwrapping_num_viapoints = 4;
    
    public void build (String[] args) throws IOException {
       // create a mech model with appropriate rigid body damping

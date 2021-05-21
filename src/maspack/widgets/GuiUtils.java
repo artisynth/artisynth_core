@@ -83,6 +83,16 @@ public class GuiUtils {
     */
    public static final int BELOW = 9;
 
+
+   /**
+    * Grow size0 as needed to to accommodate size1
+    */
+   public static void growSize (Dimension size0, Dimension size1) {
+      size0.setSize (
+         Math.max (size1.getWidth(), size0.getWidth()),
+         Math.max (size1.getHeight(), size0.getHeight()));
+   }
+
    /**
     * Sets the size of a component to be a rigidly fixed as we possibly can.
     */
@@ -539,6 +549,17 @@ public class GuiUtils {
          System.out.println ("Cannot locate Icon relative to " + ref);
          return null;
       }
+      try {
+         return new ImageIcon (fullpath);
+      }
+      catch (Exception e) {
+         System.out.println ("Error loading icon from " + fullpath);
+         System.out.println (e.getMessage());
+         return null;
+      }      
+   }
+
+   public static ImageIcon loadIcon (String fullpath) {
       try {
          return new ImageIcon (fullpath);
       }

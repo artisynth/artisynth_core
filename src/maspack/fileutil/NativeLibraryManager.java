@@ -77,6 +77,7 @@ public class NativeLibraryManager {
 
    private static String SEP = File.separator;
    private static String PSEP = File.pathSeparator;
+   private int downloadCnt = 0; // cumulative number of files downloaded
 
    /**
     * Indicates the operating system type.
@@ -679,6 +680,7 @@ public class NativeLibraryManager {
       }
       if (grab) {
          Manager.getRemote (localLibFile, remoteLibFile);
+         downloadCnt++;
       }
    }
 
@@ -810,16 +812,19 @@ public class NativeLibraryManager {
     * in the class header for more information about how the library name is
     * formatted.
     *
-    * @param libName name of the library.
+    * @param libName name of the library
+    * @return 1 if the library was downloaded or updated, 0 otherwise
     * @throws maspack.fileutil.NativeLibraryException if the required library
     * is not present and cannot be obtained.
     */
-   public static void verify (String libName) {
+   public static int verify (String libName) {
+      int retval = 0;
       if (myManager == null) {
          myManager = new NativeLibraryManager ();
       }
       LibDesc desc = myManager.createDesc (libName);
       if (desc.matchesSystem(myManager.mySystemType)) {
+         int oldcnt = myManager.downloadCnt;
          if (myManager.getLibraryPath (desc) == null) {
             Exception grabEx = myManager.myGrabException;
             NativeLibraryException e =
@@ -829,7 +834,12 @@ public class NativeLibraryManager {
             e.initCause (grabEx);
             throw e;
          }
+         // library was downloaded or updated if download count changed
+         if (myManager.downloadCnt != oldcnt) {
+            retval = 1;
+         }
       }
+      return retval;
    }
 
    /**

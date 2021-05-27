@@ -263,15 +263,6 @@ public class PropertyPanel extends LabeledComponentPanel {
       return null;
    }
 
-   public LabeledComponentBase addWidget (
-      Property prop, double min, double max) {
-      LabeledComponentBase widget = PropertyWidget.create (prop, min, max);
-      if (widget != null) {
-         addPropertyWidget (prop, widget);
-      }
-      return widget;
-   }
-
    public LabeledComponentBase addWidget (Property prop) {
       LabeledComponentBase widget = PropertyWidget.create (prop);
       if (widget != null) {
@@ -280,19 +271,66 @@ public class PropertyPanel extends LabeledComponentPanel {
       return widget;
    }
 
-   private void disconnectControl(LabeledControl comp) {
+   public LabeledComponentBase addWidget (Property prop, double min, double max) {
+      LabeledComponentBase widget = PropertyWidget.create (prop, min, max);
+      if (widget != null) {
+         addPropertyWidget (prop, widget);
+      }
+      return widget;
+   }
+
+   public LabeledComponentBase addWidget (HasProperties host, String name) {
+      Property prop = host.getProperty (name);
+      if (prop != null) {
+         return addWidget (prop);
+      }
+      else {
+         return null;
+      }
+   }
+
+   public LabeledComponentBase addWidget (
+      HasProperties host, String name, double min, double max) {
+      Property prop = host.getProperty (name);
+      if (prop != null) {
+         return addWidget (prop, min, max);
+      }
+      else {
+         return null;
+      }
+   }
+
+   public LabeledComponentBase addWidget (
+      String labelText, HasProperties host, String name) {
+      LabeledComponentBase widget = addWidget (host, name);
+      if (widget != null) {
+         widget.setLabelText (labelText);
+      }
+      return widget;
+   }
+
+   public LabeledComponentBase addWidget (
+      String labelText, HasProperties host, String name, double min, double max) {
+      LabeledComponentBase widget = addWidget (host, name, min, max);
+      if (widget != null) {
+         widget.setLabelText (labelText);
+      }
+      return widget;
+   }
+
+   private void disconnectControl (LabeledControl comp) {
       for (ValueChangeListener l : myGlobalValueChangeListeners) {
          removeValueChangeListener(comp, l);
       }
    }
    
-   private void disconnectPanel(CompositePropertyPanel comp) {
+   private void disconnectPanel (CompositePropertyPanel comp) {
       for (ValueChangeListener l : myGlobalValueChangeListeners) {
          removeValueChangeListener(comp, l);
       }
    }
    
-   private void disconnectPanel(PropertyPanel panel) {
+   private void disconnectPanel (PropertyPanel panel) {
       for (ValueChangeListener l : myGlobalValueChangeListeners) {
          removeValueChangeListener(panel, l);
       }

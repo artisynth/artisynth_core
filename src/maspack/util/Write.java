@@ -38,20 +38,26 @@ public class Write {
     * if true, place a newline at the end of the output
     */
    public static void writeColor (PrintWriter pw, Color color, boolean newline) {
-      float r = color.getRed() / 255f;
-      float g = color.getGreen() / 255f;
-      float b = color.getBlue() / 255f;
-      float a = color.getAlpha() / 255f;
-
-      NumberFormat fmt = new NumberFormat (cfmt);
-
-      if (a == 1f) {
-         pw.print ("[ " + fmt.format (r) + " " + fmt.format (g) + " "
-         + fmt.format (b) + " ]");
+      if (color == null) {
+         pw.print ("null");
       }
       else {
-         pw.print ("[ " + fmt.format (r) + " " + fmt.format (g) + " "
-         + fmt.format (b) + " " + fmt.format (a) + " ]");
+         float r = color.getRed() / 255f;
+         float g = color.getGreen() / 255f;
+         float b = color.getBlue() / 255f;
+         float a = color.getAlpha() / 255f;
+         
+         NumberFormat fmt = new NumberFormat (cfmt);
+         
+         if (a == 1f) {
+            pw.print (
+               "[ "+fmt.format(r)+" "+fmt.format(g)+" "+fmt.format (b)+" ]");
+         }
+         else {
+            pw.print (
+               "[ "+fmt.format (r)+" "+fmt.format (g)+" "+fmt.format (b)+
+               " "+fmt.format (a)+" ]");
+         }
       }
       if (newline) {
          pw.println ("");

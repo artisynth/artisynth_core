@@ -10,5 +10,12 @@ package maspack.function;
  * Single-input single-output
  */
 public interface SISOFunction {
-   double eval(double in);
+
+   /**
+    * Evaluates the function at a prescribed input value.
+    *
+    * @param x input value
+    * @return function output value
+    */
+   double eval (double x);
 }

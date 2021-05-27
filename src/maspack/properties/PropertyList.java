@@ -145,7 +145,7 @@ public class PropertyList implements PropertyInfoList {
             ""+hostClass+" is not an instance of HasProperties");
       }
       Field field = null;
-      PropertyList list = null;
+      PropertyInfoList list = null;
       try {
          field = hostClass.getDeclaredField ("myProps");
       }
@@ -189,7 +189,7 @@ public class PropertyList implements PropertyInfoList {
       }
       if (hostObj != null) {
          try {
-            list = (PropertyList)hostObj.getAllPropertyInfo();
+            list = (PropertyInfoList)hostObj.getAllPropertyInfo();
          }
          catch (Exception e) { // cast failed
             list = null;

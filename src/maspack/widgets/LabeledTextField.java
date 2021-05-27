@@ -24,11 +24,19 @@ public abstract class LabeledTextField extends LabeledControl {
    
    protected JTextField myTextField;
    protected String myLastText = "";
-   boolean myTextBackgroundReversedP = false;
+   boolean myTextBackgroundHighlighted = false;
    boolean myCaretListenerMasked = false;
    protected NumberFormat myFmt = new NumberFormat (myDefaultFmt);
    protected static String myDefaultFmt = "%.6g";
    protected boolean myAlwaysParseText = false;
+
+   protected boolean myEnterValueOnFocusLost = true;
+   protected boolean focusListenerMasked = false;
+   protected boolean myLastEntryAccepted = false;
+   protected Color myHighlightedBGColor =
+      UIManager.getColor ("TextField.selectionBackground");
+   protected Color myBGColor =
+      UIManager.getColor ("TextField.background");
 
    public static PropertyList myProps =
       new PropertyList (LabeledTextField.class, LabeledControl.class);
@@ -181,10 +189,6 @@ public abstract class LabeledTextField extends LabeledControl {
       return myTextField.getText();
    }
 
-   protected boolean focusListenerMasked = false;
-
-   protected boolean myLastEntryAccepted = false;
-
    protected void setValueFromDisplay() {
       if (myAlwaysParseText || !myLastText.equals (myTextField.getText())) {
          StringHolder errMsg = new StringHolder();
@@ -209,7 +213,7 @@ public abstract class LabeledTextField extends LabeledControl {
          updateDisplay();
       }
       else {
-         setReverseTextBackground (false);
+         setHighlightedTextBackground (false);
       }
       myLastEntryAccepted = true;
    }
@@ -241,7 +245,7 @@ public abstract class LabeledTextField extends LabeledControl {
          }
 
          public void focusLost (FocusEvent e) {
-            if (!focusListenerMasked) {
+            if (myEnterValueOnFocusLost && !focusListenerMasked) {
                setValueFromDisplay();
             }
          }
@@ -251,21 +255,22 @@ public abstract class LabeledTextField extends LabeledControl {
          public void caretUpdate (CaretEvent evt) {
             if (!myCaretListenerMasked
             && !myLastText.equals (myTextField.getText())) {
-               setReverseTextBackground (true);
+               setHighlightedTextBackground (true);
             }
          }
       });
       // setTextSizeFixed (false);
    }
 
-   protected void setReverseTextBackground (boolean reverse) {
-      if (reverse != myTextBackgroundReversedP) {
-         Color bgColor = myTextField.getBackground();
-         Color fgColor = myTextField.getForeground();
-         myTextField.setForeground (bgColor);
-         myTextField.setCaretColor (bgColor);
-         myTextField.setBackground (fgColor);
-         myTextBackgroundReversedP = reverse;
+   protected void setHighlightedTextBackground (boolean highlighted) {
+      if (highlighted != myTextBackgroundHighlighted) {
+         if (highlighted) {
+            myTextField.setBackground (myHighlightedBGColor);
+         }
+         else {
+            myTextField.setBackground (myBGColor);
+         }
+         myTextBackgroundHighlighted = highlighted;
       }
    }
 
@@ -371,7 +376,7 @@ public abstract class LabeledTextField extends LabeledControl {
       else {
          myLastText = myTextField.getText();
       }
-      setReverseTextBackground (false);
+      setHighlightedTextBackground (false);
    }
 
    /**
@@ -389,23 +394,24 @@ public abstract class LabeledTextField extends LabeledControl {
       }
       return true;
    }
-   // protected Object validateValue (Object value, StringHolder errMsg)
-   // {
-   // throw new UnsupportedOperationException (
-   // "validateValue not implemented for this control");
-   // }
 
-   // /**
-   // * Updates the internal representation of the value, updates any result
-   // * holders, and returns true if the new value differs from the old value.
-   // */
-   // protected boolean updateInternalValue (Object value)
-   // {
-   // return false;
-   // }
+   /**
+    * Queries whether the current field value is ``entered'' when focus is
+    * lost.
+    *
+    * @return {@code true} if value entered when focus is lost
+    */
+   public boolean getEnterValueOnFocusLost() {
+      return myEnterValueOnFocusLost;
+   }
 
-   // protected Object getInternalValue()
-   // {
-   // return null;
-   // }
+   /**
+    * Sets whether the current field value is ``entered'' when focus is
+    * lost. The default value is {@code true}.
+    *
+    * @param enable if {@code true}, values will be entered when focus is lost
+    */
+   public void setEnterValueOnFocusLost (boolean enable) {
+      myEnterValueOnFocusLost = enable;
+   }
 }

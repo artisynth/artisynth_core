@@ -9,6 +9,7 @@ package maspack.render.GL.GL2;
 
 import java.awt.Font;
 import java.awt.Point;
+import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.LinkedList;
@@ -264,8 +265,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       primitives = new GL2Primitive[PrimitiveType.values ().length];
 
       canvas.addGLEventListener (this);
-      // canvas.setPreferredSize(new Dimension(width, height));
-      canvas.setSize (width, height);
+      canvas.setPreferredSize(new Dimension(width, height));
+      //canvas.setSize (width, height);
 
       this.width = width;
       this.height = height;

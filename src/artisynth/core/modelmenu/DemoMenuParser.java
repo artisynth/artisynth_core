@@ -954,7 +954,8 @@ public class DemoMenuParser {
 
       ArrayList<String> clsList;
       if (!regex.equals("")) {
-         clsList = ClassFinder.findClassNames(pkg, regex, base);
+         clsList = ClassFinder.findClassNames(
+            pkg, regex, base, /*recursive=*/true);
       } else {
          clsList = ClassFinder.findClassNames(pkg, base);
       }

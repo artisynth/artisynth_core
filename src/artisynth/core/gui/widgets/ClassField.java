@@ -105,7 +105,7 @@ public class ClassField extends LabeledTextField {
       }
       myLastText = newText;
       myTextField.setText (newText);
-      setReverseTextBackground (false);
+      setHighlightedTextBackground (false);
    }
 
    protected Object validateValue (Object value, StringHolder errMsg) {

@@ -179,7 +179,7 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
          updateDisplay();
       }
       else {
-         setReverseTextBackground (false);
+         setHighlightedTextBackground (false);
       }
       myLastEntryAccepted = true;
    }
@@ -256,7 +256,7 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
             myLastPropName = propValue;
          }
       }
-      setReverseTextBackground (false);
+      setHighlightedTextBackground (false);
    }
 
    protected void addParentButton() {

@@ -125,14 +125,18 @@ class GLViewerTest extends GLViewerFrame implements ActionListener {
    public GLViewerTest (String name, int width, int height) {
       super (name, width, height);
 
-      dragger = new Jack3d (mySize);
+      //viewer.addRenderable (MeshFactory.createSphere (10.0, 8));
 
-      // viewer.addRenderable (MeshFactory.createSphere (10.0, 8));
+      // Dragger
+      dragger = new Jack3d (mySize);
       viewer.addDragger (dragger);
+
       viewer.autoFitPerspective ();
-      viewer.setBackgroundColor (0.3f, 0.3f, 0.3f);
-      viewer.setAxisLength (1000);
-      viewer.setMouseHandler(new GLMouseAdapter(viewer));
+      //viewer.setAxisLength (1000);
+
+      // // Mouse Handler
+      // viewer.setMouseHandler(new GLMouseAdapter(viewer));
+
       // viewer.addViewerListener (
       // new GLViewerListener()
       // {

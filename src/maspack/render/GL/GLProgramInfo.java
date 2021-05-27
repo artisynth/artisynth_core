@@ -476,5 +476,27 @@ public class GLProgramInfo {
    public boolean hasTextureMap () {
       return hasColorMap () || hasBumpMap () || hasNormalMap ();
    }
-   
+
+   public void printProperties() {
+      System.out.println ("colorInterp=" + colorInterp);
+      System.out.println ("hasInstanceColors=" + hasInstanceColors);
+      System.out.println ("hasLineScaleOffset=" + hasLineScaleOffset);
+      System.out.println ("hasLineColors=" + hasLineColors);
+      System.out.println ("useRoundPoints=" + useRoundPoints);
+      System.out.println ("selecting=" + selecting);
+      System.out.println ("hasVertexColors=" + hasVertexColors);
+      System.out.println ("hasVertexNormals=" + hasVertexNormals);
+      System.out.println ("hasVertexTextures=" + hasVertexTextures);
+      System.out.println ("mode=" + (mode == null ? "null" : mode));
+      System.out.println ("numClipPlanes=" + numClipPlanes);
+      System.out.println ("numLights=" + numLights);
+      System.out.println ("shading=" + (shading == null ? "null" : shading));
+      System.out.println (
+         "vertexColorMixing=" + (vertexColorMixing==null ? "null" : vertexColorMixing));
+      System.out.println (
+         "textureMixing=" + (textureMixing==null ? "null" : textureMixing));
+      System.out.println ("textureMapMask=" + textureMapMask);
+      System.out.println ("vertexColorMixMask=" + vertexColorMixMask);
+      System.out.println ("textureColorMixMask=" + textureColorMixMask);
+   }   
 }

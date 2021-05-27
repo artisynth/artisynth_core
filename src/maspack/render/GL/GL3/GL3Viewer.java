@@ -1261,11 +1261,6 @@ public class GL3Viewer extends GLViewer {
       return bound;
    }
    
-   //   private static File[] debugShaders = {
-   //      ArtisynthPath.getSrcRelativeFile(GL3Viewer.class, "shaders/test_vertex.glsl"),
-   //      ArtisynthPath.getSrcRelativeFile(GL3Viewer.class, "shaders/test_fragment.glsl")
-   //   };
-   
    public void setShaderOverride(Object shaderKey, File[] vf) {
       shaderOverrideKey = shaderKey;
       if (vf != null) {

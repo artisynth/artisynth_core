@@ -340,6 +340,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public enum RotationMode {
       DEFAULT, CONTINUOUS;
    }
+
    public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.DEFAULT;
    protected RotationMode myRotationMode = DEFAULT_ROTATION_MODE;
 

@@ -104,7 +104,7 @@ public class ViewerPopupManager implements ActionListener {
          new PropertyDialog (
             "Viewer properties", tree, hostList, controlStr);
 
-      dialog.locateRight (myViewer.getCanvas().getComponent());
+      dialog.locateRight (myViewer.getComponent());
       dialog.addGlobalValueChangeListener (new RerenderListener());
       registerDialog (dialog);
       return dialog;
@@ -113,7 +113,7 @@ public class ViewerPopupManager implements ActionListener {
    public PropertyDialog createGridPropertyDialog (String controlStr) {
       PropertyDialog dialog = new PropertyDialog (
          "Viewer grid properties", myViewer.getGrid(), "Done");
-      dialog.locateRight (myViewer.getCanvas().getComponent());
+      dialog.locateRight (myViewer.getComponent());
       dialog.addGlobalValueChangeListener (new RerenderListener());
       registerDialog (dialog);
       return dialog;

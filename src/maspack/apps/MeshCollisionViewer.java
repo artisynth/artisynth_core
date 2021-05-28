@@ -146,7 +146,7 @@ public class MeshCollisionViewer extends GLViewerFrame
       myMesh2.setMeshToWorld (X);
 
       viewer.autoFitPerspective ();
-      viewer.setBackgroundColor (0f, 0, 0.2f);
+      viewer.setBackgroundColor (new Color(0f, 0, 0.2f));
 
       if (drawAxes.value) {
          if (axisLength.value > 0) {

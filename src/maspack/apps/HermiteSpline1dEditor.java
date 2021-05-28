@@ -740,7 +740,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
          tool.setFrameBinding (PointTool.FrameBinding.INTERNAL_FRAME);
          tool.setFrame (new RigidTransform3d());
          //tool.setVisible (false);
-         viewer.getCanvas().setCursor (
+         viewer.setScreenCursor (
             Cursor.getPredefinedCursor (Cursor.CROSSHAIR_CURSOR));
       }
    }
@@ -759,7 +759,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
    public void drawToolRemoved (DrawToolEvent e) {
       if (e.getSource() instanceof PointTool) {
-         viewer.getCanvas().setCursor (Cursor.getDefaultCursor());         
+         viewer.setScreenCursor (Cursor.getDefaultCursor());         
       }
    }
 

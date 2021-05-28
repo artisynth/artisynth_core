@@ -237,7 +237,7 @@ public class MeshViewer extends GLViewerFrame
    }
 
    private void exit(int retval) {
-      remove(viewer.getCanvas().getComponent());
+      remove(viewer.getComponent());
       System.exit (retval);
    }
    
@@ -543,7 +543,8 @@ public class MeshViewer extends GLViewerFrame
       viewer.autoFitPerspective ();
       if (backgroundColor[0] != -1) {
          viewer.setBackgroundColor (
-            backgroundColor[0], backgroundColor[1], backgroundColor[2]);
+            new Color(
+               backgroundColor[0], backgroundColor[1], backgroundColor[2]));
       }
       else {
          viewer.setBackgroundColor (myDefaultBackground);

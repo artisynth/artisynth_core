@@ -66,8 +66,7 @@ public class GLRedBleedDebug extends GL3Tester implements ActionListener {
          }
       });
       
-      myViewer.getCanvas().addKeyListener(
-         new KeyListener() {
+      myViewer.addKeyListener(new KeyListener() {
          
          private void printStuff(KeyEvent e) {
             //            System.out.print(e.getKeyChar());

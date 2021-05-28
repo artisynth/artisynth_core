@@ -139,7 +139,7 @@ public class NURBSViewer extends GLViewerFrame {
             }
             lastX = e.getX();
             lastY = e.getY();
-            viewer.getCanvas().repaint();
+            viewer.repaint();
          }
       }
    }
@@ -183,8 +183,7 @@ public class NURBSViewer extends GLViewerFrame {
 
    private void init() {
       MouseHandler mouseHandler = new MouseHandler();
-      viewer.getCanvas().addMouseListener (mouseHandler);
-      viewer.getCanvas().addMouseMotionListener (mouseHandler);
+      viewer.addMouseInputListener (mouseHandler);
       viewer.addSelectionListener (new SelectionHandler());
    }
 

@@ -160,7 +160,7 @@ public abstract class GLSelector extends GLResourceBase {
    public void processSelection (GL gl) {
       
       if (myTotalMaxQ == 0) {
-         myViewer.getCanvas().repaint();
+         myViewer.repaint();
          return;
       }
 
@@ -193,7 +193,7 @@ public abstract class GLSelector extends GLResourceBase {
       for (int i=0; i<listeners.length; i++) {
          listeners[i].itemsSelected (myViewer.getSelectionEvent());
       }
-      myViewer.getCanvas().repaint();
+      myViewer.repaint();
    }
    
    public void beginSelectionForObject (IsSelectable s, int idx) {

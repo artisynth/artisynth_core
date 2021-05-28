@@ -54,7 +54,7 @@ public class Scaler3d extends Dragger3dBase {
       myIncrementalTransform = new AffineTransform3d();
    }
 
-   public Scaler3d (GLViewer viewer, double size) {
+   public Scaler3d (Viewer viewer, double size) {
       this();
       setSize (size);
       //myViewer = viewer;

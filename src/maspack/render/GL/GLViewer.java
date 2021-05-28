@@ -8,6 +8,8 @@
 package maspack.render.GL;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.Rectangle;
 import java.awt.event.KeyListener;
@@ -562,10 +564,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myEllipticCursorSize.set (DEFAULT_ELLIPTIC_CURSOR_SIZE);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean isViewRotationEnabled() {
       return myViewRotationEnabled;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void setViewRotationEnabled (boolean enable) {
       myViewRotationEnabled = enable;
    }
@@ -593,7 +601,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 //      }
       return prev;
    }
-   
+
+   /**
+    * {@inheritDoc}
+    */
    public void setAxisLength (double len) {
       if (len == AUTO_FIT) {
          Point3d pmin = new Point3d();
@@ -608,6 +619,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public double getAxisLength() {
       return axisLength;
    }
@@ -620,22 +634,37 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return solidAxes;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setGridVisible (boolean visible) {
       gridVisible = visible;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean getGridVisible() {
       return gridVisible;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public KeyListener[] getKeyListeners() {
       return canvas.getKeyListeners();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addKeyListener (KeyListener l) {
       canvas.addKeyListener(l);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void removeKeyListener (KeyListener l) {
       canvas.removeKeyListener(l);
    }
@@ -695,6 +724,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myInternalRenderListValid = false;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addDragger (Dragger3d d) {
       synchronized(myDraggers) {
          myDraggers.add (d);
@@ -729,6 +761,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return wasRemoved;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void removeDragger (Dragger3d d) {
       synchronized(myDraggers) {
          if (d instanceof Dragger3dBase) {
@@ -1059,14 +1094,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Returns true if the current viewing projection is orthogonal.
-    * 
-    * @return true if viewing projection is orthogonal
+    *{@inheritDoc}
     */
    public boolean isOrthogonal() {
       return myFrustum.orthographic;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setOrthographicView (boolean enable) {
       if (enable) {
          autoFitOrtho();
@@ -1218,21 +1254,55 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public Component getComponent() {
+      return canvas.getComponent();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenWidth() {
       return width;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenHeight() {
       return height;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenX() {
       return canvas.getX();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenY() {
       return canvas.getY();
    }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setScreenCursor (Cursor cursor) {
+      canvas.setCursor (cursor);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Cursor getScreenCursor() {
+      return canvas.getCursor();
+   }
+
 
    public GL getGL() {
       if (drawable != null) {
@@ -1577,11 +1647,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myGrid.setZAxisColor (getAxisColor (2));
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setDefaultAxialView (AxisAlignedRotation view) {
       setAxialView (view);
       myDefaultAxialView = view;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public AxisAlignedRotation getDefaultAxialView () {
       return myDefaultAxialView;
    }
@@ -1726,6 +1802,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myMouseInputListeners.add (l);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void removeMouseInputListener (MouseInputListener l) {
       if (canvas != null) {
          synchronized(canvas) {
@@ -1736,10 +1815,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myMouseInputListeners.remove (l);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public MouseInputListener[] getMouseInputListeners() {
       return myMouseInputListeners.toArray (new MouseInputListener[0]);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addMouseWheelListener (MouseWheelListener l) {
       if (canvas != null) {
          synchronized(canvas) {
@@ -2289,11 +2374,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setBackgroundColor (rgba[0], rgba[1], rgba[2], alpha);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setBackgroundColor (Color color) {
       color.getComponents (backgroundColor);
       repaint();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public Color getBackgroundColor() {
       return new Color (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
    }
@@ -3081,19 +3172,20 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setEyeToWorld (eye, myViewState.myCenter, myViewState.myUp);
    }
 
+   public RigidTransform3d getCenterToWorld () {
+      RigidTransform3d TCW = new RigidTransform3d();
+      getCenterToWorld (TCW);
+      return TCW;
+   }
+
    /**
-    * Returns a transform from world coordinates to center coordinates, with the
-    * axes aligned to match the current eyeToWorld transform. Seen through the
-    * viewer, this will appear centered on the view frame with z pointing toward
-    * the view, y pointing up, and x pointing to the right.
+    * {@inheritDoc}
     */
-   public RigidTransform3d getCenterToWorld() {
-      RigidTransform3d X = new RigidTransform3d();
+   public void getCenterToWorld (RigidTransform3d TCW) {
       synchronized (viewMatrix) {
-         X.R.transpose(viewMatrix.R);  
+         TCW.R.transpose(viewMatrix.R);  
       }
-      X.p.set (myViewState.myCenter);
-      return X;
+      TCW.p.set (myViewState.myCenter);
    }
    
    protected void setDragBox (Rectangle box) {
@@ -3215,6 +3307,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public abstract boolean grabPending();
 
+   /**
+    * {@inheritDoc}
+    */
    public void setRotationMode (RotationMode mode) {
       if (myRotationMode != mode) {
          myRotationMode = mode;
@@ -3225,6 +3320,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public RotationMode getRotationMode() {
       return myRotationMode;
    }

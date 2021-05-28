@@ -7,6 +7,10 @@
 package maspack.render;
 
 import java.awt.Color;
+import java.awt.*;
+import java.awt.event.*;
+
+import javax.swing.event.*;
 
 import maspack.matrix.*;
 
@@ -17,6 +21,10 @@ import maspack.matrix.*;
  * the primary functionality by which renderables can render themselves.
  */
 public interface Viewer extends Renderer {
+
+   public enum RotationMode {
+      EULER, CONTINUOUS;
+   }
 
    // rendering control
 
@@ -330,6 +338,46 @@ public interface Viewer extends Renderer {
    public void getEyeToWorld (RigidTransform3d TEW);
 
    /**
+    * Returns a transform from world coordinates to center coordinates, with the
+    * axes aligned to match the current eyeToWorld transform. Seen through the
+    * viewer, this will appear centered on the view frame with z pointing toward
+    * the view, y pointing up, and x pointing to the right.
+    *
+    * @param TCW retursn the center-to-world transform
+    */
+   public void getCenterToWorld (RigidTransform3d TCW);
+
+   /**
+    * Rotate the eye coordinate frame about the center point. How the rotation
+    * angles are processed depends on the <i>rotation mode</i> controlled using
+    * {@link #setRotationMode} and {@link #getRotationMode}.
+    * 
+    * @param xang
+    * amount of horizontal rotation (in radians)
+    * @param yang
+    * amount of vertical rotation (in radians)
+    */
+   public void rotate (double xang, double yang);
+
+   // /**
+   //  * Sets the rotation mode that controls how the viewer responds to
+   //  * interactive rotation requests specified as horizontal and vertical
+   //  * angular displacements in the view plane. The default
+   //  * rotation mode is {@link 
+   //  *
+   //  * @param mode new rotation mode
+   //  */
+   // public void setRotationMode (RotationMode mode);
+
+   // /**
+   //  * Queries the rotation mode that controls how the viewer responds to
+   //  * interactive rotation requests. See {@link #setRotationMode}.
+   //  *
+   //  * @return current rotation mode
+   //  */
+   // public RotationMode getRotationMode();
+
+   /**
     * Sets an axial (or axis-aligned) view. This is done by setting the 
     * rotational part of the eye-to-world transform to the axis-aligned
     * rotation <code>REW</code>, and then moving the eye position so that 
@@ -475,7 +523,6 @@ public interface Viewer extends Renderer {
     */
    public void setPerspective (double fieldOfView, double near, double far);
 
-
    /**
     * Sets the viewing frustum to a general orthogonal projection. This is done
     * by specifying the edges locations of the view plane (i.e., the near
@@ -555,6 +602,22 @@ public interface Viewer extends Renderer {
    public void autoFitPerspective();
 
    /**
+    * Calls {@link #autoFitOrtho} or {@link #autoFitPerspective} depending on
+    * whether {@code enable} is {@code true} or {@code false}.
+    * 
+    * @param enable enables (and auto-fits) orthographic view if {@code true} and
+    * perspective view if {@code false}
+    */
+   public void setOrthographicView (boolean enable);
+
+  /**
+    * Returns true if the current viewing projection is orthogonal.
+    * 
+    * @return true if viewing projection is orthogonal
+    */
+   public boolean isOrthogonal();
+
+   /**
     * Returns the default vertical field of view in degrees. This is used by
     * {@link #autoFitOrtho} and {@link #autoFitPerspective}.
     * 
@@ -596,8 +659,165 @@ public interface Viewer extends Renderer {
     */
    public ViewerSelectionListener[] getSelectionListeners();
 
+   /**
+    * Sets the default axial view, specifying the default disposition of the x,
+    * y, and z axes with respect to the horizontal and vertical directions in
+    * the view plane.
+    *
+    * @param view specifies the view
+    */
+   public void setDefaultAxialView (AxisAlignedRotation view);
+
+   /**
+    * Queries the default AxialView.
+    */
+   public AxisAlignedRotation getDefaultAxialView();
+
+   /**
+    * Queries the length used for rendering coordinate axes in this viewer.
+    *
+    * @return axis rendering length
+    */
+   public double getAxisLength();
+
+   /**
+    * Sets the length used for rendering coordinate axes in this viewer.  A
+    * length {@code <= 0} implies that coordinate axes will not be rendered.
+    *
+    * @return len axis rendering length
+    */
+   public void setAxisLength (double len);
+
+   /**
+    * Sets the viewer grid to be visible.
+    *
+    * @param if {@code true}, makes the grid visible
+    */
+   public void setGridVisible (boolean visible);
+
+   /**
+    * Queries whether the viewer grid is visible.
+    *
+    * @return {@code true} if the grid is visible
+    */
+   public boolean getGridVisible();
+
+   /**
+    * Adds a mouse input listener to this viewer.
+    *
+    * @param l listener to be added
+    */
+   public void addMouseInputListener (MouseInputListener l);
+
+   /**
+    * Removes a mouse input listener from this viewer.
+    *
+    * @param l listener to be removed
+    */
+   public void removeMouseInputListener (MouseInputListener l);
+
+   /**
+    * Returns the mouse input listeners currently added to this viewer.
+    *
+    * @return current mouse input listeners
+    */
+   public MouseInputListener[] getMouseInputListeners();
+
+   /**
+    * Adds a key listener to this viewer.
+    *
+    * @param l listener to be added
+    */
+   public void addKeyListener (KeyListener l);
+
+   /**
+    * Removes a key listener from this viewer.
+    *
+    * @param l listener to be removed
+    */
+   public void removeKeyListener (KeyListener l);
+
+   /**
+    * Returns the key listeners currently added to this viewer.
+    *
+    * @return current key listeners
+    */
+   public KeyListener[] getKeyListeners();
+
+   /**
+    * Queries whether view rotation is enabled.
+    *
+    * @return {@code true} if view rotation is enabled
+    */
+   public boolean isViewRotationEnabled();
+
+   /**
+    * Sets whether view rotation is enabled. If it is not, then it will not be
+    * possible to rotate the view interactively.  The default value is {@code
+    * true},
+    *
+    * @param enable if {@code true}, enables view rotation
+    */   
+   public void setViewRotationEnabled (boolean enable);
+
+   /**
+    * Adds a dragger fixture to this viewer.
+    *
+    * @param d dragger to add
+    */
+   public void addDragger (Dragger3d d);
+
+   /**
+    * Removes a dragger fixture from this viewer.
+    *
+    * @param d dragger to remove
+    */
+   public void removeDragger (Dragger3d d);
+
+   /**
+    * Returns the x component of the origin of the component implementing this
+    * viewer.
+    *
+    * @return origin x component
+    */
+   public int getScreenX();
+
+   /**
+    * Returns the y component of the origin of the component implementing this
+    * viewer.
+    *
+    * @return origin y component
+    */
+   public int getScreenY();
+
+   /**
+    * Sets the screen cursor for this viewer.
+    *
+    * @param cursor new screen cursor
+    */
+   public void setScreenCursor (Cursor cursor);
+
+   /**
+    * Queries the screen cursor for this viewer.
+    *
+    * @param return viewer screen cursor
+    */
+   public Cursor getScreenCursor();
+
+   /**
+    * Queries the AWT component associated with this viewer.
+    *
+    * @return viewer AWT component
+    */
+   public Component getComponent();
+
    // fixtures, draggers and clip planes
 
    // GUI interaction control
+   
+   /**
+    * Disposes of the resources used by this viewer.
+    */
+   public void dispose();
 
 }

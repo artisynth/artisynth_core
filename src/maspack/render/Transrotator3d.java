@@ -95,7 +95,7 @@ public class Transrotator3d extends Dragger3dBase {
       myIncrementalTransform = new RigidTransform3d();
    }
 
-   public Transrotator3d (GLViewer viewer, double size) {
+   public Transrotator3d (Viewer viewer, double size) {
       this();
       setSize (size);
       //myViewer = viewer;

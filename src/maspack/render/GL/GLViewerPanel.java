@@ -46,7 +46,7 @@ public class GLViewerPanel extends JPanel {
             throw new IllegalArgumentException (
                "Unimplemented viewer type: " + vers);
       }
-      add (viewer.getCanvas().getComponent());
+      add (viewer.getComponent());
    }
    
    public void dispose() {

@@ -57,7 +57,7 @@ public class Translator3d extends Dragger3dBase {
       myIncrementalTransform = new RigidTransform3d();
    }
 
-   public Translator3d (GLViewer viewer, double size) {
+   public Translator3d (Viewer viewer, double size) {
       this();
       setSize (size);
    }

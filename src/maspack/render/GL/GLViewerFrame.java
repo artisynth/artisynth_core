@@ -12,6 +12,7 @@ import java.awt.event.WindowEvent;
 import javax.swing.JFrame;
 
 import maspack.render.IsRenderable;
+import maspack.render.Viewer;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.GL.GL3.GL3Viewer;
 
@@ -47,7 +48,7 @@ public class GLViewerFrame extends JFrame {
             throw new IllegalArgumentException (
                "Unimplemented viewer type: " + vers);
       }
-      getContentPane().add (viewer.getCanvas().getComponent());
+      getContentPane().add (viewer.getComponent());
       pack();
       
       addWindowListener (new WindowAdapter() {
@@ -76,7 +77,7 @@ public class GLViewerFrame extends JFrame {
             "Unknown GLViewer type: " + shareWith.getClass());
       }
       setUndecorated (undecorated);
-      getContentPane().add (viewer.getCanvas().getComponent());
+      getContentPane().add (viewer.getComponent());
       pack();
       
       addWindowListener (new WindowAdapter() {

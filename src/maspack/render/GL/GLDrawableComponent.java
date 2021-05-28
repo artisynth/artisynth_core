@@ -251,6 +251,15 @@ public abstract class GLDrawableComponent {
    }
    
    /**
+    * Get the cursor image for the underlying AWT component
+    * @return cursor image
+    * @see Component#getCursor()
+    */
+   public Cursor getCursor() {
+      return component.getCursor();
+   }
+   
+   /**
     * Adds a listener to the end of the underlying drawable's queue
     * @param listener event listener to add
     * @see GLAutoDrawable#addGLEventListener(GLEventListener)

@@ -971,12 +971,9 @@ public class ICPRegistration {
       double dmin = Double.MAX_VALUE;
       for (int k=0; k<Xlist.length; k++) {
          double d = dlist[k];
-         System.out.println ("Initial d=" + d);
          for (int l=0; l<npar.length; l++) {
             if (npar[l] != 0) {
-               System.out.println (" npar=" + npar[l] + ":");
                d = doRegisterICP (Xlist[k], mesh1, rad1, mesh2, rad2, npar[l]);
-               System.out.println (" d=" + d);
             }
          }
          if (Xlist[k].getMatrix().determinant() < 0) {
@@ -988,6 +985,5 @@ public class ICPRegistration {
             X.set (Xlist[k]);
          }
       }
-      System.out.println ("Final d=" + dmin);
    }
 }

@@ -85,7 +85,8 @@ public class ClassAliases {
    static public void addPackageAliases (
       String pkgName, String regex, Class<?> T) {
       try {
-         ArrayList<Class<?>> list = ClassFinder.findClasses (pkgName, regex, T);
+         ArrayList<Class<?>> list = 
+            ClassFinder.findClasses (pkgName, regex, T, /*recursive=*/true);
          for (int i=0; i<list.size(); i++) {
             Class<?> cls = list.get(i);
             if (!cls.isInterface()) {

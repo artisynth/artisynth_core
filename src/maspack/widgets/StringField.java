@@ -84,6 +84,15 @@ public class StringField extends LabeledTextField {
       }
    }
 
+   public boolean valueIsEmpty() {
+      if (myValue instanceof String) {
+         return ((String)myValue).length() == 0;
+      }
+      else {
+         return true;
+      }
+   }
+
    protected Object textToValue (
       String text, BooleanHolder corrected, StringHolder errMsg) {
       corrected.value = false;

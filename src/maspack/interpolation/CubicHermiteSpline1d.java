@@ -19,6 +19,10 @@ import maspack.matrix.*;
 public class CubicHermiteSpline1d
    implements Scannable, Iterable<CubicHermiteSpline1d.Knot> {
 
+   // cached variable describing if this curve is invertible.
+   // 1 yes, 0 no, -1 don't know
+   private int myInvertible = -1;
+
    /**
     * Describes a single knot for a specific value of x. This contains values
     * of y and its derivative. If this is not the final knot in the spline,
@@ -38,6 +42,10 @@ public class CubicHermiteSpline1d
       }
 
       public Knot (double x0, double y0, double dy0) {
+         set (x0, y0, dy0);
+      }
+
+      public void set (double x0, double y0, double dy0) {
          this.x0 = x0;
          this.y0 = y0;
          this.dy0 = dy0;
@@ -62,6 +70,17 @@ public class CubicHermiteSpline1d
          }
          else {
             return (3*a3*x + 2*a2)*x + dy0;
+         }
+      }
+
+      public double evalDeriv2 (double x) {
+         // interpolation is done locally, with respect to x - x0
+         x -= x0;
+         if (x < 0) {
+            return 2*a2;
+         }
+         else {
+            return 6*a3*x + 2*a2;
          }
       }
 
@@ -114,6 +133,14 @@ public class CubicHermiteSpline1d
          return dy0;
       }
 
+      public double getDy2() {
+         return 2*a2;
+      }
+
+      public double getDy3() {
+         return 6*a3;
+      }
+
       public void setX (double x) {
          x0 = x;
       }
@@ -124,6 +151,49 @@ public class CubicHermiteSpline1d
 
       public void setDy (double dy) {
          dy0 = dy;
+      }
+
+      public double getA2() {
+         return a2;
+      }
+      
+      public double getA3() {
+         return a3;
+      }
+      
+      /**
+       * Returns true if y'(x) contain a zero within this knot interval
+       * (including at the interval end points).
+       */
+      public boolean hasZeroDy (Knot next) {
+         double[] roots = new double[2];
+         int nr = QuadraticSolver.getRoots (
+            roots, 3*a3, 2*a2, dy0, 0, next.getX()-getX());
+         if (nr != 0) {
+            return true;
+         }
+         // extra cautious: check dy values at endpoints too
+         if (dy0 == 0 || next.dy0 == 0) {
+            return true;
+         }
+         return false;
+      }
+
+      /**
+       * Solves for x given a value of y associated with this interval.  It is
+       * assumed that we have already determined that a unqiue solution exists.
+       * If by some chance multiple roots are found, we return the first.
+       */
+      public double solveX (double y, Knot next) {
+         if (next == null) {
+            // just x0, y0 and dy0 values
+            return x0 + (y-y0)/dy0;
+         }
+         else {
+            double[] roots = new double[3];
+            CubicSolver.getRoots (roots, a3, a2, dy0, y0-y, 0.0, next.x0-x0);
+            return roots[0] + x0;
+         }
       }
 
       /**
@@ -287,7 +357,7 @@ public class CubicHermiteSpline1d
       Knot knot = new Knot (x, y, dy);
       Knot prev = getPreviousKnot (x);
       if (prev == null) {
-         addKnot (0, knot);
+         doAddKnot (0, knot);
       }
       else {
          if (prev.x0 == x) {
@@ -296,7 +366,7 @@ public class CubicHermiteSpline1d
             knot.setIndex (prev.getIndex());
          }
          else {
-            addKnot (prev.getIndex()+1, knot);
+            doAddKnot (prev.getIndex()+1, knot);
          }
       }
       updateCoefficients (knot);
@@ -317,9 +387,15 @@ public class CubicHermiteSpline1d
       }
    }
 
-   protected void addKnot (int idx, Knot knot) {
+   protected void doAddKnot (int idx, Knot knot) {
       myKnots.add (idx, knot);
       reindexFrom (idx);
+      myInvertible = -1;
+   }
+
+   public void addKnot (int idx, Knot knot) {
+      doAddKnot (idx, knot);
+      updateCoefficients (knot);
    }
 
    public boolean removeKnot (Knot knot) {
@@ -339,6 +415,7 @@ public class CubicHermiteSpline1d
          myKnots.remove (idx);
          reindexFrom (idx);
          knot.setIndex (-1);
+         myInvertible = -1;
          return true;
       }
       else {
@@ -351,6 +428,7 @@ public class CubicHermiteSpline1d
          myKnots.get(k).setIndex (-1);
       }
       myKnots.clear();
+      myInvertible = -1;
    }
 
    /**
@@ -396,23 +474,6 @@ public class CubicHermiteSpline1d
    }
 
    /**
-    * Evaluates the y derivative value spline at a specific x value. Values
-    * which are outside the specified knot range are extrapolated based on y
-    * and dy values at the end point knots. An empty spline evaluates to 0.
-    *
-    * @param x value at which the y derivative should be evaluated
-    */
-   public double evalDy (double x) {
-      Knot prev = getPreviousKnot (x);
-      if (prev == null) {
-         return myKnots.get(0).evalDeriv (x);         
-      }
-      else {
-         return prev.evalDeriv (x);
-      }
-   }
-   
-   /**
     * Evaluates the y value for this spline at a specific x value. Values which
     * are outside the specified knot range are extrapolated based on y and dy
     * values at the end point knots. An empty spline evaluates to 0.
@@ -420,14 +481,77 @@ public class CubicHermiteSpline1d
     * @param x value at which y should be evaluated
     */
    public double evalY (double x) {
+      if (numKnots() == 0) {
+         return 0;
+      }
       Knot prev = getPreviousKnot (x);
       if (prev == null) {
-         return myKnots.get(0).eval (x);         
+         prev = myKnots.get(0);
       }
-      else {
-         return prev.eval (x);
-      }
+      return prev.eval (x);
    }
+
+   /**
+    * Evaluates the y derivative value at a specific x value. Values
+    * which are outside the specified knot range are extrapolated based on y
+    * and dy values at the end point knots. An empty spline evaluates to 0.
+    *
+    * @param x value at which the y derivative should be evaluated
+    */
+   public double evalDy (double x) {
+      if (numKnots() == 0) {
+         return 0;
+      }
+      Knot prev = getPreviousKnot (x);
+      if (prev == null) {
+         prev = myKnots.get(0);
+      }
+      return prev.evalDeriv (x);
+   }
+   
+   /**
+    * Evaluates the second y derivative value at a specific x value. Values
+    * which are outside the specified knot range are extrapolated as 0.
+    *
+    * @param x value at which the second y derivative should be evaluated
+    */
+   public double evalDy2 (double x) {
+      if (numKnots() == 0) {
+         return 0;
+      }
+      Knot prev = getPreviousKnot (x);
+      if (prev == null) {
+         prev = myKnots.get(0);
+      }
+      else if (prev == myKnots.get(numKnots()-1)) {
+         // need previous knot because last one doesn't define dy2
+         prev = myKnots.get(numKnots()-2);
+      }
+      return prev.evalDeriv2 (x);
+   }
+   
+   /**
+    * Evaluates the third y derivative value spline at a specific x
+    * value. Values which are outside the specified knot range are extrapolated
+    * as 0.
+    *
+    * @param x value at which the second y derivative should be evaluated
+    */
+   public double evalDy3 (double x) {
+      if (numKnots() == 0) {
+         return 0;
+      }
+      Knot prev = getPreviousKnot (x);
+      if (prev == null) {
+         prev = myKnots.get(0);
+      }
+      else if (prev == myKnots.get(numKnots()-1)) {
+         // need previous knot because last one doesn't define dy3
+         prev = myKnots.get(numKnots()-2);
+      }
+      return prev.getDy3();
+   }
+   
    
     /**
     * Scans this spline from a ReaderTokenizer. The expected format consists of
@@ -575,7 +699,7 @@ public class CubicHermiteSpline1d
    public void set (CubicHermiteSpline1d spline) {
       clearKnots();
       for (Knot knot : spline) {
-         addKnot (myKnots.size(), knot.copy());
+         doAddKnot (myKnots.size(), knot.copy());
       }
    }
 
@@ -603,6 +727,104 @@ public class CubicHermiteSpline1d
          knot.dy0 *= s;
       }
       updateCoefficients();
+   }
+
+   /**
+    * Queries whether this spline is invertible. We use a strict definition:
+    * the knot y values must be stictly monotonic, and y'(s) must not be zero
+    * anywhere. The spline must also have at least one knots.
+    *
+    * @return {@code true} if this spline is invertible
+    */
+   public boolean isInvertible() {
+      if (numKnots() < 1) {
+         return false;
+      }
+      else {
+         if (myInvertible == -1) {
+            checkInvertible();
+         }
+         return myInvertible == 1;
+      }
+   }
+
+   /**
+    * Computes whether or not this curve is invertible
+    */
+   private void checkInvertible() {
+      if (numKnots() < 1) {
+         myInvertible = -1;
+      }
+      else if (numKnots() == 1) {
+         myInvertible = (myKnots.get(0).getDy() != 0 ? 1 : 0);
+      }
+      else {
+         double y0 = myKnots.get(0).getY();
+         for (int i=0; i<numKnots()-1; i++) {
+            Knot knot = myKnots.get(i);
+            Knot next = myKnots.get(i+1);
+            double dy = next.getY()-knot.getY();
+            double dy0 = next.getY()-y0;
+            // not invertible if change in y is 0, or change not heading in the
+            // same direction, or the y'(x) is zero on the knot interval
+            boolean hasZeroDy = knot.hasZeroDy(next);
+            if (dy == 0 || dy*dy0 < 0 || hasZeroDy) {
+               myInvertible = 0;
+               return;
+            }
+         }
+         myInvertible = 1;
+      }
+   }
+
+   /**
+    * Solves for the x value given a specific y value.  In order to do this,
+    * the spline must be invertible. Y values outside the nominal range are
+    * extrapolated based on the x and 1/dy values at the end knots.
+    *
+    * @param y value for which x should be solved
+    * @throws ImproperStateException if the spline is not invertible
+    */
+   public double solveX (double y) {
+      if (!isInvertible()) {
+         throw new ImproperStateException (
+            "spline is not invertible");
+      }
+      if (numKnots() == 1) {
+         // just use first knot
+         return myKnots.get(0).solveX (y, null);
+      }
+      else {
+         // y direction: 1 if y increases with knots, -1 if it decreases
+         Knot first = myKnots.get(0);
+         Knot last = myKnots.get(numKnots()-1);
+         int ydir = (last.getY() > first.getY()) ? 1 : -1;
+
+         if ((ydir == 1 && y <= first.getY()) || 
+             (ydir == -1 && y >= first.getY())) {
+            // extrapolate solution from first knot
+            return first.solveX (y, null);
+         }
+         else if ((ydir == 1 && y >= last.getY()) || 
+                  (ydir == -1 && y <= last.getY())) {
+            // extrapolate solution from last knot
+            return last.solveX (y, null);
+         }
+         else {
+            for (int i=0; i<numKnots()-1; i++) {
+               Knot knot = myKnots.get(i);
+               Knot next = myKnots.get(i+1);
+               if ((ydir == 1 && y >= knot.getY() && y <= next.getY()) ||
+                   (ydir == -1 && y <= knot.getY() && y >= next.getY())) {
+                  return knot.solveX (y, next);
+               }
+            }
+            throw new InternalErrorException (
+               "Interval for y=" + y +
+               " not found, even though spline is invertible");
+         }
+      }
+      
    }
 
    /**

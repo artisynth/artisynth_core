@@ -6,12 +6,11 @@
  */
 package maspack.widgets;
 
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 
 /**
  * Auto-completing version of the StringField
@@ -62,7 +61,8 @@ public class AutoCompleteStringField extends StringField {
     * @param ncols
     * approximate width of the text field in columns
     */
-   public AutoCompleteStringField (String labelText, String initialValue, int ncols) {
+   public AutoCompleteStringField (
+      String labelText, String initialValue, int ncols) {
       this (labelText, initialValue, ncols, new ArrayList<String>());
    }
 
@@ -80,10 +80,12 @@ public class AutoCompleteStringField extends StringField {
     * @param list
     * values to search for auto-complete functionality
     */
-   public AutoCompleteStringField (String labelText, String initialValue, int ncols, ArrayList<String> list) {
+   public AutoCompleteStringField (
+      String labelText, String initialValue, int ncols, Collection<String> list) {
       super(labelText, initialValue, ncols);
       setDataList(list);
-      suggestions = new ArrayList<String>(data);	// copy suggestions over for now
+      // copy suggestions over for now
+      suggestions = new ArrayList<String>(data);	
 
       // check if have to disable focus traversal 
       updateFocusTraversalSetting();
@@ -102,7 +104,8 @@ public class AutoCompleteStringField extends StringField {
 	    try {
 	       txt = myTextField.getText(0,caretPos);
 	       updateSuggestions(txt);
-	    } catch (Exception err) {
+	    }
+            catch (Exception err) {
 	       err.printStackTrace();
 	       txt = myTextField.getText();
 	    }
@@ -116,8 +119,11 @@ public class AutoCompleteStringField extends StringField {
 	       
 	       // if current item is accepted and matches the current suggestion
 	       // transfer focus to next control (load)
-	       if (!myTextBackgroundReversedP && (suggestionIdx >= 0 ) && (suggestions.size() > 0)){
-		  if (suggestions.get(suggestionIdx).equals(myTextField.getText())) {
+	       if (!myTextBackgroundHighlighted &&
+                   (suggestionIdx >= 0 ) &&
+                   (suggestions.size() > 0)){
+		  if (suggestions.get(suggestionIdx).equals(
+                         myTextField.getText())) {
 		     myTextField.transferFocus();
 		     return;
 		  }
@@ -133,8 +139,10 @@ public class AutoCompleteStringField extends StringField {
 		  myTextField.setText(pre);
 		  //fireUpdate();
 		  
-		// if we're at the point where it could be one of several, start cycling through suggestions
-	       } else if (pre.equals(txt)) {
+		// if we're at the point where it could be one of several,
+		// start cycling through suggestions
+	       }
+               else if (pre.equals(txt)) {
 
 		  // shift to next suggestion
 		  suggestionIdx++;
@@ -142,47 +150,57 @@ public class AutoCompleteStringField extends StringField {
 
 		  // manually set text 
 		  myTextField.setText(suggestions.get(suggestionIdx));
-		  myTextField.setCaretPosition(caretPos);		// reset caret position
+                  // reset caret position
+		  myTextField.setCaretPosition(caretPos);		
 
-	       // otherwise, our suggestions are not up to date, and we need to force an update (or there are no suggestions)
-	       } else {
+	       // otherwise, our suggestions are not up to date, and we need to
+	       // force an update (or there are no suggestions)
+	       }
+               else {
 		  suggestions = getSuggestions(txt, data);
 		  lastSearch = txt;
 		  
 	       } // end comparing prefix to current text (txt)
 
 	    // down key to move forward in suggestions list
-	    } else if (e.getKeyCode() == myNextCompletionKey) {
+	    }
+            else if (e.getKeyCode() == myNextCompletionKey) {
 	       suggestionIdx++;
 	       suggestionIdx %= suggestions.size();
 	       
 	       // manually set text 
 	       myTextField.setText(suggestions.get(suggestionIdx));
-	       myTextField.setCaretPosition(caretPos);		// reset caret position
+               // reset caret position
+	       myTextField.setCaretPosition(caretPos);		
 		  
 	    // up key move up in suggestions list
-	    } else if (e.getKeyCode() == myPreviousCompletionKey) {
+	    }
+            else if (e.getKeyCode() == myPreviousCompletionKey) {
 	       
 	       suggestionIdx--;
 	       if (suggestionIdx >= suggestions.size()) {
 		  suggestionIdx = 0;
-	       } else if (suggestionIdx < 0) {
+	       }
+               else if (suggestionIdx < 0) {
 		  suggestionIdx = suggestions.size()-1;
 	       }
-	       
 	       // manually set 
 	       myTextField.setText(suggestions.get(suggestionIdx));
-	       myTextField.setCaretPosition(caretPos);		// reset caret position
+               // reset caret position
+	       myTextField.setCaretPosition(caretPos);		
+
 	    }
 	 }
       });
    }
 
    private void updateFocusTraversalSetting() {
-      if ( (myCompletionKey == KeyEvent.VK_TAB) || (myNextCompletionKey==KeyEvent.VK_TAB)
+      if ( (myCompletionKey == KeyEvent.VK_TAB) ||
+           (myNextCompletionKey==KeyEvent.VK_TAB)
 	    	|| (myPreviousCompletionKey==KeyEvent.VK_TAB)) {
 	 myTextField.setFocusTraversalKeysEnabled(false);
-      } else {
+      }
+      else {
 	 myTextField.setFocusTraversalKeysEnabled(true);
       }
    }
@@ -194,8 +212,9 @@ public class AutoCompleteStringField extends StringField {
     * @param list
     * list of words to add to the dictionary
     */
-   public void setDataList(ArrayList<String> list) {
-      data = list;
+   public void setDataList(Collection<String> list) {
+      data = new ArrayList<>();
+      data.addAll (list);
       Collections.sort(data);
    }
 
@@ -273,7 +292,8 @@ public class AutoCompleteStringField extends StringField {
    /**
     * Finds the set of words in dict that begin with 'word'
     */
-   public static ArrayList<String> getSuggestions(String word, ArrayList<String> dict) {
+   public static ArrayList<String> getSuggestions(
+      String word, ArrayList<String> dict) {
       ArrayList<String> suggs = new ArrayList<String>();
       for (String str : dict) {
 	 if (str.startsWith(word)) {
@@ -294,9 +314,11 @@ public class AutoCompleteStringField extends StringField {
       // use shorter list if one is contained in the other
       if (word.equals(lastSearch)) {
 	 return false;		// no update required
-      } else if (word.startsWith(lastSearch)) {
+      } 
+      else if (word.startsWith(lastSearch)) {
 	 suggestions = getSuggestions(word, suggestions);	
-      } else {
+      }
+      else {
 	 suggestions = getSuggestions(word, data);
       }
       lastSearch = word;

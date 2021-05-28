@@ -230,7 +230,7 @@ public class PropertyDialog extends JDialog implements ActionListener,
       return myPanel;
    }
 
-   static PropertyPanel createPanelFromHostList (
+   public static PropertyPanel createPanelFromHostList (
       PropTreeCell tree, HostList hostList) {
       hostList.saveBackupValues (tree);
       hostList.getCommonValues (tree, /* live= */true);

@@ -82,29 +82,6 @@ public class TestNode implements HierarchyNode, HasProperties {
       return myStyle;
    }
 
-   // public void setStyle (int style)
-   // {
-   // myStyle = style;
-   // if (myStyleModeObject != null)
-   // { myStyleModeObject.propagateValue (this, "style", myStyle);
-   // }
-   // }
-
-   // public PropertyMode getStyleMode()
-   // {
-   // return myStyleModeObject.get();
-   // }
-
-   // public void setStyleMode (PropertyMode mode)
-   // {
-   // myStyleModeObject.setAndUpdate (this, "style", mode);
-   // }
-
-   // public ModeObject getStyleModeObject()
-   // {
-   // return myStyleModeObject;
-   // }
-
    public void setStyle (int style) {
       myStyle = style;
       myStyleMode =

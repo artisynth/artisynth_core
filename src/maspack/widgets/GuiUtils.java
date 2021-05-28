@@ -31,6 +31,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.TitledBorder;
 import javax.swing.plaf.basic.BasicSliderUI;
+import java.util.Collection;
 
 import maspack.util.PathFinder;
 
@@ -94,7 +95,30 @@ public class GuiUtils {
    }
 
    /**
-    * Sets the size of a component to be a rigidly fixed as we possibly can.
+    * Returns the maximum dimension for a set of components.
+    */
+   public static Dimension getMaxPreferredSize (
+      Collection<? extends JComponent> comps) {
+      Dimension size = new Dimension();
+      for (JComponent comp : comps) {
+         growSize (size, comp.getPreferredSize());
+      }
+      return size;
+   }
+
+   /**
+    * Sets the size of a set of components to be as rigidly fixed as we
+    * possibly can.
+    */
+   public static void setFixedSize (
+      Collection<? extends JComponent> comps, Dimension size) {
+      for (JComponent comp : comps) {
+         setFixedSize (comp, size);
+      }
+   }
+
+   /**
+    * Sets the size of a component to be as rigidly fixed as we possibly can.
     */
    public static void setFixedSize (Component comp, Dimension size) {
       comp.setPreferredSize (size);

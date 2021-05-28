@@ -854,9 +854,10 @@ public class PardisoSolver implements DirectSolver {
    /**
     * Sets the number of threads that Pardiso should use. The results are
     * undefined if this number exceeds the maximum number of threads available
-    * on the system. Setting <code>num</code> to a value {@code <=} 0 will reset the
-    * number of threads to the default used by OpenMP, which is typically the
-    * value stored in the environment variable <code>OMP_NUM_THREADS</code>.
+    * on the system. Setting <code>num</code> to a value {@code <=} 0 will
+    * reset the number of threads to the default used by OpenMP, which is
+    * typically the value stored in the environment variable
+    * <code>OMP_NUM_THREADS</code>.
     *
     * <p><b>Note:</b> under the MKL version of Pardiso, changes to the thread
     * number are applied globally to all instances of Pardiso running in the

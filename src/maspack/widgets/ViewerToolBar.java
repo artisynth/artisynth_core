@@ -34,8 +34,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.GL.GLClipPlane;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
+import maspack.render.GridPlane;
 import maspack.render.RenderListener;
 import maspack.render.RendererEvent;
 import maspack.util.InternalErrorException;
@@ -737,7 +737,7 @@ public class ViewerToolBar extends JToolBar
       updateIcons();
       if (myGridDisplayEnabled) {
          boolean gridOn = myViewer.getGridVisible();
-         GLGridPlane grid = myViewer.getGrid();
+         GridPlane grid = myViewer.getGrid();
          if ((myGridDisplay != null) != gridOn) {
             if (gridOn) {
                myGridDisplay =

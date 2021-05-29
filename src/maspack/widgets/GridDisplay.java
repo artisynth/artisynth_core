@@ -16,20 +16,20 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.*;
 
-import maspack.render.GL.GLGridPlane;
-import maspack.render.GL.GLGridResolution;
+import maspack.render.GridPlane;
+import maspack.render.GridResolution;
 import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
 
 public class GridDisplay extends GridResolutionField 
    implements ActionListener, Disposable {
 
-   GLGridPlane myGrid;
+   GridPlane myGrid;
    PropertyDialog myPropDialog;
 
    //JMenuItem myPropertyItem;
 
-   public GridDisplay (String label, GLGridPlane grid) {
+   public GridDisplay (String label, GridPlane grid) {
       super (label);
       getTextField().setEnabled (true);
       addMouseListener (new MouseAdapter() {
@@ -42,7 +42,7 @@ public class GridDisplay extends GridResolutionField
          });
       addValueChangeListener (new ValueChangeListener() {
             public void valueChange (ValueChangeEvent e) {
-               myGrid.setResolution ((GLGridResolution)getValue());
+               myGrid.setResolution ((GridResolution)getValue());
                GLViewer viewer = myGrid.getViewer();
                if (viewer != null) { // shouldn't be null, just being paranoid
                   viewer.rerender();
@@ -162,7 +162,7 @@ public class GridDisplay extends GridResolutionField
     * location.
     */
    public static GridDisplay createAndAdd (
-      GLGridPlane grid, JComponent panel, int idx) {
+      GridPlane grid, JComponent panel, int idx) {
       GridDisplay display = new GridDisplay ("Grid:", grid);
       panel.remove (idx);
       panel.add (display, idx);

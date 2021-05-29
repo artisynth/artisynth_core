@@ -32,6 +32,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.ColorMapProps;
 import maspack.render.Dragger3d;
+import maspack.render.GridPlane;
 import maspack.render.RenderInstances;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
@@ -41,7 +42,6 @@ import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLDrawableComponent;
 import maspack.render.GL.GLFrameCapture;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLProgramInfo;
@@ -200,7 +200,7 @@ public class GL3Viewer extends GLViewer {
       myDraggers = new LinkedList<Dragger3d>();
       myUserDraggers = new LinkedList<Dragger3d>();
 
-      myGrid = new GLGridPlane();
+      myGrid = new GridPlane();
       myGrid.setViewer (this);
 
       GLMouseAdapter mouse = new GLMouseAdapter (this);

@@ -26,10 +26,10 @@ import javax.swing.JToolBar;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MouseInputAdapter;
 
+import maspack.render.GridPlane;
 import maspack.render.IsRenderable;
 import maspack.render.RenderListener;
 import maspack.render.RendererEvent;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.GL.GL2.GL2Viewer;
@@ -274,7 +274,7 @@ public class ViewerFrame extends GLViewerFrame
       if (myTopPanel != null) {
          // if we have a top panel, then we have a grid display there
          boolean gridOn = viewer.getGridVisible();
-         GLGridPlane grid = viewer.getGrid();
+         GridPlane grid = viewer.getGrid();
          if ((myGridDisplay != null) != gridOn) {
             if (gridOn) {
                myGridDisplay =

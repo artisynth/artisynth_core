@@ -72,12 +72,12 @@ import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
+import maspack.render.GridPlane;
 import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLSupport.GLVersionInfo;
@@ -1154,7 +1154,7 @@ public class MeshViewer extends GLViewerFrame
          return;
       }
       boolean gridOn = viewer.getGridVisible();
-      GLGridPlane grid = viewer.getGrid();
+      GridPlane grid = viewer.getGrid();
       if ((myGridDisplay != null) != gridOn) {
          if (gridOn) {
             myGridDisplay =

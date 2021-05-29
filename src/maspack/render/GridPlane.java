@@ -4,7 +4,7 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render;
 
 import java.awt.Color;
 import java.awt.geom.Rectangle2D;
@@ -35,10 +35,11 @@ import maspack.render.Dragger3dConstrainer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
 import maspack.render.color.ColorUtils;
+import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 import maspack.util.Round;
 
-public class GLGridPlane implements HasProperties {
+public class GridPlane implements HasProperties {
 
    private static Color myDefaultMajorColor = new Color (0.4f, 0.4f, 0.4f);
    private static Color myDefaultMinorColor = null;
@@ -93,13 +94,13 @@ public class GLGridPlane implements HasProperties {
    }
   
 
-   RigidTransform3d XGridToWorld = new RigidTransform3d();
+   protected RigidTransform3d XGridToWorld = new RigidTransform3d();
    // Desired XGridToWorld value. XGridToWorld may be different from
    // this if myLockAxesToWorld is true:
-   RigidTransform3d XGridToWorldTarget = new RigidTransform3d();
+   protected RigidTransform3d XGridToWorldTarget = new RigidTransform3d();
    Dragger3dBase myDragger;
    boolean myGridVisible = true;
-   GLViewer myViewer = null;
+   protected GLViewer myViewer = null;
    float[] myMajorRGB = createRGB (myDefaultMajorColor);
    float[] myMinorRGB = createRGB (myDefaultMinorColor);
    //float[] myMinorRGB = new float[3]; // used to compute division color
@@ -109,7 +110,7 @@ public class GLGridPlane implements HasProperties {
    double myMinSize;
    int myMinCellPixels = 10;
    boolean myAutoSizedP = true;
-   GLGridResolution myResolution = new GLGridResolution (1, 10);
+   GridResolution myResolution = new GridResolution (1, 10);
    int myLineWidth = 1;
 
    public static boolean DEFAULT_LOCK_AXES_TO_WORLD = false;
@@ -334,10 +335,10 @@ public class GLGridPlane implements HasProperties {
    RenderInfo rcacheInfo = new RenderInfo();
 
 
-   private static GLGridResolution myDefaultResolution =
-   new GLGridResolution (1, 10);
+   private static GridResolution myDefaultResolution =
+   new GridResolution (1, 10);
 
-   public static PropertyList myProps = new PropertyList (GLGridPlane.class);
+   public static PropertyList myProps = new PropertyList (GridPlane.class);
 
    static AxisAngle myDefaultAxisAngle = new AxisAngle();
 
@@ -540,7 +541,7 @@ public class GLGridPlane implements HasProperties {
     * @param res 
     * specified new grid resolution, or auto-sizing.
     */
-   public void setResolution (GLGridResolution res) {
+   public void setResolution (GridResolution res) {
       setResolution (res.getMajorCellSize(), res.getNumDivisions());
    }
 
@@ -549,7 +550,7 @@ public class GLGridPlane implements HasProperties {
     * 
     * @return grid resolution
     */
-   public GLGridResolution getResolution() {
+   public GridResolution getResolution() {
       return myResolution;
    }
 
@@ -1163,7 +1164,7 @@ public class GLGridPlane implements HasProperties {
       return sbuild.toString();
    }      
 
-   private GLGridResolution updateResolution (double distPerPixel) {
+   private GridResolution updateResolution (double distPerPixel) {
       int[] factors = new int[2];
       double minorSize = Round.up125 (factors, myMinCellPixels*distPerPixel);
       int numDivisions;
@@ -1175,7 +1176,7 @@ public class GLGridPlane implements HasProperties {
          numDivisions = (int)Math.round(10.0/k);
       }
       double majorSize = numDivisions*minorSize;     
-      return new GLGridResolution (majorSize, numDivisions);
+      return new GridResolution (majorSize, numDivisions);
    }
 
    private float[] getWorldAxisColor (double ux, double uy, double uz) {
@@ -1205,7 +1206,7 @@ public class GLGridPlane implements HasProperties {
       if (myAutoSizedP) {
          // start by computing the minor spacing, and then compute the major
          // spacing assume 10 cell divisions
-         GLGridResolution res = updateResolution (distPerPixel);
+         GridResolution res = updateResolution (distPerPixel);
          if (!myResolution.equals (res)) {
             if (myUseWorldOrigin) {
                // May need to change position to accomodate new resolution.
@@ -1214,7 +1215,7 @@ public class GLGridPlane implements HasProperties {
                AlignConstrainer aligner = new AlignConstrainer();
                aligner.updatePose (TGWnew, XGridToWorldTarget);
                double dpp = computeFocalPoint (null, TGWnew, renderer);
-               GLGridResolution resx = updateResolution (dpp);
+               GridResolution resx = updateResolution (dpp);
                if (resx.equals (res)) {
                   myResolution.set (res);
                   setGridToWorld (TGWnew);
@@ -1447,7 +1448,7 @@ public class GLGridPlane implements HasProperties {
    }
 
    public static void main (String[] args) {
-      GLGridPlane gp = new GLGridPlane();
+      GridPlane gp = new GridPlane();
 
       System.out.println (gp.createLabel (10, -2, 1));
       System.out.println (gp.createLabel (1, -1, 1));
@@ -1455,98 +1456,6 @@ public class GLGridPlane implements HasProperties {
       for (int i=-7; i<=7; i++) {
          double cellSize = Math.pow (10, i);
          System.out.println (gp.createLabel (cellSize, 1));
-      }
-   }
-
-}
-
-class LineSegment {
-   /**
-    * Line segment defined by p0 + s*u, where u is a unit vector. Segment
-    * endpoints are defined by s1 and s2, and the length is s2 - s1. If s2 < s1,
-    * the segment is assumed to be empty.
-    */
-   Point3d p0;
-   Point3d px;
-   Vector3d u;
-   double s1, s2;
-
-   LineSegment (Point3d p1, Point3d p2) {
-      p0 = new Point3d (p1);
-      px = new Point3d();
-      u = new Vector3d();
-      u.sub (p2, p1);
-      s1 = 0;
-      s2 = u.norm();
-      if (s2 != 0) {
-         u.scale (1 / s2);
-      }
-   }
-
-   void getPoint1 (Point3d p1) {
-      p1.scaledAdd (s1, u, p0);
-   }
-
-   void getPoint2 (Point3d p2) {
-      p2.scaledAdd (s2, u, p0);
-   }
-
-   void addPoint1 (Vector3d sum) {
-      sum.scaledAdd (s1, u);
-      sum.add (p0);
-   }
-
-   void addPoint2 (Vector3d sum) {
-      sum.scaledAdd (s2, u);
-      sum.add (p0);
-   }
-
-   boolean isEmpty() {
-      return s2 < s1;
-   }
-
-   double length() {
-      return s2 - s1;
-  }
-
-   // private static double DOUBLE_PREC = 2e-16;
-
-   /**
-    * Intersect this line segment with a half space defined by
-    * 
-    * <pre>
-    *  T
-    * n  x - off &gt;= 0
-    * </pre>
-    */
-   void clipWithPlane (double nx, double ny, double nz, double off) {
-      if (isEmpty()) {
-         return;
-      }
-      getPoint1 (px);
-      double d1 = nx * px.x + ny * px.y + nz * px.z - off;
-      getPoint2 (px);
-      double d2 = nx * px.x + ny * px.y + nz * px.z - off;
-      if (d1 < 0 && d2 < 0) { // completely clipped
-         s1 = 1;
-         s2 = -1;
-      }
-      else if (d1 * d2 < 0) {
-         double s = (d2 * s1 - d1 * s2) / (d2 - d1);
-         // Parnoid: clip s to [s1,s2]
-         if (s < s1) {
-            s = s1;
-         }
-         else if (s > s2) {
-            s = s2;
-         }
-         if (d1 < 0) {
-            s1 = s;
-         }
-         else // d2 < 0
-         {
-            s2 = s;
-         }
       }
    }
 

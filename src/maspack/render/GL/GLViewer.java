@@ -55,6 +55,7 @@ import maspack.render.Dragger3d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Dragger3dBase;
 import maspack.render.DrawToolBase;
+import maspack.render.GridPlane;
 import maspack.render.IsRenderable;
 import maspack.render.IsSelectable;
 import maspack.render.Light;
@@ -73,7 +74,7 @@ import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionFilter;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
-import maspack.render.GL.GLGridPlane.AxisLabeling;
+import maspack.render.GridPlane.AxisLabeling;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 import maspack.util.Logger;
@@ -459,7 +460,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected Dragger3d myDrawTool;
    protected Object myDrawToolSyncObject = new Object();
    protected Rectangle myDragBox;
-   protected GLGridPlane myGrid;
+   protected GridPlane myGrid;
    
    protected double axisLength = 0;
    protected static final boolean DEFAULT_SOLID_AXES = false;
@@ -3204,7 +3205,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myGrid.getCellSize();
    }
 
-   public GLGridPlane getGrid() {
+   public GridPlane getGrid() {
       return myGrid;
    }
 

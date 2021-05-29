@@ -8,14 +8,15 @@ package maspack.render.GL;
 
 import maspack.matrix.*;
 import maspack.properties.*;
+import maspack.render.GridPlane;
 
-public class GLClipPlane extends GLGridPlane {
+public class GLClipPlane extends GridPlane {
    boolean myClippingEnabled = false;
    boolean mySlicingEnabled = false;
    double myOffset = 0.0;
 
    public static PropertyList myProps =
-      new PropertyList (GLClipPlane.class, GLGridPlane.class);
+      new PropertyList (GLClipPlane.class, GridPlane.class);
 
    static {
       myProps.add (

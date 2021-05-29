@@ -64,13 +64,7 @@ import artisynth.core.modelbase.HasMenuItems;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelmenu.ArtisynthModelMenu;
 import artisynth.core.modelmenu.ModelActionEvent;
-import artisynth.core.modelmenu.MenuEntry;
 import artisynth.core.modelmenu.ModelActionListener;
-import artisynth.core.modelmenu.ModelActionForwarder;
-import artisynth.core.modelmenu.PreferencesEditor;
-import artisynth.core.driver.ModelHistory.ModelHistoryInfo;
-import artisynth.core.modelmenu.ModelMenuEditor;
-import artisynth.core.modelmenu.ExtClassPathEditor;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.TracingProbe;
 import artisynth.core.probes.WayPointProbe;
@@ -111,9 +105,6 @@ import maspack.widgets.ValueCheckListener;
 import maspack.widgets.ViewerToolBar;
 import maspack.widgets.WidgetDialog;
 
-import javax.xml.parsers.ParserConfigurationException;
-import org.xml.sax.SAXException;
-
 /**
  * to create a class that handles the main menu interactions responds to the
  * events and calls appropriate functions to deal with the events
@@ -127,10 +118,6 @@ ModelActionListener {
    private MainFrame myFrame;
 
    protected ArtisynthModelMenu myModelsMenuGenerator;  // generates models menu
-   protected ModelMenuEditor myModelsMenuEditor;  // edits the models menu
-   protected PreferencesEditor myPreferencesEditor;  // edits preferences
-   protected ExtClassPathEditor myExtClassPathEditor; // edits external class path
-   protected Thread myModelMenuBackgroundThread;
 
    public static final int MAX_MENU_ROWS = 20; // change to grid layout if larger
 
@@ -366,7 +353,7 @@ ModelActionListener {
       // height makes space for GridDisplay box
       myMenuBar.add(Box.createRigidArea(new Dimension(20, 28)));
       // Create navigation bar button
-      if (myFrame.getNavPanel().isExpanded()) {
+      if (myFrame.getNavPanel().getStatus()) {
          navBarButton = ButtonCreator.createIconicButton(
             GuiStorage.getNavBarIcon(),
             "Hide NavPanel", "Hide navigation panel", 
@@ -501,39 +488,62 @@ ModelActionListener {
       }
 
       // load from file dialog
-      JMenuItem loadItem = makeMenuItem(
-         "Load script...", "load script from file");
+      JMenuItem loadItem = makeMenuItem("Load script...", "load script from file");
       menu.add(loadItem);
 
       return menu;
    }
-   
-   /**
-    * Reads a model menu tree
-    */
-   public MenuEntry readMenuTree (File file) {
 
-      MenuEntry menuTree = null;
-      try {
-         menuTree = ArtisynthModelMenu.readMenuTree (file);
+   /**
+    * Reads the demo menu stuff
+    */
+   public ArtisynthModelMenu readDemoMenu(String filename) {
+
+      // if no file specified, exit
+      if (filename==null || filename.equals("")) {
+         return null;
+      } 
+      ArtisynthModelMenu modelsMenu = null;
+      File file = ArtisynthPath.findFile(filename);
+      if (file == null) {
+         System.out.println ("Warning: demosMenuFile '" + filename + "' not found");
       }
-      catch (Exception e) {
-         System.out.println (
-            "WARNING: error reading demosMenuFile: " + file);
-         System.out.println ("   " + e);
-         e.printStackTrace(); 
-         menuTree = null;
+      else {
+         try {
+            modelsMenu = new ArtisynthModelMenu(file);
+            return modelsMenu;
+         } catch (Exception e) {
+            System.out.println ("Warning: error reading demosMenuFile: "
+            + filename);
+            System.out.println (e.getMessage());
+            modelsMenu = null;
+         }
       }
-      return menuTree;
+      return modelsMenu;
+   }
+
+   private void populateModelMenu(ArtisynthModelMenu generator, JMenu menu) {
+      // clear
+      menu.removeAll();
+      // build from tree
+      generator.buildMenu(menu, this, myMain.getModelHistory());
+      // add demo entries from menu
+      AliasTable demoTable = myMain.getDemoTable();
+      AliasTable generatedTable = generator.getDemoTable();
+      for (Entry<String,String> entry : generatedTable.getEntries()) {
+         demoTable.addEntry(entry.getKey(), entry.getValue());
+      }
    }
 
    private class BackgroundModelMenuThread extends Thread {
 
+      JMenu menu;
       File menuFile;
 
-      public BackgroundModelMenuThread(File menuFile) {
+      public BackgroundModelMenuThread(File menuFile, JMenu menu) {
          super("ModelMenu Loader");
          this.menuFile = menuFile;
+         this.menu = menu;
       }
 
       @Override
@@ -541,26 +551,17 @@ ModelActionListener {
          if (menuFile != null && menuFile.exists()) {
             FunctionTimer timer = new FunctionTimer();
             timer.start();
-            MenuEntry menuTree = readMenuTree (menuFile);
+            ArtisynthModelMenu generator = readDemoMenu(menuFile.getAbsolutePath());
             timer.stop();
-            System.out.println (
-               "BackgroundModelMenuThread: parse time=" + timer.result(1));
+            //System.out.println ("menu parse time=" + timer.result(1));
 
-            if (menuTree != null) {
-               boolean menusDiffer = !menuTree.treeEquals(
-                  myModelsMenuGenerator.getMenuTree());
-               if (menusDiffer) {
-                  System.out.println (
-                     "BackgroundModelMenuThread: cached menu differs");
-               }
-               // replace menu regardless because the cached version is
-               // expanded and we don't want that
-               boolean replace = true;
-               if (replace) {
-                  myModelsMenuGenerator.setMenuTree (menuTree);
-                  File cachedMenu = getMenuCacheFile(menuFile.getName());
-                  myModelsMenuGenerator.write(cachedMenu, /*expanded=*/true);
-               }
+            // XXX only replace menu if it differs from current menu
+            if (myModelsMenuGenerator == null || !generator.getMenuTree().equalsTree(myModelsMenuGenerator.getMenuTree())) {
+               populateModelMenu(generator, menu);
+               // save as cache
+               File cachedMenu = getMenuCacheFile(menuFile.getName());
+               generator.write(cachedMenu);
+               myModelsMenuGenerator = generator;
             }
          }
       }
@@ -574,8 +575,7 @@ ModelActionListener {
 
    private void createDemosMenu(JMenu menu) {
 
-      myModelsMenuGenerator = 
-         new ArtisynthModelMenu (menu, this, myMain.getDemoTable());
+      myModelsMenuGenerator = null;
       String menuFilename = myMain.getDemosMenuFilename();
 
       File menuFile = ArtisynthPath.findFile(menuFilename);
@@ -584,35 +584,39 @@ ModelActionListener {
       if (menuFile != null) {
          File cachedMenu = getMenuCacheFile(menuFile.getName());
          if (cachedMenu.exists()) {
-            // read and display cached version, real menu to be created in
-            // background file exists, so should be read correctly
-            MenuEntry menuTree = readMenuTree (cachedMenu);
-            if (menuTree != null) {
-               myModelsMenuGenerator.setMenuTree (menuTree);
+            // read and display cached version, real menu to be created in background
+            // file exists, so should be read correctly
+            myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
 
-               // background thread to update menu later if necessary
-               Thread thread = new BackgroundModelMenuThread(menuFile);
-               myModelMenuBackgroundThread = thread;
-               thread.start();
+            if (myModelsMenuGenerator != null) {
+               populateModelMenu(myModelsMenuGenerator, menu);
+
+               // background thread to update menu later
+               if (menuFile != null && menuFile.exists()) {
+                  BackgroundModelMenuThread thread = new BackgroundModelMenuThread(menuFile, menu);
+                  thread.start();
+               }
             }
 
-         } 
-         else {
+         } else {
             // read and create menu now
-            MenuEntry menuTree = readMenuTree (menuFile);
-            if (menuTree != null) {
-               myModelsMenuGenerator.setMenuTree (menuTree);
+            if (menuFile != null && menuFile.exists()) {
+               myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
+            }
+
+            if (myModelsMenuGenerator != null) {
+               populateModelMenu(myModelsMenuGenerator, menu);
                // save as cache
-               myModelsMenuGenerator.write(cachedMenu, /*expanded=*/true);
+               myModelsMenuGenerator.write(cachedMenu);
             }
          }
       }
    }
 
-//   public void updateHistoryMenu() {
-//      ModelHistory hist = myMain.getModelHistory();
-//      myModelsMenuGenerator.updateHistoryNodes(hist, this);
-//   }
+   public void updateHistoryMenu() {
+      ModelHistory hist = myMain.getModelHistory();
+      myModelsMenuGenerator.updateHistoryNodes(hist, this);
+   }
 
    private DoubleField createTimeDisplay() {
       DoubleField display = new DoubleField("", 0, "%9.5f");
@@ -1070,11 +1074,6 @@ ModelActionListener {
       myMain.closeMatlabConnection();
    }
 
-   private void doVerifyLibraries() {
-      UpdateLibrariesAgent agent = new UpdateLibrariesAgent();
-      agent.createAndShowPanel (myFrame);
-   }
-
    /**
     * this function opens up a dialog that allows the adding of probes
     */
@@ -1124,16 +1123,15 @@ ModelActionListener {
       // ClassDialog.createDialog (
       // myFrame, "Choose model class", "Load", "class", existingClassName);
       WidgetDialog dialog =
-         WidgetDialog.createDialog(
-            myFrame, "Choose model class", "Load");
+      WidgetDialog.createDialog(
+         myFrame, "Choose model class", "Load");
 
       // find all instances of 'RootModel' and create an AutoComplete test field
       ArrayList<String> demoClassNames =
       ClassFinder.findClassNames("artisynth.models", RootModel.class);
       AutoCompleteStringField widget =
-         new AutoCompleteStringField(
-            "class:", lastSelectedClassName, 30, demoClassNames);
-      widget.setStretchable (true);
+      new AutoCompleteStringField(
+         "class:", lastSelectedClassName, 30, demoClassNames);
 
       // widget.addValueCheckListener (
       // new ValueCheckListener() {
@@ -1346,9 +1344,9 @@ ModelActionListener {
       PardisoSolver s = new PardisoSolver();
    }
 
-//   private void doLoadModelSafely(String className, String title, String[] args) {
-//      doLoadModelSafely(new ModelInfo(className, title, args));
-//   }
+   private void doLoadModelSafely(String className, String title, String[] args) {
+      doLoadModelSafely(new ModelInfo(className, title, args));
+   }
 
    private void doLoadModelSafely(ModelInfo mi) {
       // Collect as much possible space before loading another model
@@ -1408,10 +1406,10 @@ ModelActionListener {
       //
       // Models menu
       //
-//      else if (myMain.isDemoClassName(cmd)) {
-//         ModelInfo mi = new ModelInfo(myMain.getDemoClassName(cmd), cmd, null);
-//         doLoadModelSafely(mi);
-//      }
+      else if (myMain.isDemoClassName(cmd)) {
+         ModelInfo mi = new ModelInfo(myMain.getDemoClassName(cmd), cmd, null);
+         doLoadModelSafely(mi);
+      }
       //
       // File Menu
       //
@@ -1444,9 +1442,6 @@ ModelActionListener {
       }
       else if (cmd.equals("Close MATLAB connection")) {
          doCloseMatlab();
-      }
-      else if (cmd.equals("Update libraries")) {
-         doVerifyLibraries ();
       }
       else if (cmd.equals("Load probes ...")) {
          ProbeEditor.loadProbes (myMain, myFrame);
@@ -1513,66 +1508,7 @@ ModelActionListener {
       }
       else if (cmd.equals("Undo")) {
          doUndoCommand();
-      }      
-      else if (cmd.equals("Write model menu")) {
-         if (myModelsMenuGenerator != null) {
-            myModelsMenuGenerator.write ("modelsxxx.xml", /*expanded=*/false);
-         }
       }
-      else if (cmd.equals("Edit model menu")) {
-         if (myModelsMenuGenerator != null) {
-            if (myModelsMenuEditor == null) {
-               // wait for background thread to finish before creating editor
-               Thread bgthread = myModelMenuBackgroundThread;
-               if (bgthread != null && bgthread.isAlive()) {
-                  System.out.println (
-                     "Waiting for menu construction to finish ...");
-                  while (bgthread.isAlive()) {
-                     try {
-                        bgthread.join();
-                     }
-                     catch (InterruptedException e) {
-                        // ignore
-                     }
-                  }
-               }
-               myModelsMenuEditor =
-                  new ModelMenuEditor (
-                     myModelsMenuGenerator, myMain.getUndoManager());
-            }
-            myModelsMenuEditor.setLocationRelativeTo (myFrame);
-            myModelsMenuEditor.setVisible (true);
-         }
-      }
-      else if (cmd.equals("Edit external class path")) {
-         if (myExtClassPathEditor == null) {
-            File file = new File(ArtisynthPath.getHomeDir()+"/EXTCLASSPATH");
-            try {
-               myExtClassPathEditor =
-                  new ExtClassPathEditor (myMain.getUndoManager(), file);
-            }
-            catch (Exception e) {
-               GuiUtils.showError (myFrame, "Could not open "+file);
-            }
-         }
-         if (myExtClassPathEditor != null) {
-            myExtClassPathEditor.setLocationRelativeTo (myFrame);
-            myExtClassPathEditor.open();
-         }
-      }
-      else if (cmd.equals ("Preferences ...")) {
-         if (myPreferencesEditor == null) {
-            myPreferencesEditor = 
-               new PreferencesEditor (myMain.getPreferencesManager());
-            myPreferencesEditor.build();
-         }
-         else {
-            myPreferencesEditor.reloadValues();
-         }
-         myPreferencesEditor.setLocationRelativeTo (myFrame);
-         myPreferencesEditor.setVisible (true);
-      }
-      
       //
       // Settings menu
       //
@@ -1741,13 +1677,13 @@ ModelActionListener {
       // Tool bar buttons
       //
       else if (cmd.equals("Hide NavPanel")) {
-         myFrame.getNavPanel().setExpanded(!myFrame.getNavPanel().isExpanded());
+         myFrame.getNavPanel().setStatus(!myFrame.getNavPanel().getStatus());
          myFrame.refreshSplitPane();
          navBarButton.setToolTipText("Show navigation panel");
          navBarButton.setActionCommand("Show NavPanel");
       }
       else if (cmd.equals("Show NavPanel")) {
-         myFrame.getNavPanel().setExpanded(!myFrame.getNavPanel().isExpanded());
+         myFrame.getNavPanel().setStatus(!myFrame.getNavPanel().getStatus());
          myFrame.refreshSplitPane();
          navBarButton.setToolTipText("Hide navigation panel");
          navBarButton.setActionCommand("Hide NavPanel");
@@ -1881,7 +1817,7 @@ ModelActionListener {
    public void detachToolbar() {
       toolbarPanel.setVisible(false);
 
-      if (!myFrame.getNavPanel().isExpanded())
+      if (!myFrame.getNavPanel().getStatus())
          myFrame.getNavPanel().setVisible(false);
 
       myFrame.refreshSplitPane();
@@ -2066,27 +2002,6 @@ ModelActionListener {
       return addMenuItem(menu, labelAndCmd, labelAndCmd);
    }
 
-   private void createLoadRecentMenu (JMenu menu) {
-
-      ModelHistory hist = myMain.getModelHistory();
-      ModelHistoryInfo[] mhi = hist.getRecent (10);
-                  
-      if (mhi != null && mhi.length > 0) {
-         JMenu recent = new JMenu ("Load recent");
-         menu.add (recent);
-         for (int i=0; i<mhi.length; i++) {
-            ModelInfo mi = mhi[i].getModelInfo();
-      
-            String dispName = mi.getShortName();
-            JMenuItem item = new JMenuItem (mi.getShortName());
-            item.addActionListener (
-               new ModelActionForwarder (this, "load", mi));
-            item.setToolTipText (mi.getClassNameOrFile());
-            recent.add (item);
-         }
-      }
-   }
-
    private void createFileMenu(JMenu menu) {
       boolean hasRootModel = (myMain.getRootModel() != null);
 
@@ -2102,13 +2017,11 @@ ModelActionListener {
       item.setEnabled(hasRootModel);
       menu.add(new JSeparator());
 
-      addMenuItem(menu, "Load model ...");
-      addMenuItem(menu, "Load from class ...");
-
-      createLoadRecentMenu (menu);
-
       item = addMenuItem(menu, "Reload model");
       item.setEnabled(myMain.modelIsLoaded());
+
+      addMenuItem(menu, "Load model ...");
+      addMenuItem(menu, "Load from class ...");
 
       JMenuItem loadProbesItem, saveProbesItem, saveProbesAsItem;
 
@@ -2160,8 +2073,6 @@ ModelActionListener {
          addMenuItem(menu, "Open MATLAB connection");
       }
       menu.add(new JSeparator());
-      addMenuItem (menu, "Update libraries");
-      menu.add(new JSeparator());
 
       addMenuItem(menu, "Quit");
    }
@@ -2185,28 +2096,6 @@ ModelActionListener {
 
       addMenuItem(menu, "Print selection");
 
-      if (Main.myUseConfigDir) {
-         if (myModelsMenuGenerator != null) {
-            menu.add (makeMenuItem ("Write model menu", "Write model menu"));
-            JMenuItem editItem = makeMenuItem (
-               "Edit model menu", "Edit model menu");
-            editItem.setEnabled (
-               myModelsMenuEditor == null || !myModelsMenuEditor.isVisible());
-            menu.add (editItem);
-         }
-
-         JMenuItem editItem = addMenuItem (menu, "Edit external class path");
-         editItem.setEnabled (
-            myExtClassPathEditor == null || !myExtClassPathEditor.isVisible()); 
-         
-         menu.add (new JSeparator());
-         JMenuItem prefItem = addMenuItem (menu, "Preferences ...");
-         if (myPreferencesEditor != null && myPreferencesEditor.isVisible()) {
-            prefItem.setEnabled (false);
-         }
-      }
-
-      menu.add (new JSeparator());
       JMenuItem undoItem = makeMenuItem("Undo", "Undo");
       Command cmd = myMain.getUndoManager().getLastCommand();
       if (cmd != null && hasRootModel) {

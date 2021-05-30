@@ -1000,7 +1000,7 @@ public class NativeLibraryManager {
                System.out.println ("sys=" + desc.mySys);
                System.out.println ("major=" + desc.myMajorNum);
                System.out.println ("minor=" + desc.myMinorNum);
-               System.out.println ("vers=" + desc.myVersionStr);
+               System.out.println ("graphics=" + desc.myVersionStr);
             }
          }
       }

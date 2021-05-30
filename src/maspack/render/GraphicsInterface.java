@@ -30,4 +30,19 @@ public enum GraphicsInterface {
    public int getMinorVersion() {
       return minor;
    }
+
+   /**
+    * Like valueOf(), except if the string is not valid then the method simply
+    * returns {@code null} instead of throwing an exception.
+    */
+   static public GraphicsInterface fromString (String str) {
+      GraphicsInterface gi = null;
+      try {
+         gi = valueOf (str);
+      }
+      catch (Exception e) {
+         // ignore
+      }
+      return gi;
+   }
 }

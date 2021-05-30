@@ -27,6 +27,7 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MouseInputAdapter;
 
 import maspack.render.GridPlane;
+import maspack.render.GraphicsInterface;
 import maspack.render.IsRenderable;
 import maspack.render.RenderListener;
 import maspack.render.RendererEvent;
@@ -53,12 +54,12 @@ public class ViewerFrame extends GLViewerFrame
    protected ViewerPopupManager myPopupManager;
 
    public ViewerFrame (String name, int width, int height) {
-      this (name, width, height, defaultVersion);
+      this (name, width, height, defaultGraphics);
    }
 
    public ViewerFrame (
-      String name, int width, int height, GLViewer.GLVersion vers) {
-      super (name, width, height, vers);
+      String name, int width, int height, GraphicsInterface graphics) {
+      super (name, width, height, graphics);
       viewer.addRenderListener (this);
    }
 

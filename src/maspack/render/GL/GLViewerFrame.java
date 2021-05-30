@@ -13,6 +13,7 @@ import javax.swing.JFrame;
 
 import maspack.render.IsRenderable;
 import maspack.render.Viewer;
+import maspack.render.GraphicsInterface;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.GL.GL3.GL3Viewer;
 
@@ -22,20 +23,20 @@ public class GLViewerFrame extends JFrame {
    private static final long serialVersionUID = 1L;
    protected GLViewer viewer;
    
-   protected static GLViewer.GLVersion defaultVersion = GLViewer.GLVersion.GL3;
+   protected static GraphicsInterface defaultGraphics = GraphicsInterface.GL3;
 
    public GLViewer getViewer() {
       return viewer;
    }
 
    public GLViewerFrame (String name, int width, int height) {
-      this (name, width, height, defaultVersion);
+      this (name, width, height, defaultGraphics);
    }
 
    public GLViewerFrame (
-      String name, int width, int height, GLViewer.GLVersion vers) {
+      String name, int width, int height, GraphicsInterface graphics) {
       super (name);
-      switch (vers) {
+      switch (graphics) {
          case GL2: {
             viewer = new GL2Viewer (width, height); 
             break;
@@ -46,7 +47,7 @@ public class GLViewerFrame extends JFrame {
          }
          default:
             throw new IllegalArgumentException (
-               "Unimplemented viewer type: " + vers);
+               "Unimplemented graphics interface: " + graphics);
       }
       getContentPane().add (viewer.getComponent());
       pack();

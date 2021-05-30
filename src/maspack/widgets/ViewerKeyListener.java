@@ -9,15 +9,16 @@ package maspack.widgets;
 import java.awt.event.*;
 
 import maspack.render.*;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 import maspack.render.GridPlane.AxisLabeling;
+import maspack.render.GL.GLViewer;
 import maspack.matrix.*;
 
 public class ViewerKeyListener implements KeyListener {
    
-   GLViewer myViewer;
+   Viewer myViewer;
 
-   public ViewerKeyListener (GLViewer viewer) {
+   public ViewerKeyListener (Viewer viewer) {
       myViewer = viewer;
    }
 

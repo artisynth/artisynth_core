@@ -21,14 +21,14 @@ public class MouseRayEvent extends MouseEvent {
    protected int myScreenWidth;
    protected int myScreenHeight;
    protected Line myRay;
-   protected GLViewer myViewer;
+   protected Viewer myViewer;
 
    protected MouseRayEvent (Component source, int id, long when, int modifiers,
    int x, int y, int clickCount, boolean popupTrigger) {
       super (source, id, when, modifiers, x, y, clickCount, popupTrigger);
    }
 
-   public static MouseRayEvent create (MouseEvent e, GLViewer viewer) {
+   public static MouseRayEvent create (MouseEvent e, Viewer viewer) {
       MouseRayEvent de =
          new MouseRayEvent (
             (Component)e.getSource(), e.getID(), e.getWhen(),
@@ -89,7 +89,7 @@ public class MouseRayEvent extends MouseEvent {
       return myRay;
    }
 
-   public GLViewer getViewer() {
+   public Viewer getViewer() {
       return myViewer;
    }
 

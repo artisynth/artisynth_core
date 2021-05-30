@@ -4,7 +4,8 @@
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
- */package artisynth.core.gui.editorManager;
+ */
+package artisynth.core.gui.editorManager;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -86,7 +87,7 @@ public class DuplicateAgent extends EditingAgent implements ActionListener {
 
    private static final double inf = Double.POSITIVE_INFINITY;
 
-   public void handleRayEvent (GLViewer viewer, MouseRayEvent rayEvent) {
+   public void handleRayEvent (Viewer viewer, MouseRayEvent rayEvent) {
       RigidTransform3d X = new RigidTransform3d();
 
       // find the center of the components
@@ -153,7 +154,7 @@ public class DuplicateAgent extends EditingAgent implements ActionListener {
    class LocationListener extends MouseInputAdapter {
       public void mouseClicked (MouseEvent e) {
          if (e.getButton() == MouseEvent.BUTTON1) {
-            GLViewer viewer =
+            Viewer viewer =
                ViewerManager.getViewerFromComponent (e.getComponent());
             if (viewer != null) {
                handleRayEvent (viewer, MouseRayEvent.create (e, viewer));

@@ -10,7 +10,7 @@ import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.modelbase.ModelComponent;
 import maspack.render.MouseRayEvent;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 
 public class AddMarkerTool implements SelectionListener, MouseInputListener {
 
@@ -53,7 +53,7 @@ public class AddMarkerTool implements SelectionListener, MouseInputListener {
             if (e.getClickCount() == 2) {
                
                // determine event
-               GLViewer viewer = ViewerManager.getViewerFromComponent (e.getComponent());
+               Viewer viewer = ViewerManager.getViewerFromComponent (e.getComponent());
                MouseRayEvent mark = MouseRayEvent.create (e, viewer);
                
                // add marker

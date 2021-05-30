@@ -15,7 +15,7 @@ import maspack.matrix.Vector3d;
 import maspack.render.IsRenderable;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 import maspack.render.GL.GLViewerFrame;
 
 public class GLHSVShaderTest implements IsRenderable {
@@ -62,7 +62,7 @@ public class GLHSVShaderTest implements IsRenderable {
       GLViewerFrame vframe = new GLViewerFrame ("GLHSVShader test", 640, 480);
       
       vframe.setVisible (true);
-      GLViewer viewer = vframe.getViewer();
+      Viewer viewer = vframe.getViewer();
       viewer.setCenter (new Point3d (0, 1, 0));
       viewer.addRenderable (new GLHSVShaderTest());
    }

@@ -55,8 +55,9 @@ import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 import maspack.render.GL.GLViewer.GLVersion;
+import maspack.render.GL.GLViewer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -595,7 +596,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       try {
          GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
          editor = new HermiteSpline1dEditor (width.value, height.value, glv);
-         GLViewer viewer = editor.getViewer();
+         Viewer viewer = editor.getViewer();
          editor.setYScale (yscale.value);
          if (splineFileName.value != null) {
             File file = new File (splineFileName.value);

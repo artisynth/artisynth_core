@@ -340,8 +340,30 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected AxisAlignedRotation myDefaultAxialView = DEFAULT_AXIAL_VIEW;
    protected AxisAlignedRotation myAxialView = DEFAULT_AXIAL_VIEW;
 
+   /**
+    * Controls how the viewer responds to rotation control inputs specified as
+    * horizontal and vertical angular displacements in the viewing plane.
+    */
    public enum RotationMode {
-      DEFAULT, CONTINUOUS;
+      /**
+       * The horizontal displacement describes a rotation about the vertical
+       * (``up'') direction (as returned by {@link #getUpVector}), while the
+       * vertical displacement controls the elevation of the eye position. This
+       * mode has the advantage that the ``up'' direction always remains
+       * parallel to the vertical direction of the viewer plane. However,
+       * because of this, the eye-to-world rotation cannot be adjusted to an
+       * arbitrary value.
+       */
+      DEFAULT,
+
+      /**
+       * The horizontal and vertical displacements describe instantaneous
+       * angular velocity components of the eye-to-world rotation. This allows
+       * the eye-to-world rotation to be adjusted to arbitrary values, but the
+       * ``up'' direction will generally not remain parallel to the vertical
+       * direction of the viewer plane.
+       */
+      CONTINUOUS;
    }
 
    public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.DEFAULT;
@@ -553,14 +575,23 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myProfiling;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public Vector2d getEllipticCursorSize() {
       return myEllipticCursorSize;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void setEllipticCursorSize (Vector2d size) {
       myEllipticCursorSize.set (size);
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void resetEllipticCursorSize () {
       myEllipticCursorSize.set (DEFAULT_ELLIPTIC_CURSOR_SIZE);
    }
@@ -579,10 +610,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myViewRotationEnabled = enable;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public boolean getEllipticCursorActive() {
       return myEllipticCursorActive;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void setEllipticCursorActive (boolean active) {
       myEllipticCursorActive = active;
    }
@@ -753,6 +790,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   public Dragger3d getDrawTool() {
+      return myDrawTool;
+   }
+
    public boolean removeRenderable (IsRenderable d) {
       boolean wasRemoved = false;
       synchronized(myRenderables) {
@@ -787,6 +828,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myUserDraggers.clear();
       }
       myInternalRenderListValid = false;
+   }
+
+   public List<Dragger3d> getAllDraggers() {
+      return myDraggers;
    }
 
    public void clearRenderables() {
@@ -1497,15 +1542,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Translate the eye position with respect to the x-y plane of the eye frame.
-    * The center point is translated by the same amount.
-    * 
-    * @param delx
-    * x translation amount
-    * @param dely
-    * y translation amount
+    * {@inheritDoc}
     */
-   protected void translate (double delx, double dely) {
+   public void translate (double delx, double dely) {
       Vector3d xCam = new Vector3d(), yCam = new Vector3d();
 
       synchronized (viewMatrix) {
@@ -1526,14 +1565,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Zoom in or out by a specified scale factor. A factor larger than one zooms
-    * out, while a factor less than one zooms in. In orthographic projection,
-    * zoom is accomplished changing the frustum size. In perspective projection,
-    * it is accomplished by moving the eye position along the z axis of the eye
-    * frame.
-    * 
-    * @param s
-    * scale factor
+    * {@inheritDoc}
     */
    public void zoom (double s) {
       if (myFrustum.orthographic) {
@@ -3026,16 +3058,25 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public HighlightStyle getHighlightStyle() {
       return myHighlightStyle;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setHighlightColor (Color color) {
       color.getRGBComponents (myHighlightColor);
       myHighlightColorModified = true;
       repaint();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public void getHighlightColor (float[] rgba) {
       if (rgba.length < 3) {
@@ -3048,6 +3089,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (rgba.length > 3) {
          rgba[3] = myHighlightColor[3];
       }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Color getHighlightColor() {
+      float[] rgba = new float[4];
+      getHighlightColor (rgba);
+      return new Color (rgba[0], rgba[1], rgba[2], rgba[3]);
    }
 
    /**
@@ -3189,11 +3239,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       TCW.p.set (myViewState.myCenter);
    }
    
-   protected void setDragBox (Rectangle box) {
+   /**
+    * {@inheritDoc}
+    */
+   public void setDragBox (Rectangle box) {
       myDragBox = box;
    }
 
-   protected Rectangle getDragBox() {
+   /**
+    * {@inheritDoc}
+    */
+   public Rectangle getDragBox() {
       return myDragBox;
    }
 
@@ -3846,7 +3902,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    //  Clip Planes
    //==========================================================================
 
-   protected int numUsedClipPlanes() {
+   protected int numUsedClipSurfaces() {
       int c = 0;
       for (GLClipPlane clip : myClipPlanes) {
          if (clip.isClippingEnabled()) {
@@ -3859,22 +3915,34 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return c;
    }
    
-   public int numFreeClipPlanes() {
-      int c = numUsedClipPlanes ();
+   /**
+    * {@inheritDoc}
+    */
+   public int numFreeClipSurfaces() {
+      int c = numUsedClipSurfaces ();
       if (c >= maxClipPlanes) {
          return 0;
       }
       return maxClipPlanes-c;
    }
 
-   public int getMaxGLClipPlanes() {
+   /**
+    * {@inheritDoc}
+    */
+   public int maxClipSurfaces() {
       return maxClipPlanes;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane addClipPlane () {
       return addClipPlane (null, 0);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane addClipPlane (RigidTransform3d X, double size) {
       GLClipPlane clipPlane = new GLClipPlane();
       if (size <= 0) {
@@ -3894,28 +3962,42 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return clipPlane;
    }
 
-   public boolean addClipPlane (GLClipPlane clipPlane) {
+   /**
+    * {@inheritDoc}
+    */
+   public void addClipPlane (GLClipPlane clipPlane) {
       clipPlane.setViewer (this);
       myClipPlanes.add (clipPlane);
       
       if (isVisible()) {
          rerender();
       }
-      return true;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane getClipPlane (int idx) {
       return myClipPlanes.get (idx);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getNumClipPlanes() {
       return myClipPlanes.size();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane[] getClipPlanes () {
       return myClipPlanes.toArray (new GLClipPlane[0]);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean removeClipPlane (GLClipPlane clipPlane) {
       if (myClipPlanes.remove (clipPlane)) {
          clipPlane.setViewer (null);
@@ -3929,6 +4011,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void clearClipPlanes() {
       for (GLClipPlane clip : myClipPlanes) {
          clip.setViewer(null);

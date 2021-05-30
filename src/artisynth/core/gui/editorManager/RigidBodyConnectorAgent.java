@@ -16,7 +16,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.MouseRayEvent;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 import maspack.util.InternalErrorException;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.selectionManager.SelectionEvent;
@@ -288,7 +288,7 @@ AddComponentAgent<BodyConnector> {
    }
 
    @Override
-   public void handleLocationEvent (GLViewer viewer, MouseRayEvent rayEvent) {
+   public void handleLocationEvent (Viewer viewer, MouseRayEvent rayEvent) {
       Point3d origin = new Point3d();
       Line ray = rayEvent.getRay();
       ray.nearestPoint (origin, myBodyA.getPose().p);

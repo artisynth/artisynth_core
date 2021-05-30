@@ -40,6 +40,7 @@ import maspack.render.RenderProps;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
 
@@ -274,7 +275,7 @@ public class NURBSViewer extends GLViewerFrame {
       try {
          GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
          viewFrame = new NURBSViewer (width.value, height.value, glv);
-         GLViewer viewer = viewFrame.getViewer();
+         Viewer viewer = viewFrame.getViewer();
          if (fileName.value != null) {
             viewFrame.addNURBS (new File (fileName.value));
          }

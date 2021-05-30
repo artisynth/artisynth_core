@@ -9,10 +9,14 @@ package maspack.render;
 import java.awt.Color;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.swing.event.*;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLViewer.RotationMode;
 
 /**
  * A viewer is a component that takes a collection of renderables and
@@ -21,10 +25,6 @@ import maspack.matrix.*;
  * the primary functionality by which renderables can render themselves.
  */
 public interface Viewer extends Renderer {
-
-   public enum RotationMode {
-      EULER, CONTINUOUS;
-   }
 
    // rendering control
 
@@ -143,7 +143,16 @@ public interface Viewer extends Renderer {
     */
    public RenderListener[] getRenderListeners();
 
-   // selection control
+   //==========================================================================
+   // Selection control
+   //==========================================================================
+
+   /**
+    * Queries the highlighting style for this viewer.
+    *
+    * @return current highlighting style 
+    */
+   public HighlightStyle getHighlightStyle();
 
    /**
     * Sets the highlighting style for this viewer. If the style is
@@ -167,6 +176,20 @@ public interface Viewer extends Renderer {
    public boolean hasHighlightStyle(HighlightStyle style);
 
    /**
+    * Sets the highlight color used by this viewer.
+    *
+    * @param color new highlight color
+    */
+   public void setHighlightColor (Color color);
+
+   /**
+    * Queries the highlight color used by this viewer.
+    *
+    * @return viewer highlight color
+    */
+   public Color getHighlightColor();
+
+   /**
     * Enables or disables viewer-based selection. If this viewer does not
     * support selection (i.e., if {@link #hasSelection()} returns
     * <code>false</code>, then this method does nothing.
@@ -181,6 +204,40 @@ public interface Viewer extends Renderer {
     * @return <code>false</code> if selection is disabled or not supported.
     */
    public boolean isSelectionEnabled ();
+
+   /**
+    * Set whether elliptic selection is enabled for this viewer.  Elliptic
+    * selection is selection style in which an elliptic cursor is used to
+    * ``paint'' the current set of selected components.
+    *
+    * @param if {@code true}, enables elliptic selection
+    * @see #getEllipticSelection
+    */
+   public void setEllipticSelection (boolean enable);
+
+   /**
+    * Queries whether elliptic selection is enabled for this viewer.
+    *
+    * @return {@code true} if elliptic selection is enabled
+    * @see #setEllipticSelection
+    */
+   public boolean getEllipticSelection();
+
+   /**
+    * Set whether or not selection is done when the mouse is pressed.
+    * If enabled, this automatically diables "drag selection".
+    * 
+    * @param enable
+    * Whether or not selection is enabled.
+    */
+   public void setSelectOnPress (boolean enable);
+
+   /**
+    * Returns true if "select on press" is enabled for the viewers.
+    * 
+    * @return true if "select on press" is enabled
+    */
+   public boolean getSelectOnPress(); 
 
    /**
     * Sets a selection filter for the viewer. This restricts which objects
@@ -300,6 +357,15 @@ public interface Viewer extends Renderer {
    /**
     * Sets the background color for this viewer.
     * 
+    * @param r red color component
+    * @param g red color component
+    * @param b red color component
+    */
+   public void setBackgroundColor (float r, float g, float b);
+
+   /**
+    * Sets the background color for this viewer.
+    * 
     * @param rgba RGB (if length 3) or RGBA values (if length 4) for the
     * background color
     */
@@ -343,9 +409,19 @@ public interface Viewer extends Renderer {
     * viewer, this will appear centered on the view frame with z pointing toward
     * the view, y pointing up, and x pointing to the right.
     *
-    * @param TCW retursn the center-to-world transform
+    * @param TCW returns the center-to-world transform
     */
    public void getCenterToWorld (RigidTransform3d TCW);
+
+   /**
+    * Returns a transform from world coordinates to center coordinates.  This
+    * performs the same function as {@link
+    * #getCenterToWorld(RigidTransform3d)}, only with transform allocated and
+    * returned.
+    *
+    * @return the center-to-world transform
+    */
+   public RigidTransform3d getCenterToWorld ();
 
    /**
     * Rotate the eye coordinate frame about the center point. How the rotation
@@ -359,23 +435,46 @@ public interface Viewer extends Renderer {
     */
    public void rotate (double xang, double yang);
 
-   // /**
-   //  * Sets the rotation mode that controls how the viewer responds to
-   //  * interactive rotation requests specified as horizontal and vertical
-   //  * angular displacements in the view plane. The default
-   //  * rotation mode is {@link 
-   //  *
-   //  * @param mode new rotation mode
-   //  */
-   // public void setRotationMode (RotationMode mode);
+   /**
+    * Translate the eye position with respect to the x-y plane of the eye
+    * frame.  The center point is translated by the same amount.
+    * 
+    * @param delx
+    * x translation amount
+    * @param dely
+    * y translation amount
+    */
+   public void translate (double delx, double dely);
 
-   // /**
-   //  * Queries the rotation mode that controls how the viewer responds to
-   //  * interactive rotation requests. See {@link #setRotationMode}.
-   //  *
-   //  * @return current rotation mode
-   //  */
-   // public RotationMode getRotationMode();
+   /**
+    * Zoom in or out by a specified scale factor. A factor larger than one zooms
+    * out, while a factor less than one zooms in. In orthographic projection,
+    * zoom is accomplished changing the frustum size. In perspective projection,
+    * it is accomplished by moving the eye position along the z axis of the eye
+    * frame.
+    * 
+    * @param s
+    * scale factor
+    */
+   public void zoom (double s);  
+
+   /**
+    * Sets the rotation mode that controls how the viewer responds to
+    * interactive rotation requests specified as horizontal and vertical
+    * angular displacements in the view plane. The default rotation mode is
+    * {@link RotationMode#DEFAULT}.
+    *
+    * @param mode new rotation mode
+    */
+   public void setRotationMode (RotationMode mode);
+
+   /**
+    * Queries the rotation mode that controls how the viewer responds to
+    * interactive rotation requests. See {@link #setRotationMode}.
+    *
+    * @return current rotation mode
+    */
+   public RotationMode getRotationMode();
 
    /**
     * Sets an axial (or axis-aligned) view. This is done by setting the 
@@ -696,11 +795,122 @@ public interface Viewer extends Renderer {
    public void setGridVisible (boolean visible);
 
    /**
+    * Sets the position and minimum size of the viewer grid.1`
+    *
+    * @param pcenter position of the grid center
+    * @param r radius value, which equals 1/4 the minimum size
+    */
+   public void setGridSizeAndPosition (Point3d pcenter, double r);
+
+   /**
     * Queries whether the viewer grid is visible.
     *
     * @return {@code true} if the grid is visible
     */
    public boolean getGridVisible();
+
+   /**
+    * Returns this viewer's grid.
+    *
+    * @return viewer grid
+    */
+   public GridPlane getGrid();
+
+   //==========================================================================
+   //  Clip Planes
+   //==========================================================================
+
+   /**
+    * Queries the maximum number of clip surfaces available to this viewer.
+    * This depends on the underlying graphics implementation. Each clip plane
+    * held by the viewer will require one surface if clipping is enabled, or
+    * two surfaces if slicing is enabled. Clipping will be curtailed if the
+    * total number of required clip surfaces exceeds the maximum.
+    *
+    * @return maximum number of clip surfaces
+    */
+   public int maxClipSurfaces();
+
+   /**
+    * Queries the number of clip surfaces currently available to this viewer.
+    * This will equal the value returned by {@link #maxClipSurface} minus the
+    * number required by all the currently held clip planes, with the result
+    * set to 0 if negative. Clipping will be curtailed if the number of
+    * available surfaces is 0.
+    * 
+    * @return number of currently available clip surfaces
+    */
+   public int numFreeClipSurfaces();
+
+   /**
+    * Creates and add a clip plane to this viewer. The pose is centered on the
+    * origin and aligned with the current axial view, while this size is set to
+    * a default value based on the current viewing frustum. This method is
+    * equivalent to calling {@code addClipPlane(null,0)}.
+    * 
+    * @return created clip plane
+    */
+   public GLClipPlane addClipPlane();
+
+   /**
+    * Creates and add a clip plane to this viewer.
+    * 
+    * @param TPW transform specifying the clip plane pose with respect to world
+    * coordinates. If {@code null}, the pose is centered on the origin and
+    * aligned with the current axial view.
+    * @param size visible width of the clip plane in each direction. If
+    * {@code <= 0}, this is set to a default value based on the current
+    * viewing frustum.
+    * @return created clip plane
+    */
+   public GLClipPlane addClipPlane (RigidTransform3d TPW, double size);
+
+   /**
+    * Adds a clip plane to this viewer.
+    * 
+    * @param clipPlane clip plane to add
+    */
+   public void addClipPlane (GLClipPlane clipPlane);
+
+   /**
+    * Returns the {@code idx}-th clip plane held by this viewer. {@code idx}
+    * must be {@code <} {@code #getNumClipPlanes}.
+
+    * @param idx index of the desired clip plane
+    * @return the {@code idx}-th clip plane 
+    */
+   public GLClipPlane getClipPlane (int idx);
+
+   /**
+    * Queries the number of clip planes currently held by this viewer.
+    * 
+    * @return current number of viewer clip planes
+    */
+   public int getNumClipPlanes();
+
+   /**
+    * Returns all the clip planes currently held by this viewer.
+    * 
+    * @return current viewer clip planes
+    */
+   public GLClipPlane[] getClipPlanes();
+
+   /**
+    * Removes a clip plane from this viewer.
+    * 
+    * @param clipPlane clip plane to remove
+    * @return
+    */
+   public boolean removeClipPlane (GLClipPlane clipPlane);
+
+   /**
+    * Removes all clip planes from this viewer.
+    */
+   public void clearClipPlanes();
+
+   //==========================================================================
+   // Mouse and keyboard listeners
+   //==========================================================================
 
    /**
     * Adds a mouse input listener to this viewer.
@@ -760,19 +970,63 @@ public interface Viewer extends Renderer {
     */   
    public void setViewRotationEnabled (boolean enable);
 
+   //==========================================================================
+   // Draggers and draw tools
+   //==========================================================================
+
    /**
-    * Adds a dragger fixture to this viewer.
+    * Sets the draw tool for this viewer.
+    *
+    * @oaram d draw tool to set
+    */
+   public void setDrawTool (Dragger3d d);
+
+   /**
+    * Queries the draw tool, if any, for this viewer.
+    *
+    * @return current draw tool, or {@code null} if there is none
+    */
+   public Dragger3d getDrawTool();
+
+   /**
+    * Adds an application-defined dragger fixture to this viewer.
     *
     * @param d dragger to add
     */
    public void addDragger (Dragger3d d);
 
    /**
-    * Removes a dragger fixture from this viewer.
+    * Removes an application-defined dragger fixture from this viewer.
     *
     * @param d dragger to remove
     */
    public void removeDragger (Dragger3d d);
+
+   /**
+    * Removes all application-defined dragger fixtures from this viewer.
+    */
+   public void clearDraggers();
+
+   /**
+    * Returns a list of all application-defined draggers currently added to
+    * this viewer. The returned list is a copy and may therefore be modified.
+    *
+    * @return list of current application-defined draggers
+    */
+   public LinkedList<Dragger3d> getDraggers();
+
+   /**
+    * Returns a list of all draggers currently active for this viewer,
+    * including those that are application-defined as well as those those that
+    * are created internally. The returned list should not be modified,
+    * although the draggers within the list may be.
+    *
+    * <p>This method is intended for use by the mouse input handler
+    * that manages dragger activity.
+    * 
+    * @return list of all currently active draggers
+    */
+   public List<Dragger3d> getAllDraggers();
 
    /**
     * Returns the x component of the origin of the component implementing this
@@ -803,6 +1057,59 @@ public interface Viewer extends Renderer {
     * @param return viewer screen cursor
     */
    public Cursor getScreenCursor();
+
+
+   /**
+    * Queries whether an elliptic cursor is active for this viewer.
+    *
+    * @return {@code true} if an elliptic cursor is active
+    */
+   public boolean getEllipticCursorActive();
+   
+   /**
+    * Sets whether an elliptic cursor is active for this viewer.
+    *
+    * @param if {@code true}, activates an elliptic cursor
+    */
+   public void setEllipticCursorActive (boolean active);
+   
+   /**
+    * Queries the elliptic cursor size for this viewer.
+    *
+    * @return viewer's elliptic cursor size
+    */
+   public Vector2d getEllipticCursorSize();
+   
+   /**
+    * Sets the elliptic cursor size for this viewer.
+    *
+    * @return size new elliptic cursor size
+    */
+   public void setEllipticCursorSize (Vector2d size);
+   
+   /**
+    * Resets the elliptic cursor size for this viewer to its default value.
+    */
+   public void resetEllipticCursorSize();
+
+   /**
+    * Sets a <i>drag box</i> to be displayed by the viewer. This is a
+    * rectangular screen area that is usually selected by a drag operaion.
+    * Specifying a {@code null} value means that no drag box should be
+    * displayed.
+    *
+    * @param box drag box in screen coordinates, or {@code null}
+    * if the drag box is to be removed
+    */
+   public void setDragBox (Rectangle box);
+
+   /**
+    * Queries information about any drag box currently being displayed.
+    *
+    * @return rectangle describing the screen coordinates of the current drag
+    * box, or {@code null} if no box is currently being displayed.
+    */
+   public Rectangle getDragBox();
 
    /**
     * Queries the AWT component associated with this viewer.

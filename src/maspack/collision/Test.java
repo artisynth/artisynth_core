@@ -18,7 +18,7 @@ import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 import maspack.render.GL.GLViewerFrame;
 
 public class Test {
@@ -55,7 +55,7 @@ public class Test {
    void test1() {
       GLViewerFrame frame = new GLViewerFrame ("collide", 1000, 800);
       frame.setDefaultCloseOperation (JFrame.DISPOSE_ON_CLOSE);
-      GLViewer vw = frame.getViewer();
+      Viewer vw = frame.getViewer();
       frame.setVisible (true);
       KeyHandler keyHandler = new KeyHandler (vw);
       vw.addKeyListener (keyHandler);
@@ -208,12 +208,12 @@ public class Test {
    }
 
    public class KeyHandler extends KeyAdapter {
-      GLViewer myViewer;
+      Viewer myViewer;
 
       KeyHandler() {
       }
 
-      public KeyHandler (GLViewer myViewer) {
+      public KeyHandler (Viewer myViewer) {
          this.myViewer = myViewer;
       }
 

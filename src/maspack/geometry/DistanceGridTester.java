@@ -33,7 +33,7 @@ public class DistanceGridTester {
    private GLViewerFrame frame;
    private PolygonalMesh m;
    private DistanceGrid g;
-   private GLViewer viewer;
+   private Viewer viewer;
 
    static boolean useGraphics = false;
 

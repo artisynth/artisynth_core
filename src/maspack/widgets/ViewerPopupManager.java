@@ -24,15 +24,15 @@ import maspack.util.*;
  */
 public class ViewerPopupManager implements ActionListener {
 
-   protected GLViewer myViewer;
+   protected Viewer myViewer;
    private ArrayList<DialogHandle> myDialogHandles =
       new ArrayList<DialogHandle>();
 
-   public ViewerPopupManager (GLViewer viewer) {
+   public ViewerPopupManager (Viewer viewer) {
       myViewer = viewer;
    }     
 
-   public GLViewer getViewer() {
+   public Viewer getViewer() {
       return myViewer;
    }
 
@@ -87,27 +87,24 @@ public class ViewerPopupManager implements ActionListener {
    }
    
    public PropertyDialog createPropertyDialog (String controlStr) {
-
-      // 
-      // PropertyDialog dialog =
-      //    new PropertyDialog (
-      //       "Viewer properties", new PropertyPanel(myViewer), controlStr);
-      //
-      // John Lloyd, Feb 2014: changed code to create a property dialog
-      // based on a hostList, so that we can restore original values:
-      HostList hostList = new HostList(1);
-      hostList.addHost (myViewer);
-      PropTreeCell tree =
+      if (myViewer instanceof HasProperties) {
+         HostList hostList = new HostList(1);
+         hostList.addHost ((HasProperties)myViewer);
+         PropTreeCell tree =
          hostList.commonProperties (null, /* allowReadonly= */true);
-      tree.removeDescendant ("renderProps");
-      PropertyDialog dialog =
+         tree.removeDescendant ("renderProps");
+         PropertyDialog dialog =
          new PropertyDialog (
             "Viewer properties", tree, hostList, controlStr);
-
-      dialog.locateRight (myViewer.getComponent());
-      dialog.addGlobalValueChangeListener (new RerenderListener());
-      registerDialog (dialog);
-      return dialog;
+         
+         dialog.locateRight (myViewer.getComponent());
+         dialog.addGlobalValueChangeListener (new RerenderListener());
+         registerDialog (dialog);
+         return dialog;
+      }
+      else {
+         return null;
+      }
    }
 
    public PropertyDialog createGridPropertyDialog (String controlStr) {

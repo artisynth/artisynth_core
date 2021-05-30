@@ -33,6 +33,7 @@ import maspack.properties.HostList;
 import maspack.properties.PropTreeCell;
 import maspack.properties.Property;
 import maspack.render.MouseRayEvent;
+import maspack.render.Viewer;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 import maspack.widgets.ExpandablePropertyPanel;
@@ -579,7 +580,7 @@ ValueChangeListener {
     * Called after a left mouse press in one of the viewers when a location
     * listener is installed.
     */
-   public void handleLocationEvent (GLViewer viewer, MouseRayEvent rayEvent) {}
+   public void handleLocationEvent (Viewer viewer, MouseRayEvent rayEvent) {}
 
    public void componentChanged (ComponentChangeEvent e) {
       if (!isContextValid()) {
@@ -621,7 +622,7 @@ ValueChangeListener {
    private class LocationListener extends MouseInputAdapter {
       public void mouseClicked (MouseEvent e) {
          if (e.getButton() == MouseEvent.BUTTON1) {
-            GLViewer viewer =
+            Viewer viewer =
                ViewerManager.getViewerFromComponent (e.getComponent());
             if (viewer != null) {
                handleLocationEvent (viewer, MouseRayEvent.create (e, viewer));

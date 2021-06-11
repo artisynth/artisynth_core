@@ -900,7 +900,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
     * @return angle equivalent to <code>ang</code> within +/- PI
     * of <code>ref</code>.
     */
-   public double findNearestAngle (double ref, double ang) {
+   public static double findNearestAngle (double ref, double ang) {
       while (ang - ref > Math.PI) {
          ang -= 2*Math.PI;
       }

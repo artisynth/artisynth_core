@@ -8,6 +8,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
+import maspack.matrix.VectorNd;
 import maspack.matrix.RigidTransform3d;
 
 public abstract class JointBase extends OpenSimObject implements ModelComponentGenerator<ModelComponent>{
@@ -355,6 +356,37 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
       
       // return jointRoot;
       return joint;
+   }
+
+   /**
+    * Utility method to set coordinate ranges and values of an ArtiSynth joint
+    * component after it has been connected to its bodies.
+    */
+   protected void setCoordinateRangesAndValues (
+      artisynth.core.mechmodels.JointBase joint) {
+
+      ArrayList<Coordinate> cs = getCoordinateArray ();
+      if (cs != null) {
+         int numc = joint.numCoordinates();
+         VectorNd cvalues = new VectorNd (numc);
+         if (cs.size() != numc) {
+            System.out.println (
+               "WARNING: only "+cs.size()+" coordinates specified for "+
+               getClass().getSimpleName()+", expected "+numc);
+         }
+         for (int i=0; i<Math.max(cs.size(),numc); i++) {
+            Coordinate coord = cs.get (i);
+            // set values and bounds
+            cvalues.set (i, coord.getDefaultValue());
+            if (coord.getClamped ()) {
+               joint.setCoordinateRange (i, coord.getRange ());
+            }
+         }
+         // make sure body A (the child) moves when we set the coordinates
+         joint.setAlwaysAdjustBodyA (true);
+         joint.setCoordinates (cvalues);
+         joint.setAlwaysAdjustBodyA (false);
+      }
    }
 
 }

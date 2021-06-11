@@ -10,6 +10,7 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.*;
 import maspack.spatialmotion.*;
+import artisynth.core.mechmodels.GimbalJoint.AxisSet;
 import java.util.*;
 import java.io.*;
 
@@ -17,16 +18,16 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 /**
- * Implements a 3 DOF spherical joint parameterized by roll-pitch-yaw
- * angles. Frames C and D share a common origin, with C free to assume any
- * orientation with respect to D. This orientation is described by a rotation
- * {@code roll} about the z axis of D, followed by a rotation {@code pitch}
- * about the rotated y axis, followed by a final rotation {@code yaw} about the
- * rotated x axis. All rotations are counter-clockwise.
+ * Implements a six DOF coupling that allows complete motion in space, but with
+ * translational and rotational limits. The motion is parameterized by six
+ * coordinates in the form of three translations along and three intrinsic
+ * rotations about the X, Y, Z axes. The motion is constrained only if bounds
+ * are set on the coordinates.
  *
- * <p>The {@code roll}, {@code pitch} and {@code yaw} angles are available (in
- * degrees) as properties which can be read and also, under appropriate
- * circumstances, set.  Setting these values causes an adjustment in the
+ * <p>The {@code x}, {@code y}, {@code z}, {@code roll}, {@code pitch} and
+ * {@code yaw} coordinates are available as properties which can be read and
+ * also, under appropriate circumstances, set. The angle properties are
+ * reported in degrees. Setting these values causes an adjustment in the
  * positions of one or both bodies connected to this joint, along with adjacent
  * bodies connected to them, with preference given to bodies that are not
  * attached to ``ground''.  If this is done during simulation, and particularly
@@ -34,66 +35,44 @@ import artisynth.core.util.*;
  * the results will be unpredictable and will likely conflict with the
  * simulation.
  */
-public class GimbalJoint extends SphericalJointBase {
+public class FreeJoint extends JointBase {
 
-   public static final int ROLL_IDX = GimbalCoupling.ROLL_IDX; 
-   public static final int PITCH_IDX = GimbalCoupling.PITCH_IDX; 
-   public static final int YAW_IDX = GimbalCoupling.YAW_IDX; 
+   public static final int X_IDX = FreeCoupling.X_IDX; 
+   public static final int Y_IDX = FreeCoupling.Y_IDX; 
+   public static final int Z_IDX = FreeCoupling.Z_IDX; 
 
+   public static final int ROLL_IDX = FreeCoupling.ROLL_IDX; 
+   public static final int PITCH_IDX = FreeCoupling.PITCH_IDX; 
+   public static final int YAW_IDX = FreeCoupling.YAW_IDX; 
+
+   public static PropertyList myProps =
+      new PropertyList (FreeJoint.class, JointBase.class);
+   
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 10 * DOUBLE_PREC;
    
-   private static DoubleInterval DEFAULT_ANGLE_RANGE =
+   private static DoubleInterval DEFAULT_COORD_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
-   /**
-    * Specifies whether the roll-pitch-yaw angles of this joint describe
-    * instrinic rotations about the Z-Y-X or X-Y-Z axes.
-    */
-   public enum AxisSet {
-      // Mirrors GimbalCoupling.AxisSet
-      ZYX,
-      XYZ;
-
-      GimbalCoupling.AxisSet getCouplingAxes() {
-         switch (this) {
-            case ZYX: return GimbalCoupling.AxisSet.ZYX;
-            case XYZ: return GimbalCoupling.AxisSet.XYZ;
-            default: {
-               throw new InternalErrorException (
-                  "Unimplemented AxisSet "+this);
-            }
-         }
-      }
-
-      static AxisSet getAxes (GimbalCoupling.AxisSet caxes) {
-         switch (caxes) {
-            case ZYX: return ZYX;
-            case XYZ: return XYZ;
-            default: {
-               throw new InternalErrorException (
-                  "Unknown GimbalCoupling.AxisSet "+caxes);
-            }
-         }
-      }
-   }
-
-   public static PropertyList myProps =
-      new PropertyList (GimbalJoint.class, SphericalJointBase.class);
-   
    static {
+      myProps.add ("x", "x translation", 0);
+      myProps.add ("y", "y translation", 0);
+      myProps.add ("z", "z translation", 0);
       myProps.add (
          "roll", "joint roll angle (degrees)", 0, "%8.3f 1E [-360,360]");
       myProps.add (
          "pitch", "joint pitch angle (degrees)", 0, "%8.3f 1E [-360,360]");
       myProps.add (
          "yaw", "joint yaw angle (degrees)", 0, "%8.3f 1E [-360,360]");
+      myProps.add ("xRange", "range for x", DEFAULT_COORD_RANGE);
+      myProps.add ("yRange", "range for y", DEFAULT_COORD_RANGE);
+      myProps.add ("zRange", "range for z", DEFAULT_COORD_RANGE);
       myProps.add (
-         "rollRange", "range for roll", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
+         "rollRange", "range for roll", DEFAULT_COORD_RANGE, "%8.3f 1E");
       myProps.add (
-         "pitchRange", "range for pitch", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
+         "pitchRange", "range for pitch", DEFAULT_COORD_RANGE, "%8.3f 1E");
       myProps.add (
-         "yawRange", "range for yaw", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
+         "yawRange", "range for yaw", DEFAULT_COORD_RANGE, "%8.3f 1E");
       myProps.add (
          "applyEuler", "enable/disable Euler filter", true);
    }
@@ -103,33 +82,29 @@ public class GimbalJoint extends SphericalJointBase {
    }
 
    public AxisSet getAxes () {
-      return AxisSet.getAxes(((GimbalCoupling)myCoupling).getAxes());
+      return AxisSet.getAxes(((FreeCoupling)myCoupling).getAxes());
    }
 
-   /**
-    * For internal use only
-    */
    protected void setAxes (AxisSet axes) {
-      ((GimbalCoupling)myCoupling).setAxes (axes.getCouplingAxes());
+      ((FreeCoupling)myCoupling).setAxes (axes.getCouplingAxes());
    }
 
    /**
-    * Creates a {@code GimbalJoint} which is not attached to any bodies.  It
+    * Creates a {@code FreeJoint} which is not attached to any bodies.  It
     * can subsequently be connected using one of the {@code setBodies} methods.
     */
-   public GimbalJoint () {
+   public FreeJoint () {
       setDefaultValues();
-      setCoupling (new GimbalCoupling());
-
+      setCoupling (new FreeCoupling());
    }
 
-   public GimbalJoint (AxisSet axes) {
+   public FreeJoint (AxisSet axes) {
       setDefaultValues();
-      setCoupling (new GimbalCoupling(axes.getCouplingAxes()));
+      setCoupling (new FreeCoupling(axes.getCouplingAxes()));
    }
 
    /**
-    * Creates a {@code GimbalJoint} connecting two rigid bodies, {@code bodyA}
+    * Creates a {@code FreeJoint} connecting two rigid bodies, {@code bodyA}
     * and {@code bodyB}. If A and B describe the coordinate frames of {@code
     * bodyA} and {@code bodyB}, then {@code TCA} and {@code TDB} give the
     * (fixed) transforms from the joint's C and D frames to A and B,
@@ -145,7 +120,7 @@ public class GimbalJoint extends SphericalJointBase {
     * @param bodyB rigid body B (or {@code null})
     * @param TDB transform from joint frame D to body frame B
     */   
-   public GimbalJoint (
+   public FreeJoint (
       RigidBody bodyA, RigidTransform3d TCA,
       RigidBody bodyB, RigidTransform3d TDB) {
       this();
@@ -153,7 +128,7 @@ public class GimbalJoint extends SphericalJointBase {
    }
 
    /**
-    * Creates a {@code GimbalJoint} connecting two connectable bodies,
+    * Creates a {@code FreeJoint} connecting two connectable bodies,
     * {@code bodyA} and {@code bodyB}. The joint frames C and D are located
     * independently with respect to world coordinates by {@code TCW} and {@code
     * TDW}.
@@ -166,7 +141,7 @@ public class GimbalJoint extends SphericalJointBase {
     * @param TCW initial transform from joint frame C to world
     * @param TDW initial transform from joint frame D to world
     */
-   public GimbalJoint (
+   public FreeJoint (
       ConnectableBody bodyA, ConnectableBody bodyB,
       RigidTransform3d TCW, RigidTransform3d TDW) {
       this();
@@ -174,7 +149,7 @@ public class GimbalJoint extends SphericalJointBase {
    }
 
    /**
-    * Creates a {@code GimbalJoint} connecting two connectable bodies,
+    * Creates a {@code FreeJoint} connecting two connectable bodies,
     * {@code bodyA} and {@code bodyB}. The joint frames D and C are assumed to
     * be initially coincident, so that {@code roll}, {@code pitch} and {@code
     * yaw} with have initial values of 0. D (and C) is located by {@code TDW},
@@ -184,14 +159,14 @@ public class GimbalJoint extends SphericalJointBase {
     * @param bodyB body B
     * @param TDW initial transform from joint frames D and C to world
     */   
-   public GimbalJoint (
+   public FreeJoint (
       ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TDW) {
       this();
       setBodies(bodyA, bodyB, TDW);
    }
 
    /**
-    * Creates a {@code GimbalJoint} connecting a single connectable body,
+    * Creates a {@code FreeJoint} connecting a single connectable body,
     * {@code bodyA}, to ground. The joint frames D and C are assumed to be
     * initially coincident, so that {@code roll}, {@code pitch} and {@code yaw}
     * with have initial values of 0. D (and C) is located by {@code TDW}, which
@@ -200,14 +175,14 @@ public class GimbalJoint extends SphericalJointBase {
     * @param bodyA body A
     * @param TDW initial transform from joint frames D and C to world
     */
-   public GimbalJoint (
+   public FreeJoint (
       ConnectableBody bodyA, RigidTransform3d TDW) {
       this();
       setBodies(bodyA, null, TDW);
    }
 
    /**
-    * Creates a {@code GimbalJoint} connecting two connectable bodies, {@code
+    * Creates a {@code FreeJoint} connecting two connectable bodies, {@code
     * bodyA} and {@code bodyB}. The joint frames D and C are assumed to be
     * initially coincident, so that {@code roll}, {@code pitch} and {@code yaw}
     * with have initial values of 0. D (and C) is located (with respect to
@@ -222,7 +197,7 @@ public class GimbalJoint extends SphericalJointBase {
     * to ground.
     * @param originD origin of frame D (world coordinates)
     */
-   public GimbalJoint (
+   public FreeJoint (
       ConnectableBody bodyA, ConnectableBody bodyB, Point3d originD) {
       this();
       RigidTransform3d TDW = new RigidTransform3d();
@@ -242,6 +217,141 @@ public class GimbalJoint extends SphericalJointBase {
       VectorNd coords = new VectorNd(3);
       coords.set (rpy);
       setCoordinates (coords);
+   }
+
+   /**
+    * Queries this joint's x value. See {@link #setX} for more details.
+    *
+    * @return current x value
+    */
+   public double getX () {
+      return getCoordinate (X_IDX);
+   }
+
+   /**
+    * Sets this joint's x value. This describes the translation of frame C
+    * along the x axis of frame D. See this class's Javadoc header for a
+    * discussion of what happens when this value is set.
+    *
+    * @param x new x value
+    */
+   public void setX (double x) {
+      setCoordinate (X_IDX, x);
+   }
+   
+   /**
+    * Queries the x range limits for this joint. See {@link
+    * #setXRange(DoubleInterval)} for more details.
+    *
+    * @return x range limits for this joint
+    */
+   public DoubleInterval getXRange () {
+      return getCoordinateRange (X_IDX);
+   }
+
+   /**
+    * Sets the x range limits for this joint. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If x travels beyond
+    * these limits during dynamic simulation, unilateral constraints will be
+    * activated to enforce them. Setting the lower limit to {@code -inf} or the
+    * upper limit to {@code inf} removes the lower or upper limit,
+    * respectively. Specifying {@code range} as {@code null} will set the range
+    * to {@code (-inf, inf)}.
+    *
+    * @param range x range limits for this joint
+    */
+   public void setXRange (DoubleInterval range) {
+      setCoordinateRange (X_IDX, range);
+   }
+
+   /**
+    * Queries this joint's y value. See {@link #setY} for more details.
+    *
+    * @return current y value
+    */
+   public double getY () {
+      return getCoordinate (Y_IDX);
+   }
+
+   /**
+    * Sets this joint's y value. This describes the translation of frame C
+    * along the y axis of frame D. See this class's Javadoc header for a
+    * discussion of what happens when this value is set.
+    *
+    * @param y new y value
+    */
+   public void setY (double y) {
+      setCoordinate (Y_IDX, y);
+   }
+   
+   /**
+    * Queries the y range limits for this joint. See {@link
+    * #setYRange(DoubleInterval)} for more details.
+    *
+    * @return y range limits for this joint
+    */
+   public DoubleInterval getYRange () {
+      return getCoordinateRange (Y_IDX);
+   }
+
+   /**
+    * Sets the y range limits for this joint. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If y travels beyond
+    * these limits during dynamic simulation, unilateral constraints will be
+    * activated to enforce them. Setting the lower limit to {@code -inf} or the
+    * upper limit to {@code inf} removes the lower or upper limit,
+    * respectively. Specifying {@code range} as {@code null} will set the range
+    * to {@code (-inf, inf)}.
+    *
+    * @param range y range limits for this joint
+    */
+   public void setYRange (DoubleInterval range) {
+      setCoordinateRange (Y_IDX, range);
+   }
+
+   /**
+    * Queries this joint's z value. See {@link #setZ} for more details.
+    *
+    * @return current z value
+    */
+   public double getZ () {
+      return getCoordinate (Z_IDX);
+   }
+
+   /**
+    * Sets this joint's z value. This describes the translation of frame C
+    * along the z axis of frame D. See this class's Javadoc header for a
+    * discussion of what happens when this value is set.
+    *
+    * @param z new z value
+    */
+   public void setZ (double z) {
+      setCoordinate (Z_IDX, z);
+   }
+   
+   /**
+    * Queries the z range limits for this joint. See {@link
+    * #setZRange(DoubleInterval)} for more details.
+    *
+    * @return z range limits for this joint
+    */
+   public DoubleInterval getZRange () {
+      return getCoordinateRange (Z_IDX);
+   }
+
+   /**
+    * Sets the z range limits for this joint. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If z travels beyond
+    * these limits during dynamic simulation, unilateral constraints will be
+    * activated to enforce them. Setting the lower limit to {@code -inf} or the
+    * upper limit to {@code inf} removes the lower or upper limit,
+    * respectively. Specifying {@code range} as {@code null} will set the range
+    * to {@code (-inf, inf)}.
+    *
+    * @param range z range limits for this joint
+    */
+   public void setZRange (DoubleInterval range) {
+      setCoordinateRange (Z_IDX, range);
    }
 
    /**
@@ -550,11 +660,11 @@ public class GimbalJoint extends SphericalJointBase {
    }
    
    public void setApplyEuler(boolean apply) {
-      ((GimbalCoupling)myCoupling).setApplyEuler (apply);
+      ((FreeCoupling)myCoupling).setApplyEuler (apply);
    }
    
    public boolean getApplyEuler() {
-      return ((GimbalCoupling)myCoupling).getApplyEuler();
+      return ((FreeCoupling)myCoupling).getApplyEuler();
    }
 
    // need to implement write and scan so we can handle the 'axes' setting

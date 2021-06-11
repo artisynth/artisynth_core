@@ -327,7 +327,7 @@ public abstract class JointBase extends BodyConnector  {
    /**
     * Sets the current coordinates, if any, for this joint. If coordinates are
     * not supported, this method does nothing. Otherwise, {@code coords}
-    * supplies the coordinates and should have a length &gt;= {@link
+    * supplies the coordinates and should have a length {@code >=} {@link
     * #numCoordinates}. If the joint is connected to other bodies, their poses
     * are adjusted appropriately.
     *

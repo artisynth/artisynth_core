@@ -268,6 +268,26 @@ public interface Renderer {
        */
       NONE
    }
+   
+   /**
+    * Specifies how coordinate axes should be drawn.
+    */
+   public enum AxisDrawStyle {
+      /**
+       * Do not render the axes
+       */
+      OFF,
+
+      /**
+       * Render the axes as three pixel-based lines
+       */
+      LINE,
+
+      /**
+       * Render the axes as three solid arrows
+       */
+      ARROW         
+   }
 
    /**
     * Returns the screen height, in pixels
@@ -485,6 +505,23 @@ public interface Renderer {
     * @return previous shading model
     */
    public Shading setShading (Shading shading);
+
+   /**
+    * Returns the default axis/length ratio for rendering solid axes.  See
+    * {@link #setAxesLengthRadiusRatio} for more information.
+    *
+    * @param length/radius ratio for drawing solid axes
+    */
+   public double getAxisLengthRadiusRatio();
+
+   /**
+    * Sets the default ratio between axis length and radius to be used when
+    * rendering solid axes and the radius is not explicitly specified.  The
+    * default value is 60.
+    *
+    * @param ratio length/axis ratio
+    */
+   public void setAxisLengthRadiusRatio (double ratio);
 
    // Drawing primitives
 
@@ -796,6 +833,58 @@ public interface Renderer {
       float[] pnt0, float[] pnt1, double rad, boolean capped);
 
    /**
+    * Draws a solid set of coordinate axes representing a rigid coordinate
+    * frame <code>X</code>. The origin point for the axes is <code>X.p</code>,
+    * and the directions for each axis are given by the three columns of
+    * <code>X.R</code>. The manner in which the axes are rendered is specified
+    * by {@code style}, which is an instance of {@link AxisDrawStyle}.  By
+    * default, the x, y, and z axes are drawn using the colors red, green, and
+    * blue, unless <code>highlight</code> is <code>true</code> and the
+    * highlight style is {@link HighlightStyle#COLOR}, in which case all axes
+    * are drawn using the renderer's highlight color.
+    *  
+    * @param X coordinate frame defining the axes
+    * @param style manner in which the axes should be rendered (e.g.,
+    * pixel-based lines or solid arrows)
+    * @param len length of the axes
+    * @param width for pixel-based rendering, specifies the line width in
+    * pixels
+    * @param rad if {@code >} 0, specifies the radius of each axis when
+    * using solid rendering.  Otherwise, the radius is determined by dividing the
+    * axis length by the ratio returned by {@link
+    * #getAxisLengthRadiusRatio}.
+    * @param highlight if <code>true</code>, indicates that the axes should be
+    * highlighted.
+    */
+   public void drawAxes (
+      RigidTransform3d X, AxisDrawStyle style, double len,
+      int width, double rad, boolean highlight);
+   
+   /**
+    * Draws a solid set of coordinate axes representing a rigid coordinate
+    * frame <code>X</code>. This method is identical to
+    * {@link
+    * #drawAxes(RigidTransform3d,AxisDrawStyle,double,int,double,boolean)}, 
+    * except that the length of each axis can be specified separately.
+    *  
+    * @param X coordinate frame defining the axes
+    * @param style manner in which the axes should be rendered (e.g.,
+    * pixel-based lines or solid arrows)
+    * @param lens lengths of each axis
+    * @param width for pixel-based rendering, specifies the line width in
+    * pixels
+    * @param rad if {@code >} 0, specifies the radius of each axis when using
+    * solid rendering. Otherwise, the radius is determined by dividing the
+    * maximum axis length by the ratio returned by {@link
+    * #getAxisLengthRadiusRatio}.
+    * @param highlight if <code>true</code>, indicates that the axes should be
+    * highlighted.
+    */
+   public void drawAxes (
+      RigidTransform3d X, AxisDrawStyle style, double[] lens,
+      int width, double rad, boolean highlight);
+   
+   /**
     * Draws a set of coordinate axes representing a rigid coordinate frame
     * <code>X</code>. The origin point for the axes is <code>X.p</code>, and
     * the directions for each axis are given by the three columns of
@@ -844,7 +933,9 @@ public interface Renderer {
     *  
     * @param X coordinate frame defining the axes
     * @param len axis length
-    * @param rad axis cylinder radius
+    * @param rad axis cylinder radius. If {@code<= 0}, the radius is determined
+    * automatically from the length/radius ratio returned by {@link
+    * #getAxisLengthRadiusRatio}.
     * @param highlight if <code>true</code>, indicates that the axes should be
     * highlighted.
     */
@@ -860,7 +951,9 @@ public interface Renderer {
     *  
     * @param X coordinate frame defining the axes
     * @param lens lengths for each axis
-    * @param rad axis cylinder radius
+    * @param rad axis cylinder radius. If {@code<= 0}, the radius is determined
+    * automatically from the length/radius ratio returned by {@link
+    * #getAxisLengthRadiusRatio}.
     * @param highlight if <code>true</code>, indicates that the axes should be
     * highlighted.
     */

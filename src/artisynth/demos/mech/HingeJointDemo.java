@@ -15,6 +15,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.AxisDrawStyle;
 
 public class HingeJointDemo extends RootModel {
 
@@ -59,7 +60,7 @@ public class HingeJointDemo extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.6*size); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       joint.setShaftLength (0.5*size); // draw shaft
       joint.setShaftRadius (0.05*size);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors

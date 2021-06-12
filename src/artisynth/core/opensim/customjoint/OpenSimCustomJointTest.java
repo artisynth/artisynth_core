@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.awt.Color;
 
 import artisynth.core.mechmodels.*;
-import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
@@ -25,6 +24,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.*;
 import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.AxisDrawStyle;
 import maspack.util.DoubleInterval;
 
 public class OpenSimCustomJointTest extends RootModel {
@@ -202,7 +202,7 @@ public class OpenSimCustomJointTest extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.6*size); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (tip, new Color (0.5f, 1f, 1f));
    }
@@ -302,7 +302,7 @@ public class OpenSimCustomJointTest extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.75*size); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (slider, new Color (0.5f, 1f, 1f));
    }
@@ -423,7 +423,7 @@ public class OpenSimCustomJointTest extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.75); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (slider, new Color (0.5f, 1f, 1f));
    }
@@ -589,7 +589,7 @@ public class OpenSimCustomJointTest extends RootModel {
       mech.addBodyConnector (joint);
       joint.setCoordinate (1, -DTOR*45);
       joint.setAxisLength (0.6*1.0); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (slider, new Color (0.5f, 1f, 1f));
    }
@@ -704,7 +704,7 @@ public class OpenSimCustomJointTest extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.5); // draw frame C
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (box, new Color (0.5f, 1f, 1f));
    }
@@ -822,7 +822,7 @@ public class OpenSimCustomJointTest extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.75*size); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (tip, new Color (0.5f, 1f, 1f));
    }
@@ -939,7 +939,7 @@ public class OpenSimCustomJointTest extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.75*size); // draw frame C
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (tip, new Color (0.5f, 1f, 1f));
    }
@@ -1021,7 +1021,7 @@ public class OpenSimCustomJointTest extends RootModel {
       mech.addBodyConnector (joint);
       joint.setCoordinate (0, -0.2);
       joint.setAxisLength (0.6*1.0); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (slider, new Color (0.5f, 1f, 1f));
    }

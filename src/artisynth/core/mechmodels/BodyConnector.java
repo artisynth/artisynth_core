@@ -16,11 +16,11 @@ import maspack.geometry.GeometryTransformer;
 import maspack.properties.*;
 import maspack.util.*;
 import maspack.render.*;
+import maspack.render.Renderer.AxisDrawStyle;
 import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 import artisynth.core.util.*;
 
 /**
@@ -2694,16 +2694,16 @@ public abstract class BodyConnector extends RenderableComponentBase
       
       if (myDrawFrameD != AxisDrawStyle.OFF) {
          // render frame D
-         Frame.renderAxes (
-            renderer, myRenderFrameD, myDrawFrameD,
-            myAxisLength, lineWidth, isSelected());
+         renderer.drawAxes (
+            myRenderFrameD, myDrawFrameD,
+            myAxisLength, lineWidth, 0, isSelected());
       }
       
       if (myDrawFrameC != AxisDrawStyle.OFF) {
          // render frame C
-         Frame.renderAxes (
-            renderer, myRenderFrameC, myDrawFrameC,
-            myAxisLength, lineWidth, isSelected());
+         renderer.drawAxes (
+            myRenderFrameC, myDrawFrameC,
+            myAxisLength, lineWidth, 0, isSelected());
       }
       
       if (myDrawFrameC != AxisDrawStyle.OFF &&

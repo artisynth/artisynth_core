@@ -171,6 +171,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       ColorInterpolation.RGB;
    private static final int DEFAULT_DEPTH_OFFSET = 0;
 
+   public static double DEFAULT_AXIS_LENGTH_RADIUS_RATIO = 60.0;
+   private double myAxisLengthRadiusRatio = DEFAULT_AXIS_LENGTH_RADIUS_RATIO;
+   
    // viewer state
    protected static class ViewState {
       protected Point3d myCenter = new Point3d (DEFAULT_VIEWER_CENTER);
@@ -485,8 +488,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected GridPlane myGrid;
    
    protected double axisLength = 0;
-   protected static final boolean DEFAULT_SOLID_AXES = false;
-   protected boolean solidAxes = DEFAULT_SOLID_AXES;
+   protected static AxisDrawStyle DEFAULT_AXIS_DRAW_STYLE = AxisDrawStyle.LINE;
+   protected AxisDrawStyle myAxisDrawStyle = DEFAULT_AXIS_DRAW_STYLE;
+
    protected boolean gridVisible = false;
 
    // Cut planes
@@ -528,13 +532,20 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myProps.add ("center", "center location (world coordinates)", DEFAULT_VIEWER_CENTER);
       myProps.add ("axisLength", "length of rendered x-y-z axes", 0);
       myProps.add (
-         "solidAxes", "use solid arrows for rendering axes", DEFAULT_SOLID_AXES);
+         "axisDrawStyle", "style used for renderering axes", 
+         DEFAULT_AXIS_DRAW_STYLE);
       myProps.add (
          "rotationMode", "method for interactive rotation", DEFAULT_ROTATION_MODE);
+      myProps.add (
+         "axisLengthRadiusRatio", 
+         "default length/radius ratio to be used when rendering solid axes",
+         DEFAULT_AXIS_LENGTH_RADIUS_RATIO, "NS");
       myProps.add("axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
-      myProps.add("defaultAxialView", "default axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
+      myProps.add(
+         "defaultAxialView", "default axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
       myProps.add ("backgroundColor", "background color", Color.BLACK);
-      myProps.add("transparencyFaceCulling", "allow transparency face culling", false);
+      myProps.add(
+         "transparencyFaceCulling", "allow transparency face culling", false);
       myProps.add("blending isBlendingEnabled setBlendingEnabled", "enable/disable blending", false);
       myProps.add(
             "blendSourceFactor", "source transparency blending", DEFAULT_SRC_BLENDING);
@@ -663,15 +674,29 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public double getAxisLength() {
       return axisLength;
    }
-
-   public void setSolidAxes (boolean enable) {
-      solidAxes = enable;
+   
+   public void setAxisDrawStyle (AxisDrawStyle style) {
+      myAxisDrawStyle = style;
    }
 
-   public boolean getSolidAxes() {
-      return solidAxes;
+   public AxisDrawStyle getAxisDrawStyle() {
+      return myAxisDrawStyle;
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */
+   public double getAxisLengthRadiusRatio() {
+      return myAxisLengthRadiusRatio;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */   
+   public void setAxisLengthRadiusRatio (double ratio) {
+      myAxisLengthRadiusRatio = ratio;
+   }
+  
    /**
     * {@inheritDoc}
     */
@@ -4138,6 +4163,50 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       normal[0] = u[1]*v[2]-u[2]*v[1];
       normal[1] = u[2]*v[0]-u[0]*v[2];
       normal[2] = u[0]*v[1]-u[1]*v[0];
+   }
+
+   @Override
+   public void drawAxes(
+      RigidTransform3d X, AxisDrawStyle style, double len,
+      int width, double rad, boolean highlight) {
+      drawAxes (X, style, new double[] {len, len, len}, width, rad, highlight);
+   }
+
+   private double maxLength (double[] lens) {
+      if (lens[0] > lens[1]) {
+         return (lens[0] > lens[2] ? lens[0] : lens[2]);
+      }
+      else {
+         return (lens[1] > lens[2] ? lens[1] : lens[2]);
+      }
+   }
+
+   @Override
+   public void drawAxes(
+      RigidTransform3d X, AxisDrawStyle style, double[] lens,
+      int width, double rad, boolean highlight) {
+
+      switch (style) {
+         case OFF: {
+            // draw nothing
+            break;
+         }
+         case LINE: {
+            drawAxes (X, lens, width, highlight);
+            break;
+         }
+         case ARROW: {
+            if (rad <= 0) {
+               rad = maxLength(lens)/myAxisLengthRadiusRatio;
+            }
+            drawSolidAxes (X, lens, rad, highlight);
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented AxisDrawStyle " + style);
+         }
+      }
    }
 
    @Override

@@ -16,9 +16,9 @@ import maspack.matrix.VectorNd;
 import maspack.util.DoubleInterval;
 import maspack.properties.*;
 import maspack.render.*;
+import maspack.render.Renderer.AxisDrawStyle;
 
 import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 
 /**
  * Subclass of BodyConnector that provides support for coordinates.

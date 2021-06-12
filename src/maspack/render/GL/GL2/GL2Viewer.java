@@ -766,12 +766,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             myGrid.render (this, flags);
          }
          if (axisLength > 0) {
-            if (solidAxes) {
-               drawSolidAxes (null, axisLength, axisLength/50.0, false);
-            }
-            else {
-               drawAxes (gl, axisLength);
-            }
+            drawAxes (
+               RigidTransform3d.IDENTITY, myAxisDrawStyle, 
+               axisLength, 1, 0, false);
+//            if (solidAxes) {
+//               drawSolidAxes (null, axisLength, axisLength/50.0, false);
+//            }
+//            else {
+//               drawAxes (gl, axisLength);
+//            }
          }
 
          // rendering dragger separately here so that they are

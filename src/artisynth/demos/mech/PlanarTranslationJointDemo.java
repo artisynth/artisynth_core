@@ -13,6 +13,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.AxisDrawStyle;
 
 public class PlanarTranslationJointDemo extends RootModel {
 
@@ -58,7 +59,7 @@ public class PlanarTranslationJointDemo extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.5*size); // draw frame C
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (box, new Color (0.5f, 1f, 1f)); // set color
 
       // create control panel to interactively adjust properties

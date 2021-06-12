@@ -23,6 +23,7 @@ import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
+import maspack.render.Renderer.AxisDrawStyle;
 import maspack.render.RenderableUtils;
 import maspack.render.RenderList;
 import maspack.properties.PropertyList;
@@ -32,7 +33,6 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.modelbase.HasCoordinateFrame;
-import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 import artisynth.core.util.ScanToken;
 
 public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
@@ -265,9 +265,9 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
       if (myAxisLength > 0) {
-         Frame.renderAxes (
-            renderer, myRenderFrame, myAxisDrawStyle, 
-            myAxisLength, myRenderProps.getLineWidth(), isSelected());
+         renderer.drawAxes (
+            myRenderFrame, myAxisDrawStyle, 
+            myAxisLength, myRenderProps.getLineWidth(), 0, isSelected());
       }
    }
 

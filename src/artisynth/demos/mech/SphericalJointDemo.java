@@ -13,6 +13,7 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.AxisDrawStyle;
 
 public class SphericalJointDemo extends RootModel {
 
@@ -61,7 +62,7 @@ public class SphericalJointDemo extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.75*size); // draw frame C
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       joint.setJointRadius (0.10*size); // draw ball around the joint
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (tip, new Color (0.5f, 1f, 1f));

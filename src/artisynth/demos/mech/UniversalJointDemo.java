@@ -14,6 +14,7 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.AxisDrawStyle;
 
 public class UniversalJointDemo extends RootModel {
 
@@ -89,7 +90,7 @@ public class UniversalJointDemo extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.75*size); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       joint.setShaftLength (0.9*size); // draw rotational axis
       joint.setShaftRadius (0.05*size);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors

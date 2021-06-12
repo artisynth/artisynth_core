@@ -1441,7 +1441,8 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
       updateProgram (gl, RenderingMode.DEFAULT, true, false, false);
 
-      GL3Primitive cylinder = myPrimitiveManager.getAcquiredCylinder(gl, nslices, capped);
+      GL3Primitive cylinder = 
+         myPrimitiveManager.getAcquiredCylinder(gl, nslices, capped);
       cylinder.draw(gl);
       cylinder.release ();
 

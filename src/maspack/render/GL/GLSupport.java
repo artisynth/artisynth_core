@@ -536,7 +536,7 @@ public class GLSupport {
 
       return vinfo;
    }
-   
+
    public static void main (String[] args) {
       GLVersionInfo info = getMaxGLVersionSupported();
       System.out.println (info.getVersionString());      

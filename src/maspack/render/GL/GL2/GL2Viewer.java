@@ -671,14 +671,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          font = getDefaultFont();
       }
 
-      boolean savedBlending = isBlendingEnabled ();
+      boolean savedBlending = getTransparencyBlending ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();
       BlendFactor dfactor = getBlendDestFactor ();
       BlendFactor sfactor = getBlendSourceFactor ();      
       
       setDepthWriteEnabled (false);
-      setBlendingEnabled (true);
+      setTransparencyBlending (true);
       setBlendSourceFactor (BlendFactor.GL_SRC_ALPHA);
       setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
       setTextureMappingEnabled (true);
@@ -696,7 +696,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setDepthWriteEnabled (savedDepth);
       setBlendSourceFactor (sfactor);
       setBlendDestFactor (dfactor);
-      setBlendingEnabled (savedBlending);
+      setTransparencyBlending (savedBlending);
       setTextureMappingEnabled (savedTexture);
       setColorMap (savedTextureProps);
       

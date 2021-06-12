@@ -546,7 +546,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myProps.add ("backgroundColor", "background color", Color.BLACK);
       myProps.add(
          "transparencyFaceCulling", "allow transparency face culling", false);
-      myProps.add("blending isBlendingEnabled setBlendingEnabled", "enable/disable blending", false);
+      myProps.add(
+         "transparencyBlending", "enable/disable transparency blending", false);
       myProps.add(
             "blendSourceFactor", "source transparency blending", DEFAULT_SRC_BLENDING);
          myProps.add(
@@ -2964,7 +2965,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setHSVCColorInterpolationEnabled(state.hsvInterpolationEnabled);
       setVertexColorMixing (state.colorMixing);
       setRoundedPoints(state.roundedPoints);
-      setBlendingEnabled(state.blendingEnabled);
+      setTransparencyBlending(state.blendingEnabled);
       setBlendSourceFactor (state.blendSFactor);
       setBlendDestFactor (state.blendDFactor);
       setTransparencyEnabled (state.transparencyEnabled);
@@ -2985,7 +2986,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          setDepthWriteEnabled (false);
          setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
-      setBlendingEnabled (true);
+      setTransparencyBlending (true);
       setTransparencyEnabled (true);
    }
 
@@ -2993,11 +2994,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       popViewerState();  // should reset everything
    }
    
-   public boolean isBlendingEnabled() {
+   public boolean getTransparencyBlending() {
       return myViewerState.blendingEnabled;
    }
    
-   public void setBlendingEnabled(boolean set) {
+   public void setTransparencyBlending(boolean set) {
       myViewerState.blendingEnabled = set;
    }
    

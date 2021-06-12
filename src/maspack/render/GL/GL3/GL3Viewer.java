@@ -661,16 +661,16 @@ public class GL3Viewer extends GLViewer {
          font = getDefaultFont();
       }
       
-      boolean savedBlending = isBlendingEnabled ();
+      boolean savedBlending = getTransparencyBlending ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();
       BlendFactor dfactor = getBlendDestFactor ();
       BlendFactor sfactor = getBlendSourceFactor ();
       
       setDepthWriteEnabled (false);
-      setBlendingEnabled (true);
+      setTransparencyBlending (true);
       setDepthWriteEnabled (false);
-      setBlendingEnabled (true);
+      setTransparencyBlending (true);
       setBlendSourceFactor (BlendFactor.GL_SRC_ALPHA);
       setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
       setTextureMappingEnabled (true);
@@ -689,7 +689,7 @@ public class GL3Viewer extends GLViewer {
       setDepthWriteEnabled (savedDepth);
       setBlendSourceFactor (sfactor);
       setBlendDestFactor (dfactor);
-      setBlendingEnabled (savedBlending);
+      setTransparencyBlending (savedBlending);
       setTextureMappingEnabled (savedTexture);
       setColorMap (savedTextureProps);
       

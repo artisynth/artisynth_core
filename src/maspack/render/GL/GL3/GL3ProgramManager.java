@@ -153,6 +153,14 @@ public class GL3ProgramManager {
    private GLShaderProgram createProgram(GL3 gl, GLProgramInfo key) {
       // generate source
       String[] shaders = GLSLGenerator.getShaderScripts(key);
+      if (printShaders) {
+         System.out.println ("ProgramInfo:");
+         key.printProperties();
+         for (int i=0; i<shaders.length; i++) {
+            System.out.println ("Shader "+i+":");
+            System.out.println (shaders[i]);
+         }
+      }
       //      Logger logger = Logger.getSystemLogger();
       //      logger.info(shaders[0]);
       //      logger.info(shaders[1]);
@@ -347,10 +355,14 @@ public class GL3ProgramManager {
       return getProgram(gl, select);
    }
 
+   boolean printShaders = false;
+
    public GLShaderProgram getProgram(GL3 gl, GLProgramInfo key) {
       GLShaderProgram prog = keyToProgramMap.get(key);
       if (prog == null) {
+         //printShaders = true;
          prog = createAndBindProgram(gl, key);
+         //printShaders = false;
       }
       return prog;
    }
@@ -375,7 +387,8 @@ public class GL3ProgramManager {
    }
 
    public GLShaderProgram getProgram(GL3 gl, Object key) {
-      return keyToProgramMap.get(key);
+      GLShaderProgram prog = keyToProgramMap.get(key);
+      return prog;
    }
    
    public GLShaderProgram getProgram(GL3 gl, Object key, File[] shaders) {
@@ -385,6 +398,9 @@ public class GL3ProgramManager {
          for (int i=0; i<shaders.length; ++i) {
             str[i] = readFile(shaders[i].getAbsolutePath (), Charset.defaultCharset());
          }
+         // System.out.println ("using shader overrides");
+         // System.out.println (str[0]);
+         // System.out.println (str[1]);
          prog = createAndBindProgram(gl, key, str);
       }
       return prog;

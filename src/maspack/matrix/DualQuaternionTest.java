@@ -169,6 +169,70 @@ class DualQuaternionTest extends UnitTest {
       }
       
    }
+
+   /**
+    * Time test for blending points between two rigid bodies
+    */
+   public void timeTest() {
+      int cnt = 100000;
+      int npnts = 20;
+
+      // initialize points
+      Point3d[] pnts = new Point3d[npnts];
+      for (int i=0; i<npnts; i++) {
+         pnts[i] = new Point3d();
+         pnts[i].setRandom();
+      }
+
+      // initialize displacements
+      RigidTransform3d deltaPose0 = new RigidTransform3d();
+      RigidTransform3d deltaPose1 = new RigidTransform3d();
+      deltaPose0.setRandom();
+      deltaPose1.setRandom();
+
+      DualQuaternion blendQuaternion0 = new DualQuaternion();
+      DualQuaternion blendQuaternion1 = new DualQuaternion();
+
+      // warm-up
+      for (int i=0; i<cnt; i++) {
+         for (int j=0; j<npnts; j++) {
+            Point3d tmp = new Point3d();
+            Point3d pos = new Point3d();
+            DualQuaternion tmpQ = new DualQuaternion();
+            blendQuaternion0.set (deltaPose0);
+            blendQuaternion1.set (deltaPose1);
+            // combine quaternions
+            tmpQ.setZero();
+            tmpQ.scaledAdd (0.4, blendQuaternion0);
+            tmpQ.scaledAdd (0.6, blendQuaternion1);
+            tmpQ.normalize();
+            tmpQ.transform(tmp, pnts[j]);
+            pos.scaledAdd(1.0, tmp);        
+         }
+      }
+
+      FunctionTimer timer = new FunctionTimer();
+      // action
+      timer.start();
+      for (int i=0; i<cnt; i++) {
+         for (int j=0; j<npnts; j++) {
+            Point3d tmp = new Point3d();
+            Point3d pos = new Point3d();
+            DualQuaternion tmpQ = new DualQuaternion();
+            blendQuaternion0.set (deltaPose0);
+            blendQuaternion1.set (deltaPose1);
+            // combine quaternions
+            tmpQ.setZero();
+            tmpQ.scaledAdd (0.4, blendQuaternion0);
+            tmpQ.scaledAdd (0.6, blendQuaternion1);
+            tmpQ.normalize();
+            tmpQ.transform(tmp, pnts[j]);
+            pos.scaledAdd(1.0, tmp);        
+         }
+      }
+      timer.stop();
+      System.out.println ("blending "+npnts+" points: "+timer.result(cnt));
+   }
    
    public void test() {
       transformTest();
@@ -180,6 +244,7 @@ class DualQuaternionTest extends UnitTest {
       DualQuaternionTest tester = new DualQuaternionTest();
 
       RandomGenerator.setSeed (0x1234);
-      tester.runtest();
+      //tester.runtest();
+      tester.timeTest();
    }
 }

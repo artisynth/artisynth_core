@@ -4,23 +4,23 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.render.GL;
+package maspack.render;
 
 import maspack.util.NumberFormat;
 
-public class GLGridResolution {
+public class GridResolution {
    private double myMajorCellSize = 1;
    private int myNumDivisions = 1;
 
-   public GLGridResolution (double majorCellSize, int numDivisions) {
+   public GridResolution (double majorCellSize, int numDivisions) {
       set (majorCellSize, numDivisions);
    }
 
-   public GLGridResolution (GLGridResolution res) {
+   public GridResolution (GridResolution res) {
       set (res.myMajorCellSize, res.myNumDivisions);
    }
 
-   public void set (GLGridResolution res) {
+   public void set (GridResolution res) {
       set (res.getMajorCellSize(), res.getNumDivisions());
    }
 
@@ -53,8 +53,8 @@ public class GLGridResolution {
    }
 
    public boolean equals (Object obj) {
-      if (obj instanceof GLGridResolution) {
-         GLGridResolution res = (GLGridResolution)obj;
+      if (obj instanceof GridResolution) {
+         GridResolution res = (GridResolution)obj;
          return (myMajorCellSize == res.myMajorCellSize &&
                  myNumDivisions == res.myNumDivisions);
       }

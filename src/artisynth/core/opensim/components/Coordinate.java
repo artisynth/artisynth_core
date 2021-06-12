@@ -131,7 +131,7 @@ public class Coordinate extends OpenSimObject {
       out.setMotionType (motion_type);
       out.setDefaultValue (default_value);
       if (range != null) {
-         out.setRange (range);
+         out.setRange (new DoubleInterval(range));
       }
       out.setDefaultSpeedValue (default_speed_value);
       out.setClamped (clamped);

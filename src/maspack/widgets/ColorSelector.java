@@ -27,10 +27,15 @@ public class ColorSelector extends LabeledControl implements ActionListener {
    JButton myClearButton;
    JLabel myColorSwatch;
 
-   static Insets myMargin = new Insets (4, 4, 4, 4);
-   static Dimension myButtonSize = new Dimension (50, 25);
+   private static Insets myMargin = new Insets (2, 4, 2, 4);
+   private static Dimension myButtonSize = null;
 
    public static Dimension getButtonSize () {
+      if (myButtonSize == null) {
+         JButton button = new JButton ("Clear");
+         button.setMargin (myMargin);
+         myButtonSize = new Dimension (button.getPreferredSize());
+      }
       return new Dimension(myButtonSize);
    }
 
@@ -88,7 +93,7 @@ public class ColorSelector extends LabeledControl implements ActionListener {
 
       mySetButton = new JButton ("Set");
       mySetButton.setMargin (myMargin);
-      GuiUtils.setFixedSize (mySetButton, myButtonSize);
+      GuiUtils.setFixedSize (mySetButton, getButtonSize());
 
       mySetButton.addActionListener (new ActionListener() {
          public void actionPerformed (ActionEvent e) {
@@ -96,7 +101,7 @@ public class ColorSelector extends LabeledControl implements ActionListener {
          }
       });
 
-      GuiUtils.setFixedSize (myColorSwatch, myButtonSize);
+      GuiUtils.setFixedSize (myColorSwatch, getButtonSize());
       myColorSwatch.setOpaque (true);
       myColorSwatch.setBorder (BorderFactory.createLineBorder (Color.BLACK));
       myColorSwatch.setHorizontalAlignment (SwingConstants.CENTER);
@@ -113,9 +118,7 @@ public class ColorSelector extends LabeledControl implements ActionListener {
          setNullValueEnabled (true);
          myClearButton = new JButton ("Clear");
          myClearButton.setMargin (myMargin);
-         myClearButton.setPreferredSize (myButtonSize);
-         myClearButton.setMinimumSize (myButtonSize);
-         myClearButton.setMaximumSize (myButtonSize);
+         GuiUtils.setFixedSize (myClearButton, getButtonSize());
          myClearButton.setActionCommand ("clearColor");
          myClearButton.addActionListener (this);
          int addIdx = (getLabel() == null ? 1 : 2);

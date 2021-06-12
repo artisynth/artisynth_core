@@ -15,7 +15,6 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.DrawMode;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 
@@ -57,7 +56,7 @@ public class Translator3d extends Dragger3dBase {
       myIncrementalTransform = new RigidTransform3d();
    }
 
-   public Translator3d (GLViewer viewer, double size) {
+   public Translator3d (Viewer viewer, double size) {
       this();
       setSize (size);
    }
@@ -351,7 +350,7 @@ public class Translator3d extends Dragger3dBase {
          if (renderer instanceof GLViewer) {
             GLViewer viewer = (GLViewer)renderer;
             if (viewer.getGridVisible()) {
-               GLGridPlane grid = viewer.getGrid();
+               GridPlane grid = viewer.getGrid();
                RigidTransform3d XDraggerToGrid = new RigidTransform3d();
                XDraggerToGrid.mulInverseLeft (
                   grid.getGridToWorld(), myXDraggerToWorld);

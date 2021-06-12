@@ -270,7 +270,7 @@ implements SelectionListener, MouseInputListener {
    public synchronized void mousePressed (MouseEvent e) {
       if (e.getButton() == MouseEvent.BUTTON1) {
          mySelectionManager.clearSelections();
-         GLViewer viewer =
+         Viewer viewer =
             ViewerManager.getViewerFromComponent (e.getComponent());
          if (myComponent == null) {
             myPullEvent = MouseRayEvent.create (e, viewer);
@@ -282,7 +282,7 @@ implements SelectionListener, MouseInputListener {
 
    public synchronized void mouseDragged (MouseEvent e) {
       if (myDragEnabled) {
-         GLViewer viewer =
+         Viewer viewer =
             ViewerManager.getViewerFromComponent (e.getComponent());            
          if (myComponent != null) {
             // find the world space point

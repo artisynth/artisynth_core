@@ -114,6 +114,7 @@ import maspack.matrix.Vector3d;
 import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dBase;
 import maspack.render.Dragger3dEvent;
+import maspack.render.GraphicsInterface;
 import maspack.render.Renderable;
 import maspack.render.Renderer.HighlightStyle;
 import maspack.render.RotatableScaler3d;
@@ -121,9 +122,8 @@ import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GLSupport.GLVersionInfo;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewer.GLVersion;
+import maspack.render.GL.GLSupport.GLVersionInfo;
 import maspack.render.GL.GLViewerFrame;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.SparseSolverId;
@@ -191,7 +191,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected double myMaxStep = -1;
    protected boolean disposed = false;
 
-   protected GLVersion myGLVersion = GLVersion.GL3;
+   protected GraphicsInterface myGraphics = GraphicsInterface.GL3;
 
    protected String myModelSaveFormat = "%g"; // "%.8g";
 
@@ -372,8 +372,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myScripts.getName (alias);
    }
 
-   public GLVersion getGLVersion() {
-      return myGLVersion;
+   public GraphicsInterface getGraphics() {
+      return myGraphics;
    }
 
    /**
@@ -387,7 +387,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public Main() {
-      this (PROJECT_NAME, 800, 600, GLVersion.GL3);
+      this (PROJECT_NAME, 800, 600, GraphicsInterface.GL3);
    }
 
    /**
@@ -634,24 +634,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param width width in pixels
     * @param height height in pixels
     */
-   public Main (String windowName, int width, int height, GLVersion glVersion) {
+   public Main (
+      String windowName, int width, int height, GraphicsInterface gi) {
       myMain = this;
       
       setClassAliases();
 
       // check if GL3 version is supported
-      if (width > 0 && glVersion == GLVersion.GL3) {
+      if (width > 0 && gi == GraphicsInterface.GL3) {
          GLVersionInfo vinfo = GLSupport.getMaxGLVersionSupported();
-         if ( (vinfo.getMajorVersion() < myGLVersion.getMajorVersion()) ||
-            ((vinfo.getMajorVersion() == myGLVersion.getMajorVersion()) && 
-               (vinfo.getMinorVersion() < myGLVersion.getMinorVersion()))) {
-            System.err.println("WARNING: " + glVersion.toString() + " is not supported on this system.");
-            System.err.println("     Required: OpenGL " + glVersion.getMajorVersion() + "." + glVersion.getMinorVersion());
+         if ( (vinfo.getMajorVersion() < gi.getMajorVersion()) ||
+            ((vinfo.getMajorVersion() == gi.getMajorVersion()) && 
+               (vinfo.getMinorVersion() < gi.getMinorVersion()))) {
+            System.err.println("WARNING: " + gi.toString() + " is not supported on this system.");
+            System.err.println("     Required: OpenGL " + gi.getMajorVersion() + "." + gi.getMinorVersion());
             System.err.println("     Available: OpenGL " + vinfo.getMajorVersion() + "." + vinfo.getMinorVersion());
-            glVersion = GLVersion.GL2;
+            gi = GraphicsInterface.GL2;
          }
       }
-      myGLVersion = glVersion;
+      myGraphics = gi;
       
       if (demosFilename.value != null) {
          System.out.println ("reading demos files " + demosFilename.value);
@@ -1879,7 +1880,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
-   protected static IntHolder glVersion = new IntHolder (3);
+   protected static IntHolder glVersion = new IntHolder (-1);
+   protected static StringHolder graphicsInterface = new StringHolder("GL3");
    protected static BooleanHolder useGLJPanel = new BooleanHolder (true);
    protected static StringHolder logLevel = 
       new StringHolder(Logger.LogLevel.WARN.toString());
@@ -2145,7 +2147,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-openMatlabConnection %v " +
          "#open a MATLAB connection if possible", openMatlab);
       parser.addOption (
-         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
+         "-GLVersion %d{2,3} " +
+         "#version of openGL for graphics (replaced with \n" +
+         "                        '-graphics {GL2,GL3}')",
+         glVersion);
+      parser.addOption (
+         "-graphics %s{GL2,GL3} " + 
+         "#graphics interface for rendering (e.g., GL3)", graphicsInterface);
       parser.addOption (
          "-useGLJPanel %v " +
          "#use GLJPanel for creating the openGL viewer", useGLJPanel);
@@ -2337,9 +2345,21 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (noGui.value == true) {
          viewerWidth.value = -1;
       }
-      GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
+      if (glVersion.value != -1) {
+         System.out.println (
+            "Option '-GLVersion X' is no londer supported. "+
+            "Use '-graphics GL2' or'-graphics GL3' instead"); 
+         System.exit(1);
+      }
+      GraphicsInterface gi =
+         GraphicsInterface.fromString (graphicsInterface.value);
+      if (gi == null) {
+          System.out.println (
+             "Unknown graphics interface '"+graphicsInterface.value+"'");
+          System.exit(1);
+      }
       Main m = new Main (
-         PROJECT_NAME, viewerWidth.value, viewerHeight.value, glv);
+         PROJECT_NAME, viewerWidth.value, viewerHeight.value, gi);
 
       m.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
       if (axialView.value.equals ("xy")) {

@@ -9,16 +9,16 @@ package maspack.widgets;
 import java.awt.event.*;
 
 import maspack.render.*;
+import maspack.render.Viewer;
+import maspack.render.GridPlane.AxisLabeling;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLGridPlane;
-import maspack.render.GL.GLGridPlane.AxisLabeling;
 import maspack.matrix.*;
 
 public class ViewerKeyListener implements KeyListener {
    
-   GLViewer myViewer;
+   Viewer myViewer;
 
-   public ViewerKeyListener (GLViewer viewer) {
+   public ViewerKeyListener (Viewer viewer) {
       myViewer = viewer;
    }
 
@@ -96,7 +96,7 @@ public class ViewerKeyListener implements KeyListener {
             break;
          }
          case 'l': {
-            GLGridPlane grid = myViewer.getGrid();
+            GridPlane grid = myViewer.getGrid();
             boolean labelsVisible =
                (grid.getXAxisLabeling() != AxisLabeling.OFF ||
                 grid.getYAxisLabeling() != AxisLabeling.OFF);

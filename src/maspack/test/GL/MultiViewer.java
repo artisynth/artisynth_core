@@ -211,7 +211,7 @@ public class MultiViewer {
                   
                   // Create the top-level container
                   frame = new JFrame(); // Swing's JFrame or AWT's Frame
-                  frame.add(viewer.getCanvas().getComponent());
+                  frame.add(viewer.getComponent());
 
                   frame.addWindowListener(new WindowAdapter() {
                      @Override

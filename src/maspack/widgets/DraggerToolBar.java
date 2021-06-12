@@ -95,7 +95,7 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
    }
 
    ArrayList<ButtonDesc> myButtons;
-   GLViewer myViewer;
+   Viewer myViewer;
    Dragger3dBase myDragger;
    Dragger3dListener myDraggerListener;
    DrawToolBase myDrawTool;
@@ -141,7 +141,7 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
    }
 
    public DraggerToolBar (
-      GLViewer viewer, Dragger3dListener draggerListener,
+      Viewer viewer, Dragger3dListener draggerListener,
       ButtonType... buttonTypes) {
 
       super ("Dragger tool bar");

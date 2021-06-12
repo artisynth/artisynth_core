@@ -94,9 +94,7 @@ public class SphericalJointBase extends JointBase
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       SphericalJointBase copy = (SphericalJointBase)super.copy (flags, copyMap);
-      copy.setAxisLength (myAxisLength);
-      copy.setRenderProps (getRenderProps());
-      //copy.setBodies (copy.myBodyA, getTCA(), copy.myBodyB, getTDB());
+      copy.setJointRadius (getJointRadius());
       return copy;
    }
 

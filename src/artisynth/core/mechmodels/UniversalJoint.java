@@ -6,8 +6,11 @@
  */
 package artisynth.core.mechmodels;
 
+import java.io.PrintWriter;
+import java.io.*;
 import java.awt.Color;
 import java.util.Map;
+import java.util.Deque;
 
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
@@ -23,9 +26,11 @@ import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.spatialmotion.UniversalCoupling;
 import maspack.util.DoubleInterval;
+import maspack.util.NumberFormat;
+import maspack.util.*;
 import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.CopyableComponent;
-import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
 
 /**
  * Implements a 2 DOF rotary joint, which allows frame C to rotate with respect
@@ -53,6 +58,38 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
    private static DoubleInterval DEFAULT_ANGLE_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   /**
+    * Specifies whether the roll-pitch-yaw angles of this joint describe
+    * instrinic rotations about the Z-Y-X or X-Y-Z axes.
+    */
+   public enum AxisSet {
+      // Mirrors UniversalCoupling.AxisSet
+      ZY,
+      XY;
+
+      UniversalCoupling.AxisSet getCouplingAxes() {
+         switch (this) {
+            case ZY: return UniversalCoupling.AxisSet.ZY;
+            case XY: return UniversalCoupling.AxisSet.XY;
+            default: {
+               throw new InternalErrorException (
+                  "Unimplemented AxisSet "+this);
+            }
+         }
+      }
+
+      static AxisSet getAxes (UniversalCoupling.AxisSet caxes) {
+         switch (caxes) {
+            case ZY: return ZY;
+            case XY: return XY;
+            default: {
+               throw new InternalErrorException (
+                  "Unknown UniversalCoupling.AxisSet "+caxes);
+            }
+         }
+      }
+   }
+
    public static PropertyList myProps =
       new PropertyList (UniversalJoint.class, JointBase.class);
 
@@ -74,6 +111,17 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
       return myProps;
    }
 
+   public AxisSet getAxes () {
+      return AxisSet.getAxes(((UniversalCoupling)myCoupling).getAxes());
+   }
+   
+   /**
+    * For internal use only
+    */
+   protected void setAxes (AxisSet axes) {
+      ((UniversalCoupling)myCoupling).setAxes (axes.getCouplingAxes());
+   }
+
    /**
     * Creates a {@code UniversalJoint} which is not attached to any bodies.  It
     * can subsequently be connected using one of the {@code setBodies} methods.
@@ -84,6 +132,13 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
       setRollRange (DEFAULT_ANGLE_RANGE);
       setPitchRange (DEFAULT_ANGLE_RANGE);
    }
+
+   public UniversalJoint (AxisSet axes) {
+      setDefaultValues();
+      setCoupling (new UniversalCoupling(0, axes.getCouplingAxes()));
+      setRollRange (DEFAULT_ANGLE_RANGE);
+      setPitchRange (DEFAULT_ANGLE_RANGE);
+   }  
 
    /**
     * Creates a {@code UniversalJoint} connecting two rigid bodies, {@code
@@ -419,7 +474,14 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
       // first set p0 to contact center in world coords
       p0.set (TJW.p);
       // now get axis unit vector in world coords
-      uW.set (TJW.R.m02, TJW.R.m12, TJW.R.m22);
+      if (getAxes() == AxisSet.ZY) {
+         // roll axis is Z
+         uW.set (TJW.R.m02, TJW.R.m12, TJW.R.m22);
+      }
+      else {
+         // roll axis is X
+         uW.set (TJW.R.m00, TJW.R.m10, TJW.R.m20);
+      }
       p0.scaledAdd (-0.5 * slen, uW, p0);
       p1.scaledAdd (slen, uW, p0);
    }
@@ -442,9 +504,14 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
          RotationMatrix3d R = TJW.R;
          double sa = Math.sin(skewAng);
          double ca = Math.cos(skewAng);
-         // find pitch axis by rotating RDW about its x axis by skewAngke
-         uW.set (
-            ca*R.m01 + sa*R.m02, ca*R.m11 + sa*R.m12, ca*R.m21 + sa*R.m22);
+         if (getAxes() == AxisSet.ZY) {
+            // find pitch axis by rotating RDW about its x axis by skewAngle
+            uW.set (ca*R.m01+sa*R.m02, ca*R.m11+sa*R.m12, ca*R.m21+sa*R.m22);
+         }
+         else {
+            // find pitch axis by rotating RDW about its z axis by -skewAngle
+            uW.set (sa*R.m00+ca*R.m01, sa*R.m10+ca*R.m11, sa*R.m20+ca*R.m21);
+         }
       }
       else {
          uW.set (TJW.R.m01, TJW.R.m11, TJW.R.m21);
@@ -509,4 +576,29 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
    }
 
    /* --- end Renderable implementation --- */
+
+   // need to implement write and scan so we can handle the 'axes' setting
+   // properly
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      if (getAxes() != AxisSet.ZY) {
+         pw.print ("axes=" + getAxes());
+      }
+      super.writeItems (pw, fmt, ancestor);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "axes")) {
+         setAxes (rtok.scanEnum (AxisSet.class));
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
 }

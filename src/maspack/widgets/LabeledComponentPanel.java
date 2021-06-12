@@ -50,6 +50,7 @@ public class LabeledComponentPanel extends JPanel
    protected ArrayList<Component> myWidgets;
    private boolean myWidgetsSelectable = true;
    private boolean myWidgetsDraggable = true;
+   private boolean myAutoRepackEnabled = true;
 
    protected int myNumBasicWidgets = 0;
    
@@ -167,7 +168,7 @@ public class LabeledComponentPanel extends JPanel
          setLabelSpacing (pref);
          repack = true;
       }
-      if (repack) {
+      if (repack & myAutoRepackEnabled) {
          Window win = SwingUtilities.windowForComponent (this);
          if (win != null && win.isVisible()) {
             win.pack();
@@ -228,6 +229,17 @@ public class LabeledComponentPanel extends JPanel
 
    public Component getWidget (int idx) {
       return myWidgets.get (idx);
+   }
+
+   public LabeledComponent getWidget (String label) {
+      for (Component comp : myWidgets) {
+         if (comp instanceof LabeledComponent) {
+            if (((LabeledComponent)comp).getLabel().getText().equals(label)) {
+               return (LabeledComponent)comp;
+            }
+         }
+      }
+      return null;
    }
 
    public int numSelectedWidgets() {
@@ -658,7 +670,9 @@ public class LabeledComponentPanel extends JPanel
             add (comps[i], idx--);
          }
       }
-      repackContainingWindow();
+      if (myAutoRepackEnabled) {
+          repackContainingWindow();
+      }
    }
 
    public void mouseDragged (MouseEvent e) {
@@ -683,6 +697,9 @@ public class LabeledComponentPanel extends JPanel
    public void mouseMoved (MouseEvent e) {
    }
 
+   /**
+    * Repacks the window containing this panel.
+    */
    public void repackContainingWindow() {
       revalidate();
       Window w = SwingUtilities.windowForComponent (this);
@@ -700,12 +717,16 @@ public class LabeledComponentPanel extends JPanel
          for (JComponent comp : list) {
             removeWidget (comp);
          }
-         repackContainingWindow();
+         if (myAutoRepackEnabled) {
+            repackContainingWindow();
+         }
       }
       else if (command.equals ("add separator")) {
          JComponent comp = mySelectedWidgets.iterator().next();
          addWidget (new JSeparator(), getComponentIndex (comp) + 1);
-         repackContainingWindow();
+         if (myAutoRepackEnabled) {
+            repackContainingWindow();
+         }
       }
       else if (command.equals ("set properties")) {
          Window win = SwingUtilities.getWindowAncestor (this);
@@ -766,5 +787,31 @@ public class LabeledComponentPanel extends JPanel
 
    public void popupMenuWillBecomeVisible (PopupMenuEvent e) {
 
+   }
+
+   /**
+    * Queries whether auto repacking is enabled. See {@link
+    * #setAutoRepackEnabled}.
+    *
+    * @return {@code true} if auto repacking is enabled.
+    */
+   public boolean getAutoRepackEnabled (boolean enable) {
+      return myAutoRepackEnabled;
+   }
+
+   /**
+    * Sets whether auto repacking is enabled. If enabled, this panel will
+    * automatically ask its containing Window to repack itself when certain
+    * structural changes are made to the widgets. The default value is {@code
+    * true}.
+    *
+    * <p>It is not clear that auto repacking is actually needed or even
+    * desirable, since it may result in more "pack" operations than necessary.
+    * The feature currently remains in place for legacy reasons.
+    *
+    * @return {@code true} if auto repacking is enabled.
+    */
+   public void setAutoRepackEnabled (boolean enable) {
+      myAutoRepackEnabled = enable;
    }
 }

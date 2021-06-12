@@ -40,7 +40,8 @@ import maspack.render.RenderProps;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewer.GLVersion;
+import maspack.render.Viewer;
+import maspack.render.GraphicsInterface;
 import maspack.render.GL.GLViewerFrame;
 
 public class NURBSViewer extends GLViewerFrame {
@@ -139,7 +140,7 @@ public class NURBSViewer extends GLViewerFrame {
             }
             lastX = e.getX();
             lastY = e.getY();
-            viewer.getCanvas().repaint();
+            viewer.repaint();
          }
       }
    }
@@ -176,15 +177,14 @@ public class NURBSViewer extends GLViewerFrame {
       init();
    }
 
-   public NURBSViewer (int w, int h, GLVersion version) {
-      super ("NURBSViewer", w, h, version);
+   public NURBSViewer (int w, int h, GraphicsInterface graphics) {
+      super ("NURBSViewer", w, h, graphics);
       init();
    }
 
    private void init() {
       MouseHandler mouseHandler = new MouseHandler();
-      viewer.getCanvas().addMouseListener (mouseHandler);
-      viewer.getCanvas().addMouseMotionListener (mouseHandler);
+      viewer.addMouseInputListener (mouseHandler);
       viewer.addSelectionListener (new SelectionHandler());
    }
 
@@ -248,7 +248,7 @@ public class NURBSViewer extends GLViewerFrame {
    static BooleanHolder addCircle = new BooleanHolder (false);
    static BooleanHolder addMesh = new BooleanHolder (false);
    static BooleanHolder collider = new BooleanHolder (false);
-   static IntHolder glVersion = new IntHolder (2);
+   static StringHolder graphicsInterface = new StringHolder ("GL3");
 
    public static void main (String[] args) {
       StringHolder fileName = new StringHolder();
@@ -267,15 +267,21 @@ public class NURBSViewer extends GLViewerFrame {
          "-collider %v #create a colliding object for meshes", collider);
       parser.addOption ("-axisLength %f #coordinate axis length", axisLength);
       parser.addOption (
-         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
+         "-graphics %s " + "#graphics interface", graphicsInterface);
 
       parser.matchAllArgs (args);
 
       NURBSViewer viewFrame = null;
       try {
-         GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
-         viewFrame = new NURBSViewer (width.value, height.value, glv);
-         GLViewer viewer = viewFrame.getViewer();
+         GraphicsInterface gi =
+            GraphicsInterface.fromString (graphicsInterface.value);
+         if (gi == null) {
+            System.out.println (
+               "Unknown graphics interface '"+graphicsInterface.value+"'");
+            System.exit(1);
+         }
+         viewFrame = new NURBSViewer (width.value, height.value, gi);
+         Viewer viewer = viewFrame.getViewer();
          if (fileName.value != null) {
             viewFrame.addNURBS (new File (fileName.value));
          }

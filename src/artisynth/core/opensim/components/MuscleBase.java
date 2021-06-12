@@ -12,21 +12,21 @@ public abstract class MuscleBase extends ForceSpringBase {
    // properties from OpenSim docs:
    
    // Actuator
-   private double min_control; // "Minimum allowed value for control signal. Used primarily when solving ""for control values."
-   private double max_control; // "Maximum allowed value for control signal. Used primarily when solving ""for control values."
+   protected double min_control; // "Minimum allowed value for control signal. Used primarily when solving ""for control values."
+   protected double max_control; // "Maximum allowed value for control signal. Used primarily when solving ""for control values."
    
    // Path Actuator
    // OpenSim_DECLARE_UNNAMED_PROPERTY (GeometryPath,"The set of points defining the path of the muscle.")
-   private double optimal_force;                // "The maximum force this actuator can produce."
+   protected double optimal_force;                // "The maximum force this actuator can produce."
    
    // Muscle
-   private double max_isometric_force;          // "Maximum isometric force that the fibers can generate"
-   private double optimal_fiber_length;         // "Optimal length of the muscle fibers"
-   private double tendon_slack_length;          // "Resting length of the tendon"
-   private double pennation_angle_at_optimal;   // "Angle between tendon and fibers at optimal fiber length expressed in radians"
-   private double max_contraction_velocity;     // "Maximum contraction velocity of the fibers, in optimal fiberlengths/second"
-   private boolean ignore_tendon_compliance;    // "Compute muscle dynamics ignoring tendon compliance. Tendon is assumed to be rigid."
-   private boolean ignore_activation_dynamics;  // "Compute muscle dynamics ignoring activation dynamics. Activation is equivalent to excitation."  
+   protected double max_isometric_force;          // "Maximum isometric force that the fibers can generate"
+   protected double optimal_fiber_length;         // "Optimal length of the muscle fibers"
+   protected double tendon_slack_length;          // "Resting length of the tendon"
+   protected double pennation_angle_at_optimal;   // "Angle between tendon and fibers at optimal fiber length expressed in radians"
+   protected double max_contraction_velocity;     // "Maximum contraction velocity of the fibers, in optimal fiberlengths/second"
+   protected boolean ignore_tendon_compliance;    // "Compute muscle dynamics ignoring tendon compliance. Tendon is assumed to be rigid."
+   protected boolean ignore_activation_dynamics;  // "Compute muscle dynamics ignoring activation dynamics. Activation is equivalent to excitation."  
    
    protected MuscleBase() {
       super();
@@ -142,10 +142,16 @@ public abstract class MuscleBase extends ForceSpringBase {
    public AxialMaterial createMaterial () {
       return createMuscleMaterial ();
    }
-   
+
+   protected double getDefaultActivation() {
+      return 0;
+   }
+
    @Override
    protected MultiPointSpring createDefaultSpring () {
-      return new MultiPointMuscle ();
+      MultiPointMuscle mpm = new MultiPointMuscle ();
+      mpm.setExcitation (getDefaultActivation());
+      return mpm;
    }
    
    

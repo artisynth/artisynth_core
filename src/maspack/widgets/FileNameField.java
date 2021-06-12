@@ -51,6 +51,24 @@ public class FileNameField extends StringField {
       setValue (initialValue);
    }
 
+   /**
+    * Creates a FileNameField with specified label text and initial value.
+    * 
+    * @param labelText
+    * text for the control label
+    * @param file
+    * initial file value
+    * @param ncols
+    * approximate width of the text field in columns
+    */
+   public FileNameField (String labelText, File file, int ncols) {
+      super (labelText, ncols);
+      addBrowseButton();
+      setVoidValueEnabled (true);
+      setValue (file.getAbsolutePath());
+      myFileChooser.setSelectedFile (file);
+   }
+
    private void addBrowseButton() {
       setStretchable (true);
       myBrowseButton = new JButton ("Browse");

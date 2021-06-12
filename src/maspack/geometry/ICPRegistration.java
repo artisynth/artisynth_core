@@ -108,7 +108,7 @@ public class ICPRegistration {
          
          double d = info.myPnt.distance (nearest);
          if (d < EPSILON*rad1) {
-            System.out.println ("setting face normal");
+            //System.out.println ("setting face normal");
             info.myNrm.set (face.getNormal());
          }
          else {
@@ -141,7 +141,7 @@ public class ICPRegistration {
          
          double d = pnt.distance (nearest);
          if (d < EPSILON*rad2) {
-            System.out.println ("setting face normal");
+            //System.out.println ("setting face normal");
             nrm.set (face.getNormal());
          }
          else {
@@ -801,6 +801,10 @@ public class ICPRegistration {
     * #registerICP(AffineTransform3d,PolygonalMesh,PolygonalMesh,Prealign,int[])},
     * only with {@code align} set to {@link Prealign#PCA_ALL} and {@code npar}
     * specified as a variable argument list.
+    *
+    * <p>The computed transform {@code X} is the transform that should be
+    * applied to the vertex positions of {@code mesh2} in order to register
+    * them to {@code mesh1}.
     * 
     * @param X returns the resulting transform
     * @param mesh1 target mesh
@@ -821,6 +825,10 @@ public class ICPRegistration {
     * resulting transform is returned in {@code X}. The {@code npar} argument
     * can be used to constrain the transform to rigid, rigid + scaling, or full
     * affine (rigid + scaling + shearing), as described below.
+    *
+    * <p>The computed transform {@code X} is the transform that should be
+    * applied to the vertex positions of {@code mesh2} in order to register
+    * them to {@code mesh1}.
     *
     * <p>The {@code align} argument can be used to specify whether or not to
     * try prealigning the orientation using principal component analysis:
@@ -963,10 +971,8 @@ public class ICPRegistration {
       double dmin = Double.MAX_VALUE;
       for (int k=0; k<Xlist.length; k++) {
          double d = dlist[k];
-         System.out.println ("Initial d=" + d);
          for (int l=0; l<npar.length; l++) {
             if (npar[l] != 0) {
-               //System.out.println (" npar=" + npar[l] + ":");
                d = doRegisterICP (Xlist[k], mesh1, rad1, mesh2, rad2, npar[l]);
             }
          }

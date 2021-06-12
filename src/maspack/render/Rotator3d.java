@@ -31,8 +31,6 @@ public class Rotator3d extends Dragger3dBase {
    protected RigidTransform3d myIncrementalTransform;
    protected RigidTransform3d myXDraggerToWorld0 = new RigidTransform3d();
 
-   protected GLViewer myViewer; // hack to get repaint
-
    static final int NONE = 0;
 
    static final int X_AXIS = 1;
@@ -57,10 +55,9 @@ public class Rotator3d extends Dragger3dBase {
       myIncrementalTransform = new RigidTransform3d();
    }
 
-   public Rotator3d (GLViewer viewer, double size) {
+   public Rotator3d (Viewer viewer, double size) {
       this();
       setSize (size);
-      myViewer = viewer;
    }
 
    public void render (Renderer renderer, int flags) {

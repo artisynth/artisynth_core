@@ -8,7 +8,6 @@ package maspack.widgets;
 
 import javax.swing.*;
 
-import maspack.render.GL.GLGridResolution;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.StringHolder;
@@ -16,6 +15,7 @@ import maspack.util.BooleanHolder;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.VectorNd;
 import maspack.properties.Property;
+import maspack.render.GridResolution;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -41,7 +41,7 @@ public class GridResolutionField extends LabeledTextField {
    public GridResolutionField (String labelText) {
       super (labelText, 6);
       initialize();
-      setValue (new GLGridResolution (1, 10));
+      setValue (new GridResolution (1, 10));
    }
 
    /**
@@ -53,7 +53,7 @@ public class GridResolutionField extends LabeledTextField {
     * @param initialValue
     * initial value for the GridRes
     */
-   public GridResolutionField (String labelText, GLGridResolution initialValue) {
+   public GridResolutionField (String labelText, GridResolution initialValue) {
       super (labelText, 6);
       initialize();
       setValue (initialValue);
@@ -64,9 +64,9 @@ public class GridResolutionField extends LabeledTextField {
       myTextField.setHorizontalAlignment (JTextField.RIGHT);
    }
 
-   public GLGridResolution getGridResolutionValue() {
-      if (myValue instanceof GLGridResolution) {
-         return new GLGridResolution ((GLGridResolution)myValue);
+   public GridResolution getGridResolutionValue() {
+      if (myValue instanceof GridResolution) {
+         return new GridResolution ((GridResolution)myValue);
       }
       else {
          return null;
@@ -83,7 +83,7 @@ public class GridResolutionField extends LabeledTextField {
       text = text.trim();
       if (text.equals ("*")) {
          // return a resolution with 0 cellSize, indicating auto-sizing.
-         return validValue (new GLGridResolution(0, 1), errMsg);
+         return validValue (new GridResolution(0, 1), errMsg);
       }
 
       if (isBlank (text)) {
@@ -96,7 +96,7 @@ public class GridResolutionField extends LabeledTextField {
          }
          cellSize = rtok.nval;
          if (rtok.nextToken() == ReaderTokenizer.TT_EOF) {
-            return validValue (new GLGridResolution (cellSize, 1), errMsg);
+            return validValue (new GridResolution (cellSize, 1), errMsg);
          }
          else if (rtok.ttype != '/') {
             return illegalValue ("Expecting '/' after cell size", errMsg);
@@ -114,7 +114,7 @@ public class GridResolutionField extends LabeledTextField {
             corrected.value = true;
          }
          return validValue (
-            new GLGridResolution (cellSize, numDivisions), errMsg);
+            new GridResolution (cellSize, numDivisions), errMsg);
       }
       catch (Exception e) {
          return illegalValue ("Improperly formed resolution", errMsg);
@@ -122,8 +122,8 @@ public class GridResolutionField extends LabeledTextField {
    }
 
    protected String valueToText (Object value) {
-      if (value instanceof GLGridResolution) {
-         return ((GLGridResolution)value).toString (myFmt);
+      if (value instanceof GridResolution) {
+         return ((GridResolution)value).toString (myFmt);
       }
       else {
          return "";
@@ -132,8 +132,8 @@ public class GridResolutionField extends LabeledTextField {
 
    protected boolean updateInternalValue (Object value) {
       if (!valuesEqual (value, myValue)) {
-         if (value instanceof GLGridResolution) { // make defensive copy
-            value = new GLGridResolution ((GLGridResolution)value);
+         if (value instanceof GridResolution) { // make defensive copy
+            value = new GridResolution ((GridResolution)value);
          }
          myValue = value;
          return true;
@@ -144,7 +144,7 @@ public class GridResolutionField extends LabeledTextField {
    }
 
    protected Object validateValue (Object value, StringHolder errMsg) {
-      return validateBasic (value, GLGridResolution.class, errMsg);
+      return validateBasic (value, GridResolution.class, errMsg);
    }
 
    protected Object getInternalValue() {

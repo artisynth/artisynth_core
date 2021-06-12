@@ -34,7 +34,7 @@ public class GL3PrimitiveFactory {
       if (capped) {
          // need to duplicate vertices for caps (different normal)
          nverts = 4*nSlices;
-         nelems = 12*nSlices-6;
+         nelems = 12*nSlices-12;
       } else {
          nverts = 2*nSlices;
          nelems = 6*nSlices;
@@ -87,12 +87,19 @@ public class GL3PrimitiveFactory {
          for (int i=1; i<nSlices; ++i) {
             m = r+4;
             l = m+4;
-            idxPutter.putIndices (ebuff, 
-               r, m, r+1, m, m+1, r+1,      // sides
-                   2, l+2, m+2, 3, m+3, l+3);   // bottom/top
+            if (i<nSlices-1){
+               idxPutter.putIndices (ebuff, 
+                  r, m, r+1, m, m+1, r+1,      // sides
+                  2, l+2, m+2, 3, m+3, l+3);   // bottom/top
+            }
+            else {
+               // done with the bottom/top
+               idxPutter.putIndices (ebuff, 
+                  r, m, r+1, m, m+1, r+1); 
+            }
             r += 4;
          }
-         // close the gap
+         // close the gap on the sides
          idxPutter.putIndices (ebuff, r, 0, r+1, 0, 1, r+1);  // sides
          
       } else {

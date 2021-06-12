@@ -8,6 +8,8 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	SpatialInertiaTest \
+	GimbalCouplingTest \
+	UniversalCouplingTest \
 	TwistTest
 
 OTHER_CLASSES = 

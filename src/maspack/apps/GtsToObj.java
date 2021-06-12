@@ -23,6 +23,7 @@ public class GtsToObj extends MeshConverter {
       GtsReader reader = new GtsReader (inputFile);
       MeshBase mesh = reader.readMesh ();
       WavefrontWriter writer = new WavefrontWriter (outputFile);
+      writer.setFormat (myFormatStr.value);
       writer.writeMesh (mesh);
    }
 

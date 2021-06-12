@@ -31,6 +31,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.TitledBorder;
 import javax.swing.plaf.basic.BasicSliderUI;
+import java.util.Collection;
 
 import maspack.util.PathFinder;
 
@@ -83,8 +84,41 @@ public class GuiUtils {
     */
    public static final int BELOW = 9;
 
+
    /**
-    * Sets the size of a component to be a rigidly fixed as we possibly can.
+    * Grow size0 as needed to to accommodate size1
+    */
+   public static void growSize (Dimension size0, Dimension size1) {
+      size0.setSize (
+         Math.max (size1.getWidth(), size0.getWidth()),
+         Math.max (size1.getHeight(), size0.getHeight()));
+   }
+
+   /**
+    * Returns the maximum dimension for a set of components.
+    */
+   public static Dimension getMaxPreferredSize (
+      Collection<? extends JComponent> comps) {
+      Dimension size = new Dimension();
+      for (JComponent comp : comps) {
+         growSize (size, comp.getPreferredSize());
+      }
+      return size;
+   }
+
+   /**
+    * Sets the size of a set of components to be as rigidly fixed as we
+    * possibly can.
+    */
+   public static void setFixedSize (
+      Collection<? extends JComponent> comps, Dimension size) {
+      for (JComponent comp : comps) {
+         setFixedSize (comp, size);
+      }
+   }
+
+   /**
+    * Sets the size of a component to be as rigidly fixed as we possibly can.
     */
    public static void setFixedSize (Component comp, Dimension size) {
       comp.setPreferredSize (size);
@@ -539,6 +573,17 @@ public class GuiUtils {
          System.out.println ("Cannot locate Icon relative to " + ref);
          return null;
       }
+      try {
+         return new ImageIcon (fullpath);
+      }
+      catch (Exception e) {
+         System.out.println ("Error loading icon from " + fullpath);
+         System.out.println (e.getMessage());
+         return null;
+      }      
+   }
+
+   public static ImageIcon loadIcon (String fullpath) {
       try {
          return new ImageIcon (fullpath);
       }

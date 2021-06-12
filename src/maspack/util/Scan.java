@@ -31,18 +31,25 @@ public class Scan {
     * if the color is formatted incorrectly or if an I/O error occured
     */
    public static Color scanColor (ReaderTokenizer rtok) throws IOException {
-      rtok.scanToken ('[');
-      float r = (float)rtok.scanNumber();
-      float g = (float)rtok.scanNumber();
-      float b = (float)rtok.scanNumber();
-
-      if (rtok.nextToken() == ']') {
-         return new Color (r, g, b);
+      if (rtok.nextToken() == '[') {
+         float r = (float)rtok.scanNumber();
+         float g = (float)rtok.scanNumber();
+         float b = (float)rtok.scanNumber();
+         
+         if (rtok.nextToken() == ']') {
+            return new Color (r, g, b);
+         }
+         else if (rtok.tokenIsNumber()) {
+            float a = (float)rtok.nval;
+            rtok.scanToken (']');
+            return new Color (r, g, b, a);
+         }
+         else {
+            throw new IOException ("unexpected token: " + rtok);
+         }
       }
-      else if (rtok.tokenIsNumber()) {
-         float a = (float)rtok.nval;
-         rtok.scanToken (']');
-         return new Color (r, g, b, a);
+      else if (rtok.tokenIsWord ("null")) {
+         return null;
       }
       else {
          throw new IOException ("unexpected token: " + rtok);

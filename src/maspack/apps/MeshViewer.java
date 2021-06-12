@@ -72,16 +72,17 @@ import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
+import maspack.render.GridPlane;
+import maspack.render.GraphicsInterface;
 import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLSupport.GLVersionInfo;
-import maspack.render.GL.GLViewer.GLVersion;
+import maspack.render.GraphicsInterface;
 import maspack.render.GL.GLViewerFrame;
 import maspack.widgets.GridDisplay;
 import maspack.widgets.GuiUtils;
@@ -237,7 +238,7 @@ public class MeshViewer extends GLViewerFrame
    }
 
    private void exit(int retval) {
-      remove(viewer.getCanvas().getComponent());
+      remove(viewer.getComponent());
       System.exit (retval);
    }
    
@@ -505,14 +506,14 @@ public class MeshViewer extends GLViewerFrame
    }
 
    public MeshViewer (ArrayList<? extends MeshBase> meshList, int w, int h) {
-      this ("MeshViewer", createInfoList(meshList), w, h, GLVersion.GL3);
+      this ("MeshViewer", createInfoList(meshList), w, h, GraphicsInterface.GL3);
    }
 
    public MeshViewer (
       String title, ArrayList<MeshInfo> infoList, int w, int h, 
-      GLVersion glVersion) {
+      GraphicsInterface graphics) {
 
-      super (title, w, h, glVersion);
+      super (title, w, h, graphics);
 
       myMeshChooser.setFileFilter (new ObjFileFilter());
       myMeshChooser.setCurrentDirectory (new File("."));
@@ -543,7 +544,8 @@ public class MeshViewer extends GLViewerFrame
       viewer.autoFitPerspective ();
       if (backgroundColor[0] != -1) {
          viewer.setBackgroundColor (
-            backgroundColor[0], backgroundColor[1], backgroundColor[2]);
+            new Color(
+               backgroundColor[0], backgroundColor[1], backgroundColor[2]));
       }
       else {
          viewer.setBackgroundColor (myDefaultBackground);
@@ -888,7 +890,7 @@ public class MeshViewer extends GLViewerFrame
    static BooleanHolder queueMeshes = new BooleanHolder (false);
    static BooleanHolder pointMesh = new BooleanHolder (false);
    static IntHolder skipCount = new IntHolder (1);
-   protected static IntHolder glVersion = new IntHolder (3);
+   static StringHolder graphicsInterface = new StringHolder ("GL3");
 
    private static void doPrintBounds (MeshBase mesh) {
       double inf = Double.POSITIVE_INFINITY;
@@ -1065,7 +1067,7 @@ public class MeshViewer extends GLViewerFrame
          "-pointMesh %v #specifies that mesh must be read as a point mesh",
          pointMesh);
       parser.addOption (
-         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
+         "-graphics %s " + "#graphics interface", graphicsInterface);
 
       RigidTransform3d X = new RigidTransform3d();
       ArrayList<MeshInfo> infoList = new ArrayList<MeshInfo> (0);
@@ -1099,24 +1101,30 @@ public class MeshViewer extends GLViewerFrame
       // call this to prevent awful looking fonts:
       System.setProperty("awt.useSystemAAFontSettings","on");
 
-      GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
+      GraphicsInterface gi =
+         GraphicsInterface.fromString (graphicsInterface.value);
+      if (gi == null) {
+         System.out.println (
+            "Unknown graphics interface '"+graphicsInterface.value+"'");
+         System.exit(1);
+      }
 
       // check if GL3 version is supported
-      if (glv == GLVersion.GL3) {
+      if (gi == GraphicsInterface.GL3) {
          GLVersionInfo vinfo = GLSupport.getMaxGLVersionSupported();
-         if ( (vinfo.getMajorVersion() < glv.getMajorVersion()) ||
-            ((vinfo.getMajorVersion() == glv.getMajorVersion()) && 
-               (vinfo.getMinorVersion() < glv.getMinorVersion()))) {
-            System.err.println("WARNING: " + glVersion.toString() + " is not supported on this system.");
-            System.err.println("     Required: OpenGL " + glv.getMajorVersion() + "." + glv.getMinorVersion());
+         if ( (vinfo.getMajorVersion() < gi.getMajorVersion()) ||
+            ((vinfo.getMajorVersion() == gi.getMajorVersion()) && 
+               (vinfo.getMinorVersion() < gi.getMinorVersion()))) {
+            System.err.println("WARNING: " + gi + " is not supported on this system.");
+            System.err.println("     Required: OpenGL " + gi.getMajorVersion() + "." + gi.getMinorVersion());
             System.err.println("     Available: OpenGL " + vinfo.getMajorVersion() + "." + vinfo.getMinorVersion());
-            glv = GLVersion.GL2;
+            gi = GraphicsInterface.GL2;
          }
       }
 
       final MeshViewer frame =
          new MeshViewer (
-            "MeshViewer", infoList, width.value, height.value, glv);
+            "MeshViewer", infoList, width.value, height.value, gi);
       frame.setMeshQueue (meshQueue);
       frame.setVisible (true);
 
@@ -1153,7 +1161,7 @@ public class MeshViewer extends GLViewerFrame
          return;
       }
       boolean gridOn = viewer.getGridVisible();
-      GLGridPlane grid = viewer.getGrid();
+      GridPlane grid = viewer.getGrid();
       if ((myGridDisplay != null) != gridOn) {
          if (gridOn) {
             myGridDisplay =

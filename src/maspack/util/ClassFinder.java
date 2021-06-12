@@ -43,21 +43,28 @@ public class ClassFinder {
       return myLogger;
    }
 
-   public static ArrayList<String> findClassNames(String pkg, Class<?> base) {
-      return findClassNames(pkg, ".*", base);
+   public static ArrayList<String> findClassNames (String pkg, Class<?> base) {
+      return findClassNames (pkg, ".*", base, true);
    }
 
-   public static ArrayList<String> findClassNames(String pkg, String regex, Class<?> base) {
+   public static ArrayList<String> findClassNames (
+      String pkg, Class<?> base, boolean recursive) {
+      return findClassNames (pkg, ".*", base, recursive);
+   }
+
+   public static ArrayList<String> findClassNames (
+      String pkg, String regex, Class<?> base, boolean recursive) {
       ArrayList<String> clsNames = new ArrayList<String>();
 
       ArrayList<Class<?>> classList;
 
       try {
-         classList = findClasses(pkg, regex, base);
+         classList = findClasses (pkg, regex, base, recursive);
          for (Class<?> cls : classList) {
-            clsNames.add(cls.getName());
+            clsNames.add (cls.getName());
          }
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
          Logger logger = getLogger();
          logger.trace("Error loading classes");
          logger.trace(e);
@@ -66,7 +73,7 @@ public class ClassFinder {
    }
 
    /**
-    * Searches for any class with the name "className" in pkg
+    * Searches recursively for any class with the name "className" in pkg
     * 
     * @param pkg
     * The package to search
@@ -74,10 +81,11 @@ public class ClassFinder {
     * The name of the class to find
     * @return An array of results
     */
-   public static ArrayList<Class<?>> findClass(String pkg, String className) {
+   public static ArrayList<Class<?>> findClass (String pkg, String className) {
 
       String regex = "((.*\\.)|^)" + className + "$";
-      ArrayList<Class<?>> results = findClasses(pkg, regex, Object.class);
+      ArrayList<Class<?>> results = 
+         findClasses(pkg, regex, Object.class, /*recursive=*/true);
       // all objects
 
       return results;
@@ -94,10 +102,15 @@ public class ClassFinder {
     * will keep only files ending with "Demo"
     * @param T
     * root class to search for
+    * @param recursive
+    * if {@code true}, recursively search subpackages (does not yet work for
+    * JAR files)
     */
-   public static ArrayList<Class<?>> findClasses(String pkg, String regex,
-      Class<?> T) {
+   public static ArrayList<Class<?>> findClasses(
+      String pkg, String regex, Class<?> T, boolean recursive) {
 
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
       // ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       ClassLoader classLoader = ClassFinder.class.getClassLoader();
       if (classLoader == null) {
@@ -113,12 +126,15 @@ public class ClassFinder {
       Enumeration<URL> res;
       try {
          res = classLoader.getResources(path);
-      } catch (IOException mue) {
+      }
+      catch (IOException mue) {
          return new ArrayList<>();
       }
 
-      ArrayList<File> dirs = new ArrayList<File>(); // list of contained directories
-      ArrayList<URL> jars = new ArrayList<URL>();   // list of contained jar files
+      // list of contained directories
+      ArrayList<File> dirs = new ArrayList<File>(); 
+      // list of contained jar files
+      ArrayList<URL> jars = new ArrayList<URL>();   
 
       // need to do some shuffling to account for paths with spaces
       while (res.hasMoreElements()) {
@@ -132,7 +148,8 @@ public class ClassFinder {
             if (!dirName.endsWith ("/./")) {
                dirs.add(new File(dirName));
             }
-         } else if ("jar".equals(url.getProtocol())) {
+         }
+         else if ("jar".equals(url.getProtocol())) {
             jars.add(url);
          }
       }
@@ -140,35 +157,44 @@ public class ClassFinder {
       ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
       Pattern pattern = Pattern.compile(regex);
       for (File dir : dirs) {
-         classList.addAll(findClasses(dir, pkg, pattern, T));
+         classList.addAll(findClasses(dir, pkg, pattern, T, recursive));
       }
 
       for (URL url : jars) {
          classList.addAll(findClasses(url, pkg, pattern, T));
       }
+      //timer.stop();
+      //System.out.println (
+      // "Found "+classList.size()+" classes, "+timer.result(1));
       return classList;
    }
    
    public static ArrayList<Class<?>> findClasses(Package pkg, Class<?> T) {
-      return findClasses(pkg.getName (), ".*", T);
+      return findClasses(pkg.getName (), ".*", T, true);
    }
 
    public static ArrayList<Class<?>> findClasses(String pkg, Class<?> T) {
-      return findClasses(pkg, ".*", T);
+      return findClasses(pkg, ".*", T, true);
    }
 
-   public static ArrayList<Class<?>> findClasses(File dir, String pkg,
-      String regex, Class<?> T) {
+   public static ArrayList<Class<?>> findClasses (
+      File dir, String pkg, String regex, Class<?> T) {
       Pattern p = Pattern.compile(regex);
-      return findClasses(dir, pkg, p, T);
+      return findClasses(dir, pkg, p, T, true);
    }
 
    /**
-    * Searches through all subdirectories, gathering classes of type T that
-    * match regex
+    * Searches the directory 'dir', gathering classes of type T that match
+    * regex.
+    *
+    * @param dir directory in which to search
+    * @param pkg package name
+    * @param regex regular expression used to filter class names
+    * @param T base type that the class mush be an instance of
+    * @param recursive if {@code true}, recursively search subdirectories
     */
-   public static ArrayList<Class<?>> findClasses(File dir, String pkg,
-      Pattern regex, Class<?> T) {
+   public static ArrayList<Class<?>> findClasses (
+      File dir, String pkg, Pattern regex, Class<?> T, boolean recursive) {
       ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
 
       if (!dir.exists()) {
@@ -181,14 +207,14 @@ public class ClassFinder {
 
       File[] files = dir.listFiles();
       for (File file : files) {
-         if (file.isDirectory()) {
+         if (recursive && file.isDirectory()) {
             classList.addAll(findClasses(
-               file, pkg + "." + file.getName(), regex, T));
+               file, pkg + "." + file.getName(), regex, T, true));
          } else if (file.getName().endsWith(".class")) {
 
             String className = file.getName();
-            className = className.substring(0, className.length() - 6); // remove
-            // extension
+            // remove extension
+            className = className.substring(0, className.length() - 6); 
             className = pkg + "." + className;
             maybeAddClass(className, regex, T, classList);
          }
@@ -196,7 +222,8 @@ public class ClassFinder {
       return classList;
    }
 
-   private static boolean maybeAddClass(String className, Pattern regex, Class<?> base, List<Class<?>> out) {
+   private static boolean maybeAddClass (
+      String className, Pattern regex, Class<?> base, List<Class<?>> out) {
       boolean added = false;
 
       if (regex.matcher(className).matches()) {
@@ -205,9 +232,11 @@ public class ClassFinder {
          // Must be in "try" blocks because will fail if class can't be
          // initialized
          try {
-            Class<?> clz = Class.forName(className, false, ClassFinder.class.getClassLoader());
+            Class<?> clz = Class.forName(
+               className, false, ClassFinder.class.getClassLoader());
 
-            if (base.equals(Object.class)) { // don't bother checking if we're dealing with Object
+            if (base.equals(Object.class)) {
+               // don't bother checking if we're dealing with Object
                out.add(clz);
                added = true;
             } else {
@@ -257,11 +286,11 @@ public class ClassFinder {
    }
 
    /**
-    * Searches through all "subdirectories" of a URL, gathering classes of type T that
-    * match regex
+    * Searches through all "subdirectories" of a URL, gathering classes of type
+    * T that match regex
     */
-   public static ArrayList<Class<?>> findClasses(URL url, String pkg,
-      Pattern regex, Class<?> T) {
+   public static ArrayList<Class<?>> findClasses (
+      URL url, String pkg, Pattern regex, Class<?> T) {
 
       ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
 
@@ -272,17 +301,20 @@ public class ClassFinder {
 
       if ("file".equals(url.getProtocol())) {
          File file = new File(getPathDecoded(url));
-         return findClasses(file, pkg, regex, T);
-      } else if ("jar".equals(url.getProtocol())) {
+         return findClasses (file, pkg, regex, T, true);
+      } 
+      else if ("jar".equals(url.getProtocol())) {
 
          JarFile jar = null;
          JarEntry jarEntry = null;
 
          try {
-            JarURLConnection connection = (JarURLConnection)(url.openConnection());
+            JarURLConnection connection = (
+               JarURLConnection)(url.openConnection());
             jar = connection.getJarFile();
             jarEntry = connection.getJarEntry();
-         } catch (IOException ioe) {
+         }
+         catch (IOException ioe) {
             Logger logger = getLogger();
             logger.debug("Unable to process jar: " + url.toString());
             logger.trace(ioe);
@@ -294,7 +326,8 @@ public class ClassFinder {
             // remove extension
             className = className.substring(0, className.length() - 6);
             maybeAddClass(className, regex, T, classList);
-         } else {
+         }
+         else {
             Enumeration<JarEntry> entries = jar.entries();
             while (entries.hasMoreElements()) {
                JarEntry entry = entries.nextElement();
@@ -311,8 +344,32 @@ public class ClassFinder {
             }
          }
       }
-
       return classList;
+   }
+
+   /**
+    * Queries whether a package exists, as indicating by the class loader being
+    * able to find resources for it.
+    *
+    * @return true if the package is known to the class loader
+    */
+   public static boolean packageExists (String pkgname) {
+      ClassLoader classLoader = ClassFinder.class.getClassLoader();
+      if (classLoader == null) {
+         throw new InternalError ("Cannot find appropriate class loader");
+      }
+      // replace package structure with  folder structure
+      String path = pkgname.replace('.', '/'); 
+      // terminate with '/'
+      if (!path.endsWith("/")) {
+         path = path + "/";
+      }
+      return classLoader.getResource(path) != null;
+   }
+   
+   public static void main (String[] args) {
+      System.out.println ("package artisynth.models.fem_jaw exists=" +
+         packageExists ("artisynth.models.fem_jaw"));
    }
 
 }

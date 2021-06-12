@@ -55,8 +55,9 @@ import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
+import maspack.render.Viewer;
+import maspack.render.GraphicsInterface;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewer.GLVersion;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -431,8 +432,8 @@ public class HermiteSpline1dEditor extends ViewerFrame
       init();
    }
 
-   public HermiteSpline1dEditor (int w, int h, GLVersion version) {
-      super ("HermiteSpline1dEditor", w, h, version);
+   public HermiteSpline1dEditor (int w, int h, GraphicsInterface graphics) {
+      super ("HermiteSpline1dEditor", w, h, graphics);
       init();
    }
 
@@ -565,8 +566,8 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
    static BooleanHolder drawAxes = new BooleanHolder (false);
    static DoubleHolder axisLength = new DoubleHolder (-1);
-   static IntHolder glVersion = new IntHolder (3);
    static DoubleHolder yscale = new DoubleHolder (1);
+   static StringHolder graphicsInterface = new StringHolder ("GL3");
 
    public static void main (String[] args) {
       StringHolder splineFileName = new StringHolder();
@@ -587,15 +588,21 @@ public class HermiteSpline1dEditor extends ViewerFrame
       parser.addOption (
          "-yscale %f #spline y value is yscale * viewer y value", yscale);
       parser.addOption (
-         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
+         "-graphics %s " + "#graphics interface", graphicsInterface);
 
       parser.matchAllArgs (args);
 
       HermiteSpline1dEditor editor = null;
       try {
-         GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
-         editor = new HermiteSpline1dEditor (width.value, height.value, glv);
-         GLViewer viewer = editor.getViewer();
+         GraphicsInterface gi =
+            GraphicsInterface.fromString (graphicsInterface.value);
+         if (gi == null) {
+            System.out.println (
+               "Unknown graphics interface '"+graphicsInterface.value+"'");
+            System.exit(1);
+         }
+         editor = new HermiteSpline1dEditor (width.value, height.value, gi);
+         Viewer viewer = editor.getViewer();
          editor.setYScale (yscale.value);
          if (splineFileName.value != null) {
             File file = new File (splineFileName.value);
@@ -740,7 +747,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
          tool.setFrameBinding (PointTool.FrameBinding.INTERNAL_FRAME);
          tool.setFrame (new RigidTransform3d());
          //tool.setVisible (false);
-         viewer.getCanvas().setCursor (
+         viewer.setScreenCursor (
             Cursor.getPredefinedCursor (Cursor.CROSSHAIR_CURSOR));
       }
    }
@@ -759,7 +766,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
    public void drawToolRemoved (DrawToolEvent e) {
       if (e.getSource() instanceof PointTool) {
-         viewer.getCanvas().setCursor (Cursor.getDefaultCursor());         
+         viewer.setScreenCursor (Cursor.getDefaultCursor());         
       }
    }
 

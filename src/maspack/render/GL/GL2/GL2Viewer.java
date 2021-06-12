@@ -9,6 +9,7 @@ package maspack.render.GL.GL2;
 
 import java.awt.Font;
 import java.awt.Point;
+import java.awt.Dimension;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.LinkedList;
@@ -31,6 +32,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.render.ColorMapProps;
 import maspack.render.Dragger3d;
+import maspack.render.GridPlane;
 import maspack.render.Light;
 import maspack.render.Light.LightSpace;
 import maspack.render.Light.LightType;
@@ -49,7 +51,6 @@ import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLDrawableComponent;
 import maspack.render.GL.GLFrameCapture;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLSupport;
@@ -264,8 +265,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       primitives = new GL2Primitive[PrimitiveType.values ().length];
 
       canvas.addGLEventListener (this);
-      // canvas.setPreferredSize(new Dimension(width, height));
-      canvas.setSize (width, height);
+      canvas.setPreferredSize(new Dimension(width, height));
+      //canvas.setSize (width, height);
 
       this.width = width;
       this.height = height;
@@ -275,7 +276,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       lightManager = new GLLightManager();
       setDefaultLights();
 
-      myGrid = new GLGridPlane();
+      myGrid = new GridPlane();
       myGrid.setViewer (this);
 
       RigidTransform3d EyeToWorld = new RigidTransform3d (0, -3, 0, 1, 0, 0, Math.PI / 2);

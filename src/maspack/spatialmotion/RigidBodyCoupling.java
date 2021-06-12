@@ -47,6 +47,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected VectorNd myCoordValues = new VectorNd(); //used for temp storage
    protected int myNumBilaterals = 0;
    protected int myNumUnilaterals = 0;
+   protected int myCoordValueCnt; // incremented when coordinate values change
 
    // Flags imported from RigidBodyConstraint for convenience:
 
@@ -73,9 +74,9 @@ public abstract class RigidBodyCoupling implements Cloneable {
     */
    protected class CoordinateInfo {
 
-      public double value;      // current coordinate value
-      public double maxValue;   // maximum value
-      public double minValue;   // minimum value
+      private double value;      // current coordinate value
+      private double maxValue;   // maximum value
+      private double minValue;   // minimum value
 
       // unilateral constraint for enforcing limits:
       public RigidBodyConstraint limitConstraint;
@@ -111,9 +112,9 @@ public abstract class RigidBodyCoupling implements Cloneable {
                  maxValue != Double.POSITIVE_INFINITY);        
       }
 
-      public void setNearestAngle (double ang) {
-         value = findNearestAngle (value, ang);
-      }
+//      public void setNearestAngle (double ang) {
+//         value = findNearestAngle (value, ang);
+//      }
       
       public double nearestAngle (double ang) {
          return findNearestAngle (value, ang);
@@ -123,9 +124,13 @@ public abstract class RigidBodyCoupling implements Cloneable {
          value = val;
       }
       
+      public double getValue() {
+         return value;
+      }
+      
       public void clipAndSetValue (double val) {
          value = clipToRange (val);
-         if (limitConstraint != null) {
+         if (limitConstraint != null && limitConstraint.isUnilateral()) {
             limitConstraint.resetEngaged = true;
          }
       }
@@ -134,7 +139,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          updateEngaged (limitConstraint, value, minValue, maxValue, velCD);
       }
 
-      protected double clipToRange (double value) {
+      public double clipToRange (double value) {
          return clip (value, minValue, maxValue);
       }
 
@@ -432,7 +437,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       if (numCoordinates() > 0) {
          for (CoordinateInfo coord : myCoordinates) {
             RigidBodyConstraint cons = coord.limitConstraint;
-            if (cons != null) {
+            if (cons != null && cons.isUnilateral()) {
                if (updateEngaged) {
                   coord.updateLimitEngaged(velGD);
                   cons.resetEngaged = false;
@@ -882,6 +887,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          for (int i=0; i<myCoordinates.size(); i++) {
             myCoordinates.get(i).value = data.dget();
          }
+         myCoordValueCnt++;
       }
    }
    
@@ -894,7 +900,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
     * @return angle equivalent to <code>ang</code> within +/- PI
     * of <code>ref</code>.
     */
-   public double findNearestAngle (double ref, double ang) {
+   public static double findNearestAngle (double ref, double ang) {
       while (ang - ref > Math.PI) {
          ang -= 2*Math.PI;
       }
@@ -1057,6 +1063,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          for (int i=0; i<numc; i++) {
             myCoordinates.get(i).clipAndSetValue (coords.get(i));
          }
+         myCoordValueCnt++;
          if (TGD != null) {
             coordinatesToTCD (TGD, coords);
          }
@@ -1094,7 +1101,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       }
    }
 
-   private void doGetCoords (VectorNd vec) {
+   protected void doGetCoords (VectorNd vec) {
       for (int i=0; i<myCoordinates.size(); i++) {
          vec.set (i, myCoordinates.get(i).value);
       }
@@ -1104,6 +1111,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       for (int i=0; i<vec.size(); i++) {
          myCoordinates.get(i).value = vec.get(i);
       }
+      myCoordValueCnt++;
    }      
 
    /**
@@ -1149,6 +1157,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          projectAndUpdateCoordinates (TGD, TGD);
       }    
       myCoordinates.get(idx).value = value; //setValue (value);
+      myCoordValueCnt++;
       VectorNd coords = new VectorNd (numCoordinates());
       doGetCoords (coords);
       if (TGD != null) {

@@ -15,6 +15,7 @@ import artisynth.core.util.ScanToken;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.spatialmotion.UniversalCoupling;
+import maspack.spatialmotion.UniversalCoupling.AxisSet;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -39,6 +40,11 @@ public class SkewedUniversalJoint extends UniversalJoint {
 
    public SkewedUniversalJoint() {
       super();
+   }
+
+   public SkewedUniversalJoint (double skewAngle, AxisSet axes) {
+      super(axes);
+      setSkewAngle (skewAngle);
    }
 
    /**

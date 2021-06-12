@@ -17,11 +17,18 @@ import maspack.properties.Property;
 
 public abstract class LabeledMultiTextField extends LabeledControl {
    private static final long serialVersionUID = 1L;
-   private boolean myFocusListenersMasked = false;
    TextFieldInfo[] myFieldInfo;
    protected NumberFormat myFmt;
    protected int myNumFields;
    protected int myNumColumns;
+
+   protected boolean myEnterValueOnFocusLost = true;
+   protected boolean myFocusListenerMasked = false;
+   protected boolean myLastEntryAccepted = false;
+   protected Color myHighlightedBGColor =
+      UIManager.getColor ("TextField.selectionBackground");
+   protected Color myBGColor =
+      UIManager.getColor ("TextField.background");
 
    protected abstract Object textToValue (
       String[] text, boolean[] corrected, StringHolder errMsg);
@@ -32,7 +39,7 @@ public abstract class LabeledMultiTextField extends LabeledControl {
    CaretListener {
       String myLastText = "";
       JTextField myTextField;
-      boolean myBackgroundReversedP = false;
+      boolean myBackgroundHighlighted = false;
       boolean myCaretListenerMasked = false;
       int myIdx;
 
@@ -55,7 +62,7 @@ public abstract class LabeledMultiTextField extends LabeledControl {
       }
 
       public void focusLost (FocusEvent e) {
-         if (!myFocusListenersMasked) {
+         if (myEnterValueOnFocusLost && !myFocusListenerMasked) {
             String[] currentText = getAllCurrentText();
             for (int i = 0; i < currentText.length; i++) {
                if (currentText[i].equals ("") && i != myIdx) {
@@ -69,7 +76,7 @@ public abstract class LabeledMultiTextField extends LabeledControl {
       public void caretUpdate (CaretEvent evt) {
          if (!myCaretListenerMasked
          && !myLastText.equals (myTextField.getText())) {
-            setReverseTextBackground (true);
+            setHighlightedTextBackground (true);
          }
       }
 
@@ -80,14 +87,15 @@ public abstract class LabeledMultiTextField extends LabeledControl {
          myCaretListenerMasked = false;
       }
 
-      protected void setReverseTextBackground (boolean reverse) {
-         if (reverse != myBackgroundReversedP) {
-            Color bgColor = myTextField.getBackground();
-            Color fgColor = myTextField.getForeground();
-            myTextField.setForeground (bgColor);
-            myTextField.setCaretColor (bgColor);
-            myTextField.setBackground (fgColor);
-            myBackgroundReversedP = reverse;
+      protected void setHighlightedTextBackground (boolean highlighted) {
+         if (highlighted != myBackgroundHighlighted) {
+            if (highlighted) {
+               myTextField.setBackground (myHighlightedBGColor);
+            }
+            else {
+               myTextField.setBackground (myBGColor);
+            }
+            myBackgroundHighlighted = highlighted;
          }
       }
    }
@@ -131,9 +139,9 @@ public abstract class LabeledMultiTextField extends LabeledControl {
       return myFieldInfo[idx].myTextField.getText();
    }
 
-   private void clearReverseTextBackground() {
+   private void clearHighlightedTextBackground() {
       for (int i = 0; i < myNumFields; i++) {
-         myFieldInfo[i].setReverseTextBackground (false);
+         myFieldInfo[i].setHighlightedTextBackground (false);
       }
    }
 
@@ -149,9 +157,9 @@ public abstract class LabeledMultiTextField extends LabeledControl {
             value = validateValue (value, errMsg);
          }
          if (value == Property.IllegalValue) {
-            myFocusListenersMasked = true;
+            myFocusListenerMasked = true;
             GuiUtils.showError (LabeledMultiTextField.this, errMsg.value);
-            myFocusListenersMasked = false;
+            myFocusListenerMasked = false;
             restoreAllText();
             updateDisplay();
             return;
@@ -160,7 +168,7 @@ public abstract class LabeledMultiTextField extends LabeledControl {
          updateDisplay();
       }
       else {
-         clearReverseTextBackground();
+         clearHighlightedTextBackground();
       }
    }
 
@@ -328,7 +336,7 @@ public abstract class LabeledMultiTextField extends LabeledControl {
             info.myLastText = info.myTextField.getText();
          }
       }
-      clearReverseTextBackground();
+      clearHighlightedTextBackground();
    }
 
    /**
@@ -352,23 +360,24 @@ public abstract class LabeledMultiTextField extends LabeledControl {
       return myFieldInfo[0].myTextField.getHorizontalAlignment();
    }
 
-   // protected Object validateValue (Object value, StringHolder errMsg)
-   // {
-   // throw new UnsupportedOperationException (
-   // "validateValue not implemented for this control");
-   // }
+   /**
+    * Queries whether the current field value is ``entered'' when focus is
+    * lost.
+    *
+    * @return {@code true} if value entered when focus is lost
+    */
+   public boolean getEnterValueOnFocusLost() {
+      return myEnterValueOnFocusLost;
+   }
 
-   // /**
-   // * Updates the internal representation of the value, updates any result
-   // * holders, and returns true if the new value differs from the old value.
-   // */
-   // protected boolean updateInternalValue (Object value)
-   // {
-   // return false;
-   // }
+   /**
+    * Sets whether the current field value is ``entered'' when focus is
+    * lost. The default value is {@code true}.
+    *
+    * @param enable if {@code true}, values will be entered when focus is lost
+    */
+   public void setEnterValueOnFocusLost (boolean enable) {
+      myEnterValueOnFocusLost = enable;
+   }
 
-   // protected Object getInternalValue()
-   // {
-   // return null;
-   // }
 }

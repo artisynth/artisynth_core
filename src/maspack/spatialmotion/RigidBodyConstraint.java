@@ -140,6 +140,14 @@ public class RigidBodyConstraint {
       engaged = (isBilateral() ? 1 : 0);
    }
    
+   public void setFlag (int flag) {
+      this.flags |= flag;
+   }
+   
+   public void clearFlag (int flag) {
+      this.flags &= ~flag;
+   }
+   
    public void setUnilateral (boolean enabled) {
       if (enabled) {
          flags = (flags & ~BILATERAL);

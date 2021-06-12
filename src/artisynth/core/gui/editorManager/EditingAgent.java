@@ -15,7 +15,7 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.render.IsRenderable;
 import maspack.render.GL.GLClipPlane;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 
 /**
  * This is the base class for all EditWidgets. An EditWidget is responsible for
@@ -45,7 +45,7 @@ public abstract class EditingAgent {
     * Intersect a ray with a view plane defined by the current eye direction and
     * a reference point.
     */
-   public Point3d intersectViewPlane (Line ray, Point3d ref, GLViewer viewer) {
+   public Point3d intersectViewPlane (Line ray, Point3d ref, Viewer viewer) {
       Point3d res = new Point3d();
       RotationMatrix3d R = viewer.getCenterToWorld().R;
       Plane plane = new Plane (new Vector3d (R.m02, R.m12, R.m22), ref);

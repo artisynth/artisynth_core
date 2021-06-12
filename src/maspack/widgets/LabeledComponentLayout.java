@@ -94,36 +94,45 @@ public class LabeledComponentLayout implements LayoutManager {
    }
 
    private void stretchHeights (int[] heights, int[] maxes, int maxHeight) {
-      // distribute extra into heights into either it is all used up
-      // or we can't grow any more
-      boolean heightIncreasing = false;
-      do {
-         int totalHeight = 0;
-         int adjustableHeight = 0;
-         for (int i=0; i<heights.length; i++) {
-            totalHeight += heights[i];
-            if (heights[i] < maxes[i]) {
-               adjustableHeight += heights[i];
-            }
-         }
-         heightIncreasing = false;
-         if (totalHeight < maxHeight && adjustableHeight != 0) {
+      // distribute extra into heights as best as possible.
+      double[] weights = new double[heights.length];
+      double denom = 0;
+      int totalHeight = 0;
 
-            int extraHeight = maxHeight-totalHeight;
-            for (int i=0; i<heights.length; i++) {
-               if (heights[i] < maxes[i]) {
-                  int h = heights[i] +
-                     (int)((extraHeight*heights[i])/(double)adjustableHeight);
-                  h = Math.min (h, maxes[i]);
-                  if (h != heights[i]) {
-                     heights[i] = h;
-                     heightIncreasing = true;
-                  }
-               }
+      // Compute total height, and look for components with height 0 and max >
+      // 0; if they exist, they will do all the stretching work
+      for (int i=0; i<heights.length; i++) {
+         totalHeight += heights[i];
+         if (heights[i] == 0 && maxes[i] > 0) {
+            weights[i] = maxes[i];
+            denom += weights[i];
+         }
+      }
+      if (totalHeight >= maxHeight) {
+         // no need to expand
+         return;
+      }
+      if (denom == 0) {
+         // look for components for which max - height > 0
+         // Note: previous algorithm used height itself as a weight,
+         // if max - height > 0
+         for (int i=0; i<heights.length; i++) {
+            if (heights[i] < maxes[i]) {
+               weights[i] = maxes[i] - heights[i];
+               denom += weights[i];
             }
          }
       }
-      while (heightIncreasing);
+      if (denom != 0) {
+         int extraHeight = maxHeight-totalHeight;
+         // distribute extra height into heights
+         for (int i=0; i<heights.length; i++) {
+            if (weights[i] != 0) {
+               int h = heights[i] + (int)(weights[i]*extraHeight/denom);
+               heights[i] = Math.min (h, maxes[i]);
+            }
+         }
+      }        
    }
 
    public void layoutContainer (Container parent) {
@@ -142,9 +151,14 @@ public class LabeledComponentLayout implements LayoutManager {
       for (int i = 0; i < comps.length; i++) {
          if (comps[i].isVisible()) {
             Dimension prefSize = comps[i].getPreferredSize();
-            Dimension maxSize = comps[i].getMaximumSize();
             heights[i] = prefSize.height;
-            maxes[i] = maxSize.height;
+            if (comps[i] instanceof JSeparator) {
+               maxes[i] = prefSize.height;
+            }
+            else {
+               Dimension maxSize = comps[i].getMaximumSize();
+               maxes[i] = maxSize.height;
+            }
             nvisible++;
          }
          else {

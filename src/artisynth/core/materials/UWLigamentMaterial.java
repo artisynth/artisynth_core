@@ -20,16 +20,16 @@ import maspack.properties.PropertyList;
  */
 public class UWLigamentMaterial extends AxialMaterial {
 
-   protected static double DEFAULT_REFERENCE_STRAIN = 0.0; // typ ligament specific
-   protected static double DEFAULT_LINEAR_STIFFNESS = 100; // typ constant
-   protected static double DEFAULT_LIG_TRANSITION_STRAIN = 0.03; // typ constant
-   protected static double DEFAULT_NORMALIZED_DAMPING = 0.003; // typ constant
-   protected static double DEFAULT_MAX_FORCE = 0.0; // typ ligament specific
-   protected static double DEFAULT_TENDON_SLACK_LENGTH = 0.0; // typ zero
+   public static double DEFAULT_REFERENCE_STRAIN = 0.0; // typ ligament specific
+   public static double DEFAULT_LINEAR_STIFFNESS = 100; // typ constant
+   public static double DEFAULT_LIGAMENT_TRANSITION_STRAIN = 0.03; // typ constant
+   public static double DEFAULT_NORMALIZED_DAMPING = 0.003; // typ constant
+   public static double DEFAULT_MAX_FORCE = 0.0; // typ ligament specific
+   public static double DEFAULT_TENDON_SLACK_LENGTH = 0.0; // typ zero
    
    protected double referenceStrain = DEFAULT_REFERENCE_STRAIN;
    protected double linearStiffness = DEFAULT_LINEAR_STIFFNESS;
-   protected double ligamentTransitionStrain = DEFAULT_LIG_TRANSITION_STRAIN;
+   protected double ligamentTransitionStrain = DEFAULT_LIGAMENT_TRANSITION_STRAIN;
    protected double normalizedDamping = DEFAULT_NORMALIZED_DAMPING;
    protected double maxForce = DEFAULT_MAX_FORCE;
    protected double tendonSlackLength = DEFAULT_TENDON_SLACK_LENGTH;
@@ -43,7 +43,7 @@ public class UWLigamentMaterial extends AxialMaterial {
       myProps.add ("linearStiffness", "linear portion of force-length curve",
          DEFAULT_LINEAR_STIFFNESS, "%.4g");
       myProps.add ("ligamentTransitionStrain", "strain at transition from toe to linear",
-         DEFAULT_LIG_TRANSITION_STRAIN, "%.4g");
+         DEFAULT_LIGAMENT_TRANSITION_STRAIN, "%.4g");
       myProps.add ("normalizedDamping", "normalized damping coefficient",
          DEFAULT_NORMALIZED_DAMPING, "%.4g");
       myProps.add ("maxForce", "max force exerted by tendon",

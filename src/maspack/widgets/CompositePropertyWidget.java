@@ -313,12 +313,7 @@ public class CompositePropertyWidget extends LabeledComponent {
       myClearButton = new JButton ("clear");
       mySetButton = new JButton ("set ...");
 
-      Insets margin = new Insets (4, 4, 4, 4);
-
-      Dimension size = new Dimension (50, 20);
-      myClearButton.setPreferredSize (size);
-      myClearButton.setMinimumSize (size);
-      myClearButton.setMaximumSize (size);
+      Insets margin = new Insets (2, 4, 2, 4);
       myClearButton.setMargin (margin);
       myClearButton.setActionCommand ("clear");
       myClearButton.addActionListener (new ActionListener() {
@@ -329,9 +324,6 @@ public class CompositePropertyWidget extends LabeledComponent {
          }
       });
 
-      mySetButton.setPreferredSize (size);
-      mySetButton.setMinimumSize (size);
-      mySetButton.setMaximumSize (size);
       mySetButton.setMargin (margin);
       mySetButton.setActionCommand ("set");
       mySetButton.addActionListener (new ActionListener() {
@@ -343,11 +335,16 @@ public class CompositePropertyWidget extends LabeledComponent {
       });
 
       myNullLabel = new JLabel ("null");
-      myNullLabel.setPreferredSize (size);
-      myNullLabel.setMinimumSize (size);
-      myNullLabel.setMaximumSize (size);
       myNullLabel.setHorizontalAlignment (SwingConstants.CENTER);
       myNullLabel.setBorder (BorderFactory.createLineBorder (Color.darkGray));
+
+      // make button sizes uniform
+      Dimension size = new Dimension (myClearButton.getPreferredSize());
+      GuiUtils.growSize (size, mySetButton.getPreferredSize());
+      GuiUtils.growSize (size, myNullLabel.getPreferredSize());
+      GuiUtils.setFixedSize (myClearButton, size);
+      GuiUtils.setFixedSize (mySetButton, size);
+      GuiUtils.setFixedSize (myNullLabel, size);      
 
       // myNullLabel.setMargin (margin);
 

@@ -40,15 +40,47 @@ public class GimbalJoint extends SphericalJointBase {
    public static final int PITCH_IDX = GimbalCoupling.PITCH_IDX; 
    public static final int YAW_IDX = GimbalCoupling.YAW_IDX; 
 
-   public static PropertyList myProps =
-      new PropertyList (GimbalJoint.class, SphericalJointBase.class);
-   
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 10 * DOUBLE_PREC;
    
    private static DoubleInterval DEFAULT_ANGLE_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   /**
+    * Specifies whether the roll-pitch-yaw angles of this joint describe
+    * instrinic rotations about the Z-Y-X or X-Y-Z axes.
+    */
+   public enum AxisSet {
+      // Mirrors GimbalCoupling.AxisSet
+      ZYX,
+      XYZ;
+
+      GimbalCoupling.AxisSet getCouplingAxes() {
+         switch (this) {
+            case ZYX: return GimbalCoupling.AxisSet.ZYX;
+            case XYZ: return GimbalCoupling.AxisSet.XYZ;
+            default: {
+               throw new InternalErrorException (
+                  "Unimplemented AxisSet "+this);
+            }
+         }
+      }
+
+      static AxisSet getAxes (GimbalCoupling.AxisSet caxes) {
+         switch (caxes) {
+            case ZYX: return ZYX;
+            case XYZ: return XYZ;
+            default: {
+               throw new InternalErrorException (
+                  "Unknown GimbalCoupling.AxisSet "+caxes);
+            }
+         }
+      }
+   }
+
+   public static PropertyList myProps =
+      new PropertyList (GimbalJoint.class, SphericalJointBase.class);
+   
    static {
       myProps.add (
          "roll", "joint roll angle (degrees)", 0, "%8.3f 1E [-360,360]");
@@ -70,16 +102,30 @@ public class GimbalJoint extends SphericalJointBase {
       return myProps;
    }
 
+   public AxisSet getAxes () {
+      return AxisSet.getAxes(((GimbalCoupling)myCoupling).getAxes());
+   }
+
+   /**
+    * For internal use only
+    */
+   protected void setAxes (AxisSet axes) {
+      ((GimbalCoupling)myCoupling).setAxes (axes.getCouplingAxes());
+   }
+
    /**
     * Creates a {@code GimbalJoint} which is not attached to any bodies.  It
     * can subsequently be connected using one of the {@code setBodies} methods.
     */
    public GimbalJoint () {
       setDefaultValues();
-      GimbalCoupling coupling = new GimbalCoupling();
-      //coupling.setRangeType (SphericalRpyCoupling.RPY_LIMIT);
-      myCoupling = coupling;
+      setCoupling (new GimbalCoupling());
 
+   }
+
+   public GimbalJoint (AxisSet axes) {
+      setDefaultValues();
+      setCoupling (new GimbalCoupling(axes.getCouplingAxes()));
    }
 
    /**
@@ -504,11 +550,36 @@ public class GimbalJoint extends SphericalJointBase {
    }
    
    public void setApplyEuler(boolean apply) {
-      ((GimbalCoupling)myCoupling).applyEuler = apply;
+      ((GimbalCoupling)myCoupling).setApplyEuler (apply);
    }
    
    public boolean getApplyEuler() {
-      return ((GimbalCoupling)myCoupling).applyEuler;
+      return ((GimbalCoupling)myCoupling).getApplyEuler();
+   }
+
+   // need to implement write and scan so we can handle the 'axes' setting
+   // properly
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      if (getAxes() != AxisSet.ZYX) {
+         pw.print ("axes=" + getAxes());
+      }
+      super.writeItems (pw, fmt, ancestor);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "axes")) {
+         setAxes (rtok.scanEnum (AxisSet.class));
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
    }
 
 }

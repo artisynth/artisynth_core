@@ -12,6 +12,7 @@ import java.awt.Rectangle;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 
+import maspack.render.GraphicsInterface;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.GL.GL3.GL3Viewer;
 
@@ -20,20 +21,20 @@ public class GLViewerPanel extends JPanel {
    protected GLViewer viewer;
    protected String myErrMsg;
 
-   protected static GLViewer.GLVersion defaultVersion = GLViewer.GLVersion.GL2;
+   protected static GraphicsInterface defaultGraphics = GraphicsInterface.GL2;
    
    public GLViewer getViewer() {
       return viewer;
    }
 
    public GLViewerPanel (int width, int height) {
-      this (width, height, defaultVersion);
+      this (width, height, defaultGraphics);
    }
    
-   public GLViewerPanel (int width, int height, GLViewer.GLVersion vers) {
+   public GLViewerPanel (int width, int height, GraphicsInterface graphics) {
       super();
       setLayout (new BoxLayout (this, BoxLayout.X_AXIS));
-      switch (vers) {
+      switch (graphics) {
          case GL2: {
             viewer = new GL2Viewer (width, height); 
             break;
@@ -44,9 +45,9 @@ public class GLViewerPanel extends JPanel {
          }
          default:
             throw new IllegalArgumentException (
-               "Unimplemented viewer type: " + vers);
+               "Unimplemented viewer type: " + graphics);
       }
-      add (viewer.getCanvas().getComponent());
+      add (viewer.getComponent());
    }
    
    public void dispose() {

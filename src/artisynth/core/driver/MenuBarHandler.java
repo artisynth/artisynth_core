@@ -80,7 +80,7 @@ import maspack.render.RenderListener;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer.HighlightStyle;
 import maspack.render.RendererEvent;
-import maspack.render.GL.GLGridPlane;
+import maspack.render.GridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.solvers.PardisoSolver;
 import maspack.util.ClassFinder;
@@ -1966,7 +1966,7 @@ ModelActionListener {
       }
       GLViewer v = getMainViewer();
       boolean gridOn = v.getGridVisible();
-      GLGridPlane grid = v.getGrid();
+      GridPlane grid = v.getGrid();
       if ((myGridDisplay != null) != gridOn) {
          if (gridOn) {
             myGridDisplay =

@@ -15,13 +15,16 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.VectorNd;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
+import maspack.properties.*;
 
 public class WidgetDialog extends JDialog
    implements ActionListener, ValueChangeListener {
    protected PropertyPanel myPanel;
+   protected OptionPanel myOptionPanel = null;   
    protected boolean myDisposed = false;
    protected String myConfirmCmd = null;
    protected Validator myValidator = null;
+   protected Validator myIgnoreValidator = null;
 
    private int myRetValue = OptionPanel.CANCEL_OPTION;
 
@@ -35,6 +38,14 @@ public class WidgetDialog extends JDialog
 
    public void setValidator (Validator validator) {
       myValidator = validator;
+   }
+
+   public Validator getIgnoreValidator() {
+      return myIgnoreValidator;
+   }
+
+   public void setIgnoreValidator (Validator validator) {
+      myIgnoreValidator = validator;
    }
 
    public void valueChange (ValueChangeEvent e) {
@@ -85,9 +96,9 @@ public class WidgetDialog extends JDialog
          options = confirmCmd + " " + options;
       }
       myConfirmCmd = confirmCmd;
-      OptionPanel optionPanel = new OptionPanel (options, this);
-      optionPanel.setAlignmentX (Component.CENTER_ALIGNMENT);
-      getContentPane().add (optionPanel);
+      myOptionPanel = new OptionPanel (options, this);
+      myOptionPanel.setAlignmentX (Component.CENTER_ALIGNMENT);
+      getContentPane().add (myOptionPanel);
       pack();
    }
 
@@ -99,8 +110,38 @@ public class WidgetDialog extends JDialog
       }
       pack();
    }
+   
+   public LabeledComponent getWidget (String label) {
+      return myPanel.getWidget (label);
+   }
+
+   public LabeledComponentBase addWidget (HasProperties host, String name) {
+      return myPanel.addWidget (host, name);
+   }
+
+   public LabeledComponentBase addWidget (
+      HasProperties host, String name, double min, double max) {
+      return myPanel.addWidget (host, name, min, max);
+   }
+
+   public LabeledComponentBase addWidget (
+      String labelText, HasProperties host, String name) {
+      return myPanel.addWidget (labelText, host, name);
+   }
+
+   public LabeledComponentBase addWidget (
+      String labelText, HasProperties host, String name, double min, double max) {
+      return myPanel.addWidget (labelText, host, name, min, max);
+   }
 
    private void doDone() {
+      if (myIgnoreValidator != null) {
+         String errMsg = myIgnoreValidator.validateSettings (myPanel);
+         if (errMsg != null) {
+            // like validator, but just ignore request
+            return;
+         }
+      }
       if (myValidator != null) {
          String errMsg = myValidator.validateSettings (myPanel);
          if (errMsg != null) {
@@ -134,6 +175,14 @@ public class WidgetDialog extends JDialog
          myDisposed = true;
       }
       super.dispose();
+   }
+
+   public PropertyPanel getPanel() {
+      return myPanel;
+   }
+
+   public OptionPanel getOptionPanel() {
+      return myOptionPanel;
    }
 
 }

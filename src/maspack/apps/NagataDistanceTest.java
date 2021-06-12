@@ -23,7 +23,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 
 public class NagataDistanceTest implements IsRenderable, HasRenderProps {
 
@@ -259,7 +259,7 @@ public class NagataDistanceTest implements IsRenderable, HasRenderProps {
       meshes.add (tester.myFineMesh);
       MeshViewer frame = new MeshViewer (meshes, 640, 480);
       frame.addRenderable (tester);
-      GLViewer viewer = frame.getViewer();
+      Viewer viewer = frame.getViewer();
       viewer.autoFitOrtho ();
       frame.setVisible (true);
 

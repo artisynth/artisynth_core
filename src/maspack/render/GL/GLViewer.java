@@ -8,6 +8,8 @@
 package maspack.render.GL;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.Rectangle;
 import java.awt.event.KeyListener;
@@ -53,6 +55,7 @@ import maspack.render.Dragger3d;
 import maspack.render.Dragger3d.DraggerType;
 import maspack.render.Dragger3dBase;
 import maspack.render.DrawToolBase;
+import maspack.render.GridPlane;
 import maspack.render.IsRenderable;
 import maspack.render.IsSelectable;
 import maspack.render.Light;
@@ -71,7 +74,7 @@ import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionFilter;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
-import maspack.render.GL.GLGridPlane.AxisLabeling;
+import maspack.render.GridPlane.AxisLabeling;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 import maspack.util.Logger;
@@ -337,9 +340,32 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected AxisAlignedRotation myDefaultAxialView = DEFAULT_AXIAL_VIEW;
    protected AxisAlignedRotation myAxialView = DEFAULT_AXIAL_VIEW;
 
+   /**
+    * Controls how the viewer responds to rotation control inputs specified as
+    * horizontal and vertical angular displacements in the viewing plane.
+    */
    public enum RotationMode {
-      DEFAULT, CONTINUOUS;
+      /**
+       * The horizontal displacement describes a rotation about the vertical
+       * (``up'') direction (as returned by {@link #getUpVector}), while the
+       * vertical displacement controls the elevation of the eye position. This
+       * mode has the advantage that the ``up'' direction always remains
+       * parallel to the vertical direction of the viewer plane. However,
+       * because of this, the eye-to-world rotation cannot be adjusted to an
+       * arbitrary value.
+       */
+      DEFAULT,
+
+      /**
+       * The horizontal and vertical displacements describe instantaneous
+       * angular velocity components of the eye-to-world rotation. This allows
+       * the eye-to-world rotation to be adjusted to arbitrary values, but the
+       * ``up'' direction will generally not remain parallel to the vertical
+       * direction of the viewer plane.
+       */
+      CONTINUOUS;
    }
+
    public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.DEFAULT;
    protected RotationMode myRotationMode = DEFAULT_ROTATION_MODE;
 
@@ -456,7 +482,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected Dragger3d myDrawTool;
    protected Object myDrawToolSyncObject = new Object();
    protected Rectangle myDragBox;
-   protected GLGridPlane myGrid;
+   protected GridPlane myGrid;
    
    protected double axisLength = 0;
    protected static final boolean DEFAULT_SOLID_AXES = false;
@@ -549,30 +575,51 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myProfiling;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public Vector2d getEllipticCursorSize() {
       return myEllipticCursorSize;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void setEllipticCursorSize (Vector2d size) {
       myEllipticCursorSize.set (size);
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void resetEllipticCursorSize () {
       myEllipticCursorSize.set (DEFAULT_ELLIPTIC_CURSOR_SIZE);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean isViewRotationEnabled() {
       return myViewRotationEnabled;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void setViewRotationEnabled (boolean enable) {
       myViewRotationEnabled = enable;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public boolean getEllipticCursorActive() {
       return myEllipticCursorActive;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public void setEllipticCursorActive (boolean active) {
       myEllipticCursorActive = active;
    }
@@ -592,7 +639,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 //      }
       return prev;
    }
-   
+
+   /**
+    * {@inheritDoc}
+    */
    public void setAxisLength (double len) {
       if (len == AUTO_FIT) {
          Point3d pmin = new Point3d();
@@ -607,6 +657,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public double getAxisLength() {
       return axisLength;
    }
@@ -619,22 +672,37 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return solidAxes;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setGridVisible (boolean visible) {
       gridVisible = visible;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean getGridVisible() {
       return gridVisible;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public KeyListener[] getKeyListeners() {
       return canvas.getKeyListeners();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addKeyListener (KeyListener l) {
       canvas.addKeyListener(l);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void removeKeyListener (KeyListener l) {
       canvas.removeKeyListener(l);
    }
@@ -694,6 +762,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myInternalRenderListValid = false;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addDragger (Dragger3d d) {
       synchronized(myDraggers) {
          myDraggers.add (d);
@@ -719,6 +790,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   public Dragger3d getDrawTool() {
+      return myDrawTool;
+   }
+
    public boolean removeRenderable (IsRenderable d) {
       boolean wasRemoved = false;
       synchronized(myRenderables) {
@@ -728,6 +803,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return wasRemoved;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void removeDragger (Dragger3d d) {
       synchronized(myDraggers) {
          if (d instanceof Dragger3dBase) {
@@ -750,6 +828,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          myUserDraggers.clear();
       }
       myInternalRenderListValid = false;
+   }
+
+   public List<Dragger3d> getAllDraggers() {
+      return myDraggers;
    }
 
    public void clearRenderables() {
@@ -1058,14 +1140,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Returns true if the current viewing projection is orthogonal.
-    * 
-    * @return true if viewing projection is orthogonal
+    *{@inheritDoc}
     */
    public boolean isOrthogonal() {
       return myFrustum.orthographic;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setOrthographicView (boolean enable) {
       if (enable) {
          autoFitOrtho();
@@ -1217,21 +1300,55 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public Component getComponent() {
+      return canvas.getComponent();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenWidth() {
       return width;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenHeight() {
       return height;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenX() {
       return canvas.getX();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getScreenY() {
       return canvas.getY();
    }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setScreenCursor (Cursor cursor) {
+      canvas.setCursor (cursor);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Cursor getScreenCursor() {
+      return canvas.getCursor();
+   }
+
 
    public GL getGL() {
       if (drawable != null) {
@@ -1425,15 +1542,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Translate the eye position with respect to the x-y plane of the eye frame.
-    * The center point is translated by the same amount.
-    * 
-    * @param delx
-    * x translation amount
-    * @param dely
-    * y translation amount
+    * {@inheritDoc}
     */
-   protected void translate (double delx, double dely) {
+   public void translate (double delx, double dely) {
       Vector3d xCam = new Vector3d(), yCam = new Vector3d();
 
       synchronized (viewMatrix) {
@@ -1454,14 +1565,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * Zoom in or out by a specified scale factor. A factor larger than one zooms
-    * out, while a factor less than one zooms in. In orthographic projection,
-    * zoom is accomplished changing the frustum size. In perspective projection,
-    * it is accomplished by moving the eye position along the z axis of the eye
-    * frame.
-    * 
-    * @param s
-    * scale factor
+    * {@inheritDoc}
     */
    public void zoom (double s) {
       if (myFrustum.orthographic) {
@@ -1576,11 +1680,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myGrid.setZAxisColor (getAxisColor (2));
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setDefaultAxialView (AxisAlignedRotation view) {
       setAxialView (view);
       myDefaultAxialView = view;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public AxisAlignedRotation getDefaultAxialView () {
       return myDefaultAxialView;
    }
@@ -1725,6 +1835,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myMouseInputListeners.add (l);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void removeMouseInputListener (MouseInputListener l) {
       if (canvas != null) {
          synchronized(canvas) {
@@ -1735,10 +1848,16 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myMouseInputListeners.remove (l);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public MouseInputListener[] getMouseInputListeners() {
       return myMouseInputListeners.toArray (new MouseInputListener[0]);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addMouseWheelListener (MouseWheelListener l) {
       if (canvas != null) {
          synchronized(canvas) {
@@ -2288,11 +2407,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setBackgroundColor (rgba[0], rgba[1], rgba[2], alpha);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setBackgroundColor (Color color) {
       color.getComponents (backgroundColor);
       repaint();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public Color getBackgroundColor() {
       return new Color (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
    }
@@ -2933,16 +3058,25 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public HighlightStyle getHighlightStyle() {
       return myHighlightStyle;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setHighlightColor (Color color) {
       color.getRGBComponents (myHighlightColor);
       myHighlightColorModified = true;
       repaint();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public void getHighlightColor (float[] rgba) {
       if (rgba.length < 3) {
@@ -2955,6 +3089,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (rgba.length > 3) {
          rgba[3] = myHighlightColor[3];
       }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Color getHighlightColor() {
+      float[] rgba = new float[4];
+      getHighlightColor (rgba);
+      return new Color (rgba[0], rgba[1], rgba[2], rgba[3]);
    }
 
    /**
@@ -3080,26 +3223,33 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setEyeToWorld (eye, myViewState.myCenter, myViewState.myUp);
    }
 
+   public RigidTransform3d getCenterToWorld () {
+      RigidTransform3d TCW = new RigidTransform3d();
+      getCenterToWorld (TCW);
+      return TCW;
+   }
+
    /**
-    * Returns a transform from world coordinates to center coordinates, with the
-    * axes aligned to match the current eyeToWorld transform. Seen through the
-    * viewer, this will appear centered on the view frame with z pointing toward
-    * the view, y pointing up, and x pointing to the right.
+    * {@inheritDoc}
     */
-   public RigidTransform3d getCenterToWorld() {
-      RigidTransform3d X = new RigidTransform3d();
+   public void getCenterToWorld (RigidTransform3d TCW) {
       synchronized (viewMatrix) {
-         X.R.transpose(viewMatrix.R);  
+         TCW.R.transpose(viewMatrix.R);  
       }
-      X.p.set (myViewState.myCenter);
-      return X;
+      TCW.p.set (myViewState.myCenter);
    }
    
-   protected void setDragBox (Rectangle box) {
+   /**
+    * {@inheritDoc}
+    */
+   public void setDragBox (Rectangle box) {
       myDragBox = box;
    }
 
-   protected Rectangle getDragBox() {
+   /**
+    * {@inheritDoc}
+    */
+   public Rectangle getDragBox() {
       return myDragBox;
    }
 
@@ -3111,7 +3261,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myGrid.getCellSize();
    }
 
-   public GLGridPlane getGrid() {
+   public GridPlane getGrid() {
       return myGrid;
    }
 
@@ -3214,6 +3364,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public abstract boolean grabPending();
 
+   /**
+    * {@inheritDoc}
+    */
    public void setRotationMode (RotationMode mode) {
       if (myRotationMode != mode) {
          myRotationMode = mode;
@@ -3224,6 +3377,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public RotationMode getRotationMode() {
       return myRotationMode;
    }
@@ -3746,7 +3902,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    //  Clip Planes
    //==========================================================================
 
-   protected int numUsedClipPlanes() {
+   protected int numUsedClipSurfaces() {
       int c = 0;
       for (GLClipPlane clip : myClipPlanes) {
          if (clip.isClippingEnabled()) {
@@ -3759,22 +3915,34 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return c;
    }
    
-   public int numFreeClipPlanes() {
-      int c = numUsedClipPlanes ();
+   /**
+    * {@inheritDoc}
+    */
+   public int numFreeClipSurfaces() {
+      int c = numUsedClipSurfaces ();
       if (c >= maxClipPlanes) {
          return 0;
       }
       return maxClipPlanes-c;
    }
 
-   public int getMaxGLClipPlanes() {
+   /**
+    * {@inheritDoc}
+    */
+   public int maxClipSurfaces() {
       return maxClipPlanes;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane addClipPlane () {
       return addClipPlane (null, 0);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane addClipPlane (RigidTransform3d X, double size) {
       GLClipPlane clipPlane = new GLClipPlane();
       if (size <= 0) {
@@ -3794,28 +3962,42 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return clipPlane;
    }
 
-   public boolean addClipPlane (GLClipPlane clipPlane) {
+   /**
+    * {@inheritDoc}
+    */
+   public void addClipPlane (GLClipPlane clipPlane) {
       clipPlane.setViewer (this);
       myClipPlanes.add (clipPlane);
       
       if (isVisible()) {
          rerender();
       }
-      return true;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane getClipPlane (int idx) {
       return myClipPlanes.get (idx);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public int getNumClipPlanes() {
       return myClipPlanes.size();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public GLClipPlane[] getClipPlanes () {
       return myClipPlanes.toArray (new GLClipPlane[0]);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean removeClipPlane (GLClipPlane clipPlane) {
       if (myClipPlanes.remove (clipPlane)) {
          clipPlane.setViewer (null);
@@ -3829,6 +4011,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void clearClipPlanes() {
       for (GLClipPlane clip : myClipPlanes) {
          clip.setViewer(null);

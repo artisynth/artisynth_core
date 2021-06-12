@@ -42,6 +42,7 @@ public class PlyToPly extends MeshConverter {
          mesh = reader.readMesh ();
       }
       PlyWriter writer = new PlyWriter(outputFile);
+      writer.setFormat (myFormatStr.value);
       if (myBinary.value) {
          writer.setDataFormat (PlyWriter.DataFormat.BINARY_LITTLE_ENDIAN);
       }

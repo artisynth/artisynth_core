@@ -32,6 +32,7 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.DraggerToolBar;
@@ -41,7 +42,7 @@ import maspack.widgets.ViewerFrame;
 public class NURBSCurve2dTest implements DrawToolListener {
 
    ViewerFrame myFrame;
-   GLViewer myViewer;
+   Viewer myViewer;
 
    private static class DistanceGrid extends IsRenderableBase {
 

@@ -33,7 +33,7 @@ import maspack.properties.Property;
 import maspack.properties.PropertyInfo;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GL.GLGridResolution;
+import maspack.render.GridResolution;
 import maspack.util.DoubleInterval;
 import maspack.util.EnumRange;
 import maspack.util.IntegerInterval;
@@ -256,7 +256,7 @@ public class PropertyWidget {
             Enum.class.isAssignableFrom (type) ||
             Color.class.isAssignableFrom (type) ||
             NumericInterval.class.isAssignableFrom (type) ||
-            GLGridResolution.class.isAssignableFrom (type) ||
+            GridResolution.class.isAssignableFrom (type) ||
             CompositeProperty.class.isAssignableFrom (type)) {
          return true;
       }
@@ -658,7 +658,7 @@ public class PropertyWidget {
             rangeField.addValueChangeListener (new PropChangeListener (prop));
             rangeField.setStretchable (true);
          }
-         else if (GLGridResolution.class.isAssignableFrom (type)) {
+         else if (GridResolution.class.isAssignableFrom (type)) {
             GridResolutionField resField = (GridResolutionField)widget;
             resField.addValueChangeListener (new PropChangeListener (prop));
          }
@@ -775,7 +775,7 @@ public class PropertyWidget {
       else if (NumericInterval.class.isAssignableFrom (type)) {
          return new DoubleIntervalField();
       }
-      else if (GLGridResolution.class.isAssignableFrom (type)) {
+      else if (GridResolution.class.isAssignableFrom (type)) {
          return new GridResolutionField();
       }
       else if (Font.class.isAssignableFrom (type)) {

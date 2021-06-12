@@ -50,7 +50,7 @@ public class GLSparkleDebug extends GL3Tester {
       final GLSparkleDebug sparkle = new GLSparkleDebug();
       sparkle.rot.getWindows().get(0).viewer.setShading(Shading.FLAT);
       
-      sparkle.rot.getWindows().get(0).viewer.getCanvas().addKeyListener(new KeyListener() {
+      sparkle.rot.getWindows().get(0).viewer.addKeyListener(new KeyListener() {
          
          private void printStuff(KeyEvent e) {
             //            System.out.print(e.getKeyChar());

@@ -13,9 +13,12 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 
+import java.util.List;
+
 import maspack.render.Dragger3d;
 import maspack.matrix.Vector2d;
 import maspack.render.MouseRayEvent;
+import maspack.render.Viewer;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.Dragger3d.DragMode;
 
@@ -147,23 +150,18 @@ public class GLMouseAdapter implements GLMouseListener {
       }
       viewer.setPick (x, y, w, h, ignoreDepthTest);
       selEvent.setFlags (flags);
-      // {
-      // GLSelectionEvent selEvent = new GLSelectionEvent();
-      // selEvent.myModifiersEx = e.getModifiersEx();
-      // selEvent.setMode(SelectionType.Clear);
-      // viewer.selectionEvent = selEvent;
-      // }
    }
 
    public void mouseClicked (MouseEvent e) {
 
-      Dragger3d drawTool = viewer.myDrawTool;
+      Dragger3d drawTool = viewer.getDrawTool();
       int mods = e.getModifiersEx() & ALL_MODIFIERS;
       boolean grabbed = false;
 
-      if (viewer.myDraggers.size() > 0 || drawTool != null) {
+      List<Dragger3d> draggers = viewer.getAllDraggers();
+      if (draggers.size() > 0 || drawTool != null) {
          MouseRayEvent rayEvt = MouseRayEvent.create (e, viewer);
-         for (Dragger3d d : viewer.myDraggers) {
+         for (Dragger3d d : draggers) {
             // pass event to any visible Dragger3dBase, or any other Dragger3d
             if (d.isVisible()) {
                updateDraggerModeAndFlags(mods, d);
@@ -243,11 +241,12 @@ public class GLMouseAdapter implements GLMouseListener {
       int selectionMask = getSelectionButtonMask();
 
       // Start checking draggers
-      Dragger3d drawTool = viewer.myDrawTool;
+      Dragger3d drawTool = viewer.getDrawTool();
       boolean grabbed = false;
-      if (viewer.myDraggers.size() > 0 || drawTool != null) {
+      List<Dragger3d> draggers = viewer.getAllDraggers();
+      if (draggers.size() > 0 || drawTool != null) {
          MouseRayEvent rayEvt = MouseRayEvent.create (e, viewer);
-         for (Dragger3d d : viewer.myDraggers) {
+         for (Dragger3d d : draggers) {
             // pass event to any visible Dragger3dBase, or any other Dragger3d
             if (d.isVisible()) {
                updateDraggerModeAndFlags(mask, d);
@@ -313,16 +312,17 @@ public class GLMouseAdapter implements GLMouseListener {
    public void mouseReleased (MouseEvent e) {
       
       // End any dragger modes
-      Dragger3d drawTool = viewer.myDrawTool;
+      Dragger3d drawTool = viewer.getDrawTool();
       boolean grabbed = false;
 
       if (dragAction == DRAG_SELECT) {
          checkForSelection (e);
          viewer.setDragBox (null);
       } else if (dragAction == DRAGGER_ACTION) {
-         if (viewer.myDraggers.size() > 0 || drawTool != null) {
+         List<Dragger3d> draggers = viewer.getAllDraggers();
+         if (draggers.size() > 0 || drawTool != null) {
             MouseRayEvent rayEvt = MouseRayEvent.create (e, viewer);
-            for (Dragger3d d : viewer.myDraggers) {
+            for (Dragger3d d : draggers) {
                // pass event to any visible Dragger3dBase, or any other Dragger3d
                if (d.isVisible()) {
                   if (d.mouseReleased (rayEvt)) {
@@ -347,36 +347,6 @@ public class GLMouseAdapter implements GLMouseListener {
       }
       
       dragAction = NO_ACTION;
-      
-      //      if (dragAction == NO_ACTION) {
-      //         Dragger3d drawTool = viewer.myDrawTool;
-      //         boolean grabbed = false;
-      //
-      //         if (viewer.myDraggers.size() > 0 || drawTool != null) {
-      //            MouseRayEvent rayEvt = MouseRayEvent.create (e, viewer);
-      //            for (Dragger3d d : viewer.myDraggers) {
-      //               // pass event to any visible Dragger3dBase, or any other Dragger3d
-      //               if (d.isVisible()) {
-      //                  if (d.mouseReleased (rayEvt)) {
-      //                     grabbed = true;
-      //                     break;
-      //                  }
-      //               }
-      //            }
-      //            if (drawTool != null && drawTool.isVisible()) {
-      //               if (drawTool.mouseReleased (rayEvt)) {
-      //                  grabbed = true;
-      //               }
-      //            }
-      //         }
-      //         if (grabbed) {
-      //            viewer.repaint();
-      //         }
-      //      }
-      //      else if (dragAction == DRAG_SELECT) {
-      //         checkForSelection (e);
-      //         viewer.setDragBox (null);
-      //      }
    }
 
    public void mouseDragged (MouseEvent e) {
@@ -392,7 +362,6 @@ public class GLMouseAdapter implements GLMouseListener {
             double r = yOff < 0 ? 0.99 : 1.01;
             double s = Math.pow (r, Math.abs (yOff));
             viewer.zoom (s);
-            // viewer.repaint();
             break;
          }
          case TRANSLATE: {
@@ -401,13 +370,14 @@ public class GLMouseAdapter implements GLMouseListener {
             break;
          }
          case DRAGGER_ACTION: {
-            Dragger3d drawTool = viewer.myDrawTool;
+            Dragger3d drawTool = viewer.getDrawTool();
             boolean grabbed = false;
             int mods = e.getModifiersEx() & ALL_MODIFIERS;
 
-            if (viewer.myDraggers.size() > 0 || drawTool != null) {
+            List<Dragger3d> draggers = viewer.getAllDraggers();
+            if (draggers.size() > 0 || drawTool != null) {
                MouseRayEvent rayEvt = MouseRayEvent.create (e, viewer);
-               for (Dragger3d d : viewer.myDraggers) {
+               for (Dragger3d d : draggers) {
                   // pass to any visible Dragger3dBase, or any other Dragger3d
                   if (d.isVisible()) {
                      updateDraggerFlags(mods, d);
@@ -493,12 +463,13 @@ public class GLMouseAdapter implements GLMouseListener {
       else { 
 
          int mods = e.getModifiersEx() & ALL_MODIFIERS;
-         Dragger3d drawTool = viewer.myDrawTool;
+         Dragger3d drawTool = viewer.getDrawTool();
          boolean grabbed = false;
    
-         if (viewer.myDraggers.size() > 0 || drawTool != null) {
+         List<Dragger3d> draggers = viewer.getAllDraggers();
+         if (draggers.size() > 0 || drawTool != null) {
             MouseRayEvent rayEvt = MouseRayEvent.create (e, viewer);
-            for (Dragger3d d : viewer.myDraggers) {
+            for (Dragger3d d : draggers) {
                // pass event to any visible Dragger3dBase, or any other Dragger3d
                if (d.isVisible()) {
                   updateDraggerFlags(mods, d);

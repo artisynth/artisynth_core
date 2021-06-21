@@ -299,6 +299,36 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
+    * Returns the coordinate values currently stored for this joint.
+    * These are the values that have been most recently set or
+    * computed, but may be independent of the current TCD transform.
+    * Coordinates are returned in {@code coords}, whose size is set to 
+    * the value returned by {@link #numCoordinates()}.
+    *
+    * @param coords returns the coordinate values
+    */
+   public void getStoredCoordinates (VectorNd coords) {
+      int numc = numCoordinates();
+      if (numc > 0) {
+         coords.setSize (numc);
+         myCoupling.getCoordinates (coords, /*TCD=*/null);
+      }
+   }
+
+   /**
+    * Returns the value of the TCD transform based on the coordinate values 
+    * currently stored for this joint. This may be different from
+    * the value based on the poses of the attached bodies.
+    *
+    * @param TCD returns the stored TCD transform
+    */
+   public void getStoredTCD (RigidTransform3d TCD) {
+      VectorNd coords = new VectorNd();
+      getStoredCoordinates (coords);
+      coordinatesToTCD (TCD, coords);
+   }
+
+   /**
     * Sets the {@code idx}-th coordinate for this joint. If the joint is
     * connected to other bodies, their poses are adjusted appropriately.
     *

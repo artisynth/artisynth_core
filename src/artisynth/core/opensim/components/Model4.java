@@ -92,7 +92,8 @@ public class Model4 extends ModelBase {
       
       // joints
       JointSet jointSet = this.getJointSet ();
-      RenderableComponentList<ModelComponent> joints = jointSet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<ModelComponent> joints =
+         jointSet.createComponent(geometryPath, componentMap);
       mech.add (joints);
       
       // Move all child bodies to satisfy joint pose relative to parent
@@ -100,10 +101,27 @@ public class Model4 extends ModelBase {
       // collect parents
       HashMap<OpenSimObject,BodyAndTransform> parentMap = new HashMap<>();
       for (JointBase joint : jointSet) {
+         artisynth.core.mechmodels.JointBase jb =
+            (artisynth.core.mechmodels.JointBase)componentMap.get(joint);
          BodyAndTransform parent = joint.findParentBodyAndTransform(componentMap);
          BodyAndTransform child = joint.findChildBodyAndTransform(componentMap);
-         RigidTransform3d TCP = new RigidTransform3d(parent.transform);
-         TCP.mulInverse (child.transform);
+         RigidTransform3d TCP = new RigidTransform3d(); // child-to-parent trans
+         // also need TCD in case some default coordinates are not 0
+         RigidTransform3d TCD = new RigidTransform3d();
+         if (jb != null) {
+            jb.getStoredTCD (TCD);
+         }
+         else {
+            TCD.setIdentity();
+         }
+         if (joint.getReverse()) {
+            TCP.mulInverseRight (child.transform, TCD);
+            TCP.mulInverseRight (TCP, parent.transform);
+         }
+         else {
+            TCP.mul (parent.transform, TCD);
+            TCP.mulInverse (child.transform);  
+         }
          parentMap.put(child.body, new BodyAndTransform(parent.body, TCP));
       }
       

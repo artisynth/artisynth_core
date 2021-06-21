@@ -31,6 +31,8 @@ public abstract class BodyConnector extends RenderableComponentBase
    implements ScalableUnits, TransformableGeometry, HasNumericState,
               Constrainer, HasCoordinateFrame {
               
+   public static boolean debug = false;
+
    protected ConnectableBody myBodyA;
    protected ConnectableBody myBodyB;
    protected FrameAttachment myAttachmentA;
@@ -2057,6 +2059,23 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
    
+   /**
+    * Returns true if this connector is enabled and at least one of
+    * it's underlying master components is not attached.
+    */
+   public boolean isNotAttached() {
+      if (!isEnabled()) {
+         return false;
+      }
+      if (myAttachmentA.oneMasterNotAttached() ||
+          myAttachmentB.oneMasterNotAttached()) {
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
    /**
     * Queries whether or not the attachments have been initialized.  
     * 

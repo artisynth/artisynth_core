@@ -4,6 +4,8 @@ import java.io.File;
 
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.PointList;
+import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.matrix.Vector3d;
@@ -16,8 +18,8 @@ public class Model3 extends ModelBase {
    }
    
    @Override
-   public MechModel createModel (MechModel mech,
-      File geometryPath, ModelComponentMap componentMap) {
+   public MechModel createModel (
+      MechModel mech, File geometryPath, ModelComponentMap componentMap) {
       
       if (mech == null) {
          mech = new MechModel(getName ());
@@ -26,16 +28,21 @@ public class Model3 extends ModelBase {
       
       // bodies
       BodySet bodySet = this.getBodySet ();
-      RenderableComponentList<RigidBody> bodies = bodySet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<RigidBody> bodies =
+         bodySet.createComponent(geometryPath, componentMap);
       mech.add (bodies);
       
       // force effectors
       ForceSet forceSet = this.getForceSet ();
-      RenderableComponentList<ModelComponent> forces = forceSet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<ModelComponent> forces =
+         forceSet.createComponent(geometryPath, componentMap);
       mech.add (forces);
       
       // markers
-      // MarkerSet markerSet = this.getMarkerSet ();
+      MarkerSet markerSet = this.getMarkerSet ();
+      PointList<FrameMarker> markers =
+         markerSet.createComponent(geometryPath, componentMap);
+      mech.add (markers);
       
       // set gravity
       Vector3d gravity = this.getGravity ();

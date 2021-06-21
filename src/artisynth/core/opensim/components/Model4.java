@@ -3,8 +3,10 @@ package artisynth.core.opensim.components;
 import java.io.File;
 import java.util.HashMap;
 
+import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.PointList;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.opensim.components.JointBase.BodyAndTransform;
@@ -72,7 +74,8 @@ public class Model4 extends ModelBase {
    /**
     * TODO: build model
     */
-   public MechModel createModel(MechModel mech, File geometryPath, ModelComponentMap componentMap) {
+   public MechModel createModel (
+      MechModel mech, File geometryPath, ModelComponentMap componentMap) {
       if (mech == null) {
          mech = new MechModel(getName ());
       }
@@ -81,13 +84,15 @@ public class Model4 extends ModelBase {
       // ground
       Ground ground = this.getGround();
       if (ground != null) {
-         RigidBody groundBody = ground.createComponent (geometryPath, componentMap);
+         RigidBody groundBody =
+            ground.createComponent (geometryPath, componentMap);
          mech.add (groundBody);
       }
       
       // bodies
       BodySet bodySet = this.getBodySet ();
-      RenderableComponentList<RigidBody> bodies = bodySet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<RigidBody> bodies =
+         bodySet.createComponent(geometryPath, componentMap);
       mech.add (bodies);
       
       // joints
@@ -143,11 +148,15 @@ public class Model4 extends ModelBase {
       
       // force effectors
       ForceSet forceSet = this.getForceSet ();
-      RenderableComponentList<ModelComponent> forces = forceSet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<ModelComponent> forces =
+         forceSet.createComponent(geometryPath, componentMap);
       mech.add (forces);
       
       // markers
-      // MarkerSet markerSet = this.getMarkerSet ();
+      MarkerSet markerSet = this.getMarkerSet ();
+      PointList<FrameMarker> markers =
+         markerSet.createComponent(geometryPath, componentMap);
+      mech.add (markers);
       
       // set gravity
       Vector3d gravity = this.getGravity ();

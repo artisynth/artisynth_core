@@ -63,6 +63,16 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
       }
       return false;
    }
+   
+   public boolean oneMasterNotAttached() {
+      DynamicComponent[] masters = getMasters();
+      for (int i = 0; i < masters.length; i++) {
+         if (!masters[i].isAttached()) {
+            return true;
+         }
+      }
+      return false;
+   }
 
    public static void addBackRefs (DynamicAttachment at) {
       DynamicComponent[] masters = at.getMasters();

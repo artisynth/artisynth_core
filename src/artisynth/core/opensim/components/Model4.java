@@ -1,5 +1,6 @@
 package artisynth.core.opensim.components;
 
+import java.awt.Color;
 import java.io.File;
 import java.util.HashMap;
 
@@ -12,6 +13,8 @@ import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.opensim.components.JointBase.BodyAndTransform;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.RenderableUtils;
+import maspack.render.RenderProps;
 
 public class Model4 extends ModelBase {
    
@@ -163,6 +166,10 @@ public class Model4 extends ModelBase {
       if (gravity != null) {
          mech.setGravity (gravity);
       }
+
+      // set markers to render as spheres
+      double modelRadius = RenderableUtils.getRadius (mech);
+      RenderProps.setSphericalPoints (markers, 0.008*modelRadius, Color.CYAN);
       
       return mech;
    }

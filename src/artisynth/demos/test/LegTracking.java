@@ -24,6 +24,8 @@ import java.net.*;
 import java.util.*;
 
 public class LegTracking extends RootModel {
+
+   boolean createTrackingData = true;
    
    private File mySrcDir = new File(PathFinder.getSourceRelativePath(this, ""));
 
@@ -164,6 +166,7 @@ public class LegTracking extends RootModel {
       public void attachTargets (double stiffness) {
          for (MarkerSet set : myMarkerSets) {
             set.attachTargets (stiffness);
+            myAllTargets.addAll (set.myTargets);
          }
       }
 
@@ -174,6 +177,7 @@ public class LegTracking extends RootModel {
          for (MarkerSet set : myMarkerSets) {
             set.detachTargets();
          }
+         myAllTargets.clear();
       }
 
       /**
@@ -197,18 +201,22 @@ public class LegTracking extends RootModel {
 
       /**
        * Create a tracker for the specified collection of marker sets.
-       * If {@code noise} is not 0, creates noise to add to the tracking
-       * data.
        */
-      public Tracker (Collection<MarkerSet> markerSets, double noise) {
+      public Tracker (Collection<MarkerSet> markerSets) {
          myAllTargets = new ArrayList<>();
-         myNoise = new ArrayList<>();
          for (MarkerSet set : markerSets) {
             myAllTargets.addAll (set.myTargets);
          }
-         // initialize noise vector
-         if (noise != 0) {
-            for (int i=0; i<myAllTargets.size(); i++) {
+      }
+
+      /**
+       * Creates a constrant "noise" offset to be added to the tracking
+       * data. For testing only.
+       */
+      public void addNoise (double noise) {
+         myNoise = new ArrayList<>();
+         for (MarkerSet set : myMarkerSets) {
+            for (int i=0; i<set.myMarkers.size(); i++) {
                Vector3d noiseVec = new Vector3d();
                noiseVec.setRandom (-noise, noise);
                myNoise.add (noiseVec);
@@ -228,7 +236,10 @@ public class LegTracking extends RootModel {
          Point3d pos = new Point3d();
          if (myDataIdx <= myData.size()-myAllTargets.size()) {
             for (int k=0; k<myAllTargets.size(); k++) {
-               pos.add (myData.get(myDataIdx+k), myNoise.get(k));
+               pos.set (myData.get(myDataIdx+k));
+               if (myNoise != null) {
+                  pos.add (myNoise.get(k));
+               }
                myAllTargets.get(k).setPosition (pos);
             }
             myDataIdx += myAllTargets.size();
@@ -254,7 +265,7 @@ public class LegTracking extends RootModel {
        * marker data to the specified file from time 0 to {@code stop}.
        */
       MarkerMonitor (
-         ArrayList<MarkerSet> markerSets, double stop, File file)
+         Collection<MarkerSet> markerSets, double stop, File file)
          throws IOException {
          myMarkers = new ArrayList<>();
          for (MarkerSet set : markerSets) {
@@ -440,7 +451,6 @@ public class LegTracking extends RootModel {
       // tracking data, or track the tracking data
 
       createMarkerSets (mech);
-      boolean createTrackingData = true;
       if (createTrackingData) {
          // set the joint angles so that the leg motion will be produced by
          // falling under gravity:
@@ -459,7 +469,9 @@ public class LegTracking extends RootModel {
 
          // create a tracker, attach target points and springs, and read data from
          // the file "markers.txt"
-         Tracker tracker = new Tracker (myMarkerSets, 0.05);
+         Tracker tracker = new Tracker (myMarkerSets);
+         // add a constant noise offset to the data:
+         tracker.addNoise (0.05);
          tracker.attachTargets (1000);
          tracker.readData (new File (mySrcDir, "markers.txt"));
          addController (tracker);

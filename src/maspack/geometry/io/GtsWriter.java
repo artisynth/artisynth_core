@@ -32,7 +32,7 @@ public class GtsWriter extends MeshWriterBase {
    }
 
    public void writeMesh (PolygonalMesh mesh) throws IOException {
-      
+
       PrintWriter pw = 
          new PrintWriter (
             new BufferedWriter (new OutputStreamWriter (myOstream)));

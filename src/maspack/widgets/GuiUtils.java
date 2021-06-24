@@ -38,21 +38,29 @@ import maspack.util.PathFinder;
 public class GuiUtils {
    private GuiUtils() {
    }
+   
+   public enum RelativeLocation {
+      CENTER,
+      LEFT,
+      RIGHT,
+      ABOVE,
+      BELOW
+   }
 
    /**
     * Align centers.
     */
    public static final int CENTER = 1;
 
-   /**
-    * Align left edges.
-    */
-   public static final int LEFT_EDGES = 2;
+   // /**
+   //  * Align left edges.
+   //  */
+   // public static final int LEFT_EDGES = 2;
 
    /**
     * Align right edges.
     */
-   public static final int RIGHT_EDGES = 3;
+   //public static final int RIGHT_EDGES = 3;
 
    /**
     * Place one component completely to the left of another.
@@ -67,12 +75,12 @@ public class GuiUtils {
    /**
     * Align top edges.
     */
-   public static final int TOP_EDGES = 6;
+   //public static final int TOP_EDGES = 6;
 
    /**
     * Align bottom edges.
     */
-   public static final int BOTTOM_EDGES = 7;
+   //public static final int BOTTOM_EDGES = 7;
 
    /**
     * Place one component above another.
@@ -336,10 +344,10 @@ public class GuiUtils {
             }
             break;
          }
-         case LEFT_EDGES: {
-            newLoc.x = refLoc.x;
-            break;
-         }
+         // case LEFT_EDGES: {
+         //    newLoc.x = refLoc.x;
+         //    break;
+         // }
          case RIGHT: {
             newLoc.x = refLoc.x + refSize.width;
             if (newLoc.x + winSize.width > screenBounds.x + screenBounds.width) {
@@ -348,10 +356,10 @@ public class GuiUtils {
             }
             break;
          }
-         case RIGHT_EDGES: {
-            newLoc.x = refLoc.x + (refSize.width - winSize.width);
-            break;
-         }
+         // case RIGHT_EDGES: {
+         //    newLoc.x = refLoc.x + (refSize.width - winSize.width);
+         //    break;
+         // }
          default: {
             throw new IllegalArgumentException ("Unknown location code "
             + location);
@@ -423,10 +431,10 @@ public class GuiUtils {
             }
             break;
          }
-         case TOP_EDGES: {
-            newLoc.y = refLoc.y;
-            break;
-         }
+         // case TOP_EDGES: {
+         //    newLoc.y = refLoc.y;
+         //    break;
+         // }
          case BELOW: {
             newLoc.y = refLoc.y + refSize.height;
             if (newLoc.y + winSize.height > screenBounds.y + screenBounds.height) {
@@ -435,10 +443,10 @@ public class GuiUtils {
             }
             break;
          }
-         case BOTTOM_EDGES: {
-            newLoc.y = refLoc.y + (refSize.height - winSize.height);
-            break;
-         }
+         // case BOTTOM_EDGES: {
+         //    newLoc.y = refLoc.y + (refSize.height - winSize.height);
+         //    break;
+         // }
          default: {
             throw new IllegalArgumentException ("Unknown location code "
             + location);
@@ -492,12 +500,117 @@ public class GuiUtils {
    }
 
    /**
+    * Locates a window relative to the window containing a specific
+    * component.
+    * 
+    * @param win window to be located
+    * @param ref reference component contained by the reference window
+    * @param loc desired relative location of {@code win} with respect
+    * to the reference window.
+    */
+   public static void locateRelative (
+      Window win, Component ref, RelativeLocation loc) {
+
+      switch (loc) {
+         case LEFT: {
+            locateRelative (win, ref, RelativeLocation.LEFT, null);
+            break;
+         }
+         case RIGHT: {
+            locateRelative (win, ref, RelativeLocation.RIGHT, null);
+            break;
+         }
+         case ABOVE: {
+            locateRelative (win, ref, null, RelativeLocation.ABOVE);
+            break;
+         }
+         case BELOW: {
+            locateRelative (win, ref, null, RelativeLocation.BELOW);
+            break;
+         }
+         case CENTER: {
+            locateRelative (
+               win, ref, RelativeLocation.CENTER, RelativeLocation.CENTER);
+            break;
+         }
+      }
+   }
+
+   /**
+    * Locates a window relative to a reference window containing a specific
+    * component. Location alignment can be optionally specified along each of
+    * the horizontal and vertical axes. When alignment is not specified, the x
+    * or y location of the window is set to that of the reference window.
+    *
+    * @param win window to be located
+    * @param ref reference component contained by the reference window
+    * @param hloc if non-{@code null}, gives the desired relative horizontal
+    * location of {@code win} with respect to the reference window. Must be
+    * {@link RelativeLocation#LEFT}, {@link RelativeLocation#RIGHT}, or {@link
+    * RelativeLocation#CENTER}.
+    * @param vloc if non-{@code null}, gives the desired relative vertical
+    * location of {@code win} with respect to the reference window. Must be
+    * {@link RelativeLocation#ABOVE}, {@link RelativeLocation#BELOW}, or {@link
+    * RelativeLocation#CENTER}.
+    */
+   public static void locateRelative (
+      Window win, Component ref, RelativeLocation hloc, RelativeLocation vloc) {
+
+      Window refWin = windowForComponent (ref);
+      if (refWin == null) {
+         throw new IllegalArgumentException (
+            "Cannot find window for reference component");
+      }
+      Point loc = new Point (refWin.getX(), refWin.getY());
+      if (hloc != null) {
+         switch (hloc) {
+            case LEFT: {
+               loc.x -= win.getWidth();
+               break;
+            }
+            case RIGHT: {
+               loc.x += refWin.getWidth();
+               break;
+            }
+            case CENTER: {
+               loc.x += (refWin.getWidth()-win.getWidth())/2;
+               break;
+            }
+            default: {
+               throw new IllegalArgumentException (
+                  "hloc must be either LEFT, RIGHT, or CENTER");
+            }
+         }
+      }
+      if (vloc != null) {
+         switch (vloc) {
+            case ABOVE: {
+               loc.y -= win.getHeight();
+               break;
+            }
+            case BELOW: {
+               loc.y += refWin.getHeight();
+               break;
+            }
+            case CENTER: {
+               loc.y += (refWin.getHeight()-win.getHeight())/2;
+               break;
+            }
+            default: {
+               throw new IllegalArgumentException (
+                  "vloc must be either ABOVE, BELOW, or CENTER");
+            }
+         }
+      }      
+      win.setLocation (loc);
+   }
+
+   /**
     * Center a window on the window containing a specified
     * reference component. 
     */
    public static void locateCenter (Window win, Component ref) {
-      Window refWin = windowForComponent (ref);
-      locateRelative (win, refWin.getBounds(), 0.5, 0.5, 0.5, 0.5);
+      locateRelative (win, ref, RelativeLocation.CENTER);
    }
 
 
@@ -508,9 +621,7 @@ public class GuiUtils {
     * window fully on the screen.
     */
    public static void locateRight (Window win, Component ref) {
-      Window refWin = windowForComponent (ref);
-      locateHorizontally (win, refWin, RIGHT);
-      locateVertically (win, ref, TOP_EDGES);
+      locateRelative (win, ref, RelativeLocation.RIGHT);
    }
 
    /**
@@ -520,9 +631,7 @@ public class GuiUtils {
     * window fully on the screen.
     */
    public static void locateLeft (Window win, Component ref) {
-      Window refWin = windowForComponent (ref);
-      locateHorizontally (win, refWin, LEFT);
-      locateVertically (win, ref, TOP_EDGES);
+      locateRelative (win, ref, RelativeLocation.LEFT);
    }
 
    /**
@@ -532,9 +641,7 @@ public class GuiUtils {
     * on the screen.
     */
    public static void locateAbove (Window win, Component ref) {
-      Window refWin = windowForComponent (ref);
-      locateVertically (win, refWin, ABOVE);
-      locateHorizontally (win, ref, LEFT_EDGES);
+      locateRelative (win, ref, RelativeLocation.ABOVE);
    }
 
    /**
@@ -544,9 +651,7 @@ public class GuiUtils {
     * on the screen.
     */
    public static void locateBelow (Window win, Component ref) {
-      Window refWin = windowForComponent (ref);
-      locateVertically (win, refWin, BELOW);
-      locateHorizontally (win, ref, LEFT_EDGES);
+      locateRelative (win, ref, RelativeLocation.BELOW);
    }
 
    public static Rectangle getVirtualScreenBounds() {

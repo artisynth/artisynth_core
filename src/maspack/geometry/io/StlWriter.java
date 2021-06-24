@@ -9,7 +9,6 @@ import java.io.OutputStreamWriter;
 
 import maspack.geometry.Face;
 import maspack.geometry.MeshBase;
-import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;

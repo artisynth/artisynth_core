@@ -18,7 +18,6 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 import maspack.geometry.MeshBase;
-import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolylineMesh;
 import maspack.util.ReaderTokenizer;
@@ -57,7 +56,6 @@ public class VtkXmlReader extends MeshReaderBase {
 
       private PolygonalMesh mesh = null;
       private PolylineMesh lmesh = null;
-      private PointMesh pmesh = null;
 
       private StringBuilder xmlContent = new StringBuilder();
       private DATA_TYPE currentData;

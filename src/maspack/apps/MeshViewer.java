@@ -1109,18 +1109,12 @@ public class MeshViewer extends GLViewerFrame
          System.exit(1);
       }
 
-      // check if GL3 version is supported
-      if (gi == GraphicsInterface.GL3) {
-         GLVersionInfo vinfo = GLSupport.getMaxGLVersionSupported();
-         if ( (vinfo.getMajorVersion() < gi.getMajorVersion()) ||
-            ((vinfo.getMajorVersion() == gi.getMajorVersion()) && 
-               (vinfo.getMinorVersion() < gi.getMinorVersion()))) {
-            System.err.println("WARNING: " + gi + " is not supported on this system.");
-            System.err.println("     Required: OpenGL " + gi.getMajorVersion() + "." + gi.getMinorVersion());
-            System.err.println("     Available: OpenGL " + vinfo.getMajorVersion() + "." + vinfo.getMinorVersion());
-            gi = GraphicsInterface.GL2;
-         }
+      // check graphics availability
+      gi = GraphicsInterface.checkAvailability (gi);
+      if (gi == null) {
+         System.exit(1); 
       }
+      
 
       final MeshViewer frame =
          new MeshViewer (

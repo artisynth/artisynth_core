@@ -1,5 +1,8 @@
 package maspack.render;
 
+import maspack.render.GL.GLSupport.GLVersionInfo;
+import maspack.render.GL.GLSupport;
+
 /**
  * Describes the graphics interface used to supprt the rendering.
  */
@@ -45,4 +48,29 @@ public enum GraphicsInterface {
       }
       return gi;
    }
+
+   /**
+    * Check if a specific graphics interface is supported on the hardware and
+    * if not try to substitute on that is.
+    */
+   public static GraphicsInterface checkAvailability (GraphicsInterface gi) {
+      if (gi == GraphicsInterface.GL3) {
+         GLVersionInfo vinfo = GLSupport.getMaxGLVersionSupported();
+         if ( (vinfo.getMajorVersion() < gi.getMajorVersion()) ||
+              ((vinfo.getMajorVersion() == gi.getMajorVersion()) && 
+               (vinfo.getMinorVersion() < gi.getMinorVersion()))) {
+            System.err.println(
+               "WARNING: " + gi + " graphics not supported on this system.");
+            System.err.println(
+               "     Required: OpenGL "+gi.getMajorVersion()+
+               "."+gi.getMinorVersion());
+            System.err.println(
+               "     Using GL2 instead");
+            return GraphicsInterface.GL2;
+         }
+      }
+      // default - assume OK
+      return gi;
+   }
+
 }

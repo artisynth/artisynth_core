@@ -101,6 +101,10 @@ public abstract class LabeledTextField extends LabeledControl {
                field.setCaretPosition (0);
                break;
             }
+            case CTRL_E: {
+               field.setCaretPosition (field.getText().length());
+               break;
+            }
             case CTRL_F: {
                int idx = field.getCaretPosition ();
                String text = field.getText();

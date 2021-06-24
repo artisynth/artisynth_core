@@ -163,9 +163,9 @@ public class ClassFinder {
       for (URL url : jars) {
          classList.addAll(findClasses(url, pkg, pattern, T));
       }
-      //timer.stop();
-      //System.out.println (
-      // "Found "+classList.size()+" classes, "+timer.result(1));
+      // timer.stop();
+      // System.out.println (
+      //   "Found "+classList.size()+" classes for "+pkg+ ", "+timer.result(1));
       return classList;
    }
    

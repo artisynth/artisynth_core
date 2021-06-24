@@ -137,13 +137,30 @@ public class FileNameField extends StringField {
       return myFileChooser;
    }
 
+
    /**
     * Returns the JButton used to initiate file browsing on this control.
     * 
     * @return file browsing button for this control
     */
-
    public JButton getBrowseButton() {
       return myBrowseButton;
    }
+
+   /**
+    * Returns the file associated with this widget's value, or {@code null}
+    * if no file is selected.
+    * 
+    * @return file associated with widget value
+    */
+   public File getFile() {
+      String fileName = getStringValue();
+      if (fileName == null || fileName.equals("")) {
+         return null;
+      }
+      else {
+         return new File (fileName);
+      }
+   }
+   
 }

@@ -224,7 +224,7 @@ public class AutoCompleteStringField extends StringField {
     * @param list
     * list of words to add to the dictionary
     */
-   public void addDataList(ArrayList<String> list) {
+   public void addDataList (Collection<String> list) {
       data.addAll(list);
       Collections.sort(data);
    }
@@ -368,4 +368,10 @@ public class AutoCompleteStringField extends StringField {
       return pre;
    }
 
+   protected void setValueFromDisplay() {
+      super.setValueFromDisplay();
+      // place caret at the end of the text
+      myTextField.setCaretPosition (myTextField.getText().length());
+   }
+      
 }

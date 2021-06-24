@@ -1,6 +1,8 @@
 package maspack.widgets;
 
 import java.awt.event.*;
+import java.awt.GraphicsEnvironment;
+import java.awt.MouseInfo;
 import java.util.*;
 
 import maspack.render.GL.GLMouseAdapter;
@@ -53,6 +55,10 @@ public class MouseBindings implements Cloneable {
    public static final MouseBindings Laptop = createLaptop();
    public static final MouseBindings Mac = createMac();
    public static final MouseBindings Kees = createKees();
+
+   // 'default' is a special instance indicating bindings should be created
+   // automatically
+   public static final MouseBindings Default = createDefault();
    
    private static MouseBindings createThreeButton () {
       MouseBindings bindings = new MouseBindings();
@@ -159,6 +165,14 @@ public class MouseBindings implements Cloneable {
       return bindings;
    }
 
+   private static MouseBindings createDefault () {
+      // placeholder indicating that bindings should be created automatically
+      // from the number of mouse detected mouse buttons
+      MouseBindings bindings = new MouseBindings();
+      bindings.setName ("Default");
+      return bindings;
+   }
+
    private static MouseBindings createKees () {
       MouseBindings bindings = createLaptop();
       bindings.setAction (
@@ -252,6 +266,7 @@ public class MouseBindings implements Cloneable {
    }
 
    public void set (MouseBindings bindings) {
+      myName = bindings.myName;
       for (int i=0; i<myActionMasks.length; i++) {
          myActionMasks[i] = bindings.myActionMasks[i];
       }
@@ -395,12 +410,36 @@ public class MouseBindings implements Cloneable {
    }
 
    boolean equals (MouseBindings bindings) {
+      if ((myName == null && bindings.myName != null) ||
+          !myName.equals (bindings.myName)) {
+         return false;
+      }
       for (int i=0; i<myActionMasks.length; i++) {
          if (myActionMasks[i] != bindings.myActionMasks[i]) {
             return false;
          }
       }
       return true;
+   }
+
+   /**
+    * Create a default set of mouse bindings based on the number
+    * of mouse buttons.
+    */
+   public static MouseBindings createDefaultBindings() {
+      int numButtons = 3;
+      if (!GraphicsEnvironment.isHeadless()) {
+         numButtons = MouseInfo.getNumberOfButtons();
+      }
+      if (numButtons <= 1) {
+         return new MouseBindings(MouseBindings.OneButton);
+      }
+      else if (numButtons == 2) {
+         return new MouseBindings(MouseBindings.TwoButton);
+      }
+      else {
+         return new MouseBindings(MouseBindings.ThreeButton);
+      }
    }
 
    public MouseBindings clone() {

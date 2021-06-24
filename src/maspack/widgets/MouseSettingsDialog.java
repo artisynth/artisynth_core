@@ -15,6 +15,8 @@ import maspack.util.InternalErrorException;
 public class MouseSettingsDialog
    extends PropertyDialog implements ValueChangeListener {
 
+   MouseSettingsPanel myPanel;
+
    protected LinkedList<ValueChangeListener> myChangeListeners =
       new LinkedList<ValueChangeListener>();
 
@@ -31,13 +33,14 @@ public class MouseSettingsDialog
       super();
       setTitle (title);
       initialize ("Done");
-      MouseSettingsPanel panel =
-         new MouseSettingsPanel (bindings, allBindings, zoomScale);
-      setPanel (panel);
+      myPanel = new MouseSettingsPanel (bindings, allBindings, zoomScale);
+      setPanel (myPanel);
       PropertyPanel.addValueChangeListener (
-         panel.getWheelZoomField(), this);
+         myPanel.getWheelZoomField(), this);
       PropertyPanel.addValueChangeListener (
-         panel.getBindingsField(), this);
+         myPanel.getBindingsField(), this);
+      PropertyPanel.addValueChangeListener (
+         myPanel.getAutoDetectField(), this);
       setDefaultCloseOperation (DISPOSE_ON_CLOSE);
       pack();    
    }
@@ -112,4 +115,11 @@ public class MouseSettingsDialog
       fireValueChangeListeners (evt.getValue());
    }
 
+   public void setBindings (MouseBindings bindings) {
+      myPanel.setBindings (bindings);
+   }
+
+   public void setWheelZoom (double zoom) {
+      myPanel.setWheelZoom (zoom);
+   }
 }

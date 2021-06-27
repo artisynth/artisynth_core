@@ -154,6 +154,9 @@ public abstract class ForceSpringBase extends ForceBase {
             mps.addPoint (mi);
             mprev = mi;
          }
+         if (wrapPath != null) {
+            mps.updateWrapSegments();
+         }
 
          spr = mps;
       }

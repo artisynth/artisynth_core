@@ -16,7 +16,6 @@ import javax.swing.event.*;
 
 import maspack.matrix.*;
 import maspack.render.GL.GLClipPlane;
-import maspack.render.GL.GLViewer.RotationMode;
 
 /**
  * A viewer is a component that takes a collection of renderables and
@@ -27,6 +26,32 @@ import maspack.render.GL.GLViewer.RotationMode;
 public interface Viewer extends Renderer {
 
    // rendering control
+
+   /**
+    * Controls how the viewer responds to rotation control inputs specified as
+    * horizontal and vertical angular displacements in the viewing plane.
+    */
+   public enum RotationMode {
+      /**
+       * The horizontal displacement describes a rotation about the vertical
+       * (``up'') direction (as returned by {@link #getUpVector}), while the
+       * vertical displacement controls the elevation of the eye position. This
+       * mode has the advantage that the ``up'' direction always remains
+       * parallel to the vertical direction of the viewer plane. However,
+       * because of this, the eye-to-world rotation cannot be adjusted to an
+       * arbitrary value.
+       */
+      FIXED_VERTICAL,
+   
+      /**
+       * The horizontal and vertical displacements describe instantaneous
+       * angular velocity components of the eye-to-world rotation. This allows
+       * the eye-to-world rotation to be adjusted to arbitrary values, but the
+       * ``up'' direction will generally not remain parallel to the vertical
+       * direction of the viewer plane.
+       */
+      CONTINUOUS;
+   }
 
    /**
     * Adds a renderable to this viewer.
@@ -462,7 +487,7 @@ public interface Viewer extends Renderer {
     * Sets the rotation mode that controls how the viewer responds to
     * interactive rotation requests specified as horizontal and vertical
     * angular displacements in the view plane. The default rotation mode is
-    * {@link RotationMode#DEFAULT}.
+    * {@link RotationMode#FIXED_VERTICAL}.
     *
     * @param mode new rotation mode
     */

@@ -343,33 +343,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected AxisAlignedRotation myDefaultAxialView = DEFAULT_AXIAL_VIEW;
    protected AxisAlignedRotation myAxialView = DEFAULT_AXIAL_VIEW;
 
-   /**
-    * Controls how the viewer responds to rotation control inputs specified as
-    * horizontal and vertical angular displacements in the viewing plane.
-    */
-   public enum RotationMode {
-      /**
-       * The horizontal displacement describes a rotation about the vertical
-       * (``up'') direction (as returned by {@link #getUpVector}), while the
-       * vertical displacement controls the elevation of the eye position. This
-       * mode has the advantage that the ``up'' direction always remains
-       * parallel to the vertical direction of the viewer plane. However,
-       * because of this, the eye-to-world rotation cannot be adjusted to an
-       * arbitrary value.
-       */
-      DEFAULT,
-
-      /**
-       * The horizontal and vertical displacements describe instantaneous
-       * angular velocity components of the eye-to-world rotation. This allows
-       * the eye-to-world rotation to be adjusted to arbitrary values, but the
-       * ``up'' direction will generally not remain parallel to the vertical
-       * direction of the viewer plane.
-       */
-      CONTINUOUS;
-   }
-
-   public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.DEFAULT;
+   public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.FIXED_VERTICAL;
    protected RotationMode myRotationMode = DEFAULT_ROTATION_MODE;
 
    // enable or disable viewier re-scaling (disable when taking movie)
@@ -3396,7 +3370,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void setRotationMode (RotationMode mode) {
       if (myRotationMode != mode) {
          myRotationMode = mode;
-         if (mode == RotationMode.DEFAULT) {
+         if (mode == RotationMode.FIXED_VERTICAL) {
             // reset eye transform so that up vector matches the default up vector
             setEyeToWorld (getEye(), myViewState.myCenter, getUpVector());
          }

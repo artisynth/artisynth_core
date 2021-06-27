@@ -29,6 +29,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.IsRenderable;
 import maspack.render.Renderer;
+import maspack.render.Viewer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
@@ -58,6 +59,7 @@ import artisynth.core.modelbase.Controller;
 import artisynth.core.modelbase.HasState;
 import artisynth.core.modelbase.Model;
 import artisynth.core.modelbase.ModelAgent;
+import artisynth.core.modelbase.ModelBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.Monitor;
 import artisynth.core.modelbase.NumericState;
@@ -91,6 +93,14 @@ public class RootModel extends RenderableModelBase
    // Set this to true to test save-and-restore state before each model advance
    // step. (This will take some time, so you normally want it to be false).
    public static boolean testSaveAndRestoreState = false;
+
+   public static boolean getTestSaveRestoreState() {
+      return testSaveAndRestoreState;
+   }
+
+   public static void setTestSaveRestoreState (boolean enable) {
+      testSaveAndRestoreState = enable;
+   }
 
    LinkedList<ComponentChangeListener> myComponentListeners;
    protected ComponentList<Model> myModels;
@@ -129,7 +139,6 @@ public class RootModel extends RenderableModelBase
    private static final AxisAngle DEFAULT_VIEW_ORIENTATION = 
       new AxisAngle(0,0,0,0);
    private static final double DEFAULT_MIN_STEP_SIZE = 1e-7;
-   private static final double DEFAULT_MAX_STEP_SIZE = 0.01;
    private static final boolean DEFAULT_ADAPTIVE_STEPPING = false;
 
    AxisAngle myDefaultViewOrientation = 
@@ -551,7 +560,7 @@ public class RootModel extends RenderableModelBase
       myProps.remove ("maxStepSize");
       myProps.add (
          "maxStepSize", "maximum step size for this component (seconds)",
-         DEFAULT_MAX_STEP_SIZE, "(0,inf]");
+         ModelBase.DEFAULT_MAX_STEP_SIZE, "(0,inf]");
    }
 
    @Override
@@ -641,7 +650,7 @@ public class RootModel extends RenderableModelBase
 
       myModelInfo = new LinkedHashMap<Model,ModelInfo>();
       
-      myMaxStepSize = DEFAULT_MAX_STEP_SIZE;
+      myMaxStepSize = ModelBase.getDefaultMaxStepSize();
    }
 
    public ComponentListView<Model> models() {
@@ -761,14 +770,14 @@ public class RootModel extends RenderableModelBase
    }
 
    public void setViewerCenter (Point3d c) {
-      GLViewer viewer = getMainViewer();
+      Viewer viewer = getMainViewer();
       if (viewer != null) {
          viewer.setCenter (c);
       }
    }
 
    public Point3d getViewerCenter() {
-      GLViewer viewer = getMainViewer();
+      Viewer viewer = getMainViewer();
       if (viewer != null) {
          return viewer.getCenter();
       }
@@ -778,14 +787,14 @@ public class RootModel extends RenderableModelBase
    }
 
    public void setViewerEye (Point3d e) {
-      GLViewer viewer = getMainViewer();
+      Viewer viewer = getMainViewer();
       if (viewer != null) {
          viewer.setEye (e);
       }
    }
 
    public Point3d getViewerEye() {
-      GLViewer viewer = getMainViewer();
+      Viewer viewer = getMainViewer();
       if (viewer != null) {
          return viewer.getEye();
       }
@@ -795,14 +804,14 @@ public class RootModel extends RenderableModelBase
    }
 
    public void setViewerUp (Vector3d up) {
-      GLViewer viewer = getMainViewer();
+      Viewer viewer = getMainViewer();
       if (viewer != null) {
          viewer.setUpVector (up);
       }
    }
 
    public Vector3d getViewerUp () {
-      GLViewer viewer = getMainViewer();
+      Viewer viewer = getMainViewer();
       if (viewer != null) {
          return viewer.getUpVector ();
       }

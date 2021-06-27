@@ -19,10 +19,31 @@ import maspack.properties.PropertyList;
 public abstract class ModelBase extends ComponentList<ModelComponent>
    implements Model, HasMenuItems, ActionListener {
 
-   protected static double DEFAULT_MAX_STEP_SIZE = 0.01;
+   public static final double DEFAULT_MAX_STEP_SIZE = 0.01;
 
-   protected double myMaxStepSize = DEFAULT_MAX_STEP_SIZE;
+   protected static double myDefaultMaxStepSize = DEFAULT_MAX_STEP_SIZE;
+   protected double myMaxStepSize = myDefaultMaxStepSize;
    protected String myAdvanceDiagnostic = null;
+   
+   /**
+    * Queries the default value used to initialize the maximum step
+    * size for a model when it is created.
+    * 
+    * @return default maximum step size
+    */
+   public static double getDefaultMaxStepSize () {
+      return myDefaultMaxStepSize;
+   }
+   
+   /**
+    * Sets default value used to initialize the maximum step
+    * size for a model when it is created.
+    * 
+    * @param step new step size
+    */
+   public static void setDefaultMaxStepSize (double step) {
+      myDefaultMaxStepSize = step;
+   }
 
    public static PropertyList myProps =
       new PropertyList (ModelBase.class, ComponentList.class);

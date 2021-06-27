@@ -114,8 +114,6 @@ TransformableGeometry, ScalableUnits {
    protected static double DEFAULT_POINT_DAMPING = 0;
    protected static double DEFAULT_FRAME_DAMPING = 0;
    protected static double DEFAULT_ROTARY_DAMPING = 0;
-   protected static PosStabilization DEFAULT_STABILIZATION =
-      PosStabilization.GlobalMass;
 
    protected static final Vector3d DEFAULT_GRAVITY = new Vector3d (0, 0, -9.8);
 
@@ -1622,15 +1620,17 @@ TransformableGeometry, ScalableUnits {
       
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
-         if (c instanceof DynamicComponent) {
-            comps.add ((DynamicComponent)c);
-         }
-         else if (c instanceof MechSystemModel) {
+         if (c instanceof MechSystemModel) {
             ((MechSystemModel)c).getDynamicComponents (comps);
          }
-         else if (c instanceof CompositeComponent) {
-            recursivelyGetDynamicComponents (
-               (CompositeComponent)c, comps);
+         else {
+            if (c instanceof DynamicComponent) {
+               comps.add ((DynamicComponent)c);
+            }
+            if (c instanceof CompositeComponent) {
+               recursivelyGetDynamicComponents (
+                  (CompositeComponent)c, comps);
+            }
          }
       }
    }
@@ -1768,6 +1768,10 @@ TransformableGeometry, ScalableUnits {
          else if (c instanceof HasNumericStateComponents) {
             ((HasNumericStateComponents)c).getNumericStateComponents(list);
          }
+         else if (c instanceof CompositeComponent) {
+            recursivelyGetAuxStateComponents (
+               (CompositeComponent)c, list, level);
+         }
          else if (c instanceof HasNumericState) {
             if (!(c instanceof DynamicComponent) &&
                   ((HasNumericState)c).hasState()) {
@@ -1775,10 +1779,6 @@ TransformableGeometry, ScalableUnits {
                // that should be OK
                list.add ((HasNumericState)c);
             }
-         }
-         else if (c instanceof CompositeComponent) {
-            recursivelyGetAuxStateComponents (
-               (CompositeComponent)c, list, level);
          }
       }
    }

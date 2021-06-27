@@ -94,8 +94,10 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    SparseBlockMatrix myMassMatrix;   
 
-   protected static PosStabilization myDefaultStabilization =
+   public static PosStabilization DEFAULT_STABILIZATION =
       PosStabilization.GlobalMass;
+   protected static PosStabilization myDefaultStabilization =
+      DEFAULT_STABILIZATION;
    //protected PosStabilization myStabilization = myDefaultStabilization;
 
    protected boolean myDynamicsEnabled = DEFAULT_DYNAMICS_ENABLED; 

@@ -5054,18 +5054,15 @@ public class MultiPointSpring extends PointSpringBase
       */
       public void getState (DataBuffer data) {
          data.dput (myLastPntA);
+
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
             data.dput (knot.myPos);
             data.dput (knot.myLocPos);
+            data.dput (knot.myDist);
+            data.dput (knot.myPrevDist);
             data.zput (knot.myWrappableIdx);
-            if (knot.myWrappableIdx != -1) {
-               data.dput (knot.myDist);
-            }
             data.zput (knot.myPrevWrappableIdx);
-            if (knot.myPrevWrappableIdx != -1) {
-               data.dput (knot.myPrevDist);
-            }
          }
          data.dput (myLastPntB);
       }
@@ -5080,20 +5077,12 @@ public class MultiPointSpring extends PointSpringBase
             WrapKnot knot = myKnots[k];
             data.dget (knot.myPos);
             data.dget (knot.myLocPos);
+            knot.myDist = data.dget();
+            knot.myPrevDist = data.dget();
             knot.myWrappableIdx = data.zget();
-            if (knot.myWrappableIdx != -1) {
-               knot.myDist = data.dget();
-               contacting = true;
-            }
-            else {
-               knot.myDist = Wrappable.OUTSIDE;
-            }
             knot.myPrevWrappableIdx = data.zget();
-            if (knot.myPrevWrappableIdx != -1) {
-               knot.myPrevDist = data.dget();
-            }
-            else {
-               knot.myPrevDist = Wrappable.OUTSIDE;
+            if (knot.myWrappableIdx != -1) {
+               contacting = true;
             }
          }
          if (contacting) {

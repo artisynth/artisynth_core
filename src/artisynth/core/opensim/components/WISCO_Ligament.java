@@ -1,6 +1,7 @@
 package artisynth.core.opensim.components;
 
 import artisynth.core.materials.AxialMaterial;
+import artisynth.core.materials.LigamentAxialMaterial;
 import artisynth.core.materials.UWLigamentMaterial;
 import artisynth.core.opensim.components.ForceSpringBase;
 import artisynth.core.opensim.components.Ligament;
@@ -97,13 +98,20 @@ public class WISCO_Ligament extends ForceSpringBase {
    
    @Override
    public AxialMaterial createMaterial () {
-      AxialMaterial mat = new UWLigamentMaterial ();
+     /* AxialMaterial mat = new UWLigamentMaterial ();
       ((UWLigamentMaterial)mat).setReferenceStrain (referenceStrain); 
       ((UWLigamentMaterial)mat).setLinearStiffness (linearStiffness);
       ((UWLigamentMaterial)mat).setLigamentTransitionStrain (ligamentTransitionStrain);
       ((UWLigamentMaterial)mat).setNormalizedDamping (normalizedDamping);
       ((UWLigamentMaterial)mat).setMaxForce (maxForce);
-      ((UWLigamentMaterial)mat).setTendonSlackLength (tendonSlackLength);      
+      ((UWLigamentMaterial)mat).setTendonSlackLength (tendonSlackLength);      */
+      
+      
+      AxialMaterial mat = new LigamentAxialMaterial();
+      ((LigamentAxialMaterial)mat).setCompStiffness (0);
+      ((LigamentAxialMaterial)mat).setElongStiffness (linearStiffness*2);
+      ((LigamentAxialMaterial)mat).setDamping (0.01);
+      
       return mat;
    }
    

@@ -185,8 +185,9 @@ public class ShoulderWrapping extends RootModel {
       NumericInputProbe  probe = new NumericInputProbe ();
       Property[] props ={mech.bodyConnectors ().get ("shoulder").getProperty ("roll"),mech.bodyConnectors ().get ("shoulder").getProperty ("pitch"),mech.bodyConnectors ().get ("shoulder").getProperty ("yaw")};
       probe.setInputProperties (props);
-      probe.addData (0,new VectorNd(0,0,90));
-      probe.addData (2.5,new VectorNd(0,0,0));
+      probe.addData (0,new VectorNd(0,0,90)); // elevated position
+//      probe.addData (2.5,new VectorNd(0,0,0)); // rest position
+      probe.addData (2.5,new VectorNd(40,0,-30)); // crossed body position
       probe.setInterpolationOrder (Interpolation.Order.CubicStep);
       probe.setName ("Shoulder Controller");
       addInputProbe (probe);

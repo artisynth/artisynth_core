@@ -30,12 +30,22 @@ public class ShoulderWrapping extends RootModel {
    Point3d glenohumeral_left = new Point3d(-0.017555, -0.007, -0.17);
    
 //   Point3d supraspinatus_insertion_anterior = new Point3d(-0.004107749730304505, 0.014835913809547088, -0.1769246865868313);
-   Point3d supraspinatus_insertion_anterior = new Point3d(-0.01208957, 0.01589837, -0.18227027);
-   Point3d supraspinatus_insertion_posterior = new Point3d(-0.02014608133362586, 0.012746715647106222, -0.18652378123514726);
+////   Point3d supraspinatus_insertion_anterior = new Point3d(-0.01208957, 0.01589837, -0.18227027);
+//   Point3d supraspinatus_insertion_posterior = new Point3d(-0.02014608133362586, 0.012746715647106222, -0.18652378123514726);
+//   
+//   Point3d supraspinatus_origin_anterior = new Point3d(-0.025174507, 0.025545887, -0.15162294);
+//   Point3d supraspinatus_origin_posterior = new Point3d(-0.041480541, 0.019970868, -0.15330713);
+
+   // ELEVATED POSITION
    
-   Point3d supraspinatus_origin_anterior = new Point3d(-0.025174507, 0.025545887, -0.15162294);
-   Point3d supraspinatus_origin_posterior = new Point3d(-0.041480541, 0.019970868, -0.15330713);
-  
+   Point3d supraspinatus_origin_anterior = new Point3d(-0.052564318, 0.035091686, -0.071851561);
+   Point3d supraspinatus_origin_posterior = new Point3d(-0.078850004, 0.02177388, -0.076913862);
+   
+   Point3d supraspinatus_insertion_anterior = new Point3d(-0.0079808647, 0.015329992, -0.15374636);
+   Point3d supraspinatus_insertion_posterior = new Point3d(-0.019527846, 0.018219469, -0.16589307);
+   
+   
+   
    int supraspinatus_num_fibers = 4;
 
    public void build (String[] args) throws IOException {
@@ -73,19 +83,22 @@ public class ShoulderWrapping extends RootModel {
       GimbalJoint joint = new GimbalJoint (humerus, null, glenohumeral_left);
       joint.setName ("shoulder");
       mech.addBodyConnector (joint);
+      joint.setYaw (90);
+
 
       // add a frame spring to stabilize the joint
       FrameSpring fspring = new FrameSpring ("fspring", 0, 0.1, 0, 0); 
       mech.attachFrameSpring (humerus, null, fspring);
 //      fspring.setAttachFrameA (X);
+      RenderProps.setVisible (fspring, false);
 
       // set the distance grid resolution
       System.out.println ("setting grid resolution ...");
       DistanceGridComp gcomp = humerus.getDistanceGridComp();
       gcomp.setResolution (new Vector3i (30, 30, 30));
       
-      addsupraspinatusTendon();
-
+      addSupraspinatus();
+      
       // set rendering properties
       RenderProps.setSphericalPoints (mech, 0.003, new Color (102,102,255));
       RenderProps.setCylindricalLines (mech, 0.002, Color.RED);
@@ -138,7 +151,7 @@ public class ShoulderWrapping extends RootModel {
       return body;
    }      
    
-   public void addsupraspinatusTendon () {
+   public void addSupraspinatus () {
       Point3d pos = new Point3d();
       RigidBody humerus = mech.rigidBodies ().get ("humerus");
       RigidBody scapula = mech.rigidBodies ().get ("scapula");      
@@ -172,8 +185,8 @@ public class ShoulderWrapping extends RootModel {
       NumericInputProbe  probe = new NumericInputProbe ();
       Property[] props ={mech.bodyConnectors ().get ("shoulder").getProperty ("roll"),mech.bodyConnectors ().get ("shoulder").getProperty ("pitch"),mech.bodyConnectors ().get ("shoulder").getProperty ("yaw")};
       probe.setInputProperties (props);
-      probe.addData (0,new VectorNd(0,0,0));
-      probe.addData (2.5,new VectorNd(30,14,-90));
+      probe.addData (0,new VectorNd(0,0,90));
+      probe.addData (2.5,new VectorNd(0,0,0));
       probe.setInterpolationOrder (Interpolation.Order.CubicStep);
       probe.setName ("Shoulder Controller");
       addInputProbe (probe);

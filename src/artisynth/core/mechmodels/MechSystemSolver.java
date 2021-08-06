@@ -157,6 +157,7 @@ public class MechSystemSolver {
    private int myConGTVersion = -1;
    private int myStaticKKTVersion = -1;
 
+   public static boolean DEFAULT_HYBRID_SOLVES_ENABLED = true;
    public static boolean myDefaultHybridSolveP = false;
    private static int myHybridSolveTol = 10;
    //   private static boolean useBodyCoordsForExplicit = true;
@@ -221,7 +222,17 @@ public class MechSystemSolver {
     */
    public enum PosStabilization {
       GlobalMass,
-      GlobalStiffness
+      GlobalStiffness;
+
+      // like valueOf() but returns null if no match
+      public static PosStabilization fromString (String str) {
+         try {
+            return valueOf (str);
+         }
+         catch (Exception e) {
+            return null;
+         }
+      }
    }
 
    public boolean getHybridSolve () {
@@ -1189,7 +1200,7 @@ public class MechSystemSolver {
          double[] gbuf = myBg.getBuffer();
          for (int i=0; i<myGsize; i++) {
             ConstraintInfo gi = myGInfo[i];
-            if (gi.compliance > 0) {
+            if (myComplianceSupported && gi.compliance > 0) {
                if (gi.force != 0) {
                   double alpha = 1/(0.5*h/gi.compliance + gi.damping);
                   Rbuf[i] = alpha/h;
@@ -1200,6 +1211,9 @@ public class MechSystemSolver {
                   Rbuf[i] = s*gi.compliance/h;
                   gbuf[i] -= s*gi.dist;
                }
+            }
+            else {
+               Rbuf[i] = 0;
             }
             gbuf[i] -= dotscale*gdot[i];
             //System.out.println ("gbuf=" + gbuf[i]);
@@ -1216,7 +1230,7 @@ public class MechSystemSolver {
          double[] nbuf = myBn.getBuffer();
          for (int i=0; i<myNsize; i++) {
             ConstraintInfo ni = myNInfo[i];
-            if (ni.compliance > 0) {
+            if (myComplianceSupported && ni.compliance > 0) {
                if (ni.force != 0) {
                   double alpha = 1/(0.5*h/ni.compliance + ni.damping);
                   Rbuf[i] = alpha/h;
@@ -1227,6 +1241,9 @@ public class MechSystemSolver {
                   Rbuf[i] = s*ni.compliance/h;
                   nbuf[i] -= s*ni.dist;
                }
+            }
+            else {
+               Rbuf[i] = 0;
             }
             nbuf[i] -= dotscale*ndot[i];
          }
@@ -1291,7 +1308,6 @@ public class MechSystemSolver {
       updateStateSizes();
 
       int velSize = myActiveVelSize;
-
       boolean analyze = myAlwaysAnalyze;
 
       updateSolveMatrixStructure();
@@ -2301,9 +2317,9 @@ public class MechSystemSolver {
       if (velSize == 0) {
          return false;
       }            
-      if (myConSolver == null) {
-         myConSolver = new KKTSolver(myMatrixSolver);
-      }
+//      if (myConSolver == null) {
+//         myConSolver = new KKTSolver(myMatrixSolver);
+//      }
       updateBilateralConstraints ();
       updateUnilateralConstraints ();
       myVel.setSize (velSize);
@@ -2461,14 +2477,20 @@ public class MechSystemSolver {
       if (myGsize > 0 || myNsize > 0) {
          boolean allConstraintsCompliant = true;
          mySys.getBilateralInfo (myGInfo);
+         double[] Rbuf = myRg.getBuffer();
          double[] gbuf = myBg.getBuffer();
          for (int i=0; i<myGsize; i++) {
             ConstraintInfo gi = myGInfo[i];
             if (!myComplianceSupported || gi.compliance == 0) {
-               gbuf[i] = -myGInfo[i].dist;
+               Rbuf[i] = 0;
+               gbuf[i] = -gi.dist;
                allConstraintsCompliant = false;
             }
             else {
+               // set right side to zero, since corrections for compliant
+               // constraints are handled in the velocity solve. Need
+               // compliance term set to handle redundancy
+               Rbuf[i] = gi.compliance;
                gbuf[i] = 0;
             }
          }
@@ -2476,14 +2498,17 @@ public class MechSystemSolver {
 
          //mySys.getUnilateralOffsets (myRn, myBn, 0, MechSystem.POSITION_MODE);
          mySys.getUnilateralInfo (myNInfo);
+         Rbuf = myRn.getBuffer();
          double[] nbuf = myBn.getBuffer();
          for (int i=0; i<myNsize; i++) {
             ConstraintInfo ni = myNInfo[i];
             if (!myComplianceSupported || ni.compliance == 0) {
-               nbuf[i] = -myNInfo[i].dist;
+               Rbuf[i] = 0;
+               nbuf[i] = -ni.dist;
                allConstraintsCompliant = false;
             }
             else {
+               Rbuf[i] = ni.compliance;
                nbuf[i] = 0;
             }
          }
@@ -3480,4 +3505,57 @@ public class MechSystemSolver {
       dispose();
    }
 
+   /*
+     How and where constraints are updated in the various integrators:
+
+     Rg, bg, Rn, bn updated in setBilateralOffsets() and
+     setUnilateralOffsets(), call from:
+
+     computeVelCorrections()
+        applyVelCorrections()
+           backwardEuler()
+           forwardEuler()
+           symplecticEuler()
+           rungeKutta4()
+
+     constraintedVelSolve()
+        symplecticEulerX()
+
+     KKTFactorAndSolve()
+        fullBackwardEuler()
+        trapezoidal()
+        constrainedBackwardEuler()
+
+     Rg is zeroed in KKTStaticFactorAndSolve()
+
+     myBg and myBn are also set in 
+
+     computeRigidBodyPosCorrections()
+        projectRigidBodyPosConstraints()
+           MechModel.projectRigidPositionConstraints()
+
+     computePosCorrections()
+        applyPosCorrections()
+           backwardEuler()
+           forwardEuler()
+           symplecticEuler()
+           rungeKutta4()
+           symplecticEulerX()
+           fullBackwardEuler()
+           trapezoidal()
+           constrainedBackwardEuler()
+           
+        projectPosConstraints()
+           MechModel.preadvance()
+
+     GT and NT updated in updateBilateral/UnilateralConstraints, called from:
+
+     computePosCorrections()
+     computeRigidBodyPosCorrections()
+     computeVelCorrections()
+     constrainedVelSolve()
+     KKTFactorAndSolve()
+     KKTStaticFactorAndSolve()
+
+    */ 
 }

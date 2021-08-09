@@ -2133,7 +2133,8 @@ public class FemFactory {
     * center
     * @return populated model
     */
-   public static FemModel3d createHexSphere(FemModel3d fem, double r, int nr) {
+   public static FemModel3d createConformalHexSphere (
+      FemModel3d fem, double r, int nr) {
       if (fem == null) {
          fem = new FemModel3d();
       }
@@ -2163,7 +2164,298 @@ public class FemFactory {
       
       return fem;
    }
-   
+
+   /**
+    * Interpolation a position along a great circle with end points u0 and u1
+    * and a center at 0.
+    */
+   private static Point3d interpolateArcPos (
+      double s, Vector3d p0, Vector3d p1) {
+      return interpolateArcPos (s, p0, p1, Vector3d.ZERO);
+   }
+
+   /**
+    * Interpolation a position along a great circle with end points u0 and u1
+    * and a prescribed center.
+    */
+   private static Point3d interpolateArcPos (
+      double s, Vector3d u0, Vector3d u1, Vector3d center) {
+
+      Vector3d d0 = new Vector3d();
+      d0.sub (u0, center);
+      double len0 = d0.norm();
+      d0.normalize();
+
+      Vector3d d1 = new Vector3d();
+      d1.sub (u1, center);
+      double len1 = d1.norm();
+      d1.normalize();
+
+      Vector3d axis = new Vector3d();
+      axis.cross (d0, d1);
+      double ang = Math.atan2 (axis.norm(), d0.dot(d1));
+
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.setXYDirections (d0, d1);
+      R.mulRotZ (s*ang);
+         
+      Point3d pos = new Point3d();
+      R.getColumn (0, pos);
+      pos.scale ((1-s)*len0 + s*len1);
+      pos.add (center);
+      return pos;
+   }
+
+   private static Point3d biinterpolateArcPos (
+      double si, double sj,
+      Vector3d u00, Vector3d u01, Vector3d u10, Vector3d u11, Vector3d center) {
+
+      return interpolateArcPos (
+         si,
+         interpolateArcPos (sj, u00, u01, center),
+         interpolateArcPos (sj, u10, u11, center), center);
+   }
+
+   private static Point3d biinterpolateArcPos (
+      double si, double sj,
+      Vector3d u00, Vector3d u01, Vector3d u10, Vector3d u11) {
+
+      return biinterpolateArcPos (si, sj, u00, u01, u10, u11, Vector3d.ZERO);
+   }
+
+   /**
+    * Creates a hex sphere by partitioning the sphere into seven regions: an
+    * inner block, surrounded by six symmetrical sections.
+    * 
+    * @param fem model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch
+    * @param r sphere radius
+    * @param nt number of elements around the circumference. Will be rounded up
+    * to an even multiple of 4.
+    * @return created FEM model
+    */
+   public static FemModel3d createHexSphere (FemModel3d fem, double r, int nt) {
+
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+      else {
+         fem.clear();
+      }
+
+      if (nt < 4) {
+         nt = 4;
+      }
+      else if (nt%4 != 0) {
+         nt = 4*(nt/4+1);
+      }
+
+      double s = 0.50;  // ratio of inner block radius to r
+      double w = r*s*Math.sqrt(3); // width of the inner block
+
+      int nr = (int)Math.round((nt*r*(1-s)/(4*w))); // num radial elems per section
+      System.out.println ("nr=" + nr);
+
+      // nodes for the center block
+      FemNode3d[][][] cnodes = new FemNode3d[nt/4+1][nt/4+1][nt/4+1];
+      addHexGrid (fem, cnodes, w, w, w, nt/4, nt/4, nt/4);
+
+      // nodes for the six surrounding sections
+      FemNode3d[][][][] snodes = new FemNode3d[6][nt/4+1][nt/4+1][nr+1];
+      // sections l = 0, 1, 2, 3 are arranged as +x, +y, -x, -y, +z, -z
+      for (int l=0; l<6; l++) {
+         // set base vectors for arc interpolation, depending on the section
+         Vector3d u00;
+         Vector3d u01;
+         Vector3d u10;
+         Vector3d u11;
+         double v = r/Math.sqrt(3); // base vector component lengths
+         switch (l) {
+            case 0: {
+               u00 = new Vector3d(v,v,v);
+               u01 = new Vector3d(v,v,-v);
+               u10 = new Vector3d(v,-v,v);
+               u11 = new Vector3d(v,-v,-v);
+               break;
+            }
+            case 1: {
+               u00 = new Vector3d(-v,v,v);
+               u01 = new Vector3d(-v,v,-v);
+               u10 = new Vector3d(v,v,v);
+               u11 = new Vector3d(v,v,-v);
+               break;
+            }
+            case 2: {
+               u00 = new Vector3d(-v,-v,v);
+               u01 = new Vector3d(-v,-v,-v);
+               u10 = new Vector3d(-v,v,v);
+               u11 = new Vector3d(-v,v,-v);
+               break;
+            }
+            case 3: {
+               u00 = new Vector3d(v,-v,v);
+               u01 = new Vector3d(v,-v,-v);
+               u10 = new Vector3d(-v,-v,v);
+               u11 = new Vector3d(-v,-v,-v);
+               break;
+            }
+            case 4: {
+               u00 = new Vector3d(-v,-v,v);
+               u01 = new Vector3d(-v,v,v);
+               u10 = new Vector3d(v,-v,v);
+               u11 = new Vector3d(v,v,v);
+               break;
+            }
+            case 5: {
+               u00 = new Vector3d(v,-v,-v);
+               u01 = new Vector3d(v,v,-v);
+               u10 = new Vector3d(-v,-v,-v);
+               u11 = new Vector3d(-v,v,-v);
+               break;
+            }
+            default: {
+               throw new InternalErrorException ("unknown section " + l);
+            }
+         }
+         for (int i=0; i<=nt/4; i++) {
+            for (int j=0; j<=nt/4; j++) {
+               if (l > 0 && l < 4 && i == nt/4) {
+                  for (int k=0; k<=nr; k++) {
+                     snodes[l][i][j][k] = snodes[l-1][0][j][k];
+                  }
+               }
+               else if (l == 3 && i == 0) {
+                  for (int k=0; k<=nr; k++) {
+                     snodes[l][i][j][k] = snodes[0][nt/4][j][k];
+                  }
+               }
+               else if (l == 4 && (i == 0 || i == nt/4 || j == 0 || j == nt/4)) {
+                  for (int k=0; k<=nr; k++) {
+                     if (i == 0) {
+                        snodes[l][i][j][k] = snodes[2][j][0][k];
+                     }
+                     else if (i == nt/4) {
+                        snodes[l][i][j][k] = snodes[0][nt/4-j][0][k];
+                     }
+                     else if (j == 0) {
+                        snodes[l][i][j][k] = snodes[3][nt/4-i][0][k];
+                     }
+                     else if (j == nt/4) {
+                        snodes[l][i][j][k] = snodes[1][i][0][k];
+                     }
+                  }
+               }
+               else if (l == 5 && (i == 0 || i == nt/4 || j == 0 || j == nt/4)) {
+                  for (int k=0; k<=nr; k++) {
+                     if (i == 0) {
+                        snodes[l][i][j][k] = snodes[0][nt/4-j][nt/4][k];
+                     }
+                     else if (i == nt/4) {
+                        snodes[l][i][j][k] = snodes[2][j][nt/4][k];
+                     }
+                     else if (j == 0) {
+                        snodes[l][i][j][k] = snodes[3][i][nt/4][k];
+                     }
+                     else if (j == nt/4) {
+                        snodes[l][i][j][k] = snodes[1][nt/4-i][nt/4][k];
+                     }
+                  }
+               }
+               else {
+                  FemNode3d nk0;
+                  FemNode3d nkt;
+                  switch (l) {
+                     case 0: {
+                        nk0 = cnodes[nt/4][nt/4-i][nt/4-j];
+                        break;
+                     }
+                     case 1: {
+                        nk0 = cnodes[i][nt/4][nt/4-j];
+                        break;                        
+                     }
+                     case 2: {
+                        nk0 = cnodes[0][i][nt/4-j];
+                        break;
+                     }
+                     case 3: {
+                        nk0 = cnodes[nt/4-i][0][nt/4-j];
+                        break;
+                     }
+                     case 4: {
+                        nk0 = cnodes[i][j][nt/4];
+                        break;
+                     }
+                     case 5: {
+                        nk0 = cnodes[nt/4-i][j][0];
+                        break;
+                     }
+                     default: {
+                        throw new InternalErrorException ("unknown section " + l);
+                     }
+                  }
+                  Point3d pos = biinterpolateArcPos (
+                     4.0*i/nt, 4.0*j/nt, u00, u01, u10, u11);
+                  nkt = new FemNode3d (pos);
+                  fem.addNode (nkt);
+                  snodes[l][i][j][0] = nk0;
+                  snodes[l][i][j][nr] = nkt;
+                  Point3d npos = new Point3d();
+                  for (int k=1; k<nr; k++) {
+                     double t = k/(double)nr;
+                     npos.combine (1-t, nk0.getPosition(), t, nkt.getPosition());
+                     snodes[l][i][j][k] = new FemNode3d (npos);  
+                     fem.addNode (snodes[l][i][j][k]);
+                  }
+               }              
+            }
+         }
+      }
+
+      // create section elements
+      for (int l=0; l<6; l++) {
+         for (int i=0; i<nt/4; i++) {
+            for (int j=0; j<nt/4; j++) {
+               for (int k=0; k<nr; k++) { 
+                  fem.addElement (
+                     new HexElement (
+                        snodes[l][i][j+1][k], snodes[l][i+1][j+1][k],
+                        snodes[l][i+1][j][k], snodes[l][i][j][k], 
+                        snodes[l][i][j+1][k+1], snodes[l][i+1][j+1][k+1],
+                        snodes[l][i+1][j][k+1], snodes[l][i][j][k+1]));
+               }
+            }
+         }
+      }
+      return fem;
+   }
+
+   public static FemModel3d createFlattenedHexSphere (
+      FemModel3d fem, double r, double rf, int nt) {
+
+      fem = createHexSphere (fem, r, nt);
+      Point3d pos = new Point3d();
+      for (FemNode3d n : fem.getNodes()) {
+         // apply scaling in the z direction to flatten the top
+         pos.set (n.getRestPosition());
+         double l = Math.sqrt(pos.x*pos.x + pos.y*pos.y);
+         double sz = 1;
+         double maxh = r-rf;
+         if (l < r) {
+            if (l <= rf) {
+               // scale so that max height is maxh;
+               sz = maxh/Math.sqrt (r*r - l*l);
+            }
+            else {
+               // scale so that max height is sqrt(maxh^2 - (l-rf)^2)
+               sz = Math.sqrt(maxh*maxh - (l-rf)*(l-rf))/Math.sqrt (r*r - l*l);
+            }
+            pos.z *= sz;
+            n.setRestPosition (pos);
+            n.setPosition (pos);
+         }
+      }
+      return fem;
+   }
 
    /**
     * Creates an ellipsoidal model using a combination of hex, wedge, and tet
@@ -2407,8 +2699,9 @@ public class FemFactory {
    }
    
    /**
-    * Creates a ellipsoidal model using a hex elements by first
-    * creating a hex sphere and then scaling it.
+    * Creates a hex ellipsoidal model by first
+    * creating a hex sphere using {@link #createConformalHexSphere}
+    * and then scaling it.
     *
     * @param model empty FEM model to which elements are added; if
     * <code>null</code> then a new model is allocated
@@ -2420,18 +2713,46 @@ public class FemFactory {
     * @return the FEM model (which will be <code>model</code> if
     * <code>model</code> is not <code>null</code>).
     */
-   public static FemModel3d createHexEllipsoid(
+   public static FemModel3d createConformalHexEllipsoid(
       FemModel3d model, 
       double rz, double rsx, double rsy, int nr) {
    
-      model = createHexSphere (model, 1, nr);
+      model = createConformalHexSphere (model, 1, nr);
       for (FemNode3d node : model.getNodes ()) {
          Point3d pos = node.getRestPosition ();
          pos.scale (rsx, rsy, rz);
          node.setRestPosition (pos);
          node.setPosition (pos);
       }
-      
+
+      return model;
+   }
+   
+   /**
+    * Creates a hex ellipsoidal model by first
+    * creating a hex sphere using {@link #createHexSphere}
+    * and then scaling it.
+    *
+    * @param model empty FEM model to which elements are added; if
+    * <code>null</code> then a new model is allocated
+    * @param rx radius along x
+    * @param ry radius along y
+    * @param rz radius along z
+    * @param nt number of elements around the circumference. Will be rounded up
+    * to an even multiple of 4.
+    * @return created FEM model
+    */
+   public static FemModel3d createHexEllipsoid(
+      FemModel3d model, double rx, double ry, double rz, int nt) {
+   
+      model = createHexSphere (model, 1.0, nt);
+      for (FemNode3d node : model.getNodes ()) {
+         Point3d pos = node.getRestPosition ();
+         pos.scale (rx, ry, rz);
+         node.setRestPosition (pos);
+         node.setPosition (pos);
+      }
+
       return model;
    }
    
@@ -2482,6 +2803,335 @@ public class FemFactory {
 
       return createHexWedgeCylinder(model, l, r, nt, nl, nr);
    }
+
+   /**
+    * Creates a disc with rounded edges using hex and wedge elements, based on
+    * a hex cylinder, with additional hexes and wedges added round off the
+    * surrounding edge. The disc is centered at the origin with its axis of
+    * symmetry parallel to the z axis. The dimensions are specified by the
+    * radius {@code r} of the flat portion of the disc, and a height {@code
+    * h}. The rounding radius at the edhe {@code h/2}, so that the total radius
+    * about z is {@code r + h/2}.
+    *
+    * <p>One disadvantage of this meshing method is that the element density
+    * increases towards the center of the disc, culminating in a small inner
+    * disc composed of wedges. The method {@link #createRoundedDisc} improves
+    * on this by replacing the central disc of wedges with a regular hex grid.
+    *
+    * @param fem model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param h height along the z axis
+    * @param r radius of the flat part of the disc
+    * @param nh number of elements along the z-axis, as seen through an
+    * interior cross section. Will be rounded up to an even number.  The number
+    * of rounding elements used to wrap around the edge in a radial direction
+    * will also be based on this value.
+    * @param nt number of elements around the circumference. Will be rounded up
+    * to be at least 3.
+    * @param nr number of elements along the flat radius. Will
+    * be rounded up to at least 1.
+    * @return created FEM model
+    */
+   public static FemModel3d createRoundedHexWedgeDisc (
+      FemModel3d fem, double h, double r, int nt, int nh, int nr) {
+
+      if (r <= 0) {
+         throw new IllegalArgumentException (
+            "flat portion radius r must be > 0");
+      }
+
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+      else {
+         fem.clear();
+      }
+
+      // round parameters up if necessary
+      if (nt < 3) {
+         nt = 3;
+      }
+      if (nh < 2) {
+         nh = 2;
+      }
+      else if (nh%2 != 0) {
+         nh = nh+1;
+      }
+      if (nr < 1) {
+         nr = 1;
+      }
+
+      // use nh to estimate the number of radial rounding elements
+      int np = Math.max((int)Math.ceil (Math.PI*nh/2),2);
+      
+      double dh = h/nh;
+      double dt = 2*Math.PI/nt;
+      double dr = 1.0/nr;
+      double dp = Math.PI/np;
+
+      // generate flat section nodes
+      FemNode3d[][][] fnodes = new FemNode3d[nt][nh+1][nr+1];
+      for (int k=0; k<nr+1; k++) {
+         for (int j=0; j<nh+1; j++) {
+
+            if (k == 0) {
+               FemNode3d node =
+                  new FemNode3d(new Point3d(0, 0, -h/2 + j*dh));
+               for (int i = 0; i < nt; i++) {
+                  fnodes[i][j][k] = node;
+               }
+               fem.addNode(node);
+            }
+            else {
+               double rr = r * Math.pow(dr * k, 0.7);
+               for (int i = 0; i < nt; i++) {
+                  fnodes[i][j][k] = new FemNode3d(
+                     new Point3d(
+                        rr*Math.cos(dt*i), rr*Math.sin(dt*i), -h/2 + j*dh));
+                  fem.addNode(fnodes[i][j][k]);
+               }
+            }
+         }
+      }
+
+      // generate rounded section nodes
+      FemNode3d[][][] rnodes = new FemNode3d[nt][nh/2+1][np+1];
+      for (int k=0; k<np+1; k++) {
+         double cp = Math.cos(k*dp);         
+         double sp = Math.sin(k*dp);         
+         for (int j=0; j<nh/2+1; j++) {
+            double rr = r + sp*dh*j;
+            for (int i=0; i<nt; i++) {
+               if (j == 0) {
+                  // set from fnodes
+                  rnodes[i][j][k] = fnodes[i][nh/2][nr];
+               }
+               else {
+                  if (k == 0) {
+                     // set from fnodes
+                     rnodes[i][j][k] = fnodes[i][nh/2+j][nr];
+                  }
+                  else if (k == np) {
+                     // set from fnodes
+                     rnodes[i][j][k] = fnodes[i][nh/2-j][nr];                  
+                  }
+                  else {
+                     rnodes[i][j][k] = new FemNode3d (
+                        new Point3d (
+                           rr*Math.cos(dt*i), rr*Math.sin(dt*i), cp*dh*j));
+                     fem.addNode(rnodes[i][j][k]);
+                  }
+               }
+            }
+         }
+      }
+      for (int i=0; i<nt; i++) {
+         for (int j=0; j<nh/2+1; j++) {
+            for (int k=0; k<np+1; k++) {
+               if (rnodes[i][j][k] == null) {
+                  System.out.println ("null node at "+i+" "+j+" "+k);
+               }
+            }
+         }
+      }
+      
+
+      // generate flat section elements
+      for (int k=0; k<nr; k++) {
+         for (int j=0; j<nh; j++) {
+            for (int i=0; i<nt; i++) {
+               int in = (i+1)%nt; // next i along
+               if (k == 0) {
+                  // wedge element
+                  WedgeElement wedge =
+                     new WedgeElement(
+                        fnodes[i][j][k+1],
+                        fnodes[in][j][k+1], fnodes[i][j][k],
+
+                        fnodes[i][j+1][k+1],
+                        fnodes[in][j+1][k+1], fnodes[i][j+1][k]);
+                  fem.addElement(wedge);
+               }
+               else {
+                  // hex element
+                  HexElement hex =
+                     new HexElement(
+                        fnodes[i][j][k+1], fnodes[in][j][k+1],
+                        fnodes[in][j+1][k+1], fnodes[i][j+1][k+1],
+
+                        fnodes[i][j][k], fnodes[in][j][k],
+                        fnodes[in][j+1][k], fnodes[i][j+1][k]);
+                  fem.addElement(hex);
+               }
+            }
+         }
+      }
+
+      // generate rounded section elements
+      for (int k=0; k<np; k++) {
+         for (int j=0; j<nh/2; j++) {
+            for (int i=0; i<nt; i++) {
+               int in = (i+1)%nt; // next i along
+               if (j == 0) {
+                  // wedge element
+                  WedgeElement wedge =
+                     new WedgeElement(
+                        rnodes[i][j][k],
+                        rnodes[i][j+1][k], rnodes[i][j+1][k+1],
+
+                        rnodes[in][j][k],
+                        rnodes[in][j+1][k], rnodes[in][j+1][k+1]);
+                  fem.addElement(wedge);
+               }
+               else {
+                  // hex element
+                  HexElement hex =
+                     new HexElement(
+                        rnodes[i][j][k], rnodes[i][j][k+1],
+                        rnodes[i][j+1][k+1], rnodes[i][j+1][k],
+
+                        rnodes[in][j][k], rnodes[in][j][k+1],
+                        rnodes[in][j+1][k+1], rnodes[in][j+1][k]);
+                  fem.addElement(hex);
+               }
+            }
+         }
+      }
+
+      return fem;
+   }
+
+   /**
+    * Creates a hex-dominant disc with rounded edges, based on a hex cylinder,
+    * with additional hexes and wedges added to round off the surrounding edge.
+    * The disc is centered at the origin with its axis of symmetry parallel to
+    * the z axis. The dimensions are specified by the radius {@code r} of the
+    * flat portion of the disc, and a height {@code h}. The rounding radius at
+    * the edge is {@code h/2}, so that the total radius about z is {@code r +
+    * h/2}.
+    *
+    * <p>The mesh created by this method is best behaved when {@code h <=
+    * r}. As {@code h} increases beyond {@code r}, the regular hex grid in the
+    * center will become quite small and dense, and so alternative mesh
+    * formulations may be preferable in such circumstances.
+    *
+    * @param fem model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param h height along the z axis
+    * @param r radius of the flat part of the disc
+    * @param nh number of elements along the z-axis, as seen through an
+    * interior cross section. Will be rounded up to an even number.  The number
+    * of rounding elements used to wrap around the edge in a radial direction
+    * will also be based on this value.
+    * @param nt number of elements around the circumference. Will be rounded up
+    * to an even multiple of 4.
+    * @return created FEM model
+    */
+   public static FemModel3d createRoundedDisc (
+      FemModel3d fem, double h, double r, int nh, int nt) {
+
+      if (r <= 0) {
+         throw new IllegalArgumentException (
+            "flat portion radius r must be > 0");
+      }
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+      else {
+         fem.clear();
+      }
+
+      // ensure nt is a multiple of 4 and nh is even
+      if (nt < 4) {
+         nt = 4;
+      }
+      else if (nt%4 != 0) {
+         nt = 4*(nt/4+1);
+      }
+      if (nh < 2) {
+         nh = 2;
+      }
+      else if (nh%2 != 0) {
+         nh = nh+1;
+      }
+
+      // set radius of inner hex block to be 0.55 total radius, up to a maximum
+      // of 0.8*r.
+      double rb = Math.min(0.55*(r+h/2), 0.8*r);
+      double w = rb*Math.sqrt(2); // width of the inner block
+      // num radial elems per section
+      int nr = (int)Math.ceil((nt*(r-rb)/(4*w)));
+
+      // create and add nodes for the center block
+      FemNode3d[][][] cnodes = new FemNode3d[nt/4+1][nt/4+1][nh+1];
+      addHexGrid (fem, cnodes, w, w, h, nt/4, nt/4, nh);
+      
+      // nodes for the four surrounding sections
+      FemNode3d[][][][] snodes = new FemNode3d[4][nt/4+1][nr+1][nh+1];
+      addHexCylinderSections (fem, snodes, cnodes, w, r, h, nt/4, nr, nh);
+
+      // use nh to estimate the number of radial rounding elements
+      int np = Math.max((int)Math.ceil (Math.PI*nh/2),2);
+      double dphi = Math.PI/np; // increment for rounding angle phi
+      double dh = h/nh; // height increment
+
+      // create the rounding nodes
+      FemNode3d rnodes[][][] = new FemNode3d[np+1][nh/2+1][nt];
+      for (int  k=0; k<nt; k++) {
+         // find corresponding section index and rounding center node
+         int l = (4 - 4*k/nt)%4;
+         int si = k%(nt/4);
+         FemNode3d centerNode = snodes[l][si][nr][nh/2];
+         Vector3d rvec = new Vector3d(centerNode.getPosition());
+         rvec.normalize(); // radial unit vector
+         for (int i=0; i<=np; i++) {
+            if (i == 0) {
+               for (int j=0; j<=nh/2; j++) {
+                  rnodes[0][j][k] = snodes[l][si][nr][nh/2+j];
+               }
+            }
+            else if (i == np) {
+               for (int j=0; j<=nh/2; j++) {
+                  rnodes[np][j][k] = snodes[l][si][nr][nh/2-j];
+               }
+            }
+            else {
+               double cp = Math.cos(i*dphi);         
+               double sp = Math.sin(i*dphi);         
+               rnodes[i][0][k] = centerNode;
+               for (int j=1; j<=nh/2; j++) {
+                  double rr = r + sp*dh*j;
+                  FemNode3d node = new FemNode3d (
+                     new Point3d (rr*rvec.x, rr*rvec.y, cp*dh*j));
+                  fem.addNode (node);
+                  rnodes[i][j][k] = node;
+               }
+            }
+         }
+      }
+      // create and add the rounding elements
+      for (int k=0; k<nt; k++) {
+         int kn = (k < nt-1 ? k+1 : 0);
+         for (int i=0; i<np; i++) {
+            // add center wedge element
+            WedgeElement wedge = new WedgeElement (
+               rnodes[i][0][k], rnodes[i+1][1][k], rnodes[i][1][k],
+               rnodes[i][0][kn], rnodes[i+1][1][kn], rnodes[i][1][kn]);
+            fem.addElement (wedge);
+            for (int j=1; j<nh/2; j++) {
+               // add hex element
+               HexElement hex = new HexElement (
+                  rnodes[i][j][k], rnodes[i][j+1][k],
+                  rnodes[i+1][j+1][k], rnodes[i+1][j][k], 
+
+                  rnodes[i][j][kn], rnodes[i][j+1][kn],
+                  rnodes[i+1][j+1][kn], rnodes[i+1][j][kn]);
+               fem.addElement (hex);
+            }
+         }
+      }
+      return fem;
+   }
    
    /**
     * Creates a cylinder made of mostly hex elements, with wedges in the centre
@@ -2531,27 +3181,26 @@ public class FemFactory {
       for (int k = 0; k < nr; k++) {
          for (int j = 0; j < nl; j++) {
             for (int i = 0; i < nt; i++) {
-
+               int in = (i + 1) % nt; // next i along
                if (k == 0) {
                   // wedge element
                   WedgeElement wedge =
                      new WedgeElement(
-                        nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
-                        nodes[i][j][k],
+                        nodes[i][j][k+1],
+                        nodes[in][j][k+1],  nodes[i][j][k],
 
-                        nodes[i][j + 1][k + 1],
-                        nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k]);
+                        nodes[i][j+1][k+1],
+                        nodes[in][j+1][k+1], nodes[i][j+1][k]);
                   model.addElement(wedge);
                } else {
                   // hex element
                   HexElement hex =
                      new HexElement(
-                        nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
-                        nodes[(i + 1) % nt][j + 1][k + 1],
-                        nodes[i][j + 1][k + 1],
+                        nodes[i][j][k+1], nodes[in][j][k+1],
+                        nodes[in][j+1][k+1], nodes[i][j+1][k+1],
 
-                        nodes[i][j][k], nodes[(i + 1) % nt][j][k],
-                        nodes[(i + 1) % nt][j + 1][k], nodes[i][j + 1][k]);
+                        nodes[i][j][k], nodes[in][j][k],
+                        nodes[in][j+1][k], nodes[i][j+1][k]);
                   model.addElement(hex);
                }
 
@@ -3561,7 +4210,7 @@ public class FemFactory {
     * @param nr number of elements outward from the radius along the x,y-axes
     * @return generated model
     */
-   public static FemModel3d createHexCylinder (
+   public static FemModel3d createConformalHexCylinder (
       FemModel3d fem, double l, double r, int nl, int nr) {
       if (fem == null) {
          fem = new FemModel3d();
@@ -3591,7 +4240,231 @@ public class FemFactory {
             node.setPosition (pos);
          }
       }
+      return fem;
+   }
+
+   /**
+    * Creates and adds the nodes and elements for a hex grid centered on the
+    * origin.
+    *
+    * @param fem model to add the nodes and elements to
+    * @param nodes returns the created nodes
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    * @param nx number of elements in the x direction
+    * @param ny number of elements in the y direction
+    * @param nz number of elements in the z direction
+    */
+   private static void addHexGrid ( 
+      FemModel3d fem, FemNode3d[][][] nodes,
+      double wx, double wy, double wz, int nx, int ny, int nz) {
+
+      double dx = wx/nx;
+      double dy = wy/ny;
+      double dz = wz/nz;
+
+      // create and add nodes
+      for (int i=0; i<=nx; i++) {
+         for (int j=0; j<=ny; j++) {
+            for (int k=0; k<=nz; k++) { 
+               FemNode3d node = new FemNode3d (
+                  new Point3d (-wx/2+i*dx, -wy/2+j*dy, -wz/2+k*dz));
+               fem.addNode (node);
+               nodes[i][j][k] = node;
+            }
+         }
+      }
+      // create and add elements
+      for (int i=0; i<nx; i++) {
+         for (int j=0; j<ny; j++) {
+            for (int k=0; k<nz; k++) { 
+               fem.addElement (
+                  new HexElement (
+                     nodes[i][j+1][k], nodes[i+1][j+1][k],
+                     nodes[i+1][j][k], nodes[i][j][k], 
+                     nodes[i][j+1][k+1], nodes[i+1][j+1][k+1],
+                     nodes[i+1][j][k+1], nodes[i][j][k+1]));
+            }
+         }
+      }
+   }
+
+   private static void shiftNodePosition (
+      FemNode3d n, double dx, double dy, double dz) {
+
+      Point3d pos = new Point3d (n.getRestPosition());
+      pos.add (new Vector3d (dx, dy, dz));
+      n.setPosition (pos);
+      n.setRestPosition (pos);
+   }
+
+   /**
+    * Creates and adds nodes and hex elements, in four sections, to form a
+    * cylinder around an already-created hex grid core. The corner nodes of the
+    * hex grid will also be smoothed off slightly.
+    *
+    * @param fem model to add the nodes and elements to
+    * @param snodes returns the created section nodes
+    * @param cnodes supplies the already-creates nodes for the center grid
+    * @param r radius of the cylinder
+    * @param wz height of the cylinder in the z direction
+    * @param nx number of elements along each side of the center grid
+    * @param nr number of elements along lines extending from the
+    * center grid to the outer cylinder edge
+    * @param nz number of elements along the z direction
+    */
+   private static void addHexCylinderSections (
+      FemModel3d fem, FemNode3d[][][][] snodes, FemNode3d[][][] cnodes,
+      double wx, double r, double wz, int nx, int nr, int nz) {
+
+      double dx = wx/nx;
+      double dz = wz/nz;
+
+      // smooth of corner nodes of the hex grid, located at (i,j) = (0,0),
+      // (nx,0), (nx,nx) and (0,nx)
+      double d = 0.15*dx;
+      for (int k=0; k<=nz; k++) {
+         shiftNodePosition (cnodes[0][0][k], d, d, 0);
+         shiftNodePosition (cnodes[nx][0][k], -d, d, 0);
+         shiftNodePosition (cnodes[nx][nx][k], -d, -d, 0);
+         shiftNodePosition (cnodes[0][nx][k], d, -d, 0);
+      }
+
+      // sections l = 0, 1, 2, 3 are arranged as +x, +y, -x, -y
+      for (int l=0; l<4; l++) {
+         // set base vectors for arc interpolation, depending on the section
+         Vector3d u0;
+         Vector3d u1;
+         double v = r/Math.sqrt(2); // base vector component lengths
+         switch (l) {
+            case 0: u0 = new Vector3d(v,v,0); u1 = new Vector3d(v,-v,0); break;
+            case 1: u0 = new Vector3d(-v,v,0); u1 = new Vector3d(v,v,0); break;
+            case 2: u0 = new Vector3d(-v,-v,0); u1 = new Vector3d(-v,v,0); break;
+            case 3: u0 = new Vector3d(v,-v,0); u1 = new Vector3d(-v,-v,0); break;
+            default: {
+               throw new InternalErrorException ("unknown section " + l);
+            }
+         }
+         for (int i=0; i<=nx; i++) {
+            for (int k=0; k<=nz; k++) {
+               if (l > 0 && i == nx) {
+                  for (int j=0; j<=nr; j++) {
+                     snodes[l][i][j][k] = snodes[l-1][0][j][k];
+                  }
+               }
+               else if (l == 3 && i == 0) {
+                  for (int j=0; j<=nr; j++) {
+                     snodes[l][i][j][k] = snodes[0][nx][j][k];
+                  }
+               }
+               else {
+                  FemNode3d nj0;
+                  FemNode3d njt;
+                  switch (l) {
+                     case 0: {
+                        nj0 = cnodes[nx][nx-i][k];
+                        break;
+                     }
+                     case 1: {
+                        nj0 = cnodes[i][nx][k];
+                        break;                        
+                     }
+                     case 2: {
+                        nj0 = cnodes[0][i][k];
+                        break;
+                     }
+                     case 3: {
+                        nj0 = cnodes[nx-i][0][k];
+                        break;
+                     }
+                     default: {
+                        throw new InternalErrorException ("unknown section " + l);
+                     }
+                  }
+                  Point3d pos = interpolateArcPos (i/(double)nx, u0, u1);
+                  pos.z = -wz/2+k*dz;
+                  njt = new FemNode3d (pos);
+                  fem.addNode (njt);
+                  snodes[l][i][0][k] = nj0;
+                  snodes[l][i][nr][k] = njt;
+                  Point3d npos = new Point3d();
+                  for (int j=1; j<nr; j++) {
+                     double t = j/(double)nr;
+                     npos.combine (1-t, nj0.getPosition(), t, njt.getPosition());
+                     snodes[l][i][j][k] = new FemNode3d (npos);  
+                     fem.addNode (snodes[l][i][j][k]);
+                  }
+               }
+            }
+         }
+      }
+
+      // create section center elements
+      for (int l=0; l<4; l++) {
+         for (int i=0; i<nx; i++) {
+            for (int j=0; j<nr; j++) {
+               for (int k=0; k<nz; k++) { 
+                  fem.addElement (
+                     new HexElement (
+                        snodes[l][i][j+1][k], snodes[l][i+1][j+1][k],
+                        snodes[l][i+1][j][k], snodes[l][i][j][k], 
+                        snodes[l][i][j+1][k+1], snodes[l][i+1][j+1][k+1],
+                        snodes[l][i+1][j][k+1], snodes[l][i][j][k+1]));
+               }
+            }
+         }
+      }
+   }
+
+   private static void doCreateHexCylinder (
+      FemModel3d fem, FemNode3d[][][][] snodes,
+      double h, double r, int nh, int nt, int nr) {
+   }
+
+   /**
+    * Creates a hex cylinder centered on the origin with its central axis
+    * aligned with z. Hex meshing is accomplished by partitioning the volume
+    * into five regions: an inner block and four surrounding sections.
+    * 
+    * @param fem model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch
+    * @param h height the along z axis
+    * @param r cylinder radius
+    * @param nh number of elements along the height
+    * @param nt number of elements around the circumference. Will be rounded up
+    * to an even multiple of 4.
+    * @return created FEM model
+    */
+   public static FemModel3d createHexCylinder (
+      FemModel3d fem, double h, double r, int nh, int nt) {
+
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+      else {
+         fem.clear();
+      }
+
+      // ensure nt is a multiple of 4
+      if (nt < 4) {
+         nt = 4;
+      }
+      else if (nt%4 != 0) {
+         nt = 4*(nt/4+1);
+      }
+
+      double s = 0.55;  // ratio of inner block radius to r
+      double w = r*s*Math.sqrt(2); // width of the inner block
+      int nr = (int)Math.ceil((nt*r*(1-s)/(4*w))); // num radial elems per section
+
+      // create and add nodes for the center block
+      FemNode3d[][][] cnodes = new FemNode3d[nt/4+1][nt/4+1][nh+1];
+      addHexGrid (fem, cnodes, w, w, h, nt/4, nt/4, nh);
       
+      // nodes for the four surrounding sections
+      FemNode3d[][][][] snodes = new FemNode3d[4][nt/4+1][nr+1][nh+1];
+      addHexCylinderSections (fem, snodes, cnodes, w, r, h, nt/4, nr, nh);
       return fem;
    }
    

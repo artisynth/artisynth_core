@@ -21,7 +21,7 @@ import artisynth.core.driver.*;
 import artisynth.demos.mech.*;
 import artisynth.demos.fem.*;
 
-public class TransformGeometryTest {
+public class TransformGeometryTest extends UnitTest {
 
    boolean debug = false;
 
@@ -1717,15 +1717,14 @@ public class TransformGeometryTest {
       testRigidAndMeshBodies();
       testEmbeddedMesh();
       testSkinMeshBody();
-
-      System.out.println ("\nPassed\n");
    }
 
    public static void main (String[] args) {
 
+      
       RandomGenerator.setSeed (0x1234);
       TransformGeometryTest tester = new TransformGeometryTest();
-      tester.test();
+      tester.runtest();
    }
       
 }

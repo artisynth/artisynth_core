@@ -21,4 +21,8 @@ import java.util.*;
 
 public interface DynamicComponent
    extends DynamicAgent, ModelComponent, ForceEffector, TransformableGeometry {
+   
+   public void addAttachmentRequest (AttachingComponent ac);
+   
+   public boolean removeAttachmentRequest (AttachingComponent ac);
 }

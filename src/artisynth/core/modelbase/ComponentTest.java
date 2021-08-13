@@ -175,6 +175,26 @@ public class ComponentTest extends UnitTest {
          throw new TestException (
             msg + " yielded " + result + ", expected " + value);
       }
+      int status = ComponentUtils.checkConnectivity (comp1, comp2, viacomp);
+      if (value != (status == 1)) {
+         throw new TestException (
+            msg + ": result=" + result + ", connectivity check= " + status);
+      }
+   }
+
+   private void checkCheckConnectivity (
+      ModelComponent comp1, ModelComponent comp2,
+      ModelComponent viacomp, int value) {
+      
+      String msg =
+         "checkConnectivity " +
+         (comp1.getName()+","+comp2.getName()+","+viacomp.getName());
+      int result =
+         ComponentUtils.checkConnectivity (comp1, comp2, viacomp);
+      if (value != result) {
+         throw new TestException (
+            msg + " yielded " + result + ", expected " + value);
+      }
    }
 
    private boolean containedIn (ModelComponent comp, ModelComponent[] comps) {
@@ -253,6 +273,11 @@ public class ComponentTest extends UnitTest {
       checkConnectedVia (I, E, D, true);
       checkConnectedVia (I, E, C, false);
       checkConnectedVia (I, D, D, true);
+
+      checkCheckConnectivity (I, E, D, 1);
+      checkCheckConnectivity (I, E, C, -1);
+      checkCheckConnectivity (H, J, A, 0);
+      checkCheckConnectivity (D, K, C, 0);
 
       checkConnectedVia (E, F, allComps, A, B, C);
       checkConnectedVia (D, E, allComps, B);

@@ -12,23 +12,10 @@ import java.util.ArrayList;
 import artisynth.core.modelbase.*;
 import maspack.matrix.*;
 
-public abstract class Marker extends Point implements HasAttachments {
+public abstract class Marker extends Point 
+   implements HasAttachments, AttachingComponent {
 
    public abstract void updateState();
-
-//   protected void removeBackRefsIfConnected() {
-//      DynamicAttachmentBase.removeBackRefsIfConnected (this, getAttachment());
-//      // if (isConnectedToHierarchy()) {
-//      //    DynamicAttachmentBase.removeBackRefs (getAttachment());
-//      // }
-//   }
-//
-//   protected void addBackRefsIfConnected() {
-//      DynamicAttachmentBase.addBackRefsIfConnected (this, getAttachment());
-//      // if (isConnectedToHierarchy()) {
-//      //    DynamicAttachmentBase.addBackRefs (getAttachment());
-//      // }
-//   }
 
    /**
     * {@inheritDoc}
@@ -56,43 +43,22 @@ public abstract class Marker extends Point implements HasAttachments {
    @Override
    public void connectToHierarchy (CompositeComponent hcomp) {
       super.connectToHierarchy (hcomp);
-      if (DynamicAttachmentBase.useNewConnect) {
-         DynamicAttachment at = getAttachment();
-         if (at != null) {
-            DynamicAttachmentBase.addNewlyConnectedBackRefs (
-               this, at, hcomp);
-         }
-         updateState(); // do we need this?
-      }
-      else { 
-         if (hcomp == getParent()) {
-            DynamicAttachment at = getAttachment();
-            if (at != null) {
-               DynamicAttachmentBase.addBackRefs(at);
-            }
-            updateState(); // do we need this?
-         }
+      DynamicAttachment at = getAttachment();
+      if (at != null) {
+         DynamicAttachmentBase.addConnectedMasterRefs (this, hcomp);
       }
    }
 
    @Override
    public void disconnectFromHierarchy(CompositeComponent hcomp) {
       super.disconnectFromHierarchy(hcomp);
-      if (DynamicAttachmentBase.useNewConnect) {
-         DynamicAttachment at = getAttachment();
-         if (at != null) {
-            DynamicAttachmentBase.removeNewlyDisconnectedBackRefs (
-               this, at, hcomp);
-         }         
-      }
-      else {      
-         if (hcomp == getParent()) {
-            DynamicAttachment at = getAttachment();
-            if (at != null) {
-               DynamicAttachmentBase.removeBackRefs(at);
-            }
-         }
-      }
+      DynamicAttachment at = getAttachment();
+      if (at != null) {
+         DynamicAttachmentBase.removeConnectedMasterRefs (this, hcomp);
+      }            
    }
-
+   public void connectAttachment (DynamicComponent dcomp) {
+      // should we check to see if dcomp is a known master attachment?
+      dcomp.addMasterAttachment (getAttachment());
+   }
 }

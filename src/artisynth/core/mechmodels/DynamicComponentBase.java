@@ -16,8 +16,10 @@ import java.util.*;
 
 public abstract class DynamicComponentBase extends RenderableComponentBase
    implements DynamicComponent {
+   
    protected DynamicAttachment myAttachment;
    protected LinkedList<DynamicAttachment> myMasterAttachments;
+   protected LinkedList<AttachingComponent> myAttachmentRequests;
    protected ArrayList<Constrainer> myConstrainers;
 
    protected boolean myDynamicP;
@@ -309,6 +311,74 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
          }
       }
    }   
+   
+   public void addAttachmentRequest (AttachingComponent ac) {
+      if (myAttachmentRequests == null) {
+         myAttachmentRequests = new LinkedList<>();
+      }
+      myAttachmentRequests.add (ac);
+   }
+   
+   public boolean removeAttachmentRequest (AttachingComponent ac) {
+      boolean removed = false;
+      if (myAttachmentRequests != null) {
+         removed = myAttachmentRequests.remove (ac);
+         if (myAttachmentRequests.isEmpty()) {
+            myAttachmentRequests = null;
+         }
+      }
+      return removed;
+   }
+   
+   public void connectToHierarchy (CompositeComponent comp) {
+      if (myAttachmentRequests != null) {
+         ListIterator<AttachingComponent> li = 
+         myAttachmentRequests.listIterator();
+         while (li.hasNext()) {
+            AttachingComponent ac = li.next();
+            if (ComponentUtils.areConnectedVia (this, ac, comp)) {
+               ac.connectAttachment (this);
+               li.remove();
+            }
+         }
+      }
+   }
+
+   public void disconnectFromHierarchy (CompositeComponent comp) {
+      if (isAttached()) {
+         DynamicAttachment at = getAttachment();
+         if (at instanceof AttachingComponent) {
+            AttachingComponent ac = (AttachingComponent)at;
+            if (ComponentUtils.areConnectedVia (this, ac, comp)) {
+               setAttached (null);
+               addAttachmentRequest (ac);
+            }
+         }
+      }
+      if (myMasterAttachments != null) { 
+         ListIterator<DynamicAttachment> li = 
+         myMasterAttachments.listIterator();
+         while (li.hasNext()) {     
+            DynamicAttachment at = li.next();
+            AttachingComponent ac = null;
+            // XXX bit of a hack here - if the attachment comes from a marker,
+            // we need to recover the marker in order to supply the attachment
+            // request.
+            if (at.getSlave() instanceof Marker) {
+               ac = (Marker)at.getSlave();
+            }
+            else if (at instanceof AttachingComponent) {
+               ac = (AttachingComponent)at;
+            }
+            if (ac != null) {
+               if (ComponentUtils.areConnectedVia (this, ac, comp)) {
+                  li.remove();
+                  addAttachmentRequest (ac);
+               }
+            }
+         } 
+      }
+   }
 
 //    /**
 //     * {@inheritDoc}

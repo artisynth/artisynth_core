@@ -121,13 +121,25 @@ public class TetGenReader implements FemReader {
    public static FemModel3d read (
       FemModel3d model, double density, String nodeFileName, String elemFileName,
       Vector3d scale) throws IOException {
-      
-      FileReader nodeFile = new FileReader (nodeFileName);
-      FileReader elemFile = new FileReader (elemFileName);
-      model = read (model, density, scale, nodeFile, elemFile);
-      nodeFile.close();
-      elemFile.close();
-      
+
+      FileReader nodeFile = null;
+      FileReader elemFile = null;
+      try {
+         nodeFile = new FileReader (nodeFileName);
+         elemFile = new FileReader (elemFileName);
+         model = read (model, density, scale, nodeFile, elemFile);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (nodeFile != null) {
+            nodeFile.close();
+         }
+         if (elemFile != null) {
+            elemFile.close();
+         }
+      }
       return model;
    }
 
@@ -139,23 +151,48 @@ public class TetGenReader implements FemReader {
          model = new FemModel3d();
       }
       
-      ReaderTokenizer nodeFile =
+      ReaderTokenizer rtok =
          new ReaderTokenizer (new BufferedReader (nodeReader));
       model.setDensity (density);
-      nodeFile.nextToken();
-      nodeFile.nextToken();
-      nodeFile.nextToken();
-      nodeFile.nextToken();
+      int numNodes = 0;
+      int numAttrs = 0;
+      int numBoundaryMkrs = 0;
+      rtok.nextToken();
+      if (!rtok.tokenIsInteger()) {
+         throw new IOException ("Expecting number of nodes, got " + rtok);
+      }
+      else {
+         numNodes = (int)rtok.lval;
+      }
+      rtok.nextToken();
+      if (!rtok.tokenIsInteger() || rtok.lval != 3) {
+         throw new IOException ("Expecting dimension number 3, got " + rtok);
+      }
+      rtok.nextToken();
+      if (!rtok.tokenIsInteger()) {
+         throw new IOException ("Expecting number of attributes, got " + rtok);
+      }
+      else {
+         numAttrs = (int)rtok.lval;
+      }
+      rtok.nextToken();
+      if (!rtok.tokenIsInteger() || (rtok.lval != 0 && rtok.lval != 1)) {
+         throw new IOException (
+            "Expecting number of boundary markers (0 or 1), got " + rtok);
+      }
+      else {
+         numBoundaryMkrs = (int)rtok.lval;
+      }
 
-      while (nodeFile.nextToken() != ReaderTokenizer.TT_EOF) {
-         if (!nodeFile.tokenIsInteger()) {
-            throw new IOException ("Expecting node index, got " + nodeFile);
+      while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+         if (!rtok.tokenIsInteger()) {
+            throw new IOException ("Expecting node index, got " + rtok);
          }
-         // int index = (int)nodeFile.lval;
+         // int index = (int)rtok.lval;
          Point3d coords = new Point3d();
 
-         for (int i = 0; i < 3; i++) {
-            coords.set (i, nodeFile.scanNumber());
+         for (int i=0; i<3; i++) {
+            coords.set (i, rtok.scanNumber());
          }
 
          // System.out.println(coords);
@@ -164,30 +201,32 @@ public class TetGenReader implements FemReader {
             coords.y *= scale.y;
             coords.z *= scale.z;
          }
-
          model.addNode (new FemNode3d (coords));
+         // scan attributes and boundary markers, if any; these are not used
+         for (int i=0; i<numAttrs+numBoundaryMkrs; i++) {
+            rtok.scanNumber();
+         }
       }
 
-      ReaderTokenizer elemFile =
-         new ReaderTokenizer (new BufferedReader (elemReader));
+      rtok = new ReaderTokenizer (new BufferedReader (elemReader));
 
-      elemFile.nextToken();
-      elemFile.nextToken();
-      elemFile.nextToken();
+      rtok.nextToken();
+      rtok.nextToken();
+      rtok.nextToken();
 
       int indexBase = -1;
-      while (elemFile.nextToken() != ReaderTokenizer.TT_EOF) {
-         if (!elemFile.tokenIsInteger()) {
-            throw new IOException ("Expecting element index, got " + elemFile);
+      while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+         if (!rtok.tokenIsInteger()) {
+            throw new IOException ("Expecting element index, got " + rtok);
          }
          if (indexBase == -1) {
-            indexBase = (elemFile.nval == 1.0 ? 1 : 0);
+            indexBase = (rtok.nval == 1.0 ? 1 : 0);
          }
-         // int index = (int)elemFile.lval;
+         // int index = (int)rtok.lval;
 
          int[] idxs = new int[4];
          for (int i = 0; i < 4; i++) {
-            idxs[i] = elemFile.scanInteger()-indexBase;
+            idxs[i] = rtok.scanInteger()-indexBase;
             // System.out.print(idxs[i] + " ");
          }
          // System.out.println();
@@ -218,27 +257,42 @@ public class TetGenReader implements FemReader {
     */
    public static PolygonalMesh readFaces (
       String nodeFileName, String faceString, Vector3d scale) throws IOException {
+
       FileReader nodeFile = new FileReader (nodeFileName);
       FileReader faceFile = new FileReader (faceString);
-      PolygonalMesh mesh = readFaces (scale, nodeFile, faceFile);
-      nodeFile.close();
-      faceFile.close();
+      PolygonalMesh mesh = null;
+      try {
+         nodeFile = new FileReader (nodeFileName);
+         faceFile = new FileReader (faceString);
+         mesh = readFaces (scale, nodeFile, faceFile);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (nodeFile != null) {
+            nodeFile.close();
+         }
+         if (faceFile != null) {
+            faceFile.close();
+         }
+      }
       return mesh;
    }
 
    public static PolygonalMesh readFaces (
       Vector3d scale, Reader nodeReader, Reader faceReader) throws IOException {
       PolygonalMesh mesh = new PolygonalMesh();
-      ReaderTokenizer nodeFile =
+      ReaderTokenizer rtok =
          new ReaderTokenizer (new BufferedReader (nodeReader));
-      nodeFile.nextToken();
-      nodeFile.nextToken();
-      nodeFile.nextToken();
-      nodeFile.nextToken();
-      while (nodeFile.nextToken() != ReaderTokenizer.TT_EOF) {
+      rtok.nextToken();
+      rtok.nextToken();
+      rtok.nextToken();
+      rtok.nextToken();
+      while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
          Point3d coords = new Point3d();
          for (int i = 0; i < 3; i++) {
-            coords.set (i, nodeFile.scanNumber());
+            coords.set (i, rtok.scanNumber());
          }
          if (scale != null) {
             coords.x *= scale.x;

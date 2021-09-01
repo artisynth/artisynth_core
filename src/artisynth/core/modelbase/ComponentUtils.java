@@ -140,6 +140,86 @@ public class ComponentUtils {
       }      
    }
 
+   /**
+    * Returns true if a composite component is editable, meaning that its
+    * subcomponents can be removed via the GUI.
+    *
+    * @param parent component to check for editability
+    * @param ignoreEditable if {@code true}, parent need only be an instance of
+    * {@link MutableCompositeComponent}, and the result of its {@link
+    * MutableCompositeComponent#isEditable} method is ignored.
+    */
+   public static boolean isEditable (
+      CompositeComponent parent, boolean ignoreEditable) {
+      if (parent instanceof MutableCompositeComponent<?>) {
+         if (ignoreEditable) {
+            return true;
+         }
+         else {
+            return ((MutableCompositeComponent<?>)parent).isEditable();
+         }
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * Returns true if all components in a list can be deleted.
+    *
+    * @param comps list of components to check
+    * @param ignoreEditable if {@code true}, each component's parent need only
+    * be an instance of {@link MutableCompositeComponent}, and the result of
+    * its {@link MutableCompositeComponent#isEditable} method is ignored.
+    * @return {@code true} if all components can be deleted
+    */
+   public static boolean componentsAreDeletable (
+      Collection<? extends ModelComponent> comps, boolean ignoreEditable) {
+      for (ModelComponent c : comps) {
+         CompositeComponent parent = c.getParent();
+         if (parent == null ||
+             c.isFixed() ||
+             !isEditable(parent, ignoreEditable) ||
+             ComponentUtils.isAncestorSelected(c)) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   /**
+    * Takes a list of components and removes them along with all their
+    * hard dependencies, and updates their soft dependencies. In some
+    * cases, it is not possible to delete certain components, in
+    * which case an exception is thrown.
+    *
+    * <p>The effect of this method is the same as deleting a set of components
+    * in the graphical interface.
+    *
+    * @param comps list of components to delete.
+    */
+   public static void deleteComponentsAndDependencies (
+      List<? extends ModelComponent> comps) {
+
+      LinkedList<ModelComponent> update = new LinkedList<ModelComponent>();
+      LinkedList<ModelComponent> delete =
+         findDependentComponents (update, comps);   
+
+      if (!componentsAreDeletable (delete, /*ignoreEditable=*/true)) {
+         throw new IllegalArgumentException (
+            "Some components cannot be deleted");
+      }
+      removeComponents (delete, null);
+      if (update.size() > 0) {
+         for (ModelComponent c : update) {
+            // undoInfo is just a stub in this case - won't be used, but
+            // updateReferences expects it
+            Deque<Object> undoInfo = new ArrayDeque<Object>();
+            c.updateReferences (/*undo=*/false, undoInfo);
+         }        
+      }
+   }
+
    // Takes a list of components and returns an extension of it that includes
    // all components which have a hard dependency on one or more components in
    // the original list. It also adds all components which have soft
@@ -570,18 +650,22 @@ public class ComponentUtils {
    }
 
    /**
-    * Returns {@code true} if components {@code comp1} and {@code comp2} are
+    * Returns 1 if components {@code comp1} and {@code comp2} are
     * connected via the component hierarchy, with the path running through the
     * specified intermediate component {@code viacomp} (which may equal {@code
     * comp1}, {@code comp2}, or any component on the path in between).
+    * Otherwise, return 0 if the {@code comp1} and {@code comp2}
+    * are not connected, or -1 if they are connected but not via 
+    * {@code viacomp}.
     *
     * @param comp1 first component
     * @param comp2 second component to which path is being checked
     * @param viacomp required intermediate component
-    * @return {@code true} if components are connected via a path containing
-    * {@code viacomp}.
+    * @return 1 if components are connected via a path containing
+    * {@code viacomp}, 0 if they are not connected, and -1 if
+    * they are connected by not via {@code viacomp}.
     */
-   public static boolean areConnectedVia (
+   public static int checkConnectivity (
       ModelComponent comp1, ModelComponent comp2, ModelComponent viacomp) {
 
       int depth1 = getDepth (comp1);
@@ -619,13 +703,30 @@ public class ComponentUtils {
             }
          }
          if (ancestor1 == ancestor2) {
-            return viaFound;
+            return viaFound ? 1 : -1;
          }
          ancestor1 = ancestor1.getParent();
          ancestor2 = ancestor2.getParent();
          depth1--;
       }
-      return false;
+      return 0;
+   }
+   
+   /**
+    * Returns {@code true} if components {@code comp1} and {@code comp2} are
+    * connected via the component hierarchy, with the path running through the
+    * specified intermediate component {@code viacomp} (which may equal {@code
+    * comp1}, {@code comp2}, or any component on the path in between).
+    *
+    * @param comp1 first component
+    * @param comp2 second component to which path is being checked
+    * @param viacomp required intermediate component
+    * @return {@code true} if components are connected via a path containing
+    * {@code viacomp}.
+    */
+   public static boolean areConnectedVia (
+      ModelComponent comp1, ModelComponent comp2, ModelComponent viacomp) {
+      return checkConnectivity (comp1, comp2, viacomp) == 1;
    }
 
    /**

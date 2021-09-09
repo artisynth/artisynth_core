@@ -100,7 +100,7 @@ public class FileSearchPath {
     * relative to one of the search path directories, return
     * the relative path. Otherwise, return the absolute path.
     * 
-    * @param file
+    * @param file file to find the path for
     * @return file path, either absolute or relative to one
     * of the search directories. 
     */

@@ -233,7 +233,7 @@ public class FileNameField extends StringField {
     * Sets the file associated with this widget's value. The value is set from
     * the file's absolute path.
     * 
-    * @return file associated with widget value
+    * @param file associated with widget value
     */
    public void setFile (File file) {
       if (file == null) {

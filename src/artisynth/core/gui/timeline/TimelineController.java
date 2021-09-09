@@ -2417,8 +2417,8 @@ public class TimelineController extends Timeline
    }
 
    /**
-    * Set the timeline zoom level so that 'sec' is visible.  If sec <= 0, we
-    * compute a default value from the maximum probe or waypoint times.
+    * Set the timeline zoom level so that 'sec' is visible.  If sec {@code <=
+    * 0}, we compute a default value from the maximum probe or waypoint times.
     */
    public void setVisibleRange (double sec) {
       if (sec <= 0) {

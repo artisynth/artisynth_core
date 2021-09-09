@@ -1306,7 +1306,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Gets the x-y-z rotation angles corresponding to this rotation.  This is
-    * the inverse of {@link #setXyz(double,double,double).
+    * the inverse of {@link #setXyz(double,double,double)}.
     * 
     * @param angs
     * returns the x-y-z angles (rx, ry, and rz, in that order) in radians.

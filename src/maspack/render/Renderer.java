@@ -508,9 +508,9 @@ public interface Renderer {
 
    /**
     * Returns the default axis/length ratio for rendering solid axes.  See
-    * {@link #setAxesLengthRadiusRatio} for more information.
+    * {@link #setAxisLengthRadiusRatio} for more information.
     *
-    * @param length/radius ratio for drawing solid axes
+    * @return length/radius ratio for drawing solid axes
     */
    public double getAxisLengthRadiusRatio();
 

@@ -295,8 +295,7 @@ public class GuiUtils {
    /**
     * Sets the horizonal position of a window relative to another component. The
     * vertical position is unchanged. The relative location is specified by
-    * either {@link #LEFT LEFT}, {@link #RIGHT RIGHT}, {@link #CENTER CENTER},
-    * {@link #LEFT_EDGES LEFT_EDGES}, or {@link #RIGHT_EDGES RIGHT_EDGES}.
+    * either {@link #LEFT LEFT}, {@link #RIGHT RIGHT}, or {@link #CENTER CENTER}.
     * This placement may be altered in order to keep the window on the screen.
     * 
     * @param win
@@ -382,9 +381,8 @@ public class GuiUtils {
    /**
     * Sets the vertical position of a window relative to another component. The
     * horizontal position is unchanged. The relative location is specified by
-    * either {@link #ABOVE ABOVE}, {@link #BELOW BELOW},
-    * {@link #CENTER CENTER}, {@link #TOP_EDGES TOP_EDGES}, or
-    * {@link #BOTTOM_EDGES BOTTOM_EDGES}. This placement may be altered in
+    * either {@link #ABOVE ABOVE}, {@link #BELOW BELOW}, or
+    * {@link #CENTER CENTER}. This placement may be altered in
     * order to keep the window on the screen.
     * 
     * @param win
@@ -821,7 +819,7 @@ public class GuiUtils {
     * Create a button to be arranged horizontally within a panel (such as the
     * "Cancel", "Done" buttons at the bottom of a dialog.
     *
-    * @param name name and command associated with the button
+    * @param cmd name and command associated with the button
     * @param listener action listener for the button command
     * @param toolTip if not {@code null}, specifies tool tip text
     * @return created button
@@ -841,8 +839,8 @@ public class GuiUtils {
    /**
     * Creates a horizontal button and adds it to a JComponent.
     *
-    * @param panel panel which the button should be added
-    * @param name name and command associated with the button
+    * @param comp component to which the button should be added
+    * @param cmd name and command associated with the button
     * @param listener action listener for the button command
     * @param toolTip if not {@code null}, specifies tool tip text
     * @return created button

@@ -703,7 +703,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.setDefaultAxisLength (axisLength.value);
 
          AxisAngle REW = getDefaultViewOrientation(getRootModel());
-         myViewer.setDefaultAxialView (
+         myViewer.setAxialView (
             AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
          initializeViewer (myViewer, REW);
 
@@ -864,7 +864,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       ViewerToolBar toolBar = 
          new ViewerToolBar (viewer, /*addGridPanel=*/true);
       frame.getContentPane().add (toolBar, BorderLayout.PAGE_START);
-      viewer.setDefaultAxialView (
+      viewer.setAxialView (
          AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
       initializeViewer (viewer, REW);
       frame.setVisible (true);

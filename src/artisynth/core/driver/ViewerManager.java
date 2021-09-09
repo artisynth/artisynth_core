@@ -372,7 +372,7 @@ public class ViewerManager {
       AxisAlignedRotation view = 
          AxisAlignedRotation.getNearest (new RotationMatrix3d(frontView));
       for (GLViewer v : myViewers) {
-         v.setDefaultAxialView (view);
+         v.setAxialView (view);
          resetViewer (v);
       }
    }

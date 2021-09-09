@@ -42,7 +42,7 @@ public class ReadlinePanel extends JTextArea {
    LinkedList<String> myHistory = new LinkedList<String>();
    int myMaxHistory = 500;
    int myMaxLines = 500;
-   int myHistoryIdx = 0;
+   int myHistoryIdx = -1;
    int myLineStart;
    boolean myInputRequested = false;
 
@@ -133,7 +133,7 @@ public class ReadlinePanel extends JTextArea {
 
       initializeKeyMap();
       initializeFont();
-      addHistory ("");
+      //addHistory ("");
       addComponentListener (new MyComponentListener());
       addPopupMenu();
       //initializeNewLine();
@@ -236,16 +236,11 @@ public class ReadlinePanel extends JTextArea {
    String myKillBuffer;
 
    private void addHistory (String str) {
-      // System.out.println ("adding '"+str+"'");
       myHistory.addFirst (str);
       if (myHistory.size() == myMaxHistory) {
          myHistory.removeLast();
       }
-   }
-
-   private void setHistory (int idx, String str) {
-      // System.out.println ("setting '"+str+"'");
-      myHistory.set (idx, str);
+      myHistoryIdx = -1;
    }
 
    protected void removeExcessLines() {
@@ -527,33 +522,42 @@ public class ReadlinePanel extends JTextArea {
       insertText (str, begOffs);
    }
 
+   private void printHistory() {
+      for (int i=Math.min(myHistory.size()-1,10); i>=0; i--) {
+         System.out.println (" " + i + " " + myHistory.get(i));
+      }
+      System.out.println (" idx=" + myHistoryIdx);
+   }
+   
    protected void previousHistory() {
-      if (myHistoryIdx < myHistory.size() - 1) {
-         setHistory (myHistoryIdx, getLineText());
+      if (myHistoryIdx+1 < myHistory.size()) {
          replaceLine (myHistory.get (++myHistoryIdx));
       }
    }
 
-   protected void beginningOfHistory() {
-      if (myHistoryIdx < myHistory.size() - 1) {
-         setHistory (myHistoryIdx, getLineText());
-         myHistoryIdx = myHistory.size() - 1;
-         replaceLine (myHistory.get (myHistoryIdx));
+   protected void nextHistory() {
+      if (myHistoryIdx-1 >= 0) {
+         replaceLine (myHistory.get (--myHistoryIdx));
       }
    }
-
-   protected void nextHistory() {
-      if (myHistoryIdx > 0) {
-         setHistory (myHistoryIdx, getLineText());
-         replaceLine (myHistory.get (--myHistoryIdx));
+   
+   protected void beginningOfHistory() {
+      if (myHistory.size() > 0) {
+         myHistoryIdx = myHistory.size()-1;
+         replaceLine (myHistory.get (myHistoryIdx));
+      }
+      else {
+         myHistoryIdx = -1;
       }
    }
 
    protected void endOfHistory() {
-      if (myHistoryIdx > 0) {
-         setHistory (myHistoryIdx, getLineText());
+      if (myHistory.size() > 0) {
          myHistoryIdx = 0;
          replaceLine (myHistory.get (myHistoryIdx));
+      }
+      else {
+         myHistoryIdx = -1;
       }
    }
 
@@ -584,9 +588,11 @@ public class ReadlinePanel extends JTextArea {
    protected synchronized void acceptLine() {
       String line = getLineText();
       appendText ("\n");
-      setHistory (0, line);
-      addHistory ("");
-      myHistoryIdx = 0;
+      if (line.trim().length() > 0) {
+         addHistory (line);
+      }
+      //setHistory (0, line);
+      //addHistory ("");
       myInputRequested = false;
 
       if (myInputWriter == null) {

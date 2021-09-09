@@ -32,13 +32,23 @@ public class JythonPanelConsole extends InteractiveConsole {
       }
    }
 
-   public void interruptThread() {
+   public boolean interruptThread() {
       synchronized (myImpl) {
-         myImpl.myInterruptReq = true;
-         if (myThread != null && myImpl.isInsideExec()) {
-            myThread.interrupt();
+         if (myImpl.isInsideExec()) {
+            myImpl.requestInterrupt();
+            if (myThread != null) {
+               myThread.interrupt();
+            }
+            return true;
+         }
+         else {
+            return false;
          }
       }
+   }
+
+   public boolean interruptRequestPending() {
+      return myImpl.interruptRequestPending();
    }
 
    public void quitThread() {
@@ -84,35 +94,28 @@ public class JythonPanelConsole extends InteractiveConsole {
       return out.toString();
    }
 
-   protected void requestScript (String fileName) {
+   protected void requestScript (String fileName, String[] args) {
       // protect single slashes
       fileName = protectWindowsSlashes(fileName);
-      myConsole.setLineText ("script('"+fileName+"')");
+      StringBuilder sb = new StringBuilder();
+      sb.append ("script('"+fileName+"'");
+      if (args != null) {
+         sb.append (",[");
+         for (int k=0; k<args.length; k++) {
+            if (k > 0) {
+               sb.append(",");
+            }
+            sb.append ("'"+args[k]+"'");
+         }
+         sb.append ("]");
+      }
+      sb.append (")");
+      myConsole.setLineText (sb.toString());
       myConsole.acceptLine();
    }
 
-   private class ScriptRequester implements Runnable {
-      String myFileName;
-
-      public ScriptRequester (String fileName) {
-         myFileName = fileName;
-      }
-
-      public void run() {
-         requestScript (myFileName);
-      }
-   }
-
    public void executeScript (String fileName) throws IOException {
-      if (Thread.currentThread() == myThread) {
-         myImpl.executeScript (fileName);
-      }
-      else if (!SwingUtilities.isEventDispatchThread()) {
-         SwingUtilities.invokeLater (new ScriptRequester (fileName));
-      }      
-      else {
-         requestScript (fileName);
-      }
+      myImpl.executeScript (fileName);
    }
 
    @Override
@@ -143,8 +146,8 @@ public class JythonPanelConsole extends InteractiveConsole {
       }
       catch (Exception e) {
          // paranoid - just in case an InterruptException slips through between
-         // calls to setInsideExec within myImpl.runcode(). No need to do
-         // anything; just catch the signal
+         // calls to raise/lowerCodeExecLevel within myImpl.runcode(). No need
+         // to do anything; just catch the signal
          if (e instanceof RuntimeException) {
             // shouldn't happen ...
             throw (RuntimeException)e;

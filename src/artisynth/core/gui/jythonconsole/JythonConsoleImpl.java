@@ -12,7 +12,7 @@ public class JythonConsoleImpl {
 
    protected boolean myPromptSent = false;
    protected boolean myInterruptReq = false;
-   protected boolean myInsideExec = false;
+   protected int myExecLevel = 0;
    protected boolean myQuitReq = false;
 
    protected InteractiveConsole myConsole;
@@ -25,12 +25,24 @@ public class JythonConsoleImpl {
       myQuitReq = true;
    }
 
-   public synchronized void setInsideExec (boolean inside) {
-      myInsideExec = inside;
+   synchronized void requestInterrupt () {
+      myInterruptReq = true;
+   }
+   
+   boolean interruptRequestPending() {
+      return myInterruptReq;
    }
 
-   public boolean isInsideExec() {
-      return myInsideExec;
+   public synchronized void raiseExecLevel () {
+      myExecLevel++;
+   }
+
+   public synchronized void lowerExecLevel () {
+      myExecLevel = Math.max (--myExecLevel, 0); // paranoid
+   }
+
+   public synchronized boolean isInsideExec() {
+      return myExecLevel > 0;
    }
 
    void setupSymbols() {
@@ -44,7 +56,7 @@ public class JythonConsoleImpl {
          "_interpreter_.set ('exit', console.exit)");
    }
 
-   void executeScript (String fileName) throws IOException {
+   void executeScript (String fileName) {
       boolean more = false;
       PyFile file = null;
       try {
@@ -54,31 +66,40 @@ public class JythonConsoleImpl {
          myConsole.write ("Error opening file '"+fileName+"'\n");
          return;
       }
-      // reset input buffer to clear existing "script('xxx')" input
-      myConsole.resetbuffer(); 
-      while(!myQuitReq) {
-         PySystemState state = myConsole.getSystemState();
-         PyObject prompt = more ? state.ps2 : state.ps1;
-         if (myPromptSent) {
-            prompt = new PyString("");
-            myPromptSent = false;
-         }
-         String line = null;
-         try {
-            line = myConsole.raw_input(prompt, file);
-         } catch(PyException exc) {
-            if(!exc.match(Py.EOFError))
-               throw exc;
-            myPromptSent = true;
-            break;
-         }
-         myConsole.write (line+"\n");
-         more = myConsole.push(line);
-         if (myInterruptReq) {
-            break;
+      // Use a try/catch block to make sure we catch any exceptions
+      // and hence close the file and clear myInsideScript
+      try {
+         // reset input buffer to clear existing "script('xxx')" input
+         myConsole.resetbuffer(); 
+         while(!myQuitReq) {
+            PySystemState state = myConsole.getSystemState();
+            PyObject prompt = more ? state.ps2 : state.ps1;
+            if (myPromptSent) {
+               prompt = new PyString("");
+               myPromptSent = false;
+            }
+            String line = null;
+            try {
+               line = myConsole.raw_input(prompt, file);
+            } catch(PyException exc) {
+               if(!exc.match(Py.EOFError))
+                  throw exc;
+               myPromptSent = true;
+               break;
+            }
+            myConsole.write (line+"\n");
+            more = myConsole.push(line);
+            if (myInterruptReq) {
+               break;
+            }
          }
       }
-      file.close();
+      catch (Exception e) {
+         throw e;
+      }
+      finally {
+         file.close();
+      }
    }
 
    PyObject killRedundantPrompt (PyObject prompt) {
@@ -105,10 +126,12 @@ public class JythonConsoleImpl {
          PyObject prompt = more ? state.ps2 : state.ps1;
          String line;
          try {
-            if (file == null)
+            if (file == null) {
                line = myConsole.raw_input(prompt);
-            else
+            }
+            else {
                line = myConsole.raw_input(prompt, file);
+            }
          } catch(PyException exc) {
             if(!exc.match(Py.EOFError))
                throw exc;
@@ -117,7 +140,7 @@ public class JythonConsoleImpl {
          }
          more = myConsole.push(line);
          if (myInterruptReq) {
-            myConsole.write ("Interrupted\n");
+            myConsole.write ("Interrupted " + myExecLevel + "\n");
             myInterruptReq = false;
          }
       }
@@ -125,7 +148,7 @@ public class JythonConsoleImpl {
 
    public void runcode(PyObject code) {
       try {
-         setInsideExec (true);
+         raiseExecLevel();
          if (!myInterruptReq) {
             myConsole.exec(code);
          }
@@ -138,7 +161,7 @@ public class JythonConsoleImpl {
          }
       }
       finally {
-         setInsideExec (false);
+         lowerExecLevel();
       }
    }   
 

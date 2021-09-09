@@ -2384,14 +2384,8 @@ public class TimelineController extends Timeline
       }
    }
 
-   public void zoom (int mode) {
-      if (mode == TimelineConstants.ZOOM_IN) {
-         zoomLevel++;
-      }
-      else if (mode == TimelineConstants.ZOOM_OUT) {
-         zoomLevel--;
-      }
-
+   public void setZoom (int zoom) {
+      zoomLevel= zoom;
       myToolBar.updateToolbarState (myMain.getRootModel());
       timescale.updateTimescaleSizeAndScale (timelineDuration, zoomLevel);
       updateComponentSizes();
@@ -2407,6 +2401,39 @@ public class TimelineController extends Timeline
       timelineScrollPane.getHorizontalScrollBar().setValue (
          (int) (scrollMin + (scrollMax - scrollMin) * 
          (currentScrollValue - scrollMin) / (scrollMax - scrollMin)));
+   }
+
+   public void zoom (int mode) {
+      if (mode == TimelineConstants.ZOOM_IN) {
+         setZoom (zoomLevel+1);
+      }
+      else if (mode == TimelineConstants.ZOOM_OUT) {
+         setZoom (zoomLevel-1);
+      }
+   }
+
+   public double getVisibleRange (double sec) {
+      return timelineScrollPane.getWidth()*timescale.getTimePerPixel(zoomLevel);
+   }
+
+   /**
+    * Set the timeline zoom level so that 'sec' is visible.  If sec <= 0, we
+    * compute a default value from the maximum probe or waypoint times.
+    */
+   public void setVisibleRange (double sec) {
+      if (sec <= 0) {
+         // find a default value: the maximum probe stop time
+         sec = getLargestProbeTime();
+         // If no probe, try zooming on waypoints instead
+         if (sec == 0) {
+            sec = getLargestWayPointTime();
+         }
+         if (sec == 0) {
+            sec = 10.0; // 10 seconds is the default
+         }
+      }
+      setZoom (timescale.getZoomForTimePerPixel (
+                  sec/timelineScrollPane.getWidth()));
    }
    
    // =============================================

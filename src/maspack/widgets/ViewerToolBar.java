@@ -65,7 +65,6 @@ public class ViewerToolBar extends JToolBar
 
    protected Viewer myViewer;
 
-   protected AxisAlignedRotation myDefaultAxialView = null;
    JButton myAxialViewButton;
 
    ArrayList<AxialViewMenuItem> myAxialViewMenuItems;
@@ -208,20 +207,16 @@ public class ViewerToolBar extends JToolBar
          // has finished constructing
          return;
       }
-      AxisAlignedRotation defaultView = myViewer.getDefaultAxialView();
-      if (defaultView != myDefaultAxialView) {
-         // default view has changed; rebuild the icon list
-         myDefaultAxialView = defaultView;
-         RotationMatrix3d RDefault = defaultView.getMatrix();
+      // now look for the current view in the list.
+      AxisAlignedRotation currentView = myViewer.getAxialView();
+      if (myCurrentViewMenuItem.getAxialView() != currentView) {
+         // rebuild icons
+         RotationMatrix3d RDefault = currentView.getMatrix();
          for (AxialViewMenuItem item : myAxialViewMenuItems) {
             if (item != myCurrentViewMenuItem) {
                item.setRelativeAxialView (RDefault);            
             }
-         }
-      }
-      // now look for the current view in the list.
-      AxisAlignedRotation currentView = myViewer.getAxialView();
-      if (myCurrentViewMenuItem.getAxialView() != currentView) {
+         }        
          myCurrentViewMenuItem.setAxialView (currentView);
          setAxialViewIcon (myCurrentViewMenuItem.getIcon());
       }

@@ -367,6 +367,34 @@ public class ClassFinder {
       return classLoader.getResource(path) != null;
    }
    
+   /**
+    * Find the class directory for a particular package, if it exists, This
+    * will only be true if the package exists and is loaded from a file system
+    * directory instead of a JAR file.
+    *
+    * @return package directory, or {@code null} if not found
+    */
+   public static File findPackageDirectory (String pkgname) {
+      ClassLoader classLoader = ClassFinder.class.getClassLoader();
+      if (classLoader == null) {
+         throw new InternalError ("Cannot find appropriate class loader");
+      }
+      // replace package structure with  folder structure
+      String path = pkgname.replace('.', '/'); 
+      // terminate with '/'
+      if (!path.endsWith("/")) {
+         path = path + "/";
+      }
+      URL url = classLoader.getResource(path);
+      if (url != null && "file".equals(url.getProtocol())) {
+         File file = new File(getPathDecoded(url));
+         if (file.isDirectory()) { // just to be sure
+            return file;
+         }
+      }
+      return null;
+   }
+   
    public static void main (String[] args) {
       System.out.println ("package artisynth.models.fem_jaw exists=" +
          packageExists ("artisynth.models.fem_jaw"));

@@ -22,6 +22,7 @@ import java.io.File;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -814,6 +815,49 @@ public class GuiUtils {
 
    public static boolean confirmOverwrite (Component comp, File file) {
       return confirmAction (comp, "Overwrite existing file "+file+"?");
+   }
+
+   /**
+    * Create a button to be arranged horizontally within a panel (such as the
+    * "Cancel", "Done" buttons at the bottom of a dialog.
+    *
+    * @param name name and command associated with the button
+    * @param listener action listener for the button command
+    * @param toolTip if not {@code null}, specifies tool tip text
+    * @return created button
+    */
+   public static JButton createHorizontalButton (
+      String cmd, ActionListener listener, String toolTip) {
+      JButton button = new JButton (cmd);
+      button.setActionCommand (cmd);
+      if (toolTip != null) {
+         button.setToolTipText (toolTip);
+      }
+      button.addActionListener (listener);
+      button.setAlignmentX (Component.CENTER_ALIGNMENT);
+      return button;
+   }
+
+   /**
+    * Creates a horizontal button and adds it to a JComponent.
+    *
+    * @param panel panel which the button should be added
+    * @param name name and command associated with the button
+    * @param listener action listener for the button command
+    * @param toolTip if not {@code null}, specifies tool tip text
+    * @return created button
+    */
+   public static JButton addHorizontalButton (
+      JComponent comp, String cmd, ActionListener listener, String toolTip) {
+      JButton button = new JButton (cmd);
+      button.setActionCommand (cmd);
+      if (toolTip != null) {
+         button.setToolTipText (toolTip);
+      }
+      button.addActionListener (listener);
+      button.setAlignmentX (Component.CENTER_ALIGNMENT);
+      comp.add (button);
+      return button;
    }
 
 //   public static void setSliderLength (JSlider slider, int pixels) {

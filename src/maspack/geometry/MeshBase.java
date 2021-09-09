@@ -71,7 +71,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    //protected int myAutoNormalCreation = -1;
    protected boolean myNormalsExplicitP = false;
 
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
    protected boolean isFixed = true;
    protected boolean myColorsFixed = true;
    protected boolean myTextureCoordsFixed = true;

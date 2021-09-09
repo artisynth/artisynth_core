@@ -59,7 +59,7 @@ public class PropertyList implements PropertyInfoList {
 
    /**
     * Creates a property list for a specified exporting host class. The list is
-    * initialized by copying the properties from s specified ancestor class of
+    * initialized by copying the properties from a specified ancestor class of
     * the host class.
     * 
     * @param hostClass
@@ -69,10 +69,13 @@ public class PropertyList implements PropertyInfoList {
     */
    public PropertyList (Class<?> hostClass, Class<?> superClass) {
       this (hostClass);
-      if (superClass.isInterface() ||
-          !(superClass.isAssignableFrom (hostClass))) {
-         fatal (hostClass, "It is not a subclass of " + superClass.getName());
+      if (superClass.isInterface()) {
+         fatal (
+            hostClass, "superClass "+superClass.getName()+" is an interface");
       }
+//      if (!(superClass.isAssignableFrom (hostClass))) {
+//         fatal (hostClass, "It is not a subclass of " + superClass.getName());
+//      }
       PropertyInfoList infoList = null;
       try {
          infoList = findPropertyInfoList (superClass);

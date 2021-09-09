@@ -91,7 +91,7 @@ public class IntersectorTestViewer extends GLViewerFrame
       myRenderProps.setShading (Shading.NONE);
 
       //viewer.setBackgroundColor (0f, 0, 0.2f);
-      viewer.setDefaultAxialView (AxisAlignedRotation.X_Y);
+      viewer.setAxialView (AxisAlignedRotation.X_Y);
 
       viewer.addMouseInputListener (new MouseInputAdapter() {
          public void mousePressed (MouseEvent e) {

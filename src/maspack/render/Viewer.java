@@ -784,20 +784,6 @@ public interface Viewer extends Renderer {
    public ViewerSelectionListener[] getSelectionListeners();
 
    /**
-    * Sets the default axial view, specifying the default disposition of the x,
-    * y, and z axes with respect to the horizontal and vertical directions in
-    * the view plane.
-    *
-    * @param view specifies the view
-    */
-   public void setDefaultAxialView (AxisAlignedRotation view);
-
-   /**
-    * Queries the default AxialView.
-    */
-   public AxisAlignedRotation getDefaultAxialView();
-
-   /**
     * Queries the length used for rendering coordinate axes in this viewer.
     *
     * @return axis rendering length

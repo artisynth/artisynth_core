@@ -266,6 +266,51 @@ public class PathFinder {
    }
 
    /**
+    * Returns the path name of the source directory for a specific package, or
+    * {@code null} if no such directory is found.
+    * 
+    * <p>This method works by first finding the class directory for the
+    * package. If no such directory is found (e.g., because the class is loaded
+    * from a JAR file), the method returns {@code null}.  Otherwise, it climbs
+    * the resource hierarchy and attempts to find a matching source directory
+    * based on the the paths listed in {@link #getSourceRootPaths()}. If no
+    * source directory is not found, it is assumed that the class and source
+    * directories are the same, and so the class directory is returned.
+    * 
+    * @param pkgName name of the package
+    * @return path to the source directory, or {@code null} if not found
+    */
+   public static String findPackageSourceDir (String pkgName) {
+      
+      File classDir = ClassFinder.findPackageDirectory (pkgName);
+      if (classDir != null) {
+         String[] subPkgNames = pkgName.split ("\\.");
+         File dir = new File (classDir.toString());
+         for (int k=0; k<subPkgNames.length; k++) {
+            dir = dir.getParentFile();
+         }  
+         // iterate over the list of source dir names until we find a source
+         // directory
+         for (String sname : mySourceRootPaths) {
+            StringBuilder srcDirName = new StringBuilder();
+            srcDirName.append (sname);
+            for (int k=0; k<subPkgNames.length; k++) {
+               srcDirName.append (SEP+subPkgNames[k]);
+            }
+            if (dir.getParentFile() != null) {
+               File srcDir =
+                  new File (dir.getParentFile(), srcDirName.toString());
+               if (srcDir.isDirectory()) {
+                  return srcDir.toString();
+               }
+            }
+         }
+         return classDir.toString();
+      }
+      return null;
+   }
+
+   /**
     * Returns the path of the class directory for a class identified by name.
     * The name should be either a fully qualified class name, or a simple
     * name that can be located with respect to the packages obtained via {@link

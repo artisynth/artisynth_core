@@ -93,24 +93,19 @@ public class LabeledComponentLayout implements LayoutManager {
       return s;
    }
 
-   private void stretchHeights (int[] heights, int[] maxes, int maxHeight) {
+   private void stretchHeights (
+      int[] heights, int[] maxes, int stretch) {
       // distribute extra into heights as best as possible.
       double[] weights = new double[heights.length];
       double denom = 0;
-      int totalHeight = 0;
 
-      // Compute total height, and look for components with height 0 and max >
-      // 0; if they exist, they will do all the stretching work
+      // Look for components with height 0 and max > 0; if they exist, they
+      // will do all the stretching work
       for (int i=0; i<heights.length; i++) {
-         totalHeight += heights[i];
          if (heights[i] == 0 && maxes[i] > 0) {
             weights[i] = maxes[i];
             denom += weights[i];
          }
-      }
-      if (totalHeight >= maxHeight) {
-         // no need to expand
-         return;
       }
       if (denom == 0) {
          // look for components for which max - height > 0
@@ -124,12 +119,35 @@ public class LabeledComponentLayout implements LayoutManager {
          }
       }
       if (denom != 0) {
-         int extraHeight = maxHeight-totalHeight;
          // distribute extra height into heights
          for (int i=0; i<heights.length; i++) {
             if (weights[i] != 0) {
-               int h = heights[i] + (int)(weights[i]*extraHeight/denom);
+               int h = heights[i] + (int)(weights[i]*stretch/denom);
                heights[i] = Math.min (h, maxes[i]);
+            }
+         }
+      }        
+   }
+
+   private void shrinkHeights (int[] heights, int[] mins, int shrink) {
+      // reduce heights if possible
+      double[] weights = new double[heights.length];
+      double avail = 0; // available amount to shrink by
+
+      // look for components with spare height (i.e., height - min > 0)
+      for (int i=0; i<heights.length; i++) {
+         if (heights[i] > mins[i]) {
+            weights[i] = heights[i] - mins[i];
+            avail += weights[i];
+         }
+      }
+      if (avail != 0) {
+         // reduce heights by available spare height
+         for (int i=0; i<heights.length; i++) {
+            shrink = Math.min (shrink, (int)avail); // can't shrink by more 
+            if (weights[i] != 0) {
+               int h = heights[i] - (int)(weights[i]*shrink/avail);
+               heights[i] = Math.max (h, mins[i]);
             }
          }
       }        
@@ -139,39 +157,53 @@ public class LabeledComponentLayout implements LayoutManager {
       Insets insets = parent.getInsets();
       int x = insets.left;
       int y = insets.top + mySpacing;
-      int totalWidth = parent.getWidth() - (insets.left + insets.right);
-      int totalHeight = parent.getHeight() - (insets.top + insets.bottom);
+      int availableWidth = parent.getWidth() - (insets.left + insets.right);
+      int availableHeight = parent.getHeight() - (insets.top + insets.bottom);
       Component[] comps = parent.getComponents();
 
+      
       int[] heights = new int[comps.length];
       int[] maxes = new int[comps.length];
+      int[] mins = new int[comps.length];
       int nvisible = 0;
+      int prefHeight = 0; // total preferred height
 
-      // first get the preferred and maximum height for all components
+      // first set the heights of all components to their preferred height, and
+      // also get the maximum and minimum heights
       for (int i = 0; i < comps.length; i++) {
          if (comps[i].isVisible()) {
-            Dimension prefSize = comps[i].getPreferredSize();
-            heights[i] = prefSize.height;
+            mins[i] = comps[i].getMinimumSize().height;
+            heights[i] = comps[i].getPreferredSize().height;
             if (comps[i] instanceof JSeparator) {
-               maxes[i] = prefSize.height;
+               maxes[i] = heights[i];
             }
             else {
-               Dimension maxSize = comps[i].getMaximumSize();
-               maxes[i] = maxSize.height;
+               maxes[i] = comps[i].getMaximumSize().height;
             }
             nvisible++;
+            prefHeight += heights[i];
          }
          else {
             heights[i] = 0;
             maxes[i] = 0;
+            mins[i] = 0;
          }
       }
-      stretchHeights (heights, maxes, totalHeight-mySpacing*(nvisible+1));
+      // subtract component spacing from the available height:
+      availableHeight -= mySpacing*(nvisible+1);
+      if (prefHeight < availableHeight) {
+         // stretch heights to fit
+         stretchHeights (heights, maxes, availableHeight-prefHeight);
+      }
+      else if (prefHeight > availableHeight) {
+         // shrink heights to fit
+         shrinkHeights (heights, mins, prefHeight-availableHeight);
+      }
       for (int i = 0; i < comps.length; i++) {
          if (comps[i].isVisible()) {
             Dimension prefSize = comps[i].getPreferredSize();
             Dimension maxSize = comps[i].getMaximumSize();
-            int width = Math.min (totalWidth, maxSize.width);
+            int width = Math.min (availableWidth, maxSize.width);
             comps[i].setBounds (x, y, width, heights[i]);
             y += heights[i] + mySpacing;
          }

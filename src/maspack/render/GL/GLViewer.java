@@ -132,8 +132,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
-   public static BlendFactor DEFAULT_SRC_BLENDING = BlendFactor.GL_SRC_ALPHA;
-   public static BlendFactor DEFAULT_DST_BLENDING = BlendFactor.GL_ONE_MINUS_CONSTANT_ALPHA;
+   public static BlendFactor DEFAULT_SRC_BLENDING =
+      BlendFactor.GL_SRC_ALPHA;
+   public static BlendFactor DEFAULT_DST_BLENDING =
+      BlendFactor.GL_ONE_MINUS_CONSTANT_ALPHA;
 
    // matrices
    protected Matrix4d pickMatrix;
@@ -359,25 +361,31 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected static final Color DARK_GREEN = new Color (0, 0.5f, 0);
    protected static final Color DARK_BLUE = new Color (0, 0, 0.5f);
    
-   protected float[] DEFAULT_MATERIAL_COLOR =    {0.8f, 0.8f, 0.8f, 1.0f};
-   protected float[] DEFAULT_MATERIAL_EMISSION = {0.0f, 0.0f, 0.0f, 1.0f};
-   protected float[] DEFAULT_MATERIAL_SPECULAR = {0.1f, 0.1f, 0.1f, 1.0f};
-   protected float[] DEFAULT_HIGHLIGHT_COLOR =   {1f, 1f, 0f, 1f};
-   protected float[] DEFAULT_SELECTING_COLOR =   {0f, 0f, 0f, 0f};
-   protected float[] DEFAULT_BACKGROUND_COLOR =  {0f, 0f, 0f, 1f};
-   protected float DEFAULT_MATERIAL_SHININESS = 32f;
+   protected static float[] DEFAULT_MATERIAL_COLOR =    {0.8f, 0.8f, 0.8f, 1.0f};
+   protected static float[] DEFAULT_MATERIAL_EMISSION = {0.0f, 0.0f, 0.0f, 1.0f};
+   protected static float[] DEFAULT_MATERIAL_SPECULAR = {0.1f, 0.1f, 0.1f, 1.0f};
+   protected static float[] DEFAULT_HIGHLIGHT_COLOR =   {1f, 1f, 0f, 1f};
+   protected static float[] DEFAULT_SELECTING_COLOR =   {0f, 0f, 0f, 0f};
+   protected static float[] DEFAULT_BACKGROUND_COLOR =  {0f, 0f, 0f, 1f};
+   protected static float DEFAULT_MATERIAL_SHININESS = 32f;
    
-   protected float[] myHighlightColor = Arrays.copyOf (DEFAULT_HIGHLIGHT_COLOR, 4);
+   protected float[] myHighlightColor =
+      Arrays.copyOf (DEFAULT_HIGHLIGHT_COLOR, 4);
    protected boolean myHighlightColorModified = true;
    protected HighlightStyle myHighlightStyle = HighlightStyle.COLOR;
    
-   protected float[] mySelectingColor = Arrays.copyOf (DEFAULT_SELECTING_COLOR, 4); // color to use when selecting (color selection)
+   protected float[] mySelectingColor =
+      Arrays.copyOf (DEFAULT_SELECTING_COLOR, 4); // color to use when selecting (color selection)
    protected boolean mySelectingColorModified = true;
    
    protected Material myCurrentMaterial = Material.createDiffuse(DEFAULT_MATERIAL_COLOR, 32f);
    protected float[] myBackColor = null;
    protected boolean myCurrentMaterialModified = true;  // trigger for detecting when material is updated
    protected float[] backgroundColor = Arrays.copyOf (DEFAULT_BACKGROUND_COLOR, 4);
+
+   private static Color createColor (float[] rgba) {
+      return new Color (rgba[0], rgba[1], rgba[2], rgba[3]);
+   }
    
    protected static enum ActiveColor {
       DEFAULT,
@@ -396,8 +404,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected GLAutoDrawable drawable;  // currently active drawable
    protected GLDrawableComponent canvas;          // main GL canvas
    
-   protected int width;
-   protected int height;
+   // we now get the width and height from the drawable
+//   protected int width;
+//   protected int height;
 
    // Generic Rendering
    /**
@@ -502,31 +511,41 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    static {
       myProps.add (
-         "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
-      myProps.add ("center", "center location (world coordinates)", DEFAULT_VIEWER_CENTER);
+         "backgroundColor",
+         "background color", createColor(DEFAULT_BACKGROUND_COLOR));
+      myProps.add (
+         "selectionColor getHighlightColor setHighlightColor",
+         "color used to highlight selected components",
+         createColor (DEFAULT_HIGHLIGHT_COLOR));
       myProps.add ("axisLength", "length of rendered x-y-z axes", 0);
       myProps.add (
          "axisDrawStyle", "style used for renderering axes", 
          DEFAULT_AXIS_DRAW_STYLE);
       myProps.add (
-         "rotationMode", "method for interactive rotation", DEFAULT_ROTATION_MODE);
+         "rotationMode", "method for interactive rotation",
+         DEFAULT_ROTATION_MODE);
       myProps.add (
          "axisLengthRadiusRatio", 
          "default length/radius ratio to be used when rendering solid axes",
          DEFAULT_AXIS_LENGTH_RADIUS_RATIO, "NS");
-      myProps.add("axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
       myProps.add(
-         "defaultAxialView", "default axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
-      myProps.add ("backgroundColor", "background color", Color.BLACK);
+         "axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
+      myProps.add (
+         "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
+      myProps.add (
+         "center", "center location (world coordinates)", DEFAULT_VIEWER_CENTER);
       myProps.add(
          "transparencyFaceCulling", "allow transparency face culling", false);
       myProps.add(
          "transparencyBlending", "enable/disable transparency blending", false);
       myProps.add(
-            "blendSourceFactor", "source transparency blending", DEFAULT_SRC_BLENDING);
-         myProps.add(
-            "blendDestFactor", "destination transparency blending", DEFAULT_DST_BLENDING);
-      myProps.add("surfaceResolution", "resolution for built-in curved primitives", 
+         "blendSourceFactor", "source transparency blending",
+         DEFAULT_SRC_BLENDING);
+      myProps.add(
+         "blendDestFactor", "destination transparency blending",
+         DEFAULT_DST_BLENDING);
+      myProps.add(
+         "surfaceResolution", "resolution for built-in curved primitives", 
          DEFAULT_SURFACE_RESOLUTION);
       myProps.add(
          "profiling", "print timing for render operations", false);
@@ -1061,7 +1080,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * far clipping plane position (along the -z axis; must be a positive number)
     */
    public void setPerspective (double fieldOfView, double near, double far) {
-      double aspect = width / (double)height;
+      double aspect = getScreenWidth()/(double)getScreenHeight();
 
       this.myFrustum.top = near * Math.tan (Math.toRadians (fieldOfView) / 2);
       this.myFrustum.bottom = -this.myFrustum.top;
@@ -1090,7 +1109,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * far clipping plane position (along the -z axis; must be a positive number)
     */
    public void setOrthogonal (double fieldHeight, double near, double far) {
-      double aspect = width / (double)height;
+      double aspect = getScreenWidth()/(double)getScreenHeight();
 
       this.myFrustum.top = fieldHeight / 2;
       this.myFrustum.bottom = -this.myFrustum.top;
@@ -1311,14 +1330,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * {@inheritDoc}
     */
    public int getScreenWidth() {
-      return width;
+      return canvas.getWidth();
    }
 
    /**
     * {@inheritDoc}
     */
    public int getScreenHeight() {
-      return height;
+      return canvas.getHeight();
    }
 
    /**
@@ -1598,12 +1617,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    public double distancePerPixel (Vector3d pnt) {
       if (myFrustum.orthographic) {
-         return myFrustum.fieldHeight / height;
+         return myFrustum.fieldHeight/getScreenHeight();
       }
       else {
          Point3d pntInEye = new Point3d (pnt);
          pntInEye.transform (viewMatrix);
-         return Math.abs (pntInEye.z / myFrustum.near) * (myFrustum.top - myFrustum.bottom) / height;
+         return 
+            Math.abs (pntInEye.z/myFrustum.near)*
+            (myFrustum.top-myFrustum.bottom)/getScreenHeight();
       }
    }
 
@@ -1678,21 +1699,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myGrid.setXAxisColor (getAxisColor (0));
       myGrid.setYAxisColor (getAxisColor (1));
       myGrid.setZAxisColor (getAxisColor (2));
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setDefaultAxialView (AxisAlignedRotation view) {
-      setAxialView (view);
-      myDefaultAxialView = view;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public AxisAlignedRotation getDefaultAxialView () {
-      return myDefaultAxialView;
    }
 
    /**
@@ -1882,9 +1888,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void reshape (GLAutoDrawable drawable, int x, int y, int w, int h) {
       this.drawable = drawable;
-      
-      width = w;
-      height = h;
+
+      // we now get the width and height from the drawable
+      // width = w;
+      // height = h;
 
       // screen size changed, so be prepared to adjust viewport/view volume
       resetViewVolume = true;
@@ -1904,7 +1911,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public double getViewPlaneWidth() {
-      return (width / (double)height) * getViewPlaneHeight();
+      return (getScreenWidth()/(double)getScreenHeight())*getViewPlaneHeight();
    }
 
    @Override
@@ -1955,7 +1962,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    protected void resetViewVolume(GL gl) {
-      resetViewVolume(gl, width, height);
+      resetViewVolume(gl, getScreenWidth(), getScreenHeight());
    }
 
    protected void resetViewVolume(GL gl, int width, int height) {
@@ -2054,7 +2061,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             setPerspective(myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, near, far);
          }
          else {
-            double aspect = width / (double)height;
+            double aspect = getScreenWidth()/(double)getScreenHeight();
             myFrustum.left = -aspect * myFrustum.top;
             myFrustum.right = -myFrustum.left;
             setPerspective(myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, near, far, myFrustum.explicit);

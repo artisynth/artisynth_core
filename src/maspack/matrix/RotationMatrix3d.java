@@ -1238,6 +1238,97 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
+    * Sets this rotation to one produced by a sequence of intrinsic rotations
+    * about the x-y-z axes. More specifically, the rotation is produced by a
+    * rotation {@code rx} about the x axis, followed by a rotation {@code ry}
+    * about the new y axis, and finally a rotation {@code rz} about the new z
+    * axis.
+    * 
+    * @param rx
+    * first rotation about x (radians)
+    * @param ry
+    * second rotation about y (radians)
+    * @param rz
+    * third rotation about z (radians)
+    * @see #getXyz
+    */
+   public void setXyz (double rx, double ry, double rz) {
+
+      double sr = Math.sin (rx);
+      double cr = Math.cos (rx);
+      double sp = Math.sin (ry);
+      double cp = Math.cos (ry);
+      double sy = Math.sin (rz);
+      double cy = Math.cos (rz);
+
+      m00 = cp*cy;
+      m01 = -cp*sy;
+      m02 = sp;
+
+      m10 = cr*sy + cy*sp*sr;
+      m11 = cr*cy - sp*sr*sy;
+      m12 = -cp*sr;
+      
+      m20 = sr*sy - cr*cy*sp;
+      m21 = cy*sr + cr*sp*sy;
+      m22 = cp*cr;
+   }
+
+   /**
+    * Sets this rotation to one produced by a sequence of successive rotations
+    * about the x-y-z axes.
+    * 
+    * @param angs
+    * contains the angles (rx, ry, and rz, in that order) in radians.
+    * @see #setXyz(double,double,double)
+    */
+   public void setXyz (double[] angs) {
+      setXyz (angs[0], angs[1], angs[2]);
+   }
+
+   /**
+    * Post-multiplies this rotation by an implicit second rotation expressed by
+    * a sequence of intrinsic rotations about the x-y-z axes.
+    * 
+    * @param rx
+    * first rotation about x (radians)
+    * @param ry
+    * second rotation about y (radians)
+    * @param rz
+    * third rotation about z (radians)
+    * @see #setXyz(double,double,double)
+    */
+   public void mulXyz (double rx, double ry, double rz) {
+      RotationMatrix3d Tmp = new RotationMatrix3d();
+      Tmp.setXyz (rx, ry, rz);
+      mul (Tmp);
+   }
+
+   /**
+    * Gets the x-y-z rotation angles corresponding to this rotation.  This is
+    * the inverse of {@link #setXyz(double,double,double).
+    * 
+    * @param angs
+    * returns the x-y-z angles (rx, ry, and rz, in that order) in radians.
+    */
+   public void getXyz (double[] angs) {
+         
+      if (Math.abs(m12) < EPSILON && Math.abs(m22) < EPSILON) {
+         angs[0] = 0;
+         angs[1] = Math.atan2 (m02, m22);
+         angs[2] = Math.atan2 (m10, m11);
+      }
+      else {
+         double r, sr, cr;
+         angs[0] = (r = Math.atan2 (-m12, m22));
+         sr = Math.sin (r);
+         cr = Math.cos (r);
+         angs[1] = Math.atan2 (m02, -sr*m12 + cr*m22);
+         angs[2] = Math.atan2 (cr*m10 + sr*m20, cr*m11 + sr*m21);
+      }
+   }
+
+   /**
     * Sets this rotation to one produced by Euler angles. The coordinate frame
     * corresponding to Euler angles is produced by a rotation of phi about the z
     * axis, followed by a rotation of theta about the new y axis, and finally a

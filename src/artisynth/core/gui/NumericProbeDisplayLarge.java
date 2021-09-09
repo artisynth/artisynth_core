@@ -138,6 +138,10 @@ public class NumericProbeDisplayLarge extends JFrame // implements KeyListener
          myCursorPanel.updatePosition (myPanel.pixelsToCoords (e.getPoint()));
       }
 
+      public void mouseDragged (MouseEvent e) {
+         myCursorPanel.updatePosition (myPanel.pixelsToCoords (e.getPoint()));
+      }
+
       public void mouseReleased (MouseEvent e) {
          myCursorPanel.updatePosition (myPanel.pixelsToCoords (e.getPoint()));
       }

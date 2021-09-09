@@ -322,6 +322,18 @@ ValueChangeListener {
       myRangeField.setValue (newRange);
    }
 
+   private void updateRange (Property prop) {
+      DoubleInterval newRange = getDefaultRange (prop);
+      double currentValue = ((Number)prop.get()).doubleValue();
+      if (currentValue < newRange.getLowerBound()) {
+         newRange.setLowerBound (currentValue);
+      }
+      else if (currentValue > newRange.getUpperBound()) {
+         newRange.setUpperBound (currentValue);
+      }
+      myRangeField.setValue (newRange);
+   }
+
    private void saveRange (PropertyInfo info) {
       if (info != null) { // save old range, if applicable
          DoubleInterval oldRange = myRangeMap.get (info);
@@ -340,7 +352,7 @@ ValueChangeListener {
          if (info != null && PropertyWidget.canCreateWithSlider (info)) {
             mySliderSelector.setEnabledAll (true);
             mySliderSelector.setValue (true);
-            updateRange (comp, info);
+            updateRange (myPropField.getProperty());
          }
          else {
             mySliderSelector.setValue (false);

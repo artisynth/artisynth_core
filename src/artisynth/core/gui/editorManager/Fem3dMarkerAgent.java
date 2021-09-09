@@ -96,7 +96,8 @@ public class Fem3dMarkerAgent extends AddComponentAgent<FemMarker> {
 
       addComponentType (
          FemMarker.class, new String[] {
-            "name", "pointDamping", "position", "velocity", "externalForce" });
+            "name", "pointDamping", "position", "velocity", "externalForce",
+            "targetPosition", "targetVelocity", "targetActivity" });
 
       createComponentList (
          "Existing markers:",

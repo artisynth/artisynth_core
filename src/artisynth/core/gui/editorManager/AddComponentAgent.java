@@ -420,12 +420,14 @@ ValueChangeListener {
             myDefaultProps =
                EditingProperty.createProperties (
                   myPropTree, myHostList, /* isLive= */ true);
-            LinkedList<Property> basicProps =
+            LinkedList<Property> basicProps = 
                getBasicProps (type, myDefaultProps);
+            LinkedList<Property> extraProps = new LinkedList<Property>();
             if (basicProps.size() > 0) {
-               LinkedList<Property> extraProps = new LinkedList<Property>();
                extraProps.addAll (myDefaultProps);
                extraProps.removeAll (basicProps);
+            }
+            if (extraProps.size() > 0) {
                myPropertyPanel =
                   new ExpandablePropertyPanel (basicProps, extraProps);
             }

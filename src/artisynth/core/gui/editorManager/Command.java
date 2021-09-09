@@ -26,26 +26,4 @@ public interface Command {
     * @return name associated with this command
     */
    public String getName();
-
-   // /**
-   // * Sets a state to be associated with this command. This is used by the
-   // undo
-   // * manager whenever model state is saved before command execution and
-   // * restored after undo. The caller should not modify the state after
-   // * invoking this method, and therefore there should be no need to make a
-   // * defensive copy.
-   // *
-   // * @param state state to be stored with this command
-   // */
-   // public void setState (CompositeState state);
-
-   // /**
-   // * Returns the most recent value of state that was set with {@link
-   // #setState
-   // * setState}.
-   // *
-   // * @return recent value of state
-   // */
-   // public CompositeState getState();
-
 }

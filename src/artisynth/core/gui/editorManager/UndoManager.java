@@ -14,13 +14,18 @@ import artisynth.core.workspace.RootModel;
 import maspack.util.*;
 
 public class UndoManager {
+
+   public interface CommandFilter {
+      boolean accept (Command cmd);
+   }
+
    private class CommandStatePair {
-      CommandStatePair (ArrayList<Command> cmds, CompositeState state) {
-         myCmds = cmds;
+      CommandStatePair (Command cmd, CompositeState state) {
+         myCmd = cmd;
          myState = state;
       }
 
-      ArrayList<Command> myCmds;
+      Command myCmd;
       CompositeState myState;
    }
 
@@ -45,19 +50,19 @@ public class UndoManager {
       return myDepth;
    }
 
-   /**
-    * Add a set of commands that have been executed and should be undone
-    * together.
-    * 
-    * @param newCommands
-    * The commands that have been executed.
-    */
-   public void addCommand (ArrayList<Command> newCommands) {
-      commands.add (new CommandStatePair (newCommands, null));
-      if (commands.size() > myDepth) {
-         commands.removeFirst();
-      }
-   }
+//   /**
+//    * Add a set of commands that have been executed and should be undone
+//    * together.
+//    * 
+//    * @param newCommands
+//    * The commands that have been executed.
+//    */
+//   public void addCommand (ArrayList<Command> newCommands) {
+//      commands.add (new CommandStatePair (newCommands, null));
+//      if (commands.size() > myDepth) {
+//         commands.removeFirst();
+//      }
+//   }
 
    /**
     * Add a single command that has been executed and should be undone on it's
@@ -78,9 +83,7 @@ public class UndoManager {
     * The command that has been executed.
     */
    public void addCommand (Command newCommand, CompositeState state) {
-      ArrayList<Command> newCommands = new ArrayList<Command>();
-      newCommands.add (newCommand);
-      commands.add (new CommandStatePair (newCommands, state));
+      commands.add (new CommandStatePair (newCommand, state));
       if (commands.size() > myDepth) {
          commands.removeFirst();
       }
@@ -92,9 +95,7 @@ public class UndoManager {
    public void undoLastCommand() {
       if (commands.size() > 0) {
          CommandStatePair cmdState = commands.removeLast();
-         for (int i = cmdState.myCmds.size() - 1; i >= 0; i--) {
-            cmdState.myCmds.get (i).undo();
-         }
+         cmdState.myCmd.undo();
          RootModel rootModel = Main.getMain().getRootModel();
          if (rootModel == null) {
             throw new InternalErrorException ("rootModel is null");
@@ -110,15 +111,31 @@ public class UndoManager {
    public Command getLastCommand() {
       if (commands.size() > 0) {
          CommandStatePair cmdState = commands.getLast();
-         return cmdState.myCmds.get (cmdState.myCmds.size() - 1);
+         return cmdState.myCmd;
       }
       else {
          return null;
       }
    }
 
+   /**
+    * Clear all commands
+    */
    public void clearCommands() {
       commands.clear();
+   }
+
+   /**
+    * Clear all commands indicated by a command filter.
+    */
+   public void clearCommands (CommandFilter filter) {
+      ListIterator<CommandStatePair> li = commands.listIterator();
+      while (li.hasNext()) {
+         CommandStatePair cmdp = li.next();
+         if (filter.accept (cmdp.myCmd)) {
+            li.remove();
+         }
+      }
    }
 
    public boolean hasCommandToUndo() {

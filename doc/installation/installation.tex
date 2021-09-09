@@ -83,8 +83,8 @@ ArtiSynth. GitHub installation instructions are given in Section
 Once ArtiSynth is installed, it can be run and various demonstration
 models can be loaded. Some simple details on this are given in
 Section \ref{Running}; complete instructions on running and
-interacting with models are provided in the
-\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+interacting with models are provided in
+the \artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
 
 Many users will want to create their own models in Java. This is done
 by creating Java classes to implement these models, as described in
@@ -103,6 +103,10 @@ open source set of models primarily related to head and neck
 anatomy. Installation of {\tt artisynth\_models} is discussed in
 Section \ref{ArtiSynthModels}.
 
+It is also possible to interface ArtiSynth with, or run it under,
+MATLAB. For information on this, see the guide
+\artisynthManual{matlab}{Interfacing ArtiSynth to MATLAB}.
+
 \section{Prerequisites}
 \label{Prerequisites}
 
@@ -110,14 +114,19 @@ To install ArtiSynth on \SYSTEM{}, you will need:
 
 \begin{itemize}
 
-\item A 64 bit version of \SYSTEM{}.
+\item A 64 bit version of \SYSTEM{} on an Intel processor.
+
+\begin{sideblock}
+ArtiSynth currently runs {\it only} on machines using Intel
+processors; it is not currently supported for ARM processors.
+\end{sideblock}
 
 \item Java 8 (see Section \ref{InstallingJava}).
 
 \begin{sideblock}
 ArtiSynth will generally work with later versions of Java, but Java 8
 currently provides maximum compatibility with MATLAB, which still uses
-Java 8.
+Java 8, as well as the Jython interface.
 \end{sideblock}
 
 \ifLinux
@@ -173,16 +182,16 @@ utilities function correctly.
 
 ArtiSynth requires that you have a full Java development kit (JDK)
 installed, which comes with a Java compiler; a simple run time
-environment (JRE) will not be sufficient. 
-By default, ArtiSynth is compiled to be compliant with Java 8. While
-ArtiSynth will generally work under later Java versions, there have
-been occasional reports of compatibility issues involving the Java
-OpenGL (JOGL) interface. Therefore we currently recommend using Java
-8; this also provides maximum compatibility with MATLAB, as indicated
-above. We specifically recommend the Java SE Development Kit 8u{\it
-XXX} (where {\it XXX} is the latest revision number), which can be
-obtained from Oracle (registration required).  At the time of this
-writing, the download page is located at
+environment (JRE) will not be sufficient.  By default, ArtiSynth is
+compiled to be compliant with Java 8. While ArtiSynth will generally
+work under later Java versions, Java 8 provides compatibility with
+MATLAB (which still uses Java 8), as well as the Jython console.
+Therefore we currently recommend using Java 8; this also provides
+maximum compatibility with MATLAB and Jython, as indicated above. We
+specifically recommend the Java SE Development Kit 8u{\it XXX} (where
+{\it XXX} is the latest revision number), which can be obtained from
+Oracle (registration required).  At the time of this writing, the
+download page is located at
 
 \href{https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}%
 {www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}
@@ -208,7 +217,7 @@ For \SYSTEM{}, this will be {\tt jdk-8u281-macosx-x64.dmg}.
 If the above Oracle link is no longer current, the search terms
 {\tt ``java 8 jdk download''} should get you to the right place.
 
-\subsection{Ensuring the JDK visible to your system}
+\subsection{Ensuring the JDK is visible to your system}
 \label{MakingJDKVisible}
 
 After the JDK has been installed, it is important to ensure that it is
@@ -277,6 +286,14 @@ and run the command
 \end{verbatim}
 \fi
 \fi % END not MacOS
+
+\begin{sideblock}
+If you are using an integrated development environment (IDE), such as
+Eclipse (Section \ref{EclipseIDE}), for compiling and running
+ArtiSynth programs, you should also ensure that this IDE is configured
+to use the installed JDK. Instructions on how to do this for Eclipse
+are given in Section \ref{EclipseJDK:sec}.
+\end{sideblock}
 
 \section{Installing a Precompiled Release}
 \label{PrecompiledRelease}
@@ -773,10 +790,12 @@ of the application window:
 From left to right, these are: step size control, which controls the
 simulation step size (in seconds); current simulation time (in
 seconds); and the {\sf reset}, {\sf skip-back}, {\sf play/pause}, {\sf
-single-step} and {\sf skip-forward} buttons.  Starting and stopping a
-simulation is done by clicking {\sf play/pause}, while {\sf reset}
-resets the simulation to time 0.  The {\sf single-step} button
-advances the simulation by one time step.
+single-step}, {\sf skip-forward} and {\sf stop-all} buttons.  Starting
+and stopping a simulation is done by clicking {\sf play/pause}, while
+{\sf reset} resets the simulation to time 0.  The {\sf single-step}
+button advances the simulation by one time step. The {\sf stop-all}
+button will also stop the simulation, as well as any Jython commands
+or scripts that are running.
 
 \ifMacOS
 
@@ -827,11 +846,66 @@ Net} demo loaded.
 \label{SpringNetDemo:fig}
 \end{figure}
 
+\subsection{Other ways to load models}
+
+It is possible to load models in several ways:
+
+\begin{itemize}
+
+\item Using a model menu entry, as described above;
+
+\item Specifying the Java class describing the model
+({\sf ``Load from class ...''} from the {\sf Models} menu);
+
+\item Specifying a {\tt .art} file containing a text
+representation of the model ({\sf ``Load model ...''} from the {\sf
+File} menu);
+
+\item Reloading a recently loaded model 
+({\sf ``Load recent''} from the {\sf Models} menu).
+
+\end{itemize}
+
+It is also possible to configure ArtiSynth to load a specific model
+when it starts up; see ``Loading, Simulating and Saving Models'' in the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+The model menu can also be customized, as described in ``Customizing
+the Model Menu''.
+
+\subsection{Viewing and interacting with models}
+
+The ArtiSynth user interface provides a variety of tools for exploring
+and interacting with models, as described in depth in
+the \artisynthManual{uiguide}{ArtiSynth User Interface Guide},
+including:
+
+\begin{itemize}
+
+\item 3D viewers with grids and clipping planes;
+
+\item Component selection using either a viewer or
+a tree-based navigation panel;
+
+\item Property inspection and editing for selected components;
+
+\item 3D fixtures for translating, rotating and
+applying forces to models and their components;
+
+\item A timeline for viewing and organizing input/output data streams
+known as {\it probes};
+
+\item Some simple model editing, including the ability to interactively
+delete components and add marker points;
+
+\item Making movies from simulations.
+
+\end{itemize}
+
 \subsection{Command line arguments}
 \label{CommandLineArguments}
 
 If you are running ArtiSynth from a terminal window
-(Section \ref{artisynthCommandLine}) 
+(Section \ref{artisynthCommandLine})
 \ifWindows
 or {\tt GitBash} (Section \ref{GitForWindows})
 \fi
@@ -988,12 +1062,13 @@ ROOT\_DIR} should equal the number of ``up'' steps needed to reach
 {\tt <ARTISYNTH\_HOME>}.
 \end{sideblock}
 
-\subsection{Finding models in the Models menu}
+\subsection{Finding models in the model menu}
 
 Once a model has been added to ArtiSynth, it is useful to be able to
-run it directly from the {\sf Models} menu.
+run it directly from the {\it model menu}, located under {\sf Models}
+in the main menu bar.
 
-By default, the {\sf Models} menu locates all models in the packages
+By default, the model menu locates all models in the packages
 (and subpackages) of {\tt artisynth.demos} and\pdfbreak {\tt
 artisynth.model}, and makes then available under the entries {\sf All
 demos >} and {\sf All models >}, respectively. Therefore, if your
@@ -1002,8 +1077,21 @@ appear in the {\sf Models} menu. If your model is located in a
 different package, you can load it either by directly specifying its
 class path, or by customizing the {\sf Models} menu.  These options
 are described in the sections ``Loading by class path'' and
-``Customizing the Models Menu'' of the
+``Customizing the Model Menu'' of the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide},
+
+\section{Settings and the user configuration folder}
+\label{UserConfigFolder:sec}
+
+When ArtiSynth is first run, it creates a configuration folder named
+{\tt ArtiSynthConfig} beneath the user's home folder. Various
+subfolders within this are used to store startup settings, model menu
+customizations, etc.
+
+Startup settings that can be configured include those for the viewer,
+mouse bindings, model interaction and simulation, as discussed in the
+``Preferences'' section and elsewhere in the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
 
 \section{Integrating external models}
 \label{IntegratingExternalModels}
@@ -1107,22 +1195,39 @@ models visible by adding {\tt myproject} to the ArtiSynth launch
 configuration, as described in Section
 \ref{AddingProjectsToLaunch}. 
 
-\subsection{Using EXTCLASSPATH}
-\label{UsingEXTCLASSPATH}
+\subsection{Using the external classpath}
+\label{ExternalClasspath:sec}
 
 External models can be made visible to ArtiSynth by adding any needed
-class \directories{} and JAR files to the {\tt EXTCLASSPATH} file,
-located in \ArtHome[], as described in Section \ref{EXTCLASSPATHFile}.
-As an example, assume that the model class files are contained under
-{\tt <MYPROJECT>\SEP classes}, and that the JAR file {\tt
-<MYPROJECT>\SEP lib\SEP dicom.jar} is also required.  If {\tt
-<MYPROJECT>} is located at
-\ifWindows
-{\tt C:\SEP research\SEP myproject}%
+class \directories{} and JAR files to the {\it external class path}.
+The easiest way to do this is to select ``{\sf Settings > External
+classpath ...}'' from the {\sf Settings} menu, which will open an
+external classpath editor as shown in
+Figure \ref{externalClasspathEditor:fig}, allowing the necessary
+class \directories{} and JAR files to be added.  The classpath entries
+are displayed in a large panel on the left (which will initially be
+blank after ArtiSynth is first installed).  
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/externalClasspathEditor}
 \else
-{\tt /research/myproject}%
+\includegraphics[width=5in]{images/externalClasspathEditor}
 \fi
-, then the following lines should be added to {\tt EXTCLASSPATH}:
+\end{center}
+\caption{The external classpath editor.}%
+\label{externalClasspathEditor:fig}
+\end{figure}
+
+As an example, assume that
+the model class files are contained under {\tt <MYPROJECT>\SEP
+classes}, and that the JAR file {\tt <MYPROJECT>\SEP lib\SEP
+dicom.jar} is also required.  If {\tt <MYPROJECT>} is located
+at \ifWindows {\tt C:\SEP research\SEP myproject}%
+\else {\tt /research/myproject}%
+\fi , then the following entries should be added to
+the external classpath:
 \ifWindows
 \begin{verbatim}
 C:\research\myproject\classes
@@ -1135,11 +1240,15 @@ C:\research\myproject\lib\dicom.jar
 \end{verbatim}
 \fi % end not Windows
 
-Class path entries in {\tt EXTCLASSPATH} will be {\it appended} to any
-specified through the {\tt CLASSPATH} environment variable.
+More details are given in the section ``Setting the external classpath''
+of the 
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+The external classpath is stored in the file {\tt EXTCLASSPATH}
+in the user configuration folder and can be edited directly
+(Section \ref{EXTCLASSPATHFile}).
 
-The {\tt EXTCLASSPATH} file can be used when running from Eclipse or
-some other IDE.
+The external classpath can be used when running from Eclipse or any
+other IDE.
 
 \subsection{Setting the CLASSPATH environment variable}
 \label{SettingCLASSPATH}
@@ -1148,7 +1257,7 @@ When running ArtiSynth from the command line, external models can also
 be made visible by adding class folders and JAR files to the {\tt
 CLASSPATH} environment variable, as described in
 Section \ref{EnvironmentVariables}. For the example of
-Section \ref{UsingEXTCLASSPATH}, we could instead add the following to
+Section \ref{ExternalClasspath:sec}, we could instead add the following to
 {\tt CLASSPATH}:
 \ifWindows
 \begin{verbatim}
@@ -1234,8 +1343,8 @@ the same way as for {\tt artisynth\_core} (Section
 
 \begin{enumerate}
 
-\item Select {\sf File > Import ...}, open
-``{\sf Git > Projects from Git}'' in the Import dialog,
+\item Select {\sf ``File > Import ...''}, open
+{\sf ``Git > Projects from Git''} in the Import dialog,
 and click {\sf Next}.
 
 \item In the {\sf Select Repository Source}
@@ -1254,8 +1363,8 @@ adjust the install location if desired, and click {\sf Next}.
 
 \item {\tt artisynth\_models} will now be downloaded.
 A ``wizard'' dialog will
-then appear. Leave the default (``{\sf Import existing Eclipse
-projects}'') selected, and click {\sf Next}.
+then appear. Leave the default ({\sf ``Import existing Eclipse
+projects''}) selected, and click {\sf Next}.
 
 \item In the {\sf Import Projects} dialog, click {\sf Finish}.
 
@@ -1354,10 +1463,16 @@ updated similarly.
 Occasionally, a software update will be accompanied by a change in the
 libraries located in \ArtHome[\SEP libs].  When this happens, it will
 be indicated on the ArtiSynth update log and appropriate instructions
-will be given. In these cases, one should also run the
-command {\tt updateArtisynthLibs} located in
-{\tt <ARTISYNTH\_HOME>\SEP bin}. This can be
-done from a terminal window:
+will be given. In these cases, one should also update the ArtiSynth
+libraries. 
+
+The easiest way to do this is from within ArtiSynth, by selecting
+{\sf ``Update Libraries''} at the bottom of the {\sf File} menu.
+
+Libraries can
+also be updated using the command {\tt updateArtisynthLibs} located in
+{\tt <ARTISYNTH\_HOME>\SEP bin}. This can be done from a terminal
+window:
 \ifWindows
 \begin{verbatim}
  > cd <ARTISYNTH_HOME>
@@ -1493,6 +1608,7 @@ to make it easier to restart.
 \fi
 
 \subsubsection{Setting Eclipse to use the correct Java JDK}
+\label{EclipseJDK:sec}
 
 Newer versions of Eclipse come with their own version of
 Java. However, since we generally want to use our own Java JDK (such
@@ -1503,9 +1619,9 @@ configure Eclipse to use that instead. This can be done as follows:
 
 \item From the main menu, select 
 \ifMacOS
-{\sf Eclipse > Preferences...}.
+``{\sf Eclipse > Preferences ...}''.
 \else
-{\sf Window > Preferences}.
+``{\sf Window > Preferences}''.
 \fi
 
 \item A {\sf Preferences} dialog will open. In the left panel, select
@@ -1599,9 +1715,9 @@ To prevent this copying:
 
 \item Choose
 \ifMacOS
-{\sf Eclipse > Preferences...}.
+``{\sf Eclipse > Preferences...}''.
 \else
-{\sf Window > Preferences}.
+``{\sf Window > Preferences}''.
 \fi
 
 \item Select {\sf Java > Compiler > Building}.
@@ -1640,7 +1756,7 @@ file, you can import it into Eclipse as follows:
 
 \begin{enumerate}
 
-\item From within Eclipse, choose {\sf File > Import ...}.
+\item From within Eclipse, choose ``{\sf File > Import ...}''.
 
 \item An {\sf Import} dialog will appear. 
 Select {\sf General > Existing Projects into Workspace} and click {\sf Next}.
@@ -1876,40 +1992,10 @@ Section \ref{SettingEnvironmentVariables}, and descriptions of the
 variables themselves may be found in
 Section \ref{EnvironmentVariables}.
 
-Some variables that are commonly set within Eclipse include:
-
-\begin{itemize}
-
-\item {\tt ARTISYNTH\_HOME}: If set, this should be set to
-\ArtHome[]. Normally ArtiSynth is able to infer its own location
-internally, so it is generally unnecessary to set this variable
-explicitly.
-
-\item {\tt OMP\_NUM\_THREADS}: Specifies the maximum number of processor cores
-available for multicore execution.
-
-%\item {\tt ARTISYNTH\_PATH}: A list of folders, separated by semi-colons ";", 
-%which ArtiSynth uses to search for configuration files. 
-%See Section \ref{EnvironmentVariables}.
-
-\end{itemize}
-
-If any of the above variables have already been set externally in
+If any environment variables have already been set externally in
 \SYSTEM{} (\environmentSectionRef), such that they are visible
-to Eclipse at start-up, then they do not need to be set in the launch
-configuration.
-
-%In addition to setting environment variables, if you are running Java
-%1.7 (but not Java 1.8), then you should increase the memory space
-%allocated for classes. Do this by adding the following JVM argument to
-%your launch configuration:
-%%
-%\begin{lstlisting}
-% -XX:MaxPermSize=100M
-%\end{lstlisting}
-%%
-%Instructions for doing this are given in Section
-%\ref{SettingCommandLineArguments}.
+to Eclipse at start-up, then they do {\it not} need to be set in the
+launch configuration.
 
 \ifNeedLibraryPath
 
@@ -1942,7 +2028,7 @@ To set environment variables within Eclipse:
 
 \item Select the ArtiSynth project in the {\sf Package Explorer} form.
 
-\item Choose {\sf Run > Run Configurations...} to open the {\sf Run
+\item Choose ``{\sf Run > Run Configurations...}'' to open the {\sf Run
   Configurations} window.
 
 \item In the left panel, under {\sf Java Application}, select 
@@ -1997,7 +2083,7 @@ To set command line arguments for your Eclipse application:
 
 \item Select the ArtiSynth project in the {\sf Package Explorer} form.
 
-\item Choose {\sf Run > Run Configurations...} to open the {\sf Run
+\item Choose ``{\sf Run > Run Configurations...}'' to open the {\sf Run
   Configurations} window.
 
 \item In the left panel, under {\sf Java Application}, select
@@ -2040,7 +2126,7 @@ project's build path.
 
 \item Select the dependent project in the {\sf Package Explorer} form.
 
-\item Right click and choose {\sf Build Path > Configure Build Path...} 
+\item Right click and choose ``{\sf Build Path > Configure Build Path...}''
 
 \item In the right panel, select the {\sf Projects} tab.
 
@@ -2060,7 +2146,7 @@ configuration.
 
 \begin{enumerate}
 
-\item From the main menu, choose {\sf Run > Run Configurations...}
+\item From the main menu, choose ``{\sf Run > Run Configurations...}''
 to open a {\sf Run Configurations} dialog.
 
 \item In the left panel, under {\sf Java Application}, select your
@@ -2074,7 +2160,7 @@ and then click the {\sf Add Projects} button.
 
 \item In the {\sf Project Selection} dialog, select the external
 projects that you wish to add. Generally, the boxes
-{\sf Add exported entries ...} and {\sf Add required projects ...}
+``{\sf Add exported entries ...}'' and ``{\sf Add required projects ...}''
 can be unchecked. Click {\sf OK}.
 
 \item Close the {\sf Run Configurations} dialog.
@@ -2224,7 +2310,7 @@ The path name of the ArtiSynth installation \directory{}.
 %
 %A list of \directories{}, separated by \separatorDesc, which ArtiSynth
 %uses to search for configuration files such as {\tt .artisyntInit} or
-%{\tt .demoModels}.  A typical setting for {\tt ARTISYNTH\_PATH}
+%{\tt demoModels.txt}.  A typical setting for {\tt ARTISYNTH\_PATH}
 %consists of the current \directory{} (indicated by "{\tt .}"), the user's
 %home \directory{}, and the ArtiSynth installation \directory{}. If {\tt
 %ARTISYNTH\_PATH} is not defined explicitly in the user's environment,
@@ -2257,8 +2343,12 @@ Should be set to include \ArtHome[\SEP lib\SEP \ARCH{}].
 \item[{\tt OMP\_NUM\_THREADS}]\mbox{}
  
 Specifies the maximum number of processor cores that are available for
-multicore execution. Setting this variable to the maximum number of
-cores on your machine can significantly increase performance.
+multicore execution. If not set, the system uses the
+maximum number of cores available. Users can also set this number from
+within ArtiSynth by setting the configuration property {\sf
+numSolverThreads}, either for the current session by choosing {\sf
+``Settings > Interaction ...''} from the main menu, or for all sessions by
+choosing {\sf ``Settings > Preferences ... > Interaction''}.
 
 \end{description}
 
@@ -2336,7 +2426,6 @@ look like this:
 ARTISYNTH_HOME c:\users\joe\artisynth_core
 CLASSPATH %ARTISYNTH_HOME%\classes;%ARTISYNTH_HOME%\lib\*
 PATH %ARTISYNTH_HOME%\bin;%PATH%
-OMP_NUM_THREADS 4
 \end{lstlisting}
 
 \subsubsection{GitBash environment settings}
@@ -2355,8 +2444,6 @@ export ARTISYNTH_HOME=C:/users/joe/artisynth_core
 AH="C:\users\joe\/artisynth_core"
 export CLASSPATH="$AH\classes;$AH\lib\*"
 export PATH=$ARTISYNTH_HOME/bin:$PATH
-# Set to the number of cores on your machine:
-export OMP_NUM_THREADS=4 
 \end{lstlisting}
 
 Note that the {\tt CLASSPATH} environment variable must be set using a
@@ -2379,8 +2466,6 @@ one of your {\tt bash} initialization files (typically {\tt
 export ARTISYNTH_HOME=$HOME/artisynth_core
 export CLASSPATH="$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*"
 export PATH="$ARTISYNTH_HOME/bin:$PATH"
-# Set to the number of cores on your machine:
-export OMP_NUM_THREADS=4 
 \end{lstlisting}
 
 Be sure to set {\tt ARTISYNTH\_HOME} to the proper location of your
@@ -2402,8 +2487,7 @@ the installation \directory{}:
 
 This will determine the system type automatically and set the
 environment variables accordingly, with {\tt ARTISYNTH\_HOME} set to the
-current \directory{} from which the script is called (however,
-it {\it won't} set {\tt OMP\_NUM\_THREADS}).
+current \directory{} from which the script is called.
 
 \subsubsection{Example environment setup for {\tt csh} or {\tt tcsh}}
 \label{CshEnvironmentSetup}
@@ -2419,8 +2503,6 @@ to the following in your {\tt .cshrc} file, located in your home
 setenv ARTISYNTH_HOME $HOME/artisynth_core
 setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
 setenv PATH $ARTISYNTH_HOME/bin":"$PATH
-# Set to the number of cores on your machine:
-setenv OMP_NUM_THREADS 4 
 \end{lstlisting}
 \else\ifMacOS
 \begin{lstlisting}[]
@@ -2428,8 +2510,6 @@ setenv OMP_NUM_THREADS 4
 setenv ARTISYNTH_HOME $HOME/artisynth_core
 setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
 setenv PATH $ARTISYNTH_HOME/bin":"$PATH
-# Set to the number of cores on your machine:
-setenv OMP_NUM_THREADS 4 
 \end{lstlisting}
 \fi % end MacOS
 \fi % end not Linux
@@ -2450,8 +2530,7 @@ the installation \directory{}:
 
 This will determine the system type automatically and set the
 environment variables accordingly, with {\tt ARTISYNTH\_HOME} set to the
-current \directory{} from which the script is called (however,
-it {\it won't} set {\tt OMP\_NUM\_THREADS}).
+current \directory{} from which the script is called.
 \fi % end not Windows
 
 \subsection{ArtiSynth Libraries}
@@ -2477,21 +2556,14 @@ the latest versions on the ArtiSynth server.
 \subsection{The EXTCLASSPATH File}
 \label{EXTCLASSPATHFile}
 
-In order to run an external model in ArtiSynth, all
-class \directories{} and JAR files associated with those external
-models must be made visible to ArtiSynth. One way to do this is to
-list these as entries in the text file {\tt EXTCLASSPATH}, located
-in \ArtHome[].
-
-To add class paths to {\tt EXTCLASSPATH}, open it using a
-plain text editor
-\ifWindows
-(such as {\tt Notepad})
-\else
-(such as {\tt vim}, {\tt gedit}, or {\tt emacs}),
-\fi
-and add the required class \directories{} and JAR files.  Usually
-these are added one per line, but multiple entries can be made on the
+The {\tt EXTCLASSPATH} file is stored in the user configuration folder
+(Section \ref{UserConfigFolder:sec}) and contains the entries for the
+external class path (Section \ref{ExternalClasspath:sec}).  It is
+usually edited within ArtiSynth by selecting {\sf ``External classpath
+...''} from the {\sf Settings} menu but can also be edited directly.
+Each file entry describes a class \directory{} or JAR file needed to
+run models external to the core ArtiSynth package.  Entries are
+usually placed one per line, but multiple entries can be made on the
 same line if separated by \separatorDesc{}.
 
 The syntax rules for {\tt EXTCLASSPATH} are:

@@ -15,7 +15,11 @@ multibody-type mechanical models.
 
 Both \javaclass[artisynth.core.workspace]{RootModel} and
 \javaclass[artisynth.core.mechmodels]{MechModel} contain properties
-that control the simulation behavior. One of the most important of
+that control the simulation behavior. 
+
+\subsection{maxStepSize}
+
+One of the most important of
 these is {\tt maxStepSize}. By default, simulation proceeds using the
 {\tt maxStepSize} value defined for the root model. A {\tt MechModel}
 (or any other type of {\tt Model}) contained in the root model's {\tt
@@ -28,6 +32,8 @@ the {\tt maxStepSize} may be set and queried using
   double getMaxStepSize();
 \end{lstlisting}
 %
+
+\subsection{integrator}
 
 Another important simulation property is {\tt integrator} in {\tt
 MechModel}, which determines the type of integrator used for the
@@ -77,6 +83,8 @@ Courant-Friedrichs-Lewy (CFL) condition. Larger stiffness and damping
 values decrease the propagation time and hence the allowable step
 size.
 \end{sideblock}
+
+\subsection{stabilization}
 
 Another {\tt MechModel} simulation property is {\tt stabilization},
 which controls the stabilization method used to correct drift from
@@ -2161,7 +2169,7 @@ so overconstraining cannot occur, but contact penetration is no longer
 strictly enforced and the overall computation time can be increased.
 
 \begin{sideblock}
-The regularization described here is analagous to that used for joints
+The regularization described here is analogous to that used for joints
 and connectors, discussed in Section \ref{JointCompliance:sec}.
 \end{sideblock}
 

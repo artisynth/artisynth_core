@@ -371,7 +371,7 @@ by dividing the impulses by the time step $h$:
 We note here that ArtiSynth uses a {\it full coordinate} formulation,
 in which the position of each dynamic body is solved using full, or
 unconstrained, coordinates, with constraint relationships acting to
-restrict these coordinates. In constract, some other simulation
+restrict these coordinates. In contrast, some other simulation
 systems, including OpenSim \cite{delp2007opensim}, use {\it reduced}
 coordinates, in which the system dynamics are formulated using a
 smaller set of coordinates (such as joint angles) that implicitly take
@@ -745,25 +745,32 @@ points should already be present in the hierarchy.
 The {\tt build()} method supplies a {\tt String} array as an argument,
 which can be used to transmit application arguments in a manner
 analogous to the {\tt args} argument passed to static {\tt main()}
-methods. In cases where the model is specified directly on the
-ArtiSynth command line (using the {\tt -model <classname>} option), it
-is possible to also specify arguments for the {\tt build()} method.
-This is done by enclosing the desired
-arguments within square brackets {\tt [ ]} immediately following the
-{\tt -model} option. So, for example,
+methods. Build arguments can be specified when a model is loaded
+directly from a class using {\sf Models > Load from class ...}, or when
+the {\it startup model} is set to automatically load a model
+when ArtiSynth is first started ({\sf Settings > Startup
+model}). Details are given in the ``Loading, Simulating and
+Saving Models'' section of the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+Build arguments can also be listed directly on the ArtiSynth command
+line when specifying a model to load using the {\tt -model
+<classname>} option.  This is done by enclosing the desired arguments
+within square brackets {\tt [ ]} immediately following the {\tt
+-model} option. So, for example,
 %
 \begin{verbatim}
-> artisynth -model projects.MyModel [ -foo 123 ]
+> artisynth -model projects.MyModel [ -size 50 ]
 \end{verbatim}
 %
-would cause the strings {\tt "-foo"} and {\tt "123"} to
+would cause the strings {\tt "-size"} and {\tt "50"} to
 be passed to the {\tt build()} method of {\tt MyModel}.
 
 \subsection{Making models visible to ArtiSynth}
 
 In order to load an application model into ArtiSynth, the classes
 associated with its implementation must be made visible to ArtiSynth.
-This usually involves adding the top-level class directory associated
+This usually involves adding the top-level class folder associated
 with the application code to the classpath used by ArtiSynth.
 
 \begin{sideblock}
@@ -773,23 +780,23 @@ ArtiSynth.
 \end{sideblock}
 
 In most current ArtiSynth projects, classes are stored in
-a directory tree separate from the source code, with the top-level
-class directory named {\tt classes}, located one level below
-the project root directory. A typical top-level class directory
+a folder tree separate from the source code, with the top-level
+class folder named {\tt classes}, located one level below
+the project root folder. A typical top-level class folder
 might be stored in a location like this:
 \begin{verbatim}
   /home/joeuser/artisynthProjects/classes
 \end{verbatim}
 In the example shown in Section \ref{CreatingAnApplication:sec}, the
 model was created in the package {\tt artisynth.models.experimental}.
-Since Java classes are arranged in a directory structure that mirrors
-package names, with respect to the sample project directory shown
+Since Java classes are arranged in a folder structure that mirrors
+package names, with respect to the sample project folder shown
 above, the model class would be located in
 \begin{verbatim}
   /home/joeuser/artisynthProjects/classes/artisynth/models/experimental
 \end{verbatim}
 
-At present there are three ways to make top-level class directories
+At present there are three ways to make top-level class folders
 known to ArtiSynth:
 
 \begin{description}
@@ -801,18 +808,24 @@ which are developing your model code to the launch configuration that
 you use to run ArtiSynth. Other IDEs will presumably provide similar
 functionality.
 
-\item[Add the directories to the EXTCLASSPATH file]\mbox{}
+\item[Add the folders to the external classpath]\mbox{}
 
-You can explicitly list class directories in the file EXTCLASSPATH,
-located in the ArtiSynth root directory (it may be necessary to create
-this file).
+You can explicitly add the class folders to ArtiSynth's external
+classpath. The easiest way to do this is to select ``{\sf Settings >
+External classpath ...}'' from the {\sf Settings} menu, which will
+open an external classpath editor which lists all the classpath
+entries in a large panel on the left. (When ArtiSynth is first
+installed, the external classpath has no entries, and so this panel
+will be blank.) Class folders can then by added via
+the {\sf ``Add class folder''} button, and the classpath is
+saved using the {\sf Save} button.
 
-\item[Add the directories to your CLASSPATH environment variable]\mbox{}
+\item[Add the folders to your CLASSPATH environment variable]\mbox{}
 
 If you are running ArtiSynth from the command line, using the {\tt
 artisynth} command (or {\tt artisynth.bat} on Windows), then you can
 define a CLASSPATH environment variable in your environment and add
-the needed directories to this.
+the needed folders to this.
 
 \end{description}
 
@@ -832,22 +845,24 @@ into ArtiSynth in several ways:
 
 \begin{description}
 
+\item[Loading from the Model menu]\mbox{}
+
+If the root model is contained in a package located under {\tt
+artisynth.demos} or {\tt artisynth.models}, then it will appear in the
+default model menu ({\sf Models} in the main menu bar) under the
+submenu {\sf All demos} or {\sf All models}.
+
 \item[Loading by class path]\mbox{}
 
-A model may be loaded by directly by choosing {\sf File > Load from
-class ...} and directly specifying its class name. It is also possible
-to use the {\tt -model <classname>} command line argument to have a
-model loaded directly into ArtiSynth when it starts up.
-
-\item[Loading from the Models menu]\mbox{}
-
-A faster way to load a model is by selecting it in one of the {\sf
-Models} submenus. This may require editing the model menu
-configuration files.
+A model may also be loaded by choosing {\sf ``Load from class ...''}
+from the {\sf Models} menu and specifying its package name and then
+choosing its root model class. It is also possible to use the {\tt
+-model <classname>} command line argument to have a model loaded
+directly into ArtiSynth when it starts up.
 
 \item[Loading from a file]\mbox{}
 
-If a model has previously been saved to a file, it may be loaded from
+If a model has been saved to a {\tt .art} file, it may be loaded from
 that file by choosing {\sf File > Load model ...}.
 
 \end{description}
@@ -858,27 +873,31 @@ section ``Loading and Simulating Models'' of the\pdfbreak
 
 \begin{sideblock}
 The demonstration models referred to in this guide should already
-be present in the models menu and may be loaded
+be present in the model menu and may be loaded
 from the submenu {\sf Models > All demos > tutorial}.
 \end{sideblock}
 
-Once a model is loaded, it can be simulated, or {\it run}.
-Simulation
+Once a model is loaded, it can be simulated, or {\it run}.  Simulation
 of the model can then be started, paused, single-stepped, or reset
-using the play controls (Figure \ref{PlayControlsFig})
-located at the upper right of the ArtiSynth window frame.
+using the play controls (Figure \ref{PlayControlsFig}) located at the
+upper right of the ArtiSynth window frame.  Starting and stopping a
+simulation is done by clicking {\sf play/pause}, while {\sf reset}
+resets the simulation to time 0.  The {\sf single-step} button
+advances the simulation by one time step. The {\sf stop-all} button
+will also stop the simulation, along with any Jython commands or
+scripts that are running.
 
 \begin{figure}[ht]
 \begin{center}
 \iflatexml
 \includegraphics[]{../uiguide/images/playControls}
 \else
-\includegraphics[width=2.5in]{../uiguide/images/playControls}
+\includegraphics[width=3in]{../uiguide/images/playControls}
 \fi
 \end{center}
 \caption{The ArtiSynth play controls. From left to right: step size
 control, current simulation time, and the reset, skip-back,
-play/pause, single-step and skip-forward buttons.}%
+play/pause, single-step, skip-forward and stop-all buttons.}%
 \label{PlayControlsFig}
 \end{figure}
 

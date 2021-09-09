@@ -218,6 +218,14 @@ public class NumericOutputProbe extends NumericProbeBase
       }
    }
 
+   /**
+    * When called (perhaps by the Artsynth timeline), causes information about
+    * this probe to be loaded from the attached file.
+    */
+   public void load() throws IOException {
+      load(/*setTimes=*/false);
+   }
+
    public void writeData (PrintWriter pw, String fmtStr, boolean showTime) {
       NumberFormat timeFmt = null;
       if (showTime) {

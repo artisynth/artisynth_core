@@ -58,13 +58,9 @@ public class PointTracingProbe extends TracingProbe {
             compProps = rcomp.createRenderProps();
          }
          newProps.set (compProps);
-         // if component point color is explicitly set, set the
-         // line and point colors of render props to match
-         if (compProps.getPointColorMode() == PropertyMode.Explicit) {
-            float[] pointColor = compProps.getPointColorF();
-            newProps.setPointColor (pointColor);
-            newProps.setLineColor (pointColor);
-         }
+         // Set the line color from the point color
+         float[] pointColor = compProps.getPointColorF();
+         newProps.setLineColor (pointColor);
       }
       newProps.setLineWidth (3);
       setRenderProps (newProps);

@@ -43,6 +43,7 @@ public abstract class Probe extends ModelAgentBase {
    protected String myAttachedFileName;
    protected static String defaultAttachedFileName = null;
    protected String myExportFileName;
+   protected String myImportFileName;
 
    protected int myTrackNum = -1;
 
@@ -77,7 +78,7 @@ public abstract class Probe extends ModelAgentBase {
    }
 
    public String getExportFileName() {
-      return null;
+      return myExportFileName;
    }
 
    public File getExportFile() {
@@ -86,6 +87,18 @@ public abstract class Probe extends ModelAgentBase {
 
    public void setExportFileName (String fileName) {
       myExportFileName = ArtisynthPath.convertToLocalSeparators (fileName);
+   }
+
+   public String getImportFileName() {
+      return myImportFileName;
+   }
+
+   public File getImportFile() {
+      return getFileFromPath (myImportFileName);
+   }
+
+   public void setImportFileName (String fileName) {
+      myImportFileName = ArtisynthPath.convertToLocalSeparators (fileName);
    }
 
    public ExportProps getExportProps (String ext) {
@@ -101,6 +114,13 @@ public abstract class Probe extends ModelAgentBase {
    }
 
    public void export (File file, ExportProps props)
+      throws IOException {
+   }
+
+   /**
+    * Still being implemented
+    */
+   public void importData (File file, boolean explicitTime, boolean overlay)
       throws IOException {
    }
 

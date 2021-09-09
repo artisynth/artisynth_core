@@ -19,7 +19,7 @@ import java.util.*;
 
 public abstract class TracingProbe extends NumericOutputProbe implements
 RenderableComponent {
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
    protected double myTraceInterval = 0.05;
 
    public static PropertyList myProps =

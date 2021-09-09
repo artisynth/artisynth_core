@@ -14,7 +14,7 @@ import java.util.*;
 
 public abstract class RenderableModelBase extends ModelBase
    implements RenderableComponent {
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
 
    public static PropertyList myProps =
       new PropertyList (RenderableModelBase.class, ModelBase.class);

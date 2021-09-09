@@ -141,7 +141,7 @@ public class PointForce extends ModelComponentBase
 
    /* ======== Renderable implementation ======= */
 
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
 
    private float[] getRenderCoords0() {
       return myPnt.myRenderCoords;

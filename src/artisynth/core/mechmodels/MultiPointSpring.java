@@ -830,10 +830,26 @@ public class MultiPointSpring extends PointSpringBase
             wrapSeg.initializeStrand (wrapSeg.myInitialPnts);
          }
       }
-      if (idx < mySegments.size()-1) {
-         seg.myPntA = mySegments.get(idx+1).myPntB;
+      if (idx < mySegments.size()) {
+         seg.myPntA = mySegments.get(idx).myPntB;
       }
       mySegments.add (idx, seg);
+      //
+      // sanity check:
+      // 
+      // for (int i=0; i<mySegments.size(); i++) {
+      //    Segment s = mySegments.get(i);
+      //    if (s.myPntB != getPoint(i)) {
+      //       throw new InternalErrorException (
+      //          "pntB for segment i != point(i)");
+      //    }
+      //    if (i < mySegments.size()-1) {
+      //       if (s.myPntA != getPoint(i+1)) {
+      //          throw new InternalErrorException (
+      //             "pntA for segment i != point(i+1)");
+      //       }
+      //    }
+      // }
       invalidateSegments();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
@@ -1140,6 +1156,55 @@ public class MultiPointSpring extends PointSpringBase
       wseg.myPntA = oldSeg.myPntA;
       mySegments.set (segIdx, wseg);
       return wseg;
+   }
+
+   public boolean clearAllWrapableSegments () {
+      if (mySegments.size() == 0) {
+         throw new ImproperStateException (
+            "clearAllWrappableSegments() called before first call to addPoint()");
+      }
+      boolean cleared = false;
+      for (int i=0; i<mySegments.size(); i++) {
+         if (doClearWrappableSegment (i)) {
+            cleared = true;
+         }
+      }
+      if (cleared) {
+         invalidateSegments();
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      }
+      return cleared;
+   }   
+         
+   public boolean clearWrappableSegment (int segIdx) {
+      if (segIdx >= mySegments.size()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" does not exist");
+      }
+      if (doClearWrappableSegment (segIdx)) {
+         invalidateSegments();
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   protected boolean doClearWrappableSegment (int segIdx) {
+      Segment oldSeg = mySegments.get (segIdx);
+      if (oldSeg instanceof WrapSegment) {
+         Segment newSeg = new Segment();
+         newSeg.myPntB = oldSeg.myPntB;
+         // note: if segIdx corresponds to the last current segment, pntA will
+         // still be null and will not be set until the next call to addPoint().
+         newSeg.myPntA = oldSeg.myPntA;
+         mySegments.set (segIdx, newSeg);
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
    /**

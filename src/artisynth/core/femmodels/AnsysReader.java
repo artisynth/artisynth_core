@@ -19,7 +19,6 @@ import java.util.List;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
-import maspack.widgets.WidgetDialog;
 
 /**
  * A class to read an FEM described in the Abaqus file format.

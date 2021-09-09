@@ -144,6 +144,7 @@ PointAttachable, ConnectableBody {
 
    // protected ArrayList<LinkedList<FemElement3d>> myElementNeighbors;
 
+   public static boolean DEFAULT_ABORT_ON_INVERTED_ELEMENTS = true;
    public static boolean abortOnInvertedElems = false;
    public static boolean checkTangentStability = false;
    public static boolean noIncompressStiffnessDamping = false;
@@ -216,6 +217,7 @@ PointAttachable, ConnectableBody {
 
    // keep track of the number of tet, hex, and quadratic elements
    private int myNumTetElements = 0;
+   private int myNumHexElements = 0;
    private int myNumNodalMappedElements = 0;
    private int myNumNodalInterpolatedElements = 0;
    private int myNumQuadraticElements = 0;
@@ -4150,6 +4152,7 @@ PointAttachable, ConnectableBody {
    protected void updateElementCounts() {
       if (myNumTetElements == -1) {
          myNumTetElements = 0;
+         myNumHexElements = 0;
          myNumNodalMappedElements = 0;
          myNumNodalInterpolatedElements = 0;
          myNumQuadraticElements = 0;
@@ -4169,6 +4172,9 @@ PointAttachable, ConnectableBody {
                e instanceof QuadpyramidElement) {
                myNumQuadraticElements++;
             }
+            if (e instanceof HexElement) {
+               myNumHexElements++;
+            }
          }
       }
    }
@@ -4176,6 +4182,19 @@ PointAttachable, ConnectableBody {
    public int numTetElements() {
       updateElementCounts();
       return myNumTetElements;
+   }
+
+   public boolean hasTetMesh() {
+      return numElements() == numTetElements();
+   }
+   
+   public int numHexElements() {
+      updateElementCounts();
+      return myNumHexElements;
+   }
+   
+   public boolean hasHexMesh() {
+      return numElements() == numHexElements();
    }
 
    public int numQuadraticElements() {

@@ -239,6 +239,8 @@ public class AjlCollisionTest extends RootModel {
 
       SurfaceMeshIntersector.CSG csg = null;
       String crashFile = null;
+      String meshFile0 = null;
+      String meshFile1 = null;
       boolean contoursOnly = false;
 
       double perturb0 = 0;
@@ -276,6 +278,24 @@ public class AjlCollisionTest extends RootModel {
             }
             else {
                perturb1 = Double.valueOf (args[i]);
+            }
+         }
+         else if (args[i].equals ("-mesh0")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "WARNING: -mesh0 needs an additional argument");
+            }
+            else {
+               meshFile0 = args[i];
+            }
+         }
+         else if (args[i].equals ("-mesh1")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "WARNING: -mesh1 needs an additional argument");
+            }
+            else {
+               meshFile1 = args[i];
             }
          }
          else if (!args[i].startsWith ("-")) {
@@ -518,7 +538,7 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
       
-      if (true) {
+      if (false) {
          String dataDir = 
             PathFinder.expand (
                "${srcdir AjlCollisionTest}/data/");
@@ -773,6 +793,17 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
 
+      if (true && meshFile0 != null && meshFile1 != null) {
+         try {
+            mesh1 = new PolygonalMesh (meshFile0);
+            mesh0 = new PolygonalMesh (meshFile1);
+         }
+         catch (Exception e) {
+            e.printStackTrace(); 
+         }
+         setupBodies (myMech, mesh0, mesh1);
+      }
+      
       if (crashFile != null) {
          mesh0 = new PolygonalMesh();
          mesh1 = new PolygonalMesh();

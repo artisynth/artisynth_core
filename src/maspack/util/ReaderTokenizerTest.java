@@ -180,6 +180,13 @@ public class ReaderTokenizerTest {
                      new Record ("z", WORD, 1),
                      new Record ("-1", NUMBER, 1) };
 
+   private String quoteTest =
+      " \"\\\"'\\\"\" \"C:\\\\foo\\\\bar\" \"whitespace:\\t\\n\\r\" ";
+
+   private Record[] quoteTestCheck =
+      new Record[] { new Record ("\"'\"", QUOTE, 1),
+                     new Record ("C:\\foo\\bar", QUOTE, 1),
+                     new Record ("whitespace:\t\n\r", QUOTE, 1) };
 
    private void runTest (Record[] results, ReaderTokenizer rtok)
       throws IOException {
@@ -220,6 +227,20 @@ public class ReaderTokenizerTest {
       rtok.setCharSetting ('-', dsave);
       rtok.setReader (new StringReader (testString5));
       runTest (testResults5x, rtok);
+
+      rtok.setReader (new StringReader (quoteTest));
+      runTest (quoteTestCheck, rtok);
+
+      String escapeStr = ReaderTokenizer.escapeString (
+         "\"'\" C:\\foo\\bar \t\b\n\r\f \"", '"');
+      String escapeStrCheck =
+         "\\\"'\\\" C:\\\\foo\\\\bar \\t\\b\\n\\r\\f \\\"";
+
+      if (!escapeStr.equals (escapeStrCheck)) {
+         throw new TestException (
+            "escaped string is '" + escapeStr + "'\n" +
+            "expected '" + escapeStrCheck + "'");
+      }
 
       // rtok.parseNumericExtensions(true);
       // rtok.setReader (new StringReader (testString4));

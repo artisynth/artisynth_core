@@ -76,7 +76,7 @@ public class ArtisynthJythonConsole {
    public void executeScript (String fileName) throws IOException {
       executeScript(fileName, null);
    }
-   
+
    public void executeScript (String fileName, String[] args) throws IOException {
 
       if (myConsole instanceof JythonFrameConsole) {
@@ -94,6 +94,10 @@ public class ArtisynthJythonConsole {
       }
       if (args == null) {
          args = new String[0];
+      }
+      if (File.separatorChar == '\\') {
+         // Convert '\' to '/' on Windows for better readablity
+         fileName = fileName.replace ('\\', '/');
       }
 
       // pass in sys arguments through this dummy object

@@ -1692,9 +1692,10 @@ public class PardisoSolver implements DirectSolver {
     * Releases the native resources used by this solver.
     */
    public void dispose() {
-      if (myHandle != 0) {
-         doRelease (myHandle);
-         myHandle = 0;
+      long handle = myHandle;
+      if (handle != 0) {
+         myHandle = 0;         
+         doRelease (handle);
       }
    }
 

@@ -110,8 +110,14 @@ public class ControlPanel extends ModelComponentBase
             if (dialog.getReturnValue() == OptionPanel.OK_OPTION) {
                LabeledComponentBase widget = dialog.createWidget();
                Property prop = PropertyWidget.getProperty (widget);
-               addPropertyWidget (
-                  prop, widget, getComponentIndex(mySource)+1);
+               int insertIndex;
+               if (mySource != null) {
+                  insertIndex = getComponentIndex(mySource)+1;
+               }
+               else {
+                  insertIndex = numWidgets();
+               }
+               addPropertyWidget (prop, widget, insertIndex);
                repackContainingWindow();
             }
          }
@@ -326,52 +332,34 @@ public class ControlPanel extends ModelComponentBase
    }
 
    public LabeledComponentBase addWidget (Property prop) {
-      LabeledComponentBase comp = myPanel.addWidget (prop);
-      return comp;
+      return myPanel.addWidget (prop);
    }
 
    public LabeledComponentBase addWidget (Property prop, double min, double max) {
-      LabeledComponentBase comp = myPanel.addWidget (prop, min, max);
-      return comp;
+      return myPanel.addWidget (prop, min, max);
    }
 
    public LabeledComponentBase addWidget (HasProperties host, String name) {
-      Property prop = host.getProperty (name);
-      if (prop != null) {
-         return addWidget (prop);
-      }
-      else {
-         return null;
-      }
+      return myPanel.addWidget (host, name);
    }
 
    public LabeledComponentBase addWidget (
       HasProperties host, String name, double min, double max) {
-      Property prop = host.getProperty (name);
-      if (prop != null) {
-         return addWidget (prop, min, max);
-      }
-      else {
-         return null;
-      }
+      return myPanel.addWidget (host, name, min, max);
    }
 
    public LabeledComponentBase addWidget (
       String labelText, HasProperties host, String name) {
-      LabeledComponentBase widget = addWidget (host, name);
-      if (widget != null) {
-         widget.setLabelText (labelText);
-      }
-      return widget;
+      return myPanel.addWidget (labelText, host, name);
    }
 
    public LabeledComponentBase addWidget (
       String labelText, HasProperties host, String name, double min, double max) {
-      LabeledComponentBase widget = addWidget (host, name, min, max);
-      if (widget != null) {
-         widget.setLabelText (labelText);
-      }
-      return widget;
+      return myPanel.addWidget (labelText, host, name, min, max);
+   }
+
+   public void addWidgets (HasProperties host) {
+      myPanel.addWidgets (PropertyUtils.createProperties (host));
    }
 
    public Component addLabel (String text) {

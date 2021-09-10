@@ -420,12 +420,14 @@ ValueChangeListener {
             myDefaultProps =
                EditingProperty.createProperties (
                   myPropTree, myHostList, /* isLive= */ true);
-            LinkedList<Property> basicProps =
+            LinkedList<Property> basicProps = 
                getBasicProps (type, myDefaultProps);
+            LinkedList<Property> extraProps = new LinkedList<Property>();
             if (basicProps.size() > 0) {
-               LinkedList<Property> extraProps = new LinkedList<Property>();
                extraProps.addAll (myDefaultProps);
                extraProps.removeAll (basicProps);
+            }
+            if (extraProps.size() > 0) {
                myPropertyPanel =
                   new ExpandablePropertyPanel (basicProps, extraProps);
             }
@@ -580,7 +582,7 @@ ValueChangeListener {
     * Called after a left mouse press in one of the viewers when a location
     * listener is installed.
     */
-   public void handleLocationEvent (Viewer viewer, MouseRayEvent rayEvent) {}
+   public void handleLocationEvent (GLViewer viewer, MouseRayEvent rayEvent) {}
 
    public void componentChanged (ComponentChangeEvent e) {
       if (!isContextValid()) {
@@ -622,7 +624,7 @@ ValueChangeListener {
    private class LocationListener extends MouseInputAdapter {
       public void mouseClicked (MouseEvent e) {
          if (e.getButton() == MouseEvent.BUTTON1) {
-            Viewer viewer =
+            GLViewer viewer =
                ViewerManager.getViewerFromComponent (e.getComponent());
             if (viewer != null) {
                handleLocationEvent (viewer, MouseRayEvent.create (e, viewer));

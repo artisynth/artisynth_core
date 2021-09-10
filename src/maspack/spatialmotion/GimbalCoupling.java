@@ -16,7 +16,7 @@ import maspack.util.*;
  * Implements a three DOF spherical coupling, parameterized by roll, pitch and
  * yaw angles. These angles describe a sequence of intrinsic rotations about
  * either the Z-Y-X or the X-Y-Z axes, depending on the axis settings as
- * specified by {@link #setAxes} and {@link #1getAxes}. Frames C and D share a
+ * specified by {@link #setAxes} and {@link #getAxes}. Frames C and D share a
  * common origin but are otherwise free to rotate about each other. Travel
  * restrictions can be placed on the roll, pitch and yaw angles.
  */

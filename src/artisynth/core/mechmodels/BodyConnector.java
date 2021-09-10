@@ -16,11 +16,11 @@ import maspack.geometry.GeometryTransformer;
 import maspack.properties.*;
 import maspack.util.*;
 import maspack.render.*;
+import maspack.render.Renderer.AxisDrawStyle;
 import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 import artisynth.core.util.*;
 
 /**
@@ -31,6 +31,8 @@ public abstract class BodyConnector extends RenderableComponentBase
    implements ScalableUnits, TransformableGeometry, HasNumericState,
               Constrainer, HasCoordinateFrame {
               
+   public static boolean debug = false;
+
    protected ConnectableBody myBodyA;
    protected ConnectableBody myBodyB;
    protected FrameAttachment myAttachmentA;
@@ -2058,6 +2060,23 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
    
    /**
+    * Returns true if this connector is enabled and at least one of
+    * it's underlying master components is not attached.
+    */
+   public boolean isNotAttached() {
+      if (!isEnabled()) {
+         return false;
+      }
+      if (myAttachmentA.oneMasterNotAttached() ||
+          myAttachmentB.oneMasterNotAttached()) {
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
     * Queries whether or not the attachments have been initialized.  
     * 
     * @return {@code true} if the attachments are initialized.  
@@ -2296,30 +2315,6 @@ public abstract class BodyConnector extends RenderableComponentBase
          disconnectAttachmentMasters (myAttachmentB.getMasters());        
       }
    }
-   
-//   private void connectBodies() {
-//      // Note: in normal operation, bodyA is not null
-//      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
-//         myBodyA.addConnector (this);
-//         connectAttachmentMasters (myAttachmentA.getMasters());
-//      }
-//      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
-//         myBodyB.addConnector (this);
-//         connectAttachmentMasters (myAttachmentB.getMasters());
-//      }
-//   }
-//
-//   private void disconnectBodies() {
-//      // Note: in normal operation, bodyA is not null
-//      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
-//         myBodyA.removeConnector (this);
-//         disconnectAttachmentMasters (myAttachmentA.getMasters());
-//      }
-//      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
-//         myBodyB.removeConnector (this);
-//         disconnectAttachmentMasters (myAttachmentB.getMasters());
-//      }
-//   }
 
    /**
     * {@inheritDoc}
@@ -2487,6 +2482,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       boolean AIsFree = findAttachedBodies (myBodyA, myBodyB, bodiesA);
       boolean BIsFree = false;
       boolean moveBodyA = true;
+
       if (!myAdjustBodyAExplicitP && myBodyB != null) {
          BIsFree = findAttachedBodies (myBodyB, myBodyA, bodiesB);
          if (AIsFree != BIsFree) {
@@ -2597,6 +2593,13 @@ public abstract class BodyConnector extends RenderableComponentBase
       return isFree;
    }
 
+   public static void printConnectedBodies (ConnectableBody body) {
+      for (BodyConnector c : body.getConnectors()) {
+         ConnectableBody otherBody = c.getOtherBody (body);
+         System.out.println (otherBody.getName() + " " +c+ " " + c.getName());
+      }
+   }
+
    /**
     * Finds all connectable bodies which are attached to a given body via
     * connectors.  The search starts at {@code body} and expands outward by
@@ -2694,16 +2697,16 @@ public abstract class BodyConnector extends RenderableComponentBase
       
       if (myDrawFrameD != AxisDrawStyle.OFF) {
          // render frame D
-         Frame.renderAxes (
-            renderer, myRenderFrameD, myDrawFrameD,
-            myAxisLength, lineWidth, isSelected());
+         renderer.drawAxes (
+            myRenderFrameD, myDrawFrameD,
+            myAxisLength, lineWidth, 0, isSelected());
       }
       
       if (myDrawFrameC != AxisDrawStyle.OFF) {
          // render frame C
-         Frame.renderAxes (
-            renderer, myRenderFrameC, myDrawFrameC,
-            myAxisLength, lineWidth, isSelected());
+         renderer.drawAxes (
+            myRenderFrameC, myDrawFrameC,
+            myAxisLength, lineWidth, 0, isSelected());
       }
       
       if (myDrawFrameC != AxisDrawStyle.OFF &&

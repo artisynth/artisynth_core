@@ -56,6 +56,11 @@ public class GenericFileFilter extends FileFilter {
       }
       return ext;
    }
+
+   public boolean fileExtensionMatches (File f) {
+      String ext = getExtension (f);
+      return (ext != null && isValidExtension (ext));
+   }
    
    public boolean isValidExtension(String ext) {
       for (String str : exts) {

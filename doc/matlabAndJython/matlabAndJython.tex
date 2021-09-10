@@ -18,7 +18,7 @@
 \setcounter{tocdepth}{5}
 \setcounter{secnumdepth}{3}
 
-\title{Interfacing ArtiSynth to MATLAB and Jython}
+\title{Interfacing ArtiSynth to MATLAB}
 \author{John Lloyd}
 \setpubdate{Last update: Aug 9, 2016}
 
@@ -36,9 +36,9 @@
 
 \section{Introduction}
 
-ArtiSynth interfaces to both MATLAB and Jython, providing the ability
-to create scripts for running simulations, and to interactively query
-and perform method calls on ArtiSynth objects.
+ArtiSynth can be interfaced to MATLAB, providing the ability to create
+scripts for running simulations, and to interactively query and
+perform method calls on ArtiSynth objects.
 
 Since current versions of MATLAB support the execution of Java
 programs, it is possible to run ArtiSynth from within MATLAB.  This
@@ -49,24 +49,27 @@ simulation completes or while it is in progress. It is also possible
 to connect ArtiSynth to an external MATLAB process, which can then be
 used for preparing simulation input or analyzing output.
 
-ArtiSynth also provides an interactive Jython console, which allows
-access to internal structures and data. Jython scripts can also be
-prepared to automatically run one or more simulations. These scripts
-can also be invoked in ``batch'' mode by running ArtiSynth directly
-from the command line without starting the graphical interface.
-
 \section{Interfacing to MATLAB}
 
 \subsection{Requirements and configuration}
 \label{Requirements:sec}
 
-It is probably necessary to use MATLAB 2014 or greater, since only
-more recent versions of MATLAB use the JOGL 2 Java OpenGL interface
-which is compatible with ArtiSynth.
+The current version of ArtiSynth has been tested to run with MATLAB
+2021a.
 
-In addition, it will also be necessary to set some environment
-variables. In the following, assume that {\tt <ARTISYNTH\_HOME>} denotes
-the path to the root folder of the ArtiSynth installation.
+To interface with MATLAB, you should run ArtiSynth under Java 8,
+because that is the Java version currently used by MATLAB.  Verify
+that you do in fact have Java 8 installed, and, if you are using an
+integrated development environment (IDE), that the IDE is also using
+Java 8.  Details on installing Java 8 can be found in the installation
+guides for
+\artisynthManual[installation/windowsInstallation]{windowsInstallation}{Windows},
+\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS},
+and
+\artisynthManual[installation/linuxInstallation]{linuxInstallation}{Linux}.
+
+In the following, assume that {\tt <ARTISYNTH\_HOME>} denotes the path
+to the ArtiSynth installation folder.
 
 \begin{enumerate}
 
@@ -112,7 +115,7 @@ appropriate to your system.
 you may need to adjust the MATLAB Java virtual memory limit (Section
 \ref{memoryLimits:sec}).
 
-\item As necessary, add the classpath(s) for your Artisynth models to
+\item As necessary, add the classpath(s) for your ArtiSynth models to
 the MATLAB Java classpath, so that they will be visible to Java from
 within MATLAB. See Section \ref{ModelClasspath:sec} for details.
 
@@ -583,10 +586,10 @@ classpaths to MATLAB's Java classpath. There are three ways to do this:
 
 \begin{enumerate}
 
-\item Add the classpaths to the file {\tt EXTCLASSPATH} defined in the
-ArtiSynth root directory. Instructions for doing this are given the
-section {\it Adding external classes using EXTCLASSPATH} of the {\it
-ArtiSynth Installation Guide}.
+\item Add the classpaths to the ArtiSynth's external class path.
+Instructions for doing this are given the section ``Setting the
+external classpath'' of the \artisynthManual{uiguide}{User Interface
+Guide}.
 
 \item Add the classpaths within the {\tt MATLAB} session using the
 {\tt javaaddpath()} command. This should be done {\it before} the
@@ -653,7 +656,7 @@ Main} class (see Section \ref{MatlabFromCode:sec}).
 \begin{sideblock}
 When a MATLAB connection is requested, the system will first attempt
 to connect to a MATLAB process running on the user's machine. If no
-such process is found, then a new MATLAB process will be started.  If
+zsuch process is found, then a new MATLAB process will be started.  If
 a MATLAB connection is opened when ArtiSynth is being run under
 MATLAB, then the connection will be made to the parent MATLAB process.
 \end{sideblock}
@@ -676,8 +679,9 @@ output probes), where {\tt <n>} is the probe number.
 \end{enumerate}
 
 It is also possible to save/load probe data to/from MATLAB using the
-following functions in the Jython interface (Section
-\ref{JythonInterface:sec}):
+following functions available in ArtiSynth's Jython interface (see the
+section ``Jython Interaction and Scripting'' in the
+\artisynthManual{uiguide}{User Interface Guide}):
 %
 \begin{lstlisting}[]
    iprobeToMatlab (probeName, matlabName)
@@ -706,7 +710,7 @@ same thing for output probes.
 The MATLAB connection is associated, internally, with a structure
 called \javaclass[artisynth.core.util]{MatlabInterface}, which
 provides the internal methods for sending data to and from MATLAB.
-The interface can be obtained and queried from mathods in the {\tt
+The interface can be obtained and queried from methods in the {\tt
 Main} class:
 
 \begin{description}
@@ -776,8 +780,9 @@ of 1 in at least one dimension, then {\tt null} is returned.
 
 \end{description}
 
-The above methods are also available in the Jython interface (Section
-\ref{JythonInterface:sec}) via the functions
+The above methods are also available in the Jython interface (
+(section ``Jython Interaction and Scripting'' of the
+\artisynthManual{uiguide}{User Interface Guide}) via the functions
 %
 \begin{lstlisting}[]
    objectToMatlab (obj, matlabName)
@@ -809,276 +814,12 @@ MATLAB:
    mi.objectToMatlab (K, "KMAT");
 \end{lstlisting}
 
-\section{Interfacing to Jython}
-\label{JythonInterface:sec}
 
-Jython (\href{http://www.jython.org}{www.jython.org})
-is a Python-based wrapper for
-Java that provides access to Java objects through a Java interpreter.
-ArtiSynth provides a Jython interface that allows interactive querying
-of all the internal structures associated with ArtiSynth and its
-models. Jython can also be used to run simulation scripts, either
-interactively (Section \ref{JythonScripting:sec}) or in batch mode
-(Section \ref{JythonBatchScripting:sec}).
-
-The syntax, language semantics, and common packages for Jython are
-the same as for Python, so Python language references can be used to
-learn how to to program in Jython.
-
-The Jython console can be started by either
-
-\begin{enumerate}
-
-\item Choosing {\sf View > Show Jython Console} in the GUI, or
-
-\item Specifying the option {\tt -showJythonConsole} on
-the command line.
-
-\end{enumerate}
-
-The Jython console currently appears in a separate Window frame
-(Figure \ref{artisynthJython:fig}).
-
-\begin{figure}[t]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/artisynthJython}
-\else
- \includegraphics[width=4.5in]{images/artisynthJython}
-\fi
-\end{center}
-\caption{ArtiSynth application showing the Jython console.}
-\label{artisynthJython:fig}
-\end{figure}
-
-\subsection{Querying ArtiSynth structures and models}
-\label{JythonQuerying:sec}
-
-Once the Jython console is open, it can be used to query ArtiSynth
-structures and model components. Every publicly accessible method of
-every Java object can be called via the interface.  The interaction
-syntax is similar to Java queries under MATLAB.  Java
-objects can be created by calling their constructors directly, without
-the need for the keyword {\tt new}.  For example,
-%
-\begin{lstlisting}[]
-   >> vec = maspack.matrix.Vector3d (1, 2, 3)
-\end{lstlisting}
-%
-creates a new instance of {\tt maspack.matrix.Vector3d} and
-initializes it to (1, 2, 3). However, unlike MATLAB, packages must be
-explicitly imported in order for their classes to be visible.
-Hence the code fragment above would need to be preceded 
-at some point by
-%
-\begin{lstlisting}[]
-   >> import maspack.matrix
-\end{lstlisting}
-%
-The {\tt from} statement can also be used to import every class of a
-package so that they can be referred to without using their full
-package names:
-%
-\begin{lstlisting}[]
-   >> from maspack.matrix import *
-   >>
-   >> vec = Vector3d (1, 2, 3);
-\end{lstlisting}
-%
-For convenience, the ArtiSynth Jython console already fully imports
-(using {\tt from}) a number of packages, including:
-%
-\begin{lstlisting}[]
-   maspack.util
-   maspack.matrix
-   maspack.geometry
-   maspack.collision
-   maspack.render
-   maspack.solvers
-   artisynth.core.mechmodels
-   artisynth.core.femmodels
-   artisynth.core.materials
-   artisynth.core.modelbase
-   artisynth.core.driver
-   java.lang
-   java.io
-\end{lstlisting}
-%
-
-To easily access particular components of a model, the predefined function
-{\tt getsel()} provides access to the ArtiSynth selection
-list. That means you can select items in the ArtiSynth GUI (using
-either the viewer or navigation panel) and then access these in
-Jython using {\tt getsel()}. If called with no arguments, {\tt
-getsel()} returns the entire selection list.  If
-called with an integer argument {\tt i}, {\tt getsel(i)} returns the
-i-th entry in the selection list (where the index {\tt i} is 0-based).
-
-For example, if two particles are currently selected in ArtiSynth, then
-{\tt getsel()} can be used as follows:
-%
-\begin{lstlisting}[]
-   >>> getsel()  # get the entire selection list
-   [artisynth.core.mechmodels.Particle@709da188, artisynth.core.mechmodels.Particle@750eba3f]
-   >>>
-   >>> getsel(0) # get the first item on the list
-   artisynth.core.mechmodels.Particle@709da188
-\end{lstlisting}
-%
-Once a component has been selected, then one has access to all its
-public methods. This can be quite useful for setting or querying
-items are that are not normally available via the ArtiSynth GUI. For
-example, if we want to find the number of nodes in a {\tt FemModel3d},
-then we can select the FEM and then in the console do
-%
-\begin{lstlisting}[]
-   >>> fem = getsel(0)
-   >>>
-   >>> fem.numNodes()
-   16
-   >>>
-\end{lstlisting}
-%
-
-\subsection{Jython scripting}
-\label{JythonScripting:sec}
-
-As with MATLAB, Jython can be used to script simulations. The
-scripting functions are the same as those described in Sections
-\ref{MatlabScripting:sec} and \ref{ScriptingMethods:sec}, except that
-they are predefined for the ArtiSynth Jython interpreter and
-do not need to be called through a handle.
-
-To load a model, one may use the function
-%
-\begin{lstlisting}[]
-  loadModel (name, args...)
-\end{lstlisting}
-%
-where {\tt name} is either the fully-qualified classname of the
-model's {\tt RootModel}, or one of the shorter names that appears
-under the ArtiSynth {\sf Models} menu, and {\tt args...} is a variable
-list of optional string arguments that are used to form the {\tt args}
-argument of the model's {\tt build()} method.
-Once loaded, simulation may be controlled using methods such as {\tt
-play()}, {\tt pause()}, {\tt step()}, or {\tt reset()}. The following
-example shows loading a model called {\tt RigidBodyDemo} and
-then having it simulate for 2.5 seconds:
-%
-\begin{lstlisting}[]
-   >>> loadModel ('RigidBodyDemo')
-   >>> play (2.5)
-\end{lstlisting}
-%
-\begin{sideblock}
-Note: at present, if ArtiSynth is run in batch mode (Section
-\ref{JythonBatchScripting:sec}), then the {\sf Models} menu is not
-created and so it is necessary to call {\tt loadModel()} using
-the fully qualified class name for the model in question. The example
-above would therefore have to be written as
-%
-\begin{verbatim}
-   >>> loadModel ('artisynth.demos.mech.RigidBodyDemo')
-   >>> play (2.5)
-\end{verbatim}
-%
-This restriction may change in future versions of ArtiSynth.
-\end{sideblock}
-%
-It is often easiest to write Jython scripting commands in a
-Python-style {\tt .py} file and then "source" them into the Jython
-console. In Python, one can use {\tt exec()} or {\tt execfile()} to do
-this. However, in ArtiSynth it is often better to use the ArtiSynth
-supplied {\tt script()} function, as in
-%
-\begin{lstlisting}[]
-   >>> script ('contactTest.py')
-\end{lstlisting}
-%
-This is particularly true for longer scripts, since {\tt script()}
-interacts better with the GUI and allows the script commands to be
-displayed in the console as they are being executed.
-
-For convenience, ArtiSynth also searches for scripts in the folders of
-its search path (currently defined by the {\tt ARTISYNTH\_PATH}
-environment variable) and places any that it finds under a special
-{\tt Scripts} menu that then appears in the main ArtiSynth menu
-bar. To be identified by ArtiSynth as a script file, the file must a
-be {\tt .py} file that begins with the special first line
-%
-\begin{lstlisting}[]
-# ArtisynthScript: "scriptName"
-\end{lstlisting}
-%
-where {\tt scriptName} is the desired name for the script.
-
-\begin{sideblock}
-The {\tt ARTISYNTH\_PATH} environment variable provides a list of
-directories, separated by semi-colons ';' (on Windows) or colons ':'
-(MacOS, Linux) that ArtiSynth uses to search for certain files.  For
-ArtiSynth to locate script files, {\tt ARTISYNTH\_PATH} must be set
-and must include the directories in which the script files reside.
-Directions for setting {\tt ARTISYNTH\_PATH} are given in the
-"Environment variables" section of the {\it Installation Guide}.
-\end{sideblock}
-
-\subsection{Specifying scripts on the command line}
-\label{JythonBatchScripting:sec}
-
-It is possible to specify Jython scripts directly on the ArtiSynth
-command line using the {\tt -script} option. For example,
-%
-\begin{lstlisting}[]
-   artisynth -script experiment.py
-\end{lstlisting}
-%
-will start ArtiSynth and then immediately invoke the script {\tt
-experiment.py}. Scripts can also be run in "batch" mode, {\it without}
-starting the GUI or explicitly opening the Jython console.  This can
-be useful when running ArtiSynth remotely, or in parallel on a cluster
-of machines. To run a script in batch mode, simply 
-add the {\tt -noGui} command line option:
-%
-\begin{lstlisting}[]
-   artisynth -noGui -script experiment.py
-\end{lstlisting}
-%
-Since there is no GUI, Jython will then be initiated using a terminal
-console instead of the usual GUI-based text window. When the script
-finishes, the console will remain available for interactive operation.
-
-One may also simply start with a Jython console, with no initial script:
-%
-\begin{lstlisting}[]
-   artisynth -noGui -showJythonConsole
-\end{lstlisting}
-%
-
-Finally, arguments may be passed to scripts invoked using {\tt
--script}, by placing them immediately after the script specification,
-enclosed within square brackets {\tt [ ]}. For example,
-%
-\begin{lstlisting}[]
-   artisynth -script myscript.py [ -xxx 123 -off ]
-\end{lstlisting}
-%
-will pass the strings {\tt "-xxx"}, {\tt "123"} and {\tt "-off"} to
-the script {\tt myscript.py}. Scripts can retrieve arguments from
-{\tt sys.argv}:
-%
-\begin{lstlisting}[]
-   import sys
-   print('Number of arguments:' + str(len(sys.argv)))
-   print('Argument List:' + str(sys.argv)) 
-\end{lstlisting}
-%
-
-\section{Summary of scripting methods}
+\section{Summary of scripting functions}
 \label{ScriptingMethods:sec}
 
-The following is a summary of the scripting methods available
-either in MATLAB through the {\tt ArtisynthHandle} object,
-or in Jython as built-in console functions:
+The following is a summary of the scripting functions available
+in MATLAB through the {\tt ArtisynthHandle} object:
 
 \begin{description}
 
@@ -1089,14 +830,14 @@ Returns the ArtiSynth {\tt Main} object.
 \item[{\tt loadModel (name, args...)}] \mbox{}
 
 Loads the named model along with optional arguments.  {\tt name} is
-either the fully-qualified classname of the model's
-\javaclass[artisynth.core.workspace]{RootModel}, or one of the shorter
-names that appears under the ArtiSynth {\sf Models} menu, and {\tt
-args...} is an optional variable-length list of string arguments that
-are used to form the {\tt args} argument of the model's {\tt build()}
-method. Currently, if ArtiSynth is being run in batch mode (Section
-\ref{JythonBatchScripting:sec}), then the {\sf Models} menu is not
-created and so it is necessary to use the fully qualified classname.
+the classname of the model's
+\javaclass[artisynth.core.workspace]{RootModel} and {\tt args...} is
+an optional variable-length list of string arguments that are used to
+form the {\tt args} argument of the model's {\tt build()} method.
+Nominally, {\tt name} should be a fully-qualified classname (e.g.,
+{\tt artisynth.demos.mech.RigidBodyDemo}), but if the model has been
+loaded before, the simple class name should work as well (e.g., {\tt
+RigidBodyDemo}).
 
 \item[{\tt loadModelFile (filename)}] \mbox{}
 
@@ -1202,7 +943,7 @@ Returns the current ArtiSynth selection list.
 
 \item[{\tt getsel(i)}] \mbox{}
 
-Returns the i-th selection list item (1-based for MATLAB; 0-based for Jython).
+Returns the i-th selection list item (1-based for MATLAB).
 
 \item[{\tt quit()}] \mbox{}
 

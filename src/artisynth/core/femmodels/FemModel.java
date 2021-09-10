@@ -39,6 +39,7 @@ import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.ModelBase;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.ScalableUnits;
@@ -294,7 +295,7 @@ public abstract class FemModel extends MechSystemBase
       initializeChildComponents();
       
       setRenderProps (createRenderProps());
-      myMaxStepSize = 0.01;
+      myMaxStepSize = ModelBase.getDefaultMaxStepSize();
       setImplicitIterations (20);
       setImplicitPrecision (0.01);
       setDefaultValues();

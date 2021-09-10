@@ -163,9 +163,9 @@ public class ClassFinder {
       for (URL url : jars) {
          classList.addAll(findClasses(url, pkg, pattern, T));
       }
-      //timer.stop();
-      //System.out.println (
-      // "Found "+classList.size()+" classes, "+timer.result(1));
+      // timer.stop();
+      // System.out.println (
+      //   "Found "+classList.size()+" classes for "+pkg+ ", "+timer.result(1));
       return classList;
    }
    
@@ -365,6 +365,34 @@ public class ClassFinder {
          path = path + "/";
       }
       return classLoader.getResource(path) != null;
+   }
+   
+   /**
+    * Find the class directory for a particular package, if it exists, This
+    * will only be true if the package exists and is loaded from a file system
+    * directory instead of a JAR file.
+    *
+    * @return package directory, or {@code null} if not found
+    */
+   public static File findPackageDirectory (String pkgname) {
+      ClassLoader classLoader = ClassFinder.class.getClassLoader();
+      if (classLoader == null) {
+         throw new InternalError ("Cannot find appropriate class loader");
+      }
+      // replace package structure with  folder structure
+      String path = pkgname.replace('.', '/'); 
+      // terminate with '/'
+      if (!path.endsWith("/")) {
+         path = path + "/";
+      }
+      URL url = classLoader.getResource(path);
+      if (url != null && "file".equals(url.getProtocol())) {
+         File file = new File(getPathDecoded(url));
+         if (file.isDirectory()) { // just to be sure
+            return file;
+         }
+      }
+      return null;
    }
    
    public static void main (String[] args) {

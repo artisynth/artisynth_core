@@ -75,6 +75,7 @@ public abstract class PointSpringBase extends Spring
    protected void setDefaultValues() {
       setRestLength (DEFAULT_REST_LENGTH);
       setMaterial (createDefaultMaterial());
+      setRenderProps (createRenderProps());
    }
 
    public PointSpringBase (String name) {
@@ -149,7 +150,7 @@ public abstract class PointSpringBase extends Spring
 
    /* ======== Renderable implementation ======= */
 
-   protected RenderProps myRenderProps = createRenderProps();
+   protected RenderProps myRenderProps;
 
    public RenderProps getRenderProps() {
       return myRenderProps;
@@ -732,9 +733,7 @@ public abstract class PointSpringBase extends Spring
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       PointSpringBase comp = (PointSpringBase)super.copy (flags, copyMap);
       comp.setRestLength (myRestLength);
-      if (myRenderProps != null) {
-         comp.setRenderProps (myRenderProps);
-      }      
+      comp.setRenderProps (getRenderProps());
       return comp;
    }   
 

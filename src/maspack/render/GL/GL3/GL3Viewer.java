@@ -168,7 +168,7 @@ public class GL3Viewer extends GLViewer {
       }
       myGLResources = resources;
       if (useGLJPanel) {
-         Logger.getSystemLogger().debug("Using GLJPanel");
+         //Logger.getSystemLogger().debug("Using GLJPanel");
          canvas = GLDrawableComponent.create(myGLResources.createPanel());
       } else {
          canvas = GLDrawableComponent.create(myGLResources.createCanvas());
@@ -194,8 +194,9 @@ public class GL3Viewer extends GLViewer {
       canvas.setPreferredSize(new Dimension(width, height));
       canvas.setSize (width, height);
 
-      this.width = width;
-      this.height = height;
+      // we now get the width and height from the drawable
+      //this.width = width;
+      //this.height = height;
 
       myDraggers = new LinkedList<Dragger3d>();
       myUserDraggers = new LinkedList<Dragger3d>();
@@ -453,7 +454,7 @@ public class GL3Viewer extends GLViewer {
       }
       
       if (resetViewport && autoViewportEnabled) {
-         setViewport (gl, 0, 0, width, height);
+         setViewport (gl, 0, 0, getScreenWidth(), getScreenHeight());
          resetViewport = false;
       }
 
@@ -474,12 +475,15 @@ public class GL3Viewer extends GLViewer {
             myGrid.render (this, flags);
          }
          if (axisLength > 0) {
-            if (solidAxes) {
-               drawSolidAxes (null, axisLength, axisLength/50.0, false);
-            }
-            else {
-               drawAxes (gl, axisLength);
-            }
+            drawAxes (
+               RigidTransform3d.IDENTITY, myAxisDrawStyle, 
+               axisLength, 1, 0, false);
+//            if (solidAxes) {
+//               drawSolidAxes (null, axisLength, axisLength/50.0, false);
+//            }
+//            else {
+//               drawAxes (gl, axisLength);
+//            }
          }
 
          // rendering dragger separately here so that they are
@@ -554,7 +558,7 @@ public class GL3Viewer extends GLViewer {
       
       // Draw 2D objects
       if ( has2d() ) {
-         begin2DRendering(width, height);
+         begin2DRendering(getScreenWidth(), getScreenHeight());
 
          try {
             synchronized(myInternalRenderList) {
@@ -658,16 +662,16 @@ public class GL3Viewer extends GLViewer {
          font = getDefaultFont();
       }
       
-      boolean savedBlending = isBlendingEnabled ();
+      boolean savedBlending = getTransparencyBlending ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();
       BlendFactor dfactor = getBlendDestFactor ();
       BlendFactor sfactor = getBlendSourceFactor ();
       
       setDepthWriteEnabled (false);
-      setBlendingEnabled (true);
+      setTransparencyBlending (true);
       setDepthWriteEnabled (false);
-      setBlendingEnabled (true);
+      setTransparencyBlending (true);
       setBlendSourceFactor (BlendFactor.GL_SRC_ALPHA);
       setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
       setTextureMappingEnabled (true);
@@ -686,7 +690,7 @@ public class GL3Viewer extends GLViewer {
       setDepthWriteEnabled (savedDepth);
       setBlendSourceFactor (sfactor);
       setBlendDestFactor (dfactor);
-      setBlendingEnabled (savedBlending);
+      setTransparencyBlending (savedBlending);
       setTextureMappingEnabled (savedTexture);
       setColorMap (savedTextureProps);
       
@@ -1638,10 +1642,10 @@ public class GL3Viewer extends GLViewer {
 
       begin2DRendering(-1, 1,-1, 1);
 
-      float x0 = (float)(2 * myDragBox.x / (double)width - 1);
-      float x1 = (float)(x0 + 2 * myDragBox.width / (double)width);
-      float y0 = (float)(1 - 2 * myDragBox.y / (double)height);
-      float y1 = (float)(y0 - 2 * myDragBox.height / (double)height);
+      float x0 = (float)(2 * myDragBox.x/(double)getScreenWidth() - 1);
+      float x1 = (float)(x0 + 2 * myDragBox.width/(double)getScreenWidth());
+      float y0 = (float)(1 - 2 * myDragBox.y/(double)getScreenHeight());
+      float y1 = (float)(y0 - 2 * myDragBox.height/(double)getScreenHeight());
       
       gloFlex.begin (gl, 4);
       gloFlex.vertex (x0, y0, 0);
@@ -1661,12 +1665,12 @@ public class GL3Viewer extends GLViewer {
    }
    
    protected void drawEllipticCursor (GL3 gl, Point cursor) {
-      begin2DRendering(0, width, 0, height);
+      begin2DRendering(0, getScreenWidth(), 0, getScreenHeight());
       
       float a = (float)myEllipticCursorSize.x;
       float b = (float)myEllipticCursorSize.y;
       float cx = (float)cursor.getX();
-      float cy = (float)(height - cursor.getY());
+      float cy = (float)(getScreenHeight() - cursor.getY());
       
       // change to a smaller/bigger number as needed 
       int num_segments = (int)(4*Math.ceil(Math.max(a,b)*Math.PI/2));

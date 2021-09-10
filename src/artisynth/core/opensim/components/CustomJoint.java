@@ -63,19 +63,8 @@ public class CustomJoint extends JointBase {
       }
      
       OpenSimCustomJoint joint = new OpenSimCustomJoint(this);
-      RigidTransform3d TCD = new RigidTransform3d();
-      // since joint not yet attached, TCD will be computed purely from
-      // internal angles
-      joint.getCurrentTCD (TCD);
-      joint.setBodies (childRB, childTrans, parentRB, parentTrans);
       joint.setName (getName());
-
-      // adjust child pose
-      RigidTransform3d TCW = new RigidTransform3d(childRB.getPose());
-      TCW.mul (childTrans); // childTrans = TCA
-      TCW.mul (TCD);
-      TCW.mulInverseRight (TCW, childTrans);
-      childRB.setPose (TCW);
+      joint.setBodies (childRB, childTrans, parentRB, parentTrans);
       return joint;
    }
    

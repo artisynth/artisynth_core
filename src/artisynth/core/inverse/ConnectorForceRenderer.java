@@ -41,7 +41,7 @@ public class ConnectorForceRenderer extends MonitorBase {
       myNormal.normalize ();
    }
 
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
 
    public static PropertyList myProps =
       new PropertyList (ConnectorForceRenderer.class, MonitorBase.class);

@@ -13,7 +13,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
-\setpubdate{Last update: Jan 14, 2021}
+\setpubdate{Last update: July, 2021}
 \iflatexml
 \date{}
 \fi
@@ -61,97 +61,170 @@
 
 \section{Introduction}
 
-This manual describes the ArtiSynth user interface, and how it can be
-used to edit models and interactively monitor and control their
+This manual describes the ArtiSynth user interface (UI), and how it
+can be used to edit models and interactively monitor and control their
 simulation.
 
-%Within the manual, the location of the ArtiSynth installation
-%directory will be denoted by {\tt <ARTISYNTH\_HOME>}
+\subsection{User configuration folder}
+\label{UserConfig:sec}
+
+By default, ArtiSynth tries to store user-specific settings and
+configuration information in various files located under the {\it user
+configuration folder}, the path to which is given by
+%
+\begin{verbatim}
+  <HOME>/ArtiSynthConfig
+\end{verbatim}
+%
+where {\tt <HOME>} is the user's home folder. Default instances of
+these files will be created when they are first accessed or recreated
+if they are later found to be corrupt or missing.
 
 \section{Loading, Simulating and Saving Models}
 
 The first thing an ArtiSynth user is likely to want is to load a
 demonstration model, and explore and simulate it.
 
-A number of predefined demonstration models come bundled with the
-ArtiSynth distribution. These are generally simple models that
-illustrate particular simulation capabilities. More complex
-anatomical models, including those used in various research projects,
-are available in the separate project {\tt artisynth\_models}, which
-must be downloaded separately (see
-\href{http://www.artisynth.org/models}{www.artisynth.org/models} 
-for instructions).
-
 An ArtiSynth model is defined by a Java class which is a subclass of
-the ArtiSynth {\tt RootModel} component. This class builds the model,
-serves as the root container for all its components, and implements
-the {\tt advance()} method which allows the model to be simulated.
+the ArtiSynth \javaclass[artisynth.core.workspace]{RootModel}
+component. This class builds the model, serves as the root container
+for all its components, and implements the {\tt advance()} method
+which allows the model to be simulated.
 
-There are several ways to load models.
+A number of predefined demonstration models come bundled with the
+ArtiSynth distribution and are declared within subpackages of {\tt
+artisynth.demos}. These are generally simple models that illustrate
+particular simulation capabilities. More complex anatomical models,
+including those used in various research projects and mostly focused
+on head and neck anatomy, are available in the separate project {\tt
+artisynth\_models}, which must be downloaded separately (see
+\href{http://www.artisynth.org/models}{www.artisynth.org/models} for
+instructions). These anatomical models are declared within subpackages
+of {\tt artisynth.models}.
 
-\subsection{Loading from the Models menu}
-\label{LoadingFromModelsMenu}
+To run user-defined models defined within Java packages that are {\it
+outside} of the project {\tt artisynth\_core}, it is necessary to
+arrange for their classpaths to be visible to the ArtiSynth
+application. One way to do this is to add the classpaths to the
+ArtiSynth external classpath, as described in Section
+\ref{externalClassPath:sec}. If one is using an integrated development
+environment (IDE) for Java compilation and execution, this linking can
+also be done within the IDE.  More detailed information on this topic
+is given in the section ``Making external models visible to
+ArtiSynth'' of the ArtiSynth Installation Guide.
+
+\subsection{Loading from the model menu}
+\label{LoadingFromModelMenu}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/ArtiSynthDemoMenu}
+\else
+   \includegraphics[width=0.65\textwidth]{images/ArtiSynthDemoMenu}
+\fi
+\end{center}
+\caption{The ArtiSynth model selection menu.}
+\label{ModelSelectionMenu:fig}
+\end{figure}
 
 Some models can be loaded directly using the {\sf Models} menu located
-in the ArtiSynth menu bar. By default, this expands to a number of
-submenus:
+in the ArtiSynth menu bar (Figure \ref{ModelSelectionMenu:fig}). By
+default, the upper part of this menu contains a number of submenus:
 
-\begin{tabular}{ll}
-{\sf Demos} & - all models listed in the file {\tt .demoModels}\\
-{\sf All Demos} & - every model found under the package {\tt artisynth.demos}, 
-arranged hierarchically
+\begin{tabular}{ll} {\sf Demos} & - all models listed in the file {\tt
+demoModels.txt} (described below);\\
+{\sf All Demos} & - every model found in {\tt artisynth.demos} or its
+subpackages, arranged hierarchically.
 \end{tabular}
 
 In addition, if {\tt artisynth\_models} has also been installed, or if
-ArtiSynth otherwise detects the presence of Java packages located
-under {\tt artisynth.models}, then the {\sf Models} menu will also
-contain:
+ArtiSynth otherwise detects the presence of the superpackage {\tt
+artisynth.models}, then the {\sf Models} menu will also contain:
 
-\begin{tabular}{ll}
-{\sf Models} & - all models listed in the file {\tt .mainModels}\\
-{\sf All Models} & - every model found under the packages 
-{\tt artisynth.models}, arranged hierarchically
+\begin{tabular}{ll} {\sf Models} & - all models listed in the file
+{\tt mainModels.txt} (described below);\\
+{\sf All Models} & - every model found in {\tt artisynth.models} or
+its subpackages, arranged hierarchically.
 \end{tabular}
 
-The files {\tt .demoModels} and {\tt .mainModels} are searched for in
-the list of directories specified by the {\tt ARTISYNTH\_PATH}
-environment variable (which if not present defaults to the current
-directory, the user's home directory, and the ArtiSynth install
-directory).
+Each submenu expands out to identify a set of models. Selecting one of
+the models will cause it to be loaded into ArtiSynth and displayed in
+the viewer. Hovering over one of the entries will display the full
+classname of the associated {\tt RootModel}.  The files {\tt
+demoModels.txt} and {\tt mainModels.txt} are located in the {\tt
+settings} subfolder of the user configuration folder (Section
+\ref{UserConfig:sec}); default instances of these are created the
+first time ArtiSynth is run, and they can later be modified by the
+user.
 
-Each submenu expands out to identify a set of models. Selecting
-one of the models will cause it to be loaded into ArtiSynth and
-displayed in the viewer. Hovering over one of the entries will
-display the full classname of the associated {\tt RootModel}.
+The lower part of the model menu, beneath the separator, contains
+entries for reloading recent models (Section \ref{LoadingRecent:sec}),
+loading a model from an explicitly specified class (Section
+\ref{LoadingByClass:sec}), and customizing the upper part of the the
+model menu (Section \ref{CustomizingMenus:sec}).
 
 \begin{sideblock}
-It is possible to customize the contents of the {\sf Models} menu; see
-Section \ref{CustomizingModelsMenu}.
+Model menu customization is is needed to create menu entries for root
+models not defined within (or beneath) the packages {\tt
+artisynth.demos} or {\tt artisynth.models}.
 \end{sideblock}
 
-\subsection{Loading by class path}
+\subsection{Loading directly by class}
+\label{LoadingByClass:sec}
 
-As mentioned above, models are defined by subclasses of {\tt
-RootModel}.  A model may therefore be loaded into
-ArtiSynth by specifying the classname of its {\tt RootModel}.  To do
-this, go to the {\sf File} menu and choose {\sf Load from class ...},
-which will bring up a dialog that permits you to enter the
-classname. The dialog supports expansion using the {\tt <TAB>} key.
+As mentioned above, models are defined by subclasses of 
+\javaclass[artisynth.core.workspace]{RootModel}.
+A model may therefore be loaded into ArtiSynth by
+directly specifying the class that defines its {\tt RootModel}.  To do
+this, choose {\sf ``Load from class ...''} from the lower part
+of the model menu, 
+which will bring up a model selection dialog as shown in Figure
+\ref{modelClassSelector:fig}.
 
-It is also possible to use the {\tt -model <classname>} command line
-argument to have a model loaded directly into ArtiSynth when it starts
-up. For example, when running ArtiSynth using the {\tt artisynth}
-command, one may specify
-\begin{lstlisting}[]
-  artisynth -model artisynth.models.mystuff.TestModel
-\end{lstlisting}
-Under Eclipse, the {\tt -model} argument may be specified in the {\tt
-Arguments} section of the run configuration.
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/modelClassSelector}
+\else
+\includegraphics[width=4in]{images/modelClassSelector}
+\fi
+\end{center}
+\caption{Dialog for selecting a model class.}%
+\label{modelClassSelector:fig}
+\end{figure}
+
+Users should specify the name of the package containing the model in
+the {\sf ``Model package''} field at the top. Using the {\tt <TAB>}
+character in this field will invoke auto-completion based on currently
+know packages, while repeated use of either {\tt <TAB>} or the up/down
+arrows will scroll through known packages. Package entry is completed
+using the {\tt <ENTER>} key, and any models that appear in that
+package (but not its subpackages) will then be displayed in the {\sf ``Model
+class''} panel below it. The user can then select the desired model by
+clicking on it. In Figure \ref{modelClassSelector:fig}, the model
+defined by the class {\tt artisynth.demos.mech.LaymanDemo} has been
+selected.
+
+If the model requires command-line style arguments to its {\tt
+build()} method (as described in the section ``Implementing the
+build() method'' of the \artisynthManual{modelguide}{ArtiSynth
+Modeling Guide}), these can be entered in the {\sf ``Build args''}
+field near the dialog bottom.  Arguments should be separated by white
+space, with those containing white space placed between double
+quotes `{\tt "}'.  The last field, {\sf ``Waypoints file''}, can
+optionally be used to specify a file containing simulation way points
+(Section \ref{Waypoints:sec}).  As with all externally loaded waypoint data, the
+waypoints must match the current model structure.
+
+When all desired settings have been made, the model can be loaded by
+clicking the {\sf Load} button.
 
 \subsection{Loading from a file}
+\label{LoadingByFile:sec}
 
 Finally, it is possible to load a model from a file.  Selecting {\sf
-Load model ...} from the {\sf File} menu will bring up a File browser
+``Load model ...''} from the {\sf File} menu will bring up a File browser
 that lets you select and load a model from an ArtiSynth model file.
 ArtiSynth model files are text-based documents that contain a
 hierarchical description of all the model's components, and are
@@ -163,16 +236,94 @@ all classes associated with that model in the current Java classpath.
 This can be an issue when loading files generated by other users using
 application-specific Java code. Two possible solutions to this are:
 (a) bundling the application-specific code into a {\tt .jar} file and
-placing it in the directory {\tt <ARTISYNTH\_HOME>/lib}, or (b) making
-sure that the file was saved using only {\tt artisynth\_core}
-components, as described in Section \ref{SavingSec}.
+adding it to the external classpath (Section
+\ref{externalClassPath:sec}), or (b) making sure that the file was
+saved using only {\tt artisynth\_core} components, as described in
+Section \ref{SavingSec}.
 \end{sideblock}
 
-\subsection{Reloading a model}
+\subsection{Loading recent models}
+\label{LoadingRecent:sec}
 
 After a model has been loaded by any of the methods described above,
-it can be reloaded by selected {\sf Reload model} from the {\sf File}
-menu.
+it can be reloaded by selecting {\sf ``Reload model''} from the lower part
+of the model menu. Models which have been recently loaded can be
+reloaded by selecting {\sf ``Load recent''} from the {\sf Models} menu.
+
+\subsection{Setting a startup model}
+
+When working repeatedly with a specific model, it can be useful to set
+that model to automatically load when ArtiSynth starts up. This can be
+done by setting the {\it startup model}, by choosing {\sf ``Startup
+model ...''} from the {\sf Settings} menu. This will open a
+startup model dialog as shown in Figure
+\ref{startupModelDialog:fig}.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/startupModelDialog}
+\else
+\includegraphics[width=4in]{images/startupModelDialog}
+\fi
+\end{center}
+\caption{Dialog to set the startup model.}%
+\label{startupModelDialog:fig}
+\end{figure}
+
+The model to load can be specified either by class or by file. To
+specify the model by class, one uses the {\sf ``Model package''},
+{\sf ``Model class''} and {\sf ``Build args''} fields to choose the
+model class and optional {\tt build()} method arguments in
+the same manner as described in Section \ref{LoadingByClass:sec}. To
+specify the model by file, one instead uses the {\sf ``Model file''}
+field to select a model file, as described in Section
+\ref{LoadingByFile:sec}.
+
+For either kind of model, it is also possible to use the {\sf
+``Waypoints file''} field to specify a file of saved waypoints to be
+loaded along with the model. As with all externally loaded waypoint
+data, the waypoints must match the current model structure.
+Waypoints are described in Section \ref{Waypoints:sec}.
+
+\begin{itemize}
+
+\item To save the startup model, click the {\sf Save} button at the
+bottom of the dialog.
+
+\item To clear the startup model (so that no model is loaded), click
+the {\sf Clear} button followed by the {\sf Save} button.
+
+\item To load a specified model immediately, click the {\sf Load
+Model} button.
+
+\end{itemize}
+
+\subsubsection{Specifying models from the command line}
+
+As an alternative to setting the startup model, one may instead use
+the {\tt -model <classOrFileName>} command line option to specify a
+model to load when ArtiSynth starts up. This can be useful when
+running ArtiSynth from a script.  The {\tt <classOrFileName>} argument
+may be either a class name or a {\tt .art} file name. If a class name
+is specified and {\tt build()} method arguments are also required,
+these may be listed within square brackets ({\tt [ ]}) separated by
+white space. For example, to load the model class {\tt
+projects.MyModel} and pass it the {\tt build()} arguments ``{\tt -size
+50}'', one can invoke ArtiSynth from the command line using
+%
+\begin{verbatim}
+> artisynth -model projects.MyModel [ -size 50 ]
+\end{verbatim}
+%
+
+Models specified from the command line override the specified startup
+model. To ensure that {\it no} model is loaded, one may specify
+%
+\begin{verbatim}
+> artisynth -model none
+\end{verbatim}
+%
 
 \subsection{Simulating a model}
 \label{SimulatingSec}
@@ -180,14 +331,8 @@ menu.
 Once a model is loaded, simulation of the model can be started,
 paused, single-stepped, or reset using the play controls (Figure
 \ref{PlayControlsFig}) located at the upper right of the ArtiSynth
-window frame. Play controls are discussed in more detail
-in Section \ref{PlayControlsSec}.
-
-Play controls are also available in the ArtiSynth timeline (Section
-\ref{TimelineSec}).  Also, hitting the `{\tt p}', `{\tt s}'
-and `{\tt r}' keys from within the viewer (Section
-\ref{keyShortcutsSec}) can be used to play/pause, single step and
-reset the simulation.
+window frame. Play controls are discussed in more detail in Section
+\ref{PlayControlsSec}.
 
 \begin{figure}[h]
 \begin{center}
@@ -199,9 +344,16 @@ reset the simulation.
 \end{center}
 \caption{The ArtiSynth play controls. From left to right: step size
 control, current simulation time, and the reset, skip-back,
-play/pause, single-step and skip-forward buttons.}%
+play/pause, single-step, skip-forward and stop-all buttons.}%
 \label{PlayControlsFig}
 \end{figure}
+
+Play controls are also available in the ArtiSynth timeline (Section
+\ref{TimelineSec}).  Also, hitting the `{\tt p}', `{\tt s}'
+and `{\tt r}' keys from within the viewer (Section
+\ref{keyShortcutsSec}) can be used to play/pause, single step and
+reset the simulation.
+
 
 \subsection{Other toolbar controls}
 
@@ -243,14 +395,25 @@ Rerenders all viewers and displays.\\
 \includegraphics[width=.33in]{images/realtimeEnable}
 \fi
 & Enable real-time: &
-Toggle which if pressed (the default), forces the simulation to run no faster than real time.
+If pressed (the default setting), forces simulations to run 
+no faster than real time.
 \end{tabular}
+
+\begin{sideblock}
+If real-time is enabled (via the last button), the ArtiSynth scheduler
+will try to make the apparent simulation speed equal to real time.
+Simulations can of course run much slower than real time if they
+involve complex models with many degrees of freedom (such as large
+finite element models). However, for simpler models, real-time can
+also {\it increase} the overall simulation time, which is why the
+option to disable real-time is provided.
+\end{sideblock}
 
 \subsection{Saving a model}
 \label{SavingSec}
 
 An ArtiSynth model can be saved to a file to be reloaded and used
-later.  Selecting {\sf Save model as ...} from the {\sf File} menu
+later.  Selecting {\sf ``Save model as ...''} from the {\sf File} menu
 will bring up a dialog that lets you select the name and directory for
 the model file (Figure \ref{saveModelDialog:fig}).  If a model file
 has already been specified, then one can save to it again by selecting
@@ -262,14 +425,14 @@ and are typically identified by the extension {\tt .art}.
 \iflatexml
 \includegraphics[]{images/saveModelDialog}
 \else
-\includegraphics[width=.5\textwidth]{images/saveModelDialog}
+\includegraphics[width=.7\textwidth]{images/saveModelDialog}
 \fi
 \end{center}
 \caption{The save model dialog.}%
 \label{saveModelDialog:fig}
 \end{figure}
 
-When using the {\sf Save model as ...} menu item, the user may choose
+When using the {\sf ``Save model as ...''} menu item, the user may choose
 the following options:
 
 \begin{description}
@@ -277,9 +440,10 @@ the following options:
 \item[Save waypoint data:] \mbox{}
 
 Causes the state data for any valid waypoints (Section
-\ref{waypointsSec}) to be saved in addition to the waypoint locations.
-This is optional because a large number of waypoints may significantly
-increase the file size for models with a large state sizes.
+\ref{waypointsSec}) to be saved (within the file) in addition to the
+waypoint locations.  This is optional because a large number of
+waypoints may significantly increase the file size for models with a
+large state sizes.
 
 \item[Core components only:] \mbox{}
 
@@ -293,33 +457,77 @@ application-specific class that was used to build it. This means that
 any properties or class overrides specific to the application root
 model class will not be present in the saved model. The advantage to
 storing a model using only core components is that it can be loaded by
-any other user running that same ArtiSynth version, without needing
+any {\it other} user running the same ArtiSynth version, without needing
 access to any application-specific classes.
 
 \end{description}
 
-\subsection{The ArtiSynth working directory}
+\subsection{Setting the external classpath}
+\label{externalClassPath:sec}
+
+As mentioned above, the classpath(s) for models declared {\it outside}
+of {\tt artisynth\_core} must be made visible to ArtiSynth so that
+they can be found and loaded. Detailed information on this topic is
+given in the section ``Making external models visible to ArtiSynth''
+of the ArtiSynth Installation Guide.
+
+An easy way to make classpaths visible to ArtiSynth is to add them to
+the {\it external classpath}, which is a list of top-level class
+folders and/or {\tt .JAR} files containing the classes required to run
+external models. These may include both model classes and any external
+Java libraries that they require.
+
+The external classpath is contained in a file named {\tt EXTCLASSPATH}
+in the user configuration folder (Section \ref{UserConfig:sec}). This
+file can be edited directly from ArtiSynth by selecting {\sf ``External
+classpath ...''} from the {\sf Settings} menu, which will open the
+editing dialog shown in Figure \ref{externalClasspathEditor:fig}.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/externalClasspathEditor}
+\else
+\includegraphics[width=5in]{images/externalClasspathEditor}
+\fi
+\end{center}
+\caption{The external classpath editor.}%
+\label{externalClasspathEditor:fig}
+\end{figure}
+
+The current class folders and {\tt JAR} files are listed, one per
+line, in the large panel at the left. If the external classpath is
+empty, this panel will be blank. New class folders or {\tt JAR} files
+can be added using the {\sf ``Add class folder''} and {\sf ``Add JAR file''}
+buttons at the right, which invoke file choosers appropriate to the
+file type. Existing entries can be selected and then edited, moved up
+or down in the list (using the up/down arrow buttons), or deleted
+(using the {\sf X} button). When editing is complete, the updated
+external classpath can be saved using the {\sf Save} button at the
+bottom.
+
+\subsection{The ArtiSynth working folder}
 \label{workingDir:sec}
 
-ArtiSynth maintains the notion of a {\it working directory}, which is
-the default directory (or folder, in Windows parlance) under which the
+ArtiSynth maintains the notion of a {\it working folder}, which is
+the default folder (or directory, in Unix parlance) under which the
 files used to store various types of model information are stored.
 This includes model files, as described above, along with other files
 such as those used to store waypoints, probe configurations, or probe
 data (Section \ref{savingLoadingProbes:sec}).
 
-Chooser dialogs for these files will generally open in the working
-directory by default.
+Chooser dialogs for these files will generally be initialized to the
+working folder if their files have not been previously set.
 
-The working directory is initialized to the local system directory in
+The working folder is initialized to the system working folder from
 which the ArtiSynth application is started. Once ArtiSynth is running,
-it can be set by choosing {\sf Set working dir ...} from the {\sf
-File} menu, or by calling
+it can be set by choosing {\sf ``Set working folder ...''} from the
+{\sf File} menu, or by calling
 \begin{verbatim}
-   ArtisynthPath.setWorkingDir (file)
+   ArtisynthPath.setWorkingFolder (file)
 \end{verbatim}
 in code. When a model is saved (Section \ref{SavingSec}), the working
-directory is saved with it and restored when the model file is
+folder is saved with it and restored when the model file is
 subsequently loaded.
 
 \section{The Viewer}
@@ -355,43 +563,72 @@ accordingly.
 \label{ViewpointControlSec}
 
 The viewpoint can be controlled interactively using mouse drag
-actions.  On systems with a three-button mouse, this is generally done
-using the middle mouse button ({\tt MMB}), in conjunction with the
-{\tt SHIFT} and {\tt CTRL} modifier keys:
+actions. There are three such actions:
 
 \begin{description}
 
-\item[MMB] \mbox{}
+\item[Rotate] \mbox{}
 
-Rotates the viewpoint about the viewer center point.
+Rotates the viewpoint about the viewer center point. By default, this
+rotation is constrained so the viewer ``up'' direction remains
+vertical in the view plane, but this can be changed using the viewer's
+{\sf rotationMode} property (Section \ref{viewerSettings:sec}).
 
-\item[MMB + SHIFT] \mbox{}
+\item[Translate] \mbox{}
 
 Translates the viewpoint in a plane perpendicular to the
 line of sight.
 
-\item[MMB + CTRL {\it or} mouse WHEEL] \mbox{}
+\item[Zoom] \mbox{}
 
-Zooms in or out by moving the viewpoint along the line of sight. Rotate 
-wheel forward or drag mouse forward with CTRL and middle mouse button 
-pressed to zoom in. Rotate or drag backwards to zoom out.
+Zooms in or out by moving the viewpoint along the line of sight.
 
 \end{description}
 
+The mouse button and modifier key combinations required to effect
+these actions depend on the application's {\it mouse bindings}, which
+by default are set to either {\sf ThreeButton}, {\sf TwoButton}, or
+{\sf OneButton} depending on the number of available mouse buttons.
+Button/key combinations for each of these is described in the
+following table,
+%
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+Action & {\sf ThreeButton} & {\sf TwoButton} & {\sf OneButton}\\
+\hline
+Rotate & 
+{\tt MMB} & 
+{\tt LMB}+{\tt ALT} & 
+{\tt LMB}+{\tt ALT}\\
+Translate & 
+{\tt MMB}+{\tt SHIFT} & 
+{\tt LMB}+{\tt ALT}+{\tt SHIFT} & 
+{\tt LMB}+{\tt ALT}+{\tt SHIFT}\\
+Zoom & 
+{\tt MMB}+{\tt CTRL} & 
+{\tt LMB}+{\tt ALT}+{\tt CTRL} & 
+{\tt LMB}+{\tt ALT}+{\tt CTRL}\\
+\hline
+\end{tabular}
+\end{center}
+%
+where {\tt MMB} and {\tt LMB} denote the {\it middle} and {\it left}
+mouse buttons. If a mouse wheel is present, then this can also be used
+to execute zoom actions.
+
 \begin{sideblock}
-On systems that have a one or two button mouse, the mouse bindings are
-adjusted by default so that the {\tt ALT} modifier key emulates the
-middle mouse button. Mouse bindings are discussed in detail in
-Section \ref{MouseBindingsSec}.
+Mouse bindings can also be set explicitly by the user and alternative
+bindings are available; see Section \ref{MouseBindingsSec}.
 \end{sideblock}
 
 \label{axisAlignedViewpointsSec}
-Predetermined viewpoints can also be selected using the {\it align axis}
-button located on the viewer control bar.  Clicking on this
-button produces an icon menu showing six different axis-aligned views.
-Each view is indicated by the two axes perpendicular to the line
-of sight, with the X, Y, and Z axes illustrated
-by red, green, and blue lines respectively:
+Predetermined viewpoints can also be selected using the {\it align
+axis} button located on the viewer control bar.  Clicking on this
+button produces a popup icon menu showing six different axis-aligned
+views.  Each view is indicated by the two axes perpendicular to the
+line of sight, with the X, Y, and Z axes illustrated by red, green,
+and blue lines respectively. Some examples are:
 
 %\begin{description}
 
@@ -436,9 +673,11 @@ by red, green, and blue lines respectively:
 %\end{description}
 
 The align axis button itself displays the most recently selected
-axis-aligned view. Hitting the `{\tt v}' key from within the viewer
-(Section \ref{keyShortcutsSec}) will realign the viewpoint to this
-view.
+axis-aligned view, and the popup menu shows this view together with
+five alternates which are chosen based on the current view.
+Reselecting the current view will realign the viewer's viewpoint to
+the current view; hitting the `{\tt v}' key from within the viewer
+(Section \ref{keyShortcutsSec}) will do the same.
 
 \subsection{Adding additional viewers}
 
@@ -446,13 +685,46 @@ Additional viewers can be created by selecting {\sf View > New viewer}
 from the main menu. Each viewer provides independent viewing and
 selection control for the current model.
 
-\begin{sideblock}
-We are considering adding an option whereby the main viewer can
-be split into four independent viewing panels, providing
-orthogonal projections of the front, side, and top, along
-with a general perspective projection. This arrangement is common
-in CAD and geometric modeling applications.
-\end{sideblock}
+%\begin{sideblock}
+%We are considering adding an option whereby the main viewer can
+%be split into four independent viewing panels, providing
+%orthogonal projections of the front, side, and top, along
+%with a general perspective projection. This arrangement is common
+%in CAD and geometric modeling applications.
+%\end{sideblock}
+
+\subsection{World coordinate axes}
+\label{worldCoordAxes:sec}
+
+Hitting the 'a' key from within the viewer enables or
+disables drawing of the world coordinate axes. By default, these are
+drawn as simple lines, with the $x$, $y$ and $z$ axes colored red,
+green and blue, respectively, and the axis length computed
+automatically based on the model size.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c c}
+\iflatexml
+\includegraphics[]{images/viewerLineAxes} &
+\includegraphics[]{images/viewerArrowAxes}
+\else
+\includegraphics[width=3.2in]{images/viewerLineAxes} &
+\includegraphics[width=3.2in]{images/viewerArrowAxes}
+\fi
+\end{tabular}
+\end{center}
+\caption{RigidBodyDemo with world coordinate axes drawn
+as simple lines (left) and solid arrows (right).}%
+\label{worldCoordAxes:fig}
+\end{figure}
+
+Axes can also be rendered as solid arrows by setting the {\sf
+axisDrawStyle} property (Section \ref{viewerSettings:sec}) to {\tt
+ARROW} instead of {\tt LINE}, and the axis length can be set
+explicitly using the {\sf axisLength} property (Section
+\ref{ViewerSpecificProps:sec}). Axes are not drawn if either {\sf
+axisLength} is 0 {\it or} {\sf axisDrawStyle} is set to {\sf OFF}.
 
 \subsection{Orthographic vs. perspective projection}
 \label{ProjectionSec}
@@ -530,7 +802,7 @@ visibility, and do not necessarily correspond to the x, y, or z axes.
 \iflatexml
 \includegraphics[]{images/gridLabels}
 \else
-\includegraphics[width=0.50\textwidth]{images/gridLabels}
+\includegraphics[width=0.66\textwidth]{images/gridLabels}
 \fi
 \end{center}
 \caption{Viewer grid with axis labels visible.}%
@@ -555,7 +827,7 @@ in Figure \ref{GridPropDialog:fig}.
 \iflatexml
 \includegraphics[]{images/gridPropDialog}
 \else
-\includegraphics[width=0.4\textwidth]{images/gridPropDialog}
+\includegraphics[width=0.5\textwidth]{images/gridPropDialog}
 \fi
 \end{center}
 \caption{Dialog to control the grid properties.}%
@@ -780,7 +1052,156 @@ In other applications, the desired point may be known to lie on a 3D
 surface, in which case the position is determined by intersecting the
 ray with a 3D surface mesh.
 
-\subsection{Alternate mouse bindings}
+\subsection{Viewer properties}
+\label{viewerSettings:sec}
+
+Viewers export a number of properties that control various aspects of
+their look and feel. Some of these can be modified collectively for
+all viewers by choosing {\sf ``Settings > Viewers ...''} from the
+main menu, which opens a {\it viewer settings} dialog (Figure
+\ref{viewerSettingsDialog:fig}).
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/viewerSettings}
+\else
+\includegraphics[width=3.5in]{images/viewerSettings}
+\fi
+\end{center}
+\caption{Viewer settings dialog.}%
+\label{viewerSettingsDialog:fig}
+\end{figure}
+
+Various properties can be set by this dialog, as described below.
+Clicking the {\sf Save} button will save the current settings to the
+user's preferences (Section \ref{Preferences:sec}) so that they will
+be set automatically when ArtiSynth is restarted.
+
+Properties set by the viewer settings dialog include:
+
+\begin{description}
+
+\item[backgroundColor]\mbox{}
+
+Color of the viewer background.
+
+\item[selectionColor]\mbox{}
+
+Color used to highlight selected items.
+
+\item[axisDrawStyle]\mbox{}
+
+Controls how world coordinate axes are drawn (Section
+\ref{worldCoordAxes:sec}), with {\sf LINE} and {\sf ARROW} specifying
+simple lines and solid arrows, respectively.
+
+\item[axisLengthRadiusRatio]\mbox{}
+
+When coordinate axes are drawn as solid arrows, specifies the ratio of
+the axis length to the arrow radius.
+
+\item[rotationMode]\mbox{}
+
+Controls how the eye-to-world rotation is adjusted when the mouse is
+used to perform a rotate action (Section \ref{ViewpointControlSec}).
+The default value is {\sf FIXED\_VERTICAL}, which constrains the
+viewer's ``up'' vector to remain vertical with respect to the view
+plane, at the expense of preventing the eye-to-world rotation from
+being adjustable to an arbitrary value. The alternate value is {\sf
+CONTINUOUS}, which enables a track-ball type rotation that does allow
+arbitrary adjustment of the eye-to-world rotation.
+
+\item[defaultAxialView]\mbox{}
+
+Sets the default axis alignment indicating how the 3D world axes
+correspond to the horizontal ``right'' and vertical ``up'' view plane
+directions.  Each setting takes the form $R$\_$U$, where $R$ is the
+world axis pointing right and $U$ is the axis pointing up, and $R$ and
+$U$ can each be either {\tt X}, {\tt Y}, {\tt Z}, {\tt NX}, {\tt NY},
+or {\tt NZ}, indicating the positive or negative $x$, $y$ or $z$ axis.
+
+\item[ellipticCursorSize]\mbox{}
+
+Size of the elliptic cursor (Section \ref{ellipticSelection:sec}) in
+the horizontal and vertical directions. The default value is
+$(10, 10)$.
+
+\item[surfaceResolution]\mbox{}
+
+Controls the number of faces or segments used for
+rendering built-in curved primitives, such as cylinders and
+spheres. For cylinders, it controls the number of sides, while for
+spheres it controls the number of longitudinal slices. A larger number
+produces a smoother effect at increased graphical cost. The default
+value is 32.
+
+\end{description}
+
+For OpenGL based viewers, the following properties are also provided
+to control how transparency is rendered:
+
+\begin{description}
+
+\item[transparencyFaceCulling]\mbox{}
+
+Enables or disables face culling when rendering transparency.
+
+\item[transparencyBlending]\mbox{}
+
+Enables or disables transparency blending (via {\tt glEnable()} or
+{\tt glDisable()} using {\tt GL\_BLEND}) when rendering transparency.
+
+\item[blendSourceFactor]\mbox{}
+
+Specifies the first (source) argument to {\tt glBlendFunc()}.
+
+\item[blendDestFactor]\mbox{}
+
+Specifies the second (destination) argument to {\tt glBlendFunc()}.
+
+\end{description}
+
+\subsubsection{Viewer-specific properties}
+\label{ViewerSpecificProps:sec}
+
+Viewer properties can also be set on a per-viewer basis. To do this,
+invoke the context menu (usually right-click) in the viewer when
+nothing is selected, and choose {\sf Set viewer properties}.
+Individual properties include all those described above, along with
+the following:
+
+\begin{description}
+
+\item[axisLength]\mbox{}
+
+Axis lengths used to render the world axes (Section
+\ref{worldCoordAxes:sec}).
+
+\item[eye]\mbox{}
+
+Location of the eye position, in world coordinates.
+
+\item[center]\mbox{}
+
+Location of the viewing frustum center, in world coordinates.
+
+\item[viewRotationEnabled]\mbox{}
+
+Enables or disables the ability to use a mouse to rotate the
+viewpoint.
+
+\end{description}
+
+\begin{sideblock}
+Setting a viewer-specific property, such as the background color, will
+generally cause it to have a value that differs from its counterpart
+in the viewer settings (because the value was set for only a single
+viewer). On the other hand, properties set in the viewer settings will
+be applied to {\it all} open viewers.
+\end{sideblock}
+
+\subsection{Mouse Bindings}
 \label{MouseBindingsSec}
 
 The ArtiSynth GUI was originally designed for a three-button mouse, in
@@ -799,13 +1220,37 @@ The {\tt META} key is usually associated with either the {\tt COMMAND}
 key (Mac) or the {\tt WINDOWS} key.
 \end{sideblock}
 
-Mouse bindings can also be explicitly set by the user, by opening the
-mouse preferences dialog {\sf Settings > Mouse Preferences} and then
-choosing the desired binding. This dialog also displays the button and
-modifier combinations associated with different actions. Alternate
-bindings may also be requested from the command line using the {\tt
--mousePrefs <bindings>} option. Currently, there are three default
-and two legacy bindings:
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/mouseSettingsDialog}
+\else
+\includegraphics[width=3in]{images/mouseSettingsDialog}
+\fi
+\end{center}
+\caption{Mouse bindings dialog.}%
+\label{mouseSettingsDialog:fig}
+\end{figure}
+
+Mouse bindings can also be explicitly set by the user, by choosing
+{\sf ``Settings > Mouse ...''} from the main menu, which opens a {\it
+mouse bindings} dialog (Figure \ref{mouseSettingsDialog:fig}).  This
+allows the user to change the bindings, and also for any given binding
+describes the button/key combinations to effect various actions. If
+the {\sf ``Auto detect''} checkbox is selected, then the bindings are
+determined automatically from the number of available mouse buttons.
+Unchecking this box allows the bindings to be set explicitly using the
+{\sf Bindings} selector. The dialog also allows control of the scale
+factor used for mouse wheel zoom actions.
+
+Clicking the {\sf Save} button in the mouse bindings dialog will save
+the current bindings  to the user's preferences (Section
+\ref{Preferences:sec}) so that they will be set automatically when
+ArtiSynth is restarted. Mouse bindings can also be specified
+explicitly at startup using the {\tt -mousePrefs <bindings>} command
+line option.
+
+Currently, there are five bindings available:
 
 \begin{description}
 
@@ -833,12 +1278,13 @@ Legacy bindings for a Mac type one-button mouse.
 
 \end{description}
 
-Tables showing the button and modifier combinations that effect
-different actions with each of these binding are given below, with
-{\tt LMB}, {\tt MMB}, and {\tt RMB} denoting the left, right and
-middle mouse buttons.  Actions marked with an asterisk (*) are drag
-actions which can have their modifier keys invoked or removed during a
-drag operation.
+Tables showing the button and modifier key combinations that effect
+different actions for each of these are given below, with {\tt LMB},
+{\tt MMB}, and {\tt RMB} denoting the left, right and middle mouse
+buttons.  Actions marked with an asterisk (*) are drag actions which
+can have their modifier keys invoked or removed during a drag
+operation. Button/key combinations for {\sf ThreeButton}, {\sf
+TwoButton}, and {\sf OneButton} are:
 
 \begin{center}
 \begin{tabular}{|l|l|l|l|}
@@ -849,17 +1295,17 @@ Action & {\sf ThreeButton} & {\sf TwoButton} & {\sf OneButton}\\
 \multicolumn{4}{|l|}{Viewpoint control (Section \ref{ViewpointControlSec})}\\
 \hline
 Rotate view & 
-{\tt MMB} & {\tt MMB}+{\tt ALT} & {\tt MMB}+{\tt ALT}\\
+{\tt MMB} & {\tt LMB}+{\tt ALT} & {\tt LMB}+{\tt ALT}\\
 Translate view & 
-{\tt MMB}+{\tt SHIFT} & {\tt MMB}+{\tt ALT}+{\tt SHIFT} & 
-{\tt MMB}+{\tt ALT}+{\tt SHIFT}\\
+{\tt MMB}+{\tt SHIFT} & {\tt LMB}+{\tt ALT}+{\tt SHIFT} & 
+{\tt LMB}+{\tt ALT}+{\tt SHIFT}\\
 Zoom view & 
-{\tt MMB}+{\tt CTRL} & {\tt MMB}+{\tt ALT}+{\tt CTRL} & 
-{\tt MMB}+{\tt ALT}+{\tt CTRL}\\
+{\tt MMB}+{\tt CTRL} & {\tt LMB}+{\tt ALT}+{\tt CTRL} & 
+{\tt LMB}+{\tt ALT}+{\tt CTRL}\\
 \hline
 \multicolumn{4}{|l|}{Component selection (Section \ref{viewerSelectionSec})}\\
 \hline
-Single selection & 
+Select components & 
 {\tt LMB} & {\tt LMB} & {\tt LMB}\\
 Multiple selection & 
 {\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL}\\
@@ -867,25 +1313,25 @@ Elliptic selection &
 {\tt LMB} & {\tt LMB} & {\tt LMB}\\
 Elliptic deselection$^*$ & 
 {\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT}\\
-Resize paint ellipse & 
+Resize elliptic cursor & 
 {\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt SHIFT}+{\tt CTRL} & 
 {\tt LMB}+{\tt SHIFT}+{\tt CTRL}\\
 Context menu & 
 {\tt RMB} & {\tt RMB} & {\tt LMB}+{\tt META}\\
 \hline
-\multicolumn{4}{|l|}{Transformer control (Section \ref{TransformerToolsSec})}\\
+\multicolumn{4}{|l|}{Manipulator controls (Section \ref{TransformerToolsSec})}\\
 \hline
-Move & 
+Move dragger & 
 {\tt LMB} & {\tt LMB} & {\tt LMB}\\
-Constrained move$^*$ & 
+Dragger constrain$^*$ & 
 {\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT}\\
-Reposition$^*$ & 
+Dragger reposition$^*$ & 
 {\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL}\\
 \hline
 \end{tabular}
 \end{center}
 
-while the legacy bindings are:
+while those for {\sf Laptop} and {\sf Mac} are:
 
 \begin{center}
 \begin{tabular}{|l|l|l|}
@@ -904,7 +1350,7 @@ Zoom view &
 \hline
 \multicolumn{3}{|l|}{Component selection (Section \ref{viewerSelectionSec})}\\
 \hline
-Single selection & 
+Select components & 
 {\tt LMB}+{\tt CTRL} & {\tt LMB} \\
 Multiple selection & 
 {\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt META} \\
@@ -912,18 +1358,18 @@ Elliptic selection &
 {\tt LMB}+{\tt CTRL} & {\tt LMB} \\
 Elliptic deselection$^*$ & 
 {\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt SHIFT} \\
-Resize paint ellipse & 
+Resize elliptic cursor & 
 {\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt SHIFT}+{\tt CTRL}\\
 Context menu & 
 {\tt RMB} & {\tt LMB}+{\tt CTRL} \\
 \hline
 \multicolumn{3}{|l|}{Transformer control (Section \ref{TransformerToolsSec})}\\
 \hline
-Move & 
+Move dragger & 
 {\tt LMB} & {\tt LMB} \\
-Constrained move$^*$ & 
+Dragger constrain$^*$ & 
 {\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT} \\
-Reposition$^*$ & 
+Dragger reposition$^*$ & 
 {\tt LMB}+{\tt ALT} & {\tt LMB}+{\tt ALT} \\
 \hline
 \end{tabular}
@@ -1099,19 +1545,23 @@ components can be very large (on the order of thousands). In order to
 keep the navigation panel size manageable, the number of nameless
 children displayed is limited to a set number (currently 100).  If the
 number of nameless children exceeds this number, the display will be
-augmented with an expand icon {\tt >>>}. Clicking on this will expand the
+augmented with an expand icon {\tt >{}>{}>}. Clicking on this will expand the
 display to include all nameless components, and the expand icon will
-be replaced by a contract icon {\tt <<<}. Clicking on the contract icon
+be replaced by a contract icon {\tt <{}<{}<}. Clicking on the contract icon
 will cause the extra nameless components to be hidden again.
 This is illustrated in Figure \ref{navpanelExpandContractFig}.
 
 \begin{figure}
 \begin{center}
+\begin{tabular}{cc}
 \iflatexml
-\includegraphics[]{images/navpanelContractExpand}
+  \includegraphics[]{images/navpanelCompact}&
+  \includegraphics[]{images/navpanelExpand}\\
 \else
-\includegraphics[width=0.66\textwidth]{images/navpanelContractExpand}
+  \includegraphics[width=2.25in]{images/navpanelCompact}&
+  \includegraphics[width=2.25in]{images/navpanelExpand}\\
 \fi
+\end{tabular}
 \end{center}
 \caption{Expansion of nameless components in the navigation panel.}%
 \label{navpanelExpandContractFig}
@@ -1167,6 +1617,7 @@ from view.
 \end{sideblock}
 
 \subsubsection{Elliptic selection}
+\label{ellipticSelection:sec}
 
 Elliptic selection is enabled by the elliptic icon near the top of
 the selection toolbar:
@@ -1200,13 +1651,11 @@ this way.
 
 The elliptic cursor used for selection can be resized, either
 interactively, or by setting the {\tt ellipticCursorSize} property of
-the viewer. To interactively change the cursor, initiate a drag
-operation with the {\tt CTRL} and {\tt SHIFT} modifiers.
-To set the {\tt ellipticCursorSize}, invoke the context menu
-(usually right-click) in the viewer when nothing is selected, and
-choose {\sf Set viewer properties}. Finally, the `{\tt d}' key
-shortcut within the viewer will cause the cursor to be reset to its
-default size.
+the viewer (Section \ref{viewerSettings:sec}). To interactively change
+the cursor size, initiate a drag operation with the {\tt CTRL} and
+{\tt SHIFT} modifiers. Finally, the `{\tt
+d}' key shortcut within the viewer will cause the cursor to be reset
+to its default size.
 
 \subsubsection{Selection filtering}
 \label{selectionFiltersSec}
@@ -1272,10 +1721,10 @@ For example, FEM models keep their surface mesh contained within a
 descendant component. Selecting the surface mesh will cause this
 container component to be selected and highlighted, making it {\it
 appear} as though the FEM model itself is selected rather than the
-container. Checking the selection display makes it clear
-what component has actually been selected. If desired,
-one can easily navigate to one of the ancestor components
-using parent selection, as described in the next section.
+container. Checking the selection display makes it clear what
+component has actually been selected. If desired, one can easily
+navigate to one of the ancestor components using parent selection, as
+described in the next section.
 
 \subsection{Selecting parent and ancestor components}
 \label{selectingAncestorsSec}
@@ -1404,9 +1853,9 @@ components' bounding box and its orientation is aligned to world
 coordinates.
 
 To request that a dragger's initial orientation is {\it always}
-aligned with world coordinates, choose {\sf Init draggers in world
-coordinates} in the ArtiSynth {\sf Settings} menu. To restore the
-default behavior, choose {\sf Init draggers in local coordinates}.
+aligned with world coordinates, choose {\sf ``Interaction ...''}  from
+the {\sf Settings} menu and set {\sf initDraggersInWorld} to {\tt
+true}.
 
 %\iflatexml
 %% HACK: we put a '.' before the image to get LaTeXML to set it on the
@@ -1607,8 +2056,8 @@ Markers are typically added to a component's surface mesh, and in such
 cases it is necessary that this surface mesh be visible. For FEM
 models in particular, the {\sf surfaceRendering} property should be
 set to something other than {\tt None}. To ensure this is the case,
-select the FEM model, right-click and choose {\sf Edit properties
-...}, and examine the setting for {\sf surfaceRendering}. An FEM model
+select the FEM model, right-click and choose {\sf ``Edit properties
+...''}, and examine the setting for {\sf surfaceRendering}. An FEM model
 can sometimes {\it appear} to have a visible surface mesh, even if it
 doesn't, if its {\sf elementWidgetSize} property is close to 1.
 \end{sideblock}
@@ -1646,7 +2095,7 @@ navigation panel to open the component list to which the markers are
 added (as described above). Verify that markers are actually being
 appended to the end of the list. If they are not, ensure that the
 component's surface mesh is visible. If they are, select the list
-itself, right-click, and choose {\sf Edit render props ...}. Check
+itself, right-click, and choose {\sf ``Edit render props ...''}. Check
 that {\sf visible} is {\tt true}, and that {\sf pointStyle} and {\sf
 pointRadius} (or {\sf pointSize}) are set appropriately.
 \end{sideblock}
@@ -1739,7 +2188,7 @@ accordingly.
 \iflatexml
 \includegraphics[]{images/inheritedButton}
 \else
-\includegraphics[width=0.80\textwidth]{images/inheritedButton}
+\includegraphics[width=0.90\textwidth]{images/inheritedButton}
 \fi
 \end{center}
 \caption{Property panel showing YoungsModulus as inherited (left) and 
@@ -1964,8 +2413,8 @@ Input and output probes are arranged and displayed graphically in the
 timeline, within a set of {\it tracks} (Section
 \ref{probesAndTracks:sec}). Each probe is displayed as a bar within
 one of these tracks. The display for numeric probes can also be
-expanded to show a graph of the numeric
-data \label{numericProbeDisplaysSec}.
+expanded to show a graph of the numeric data (Section
+\ref{numericProbeDisplaysSec}).
 
 ArtiSynth allows models to set temporal {\it waypoints}, which are
 designated times at which the model state is saved during
@@ -2071,10 +2520,16 @@ time step box.\\
 \fi
 & Skip-forward: &
 Moves the simulation time forward to the next
-valid waypoint (see Section \ref{waypointsSec}).
+valid waypoint (see Section \ref{waypointsSec}).\\
+\iflatexml
+\includegraphics{images/stopAll}
+\else
+\includegraphics[width=.33in]{images/stopAll}
+\fi
+& Stop-all: &
+Stops the simulation {\it and} any currently running
+Jython commands and scripts (Section \ref{JythonScripting:sec}).
 \end{tabular}
-
-%\end{description}
 
 \subsubsection{Tracks}
 
@@ -2088,6 +2543,7 @@ and output probes.
 \label{waypointsSec}
 
 \subsubsection{Waypoints}
+\label{Waypoints:sec}
 
 Waypoints are arranged along the waypoint track at the top of the
 timeline and are indicated by a small rectangular blue box
@@ -2137,6 +2593,7 @@ Waypoints can be converted into breakpoints (and vice versa) through
 the context menu.
 
 \subsubsection{Saving and loading}
+\label{SavingLoadingWaypoints:sec}
 
 It is possible to save and load waypoints to and from an external
 file. The following menu options may be selected to do this, either
@@ -2153,8 +2610,8 @@ completes the operation.
 
 \item[Save waypoints] \mbox{}
 
-If a waypoint file has already been specified using either {\sf Save
-waypoints as ...} or {\sf Load waypoints ...}, then all waypoints and
+If a waypoint file has already been specified using either {\sf ``Save
+waypoints as ...''} or {\sf ``Load waypoints ...''}, then all waypoints and
 their state data are saved to that file.
 
 \item[Load waypoints ...] \mbox{}
@@ -2168,9 +2625,9 @@ model's current state.
 
 \item[Reload waypoints] \mbox{}
 
-Identical to {\sf Load waypoints ...}, except that it uses a file that
-has already been specified using either {\sf Save waypoints as ...} or
-{\sf Load waypoints ...}.
+Identical to {\sf ``Load waypoints ...''}, except that it uses a file that
+has already been specified using either {\sf ``Save waypoints as ...''} or
+{\sf ``Load waypoints ...''}.
 
 \item[Delete waypoints] \mbox{}
 
@@ -2282,8 +2739,8 @@ limit, after which colors are recycled).
 \subsubsection{Setting the range and display properties}
 
 The range and other properties of the display can be set by right
-clicking in the display and selecting {\sf Edit range and properties
-...}, which creates a dialog that allows these to be adjusted. If the
+clicking in the display and selecting {\sf ``Edit range and properties
+...''}, which creates a dialog that allows these to be adjusted. If the
 {\sf autoRanging} property is set to {\tt true}, then the display range
 automatically expands as needed to accommodate new data. Display ranges
 can also be adjusted to fit the current data by right-clicking in the
@@ -2372,7 +2829,7 @@ select {\sf Edit knot point}.
 \end{itemize}
 
 The data for all numeric probes (input or output) can be scaled by
-right-clicking in the display and selecting {\sf Scale data ...}.
+right-clicking in the display and selecting {\sf ``Scale data ...''}.
 This allows the user to enter a scaling factor that is applied
 uniformly to all the knot points.
 
@@ -2386,8 +2843,8 @@ is almost always sufficient for output probes, which typically have a
 close spacing between knots that equals the simulation step
 size. Input probes, on the other hand, often have a much sparser knot
 spacing and so different interpolation orders can be useful.  The
-interpolation order of input probes can be set by right-clicking in the
-display and selecting the {\sf Interpolation} menu item.  This is
+interpolation order of input probes can be set by right-clicking in
+the display and selecting the {\sf Interpolation} menu item.  This is
 illustrated in Figure \ref{interpolationFig}, which shows two input
 probes, one using {\sf Cubic} interpolation and the other using {\sf
 Linear} interpolation.
@@ -2612,8 +3069,8 @@ comparing outputs between different simulations.
 \end{figure}
 
 In addition, it is possible to export a large display's plot to an
-image file. Right-click in the display, choose {\sf Export image as
-...}, and enter the desired file name and file type in the chooser.
+image file. Right-click in the display, choose {\sf ``Export image as
+...''}, and enter the desired file name and file type in the chooser.
 The file's type is indicated by its extension. A range of image file
 types are supported, including JPEG ({\tt .jpg, .jpeg}), PNG ({\tt
 .png}), scalable vector graphics ({\tt .svg}), and encapsulated
@@ -2629,9 +3086,9 @@ Each ArtiSynth probe can be associated with an {\it attached file} to
 (or from) which its data can be saved (or loaded).  The attached file
 is specified by the probe's {\sf attachedFile} property, which is a
 string giving the file's path name. An absolute path locates the file
-relative to the system root directory, while a relative path locates
+relative to the system root folder, while a relative path locates
 it relative to the current value of ArtiSynth's working
-directory (Section \ref{workingDir:sec}). 
+folder (Section \ref{workingDir:sec}). 
 If the {\sf attachedFile} property is {\tt null},
 then the probe does not have an attached file.
 
@@ -2657,7 +3114,7 @@ Brings up a file chooser allowing the user to specify an attached file
 for the probe. Clicking the {\sf Save As} button then sets the
 attached file and saves the probe's data in it. The probe's {\sf
 attachedFile} property will be set to a relative path name if the file
-is located beneath the current ArtiSynth working directory (Section
+is located beneath the current ArtiSynth working folder (Section
 \ref{workingDir:sec}), and an absolute path name otherwise.
 
 \item[Load data]\mbox{}
@@ -2670,15 +3127,15 @@ Brings up a file chooser allowing the user to specify an attached file
 for the probe. Clicking the {\sf Load} button then sets the attached
 file and loads the probe's data from it. The probe's {\sf
 attachedFile} property will be set to a relative path name if the file
-is located beneath the current ArtiSynth working directory, and an
+is located beneath the current ArtiSynth working folder, and an
 absolute path name otherwise.
 
-\end{description}
+\end{description}%
 
-In addition, data can be saved for {\it all} outputs probes that have attached
-files by either selecting {\sf Save output probe data} from the ArtiSynth
-{\sf File} menu, or by clicking on the timeline's {\sf save} button
-(C in Figure \ref{timelineFig}).
+In addition, data can be saved for {\it all} output probes that have
+attached files by either selecting {\sf ``Save output probe data''}
+from the ArtiSynth {\sf File} menu, or by clicking on the timeline's
+{\sf save} button (C in Figure \ref{timelineFig}).
 
 \subsection{Exporting numeric probe data}
 
@@ -2702,7 +3159,7 @@ is ignored.
 
 To export a probe's data, first select the probe (either within the
 navigation panel or by left-clicking on its timeline display bar), and
-then right-click and choose {\sf Export data as ...}  from the
+then right-click and choose {\sf ``Export data as ...''}  from the
 resulting pull-down menu.
 
 \begin{figure}
@@ -2710,7 +3167,7 @@ resulting pull-down menu.
 \iflatexml
 \includegraphics[]{images/exportProbeDialog}
 \else
-\includegraphics[width=.5\textwidth]{images/exportProbeDialog}
+\includegraphics[width=.6\textwidth]{images/exportProbeDialog}
 \fi
 \end{center}
 \caption{The export probe data dialog.}%
@@ -2768,8 +3225,8 @@ completes the operation.
 
 \item[Save probes]\mbox{}
 
-If a probe file has already been specified using either {\sf Save
-probes as ...} or {\sf Load probes ...}, then the current probe
+If a probe file has already been specified using either {\sf ``Save
+probes as ...''} or {\sf ``Load probes ...''}, then the current probe
 configuration is saved to that file.
 
 \item[Load probes ...]\mbox{}
@@ -2800,7 +3257,7 @@ a numeric output probe editor, as shown in Figure \ref{OutputProbeEditorAFig}.
 \iflatexml
 \includegraphics[]{images/outputProbeEditorA}
 \else
-\includegraphics[width=0.80\textwidth]{images/outputProbeEditorA}
+\includegraphics[width=0.85\textwidth]{images/outputProbeEditorA}
 \fi
 \end{center}
 \caption{Probe editor for an uninitialized numeric output probe.}%
@@ -2855,6 +3312,16 @@ selection box at the right of the component/property widget.
 
 \subsubsection{General output probes}
 
+\begin{sideblock}
+The incorporation of Jython formulae into output probes as described
+in this section can be difficult to implement in code. Instead, users
+are encouraged to use
+\javaclass[artisynth.core.probes]{NumericMonitorProbe}s to create
+output probe data based on general functions. See the section ``Numeric
+monitor probes'' in the \artisynthManual{modelguide}{ArtiSynth
+Modeling Guide}.
+\end{sideblock}
+
 In general, output probes define a general map from the numeric values
 of n model component properties to a generalized output vector formed by the
 concatenation of m-subvectors formed by m formulae, as shown
@@ -2882,13 +3349,13 @@ the $p_i$ depends on the property and is displayed to the right of the
 property selection box on the component/property widget.
 
 Each of the m formulae is an arithmetic expression, implemented in
-Jython, which may involve one or more of the variables $p_i$. The output
-from each formula is itself a vector of dimension $d_j$, which is
-displayed at the right of each formula panel. The simplest formula is
-just a single variable $p_i$, in which case $d_j$ equals the dimension of
-$p_i$. The concatenation of all the output vectors from all the formulae
-produces the output vector associated with the probe, which has a
-dimension $\sum_m d_j$.
+Jython (Section \ref{Jython:sec}), which may involve one or
+more of the variables $p_i$. The output from each formula is itself a
+vector of dimension $d_j$, which is displayed at the right of each
+formula panel. The simplest formula is just a single variable $p_i$,
+in which case $d_j$ equals the dimension of $p_i$. The concatenation
+of all the output vectors from all the formulae produces the output
+vector associated with the probe, which has a dimension $\sum_m d_j$.
 
 \subsubsection{Using the probe editor}
 
@@ -2941,7 +3408,7 @@ a numeric input probe editor, as shown in Figure \ref{InputProbeEditorAFig}.
 \iflatexml
 \includegraphics[]{images/inputProbeEditorA}
 \else
-\includegraphics[width=0.80\textwidth]{images/inputProbeEditorA}
+\includegraphics[width=0.85\textwidth]{images/inputProbeEditorA}
 \fi
 \end{center}
 \caption{Probe editor for an uninitialized numeric input probe.}%
@@ -2992,6 +3459,16 @@ selection box at the right of the component/property widget.
 
 \subsubsection{General input probes}
 
+\begin{sideblock}
+The incorporation of Jython formulae into input probes as described in
+this section can be difficult to implement in code. Instead, users are
+encouraged to use
+\javaclass[artisynth.core.probes]{NumericControlProbe}s to create
+general control inputs based on input probe data. See the section
+``Numeric input probes'' in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+\end{sideblock}
+
 In general, input probes define a general map from the probe's
 input vector (which is subdivided into n input variables
 of dimension $d_i$) to the values of m properties, where each
@@ -3019,11 +3496,12 @@ considered vectors of dimension 1), and the sum of all the $d_i$ equals
 the dimension of the input vector.
 
 Each of the formulae controlling the properties is an arithmetic
-expression, implemented in Jython, which may involve one or more of
-the input variables $p_i$. The output from each formula is itself a vector
-whose dimension must match the associated numeric property.
-The simplest formula is just a single variable $p_i$, in which
-case its dimension equals the dimension of $p_i$.
+expression, implemented in Jython (Section \ref{Jython:sec}),
+which may involve one or more of the input variables $p_i$. The output
+from each formula is itself a vector whose dimension must match the
+associated numeric property.  The simplest formula is just a single
+variable $p_i$, in which case its dimension equals the dimension of
+$p_i$.
 
 \subsubsection{Using the probe editor}
 
@@ -3114,109 +3592,2020 @@ how often data should be output to the probe.
 \section{Point Tracing}
 
 Tracing can be enabled for individual points within an ArtiSynth
-model. This causes the point to remember the path it followed since
-tracing was enabled, and to render this within the viewer as strip of
-line segments.
+model, allowing their paths to be recorded and visualized
+over the course of a simulation.
 
-Tracing is enabled by setting a point's {\tt tracing} property to 
-{\tt true} in the point's property panel (see Section \ref{propertyPanelsSec}).
-When enabled, the point keeps a list of all the positions that it has
-occupied since since tracing was first enabled, and renders them as a
-series of line segments in the viewer.
+Within the GUI, tracing can be enabled to selecting one or more points
+and choosing {\sf ``Enable tracing''} from the context menu.  This
+will create a {\it tracing probe} for each point, which is an output
+probe that stores the point's position over time and uses this to
+render the path in the viewer. The default tracing probe has a start
+time of 0 and a duration of 10 seconds.  To create tracing probes
+that have different start times or durations, or other property
+settings that differ from the default, one may instead choose {\sf
+``Add tracing probe''}. This will open a {\it select tracing} dialog
+(Figure \ref{selectTracing:fig}) that allows various
+properties of the tracing probe to be explicitly set.
 
-Disabling the tracing property causes the trace data to be discarded
-and it's rendering to be removed.
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/tracingProbeDialog}
+\else
+ \includegraphics[width=3.5in]{images/tracingProbeDialog}
+\fi
+\end{center}
+\caption{Dialog to explictly set properties for a new tracing probe.}
+\label{selectTracing:fig}
+\end{figure}
 
-When tracing is enabled, the point's render properties are expanded to
-include line properties. Adjusting these allow the user to control how
-the trace path is rendered. When tracing is disabled, these line
-properties are removed.
+Once created, tracing probes can be viewed and inspected within the
+timeline (Section \ref{TimelineSec}). They can also be selected either
+by clicking on their traces within the viewer, or by clicking on their
+navigation panel entry under the root model's {\tt outputProbes}
+list. 
 
-Since a point's render properties are modified when tracing is enabled
-or disabled, any existing open rendering property panels for the
-point will no longer work correctly. Instead, the panel should be
-closed and reopened.
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/pointTraceDefault}
+ \includegraphics[]{images/pointTraceBlue}
+\else
+ \includegraphics[width=3in]{images/pointTraceDefault}
+ \includegraphics[width=3in]{images/pointTraceBlue}
+\fi
+\end{tabular}
+\end{center}
+\caption{Point tracing rendered using the render properties for the
+tracing probe (left), and with {\sf lineStyle}, {\sf lineColor}, and
+{\sf lineWidth} set to {\tt CYLINDER}, pale blue and 0.6 (right).}
+\label{pointTracing:fig}
+\end{figure}
 
-\subsection{Rendering only the trace(s)}
+A trace is rendered in the viewer as a curve formed from line segments
+between adjacent positions in the point's path history. Its appearance
+can be controlled using the tracing probe's render properties (Section
+\ref{renderPropSettingsSec}), which can be adjusted by selecting the
+probe and choosing {\sf ``Edit render props ...''}  in the context
+menu.  Setting the {\sf lineStyle}, {\sf lineColor}, {\sf lineWidth}
+and {\sf lineRadius} properties will control the line style, color and
+width used to render the trace path. By default, trace curves are
+rendered using a {\sf lineStyle} set to {\tt LINE}, a {\sf lineWidth}
+of 3 (pixels), and a {\sf lineColor} set from the point's
+color. Figure \ref{pointTracing:fig} shows the demo {\tt
+artisynth.demos.mech.SpringMeshDemo} after about 4 seconds of
+simulation with tracing enabled for point 4, using both the default
+and custom render properties set for the tracing probe.
 
-It may be desirable to restrict rendering to view only the traces
-paths, perhaps along with a few selected model components. For
-instance, this might be necessary when producing graphs for a paper.
+Trace data is cleared when the simulation is restarted from time 0. It
+can also be cleared by selecting the corresponding point(s) and choosing
+{\sf ``Clear trace''} in the context menu.
 
-An easy way to do this is to edit the render properties for the
-desired points, and set the {\tt visible} property to be explicitly
-true. Then, edit the render properties for the top-level model in the
-scene, and set its {\tt visible} property to be explicitly false.
-This will make invisible all model components whose {\tt visible}
-property is inherited. Since the traced points were explicitly set to
-be visible, they (and their traces) will remain visible. If the points
-themselves are rendered as spheres, they can be made to disappear by
-setting their {\tt pointStyle} property to {\tt POINT}, or by setting
-their {\tt pointRadius} property to something very small.
+Tracing can be removed from a point by deleting its tracing probe,
+which can be done either through the normal component deletion
+mechanism (selecting the probe and choosing {\sf Delete} in the
+context menu), or by selecting the point(s) and choosing {\sf Disable
+tracing}. The latter will remove all tracing probes associated with
+the point(s), including those created via {\sf ``Add tracing probe''}.
+
+\section{Settings and Preferences}
+
+A variety of settings are available to adjust attributes related to
+the viewer, mouse bindings, and model interaction and simulation.
+Many of these settings can also be saved as {\it preferences} (Section
+\ref{Preferences:sec}) to provide initial values when ArtiSynth is
+started up.
+
+\subsection{Settings}
+\label{settings:sec}
+
+Settings for the viewer and mouse are discussed in Sections
+\ref{viewerSettings:sec} and \ref{MouseBindingsSec}. Settings related
+to model interaction and simulation as discussed in the sections below.
+
+\subsubsection{Interaction}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/interactionSettings}
+\else
+\includegraphics[width=2.25in]{images/interactionSettings}
+\fi
+\end{center}
+\caption{Interaction settings dialog.}%
+\label{interactionSettings:fig}
+\end{figure}
+
+{\it Interaction} settings involve attributes related to the graphical
+interface and model interaction. They can be adjusted by selecting
+{\sf ``Interaction ...''} from the {\sf Settings} menu, which opens an
+{\it interaction settings dialog} (Figure
+\ref{interactionSettings:fig}).  Clicking the {\sf Save} button will
+save the current settings to the user's preferences (Section
+\ref{Preferences:sec}) so that they will be set automatically when
+ArtiSynth is restarted.  Interaction settings include:
+
+\begin{description}
+
+\item[articulatedTransforms]\mbox{}
+
+If {\tt true}, attempts to preserve joint constraints when rigid
+bodies are moved using the manipulator controls (Section
+\ref{TransformerToolsSec}). The default value is {\tt false}.
+
+\item[frameRate]\mbox{}
+
+Controls the rate, in frames per second, at which the viewer renders
+the simulation as it proceeds. The default value is 20. 
+
+\begin{sideblock}
+If $r$ denotes the frame rate, it is usually best to set $r$ such that
+$1/r$ is an integer multiple of the simulation step size. Otherwise,
+additional steps will be added to the simulation, at irregular
+intervals, in order to accommodate the requested rate.
+\end{sideblock}
+
+\item[realTimeScaling]\mbox{}
+
+This is a scaling factor for the viewer simulation speed.
+
+\item[initDraggersInWorld]\mbox{}
+
+If {\tt true}, sets the initial orientation of transformer tools to be
+aligned with world coordinates, as described in Section
+\ref{TransformerToolsSec}. The default value is {\tt false}.
+
+\item[navigationPanelLines]\mbox{}
+
+If {\tt true}, causes lines to be drawn linking components in
+the navigation panel (Section \ref{navPanelSec}).
+
+\end{description}
+
+\subsubsection{Simulation}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/simulationSettings}
+\else
+\includegraphics[width=3in]{images/simulationSettings}
+\fi
+\end{center}
+\caption{Simulation settings dialog.}%
+\label{simulationSettings:fig}
+\end{figure}
+
+Simulation settings involve attributes related to model
+simulation. They can be adjusted by selecting {\sf ``Simulation ...''}
+from the {\sf Settings} menu, which opens a {\it simulation settings
+dialog} (Figure \ref{simulationSettings:fig}).  Clicking the {\sf Save}
+button will save the current settings to the user's preferences
+(Section \ref{Preferences:sec}) so that they will be set automatically
+when ArtiSynth is restarted.
+
+\begin{sideblock}
+Note that simulation settings do not take effect until the next model
+is loaded or reloaded.
+\end{sideblock}
+
+{\it Simulation} settings include:
+
+\begin{description}
+
+\item[maxStepSize]\mbox{}
+
+The default maximum step size used for simulation, in seconds.  See
+``Simulation control properties'' in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\item[stabilization]\mbox{}
+
+The default stabilization method used to correct collision
+interpenetrations and drift from position constraints. See
+``Simulation control properties'' in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\item[colliderType]\mbox{}
+
+The default collider type used for collision detection. See
+``Collision methods and collider types'' in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\item[abortOnInvertedElements]\mbox{}
+
+This is an attribute of 3D FEM models that instructs the simulation to
+abort whenever inverted elements are encountered by FEM materials that
+don't support element inversion (such as most hyperelastic materials).
+The default value for this attribute is {\tt true}. Setting it to
+false may be useful for diagnostic purposes.
+
+\item[hybridSolvesEnabled]\mbox{}
+
+Enables {\it hybrid solves} in the sparse matrix solver used for
+system simulation. The default value is {\tt true}. Hybrid solves
+combine iterative and direct methods in a way that can often improve
+simulation speeds several fold. However, hybrid solves do not
+generally produce results with exact numerical repeatability. It may
+therefore be preferable in some diagnostic and testing situations to
+disable hybrid solves.
+
+\item[numSolverThreads]\mbox{}
+
+Number of threads used by the sparse matrix solver used for system
+simulation. The default value is the number of threads available on
+the machine. Simulations will usually run faster with more threads
+(although the speed increase is generally sublinear). However, using
+more than one thread will usually produce results that do not have
+exact numerical repeatability.  It may therefore be preferable in
+some diagnostic and testing situations to set the number of solver
+threads to 1.
+
+\end{description}
+
+\subsection{Preferences}
+\label{Preferences:sec}
+
+{\it Preferences} are settings saved in the user's configuration data
+so that they are restored when ArtiSynth is restarted. They are stored
+in the file {\tt settings/preferences} within the configuration folder
+(Section \ref{UserConfig:sec}).
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/preferencesEditor}
+\else
+\includegraphics[width=4in]{images/preferencesEditor}
+\fi
+\end{center}
+\caption{Preferences editor, with viewer preferences shown.}%
+\label{preferencesEditor:fig}
+\end{figure}
+
+Preferences can be edited by selecting {\sf ``Preferences ...''}  from
+the {\sf Settings} menu, which opens a {\it preferences editor} dialog
+(Figure \ref{preferencesEditor:fig}). A panel on the left contains a
+tree-based representation of the different preferences, which can be
+used to select a specific set of preferences which can then be
+adjusted using a {\it preferences panel} panel displayed on the
+right. 
+
+Values shown in the preferences editor describe stored values that are
+set when ArtiSynth is restarted, and setting them will {\it not}
+change the current settings in the ArtiSynth application. However,
+most preferences panels contain the button {\sf ``Apply to current''}
+which {\it will} apply the values to the current application settings.
+Other buttons include {\sf ``Set from current''}, which loads the
+values from the current application settings, and {\sf ``Reset
+defaults''}, which resets the panel values to their defaults.
+
+To save preferences in the user's configuration data, one should click
+the {\sf Save} button at the bottom right of the preferences editor.
+The {\sf ``Reset all defaults''} button located at the bottom left resets
+all preference values to their defaults; the {\sf Save} button must
+subsequently be used to save these reset values.
+
+Preferences that can be set include settings for the viewer and mouse 
+(Sections \ref{viewerSettings:sec} and \ref{MouseBindingsSec}),
+model interaction and simulation (Section \ref{settings:sec}),
+and making movies (Section \ref{MoviePreferences:sec}). Preferences
+can also be set for the application layout, as described in the
+next section.
+
+\subsubsection{Layout preferences}
+
+Layout preferences control the size and visibility of
+different application windows.
+
+\begin{description}
+
+\item[viewerWidth]\mbox{}
+
+Width of the main ArtiSynth viewer (in pixels). Note that this and the
+{\sf viewerHeight} property describe the size of the viewer itself,
+and not the overall application window containing the viewer.
+
+\item[viewerHeight]\mbox{}
+
+Height of the main ArtiSynth viewer window (in pixels).
+
+\item[timelineVisible]\mbox{}
+
+Whether or not the timeline (Section \ref{TimelineSec}) is visible
+when ArtiSynth starts up.
+
+\item[timelineWidth]\mbox{}
+
+Initial width of the timeline (in pixels).
+
+\item[timelineHeight]\mbox{}
+
+Initial height of the timeline (in pixels).
+
+\item[timelineRange]\mbox{}
+
+Default timeline range that is used to initialize the visible part of
+the timeline when a model is loaded. A value $\le 0$ implies that the
+range will be set automatically. If set to a value $> 0$, the actual
+amount of time visible may be slightly larger because of the way the
+timeline is scaled.
+
+\item[timelineLocation]\mbox{}
+
+Initial location of the timeline with respect to the main ArtiSynth
+application window.
+
+\item[jythonFrameVisible]\mbox{}
+
+Whether or not a Jython console frame (Section \ref{Jython:sec})
+should be displayed when ArtiSynth starts up.
+
+\item[jythonLocation]\mbox{}
+
+Initial location of the Jython frame with respect to the main
+ArtiSynth application window.
+
+\end{description}
+
+\section{Jython Interaction and Scripting}
+\label{Jython:sec}
+
+ArtiSynth supports a Jython console that provides a command line
+interface to all the internal structures associated with ArtiSynth and
+its models. Jython ( \href{https://www.jython.org}{www.jython.org}) is
+a Java implementation of Python that combines Python commands and
+syntax with the ability to access and call all publicly accessible
+attributes and methods of Java objects. It can be used to
+interactively load, query and run models, or to run simulation
+scripts, either interactively (Section \ref{JythonScripting:sec}) or
+in batch mode (Section \ref{JythonBatchScripting:sec}).
+
+\begin{sideblock}
+Use of the Jython interface currently requires that ArtiSynth is run
+under Java 8, which is why we recommend using this Java version.  If
+you experience trouble running the Jython console, verify that you do
+in fact have Java 8 installed, and, if you are using an integrated
+development environment (IDE), that the IDE is also using Java 8.
+Details on installing Java 8 can be found in the installation guides
+for
+\artisynthManual[installation/windowsInstallation]{windowsInstallation}{Windows},
+\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS},
+and
+\artisynthManual[installation/linuxInstallation]{linuxInstallation}{Linux}.
+\end{sideblock}
+
+The syntax, language semantics, and common packages for Jython are the
+same as for Python 2.7, so Python 2.7 language references can be used
+to learn how to to program in Jython.
+
+The Jython console can be started by either
+
+\begin{enumerate}
+
+\item Choosing {\sf View > Show Jython Console} in the GUI, or
+
+\item Specifying the option {\tt -showJythonConsole} on
+the command line.
+
+\end{enumerate}
+
+The Jython console currently appears in a separate Window frame
+(Figure \ref{artisynthJython:fig}).
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/artisynthJython}
+\else
+ \includegraphics[width=4.5in]{images/artisynthJython}
+\fi
+\end{center}
+\caption{ArtiSynth application showing the Jython console.}
+\label{artisynthJython:fig}
+\end{figure}
+
+\subsection{Querying ArtiSynth structures and models}
+\label{JythonQuerying:sec}
+
+Once the Jython console is open, it can be used to query ArtiSynth
+structures and model components. Every publicly accessible method of
+every Java object can be called via the interface.  To easily access
+particular components of a model, the predefined list variable {\tt
+sel} provides access to the current ArtiSynth selection list. That
+means you can select items in the ArtiSynth GUI (using either the
+viewer or navigation panel) and then access these in Jython.  By
+itself, {\tt sel} supplies the entire selection list. Specific selected
+components can be accessed by indexing into this list, so that {\tt
+sel[i]} returns the i-th entry (where the index {\tt i} is 0-based).
+
+For example, if two particles are currently selected in ArtiSynth, then
+{\tt sel} can be used as follows:
+%
+\begin{lstlisting}[]
+   >>> sel    # get the entire selection list
+   [artisynth.core.mechmodels.Particle@709da188, artisynth.core.mechmodels.Particle@750eba3f]
+   >>>
+   >>> sel[0] # get the first item on the list
+   artisynth.core.mechmodels.Particle@709da188
+\end{lstlisting}
+%
+Once a component has been selected, then one has access to all its
+public methods. This can be quite useful for setting or querying items
+are that are not normally available via the ArtiSynth GUI. For
+example, if we want to find the number of nodes in a {\tt FemModel3d},
+then we can select the FEM and then in the console do
+%
+\begin{lstlisting}[]
+   >>> fem = sel[0]
+   >>>
+   >>> fem.numNodes()
+   16
+\end{lstlisting}
+%
+
+\subsection{Object creation and importing classes}
+
+Java objects can also be created by calling their constructors
+directly, without the need for the keyword {\tt new}.  For example,
+%
+\begin{lstlisting}[]
+   >> vec = Vector3d (1, 2, 3)
+\end{lstlisting}
+%
+creates a new instance of \javaclass[maspack.matrix]{Vector3d} and
+initializes it to (1, 2, 3). 
+
+As with Java code, Java class definitions need to be imported into
+Jython in order for them to be visible.
+For example,
+%
+\begin{lstlisting}[]
+   >> import maspack.matrix
+\end{lstlisting}
+%
+will import all classes defined in the package {\tt maspack.matrix}.
+However, unlike in Java, classes imported into Jython this way will
+still need to be accessed using their fully qualified class names
+(e.g., {\tt maspack.matrix.Vector3d}, {\tt maspack.matrix.Matrix3d},
+etc.). In order to make classes visible using only their basic names,
+one may use the {\tt from} statement, as in
+%
+\begin{lstlisting}[]
+   >> from java.io import File
+   >> from maspack.matrix import Vector3d
+\end{lstlisting}
+%
+To import {\it all} classes within a package by basic name, one may
+employ the wildcard {\tt *}:
+%
+\begin{lstlisting}[]
+   >> from maspack.matrix import *
+\end{lstlisting}
+%
+although this may occasionally miss certain classes.
+
+For convenience, the ArtiSynth Jython console already fully imports,
+by basic name, the classes from the following packages:
+%
+\begin{lstlisting}[]
+   maspack.util
+   maspack.matrix
+   maspack.geometry
+   maspack.collision
+   maspack.render
+   maspack.solvers
+   artisynth.core.mechmodels
+   artisynth.core.femmodels
+   artisynth.core.materials
+   artisynth.core.modelbase
+   artisynth.core.driver
+   artisynth.core.workspace
+   artisynth.core.inverse
+   java.lang
+   java.io
+\end{lstlisting}
+%
+
+\subsection{Running simulations and scripting}
+\label{JythonScripting:sec}
+
+Jython can also be used to run simulations, using various built-in
+functions that allow models to be loaded and run. A full summary of
+these is given in Section \ref{ScriptingMethods:sec}. In particular,
+it is possible to load a model and then run or single step a
+simulation.
+
+To load a model, one may use the function
+%
+\begin{lstlisting}[]
+  loadModel (name, args...)
+\end{lstlisting}
+%
+where {\tt name} is the classname of the model's
+\javaclass[artisynth.core.workspace]{RootModel}, and {\tt args...} is
+an optional variable-length list of string arguments that are used to
+form the {\tt args} argument of the model's {\tt build()} method (see
+the section ``Implementing the build() method'' in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}).  In general,
+the {\tt name} argument should be the fully qualified
+name of the root model class, as in
+%
+\begin{lstlisting}[]
+   >> ah.loadModel ('artisynth.demos.mech.RigidBodyDemo')
+\end{lstlisting}
+%
+However, if the model has been previously loaded by
+ArtiSynth, the class's simple name should work as well:
+%
+\begin{lstlisting}[]
+   >> ah.loadModel ('RigidBodyDemo')
+\end{lstlisting}
+%
+
+Once loaded, simulation may be controlled using functions such as {\tt
+play()}, {\tt pause()}, {\tt step()}, or {\tt reset()}. The {\tt
+play()} function may take a time argument indicating the length of
+time the simulation should be run for; if this argument is omitted,
+the simulation will run indefinitely or until a breakpoint is
+encountered. Play requests are issued asynchronously; to
+make the Jython console wait for simulation to halt,
+one may use the {\tt waitForStop()} function:
+%
+\begin{lstlisting}[]
+   >> loadModel ('RigidBodyDemo')
+   >> play (2.5)
+   >> waitForStop()
+\end{lstlisting}
+%
+
+When controlling simulations, it is often easiest to create a script
+of Jython commands in a Python-style {\tt .py} file and then "source"
+them into the Jython console. In Python, one can use {\tt exec()} or
+{\tt execfile()} to do this. However, in ArtiSynth it is recommended to
+use the ArtiSynth supplied {\tt script()} function, as in
+%
+\begin{lstlisting}[]
+   >>> script ('contactTest.py')
+\end{lstlisting}
+%
+This is particularly true for longer scripts, since {\tt script()}
+interacts better with the GUI and allows the script commands to be
+displayed in the console as they are being executed.
+
+Scripts are particularly useful for running multiple simulations with
+varying inputs and outputs. Arguments supplied to a model's {\tt
+build()} method provide a convenient way to adjust input and output
+parameters between simulations.
+
+As will be seen below, it is also possible to pass command-line style
+arguments to the script itself.  Within the script, such arguments can
+the retrieved from {\tt sys.argv}, as illustrated by the following
+code fragment:
+%
+\begin{lstlisting}[]
+   import sys
+   print('Number of arguments:' + str(len(sys.argv)))
+   print('Argument List:' + str(sys.argv)) 
+\end{lstlisting}
+%
+
+\begin{sideblock}
+Jython commands, including scripts, can be aborted by clicking the
+{\sf stop-all} button to the right of the play controls (Section
+\ref{PlayControlsSec}).
+\end{sideblock}
+
+\subsection{Using the script menu}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/ArtiSynthScriptMenu}
+\else
+   \includegraphics[width=0.65\textwidth]{images/ArtiSynthScriptMenu}
+\fi
+\end{center}
+\caption{The ArtiSynth script selection menu.}
+\label{ScriptSelectionMenu:fig}
+\end{figure}
+
+For convenience, ArtiSynth provides a {\sf Scripts} menu in the main
+application menu bar that is similar in function to the {\sf Models}
+menu and can be used to run script files from predefined menu entries
+(Figure \ref{ScriptSelectionMenu:fig}). By default, the upper part of
+this menu contains a single submenu:
+
+\begin{tabular}{ll} {\sf Demo scripts} & - expands to all scripts 
+within {\tt src/artisynth/demos/scripts} under the ArtiSynth install
+folder.\\
+\end{tabular}
+
+Selecting a submenu entry will cause the Jython console to be opened
+(if necessary) and the associated script to be executed. At the time
+of this writing, {\sf ``Demo scripts''} contains a single entry for a
+demonstration script named {\tt demoScript.py}.
+
+The lower part of the script menu, beneath the separator, contains
+entries for reloading recent scripts (''{\sf Run recent ...}''),
+running a script from an explicitly specified file ({\sf ``Run script
+...''}, Section \ref{SelectingScriptFiles:sec}), and adding custom
+entries to the upper part of the script menu ( {\sf ``Edit menu
+...''}, Section \ref{CustomizingMenus:sec}).
+
+\subsection{Selecting a script file}
+\label{SelectingScriptFiles:sec}
+
+To explicitly specify a script file, choose {\sf ``Run script ...''}
+from the lower part of the script menu, which will bring up a script
+selection dialog as shown in Figure \ref{scriptSelector:fig}.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/scriptSelector}
+\else
+\includegraphics[width=4in]{images/scriptSelector}
+\fi
+\end{center}
+\caption{Dialog for selecting a script file.}%
+\label{scriptSelector:fig}
+\end{figure}
+
+Users should specify the folder containing the script in the {\sf
+``Script folder''} field at the top. This folder will then be searched for
+files ending in {\tt .py} and {\tt .jy}, with the results listed in
+the {\sf ``Script file''} panel, from which the user can then select the
+desired script by clicking on it. If the script requires command-line
+style arguments (Section \ref{JythonScripting:sec}), these can be
+entered in the {\sf ``Args''} field near the dialog bottom. Arguments
+should be separated by white space, with those containing white space
+placed between with double quotes `{\tt "}'.
+
+When all desired settings have been made, the user runs the
+script using the {\sf Run} button.
+
+\subsection{Specifying scripts on the command line}
+\label{JythonBatchScripting:sec}
+
+It is possible to specify Jython scripts directly on the ArtiSynth
+command line using the {\tt -script} option. For example,
+%
+\begin{lstlisting}[]
+   artisynth -script experiment.py
+\end{lstlisting}
+%
+will start ArtiSynth and then immediately invoke the script {\tt
+experiment.py}. Scripts can also be run in "batch" mode, {\it without}
+starting the GUI or explicitly opening the Jython console.  This can
+be useful when running ArtiSynth remotely, or in parallel on a cluster
+of machines. To run a script in batch mode, simply 
+add the {\tt -noGui} command line option:
+%
+\begin{lstlisting}[]
+   artisynth -noGui -script experiment.py
+\end{lstlisting}
+%
+Since there is no GUI, Jython will then be initiated using a terminal
+console instead of the usual GUI-based text window. When the script
+finishes, the console will remain available for interactive operation.
+
+One may also simply start with a Jython console, with no initial script:
+%
+\begin{lstlisting}[]
+   artisynth -noGui -showJythonConsole
+\end{lstlisting}
+%
+
+Finally, arguments may be passed to scripts invoked using {\tt
+-script}, by placing them immediately after the script specification,
+enclosed within square brackets {\tt [ ]}. For example,
+%
+\begin{lstlisting}[]
+   artisynth -script myscript.py [ -xxx 123 -off ]
+\end{lstlisting}
+%
+will pass the strings {\tt "-xxx"}, {\tt "123"} and {\tt "-off"} to
+the script {\tt myscript.py}.  Within the script, these arguments can
+the retrieved from {\tt sys.argv}, as described in Section
+\ref{JythonScripting:sec}.
+
+\subsection{Built-in functions}
+\label{ScriptingMethods:sec}
+
+The following is a summary of the built-in Jython console functions:
+
+\begin{description}
+
+\item[{\tt getMain()}] \mbox{}
+
+Returns the ArtiSynth {\tt Main} object.
+
+\item[{\tt loadModel (name, args...)}] \mbox{}
+
+Loads the named model along with optional arguments.  {\tt name} is
+the classname of the model's
+\javaclass[artisynth.core.workspace]{RootModel} and {\tt args...} is
+an optional variable-length list of string arguments that are used to
+form the {\tt args} argument of the model's {\tt build()} method.
+Nominally, {\tt name} should be a fully-qualified classname (for example,
+{\tt artisynth.demos.mech.RigidBodyDemo}), but if the model has been
+loaded before, the simple class name should work as well (e.g., {\tt
+RigidBodyDemo}).
+
+\item[{\tt loadModelFile (filename)}] \mbox{}
+
+Loads a model from an ArtiSynth file. {\tt filename} is a string
+giving the file's path.
+
+\item[{\tt saveModelFile (filename)}] \mbox{}
+
+Save a model to an ArtiSynth file.
+
+\item[{\tt saveModelFile (filename, saveWayPointData, coreCompsOnly)}] \mbox{}
+
+Save a model to an ArtiSynth file. The options {\tt saveWayPointData}
+and {\tt coreCompsOnly} specify whether to (a) save waypoint data, and
+(b) save only components from {\tt artisynth\_core}.
+
+\item[{\tt play()}] \mbox{}
+
+Starts the simulation running.
+
+\item[{\tt play(t)}] \mbox{}
+
+Starts and runs the simulation for {\tt t} seconds.
+
+\item[{\tt pause()}] \mbox{}
+
+Pauses the simulation.
+
+\item[{\tt step()}] \mbox{}
+
+Single steps the simulation.
+
+\item[{\tt reset()}] \mbox{}
+
+Resets the simulation to time 0.
+
+\item[{\tt forward()}] \mbox{}
+
+Forwards the simulation to the next waypoint.
+
+\item[{\tt rewind()}] \mbox{}
+
+Rewinds the simulation to the last waypoint.
+
+\item[{\tt delay(t)}] \mbox{}
+
+Delays execution for {\tt t} seconds.
+
+\item[{\tt waitForStop()}] \mbox{}
+
+Blocks until the simulation has completed.
+
+\item[{\tt isPlaying()}] \mbox{}
+
+Returns {\tt true} if simulation is still running.
+
+\item[{\tt getTime()}] \mbox{}
+
+Returns current ArtiSynth simulation time in seconds.
+
+\item[{\tt reload()}] \mbox{}
+
+Reloads the current model.
+
+\item[{\tt addWayPoint(t)}] \mbox{}
+
+Adds a simulation waypoint at time {\tt t},
+where {\tt t} is a floating point value giving
+the time in seconds.
+
+\item[{\tt addBreakPoint(t)}] \mbox{}
+
+Adds a breakpoint at time {\tt t}.
+
+\item[{\tt removeWayPoint(t)}] \mbox{}
+
+Removes any waypoint or breakpoint at time {\tt t}.
+
+\item[{\tt clearWayPoints()}] \mbox{}
+
+Removes all waypoints and breakpoints.
+
+\item[{\tt saveWayPoints (filename)}] \mbox{}
+
+Save waypoints and their data to a specified file
+
+\item[{\tt loadWayPoints (fileName)}] \mbox{}
+
+Load waypoints and their data from a specified file
+
+\item[{\tt root()}] \mbox{}
+
+Returns the current RootModel.
+
+\item[{\tt find (path)}] \mbox{}
+
+Finds a component defined by {\tt path} with respect to the current RootModel.
+
+\item[{\tt getsel()}] \mbox{}
+
+Returns the current ArtiSynth selection list (which is the same as
+the built-in variable {\tt sel}).
+
+\item[{\tt getsel(i)}] \mbox{}
+
+Returns the i-th selection list item (where i is 0-based).
+
+\item[{\tt quit()}] \mbox{}
+
+Quits ArtiSynth.
+
+\end{description}
+
+\section{Customizing the Model and Script Menus}
+\label{CustomizingMenus:sec}
+
+The model and script menus are useful interfaces for loading ArtiSynth
+models and running Jython scripts. The upper sections of these contain
+menu arrangements which allow models to be loaded or scripts to be run
+by simply clicking on a menu item. These menu arrangements may be
+customized by the user.
+
+The upper model menu comes initialized with predefined entries
+that locate all models defined in the packages {\tt artisynth.demos}
+and {\tt artisynth.models}. Customization may be desirable in
+order to:
+
+\begin{itemize}
+
+\item Access models declared in packages outside
+{\tt artisynth.demos} and {\tt artisynth.models};
+
+\item Reduce the scope of the menu to a smaller set of models
+or model packages.
+
+\end{itemize}
+
+Meanwhile, the upper script menu comes initialized to find only
+scripts located in {\tt src/artisynth/demos/scripts} relative to the
+ArtiSynth installation folder, so customization will be necessary to
+access scripts outside of this.
+
+Either menu may be customized by selecting {\sf ``Edit menu ...''} at
+the menu's bottom, which will open one of the menu editors described
+below.
+
+\subsection{Model menu editor}
+\label{modelMenuEditor:sec}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/modelMenuEditor}
+\else
+\includegraphics[width=4in]{images/modelMenuEditor}
+\fi
+\end{center}
+\caption{Model menu editor, showing the default menu configuration.}%
+\label{modelMenuEditor:fig}
+\end{figure}
+
+The upper part of the model menu may be customized using the {\it
+model menu editor} (Figure \ref{modelMenuEditor:fig}), which may be
+opened by selecting {\sf ``Edit menu ...''} at the bottom of the
+model menu.  The editor comprises a large {\it menu panel} on the left
+side, containing a tree representation of the menu, and an {\it edit
+panel} on the right side which supports various editing actions.
+
+A model menu is composed of a hierarchical arrangement of six types of
+menu entries, summarized in Table \ref{menuEntryTypes:tab} and
+described in more detail in Section \ref{menuEntryTypes:sec}.  Every
+entry has a {\it title} attribute denoting the text used in the actual
+menu. The set of menu entries is displayed hierarchically in the
+editor's menu panel, with each entry indicated by an icon (see Table
+\ref{menuEntryTypes:tab}) followed by its title. Entries can be
+selected by clicking on them using the left mouse button, using the
+{\tt CTRL} and {\tt SHIFT} modifier keys to enable multiple and
+contiguous selection.
+Figure \ref{modelMenuExample:fig} shows an example menu panel display
+on the left with the corresponding model menu on the right.
+
+\begin{table}[h]
+\begin{center}
+\iflatexml
+\begin{tabular}{|llp{10in}|}
+\else
+\begin{tabular}{|llp{4in}|}
+\hline
+Icon&Type&Description\\
+\hline
+%
+\fi
+\iflatexml
+\includegraphics[]{images/packageMenuIcon}
+\else
+\includegraphics[height=.2in]{images/packageMenuIcon}
+\fi
+&{\sf Package}&
+Submenu containing all models within a
+specific Java package and subpackages.\\
+%
+\iflatexml
+\includegraphics[]{images/modelMenuIcon}
+\else
+\includegraphics[height=.2in]{images/modelMenuIcon}
+\fi
+&{\sf Model}&
+Menu entry for an individual model.\\
+%
+\iflatexml
+\includegraphics[]{images/submenuMenuIcon}
+\else
+\includegraphics[height=.2in]{images/submenuMenuIcon}
+\fi
+&{\sf Submenu}&
+General submenu containing other menu entries.\\
+%
+\iflatexml
+\includegraphics[]{images/demofileMenuIcon}
+\else
+\includegraphics[height=.2in]{images/demofileMenuIcon}
+\fi
+&{\sf Demo file}&
+Submenu consisting of all models listed in a text file.\\
+%
+\iflatexml
+\includegraphics[]{images/labelMenuIcon}
+\else
+\includegraphics[height=.2in]{images/labelMenuIcon}
+\fi
+&{\sf Label}&
+Menu entry consisting of a descriptive label.\\
+%
+\iflatexml
+\includegraphics[]{images/separatorMenuIcon}
+\else
+\includegraphics[height=.2in]{images/separatorMenuIcon}
+\fi
+&{\sf Separator}&
+Menu entry consisting of a separating line.\\
+\hline
+\end{tabular}
+\end{center}
+\caption{The six different types of menu entries used to form a model
+menu.}
+\label{menuEntryTypes:tab}
+\end{table}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c  c}
+\iflatexml
+\includegraphics[]{images/modelMenuEditExample} &
+\includegraphics[]{images/modelMenuExample}\\
+\else
+\includegraphics[height=2.5in]{images/modelMenuEditExample}&
+\includegraphics[height=2.5in]{images/modelMenuExample}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{Model menu editing example, showing the
+display in the menu panel (left) and the corresponding model menu (right).}%
+\label{modelMenuExample:fig}
+\end{figure}
+
+\iflatexml\else\pagebreak\fi
+
+Editing actions that may be initiated include:
+
+\begin{description}
+
+\item[Adding menu entries]\mbox{}
+
+The {\sf Add} buttons in the edit panel allow the different menu
+entries to be added to the the menu. Add operations for all entry
+types except separators invoke a dialog for configuring the new entry;
+details on these are given in Section \ref{menuEntryTypes:sec}.  If no
+entries are selected when the add operation is initiated, the new
+entry will be placed at the end of the top-level menu. Otherwise, if a
+submenu entry is selected, the new entry will be placed at the end of
+that submenu. Finally, if a non-submenu entry is selected, the new
+entry will be inserted in the location of the selected entry.
+
+\item[Editing menu entries]\mbox{}
+
+All menu entries except separators have attributes that can be edited
+by selecting the entry and clicking the {\sf Edit} button in the
+editing panel. Details on these attributes are given in Section
+\ref{menuEntryTypes:sec}.
+
+\item[Rearranging and deleting menu entries]\mbox{}
+
+Menu entries can be rearranged or deleted using the up/down arrow and
+{\sf X} buttons:
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/moveDeleteButtons}
+\else
+\includegraphics[width=1.5in]{images/moveDeleteButtons}
+\fi
+\end{center}
+%
+Rearrangement can be done within a submenu by selecting a contiguous
+set of entries within that submenu and using the up/down arrows to
+move them up or down with respect to other submenu entries.  Entries
+can be deleted by selecting any number of them, within any submenu,
+and clicking the {\sf X} button.
+
+\item[Saving and loading from files]\mbox{}
+
+The {\sf Save} and {\sf Reload} buttons at the bottom of the edit
+panel can be used to save/reload the current menu to/from the
+initialization file {\tt settings/modelMenu.xml}, located in the
+user configuration folder (Section
+\ref{UserConfig:sec}). The buttons {\sf ''Save to ...''} and {\sf
+``Load from ...''}  can be used to save/load the menu from alternative
+files. The {\sf ``Reset default''} button in the lower left corner of the
+dialog resets the menu and its configuration files to their original
+settings.
+
+\end{description}
+
+Changes that are made in the menu editor appear immediately in the
+model menu itself. Changes which involve adding, deleting or
+rearranging entries can be undone using the {\sf Undo} option in
+ArtiSynth's main {\sf Edit} menu (Section \ref{undo:sec}).
+
+\begin{sideblock}
+Submenus which are empty are displayed in the menu editor but
+{\it not} in the menu itself. Submenus may be empty if no
+entries have been added to them, or if the model entries specified
+within them are not actually found. The latter most commonly occurs
+when the packages containing said models are not visible to ArtiSynth.
+\end{sideblock}
+
+\subsection{Script menu editor}
+\label{scriptMenuEditor:sec}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/scriptMenuEditor}
+\else
+\includegraphics[width=4in]{images/scriptMenuEditor}
+\fi
+\end{center}
+\caption{Script menu editor, showing the default menu configuration.}%
+\label{scriptMenuEditor:fig}
+\end{figure}
+
+The upper part of the script menu may be customized using the {\it
+script menu editor} (Figure \ref{scriptMenuEditor:fig}), which may be
+opened by selecting {\sf ``Edit menu ...''} at the bottom of the
+script menu.  Its structure and function is essentially identical to
+the model menu editor (Section \ref{modelMenuEditor:sec}), except that
+the Package, Model, and Demo file entries are replaced by the {\sf
+Script folder} and {\sf Script} entries, as shown in in Table
+\ref{scriptEntryTypes:tab} and described in more detail in Section
+\ref{menuEntryTypes:sec}. The initialization file accessed by the {\sf
+Save} and {\sf Reload} buttons is {\tt settings/scriptMenu.xml},
+located in the user configuration folder (Section
+\ref{UserConfig:sec}).
+
+\begin{table}[h]
+\begin{center}
+\iflatexml
+\begin{tabular}{|llp{10in}|}
+\else
+\begin{tabular}{|llp{4in}|}
+\hline
+Icon&Type&Description\\
+\hline
+%
+\fi
+\iflatexml
+\includegraphics[]{images/scriptFolderMenuIcon}
+\else
+\includegraphics[height=.2in]{images/scriptFolderMenuIcon}
+\fi
+&{\sf Script folder}&
+Submenu containing all scripts within a
+specific folder.\\
+%
+\iflatexml
+\includegraphics[]{images/scriptMenuIcon}
+\else
+\includegraphics[height=.2in]{images/scriptMenuIcon}
+\fi
+&{\sf Script}&
+Menu entry for an individual script.\\
+%
+\iflatexml
+\includegraphics[]{images/submenuMenuIcon}
+\else
+\includegraphics[height=.2in]{images/submenuMenuIcon}
+\fi
+&{\sf Submenu}&
+General submenu containing other menu entries.\\
+%
+\iflatexml
+\includegraphics[]{images/labelMenuIcon}
+\else
+\includegraphics[height=.2in]{images/labelMenuIcon}
+\fi
+&{\sf Label}&
+Menu entry consisting of a descriptive label.\\
+%
+\iflatexml
+\includegraphics[]{images/separatorMenuIcon}
+\else
+\includegraphics[height=.2in]{images/separatorMenuIcon}
+\fi
+&{\sf Separator}&
+Menu entry consisting of a separating line.\\
+\hline
+\end{tabular}
+\end{center}
+\caption{The five different types of menu entries used to form a
+script menu.}
+\label{scriptEntryTypes:tab}
+\end{table}
+
+\subsection{Menu entry types}
+\label{menuEntryTypes:sec}
+
+%Every menu entry type, except separators, contains a {\it title}
+%attribute describing that entry's text in the actual menu, as well as
+%font attributes detailing the font used to display the text.  Other
+%attributes depend on the entry type.
+
+\subsubsection{Model}
+\label{modelEntry:sec}
+
+For model menus, 
+a model entry is used to select a specific model; clicking on this
+entry type in the model menu causes the class defining the model to be
+loaded.  Model classes must be public subclasses of
+\javaclass[artisynth.core.workspace]{RootModel}.
+
+To add a model entry to the menu, click {\sf Add model} in the edit
+panel. This opens an {\it add model} dialog,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/addModelDialog}
+\else
+\includegraphics[width=4in]{images/addModelDialog}
+\fi
+\end{center}
+%
+which allows the user to specify the model class and (optional) {\tt
+build()} method arguments using the {\sf ``Model package''}, {\sf
+``Model class''} and {\sf ``Build args''} fields in the same manner
+discussed in Section \ref{LoadingByClass:sec}.  Multiple models may be
+selected in the {\sf ``Model class''} panel; if this is done, a
+separate model entry will be created for each. The menu title can be
+set explicitly using the {\sf ``Menu title''} field; otherwise, the
+title will default to the model class's simple name.
+
+Once created, a model entry can be edited by selecting it in the
+editor's menu panel and clicking
+the {\sf Edit} button, which opens an editing dialog that also allows
+the user to adjust the title font properties.
+
+\subsubsection{Package}
+\label{packageEntry:sec}
+
+For model menus, a package entry is a submenu containing {\it all} the
+model classes found within a specified Java package and its
+subpackages. The submenu contents may be arranged either as a flat
+list, or hierarchically based on the subpackages (the default). Again,
+each model class must be an public subclasses of
+\javaclass[artisynth.core.workspace]{RootModel}.  Individual model
+classes can be {\it excluded} from package menu entries by defining
+the public {\tt boolean} member variable {\tt omitFromMenu} and
+setting it to {\tt true}:
+%
+\begin{verbatim}
+public class MyModel extends RootModel {
+   ...
+   public static boolean omitFromMenu = true;
+   ...
+}
+\end{verbatim}
+%
+
+To add a package entry to the menu, click {\sf ``Add package''} in
+the edit panel. This opens an {\it add package} dialog,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/addPackageDialog}
+\else
+\includegraphics[width=3.5in]{images/addPackageDialog}
+\fi
+\end{center}
+%
+which allows the user to specify the package, menu title, and whether
+to use a flat or hierarchical view. Auto-completion is supported by
+the {\sf Package} field, with the {\tt <TAB>} character invoking
+auto-completion based on currently known packages and repeated use of
+either {\tt <TAB>} or the up/down arrows will scroll through known
+packages. Package entry is completed using the {\tt <ENTER>} key.
+
+If the title is omitted (via an empty {\sf ``Menu title''} field),
+then the menu entries are not presented as a submenu, but instead are
+unrolled directly into the submenu containing the package entry.
+
+Once created, a package entry can be edited by selecting it in the
+editor's menu panel and clicking the {\sf Edit} button. This opens an
+editing dialog that allows the user to adjust additional attributes,
+such as the title font properties, the maximum number of rows, and
+whether to employ scrolling, as described in more detail in Section
+\ref{submenuEntry:sec}.
+
+\subsubsection{Demo file}
+\label{demofileEntry:sec}
+
+For model menus, a ``demo file'' entry is a submenu containing all the
+models listed in a plain text file, using the format described in
+Section \ref{modelTextFile:sec}. Plain text files have the advantage
+of being more human-readable, and are easier to edit and comment out
+line.
+
+To add a demo file entry to the menu, click {\sf ``Add demo file''} in the edit
+panel. This opens an {\it add demo file} dialog,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/addDemofileDialog}
+\else
+\includegraphics[width=4.5in]{images/addDemofileDialog}
+\fi
+\end{center}
+%
+which allows the user to specify the file name and the menu title.  If
+the title is omitted (via an empty {\sf ``Menu title''} field), then
+the menu entries are not presented as a submenu, but instead are
+unrolled directly into the submenu containing the entry.
+
+Once created, a demo file entry can be edited by selecting it in the
+editor's menu panel and clicking the {\sf Edit} button. This opens an editing
+dialog that allows the user to adjust additional attributes, such as
+the title font properties, the maximum number of rows, and whether to
+employ scrolling, as described in more detail in Section
+\ref{submenuEntry:sec}.
+
+%% Ommited warning about overusing package
+%
+%\begin{sideblock}
+%{\bf Note:}\\
+%The {\tt package} element should be used sparingly for two main reasons:
+%\begin{enumerate}
+%\item Each element adds to the ArtiSynth start-up time.
+%\item Not all models are functional.
+%\end{enumerate}
+%The reason for the start-up delay is that to populate the menu, the parser 
+%has to search through the supplied package, create an instance of each class,
+%and test if it is a sub-class of {\tt base}.  The parser also has no way of 
+%detecting whether or not a model is functional, so all classes matching the
+%criteria are added.
+%\end{sideblock}
+
+%% Omitted discussion of compactness
+%
+%The models can be displayed in either a flat or hierarchical structure.  To
+%reduce the number of submenus, and to shorten some of the displayed text, a 
+%\quot{compactness} level is introduced.  Illustrative examples for the options
+%are provided in Figure \ref{fig:packagemenu}.
+%
+%\begin{figure}[!htb]
+%\centering
+%\iflatexml
+%\newcommand{\menuimage}[1]{\includegraphics{images/menu/#1}}
+%\else
+%\newcommand{\menuimage}[1]{\includegraphics[width=2.5in]{images/menu/#1}}
+%\fi
+%\setlength{\tabcolsep}{0pt}
+%\iflatexml
+%\begin{tabular}{ccc}
+%\else
+%\newcolumntype{M}{>{\centering\arraybackslash}m{\dimexpr.4\linewidth-2\tabcolsep}}
+%\begin{tabular}{cMM}
+%\fi
+%\hline
+%\hline
+%compact & flat & hierarchical \\
+%\hline
+%\iflatexml
+%0 & \menuimage{f0} & \menuimage{h0}\\
+%1 & \menuimage{f1} & \menuimage{h1}\\
+%2 & \menuimage{f2} & \menuimage{h2}\\
+%\else
+%0 & \menuimage{f0} & \menuimage{h0.eps}\\
+%1 & \menuimage{f1} & \menuimage{h1}\\
+%2 & \menuimage{f2} & \menuimage{h2}\\
+%\fi
+%\hline
+%\end{tabular}
+%\caption{View options for the XML element {\tt <package source="artisynth" base=%
+%"HexTongueDemo"/>}} %
+%\label{fig:packagemenu}
+%\end{figure}
+
+\subsubsection{Script}
+\label{scriptEntry:sec}
+
+For script menus, a script entry is used to select a specific script
+file; clicking on this entry type in the script menu causes this
+script file to be run.
+
+To add one or more script entries to the menu, click {\sf ``Add scripts''}
+in the edit panel. This opens an {\it add script} dialog,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/addScriptDialog}
+\else
+\includegraphics[width=4in]{images/addScriptDialog}
+\fi
+\end{center}
+%
+which allows the user to specify the script and (optional) arguments
+using the {\sf ``Script folder''}, {\sf ``Script file''}, and {\sf
+``Args''} fields in the same manner discussed in Section
+\ref{SelectingScriptFiles:sec}.  Multiple scripts may be selected in the
+{\sf ``Script file''} panel; if this is done, a separate entry will be
+created for each. The menu title can be set explicitly using the
+{\sf ``Menu title''} field; otherwise, the title will default to the
+script's file name.
+
+Once created, a script entry can be edited by selecting it in the
+editor's menu panel and clicking the {\sf Edit} button, which opens an
+editing dialog that also allows the user to adjust the title font
+properties.
+
+\subsubsection{Script folder}
+\label{scriptFolderEntry:sec}
+
+For script menus, a script folder entry is a submenu containing {\it
+all} the scripts found within a specified folder. The scripts are
+found by searching the folder for all files that end in {\tt .py} and
+{\tt .jy}, and which also contain the special first line
+%
+\begin{lstlisting}[]
+# ArtisynthScript: "scriptTitle"
+\end{lstlisting}
+where {\tt scriptTitle} is the desired menu title for the script.
+
+To add a script folder entry to the menu, click {\sf ``Add script folder''} in
+the edit panel. This opens an {\it add script folder} dialog,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/addScriptFolderDialog}
+\else
+\includegraphics[width=3.5in]{images/addScriptFolderDialog}
+\fi
+\end{center}
+%
+which allows the user to specify the script folder and menu title via
+the {\sf ``Script folder''} and {\sf ``Menu title''} fields.  If not
+explicitly specified, the title defaults to the name of the folder. If
+the title is omitted, by explicitly setting it to an empty string,
+then the menu entries are not presented as a submenu, but instead are
+unrolled directly into the submenu containing the script folder entry.
+
+Once created, a script folder entry can be edited by selecting it in the
+editor's menu panel and clicking the {\sf Edit} button. This opens an editing
+dialog that allows the user to adjust additional attributes, such as
+the title font properties, the maximum number of rows, and whether to
+employ scrolling, as described in more detail in Section
+\ref{submenuEntry:sec}.
+
+\subsubsection{Submenu}
+\label{submenuEntry:sec}
+
+A submenu entry is a generalized submenu that can contain an arbitrary
+list of other menu entries, and is used to create hierarchical menus.
+
+To add a submenu entry to the menu, 
+click {\sf ``Add submenu''} in the edit
+panel. This opens an {\it add submenu} dialog,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/addSubmenuDialog}
+\else
+\includegraphics[width=3in]{images/addSubmenuDialog}
+\fi
+\end{center}
+%
+which allows the user to specify the submenu's title. Once the submenu
+is created, new menu entries can be added to it by selecting the
+submenu in the editor's menu panel and then clicking the appropriate {\sf Add}
+buttons; the new entries will be placed at the end of the submenu.
+Alternatively, if the user selects a non-submenu entry within the
+submenu, and then clicks one of the {\sf Add} buttons, the new entry
+will be placed in the location indicated by the selection.
+
+Once created, a submenu entry can be edited by selecting it and
+clicking the {\sf Edit} button, which opens an editing dialog that
+allows the user to adjust additional attributes, including whether to
+support scrolling, the maximum numbers of rows in the menu, and the
+title font properties:
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/editSubmenuDialog}
+\else
+\includegraphics[width=3in]{images/editSubmenuDialog}
+\fi
+\end{center}
+%
+Scrolling can be useful for submenus with many entries: when the
+number of rows exceeds the specified maximum, then the menu is
+presented within a scrolling pane. Otherwise, if scrolling is not
+enabled, extra entries are accommodated by adding additional
+columns to the menu (Figure \ref{oversizedMenus:fig}).
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c c}
+\iflatexml
+\includegraphics[]{images/scrollingPane} &
+\includegraphics[]{images/extraMenuColumns}\\
+\else
+\includegraphics[height=2.5in]{images/scrollingPane}&
+\includegraphics[height=2.5in]{images/extraMenuColumns}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{When the number of menu entries exceeds the maximum
+number of rows, either a scrolling menu is used if {\sf scrolling}
+is enabled (left), or additional columns are added to the menu (right).}%
+\label{oversizedMenus:fig}
+\end{figure}
+
+Both the package, demo file and script folder entries (Sections
+\ref{packageEntry:sec}, \ref{demofileEntry:sec} and
+\ref{scriptFolderEntry:sec}) are also themselves submenus, and so the
+scrolling and maximum rows attributes can be set for these as well.
+
+\subsubsection{Label}
+\label{labelEntry:sec}
+
+A label entry is an inactive text element that cannot be selected
+in the menu. It can be used to label a group of entries. To help
+distinguish a label from an
+active menu item, the default font style is set to \quot{italic}.
+
+To add a label entry to the menu, click {\sf ``Add label''} in the edit
+panel. This opens an {\it add label} dialog,
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{images/addLabelDialog}
+\else
+\includegraphics[width=3in]{images/addLabelDialog}
+\fi
+\end{center}
+%
+in which the user enters the label title. After it has been created,
+the label can be edited by selecting it in the editor's menu panel and clicking
+{\sf Edit}, which opens an editing dialog that allows the user to also
+adjust the title font properties.
+
+\subsubsection{Separator}
+\label{separatorEntry:sec}
+
+A separator entry is a horizontal line that visually separates menu entries.  It 
+can help distinguish groups of related menu items.
+
+To add a separator entry to the menu, click {\sf ``Add separator''} in the edit
+panel. This will simply add a separator at the location indicated by
+the current selection; no dialog is needed.
+
+\subsection{Command line options}
+\label{commandLineOptions:sec}
+
+It is also possible to explicitly set the model menu using ArtiSynth
+command line arguments:
+
+\begin{description}
+
+\item[-modelMenu <xmlFileName>]\mbox{}
+
+Specifies the model menu using an XML file, the format for which is
+described in Section \ref{modelXMLFormat:sec}. When this is done, the
+{\sf Save} and {\sf Reload} operations described in Section
+\ref{modelMenuEditor:sec} are redirected to the specified file instead
+of the default configuration file.
+
+\item[-demoFile <fileName>]\mbox{}
+
+Specifies a basic menu from a simple list of models provided by {\tt
+<fileName>}, using the format described in Section
+\ref{modelTextFile:sec}. When this option is used, the model menu
+editor is not available and the resulting menu cannot be edited.
+
+\end{description}
+%\subsubsection{Separator}
+
+\subsection{Demo file text format}
+\label{modelTextFile:sec}
+
+A plain text file format is used to supply a list of model menu items,
+for either demo file menu entries (Section \ref{demofileEntry:sec}),
+or use with the {\tt -demoFile} command line option (Section
+\ref{commandLineOptions:sec}). In this format, entries are listed as
+title-class pairs, separated by whitespace.  Lines beginning with a
+hash (\#) are ignored.  Titles containing spaces must be surrounded by
+quotation marks.  The following is an example:
+
+\begin{lstlisting}[]
+# Inverse Demos
+HydrostatInvDemo artisynth.models.inversedemos.HydrostatInvDemo
+"Tongue tracking" artisynth.models.inversedemos.TongueTip   
+\end{lstlisting}
+
+\subsection{XML Menu Format}
+\label{modelXMLFormat:sec}
+
+Model and script menus are stored using a custom XML file format,
+which is documented here in case users which to create their own files
+from scratch. The default files specifying the model and script menus
+are {\tt modelMenu.xml} and {\tt scriptMenu.xml},
+located in the {\tt settings} subfolder of the configuration folder
+(Section \ref{UserConfig:sec}). 
+
+XML schemas are provided that describe and enforce the required
+document structure. The schemas for the model and script menus are located,
+respectively, in
+%
+\begin{verbatim}
+src/artisynth/core/modelmenu/modelmenu.xsd
+src/artisynth/core/modelmenu/scriptmenu.xsd
+\end{verbatim}
+%
+relative to the ArtiSynth installation folder. The following XML
+elements are defined:
+
+\medskip
+\begin{tabular}{|ll|}
+\hline
+\multicolumn{2}{|l|}{For model menu files:}\\
+\hline
+{\tt ModelMenu:} & the root element of the document\\
+{\tt model:} & specifies a specific model\\
+{\tt package:} & finds and lists all models in a specific Java package\\
+{\tt demoFile:} & specifies a submenu of models listed in a text file\\
+\hline
+\multicolumn{2}{|l|}{For script menu files:}\\
+\hline
+{\tt ScriptMenu:} & the root element of the document\\
+{\tt script:} & specifies a specific script file\\
+{\tt scriptFolder:} & finds and lists all scripts in a specific folder\\
+\hline
+\multicolumn{2}{|l|}{For either file:}\\
+\hline
+{\tt menu:} & creates a submenu\\
+{\tt label:} & inserts an inactive text entry\\
+{\tt separator:} & inserts a horizontal line that separates entries\\
+{\tt hidden: } & convenience element for hiding menu entries (i.e. commenting
+   them out)\\
+\hline
+\end{tabular}
+\medskip
+
+Detailed descriptions of these element types and their supported
+attributes are provided in the following sections.  Attributes of the
+{\tt model}, {\tt package}, {\tt demoFile}, {\tt script}, {\tt
+scriptMenu}, {\tt submenu}, {\tt demoFile}, {\tt label}, and {\tt
+separator} types correspond to attributes of the menu entry types
+described in Section \ref{menuEntryTypes:sec}.  Attributes marked by
+an asterisk are required in the element definition.
+
+\subsubsection{The root elements}
+
+The root elements {\tt ModelMenu} and {\tt ScriptMenu} 
+encapsulate the entire description for either a model or script
+menu.  They must make 
+reference to the schema for validation purposes.  The following code snippet
+can be used as a template for creating a model menu file,
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+<?xml version="1.0" encoding="UTF-8"?>
+<ModelMenu xmlns="http://www.artisynth.org"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation=
+     "http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd">
+   ... contents of menu ...
+</ModelMenu>
+\end{lstlisting}
+while the next snippet can be used for script menus:
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+<?xml version="1.0" encoding="UTF-8"?>
+<ScriptMenu xmlns="http://www.artisynth.org"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation=
+     "http://www.artisynth.org src/artisynth/core/modelmenu/scriptmenu.xsd">
+   ... contents of menu ...
+</ScriptMenu>
+\end{lstlisting}
+
+%\begin{sideblock}
+%{\bf Note:}\\
+%The second value of {\tt schemaLocation} is the location of the schema file, 
+%which may need to be modified depending on its path relative to the current 
+%XML file.
+%\end{sideblock}
+
+\subsubsection{Model element}
+
+Describes a model menu entry (Section \ref{modelEntry:sec}), with the
+{\tt class} attribute specifying the model class, which must be a
+public subclass of \javaclass[artisynth.core.workspace]{RootModel}.
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt class*:} & class to load when the entry is selected\\
+   {\tt buildArgs:} & 
+command-line style arguments to be passed to the model's {\tt build()} method\\
+   {\tt title:} & title text for menu entry (default: the class name)\\
+   {\tt fontname:} & font family for the title text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:} & font size
+\end{tabular}
+
+The following snippet creates a menu entry titled "Muscle Arm", which will
+launch the model {\tt FemMuscleArm}.
+\begin{lstlisting}[language=XMLMenu]
+   <model class="artisynth.models.femdemos.FemMuscleArm" title="Muscle Arm" />
+\end{lstlisting}
+
+\subsubsection{Package element}
+
+Describes a package entry (Section \ref{packageEntry:sec}), with
+the {\tt name} attribute specifying the Java package containing the
+model classes.
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt name*:} & Name of the Java package in which to search for models\\
+   {\tt title:} &
+title text for menu entry; if omitted, entries are unrolled into parent menu\\
+   {\tt view:} & display format \{\quot{flat}, \quot{hierarchicial}\} (default:
+      \quot{hierarchical})\\
+   {\tt scrolling:} & enables a scrolling menu (default: false)\\
+   {\tt maxRows:} & maximum number of rows in the submenu (default: 20)\\
+   {\tt compact:} & level of compactness \{0, 1, 2\} (default: 0)\\
+\iflatexml
+    & \begin{tabular}{ll}
+\else
+    & \begin{tabular}{lp{5in}}
+\fi
+         0: & A new submenu is created for each subpackage (hierarchical),
+             displayed text refers to full package.class name relative
+             to {\tt source} (flat)\\
+         1: & subpackages containing a single entity are merged into the
+             parent menu (hierarchical), displayed text refers to unique
+             part of the package.class name only (flat)\\
+         2: & subpackages containing a single entity are merged into the
+             parent menu (hierarchical) and displayed text refers to the
+             class name only (hierarchical/flat)
+      \end{tabular}   \\
+   {\tt fontname:} & font family for the title text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:}: & font size
+\end{tabular}
+\medskip
+
+If the {\tt title} attribute is omitted, then the submenu contents
+are unrolled directly into the parent menu.
+
+If font information is provided, it is applied to all entries.  The
+following snippet creates a submenu containing every instance of {\tt
+RootModel} found in the package {\tt artisynth.demos.mech}, with a
+small font specified for all entries to get the menu to fit easily on
+the screen:
+\begin{lstlisting}[language=XMLMenu]
+   <package title="mech" name="artisynth.demos.mech" fontsize="5"/>
+\end{lstlisting}
+
+\subsubsection{DemoFile element}
+
+Describes a demo file entry (Section \ref{demofileEntry:sec}), with
+the {\tt file} attribute specifying the path to the file listing the
+models.  If this path is relative and not absolute, the parser tries
+to locate the file with respect to (in order) (a) the folder
+containing the XML file being read, (b) the user's home folder and (c)
+the ArtiSynth installation folder.
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt file*:} & file listing the model entries\\
+   {\tt title:} & 
+title text for menu entry; if omitted, entries are unrolled into parent menu\\
+   {\tt scrolling:} & enables a scrolling menu (default: false)\\
+   {\tt maxRows:} & maximum number of rows in the submenu (default: 20)\\
+   {\tt fontname:} & font family for the title text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize}: & font size
+\end{tabular}
+\medskip
+
+If the {\tt title} attribute is omitted, then the submenu contents are
+unrolled directly into the parent menu. If font information is
+provided, it is applied to all model entries that are created.
+
+
+The following snippet loads all models from the original default
+ArtiSynth {\rm Models} menu.
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+   <demoFile title="Demo models" file="demoModels.txt" />
+\end{lstlisting}
+
+\subsubsection{Script element}
+
+Describes a script menu entry (Section \ref{scriptEntry:sec}), with
+the {\tt file} attribute specifying the path to the script file.  If
+this path is relative and not absolute, the parser tries to locate the
+file with respect to (in order) (a) the user's home folder
+and (b) the ArtiSynth installation folder.
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt file*:} & file path for the script\\
+   {\tt args:} & 
+command-line style arguments to be passed to the script\\
+   {\tt title:} & title text for menu entry (default: the base file name)\\
+   {\tt fontname:} & font family for the title text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:} & font size
+\end{tabular}
+
+The following snippet creates a script entry titled "run models", which will
+run the script {\tt /home/lloyd/modelrunner.py}:
+\begin{lstlisting}[language=XMLMenu]
+   <script file="/home/lloyd/modelrunner.py" title="run models" />
+\end{lstlisting}
+
+\subsubsection{ScriptFolder element}
+
+Describes a submenu entry containing all scripts located automatically
+within a specific folder, as detailed in Section
+\ref{scriptFolderEntry:sec}, with the {\tt file} attribute specifying
+the path to the folder.  If this path is relative and not
+absolute, the parser tries to locate the folder with respect to (in
+order) (a) the user's home folder and (b) the ArtiSynth installation
+folder.
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt file*:} & path name of the folder containing the scripts\\
+   {\tt title:} &
+title text for menu entry; if omitted, entries are unrolled into parent menu\\
+   {\tt scrolling:} & enables a scrolling menu (default: false)\\
+   {\tt maxRows:} & maximum number of rows in the submenu (default: 20)\\
+   {\tt fontname:} & font family for the title text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:}: & font size
+\end{tabular}
+\medskip
+
+If the {\tt title} attribute is omitted, then the submenu contents are
+unrolled directly into the parent menu. If font information is
+provided, it is applied to all entries. 
+
+The following snippet creates a script folder entry titled "Demo
+scripts", based on all the script files in the folder {\tt
+src/artisynth/demos/scripts}:
+\begin{lstlisting}[language=XMLMenu]
+   <scriptFolder file="src/artisynth/demos/scripts" title="Demo scripts" />
+\end{lstlisting}
+
+\subsubsection{Submenu element}
+
+Describes a submenu menu entry (Section \ref{submenuEntry:sec}).
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt title*:} & title text for menu entry\\
+   {\tt scrolling:} & enables a scrolling menu (default: false)\\
+   {\tt maxRows:} & maximum number of rows in the submenu (default: 20)\\
+   {\tt fontname:} & font family for the title text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:} & font size
+\end{tabular}
+\medskip
+
+The following code snippet creates a submenu "FEM Models", which
+in turn lists three specific FEM models:
+\begin{lstlisting}[language=XMLMenu]
+<menu title="FEM Models">
+   <model class="artisynth.demos.fem.ArticulatedFem" title="ArticulatedFem"/>
+   <model class="artisynth.demos.fem.AttachDemo" title="AttachDemo"/>
+   <model class="artisynth.demos.fem.BigBeam3d" title="BigBeam3d"/>
+</menu>
+\end{lstlisting}
+
+\subsubsection{Label element}
+
+Describes a label entry (Section \ref{labelEntry:sec}).
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt title*:} & title text for the label\\
+   {\tt fontname:} & font family for the title text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:} & font size
+\end{tabular}
+\medskip
+
+In the following code snippet, a label is added before the tongue tracking 
+models.
+\begin{lstlisting}[language=XMLMenu]
+   <label title="Tongue Tracking Models" fontstyle="italic" />
+   <model class="artisynth.models.tracker.JawDynamicTongue" />
+   <model class="artisynth.models.tracker.JawKinematicTongue" />
+\end{lstlisting}
+
+\subsubsection{Separator element}
+
+Describes a separator entry (Section \ref{separatorEntry:sec}).  The
+{\tt separator} element has no attributes.
+
+
+The following snippet adds a separator line between models
+found in the {\tt artisynth.models.femdemos} package and those in 
+{\tt artisynth.models.inversedemos}.
+\begin{lstlisting}[language=XMLMenu]
+   <package title="femdemos" name="artisynth.models.femdemos" />
+   <separator/>
+   <package title="inversedemos" name="artisynth.models.inversedemos" />
+\end{lstlisting}
+
+\subsubsection{Hiding elements}
+
+It is often convenient to have the ability to \quot{comment-out} lines in any
+kind of coding system: the data remains in the file, but has no effect when 
+processed.  The typical method for commenting in XML is to use the 
+{\tt <!-- -->} tags.  Unfortunately, this can be messy, and comments cannot
+contain other comments.  For this reason, a special {\tt hidden} element was
+created. Any entries within a {\tt hidden} element are ignored by the parser.
+
+\begin{lstlisting}[language=XMLMenu,escapechar=\#]
+   <!-- temporarily hide FEM demos -->
+   <hidden>
+     <!-- All FEM demos -->
+     <package title="FEM demos" name="artisynth.models.femdemos" view="flat"/>
+   <hidden/>
+\end{lstlisting}
 
 \section{Making Movies}
 
-ArtiSynth includes a panel to aid in capturing simulations as
-movies. This panel is opened from the main viewer window by navigating
-through {\sf View > Show movie panel}. When capturing a movie, pictures are
-saved to {\tt ARTISYNTH\_HOME/tmp} periodically as frameXXXXX.ext, where
-XXXXX represents the sequential number of the frame (with each X
-representing a digit), and the .ext represents the file extension
-(determined by the {\sf Frame File} selection in the encoder panel). Because
-the frame files aren't unique, recordings will overwrite frames from
-prior movies, and if {\sf Remove temporary files} is selected, only the final
-products are left. When the recording is stopped, these pictures are then
-compressed into a movie file using either mencoder, or an internal
-algorithm. The resulting movie is saved to the {\tt \$ARTISYNTH\_HOME/tmp} with
-the file name specified at the bottom of the recorder panel.
+ArtiSynth includes the ability to make movies from simulations.  This
+process is controlled through a {\it movie panel} (Figure
+\ref{moviePanel:fig}) that can be opened from the main application menu
+by navigating through {\sf View > Show movie panel}.
 
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/moviePanel}
 \else
-\includegraphics[width=0.40\textwidth]{images/moviePanel}
+\includegraphics[width=4in]{images/moviePanel}
 \fi
 \end{center}
-\caption{Movie options panel (recorder tab).}%
-\label{movieOptionsRecorderFig}
+\caption{Movie panel, showing the {\sf Recorder} tab and the default settings.}%
+\label{moviePanel:fig}
 \end{figure}
 
-\begin{figure}
+A simple movie creation workflow, using the default
+settings, is the following:
+
+\begin{enumerate}
+
+\item Open the movie panel.
+
+\item Start the movie capture by clicking the {\sf Start} button at
+the bottom of the movie panel. By default, this will also start the
+simulation, whose progress can be examined in the main ArtiSynth
+viewer. Because of the movie capture overhead, the simulation will
+usually run more slowly than usual.
+
+\item When the desired simulation time is reached, stop the movie
+capture and create the movie by clicking the the {\sf Stop} button.
+
+\end{enumerate}
+
+By default, this will create a JPEG movie with a frame rate of 50 Hz,
+packaged in a QuickTime {\tt .mov} file with a title derived from the
+model name, and place it in the {\it movie folder}, the default
+location for which is the {\tt movies} subfolder of the configuration
+folder (Section \ref{UserConfig:sec}).
+
+More detailed control of the movie making process, including the frame
+rate and method used to create the movie, can be obtained by setting
+options in the movie panel's {\sf Recorder}, {\sf Encoder}, and {\sf
+Advanced} tabs, as described below.
+
+When capturing a movie, individual images for each frame are first
+saved in the movie folder and then used to create the movie itself.
+Each image file is named {\tt frameXXXXX.zzz}, where {\tt XXXXX} is the sequential
+frame number, each X is a digit, and {\tt .zzz} is the image format
+extension (usually {\tt .png} or {\tt .jpg}).  If {\sf ``Remove
+temporary files''} is selected in the {\sf Recorder} tab of the movie
+panel, the image files will be removed once the movie is made. If the
+files are not removed, they will be overwritten by any subsequent
+movie creation.
+
+Text messages describing the movie making process will be displayed in
+the {\sf Messages} tab (Figure \ref{moviePanelMessages:fig}), and a
+popup message will indicate its completion.  If an error occurs (which
+may happen if a non-default movie making method is selected that is
+not supported on the ArtiSynth host computer), information about it
+will be displayed in the {\sf Messages} tab.
+
+\begin{figure}[h]
 \begin{center}
 \iflatexml
-\includegraphics[]{images/moviePanel2}
+\includegraphics[]{images/moviePanelMessages}
 \else
-\includegraphics[width=0.40\textwidth]{images/moviePanel2}
+\includegraphics[width=4in]{images/moviePanelMessages}
 \fi
 \end{center}
-\caption{Movie options panel (encoder tab).}%
-\label{movieOptionsEncoderFig}
+\caption{{\sf Messages} tab of the movie panel.}%
+\label{moviePanelMessages:fig}
 \end{figure}
 
-\subsection{Region to capture options}
+\subsection{Recorder tab}
 
-These options define the area of the desktop recorded. The default
-capture area is the main viewer of ArtiSynth. {\sf Viewer} sets the capture
-area exclusively and strictly to the main viewer, and excludes the toolbar
-and window. This is useful for recording model demonstrations. The
-{\sf Window} option includes the main viewer and the toolbar and window
-surrounding it. The {\sf Custom} option allows the user to manually set the 
-coordinates, width and height of the region to capture through the given
-fields.  It also displays the capture frame, which can be stretched and 
-moved to adjust what is recorded.
+The {\sf Recorder} tab (Figure \ref{moviePanel:fig}) controls which image
+region to capture along with various recording and other options. 
+Options within the tab are organized into three groups:
 
-When the {\sf Viewer} mode is selected, there are additional options
-available in the {\sf Output Size} section.  This allows you to create
-higher (or lower) resolution videos, independent of the viewer's 
-visible resolution.  The {\sf \# samples} specifies the size of the
+\subsubsection{Region to capture}
+
+These options define the movie capture region, as
+specified by three buttons: {\sf Viewer}, {\sf Window}, 
+and {\sf Custom}. {\sf Viewer}, which is the default,
+sets the capture area to be the main ArtiSynth viewer window,
+{\it excluding} the surrounding menus and toolbars.
+This is useful for recording model demonstrations. The
+{\sf Window} option set the capture area to be
+the main application window, including the main viewer and the menus
+and toolbars surrounding it.
+The {\sf Custom} option allows the user to manually set the 
+capture area to be any region on the desktop, and is useful
+for making movies that include the timeline, control panels,
+or other windows that are separate from the main application window.
+
+When {\sf Viewer} mode is selected, additional options
+become enabled in the {\sf Output Size} section
+of the {\sf Encoder} tabs (Section \ref{EncoderTab:sec})
+that allow you to specify an image resolution independent
+of the viewer's size. The {\sf \# samples} specifies the size of the
 multi-sample buffer, which is used for anti-aliasing.  This is the
 only mode that continues to work correctly when a screen-saver
 is activated.  
 
-\subsection{Record options}
+When {\sf Custom} mode is selected, a separate {\it capture} window appears
+that can be sized and located anywhere on the desktop, with the
+a red outline indicating the region that will appear in the movie.
+The visibility of this window can be controlled by the
+{\sf ``Show capture frame''} toggle button. The capture window
+emulates transparency by displaying an image of the desktop beneath
+it; however, this image is fixed and is only refreshed when the
+capture window is made visible, or when one executes 
+a double click with the left mouse button inside it.
 
-These options determine how the movie recorder works with ArtiSynth,
+Four fields, labeled {\sf Width}, {\sf Height}, and {\sf Left}
+and {\sf Top}, display the current dimensions and location of 
+the capture region. For {\sf Viewer} and {\sf Window} modes,
+the {\sf Width} and {\sf Height} fields are editable
+and can be used to explicitly set the dimension of the
+viewer or main application window.
+For {\sf Custom} mode, all four fields are editable
+and can be used to explicitly set the dimension and location
+of the capture region.
+
+\subsubsection{Record options}
+
+These determine how the movie recorder works with ArtiSynth,
 and how it deals with the frame files.
 
 \begin{description}
@@ -3237,104 +5626,171 @@ to click on the {\sf Frame} button to capture the next frame.
 
 \item[Remove temporary files]\mbox{}
 
-When selected, the temporary frames are deleted after the movie is made.
+When selected, the temporary frame images are deleted after the movie is made.
 
 \item[Save first image]\mbox{}
 
-This saves the first frame taken. These frames are useful for
-representing the movie in websites.
-
-\item[Show capture frame]\mbox{}
-
-Opens a transparent window that reveals what will be captured. The window
-is stretchable and movable when the capture option is set to {\sf Custom} and
-provides a method to graphically modify the capture area's X coordinate,
-Y coordinate, width, and height.
+This saves the first frame taken, which can be useful for representing
+the movie in websites.
 
 \end{description}
 
-\subsection{Output options}
+\subsubsection{Other options}
 
-These options control the frequency of the frames and how they are
-combined into a movie.
+Two other options fields are provided near the bottom
+of the {\sf Recorder} tab:
+
+\begin{description}
+
+\item[Movie name]\mbox{}
+
+Specifies the base name of the movie output file; is set to the model
+name by default.
+
+\item[Stop time]\mbox{}
+
+When set to a positive value, indicates an explicit simulation time at
+which the movie should be stopped. The default value of this field is
+blank, indicating no specified stop time.
+
+\end{description}
+
+\subsection{Encoder tab}
+\label{EncoderTab:sec}
+
+The {\sf Encoder} tab (Figure \ref{moviePanelEncoder:fig}) controls encoder
+options and the output size.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/moviePanelEncoder}
+\else
+\includegraphics[width=4in]{images/moviePanelEncoder}
+\fi
+\end{center}
+\caption{{\sf Encoder} tab of the movie panel.}%
+\label{moviePanelEncoder:fig}
+\end{figure}
+
+\subsubsection{Encoder options}
+
+These describe the frame rate, relative speed, and the encoding method
+used to make the movie.
 
 \begin{description}
 
 \item[Frame rate]\mbox{}
 
-This is the number of frames recorded per second of movie.
+This is the number of frames recorded per second of movie. It is
+recommended to set this to be compatible with the ArtiSynth simulation
+step size, such that if $r$ is the frame rate and $h$ is the step
+size, $1/r = n h$ where $n$ is a positive integer. The default
+value of 50 is compatible with typical step sizes such as $h = 0.01$
+and $0.001$.
 
 \item[Speed]\mbox{}
 
 This is the ratio of the movie's speed to reality's speed. While the
-demo is recording, the calculations may slow down the simulation, but
+movie is recording, the calculations may slow down the simulation, but
 the movie will not be affected.
 
-\begin{sideblock}
-{\bf Important:}\\
-If the {\sf Frame Rate} or {\sf Speed} is set so that the
-increments between the frames is smaller than the calculation steps
-used in the, then ArtiSynth will decrease the calculation increments
-in order to capture the frames, slowing the simulation.
-\end{sideblock}
+\item[Frame file]\mbox{}
 
-\item[Frame File]\mbox{}
-
-This is the format the frames will be stored in. If the internal
-method (see below) is used, then the frames must be stored as jpegs.
+This is the format the frame images will be stored in. If the internal
+method (see below) is used, then the frames must be stored as JPEG
+files.
 
 \item[Method]\mbox{}
 
-This is the algorithm used to compress the temporary pictures into a movie.
+This describes the software used to create the movie from the captured
+frame images. Many of these methods require supporting software to be
+installed on the ArtiSynth host computer and runnable from a command
+line context.
 
-\begin{itemize}
+\begin{description}
 
-\item {\sf internal} Use ArtiSynth's built in algorithm to compress the
-pictures into an animated jpeg.
+\item[INTERNAL]\mbox{}
 
-\item {\sf mencoder} Use Mencoder to compress pictures into a divx movie
-(can be played on MediaPlayer with a plugin).
+Use Java's built in support to compress the
+pictures into an animated JPEG.
 
-\item {\sf mencoder\_osx} This option is specific for use on MacOS.
+\item[FFMPEG]\mbox{}
 
-\item {\sf ffmpeg} Use the FFMPEG command-line utility to generate
-the movie.
+Use the ffmpeg command-line utility to generate the movie.  Requires
+ffmpeg to be installed and runnable from the command line.
 
-\item {\sf animated\_gif} Uses an algorithm built into ArtiSynth to
+\item[MENCODER]\mbox{}
+
+Use the mencoder command-line utility to generate the movie.  Requires
+mencoder to be installed and runnable from the command line.
+
+\item[ANIMATED\_GIF]\mbox{} 
+
+Uses an algorithm built into ArtiSynth to
 generate an animated gif.  By hitting the {\sf Customize Method}
-button, you can set the number of times to loop (-1 for infinity)
-and the frame rate (defaults to capture frame rate).
+button, you can set the number of times to loop (-1 for infinity) and
+the frame rate (defaults to capture frame rate).
 
-\item {\sf avconv} Uses the avconv utility that has replaced
-FFMPEG on some linux systems to generate the movie.
+\item[AVCONV]\mbox{}
 
-\end{itemize}
+Uses the avconv utility that has replaced FFMPEG on some linux systems
+to generate the movie.  Requires avconv to be installed and runnable
+from the command line.
+
+\item[CUSTOM]\mbox{}
+
+Uses a custom command line utility to generate the movie. Note: the
+default command line specification for this option is blank, and so
+before using it, it must be initialized using the {\sf Customize
+Method} button as described below.
 
 \end{description}
 
-The customize button right of the method box opens a window where the
-specific command calling mencoder can be edited. The variables
-identified with the '\$' are the input parameters for the mencoder,
-and are based on information provided to the movie panel.
+\end{description}
+
+\subsubsection{Customizing the encoder command}
+
+The {\sf FFMPEG}, {\sf MENCODER}, {\sf AVCONV} and {\sf CUSTOM}
+methods described above all work by calling their respective encoders
+as a separate process, described using a command line specification,
+with the process's working directory set to the movie folder. Default
+command line specifications are supplied for {\sf FFMPEG}, {\sf
+MENCODER}, {\sf AVCONV}, while the one for {\sf CUSTOM} is blank and
+must be supplied by the user.
+
+Clicking the {\sf ``Customize Method''} button immediately below the
+{\sf Method} field opens a text dialog that allows the command line
+specification to be edited. Users may alter the command in any way
+desired, including modifying options or changing the name of the
+command itself. Several special variables beginning with {\tt \$} are
+used to supply information from the movie panel; before the command is
+executed, these are expanded to their current values:
 
 \begin{description}
 
 \item[\$FMT]\mbox{}
 
-Controls the format of the frames. Modifying this is the same as
-changing {\tt Frame File}.
+Format of the frame image files. Expands to the value
+in the {\sf Frame file} field of the {\sf Encoder} tab.
 
 \item[\$OUT]\mbox{}
  
-The name of the output file. Modifying this is the same as
-changing the {\tt name} field.
+Name of the output file. Expands to the value of the {\sf Movie
+name} field in the {\sf Recorder} tab.
 
 \item[\$FPS]\mbox{}
 
-Determines the frame rate mencoder uses when it compiles the
-movie. By default, this is the same as the {\tt Frame Rate} option.
+Frame rate. Expands to the value in the {\sf Frame rate} field of the
+{\sf Encoder} tab.
 
 \end{description}
+
+\begin{sideblock}
+The default movie making method, along with any method customizations,
+can be saved permanently in the user's preferences. See Section
+\ref{MoviePreferences:sec} for details.
+\end{sideblock}
 
 \subsection{Output size options}
 
@@ -3344,7 +5800,7 @@ to be magnified.
 
 \begin{description}
 
-\item[Same to original size]\mbox{}
+\item[Same as original]\mbox{}
 
 The output video is created at the original size.
 
@@ -3371,20 +5827,78 @@ applies in {\sf Viewer} mode, and is used to perform anti-aliasing.
 the viewer correctly in {\sf Viewer} mode, then it is likely your
 graphics card does not support multi-sample buffers.  On machines 
 with multiple graphics cards (e.g. laptops with both discrete and
-integrated graphics), make sure the java process is set to use
+integrated graphics), make sure the Java process is set to use
 the discrete card.  Otherwise, set {\sf \# samples = 1} to disable
 the multi-sample buffer.
 \end{sideblock}
 
 \end{description}
 
+\subsection{Advanced tab}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/moviePanelAdvanced}
+\else
+\includegraphics[width=4in]{images/moviePanelAdvanced}
+\fi
+\end{center}
+\caption{{\sf Advanced} tab of the movie panel.}%
+\label{moviePanelAdvanced:fig}
+\end{figure}
+
+The {\sf Advanced} tab (Figure \ref{moviePanelAdvanced:fig}) presently
+provides two options:
+
+\begin{enumerate}
+
+\item A {\sf ``Movie folder''} field which allows the movie folder to
+be customized. This folder can also be saved permanently in the user's
+preferences, as described in Section \ref{MoviePreferences:sec}.
+
+\item A {\sf ``Movie from waypoints''} button which creates a movie
+from the model's waypoint data. To work correctly, the model must have
+valid waypoints defined at regular intervals corresponding to the
+frame rate specified in the {\sf Encoder} tab. The viewer image of the
+model at each of these waypoints is used to generate the frame image
+files from which the movie is then created. This enables a movie
+to be created from waypoint data without having to run a simulation.
+
+\end{enumerate}
+
+\subsection{Saving movie preferences}
+\label{MoviePreferences:sec}
+
+Some of the movie settings described above can be saved permanently in
+the user's preferences (Section \ref{Preferences:sec}). To do this,
+choose {\sf Preferences} from the application {\sf Settings} menu and
+open the {\sf Movies} panel.
+
+Preferences that can be currently saved include:
+
+\begin{itemize}
+
+\item Frame rate
+
+\item Movie method
+
+\item Movie method customization
+
+\item Movie folder
+	
+\end{itemize}
+
+To specify a method customization, select the desired method and then
+click the {\sf``Customize Method''} button.
+
 \section{Control Panels}
 
 Control panels are essentially custom-built property panels that are
 attached to the root model and let the user interactively set or
-adjust various properties while the simulation is in progress.
-Most of the panels that appear with the various ArtiSynth demos
-are in fact control panels specially created for the demo in question.
+adjust various properties while the simulation is in progress.  Most
+of the panels that appear with the various ArtiSynth demos are in fact
+control panels specially created for the demo in question.
 
 The properties controlled by a control panel do not need to come from
 the same object; instead, they can come from a variety of objects.
@@ -3459,40 +5973,69 @@ background is used.
 
 \subsubsection{Composite property widgets}
 
-A \javaclass[maspack.properties]{CompositeProperty} is a Property which contains
-sub-properties. If a composite property is selected, the control panel
-will create a {\it composite property widget}, three of which are shown in
-Figure \ref{compositePropWidgetsFig}.
+A \javaclass[maspack.properties]{CompositeProperty} is a Property
+which contains sub-properties (see the ``Composite Properties''
+section of the \artisynthManual{maspack}{Maspack Reference Manual}).
 
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/compositePropWidgets}
 \else
-\includegraphics[width=0.45\textwidth]{images/compositePropWidgets}
+\includegraphics[width=0.55\textwidth]{images/compositePropWidgets}
 \fi
 \end{center}
 \caption{Composite property widgets.}%
 \label{compositePropWidgetsFig}
 \end{figure}
 
-Clicking the {\sf set} button of a composite property widget will create
-another panel presenting all the sub-properties. The composite
-property widget is disabled until this panel is closed.
+If a composite property is selected, the control panel will create a
+{\it composite property widget}, the exact form of which depends on
+the composite property. Figure
+\ref{compositePropWidgetsFig} shows a control panel containing
+four composite property widgets for the properties {\sf baseMaterial},
+{\sf renderPropsA}, {\sf renderPropsB}, and {\sf springMaterial}.
 
-In some instances, a composite property can be set to {\tt null}.  In such
-cases, the widget will provide an additional component, which
+The default composite property widget appears as a single set button,
+labeled as {\sf ''set ...''}, and is illustrated by the widget for
+{\sf baseMaterial} in Figure \ref{compositePropWidgetsFig}. Clicking
+the set button opens another property panel that allows the
+subproperties of the composite property to be set.
 
-\begin{itemize}
+If the composite property is allowed to have a {\tt null} value, then
+this is controlled by an additional {\it null button} that precedes
+the set button. If the current property value is {\tt null}, then the
+null button will display {\sf null} (as illustrated by the widget for
+{\tt renderPropsA} in Figure \ref{compositePropWidgetsFig}),
+and clicking the set button will
+create a new composite property instance that will replace the null
+value.
+Otherwise, if the current property
+value is non-{\tt null}, then the null button will display {\sf clear}
+(as illustrated by the widget for
+{\tt renderPropsB} in Figure \ref{compositePropWidgetsFig}),
+and hitting it will set the current property value to null.
 
-\item if the current property value is {\bf not} {\tt null}, will be a 
-{\sf clear} button which sets the value to {\tt null} 
-(second widget, <Figure \ref{compositePropWidgetsFig}).
-
-\item if the current property value {\bf is} {\tt null}, will be a display label
-indicating this fact (third widget, <Figure \ref{compositePropWidgetsFig}).
-
-\end{itemize}
+Finally, if the composite property has subclasses, and the types of
+these are exported by the static method
+\begin{lstlisting}[]
+   public static Class<?>[] getSubClasses();
+\end{lstlisting}
+in the property's class definition, then the composite property widget
+takes the form of a {\it composite property panel}, which instead of
+using a set button, expands all the subproperties inline within a
+subpanel of the control panel, together with a combination box that
+allows different subclass instances to be set. This is illustrated for
+the property {\sf springMaterial} in Figure
+\ref{compositePropWidgetsFig}, where the composite property is an
+\javaclass[artisynth.core.materials]{AxialMaterial}, which has a number
+of subclasses, including
+\javaclass[artisynth.core.materials]{LinearAxialMaterial} which is
+currently selected in the figure. Different subclass instances may
+have different subproperties, and the subpanel is updated to reflect
+these when the subclass is changed. In order to help the control panel
+save space, the subpanel can also be expanded or collapsed using a
+{\sf more/less} button at its bottom.
 
 \subsubsection{Widgets for sub-properties}
 
@@ -3520,11 +6063,17 @@ the selection of the sub-properties.
 
 \begin{figure}
 \begin{center}
+\renewcommand{\arraystretch}{2}%
+\begin{tabular}{c}
 \iflatexml
-\includegraphics[]{images/selectingRenderVisible}
+\includegraphics[]{images/widgetDialogA}\\
+\includegraphics[]{images/widgetDialogB}
 \else
-\includegraphics[width=0.66\textwidth]{images/selectingRenderVisible}
+\includegraphics[width=0.7\textwidth]{images/widgetDialogA}\\
+\includegraphics[width=0.7\textwidth]{images/widgetDialogB}
 \fi
+\end{tabular}
+\renewcommand{\arraystretch}{1}%
 \end{center}
 \caption{Selecting property renderProps (top), then one of it's 
 subproperties (bottom).}%
@@ -3661,6 +6210,7 @@ by expanding the current selection to include all such additional
 components.
 
 \subsubsection{Undo}
+\label{undo:sec}
 
 Many of the operations described here are {\it undoable}, by choosing
 the {\sf Undo} option from the {\sf Edit} menu. The menu option will
@@ -3768,7 +6318,7 @@ the {\sf up arrow} of the selection display (Section \ref{selectionDisplaySec}).
 \subsubsection{Adding finite element models}
 
 To add a \javaclass[artisynth.core.femmodels]{FemModel} to a MechModel,
-select the MechModel and choose {\sf "Add FemModel ..."} in the context
+select the MechModel and choose {\sf ``Add FemModel ...''} in the context
 menu.  This will open the editing panel shown in Figure \ref{addFemModelPanelFig},
 which allows the user to provide information about the model's
 properties and geometry.
@@ -3842,7 +6392,7 @@ button which closes the panel without adding a FemModel.
 \subsubsection{Adding rigid bodies}
 
 To add a \javaclass[artisynth.core.mechmodels]{RigidBody} to a MechModel,
-select the MechModel and choose {\sf "Add RigidBody ..."} in the context menu to
+select the MechModel and choose {\sf ``Add RigidBody ...''} in the context menu to
 open an editing panel for rigid bodies, as shown in 
 Figure \ref{addRigidBodyPanelFig}.
 
@@ -3906,7 +6456,7 @@ springs or other components.
 
 To add one or more frame markers to the rigid bodies in a MechModel,
 you can select either the MechModel, or one of its rigid
-bodies, and then choose {\sf "Add FrameMarkers ..."} in the context
+bodies, and then choose {\sf ``Add FrameMarkers ...''} in the context
 menu. This will open a FrameMarker editing panel, as shown in
 Figure \ref{addFrameMarkersPanelFig}. While this panel is open, frame markers can
 be added by using the viewer and left-clicking the mouse over the
@@ -3940,7 +6490,8 @@ used to select one or more markers.
 \item A {\it name} field that allows a name to be specified for the marker.
 
 \item A {\it Default marker properties} panel, which
-allows the user to set properties for subsequent FrameMarkers that are added.
+allows the user to set properties for subsequent FrameMarkers that are added;
+at present, this is limited to render properties.
 
 \item An {\it instruction box} containing directions for the user.
 
@@ -3958,7 +6509,7 @@ springs (Section \ref{addingAxialSpringsSec}) or point-to-point attachments
 (Section \ref{particleParticleAttachmentSec}).
 
 To add one or more particles to a MechModel, select the MechModel in
-question and choose {\sf "Add Particles ..."} in the context menu. This
+question and choose {\sf ``Add Particles ...''} in the context menu. This
 will open a Particle editing panel, as shown in
 Figure \ref{addParticlesPanelFig}. While this panel is open, a particle can be
 added by left-clicking the mouse in the viewer at the location where
@@ -4014,7 +6565,7 @@ well as the subclass \javaclass[artisynth.core.mechmodels]{Muscle} used to
 implement two-point muscles.
 
 To add one or more axial springs to a MechModel, select the MechModel in
-question and choose {\sf "Add AxialSprings ..."} in the context menu. This
+question and choose {\sf ``Add AxialSprings ...''} in the context menu. This
 will open an AxialSpring editing panel, as shown in
 Figure \ref{addAxialSpringsPanelFig}. While this panel is open, axial springs can
 be added by selecting (using the viewer or any other selection
@@ -4057,8 +6608,9 @@ to be selected.
 \item A {\it Default properties} panel, which allows the user to set
 properties for subsequent springs that are added. The properties in
 question vary depending on the type selected in the {\sf Spring type}
-field. For brevity, some properties may be hidden, in which case the
-panel can be expanded by clicking the {\sf more...} button.
+field, but will include render properties and the spring material.
+For brevity, some properties may be hidden, in which case the panel
+can be expanded by clicking the {\sf more...} button.
 
 \item A {\it progress} field displaying the path names of the points
 as they are selected.
@@ -4081,7 +6633,7 @@ between one rigid body and ground. The GUI currently allows two types
 of joints to be added: {\it spherical} and {\it revolute}.
 
 To add one or more rigid body connectors to a MechModel, select the
-MechModel in question and choose {\sf "Add RigidBodyConnectors ..."} in the
+MechModel in question and choose {\sf ``Add RigidBodyConnectors ...''} in the
 context menu. This will open a RigidBodyConnector editing panel, as
 shown in Figure \ref{addRigidBodyConnectorsPanelFig}. While this panel is open, a
 connector can be added by selecting in succession (using the viewer or
@@ -4149,7 +6701,7 @@ combines the dynamics of both original particles. In particular, these
 other FEM models or to particles within a MechModel.
 
 To attach particles contained within a MechModel, select the MechModel in
-question and choose {\sf "Attach particles ..."} in the context menu. This
+question and choose {\sf ``Attach particles ...''} in the context menu. This
 will open a ParticleAttachment panel, as shown in
 Figure \ref{attachParticlesPanelFig}. While this panel is open, pairs of particles
 can be attached by selecting in succession (using the viewer or any
@@ -4196,7 +6748,7 @@ be attached to rigid bodies. In particular, this provides a way
 to connect FEM models to rigid bodies within a MechModel.
 
 To attach particles to a rigid body, select the rigid body in question
-and choose {\sf "Attach particles ..."} in the context menu. This will
+and choose {\sf ``Attach particles ...''} in the context menu. This will
 open a ParticleRigidBodyAttachment panel, as shown in
 Figure \ref{attachParticlesToRigidBodyPanelFig}. While this panel is open,
 particles can be attached to the body by selecting them in succession.
@@ -4263,7 +6815,7 @@ the user should click when finished.
 \iflatexml
 \includegraphics[]{images/setCollisionsDialog}
 \else
-\includegraphics[width=0.30\textwidth]{images/setCollisionsDialog}
+\includegraphics[width=0.25\textwidth]{images/setCollisionsDialog}
 \fi
 \end{center}
 \caption{Dialog for setting collision behavior between bodies.}%
@@ -4331,7 +6883,7 @@ There are several ways to edit collision behavior using the GUI.
 
 \item For default behaviors, the {\sf enabled} and {\sf friction}
 properties can be edited by selecting the {\tt MechModel} and then
-choosing {\sf "Set default collisions ..."} from the context
+choosing {\sf ``Set default collisions ...''} from the context
 menu. This will open the dialog shown in Figure
 \ref{setDefaultCollisionsDialogFig}, allowing the {\sf enabled}
 and {\sf friction} properties to
@@ -4342,19 +6894,19 @@ collisions are disabled.
 
 \item If a user selects a particular set of rigid and/or deformable
 bodies, a specific collision behavior may be established among those
-bodies by choosing {\sf "Set collisions ..."} from the context menu.
+bodies by choosing {\sf ``Set collisions ...''} from the context menu.
 That will open the dialog shown in Figure
 \ref{setCollisionsDialogFig}, allowing the {\sf enabled} and {\sf
 friction} properties for this behavior to be set.
 
 \item If a user selects a single deformable body, a specific
 self-intersection behavior for that body may be established by selecting
-{\sf "Set self collision ..."}.
+{\sf ``Set self collision ...''}.
 
 \item More detailed collision control can be realized by selecting the
 {\tt MechModel}'s collision manager in the navigation panel (Section
-\ref{navPanelSec}). Choosing {\sf Edit properties ...} or {\sf Edit
-render props ...}  from the right context menu then allows other
+\ref{navPanelSec}). Choosing {\sf ``Edit properties ...''} or {\sf ``Edit
+render props ...''}  from the right context menu then allows other
 properties to be set to control either the collision behavior or the
 rendering of collisions. A sample property panel is shown in Figure
 \ref{collisionProperties:fig}, and these properties are described in
@@ -4367,13 +6919,13 @@ the collision manager (see Figure
 \ref{setCollisionsNavpanel:fig}). The first four of these control the
 default behaviors. Other behaviors, if any, are overrides that have
 been added either by application code, or through the GUI.  Once
-selected, one can choose {\sf Edit properties ...} or {\sf Edit render
-props ...}  from the right context menu to edit their properties.  In
+selected, one can choose {\sf ``Edit properties ...''} or {\sf ``Edit render
+props ...''}  from the right context menu to edit their properties.  In
 the case of override behaviors, the context menu can also be used to
 remove them.
 
 \item Finally, all override behaviors in a specific {\tt MechModel}
-may be removed by selecting {\sf "Remove collision overrides"}. This
+may be removed by selecting {\sf ``Remove collision overrides''}. This
 will cause the collision behavior for all bodies to revert to default
 values.
 
@@ -4431,7 +6983,7 @@ Allows particles to be attached to the rigid body
 \subsubsection{Geometry and inertia}
 \label{geometryAndInertiaSec}
 
-Choosing {\sf "Edit geometry and inertia ..."} in the context menu for
+Choosing {\sf ``Edit geometry and inertia ...''} in the context menu for
 a rigid body opens a geometry and inertia panel, as shown in
 Figure \ref{geometryAndInertiaPanelFig}.
 
@@ -4589,7 +7141,7 @@ a \javaclass[artisynth.core.mechmodels]{FrameMarker} for
 FEM elements.
 
 To add one or more markers to an FEM model, you can select the FEM
-model in question and then choose {\sf "Add FemMarkers ..."} in the context
+model in question and then choose {\sf ``Add FemMarkers ...''} in the context
 menu. This will open a FemMarker editing panel, as shown in
 Figure \ref{addFemMarkersPanelFig}. While this panel is open, FEM markers can be
 added by left-clicking the mouse in the viewer over the location where
@@ -4627,7 +7179,8 @@ used to select one or more markers.
 \item A {\it name} field that allows a name to be specified for the marker.
 
 \item A {\it Default marker properties} panel, which
-allows the user to set properties for subsequent markers that are added.
+allows the user to set properties for subsequent markers that are added;
+at present, this is limited to render properties.
 
 \item An {\it instruction box} containing directions for the user.
 
@@ -4665,7 +7218,7 @@ make the fibres active, set the bundle's {\sf fibresActive} property to
 {\sf muscleMaterial} property to {\tt InactiveMuscle}.
 
 To add a MuscleBundle to a FemMuscleModel, select the model and then
-choose {\sf "Add MuscleBundle ..."} from the context menu.  This will
+choose {\sf ``Add MuscleBundle ...''} from the context menu.  This will
 immediately add a MuscleBundle to the model, and then open a
 MuscleFibre editing panel (see Section \ref{addingFibresSec}) to allow the user to
 add fibres to the model. The panel also contains two extra fields at
@@ -4684,7 +7237,7 @@ element references.
 \label{addingFibresSec}
 
 Fibres can be added to a MuscleBundle by selecting the bundle and then
-choosing {\sf "Edit fibres ..."} from the context menu. This will open
+choosing {\sf ``Edit fibres ...''} from the context menu. This will open
 a MuscleFibre editing panel as shown in Figure \ref{addMuscleFibresPanelFig}.
 
 The operation of this panel is essentially identical to
@@ -4711,7 +7264,7 @@ is assumed to be a Muscle and there is no option to change this.
 \subsubsection{Adding element references}
 
 Elements can be added to a MuscleBundle by selecting the bundle and then
-choosing {\sf "Edit elements ..."} from the context menu. This will open a
+choosing {\sf ``Edit elements ...''} from the context menu. This will open a
 MuscleElement editing panel as shown in Figure \ref{addMuscleElementsPanelFig}.
 
 The operation of this panel is quite simple: one selects the elements
@@ -4736,13 +7289,13 @@ From top to bottom, the MuscleElement editing panel contains
 
 \begin{itemize}
 
-\item A list of element references already associated
-with the bundle (expressed by the elements' path names with respect to
-the FEM muscle model).  To remove element references from the bundle, one may
-select them in this list and then choose {\sf "Delete"} from the
-context menu. It should be noted that this deletes the {\it references}
-for the elements within the bundle, and not the elements themselves
-from the FEM model.
+\item A list of element references already associated with the bundle
+(expressed by the elements' path names with respect to the FEM muscle
+model).  To remove element references from the bundle, one may select
+them in this list and then choose {\sf "Delete"} from the context
+menu. It should be noted that this deletes the {\it references} for
+the elements within the bundle, and not the elements themselves from
+the FEM model.
 
 \item Fields {\sf modelElementSize} and {\sf bundleElementSize} which control the
 size of the element widgets which are rendered for both the FEM muscle
@@ -4839,7 +7392,7 @@ where they are stored in a component list called {\tt exciters}.
 
 The GUI provides the ability to edit the targets associated with a
 given exciter. To do this, select the exciter in question, and then
-choose {\sf "Edit targets ..."} in the context menu. This will open an
+choose {\sf ``Edit targets ...''} in the context menu. This will open an
 ExcitationTarget panel, as shown in Figure \ref{excitationTargetPanelFig}.
 
 To add a new excitation target, select the desired excitation
@@ -4880,13 +7433,7 @@ the user should click when finished.
 
 \subsection{Editing root models}
 
-Some very limited graphical editing is available for RootModels.  It
-is possible to add a MechModel to the RootModel, by selecting the
-RootModel and then choosing {\sf "Add MechModel ..."} in the context
-menu. This brings up a MechModel editing panel as shown in
-Figure \ref{addMechModelPanelFig}.
-
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/addMechModelPanel}
@@ -4898,377 +7445,17 @@ Figure \ref{addMechModelPanelFig}.
 \label{addMechModelPanelFig}
 \end{figure}
 
+Some very limited graphical editing is available for RootModels.  It
+is possible to add a MechModel to the RootModel, by selecting the
+RootModel and then choosing {\sf ``Add MechModel ...''} in the context
+menu. This brings up a MechModel editing panel as shown in
+Figure \ref{addMechModelPanelFig}.
+
 The panel is quite simple: you edit the MechModel properties to the
 appropriate settings, click the {\sf Add} button, and a new MechModel is
 added. However, this is of limited use, since normally only one
 MechModel is placed directly under the RootModel, as multiple
 MechModels cannot be advanced using the same integrator and must
 therefore be completely decoupled.
-
-\section{Customizing the Models Menu}
-\label{CustomizingModelsMenu}
-
-The \textsf{Models} menu is automatically created at run-time.  By
-default, it has the format described in Section \ref{LoadingFromModelsMenu}
-However, it is possible to supply an alternative {\sf Models} menu
-either of the following command-line parameters:
-
-\begin{description}
-
-\item[-demosFile <filename>]
-Specifies a flat list of models to be loaded, using a plain text
-format.
-
-\item[-demosMenu <filename>]
-Specifies a menu that may contain hierarchies, separators, and icons,
-using an XML format.
-
-\end{description}
-
-A description of both file formats are provided in the following sections.
-
-\subsection{Plain text format \label{sec:menu:plaintext}}
-
-In the plain text format, entries are listed as title-class pairs, separated by
-whitespace.  Lines beginning with a hash (\#) are ignored.  Titles containing
-spaces must be surrounded by quotation marks.  The following is an example:
-
-\begin{lstlisting}[]
-# Inverse Demos
-HydrostatInvDemo artisynth.models.inversedemos.HydrostatInvDemo
-"Tongue tracking" artisynth.models.inversedemos.TongueTip   
-\end{lstlisting}
-
-\subsection{XML format \label{sec:menu:xml}}
-
-The XML format was designed to give users more control over the appearance of
-the menu.  An XML schema is provided that describes and enforces the required
-document structure ({\tt src/artisynth/core/modelmenu/modelmenu.xsd}).  The 
-following XML elements are defined:
-\medskip
-
-\begin{tabular}{ll}
-{\tt ModelMenu:} & the root element of the document\\
-{\tt model:} & specifies a model that can be loaded\\
-{\tt separator:} & inserts a horizontal line that separates entries\\
-{\tt label:} & inserts an inactive text entry\\
-{\tt menu:} & creates a sub-menu\\
-{\tt package:} & finds and lists all models from a specified Java package\\
-{\tt demosFile:} & imports all models from a file in plain text format\\
-{\tt history:} & adds a set of recently loaded models\\
-{\tt include:} & imports a menu from another XML file\\
-{\tt hidden: } & convenience element for hiding menu entries (i.e. commenting
-   them out)
-\end{tabular}
-\medskip
-
-A detailed description of each of the element types and their supported 
-attributes is provided in the next sections.  Attributes marked by an asterisk
-are required in the element definition.  Some attributes, such as {\tt icon}, 
-refer to an external file location.  The parser tries to find included files 
-by searching directories in the  following order:
-\begin{itemize}
-  \setlength{\itemsep}{0pt}
-  \item The root directory (i.e. absolute path)
-  \item The local directory, relative to the XML file
-  \item All directories listed in {\tt ARTISYNTH\_PATH}
-\end{itemize}
-The first readable file found is used.
-
-\subsubsection{The root element}
-
-The root element encapsulates the entire menu description.  It must make 
-reference to the schema for validation purposes.  The following code snippet
-can be used as a template for creating a new menu file.
-\begin{lstlisting}[][language=XMLMenu,escapechar=\#]
-<?xml version="1.0" encoding="UTF-8"?>
-<ModelMenu xmlns="http://www.artisynth.org"
-   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xsi:schemaLocation="http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd"
-   >
-      #... contents of menu ...#
-</ModelMenu>
-\end{lstlisting}
-
-\begin{sideblock}
-{\bf Note:}\\
-The second value of {\tt schemaLocation} is the location of the schema file, 
-which may need to be modified depending on its path relative to the current 
-XML file.
-\end{sideblock}
-
-\subsubsection{Models}
-
-Individual models are inserted into the menu using a {\tt model} element.
-These specify a class to load when the menu entry is selected.  The model
-must be a sub-class of \javaclass[artisynth.core.workspace]{RootModel}.  
-
-\noindent \textbf{Attributes:}\\
-\begin{tabular}{ll}
-   {\tt class*:} & the class to load when the entry is selected\\
-   {\tt args:} & command-line style arguments to be passed to the model\\
-   {\tt text:} & the text to display in the menu (default: the class name)\\
-   {\tt icon:} & filename of an icon (relative or absolute path)\\
-   {\tt fontname:} & font family for the displayed text\\
-   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
-      \quot{bold italic}\}\\
-   {\tt fontsize:} & font size
-\end{tabular}
-
-The following snippet creates a menu entry titled "Muscle Arm", which will
-launch the model {\tt FemMuscleArm}.
-\begin{lstlisting}[][language=XMLMenu]
-   <model class="artisynth.models.femdemos.FemMuscleArm" text="Muscle Arm" />
-\end{lstlisting}
-
-\subsubsection{Separators}
-
-A separator is a horizontal line that visually separates menu entries.  It 
-can help distinguish groups of related menu items.  The {\tt separator} element
-has no attributes.  The following snippet adds a separator line between models
-found in the {\tt artisynth.models.femdemos} package and those in 
-{\tt artisynth.models.inversedemos}.
-\begin{lstlisting}[][language=XMLMenu]
-   <package source="artisynth.models.femdemos" />
-   <separator/>
-   <package source="artisynth.models.inversedemos" />
-\end{lstlisting}
-
-\subsubsection{Labels}
-
-Labels are inactive text entries; they cannot be selected in the menu.  They
-can be used to label a group of entries.  To help distinguish a label from an
-active menu item, it is recommended to set the font style to \quot{italic}.
-
-\noindent \textbf{Attributes:}\\
-\begin{tabular}{ll}
-   {\tt text*:} & the text to display in the menu\\
-   {\tt icon:} & filename of an icon (relative or absolute path)\\
-   {\tt fontname:} & font family for the displayed text\\
-   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
-      \quot{bold italic}\}\\
-   {\tt fontsize:} & font size
-\end{tabular}
-\medskip
-
-In the following code snippet, a label is added before the tongue tracking 
-models.
-\begin{lstlisting}[][language=XMLMenu]
-   <label text="Tongue Tracking Models" fontstyle="italic" />
-   <model class="artisynth.models.tracker.JawDynamicTongue" />
-   <model class="artisynth.models.tracker.JawKinematicTongue" />
-\end{lstlisting}
-
-\subsubsection{Sub-menus}
-
-Menu hierarchies can be created using the {\tt menu} element.  Apart from the
-root element, this is the only non-empty element type.  It can contain any
-number of valid elements apart from the root element.
-
-\noindent \textbf{Attributes:}\\
-\begin{tabular}{ll}
-   {\tt text*:} & the text to display for the sub-menu\\
-   {\tt icon:} & filename of an icon (absolute or relative path)\\
-   {\tt fontname:} & font family for the displayed text\\
-   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
-      \quot{bold italic}\}\\
-   {\tt fontsize:} & font size
-\end{tabular}
-\medskip
-
-The following code snippet creates a sub-menu "FEM Models" with a specified
-icon, and lists all models found within the {\tt artisynth.models.femdemos} 
-package.
-\begin{lstlisting}[][language=XMLMenu]
-<menu text="FEM Models" icon="resources/icons/FEM.gif">
-   <package source="artisynth.models.femdemos" />
-</menu>
-\end{lstlisting}
-
-\subsubsection{Packages}
-
-The {\tt package} element can be used to include all models belonging to
-a particular Java package and its sub-packages.  A base class can also be 
-specified so that only models that are instances of that base class are added.
-For example to include all models that are sub-classes of {\tt HexTongueDemo}, the
-following line can be used:
-\begin{lstlisting}[][language=XMLMenu]
-   <package source="artisynth.models" base="artisynth.models.femdemos.HexTongueDemo" />
-\end{lstlisting}
-\medskip
-
-The models can be displayed in either a flat or hierarchical structure.  To
-reduce the number of sub-menus, and to shorten some of the displayed text, a 
-\quot{compactness} level is introduced.  Illustrative examples for the options
-are provided in Figure \ref{fig:packagemenu}.
-
-\begin{figure}[!htb]
-\centering
-\iflatexml
-\newcommand{\menuimage}[1]{\includegraphics{images/menu/#1}}
-\else
-\newcommand{\menuimage}[1]{\includegraphics[width=2.5in]{images/menu/#1}}
-\fi
-\setlength{\tabcolsep}{0pt}
-\iflatexml
-\begin{tabular}{ccc}
-\else
-\newcolumntype{M}{>{\centering\arraybackslash}m{\dimexpr.4\linewidth-2\tabcolsep}}
-\begin{tabular}{cMM}
-\fi
-\hline
-\hline
-compact & flat & hierarchical \\
-\hline
-\iflatexml
-0 & \menuimage{f0.png} & \menuimage{h0.png}\\
-1 & \menuimage{f1.png} & \menuimage{h1.png}\\
-2 & \menuimage{f2.png} & \menuimage{h2.png}\\
-\else
-%0 & \menuimage{f0.eps} & \menuimage{h0.eps}\\
-%1 & \menuimage{f1.eps} & \menuimage{h1.eps}\\
-%2 & \menuimage{f2.eps} & \menuimage{h2.eps}\\
-\fi
-\hline
-\end{tabular}
-\caption{View options for the XML element {\tt <package source="artisynth" base=%
-"HexTongueDemo"/>}} %
-\label{fig:packagemenu}
-\end{figure}
-
-\noindent \textbf{Attributes:}\\
-\begin{tabular}{ll}
-   {\tt source*:} & the package to search for models\\
-   {\tt base:} & the base class from which all models must inherit 
-      (default: {\tt RootModel})\\
-   {\tt args:} & command-line style arguments to be passed to the models\\
-   {\tt view:} & display format \{\quot{flat}, \quot{hierarchicial}\} (default:
-      \quot{hierarchical})\\
-   {\tt compact:} & level of compactness \{0, 1, 2\} (default: 0)\\
-\iflatexml
-    & \begin{tabular}{ll}
-\else
-    & \begin{tabular}{lp{5in}}
-\fi
-         0: & A new sub-menu is created for each sub-package (hierarchical),
-             displayed text refers to full package.class name relative
-             to {\tt source} (flat)\\
-         1: & Sub-packages containing a single entity are merged into the
-             parent menu (hierarchical), displayed text refers to unique
-             part of the package.class name only (flat)\\
-         2: & Sub-packages containing a single entity are merged into the
-             parent menu (hierarchical) and displayed text refers to the
-             class name only (hierarchical/flat)
-      \end{tabular}   \\
-   {\tt fontname:} & font family for the displayed text\\
-   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
-      \quot{bold italic}\}\\
-   {\tt fontsize:}: & font size
-\end{tabular}
-\medskip
-
-If font information is provided, it is applied to all entries.  
-\begin{lstlisting}[][language=XMLMenu]
-   <package source="" view="flat" compact="2" fontsize="5"/>
-\end{lstlisting}
-The previous listing adds every single instance of 
-\javaclass[artisynth.core.workspace]{RootModel} found
-in the source tree to the menu.  To get the menu to fit on the screen, 
-{\tt compact="2"} was used to strip away all package information from the 
-displayed text, and a tiny font was applied to all entries.
-
-\begin{sideblock}
-{\bf Note:}\\
-The {\tt package} element should be used sparingly for two main reasons:
-\begin{enumerate}
-\item Each element adds to the ArtiSynth start-up time.
-\item Not all models are functional.
-\end{enumerate}
-The reason for the start-up delay is that to populate the menu, the parser 
-has to search through the supplied package, create an instance of each class,
-and test if it is a sub-class of {\tt base}.  The parser also has no way of 
-detecting whether or not a model is functional, so all classes matching the
-criteria are added.
-\end{sideblock}
-
-
-\subsubsection{Plain text files}
-
-The XML format supports loading models from a {\tt demosFile} that uses the 
-original plain text format.  Plain text files have the advantage of being more 
-human-readable, and are easier to edit/comment lines out.  Models are listed
-in the current sub-menu.
-
-\noindent \textbf{Attributes:}\\
-\begin{tabular}{ll}
-   {\tt file*:} & plain text file to load\\
-   {\tt fontname:} & font family for the displayed text\\
-   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
-      \quot{bold italic}\}\\
-   {\tt fontsize}: & font size
-\end{tabular}
-\medskip
-
-The following line loads all models from the original default ArtiSynth 
-{\rm Models} menu.
-\begin{lstlisting}[][language=XMLMenu,escapechar=\#]
-   <demosFile file=".demoModels" />
-\end{lstlisting}
-If font information is provided, it is applied to all model entries that are
-created.
-
-\subsubsection{History}
-
-If model history tracking is enabled, then a set of \emph{recent items} can
-be added to the menu.  To enable history tracking, pass the following command-%
-line parameter to ArtiSynth on load:\\
-\hspace{4ex}\textbf{-historyFile <filename>}\\
-The {\tt history} element then specifies the number of most recently loaded
-models to add to the history menu.
-
-\noindent \textbf{Attributes:}\\
-\begin{tabular}{ll}
-   {\tt size:} & number of recent models to add (default: "4")\\
-   {\tt fontname:} & font family for the displayed text\\
-   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
-      \quot{bold italic}\}\\
-   {\tt fontsize:} & font size
-\end{tabular}
-
-\subsubsection{Importing other XML files}
-
-To facilitate modularity, the {\tt include} element can be used to import
-all menu content from another XML menu file.  All elements contained within
-the root element of the included file are inserted into the current sub-menu.
-
-\noindent \textbf{Attributes:}\\
-\begin{tabular}{ll}
-   {\tt file*:} & XML file to import
-\end{tabular}
-
-The following code imports the contents from two different XML menu files,
-and separates them with a separator item.
-\begin{lstlisting}[][language=XMLMenu,escapechar=\#]
-   <include file="demos.xml" />
-   <separator/>
-   <include file="mymodels.xml" />
-\end{lstlisting}
-
-\subsubsection{Hiding elements}
-
-It is often convenient to have the ability to \quot{comment-out} lines in any
-kind of coding system: the data remains in the file, but has no effect when 
-processed.  The typical method for commenting in XML is to use the 
-{\tt <!-- -->} tags.  Unfortunately, this can be messy, and comments cannot
-contain other comments.  For this reason, a special {\tt hidden} element was
-created. Any entries within a {\tt hidden} element are ignored by the parser.
-
-\begin{lstlisting}[][language=XMLMenu,escapechar=\#]
-   <!-- temporarily hide FEM demos -->
-   <hidden>
-     <!-- All FEM demos -->
-     <package source="artisynth.models.femdemos" view="flat"/>
-   <hidden/>
-\end{lstlisting}
 
 \end{document}

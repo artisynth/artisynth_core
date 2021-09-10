@@ -35,7 +35,8 @@ public class ArtisynthDataManager {
    /**
     * Default directory for storing downloaded files
     */
-   public static final File DEFAULT_LOCAL_ROOT = new File(ArtisynthPath.getCacheDir(), "/data/");
+   public static final File DEFAULT_LOCAL_ROOT = 
+      ArtisynthPath.getConfigFile ("cache/data/");
    
    private FileManager manager;
    private Cryptor cryptor;

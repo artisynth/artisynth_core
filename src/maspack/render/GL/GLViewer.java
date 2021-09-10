@@ -132,8 +132,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
-   public static BlendFactor DEFAULT_SRC_BLENDING = BlendFactor.GL_SRC_ALPHA;
-   public static BlendFactor DEFAULT_DST_BLENDING = BlendFactor.GL_ONE_MINUS_CONSTANT_ALPHA;
+   public static BlendFactor DEFAULT_SRC_BLENDING =
+      BlendFactor.GL_SRC_ALPHA;
+   public static BlendFactor DEFAULT_DST_BLENDING =
+      BlendFactor.GL_ONE_MINUS_CONSTANT_ALPHA;
 
    // matrices
    protected Matrix4d pickMatrix;
@@ -171,6 +173,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       ColorInterpolation.RGB;
    private static final int DEFAULT_DEPTH_OFFSET = 0;
 
+   public static double DEFAULT_AXIS_LENGTH_RADIUS_RATIO = 60.0;
+   private double myAxisLengthRadiusRatio = DEFAULT_AXIS_LENGTH_RADIUS_RATIO;
+   
    // viewer state
    protected static class ViewState {
       protected Point3d myCenter = new Point3d (DEFAULT_VIEWER_CENTER);
@@ -340,33 +345,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected AxisAlignedRotation myDefaultAxialView = DEFAULT_AXIAL_VIEW;
    protected AxisAlignedRotation myAxialView = DEFAULT_AXIAL_VIEW;
 
-   /**
-    * Controls how the viewer responds to rotation control inputs specified as
-    * horizontal and vertical angular displacements in the viewing plane.
-    */
-   public enum RotationMode {
-      /**
-       * The horizontal displacement describes a rotation about the vertical
-       * (``up'') direction (as returned by {@link #getUpVector}), while the
-       * vertical displacement controls the elevation of the eye position. This
-       * mode has the advantage that the ``up'' direction always remains
-       * parallel to the vertical direction of the viewer plane. However,
-       * because of this, the eye-to-world rotation cannot be adjusted to an
-       * arbitrary value.
-       */
-      DEFAULT,
-
-      /**
-       * The horizontal and vertical displacements describe instantaneous
-       * angular velocity components of the eye-to-world rotation. This allows
-       * the eye-to-world rotation to be adjusted to arbitrary values, but the
-       * ``up'' direction will generally not remain parallel to the vertical
-       * direction of the viewer plane.
-       */
-      CONTINUOUS;
-   }
-
-   public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.DEFAULT;
+   public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.FIXED_VERTICAL;
    protected RotationMode myRotationMode = DEFAULT_ROTATION_MODE;
 
    // enable or disable viewier re-scaling (disable when taking movie)
@@ -382,25 +361,31 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected static final Color DARK_GREEN = new Color (0, 0.5f, 0);
    protected static final Color DARK_BLUE = new Color (0, 0, 0.5f);
    
-   protected float[] DEFAULT_MATERIAL_COLOR =    {0.8f, 0.8f, 0.8f, 1.0f};
-   protected float[] DEFAULT_MATERIAL_EMISSION = {0.0f, 0.0f, 0.0f, 1.0f};
-   protected float[] DEFAULT_MATERIAL_SPECULAR = {0.1f, 0.1f, 0.1f, 1.0f};
-   protected float[] DEFAULT_HIGHLIGHT_COLOR =   {1f, 1f, 0f, 1f};
-   protected float[] DEFAULT_SELECTING_COLOR =   {0f, 0f, 0f, 0f};
-   protected float[] DEFAULT_BACKGROUND_COLOR =  {0f, 0f, 0f, 1f};
-   protected float DEFAULT_MATERIAL_SHININESS = 32f;
+   protected static float[] DEFAULT_MATERIAL_COLOR =    {0.8f, 0.8f, 0.8f, 1.0f};
+   protected static float[] DEFAULT_MATERIAL_EMISSION = {0.0f, 0.0f, 0.0f, 1.0f};
+   protected static float[] DEFAULT_MATERIAL_SPECULAR = {0.1f, 0.1f, 0.1f, 1.0f};
+   protected static float[] DEFAULT_HIGHLIGHT_COLOR =   {1f, 1f, 0f, 1f};
+   protected static float[] DEFAULT_SELECTING_COLOR =   {0f, 0f, 0f, 0f};
+   protected static float[] DEFAULT_BACKGROUND_COLOR =  {0f, 0f, 0f, 1f};
+   protected static float DEFAULT_MATERIAL_SHININESS = 32f;
    
-   protected float[] myHighlightColor = Arrays.copyOf (DEFAULT_HIGHLIGHT_COLOR, 4);
+   protected float[] myHighlightColor =
+      Arrays.copyOf (DEFAULT_HIGHLIGHT_COLOR, 4);
    protected boolean myHighlightColorModified = true;
    protected HighlightStyle myHighlightStyle = HighlightStyle.COLOR;
    
-   protected float[] mySelectingColor = Arrays.copyOf (DEFAULT_SELECTING_COLOR, 4); // color to use when selecting (color selection)
+   protected float[] mySelectingColor =
+      Arrays.copyOf (DEFAULT_SELECTING_COLOR, 4); // color to use when selecting (color selection)
    protected boolean mySelectingColorModified = true;
    
    protected Material myCurrentMaterial = Material.createDiffuse(DEFAULT_MATERIAL_COLOR, 32f);
    protected float[] myBackColor = null;
    protected boolean myCurrentMaterialModified = true;  // trigger for detecting when material is updated
    protected float[] backgroundColor = Arrays.copyOf (DEFAULT_BACKGROUND_COLOR, 4);
+
+   private static Color createColor (float[] rgba) {
+      return new Color (rgba[0], rgba[1], rgba[2], rgba[3]);
+   }
    
    protected static enum ActiveColor {
       DEFAULT,
@@ -419,8 +404,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected GLAutoDrawable drawable;  // currently active drawable
    protected GLDrawableComponent canvas;          // main GL canvas
    
-   protected int width;
-   protected int height;
+   // we now get the width and height from the drawable
+//   protected int width;
+//   protected int height;
 
    // Generic Rendering
    /**
@@ -485,8 +471,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected GridPlane myGrid;
    
    protected double axisLength = 0;
-   protected static final boolean DEFAULT_SOLID_AXES = false;
-   protected boolean solidAxes = DEFAULT_SOLID_AXES;
+   protected static AxisDrawStyle DEFAULT_AXIS_DRAW_STYLE = AxisDrawStyle.LINE;
+   protected AxisDrawStyle myAxisDrawStyle = DEFAULT_AXIS_DRAW_STYLE;
+
    protected boolean gridVisible = false;
 
    // Cut planes
@@ -524,23 +511,41 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    static {
       myProps.add (
-         "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
-      myProps.add ("center", "center location (world coordinates)", DEFAULT_VIEWER_CENTER);
+         "backgroundColor",
+         "background color", createColor(DEFAULT_BACKGROUND_COLOR));
+      myProps.add (
+         "selectionColor getHighlightColor setHighlightColor",
+         "color used to highlight selected components",
+         createColor (DEFAULT_HIGHLIGHT_COLOR));
       myProps.add ("axisLength", "length of rendered x-y-z axes", 0);
       myProps.add (
-         "solidAxes", "use solid arrows for rendering axes", DEFAULT_SOLID_AXES);
+         "axisDrawStyle", "style used for renderering axes", 
+         DEFAULT_AXIS_DRAW_STYLE);
       myProps.add (
-         "rotationMode", "method for interactive rotation", DEFAULT_ROTATION_MODE);
-      myProps.add("axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
-      myProps.add("defaultAxialView", "default axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
-      myProps.add ("backgroundColor", "background color", Color.BLACK);
-      myProps.add("transparencyFaceCulling", "allow transparency face culling", false);
-      myProps.add("blending isBlendingEnabled setBlendingEnabled", "enable/disable blending", false);
+         "rotationMode", "method for interactive rotation",
+         DEFAULT_ROTATION_MODE);
+      myProps.add (
+         "axisLengthRadiusRatio", 
+         "default length/radius ratio to be used when rendering solid axes",
+         DEFAULT_AXIS_LENGTH_RADIUS_RATIO, "NS");
       myProps.add(
-            "blendSourceFactor", "source transparency blending", DEFAULT_SRC_BLENDING);
-         myProps.add(
-            "blendDestFactor", "destination transparency blending", DEFAULT_DST_BLENDING);
-      myProps.add("surfaceResolution", "resolution for built-in curved primitives", 
+         "axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
+      myProps.add (
+         "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
+      myProps.add (
+         "center", "center location (world coordinates)", DEFAULT_VIEWER_CENTER);
+      myProps.add(
+         "transparencyFaceCulling", "allow transparency face culling", false);
+      myProps.add(
+         "transparencyBlending", "enable/disable transparency blending", false);
+      myProps.add(
+         "blendSourceFactor", "source transparency blending",
+         DEFAULT_SRC_BLENDING);
+      myProps.add(
+         "blendDestFactor", "destination transparency blending",
+         DEFAULT_DST_BLENDING);
+      myProps.add(
+         "surfaceResolution", "resolution for built-in curved primitives", 
          DEFAULT_SURFACE_RESOLUTION);
       myProps.add(
          "profiling", "print timing for render operations", false);
@@ -663,15 +668,29 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public double getAxisLength() {
       return axisLength;
    }
-
-   public void setSolidAxes (boolean enable) {
-      solidAxes = enable;
+   
+   public void setAxisDrawStyle (AxisDrawStyle style) {
+      myAxisDrawStyle = style;
    }
 
-   public boolean getSolidAxes() {
-      return solidAxes;
+   public AxisDrawStyle getAxisDrawStyle() {
+      return myAxisDrawStyle;
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */
+   public double getAxisLengthRadiusRatio() {
+      return myAxisLengthRadiusRatio;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */   
+   public void setAxisLengthRadiusRatio (double ratio) {
+      myAxisLengthRadiusRatio = ratio;
+   }
+  
    /**
     * {@inheritDoc}
     */
@@ -1061,7 +1080,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * far clipping plane position (along the -z axis; must be a positive number)
     */
    public void setPerspective (double fieldOfView, double near, double far) {
-      double aspect = width / (double)height;
+      double aspect = getScreenWidth()/(double)getScreenHeight();
 
       this.myFrustum.top = near * Math.tan (Math.toRadians (fieldOfView) / 2);
       this.myFrustum.bottom = -this.myFrustum.top;
@@ -1090,7 +1109,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * far clipping plane position (along the -z axis; must be a positive number)
     */
    public void setOrthogonal (double fieldHeight, double near, double far) {
-      double aspect = width / (double)height;
+      double aspect = getScreenWidth()/(double)getScreenHeight();
 
       this.myFrustum.top = fieldHeight / 2;
       this.myFrustum.bottom = -this.myFrustum.top;
@@ -1311,14 +1330,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * {@inheritDoc}
     */
    public int getScreenWidth() {
-      return width;
+      return canvas.getWidth();
    }
 
    /**
     * {@inheritDoc}
     */
    public int getScreenHeight() {
-      return height;
+      return canvas.getHeight();
    }
 
    /**
@@ -1598,12 +1617,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    public double distancePerPixel (Vector3d pnt) {
       if (myFrustum.orthographic) {
-         return myFrustum.fieldHeight / height;
+         return myFrustum.fieldHeight/getScreenHeight();
       }
       else {
          Point3d pntInEye = new Point3d (pnt);
          pntInEye.transform (viewMatrix);
-         return Math.abs (pntInEye.z / myFrustum.near) * (myFrustum.top - myFrustum.bottom) / height;
+         return 
+            Math.abs (pntInEye.z/myFrustum.near)*
+            (myFrustum.top-myFrustum.bottom)/getScreenHeight();
       }
    }
 
@@ -1678,21 +1699,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myGrid.setXAxisColor (getAxisColor (0));
       myGrid.setYAxisColor (getAxisColor (1));
       myGrid.setZAxisColor (getAxisColor (2));
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setDefaultAxialView (AxisAlignedRotation view) {
-      setAxialView (view);
-      myDefaultAxialView = view;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public AxisAlignedRotation getDefaultAxialView () {
-      return myDefaultAxialView;
    }
 
    /**
@@ -1882,9 +1888,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void reshape (GLAutoDrawable drawable, int x, int y, int w, int h) {
       this.drawable = drawable;
-      
-      width = w;
-      height = h;
+
+      // we now get the width and height from the drawable
+      // width = w;
+      // height = h;
 
       // screen size changed, so be prepared to adjust viewport/view volume
       resetViewVolume = true;
@@ -1904,7 +1911,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    public double getViewPlaneWidth() {
-      return (width / (double)height) * getViewPlaneHeight();
+      return (getScreenWidth()/(double)getScreenHeight())*getViewPlaneHeight();
    }
 
    @Override
@@ -1955,7 +1962,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    protected void resetViewVolume(GL gl) {
-      resetViewVolume(gl, width, height);
+      resetViewVolume(gl, getScreenWidth(), getScreenHeight());
    }
 
    protected void resetViewVolume(GL gl, int width, int height) {
@@ -2054,7 +2061,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             setPerspective(myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, near, far);
          }
          else {
-            double aspect = width / (double)height;
+            double aspect = getScreenWidth()/(double)getScreenHeight();
             myFrustum.left = -aspect * myFrustum.top;
             myFrustum.right = -myFrustum.left;
             setPerspective(myFrustum.left, myFrustum.right, myFrustum.bottom, myFrustum.top, near, far, myFrustum.explicit);
@@ -2939,7 +2946,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       setHSVCColorInterpolationEnabled(state.hsvInterpolationEnabled);
       setVertexColorMixing (state.colorMixing);
       setRoundedPoints(state.roundedPoints);
-      setBlendingEnabled(state.blendingEnabled);
+      setTransparencyBlending(state.blendingEnabled);
       setBlendSourceFactor (state.blendSFactor);
       setBlendDestFactor (state.blendDFactor);
       setTransparencyEnabled (state.transparencyEnabled);
@@ -2960,7 +2967,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          setDepthWriteEnabled (false);
          setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
-      setBlendingEnabled (true);
+      setTransparencyBlending (true);
       setTransparencyEnabled (true);
    }
 
@@ -2968,11 +2975,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       popViewerState();  // should reset everything
    }
    
-   public boolean isBlendingEnabled() {
+   public boolean getTransparencyBlending() {
       return myViewerState.blendingEnabled;
    }
    
-   public void setBlendingEnabled(boolean set) {
+   public void setTransparencyBlending(boolean set) {
       myViewerState.blendingEnabled = set;
    }
    
@@ -3370,7 +3377,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void setRotationMode (RotationMode mode) {
       if (myRotationMode != mode) {
          myRotationMode = mode;
-         if (mode == RotationMode.DEFAULT) {
+         if (mode == RotationMode.FIXED_VERTICAL) {
             // reset eye transform so that up vector matches the default up vector
             setEyeToWorld (getEye(), myViewState.myCenter, getUpVector());
          }
@@ -4138,6 +4145,50 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       normal[0] = u[1]*v[2]-u[2]*v[1];
       normal[1] = u[2]*v[0]-u[0]*v[2];
       normal[2] = u[0]*v[1]-u[1]*v[0];
+   }
+
+   @Override
+   public void drawAxes(
+      RigidTransform3d X, AxisDrawStyle style, double len,
+      int width, double rad, boolean highlight) {
+      drawAxes (X, style, new double[] {len, len, len}, width, rad, highlight);
+   }
+
+   private double maxLength (double[] lens) {
+      if (lens[0] > lens[1]) {
+         return (lens[0] > lens[2] ? lens[0] : lens[2]);
+      }
+      else {
+         return (lens[1] > lens[2] ? lens[1] : lens[2]);
+      }
+   }
+
+   @Override
+   public void drawAxes(
+      RigidTransform3d X, AxisDrawStyle style, double[] lens,
+      int width, double rad, boolean highlight) {
+
+      switch (style) {
+         case OFF: {
+            // draw nothing
+            break;
+         }
+         case LINE: {
+            drawAxes (X, lens, width, highlight);
+            break;
+         }
+         case ARROW: {
+            if (rad <= 0) {
+               rad = maxLength(lens)/myAxisLengthRadiusRatio;
+            }
+            drawSolidAxes (X, lens, rad, highlight);
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented AxisDrawStyle " + style);
+         }
+      }
    }
 
    @Override

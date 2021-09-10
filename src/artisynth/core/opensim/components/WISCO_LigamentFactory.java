@@ -36,7 +36,7 @@ public class WISCO_LigamentFactory
       else if ("max_force".equals(name)) {
          comp.setMaxForce (parseDoubleValue (child));
       } 
-      else if ("tendon_slack_length".equals(name)) {
+      else if ("slack_length".equals(name)) {
          comp.setTendonSlackLength (parseDoubleValue (child));
       } 
       else {

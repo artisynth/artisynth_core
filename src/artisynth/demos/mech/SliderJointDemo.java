@@ -13,6 +13,7 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.AxisDrawStyle;
 
 public class SliderJointDemo extends RootModel {
 
@@ -58,7 +59,7 @@ public class SliderJointDemo extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.75*size); // draw C frame
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors
       RenderProps.setFaceColor (slider, new Color (0.5f, 1f, 1f));
 

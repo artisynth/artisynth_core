@@ -16,9 +16,11 @@ public class MouseSettingsPanel extends PropertyPanel
    implements ValueChangeListener {
    
    private static final long serialVersionUID = -8163801337166221686L;
+   protected BooleanSelector myAutoDetectField;
    protected StringSelector mySelector;
    protected LinkedHashMap<String,MouseBindings> myBindingsMap;
    protected MouseBindings myBindings = null;
+   protected MouseBindings myEffectiveBindings = null;
    protected DoubleField myWheelZoom;
    protected ArrayList<StringField> myMaskInfos =
       new ArrayList<StringField>();
@@ -30,7 +32,7 @@ public class MouseSettingsPanel extends PropertyPanel
 
    protected void addMaskInfo (MouseAction action, MouseBindings settings) {
       StringField text =
-         new StringField (action.getActionDescription(), 30);
+         new StringField (action.getActionDescription(), 20);
       text.setEnabledAll (false);
       setMaskInfoText (action, text, settings);
       myMaskInfos.add (text);
@@ -51,56 +53,93 @@ public class MouseSettingsPanel extends PropertyPanel
    protected void build (
       MouseBindings bindings, List<MouseBindings> allBindings, double zoomScale) {
 
+      // build bindings map and list of binding names
       myBindingsMap = new LinkedHashMap<String,MouseBindings>();
-      myBindings = null;
       String[] allNames = new String[allBindings.size()];
       int k = 0;
       for (MouseBindings b : allBindings) {
          myBindingsMap.put (b.getName(), new MouseBindings(b));
-         if (b.equals (bindings)) {
-            myBindings = b;
-         }
          allNames[k++] = b.getName();
       }
-      if (myBindings == null) {
-         myBindings = myBindingsMap.get(allBindings.get(0).getName());
-      }
+
+      // create widgets; update later
+      myAutoDetectField =
+         new BooleanSelector ("Auto detect", false);
+      addWidget (myAutoDetectField);
 
       mySelector = new StringSelector (
-         "Bindings", myBindings.getName(), allNames);
-      mySelector.addValueChangeListener (this);
-
-      myWheelZoom = new DoubleField ("Wheel zoom scale", zoomScale);
-
+         "Bindings", allNames[0], allNames);
       addWidget (mySelector);
 
+      // widget values will be update here
+      setBindings (bindings);
+
       addLabel (" Viewpoint control:");
-      addMaskInfo (MouseAction.ROTATE_VIEW, myBindings);
-      addMaskInfo (MouseAction.TRANSLATE_VIEW, myBindings);
-      addMaskInfo (MouseAction.ZOOM_VIEW, myBindings);
+      addMaskInfo (MouseAction.ROTATE_VIEW, myEffectiveBindings);
+      addMaskInfo (MouseAction.TRANSLATE_VIEW, myEffectiveBindings);
+      addMaskInfo (MouseAction.ZOOM_VIEW, myEffectiveBindings);
 
       addLabel (" Component selection:");
-      addMaskInfo (MouseAction.SELECT_COMPONENTS, myBindings);
-      addMaskInfo (MouseAction.MULTIPLE_SELECTION, myBindings);
-      addMaskInfo (MouseAction.ELLIPTIC_DESELECT, myBindings);
-      addMaskInfo (MouseAction.RESIZE_ELLIPTIC_CURSOR, myBindings);
-      addMaskInfo (MouseAction.CONTEXT_MENU, myBindings);
+      addMaskInfo (MouseAction.SELECT_COMPONENTS, myEffectiveBindings);
+      addMaskInfo (MouseAction.MULTIPLE_SELECTION, myEffectiveBindings);
+      addMaskInfo (MouseAction.ELLIPTIC_DESELECT, myEffectiveBindings);
+      addMaskInfo (MouseAction.RESIZE_ELLIPTIC_CURSOR, myEffectiveBindings);
+      addMaskInfo (MouseAction.CONTEXT_MENU, myEffectiveBindings);
 
       addLabel (" Manipulator controls:");
-      addMaskInfo (MouseAction.MOVE_DRAGGER, myBindings);
-      addMaskInfo (MouseAction.DRAGGER_CONSTRAIN, myBindings);
-      addMaskInfo (MouseAction.DRAGGER_REPOSITION, myBindings);
+      addMaskInfo (MouseAction.MOVE_DRAGGER, myEffectiveBindings);
+      addMaskInfo (MouseAction.DRAGGER_CONSTRAIN, myEffectiveBindings);
+      addMaskInfo (MouseAction.DRAGGER_REPOSITION, myEffectiveBindings);
+
+      JLabel label = new JLabel (
+         " (LMB, MMB, RMB = left, middle, right mouse buttons)");
+      GuiUtils.setItalicFont (label);
+      addWidget (label);
       
       addWidget (new JSeparator());
+      myWheelZoom = new DoubleField ("Wheel zoom scale", zoomScale);
       addWidget (myWheelZoom);
+
+      // add value change listeners
+      myAutoDetectField.addValueChangeListener (this);
+      mySelector.addValueChangeListener (this);
    }
 
    public MouseBindings getBindings() {
       return myBindings;
    }
 
+   public MouseBindings getEffectiveBindings() {
+      return myEffectiveBindings;
+   }
+
+   public void setBindings (MouseBindings bindings) {
+
+      boolean autoDetect = false;
+      if (bindings.getName().equals ("Default")) {
+         myBindings = MouseBindings.Default;
+         myEffectiveBindings = MouseBindings.createDefaultBindings();
+         autoDetect = true;
+      }
+      else {
+         myBindings = myBindingsMap.get(bindings.getName());
+         if (myBindings == null) {
+            throw new IllegalArgumentException (
+               "Unknown mouse bindings '"+bindings.getName()+"'");
+         }
+         myEffectiveBindings = myBindings;
+      }
+      mySelector.setValue (myEffectiveBindings.getName());
+      mySelector.setEnabledAll (!autoDetect);
+      myAutoDetectField.setValue (autoDetect);
+   }
+
    public double getWheelZoom() {
       return myWheelZoom.getDoubleValue();
+   }
+
+   public void setWheelZoom (double zoom) {
+      myWheelZoom.setValue(zoom);
    }
 
    public DoubleField getWheelZoomField() {
@@ -111,15 +150,40 @@ public class MouseSettingsPanel extends PropertyPanel
       return mySelector;
    }
 
+   public BooleanSelector getAutoDetectField() {
+      return myAutoDetectField;
+   }
+
+   private void updateMaskDisplay() {
+      int k = 0;
+      for (MouseAction action : MouseAction.values()) {
+         setMaskInfoText (action, myMaskInfos.get(k++), myEffectiveBindings);
+      }
+      repaint();
+   }
+
    public void valueChange (ValueChangeEvent evt) {
       Object source = evt.getSource();
       if (source == mySelector) {
          myBindings = myBindingsMap.get(mySelector.getValue());
-         int k = 0;
-         for (MouseAction action : MouseAction.values()) {
-            setMaskInfoText (action, myMaskInfos.get(k++), myBindings);
+         myEffectiveBindings = myBindings;
+         updateMaskDisplay();
+      }
+      else if (source == myAutoDetectField) {
+         boolean autoDetect = myAutoDetectField.getBooleanValue();
+         if (autoDetect) {
+            myBindings = MouseBindings.Default;
+            myEffectiveBindings = MouseBindings.createDefaultBindings();
+            mySelector.maskValueChangeListeners (true);
+            mySelector.setValue (myEffectiveBindings.getName());
+            mySelector.maskValueChangeListeners (false);
+            mySelector.setEnabledAll (false);
+            updateMaskDisplay();
          }
-         repaint();
+         else {
+            myBindings = myEffectiveBindings;
+            mySelector.setEnabledAll (true);
+         }
       }
    }
 

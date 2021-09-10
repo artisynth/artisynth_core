@@ -13,6 +13,7 @@ import artisynth.core.mechmodels.DistanceGridComp;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.*;
 import artisynth.core.renderables.EditablePolygonalMeshComp;
 import artisynth.core.modelbase.*;
 import maspack.geometry.PolygonalMesh;
@@ -85,6 +86,13 @@ public class RigidBodyEditor extends EditorBase {
          // if (oneGridSurfaceRenderingOff) {
          //    actions.add (this, "Enable grid surface rendering");
          // }
+         if (selection.size() == 2) {
+            if (((RigidBody)selection.get(0)).getSurfaceMeshComp() != null &&
+                ((RigidBody)selection.get(1)).getSurfaceMeshComp() != null) {
+               actions.add (this, "Register meshes ...");
+            }
+         }
+
       }
    }
 
@@ -180,6 +188,18 @@ public class RigidBodyEditor extends EditorBase {
                RenderProps.setPointStyle (editMesh, Renderer.PointStyle.SPHERE);
                RenderProps.setPointRadius (editMesh, 0.05*size);
                mech.addRenderable (editMesh);
+            }
+         }
+         if (selection.size() == 2) {
+            RigidBody source = (RigidBody)selection.get(0);
+            RigidBody target = (RigidBody)selection.get(1);
+            if (source.getSurfaceMesh() != null &&
+                target.getSurfaceMesh() != null) {
+               if (myEditManager.acquireEditLock()) {
+                  MeshRegistrationAgent agent =
+                     new MeshRegistrationAgent (myMain, source, target);
+                  agent.show (popupBounds);
+               }
             }
          }
       }

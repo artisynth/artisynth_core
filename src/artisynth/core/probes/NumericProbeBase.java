@@ -7,11 +7,7 @@
 package artisynth.core.probes;
 
 import java.awt.Color;
-import java.io.IOException;
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.*;
 import java.util.*;
 
 import javax.swing.JPanel;
@@ -41,6 +37,9 @@ import artisynth.core.workspace.RootModel;
 //import sun.security.action.GetLongAction;
 
 public abstract class NumericProbeBase extends Probe implements Displayable {
+
+   public static final double EXPLICIT_TIME = -1;
+
    protected NumericList myNumericList = null;
    protected LinkedHashMap<String,NumericProbeVariable> myVariables = null;
    protected ArrayList<NumericProbeDriver> myDrivers = null;
@@ -836,6 +835,207 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       return true;
    }
 
+   public void addData (ReaderTokenizer rtok, double timeStep)
+      throws IOException {
+      double time = 0;
+
+      // If zero vector size, don't bother adding data
+      if (myVsize == 0) {
+         return;
+      }
+      while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+         NumericListKnot knot = new NumericListKnot (myVsize);
+         if (timeStep == EXPLICIT_TIME) {
+            if (rtok.ttype != ReaderTokenizer.TT_NUMBER) {
+               throw new IOException ("Expected time value, line "
+               + rtok.lineno());
+            }
+
+            knot.t = rtok.nval;
+            time = knot.t;
+         }
+         else {
+            knot.t = time;
+            time += timeStep;
+            rtok.pushBack();
+         }
+         if (rtok.scanNumbers (knot.v.getBuffer(), myVsize) != myVsize) {
+            if (rtok.ttype == ReaderTokenizer.TT_EOF) {
+               return;
+            }
+            else {
+               throw new IOException ("Unexpected token " + rtok.tokenName()
+               + ", line " + rtok.lineno());
+            }
+         }
+         myNumericList.add (knot);
+      }
+   }
+
+   /**
+    * Reads the start and stop times, scale value, and data for this probe from
+    * an ascii file. The following information should be provided in order,
+    * separated by white space:
+    * <ul>
+    * <li>start time (either seconds or nanoseconds, as described below).
+    * Ignored if <code>setTimes</code> is false. 
+    * <li>stop time (either seconds or nanoseconds, as described below)
+    * Ignored if <code>setTimes</code> is false. 
+    * <li>scale value (floating point number; nominal value is 1)
+    * Ignored if <code>setTimes</code> is false. 
+    * <li>interpolation order ("step", "linear", or "cubic")
+    * <li>number of data values n at each knot point (an integer)
+    * <li>either the knot point time step (floating point number, in seconds),
+    * OR the keyword "explicit", indicating that knot time values are to be
+    * given explicitly
+    * <li>the knot point data, with each knot point specified by n numbers,
+    * preceeded (if explicit time has been specified) by the corresponding time
+    * value (in seconds).
+    * </ul>
+    * The start and stop times can be indicated in either seconds or 
+    * nanoseconds. The former is assumed if the value is a double with a
+    * decimal point. 
+    * 
+    * For example, the following input
+    * 
+    * <pre>
+    * 2.0 10.0 1.2
+    * linear 2 explicit
+    * 0.0 2.0 2.0
+    * 1.1 4.0 3.0
+    * 3.0 0.0 1.0
+    * </pre>
+    * 
+    * specifies a probe with a start and stop time of 2 and 10 seconds,
+    * respectively, a scale value of 1.2, linear interpolation, 2 values at each
+    * knot point, and three knot points at times 0.0, 1.1, and 3.0.
+    * 
+    * If knot time is given implicitly by a time setp, then time is assumed to
+    * start at 0. The following input
+    * 
+    * <pre>
+    * 2000000000 3000000000 2.5
+    * step 2 2.0
+    * 2.0 2.0
+    * 4.0 3.0
+    * 0.0 1.0
+    * </pre>
+    * 
+    * specifies a probe with a start and stop time of 2 and 3 seconds,
+    * respectively, a scale value of 2.5, step interpolation, 2 values at each
+    * knot point, and three knot points with times of 0, 2.0, and 4.0 (given
+    * implicity by a step size of 2.0).
+    * 
+    * <p>
+    * The character '#' is a comment character, causing all subsequent input up
+    * to the next new line to be ignored.
+    * 
+    * @param file
+    * File from which to read the probe information
+    * @param setTimes if <code>true</code>, sets the start time, stop time,
+    * and scale values to those indicated at the head of the file. If 
+    * <code>false</code>, these values are ignored.
+    * @throws IOException
+    * if an I/O or format error occurred.
+    */
+   public void read (File file, boolean setTimes) throws IOException {
+      // myAttachedFile = null;
+      ReaderTokenizer rtok =
+         new ReaderTokenizer (new BufferedReader (new FileReader (file)));
+      try {
+         read (rtok, setTimes);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         rtok.close();
+      }
+   }
+   
+   protected void read (ReaderTokenizer rtok, boolean setTimes) 
+      throws IOException {
+      rtok.commentChar ('#');
+      rtok.ordinaryChar ('/');
+      double time = 0;
+      time = scanTimeQuantity (rtok);
+      if (setTimes) {
+         setStartTime (time);
+      }
+      time = scanTimeQuantity (rtok);
+      if (setTimes) {
+         setStopTime (time);
+      }
+      if (rtok.nextToken() != ReaderTokenizer.TT_NUMBER) {
+         throw new IOException ("expecting scale value, line " + rtok.lineno());
+      }
+      if (setTimes) {
+         setScale (rtok.nval);
+      }
+
+      int numValues = 0;
+      Order interpolationOrder;
+      double timeStep;
+      
+      if (rtok.nextToken() != ReaderTokenizer.TT_WORD) {
+         throw new IOException ("expecting interpolation method, line "
+         + rtok.lineno());
+      }
+      interpolationOrder = Order.fromString (rtok.sval);
+      if (interpolationOrder == null) {
+         if (rtok.sval.equalsIgnoreCase ("linear")) {
+            interpolationOrder = Order.Linear;
+         }
+         else if (rtok.sval.equalsIgnoreCase ("step")) {
+            interpolationOrder = Order.Step;
+         }
+         else if (rtok.sval.equalsIgnoreCase ("cubic")) {
+            interpolationOrder = Order.Cubic;
+         }
+         else {
+            throw new IOException ("unknown interpolation order '" + rtok.sval
+               + "', line " + rtok.lineno());
+         }
+      }
+      if (rtok.nextToken() != ReaderTokenizer.TT_NUMBER ||
+          (numValues = (int)rtok.nval) != rtok.nval) {
+         throw new IOException ("expecting number of values, line "
+         + rtok.lineno());
+      }
+      if (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
+         timeStep = rtok.nval;
+      }
+      else if (rtok.ttype == ReaderTokenizer.TT_WORD &&
+               rtok.sval.equals ("explicit")) {
+         timeStep = EXPLICIT_TIME;
+      }
+      else {
+         throw new IOException (
+            "expecting either a time step or the keyword 'explicit', line "
+            + rtok.lineno());
+      }
+      // myNumericList = new NumericList (numValues);
+      myNumericList = new NumericList (myVsize);
+      myInterpolation.setOrder (interpolationOrder);
+      myNumericList.setInterpolation (myInterpolation);
+      addData (rtok, timeStep);
+   }
+
+   protected void load(boolean setTimes) throws IOException {
+      File file = getAttachedFile();
+      if (file != null) {
+         if (!file.exists ()) {
+            throw new IOException ("File '"+file+"' does not exist");
+         }
+         else if (!file.canRead ()) {
+            throw new IOException ("File '"+file+"' is not readable");
+         }         
+         else {
+            read (file,setTimes);
+         }
+      }     
+   }
+
    /* --- file export methods --- */
 
    public void writeText (
@@ -875,6 +1075,46 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       }
    }
 
+   /**
+    * Still being implemented
+    */
+   public void importText (
+      File file, boolean explicitTime, boolean overlay, char separator)
+      throws IOException  {
+
+      ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer(file);
+      DynamicDoubleArray darray = new DynamicDoubleArray();
+      try {
+         rtok.eolIsSignificant(true);
+         while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+            rtok.pushBack();
+            darray.clear();
+            if (separator == ' ') {
+               while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
+                  darray.add (rtok.nval);
+               }
+               if (rtok.ttype !=  ReaderTokenizer.TT_EOF &&
+                   rtok.ttype !=  ReaderTokenizer.TT_EOL) {
+                  throw new IOException ("Unexpected token: " + rtok);
+               }
+            }
+            else if (separator == ',') {
+            }
+         }
+      }
+      catch (Exception e) {
+         if (e instanceof IOException) {
+            throw (IOException)e;
+         }
+         else {
+            throw new IOException ("Internal error: ", e);
+         }
+      }
+      finally {
+         rtok.close();
+      }
+   }
+
    public ImportExportFileInfo[] getExportFileInfo() {
       return myExportFileInfo;
    }
@@ -906,6 +1146,23 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
          }
          TextExportProps tprops = (TextExportProps)props;
          writeText (file, tprops.getFormatStr(), " ", tprops.getIncludeTime());
+      }
+      else {
+         throw new IOException ("Unrecognized type for file "+name);
+      }
+   }
+
+   /**
+    * Still being implemented
+    */
+   public void importData (File file, boolean explicitTime, boolean overlay) 
+      throws IOException {
+      String name = file.getName();
+      if (ArtisynthPath.getFileExtension(file).equals ("csv")) {
+         importText (file, explicitTime, overlay, ',');
+      }
+      else if (ArtisynthPath.getFileExtension(file).equals ("txt")) {
+         importText (file, explicitTime, overlay, ' ');
       }
       else {
          throw new IOException ("Unrecognized type for file "+name);

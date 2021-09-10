@@ -5,7 +5,6 @@ import java.util.ArrayList;
 
 import artisynth.core.mechmodels.JointBase;
 import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.mechmodels.Frame.AxisDrawStyle;
 import artisynth.core.opensim.components.Coordinate;
 import artisynth.core.opensim.components.CoordinateSet;
 import artisynth.core.opensim.components.CustomJoint;

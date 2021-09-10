@@ -40,6 +40,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.render.Renderer.AxisDrawStyle;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
@@ -62,26 +63,6 @@ public class Frame extends DynamicComponentBase
               Traceable, MotionTargetComponent, CopyableComponent,
               HasCoordinateFrame, CollidableDynamicComponent,
               PointAttachable, FrameAttachable, ContactMaster {
-
-   /**
-    * Describes how to render the axes of this frame.
-    */
-   public enum AxisDrawStyle {
-      /**
-       * Do not render the axes
-       */
-      OFF,
-
-      /**
-       * Render the axes as lines
-       */
-      LINE,
-
-      /**
-       * Render the axes as solid arrows
-       */
-      ARROW   
-   }
 
    public static boolean dynamicVelInWorldCoords = true;
 
@@ -942,34 +923,11 @@ public class Frame extends DynamicComponentBase
       myState.pos.updateBounds (pmin, pmax);
    }
 
-   public static void renderAxes (
-      Renderer renderer, RigidTransform3d TFW, AxisDrawStyle style,
-      double len, int width, boolean isSelected) {
-
-      switch (style) {
-         case OFF: {
-            break;
-         }
-         case LINE: {
-            renderer.drawAxes (TFW, len, width, isSelected);
-            break;
-         }
-         case ARROW:{
-            renderer.drawSolidAxes (TFW, len, len/60, isSelected);
-            break;
-         }
-         default: {
-            throw new UnsupportedOperationException (
-               "Unimplemented axisDrawStyle " + style);
-         }
-      }
-   }
-
    public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         renderAxes (
-            renderer, myRenderFrame, myAxisDrawStyle, 
-            myAxisLength, myRenderProps.getLineWidth(), isSelected());
+         renderer.drawAxes (
+            myRenderFrame, myAxisDrawStyle, 
+            myAxisLength, myRenderProps.getLineWidth(), 0, isSelected());
       }
    }
 

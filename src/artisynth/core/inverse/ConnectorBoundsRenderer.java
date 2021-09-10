@@ -53,7 +53,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       this(bounds, new Frame(new RigidTransform3d (basePoint, RotationMatrix3d.IDENTITY)), size);
    }
 
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
 
    public static PropertyList myProps =
       new PropertyList (ConnectorBoundsRenderer.class, MonitorBase.class);

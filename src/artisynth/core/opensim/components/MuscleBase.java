@@ -5,6 +5,7 @@ import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.mechmodels.MultiPointMuscle;
 import artisynth.core.mechmodels.MultiPointSpring;
+import artisynth.core.mechmodels.Muscle;
 
 public abstract class MuscleBase extends ForceSpringBase {
    
@@ -148,11 +149,15 @@ public abstract class MuscleBase extends ForceSpringBase {
    }
 
    @Override
-   protected MultiPointSpring createDefaultSpring () {
-      MultiPointMuscle mpm = new MultiPointMuscle ();
+   protected MultiPointMuscle createDefaultMultiSpring (String name) {
+      MultiPointMuscle mpm = new MultiPointMuscle (name);
       mpm.setExcitation (getDefaultActivation());
       return mpm;
    }
-   
+
+   @Override   
+   protected Muscle createDefaultSpring (String name) {
+      return new Muscle (name);
+   }
    
 }

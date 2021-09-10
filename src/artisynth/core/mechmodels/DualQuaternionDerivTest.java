@@ -505,20 +505,6 @@ public class DualQuaternionDerivTest {
 
       int failCnt = 0;
 
-      // T0W.R.set (
-      //    0.7316888688738209, 0.0, 0.6816387600233341,
-      //    0.0, 1.0, 0.0,
-      //    -0.6816387600233341, 0.0, 0.7316888688738209);
-      // T0W.p.set (-0.6816387600233341, 0, 0.2683111311261791);
-      // T0W0.set (T0W);
-
-      // T1W.R.set (
-      //    0.7316888688738209, -0.0, -0.6816387600233341,
-      //    0.0, 1.0, -0.0,
-      //    0.6816387600233341, 0.0, 0.7316888688738209);
-      // T1W.p.set (0.6816387600233341, 0.0, 0.2683111311261791);
-      // T1W0.set (T1W);
-
       for (int k=0; k<testCnt; k++) {
 
          transList.clear();
@@ -557,9 +543,85 @@ public class DualQuaternionDerivTest {
       System.out.println ("failCnt=" + failCnt);
    }
 
+   public void timing (int numTrans) {
+      ArrayList<TransDesc> transList = new ArrayList<TransDesc>();
+      RigidTransform3d T0W = new RigidTransform3d ();
+      RigidTransform3d T1W = new RigidTransform3d ();
+      RigidTransform3d T2W = new RigidTransform3d ();
+
+      RigidTransform3d T0W0 = new RigidTransform3d ();
+      RigidTransform3d T1W0 = new RigidTransform3d ();
+      RigidTransform3d T2W0 = new RigidTransform3d ();
+      Point3d r = new Point3d();
+
+      int timingCnt = 1000000;
+
+      T0W.setRandom();
+      T1W.setRandom();
+      T2W.setRandom();
+
+      T0W0.setRandom();
+      T1W0.setRandom();
+      T2W0.setRandom();
+
+      switch (numTrans) {
+         case 1: {
+            transList.add (new TransDesc (1.0, T0W, T0W0));
+            break;
+         }
+         case 2: {
+            // transList.add (new TransDesc (0.7575593, T0W, T0W0));
+            // transList.add (new TransDesc (0.040721294, T1W, T1W0));
+            transList.add (new TransDesc (0.1, T0W, T0W0));
+            transList.add (new TransDesc (0.7, T1W, T1W0));
+            break;
+         }
+         case 3: {
+            transList.add (new TransDesc (0.1, T0W, T0W0));
+            transList.add (new TransDesc (0.2, T1W, T1W0));
+            transList.add (new TransDesc (0.6, T2W, T2W0));
+            break;
+         }
+         default: {
+            throw new TestException ("numTrans must be 1, 2, or 3");
+         }
+      }
+      r.set (-0.5369, 0.0, 0.7064);
+      FunctionTimer timer = new FunctionTimer();
+      // warmup ...
+      for (int i=0; i<timingCnt; i++) {
+         computeJv (transList, r);
+      }
+      timer.start();
+      for (int i=0; i<timingCnt; i++) {
+         computeJv (transList, r);
+      }
+      timer.stop();
+      System.out.println (
+         "numTrans=" + numTrans + " " + timer.result(timingCnt));
+   }
+
    public static void main (String[] args) {
+
+      boolean doTiming = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-timing")) {
+            doTiming = true;
+         }
+         else {
+            System.out.println (
+               "Usage: java DualQuaternionDerivTest [ -timing ]");
+            System.exit(1);
+         }
+      }
       DualQuaternionDerivTest tester = new DualQuaternionDerivTest();
       RandomGenerator.setSeed (0x1234);
-      tester.test();
+      if (doTiming) {
+         tester.timing (2);
+         tester.timing (3);
+      }
+      else {
+         tester.test();
+      }
    }
 }

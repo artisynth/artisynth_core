@@ -83,6 +83,12 @@ class RotationMatrix3dTest extends MatrixTest {
 
       saveResult (RR);
       MX.set (R1);
+      R1.getXyz (angs);
+      RR.setXyz (angs);
+      checkAndRestoreResult (RR, EPSILON);
+
+      saveResult (RR);
+      MX.set (R1);
       R1.getAxisAngle (axisAng);
       RR.setAxisAngle (axisAng);
       checkAndRestoreResult (RR, EPSILON);
@@ -433,11 +439,31 @@ class RotationMatrix3dTest extends MatrixTest {
       checkResult (R, RX, "setAxisAnglePrecise");
    }
 
+   void testRpySolutions() {
+      int ntests = 100;
+
+      RotationMatrix3d R = new RotationMatrix3d();
+      RotationMatrix3d RX = new RotationMatrix3d();
+      for (int i=0; i<ntests; i++) {
+         double[] rpy = new double[3];
+
+         rpy[0] = RandomGenerator.nextDouble(-Math.PI, Math.PI);
+         rpy[1] = RandomGenerator.nextDouble(-Math.PI/2, Math.PI/2);
+         rpy[2] = RandomGenerator.nextDouble(-Math.PI, Math.PI);
+         R.setRpy (rpy);
+
+         rpy[0] += Math.PI;
+         rpy[1] = Math.PI - rpy[1];
+         rpy[2] += Math.PI;
+         RX.setRpy (rpy);
+
+         checkEquals ("testRpySolutions", R, RX, 1e-13);
+      }
+   }
+
    public void execute() {
       RotationMatrix3d RR = new RotationMatrix3d();
       RotationMatrix3d R1 = new RotationMatrix3d();
-
-
       RotationMatrix3d R2 = new RotationMatrix3d();
 
       RandomGenerator.setSeed (0x1234);
@@ -514,6 +540,8 @@ class RotationMatrix3dTest extends MatrixTest {
       testSetXDirection (RR, new Vector3d (-1, 0, 0));
 
       testPreciseAxisAngleSet ();
+
+      testRpySolutions();
    }
 
 //   private void RPYtest() {

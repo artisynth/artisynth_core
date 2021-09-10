@@ -22,6 +22,7 @@ import artisynth.core.util.MatlabInterfaceException;
 import maspack.widgets.GuiUtils;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.widgets.ProbeExportChooser;
+import artisynth.core.gui.widgets.ProbeImportChooser;
 
 import java.util.*;
 
@@ -71,6 +72,9 @@ public class ProbeEditor extends EditorBase {
          }
          if (selection.size() == 1) {
             actions.add (this, "Export data as ...");
+         }
+         if (selection.size() == 1) {
+            actions.add (this, "Import overlay ...");
          }
          if (allNumeric && myMain.hasMatlabConnection()) {
             actions.add (this, "Save to MATLAB");
@@ -129,6 +133,9 @@ public class ProbeEditor extends EditorBase {
          }
          else if (actionCommand.equals ("Export data as ...")) {
             exportAs ((Probe)selection.get(0), myMain.getMainFrame());
+         }
+         else if (actionCommand.equals ("Import overlay ...")) {
+            importOverlay ((Probe)selection.get(0), myMain.getMainFrame());
          }
          else if (actionCommand.equals ("Save to MATLAB")) {
             MatlabInterface mi = myMain.getMatlabConnection();
@@ -394,6 +401,28 @@ public class ProbeEditor extends EditorBase {
          catch (Exception e) {
             showError (win, "Error exporting", probe, e);
             probe.setExportFileName (oldPath);
+         }         
+      }
+   }
+
+   static public void importOverlay (Probe probe, Window win) {
+      ProbeImportChooser chooser = new ProbeImportChooser (probe);
+      if (chooser.showDialog (win, "Import overlay data") ==
+          JFileChooser.APPROVE_OPTION) {
+         String oldPath = probe.getImportFileName();
+         File file = chooser.getSelectedFile();
+         String ext = ArtisynthPath.getFileExtension (file);
+         if (ext == null) {
+            ext = chooser.getSelectedExt();
+            file = new File (file.getAbsolutePath()+"."+ext);
+         }
+         try {
+            probe.importData (file, /*explicitTime=*/false, /*overlay=*/true);
+            probe.setImportFileName (Probe.getPathFromFile(file));
+         }
+         catch (Exception e) {
+            showError (win, "Error importing", probe, e);
+            probe.setImportFileName (oldPath);
          }         
       }
    }

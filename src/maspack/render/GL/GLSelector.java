@@ -137,9 +137,9 @@ public abstract class GLSelector extends GLResourceBase {
       myViewer.getBackgroundColor(savedBackgroundColor);
       myViewer.setBackgroundColor(0, 0, 0, 0);
       
-      savedBlend = myViewer.isBlendingEnabled ();
+      savedBlend = myViewer.getTransparencyBlending ();
       if (savedBlend) {
-         myViewer.setBlendingEnabled (false);
+         myViewer.setTransparencyBlending (false);
       }
       savedMultisampled = myViewer.isMultiSampleEnabled ();
       if (savedMultisampled) {
@@ -168,7 +168,7 @@ public abstract class GLSelector extends GLResourceBase {
          savedBackgroundColor[1], savedBackgroundColor[2], 
          savedBackgroundColor[3]);
       
-      myViewer.setBlendingEnabled (savedBlend);
+      myViewer.setTransparencyBlending (savedBlend);
       myViewer.setMultiSampleEnabled (savedMultisampled);
       myViewer.setColor (savedColor);
       myViewer.setLightingEnabled(savedLighting);

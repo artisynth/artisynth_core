@@ -1,15 +1,20 @@
 package artisynth.core.opensim.components;
 
+import java.awt.Color;
 import java.io.File;
 import java.util.HashMap;
 
+import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.PointList;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.opensim.components.JointBase.BodyAndTransform;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.render.RenderableUtils;
+import maspack.render.RenderProps;
 
 public class Model4 extends ModelBase {
    
@@ -72,7 +77,8 @@ public class Model4 extends ModelBase {
    /**
     * TODO: build model
     */
-   public MechModel createModel(MechModel mech, File geometryPath, ModelComponentMap componentMap) {
+   public MechModel createModel (
+      MechModel mech, File geometryPath, ModelComponentMap componentMap) {
       if (mech == null) {
          mech = new MechModel(getName ());
       }
@@ -81,18 +87,21 @@ public class Model4 extends ModelBase {
       // ground
       Ground ground = this.getGround();
       if (ground != null) {
-         RigidBody groundBody = ground.createComponent (geometryPath, componentMap);
+         RigidBody groundBody =
+            ground.createComponent (geometryPath, componentMap);
          mech.add (groundBody);
       }
       
       // bodies
       BodySet bodySet = this.getBodySet ();
-      RenderableComponentList<RigidBody> bodies = bodySet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<RigidBody> bodies =
+         bodySet.createComponent(geometryPath, componentMap);
       mech.add (bodies);
       
       // joints
       JointSet jointSet = this.getJointSet ();
-      RenderableComponentList<ModelComponent> joints = jointSet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<ModelComponent> joints =
+         jointSet.createComponent(geometryPath, componentMap);
       mech.add (joints);
       
       // Move all child bodies to satisfy joint pose relative to parent
@@ -100,10 +109,27 @@ public class Model4 extends ModelBase {
       // collect parents
       HashMap<OpenSimObject,BodyAndTransform> parentMap = new HashMap<>();
       for (JointBase joint : jointSet) {
+         artisynth.core.mechmodels.JointBase jb =
+            (artisynth.core.mechmodels.JointBase)componentMap.get(joint);
          BodyAndTransform parent = joint.findParentBodyAndTransform(componentMap);
          BodyAndTransform child = joint.findChildBodyAndTransform(componentMap);
-         RigidTransform3d TCP = new RigidTransform3d(parent.transform);
-         TCP.mulInverse (child.transform);
+         RigidTransform3d TCP = new RigidTransform3d(); // child-to-parent trans
+         // also need TCD in case some default coordinates are not 0
+         RigidTransform3d TCD = new RigidTransform3d();
+         if (jb != null) {
+            jb.getStoredTCD (TCD);
+         }
+         else {
+            TCD.setIdentity();
+         }
+         if (joint.getReverse()) {
+            TCP.mulInverseRight (child.transform, TCD);
+            TCP.mulInverseRight (TCP, parent.transform);
+         }
+         else {
+            TCP.mul (parent.transform, TCD);
+            TCP.mulInverse (child.transform);  
+         }
          parentMap.put(child.body, new BodyAndTransform(parent.body, TCP));
       }
       
@@ -125,17 +151,25 @@ public class Model4 extends ModelBase {
       
       // force effectors
       ForceSet forceSet = this.getForceSet ();
-      RenderableComponentList<ModelComponent> forces = forceSet.createComponent(geometryPath, componentMap);
+      RenderableComponentList<ModelComponent> forces =
+         forceSet.createComponent(geometryPath, componentMap);
       mech.add (forces);
       
       // markers
-      // MarkerSet markerSet = this.getMarkerSet ();
+      MarkerSet markerSet = this.getMarkerSet ();
+      PointList<FrameMarker> markers =
+         markerSet.createComponent(geometryPath, componentMap);
+      mech.add (markers);
       
       // set gravity
       Vector3d gravity = this.getGravity ();
       if (gravity != null) {
          mech.setGravity (gravity);
       }
+
+      // set markers to render as spheres
+      double modelRadius = RenderableUtils.getRadius (mech);
+      RenderProps.setSphericalPoints (markers, 0.008*modelRadius, Color.CYAN);
       
       return mech;
    }

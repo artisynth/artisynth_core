@@ -362,7 +362,6 @@ public class AxialSpring extends PointSpringBase
       Point pnt1 = (Point)ComponentUtils.maybeCopy (flags, copyMap, myPnt1);  
       comp.setSecondPoint (pnt1);
 
-      comp.setRenderProps (myRenderProps);
       if (myMaterial != null) {
          comp.setMaterial (myMaterial.clone());
       }

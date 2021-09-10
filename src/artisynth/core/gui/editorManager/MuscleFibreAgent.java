@@ -84,9 +84,9 @@ public class MuscleFibreAgent extends AxialSpringAgent<Muscle> {
       createDisplayFrame ("Add Muscles");
 
       addComponentType (Muscle.class, new String[] 
-         { "excitation" });
+         { "name", "restLength", "excitation" });
 
-      addBasicProps (Muscle.class, new String[] { "maxForce", "muscleType" 
+      addBasicProps (Muscle.class, new String[] { "renderProps", "material" 
          });            
 
       if (myInitializeBundle) {

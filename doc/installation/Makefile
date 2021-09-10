@@ -8,7 +8,11 @@ PDF_TARG = \
    $(PDF_DIR)/windowsInstallation.pdf \
    $(PDF_DIR)/linuxInstallation.pdf \
    $(PDF_DIR)/macosInstallation.pdf \
-   $(PDF_DIR)/quickInstallation.pdf 
+   $(PDF_DIR)/quickInstallation.pdf \
+   $(PDF_DIR)/windowsGitEclipseInstall.pdf \
+   $(PDF_DIR)/macosGitEclipseInstall.pdf \
+   $(PDF_DIR)/linuxGitEclipseInstall.pdf 
+
 
 IMG_FILES = $(wildcard images/*.png images/*.jpg)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
@@ -39,7 +43,7 @@ $(PDF_DIR)/windowsInstallation.pdf: windowsInstallation.pdf
 	cp windowsInstallation.pdf $(PDF_DIR)
 
 windowsInstallation.pdf: $(WIN_SOURCES) $(EPS_FILES)
-	latex $<
+	latex $< >& /dev/null
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) windowsInstallation.ps 
 
@@ -61,7 +65,7 @@ $(PDF_DIR)/linuxInstallation.pdf: linuxInstallation.pdf
 	cp linuxInstallation.pdf $(PDF_DIR)
 
 linuxInstallation.pdf: $(LINUX_SOURCES) $(EPS_FILES)
-	latex $<
+	latex $< &> /dev/null
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) linuxInstallation.ps 
 
@@ -83,7 +87,7 @@ $(PDF_DIR)/macosInstallation.pdf: macosInstallation.pdf
 	cp macosInstallation.pdf $(PDF_DIR)
 
 macosInstallation.pdf: $(MACOS_SOURCES) $(EPS_FILES)
-	latex $<
+	latex $< &> /dev/null
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) macosInstallation.ps 
 
@@ -104,18 +108,27 @@ $(HTML_DIR)/macos/macosInstallationToc.xml: $(HTML_DIR)/macos/macosInstallationT
 $(PDF_DIR)/quickInstallation.pdf: quickInstallation.pdf
 	cp quickInstallation.pdf $(PDF_DIR)
 
+$(PDF_DIR)/macosGitEclipseInstall.pdf: macosGitEclipseInstall.pdf
+	cp macosGitEclipseInstall.pdf $(PDF_DIR)
+
 macosGitEclipseInstall.pdf: macosGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
-	latex $<
+	latex $< &> /dev/null
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) macosGitEclipseInstall.ps
 
+$(PDF_DIR)/windowsGitEclipseInstall.pdf: windowsGitEclipseInstall.pdf
+	cp windowsGitEclipseInstall.pdf $(PDF_DIR)
+
 windowsGitEclipseInstall.pdf: windowsGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
-	latex $<
+	latex $< &> /dev/null
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) windowsGitEclipseInstall.ps
 
+$(PDF_DIR)/linuxGitEclipseInstall.pdf: linuxGitEclipseInstall.pdf
+	cp linuxGitEclipseInstall.pdf $(PDF_DIR)
+
 linuxGitEclipseInstall.pdf: linuxGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
-	latex $<
+	latex $< &> /dev/null
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) linuxGitEclipseInstall.ps
 
@@ -124,7 +137,7 @@ linuxGitEclipseInstall.pdf: linuxGitEclipseInstall.tex gitEclipseInstall.tex $(E
 	rm -rf $(LATEX_JUNK_FILES) $*.ps
 
 quickInstallation.pdf: $(QUICK_SOURCES) $(EPS_FILES)
-	latex $<
+	latex $< &> /dev/null
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) quickInstallation.ps 
 

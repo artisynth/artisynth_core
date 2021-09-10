@@ -137,12 +137,14 @@ public class FrameSpring extends Spring
 
    public FrameSpring (String name) {
       super (name);
+      setRenderProps (createRenderProps());
       setMaterial (createDefaultMaterial());
    }
 
    public FrameSpring (
       String name, double k, double kRot, double d, double dRot) {
       super (name);
+      setRenderProps (createRenderProps());
       setMaterial (new RotAxisFrameMaterial (k, kRot, d, dRot));
       myStiffness = k;
       myDamping = d;
@@ -152,6 +154,7 @@ public class FrameSpring extends Spring
 
    public FrameSpring (String name, FrameMaterial mat) {
       super (name);
+      setRenderProps (createRenderProps());
       setMaterial (mat);
    }
 
@@ -202,7 +205,7 @@ public class FrameSpring extends Spring
 
    /* ======== Renderable implementation ======= */
 
-   protected RenderProps myRenderProps = createRenderProps();
+   protected RenderProps myRenderProps;
 
    public RenderProps getRenderProps() {
       return myRenderProps;

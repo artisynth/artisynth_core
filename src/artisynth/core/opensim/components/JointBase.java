@@ -266,7 +266,7 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
       RigidTransform3d TJP, RigidBody child, RigidTransform3d TJC);
    
    @Override
-   public ModelComponent createComponent (
+   public artisynth.core.mechmodels.JointBase createComponent (
       File geometryPath, ModelComponentMap componentMap) {
       
       // holder for joint and frames

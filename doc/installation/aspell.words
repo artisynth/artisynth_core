@@ -1,5 +1,6 @@
-personal_ws-1.1 en 150 
+personal_ws-1.1 en 156 
 runtime
+numSolverThreads
 cshrc
 showstringspaces
 SCM
@@ -25,12 +26,14 @@ classpath
 macosx
 joe
 cp
-MATLAB
+matlab
 submenu
 CMD
 IDEs
+ArtiSynthConfig
 IntelliJ
 backgroundcolor
+Jython
 jre
 XCode
 mymauve
@@ -71,6 +74,7 @@ tcsh
 mylightgray
 xleftmargin
 artisyntInit
+timeline
 RootModel
 amongst
 stringstyle
@@ -79,6 +83,7 @@ bmaupin
 myproject
 eclipseSettings
 env
+customizations
 multicore
 subpackages
 openssh
@@ -119,6 +124,7 @@ Redbook
 zX
 OMP
 mech
+subfolders
 nonvalidated
 setenv
 sudo

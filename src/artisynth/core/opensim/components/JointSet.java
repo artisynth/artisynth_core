@@ -32,6 +32,7 @@ public class JointSet extends SetBase<JointBase> {
          if (jb == null) {
             System.err.println ("Failed to parse joint " + joint.getName ());
          } else { 
+            componentMap.put (joint, jb);
             joints.add (jb);
          }
          

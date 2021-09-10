@@ -170,7 +170,7 @@ public class IntersectionTester extends ControllerBase {
       }
    }
 
-   //protected RenderProps myRenderProps = null;
+   //protected RenderProps myRenderProps;
 
    public static PropertyList myProps = new PropertyList (
       IntersectionTester.class, ControllerBase.class);

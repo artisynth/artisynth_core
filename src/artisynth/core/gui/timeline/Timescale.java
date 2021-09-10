@@ -212,6 +212,23 @@ public class Timescale extends JSlider {
       return USEC_TO_SEC*timescaleUI.valueForXPosition (pixel);
    }
 
+   public double getTimePerPixel (int zoomLevel) {
+      return USEC_TO_SEC*(MINOR_INCREMENT_IN_UNIT[zoomLevel]/20);
+   }
+
+   /**
+    * Returns the zoom level that best achieves a certain time per pixel.
+    */
+   public int getZoomForTimePerPixel (double timePerPixel) {
+      double usecPerPixel = SEC_TO_USEC*timePerPixel;
+      int zoomLevel = getMaximumZoomLevel();
+      while (zoomLevel > 0 &&
+             MINOR_INCREMENT_IN_UNIT[zoomLevel]/20 < usecPerPixel) {
+         zoomLevel--;
+      }
+      return zoomLevel;
+   }
+
    Graphics[] gbusy = new Graphics[2];
 
    public void paint (Graphics g) {

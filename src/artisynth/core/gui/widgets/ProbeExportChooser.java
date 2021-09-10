@@ -28,27 +28,15 @@ import maspack.properties.*;
  * Chooses the file to export a numeric probe, with extra fields to select the
  * format and whether or not time data should be saved.
  */
-public class ProbeExportChooser extends JFileChooser
+public class ProbeExportChooser extends PanelFileChooser
    implements ActionListener, PropertyChangeListener {
 
    private static final long serialVersionUID = 1L;
 
    ExtensionFileFilter myCurrentFilter;
    Probe myProbe;
-   JPanel myLastPanel;
-   int myPropPanelIndex;
-   PropertyPanel myPropPanel;
    ArrayList<LabeledControl> myControls = new ArrayList<>();
    ArrayList<Object> mySavedValues = new ArrayList<>();
-
-   private int getLastJPanelIndex (Container comp) {
-      for (int i=comp.getComponentCount()-1; i >= 0; i--) {
-         if (comp.getComponent(i) instanceof JPanel) {
-            return i;
-         }
-      }
-      return -1;
-   }   
 
    public void actionPerformed (ActionEvent e) {
       if (e.getActionCommand().equals(JFileChooser.CANCEL_SELECTION)) {
@@ -88,21 +76,22 @@ public class ProbeExportChooser extends JFileChooser
    }
 
    private void updatePropPanel (String extension) {
-      if (myLastPanel != null) {
+      if (panelIsSupported()) {
          restorePropertyValues();
          myControls.clear();
          mySavedValues.clear();
-
-         if (myPropPanel != null) {
-            myLastPanel.remove (myPropPanelIndex);
-            myLastPanel.remove (myPropPanelIndex);
-         }
          ExportProps props = myProbe.getExportProps (extension);
          if (props != null) {
-            PropertyPanel propPanel = new PropertyPanel();
+            PropertyPanel panel = getPropertyPanel();
+            if (panel == null) {
+               panel = createPropertyPanel();
+            }
+            else {
+               panel.removeAllWidgets();
+            }
             for (PropertyInfo info : props.getAllPropertyInfo()) {
                Property prop = props.getProperty (info.getName());
-               LabeledComponentBase widget = propPanel.addWidget (prop);
+               LabeledComponentBase widget = panel.addWidget (prop);
                if (widget != null) {
                   widget.setLabelText (info.getDescription()+": ");
                   if (widget instanceof LabeledControl) {
@@ -112,18 +101,13 @@ public class ProbeExportChooser extends JFileChooser
                   }
                }
             }
-            propPanel.setBorder (
-               BorderFactory.createEtchedBorder (EtchedBorder.LOWERED));  
-
-            myLastPanel.add (propPanel, myPropPanelIndex);
-            myLastPanel.add (new Box.Filler(
-                                new Dimension(1,10),
-                                new Dimension(1,10),
-                                new Dimension(1,10)), myPropPanelIndex);
-            myPropPanel = propPanel;
+         }
+         else {
+            removePropertyPanel();
          }
          validate();
          repaint();
+         GuiUtils.repackComponentWindow (this);
       }
    }
 
@@ -170,12 +154,6 @@ public class ProbeExportChooser extends JFileChooser
       else {
          myCurrentFilter = (ExtensionFileFilter)getFileFilter();
       }
-
-      int lastPanelIndex = getLastJPanelIndex (this);
-      if (lastPanelIndex != -1) {
-         myLastPanel = (JPanel)getComponent(lastPanelIndex);
-         myPropPanelIndex = getLastJPanelIndex (myLastPanel);
-      }
       updatePropPanel (myCurrentFilter.getExtensions()[0]);
    }
 
@@ -201,6 +179,4 @@ public class ProbeExportChooser extends JFileChooser
       }
       GuiUtils.showError (comp, msg.toString());
    }
-   
-
 }

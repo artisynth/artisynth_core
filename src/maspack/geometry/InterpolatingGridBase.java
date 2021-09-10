@@ -86,7 +86,7 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
    protected LinkedHashMap<Color,Integer> myColorMap;
    protected ArrayList<Color> myColors;
    protected int[] myColorIndices;
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
    protected int[] myRenderRanges = null;
 
    protected RenderObject myRob;      // render object used for rendering

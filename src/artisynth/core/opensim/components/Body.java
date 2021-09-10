@@ -188,32 +188,45 @@ public class Body extends PhysicalFrame implements ModelComponentGenerator<Rigid
             Body parentBody = componentMap.findObjectByName (Body.class, joint.getParentBody ());
             RigidBody parentRB = (RigidBody)componentMap.get (parentBody);
             
+            // create and add joint
+            artisynth.core.mechmodels.JointBase jb = 
+               joint.createComponent(geometryPath, componentMap);
+            if (jb != null) {
+               // connect joint within body
+               RenderableComponentList<ModelComponent> j = 
+                  new RenderableComponentList<>(ModelComponent.class, "joint");
+               rb.add (j);
+               j.add (jb);
+            } else {
+               // can this happen?
+               System.out.println ("null joint");
+            }
+            
             // compute body pose
             RigidTransform3d pose = new RigidTransform3d(parentRB.getPose ());
             RigidTransform3d jointToParent = joint.getJointTransformInParent ();
             RigidTransform3d jointToChild = joint.getJointTransformInChild ();
+            // also need TCD in case some default coordinates are not 0
+            RigidTransform3d TCD = new RigidTransform3d();
+            if (jb != null) {
+               jb.getStoredTCD (TCD);
+            }
+            else {
+               // can this happen?
+               TCD.setIdentity();
+            }
             if (joint.getReverse ()) {
                // reverse transform
                pose.mul (jointToChild);
+               pose.mulInverse (TCD);
                pose.mulInverse (jointToParent);
             } else {
                pose.mul (jointToParent);
+               pose.mul (TCD);
                pose.mulInverse (jointToChild);
             }
-            
-            // update pose
             rb.setPose (pose);
-            
-            // create and add joint
-            ModelComponent jb = joint.createComponent(geometryPath, componentMap);
-            if (jb != null) {
-               // connect joint within body
-               RenderableComponentList<ModelComponent> j = new RenderableComponentList<>(ModelComponent.class, "joint");
-               rb.add (j);
-               j.add (jb);
-            } else {
-               System.out.println ("null joint");
-            }
+
          }
       }
          

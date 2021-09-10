@@ -110,7 +110,7 @@ throughout the volume.  Note that we use a \emph{diagonally lumped
 mass matrix} (DLMM) formulation, so the mass is assumed to be
 concentrated at the location of the discretized FEM nodes.  To allow
 for a spatially-varying density, densities can be explicitly set for
-individual elements, or masses can be explicitly set for indiviual
+individual elements, or masses can be explicitly set for individual
 nodes.
 
 The FEM's {\sf material} property is a delegate object used to compute
@@ -1206,7 +1206,7 @@ As in that example, finding the nodes to attach can often be done
 using geometric queries. For example, we often select nodes based on
 how close they are to the other body we wish to attach to.
 
-Various promixity queries are available for this task. To find the
+Various prolixity queries are available for this task. To find the
 distance of a point to a polygonal mesh, we can use the
 following \javaclass[maspack.geometry]{PolygonalMesh} methods,
 %
@@ -2051,7 +2051,7 @@ modulus values will generally produce stability problems.
 
 \begin{sideblock}
 Incompressibility is not currently implemented for shell
-elements. Applying hard incompressibilty to a shell element will have
+elements. Applying hard incompressibility to a shell element will have
 no effect on its behavior. If soft incompressibility is applied,
 by supplying the  element with an incompressible material, then only
 the deviatoric component of that material will have any effect; the
@@ -2277,7 +2277,7 @@ the affected elements.
 Sometimes certain material parameters, such as stiffness quantities or
 direction information, may need to vary across the FEM domain.  While
 sometimes this can be handled by setting material properties for
-specific elements, it may be more convienient to bind the varying
+specific elements, it may be more convenient to bind the varying
 properties to a {\it field}, which can specify varying values over a
 domain composed of either a regular grid or an FEM mesh.  Only one
 material needs to be used, and any properties which are not bound can
@@ -2297,7 +2297,7 @@ that {\it only} the augmenting material(s) are applied.
 
 \item {\bf Adding muscle behaviors using 
 \javaclass[artisynth.core.femmodels]{MuscleBundle}s}. This
-is analagous to using {\tt MaterialBundles}, except that {\tt
+is analogous to using {\tt MaterialBundles}, except that {\tt
 MuscleBundles} are restricted to using an instance of
 a \javaclass[artisynth.core.materials]{MuscleMaterial}, and include
 support for handling the excitation value, as well as the activation
@@ -2401,13 +2401,13 @@ Again, because materials are copied internally, any modification to a
 material {\it after} it has been used as an input to {\tt
 setMaterial()} will {\it not} be noticed by the bundle. Instead, one
 should modify the material {\it before} calling {\tt setMaterial()},
-or modfiy the {\it copied} material which can be obtained by calling
+or modify the {\it copied} material which can be obtained by calling
 {\tt getMaterial()} or by storing the value returned by {\tt
 setMaterial()}.
 
 Finally, a {\tt MuscleBundle} is a renderable component. Setting its
 {\sf elementWidgetSize} property to a value greater than zero will
-cause the renderering of all its elements, using a solid widget
+cause the rendering of all its elements, using a solid widget
 representation of each at a scale controlled by {\sf elementWidgetSize}:
 0.5 for half size, 1.0 for full size, etc. The color of the
 widgets is controlled by the {\sf faceColor} property of the bundle's
@@ -2457,14 +2457,14 @@ The model's {\tt build} method is given below:
 Lines 6-9 create a thin FEM hex sheet, centered on the origin, with
 size $1 \times 1 \times 0.1$ and $10 \times 10 \times 1$ elements
 along each axis. Its material is set to a linear material with a
-Youngs modulus of $10000$. The leftmost nodes are then fixed (lines
+Young's modulus of $10000$. The leftmost nodes are then fixed (lines
 11-16).
 
 Next, a {\tt MuscleBundle} is added and used to apply an additional
 material to the elements near the x axis (lines 19-29). It is given a
 neo-hookean material with a much higher stiffness, and the ``spine''
 elements for it are selected by finding those whose centroids 
-have a $y$ value ithin 0.1 of the x axis.
+have a $y$ value within 0.1 of the x axis.
 
 After the bundle is added, a control panel is created allowing
 interactive control of the materials for both the FEM model and the
@@ -2746,7 +2746,7 @@ within the volumetric mesh.  When modeling muscles, the activation
 direction vector will also typically vary over the mesh.
 
 ArtiSynth provides {\it field} objects which can be used to represent
-such spatialy varying quantities, together with mechanisms to attach
+such spatially varying quantities, together with mechanisms to attach
 these to properties within FEM materials.  Field objects can provide
 either {\it scalar} or {\it vector} fields. Scalar fields
 implement the interface 
@@ -2775,7 +2775,7 @@ domain.
 \begin{sideblock}
 Both {\tt ScalarField} and {\tt VectorField} are subclassed from {\tt
 Field}. The reason for separating scalar and vector fields is simply
-efficency: having scalar fields work with the primitive type {\tt
+efficiency: having scalar fields work with the primitive type {\tt
 double}, instead of the object {\tt Double}, requires considerably
 less storage and somewhat less computational effort.
 \end{sideblock}
@@ -2850,7 +2850,7 @@ referred to by their {\it number}. This is because node and element
 numbers are guaranteed to be {\it persistent}, in the sense that the
 number will remain unchanged as long as the node or element is not
 removed from the FEM model. Element field implementations also need to
-distingish between volumetric and shell elements, since these are each
+distinguish between volumetric and shell elements, since these are each
 numbered independently.
 
 Table \ref{Fields:tab} gives a list of all the currently implemented
@@ -2901,7 +2901,7 @@ specified, it is usually set to 0.
 \begin{sideblock}
 Having a default value also means that explicit values do not have to
 specified at all of the features (e.g., nodes or elements) used to
-define the field. If an explcit value is missing, the default value is
+define the field. If an explicit value is missing, the default value is
 used instead.
 \end{sideblock}
 
@@ -2967,7 +2967,7 @@ specified, a value of 0 will be assumed.
 
 Since it is widely used, the vector type {\tt Vector3d} has its own
 predefined field classes, which don't require parameterization and may
-also contain special methods and features relavant for 3D vectors.  A
+also contain special methods and features relevant for 3D vectors.  A
 {\tt Vector3d} nodal field can be declared and created as follows:
 %
 \begin{lstlisting}[]
@@ -2995,7 +2995,7 @@ Both of these contain size information after the name
 argument: $3 \times 6$ for the matrix field, and 7 for the vector
 field. Again, no default value is specified, so 0 will be assumed.
 
-Lastly, we consider constucting a sub-element field. This is normally
+Lastly, we consider constructing a sub-element field. This is normally
 done when we need precisely computed information at each of the
 element's integration points, and we can't assume that nodal
 interpolation will give an accurate enough approximation. A general
@@ -3049,7 +3049,7 @@ point, these can be obtained as follows:
 \end{lstlisting}
 %
 
-\subsection{Binding to material propertues}
+\subsection{Binding to material properties}
 
 Once a field has been created and added to the model, one may {\it
 bind} it to certain properties of a {\tt FemMaterial}. When this is
@@ -3090,7 +3090,7 @@ Bindable properties export two methods with the signature
 \end{lstlisting}
 %
 where {\tt XXX} is the property name and {\tt T} is an appropriate
-field type. The second arugment, {\tt useRestPos}, is relevant only
+field type. The second argument, {\tt useRestPos}, is relevant only
 for grid fields, and indicates whether the grid should be queried
 using the integration point's {\it rest} position, or current {\it
 spatial} position. For FEM-based fields, this distinction is
@@ -3160,7 +3160,7 @@ an FEM mesh is defined in
 \end{verbatim}
 %
 It consists of a simple thin hexahedral beam with a linear material
-for which the Youngs modulus $E$ is made to vary nonlinearly along the
+for which the Young's modulus $E$ is made to vary nonlinearly along the
 x axis of the rest position according to the formula
 %
 \begin{equation}
@@ -3181,8 +3181,8 @@ The model's {\tt build} method is given below:
 \lstset{numbers=none}
 
 Lines 6-10 create the hex FEM model and shift it so that the left side
-is aligned with the orihin, while lines 12-17 fix the leftmost
-nodes. Lines 21-27 create a scalar nodal field for the Youngs modulus,
+is aligned with the origin, while lines 12-17 fix the leftmost
+nodes. Lines 21-27 create a scalar nodal field for the Young's modulus,
 with lines 23-24 computing $E$ according to (\ref{EFunction:eqn}).
 The field is then bound to a linear material which is then set in the
 model (lined 30-32).

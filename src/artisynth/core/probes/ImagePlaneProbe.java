@@ -33,7 +33,7 @@ import maspack.render.Renderer.FaceStyle;
 
 public class ImagePlaneProbe extends InputProbe implements RenderableComponent,
 TransformableGeometry {
-   protected RenderProps myRenderProps = null;
+   protected RenderProps myRenderProps;
    protected PolygonalMesh planeMesh;
    protected String imageBasename;
    protected String imageFileExt;

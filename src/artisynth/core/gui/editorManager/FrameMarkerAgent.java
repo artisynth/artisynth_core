@@ -91,7 +91,8 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
 
       addComponentType (FrameMarker.class, new String[] { 
             "position", "velocity", "externalForce", "refPos", 
-            "location", "name", "pointDamping", "displacement" });
+            "location", "name", "pointDamping", "displacement",
+            "targetPosition", "targetVelocity", "targetActivity" });
 
       createComponentList (
          "Existing frame markers:", new ComponentListWidget<FrameMarker> (

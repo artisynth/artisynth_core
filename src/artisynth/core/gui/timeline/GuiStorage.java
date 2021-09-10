@@ -43,6 +43,8 @@ public class GuiStorage {
       loadIcon ("StepForward.gif");
    protected static final ImageIcon FAST_FORWARD_ICON =
       loadIcon ("FastForward.gif");
+   protected static final ImageIcon STOP_ALL_ICON =
+      loadIcon ("StopAll.png");
    protected static final ImageIcon SAVE_ALL_PROBES_ICON =
       loadIcon ("Save.gif");
 
@@ -168,6 +170,10 @@ public class GuiStorage {
 
    public static ImageIcon getFastForwardIcon() {
       return FAST_FORWARD_ICON;
+   }
+
+   public static ImageIcon getStopAll() {
+      return STOP_ALL_ICON;
    }
 
    public static ImageIcon getStaticSolveIcon() {

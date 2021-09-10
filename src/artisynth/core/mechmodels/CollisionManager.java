@@ -201,10 +201,23 @@ public class CollisionManager extends RenderableCompositeBase
       /**
        * Experimental collider for continuous collision detection.
        */
-      CONTINUOUS
+      CONTINUOUS;
+
+      // like valueOf() but returns null if no match
+      static public ColliderType fromString (String str) {
+         try {
+            return valueOf (str);
+         }
+         catch (Exception e) {
+            return null;
+         }
+      }
    };
 
-   static ColliderType myDefaultColliderType = ColliderType.TRI_INTERSECTION;
+   static public ColliderType DEFAULT_COLLIDER_TYPE =
+      ColliderType.TRI_INTERSECTION;
+   static ColliderType myDefaultColliderType = DEFAULT_COLLIDER_TYPE;
+
    ColliderType myColliderType = myDefaultColliderType;
    PropertyMode myColliderTypeMode = PropertyMode.Inherited;
 

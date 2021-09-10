@@ -99,9 +99,13 @@ public class RigidBodySolver {
    private boolean componentIsRigidBody (int idx, SparseBlockMatrix M) {
       return M.getBlockRowSize(idx) >= 6;
    }
+   
+   private int numSysComponents() {
+      return mySys.numActiveComponents();
+   }
 
    private void doUpdateStructure (SparseBlockMatrix M, SparseBlockMatrix GT) {
-      int nactive = mySys.numActiveComponents();
+      int nactive = numSysComponents();
       myNumActiveBodies = 0;
       // ci means component index
       for (int ci=0; ci<nactive; ci++) {
@@ -196,7 +200,7 @@ public class RigidBodySolver {
       int bk = 0;
       int bi;
       XTGlobal.setVerticallyLinked (true);
-      int nactive = mySys.numActiveComponents();
+      int nactive = numSysComponents();
       for (int bj=0; bj<XTGlobal.numBlockCols(); bj++) {
          MatrixBlock blkA = null;
          MatrixBlock blkB = null;

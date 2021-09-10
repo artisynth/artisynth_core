@@ -41,6 +41,9 @@ public class MeshBodyEditor extends EditorBase {
                actions.add (this, "Add mesh inspector");
             }
          }
+         if (selection.size() == 2) {
+            actions.add (this, "Register meshes ...");
+         }
       }
    }
 
@@ -70,6 +73,17 @@ public class MeshBodyEditor extends EditorBase {
                RenderProps.setPointStyle (editMesh, Renderer.PointStyle.SPHERE);
                RenderProps.setPointRadius (editMesh, 0.05*size);
                mech.addRenderable (editMesh);
+            }
+         }
+         if (selection.size() == 2) {
+            if (actionCommand == "Register meshes ...") {
+               if (myEditManager.acquireEditLock()) {
+                  MeshComponent mesh1 = (MeshComponent)selection.get(0);
+                  MeshComponent mesh2 = (MeshComponent)selection.get(1);
+                  MeshRegistrationAgent agent =
+                     new MeshRegistrationAgent (myMain, mesh1, mesh2);
+                  agent.show (popupBounds);
+               }
             }
          }
       }

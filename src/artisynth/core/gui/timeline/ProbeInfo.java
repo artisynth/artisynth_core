@@ -922,6 +922,10 @@ public class ProbeInfo implements Clonable, ActionListener {
       // myImportAsItem.addActionListener (this);
       // myImportAsItem.setActionCommand ("Import as");
 
+      JMenuItem myImportAsItem = new JMenuItem ("Import overlay ...");
+      myImportAsItem.addActionListener (this);
+      myImportAsItem.setActionCommand ("Import overlay");
+
       JMenuItem myClearItem = new JMenuItem ("Clear");
       myClearItem.addActionListener (this);
       myClearItem.setActionCommand ("Clear");
@@ -1163,6 +1167,9 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
       else if (nameOfAction == "Export data as") {
          ProbeEditor.exportAs (myProbe, myController);
+      }
+      else if (nameOfAction == "Import overlay") {
+         ProbeEditor.importOverlay (myProbe, myController);
       }
       else if (nameOfAction == "Set") {
          setProbe();

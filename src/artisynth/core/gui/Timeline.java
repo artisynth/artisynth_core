@@ -52,6 +52,9 @@ public abstract class Timeline extends JFrame {
    public abstract boolean loadWayPointsFromAttachedFile(JFrame frame);
    public abstract boolean refreshWayPoints(RootModel root);
    public abstract void clearWayPoints();
+
+   public abstract double getVisibleRange (double sec);
+   public abstract void setVisibleRange (double sec);
    
    public static void setMultipleProbeSelecting (boolean selecting) {
       multipleSelecting = selecting;

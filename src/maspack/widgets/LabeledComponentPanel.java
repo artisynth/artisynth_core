@@ -808,8 +808,6 @@ public class LabeledComponentPanel extends JPanel
     * <p>It is not clear that auto repacking is actually needed or even
     * desirable, since it may result in more "pack" operations than necessary.
     * The feature currently remains in place for legacy reasons.
-    *
-    * @return {@code true} if auto repacking is enabled.
     */
    public void setAutoRepackEnabled (boolean enable) {
       myAutoRepackEnabled = enable;

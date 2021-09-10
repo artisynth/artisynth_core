@@ -156,9 +156,15 @@ AddComponentAgent<C> {
    protected void createDisplay() {
       createDisplayFrame ("Add AxialSprings");
 
-      addComponentType (AxialSpring.class, new String[] {"name"} );
-      addComponentType (Muscle.class, new String[] { "excitation", "name" });
-      addBasicProps (Muscle.class, new String[] { "renderProps", "muscleType"
+      addComponentType (
+         AxialSpring.class, new String[] {"name", "restLength"} );
+      addBasicProps (
+         AxialSpring.class, 
+         new String[] { "renderProps", "material" });
+      addComponentType (
+         Muscle.class, new String[] { "name", "restLength", "excitation" });
+      addBasicProps (
+         Muscle.class, new String[] { "renderProps", "material"
          });
 
       createComponentList ("Existing axial springs:",

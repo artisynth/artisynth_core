@@ -41,6 +41,7 @@ import maspack.matrix.Vector3d;
 import maspack.render.RenderInstances.InstanceTransformType;
 import maspack.util.BinaryOutputStream;
 import maspack.util.NumberFormat;
+import maspack.util.InternalErrorException;
 
 /**
  * "Renders" a scene by writing it to an STL file.  Sequence of events should be:
@@ -294,6 +295,9 @@ public class StlRenderer implements Renderer {
    private static final ColorInterpolation DEFAULT_COLOR_INTERPOLATION =
       ColorInterpolation.RGB;
    private static final int DEFAULT_DEPTH_OFFSET = 0;
+
+   public static double DEFAULT_AXIS_LENGTH_RADIUS_RATIO = 60.0;
+   private double myAxisLengthRadiusRatio = DEFAULT_AXIS_LENGTH_RADIUS_RATIO;
 
    // viewer state
    protected static class ViewState {
@@ -757,6 +761,20 @@ public class StlRenderer implements Renderer {
       return prev;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public double getAxisLengthRadiusRatio() {
+      return myAxisLengthRadiusRatio;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */   
+   public void setAxisLengthRadiusRatio (double ratio) {
+      myAxisLengthRadiusRatio = ratio;
+   }
+
    @Override
    public void drawPoint(Vector3d pnt) {
       drawPoint(pnt.x, pnt.y, pnt.z);
@@ -1142,6 +1160,50 @@ public class StlRenderer implements Renderer {
    public void drawArrow(
       float[] pnt0, float[] pnt1, double rad, boolean capped) {
       drawArrow(toVector(pnt0), toVector(pnt1), rad, capped);
+   }
+
+   @Override
+   public void drawAxes(
+      RigidTransform3d X, AxisDrawStyle style, double len,
+      int width, double rad, boolean highlight) {
+      drawAxes (X, style, new double[] {len, len, len}, width, rad, highlight);
+   }
+
+   private double maxLength (double[] lens) {
+      if (lens[0] > lens[1]) {
+         return (lens[0] > lens[2] ? lens[0] : lens[2]);
+      }
+      else {
+         return (lens[1] > lens[2] ? lens[1] : lens[2]);
+      }
+   }
+
+   @Override
+   public void drawAxes(
+      RigidTransform3d X, AxisDrawStyle style, double[] lens,
+      int width, double rad, boolean highlight) {
+
+      switch (style) {
+         case OFF: {
+            // draw nothing
+            break;
+         }
+         case LINE: {
+            drawAxes (X, lens, width, highlight);
+            break;
+         }
+         case ARROW: {
+            if (rad <= 0) {
+               rad = maxLength(lens)/myAxisLengthRadiusRatio;
+            }
+            drawSolidAxes (X, lens, rad, highlight);
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented AxisDrawStyle " + style);
+         }
+      }
    }
 
    @Override

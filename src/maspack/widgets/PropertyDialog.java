@@ -36,8 +36,8 @@ public class PropertyDialog extends JDialog implements ActionListener,
    protected int myReturnValue = JOptionPane.NO_OPTION;
    // private LinkedList<PropertyWindowBase> myChildren;
    // private PropertyWindowBase myParent;
-   HostList myHostList;
-   PropTreeCell myTree;
+   protected HostList myHostList;
+   protected PropTreeCell myTree;
 
    private boolean myLiveUpdatingEnabled = true;
 
@@ -247,20 +247,13 @@ public class PropertyDialog extends JDialog implements ActionListener,
          dispose();
       }
       else if (actionCmd.equals ("Reset")) {
-         System.out.println ("reset");
-         if (myHostList != null) {
-            myHostList.restoreBackupValues();
-            myHostList.getCommonValues (myTree, /* live= */true);
-            fireGlobalValueChangeListeners();
-         }
+         // "Reset" option does not appear to be used currently.
+         // XXX do we want to update widget values too?
+         resetValues();
       }
       else if (actionCmd.equals ("Cancel")) {
          myReturnValue = OptionPanel.CANCEL_OPTION;
-         //System.out.println ("host list=" + myHostList);
-         if (myHostList != null) {
-            myHostList.restoreBackupValues();
-            fireGlobalValueChangeListeners();
-         }
+         restoreValues();
          setVisible (false);
          dispose();
       }
@@ -271,6 +264,21 @@ public class PropertyDialog extends JDialog implements ActionListener,
       }
       else {
          throw new InternalErrorException ("Unknown action: " + actionCmd);
+      }
+   }
+
+   public void restoreValues() {
+      if (myHostList != null) {
+         myHostList.restoreBackupValues();
+         fireGlobalValueChangeListeners();
+      }
+   }
+
+   public void resetValues() {
+      if (myHostList != null) {
+         myHostList.restoreBackupValues();
+         myHostList.getCommonValues (myTree, /* live= */true);
+         fireGlobalValueChangeListeners();
       }
    }
 

@@ -13,6 +13,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.AxisDrawStyle;
 
 public class PlanarJointDemo extends RootModel {
 
@@ -59,7 +60,7 @@ public class PlanarJointDemo extends RootModel {
 
       // set rendering properties
       joint.setAxisLength (0.5*size); // draw frame C
-      joint.setDrawFrameC (Frame.AxisDrawStyle.ARROW);
+      joint.setDrawFrameC (AxisDrawStyle.ARROW);
       joint.setShaftLength (0.4*size); // draw the shaft
       joint.setShaftRadius (0.02*size);
       RenderProps.setFaceColor (joint, Color.BLUE); // set colors

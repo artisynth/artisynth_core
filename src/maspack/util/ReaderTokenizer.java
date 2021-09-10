@@ -2408,4 +2408,53 @@ public class ReaderTokenizer {
    public String lastCommentLine () {
       return myLastCommentLine;      
    }
+
+   /**
+    * Add escape sequences into a string such that it can be parsed as a quoted
+    * string by this tokenizer. Characters that are escapsed include the
+    * standard Java escape characters:
+    * <pre>
+    * \\ \t \b \n \r \f 
+    * </pre>
+    * plus the quote charater.
+    * 
+    * @oaram str string to add escape sequences to
+    * @param quoteChar quote character that will be used to quote
+    * the string (since this will also need to be escaped)
+    * @return escaped string
+    */
+   public static String escapeString (String str, char quoteChar) {
+      StringBuilder sb = new StringBuilder();
+      for (int i=0; i<str.length(); i++) {
+         char c = str.charAt(i);
+         if (c == '\\') {
+            sb.append ("\\\\");
+         }
+         else if (c == '\t') {
+            sb.append ("\\t");
+         }
+         else if (c == '\b') {
+            sb.append ("\\b");
+         }
+         else if (c == '\r') {
+            sb.append ("\\r");
+         }
+         else if (c == '\n') {
+            sb.append ("\\n");
+         }
+         else if (c == '\f') {
+            sb.append ("\\f");
+         }
+         else if (c == quoteChar) {
+            sb.append ('\\');
+            sb.append (quoteChar);
+         }
+         else {
+            sb.append (c);
+         }
+      }
+      return sb.toString();
+   }
 }
+
+

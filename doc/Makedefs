@@ -92,7 +92,7 @@ endef
 # Builds a PDF file. Assumes that first prerequisite is the primary .tex file
 #
 define BUILD_PDF
-	latex $<
+	latex $< &> /dev/null
 	latex $<
 	dvips -j0 $(basename $@)
 	$(FIX_POSTSCRIPT_OUTPUT) --out _tmp_.ps $(basename $@).ps

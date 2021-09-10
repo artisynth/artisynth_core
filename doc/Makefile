@@ -9,7 +9,7 @@ SUBDIRS = \
 	documentation \
 	developer \
 	maspack \
-        matlabAndJython \
+        matlab \
 	modelguide \
         artisynth \
 	uiguide \

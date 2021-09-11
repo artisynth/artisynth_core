@@ -13,18 +13,17 @@
 \input{artisynthDoc}
 %\input{mathdefs}
 
-\begin{document}
-
 \setcounter{tocdepth}{5}
 \setcounter{secnumdepth}{3}
 
 \title{Interfacing ArtiSynth to MATLAB}
 \author{John Lloyd}
 \setpubdate{Last update: Aug 9, 2016}
-
 \iflatexml
 \date{}
 \fi
+
+\begin{document}
 
 \maketitle
 
@@ -49,9 +48,7 @@ simulation completes or while it is in progress. It is also possible
 to connect ArtiSynth to an external MATLAB process, which can then be
 used for preparing simulation input or analyzing output.
 
-\section{Interfacing to MATLAB}
-
-\subsection{Requirements and configuration}
+\section{Requirements and configuration}
 \label{Requirements:sec}
 
 The current version of ArtiSynth has been tested to run with MATLAB
@@ -121,7 +118,7 @@ within MATLAB. See Section \ref{ModelClasspath:sec} for details.
 
 \end{enumerate}
 
-\subsection{Starting ArtiSynth} 
+\section{Starting ArtiSynth} 
 
 Once your environment is set up, you should be able to start MATLAB
 and then run ArtiSynth by executing the MATLAB command
@@ -204,7 +201,7 @@ ArtiSynth instances within MATLAB, although that may change in the
 future.
 \end{sideblock}
 
-\subsection{Querying ArtiSynth structures and models}
+\section{Querying ArtiSynth structures and models}
 \label{MatlabQuerying:sec}
 
 Through the ArtiSynth handle, it is possible to access most of the
@@ -407,7 +404,7 @@ supplied data array must equal the current size of the probe's data
 vector.
 \end{sideblock}
 
-\subsection{Scripting commands}
+\section{Scripting commands}
 \label{MatlabScripting:sec}
 
 The {\tt ArtisynthHandle} object contains a number of methods that
@@ -483,7 +480,7 @@ target position of point {\tt p1} directly in MATLAB:
 The call to {\tt pause()} in the above code simply slows down the
 simulation so that it appears to run in real time.
 
-\subsection{Java memory limits}
+\section{Java memory limits}
 \label{memoryLimits:sec}
 
 ArtiSynth applications often require a large amount of memory,
@@ -533,7 +530,7 @@ More details are given in
 \href{http://www.mathworks.com/support/solutions/en/data/1-18I2C}
 {www.mathworks.com/support/solutions/en/data/1-18I2C}.
 
-\subsection{Setting the classpath for ArtiSynth}
+\section{Setting the classpath for ArtiSynth}
 \label{ArtisynthClasspath:sec}
 
 Before running ArtiSynth under MATLAB, it is necessary to ensure that
@@ -576,7 +573,7 @@ For more details on using {\tt javaclasspath.txt}, see\\
 
 \end{enumerate}
 
-\subsection{Setting the classpath for models}
+\section{Setting the classpath for models}
 \label{ModelClasspath:sec}
 
 Usually, ArtiSynth applications involve the use of models or packages
@@ -622,7 +619,7 @@ The added classes may also not be visible to ArtiSynth instances
 created by subsequent invocations of {\tt artisynth()}.
 \end{sideblock}
 
-\subsection{Connecting to an external MATLAB process}
+\section{Connecting to an external MATLAB process}
 
 In addition to being able to run ArtiSynth from within MATLAB, it is
 also possible to create a connection between ArtiSynth and an
@@ -704,7 +701,7 @@ NumericProbeBase.getMatlabName()} (described above) is used.  The
 functions {\tt oprobeToMatlab()} and {\tt oprobeFromMatlab()} do the
 same thing for output probes.
 
-\subsection{Managing an external MATLAB connection from code}
+\section{Managing an external MATLAB connection from code}
 \label{MatlabFromCode:sec}
 
 The MATLAB connection is associated, internally, with a structure
@@ -813,7 +810,6 @@ MATLAB:
    SparseMatrix K = ...
    mi.objectToMatlab (K, "KMAT");
 \end{lstlisting}
-
 
 \section{Summary of scripting functions}
 \label{ScriptingMethods:sec}

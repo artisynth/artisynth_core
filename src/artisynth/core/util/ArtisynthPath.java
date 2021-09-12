@@ -369,6 +369,25 @@ public class ArtisynthPath {
       }
       return myHomeDir;
    }
+   
+   /**
+    * Returns the user's home folder, or {@code null} if this cannot
+    * be found.
+    * 
+    * @return user's home folder, or {@code null}
+    */
+   public static File getUserHomeFolder() {
+      String userhome;
+      if ((userhome=System.getProperty ("user.home")) != null) {
+         return new File(userhome);
+      }
+      else if ((userhome=System.getenv ("HOME")) != null) {
+         return new File(userhome);
+      }
+      else {
+         return null;
+      }
+   }
 
    /**
     * Returns the Artisynth home directory, as specified by the ARTISYNTH_HOME
@@ -888,12 +907,9 @@ public class ArtisynthPath {
     */
    public static FileSearchPath createDefaultSearchPath() {
       FileSearchPath path = new FileSearchPath();
-      String userhome;
-      if ((userhome=System.getProperty ("user.home")) != null) {
-         path.addDirectory (new File(userhome));
-      }
-      else if ((userhome=System.getenv ("HOME")) != null) {
-         path.addDirectory (new File(userhome));
+      File userHomeDir = getUserHomeFolder();
+      if (userHomeDir != null) {
+         path.addDirectory (userHomeDir);
       }
       path.addDirectory (new File(getHomeDir()));
       return path;
@@ -1098,12 +1114,12 @@ public class ArtisynthPath {
     */
    private static void autoSetConfigFolder() {
       myConfigDir = null;
-      String userHomeDir = System.getProperty ("user.home");
+      File userHomeDir = getUserHomeFolder();
       if (userHomeDir == null) {
          System.out.println (
-            "WARNING: home folder not found via system property "+
-            "\"user.home\"; unable to locate user config folder");
-         return;
+            "WARNING: user home folder not found; "+
+            "unable to locate user config folder");
+         return;         
       }
       File configDir = new File (userHomeDir, "ArtiSynthConfig");
       if (!configDir.exists()) {

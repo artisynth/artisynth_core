@@ -136,6 +136,7 @@ public class WidgetDialog extends JDialog
    }
 
    private void doDone() {
+      myRetValue = OptionPanel.CANCEL_OPTION;      
       if (myIgnoreValidator != null) {
          String errMsg = myIgnoreValidator.validateSettings (myPanel);
          if (errMsg != null) {
@@ -163,6 +164,7 @@ public class WidgetDialog extends JDialog
          doDone();
       }
       else if (cmd.equals ("Cancel")) {
+         myRetValue = OptionPanel.CANCEL_OPTION;
          setVisible (false);
          if (getDefaultCloseOperation() == DISPOSE_ON_CLOSE) {
             dispose();

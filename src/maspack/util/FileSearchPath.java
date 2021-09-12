@@ -96,9 +96,12 @@ public class FileSearchPath {
    }
    
    /**
-    * Find the path for a file. If the file can be expressed
-    * relative to one of the search path directories, return
-    * the relative path. Otherwise, return the absolute path.
+    * Find the path for a file. If the file can be expressed relative to one of
+    * the search path directories, return the relative path. Otherwise, return
+    * the absolute path.
+    *
+    * <p>In case the file can be expressed relative to more than one of the
+    * search path directories, the shortest relative path is returned.
     * 
     * @param file file to find the path for
     * @return file path, either absolute or relative to one
@@ -107,6 +110,7 @@ public class FileSearchPath {
    public String findPath (File file) {
       if (file.isAbsolute()) {
          String path = file.getAbsolutePath();
+         String minpath = null;
          for (File dir : myDirs) {
             String dirPath;
             if (dir.getName().equals (".")) {
@@ -116,8 +120,19 @@ public class FileSearchPath {
                dirPath = dir.getAbsolutePath();
             }
             if (path.startsWith (dirPath)) {
-               return path.substring(dirPath.length());
+               int dlen = dirPath.length();
+               // make sure we are also at a file separator
+               if (path.length() > dlen+1 && 
+                   path.charAt(dlen) == File.separatorChar) { 
+                  String relpath = path.substring(dlen+1);
+                  if (minpath == null || relpath.length() < minpath.length()) {
+                     minpath = relpath;
+                  }
+               }
             }
+         }
+         if (minpath != null) {
+            return minpath;
          }
       }
       else {

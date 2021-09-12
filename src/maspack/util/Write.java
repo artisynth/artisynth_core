@@ -350,52 +350,7 @@ public class Write {
     * String to be converted to quoted format
     */
    public static String getQuotedString (String s) {
-      StringBuffer sbuf = new StringBuffer (2 * s.length());
-
-      sbuf.append ('"');
-      for (int i = 0; i < s.length(); i++) {
-         char c = s.charAt(i);
-         switch (c) {
-            case '\b': {
-               sbuf.append ("\\b");
-               break;
-            }
-            case '\t': {
-               sbuf.append ("\\t");
-               break;
-            }
-            case '\n': {
-               sbuf.append ("\\n");
-               break;
-            }
-            case '\f': {
-               sbuf.append ("\\f");
-               break;
-            }
-            case '\r': {
-               sbuf.append ("\\r");
-               break;
-            }
-            case '\\': {
-               sbuf.append ("\\\\");
-               break;
-            }
-            case '"': {
-               sbuf.append ("\\\"");
-               break;
-            }
-            default: {
-               if (c <= 0x1f || c >= 0x7f) {
-                  sbuf.append ("\\" + Integer.toOctalString (c));
-               }
-               else {
-                  sbuf.append (c);
-               }
-            }
-         }
-      }
-      sbuf.append ('"');
-      return sbuf.toString();
+      return ReaderTokenizer.getQuotedString (s, '"');
    }
    
    public static void writeFont(PrintWriter pw, Font font) {

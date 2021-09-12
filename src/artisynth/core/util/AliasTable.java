@@ -37,7 +37,19 @@ public class AliasTable {
     */
    public AliasTable (File file) throws IOException {
       super();
-      read (new FileInputStream (file));
+      FileInputStream is = null;
+      try {
+         is = new FileInputStream (file);
+         read (is);
+      }
+      catch (Exception e) {
+         throw e;
+      }
+      finally {
+         if (is != null) {
+            is.close();
+         }
+      }
    }
 
    /**
@@ -50,7 +62,19 @@ public class AliasTable {
     */
    public AliasTable (URL url) throws IOException {
       super();
-      read (url.openStream());
+      InputStream is = null;
+      try {
+         is = url.openStream();
+         read (is);
+      }
+      catch (Exception e) {
+         throw e;
+      }
+      finally {
+         if (is != null) {
+            is.close();
+         }
+      }
    }
 
    /**
@@ -115,10 +139,20 @@ public class AliasTable {
    }
 
    public void write (String fileName) throws IOException {
-      PrintWriter pw = new PrintWriter (
-         new BufferedWriter (new FileWriter (fileName)));
-      write (pw);
-      pw.close();
+      PrintWriter pw = null;
+      try {
+         pw = new PrintWriter (
+            new BufferedWriter (new FileWriter (fileName)));
+         write (pw);
+      }
+      catch (Exception e) {
+         throw e;
+      }
+      finally {
+         if (pw != null) {
+            pw.close();
+         }
+      }
    }
 
    /**

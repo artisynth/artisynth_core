@@ -600,8 +600,8 @@ public class PathFinder {
     * @param pathname path name of the file to find base name for
     * @return base file name
     */
-   public static String getBaseName (String pathName) {
-      return getBaseName (new File(pathName));
+   public static String getBaseName (String pathname) {
+      return getBaseName (new File(pathname));
    }
 
 }

@@ -2419,7 +2419,7 @@ public class ReaderTokenizer {
     * plus the quote charater.  Any other character {@code <=} 0x1f
     * or {@code >=} 0x7f is written by a backslashed octal number.
     * 
-    * @oaram str string to add escape sequences to
+    * @param str string to add escape sequences to
     * @param quoteChar quote character for the string
     * @return escaped string
     */

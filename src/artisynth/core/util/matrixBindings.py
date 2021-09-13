@@ -11,7 +11,6 @@ from maspack.solvers import *
 from artisynth.core.mechmodels import *
 from artisynth.core.mechmodels.MechSystemSolver import Integrator
 from artisynth.core.mechmodels.MechSystemSolver import PosStabilization
-from artisynth.core.mechmodels import *
 from artisynth.core.femmodels import *
 # need to explicitly import FemModel3d; not sure why - maybe Jython
 # can't grok lambdas?

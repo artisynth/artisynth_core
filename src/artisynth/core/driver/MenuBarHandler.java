@@ -8,6 +8,8 @@ package artisynth.core.driver;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.Window;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -15,16 +17,17 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.URI;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.Map.Entry;
+import java.util.List;
 
-import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
@@ -35,17 +38,23 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JFrame;
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
+import javax.swing.SwingWorker;
 import javax.swing.JToolBar;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.plaf.basic.DefaultMenuLayout;
 
+import artisynth.core.driver.ModelScriptHistory.ModelScriptHistoryInfo;
+import artisynth.core.driver.ModelScriptInfo.InfoType;
 import artisynth.core.gui.ControlPanel;
+import artisynth.core.gui.ExtClassPathEditor;
 import artisynth.core.gui.editorManager.Command;
 import artisynth.core.gui.editorManager.ProbeEditor;
 import artisynth.core.gui.editorManager.RemoveComponentsCommand;
@@ -55,6 +64,7 @@ import artisynth.core.gui.probeEditor.OutputNumericProbeEditor;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.timeline.GuiStorage;
 import artisynth.core.gui.widgets.ImageFileChooser;
+import artisynth.core.gui.widgets.ProgressFrame;
 import artisynth.core.inverse.InverseManager;
 import artisynth.core.inverse.TrackingController;
 import artisynth.core.mechmodels.MechModel;
@@ -62,62 +72,73 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.HasMenuItems;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelmenu.ArtisynthModelMenu;
-import artisynth.core.modelmenu.ModelActionEvent;
-import artisynth.core.modelmenu.ModelActionListener;
+import artisynth.core.modelmenu.*;
+import artisynth.core.modelmenu.LoadModelDialog;
+import artisynth.core.modelmenu.ModelScriptActionEvent;
+import artisynth.core.modelmenu.ModelScriptActionForwarder;
+import artisynth.core.modelmenu.ModelScriptActionListener;
+import artisynth.core.modelmenu.ModelScriptMenuEditor;
+import artisynth.core.modelmenu.PreferencesEditor;
+import artisynth.core.modelmenu.ScriptDialogBase.ScriptDesc;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.TracingProbe;
 import artisynth.core.probes.WayPointProbe;
-import artisynth.core.util.AliasTable;
 import artisynth.core.util.ArtisynthPath;
-import artisynth.core.util.ExtensionFileFilter;
 import artisynth.core.util.JythonInit;
+import artisynth.core.util.AliasTable;
 import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RootModel;
-import maspack.properties.HasProperties;
+import maspack.properties.*;
 import maspack.properties.PropertyUtils;
+import maspack.render.GridPlane;
 import maspack.render.RenderListener;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer.HighlightStyle;
 import maspack.render.RendererEvent;
-import maspack.render.GridPlane;
+import maspack.render.Viewer;
 import maspack.render.GL.GLViewer;
 import maspack.solvers.PardisoSolver;
-import maspack.util.ClassFinder;
-import maspack.util.FunctionTimer;
 import maspack.util.GenericFileFilter;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
-import maspack.widgets.AutoCompleteStringField;
 import maspack.widgets.ButtonCreator;
 import maspack.widgets.DoubleField;
 import maspack.widgets.GridDisplay;
 import maspack.widgets.GuiUtils;
-import maspack.widgets.MouseSettingsDialog;
+//import maspack.widgets.MouseSettingsDialog;
 import maspack.widgets.OptionPanel;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.PropertyPanel;
 import maspack.widgets.RenderPropsDialog;
-import maspack.widgets.StringField;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
 import maspack.widgets.ValueCheckListener;
 import maspack.widgets.ViewerToolBar;
-import maspack.widgets.WidgetDialog;
+import maspack.util.*;
 
 /**
  * to create a class that handles the main menu interactions responds to the
  * events and calls appropriate functions to deal with the events
  * 
  */
-
 public class MenuBarHandler implements 
 ActionListener, ValueChangeListener, SchedulerListener, RenderListener,
-ModelActionListener {
+ModelScriptActionListener {
    private Main myMain;
    private MainFrame myFrame;
 
-   protected ArtisynthModelMenu myModelsMenuGenerator;  // generates models menu
+   protected ModelScriptMenu myModelMenu;  // model menu
+   protected File myModelMenuFile; // file from which model menu was read
+   protected ModelScriptMenuEditor myModelMenuEditor;  // edits the model menu
+
+   protected ModelScriptMenu myScriptMenu;  // script menu
+   protected File myScriptMenuFile; // file from which script menu was read
+   protected ModelScriptMenuEditor myScriptMenuEditor;  // edits the script menu
+
+   protected PreferencesEditor myPreferencesEditor;  // edits preferences
+   protected ExtClassPathEditor myExtClassPathEditor; // edits external class path
+   //protected ScriptPathEditor myScriptPathEditor; // edits script path
+   protected StartupModelEditor myStartupModelEditor; // edits startup model
 
    public static final int MAX_MENU_ROWS = 20; // change to grid layout if larger
 
@@ -132,15 +153,15 @@ ModelActionListener {
    protected JButton playButton;
    protected JButton singleStepButton;
    protected JButton forwardButton;
+   protected JButton stopButton;
    // initialized in 
    protected Color defaultButtonBackground;
    protected Border defaultButtonBorder;
 
-   protected JMenuItem[] scriptMenuItems;
+   // protected JMenu myScriptMenu;
 
    protected JToolBar modeSelectionToolbar = null;
    protected JPanel toolbarPanel;
-   protected VerticalGridLayout menuGrid;
    protected GridDisplay myGridDisplay;
    protected ViewerToolBar myViewerToolBar;
    protected DoubleField myTimeDisplay;
@@ -153,11 +174,24 @@ ModelActionListener {
    protected JMenu myApplicationMenu;
    protected boolean myApplicationMenuAddedP = false;
 
-   private boolean isTimelineVisible = false;
    private boolean isToolbarVisible = true;
 
    private RenderPropsDialog myPullControllerRenderPropsDialog;
    private PropertyDialog myPullControllerPropertyDialog;
+   private MouseSettingsDialog myMouseSettingsDialog;
+   private SettingsDialog myViewerSettingsDialog;
+   private SettingsDialog mySimulationSettingsDialog;
+   private SettingsDialog myInteractionSettingsDialog;
+   private LoadModelDialog myLoadModelDialog;
+   private RunScriptDialog myRunScriptDialog;
+
+   private JFrame myArtisynthInfoFrame;
+   private JFrame myModelInfoFrame;
+   private JFrame myKeyBindingInfoFrame;
+
+   private ModelScriptInfo myLastSelectedModel = null;
+
+   private ModelScriptInfo myLastSelectedScript = null;
 
    public MenuBarHandler (Main parent, MainFrame theFrame) {
       myMain = parent;
@@ -168,6 +202,34 @@ ModelActionListener {
       attachToolbar();
    }
 
+   /**
+    * Returns the selected file from a file chooser, with redundant "." parent
+    * folders stripped away.
+    */
+   static File getSelectedFile (JFileChooser chooser) {
+      File file = chooser.getSelectedFile();
+      if (file != null) {
+         File parent = file.getParentFile();
+         if (parent != null && parent.getName().equals(".")) {
+            file = new File (parent.getParent(), file.getName());
+         }
+      }
+      return file;
+   }
+
+//   class ScriptAction implements ActionListener {
+//      String myScript;
+//
+//      ScriptAction (String script) {
+//         myScript = script;
+//      }
+//
+//     @Override
+//     public void actionPerformed (ActionEvent e) {
+//        runScript (myScript);
+//     }
+//   }
+
    protected JRadioButtonMenuItem makeRadioMenuItem(String name, String cmd) {
       JRadioButtonMenuItem item = new JRadioButtonMenuItem(name);
       item.addActionListener(this);
@@ -175,20 +237,22 @@ ModelActionListener {
       return item;
    }
 
-   protected JMenuItem makeMenuItem(String name, String cmd) {
+   protected JMenuItem makeMenuItem (String name, String cmd) {
       JMenuItem item = new JMenuItem(name);
       item.addActionListener(this);
       item.setActionCommand(cmd);
       return item;
    }
 
-   boolean isScriptMenuItem(Object comp) {
-      for (int i = 0; i < scriptMenuItems.length; i++) {
-         if (scriptMenuItems[i] == comp) {
-            return true;
-         }
+   protected JMenuItem makeMenuItem(String name, String cmd, String tip) {
+      JMenuItem item = new JMenuItem(name);
+      item.addActionListener(this);
+      if (cmd == null) {
+         cmd = name;
       }
-      return false;
+      item.setActionCommand(cmd);
+      item.setToolTipText(tip);
+      return item;
    }
 
    boolean isApplicationMenuEnabled() {
@@ -219,6 +283,45 @@ ModelActionListener {
       }
    }
 
+   void updateModelMenu (JMenu menu) {
+      int endItemCnt = 3; // num special menu items after the separator
+      boolean hasEditItem = !myModelMenu.isSimple();
+      if (hasEditItem) {
+         endItemCnt++;
+      }
+      
+      // disable/enable "Reload model" depending on whether a model is loaded
+      JMenuItem item = menu.getItem (menu.getItemCount()-endItemCnt);
+      item.setEnabled(myMain.modelIsLoaded());
+      // Update "Load recent ..." submenu
+      JMenu recentMenu = (JMenu)menu.getItem (menu.getItemCount()-endItemCnt+1);
+      updateRecentMenu (
+         recentMenu, "loadModel", InfoType.CLASS, InfoType.FILE);
+      if (hasEditItem) {
+         // disable/enable "Edit menu ..." depending on whether editor is open
+         item = menu.getItem (menu.getItemCount()-1);
+         item.setEnabled (!isWindowOpen (myModelMenuEditor));
+      }
+   }
+
+   void updateScriptMenu (JMenu menu) {
+      int endItemCnt = 2; // num special menu items after the separator
+      boolean hasEditItem = !myScriptMenu.isSimple();
+      if (hasEditItem) {
+         endItemCnt++;
+      }
+      
+      // Update "Run recent ..." submenu
+      JMenu recentMenu = (JMenu)menu.getItem (menu.getItemCount()-endItemCnt);
+      updateRecentMenu (
+         recentMenu, "runScript", InfoType.SCRIPT);
+      if (hasEditItem) {
+         // disable/enable "Edit menu ..." depending on whether editor is open
+         JMenuItem item = menu.getItem (menu.getItemCount()-1);
+         item.setEnabled (!isWindowOpen (myScriptMenuEditor));
+      }
+   }
+
    /**
     * creates menu items
     */
@@ -231,7 +334,7 @@ ModelActionListener {
 
       // File menu
       JMenu menu = new JMenu("File");
-      menu.addMenuListener(new MenuListener() {
+      menu.addMenuListener(new MenuListener() { 
          public void menuCanceled(MenuEvent m_evt) {
          }
 
@@ -243,19 +346,41 @@ ModelActionListener {
          public void menuSelected(MenuEvent m_evt) {
             createFileMenu((JMenu)m_evt.getSource());
          }
-      });
+     });
 
       myMenuBar.add(menu);
 
-      // Create the menu with models (taken from .demoModels)
+      // Create the model menu
       menu = new JMenu("Models");
-      myMenuBar.add(menu);
-      createDemosMenu(menu);
+      menu.addMenuListener(new MenuListener() {
+         public void menuCanceled(MenuEvent m_evt) {
+         }
 
-      menu = createScriptsMenu("Scripts");
-      if (menu != null) {
-         myMenuBar.add(menu);
-      }
+         public void menuDeselected(MenuEvent m_evt) {
+         }
+
+         public void menuSelected(MenuEvent m_evt) {
+            updateModelMenu((JMenu)m_evt.getSource());
+         }
+      });
+      myMenuBar.add(menu);
+      createModelMenu(menu);
+
+      // Create the scripts menu
+      menu = new JMenu("Scripts");
+      menu.addMenuListener(new MenuListener() {
+         public void menuCanceled(MenuEvent m_evt) {
+         }
+
+         public void menuDeselected(MenuEvent m_evt) {
+         }
+
+         public void menuSelected(MenuEvent m_evt) {
+            updateScriptMenu((JMenu)m_evt.getSource());
+         }
+      });
+      myMenuBar.add(menu);
+      createScriptMenu(menu);
 
       // "Edit" menu:
       menu = new JMenu("Edit");
@@ -346,14 +471,12 @@ ModelActionListener {
       });
       myApplicationMenu = menu;
 
-      //myFrame.setJMenuBar(myMenuBar);
-
       // Adding iconic buttons
       // Create a space separator
       // height makes space for GridDisplay box
       myMenuBar.add(Box.createRigidArea(new Dimension(20, 28)));
       // Create navigation bar button
-      if (myFrame.getNavPanel().getStatus()) {
+      if (myFrame.getNavPanel().isExpanded()) {
          navBarButton = ButtonCreator.createIconicButton(
             GuiStorage.getNavBarIcon(),
             "Hide NavPanel", "Hide navigation panel", 
@@ -388,10 +511,6 @@ ModelActionListener {
       myToolBar.add(rerenderButton);
 
       myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
-//      realtimeEnabledIcon =
-//         GuiUtils.loadIcon(ControlPanel.class, "icon/checkedClock.png");
-//      realtimeDisabledIcon =
-//         GuiUtils.loadIcon(ControlPanel.class, "icon/uncheckedClock.png");
       realtimeButton = ButtonCreator.createIconicButton(
          GuiUtils.loadIcon(ControlPanel.class, "icon/clock.png"),
          "Disable real-time", "Enables real-time simulation when pressed", 
@@ -410,7 +529,6 @@ ModelActionListener {
 
       myStepDisplay = createStepDisplay();
       myToolBar.add(myStepDisplay);
-      // myToolBar.add (Box.createRigidArea (new Dimension (4, 0)));
 
       myTimeDisplay = createTimeDisplay();
       myToolBar.add(myTimeDisplay);
@@ -458,164 +576,93 @@ ModelActionListener {
       myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
       forwardButton.setEnabled (false);
 
+      // Create stop button
+      stopButton = ButtonCreator.createIconicButton(
+         GuiStorage.getStopAll(),
+         "Stop all", "Stop simulation and all Jython commands and scripts",
+         ButtonCreator.BUTTON_ENABLED, false, this);
+
+      myToolBar.add(stopButton);
+      myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
+      stopButton.setEnabled (true);
+
       // Set the menu bar
       myFrame.setJMenuBar(myMenuBar);
       myFrame.add(myToolBar, BorderLayout.NORTH);
    }
 
-   private JMenu createScriptsMenu(String title) {
-
-      String[] scriptNames = myMain.getScriptNames();
-      scriptMenuItems = new JMenuItem[scriptNames.length];
-      JMenu menu = null;
-      if (scriptNames.length != 0) {
-         menu = new JMenu(title);
-         VerticalGridLayout scriptGrid = new VerticalGridLayout(20, 0);
-         menu.getPopupMenu().setLayout(scriptGrid);
-
-         for (int i = 0; i < scriptNames.length; i++) {
-            JMenuItem item = makeMenuItem(scriptNames[i], scriptNames[i]);
-            item.setToolTipText(myMain.getScriptName(scriptNames[i]));
-            menu.add(item);
-            scriptMenuItems[i] = item;
-         }
-
-         // separator before load
-         menu.add(new JSeparator());
-
-      } else {
-         menu = new JMenu(title); // empty
-      }
-
-      // load from file dialog
-      JMenuItem loadItem = makeMenuItem("Load script...", "load script from file");
-      menu.add(loadItem);
-
-      return menu;
+   /**
+    * For debugging only
+    */
+   public JMenuBar getMenuBar() {
+      return myMenuBar;
    }
 
-   /**
-    * Reads the demo menu stuff
-    */
-   public ArtisynthModelMenu readDemoMenu(String filename) {
+   private File readModelOrScriptMenu (
+      ModelScriptMenu menu, String altFileName, String altOption) {
 
-      // if no file specified, exit
-      if (filename==null || filename.equals("")) {
-         return null;
-      } 
-      ArtisynthModelMenu modelsMenu = null;
-      File file = ArtisynthPath.findFile(filename);
-      if (file == null) {
-         System.out.println ("Warning: demosMenuFile '" + filename + "' not found");
+      File menuFile = null;
+      if (altFileName != null) {
+         menuFile = new File (altFileName);
+         if (!menuFile.canRead()) {
+            System.out.println (
+               "WARNING: can't find or read file specified by "+
+               "'"+altOption+"': " + menuFile);
+            menuFile = null;
+         }
+      }
+      if (menuFile == null) {
+         // use the default
+         menuFile = menu.getOrCreateDefaultFile();
+      }
+      if (menuFile != null) {
+         try {
+            menu.read (menuFile);
+         }
+         catch (Exception e) {
+            System.out.println (
+               "WARNING: error reading menu file "+menuFile+": "+e);
+         }
+      }
+      return menuFile;
+   }
+
+   public void createScriptMenu (JMenu menu) {
+      myScriptMenu = 
+         new ModelScriptMenu (
+            ModelScriptMenu.Type.SCRIPT, 
+            menu, this, null);
+
+      myScriptMenuFile = readModelOrScriptMenu (
+         myScriptMenu, myMain.getScriptMenuFilename(), "-scriptMenu");
+   }
+   
+   void updateDemosMenu() {
+      myModelMenu.updatePackageEntries();
+   }
+
+   private void createModelMenu(JMenu menu) {
+      myModelMenu = 
+         new ModelScriptMenu (
+            ModelScriptMenu.Type.MODEL, 
+            menu, this, myMain.myRootModelManager);
+      
+      if (myMain.getDemoFilename() != null) {
+         // explicitly specified simple menu
+         File file = new File (myMain.getDemoFilename());
+         try {
+            myModelMenu.readSimpleMenu (file);
+         }
+         catch (Exception e) {
+            System.out.println (
+               "WARNING: can't find or read file specified by "+
+               "'-demoFile': " + file+ ": "+e);
+         }        
       }
       else {
-         try {
-            modelsMenu = new ArtisynthModelMenu(file);
-            return modelsMenu;
-         } catch (Exception e) {
-            System.out.println ("Warning: error reading demosMenuFile: "
-            + filename);
-            System.out.println (e.getMessage());
-            modelsMenu = null;
-         }
+         myModelMenuFile = readModelOrScriptMenu (
+            myModelMenu, myMain.getModelMenuFilename(), "-modelMenu");
       }
-      return modelsMenu;
-   }
-
-   private void populateModelMenu(ArtisynthModelMenu generator, JMenu menu) {
-      // clear
-      menu.removeAll();
-      // build from tree
-      generator.buildMenu(menu, this, myMain.getModelHistory());
-      // add demo entries from menu
-      AliasTable demoTable = myMain.getDemoTable();
-      AliasTable generatedTable = generator.getDemoTable();
-      for (Entry<String,String> entry : generatedTable.getEntries()) {
-         demoTable.addEntry(entry.getKey(), entry.getValue());
-      }
-   }
-
-   private class BackgroundModelMenuThread extends Thread {
-
-      JMenu menu;
-      File menuFile;
-
-      public BackgroundModelMenuThread(File menuFile, JMenu menu) {
-         super("ModelMenu Loader");
-         this.menuFile = menuFile;
-         this.menu = menu;
-      }
-
-      @Override
-      public void run() {
-         if (menuFile != null && menuFile.exists()) {
-            FunctionTimer timer = new FunctionTimer();
-            timer.start();
-            ArtisynthModelMenu generator = readDemoMenu(menuFile.getAbsolutePath());
-            timer.stop();
-            //System.out.println ("menu parse time=" + timer.result(1));
-
-            // XXX only replace menu if it differs from current menu
-            if (myModelsMenuGenerator == null || !generator.getMenuTree().equalsTree(myModelsMenuGenerator.getMenuTree())) {
-               populateModelMenu(generator, menu);
-               // save as cache
-               File cachedMenu = getMenuCacheFile(menuFile.getName());
-               generator.write(cachedMenu);
-               myModelsMenuGenerator = generator;
-            }
-         }
-      }
-
-   }
-
-   private File getMenuCacheFile(String menuFilename) {
-      File cachedMenu = new File(ArtisynthPath.getCacheDir(), "/menu/" + menuFilename);
-      return cachedMenu;
-   }
-
-   private void createDemosMenu(JMenu menu) {
-
-      myModelsMenuGenerator = null;
-      String menuFilename = myMain.getDemosMenuFilename();
-
-      File menuFile = ArtisynthPath.findFile(menuFilename);
-
-      // look for cached menu
-      if (menuFile != null) {
-         File cachedMenu = getMenuCacheFile(menuFile.getName());
-         if (cachedMenu.exists()) {
-            // read and display cached version, real menu to be created in background
-            // file exists, so should be read correctly
-            myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
-
-            if (myModelsMenuGenerator != null) {
-               populateModelMenu(myModelsMenuGenerator, menu);
-
-               // background thread to update menu later
-               if (menuFile != null && menuFile.exists()) {
-                  BackgroundModelMenuThread thread = new BackgroundModelMenuThread(menuFile, menu);
-                  thread.start();
-               }
-            }
-
-         } else {
-            // read and create menu now
-            if (menuFile != null && menuFile.exists()) {
-               myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
-            }
-
-            if (myModelsMenuGenerator != null) {
-               populateModelMenu(myModelsMenuGenerator, menu);
-               // save as cache
-               myModelsMenuGenerator.write(cachedMenu);
-            }
-         }
-      }
-   }
-
-   public void updateHistoryMenu() {
-      ModelHistory hist = myMain.getModelHistory();
-      myModelsMenuGenerator.updateHistoryNodes(hist, this);
    }
 
    private DoubleField createTimeDisplay() {
@@ -631,7 +678,6 @@ ModelActionListener {
       DoubleField display = new DoubleField("step:", 0, "%7.5f");
       display.setToolTipText("maximum step size");
       display.getTextField().setToolTipText("maximum step size");
-      // display.setEnabledAll (false);
       display.setColumns(5);
       display.addValueChangeListener(this);
       display.addValueCheckListener(
@@ -666,7 +712,7 @@ ModelActionListener {
 
    private void doClearModel() {
       myMain.clearRootModel();
-      myMain.setRootModel(new RootModel(), null, null);
+      myMain.setRootModel(new RootModel(), null);
    }
 
    private void doSaveModel() {
@@ -691,7 +737,7 @@ ModelActionListener {
       
       if (chooser.showDialog(myFrame, "Save As") ==
           JFileChooser.APPROVE_OPTION) {
-         File file = chooser.getSelectedFile();
+         File file = getSelectedFile(chooser);
          if (file.exists() && !GuiUtils.confirmOverwrite (myFrame, file)) {
             return;
          }
@@ -724,31 +770,68 @@ ModelActionListener {
    }
 
    private void doLoadModel() {
-      File modelFile = selectFile("Load", myMain.getModelFile());
-      if (modelFile != null) {
-         try {
-            myMain.loadModelFile(modelFile);
-         } catch (Exception e) {
-            e.printStackTrace();
-            GuiUtils.showError(
-               myFrame, "Error reading " + modelFile.getPath() + ":\n" + e);
+      File file = selectFile("Load", myMain.getModelFile());
+      if (file != null) {
+         ModelScriptInfo modelInfo = new ModelScriptInfo (
+            InfoType.FILE, file.getAbsolutePath(), file.getName(), null);
+         if (!myMain.loadModel(modelInfo)) {
+            GuiUtils.showError (myFrame, myMain.getErrorMessage());
+         }
+         else {
+            myLastSelectedModel = modelInfo;
          }
       }
    }
 
    private void doLoadFromClass() {
-      Class<?> rootModelClass = selectClass("");
-      if (rootModelClass != null) {
-         if (!RootModel.class.isAssignableFrom(rootModelClass)) {
-            GuiUtils.showError (
-               myFrame, "Class is not an instanceof RootModel");
-            return;
-         }
-         String className = rootModelClass.getName();
-         ModelInfo mi = new ModelInfo(className, rootModelClass.getSimpleName(), null);
-         if (!myMain.loadModel(mi)) {
+      // look for 'last model' context to initialize the class selection menu
+      ModelScriptInfo lastModel = myLastSelectedModel;
+      if (lastModel == null && myMain.myModelScriptHistory != null) {
+         lastModel =
+            myMain.myModelScriptHistory.getMostRecent(InfoType.CLASS);
+      }
+      if (lastModel == null) {
+         // no context - just use a blank
+         lastModel = new ModelScriptInfo (ModelScriptInfo.InfoType.CLASS, "", "", null);
+      }
+      ModelScriptInfo modelInfo = selectClass (lastModel);
+      if (modelInfo != null) {
+         if (!myMain.loadModel(modelInfo)) {
             GuiUtils.showError (myFrame, myMain.getErrorMessage());
          }
+         else {
+            myLastSelectedModel = modelInfo;
+            // load waypoints if specified
+            File waypntsFile = myLoadModelDialog.getWaypointsFile();
+            if (waypntsFile != null) {
+               try {
+                  myMain.loadWayPoints (waypntsFile);
+               }
+               catch (IOException e) {
+                  String errMsg =
+                     "Error loading waypoints "+waypntsFile+"\n"+e.getMessage();
+                  GuiUtils.showError (myFrame, errMsg);
+               }
+            }
+         }
+      }
+   }
+
+   private void doRunScript() {
+      // look for 'last script' context to initialize the script selection menu
+      ModelScriptInfo lastScript = myLastSelectedScript;
+      if (lastScript == null && myMain.myModelScriptHistory != null) {
+         lastScript =
+            myMain.myModelScriptHistory.getMostRecent(InfoType.SCRIPT);
+      }
+      if (lastScript == null) {
+         // no context - just use a blank
+         lastScript = new ModelScriptInfo (ModelScriptInfo.InfoType.SCRIPT, "", "", null);
+      }
+      ModelScriptInfo scriptInfo = selectScript (lastScript);
+      if (scriptInfo != null) {
+         myMain.runScript (scriptInfo);
+         myLastSelectedScript = scriptInfo;
       }
    }
 
@@ -802,8 +885,6 @@ ModelActionListener {
                myFrame,"Error reading file: " + e.getMessage());
          }
          if (panel != null) {
-            // panel.pack();
-            // panel.setVisible (true);
             root.addControlPanel(panel);
             myMain.setModelDirectory(chooser.getCurrentDirectory());
          }
@@ -813,41 +894,6 @@ ModelActionListener {
    private void doUndoCommand() {
       myMain.getUndoManager().undoLastCommand();
    }
-
-   // /**
-   //  * save the probes
-   //  * 
-   //  */
-   // private void doSaveProbes() {
-   //    File probeFile = myMain.getProbesFile();
-   //    if (probeFile != null) {
-   //       try {
-   //          myMain.saveProbesFile(probeFile);
-   //       }
-   //       catch (IOException e) {
-   //          GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath(), e);
-   //          myMain.setProbesFile (null);
-   //       }
-   //    }
-   // }
-
-   // private void doSaveProbesAs() {
-   //    File probeFile = selectFile("Save As", myMain.getProbesFile());
-   //    if (probeFile != null) {
-   //       if (probeFile.exists()) {
-   //          if (!GuiUtils.confirmOverwrite (myFrame, probeFile)) {
-   //             return;
-   //          }
-   //       }
-   //       try {
-   //          myMain.saveProbesFile (probeFile);
-   //          myMain.setProbesFile (probeFile);
-   //       }
-   //       catch (IOException e) {
-   //          GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath(), e);
-   //       }
-   //    }
-   // }
 
    private void doSaveOutputProbeData() {
       RootModel root = myMain.getRootModel();
@@ -1053,12 +1099,20 @@ ModelActionListener {
 
    private void doSetWorkingDirectory() {
       JFileChooser chooser = new JFileChooser();
-      chooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
-      chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+      chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
       chooser.setAcceptAllFileFilterUsed(false);
-      int returnVal = chooser.showDialog(myFrame, "Set working directory");
+      FolderFileFilter filter = new FolderFileFilter("Folders");
+      chooser.addChoosableFileFilter (filter);
+      chooser.setFileFilter (filter);
+      // hack to show current working folder
+      File workingDir = new File(ArtisynthPath.getWorkingDir().getAbsolutePath());
+      if (workingDir.getName().equals (".")) {
+         workingDir = workingDir.getParentFile();
+      }
+      chooser.setSelectedFile(workingDir);
+      int returnVal = chooser.showDialog(myFrame, "Set working folder");
       if (returnVal == JFileChooser.APPROVE_OPTION) {
-         System.out.println(chooser.getSelectedFile());
          ArtisynthPath.setWorkingDir(chooser.getSelectedFile());
          myFrame.updateWorkingDirDisplay();
       }
@@ -1072,6 +1126,11 @@ ModelActionListener {
 
    private void doCloseMatlab() {
       myMain.closeMatlabConnection();
+   }
+
+   private void doVerifyLibraries() {
+      UpdateLibrariesAgent agent = new UpdateLibrariesAgent();
+      agent.createAndShowPanel (myFrame);
    }
 
    /**
@@ -1092,7 +1151,7 @@ ModelActionListener {
       myMain.getTimeline().addProbeEditor(dialog);
    }
 
-   private File selectFile(String approveMsg, File existingFile) {
+   private File selectFile (String approveMsg, File existingFile) {
       File dir = ArtisynthPath.getWorkingDir(); // is always non-null
 
       JFileChooser chooser = new JFileChooser(dir);
@@ -1102,102 +1161,106 @@ ModelActionListener {
       else {
          chooser.setCurrentDirectory(myMain.getModelDirectory());
       }
+      GenericFileFilter filter = new GenericFileFilter (
+         "art", "ArtiSynth model files (*.art)");
+      chooser.addChoosableFileFilter (filter);
+      if (existingFile == null || filter.fileExtensionMatches (existingFile)) {
+         chooser.setFileFilter (filter);
+      }
       int retval = chooser.showDialog(myFrame, approveMsg);
       return ((retval == JFileChooser.APPROVE_OPTION) ?
-         chooser.getSelectedFile() : null);
+         getSelectedFile(chooser) : null);
    }
 
-   private Class<?> getClassFromName(String name) {
-      try {
-         return Class.forName(name);
-      } catch (Exception e) {
+   private class WaitForRootModelManagerUpdate extends SwingWorker<Void,Void> {
+      
+      Runnable myRunnable;
+      ProgressFrame myProgressFrame;
+      Thread myUpdateThread;
+
+      WaitForRootModelManagerUpdate (Runnable r) {
+         myRunnable = r;
+         myUpdateThread = myMain.getRootModelUpdateThread();
+         if (myUpdateThread != null && myUpdateThread.isAlive()) {
+            myProgressFrame =
+               new ProgressFrame ("Waiting for RootModel manager to update ...");
+            myProgressFrame.setVisible(true);
+            GuiUtils.locateCenter (myProgressFrame, myFrame);
+            execute();
+         }
+         else {
+            myRunnable.run();
+         }
+      }
+      
+      @Override
+      public Void doInBackground() {
+         while (myUpdateThread.isAlive()) {
+            try {
+               myUpdateThread.join();
+            }
+            catch (Exception e) {
+            }
+         }
          return null;
       }
-   }
 
-   private String lastSelectedClassName = "";
+      @Override
+      protected void done() {
+         myProgressFrame.dispose();
+         myRunnable.run();
+      }
+   };
 
-   private Class<?> selectClass(String existingClassName) {
+   private ModelScriptInfo selectClass (ModelScriptInfo lastSelectedModel) {
 
-      // ClassDialog dialog =
-      // ClassDialog.createDialog (
-      // myFrame, "Choose model class", "Load", "class", existingClassName);
-      WidgetDialog dialog =
-      WidgetDialog.createDialog(
-         myFrame, "Choose model class", "Load");
+      RootModelManager rmm = myMain.myRootModelManager;
 
-      // find all instances of 'RootModel' and create an AutoComplete test field
-      ArrayList<String> demoClassNames =
-      ClassFinder.findClassNames("artisynth.models", RootModel.class);
-      AutoCompleteStringField widget =
-      new AutoCompleteStringField(
-         "class:", lastSelectedClassName, 30, demoClassNames);
-
-      // widget.addValueCheckListener (
-      // new ValueCheckListener() {
-      // public Object validateValue(ValueChangeEvent e, StringHolder errMsg) {
-      // String className = (String)e.getValue();
-      // if (className != null || !className.equals("")) {
-      // Class type = getClassFromName (className);
-      // if (type == null) {
-      // return PropertyUtils.illegalValue (
-      // "class not found", errMsg);
-      // }
-      // if (!RootModel.class.isAssignableFrom (type)) {
-      // return PropertyUtils.illegalValue (
-      // "class not an instance of RootModel", errMsg);
-      // }
-      // }
-      // return PropertyUtils.validValue (className, errMsg);
-      // }
-      // });
-      dialog.setValidator(
-         new WidgetDialog.Validator() {
-            public String validateSettings(PropertyPanel panel) {
-               StringField widget = (StringField)panel.getWidgets()[0];
-               String className = widget.getStringValue();
-               if (className != null) {
-                  Class<?> type = getClassFromName(className);
-                  if (type == null) {
-                     return "class not found";
-                  }
-                  if (!RootModel.class.isAssignableFrom(type)) {
-                     return "class not an instance of RootModel";
-                  }
-               }
-               return null;
-            }
-         });
-      dialog.addWidget(widget);
-      GuiUtils.locateCenter(dialog, myFrame);
-      dialog.setVisible(true);
+      if (myLoadModelDialog == null) {
+         myLoadModelDialog =
+            new LoadModelDialog (
+               myFrame, lastSelectedModel, "Select root model", rmm);
+      }
+      LoadModelDialog dialog = myLoadModelDialog;
+      GuiUtils.locateCenter (dialog, myFrame);
+      dialog.setVisible (true);
       if (dialog.getReturnValue() == OptionPanel.OK_OPTION) {
-         String className = widget.getStringValue();
-         if (className != null && !className.equals("")) {
-            lastSelectedClassName = className;
-            return getClassFromName(className);
+         String className = dialog.getClassName();
+         String argsStr = dialog.getBuildArgs();
+         String[] args = null;
+         if (argsStr != null && !argsStr.equals("")) {
+            args = ModelScriptInfo.splitArgs (argsStr);
          }
+         rmm.saveCacheIfModified();
+         return new ModelScriptInfo (
+            ModelScriptInfo.InfoType.CLASS,
+            className, RootModelManager.getLeafName(className), args);
       }
       return null;
    }
 
-   void setJythonConsoleVisible(boolean visible) {
-      if (visible) {
-         boolean created = false;
-         if (myMain.myJythonFrame == null) {
-            myMain.createJythonConsole(/*guiBased=*/true);
-            created = true;
-         }
-         myMain.myJythonFrame.setVisible(true);
-         if (created) {
-            GuiUtils.locateBelow(myMain.myJythonFrame, myFrame);
-         }
+   private ModelScriptInfo selectScript (ModelScriptInfo lastSelectedScript) {
+
+      if (myRunScriptDialog == null) {
+         myRunScriptDialog =
+            new RunScriptDialog (
+               myFrame, lastSelectedScript, "Select script");
       }
-      else {
-         if (myMain.myJythonFrame != null) {
-            myMain.myJythonFrame.setVisible(false);
+      RunScriptDialog dialog = myRunScriptDialog;
+      GuiUtils.locateCenter (dialog, myFrame);
+      dialog.setVisible (true);
+      if (dialog.getReturnValue() == OptionPanel.OK_OPTION) {
+         ScriptDesc si = dialog.getScript();
+         String argsStr = dialog.getArgs();
+         String[] args = null;
+         if (argsStr != null && !argsStr.equals("")) {
+            args = ModelScriptInfo.splitArgs (argsStr);
          }
+         return new ModelScriptInfo (
+            ModelScriptInfo.InfoType.SCRIPT,
+            si.getFile().getAbsolutePath(), si.getName(), args);
       }
+      return null;
    }
 
    public void valueChange(ValueChangeEvent e) {
@@ -1207,93 +1270,60 @@ ModelActionListener {
       else if (e.getSource() instanceof MouseSettingsDialog) {
          MouseSettingsDialog dialog = (MouseSettingsDialog)e.getSource();
          myMain.setMouseBindings (dialog.getBindings());
-         myMain.setMouseWheelZoomScale(dialog.getWheelZoom());
+         myMain.setMouseWheelZoomScale (dialog.getWheelZoom());
       }
    }
 
-   private void setRealTimeScaling() {
-
-      Scheduler scheduler = myMain.getScheduler(); 
-
-      double scaling = scheduler.getRealTimeScaling ();
-      if (!scheduler.getRealTimeAdvance ()) {
-         scaling = -1;
-      }
-
-      String inputValue = JOptionPane.showInputDialog(
-         myFrame, "Scale factor for real-time display",
-         scaling);
-
-      System.out.println("Got value for scaling: " + inputValue);
-
-      if (inputValue == null) {
-         System.out.println("Clicked cancel on the framerate dialog");
-         return;
-      }
-
-      String errorMessage = null;
-      try {
-         scaling = Double.parseDouble(inputValue);
-      } catch (NumberFormatException e) {
-         errorMessage = "Improperly formed number";
-      }
-
-      if (errorMessage != null) {
-         GuiUtils.showError (myFrame, errorMessage);
+   void updateRealTimeWidgets() {
+      boolean realTimeAdvance = myMain.getRealTimeAdvance();
+      setButtonPressed (realtimeButton, realTimeAdvance);
+      if (realTimeAdvance) {
+         realtimeButton.setActionCommand ("Disable real-time");
       }
       else {
-         if (scaling <= 0) {
-            scheduler.setRealTimeAdvance (false);
-         } else {
-            scheduler.setRealTimeAdvance (true);
-            scheduler.setRealTimeScaling (scaling);
-         }
-         myMain.rerender();
+         realtimeButton.setActionCommand ("Enable real-time");
+      } 
+      if (myInteractionSettingsDialog != null) {
+         myInteractionSettingsDialog.updateWidgetValues();
+      }
+   }
+   
+   private void setRealTimeAdvance (boolean enable) {
+      if (myMain.getScheduler().getRealTimeAdvance() != enable) {
+         myMain.getScheduler().setRealTimeAdvance (enable);
+         updateRealTimeWidgets();
       }
    }
 
-   private void setVisualDisplayRate() {
-      String inputValue = JOptionPane.showInputDialog(
-         myFrame, "Visual display rate in frames per second",
-         myMain.getFrameRate());
-      System.out.println("Got value for framerate: " + inputValue);
+   private SettingsDialog openSettingsDialog (
+      String name, SettingsBase settings) {
 
-      if (inputValue == null) {
-         System.out.println("Clicked cancel on the framerate dialog");
-         return;
-      }
-
-      String errorMessage = null;
-      double rate = 0;
-      try {
-         rate = Double.parseDouble(inputValue);
-      } catch (NumberFormatException e) {
-         errorMessage = "Improperly formed number";
-      }
-
-      if (rate < 0) {
-         errorMessage = "Rate must be non-negative";
-      }
-
-      if (errorMessage != null) {
-         GuiUtils.showError (myFrame, errorMessage);
+      SettingsDialog dialog = settings.getDialog();
+      if (dialog == null) {
+         dialog = settings.createDialog (name, myMain.myPreferencesManager);
+         GuiUtils.locateCenter (dialog, myFrame);
       }
       else {
-         myMain.setFrameRate(rate);
+         dialog.reloadSettings();
       }
+      dialog.setVisible(true);
+      return dialog;
    }
 
    private void openMouseSettingsDialog() {
-      MouseSettingsDialog dialog =
-      new MouseSettingsDialog (
-         "Mouse settings", 
-         myMain.getMouseBindings(),
-         myMain.getAllMouseBindings(),
-         myMain.getMouseWheelZoomScale());
-      GuiUtils.locateRight(dialog, myFrame);
-      myMain.registerWindow (dialog);
-      dialog.addValueChangeListener (this);
-      dialog.setVisible(true);
+      if (myMouseSettingsDialog == null) {
+         MouseSettingsDialog dialog =
+            new MouseSettingsDialog ("Mouse settings", myMain);
+         GuiUtils.locateCenter(dialog, myFrame);
+         myMouseSettingsDialog = dialog;
+      }
+      myMouseSettingsDialog.setVisible(true);
+   }
+
+   void maybeUpdateMouseSettingsDialog() {
+      if (myMouseSettingsDialog != null) {
+         myMouseSettingsDialog.updateWidgetValues();
+      }
    }
 
    private void showPullControllerPropertyDialog() {
@@ -1339,30 +1369,19 @@ ModelActionListener {
       }
    }
 
-   void spawnProgressBar () {
-      @SuppressWarnings("unused")
-      PardisoSolver s = new PardisoSolver();
-   }
+   private void doLoadModelSafely(ModelScriptInfo mi) {
+//      // Collect as much possible space before loading another model
+//      if (myMain.getScheduler().isPlaying()) {
+//         myMain.getScheduler().stopRequest();
+//         myMain.getScheduler().waitForPlayingToStop();
+//      }
 
-   private void doLoadModelSafely(String className, String title, String[] args) {
-      doLoadModelSafely(new ModelInfo(className, title, args));
-   }
-
-   private void doLoadModelSafely(ModelInfo mi) {
-      // Collect as much possible space before loading another model
-      if (myMain.getScheduler().isPlaying()) {
-         myMain.getScheduler().stopRequest();
-         myMain.getScheduler().waitForPlayingToStop();
-      }
-
-      System.gc();
-      System.runFinalization();
+//      System.gc();
+//      System.runFinalization();
 
       // load the model with name cmd
       if (!myMain.loadModel(mi)) {
          GuiUtils.showError (myFrame, myMain.getErrorMessage());
-      } else {
-         myFrame.setBaseTitle("Artisynth " + mi.getShortName());
       }
    }
 
@@ -1370,12 +1389,97 @@ ModelActionListener {
    /**
     * action performed to process all the menu and button actions in this class
     */
-   public void actionPerformed(ModelActionEvent event) {
+   public void actionPerformed (ModelScriptActionEvent event) {
       String cmd = event.getCommand();
-      ModelInfo mi = event.getModelInfo();
+      ModelScriptInfo mi = event.getModelInfo();
 
-      if ("load".equals(cmd)) {
+      if ("loadModel".equals(cmd)) {
          doLoadModelSafely(mi);
+      }
+      else if ("runScript".equals(cmd)) {
+         myMain.runScript (mi);
+      }
+      else if ("Run script ...".equals(cmd)) {
+         doRunScript();
+      }
+      else if ("Reload model".equals(cmd)) {
+         doReloadModel();
+      }
+      else if ("Load from class ...".equals(cmd)) {
+         new WaitForRootModelManagerUpdate (
+            new Runnable() {
+               public void run() {
+                  doLoadFromClass();
+               }
+            });
+      }
+      else if ("Edit MODEL menu".equals(cmd)) {
+         new WaitForRootModelManagerUpdate (
+            new Runnable() {
+               public void run() {
+                  showModelMenuEditor();
+               }
+            });
+      }
+      else if ("Edit SCRIPT menu".equals(cmd)) {
+         showScriptMenuEditor();
+      }
+   }
+
+   private void showModelMenuEditor() {
+      if (myModelMenuEditor == null) {
+         myModelMenuEditor =
+            new ModelScriptMenuEditor (
+               myModelMenu, myMain.getUndoManager(), myModelMenuFile);
+      }
+      myModelMenuEditor.setLocationRelativeTo (myFrame);
+      myModelMenuEditor.setVisible (true);
+   }
+
+   private void showScriptMenuEditor() {
+      if (myScriptMenuEditor == null) {
+         myScriptMenuEditor =
+            new ModelScriptMenuEditor (
+               myScriptMenu, myMain.getUndoManager(), myScriptMenuFile);
+      }
+      myScriptMenuEditor.setLocationRelativeTo (myFrame);
+      myScriptMenuEditor.setVisible (true);
+   }
+
+   private void showStartupModelEditor() {
+      if (myStartupModelEditor == null) {
+         myStartupModelEditor =
+            new StartupModelEditor (myMain.myStartupModel, myMain);
+      }
+      else {
+         myStartupModelEditor.reloadValues();
+      }
+      myStartupModelEditor.setLocationRelativeTo (myFrame);
+      myStartupModelEditor.setVisible (true);
+   }
+
+   private class NullOutputStream extends OutputStream {
+      public void write(int b) {
+         //DO NOTHING
+      }
+   }
+
+   private void openBrowserDocumentation (String filePath) {
+      String uriName = "https://www.artisynth.org/doc/" + filePath;
+      PrintStream savedOut = System.out;
+      PrintStream savedErr = System.err;
+      try {
+         // redirect output from the browser
+         System.setOut (new PrintStream(new NullOutputStream()));
+         System.setErr (new PrintStream(new NullOutputStream()));
+         Desktop.getDesktop().browse (new URI(uriName));
+      }
+      catch (Exception e) {
+         GuiUtils.showError (myFrame, "Error opening "+uriName+": "+e);
+      }
+      finally {
+         System.setOut (savedOut);
+         System.setErr (savedErr);
       }
    }
 
@@ -1385,35 +1489,28 @@ ModelActionListener {
    public void actionPerformed(ActionEvent event) {
       String cmd = event.getActionCommand();
       RootModel root = myMain.getRootModel();
-      //
-      // Scripts menu
-      if (isScriptMenuItem(event.getSource())) {
-         String scriptName = myMain.getScriptName(cmd);
-         runScript(scriptName);
-      } else if (cmd.equals("load script from file")) {
-         JFileChooser fileChooser = new JFileChooser();
-         fileChooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
 
-         FileFilter jythonFilter = new GenericFileFilter(new String[]{"py", "jy"}, "Jython files") ;
-         fileChooser.addChoosableFileFilter(jythonFilter);
-         fileChooser.setFileFilter(jythonFilter);
-         int result = fileChooser.showOpenDialog(myFrame);
-         if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            runScript(selectedFile.getAbsolutePath());
-         }
-      }
-      //
-      // Models menu
-      //
-      else if (myMain.isDemoClassName(cmd)) {
-         ModelInfo mi = new ModelInfo(myMain.getDemoClassName(cmd), cmd, null);
-         doLoadModelSafely(mi);
-      }
+//      //
+//      // Scripts menu
+//      //
+//      if (cmd.equals("load script from file")) {
+//         JFileChooser fileChooser = new JFileChooser();
+//         fileChooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
+//
+//         FileFilter jythonFilter = new GenericFileFilter (
+//            new String[]{"py", "jy"}, "Jython files") ;
+//         fileChooser.addChoosableFileFilter(jythonFilter);
+//         fileChooser.setFileFilter(jythonFilter);
+//         int result = fileChooser.showOpenDialog(myFrame);
+//         if (result == JFileChooser.APPROVE_OPTION) {
+//            File selectedFile = getSelectedFile(fileChooser);
+//            runScript(selectedFile.getAbsolutePath());
+//         }
+//      }
       //
       // File Menu
       //
-      else if (cmd.equals("Clear model")) {
+      if (cmd.equals("Clear model")) {
          doClearModel();
       }
       else if (cmd.equals("New blank MechModel")) {
@@ -1425,16 +1522,24 @@ ModelActionListener {
       else if (cmd.equals("Save model as ...")) {
          doSaveModelAs();
       }
-      else if (cmd.equals("Reload model")) {
-         doReloadModel();
-      }
+      // else if (cmd.equals("Reload model")) {
+      //    doReloadModel();
+      // }
       else if (cmd.equals("Load model ...")) {
          doLoadModel();
       }
-      else if (cmd.equals("Load from class ...")) {
-         doLoadFromClass();
-      }
-      else if (cmd.equals("Set working directory ...")) {
+      // else if (cmd.equals("Load from class ...")) {
+      //    new WaitForRootModelManagerUpdate (
+      //       new Runnable() {
+      //          public void run() {
+      //             doLoadFromClass();
+      //          }
+      //       });
+      // }
+      // else if (cmd.equals("Run script ...")) {
+      //    doRunScript();
+      // }
+      else if (cmd.equals("Set working folder ...")) {
          doSetWorkingDirectory();
       }
       else if (cmd.equals("Open MATLAB connection")) {
@@ -1442,6 +1547,9 @@ ModelActionListener {
       }
       else if (cmd.equals("Close MATLAB connection")) {
          doCloseMatlab();
+      }
+      else if (cmd.equals("Update libraries")) {
+         doVerifyLibraries ();
       }
       else if (cmd.equals("Load probes ...")) {
          ProbeEditor.loadProbes (myMain, myFrame);
@@ -1508,15 +1616,77 @@ ModelActionListener {
       }
       else if (cmd.equals("Undo")) {
          doUndoCommand();
+      }      
+      else if (cmd.equals("External classpath ...")) {
+         if (myExtClassPathEditor == null) {
+            File file = ArtisynthPath.getConfigFile ("EXTCLASSPATH");
+            try {
+               myExtClassPathEditor =
+                  new ExtClassPathEditor (myMain.getUndoManager(), file);
+            }
+            catch (Exception e) {
+               GuiUtils.showError (myFrame, "Could not open "+file);
+            }
+         }
+         if (myExtClassPathEditor != null) {
+            myExtClassPathEditor.setLocationRelativeTo (myFrame);
+            myExtClassPathEditor.open();
+         }
       }
+      // else if (cmd.equals("Script path ...")) {
+      //    if (myScriptPathEditor == null) {
+      //       File file = ArtisynthPath.getConfigFile ("SCRIPTPATH");
+      //       try {
+      //          myScriptPathEditor =
+      //             new ScriptPathEditor (myMain.getUndoManager(), this, file);
+      //       }
+      //       catch (Exception e) {
+      //          GuiUtils.showError (myFrame, "Could not open "+file);
+      //       }
+      //    }
+      //    if (myScriptPathEditor != null) {
+      //       myScriptPathEditor.setLocationRelativeTo (myFrame);
+      //       myScriptPathEditor.open();
+      //    }
+      // }
+      else if (cmd.equals("Startup model ...")) {
+         new WaitForRootModelManagerUpdate (
+            new Runnable() {
+               public void run() {
+                  showStartupModelEditor();
+               }
+            });
+      }
+      else if (cmd.equals ("Preferences ...")) {
+         if (myPreferencesEditor == null) {
+            myPreferencesEditor = 
+               new PreferencesEditor (myMain.getPreferencesManager());
+            myPreferencesEditor.build();
+         }
+         else {
+            myPreferencesEditor.reloadValues();
+         }
+         myPreferencesEditor.setLocationRelativeTo (myFrame);
+         myPreferencesEditor.setVisible (true);
+      }
+      
       //
       // Settings menu
       //
-      else if (cmd.equals("Background color")) {
-         setBackgroundColor();
+      else if (cmd.equals("Viewers ...")) {
+         myViewerSettingsDialog =
+            openSettingsDialog (
+               "Viewer settings", myMain.myViewerManager);
       }
-      else if (cmd.equals("Selection color")) {
-         setSelectionColor();
+      else if (cmd.equals("Simulation ...")) {
+         mySimulationSettingsDialog =
+            openSettingsDialog (
+               "Simulation settings", myMain.mySimulationSettings);
+      }
+      else if (cmd.equals("Interaction ...")) {
+         myInteractionSettingsDialog =
+            openSettingsDialog (
+               "Interaction settings", myMain.myInteractionSettings);
       }
       else if (cmd.equals("Enable selection highlighting")) {
          setSelectionColorEnabled(true);
@@ -1524,33 +1694,9 @@ ModelActionListener {
       else if (cmd.equals("Disable selection highlighting")) {
          setSelectionColorEnabled(false);
       }
-      else if (cmd.equals("Visual display rate")) {
-         setVisualDisplayRate();
-      }
-      else if (cmd.equals ("Real-time scaling")) {
-         setRealTimeScaling ();
-      }
-      else if (cmd.equals("Mouse Preferences ...")) {
+      else if (cmd.equals("Mouse ...")) {
          openMouseSettingsDialog();
       }
-      else if (cmd.equals("Init draggers in world coords")) {
-         myMain.setInitDraggersInWorldCoords (true);
-      }
-      else if (cmd.equals("Init draggers in local coords")) {
-         myMain.setInitDraggersInWorldCoords (false);
-      }
-      else if (cmd.equals("Enable articulated transforms")) {
-         myMain.setArticulatedTransformsEnabled(true);
-      }
-      else if (cmd.equals("Disable articulated transforms")) {
-         myMain.setArticulatedTransformsEnabled(false);
-      }
-      //      else if (cmd.equals("Enable GL_SELECT selection")) {
-      //         GL2Viewer.enableGLSelectSelection (true);
-      //      }
-      //      else if (cmd.equals("Disable GL_SELECT selection")) {
-      //         GL2Viewer.enableGLSelectSelection (false);
-      //      }
       else if (cmd.equals("PullController properties ...")) {
          showPullControllerPropertyDialog();
       }
@@ -1565,14 +1711,12 @@ ModelActionListener {
       }
       else if (cmd.equals("Hide timeline")) {
          myMain.setTimelineVisible(false);
-         isTimelineVisible = false;
       }
       else if (cmd.equals("Show timeline")) {
          myMain.setTimelineVisible(true);
-         isTimelineVisible = true;
       }
       else if (cmd.equals("Reset view")) {
-         GLViewer v = myMain.getViewer();
+         Viewer v = myMain.getViewer();
          v.setAxialView(v.getAxialView());
          v.autoFit();
       }
@@ -1583,10 +1727,10 @@ ModelActionListener {
          myMain.getViewer().setOrthographicView(true);
       }
       else if (cmd.equals("Hide Jython console")) {
-         setJythonConsoleVisible(false);
+         myMain.setJythonFrameVisible(false);
       }
       else if (cmd.equals("Show Jython console")) {
-         setJythonConsoleVisible(true);
+         myMain.setJythonFrameVisible(true);
       }
       else if (cmd.equals("Show Inverse panel")) {
          ControlPanel panel = InverseManager.findInversePanel(root);
@@ -1594,8 +1738,6 @@ ModelActionListener {
             InverseManager.findInverseController(root);
          if (panel == null && controller != null) {
             InverseManager.addInversePanel (root, controller);
-//            myMain.getInverseManager().showInversePanel(
-//               myMain.getRootModel(), controller);
          }
       }
       else if (cmd.equals("Hide Inverse panel")) {
@@ -1658,32 +1800,53 @@ ModelActionListener {
       else if (cmd.equals("Separate control panels")) {
          root.mergeAllControlPanels(false);
       }
-      else if (cmd.equals("Show progress")) {
-         spawnProgressBar ();
-      }
       //
       // Help menu
       //
       else if (cmd.equals("About ArtiSynth")) {
-         myFrame.displayAboutArtisynth();
+         if (myArtisynthInfoFrame == null) {
+            myArtisynthInfoFrame = myFrame.createArtisynthInfo();
+            GuiUtils.locateCenter (myArtisynthInfoFrame, myFrame);
+         }
+         myArtisynthInfoFrame.setVisible (true);
+      }
+      else if (cmd.equals ("User interface guide ...")) {
+         openBrowserDocumentation ("pdf/uiguide.pdf");
+      }
+      else if (cmd.equals ("Modeling guide ...")) {
+         openBrowserDocumentation ("pdf/modelguide.pdf");
+      }
+      else if (cmd.equals ("ArtiSynth Java API ...")) {
+         openBrowserDocumentation ("javadocs/index.html");
+      }
+      else if (cmd.equals ("MATLAB interface ...")) {
+         openBrowserDocumentation ("pdf/matlab.pdf");
       }
       else if (cmd.equals("About the current model")) {
-         myFrame.displayAboutModel(root);
+         if (myModelInfoFrame == null) {
+            myModelInfoFrame = myFrame.createModelInfo (myMain.getRootModel());
+            GuiUtils.locateCenter (myModelInfoFrame, myFrame);
+         }
+         myModelInfoFrame.setVisible (true);
       }
-      else if (cmd.equals("Keybindings")) {
-         myFrame.displayKeybindings();
+      else if (cmd.equals("Viewer key bindings")) {
+         if (myKeyBindingInfoFrame == null) {
+            myKeyBindingInfoFrame = myFrame.createKeyBindingInfo();
+            GuiUtils.locateCenter (myKeyBindingInfoFrame, myFrame);
+         }
+         myKeyBindingInfoFrame.setVisible (true);
       }
       //
       // Tool bar buttons
       //
       else if (cmd.equals("Hide NavPanel")) {
-         myFrame.getNavPanel().setStatus(!myFrame.getNavPanel().getStatus());
+         myFrame.getNavPanel().setExpanded(!myFrame.getNavPanel().isExpanded());
          myFrame.refreshSplitPane();
          navBarButton.setToolTipText("Show navigation panel");
          navBarButton.setActionCommand("Show NavPanel");
       }
       else if (cmd.equals("Show NavPanel")) {
-         myFrame.getNavPanel().setStatus(!myFrame.getNavPanel().getStatus());
+         myFrame.getNavPanel().setExpanded(!myFrame.getNavPanel().isExpanded());
          myFrame.refreshSplitPane();
          navBarButton.setToolTipText("Hide navigation panel");
          navBarButton.setActionCommand("Hide NavPanel");
@@ -1709,42 +1872,34 @@ ModelActionListener {
       else if (cmd.equals("Skip forward")) {
          myMain.getScheduler().fastForward();
       }
+      else if (cmd.equals("Stop all")) {
+         myMain.stopAll();
+      }
       else if (cmd.equals("Reset initial state")) {
          if (root != null) {
             root.resetInitialState();
          }
       }
       else if (cmd.equals("Disable real-time")) {
-         myMain.getScheduler().setRealTimeAdvance(false);
-         realtimeButton.setActionCommand ("Enable real-time");
-         setButtonPressed (realtimeButton, false);
+         setRealTimeAdvance (false);
       }
       else if (cmd.equals("Enable real-time")) {
-         myMain.getScheduler().setRealTimeAdvance(true);
-         realtimeButton.setActionCommand ("Disable real-time");
-         setButtonPressed (realtimeButton, true);
+         setRealTimeAdvance (true);
       }
-
       else if (cmd.equals("cancel")) {
          return;
       }
       else {
          throw new InternalErrorException("Unimplemented command: " + cmd);
       }
-
    }
 
-   // public void setResetButton (boolean resetEnable) {
-   // resetButton.setEnabled (resetEnable);
-   // }
-
-   // public void setPlayButton (boolean playEnable) {
-   // playButton.setEnabled (playEnable);
-   // }
-
-   // public void setStepButton (boolean stepEnable) {
-   // singleStepButton.setEnabled (stepEnable);
-   // }
+   void clearModelInfoFrame() {
+      if (myModelInfoFrame != null) {
+         myModelInfoFrame.setVisible (false);
+         myModelInfoFrame.dispose();
+      }
+   }
 
    private static String protectWindowsSlashes(String filename) {
       StringBuilder out = new StringBuilder();
@@ -1764,35 +1919,11 @@ ModelActionListener {
       return out.toString();
    }
 
-   public void runScript(String scriptName) {
-      runScript(scriptName, null);
-   }
-
-   public void runScript(String scriptName, String[] args) {
-      setJythonConsoleVisible(true);
-      File[] files = ArtisynthPath.findFiles(scriptName);
-      if (files != null && files.length > 0) {
-         String pathName = protectWindowsSlashes (files[0].getPath());
-         try {
-            myMain.myJythonConsole.executeScript (pathName, args);
-         }
-         catch (Exception e) {
-            System.out.println ("Error executing script '"+pathName+"':");
-            System.out.println (e);
-         }
-      }
-      else {
-         GuiUtils.showError (myFrame, 
-            "Script " + scriptName + " not found in ARTISYNTH_PATH");
-      }
-   }
-
    public void enableShowPlay() {
       playButton.setIcon(GuiStorage.getPlayIcon());
       playButton.setToolTipText("Start simulation");
       playButton.setActionCommand("Play");
       playButton.setEnabled(true);
-      // setResetButton (true);
       singleStepButton.setEnabled(true);
    }
 
@@ -1800,7 +1931,6 @@ ModelActionListener {
       playButton.setIcon(GuiStorage.getPauseIcon());
       playButton.setToolTipText("Pause simulation");
       playButton.setActionCommand("Pause");
-      // setResetButton (true);
       singleStepButton.setEnabled(false);
    }
    
@@ -1817,7 +1947,7 @@ ModelActionListener {
    public void detachToolbar() {
       toolbarPanel.setVisible(false);
 
-      if (!myFrame.getNavPanel().getStatus())
+      if (!myFrame.getNavPanel().isExpanded())
          myFrame.getNavPanel().setVisible(false);
 
       myFrame.refreshSplitPane();
@@ -1842,7 +1972,6 @@ ModelActionListener {
       if (modeSelectionToolbar == null) {
          createModeSelectionToolbar();
       }
-      // myFrame.add (modeSelectionToolbar, BorderLayout.NORTH);
       modeSelectionToolbar.setOrientation(JToolBar.VERTICAL);
       panel.add(modeSelectionToolbar, BorderLayout.NORTH);
    }
@@ -1877,62 +2006,8 @@ ModelActionListener {
       }
    }
 
-   //   public ViewerController getMainViewerController() {
-   //      return myMain.getViewerManager().getController(0);
-   //   }
-
-   public GLViewer getMainViewer() {
+   public Viewer getMainViewer() {
       return myMain.getViewer();
-   }
-
-   public void setBackgroundColor() {
-
-      final ViewerManager vm = myMain.getViewerManager();
-      colorChooser.setColor(vm.getBackgroundColor());
-
-      ActionListener setBColor = new ActionListener() {   
-         @Override
-         public void actionPerformed(ActionEvent e) {
-            String cmd = e.getActionCommand();
-            if (cmd.equals("OK")) {
-               vm.setBackgroundColor(colorChooser.getColor());
-            }
-            else if (cmd.equals("Cancel")) {
-               // do nothing
-            }
-         }
-      };
-      JDialog dialog =
-      JColorChooser.createDialog(
-         myFrame, "color chooser", /* modal= */true, colorChooser,
-         setBColor, setBColor);
-      GuiUtils.locateRight(dialog, myFrame);
-      dialog.setVisible(true);
-   }
-
-   public void setSelectionColor() {
-
-      final ViewerManager vm = myMain.getViewerManager();
-      colorChooser.setColor(vm.getSelectionColor());
-
-      ActionListener setSColor = new ActionListener() {   
-         @Override
-         public void actionPerformed(ActionEvent e) {
-            String cmd = e.getActionCommand();
-            if (cmd.equals("OK")) {
-               vm.setSelectionColor(colorChooser.getColor());
-            }
-            else if (cmd.equals("Cancel")) {
-               // do nothing
-            }
-         }
-      };
-      JDialog dialog =
-      JColorChooser.createDialog(
-         myFrame, "color chooser", /* modal= */true, colorChooser,
-         setSColor, setSColor);
-      GuiUtils.locateRight(dialog, myFrame);
-      dialog.setVisible(true);
    }
 
    public void setSelectionColorEnabled (boolean enable) {
@@ -1945,26 +2020,13 @@ ModelActionListener {
       }
    }
 
-   // public void setFramePlayEnabled (boolean enable) {
-   // if (enable) {
-   // //resetButton.setEnabled (true);
-   // playButton.setEnabled (true);
-   // singleStepButton.setEnabled (true);
-   // }
-   // else {
-   // //resetButton.setEnabled (false);
-   // playButton.setEnabled (false);
-   // singleStepButton.setEnabled (false);
-   // }
-   // }
-
    public void updateWidgets() {
       // return if frame is not visible, since updating widgets while
       // frame is being set visible can cause some problems
       if (!myFrame.isVisible()) {
          return;
       }
-      GLViewer v = getMainViewer();
+      Viewer v = getMainViewer();
       boolean gridOn = v.getGridVisible();
       GridPlane grid = v.getGrid();
       if ((myGridDisplay != null) != gridOn) {
@@ -1990,16 +2052,59 @@ ModelActionListener {
       return item;
    }
 
-   private JRadioButtonMenuItem addRadioMenuItem (
-      JMenu menu, String label, String cmd, ButtonGroup group) {
-      JRadioButtonMenuItem item = makeRadioMenuItem(label, cmd);
-      group.add(item);
+   private JMenuItem addMenuItem (
+      JMenu menu, String label, String cmd, String tip) {
+      JMenuItem item = makeMenuItem(label, cmd, tip);
       menu.add(item);
       return item;
    }
 
    private JMenuItem addMenuItem(JMenu menu, String labelAndCmd) {
       return addMenuItem(menu, labelAndCmd, labelAndCmd);
+   }
+
+   private void updateRecentMenu (
+      JMenu menu, String cmd, InfoType... types) {
+
+      ModelScriptHistory hist = myMain.getModelScriptHistory();
+      List<ModelScriptInfo> mhi = hist.getRecent (10, types);
+
+      menu.removeAll();                  
+      if (mhi.size() > 0) {
+         menu.setEnabled (true);
+         for (int i=0; i<mhi.size(); i++) {
+            ModelScriptInfo mi = mhi.get(i);
+            JMenuItem item = new JMenuItem (mi.getShortName());
+            item.addActionListener (
+               new ModelScriptActionForwarder (this, cmd, mi));
+            item.setToolTipText (mi.getClassNameOrFile());
+            menu.add (item);
+         }
+      }
+      else {
+         menu.setEnabled (false);
+      }
+   }
+
+   private void createLoadRecentMenu (JMenu menu) {
+
+      ModelScriptHistory hist = myMain.getModelScriptHistory();
+      List<ModelScriptInfo> mhi = hist.getRecent (
+         10, InfoType.CLASS, InfoType.FILE);
+                  
+      if (mhi.size() > 0) {
+         JMenu recent = new JMenu ("Load recent");
+         menu.add (recent);
+         for (int i=0; i<mhi.size(); i++) {
+            ModelScriptInfo mi = mhi.get(i);
+      
+            JMenuItem item = new JMenuItem (mi.getShortName());
+            item.addActionListener (
+               new ModelScriptActionForwarder (this, "loadModel", mi));
+            item.setToolTipText (mi.getClassNameOrFile());
+            recent.add (item);
+         }
+      }
    }
 
    private void createFileMenu(JMenu menu) {
@@ -2015,17 +2120,23 @@ ModelActionListener {
 
       item = addMenuItem(menu, "Save model as ...");
       item.setEnabled(hasRootModel);
-      menu.add(new JSeparator());
-
-      item = addMenuItem(menu, "Reload model");
-      item.setEnabled(myMain.modelIsLoaded());
+      //menu.add(new JSeparator());
 
       addMenuItem(menu, "Load model ...");
-      addMenuItem(menu, "Load from class ...");
+      // addMenuItem(menu, "Load from class ...");
+
+      // item = addMenuItem(menu, "Reload model");
+      // item.setEnabled(myMain.modelIsLoaded());
+
+      //createLoadRecentMenu (menu);
 
       JMenuItem loadProbesItem, saveProbesItem, saveProbesAsItem;
 
+      // menu.add(new JSeparator());
+      // addMenuItem(menu, "Run script ...");
       menu.add(new JSeparator());
+
+
       if (Probe.useOldSaveMethod) {
          loadProbesItem = addMenuItem(menu, "Load probes ...");
          saveProbesItem = addMenuItem(menu, "Save probes");
@@ -2064,7 +2175,7 @@ ModelActionListener {
 
       menu.add(new JSeparator());
       addMenuItem(menu, "Save viewer image ...");
-      addMenuItem(menu, "Set working directory ...");
+      addMenuItem(menu, "Set working folder ...");
 
       if (myMain.hasMatlabConnection()) {
          addMenuItem(menu, "Close MATLAB connection");
@@ -2072,6 +2183,8 @@ ModelActionListener {
       else {
          addMenuItem(menu, "Open MATLAB connection");
       }
+      menu.add(new JSeparator());
+      addMenuItem (menu, "Update libraries");
       menu.add(new JSeparator());
 
       addMenuItem(menu, "Quit");
@@ -2095,7 +2208,8 @@ ModelActionListener {
       item.setEnabled(hasRootModel);
 
       addMenuItem(menu, "Print selection");
-
+      
+      menu.add (new JSeparator());
       JMenuItem undoItem = makeMenuItem("Undo", "Undo");
       Command cmd = myMain.getUndoManager().getLastCommand();
       if (cmd != null && hasRootModel) {
@@ -2113,46 +2227,38 @@ ModelActionListener {
       menu.add(undoItem);
    }
 
+   private boolean isWindowOpen (Window win) {
+      return win != null && win.isVisible();
+   }
    private void createSettingsMenu(JMenu menu) {
 
       JMenuItem item;
 
-      addMenuItem(menu, "Background color");
-      addMenuItem(menu, "Selection color");
+      item = addMenuItem(menu, "Viewers ...");
+      item.setEnabled (!isWindowOpen (myViewerSettingsDialog));
 
-      ViewerManager vm = myMain.getViewerManager();
-      if (vm.getSelectionHighlightStyle() == HighlightStyle.COLOR) {
-         addMenuItem(menu, "Disable selection highlighting");
-      }
-      else {
-         addMenuItem(menu, "Enable selection highlighting");
-      }
+      item = addMenuItem(menu, "Simulation ...");
+      item.setEnabled (!isWindowOpen (mySimulationSettingsDialog));
 
-      addMenuItem(menu, "Visual display rate");
-      addMenuItem(menu, "Real-time scaling");
+      item = addMenuItem(menu, "Interaction ...");
+      item.setEnabled (!isWindowOpen (myInteractionSettingsDialog));
 
-      if (myMain.getInitDraggersInWorldCoords()) {
-         addMenuItem(menu, "Init draggers in local coords");
-      }
-      else {
-         addMenuItem(menu, "Init draggers in world coords");
-      }
+      addMenuItem(menu, "Mouse ...");
 
-      if (myMain.getArticulatedTransformsEnabled()) {
-         addMenuItem(menu, "Disable articulated transforms");
-      }
-      else {
-         addMenuItem(menu, "Enable articulated transforms");
-      }
-
-      //      if (GL2Viewer.isGLSelectSelectionEnabled()) {
-      //         addMenuItem(menu, "Disable GL_SELECT selection");
-      //      }
-      //      else {
-      //         addMenuItem(menu, "Enable GL_SELECT selection");
-      //      }
-
-      addMenuItem(menu, "Mouse Preferences ...");
+      item = addMenuItem (
+         menu, "External classpath ...", null,
+         "Edit the classpath which allows access to external projects");
+      item.setEnabled (!isWindowOpen (myExtClassPathEditor));
+         
+      // item = addMenuItem (
+      //    menu, "Script path ...", null,
+      //    "Edit the folder path used for finding scripts");
+      // item.setEnabled (!isWindowOpen (myScriptPathEditor));
+         
+      item = addMenuItem (
+         menu, "Startup model ...", null,
+         "Edit the model (if any) which is loaded at startup");
+      item.setEnabled (!isWindowOpen (myStartupModelEditor));
 
       JMenu submenu = new JMenu("PullController");
       menu.add(submenu);
@@ -2164,6 +2270,22 @@ ModelActionListener {
       item = addMenuItem(
          submenu, "render props ...", "PullController render props ...");
       item.setEnabled(myPullControllerRenderPropsDialog == null);
+
+      ViewerManager vm = myMain.getViewerManager();
+      if (vm.getSelectionHighlightStyle() == HighlightStyle.COLOR) {
+         addMenuItem(menu, "Disable selection highlighting");
+      }
+      else {
+         addMenuItem(menu, "Enable selection highlighting");
+      }
+
+      menu.add (new JSeparator());
+         
+      item = addMenuItem (
+         menu, "Preferences ...", null,
+         "Edit default application settings");
+      item.setEnabled (!isWindowOpen (myPreferencesEditor));
+
    }
 
    private void createViewMenu(JMenu menu) {
@@ -2188,7 +2310,7 @@ ModelActionListener {
          }
       }
 
-      if (isTimelineVisible) {
+      if (myMain.isTimelineVisible()) {
          addMenuItem(menu, "Hide timeline");
       }
       else {
@@ -2196,7 +2318,7 @@ ModelActionListener {
       }
 
       if (JythonInit.jythonIsAvailable()) {
-         if (myMain.myJythonFrame != null && myMain.myJythonFrame.isVisible()) {
+         if (isWindowOpen (myMain.myJythonFrame)) {
             addMenuItem(menu, "Hide Jython console");
          }
          else {
@@ -2242,7 +2364,6 @@ ModelActionListener {
 
       addMenuItem(menu, "Merge control panels");
       addMenuItem(menu, "Separate control panels");
-      addMenuItem(menu, "Show progress");
 
       if (myFrame.getNavPanel().getHideEmptyComponents()) {
          addMenuItem(menu, "Show empty components in navpanel");         
@@ -2270,20 +2391,25 @@ ModelActionListener {
 
    }
 
-   public void setTimelineVisible(boolean visible) {
-      isTimelineVisible = visible;
-   }
-
    private void createHelpMenu(JMenu menu) {
       RootModel rootModel = myMain.getRootModel();
 
-      addMenuItem(menu, "About ArtiSynth");
+      if (Desktop.isDesktopSupported() &&
+          Desktop.getDesktop().isSupported (Desktop.Action.BROWSE)) {
+         addMenuItem(menu, "User interface guide ...");
+         addMenuItem(menu, "Modeling guide ...");
+         addMenuItem(menu, "ArtiSynth Java API ...");
+         addMenuItem(menu, "MATLAB interface ...");
+      }
+      addMenuItem(menu, "Viewer key bindings");
 
-      addMenuItem(menu, "Keybindings");
-
+      menu.add (new JSeparator());
       if (rootModel.getAbout() != null && rootModel.getAbout().length() > 0) {
          addMenuItem(menu, "About the current model");
       }
+      JMenuItem item = addMenuItem(menu, "About ArtiSynth");
+      item.setEnabled (!isWindowOpen (myArtisynthInfoFrame));
+
    }
 
    private boolean addMenuItems (ArrayList<Object> items, HasMenuItems comp) {

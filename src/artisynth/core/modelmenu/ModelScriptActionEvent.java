@@ -1,20 +1,20 @@
 package artisynth.core.modelmenu;
 
-import artisynth.core.driver.ModelInfo;
+import artisynth.core.driver.ModelScriptInfo;
 
-public class ModelActionEvent {
+public class ModelScriptActionEvent {
 
    String cmd;
    Object source;
-   ModelInfo info;
+   ModelScriptInfo info;
    
-   public ModelActionEvent(String cmd, Object source, ModelInfo info) {
+   public ModelScriptActionEvent(String cmd, Object source, ModelScriptInfo info) {
       this.cmd = cmd;
       this.source = source;
       this.info = info;
    }
    
-   public ModelInfo getModelInfo() {
+   public ModelScriptInfo getModelInfo() {
       return info;
    }
    

@@ -231,10 +231,10 @@ public class ReaderTokenizerTest {
       rtok.setReader (new StringReader (quoteTest));
       runTest (quoteTestCheck, rtok);
 
-      String escapeStr = ReaderTokenizer.escapeString (
-         "\"'\" C:\\foo\\bar \t\b\n\r\f \"", '"');
+      String escapeStr = ReaderTokenizer.getQuotedString (
+         "\"'\" C:\\foo\\bar \t\b\n\r\f \" \"", '"');
       String escapeStrCheck =
-         "\\\"'\\\" C:\\\\foo\\\\bar \\t\\b\\n\\r\\f \\\"";
+         "\"\\\"'\\\" C:\\\\foo\\\\bar \\t\\b\\n\\r\\f \\\"\"";
 
       if (!escapeStr.equals (escapeStrCheck)) {
          throw new TestException (

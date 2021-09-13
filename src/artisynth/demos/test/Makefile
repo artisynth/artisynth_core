@@ -6,7 +6,8 @@ JAVA_SUBDIRS =
 PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
-	TransformGeometryTest
+	TransformGeometryTest \
+	AttachmentReferenceTest
 
 default: build
 

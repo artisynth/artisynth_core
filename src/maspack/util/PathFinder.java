@@ -580,4 +580,28 @@ public class PathFinder {
       }
    }
 
+   /**
+    * Returns the base name of a file. The base name is the name with the
+    * suffix (if any) removed.
+    *
+    * @param file file to find base name for
+    * @return base file name
+    */
+   public static String getBaseName (File file) {
+      String name = file.getName();
+      int lastDot = name.lastIndexOf ('.');
+      return lastDot != -1 ? name.substring (0, lastDot) : name;
+   }
+
+   /**
+    * Returns the base name of a file given a pathname. The base name is the
+    * name with the suffix (if any) removed.
+    *
+    * @param pathname path name of the file to find base name for
+    * @return base file name
+    */
+   public static String getBaseName (String pathname) {
+      return getBaseName (new File(pathname));
+   }
+
 }

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.artisynth.org"
+	xmlns="http://www.artisynth.org" elementFormDefault="unqualified">
+
+	<xs:annotation>
+		<xs:documentation>
+			XML Schema for the ArtiSynth "Scripts" menu
+		</xs:documentation>
+	</xs:annotation>
+
+	<!-- Elements -->
+	<xs:element name="ScriptMenu" type="rootType" />
+	<xs:element name="menu" type="menuType" />
+	<xs:element name="script" type="scriptType" />
+	<xs:element name="scriptFolder" type="scriptFolderType" />
+	<xs:element name="separator" type="separatorType" />
+	<xs:element name="label" type="labelType" />
+	<xs:element name="hidden" type="hiddenType" />
+
+	<!-- Element Types -->
+	<xs:complexType name="rootType">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element ref="menu" />
+			<xs:element ref="script" />
+			<xs:element ref="scriptFolder" />
+			<xs:element ref="separator" />
+			<xs:element ref="label" />
+			<xs:element ref="hidden"/>
+		</xs:choice>
+		<xs:attribute name="scrolling" type="xs:boolean" default="false"
+			use="optional" />
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
+			use="optional" />
+	</xs:complexType>
+
+	<xs:complexType name="hiddenType">
+		<xs:complexContent>
+			<xs:extension base="rootType">
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:complexType name="menuType">
+		<xs:complexContent>
+			<xs:extension base="rootType">
+				<xs:attribute name="title" type="xs:string" use="required" />
+				<xs:attributeGroup ref="fontAttr" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="scriptType">
+		<xs:attribute name="file" type="xs:anyURI" use="required" />
+		<xs:attribute name="title" type="xs:string" use="optional" />
+		<xs:attribute name="args" type="xs:string" use="optional" />
+		<xs:attributeGroup ref="fontAttr" />
+	</xs:complexType>
+
+	<xs:complexType name="scriptFolderType">
+		<xs:attribute name="title" type="xs:string" use="optional" />
+		<xs:attribute name="file" type="xs:anyURI" use="required" />
+		<xs:attribute name="scrolling" type="xs:boolean" default="false"
+				use="optional" />
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
+			use="optional" />
+		<xs:attributeGroup ref="fontAttr" />
+	</xs:complexType>
+
+	<xs:complexType name="separatorType">
+	</xs:complexType>
+
+	<xs:complexType name="labelType">
+		<xs:attribute name="title" type="xs:string" use="required" />
+		<xs:attributeGroup ref="fontAttr"/>
+	</xs:complexType>
+	
+	<!-- Attributes Types -->
+	<xs:attributeGroup name="fontAttr">
+		<xs:attribute name="fontname" type="xs:string" use="optional" />
+		<xs:attribute name="fontstyle" type="xs:string" use="optional" />
+		<xs:attribute name="fontsize" type="xs:integer" use="optional" />
+	</xs:attributeGroup>
+
+	<!-- Attribute Restrictions -->
+	<xs:simpleType name="javaType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="([a-zA-Z0-9\._])*" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="positiveIntegerType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0" />
+		</xs:restriction>
+	</xs:simpleType>
+
+
+</xs:schema>

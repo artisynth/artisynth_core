@@ -247,7 +247,6 @@ public class FileNameField extends StringField {
    @Override 
    public void setValue (Object value) {
       super.setValue (value);
-      System.out.println ("setting value to " + value);
    }
    
 }

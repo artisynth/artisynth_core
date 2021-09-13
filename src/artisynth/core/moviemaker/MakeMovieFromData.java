@@ -17,22 +17,30 @@ import javax.media.datasink.*;
 import javax.media.format.VideoFormat;
 
 /**
-   Take data in a given directory, in format is dictated by MovieMaker class, and make a movie out of it.
-   Just create the object and it will do it.
+   Take data in a given directory, in format is dictated by MovieMaker class,
+   and make a movie out of it.  Just create the object and it will do it.
 */
 
 public class MakeMovieFromData implements ControllerListener, DataSinkListener {
    private double frameRate; 
    private int width,height; // frame sizes
    private int nFrames;
+   private MovieMaker myMovieMaker; // used for logging 
+
+   public MakeMovieFromData () {
+   }
 
    /**
-      Create frame writer
+      make movie from a collection of frame files
+
+      @param frameFileNames files containing the frames
       @param dataPath absolute path where data is stored
       @param fileName filename for movie (without .mov extension)
+      @param maker used to log messages to the message window
    */   
-   public MakeMovieFromData(String[] frameFileNames, String dataPath, 
-      String fileName) throws Exception {
+   public boolean makeMovie (
+      String[] frameFileNames, String dataPath, 
+      String fileName, MovieMaker maker) throws Exception {
 
       String fileInfo = dataPath + "/info.txt";
       
@@ -45,38 +53,42 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
       line = in.readLine ();
       height = Integer.parseInt (line.substring (line.lastIndexOf (' ') + 1));
       line = in.readLine ();
-      frameRate = Double.parseDouble (line.substring (line.lastIndexOf (' ') + 1));
+      frameRate = Double.parseDouble (line.substring(line.lastIndexOf (' ') + 1));
       
+      myMovieMaker = maker;  // used for logging messages
+
       MediaLocator oml;
       if ((oml = createMediaLocator("file:"+dataPath + "/" + fileName)) == null) {
-         System.err.println("Cannot build media locator from: " + fileName);
+         myMovieMaker.println ("Cannot build media locator from: " + fileName);
          in.close();
-         throw new Exception("Movie write failed: Can't build Medialocator");
+         return false;
       }
-      System.out.println ("output file = " + fileName);
+      myMovieMaker.println ("output file = " + fileName);
       
       Vector<String> inputFiles = new Vector<String> ();
       for (int i = 0; i < nFrames; i++) {
          inputFiles.addElement (frameFileNames[i]);
       }
-      
-      doIt (width, height, (int) frameRate, inputFiles, oml);
+      boolean status = doIt (width, height, (int) frameRate, inputFiles, oml);
       in.close();
+      return status;
    }
 
-
-   public boolean doIt(int width, int height, int frameRate, 
+   public boolean doIt (
+      int width, int height, int frameRate, 
       Vector<String> inFiles, MediaLocator outML) {
-      ImageDataSource ids = new ImageDataSource(width, height, frameRate, inFiles);
-      System.out.println("out MediaLocator="+outML);
+      ImageDataSource ids =
+         new ImageDataSource(width, height, frameRate, inFiles);
+      myMovieMaker.println("out MediaLocator="+outML);
 
       Processor p;
 
       try {
-         System.err.println("- create processor for the image datasource ...");
+         myMovieMaker.println ("- create processor for the image datasource ...");
          p = Manager.createProcessor(ids);
       } catch (Exception e) {
-         System.err.println("Yikes!  Cannot create a processor from the data source.");
+         myMovieMaker.println (
+            "Yikes!  Cannot create a processor from the data source.");
          return false;
       }
 
@@ -86,7 +98,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
       // some processing options on the processor.
       p.configure();
       if (!waitForState(p, Processor.Configured)) {
-         System.err.println("Failed to configure the processor.");
+         myMovieMaker.println ("Failed to configure the processor.");
          return false;
       }
 
@@ -98,43 +110,46 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
       TrackControl tcs[] = p.getTrackControls();
       Format f[] = tcs[0].getSupportedFormats();
       if (f == null || f.length <= 0) {
-         System.err.println("The mux does not support the input format: " + tcs[0].getFormat());
+         myMovieMaker.println (
+            "The mux does not support the input format: " + tcs[0].getFormat());
          return false;
       }
-      for (int i=0; i<f.length; i++)
-      { System.out.println ("supported formats: " + f[i]); 
-      }
+      // for (int i=0; i<f.length; i++) {
+      //    myMovieMaker.println ("supported formats: " + f[i]); 
+      // }
 
       tcs[0].setFormat(f[0]);
 
-      System.err.println("Setting the track format to: " + f[0]);
+      myMovieMaker.println ("Setting the track format to: " + f[0]);
 
       // We are done with programming the processor.  Let's just
       // realize it.
       p.realize();
       if (!waitForState(p, Controller.Realized)) {
-         System.err.println("Failed to realize the processor.");
+         myMovieMaker.println ("Failed to realize the processor.");
          return false;
       }
 
       // Now, we'll need to create a DataSink.
       DataSink dsink;
       if ((dsink = createDataSink(p, outML)) == null) {
-         System.err.println("Failed to create a DataSink for the given output MediaLocator: " + outML);
+         myMovieMaker.println (
+            "Failed to create a DataSink for the given output MediaLocator: "
+            + outML);
          return false;
       }
 
       dsink.addDataSinkListener(this);
       fileDone = false;
 
-      System.err.println("start processing...");
+      myMovieMaker.println("start processing...");
 
       // OK, we can now start the actual transcoding.
       try {
          p.start();
          dsink.start();
       } catch (IOException e) {
-         System.err.println("IO error during processing");
+         myMovieMaker.println("IO error during processing");
          return false;
       }
 
@@ -147,7 +162,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
       } catch (Exception e) {}
       p.removeControllerListener(this);
 
-      System.err.println("...done processing.");
+      myMovieMaker.println ("...done processing.");
 
       return true;
    }
@@ -161,18 +176,18 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
      DataSource ds;
 
      if ((ds = p.getDataOutput()) == null) {
-       System.err.println("Something is really wrong: the processor does not have an output DataSource");
+       myMovieMaker.println("Something is really wrong: the processor does not have an output DataSource");
        return null;
      }
 
      DataSink dsink;
 
      try {
-       //System.err.println("- create DataSink for: " + outML);
+       //myMovieMaker.println("- create DataSink for: " + outML);
        dsink = Manager.createDataSink(ds, outML);
        dsink.open();
      } catch (Exception e) {
-       System.err.println("Cannot create the DataSink: " + e);
+       myMovieMaker.println("Cannot create the DataSink: " + e);
        return null;
      }
 
@@ -399,7 +414,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
        // Check if we've finished all the frames.
        if (nextImage >= images.size()) {
          // We are done.  Set EndOfMedia.
-         //System.err.println("Done reading all images.");
+         //myMovieMaker.println("Done reading all images.");
          buf.setEOM(true);
          buf.setOffset(0);
          buf.setLength(0);
@@ -410,7 +425,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
        String imageFile = images.elementAt(nextImage);
        nextImage++;
 
-       //System.err.println("  - reading image file: " + imageFile);
+       //myMovieMaker.println("  - reading image file: " + imageFile);
 
        // Open a random access file for the next image. 
        RandomAccessFile raFile;
@@ -432,7 +447,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
        // Read the entire image from the file.
        raFile.readFully(data, 0, (int)raFile.length());
 
-       //System.err.println("    read " + raFile.length() + " bytes.");
+       //myMovieMaker.println("    read " + raFile.length() + " bytes.");
 
        buf.setOffset(0);
        buf.setLength((int)raFile.length());

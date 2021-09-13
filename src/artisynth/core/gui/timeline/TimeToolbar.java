@@ -35,6 +35,7 @@ public class TimeToolbar extends JToolBar {
    private JButton playButton;
    private JButton fastForwardButton;
    private JButton singleStepButton;
+   private JButton stopAllButton;
 
    private double myStepTime = 0;
 
@@ -117,6 +118,12 @@ public class TimeToolbar extends JToolBar {
          GuiStorage.FAST_FORWARD_ICON,
          "Skip forward", "Skip forward to next valid waypoint");
       add (fastForwardButton);
+
+      stopAllButton = makeButton (
+         GuiStorage.STOP_ALL_ICON,
+         "Stop all", "Stop simulation and all Jython commands and scripts");
+      add (stopAllButton);
+
       addSeparator();
 
       // add (makeButton(GuiStorage.SET_ICON, "Set"));
@@ -307,6 +314,9 @@ public class TimeToolbar extends JToolBar {
          }
          else if (nameOfAction == "Skip forward") {
             parent.myScheduler.fastForward();
+         }
+         else if (nameOfAction == "Stop all") {
+            parent.myMain.stopAll();
          }
          else if (nameOfAction == "Zoom in") {
             parent.zoom (TimelineConstants.ZOOM_IN);

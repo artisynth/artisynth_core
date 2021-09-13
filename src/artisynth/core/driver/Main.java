@@ -9,7 +9,7 @@ package artisynth.core.driver;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Cursor;
+import java.awt.*;
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -39,14 +40,18 @@ import java.util.regex.Pattern;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
+import javax.swing.UIManager;
+
+//import com.formdev.flatlaf.FlatLightLaf;
 
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
 import argparser.StringHolder;
-import artisynth.core.driver.ModelInfo.ModelType;
+import artisynth.core.driver.ModelScriptInfo.InfoType;
 import artisynth.core.driver.Scheduler.Action;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.gui.ControlPanel;
@@ -79,6 +84,7 @@ import artisynth.core.modelbase.HasCoordinateFrame;
 import artisynth.core.modelbase.Model;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.ModelBase;
 import artisynth.core.modelbase.OrientedTransformableGeometry;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.ScanWriteUtils;
@@ -122,14 +128,17 @@ import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLSupport;
-import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLSupport.GLVersionInfo;
+import maspack.render.GL.GLViewer;
+import maspack.render.Viewer;
+import maspack.widgets.GuiUtils;
 import maspack.render.GL.GLViewerFrame;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.SparseSolverId;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.Logger;
+import maspack.util.FunctionTimer;
 import maspack.util.Logger.LogLevel;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -138,18 +147,23 @@ import maspack.widgets.PropertyWindow;
 import maspack.widgets.RenderPropsDialog;
 import maspack.widgets.ViewerKeyListener;
 import maspack.widgets.ViewerToolBar;
+import maspack.widgets.GuiUtils.RelativeLocation;
 
 /**
- * the main class for artisynth
- * 
+ * main class for running the ArtiSynth application. Puts all the pieces
+ * together.
  */
 public class Main implements DriverInterface, ComponentChangeListener {
+
+   public static boolean myUseConfigDir = true;
+   public static boolean myUseRootModelManager = true;
 
    /**
     * private data members for the driver interface 
     */
    protected File myModelDir;
    protected File myProbeDir;
+   protected File myConfigDir; // directory containing configuration files
 
    protected MainFrame myFrame;
    protected MenuBarHandler myMenuBarHandler;
@@ -159,39 +173,79 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected EditorManager myEditorManager;
    protected UndoManager myUndoManager;
    protected MovieMaker myMovieMaker;
+   public static LogLevel DEFAULT_LOG_LEVEL = LogLevel.WARN;
    protected Logger myLogger;
+
+   // preferences
+   protected PreferencesManager myPreferencesManager;
+   protected ViewerPrefs myViewerPrefs;
+   protected ViewerOpenGLPrefs myViewerOpenGLPrefs;
+   protected ViewerGridPrefs myViewerGridPrefs;
+   protected InteractionPrefs myInteractionPrefs;
+   protected InteractionSettings myInteractionSettings;
+   protected LayoutPrefs myLayoutPrefs;
+   protected SimulationPrefs mySimulationPrefs;
+   protected SimulationSettings mySimulationSettings;
+   protected MousePrefs myMousePrefs;
+   protected MoviePrefs myMoviePrefs;
+   protected MaintenancePrefs myMaintenancePrefs;
+
+   // startup model
+   protected StartupModel myStartupModel;
+
+   public static int DEFAULT_VIEWER_WIDTH = 720;
+   public static int DEFAULT_VIEWER_HEIGHT = 540;
+   protected int myViewerWidth;
+   protected int myViewerHeight;
 
    protected static boolean myRunningUnderMatlab = false;
 
    // root model declared
+   protected RootModelManager myRootModelManager;
+   protected RootModelUpdateThread myRootModelUpdateThread;
    protected Workspace myWorkspace = null;
+
+   public static boolean DEFAULT_TIMELINE_VISIBLE = true;
+   public static int DEFAULT_TIMELINE_WIDTH = 800;
+   public static int DEFAULT_TIMELINE_HEIGHT = 400;
+
    protected Timeline myTimeline;
-   protected boolean timeLineRight = false;
-   protected boolean doubleTime = false;
+   protected boolean myTimelinePreviouslyVisible = false;
+   public static double DEFAULT_TIMELINE_RANGE = -1; // -1 means automatic
+   protected double myDefaultTimelineRange = DEFAULT_TIMELINE_RANGE;
+   public static RelativeLocation DEFAULT_TIMELINE_LOCATION =
+      RelativeLocation.BELOW;
+   protected RelativeLocation myTimelineLocation = DEFAULT_TIMELINE_LOCATION;
+   
+   public static double DEFAULT_FRAME_RATE = 20.0;
+   protected double myFrameRate = DEFAULT_FRAME_RATE;
+
    protected String myErrMsg;
    protected GLViewer myViewer;
    protected SelectionManager mySelectionManager = null;
+
+   public static boolean DEFAULT_JYTHON_FRAME_VISIBLE = false;
    protected ArtisynthJythonConsole myJythonConsole = null;
    protected JFrame myJythonFrame = null;
+   protected boolean myJythonPreviouslyVisible = false;
+   public static RelativeLocation DEFAULT_JYTHON_LOCATION =
+      RelativeLocation.BELOW;
+   protected RelativeLocation myJythonLocation = DEFAULT_JYTHON_LOCATION;
    protected ViewerManager myViewerManager;
-   protected AliasTable myDemoModels;
-   protected ModelHistory myModelHistory = null;  // storage for model history
+   //protected AliasTable myDemoModels;
+   protected ModelScriptHistory myModelScriptHistory = null;  // storage for model history
    protected boolean myFocusStealingMaskedP = false;
 
-   protected AliasTable myScripts;
    protected final static String PROJECT_NAME = "ArtiSynth";
    protected MatlabInterface myMatlabConnection;
-   protected AxisAngle myDefaultViewOrientation = 
-      new AxisAngle(AxisAngle.ROT_X_90);
 
    protected String myModelName;
-   protected String[] myModelArgs;    // command-line supplied arguments
-   protected ModelInfo lastModelInfo; // for re-loading a model with the same parameters
-   protected int myFlags = 0;
-   protected double myMaxStep = -1;
+   protected ModelScriptInfo myLastLoadInfo; // for re-loading a model with the same parameters
+   protected double myMaxStep = ModelBase.DEFAULT_MAX_STEP_SIZE;
    protected boolean disposed = false;
 
-   protected GraphicsInterface myGraphics = GraphicsInterface.GL3;
+   static GraphicsInterface DEFAULT_GRAPHICS = GraphicsInterface.GL3;
+   protected GraphicsInterface myGraphics = DEFAULT_GRAPHICS;
 
    protected String myModelSaveFormat = "%g"; // "%.8g";
 
@@ -234,8 +288,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
    };
 
    private SelectionMode mySelectionMode;
-   private boolean myArticulatedTransformsP = true;
-   private boolean myInitDraggersInWorldCoordsP = false;
+   public static boolean DEFAULT_ARTICULATED_TRANSFORMS = false;
+   private boolean myArticulatedTransformsP = DEFAULT_ARTICULATED_TRANSFORMS;
+   public static boolean DEFAULT_INIT_DRAGGERS_IN_WORLD = false;
+   private boolean myInitDraggersInWorldCoordsP = DEFAULT_INIT_DRAGGERS_IN_WORLD;
 
    private Translator3d translator3d = new Translator3d();
    private Transrotator3d transrotator3d = new Transrotator3d();
@@ -316,6 +372,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myErrMsg = msg;
    }
 
+   public void clearErrorMessage () {
+      myErrMsg = null;
+   }
+
    public String getErrorMessage() {
       return myErrMsg;
    }
@@ -332,13 +392,83 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myFrame;
    }
 
-   // changed from protected to public for cubee
-   public String[] getDemoNames() {
-      return myDemoModels.getAliases();
+   public PreferencesManager getPreferencesManager() {
+      return myPreferencesManager;
    }
 
+   public void createPreferencesManager() {
+      File prefFile = ArtisynthPath.getConfigFile ("settings/preferences");
+      if (prefFile != null) {
+         PreferencesManager manager = new PreferencesManager(prefFile);
+
+         myViewerPrefs = new ViewerPrefs (this);
+         myViewerOpenGLPrefs = new ViewerOpenGLPrefs (myViewerManager);
+         myViewerGridPrefs = new ViewerGridPrefs (myViewerManager);
+         myViewerManager.setPreferences (myViewerPrefs);
+
+         myInteractionSettings = new InteractionSettings (myMain);
+         myInteractionPrefs = new InteractionPrefs (myInteractionSettings);
+         myInteractionSettings.setPreferences (myInteractionPrefs);
+
+         myLayoutPrefs = new LayoutPrefs(this);
+
+         mySimulationSettings = new SimulationSettings();
+         mySimulationPrefs = new SimulationPrefs(mySimulationSettings);
+         mySimulationSettings.setPreferences (mySimulationPrefs);
+
+         myMousePrefs = new MousePrefs(this);
+         myMoviePrefs = new MoviePrefs(getMovieMaker());
+
+         myMaintenancePrefs = new MaintenancePrefs (this);
+
+         manager.addProps ("Viewer", "Viewer", myViewerPrefs);
+         manager.addProps ("Viewer.Grid", "ViewerGrid", myViewerGridPrefs);
+         manager.addProps ("Viewer.OpenGL", "ViewerOpenGL", myViewerOpenGLPrefs);
+         manager.addProps (
+            "Interaction", "Interaction", myInteractionPrefs);
+         manager.addProps ("Layout", "Layout", myLayoutPrefs);
+         manager.addProps ("Simulation", "Simulation", mySimulationPrefs);
+         manager.addProps ("Mouse", "Mouse", myMousePrefs);
+         manager.addProps ("Movies", "Movies", myMoviePrefs);
+         manager.addProps ("Maintenance", "Maintenance", myMaintenancePrefs);
+         manager.loadOrCreate();
+         myPreferencesManager = manager;
+      }
+   }
+
+   void createStartupModel() {
+      File configFile = ArtisynthPath.getConfigFile ("settings/startupModel");
+      if (configFile != null) {
+         StartupModel config = new StartupModel (configFile);
+         config.loadOrCreate();
+         myStartupModel = config;
+      }
+   }
+
+   void createModelScriptHistory() {
+      File historyFile = null;
+      if (historyFilename.value != null) {
+         historyFile = new File (historyFilename.value);
+      }
+      if (historyFile == null) {
+         historyFile = ArtisynthPath.getConfigFile ("cache/modelScriptHistory");
+      }
+      if (historyFile != null) {
+         ModelScriptHistory history = new ModelScriptHistory (historyFile);
+         history.loadOrCreate();
+         myModelScriptHistory = history;
+      }      
+   }
+      
+
+//   // changed from protected to public for cubee
+//   public String[] getDemoNames() {
+//      return myDemoModels.getAliases();
+//   }
+
    public String getDemoClassName (String classNameOrAlias) {
-      String name = myDemoModels.getName (classNameOrAlias);
+      String name =
+         myRootModelManager.findModelFromSimpleName (classNameOrAlias);
       if (name != null) {
          return name;
       }
@@ -353,28 +483,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   protected boolean isDemoName (String name) {
-      return myDemoModels.containsAlias (name);
-   }
+//   protected boolean isDemoName (String name) {
+//      return myDemoModels.containsAlias (name);
+//   }
 
-   protected boolean isDemoClassName(String classNameOrAlias) {
-      if (myDemoModels.containsAlias (classNameOrAlias)) {
-         return true;
-      }
-      return myDemoModels.containsName (classNameOrAlias);
-   }
-
-   public String[] getScriptNames() {
-      return myScripts.getAliases();
-   }
-
-   public String getScriptName (String alias) {
-      return myScripts.getName (alias);
-   }
+//   protected boolean isDemoClassName(String classNameOrAlias) {
+//      if (myDemoModels.containsAlias (classNameOrAlias)) {
+//         return true;
+//      }
+//      return myDemoModels.containsName (classNameOrAlias);
+//   }
 
    public GraphicsInterface getGraphics() {
       return myGraphics;
-   }
+   }   
 
    /**
     * Returns the current model name. This is either the name of the root model,
@@ -387,116 +509,23 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public Main() {
-      this (PROJECT_NAME, 800, 600, GraphicsInterface.GL3);
+      this (PROJECT_NAME, /*createGui=*/true);
    }
 
-   /**
-    * read the demo names from demosFile
-    */
-   private void readDemoNames(String filename) {
-      URL url = ArtisynthPath.findResource (filename);
-      if (url == null) {
-         System.out.println ("Warning: demosFile: " + filename
-                             + " not found");
-      }
-      else {
-         try {
-            myDemoModels = new AliasTable (url);
-         }
-         catch (Exception e) {
-            System.out.println ("Warning: error reading demosFile: "
-                                + filename);
-            System.out.println (e.getMessage());
-         }
-      }
-      if (myDemoModels == null) {
-         myDemoModels = new AliasTable(); // default: an empty alias table
-      }
-   }
-
-   String getDemosFilename() {
-      return demosFilename.value;
+   String getModelMenuFilename() {
+      return modelMenuFilename.value;
    }
    
-   String getDemosMenuFilename() {
-      return demosMenuFilename.value;
+   String getScriptMenuFilename() {
+      return scriptMenuFilename.value;
    }
    
-   /**
-    * Reads model history information
-    */
-   private void readModelHistory(String filename) {
-      
-      // no history
-      if (filename == null || "".equals(filename)) {
-         return;
-      }
-
-      File file = ArtisynthPath.findFile(filename);
-      if (file == null) {
-         // System.out.println ("Warning: history file '" + filename + "' not found");
-         myModelHistory = new ModelHistory();
-      }
-      else {
-         historyFilename.value = file.getAbsolutePath(); // store for future use
-         try {
-            myModelHistory = new ModelHistory();  
-            myModelHistory.read(file);
-            
-         } catch (Exception e) {
-            System.out.println ("Warning: error reading history file: "
-               + filename);
-            System.out.println (e.getMessage());
-            myModelHistory = null;          // ensure it's null
-         }
-      }
+   String getDemoFilename() {
+      return demoFilename.value;
    }
    
-   public ModelHistory getModelHistory() {
-      if (myModelHistory == null) {
-         myModelHistory = new ModelHistory ();
-      }
-      return myModelHistory;
-   }
-
-   /**
-    * Write history information
-    */
-   private void saveModelHistory(String filename) {
-      // no history
-      if (filename == null || "".equals(filename)) {
-         return;
-      }
-      
-      try {
-         myModelHistory.save(new File(filename));
-         historyFilename.value = filename;  // store for future reference in loading
-      } catch (Exception e) {
-         System.out.println ("Warning: error reading history file: "
-            + filename);
-         System.out.println (e.getMessage());
-         myModelHistory = null;          // ensure it's null
-      }
-      
-   }
-
-   public void addDemoName(String alias, String className) {
-      myDemoModels.addEntry(alias, className);      
-   }
-
-   public void removeDemoName(String alias) {
-      myDemoModels.removeEntry(alias);
-   }
-
-   public void removeDemoClass(String className) {
-      String alias = myDemoModels.getAlias(className);
-      if (alias != null) {
-         removeDemoName(alias);
-      }
-   }
-
-   public AliasTable getDemoTable() {
-      return myDemoModels;
+   public ModelScriptHistory getModelScriptHistory() {
+      return myModelScriptHistory;
    }
 
    private String getScriptFileName (File file, Pattern pattern) {
@@ -531,48 +560,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
    }
-
-   /**
-    * read the script names
-    */
-   private void readScriptNames() {
-      URL url = ArtisynthPath.findResource (scriptsFilename.value);
-      if (url == null) {
-         System.out.println ("Warning: scriptsFile: " + scriptsFilename.value
-            + " not found");
-      }
-      else {
-         try {
-            myScripts = new AliasTable (url);
-         }
-         catch (FileNotFoundException e) {
-         }
-         catch (Exception e) {
-            System.out.println ("Warning: error reading scriptsFile: "
-               + scriptsFilename.value);
-            System.out.println (e.getMessage());
-         }
-      }
-      if (myScripts == null) {
-         myScripts = new AliasTable(); // default: an empty alias table
-      }
-      File[] files = ArtisynthPath.findFilesMatching (".*\\.py");
-      Pattern pattern = null;
-      try {
-         pattern = Pattern.compile (".*ArtisynthScript:\\s*\"([^\"]+)\".*");
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-         System.exit(1); 
-      }
-      for (int i=0; i<files.length; i++) {
-         String scriptName = getScriptFileName (files[i], pattern);
-         if (scriptName != null) {
-            myScripts.addEntry (scriptName, files[i].getName());
-         }
-      }
-   }
-   
    private static class MainFrameConstructor implements Runnable {
       Main myMain;
       String myName;
@@ -611,61 +598,135 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public void setViewerSize (int w, int h) {
       // execute in AWT thread to prevent deadlock
-      try {
-         SwingUtilities.invokeAndWait(new ViewerResizer(myFrame, w, h));
-      } catch (InvocationTargetException | InterruptedException e) {
-         e.printStackTrace();
+      if (!SwingUtilities.isEventDispatchThread()) {
+         try {
+            SwingUtilities.invokeAndWait(new ViewerResizer(myFrame, w, h));
+         } catch (InvocationTargetException | InterruptedException e) {
+            e.printStackTrace();
+         }
+      }
+      else {
+         myFrame.setViewerSize (w, h);
       }
    }
    
-   public void setViewerSize (Dimension size) {
-      // execute in AWT thread to prevent deadlock
-      setViewerSize (size.width, size.height);
-   }
+//   public void setViewerSize (Dimension size) {
+//      // execute in AWT thread to prevent deadlock
+//      setViewerSize (size.width, size.height);
+//   }
 
    public Dimension getViewerSize() {
-      return myViewer.getCanvas().getSize();
+      return new Dimension (
+         myViewer.getScreenWidth(), myViewer.getScreenHeight());
    }
-   
+
+   private void initializeRootModelManager() {
+      myRootModelManager = new RootModelManager();
+      File cacheFile = ArtisynthPath.getConfigFile ("cache/RootModels");
+      if (cacheFile != null) {
+         if (cacheFile.exists()) {
+            if (!cacheFile.canRead()) {
+               System.out.println (
+                  "WARNING: root model cache file "+cacheFile+" not readable");
+            }
+            else {
+               myRootModelManager.setCacheFile (cacheFile);
+               myRootModelManager.readCacheFile();
+            }
+         }
+         else {
+            // try to create a cache file
+            System.out.println (
+               "Creating root model cache file "+cacheFile);
+            myRootModelManager.setCacheFile (cacheFile);
+            myRootModelManager.loadPackage ("artisynth.demos");
+            myRootModelManager.loadPackage ("artisynth.models");
+            myRootModelManager.writeCacheFile();
+         }
+      }
+   }
+
+   class RootModelUpdateThread extends Thread {
+
+      public void run() {
+         FunctionTimer timer = new FunctionTimer();
+         timer.start();
+         myRootModelManager.updateModelSet();
+         if (!myRootModelManager.compareCacheToMain()) {
+            // cache is different than main
+            myRootModelManager.writeCacheFile();
+//            if (myMenuBarHandler != null) {
+//               myMenuBarHandler.updateDemosMenu(); 
+//            }
+         }
+         if (myMenuBarHandler != null) {
+            myMenuBarHandler.updateDemosMenu(); 
+         }        
+         timer.stop();
+         // System.out.println (
+         //    "Root model update thread finished, "+timer.result(1));
+      }
+   }
+
+   RootModelUpdateThread getRootModelUpdateThread() {
+      return myRootModelUpdateThread;
+   }
+
    /**
-    * Creates the new window frame
+    * Creates a new Main instance
     * 
-    * @param windowName name of window
-    * @param width width in pixels
-    * @param height height in pixels
+    * @param windowName name of window frame
+    * @param createGui whether or not to create the GUI
     */
-   public Main (
-      String windowName, int width, int height, GraphicsInterface gi) {
+   public Main (String windowName, boolean createGui) {
+
       myMain = this;
+
+      // create viewer manager now, and even if there is no gui, because the
+      // preferences manager wants one
+      myViewerManager = new ViewerManager();
+      
+      if (myUseConfigDir) {
+         // set user config directory and preferences manager if possible
+         createPreferencesManager();
+         createStartupModel();
+      }
+
+      if (myUseRootModelManager) {
+         initializeRootModelManager();
+      }
       
       setClassAliases();
 
-      // check if GL3 version is supported
-      if (width > 0 && gi == GraphicsInterface.GL3) {
-         GLVersionInfo vinfo = GLSupport.getMaxGLVersionSupported();
-         if ( (vinfo.getMajorVersion() < gi.getMajorVersion()) ||
-            ((vinfo.getMajorVersion() == gi.getMajorVersion()) && 
-               (vinfo.getMinorVersion() < gi.getMinorVersion()))) {
-            System.err.println("WARNING: " + gi.toString() + " is not supported on this system.");
-            System.err.println("     Required: OpenGL " + gi.getMajorVersion() + "." + gi.getMinorVersion());
-            System.err.println("     Available: OpenGL " + vinfo.getMajorVersion() + "." + vinfo.getMinorVersion());
-            gi = GraphicsInterface.GL2;
+      GraphicsInterface gi = null;
+      if (createGui) {
+
+         // try {
+         //    UIManager.setLookAndFeel( new FlatLightLaf() );
+         // } catch( Exception ex ) {
+         //    System.err.println( "Failed to initialize LaF" );
+         // }
+
+         gi = myViewerPrefs.getGraphics();
+         if (!"".equals(graphicsInterface.value)) {
+            // graphics specified on the command line
+            GraphicsInterface cmdgi =
+               GraphicsInterface.fromString (graphicsInterface.value);
+            if (cmdgi == null) {
+               System.out.println (
+                  "Unknown graphics '"+graphicsInterface.value+"'; using "+gi);
+            }
+            else {
+               gi = cmdgi;
+            }
+         }
+         gi = GraphicsInterface.checkAvailability (gi);
+         if (gi == null) {
+            // if graphics not supported and there is no substitute
+            System.exit(1); 
          }
       }
       myGraphics = gi;
-      
-      if (demosFilename.value != null) {
-         System.out.println ("reading demos files " + demosFilename.value);
-         readDemoNames(demosFilename.value);
-      } else {
-         myDemoModels = new AliasTable(); // default: an empty alias table
-      }
-      readScriptNames();
-      
-      // potentially read model history
-      if (historyFilename.value != null) {
-         readModelHistory(historyFilename.value);
-      }
       
       myEditorManager = new EditorManager (this);
       myUndoManager = new UndoManager();
@@ -675,12 +736,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
       mySelectionManager = new SelectionManager();
 
 
-      if (width > 0) {
+      if (createGui) {
          ToolTipManager.sharedInstance().setLightWeightPopupEnabled (false);
 
+         myViewerWidth = myLayoutPrefs.getViewerWidth();
+         if (viewerWidth.value != -1) {
+            myViewerWidth = viewerWidth.value;
+         }
+         myViewerHeight = myLayoutPrefs.getViewerHeight();
+         if (viewerHeight.value != -1) {
+            myViewerHeight = viewerHeight.value;
+         }        
          // execute in AWT thread to prevent deadlock
          try {
-            SwingUtilities.invokeAndWait(new MainFrameConstructor(windowName, this, width, height));
+            SwingUtilities.invokeAndWait (
+               new MainFrameConstructor(
+                  windowName, this, myViewerWidth, myViewerHeight));
          } catch (InvocationTargetException | InterruptedException e) {
             e.printStackTrace();
          }
@@ -694,18 +765,45 @@ public class Main implements DriverInterface, ComponentChangeListener {
          //myFrame.setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
          myViewer = myFrame.getViewer();
          myViewer.addRenderListener (myMenuBarHandler);
+         myMovieMaker.setViewer (myViewer);
 
-         myViewerManager = new ViewerManager (myViewer);
+         // set stored viewer preferences
+         myViewerPrefs.applyToCurrent();
 
-         myViewerManager.setDefaultOrthographic (orthographic.value);
+         // set viewerManager default overrides from the command line
+         if (bgColor[0] != -1f) {
+            myViewerManager.setBackgroundColor (
+               new Color(bgColor[0], bgColor[1], bgColor[2]));
+         }
+
+         if (axialView.value != null) {
+            if (axialView.value.equals ("xy")) {
+               myViewerManager.setDefaultAxialView (AxisAlignedRotation.X_Y);
+            }
+            else if (axialView.value.equals ("xz")) {
+               myViewerManager.setDefaultAxialView (AxisAlignedRotation.X_Z);
+            }
+            else {
+               System.out.println (
+                  "WARNING: Unknown axial view: " + axialView.value);
+            }
+         }
+
+         myViewerManager.setDefaultOrthographicView (orthographic.value);
          myViewerManager.setDefaultDrawGrid (drawGrid.value);
          myViewerManager.setDefaultDrawAxes (drawAxes.value);
          myViewerManager.setDefaultAxisLength (axisLength.value);
 
-         AxisAngle REW = getDefaultViewOrientation(getRootModel());
-         myViewer.setAxialView (
-            AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
-         initializeViewer (myViewer, REW);
+         // mouse preferences
+         myMousePrefs.applyToCurrent();
+         if (mousePrefs.value != null) {
+            // override bindings
+            setMouseBindings (mousePrefs.value);
+         }
+         
+         myViewerManager.addViewer (myViewer);
+
+         initializeViewer (myViewer);
 
          setSelectionMode (SelectionMode.Select);
 
@@ -724,10 +822,41 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.addDragger (transrotator3d);
          myViewerManager.addDragger (constrainedTranslator3d);
          
-         myFrame.getGLPanel().setSize (width, height);
+         //myFrame.getGLPanel().setSize (myViewerWidth, myViewerHeight);
 
          myPullController = new PullController (mySelectionManager);
          myAddMarkerHandler = new AddMarkerTool (mySelectionManager);
+
+         if (myUseRootModelManager && myRootModelManager.hasCache()) {
+            myRootModelUpdateThread = new RootModelUpdateThread();
+            myRootModelUpdateThread.start();
+         }
+
+         createModelScriptHistory();
+      }
+
+      // update movie maker settings with command line options
+      myMoviePrefs.applyToCurrent();
+      if (movieMethod.value != null) {
+         MovieMaker.Method method = myMovieMaker.getMethod (movieMethod.value);
+         if (method != null) {
+            myMovieMaker.setMethod (method);
+         }
+         else {
+            System.out.println (
+               "WARNING: option '-movieMethod': unknown method '" +
+               movieMethod.value+"'");
+         }
+      }
+      if (movieFrameRate.value != -1) {
+         try {
+            myMovieMaker.setFrameRate (movieFrameRate.value);
+         }
+         catch (Exception e) {
+            System.out.println (
+               "WARNING: option '-movieFrameRate': illegal rate " +
+               movieFrameRate.value);
+         }
       }
       createWorkspace();
    }
@@ -796,6 +925,51 @@ public class Main implements DriverInterface, ComponentChangeListener {
             myTimeline.setVisible (false);
          }
       }
+      // locate the timeline if not previously visible
+      if (visible && !myTimelinePreviouslyVisible) {
+         // set whether timeline is to the right
+         RelativeLocation loc = myLayoutPrefs.getTimelineLocation();
+         if (timelineRight.value) {
+            loc = RelativeLocation.RIGHT;
+         }
+         setTimelineLocation (loc);
+         myTimelinePreviouslyVisible = true;
+      }
+   }
+
+   /**
+    * Returns the scale factor used to control the visualized simulation
+    * speed in the viewer. See {@link setRealTimeScaling}.
+    */
+   public double getRealTimeScaling() {
+      double scaling = myScheduler.getRealTimeScaling ();
+      if (!myScheduler.getRealTimeAdvance ()) {
+         scaling = -1;
+      } 
+      return scaling;
+   }
+
+   /**
+    * Sets the scale factor used to control the visualized simulation speed in
+    * the viewer, subject to computational constraints. The default value is 1,
+    * which means that the viewer tries to show the simulation in real
+    * time. Values {@code >} 1 will speed up the simulation, while values
+    * {@code <} 1 will slow it down. A value {@code <=} 0 will cause the
+    * simulation to be displayed as fast as possible.
+    */
+   public void setRealTimeScaling (double scaling) {
+      if (scaling != getRealTimeScaling()) {
+         if (scaling <= 0) {
+            setRealTimeAdvance (false);
+         }
+         else {
+            setRealTimeAdvance (true);
+            myScheduler.setRealTimeScaling (scaling);
+         }
+         if (myMenuBarHandler != null) {
+            myMenuBarHandler.updateRealTimeWidgets();
+         }
+      }
    }
    
    /**
@@ -816,40 +990,40 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param enable if {@code true}, enables real-time model advancement
     */
    public void setRealTimeAdvance (boolean enable) {
-      myScheduler.setRealTimeAdvance (enable);
+      if (enable != myScheduler.getRealTimeAdvance()) {
+         myScheduler.setRealTimeAdvance (enable);
+         if (myMenuBarHandler != null) {
+            myMenuBarHandler.updateRealTimeWidgets();
+         }
+      }
    }
 
    public void setFrameRate (double val) {
       if (val < 0) {
          throw new IllegalArgumentException ("frame rate must not be negative");
       }
-      double secs;
-      if (val == 0) {
-         secs = Double.POSITIVE_INFINITY;
+      if (myScheduler != null) {
+         RenderProbe renderProbe = myScheduler.getRenderProbe();
+         if (renderProbe != null) {
+            renderProbe.setUpdateInterval (
+               val == 0 ? Double.POSITIVE_INFINITY : 1/val);
+         }
       }
-      else {
-         secs = 1/val;
-      }
-      getScheduler().getRenderProbe().setUpdateInterval (secs);
-      framesPerSecond.value = val;
+      myFrameRate = val;
    }
 
    public double getFrameRate() {
-      return framesPerSecond.value;
+      return myFrameRate;
    }
 
-   private AxisAngle getDefaultViewOrientation (RootModel root) {
+   private AxisAlignedRotation getDefaultAxialView (RootModel root) {
       if (root != null) {
          AxisAngle REW = root.getDefaultViewOrientation();
          if (!REW.equals (new AxisAngle(0, 0, 0, 0))) {
-            return REW;
+            return AxisAlignedRotation.getNearest (new RotationMatrix3d(REW));
          }
       }
-      return myDefaultViewOrientation;
-   }
-   
-   void setDefaultViewOrientation (AxisAngle REW) {
-      myDefaultViewOrientation = new AxisAngle(REW);
+      return myViewerManager.getDefaultAxialView();
    }
 
    public GLViewerFrame createViewerFrame() {
@@ -859,19 +1033,19 @@ public class Main implements DriverInterface, ComponentChangeListener {
       GLViewer viewer = frame.getViewer();
       // ViewerToolBar toolBar = new ViewerToolBar(viewer, this);
 
-      AxisAngle REW = getDefaultViewOrientation(getRootModel());
+      AxisAlignedRotation axialView = getDefaultAxialView(getRootModel());
       myViewerManager.addViewer (viewer);
       ViewerToolBar toolBar = 
          new ViewerToolBar (viewer, /*addGridPanel=*/true);
       frame.getContentPane().add (toolBar, BorderLayout.PAGE_START);
-      viewer.setAxialView (
-         AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
-      initializeViewer (viewer, REW);
+      viewer.setAxialView (axialView);
+      initializeViewer (viewer);
+      frame.pack();
       frame.setVisible (true);
       return frame;
    }
 
-   public void initializeViewer (GLViewer viewer, AxisAngle REW) {
+   public void initializeViewer (GLViewer viewer) {
       // ContextMouseListener contextListener = new ContextMouseListener();
 
       // keyHandler.attachGLViewer(viewer);
@@ -887,11 +1061,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       // set the cursor on the canvas based on the current selection mode
       if (mySelectionMode == SelectionMode.AddComponent) {
-         viewer.getCanvas().setCursor (
+         viewer.setScreenCursor (
             Cursor.getPredefinedCursor (Cursor.CROSSHAIR_CURSOR));
       }
       else {
-         viewer.getCanvas().setCursor (getDefaultCursor());
+         viewer.setScreenCursor (getDefaultCursor());
       }
       myViewerManager.resetViewer (viewer);
    }
@@ -940,7 +1114,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             input = new FileInputStream ((File)fileOrUrl);
       }
       catch (Exception e) {
-         System.out.println ("Error: cannot open initialization "+fileOrUrl);
+         System.out.println ("ERROR: cannot open initialization "+fileOrUrl);
       }
       try {
          System.out.println ("Initializing from "+fileOrUrl+" ...");
@@ -970,22 +1144,51 @@ public class Main implements DriverInterface, ComponentChangeListener {
       File stdFile = ArtisynthPath.getHomeRelativeFile (initFileName, ".");
       if (!stdFile.canRead()) {
          System.out.println (
-            "Warning: cannot find $ARTISYNTH_HOME/"+initFileName);
+            "WARNING: cannot find $ARTISYNTH_HOME/"+initFileName);
          stdFile = null;
       }
       else {
          executeJythonInit (stdFile);
       }
-      File[] files = ArtisynthPath.findFiles (initFileName);
-      if (files != null) {
-         for (int i=files.length-1; i>=0; i--) {
-            if (stdFile == null ||
-               !ArtisynthPath.filesAreTheSame (files[i], stdFile)) {
-               executeJythonInit (files[i]);
-            }
+//      File[] files = ArtisynthPath.findFiles (initFileName);
+//      if (files != null) {
+//         for (int i=files.length-1; i>=0; i--) {
+//            if (stdFile == null ||
+//               !ArtisynthPath.filesAreTheSame (files[i], stdFile)) {
+//               executeJythonInit (files[i]);
+//            }
+//         }
+//      }
+   }
+
+   void setJythonFrameVisible (boolean visible) {
+      if (visible) {
+         boolean created = false;
+         if (myJythonFrame == null) {
+            createJythonConsole(/*guiBased=*/true);
+            created = true;
+         }
+         myJythonFrame.setVisible(true);
+         if (created) {
+            GuiUtils.locateBelow (myJythonFrame, myFrame);
          }
       }
+      else {
+         if (myJythonFrame != null) {
+            myJythonFrame.setVisible(false);
+         }
+      }
+      // locate the frame if not previously visible
+      if (visible && !myJythonPreviouslyVisible) {
+         // set whether timeline is to the right
+         RelativeLocation loc = myLayoutPrefs.getJythonLocation();
+         setJythonLocation (loc);
+         myJythonPreviouslyVisible = true;
+      }
+   }
 
+   JFrame getJythonFrame() {
+      return myJythonFrame;
    }
 
    public ArtisynthJythonConsole getJythonConsole() {
@@ -1038,7 +1241,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public void step() {
       myScheduler.step();
    }
-
+   
+   public void stopAll() {
+      if (myJythonConsole != null &&
+          myJythonConsole.requestInterrupt()) {
+         while (myJythonConsole.interruptRequestPending()) {
+            try { Thread.sleep (50);
+            }
+            catch (InterruptedException e) {
+               // ignore
+            }
+         }
+         maskFocusStealing (false);
+      }
+      myScheduler.pause();
+   }      
+ 
    public boolean forward() {
       return myScheduler.fastForward();
    }
@@ -1083,7 +1301,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public double getMaxStep () {
-      // this value mirrors rootModel.getMaxStepSize() ...
       return myMaxStep;
    }
 
@@ -1129,14 +1346,68 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }      
 
    /**
+    * Returns the default timeline range value. See {@link
+    * #setDefaultTimelineRange}.
+    */
+   double getDefaultTimelineRange() {
+      return myDefaultTimelineRange;
+   }
+
+   /**
+    * Sets the timeline range value that is used to initialize the visible part
+    * of the timeline when a model is loaded. A value <= 0 implies that the
+    * range will be set automatically.
+    */
+   void setDefaultTimelineRange (double sec) {
+      myDefaultTimelineRange = sec;
+      if (myTimeline != null) {
+         myTimeline.setVisibleRange (sec);
+      }
+   }
+
+   /**
+    * Queries the default location where the timeline should be located
+    * relative to the main frame.
+    */
+   RelativeLocation getTimelineLocation() {
+      return myTimelineLocation;
+   }
+
+   /**
+    * Sets the default location where the timeline should be located relative
+    * to the main frame.
+    */
+   void setTimelineLocation (RelativeLocation loc) {
+      myTimelineLocation = loc;
+      GuiUtils.locateRelative (myTimeline, myFrame, loc);
+   }
+
+   /**
+    * Queries the default location where the Jython console should be located
+    * relative to the main frame.
+    */
+   RelativeLocation getJythonLocation() {
+      return myJythonLocation;
+   }
+
+   /**
+    * Sets the default location where the Jython console should be located
+    * relative to the main frame.
+    */
+   void setJythonLocation (RelativeLocation loc) {
+      myJythonLocation = loc;
+      if (myJythonFrame != null) {
+         GuiUtils.locateRelative (myJythonFrame, myFrame, loc);
+      }
+   }
+
+   /**
     * create the timeline
-    * 
     */
    private void createTimeline() {
       
       if (getScheduler().isPlaying()) {
          getScheduler().stopRequest();
-         System.out.println("waiting for stop");
          waitForStop();
       }
       
@@ -1148,59 +1419,160 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewer.getMouseHandler().getMultipleSelectionMask());
       
       myTimeline = timeline;
-      //}
 
-      // add window listener to the timeline to catch window close events
-      myTimeline.addWindowListener (new WindowAdapter() {
-         public void windowClosed (WindowEvent e) {
-         }
-
-         public void windowClosing (WindowEvent e) {
-            myMenuBarHandler.setTimelineVisible (false);
-         }
-      });
-
-      // set the timeline frame sizes
-      if (doubleTime) {
-         myTimeline.setSize (800, 800);
+      // set the timeline size and default range
+      int width = myLayoutPrefs.getTimelineWidth();
+      if (timelineWidth.value != -1) {
+         width = timelineWidth.value;
       }
-      else {
-         myTimeline.setSize (800, 400);
+      int height = myLayoutPrefs.getTimelineHeight();
+      if (timelineHeight.value != -1) {
+         height = timelineHeight.value;
       }
-
-      if (timeLineRight) {
-         myTimeline.setLocation (
-            myFrame.getX()+myFrame.getWidth(), myFrame.getY());
+      myDefaultTimelineRange = myLayoutPrefs.getTimelineRange();
+      if (timelineRange.value != -2) { // -2 means "undefined"
+         myDefaultTimelineRange = timelineRange.value;
       }
-      else {
-         myTimeline.setLocation (
-            myFrame.getX(), myFrame.getY()+myFrame.getHeight());
+      if (myDefaultTimelineRange <= 0) {
+         myDefaultTimelineRange = DEFAULT_TIMELINE_RANGE;
       }
-
-      // Check the model zoom level and set the timeline zoom
-      // accordingly
-
-      myTimeline.setZoomLevel (zoom.value);
-
-      //       myTimeline.setSingleStepTime (
-      //          TimeBase.secondsToTicks (stepSize.value));
+      myTimeline.setSize (width, height);
+      myTimeline.setVisibleRange (myDefaultTimelineRange);
 
       if (getWorkspace() != null) {
          myTimeline.requestResetAll();
       }
    }
 
-   public void start (
-      boolean startWithTimeline, boolean timeLineAllignedRight,
-      boolean loadLargeTimeline) {
+   boolean isTimelineVisible() {
+      return myTimeline != null && myTimeline.isVisible();
+   }
 
-      timeLineRight = timeLineAllignedRight;
-      doubleTime = loadLargeTimeline;
+   private void initializeSimulationPrefs () {
+      // maximum step size
+      double stepSize = mySimulationPrefs.getMaxStepSize();
+      if (maxStep.value != -1) {
+         stepSize = maxStep.value;
+      }
+      ModelBase.setDefaultMaxStepSize (stepSize);
+
+      // position stabilization
+      PosStabilization stab = mySimulationPrefs.getStabilization();
+      if (posCorrection.value != null) {
+         PosStabilization s = PosStabilization.fromString (posCorrection.value);
+         if (s == null) {
+            System.out.println (
+               "WARNING: option '-posCorrection': unknown method '"+
+               posCorrection.value+"'");
+         }
+         else {
+            stab = s;
+         }
+      }
+      MechSystemBase.setDefaultStabilization (stab);
+
+      // collider type
+      ColliderType ctype = mySimulationPrefs.getColliderType();
+      if (useAjlCollision.value) {
+         ctype = ColliderType.AJL_CONTOUR;
+      }
+      CollisionManager.setDefaultColliderType (ctype);
+      
+      // whether or not to about when elements are inverted
+      boolean abortOnInversion = mySimulationPrefs.getAbortOnInvertedElements();
+      if (abortOnInvertedElems.value) {
+         abortOnInversion = true;
+      }
+      FemModel3d.abortOnInvertedElems = abortOnInversion;
+
+      // hybrid solves
+      boolean hybridSolves = mySimulationPrefs.getHybridSolvesEnabled();
+      if (disableHybridSolves.value) {
+         hybridSolves = false;
+      }
+      MechSystemSolver.myDefaultHybridSolveP = hybridSolves;
+
+      // number of CPU threads to use for the solver
+      int numThreads = mySimulationPrefs.getNumSolverThreads();
+      if (numSolverThreads.value != -1) {
+         numThreads = numSolverThreads.value;
+      }
+      PardisoSolver.setDefaultNumThreads(numThreads);
+
+      // settings that are not in preferences:
+
+      // no-incompress-damping is probably obsolete:
+      FemModel3d.noIncompressStiffnessDamping = noIncompressDamping.value;
+
+      // matrix solver
+      if (matrixSolver.value != null) {
+         MechSystemBase.setDefaultMatrixSolver (
+            SparseSolverId.valueOf (matrixSolver.value));
+      }
+   }      
+
+   private void initializeMaintenancePrefs () {
+
+      // log level
+      LogLevel level = myMaintenancePrefs.getLogLevel();
+      if (logLevel.value != null) {
+         LogLevel lev = LogLevel.find(logLevel.value);
+         if (lev == null) {
+            System.out.println (
+               "WARNING: option '-logLevel': unknown level '"+
+               logLevel.value+"'");
+         }
+         else {
+            level = lev;
+         }
+      }
+      setLogLevel (level);
+
+      // test save/restore state
+      boolean testSaveRestore = myMaintenancePrefs.getTestSaveRestoreState();
+      if (testSaveRestoreState.value) {
+         testSaveRestore = true;
+      }
+      RootModel.setTestSaveRestoreState (testSaveRestore);
+   }      
+
+   private void initializeInteractionPrefs () {
+
+      // rendering frame rate
+      double frameRate = myInteractionPrefs.getFrameRate();
+      if (framesPerSecond.value != -1) {
+         frameRate = framesPerSecond.value;
+      }
+      setFrameRate (frameRate);
+
+      // use of articulated transforms
+      boolean articulatedTrans = myInteractionPrefs.getArticulatedTransforms();
+      if (useArticulatedTransforms.value) {
+         articulatedTrans = true;
+      }
+      setArticulatedTransformsEnabled (articulatedTrans);
+      
+      setRealTimeScaling (myInteractionPrefs.getRealTimeScaling());
+      setInitDraggersInWorldCoords (
+         myInteractionPrefs.getInitDraggersInWorld());
+      myInteractionSettings.setNavigationPanelLines (
+         myInteractionPrefs.getNavigationPanelLines());
+   }      
+
+   public void start (ArrayList<String> modelArgs) {
 
       myScheduler = new Scheduler(this);
-      setMaxStep (maxStep.value);
+
+      initializeSimulationPrefs();
+      initializeMaintenancePrefs();
 
       if (myFrame != null) {
+
+         // is timeline visible?
+         boolean isTimelineVisible = myLayoutPrefs.isTimelineVisible();
+         if (!startWithTimeline.value) {
+            isTimelineVisible = false;
+         }
          
          // Prevent deadlock by AWT thread
          try {
@@ -1209,6 +1581,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
                public void run() {
                   myFrame.pack();
                   myFrame.setVisible (true);
+                  myFrame.setViewerSize (myViewerWidth, myViewerHeight);
                   createTimeline (); //TODO               
                }
             });
@@ -1216,33 +1589,133 @@ public class Main implements DriverInterface, ComponentChangeListener {
             e.printStackTrace();
          }
 
-         RenderProbe renderProbe =
-            new RenderProbe (this, 1/framesPerSecond.value);
-         // renderProbe.setMovieOptions(movieOptions);
+         // create render probe
+         RenderProbe renderProbe = new RenderProbe (this, 1/DEFAULT_FRAME_RATE);
          getScheduler().setRenderProbe (renderProbe);
 
-         
          if (myTimeline instanceof TimelineController) {
             myScheduler.addListener ((TimelineController)myTimeline);
          }
          myScheduler.addListener (myMenuBarHandler);
 
-         if (startWithTimeline) {
-            myTimeline.setVisible (true);
-            myMenuBarHandler.setTimelineVisible (true);
-         }
-         else {
-            myMenuBarHandler.setTimelineVisible (false);
+         if (isTimelineVisible) {
+            setTimelineVisible (true);
          }
 
+         // is Jython console visible?
+         boolean isJythonVisible = myLayoutPrefs.isJythonFrameVisible();
          if (startWithJython.value) {
-            myMenuBarHandler.setJythonConsoleVisible (true);
+            isJythonVisible = true;
          }
+         if (isJythonVisible) {
+            setJythonFrameVisible (true);
+         }
+
+         if (orthographic.value) {
+            getViewer().setOrthographicView (true);
+         }
+         
+         initializeInteractionPrefs();
       }
       else {
          myScheduler.setRealTimeAdvance (false); // no need if no viewer
          if (startWithJython.value) {
             createJythonConsole (/*useGui=*/false);
+         }
+      }
+
+      if (System.getProperty ("os.name").contains ("Windows")) {
+         fixPardisoThreadCountHack(); // XXX see function docs
+      }
+      
+      verifyNativeLibraries (updateLibs.value);
+
+      File waypointsFile = null;
+      if (wayPointsFile.value != null) {
+         waypointsFile = new File(wayPointsFile.value);
+         if (!waypointsFile.canRead()) {
+            System.out.println (
+               "ERROR: waypoints file" + waypointsFile +
+               " does not exist or is not readable");
+            waypointsFile = null;
+         }
+      }
+
+      // If there is a model to load at startup, load the model
+
+      ModelScriptInfo modelInfo = null;
+      boolean modelSpecified = false;
+      if (modelName.value != null) {
+         if (modelName.value.equalsIgnoreCase ("null") ||
+             modelName.value.equalsIgnoreCase ("none")) {
+            // model explicitly not specified. Leave modelInfo = null.
+            modelSpecified = true;
+         }
+         else {
+            // First see if name corresponds to a file
+            File file = new File (modelName.value);
+            if (file.exists() && file.canRead()) {
+               modelInfo = new ModelScriptInfo (
+                  InfoType.FILE, file.getAbsolutePath(), file.getName(), null);
+               modelSpecified = true;
+            }
+            // otherwise, try to determine the model from the class name or alias
+            else {
+               String className = getDemoClassName (modelName.value);
+               if (className == null) {
+                  System.out.println (
+                     "No class associated with model name " + modelName.value);
+               }
+               else {
+                  modelInfo = new ModelScriptInfo (
+                     InfoType.CLASS, className,
+                     RootModelManager.getLeafName (modelName.value),
+                     createArgArray(modelArgs));
+                  modelSpecified = true;
+               }
+            }
+         }
+      }
+      // if no model specified, use the startup model, if
+      // any, unless a script or taskManager has been specified
+      if (!modelSpecified &&
+          scriptFile.value == null && taskManagerClassName.value == null) {
+         modelInfo = myStartupModel.getModelInfo();
+         if (waypointsFile == null) {
+            waypointsFile = myStartupModel.getWaypointsFile();
+         }
+      }
+      if (modelInfo != null) {
+         // load the model
+         if (!loadModel (modelInfo)) {
+            if (myFrame != null) {
+               GuiUtils.showError (myFrame, myMain.getErrorMessage());
+            }
+            else {
+               System.out.println (
+                  "Error loading model "+modelInfo.getClassNameOrFile());
+            }
+            modelInfo = null;
+         }
+      }
+      if (modelInfo == null) {
+         setRootModel (new RootModel(), null);
+      }
+      else {
+         if (waypointsFile != null) {
+            try {
+               loadWayPoints (waypointsFile);
+            }
+            catch (IOException e) {
+               String errMsg =
+                  "Error loading waypoints "+waypointsFile+"\n"+e.getMessage();
+               if (myFrame != null) {
+                  GuiUtils.showError (myFrame, errMsg);
+               }
+               else {
+                  System.out.println (errMsg);
+               }
+            }
          }
       }
    }
@@ -1259,7 +1732,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public void clearRootModel() {
       myWorkspace.cancelRenderRequests();
       myModelName = null;
-      myModelFile = null;
+      myLastLoadInfo = null;
       mySaveWayPointData = false;
       mySaveCoreOnly = false;
       RootModel rootModel = getRootModel();
@@ -1284,6 +1757,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.clearRenderables();
       }
       getWorkspace().setRootModel (null);
+      if (myMenuBarHandler != null) {
+         myMenuBarHandler.clearModelInfoFrame();
+      }
+      
+      // Sanchez, July 11, 2013
+      // Remove model and force repaint to clean the display.  
+      // This is done so we can render
+      // objects like an HUD while a new model is loading
+      if (myViewerManager != null) {
+         myViewerManager.clearRenderables();
+         myViewerManager.render();         // refresh the rendering lists
+      }
+      
+      // free up as much space as possible before loading next model
+      System.gc();
+      System.runFinalization();
    }
 
    /**
@@ -1407,22 +1896,19 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public void setRootModel (
-      RootModel newRoot, String modelName, String[] modelArgs) {
+      RootModel newRoot, String modelName) {
       
+      if (modelName == null) {
+         modelName = "Null model";
+      }
       myModelName = modelName;
-      if (modelArgs != null) {
-         myModelArgs = Arrays.copyOf (modelArgs, modelArgs.length);
-      }
-      else {
-         myModelArgs = null;
-      }
       //CompositeUtils.testPaths (newRoot);
 
       double maxStepSize = newRoot.getMaxStepSize();
       if (maxStepSize == -1) {
          // if RootModel maxStepSize is undefined, set it to the default value
-         maxStepSize = maxStep.value;
-         newRoot.setMaxStepSize (myMaxStep);
+         maxStepSize = ModelBase.getDefaultMaxStepSize();
+         newRoot.setMaxStepSize (maxStepSize);
       }
       doSetMaxStep (maxStepSize);
 
@@ -1462,7 +1948,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
          // reset all the viewers
          myViewerManager.clearRenderables();
-         myViewerManager.resetViewers (getDefaultViewOrientation(newRoot));
+         
+         AxisAlignedRotation axialView = getDefaultAxialView(newRoot);
+         myViewerManager.resetViewers (axialView);
+
+         // remove the selected item in the selectComponentPanel otherwise the
+         // text for that selected component remains when a new model is loaded
+         myFrame.getSelectCompPanelHandler().clear();
+         myFrame.getSelectCompPanelHandler().setComponentFilter (null);
+         myFrame.setBaseTitle ("ArtiSynth " + modelName);
       }
 
       // model scheduler initialization called within initialize
@@ -1487,8 +1981,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myFrame.notifyRootModelLoaded();
          myWorkspace.rerender();
          
-         myTimeline.automaticProbesZoom();
-
+         myTimeline.setVisibleRange (myDefaultTimelineRange);
       }
       //
       // Add this now since we don't want Main.componentChanged() being called
@@ -1502,41 +1995,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    private class LoadModelRunner implements Runnable {
-      String myModelName;
-      String[] myModelArgs;
-      String myClassName;
+      ModelScriptInfo myModelInfo;
+      boolean mySaveToHistory;
       boolean myStatus = false;
 
-      LoadModelRunner (String className, String modelName, String[] modelArgs) {
-         myClassName = className;
-         myModelName = modelName;
-         myModelArgs = modelArgs;
+      LoadModelRunner (ModelScriptInfo modelInfo, boolean saveToHistory) {
+         myModelInfo = modelInfo;
+         mySaveToHistory = saveToHistory;
       }
 
       public void run() {
-         myStatus = doLoadModel (myClassName, myModelName, myModelArgs);
-      }
-
-      public boolean getStatus() {
-         return myStatus;
-      }
-   }
-
-   private class LoadModelFileRunner implements Runnable {
-      File myFile;
-      boolean myStatus = false;
-
-      LoadModelFileRunner (File file) {
-         myFile = file;
-      }
-
-      public void run() {
-         try {
-            myStatus = loadModelFile(myFile);
-         } catch (IOException e) {
-            e.printStackTrace();
-            myStatus = false;
-         }
+         myStatus = loadModel (myModelInfo, mySaveToHistory);
       }
 
       public boolean getStatus() {
@@ -1576,8 +2045,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          Method method = demoClass.getMethod ("build", String[].class);
          if (demoClass == RootModel.class ||
              method.getDeclaringClass() != RootModel.class) {
-            //System.out.println (
-            // "constructing model with build method ...");
             Constructor<?> constructor = demoClass.getConstructor();
             newRoot = (RootModel)constructor.newInstance();
             newRoot.setName (modelName);
@@ -1596,7 +2063,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          return newRoot;
       }
       catch (Exception e) {
-         myErrMsg = " class " + demoClass.getName() + " cannot be instantiated";
+         myErrMsg = 
+            "Model class "+demoClass.getName()+" cannot be instantiated";
          if (e.getMessage() != null) {
             myErrMsg += ": \n" + e.getMessage();
          }
@@ -1604,67 +2072,50 @@ public class Main implements DriverInterface, ComponentChangeListener {
          return null;
       }
    }
-
-   // Entry-point for loading model.  If successful, add to history
-   // if available.
-   public boolean loadModel(ModelInfo info) {
-     
-      boolean success = false;
-      
-      if (info.getType() == ModelType.FILE) {
-         try {
-            success = loadModelFile(new File(info.getClassNameOrFile()));
-         } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-         }
-      } else {
-         success = doLoadModel(info.getClassNameOrFile(), info.getShortName(),
-            info.getArgs());
-      }
-      
-      if (success) {
-         if (myModelHistory != null) {
-            myModelHistory.update(info, 
-               new Date(System.currentTimeMillis()));
-            if (historyFilename.value != null) {
-               try {
-                  // XXX save every time?  Can't seem to get it to save on exit
-                  myModelHistory.save(new File(historyFilename.value));
-               } catch (IOException e) {
-                  // e.printStackTrace ();
-               }
-            }
-            if (myMenuBarHandler != null) {
-               myMenuBarHandler.updateHistoryMenu();
-            }
-         }
-         lastModelInfo = info;
-      }
-      
-      return success;
-   }
    
-   // Entry-point for loading model.  If successful, add to history
-   // if available.
+   // Load model from a file. Used by script commands.
+   public boolean loadModelFile (File file) {
+      ModelScriptInfo modelInfo = new ModelScriptInfo (
+         InfoType.FILE, file.getAbsolutePath(), file.getName(), null);
+      return loadModel (modelInfo, /*saveToHistory=*/false);
+   }
+
+   // Load model from a class. Used by script commands.
    public boolean loadModel(
       String className, String modelName, String[] modelArgs) {
 
-      return loadModel(new ModelInfo(className, modelName, modelArgs));
+      String shortName = className;
+      int rdotIdx = shortName.lastIndexOf('.');
+      if (rdotIdx != -1) {
+         shortName = shortName.substring (rdotIdx+1);
+      }
+      if (modelName.equals (shortName)) {
+         shortName = modelName;
+      }
+      ModelScriptInfo modelInfo = 
+         new ModelScriptInfo(InfoType.CLASS, className, shortName, modelArgs);
+      return loadModel (modelInfo, /*saveToHistory=*/false);
+   }
+
+   
+   public boolean loadModel (ModelScriptInfo info) {
+      return loadModel (info, /*saveToHistory=*/true);
    }
    
-   private boolean doLoadModel (
-      String className, String modelName, String[] modelArgs) {
+   // Entry-point for loading models.
+   public boolean loadModel (ModelScriptInfo info, boolean saveToHistory) {
 
+      // stop any existing model execution      
+      myScheduler.pause();
+      
       // If we are not in the AWT event thread, switch to that thread
-      // and build the model there. We do this because the model building
+      // and load the model there. We do this because the model building
       // code may create and access GUI components (such as ControlPanels)
       // and any such code must execute in the event thread. Typically,
       // we will not be in the event thread if loadModel is called from
       // the Jython console.
       if (myViewer != null && !SwingUtilities.isEventDispatchThread()) {
-         LoadModelRunner runner =
-            new LoadModelRunner (className, modelName, modelArgs);
+         LoadModelRunner runner = new LoadModelRunner (info, saveToHistory);
          if (!runInSwing (runner)) {
             return false;
          }
@@ -1672,6 +2123,86 @@ public class Main implements DriverInterface, ComponentChangeListener {
             return runner.getStatus();
          }
       }
+      
+      boolean success = false;
+      clearErrorMessage();
+      
+      if (info.getType() == InfoType.FILE) {
+         try {
+            success = loadModelFromFile (new File(info.getClassNameOrFile()));
+         }
+         catch (IOException e) {
+            myErrMsg = "Model file can't be loaded";
+            if (e.getMessage() != null) {
+               myErrMsg += ":\n" + e.getMessage();
+            }
+            e.printStackTrace();
+            return false;
+         }
+      }
+      else {
+         success = loadModelFromClass (
+            info.getClassNameOrFile(), info.getShortName(), info.getArgs());
+      }
+      
+      if (success) {
+         if (saveToHistory && myModelScriptHistory != null) {
+            myModelScriptHistory.update (info, new Date(System.currentTimeMillis()));
+            myModelScriptHistory.save ();
+         }
+         myLastLoadInfo = info;
+      }
+      else if (getRootModel() == null) {
+         // set an empty root model
+         setRootModel (new RootModel(), null);
+      }
+      
+      return success;
+   }
+   
+   private boolean loadModelFromFile (File file) throws IOException {
+
+      // instantiate the root model described in the file
+      RootModel newRoot = null;
+      ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);
+      if (rtok.nextToken() == ReaderTokenizer.TT_WORD) {
+         try {
+            newRoot = (RootModel)ClassAliases.newInstance ( 
+               rtok.sval, RootModel.class);
+            myModelFile = file;
+         }
+         catch (Exception e) {
+            e.printStackTrace(); 
+         }
+         if (newRoot == null) {
+            throw new IOException ("cannot create instance of " + rtok.sval);
+         }
+      }
+      else {
+         rtok.pushBack();
+         newRoot = new RootModel();
+      }
+
+      // clear existing root model. Do this before creating the new model
+      // to reduce memory stress in case both models are large.
+      clearRootModel();
+
+      // scan the model in from the file
+      long t0 = System.nanoTime();
+      ScanWriteUtils.scanfull (rtok, newRoot, newRoot);
+      long t1 = System.nanoTime();
+      System.out.println (
+         "Scanned "+file.length()+" byte file in "+((t1-t0)*1e-9) + " sec");
+      rtok.close();
+
+      String modelName = file.getName();
+      setRootModel (newRoot, modelName);
+      return true;
+   }
+   
+   private boolean loadModelFromClass (
+      String className, String modelName, String[] modelArgs) {
+
       Class<?> demoClass = null;
       RootModel newRoot = null;
       try {
@@ -1684,9 +2215,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       catch (Exception e) {
          if (className==null) {
-            myErrMsg = " model " + modelName + " cannot be initialized";
+            myErrMsg = "Model " + modelName + " cannot be initialized";
          } else {
-            myErrMsg = " class " + className + " cannot be initialized";
+            myErrMsg = "Model class " + className + " cannot be initialized";
          }
          e.printStackTrace();
          return false;
@@ -1696,56 +2227,21 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // to remove dots since they aren't allowed in names
       if (className.equals (modelName)) {
          modelName = demoClass.getSimpleName();
-      } else if (modelName.contains(".")) {
+      }
+      else if (modelName.contains(".")) {
          String[] splitNames = modelName.split("\\.");
          modelName = splitNames[splitNames.length-1];  // get last item
       }
       
+      // clear existing root model. Do this before creating the new model
+      // to reduce memory stress in case both models are large.
       clearRootModel();
-      // Sanchez, July 11, 2013
-      // Remove model and force repaint to clean the display.  
-      // This is done so we can render
-      // objects like an HUD while a new model is loading
-      if (myViewerManager != null) {
-         myViewerManager.clearRenderables();
-         myViewerManager.render();         // refresh the rendering lists
-      }
-            
-      // getWorkspace().getWayPoints().clear();
-      int numLoads = 1; // set to a large number for testing memory leaks
-      for (int i = 0; i < numLoads; i++) {
-         newRoot = createRootModel (demoClass, modelName, modelArgs);
-         if (newRoot == null) {
-            // load empty model since some state info from existing model 
-            // has been cleared, causing it to crash
-            doLoadModel (
-               "artisynth.core.workspace.RootModel", "EmptyModel", modelArgs);
-            if (myViewerManager != null) {
-               myViewerManager.render();
-            }
-            return false;
-         }
-         setRootModel (newRoot, modelName, modelArgs);
-         if (numLoads > 1) {
-            System.out.println ("load instance " + i);
-         }
-      }
 
-      if (myFrame != null) {
-         // Sanchez, July 11, 2013
-         // force repaint again, updating viewer bounds to reflect
-         // new renderables
-         myViewerManager.render();      // set external render lists
-
-         // when a model is loaded reset the viewer so no view is selected
-         //setViewerMode (null);
-
-         // remove the selected item in the selectComponentPanel otherwise the
-         // text for that selected component remains when a new model is loaded
-         myFrame.getSelectCompPanelHandler().clear();
-         myFrame.getSelectCompPanelHandler().setComponentFilter (null);
-         myFrame.setBaseTitle ("ArtiSynth " + modelName);
+      newRoot = createRootModel (demoClass, modelName, modelArgs);
+      if (newRoot == null) {
+         return false;
       }
+      setRootModel (newRoot, modelName);
       return true;
    }
 
@@ -1773,10 +2269,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       getLogger().info ("Attempting to set mouse bindings to '"+bindingsName+"'");
       MouseBindings bindings = null;
-      ArrayList<MouseBindings> allBindings = getAllMouseBindings();
-      for (int i=0; i<allBindings.size(); i++) {
-         if (bindingsName.equalsIgnoreCase(allBindings.get(i).getName())) {
-            bindings = allBindings.get(i);
+      if (bindingsName.equalsIgnoreCase("Default")) {
+         bindings = MouseBindings.Default;
+      }
+      else {
+         ArrayList<MouseBindings> allBindings = getAllMouseBindings();
+         for (int i=0; i<allBindings.size(); i++) {
+            if (bindingsName.equalsIgnoreCase(allBindings.get(i).getName())) {
+               bindings = allBindings.get(i);
+               break;
+            }
          }
       }
       if (bindings == null) {
@@ -1788,11 +2290,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public void setMouseBindings (MouseBindings bindings) {
-      myViewerManager.setMouseBindings (bindings);
+      if (!bindings.equals (myViewerManager.getMouseBindings())) {
+         myViewerManager.setMouseBindings (bindings);
+         if (myMenuBarHandler != null) {
+            myMenuBarHandler.maybeUpdateMouseSettingsDialog();
+         }
+      }
    }
 
    public MouseBindings getMouseBindings () {
       return myViewerManager.getMouseBindings ();
+   }
+
+   public MouseBindings getEffectiveMouseBindings () {
+      return myViewerManager.getEffectiveMouseBindings ();
    }
 
    public double getMouseWheelZoomScale() {
@@ -1800,7 +2311,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public void setMouseWheelZoomScale (double scale) {
-      myViewerManager.setMouseWheelZoomScale (scale);
+      if (scale != myViewerManager.getMouseWheelZoomScale()) {
+         myViewerManager.setMouseWheelZoomScale (scale);
+         if (myMenuBarHandler != null) {
+            myMenuBarHandler.maybeUpdateMouseSettingsDialog();
+         }
+      }
    }
 
    /**
@@ -1821,34 +2337,34 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   protected static IntHolder viewerWidth = new IntHolder(720);
-   protected static IntHolder viewerHeight = new IntHolder(540);
+   protected static IntHolder viewerWidth = new IntHolder(-1);
+   protected static IntHolder viewerHeight = new IntHolder(-1);
    protected static BooleanHolder printHelp = new BooleanHolder (false);
-   protected static BooleanHolder fullScreen = new BooleanHolder (false);
    protected static BooleanHolder yup = new BooleanHolder (false);
    protected static BooleanHolder drawAxes = new BooleanHolder (false);
    protected static BooleanHolder drawGrid = new BooleanHolder (false);
-   protected static StringHolder axialView = new StringHolder("xz");
+   protected static StringHolder axialView = new StringHolder();
    protected static BooleanHolder orthographic = new BooleanHolder (false);
    protected static BooleanHolder startWithTimeline = new BooleanHolder (true);
    protected static BooleanHolder startWithJython = new BooleanHolder (false);
    protected static BooleanHolder timelineRight = new BooleanHolder (false);
-   protected static BooleanHolder largeTimeline = new BooleanHolder (false);
+   protected static IntHolder timelineWidth = new IntHolder (-1);
+   protected static IntHolder timelineHeight = new IntHolder (-1);
    protected static BooleanHolder printOptions = new BooleanHolder (false);
-   protected static IntHolder zoom = new IntHolder (1);
+   protected static IntHolder zoom = new IntHolder (-1);
+   protected static DoubleHolder timelineRange = new DoubleHolder (-2);
    protected static DoubleHolder axisLength = new DoubleHolder (-1);
-   protected static DoubleHolder framesPerSecond = new DoubleHolder (20);
-   protected static DoubleHolder maxStep = new DoubleHolder (0.01);
+   protected static DoubleHolder framesPerSecond = new DoubleHolder (-1);
+   protected static DoubleHolder maxStep = new DoubleHolder (-1);
    protected static StringHolder modelName = new StringHolder();
    protected static BooleanHolder play = new BooleanHolder();
    protected static DoubleHolder playFor = new DoubleHolder();
    protected static BooleanHolder exitOnBreak = new BooleanHolder();
    protected static BooleanHolder updateLibs = new BooleanHolder();
-   protected static StringHolder demosFilename = new StringHolder();
-   protected static StringHolder demosMenuFilename =
-      new StringHolder("demoMenu.xml");
-   protected static StringHolder historyFilename = new StringHolder(
-      ArtisynthPath.getCacheDir () + "/.history");
+   protected static StringHolder demoFilename = new StringHolder();
+   protected static StringHolder modelMenuFilename = new StringHolder();
+   protected static StringHolder scriptMenuFilename = new StringHolder();
+   protected static StringHolder historyFilename = new StringHolder();
    protected static StringHolder scriptsFilename =
       new StringHolder (".artisynthScripts");
    protected static StringHolder scriptFile = 
@@ -1864,27 +2380,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static IntHolder numSolverThreads =
       new IntHolder (-1);
-   protected static StringHolder posCorrection =
-      new StringHolder ("Default");
+   protected static StringHolder posCorrection = new StringHolder ();
 
    protected static BooleanHolder noIncompressDamping =
       new BooleanHolder (false);
    // protected static BooleanHolder useOldTimeline = 
    //    new BooleanHolder (false);
-   protected static BooleanHolder useSignedDistanceCollider = 
-      new BooleanHolder (false);
    protected static BooleanHolder useAjlCollision =
-      new BooleanHolder (false);
-   protected static BooleanHolder useBodyVelsInSolve =
       new BooleanHolder (false);
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
    protected static IntHolder glVersion = new IntHolder (-1);
-   protected static StringHolder graphicsInterface = new StringHolder("GL3");
+   protected static StringHolder graphicsInterface = new StringHolder("");
    protected static BooleanHolder useGLJPanel = new BooleanHolder (true);
    protected static StringHolder logLevel = 
-      new StringHolder(Logger.LogLevel.WARN.toString());
+      new StringHolder(null);
    protected static BooleanHolder testSaveRestoreState =
       new BooleanHolder (false);
 
@@ -1895,7 +2406,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    protected static StringHolder mousePrefs = new StringHolder(); // "kees"
 
-   protected static float[] bgColor = new float[3];
+   protected static float[] bgColor = new float[] { -1f, -1f, -1f};       
    protected static BooleanHolder openMatlab = new BooleanHolder(false);
 
    protected static StringHolder matrixSolver = new StringHolder();
@@ -1927,12 +2438,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
       if (libFile != null) {
-         boolean allOK = true;
+         int status = 0;
          try {
-            allOK = installer.verifyNativeLibs (update);
+            status = installer.verifyNativeLibs (update);
          }
          catch (Exception e) {
-            System.out.println ("Main");
             if (installer.isConnectionException (e)) {
                System.out.println (e.getMessage());
             }
@@ -1941,9 +2451,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
             System.exit(1);
          }
-         if (!allOK) {
+         if (status == -1) {
             System.out.println (
-               "Error: can't find or install all required native libraries");
+               "ERROR: can't find or install all required native libraries");
             System.exit(1); 
          }
       }
@@ -2067,7 +2577,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-bgColor %fX3 #background color (3 rgb values, 0 to 1)", bgColor);
       parser.addOption (
-         "-maxStep %f #maximum time for a single step (sec)", maxStep);
+         "-maxStep %f{(0,1e100]} #maximum time for a single step (sec)", maxStep);
       parser.addOption ("-drawAxes %v #draw coordinate axes", drawAxes);
       parser.addOption ("-drawGrid %v #draw grid", drawGrid);
       parser.addOption ("-axisLength %f #coordinate axis length", axisLength);
@@ -2076,10 +2586,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-playFor %f #play model immediately for x seconds", playFor);
       parser.addOption (
          "-exitOnBreak %v #exit artisynth when playing stops", exitOnBreak);
-      parser.addOption (
-         "-demosFile %s #demo file (e.g. .demoModels)", demosFilename);
+       parser.addOption (
+          "-demoFile %s #demo menu file (e.g. demoModels.txt)", demoFilename);
       parser.addOption(
-         "-demosMenu %s #demo menu file (e.g. .demoMenu.xml)", demosMenuFilename);
+         "-modelMenu %s #model menu file (e.g. modelMenu.xml)",
+         modelMenuFilename);
+      parser.addOption(
+         "-scriptMenu %s #script menu file (e.g. modelMenu.xml)",
+         scriptMenuFilename);
       parser.addOption(
          "-historyFile %s #model history file (e.g. .history)", historyFilename);
       parser.addOption (
@@ -2096,15 +2610,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-showJythonConsole %v{true} #create jython console on startup",
          startWithJython);
       parser.addOption (
-         "-largeTimeline %v{true} #start with vertically expanded timeline",
-         largeTimeline);
+         "-timelineWidth %d #width of the timeline", timelineWidth);
+      parser.addOption (
+         "-timelineHeight %d #height of the timeline", timelineHeight);
       parser.addOption (
          "-timelineRight %v{true} #start with a timeline alligned to the right",
          timelineRight);
-      parser.addOption ("-fps %f#frames per second", framesPerSecond);
-      parser.addOption ("-fullscreen %v #full screen renderer", fullScreen);
+      parser.addOption ("-fps %f{[0,1e100]}#frames per second", framesPerSecond);
+      // parser.addOption ("-fullscreen %v #full screen renderer", fullScreen);
       // parser.addOption("-yup %v #initialize viewer with Y-axis up", yup);
-      parser.addOption ("-timelineZoom %d #zoom level for timeline", zoom);
+      parser.addOption (
+         "-timelineZoom %d #zoom level for timeline (no longer supported)", zoom);
+      parser.addOption (
+         "-timelineRange %f{[-1,1e100]} #initial time range for the timeline",
+         timelineRange);
       parser.addOption ("-options %v #print options only", printOptions);
 
       parser.addOption (
@@ -2120,7 +2639,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-numSolverThreads %d #number of threads to use for linear solver",
          numSolverThreads);
       parser.addOption (
-         "-posCorrection %s{Default,GlobalMass,GlobalStiffness} "+
+         "-posCorrection %s{GlobalMass,GlobalStiffness} "+
             "#position correction mode",
             posCorrection);
 
@@ -2128,24 +2647,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-noIncompressDamping %v #ignore incompress stiffness for damping",
          noIncompressDamping);
       // parser.addOption ("-useOldTimeline %v #use old timeline", useOldTimeline);
-      parser.addOption (
-         "-useSignedDistanceCollider %v "+
-         "#use SignedDistanceCollider where possible", 
-         useSignedDistanceCollider);
       parser.addOption ("-useAjlCollision" +
          "%v #use AJL collision detection", useAjlCollision);
-      parser.addOption ("-useBodyVelsInSolve" +
-         "%v #use body velocities for dynamic solves", useBodyVelsInSolve);
       parser.addOption (
          "-useArticulatedTransforms %v #enforce articulation " +
             "constraints with transformers", useArticulatedTransforms);
       parser.addOption (
          "-updateLibs %v #update libraries from ArtiSynth server", updateLibs);
-      parser.addOption ("-flags %x #flag bits passed to the application", flags);
       parser.addOption ("-noGui %v #run ArtiSynth without the GUI", noGui);
       parser.addOption (
          "-openMatlabConnection %v " +
          "#open a MATLAB connection if possible", openMatlab);
+      parser.addOption (
+         "-graphics %s{GL2,GL3} " +
+         "#graphics interface for renderer", graphicsInterface);
       parser.addOption (
          "-GLVersion %d{2,3} " +
          "#version of openGL for graphics (replaced with \n" +
@@ -2166,7 +2681,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          testSaveRestoreState);
 
       parser.addOption (
-         "-movieFrameRate %f #frame rate to use when making movies",
+         "-movieFrameRate %f{(0,1e100)} #frame rate to use when making movies",
          movieFrameRate);
       parser.addOption (
          "-movieMethod %s #method to use when making movies",
@@ -2196,7 +2711,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
             catch (Exception e) {
                System.err.println ("Error reading init file " + initUrl);
-               System.err.println (e.getMessage());
+               System.err.println ("  "+e);
             }
          }
       }
@@ -2285,7 +2800,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
          catch (Exception e) {
             System.err.println (
-               "Error parsing options: "+ e.getMessage());
+               "Error parsing options: "+ e);
             return;
          }
       }
@@ -2306,38 +2821,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          return;
       }
 
-      // Set system logger level
-      Logger.getSystemLogger().setLogLevel(LogLevel.find(logLevel.value));
-      
-      MechSystemSolver.myDefaultHybridSolveP = !disableHybridSolves.value;
-      if (numSolverThreads.value > 0) {
-         PardisoSolver.setDefaultNumThreads (numSolverThreads.value);
-      }
-
-      if (matrixSolver.value != null) {
-         MechSystemBase.setDefaultMatrixSolver (
-            SparseSolverId.valueOf (matrixSolver.value));
-      }
-      
-      FemModel3d.abortOnInvertedElems = abortOnInvertedElems.value;
-      //      if (posCorrection.value.equals ("Default")) {
-      //         MechSystemBase.setDefaultStabilization (PosStabilization.Default);
-      //      }
-      if (posCorrection.value.equals("GlobalMass")) {
-         MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass);
-      }
-      else if (posCorrection.value.equals("GlobalStiffness")) {
-         MechSystemBase.setDefaultStabilization (PosStabilization.GlobalStiffness);
-      }
-      FemModel3d.noIncompressStiffnessDamping = noIncompressDamping.value;
-
-      if (useAjlCollision.value) {
-         CollisionManager.setDefaultColliderType (ColliderType.AJL_CONTOUR);
-      }
-      if (testSaveRestoreState.value) {
-         RootModel.testSaveAndRestoreState = true;
-      }
-
       if (useGLJPanel.value == true) {
          maspack.render.GL.GLViewer.useGLJPanel = true;
       }
@@ -2347,146 +2830,28 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       if (glVersion.value != -1) {
          System.out.println (
-            "Option '-GLVersion X' is no londer supported. "+
-            "Use '-graphics GL2' or'-graphics GL3' instead"); 
+            "Option '-GLVersion X' is no longer supported. "+
+            "Use '-graphics GL2' or '-graphics GL3' instead"); 
          System.exit(1);
       }
-      GraphicsInterface gi =
-         GraphicsInterface.fromString (graphicsInterface.value);
-      if (gi == null) {
-          System.out.println (
-             "Unknown graphics interface '"+graphicsInterface.value+"'");
-          System.exit(1);
+      if (zoom.value != -1) {
+         System.out.println (
+            "Option '-timelineZoom <num>' is no longer supported. "+
+            "Use '-timelineRange <maxtime>' instead"); 
+         System.exit(1);
       }
-      Main m = new Main (
-         PROJECT_NAME, viewerWidth.value, viewerHeight.value, gi);
 
-      m.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
-      if (axialView.value.equals ("xy")) {
-         m.setDefaultViewOrientation (AxisAngle.IDENTITY);
-      }
-      else if (axialView.value.equals ("xz")) {
-         m.setDefaultViewOrientation (AxisAngle.ROT_X_90);
-      }
-      else {
-         throw new InternalErrorException (
-            "Unknown axial view: " + axialView.value);
-      }
+      Main m = new Main (PROJECT_NAME, !noGui.value);
 
       if (m.myFrame != null) {
-         m.myViewerManager.setBackgroundColor (
-            new Color (bgColor[0], bgColor[1], bgColor[2]));
+         //m.myViewerManager.setBackgroundColor (
+         //   new Color (bgColor[0], bgColor[1], bgColor[2]));
          //m.myViewer.setBackgroundColor (bgColor[0], bgColor[1], bgColor[2]);
          // XXX this should be done in the Main constructor, but needs
          // to be done here instead because of sizing effects
          m.myMenuBarHandler.initToolbar();
-
-         if (movieMethod.value != null) {
-            MovieMaker movieMaker = m.getMovieMaker();
-            try {
-               movieMaker.setMethod (movieMethod.value);
-            }
-            catch (Exception e) {
-               System.out.println (
-                  "Warning: unknown movie making method " + movieMethod.value);
-            }
-         }
-         if (movieFrameRate.value != -1) {
-            MovieMaker movieMaker = m.getMovieMaker();
-            try {
-               movieMaker.setFrameRate (movieFrameRate.value);
-            }
-            catch (Exception e) {
-               System.out.println (
-                  "Warning: illegal movie frame rate " + movieFrameRate.value);
-            }
-         }
       }
-
-      if (mousePrefs.value != null && m.myViewer != null) {
-         m.setMouseBindings (mousePrefs.value);
-      }
-      m.setFlags (flags.value);
-      if (useBodyVelsInSolve.value) {
-         Frame.dynamicVelInWorldCoords = false;
-      }
-
-      m.start (
-         startWithTimeline.value, timelineRight.value, largeTimeline.value);
-      // need to set viewer size here, after it has become visible,
-      // because setting it earlier can cause incorrect results     
-      if (m.myFrame != null) {
-         m.setViewerSize (viewerWidth.value, viewerHeight.value);
-      }
-
-      if (System.getProperty ("os.name").contains ("Windows")) {
-         fixPardisoThreadCountHack(); // XXX see function docs
-      }
-      
-      m.verifyNativeLibraries (updateLibs.value);
-
-      // we put.setOrthographicView *after* start because otherwise it sets up
-      // some sort of race condition when trying to set the
-      // perspectve/orthogonal menu item while we are setting
-      // the whole frame to be visible
-      if (m.myFrame != null && orthographic.value) {
-         m.getViewer().setOrthographicView (true);
-      }
-
-      // XXX store model arguments for future use?
-      if (modelArgs != null) {
-         m.myModelArgs = modelArgs.toArray(new String[modelArgs.size()]);
-      }
-      
-      if (modelName.value != null) {
-         // load the specified model. See first if the name corresponds to a file
-         File file = new File (modelName.value);
-         if (file.exists() && file.canRead()) {
-            try {
-               m.loadModelFile (file);
-            }
-            catch (IOException e) {
-               System.out.println (
-                  "Error reading or loading model file " + modelName.value);
-               e.printStackTrace(); 
-               m.setRootModel (new RootModel(), null, null);
-            }
-         }
-         // otherwise, try to determine the model from the class name or alias
-         else {
-            String className = m.getDemoClassName (modelName.value);
-            if (className == null) {
-               System.out.println ("No class associated with model name "
-                                   + modelName.value);
-               m.setRootModel (new RootModel(), null, null);
-            }
-            else {
-               String name = modelName.value;
-               if (name.indexOf ('.') != -1) {
-                  name = name.substring (name.lastIndexOf ('.') + 1);
-                  if (name.length() == 0) {
-                     name = "Unknown";
-                  }
-               }
-               // load the model
-               ModelInfo mi = new ModelInfo (
-                  className, name, createArgArray(modelArgs));
-               m.loadModel (mi);
-            }
-         }
-      }
-      else {
-         m.setRootModel (new RootModel(), null, null);
-      }
-
-      if (wayPointsFile.value != null) {
-         try {
-            m.loadWayPoints (new File(wayPointsFile.value));
-         }
-         catch (IOException e) {
-            e.printStackTrace(); 
-         }
-      }
+      m.start (modelArgs);
 
       if (exitOnBreak.value) {
          m.myScheduler.addListener (new QuitOnBreakListener(m));
@@ -2505,7 +2870,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
          System.exit(1);
       }
       else if (scriptFile.value != null) {
-         m.runScriptFile (scriptFile.value, scriptArgs);
+         File file = new File (scriptFile.value);
+         ModelScriptInfo info = new ModelScriptInfo (
+            InfoType.SCRIPT, file.getAbsolutePath(), file.getName(),
+            scriptArgs == null ? null : scriptArgs.toArray(new String[0]));
+         m.runScript (info);
       }
       else if (taskManagerClassName.value != null) {
          m.runTaskManager (taskManagerClassName.value, taskManagerArgs);
@@ -2527,22 +2896,53 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   void runScriptFile (String fileName, ArrayList<String> args) {
-         
+   void runScript (ModelScriptInfo info) {
+      runScript (info, /*saveToHistory=*/true);
+   }
+
+   void runScript (ModelScriptInfo info, boolean saveToHistory) {
+
+      if (info.getType() != InfoType.SCRIPT) {
+         throw new InternalErrorException (
+            "Incorrect info type: " + info.getType());
+      }
       if (myFrame != null) {
-         myMenuBarHandler.runScript(fileName, createArgArray(args));
+         setJythonFrameVisible(true);
+      }
+
+      stopAll(); // stop any executing code
+
+      File file = new File (info.getClassNameOrFile());
+      String errMsg = null;
+      if (!file.canRead()) {
+         errMsg = "Can't locate or read script file '"+file+"'";
       }
       else {
          if (myJythonConsole == null) {
-            createJythonConsole (/*guiBased=*/false);
+            createJythonConsole (/*guiBased=*/myFrame != null);
          }
          try {
-            myJythonConsole.executeScript (fileName, createArgArray(args));
+            myJythonConsole.executeScript (
+               file.getAbsolutePath(), info.getArgs());
          }
          catch (Exception e) {
-            System.out.println (
-               "Error executing script '"+fileName+"':");
-            System.out.println (e);
+            e.printStackTrace(); 
+            errMsg = "Error executing script '"+file+"':\n" + e;
+         }
+      }
+
+      if (errMsg != null) {
+         if (myFrame != null) {
+            GuiUtils.showError (myFrame, errMsg);
+         }
+         else {
+            System.out.println (errMsg);
+         }
+      }
+      else {
+         if (saveToHistory && myModelScriptHistory != null) {
+            myModelScriptHistory.update (info, new Date(System.currentTimeMillis()));
+            myModelScriptHistory.save ();
          }
       }
    }
@@ -2607,20 +3007,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myMain = main;
    }
 
-   public int getFlags() {
-      return myFlags;
-   }
-
-   public void setFlags(int flags) {
-      myFlags = flags;
-   }
-
    /**
     * Get the Scheduler
     * 
     * @return scheduler
     */
-
    public Scheduler getScheduler() {
       return myScheduler;
    }
@@ -2632,6 +3023,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
     */
    public EditorManager getEditorManager() {
       return myEditorManager;
+   }
+
+   /**
+    * Get the RootModelManager
+    * 
+    * @return scheduler
+    */
+   public RootModelManager getRootModelManager() {
+      return myRootModelManager;
    }
 
    public UndoManager getUndoManager() {
@@ -2668,95 +3068,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
       mySaveCoreOnly = save;
    }
 
-   public boolean loadModelFile (File file) throws IOException {
-      // If we are not in the AWT event thread, switch to that thread
-      // and build the model there. We do this because the model building
-      // code may create and access GUI components (such as ControlPanels)
-      // and any such code must execute in the event thread. Typically,
-      // we will not be in the event thread if loadModel is called from
-      // the Jython console.
-      if (myViewer != null && !SwingUtilities.isEventDispatchThread()) {
-         LoadModelFileRunner runner = new LoadModelFileRunner (file);
-         if (!runInSwing (runner)) {
-            return false;
-         }
-         else {
-            return runner.getStatus();
-         }
-      }
-
-      RootModel newRoot = null;
-      clearRootModel();
-      ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);
-      if (rtok.nextToken() == ReaderTokenizer.TT_WORD) {
-         try {
-            newRoot = (RootModel)ClassAliases.newInstance ( 
-               rtok.sval, RootModel.class);
-            myModelFile = file;
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         if (newRoot == null) {
-            throw new IOException ("cannot create instance of " + rtok.sval);
-         }
-      }
-      else {
-         rtok.pushBack();
-         newRoot = new RootModel();
-      }
-      // getWorkspace().getWayPoints().clear();
-      long t0 = System.nanoTime();
-      ScanWriteUtils.scanfull (rtok, newRoot, newRoot);
-      long t1 = System.nanoTime();
-      System.out.println ("File scan time: " + ((t1-t0)*1e-9) + " sec");
-      System.out.println ("File size: " + file.length());
-      //System.out.println ("queue size=" + ModelComponentBase.scanQueueSize());
-      rtok.close();
-      
-//      WayPoint way0 = get(0);
-//      if (way0.isValid()) {
-//         // waypoint contains scanned state information. Need to add
-//         // augmentation information to this state.
-//         CompositeState scannedState = way0.getState();
-//         way0.setState (myRootModel);
-//         way0.getState().set (scannedState);
-//      }
-      
-      String modelName = newRoot.getName();
-      if (modelName == null) { // use file name with extension stripped off
-         modelName = file.getName();
-         int dotIdx = modelName.indexOf ('.');
-         if (dotIdx != -1) {
-            modelName = modelName.substring (0, dotIdx);
-         }
-      }
-      setRootModel (newRoot, modelName, null);
-      return true;
-   }
-   
    public void reloadModel() throws IOException {
-      if (myModelFile != null) {
-         loadModelFile (myModelFile);
-      }
-      else if (lastModelInfo != null) {
+      if (myLastLoadInfo != null) {
          RootModel root = getRootModel();
          if (root != null) {
-            Class<?> rootClass = root.getClass();
-            String name = myModelName;
-            if (name == null) {
-               name = root.getName();
-            }
-            if (name == null) {
-               name = "ArtiSynth";
-            }
-            loadModel(lastModelInfo);
+            loadModel(myLastLoadInfo);
          }
       }
    }
 
    boolean modelIsLoaded() {
-      return myModelFile != null || lastModelInfo != null;
+      return myLastLoadInfo != null;
    }
 
    public String getModelSaveFormat () {
@@ -2967,7 +3289,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
          myTimeline.updateTimeDisplay (0);
          myTimeline.updateComponentSizes();
-         myTimeline.automaticProbesZoom();
+         myTimeline.setVisibleRange (myDefaultTimelineRange);
       }
       return true;
    }
@@ -3007,7 +3329,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          WayPointProbe wayPoints = getRootModel().getWayPoints();
          String relOrAbsPath = ArtisynthPath.getRelativeOrAbsolutePath (
             ArtisynthPath.getWorkingDir(), file);
-         System.out.println ("waypoints file path=" + relOrAbsPath);
          wayPoints.setAttachedFileName (relOrAbsPath);
       }
    }
@@ -3081,8 +3402,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
             myJythonConsole = null;
          }
          // potentially save model history
-         if (historyFilename.value != null) {
-            saveModelHistory(historyFilename.value);
+         if (myModelScriptHistory != null) {
+            myModelScriptHistory.save();
          }
          disposed = true;
       }
@@ -3193,7 +3514,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             else if (pe.getPropertyName().equals ("defaultViewOrientation")) {
                if (myViewerManager != null) {
                   myViewerManager.resetViewers (
-                     getDefaultViewOrientation(getRootModel()));
+                     getDefaultAxialView(getRootModel()));
                }
             }
          }
@@ -3758,6 +4079,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             myMovieMaker = new MovieMaker (getViewer ());
          }
          catch (Exception e) {
+            e.printStackTrace(); 
             throw new InternalErrorException ("Cannot create movie maker");
          }
       }
@@ -3889,7 +4211,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
          catch (Exception e) {
             System.out.println (
-               "Error connecting to MATLAB: " + e.getMessage());
+               "Error connecting to MATLAB: " + e);
             myMatlabConnection = null;
          }
       }

@@ -642,6 +642,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 //      else {
 //         myNonDefaultGeneralSettings &= ~SURFACE_RESOLUTION_BIT;
 //      }
+      repaint();
       return prev;
    }
 
@@ -671,6 +672,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    
    public void setAxisDrawStyle (AxisDrawStyle style) {
       myAxisDrawStyle = style;
+      repaint();
    }
 
    public AxisDrawStyle getAxisDrawStyle() {
@@ -689,6 +691,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */   
    public void setAxisLengthRadiusRatio (double ratio) {
       myAxisLengthRadiusRatio = ratio;
+      repaint();
    }
   
    /**

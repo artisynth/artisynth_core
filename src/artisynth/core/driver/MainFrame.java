@@ -7,6 +7,8 @@
 package artisynth.core.driver;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.Insets;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.WindowAdapter;
@@ -19,11 +21,14 @@ import java.io.*;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JEditorPane;
 import javax.swing.JTextArea;
+import javax.swing.BorderFactory;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 
@@ -73,9 +78,6 @@ public class MainFrame extends JFrame {
 
    private SelectComponentPanelHandler selectCompPanelHandler;
 
-   /** frame help instance allocated only once */
-   private FrameHelp frameHelp = null;
-
    /**
     * set the error message
     * 
@@ -124,7 +126,6 @@ public class MainFrame extends JFrame {
          path = "..." + path.substring (cutIdx);
       }
       setTitle (baseName + " [ " + path + " ] ");
-
    }
 
    /**
@@ -164,7 +165,7 @@ public class MainFrame extends JFrame {
       GLPanel = new GLViewerPanel (width, height, myMain.getGraphics());
 
       myNavPanel = new NavigationPanel();
-      myNavPanel.setLayout (new FlowLayout (FlowLayout.LEFT));
+      //myNavPanel.setLayout (new FlowLayout (FlowLayout.LEFT));
 
       // content panes must be opaque
       myNavPanel.setOpaque (true);
@@ -184,23 +185,8 @@ public class MainFrame extends JFrame {
       // Provide minimum sizes for the two components in the split pane
       GLPanel.setMinimumSize (new Dimension (0, 0));
 
-      JScrollPane navScrollPane = new JScrollPane (myNavPanel);
-      navScrollPane.setVerticalScrollBarPolicy (
-         JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-      navScrollPane.setHorizontalScrollBarPolicy (
-         JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-      myNavPanel.setParentScrollBar (navScrollPane);
-
-      navScrollPane.setOpaque (true);
-
-      // JPanel panel = new JPanel();
-      // panel.setSize (400,200);
-      // panel.setBackground (Color.BLUE);
-
       splitPane =
-         new JSplitPane (JSplitPane.HORIZONTAL_SPLIT, navScrollPane, GLPanel);
-      
+         new JSplitPane (JSplitPane.HORIZONTAL_SPLIT, myNavPanel, GLPanel);
       // rerender if split pane moved
       splitPane.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, 
          new PropertyChangeListener() {
@@ -221,9 +207,6 @@ public class MainFrame extends JFrame {
       getContentPane().add (splitPane);
 
       myMenuBar.createMenus();
-
-      // create one instance of help frame
-      frameHelp = new FrameHelp();
 
       // this fixes the bug when the splitter clicked the first time the
       // navigation bar would disappear on resize, not any longer fixed by
@@ -250,20 +233,29 @@ public class MainFrame extends JFrame {
    }
 
    public void setViewerSize (int w, int h) {
-      GLPanel.setSize (new Dimension(w, h));
+      // need to set preferred size for both the viewer and the splitPane
+      // in order for the viewer to ultimately end up with the right size
+      int splitw = w + splitPane.getDividerSize();
+      int splith = h;
+      if (splitPane.getBorder() != null) {
+         Insets insets = splitPane.getBorder().getBorderInsets(splitPane);
+         splitw += insets.left + insets.right;
+         splith += insets.top + insets.bottom;
+      }
+      boolean closedHack = false;
+      if (!myNavPanel.isExpanded()) {
+         closedHack = true;
+         //myNavPanel.setMinimumSize (new Dimension(0,0));
+      }
+      else {
+         splitw += myNavPanel.getSize().width;
+      }
+      splitPane.setPreferredSize (new Dimension (splitw, splith));
+      GLPanel.setPreferredSize (new Dimension(w, h));
       pack();
-      if (isVisible()) {
-         // Sometimes the layout manager doesn't give us the size
-         // we want, so we do a marginal adjustmentto compensate
-         Dimension dim = GLPanel.getSize();
-         if (dim.width != w || dim.height != h) {
-            Dimension windim = getSize();
-            windim.width -= (dim.width - w);
-            windim.height -= (dim.height - h);
-            setSize (windim);
-            // probably should call pack() here, but that may mung the size yet
-            // again.
-         }
+      if (closedHack) {
+         // keep divided closed in case it moved
+         refreshSplitPane();
       }
    }
 
@@ -326,12 +318,6 @@ public class MainFrame extends JFrame {
     * 
     */
 
-   public void displayKeybindings() {
-      frameHelp.setFrameTitleAndText (
-         KEYBINDINGS_TITLE, myMain.getKeyBindings());
-      frameHelp.setVisible (true);
-   }
-
    public String getArtiSynthVersion() {
       if (myArtiSynthVersion == null) {
          try {
@@ -339,45 +325,106 @@ public class MainFrame extends JFrame {
                new BufferedReader (new FileReader (
                   ArtisynthPath.getHomeRelativeFile ("VERSION", ".")));
             myArtiSynthVersion = reader.readLine();
+            int uidx = myArtiSynthVersion.lastIndexOf ("_");
+            if (uidx != -1) {
+               myArtiSynthVersion = myArtiSynthVersion.substring (uidx+1);
+            }
             reader.close();
          }
          catch (IOException e) {
-            myArtiSynthVersion = 
-               "Version unknown: " + 
-               "can't find or read VERSION file in install directory";
+            myArtiSynthVersion = null;
          }
       }
       return myArtiSynthVersion;
    }
    
    /**
-    * display about artisynth dialog andreio: fixed memory allocation issues
-    * 
+    * Create the ArtiSynth information frame.
     */
-   public void displayAboutArtisynth() {
-      
-      frameHelp.setFrameTitleAndText (
-         ABOUT_ARTISYNTH_TITLE, getArtiSynthVersion());
-      frameHelp.setVisible (true);
+   public JFrame createArtisynthInfo() {
+      JFrame frame = new JFrame (ABOUT_ARTISYNTH_TITLE);
+
+      String bodyText;
+      File gitDir = ArtisynthPath.getHomeRelativeFile (".git", ".");
+      String version = getArtiSynthVersion();
+      if (gitDir != null && gitDir.isDirectory()) {
+         bodyText = "ArtiSynth, Git-based development version";
+         if (version != null) {
+            bodyText += " evolved from release " + version;
+         }
+      }
+      else {
+         bodyText = "ArtiSynth, precompiled release";
+         if (version != null) {
+            bodyText += " " + version;
+         }
+      }
+      JTextArea textArea = new JTextArea();
+      textArea.setFont (new Font ("Arial", Font.PLAIN, 18));
+      textArea.setText (bodyText);
+
+      // JEditorPane textPane = new JEditorPane();
+      // textPane.setEditable (false);
+      // textPane.setContentType ("text/html");
+      // textPane.setText (
+      //    "<html>\n" +
+      //    "<body style=\"font-family:ariel;font-size:120%\">\n" +
+      //    bodyText +
+      //    "</body>\n" +
+      //    "</html>");
+
+      textArea.setBorder (BorderFactory.createEmptyBorder (20,20,20,20));
+      frame.setContentPane (textArea);
+      frame.pack();
+      return frame;
    }
 
    /**
-    * display about model dialog
+    * Create the model information frame.
     * 
-    * @param rootModel root model for which dialog is to be displayed
+    * @param rootModel root model for which info is to be displayed
     */
-   public void displayAboutModel (RootModel rootModel) {
-      String rootModelDescription;
-      if (rootModel != null) {
-         rootModelDescription = rootModel.getAbout();
-         if (rootModelDescription == null)
-            rootModelDescription = ABOUT_MODEL_NO_DESC;
-      }
-      else
-         rootModelDescription = ABOUT_MODEL_NOT_LOADED;
+   public JFrame createModelInfo (RootModel rootModel) {
 
-      frameHelp.setFrameTitleAndText (ABOUT_MODEL_TITLE, rootModelDescription);
-      frameHelp.setVisible (true);
+      JFrame frame = new JFrame (ABOUT_MODEL_TITLE);
+
+      String bodyText;
+      if (rootModel != null) {
+         bodyText = rootModel.getAbout();
+         if (bodyText == null) {
+            bodyText = ABOUT_MODEL_NO_DESC;
+         }
+      }
+      else {
+         bodyText = ABOUT_MODEL_NOT_LOADED;
+      }
+
+      JTextArea textArea = new JTextArea();
+      textArea.setFont (new Font ("Arial", Font.PLAIN, 18));
+      //textArea.setColumns (80);
+      //textArea.setLineWrap (true);
+      textArea.setText (bodyText);
+
+      textArea.setBorder (BorderFactory.createEmptyBorder (20,20,20,20));
+      frame.setContentPane (new JScrollPane (textArea));
+      frame.pack();
+      return frame;
+   }
+
+   public JFrame createKeyBindingInfo() {
+
+      JFrame frame = new JFrame (KEYBINDINGS_TITLE);
+
+      JTextArea textArea = new JTextArea();
+      textArea.setFont (new Font ("Arial", Font.PLAIN, 16));
+      //textArea.setColumns (80);
+      //textArea.setLineWrap (true);
+      textArea.setText (myMain.getKeyBindings());
+
+      textArea.setBorder (BorderFactory.createEmptyBorder (20,20,20,20));
+      frame.setContentPane (new JScrollPane (textArea));
+      frame.pack();
+      return frame;
    }
 
    /**
@@ -385,7 +432,6 @@ public class MainFrame extends JFrame {
     */
 
    public void updateNavBar() {
-      myNavPanel.unloadModel();
       myNavPanel.loadModel(myMain.getRootModel());
 
       // content panes must be opaque
@@ -401,8 +447,16 @@ public class MainFrame extends JFrame {
     * 
     */
    public void refreshSplitPane() {
-      splitPane.setDividerLocation ((myNavPanel.getStatus()) ? NAV_PANEL_WIDTH
-         : 0);
+      int loc;
+      if (myNavPanel.isExpanded()) {
+         loc = NAV_PANEL_WIDTH;
+      }
+      else {
+         loc = myNavPanel.getLeftBorderWidth();
+      }
+      if (loc != splitPane.getDividerLocation()) {
+         splitPane.setDividerLocation (loc);
+      }
    }
 
    /**
@@ -413,86 +467,4 @@ public class MainFrame extends JFrame {
       updateWorkingDirDisplay();
    }
 
-   /**
-    * 
-    * @author andreio display frame help refactored by andrei on may 24 / 2006
-    * 
-    */
-
-   private class FrameHelp extends JFrame {
-      private static final long serialVersionUID = 1L;
-
-      private static final int BOUND_X = 250, BOUND_Y = 250, BOUND_WIDTH = 500,
-      BOUND_HEIGHT = 400;
-
-      /** text area with information contents */
-      JTextArea textAreaHelp;
-      JScrollPane scrollPane;
-
-      /**
-       * default constructor instance
-       * 
-       */
-
-      public FrameHelp() {
-         this ("", "");
-      }
-
-      /**
-       * create the information dialog andreio: reduced number of needless
-       * function calls andreio: removed number of memory allocations
-       * 
-       * @param title -
-       * title of the frame
-       * @param helpText -
-       * text to fill in the frame text
-       */
-
-      public FrameHelp (String title, String helpText) {
-         addNotify();
-         setTitle (title);
-         setBounds (BOUND_X, BOUND_Y, BOUND_WIDTH, BOUND_HEIGHT);
-         textAreaHelp = new JTextArea();
-         textAreaHelp.setEditable (false);
-         textAreaHelp.setText (helpText);
-         scrollPane = new JScrollPane (textAreaHelp);
-         getContentPane().add (scrollPane);
-         textAreaHelp.setLineWrap (true);
-         textAreaHelp.setWrapStyleWord (true);
-         pack();
-         setBounds (BOUND_X, BOUND_Y, BOUND_WIDTH, BOUND_HEIGHT);
-         this.setAlwaysOnTop (true);
-      }
-
-      /**
-       * set the frame title and text in one function call, to make it more
-       * efficient
-       * 
-       * @param title -
-       * title of the frame
-       * @param helpText -
-       * the help text of the frame
-       */
-
-      public void setFrameTitleAndText (String title, String helpText) {
-         setFrameTitle (title);
-         setFrameText (helpText);
-      }
-
-      /**
-       * set the frame title
-       */
-      public void setFrameTitle (String title) {
-         this.setTitle (title);
-      }
-
-      /**
-       * Set the help text
-       * 
-       * @param helpText help text
-       */
-      public void setFrameText (String helpText) {
-         textAreaHelp.setText (helpText);
-      }
-   }
 }

@@ -24,7 +24,7 @@ import maspack.fileutil.*;
  * Class to launch an Artisynth application. We use a launcher so that we can
  * set-up our own class loader that references all the needed .jar files, as
  * well as external class path entries (such as from other projects) as
- * described in the file $ARTISYNTH_HOME/EXTCLASSPATH.
+ * described in the file {@code <USER_HOME>/ArtiSynthConfig/EXTCLASSPATH}.
  */
 public class Launcher {
 
@@ -246,12 +246,12 @@ public class Launcher {
 
    /**
     * Returns a list of external jar files and class directories as specified
-    * in the file $ARTISYNTH_HOME/EXTCLASSPATH.
+    * in the file {@code <USER_HOME>/ArtiSynthConfig/EXTCLASSPATH}.
     */
    private static File[] getExtFiles (String homeDirPath) {
       LinkedList<File> pfiles = new LinkedList<File>();
-      File file = new File (homeDirPath+SEP+"EXTCLASSPATH");
-      if (file.canRead()) {
+      File file = ArtisynthPath.getConfigFile ("EXTCLASSPATH");
+      if (file != null && file.canRead()) {
          BufferedReader reader = null;
          try {
             reader = new BufferedReader (new FileReader (file));
@@ -282,7 +282,8 @@ public class Launcher {
 
    /**
     * Returns a list of the path names of the external jar files and class
-    * directories as specified in the file $ARTISYNTH_HOME/EXTCLASSPATH.
+    * directories as specified in the file {@code
+    * <USER_HOME>/ArtiSynthConfig/EXTCLASSPATH}.
     */
    public static String[] getExtFilePathNames (String homeDirPath) {
       File[] files = getExtFiles (homeDirPath);
@@ -296,13 +297,18 @@ public class Launcher {
    /**
     * Verifies or updates jar files and some native libraries, based on the
     * contents of the file $ARTISYNTH_HOME/lib/LIBRARIES.
+    * 
+    * @param update if {@code true}, verifies that the libraries are
+    * up to date
+    * @return number of libraries actually downloaded, or -1 if
+    * an error was encountered
     */
-   public static void verifyLibraries (boolean update) {
-
+   public static int verifyLibraries (boolean update) {
+      int downloadCnt = 0;
       LibraryInstaller installer = new LibraryInstaller();
       File libFile = ArtisynthPath.getHomeRelativeFile ("lib/LIBRARIES", ".");
       if (!libFile.canRead()) {
-         System.out.println ("Warning: can't access "+libFile);
+         System.out.println ("WARNING: Can't access "+libFile);
          libFile = null;
       }
       else {
@@ -317,24 +323,41 @@ public class Launcher {
       if (libFile != null) {
          installer.clearNativeLibs();
          boolean allOK = true;
+         int retval = 0;
          try {
-            allOK &= installer.verifyJars (update);
-            allOK &= installer.verifyNativeLibs (update);
+            if ((retval = installer.verifyJars (update)) == -1) {
+               allOK = false;
+            }
+            else {
+               downloadCnt += retval;
+            }
+            if ((retval = installer.verifyNativeLibs (update)) == -1) {
+               allOK = false;
+            }
+            else {
+               downloadCnt += retval;
+            }
          }
          catch (Exception e) {
             if (installer.isConnectionException (e)) {
-               System.out.println (e.getMessage());
+               System.out.println (
+                  "ERROR: can't connect to ArtiSynth server: "
+                  +e.getMessage());
             }
             else {
-               e.printStackTrace(); 
+               System.out.println (
+                  "ERROR updating libraries: " + e);
             }
-            System.exit(1);
+            allOK = false;
          }
          if (!allOK) {
             System.out.println (
-               "Error: can't find or install all required libraries");
-            System.exit(1); 
+               "WARNING: Can't find or install all required libraries");
          }
+         return allOK ? downloadCnt : -1;
+      }
+      else {
+         return -1;
       }
    }   
 

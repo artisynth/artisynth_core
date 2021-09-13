@@ -11,28 +11,21 @@ import javax.swing.JPanel;
 import javax.swing.border.EtchedBorder;
 
 import artisynth.core.util.ArtisynthPath;
+import artisynth.core.gui.widgets.PanelFileChooser;
 import maspack.widgets.BooleanSelector;
-import maspack.widgets.LabeledComponentPanel;
+import maspack.widgets.PropertyPanel;
+import maspack.util.GenericFileFilter;
 
 /**
  * File chooser with an extra panel for selecting options related
  * to saving components or models to files.
  */
-public class ModelFileChooser extends JFileChooser {
+public class ModelFileChooser extends PanelFileChooser {
 
    private static final long serialVersionUID = 1L;
    
    BooleanSelector mySaveWayPointData;
    BooleanSelector myCoreCompsOnly;
-
-   private int getLastJPanelIndex (Container comp) {
-      for (int i=comp.getComponentCount()-1; i >= 0; i--) {
-         if (comp.getComponent(i) instanceof JPanel) {
-            return i;
-         }
-      }
-      return -1;
-   }   
 
    protected void addSaveWayPointData (boolean saveWayPointData) {
       mySaveWayPointData =
@@ -75,30 +68,21 @@ public class ModelFileChooser extends JFileChooser {
       }
       setApproveButtonText("Save");
       
+      GenericFileFilter filter = new GenericFileFilter (
+         "art", "ArtiSynth model files (*.art)");
+      addChoosableFileFilter (filter);
+      if (modelFile == null || filter.fileExtensionMatches (modelFile)) {
+         setFileFilter (filter);
+      }
+
       if (mySaveWayPointData != null || myCoreCompsOnly != null) {
-         LabeledComponentPanel panel = new LabeledComponentPanel();
+         PropertyPanel panel = createPropertyPanel();
 
          if (mySaveWayPointData != null) {
             panel.addWidget (mySaveWayPointData);
          }
          if (myCoreCompsOnly != null) {
             panel.addWidget (myCoreCompsOnly);
-         }
-         
-         panel.setBorder (
-            BorderFactory.createEtchedBorder (EtchedBorder.LOWERED));
-         
-         // Add this panel to the last JPanel, in the location just before *its*
-         // last JPanel (which contains the Save and Cancel buttons)
-         int lastPanelIndex = getLastJPanelIndex (this);
-         if (lastPanelIndex != -1) {
-            JPanel lastPanel = (JPanel)getComponent(lastPanelIndex);
-            int checkBoxIndex = getLastJPanelIndex (lastPanel);
-            lastPanel.add (panel, checkBoxIndex);
-            lastPanel.add (new Box.Filler(
-                              new Dimension(1,10),
-                              new Dimension(1,10),
-                              new Dimension(1,10)), checkBoxIndex);
          }
       }
    }

@@ -44,8 +44,6 @@ import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 
-//import com.formdev.flatlaf.FlatLightLaf;
-
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
@@ -247,6 +245,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
    static GraphicsInterface DEFAULT_GRAPHICS = GraphicsInterface.GL3;
    protected GraphicsInterface myGraphics = DEFAULT_GRAPHICS;
 
+   static LookAndFeel DEFAULT_LOOK_AND_FEEL = LookAndFeel.DEFAULT;
+   protected LookAndFeel myLookAndFeel = DEFAULT_LOOK_AND_FEEL;
+
    protected String myModelSaveFormat = "%g"; // "%.8g";
 
    private Vector3d myVec = new Vector3d();
@@ -273,6 +274,23 @@ public class Main implements DriverInterface, ComponentChangeListener {
       AddComponent, 
       AddMarker
    }
+
+   public enum LookAndFeel {
+      DEFAULT,
+      METAL,
+      SYSTEM;
+
+      // like valueOf() but returns null if no match
+      public static LookAndFeel fromString (String str) {
+         try {
+            return valueOf (str);
+         }
+         catch (Exception e) {
+            return null;
+         }
+      }
+
+   };
 
    /** 
     * Describes different ways to determine the frame for a manipulator.
@@ -498,6 +516,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myGraphics;
    }   
 
+   public LookAndFeel getLookAndFeel() {
+      return myLookAndFeel;
+   }   
+
    /**
     * Returns the current model name. This is either the name of the root model,
     * or the command or file name associated with it.
@@ -701,11 +723,50 @@ public class Main implements DriverInterface, ComponentChangeListener {
       GraphicsInterface gi = null;
       if (createGui) {
 
-         // try {
-         //    UIManager.setLookAndFeel( new FlatLightLaf() );
-         // } catch( Exception ex ) {
-         //    System.err.println( "Failed to initialize LaF" );
-         // }
+         // set the Swing look and feel if necessary
+         LookAndFeel laf = myLayoutPrefs.getLookAndFeel();
+         if (!"".equals(lookAndFeel.value)) {
+            // graphics specified on the command line
+            LookAndFeel cmdlaf =
+               LookAndFeel.fromString (lookAndFeel.value);
+            if (cmdlaf == null) {
+               System.out.println (
+                  "Unknown look and feel '"+lookAndFeel.value+"'; using "+laf);
+            }
+            else {
+               laf = cmdlaf;
+            }
+         }
+         if (laf != LookAndFeel.DEFAULT) {
+            try {
+               switch (laf) {
+                  case METAL: {
+                     UIManager.setLookAndFeel(
+                        UIManager.getCrossPlatformLookAndFeelClassName());
+                     break;
+                  }
+                  case SYSTEM: {
+                     UIManager.setLookAndFeel(
+                        UIManager.getSystemLookAndFeelClassName());
+                     break;
+                  }
+                  // case FLATLAF: {
+                  //    UIManager.setLookAndFeel(
+                  //       new com.formdev.flatlaf.FlatLightLaf());
+                  // }
+                  default: {
+                     System.out.println (
+                        "WARNING: Uknown look and feel '"+laf+"', ignoring");
+                  }
+               }
+            }
+            catch( Exception ex ) {
+               ex.printStackTrace(); 
+               System.err.println(
+                  "ERROR: Failed to initialize look and feel '"+laf+"'");
+            }
+         }
+         myLookAndFeel = laf;
 
          gi = myViewerPrefs.getGraphics();
          if (!"".equals(graphicsInterface.value)) {
@@ -2393,6 +2454,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder noGui = new BooleanHolder (false);
    protected static IntHolder glVersion = new IntHolder (-1);
    protected static StringHolder graphicsInterface = new StringHolder("");
+   protected static StringHolder lookAndFeel = new StringHolder("");
    protected static BooleanHolder useGLJPanel = new BooleanHolder (true);
    protected static StringHolder logLevel = 
       new StringHolder(null);
@@ -2659,9 +2721,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-openMatlabConnection %v " +
          "#open a MATLAB connection if possible", openMatlab);
       parser.addOption (
-         "-graphics %s{GL2,GL3} " +
-         "#graphics interface for renderer", graphicsInterface);
-      parser.addOption (
          "-GLVersion %d{2,3} " +
          "#version of openGL for graphics (replaced with \n" +
          "                        '-graphics {GL2,GL3}')",
@@ -2669,6 +2728,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-graphics %s{GL2,GL3} " + 
          "#graphics interface for rendering (e.g., GL3)", graphicsInterface);
+      parser.addOption (
+         "-lookAndFeel %s{METAL,SYSTEM,DEFAULT} " +
+         "#look and feel for the UI (e.g., METAL, SYSTEM)", lookAndFeel);
       parser.addOption (
          "-useGLJPanel %v " +
          "#use GLJPanel for creating the openGL viewer", useGLJPanel);

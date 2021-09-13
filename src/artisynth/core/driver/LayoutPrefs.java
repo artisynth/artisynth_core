@@ -20,6 +20,7 @@ import artisynth.core.util.*;
 import artisynth.core.gui.*;
 import artisynth.core.gui.timeline.*;
 import artisynth.core.gui.jythonconsole.*;
+import artisynth.core.driver.Main.LookAndFeel;
 
 /**
  * Preferences related to the GUI layout
@@ -39,6 +40,7 @@ public class LayoutPrefs extends Preferences {
    private RelativeLocation myTimelineLocation = Main.DEFAULT_TIMELINE_LOCATION;
    private boolean myJythonFrameVisible = Main.DEFAULT_JYTHON_FRAME_VISIBLE;
    private RelativeLocation myJythonLocation = Main.DEFAULT_JYTHON_LOCATION;
+   private LookAndFeel myLookAndFeel = Main.DEFAULT_LOOK_AND_FEEL;
 
    static {
       myProps.add (
@@ -72,6 +74,10 @@ public class LayoutPrefs extends Preferences {
          "jythonLocation", 
          "default location of the Jython console relative to the main frame",
          Main.DEFAULT_JYTHON_LOCATION);
+      myProps.add (
+         "lookAndFeel", 
+         "look and feel of the UI (based on Java Swing)",
+         Main.DEFAULT_LOOK_AND_FEEL);
    }
 
    @Override
@@ -155,6 +161,14 @@ public class LayoutPrefs extends Preferences {
       myJythonLocation = loc;
    }
 
+   public void setLookAndFeel (LookAndFeel laf) {
+      myLookAndFeel = laf;
+   }
+
+   public LookAndFeel getLookAndFeel () {
+      return myLookAndFeel;
+   }
+
    public void setFromCurrent() {
       Viewer viewer = myMain.getViewer();
       if (viewer != null) {
@@ -172,6 +186,7 @@ public class LayoutPrefs extends Preferences {
       JFrame jyframe = myMain.getJythonFrame();
       setJythonFrameVisible (jyframe != null && jyframe.isVisible());
       setJythonLocation (myMain.getJythonLocation());
+      setLookAndFeel (myMain.getLookAndFeel());
    }
 
    public void applyToCurrent() {
@@ -194,7 +209,15 @@ public class LayoutPrefs extends Preferences {
 
    protected PropertyPanel createEditingPanel() {
       PropertyPanel panel = createDefaultEditingPanel();
-      addLoadApplyButtons (panel);
+
+      // create separator and asterix for the 'lookAndFeel' widget
+      EnumSelector widget = (EnumSelector)panel.getWidget ("lookAndFeel");
+      widget.setLabelText ("lookAndFeel *");
+      panel.addWidget (new JSeparator(),  panel.getComponentIndex (widget));
+
+      addLoadApplyButtons (
+         panel, new String[] { "  * restart required" });
+
       return panel;
    }
 

@@ -3,15 +3,16 @@ package artisynth.core.modelmenu;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import artisynth.core.driver.ModelInfo;
+import artisynth.core.driver.ModelScriptInfo;
 
-public class ModelActionForwarder implements ActionListener {
+public class ModelScriptActionForwarder implements ActionListener {
    
-   ModelInfo mi = null;
+   ModelScriptInfo mi = null;
    String cmd = null;
-   ModelActionListener listener = null;
+   ModelScriptActionListener listener = null;
    
-   public ModelActionForwarder(ModelActionListener listener, String cmd, ModelInfo mi) {
+   public ModelScriptActionForwarder (
+      ModelScriptActionListener listener, String cmd, ModelScriptInfo mi) {
       this.mi = mi;
       this.listener = listener;
       this.cmd = cmd;
@@ -20,7 +21,7 @@ public class ModelActionForwarder implements ActionListener {
    @Override
    public void actionPerformed(ActionEvent e) {
       // forward information on
-      ModelActionEvent event = new ModelActionEvent(cmd, e, mi);
+      ModelScriptActionEvent event = new ModelScriptActionEvent(cmd, e, mi);
       if (listener != null) {
          listener.actionPerformed(event);
       }

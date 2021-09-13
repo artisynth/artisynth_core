@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
 	targetNamespace="http://www.artisynth.org"
 	xmlns="http://www.artisynth.org" elementFormDefault="unqualified">
@@ -14,12 +14,10 @@
 	<xs:element name="menu" type="menuType" />
 	<xs:element name="model" type="modelType" />
 	<xs:element name="package" type="packageType" />
-	<xs:element name="demosFile" type="demosFileType" />
+	<xs:element name="demoFile" type="demoFileType" />
 	<xs:element name="separator" type="separatorType" />
 	<xs:element name="label" type="labelType" />
-	<xs:element name="include" type="includeType" />
 	<xs:element name="hidden" type="hiddenType" />
-	<xs:element name="history" type="historyType" />
 
 	<!-- Element Types -->
 	<xs:complexType name="rootType">
@@ -27,12 +25,10 @@
 			<xs:element ref="menu" />
 			<xs:element ref="model" />
 			<xs:element ref="package" />
-			<xs:element ref="demosFile" />
+			<xs:element ref="demoFile" />
 			<xs:element ref="separator" />
 			<xs:element ref="label" />
-			<xs:element ref="include"/>
 			<xs:element ref="hidden"/>
-			<xs:element ref="history"/>
 		</xs:choice>
 		<xs:attribute name="scrolling" type="xs:boolean" default="false"
 			use="optional" />
@@ -50,8 +46,7 @@
 	<xs:complexType name="menuType">
 		<xs:complexContent>
 			<xs:extension base="rootType">
-				<xs:attribute name="text" type="xs:string" use="required" />
-				<xs:attribute name="icon" type="xs:anyURI" use="optional" />
+				<xs:attribute name="title" type="xs:string" use="required" />
 				<xs:attributeGroup ref="fontAttr" />
 			</xs:extension>
 		</xs:complexContent>
@@ -59,18 +54,14 @@
 
 	<xs:complexType name="modelType">
 		<xs:attribute name="class" type="javaType" use="required" />
-		<xs:attribute name="text" type="xs:string" use="optional" />
-		<xs:attribute name="icon" type="xs:anyURI" use="optional" />
-		<xs:attribute name="args" type="xs:string" use="optional" />
+		<xs:attribute name="title" type="xs:string" use="optional" />
+		<xs:attribute name="buildArgs" type="xs:string" use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
 
 	<xs:complexType name="packageType">
-		<xs:attribute name="source" type="javaType" use="required" />
-		<xs:attribute name="base" type="javaType"
-			default="artisynth.core.workspace.RootModel" use="optional" />
-		<xs:attribute name="args" type="xs:string" use="optional" />
-		<xs:attribute name="regex" type="xs:string" use="optional" />
+		<xs:attribute name="title" type="xs:string" use="optional" />
+		<xs:attribute name="name" type="javaType" use="required" />
 		<xs:attribute name="view" type="viewType" default="hierarchical"
 			use="optional" />
 		<xs:attribute name="compact" type="compactType" default="0"
@@ -82,9 +73,13 @@
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
 
-	<xs:complexType name="demosFileType">
+	<xs:complexType name="demoFileType">
+		<xs:attribute name="title" type="xs:string" use="optional" />
 		<xs:attribute name="file" type="xs:anyURI" use="required" />
-		<xs:attribute name="args" type="xs:string" use="optional" />
+		<xs:attribute name="scrolling" type="xs:boolean" default="false"
+				use="optional" />
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
+			use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
 
@@ -92,23 +87,10 @@
 	</xs:complexType>
 
 	<xs:complexType name="labelType">
-		<xs:attribute name="text" type="xs:string" use="required" />
-		<xs:attribute name="icon" type="xs:anyURI" use="optional" />
+		<xs:attribute name="title" type="xs:string" use="required" />
 		<xs:attributeGroup ref="fontAttr"/>
 	</xs:complexType>
 	
-	<xs:complexType name="includeType">
-		<xs:attribute name="file" type="xs:anyURI" use="required" />
-	</xs:complexType>
-	
-	<xs:complexType name="historyType">
-		<xs:attribute name="size" type="positiveIntegerType" default = "8" 
-			use="optional" />
-		<xs:attribute name="compact" type="compactType" default="0"
-			use="optional" />
-		<xs:attributeGroup ref="fontAttr" />
-	</xs:complexType>
-
 	<!-- Attributes Types -->
 	<xs:attributeGroup name="fontAttr">
 		<xs:attribute name="fontname" type="xs:string" use="optional" />

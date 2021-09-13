@@ -24,30 +24,43 @@
 package artisynth.core.gui.navpanel;
 
 import java.awt.Dimension;
+import java.awt.Insets;
+import java.awt.Component;
+import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.util.*;
 
 import javax.swing.JMenuItem;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
+import javax.swing.ImageIcon;
+import javax.swing.UIManager;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.border.EmptyBorder;
 import javax.swing.tree.DefaultTreeSelectionModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import javax.swing.plaf.IconUIResource;
 
 import maspack.widgets.ButtonMasks;
+import maspack.widgets.GuiUtils;
+import maspack.util.PathFinder;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.CompositeComponent.NavpanelDisplay;
 import artisynth.core.workspace.RootModel;
 
-public class NavigationPanel extends JPanel {
+public class NavigationPanel extends JScrollPane {
    private static final long serialVersionUID = 1L;
 
    boolean debug = false;
+
+   static ImageIcon myTreeCollapsedIcon;
+   static ImageIcon myTreeExpandedIcon;
 
    // the JTree structure within which the model components
    // and constraints are organized
@@ -55,29 +68,40 @@ public class NavigationPanel extends JPanel {
 
    private TreeSelectionModel myTreeSelectionModel;
 
-   private JScrollPane treeView;
-
    private NavPanelSelectionListener treeListener;
 
-   private boolean status = false;
+   private boolean expanded = false;
 
-   //private MainFrame parent;
-
-   private JScrollPane parentScrollBar;
-
+   private int myLeftBorderWidth = -1; // -1 means uninitialized
+   
    private HashMap<String,Boolean> map = new HashMap<String,Boolean>();
 
    private ArrayList<TreeSelectionListener> mySelectionListeners;
 
    private SelectionManager mySelectionManager;
 
-   private int scrollMarginSpace = 10;
-
    private NavPanelTreeModel myTreeModel;
 
    protected boolean myHideEmptyComponentsP = true;
 
    static int myUnnamedVisibleLimit = 100;
+
+   private boolean myLinesEnabled = false;
+
+   public boolean getLinesEnabled() {
+      return myLinesEnabled;
+   }
+
+   public void setLinesEnabled (boolean enabled) {
+      if (myLinesEnabled != enabled) {
+         myLinesEnabled = enabled;
+         if (tree != null) {
+            tree.putClientProperty (
+               "JTree.lineStyle", enabled ? "Angled" : "None");
+            tree.repaint();
+         }
+      }
+   }
 
    public void setHideEmptyComponents (boolean enable) {
       if (enable != myTreeModel.getHideEmptyComponents()) {
@@ -102,8 +126,23 @@ public class NavigationPanel extends JPanel {
       mySelectionManager = slectionManager;
    }
 
+   protected void initializeIcons() {
+      if (myTreeCollapsedIcon == null) {
+         String iconDir = PathFinder.getSourceRelativePath (
+            getClass(), "../icon/");
+         myTreeCollapsedIcon = GuiUtils.loadIcon(iconDir+"treeCollapsed.png");
+         myTreeExpandedIcon = GuiUtils.loadIcon(iconDir+"treeExpanded.png");
+
+         UIManager.put (
+            "Tree.collapsedIcon", new IconUIResource(myTreeCollapsedIcon));
+         UIManager.put (
+            "Tree.expandedIcon", new IconUIResource (myTreeExpandedIcon));
+      }
+   }
+
    public NavigationPanel () {
       //this.parent = parent;
+      initializeIcons();
       mySelectionListeners = new ArrayList<TreeSelectionListener>(8);
       setAlignmentX(0);
    }
@@ -122,45 +161,50 @@ public class NavigationPanel extends JPanel {
       }
    }
 
-   public void setParentScrollBar(JScrollPane parentScrollBar) {
-      this.parentScrollBar = parentScrollBar;
-   }
-
    public void expandAll(JTree tree) {
       tree.expandRow(0);
       tree.expandRow(1);
    }
 
-   public void setStatus(boolean extStatus) {
-      status = extStatus;
+   public void setExpanded(boolean expand) {
+      expanded = expand;
    }
 
-   public boolean getStatus() {
-      return status;
+   public boolean isExpanded() {
+      return expanded;
    }
 
    public JTree getTree() {
       return tree;
    }
 
+   /**
+    * Don't use this at the moment. It's just here in case we want
+    * an "empty" navpanel.
+    */
    public void unloadModel() {
       if (tree != null) {
-         if (treeView != null) {
-            treeView.remove(tree);
-         }
          tree = null;
          myTreeSelectionModel = null;
+         setEmptyView();
       }
-      if (treeView != null) {
-         remove(treeView);
-         treeView = null;
-      }
+   }
+   
+   private void setEmptyView() {
+      JPanel panel = new JPanel();
+      panel.setBackground (Color.WHITE);
+      panel.setPreferredSize (new Dimension(100, 100));
+      setViewportView (panel);
    }
 
    private void createTree(RootModel rootModel) {
+
       TreeSelectionModel selectionModel = new DefaultTreeSelectionModel();
       myTreeModel = new NavPanelTreeModel(rootModel, selectionModel);
       tree = new JTree(myTreeModel);
+      if (!myLinesEnabled) {
+         tree.putClientProperty ("JTree.lineStyle", "None");
+      }
 
       // add a mouse listener to the tree
       tree.addMouseListener(new TreeMouseListener());
@@ -190,19 +234,11 @@ public class NavigationPanel extends JPanel {
 
       tree.setLargeModel(true);
       tree.setExpandsSelectedPaths(false);
-      tree.setEditable(true);
+      tree.setEditable (false);
       tree.setCellRenderer(new NavPanelRenderer());
-
       tree.setRootVisible(true);
-
-      if (treeView != null) {
-         remove(treeView);
-      }
-      treeView = new JScrollPane(tree);
-      treeView.setPreferredSize(this.getSize());
-      treeView.setMinimumSize(new Dimension(100, 250));
-      add(treeView);
-
+      tree.setBorder (new EmptyBorder (2, 5, 0, 0));
+      setViewportView(tree);
       expandAll(tree);
    }
 
@@ -212,41 +248,14 @@ public class NavigationPanel extends JPanel {
          createTree(rootModel);
       }
       revalidate();
-      this.setPreferredSize(new Dimension(parentScrollBar.getWidth()
-         - scrollMarginSpace, parentScrollBar.getHeight()
-         - scrollMarginSpace));
-      treeView.setPreferredSize(new Dimension(parentScrollBar.getWidth()
-         - scrollMarginSpace, parentScrollBar.getHeight()
-         - scrollMarginSpace));
    }
 
    public void rebuildTree (RootModel rootModel) {
-      if (tree != null) {
-         treeView.remove(tree);
-      }
-      //RootModel rootModel = Main.getWorkspace().getRootModel();
       if (rootModel != null) {
          createTree(rootModel);
-         treeView.add(tree);
+         setViewportView(tree);
       }
       revalidate();
-   }
-
-   /**
-    * Resizes the JTree panel to be the same size as the navPanel
-    */
-   public void repaint() {
-      super.repaint();
-      if (treeView != null) {
-         treeView.setPreferredSize(new Dimension(parentScrollBar.getWidth()
-            - scrollMarginSpace, parentScrollBar.getHeight()
-            - scrollMarginSpace));
-      }
-   }
-
-   public void updateParentSize() {
-      this.setPreferredSize(new Dimension(parentScrollBar.getWidth() - 10,
-         parentScrollBar.getHeight() - 10));
    }
 
    private boolean onlyExpandedPaths = true;
@@ -374,4 +383,45 @@ public class NavigationPanel extends JPanel {
          }
       }
    }
+   
+   public int getDefaultDividerLoc() {
+      if (expanded) {
+         return (int)getPreferredSize().getWidth() + 10;
+      }
+      else {
+         return getLeftBorderWidth();
+      }
+   }
+   
+   public int getLeftBorderWidth() {
+      if (myLeftBorderWidth == -1) {
+         if (getBorder() != null) {
+            Insets insets = getBorder().getBorderInsets(this);
+            myLeftBorderWidth = insets.left;
+         }
+         else {
+            myLeftBorderWidth = 0;
+         }
+      }
+      return myLeftBorderWidth;
+   }
+   
+   public Dimension getPreferredSize() {
+      if (expanded) {
+         return super.getPreferredSize();
+      }
+      else {
+         return new Dimension(0,0);
+      }
+   }
+
+   public Dimension getMinimumSize() {
+      if (expanded) {
+         return new Dimension(0,0);//super.getMinimumSize();
+      }
+      else {
+         return new Dimension(0,0);
+      }
+   }
+
 }

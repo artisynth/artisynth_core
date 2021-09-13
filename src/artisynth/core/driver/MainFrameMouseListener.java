@@ -25,9 +25,9 @@ class MainFrameMouseListener implements MouseListener {
    MainFrame myMainFrame;
 
    public void mouseClicked (MouseEvent e) {
-      myNavPanel.setStatus (!myNavPanel.getStatus());
+      myNavPanel.setExpanded (!myNavPanel.isExpanded());
       myMainFrame.refreshSplitPane();
-      myMainFrame.getNavPanel().setVisible (myNavPanel.getStatus());
+      myMainFrame.getNavPanel().setVisible (myNavPanel.isExpanded());
    }
 
    public void setNavPanel (NavigationPanel navPanel) {
@@ -48,7 +48,7 @@ class MainFrameMouseListener implements MouseListener {
    }
 
    public void mouseReleased (MouseEvent e) {
-      myNavPanel.updateParentSize();
+      //myNavPanel.updateParentSize();
    }
 
 }

@@ -140,6 +140,7 @@ public class RootModel extends RenderableModelBase
       new AxisAngle(0,0,0,0);
    private static final double DEFAULT_MIN_STEP_SIZE = 1e-7;
    private static final boolean DEFAULT_ADAPTIVE_STEPPING = false;
+   private File myWorkingFolder = null;
 
    AxisAngle myDefaultViewOrientation = 
       new AxisAngle (DEFAULT_VIEW_ORIENTATION);
@@ -1837,7 +1838,7 @@ public class RootModel extends RenderableModelBase
       
       // XXX - may not want to write the working directory to the model file
       // should be changed to "probe directory"
-      pw.println ("workingDir="
+      pw.println ("workingFolder="
                   + Write.getQuotedString (ArtisynthPath.getWorkingDirPath()));
       
       super.writeItems (pw, fmt, ancestor);
@@ -1863,7 +1864,7 @@ public class RootModel extends RenderableModelBase
       
       // XXX - may not want to write the working directory to the model file
       // should be changed to "probe directory"
-      pw.println ("workingDir="
+      pw.println ("workingFolder="
                   + Write.getQuotedString (ArtisynthPath.getWorkingDirPath()));
       
       myProps.writeNonDefaultProps (root, pw, fmt, root);
@@ -1928,7 +1929,7 @@ public class RootModel extends RenderableModelBase
       throws IOException {
       
       rtok.nextToken();
-      if (scanAttributeName (rtok, "workingDir")) {
+      if (scanAttributeName (rtok, "workingFolder")) {
          String dirName = rtok.scanQuotedString('"');
          File workingDir = new File (dirName);
          if (workingDir.exists() && workingDir.isDirectory()) {
@@ -2211,5 +2212,37 @@ public class RootModel extends RenderableModelBase
     */
    public String getSourceRelativePath (String relpath) {
       return PathFinder.getSourceRelativePath (this, relpath);
+   }
+   
+   /**
+    * Returns the working folder for this root model. If not explicitly
+    * set via {@link #setWorkingFolder}, the folder defaults to
+    * the source folder for the Java class, or, if that is not
+    * found, the current working folder specified by ".".
+    * 
+    * @return working folder for this root model.
+    */
+   public File getWorkingFolder() {
+      if (myWorkingFolder != null) {
+         return myWorkingFolder;
+      }
+      else {
+         String srcDir = PathFinder.findSourceDir(this);
+         if (srcDir != null) {
+            return new File (srcDir);
+         }
+         else {
+            return new File(".");
+         }
+      }
+   }
+   
+   /**
+    * Explicitly sets the working folder for this root model. Specifying
+    * a value of {@code null} causes the working folder to revert to
+    * its default definition.
+    */
+   public void setWorkingFolder (File dir) {
+      myWorkingFolder = dir;
    }
 }

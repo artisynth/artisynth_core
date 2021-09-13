@@ -128,46 +128,34 @@ if [ $HELP = yes ] ; then
    help ; exit 0
 fi
 
-# All enviroment variables are required in the moment 
-#export ARTISYNTH_HOME=
-#export ARTISYNTH_PATH=
-#export LD_LIBRARY_PATH=
+# John Lloyd, June 2021: Removed logging. The log file file did not
+# record much that was useful, and was anyway inapplicable when
+# running from an IDE
 
-LOG=$ARTISYNTH_HOME/tmp/artisynth.log
+# LOG=$ARTISYNTH_HOME/tmp/artisynth.log
+#if [ ! -e $LOG ] ; then
+#    echo " " > $LOG
+#else
+#    echo "--Start Artisynth----------------" >> $LOG
+#fi
+#date >> $LOG
+#uname -a >> $LOG
+#echo script: $0 >> $LOG
+#echo ARTISYNTH_HOME= $ARTISYNTH_HOME >> $LOG
+#echo PATH= $PATH >> $LOG
+#echo CLASSPATH= $CLASSPATH >> $LOG
+#java -version 2>> $LOG
+#java artisynth.core.util.JVMInfo >> $LOG
+# echo "-------------------------------------" >> $LOG
 
-if [ ! -e $LOG ] ; then
-    echo " " > $LOG
-else
-    echo "--Start Artisynth----------------" >> $LOG
-fi
-date >> $LOG
-uname -a >> $LOG
-echo script: $0 >> $LOG
-echo ARTISYNTH_HOME= $ARTISYNTH_HOME >> $LOG
-echo PATH= $PATH >> $LOG
-echo CLASSPATH= $CLASSPATH >> $LOG
-java -version 2>> $LOG
 if [ $? != "0" ] ; then 
     echo Error: Java executable not found. Please edit line 3+4 of $0
     exit 1
 fi
-# increase perm memory limit for Java 7
-if java -version 2>&1 | fgrep "1.7." -q ; then
-   MEM_LIMIT="$MEM_LIMIT -XX:MaxPermSize=100M"
-fi
-#java artisynth.core.util.JVMInfo >> $LOG
-#if [ $? != "0" ] ; then 
-#    java artisynth.core.util.JVMInfo
-#    exit 1
-#fi
-echo "-------------------------------------" >> $LOG
-
 JAVA_OPTS="$JAVA_OPTS $MEM_LIMIT"
-# John Lloyd: Sep 17, 2010: removed logging of regular output. The
-# files simply got too big, especially with debugging statements
 if [ $SILENT = yes ] ; then
     java $JAVA_OPTS artisynth.core.driver.Launcher "${MAIN_OPTS[@]}" > /dev/null 2>&1
-else 
+else
     # java $JAVA_OPTS artisynth.core.driver.Launcher ${MAIN_OPTS[@]} 2>&1 | tee -a $LOG     
     java $JAVA_OPTS artisynth.core.driver.Launcher "${MAIN_OPTS[@]}"
 fi

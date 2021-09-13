@@ -91,15 +91,15 @@ public class ViewerToolBar extends JToolBar
          super();
          myViewpoint = viewpoint;
          myAxialView = null;
-         setHorizontalAlignment (SwingConstants.LEFT);
-         setBorder (BorderFactory.createEmptyBorder (2, -6, 2, 0));
+         //setHorizontalAlignment (SwingConstants.CENTER);
+         //setBorder (BorderFactory.createLineBorder (Color.BLUE));
+         setIconTextGap (0); // seems we have to set this even with no text
       }
 
-      public void setIcon (Icon icon) {
-         super.setIcon (icon);
-         GuiUtils.setFixedSize (
-            this, icon.getIconWidth() + 4, icon.getIconHeight() + 4);        
-      }
+      // public void setIcon (Icon icon) {
+      //    super.setIcon (icon);
+      //    System.out.println ("prefsize=" + getPreferredSize());
+      // }
 
       AxisAlignedRotation getAxialView() {
          return myAxialView;

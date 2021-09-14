@@ -31,6 +31,7 @@ Makedefs  text
 *.tex    text
 *.gradle text
 *.xml    text
+*.xsd    text
 
 ###########################
 # Binary files

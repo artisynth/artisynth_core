@@ -12,16 +12,7 @@ import java.util.LinkedList;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JOptionPane;
 
-import artisynth.core.driver.Main;
-import artisynth.core.gui.Displayable;
-import artisynth.core.gui.selectionManager.SelectionEvent;
-import artisynth.core.gui.selectionManager.SelectionListener;
-import artisynth.core.gui.selectionManager.SelectionManager;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.workspace.RootModel;
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.NumericConverter;
@@ -39,6 +30,14 @@ import maspack.widgets.PropertyWidget;
 import maspack.widgets.StringSelector;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
+import artisynth.core.driver.Main;
+import artisynth.core.gui.Displayable;
+import artisynth.core.gui.selectionManager.SelectionEvent;
+import artisynth.core.gui.selectionManager.SelectionListener;
+import artisynth.core.gui.selectionManager.SelectionManager;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.workspace.RootModel;
 
 /**
  * Base class for ComponentField, which selects component paths, and
@@ -48,12 +47,9 @@ import maspack.widgets.ValueChangeListener;
  * class, because of it's tight coupling with the component text field.
  */
 public abstract class ComponentPropertyField extends LabeledTextField implements
-   SelectionListener {
-   
+SelectionListener {
    private static final long serialVersionUID = 1L;
-   
    Object myValue = Property.VoidValue;
-   
    SelectionManager mySelectionManager;
    boolean mySelectionEnabled = true;
    boolean mySelectionListenerInstalled = false;
@@ -70,8 +66,6 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
    protected boolean myNumericOnly = false;
    protected boolean myWidgetableOnly = true;
 
-   protected boolean myPropertyMask = false;
-   
    static ImageIcon myParentButtonIcon =
       GuiUtils.loadIcon (Displayable.class, "icon/upArrow.png");
 
@@ -85,13 +79,11 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
     */
    public ComponentPropertyField (String labelText, int ncols, Main main) {
       super (labelText, ncols);
-      
       myMain = main;
       myAlwaysParseText = true;
       mySelectionManager = main.getSelectionManager();
       mySelectionManager.addSelectionListener (this);
       mySelectionListenerInstalled = true;
-      
       setStretchable (true);
       setGUIVoidEnabled (true);
       setVoidValueEnabled (true);
@@ -132,131 +124,6 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
       if (updateValue (obj)) {
          updateDisplay();
       }
-   }
-   
-   @Override
-   public String getText() {
-      String textFieldText = myTextField.getText();
-      String property = null;
-      if (myPropertySelector != null) {
-         property = (String)(myPropertySelector.getValue());
-         if (property != null) {
-            property = property.trim();
-         }
-      }
-      StringBuilder out = new StringBuilder(textFieldText);
-      if (!textFieldText.contains(":") && property != null && !"".equals(property)) {
-         out.append(':');
-         out.append(property);
-      }
-      return out.toString();
-   }
-   
-   protected void setValueFromDisplay() {
-      if (myAlwaysParseText || !myLastText.equals (myTextField.getText())
-         || (myPropertySelector != null 
-           && !((String)(myPropertySelector.getValue())).equals(myLastPropName))) {
-         
-         StringHolder errMsg = new StringHolder();
-         // we explicitly call fireValueCheckListeners instead of
-         // checkValue since textToValue may itself throw an error
-         // and we want to handle that in the same way
-         BooleanHolder corrected = new BooleanHolder();
-         Object value = textToValue (getText(), corrected, null);
-         if (value != Property.IllegalValue) {
-            value = validateValue (value, errMsg);
-         }
-         if (value == Property.IllegalValue) {
-            focusListenerMasked = true;
-            GuiUtils.showError (this, errMsg.value);
-            focusListenerMasked = false;
-            myTextField.setText (myLastText);
-            updateDisplay();
-            myLastEntryAccepted = false;
-            return;
-         }
-         updateValue (value);
-         updateDisplay();
-      }
-      else {
-         setHighlightedTextBackground (false);
-      }
-      myLastEntryAccepted = true;
-   }
-   
-   /**
-    * Returns true if two control values are equal, allowing for values to be
-    * null and void, as well as various vector, matrix, and object values. This
-    * method is used by updateInternalValue method of the specific control. Care
-    * should be taken when using this method to verify that its equality checks
-    * are appropriate.
-    */
-   protected boolean valuesEqual (Object obj1, Object obj2) {
-      // return super.valuesEqual(obj1, obj2);
-      if (obj1 == null && obj2 == null) {
-         return true;
-      } else if (obj1 == null || obj2 == null) {
-         return false;
-      } else if (obj1.getClass() != obj2.getClass()) {
-         return false;
-      } else  {
-         return obj1.equals(obj2);
-      }
-   }
-   
-   /**
-    * Override to account for property selector
-    */
-   protected void updateDisplay (boolean forceUpdate) {
-      String [] newText = null;
-      
-      Object value = getInternalValue();
-      BooleanHolder corrected = new BooleanHolder();
-      if (value == Property.VoidValue) {
-         newText = new String[]{"",""};
-      }
-      else {
-
-         Object textValue = textToValue (getText(), corrected, null);
-         if (forceUpdate ||
-             textValue == Property.IllegalValue ||
-             corrected.value ||
-             !valuesEqual (textValue, value)) {
-            
-            // update
-            newText = valueToTextArray(value);
-            
-         }
-      }
-      if (newText != null) {
-         myLastText = newText[0];
-         myTextField.setText (newText[0]);
-         // mask property selector
-         
-         if (myPropertiesAllowed) {
-            myPropertyMask = true;
-            myLastPropName = newText[1];
-            if ("".equals(newText[1])) {
-                myPropertySelector.setValue(nullString);
-            } else {
-               myPropertySelector.setValue(newText[1]);
-            }
-            myPropertyMask = false;
-         } else {
-            if (newText[1] != null && !"".equals(newText[1])) {
-               myLastText = newText[0] + ":" + newText[1];
-               myTextField.setText(myLastText);
-            }
-         }
-      }
-      else {
-         myLastText = myTextField.getText();
-         if (myPropertySelector != null) {
-            String propValue = (String)(myPropertySelector.getValue());
-            myLastPropName = propValue;
-         }
-      }
-      setHighlightedTextBackground (false);
    }
 
    protected void addParentButton() {
@@ -324,30 +191,26 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
    }
 
    private void setValueFromPropertySelector() {
-      if (!myPropertyMask) {
-         String propName = (String)myPropertySelector.getValue();
-         HasProperties host = getHost();
-         if (propName.equals (nullString)) {
-            Object value = getValueForHost();
-            System.out.println ("new value");
-            updateValueAndDisplay (value);
-            return;
-         }
-         if (host == null) {
-            throw new InternalErrorException ("Current property host is null");
-         }
-         Property prop = host.getProperty (propName);
-         if (prop == null) {
-            throw new InternalErrorException (
-               "Current property host does not contain property " + propName);
-         }
-         updateValueAndDisplay (prop);
+      String propName = (String)myPropertySelector.getValue();
+      HasProperties host = getHost();
+      if (propName.equals (nullString)) {
+         Object value = getValueForHost();
+         updateValueAndDisplay (value);
+         return;
       }
+      if (host == null) {
+         throw new InternalErrorException ("Current property host is null");
+      }
+      Property prop = host.getProperty (propName);
+      if (prop == null) {
+         throw new InternalErrorException (
+            "Current property host does not contain property " + propName);
+      }
+      updateValueAndDisplay (prop);
    }
 
    protected Object textToValue (
       String text, BooleanHolder corrected, StringHolder errMsg) {
-      
       corrected.value = false;
       RootModel root = myMain.getRootModel();
       Object compOrProp = null;
@@ -364,18 +227,23 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
          boolean colonInText = (text.indexOf (':') != -1);
          if (!colonInText) {
             compOrProp = root.findComponent (text);
-            // if (compOrProp != null) { 
-            // // match with last property if possible
-            //    if (myLastPropName != null) {
-            //       Property prop =
-            //          ((ModelComponent)compOrProp).getProperty (myLastPropName);
-            //       if (prop != null) {
-            //          compOrProp = prop;
-            //       }
-            // }
          }
          if (compOrProp == null) {
-            compOrProp = root.getProperty (text);
+            Property prop = root.getProperty (text);
+            if (prop != null && errMsg == null) {
+               // XXX bit of a hack here. The text should not contain leaf
+               // property names, since those are contained in the property
+               // selector. But if text was entered manually, the leaf property
+               // name might be included. So if the property described by the
+               // text field has the same name as the leaf property, and we are
+               // inside updateDisplay (which is true if errMsg==null), we set
+               // 'corrected' to true, which will cause updateDisplay() to
+               // generate new text.
+               if (prop.getName().equals(getLeafPropName())) {
+                  corrected.value = true;                  
+               }
+            }
+            compOrProp = prop;
          }
          if (compOrProp == null) {
             if (colonInText) {
@@ -388,43 +256,6 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
          }
       }
       return validValue (compOrProp, errMsg);
-   }
-   
-   protected String[] valueToTextArray(Object value) {
-      ModelComponent comp = getComponent (value);
-      RootModel root = myMain.getRootModel();
-      
-      String compStr = "/";
-      String propStr = "";
-      
-      if (root == null || comp == null) {
-         return new String[]{"",""};
-      }
-      if (value instanceof ModelComponent) {
-         compStr = ComponentUtils.getPathName (root, comp);
-      }
-      else if (value instanceof Property) {
-         Property prop = (Property)value;
-         boolean excludeLeaf =
-            (myPropertySelector != null &&
-             !(prop.get() instanceof CompositeProperty));
-         String path = ComponentUtils.getPropertyPathName (prop, root, false);
-         
-         int idx = path.indexOf(':');
-         // default to root
-         propStr = path;
-         if (idx >= 0) {
-            compStr = path.substring(0, idx);
-            if (idx < path.length()-1) {
-               propStr = path.substring(idx+1);
-            }
-         }
-      }
-      else {
-         throw new InternalErrorException ("Unknown value type: "
-         + value.getClass());
-      }
-      return new String[]{compStr, propStr};
    }
 
    protected String valueToText (Object value) {
@@ -441,11 +272,9 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
          boolean excludeLeaf =
             (myPropertySelector != null &&
              !(prop.get() instanceof CompositeProperty));
-         String path = ComponentUtils.getPropertyPathName (prop, root, false);
-         if (!path.contains(":")) {
-            path = "/:" + path;  // root component + property
-         }
-         return path;
+         String pathName =
+            ComponentUtils.getPropertyPathName (prop, root, excludeLeaf);
+         return pathName;
       }
       else {
          throw new InternalErrorException ("Unknown value type: "
@@ -549,6 +378,15 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
 
    public ModelComponent getModelComponent() {
       return getComponent (myValue);
+   }
+
+   public HasProperties getPropertyHost() {
+      if (myValue instanceof Property) {
+         return ((Property)myValue).getHost();
+      }
+      else {
+         return null;
+      }
    }
 
    public Property getProperty() {

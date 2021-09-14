@@ -397,12 +397,12 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    
    @Override
    public void init (GLAutoDrawable drawable) {
-      Logger.getSystemLogger().debug("Master drawable initialized");
+      //Logger.getSystemLogger().debug("Master drawable initialized");
    }
 
    @Override
    public void dispose (GLAutoDrawable drawable) {
-      Logger.getSystemLogger().debug("Master drawable disposed");
+      //Logger.getSystemLogger().debug("Master drawable disposed");
       textureLoader.clearAllTextures (); // clean up
    }
    

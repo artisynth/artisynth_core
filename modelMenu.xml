@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd">
+
+  <!-- create a submenu from the demos listed in .demoModels -->
+  <demoFile title="Demos" file="demoModels.txt" />
+  <!-- create a hierarchical submenu for all models under "artisynth.demos" -->
+  <package title="All demos" name="artisynth.demos" view="hierarchical" />
+  <!-- create a submenu from the models listed in .mainModels -->
+  <demoFile title="Models" file="mainModels.txt" />
+  <!-- create a hierarchical submenu for all models under "artisynth.models" -->
+  <package title="All models" name="artisynth.models" view="hierarchical" />
+</ModelMenu>

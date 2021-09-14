@@ -8,6 +8,7 @@ import artisynth.core.driver.Main;
 import artisynth.core.util.JythonInit;
 import java.io.*;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
 public class ArtisynthJythonConsole {
 
@@ -17,6 +18,20 @@ public class ArtisynthJythonConsole {
       myConsole = console;
       PyStringMap locals = (PyStringMap)myConsole.getLocals();
       locals.update (JythonInit.getArtisynthLocals());
+   }
+   
+   private class ScriptRequester implements Runnable {
+      String myFileName;
+      String[] myArgs;
+
+      public ScriptRequester (String fileName, String[] args) {
+         myFileName = fileName;
+         myArgs = args;
+      }
+
+      public void run() {
+         ((JythonFrameConsole)myConsole).requestScript (myFileName, myArgs);
+      }
    }
 
    /**
@@ -61,9 +76,27 @@ public class ArtisynthJythonConsole {
    public void executeScript (String fileName) throws IOException {
       executeScript(fileName, null);
    }
-   
+
    public void executeScript (String fileName, String[] args) throws IOException {
 
+      if (File.separatorChar == '\\') {
+         // Convert '\' to '/' on Windows for better readablity
+         fileName = fileName.replace ('\\', '/');
+      }
+
+      if (myConsole instanceof JythonFrameConsole) {
+         JythonFrameConsole jfc = (JythonFrameConsole)myConsole;
+         if (jfc.getThread() != Thread.currentThread()) {
+            if (!SwingUtilities.isEventDispatchThread()) {
+               SwingUtilities.invokeLater (
+                  new ScriptRequester (fileName, args));
+            }      
+            else {
+               jfc.requestScript (fileName, args);
+            }
+            return;
+         }
+      }
       if (args == null) {
          args = new String[0];
       }
@@ -122,6 +155,24 @@ public class ArtisynthJythonConsole {
       }
    }
 
+   public boolean requestInterrupt() {
+      if (myConsole instanceof JythonFrameConsole) {
+         return ((JythonFrameConsole)myConsole).interruptThread();
+      }
+      else {
+         return false;
+      }
+   }
+   
+   public boolean interruptRequestPending() {
+      if (myConsole instanceof JythonFrameConsole) {
+         return ((JythonFrameConsole)myConsole).interruptRequestPending();
+      }     
+      else {
+         return false;
+      }
+   }
+   
    public static void main (String[] args) {
       
    }

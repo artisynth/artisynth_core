@@ -11,16 +11,24 @@ import java.io.FileFilter;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Iterator;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URI;
+
+import maspack.util.FileSearchPath;
 
 public class ArtisynthPath {
    private static File myWorkingDir = null;
 
    private static String myHomeDir = null;
    private static boolean myHomeDirSet = false;
+
+   private static boolean myConfigDirInitialized = false;
+   private static File myConfigDir = null;
+
   // private static String myArtisynthPath = null;
 
    private static boolean myBaseResourceInitialized = false;
@@ -295,8 +303,8 @@ public class ArtisynthPath {
    
    /**
     * Finds the Artisynth cache directory.  Uses the ARTISYNTH_CACHE 
-    * environment variable if defined.  Otherwise, a ".cache/" directory will be created
-    * in the ARTISYNTH_TMP directory.
+    * environment variable if defined.  Otherwise, use 
+    * "ArtiSynthConfig/cache/" in the user's home directory.
     * 
     * @see #getTempDir()
     * @return Artisynth cache directory
@@ -311,7 +319,7 @@ public class ArtisynthPath {
          cache = new File(cacheEnv);
       }
       if (cache == null) {
-         cache = new File(ArtisynthPath.getTempDir() + "/.cache/");
+         cache = getConfigFile ("cache/");
       }
       if (!cache.exists()) {
          cache.mkdirs();
@@ -360,6 +368,25 @@ public class ArtisynthPath {
          myHomeDirSet = true;
       }
       return myHomeDir;
+   }
+   
+   /**
+    * Returns the user's home folder, or {@code null} if this cannot
+    * be found.
+    * 
+    * @return user's home folder, or {@code null}
+    */
+   public static File getUserHomeFolder() {
+      String userhome;
+      if ((userhome=System.getProperty ("user.home")) != null) {
+         return new File(userhome);
+      }
+      else if ((userhome=System.getenv ("HOME")) != null) {
+         return new File(userhome);
+      }
+      else {
+         return null;
+      }
    }
 
    /**
@@ -626,7 +653,7 @@ public class ArtisynthPath {
       }
    }
       
-   private static File[] findFiles (LinkedList<String> dirList, String relpath) {
+   private static File[] findFiles (ArrayList<File> dirList, String relpath) {
       String pathName = convertToLocalSeparators (relpath);
       LinkedList<File> found = new LinkedList<File>();
       
@@ -635,8 +662,7 @@ public class ArtisynthPath {
       if (file.canRead()) {
 	 found.add(file);
       }
-      
-      for (String dir : dirList) {
+      for (File dir : dirList) {
          file = new File (dir, pathName);
          if (file.canRead()) {
             found.add (file);
@@ -663,17 +689,14 @@ public class ArtisynthPath {
       }
    }
 
-   private static File[] findFilesMatching (
-      LinkedList<String> dirList, String pattern) {
+   public static File[] findFilesMatching (
+      List<File> dirList, String pattern) {
       //String pathName = convertToLocalSeparators (relpath);
       LinkedList<File> found = new LinkedList<File>();
       FileMatcher matcher = new FileMatcher (pattern);
-      for (String dirName : dirList) {
-         File dir = new File(dirName);
-         if (dir.isDirectory()) {
-            for (File f : dir.listFiles (matcher)) {
-               found.add (f);
-            }
+      for (File dir : dirList) {
+         for (File f : dir.listFiles (matcher)) {
+            found.add (f);
          }
       }
       return found.toArray (new File[0]);
@@ -747,6 +770,34 @@ public class ArtisynthPath {
       return dirList;
    }
 
+   private static ArrayList<File> getPathDirectories() {
+      LinkedList<String> dirNames = new LinkedList<String>();
+      if (System.getenv ("ARTISYNTH_PATH") != null) {
+         String path = System.getenv ("ARTISYNTH_PATH");
+         for (String dir : path.split (File.pathSeparator)) {
+            dirNames.add (dir);
+         }
+      }
+      else {
+         dirNames.add (".");
+         if (System.getenv ("HOME") != null) {
+            dirNames.add (System.getenv ("HOME"));
+         }
+         if (ArtisynthPath.getHomeDir() != null) {
+            dirNames.add (ArtisynthPath.getHomeDir());
+         }
+      }
+      removeDotIfPresentElsewhere (dirNames);
+      ArrayList<File> dirList = new ArrayList<File>();
+      for (String name : dirNames) {
+         File file = new File (name);
+         if (file.isDirectory()) {
+            dirList.add (file);
+         }
+      }
+      return dirList;
+   }
+
    /**
     * Searches for files. Initially, we look among the directories listed
     * in the environment variable ARTISYNTH_PATH, and the first readable file
@@ -759,29 +810,11 @@ public class ArtisynthPath {
     * @return an array of the files found, or null if no file was found
     */
    public static File[] findFiles (String relpath) {
-      // LinkedList<String> dirList = new LinkedList<String>();
-      // if (System.getenv ("ARTISYNTH_PATH") != null) {
-      //    String path = System.getenv ("ARTISYNTH_PATH");
-      //    for (String dir : path.split (File.pathSeparator)) {
-      //       dirList.add (dir);
-      //    }
-      // }
-      // else {
-      //    dirList.add (".");
-      //    if (System.getenv ("HOME") != null) {
-      //       dirList.add (System.getenv ("HOME"));
-      //    }
-      //    if (ArtisynthPath.getHomeDir() != null) {
-      //       dirList.add (ArtisynthPath.getHomeDir());
-      //    }
-      // }
-      // removeDotIfPresentElsewhere (dirList);
-      
-      return findFiles (getPathDirectoryNames(), relpath);
+      return findFiles (getPathDirectories(), relpath);
    }
 
    public static File[] findFilesMatching (String pattern) {
-      return findFilesMatching (getPathDirectoryNames(), pattern);
+      return findFilesMatching (getPathDirectories(), pattern);
    }
 
    /**
@@ -824,12 +857,19 @@ public class ArtisynthPath {
    }
 
    /**
-    * Gets the current working directory. By default, this is whatever directory
-    * corresponds to ".".
-    * 
-    * @return current working directory
+    * @deprecated replaced by {@link #getWorkingFolder}
     */
    public static File getWorkingDir() {
+      return getWorkingFolder();
+   }
+
+   /**
+    * Gets the current working folder. If not previously set,
+    * this is whatever folder corresponds to ".".
+    * 
+    * @return current working folder
+    */
+   public static File getWorkingFolder() {
       if (myWorkingDir == null) {
          myWorkingDir = new File (".");
       }
@@ -862,19 +902,40 @@ public class ArtisynthPath {
    }
 
    /**
-    * Sets the current working directory. If <code>null</code> is specified,
-    * then the current working directory is set to whatever directory
+    * Create a default search path consisting of the user's home
+    * directory and the ArtiSynth home directory.
+    */
+   public static FileSearchPath createDefaultSearchPath() {
+      FileSearchPath path = new FileSearchPath();
+      File userHomeDir = getUserHomeFolder();
+      if (userHomeDir != null) {
+         path.addDirectory (userHomeDir);
+      }
+      path.addDirectory (new File(getHomeDir()));
+      return path;
+   }
+   
+   /**
+    * @deprecated replaced by {@link #setWorkingFolder}
+    */
+   public static void setWorkingDir (File dir) {
+      setWorkingFolder (dir);
+   }
+   
+   /**
+    * Sets the current working folder. If <code>null</code> is specified,
+    * then the current working folder is set to whatever folder
     * corresponds to ".".
     * 
     * @param dir
-    * new working directory
+    * new working folder
     * @throws IllegalArgumentException
-    * if <i>dir</i> is not a directory
+    * if <i>dir</i> is not a folder
     */
-   public static void setWorkingDir (File dir) {
+   public static void setWorkingFolder (File dir) {
       if (dir != null && !dir.isDirectory()) {
          throw new IllegalArgumentException ("File " + dir.getPath()
-         + " is not a directory");
+         + " is not a folder");
       }
       myWorkingDir = dir;
    }
@@ -975,6 +1036,31 @@ public class ArtisynthPath {
       }
    }
 
+   /**
+    * Finds a file in the user's config directory. If the file path contains
+    * intermediate directories, try to create these. If these directories
+    * cannot be created, or if the config directory doe not exist, return null.
+    *
+    * @param relPath file path relative to the config directory
+    * @return config file
+    */
+   public static File getConfigFile (String relPath) {
+      if (getConfigFolder() != null) {
+         File file = new File (getConfigFolder(), relPath);
+         try {
+            // make sure parent directories exist
+            file.getParentFile().mkdirs();
+         }
+         catch (Exception e) {
+            return null;
+         }
+         return file;
+      }
+      else {
+         return null;
+      }
+   }
+
    public static boolean filesAreTheSame (File f1, File f2) {
       String path1 = null;
       String path2 = null;
@@ -986,6 +1072,83 @@ public class ArtisynthPath {
          return false;
       }
       return path1.equals (path2);           
+   }
+
+   /**
+    * Allows user configuration folder to be explicitly specified. If set to
+    * null, returns the configuration folder to it default setting. Not
+    * currently used.
+    */
+   public static void setConfigFolder (File dir) {
+      if (dir == null) {
+         myConfigDir = null;
+         myConfigDirInitialized = false;
+      }
+      else if (!dir.isDirectory()) {
+         System.out.println (
+            "WARNING: specified user config folder " + dir +
+            " is not a folder");
+      }
+      else {
+         myConfigDir = dir;
+      }
+   }
+
+   /**
+    * Returns the user configuration folder. A {@code null}
+    * value indicates that this folder does not exist.
+    */
+   public static File getConfigFolder () {
+      if (myConfigDir == null) {
+         if (!myConfigDirInitialized) {
+            autoSetConfigFolder();
+            myConfigDirInitialized = true;
+         }
+      }
+      return myConfigDir;
+   }
+
+   /**
+    * Tries to automatically set the user configuration folder from the
+    * user's home folder.
+    */
+   private static void autoSetConfigFolder() {
+      myConfigDir = null;
+      File userHomeDir = getUserHomeFolder();
+      if (userHomeDir == null) {
+         System.out.println (
+            "WARNING: user home folder not found; "+
+            "unable to locate user config folder");
+         return;         
+      }
+      File configDir = new File (userHomeDir, "ArtiSynthConfig");
+      if (!configDir.exists()) {
+         boolean created = false;
+         Exception ex = null;
+         try {
+            created = configDir.mkdir();
+            System.out.println ("Creating user config folder "+configDir);
+         }
+         catch (Exception e) {
+            ex = e;
+         }
+         if (!created || ex != null) {
+            String msg =
+               "WARNING: Unable to create user config folder "+configDir;
+            if (ex != null) {
+               msg += ": " + ex;
+            }
+            System.out.println (msg);
+            return;
+         }
+      }
+      else if (!configDir.isDirectory()) {
+         System.out.println (
+            "WARNING: user config folder " + configDir +
+            " is not actually a folder");
+         return;
+      }
+      myConfigDir = configDir;
    }
 
    public static void main (String[] args) {

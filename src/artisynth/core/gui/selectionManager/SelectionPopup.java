@@ -92,10 +92,11 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       }
    }
 
-   private void addMenuItem (String cmd) {
+   private JMenuItem addMenuItem (String cmd) {
       JMenuItem item = new JMenuItem (cmd);
       item.addActionListener (this);
       add (item);
+      return item;
    }
 
    public void addPropertyEditMenuItems (
@@ -191,16 +192,17 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          }
          if (tracingCnt > 0) {
             addMenuItem ("Disable tracing");
+            if (tracingCnt == 1) {
+               addMenuItem ("Clear trace");
+            }
+            else {
+               addMenuItem ("Clear traces");
+            }
          }
-         JMenuItem menuItem = new JMenuItem ("Clear trace");
-         menuItem.addActionListener (this);
          String[] commonTraceables = getCommonTraceables (selection);
          if (commonTraceables.length > 0) {
-            menuItem = new JMenuItem ("Add tracing probe");
-            myTraceItem = menuItem;
+            myTraceItem = addMenuItem ("Add tracing probe");
          }
-         menuItem.addActionListener (this);
-         add (menuItem);
       }
 
       addMenuItem ("Save component names ...");
@@ -584,7 +586,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             }
          }
       }
-      else if (command.equals ("Clear trace")) {
+      else if (command.startsWith ("Clear trace")) {
          RootModel rootModel = myMain.getRootModel();
          for (ModelComponent c : myPropertyEditSelection) {
             if (c instanceof Traceable) {

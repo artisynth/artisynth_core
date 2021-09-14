@@ -1,3 +1,5 @@
+from jarray import array
+
 def getMain() :
     return Main.getMain()
 
@@ -106,9 +108,11 @@ def saveWayPoints (filename) :
 def root () :
     return getMain().getRootModel ()
 
-# test
 def script (name) :
     getMain().getJythonConsole().executeScript (name)
+
+def script (name, args) :
+    getMain().getJythonConsole().executeScript (name, array(args,String))
 
 def find (name) :
     root = getMain().getRootModel()

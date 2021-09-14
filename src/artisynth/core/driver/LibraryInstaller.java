@@ -219,9 +219,18 @@ public class LibraryInstaller {
          System.exit(1); 
       }
    }
-
-   public boolean verifyNativeLibs (boolean updateLibs) throws Exception {
+   
+   /**
+    * Verify that all native libraries are present and, if requested, updated.
+    * 
+    * @param updateLibs if {@code true}, verifies that each library
+    * is the most recent, and downloads it if it isn't.
+    * @return number of libraries actually downloaded, or -1 if
+    * an error was encountered.
+    */
+   public int verifyNativeLibs (boolean updateLibs) throws Exception {
       boolean allOK = true;
+      int numDownloads = 0;
       NativeLibraryManager.setLibDir (myLibDir.toString());
       if (myLibnames.size() > 0) {
          int oldFlags = NativeLibraryManager.getFlags();
@@ -232,7 +241,9 @@ public class LibraryInstaller {
          NativeLibraryManager.setFlags (newFlags);         
          for (String libname : myLibnames) {
             try {
-               NativeLibraryManager.verify (libname);
+               if (NativeLibraryManager.verify (libname) == 1) {
+                  numDownloads++;
+               }
             }
             catch (Exception e) {
                if (isConnectionException (e)) {
@@ -245,7 +256,7 @@ public class LibraryInstaller {
          }
          NativeLibraryManager.setFlags (oldFlags);
       }
-      return allOK;
+      return allOK ? numDownloads : -1;
    }
 
    public boolean isConnectionException (Exception e) {
@@ -258,8 +269,17 @@ public class LibraryInstaller {
       }
    }
 
-   public boolean verifyJars (boolean updateLibs) throws Exception {
+   /**
+    * Verify that all jar files are present and, if requested, updated.
+    * 
+    * @param updateLibs if {@code true}, verifies that each jar file
+    * is the most recent, and downloads it if it isn't.
+    * @return number of jar files actually downloaded, or -1 if
+    * an error was encountered.
+    */
+   public int verifyJars (boolean updateLibs) throws Exception {
       boolean allOK = true;
+      int numDownloads = 0;
       if (myJarnames.size() > 0) {
          FileManager grabber = new FileManager();
          grabber.setVerbosityLevel (LogLevel.ALL);
@@ -275,6 +295,7 @@ public class LibraryInstaller {
             if (!jfile.exists()) {
                try {
                   grabber.getRemote (jarname);
+                  numDownloads++;
                   System.out.println ("Downloaded jar file "+jfile);
                }
                catch (Exception e) {
@@ -290,6 +311,7 @@ public class LibraryInstaller {
                try {
                   if (!grabber.equalsHash (jarname)) {
                      grabber.getRemote (jarname);
+                     numDownloads++;
                   }
                   System.out.println ("Updated jar file "+jfile);
                }
@@ -303,7 +325,7 @@ public class LibraryInstaller {
             }
          }
       }
-      return allOK;
+      return allOK ? numDownloads : -1;
    }
 
    protected void maybeAddLibrary (String libName, SystemType sysType) {

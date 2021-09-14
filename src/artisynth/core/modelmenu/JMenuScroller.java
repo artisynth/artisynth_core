@@ -185,7 +185,7 @@ public class JMenuScroller {
     * if scrollCount is 0 or negative
     */
    public JMenuScroller (JMenu menu, int scrollCount) {
-      this (menu, scrollCount, 150);
+      this (menu, scrollCount, 50);
    }
 
    /**
@@ -405,7 +405,9 @@ public class JMenuScroller {
       }
 
       private void setMenuItems () {
-         menuItems = menu.getComponents ();
+         if (menuItems == null) {
+            menuItems = menu.getComponents ();
+         }
          width = menu.getPreferredSize ().width;
          
          if (keepVisibleIndex >= 0 && keepVisibleIndex <= menuItems.length
@@ -426,7 +428,10 @@ public class JMenuScroller {
          for (Component component : menuItems) {
             menu.add (component);
          }
-         menu.pack ();
+         // John Lloyd, July 2021: 
+         // don't pack because that causes a visible "after flash"
+         // before the menu becomes invisible         
+         //menu.pack ();
          width = menu.getPreferredSize ().width;
       }
 

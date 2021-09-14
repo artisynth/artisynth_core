@@ -82,29 +82,12 @@ if %HELP%==yes (
     exit /B 0
  )
 
-set LOG=%ARTISYNTH_HOME%\tmp\artisynth.log
+rem John Lloyd, June 2021: Removed logging. The log file file did not
+rem record much that was useful, and was anyway inapplicable when
+rem running from an IDE
 
-if not exist %LOG% echo > %LOG%
-if exist %LOG% echo --------Start Artisynth------------------------------ >> %LOG%
-
-date /T >> %LOG%
-time /T >> %LOG%
-ver     >> %LOG%
-echo BATCHFILE: %BATCHFILE% >> %LOG%
-echo ARTISYNTH_HOME= %ARTISYNTH_HOME% >> %LOG%
-echo PATH= %PATH% >> %LOG%
-echo CLASSPATH= %CLASSPATH% >> %LOG%
-%JAVA% -version >> %log% 2>&1
-
-@rem java artisynth.core.util.JVMInfo >> %LOG%
-
-if exist %LOG% echo ------------------------------------------------ >> %LOG%
-
-@rem check for java 7 and if so increase perm size
-%JAVA% -version 2>&1 | findstr 1.7 >nul
-if %errorlevel% == 0 set JAVA_OPTS=%JAVA_OPTS% -XX:MaxPermSize=100M
 if %SILENT%==yes ( 
-        %JAVA% %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%  >> %LOG% 2>&1
+        %JAVA% %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS% > NUL 2>&1
 ) else (
         %JAVA% %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%
 )

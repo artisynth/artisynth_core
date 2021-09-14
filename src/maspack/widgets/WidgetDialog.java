@@ -88,7 +88,8 @@ public class WidgetDialog extends JDialog
       getContentPane().add (myPanel);
       JSeparator sep = new JSeparator();
       sep.setAlignmentX (Component.CENTER_ALIGNMENT);
-      getContentPane().add (GuiUtils.createBoxFiller());
+      sep.setMinimumSize (new Dimension (0, 2));
+      sep.setMaximumSize (new Dimension (Short.MAX_VALUE, 2));
       getContentPane().add (sep);      
 
       String options = "Cancel";
@@ -135,6 +136,7 @@ public class WidgetDialog extends JDialog
    }
 
    private void doDone() {
+      myRetValue = OptionPanel.CANCEL_OPTION;      
       if (myIgnoreValidator != null) {
          String errMsg = myIgnoreValidator.validateSettings (myPanel);
          if (errMsg != null) {
@@ -151,7 +153,9 @@ public class WidgetDialog extends JDialog
       }
       myRetValue = OptionPanel.OK_OPTION;
       setVisible (false);
-      dispose();
+      if (getDefaultCloseOperation() == DISPOSE_ON_CLOSE) {
+         dispose();
+      }
    }
 
    public void actionPerformed (ActionEvent e) {
@@ -160,8 +164,11 @@ public class WidgetDialog extends JDialog
          doDone();
       }
       else if (cmd.equals ("Cancel")) {
+         myRetValue = OptionPanel.CANCEL_OPTION;
          setVisible (false);
-         dispose();
+         if (getDefaultCloseOperation() == DISPOSE_ON_CLOSE) {
+            dispose();
+         }
       }
    }
 

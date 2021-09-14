@@ -454,7 +454,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
       viewer.setOrthogonal (10, .2, 200);
       viewer.setGridSizeAndPosition (new Point3d(), 10);
-      viewer.setDefaultAxialView (AxisAlignedRotation.X_Y);
+      viewer.setAxialView (AxisAlignedRotation.X_Y);
       viewer.setViewRotationEnabled (false);
       //viewer.setSelectOnPress (true);
 

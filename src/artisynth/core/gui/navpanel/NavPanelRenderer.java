@@ -9,13 +9,16 @@ package artisynth.core.gui.navpanel;
 
 import java.awt.Component;
 
-import javax.swing.JTree;
+import javax.swing.*;
+import javax.swing.border.*;
 import javax.swing.tree.DefaultTreeCellRenderer;
 
 import artisynth.core.modelbase.*;
 
 public class NavPanelRenderer extends DefaultTreeCellRenderer {
    private static final long serialVersionUID = 1L;
+
+   private Border myBorder = BorderFactory.createEmptyBorder (2, 0, 2, 0);
 
    //static String iconPath = "/artisynth/core/gui/navpanel/";
 
@@ -63,6 +66,9 @@ public class NavPanelRenderer extends DefaultTreeCellRenderer {
       super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row,
 	    hasFocus);
 
+      setIcon(null);
+      setBorder (myBorder);
+
       ModelComponent comp;
       if (value instanceof ModelComponent) {
 	 setText(getComponentName((ModelComponent) value));
@@ -70,10 +76,10 @@ public class NavPanelRenderer extends DefaultTreeCellRenderer {
 	 setText(getComponentName(((NavPanelNode) value).myComponent));
       } else if (value instanceof UnnamedPlaceHolder) {
 	 if (((UnnamedPlaceHolder) value).myParent.myUnnamedVisibleP) {
-	    setIcon(null);
+	    //setIcon(null);
 	    setText("<<<");
 	 } else {
-	    setIcon(null); // myExpandUnnamedIcon);
+	    //setIcon(null); // myExpandUnnamedIcon);
 	    setText(">>>");
 	 }
       }

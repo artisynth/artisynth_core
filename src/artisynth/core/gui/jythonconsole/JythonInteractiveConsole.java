@@ -30,7 +30,6 @@ public class JythonInteractiveConsole extends InteractiveConsole {
    }
 
    public void executeScript (String fileName) throws IOException {
-      System.out.println ("executing " + fileName);
       myImpl.executeScript (fileName);
    }
 

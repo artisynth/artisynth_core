@@ -74,7 +74,8 @@ public class NameRange extends RangeBase {
    public String makeValid (Object obj) {
       if (obj == null) {
          return null;
-      } else if (obj instanceof String) {
+      }
+      else if (obj instanceof String) {
          String name = (String)obj;
 
          if (name.length() == 0) {

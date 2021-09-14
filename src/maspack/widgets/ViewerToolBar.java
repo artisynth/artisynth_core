@@ -65,7 +65,6 @@ public class ViewerToolBar extends JToolBar
 
    protected Viewer myViewer;
 
-   protected AxisAlignedRotation myDefaultAxialView = null;
    JButton myAxialViewButton;
 
    ArrayList<AxialViewMenuItem> myAxialViewMenuItems;
@@ -92,15 +91,15 @@ public class ViewerToolBar extends JToolBar
          super();
          myViewpoint = viewpoint;
          myAxialView = null;
-         setHorizontalAlignment (SwingConstants.LEFT);
-         setBorder (BorderFactory.createEmptyBorder (2, -6, 2, 0));
+         //setHorizontalAlignment (SwingConstants.CENTER);
+         //setBorder (BorderFactory.createLineBorder (Color.BLUE));
+         setIconTextGap (0); // seems we have to set this even with no text
       }
 
-      public void setIcon (Icon icon) {
-         super.setIcon (icon);
-         GuiUtils.setFixedSize (
-            this, icon.getIconWidth() + 4, icon.getIconHeight() + 4);        
-      }
+      // public void setIcon (Icon icon) {
+      //    super.setIcon (icon);
+      //    System.out.println ("prefsize=" + getPreferredSize());
+      // }
 
       AxisAlignedRotation getAxialView() {
          return myAxialView;
@@ -208,20 +207,16 @@ public class ViewerToolBar extends JToolBar
          // has finished constructing
          return;
       }
-      AxisAlignedRotation defaultView = myViewer.getDefaultAxialView();
-      if (defaultView != myDefaultAxialView) {
-         // default view has changed; rebuild the icon list
-         myDefaultAxialView = defaultView;
-         RotationMatrix3d RDefault = defaultView.getMatrix();
+      // now look for the current view in the list.
+      AxisAlignedRotation currentView = myViewer.getAxialView();
+      if (myCurrentViewMenuItem.getAxialView() != currentView) {
+         // rebuild icons
+         RotationMatrix3d RDefault = currentView.getMatrix();
          for (AxialViewMenuItem item : myAxialViewMenuItems) {
             if (item != myCurrentViewMenuItem) {
                item.setRelativeAxialView (RDefault);            
             }
-         }
-      }
-      // now look for the current view in the list.
-      AxisAlignedRotation currentView = myViewer.getAxialView();
-      if (myCurrentViewMenuItem.getAxialView() != currentView) {
+         }        
          myCurrentViewMenuItem.setAxialView (currentView);
          setAxialViewIcon (myCurrentViewMenuItem.getIcon());
       }

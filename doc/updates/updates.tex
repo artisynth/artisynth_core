@@ -70,11 +70,262 @@
 
 % \subsection*{Query methods added directly to PolygonalMesh}
 
-%\section*{Feb, 2021}
+\section*{Sep 12, 2021}
 
-% \subsection*{New joint types}
+A number of updates have been made, mainly with respect to the user
+interface, allowing model and script menus to be customized, and other
+settings and configuration information, including startup models, the
+external classpath, and movie maker settings, to be stored in a
+user-specific configuration folder. Other changes include a new
+stop-all button that will halt both simulation and Jython scripts, and
+new API support for removing model components in code.
 
-% \subsection*{SkewedRollPitchJoint}
+\subsection*{New user configuration folder}
+
+In order to separate user-specific settings from the ArtiSynth
+installation, ArtiSynth now creates the configuration folder {\tt
+ArtiSynthConfig} in the user's home folder, and uses this to store
+various items such as preferences, model and script menus, the startup
+model, model and script history, and the external classpath.
+
+\subsection*{Revised model menu with editing}
+
+The model menu, located under {\sf Models} in the main menu bar, has
+been revised to include a number of new entries at the end:
+
+\begin{center}
+\iflatexml
+\includegraphics[]{images/modelMenu}
+\else
+\includegraphics[width=1.75in]{images/modelMenu}
+\fi
+\end{center}
+
+The {\sf ``Reload model''} and {\sf ``Load from class ...''}  entries
+have been relocated from the {\sf File} menu, {\sf ``Load recent''}
+has replaced {\sf ``Recent''}, and the entry {\sf ``Edit menu ...''}
+opens a model menu editor that allows interactive editing of the
+upper portion of the menu.
+
+For details on menu editing, see ``Customizing the Model
+and Script Menus'' in the \artisynthManual{uiguide}{User Interface
+Guide}.
+
+The XML files describing the model menu have also changed. The XML
+format has been simplified, and the default menu file has been moved
+from {\tt demoMenu.xml} in the ArtiSynth installation folder to {\tt
+settings/modelMenu.xml} in the user configuration folder.
+
+\subsection*{Revised script menu with editing}
+
+The script menu, located under {\sf Scripts} in the main menu bar and
+used to run Jython scripts, has been revised to include new entries
+and make it feel-compatible with the model menu:
+
+\begin{center}
+\iflatexml
+\includegraphics[]{images/scriptMenu}
+\else
+\includegraphics[width=1.5in]{images/scriptMenu}
+\fi
+\end{center}
+
+{\sf ``Run script ...''} replaces {\sf ``Load script''} and opens a
+dialog that allows the user to select a script, while {\sf ``Run
+recent''} reruns recently run scripts.
+
+The upper part of the script menu can be customized with an
+arrangement of entries invoking specific scripts. This menu can be
+customized in the same manner as the model menu by selecting {\sf
+``Edit menu ...''} at the bottom. Script menu
+information is contained in the file {\tt settings/scriptMenu.xml} in
+the user configuration folder. The default menu supplies an entry
+{\sf ``Demo scripts''} that expands to all scripts located in
+%
+\begin{verbatim}
+  src/artisynth/demos/scripts
+\end{verbatim}
+%
+relative to the ArtiSynth installation folder.
+
+\subsection*{Revised settings menu}
+
+The {\sf Settings} menu has been revised to allow additional control
+over application properties related to the viewer, simulation control
+and GUI interaction. These are collected into the menu items {\sf
+``Viewers ...''}, {\sf ``Simulation ...''}, {\sf ``Interaction ...''},
+and {\sf ``Mouse ...''}.
+
+With respect to the previous entries, {\sf ``Background color''} and
+{\sf ``Selection color''} are now controlled under {\sf ``Viewers
+...''}; {\sf ``Mouse preferences ...''} is now {\sf ``Mouse ...''};
+and {\sf ``Enabled articulated transforms''}, {\sf ``Visual display
+rate''}, {\sf ``Real-time scaling''}, and {\sf ``Init draggers in
+world coords''} are controlled by the properties {\sf
+articulatedTransforms}, {\sf frameRate}, {\sf realTimeScaling}, and
+{\sf initDraggersInWorld} located under {\sf ``Interaction ...''}.
+
+See the ``Settings'' section in the \artisynthManual{uiguide}{User
+Interface Guide}.
+
+\subsection*{New preferences settings}
+
+Many application properties, including those related to the viewer,
+simulation control, GUI interaction, window layout, and movie making
+can now be set permanently via the {\it preferences editor}, which can
+be opened via {\sf Settings > Preferences ...}.
+
+See the ``Preferences'' section in the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+\subsection*{New stop-all button}
+
+The play controls have been extended to include a new {\it stop-all}
+button:
+%
+\begin{center}
+\iflatexml
+\includegraphics[]{../uiguide/images/playControls}
+\else
+\includegraphics[width=3in]{../uiguide/images/playControls}
+\fi
+\end{center}
+%
+Located at the right with a square icon, this buttons stops simulation
+(in the same manner as the pause button), but also aborts any
+currently running Jython command or script.
+
+\subsection*{New support for deleting components in code}
+
+A new static method has been added to
+\javaclass[artisynth.core.modelbase]{ComponentUtils}:
+%
+\begin{lstlisting}[]
+   ComponentUtils.deleteComponentsAndDependenices (comps);
+\end{lstlisting}
+%
+where {\tt comps} is a list of model components. This can be used to
+``prune'' components and their dependencies from existing models, with
+a behavior that should be identical to selecting the components in the
+GUI and then choosing {\sf Delete} from the context menu.
+
+\subsection*{Simplified navigation panel visuals}
+
+The navigation panel visuals have been simplified so that composite
+component entries are now indicated with arrow icons (below, left),
+instead of folders and lines (below, right):
+
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+\includegraphics[]{images/navpanelNew}
+\includegraphics[]{images/navpanelOld}
+\else
+\includegraphics[width=2in]{images/navpanelNew}
+\includegraphics[width=2.1in]{images/navpanelOld}
+\fi
+\end{tabular}
+\end{center}
+
+\subsection*{Startup model now settable within ArtiSynth}
+
+A startup model can now be set from within ArtiSynth to specify a
+model (with optional {\tt build()} method arguments) to be loaded when
+the application first starts. To do this, select {\sf Settings >
+Startup model ...}. This capability replaces the need to specify such
+models using the command line option {\tt -model <modelName>}
+(although this command line option is still supported).
+
+See ``Setting a startup model'' in the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+\subsection*{External classpath now settable within ArtiSynth}
+
+The external classpath, which contains class folders and JAR files for
+models and packages located outside of {\tt artisynth\_core}, can now
+be set from within ArtiSynth.  To do this, select {\sf Settings >
+External classpath ...}, which opens an external classpath editor.
+This capability replaces the need to edit the {\tt EXTCLASSPATH} file
+by hand. The {\tt EXTCLASSPATH} file has also been moved to the user
+configuration folder.
+
+See ``Setting the external classpath'' in the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+\subsection*{Libraries now updatable within ArtiSynth}
+
+It is now possible to update the JAR files and native libraries from
+within ArtiSynth, instead of calling
+%
+\begin{verbatim}
+  bin/updateArtisynthLibs
+\end{verbatim}
+%
+in the ArtiSynth installation folder.  Choose {\sf Update libraries}
+from the {\sf File} menu.
+
+\subsection*{Movie maker updates}
+
+\begin{itemize}
+
+\item The default folder for movie files is now {\tt
+ArtiSynthConfig/movies} under the user's home folder.  This can also
+be customized via {\sf Settings > Preferences > Movies > movie folder}.
+
+\item A new {\sf Messages} tab has been added to the movie panel,
+which displays the progress of move making commands along with any
+error messages.
+
+\item Customized command settings for the encoder options {\tt
+FFMPEG}, {\tt MENCODER}, and {\tt AVCONV} can now be stored
+permanently via {\sf Settings > Preferences > Movies} and selecting
+{\sf Customize Method} for the selected method. In addition, there is
+a new {\tt CUSTOM} method which can be set to {\it any} command-line
+based movie making command available on the ArtiSynth host computer.
+
+\item An explicit {\it stop time} can be set indicating when movie
+recording should stop.
+
+\end{itemize}
+
+See the updated section ``Making Movies'' in the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+\subsection*{Revised command line arguments}
+
+The following command line options have been modified or removed:
+
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Option & Change \\
+\hline
+{\tt -largeTimeline} & replaced with {\tt -timelineWidth <width>} and {
+\tt -timelineHeight <height>} \\
+{\tt -timelineZoom <level>} & replaced with {\tt -timelineRange <time>}\\
+%%{\tt -home <ArtiSynthHomeDir>} & removed\\
+{\tt -historyFile <file>} & removed\\
+{\tt -updateLibs} & removed; choose {\sf File > Update libraries} 
+from the main application menu instead\\
+{\tt -demosMenu <file>} & renamed; use {\sf -modelMenu <file>} instead\\
+{\tt -demosFile <file>} & renamed; use {\sf -demoFile <file>} instead\\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection*{Enhanced help menu}
+
+On systems where Java-browser integration is supported, the {\sf Help}
+menu has been expanded to open browser windows to the modeling guide,
+user interface guide, MATLAB interface manual, and Java API.
+
+\subsection*{Jython documentation moved to the User Interface Guide}
+
+Documentation for the Jython interface has been moved from the
+``Interfacing ArtiSynth to MATLAB and Jython'' to the new section
+``Jython Interaction and Scripting'' in the
+\artisynthManual{uiguide}{User Interface Guide}, and the original
+manual has been renamed to ``Interfacing ArtiSynth to MATLAB''.
 
 \section*{Mar 4, 2021}
 
@@ -121,7 +372,7 @@ RevoluteJoint}, {\tt RollPitchJoint} and {\tt SphericalRpyJoint}:
 
 \begin{itemize}
 
-\item \javaclass[artisynth.core.mechmodels]{HingeJoint}: Indentical to
+\item \javaclass[artisynth.core.mechmodels]{HingeJoint}: Identical to
 {\tt RevoluteJoint}, except that its coordinate $\theta$ is oriented
 {\it counter-clockwise} about the $z$ axis instead of {\it clockwise}.
 
@@ -201,7 +452,7 @@ properties.
 
 \end{itemize}
 
-In addition to these changes, the pentration tolerance for unilateral
+In addition to these changes, the penetration tolerance for unilateral
 constraints which are {\it rotary} in nature is now controlled by the
 {\sf rotaryLimitTol} property, exported by both {\tt MechModel} and
 the joint classes.
@@ -335,7 +586,7 @@ base implementation
 \javaclass[artisynth.core.inverse]{LeastSquaresTermBase}) implements
 {\it both} cost and constraint terms.
 
-All cost and constrint terms are added to the controller as
+All cost and constraint terms are added to the controller as
 subcomponents. Before performing each inverse computation, the
 controller checks its subcomponents to find which terms to use.
 
@@ -622,7 +873,7 @@ for viewing and adjusting controller properties, and adds it to the
 root model. After, the panel can be located within the root model
 using the method {\tt findInversePanel(root)}.
 
-Similar to before, the {\tt TrackingController} suppliesthe
+Similar to before, the {\tt TrackingController} supplies the
 convenience methods
 %
 \begin{lstlisting}[]
@@ -1244,7 +1495,7 @@ component via the method
 \subsection*{API changes involving RigidBody}
 
 The wrapping code and the removal of {\tt RigidCompositeBody} have
-engendered some API cnanges involving {\tt RigidBody}.
+engendered some API changes involving {\tt RigidBody}.
 
 1) The following methods concerning surface meshes have been renamed. The
 old methods have been retained but deprecated:
@@ -1298,7 +1549,7 @@ computed using analytic methods for the special {\tt RigidBody}
 subclasses {\tt RigidCylinder}, {\tt RigidSphere}, {\tt
 RigidEllipsoid}, and {\tt RigidTorus}.
 
-5) In the class \javaclass[\mech]{RigidMeshComp}, the propery {\sf
+5) In the class \javaclass[\mech]{RigidMeshComp}, the property {\sf
 physical} has been renamed {\sf hasMass}.  The class no longer
 contains a distance grid, and so methods and properties relating to
 this have been removed.  Also, the {\tt RigidBody} method
@@ -1549,7 +1800,7 @@ Java 8 compatibility.
 This should mean that one should also be able to run and compile under
 Java 9, although we have noted some problems related to Java OpenGL
 (JOGL) when compiling on Java 9 and then running on Java 8.  We
-therefore recommand that users stay with a Java 8 JDK for the
+therefore recommend that users stay with a Java 8 JDK for the
 moment. Java 8 is also compatible with current versions of MATLAB.
 
 \subsection*{isActive() method added to monitors and controllers}
@@ -3434,8 +3685,7 @@ functionality has been added to enable ArtiSynth to be run and
 scripted within MATLAB. The Jython interface has also been revised so
 that the scripting commands are essentially the same in both
 interfaces. A new document,
-\artisynthManual{matlabAndJython}%
-{Interfacing ArtiSynth to MATLAB and Jython}, has been prepared that
+``Interfacing ArtiSynth to MATLAB and Jython'', has been prepared that
 describes both interfaces in detail.
 
 \subsection*{Pardiso library updated}

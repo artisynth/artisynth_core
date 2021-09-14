@@ -47,6 +47,7 @@ if DEFINED CLASSPATH (
   set CP=%AH%\classes;%AH%\lib\*
 )
 rem create classes folder if it does not exist
+rem (currently moot because we require classes folder in the top directory)
 if not exist "%AH%\classes\" mkdir "%AH%\classes"
 rem find all java files in and under the CWD, and list them in the
 rem _sources_.txt. 

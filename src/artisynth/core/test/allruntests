@@ -1,0 +1,20 @@
+#!/bin/bash
+COMPSTATE="java artisynth.core.util.CompareStateFiles"
+echo mechmodelTest
+artisynth -noGui -script mechmodelTest.py &> /dev/null
+$COMPSTATE mechmodelTest.out mechmodelTest.ref
+echo wraptest
+artisynth -noGui -script wraptest.py &> /dev/null
+$COMPSTATE wraptest.out wraptest.ref
+echo contestAjl
+artisynth -useAjlCollision -noGui -script contactTest.py [ contestAjl.out ] &> /dev/null
+$COMPSTATE contestAjl.out contestAjl.ref
+echo contestReg
+artisynth -noGui -script contactTest.py [ contestReg.out ] &> /dev/null
+$COMPSTATE contestReg.out contestReg.ref
+echo femtest
+artisynth -noGui -script femtest.py &> /dev/null
+$COMPSTATE femtest.out femtest.ref
+echo skinningTest
+artisynth -noGui -script skinningTest.py &> /dev/null
+$COMPSTATE skinningTest.out skinningTest.ref

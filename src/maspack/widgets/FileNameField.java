@@ -11,12 +11,16 @@ import javax.swing.*;
 import java.io.*;
 
 import maspack.util.StringHolder;
+import maspack.util.FileSearchPath;
 import maspack.properties.Property;
 
 public class FileNameField extends StringField {
    private static final long serialVersionUID = 1L;
    JFileChooser myFileChooser = new JFileChooser();
    JButton myBrowseButton;
+   boolean myFileMustBeReadable = false;
+   boolean myFileMustExist = false;
+   FileSearchPath mySearchPath = null;
 
    /**
     * Creates a FileNameField with specified label text and an empty file name.
@@ -69,11 +73,28 @@ public class FileNameField extends StringField {
       myFileChooser.setSelectedFile (file);
    }
 
+   public FileSearchPath getSearchPath() {
+      return mySearchPath;
+   }
+
+   /**
+    * Sets a search path to use for finding files that don't have absolute path
+    * names.
+    */
+   public void setSearchPath (FileSearchPath path) {
+      mySearchPath = path;
+   }
+   
    private void addBrowseButton() {
       setStretchable (true);
       myBrowseButton = new JButton ("Browse");
       myBrowseButton.addActionListener (new ActionListener() {
          public void actionPerformed (ActionEvent e) {
+            // special case when file == '.'
+            if (getStringValue().equals(".")) {
+               myFileChooser.setSelectedFile (
+                  new File(new File(".").getAbsolutePath()).getParentFile());
+            }
             int returnVal = myFileChooser.showOpenDialog (FileNameField.this);
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                String path =
@@ -84,26 +105,39 @@ public class FileNameField extends StringField {
                catch (IllegalValueException exc) {
                   GuiUtils.showError (FileNameField.this, exc.getMessage());
                }
+               catch (IllegalArgumentException exc) {
+                  GuiUtils.showError (FileNameField.this, exc.getMessage());
+               }
             }
          }
       });
       addMajorComponent (myBrowseButton);
    }
 
-   private boolean validParentPath (String path) {
-      File file = new File (path);
-      return (file.getParentFile() == null || file.getParentFile().exists());
-   }
-
    protected void updateChooser() {
-      if (myFileChooser != null) // might not be allocated yet
-      {
+      if (myFileChooser != null) { // might not be allocated yet
          if (myValue instanceof String) {
             myFileChooser.setSelectedFile (new File ((String)myValue));
          }
       }
    }
 
+   public boolean getFileMustBeReadable() {
+      return myFileMustBeReadable;
+   }
+   
+   public void setFileMustBeReadable (boolean enable) {
+      myFileMustBeReadable = enable;
+   }
+   
+   public boolean getFileMustExist() {
+      return myFileMustExist;
+   }
+
+   public void setFileMustExist (boolean enable) {
+      myFileMustExist = enable;
+   }
+   
    public Object validateValue (Object value, StringHolder errMsg) {
       value = validateBasic (value, String.class, errMsg);
       if (value == Property.IllegalValue) {
@@ -112,10 +146,32 @@ public class FileNameField extends StringField {
       if (value instanceof String) {
          String path = (String)value;
          if (!path.equals ("")) {
-            if (!validParentPath (path)) {
-               return illegalValue ("directory "
-               + new File (path).getParentFile().getAbsolutePath()
-               + " does not exist", errMsg);
+            if (myFileMustBeReadable || myFileMustExist) {
+               File file = new File(path);
+               if (mySearchPath != null && !file.isAbsolute()) {
+                  File xfile = mySearchPath.findFile (file);
+                  if (file != xfile) {
+                     file = xfile;
+                     value = xfile.getAbsolutePath();
+                  }
+               }
+               if (file == null || !file.exists()) {
+                  return illegalValue ("file "+path+" does not exist", errMsg);
+               }
+               if (myFileMustBeReadable) {
+                  if (!file.canRead()) {
+                     return illegalValue ("file "+file+" not readable", errMsg);
+                  }
+               }
+            }
+            else {
+               // check that the parent folder of the file exists
+               File dir =
+                  new File(new File(path).getAbsolutePath()).getParentFile();
+               if (!dir.isDirectory()) {
+                  return illegalValue (
+                     "directory " + dir  + " does not exist", errMsg);
+               }
             }
          }
       }
@@ -137,6 +193,16 @@ public class FileNameField extends StringField {
       return myFileChooser;
    }
 
+
+   public File getChooserDirectory() {
+      return myFileChooser.getCurrentDirectory();
+   }
+
+   public void setChooserDirectory (File file) {
+      if (file.isDirectory()) { //paranoid
+         myFileChooser.setCurrentDirectory(file);
+      }
+   }
 
    /**
     * Returns the JButton used to initiate file browsing on this control.
@@ -161,6 +227,26 @@ public class FileNameField extends StringField {
       else {
          return new File (fileName);
       }
+   }
+   
+   /**
+    * Sets the file associated with this widget's value. The value is set from
+    * the file's absolute path.
+    * 
+    * @param file associated with widget value
+    */
+   public void setFile (File file) {
+      if (file == null) {
+         setValue ("");
+      }
+      else {
+         setValue (file.getAbsolutePath());
+      }
+   }
+
+   @Override 
+   public void setValue (Object value) {
+      super.setValue (value);
    }
    
 }

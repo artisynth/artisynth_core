@@ -171,8 +171,8 @@ sometimes contain additional state information (such as contact
 state). Structural changes involving the addtion or removal of
 state-bearing components should be announced to the system by calling
 {\tt notifyParentOfChange()} with a
-\javaclass[\mbase]{StructureChangeEvent} for which
-\javamethod[\mbase.StructureChangeEvent]{stateIsChanged()}
+\javaclass[\mbase]{ComponentChangeEvent} for which
+\javamethod[\mbase.ComponentChangeEvent]{stateChanged()}
 returns {\tt true}.
 
 A {\tt ModelComponent} also maintains a number of flags:
@@ -2103,7 +2103,7 @@ Here, {\tt NAME} and {\tt WORD} are identifiers that consist of
 alphanumerics, '\$', or '\_', and do not begin with a digit. {\tt
 CLASSINFO} is the classname for a component, or an alias that can be
 mapped to a classname using
-\javamethod[artisynth.core.util]{ClassAliases.resolveClass()}.
+\javamethod[maspack.util]{ClassAliases.resolveClass()}.
 
 Within an ArtiSynth file, '\#' is a comment character, causing all
 remaining characters on the line to be discarded.

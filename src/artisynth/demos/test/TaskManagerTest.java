@@ -2,6 +2,7 @@ package artisynth.demos.test;
 
 import java.io.*;
 import artisynth.core.driver.*;
+import artisynth.core.driver.ModelScriptInfo.InfoType;
 
 public class TaskManagerTest extends TaskManager {
    
@@ -21,12 +22,14 @@ public class TaskManagerTest extends TaskManager {
 
       for (int i=0; i<cnt; i++) {
          main.loadModel (
-            "artisynth.demos.mech.SpringMeshDemo", "SpringMeshDemo", null);
+            new ModelScriptInfo(InfoType.CLASS, 
+            "artisynth.demos.mech.SpringMeshDemo", "SpringMeshDemo", null));
          main.play (2.0);
          main.waitForStop();
          main.reset();
          main.loadModel (
-            "artisynth.demos.mech.RigidBodyDemo", "RigidBodyDemo", null);
+            new ModelScriptInfo(InfoType.CLASS,
+            "artisynth.demos.mech.RigidBodyDemo", "RigidBodyDemo", null));
          main.play (2.0);
          main.waitForStop();
          main.reset();

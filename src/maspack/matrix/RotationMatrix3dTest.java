@@ -83,6 +83,12 @@ class RotationMatrix3dTest extends MatrixTest {
 
       saveResult (RR);
       MX.set (R1);
+      R1.getXyz (angs);
+      RR.setXyz (angs);
+      checkAndRestoreResult (RR, EPSILON);
+
+      saveResult (RR);
+      MX.set (R1);
       R1.getAxisAngle (axisAng);
       RR.setAxisAngle (axisAng);
       checkAndRestoreResult (RR, EPSILON);

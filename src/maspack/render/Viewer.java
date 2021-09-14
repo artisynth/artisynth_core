@@ -235,7 +235,7 @@ public interface Viewer extends Renderer {
     * selection is selection style in which an elliptic cursor is used to
     * ``paint'' the current set of selected components.
     *
-    * @param if {@code true}, enables elliptic selection
+    * @param enable if {@code true}, enables elliptic selection
     * @see #getEllipticSelection
     */
    public void setEllipticSelection (boolean enable);
@@ -784,20 +784,6 @@ public interface Viewer extends Renderer {
    public ViewerSelectionListener[] getSelectionListeners();
 
    /**
-    * Sets the default axial view, specifying the default disposition of the x,
-    * y, and z axes with respect to the horizontal and vertical directions in
-    * the view plane.
-    *
-    * @param view specifies the view
-    */
-   public void setDefaultAxialView (AxisAlignedRotation view);
-
-   /**
-    * Queries the default AxialView.
-    */
-   public AxisAlignedRotation getDefaultAxialView();
-
-   /**
     * Queries the length used for rendering coordinate axes in this viewer.
     *
     * @return axis rendering length
@@ -808,14 +794,14 @@ public interface Viewer extends Renderer {
     * Sets the length used for rendering coordinate axes in this viewer.  A
     * length {@code <= 0} implies that coordinate axes will not be rendered.
     *
-    * @return len axis rendering length
+    * @param len axis rendering length
     */
    public void setAxisLength (double len);
 
    /**
     * Sets the viewer grid to be visible.
     *
-    * @param if {@code true}, makes the grid visible
+    * @param visible if {@code true}, makes the grid visible
     */
    public void setGridVisible (boolean visible);
 
@@ -858,7 +844,7 @@ public interface Viewer extends Renderer {
 
    /**
     * Queries the number of clip surfaces currently available to this viewer.
-    * This will equal the value returned by {@link #maxClipSurface} minus the
+    * This will equal the value returned by {@link #maxClipSurfaces} minus the
     * number required by all the currently held clip planes, with the result
     * set to 0 if negative. Clipping will be curtailed if the number of
     * available surfaces is 0.
@@ -924,7 +910,7 @@ public interface Viewer extends Renderer {
     * Removes a clip plane from this viewer.
     * 
     * @param clipPlane clip plane to remove
-    * @return
+    * @return {@code true} if the clip plane was found and removed
     */
    public boolean removeClipPlane (GLClipPlane clipPlane);
 
@@ -1002,7 +988,7 @@ public interface Viewer extends Renderer {
    /**
     * Sets the draw tool for this viewer.
     *
-    * @oaram d draw tool to set
+    * @param d draw tool to set
     */
    public void setDrawTool (Dragger3d d);
 
@@ -1079,7 +1065,7 @@ public interface Viewer extends Renderer {
    /**
     * Queries the screen cursor for this viewer.
     *
-    * @param return viewer screen cursor
+    * @return viewer screen cursor
     */
    public Cursor getScreenCursor();
 
@@ -1094,7 +1080,7 @@ public interface Viewer extends Renderer {
    /**
     * Sets whether an elliptic cursor is active for this viewer.
     *
-    * @param if {@code true}, activates an elliptic cursor
+    * @param active de true}, activates an elliptic cursor
     */
    public void setEllipticCursorActive (boolean active);
    
@@ -1108,7 +1094,7 @@ public interface Viewer extends Renderer {
    /**
     * Sets the elliptic cursor size for this viewer.
     *
-    * @return size new elliptic cursor size
+    * @param size new elliptic cursor size
     */
    public void setEllipticCursorSize (Vector2d size);
    

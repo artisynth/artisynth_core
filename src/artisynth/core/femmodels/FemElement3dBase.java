@@ -833,86 +833,86 @@ public abstract class FemElement3dBase extends FemElement
    }
    
 
-   public int getNaturalCoordinatesStd (
-      Vector3d coords, Point3d pnt, int maxIters) {
-
-      if (!coordsAreInside(coords)) {
-         coords.setZero();
-      }
-      // if FEM is frame-relative, transform to local coords
-      Point3d lpnt = new Point3d(pnt);
-      if (getGrandParent() instanceof FemModel3d) {
-         FemModel3d fem = (FemModel3d)getGrandParent();
-         if (fem.isFrameRelative()) {
-            lpnt.inverseTransform (fem.getFrame().getPose());
-         }
-      }
-
-      LUDecomposition LUD = new LUDecomposition();
-
-      /*
-       * solve using Newton's method: Need a good guess! Just guessed zero here.
-       */
-      Vector3d dNds = new Vector3d();
-      Matrix3d dxds = new Matrix3d();
-      Vector3d res = new Point3d();
-      Vector3d del = new Point3d();
-      Vector3d prevCoords = new Vector3d();
-      Vector3d prevRes = new Point3d();
-
-      int i;
-      for (i = 0; i < maxIters; i++) {
-
-         // compute the Jacobian dx/ds for the current guess
-         computeJacobian (dxds, coords);
-         computeLocalPosition (res, coords);
-         res.sub (lpnt);
-         LUD.factor (dxds);
-         
-         double cond = LUD.conditionEstimate (dxds);
-         if (cond > 1e10)
-            System.out.println (
-               "Warning: condition number for solving natural coordinates is "
-               + cond);
-         LUD.solve (del, res);
-         // assume that natural coordinates are general around 1 in magnitude
-         if (del.norm() < 1e-10) {
-            // System.out.println ("* res=" + res.norm());
-            return i+1;
-         }
-         
-         prevCoords.set(coords);
-         prevRes.set(res);
-         
-         // it may be that "coords + del" is a worse solution.  Let's make sure we
-         // go the correct way
-         // binary search suitable alpha in [0 1]
-         double eps = 1e-12;
-         double prn2 = prevRes.normSquared();
-         double rn2 = prn2*2; // initialization
-         double alpha = 1;
-         del.normalize();  // if coords expected ~1, we don't want to stray too far
-         
-         while (alpha > eps && rn2 > prn2) {
-            coords.scaledAdd (-alpha, del, prevCoords);
-            res.setZero();
-            for (int k=0; k<numNodes(); k++) {
-               res.scaledAdd (
-                  getN (k, coords), myNodes[k].getLocalPosition(), res);
-            }
-            res.sub (lpnt);
-            
-            rn2 = res.normSquared();
-            alpha = alpha / 2;
-         }         
-         if (alpha < eps) {
-            return -1;  // failed
-         }
-         //System.out.println ("res=" + res.norm() + " alpha=" + alpha);
-      }
-      //      System.out.println ("coords: " + coords.toString ("%4.3f"));
-      return -1;
-   }
+//   public int getNaturalCoordinatesStd (
+//      Vector3d coords, Point3d pnt, int maxIters) {
+//
+//      if (!coordsAreInside(coords)) {
+//         coords.setZero();
+//      }
+//      // if FEM is frame-relative, transform to local coords
+//      Point3d lpnt = new Point3d(pnt);
+//      if (getGrandParent() instanceof FemModel3d) {
+//         FemModel3d fem = (FemModel3d)getGrandParent();
+//         if (fem.isFrameRelative()) {
+//            lpnt.inverseTransform (fem.getFrame().getPose());
+//         }
+//      }
+//
+//      LUDecomposition LUD = new LUDecomposition();
+//
+//      /*
+//       * solve using Newton's method: Need a good guess! Just guessed zero here.
+//       */
+//      Vector3d dNds = new Vector3d();
+//      Matrix3d dxds = new Matrix3d();
+//      Vector3d res = new Point3d();
+//      Vector3d del = new Point3d();
+//      Vector3d prevCoords = new Vector3d();
+//      Vector3d prevRes = new Point3d();
+//
+//      int i;
+//      for (i = 0; i < maxIters; i++) {
+//
+//         // compute the Jacobian dx/ds for the current guess
+//         computeJacobian (dxds, coords);
+//         computeLocalPosition (res, coords);
+//         res.sub (lpnt);
+//         LUD.factor (dxds);
+//         
+//         double cond = LUD.conditionEstimate (dxds);
+//         if (cond > 1e10)
+//            System.out.println (
+//               "Warning: condition number for solving natural coordinates is "
+//               + cond);
+//         LUD.solve (del, res);
+//         // assume that natural coordinates are general around 1 in magnitude
+//         if (del.norm() < 1e-10) {
+//            // System.out.println ("* res=" + res.norm());
+//            return i+1;
+//         }
+//         
+//         prevCoords.set(coords);
+//         prevRes.set(res);
+//         
+//         // it may be that "coords + del" is a worse solution.  Let's make sure we
+//         // go the correct way
+//         // binary search suitable alpha in [0 1]
+//         double eps = 1e-12;
+//         double prn2 = prevRes.normSquared();
+//         double rn2 = prn2*2; // initialization
+//         double alpha = 1;
+//         del.normalize();  // if coords expected ~1, we don't want to stray too far
+//         
+//         while (alpha > eps && rn2 > prn2) {
+//            coords.scaledAdd (-alpha, del, prevCoords);
+//            res.setZero();
+//            for (int k=0; k<numNodes(); k++) {
+//               res.scaledAdd (
+//                  getN (k, coords), myNodes[k].getLocalPosition(), res);
+//            }
+//            res.sub (lpnt);
+//            
+//            rn2 = res.normSquared();
+//            alpha = alpha / 2;
+//         }         
+//         if (alpha < eps) {
+//            return -1;  // failed
+//         }
+//         //System.out.println ("res=" + res.norm() + " alpha=" + alpha);
+//      }
+//      //      System.out.println ("coords: " + coords.toString ("%4.3f"));
+//      return -1;
+//   }
 
    /* --- Extrapolation matrices --- */
 

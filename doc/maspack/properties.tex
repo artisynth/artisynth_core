@@ -770,6 +770,15 @@ method {\tt PropertyUtils.updateCompositeProperty}:
    }
 \end{lstlisting}
 
+If a composite property has a number of subclasses, it may optionally
+implement the static method
+\begin{lstlisting}[]
+   public static Class<?>[] getSubClasses();
+\end{lstlisting}
+which returns an array of the class types of these subclasses. This
+can then be used by the system to automatically create GUI widgets
+that allow different instances of these subclasses to be selected.
+
 \label{readWriteSec}
 \section{Reading and Writing to Persistent Storage }
 

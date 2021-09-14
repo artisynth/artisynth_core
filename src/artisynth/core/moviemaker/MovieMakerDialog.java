@@ -18,6 +18,7 @@ import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Robot;
+import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
@@ -31,11 +32,12 @@ import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.*;
 import java.util.HashMap;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
+import javax.swing.*;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -45,6 +47,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
@@ -62,16 +66,22 @@ import maspack.widgets.LabeledComponentPanel;
 import maspack.widgets.OptionPanel;
 import maspack.widgets.StringField;
 import maspack.widgets.StringSelector;
+import maspack.widgets.EnumSelector;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
+import maspack.util.FolderFileFilter;
+import maspack.properties.Property;
+import maspack.render.Viewer;
 import artisynth.core.driver.Main;
 import artisynth.core.driver.MainFrame;
 import artisynth.core.driver.Scheduler;
 import artisynth.core.driver.ViewerManager;
 import artisynth.core.modelbase.HasAudio;
+import artisynth.core.moviemaker.MovieMaker.MethodInfo;
 import artisynth.core.moviemaker.MovieMaker.Method;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ConvertRawToWav;
+import artisynth.core.gui.widgets.ProgressFrame;
 import artisynth.core.workspace.RootModel;
 
 public class MovieMakerDialog extends JDialog
@@ -96,7 +106,8 @@ public class MovieMakerDialog extends JDialog
 
    private LabeledComponentPanel optionsPanel;
 
-   private StringField filename;
+   private StringField myNameField;
+   private DoubleField stopTime;
    private OptionPanel windowButtons;
    private JButton fullWindowButton;
    private JButton viewWindowButton;
@@ -109,7 +120,7 @@ public class MovieMakerDialog extends JDialog
    private IntegerField resizeWidth;
    private IntegerField resizeHeight;
    private IntegerField resizeSamples;
-   private FileNameField workingDirField;
+   private FileNameField movieDirField;
    
    private JCheckBox showCaptureFrame;
 
@@ -117,7 +128,7 @@ public class MovieMakerDialog extends JDialog
    private DoubleField speedField;
 
    private StringSelector formatSelector;
-   private StringSelector methodSelector;
+   private EnumSelector methodSelector;
    private JButton customizeButton;
 
    private JCheckBox beginRecordOnStart;
@@ -141,45 +152,70 @@ public class MovieMakerDialog extends JDialog
 
    private TransparentDialog areaSelectionFrame;   
 
-   private String tmpDirectory;
+   private String tmpFolder;
    private double savedFrameRate;
 
-   private boolean viewerCapture;
-   private boolean customCapture;
+   private CaptureMode myCaptureMode = null;
+
+   private enum CaptureMode {
+      VIEWER,
+      WINDOW,
+      CUSTOM
+   };
+      
 
    private boolean areaHandlerMasked = false;
    private boolean isRecordingStarted = false;
+   private boolean myStopRequested = false;
 
-   private class AreaHandler implements ValueChangeListener {
-      public void valueChange (ValueChangeEvent e) {
-         if (!areaHandlerMasked) {
-            Rectangle oldArea = myMovieMaker.getCaptureArea();
-            Rectangle newArea = new Rectangle (
-               (Integer) windowXPosition.getIntValue(),
-               (Integer) windowYPosition.getIntValue(), 
-               (Integer) windowWidth.getIntValue(), 
-               (Integer) windowHeight.getIntValue());
+   private JTextArea messageArea;
+   private JFrame myProgressFrame;   
 
-            if (!oldArea.equals (newArea)) {
-               Dimension viewerDim = null;
-               if (viewerCapture && !originalSize.isSelected()) {
-                  viewerDim = new Dimension (
-                     (Integer) resizeWidth.getIntValue(),
-                     (Integer) resizeHeight.getIntValue());
-               }
-               else if (viewerCapture) {
-                  viewerDim = new Dimension (newArea.width, newArea.height);
-               }
-
-               myMovieMaker.setCaptureArea (newArea, viewerDim, viewerCapture);
-
-               if (areaSelectionFrame != null && 
-                  areaSelectionFrame.isVisible()) { 
-                  areaSelectionFrame.setBoundsFromCaptureArea (newArea);
-               }
-            }
-         }
+   /**
+    * Output stream that writes to the message area
+    */
+   class MessageOutputStream extends OutputStream {
+      /**
+       * TextAreaOutputStream which writes to the output text area.
+       * 
+       * Courtesy of EF5 at Stackoverflow
+       */
+      public void write (int b) throws IOException {
+         messageArea.append (String.valueOf ((char)b));
+         messageArea.setCaretPosition(messageArea.getDocument().getLength());
       }
+      
+      public void write (char[] cbuf, int off, int len) throws IOException {
+         messageArea.append (new String(cbuf, off, len));
+         messageArea.setCaretPosition (messageArea.getDocument().getLength());
+      }
+   }
+
+   /**
+    * Clear the message area
+    */
+   public void clearMessages () {
+      messageArea.setText ("");
+   } 
+
+   /**
+    * Print to the messages text area, followed by a newline
+    */
+   public void println (String msg) {
+      messageArea.append (msg + "\n");
+      messageArea.setCaretPosition(messageArea.getDocument().getLength());
+   }
+
+   /**
+    * Print to the messages text area
+    */
+   public void print (String msg) {
+      messageArea.append (msg);
+      messageArea.setCaretPosition(messageArea.getDocument().getLength());
+   }
+
+   PrintStream createMessageStream() {
+      return new PrintStream (new MessageOutputStream());
    }
 
    /**
@@ -196,17 +232,21 @@ public class MovieMakerDialog extends JDialog
       JPanel contentPane = new JPanel();
       contentPane.setLayout (new BorderLayout());
       setContentPane (contentPane);
-      setTitle ("Set Movie Options");
+      setTitle ("Movie Maker");
 
       JTabbedPane tabbedPane = new JTabbedPane();
+
+      // Recorder tab
 
       Box recOptionsBox = Box.createVerticalBox();
       LabeledComponentPanel captureOptions = new LabeledComponentPanel();
       captureOptions.setBorder (BorderFactory.createTitledBorder(
-         BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Region To Capture"));  
+         BorderFactory.createEtchedBorder(
+            EtchedBorder.LOWERED), "Region To Capture"));  
       LabeledComponentPanel recOptions = new LabeledComponentPanel();
       recOptions.setBorder (BorderFactory.createTitledBorder(
-         BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Record Options"));
+         BorderFactory.createEtchedBorder(
+            EtchedBorder.LOWERED), "Record Options"));
 
       windowButtons = new OptionPanel ("Viewer Window Custom", this);
       viewWindowButton = windowButtons.getButton ("Viewer");
@@ -234,18 +274,23 @@ public class MovieMakerDialog extends JDialog
       customWindowButton.setBorder (new BevelBorder (BevelBorder.RAISED));
       captureOptions.addWidget (windowButtons);
 
-      windowXPosition = new IntegerField ("Left", 0);
-      windowXPosition.addValueChangeListener (new AreaHandler());
-      captureOptions.addWidget (windowXPosition);
-      windowYPosition = new IntegerField ("Top", 0);
-      windowYPosition.addValueChangeListener (new AreaHandler());
-      captureOptions.addWidget (windowYPosition);
       windowWidth = new IntegerField ("Width", 0);
-      windowWidth.addValueChangeListener (new AreaHandler());
+      windowWidth.addValueChangeListener (this);
       captureOptions.addWidget (windowWidth);
       windowHeight = new IntegerField ("Height", 0);
-      windowHeight.addValueChangeListener (new AreaHandler());
+      windowHeight.addValueChangeListener (this);
       captureOptions.addWidget (windowHeight);
+      windowXPosition = new IntegerField ("Left", 0);
+      windowXPosition.addValueChangeListener (this);
+      captureOptions.addWidget (windowXPosition);
+      windowYPosition = new IntegerField ("Top", 0);
+      windowYPosition.addValueChangeListener (this);
+      captureOptions.addWidget (windowYPosition);
+
+      showCaptureFrame = new JCheckBox ("Show capture frame", null, true);
+      showCaptureFrame.addActionListener (this);
+      showCaptureFrame.setEnabled (false);
+      captureOptions.addWidget (showCaptureFrame);
 
       recOptionsBox.add(captureOptions);
 
@@ -276,12 +321,9 @@ public class MovieMakerDialog extends JDialog
       recOptions.addWidget (removeImages);
       saveMovieImage = new JCheckBox ("Save first frame image", null, true);
       recOptions.addWidget (saveMovieImage);
-      showCaptureFrame = new JCheckBox ("Show capture frame", null, true);
-      showCaptureFrame.addActionListener (this);
-      showCaptureFrame.setEnabled (false);
-      recOptions.addWidget (showCaptureFrame);
       
-      alwaysOnTop = new JCheckBox ("Window always on top", null, myMovieMaker.isAlwaysOnTop ());
+      alwaysOnTop = new JCheckBox (
+         "Window always on top", null, myMovieMaker.isAlwaysOnTop ());
       recOptions.add (alwaysOnTop);
       alwaysOnTop.addActionListener (this);
       
@@ -295,15 +337,30 @@ public class MovieMakerDialog extends JDialog
 
       recOptionsBox.add (recOptions);  
 
-      filename = new StringField ("Movie name", "artisynth", 10);
-      filename.setStretchable (true);
-      filename.setBorder (BorderFactory.createEmptyBorder (5, 0, 5, 0));
-      recOptionsBox.add (filename);
+      LabeledComponentPanel miscOptions = new LabeledComponentPanel();
+      miscOptions.setBorder (
+         BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+
+      myNameField = new StringField ("Movie name", "artisynth", 10);
+      myNameField.setStretchable (true);
+      myNameField.setBorder (BorderFactory.createEmptyBorder (5, 0, 5, 0));
+      miscOptions.addWidget (myNameField);
+
+      stopTime = new DoubleField ("Stop time");
+      stopTime.setGUIVoidEnabled (true);
+      stopTime.setVoidValueEnabled (true);
+      stopTime.setValue (Property.VoidValue);
+      miscOptions.addWidget (stopTime);
+
+      recOptionsBox.add(miscOptions);
+
+      // Encoder tab
 
       Box encOptionsBox = Box.createVerticalBox();
       LabeledComponentPanel outputOptions = new LabeledComponentPanel();
       outputOptions.setBorder (BorderFactory.createTitledBorder(
-         BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Output Options"));  
+         BorderFactory.createEtchedBorder(
+            EtchedBorder.LOWERED), "Encoding Options"));  
       LabeledComponentPanel sizeOptions = new LabeledComponentPanel();
       sizeOptions.setBorder (BorderFactory.createTitledBorder(
          BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Output Size"));
@@ -332,15 +389,8 @@ public class MovieMakerDialog extends JDialog
          formatSelector.getComboBox(), new Dimension (125, 25));
       outputOptions.addWidget (formatSelector);
 
-      HashMap<String,MovieMaker.Method> methodMap = movieMaker.getMethodMap();
-      methodSelector = new StringSelector (
-         "Method", methodMap.keySet().toArray (new String[0]));
-      String currentMethod = movieMaker.getMethod ();
-      if (currentMethod == null) {
-         methodSelector.setValue (MovieMaker.INTERNAL_METHOD);
-      } else {
-         methodSelector.setValue (currentMethod);
-      }
+      methodSelector = new EnumSelector (
+         "Method", movieMaker.getMethod(), Method.values());
       methodSelector.addValueChangeListener (this);
       GuiUtils.setFixedSize (
          methodSelector.getComboBox(), new Dimension (125, 25));
@@ -349,7 +399,8 @@ public class MovieMakerDialog extends JDialog
       customizeButton.setActionCommand (CUSTOMIZE_CMD);
       customizeButton.addActionListener (this);
       customizeButton.setMargin (new Insets (3, 3, 3, 3));
-      GuiUtils.setFixedSize (customizeButton, new Dimension (125, 25));
+      GuiUtils.setFixedSize (
+         customizeButton, customizeButton.getPreferredSize());
       outputOptions.addWidget (methodSelector);
       outputOptions.addWidget (customizeButton);
 
@@ -372,9 +423,7 @@ public class MovieMakerDialog extends JDialog
                   resizeWidth.getDoubleValue() / windowWidth.getDoubleValue();
                resizeHeight.setValue (scale * windowHeight.getIntValue());
             }
-            myMovieMaker.setCaptureArea (myMovieMaker.getCaptureArea(), 
-               new Dimension ((Integer) resizeWidth.getIntValue(), 
-                  (Integer) resizeHeight.getIntValue()), viewerCapture);
+            setMovieMakerCaptureAreaFromResize();
          }
       });
       sizeOptions.addWidget (resizeWidth);
@@ -388,9 +437,7 @@ public class MovieMakerDialog extends JDialog
                resizeWidth.setValue (scale * windowWidth.getIntValue());
 
             }
-            myMovieMaker.setCaptureArea (myMovieMaker.getCaptureArea(), 
-               new Dimension ((Integer) resizeWidth.getIntValue(), 
-                  (Integer) resizeHeight.getIntValue()), viewerCapture);
+            setMovieMakerCaptureAreaFromResize();
          }
       });
       sizeOptions.addWidget (resizeHeight);
@@ -408,7 +455,8 @@ public class MovieMakerDialog extends JDialog
 
       encOptionsBox.add (sizeOptions);
 
-      // advanced
+      // Advanced tab
+
       Box extraBox = Box.createVerticalBox();
       
       LabeledComponentPanel advancedOptions = new LabeledComponentPanel ();
@@ -416,12 +464,22 @@ public class MovieMakerDialog extends JDialog
          BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Advanced"));  
       advancedOptions.setName("advanced");
       
-      workingDirField = new FileNameField ("Working directory", ArtisynthPath.getTempDir ().getAbsolutePath (), 10);
-      workingDirField.getFileChooser ().setFileSelectionMode (JFileChooser.DIRECTORIES_ONLY);
-      workingDirField.getFileChooser ().setCurrentDirectory (ArtisynthPath.getTempDir ());
-      advancedOptions.add (workingDirField);
+      movieDirField =
+         new FileNameField (
+            "Movie folder", myMovieMaker.getMovieFolder(), 10);
+      JFileChooser chooser = movieDirField.getFileChooser();
+      chooser.setFileSelectionMode (JFileChooser.FILES_AND_DIRECTORIES);
+      chooser.setAcceptAllFileFilterUsed (false);
+      FolderFileFilter filter = new FolderFileFilter("Folders");
+      chooser.addChoosableFileFilter (filter);
+      chooser.setFileFilter (filter);
+      // bit of a hack here to make chooser display current file properly
+      chooser.setSelectedFile (new File(myMovieMaker.getMovieFolder().getName()));
+
+      movieDirField.addValueChangeListener (this);
+
+      advancedOptions.add (movieDirField);
       extraBox.add (advancedOptions);
-      
 
       LabeledComponentPanel extraCommands = new LabeledComponentPanel();
       extraCommands.setBorder (BorderFactory.createTitledBorder(
@@ -433,11 +491,22 @@ public class MovieMakerDialog extends JDialog
       waypointButton.addActionListener(this);
       extraCommands.addWidget(waypointButton);
       extraBox.add(extraCommands);
-      
+
+      // Messages tab
+
+      Box messagesBox = Box.createVerticalBox();
+      messageArea = new JTextArea(20, 80);
+      messageArea.setMargin (new Insets(5,5,5,5));
+      messageArea.setEditable(false);
+      messageArea.setFont(new Font(Font.MONOSPACED, Font.BOLD, 12));
+      messagesBox.add (new JScrollPane(messageArea));
+
+      // put everthing together in a tabbed pane
 
       tabbedPane.addTab ("Recorder", recOptionsBox);
       tabbedPane.addTab ("Encoder", encOptionsBox);
-      tabbedPane.addTab("Advanced", extraBox);
+      tabbedPane.addTab ("Advanced", extraBox);
+      tabbedPane.addTab ("Messages", messagesBox);
 
       if (myMain.getModelName() != null) {
          setMovieName (myMain.getModelName());
@@ -458,31 +527,25 @@ public class MovieMakerDialog extends JDialog
 
       add (controlPanel, BorderLayout.CENTER);
 
-      viewerCapture = true;
-      customCapture = false;
+      setCaptureMode (CaptureMode.VIEWER);
 
-      final Component displayComponent = myFrame.getViewer().getCanvas().getComponent();
-      setCaptureArea (displayComponent);
+      //final Component displayComponent = myFrame.getViewer().getComponent();
+      updateCaptureArea ();
 
-      displayComponent.addComponentListener(
+      myFrame.addComponentListener(
          new ComponentListener() {
             public void componentHidden (ComponentEvent c_evt) {}
 
             public void componentMoved (ComponentEvent c_evt) {
-               if (!customCapture && viewerCapture) {
-                  setCaptureArea (displayComponent);
-               }
-               else if (!customCapture && !viewerCapture) {
-                  setCaptureArea (myFrame);
+               if (myCaptureMode != CaptureMode.CUSTOM) {
+                  updateCaptureArea ();
                }
             }
 
             public void componentResized (ComponentEvent c_evt) {
-               if (!customCapture && viewerCapture) {
-                  setCaptureArea (displayComponent);               
-               }
-               else if (!customCapture && !viewerCapture) {
-                  setCaptureArea (myFrame);
+               System.out.println ("resize");
+               if (myCaptureMode != CaptureMode.CUSTOM) {
+                  updateCaptureArea ();               
                }
             }
 
@@ -499,18 +562,23 @@ public class MovieMakerDialog extends JDialog
    public void setMovieName (String name) {
       name = name.replaceAll ("\\s", "");
       name = name.replaceAll ("\\" + File.separator, ""); 
-      filename.setValue (name);
+      // if name is a file name, remove trailing prefex
+      int lastDot = name.lastIndexOf ('.');
+      if (lastDot != -1) {
+         name = name.substring (0, lastDot);
+      }
+      myNameField.setValue (name);
    }
 
    private void updateMethodSelectors() { 
 
-      String methodName = (String) methodSelector.getValue();
-      if (MovieMaker.INTERNAL_METHOD.equals (methodName)) {
+      Method method = (Method) methodSelector.getValue();
+      if (method == Method.INTERNAL) {
 
-         Method method = myMovieMaker.getMethodMap().get (methodName);
-         if (myMovieMaker.getFormat() != method.frameFileFormat) {
-            myMovieMaker.setFormat (method.frameFileFormat);
-            formatSelector.setValue (method.frameFileFormat);
+         MethodInfo methodInfo = myMovieMaker.getMethodInfo(method);
+         if (myMovieMaker.getFormat() != methodInfo.frameFileFormat) {
+            myMovieMaker.setFormat (methodInfo.frameFileFormat);
+            formatSelector.setValue (methodInfo.frameFileFormat);
          }
 
          customizeButton.setEnabled (false);
@@ -522,93 +590,121 @@ public class MovieMakerDialog extends JDialog
       }
    }
 
-   private void setCaptureArea (Component comp) {
-      areaHandlerMasked = true;
-
-      int width = comp.getWidth();
-      int height = comp.getHeight();
-      Point pos = comp.getLocationOnScreen();
-
-      boolean widthChanged = false;
-      if (width != windowWidth.getIntValue()) {
-         widthChanged = true;
+   private void setCaptureMode (CaptureMode mode) {
+      if (myCaptureMode != mode) {
+         if (mode == CaptureMode.CUSTOM) {
+            windowXPosition.setEnabledAll (true);
+            windowYPosition.setEnabledAll (true);
+         }
+         else {
+            windowXPosition.setEnabledAll (false);
+            windowYPosition.setEnabledAll (false);
+         }
+         myCaptureMode = mode;
       }
+   }
 
-      windowWidth.setValue (width);
-      windowHeight.setValue (height);
-      windowXPosition.setValue (pos.x);
-      windowYPosition.setValue (pos.y);
+   private Rectangle updateCaptureWindowWidgets() {
 
-      Rectangle area = new Rectangle(pos.x, pos.y, width, height);
+      Dimension size;
+      Component locComp; // component used to find location
 
-      Dimension viewerDim = null;
-      if (viewerCapture && !originalSize.isSelected()) {
-         if (constrainSize.isSelected()) {
-            // resize width/height
-            if (widthChanged) {
-               double scale = 
-                  resizeHeight.getDoubleValue() / windowHeight.getDoubleValue();
-               resizeWidth.setValue (scale * windowWidth.getIntValue());
-            } else {
-               double scale = 
-                  resizeWidth.getDoubleValue() / windowWidth.getDoubleValue();
-               resizeHeight.setValue (scale * windowHeight.getIntValue());
+      switch (myCaptureMode) {
+         case VIEWER: {
+            Viewer v = myMain.getViewer();
+            size = new Dimension (v.getScreenWidth(), v.getScreenHeight());
+            locComp = v.getComponent();
+            break;
+         }
+         case WINDOW: {
+            size = myMain.getMainFrame().getSize();
+            locComp = myMain.getMainFrame();
+            break;
+         }
+         case CUSTOM:{
+            size = areaSelectionFrame.background.getSize();
+            locComp = areaSelectionFrame.background;
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented capture mode " + myCaptureMode);
+         }
+      }
+      boolean widthChanged = (size.width != windowWidth.getIntValue());
+      areaHandlerMasked = true;      
+      windowWidth.setValue (size.width);
+      windowHeight.setValue (size.height);
+      Point loc = locComp.getLocationOnScreen();
+      windowXPosition.setValue (loc.x);
+      windowYPosition.setValue (loc.y);
+      areaHandlerMasked = false;
+
+      if (myCaptureMode == CaptureMode.VIEWER) {
+         if (!originalSize.isSelected()) {
+            if (constrainSize.isSelected()) {
+               // resize width/height
+               if (widthChanged) {
+                  double scale = 
+                     resizeHeight.getDoubleValue()/windowHeight.getDoubleValue();
+                  resizeWidth.setValue (scale*windowWidth.getIntValue());
+               }
+               else {
+                  double scale = 
+                     resizeWidth.getDoubleValue()/windowWidth.getDoubleValue();
+                  resizeHeight.setValue (scale*windowHeight.getIntValue());
+               }
             }
          }
-         viewerDim = new Dimension (
-            (Integer) resizeWidth.getIntValue(),
-            (Integer) resizeHeight.getIntValue());
       }
-      else if (viewerCapture) {
-         viewerDim = new Dimension (area.width, area.height);
-      } 
-
-      myMovieMaker.setCaptureArea (area, viewerDim, viewerCapture);
-
-      if (customCapture) {
-         windowXPosition.getTextField().setEnabled (true);
-         windowYPosition.getTextField().setEnabled (true);
-         windowWidth.getTextField().setEnabled (true);
-         windowHeight.getTextField().setEnabled (true);
-      }
-      else {
-         windowXPosition.getTextField().setEnabled (false);
-         windowYPosition.getTextField().setEnabled (false);
-         windowWidth.getTextField().setEnabled (false);
-         windowHeight.getTextField().setEnabled (false);
-
-      }
-
       if (constrainSize.isSelected() && originalSize.isSelected()) {
-         resizeWidth.setValue(width);
-         resizeHeight.setValue(height);
+         resizeWidth.setValue(size.width);
+         resizeHeight.setValue(size.height);
       }
+      return new Rectangle (loc.x, loc.y, size.width, size.height);
+   }
 
+   private void updateCaptureArea () {
 
+      Rectangle area = updateCaptureWindowWidgets();
 
-      if (areaSelectionFrame != null && 
-         areaSelectionFrame.isVisible()) {
+      Dimension viewerDim = null;
+      if (myCaptureMode == CaptureMode.VIEWER) {
+         if (!originalSize.isSelected()) {
+            viewerDim = new Dimension (
+               resizeWidth.getIntValue(), resizeHeight.getIntValue());
+         }
+         else {
+            viewerDim = new Dimension (area.width, area.height);
+         }
+      }
+      myMovieMaker.setCaptureArea (area, viewerDim);
 
+      if (areaSelectionFrame != null && areaSelectionFrame.isVisible()) {
          areaSelectionFrame.setBoundsFromCaptureArea (area);
       }
-
-      areaHandlerMasked = false;
    }
 
-   /**
-    * Sets the file name for movie saving to the title of the main frame,
-    * which is name of the currently loaded model.
-    */
-   public void resetFileName() {
-      filename.setValue (myFrame.getTitle());
-   }
-
-   private void setAreaSelectionFrame (TransparentDialog frame) {
-      TransparentDialog oldFrame = areaSelectionFrame;
-      areaSelectionFrame = frame;      
-      if (frame == null && oldFrame != null) {
-         oldFrame.setVisible (false);
-         oldFrame.dispose();
+   private void showAreaSelectionFrame (boolean show) {
+      if (show) {
+         if (areaSelectionFrame == null) {
+            TransparentDialog frame = new TransparentDialog (this);
+            frame.pack();
+            frame.setVisible (true);
+            System.out.println ("bounmds=" + myMovieMaker.getCaptureArea());
+            frame.setBoundsFromCaptureArea (
+               myMovieMaker.getCaptureArea());
+            areaSelectionFrame = frame;
+         }
+         else {
+            areaSelectionFrame.updateBackground();
+            areaSelectionFrame.setVisible (true);
+         }
+      }
+      else {
+         if (areaSelectionFrame != null) {
+            areaSelectionFrame.setVisible (false);
+         }
       }
    }
 
@@ -645,46 +741,127 @@ public class MovieMakerDialog extends JDialog
     * the formatSelector.
     */
    public void valueChange (ValueChangeEvent event) { 
-      if (event.getSource() == methodSelector) {
-         String methodName = (String) methodSelector.getValue();
+      Object source = event.getSource();
 
-         if (!methodName.equals (myMovieMaker.getMethod())) {
-            MovieMaker.Method method = 
-               myMovieMaker.getMethodMap().get (methodName);
-            myMovieMaker.setMethod (methodName);
+      if (source == methodSelector) {
+         Method method = (Method)methodSelector.getValue();
 
-            if (!method.frameFileFormat.equals (myMovieMaker.getFormat())) {
-               myMovieMaker.setFormat (method.frameFileFormat);
-               formatSelector.setValue (method.frameFileFormat);
+         if (method != myMovieMaker.getMethod()) {
+            MovieMaker.MethodInfo info = myMovieMaker.getMethodInfo (method);
+            myMovieMaker.setMethod (method);
+
+            if (!info.frameFileFormat.equals (myMovieMaker.getFormat())) {
+               myMovieMaker.setFormat (info.frameFileFormat);
+               formatSelector.setValue (info.frameFileFormat);
             }
          }
       }
-      else if (event.getSource() == formatSelector) {
+      else if (source == formatSelector) {
          String format = (String) formatSelector.getValue();
 
          if (!format.equals (myMovieMaker.getFormat())) {
             myMovieMaker.setFormat (format);
-            String methodName = (String) methodSelector.getValue();
-            MovieMaker.Method method =
-               myMovieMaker.getMethodMap().get (methodName);
-            method.frameFileFormat = format;
+            Method method = (Method) methodSelector.getValue();
+            MovieMaker.MethodInfo methodInfo =
+               myMovieMaker.getMethodInfo (method);
+            methodInfo.frameFileFormat = format;
          }
       }
-      else if (event.getSource() == frameRateField) {
+      else if (source == frameRateField) {
          myMovieMaker.setFrameRate (frameRateField.getDoubleValue()); 
       }
-      else if (event.getSource() == speedField) {
+      else if (source == speedField) {
          myMovieMaker.setSpeed (speedField.getDoubleValue()); 
       }
-      else if (event.getSource() == resizeSamples) {
+      else if (source == resizeSamples) {
          myMovieMaker.setAntiAliasingSamples(resizeSamples.getIntValue());
+      }
+      else if (source == movieDirField) {
+         File dir = new File ((String)movieDirField.getValue());
+         if (validateFolder (this, dir)) {
+            myMovieMaker.setMovieFolder (dir);
+         }
+         else {
+            movieDirField.setValue (myMovieMaker.getMovieFolderPath());
+         }
+      }
+      else if (source == windowWidth || source == windowHeight ||
+               source == windowXPosition || source == windowYPosition) {
+         if (!areaHandlerMasked) {
+            int w = windowWidth.getIntValue();
+            int h = windowHeight.getIntValue();
+            switch (myCaptureMode) {
+               case CUSTOM: {
+                  int x = windowXPosition.getIntValue();
+                  int y = windowYPosition.getIntValue();
+                  Rectangle oldArea = myMovieMaker.getCaptureArea();
+                  Rectangle newArea = new Rectangle (x, y, w, h);               
+                  if (!oldArea.equals (newArea)) {
+                     myMovieMaker.setCaptureArea (newArea, null);
+                     if (areaSelectionFrame != null && 
+                         areaSelectionFrame.isVisible()) { 
+                        areaSelectionFrame.setBoundsFromCaptureArea (newArea);
+                     }
+                  }
+                  break;
+               }
+               case VIEWER: {
+                  Dimension size = myMain.getViewerSize();
+                  if (size.width != w || size.height != h) {
+                     myMain.setViewerSize (w, h);
+                  }
+                  break;
+               }
+               case WINDOW: {
+                  Dimension size = myMain.getMainFrame().getSize();
+                  if (size.width != w || size.height != h) {
+                     myMain.getMainFrame().setSize (w, h);
+                  }
+                  break;
+               }
+               default: {
+                  throw new InternalErrorException (
+                     "Unimplemented capture mode "+myCaptureMode);
+               }
+            }
+         }
       }
       else {
          throw new InternalErrorException (
-            "valueChange event from unknown source " + event.getSource());
+            "valueChange event from unknown source " + source);
       }
 
       updateMethodSelectors();
+   }
+
+   public static boolean validateFolder (Component comp, File dir) {
+      if (dir.isDirectory()) {
+         return true;
+      }
+      else if (!dir.exists()) {
+         boolean valid = false;
+         boolean confirm = GuiUtils.confirmAction (
+            comp, ""+dir+" does not exist. Create?");
+         if (confirm) {
+            String errMsg = null;
+            try {
+               valid = dir.mkdirs();
+            }
+            catch (Exception e) {
+               errMsg = e.getMessage();
+               valid = false;
+            }
+            if (!valid) {
+               GuiUtils.showError (
+                  comp, "Can't create "+dir+(errMsg != null ? ": "+errMsg : ""));
+            }
+         }
+         return valid;
+      }
+      else {
+         GuiUtils.showError (comp, ""+dir+" not a folder");
+         return false;
+      }
    }
 
    private void waypointCapture() {
@@ -703,43 +880,73 @@ public class MovieMakerDialog extends JDialog
          // reset to beginning
          scheduler.reset();
          manager.render();
-         manager.paint();
+         manager.repaint();
 
          // starts recording
-         startMovie();        
-         myMovieMaker.setGrabbing (false);   // we're manually doing this
+         if (startMovie()) {
+            myMovieMaker.setGrabbing (false);   // we're manually doing this
 
-         myMovieMaker.resetFrameCounter();
-         myMovieMaker.forceGrab();
-
-         while (scheduler.fastForward()) {
-            manager.render();
-            manager.paint();
+            myMovieMaker.resetFrameCounter();
             myMovieMaker.forceGrab();
-         }
-         stopMovie();
 
+            while (scheduler.fastForward()) {
+               manager.render();
+               manager.repaint();
+               myMovieMaker.forceGrab();
+            }
+            stopMovie();
+         }
       } catch (Exception e) {
          // TODO Auto-generated catch block
          e.printStackTrace();
-         System.err.println("Failed to create movie");
+         println ("Failed to create movie");
       }
 
       beginRecordOnStart.setEnabled(savedBegin);
       beginRecordOnStart.setSelected (savedBegin);
-
-
    }
 
-   private void startMovie() {
-      String movieFileName = filename.getText();
+   private boolean needEvenCaptureArea() {
+      Method method = myMovieMaker.getMethod();
+      return (method == Method.AVCONV ||
+              method == Method.FFMPEG || 
+              method == Method.MENCODER);
+   }
+
+   private boolean captureAreaIsEven() {
+      Rectangle dim = myMovieMaker.getCaptureArea();
+      return (dim.width%2 == 0 && dim.height%2 == 0);
+   }
+
+   private boolean startMovie() {
+      String movieFileName = myNameField.getText();
       myMovieMaker.setRenderingAudioToFile (recordAudio.isSelected());
       myMovieMaker.setRenderingAudioToText (recordAudioTxt.isSelected());
       myMovieMaker.setAudioNormalized (normalizeAudio.isSelected());
 
+      clearMessages();
+
+      MethodInfo methodInfo =
+         myMovieMaker.getMethodInfo (myMovieMaker.getMethod());
+
       if (movieFileName.equals ("")) {
          GuiUtils.showError (this, "Please enter a movie name");
-         filename.requestFocusInWindow();
+         myNameField.requestFocusInWindow();
+         return false;
+      }
+      else if ("".equals(methodInfo.command)) {
+         GuiUtils.showError (
+            this,
+            "Command for CUSTOM method is empty; " +
+            "use 'Customize Method' to set it");
+         return false;
+      }
+      else if (needEvenCaptureArea() && !captureAreaIsEven()) {
+         GuiUtils.showError (
+            this,
+            "AVCONV, FFMPEG and MENCODER methods require the height and width "+
+            "of the video capture are to be even");
+         return false;
       }
       else {
          stopButton.setEnabled (true);
@@ -750,32 +957,20 @@ public class MovieMakerDialog extends JDialog
          // XXX: removed, since prevents zoom in orthographic projection
          // Main.getMain().getViewer().setResizeEnabled(false);   
 
-         tmpDirectory = workingDirField.getText ();
-
-         // test if tmp directory exists
-         File testdir = new File (tmpDirectory);
-         if (!testdir.exists()) {
-            System.out.println ("Creating:" + tmpDirectory);
-            testdir.mkdirs();
-         }
-         else if (!testdir.isDirectory()) {
-            System.err.println ("Error: " + tmpDirectory + " as file");
-            filename.requestFocusInWindow();
-            return;
-         }
-
          // Right now we expect the models to either produce a RAW audio
          // file, or a text file. The RAW file should be merged with the
          // movie, while the text is left alone as is.
          if (myMain.getRootModel() instanceof HasAudio) {
             if (recordAudio.isSelected()) { // Render a raw audio file
-               myMovieMaker.setAudioFileName (tmpDirectory + "/aud.raw");
+               myMovieMaker.setAudioFileName (
+                  myMovieMaker.getMovieFolderPath() + "/aud.raw");
             }
 
             if (recordAudioTxt.isSelected()) { // Render a text file
-               System.out.println ("Rendering audio to text...");
+               println ("Rendering audio to text...");
                myMovieMaker.setAudioFileName (
-                  ArtisynthPath.getHomeDir() + "/" + filename.getText() + ".txt");
+                  ArtisynthPath.getHomeDir() +
+                  "/" + myNameField.getText() + ".txt");
             }
 
             boolean renderToFile =
@@ -784,7 +979,7 @@ public class MovieMakerDialog extends JDialog
                renderToFile);
          }
          
-         System.out.println (myMovieMaker.getCaptureArea());
+         println (myMovieMaker.getCaptureArea().toString());
          
          if (automaticFrames.isSelected()) {
             myMovieMaker.setGrabbing (true);
@@ -794,11 +989,10 @@ public class MovieMakerDialog extends JDialog
             myMovieMaker.getFrameRate() / myMovieMaker.getSpeed());
 
          myFrame.setAlwaysOnTop (myMovieMaker.isAlwaysOnTop ());
-         setAreaSelectionFrame (null);
+         showAreaSelectionFrame (false);
          showCaptureFrame.setSelected (false);
 
          try {
-            myMovieMaker.setDataPath (tmpDirectory);
             // Start playing when start button is clicked 
             // if not already playing
             if (myMain.getScheduler().isPlaying() == false &&
@@ -810,12 +1004,14 @@ public class MovieMakerDialog extends JDialog
             isRecordingStarted = true;
          }
          catch (Exception e) {
-            System.out.println ("ERROR: Can't create movie writer: " + e);
+            println ("ERROR: Can't create movie writer: " + e);
             myMain.setFrameRate (savedFrameRate);
             myMovieMaker.setGrabbing (false);
 
             myFrame.setAlwaysOnTop (false);
+            return false;
          }
+         return true;
       }
    }
    
@@ -823,113 +1019,164 @@ public class MovieMakerDialog extends JDialog
       return isRecordingStarted;
    }
 
-   public void stopMovie() {  
+   /**
+    * Called when movie making is stopped. Responsible for creating the movie
+    * from the grabbed frames. This is spun off as a task because the movie
+    * creation process can take a while and we don't want to freeze up the GUI.
+    */
+   class StopTask extends SwingWorker<Void, Void> {
 
-      // re-enable viewer resize
-      // myMain.getViewer().setResizeEnabled(true);
-      // myMain.getViewer().rerender(); // trigger rerender
+      int myFrameCount = 0;
+      boolean mySuccess = false;
 
-      Thread stopThread = new Thread() {
-         public void run() {
-            String movieFileName = filename.getText();
-            
-            // make sure directories exist
-            File mfile = new File(myMovieMaker.getDataPath (), movieFileName); 
-            mfile.getParentFile ().mkdirs ();
-            
-            myMain.setFrameRate (savedFrameRate);
-            myMovieMaker.setGrabbing (false);
-            myFrame.getViewer().cleanupScreenShots();
+      public boolean createMovieFromFrames() throws Exception {
 
-            stopButton.setEnabled (false);
-            frameButton.setEnabled(false);
-            startButton.setEnabled (true);
+         boolean success = false;
+         String movieFileName = myNameField.getText();
+         File mfile = new File(myMovieMaker.getMovieFolder(), movieFileName); 
+         
+         // make sure directories exist
+         mfile.getParentFile ().mkdirs ();
+         myFrame.getViewer().cleanupScreenShots();
 
-            myFrame.setAlwaysOnTop (false);
+         myMain.setFrameRate (savedFrameRate);
+         myMovieMaker.setGrabbing (false);
+         myFrame.getViewer().cleanupScreenShots();
 
-            // Stop playing when stop movie maker is pressed
-            if (myMain.getScheduler().isPlaying() == true &&
-               endRecordOnStop.isSelected()) {
-               myMain.getScheduler().pause();  
-            }
+         stopButton.setEnabled (false);
+         frameButton.setEnabled (false);
+         
+         myFrame.setAlwaysOnTop (false);
 
-            // Make the movie out of the frames
-            try {
+         // Make the movie out of the frames
+         println("Stopping movie...");
 
-               System.out.println("Stopping movie...");
-               int frameCount = myMovieMaker.close();
-
-               // No merging required if outputting silent movie, or writing audio 
-               // to text file
-               if (frameCount > 0) { 
-                  if (!myMovieMaker.isRenderingAudioToFile()) {
-                     myMovieMaker.render (movieFileName);
-                  }
-                  else {
-                     ((HasAudio) myMain.getRootModel()).onStop();
-                     String tmpMovieFn = "file:" + tmpDirectory + "/noAudio.mov";
-                     String finalMovieFn =
-                        "file:" + ArtisynthPath.getHomeDir() + "/" + movieFileName;
-
-                     System.out.println("Rendering frames...");
-                     // Render the movie's visual frames only
-                     myMovieMaker.render (tmpMovieFn);
-
-                     //convert raw audio to wav
-                     String waveFn = "file:" + 
-                        ConvertRawToWav.convert ( myMovieMaker.getAudioSampleRate(), 
-                           myMovieMaker.getAudioFileName());
-                     String[] args = {tmpMovieFn, 
-                        waveFn, 
-                        "-o",
-                        finalMovieFn};
-                     System.out.println ("final file name:" + finalMovieFn);
-                     new Merge (args);
-                     //TODO: delete tmp files!
-                  }
-                  if (saveMovieImage.isSelected()) {
-                     myMovieMaker.saveFirstFrame (movieFileName);
-                  }
-               }
-               else {
-                  System.out.println ("No images grabbed, not making movie"); 
-               }
-
-               if (removeImages.isSelected()) {
-                  System.out.println ("removing image files");
-                  myMovieMaker.clean();
-               }
-            }
-
-            catch (Exception e) {
-               e.printStackTrace();
-            }
-
-            // change the audio source back to outputting to sound card
-            if ((myMain.getRootModel() instanceof HasAudio) &&
-               ((recordAudio.isSelected()) || recordAudioTxt.isSelected()) ) {
-               System.out.println("Going back to soundcard output...");
-
-               myMovieMaker.setRenderingAudioToFile (false);
-               myMovieMaker.setRenderingAudioToText (false);
-
-               recordAudio.setSelected (false);
-               recordAudioTxt.setSelected (false);
-
-               normalizeAudio.setSelected (false);
-               normalizeAudio.setEnabled (false);
-
-               ((HasAudio) myMain.getRootModel()).setRenderAudioToFile (false);
-            }
-            
-            System.out.println("Done making movie");
-            
+         myFrameCount = myMovieMaker.close();
+         if (myFrameCount == 0) {
+            return false;
          }
-      };
+         // No merging required if outputting silent movie, or writing
+         // audio to text file
+         if (!myMovieMaker.isRenderingAudioToFile()) {
+            success = myMovieMaker.render (movieFileName);
+         }
+         else {
+            ((HasAudio) myMain.getRootModel()).onStop();
+            String tmpMovieFn = 
+               "file:" + myMovieMaker.getMovieFolderPath() + "/noAudio.mov";
+            String finalMovieFn =
+               "file: "+ArtisynthPath.getHomeDir()+"/" + movieFileName;
+               
+            println("Rendering frames...");
+            // Render the movie's visual frames only
+            success = myMovieMaker.render (tmpMovieFn);
+               
+            //convert raw audio to wav
+            String waveFn = "file:" + 
+               ConvertRawToWav.convert (
+                  myMovieMaker.getAudioSampleRate(), 
+                  myMovieMaker.getAudioFileName());
+            String[] args = {tmpMovieFn, 
+                             waveFn, 
+                             "-o",
+                             finalMovieFn};
+            println ("final file name:" + finalMovieFn);
+            new Merge (args);
+            //TODO: delete tmp files!
+         }
+         if (saveMovieImage.isSelected()) {
+            myMovieMaker.saveFirstFrame (movieFileName);
+         }
+         if (removeImages.isSelected()) {
+            println ("Removing image files");
+            myMovieMaker.clean();
+         }
+         myStopRequested = false;
+         return success;
+      }
 
-      stopThread.start();
+      /*
+       * Main task. Executed in background thread.
+       */
+      @Override
+      public Void doInBackground() {
+         try {
+            mySuccess = createMovieFromFrames();
+         }
+         catch (Exception e) {
+            e.printStackTrace (createMessageStream());
+            mySuccess = false;
+         }
+         // change the audio source back to outputting to sound card
+         if ((myMain.getRootModel() instanceof HasAudio) &&
+             ((recordAudio.isSelected()) || recordAudioTxt.isSelected()) ) {
+            println("Going back to soundcard output...");
+
+            myMovieMaker.setRenderingAudioToFile (false);
+            myMovieMaker.setRenderingAudioToText (false);
+
+            recordAudio.setSelected (false);
+            recordAudioTxt.setSelected (false);
+
+            normalizeAudio.setSelected (false);
+            normalizeAudio.setEnabled (false);
+
+            ((HasAudio) myMain.getRootModel()).setRenderAudioToFile (false);
+         }
+         return null;
+      }
+
+      /*
+       * Executed in event dispatching thread
+       */
+      @Override
+      public void done() {    
+
+         myProgressFrame.dispose();
+         if (myFrameCount == 0) {
+            println ("\nNo frames grabbed; movie not created"); 
+            GuiUtils.showError (
+               MovieMakerDialog.this, "No frames grabbed; movie not created");
+         }
+         else if (!mySuccess) {
+            println ("\nMovie could not be created"); 
+            GuiUtils.showError (
+               MovieMakerDialog.this,
+               "Movie could not be created. See 'Messages' tab for details");
+         }
+         else {
+            println ("\nMovie successfully created"); 
+            GuiUtils.showNotice (
+               MovieMakerDialog.this, "Movie successfully created");
+         }
+         startButton.setEnabled (true);
+      }
+   }
+
+   private void createAndShowProgressFrame() {
+       // create the window
+      myProgressFrame = new ProgressFrame("Making movie");
+      myProgressFrame.setVisible(true);
+      GuiUtils.locateCenter (myProgressFrame, this);
+   }
+
+   protected synchronized void stopMovie() {  
+      if (!myStopRequested) {
+         myStopRequested = true;
+         // Stop playing when stop movie maker is pressed
+         if (myMain.getScheduler().isPlaying() == true &&
+             endRecordOnStop.isSelected()) {
+            myMain.getScheduler().stopRequest();  
+         }
+         doStopMovie();
+      }
+   }
+
+   private void doStopMovie() {
+      StopTask stopTask = new StopTask();
+      createAndShowProgressFrame();
+      stopTask.execute();
       isRecordingStarted = false;
-
    }
 
    public void actionPerformed (ActionEvent event) {
@@ -937,13 +1184,12 @@ public class MovieMakerDialog extends JDialog
       Object source = event.getSource();
 
       if (cmd.equals (FULL_WINDOW_CMD)) {
-         viewerCapture = false;
-         customCapture = false;
+         setCaptureMode (CaptureMode.WINDOW);
 
          showCaptureFrame.setEnabled (false);
-         setAreaSelectionFrame (null);
+         showAreaSelectionFrame (false);
 
-         setCaptureArea (myFrame);
+         updateCaptureArea ();
          viewWindowButton.setBorder (new BevelBorder (BevelBorder.RAISED));
          fullWindowButton.setBorder (new BevelBorder (BevelBorder.LOWERED));
          customWindowButton.setBorder (new BevelBorder (BevelBorder.RAISED));
@@ -953,20 +1199,14 @@ public class MovieMakerDialog extends JDialog
          resizeWidth.getTextField().setEnabled (false);
          resizeHeight.getTextField().setEnabled (false);
          resizeSamples.getTextField().setEnabled(false);
-
-         windowWidth.getTextField().setEnabled (false);
-         windowHeight.getTextField().setEnabled (false);
-         windowXPosition.getTextField().setEnabled (false);
-         windowYPosition.getTextField().setEnabled (false);
       }
       else if (cmd.equals (VIEW_WINDOW_CMD)) {
-         viewerCapture = true;
-         customCapture = false;
+         setCaptureMode (CaptureMode.VIEWER);
 
          showCaptureFrame.setEnabled (false);
-         setAreaSelectionFrame (null);
+         showAreaSelectionFrame (false);
 
-         setCaptureArea (myFrame.getViewer().getCanvas().getComponent());
+         updateCaptureArea ();
          viewWindowButton.setBorder (new BevelBorder(BevelBorder.LOWERED));
          fullWindowButton.setBorder (new BevelBorder(BevelBorder.RAISED));
          customWindowButton.setBorder (new BevelBorder (BevelBorder.RAISED));
@@ -980,25 +1220,16 @@ public class MovieMakerDialog extends JDialog
          resizeWidth.getTextField().setEnabled (false);
          resizeHeight.getTextField().setEnabled (false);  
          resizeSamples.getTextField().setEnabled(false);
-
-         windowWidth.getTextField().setEnabled (false);
-         windowHeight.getTextField().setEnabled (false);
-         windowXPosition.getTextField().setEnabled (false);
-         windowYPosition.getTextField().setEnabled (false);
       }
       else if (cmd.equals (CUSTOM_WINDOW_CMD)) {
-         viewerCapture = false;
-         customCapture = true;
-
+         setCaptureMode (CaptureMode.CUSTOM);
 
          if (!showCaptureFrame.isSelected() || 
             !showCaptureFrame.isEnabled ()) {            
             showCaptureFrame.setEnabled (true);
             showCaptureFrame.setSelected (true);
-
-            createSelectionFrame();
-            showCaptureFrame.setSelected (true);
          }
+         showAreaSelectionFrame (true);
 
          viewWindowButton.setBorder (new BevelBorder(BevelBorder.RAISED));
          fullWindowButton.setBorder (new BevelBorder(BevelBorder.RAISED));
@@ -1009,15 +1240,10 @@ public class MovieMakerDialog extends JDialog
          resizeWidth.getTextField().setEnabled (false);
          resizeHeight.getTextField().setEnabled (false);
          resizeSamples.getTextField().setEnabled(false);
-
-         windowWidth.getTextField().setEnabled (true);
-         windowHeight.getTextField().setEnabled (true);
-         windowXPosition.getTextField().setEnabled (true);
-         windowYPosition.getTextField().setEnabled (true);
       }
       else if (cmd.equals (REC_AUDIO_CMD)) {
          if (recordAudio.isSelected()) {
-            System.out.println("rec. audio selected");
+            println ("rec. audio selected");
             recordAudioTxt.setSelected (false);
          }
 
@@ -1026,7 +1252,7 @@ public class MovieMakerDialog extends JDialog
       }
       else if (cmd.equals (REC_AUDIO_TO_TXT_CMD)) {
          if (recordAudioTxt.isSelected()) {
-            System.out.println("rec. audio txt selected");
+            println ("rec. audio txt selected");
             recordAudio.setSelected (false);
          }
 
@@ -1053,26 +1279,15 @@ public class MovieMakerDialog extends JDialog
          }
       }
       else if (cmd.equals (CUSTOMIZE_CMD)) { 
-         String methodName = (String) methodSelector.getValue();
-         MovieMaker.Method method = 
-            myMovieMaker.getMethodMap().get (methodName);
-
-         if (method == null) {
-            throw new InternalErrorException (
-               "MovieMaker does not know about method " + methodName);
-         }
-
-         MethodDialog dialog = new MethodDialog (this, method);
+         Method method = (Method)methodSelector.getValue();
+         MovieMaker.MethodInfo methodInfo = 
+            myMovieMaker.getMethodInfo (method);
+         MethodDialog dialog = new MethodDialog (this, methodInfo);
          dialog.setLocationRelativeTo (this);
          dialog.setVisible (true);
       }
       else if (source == showCaptureFrame) { 
-         if (showCaptureFrame.isSelected()) { 
-            createSelectionFrame ();
-         }
-         else {
-            setAreaSelectionFrame (null);
-         }
+         showAreaSelectionFrame (showCaptureFrame.isSelected());
       }
       else if (source == originalSize) {
          if (originalSize.isSelected()) { 
@@ -1097,11 +1312,9 @@ public class MovieMakerDialog extends JDialog
          double scale = 
             resizeWidth.getDoubleValue() / windowWidth.getDoubleValue();
          resizeHeight.setValue (scale * windowHeight.getIntValue());
-
-         myMovieMaker.setCaptureArea (myMovieMaker.getCaptureArea(), 
-            new Dimension ((Integer) resizeWidth.getIntValue(), 
-               (Integer) resizeHeight.getIntValue()), viewerCapture);
-      } else if (source == alwaysOnTop) {
+         setMovieMakerCaptureAreaFromResize();
+      }
+      else if (source == alwaysOnTop) {
          boolean onTop = alwaysOnTop.isSelected ();
          myMovieMaker.setAlwaysOnTop (onTop);
          if (isRecordingStarted) {
@@ -1110,22 +1323,43 @@ public class MovieMakerDialog extends JDialog
       }
    }
 
-   private void createSelectionFrame () {
-      // Create transparent dialog to select the screen area
-      setAreaSelectionFrame (new TransparentDialog (this));
+   private void setMovieMakerCaptureAreaFromResize() {
+      Dimension grabResize = null;
+      if (myCaptureMode == CaptureMode.VIEWER) {
+         grabResize = new Dimension (
+            (Integer) resizeWidth.getIntValue(), 
+            (Integer) resizeHeight.getIntValue());
+      }
+      myMovieMaker.setCaptureArea (
+         myMovieMaker.getCaptureArea(), grabResize);
 
-      areaSelectionFrame.pack();
-      areaSelectionFrame.setVisible (true);
-      areaSelectionFrame.setBoundsFromCaptureArea (
-         myMovieMaker.getCaptureArea());
+   }
+
+   /**
+    * Updates the widgets to reflect any changes in their underlying values
+    */
+   void updateWidgetValues() {
+      // Note: if more options are made adjustable from interfaces outside this
+      // dialog, the number of widgets that require updating will increase.
+
+      // Recoder Tab: nothing currently needed
+
+      // Encoder Tab:
+      frameRateField.setValue (myMovieMaker.getFrameRate());
+      methodSelector.setValue (myMovieMaker.getMethod());
+      customizeButton.setEnabled (
+         myMovieMaker.getMethod() != Method.INTERNAL);
+
+      // Advanced Tab:
+      movieDirField.setValue (myMovieMaker.getMovieFolderPath());
    }
 
    private void takeScreenshot() {
-      String movieFileName = filename.getText();
+      String movieFileName = myNameField.getText();
 
       if (movieFileName.equals ("")) {
          GuiUtils.showError (this, "Please enter a movie name");
-         filename.requestFocusInWindow();
+         myNameField.requestFocusInWindow();
       }
       else {
 
@@ -1134,25 +1368,11 @@ public class MovieMakerDialog extends JDialog
          stopButton.setEnabled (false);
          startButton.setEnabled (false);
 
-         tmpDirectory = workingDirField.getText ();
-
-         // test if tmp directory exists
-         File testdir = new File (tmpDirectory);
-         if (!testdir.exists()) {
-            System.out.println ("Creating:" + tmpDirectory);
-            testdir.mkdir();
-         }
-         else if (!testdir.isDirectory()) {
-            System.err.println ("Error: " + tmpDirectory + " as file");
-            filename.requestFocusInWindow();
-            return;
-         }
-
-         setAreaSelectionFrame (null);
+         showAreaSelectionFrame (false);
          showCaptureFrame.setSelected (false);
 
          try {
-            myMovieMaker.grab (tmpDirectory + "/" + movieFileName );
+            myMovieMaker.grab (movieFileName );
          }
          catch (Exception e) {
             e.printStackTrace();
@@ -1168,7 +1388,9 @@ public class MovieMakerDialog extends JDialog
     * the transparent area.
     *
     */
-   private class TransparentDialog extends JDialog implements ComponentListener, KeyListener {
+   private class TransparentDialog
+      extends JDialog implements ComponentListener, KeyListener {
+
       private static final long serialVersionUID = 1L;
       private TransparentBackground background;
       private MovieMakerDialog parent;
@@ -1181,7 +1403,6 @@ public class MovieMakerDialog extends JDialog
          getContentPane().add (background);
 
          setTitle ("Capture area is outlined in red");
-         setDefaultCloseOperation (DISPOSE_ON_CLOSE);
          setModal (false);
 
          addComponentListener (this);
@@ -1192,13 +1413,14 @@ public class MovieMakerDialog extends JDialog
             }
          });
 
-         if (!customCapture) {
+         if (myCaptureMode != CaptureMode.CUSTOM) {
+            // XXX finish
             setUndecorated (true);
          }
       }
 
       private void setCaptureArea() {
-         parent.setCaptureArea (background);
+         parent.updateCaptureArea ();
       }
 
       public void setBoundsFromCaptureArea (Rectangle rect) {
@@ -1209,13 +1431,8 @@ public class MovieMakerDialog extends JDialog
          bounds.y += (rect.y - origin.y);
          bounds.width += (rect.width - background.getWidth());
          bounds.height += (rect.height - background.getHeight());
-         System.out.println ("bounds=" + bounds);
+         println ("setting bounds to bounds=" + bounds);
          setBounds (bounds);
-      }
-
-      public void dispose() {
-         System.out.println ("disposing area selection frame");
-         setAreaSelectionFrame (null);
       }
 
       /**
@@ -1242,12 +1459,15 @@ public class MovieMakerDialog extends JDialog
       @Override
       public void keyPressed(KeyEvent e) {
          // F5
-         System.out.println(e.getKeyCode());
          if (e.getKeyCode() == KeyEvent.VK_F5) {
             background.recapture();
          }
       }
 
+      void updateBackground() {
+         background.captureScreen();
+      }
+      
       @Override
       public void keyReleased(KeyEvent e) {}
 
@@ -1256,7 +1476,8 @@ public class MovieMakerDialog extends JDialog
        * a screen shot of the area covered by the JPanel because Swing does not
        * support full transparency of windows
        */
-      private class TransparentBackground extends JPanel implements MouseListener { 
+      private class TransparentBackground
+         extends JPanel implements MouseListener { 
          private static final long serialVersionUID = 1L;
          private Image background;
          private Robot robot;
@@ -1281,12 +1502,10 @@ public class MovieMakerDialog extends JDialog
          public void captureScreen() {	 
             Dimension screenSize = 
                Toolkit.getDefaultToolkit().getScreenSize();
-
             Rectangle screenRectangle =
                new Rectangle( 0, 0,
                   (int) screenSize.getWidth(),
                   (int) screenSize.getHeight());
-
             background = robot.createScreenCapture (screenRectangle);
          }
 
@@ -1302,13 +1521,10 @@ public class MovieMakerDialog extends JDialog
           * Moves window out of the way, then re-captures background
           */
          public void recapture() {
-            Dimension screenSize = 
-               Toolkit.getDefaultToolkit().getScreenSize();
-
-            Point oldPos = TransparentDialog.this.getLocation();
-            TransparentDialog.this.setLocation(screenSize.width, screenSize.height);
+            TransparentDialog.this.setVisible(false);
             captureScreen();
-            TransparentDialog.this.setLocation(oldPos);
+            TransparentDialog.this.setVisible(true);
+
          }
 
          @Override
@@ -1334,44 +1550,37 @@ public class MovieMakerDialog extends JDialog
       }
    }
 
+   boolean isStopRequested() {
+      return myStopRequested;
+   }
 
-   private class MethodDialog extends JDialog implements ActionListener {
-      private static final long serialVersionUID = 1L;
-      private JTextField myTextField;
-      private OptionPanel myOptionPanel;
-      private MovieMaker.Method myMethod;
-
-      MethodDialog (Window owner, MovieMaker.Method method) {
-         /* explicit Dialog cast for compatibility with Java 1.5 */
-         super ((Dialog) owner);
-         myTextField = new JTextField();
-         JPanel panel = new JPanel();
-         panel.setLayout (new BoxLayout (panel, BoxLayout.Y_AXIS));
-         setContentPane (panel);
-
-         panel.setBorder (new EmptyBorder (4, 4, 4, 4));
-         myTextField.setText (method.command);
-         Dimension size = myTextField.getPreferredSize();
-         size.width = 10000;
-         myTextField.setMaximumSize (size);
-         myOptionPanel = new OptionPanel ("OK Cancel", this);
-         myMethod = method;
-         panel.add (myTextField);
-         panel.add (Box.createRigidArea (new Dimension (0,4)));
-         System.out.println (myTextField.getPreferredSize());
-         panel.add (myOptionPanel);
-         setModal (true);
-         pack();
-      }
-
-      public void actionPerformed (ActionEvent e) {
-         String cmd = e.getActionCommand();
-         if (cmd.equals ("OK")) {
-            myMethod.command = myTextField.getText();
+   synchronized void requestStopMovie() {
+      if (!myStopRequested) {
+         myStopRequested = true;
+         // Stop playing when stop movie maker is pressed
+         if (myMain.getScheduler().isPlaying() == true &&
+             endRecordOnStop.isSelected()) {
+            myMain.getScheduler().stopRequest();  
          }
-         else if (cmd.equals ("Cancel")) {}
-
-         dispose();
+         SwingUtilities.invokeLater (
+            new Runnable() {
+               public void run() {
+                  doStopMovie();
+               }
+            });
       }
    }
+
+   double getRequestedStopTime() {
+      if (stopTime.getValue() == Property.VoidValue) {
+         return -1;
+      }
+      else {
+         return stopTime.getDoubleValue();
+      }
+   }
+
+   
+
+
 }

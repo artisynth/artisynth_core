@@ -33,6 +33,12 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
 
+/**
+ * Antonio, 2018:
+ *
+ * MayaAsciReader imports fibre meshes and basic polygonal meshes from maya
+ * ascii text files.  Has only been tested on the data that came from UoT.
+ */
 // too complex to be associated with a simple MeshReader interface
 public class MayaAsciiReader {
 

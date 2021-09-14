@@ -2408,4 +2408,68 @@ public class ReaderTokenizer {
    public String lastCommentLine () {
       return myLastCommentLine;      
    }
+
+   /**
+    * Creates a quoted string with the specified quote character that can
+    * later be parsed by this tokenizer. Characters that are escapsed
+    * include the standard Java escape characters:
+    * <pre>
+    * \\ \t \b \n \r \f 
+    * </pre>
+    * plus the quote charater.  Any other character {@code <=} 0x1f
+    * or {@code >=} 0x7f is written by a backslashed octal number.
+    * 
+    * @param str string to add escape sequences to
+    * @param quoteChar quote character for the string
+    * @return escaped string
+    */
+   public static String getQuotedString (String str, char quoteChar) {
+      StringBuilder sb = new StringBuilder();
+      sb.append (quoteChar);
+      for (int i=0; i<str.length(); i++) {
+         char c = str.charAt(i);
+         switch (c) {
+             case '\b': {
+               sb.append ("\\b");
+               break;
+            }
+            case '\t': {
+               sb.append ("\\t");
+               break;
+            }
+            case '\n': {
+               sb.append ("\\n");
+               break;
+            }
+            case '\f': {
+               sb.append ("\\f");
+               break;
+            }
+            case '\r': {
+               sb.append ("\\r");
+               break;
+            }
+            case '\\': {
+               sb.append ("\\\\");
+               break;
+            }
+            default: {
+               if (c == quoteChar) {
+                  sb.append ('\\');
+                  sb.append (quoteChar);
+               }
+               else if (c <= 0x1f || c >= 0x7f) {
+                  sb.append ("\\" + Integer.toOctalString (c));
+               }
+               else {
+                  sb.append (c);
+               }
+            }       
+         }
+      }
+      sb.append (quoteChar);
+      return sb.toString();
+   }
 }
+
+

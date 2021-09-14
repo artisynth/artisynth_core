@@ -35,7 +35,7 @@
 % add title in PDF version
 \iflatexml\else
 \begin{center}
-\sffamily\Large\bfseries ArtiSynth Quick Installation Guide
+{\sffamily\Large\bfseries ArtiSynth Quick Installation Guide}
 \end{center}
 \bigskip
 \fi
@@ -46,10 +46,10 @@ and run the demonstration programs. More complete instructions,
 including how to obtain the latest development version from Github,
 compile and run using the Eclipse IDE, and install external model
 packages, are provided in the general installation guides for
-\artisynthManual[installation/linuxInstallation]{linuxInstallation}{Windows}, 
-\artisynthManual[installation/windowsInstallation]{windowsInstallation}{MacOS},
+\artisynthManual[installation/windowsInstallation]{windowsInstallation}{Windows}, 
+\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS},
 and 
-\artisynthManual[installation/macosInstallation]{macosInstallation}{Linux}.
+\artisynthManual[installation/linuxInstallation]{linuxInstallation}{Linux}.
 
 \section{Instructions}
 
@@ -57,12 +57,17 @@ and
 
 \begin{enumerate}
 
-\item You need a 64 bit Windows, MacOS, or Linux system, with Java 8
-installed. You need a full Java Development Kit (JDK), not simply a
-runtime environment (JRE). We recommend the Java SE Development Kit
-8u{\it XXX} ({\it XXX} being the latest update) which can be obtained
-from Oracle (registration required) at\\
-\href{https://www.oracle.com/technetwork/java/javase/downloads/index.html}%
+\item You need a 64 bit Windows, MacOS, or Linux system based on an
+Intel processor; ArtiSynth is not yet supported for ARM processors.
+
+\item Java 8 should be installed. (While ArtiSynth will generally work
+under later Java versions, use of both the MATLAB and Jython
+interfaces generally requires Java 8.)
+You need a full Java Development Kit
+(JDK), not simply a runtime environment (JRE). We recommend the Java
+SE Development Kit 8u{\it XXX} ({\it XXX} being the latest update)
+which can be obtained from Oracle (registration required)
+at\\ \href{https://www.oracle.com/technetwork/java/javase/downloads/index.html}%
 {www.oracle.com/technetwork/java/javase/downloads/index.htm}.
  
 \item To verify that the Java 8 JDK is visible to your system, open a
@@ -107,7 +112,7 @@ installation, then add {\tt <AT>\BKS bin} (Windows) or {\tt <AT>/bin}
 as described in Section \ref{SettingPath}.
 
 \item Edit the {\tt .java} file for the demo, which will be located
-in a folder under {\tt <AT>\BKS src \BKS artisynth \BKS demos},
+in a folder under {\tt <AT>\BKS src\BKS artisynth\BKS demos},
 using a plain text editor (e.g., {\tt notepad} on Windows).
 
 \item From within a terminal window (e.g., {\tt CMD} on Windows), go to the
@@ -138,17 +143,17 @@ On Mac OS X, you can set the ``default'' JDK by setting the {\tt
 JAVA\_HOME} environment variable.  This can be done inside the
 initialization file for whichever command line shell you are using.
 
-Assume that the desired JDK has version number {\tt 1.8.0\_221} and
+Assume that the desired JDK has version number {\tt 1.8.0\_281} and
 that your home folder is {\tt <HOMEDIR>}.  Then for the {\tt bash}
 shell, one can use a plain text editor to edit {\tt <HOMEDIR>/.bashrc}
 and insert a line of the form
 \begin{verbatim}
-  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_221`
+  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_281`
 \end{verbatim}
 while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
 <HOMEDIR>/.cshrc} and insert a line of the form
 \begin{verbatim}
-  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_221`
+  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_281`
 \end{verbatim}
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
@@ -206,10 +211,10 @@ your command window.
 
 For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
 artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
-Files\BKS Java\BKS jdk1.8.0\_221}, then we can add the {\tt bin}
+Files\BKS Java\BKS jdk1.8.0\_281}, then we can add the {\tt bin}
 directories for both by setting the User path to
 \begin{verbatim}
-  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_221\bin
+  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_281\bin
 \end{verbatim}
 
 \subsection*{Mac OS X}

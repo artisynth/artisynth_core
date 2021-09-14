@@ -52,7 +52,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    implements RenderableComponent, Dragger3dListener {
 
    // defaults to X-Z plane
-   RenderProps myRenderProps = null;
+   RenderProps myRenderProps;
    RigidTransform3d XGridToWorld = new RigidTransform3d();
    protected Dragger3dBase myDragger;
    GLViewer myViewer = null;

@@ -2315,30 +2315,6 @@ public abstract class BodyConnector extends RenderableComponentBase
          disconnectAttachmentMasters (myAttachmentB.getMasters());        
       }
    }
-   
-//   private void connectBodies() {
-//      // Note: in normal operation, bodyA is not null
-//      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
-//         myBodyA.addConnector (this);
-//         connectAttachmentMasters (myAttachmentA.getMasters());
-//      }
-//      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
-//         myBodyB.addConnector (this);
-//         connectAttachmentMasters (myAttachmentB.getMasters());
-//      }
-//   }
-//
-//   private void disconnectBodies() {
-//      // Note: in normal operation, bodyA is not null
-//      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
-//         myBodyA.removeConnector (this);
-//         disconnectAttachmentMasters (myAttachmentA.getMasters());
-//      }
-//      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
-//         myBodyB.removeConnector (this);
-//         disconnectAttachmentMasters (myAttachmentB.getMasters());
-//      }
-//   }
 
    /**
     * {@inheritDoc}
@@ -2506,6 +2482,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       boolean AIsFree = findAttachedBodies (myBodyA, myBodyB, bodiesA);
       boolean BIsFree = false;
       boolean moveBodyA = true;
+
       if (!myAdjustBodyAExplicitP && myBodyB != null) {
          BIsFree = findAttachedBodies (myBodyB, myBodyA, bodiesB);
          if (AIsFree != BIsFree) {
@@ -2614,6 +2591,13 @@ public abstract class BodyConnector extends RenderableComponentBase
          }
       }
       return isFree;
+   }
+
+   public static void printConnectedBodies (ConnectableBody body) {
+      for (BodyConnector c : body.getConnectors()) {
+         ConnectableBody otherBody = c.getOtherBody (body);
+         System.out.println (otherBody.getName() + " " +c+ " " + c.getName());
+      }
    }
 
    /**

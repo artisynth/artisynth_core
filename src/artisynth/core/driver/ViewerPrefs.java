@@ -22,8 +22,8 @@ public class ViewerPrefs extends Preferences {
    private Color myBackgroundColor = ViewerManager.DEFAULT_BACKGROUND_COLOR;
    private Color mySelectionColor = ViewerManager.DEFAULT_SELECTION_COLOR;
    private AxisDrawStyle myAxisDrawStyle = ViewerManager.DEFAULT_AXIS_DRAW_STYLE;
-   private double myAxisLengthRadiusRatio =
-      ViewerManager.DEFAULT_AXIS_LENGTH_RADIUS_RATIO;
+   private double myAxisRadiusRatio =
+      ViewerManager.DEFAULT_AXIS_RADIUS_RATIO;
    private RotationMode myRotationMode = ViewerManager.DEFAULT_ROTATION_MODE;
    private AxisAlignedRotation myDefaultAxialView =
       ViewerManager.DEFAULT_AXIAL_VIEW;
@@ -53,9 +53,9 @@ public class ViewerPrefs extends Preferences {
          "draw style for rendering coordinate axes",
          ViewerManager.DEFAULT_AXIS_DRAW_STYLE);
       myProps.add (
-         "axisLengthRadiusRatio",
-         "default length/radius ratio used for rendering solid axes",
-         ViewerManager.DEFAULT_AXIS_LENGTH_RADIUS_RATIO, "NS");
+         "axisRadiusRatio",
+         "default radius/length ratio used for rendering solid axes",
+         ViewerManager.DEFAULT_AXIS_RADIUS_RATIO, "NS");
       myProps.add (
          "rotationMode",
          "method for interactive rotation",
@@ -109,12 +109,12 @@ public class ViewerPrefs extends Preferences {
       myAxisDrawStyle = axisDrawStyle;
    }
 
-   public double getAxisLengthRadiusRatio () {
-      return myAxisLengthRadiusRatio;
+   public double getAxisRadiusRatio () {
+      return myAxisRadiusRatio;
    }
 
-   public void setAxisLengthRadiusRatio (double ratio) {
-      myAxisLengthRadiusRatio = ratio;
+   public void setAxisRadiusRatio (double ratio) {
+      myAxisRadiusRatio = ratio;
    }
 
    public RotationMode getRotationMode () {
@@ -194,7 +194,7 @@ public class ViewerPrefs extends Preferences {
       myViewerManager.setSelectionColor (getSelectionColor());
          
       myViewerManager.setAxisDrawStyle (getAxisDrawStyle());
-      myViewerManager.setAxisLengthRadiusRatio (getAxisLengthRadiusRatio());
+      myViewerManager.setAxisRadiusRatio (getAxisRadiusRatio());
       myViewerManager.setRotationMode (getRotationMode());
       myViewerManager.setDefaultAxialView (getDefaultAxialView());
       // myViewerManager.setOrthographicView (getOrthographicView());
@@ -213,7 +213,7 @@ public class ViewerPrefs extends Preferences {
       setSelectionColor (myViewerManager.getSelectionColor());
          
       setAxisDrawStyle (myViewerManager.getAxisDrawStyle());
-      setAxisLengthRadiusRatio (myViewerManager.getAxisLengthRadiusRatio());
+      setAxisRadiusRatio (myViewerManager.getAxisRadiusRatio());
       setRotationMode (myViewerManager.getRotationMode());
       setDefaultAxialView (myViewerManager.getDefaultAxialView());
       // setOrthographicView (myViewerManager.getOrthographicView());

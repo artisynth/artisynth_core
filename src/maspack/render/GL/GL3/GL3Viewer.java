@@ -1485,46 +1485,39 @@ public class GL3Viewer extends GLViewer {
 
       Vector3d vtmp = new Vector3d(pnt0[0], pnt0[1], pnt0[2]);
       double arrowRad = 3 * props.getLineRadius();
-      double arrowLen = 2*arrowRad;
+      double arrowLen = Math.min(2*arrowRad,len/2);
       vtmp.scaledAdd (len-arrowLen, utmp);
       float[] ctmp = new float[3];
       ctmp[0] = (float)vtmp.x;
       ctmp[1] = (float)vtmp.y;
       ctmp[2] = (float)vtmp.z;
 
-
-      if (len > arrowLen) {
-         switch (props.getLineStyle()) {
-            case LINE: {
-               setLineWidth (gl, props.getLineWidth());
-               drawGLLine(gl, pnt0, ctmp);
-               break;
-            }
-            case CYLINDER: 
-            case SOLID_ARROW: {
-               drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
-               break;
-            }
-            case SPINDLE: {
-               drawSpindle (pnt0, pnt1, props.getLineRadius());
-               break;
-            }
-            default: {
-               throw new InternalErrorException (
-                  "Unimplemented line style " + props.getLineStyle());
-            }
+      switch (props.getLineStyle()) {
+         case LINE: {
+            setLineWidth (gl, props.getLineWidth());
+            drawGLLine(gl, pnt0, ctmp);
+            break;
+         }
+         case CYLINDER: 
+         case SOLID_ARROW: {
+            drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
+            break;
+         }
+         case SPINDLE: {
+            drawSpindle (pnt0, pnt1, props.getLineRadius());
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented line style " + props.getLineStyle());
          }
       }
       if (props.getLineStyle() == LineStyle.LINE) {
          // reset shading from NONE to props value
          setShading (props.getShading());
       }
-      if (len <= arrowLen) {
-         drawCone (pnt0, pnt1, len/2, 0, capped);
-      }
-      else {
-         drawCone (ctmp, pnt1, arrowRad, 0, capped);
-      }
+      drawCone (ctmp, pnt1, arrowRad, 0, capped);
+
       setShading(savedShading);
       setHighlighting (savedHighlighting);      
    }

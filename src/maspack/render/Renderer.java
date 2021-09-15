@@ -507,21 +507,22 @@ public interface Renderer {
    public Shading setShading (Shading shading);
 
    /**
-    * Returns the default axis/length ratio for rendering solid axes.  See
-    * {@link #setAxisLengthRadiusRatio} for more information.
+    * Returns the axis radius ratio. See {@link #setAxisRadiusRatio} for 
+    * more information.
     *
-    * @return length/radius ratio for drawing solid axes
+    * @return axis render ratio
     */
-   public double getAxisLengthRadiusRatio();
+   public double getAxisRadiusRatio();
 
    /**
-    * Sets the default ratio between axis length and radius to be used when
-    * rendering solid axes and the radius is not explicitly specified.  The
-    * default value is 60.
+    * Sets a ratio which can be used to determine the radius for an axis when
+    * the radius is not explicitly specified. The radius is computed by
+    * multiplying the ratio by the axis length. This is typically used for
+    * rendering coordinate axes and has a default value is 0.016.
     *
-    * @param ratio length/axis ratio
+    * @param ratio new axis render ratio
     */
-   public void setAxisLengthRadiusRatio (double ratio);
+   public void setAxisRadiusRatio (double ratio);
 
    // Drawing primitives
 
@@ -849,10 +850,9 @@ public interface Renderer {
     * @param len length of the axes
     * @param width for pixel-based rendering, specifies the line width in
     * pixels
-    * @param rad if {@code >} 0, specifies the radius of each axis when
-    * using solid rendering.  Otherwise, the radius is determined by dividing the
-    * axis length by the ratio returned by {@link
-    * #getAxisLengthRadiusRatio}.
+    * @param rad if {@code >} 0, specifies the radius of each axis when using
+    * solid rendering.  Otherwise, the radius is determined by multiplying the
+    * axis length by the ratio returned by {@link #getAxisRadiusRatio}.
     * @param highlight if <code>true</code>, indicates that the axes should be
     * highlighted.
     */
@@ -874,9 +874,9 @@ public interface Renderer {
     * @param width for pixel-based rendering, specifies the line width in
     * pixels
     * @param rad if {@code >} 0, specifies the radius of each axis when using
-    * solid rendering. Otherwise, the radius is determined by dividing the
+    * solid rendering. Otherwise, the radius is determined by multiplying the
     * maximum axis length by the ratio returned by {@link
-    * #getAxisLengthRadiusRatio}.
+    * #getAxisRadiusRatio}.
     * @param highlight if <code>true</code>, indicates that the axes should be
     * highlighted.
     */
@@ -934,8 +934,7 @@ public interface Renderer {
     * @param X coordinate frame defining the axes
     * @param len axis length
     * @param rad axis cylinder radius. If {@code<= 0}, the radius is determined
-    * automatically from the length/radius ratio returned by {@link
-    * #getAxisLengthRadiusRatio}.
+    * automatically using the value returned by {@link #getAxisRadiusRatio}.
     * @param highlight if <code>true</code>, indicates that the axes should be
     * highlighted.
     */
@@ -952,8 +951,7 @@ public interface Renderer {
     * @param X coordinate frame defining the axes
     * @param lens lengths for each axis
     * @param rad axis cylinder radius. If {@code<= 0}, the radius is determined
-    * automatically from the length/radius ratio returned by {@link
-    * #getAxisLengthRadiusRatio}.
+    * automatically using the value returned by {@link #getAxisRadiusRatio}.
     * @param highlight if <code>true</code>, indicates that the axes should be
     * highlighted.
     */

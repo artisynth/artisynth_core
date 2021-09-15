@@ -296,8 +296,8 @@ public class StlRenderer implements Renderer {
       ColorInterpolation.RGB;
    private static final int DEFAULT_DEPTH_OFFSET = 0;
 
-   public static double DEFAULT_AXIS_LENGTH_RADIUS_RATIO = 60.0;
-   private double myAxisLengthRadiusRatio = DEFAULT_AXIS_LENGTH_RADIUS_RATIO;
+   public static double DEFAULT_AXIS_RADIUS_RATIO = 0.016;
+   private double myAxisRadiusRatio = DEFAULT_AXIS_RADIUS_RATIO;
 
    // viewer state
    protected static class ViewState {
@@ -764,15 +764,15 @@ public class StlRenderer implements Renderer {
    /**
     * {@inheritDoc}
     */
-   public double getAxisLengthRadiusRatio() {
-      return myAxisLengthRadiusRatio;
+   public double getAxisRadiusRatio() {
+      return myAxisRadiusRatio;
    }
    
    /**
     * {@inheritDoc}
     */   
-   public void setAxisLengthRadiusRatio (double ratio) {
-      myAxisLengthRadiusRatio = ratio;
+   public void setAxisRadiusRatio (double ratio) {
+      myAxisRadiusRatio = ratio;
    }
 
    @Override
@@ -1194,7 +1194,7 @@ public class StlRenderer implements Renderer {
          }
          case ARROW: {
             if (rad <= 0) {
-               rad = maxLength(lens)/myAxisLengthRadiusRatio;
+               rad = maxLength(lens)/myAxisRadiusRatio;
             }
             drawSolidAxes (X, lens, rad, highlight);
             break;

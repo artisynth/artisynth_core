@@ -2101,6 +2101,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (args == null) {
          args = new String[0];
       }
+      Throwable err = null;
       try {
          RootModel newRoot = null;
          Method method = demoClass.getMethod ("build", String[].class);
@@ -2124,14 +2125,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
          return newRoot;
       }
       catch (Exception e) {
+         err = e;
+      }
+      catch (Error e) {
+         err = e;
+      }
+      if (err != null) {
          myErrMsg = 
             "Model class "+demoClass.getName()+" cannot be instantiated";
-         if (e.getMessage() != null) {
-            myErrMsg += ": \n" + e.getMessage();
+         if (err.getMessage() != null) {
+            myErrMsg += ": \n" + err.getMessage();
          }
-         e.printStackTrace();
-         return null;
+         err.printStackTrace();
       }
+      return null;
    }
    
    // Load model from a file. Used by script commands.
@@ -2208,7 +2215,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       
       if (success) {
          if (saveToHistory && myModelScriptHistory != null) {
-            myModelScriptHistory.update (info, new Date(System.currentTimeMillis()));
+            myModelScriptHistory.update (
+               info, new Date(System.currentTimeMillis()));
             myModelScriptHistory.save ();
          }
          myLastLoadInfo = info;
@@ -2634,8 +2642,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       
       ArgParser parser = new ArgParser ("java artisynth.core.driver.Main", false);
       parser.addOption ("-help %v #prints help message", printHelp);
-      parser.addOption ("-width %d #width (pixels)", viewerWidth);
-      parser.addOption ("-height %d #height (pixels)", viewerHeight);
+      parser.addOption ("-width %d #viewer width (pixels)", viewerWidth);
+      parser.addOption ("-height %d #viewer height (pixels)", viewerHeight);
       parser.addOption (
          "-bgColor %fX3 #background color (3 rgb values, 0 to 1)", bgColor);
       parser.addOption (

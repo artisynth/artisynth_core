@@ -173,8 +173,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       ColorInterpolation.RGB;
    private static final int DEFAULT_DEPTH_OFFSET = 0;
 
-   public static double DEFAULT_AXIS_LENGTH_RADIUS_RATIO = 60.0;
-   private double myAxisLengthRadiusRatio = DEFAULT_AXIS_LENGTH_RADIUS_RATIO;
+   public static double DEFAULT_AXIS_RADIUS_RATIO = 0.016;
+   private double myAxisRadiusRatio = DEFAULT_AXIS_RADIUS_RATIO;
    
    // viewer state
    protected static class ViewState {
@@ -525,9 +525,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          "rotationMode", "method for interactive rotation",
          DEFAULT_ROTATION_MODE);
       myProps.add (
-         "axisLengthRadiusRatio", 
-         "default length/radius ratio to be used when rendering solid axes",
-         DEFAULT_AXIS_LENGTH_RADIUS_RATIO, "NS");
+         "axisRadiusRatio", 
+         "default radius/length ratio to be used when rendering solid axes",
+         DEFAULT_AXIS_RADIUS_RATIO, "NS");
       myProps.add(
          "axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
       myProps.add (
@@ -682,15 +682,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    /**
     * {@inheritDoc}
     */
-   public double getAxisLengthRadiusRatio() {
-      return myAxisLengthRadiusRatio;
+   public double getAxisRadiusRatio() {
+      return myAxisRadiusRatio;
    }
    
    /**
     * {@inheritDoc}
     */   
-   public void setAxisLengthRadiusRatio (double ratio) {
-      myAxisLengthRadiusRatio = ratio;
+   public void setAxisRadiusRatio (double ratio) {
+      myAxisRadiusRatio = ratio;
       repaint();
    }
   
@@ -4182,7 +4182,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          }
          case ARROW: {
             if (rad <= 0) {
-               rad = maxLength(lens)/myAxisLengthRadiusRatio;
+               rad = myAxisRadiusRatio*maxLength(lens);
             }
             drawSolidAxes (X, lens, rad, highlight);
             break;

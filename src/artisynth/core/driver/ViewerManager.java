@@ -62,8 +62,8 @@ public class ViewerManager extends SettingsBase {
    public static AxisDrawStyle DEFAULT_AXIS_DRAW_STYLE = AxisDrawStyle.LINE;
    private AxisDrawStyle myAxisDrawStyle = DEFAULT_AXIS_DRAW_STYLE;
 
-   public static double DEFAULT_AXIS_LENGTH_RADIUS_RATIO = 60;
-   private double myAxisLengthRadiusRatio = DEFAULT_AXIS_LENGTH_RADIUS_RATIO;
+   public static double DEFAULT_AXIS_RADIUS_RATIO = 0.016;
+   private double myAxisRadiusRatio = DEFAULT_AXIS_RADIUS_RATIO;
 
    public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.FIXED_VERTICAL;
    protected RotationMode myRotationMode = DEFAULT_ROTATION_MODE;
@@ -135,9 +135,9 @@ public class ViewerManager extends SettingsBase {
          "axisDrawStyle", "style used for renderering axes", 
          DEFAULT_AXIS_DRAW_STYLE);
       myProps.add (
-         "axisLengthRadiusRatio", 
-         "default length/radius ratio to be used when rendering solid axes",
-         DEFAULT_AXIS_LENGTH_RADIUS_RATIO, "NS");
+         "axisRadiusRatio", 
+         "default radius/length ratio to be used when rendering solid axes",
+         DEFAULT_AXIS_RADIUS_RATIO, "NS");
       myProps.add (
          "rotationMode", "method for interactive rotation",
          DEFAULT_ROTATION_MODE);
@@ -467,7 +467,7 @@ public class ViewerManager extends SettingsBase {
       viewer.setBackgroundColor (myBackgroundColor);
       viewer.setHighlightColor (mySelectionColor);
       viewer.setAxisDrawStyle (myAxisDrawStyle);
-      viewer.setAxisLengthRadiusRatio (myAxisLengthRadiusRatio);
+      viewer.setAxisRadiusRatio (myAxisRadiusRatio);
       viewer.setRotationMode (getRotationMode());
       viewer.setEllipticCursorSize (getEllipticCursorSize());
       viewer.setSurfaceResolution (getSurfaceResolution());
@@ -518,15 +518,15 @@ public class ViewerManager extends SettingsBase {
       return myAxisDrawStyle;
    }
 
-   public void setAxisLengthRadiusRatio (double ratio) {
-      myAxisLengthRadiusRatio = ratio;
+   public void setAxisRadiusRatio (double ratio) {
+      myAxisRadiusRatio = ratio;
       for (Viewer v : myViewers) {
-         v.setAxisLengthRadiusRatio (ratio);
+         v.setAxisRadiusRatio (ratio);
       }
    }
 
-   public double getAxisLengthRadiusRatio() {
-      return myAxisLengthRadiusRatio;
+   public double getAxisRadiusRatio() {
+      return myAxisRadiusRatio;
    }
 
    public void setRotationMode (RotationMode mode) {

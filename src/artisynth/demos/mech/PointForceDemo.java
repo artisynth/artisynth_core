@@ -30,12 +30,11 @@ public class PointForceDemo extends FrameSpringDemo {
       RenderProps.setPointColor (m, Color.RED);
       RenderProps.setPointRadius (m, 0.01);
 
-      double magnitude = 0.001;
+      double magnitude = 1.0;
       Vector3d fext = new Vector3d (-1, 0, 0);
       // m.setExternalForce (fext);
       PointForce pf = new PointForce (fext, m);
       pf.setMagnitude (magnitude);
-      pf.setForceScaling(1000);  // mm spatial units
       pf.setAxisLength (0.1);
       RenderProps.setLineStyle (pf, LineStyle.CYLINDER);
       RenderProps.setLineRadius (pf, pf.getAxisLength() / 20);

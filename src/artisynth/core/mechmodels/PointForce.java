@@ -9,6 +9,7 @@ package artisynth.core.mechmodels;
 import maspack.geometry.GeometryTransformer;
 import maspack.properties.*;
 import maspack.render.*;
+import maspack.render.Renderer.Shading;
 import maspack.util.*;
 import maspack.util.ClassAliases;
 import maspack.matrix.*;
@@ -21,24 +22,29 @@ import java.util.*;
 public class PointForce extends ModelComponentBase 
    implements RenderableComponent, ScalableUnits, 
    ForceComponent, TransformableGeometry, CopyableComponent {
-
-   public static double DEFAULT_FORCE_SCALING = 1;
    
    protected Point myPnt;
-   protected Point3d myTail = new Point3d();
-   float[] myTailCoords = new float[3];
 
    protected Vector3d myForce = new Vector3d();
    protected Vector3d myU = new Vector3d (0, 0, 1.0);
    protected double myMag = 0;
-   private final double tol = 1e-6;
-   protected RigidTransform3d myXPF = new RigidTransform3d();
-   RigidTransform3d XPFnew = new RigidTransform3d();
-   Point3d up = new Point3d (0, 0, 1);
 
    double myAxisLength = 1.0;
 
+   // If true, causes arrow to be rendered outward from the point
+   public static boolean DEFAULT_RENDER_OUTWARD = false;
+   protected boolean myRenderOutward = DEFAULT_RENDER_OUTWARD;
+
+   // If > 0, scales the force norm to determine the axis length
+   public static double DEFAULT_LENGTH_FORCE_RATIO = 0;
+   protected double myForceLengthRatio = DEFAULT_LENGTH_FORCE_RATIO;
+
+   // If > 0, scales the axis length to determine its radius
+   public static double DEFAULT_AXIS_RADIUS_RATIO = 0;
+   protected double myAxisRadiusRatio = DEFAULT_AXIS_RADIUS_RATIO;
+
    // Allows scaling of force to account for units (1000 for mm)
+   public static double DEFAULT_FORCE_SCALING = 1;
    protected double forceScaling = DEFAULT_FORCE_SCALING; 
    Vector3d ftmp = new Vector3d();
 
@@ -48,12 +54,23 @@ public class PointForce extends ModelComponentBase
    static {
       myProps.add ("renderProps * *", "renderer properties", null);
       myProps.add ("force", "3d force vector", null);
-      myProps.add ("direction", "3d force direction", null);
-      myProps.add ("magnitude", "force magnitude", 0d);
+      myProps.add ("direction", "3d force direction", null, "NW");
+      myProps.add ("magnitude", "force magnitude", 0d, "NW");
       myProps.add ("axisLength", "length of rendered frame axes", 1f);
       myProps.add (
-         "forceScaling * *", "scale factor from normial force units", DEFAULT_FORCE_SCALING,
-         "%.8g");
+         "forceLengthRatio",
+         "if > 0, scales force norm to determine the axis length",
+         DEFAULT_LENGTH_FORCE_RATIO);
+      myProps.add (
+         "axisRadiusRatio",
+         "if > 0, scales the axis length to determine its radius",
+         DEFAULT_AXIS_RADIUS_RATIO);
+      myProps.add (
+         "renderOutward", "if true, draw arrow away from the point",
+         DEFAULT_RENDER_OUTWARD);
+      myProps.add (
+         "forceScaling",
+         "scale factor from normial force units", DEFAULT_FORCE_SCALING, "%.8g");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -100,10 +117,10 @@ public class PointForce extends ModelComponentBase
       if (scanAndStoreReference (rtok, "point", tokens)) {
          return true;
       }
-      else if (scanAttributeName (rtok, "force")) {
-         myForce.scan (rtok);
-         return true;
-      }
+//      else if (scanAttributeName (rtok, "force")) {
+//         myForce.scan (rtok);
+//         return true;
+//      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
@@ -131,11 +148,11 @@ public class PointForce extends ModelComponentBase
 
       pw.println ("point=" +
                   ComponentUtils.getWritePathName (ancestor, myPnt));
-      if (!myForce.equals (Vector3d.ZERO)) {
-         pw.print ("force=");
-         myForce.write (pw, fmt);
-         pw.println ("");
-      }
+//      if (!myForce.equals (Vector3d.ZERO)) {
+//         pw.print ("force=");
+//         myForce.write (pw, fmt);
+//         pw.println ("");
+//      }
       super.writeItems (pw, fmt, ancestor);
    }
 
@@ -143,17 +160,35 @@ public class PointForce extends ModelComponentBase
 
    protected RenderProps myRenderProps;
 
-   private float[] getRenderCoords0() {
-      return myPnt.myRenderCoords;
+   private double getEffectiveAxisLength() {
+      if (myForceLengthRatio > 0) {
+         return myForceLengthRatio*myMag;
+      }
+      else {
+         return myAxisLength;
+      }
    }
 
-   private float[] getRenderCoords1() {
-      myTail.scaledAdd (-myAxisLength, myU, myPnt.getPosition());
+   private float[] getTipCoords() {
+      if (myRenderOutward) {
+         Vector3d tip = new Vector3d();
+         tip.scaledAdd (getEffectiveAxisLength(), myU, myPnt.getPosition());
+         return new float[] {(float)tip.x, (float)tip.y,(float) tip.z};
+      }
+      else {
+         return myPnt.myRenderCoords;         
+      }
+   }
 
-      myTailCoords[0] = (float)myTail.x;
-      myTailCoords[1] = (float)myTail.y;
-      myTailCoords[2] = (float)myTail.z;
-      return myTailCoords;
+   private float[] getEndCoords() {
+      if (myRenderOutward) {
+         return myPnt.myRenderCoords; 
+      }
+      else {
+         Vector3d end = new Vector3d();
+         end.scaledAdd (-getEffectiveAxisLength(), myU, myPnt.getPosition());
+         return new float[] {(float)end.x, (float)end.y,(float) end.z};
+      }
    }
 
    public RenderProps getRenderProps() {
@@ -175,7 +210,14 @@ public class PointForce extends ModelComponentBase
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myPnt.updateBounds (pmin, pmax);
-      myTail.updateBounds (pmin, pmax);
+      Vector3d other = new Vector3d();
+      if (myRenderOutward) {
+         other.scaledAdd (getEffectiveAxisLength(), myU, myPnt.getPosition());
+      }
+      else {
+         other.scaledAdd (-getEffectiveAxisLength(), myU, myPnt.getPosition());
+      }
+      other.updateBounds (pmin, pmax);
    }
 
    public int getRenderHints() {
@@ -194,11 +236,25 @@ public class PointForce extends ModelComponentBase
       return -1;
    }
 
+   private void drawArrow (
+      Renderer renderer, float[] pnt0, float[] pnt1) {
+      //boolean savedHighlighting = getHighlighting();
+   }
+
    public void render (Renderer renderer, int flags) {
       if (myMag > 0) {
-      renderer.drawArrow (
-         myRenderProps, getRenderCoords1(), getRenderCoords0(),
-         true /* capped */, isSelected());
+         Shading savedShading = renderer.setLineShading (myRenderProps);
+         renderer.setLineColoring (myRenderProps, isSelected());     
+         double rad;
+         if (myAxisRadiusRatio > 0) {
+            rad = myAxisRadiusRatio*getEffectiveAxisLength();
+         }
+         else {
+            rad = myRenderProps.getLineRadius();
+         }
+         renderer.drawArrow (
+            getEndCoords(), getTipCoords(), rad, true /* capped */);
+         renderer.setShading(savedShading);
       }
    }
 
@@ -215,56 +271,31 @@ public class PointForce extends ModelComponentBase
          RenderableUtils.cloneRenderProps (this);
          myRenderProps.scaleDistance (s);
       }
-      forceScaling *= s;
-      setForce (myForce);
+      myMag *= s;
+      myForce.scale (myMag, myU);
       myAxisLength *= s;
    }
 
    public void scaleMass (double s) {
-      forceScaling *= s;
+      myMag *= s;
+      myForce.scale (myMag, myU);
       setForce (myForce);
    }
-
-   private void updateForceVector() {
-      myU.transform (myXPF, up);
-      myU.normalize();
-      if (myMag < tol)
-         myForce.setZero();
-      else
-         myForce.scale (myMag, myU);
-
-   }
-
    public Vector3d getDirection() {
       return myU;
    }
 
    public void setDirection (Vector3d dir) {
-      if (dir.norm() < tol)
+      if (dir.norm() == 0) {
          return;
-
-      Vector3d k = new Vector3d(), j = new Vector3d(), i = new Vector3d();
-      k.normalize (dir);
-      i.cross (up, k);
-      if (i.norm() > 1e-6) {
-         i.normalize();
-         j.cross (k, i);
-
-         myXPF.R.setColumn (0, i);
-         myXPF.R.setColumn (1, j);
-         myXPF.R.setColumn (2, k);
       }
-      else {
-         myXPF.R.setZDirection (k);
-      }
-
-      myU.set (k);
-      updateForceVector();
+      myU.normalize (dir);
+      myForce.scale (myMag, myU);
    }
    
-   public RigidTransform3d getPose() {
-      return new RigidTransform3d (myXPF);
-   }
+//   public RigidTransform3d getPose() {
+//      return new RigidTransform3d (myXPF);
+//   }
 
    public Vector3d getForce() {
       ftmp.scale (1 / forceScaling, myForce);
@@ -272,10 +303,8 @@ public class PointForce extends ModelComponentBase
    }
 
    public void setForce (Vector3d f) {
-      myMag = f.norm() * forceScaling;
-      setDirection (f);
-      updateForceVector(); // Edit: Sanchez, Nov 2013, added since setForce(ZERO) doesn't update force vector 
-      // setDirection ((Vector3d)validateDirection (f, null));
+      myForce.scale (forceScaling, f);
+      updateDirectionAndMag();
    }
 
    public double getMagnitude() {
@@ -284,7 +313,15 @@ public class PointForce extends ModelComponentBase
 
    public void setMagnitude (double mag) {
       myMag = mag * forceScaling;
-      updateForceVector();
+      myForce.scale (myMag, myU);
+   }
+
+   public boolean getRenderOutward() {
+      return myRenderOutward;
+   }
+
+   public void setRenderOutward (boolean enable) {
+      myRenderOutward = enable;
    }
 
    public double getAxisLength() {
@@ -292,7 +329,23 @@ public class PointForce extends ModelComponentBase
    }
 
    public void setAxisLength (double len) {
-      myAxisLength = Math.max (0, len);
+      myAxisLength = len;
+   }
+
+   public double getForceLengthRatio() {
+      return myForceLengthRatio;
+   }
+
+   public void setForceLengthRatio (double r) {
+      myForceLengthRatio = r;
+   }
+
+   public double getAxisRadiusRatio() {
+      return myAxisRadiusRatio;
+   }
+
+   public void setAxisRadiusRatio (double r) {
+      myAxisRadiusRatio = r;
    }
 
    public double getForceScaling() {
@@ -301,18 +354,31 @@ public class PointForce extends ModelComponentBase
 
    public void setForceScaling (double forceScaling) {
       // adjust current force based on new force scaling
-      myMag = myMag/this.forceScaling*forceScaling;
+      myMag *= forceScaling/this.forceScaling;
       this.forceScaling = forceScaling;
-      updateForceVector();
+      myForce.scale (myMag, myU);
    }
 
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-      
-      XPFnew.set (myXPF);
-      gtr.transform (XPFnew);
-      myXPF.R.set (XPFnew.R); // take only rotational part
-      updateForceVector();     
+
+      if (context.isTransformed (myPnt) && !gtr.isAffine()) {
+         System.out.println (
+            "WARNING: non-linear geometric transformation not fully " +
+            "supported for PointForce; results may be inaccurate");
+      }
+      gtr.transformNormal (myForce, myPnt.getPosition());
+      updateDirectionAndMag();
+   }
+   
+   private void updateDirectionAndMag() {
+      myMag = myForce.norm();
+      if (myMag != 0) {
+         myU.scale (1/myMag, myForce);
+      }
+      else {
+         myU.setZero();
+      }
    }
    
    public void addTransformableDependencies (

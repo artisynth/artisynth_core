@@ -82,6 +82,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
    ArrayList<Vector3d> myKnotStartVals = new ArrayList<>();
    File mySplineFile;
    File myCurveFile;
+   int myLineWidth = 2;
 
    class SplineRenderer implements Renderable {
       CubicHermiteSpline1d mySpline;
@@ -148,7 +149,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
          // draw the curve
 
-         renderer.setLineWidth (2); 
+         renderer.setLineWidth (myLineWidth); 
          renderer.setColor (Color.WHITE); 
 
          renderer.beginSelectionQuery (mySpline.numKnots());
@@ -239,7 +240,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
          // draw the curve
 
-         renderer.setLineWidth (2); 
+         renderer.setLineWidth (myLineWidth); 
          renderer.setColor (Color.GREEN); 
 
          renderer.beginDraw (DrawMode.LINE_STRIP);
@@ -567,6 +568,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
    static BooleanHolder drawAxes = new BooleanHolder (false);
    static DoubleHolder axisLength = new DoubleHolder (-1);
    static DoubleHolder yscale = new DoubleHolder (1);
+   static IntHolder lineWidth = new IntHolder (2);
    static StringHolder graphicsInterface = new StringHolder ("GL3");
 
    public static void main (String[] args) {
@@ -581,6 +583,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       parser.addOption ("-width %d #width (pixels)", width);
       parser.addOption ("-height %d #height (pixels)", height);
       parser.addOption ("-drawAxes %v #draw coordinate axes", drawAxes);
+      parser.addOption ("-lineWidth %d #width for rendering lines", lineWidth);
       parser.addOption ("-spline %s #file defining the spline", splineFileName);
       parser.addOption (
          "-curve %s #file defining the reference curve", curveFileName);
@@ -628,6 +631,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       catch (Exception e) {
          e.printStackTrace();
       }
+      editor.myLineWidth = lineWidth.value;
 
       editor.setVisible (true);
    }

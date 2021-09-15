@@ -334,10 +334,10 @@ public class TransformGeometryTest extends UnitTest {
          attrs.set (p, "normal", p.getNormal());
          attrs.set (p, "center", p.getCenter());
       }
-      if (c instanceof PointForce) {
-         PointForce p = (PointForce)c;
-         attrs.set (c, "pose", p.getPose());
-      }
+//      if (c instanceof PointForce) {
+//         PointForce p = (PointForce)c;
+//         attrs.set (c, "pose", p.getPose());
+//      }
       if (c instanceof BodyConnector) {
          BodyConnector b = (BodyConnector)c;
          attrs.set (b, "TCW", b.getCurrentTCW());

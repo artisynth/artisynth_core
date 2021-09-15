@@ -1861,47 +1861,42 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       utmp.normalize();
       vtmp.set (pnt0[0], pnt0[1], pnt0[2]);
       double arrowRad = 3 * props.getLineRadius();
-      double arrowLen = 2*arrowRad;
+      double arrowLen = Math.min(2*arrowRad,len/2);      
       vtmp.scaledAdd (len-arrowLen, utmp);
       ctmp[0] = (float)vtmp.x;
       ctmp[1] = (float)vtmp.y;
       ctmp[2] = (float)vtmp.z;
 
-      if (len > arrowLen) {
-         switch (props.getLineStyle()) {
-            case LINE: {
-               setLineWidth (gl, props.getLineWidth());
-               gl.glBegin (GL2.GL_LINES);
-               gl.glVertex3fv (pnt0, 0);
-               gl.glVertex3fv (ctmp, 0);
-               gl.glEnd();             
-               break;
-            }
-            case CYLINDER:
-            case SOLID_ARROW: {
-               drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
-               break;
-            }
-            case SPINDLE: {
-               drawSpindle (pnt0, pnt1, props.getLineRadius());
-               break;
-            }
-            default: {
-               throw new InternalErrorException (
-                  "Unimplemented line style " + props.getLineStyle());
-            }
+      switch (props.getLineStyle()) {
+         case LINE: {
+            setLineWidth (gl, props.getLineWidth());
+            gl.glBegin (GL2.GL_LINES);
+            gl.glVertex3fv (pnt0, 0);
+            gl.glVertex3fv (ctmp, 0);
+            gl.glEnd();             
+            break;
+         }
+         case CYLINDER:
+         case SOLID_ARROW: {
+            drawCylinder (pnt0, ctmp, props.getLineRadius(), capped);
+            break;
+         }
+         case SPINDLE: {
+            drawSpindle (pnt0, pnt1, props.getLineRadius());
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented line style " + props.getLineStyle());
          }
       }
+
       if (props.getLineStyle() == LineStyle.LINE) {
          // reset shading from NONE to props value
          setShading (props.getShading());
       }
-      if (len <= arrowLen) {
-         doDrawCylinder (pnt0, pnt1, capped, len/2, 0.0);
-      }
-      else {
-         doDrawCylinder (ctmp, pnt1, capped, arrowRad, 0.0);
-      }
+      doDrawCylinder (ctmp, pnt1, capped, arrowRad, 0.0);
+
       setShading(savedShading);
       setHighlighting (savedHighlighting);
    }

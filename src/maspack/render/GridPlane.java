@@ -637,13 +637,17 @@ public class GridPlane implements HasProperties {
       return ATW;
    }
 
+   private RigidTransform3d getAlignedPose (RigidTransform3d TGW){
+      RigidTransform3d TGWnew = alignToWorld (TGW);
+      AlignConstrainer aligner = new AlignConstrainer();
+      aligner.updatePose (TGWnew, TGW);
+      return TGWnew;
+   }
+   
    public void setGridToWorld (RigidTransform3d TGW) {
       XGridToWorldTarget.set (TGW);
       if (myLockAxesToWorld) {
-         RigidTransform3d TGWnew = alignToWorld (TGW);
-         AlignConstrainer aligner = new AlignConstrainer();
-         aligner.updatePose (TGWnew, TGW);
-         XGridToWorld.set (TGWnew);
+         XGridToWorld.set (getAlignedPose(TGW));
       }
       else {
          XGridToWorld.set (TGW);
@@ -1209,23 +1213,14 @@ public class GridPlane implements HasProperties {
          GridResolution res = updateResolution (distPerPixel);
          if (!myResolution.equals (res)) {
             if (myUseWorldOrigin) {
-               // May need to change position to accomodate new resolution.
-               RigidTransform3d TGWnew =
-                  new RigidTransform3d (XGridToWorldTarget);
-               AlignConstrainer aligner = new AlignConstrainer();
-               aligner.updatePose (TGWnew, XGridToWorldTarget);
+               // May need to change position to accommodate new resolution.
+               RigidTransform3d TGWnew = getAlignedPose(XGridToWorldTarget);
                double dpp = computeFocalPoint (null, TGWnew, renderer);
                GridResolution resx = updateResolution (dpp);
                if (resx.equals (res)) {
                   myResolution.set (res);
-                  setGridToWorld (TGWnew);
+                  setGridToWorld (XGridToWorldTarget);
                }
-               else {
-                  //System.out.println ("cycle detected");
-               }
-               // Old code without cycle detection
-               //myResolution.set (res);
-               //setGridToWorld (XGridToWorldTarget);
             }
             else {
                myResolution.set (res);

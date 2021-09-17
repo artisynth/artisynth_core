@@ -990,8 +990,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (visible && !myTimelinePreviouslyVisible) {
          // set whether timeline is to the right
          RelativeLocation loc = myLayoutPrefs.getTimelineLocation();
-         if (timelineRight.value) {
-            loc = RelativeLocation.RIGHT;
+         if (timelineLocation.value != null) {
+            RelativeLocation cmdloc =
+               RelativeLocation.fromString (timelineLocation.value);
+            if (cmdloc == null) {
+               System.out.println (
+                  "Unknown timeline location '"+timelineLocation.value+
+                  "'; using "+loc);
+            }
+            else {
+               loc = cmdloc;
+            }
          }
          setTimelineLocation (loc);
          myTimelinePreviouslyVisible = true;
@@ -1243,6 +1252,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (visible && !myJythonPreviouslyVisible) {
          // set whether timeline is to the right
          RelativeLocation loc = myLayoutPrefs.getJythonLocation();
+         if (jythonLocation.value != null) {
+            RelativeLocation cmdloc =
+               RelativeLocation.fromString (jythonLocation.value);
+            if (cmdloc == null) {
+               System.out.println (
+                  "Unknown Jython location '"+jythonLocation.value+
+                  "'; using "+loc);
+            }
+            else {
+               loc = cmdloc;
+            }
+         }
          setJythonLocation (loc);
          myJythonPreviouslyVisible = true;
       }
@@ -1631,8 +1652,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
          // is timeline visible?
          boolean isTimelineVisible = myLayoutPrefs.isTimelineVisible();
-         if (!startWithTimeline.value) {
+         if (timelineHidden.value) {
             isTimelineVisible = false;
+         }
+         else if (timelineVisible.value) {
+            isTimelineVisible = true;
          }
          
          // Prevent deadlock by AWT thread
@@ -2414,9 +2438,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder drawGrid = new BooleanHolder (false);
    protected static StringHolder axialView = new StringHolder();
    protected static BooleanHolder orthographic = new BooleanHolder (false);
-   protected static BooleanHolder startWithTimeline = new BooleanHolder (true);
+   protected static BooleanHolder timelineHidden = new BooleanHolder (false);
+   protected static BooleanHolder timelineVisible = new BooleanHolder (false);
    protected static BooleanHolder startWithJython = new BooleanHolder (false);
-   protected static BooleanHolder timelineRight = new BooleanHolder (false);
+   protected static StringHolder jythonLocation = new StringHolder();
+   protected static StringHolder timelineLocation = new StringHolder();
    protected static IntHolder timelineWidth = new IntHolder (-1);
    protected static IntHolder timelineHeight = new IntHolder (-1);
    protected static BooleanHolder printOptions = new BooleanHolder (false);
@@ -2674,18 +2700,24 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-axialView %s{xy,xz} #initial view of x-y or x-z axes", axialView);
       parser.addOption (
-         "-noTimeline %v{false} #do not start with a timeline",
-         startWithTimeline);
+         "-timelineHidden %v #hide the timeline at startup", timelineHidden);
+      parser.addOption (
+         "-timelineVisible %v #show the timeline at startup", timelineVisible);
       parser.addOption (
          "-showJythonConsole %v{true} #create jython console on startup",
          startWithJython);
+      parser.addOption (
+         "-jythonLocation %s{CENTER,LEFT,RIGHT,ABOVE,BELOW} "+
+         "#initial location of the Jython console",
+         jythonLocation);
       parser.addOption (
          "-timelineWidth %d #width of the timeline", timelineWidth);
       parser.addOption (
          "-timelineHeight %d #height of the timeline", timelineHeight);
       parser.addOption (
-         "-timelineRight %v{true} #start with a timeline alligned to the right",
-         timelineRight);
+         "-timelineLocation %s{CENTER,LEFT,RIGHT,ABOVE,BELOW} "+
+         "#initial location of the timeline",
+         timelineLocation);
       parser.addOption ("-fps %f{[0,1e100]}#frames per second", framesPerSecond);
       // parser.addOption ("-fullscreen %v #full screen renderer", fullScreen);
       // parser.addOption("-yup %v #initialize viewer with Y-axis up", yup);

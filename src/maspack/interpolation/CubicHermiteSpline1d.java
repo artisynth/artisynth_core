@@ -129,6 +129,10 @@ public class CubicHermiteSpline1d
          return y0;
       }
 
+      public double getY(double alpha) {
+         return y0 + x0*alpha;
+      }
+
       public double getDy() {
          return dy0;
       }
@@ -192,6 +196,27 @@ public class CubicHermiteSpline1d
          else {
             double[] roots = new double[3];
             CubicSolver.getRoots (roots, a3, a2, dy0, y0-y, 0.0, next.x0-x0);
+            return roots[0] + x0;
+         }
+      }
+
+      /**
+       * Solves for x given a value of y associated with this interval.  {@code
+       * alpha} defines an additional linear term {@code alpha x} that should
+       * be added to the segment's value. It is assumed that we have already
+       * determined that a unqiue solution exists.  If by some chance multiple
+       * roots are found, we return the first.
+       */
+      public double solveX (double y, double alpha, Knot next) {
+         double a0 = y0 + alpha*x0;
+         double a1 = dy0 + alpha;
+         if (next == null) {
+            // just x0, y0 and dy0 values
+            return x0 + (y-a0)/a1;
+         }
+         else {
+            double[] roots = new double[3];
+            CubicSolver.getRoots (roots, a3, a2, a1, a0-y, 0.0, next.x0-x0);
             return roots[0] + x0;
          }
       }
@@ -492,6 +517,26 @@ public class CubicHermiteSpline1d
    }
 
    /**
+    * Evaluates the y value of the function composed of this spline plus a linear
+    * term {@code alpha x} at a specific x value. Values which are outside
+    * the specified knot range are extrapolated based on y and dy values at the
+    * end point knots. An empty spline evaluates to 0.
+    *
+    * @param x value at which y should be evaluated
+    * @param alpha slope of the additional linear term
+    */
+   public double evalY (double x, double alpha) {
+      if (numKnots() == 0) {
+         return alpha*x;
+      }
+      Knot prev = getPreviousKnot (x);
+      if (prev == null) {
+         prev = myKnots.get(0);
+      }
+      return prev.eval(x) + alpha*x;
+   }
+
+   /**
     * Evaluates the y derivative value at a specific x value. Values
     * which are outside the specified knot range are extrapolated based on y
     * and dy values at the end point knots. An empty spline evaluates to 0.
@@ -507,6 +552,26 @@ public class CubicHermiteSpline1d
          prev = myKnots.get(0);
       }
       return prev.evalDeriv (x);
+   }
+   
+   /**
+    * Evaluates the y derivative of the function composed of this spline plus a
+    * linear term {@code alpha x} at a specific x value. Values which are
+    * outside the specified knot range are extrapolated based on y and dy
+    * values at the end point knots. An empty spline evaluates to 0.
+    *
+    * @param x value at which the y derivative should be evaluated
+    * @param alpha slope of the additional linear term
+    */
+   public double evalDy (double x, double alpha) {
+      if (numKnots() == 0) {
+         return alpha;
+      }
+      Knot prev = getPreviousKnot (x);
+      if (prev == null) {
+         prev = myKnots.get(0);
+      }
+      return prev.evalDeriv (x) + alpha;
    }
    
    /**
@@ -817,6 +882,66 @@ public class CubicHermiteSpline1d
                if ((ydir == 1 && y >= knot.getY() && y <= next.getY()) ||
                    (ydir == -1 && y <= knot.getY() && y >= next.getY())) {
                   return knot.solveX (y, next);
+               }
+            }
+            throw new InternalErrorException (
+               "Interval for y=" + y +
+               " not found, even though spline is invertible");
+         }
+      }
+      
+   }
+
+  /**
+    * Solves for the x value given a specific y value of the function defined
+    * by this spline plus a linear term {@code alpha x}. In order to do this,
+    * the spline must be invertible, and the sign of {@code alpha} must be
+    * consistent with its monotonicity. Y values outside the nominal range are
+    * extrapolated based on the x and 1/dy values at the end knots.
+    *
+    * @param y value for which x should be solvde
+    * @param alpha slope of the additional linear term
+    * @throws ImproperStateException if the spline is not invertible
+    * @throws IllegalArgumentException if the sign of {@code alpha}
+    * is inconsistent with the spline's monotonicity.
+    */
+   public double solveX (double y, double alpha) {
+      if (!isInvertible()) {
+         throw new ImproperStateException (
+            "spline is not invertible");
+      }
+      if (numKnots() == 1) {
+         // just use first knot
+         return myKnots.get(0).solveX (y, alpha, null);
+      }
+      else {
+         // y direction: 1 if y increases with knots, -1 if it decreases
+         Knot first = myKnots.get(0);
+         Knot last = myKnots.get(numKnots()-1);
+         int ydir = (last.getY() > first.getY()) ? 1 : -1;
+         if (alpha*ydir < 0) {
+            throw new IllegalArgumentException (
+               "sign of alpha incompatible with the monotonicity of the spline");
+         }
+         if ((ydir == 1 && y <= first.getY(alpha)) || 
+             (ydir == -1 && y >= first.getY(alpha))) {
+            // extrapolate solution from first knot
+            return first.solveX (y, alpha, null);
+         }
+         else if ((ydir == 1 && y >= last.getY(alpha)) || 
+                  (ydir == -1 && y <= last.getY(alpha))) {
+            // extrapolate solution from last knot
+            return last.solveX (y, alpha, null);
+         }
+         else {
+            for (int i=0; i<numKnots()-1; i++) {
+               Knot knot = myKnots.get(i);
+               Knot next = myKnots.get(i+1);
+               if ((ydir == 1 && y >= knot.getY(alpha) &&
+                    y <= next.getY(alpha)) ||
+                   (ydir == -1 && y <= knot.getY(alpha) &&
+                    y >= next.getY(alpha))) {
+                  return knot.solveX (y, alpha, next);
                }
             }
             throw new InternalErrorException (

@@ -45,7 +45,17 @@ public class GuiUtils {
       LEFT,
       RIGHT,
       ABOVE,
-      BELOW
+      BELOW;
+
+      // like valueOf() but returns null if no match
+      public static RelativeLocation fromString (String str) {
+         try {
+            return valueOf (str);
+         }
+         catch (Exception e) {
+            return null;
+         }
+      }
    }
 
    /**

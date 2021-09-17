@@ -1101,10 +1101,13 @@ Controls how world coordinate axes are drawn (Section
 \ref{worldCoordAxes:sec}), with {\sf LINE} and {\sf ARROW} specifying
 simple lines and solid arrows, respectively.
 
-\item[axisLengthRadiusRatio]\mbox{}
+\item[axisRadiusRatio]\mbox{}
 
-When coordinate axes are drawn as solid arrows, specifies the ratio of
-the axis length to the arrow radius.
+A ratio which can be used to determine the radius for an axis when the
+radius is not explicitly specified. The radius is computed by
+multiplying the ratio by the axis length. This is typically used when
+rendering coordinate axes as solid arrows and has a default value of
+0.016.
 
 \item[rotationMode]\mbox{}
 
@@ -3880,10 +3883,11 @@ and making movies (Section \ref{MoviePreferences:sec}). Preferences
 can also be set for the application layout, as described in the
 next section.
 
-\subsubsection{Layout preferences}
+\subsection{Layout preferences}
 
-Layout preferences control the size and visibility of
-different application windows.
+Layout preferences control the size and visibility of different
+application windows, as well as the look and feel of the user
+interface.
 
 \begin{description}
 
@@ -3891,24 +3895,56 @@ different application windows.
 
 Width of the main ArtiSynth viewer (in pixels). Note that this and the
 {\sf viewerHeight} property describe the size of the viewer itself,
-and not the overall application window containing the viewer.
+and not the overall application window containing the viewer.  The
+viewer width can also be set from the command line with the option
+%
+\begin{verbatim}
+  -width <pixels>
+\end{verbatim}
+%
 
 \item[viewerHeight]\mbox{}
 
-Height of the main ArtiSynth viewer window (in pixels).
+Height of the main ArtiSynth viewer window (in pixels). This can also
+be set from the command line with the option
+%
+\begin{verbatim}
+  -height <pixels>
+\end{verbatim}
+%
 
 \item[timelineVisible]\mbox{}
 
 Whether or not the timeline (Section \ref{TimelineSec}) is visible
-when ArtiSynth starts up.
+when ArtiSynth starts up. The default value is {\tt true}. Initial
+timeline visibility can also be controlled with the command line
+options
+%
+\begin{verbatim}
+  -timelineVisible
+  -timelineHidden
+\end{verbatim}
+%
 
 \item[timelineWidth]\mbox{}
 
-Initial width of the timeline (in pixels).
+Initial width of the timeline (in pixels). This can also be set 
+from the command line with the option
+%
+\begin{verbatim}
+  -timelineWidth <pixels>
+\end{verbatim}
+%
 
 \item[timelineHeight]\mbox{}
 
-Initial height of the timeline (in pixels).
+Initial height of the timeline (in pixels). This can also be set
+from the command line with the option
+%
+\begin{verbatim}
+  -timelineHeight <pixels>
+\end{verbatim}
+%
 
 \item[timelineRange]\mbox{}
 
@@ -3916,22 +3952,91 @@ Default timeline range that is used to initialize the visible part of
 the timeline when a model is loaded. A value $\le 0$ implies that the
 range will be set automatically. If set to a value $> 0$, the actual
 amount of time visible may be slightly larger because of the way the
-timeline is scaled.
+timeline is scaled. The timeline range can also be set from the
+command line with the option
+%
+\begin{verbatim}
+  -timelineRange <value>
+\end{verbatim}
 
 \item[timelineLocation]\mbox{}
 
 Initial location of the timeline with respect to the main ArtiSynth
-application window.
+application window. This can also be set
+from the command line option with the option
+%
+\begin{verbatim}
+  -timelineLocation <loc>
+\end{verbatim}
+%
+where {\tt loc} is one of {\tt CENTER}, {\tt LEFT}, {\tt RIGHT}, {\tt
+ABOVE} or {\tt BELOW}.
 
 \item[jythonFrameVisible]\mbox{}
 
 Whether or not a Jython console frame (Section \ref{Jython:sec})
-should be displayed when ArtiSynth starts up.
+should be displayed when ArtiSynth starts up. The default value is
+{\tt false}. A Jython console can also be requested at startup with
+the command line option
+%
+\begin{verbatim}
+  -showJythonConsole
+\end{verbatim}
+%
 
 \item[jythonLocation]\mbox{}
 
 Initial location of the Jython frame with respect to the main
-ArtiSynth application window.
+ArtiSynth application window. This can also be set from the command
+line with the option
+%
+\begin{verbatim}
+  -jythonLocation <loc>
+\end{verbatim}
+%
+where {\tt loc} is one of {\tt CENTER}, {\tt LEFT}, {\tt RIGHT}, {\tt
+ABOVE} or {\tt BELOW}.
+
+\item[lookAndFeel]\mbox{}
+
+Controls the look and feel of the user interface (UI). The ArtiSynth
+UI is built using Java Swing, which supports pluggable look and feel.
+At the time of this writing, the look and feel options are:
+
+\begin{description}
+
+\item[DEFAULT]\mbox{}
+
+The default provided by the Java environment. On Windows and Linux
+systems, this is {\sf METAL}, while MacOS provides its own proprietary
+look and feel.
+
+\item[METAL]\mbox{}
+
+The standard Swing cross-platform look and feel. On MacOS, it is
+necessary to specify this explicity to avoid its native look and feel.
+
+\item[SYSTEM]\mbox{}
+
+The native system look and feel.
+
+\end{description}
+
+A restart is required when changing the look and feel. It is also
+possible to specify the look and feel from the command line
+using the option
+%
+\begin{verbatim}
+  -lookAndFeel <laf>
+\end{verbatim}
+%
+where {\tt laf} is one of the options described above.
+
+\begin{sideblock}
+The {\sf SYSTEM} look and feel may cause problems on some systems. For
+example, at the time of this writing, the Windows UI is not fully
+compatible with certain dialogs used to save files.
+\end{sideblock}
 
 \end{description}
 

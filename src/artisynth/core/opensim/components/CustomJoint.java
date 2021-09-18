@@ -47,8 +47,6 @@ public class CustomJoint extends JointBase {
    public OpenSimCustomJoint createJoint (
       RigidBody parent, RigidTransform3d TJP, RigidBody child, RigidTransform3d TJC) {
       
-      // try to use Spherical, SphericalRpy, RollPitch, Revolute
-      
       RigidBody childRB = child;
       RigidBody parentRB = parent;
       RigidTransform3d childTrans = TJC;

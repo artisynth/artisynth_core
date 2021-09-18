@@ -1,6 +1,7 @@
 package artisynth.core.opensim.components;
 
 import artisynth.core.materials.*;
+import maspack.interpolation.*;
 
 public class Millard2012EquilibriumMuscle extends MuscleBase {
 
@@ -15,8 +16,10 @@ public class Millard2012EquilibriumMuscle extends MuscleBase {
    private double minimum_activation;   // "Activation lower bound"
    private double maximum_pennation_angle;   // "Maximum pennation angle (in radians)
 
-   // Need to implement:
-   //  activeForceLengthCurve;
+   ActiveForceLengthCurve activeForceLengthCurve;
+   FiberForceLengthCurve fiberForceLengthCurve;
+   TendonForceLengthCurve tendonForceLengthCurve;
+   ForceVelocityCurve forceVelocityCurve;
    //  forceVelocityCurve;
    //  fiberForceLengthCurve;
    //  tendonForceLengthCurve;
@@ -82,15 +85,34 @@ public class Millard2012EquilibriumMuscle extends MuscleBase {
    }
 
    @Override
-   public AxialMuscleMaterial createMuscleMaterial() {
+   public AxialMaterial createMuscleMaterial() {
       //      PeckAxialMuscle mat = new PeckAxialMuscle ();
       //      mat.setForceScaling (1);
       //      mat.setMaxForce (max_isometric_force);
       //      mat.setOptLength (optimal_fiber_length+tendon_slack_length);
       //      mat.setTendonRatio (tendon_slack_length/(optimal_fiber_length+tendon_slack_length));
-      ConstantAxialMuscle mat = new ConstantAxialMuscle ();
-      mat.setMaxForce (max_isometric_force);
-      mat.setForceScaling (1.0);
+      // ConstantAxialMuscle mat = new ConstantAxialMuscle ();
+      // mat.setMaxForce (max_isometric_force);
+      // mat.setForceScaling (1.0);
+
+      Millard2012AxialMuscle mat = new Millard2012AxialMuscle();
+      mat.setMaxIsoForce (max_isometric_force);
+      mat.setOptFibreLength (optimal_fiber_length);
+      mat.setOptPennationAngle (pennation_angle_at_optimal);
+      mat.setMaxPennationAngle (maximum_pennation_angle);
+      mat.setTendonSlackLength (tendon_slack_length);
+      if (activeForceLengthCurve != null) {
+         mat.setActiveForceLengthCurve (activeForceLengthCurve.createCurve());
+      }
+      if (tendonForceLengthCurve != null) {
+         mat.setTendonForceLengthCurve (tendonForceLengthCurve.createCurve());
+      }
+      if (fiberForceLengthCurve != null) {
+         mat.setPassiveForceLengthCurve (fiberForceLengthCurve.createCurve());
+      }
+      if (forceVelocityCurve != null) {
+         mat.setForceVelocityCurve (forceVelocityCurve.createCurve());
+      }
       return mat;
    }
    

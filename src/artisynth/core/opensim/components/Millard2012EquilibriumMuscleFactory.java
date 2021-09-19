@@ -46,13 +46,37 @@ public class Millard2012EquilibriumMuscleFactory extends MuscleBaseFactory<Milla
       } else if ("maximum_pennation_angle".equals(name)) {
          comp.setMaximumPennationAngle (parseDoubleValue (child));
       } else if ("ActiveForceLengthCurve".equals(name)) {
-         // need to implement
+         ActiveForceLengthCurveFactory cf = new ActiveForceLengthCurveFactory();
+         if (cf != null) {
+            comp.activeForceLengthCurve = cf.parse(child);
+         }
+         else {
+            success = false;
+         }
       } else if ("ForceVelocityCurve".equals(name)) {
-         // need to implement
+         ForceVelocityCurveFactory cf = new ForceVelocityCurveFactory();
+         if (cf != null) {
+            comp.forceVelocityCurve = cf.parse(child);
+         }
+         else {
+            success = false;
+         }
       } else if ("FiberForceLengthCurve".equals(name)) {
-         // need to implement
+         FiberForceLengthCurveFactory cf = new FiberForceLengthCurveFactory();
+         if (cf != null) {
+            comp.fiberForceLengthCurve = cf.parse(child);
+         }
+         else {
+            success = false;
+         }
       } else if ("TendonForceLengthCurve".equals(name)) {
-         // need to implement
+         TendonForceLengthCurveFactory cf = new TendonForceLengthCurveFactory();
+         if (cf != null) {
+            comp.tendonForceLengthCurve = cf.parse(child);
+         }
+         else {
+            success = false;
+         }
       } else {
          success = super.parseChild (comp, child);
       }

@@ -143,10 +143,8 @@ public class Model4 extends ModelBase {
             pose.mul (parent.transform, pose);
             parent = parentMap.get(parent.body);
          }
-         
          RigidBody rb = (RigidBody)componentMap.get (body);
          rb.setPose (pose);
-         
       }
       
       // force effectors

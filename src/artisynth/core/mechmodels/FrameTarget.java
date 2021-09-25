@@ -269,8 +269,6 @@ public class FrameTarget extends MotionTarget {
       double[] buf, double s, double h, FrameState state, int idx) {
 
       getTargetVel (myTmpVel, s, h, state);
-      // map velocity to body coordinates
-      myTmpVel.inverseTransform (state.XFrameToWorld.R);
       buf[idx++] = myTmpVel.v.x;
       buf[idx++] = myTmpVel.v.y;
       buf[idx++] = myTmpVel.v.z;
@@ -290,8 +288,6 @@ public class FrameTarget extends MotionTarget {
       myVel.w.x = buf[idx++];
       myVel.w.y = buf[idx++];
       myVel.w.z = buf[idx++];
-      // map from body to rotated world coordinates
-      myVel.transform (state.XFrameToWorld.R);
       return idx;
    }
 

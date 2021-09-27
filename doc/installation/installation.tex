@@ -117,11 +117,14 @@ To install ArtiSynth on \SYSTEM{}, you will need:
 \item A 64 bit version of \SYSTEM{} on an Intel processor.
 
 \begin{sideblock}
-ArtiSynth currently runs {\it only} on machines using Intel
-processors; it is not currently supported for ARM processors.
+ArtiSynth is currently compiled to run on systems using Intel
+processors, and so will not run on ARM-based systems unless they
+implement an Intel compatibility layer. Apple ARM machines implement a
+compatibility layer (called Rosetta) that does appear to allow
+ArtiSynth to run as is.
 \end{sideblock}
 
-\item Java 8 (see Section \ref{InstallingJava}).
+\item Java. We recommend the older Java 8; see Section \ref{InstallingJava}.
 
 \begin{sideblock}
 ArtiSynth will generally work with later versions of Java, but Java 8
@@ -183,11 +186,11 @@ utilities function correctly.
 ArtiSynth requires that you have a full Java development kit (JDK)
 installed, which comes with a Java compiler; a simple run time
 environment (JRE) will not be sufficient.  By default, ArtiSynth is
-compiled to be compliant with Java 8. While ArtiSynth will generally
-work under later Java versions, Java 8 provides compatibility with
-MATLAB (which still uses Java 8), as well as the Jython console.
-Therefore we currently recommend using Java 8; this also provides
-maximum compatibility with MATLAB and Jython, as indicated above. We
+compiled to be compliant with Java 8. While ArtiSynth will work under
+later Java versions, Java 8 provides compatibility with MATLAB (which
+still uses Java 8), as well as the Jython console.  Therefore we
+currently recommend using Java 8; this also provides maximum
+compatibility with MATLAB and Jython, as indicated above. We
 specifically recommend the Java SE Development Kit 8u{\it XXX} (where
 {\it XXX} is the latest revision number), which can be obtained from
 Oracle (registration required).  At the time of this writing, the

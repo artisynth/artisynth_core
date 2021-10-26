@@ -13,7 +13,8 @@ public class JythonJLineConsole extends JLineConsole {
    JythonConsoleImpl myImpl;
 
    public JythonJLineConsole() {
-      super();
+      // In Jython 2.7, JLineConsole doesn't have a no-args constructor
+      super(null);
       myImpl = new JythonConsoleImpl (this);
       myImpl.setupSymbols();
    }

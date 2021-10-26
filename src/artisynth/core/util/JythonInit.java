@@ -25,17 +25,24 @@ public class JythonInit {
       try {
          URL url = ArtisynthPath.getRelativeResource (this, initFileName);
          bindings = url.openStream();
+         // Don't initialize, since state should already have been initialized ...
+         //PySystemState.initialize();
+         PythonInterpreter interp = new PythonInterpreter();
+         interp.execfile (bindings);
+         myBaseLocals = (PyStringMap)interp.getLocals();
       }
       catch (IOException e) {
          throw new InternalErrorException (
             "Cannot find Jython initialization file " + initFileName);
       }
-      // Don't initialize, since state should already have been initialized ...
-      //PySystemState.initialize();
-      PythonInterpreter interp = new PythonInterpreter();
-      interp.execfile (bindings);
-
-      myBaseLocals = (PyStringMap)interp.getLocals();
+      finally {
+         try {
+            bindings.close();
+         }
+         catch (Exception e) {
+            // ignore
+         }
+      }
    }
 
    private static boolean myInitDone = false;

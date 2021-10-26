@@ -73,6 +73,8 @@ public class JythonConsoleImpl {
          myConsole.resetbuffer(); 
          while(!myQuitReq) {
             PySystemState state = myConsole.getSystemState();
+            // Jython 2.7 seemed to have empyty values in state.ps1,ps2
+            //PyObject prompt = more ? new PyString("... ") : new PyString(">>> ");
             PyObject prompt = more ? state.ps2 : state.ps1;
             if (myPromptSent) {
                prompt = new PyString("");
@@ -123,6 +125,8 @@ public class JythonConsoleImpl {
       boolean more = false;
       while(true) {
          PySystemState state = myConsole.getSystemState();
+         // Jython 2.7 seemed to have empyty values in state.ps1,ps2
+         //PyObject prompt = more ? new PyString("... ") : new PyString(">>> ");
          PyObject prompt = more ? state.ps2 : state.ps1;
          String line;
          try {

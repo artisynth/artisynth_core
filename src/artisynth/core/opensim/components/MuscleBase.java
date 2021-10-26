@@ -127,7 +127,7 @@ public abstract class MuscleBase extends ForceSpringBase {
       return ignore_activation_dynamics;
    }
    
-   public AxialMuscleMaterial createMuscleMaterial() {
+   public AxialMaterial createMuscleMaterial() {
       //      PeckAxialMuscle mat = new PeckAxialMuscle ();
       //      mat.setForceScaling (1);
       //      mat.setMaxForce (max_isometric_force);

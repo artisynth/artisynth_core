@@ -44,7 +44,7 @@ $(PDF_TARG): modelguide.pdf
 	rm -rf $(LATEX_JUNK_FILES) $*.ps
 
 modelguide.pdf: $(SOURCES) $(EPS_FILES)
-	latex modelguide.tex &> /dev/null #extra call because of bibtex
+	latex -interaction=batchmode modelguide.tex #extra call because of biber
 	biber modelguide
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) modelguide.ps

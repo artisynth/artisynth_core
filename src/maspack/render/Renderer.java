@@ -517,8 +517,9 @@ public interface Renderer {
    /**
     * Sets a ratio which can be used to determine the radius for an axis when
     * the radius is not explicitly specified. The radius is computed by
-    * multiplying the ratio by the axis length. This is typically used for
-    * rendering coordinate axes and has a default value is 0.016.
+    * multiplying the ratio by the axis length. This is typically used when
+    * rendering coordinate axes as solid arrows and has a default value is
+    * 0.016.
     *
     * @param ratio new axis render ratio
     */

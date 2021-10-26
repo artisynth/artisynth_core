@@ -51,6 +51,9 @@ public class LegendDisplay extends PropertyFrame {
       super ("Display legend");
       myDataPanel = panel;
       myTraceManager = traceManager;
+      if (myTraceManager.numTraces() >= 20) {
+         setScrollable (true);
+      }
       build();
    }
    

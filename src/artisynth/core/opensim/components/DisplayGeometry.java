@@ -74,8 +74,10 @@ public class DisplayGeometry extends VisibleBase {
    public MeshBase createMesh(File geometryPath) {
       MeshBase mesh = null;
       if (geometry_file != null) {
+         File meshFile = new File(geometryPath, geometry_file);
          try {
-            mesh = GenericMeshReader.readMesh (new File(geometryPath, geometry_file));
+            mesh =
+               GenericMeshReader.readMesh (meshFile);
             // scale and transform
             Vector3d scale = getScaleFactors ();
             if (scale != null) {
@@ -95,6 +97,7 @@ public class DisplayGeometry extends VisibleBase {
             }
          }
          catch (IOException e) {
+            System.out.println ("Error reading mesh " + meshFile);
             e.printStackTrace();
          }
       }

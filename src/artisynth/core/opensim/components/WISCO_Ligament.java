@@ -1,8 +1,7 @@
 package artisynth.core.opensim.components;
 
 import artisynth.core.materials.AxialMaterial;
-import artisynth.core.materials.LigamentAxialMaterial;
-import artisynth.core.materials.UWLigamentMaterial;
+import artisynth.core.materials.Blankevoort1991AxialLigament;
 import artisynth.core.opensim.components.ForceSpringBase;
 import artisynth.core.opensim.components.Ligament;
 import artisynth.core.opensim.components.Millard2012EquilibriumMuscle;
@@ -24,23 +23,21 @@ import artisynth.core.opensim.components.Millard2012EquilibriumMuscle;
  */
 public class WISCO_Ligament extends ForceSpringBase {
 
-   protected double referenceStrain =
-      UWLigamentMaterial.DEFAULT_REFERENCE_STRAIN;
+   protected double referenceStrain = 0;
 
    protected double linearStiffness =
-      UWLigamentMaterial.DEFAULT_LINEAR_STIFFNESS;
+      Blankevoort1991AxialLigament.DEFAULT_LINEAR_STIFFNESS;
 
    protected double ligamentTransitionStrain =
-      UWLigamentMaterial.DEFAULT_LIGAMENT_TRANSITION_STRAIN;
+      Blankevoort1991AxialLigament.DEFAULT_TRANSITION_STRAIN;
 
    protected double normalizedDamping =
-      UWLigamentMaterial.DEFAULT_NORMALIZED_DAMPING;
+      Blankevoort1991AxialLigament.DEFAULT_DAMPING;
 
-   protected double maxForce = 
-      UWLigamentMaterial.DEFAULT_MAX_FORCE;
+   protected double maxForce = 1.0;
 
    protected double tendonSlackLength =
-      UWLigamentMaterial.DEFAULT_TENDON_SLACK_LENGTH;
+      Blankevoort1991AxialLigament.DEFAULT_SLACK_LENGTH;
    
    public void setReferenceStrain(double rS){
       referenceStrain = rS;
@@ -107,10 +104,16 @@ public class WISCO_Ligament extends ForceSpringBase {
       ((UWLigamentMaterial)mat).setTendonSlackLength (tendonSlackLength);      */
       
       
-      AxialMaterial mat = new LigamentAxialMaterial();
-      ((LigamentAxialMaterial)mat).setCompStiffness (0);
-      ((LigamentAxialMaterial)mat).setElongStiffness (linearStiffness*2);
-      ((LigamentAxialMaterial)mat).setDamping (0.01);
+      // AxialMaterial mat = new LigamentAxialMaterial();
+      // ((LigamentAxialMaterial)mat).setCompStiffness (0);
+      // ((LigamentAxialMaterial)mat).setElongStiffness (linearStiffness*2);
+      // ((LigamentAxialMaterial)mat).setDamping (0.01);
+
+      Blankevoort1991AxialLigament mat = new Blankevoort1991AxialLigament();
+      mat.setLinearStiffness (linearStiffness);
+      mat.setTransitionStrain (ligamentTransitionStrain);
+      mat.setDamping (normalizedDamping);
+      mat.setSlackLength (tendonSlackLength);
       
       return mat;
    }

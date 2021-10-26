@@ -61,24 +61,33 @@ There are three parts to the installation process:
 
 \end{enumerate}
 
-For \SYSTEM{}, you need a 64 bit system with an Intel-based processor -
-ArtiSynth is not yet supported on ARM processors. We recommend a
-minimum of 8 Gbytes of memory, and 16 Gbytes or more is better if you
-are doing FEM work with larger numbers of elements.
-
-\ifMacOS 
+Your host machine should be a 64 bit system that is based on the Intel
+processor. ArtiSynth may also run on ARM-based systems that provide an
+Intel compatibility layer.
+%
+\ifMacOS
 \begin{sideblock}
-{\bf Possible issues regarding the future of ArtiSynth on MacOS:}
-First, Apple has deprecated OpenGL (which ArtiSynth uses for 3D
-graphics), and so it is not clear how long OpenGL will continue to be
-available.  While it is possible to retarget ArtiSynth onto a
-different graphics engine, this will require a fair amount of work.
-Second, Apple is retiring the use of Intel-based processors, which
-ArtiSynth currently relies on for its sparse matrix
-solver. Configuring ArtiSynth to use a different solver will again
-require some effort.
+The new Apple ARM-based systems provide an Intel compatibility layer,
+named Rosetta, that appears to allow ArtiSynth to run as is.
 \end{sideblock}
 \fi
+%
+We recommend a minimum of 8 Gbytes of memory, and 16 Gbytes or more is
+better if you are doing FEM work with larger numbers of elements.
+
+%\ifMacOS 
+%\begin{sideblock}
+%{\bf Possible issues regarding ArtiSynth on MacOS:} First, Apple has
+%deprecated OpenGL (which ArtiSynth uses for 3D graphics), and so it is
+%not clear how long OpenGL will continue to be available.  While it is
+%possible to retarget ArtiSynth onto a different graphics engine, this
+%will require a fair amount of work.  Second, Apple is retiring the use
+%of Intel-based processors, which ArtiSynth relies on for its sparse
+%matrix solver. Fortunately, Apple ARM machines do currently implement
+%an Intel compatibility layer (called Rosetta) that does appear to
+%allow ArtiSynth to run as is.
+%\end{sideblock}
+%\fi
 
 This document is intentionally brief and describes only installation
 from Git into an Eclipse IDE. More complete instructions,
@@ -365,9 +374,8 @@ that only {\tt master} is selected. Click {\sf Next}.
 \item A {\sf Local Destination} dialog will appear, as shown below,
 indicating the \directory{}into which ArtiSynth will be placed locally. Use
 the default location, or edit it to some other desired location.  This
-will be your {\it ArtiSynth home} \directory{}, and will be referred to
-later in this document as {\tt <ARTISYNTH\_HOME>}. Click {\sf
-Next}.
+will be your {\it ArtiSynth installation \directory{}}.
+Click {\sf Next}.
 
 \begin{center}
 \iflatexml
@@ -416,9 +424,10 @@ artisynth\_core} project entry in the Package Explorer:
 The Java and native libraries must be downloaded separately, {\it
 outside} of Eclipse.  
 \ifWindows
-Open a file explorer, navigate to the {\tt
-<ARTISYNTH\_HOME>} \directory{}(described above), open the {\tt bin}
-\directory{}, and click on the {\tt updateArtisynthLibs} batch file:
+Open a file explorer, navigate to the ArtiSynth installation folder
+(e.g., {\tt C:\BKS people\BKS roger\BKS artisynth\_core}), open the
+{\tt bin} \directory{}, and click on the {\tt updateArtisynthLibs}
+batch file:
 \begin{center}
 \iflatexml
    \includegraphics[]{images/UpdateArtisynthLibs}
@@ -428,12 +437,12 @@ Open a file explorer, navigate to the {\tt
 \end{center}
 This will load the libraries, temporarily displaying a terminal window
 while doing so.
-\fi
-\ifMacOS
-Open a terminal window, change directories to {\tt <ARTISYNTH\_HOME>},
-and run the command {\tt bin/updateArtisynthLibs}:
+\else
+Open a terminal window, change directories to the ArtiSynth
+installation folder (e.g., {\tt /home/roger/artisynth\_core}), and run the
+command\pdfbreak {\tt bin/updateArtisynthLibs}:
 \begin{verbatim}
- > cd /path/to/ARTISYNTH_HOME
+ > cd /home/roger/artisynth_core
  > bin/updateArtisynthLibs
 \end{verbatim}
 \fi
@@ -462,7 +471,7 @@ may appear on the Eclipse Console output:
 \end{verbatim}
 This is due to a problem in the default version of the Java-OpenGL
 (JOGL) interface. To fix it, go back to the terminal window, and
-from the ArtiSynth home directory run the command
+from the ArtiSynth installation folder run the command
 \begin{verbatim}
  > bin/installJOGL2.3.2
 \end{verbatim}

@@ -70,6 +70,47 @@
 
 % \subsection*{Query methods added directly to PolygonalMesh}
 
+\section*{Sep 16, 2021}
+
+Some follow on updates from the Sep 12 update:
+
+\subsubsection{Ability to set the UI look and feel}
+
+A property called {\sf lookAndFeel} has been added to the layout
+preferences, which allows one to set the UI look and feel, which is
+based on Java Swing. See the ``Layout preferences'' section of the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+\subsection*{More command line option changes}
+
+Command line options related to the layout have been modified.  The
+options {\tt -noTimeline} and {\tt timelineRight} have been removed,
+and the following have been added:
+
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Option & Description \\
+\hline
+{\tt -timelineVisible} & show the timeline at startup\\
+{\tt -timelineHidden} & hide the timeline at startup\\
+{\tt -timelineLocation <loc>} &
+set the timeline location relative to the main frame\\
+{\tt -jythonLocation <loc>} & 
+set the Jython console location relative to the main frame\\
+{\tt -lookAndFeel <laf>} & 
+set the UI look and feel\\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection*{Viewer property change}
+
+The viewer property {\sf axisLengthRadiusRatio}, used when rendering
+coordinate axes as solid arrows, has been replaced with {\sf
+axisRadiusRatio}, with the value of the latter the inverse of the
+former.
+
 \section*{Sep 12, 2021}
 
 A number of updates have been made, mainly with respect to the user

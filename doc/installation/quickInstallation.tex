@@ -58,19 +58,22 @@ and
 \begin{enumerate}
 
 \item You need a 64 bit Windows, MacOS, or Linux system based on an
-Intel processor; ArtiSynth is not yet supported for ARM processors.
+Intel processor. You can also use systems based on the ARM processor
+if they implement an Intel compatibility layer. MacOS systems based on
+the new Apple ARM processor implement a compatibility layer (called
+Rosetta) that does appear to allow ArtiSynth to run as is.
 
-\item Java 8 should be installed. (While ArtiSynth will generally work
-under later Java versions, use of both the MATLAB and Jython
-interfaces generally requires Java 8.)
-You need a full Java Development Kit
-(JDK), not simply a runtime environment (JRE). We recommend the Java
-SE Development Kit 8u{\it XXX} ({\it XXX} being the latest update)
-which can be obtained from Oracle (registration required)
+\item Java should be installed. ArtiSynth will work with the most
+recent Java versions, but we recommend using the older Java 8 since
+that will also provide compatibility with MATLAB and the Jython
+console. You need a full Java Development Kit (JDK), not simply a
+runtime environment (JRE). We recommend the Java SE Development Kit
+8u{\it XXX} ({\it XXX} being the latest update) which can be obtained
+from Oracle (registration required)
 at\\ \href{https://www.oracle.com/technetwork/java/javase/downloads/index.html}%
 {www.oracle.com/technetwork/java/javase/downloads/index.htm}.
  
-\item To verify that the Java 8 JDK is visible to your system, open a
+\item To verify that the Java JDK is visible to your system, open a
 terminal window (e.g., {\tt CMD} on Windows), run the command {\tt
 javac -version}, and check that the version matches the JDK.  If it
 does not, follow the instructions in Section

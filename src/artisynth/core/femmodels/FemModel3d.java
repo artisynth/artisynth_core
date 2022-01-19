@@ -1935,9 +1935,14 @@ PointAttachable, ConnectableBody {
             for (FieldComponent field : myFieldList) {
                field.clearCacheIfNecessary();
             }
-            if (e.getComponent() == myElements &&
-                getIncompressible() == IncompMethod.ELEMENT) {
-               // state changes because this changes the incompressibility 
+//            if (e.getComponent() == myElements &&
+//                getIncompressible() == IncompMethod.ELEMENT) {
+//               // state changes because this changes the incompressibility 
+//               // constraint
+//               e.setStateChanged (true);
+//            }
+            if (e.getComponent() == myElements) {
+               // state changes because this may change the incompressibility 
                // constraint
                e.setStateChanged (true);
             }
@@ -4898,7 +4903,8 @@ PointAttachable, ConnectableBody {
 
    public static boolean debugx = false;
 
-   public int getBilateralInfo(ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo(
+      ConstraintInfo[] ginfo, int idx) {
 
       if (usingAttachedRelativeFrame()) {
          idx = myFrameConstraint.getBilateralInfo (ginfo, idx);

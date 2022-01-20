@@ -227,6 +227,16 @@ public class CollisionRenderer {
       }
    }
 
+   ScalarRange getEffectiveColorMapRange (CollisionHandler handler) {
+      CollisionBehavior behav = handler.myBehavior;
+      if (behav.myColorMapRange != null) {
+         return behav.myColorMapRange;
+      }
+      else {
+         return handler.myManager.getColorMapRange();
+      }
+   }
+
    public void prerender (CollisionHandler handler, RenderProps props) {
       RenderObject ro = new RenderObject();
 
@@ -570,7 +580,7 @@ public class CollisionRenderer {
       double minv, double maxv, HashSet<Face> faces) {
       
       RenderObject rd = new RenderObject();
-      ScalarRange range = handler.myBehavior.myColorMapRange;
+      ScalarRange range = getEffectiveColorMapRange (handler);
       range.updateInterval (minv, maxv);
       float[] rgb = new float[3];
       for (int i=0; i<256; i++) {

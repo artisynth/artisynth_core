@@ -1313,7 +1313,9 @@ public class CollisionBehavior extends CollisionComponent
          myRigidRegionTol *= s;
       }
       myAcceleration *= s;
-      myColorMapRange.scale (s);
+      if (myColorMapRange != null) {
+         myColorMapRange.scale (s);
+      }
       if (myRenderProps != null) {
          myRenderProps.scaleDistance (s);
       }

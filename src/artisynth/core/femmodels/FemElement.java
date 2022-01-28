@@ -56,7 +56,7 @@ public abstract class FemElement extends RenderableComponentBase
    implements Boundable, ScalableUnits, CopyableComponent,
               PropertyChangeListener, HasNumericState {
 
-   public static boolean writeNodeRefsByNumber = false;
+   public static boolean writeNodeRefsByNumber = true;
    // If writeNodeRefsByNumber==true, sets scanned nodes in postscan().
    // Doesn't require use of the FemModel.getScanningFem() but is a bit slower.
    public static boolean setScannedNodesInPostscan = false;
@@ -496,7 +496,7 @@ public abstract class FemElement extends RenderableComponentBase
       }
    }
 
-   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   protected boolean scanItemOld (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
       int cnt;
 
@@ -563,7 +563,136 @@ public abstract class FemElement extends RenderableComponentBase
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+      int cnt;
+
+      rtok.nextToken();     
+      if (scanAttributeName (rtok, "mass")) {
+         double mass = rtok.scanNumber();
+         setExplicitMass (mass);
+         return true;
+      } 
+      else if (scanAttributeName (rtok, "nodes")) {
+         rtok.scanToken ('[');
+         rtok.nextToken();
+         // look at first token to see if nodes are by reference or number
+         boolean scanNodesByNumber;
+         if (rtok.tokenIsQuotedString('"')) {
+            scanNodesByNumber = false;
+         }
+         else if (rtok.tokenIsInteger()) {
+            scanNodesByNumber = true;
+         }
+         else {
+            throw new IOException (
+               "Expected node reference or number; got "+rtok);
+         }
+         if (scanNodesByNumber) {
+            int[] nums = new int[numNodes()];   
+            nums[0] = (int)rtok.lval; // already have first one
+            int k = 1;
+            while (rtok.nextToken() != ']') {
+               if (!rtok.tokenIsInteger()) {
+                  throw new IOException (
+                     "Expecting element node number, got "+rtok);
+               }
+               if (k == nums.length) {
+                  throw new IOException (
+                     "Number of node indices exceeds "+nums.length+
+                     ", line"+ rtok.lineno());
+               }
+               nums[k++] = (int)rtok.lval;
+            }
+            if (setScannedNodesInPostscan) {
+               tokens.offer (new StringToken ("nodes", rtok.lineno()));
+               tokens.offer (new ObjectToken(nums));
+            }
+            else {
+               FemModel fem = FemModel3d.getScanningFem();
+               if (fem == null) {
+                  throw new IOException ("Scanning FEM node available");
+               }
+               FemNode[] nodes = getNodes();
+               for (k=0; k<nodes.length; k++) {
+                  FemNode node = fem.getNodeByNumber (nums[k]);
+                  if (node == null) {
+                     throw new IOException (
+                        "Node number "+nums[k]+" not found");
+                  }
+                  nodes[k] = node;
+               }
+            }
+         }
+         else {
+            // old way: scan nodes by reference
+            tokens.offer (new StringToken ("nodes", rtok.lineno()));
+            tokens.offer (ScanToken.BEGIN);
+            // have first reference already:
+            tokens.offer (new StringToken (rtok.sval, rtok.lineno())); 
+            int k = 1;
+            while (rtok.nextToken() != ']') {
+               if (!rtok.tokenIsQuotedString ('"')) {
+                  throw new IOException (
+                     "Expected node reference as quoted string, got " + rtok);
+               }
+               if (k == numNodes()) {
+                  throw new IOException (
+                     "Number of node indices exceeds "+numNodes()+
+                     ", line"+ rtok.lineno());
+               }
+               tokens.offer (new StringToken (rtok.sval, rtok.lineno()));
+               k++;
+            }
+            tokens.offer (ScanToken.END);
+         }
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
    protected boolean postscanItem (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (postscanAttributeName (tokens, "nodes")) {
+         ScanToken tok = tokens.poll();
+         if (tok instanceof ObjectToken) {
+            // nodes specified by number:
+            CompositeComponent gparent = getGrandParent();
+            if (!(gparent instanceof FemModel)) {
+               throw new IOException (
+                  "Element grandparent is not a FEM model");
+            }
+            int[] nums = (int[])((ObjectToken)tok).value();
+            FemModel fem = (FemModel)gparent;
+            FemNode[] nodes = getNodes();
+            for (int k=0; k<nodes.length; k++) {
+               FemNode node = fem.getNodeByNumber (nums[k]);
+               if (node == null) {
+                  throw new IOException (
+                     "Node number "+nums[k]+" not found");
+               }
+               nodes[k] = node;
+            }
+         }
+         else if (tok == ScanToken.BEGIN) {
+            // nodes specified by reference:
+            FemNode[] nodes = getNodes();
+            int k = 0;
+            while (tokens.peek() != ScanToken.END) {
+               nodes[k++] = ScanWriteUtils.postscanReference (
+                  tokens, FemNode.class, ancestor);
+            }
+            tokens.poll(); // consume END token
+         }
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+
+   protected boolean postscanItemOld (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
       if (writeNodeRefsByNumber && setScannedNodesInPostscan) {

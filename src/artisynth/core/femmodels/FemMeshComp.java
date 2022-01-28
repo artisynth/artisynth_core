@@ -1625,6 +1625,75 @@ implements CollidableBody, PointAttachable {
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
 
       rtok.scanToken ('[');
+      rtok.nextToken();
+      // look at first token to see if nodes are by reference or number
+      boolean scanNodesByNumber;
+      if (rtok.tokenIsQuotedString('"')) {
+         scanNodesByNumber = false;
+      }
+      else if (rtok.tokenIsInteger()) {
+         scanNodesByNumber = true;
+      }
+      else {
+         throw new IOException (
+            "Expected node reference or number; got "+rtok);
+      }
+      if (scanNodesByNumber) {
+         int num0 = (int)rtok.lval;
+         if (rtok.nextToken() == ']') {
+            tokens.offer (new IntegerToken (num0));
+            PointParticleAttachment ppa = new PointParticleAttachment ();
+            myVertexAttachments.add (ppa);            
+         }
+         else {
+            ArrayList<Integer> nodeNums = new ArrayList<Integer>();
+            ArrayList<Double> weights = new ArrayList<Double>();
+            if (!rtok.tokenIsNumber()) {
+               throw new IOException ("Expected node weight, got "+rtok);
+            }
+            nodeNums.add (num0);
+            weights.add (rtok.nval);
+            while (rtok.nextToken() != ']') {
+               if (!rtok.tokenIsInteger()) {
+                  throw new IOException ("Expected node number, got "+rtok);
+               }
+               nodeNums.add ((int)rtok.lval);
+               weights.add (rtok.scanNumber());
+            }
+            tokens.offer (new ObjectToken(ArraySupport.toIntArray (nodeNums)));
+            tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
+            PointFem3dAttachment pfa = new PointFem3dAttachment(); 
+            myVertexAttachments.add (pfa);
+         }
+      }
+      else {
+         // scan nodes by reference
+         rtok.pushBack();
+         ArrayList<Double> weights = new ArrayList<Double>();
+         tokens.offer (ScanToken.BEGIN);
+         while (ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
+            weights.add (rtok.scanNumber());
+         }
+         if (rtok.ttype != ']') {
+            throw new IOException ("Expected ']', got " + rtok);
+         }
+         tokens.offer (ScanToken.END); // add null terminator
+         if (weights.size() == 1) {
+            PointParticleAttachment ppa = new PointParticleAttachment ();
+            myVertexAttachments.add (ppa);
+         }
+         else {
+            PointFem3dAttachment pfa = new PointFem3dAttachment();
+            tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
+            myVertexAttachments.add (pfa);
+         }
+      }
+   }
+   
+   protected void scanAttachmentOld (
+      ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
+
+      rtok.scanToken ('[');
       if (FemElement.writeNodeRefsByNumber) {
          int num0 = rtok.scanInteger();
          if (rtok.nextToken() == ']') {
@@ -1705,6 +1774,65 @@ implements CollidableBody, PointAttachable {
    }
 
    protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (postscanAttributeName (tokens, "fem")) {
+         myFem = postscanReference (tokens, FemModel3d.class, ancestor);
+         return true;
+      }
+      else if (postscanAttributeName (tokens, "attachments")) {
+         for (int i=0; i<myVertexAttachments.size(); i++) {
+            PointAttachment va = myVertexAttachments.get(i);
+            if (tokens.peek() == ScanToken.BEGIN) {
+               // nodes are by reference
+               FemNode[] nodes = ScanWriteUtils.postscanReferences (
+                  tokens, FemNode.class, ancestor);
+               if (va instanceof PointParticleAttachment) {
+                  PointParticleAttachment ppa = (PointParticleAttachment)va;
+                  ppa.setParticle (nodes[0]);
+               }
+               else if (va instanceof PointFem3dAttachment) {
+                  PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+                  double[] coords = (double[])tokens.poll().value();
+                  pfa.setFromNodes (nodes, coords);
+               }
+            }
+            else {
+               // nodes are by number
+               if (va instanceof PointParticleAttachment) {
+                  int nodeNum = (int)tokens.poll().value();
+                  PointParticleAttachment ppa = (PointParticleAttachment)va;
+                  FemNode node = myFem.getNodeByNumber (nodeNum);
+                  if (node == null) {
+                     throw new IOException (
+                        "Fem attachment node num "+nodeNum+" not found");
+                  }
+                  ppa.setParticle (node);
+               }
+               else {
+                  int[] nodeNums = (int[])tokens.poll().value();
+                  FemNode[] nodes = new FemNode[nodeNums.length];
+                  for (int k=0; k<nodes.length; k++) {
+                     FemNode node = myFem.getNodeByNumber (nodeNums[k]);
+                     if (node == null) {
+                        throw new IOException (
+                           "Fem attachment node num "+nodeNums[k]+" not found");
+                     }
+                     nodes[k] = node;
+                  }
+                  PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+                  double[] coords = (double[])tokens.poll().value();
+                  pfa.setFromNodes (nodes, coords);
+               }
+            }
+         }
+         buildNodeVertexMap();
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+
+   protected boolean postscanItemOld (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
       if (postscanAttributeName (tokens, "fem")) {

@@ -328,6 +328,27 @@ public class DantzigLCPSolver implements LCPSolver {
    }
 
    /**
+    * Backward compatible version of solve:
+    */
+   public Status solve (VectorNd z, MatrixNd M, VectorNd q, boolean[] zBasic) {
+      VectorNi state = null;
+      int size = z.size();
+      if (zBasic != null) {
+         if (zBasic.length < size) {
+            throw new IllegalArgumentException ("zBasic has size less than z");
+         }
+         state = new VectorNi (size);
+      }
+      Status status = solve (z, state, M, q);
+      if (zBasic != null) {
+         for (int i=0; i<size; i++) {
+            zBasic[i] = (state.get(i) == Z_VAR);
+         }
+      }
+      return status;
+   }
+
+   /**
     * {@inheritDc}
     */
    public Status solve (VectorNd z, VectorNi state, MatrixNd M, VectorNd q) {
@@ -460,7 +481,31 @@ public class DantzigLCPSolver implements LCPSolver {
          myState[i] = W_VAR_LOWER;
       }
    }
-   
+
+   /**
+    * Backward compatible version of solve:
+    */
+   public Status solve (   
+      VectorNd z, VectorNd w, MatrixNd M, VectorNd q, VectorNd lo, VectorNd hi,
+      int nub, int[] stateArray) {
+      int size = z.size();
+      VectorNi state = null;
+      if (stateArray != null) {
+         if (stateArray.length < size) {
+            throw new IllegalArgumentException (
+               "state array insufficiently large");
+         }
+         state = new VectorNi(size);
+      }
+      Status status = solve (z, w, state, M, q, lo, hi, nub);
+      if (stateArray != null) {
+         for (int i=0; i<size; i++) {
+            stateArray[i] = state.get(i);
+         }
+      }
+      return status;
+   }   
+
    /**
     * {@inheritDoc}
     */

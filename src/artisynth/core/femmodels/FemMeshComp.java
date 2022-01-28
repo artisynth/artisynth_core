@@ -47,6 +47,7 @@ import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ObjectToken;
 import artisynth.core.util.ScanToken;
+import artisynth.core.util.IntegerToken;
 import artisynth.core.util.StringToken;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
@@ -70,6 +71,7 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.FunctionTimer;
 
 /**
  * Describes a mesh that is "skinned" onto an FEM, such that its vertex
@@ -99,6 +101,7 @@ implements CollidableBody, PointAttachable {
    protected int myCollidableIndex;
 
    private float[] colorArray = new float[3];
+   private boolean myMeshScannedDirectly = false;
 
    public static PropertyList myProps =
       new PropertyList (FemMeshComp.class, FemMeshBase.class);
@@ -560,11 +563,12 @@ implements CollidableBody, PointAttachable {
       }
    }
 
-   public static FemMeshComp createEmbedded(FemMeshComp surf, MeshBase mesh) {
+   public static FemMeshComp createEmbedded (
+      FemMeshComp surf, MeshBase mesh) {
       if (surf == null || surf.myFem == null) {
          throw new IllegalArgumentException("Cannot determine proper FEM");
       }
-      return createEmbedded(surf, mesh, surf.myFem);
+      return createEmbedded (surf, mesh, surf.myFem);
    }
 
    public FemModel3d getFem() {
@@ -604,7 +608,6 @@ implements CollidableBody, PointAttachable {
             new PointParticleAttachment(nodes[0], null);
          setVertexAttachment(vidx, attacher);
       }
-
    }
 
    public static FemMeshComp createEmbedded (
@@ -626,72 +629,63 @@ implements CollidableBody, PointAttachable {
          // this could works very similarly to the code that adds
          // marker points into a mesh
          Vertex3d vtx = verts.get(i);
-         // if (vtx instanceof FemMeshVertex) {
-         //    nodes.clear();
-         //    nodes.add(((FemMeshVertex)vtx).getPoint());
-         //    weights.clear();
-         //    weights.add(1.0);
-         // }
-         // else 
-         {
-            FemElement3dBase elem = surf.myFem.findContainingElement (vtx.pnt);
-            Point3d newLoc = new Point3d(vtx.pnt);
-            if (elem == null) {
-               // won't use newLoc since we're not projecting vertex onto FEM
-               elem = surf.myFem.findNearestSurfaceElement (newLoc, vtx.pnt);
-            }
-            VectorNd coords = new VectorNd (elem.numNodes());
+         FemElement3dBase elem = surf.myFem.findContainingElement (vtx.pnt);
+         Point3d newLoc = new Point3d(vtx.pnt);
+         if (elem == null) {
+            // won't use newLoc since we're not projecting vertex onto FEM
+            elem = surf.myFem.findNearestSurfaceElement (newLoc, vtx.pnt);
+         }
+         VectorNd coords = new VectorNd (elem.numNodes());
 
-            // first see if there's a node within reduceTol of the point,
-            // and if so just use that
-            double maxDist = Double.NEGATIVE_INFINITY;
-            double minDist = Double.POSITIVE_INFINITY;
-            FemNode3d nearestNode = null;
-            FemNode3d[] elemNodes = elem.getNodes();
-            for (int k=0; k<elemNodes.length; k++) {
-               double d = vtx.pnt.distance(elemNodes[k].getPosition());
-               if (d > maxDist) {
-                  maxDist = d;
-               }
-               if (d < minDist) {
-                  minDist = d;
-                  nearestNode = elemNodes[k];
-               }
+         // first see if there's a node within reduceTol of the point,
+         // and if so just use that
+         double maxd = Double.NEGATIVE_INFINITY;
+         double mind = Double.POSITIVE_INFINITY;
+         FemNode3d nearestNode = null;
+         FemNode3d[] elemNodes = elem.getNodes();
+         for (int k=0; k<elemNodes.length; k++) {
+            double d = vtx.pnt.distance(elemNodes[k].getPosition());
+            if (d > maxd) {
+               maxd = d;
             }
-            if (minDist/maxDist <= reduceTol) {
-               // weight everything to the nearest node
-               nodes.clear();
-               nodes.add(nearestNode);
-               weights.setSize(0);
-               weights.append(1.0);
+            if (d < mind) {
+               mind = d;
+               nearestNode = elemNodes[k];
             }
-            else {
-               Vector3d c3 = new Vector3d();
-               boolean converged = 
-                  elem.getNaturalCoordinates (c3, vtx.pnt, 1000) >= 0;
-                  if (!converged) {
-                     System.err.println(
-                        "Warning: getNaturalCoordinates() did not converge, "+
-                           "element=" + ComponentUtils.getPathName(elem) +
-                           ", point=" + vtx.pnt);
-                     c3.setZero ();
-                     // elem.getNaturalCoordinatesGSS (coords, vtx.pnt, 1000);
-                     // c3.setZero();
-                     // XXX debugging:
-                     //    elem.getNaturalCoordinates(c3,  vtx.pnt, 1000); // try again once more
-                  }
-                  for (int j=0; j<elem.numNodes(); j++) {
-                     coords.set (j, elem.getN (j, c3));
-                  }
+         }
+         if (mind/maxd <= reduceTol) {
+            // weight everything to the nearest node
+            nodes.clear();
+            nodes.add(nearestNode);
+            weights.setSize(0);
+            weights.append(1.0);
+         }
+         else {
+            Vector3d c3 = new Vector3d();
+            boolean converged = 
+               elem.getNaturalCoordinates (c3, vtx.pnt, 1000) >= 0;
+            if (!converged) {
+               System.err.println(
+                  "Warning: getNaturalCoordinates() did not converge, "+
+                  "element=" + ComponentUtils.getPathName(elem) +
+                  ", point=" + vtx.pnt);
+               c3.setZero ();
+               // elem.getNaturalCoordinatesGSS (coords, vtx.pnt, 1000);
+               // c3.setZero();
+               // XXX debugging:
+               //    elem.getNaturalCoordinates(c3,  vtx.pnt, 1000); // try again once more
+            }
+            for (int j=0; j<elem.numNodes(); j++) {
+               coords.set (j, elem.getN (j, c3));
+            }
 
-                  nodes.clear();
-                  weights.setSize(0);
-                  for (int k=0; k<coords.size(); k++) {
-                     if (Math.abs(coords.get(k)) >= reduceTol) {
-                        nodes.add (elem.getNodes()[k]);
-                        weights.append(coords.get(k));                            
-                     }
-                  }
+            nodes.clear();
+            weights.setSize(0);
+            for (int k=0; k<coords.size(); k++) {
+               if (Math.abs(coords.get(k)) >= reduceTol) {
+                  nodes.add (elem.getNodes()[k]);
+                  weights.append(coords.get(k));                            
+               }
             }
          }
 
@@ -710,8 +704,39 @@ implements CollidableBody, PointAttachable {
       return surf;
    }
 
-   public static FemMeshComp createEmbedded (FemModel3d fem, MeshBase mesh) {
+   public static FemMeshComp createEmbedded (
+      FemModel3d fem, MeshBase mesh) {
       return createEmbedded (new FemMeshComp(fem), mesh);
+   }
+
+   public static FemMeshComp createNodalEmbedded (
+      FemMeshComp surf, MeshBase mesh, FemModel3d fem) {
+      if (surf == null) {
+         surf = new FemMeshComp(fem);
+      }
+      surf.setMesh (mesh);
+      surf.myVertexAttachments.clear();
+      for (Vertex3d vtx : mesh.getVertices()) {
+         // attach vertex to nearest node
+         FemNode3d node = surf.myFem.findNearestNode (vtx.pnt, 1e-8);
+         if (node == null) {
+            System.out.println ("no node found for vertex " + vtx.getIndex());
+         }
+         else {
+            PointParticleAttachment attacher =
+               new PointParticleAttachment(node, null);
+            surf.myVertexAttachments.add(attacher);
+         }
+         if ((vtx.getIndex() % 1000) == 0) {
+            System.out.println ("vertex " + vtx.getIndex());
+         }
+      }
+      surf.buildNodeVertexMap();
+      return surf;
+   }
+
+   public static FemMeshComp createNodalEmbedded (FemModel3d fem, MeshBase mesh) {
+      return createNodalEmbedded (null, mesh, fem);
    }
 
    public static FemMeshComp createSurface (
@@ -1569,16 +1594,27 @@ implements CollidableBody, PointAttachable {
       if (attacher instanceof PointParticleAttachment) {
          PointParticleAttachment ppa = (PointParticleAttachment)attacher;
          FemNode node = (FemNode)ppa.getParticle();
-         pw.print (ComponentUtils.getWritePathName (ancestor, node) + " 1 ");
+         if (FemElement.writeNodeRefsByNumber) {
+            pw.print (node.getNumber() + " ");
+         }
+         else {
+            pw.print (ComponentUtils.getWritePathName (ancestor, node) + " ");
+         }
       }
       else if (attacher instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)attacher;
          FemNode[] nodes = pfa.getNodes();
          VectorNd weights = pfa.getCoordinates();
          for (int i=0; i<nodes.length; i++) {
-            pw.print (
-               ComponentUtils.getWritePathName (ancestor, nodes[i]) +
-               " " + fmt.format(weights.get(i)) + " ");
+            if (FemElement.writeNodeRefsByNumber) {
+               pw.print (
+                  nodes[i].getNumber() + " " + fmt.format(weights.get(i)) + " ");
+            }
+            else {
+               pw.print (
+                  ComponentUtils.getWritePathName (ancestor, nodes[i]) +
+                  " " + fmt.format(weights.get(i)) + " ");
+            }
          }
       }
       pw.println ("]");
@@ -1587,32 +1623,57 @@ implements CollidableBody, PointAttachable {
    protected void scanAttachment (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
 
-      ArrayList<Double> weights = new ArrayList<Double>();
       rtok.scanToken ('[');
-      tokens.offer (ScanToken.BEGIN);
-      while (ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
-         weights.add (rtok.scanNumber());
-      }
-      if (rtok.ttype != ']') {
-         throw new IOException ("Expected ']', got " + rtok);
-      }
-      //		      while (rtok.nextToken() != ']') {
-      //		         rtok.pushBack();
-      //		         ScanWriteUtils.scanReferenceToken (rtok, tokens);
-      //		         weights.add (rtok.scanNumber());
-      //		      }
-      tokens.offer (ScanToken.END); // add null terminator
-      if (weights.size() == 1) {
-         PointParticleAttachment ppa = new PointParticleAttachment ();
-         myVertexAttachments.add (ppa);
+      if (FemElement.writeNodeRefsByNumber) {
+         int num0 = rtok.scanInteger();
+         if (rtok.nextToken() == ']') {
+            tokens.offer (new IntegerToken (num0));
+            PointParticleAttachment ppa = new PointParticleAttachment ();
+            myVertexAttachments.add (ppa);            
+         }
+         else {
+            ArrayList<Integer> nodeNums = new ArrayList<Integer>();
+            ArrayList<Double> weights = new ArrayList<Double>();
+            if (!rtok.tokenIsNumber()) {
+               throw new IOException ("Expected node weight, got "+rtok);
+            }
+            nodeNums.add (num0);
+            weights.add (rtok.nval);
+            while (rtok.nextToken() != ']') {
+               if (!rtok.tokenIsInteger()) {
+                  throw new IOException ("Expected node number, got "+rtok);
+               }
+               nodeNums.add ((int)rtok.lval);
+               weights.add (rtok.scanNumber());
+            }
+            tokens.offer (new ObjectToken(ArraySupport.toIntArray (nodeNums)));
+            tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
+            PointFem3dAttachment pfa = new PointFem3dAttachment(); 
+            myVertexAttachments.add (pfa);
+         }
       }
       else {
-         PointFem3dAttachment pfa = new PointFem3dAttachment();
-         tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
-         myVertexAttachments.add (pfa);
+         ArrayList<Double> weights = new ArrayList<Double>();
+         tokens.offer (ScanToken.BEGIN);
+         while (ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
+            weights.add (rtok.scanNumber());
+         }
+         if (rtok.ttype != ']') {
+            throw new IOException ("Expected ']', got " + rtok);
+         }
+         tokens.offer (ScanToken.END); // add null terminator
+         if (weights.size() == 1) {
+            PointParticleAttachment ppa = new PointParticleAttachment ();
+            myVertexAttachments.add (ppa);
+         }
+         else {
+            PointFem3dAttachment pfa = new PointFem3dAttachment();
+            tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
+            myVertexAttachments.add (pfa);
+         }
       }
    }
-
+   
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
@@ -1634,6 +1695,10 @@ implements CollidableBody, PointAttachable {
          }
          return true;
       }
+      else if (scanAttributeName (rtok, "meshdata")) {
+         scanDirectMesh (rtok);
+         return true;
+      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
@@ -1644,19 +1709,49 @@ implements CollidableBody, PointAttachable {
       if (postscanAttributeName (tokens, "fem")) {
          myFem = postscanReference (tokens, FemModel3d.class, ancestor);
          return true;
-      } else if (postscanAttributeName (tokens, "attachments")) {
+      }
+      else if (postscanAttributeName (tokens, "attachments")) {
          for (int i=0; i<myVertexAttachments.size(); i++) {
             PointAttachment va = myVertexAttachments.get(i);
-            FemNode[] nodes = ScanWriteUtils.postscanReferences (
-               tokens, FemNode.class, ancestor);
-            if (va instanceof PointParticleAttachment) {
-               PointParticleAttachment ppa = (PointParticleAttachment)va;
-               ppa.setParticle (nodes[0]);
+            if (FemElement.writeNodeRefsByNumber) {
+               if (va instanceof PointParticleAttachment) {
+                  int nodeNum = (int)tokens.poll().value();
+                  PointParticleAttachment ppa = (PointParticleAttachment)va;
+                  FemNode node = myFem.getNodeByNumber (nodeNum);
+                  if (node == null) {
+                     throw new IOException (
+                        "Fem attachment node num "+nodeNum+" not found");
+                  }
+                  ppa.setParticle (node);
+               }
+               else {
+                  int[] nodeNums = (int[])tokens.poll().value();
+                  FemNode[] nodes = new FemNode[nodeNums.length];
+                  for (int k=0; k<nodes.length; k++) {
+                     FemNode node = myFem.getNodeByNumber (nodeNums[k]);
+                     if (node == null) {
+                        throw new IOException (
+                           "Fem attachment node num "+nodeNums[k]+" not found");
+                     }
+                     nodes[k] = node;
+                  }
+                  PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+                  double[] coords = (double[])tokens.poll().value();
+                  pfa.setFromNodes (nodes, coords);
+               }
             }
-            else if (va instanceof PointFem3dAttachment) {
-               PointFem3dAttachment pfa = (PointFem3dAttachment)va;
-               double[] coords = (double[])tokens.poll().value();
-               pfa.setFromNodes (nodes, coords);
+            else {
+               FemNode[] nodes = ScanWriteUtils.postscanReferences (
+                  tokens, FemNode.class, ancestor);
+               if (va instanceof PointParticleAttachment) {
+                  PointParticleAttachment ppa = (PointParticleAttachment)va;
+                  ppa.setParticle (nodes[0]);
+               }
+               else if (va instanceof PointFem3dAttachment) {
+                  PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+                  double[] coords = (double[])tokens.poll().value();
+                  pfa.setFromNodes (nodes, coords);
+               }
             }
          }
          buildNodeVertexMap();
@@ -1687,6 +1782,130 @@ implements CollidableBody, PointAttachable {
       // have to write attachments before calling super.writeItems() because
       // they have to be written *before* the surfaceRender property
       super.writeItems (pw, fmt, ancestor);
+   }
+
+   /**
+    * Overrides the method that writes the mesh info. If the mesh is a simple
+    * polygonal mesh with no color, normals, or texture, and is not associated
+    * with a file, we can write it directly and specify only the vertices which
+    * are unattached. This can save a lot of file space in certain cases, such
+    * as surfaces meshes for large FEMs.
+    */
+   @Override
+   protected void writeMeshInfo (PrintWriter pw, NumberFormat fmt)
+      throws IOException {
+      MeshBase mesh = myMeshInfo.getMesh();
+      if (!(mesh instanceof PolygonalMesh) ||
+          mesh.hasColors() ||
+          mesh.hasExplicitNormals() ||
+          mesh.hasTextureCoords() ||
+          myMeshInfo.getFileName() != null) {
+         super.writeMeshInfo (pw, fmt);
+      }
+      else {
+         pw.print ("meshdata=");
+         writeDirectMesh (pw, (PolygonalMesh)mesh, fmt);
+      }
+   }
+
+   private void writeDirectMesh (
+      PrintWriter pw, PolygonalMesh mesh, NumberFormat fmt) {
+      pw.println ("[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      if (myVertexAttachments.size() < mesh.numVertices()) {
+         // note: right now, all mesh creation methods ensure that
+         // the number of attachments equals the number of mesh
+         // vertices; there are no unattached vertices.
+         pw.println ("# unattached vertices:");
+         for (int i=myVertexAttachments.size(); i<mesh.numVertices(); i++) {
+            pw.println (
+               "v " + mesh.getVertex(i).getPosition().toString(fmt));
+         }
+      }
+      for (Face face : mesh.getFaces()) {
+         // print out faces using Alias Wavefront notation, with 1-based
+         // indices
+         HalfEdge he0 = face.firstHalfEdge();
+         HalfEdge he = he0;
+         pw.print("f");         
+         do {
+            int vidx = he.head.getIndex();
+            pw.print (" " + (vidx+1));
+            he = he.getNext();
+         }
+         while (he != he0);
+         pw.println("");
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+   }
+
+   void createBlankAttachmentVertices (PolygonalMesh mesh) {
+      int numa = myVertexAttachments.size();
+      while (mesh.numVertices() < numa) {
+         // fill in missing vertices
+         mesh.addVertex (new Vertex3d (0, 0, 0));
+      }      
+   }
+   
+   private void scanDirectMesh (ReaderTokenizer rtok) throws IOException {
+      PolygonalMesh mesh = new PolygonalMesh();
+      rtok.scanToken('[');
+      boolean scanningVertices = false;
+      boolean scanningFaces = false;
+      rtok.nextToken();
+      ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
+      while (rtok.tokenIsWord()) {
+         if (rtok.sval.equals("v")) {
+            // note: we will get v entries only if there are more
+            // vertices than attachments, which is not currently
+            // supported by any of the mesh creation methods
+            if (!scanningVertices) {
+               createBlankAttachmentVertices (mesh);
+               scanningVertices = true;
+            }
+            if (scanningFaces) {
+               throw new IOException (
+                  "Vertex entry after face entries, line "+rtok.lineno());
+            }
+            double x = rtok.scanNumber();
+            double y = rtok.scanNumber();
+            double z = rtok.scanNumber();           
+            mesh.addVertex (new Vertex3d (x, y, z));
+            rtok.nextToken();
+         }
+         else if (rtok.sval.equals("f")) {
+            if (!scanningVertices) {
+               // attachment vertices have not been created yet
+               createBlankAttachmentVertices (mesh);
+            }           
+            if (!scanningFaces) {
+               scanningFaces = true;
+               scanningVertices = false;
+            }
+            vtxList.clear();
+            rtok.nextToken();
+            while (rtok.tokenIsInteger()) {
+               int vnum = (int)rtok.lval;
+               if (vnum > mesh.numVertices()) {
+                  throw new IOException(
+                     "Vertex number "+vnum+" not found, "+rtok);
+               }
+               vtxList.add (mesh.getVertex(vnum-1));
+               rtok.nextToken();
+            }
+            mesh.addFace(vtxList.toArray(new Vertex3d[0]));           
+         }
+         else {
+            throw new IOException ("Unexpected token: "+rtok);
+         }
+      }
+      if (rtok.ttype != ']') {
+         throw new IOException ("Expected token ']', got " + rtok);
+      }
+      myMeshInfo.set (mesh);
+      setMeshFromInfo();
+      myMeshScannedDirectly = true; // update vertex values in postscan
    }
 
    @Override
@@ -1774,7 +1993,8 @@ implements CollidableBody, PointAttachable {
    protected void markSurfaceMesh(boolean set) {
       MeshBase mesh = getMesh();
       if (mesh != null && !(mesh instanceof PolygonalMesh)) {
-         throw new IllegalArgumentException("Mesh must be a PolygonalMesh to be set as a surface");
+         throw new IllegalArgumentException(
+            "Mesh must be a PolygonalMesh to be set as a surface");
       }
       isSurfaceMesh = set;
    }
@@ -1955,4 +2175,26 @@ implements CollidableBody, PointAttachable {
       return myFem;
    }
 
+   // uncomment to produce timings for FemMeshComp scanning operations:
+
+   // public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+   //    FunctionTimer timer = new FunctionTimer();
+   //    timer.start();
+   //    super.scan (rtok, ref);
+   //    timer.stop();
+   //    System.out.println ("FemMeshComp scan: " + timer.result(1));
+   // }
+
+    public void postscan (
+       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+       ///FunctionTimer timer = new FunctionTimer();
+       //timer.start();
+       super.postscan (tokens, ancestor);
+       if (myMeshScannedDirectly) {
+          updateSlavePos();
+          myMeshScannedDirectly = false;
+       }
+       //timer.stop();
+       //System.out.println ("FemMeshComp postscan: " + timer.result(1));
+    }
 }

@@ -8,12 +8,18 @@ package artisynth.core.femmodels;
 
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.io.*;
+import java.util.Deque;
 
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
+import maspack.util.*;
 import maspack.util.ClassAliases;
+import maspack.util.ReaderTokenizer;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -541,4 +547,23 @@ public class FemElement3dList<C extends FemElement3dBase> extends
       }
       super.notifyParentOfChange (e);
    }
+
+   // uncomment to produce timings for FemElement3dList scanning operations:
+
+   // public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+   //    FunctionTimer timer = new FunctionTimer();
+   //    timer.start();
+   //    super.scan (rtok, ref);
+   //    timer.stop();
+   //    System.out.println ("FemElementList scan: " + timer.result(1));
+   // }
+
+   // public void postscan (
+   //    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+   //    FunctionTimer timer = new FunctionTimer();
+   //    timer.start();
+   //    super.postscan (tokens, ancestor);
+   //    timer.stop();
+   //    System.out.println ("FemElementList postscan: " + timer.result(1));
+   // }
 }

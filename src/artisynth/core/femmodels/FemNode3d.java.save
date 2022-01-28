@@ -108,7 +108,7 @@ public class FemNode3d extends FemNode implements Boundable {
 
    private LinkedList<FemElement3dBase> myElementDeps;
    protected int myShellElemCnt;
-   protected ArrayList<FemNodeNeighbor> myNodeNeighbors;
+   protected LinkedList<FemNodeNeighbor> myNodeNeighbors;
    private LinkedList<FemNodeNeighbor> myIndirectNeighbors;
    int myIndex = -1;
    private int myIncompressIdx = -1;
@@ -174,7 +174,7 @@ public class FemNode3d extends FemNode implements Boundable {
       myRest = new Point3d();
       myInternalForce = new Vector3d();
       myElementDeps = new LinkedList<FemElement3dBase>();
-      myNodeNeighbors = new ArrayList<FemNodeNeighbor>();
+      myNodeNeighbors = new LinkedList<FemNodeNeighbor>();
    }
 
    public FemNode3d (Point3d p) {
@@ -582,7 +582,7 @@ public class FemNode3d extends FemNode implements Boundable {
 
    /* --- Methods pertaining to node neighbors --- */
 
-   public ArrayList<FemNodeNeighbor> getNodeNeighbors() {
+   public LinkedList<FemNodeNeighbor> getNodeNeighbors() {
       return myNodeNeighbors;
    }
 
@@ -591,10 +591,6 @@ public class FemNode3d extends FemNode implements Boundable {
       if (nbr == null) {
          nbr = new FemNodeNeighbor (nbrNode);
          myNodeNeighbors.add (nbr);
-//         if (nbrNode != this) {
-//            FemNodeNeighbor otherNbr = new FemNodeNeighbor (this);
-//            nbrNode.myNodeNeighbors.add (otherNbr);
-//         }
       }
       if (shell) {
          if (nbr.myShellRefCnt == 0) {
@@ -1063,7 +1059,7 @@ public class FemNode3d extends FemNode implements Boundable {
       node.myInternalForce = new Vector3d();
       node.myElementDeps = new LinkedList<FemElement3dBase>();
       node.myShellElemCnt = 0;
-      node.myNodeNeighbors = new ArrayList<FemNodeNeighbor>();
+      node.myNodeNeighbors = new LinkedList<FemNodeNeighbor>();
       node.myIndirectNeighbors = null;
 
       if (myBackNode != null) {

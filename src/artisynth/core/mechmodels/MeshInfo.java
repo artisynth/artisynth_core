@@ -280,7 +280,6 @@ public class MeshInfo {
       int dotSave = rtok.getCharSetting ('.');
       rtok.wordChar ('.');
 
-      // rtok.scanWord ("mesh");
       try {
          if (rtok.nextToken() == ReaderTokenizer.TT_WORD) {
             meshClassName = rtok.sval; // explicit mesh class name
@@ -401,10 +400,10 @@ public class MeshInfo {
 
    public void write (PrintWriter pw, NumberFormat fmt) throws IOException {
       if (myMesh == null) {
-         pw.println ("mesh=[ ]");
+         pw.println ("[ ]");
       }
       else {
-         pw.println ("mesh="+myMesh.getClass().getName()+"[");
+         pw.println (myMesh.getClass().getName()+"[");
          IndentingPrintWriter.addIndentation (pw, 2);
          if (!myMeshModifiedP  && myFileName != null && myFileName.length() > 0) {
             pw.println (Write.getQuotedString (myFileName));

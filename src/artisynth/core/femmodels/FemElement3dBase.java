@@ -459,7 +459,21 @@ public abstract class FemElement3dBase extends FemElement
       myWarper = warper;
       myWarpingStiffnessValidP = false;
    }
-   
+
+   /**
+    * Initialize the stiffness warper of this element. Provided for timing and
+    * testing purposes only.
+    */
+   void initStiffnessWarper() {
+      if (myWarper == null){
+         FemMaterial mat = getEffectiveMaterial();
+         myWarper = createStiffnessWarper();
+         if (mat.isLinear()) {
+            myWarper.initCache (this, mat);
+         }
+      }
+   }
+
    /**
     * Retrieves the current stiffness warper.  The warper's
     * cached rest stiffness is updated if necessary

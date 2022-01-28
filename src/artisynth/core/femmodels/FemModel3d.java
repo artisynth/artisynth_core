@@ -790,7 +790,7 @@ PointAttachable, ConnectableBody {
    }
 
    @Override
-   public FemNode3d getNode(int idx) {
+   public FemNode3d getNode (int idx) {
       return myNodes.get(idx);
    }
 
@@ -855,7 +855,7 @@ PointAttachable, ConnectableBody {
       return false;
    }
 
-   public LinkedList<FemNodeNeighbor> getNodeNeighbors(FemNode3d node) {
+   public ArrayList<FemNodeNeighbor> getNodeNeighbors(FemNode3d node) {
       return node.getNodeNeighbors();
    }
 
@@ -5085,10 +5085,21 @@ PointAttachable, ConnectableBody {
 
    /* --- I/O and Copy Methods --- */
    
+   // XXX hack. Provide a reference to the FEM currently being scanned
+   // so subcomponents can access references to the FEM without having
+   // to go through postscan().
+   static FemModel myScanningFem;
+   
+   static FemModel getScanningFem() {
+      return myScanningFem;
+   }
+   
    public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
       doclear();
       setDefaultValues();
+      myScanningFem = this;
       super.scan(rtok, ref);
+      myScanningFem = null;
       invalidateStressAndStiffness();
       notifyStructureChanged(this);
    }

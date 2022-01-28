@@ -7,11 +7,15 @@
 package artisynth.core.mechmodels;
 
 import java.util.LinkedList;
+import java.util.Deque;
+import java.io.*;
 
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.*;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -23,6 +27,7 @@ import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
+import maspack.util.*;
 
 public class PointList<P extends Point> extends RenderableComponentList<P>
 implements ScalableUnits {
@@ -326,4 +331,22 @@ implements ScalableUnits {
       super.notifyParentOfChange (e);
    }
 
+   // uncomment to produce timings for PointList scanning operations:
+
+   // public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+   //    FunctionTimer timer = new FunctionTimer();
+   //    timer.start();
+   //    super.scan (rtok, ref);
+   //    timer.stop();
+   //    System.out.println ("PointList scan: " + timer.result(1));
+   // }
+
+   // public void postscan (
+   //    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+   //    FunctionTimer timer = new FunctionTimer();
+   //    timer.start();
+   //    super.postscan (tokens, ancestor);
+   //    timer.stop();
+   //    System.out.println ("PointList postscan: " + timer.result(1));
+   // }
 }

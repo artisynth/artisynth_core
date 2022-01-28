@@ -337,7 +337,11 @@ public abstract class FemModel extends MechSystemBase
          componentChanged (mce);
       }      
       invalidateStressAndStiffness();
-      invalidateRestData();  // invalidate cached warping data
+      if (!isScanning()) {
+         // invalidate cached warping data, but not if we are scanning since
+         // that may cause node directors to be updated prematurely
+         invalidateRestData();  
+      }
    }
    
    public synchronized void setLinearMaterial (
@@ -579,6 +583,8 @@ public abstract class FemModel extends MechSystemBase
    public abstract PointList<? extends FemNode> getNodes();
 
    public abstract FemNode getNode (int idx);
+
+   public abstract FemNode getNodeByNumber (int num);
 
    public abstract ArrayList<? extends FemElement> getAllElements();
 

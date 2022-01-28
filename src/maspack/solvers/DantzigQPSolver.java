@@ -172,8 +172,9 @@ public class DantzigQPSolver {
 
       int n = myq.size();
       myz.setSize (n);
-      boolean[] zBasic = new boolean[n];
-      Status status = statusFromLCP(myLcp.solve (myz, myM, myq, zBasic));
+      myy.setSize (H.rowSize());
+      Status status = 
+         statusFromLCP(myLcp.solve (myz, /*state=*/null, myM, myq));
       if (status == Status.SOLVED) {
          A.mulTranspose (myy, myz);
          myy.sub (f);
@@ -299,6 +300,7 @@ public class DantzigQPSolver {
             return Status.SOLVED;
          }
       }
+      
       MatrixNd HAeq = new MatrixNd (hsize+neq, hsize+neq);
       VectorNd fbeq = new VectorNd (hsize+neq);
       VectorNd xlam = new VectorNd (hsize+neq);
@@ -340,8 +342,8 @@ public class DantzigQPSolver {
 
       int n = myq.size();
       myz.setSize (n);
-      boolean[] zBasic = new boolean[n];
-      Status status = statusFromLCP(myLcp.solve (myz, myM, myq, zBasic));
+      Status status = 
+         statusFromLCP(myLcp.solve (myz, /*state=*/null, myM, myq));
       if (status == Status.SOLVED) {
          A.mulTranspose (myy, myz);
          myy.setSize (hsize+neq);

@@ -9,6 +9,7 @@ package maspack.util;
 import java.io.IOException;
 
 import maspack.matrix.Vector;
+import maspack.matrix.*;
 import maspack.matrix.Matrix;
 
 /**
@@ -66,6 +67,14 @@ public class UnitTest {
       }
    }
 
+   public void checkEquals (String msg, VectorNi result, VectorNi check) {
+      if (!result.equals(check)) {
+         throw new TestException (
+            msg + " =\n" + result.toString() +
+            ", expected\n" + check.toString());
+      }
+   }
+
    public void checkEquals (String msg, Matrix result, Matrix check) {
       if (!result.equals(check)) {
          throw new TestException (
@@ -99,6 +108,13 @@ public class UnitTest {
       }
    }
 
+   public void checkEquals (String msg, int result, int check) {
+      if (result != check) {
+         throw new TestException (
+            msg + " = " + result + ", expected " + check);
+      }
+   }
+
    public void test() throws IOException {
    }
 
@@ -112,5 +128,10 @@ public class UnitTest {
       }
       System.out.println ("\nPassed\n");      
    }      
+   
+   public void printUsageAndExit (String msg) {
+      System.out.println ("Usage: "+this.getClass()+" "+msg);
+      System.exit(1);
+   }
 
 }

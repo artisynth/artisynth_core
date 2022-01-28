@@ -13,7 +13,7 @@ import java.io.*;
 import maspack.util.*;
 import maspack.matrix.Matrix.Partition;
 
-class MatrixTest extends UnitTest {
+public class MatrixTest extends UnitTest {
    static double DOUBLE_PREC = 2.220446049250313e-16;
    static double EPSILON = 10 * DOUBLE_PREC;
 
@@ -200,8 +200,8 @@ class MatrixTest extends UnitTest {
              msg += ": ";
           }
           NumberFormat fmt = new NumberFormat ("%10.5f");
-          throw new TestException (msg + 
-             "Expected result:\n" + MC.toString (fmt)
+          throw new TestException (
+             msg + "Expected result:\n" + MC.toString (fmt)
              + "Actual result:\n" + M.toString (fmt) + "\n" + "max err: "
              + ME.maxElement() + ", tol=" + tol);
        }
@@ -1062,6 +1062,28 @@ class MatrixTest extends UnitTest {
             testMulVecReg (M, 0, n, 2, n);            
          }
       }      
+   }
+   
+   void testMulTransposeVec (Matrix M) {
+      int nrows = M.colSize();
+      int ncols = M.rowSize();
+      int maxrc = Math.min(nrows, ncols);
+      for (int n = 1; n <= maxrc; n++) {
+         testMulTransposeVec (M, 0, n, 0, n);
+         testMulTransposeVec (M, 0, n, 0, maxrc);
+         testMulTransposeVec (M, 0, maxrc, 0, n);
+         if (n < maxrc) {
+            testMulTransposeVec (M, 1, n, 0, n);            
+            testMulTransposeVec (M, 0, n, 1, n);            
+            testMulTransposeVec (M, 1, n, 1, n);            
+         }
+         if (n < maxrc-1) {
+            testMulTransposeVec (M, 2, n, 0, n);            
+            testMulTransposeVec (M, 2, n, 1, n);            
+            testMulTransposeVec (M, 1, n, 2, n);            
+            testMulTransposeVec (M, 0, n, 2, n);            
+         }
+      }
    }
 
    void testMulVecBlk (SparseBlockMatrix M) {

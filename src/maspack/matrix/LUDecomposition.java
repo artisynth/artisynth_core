@@ -296,7 +296,9 @@ public class LUDecomposition {
       }
       b.get (sol);
       nonSingular = dosolve (sol);
-      x.set (sol);
+      for (int i=0; i<n; i++) {
+         x.set (i, sol[i]);
+      }
       return nonSingular;
    }
 
@@ -386,6 +388,7 @@ public class LUDecomposition {
          yvec = new double[n];
       }
 
+      // Algorithm 3.5.1 in Golub and van Loan, Matrix Computations, 2nd edition
       for (j = 0; j < n; j++) {
          pvec[j] = 0;
       }

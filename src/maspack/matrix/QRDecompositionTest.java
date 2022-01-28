@@ -19,43 +19,40 @@ class QRDecompositionTest {
    QRDecomposition qr = new QRDecomposition();
 
    private void timingTests() {
-      int baseTimingCnt = 100000;
       int numTrials = 10;
 
-      int[] matsizes = new int[] { 4, 8, 16, 32, 4, 8, 16, 32, 64 };
+      // first entry 256 is just to allow warmup
+      int[] matsizes = new int[] { 256, 16, 32, 64, 128, 256 };
 
       NumberFormat ifmt = new NumberFormat ("%3d");
-      NumberFormat ffmt = new NumberFormat ("%7.2f");
+      NumberFormat ffmt = new NumberFormat ("%8.2f");
 
-      System.out.println ("matsize    time");
+      System.out.println ("matsize   time");
       // XXX XXXXX.XX
 
       for (int k = 0; k < matsizes.length; k++) {
          int n = matsizes[k];
-         int timingCnt = baseTimingCnt / (n * n);
          MatrixNd M = new MatrixNd (n, n);
 
          QRDecomposition qr = new QRDecomposition();
-
          FunctionTimer timer = new FunctionTimer();
-
          double qrdTime = 0;
 
          for (int cnt = 0; cnt < numTrials; cnt++) {
-            M.setRandom();
 
+            M.setRandom();
             timer.start();
-            for (int i = 0; i < timingCnt; i++) {
-               qr.factor (M);
-            }
+            qr.factor (M);
             timer.stop();
-            qrdTime += timer.getTimeUsec() / timingCnt;
+            qrdTime += timer.getTimeUsec();
          }
 
          qrdTime /= numTrials;
 
-         System.out.println ("  " + ifmt.format (n) + "    "
-         + ffmt.format (qrdTime));
+         if (k > 0) {
+            System.out.println ("  " + ifmt.format (n) + "   "
+                                + ffmt.format (qrdTime));
+         }
       }
    }
 

@@ -67,6 +67,7 @@ public class RigidBodyConstraint {
                         // where GT and NT are the transposed bilateral and 
                         // unilateral constraint matrices used to solve the 
                         // mechanical system
+   int state;           // state from most recent invocation of the LCP solver
    
    public Wrench getWrenchG() {
       return wrenchG;
@@ -247,6 +248,12 @@ public class RigidBodyConstraint {
       return engagedCnt;
    }
    
+   public void setState (int s) {
+      state = s;
+   }
    
+   public int getState () {
+      return state;
+   }
    
 }

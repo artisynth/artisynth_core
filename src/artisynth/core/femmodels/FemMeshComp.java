@@ -1598,7 +1598,8 @@ implements CollidableBody, PointAttachable {
             pw.print (node.getNumber() + " ");
          }
          else {
-            pw.print (ComponentUtils.getWritePathName (ancestor, node) + " ");
+            pw.print (
+               ComponentUtils.getWritePathName (ancestor, node) + " 1 ");
          }
       }
       else if (attacher instanceof PointFem3dAttachment) {
@@ -2185,16 +2186,16 @@ implements CollidableBody, PointAttachable {
    //    System.out.println ("FemMeshComp scan: " + timer.result(1));
    // }
 
-    public void postscan (
-       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-       ///FunctionTimer timer = new FunctionTimer();
-       //timer.start();
-       super.postscan (tokens, ancestor);
-       if (myMeshScannedDirectly) {
-          updateSlavePos();
-          myMeshScannedDirectly = false;
-       }
-       //timer.stop();
-       //System.out.println ("FemMeshComp postscan: " + timer.result(1));
-    }
+   public void postscan (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      // FunctionTimer timer = new FunctionTimer();
+      // timer.start();
+      super.postscan (tokens, ancestor);
+      if (myMeshScannedDirectly) {
+         updateSlavePos();
+         myMeshScannedDirectly = false;
+      }
+      //timer.stop();
+      //System.out.println ("FemMeshComp postscan: " + timer.result(1));
+   }
 }

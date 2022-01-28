@@ -589,6 +589,7 @@ public abstract class FemElement extends RenderableComponentBase
                }
                nodes[k] = node;
             }
+            return true;
          }
       }
       else if (!writeNodeRefsByNumber) {
@@ -599,8 +600,8 @@ public abstract class FemElement extends RenderableComponentBase
             for (int i=0; i<nodes.length; i++) {
                nodes[i] = refs[i];
             }
+            return true;
          }
-         return true;
       }
       return super.postscanItem (tokens, ancestor);
    }

@@ -158,7 +158,7 @@ testSaveLoad ("artisynth.demos.mech.PlanarTranslationJointDemo")
 
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
-#testSaveLoad ("artisynth.demos.mech.PointForceDemo")
+testSaveLoad ("artisynth.demos.mech.PointForceDemo")
 
 main.maskFocusStealing (False)
 if main.getMainFrame() == None:

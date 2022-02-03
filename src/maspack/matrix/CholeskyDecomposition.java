@@ -6,6 +6,10 @@
  */
 package maspack.matrix;
 
+import java.util.Arrays;
+import maspack.util.ArraySort;
+import maspack.util.InternalErrorException;
+
 /**
  * Constructs the Cholesky decomposition of a symmetric positive definite
  * matrix. This takes the form <br>
@@ -27,28 +31,45 @@ public class CholeskyDecomposition {
    protected int w;
    protected boolean initialized = false;
 
-   public void setCapacity (int n) {
-      if (w < n) {
-         double[] newBuf = new double[n * n];
-         double[] newSol = new double[n];
-         if (buf != null) {
-            int oldn = this.n;
-            for (int i = 0; i < oldn; i++) {
-               for (int j = 0; j < oldn; j++) {
-                  newBuf[i * n + j] = buf[i * w + j];
-               }
-               newSol[i] = sol[i];
-            }
+   public void ensureCapacity (int cap) {
+      if (w < cap) {
+         // taken from DynamicArray code in maspack.util:
+         int oldCap = w;
+         int newCap = oldCap;
+
+         if (newCap - cap < 0) {  // overflow aware
+            newCap = oldCap + (oldCap >> 1);  // 1.5x growth
          }
-         w = n;
-         buf = newBuf;
-         sol = newSol;
+         if (newCap - cap < 0) {
+            newCap = cap;
+         }
+         if (newCap > oldCap) {  
+            int n = newCap;
+            double[] newBuf = new double[n * n];
+            double[] newSol = new double[n];
+            if (buf != null) {
+               int oldn = this.n;
+               for (int i = 0; i < oldn; i++) {
+                  for (int j = 0; j < oldn; j++) {
+                     newBuf[i * n + j] = buf[i * w + j];
+                  }
+                  newSol[i] = sol[i];
+               }
+            }
+            w = n;
+            buf = newBuf;
+            sol = newSol;
+         }
       }
    }
 
    protected void setSize (int n) {
-      setCapacity (n);
+      ensureCapacity (n);
       this.n = n;
+   }
+
+   public int getSize() {
+      return n;
    }
 
    /**
@@ -107,7 +128,7 @@ public class CholeskyDecomposition {
       }
       else {
          for (i = 0; i < n; i++) {
-            for (j = 0; j < n; i++) {
+            for (j = 0; j < n; j++) {
                buf[i * w + j] = M.get (i, j);
             }
          }
@@ -156,6 +177,7 @@ public class CholeskyDecomposition {
          }
       }
       initialized = true;
+      //validatePD();
    }
 
    /**
@@ -289,7 +311,7 @@ public class CholeskyDecomposition {
       return true;
    }
 
-   protected boolean doLeftSolveL (double[] sol, double[] vec) {
+   protected boolean doSolveLT (double[] sol, double[] vec) {
       double sum;
       int i, j;
       for (i = n - 1; i >= 0; i--) {
@@ -315,9 +337,8 @@ public class CholeskyDecomposition {
     * @return false if M is singular (within working precision)
     * @throws ImproperStateException
     * if this decomposition is uninitialized
-    * @throws ImproperSizeException
-    * if b does not have a size compatible with M, or if x does not have a size
-    * compatible with M and cannot be resized.
+    * @throws ImproperSizeException if b has a size less than M, or if x has a
+    * size less than M and cannot be resized.
     */
    public boolean solve (Vector x, Vector b)
       throws ImproperStateException, ImproperSizeException {
@@ -326,12 +347,14 @@ public class CholeskyDecomposition {
       if (!initialized) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (b.size() != n) {
-         throw new ImproperSizeException ("improper size for b");
+      if (b.size() < n) {
+         throw new ImproperSizeException (
+            "b size "+b.size()+" incompatible with decomposition size "+n);
       }
-      if (x.size() != n) {
+      if (x.size() < n) {
          if (x.isFixedSize()) {
-            throw new ImproperSizeException ("improper size for x");
+            throw new ImproperSizeException (
+               "x size "+x.size()+" incompatible with decomposition size "+n);
          }
          else {
             x.setSize (n);
@@ -419,12 +442,14 @@ public class CholeskyDecomposition {
       if (!initialized) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (b.size() != n) {
-         throw new ImproperSizeException ("improper size for b");
+      if (b.size() < n) {
+         throw new ImproperSizeException (
+            "b size "+b.size()+" incompatible with decomposition size "+n);
       }
-      if (x.size() != n) {
+      if (x.size() < n) {
          if (x.isFixedSize()) {
-            throw new ImproperSizeException ("improper size for x");
+            throw new ImproperSizeException (
+               "x size "+x.size()+" incompatible with decomposition size "+n);
          }
          else {
             x.setSize (n);
@@ -511,12 +536,14 @@ public class CholeskyDecomposition {
       if (!initialized) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (b.size() != n) {
-         throw new ImproperSizeException ("improper size for b");
+      if (b.size() < n) {
+         throw new ImproperSizeException (
+            "b size "+b.size()+" incompatible with decomposition size "+n);
       }
-      if (x.size() != n) {
+      if (x.size() < n) {
          if (x.isFixedSize()) {
-            throw new ImproperSizeException ("improper size for x");
+            throw new ImproperSizeException (
+               "x size "+x.size()+" incompatible with decomposition size "+n);
          }
          else {
             x.setSize (n);
@@ -524,11 +551,11 @@ public class CholeskyDecomposition {
       }
       if (x instanceof VectorNd && b instanceof VectorNd) {
          nonSingular =
-            doLeftSolveL (((VectorNd)x).getBuffer(), ((VectorNd)b).getBuffer());
+            doSolveLT (((VectorNd)x).getBuffer(), ((VectorNd)b).getBuffer());
       }
       else {
          b.get (sol);
-         nonSingular = doLeftSolveL (sol, sol);
+         nonSingular = doSolveLT (sol, sol);
          x.set (sol);
       }
       return nonSingular;
@@ -571,7 +598,7 @@ public class CholeskyDecomposition {
       }
       for (int i = 0; i < B.rowSize(); i++) {
          B.getRow (i, sol);
-         if (!doLeftSolveL (sol, sol)) {
+         if (!doSolveLT (sol, sol)) {
             nonSingular = false;
          }
          X.setRow (i, sol);
@@ -617,6 +644,7 @@ public class CholeskyDecomposition {
       double[] ppos = new double[n];
       double[] yvec = new double[n];
 
+      // Algorithm 3.5.1 in Golub and van Loan, Matrix Computations, 2nd edition
       for (j = 0; j < n; j++) {
          pvec[j] = 0;
       }
@@ -646,50 +674,35 @@ public class CholeskyDecomposition {
             }
          }
       }
-
       rNormInf = 0;
       zNormInf = 0;
 
       // Solve L^T r = y
+      doSolveLT (yvec, yvec);
 
-      for (i = n - 1; i >= 0; i--) {
-         sum = 0;
-         for (j = i + 1; j < n; j++) {
-            sum += yvec[j] * buf[w * j + i];
+      // Compute infinity norm of r
+      for (i=0; i<n; i++) {
+         double m = Math.abs (yvec[i]);
+         if (m > rNormInf) {
+            rNormInf = m;
          }
-         yval = (yvec[i] - sum) / buf[i * w + i];
-         if (Math.abs (yval) > rNormInf) {
-            rNormInf = Math.abs (yval);
-         }
-         yvec[i] = yval;
       }
 
-      // Solve L w = P r
+      // Solve L w = r
+      doSolveL (yvec, yvec);
 
-      for (i = 0; i < n; i++) {
-         sum = yvec[i];
-         for (j = 0; j < i; j++) {
-            sum -= yvec[j] * buf[w * i + j];
-         }
-         yvec[i] = sum / buf[i * w + i];
-      }
+      // Solve L^T z = w
+      doSolveLT (yvec, yvec);
 
-      // Solve U z = w
-
-      for (i = n - 1; i >= 0; i--) {
-         sum = 0;
-         for (j = i + 1; j < n; j++) {
-            sum += yvec[j] * buf[w * j + i];
+      // Compute the infinity norm of z
+      for (i=0; i<n; i++) {
+         double m = Math.abs (yvec[i]);
+         if (m > zNormInf) {
+            zNormInf = m;
          }
-         yval = (yvec[i] - sum) / buf[w * i + i];
-         if (Math.abs (yval) > zNormInf) {
-            zNormInf = Math.abs (yval);
-         }
-         yvec[i] = yval;
       }
 
       // Compute the infinity norm of M
-
       double mNormInf = 0;
       for (i = 0; i < n; i++) {
          M.getRow (i, yvec);
@@ -701,8 +714,26 @@ public class CholeskyDecomposition {
             mNormInf = sum;
          }
       }
-
       return (mNormInf * zNormInf / rNormInf);
+   }
+
+   public double eigenValueRatio () {
+      if (!initialized) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      double maxL = 0;
+      double minL = Double.MAX_VALUE;
+      
+      for (int i=0; i<n; i++) {
+         double lii = Math.abs(buf[i*w+i]);
+         if (lii < minL) {
+            minL = lii;
+         }
+         if (lii > maxL) {
+            maxL = lii;
+         }
+      }
+      return maxL/minL;      
    }
 
    /**
@@ -790,21 +821,49 @@ public class CholeskyDecomposition {
          doSolveL (sol, col.getBuffer());
       }
       // note: setSize will set n = n + 1
-      setSize (n + 1);
-      double sum = col.get (n - 1);
-      int i = n - 1;
-      for (int j = 0; j < i; j++) {
+
+      double sum = col.get (n);
+      for (int j = 0; j < n; j++) {
          sum -= sol[j] * sol[j];
       }
-      if (sum < tol) {
-         setSize (n - 1);
+      if (sum <= 0) {
          return false;
       }
+      double diag = Math.sqrt (sum);
+      if (tol > 0) {
+         // test to see how well conditioned we are. Find max/min diagonal
+         // values of L and make sure minL/maxL (which gives a very crude
+         // estimate of the condition number) is > tol
+         double maxL = 0;
+         double minL = Double.MAX_VALUE;
+      
+         for (int i=0; i<n; i++) {
+            double lii = buf[i*w+i];
+            if (lii < minL) {
+               minL = lii;
+            }
+            if (lii > maxL) {
+               maxL = lii;
+            }
+         }
+         if (diag < minL) {
+            minL = diag;
+         }
+         if (diag > maxL) {
+            maxL = diag;
+         }
+         if (minL/maxL <= tol) {
+            return false;
+         }
+      }
+      setSize (n + 1);
+      int i = n-1;
       for (int j = 0; j < i; j++) {
          buf[i * w + j] = sol[j];
       }
-      buf[i * w + i] = Math.sqrt (sum);
+      buf[i * w + i] = diag;
       initialized = true;
+      //validatePD();
       return true;
    }
 
@@ -815,43 +874,109 @@ public class CholeskyDecomposition {
 
       // before removal, L is partitioned into
       //
-      // [ L11 0 0 ]
-      // [ ]
-      // L = [ l21 l22 0 ]
-      // [ ]
-      // [ L31 l32 L33 ]
+      //     [ L11         ]
+      //     [             ]
+      // L = [ l21 l22     ]
+      //     [             ]
+      //     [ L31 l32 L33 ]
       // 
       // where l21, l22, and l32 are the rows/columns to be removed.
 
-      // Do a givens reduction to fold the right-most elements
-      // of L33 into l32
+      // Do a givens reduction to fold the diagonal elements of L33 into l32
+      // and the left part of L33.
 
-      for (int i = idx + 1; i < n; i++) {
-         double z1 = buf[i * w + i - 1];
-         double z2 = buf[i * w + i];
+      for (int i=idx+1; i<n; i++) {
+         double z1 = buf[i*w + i - 1];
+         double z2 = buf[i*w + i];
          double p = Math.sqrt (z1 * z1 + z2 * z2);
          if (z1 < 0) {
             p = -p;
          }
          double c = z1 / p;
          double s = z2 / p;
-         buf[i * w + i - 1] = p;
-         for (int k = i + 1; k < n; k++) {
-            z1 = buf[k * w + i - 1];
-            z2 = buf[k * w + i];
-            buf[k * w + i - 1] = c * z1 + s * z2;
-            buf[k * w + i] = s * z1 - c * z2;
+         buf[i*w + i - 1] = p;
+         for (int k=i+1; k<n; k++) {
+            z1 = buf[k*w + i - 1];
+            z2 = buf[k*w + i];
+            buf[k*w + i - 1] = c * z1 + s * z2;
+            buf[k*w + i] = s * z1 - c * z2;
          }
       }
 
-      // now shift L31 and L33 upwards
-      for (int i = idx + 1; i < n; i++) {
-         for (int j = 0; j <= i; j++) {
-            buf[(i - 1) * w + j] = buf[i * w + j];
+      // shift L31 upwards
+      for (int i=idx+1; i<n; i++) {
+         for (int j=0; j<idx; j++) {
+            buf[(i-1)*w + j] = buf[i*w + j];
          }
       }
-
+      // shift the modified L33 upwards, negating columns when needed to keep
+      // diagonals of L positive
+      for (int j=idx; j<n-1; j++) {
+         double diag = buf[(j+1)*w + j];
+         if (diag >= 0) {
+            buf[j*w+j] = diag;
+            for (int i=j+2; i<n; i++) {
+               buf[(i-1)*w + j] = buf[i*w + j];
+            }
+         }
+         else {
+            buf[j*w+j] = -diag;
+            for (int i=j+2; i<n; i++) {
+               buf[(i-1)*w + j] = -buf[i*w + j];
+            }
+         }
+      }
       setSize (n - 1); // n is now n-1
+      //validatePD();
+   }
+
+   public void deleteRowsAndColumns (int[] idxs) {
+      if (idxs.length > n) {
+         throw new IllegalArgumentException (
+            "Number of rows/columns to delete exceeds decomposition size");
+      }
+      // make sure the indices are strictly ascending
+      boolean ascending = true;
+      int lasti = -1;
+      for (int k=0; k<idxs.length; k++) {
+         int i = idxs[k];
+         if (i < 0 || i >= n) {
+            throw new IllegalArgumentException (
+               "Row/column "+i+" is out of range");
+         }
+         if (i <= lasti) {
+            ascending = false;
+         }
+         lasti = i;
+      }
+      if (!ascending) {
+         idxs = Arrays.copyOf (idxs, idxs.length);
+         ArraySort.sort (idxs);
+         for (int k=0; k<idxs.length-1; k++) {
+            if (idxs[k] == idxs[k+1]) {
+               throw new IllegalArgumentException (
+                  "Repeated row/column index "+idxs[k]);
+            }
+         }
+      }
+      for (int k=idxs.length-1; k>=0; k--) {
+         deleteRowAndColumn (idxs[k]);
+      }
+   }
+
+   boolean checkPD() {
+      for (int i=0; i<n; i++) {
+         if (buf[i*w + i] <= 0) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   void validatePD() {
+      if (!checkPD()) {
+         throw new InternalErrorException ("Matrix is not PD");
+      }
    }
 
 }

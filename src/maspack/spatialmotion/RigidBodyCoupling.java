@@ -663,6 +663,15 @@ public abstract class RigidBodyCoupling implements Cloneable {
       return idx;      
    }
 
+   private int setUnilateralState (int[] buf, int idx) {
+      for (RigidBodyConstraint cons : myConstraints) {
+         if (!cons.isBilateral() && cons.engaged != 0) {
+            cons.setState (buf[idx++]);
+         }
+      }
+      return idx;      
+   }
+
     /**
     * Sets the unilateral constraint forces (i.e., Lagrange multipliers) that
     * have been computed for the currently engaged unilateral constraints in
@@ -679,11 +688,24 @@ public abstract class RigidBodyCoupling implements Cloneable {
    public int setUnilateralForces (VectorNd the, double h, int idx) {
       return setUnilateralForces (the.getBuffer(), h, idx);
    }
+   
+   public int setUnilateralState (VectorNi state, int idx) {
+      return setUnilateralState (state.getBuffer(), idx);
+   }
 
    private int getUnilateralForces (double[] buf, int idx) {
       for (RigidBodyConstraint cons : myConstraints) {
          if (!cons.isBilateral() && cons.engaged != 0) {
             buf[idx++] = cons.getMultiplier();
+         }
+      }
+      return idx;      
+   }
+
+   private int getUnilateralState (int[] buf, int idx) {
+      for (RigidBodyConstraint cons : myConstraints) {
+         if (!cons.isBilateral() && cons.engaged != 0) {
+            buf[idx++] = cons.getState();
          }
       }
       return idx;      
@@ -702,6 +724,10 @@ public abstract class RigidBodyCoupling implements Cloneable {
     */
    public int getUnilateralForces (VectorNd the, int idx) {
       return getUnilateralForces (the.getBuffer(), idx);
+   }
+   
+   public int getUnilateralState (VectorNi state, int idx) {
+      return getUnilateralState (state.getBuffer(), idx);
    }
 
    /**

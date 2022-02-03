@@ -53,6 +53,12 @@ public class FemNode3d extends FemNode implements Boundable {
     * Flag indicating if strain values should be computed for this node
     */
    public static int NEEDS_STRAIN = 0x2;
+
+
+   /**
+    * Flag indicating that the rest position was read during scan
+    */
+   public static int REST_POSITION_SCANNED = 0x8000;
    
    /**
     * Flag indicating external (application) request to compute stress
@@ -102,7 +108,7 @@ public class FemNode3d extends FemNode implements Boundable {
 
    private LinkedList<FemElement3dBase> myElementDeps;
    protected int myShellElemCnt;
-   protected LinkedList<FemNodeNeighbor> myNodeNeighbors;
+   protected ArrayList<FemNodeNeighbor> myNodeNeighbors;
    private LinkedList<FemNodeNeighbor> myIndirectNeighbors;
    int myIndex = -1;
    private int myIncompressIdx = -1;
@@ -123,8 +129,9 @@ public class FemNode3d extends FemNode implements Boundable {
       new PropertyList (FemNode3d.class, FemNode.class);
 
    static {
-      myProps.add ("restPosition",
-         "rest position for the node", Point3d.ZERO, "%.8g");
+      myProps.add (
+         "restPosition",
+         "rest position for the node", Point3d.ZERO, "%.8g NW");
       myProps.add (
          "targetDisplacement",
          "target specified as a displacement from rest position", Point3d.ZERO,
@@ -167,7 +174,7 @@ public class FemNode3d extends FemNode implements Boundable {
       myRest = new Point3d();
       myInternalForce = new Vector3d();
       myElementDeps = new LinkedList<FemElement3dBase>();
-      myNodeNeighbors = new LinkedList<FemNodeNeighbor>();
+      myNodeNeighbors = new ArrayList<FemNodeNeighbor>();
    }
 
    public FemNode3d (Point3d p) {
@@ -575,7 +582,7 @@ public class FemNode3d extends FemNode implements Boundable {
 
    /* --- Methods pertaining to node neighbors --- */
 
-   public LinkedList<FemNodeNeighbor> getNodeNeighbors() {
+   public ArrayList<FemNodeNeighbor> getNodeNeighbors() {
       return myNodeNeighbors;
    }
 
@@ -584,6 +591,10 @@ public class FemNode3d extends FemNode implements Boundable {
       if (nbr == null) {
          nbr = new FemNodeNeighbor (nbrNode);
          myNodeNeighbors.add (nbr);
+//         if (nbrNode != this) {
+//            FemNodeNeighbor otherNbr = new FemNodeNeighbor (this);
+//            nbrNode.myNodeNeighbors.add (otherNbr);
+//         }
       }
       if (shell) {
          if (nbr.myShellRefCnt == 0) {
@@ -701,6 +712,7 @@ public class FemNode3d extends FemNode implements Boundable {
       rtok.nextToken();
       if (scanAttributeName (rtok, "rest")) {
          myRest.scan (rtok);
+         setFlag (REST_POSITION_SCANNED);
          return true;
       }
       else if (scanAttributeName (rtok, "backNode")) {
@@ -736,6 +748,19 @@ public class FemNode3d extends FemNode implements Boundable {
       return super.scanItem (rtok, tokens);
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      super.scan (rtok, ref);
+      if (checkFlag(REST_POSITION_SCANNED)) {
+         clearFlag (REST_POSITION_SCANNED);
+      }
+      else {
+         myRest.set (getPosition());
+      }
+   }
+
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
@@ -746,9 +771,11 @@ public class FemNode3d extends FemNode implements Boundable {
          myBackNode.write (pw, fmt, ancestor);
       }
       super.writeItems (pw, fmt, ancestor);
-      pw.print ("rest=");
-      myRest.write (pw, fmt, /* withBrackets= */true);
-      pw.println ("");
+      if (!myRest.equals (getPosition())) {
+         pw.print ("rest=");
+         myRest.write (pw, fmt, /* withBrackets= */true);
+         pw.println ("");
+      }
       int stressStrainInternal =
          (myFlags & (COMPUTE_STRESS_INTERNAL|COMPUTE_STRAIN_INTERNAL));
       if (stressStrainInternal != 0) {
@@ -1036,7 +1063,7 @@ public class FemNode3d extends FemNode implements Boundable {
       node.myInternalForce = new Vector3d();
       node.myElementDeps = new LinkedList<FemElement3dBase>();
       node.myShellElemCnt = 0;
-      node.myNodeNeighbors = new LinkedList<FemNodeNeighbor>();
+      node.myNodeNeighbors = new ArrayList<FemNodeNeighbor>();
       node.myIndirectNeighbors = null;
 
       if (myBackNode != null) {

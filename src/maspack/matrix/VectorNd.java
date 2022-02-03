@@ -414,18 +414,20 @@ public class VectorNd extends VectorBase
          }
       }
       buf[size++] = value;
-      // if (++size > buf.length) {
-      //    if (explicitBuffer) {
-      //       size--;
-      //       throw new ImproperSizeException (
-      //          "Adjusted vector size too large for explicit internal buffer");
-      //    }
-      //    else {
-      //       int newcap = 2*size;
-      //       resizeBuffer (size-1, newcap);
-      //    }
-      // }
-      // buf[size-1] = value;
+   }
+
+   /**
+    * Removes the {@code i}-th value from this vector, decreasing its size by
+    * one.  Indices for all values greater than {@code i} are decremented by
+    * one.
+    *
+    * @param i index of the value to be removed
+    */
+   public void remove (int i) {
+      for (int k=i; k<size-1; k++) {
+         buf[k] = buf[k+1];
+      }
+      size--;
    }
 
    /**
@@ -550,6 +552,44 @@ public class VectorNd extends VectorBase
    }
 
    /**
+    * Adds a scaled subset of the values of this vector, beginning at a 
+    * specified offset, to the values of v1.
+    * 
+    * @param off
+    * offset where adding should begin in this vector
+    * @param scale scale factor that {@code v1} should be multiplied by
+    * @param v1
+    * vector whose values are to be added
+    * @throws ImproperSizeException
+    * if this vector is not large enough to accommodate the specified subvector
+    */
+   public void addScaledSubVector (int off, double scale, Vector v1) {
+      int v1size = v1.size();
+      if (size < off + v1size) {
+         throw new ImproperSizeException (
+            "vector not large enough for sub-vector: " +
+            "offset=" + off + " size=" + size + " sub-vector size=" + v1size);
+      }
+      if (v1 instanceof VectorNd) {
+         double[] v1buf = ((VectorNd)v1).buf;
+         for (int i = 0; i < v1size; i++) {
+            buf[i + off] += scale*v1buf[i];
+         }
+      }
+      else if (v1 instanceof Vector3d) {
+         Vector3d vec = (Vector3d)v1;
+         buf[off++] += scale*vec.x; 
+         buf[off++] += scale*vec.y; 
+         buf[off++] += scale*vec.z; 
+      }
+      else {
+         for (int i = 0; i < v1size; i++) {
+            buf[i + off] += scale*v1.get(i);
+         }
+      }
+   }
+
+   /**
     * Gets a subset of the values of this vector, whose indices are
     * specified by <code>idxs</code>, and places them in <code>v1</code>.
     * 
@@ -628,7 +668,8 @@ public class VectorNd extends VectorBase
     */
    public VectorNd add (VectorNd v1, VectorNd v2) throws ImproperSizeException {
       if (v1.size != v2.size) {
-         throw new ImproperSizeException ("Incompatible dimensions");
+         throw new ImproperSizeException (
+            "Incompatible dimensions: v1.size="+v1.size()+"; v2.size="+v2.size());
       }
       if (size != v1.size) {
          resetSize (v1.size);
@@ -1184,6 +1225,15 @@ public class VectorNd extends VectorBase
    public void setZero() {
       for (int i = 0; i < size; i++) {
          buf[i] = 0;
+      }
+   }
+
+   /**
+    * Sets the elements of this vector to a specific value.
+    */
+   public void set (double value) {
+      for (int i = 0; i < size; i++) {
+         buf[i] = value;
       }
    }
 

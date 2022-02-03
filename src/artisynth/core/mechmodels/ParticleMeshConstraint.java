@@ -338,6 +338,7 @@ public class ParticleMeshConstraint extends ParticleConstraintBase
       throws IOException {
 
       super.writeItems (pw, fmt, ancestor);
+      pw.print ("mesh=");
       myMeshInfo.write (pw, fmt); 
    }
 

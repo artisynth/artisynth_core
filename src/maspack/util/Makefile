@@ -8,6 +8,7 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	ArraySortTest \
+	ArraySupportTest \
 	BinaryStreamTest \
 	CubicSolverTest \
 	DynamicArrayTest \

@@ -11,7 +11,7 @@ import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.matrix.ImproperSizeException;
 import maspack.matrix.LinearTransformNd;
 import maspack.matrix.Matrix;
-import maspack.matrix.SparseMatrixCRS;
+import maspack.matrix.SparseCRSMatrix;
 import maspack.matrix.VectorNd;
 
 /**
@@ -83,7 +83,7 @@ public class ProjectedCGSolver {
     * @return true if a solution was found within the specified tolerance
     */
    public boolean solve (
-      VectorNd x, VectorNd lam, LinearTransformNd A, SparseMatrixCRS G,
+      VectorNd x, VectorNd lam, LinearTransformNd A, SparseCRSMatrix G,
       VectorNd b, VectorNd g) {
       return solve (x, lam, A, G, b, g, myTol, myMaxIter, null);
    }
@@ -115,7 +115,7 @@ public class ProjectedCGSolver {
     * @return true if a solution was found within the specified tolerance
     */
    public boolean solve (
-      VectorNd x, VectorNd lam, LinearTransformNd A, SparseMatrixCRS G,
+      VectorNd x, VectorNd lam, LinearTransformNd A, SparseCRSMatrix G,
       VectorNd b, VectorNd g, double tol, int maxIter) {
       return solve (x, lam, A, G, b, g, tol, maxIter, null);
    }
@@ -152,7 +152,7 @@ public class ProjectedCGSolver {
     * @return true if a solution was found within the specified tolerance
     */
    public boolean solve (
-      VectorNd x, VectorNd lam, LinearTransformNd A, SparseMatrixCRS G,
+      VectorNd x, VectorNd lam, LinearTransformNd A, SparseCRSMatrix G,
       VectorNd b, VectorNd g, double tol, int maxIter, LinearTransformNd P) {
 
       // System.out.println ("CGSolve: " + tol+" "+maxIter+" "+myTolType);
@@ -254,7 +254,7 @@ public class ProjectedCGSolver {
    }
 
    private void projectConstraints (
-      VectorNd v, VectorNd lam, SparseMatrixCRS G, VectorNd b, double[] Gdot) {
+      VectorNd v, VectorNd lam, SparseCRSMatrix G, VectorNd b, double[] Gdot) {
       double[] bbuf = b.getBuffer();
       double[] lambuf = lam != null ? lam.getBuffer() : null;
       int icnt = 1000;

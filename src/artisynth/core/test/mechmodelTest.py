@@ -597,7 +597,7 @@ run()
 waitForStop()
 reset()
 
-loadModel ("artisynth.demos.test.PointPlaneForceTest [-quadratic]")
+loadModel ("artisynth.demos.test.PointPlaneForceTest", "-quadratic")
 mech = setModelOpts (2.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.writePrintStateHeader ("PointPlaneForceTest quadratic ConstrainedBackwardEuler");

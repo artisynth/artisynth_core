@@ -10,48 +10,16 @@ import maspack.matrix.*;
 import maspack.util.*;
 
 /**
- * Solves linear complementarity problems (LCPs) for symmetric positive
- * semi-definite (SPSD) matrices using Dantzig's method. An LCP is defined by
- * the linear system
- * 
- * <pre>
- * {@code
- * w = M z + q
- * }
- * </pre>
- * 
- * and solving it entails finding w and z subject to the constraints
- * 
- * <pre>
- * {@code
- *                  T
- * w >= 0, z >= 0, w z = 0
- * }
- * </pre>
- * 
- * Dantig's method does this by a series of <i>pivoting</i> operations. Each
- * pivot corresponds to one solver iteration and entails the exchange of a
- * single variable w_i with its complementary counterpart z_i. A sequence of
- * pivots results in the pivoted system
- * 
- * <pre>
- * {@code
- * w' = M' z' + q'
- * }
- * </pre>
- * 
- * where w' and z' contain complementary combinations of the w and z variables.
- * Any variable (w or z) contained in w' is called a <i>basic</i> variable.
- * When a pivoted system is found for which q' {@code >=} 0, this provides a
- * solution to the LCP in which the z and w variables comprising z' are 0 and
- * the z and w variables comprising w' are equal to the corresponding entries
- * in q'. As mentioned above, Dantzig's method only works when M is SPSD.
- * 
- * <p>
- * Full details on the solution of LCPs can be found in <i>The Linear
- * Complementarity Problem</i>, by Cottle, Pang, and Stone.
+ * Solves linear complementarity problems (LCPs) and bounded linear
+ * complementarity problems (BLCPs) for symmetric positive semi-definite (SPSD)
+ * matrices using Dantzig's method. Details on Dantzig's method can be found in
+ * Claude Lacoursiere's Ph.D. thesis. <i>Ghosts and Machines: Regularized
+ * Variational Methods for Interactive Simulations of Multibodies with Dry
+ * Frictional Contact</i>, as well as in <i>The Linear Complementarity
+ * Problem</i>, by Cottle, Pang, and Stone.
  */
-public class DantzigLCPSolver {
+public class DantzigLCPSolver implements LCPSolver {
+   
    protected double[] myMvBuf;
    protected double[] myQvBuf;
    protected double[] myMcolBuf;
@@ -80,8 +48,10 @@ public class DantzigLCPSolver {
 
    protected double myDefaultTol = 1e-12;
    protected double myTol;
+   protected int myNumFailedPivots;
    protected int myIterationLimit = 10;
    protected int myIterationCnt;
+   protected int myPivotCnt;
    protected boolean myComputeResidual = false;
    protected double myResidual = 0;
    protected boolean mySilentP = false;
@@ -94,39 +64,12 @@ public class DantzigLCPSolver {
    public static final int SHOW_RETURNS = 0x10;
    public static final int SHOW_ALL = (SHOW_PIVOTS | SHOW_MIN_RATIO | SHOW_QM);
 
-   public static int Z_VAR = 0x01;
-   public static int W_VAR_LOWER = 0x02;
-   public static int W_VAR_UPPER = 0x06;
-
    protected int myDebug = SHOW_NONE; // 
    // protected int myDebug = SHOW_PIVOTS | SHOW_VARIABLES | SHOW_RETURNS;
    protected FunctionTimer timerA = new FunctionTimer();
    protected FunctionTimer timerB = new FunctionTimer();
 
    private static double inf = Double.POSITIVE_INFINITY;
-
-   /**
-    * Described whether or not a solution was found.
-    */
-   public enum Status {
-      /**
-       * A solution was found.
-       */
-      SOLVED,
-      /**
-       * No solution appears to be possible.
-       */
-      NO_SOLUTION,
-      /**
-       * Iteration limit was exceeded, most likely due to numerical
-       * ill-conditioning.
-       */
-      ITERATION_LIMIT_EXCEEDED,
-      /**
-       * A numeric error was detected in the solution.
-       */
-      NUMERIC_ERROR,
-   }
 
    public int getDebug() {
       return myDebug;
@@ -223,13 +166,31 @@ public class DantzigLCPSolver {
    }
 
    /**
-    * Returns the number of iterations, or pivots, that were used in the most
-    * recent solution operation.
-    * 
-    * @return iteration count for last solution
+    * {@inheritDoc}
     */
    public int getIterationCount() {
       return myIterationCnt;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getPivotCount() {
+      return myPivotCnt;
+   }
+
+   /**
+    * {@inheritDoc}
+    */  
+   public double getLastSolveTol() {
+      return myTol;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numFailedPivots() {
+      return myNumFailedPivots;
    }
 
    /**
@@ -359,7 +320,7 @@ public class DantzigLCPSolver {
          // myInitialToPivotedIdxs = new int[size];
          myPivotedToInitialIdxs = new int[size];
 
-         myCholesky.setCapacity (size);
+         myCholesky.ensureCapacity (size);
          myCapacity = size;
       }
       mySize = size;
@@ -367,31 +328,30 @@ public class DantzigLCPSolver {
    }
 
    /**
-    * Solves the LCP
-    * 
-    * <pre>
-    * w = M z + q
-    * </pre>
-    * 
-    * where M is SPSD. It is possible to use this routine to solve a mixed LCP,
-    * by pre-pivoting M and q to make the relevant non-LCP z variables basic and
-    * presetting the corresponding entries for these variables in zBasic to
-    * true.
-    * 
-    * @param z
-    * returns the solution for z
-    * @param M
-    * system matrix
-    * @param q
-    * system vector
-    * @param zBasic
-    * On output, identifies which z variables are basic in the solution. On
-    * input, identifies z variables which have been made basic as part of
-    * solving a mixed LCP. If the LCP is not mixed, then all entries in this
-    * array should be set to false.
-    * @return Status of the solution.
+    * Backward compatible version of solve:
     */
    public Status solve (VectorNd z, MatrixNd M, VectorNd q, boolean[] zBasic) {
+      VectorNi state = null;
+      int size = z.size();
+      if (zBasic != null) {
+         if (zBasic.length < size) {
+            throw new IllegalArgumentException ("zBasic has size less than z");
+         }
+         state = new VectorNi (size);
+      }
+      Status status = solve (z, state, M, q);
+      if (zBasic != null) {
+         for (int i=0; i<size; i++) {
+            zBasic[i] = (state.get(i) == Z_VAR);
+         }
+      }
+      return status;
+   }
+
+   /**
+    * {@inheritDc}
+    */
+   public Status solve (VectorNd z, VectorNi state, MatrixNd M, VectorNd q) {
       if (M.rowSize() != M.colSize()) {
          throw new IllegalArgumentException ("Matrix is not square");
       }
@@ -404,8 +364,8 @@ public class DantzigLCPSolver {
          throw new IllegalArgumentException (
             "z and q do not have the same sizes");
       }
-      if (zBasic != null && zBasic.length < size) {
-         throw new IllegalArgumentException ("zBasic has size less than z");
+      if (state != null && state.size() < size) {
+         throw new IllegalArgumentException ("state has size less than z");
       }
       // allocate storage space
       myZBuf = z.getBuffer();
@@ -416,22 +376,19 @@ public class DantzigLCPSolver {
       myQ = q;
       M.get (myMvBuf);
       q.get (myQvBuf);
-      if (myLocalStateBuf.length < mySize) {
-         myLocalStateBuf = new int[mySize];
-      }
-      myState = myLocalStateBuf;
+      
+      initializeState (size);
       for (int i = 0; i < size; i++) {
-         myState[i] = W_VAR_LOWER;
          myPivotedToInitialIdxs[i] = i;
       }
       myNumZBasic = 0;
       Status status = dosolve (size);
       // z.set (myZBuf);
-      if (zBasic != null) {
-         for (int i = 0; i < size; i++) {
-            zBasic[i] = (myState[i] == Z_VAR);
+      if (state != null) {
+         for (int i=0; i<size; i++) {
+            state.set (i, myState[i]);
          }
-      }
+      }     
       if (myComputeResidual) {
          myResidual = computeResidual (z, M, q);
       }
@@ -471,11 +428,11 @@ public class DantzigLCPSolver {
     * returns the solution for z
     * @param q
     * system vector
-    * @param zBasic
+    * @param state
     * (optional) if specified, returns which z variables are basic in the
     * solution.
     */
-   public void resolve (VectorNd z, VectorNd q, boolean[] zBasic) {
+   public void resolve (VectorNd z, VectorNd q, int[] state) {
       if (q.size() != mySize) {
          throw new IllegalArgumentException (
             "q does not have the size of the currently loaded M");
@@ -484,8 +441,8 @@ public class DantzigLCPSolver {
          throw new IllegalArgumentException (
             "q does not have the size of the currently loaded M");
       }
-      if (zBasic != null && zBasic.length < mySize) {
-         throw new IllegalArgumentException ("zBasic size " + zBasic.length
+      if (state != null && state.length < mySize) {
+         throw new IllegalArgumentException ("state size " + state.length
          + " less than current problem size " + mySize);
       }
       // System.out.println ("M=\n" + M.toString("%12.8f"));
@@ -508,16 +465,53 @@ public class DantzigLCPSolver {
       for (int ip = 0; ip < myNumZBasic; ip++) {
          zbuf[myPivotedToInitialIdxs[ip]] = xbuf[ip];
       }
-      if (zBasic != null) {
+      if (state != null) {
          for (int i = 0; i < mySize; i++) {
-            zBasic[i] = (myState[i] == Z_VAR);
+            state[i] = myState[i];
          }
       }
    }
 
-   public Status solve (
+   private void initializeState (int size) {
+      if (myLocalStateBuf.length < mySize) {
+         myLocalStateBuf = new int[mySize];
+      }
+      myState = myLocalStateBuf;     
+      for (int i=0; i<size; i++) {
+         myState[i] = W_VAR_LOWER;
+      }
+   }
+
+   /**
+    * Backward compatible version of solve:
+    */
+   public Status solve (   
       VectorNd z, VectorNd w, MatrixNd M, VectorNd q, VectorNd lo, VectorNd hi,
-      int nub, int[] state) {
+      int nub, int[] stateArray) {
+      int size = z.size();
+      VectorNi state = null;
+      if (stateArray != null) {
+         if (stateArray.length < size) {
+            throw new IllegalArgumentException (
+               "state array insufficiently large");
+         }
+         state = new VectorNi(size);
+      }
+      Status status = solve (z, w, state, M, q, lo, hi, nub);
+      if (stateArray != null) {
+         for (int i=0; i<size; i++) {
+            stateArray[i] = state.get(i);
+         }
+      }
+      return status;
+   }   
+
+   /**
+    * {@inheritDoc}
+    */
+   public Status solve (
+      VectorNd z, VectorNd w, VectorNi state, MatrixNd M, VectorNd q, 
+      VectorNd lo, VectorNd hi, int nub) {
       if (M.rowSize() != M.colSize()) {
          throw new IllegalArgumentException ("Matrix is not square");
       }
@@ -530,18 +524,8 @@ public class DantzigLCPSolver {
          throw new IllegalArgumentException (
             "z and q do not have the same sizes");
       }
-      if (state != null) {
-         if (state.length < size) {
-            throw new IllegalArgumentException (
-               "state array insufficiently large");
-         }
-         myState = state;
-      }
-      else {
-         if (myLocalStateBuf.length < mySize) {
-            myLocalStateBuf = new int[mySize];
-         }
-         myState = myLocalStateBuf;
+      if (state != null && state.size() < size) {
+         throw new IllegalArgumentException ("state has size less than z");
       }
 
       // allocate storage space
@@ -554,12 +538,17 @@ public class DantzigLCPSolver {
       myLo = lo.getBuffer();
       myHi = hi.getBuffer();
       M.get (myMvBuf);
+      initializeState (size);
       for (int i = 0; i < size; i++) {
-         myState[i] = W_VAR_LOWER;
          myPivotedToInitialIdxs[i] = i;
       }
       myNumZBasic = 0;
       Status status = dosolveBLCP (size, nub);
+      if (state != null) {
+         for (int i=0; i<size; i++) {
+            state.set (i, myState[i]);
+         }
+      }
       return status;
    }
 
@@ -579,7 +568,7 @@ public class DantzigLCPSolver {
       }
       for (int i = 0; i < n; i++) {
          if (myPivotOK[i]) {
-            if (i == r || myState[i] == Z_VAR) // && !zBasicOrig[i]))
+            if (i == r || myState[i] == Z_VAR) 
             {
                double step = Double.POSITIVE_INFINITY;
                if (i == r) {
@@ -623,10 +612,12 @@ public class DantzigLCPSolver {
    protected Status dosolve (int n) {
       int maxIterations = myIterationLimit * n;
       myIterationCnt = 0;
+      myPivotCnt = 0;
 
       if (myPivotOK.length < mySize) {
          myPivotOK = new boolean[mySize];
       }
+      myNumFailedPivots = 0;
 
       double[] mv;
 
@@ -738,6 +729,7 @@ public class DantzigLCPSolver {
 
             if (!pivotOK) {
                myPivotOK[s] = false;
+               myNumFailedPivots++;
                myTol = 2 * Math.abs (mv[s]);
             }
             else {
@@ -752,6 +744,7 @@ public class DantzigLCPSolver {
                for (int i = 0; i < n; i++) {
                   myPivotOK[i] = true;
                }
+               myPivotCnt++;
                myIterationCnt++;
 
                if (s != r) {
@@ -859,18 +852,21 @@ public class DantzigLCPSolver {
    protected Status dosolveBLCP (int n, int nub) {
       int maxIterations = myIterationLimit * n;
       myIterationCnt = 0;
+      myPivotCnt = 0;
 
       if (myPivotOK.length < mySize) {
          myPivotOK = new boolean[mySize];
       }
+      myNumFailedPivots = 0;
 
       double[] Mbuf = myM.getBuffer();
-      double[] xbuf = myX.getBuffer();
+      double[] xbuf;
       double[] qbuf = myQ.getBuffer();
       int mw = myM.getBufferWidth();
 
       for (int j = 0; j < nub; j++) {
          myX.setSize (j + 1);
+         xbuf = myX.getBuffer();
          for (int i = 0; i <= j; i++) {
             xbuf[i] = Mbuf[i * mw + j];
          }
@@ -912,6 +908,7 @@ public class DantzigLCPSolver {
       }
       if (nub > 0) {
          myX.setSize (nub);
+         xbuf = myX.getBuffer();
          for (int i = 0; i < nub; i++) {
             xbuf[i] = qbuf[i];
          }
@@ -1175,9 +1172,11 @@ public class DantzigLCPSolver {
                }
                checkWValues();
                myIterationCnt++;
+               myPivotCnt++;
             }
             else {
                myPivotOK[s] = false;
+               myNumFailedPivots++;
                myTol = 2 * Math.abs (mv[s]);
                if (!mySilentP) {
                   System.out.println (
@@ -1191,6 +1190,20 @@ public class DantzigLCPSolver {
          System.out.println ("ITERATION LIMIT EXCEEDED");
       }
       return Status.ITERATION_LIMIT_EXCEEDED;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isBLCPSupported() {
+      return true;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */  
+   public boolean isWarmStartSupported() {
+      return false;
    }
 
    /**
@@ -1268,7 +1281,7 @@ public class DantzigLCPSolver {
          for (int ip = 0; ip < myNumZBasic; ip++) {
             xbuf[ip] = Mbuf[mw * myPivotedToInitialIdxs[ip] + s];
          }
-         xbuf[myNumZBasic] = Mbuf[mw * s + s];
+         myX.set (myNumZBasic, Mbuf[mw * s + s]);
          myX.setSize (myNumZBasic + 1);
          if (!myCholesky.addRowAndColumn (myX, 0)) {
             myX.setSize (myNumZBasic);

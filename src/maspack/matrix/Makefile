@@ -41,8 +41,9 @@ JAVA_TEST_PROGRAMS = \
 	SVDecompositionTest \
 	SVDecomposition3dTest \
 	ScaledRigidTransform3dTest \
+	SignedCholeskyDecompTest \
 	SparseBlockMatrixTest \
-	SparseMatrixCRSTest \
+	SparseCRSMatrixTest \
 	SparseMatrixNdTest \
 	SparseNumberedBlockMatrixTest \
 	SparseVectorNdTest \

@@ -7,6 +7,7 @@
 package maspack.util;
 
 import java.util.Random;
+import java.util.ArrayList;
 
 public class RandomGenerator {
    private static Random randGen;
@@ -76,6 +77,21 @@ public class RandomGenerator {
     */
    public static int nextInt (int n) {
       return get().nextInt(n);
+   }
+
+   /**
+    * Generates a random subsequence of the integers 0, ... n-1.
+    *
+    * @param n size of the subsequence
+    */
+   public static int[] randomSubsequence (int n) {
+      ArrayList<Integer> list = new ArrayList<>();
+      for (int i=0; i<n; i++) {
+         if (randGen.nextBoolean()) {
+            list.add (i);
+         }
+      }
+      return ArraySupport.toIntArray (list);
    }
    
    public static void main (String[] args) {

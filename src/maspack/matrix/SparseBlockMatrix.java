@@ -123,22 +123,45 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       myNumBlockRows += num;
    }
 
-   public void removeRow (int bi) {
-      if (bi < 0 || bi >= myNumBlockRows) {
+   public void removeRow (int rowIdx) {
+      if (rowIdx < 0 || rowIdx >= myNumBlockRows) {
          throw new IllegalArgumentException (
-            "Block row index "+bi+" not in range [0,"+(myNumBlockRows-1)+"]");
+            "Block row index " + rowIdx +
+            " not in range [0,"+(myNumBlockRows-1)+"]");
       }
-      // find and remove all blocks in the row. Could be made more efficient
-      ArrayList<MatrixBlock> removeList = new ArrayList<>();
-      for (MatrixBlock blk=firstBlockInRow(bi); blk!=null; blk=blk.next()) {
-         removeList.add (blk);
+      if (isVerticallyLinked()) {
+         // adjust vertical linkages for removed row
+         MatrixBlock blk;
+         for (blk=firstBlockInRow(rowIdx); blk!=null; blk=blk.next()) {
+            int bj = blk.getBlockCol();
+            MatrixBlock prevBlk = null;
+            MatrixBlock vertBlk=firstBlockInCol(bj);
+            while (vertBlk != blk && vertBlk != null) {
+               prevBlk = vertBlk;
+               vertBlk = vertBlk.down();
+            }
+            if (vertBlk == null) {
+               throw new InternalErrorException (
+                  "Block("+rowIdx+","+bj+") not found in vertical linking");
+            }
+            if (prevBlk == null) {
+               myCols[bj].myHead = blk.down();
+            }
+            else {
+               prevBlk.setDown (blk.down());
+            }
+         }
       }
-      for (MatrixBlock blk : removeList) {
-         removeBlock (blk);
+      // adjust row offsets for remaining blocks
+      for (int bi=rowIdx+1; bi<myNumBlockRows; bi++) {
+         for (MatrixBlock blk=firstBlockInRow(bi); blk!=null; blk=blk.next()) {
+            blk.setBlockRow (bi-1);
+         }
       }
-      // shift info for rows after bi
-      int rsize = getBlockRowSize(bi);
-      for (int k=bi; k<myNumBlockRows-1; k++) {
+
+      // shift info for rows after rowIdx
+      int rsize = getBlockRowSize(rowIdx);
+      for (int k=rowIdx; k<myNumBlockRows-1; k++) {
          myRows[k] = myRows[k+1];
          myRowOffsets[k] = myRowOffsets[k+1]-rsize;
       }
@@ -146,17 +169,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       myRowOffsets[myNumBlockRows-1] = myRowOffsets[myNumBlockRows]-rsize;
 
       myNumRows -= rsize;
-      myNumBlockRows--;     
-
-      // adjust row offsets for remaining blocks
-      for (int bk=0; bk<myNumBlockRows; bk++) {
-         for (MatrixBlock blk=firstBlockInRow(bk); blk!=null; blk=blk.next()) {
-            int ridx = blk.getBlockRow();
-            if (ridx >= bi) {
-               blk.setBlockRow(ridx-1);
-            }
-         }
-      }
+      myNumBlockRows--;   
    }
 
    public void setColCapacity (int newCap) {
@@ -200,32 +213,71 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       myNumBlockCols += num;
    }
 
-   public void removeCol (int bj) {
-      if (bj < 0 || bj >= myNumBlockCols) {
+   public void removeCol (int colIdx) {
+      if (colIdx < 0 || colIdx >= myNumBlockCols) {
          throw new IllegalArgumentException (
-            "Block column index "+bj+" not in range [0,"+(myNumBlockCols-1)+"]");
+            "Block column index " + colIdx +
+            " not in range [0,"+(myNumBlockCols-1)+"]");
       }
-      // find and remove all blocks in the column. Could be made more efficient
-      ArrayList<MatrixBlock> removeList = new ArrayList<>();
-      if (myVerticallyLinkedP) {
-         for (MatrixBlock blk=firstBlockInCol(bj); blk!=null; blk=blk.down()) {
-            removeList.add (blk);
+
+      // adjust horizontal linkages for removed col
+      if (isVerticallyLinked()) {
+         MatrixBlock blk;
+         for (blk=firstBlockInCol(colIdx); blk!=null; blk=blk.down()) {
+            int bi = blk.getBlockRow();
+            MatrixBlock prevBlk = null;
+            MatrixBlock horzBlk=firstBlockInRow(bi);
+            while (horzBlk != blk && horzBlk != null) {
+               prevBlk = horzBlk;
+               horzBlk = horzBlk.next();
+            }
+            if (horzBlk == null) {
+               throw new InternalErrorException (
+                  "Block("+bi+","+colIdx+") not found in horizontal linking");
+            }
+            if (prevBlk == null) {
+               myRows[bi].myHead = blk.next();
+            }
+            else {
+               prevBlk.setNext (blk.next());
+            }
          }
-      }
-      else {
-         for (int bi=0; bi<myNumBlockRows; bi++) {
-            MatrixBlock blk = getBlock (bi, bj);
-            if (blk != null) {
-               removeList.add (blk);
+         for (int bj=colIdx+1; bj<myNumBlockCols; bj++) {
+            for (blk=firstBlockInCol(bj); blk!=null; blk=blk.down()) {
+               blk.setBlockCol (bj-1);
             }
          }
       }
-      for (MatrixBlock blk : removeList) {
-         removeBlock (blk);
+      else {
+         for (int bi=0; bi<numBlockRows(); bi++) {
+            MatrixBlock prevBlk = null;
+            MatrixBlock colBlk = null;
+            for (MatrixBlock blk=firstBlockInRow(bi); blk!=null; blk=blk.next()) {
+               int bj = blk.getBlockCol();
+               if (bj < colIdx) {
+                  prevBlk = blk;
+               }
+               else if (bj == colIdx) {
+                  colBlk = blk;
+               }
+               else {
+                  blk.setBlockCol (bj-1);
+               }
+            }
+            if (colBlk != null && colBlk.getBlockCol() == colIdx) {
+               if (prevBlk == null) {
+                  myRows[bi].myHead = colBlk.next();
+               }           
+               else {
+                  prevBlk.setNext (colBlk.next());
+               }
+            }
+         }
       }
-      // shift info for cols after bj
-      int csize = getBlockColSize(bj);
-      for (int k=bj; k<myNumBlockCols-1; k++) {
+
+      // shift info for cols after colIdx
+      int csize = getBlockColSize(colIdx);
+      for (int k=colIdx; k<myNumBlockCols-1; k++) {
          myCols[k] = myCols[k+1];
          myColOffsets[k] = myColOffsets[k+1]-csize;
       }
@@ -234,13 +286,161 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       
       myNumCols -= csize;
       myNumBlockCols--;     
+   }
+
+   public void removeCols (int[] blkColIdxs) {
+
+      if (blkColIdxs.length > myNumBlockCols) {
+         throw new IllegalArgumentException (
+            "Number of block cols to delete exceeds number of block cols " +
+            myNumBlockCols);
+      }
+      if (blkColIdxs.length == 0) {
+         return; // trivial case
+      }
+
+      for (int k=0; k<blkColIdxs.length; k++) {
+         int bidx = blkColIdxs[k];
+         if (bidx < 0 || bidx >= myNumBlockCols) {
+            throw new IllegalArgumentException (
+               "Block col to delete "+bidx+" is out of range (0,"+
+               myNumBlockCols+")");
+         }
+         if (k<blkColIdxs.length-1) {
+            if (bidx >= blkColIdxs[k+1]) {
+               throw new IllegalArgumentException (
+                  "Block cols to delete not arranged in ascending order");
+            }
+         }
+      }
+
+      int[] newColIdxs = new int[myNumBlockCols];
+
+      int k = 0;
+      int bx = 0; // updated value bj
+      int dsize = 0; // total number of deleted columns 
+      int ndel = blkColIdxs.length; // number of deleted block columns
+      for (int bj=0; bj<myNumBlockCols; bj++) {
+         if (k < ndel && bj == blkColIdxs[k]) {
+            dsize += getBlockColSize(bj);
+            newColIdxs[bj] = -1;
+            k++;
+         }
+         else {
+            myCols[bx] = myCols[bj];
+            myColOffsets[bx] = myColOffsets[bj]-dsize;
+            newColIdxs[bj] = bx;
+            bx++;
+         }
+      }
+      // adjust final offset 
+      myColOffsets[myNumBlockCols-ndel] = myColOffsets[myNumBlockCols]-dsize;
+      
+      myNumCols -= dsize;
+      myNumBlockCols -= ndel; 
 
       // adjust column offsets for remaining blocks
-      for (int bk=0; bk<myNumBlockRows; bk++) {
-         for (MatrixBlock blk=firstBlockInRow(bk); blk!=null; blk=blk.next()) {
-            int cidx = blk.getBlockCol();
-            if (cidx >= bj) {
-               blk.setBlockCol(cidx-1);
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         MatrixBlock prev = null;
+         for (MatrixBlock blk=firstBlockInRow(bi); blk!=null; blk=blk.next()) {
+            int bj = blk.getBlockCol();
+            if (newColIdxs[bj] == -1) {
+               // delete block
+               if (prev == null) {
+                  myRows[bi].myHead = blk.next();
+               }
+               else {
+                  prev.setNext (blk.next());
+               }
+            }
+            else {
+               blk.setBlockCol (newColIdxs[bj]);
+               prev = blk;
+            }
+         }
+      }
+   }
+
+   public void removeRows (int[] blkRowIdxs) {
+
+      if (blkRowIdxs.length > myNumBlockRows) {
+         throw new IllegalArgumentException (
+            "Number of block rows to delete exceeds number of block rows " +
+            myNumBlockRows);
+      }
+      if (blkRowIdxs.length == 0) {
+         return; // trivial case
+      }
+      
+      for (int k=0; k<blkRowIdxs.length; k++) {
+         int bidx = blkRowIdxs[k];
+         if (bidx < 0 || bidx >= myNumBlockRows) {
+            throw new IllegalArgumentException (
+               "Block row to delete "+bidx+" is out of range (0,"+
+               myNumBlockRows+")");
+         }
+         if (k<blkRowIdxs.length-1) {
+            if (bidx >= blkRowIdxs[k+1]) {
+               throw new IllegalArgumentException (
+                  "Block rows to delete not arranged in ascending order");
+            }
+         }
+      }
+
+      int[] newRowIdxs = new int[myNumBlockRows];
+
+      MatrixBlock blk;
+      int k = 0;
+      int bx = 0; // updated value bi
+      int dsize = 0; // total number of deleted rows
+      int ndel = blkRowIdxs.length; // number of deleted block rows
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         if (k < ndel && bi == blkRowIdxs[k]) {
+            dsize += getBlockRowSize(bi);
+            newRowIdxs[bi] = -1;
+            k++;
+         }
+         else {
+            myRows[bx] = myRows[bi];
+            myRowOffsets[bx] = myRowOffsets[bi]-dsize;
+            newRowIdxs[bi] = bx;
+            bx++;
+         }
+      }
+
+      // adjust final offset 
+      myRowOffsets[myNumBlockRows-ndel] = myRowOffsets[myNumBlockRows]-dsize;
+
+      myNumRows -= dsize;
+      myNumBlockRows -= ndel;
+
+      if (isVerticallyLinked()) {
+         // adjust column offsets for remaining blocks
+         for (int bj=0; bj<myNumBlockCols; bj++) {
+            MatrixBlock prev = null;
+            for (blk=firstBlockInCol(bj); blk!=null; blk=blk.down()) {
+               int bi = blk.getBlockRow();
+               if (newRowIdxs[bi] == -1) {
+                  // delete block
+                  if (prev == null) {
+                     myCols[bj].myHead = blk.down();
+                  }
+                  else {
+                     prev.setDown (blk.down());
+                  }
+               }
+               else {
+                  blk.setBlockRow (newRowIdxs[bi]);
+                  prev = blk;
+               }
+            }
+         }
+      }
+      else {
+         for (int bi=0; bi<myNumBlockRows; bi++) {
+            // adjust row offsets
+            for (blk=firstBlockInRow(bi); blk!=null; blk=blk.next()) {
+               blk.setBlockRow (bi);
             }
          }
       }
@@ -302,6 +502,14 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          return -1;
       }
    }
+   
+   public int[] getBlockRowSizes() {
+      int[] sizes = new int[numBlockRows()];
+      for (int bi=0; bi<sizes.length; bi++) {
+         sizes[bi] = getBlockRowSize(bi);
+      }
+      return sizes;
+   }
 
    public int getBlockColOffset (int bj) {
       return myColOffsets[bj];
@@ -315,11 +523,26 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          return -1;
       }
    }
+   
+   public int[] getBlockColSizes() {
+      int[] sizes = new int[numBlockCols()];
+      for (int bj=0; bj<sizes.length; bj++) {
+         sizes[bj] = getBlockColSize(bj);
+      }
+      return sizes;
+   }
 
    public int numBlocks() {
       int num = 0;
-      for (int bi=0; bi<myNumBlockRows; bi++) {
-         num += myRows[bi].size(); 
+      if (isVerticallyLinked() && myNumBlockRows > myNumBlockCols) {
+         for (int bj=0; bj<myNumBlockCols; bj++) {
+            num += myCols[bj].size(); 
+         }
+      }
+      else {
+         for (int bi=0; bi<myNumBlockRows; bi++) {
+            num += myRows[bi].size(); 
+         }
       }
       return num;
    }
@@ -364,6 +587,13 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return 0;
    }
 
+   public MatrixBlock addBlock (int bi, int bj, Matrix M) {
+      MatrixBlock blk = MatrixBlockBase.alloc (M.rowSize(), M.colSize());
+      blk.set (M);
+      addBlockWithoutNumber (bi, bj, blk);
+      return blk;
+   }
+
    protected boolean removeBlockWithoutNumber (MatrixBlock oldBlk) {
       MatrixBlock blk = getBlock (oldBlk.getBlockRow(), oldBlk.getBlockCol());
       if (blk == oldBlk) {
@@ -401,6 +631,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          myRows[bi].removeAll();
       }
       if (myVerticallyLinkedP) {
+
          for (int bj=0; bj<myNumBlockCols; bj++) {
             myCols[bj].removeAll();
          }
@@ -729,6 +960,207 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
             else if (colOff >= c0) {
                blk.mulAdd (res, rowOff-r0, vec, colOff-c0);
             }
+         }
+      }
+   }
+
+   /**
+    * Computes the product
+    * <pre>
+    * MR = MS M1
+    * </pre>
+    * where {@code MS} is this matrix, and stores the result in {@code MR},
+    * which is sized appropriately. If {@code MR == M1} and the required
+    * size of {@code MR} does not equal that of {@code M1}, then an internal
+    * copy of {@code M1} is made for computational purposes and {@code M1}
+    * is resized as required.
+    */
+   public void mul (MatrixNd MR, MatrixNd M1) {
+      if (colSize() != M1.rowSize()) {
+         throw new ImproperSizeException (
+            "M1 row size "+M1.rowSize()+" != sparse matrix col size "+colSize());
+      }
+      if (MR.rowSize() != rowSize() && MR == M1) {
+         // make internal copy for computational purposes
+         M1 = new MatrixNd (M1);
+      }
+      if (MR.colSize() != M1.colSize() || MR.rowSize() != rowSize()) {
+         MR.setSize (rowSize(), M1.colSize());
+      }
+
+      int m = rowSize();
+      int n = M1.colSize();
+      int r = colSize();
+      
+      double[] buf1 = M1.getBuffer();
+      int w1 = M1.getBufferWidth();
+      int base1 = M1.getBufferBase();
+
+      double[] bufr = MR.getBuffer();
+      int wr = MR.getBufferWidth();
+      int baser = MR.getBufferBase();
+
+      double[] col1 = new double[r];
+      double[] colr = new double[m];
+
+      for (int j=0; j<n; j++) {
+         // col1 = M1 (:,j)
+         int off = j + base1;
+         for (int i=0; i<r; i++) {
+            col1[i] = buf1[off];
+            off += w1;
+         }
+
+         // colr = this * col1
+         for (int i=0; i<m; i++) {
+            colr[i] = 0;
+         }
+         for (int bi=0; bi<numBlockRows(); bi++) {
+            int rowOff = myRowOffsets[bi];
+            for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+               int colOff = myColOffsets[blk.getBlockCol()];
+               blk.mulAdd (colr, rowOff, col1, colOff);
+            }
+         }
+
+         // MR (:,j) = colr
+         off = j + baser;
+         for (int i=0; i<m; i++) {
+            bufr[off] = colr[i];
+            off += wr;
+         }
+      }
+   }
+
+   /**
+    * Computes the product
+    * <pre>
+    * MR = M1 MS
+    * </pre>
+    * where {@code MS} is this matrix, and stores the result in {@code MR},
+    * which is sized appropriately. If {@code MR == M1} and the required
+    * size of {@code MR} does not equal that of {@code M1}, then an internal
+    * copy of {@code M1} is made for computational purposes and {@code M1}
+    * is resized as required.
+    */
+   public void mulLeft (MatrixNd MR, MatrixNd M1) {
+      if (rowSize() != M1.colSize()) {
+         throw new ImproperSizeException (
+            "M1 col size "+M1.colSize()+" != sparse matrix row size "+rowSize());
+      }
+      if (MR.colSize() != colSize() && MR == M1) {
+         // make internal copy for computational purposes
+         M1 = new MatrixNd (M1);
+      }
+      if (MR.rowSize() != M1.rowSize() || MR.colSize() != colSize()) {
+         MR.setSize (M1.rowSize(), colSize());
+      }
+
+      int m = M1.rowSize();
+      int n = colSize();
+      int r = rowSize();
+
+      double[] buf1 = M1.getBuffer();
+      int w1 = M1.getBufferWidth();
+      int base1 = M1.getBufferBase();
+
+      double[] bufr = MR.getBuffer();
+      int wr = MR.getBufferWidth();
+      int baser = MR.getBufferBase();
+
+      double[] row1 = new double[r];
+      double[] rowr = new double[n];
+
+      for (int i=0; i<m; i++) {
+         // row1 = M1 (i,:)
+         int off = i*w1 + base1;
+         for (int j=0; j<r; j++) {
+            row1[j] = buf1[off++];
+         }
+
+         // rowr = row1 * this
+         for (int j=0; j<n; j++) {
+            rowr[j] = 0;
+         }
+         for (int bi=0; bi<numBlockRows(); bi++) {
+            int rowOff = myRowOffsets[bi];
+            for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+               int colOff = myColOffsets[blk.getBlockCol()];
+               blk.mulTransposeAdd (rowr, colOff, row1, rowOff);
+            }
+         }
+
+         // MR (i,:) = rowr
+         off = i*wr + baser;
+         for (int j=0; j<n; j++) {
+            bufr[off++] = rowr[j];
+         }
+      }
+   }
+
+   /**
+    * Computes the product
+    * <pre>
+    * MR = MS M1^T
+    * </pre>
+    * 
+    * here {@code MS} is this matrix, and stores the result in {@code MR},
+    * which will be sized appropriately. If {@code MR == M1}, then an internal
+    * copy will be made of {@code M1} for computational purposes
+    * and {@code M1} will be resized as needed to store the result.
+    */
+   public void mulTransposeRight (MatrixNd MR, MatrixNd M1) {
+      if (colSize() != M1.colSize()) {
+         throw new ImproperSizeException (
+            "M1 col size "+M1.colSize()+" != sparse matrix col size "+colSize());
+      }
+      if (MR == M1) {
+         // internal copy for computational purposes
+         M1 = new MatrixNd (M1);
+      }
+      if (MR.colSize() != M1.rowSize() || MR.rowSize() != rowSize()) {
+         MR.setSize (rowSize(), M1.rowSize());
+      }
+
+      int m = rowSize();
+      int n = M1.rowSize();
+      int r = colSize();
+
+      double[] buf1 = M1.getBuffer();
+      int w1 = M1.getBufferWidth();
+      int base1 = M1.getBufferBase();
+
+      double[] bufr = MR.getBuffer();
+      int wr = MR.getBufferWidth();
+      int baser = MR.getBufferBase();
+
+      double[] col1 = new double[r];
+      double[] colr = new double[m];
+
+      for (int j=0; j<n; j++) {
+         // col1 = M1 (j,:)
+         int off = j*w1 + base1;
+         for (int i=0; i<r; i++) {
+            col1[i] = buf1[off++];
+         }
+
+         // colr = this * col1
+         for (int i=0; i<m; i++) {
+            colr[i] = 0;
+         }
+         for (int bi=0; bi<numBlockRows(); bi++) {
+            int rowOff = myRowOffsets[bi];
+            for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+               int colOff = myColOffsets[blk.getBlockCol()];
+               blk.mulAdd (colr, rowOff, col1, colOff);
+            }
+         }
+
+         // MR (:,j) = colr
+         off = j + baser;
+         for (int i=0; i<m; i++) {
+            bufr[off] = colr[i];
+            off += wr;
          }
       }
    }
@@ -1078,16 +1510,16 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    }
 
    public int getBlockCRSIndices (
-      int[] colIdxs, int colOff, int[] offsets, Partition part, int numRows,
-      int numCols) {
+      int[] colIdxs, int colOff, int[] offsets, Partition part, 
+      int numRows, int numCols) {
       BlockSize bsize = getBlockSize (numRows, numCols);
       return doGetBlockCRSIndices (
          colIdxs, colOff, offsets, part, bsize.numBlkRows, bsize.numBlkCols);
    }
 
    private int doGetBlockCRSIndices (
-      int[] colIdxs, int colOff, int[] offsets, Partition part, int numBlkRows,
-      int numBlkCols) {
+      int[] colIdxs, int colOff, int[] offsets, Partition part, 
+      int numBlkRows, int numBlkCols) {
 
       int off = 0;
       int nnz = 0;
@@ -1149,8 +1581,8 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    }
 
    private int doGetBlockCRSValues (
-      double[] vals, int[] offsets, Partition part, int numBlkRows,
-      int numBlkCols) {
+      double[] vals, int[] offsets, Partition part, 
+      int numBlkRows, int numBlkCols) {
       int off = 0;
       int nnz = 0;
       int[] localOffsets = null;
@@ -1201,7 +1633,8 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    }
 
    public void addNumNonZerosByRow (
-      int[] offsets, int idx, Partition part, int numRows, int numCols) {
+      int[] offsets, int firstRowIdx, Partition part, 
+      int numRows, int numCols) {
       BlockSize bsize = getBlockSize (numRows, numCols);
       if (myRowIndicesPartition != part ||
           myRowIndicesNumBlkRows != bsize.numBlkRows ||
@@ -1211,7 +1644,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       // myRowIndices has length = numRows+1; last entry gives total
       // number of non-zeros.
       for (int i = 0; i < numRows; i++) {
-         offsets[i + idx] += (myRowIndices[i + 1] - myRowIndices[i]);
+         offsets[i + firstRowIdx] += (myRowIndices[i + 1] - myRowIndices[i]);
       }
    }
 
@@ -2099,9 +2532,37 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          }
       }
       for (int bi=0; bi<myNumBlockRows; bi++) {
+         int cnt = 0;
+         int rsize = myRowOffsets[bi+1]-myRowOffsets[bi];
+         int lastBj = -1;
          for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
-            int rsize = myRowOffsets[bi+1]-myRowOffsets[bi];
+            if (cnt >= myNumBlockCols) {
+               throw new TestException (
+                  "block row " + bi +
+                  ": block traverse exceeds number of block cols");
+            }
+            if (blk.getBlockRow() != bi) {
+                throw new TestException (
+                   "block row " + bi +
+                   ": blk.getBlockRow() returns "+blk.getBlockRow());
+            }
             int bj = blk.getBlockCol();
+            if (lastBj != -1 && bj <= lastBj) {
+               throw new TestException (
+                  "block row " + bi +
+                  ": blocks at block cols "+lastBj+" and "+bj+" not in order");
+            }
+            if (bj >= myNumBlockCols) {
+               throw new TestException (
+                  "block row " + bi +
+                  ": block at block col "+bj+
+                  " exceeds numBlockCols "+ myNumBlockCols);
+            }
+            int csize = getBlockColSize(bj);
+            if (blk.colSize() != csize) {
+               throw new TestException (
+                  "Block("+bi+","+bj+") has colSize "+blk.colSize()+" vs "+csize);
+            }
             if (blk.rowSize() != rsize) {
                throw new TestException (
                   "Block("+bi+","+bj+") has rowSize "+blk.rowSize()+" vs "+rsize);
@@ -2113,8 +2574,56 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
                      "Block("+bi+","+bj+") not found column-wise");
                }
             }
+            lastBj = bj;
+            cnt++;               
          }
       }
+      if (myVerticallyLinkedP) {
+         for (int bj=0; bj<myNumBlockCols; bj++) {
+            int cnt = 0;
+            int csize = myColOffsets[bj+1]-myColOffsets[bj];
+            int lastBi = -1;
+            for (MatrixBlock blk=myCols[bj].myHead; blk!=null; blk=blk.down()) {
+               if (cnt >= myNumBlockRows) {
+                  throw new TestException (
+                     "block col " + bj +
+                     ": block traverse exceeds number of block rows");
+               }
+               if (blk.getBlockCol() != bj) {
+                  throw new TestException (
+                     "block col " + bj +
+                     ": blk.getBlockCol() returns "+blk.getBlockCol());
+               }
+               int bi = blk.getBlockRow();
+               if (lastBi != -1 && bi <= lastBi) {
+                  throw new TestException (
+                     "block col " + bj +
+                     ": blocks at block rows "+lastBi+" and "+bi+" not in order");
+               }
+               if (bi >= myNumBlockRows) {
+                  throw new TestException (
+                     "block col " + bj +
+                     ": block at block row "+bi+
+                     " exceeds numBlockRows "+ myNumBlockRows);
+               }
+               int rsize = getBlockRowSize(bi);
+               if (blk.colSize() != csize) {
+                  throw new TestException (
+                     "Block("+bi+","+bj+") has colSize "+blk.colSize()+
+                     " vs "+csize);
+               }
+               if (blk.rowSize() != rsize) {
+                  throw new TestException (
+                     "Block("+bi+","+bj+") has rowSize "+blk.rowSize()+
+                     " vs "+rsize);
+               }
+               lastBi = bi;
+               cnt++;               
+            }
+         }
+      }
+      
+      
       if (myRowOffsets[myNumBlockRows] != myNumRows) {
          throw new TestException (
             "Last row offset != number of rows "+myNumRows);
@@ -2552,7 +3061,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
       
    }
-   
+
    /**
     * Returns an integer array that uniquely describes the block structure of
     * this matrix. If this equals the array returned by {@link
@@ -2658,7 +3167,179 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return true;
    }
 
+   /**
+    * Returns a {@link SparseSignature} that uniquely describes the block
+    * structure of this matrix. The signature contains the block row and column
+    * sizes of the matrix, whether the signature is horizontal or vertical (see
+    * below), plus a data array with the following additional information:
+    *
+    * <pre>
+    *  * block row size for each block row;
+    *  * block col size for each block column;
+    *  * -1 to indicate the start of each block row (or column), followed by the
+    *    block column (or row) index of each block in that row (or column)
+    * </pre>
+    * <p>
+    * A horizontal signature lists the block column indices of each block
+    * in row major order, with -1 indicating the start of each block row.
+    * <p>
+    * A vertical signature lists the block row indices of each block in column
+    * major order, with -1 indicating the start of each block column.
+    *
+    * <p>A vertical signature is used if the matrix is vertically linked
+    * <i>and</i> the number of block rows exceeds the number of block columns,
+    * resulting in a more compact signature. Otherwise, a horizontal
+    * signature is used.
+    *
+    * <p>Note that horizontal and vertical signatures will not match, even if
+    * the block structure of the matrix is the same.
+    *
+    * @return matrix signature
+    */
+    public SparseSignature getSignature() {
 
+      boolean vertical =
+         (isVerticallyLinked() && myNumBlockRows > myNumBlockCols);
+      int[] data;
+      if (vertical) {
+         data = new int[myNumBlockRows+2*myNumBlockCols+numBlocks()];
+      }
+      else {
+         data = new int[2*myNumBlockRows+myNumBlockCols+numBlocks()];
+      }
+      int k = 0;
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         data[k++] = getBlockRowSize(bi);
+      }
+      for (int bj=0; bj<myNumBlockCols; bj++) {
+         data[k++] = getBlockColSize(bj);
+      }
+      if (vertical) {
+         for (int bj=0; bj<myNumBlockCols; bj++) {
+            data[k++] = -1;
+            for (MatrixBlock blk=myCols[bj].myHead; blk!=null; blk=blk.down()) {
+               data[k++] = blk.getBlockRow();
+            }
+         }
+      }
+      else {
+         for (int bi=0; bi<myNumBlockRows; bi++) {
+            data[k++] = -1;
+            for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+               data[k++] = blk.getBlockCol();
+            }
+         }
+      }
+      return new SparseSignature (
+         myNumBlockRows, myNumBlockCols, vertical, data);
+   }
+
+   public boolean signatureEquals (SparseSignature sig) {
+      boolean vertical =
+         (isVerticallyLinked() && myNumBlockRows > myNumBlockCols);     
+      if (sig.rowSize() != myNumBlockRows ||
+          sig.colSize() != myNumBlockCols ||
+          sig.isVertical() != vertical) {
+         return false;
+      }
+      int[] data = sig.getData();
+      int dataLength;
+      if (vertical) {
+         dataLength = myNumBlockRows+2*myNumBlockCols+numBlocks();
+      }
+      else {
+         dataLength = 2*myNumBlockRows+myNumBlockCols+numBlocks();
+      }
+      if (data.length != dataLength) {
+         return false;
+      }
+      int k = 0;
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         if (getBlockRowSize(bi) != data[k++]) {
+            return false;
+         }
+      }
+      for (int bj=0; bj<myNumBlockCols; bj++) {
+         if (getBlockColSize(bj) != data[k++]) {
+            return false;
+         }
+      }
+      if (vertical) {
+         for (int bj=0; bj<myNumBlockCols; bj++) {
+            if (data[k++] != -1) {
+               return false;
+            }
+            for (MatrixBlock blk=myCols[bj].myHead; blk!=null; blk=blk.down()) {
+               if (data[k++] != blk.getBlockRow()) {
+                  return false;
+               }
+            }
+         }
+      }
+      else {
+         for (int bi=0; bi<myNumBlockRows; bi++) {
+            if (data[k++] != -1) {
+               return false;
+            }
+            for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+               if (data[k++] != blk.getBlockCol()) {
+                  return false;
+               }
+            }
+         }
+      }
+      return true;
+   }
+
+//   /**
+//    * Returns <code>true</code> if the block structure of this matrix
+//    * matches the structure described by <code>struct</code>, which should
+//    * have the same length and format as the array returned by
+//    * {@link #getBlockStructure()}.
+//    *
+//    * @param struct block structure description 
+//    * @return true if the structure matches
+//    */
+//   public boolean blockStructureEquals (int[] struct) {
+//
+//      if (struct.length < 2+2*myNumBlockRows+myNumBlockCols) {
+//         return false;
+//      }
+//      if (struct[0] != myNumBlockRows ||
+//          struct[1] != myNumBlockCols) {
+//         return false;
+//      }
+//      int k = 2;
+//      for (int bi=0; bi<myNumBlockRows; bi++) {
+//         if (struct[k++] != getBlockRowSize(bi)) {
+//            return false;
+//         }
+//      }
+//      for (int bj=0; bj<myNumBlockCols; bj++) {
+//         if (struct[k++] != getBlockColSize(bj)) {
+//            return false;
+//         }
+//      }
+//      int j = k+myNumBlockRows; // index into block column index section
+//      for (int bi=0; bi<myNumBlockRows; bi++) {
+//         int numBlks = 0;
+//         for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+//            if (j == struct.length || struct[j++] != blk.getBlockCol()) {
+//               return false;
+//            }
+//            numBlks++;
+//         }
+//         if (struct[k++] != numBlks) {
+//            return false;
+//         }
+//      }
+//      if (j != struct.length) {
+//         return false;
+//      }
+//      return true;
+//   }
+//
+//
    /**
     * Returns true if the structure of this SparseBlockMatrix matches
     * that of another. This means that the matrices must match in
@@ -2669,6 +3350,9 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
     * @return false if the matrices have different structures.
     */
    public boolean blockStructureEquals (SparseBlockMatrix M1) {
+      if (M1 == this) {
+         return true;
+      }
       if (M1.myNumBlockRows != myNumBlockRows ||
           M1.myNumBlockCols != myNumBlockCols) {
          return false;
@@ -2761,5 +3445,15 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return true;
    }
 
-   
+   public boolean hasSymmetricBlockSizing () {
+      if (numBlockRows() != numBlockCols()) {
+         return false;
+      }
+      for (int bi=0; bi<numBlockRows(); bi++) {
+         if (getBlockRowSize(bi) != getBlockColSize(bi)) {
+            return false;
+         }
+      }
+      return true;
+   }   
 }

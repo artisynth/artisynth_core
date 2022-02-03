@@ -168,6 +168,4 @@ public class FixedAxisCoupling extends RigidBodyCoupling {
       return copy;
    }
 
-
 }
-

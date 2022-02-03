@@ -11,44 +11,14 @@ import maspack.util.*;
 
 /**
  * Solves linear complementarity problems (LCPs) for symmetric positive
- * semi-definite (SPSD) matrices using Kellers's method. An LCP is defined by
- * the linear system
- * 
- * <pre>
- * w = M z + q
- * </pre>
- * 
- * and solving it entails finding w and z subject to the constraints
- * 
- * <pre>
- *                  T
- * w &gt;= 0, z &gt;= 0, w z = 0
- * </pre>
- * 
- * Keller's method does this by a series of <i>pivoting</i> operations. Each
- * pivot corresponds to one solver iteration and entails the exchange of a
- * single variable w_i with its complementary counterpart z_i. A sequence of
- * pivots results in the pivoted system
- * 
- * <pre>
- * w' = M' z' + q'
- * </pre>
- * 
- * where w' and z' contain complementary combinations of the w and z variables.
- * Any variable (w or z) contained in w' is called a <i>basic</i> variable.
- * When a pivoted system is found for which q' {@code >=} 0, this provides a solution to
- * the LCP in which the z and w variables comprising z' are 0 and the z and w
- * variables comprising w' are equal to the corresponding entries in q'. As
- * mentioned above, Dantzig's method only works when M is SPSD.
- * 
- * <p>
- * Full details on the solution of LCPs can be found in <i>The Linear
- * Complementarity Problem</i>, by Cottle, Pang, and Stone. Details on Keller's
+ * semi-definite (SPSD) matrices using Kellers's method. Details on Keller's
  * method can be found in Claude Lacoursiere's Ph.D. thesis. <i>Ghosts and
  * Machines: Regularized Variational Methods for Interactive Simulations of
- * Multibodies with Dry Frictional Contact</i>.
+ * Multibodies with Dry Frictional Contact</i>, as well as ``Algorithms for
+ * Linear Complementarity Problems'', by Joaquim Judice (1994).
  */
-public class KellerLCPSolver {
+public class KellerLCPSolver implements LCPSolver {
+   
    protected double[] myMbuf;
    protected double[] myQbuf;
    protected double[] myRbuf;
@@ -61,6 +31,7 @@ public class KellerLCPSolver {
    protected double myTol = 1e-12;
    protected int myIterationLimit = 10;
    protected int myIterationCnt;
+   protected int myPivotCnt;
 
    public static final int SHOW_NONE = 0x00;
    public static final int SHOW_PIVOTS = 0x01;
@@ -73,29 +44,6 @@ public class KellerLCPSolver {
    public static final int Z_FREE = 0x1;
    public static final int Z_UPPER_BOUNDED = 0x2;
    public static final int Z_LOWER_BOUNDED = 0x2;
-
-   /**
-    * Described whether or not a solution was found.
-    */
-   public enum Status {
-      /**
-       * A solution was found.
-       */
-      SOLVED,
-      /**
-       * No solution appears to be possible.
-       */
-      NO_SOLUTION,
-      /**
-       * Iteration limit was exceeded, most likely due to numerical
-       * ill-conditioning.
-       */
-      ITERATION_LIMIT_EXCEEDED,
-      /**
-       * A numeric error was detected in the solution.
-       */
-      NUMERIC_ERROR,
-   }
 
    public int getDebug() {
       return myDebug;
@@ -120,7 +68,7 @@ public class KellerLCPSolver {
    }
 
    /**
-    * Returns the numeric tolerence for this solver.
+    * Returns the numeric tolerance for this solver.
     * 
     * @return numeric tolerance
     * @see #setTolerance
@@ -168,13 +116,31 @@ public class KellerLCPSolver {
    }
 
    /**
-    * Returns the number of iterations, or pivots, that were used in the most
-    * recent solution operation.
-    * 
-    * @return iteration count for last solution
+    * {@inheritDoc}
     */
    public int getIterationCount() {
       return myIterationCnt;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getPivotCount() {
+      return myPivotCnt;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public double getLastSolveTol() {
+      return myTol;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numFailedPivots() {
+      return 0;
    }
 
    /**
@@ -206,6 +172,7 @@ public class KellerLCPSolver {
 
    protected boolean principalPivot (int s) {
       pivot (myMbuf, myQbuf, s, s, mySize, mySize);
+      myPivotCnt++;
       return true;
    }
 
@@ -216,31 +183,10 @@ public class KellerLCPSolver {
    }
 
    /**
-    * Solves the LCP
-    * 
-    * <pre>
-    * w = M z + q
-    * </pre>
-    * 
-    * where M is SPSD. It is possible to use this routine to solve a mixed LCP,
-    * by pre-pivoting M and q to make the relevant non-LCP z variables basic and
-    * presetting the corresponding entries for these variables in zBasic to
-    * true.
-    * 
-    * @param z
-    * returns the solution for z
-    * @param M
-    * system matrix
-    * @param q
-    * system vector
-    * @param zBasic
-    * On output, identifies which z variables are basic in the solution. On
-    * input, identifies z variables which have been made basic as part of
-    * solving a mixed LCP. If the LCP is not mixed, then all entries in this
-    * array should be set to false.
-    * @return Status of the solution.
+    * {@inheritDoc}
     */
-   public Status solve (VectorNd z, MatrixNd M, VectorNd q, boolean[] zBasic) {
+   public Status solve (
+      VectorNd z, VectorNi state, MatrixNd M, VectorNd q) {
       if (M.rowSize() != M.colSize()) {
          throw new IllegalArgumentException ("Matrix is not square");
       }
@@ -253,8 +199,8 @@ public class KellerLCPSolver {
          throw new IllegalArgumentException (
             "z and q do not have the same sizes");
       }
-      if (zBasic != null && zBasic.length < mySize) {
-         throw new IllegalArgumentException ("zBasic has size less than z");
+      if (state != null && state.size() < mySize) {
+         throw new IllegalArgumentException ("state has size less than z");
       }
       // allocate storage space
       if (myMbuf.length < mySize * mySize) {
@@ -282,64 +228,39 @@ public class KellerLCPSolver {
       }
       Status status = dosolve (myZbuf, myZBasic, mySize);
       z.set (myZbuf);
-      if (zBasic != null) {
-         for (int i = 0; i < mySize; i++) {
-            zBasic[i] = myZBasic[i];
+      if (state != null) {
+         for (int i=0; i<mySize; i++) {
+            state.set (i, myZBasic[i] ? Z_VAR : W_VAR_LOWER);
          }
       }
       return status;
    }
 
    /**
-    * Identical in function to {@link
-    * #solve(VectorNd,MatrixNd,VectorNd,boolean[]) solve}, but uses arrays
-    * instead of VectorNd and MatrixNd objects to pass arguments.
-    * 
-    * @param zsol
-    * returns the solution for z
-    * @param Mbuf
-    * system matrix, stored in row-major order
-    * @param qbuf
-    * system vector
-    * @param zBasic
-    * identifies which z variables are basic in the solution (see
-    * {@link #solve(VectorNd,MatrixNd,VectorNd,boolean[]) solve}).
-    * @param n
-    * size of the LCP system
-    * @return Status of the solution.
+    * Returns {@link Status#UNIMPLEMENTED} since BLCP problems are not
+    * supported by this solver class.
     */
    public Status solve (
-      double[] zsol, double[] Mbuf, double[] qbuf, boolean[] zBasic, int n) {
-      // double[] MbufSave = myMbuf;
-      // double[] qbufSave = myQbuf;
-      // int sizeSave = mySize;
+      VectorNd z, VectorNd w, VectorNi state, MatrixNd M, VectorNd q, 
+      VectorNd lo, VectorNd hi, int nub) {
+      
+      myIterationCnt = 0;
+      myPivotCnt = 0;
+      return Status.UNIMPLEMENTED;
+   }
 
-      // myMbuf = Mbuf;
-      // myQbuf = qbuf;
-      mySize = n;
-      if (myRbuf.length < mySize) {
-         myRbuf = new double[mySize];
-      }
-      if (myMbuf.length < mySize * mySize) {
-         myMbuf = new double[mySize * mySize];
-      }
-      if (myQbuf.length < mySize) {
-         myQbuf = new double[mySize];
-      }
-      for (int i = 0; i < n; i++) {
-         for (int j = 0; j < n; j++) {
-            myMbuf[i * n + j] = Mbuf[i * n + j];
-         }
-         myQbuf[i] = qbuf[i];
-      }
-
-      Status status = dosolve (zsol, zBasic, n);
-
-      // mySize = sizeSave;
-      // myQbuf = qbufSave;
-      // myMbuf = MbufSave;
-
-      return status;
+   /**
+    * {@inheritDoc}
+    */  
+   public boolean isBLCPSupported() {
+      return false;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */  
+   public boolean isWarmStartSupported() {
+      return false;
    }
 
    /**
@@ -421,64 +342,6 @@ public class KellerLCPSolver {
       System.out.println (msg + " " + v.toString ("%g"));
    }
 
-   protected int minRatioTest (
-      double[] mv, double[] qv, boolean[] zBasic, int r, int n) {
-      double minStep = 0;
-      double rstep = 0;
-      int s = -1;
-      if ((myDebug & SHOW_QM) != 0) {
-         NumberFormat dfmt = new NumberFormat ("%2d");
-         NumberFormat ffmt = new NumberFormat ("%20.14f");
-         for (int i = 0; i < n; i++) {
-            System.out.println (dfmt.format(i) + " " + ffmt.format (qv[i])
-            + " " + ffmt.format (mv[i]));
-         }
-      }
-      if ((myDebug & SHOW_MIN_RATIO) != 0) {
-         System.out.println ("minRatioTest, r=" + r + ", tol=" + myTol + ":");
-      }
-      for (int i = 0; i < n; i++) {
-         if (myPivotOK[i]) {
-            if (i == r || zBasic[i]) // && !zBasicOrig[i]))
-            {
-               double step = Double.POSITIVE_INFINITY;
-               if (i == r) {
-                  if (mv[i] > 0) {
-                     step = -qv[i] / mv[i];
-                     if ((myDebug & SHOW_MIN_RATIO) != 0) {
-                        System.out.println ("step" + i + " = " + (-qv[i]) + "/"
-                        + mv[i] + " = " + step);
-                     }
-                  }
-                  rstep = step;
-               }
-               else // i is a z variable
-               {
-                  if (mv[i] < 0) {
-                     step = -qv[i] / mv[i];
-                     if ((myDebug & SHOW_MIN_RATIO) != 0) {
-                        System.out.println ("step=" + i + " = " + (-qv[i])
-                        + "/" + mv[i] + " = " + step);
-                     }
-                  }
-               }
-               if (s == -1 || step < minStep) {
-                  s = i;
-                  minStep = step;
-               }
-            }
-         }
-      }
-      if (minStep == rstep) {
-         if (myPivotOK[r]) {
-            s = r;
-         }
-         else {
-            s = -1; // no pivots possible
-         }
-      }
-      return s;
-   }
 
    private double getMinZ (double[] vec, boolean[] zBasic, int n) {
       double min = Double.POSITIVE_INFINITY;
@@ -496,6 +359,7 @@ public class KellerLCPSolver {
    protected Status dosolve (double[] zsol, boolean[] zBasic, int n) {
       int maxIterations = myIterationLimit * n;
       myIterationCnt = 0;
+      myPivotCnt = 0;
 
       if (myPivotOK.length < mySize) {
          myPivotOK = new boolean[mySize];
@@ -592,171 +456,6 @@ public class KellerLCPSolver {
       }
       return Status.ITERATION_LIMIT_EXCEEDED;
    }
-
-   // protected Status dosolve (
-   // double[] zsol, boolean[] zBasic, double[] upper, double[] lower)
-   // {
-   // int maxIterations = myIterationLimit*n;
-   // myIterationCnt = 0;
-
-   // if (myPivotOK.length < mySize)
-   // { myPivotOK = new boolean[mySize];
-   // }
-
-   // double[] qv;
-   // double[] mv;
-
-   // boolean mixed = false;
-
-   // qv = getQv();
-
-   // for (int i=0; i<n; i++)
-   // { if (lower[i] == Double.NEGATIVE_INFINITY)
-   // { if (upper[i] == Double.POSITIVE_INFINITY)
-   // { zBasic[i] = true;
-   // myZState[i] = Z_FREE;
-   // }
-   // else
-   // { zBasic[i] = false;
-   // myZState[i] = Z_UPPER_BOUNDED;
-   // }
-   // }
-   // else
-   // { zBasic[i] = false;
-   // myZState[i] = Z_LOWER_BOUNDED;
-   // }
-   // }
-
-   // while (myIterationCnt < maxIterations)
-   // {
-   // int s = -1;
-
-   // // printVec ("Q ", qv, n);
-   // double minVal = 0;
-   // for (int i=0; i<n; i++)
-   // { if (!zBasic[i])
-   // { if (s == -1 || qv[i] < minVal)
-   // { s = i;
-   // minVal = qv[i];
-   // }
-   // }
-   // }
-
-   // if (minVal >= -myTol)
-   // { // solution found
-   // double minq = Double.POSITIVE_INFINITY;
-   // for (int i=0; i<n; i++)
-   // { zsol[i] = (zBasic[i] ? qv[i] : 0);
-   // if (zsol[i] < minq)
-   // { minq = zsol[i];
-   // }
-   // }
-   // if (minq < -myTol)
-   // { System.out.println ("ERROR: min Q=" + minq);
-   // System.out.println ("minZ = " + getMinZ(qv,zBasic,n));
-   // return Status.NUMERIC_ERROR;
-
-   // }
-   // else
-   // { return Status.SOLVED;
-   // }
-   // }
-   // // s has now been changed, so get mv_s
-   // mv = getMv (s);
-
-   // double theta, theta1, theta2;
-   // do
-   // {
-   // // printVec ("R ", mv, n);
-
-   // double mss = mv[s];
-
-   // if (mss > myTol)
-   // { theta1 = -qv[s]/mss;
-   // }
-   // else
-   // { theta1 = Double.POSITIVE_INFINITY;
-   // }
-   // theta2 = Double.POSITIVE_INFINITY;
-   // int r = -1;
-   // for (int i=0; i<n; i++)
-   // { if (zBasic[i] && mv[i] < -myTol)
-   // { double ratio = -qv[i]/mv[i];
-   // if (ratio < theta2)
-   // { theta2 = ratio;
-   // r = i;
-   // }
-   // }
-   // }
-   // theta = Math.min (theta1, theta2);
-   // if (theta == Double.POSITIVE_INFINITY)
-   // { return Status.NO_SOLUTION;
-   // }
-   // else if (theta == theta1)
-   // { principalPivot (s);
-   // zBasic[s] = !zBasic[s];
-   // qv = getQv();
-   // }
-   // else
-   // { principalPivot (r);
-   // zBasic[r] = !zBasic[r];
-   // qv = getQv();
-   // mv = getMv (s);
-   // }
-   // double minZ = getMinZ (qv, zBasic, n);
-   // if (minZ < 0)
-   // { System.out.println (
-   // "minZ=" + minZ + " " + (theta==theta1 ? "s" : "r"));
-   // }
-   // myIterationCnt++;
-   // }
-   // while (theta != theta1);
-   // }
-   // return Status.ITERATION_LIMIT_EXCEEDED;
-   // }
-
-   // int s;
-   // do
-   // {
-   // // minimum ratio test to determine blocking variable
-   // for (int i=0; i<n; i++)
-   // { myPivotOK[i] = true;
-   // }
-   // boolean pivotOK;
-   // do
-   // { s = minRatioTest (mv, qv, zBasic, r, n);
-   // if (s == -1)
-   // { return Status.NUMERIC_ERROR;
-   // }
-   // // pivot w_s with z_s
-   // pivotOK = principalPivot (s);
-   // if (!pivotOK)
-   // { myPivotOK[s] = false;
-   // System.out.println ("pivot " + s + " REJECTED");
-   // }
-   // else
-   // { if ((myDebug & SHOW_PIVOTS) != 0)
-   // { System.out.println ("pivot " + s);
-   // }
-   // }
-   // }
-   // while (!pivotOK);
-   // myIterationCnt++;
-   // zBasic[s] = !zBasic[s];
-
-   // // estimateCondition(zBasic);
-   // // System.out.println ("pivot " + s);
-   // if (s != r)
-   // { qv = getQv();
-   // mv = getMv (r);
-   // // printVec ("Q ", qv, n);
-   // // printVec ("R ", mv, n);
-   // }
-   // }
-   // while (s != r);
-   // }
-   // return Status.ITERATION_LIMIT_EXCEEDED;
-   // }
 
    private void estimateCondition (boolean[] zbasic) {
       int nzb = 0;

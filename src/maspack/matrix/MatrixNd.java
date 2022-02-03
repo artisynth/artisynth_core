@@ -755,8 +755,9 @@ public class MatrixNd extends DenseMatrixBase
     * {@inheritDoc}
     */
    public void setColumn (int j, Vector v) {
-      if (v.size() != rowSize()) {
-         throw new ImproperSizeException();
+      if (v.size() < rowSize()) {
+         throw new ImproperSizeException (
+            "Column vector has size "+v.size()+"; should be >= "+rowSize());
       }
       int idx = j + base;
       for (int i = 0; i < nrows; i++) {
@@ -769,8 +770,9 @@ public class MatrixNd extends DenseMatrixBase
     * {@inheritDoc}
     */
    public void setRow (int i, Vector v) {
-      if (v.size() != colSize()) {
-         throw new ImproperSizeException();
+      if (v.size() < colSize()) {
+         throw new ImproperSizeException (
+            "Row vector has size "+v.size()+"; should be >= "+colSize());
       }
       int idx = i * width + base;
       for (int j = 0; j < ncols; j++) {
@@ -1049,7 +1051,7 @@ public class MatrixNd extends DenseMatrixBase
     */
    public void setDiagonal (VectorNd diag) {
       if (diag.size() != Math.min (nrows, ncols)) {
-         throw new ImproperSizeException ("Imcompatible dimensions");
+         throw new ImproperSizeException ("Incompatible dimensions");
       }
       setDiagonal (diag.buf);
    }
@@ -1073,6 +1075,44 @@ public class MatrixNd extends DenseMatrixBase
          for (int j = 0; j < ncols; j++) {
             buf[idx + j] = (i == j ? diag[i] : 0);
          }
+         idx += width;
+      }
+   }
+
+   /**
+    * Adds a diagonal term to this matrix whose elements are specified by an
+    * array.
+    * 
+    * @param diag
+    * diagonal elements to add to this matrix
+    * @throws ImproperSizeException
+    * if the size of <code>diag</code> does not equal the minimum matrix
+    * dimension
+    */
+   public void addDiagonal (VectorNd diag) {
+      if (diag.size() != Math.min (nrows, ncols)) {
+         throw new ImproperSizeException ("Imcompatible dimensions");
+      }
+      addDiagonal (diag.buf);
+   }
+
+   /**
+    * Adds a diagonal term to this matrix whose elements are specified by the
+    * leading elements of an array of doubles
+    * 
+    * @param diag
+    * diagonal elements to add to this matrix
+    * @throws ImproperSizeException
+    * if the length of <code>diag</code> is less than the minimum matrix
+    * dimension
+    */
+   public void addDiagonal (double[] diag) {
+      if (diag.length < Math.min (nrows, ncols)) {
+         throw new ImproperSizeException ("Insufficient diagonal values");
+      }
+      int idx = base;
+      for (int i = 0; i < nrows; i++) {
+         buf[idx + i] += diag[i];
          idx += width;
       }
    }

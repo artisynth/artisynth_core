@@ -167,6 +167,9 @@ public class TriangleIntersector {
       Vector3d p1, Vector3d q1, Vector3d r1, Vector3d p2, Vector3d q2,
       Vector3d r2) {
 
+      double alpha;
+      double denom;
+      
       // any normal to plane P1
       v1.sub (q1, p1);
       v2.sub (r1, p1);
@@ -195,28 +198,42 @@ public class TriangleIntersector {
             if (v.dot (N) > 0.0) {
                v1.sub (p1, p2);
                v2.sub (p1, r1);
-               alpha = v1.dot (N2) / v2.dot (N2);
+               denom = v2.dot (N2);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N2) / denom;
                v1.scale (alpha, v2);
                source.sub (p1, v1);
                v1.sub (p2, p1);
                v2.sub (p2, r2);
-               alpha = v1.dot (N1) / v2.dot (N1);
+               denom = v2.dot (N1);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N1) / denom;
                v1.scale (alpha, v2);
                target.sub (p2, v1);
-               // return 1;
             }
             else {
                v1.sub (p2, p1);
                v2.sub (p2, q2);
-               alpha = v1.dot (N1) / v2.dot (N1);
+               denom = v2.dot (N1);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N1) / denom;
                v1.scale (alpha, v2);
                source.sub (p2, v1);
                v1.sub (p2, p1);
                v2.sub (p2, r2);
-               alpha = v1.dot (N1) / v2.dot (N1);
+               denom = v2.dot (N1);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N1) / denom;
                v1.scale (alpha, v2);
                target.sub (p2, v1);
-               // return 1;
             }
 
             pts[0] = source;
@@ -243,28 +260,42 @@ public class TriangleIntersector {
             if (v.dot (N) >= 0.0) {
                v1.sub (p1, p2);
                v2.sub (p1, r1);
-               alpha = v1.dot (N2) / v2.dot (N2);
+               denom = v2.dot (N2);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N2) / denom;
                v1.scale (alpha, v2);
                source.sub (p1, v1);
                v1.sub (p1, p2);
                v2.sub (p1, q1);
-               alpha = v1.dot (N2) / v2.dot (N2);
+               denom = v2.dot (N2);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N2) / denom;
                v1.scale (alpha, v2);
                target.sub (p1, v1);
-               // return 1;
             }
             else {
                v1.sub (p2, p1);
                v2.sub (p2, q2);
-               alpha = v1.dot (N1) / v2.dot (N1);
+               denom = v2.dot (N1);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N1) / denom;
                v1.scale (alpha, v2);
                source.sub (p2, v1);
                v1.sub (p1, p2);
                v2.sub (p1, q1);
-               alpha = v1.dot (N2) / v2.dot (N2);
+               denom = v2.dot (N2);
+               if (denom == 0) {
+                  return null; // shouldn't happen, but just in case
+               }
+               alpha = v1.dot (N2) / denom;
                v1.scale (alpha, v2);
                target.sub (p1, v1);
-               // return 1;
             }
 
             pts[0] = source;
@@ -330,7 +361,6 @@ public class TriangleIntersector {
    double dp1, dq1, dr1, dp2, dq2, dr2;
    Vector3d v1 = new Vector3d(), v2 = new Vector3d(), v = new Vector3d();
    Vector3d N1 = new Vector3d(), N2 = new Vector3d(), N = new Vector3d();
-   double alpha;
 
    // Vector3d source, target;
 

@@ -673,6 +673,22 @@ public abstract class VectorBase implements Vector {
       return false;
    }
 
+   /**
+    * Returns true if one or more elements of this vector contains +/-INF.
+    * 
+    * @return true if one or more elements is +/-INF
+    */
+   public boolean hasInf() {
+      for (int i = 0; i < size(); i++) {
+         double val = get(i);
+         if (val == Double.POSITIVE_INFINITY ||
+             val == Double.NEGATIVE_INFINITY) {
+            return true;
+         }
+      }
+      return false;
+   }
+
    protected double abs (double x) {
       return x >= 0 ? x : -x;
    }

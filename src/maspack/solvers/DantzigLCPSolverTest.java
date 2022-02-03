@@ -12,26 +12,22 @@ import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import maspack.util.*;
 
+import maspack.solvers.LCPSolver.Status;
+
 import java.util.Random;
 
-public class DantzigLCPSolverTest extends UnitTest {
-   private static double DOUBLE_PREC = 2.220446049250313e-16;
+public class DantzigLCPSolverTest extends LCPSolverTestBase {
    private static double EPS = 10000 * DOUBLE_PREC;
-
-   private static final double Inf = Double.POSITIVE_INFINITY;
 
    private DantzigLCPSolver mySolver;
    private Random myRandom;
 
-   private FunctionTimer timer = new FunctionTimer();
-   private int pivotCnt;
-
-   private static double inf = Double.POSITIVE_INFINITY;
+   private static double INF = Double.POSITIVE_INFINITY;
 
    public DantzigLCPSolverTest() {
+      super();
       mySolver = new DantzigLCPSolver();
       myRandom = maspack.util.RandomGenerator.get();
-      myRandom.setSeed (0x1234);
    }
 
    public void setSilent (boolean silent) {
@@ -40,10 +36,16 @@ public class DantzigLCPSolverTest extends UnitTest {
    }
 
    public void testSolver (
-      VectorNd z, VectorNd w, MatrixNd M, VectorNd q, VectorNd lo, VectorNd hi,
-      int nub, int size, DantzigLCPSolver.Status expectedStatus) {
-      DantzigLCPSolver.Status status;
-      int[] state = new int[size];
+      VectorNd z, VectorNd w, VectorNi state, MatrixNd M, VectorNd q, VectorNd lo,
+      VectorNd hi, int nub, int size, Status expectedStatus) {
+      Status status;
+      
+      if (state == null) {
+         state = new VectorNi(size);
+      }
+      else {
+         state.setSize (size);
+      }
 
       if (z == null) {
          z = new VectorNd (size);
@@ -52,11 +54,13 @@ public class DantzigLCPSolverTest extends UnitTest {
          w = new VectorNd (size);
       }
 
-      timer.restart();
-      status = mySolver.solve (z, w, M, q, lo, hi, nub, state);
-      timer.stop();
-      pivotCnt += mySolver.getIterationCount();
-      if (expectedStatus == DantzigLCPSolver.Status.SOLVED &&
+      status = mySolver.solve (z, w, state, M, q, lo, hi, nub);
+      if (!myMaskPivotCounting) {
+         myTotalPivots += mySolver.getPivotCount(); 
+         myTotalIters += mySolver.getIterationCount(); 
+         myMaxSolveTol = Math.max (mySolver.getLastSolveTol(), myMaxSolveTol);
+      }
+      if (expectedStatus == Status.SOLVED &&
           status != expectedStatus) { // perturb the problem
          int cnt = 10;
          int k = 0;
@@ -65,11 +69,11 @@ public class DantzigLCPSolverTest extends UnitTest {
             VectorNd fuzz = new VectorNd (q.size());
             fuzz.setRandom (-mag * 1e-13, mag * 1e-13);
             q.add (fuzz);
-            status = mySolver.solve (z, w, M, q, lo, hi, nub, state);
+            status = mySolver.solve (z, w, state, M, q, lo, hi, nub);
             mag *= 10;
             k++;
          }
-         while (k < cnt && status != DantzigLCPSolver.Status.SOLVED);
+         while (k < cnt && status != Status.SOLVED);
          System.out.println ("random retry level " + k);
       }
       if (status != expectedStatus) { // System.out.println ("M=\n" +
@@ -78,7 +82,7 @@ public class DantzigLCPSolverTest extends UnitTest {
          throw new TestException ("solver returned " + status + ", expected "
          + expectedStatus);
       }
-      if (status == DantzigLCPSolver.Status.SOLVED) { // check the solution
+      if (status == Status.SOLVED) { // check the solution
          TestException failException = null;
          int n = z.size();
          VectorNd wcheck = new VectorNd (n);
@@ -108,7 +112,7 @@ public class DantzigLCPSolverTest extends UnitTest {
                   + " is out of bounds " + l + "," + h);
                break;
             }
-            if (state[i] == DantzigLCPSolver.Z_VAR) {
+            if (state.get(i) == DantzigLCPSolver.Z_VAR) {
                if (zval < -tol + l || zval > tol + h) {
                   failException =
                      new TestException ("z[" + i + "]=" + zval
@@ -122,7 +126,7 @@ public class DantzigLCPSolverTest extends UnitTest {
                   break;
                }
             }
-            else if (state[i] == DantzigLCPSolver.W_VAR_LOWER) {
+            else if (state.get(i) == DantzigLCPSolver.W_VAR_LOWER) {
                if (Math.abs (zval - l) > tol) {
                   failException =
                      new TestException ("z[" + i + "]=" + zval
@@ -136,7 +140,7 @@ public class DantzigLCPSolverTest extends UnitTest {
                   break;
                }
             }
-            else if (state[i] == DantzigLCPSolver.W_VAR_UPPER) {
+            else if (state.get(i) == DantzigLCPSolver.W_VAR_UPPER) {
                if (Math.abs (zval - h) > tol) {
                   failException =
                      new TestException ("z[" + i + "]=" + zval
@@ -152,7 +156,7 @@ public class DantzigLCPSolverTest extends UnitTest {
             }
             else {
                failException =
-                  new TestException ("state[" + i + "]=" + state[i]
+                  new TestException ("state[" + i + "]=" + state.get(i)
                   + " is unknown");
                break;
             }
@@ -164,85 +168,7 @@ public class DantzigLCPSolverTest extends UnitTest {
             System.out.println ("w=\n" + w.toString ("%12.8f"));
             System.out.println ("lo=\n" + lo.toString ("%12.8f"));
             System.out.println ("hi=\n" + hi.toString ("%12.8f"));
-            System.out.print ("state=");
-            for (int i = 0; i < n; i++) {
-               System.out.print (state[i] + " ");
-            }
-            System.out.println ("");
-            throw failException;
-         }
-      }
-   }
-
-   public void testSolver (
-      MatrixNd M, VectorNd q, int size, DantzigLCPSolver.Status expectedStatus) {
-      DantzigLCPSolver.Status status;
-      boolean[] zBasic = new boolean[size];
-      VectorNd z = new VectorNd (size);
-
-      timer.restart();
-      status = mySolver.solve (z, M, q, zBasic);
-      timer.stop();
-      pivotCnt += mySolver.getIterationCount();
-      if (expectedStatus == DantzigLCPSolver.Status.SOLVED &&
-          status != expectedStatus) { // perturb the problem
-         int cnt = 10;
-         int k = 0;
-         double mag = q.infinityNorm();
-         do {
-            VectorNd fuzz = new VectorNd (q.size());
-            fuzz.setRandom (-mag * 1e-13, mag * 1e-13);
-            q.add (fuzz);
-            status = mySolver.solve (z, M, q, zBasic);
-            mag *= 10;
-            k++;
-         }
-         while (k < cnt && status != DantzigLCPSolver.Status.SOLVED);
-         System.out.println ("random retry level " + k);
-      }
-      if (status != expectedStatus) { // System.out.println ("M=\n" +
-                                       // M.toString("%10.6f"));
-         // System.out.println ("q=\n" + q.toString("%10.6f"));
-         throw new TestException ("solver returned " + status + ", expected "
-         + expectedStatus);
-      }
-      if (status == DantzigLCPSolver.Status.SOLVED) { // check the solution
-         TestException failException = null;
-         int n = z.size();
-         VectorNd w = new VectorNd (n);
-         w.mul (M, z);
-         w.add (q);
-         double mag = 0;
-         for (int i = 0; i < n; i++) {
-            mag = Math.max (mag, Math.abs (z.get(i)));
-            mag = Math.max (mag, Math.abs (w.get(i)));
-         }
-         double tol = DOUBLE_PREC * mag * 100000;
-
-         for (int i = 0; i < n; i++) {
-            if (z.get(i) < -tol || w.get(i) < -tol) {
-               failException =
-                  new TestException ("negative values for z and/or w");
-            }
-            if (Math.abs (z.get(i) * w.get(i)) > tol) {
-               failException =
-                  new TestException ("w and z are not complementary");
-            }
-            if (z.get(i) > tol && !zBasic[i]) {
-               failException =
-                  new TestException ("non-zero value for non-basic z");
-            }
-         }
-         if (failException != null) {
-            System.out.println ("M=\n" + M.toString ("%12.8f"));
-            System.out.println ("q=\n" + q.toString ("%12.8f"));
-            System.out.println ("z=\n" + z.toString ("%12.8f"));
-            System.out.println ("w=\n" + w.toString ("%12.8f"));
-            System.out.print ("zBasic=");
-            for (int i = 0; i < n; i++) {
-               System.out.print (zBasic[i] + " ");
-            }
-            System.out.println ("");
+            System.out.println ("state=" + LCPSolver.stateToString(state));
             throw failException;
          }
       }
@@ -421,7 +347,7 @@ public class DantzigLCPSolverTest extends UnitTest {
                     -0.17386475635774437, -0.3497431561228355,
                     0.1496309651205553, -0.3908197384279026,
                     -0.24248437368234732, -0.09708194322877546,
-                    -0.11125189532496203, 0.8364413173368132,
+                   -0.11125189532496203, 0.8364413173368132,
                     0.3533970112347167, 0.5711598165435761,
                     0.39127853528034445, -0.19478801720778216,
 
@@ -570,7 +496,7 @@ public class DantzigLCPSolverTest extends UnitTest {
                     -69.50692045654691, };
 
    double[] hiVals1 =
-      new double[] { inf, inf, inf, inf, inf, inf, inf, inf,
+      new double[] { INF, INF, INF, INF, INF, INF, INF, INF,
                     17.635798280816715, 17.635798280816715, 17.635798280816708,
                     17.635798280816708, 31.703224753657523, 69.50692045654691,
                     69.50692045654691, };
@@ -603,251 +529,12 @@ public class DantzigLCPSolverTest extends UnitTest {
    };
 
    double[] hiVals2 = new double[] {
-      Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, 0.0017373666119946023, 0.0017373666119946023, 0.11247449406052762, 0.11247449406052762, 0.1299255636419224, 0.1299255636419224
+      INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, 0.0017373666119946023, 0.0017373666119946023, 0.11247449406052762, 0.11247449406052762, 0.1299255636419224, 0.1299255636419224
    };
 
    double[] loVals2 = new double[] {
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.0017373666119946023, -0.0017373666119946023, -0.11247449406052762, -0.11247449406052762, -0.1299255636419224, -0.1299255636419224
    };
-
-   public void testSpecial (double[] Mvals, double[] qvals) {
-      int size = qvals.length;
-      MatrixNd M = new MatrixNd (size, size);
-      VectorNd q = new VectorNd (size);
-      VectorNd lo = new VectorNd (size);
-      VectorNd hi = new VectorNd (size);
-      for (int i = 0; i < size; i++) {
-         lo.set (i, -inf);
-         hi.set (i, 0);
-      }
-
-      M.set (Mvals);
-      q.set (qvals);
-
-      testSolver (
-         null, null, M, q, lo, hi, 0, size, DantzigLCPSolver.Status.SOLVED);
-   }
-
-   public void testSpecial (
-      double[] Mvals, double[] qvals, double[] loVals, double[] hiVals, int nub) {
-      int size = qvals.length;
-      MatrixNd M = new MatrixNd (size, size);
-      VectorNd q = new VectorNd (size);
-      VectorNd lo = new VectorNd (size);
-      VectorNd hi = new VectorNd (size);
-
-      for (int i = 0; i < size; i++) {
-         lo.set (i, loVals[i]);
-         hi.set (i, hiVals[i]);
-      }
-
-      M.set (Mvals);
-      q.set (qvals);
-
-      testSolver (
-         null, null, M, q, lo, hi, nub, size, DantzigLCPSolver.Status.SOLVED);
-   }
-
-   /**
-    * Create a test case involving a single point contact on a plane. The angle
-    * of the plane surface relative to the horizontal is ang, and the friction
-    * coefficient is mu.
-    */
-   public void testSinglePointContact (double ang, double mu) {
-      double h = 1.0; // time step
-      double mass = 1.0;
-      double theEst = Math.abs (9.8 * h * Math.cos (ang));
-      Vector3d nrml = new Vector3d (Math.sin (ang), Math.cos (ang), 0);
-      Vector3d dir0 = new Vector3d (Math.cos (ang), -Math.sin (ang), 0);
-      Vector3d dir1 = new Vector3d (0, 0, 1);
-      Vector3d vel0 = new Vector3d();
-      vel0.scale (9.8 * Math.sin (ang), dir0);
-
-      MatrixNd M = new MatrixNd (3, 3);
-      VectorNd q = new VectorNd (3);
-      VectorNd z = new VectorNd (3);
-      VectorNd w = new VectorNd (3);
-      VectorNd lo = new VectorNd (3);
-      VectorNd hi = new VectorNd (3);
-
-      M.set (0, 0, nrml.dot (nrml) / mass);
-      M.set (0, 1, nrml.dot (dir0) / mass);
-      M.set (0, 2, nrml.dot (dir1) / mass);
-
-      M.set (1, 0, dir0.dot (nrml) / mass);
-      M.set (1, 1, dir0.dot (dir0) / mass);
-      M.set (1, 2, dir0.dot (dir1) / mass);
-
-      M.set (2, 0, dir1.dot (nrml) / mass);
-      M.set (2, 1, dir1.dot (dir0) / mass);
-      M.set (2, 2, dir1.dot (dir1) / mass);
-
-      q.set (0, nrml.dot (vel0));
-      q.set (1, dir0.dot (vel0));
-      q.set (2, dir1.dot (vel0));
-
-      lo.set (0, 0);
-      lo.set (1, -theEst * mu);
-      lo.set (2, -theEst * mu);
-
-      hi.set (0, inf);
-      hi.set (1, theEst * mu);
-      hi.set (2, theEst * mu);
-
-      testSolver (z, w, M, q, lo, hi, 0, 3, DantzigLCPSolver.Status.SOLVED);
-
-      Vector3d vel = new Vector3d (vel0);
-      vel.scaledAdd (z.get (0), nrml);
-      vel.scaledAdd (z.get (1), dir0);
-      vel.scaledAdd (z.get (2), dir1);
-
-      if (Math.abs (z.get (0)) > 1e-8 || Math.abs (z.get (2)) > 1e-8) {
-         throw new TestException ("Only z(1) should be non-zero");
-      }
-      if (ang <= Math.atan (mu)) {
-         if (!vel.epsilonEquals (Vector3d.ZERO, 1e-8)) {
-            throw new TestException ("velocity should be 0 with ang="
-            + Math.toDegrees (ang));
-         }
-      }
-      else {
-         if (vel.epsilonEquals (Vector3d.ZERO, 1e-8)) {
-            throw new TestException ("velocity should be non-zero with ang="
-            + Math.toDegrees (ang));
-         }
-         if (Math.abs (Math.abs (z.get (1)) - theEst * mu) > 1e-8) {
-            throw new TestException ("friction force not on the cone");
-         }
-      }
-   }
-
-   /**
-    * Create a test case involving multi-point contact of a box on a plane. The
-    * angle of the plane normal relative to the horizontal is ang, and the
-    * friction coefficient is mu.
-    */
-   public void testMultiPointContact (double ang, double mu) {
-      double mass = 4.0;
-      SpatialInertia Inertia =
-         SpatialInertia.createBoxInertia (mass, 2.0, 1.0, 2.0);
-      Point3d[] pnts =
-         new Point3d[] { new Point3d (1.0, -0.5, 1.0),
-                        new Point3d (1.0, -0.5, -1.0),
-                        new Point3d (-1.0, -0.5, -1.0),
-         // new Point3d (-1.0, -0.5, 1.0),
-         };
-      int nump = pnts.length;
-      int numc = 3 * pnts.length;
-
-      Wrench[] constraints = new Wrench[numc];
-      for (int i = 0; i < pnts.length; i++) {
-         Wrench NT = new Wrench();
-         NT.f.set (Vector3d.Y_UNIT);
-         NT.m.cross (pnts[i], NT.f);
-         constraints[i] = NT;
-
-         Wrench DT = new Wrench();
-         DT.f.set (Vector3d.X_UNIT);
-         DT.m.cross (pnts[i], DT.f);
-         constraints[pnts.length + 2 * i] = DT;
-
-         DT = new Wrench();
-         DT.f.set (Vector3d.Z_UNIT);
-         DT.m.cross (pnts[i], DT.f);
-         constraints[pnts.length + 2 * i + 1] = DT;
-      }
-
-      Twist vel0 = new Twist (Math.sin (ang), -Math.cos (ang), 0, 0, 0, 0);
-      vel0.scale (9.8);
-
-      MatrixNd A = new MatrixNd (nump, nump);
-      VectorNd b = new VectorNd (nump);
-      VectorNd theEst = new VectorNd (nump);
-
-      Twist tw = new Twist();
-      Wrench wr = new Wrench();
-      for (int i = 0; i < nump; i++) {
-         for (int j = 0; j < nump; j++) {
-            Inertia.mulInverse (tw, constraints[j]);
-            A.set (i, j, constraints[i].dot (tw));
-         }
-         b.set (i, -constraints[i].dot (vel0));
-         //System.out.println ("D=" + constraints[i].toString ("%8.3f"));
-      }
-      CholeskyDecomposition Chol = new CholeskyDecomposition();
-      Chol.factor (A);
-      Chol.solve (theEst, b);
-      //System.out.println ("vel0=" + vel0.toString ("%8.3f"));
-      //System.out.println ("theEst=" + theEst.toString ("%8.3f"));
-      // for (int i=0; i<nump; i++)
-      // { wr.scale (theEst.get(i), constraints[i]);
-      // Inertia.mulInverse (tw, wr);
-      // vel0.add (tw);
-      // }
-      // System.out.println ("vel0=" + vel0.toString("%8.3f"));
-
-      MatrixNd M = new MatrixNd (numc, numc);
-      VectorNd q = new VectorNd (numc);
-      VectorNd z = new VectorNd (numc);
-      VectorNd w = new VectorNd (numc);
-      VectorNd lo = new VectorNd (numc);
-      VectorNd hi = new VectorNd (numc);
-
-      for (int i = 0; i < numc; i++) {
-         for (int j = 0; j < numc; j++) {
-            Inertia.mulInverse (tw, constraints[j]);
-            M.set (i, j, constraints[i].dot (tw));
-         }
-         q.set (i, constraints[i].dot (vel0));
-      }
-      for (int i = 0; i < pnts.length; i++) {
-         lo.set (i, 0);
-         hi.set (i, inf);
-
-         lo.set (pnts.length + 2 * i, -theEst.get(i) * mu);
-         hi.set (pnts.length + 2 * i, theEst.get(i) * mu);
-         lo.set (pnts.length + 2 * i + 1, -theEst.get(i) * mu);
-         hi.set (pnts.length + 2 * i + 1, theEst.get(i) * mu);
-      }
-
-      //System.out.println ("ang=" + Math.toDegrees (ang));
-
-      testSolver (z, w, M, q, lo, hi, 0, numc, DantzigLCPSolver.Status.SOLVED);
-
-      Twist vel = new Twist (vel0);
-      for (int i = 0; i < numc; i++) {
-         wr.scale (z.get(i), constraints[i]);
-         Inertia.mulInverse (tw, wr);
-         vel.add (tw);
-      }
-
-      //System.out.println ("z=" + z.toString ("%8.3f"));
-      //System.out.println ("w=" + w.toString ("%8.3f"));
-      //System.out.println ("hi=" + hi.toString ("%8.3f"));
-      //System.out.println ("vel=" + vel.toString ("%8.3f"));
-
-      // if (Math.abs(z.get(0)) > 1e-8 || Math.abs(z.get(2)) > 1e-8)
-      // { throw new TestException (
-      // "Only z(1) should be non-zero");
-      // }
-      if (ang <= Math.atan (mu)) {
-         if (!vel.epsilonEquals (Twist.ZERO, 1e-8)) {
-            throw new TestException ("velocity should be 0 with ang="
-            + Math.toDegrees (ang));
-         }
-      }
-      else {
-         if (vel.epsilonEquals (Twist.ZERO, 1e-8)) {
-            throw new TestException ("velocity should be non-zero with ang="
-            + Math.toDegrees (ang));
-         }
-         // if (Math.abs(Math.abs(z.get(1)) - theEst*mu) > 1e-8)
-         // { throw new TestException (
-         // "friction force not on the cone");
-         // }
-      }
-
-   }
 
    public void createTestCase (
       MatrixNd M, VectorNd q, VectorNd lo, VectorNd hi, int nub, int nalpha,
@@ -976,12 +663,28 @@ public class DantzigLCPSolverTest extends UnitTest {
    }
 
    public void execute() {
+      
+      simpleContactTests(/*regularize=*/false);
+      int npegTests = 100;
+      clearPivotCount();
+      int nz = 5; // number of contact rings along z for pegInHole
+      int nr = 7; // number of contacts about each ring
+      pegInHoleContactTests (nz, nr, npegTests, /*regularize=*/false);
+      printAndClearPivotCount("peg-in-hole (unregularized): ", npegTests);
+      pegInHoleContactTests (nz, nr, npegTests, /*regularize=*/true);
+      printAndClearPivotCount("peg-in-hole (regularized):   ", npegTests);
+      
       testSpecial (Mvals0, qvals0);
       testSpecial (Mvals1, qvals1, loVals1, hiVals1, 0);
       //testSpecial (Mvals2, qvals2, loVals2, hiVals2, 0);
-
-      int numRandomTests = 1000;
+      
+      int numRandomTests = 10000;
       int size = 50;
+
+      randomTests (numRandomTests, size, /*semiDefinite=*/false);
+      randomTests (numRandomTests, size, /*semiDefinite=*/true);
+      randomBLCPTests (numRandomTests, size, /*semiDefinite=*/false);
+      randomBLCPTests (numRandomTests, size, /*semiDefinite=*/true);
 
       MatrixNd M = new MatrixNd (size, size);
       VectorNd q = new VectorNd (size);
@@ -990,33 +693,7 @@ public class DantzigLCPSolverTest extends UnitTest {
       VectorNd hi = new VectorNd (size);
       for (int i = 0; i < size; i++) {
          lo.set (i, 0);
-         hi.set (i, inf);
-      }
-
-      for (int i = 0; i < numRandomTests; i++) {
-         M.setRandom();
-         x.setRandom();
-         q.mul (M, x);
-         M.mulTransposeRight (M, M);
-         testSolver (M, q, size, DantzigLCPSolver.Status.SOLVED);
-         // testSolver (M, q, lo, hi, 0, size, DantzigLCPSolver.Status.SOLVED);
-
-         // System.out.println (
-         // "SPD "+i+", pivots=" + mySolver.getIterationCount());
-      }
-
-      MatrixNd N = new MatrixNd (size, size - size / 2);
-      x.setSize (size - size / 2);
-
-      for (int i = 0; i < numRandomTests; i++) {
-         N.setRandom();
-         x.setRandom();
-         q.mul (N, x);
-         M.mulTransposeRight (N, N);
-         testSolver (M, q, size, DantzigLCPSolver.Status.SOLVED);
-         // testSolver (M, q, lo, hi, 0, size, DantzigLCPSolver.Status.SOLVED);
-         // System.out.println (
-         // "SPSD "+i+", pivots=" + mySolver.getIterationCount());
+         hi.set (i, INF);
       }
 
       M.setSize (15, 15);
@@ -1024,40 +701,33 @@ public class DantzigLCPSolverTest extends UnitTest {
       VectorNd lo0, hi0, lo1, hi1;
 
       lo0 =
-         new VectorNd (new double[] { -inf, -inf, -inf, 0, 0, 0, 0, 0, 0, 0, 0,
+         new VectorNd (new double[] { -INF, -INF, -INF, 0, 0, 0, 0, 0, 0, 0, 0,
                                      0, 0, 0, 0 });
       hi0 =
-         new VectorNd (new double[] { inf, inf, inf, inf, inf, inf, inf, inf,
-                                     inf, inf, inf, inf, inf, inf, inf });
+         new VectorNd (new double[] { INF, INF, INF, INF, INF, INF, INF, INF,
+                                     INF, INF, INF, INF, INF, INF, INF });
 
       lo1 =
-         new VectorNd (new double[] { -inf, -inf, -inf, 0, 0, 0, 0, -inf, -inf,
-                                     -inf, -inf, -2, -2, -2, -2 });
+         new VectorNd (new double[] { -INF, -INF, -INF, 0, 0, 0, 0, -INF, -INF,
+                                     -INF, -INF, -2, -2, -2, -2 });
       hi1 =
-         new VectorNd (new double[] { inf, inf, inf, inf, inf, inf, inf, 0, 0,
+         new VectorNd (new double[] { INF, INF, INF, INF, INF, INF, INF, 0, 0,
                                      0, 0, 2, 2, 2, 2 });
 
       for (int i = 0; i < 1000; i++) {
          createTestCase (M, q, lo1, hi1, 3, 7, 15);
          testSolver (
-            null, null, M, q, lo1, hi1, 3, 15, DantzigLCPSolver.Status.SOLVED);
+            null, null, null, M, q, lo1, hi1, 3, 15, Status.SOLVED);
       }
       for (int i = 0; i < 1000; i++) {
          createTestCase (M, q, lo1, hi1, 3, 7, 10);
          testSolver (
-            null, null, M, q, lo1, hi1, 3, 15, DantzigLCPSolver.Status.SOLVED);
+            null, null, null, M, q, lo1, hi1, 3, 15, Status.SOLVED);
       }
       for (int i = 0; i < 1000; i++) {
          createTestCase (M, q, lo1, hi1, 0, 2, 5);
          testSolver (
-            null, null, M, q, lo1, hi1, 3, 15, DantzigLCPSolver.Status.SOLVED);
-      }
-
-      for (double ang = 0; ang < Math.toRadians (45); ang += Math.toRadians (5)) {
-         testSinglePointContact (ang, 0.3);
-      }
-      for (double ang = 0; ang < Math.toRadians (45); ang += Math.toRadians (5)) {
-         testMultiPointContact (ang, 0.3);
+            null, null, null, M, q, lo1, hi1, 3, 15, Status.SOLVED);
       }
 
       // System.out.println ("average time, matrix size of 50: " +
@@ -1067,26 +737,23 @@ public class DantzigLCPSolverTest extends UnitTest {
       // System.out.println ("timerB: " + mySolver.getUsecB());
    }
 
-   private void printUsageAndExit (int code) {
-      System.out.println ("Usage: java "+getClass()+" [-verbose]");
-      System.exit (code); 
-   }   
+   public void test() {
+      execute();
+   }
+
+   public LCPSolver getSolver() {
+      return mySolver;
+   }
 
    public static void main (String[] args) {
       DantzigLCPSolverTest tester = new DantzigLCPSolverTest();
 
-      tester.setSilent (true);
-      for (int i=0; i<args.length; i++) {
-         if (args[i].equals ("-verbose")) {
-            tester.setSilent (false);
-         }
-         else if (args[i].equals ("-help")) {
-            tester.printUsageAndExit (0);
-         }
-         else {
-            tester.printUsageAndExit (1);
-         }
+      tester.parseArgs (args);
+      if (tester.isTimingRequested()) {
+         tester.runtiming();
       }
-      tester.runtest();
+      else {
+         tester.runtest();
+      }
    }
 }

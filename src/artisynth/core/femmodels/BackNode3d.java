@@ -561,6 +561,7 @@ public class BackNode3d extends DynamicComponentBase
       }
       else if (scanAttributeName (rtok, "rest")) {
          myRest.scan (rtok);
+         setFlag (FemNode3d.REST_POSITION_SCANNED);
          myRestValidP = true;
          return true;
       }
@@ -572,6 +573,20 @@ public class BackNode3d extends DynamicComponentBase
       return super.scanItem (rtok, tokens);
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      super.scan (rtok, ref);
+      if (checkFlag(FemNode3d.REST_POSITION_SCANNED)) {
+         clearFlag (FemNode3d.REST_POSITION_SCANNED);
+      }
+      else {
+         myRest.set (getPosition());
+         myRestValidP = true;
+      }
+   }
+
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
@@ -580,7 +595,11 @@ public class BackNode3d extends DynamicComponentBase
       if (!myVel.equals(Vector3d.ZERO)) {
          pw.println ("velocity=[ " + myVel.toString (fmt) + " ]");
       }
-      pw.println ("rest=[ " + getRestPosition().toString (fmt) + " ]");
+      if (!myRest.equals (getPosition())) {
+         pw.print ("rest=");
+         myRest.write (pw, fmt, /* withBrackets= */true);
+         pw.println ("");
+      }
       if (myRestExplicitP) {
          pw.println ("restExplicit=true");
       }

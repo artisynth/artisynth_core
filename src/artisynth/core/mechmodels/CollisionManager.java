@@ -3035,6 +3035,13 @@ public class CollisionManager extends RenderableCompositeBase
       return (hprops==null || hprops.isVisible());
    }
 
+   public void updateColorMapRanges () {
+      int globalRangeCnt = 0;
+      for (CollisionHandler ch : myHandlers) {
+         globalRangeCnt = ch.updateColorMapValues(globalRangeCnt);
+      }
+   }
+
    public void prerender (RenderList list) {
       for (CollisionHandler ch : myHandlers) {
          list.addIfVisible (ch);

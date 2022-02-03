@@ -386,181 +386,16 @@ public class CollisionRenderer {
          }
       }
 
-      RenderObject oldRob = myRob;
       myRob = ro;
 
       RenderObject rd = null;
       if (behav.myDrawColorMap != ColorMapType.NONE && cinfo != null) {
-
-         int num = behav.myColorMapCollidableNum;
-         Collidable b0 = behav.getCollidable(0);
-         CollidableBody h0 = handler.getCollidable(0);
-         if (!(b0 instanceof Group)) {
-            if (h0 != b0 && h0.getCollidableAncestor() != b0) {
-               // then we want the *other* collidable body, so switch num
-               num = (num == 0 ? 1 : 0);
-            }
-         }
-         HashSet<Face> faces = new HashSet<Face>();
-         HashMap<Vertex3d,Double> valueMap =
-            createValueMap (faces, cinfo, handler, behav, num);
-
-         if (faces.size() > 0) {
-            double minv = 0;
-            double maxv = 0;
-            for (Double d : valueMap.values()) {
-               if (d > maxv) {
-                  maxv = d;
-               }
-               else if (d < minv) {
-                  minv = d;
-               }
-            }
-            rd = createPenetrationRenderObject (
-               handler, valueMap, minv, maxv, faces);
+         if (handler.myColorMapVertexValues != null) {
+            rd = createPenetrationRenderObject (handler);
          }
       }
-      
-      oldRob = myDepthRob;
       myDepthRob = rd;
    }
-
-   protected void storeVertexForces (
-      HashMap<Vertex3d,Double> valueMap,
-      Vertex3d[] vtxs, double[] wgts, double lam) {
-
-      if (vtxs != null) {
-         for (int i=0; i<vtxs.length; i++) {
-            double weightedLam = lam*wgts[i];
-            Double prevLam = valueMap.get (vtxs[i]);
-            if (prevLam != null) {
-               weightedLam += prevLam;
-            }
-            valueMap.put (vtxs[i], weightedLam);                     
-         }
-      }
-   }
-
-   private boolean containsMeshVertices (ContactPoint cp, PolygonalMesh mesh) {
-      return (cp.numVertices() > 0 && cp.getVertices()[0].getMesh() == mesh);
-   }
-
-   protected void storeVertexForces (
-      HashMap<Vertex3d,Double> valueMap,
-      ContactConstraint cc, PolygonalMesh mesh) {
-
-      Vertex3d[] vtxs = null;
-      double[] wgts = null;
-
-      // check cpnt0 and cpnt1 for vertices belonging to the mesh
-      if (containsMeshVertices (cc.myCpnt0, mesh)) {
-         vtxs = cc.myCpnt0.getVertices();
-         wgts = cc.myCpnt0.getWeights();
-      }
-      else if (containsMeshVertices (cc.myCpnt1, mesh)) {
-         vtxs = cc.myCpnt1.getVertices();
-         wgts = cc.myCpnt1.getWeights();
-      }
-      else {
-         // have to find the face and vertices directly. Assume 
-         // that we can use the position of cpnt0
-         BVFeatureQuery query = new BVFeatureQuery();
-         Vector2d uv = new Vector2d();
-         Point3d nearPnt = new Point3d();
-         Face face = query.getNearestFaceToPoint (
-            nearPnt, uv, mesh, cc.myCpnt0.getPoint());
-         if (face != null) {
-            vtxs = face.getVertices();
-            wgts = new double[] {1-uv.x-uv.y, uv.x, uv.y};
-         }
-      }
-      // check vtxs == null just in case query.getNearestFaceToPoint failed
-      // for some reason
-      if (vtxs != null) {
-         for (int i=0; i<vtxs.length; i++) {
-            double lam = cc.myLambda*wgts[i];
-            Double prevLam = valueMap.get (vtxs[i]);
-            if (prevLam != null) {
-               lam += prevLam;
-            }
-            valueMap.put (vtxs[i], lam);                     
-         }
-      }
-   }
-
-   HashMap<Vertex3d,Double> createValueMap (
-      HashSet<Face> faces, ContactInfo cinfo,
-      CollisionHandler handler, CollisionBehavior behav,
-      int num) {
-      
-      HashMap<Vertex3d,Double> valueMap = new HashMap<Vertex3d,Double>();
-      if (behav.myDrawColorMap == ColorMapType.PENETRATION_DEPTH) {
-         ArrayList<PenetratingPoint> points;
-         for (PenetratingPoint pp : cinfo.getPenetratingPoints (num)) {
-            valueMap.put (pp.vertex, pp.distance);
-         }
-         for (Vertex3d vertex : valueMap.keySet()) {
-            Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
-            while (it.hasNext()) {
-               HalfEdge he = it.next();
-               Face face = he.getFace();
-               if (!faces.contains(face)) {
-                  faces.add (face);
-               }
-            }
-         }
-      }
-      else if (behav.myDrawColorMap == ColorMapType.CONTACT_PRESSURE) {
-         PolygonalMesh mesh;
-         if (num == 0) {
-            mesh = handler.myCollidable0.getCollisionMesh();
-         }
-         else {
-            mesh = handler.myCollidable1.getCollisionMesh();
-         }
-         
-         for (ContactConstraint cc : handler.myBilaterals0.values()) {
-            if (cc.myLambda > 0) {
-               storeVertexForces (valueMap, cc, mesh);
-            }
-         }
-         for (ContactConstraint cc : handler.myBilaterals1.values()) {
-            if (cc.myLambda > 0) {
-               storeVertexForces (valueMap, cc, mesh);
-            }
-         }
-         for (ContactConstraint cc : handler.myPrevUnilaterals) {
-            if (cc.myLambda > 0) {
-               storeVertexForces (valueMap, cc, mesh);
-            }
-         }
-         for (Map.Entry<Vertex3d,Double> entry : valueMap.entrySet()) {
-            // convert forces to pressures
-            Vertex3d vertex = entry.getKey();
-            double lam = entry.getValue();
-            // Pressure at the vertex is related to force at the vertex
-            // by the formula
-            // 
-            //    force = 1/3 * pressure * adjacentFaceArea
-            //
-            double adjacentFaceArea = 0;
-            Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
-            while (it.hasNext()) {
-               HalfEdge he = it.next();
-               Face face = he.getFace();
-               if (!faces.contains(face)) {
-                  // update planar area for the face
-                  face.computeNormal();
-                  faces.add (face);
-               }
-               adjacentFaceArea += face.getPlanarArea();
-            }
-            double pressure = 3*lam/adjacentFaceArea;
-            valueMap.put (vertex, pressure);              
-         }
-      }
-      return valueMap;
-   }            
 
    int getColorIndex (
       ScalarRange range,
@@ -575,13 +410,13 @@ public class CollisionRenderer {
       return idx;
    }
 
-   RenderObject createPenetrationRenderObject (
-      CollisionHandler handler, HashMap<Vertex3d,Double> valueMap,
-      double minv, double maxv, HashSet<Face> faces) {
+   RenderObject createPenetrationRenderObject (CollisionHandler handler) {
       
+      HashMap<Vertex3d,Double> valueMap = handler.myColorMapVertexValues;
+      HashSet<Face> faces = handler.myColorMapFaces;
+
       RenderObject rd = new RenderObject();
       ScalarRange range = getEffectiveColorMapRange (handler);
-      range.updateInterval (minv, maxv);
       float[] rgb = new float[3];
       for (int i=0; i<256; i++) {
          handler.myManager.myColorMap.getRGB (i/255.0, rgb);

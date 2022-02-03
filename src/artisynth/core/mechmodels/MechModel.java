@@ -1851,8 +1851,10 @@ TransformableGeometry, ScalableUnits {
       for (RequiresPrePostAdvance c : myLocalPrePostAdvanceComps) {
          c.postadvance (t0, t1, flags);
       }
-      // collision manager: update color map range values if required
-      myCollisionManager.updateColorMapRanges();
+      if (level == 0) {
+         // collision manager: update color map range values if required
+         myCollisionManager.updateColorMapRanges();
+      }
    }
 
    public void recursivelyInitialize (double t, int level) {

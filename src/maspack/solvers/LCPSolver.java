@@ -19,8 +19,8 @@ import maspack.util.*;
  * complementarity problems (BLCPs), which take the form
  * <pre>
  * w = M z + q = wpos - wneg,
- * 0 <= hi - z perp wneg >= 0,
- * 0 <= z - lo perp wpos >= 0
+ * 0 &le; hi - z perp wneg &ge; 0,
+ * 0 &le; z - lo perp wpos &ge; 0
  * </pre>
  * 
  * <p> Full details on the solution of LCPs can be found in <i>The Linear
@@ -143,7 +143,7 @@ public interface LCPSolver {
    /**
     * Creates a state vector from a string representation
     *
-    * @param string representation of the state
+    * @param str string representation of the state
     * @return state vector
     */
    public static VectorNi stringToState (String str) {
@@ -215,8 +215,8 @@ public interface LCPSolver {
     * If {@link #isBLCPSupported} returns {@code true}, solves the BLCP
     * <pre>
     * w = M z + q = wpos - wneg,
-    * 0 <= hi - z perp wneg >= 0,
-    * 0 <= z - lo perp wpos >= 0,
+    * 0 &le; hi - z perp wneg &ge; 0,
+    * 0 &le; z - lo perp wpos &ge; 0,
     * </pre>
     * where M is a matrix whose characteristics should match the capabilities
     * of the solver. If BLCPs are not supported, then this method returns

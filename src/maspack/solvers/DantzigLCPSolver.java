@@ -349,7 +349,7 @@ public class DantzigLCPSolver implements LCPSolver {
    }
 
    /**
-    * {@inheritDc}
+    * {@inheritDoc}
     */
    public Status solve (VectorNd z, VectorNi state, MatrixNd M, VectorNd q) {
       if (M.rowSize() != M.colSize()) {

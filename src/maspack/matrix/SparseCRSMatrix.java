@@ -572,7 +572,7 @@ public class SparseCRSMatrix extends SparseMatrixBase implements Clonable {
    /**
     * Sets the values of this matrix from an existing SparseCRSMatrix M.
     *
-    * @param S
+    * @param M
     * matrix used to set values
     */
    public void set (SparseCRSMatrix M) {

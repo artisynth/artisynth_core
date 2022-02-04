@@ -1398,7 +1398,7 @@ public class CollisionHandler extends ConstrainerBase
       return myRenderContactInfo;
    }
 
-   int updateColorMapValues (int globalRangeCnt) {
+   void updateColorMapValues () {
 
       if (myLastContactInfo != null &&
           myBehavior.myDrawColorMap != ColorMapType.NONE) {
@@ -1436,24 +1436,21 @@ public class CollisionHandler extends ConstrainerBase
             else {
                // update global range object in CollisionManager
                ScalarRange range = myManager.getColorMapRange();
-               if (globalRangeCnt > 0 &&
-                   range.getUpdating() == ScalarRange.Updating.AUTO_FIT) {
+               if (range.getUpdating() == ScalarRange.Updating.AUTO_FIT) {
                   // expand interval to account for multiple color maps
                   range.expandInterval (new DoubleInterval(minv, maxv));
                }
                else {
                   range.updateInterval (minv, maxv);
                }
-               globalRangeCnt++;
             }
             myColorMapVertexValues = valueMap;
             myColorMapFaces = faces;
-            return globalRangeCnt;
+            return;
          }
       }
       myColorMapFaces = null;
       myColorMapVertexValues = null;
-      return globalRangeCnt;
    }
 
    HashMap<Vertex3d,Double> createVertexValueMap (

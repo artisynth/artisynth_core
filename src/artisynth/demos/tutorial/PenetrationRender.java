@@ -113,8 +113,10 @@ public class PenetrationRender extends RootModel {
    }
 
    public void prerender(RenderList list) {
-      // In prerender, we update the color bar labels based on the updated
-      // color map range stored in the collision manager.
+      super.prerender(list); // call the regular prerender method first
+
+      // Update the color bar labels based on the collison manager's 
+      // color map range that was updated in super.prerender().
       //
       // Object references are obtained by name using 'findComponent'. This is
       // more robust than using class member variables, since the latter will
@@ -127,6 +129,5 @@ public class PenetrationRender extends RootModel {
       CollisionManager cm = mech.getCollisionManager();
       ScalarRange range = cm.getColorMapRange();
       cbar.updateLabels(0, 1000*range.getUpperBound());
-      super.prerender(list); // call the regular prerender method
    }
 }

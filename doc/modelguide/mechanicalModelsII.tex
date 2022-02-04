@@ -2629,9 +2629,11 @@ depth that corresponds to the different colors. The color bar is given
 the same color map that is used to render the depth. Since the depth
 range is updated every time step, it is also necessary to update the
 corresponding labels in the color bar. This is done by overriding the
-root model's {\tt prerender()} method (lines 115-131), where we obtain
+root model's {\tt prerender()} method (lines 115-132), where we obtain
 the color map range for the collision manager and use it to update the
-color bar labels. References to the color bar, {\tt MechModel}, and
+color bar labels. (Note that {\tt super.prerender(list)} is called {\it
+first}, since the color map ranges are updated there.)
+References to the color bar, {\tt MechModel}, and
 bodies are obtained using the
 \javaclass[artisynth.core.modelbase]{CompositeComponent} methods
 \javamethod*[artisynth.core.modelbase.CompositeComponent]{get()} and

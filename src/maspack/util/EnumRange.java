@@ -95,7 +95,7 @@ public class EnumRange<E extends Enum<E>> extends RangeBase {
       rtok.scanToken ('[');
       String className = rtok.scanWord();
       try {
-         myClass = (Class<E>)Class.forName(className);
+         myClass = (Class<E>)ClassFinder.forName(className, true);
       }
       catch (Exception e) {
          throw new IOException ("class "+className+" not found");

@@ -457,7 +457,7 @@ public class Scan {
       
       Class<?> clazz = null;
       try {
-         clazz = Class.forName (className);
+         clazz = ClassFinder.forName (className, true);
       }
       catch (Exception e) {
          throw new IOException (
@@ -556,7 +556,7 @@ public class Scan {
          }
          else {
             try {
-               clazz = Class.forName (rtok.sval);
+               clazz = ClassFinder.forName (rtok.sval, true);
             }
             catch (Exception e) {
                throw new IOException ("Cannot resolve class " + rtok.sval);

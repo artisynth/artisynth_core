@@ -8,6 +8,7 @@ import java.lang.reflect.Modifier;
 import artisynth.core.workspace.RootModel;
 
 import artisynth.core.util.AliasTable;
+import maspack.util.ClassFinder;
 
 public class DemoFileEntry extends MenuEntry {
 
@@ -94,7 +95,7 @@ public class DemoFileEntry extends MenuEntry {
       while (li.hasNext()) {
          Map.Entry<String,String> entry = li.next();
          try {
-            Class<?> clazz = Class.forName (entry.getValue());
+            Class<?> clazz = ClassFinder.forName (entry.getValue(), false);
             if (!RootModel.class.isAssignableFrom (clazz) ||
                 Modifier.isAbstract (clazz.getModifiers()) ||
                 ModelScriptMenuParser.omitFromMenu (clazz)) {

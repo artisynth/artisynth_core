@@ -21,6 +21,7 @@ import maspack.matrix.Matrix;
 import maspack.matrix.Vector;
 import maspack.matrix.Vectori;
 import maspack.util.ClassAliases;
+import maspack.util.ClassFinder;
 import maspack.util.DoubleInterval;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -1348,7 +1349,7 @@ public class PropertyDesc implements PropertyInfo {
    private static Class<?> nameToClass (String name) {
       // was: ClassAliases.resolveClass (name)
       try {
-         return Class.forName (name);
+         return ClassFinder.forName (name, true);
       }
       catch (Exception e) {
          return null;

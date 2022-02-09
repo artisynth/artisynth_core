@@ -32,6 +32,41 @@ public class ClassFinder {
 
    static Logger myLogger = null;
 
+   /**
+    * Returns the context class loader. This can be set at the start of an
+    * application to a loader that looks for classes in places other than the
+    * default class path used by the application.
+    */
+   static public ClassLoader getContextClassLoader() {
+      ClassLoader loader = Thread.currentThread().getContextClassLoader();
+      return loader;
+   }
+
+   /**
+    * Invokes {@code Class.forName(name,initialize,loader)} using the context
+    * class loader.
+    */
+   static public Class<?> forName (String name, boolean initialize) 
+      throws ClassNotFoundException {
+      return Class.forName (name, initialize, getContextClassLoader());
+   }
+
+   /**
+    * Invokes {@code Class.forName(name,true,loader)} using the context class
+    * loader.
+    */
+   static public Class<?> forName (String name) throws ClassNotFoundException {
+      return Class.forName (name, true, getContextClassLoader());
+   }
+   
+   /**
+    * Class {@code loadClass(name)} for the context class loader.
+    */
+   static public Class<?> loadClass (String name) 
+      throws ClassNotFoundException {
+      return getContextClassLoader().loadClass (name);
+   }
+
    static void setLogger(Logger logger) {
       myLogger = logger;
    }
@@ -109,10 +144,7 @@ public class ClassFinder {
    public static ArrayList<Class<?>> findClasses(
       String pkg, String regex, Class<?> T, boolean recursive) {
 
-      //FunctionTimer timer = new FunctionTimer();
-      //timer.start();
-      // ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-      ClassLoader classLoader = ClassFinder.class.getClassLoader();
+      ClassLoader classLoader = getContextClassLoader();
       if (classLoader == null) {
          throw new InternalError ("Cannot find appropriate class loader");
       }
@@ -163,9 +195,6 @@ public class ClassFinder {
       for (URL url : jars) {
          classList.addAll(findClasses(url, pkg, pattern, T));
       }
-      // timer.stop();
-      // System.out.println (
-      //   "Found "+classList.size()+" classes for "+pkg+ ", "+timer.result(1));
       return classList;
    }
    
@@ -232,8 +261,7 @@ public class ClassFinder {
          // Must be in "try" blocks because will fail if class can't be
          // initialized
          try {
-            Class<?> clz = Class.forName(
-               className, false, ClassFinder.class.getClassLoader());
+            Class<?> clz = forName (className, false);
 
             if (base.equals(Object.class)) {
                // don't bother checking if we're dealing with Object
@@ -354,7 +382,7 @@ public class ClassFinder {
     * @return true if the package is known to the class loader
     */
    public static boolean packageExists (String pkgname) {
-      ClassLoader classLoader = ClassFinder.class.getClassLoader();
+      ClassLoader classLoader = getContextClassLoader();
       if (classLoader == null) {
          throw new InternalError ("Cannot find appropriate class loader");
       }
@@ -375,7 +403,7 @@ public class ClassFinder {
     * @return package directory, or {@code null} if not found
     */
    public static File findPackageDirectory (String pkgname) {
-      ClassLoader classLoader = ClassFinder.class.getClassLoader();
+      ClassLoader classLoader = getContextClassLoader();
       if (classLoader == null) {
          throw new InternalError ("Cannot find appropriate class loader");
       }

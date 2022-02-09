@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
-import maspack.util.ClassFinder;
-
 public class ClassAliases {
    private static LinkedHashMap<String,String> aliasesToClasses =
       new LinkedHashMap<String,String>();
@@ -120,7 +118,7 @@ public class ClassAliases {
    public static boolean addAlias (String alias, String className) {
       Class<?> cls;
       try {
-         cls = Class.forName (className);
+         cls = ClassFinder.forName (className, false);
       }
       catch (Exception e) {
          System.err.println (
@@ -135,7 +133,7 @@ public class ClassAliases {
       try {
          String classname = aliasesToClasses.get (alias);
          if (classname != null) {
-            clazz = Class.forName(classname);
+            clazz = ClassFinder.forName(classname, false);
          }
       } catch (ClassNotFoundException e) {
       }
@@ -175,7 +173,7 @@ public class ClassAliases {
       }
       else {
          try {
-            return Class.forName (nameOrAlias);
+            return ClassFinder.forName (nameOrAlias, false);
          }
          catch (Exception e) { // just continue
          }

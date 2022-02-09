@@ -36,7 +36,7 @@ public class ModelEntry extends MenuNode {
             }
             Class<?> clazz;
             try {
-               clazz = Class.forName (name);
+               clazz = ClassFinder.forName (name, false);
             }
             catch (Exception e) {
                if (errMsg != null) {

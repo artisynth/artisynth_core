@@ -839,7 +839,7 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
          }
          else if (rtok.ttype != ';') {
             rtok.pushBack();
-            valueList.add (new Double (rtok.scanNumber()));
+            valueList.add (Double.valueOf (rtok.scanNumber()));
             if (currentLine == -1) {
                currentLine = rtok.lineno();
             }
@@ -1415,11 +1415,11 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       checkUpperTriangular (part);
       if (nrows > rowSize()) {
          throw new IllegalArgumentException (
-            "nrows exceeds number of matrix rows");
+            "nrows "+nrows+" exceeds number of matrix rows "+rowSize());
       }
       if (rowOffs.length < nrows+1) {
          throw new IllegalArgumentException (
-            "Length of rowOffs is less than nrows+1");
+            "Length of rowOffs "+rowOffs.length+" less than nrows+1=" +(nrows+1));
       }
       if (vals.length < nvals) {
          throw new IllegalArgumentException (

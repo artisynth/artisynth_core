@@ -32,7 +32,7 @@ public class JSONFactoryDefault implements JSONFactory<Object, HashMap<String,Ob
 
    @Override
    public Object createNumber(double v) {
-      return new Double(v);
+      return Double.valueOf(v);
    }
 
    @Override

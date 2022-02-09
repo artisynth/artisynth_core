@@ -192,7 +192,7 @@ public class DoubleInterval extends NumericInterval {
 //   public Object projectToRange (Object obj) {
 //      if (!withinRange (obj)) {
 //         if (obj instanceof Number) {
-//            return new Double (clipToRange (((Number)obj).doubleValue()));
+//            return Double.valueOf (clipToRange (((Number)obj).doubleValue()));
 //         }
 //         else {
 //            return null;
@@ -312,7 +312,7 @@ public class DoubleInterval extends NumericInterval {
    }
 
    protected Number getNumber (double num) {
-      return new Double (num);
+      return Double.valueOf (num);
    }
 
    public DoubleInterval clone() {

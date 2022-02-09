@@ -27,9 +27,7 @@ public class IndentingPrintWriter extends PrintWriter {
    private char myLineSepChar;
 
    private void init() {
-      myLineSeparator =
-         (String)java.security.AccessController.doPrivileged (
-            new GetPropertyAction ("line.separator"));
+      myLineSeparator = System.lineSeparator();
       myLineSepChar = myLineSeparator.charAt (myLineSeparator.length() - 1);
       if (myLineSepChar != '\n') {
          System.err.println ("Warning: line sep character not '\n'");

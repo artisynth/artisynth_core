@@ -45,7 +45,7 @@ public class ScaleField extends LabeledTextField {
    public ScaleField (String labelText) {
       super (labelText, 5 * 4);
       initialize();
-      setValue (new Double (1));
+      setValue (Double.valueOf (1));
    }
 
    /**
@@ -113,7 +113,7 @@ public class ScaleField extends LabeledTextField {
             return validValue (new Vector3d (tmp[0], tmp[1], tmp[2]), errMsg);
          }
          else {
-            return validValue (new Double (tmp[0]), errMsg);
+            return validValue (Double.valueOf (tmp[0]), errMsg);
          }
       }
       catch (IOException e) {
@@ -140,7 +140,7 @@ public class ScaleField extends LabeledTextField {
   protected boolean updateInternalValue (Object value) {
       if (!valuesEqual (value, myValue)) {
          if (value instanceof Number) {
-            value = new Double (((Number)value).doubleValue());
+            value = Double.valueOf (((Number)value).doubleValue());
          }
          else if (value instanceof Vector3d) {
             value = new Vector3d ((Vector3d)value);

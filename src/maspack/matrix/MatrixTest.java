@@ -1157,6 +1157,8 @@ public class MatrixTest extends UnitTest {
          testDenseSetAndGet ((DenseMatrix)MR);
       }
 
+      MR.checkConsistency();
+
       saveResult (MR);
 
       if (MR instanceof MatrixBase) {
@@ -1164,7 +1166,6 @@ public class MatrixTest extends UnitTest {
          double EPS = 1e-15;
          MatrixBase MB = (MatrixBase)MR;
          MB.setRandom();
-
          if (!MB.equals (MB)) {
             throw new TestException ("Matrix not equal to itself");
          }
@@ -1255,6 +1256,7 @@ public class MatrixTest extends UnitTest {
       // testMulTransposeVector (MR, nc-1, nr-1, nc, nr);
 
       restoreResult (MR);
+      MR.checkConsistency();
    }
 
    void testDenseSetAndGet (DenseMatrix MR) {

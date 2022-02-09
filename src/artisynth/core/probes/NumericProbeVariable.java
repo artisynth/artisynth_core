@@ -61,7 +61,7 @@ public class NumericProbeVariable {
 
    public Object getValue() {
       if (myValues.length == 1) {
-         return new Double (myValues[0]);
+         return Double.valueOf (myValues[0]);
       }
       else {
          return new VectorNd (myValues);

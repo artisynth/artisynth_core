@@ -521,7 +521,7 @@ public abstract class VectorBase implements Vector {
             ArrayList<Double> valueList = new ArrayList<>(64);
             while (rtok.nextToken() != ']') {
                rtok.pushBack();
-               valueList.add (new Double (rtok.scanNumber()));
+               valueList.add (Double.valueOf (rtok.scanNumber()));
             }
             if (valueList.size() != size()) {
                setSize (valueList.size());

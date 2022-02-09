@@ -18,6 +18,7 @@ import maspack.util.ReaderTokenizer;
  * that provided by {@link Vector}, which defines vectors of doubles.
  */
 public interface Vectori extends Clonable {
+
    /**
     * Returns the number of elements in this vector.
     * 

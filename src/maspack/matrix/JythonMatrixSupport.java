@@ -274,7 +274,7 @@ public class JythonMatrixSupport {
          for (int k = 0; k < ksize; k++) {
             sum += v1.get (k) * v2.get (k);
          }
-         return new Double (sum);
+         return Double.valueOf (sum);
       }
       else {
          MatrixNd res = new MatrixNd (rsize, csize);
@@ -303,7 +303,7 @@ public class JythonMatrixSupport {
          }
       }
       if (res.nrows == 1 && res.ncols == 1) {
-         return new Double (buf[0]);
+         return Double.valueOf (buf[0]);
       }
       else {
          return res;
@@ -323,7 +323,7 @@ public class JythonMatrixSupport {
             }
          }
          if (res.nrows == 1 && res.ncols == 1) {
-            return new Double (buf[0]);
+            return Double.valueOf (buf[0]);
          }
          else {
             return res;
@@ -343,7 +343,7 @@ public class JythonMatrixSupport {
             buf[i] = sum;
          }
          if (res.size == 1) {
-            return new Double (buf[0]);
+            return Double.valueOf (buf[0]);
          }
          else {
             return res;

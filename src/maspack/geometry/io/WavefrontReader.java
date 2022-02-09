@@ -522,10 +522,10 @@ public class WavefrontReader extends MeshReaderBase {
                   throw new IOException(desc + " expected, line " +
                      rtok.lineno());
                }
-               numberList.add(new Integer((int)num));
+               numberList.add(Integer.valueOf((int)num));
             }
             else {
-               numberList.add(new Double(num));
+               numberList.add(Double.valueOf(num));
             }
             nextToken(rtok);
          }
@@ -541,7 +541,7 @@ public class WavefrontReader extends MeshReaderBase {
             throw new IOException(desc + " expected, line " + rtok.lineno());
          }
          else {
-            numberList.add(new Integer(getIndex(rtok, vertexList, desc)));
+            numberList.add(Integer.valueOf(getIndex(rtok, vertexList, desc)));
             nextToken(rtok);
          }
       }
@@ -593,7 +593,7 @@ public class WavefrontReader extends MeshReaderBase {
                face.lineNum);
          }
          int idx = getIndex(rtok, vertexList, "vertex index");
-         numberList.add(new Integer(idx - myVertexOffset));
+         numberList.add(Integer.valueOf(idx - myVertexOffset));
          nextToken(rtok);
          if (rtok.ttype == '/') {
             if (textureDefined == 0 && normalsDefined == 0) {
@@ -610,7 +610,7 @@ public class WavefrontReader extends MeshReaderBase {
                   numVertexTypes++;
                }
                idx = getIndex(rtok, textureVertexList, "texture index");
-               numberList.add(new Integer(idx - myVertexTextureOffset));
+               numberList.add(Integer.valueOf(idx - myVertexTextureOffset));
                nextToken(rtok);
             }
 
@@ -628,7 +628,7 @@ public class WavefrontReader extends MeshReaderBase {
                      face.lineNum);
                }
                idx = getIndex(rtok, normalList, "normal index");
-               numberList.add(new Integer(idx - myVertexNormalOffset));
+               numberList.add(Integer.valueOf(idx - myVertexNormalOffset));
                nextToken(rtok);
             }
          }
@@ -671,7 +671,7 @@ public class WavefrontReader extends MeshReaderBase {
             throw new IOException("vertex index expected, line " + line.lineNum);
          }
          int idx = getIndex(rtok, vertexList, "vertex index");
-         numberList.add(new Integer(idx - myVertexOffset));
+         numberList.add(Integer.valueOf(idx - myVertexOffset));
          nextToken(rtok);
       }
       int numVerts = numberList.size();

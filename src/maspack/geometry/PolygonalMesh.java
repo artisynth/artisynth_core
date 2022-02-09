@@ -3675,7 +3675,7 @@ public class PolygonalMesh extends MeshBase {
          ps.print("- ");
          x = -x;
       }
-      Double d = new Double(x);
+      Double d = Double.valueOf(x);
       long i = Double.doubleToRawLongBits(d);
       for (int k=1; k<=8; k++) {
          long j = i % 256;
@@ -3694,7 +3694,7 @@ public class PolygonalMesh extends MeshBase {
          if (map.get(vert) != null) {
             throw new RuntimeException("duplicate vertex");
          }
-         map.put(vert, new Integer(++k));
+         map.put(vert, Integer.valueOf(++k));
          Point3d pnt = vert.getWorldPoint();
          writeDoubleValue(ps, pnt.x);
          writeDoubleValue(ps, pnt.y);

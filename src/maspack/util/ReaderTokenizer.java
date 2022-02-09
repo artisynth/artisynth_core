@@ -102,7 +102,7 @@ import java.io.*;
  *    if (rtok.nextToken() != ReaderTokenizer.TT_NUMBER) {
  *       throw new IOException (&quot;number expected, line &quot; + rtok.lineno());
  *    }
- *    Double number = new Double (rtok.nval);
+ *    Double number = Double.valueOf (rtok.nval);
  *    wordNumberPairs.put (word, number);
  * }
  * </pre>

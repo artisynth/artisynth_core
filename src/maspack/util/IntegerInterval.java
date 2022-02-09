@@ -125,7 +125,7 @@ public class IntegerInterval extends NumericInterval {
 //   public Object projectToRange (Object obj) {
 //      if (!withinRange (obj)) {
 //         if (obj instanceof Number) {
-//            return new Integer ((int)clipToRange (((Number)obj).doubleValue()));
+//            return Integer.valueOf ((int)clipToRange (((Number)obj).doubleValue()));
 //         }
 //         else {
 //            return null;
@@ -199,7 +199,7 @@ public class IntegerInterval extends NumericInterval {
    }
 
    protected Number getNumber (double num) {
-      return new Integer ((int)num);
+      return Integer.valueOf ((int)num);
    }
 
    /**

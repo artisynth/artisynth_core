@@ -282,10 +282,10 @@ public class BinaryStreamTest {
       myTests.add (true);
       myTests.add (false);
       myTests.add (new Skip(7));
-      myTests.add (new Long (0xff66772211009977L));
-      myTests.add (new Long (0x8066772211009977L));
-      myTests.add (new Long (0x1234567891234577L));
-      myTests.add (new Long (0x1234567fff234577L));
+      myTests.add (Long.valueOf (0xff66772211009977L));
+      myTests.add (Long.valueOf (0x8066772211009977L));
+      myTests.add (Long.valueOf (0x1234567891234577L));
+      myTests.add (Long.valueOf (0x1234567fff234577L));
    }
 
    public static void main (String[] args) {

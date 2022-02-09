@@ -150,6 +150,7 @@ public class MatrixNdBlock extends MatrixNd implements MatrixBlock {
     */
    public MatrixNdBlock (int nrows, int ncols) {
       super (nrows, ncols);
+      initBlockVariables();
    }
 
    /**

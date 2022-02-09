@@ -157,7 +157,7 @@ public abstract class NURBSObject implements Renderable {
    public void getSelection (LinkedList<Object> list, int qid) {
       if (qid >= 0 && qid < myCtrlPnts.size()) {
          list.add (this);
-         list.add (new Integer(qid));
+         list.add (Integer.valueOf(qid));
          // selectControlPoint (id, true);
       }
    }

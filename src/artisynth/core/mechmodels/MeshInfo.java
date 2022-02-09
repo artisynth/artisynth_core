@@ -190,7 +190,7 @@ public class MeshInfo {
             boolean reflecting;
             if (gtr.isRestoring()) {
                myFileTransform.set (gtr.restoreObject (myFileTransform));
-               reflecting = gtr.restoreObject (new Boolean(false));
+               reflecting = gtr.restoreObject (Boolean.valueOf(false));
             }
             else {
                AffineTransform3dBase XC =
@@ -201,7 +201,7 @@ public class MeshInfo {
                reflecting = (XC.getMatrix().determinant() < 0);
                if (gtr.isSaving()) {
                   gtr.saveObject (new AffineTransform3d(myFileTransform));
-                  gtr.saveObject (new Boolean(reflecting));
+                  gtr.saveObject (Boolean.valueOf(reflecting));
                }
                preMultiplyFileTransform (XC);
             }
@@ -231,7 +231,7 @@ public class MeshInfo {
                boolean reflecting;
                if (gtr.isRestoring()) {
                   myFileTransform.set (gtr.restoreObject (myFileTransform));
-                  reflecting = gtr.restoreObject (new Boolean(false));
+                  reflecting = gtr.restoreObject (Boolean.valueOf(false));
                }
                else {
                   // Pre-multiply myFileTransform by the local affine
@@ -244,7 +244,7 @@ public class MeshInfo {
                   reflecting = (XL.A.determinant() < 0);
                   if (gtr.isSaving()) {
                      gtr.saveObject (new AffineTransform3d(myFileTransform));
-                     gtr.saveObject (new Boolean(reflecting));
+                     gtr.saveObject (Boolean.valueOf(reflecting));
                   }
                   preMultiplyFileTransform (XL);
                }

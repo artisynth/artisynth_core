@@ -19,6 +19,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.HashSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
@@ -162,6 +163,11 @@ public class ClassFinder {
       catch (IOException mue) {
          return new ArrayList<>();
       }
+      // remove duplicated resources:
+      HashSet<URL> resources = new HashSet<>();
+      while (res.hasMoreElements()) {
+         resources.add (res.nextElement());
+      }
 
       // list of contained directories
       ArrayList<File> dirs = new ArrayList<File>(); 
@@ -169,9 +175,7 @@ public class ClassFinder {
       ArrayList<URL> jars = new ArrayList<URL>();   
 
       // need to do some shuffling to account for paths with spaces
-      while (res.hasMoreElements()) {
-         URL url = res.nextElement();
-
+      for (URL url : resources) {
          if ("file".equals(url.getProtocol())) {
             String dirName = getPathDecoded (url);
 
@@ -185,7 +189,6 @@ public class ClassFinder {
             jars.add(url);
          }
       }
-
       ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
       Pattern pattern = Pattern.compile(regex);
       for (File dir : dirs) {

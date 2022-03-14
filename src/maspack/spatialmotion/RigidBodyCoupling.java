@@ -601,6 +601,9 @@ public abstract class RigidBodyCoupling implements Cloneable {
             if (cons.engaged != 0) {
                unilaterals.add (cons);
             }
+            else {
+               cons.solveIndex = -1;
+            }
          }
       }
       return maxpen;
@@ -876,15 +879,13 @@ public abstract class RigidBodyCoupling implements Cloneable {
     */
    public void getState (DataBuffer data) {
 
-      if (numUnilaterals() > 0) {
-         for (RigidBodyConstraint cons : myConstraints) {
-            if (!cons.isBilateral()) {
-               data.zput (cons.engaged);
-               data.zput (cons.engagedCnt);
-               //data.dput (cons.coordinate);
-            }
+      for (RigidBodyConstraint cons : myConstraints) {
+         //data.zput (cons.solveIndex);
+         if (!cons.isBilateral()) {
+            data.zput (cons.engaged);
+            data.zput (cons.engagedCnt);
          }
-      }
+      }     
       if (numCoordinates() > 0) {
          for (int i=0; i<myCoordinates.size(); i++) {
             data.dput (myCoordinates.get(i).value);
@@ -900,13 +901,12 @@ public abstract class RigidBodyCoupling implements Cloneable {
     */
    public void setState (DataBuffer data) {
 
-      if (numUnilaterals() > 0) {
-         for (RigidBodyConstraint cons : myConstraints) {
-            if (!cons.isBilateral()) {
-               cons.engaged = data.zget();
-               cons.engagedCnt = data.zget();
-               //cons.coordinate = data.dget();
-            }
+      for (RigidBodyConstraint cons : myConstraints) {
+         //cons.solveIndex = data.zget();
+         if (!cons.isBilateral()) {
+            cons.engaged = data.zget();
+            cons.engagedCnt = data.zget();
+            //cons.coordinate = data.dget();
          }
       }
       if (numCoordinates() > 0) {
@@ -976,7 +976,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
     * @param idx coordinate index
     * @return information for the {@code idx}-th coordinate
     */
-   protected CoordinateInfo getCoordinate (int idx) {
+   protected CoordinateInfo getCoordinateInfo (int idx) {
       return myCoordinates.get(idx);
    }
 

@@ -4195,7 +4195,7 @@ integer index giving the location in its list, in the order it was
 added. This index can be used to later retrieve the {\tt
 RigidBodyConstraint} or {\tt CoordinateInfo} object for the constraint
 or coordinate, using the methods {\tt getConstraint(idx)} or {\tt
-getCoordinate(idx)}.
+getCoordinateInfo(idx)}.
 
 \begin{sideblock}
 Because {\tt initializeConstraints()} is called in the superclass
@@ -4337,7 +4337,7 @@ If the coupling supports coordinates, their values will be updated
 before the method is called so as to correspond to $\T_{GD}$. If
 needed, a coordinate's value may be obtained from the {\sf value}
 attribute of its {\tt CoordinateInfo} object, which may in turn be
-obtained using {\tt getCoordinate(idx)}. Likewise, {\tt
+obtained using {\tt getCoordinateInfo(idx)}. Likewise, {\tt
 ConstraintInfo} objects for each constraint may be obtaining using
 {\tt getConstraint(idx)}.
 
@@ -4529,7 +4529,7 @@ compute $\T_{CD}$ from the coordinates, or vice versa:
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TGD) {
       coords.set (X_IDX, TGD.p.x);
       double theta = Math.atan2 (TGD.R.m10, TGD.R.m00);
-      coords.set (THETA_IDX, getCoordinate(THETA_IDX).nearestAngle (theta));
+      coords.set (THETA_IDX, getCoordinateInfo(THETA_IDX).nearestAngle (theta));
    }
 \end{lstlisting}
 %

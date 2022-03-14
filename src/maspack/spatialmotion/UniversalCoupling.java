@@ -426,8 +426,8 @@ public class UniversalCoupling extends RigidBodyCoupling {
          R.set (TCD.R);
       }
       getRollPitch (angs, R);
-      coords.set (ROLL_IDX, getCoordinate(ROLL_IDX).nearestAngle(angs[0]));
-      coords.set (PITCH_IDX, getCoordinate(PITCH_IDX).nearestAngle(angs[1]));
+      coords.set (ROLL_IDX, getCoordinateInfo(ROLL_IDX).nearestAngle(angs[0]));
+      coords.set (PITCH_IDX, getCoordinateInfo(PITCH_IDX).nearestAngle(angs[1]));
    }
 
    public void coordinatesToTCD (

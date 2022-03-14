@@ -47,7 +47,7 @@ public class SimpleCoordinateCoupler extends ConstrainerBase {
    }
 
    public int addBilateralConstraints (
-      SparseBlockMatrix GT, VectorNd dg, VectorNi prevIdxs, int numb) {
+      SparseBlockMatrix GT, VectorNd dg, int numb) {
 
       Matrix6x1 GC = new Matrix6x1();
       int bj = GT.numBlockCols();
@@ -67,10 +67,6 @@ public class SimpleCoordinateCoupler extends ConstrainerBase {
       if (dg != null) {
          dg.set (numb, 0);
       }
-      if (prevIdxs != null) {
-         ConstrainerBase.setPrevIndices (prevIdxs, myBaseIdx, numb, 1);
-      }
-      myBaseIdx = numb;
       return numb + 1;
    }
 

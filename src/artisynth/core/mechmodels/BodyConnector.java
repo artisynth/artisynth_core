@@ -1335,9 +1335,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    // used by Constrainer implementation
-   protected void addMasterBlocks (
+   public void addMasterBlocks (
       SparseBlockMatrix GT, int bj,
-      MatrixNdBlock GC, FrameAttachment attachment) {
+      Matrix GC, FrameAttachment attachment) {
 
       DynamicComponent[] masters = attachment.getMasters();
       if (masters.length > 0) {
@@ -1346,10 +1346,12 @@ public abstract class BodyConnector extends RenderableComponentBase
             int idx = masters[k].getSolveIndex();
             if (idx >= 0) {
                MatrixBlock mblk = masterBlks[k];
-               MatrixBlock blk =
-                  MatrixBlockBase.alloc (mblk.rowSize(), GC.colSize());
+               MatrixBlock blk = GT.getBlock (idx, bj);
+               if (blk == null) {
+                  blk = MatrixBlockBase.alloc (mblk.rowSize(), GC.colSize());
+                  GT.addBlock (idx, bj, blk);
+               }
                blk.mulAdd (mblk, GC);
-               GT.addBlock (idx, bj, blk);            
             }
          }
       }
@@ -1384,6 +1386,25 @@ public abstract class BodyConnector extends RenderableComponentBase
          setMatrixColumn (GC, j, wtmp);
       }
       return GC;
+   }
+
+   protected void computeConstraintMatrix (
+      Matrix6x1 GC, Wrench wr, RigidTransform3d TXwG, double scale) {
+      
+      Wrench wtmp = new Wrench();
+      wtmp.inverseTransform (TXwG, wr);
+      wtmp.scale (scale);
+      GC.set (wtmp);      
+   }
+   
+   public void computeConstraintMatrixA (
+      Matrix6x1 GC, Wrench wr, double scale) {
+      computeConstraintMatrix (GC, wr, myTCwG, scale);
+   }
+
+   public void computeConstraintMatrixB (
+      Matrix6x1 GC, Wrench wr, double scale) {
+      computeConstraintMatrix (GC, wr, myTDwG, scale);
    }
 
    protected MatrixNdBlock getFrictionConstraintMatrix (

@@ -10,7 +10,7 @@ import maspack.matrix.*;
 import maspack.matrix.Matrix.Partition;
 import maspack.solvers.*;
 import maspack.solvers.*;
-import maspack.solvers.DantzigLCPSolver.Status;
+import maspack.solvers.LCPSolver.Status;
 import maspack.util.*;
 
 import java.io.*;

@@ -631,7 +631,7 @@ public class RootModelManager {
       for (String className : classNames) {
          boolean hidden = false;
          try {
-            Class<?> clazz = Class.forName (className);
+            Class<?> clazz = ClassFinder.forName (className, false);
             if (Modifier.isAbstract (clazz.getModifiers())) {
                continue;
             }

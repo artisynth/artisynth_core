@@ -40,7 +40,7 @@ public class DoubleSelector extends LabeledComboBox {
       Double[] dvals = new Double[values.length];
       for (int i = 0; i < names.length; i++) {
          names[i] = fmt.format (values[i]);
-         dvals[i] = new Double (values[i]);
+         dvals[i] = Double.valueOf (values[i]);
       }
       setListItems (names, dvals);
       setValue (initialValue);
@@ -70,7 +70,7 @@ public class DoubleSelector extends LabeledComboBox {
       }
       Double[] dvals = new Double[values.length];
       for (int i = 0; i < names.length; i++) {
-         dvals[i] = new Double (values[i]);
+         dvals[i] = Double.valueOf (values[i]);
       }
       setListItems (names, dvals);
       setValue (initialValue);
@@ -98,7 +98,7 @@ public class DoubleSelector extends LabeledComboBox {
       Double[] dvals = new Double[values.length];
       for (int i = 0; i < names.length; i++) {
          names[i] = fmt.format (values[i]);
-         dvals[i] = new Double (values[i]);
+         dvals[i] = Double.valueOf (values[i]);
       }
       setListItems (names, dvals);
       if (dvals.length > 0) {
@@ -127,7 +127,7 @@ public class DoubleSelector extends LabeledComboBox {
       }
       Double[] dvals = new Double[values.length];
       for (int i = 0; i < names.length; i++) {
-         dvals[i] = new Double (values[i]);
+         dvals[i] = Double.valueOf (values[i]);
       }
       setListItems (names, dvals);
       if (dvals.length > 0) {
@@ -164,7 +164,7 @@ public class DoubleSelector extends LabeledComboBox {
       if (!(value instanceof Number)) {
          throw new IllegalValueException ("value must be a Number");
       }
-      return new Double (((Number)value).doubleValue());
+      return Double.valueOf (((Number)value).doubleValue());
    }
 
    protected void updateResultHolder (Object value) {

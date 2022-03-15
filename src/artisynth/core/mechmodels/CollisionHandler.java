@@ -17,8 +17,11 @@ import maspack.util.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.mechmodels.CollisionManager.BehaviorSource;
+import artisynth.core.mechmodels.Collidable.Group;
+import artisynth.core.util.ScalarRange;
 
 /**
  * Class that generates the contact constraints between a specific
@@ -71,7 +74,10 @@ public class CollisionHandler extends ConstrainerBase
    // rendering
 
    CollisionRenderer myRenderer;
-
+   // for rendering, map from vertices to pressure or penetration depth values:  
+   HashMap<Vertex3d,Double> myColorMapVertexValues;
+   HashSet<Face> myColorMapFaces; // faces to be used for color map rendering
+ 
    // misc
 
    public static PropertyList myProps =
@@ -1390,6 +1396,180 @@ public class CollisionHandler extends ConstrainerBase
     */
    public synchronized ContactInfo getRenderContactInfo() {
       return myRenderContactInfo;
+   }
+
+   void updateColorMapValues () {
+
+      if (myLastContactInfo != null &&
+          myBehavior.myDrawColorMap != ColorMapType.NONE) {
+
+         int num = myBehavior.myColorMapCollidableNum;
+         Collidable b0 = myBehavior.getCollidable(0);
+         CollidableBody h0 = getCollidable(0);
+         if (!(b0 instanceof Group)) {
+            if (h0 != b0 && h0.getCollidableAncestor() != b0) {
+               // then we want the *other* collidable body, so switch num
+               num = (num == 0 ? 1 : 0);
+            }
+         }
+         HashSet<Face> faces = new HashSet<Face>();
+         HashMap<Vertex3d,Double> valueMap =
+         myColorMapVertexValues =
+            createVertexValueMap (faces, myLastContactInfo, num);
+
+         if (faces.size() > 0) {
+            // get value range
+            double minv = 0;
+            double maxv = 0;
+            for (Double d : valueMap.values()) {
+               if (d > maxv) {
+                  maxv = d;
+               }
+               else if (d < minv) {
+                  minv = d;
+               }
+            }
+            if (myBehavior.myColorMapRange != null) {
+               // behavior has its own range object, so update that
+               myBehavior.myColorMapRange.updateInterval (minv, maxv);
+            }
+            else {
+               // update global range object in CollisionManager
+               ScalarRange range = myManager.getColorMapRange();
+               if (range.getUpdating() == ScalarRange.Updating.AUTO_FIT) {
+                  // expand interval to account for multiple color maps
+                  range.expandInterval (new DoubleInterval(minv, maxv));
+               }
+               else {
+                  range.updateInterval (minv, maxv);
+               }
+            }
+            myColorMapVertexValues = valueMap;
+            myColorMapFaces = faces;
+            return;
+         }
+      }
+      myColorMapFaces = null;
+      myColorMapVertexValues = null;
+   }
+
+   HashMap<Vertex3d,Double> createVertexValueMap (
+      HashSet<Face> faces, ContactInfo cinfo, int num) {
+      
+      HashMap<Vertex3d,Double> valueMap = new HashMap<Vertex3d,Double>();
+      if (myBehavior.myDrawColorMap == ColorMapType.PENETRATION_DEPTH) {
+         ArrayList<PenetratingPoint> points;
+         for (PenetratingPoint pp : cinfo.getPenetratingPoints (num)) {
+            valueMap.put (pp.vertex, pp.distance);
+         }
+         for (Vertex3d vertex : valueMap.keySet()) {
+            Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
+            while (it.hasNext()) {
+               HalfEdge he = it.next();
+               Face face = he.getFace();
+               if (!faces.contains(face)) {
+                  faces.add (face);
+               }
+            }
+         }
+      }
+      else if (myBehavior.myDrawColorMap == ColorMapType.CONTACT_PRESSURE) {
+         PolygonalMesh mesh;
+         if (num == 0) {
+            mesh = myCollidable0.getCollisionMesh();
+         }
+         else {
+            mesh = myCollidable1.getCollisionMesh();
+         }
+         
+         for (ContactConstraint cc : myBilaterals0.values()) {
+            if (cc.myLambda > 0) {
+               storeVertexForces (valueMap, cc, mesh);
+            }
+         }
+         for (ContactConstraint cc : myBilaterals1.values()) {
+            if (cc.myLambda > 0) {
+               storeVertexForces (valueMap, cc, mesh);
+            }
+         }
+         for (ContactConstraint cc : myPrevUnilaterals) {
+            if (cc.myLambda > 0) {
+               storeVertexForces (valueMap, cc, mesh);
+            }
+         }
+         for (Map.Entry<Vertex3d,Double> entry : valueMap.entrySet()) {
+            // convert forces to pressures
+            Vertex3d vertex = entry.getKey();
+            double lam = entry.getValue();
+            // Pressure at the vertex is related to force at the vertex
+            // by the formula
+            // 
+            //    force = 1/3 * pressure * adjacentFaceArea
+            //
+            double adjacentFaceArea = 0;
+            Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
+            while (it.hasNext()) {
+               HalfEdge he = it.next();
+               Face face = he.getFace();
+               if (!faces.contains(face)) {
+                  // update planar area for the face
+                  face.computeNormal();
+                  faces.add (face);
+               }
+               adjacentFaceArea += face.getPlanarArea();
+            }
+            double pressure = 3*lam/adjacentFaceArea;
+            valueMap.put (vertex, pressure);              
+         }
+      }
+      return valueMap;
+   }            
+
+   private boolean containsMeshVertices (ContactPoint cp, PolygonalMesh mesh) {
+      return (cp.numVertices() > 0 && cp.getVertices()[0].getMesh() == mesh);
+   }
+
+   protected void storeVertexForces (
+      HashMap<Vertex3d,Double> valueMap,
+      ContactConstraint cc, PolygonalMesh mesh) {
+
+      Vertex3d[] vtxs = null;
+      double[] wgts = null;
+
+      // check cpnt0 and cpnt1 for vertices belonging to the mesh
+      if (containsMeshVertices (cc.myCpnt0, mesh)) {
+         vtxs = cc.myCpnt0.getVertices();
+         wgts = cc.myCpnt0.getWeights();
+      }
+      else if (containsMeshVertices (cc.myCpnt1, mesh)) {
+         vtxs = cc.myCpnt1.getVertices();
+         wgts = cc.myCpnt1.getWeights();
+      }
+      else {
+         // have to find the face and vertices directly. Assume 
+         // that we can use the position of cpnt0
+         BVFeatureQuery query = new BVFeatureQuery();
+         Vector2d uv = new Vector2d();
+         Point3d nearPnt = new Point3d();
+         Face face = query.getNearestFaceToPoint (
+            nearPnt, uv, mesh, cc.myCpnt0.getPoint());
+         if (face != null) {
+            vtxs = face.getVertices();
+            wgts = new double[] {1-uv.x-uv.y, uv.x, uv.y};
+         }
+      }
+      // check vtxs == null just in case query.getNearestFaceToPoint failed
+      // for some reason
+      if (vtxs != null) {
+         for (int i=0; i<vtxs.length; i++) {
+            double lam = cc.myLambda*wgts[i];
+            Double prevLam = valueMap.get (vtxs[i]);
+            if (prevLam != null) {
+               lam += prevLam;
+            }
+            valueMap.put (vtxs[i], lam);                     
+         }
+      }
    }
 
    /* ===== End Render methods ===== */

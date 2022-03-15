@@ -35,6 +35,7 @@ public class DantzigQPSolverTest extends UnitTest {
       }
       if (status == Status.SOLVED) {
          if (!x.epsilonEquals (xcheck, 1e-10)) {
+            System.out.println ("H.size=" + H.rowSize());
             throw new TestException (
                "Solution:\n" + x + "\nExpected:\n" + xcheck);
          }

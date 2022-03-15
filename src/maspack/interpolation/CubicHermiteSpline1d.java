@@ -243,6 +243,15 @@ public class CubicHermiteSpline1d
       public void setIndex(int idx) {
          myIndex = idx;
       }
+
+      public boolean equals (Knot knot) {
+         return (x0 == knot.x0 &&
+                 y0 == knot.y0 &&
+                 dy0 == knot.dy0 &&
+                 a2 == knot.a2 &&
+                 a3 == knot.a3);
+
+      }
    }
 
    private class MyIterator implements Iterator<Knot> {
@@ -960,4 +969,18 @@ public class CubicHermiteSpline1d
       spline.set (this);
       return spline;
    }
+
+   public boolean equals (CubicHermiteSpline1d curve) {
+      if (numKnots() != curve.numKnots()) {
+         return false;
+      }
+      for (int i=0; i<numKnots(); i++) {
+         if (!getKnot(i).equals (curve.getKnot(i))) {
+            return false;
+         }
+      }
+      return true;
+   }
+   
+
 }

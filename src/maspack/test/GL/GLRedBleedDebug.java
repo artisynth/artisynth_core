@@ -56,7 +56,7 @@ public class GLRedBleedDebug extends GL3Tester implements ActionListener {
       }
       
 
-      ((GL3Viewer)myViewer).setShaderOverride (new Integer(1), debugShaders);
+      ((GL3Viewer)myViewer).setShaderOverride (Integer.valueOf(1), debugShaders);
 
       myViewer.addMouseInputListener (new MouseInputAdapter() {
          public void mousePressed (MouseEvent e) {

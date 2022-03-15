@@ -163,13 +163,13 @@ public class TransformGeometryTest extends UnitTest {
             return new MatrixNd ((Matrix)obj);
          }
          else if (obj instanceof Boolean) {
-            return new Boolean ((Boolean)obj);
+            return Boolean.valueOf ((Boolean)obj);
          }
          else if (obj instanceof Integer) {
-            return new Integer ((Integer)obj);
+            return Integer.valueOf ((Integer)obj);
          }
          else if (obj instanceof Double) {
-            return new Double ((Double)obj);
+            return Double.valueOf ((Double)obj);
          }
          else if (obj instanceof MeshBase) {
             return ((MeshBase)obj).copy();

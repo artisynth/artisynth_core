@@ -77,7 +77,7 @@ public class ContactPressureRender extends RootModel {
       CollisionBehavior behav = new CollisionBehavior (true, 0);
       behav.setDrawColorMap (ColorMapType.CONTACT_PRESSURE); 
       behav.setColorMapCollidable (1); // show color map on collidable 1 (sheet);
-      behav.setColorMapRange (new ScalarRange(0, 1.3));
+      behav.setColorMapRange (new ScalarRange(0, 15000.0));
       mech.setCollisionBehavior (ball, sheet, behav);
 
       CollisionManager cm = mech.getCollisionManager();
@@ -98,7 +98,7 @@ public class ContactPressureRender extends RootModel {
 
       // create a separate color bar to show color map pressure values
       ColorBar cbar = createColorBar();
-      cbar.updateLabels(0, 1.3);
+      cbar.updateLabels(0, 15000);
       cbar.setColorMap (map);
 
       // set color for all bodies

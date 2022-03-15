@@ -19,6 +19,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.*;
 import maspack.render.*;
+import maspack.spatialmotion.*;
 
 public class OpenSimCustomJoint extends JointBase {
 
@@ -258,4 +259,11 @@ public class OpenSimCustomJoint extends JointBase {
       return (OpenSimCustomCoupling)super.getCoupling();
    }
 
+   public Wrench getCoordinateWrenchG (int idx) {
+      return ((OpenSimCustomCoupling)myCoupling).getCoordinateWrenchG (idx);
+   }
+
+   public double updateConstraints (double t, int flags) {
+      return super.updateConstraints (t, flags);
+   }
 }

@@ -79,6 +79,10 @@ public class ScalarRange
    public ScalarRange() {
    }
    
+   public ScalarRange (Updating updating) {
+      setUpdating (updating);
+   }
+   
    public ScalarRange (double lo, double hi) {
       setInterval (new DoubleInterval(lo, hi));
       setUpdating (Updating.FIXED);

@@ -30,7 +30,7 @@ public class PropChangeListener implements ValueChangeListener {
       Object value = e.getValue();
       if (myType == float.class || myType == Float.class) {
          if (value instanceof Double) {
-            value = new Float (((Double)value).floatValue());
+            value = Float.valueOf (((Double)value).floatValue());
          }
       }
       if (mySyncObj != null) {

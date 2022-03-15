@@ -303,7 +303,7 @@ public abstract class VectoriBase implements Vectori {
             ArrayList<Integer> valueList = new ArrayList<Integer> (64);
             while (rtok.nextToken() != ']') {
                rtok.pushBack();
-               valueList.add (new Integer (rtok.scanInteger()));
+               valueList.add (Integer.valueOf (rtok.scanInteger()));
             }
             if (valueList.size() != size()) {
                setSize (valueList.size());
@@ -412,5 +412,4 @@ public abstract class VectoriBase implements Vectori {
          throw new InternalErrorException ("clone failed for "+getClass());
       }      
    }
-
 }

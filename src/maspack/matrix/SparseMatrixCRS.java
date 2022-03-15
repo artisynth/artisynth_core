@@ -14,7 +14,7 @@ import maspack.util.*;
  * Implements general sparse matrix using CRS (compressed row storage) format.
  * The structure of the matrix, and the number of nonzero entries, is fixed.
  *
- * This code uses some ideas from Csparse, the sparse matrix package by Tim
+ * This code uses some ideas from C sparse, the sparse matrix package by Tim
  * Davis.
  *
  * IMPORTANT: the internal values of the column indices and row offsets, stored
@@ -57,20 +57,22 @@ public class SparseMatrixCRS extends SparseMatrixBase implements LinearTransform
    }
    
    /**
-    * Returns the column at the provided index within compressed storage format 
-    * @param idx index in compressed storage
-    * @return column
+    * Returns the column index at the provided offset within compressed 
+    * storage format
+    *  
+    * @param off offset into compressed storage
+    * @return column index
     */
-   public int getColumn(int idx) {
-      return myCols[idx];
+   public int getColumnIndex (int off) {
+      return myCols[off];
    }
    
    /**
-    * Returns the row at the provided index within compressed storage format
-    * @param idx index in compressed storage
+    * Returns the row at the provided offset within compressed storage format
+    * @param off offset into compressed storage
     * @return row
     */
-   public int getRow(int idx) {
+   public int getRow(int off) {
       // binary search offsets
       int low = 0;
       int hi = nrows;
@@ -78,9 +80,9 @@ public class SparseMatrixCRS extends SparseMatrixBase implements LinearTransform
       while (hi != low) {
          int row = (hi+low)/2;
          int v = myRowOffs[row];
-         if (idx < v) {
+         if (off < v) {
             hi = row;
-         } else if (idx < myRowOffs[row+1]) {
+         } else if (off < myRowOffs[row+1]) {
             return row;
          } else {
             low = row+1;
@@ -205,7 +207,7 @@ public class SparseMatrixCRS extends SparseMatrixBase implements LinearTransform
    }
 
    /** 
-    * Sort only the columns numbers. Used when the values have been explicitly
+    * Sort only the column numbers. Used when the values have been explicitly
     * supplied by other means.
     */   
    private void sortColumns () {
@@ -608,7 +610,7 @@ public class SparseMatrixCRS extends SparseMatrixBase implements LinearTransform
 
    /** 
     * Sets this matrix to have a random sparsity structure and values,
-    * with between one and four nonzero elements per row.
+    * with between one and ten nonzero elements per row.
     */
    public void setRandom () {
       setRandom (-0.5, 0.5, RandomGenerator.get());

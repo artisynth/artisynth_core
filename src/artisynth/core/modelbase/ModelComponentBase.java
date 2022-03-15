@@ -33,7 +33,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
 
    // special object to indicate NULL in the Deque<Object> passed to
    // updateReferences()
-   public static final Object NULL_OBJ = new Integer(0);
+   public static final Object NULL_OBJ = Integer.valueOf(0);
 
    protected static final int SELECTED = 0x1;
    protected static final int MARKED = 0x2;

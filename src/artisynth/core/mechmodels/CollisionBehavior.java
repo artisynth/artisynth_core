@@ -181,8 +181,8 @@ public class CollisionBehavior extends CollisionComponent
    boolean myDrawConstraints = defaultDrawConstraints;
    PropertyMode myDrawConstraintsMode = PropertyMode.Inherited;
 
-   static ScalarRange defaultColorMapRange = new ScalarRange();
-   ScalarRange myColorMapRange = defaultColorMapRange.clone();
+   static ScalarRange defaultColorMapRange = null;
+   ScalarRange myColorMapRange = null;
 
    static ColorInterpolation defaultColorMapInterpolation =
       ColorInterpolation.HSV;
@@ -949,19 +949,25 @@ public class CollisionBehavior extends CollisionComponent
       }
    }
 
-   public void setPenetrationDepthRange (ScalarRange range) {
-      setColorMapRange (range);
-   }
-   
+   /**
+    * Added for backwards compatibility. Returns the color map range.
+    */
    public ScalarRange getPenetrationDepthRange() {
       return getColorMapRange();
    }
 
    public void setColorMapRange (ScalarRange range) {
-      ScalarRange newRange = range.clone();
-      PropertyUtils.updateCompositeProperty (
+      if (range != null) {
+         ScalarRange newRange = range.clone();
+         PropertyUtils.updateCompositeProperty (
             this, "colorMapRange", myColorMapRange, newRange);
-      myColorMapRange = newRange;
+         myColorMapRange = newRange;        
+      }
+      else if (myColorMapRange != null) {
+         PropertyUtils.updateCompositeProperty (
+            this, "colorMapRange", myColorMapRange, null);
+         myColorMapRange = null;
+      }
    }
    
    public ScalarRange getColorMapRange() {
@@ -1307,7 +1313,9 @@ public class CollisionBehavior extends CollisionComponent
          myRigidRegionTol *= s;
       }
       myAcceleration *= s;
-      myColorMapRange.scale (s);
+      if (myColorMapRange != null) {
+         myColorMapRange.scale (s);
+      }
       if (myRenderProps != null) {
          myRenderProps.scaleDistance (s);
       }

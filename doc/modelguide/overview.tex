@@ -724,13 +724,13 @@ like the following:
 \end{lstlisting}
 First, a \javaclass[artisynth.core.mechmodels]{MechModel} is created
 (with the name {\tt "mech"} in this example, although any name, or no
-name, may be given) and added to the list of models in the root
-model. Subsequent code then creates and adds the components required
-by the {\tt MechModel}, as described in Sections
-\ref{MechModelsI:sec}, \ref{MechModelsII:sec} and \ref{FEMModels:sec}.
-The {\tt build()} method also creates and adds to the root model any
-agents required by the application (controllers, probes, etc.), as
-described in Section \ref{SimulationControl:sec}.
+name, may be given) and added to the list of models in the root model
+using the {\tt addModel()} method. Subsequent code then creates and
+adds the components required by the {\tt MechModel}, as described in
+Sections \ref{MechModelsI:sec}, \ref{MechModelsII:sec} and
+\ref{FEMModels:sec}.  The {\tt build()} method also creates and adds
+to the root model any agents required by the application (controllers,
+probes, etc.), as described in Section \ref{SimulationControl:sec}.
 
 When constructing a model, there is no fixed order in which components
 need to be added. For instance, in the above example, {\tt

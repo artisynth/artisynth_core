@@ -345,6 +345,12 @@ public class MeshComponent extends RenderableComponentBase
       mesh.notifyVertexPositionsModified();
    }
 
+   protected void writeMeshInfo (PrintWriter pw, NumberFormat fmt) 
+      throws IOException {
+      pw.print ("mesh=");
+      myMeshInfo.write (pw, fmt);
+   }
+   
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
          throws IOException {
@@ -352,17 +358,21 @@ public class MeshComponent extends RenderableComponentBase
       // write mesh info first so that the mesh will be read before renderProps;
       // this is necessary because the mesh determines what type of renderProps
       // should be instantiated
-      myMeshInfo.write (pw, fmt);
+      writeMeshInfo (pw, fmt);
       getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
    }
+   
+   protected void scanMeshInfo (ReaderTokenizer rtok) throws IOException {
+      myMeshInfo.scan (rtok);  
+      setMeshFromInfo();
+   }   
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
       if (scanAttributeName (rtok, "mesh")) {
-         myMeshInfo.scan (rtok);  
-         setMeshFromInfo();
+         scanMeshInfo (rtok);
          return true;
       }
       rtok.pushBack();

@@ -10,8 +10,9 @@ import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
+import maspack.util.UnitTest;
 
-class CholeskyDecompositionTest {
+class CholeskyDecompositionTest extends UnitTest {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 10 * DOUBLE_PREC;
 
@@ -19,16 +20,17 @@ class CholeskyDecompositionTest {
 
    private void timingTests() {
       int numTrials = 10;
-      int timingCnt = 1;
 
-      int[] matsizes = new int[] { 32, 16, 32, 64, 128, 256 };
+      // first entry 256 is just to allow warmup
+      int[] matsizes = new int[] { 256, 32, 64, 128, 256, 512 };
 
       NumberFormat ifmt = new NumberFormat ("%3d");
       NumberFormat ffmt = new NumberFormat ("%8.2f");
 
       System.out.println ("\ntimes are in usec\n");
 
-      System.out.println ("matsize      factor   add row/col  del row/col");
+      System.out.println (
+         "matsize      factor   add row/col  del row/col  condest");
       // XXX XXXXX.XX XXXXX.XX XXXXX.XX
 
       FunctionTimer timer = new FunctionTimer();
@@ -43,49 +45,98 @@ class CholeskyDecompositionTest {
          double factorTime = 0;
          double addTime = 0;
          double delTime = 0;
+         double condestTime = 0;
+
+         int didx = n/2; // index of column to delete
+
+         boolean checkResults = false;
 
          for (int cnt = 0; cnt < numTrials; cnt++) {
             M.setRandom();
             M.mulTranspose (M);
-            M.getColumn (0, col);
-            double x0 = col.get (0);
-            for (int i = 0; i < n - 1; i++) {
-               col.set (i, col.get (i + 1));
+            M.getColumn (didx, col);
+            //System.out.println ("M=\n" + M.toString("%12.8f"));
+
+            double cval = col.get (didx);
+            for (int i=didx; i<n-1; i++) {
+               col.set (i, col.get (i+1));
             }
-            col.set (n - 1, x0);
+            col.set (n-1, cval);
 
             timer.start();
-            for (int i = 0; i < timingCnt; i++) {
-               chol.factor (M);
-            }
+            chol.factor (M);
             timer.stop();
-            factorTime += timer.getTimeUsec() / timingCnt;
+            factorTime += timer.getTimeUsec();
 
             timer.start();
-            for (int i = 0; i < timingCnt; i++) {
-               chol.deleteRowAndColumn (0);
-            }
+            chol.deleteRowAndColumn (didx);
             timer.stop();
-            delTime += timer.getTimeUsec() / timingCnt;
+            delTime += timer.getTimeUsec();
+
+            MatrixNd Msub = null;
+            if (checkResults) {
+               Msub = deleteRowAndColumn (M, didx);
+               checkFactorization (chol, Msub);
+            }
+
+            // System.out.println ("Madd=\n" + Madd.toString("%12.8f"));
+            timer.start();
+            chol.addRowAndColumn (col);
+            timer.stop();
+            addTime += timer.getTimeUsec();
 
             timer.start();
-            for (int i = 0; i < timingCnt; i++) {
-               chol.addRowAndColumn (col);
-            }
+            chol.conditionEstimate (M);
             timer.stop();
-            addTime += timer.getTimeUsec() / timingCnt;
+            condestTime += timer.getTimeUsec();
+
+            if (checkResults) {
+               MatrixNd Madd = addRowAndColumn (Msub, col);
+               checkFactorization (chol, Madd);
+            }
+            
          }
 
          factorTime /= numTrials;
          addTime /= numTrials;
          delTime /= numTrials;
+         condestTime /= numTrials;
 
          if (k > 0) {
             System.out.println ("  " + ifmt.format (n) + "      "
             + ffmt.format (factorTime) + "    " + ffmt.format (addTime)
-            + "    " + ffmt.format (delTime));
+            + "    " + ffmt.format (delTime)
+            + "    " + ffmt.format (condestTime));
          }
       }
+   }
+
+   MatrixNd deleteRowAndColumn (MatrixNd M, int idx) {
+      int n = M.rowSize();
+      MatrixNd Msub = new MatrixNd (n-1, n-1);
+      int isub = 0;
+      for (int i=0; i<n; i++) {
+         if (i != idx) {
+            int jsub = 0;                  
+            for (int j=0; j<n; j++) {
+               if (j != idx) {
+                  Msub.set (isub, jsub, M.get(i,j));
+                  jsub++;
+               }
+            }
+            isub++;
+         }
+      }
+      return Msub;
+   }
+
+   MatrixNd addRowAndColumn (MatrixNd M, VectorNd col) {
+      int n = M.rowSize();
+      MatrixNd Madd = new MatrixNd (n+1, n+1);
+      Madd.setSubMatrix (0, 0, M);
+      Madd.setRow (n, col);
+      Madd.setColumn (n, col);
+      return Madd;
    }
 
    public void testDecomposition (int nrows, int ncols) {
@@ -242,6 +293,7 @@ class CholeskyDecompositionTest {
             checkFactorization (inc, Msub);
          }
          if (n > 3) {
+            // check single row/col deletion
             inc.deleteRowAndColumn (0);
             Msub.setSize (n - 1, n - 1);
             M1.getSubMatrix (1, 1, Msub);
@@ -261,7 +313,37 @@ class CholeskyDecompositionTest {
             M1.getSubMatrix (colIdxs, colIdxs, Msubsub);
             inc.deleteRowAndColumn (delIdx);
             checkFactorization (inc, Msubsub);
-
+         }
+         if (n > 3) {
+            // check multiple row/col deletion
+            int[] delIdxs = RandomGenerator.randomSubsequence(n);
+            inc.factor (M1);
+            inc.deleteRowsAndColumns (delIdxs);
+            // set Msub explicitly
+            boolean[] removed = new boolean[n];
+            for (int k=0; k<delIdxs.length; k++) {
+               removed[delIdxs[k]] = true;
+            }
+            int subsize = n-delIdxs.length;
+            Msub.setSize (subsize, subsize);
+            int isub = 0;
+            for (int i=0; i<n; i++) {
+               if (!removed[i]) {
+                  int jsub = isub;
+                  for (int j=i; j<n; j++) {
+                     if (!removed[j]) {
+                        double mij = M1.get(i,j);
+                        Msub.set (isub, jsub, mij);
+                        if (isub != jsub) {
+                           Msub.set (jsub, isub, mij);
+                        }
+                        jsub++;
+                     }
+                  }
+                  isub++;
+               }
+            }
+            checkFactorization (inc, Msub);            
          }
       }
    }
@@ -271,18 +353,20 @@ class CholeskyDecompositionTest {
       MatrixNd LLT = new MatrixNd (0, 0);
       chol.get (L);
       LLT.mulTransposeRight (L, L);
-      if (!LLT.epsilonEquals (M, EPSILON)) {
+      if (!LLT.epsilonEquals (M, chol.conditionEstimate(M)*EPSILON)) {
          throw new TestException ("LLT=\n" + LLT.toString ("%9.4f")
          + "expected:\n" + M.toString ("%9.4f"));
       }
    }
 
-   public void execute() {
+   public void test() {
       RandomGenerator.setSeed (0x1234);
 
       testDecomposition (4, 3);
       testDecomposition (3, 4);
       for (int i = 0; i < 10; i++) {
+         testDecomposition (12, 12);
+         testDecomposition (10, 10);
          testDecomposition (7, 7);
          testDecomposition (6, 6);
          testDecomposition (5, 5);
@@ -313,8 +397,7 @@ class CholeskyDecompositionTest {
          tester.timingTests();
       }
       else {
-         tester.execute();
-         System.out.println ("\nPassed\n");
+         tester.runtest();
       }
 
    }

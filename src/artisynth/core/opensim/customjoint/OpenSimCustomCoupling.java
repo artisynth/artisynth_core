@@ -261,6 +261,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    }
    
    private void updateConstraints (RigidTransform3d TGD) {
+
       int numc = numCoordinates();
       VectorNd coords = new VectorNd(numc);
       doGetCoords (coords);
@@ -303,7 +304,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       // normalize and use them to set corresponding limit constraints
       Wrench wr = new Wrench(); 
       for (int j=0; j<numc; j++) {
-         CoordinateInfo cinfo = getCoordinate(j);
+         CoordinateInfo cinfo = getCoordinateInfo(j);
          if (cinfo.limitConstraint != null) {
             cinfo.limitConstraint.setWrenchG (myG[j]);
          }
@@ -484,4 +485,10 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          myTransAxes[i].applyTranslation (TCD.p, coords);
       }
    }
+
+   public Wrench getCoordinateWrenchG (int idx) {
+      return myG[idx];
+
+   }
+
 }

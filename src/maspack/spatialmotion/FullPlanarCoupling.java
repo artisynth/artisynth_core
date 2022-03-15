@@ -83,7 +83,7 @@ public class FullPlanarCoupling extends RigidBodyCoupling {
       coords.set(X_IDX, TCD.p.x);
       coords.set(Y_IDX, TCD.p.y);
       double theta = Math.atan2 (TCD.R.m10, TCD.R.m00);
-      coords.set (THETA_IDX, getCoordinate(THETA_IDX).nearestAngle(theta));
+      coords.set (THETA_IDX, getCoordinateInfo(THETA_IDX).nearestAngle(theta));
    }
 
    public void coordinatesToTCD (

@@ -133,6 +133,7 @@ import maspack.widgets.GuiUtils;
 import maspack.render.GL.GLViewerFrame;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.SparseSolverId;
+import maspack.util.ClassFinder;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.Logger;
@@ -492,7 +493,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       else {
          try {
-            Class.forName (classNameOrAlias);
+            ClassFinder.forName (classNameOrAlias, false);
          }
          catch (ClassNotFoundException e) {
             return null;
@@ -2299,7 +2300,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       Class<?> demoClass = null;
       RootModel newRoot = null;
       try {
-         demoClass = Class.forName (className);
+         demoClass = ClassFinder.forName (className, false);
       }
       catch (ClassNotFoundException e) {
          myErrMsg = "class " + className + " not found";
@@ -3053,7 +3054,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       Class taskClass = null;
       try {
-         taskClass = Class.forName (className);
+         taskClass = ClassFinder.forName (className, true);
       }
       catch (Exception e) {
          System.out.println (

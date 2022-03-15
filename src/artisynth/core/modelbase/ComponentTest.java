@@ -145,7 +145,7 @@ public class ComponentTest extends UnitTest {
       Integer[] listNums = new Integer[list.size()];
       int k = 0;
       for (TestComp comp : list) {
-         listNums[k++] = new Integer (comp.getNumber());
+         listNums[k++] = Integer.valueOf(comp.getNumber());
       }
       if (!Arrays.equals (listNums, nums)) {
          throw new TestException ("list '" + list.getName() + " has numbers\n"

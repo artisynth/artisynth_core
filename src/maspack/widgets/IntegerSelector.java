@@ -31,7 +31,7 @@ public class IntegerSelector extends LabeledComboBox {
       Integer[] ivals = new Integer[values.length];
       for (int i = 0; i < names.length; i++) {
          names[i] = Integer.toString (values[i]);
-         ivals[i] = new Integer (values[i]);
+         ivals[i] = Integer.valueOf (values[i]);
       }
       setListItems (names, ivals);
       setValue (initialValue);
@@ -60,7 +60,7 @@ public class IntegerSelector extends LabeledComboBox {
       }
       Integer[] ivals = new Integer[values.length];
       for (int i = 0; i < values.length; i++) {
-         ivals[i] = new Integer (values[i]);
+         ivals[i] = Integer.valueOf (values[i]);
       }
       setListItems (names, ivals);
       setValue (initialValue);
@@ -82,7 +82,7 @@ public class IntegerSelector extends LabeledComboBox {
       Integer[] ivals = new Integer[values.length];
       for (int i = 0; i < names.length; i++) {
          names[i] = Integer.toString (values[i]);
-         ivals[i] = new Integer (values[i]);
+         ivals[i] = Integer.valueOf (values[i]);
       }
       setListItems (names, ivals);
       if (ivals.length > 0) {
@@ -110,7 +110,7 @@ public class IntegerSelector extends LabeledComboBox {
       }
       Integer[] ivals = new Integer[values.length];
       for (int i = 0; i < values.length; i++) {
-         ivals[i] = new Integer (values[i]);
+         ivals[i] = Integer.valueOf (values[i]);
       }
       setListItems (names, ivals);
       if (ivals.length > 0) {
@@ -145,7 +145,7 @@ public class IntegerSelector extends LabeledComboBox {
       if (!(value instanceof Number)) {
          throw new IllegalValueException ("value must be a Number");
       }
-      return new Integer (((Number)value).intValue());
+      return Integer.valueOf (((Number)value).intValue());
    }
 
    protected void updateResultHolder (Object value) {

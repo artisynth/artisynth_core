@@ -7,6 +7,8 @@
 package maspack.util;
 
 import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * A set of static methods to test for equality of arrays
@@ -371,6 +373,85 @@ public class ArraySupport {
 
    public static String toString (float[] a1) {
       return toString (new NumberFormat ("%g"), a1);
+   }
+
+   /**
+    * Checks that the elements of a list of indices are all {@code < maxi} and
+    * are in strictly ascending order. If they are not in ascending order, a
+    * new list is created and sorted to ensure that they are.
+    *
+    * @param idxs original index list
+    * @return sorted index list, which will be the same {@code idxs}
+    * if sorting was not required.
+    */
+   public static int[] sortIndexList (int[] idxs, int maxi) {
+      if (idxs.length == 0) {
+         return idxs;
+      }
+      int lasti = -1;
+      boolean ascending = true;
+      for (int k=0; k<idxs.length; k++) {
+         int i = idxs[k];
+         if (i >= maxi) {
+            throw new IllegalArgumentException (
+               "Index "+i+" out of bounds");
+         }
+         if (i <= lasti) {
+            ascending = false;
+         }
+         lasti = i;
+      }
+      if (!ascending) {
+         // sort the indices and check for repeated entries
+         idxs = Arrays.copyOf (idxs, idxs.length);
+         ArraySort.sort (idxs);
+         lasti = -1;
+         for (int k=0; k<idxs.length; k++) {
+            int i = idxs[k];
+            if (i == lasti) {
+               throw new IllegalArgumentException (
+                  "Index "+i+" is repeated");
+            }
+            lasti = i;
+         }
+      }
+      return idxs;
+   }
+
+   /**
+    * Removes a set of items from an ArrayList in a way that tries to minimize
+    * the amount of data that is moved around within the list. The items are 
+    * specified by an array of indices {@code idxs}.  Indices can be in any
+    * order, but better performance is achieved if they are arranged in 
+    * ascending order.
+    *
+    * @param list ArrayList from which items are to be removed
+    * @param idxs indices of the items which should be removed
+    */
+   public static <T> void removeListItems (ArrayList<T> list, int[] idxs) {
+      if (idxs.length == 0) {
+         return;
+      }
+      idxs = sortIndexList (idxs, list.size());
+
+      int lasti = idxs[0]-1;
+      int j = lasti+1;
+      for (int k=0; k<idxs.length; k++) {
+         int i = idxs[k];
+         for (int l=lasti+1; l<i; l++) {
+            list.set (j++, list.get(l));
+         }
+         lasti = i;
+      }
+      for (int l=lasti+1; l<list.size(); l++) {
+         list.set (j++, list.get(l));
+      }
+      
+      // trim the list by removing trailing entries
+      int newsize = j;
+      while (list.size() > newsize) {
+         list.remove (list.size()-1);
+      }
    }
 
 }

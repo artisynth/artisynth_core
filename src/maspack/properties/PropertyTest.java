@@ -229,7 +229,7 @@ class PropertyTest extends TestHierarchy {
 
       FunctionTimer timer = new FunctionTimer();
       int cnt = 100000;
-      Integer value = new Integer (4);
+      Integer value = Integer.valueOf (4);
       PropertyInfo info = M1.getProperty ("style").getInfo();
       timer.start();
       for (int i = 0; i < cnt; i++) {
@@ -255,7 +255,7 @@ class PropertyTest extends TestHierarchy {
       timer.stop();
       System.out.println ("named get time = " + timer.result (cnt));
 
-      Integer ival = new Integer (1234);
+      Integer ival = Integer.valueOf (1234);
       timer.start();
       for (int i = 0; i < cnt; i++) {
          style.set (ival);

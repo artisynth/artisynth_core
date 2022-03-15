@@ -41,6 +41,7 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.FunctionTimer;
+import maspack.util.DoubleInterval;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
 import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.Collidable.Collidability;
@@ -3035,7 +3036,17 @@ public class CollisionManager extends RenderableCompositeBase
       return (hprops==null || hprops.isVisible());
    }
 
+   public void updateColorMapRanges () {
+      if (myColorMapRange.getUpdating() == ScalarRange.Updating.AUTO_FIT) {
+         myColorMapRange.setInterval (new DoubleInterval(0, 0));
+      }
+      for (CollisionHandler ch : myHandlers) {
+         ch.updateColorMapValues();
+      }
+   }
+
    public void prerender (RenderList list) {
+      updateColorMapRanges();
       for (CollisionHandler ch : myHandlers) {
          list.addIfVisible (ch);
       }     

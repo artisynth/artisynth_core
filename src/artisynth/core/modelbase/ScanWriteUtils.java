@@ -682,15 +682,18 @@ public class ScanWriteUtils {
          printTokens (tokens);
       }
       comp.postscan (tokens, ancestor);
+      // FunctionTimer timer = new FunctionTimer();
+      // timer.start();
       if (connectAfterScanning) {
          recursivelyConnectComponents (comp);
       }
+      // timer.stop();
+      // System.out.println ("connect " + timer.result(1));
    }
    
    public static void recursivelyConnectComponents (ModelComponent comp) throws
       IOException {
       try {
-         //ComponentUtils.checkReferenceContainment (comp);
          comp.connectToHierarchy (comp.getParent());
       }
       catch (Exception e) {
@@ -705,7 +708,7 @@ public class ScanWriteUtils {
             recursivelyConnectComponents (ccomp.get(i));
          }
       }
-}
+   }
 
 
    /**

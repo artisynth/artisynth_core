@@ -2355,10 +2355,11 @@ An enum of type
 \javaclass[artisynth.core.mechmodels]{CollisionBehavior\$ColorMapType}
 requesting that a color map be drawn over the contact regions showing
 a scalar value such as penetration depth or contact force pressure.
-The collidable (0 or 1) onto which the color map is drawn is controlled by
-the {\sf colorMapCollidable} property (described below). The range of values
-used for generating the map is controlled by the {\sf colorMapRange}
-property, also described below.  The values are mapped onto colors
+The collidable (0 or 1) onto which the color map is drawn is
+controlled by the {\sf colorMapCollidable} property (described
+below). The range of values used for generating the map is controlled
+by the {\sf colorMapRange} property of either the collision manager or
+the behavior, as described below.  The values are mapped onto colors
 using the {\sf colorMap} property of the collision manager.
 
 Values of
@@ -2418,6 +2419,12 @@ which specifies how this interval should be updated: {\tt FIXED} (no
 updating), {\tt AUTO\_EXPAND} (interval is expanded as values increase
 or decrease), and {\tt AUTO\_FIT} (interval is reset to fit the values
 at every render step).
+
+When the {\sf colorMapRange} value for a {\tt CollisionBehavior} is
+set to {\tt null} (which is the default), the {\sf colorMapRange} of
+the {\tt CollisionManager} is used instead. This has the advantage of
+ensuring that the same color map range will be used across all
+collision interactions.
 
 \item[colorMapInterpolation]\mbox{}
 
@@ -2594,34 +2601,40 @@ Rendering properties for each body are set at lines
 67-68 and 73-76, with the top body being rendered as a wireframe to
 improve visibility.
 
-Lines 80-87 create and set a collision behavior between the two bodies
+Lines 80-84 create and set a collision behavior between the two bodies
 with the {\sf drawColorMap} property set to
 {\tt PENETRATION\_DEPTH}. Because for this example we
 want to show only the penetration and don't want a collision response,
 we set the collision method to be \javaclassAlt{%
 artisynth.core.mechmodels.CollisionBehavior\$Method\#INACTIVE}%
-{Method.INACTIVE}. The updating of the penetration range is also set
-to {\tt AUTO\_FIT} so that it will be recomputed at every time step.
-At line 91, the collider type used by the collision manager is set to
+{Method.INACTIVE}.
+At line 88, the collider type used by the collision manager is set to
 \javaclassAlt{%
 artisynth.core.mechmodels.CollisionManager\$ColliderType\#AJL\_CONTOUR}%
-{ColliderType.AJL\_CONTOUR}, since this provides more reliable penetration
-calculations for open meshes.
-Other rendering properties are set for the collision manager at lines
-93-108, including a custom color map that varies between {\tt CREAM}
-(the color of the mesh) for no penetration and dark red for maximum
-penetration.
+{ColliderType.AJL\_CONTOUR}, since this provides more reliable
+penetration calculations for open meshes.  Other rendering properties
+are set for the collision manager at lines 90-107, including a custom
+color map that varies between {\tt CREAM} (the color of the mesh) for
+no penetration and dark red for maximum penetration. The updating of
+the color map range in the collision manager is set to {\tt AUTO\_FIT}
+so that it will be recomputed at every time step. (Since the collision
+manager's color map range is set to ``auto fit'' by default, this is
+shown for illustrative purposes only. It is also possible to override
+the collision manager's color map range by setting the {\sf
+colorMapRange} property in specific collision behaviors.)
 
-At line 112, a color bar is created and added to the scene, using the
+At line 111, a color bar is created and added to the scene, using the
 method {\tt createColorBar()} (lines 50-59), to explicitly show the
 depth that corresponds to the different colors. The color bar is given
 the same color map that is used to render the depth. Since the depth
 range is updated every time step, it is also necessary to update the
 corresponding labels in the color bar. This is done by overriding the
-root model's {\tt prerender()} method (lines 116-133), where we obtain
-the collision behavior between the two bodies, and use its depth range
-to update the color bar labels. References to the color bar, {\tt
-MechModel}, and bodies are obtained using the
+root model's {\tt prerender()} method (lines 115-132), where we obtain
+the color map range for the collision manager and use it to update the
+color bar labels. (Note that {\tt super.prerender(list)} is called {\it
+first}, since the color map ranges are updated there.)
+References to the color bar, {\tt MechModel}, and
+bodies are obtained using the
 \javaclass[artisynth.core.modelbase]{CompositeComponent} methods
 \javamethod*[artisynth.core.modelbase.CompositeComponent]{get()} and
 \javamethod*[artisynth.core.modelbase.CompositeComponent]{findComponent()}.
@@ -4182,7 +4195,7 @@ integer index giving the location in its list, in the order it was
 added. This index can be used to later retrieve the {\tt
 RigidBodyConstraint} or {\tt CoordinateInfo} object for the constraint
 or coordinate, using the methods {\tt getConstraint(idx)} or {\tt
-getCoordinate(idx)}.
+getCoordinateInfo(idx)}.
 
 \begin{sideblock}
 Because {\tt initializeConstraints()} is called in the superclass
@@ -4324,7 +4337,7 @@ If the coupling supports coordinates, their values will be updated
 before the method is called so as to correspond to $\T_{GD}$. If
 needed, a coordinate's value may be obtained from the {\sf value}
 attribute of its {\tt CoordinateInfo} object, which may in turn be
-obtained using {\tt getCoordinate(idx)}. Likewise, {\tt
+obtained using {\tt getCoordinateInfo(idx)}. Likewise, {\tt
 ConstraintInfo} objects for each constraint may be obtaining using
 {\tt getConstraint(idx)}.
 
@@ -4516,7 +4529,7 @@ compute $\T_{CD}$ from the coordinates, or vice versa:
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TGD) {
       coords.set (X_IDX, TGD.p.x);
       double theta = Math.atan2 (TGD.R.m10, TGD.R.m00);
-      coords.set (THETA_IDX, getCoordinate(THETA_IDX).nearestAngle (theta));
+      coords.set (THETA_IDX, getCoordinateInfo(THETA_IDX).nearestAngle (theta));
    }
 \end{lstlisting}
 %

@@ -201,7 +201,7 @@ public abstract class SparseMatrixBase extends MatrixBase
 
    /** 
     * Sets this matrix to have a random sparsity structure and values,
-    * with between one and four nonzero elements per row.
+    * with between one and ten nonzero elements per row.
     *
     * @param lower
     * lower random value (inclusive)
@@ -217,7 +217,7 @@ public abstract class SparseMatrixBase extends MatrixBase
 
    /** 
     * Sets this matrix to have a random sparsity structure and values,
-    * with between one and four nonzero elements per row.
+    * with between one and ten nonzero elements per row.
     *
     * @param lower
     * lower random value (inclusive)
@@ -234,7 +234,7 @@ public abstract class SparseMatrixBase extends MatrixBase
 
       int ncols = colSize();
       int nrows = rowSize();
-      int maxPerRow = Math.min (4, ncols);
+      int maxPerRow = Math.min (10, ncols);
       int nvals = 0;
       int[] nonZerosPerRow = new int[nrows];
       for (int i=0; i<nrows; i++) {

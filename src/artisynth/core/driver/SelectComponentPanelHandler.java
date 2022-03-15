@@ -25,6 +25,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
 
 import maspack.util.InternalErrorException;
+import maspack.util.ClassFinder;
 import maspack.widgets.ButtonCreator;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.GuiUtils;
@@ -74,7 +75,7 @@ public class SelectComponentPanelHandler {
          Class cls = ClassField.All;
          if (!className.equals ("*")) {
             try {
-               cls = Class.forName (className);
+               cls = ClassFinder.forName (className, false);
             }
             catch (Exception exc) {
                throw new InternalErrorException ("No class found for '"

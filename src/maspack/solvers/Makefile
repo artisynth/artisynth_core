@@ -8,9 +8,11 @@ JAVA_TEST_PROGRAMS = \
 	KellerLCPSolverTest \
 	LemkeContactSolverTest \
 	DantzigLCPSolverTest \
+	DantzigQPSolverTest \
 	PardisoSolverTest \
-	CGSolverTest 
-
+	MurtyLCPSolverTest \
+	CGSolverTest
+        # MurtySparseContactSolverTest \
         # CRSolverTest    CRSolver seems to not work
         # DantzigQPSolverTest
 

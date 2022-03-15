@@ -632,7 +632,7 @@ public class MuscleBundle extends CompositeComponentBase
       return null;
    }
 
-   private void getRestPosition (Point3d pos, Point pnt) {
+   private static void getRestPosition (Point3d pos, Point pnt) {
       if (pnt instanceof FemNode3d) {
          pos.set (((FemNode3d)pnt).getRestPosition());
       }
@@ -1032,5 +1032,75 @@ public class MuscleBundle extends CompositeComponentBase
          }
       }      
    }
+
+
+   /**
+    * Utility method to create a rest distance interpolator for one or more
+    * muscle bundles.
+    */
+   public static DelaunayInterpolator getFibreRestDistanceInterpolator (
+      MuscleBundle... bundles) {
+
+      int numFibres = 0;
+      for (MuscleBundle mb : bundles) {
+         numFibres += mb.getFibres().size();
+      }
+      if (numFibres == 0) {
+         return null;
+      }
+      Point3d pos1 = new Point3d();
+      Point3d pos2 = new Point3d();
+      Point3d loc = new Point3d();
+
+      Point3d[] muscleLocs = new Point3d[numFibres];
+      int k = 0;
+      for (MuscleBundle mb : bundles) {
+         AxialSpringList<Muscle> fibres = mb.getFibres();
+         for (Muscle fibre : fibres) {
+            getRestPosition (pos1, fibre.getFirstPoint());
+            getRestPosition (pos2, fibre.getSecondPoint());
+            loc.add (pos2, pos1);
+            loc.scale (1/2.0);
+            muscleLocs[k++] = new Point3d(loc);
+         }
+      }
+      DelaunayInterpolator interpolator = new DelaunayInterpolator();
+      interpolator.setPoints (muscleLocs);     
+      return interpolator;
+   }
+
+   /**
+    * Utility method to create a list of fibre rest directions for one or more
+    * muscle bundles.
+    */
+   public static Vector3d[] getFibreRestDirections (
+      MuscleBundle... bundles) {
+
+      int numFibres = 0;
+      for (MuscleBundle mb : bundles) {
+         numFibres += mb.getFibres().size();
+      }
+      if (numFibres == 0) {
+         return null;
+      }
+      Point3d pos1 = new Point3d();
+      Point3d pos2 = new Point3d();
+      Vector3d dir = new Vector3d();
+
+      Vector3d[] muscleDirs = new Vector3d[numFibres];
+      int k = 0;
+      for (MuscleBundle mb : bundles) {
+         AxialSpringList<Muscle> fibres = mb.getFibres();
+         for (Muscle fibre : fibres) {
+            getRestPosition (pos1, fibre.getFirstPoint());
+            getRestPosition (pos2, fibre.getSecondPoint());
+            dir.sub (pos2, pos1);
+            dir.normalize();
+            muscleDirs[k++] = new Vector3d(dir);
+         }
+      }
+      return muscleDirs;
+   }
+
 
 }

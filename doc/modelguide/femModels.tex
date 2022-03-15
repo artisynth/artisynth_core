@@ -3536,12 +3536,16 @@ CONTACT\_PRESSURE}. Because for this example we want the color map to
 be drawn on the {\it second} collidable (the sheet), we set the {\sf
 setColorMapCollidable} property to 1 (line 79); otherwise, the default
 value of 0 would cause the color map to be drawn on the first
-collidable (the ball). (Alternatively, we could have simply defined the
-collision behavior as being between the surface and the ball instead of
-the ball and the sheet.) The color map range is explicitly set to lie
-between $[0, 1.3]$ (line 80); this is in contrast to the example in
-Section \ref{renderingDepth:sec}, where the range is auto-updated on
-each step.  Other rendering properties are set for the collision
+collidable (the ball). (Alternatively, we could have simply defined
+the collision behavior as being between the surface and the ball
+instead of the ball and the sheet.) The color map range is explicitly
+set to lie between $[0, 15000]$ (line 80); this is in contrast to the
+example in Section \ref{renderingDepth:sec}, where the range is
+auto-updated on each step. The color range is also set explicitly in
+the behavior, but if multiple objects were colliding it would likely
+be preferable to set it in the collision manager (with the behavior's
+value left as {\tt null}) to ensure a uniform render range across all
+collisions.  Other rendering properties are set for the collision
 manager at lines 83-97, including a custom color map that varies
 between {\tt CREAM} (the color of the mesh) for no pressure and dark
 red for maximum pressure.

@@ -69,9 +69,10 @@ public class Launcher {
       args = mainArgs.toArray (new String[0]);
       verifyLibraries (updateLibs);
 
-      ClassLoader loader =
-         new URLClassLoader (getClasspathURLs(classpath), null);
-
+      URLClassLoader loader =
+         new URLClassLoader (
+            getClasspathURLs(classpath), ClassLoader.getSystemClassLoader());
+      
       // ensure that other classes in this thread use this class loader ...
       Thread.currentThread().setContextClassLoader(loader);
 

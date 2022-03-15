@@ -48,6 +48,7 @@ import artisynth.core.workspace.RootModel;
 
 import maspack.util.InternalErrorException;
 import maspack.util.FileSearchPath;
+import maspack.util.ClassFinder;
 
 /**
  * 
@@ -693,7 +694,7 @@ public class ModelScriptMenuParser {
    public static boolean classIsRootModel (String classname) {
       Class<?> cls = null;
       try {
-         cls = Class.forName(classname);
+         cls = ClassFinder.forName(classname,false);
       }
       catch (Exception e) {
          // ignore if not found

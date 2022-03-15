@@ -790,7 +790,7 @@ PointAttachable, ConnectableBody {
    }
 
    @Override
-   public FemNode3d getNode(int idx) {
+   public FemNode3d getNode (int idx) {
       return myNodes.get(idx);
    }
 
@@ -855,7 +855,7 @@ PointAttachable, ConnectableBody {
       return false;
    }
 
-   public LinkedList<FemNodeNeighbor> getNodeNeighbors(FemNode3d node) {
+   public ArrayList<FemNodeNeighbor> getNodeNeighbors(FemNode3d node) {
       return node.getNodeNeighbors();
    }
 
@@ -1935,9 +1935,14 @@ PointAttachable, ConnectableBody {
             for (FieldComponent field : myFieldList) {
                field.clearCacheIfNecessary();
             }
-            if (e.getComponent() == myElements &&
-                getIncompressible() == IncompMethod.ELEMENT) {
-               // state changes because this changes the incompressibility 
+//            if (e.getComponent() == myElements &&
+//                getIncompressible() == IncompMethod.ELEMENT) {
+//               // state changes because this changes the incompressibility 
+//               // constraint
+//               e.setStateChanged (true);
+//            }
+            if (e.getComponent() == myElements) {
+               // state changes because this may change the incompressibility 
                // constraint
                e.setStateChanged (true);
             }
@@ -4898,7 +4903,8 @@ PointAttachable, ConnectableBody {
 
    public static boolean debugx = false;
 
-   public int getBilateralInfo(ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo(
+      ConstraintInfo[] ginfo, int idx) {
 
       if (usingAttachedRelativeFrame()) {
          idx = myFrameConstraint.getBilateralInfo (ginfo, idx);
@@ -5079,10 +5085,21 @@ PointAttachable, ConnectableBody {
 
    /* --- I/O and Copy Methods --- */
    
+   // XXX hack. Provide a reference to the FEM currently being scanned
+   // so subcomponents can access references to the FEM without having
+   // to go through postscan().
+   static FemModel myScanningFem;
+   
+   static FemModel getScanningFem() {
+      return myScanningFem;
+   }
+   
    public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
       doclear();
       setDefaultValues();
+      myScanningFem = this;
       super.scan(rtok, ref);
+      myScanningFem = null;
       invalidateStressAndStiffness();
       notifyStructureChanged(this);
    }

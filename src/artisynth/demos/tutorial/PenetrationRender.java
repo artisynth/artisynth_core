@@ -79,11 +79,8 @@ public class PenetrationRender extends RootModel {
       // collisions INACTIVE since we only care about graphical display
       CollisionBehavior behav = new CollisionBehavior (true, 0);
       behav.setMethod (CollisionBehavior.Method.INACTIVE);
-
       behav.setDrawColorMap (ColorMapType.PENETRATION_DEPTH); 
       behav.setColorMapCollidable (1); // show penetration of mesh 0
-      behav.getColorMapRange().setUpdating (
-         ScalarRange.Updating.AUTO_FIT);
       mech.setCollisionBehavior (body0, body1, behav);
 
       CollisionManager cm = mech.getCollisionManager();
@@ -106,6 +103,8 @@ public class PenetrationRender extends RootModel {
             createColor (204, 0, 0),     // most penetration
          });
       cm.setColorMap (map);
+      // set color map range to "auto fit". 
+      cm.setColorMapRange (new ScalarRange(ScalarRange.Updating.AUTO_FIT));
 
       // create a separate color bar to show depth values associated with the
       // color map
@@ -114,8 +113,10 @@ public class PenetrationRender extends RootModel {
    }
 
    public void prerender(RenderList list) {
-      // In prerender, we update the color bar labels based on the updated
-      // penetration range stored in the collision behavior.
+      super.prerender(list); // call the regular prerender method first
+
+      // Update the color bar labels based on the collison manager's 
+      // color map range that was updated in super.prerender().
       //
       // Object references are obtained by name using 'findComponent'. This is
       // more robust than using class member variables, since the latter will
@@ -125,9 +126,8 @@ public class PenetrationRender extends RootModel {
       RigidBody body0 = (RigidBody)mech.findComponent ("rigidBodies/body0");
       RigidBody body1 = (RigidBody)mech.findComponent ("rigidBodies/body1");
 
-      CollisionBehavior behav = mech.getCollisionBehavior(body0, body1);
-      ScalarRange range = behav.getPenetrationDepthRange();
+      CollisionManager cm = mech.getCollisionManager();
+      ScalarRange range = cm.getColorMapRange();
       cbar.updateLabels(0, 1000*range.getUpperBound());
-      super.prerender(list); // call the regular prerender method
    }
 }

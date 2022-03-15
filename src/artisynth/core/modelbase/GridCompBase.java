@@ -230,7 +230,7 @@ public abstract class GridCompBase extends RenderableComponentBase
          myGridBase.setLocalToWorld (myLocalToWorld);
          // extract scaling factor from transform
          if (gtr.isRestoring()) {
-            double scale = gtr.restoreObject (new Double(1));
+            double scale = gtr.restoreObject (Double.valueOf(1));
             myGridBase.scaleDistance (1/scale);
          }
          else {

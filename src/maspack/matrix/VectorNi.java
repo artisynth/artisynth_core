@@ -335,6 +335,20 @@ public class VectorNi extends VectoriBase implements java.io.Serializable {
    }
 
    /**
+    * Removes the {@code i}-th value from this vector, decreasing its size by
+    * one.  Indices for all values greater than {@code i} are decremented by
+    * one.
+    *
+    * @param i index of the value to be removed
+    */
+   public void remove (int i) {
+      for (int k=i; k<size-1; k++) {
+         buf[k] = buf[k+1];
+      }
+      size--;
+   }
+
+   /**
     * {@inheritDoc}
     */
    @Override
@@ -375,6 +389,27 @@ public class VectorNi extends VectoriBase implements java.io.Serializable {
       }
       for (int i = 0; i < size; i++) {
          buf[i] = v1.buf[i];
+      }
+   }
+
+   /**
+    * Gets a subset of the values of this vector, beginning at a specified
+    * offset, and places them in {@code v1}.
+    * 
+    * @param off
+    * offset where copying should begin in this vector
+    * @param v1
+    * vector returning the sub-vector values
+    * @throws ImproperSizeException
+    * if this vector is not large enough to accomodate the specified subvector
+    */
+   public void getSubVector (int off, VectorNi v1) {
+      if (size < off + v1.size) {
+         throw new ImproperSizeException (
+            "vector not large enough for sub-vector");
+      }
+      for (int i = 0; i < v1.size; i++) {
+         v1.buf[i] = buf[i + off];
       }
    }
 

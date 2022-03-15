@@ -259,16 +259,16 @@ public abstract class NumericInterval extends RangeBase {
             }
             y = clipToRange (x);
             if (obj instanceof Integer) {
-               return new Integer ((int)y);
+               return Integer.valueOf ((int)y);
             }
             else if (obj instanceof Long) {
-               return new Long ((long)y);
+               return Long.valueOf ((long)y);
             }
             else if (obj instanceof Float) {
-               return new Float ((float)y);
+               return Float.valueOf ((float)y);
             }
             else if (obj instanceof Double) {
-               return new Double (y);
+               return Double.valueOf (y);
             }
             else {
                return null;

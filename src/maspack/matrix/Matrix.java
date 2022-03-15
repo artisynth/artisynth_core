@@ -513,7 +513,7 @@ public interface Matrix extends LinearTransformNd {
     * @param v1
     * vector to multiply by
     * @throws ImproperSizeException
-    * if the size of v1 does not equal the number of columns of this matrix.
+    * if the size of v1 is less than the number of columns of this matrix.
     */
    public void mul (VectorNd vr, VectorNd v1);
 
@@ -661,7 +661,7 @@ public interface Matrix extends LinearTransformNd {
     * @param v1
     * vector to multiply by
     * @throws ImproperSizeException
-    * if the size of v1 does not equal the number of rows of this matrix
+    * if the size of v1 is less than the number of rows of this matrix
     */
    public void mulTranspose (VectorNd vr, VectorNd v1);
 
@@ -851,7 +851,7 @@ public interface Matrix extends LinearTransformNd {
     * Gets the compressed row storage (CRS) indices for a principal sub-matrix
     * of this matrix delimited by the first <code>numRows</code> rows and the
     * first <code>numCols</code> columns. Indices are 1-based and supplied in
-    * row-major order. For a detailed decsription of the CRS format, see {@link
+    * row-major order. For a detailed description of the CRS format, see {@link
     * #setCRSValues setCRSValues()}. Some matrix types may place restrictions
     * on the sub-matrix; for instance, a block-structured matrix may require
     * that the sub-matrix be block aligned.

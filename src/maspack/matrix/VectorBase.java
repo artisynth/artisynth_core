@@ -521,7 +521,7 @@ public abstract class VectorBase implements Vector {
             ArrayList<Double> valueList = new ArrayList<>(64);
             while (rtok.nextToken() != ']') {
                rtok.pushBack();
-               valueList.add (new Double (rtok.scanNumber()));
+               valueList.add (Double.valueOf (rtok.scanNumber()));
             }
             if (valueList.size() != size()) {
                setSize (valueList.size());
@@ -667,6 +667,22 @@ public abstract class VectorBase implements Vector {
    public boolean hasNaN() {
       for (int i = 0; i < size(); i++) {
          if (Double.isNaN (get (i))) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   /**
+    * Returns true if one or more elements of this vector contains +/-INF.
+    * 
+    * @return true if one or more elements is +/-INF
+    */
+   public boolean hasInf() {
+      for (int i = 0; i < size(); i++) {
+         double val = get(i);
+         if (val == Double.POSITIVE_INFINITY ||
+             val == Double.NEGATIVE_INFINITY) {
             return true;
          }
       }

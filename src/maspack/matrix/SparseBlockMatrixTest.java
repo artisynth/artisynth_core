@@ -16,7 +16,7 @@ import maspack.matrix.Matrix.Partition;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.RandomGenerator;
 import maspack.util.ReaderTokenizer;
-import maspack.util.TestException;
+import maspack.util.*;
 
 
 public class SparseBlockMatrixTest extends MatrixTest {
@@ -24,6 +24,8 @@ public class SparseBlockMatrixTest extends MatrixTest {
    SparseBlockMatrix MatSym;
    //SparseBlockMatrix MatGen;
    SparseBlockMatrix MatAll;
+   SparseBlockMatrix MatLong;
+   SparseBlockMatrix MatTall;
    Random randGen;
 
    SparseBlockMatrix createSum (
@@ -234,6 +236,42 @@ public class SparseBlockMatrixTest extends MatrixTest {
       // Mat.printBlocks (System.out);
    }
 
+   SparseBlockMatrix createRandomMatrix (int numBlkRows, int numBlkCols) {
+
+      int maxBlkSize = 7;
+      if (numBlkRows < 0) {
+         numBlkRows = randGen.nextInt (maxBlkSize-1) + 1;
+      }
+      if (numBlkCols < 0) {
+         numBlkCols = randGen.nextInt (maxBlkSize-1) + 1;
+      }
+
+      int[] rowSizes = new int[numBlkRows];
+      int[] colSizes = new int[numBlkCols];
+
+      for (int bi=0; bi<rowSizes.length; bi++) {
+         rowSizes[bi] = randGen.nextInt (6) + 1;
+      }
+      for (int bj=0; bj<colSizes.length; bj++) {
+         colSizes[bj] = randGen.nextInt (6) + 1;
+      }
+      SparseBlockMatrix S = new SparseBlockMatrix (rowSizes, colSizes);
+
+      for (int bi=0; bi<rowSizes.length; bi++) {
+         int[] bjs = RandomGenerator.randomSubsequence (numBlkCols);
+         if (bjs.length == 0) {
+            bjs = new int[] { randGen.nextInt(numBlkCols) };
+         }
+         for (int k=0; k<bjs.length; k++) {
+            int bj = bjs[k];
+            MatrixBlock blk = MatrixBlockBase.alloc (rowSizes[bi], colSizes[bj]);
+            S.addBlock (bi, bj, blk);            
+         }
+      }
+      S.setRandomValues();
+      return S;      
+   }
+
 //    private void setMatrixRandom (Matrix M, boolean symmetric) {
 //       for (int i = 0; i < M.rowSize(); i++) {
 //          if (symmetric) {
@@ -283,16 +321,17 @@ public class SparseBlockMatrixTest extends MatrixTest {
       MatrixNd M = new MatrixNd();
       M.set (S);
 
-      int size = 0;
       for (int bi = 0; bi < maxBlocks; bi++) {
-         size = S.rowSize (bi + 1);
-         testGetCRS (S, size, size);
-         testGetCRS (M, size, size);
+         int rsize = S.rowSize (bi + 1);
+         int csize = S.colSize (bi + 1);
+         testGetCRS (S, rsize, csize);
+         testGetCRS (M, rsize, csize);
       }
       for (int bi = maxBlocks - 1; bi > 0; bi--) {
-         size = S.rowSize (bi + 1);
-         testGetCRS (S, size, size);
-         testGetCRS (M, size, size);
+         int rsize = S.rowSize (bi + 1);
+         int csize = S.colSize (bi + 1);
+         testGetCRS (S, rsize, csize);
+         testGetCRS (M, rsize, csize);
       }
    }
 
@@ -304,38 +343,40 @@ public class SparseBlockMatrixTest extends MatrixTest {
 
       int size = 0;
       for (int bi = 0; bi < maxBlocks; bi++) {
-         size = S.rowSize (bi + 1);
-         testGetCCS (S, size, size);
-         testGetCCS (M, size, size);
+         int rsize = S.rowSize (bi + 1);
+         int csize = S.colSize (bi + 1);
+         testGetCCS (S, rsize, csize);
+         testGetCCS (M, rsize, csize);
       }
       for (int bi = maxBlocks - 1; bi > 0; bi--) {
-         size = S.rowSize (bi + 1);
-         testGetCCS (S, size, size);
-         testGetCCS (M, size, size);
+         int rsize = S.rowSize (bi + 1);
+         int csize = S.colSize (bi + 1);
+         testGetCCS (S, rsize, csize);
+         testGetCCS (M, rsize, csize);
       }
    }
 
-   private void testMul (SparseBlockMatrix M) {
+   private void testMulVec (SparseBlockMatrix M) {
       int maxBlocks = Math.min (M.numBlockRows(), M.numBlockCols());
       for (int nb = 1; nb <= maxBlocks; nb++) {
-         testMul (M, 0, nb, 0, nb);
-         testMul (M, 0, nb, 0, maxBlocks);
-         testMul (M, 0, maxBlocks, 0, nb);
+         testMulVec (M, 0, nb, 0, nb);
+         testMulVec (M, 0, nb, 0, maxBlocks);
+         testMulVec (M, 0, maxBlocks, 0, nb);
          if (nb < maxBlocks) {
-            testMul (M, 1, nb, 0, nb);            
-            testMul (M, 0, nb, 1, nb);            
-            testMul (M, 1, nb, 1, nb);            
+            testMulVec (M, 1, nb, 0, nb);            
+            testMulVec (M, 0, nb, 1, nb);            
+            testMulVec (M, 1, nb, 1, nb);            
          }
          if (nb < maxBlocks-1) {
-            testMul (M, 2, nb, 0, nb);            
-            testMul (M, 2, nb, 1, nb);            
-            testMul (M, 1, nb, 2, nb);            
-            testMul (M, 0, nb, 2, nb);            
+            testMulVec (M, 2, nb, 0, nb);            
+            testMulVec (M, 2, nb, 1, nb);            
+            testMulVec (M, 1, nb, 2, nb);            
+            testMulVec (M, 0, nb, 2, nb);            
          }
       }
    }
 
-   private void testMul (
+   private void testMulVec (
       SparseBlockMatrix M, int rb0, int nbr, int cb0, int nbc) {
                
       int r0 = M.getBlockRowOffset (rb0);
@@ -374,27 +415,27 @@ public class SparseBlockMatrixTest extends MatrixTest {
       checkResult ("mulAdd", y, ycheck, 1e-10);
    }
 
-   private void testMulTranspose (SparseBlockMatrix M) {
+   private void testMulTransposeVec (SparseBlockMatrix M) {
       int maxBlocks = Math.min (M.numBlockRows(), M.numBlockCols());
       for (int nb = 1; nb <= maxBlocks; nb++) {
-         testMulTranspose (M, 0, nb, 0, nb);
-         testMulTranspose (M, 0, nb, 0, maxBlocks);
-         testMulTranspose (M, 0, maxBlocks, 0, nb);
+         testMulTransposeVec (M, 0, nb, 0, nb);
+         testMulTransposeVec (M, 0, nb, 0, maxBlocks);
+         testMulTransposeVec (M, 0, maxBlocks, 0, nb);
          if (nb < maxBlocks) {
-            testMulTranspose (M, 1, nb, 0, nb);            
-            testMulTranspose (M, 0, nb, 1, nb);            
-            testMulTranspose (M, 1, nb, 1, nb);            
+            testMulTransposeVec (M, 1, nb, 0, nb);            
+            testMulTransposeVec (M, 0, nb, 1, nb);            
+            testMulTransposeVec (M, 1, nb, 1, nb);            
          }
          if (nb < maxBlocks-1) {
-            testMulTranspose (M, 2, nb, 0, nb);            
-            testMulTranspose (M, 2, nb, 1, nb);            
-            testMulTranspose (M, 1, nb, 2, nb);            
-            testMulTranspose (M, 0, nb, 2, nb);            
+            testMulTransposeVec (M, 2, nb, 0, nb);            
+            testMulTransposeVec (M, 2, nb, 1, nb);            
+            testMulTransposeVec (M, 1, nb, 2, nb);            
+            testMulTransposeVec (M, 0, nb, 2, nb);            
          }
       }
    }
 
-   private void testMulTranspose (
+   private void testMulTransposeVec (
       SparseBlockMatrix M, int rb0, int nbr, int cb0, int nbc) {
                
       int r0 = M.getBlockColOffset (rb0);
@@ -421,15 +462,57 @@ public class SparseBlockMatrixTest extends MatrixTest {
       }
       M.mulTranspose (y, x, r0, nr, c0, nc);
       checkResult ("mulTranspose", y, ycheck, 1e-10);
-      // ysave.set (y);
-      // ycheck.add (ycheck);
-      // if (r0 == 0 && c0 ==0) {
-      //    M.mulTransposeAdd (y, x, nr, nc);
-      //    checkResult ("mulTransposeAdd", y, ycheck, 1e-10);
-      // }
-      // y.set (ysave);
-      // M.mulTransposeAdd (y, x, r0, nr, c0, nc);
-      // checkResult ("mulTransposeAdd", y, ycheck, 1e-10);
+   }
+
+   private void testMulMat (SparseBlockMatrix M) {
+
+      MatrixNd MS = new MatrixNd (M);
+      int ntests = 10;
+
+      for (int i=0; i<ntests; i++) {
+         int ncols = randGen.nextInt (6) + 1;
+         MatrixNd M1 = new MatrixNd (M.colSize(), ncols);
+         M1.setRandom();
+         MatrixNd MR = new MatrixNd ();
+         MatrixNd CHK = new MatrixNd();
+
+         CHK.mul (MS, M1);
+         M.mul (MR, M1);    
+         checkResult ("mul(MR,M1)", MR, CHK, 1e-14);
+         MR.set (M1);
+         M.mul (MR, MR);
+         checkResult ("mul(MR,MR)", MR, CHK, 1e-14);
+      }
+
+      for (int i=0; i<ntests; i++) {
+         int nrows = randGen.nextInt (6) + 1;
+         MatrixNd M1 = new MatrixNd (nrows, M.rowSize());
+         M1.setRandom();
+         MatrixNd MR = new MatrixNd ();
+         MatrixNd CHK = new MatrixNd();
+
+         CHK.mul (M1, MS);
+         M.mulLeft (MR, M1);    
+         checkResult ("mulLeft(MR,M1)", MR, CHK, 1e-14);
+         MR.set (M1);
+         M.mulLeft (MR, MR);
+         checkResult ("mulLeft(MR,MR)", MR, CHK, 1e-14);
+      }
+
+      for (int i=0; i<ntests; i++) {
+         int nrows = randGen.nextInt (6) + 1;
+         MatrixNd M1 = new MatrixNd (nrows, M.colSize());
+         M1.setRandom();
+         MatrixNd MR = new MatrixNd ();
+         MatrixNd CHK = new MatrixNd();
+
+         CHK.mulTransposeRight (MS, M1);
+         M.mulTransposeRight (MR, M1);    
+         checkResult ("mulTransposeRight(MR,M1)", MR, CHK, 1e-14);
+         MR.set (M1);
+         M.mulTransposeRight (MR, MR);
+         checkResult ("mulTransposeRight(MR,MR)", MR, CHK, 1e-14);
+      }
    }
 
    private void testGetCRS (Matrix M, int nrows, int ncols) {
@@ -447,11 +530,14 @@ public class SparseBlockMatrixTest extends MatrixTest {
       int[] colIdxs = new int[maxvals];
       int[] rowOffs = new int[nrows+1];
 
-      Partition[] parts =
-         new Partition[] { Partition.Full, Partition.UpperTriangular };
+      ArrayList<Partition> parts = new ArrayList<>();
+      parts.add (Partition.Full);
+      if (S == null || S.hasSymmetricBlockSizing()) {
+         parts.add (Partition.UpperTriangular);
+      }
 
-      for (int k = 0; k < parts.length; k++) {
-         Partition part = parts[k];
+      for (int k=0; k<parts.size(); k++) {
+         Partition part = parts.get(k);
          int nnz = M.getCRSIndices (colIdxs, rowOffs, part, nrows, ncols);
          for (int i=0; i<nrows; i++) {
             //System.out.println (" rowOff " + i + " " + rowOffs[i]);
@@ -517,11 +603,14 @@ public class SparseBlockMatrixTest extends MatrixTest {
       int[] rowIdxs = new int[maxvals];
       int[] colOffs = new int[ncols+1];
 
-      Partition[] parts =
-         new Partition[] { Partition.Full, Partition.LowerTriangular };
+      ArrayList<Partition> parts = new ArrayList<>();
+      parts.add (Partition.Full);
+      if (S == null || S.hasSymmetricBlockSizing()) {
+         parts.add (Partition.LowerTriangular);
+      }
 
-      for (int k = 0; k < parts.length; k++) {
-         Partition part = parts[k];
+      for (int k=0; k<parts.size(); k++) {
+         Partition part = parts.get(k);
          M.getCCSIndices (rowIdxs, colOffs, part, nrows, ncols);
          M.getCCSValues (vals, part, nrows, ncols);
 
@@ -771,6 +860,112 @@ public class SparseBlockMatrixTest extends MatrixTest {
       }
    }
 
+   /**
+    * Create a copy of S with specified rows and colums deleted
+    */
+   SparseBlockMatrix copyWithDeletedRowsCols (
+      SparseBlockMatrix S, int[] delRows, int[] delCols) {
+
+      boolean[] rowDeleted = new boolean[S.numBlockRows()];
+      boolean[] colDeleted = new boolean[S.numBlockCols()];
+
+      ArrayList<Integer> rowSizes = new ArrayList<>();
+      for (int bi=0; bi<S.numBlockRows(); bi++) {
+         rowSizes.add (S.getBlockRowSize(bi));
+      }
+      for (int k=delRows.length-1; k>=0; k--) {
+         rowSizes.remove (delRows[k]);
+         rowDeleted[delRows[k]] = true;
+      }
+      ArrayList<Integer> colSizes = new ArrayList<>();
+      for (int bi=0; bi<S.numBlockCols(); bi++) {
+         colSizes.add (S.getBlockColSize(bi));
+      }
+      for (int k=delCols.length-1; k>=0; k--) {
+         colSizes.remove (delCols[k]);
+         colDeleted[delCols[k]] = true;
+      }
+
+      SparseBlockMatrix C = new SparseBlockMatrix (
+         ArraySupport.toIntArray (rowSizes), 
+         ArraySupport.toIntArray (colSizes));
+      C.setVerticallyLinked (S.isVerticallyLinked());
+      
+      int binew=0;
+      for (int bi=0; bi<S.numBlockRows(); bi++) {
+         if (!rowDeleted[bi]) {
+            int bjnew = 0;
+            for (int bj=0; bj<S.numBlockCols(); bj++) {
+               if (!colDeleted[bj]) {
+                  MatrixBlock blk = S.getBlock(bi, bj);
+                  if (blk != null) {
+                     C.addBlock (binew, bjnew, blk.clone());
+                  }
+                  bjnew++;
+               }
+            }
+            binew++;
+         }
+      }
+      return C;      
+   }
+
+   void testRemoveRowsCols() {
+      int ntests = 100;
+
+      for (int i=0; i<ntests; i++) {
+         SparseBlockMatrix S = createRandomMatrix(10,10);
+         if (randGen.nextBoolean()) {
+            S.setVerticallyLinked (true);
+         }
+         SparseBlockMatrix C;
+
+         int delRow = randGen.nextInt (S.numBlockRows());
+         C = copyWithDeletedRowsCols (S, new int[] {delRow}, new int[0]);
+         S.removeRow (delRow);
+         S.checkConsistency();
+         if (!S.blockStructureEquals(C) || !S.equals(C)) {
+            throw new TestException (
+               "Matrix with deleted row "+delRow+
+               " inconsistent with matrix constructed without row");
+         }
+
+         int delCol = randGen.nextInt (S.numBlockCols());
+         C = copyWithDeletedRowsCols (S, new int[0], new int[] {delCol});
+         S.removeCol (delCol);
+         S.checkConsistency();
+         if (!S.blockStructureEquals(C) || !S.equals(C)) {
+            throw new TestException (
+               "Matrix with deleted col "+delCol+
+               " inconsistent with matrix constructed without col");
+         }
+
+         int blkSize = 5;
+         S = createRandomMatrix(blkSize,blkSize);
+         if (randGen.nextBoolean()) {
+            S.setVerticallyLinked (true);
+         }
+         int[] delIdxs = RandomGenerator.randomSubsequence (blkSize);
+         C = copyWithDeletedRowsCols (S, delIdxs, new int[0]);
+         S.removeRows (delIdxs);
+         S.checkConsistency();
+         if (!S.blockStructureEquals(C) || !S.equals(C)) {
+            throw new TestException (
+               "Matrix with deleted row "+delRow+
+               " inconsistent with matrix constructed without row");
+         }
+
+         C = copyWithDeletedRowsCols (S, new int[0], delIdxs);
+         S.removeCols (delIdxs);
+         S.checkConsistency();
+         if (!S.blockStructureEquals(C) || !S.equals(C)) {
+            throw new TestException (
+               "Matrix with deleted row "+delRow+
+               " inconsistent with matrix constructed without row");
+         }
+      }
+   }
+
    private void checkEqual (SparseBlockMatrix M1, SparseBlockMatrix M2) {
       if (!M1.blockStructureEquals (M2)) {
          System.out.println ("Structure of M1:");
@@ -821,15 +1016,29 @@ public class SparseBlockMatrixTest extends MatrixTest {
       //testGetCCS (MatGen);
       testGetCCS (MatAll);
 
-      testMul (MatSym);
-      testMul (Mat);
+      testMulVec (MatSym);
+      testMulVec (Mat);
       //testMul (MatGen);
-      testMul (MatAll);
+      testMulVec (MatAll);
 
-      testMulTranspose (MatSym);
-      testMulTranspose (Mat);
+      testMulTransposeVec (MatSym);
+      testMulTransposeVec (Mat);
       //testMulTranspose (MatGen);
-      testMulTranspose (MatAll);
+      testMulTransposeVec (MatAll);
+
+      testMulMat (MatSym);
+      testMulMat (Mat);
+      testMulMat (MatAll);
+
+      for (int i=0; i<100; i++) {
+         SparseBlockMatrix S = createRandomMatrix(-1,-1);
+         testGet (S);
+         testGetCRS (S);
+         testGetCCS (S);
+         testMulVec (S);
+         testMulTransposeVec (S);
+         testMulMat (S);
+      }
 
       testStructure (MatSym);
       testStructure (Mat);
@@ -855,6 +1064,8 @@ public class SparseBlockMatrixTest extends MatrixTest {
 
       testStructureEquals ();
       testAdd ();
+
+      testRemoveRowsCols();
    }
 
    public static void main (String[] args) {

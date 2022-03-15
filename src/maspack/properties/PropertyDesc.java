@@ -21,6 +21,7 @@ import maspack.matrix.Matrix;
 import maspack.matrix.Vector;
 import maspack.matrix.Vectori;
 import maspack.util.ClassAliases;
+import maspack.util.ClassFinder;
 import maspack.util.DoubleInterval;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -796,7 +797,7 @@ public class PropertyDesc implements PropertyInfo {
 
       if (myValueClass == Byte.TYPE || myValueClass == Byte.class) {
          if (!floatingDefaultValue && defaultValue instanceof Number) {
-            Byte value = new Byte (((Number)defaultValue).byteValue());
+            Byte value = Byte.valueOf (((Number)defaultValue).byteValue());
             if (!value.equals (defaultValue)) {
                errorMsg = "default value not expressible as a byte";
             }
@@ -807,7 +808,7 @@ public class PropertyDesc implements PropertyInfo {
       }
       else if (myValueClass == Short.TYPE || myValueClass == Short.class) {
          if (!floatingDefaultValue && defaultValue instanceof Number) {
-            Short value = new Short (((Number)defaultValue).shortValue());
+            Short value = Short.valueOf (((Number)defaultValue).shortValue());
             if (!value.equals (defaultValue)) {
                errorMsg = "default value not expressible as a short";
             }
@@ -818,7 +819,7 @@ public class PropertyDesc implements PropertyInfo {
       }
       else if (myValueClass == Integer.TYPE || myValueClass == Integer.class) {
          if (!floatingDefaultValue && defaultValue instanceof Number) {
-            Integer value = new Integer (((Number)defaultValue).intValue());
+            Integer value = Integer.valueOf (((Number)defaultValue).intValue());
             if (!value.equals (defaultValue)) {
                errorMsg = "default value not expressible as an integer";
             }
@@ -829,17 +830,17 @@ public class PropertyDesc implements PropertyInfo {
       }
       else if (myValueClass == Long.TYPE || myValueClass == Long.class) {
          if (!floatingDefaultValue && defaultValue instanceof Number) {
-            return new Long (((Number)defaultValue).longValue());
+            return Long.valueOf (((Number)defaultValue).longValue());
          }
       }
       else if (myValueClass == Float.TYPE || myValueClass == Float.class) {
          if (defaultValue instanceof Number) {
-            return new Float (((Number)defaultValue).floatValue());
+            return Float.valueOf (((Number)defaultValue).floatValue());
          }
       }
       else if (myValueClass == Double.TYPE || myValueClass == Double.class) {
          if (defaultValue instanceof Number) {
-            return new Double (((Number)defaultValue).doubleValue());
+            return Double.valueOf (((Number)defaultValue).doubleValue());
          }
       }
       else if (myValueClass == Character.TYPE) {
@@ -866,28 +867,28 @@ public class PropertyDesc implements PropertyInfo {
 
    protected Object createDefaultValue() {
       if (myValueClass == Byte.TYPE || myValueClass == Byte.class) {
-         return new Byte ((byte)0);
+         return Byte.valueOf ((byte)0);
       }
       else if (myValueClass == Short.TYPE || myValueClass == Short.class) {
-         return new Short ((short)0);
+         return Short.valueOf ((short)0);
       }
       else if (myValueClass == Integer.TYPE || myValueClass == Integer.class) {
-         return new Integer (0);
+         return Integer.valueOf (0);
       }
       else if (myValueClass == Long.TYPE || myValueClass == Long.class) {
-         return new Long (0);
+         return Long.valueOf (0);
       }
       else if (myValueClass == Float.TYPE || myValueClass == Float.class) {
-         return new Float (0);
+         return Float.valueOf (0);
       }
       else if (myValueClass == Double.TYPE || myValueClass == Double.class) {
-         return new Double (0);
+         return Double.valueOf (0);
       }
       else if (myValueClass == Character.TYPE) {
-         return new Character ('\000');
+         return Character.valueOf ('\000');
       }
       else if (myValueClass == Boolean.TYPE) {
-         return new Boolean (false);
+         return Boolean.valueOf (false);
       }
       else {
          try {
@@ -1348,7 +1349,7 @@ public class PropertyDesc implements PropertyInfo {
    private static Class<?> nameToClass (String name) {
       // was: ClassAliases.resolveClass (name)
       try {
-         return Class.forName (name);
+         return ClassFinder.forName (name, true);
       }
       catch (Exception e) {
          return null;
@@ -1630,7 +1631,7 @@ public class PropertyDesc implements PropertyInfo {
 
       switch (valueType) {
          case BYTE: {
-            return (new Byte ((byte)rtok.scanInteger()));
+            return (Byte.valueOf ((byte)rtok.scanInteger()));
          }
          case CHAR: {
             String charStr = rtok.scanQuotedString ('\'');
@@ -1643,26 +1644,26 @@ public class PropertyDesc implements PropertyInfo {
                   "Multiple characters between quotes, line " + rtok.lineno());
             }
             else {
-               return new Character (charStr.charAt (0));
+               return Character.valueOf (charStr.charAt (0));
             }
          }
          case SHORT: {
-            return (new Short (rtok.scanShort()));
+            return (Short.valueOf (rtok.scanShort()));
          }
          case INT: {
-            return (new Integer (rtok.scanInteger()));
+            return (Integer.valueOf (rtok.scanInteger()));
          }
          case LONG: {
-            return (new Long (rtok.scanLong()));
+            return (Long.valueOf (rtok.scanLong()));
          }
          case FLOAT: {
-            return (new Float ((float)rtok.scanNumber()));
+            return (Float.valueOf ((float)rtok.scanNumber()));
          }
          case DOUBLE: {
-            return (new Double (rtok.scanNumber()));
+            return (Double.valueOf (rtok.scanNumber()));
          }
          case BOOLEAN: {
-            return (new Boolean (rtok.scanBoolean()));
+            return (Boolean.valueOf (rtok.scanBoolean()));
          }
          case SHORT_ARRAY: {
             return Scan.scanShorts (rtok);

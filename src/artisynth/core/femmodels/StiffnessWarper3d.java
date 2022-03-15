@@ -83,6 +83,18 @@ public class StiffnessWarper3d {
       return (corotated == null) && (linear == null);
    }
 
+   /**
+    * Only initalize the cache. This is provided for timing and testing
+    * purposes only.
+    */
+   void initCache (FemElement3dBase e, FemMaterial mat) {
+      LinearMaterialCache cache = null;
+      if (mat.isCorotated()) {
+         cache = getOrCreateCorotatedCache(e);
+      } else {
+         cache = getOrCreateLinearCache(e);
+      }
+   }
 
    /**
     * Adds linear stiffness contributions to an underlying cache

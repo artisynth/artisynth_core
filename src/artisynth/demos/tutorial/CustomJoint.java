@@ -111,7 +111,7 @@ public class CustomJoint extends JointBase {
       public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
          coords.set (X_IDX, TCD.p.x);
          double theta = Math.atan2 (TCD.R.m10, TCD.R.m00);
-         coords.set (THETA_IDX, getCoordinate(THETA_IDX).nearestAngle(theta));
+         coords.set (THETA_IDX, getCoordinateInfo(THETA_IDX).nearestAngle(theta));
       }
 
       /**

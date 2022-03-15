@@ -7,6 +7,8 @@
 package maspack.util;
 
 import java.util.Random;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class RandomGenerator {
    private static Random randGen;
@@ -76,6 +78,44 @@ public class RandomGenerator {
     */
    public static int nextInt (int n) {
       return get().nextInt(n);
+   }
+
+   /**
+    * Generates a random subsequence of the integers 0, ... n-1.
+    *
+    * @param n size of the subsequence
+    */
+   public static int[] randomSubsequence (int n) {
+      ArrayList<Integer> list = new ArrayList<>();
+      for (int i=0; i<n; i++) {
+         if (randGen.nextBoolean()) {
+            list.add (i);
+         }
+      }
+      return ArraySupport.toIntArray (list);
+   }
+   
+   /**
+    * Generates a random non-repeating sequence of {@code n} integers in the
+    * range {@code min}, {@code max} (inclusive). {@code n} must be
+    * {@code <= r}, where {@code r = max - min + 1}.
+    *
+    * <p>Note: this method has a complexity of {@code O(r)}.
+    *
+    * @param min minimum sequence value
+    * @param max maximum sequence value
+    * @param n number of sequence values
+    */
+   public static int[] randomSequence (int min, int max, int n) {
+      if (n > max-min+1) {
+         throw new IllegalArgumentException ("n exceeds max-min+1");
+      }
+      ArrayList<Integer> list = new ArrayList<>(max-min+1);
+      for (int k=min; k<=max; k++) {
+         list.add (k);
+      }
+      Collections.shuffle (list, randGen);
+      return ArraySupport.toIntArray (list.subList (0, n));
    }
    
    public static void main (String[] args) {

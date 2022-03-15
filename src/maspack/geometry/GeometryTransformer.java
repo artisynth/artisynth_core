@@ -852,7 +852,7 @@ public abstract class GeometryTransformer {
 
    private void restoreNormals (MeshBase mesh) {
       // restore all the normal info, indices and all, just in case
-      int numNormals = restore (new Integer(0));
+      int numNormals = restore (Integer.valueOf(0));
       if (numNormals == 0) {
          mesh.setNormals (null, null);
       }

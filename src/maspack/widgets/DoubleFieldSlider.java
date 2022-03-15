@@ -289,7 +289,7 @@ public class DoubleFieldSlider extends DoubleField
       while ((sliderVal = toSliderValue (x)) <= mySlider.getMaximum()) {
          JLabel label = new JLabel (fmt.format (x).trim());
          label.setHorizontalTextPosition (SwingConstants.CENTER);
-         labels.put (new Integer (sliderVal), label);
+         labels.put (Integer.valueOf (sliderVal), label);
          x += inc;
       }
       mySlider.setLabelTable (labels);

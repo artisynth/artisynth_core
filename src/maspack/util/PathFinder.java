@@ -83,7 +83,7 @@ public class PathFinder {
       // fully qualified.
       Class<?> cls = null;
       try {
-         cls = Class.forName (className);
+         cls = ClassFinder.forName (className, false);
       }
       catch (Exception eignore) {
       }
@@ -96,7 +96,8 @@ public class PathFinder {
          Package[] packages = Package.getPackages();
          for (int i=0; i<packages.length; i++) {
             try {
-               cls = Class.forName (packages[i].getName()+"."+className);
+               cls = ClassFinder.forName (
+                  packages[i].getName()+"."+className, false);
             }
             catch (Exception eignore) {
             }

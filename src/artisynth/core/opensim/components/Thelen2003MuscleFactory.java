@@ -34,35 +34,58 @@ public class Thelen2003MuscleFactory extends MuscleBaseFactory<Thelen2003Muscle>
       
       String name = getNodeName (child);
       
+      //  In ActivationFiberLengthMuscle
       if ("default_activation".equals (name)) {
          comp.setDefaultActivation (parseDoubleValue (child));
-      } else if ("default_fiber_length".equals(name)) {
+      }
+      else if ("default_fiber_length".equals(name)) {
          comp.setDefaultFiberLength (parseDoubleValue (child));
-      } else if ("activation_time_constant".equals(name)) {
-         comp.setActivationTimeConstant (parseDoubleValue (child));
-      } else if ("deactivation_time_constant".equals(name)) {
-         comp.setDeactivationTimeConstant (parseDoubleValue (child));
-      } else if ("FmaxTendonStrain".equals(name)) {
+      }
+      // In Thelen2003Muscle
+      else if ("FmaxTendonStrain".equals(name)) {
          comp.setFmaxTendonStrain (parseDoubleValue (child));
-      } else if ("FmaxMuscleStrain".equals(name)) {
+      }
+      else if ("FmaxMuscleStrain".equals(name)) {
          comp.setFmaxMuscleStrain (parseDoubleValue (child));
-      } else if ("KshapeActive".equals(name)) {
+      } 
+      else if ("KshapeActive".equals(name)) {
          comp.setKshapeActive (parseDoubleValue (child));
-      } else if ("KshapePassive".equals(name)) {
+      }
+      else if ("KshapePassive".equals(name)) {
          comp.setKshapePassive (parseDoubleValue (child));
-      } else if ("Af".equals(name)) {
+      }
+      else if ("Af".equals(name)) {
          comp.setAf (parseDoubleValue (child));
-      } else if ("Flen".equals(name)) {
+      }
+      else if ("Flen".equals(name)) {
          comp.setFlen (parseDoubleValue (child));
-      } else if ("fv_linear_extrap_threshold".equals(name)) {
+      }
+      else if ("fv_linear_extrap_threshold".equals(name)) {
          comp.setFvLinearExtrapThreshold (parseDoubleValue (child));
-      } else if ("Vmax".equals(name)) {
+      }
+      else if ("maximum_pennation_angle".equals(name)) {
+         comp.setMaximumPennationAngle (parseDoubleValue (child));
+      }
+      else if ("activation_time_constant".equals(name)) {
+         comp.setActivationTimeConstant (parseDoubleValue (child));
+      }
+      else if ("deactivation_time_constant".equals(name)) {
+         comp.setDeactivationTimeConstant (parseDoubleValue (child));
+      }
+      else if ("minimum_activation".equals(name)) { 
+         comp.setMinimumActivation (parseDoubleValue (child));
+      }
+      // In deprecated Thelen2003Muscle
+      else if ("Vmax".equals(name)) {
          comp.setVmax (parseDoubleValue (child));
-      } else if ("Vmax0".equals(name)) {
+      }
+      else if ("Vmax0".equals(name)) {
          comp.setVmax0 (parseDoubleValue (child));
-      } else if ("damping".equals(name)) {
+      }
+      else if ("damping".equals(name)) {
          comp.setDamping(parseDoubleValue (child));
-      } else {
+      }
+      else {
          success = super.parseChild (comp, child);
       }
       

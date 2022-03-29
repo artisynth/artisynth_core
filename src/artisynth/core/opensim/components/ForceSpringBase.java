@@ -143,9 +143,11 @@ public abstract class ForceSpringBase extends ForceBase {
          // add markers to multipoint spring
          FrameMarker mprev = null;
          for (int i=0; i<markers.size(); ++i) {
-            // add wrap segment if frame markers are on different bodies
+            // add wrap segment if wrappables are present and frame markers are
+            // on different bodies
             FrameMarker mi = markers.get(i);
-            if (mprev != null && mprev.getFrame () != mi.getFrame ()) {
+            if (mps.numWrappables() > 0 && mprev != null &&
+                mprev.getFrame () != mi.getFrame ()) {
                int numknots = getNumWrapPoints(mprev, mi);
                Point3d[] initialPnts = computeInitialPoints (
                   mprev.getPosition(), mi.getPosition(), mps, numknots);

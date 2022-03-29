@@ -25,6 +25,13 @@ public class Millard2012EquilibriumMuscle extends MuscleBase {
    //  tendonForceLengthCurve;
 
    public Millard2012EquilibriumMuscle() {
+      fiber_damping = 0.1;
+      default_activation = 0.05;
+      default_fiber_length = 0.1; // default should be optimal fiber length
+      activation_time_constant = 0.01;
+      deactivation_time_constant = 0.04;
+      minimum_activation = 0.01;
+      maximum_pennation_angle = Math.acos(0.1);
    }
    
    public double getFiber_damping () {
@@ -95,12 +102,16 @@ public class Millard2012EquilibriumMuscle extends MuscleBase {
       // mat.setMaxForce (max_isometric_force);
       // mat.setForceScaling (1.0);
 
-      Millard2012AxialMuscle mat = new Millard2012AxialMuscle();
-      mat.setMaxIsoForce (max_isometric_force);
-      mat.setOptFibreLength (optimal_fiber_length);
-      mat.setOptPennationAngle (pennation_angle_at_optimal);
+      Millard2012AxialMuscle mat = new Millard2012AxialMuscle (
+         max_isometric_force, optimal_fiber_length,
+         tendon_slack_length, pennation_angle_at_optimal);
+
+      mat.setMaxContractionVelocity (max_contraction_velocity);
+      mat.setIgnoreTendonCompliance (ignore_tendon_compliance);
+
+      mat.setFibreDamping (fiber_damping);
       mat.setMaxPennationAngle (maximum_pennation_angle);
-      mat.setTendonSlackLength (tendon_slack_length);
+
       if (activeForceLengthCurve != null) {
          mat.setActiveForceLengthCurve (activeForceLengthCurve.createCurve());
       }

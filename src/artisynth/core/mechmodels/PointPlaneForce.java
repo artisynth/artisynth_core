@@ -172,6 +172,14 @@ public class PointPlaneForce extends RenderableComponentBase
    public double getPlaneSize() {
       return myPlaneSize;
    }
+   
+   public Point getPoint() {
+      return myPoint;
+   }
+   
+   public void setPoint (Point pnt) {
+      myPoint = pnt;
+   }
 
    public void setPlaneSize (double len) {
       myPlaneSize = len;

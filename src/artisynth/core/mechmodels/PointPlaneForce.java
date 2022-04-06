@@ -162,6 +162,12 @@ public class PointPlaneForce extends RenderableComponentBase
    public Vector3d getNormal() {
       return new Vector3d (myNrm);
    }
+   
+   public void setNormal (Vector3d n) {
+      myNrm.set (n);
+      myNrm.normalize();
+      myOff = myCenter.dot (myNrm);
+   }
 
    public double getPlaneSize() {
       return myPlaneSize;

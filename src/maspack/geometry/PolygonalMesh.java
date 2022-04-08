@@ -3292,6 +3292,43 @@ public class PolygonalMesh extends MeshBase {
    }
 
    /**
+    * Find all vertices in the neighbourhood of {@code vtx} that are within a
+    * distance {@code dist} of {@code vtx}. The returned list includes {@code
+    * vtx} as its first component.
+    *
+    * <p>The method will not necessarily return <i>all</i> vertices that are
+    * within {@code dist} of {@code vtx}. For example, if the mesh folds back
+    * on itself, then vertices in the ``fold back'' region may be missed.
+    *
+    * @param vtx vertex for which nearest vertices are desired
+    * @param dist search distance from {@code vtx}
+    */
+   public ArrayList<Vertex3d> findNeighbouringVertices (
+      Vertex3d vtx, double dist) {
+      if (vtx.getMesh() != this) {
+         throw new IllegalArgumentException ("vtx does not belong to this mesh");
+      }
+      LinkedList<Vertex3d> queue = new LinkedList<>();
+      LinkedHashSet<Vertex3d> visited = new LinkedHashSet<>();
+      queue.offer (vtx);
+      visited.add (vtx);
+      while (!queue.isEmpty()) {
+         Vertex3d v = queue.poll();
+         Iterator<HalfEdge> hedges = v.getIncidentHalfEdges();
+         while (hedges.hasNext()) {
+            Vertex3d tailv = hedges.next().getTail();
+            if (!visited.contains (tailv) && tailv.distance (vtx) <= dist) {
+               visited.add (tailv);
+               queue.offer (tailv);
+            }
+         }
+      }
+      ArrayList<Vertex3d> nearVtxs = new ArrayList<>();
+      nearVtxs.addAll (visited);
+      return nearVtxs;
+   }
+
+   /**
     * Computes the volume integrals of this mesh, on the assumption that it is
     * manifold and closed. The code for this was taken from vclip, by Brian
     * Mirtich. See "Fast and Accurate Computation of Polyhedral Mass

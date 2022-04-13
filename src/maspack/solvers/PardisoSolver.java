@@ -405,7 +405,7 @@ public class PardisoSolver implements DirectSolver {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
          //String pardisoLibrary = "PardisoJNI.11.1.2.1"; // uses MKL 11.1.2
-         String pardisoLibrary = "PardisoJNI.2021.1.1"; // uses MKL 2021.1
+         String pardisoLibrary = "PardisoJNI.2021.1"; // uses MKL 2021.1
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {

@@ -28,6 +28,18 @@ public class SparseBlockMatrixTest extends MatrixTest {
    SparseBlockMatrix MatTall;
    Random randGen;
 
+   SparseBlockMatrix createMatrix (int[] rowSizes, int[] colSizes) {
+      return new SparseBlockMatrix (rowSizes, colSizes);
+   }
+
+   SparseBlockMatrix createMatrix (int[] rowSizes) {
+      return createMatrix (rowSizes, rowSizes);
+   }
+
+   SparseBlockMatrix createMatrix () {
+      return createMatrix (new int[0], new int[0]);
+   }
+
    SparseBlockMatrix createSum (
       double s, SparseBlockMatrix M1, SparseBlockMatrix M2, 
       int numBlkRows, int numBlkCols) {
@@ -52,7 +64,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
 
    SparseBlockMatrix createRandom (
       int[] rowSizes, int[] colSizes, double density) {
-      SparseBlockMatrix M = new SparseBlockMatrix (rowSizes, colSizes);
+      SparseBlockMatrix M = createMatrix (rowSizes, colSizes);
 
       for (int bi=0; bi<rowSizes.length; bi++) {
          for (int bj=0; bj<colSizes.length; bj++) {
@@ -124,7 +136,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
             }
          }
       }
-      SparseBlockMatrix M = new SparseBlockMatrix (rowSizes, colSizes);
+      SparseBlockMatrix M = createMatrix (rowSizes, colSizes);
       for (int bi=0; bi<numBlkRows; bi++) {
          for (int bj=0; bj<numBlkCols; bj++) {
             int val = occupied[bi][bj];
@@ -146,16 +158,19 @@ public class SparseBlockMatrixTest extends MatrixTest {
    }
 
    SparseBlockMatrixTest() {
+   }
 
+   void initializeMatrices() {
+      
       int[] rowSizes = new int[] { 3, 3, 6, 6 };
 
       randGen = RandomGenerator.get();
       randGen.setSeed (0x1234);
 
-      MatSym = new SparseBlockMatrix (rowSizes);
-      //MatGen = new SparseBlockMatrix (rowSizes);
-      Mat = new SparseBlockMatrix (rowSizes);
-      MatAll = new SparseBlockMatrix();
+      MatSym = createMatrix (rowSizes);
+      //MatGen = createMatrix (rowSizes);
+      Mat = createMatrix (rowSizes);
+      MatAll = createMatrix();
 
       MatSym.addBlock (0, 0, new Matrix3x3Block());
       MatSym.addBlock (1, 1, new Matrix3x3Block());
@@ -185,27 +200,15 @@ public class SparseBlockMatrixTest extends MatrixTest {
       Mat.addBlock (3, 0, new Matrix6x3Block());
       Mat.addBlock (2, 1, new Matrix6x3Block());
 
+      Mat.checkConsistency();
+
       Mat.removeBlock (Mat.getBlock (1, 0));
       Mat.removeBlock (Mat.getBlock (2, 3));
       Mat.removeBlock (Mat.getBlock (2, 1));
 
-      // MatGen is the same as MatSym, expect that it uses
-      // generic Matrix3dBlocks with no overriden functions.
-
-//       MatGen.addBlock (0, 0, new Matrix3dBlock (1, 1));
-//       MatGen.addBlock (1, 1, new Matrix3dBlock (1, 1));
-//       MatGen.addBlock (0, 1, new Matrix3dBlock (1, 1));
-//       MatGen.addBlock (1, 0, new Matrix3dBlock (1, 1));
-//       MatGen.addBlock (2, 2, new Matrix3dBlock (2, 2));
-//       MatGen.addBlock (3, 3, new Matrix3dBlock (2, 2));
-//       MatGen.addBlock (2, 3, new Matrix3dBlock (2, 2));
-//       MatGen.addBlock (3, 2, new Matrix3dBlock (2, 2));
-//       MatGen.addBlock (0, 3, new Matrix3dBlock (1, 2));
-//       MatGen.addBlock (1, 2, new Matrix3dBlock (1, 2));
-//       MatGen.addBlock (3, 0, new Matrix3dBlock (2, 1));
-//       MatGen.addBlock (2, 1, new Matrix3dBlock (2, 1));
-
       // MatAll tests as many of the Matrix block types as possible
+
+      MatAll.checkConsistency();
 
       MatAll.addBlock (0, 0, new Matrix2x2Block());
       MatAll.addBlock (0, 1, new Matrix2x3Block());
@@ -229,6 +232,8 @@ public class SparseBlockMatrixTest extends MatrixTest {
       MatAll.addBlock (1, 6, new Matrix3x3DiagBlock());
       MatAll.addBlock (7, 1, new Matrix4x3Block());
       MatAll.addBlock (1, 7, new Matrix3x4Block());
+
+      MatAll.checkConsistency();
 
       // System.out.println ("MatSym blocks");
       // MatSym.printBlocks (System.out);
@@ -255,7 +260,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
       for (int bj=0; bj<colSizes.length; bj++) {
          colSizes[bj] = randGen.nextInt (6) + 1;
       }
-      SparseBlockMatrix S = new SparseBlockMatrix (rowSizes, colSizes);
+      SparseBlockMatrix S = createMatrix (rowSizes, colSizes);
 
       for (int bi=0; bi<rowSizes.length; bi++) {
          int[] bjs = RandomGenerator.randomSubsequence (numBlkCols);
@@ -648,7 +653,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
    }
 
    private void testAutoSize (SparseBlockMatrix M) {
-      SparseBlockMatrix S = new SparseBlockMatrix();
+      SparseBlockMatrix S = createMatrix();
 
       for (int bi = 0; bi < M.numBlockRows(); bi++) {
          MatrixBlock blk = M.firstBlockInRow (bi);
@@ -699,7 +704,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
    }
 
    private void testScanBlocks (SparseBlockMatrix M) {
-      SparseBlockMatrix X = new SparseBlockMatrix ();
+      SparseBlockMatrix X = createMatrix ();
       StringWriter sw = new StringWriter();
       try {
          IndentingPrintWriter pw = new IndentingPrintWriter (
@@ -886,7 +891,7 @@ public class SparseBlockMatrixTest extends MatrixTest {
          colDeleted[delCols[k]] = true;
       }
 
-      SparseBlockMatrix C = new SparseBlockMatrix (
+      SparseBlockMatrix C = createMatrix (
          ArraySupport.toIntArray (rowSizes), 
          ArraySupport.toIntArray (colSizes));
       C.setVerticallyLinked (S.isVerticallyLinked());
@@ -963,6 +968,24 @@ public class SparseBlockMatrixTest extends MatrixTest {
                "Matrix with deleted row "+delRow+
                " inconsistent with matrix constructed without row");
          }
+
+         S.removeAllRows();
+         S.checkConsistency();
+         SparseBlockMatrix E = createMatrix (new int[0], S.getBlockColSizes());
+         if (!S.blockStructureEquals(E) || !S.equals(E)) {
+            throw new TestException (
+               "Matrix with all rows deleted " + 
+               " inconsistent with constructed empty matrix");
+         }
+
+         C.removeAllCols();
+         C.checkConsistency();
+         E = createMatrix (C.getBlockRowSizes(), new int[0]);
+         if (!C.blockStructureEquals(E) || !C.equals(E)) {
+            throw new TestException (
+               "Matrix with all cols deleted " + 
+               " inconsistent with constructed empty matrix");
+         }
       }
    }
 
@@ -985,9 +1008,12 @@ public class SparseBlockMatrixTest extends MatrixTest {
 
    public void test() {
 
+      initializeMatrices();
+
       MatSym.setRandomValues (true);
       //setMatrixRandom (MatGen, /* symmetric= */true);
       Mat.setRandomValues (true);
+      Mat.checkConsistency();
       MatAll.setRandomValues (true);
 
 //       testGetNonZeros(MatSym, Partition.Full);

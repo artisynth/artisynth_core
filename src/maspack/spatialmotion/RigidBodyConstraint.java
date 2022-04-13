@@ -134,6 +134,7 @@ public class RigidBodyConstraint {
       dotWrenchG = new Wrench();
       distance = 0;
       engaged = 1;
+      solveIndex = -1;
    }
 
    public void setFlags (int flags) {

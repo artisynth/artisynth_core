@@ -42,15 +42,22 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    protected int myNumRows;
    protected int myNumCols;
 
+   // cached row offsets for the methods addNumNonZerosByRow(), getCRSIndices(),
+   // and getCRSValues(): 
+   protected int[] myCRSRowOffs;
+   // signature variables the the current CRSRowOffs:
    protected Partition myRowIndicesPartition = Partition.None;
-   protected int myRowIndicesNumBlkRows = -1;
-   protected int myRowIndicesNumBlkCols = -1;
-   protected int[] myRowIndices;
-
+   protected int myCRSNumBlkRows = -1;
+   protected int myCRSNumBlkCols = -1; 
+   
+   // cached col offsets for the methods addNumNonZerosByCol(), getCCSIndices(),
+   // and getCCSValues():
+   protected int[] myCCSColOffs;
+   // signature variables the the current CCSColOffs:
    protected Partition myColIndicesPartition = Partition.None;
-   protected int myColIndicesNumBlkRows = -1;
-   protected int myColIndicesNumBlkCols = -1;
-   protected int[] myColIndices;
+   protected int myCCSNumBlkRows = -1;
+   protected int myCCSNumBlkCols = -1;
+
 
    protected boolean myVerticallyLinkedP = false;
 
@@ -80,9 +87,16 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return newArray;
    }
 
-   private void invalidateRowColIndices() {
+   private void invalidateCRSandCCSOffsets() {
       myRowIndicesPartition = Partition.None;
+      myCRSNumBlkRows = -1;
+      myCRSNumBlkCols = -1;
+      myCRSRowOffs = null;
+
       myColIndicesPartition = Partition.None;
+      myCCSNumBlkRows = -1;
+      myCCSNumBlkCols = -1;
+      myCCSColOffs = null;
    }
 
    public void setRowCapacity (int newCap) {
@@ -122,7 +136,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       myNumRows += nrows;
       myNumBlockRows += num;
    }
-
+         
    public void removeRow (int rowIdx) {
       if (rowIdx < 0 || rowIdx >= myNumBlockRows) {
          throw new IllegalArgumentException (
@@ -150,8 +164,16 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
             else {
                prevBlk.setDown (blk.down());
             }
+            disposeBlock (blk);
          }
       }
+      else {
+         MatrixBlock blk;
+         for (blk=firstBlockInRow(rowIdx); blk!=null; blk=blk.next()) {
+            disposeBlock (blk);
+         }
+      }
+      
       // adjust row offsets for remaining blocks
       for (int bi=rowIdx+1; bi<myNumBlockRows; bi++) {
          for (MatrixBlock blk=firstBlockInRow(bi); blk!=null; blk=blk.next()) {
@@ -169,7 +191,8 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       myRowOffsets[myNumBlockRows-1] = myRowOffsets[myNumBlockRows]-rsize;
 
       myNumRows -= rsize;
-      myNumBlockRows--;   
+      myNumBlockRows--;
+      invalidateCRSandCCSOffsets();
    }
 
    public void setColCapacity (int newCap) {
@@ -241,6 +264,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
             else {
                prevBlk.setNext (blk.next());
             }
+            disposeBlock (blk);
          }
          for (int bj=colIdx+1; bj<myNumBlockCols; bj++) {
             for (blk=firstBlockInCol(bj); blk!=null; blk=blk.down()) {
@@ -271,6 +295,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
                else {
                   prevBlk.setNext (colBlk.next());
                }
+               disposeBlock (colBlk);
             }
          }
       }
@@ -285,7 +310,8 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       myColOffsets[myNumBlockCols-1] = myColOffsets[myNumBlockCols]-csize;
       
       myNumCols -= csize;
-      myNumBlockCols--;     
+      myNumBlockCols--; 
+      invalidateCRSandCCSOffsets();
    }
 
    public void removeCols (int[] blkColIdxs) {
@@ -352,6 +378,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
                else {
                   prev.setNext (blk.next());
                }
+               disposeBlock (blk);
             }
             else {
                blk.setBlockCol (newColIdxs[bj]);
@@ -359,6 +386,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
             }
          }
       }
+      invalidateCRSandCCSOffsets();
    }
 
    public void removeRows (int[] blkRowIdxs) {
@@ -387,16 +415,19 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          }
       }
 
+      int ndel = blkRowIdxs.length; // number of deleted block rows
       int[] newRowIdxs = new int[myNumBlockRows];
+      MatrixBlockRowList[] deletedRows = new MatrixBlockRowList[ndel];
 
+      // remove rows and shifting existing rows to fill spaces
       MatrixBlock blk;
       int k = 0;
       int bx = 0; // updated value bi
       int dsize = 0; // total number of deleted rows
-      int ndel = blkRowIdxs.length; // number of deleted block rows
       for (int bi=0; bi<myNumBlockRows; bi++) {
          if (k < ndel && bi == blkRowIdxs[k]) {
             dsize += getBlockRowSize(bi);
+            deletedRows[k] = myRows[bi];
             newRowIdxs[bi] = -1;
             k++;
          }
@@ -444,6 +475,35 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
             }
          }
       }
+
+      // dispose of blocks. Needed for SparseNumberedBlockMatrix
+      for (k=0; k<ndel; k++) {
+         for (blk=deletedRows[k].myHead; blk!=null; blk=blk.next()) {
+            disposeBlock (blk);
+         }
+      }
+      invalidateCRSandCCSOffsets();
+      
+   }
+
+   public void removeAllCols () {
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         myRows[bi].removeAll();
+      }
+      myNumBlockCols = 0;
+      myNumCols = 0;
+      invalidateCRSandCCSOffsets();
+   }
+
+   public void removeAllRows () {
+      if (myVerticallyLinkedP) {
+         for (int bj=0; bj<myNumBlockRows; bj++) {
+            myCols[bj].removeAll();
+         }
+      }
+      myNumBlockRows = 0;
+      myNumRows = 0;
+      invalidateCRSandCCSOffsets();
    }
 
    public SparseBlockMatrix() {
@@ -547,7 +607,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return num;
    }
 
-   protected MatrixBlock addBlockWithoutNumber (int bi, int bj, MatrixBlock blk) {
+   protected MatrixBlock doAddBlock (int bi, int bj, MatrixBlock blk) {
       if (bi > myNumBlockRows || bj > myNumBlockCols) {
          throw new IllegalArgumentException (
             "Requested block location "+bi+","+bj+
@@ -578,30 +638,30 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
                "BlockRowList.add() and BlockColList.add() return different values");
          }
       }
-      invalidateRowColIndices();
+      invalidateCRSandCCSOffsets();
       return oldBlk;
    }
 
    public int addBlock (int bi, int bj, MatrixBlock blk) {
-      addBlockWithoutNumber (bi, bj, blk);
+      doAddBlock (bi, bj, blk);
       return 0;
    }
 
    public MatrixBlock addBlock (int bi, int bj, Matrix M) {
       MatrixBlock blk = MatrixBlockBase.alloc (M.rowSize(), M.colSize());
       blk.set (M);
-      addBlockWithoutNumber (bi, bj, blk);
+      addBlock (bi, bj, blk);
       return blk;
    }
 
-   protected boolean removeBlockWithoutNumber (MatrixBlock oldBlk) {
+   protected boolean doRemoveBlock (MatrixBlock oldBlk) {
       MatrixBlock blk = getBlock (oldBlk.getBlockRow(), oldBlk.getBlockCol());
       if (blk == oldBlk) {
          myRows[oldBlk.getBlockRow()].remove (oldBlk);
          if (myVerticallyLinkedP) {
             myCols[oldBlk.getBlockCol()].remove (oldBlk);
          }
-         invalidateRowColIndices();
+         invalidateCRSandCCSOffsets();
          return true;
       }
       else {
@@ -610,7 +670,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    }
 
    public boolean removeBlock (MatrixBlock oldBlk) {
-      if (removeBlockWithoutNumber (oldBlk)) {
+      if (doRemoveBlock (oldBlk)) {
          return true;
       }
       else {
@@ -631,12 +691,11 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          myRows[bi].removeAll();
       }
       if (myVerticallyLinkedP) {
-
          for (int bj=0; bj<myNumBlockCols; bj++) {
             myCols[bj].removeAll();
          }
       }
-      invalidateRowColIndices();
+      invalidateCRSandCCSOffsets();
    }
 
    public MatrixBlock getBlock (int bi, int bj) {
@@ -1223,7 +1282,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
 
    void updateRowIndices (Partition part, int numBlkRows, int numBlkCols) {
       int numRows = rowSize (numBlkRows);
-      myRowIndices = new int[numRows + 1];
+      myCRSRowOffs = new int[numRows + 1];
       int off = 0;
       for (int bi = 0; bi < numBlkRows; bi++) {
          for (MatrixBlock blk = myRows[bi].myHead;
@@ -1231,33 +1290,33 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
               blk = blk.next()) {
             if (part == Partition.UpperTriangular) {
                if (blk.getBlockRow() == blk.getBlockCol()) {
-                  blk.addNumNonZerosByRow (myRowIndices, off, part);
+                  blk.addNumNonZerosByRow (myCRSRowOffs, off, part);
                }
                else if (blk.getBlockRow() < blk.getBlockCol()) {
-                  blk.addNumNonZerosByRow (myRowIndices, off, Partition.Full);
+                  blk.addNumNonZerosByRow (myCRSRowOffs, off, Partition.Full);
                }
             }
             else {
-               blk.addNumNonZerosByRow (myRowIndices, off, part);
+               blk.addNumNonZerosByRow (myCRSRowOffs, off, part);
             }
          }
          off += getBlockRowSize(bi);
       }
       int accum = 0;
       for (int i = 0; i < numRows; i++) {
-         double num = myRowIndices[i];
-         myRowIndices[i] = accum;
+         double num = myCRSRowOffs[i];
+         myCRSRowOffs[i] = accum;
          accum += num;
       }
-      myRowIndices[numRows] = accum;
+      myCRSRowOffs[numRows] = accum;
       myRowIndicesPartition = part;
-      myRowIndicesNumBlkRows = numBlkRows;
-      myRowIndicesNumBlkCols = numBlkCols;
+      myCRSNumBlkRows = numBlkRows;
+      myCRSNumBlkCols = numBlkCols;
    }
 
    void updateColIndices (Partition part, int numBlkRows, int numBlkCols) {
       int numCols = colSize (numBlkCols);
-      myColIndices = new int[numCols + 1];
+      myCCSColOffs = new int[numCols + 1];
       // int off = 0;
 
       for (int bi = 0; bi < numBlkRows; bi++) {
@@ -1280,19 +1339,19 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
                throw new UnsupportedOperationException (
                   "Matrix partition " + part + " not supported");
             }
-            blk.addNumNonZerosByCol (myColIndices, myColOffsets[bj], blkPart);
+            blk.addNumNonZerosByCol (myCCSColOffs, myColOffsets[bj], blkPart);
          }
       }
       int accum = 0;
       for (int i = 0; i < numCols; i++) {
-         double num = myColIndices[i];
-         myColIndices[i] = accum;
+         double num = myCCSColOffs[i];
+         myCCSColOffs[i] = accum;
          accum += num;
       }
-      myColIndices[numCols] = accum;
+      myCCSColOffs[numCols] = accum;
       myColIndicesPartition = part;
-      myColIndicesNumBlkRows = numBlkRows;
-      myColIndicesNumBlkCols = numBlkCols;
+      myCCSNumBlkRows = numBlkRows;
+      myCCSNumBlkCols = numBlkCols;
    }
 
    /**
@@ -1453,19 +1512,19 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       int[] colIdxs, int[] rowOffs, Partition part, int numRows, int numCols) {
       BlockSize bsize = getBlockSize (numRows, numCols);
       if (myRowIndicesPartition != part ||
-          myRowIndicesNumBlkRows != bsize.numBlkRows ||
-          myRowIndicesNumBlkCols != bsize.numBlkCols) {
+          myCRSNumBlkRows != bsize.numBlkRows ||
+          myCRSNumBlkCols != bsize.numBlkCols) {
          updateRowIndices (part, bsize.numBlkRows, bsize.numBlkCols);
       }
       int nnz = doGetBlockCRSIndices (
-         colIdxs, 0, myRowIndices, part, bsize.numBlkRows, bsize.numBlkCols);
+         colIdxs, 0, myCRSRowOffs, part, bsize.numBlkRows, bsize.numBlkCols);
       for (int i=0; i<nnz; i++) {
          // XXX increment colIdxs since doGetBlockCRSIndices is 0-based
          colIdxs[i]++;
       }
       if (rowOffs != null) {
          for (int i = 0; i < numRows; i++) {
-            rowOffs[i] = myRowIndices[i]+1;
+            rowOffs[i] = myCRSRowOffs[i]+1;
          }
          rowOffs[numRows] = nnz+1;
       }
@@ -1495,12 +1554,12 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       double[] vals, Partition part, int numRows, int numCols) {
       BlockSize bsize = getBlockSize (numRows, numCols);
       if (myRowIndicesPartition != part ||
-          myRowIndicesNumBlkRows != bsize.numBlkRows ||
-          myRowIndicesNumBlkCols != bsize.numBlkCols) {
+          myCRSNumBlkRows != bsize.numBlkRows ||
+          myCRSNumBlkCols != bsize.numBlkCols) {
          updateRowIndices (part, bsize.numBlkRows, bsize.numBlkCols);
       }
       return doGetBlockCRSValues (
-         vals, myRowIndices, part, bsize.numBlkRows, bsize.numBlkCols);
+         vals, myCRSRowOffs, part, bsize.numBlkRows, bsize.numBlkCols);
    }
 
    public int getBlockCRSIndices (
@@ -1559,7 +1618,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          // Update the offsets *unless* offsets == myRowIndices, which
          // indicates this routine is being called by getCRSIndices()
          // and we don't want to update the offsets
-         if (offsets != myRowIndices) {
+         if (offsets != myCRSRowOffs) {
             for (int i = 0; i < nrows; i++) {
                offsets[off + i] = localOffsets[i];
             }
@@ -1618,7 +1677,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          // Update the offsets *unless* offsets == myRowIndices, which
          // indicates this routine is being called by getCRSValues()
          // and we don't want to update the offsets
-         if (offsets != myRowIndices) {
+         if (offsets != myCRSRowOffs) {
             for (int i = 0; i < nrows; i++) {
                offsets[off + i] = localOffsets[i];
             }
@@ -1637,14 +1696,14 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       int numRows, int numCols) {
       BlockSize bsize = getBlockSize (numRows, numCols);
       if (myRowIndicesPartition != part ||
-          myRowIndicesNumBlkRows != bsize.numBlkRows ||
-          myRowIndicesNumBlkCols != bsize.numBlkCols) {
+          myCRSNumBlkRows != bsize.numBlkRows ||
+          myCRSNumBlkCols != bsize.numBlkCols) {
          updateRowIndices (part, bsize.numBlkRows, bsize.numBlkCols);
       }
       // myRowIndices has length = numRows+1; last entry gives total
       // number of non-zeros.
       for (int i = 0; i < numRows; i++) {
-         offsets[i + firstRowIdx] += (myRowIndices[i + 1] - myRowIndices[i]);
+         offsets[i + firstRowIdx] += (myCRSRowOffs[i + 1] - myCRSRowOffs[i]);
       }
    }
 
@@ -1677,19 +1736,19 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       int[] rowIdxs, int[] colOffs, Partition part, int numRows, int numCols) {
       BlockSize bsize = getBlockSize (numRows, numCols);
       if (myColIndicesPartition != part ||
-          myColIndicesNumBlkRows != bsize.numBlkRows ||
-          myColIndicesNumBlkCols != bsize.numBlkCols) {
+          myCCSNumBlkRows != bsize.numBlkRows ||
+          myCCSNumBlkCols != bsize.numBlkCols) {
          updateColIndices (part, bsize.numBlkRows, bsize.numBlkCols);
       }
       int nnz = doGetBlockCCSIndices (
-         rowIdxs, 0, myColIndices, part, bsize.numBlkRows, bsize.numBlkCols);
+         rowIdxs, 0, myCCSColOffs, part, bsize.numBlkRows, bsize.numBlkCols);
       for (int i=0; i<nnz; i++) {
          // XXX increment rowIdxs since doGetBlockCRSIndices is 0-based
          rowIdxs[i]++;
       }      
       if (colOffs != null) {
          for (int i = 0; i < numCols; i++) {
-            colOffs[i] = myColIndices[i]+1;
+            colOffs[i] = myCCSColOffs[i]+1;
          }
          colOffs[numCols] = nnz+1;
       }
@@ -1719,12 +1778,12 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       double[] vals, Partition part, int numRows, int numCols) {
       BlockSize bsize = getBlockSize (numRows, numCols);
       if (myColIndicesPartition != part ||
-          myColIndicesNumBlkRows != bsize.numBlkRows ||
-          myColIndicesNumBlkCols != bsize.numBlkCols) {
+          myCCSNumBlkRows != bsize.numBlkRows ||
+          myCCSNumBlkCols != bsize.numBlkCols) {
          updateColIndices (part, bsize.numBlkRows, bsize.numBlkCols);
       }
       return doGetBlockCCSValues (
-         vals, myColIndices, part, bsize.numBlkRows, bsize.numBlkCols);
+         vals, myCCSColOffs, part, bsize.numBlkRows, bsize.numBlkCols);
    }
 
    public int getBlockCCSIndices (
@@ -1786,7 +1845,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       // Update the offsets *unless* offsets == myColIndices, which
       // indicates this routine is being called by getCCSValues()
      // and we don't want to update the offsets
-     if (offsets != myColIndices) {
+     if (offsets != myCCSColOffs) {
         off = 0;
         for (int bj=0; bj<numBlkCols; bj++) {
            int ncols = getBlockColSize(bj);
@@ -1855,7 +1914,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       // Update the offsets *unless* offsets == myColIndices, which
       // indicates this routine is being called by getCCSValues()
      // and we don't want to update the offsets
-     if (offsets != myColIndices) {
+     if (offsets != myCCSColOffs) {
         off = 0;
         for (int bj=0; bj<numBlkCols; bj++) {
            int ncols = getBlockColSize(bj);
@@ -1874,14 +1933,14 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       BlockSize bsize = getBlockSize (numRows, numCols);
 
       if (myColIndicesPartition != part ||
-          myColIndicesNumBlkRows != bsize.numBlkRows ||
-          myColIndicesNumBlkCols != bsize.numBlkCols) {
+          myCCSNumBlkRows != bsize.numBlkRows ||
+          myCCSNumBlkCols != bsize.numBlkCols) {
          updateColIndices (part, bsize.numBlkRows, bsize.numBlkCols);
       }
       // myColIndices has length = numCols+1; last entry gives total
       // number of non-zeros.
       for (int j = 0; j < numCols; j++) {
-         offsets[j + idx] += (myColIndices[j + 1] - myColIndices[j]);
+         offsets[j + idx] += (myCCSColOffs[j + 1] - myCCSColOffs[j]);
       }
    }
 
@@ -1962,236 +2021,236 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
    }
    
-   /**
-    * Sets the current matrix S to (1/2)(S+S^T), making it symmetric.  For this
-    * to succeed, the current matrix must have consistent block row/column sizes.
-    * 
-    * @return true if matrix structure has changed
-    */
-   public boolean setSymmetric() {
-      
-      // check sizes match column sizes
-      if (numBlockRows() != numBlockCols()) {
-         throw new IllegalArgumentException (
-            "Number of block rows must match number of block columns in M");
-      }
-      for (int i=0; i<numBlockRows(); ++i) {
-         if (getBlockRowSize(i) != getBlockColSize(i)) {
-            throw new IllegalArgumentException("M does not have consistent block"
-               + " row and column sizes");
-         }
-      }
-      
-      // reset partition info
-      myRowIndicesPartition = Partition.None;
-      myRowIndicesNumBlkRows = -1;
-      myRowIndicesNumBlkCols = -1;
-      myRowIndices = null;
-
-      myColIndicesPartition = Partition.None;
-      myColIndicesNumBlkRows = -1;
-      myColIndicesNumBlkCols = -1;
-      myColIndices = null;
-      
-      // go through and modify/add blocks
-      boolean structureModified = false;
-      for (int bi=0; bi<myNumBlockRows; bi++) {
-         MatrixBlock blk = myRows[bi].firstBlock();
-         
-         while (blk != null) {
-            
-            // get corresponding column
-            int bj = blk.getBlockCol();
-            
-            if (bi != bj) {
-               MatrixBlock blkS = getBlock(bj, bi);
-               
-               // both exist, modify blocks to be symmetric
-               if (blkS != null) {
-                  
-                  // make symmetric
-                  for (int i=0; i<blk.rowSize(); ++i) {
-                     for (int j=0; j<blk.colSize(); ++j) {
-                        double val = (blk.get(i, j) + blkS.get(j, i))/2;
-                        blk.set(i,j, val);
-                        blkS.set(j, i, val);
-                     }
-                  }
-                  
-               } else {
-                  
-                  // only one exists, add new symmetric block
-                  blk.scale(0.5);
-                  MatrixBlock newBlk = blk.createTranspose();
-                  addBlock(bj, bi, newBlk);
-                  structureModified = true;
-                  
-               }
-               
-            } else if (bi == bj) {
-               
-               // diagonal
-               for (int i=0; i<blk.rowSize()-1; ++i) {
-                  for (int j=i+1; j<blk.colSize(); ++j) {
-                     double val = (blk.get(i, j)+blk.get(j, i))/2;
-                     blk.set(i, j, val ); 
-                     blk.set(j, i, val);
-                  }
-               }
-            }
-            
-            blk = blk.next();
-         }
-      }
-    
-      return structureModified;
-   }
+//   /**
+//    * Sets the current matrix S to (1/2)(S+S^T), making it symmetric.  For this
+//    * to succeed, the current matrix must have consistent block row/column sizes.
+//    * 
+//    * @return true if matrix structure has changed
+//    */
+//   public boolean setSymmetric() {
+//      
+//      // check sizes match column sizes
+//      if (numBlockRows() != numBlockCols()) {
+//         throw new IllegalArgumentException (
+//            "Number of block rows must match number of block columns in M");
+//      }
+//      for (int i=0; i<numBlockRows(); ++i) {
+//         if (getBlockRowSize(i) != getBlockColSize(i)) {
+//            throw new IllegalArgumentException("M does not have consistent block"
+//               + " row and column sizes");
+//         }
+//      }
+//      
+//      // reset partition info
+//      myRowIndicesPartition = Partition.None;
+//      myRowIndicesNumBlkRows = -1;
+//      myRowIndicesNumBlkCols = -1;
+//      myRowIndices = null;
+//
+//      myColIndicesPartition = Partition.None;
+//      myColIndicesNumBlkRows = -1;
+//      myColIndicesNumBlkCols = -1;
+//      myColIndices = null;
+//      
+//      // go through and modify/add blocks
+//      boolean structureModified = false;
+//      for (int bi=0; bi<myNumBlockRows; bi++) {
+//         MatrixBlock blk = myRows[bi].firstBlock();
+//         
+//         while (blk != null) {
+//            
+//            // get corresponding column
+//            int bj = blk.getBlockCol();
+//            
+//            if (bi != bj) {
+//               MatrixBlock blkS = getBlock(bj, bi);
+//               
+//               // both exist, modify blocks to be symmetric
+//               if (blkS != null) {
+//                  
+//                  // make symmetric
+//                  for (int i=0; i<blk.rowSize(); ++i) {
+//                     for (int j=0; j<blk.colSize(); ++j) {
+//                        double val = (blk.get(i, j) + blkS.get(j, i))/2;
+//                        blk.set(i,j, val);
+//                        blkS.set(j, i, val);
+//                     }
+//                  }
+//                  
+//               } else {
+//                  
+//                  // only one exists, add new symmetric block
+//                  blk.scale(0.5);
+//                  MatrixBlock newBlk = blk.createTranspose();
+//                  addBlock(bj, bi, newBlk);
+//                  structureModified = true;
+//                  
+//               }
+//               
+//            } else if (bi == bj) {
+//               
+//               // diagonal
+//               for (int i=0; i<blk.rowSize()-1; ++i) {
+//                  for (int j=i+1; j<blk.colSize(); ++j) {
+//                     double val = (blk.get(i, j)+blk.get(j, i))/2;
+//                     blk.set(i, j, val ); 
+//                     blk.set(j, i, val);
+//                  }
+//               }
+//            }
+//            
+//            blk = blk.next();
+//         }
+//      }
+//    
+//      return structureModified;
+//   }
    
-   /**
-    * Sets the current matrix to (1/2)(M+M^T). For this to succeed, M
-    * must have consistent block row/column sizes.
-    *  
-    * @param M input matrix
-    */
-   public void setSymmetric (SparseBlockMatrix M) {
-      
-      if (M == this) {
-         setSymmetric();
-         return;
-      }
-      
-      // check sizes match column sizes
-      if (M.numBlockRows() != M.numBlockCols()) {
-         throw new IllegalArgumentException (
-            "Number of block rows must match number of block columns in M");
-      }
-      for (int i=0; i<M.numBlockRows(); ++i) {
-         if (M.getBlockRowSize(i) != M.getBlockColSize(i)) {
-            throw new IllegalArgumentException("M does not have consistent block"
-               + " row and column sizes");
-         }
-      }
-      
-      // create structure
-      myNumBlockRows = M.myNumBlockRows;
-      myNumBlockCols = M.myNumBlockCols;
-      myNumRows = M.myNumRows;
-      myNumCols = M.myNumCols;
-
-      myVerticallyLinkedP = M.myVerticallyLinkedP;
-
-      myRows = new MatrixBlockRowList[myNumBlockRows];
-      myRowOffsets = new int[myNumBlockRows+1];
-      for (int bi = 0; bi < myNumBlockRows; bi++) {
-         myRows[bi] = new MatrixBlockRowList();
-         myRowOffsets[bi] = M.myRowOffsets[bi];
-      }
-      myRowOffsets[myNumBlockRows] = M.myRowOffsets[myNumBlockRows];
-
-      myCols = new MatrixBlockColList[myNumBlockCols];
-      myColOffsets = new int[myNumBlockCols+1];
-      for (int bj = 0; bj < myNumBlockCols; bj++) {
-         if (myVerticallyLinkedP) {
-            myCols[bj] = new MatrixBlockColList();
-         }
-         myColOffsets[bj] = M.myColOffsets[bj];
-      }
-      myColOffsets[myNumBlockCols] = M.myColOffsets[myNumBlockCols];
-
-      myRowIndicesPartition = Partition.None;
-      myRowIndicesNumBlkRows = -1;
-      myRowIndicesNumBlkCols = -1;
-      myRowIndices = null;
-
-      myColIndicesPartition = Partition.None;
-      myColIndicesNumBlkRows = -1;
-      myColIndicesNumBlkCols = -1;
-      myColIndices = null;
-
-      // go through and fill in blocks where both M(bi, bj) and M(bj, bi) exist
-      for (int bi=0; bi<myNumBlockRows; bi++) {
-         MatrixBlock blk = M.myRows[bi].firstBlock();
-         
-         while (blk != null) {
-            
-            // get corresponding column
-            int bj = blk.getBlockCol();
-            
-            if (bi != bj) {
-               MatrixBlock blkS = M.getBlock(bj, bi);
-               
-               // both exist, modify blocks to be symmetric
-               if (blkS != null) {
-                  MatrixBlock newR = blk.clone();
-                  
-                  // make symmetric
-                  for (int i=0; i<blk.rowSize(); ++i) {
-                     for (int j=0; j<blk.colSize(); ++j) {
-                        double val = (blk.get(i, j) + blkS.get(j, i))/2;
-                        newR.set(i,j, val);
-                     }
-                  }
-                  
-                  addBlockWithoutNumber (bi, bj, newR);
-                  newR.setBlockNumber (blk.getBlockNumber());
-                  
-                  MatrixBlock newC = newR.createTranspose();
-                  addBlockWithoutNumber (bj, bi, newC);
-                  newC.setBlockNumber (blkS.getBlockNumber());
-               } else {
-                  
-                  // only one exists, add block to keep numbers valid
-                  MatrixBlock newR = blk.clone();
-                  newR.scale(0.5);
-                  
-                  addBlockWithoutNumber (bi, bj, newR);
-                  newR.setBlockNumber (blk.getBlockNumber());
-                  
-               }
-               
-            } else if (bi == bj) {
-               MatrixBlock newBlk = blk.clone();
-               for (int i=0; i<newBlk.rowSize()-1; ++i) {
-                  for (int j=i+1; j<newBlk.colSize(); ++j) {
-                     double val = (newBlk.get(i, j)+newBlk.get(j, i))/2;
-                     newBlk.set(i, j, val ); 
-                     newBlk.set(j, i, val);
-                  }
-               }
-               addBlockWithoutNumber (bi, blk.getBlockCol(), newBlk);
-               newBlk.setBlockNumber (blk.getBlockNumber());
-            }
-            
-            blk = blk.next();
-         }
-      }
-      
-      // add new blocks when only one of M(bi, bj) or M(bj, bi) exists
-      for (int bi=0; bi<myNumBlockRows; bi++) {
-         MatrixBlock blk = M.myRows[bi].firstBlock();
-         
-         while (blk != null) {
-            
-            // get corresponding column
-            int bj = blk.getBlockCol();
-            
-            if (bi != bj) {
-               MatrixBlock blkS = M.getBlock(bj, bi);
-               
-               // only one exists add the mirroring block
-               if (blkS == null) {
-                  // only one exists, add block to keep numbers valid
-                  MatrixBlock newC = blk.createTranspose();
-                  newC.scale(0.5);
-                  addBlock (bj, bi, newC);
-               }
-               
-            } 
-            
-            blk = blk.next();
-         }
-      }
-   }
+//   /**
+//    * Sets the current matrix to (1/2)(M+M^T). For this to succeed, M
+//    * must have consistent block row/column sizes.
+//    *  
+//    * @param M input matrix
+//    */
+//   public void setSymmetric (SparseBlockMatrix M) {
+//      
+//      if (M == this) {
+//         setSymmetric();
+//         return;
+//      }
+//      
+//      // check sizes match column sizes
+//      if (M.numBlockRows() != M.numBlockCols()) {
+//         throw new IllegalArgumentException (
+//            "Number of block rows must match number of block columns in M");
+//      }
+//      for (int i=0; i<M.numBlockRows(); ++i) {
+//         if (M.getBlockRowSize(i) != M.getBlockColSize(i)) {
+//            throw new IllegalArgumentException("M does not have consistent block"
+//               + " row and column sizes");
+//         }
+//      }
+//      
+//      // create structure
+//      myNumBlockRows = M.myNumBlockRows;
+//      myNumBlockCols = M.myNumBlockCols;
+//      myNumRows = M.myNumRows;
+//      myNumCols = M.myNumCols;
+//
+//      myVerticallyLinkedP = M.myVerticallyLinkedP;
+//
+//      myRows = new MatrixBlockRowList[myNumBlockRows];
+//      myRowOffsets = new int[myNumBlockRows+1];
+//      for (int bi = 0; bi < myNumBlockRows; bi++) {
+//         myRows[bi] = new MatrixBlockRowList();
+//         myRowOffsets[bi] = M.myRowOffsets[bi];
+//      }
+//      myRowOffsets[myNumBlockRows] = M.myRowOffsets[myNumBlockRows];
+//
+//      myCols = new MatrixBlockColList[myNumBlockCols];
+//      myColOffsets = new int[myNumBlockCols+1];
+//      for (int bj = 0; bj < myNumBlockCols; bj++) {
+//         if (myVerticallyLinkedP) {
+//            myCols[bj] = new MatrixBlockColList();
+//         }
+//         myColOffsets[bj] = M.myColOffsets[bj];
+//      }
+//      myColOffsets[myNumBlockCols] = M.myColOffsets[myNumBlockCols];
+//
+//      myRowIndicesPartition = Partition.None;
+//      myRowIndicesNumBlkRows = -1;
+//      myRowIndicesNumBlkCols = -1;
+//      myRowIndices = null;
+//
+//      myColIndicesPartition = Partition.None;
+//      myColIndicesNumBlkRows = -1;
+//      myColIndicesNumBlkCols = -1;
+//      myColIndices = null;
+//
+//      // go through and fill in blocks where both M(bi, bj) and M(bj, bi) exist
+//      for (int bi=0; bi<myNumBlockRows; bi++) {
+//         MatrixBlock blk = M.myRows[bi].firstBlock();
+//         
+//         while (blk != null) {
+//            
+//            // get corresponding column
+//            int bj = blk.getBlockCol();
+//            
+//            if (bi != bj) {
+//               MatrixBlock blkS = M.getBlock(bj, bi);
+//               
+//               // both exist, modify blocks to be symmetric
+//               if (blkS != null) {
+//                  MatrixBlock newR = blk.clone();
+//                  
+//                  // make symmetric
+//                  for (int i=0; i<blk.rowSize(); ++i) {
+//                     for (int j=0; j<blk.colSize(); ++j) {
+//                        double val = (blk.get(i, j) + blkS.get(j, i))/2;
+//                        newR.set(i,j, val);
+//                     }
+//                  }
+//                  
+//                  addBlockWithoutNumber (bi, bj, newR);
+//                  newR.setBlockNumber (blk.getBlockNumber());
+//                  
+//                  MatrixBlock newC = newR.createTranspose();
+//                  addBlockWithoutNumber (bj, bi, newC);
+//                  newC.setBlockNumber (blkS.getBlockNumber());
+//               } else {
+//                  
+//                  // only one exists, add block to keep numbers valid
+//                  MatrixBlock newR = blk.clone();
+//                  newR.scale(0.5);
+//                  
+//                  addBlockWithoutNumber (bi, bj, newR);
+//                  newR.setBlockNumber (blk.getBlockNumber());
+//                  
+//               }
+//               
+//            } else if (bi == bj) {
+//               MatrixBlock newBlk = blk.clone();
+//               for (int i=0; i<newBlk.rowSize()-1; ++i) {
+//                  for (int j=i+1; j<newBlk.colSize(); ++j) {
+//                     double val = (newBlk.get(i, j)+newBlk.get(j, i))/2;
+//                     newBlk.set(i, j, val ); 
+//                     newBlk.set(j, i, val);
+//                  }
+//               }
+//               addBlockWithoutNumber (bi, blk.getBlockCol(), newBlk);
+//               newBlk.setBlockNumber (blk.getBlockNumber());
+//            }
+//            
+//            blk = blk.next();
+//         }
+//      }
+//      
+//      // add new blocks when only one of M(bi, bj) or M(bj, bi) exists
+//      for (int bi=0; bi<myNumBlockRows; bi++) {
+//         MatrixBlock blk = M.myRows[bi].firstBlock();
+//         
+//         while (blk != null) {
+//            
+//            // get corresponding column
+//            int bj = blk.getBlockCol();
+//            
+//            if (bi != bj) {
+//               MatrixBlock blkS = M.getBlock(bj, bi);
+//               
+//               // only one exists add the mirroring block
+//               if (blkS == null) {
+//                  // only one exists, add block to keep numbers valid
+//                  MatrixBlock newC = blk.createTranspose();
+//                  newC.scale(0.5);
+//                  addBlock (bj, bi, newC);
+//               }
+//               
+//            } 
+//            
+//            blk = blk.next();
+//         }
+//      }
+//   }
 
    public String toString (String fmtStr, int nrows, int ncols) {
       int numValues = numNonZeroVals();
@@ -2215,11 +2274,17 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return buf.toString();
    }
 
-   public String getBlockPattern() {
+   public String getBlockPattern () {
+      return getBlockPattern (0, numBlockRows());
+   }         
+
+   public String getBlockPattern (int minRow, int maxRow) {
+      
       int nrows = numBlockRows();
       int ncols = numBlockCols();
       StringBuilder buf = new StringBuilder ((nrows + 1) * ncols + 1);
-      for (int i = 0; i < nrows; i++) {
+      maxRow = Math.min (maxRow, nrows);
+      for (int i = minRow; i < maxRow; i++) {
          for (int j = 0; j < ncols; j++) {
             if (j > 0) {
                buf.append (' ');
@@ -2376,22 +2441,14 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
       myColOffsets[myNumBlockCols] = M.myColOffsets[myNumBlockCols];
 
-      myRowIndicesPartition = Partition.None;
-      myRowIndicesNumBlkRows = -1;
-      myRowIndicesNumBlkCols = -1;
-      myRowIndices = null;
-
-      myColIndicesPartition = Partition.None;
-      myColIndicesNumBlkRows = -1;
-      myColIndicesNumBlkCols = -1;
-      myColIndices = null;
+      invalidateCRSandCCSOffsets();
 
       for (int bi=0; bi<myNumBlockRows; bi++) {
          MatrixBlock blk = M.myRows[bi].firstBlock();
          while (blk != null) {
             MatrixBlock newBlk = blk.clone();
-            addBlockWithoutNumber (bi, blk.getBlockCol(), newBlk);
             newBlk.setBlockNumber (blk.getBlockNumber());
+            addBlock (bi, blk.getBlockCol(), newBlk);
             blk = blk.next();
          }
       }
@@ -2766,15 +2823,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
       M.myColOffsets[M.myNumBlockCols] = M.myNumCols;
 
-      M.myRowIndicesPartition = Partition.None;
-      M.myRowIndicesNumBlkRows = -1;
-      M.myRowIndicesNumBlkCols = -1;
-      M.myRowIndices = null;
-
-      M.myColIndicesPartition = Partition.None;
-      M.myColIndicesNumBlkRows = -1;
-      M.myColIndicesNumBlkCols = -1;
-      M.myColIndices = null;
+      invalidateCRSandCCSOffsets();
 
       int[] idxMap = getIdxMap(icols, myNumBlockCols);
       for (int bi = 0; bi < irows.length; bi++) {
@@ -3047,12 +3096,12 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
       removeAllBlocks();
 
-      myRowIndicesNumBlkRows = -1;
-      myRowIndicesNumBlkCols = -1;
-      myRowIndices = null;
-      myColIndicesNumBlkRows = -1;
-      myColIndicesNumBlkCols = -1;
-      myColIndices = null;
+      myCRSNumBlkRows = -1;
+      myCRSNumBlkCols = -1;
+      myCRSRowOffs = null;
+      myCCSNumBlkRows = -1;
+      myCCSNumBlkCols = -1;
+      myCCSColOffs = null;
 
       initRowColSizes (rowSizes, colSizes);
 
@@ -3168,16 +3217,30 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    }
 
    /**
-    * Returns a {@link SparseSignature} that uniquely describes the block
+    * Returns a {@link SparseBlockSignature} that uniquely describes the block
+    * structure of this matrix. The functionality is the same as {@link
+    * #getSignature(boolean)}, with {@code vertical} used if
+    * the matrix is vertically linked and the number of blocks
+    * exceeds the number of block columns.
+    */
+   public SparseBlockSignature getSignature() {
+       boolean vertical =
+         (isVerticallyLinked() && myNumBlockRows > myNumBlockCols);     
+       return getSignature (vertical);
+   }
+   
+   /**
+    * Returns a {@link SparseBlockSignature} that uniquely describes the block
     * structure of this matrix. The signature contains the block row and column
     * sizes of the matrix, whether the signature is horizontal or vertical (see
     * below), plus a data array with the following additional information:
     *
     * <pre>
-    *  * block row size for each block row;
-    *  * block col size for each block column;
-    *  * -1 to indicate the start of each block row (or column), followed by the
-    *    block column (or row) index of each block in that row (or column)
+    *  * row offset for each block row, plus total number of rows
+    *  * column offset for each block column, plus total number of columns
+    *  * for each block row (or column):
+    *      the number of blocks in the row (or column),
+    *      followed by the column (or row) index  of each block
     * </pre>
     * <p>
     * A horizontal signature lists the block column indices of each block
@@ -3186,109 +3249,28 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
     * A vertical signature lists the block row indices of each block in column
     * major order, with -1 indicating the start of each block column.
     *
-    * <p>A vertical signature is used if the matrix is vertically linked
-    * <i>and</i> the number of block rows exceeds the number of block columns,
-    * resulting in a more compact signature. Otherwise, a horizontal
-    * signature is used.
+    * <p>A vertical signature is used if {@code vertical} is {@code true}. A
+    * vertical signature will also cause the matrix to be vertically linked, if
+    * it is not already.
     *
     * <p>Note that horizontal and vertical signatures will not match, even if
     * the block structure of the matrix is the same.
     *
+    * @param vertical if {@code true}, returns a 
     * @return matrix signature
     */
-    public SparseSignature getSignature() {
-
-      boolean vertical =
-         (isVerticallyLinked() && myNumBlockRows > myNumBlockCols);
-      int[] data;
-      if (vertical) {
-         data = new int[myNumBlockRows+2*myNumBlockCols+numBlocks()];
+   public SparseBlockSignature getSignature (boolean vertical) {
+      if (vertical && !isVerticallyLinked()) {
+         setVerticallyLinked (true);
       }
-      else {
-         data = new int[2*myNumBlockRows+myNumBlockCols+numBlocks()];
-      }
-      int k = 0;
-      for (int bi=0; bi<myNumBlockRows; bi++) {
-         data[k++] = getBlockRowSize(bi);
-      }
-      for (int bj=0; bj<myNumBlockCols; bj++) {
-         data[k++] = getBlockColSize(bj);
-      }
-      if (vertical) {
-         for (int bj=0; bj<myNumBlockCols; bj++) {
-            data[k++] = -1;
-            for (MatrixBlock blk=myCols[bj].myHead; blk!=null; blk=blk.down()) {
-               data[k++] = blk.getBlockRow();
-            }
-         }
-      }
-      else {
-         for (int bi=0; bi<myNumBlockRows; bi++) {
-            data[k++] = -1;
-            for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
-               data[k++] = blk.getBlockCol();
-            }
-         }
-      }
-      return new SparseSignature (
-         myNumBlockRows, myNumBlockCols, vertical, data);
+      return new SparseBlockSignature (this, vertical);
    }
 
-   public boolean signatureEquals (SparseSignature sig) {
-      boolean vertical =
-         (isVerticallyLinked() && myNumBlockRows > myNumBlockCols);     
-      if (sig.rowSize() != myNumBlockRows ||
-          sig.colSize() != myNumBlockCols ||
-          sig.isVertical() != vertical) {
-         return false;
+   public boolean signatureEquals (SparseBlockSignature sig) {
+      if (sig.isVertical() && !isVerticallyLinked()) {
+         setVerticallyLinked (true);
       }
-      int[] data = sig.getData();
-      int dataLength;
-      if (vertical) {
-         dataLength = myNumBlockRows+2*myNumBlockCols+numBlocks();
-      }
-      else {
-         dataLength = 2*myNumBlockRows+myNumBlockCols+numBlocks();
-      }
-      if (data.length != dataLength) {
-         return false;
-      }
-      int k = 0;
-      for (int bi=0; bi<myNumBlockRows; bi++) {
-         if (getBlockRowSize(bi) != data[k++]) {
-            return false;
-         }
-      }
-      for (int bj=0; bj<myNumBlockCols; bj++) {
-         if (getBlockColSize(bj) != data[k++]) {
-            return false;
-         }
-      }
-      if (vertical) {
-         for (int bj=0; bj<myNumBlockCols; bj++) {
-            if (data[k++] != -1) {
-               return false;
-            }
-            for (MatrixBlock blk=myCols[bj].myHead; blk!=null; blk=blk.down()) {
-               if (data[k++] != blk.getBlockRow()) {
-                  return false;
-               }
-            }
-         }
-      }
-      else {
-         for (int bi=0; bi<myNumBlockRows; bi++) {
-            if (data[k++] != -1) {
-               return false;
-            }
-            for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
-               if (data[k++] != blk.getBlockCol()) {
-                  return false;
-               }
-            }
-         }
-      }
-      return true;
+      return sig.equals (this);
    }
 
 //   /**
@@ -3445,6 +3427,9 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return true;
    }
 
+   protected void disposeBlock (MatrixBlock blk) {
+   }
+
    public boolean hasSymmetricBlockSizing () {
       if (numBlockRows() != numBlockCols()) {
          return false;
@@ -3456,4 +3441,18 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
       return true;
    }   
+
+   static public SparseBlockMatrix createTranspose (SparseBlockMatrix S) {
+      int[] rowSizes = S.getBlockRowSizes();
+      int[] colSizes = S.getBlockColSizes();
+      SparseBlockMatrix M = new SparseBlockMatrix (colSizes, rowSizes);
+      for (int bi=0; bi<S.numBlockRows(); bi++) {
+         MatrixBlock blk;
+         for (blk=S.firstBlockInRow(bi); blk!=null; blk=blk.next()) {
+            int bj = blk.getBlockCol();
+            M.addBlock (bj, bi, blk.createTranspose());
+         }
+      }
+      return M;
+   }
 }

@@ -6,18 +6,19 @@ import java.io.*;
 
 public class CRSValues {
    int myNumRows;
-   int muNumCols;
+   int myNumCols;
    int myNumNonZeros;
    int[] myRowOffs;
    int[] myColIdxs;
    double[] myValues;
+   String myMatrixType;
 
    public int rowSize() {
       return myNumRows;
    }
 
    public int colSize() {
-      return muNumCols;
+      return myNumCols;
    }
 
    public int numNonZeros() {
@@ -46,9 +47,12 @@ public class CRSValues {
       return rowIdxs;
    }
 
+   public CRSValues () {
+   }
+
    public CRSValues (Matrix M) {
       myNumRows = M.rowSize();
-      muNumCols = M.colSize();
+      myNumCols = M.colSize();
       myRowOffs = new int[myNumRows+1];
       myNumNonZeros = M.numNonZeroVals();
       myColIdxs = new int[myNumNonZeros];
@@ -60,7 +64,7 @@ public class CRSValues {
    public CRSValues (
       int[] rowOffs, int[] colIdxs, double[] values, int ncols) {
       myNumRows = rowOffs.length-1;
-      muNumCols = ncols;
+      myNumCols = ncols;
       myRowOffs = rowOffs;
       myNumNonZeros = values.length;
       myColIdxs = colIdxs;
@@ -154,6 +158,50 @@ public class CRSValues {
          pw.print (fmt.format(myValues[i])+" ");
       }
       pw.println ("");
+   }
+
+   public void scan (ReaderTokenizer rtok) throws IOException {
+      rtok.nextToken();
+      if (rtok.tokenIsWord()) {
+         myMatrixType = rtok.sval;
+      }
+      else {
+         rtok.pushBack();
+      }
+      int size = rtok.scanInteger();
+      myRowOffs = new int[size+1];
+      for (int i=0; i<size+1; i++) {
+         myRowOffs[i] = rtok.scanInteger();
+      }
+      int nvals = myRowOffs[size]-1;
+      myColIdxs = new int[nvals];
+      myValues = new double[nvals];
+      for (int i=0; i<nvals; i++) {
+         myColIdxs[i] = rtok.scanInteger();
+      }
+      for (int i=0; i<nvals; i++) {
+         myValues[i] = rtok.scanNumber();
+      }      
+      myNumRows = size;
+      myNumCols = size;
+      myNumNonZeros = nvals;
+   }
+
+   public void scan (String filename) {
+      ReaderTokenizer rtok = null;
+      try {
+         rtok = new ReaderTokenizer (
+            new BufferedReader (new FileReader (filename)));
+         scan (rtok);
+      }
+      catch (IOException e) {
+         System.out.println ("Error reading '"+filename+"': "+e);
+      }
+      finally {
+         if (rtok != null) {
+            rtok.close();
+         }
+      }
    }
 
 }

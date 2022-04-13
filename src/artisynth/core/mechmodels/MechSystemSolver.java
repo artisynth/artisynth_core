@@ -1099,7 +1099,7 @@ public class MechSystemSolver {
       if (myGT != null) {
          oldStructure = myGT.getBlockStructure();
       }
-      myGT = new SparseNumberedBlockMatrix ();
+      myGT = new SparseBlockMatrix ();
       mySys.getBilateralConstraints (myGT, myGdot);
       // need to check  to see if structure of GT has changed
       if (oldStructure == null || 
@@ -1115,7 +1115,7 @@ public class MechSystemSolver {
 
    protected void updateUnilateralConstraints () {
       // assumes that updateStateSizes() has been called
-      myNT = new SparseNumberedBlockMatrix ();
+      myNT = new SparseBlockMatrix ();
       mySys.getUnilateralConstraints (myNT, myNdot);
       myNsize = myNT.colSize();
       ensureNInfoCapacity (myNsize);
@@ -1126,7 +1126,7 @@ public class MechSystemSolver {
 
    protected boolean updateFrictionConstraints () {
       // assumes that updateStateSizes() has been called
-      myDT = new SparseNumberedBlockMatrix ();
+      myDT = new SparseBlockMatrix ();
 
       int fmax = mySys.maxFrictionConstraintSets();
       ensureFrictionCapacity (fmax);

@@ -115,7 +115,7 @@ public class PardisoSolver implements DirectSolver {
 
    public static boolean printThreadInfo = true;
    
-   public static boolean supportsMultipleRhs = false;
+   public static boolean supportsMultipleRhs = true;
    // Bit of a hack to allow things to work without the native
    // library that supports multiple rhs:  
    static String nativeLibrary = supportsMultipleRhs ?

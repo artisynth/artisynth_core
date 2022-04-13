@@ -40,7 +40,7 @@ JAVAH = javah
 # Pardiso version number based on MKL 11.1.2, with support for setting
 # the maximum number of threads. Make sure there is no whitespace at
 # the end.
-PARDISO_VERSION = 2021.1
+PARDISO_VERSION = 2021.1.1
 
 ifeq ($(SYSTEM),Linux)
 	ifndef MKL_HOME

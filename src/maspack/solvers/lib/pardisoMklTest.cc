@@ -176,7 +176,7 @@ double checkSymmetricResult (
    return infinityNorm (check, size);   
 }
 
-void solveSymmetricMatrix (void *ptr) {
+void* solveSymmetricMatrix (void *ptr) {
    
    MatrixInfo *infop = (MatrixInfo*)ptr;
    Pardiso4* pardiso = new Pardiso4();
@@ -205,16 +205,169 @@ void solveSymmetricMatrix (void *ptr) {
    }
    free (b);
    free (x);
+   return NULL;
 }
 
 void printUsage () {
-   printf ("Usage: pardiso4Test [-timingCnt <cnt>]\n");
+   printf ("Usage: pardiso4Test [-timingCnt <cnt>] [<ccsFile>]\n");
+}
+
+void testFromCCSFile (char* ccsFileName) {
+   char str[1000];
+   int symmetric = 0;
+   int n = 0;
+   long nnz = 0;
+   int i, j, k;
+
+   FILE *fp = fopen (ccsFileName, "r");
+   if (fp == NULL) {
+      printf ("can't open file CCS file %s\n", ccsFileName);
+      exit (-1);
+   }
+
+   if (fscanf (fp, "%s", str) != 1) {
+      printf ("Error reading initial string\n");
+      exit(-1);
+   }
+   if (strcmp (str, "#") == 0) {
+      // kill to end of line
+      while (fgetc(fp) != '\n') ;
+      if (fscanf (fp, "%s", str) != 1) {
+         printf ("Error reading initial string\n");
+         exit(-1);
+      }
+   }
+   if (strcmp (str, "SYMMETRIC") == 0) {
+      symmetric = 1;
+   }
+   printf ("symmetric=%d\n", symmetric);
+   if (fscanf (fp, "%d", &n) != 1) {
+      printf ("Error reading n\n");
+      exit(-1);
+   }
+   int* rowOffs = (int*)calloc(n+1,4);
+   for (i=0; i<n+1; i++) {
+      if (fscanf (fp, "%d", &rowOffs[i]) != 1) {
+         printf ("Error reading rowOff[%d]\n", i);
+         exit(-1);
+      }
+   }
+   nnz = rowOffs[n]-1;
+   int *colIdxs = (int*)calloc(nnz,4);
+   double *vals = (double*)calloc(nnz,8);
+   double *rhs = (double*)calloc(n,8);
+   double *x = (double*)calloc(n,8);
+   double *chk = (double*)calloc(n,8);
+   int nrhs = 20;
+   double *mrhs = (double*)calloc(n*nrhs,8);  //multiple right hand sides
+   double *mx = (double*)calloc(n*nrhs,8);
+
+   printf ("n=%d nnz=%ld sym=%d\n", n, nnz, symmetric);
+
+   i = 0;
+   for (k=0; k<nnz; k++) {
+      if (fscanf (fp, "%d", &colIdxs[k]) != 1) {
+         printf ("Error reading colIdxs[%d]\n", k);
+         exit(-1);
+      }
+   }
+   for (k=0; k<nnz; k++) {
+      if (fscanf (fp, "%lf", &vals[k]) != 1) {
+         printf ("Error reading value[%d]\n", k);
+         exit(-1);
+      }
+   }
+   for (k=0; k<n; k++) {
+      if (fscanf (fp, "%lf", &rhs[k]) != 1) {
+         printf ("Rhs not present or incomplete; using 1's\n");
+         for (j=0; j<n; j++) {
+            rhs[j] = 1;
+         }
+         break;
+      }
+   }
+   fclose (fp);
+
+   for (i=0; i<n; i++) {
+      for (j=0; j<nrhs; j++) {
+         mrhs[j*n+i] = rhs[i];
+      }
+   }
+
+   double rhsNorm = 0;
+   for (i=0; i<n; i++) {
+      rhsNorm = rhs[i]*rhs[i];
+   }
+   rhsNorm = sqrt(rhsNorm);
+
+   Pardiso4* pardiso = new Pardiso4();
+   long t0 = currentTimeUsec();
+   if (symmetric > 0) {
+      pardiso->setMatrix (vals, rowOffs, colIdxs, n, nnz, REAL_SYMMETRIC);
+   }
+   else {
+      pardiso->setMatrix (vals, rowOffs, colIdxs, n, nnz, REAL_UNSYMMETRIC);
+   }
+   long t1 = currentTimeUsec();
+   printf ("analyze time=%g msec\n", (0.001*(t1-t0)));
+   printf ("num factor entries=%d\n", pardiso->getNumNonZerosInFactors());
+   t0 = currentTimeUsec();
+   pardiso->factorMatrix();
+   t1 = currentTimeUsec();
+   printf ("factor time=%g msec\n", (0.001*(t1-t0)));
+   t0 = currentTimeUsec();   
+   pardiso->solveMatrix (x, rhs);
+   t1 = currentTimeUsec();
+   printf ("solve time=%g msec\n", (0.001*(t1-t0)));
+   t0 = currentTimeUsec();   
+   pardiso->setMaxRefinementSteps(0);
+   pardiso->solveMatrix (x, rhs);
+   t1 = currentTimeUsec();
+   printf ("solve time, no refinement=%g msec\n", (0.001*(t1-t0)));
+   t0 = currentTimeUsec();   
+   pardiso->solveMatrix (mx, mrhs, nrhs);
+   t1 = currentTimeUsec();
+   printf ("solve time for %d rhs=%g msec\n", nrhs, (0.001*(t1-t0)));
+
+   int rowIdx = 0;
+   int nrv = 0; // num row values
+   for (k=0; k<nnz; k++) {
+      if (nrv == 0 && rowIdx<n) {
+         // just in case we have rows with no entries
+         do {
+            rowIdx++;
+         }
+         while ((nrv = (rowOffs[rowIdx]-rowOffs[rowIdx-1])) == 0 && rowIdx<n);
+      }
+      nrv--;
+      i = rowIdx-1;
+      j = colIdxs[k]-1;
+      chk[i] += vals[k]*x[j];
+      if (symmetric > 0 && i != j) {
+         chk[j] += vals[k]*x[i];
+      }
+   }
+   double errNorm = 0;
+   for (i=0; i<n; i++) {
+      errNorm += (chk[i]-rhs[i])*(chk[i]-rhs[i]);
+   }
+   errNorm = sqrt(errNorm);
+   printf("Solution error is %g\n", errNorm/rhsNorm);   
+   errNorm = 0;
+   for (j=0; j<nrhs; j++) {
+      for (i=0; i<n; i++) {
+         errNorm += (x[i]-mx[j*n+i])*(x[i]-mx[j*n+i]);
+      }
+   }
+   errNorm = sqrt(errNorm);
+   printf("Solution error for %d rhs is %g\n", nrhs, errNorm/rhsNorm);   
 }
 
 int main (int argc, char** argv) {
 
    int threadTestCnt = 0;
    int timingCnt = 0;
+   char* ccsFileName = NULL;
 
    while (argc > 1) {
      argc--;
@@ -232,10 +385,18 @@ int main (int argc, char** argv) {
        }
        timingCnt = atoi(*argv);
      }
+     else if (ccsFileName == NULL) {
+       ccsFileName = *argv;
+     }
      else {
        printUsage ();
        exit (1);
      }
+   }
+
+   if (ccsFileName != NULL) {
+      testFromCCSFile (ccsFileName);
+      exit (0);
    }
 
    int i;
@@ -289,7 +450,7 @@ int main (int argc, char** argv) {
    int cols[] = 
       { 1, 2, 3, 1, 2, 3, 1, 2, 3
       };
-   double x[3];
+   double x[10];
    double b1[] = { 1, 2, 3 };
 
 
@@ -392,6 +553,23 @@ int main (int argc, char** argv) {
    printf ("residual=%g\n", checkSymmetricResult (
               x, vals5, rows5, cols5, b5, 5));
    
+   // try with multiple right hand sides
+   int nrhs = 5;
+   double *mx = (double*)calloc(nrhs*5, 8);
+   double *mb = (double*)calloc(nrhs*5, 8);
+   for (int j=0; j<nrhs; j++) {
+      for (int i=0; i<5; i++) {
+         mb[j*nrhs+i] = b5[i];
+      }
+   }
+   pardiso->solveMatrix (mx, mb, nrhs);
+   printf ("KKT symmetric, %d rhs:\n", nrhs);
+   for (i=0; i<5; i++) {
+      for (int j=0; j<nrhs; j++) {
+         printf ("%8.3f ", mx[j*nrhs+i]); 
+      }
+      printf ("\n");
+   }
 
 #define MAXVALS  35000
 #define MAXSIZE   1000
@@ -406,8 +584,8 @@ int main (int argc, char** argv) {
 //   int numVals = readSymmetricMatrixFromFile (
 //      "Xmat325.txt", valsx, rowsx, colsx);
 
-   char* matFileName = "Xmat325.txt";
-   char* vecFileName = "bvec325.txt";
+   char* matFileName = (char*)"Xmat325.txt";
+   char* vecFileName = (char*)"bvec325.txt";
 
    int matSize = readVectorFromFile (vecFileName, bvecx);
    int numVals = readSymmetricMatrixFromFile (

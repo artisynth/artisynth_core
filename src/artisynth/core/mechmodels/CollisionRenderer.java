@@ -38,7 +38,7 @@ import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.util.ScalarRange;
 
 /**
- * Class to perform rendering for a CollisionHandlerX
+ * Class to perform rendering for a CollisionHandler
  */
 public class CollisionRenderer {
 
@@ -54,6 +54,7 @@ public class CollisionRenderer {
    private static int SEGMENT_GRP = 1;
    private static int CONTOUR_GRP = 2;
    private static int FORCE_GRP = 3;
+   private static int FRICTION_FORCE_GRP = 4;
 
    private void addPoint (RenderObject ro, Point3d p) {
       ro.addPoint (ro.vertex ((float)p.x, (float)p.y, (float)p.z));
@@ -93,56 +94,17 @@ public class CollisionRenderer {
          double lam = c.myLambda;
          p0.add (c.myCpnt0.myPoint, c.myCpnt1.myPoint);
          p0.scale (0.5);
-         System.out.println ("  " + nrmlLen*(lam/maxlam));
          p1.scaledAdd (nrmlLen*(lam/maxlam), c.myNormal, p0);
          addLineSeg (ro, p0, p1);
       }
    }
 
-//   private double getMaxLambda (Collection<ContactConstraint> cons, double max) {
-//      for (ContactConstraint c : cons) {
-//         double lam = c.myLambda;
-//         if (lam > max) {
-//            max = lam;
-//         }
-//      }
-//      return max;
-//   }
-
-//   private double getMaxLambda (CollisionHandler handler) {
-//      double max = 0;
-//      max = getMaxLambda (handler.myBilaterals0.values(), max);
-//      max = getMaxLambda (handler.myBilaterals1.values(), max);
-//      max = getMaxLambda (handler.myUnilaterals, max);
-//      return max;
-//   }
-
    private double maxlam = 20;
-//
-//   private Vector3d getVec(float[] coords) {
-//      return new Vector3d (coords[0], coords[1], coords[2]);
-//   }
 
    private void maybeAddVertexFaceNormal (
       RenderObject ro, ContactConstraint cc, double normalLen) {
 
       addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, normalLen);
-      // Vertex3d[] vtxs1 = cc.myCpnt1.myVtxs;
-      // if (vtxs1.length == 3) {
-      //    // then this is a vertex-face normal situation
-      //    Vector3d nrml = new Vector3d();
-      //    Vector3d v01 = new Vector3d();
-      //    Vector3d v02 = new Vector3d();
-      //    v01.sub (vtxs1[1].pnt, vtxs1[0].pnt); 
-      //    v02.sub (vtxs1[2].pnt, vtxs1[0].pnt); 
-      //    nrml.cross (v01, v02);
-      //    nrml.normalize();
-      //    MeshBase mesh = vtxs1[0].getMesh();
-      //    if (!mesh.meshToWorldIsIdentity()) {
-      //       nrml.transform (mesh.getMeshToWorld());
-      //    }
-      //    addLineSeg (ro, cc.myCpnt0.myPoint, nrml, normalLen);
-      // }
    }
 
    protected void findInsideFaces (
@@ -246,6 +208,7 @@ public class CollisionRenderer {
       ro.createLineGroup();     // segments
       ro.createLineGroup();     // contours
       ro.createLineGroup();     // forces
+      ro.createLineGroup();     // friction forces
       ro.createPointGroup();    // contact info
       ro.createTriangleGroup(); // intersection faces
 
@@ -254,70 +217,60 @@ public class CollisionRenderer {
       CollisionBehavior behav = handler.myBehavior;
       ContactInfo cinfo = handler.getLastContactInfo();
 
-      if (behav.myDrawConstraints) {
-         ro.lineGroup (CONSTRAINT_GRP);
-         double nrmlLen = handler.getContactNormalLen();
-         if (nrmlLen > 0) {
-            addConstraintRenderInfo (
-               ro, handler.myBilaterals0.values(), nrmlLen);
-            addConstraintRenderInfo (
-               ro, handler.myBilaterals1.values(), nrmlLen);
-            addConstraintRenderInfo (
-               ro, handler.myUnilaterals, nrmlLen);
-         }
-      }
-
       double normalLen = 0;
       if (behav.getDrawContactNormals()) {
          normalLen = handler.getContactNormalLen();
       }
       if (normalLen != 0 && cinfo != null) {
          ro.lineGroup (SEGMENT_GRP);
-         Method method = handler.getMethod();
-         if (method == Method.CONTOUR_REGION) {
-            int numc = 0;
-            for (ContactConstraint cc : handler.myUnilaterals) {
-               addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, normalLen);
-            }
+         for (ContactConstraint cc : handler.getUnilaterals()) {
+            maybeAddVertexFaceNormal (ro, cc, normalLen);
          }
-         else if (method != Method.INACTIVE) {
-            for (ContactConstraint cc : handler.myBilaterals0.values()) {
-               maybeAddVertexFaceNormal (ro, cc, normalLen);
-            }
-            for (ContactConstraint cc : handler.myBilaterals1.values()) {
-               maybeAddVertexFaceNormal (ro, cc, normalLen);
-            }
+         for (ContactConstraint cc : handler.getBilaterals()) {
+            maybeAddVertexFaceNormal (ro, cc, normalLen);
          }
       }
 
       double forceScale = 0;
+
       if (behav.getDrawContactForces()) {
          forceScale = handler.getContactForceLenScale();
       }
+
       if (forceScale != 0 && cinfo != null) {
          ro.lineGroup (FORCE_GRP);
-         Method method = handler.getMethod();
-         if (method == Method.CONTOUR_REGION) {
-            int numc = 0;
-            for (ContactConstraint cc : handler.myPrevUnilaterals) {
-               double len = forceScale*cc.myLambda;
-               if (len != 0) {
-                  addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
-               }
+         for (ContactConstraint cc : handler.getUnilaterals()) {
+            double len = forceScale*cc.myLambda;
+            if (len != 0) {
+               addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
             }
          }
-         else if (method != Method.INACTIVE) {
-            for (ContactConstraint cc : handler.myBilaterals0.values()) {
-               double len = forceScale*cc.myLambda;
-               if (len != 0) {
-                  addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
-               }
+         for (ContactConstraint cc : handler.getBilaterals()) {
+            double len = forceScale*cc.myLambda;
+            if (len != 0) {
+               addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
             }
-            for (ContactConstraint cc : handler.myBilaterals1.values()) {
-               double len = forceScale*cc.myLambda;
-               if (len != 0) {
-                  addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
-               }
+         }
+      }
+
+      forceScale = 0;
+      if (behav.getDrawFrictionForces()) {
+         forceScale = handler.getFrictionForceLenScale();
+      }
+      if (forceScale != 0 && cinfo != null) {
+         ro.lineGroup (FRICTION_FORCE_GRP);
+         for (ContactConstraint cc : handler.myBilaterals.values()) {
+            double fmag = cc.myFrictionForce.norm();
+            if (fmag > 0) {
+               addLineSeg (
+                  ro, cc.myCpnt0.myPoint, cc.myFrictionForce, forceScale);
+            }
+         }
+         for (ContactConstraint cc : handler.getUnilaterals()) {
+            double fmag = cc.myFrictionForce.norm();
+            if (fmag > 0) {
+               addLineSeg (
+                  ro, cc.myCpnt0.myPoint, cc.myFrictionForce, forceScale);
             }
          }
       }
@@ -417,6 +370,7 @@ public class CollisionRenderer {
 
       RenderObject rd = new RenderObject();
       ScalarRange range = getEffectiveColorMapRange (handler);
+      //range.updateInterval (minv, maxv);
       float[] rgb = new float[3];
       for (int i=0; i<256; i++) {
          handler.myManager.myColorMap.getRGB (i/255.0, rgb);
@@ -503,6 +457,12 @@ public class CollisionRenderer {
 
       if (ro.numLines(FORCE_GRP) > 0) {
          ro.lineGroup (FORCE_GRP);
+         renderer.setEdgeColoring (props, /*highlight=*/false);
+         drawLines (renderer, ro, props, props.getEdgeWidth());
+      }
+
+      if (ro.numLines(FRICTION_FORCE_GRP) > 0) {
+         ro.lineGroup (FRICTION_FORCE_GRP);
          renderer.setEdgeColoring (props, /*highlight=*/false);
          drawLines (renderer, ro, props, props.getEdgeWidth());
       }

@@ -27,6 +27,7 @@ public class SkinCollisionTest extends FemSkinDemo {
       // add table underneath
       CollisionManager cm = myMech.getCollisionManager();
       cm.setReduceConstraints (true);
+      //cm.setBilateralVertexContact (false);
 
       setAdaptiveStepping (false);
       myMech.setMaxStepSize (0.01);
@@ -44,9 +45,9 @@ public class SkinCollisionTest extends FemSkinDemo {
       SkinMeshBody skinBody = (SkinMeshBody)myMech.meshBodies().get("skin");
       myMech.setCollisionBehavior(table, skinBody, true, friction);
 
-
-
       myMech.clearBodyConnectors();
+      //myMech.setCompliantContact();
+
       //myMech.setProfiling (true);
       createControlPanel (myMech);
       setCollisionProperties (myMech);

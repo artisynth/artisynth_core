@@ -80,5 +80,6 @@ public class BlockTest extends RootModel {
       addControlPanel (panel);
       addBreakPoint (10);
       Main.getMain().arrangeControlPanels(this);
+      //msmod.setCompliantContact();
    }
 }

@@ -66,6 +66,17 @@ public class VertexContactMaster implements ContactMaster {
          }
       }
    }
+   
+   public void computeForceOnMasters (
+      VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt, 
+      SparseBlockMatrix S) {
+      
+      for (int i=0; i<myMasterLists.length; i++) {
+         for (ContactMaster cm : myMasterLists[i]) {
+            cm.computeForceOnMasters (uvec, fc, scale*myWgts[i], cpnt, S);
+         }
+      }     
+   }
 
    public boolean isControllable () {
       for (int i=0; i<myMasterLists.length; i++) {

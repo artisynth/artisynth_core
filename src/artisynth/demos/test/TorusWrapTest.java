@@ -104,6 +104,7 @@ public class TorusWrapTest extends RootModel {
       RenderProps.setFaceColor (mechMod, new Color (238, 232, 170));
 
       createControlPanel (mechMod);
+      //mechMod.setCompliantContact();
    }
 
    private void createControlPanel (MechModel mech) {

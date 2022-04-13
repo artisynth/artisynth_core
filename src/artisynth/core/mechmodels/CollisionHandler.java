@@ -6,22 +6,51 @@
  */
 package artisynth.core.mechmodels;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import maspack.collision.*;
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.util.*;
-import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
 import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
-import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.mechmodels.CollisionManager.BehaviorSource;
+import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.mechmodels.Collidable.Group;
+import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.util.ScalarRange;
+import maspack.collision.ContactInfo;
+import maspack.collision.ContactPlane;
+import maspack.collision.EdgeEdgeContact;
+import maspack.collision.IntersectionContour;
+import maspack.collision.IntersectionPoint;
+import maspack.collision.PenetratingPoint;
+import maspack.geometry.BVFeatureQuery;
+import maspack.geometry.HalfEdge;
+import maspack.geometry.Face;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.Vertex3d;
+import maspack.matrix.Point3d;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.VectorNd;
+import maspack.matrix.VectorNi;
+import maspack.properties.PropertyList;
+import maspack.render.HasRenderProps;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.solvers.LCPSolver;
+import maspack.spatialmotion.FrictionInfo;
+import maspack.util.DataBuffer;
+import maspack.util.DoubleInterval;
+import maspack.util.InternalErrorException;
 
 /**
  * Class that generates the contact constraints between a specific
@@ -34,7 +63,9 @@ public class CollisionHandler extends ConstrainerBase
    //public static boolean useSignedDistanceCollider = false;
    public static boolean computeTimings = false;
    // this doesn't quite work yet - problems with save/load state:
-   public static boolean useOneBilateralSet = false;
+   // for debugging and testing only!:
+   public static boolean preventBilateralSeparation = false;
+   public static boolean hashUnilaterals = true;
    
    // structural information
 
@@ -46,7 +77,6 @@ public class CollisionHandler extends ConstrainerBase
    boolean myActive;
 
    // collision behavior
-
    CollisionBehavior myBehavior;
    BehaviorSource myBehaviorSource;
    
@@ -55,16 +85,16 @@ public class CollisionHandler extends ConstrainerBase
 
    // collision response
 
-   LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals0;
-   LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals1;
-   ArrayList<ContactConstraint> myUnilaterals;
-   // myPrevUnilaterals stores previous unilaterals so we have access
-   // to force values in rendering code
-   ArrayList<ContactConstraint> myPrevUnilaterals;
+   LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals;
+   // list of bilaterals arranged in order, with those for which cpnt0 is on
+   // collidable0 first and those with cpnt0 on collidable1 second. This
+   // is done simply to maintain exact numeric compatibility with some
+   // legacy tests.
+   ArrayList<ContactConstraint> myOrderedBilaterals;
+   LinkedHashMap<ContactPoint,ContactConstraint> myUnilaterals;
    int myMaxUnilaterals = 100;
    ContactInfo myLastContactInfo; // last contact info produced by this handler
    ContactInfo myRenderContactInfo; // contact info to be used for rendering
-
    boolean myStateNeedsContactInfo = false;
    
    HashSet<Vertex3d> myAttachedVertices0 = null;
@@ -72,12 +102,12 @@ public class CollisionHandler extends ConstrainerBase
    boolean myAttachedVerticesValid = false;
 
    // rendering
-
+   
    CollisionRenderer myRenderer;
-   // for rendering, map from vertices to pressure or penetration depth values:  
+   // for rendering, map from vertices to pressure or penetration depth values:
    HashMap<Vertex3d,Double> myColorMapVertexValues;
    HashSet<Face> myColorMapFaces; // faces to be used for color map rendering
- 
+
    // misc
 
    public static PropertyList myProps =
@@ -124,6 +154,15 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
+   double getFrictionForceLenScale() {
+      if (myManager != null && myBehavior.getDrawFrictionForces()) {
+         return myManager.getContactForceLenScale();
+      }
+      else {
+         return 0;
+      }
+   }
+
    void setLastContactInfo(ContactInfo info) {
       myLastContactInfo = info;
 
@@ -149,10 +188,9 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    public CollisionHandler (CollisionManager manager) {
-      myBilaterals0 = new LinkedHashMap<ContactPoint,ContactConstraint>();
-      myBilaterals1 = new LinkedHashMap<ContactPoint,ContactConstraint>();
-      myUnilaterals = new ArrayList<ContactConstraint>();
-      myPrevUnilaterals = new ArrayList<ContactConstraint>();
+      myBilaterals = new LinkedHashMap<ContactPoint,ContactConstraint>();
+      // HHH myUnilaterals = new ArrayList<ContactConstraint>();
+      myUnilaterals = new LinkedHashMap<ContactPoint,ContactConstraint>();
       //myCollider = SurfaceMeshCollider.newCollider();
       myManager = manager;
    }
@@ -256,7 +294,7 @@ public class CollisionHandler extends ConstrainerBase
    public ContactConstraint getContact (
       HashMap<ContactPoint,ContactConstraint> contacts,
       ContactPoint cpnt0, ContactPoint cpnt1, 
-      boolean hashUsingFace, double distance) {
+      boolean hashUsingFace, boolean pnt0OnCollidable1, double distance) {
 
       ContactConstraint cons = null;
       if (hashUsingFace && cpnt1.getVertices() != null) {
@@ -268,18 +306,21 @@ public class CollisionHandler extends ConstrainerBase
          cons = contacts.get (cpnt0);
       }
       if (cons == null) {
-         cons = new ContactConstraint (cpnt0, cpnt1);
+         cons = new ContactConstraint (cpnt0, cpnt1, pnt0OnCollidable1);
          cons.myIdentifyByPoint1 = hashUsingFace;
          putContact (contacts, cons);
          return cons;
       }
       else { // contact already exists
-         double lam = cons.getForce();
+         double lam = cons.getContactForce();
          //do not activate constraint if contact is trying to separate
-         if (lam < 0) {
+         if (!preventBilateralSeparation && lam < 0) {
             return null;
          }
          else if (cons.isActive() && -cons.getDistance() >= distance) {
+            // Not sure this happens any more - all contacts have been
+            // deactivated before this method is called ...
+            
             // if constraint exists and it has already been set with a distance
             // greater than the current one, don't return anything; leave the
             // current one alone. This is for cases where the same feature maps
@@ -288,7 +329,8 @@ public class CollisionHandler extends ConstrainerBase
          }
          else {
             // update contact points
-            cons.setContactPoints (cpnt0, cpnt1);
+            cons.setContactPoints (cpnt0, cpnt1, pnt0OnCollidable1);
+            //System.out.println (" old "+cons.myIdx+" " + cons);
             return cons;
          }
       }
@@ -297,25 +339,22 @@ public class CollisionHandler extends ConstrainerBase
    public double computeCollisionConstraints (ContactInfo cinfo) {
       //clearRenderData();
       double maxpen = 0;
+      myOrderedBilaterals = null; // will be rebuilt on demand
       if (cinfo != null) {
 
-         // store unilateral data in myPrevUnilaterals so we have access to
-         // force data in rendering code
-         myPrevUnilaterals.clear();
-         myPrevUnilaterals.addAll(myUnilaterals);
-         myUnilaterals.clear();
+         if (!hashUnilaterals) {
+            myUnilaterals.clear();
+         }
 
          switch (getMethod()) {
             case VERTEX_PENETRATION: 
             case VERTEX_PENETRATION_BILATERAL:
             case VERTEX_EDGE_PENETRATION: {
-               maxpen = computeVertexPenetrationConstraints (
-                  cinfo, myCollidable0, myCollidable1);
+               maxpen = computeVertexPenetrationConstraints (cinfo);
                break;
             }
             case CONTOUR_REGION: {
-               maxpen = computeContourRegionConstraints (
-                  cinfo, myCollidable0, myCollidable1);
+               maxpen = computeContourRegionConstraints (cinfo);
                break;
             }
             case INACTIVE: {
@@ -331,9 +370,10 @@ public class CollisionHandler extends ConstrainerBase
       }
       else {
          clearContactActivity();
-         removeInactiveContacts();
-         myUnilaterals.clear();
-         myPrevUnilaterals.clear();
+         //removeInactiveContacts();
+         if (!hashUnilaterals) {
+            myUnilaterals.clear();
+         }
       }
       setLastContactInfo(cinfo);
       updateCompliance(myBehavior);
@@ -515,7 +555,7 @@ public class CollisionHandler extends ConstrainerBase
       // for vertex penetrating constraints, if collidable0 has low DOF and its
       // mesh has more vertices than that of collidable1, then we hash the
       // contact using the face on collidable1 instead of the vertex on
-      // collidable since that is more likely to persist.
+      // collidable0 since that is more likely to persist.
       PolygonalMesh mesh0 = collidable0.getCollisionMesh();
       PolygonalMesh mesh1 = collidable1.getCollisionMesh();
       return (!myBehavior.isCompliant() && hasLowDOF (collidable0) &&
@@ -606,8 +646,7 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    double computeEdgePenetrationConstraints (
-      ArrayList<EdgeEdgeContact> eecs,
-      CollidableBody collidable0, CollidableBody collidable1) {
+      ArrayList<EdgeEdgeContact> eecs, Collidable collidable1) {
 
       double maxpen = 0;
 
@@ -619,23 +658,38 @@ public class CollisionHandler extends ConstrainerBase
    
             ContactPoint pnt0, pnt1;
             pnt0 = new ContactPoint (eec.point0, eec.edge0, eec.s0);
-            pnt1 = new ContactPoint (eec.point1, eec.edge1, eec.s1);
+            if (collidable1 instanceof RigidBody) {
+               pnt1 = new ContactPoint (eec.point1);
+            }
+            else {
+               pnt1 = new ContactPoint (eec.point1, eec.edge1, eec.s1);
+            }
+            boolean pnt0OnCollidable1 = false;
    
             ContactConstraint cons;
             if (myBehavior.getBilateralVertexContact()) {
                cons = getContact (
-                  myBilaterals0, pnt0, pnt1, false, eec.displacement);
+                  myBilaterals, pnt0, pnt1, 
+                  false, pnt0OnCollidable1, eec.displacement);
             }
             else {
-               cons = new ContactConstraint (pnt0, pnt1);
-               myUnilaterals.add (cons);
+               if (hashUnilaterals) {
+                  cons = getContact (
+                     myUnilaterals, pnt0, pnt1, 
+                     false, pnt0OnCollidable1, eec.displacement); 
+               }
+               else {
+                  cons = new ContactConstraint (pnt0, pnt1, pnt0OnCollidable1);
+                  putContact (myUnilaterals, cons);
+               }
             }
             // As long as the constraint exists and is not already marked 
             // as active, then we add it
             if (cons != null) {
                cons.setActive (true);
    
-               double dist = setEdgeEdge (cons, eec, collidable0, collidable1);
+               double dist = setEdgeEdge (
+                  cons, eec, myCollidable0, myCollidable1);
                if (!cons.isControllable()) {
                   cons.setActive (false);
                   continue;
@@ -654,7 +708,7 @@ public class CollisionHandler extends ConstrainerBase
    double computeVertexPenetrationConstraints (
       ArrayList<PenetratingPoint> points,
       CollidableBody collidable0, CollidableBody collidable1) {
-
+      
       double maxpen = 0;
       boolean hashUsingFace = hashContactUsingFace (collidable0, collidable1);
 
@@ -663,11 +717,11 @@ public class CollisionHandler extends ConstrainerBase
       for (PenetratingPoint cpp : points) {
          ContactPoint pnt0, pnt1;
          pnt0 = new ContactPoint (cpp.vertex);
-         if (cpp.face != null) {
-            pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
+         if (cpp.face == null || (collidable1 instanceof RigidBody)) {
+            pnt1 = new ContactPoint (cpp.position);
          }
          else {
-            pnt1 = new ContactPoint (cpp.position);
+            pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
          }
          
          HashSet<Vertex3d> attachedVtxs0 = myAttachedVertices0;
@@ -687,32 +741,34 @@ public class CollisionHandler extends ConstrainerBase
 
          ContactConstraint cons;
          if (myBehavior.getBilateralVertexContact()) {
-            if (useOneBilateralSet || collidable0 == myCollidable0) {
-               cons = getContact (
-                  myBilaterals0, pnt0, pnt1, hashUsingFace, cpp.distance);
-            }
-            else {
-               cons = getContact (
-                  myBilaterals1, pnt0, pnt1, hashUsingFace, cpp.distance);
-            }
+            cons = getContact (
+               myBilaterals, pnt0, pnt1, 
+               hashUsingFace, collidable0==myCollidable1, cpp.distance);
          }
          else {
-            cons = new ContactConstraint (pnt0, pnt1);
-            myUnilaterals.add (cons);
+            if (hashUnilaterals) {
+               cons = getContact (
+                  myUnilaterals, pnt0, pnt1, 
+                  hashUsingFace, collidable0==myCollidable1, cpp.distance);
+            }
+            else {
+               cons = new ContactConstraint (
+                  pnt0, pnt1, collidable0==myCollidable1);
+               putContact (myUnilaterals, cons);
+            }
+            //myUnilaterals.add (cons);
          }
-         
          
          // As long as the constraint exists and is not already marked 
          // as active, then we add it
          if (cons != null) {
             cons.setActive (true);
-
             double dist;
-            if (cpp.getFace() != null) {
-               dist = setVertexFace (cons, cpp, collidable0, collidable1);
+            if (cpp.face == null) { // || (collidable1 instanceof RigidBody)) {
+               dist = setVertexBody (cons, cpp, collidable0, collidable1);
             }
             else {
-               dist = setVertexBody (cons, cpp, collidable0, collidable1);
+               dist = setVertexFace (cons, cpp, collidable0, collidable1);
             }
             if (!cons.isControllable()) {
                cons.setActive (false);
@@ -725,6 +781,7 @@ public class CollisionHandler extends ConstrainerBase
             }
          }
       }
+      //System.out.println ("");
       return maxpen;
    }
 
@@ -754,47 +811,45 @@ public class CollisionHandler extends ConstrainerBase
       return isRigid (collidable);
    }
 
-   double computeVertexPenetrationConstraints (
-      ContactInfo info, CollidableBody collidable0, CollidableBody collidable1) {
+   double computeVertexPenetrationConstraints (ContactInfo info) {
       double maxpen = 0;
       clearContactActivity();
       
       if (info != null) {
-         CollidableBody col0 = collidable0;
-         CollidableBody col1 = collidable1;
+         CollidableBody col0 = myCollidable0;
+         CollidableBody col1 = myCollidable1;
          ArrayList<PenetratingPoint> pnts0 = info.getPenetratingPoints(0);
          ArrayList<PenetratingPoint> pnts1 = info.getPenetratingPoints(1);
-         if (isRigid(collidable0) && !isRigid(collidable1)) {
+         if (isRigid(myCollidable0) && !isRigid(myCollidable1)) {
             // swap bodies so that we compute vertex penetrations of 
             // collidable1 with respect to collidable0
-            col0 = collidable1;
-            col1 = collidable0;
+            col0 = myCollidable1;
+            col1 = myCollidable0;
             pnts0 = info.getPenetratingPoints(1);
             pnts1 = info.getPenetratingPoints(0);
          }
-         maxpen = computeVertexPenetrationConstraints (pnts0, col0, col1);
+         maxpen = computeVertexPenetrationConstraints (pnts0,col0,col1);
          if (!hasLowDOF (col1) || myBehavior.getBodyFaceContact()) {
-            double pen = computeVertexPenetrationConstraints (pnts1, col1, col0);
+            double pen = computeVertexPenetrationConstraints (pnts1,col1,col0);
             if (pen > maxpen) {
                maxpen = pen;
             }
          }
          if (getMethod() == CollisionBehavior.Method.VERTEX_EDGE_PENETRATION) {
             double pen = computeEdgePenetrationConstraints (
-               info.getEdgeEdgeContacts(), collidable0, collidable1);
+               info.getEdgeEdgeContacts(), col1);
             if (pen > maxpen) {
                maxpen = pen;
             }
          }
       }
-      removeInactiveContacts();
+      //removeInactiveContacts();
       //printContacts ("%g");
       return maxpen;
    }
 
-   double computeContourRegionConstraints (
-      ContactInfo info, CollidableBody collidable0, CollidableBody collidable1) {
-
+   double computeContourRegionConstraints (ContactInfo info) {
+      
       double maxpen = 0;
 
       //clearRenderData();
@@ -804,6 +859,10 @@ public class CollisionHandler extends ConstrainerBase
       // the new contacts to something based on the old contacts, thereby
       // providing initial "warm start" values for the solver.
 
+      ArrayList<ContactConstraint> prevUnilaterals = new ArrayList<>();
+      prevUnilaterals.addAll (myUnilaterals.values());
+      myUnilaterals.clear();
+      
       if (info != null) {
          int numc = 0;
          info.setPointTol (myBehavior.myRigidPointTol);
@@ -815,35 +874,67 @@ public class CollisionHandler extends ConstrainerBase
 
                ContactConstraint c = new ContactConstraint();
 
-               c.setContactPoint0 (p);
+               c.setContactPoint0 (p, /*pnt0OnCollidable1=*/false);
                c.equateContactPoints();
                c.setNormal (region.normal);
-               c.assignMasters (collidable0, collidable1);
+               c.assignMasters (myCollidable0, myCollidable1);
                c.myContactArea = region.contactAreaPerPoint;
 
                maxpen = region.depth;
                c.setDistance (-region.depth);
-               myUnilaterals.add (c);
+               putContact (myUnilaterals, c);
+               c.setActive (true);
+               //myUnilaterals.add (c);
                numc++;
             }
+         }
+         if (numc > 0) {
+            estimateStateFromPreviousContacts(prevUnilaterals);
          }
       }
       return maxpen;
    }
 
+   private void estimateStateFromPreviousContacts (
+      ArrayList<ContactConstraint> prevUnilaterals) {
+      // very simple algorithm: for each previous contact whose contact state
+      // is basic, find the nearest new contact and set its state and friction
+      // state to that of the the previous contact. Other new states will not
+      // be set.      
+      for (ContactConstraint prev : prevUnilaterals) {
+         if (prev.myState == LCPSolver.Z_VAR) {
+            Point3d ppnt = prev.myCpnt0.getPoint();
+            ContactConstraint nearc = null;
+            double mindist = Double.MAX_VALUE;
+            // search using brute force since using KDTrees or other
+            // accelerating structures is slower unless we have many points
+            // (like > 1000).
+            for (ContactConstraint c : getUnilaterals()) {
+               Point3d cpnt = c.myCpnt0.getPoint();
+               double dist = ppnt.distance (cpnt);
+               if (dist < mindist) {
+                  mindist = dist;
+                  nearc = c;
+               }
+            }
+            nearc.myState = prev.myState;
+            nearc.myFrictionState0 = prev.myFrictionState0;
+            nearc.myFrictionState1 = prev.myFrictionState1;
+         }
+      }
+   }
+
    void clearContactData() {
-      myBilaterals0.clear();
-      myBilaterals1.clear();
+      myBilaterals.clear();
       myUnilaterals.clear();
-      myPrevUnilaterals.clear();
    }
 
    public void clearContactActivity() {
-      for (ContactConstraint c : myBilaterals0.values()) {
+      for (ContactConstraint c : getBilaterals()) {
          c.setActive (false);
          c.setDistance (0);
       }
-      for (ContactConstraint c : myBilaterals1.values()) {
+      for (ContactConstraint c : myUnilaterals.values()) {
          c.setActive (false);
          c.setDistance (0);
       }
@@ -851,33 +942,28 @@ public class CollisionHandler extends ConstrainerBase
 
    public void removeInactiveContacts() {
       Iterator<ContactConstraint> it;
-      it = myBilaterals0.values().iterator();
+      it = getBilaterals().iterator();
       while (it.hasNext()) {
          ContactConstraint c = it.next();
          if (!c.isActive()) {
             it.remove();
-            //mycontactschanged = true;
          }
       }
-      it = myBilaterals1.values().iterator();
-      while (it.hasNext()) {
-         ContactConstraint c = it.next();
-         if (!c.isActive()) {
-            it.remove();
-            //mycontactschanged = true;
-         }
+      if (hashUnilaterals) {
+         it = myUnilaterals.values().iterator();
+         while (it.hasNext()) {
+            ContactConstraint c = it.next();
+            if (!c.isActive()) {
+               it.remove();
+               //mycontactschanged = true;
+            }
+         }  
       }
    }
 
    private void printContacts(String fmtStr) {
       Iterator<ContactConstraint> it;
-      it = myBilaterals0.values().iterator();
-      System.out.println ("mesh0");
-      while (it.hasNext()) {
-         ContactConstraint c = it.next();
-         System.out.println (" " + c.toString(fmtStr));
-      }
-      it = myBilaterals1.values().iterator();
+      it = getBilaterals().iterator();
       while (it.hasNext()) {
          ContactConstraint c = it.next();
          System.out.println (" " + c.toString(fmtStr));
@@ -922,73 +1008,72 @@ public class CollisionHandler extends ConstrainerBase
       list.addAll (set);
    }
    
-   Collection<ContactConstraint> getBilaterals0() {
-      if (useOneBilateralSet) {
+   /**
+    * Return the bilaterals in an order such that those whose vertices
+    * are associated with collidable0 are returned first, and those
+    * associated with collidable1 second. This is done to maintain
+    * numeric compatibility with legacy simulation results.
+    */
+   Collection<ContactConstraint> getOrderedBilaterals() {
+      if (myOrderedBilaterals == null) {
          ArrayList<ContactConstraint> list = new ArrayList<>();
-         for (ContactConstraint cc : myBilaterals0.values()) {
-            if (cc.myCpnt0.isOnCollidable (myCollidable0)) {
+         for (ContactConstraint cc : getBilaterals()) {
+            if (!cc.myPnt0OnCollidable1) {
                list.add (cc);
             }
          }
-         for (ContactConstraint cc : myBilaterals0.values()) {
-            if (!cc.myCpnt0.isOnCollidable (myCollidable0)) {
+         for (ContactConstraint cc : getBilaterals()) {
+            if (cc.myPnt0OnCollidable1) {
                list.add (cc);
             }
          }
-         return list;
+         myOrderedBilaterals = list;
       }
-      else {
-         return myBilaterals0.values();
-      }
+      return myOrderedBilaterals;
+   }
+
+
+   Collection<ContactConstraint> getBilaterals() {
+      return myBilaterals.values();
+   }
+
+   Collection<ContactConstraint> getUnilaterals() {
+      return myUnilaterals.values();
    }
 
    public void getConstrainedComponents (HashSet<DynamicComponent> set) {
-      getConstraintComponents (set, getBilaterals0());
-      getConstraintComponents (set, myBilaterals1.values());
-      getConstraintComponents (set, myUnilaterals);      
+      getConstraintComponents (set, getBilaterals());
+      getConstraintComponents (set, getUnilaterals());
    }
    
    @Override
    public void getBilateralSizes (VectorNi sizes) {
-      for (int i=0; i<myBilaterals0.size(); i++) {
-         sizes.append (1);
-      }
-      for (int i=0; i<myBilaterals1.size(); i++) {
+      int numb = getBilaterals().size();
+      for (int i=0; i<numb; i++) {
          sizes.append (1);
       }
    }
 
    @Override
    public void getUnilateralSizes (VectorNi sizes) {
-      for (int i=0; i<myUnilaterals.size(); i++) {
+      int numu = getUnilaterals().size();
+      for (int i=0; i<numu; i++) {
          sizes.append (1);
       }
    }
 
    public void getBilateralConstraints (List<ContactConstraint> list) {
-      list.addAll (getBilaterals0());
-      list.addAll (myBilaterals1.values());
+      list.addAll (getBilaterals());
    }
 
    @Override
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
 
+      int numb0 = numb;
       double[] dbuf = (dg != null ? dg.getBuffer() : null);
-
-      for (ContactConstraint c : getBilaterals0()) {
-         c.addConstraintBlocks (GT, GT.numBlockCols());
-         if (dbuf != null) {
-            dbuf[numb] = c.getDerivative();
-         }
-         numb++;
-      }
-      for (ContactConstraint c : myBilaterals1.values()) {
-         c.addConstraintBlocks (GT, GT.numBlockCols());
-         if (dbuf != null) {
-            dbuf[numb] = c.getDerivative();
-         }
-         numb++;
+      for (ContactConstraint c : getOrderedBilaterals()) {
+         numb = c.addBilateralConstraints (GT, dbuf, numb);
       }
       return numb;
    }
@@ -1006,74 +1091,37 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    @Override
-   public int getBilateralInfo(ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx) {
       
       double[] fres = new double[] { 
          0, myCompliance, myDamping };
 
       ContactForceBehavior forceBehavior = getForceBehavior();
+      double penTol = myBehavior.myPenetrationTol;
       
-      for (ContactConstraint c : getBilaterals0()) {
-         c.setSolveIndex (idx);
-         ConstraintInfo gi = ginfo[idx++];
-         if (c.getDistance() < -myBehavior.myPenetrationTol) {
-            gi.dist = (c.getDistance() + myBehavior.myPenetrationTol);
-         }
-         else {
-            gi.dist = 0;
-         }
-         if (forceBehavior != null) {
-            forceBehavior.computeResponse (
-               fres, c.myDistance, c.myCpnt0, c.myCpnt1, 
-               c.myNormal, c.myContactArea);
-         }
-         gi.force =      fres[0];
-         gi.compliance = fres[1];
-         gi.damping =    fres[2];
-      }
-      for (ContactConstraint c : myBilaterals1.values()) {
-         c.setSolveIndex (idx);
-         ConstraintInfo gi = ginfo[idx++];
-         if (c.getDistance() < -myBehavior.myPenetrationTol) {
-            gi.dist = (c.getDistance() + myBehavior.myPenetrationTol);
-         }
-         else {
-            gi.dist = 0;
-         }
-         if (forceBehavior != null) {
-            forceBehavior.computeResponse (
-               fres, c.myDistance, c.myCpnt0, c.myCpnt1, 
-               c.myNormal, c.myContactArea);
-         }
-         gi.force =      fres[0];
-         gi.compliance = fres[1];
-         gi.damping =    fres[2];
+      for (ContactConstraint c : getOrderedBilaterals()) {
+         idx = c.getBilateralInfo (
+            ginfo, idx, penTol, fres, forceBehavior);
       }
       return idx;
    }
 
    int setBilateralForces (double[] buf, double s, int idx) {
-      for (ContactConstraint c : getBilaterals0()) {
-         c.setForce (buf[idx++]*s);
-      }
-      for (ContactConstraint c : myBilaterals1.values()) {
-         c.setForce (buf[idx++]*s);
+      for (ContactConstraint c : getOrderedBilaterals()) {
+         idx = c.setForces (buf, s, idx);
       }
       return idx;
    }
 
    @Override
    public int setBilateralForces (VectorNd lam, double s, int idx) {
-      idx = setBilateralForces (lam.getBuffer(), s, idx);
-      return idx;
+      return setBilateralForces (lam.getBuffer(), s, idx);
    }
 
    int getBilateralForces (double[] buf, int idx) {
-      for (ContactConstraint c : getBilaterals0()) {
-         buf[idx++] = c.getForce();
-      }
-      for (ContactConstraint c : myBilaterals1.values()) {
-         buf[idx++] = c.getForce();
+      for (ContactConstraint c : getOrderedBilaterals()) {
+         idx = c.getForces (buf, idx);
       }
       return idx;
    }
@@ -1085,14 +1133,11 @@ public class CollisionHandler extends ConstrainerBase
 
    @Override
    public void zeroForces() {
-      for (ContactConstraint c : myBilaterals0.values()) {
-         c.setForce (0);
+      for (ContactConstraint c : getBilaterals()) {
+         c.zeroForces();
       }   
-      for (ContactConstraint c : myBilaterals1.values()) {
-         c.setForce (0);
-      }   
-      for (int i=0; i<myUnilaterals.size(); i++) {
-         myUnilaterals.get(i).setForce (0);
+      for (ContactConstraint c : getUnilaterals()) {
+         c.zeroForces();
       }
    }
 
@@ -1100,10 +1145,10 @@ public class CollisionHandler extends ConstrainerBase
    public int addUnilateralConstraints (
       SparseBlockMatrix NT, VectorNd dn, int numu) {
 
+      int numu0 = numu;
       double[] dbuf = (dn != null ? dn.getBuffer() : null);
       int bj = NT.numBlockCols();
-      for (int i=0; i<myUnilaterals.size(); i++) {
-         ContactConstraint c = myUnilaterals.get(i);
+      for (ContactConstraint c : getUnilaterals()) {
          c.addConstraintBlocks (NT, bj++);
          if (dbuf != null) {
             dbuf[numu] = c.getDerivative();
@@ -1121,10 +1166,9 @@ public class CollisionHandler extends ConstrainerBase
 
       ContactForceBehavior forceBehavior = getForceBehavior();
       
-      for (int i=0; i<myUnilaterals.size(); i++) {
-         ContactConstraint c = myUnilaterals.get(i);
+      for (ContactConstraint c : getUnilaterals()) {
          c.setSolveIndex (idx);
-         ConstraintInfo ni = ninfo[idx++];
+         ConstraintInfo ni = ninfo[idx];
          if (c.getDistance() < -myBehavior.myPenetrationTol) {
             ni.dist = (c.getDistance() + myBehavior.myPenetrationTol);
          }
@@ -1139,13 +1183,14 @@ public class CollisionHandler extends ConstrainerBase
          ni.force =      fres[0];
          ni.compliance = fres[1];
          ni.damping =    fres[2];
+         idx++;
       }
       return idx;
    }
 
    int setUnilateralForces (double[] buf, double s, int idx) {
-      for (int i=0; i<myUnilaterals.size(); i++) {
-         myUnilaterals.get(i).setForce (buf[idx++]*s);
+      for (ContactConstraint c : getUnilaterals()) {
+         idx = c.setForces (buf, s, idx);
       }
       return idx;
    }
@@ -1157,8 +1202,8 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    int getUnilateralForces (double[] buf, int idx) {
-      for (int i=0; i<myUnilaterals.size(); i++) {
-         buf[idx++] = myUnilaterals.get(i).getForce();
+      for (ContactConstraint c : getUnilaterals()) {
+         idx = c.getForces (buf, idx);
       }
       return idx;
    }
@@ -1167,36 +1212,221 @@ public class CollisionHandler extends ConstrainerBase
    public int getUnilateralForces (VectorNd the, int idx) {
       return getUnilateralForces (the.getBuffer(), idx);
    }
-
-   public int maxFrictionConstraintSets() {
-      return myBilaterals0.size() + myBilaterals1.size() + myUnilaterals.size();
+   
+   public int setUnilateralState (VectorNi state, int idx) {
+      int[] buf = state.getBuffer();
+      for (ContactConstraint c : getUnilaterals()) {
+         idx = c.setState (buf, idx);
+      } 
+      return idx;
    }
 
-   private static double ftol = 1e-2;
+   public int getUnilateralState (VectorNi state, int idx) {
+      int[] buf = state.getBuffer();
+      for (ContactConstraint c : getUnilaterals()) {
+         idx = c.getState (buf, idx);
+      } 
+      return idx;
+   }
+
+   public int maxFrictionConstraintSets() {
+      return myBilaterals.size() + myUnilaterals.size();
+   }
+
+   static double ftol = 1e-2;
+   public static boolean myPrune = true;
 
    @Override
    public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
+      boolean prune, int numf) {
 
+      int ncols0 = DT.colSize();
       double mu = myBehavior.myFriction;
-      for (ContactConstraint c : getBilaterals0()) {
-         numf = c.add1DFrictionConstraints (DT, finfo, mu, numf);
+      if (mu <= 0) {
+         return numf;
       }
-      for (ContactConstraint c : myBilaterals1.values()) {
-         numf = c.add1DFrictionConstraints (DT, finfo, mu, numf);
-      }
-      for (int i=0; i<myUnilaterals.size(); i++) {
-         ContactConstraint c = myUnilaterals.get(i);
-         if (Math.abs(c.getForce())*mu < ftol) {
-            continue;
+      double creep = myBehavior.myStictionCreep;
+      boolean bilateralContact = true;
+
+      if (myManager.use2DFrictionForBilateralContact()) {
+         for (ContactConstraint c : getOrderedBilaterals()) {
+            numf = c.add2DFrictionConstraints (
+               DT, finfo, mu, creep, numf, false, bilateralContact);
          }
-         numf = c.add2DFrictionConstraints (DT, finfo, mu, numf);
       }
+      else {
+         for (ContactConstraint c : getOrderedBilaterals()) {
+            numf = c.add1DFrictionConstraints (DT, finfo, mu, creep, numf);
+         }
+      }
+
+      bilateralContact = false;
+      for (ContactConstraint c : getUnilaterals()) {
+         if (!myPrune) {
+            if (Math.abs(c.getContactForce())*mu <= ftol) {
+               continue;
+            }
+         }
+         numf = c.add2DFrictionConstraints (
+            DT, finfo, mu, creep, numf, prune, bilateralContact);
+      }
+//      if (myHasInvariantMasters) {
+//         // set prevFrictionIdxs independently of the contacts, since the
+//         // constraint matrix block pattern doesn't change
+//         int sizeD = DT.colSize()-ncols0;
+//         int idx = myBaseDIdx;
+//         int maxidx = myBaseDIdx+myPrevSizeD;
+//         for (FrictionInfo fi : finfo) {
+//            if (idx != -1) {
+//               int nextidx = idx+fi.blockSize;
+//               if (nextidx < maxidx) {
+//                  fi.prevFrictionIdx = idx;
+//                  idx = nextidx;
+//               }
+//               else {
+//                  fi.prevFrictionIdx = -1;
+//                  idx = -1;
+//               }
+//            }
+//            else {
+//               fi.prevFrictionIdx = -1;
+//            }
+//         }
+//         myPrevSizeD = sizeD;
+//         myBaseDIdx = ncols0;
+//      } 
       return numf;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public int setFrictionForces (VectorNd phi, double s, int idx) {
+      double mu = myBehavior.myFriction;
+      if (mu > 0) {
+
+         if (myManager.use2DFrictionForBilateralContact()) {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.set2DFrictionForce (phi, s, idx);
+            }
+         }
+         else {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.set1DFrictionForce (phi, s, idx);
+            }
+         }
+
+         for (ContactConstraint c : getUnilaterals()) {
+            if (!myPrune) {
+               if (Math.abs(c.getContactForce())*mu <= ftol) {
+                  continue;
+               }    
+            }
+            idx = c.set2DFrictionForce (phi, s, idx);
+         }
+      }
+      return idx;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getFrictionForces (VectorNd phi, int idx) {
+      double mu = myBehavior.myFriction;
+      if (mu > 0) {
+
+         if (myManager.use2DFrictionForBilateralContact()) {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.get2DFrictionForce (phi, idx);
+            }
+         }
+         else {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.get1DFrictionForce (phi, idx);
+            }
+         }
+         for (ContactConstraint c : getUnilaterals()) {
+            if (!myPrune) {
+               if (Math.abs(c.getContactForce())*mu <= ftol) {
+                  continue;
+               }
+            }
+            idx = c.get2DFrictionForce (phi, idx);
+         }
+      }
+      return idx;
+   }
+   
+   public int setFrictionState (VectorNi state, int idx) {
+      double mu = myBehavior.myFriction;
+      if (mu > 0) {
+
+         if (myManager.use2DFrictionForBilateralContact()) {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.set2DFrictionState (state, idx);
+            }
+         }
+         else {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.set1DFrictionState (state, idx);
+            }
+         }
+         for (ContactConstraint c : getUnilaterals()) {
+            if (!myPrune) {
+               if (Math.abs(c.getContactForce())*mu <= ftol) {
+                  continue;
+               }     
+            }
+            idx = c.set2DFrictionState (state, idx);
+         }
+      }
+      return idx;
+   }
+   
+   public int getFrictionState (VectorNi state, int idx) {
+      double mu = myBehavior.myFriction;
+      if (mu > 0) {
+
+         if (myManager.use2DFrictionForBilateralContact()) {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.get2DFrictionState (state, idx);
+            }
+         }
+         else {
+            for (ContactConstraint c : getOrderedBilaterals()) {
+               idx = c.get1DFrictionState (state, idx);
+            }
+         }
+         for (ContactConstraint c : getUnilaterals()) {
+            if (!myPrune) {
+               if (Math.abs(c.getContactForce())*mu <= ftol) {
+                  continue;
+               }
+            }
+            idx = c.get2DFrictionState (state, idx);
+         }
+      }
+      return idx;  
+   }
+   
+
+   public void printNetContactForces() {
+      Vector3d fforce = new Vector3d();
+      Vector3d nforce = new Vector3d();
+
+      for (ContactConstraint c : getUnilaterals()) {
+         fforce.add (c.myFrictionForce);
+         nforce.scaledAdd (c.getContactForce(), c.myNormal);
+      }
+
+      System.out.println ("net friction: "+fforce.toString("%10.5f"));
+      System.out.println ("net normal:   "+nforce.toString("%10.5f"));
+      System.out.printf  ("ratio:        %g\n", fforce.norm()/nforce.norm());
+   }
+   
    public int numBilateralConstraints() {
-      return myBilaterals0.size() + myBilaterals1.size();
+      return myBilaterals.size();
    }
 
    public int numUnilateralConstraints() {
@@ -1207,22 +1437,21 @@ public class CollisionHandler extends ConstrainerBase
     * {@inheritDoc}
     */
    public void getState (DataBuffer data) {
-
-      data.zput (myBilaterals0.size());
-      data.zput (myBilaterals1.size());
+      data.zput (myBilaterals.size());
       data.zput (myUnilaterals.size());
-
-      int numb = myBilaterals0.size() + myBilaterals1.size();
-      int numu = myUnilaterals.size();
-
-      for (ContactConstraint c : myBilaterals0.values()) {
+//      if (myHasInvariantMasters) {
+//         data.zput (myPrevSizeG);
+//         data.zput (myPrevSizeN);
+//         data.zput (myPrevSizeD);
+//         data.zput (myBaseGIdx);
+//         data.zput (myBaseNIdx);
+//         data.zput (myBaseDIdx);
+//      }
+      for (ContactConstraint c : getBilaterals()) {
          c.getState (data);
       }
-      for (ContactConstraint c : myBilaterals1.values()) {
+      for (ContactConstraint c : getUnilaterals()) {
          c.getState (data);
-      }
-      for (int i=0; i<myUnilaterals.size(); i++) {
-         myUnilaterals.get(i).getState (data);
       }
       if (myStateNeedsContactInfo && myLastContactInfo != null) {
          // don't save by reference - not portable with saved waypoint data
@@ -1243,23 +1472,25 @@ public class CollisionHandler extends ConstrainerBase
 
       clearContactData();
       int numb0 = data.zget();
-      int numb1 = data.zget();
       int numu = data.zget();
-
+//      if (myHasInvariantMasters) {
+//         myPrevSizeG = data.zget();
+//         myPrevSizeN = data.zget();
+//         myPrevSizeD = data.zget();
+//         myBaseGIdx = data.zget();
+//         myBaseNIdx = data.zget();
+//         myBaseDIdx = data.zget();
+//      }
       for (int i=0; i<numb0; i++) {
          ContactConstraint c = new ContactConstraint();
          c.setState (data, myCollidable0, myCollidable1);
-         putContact (myBilaterals0, c);
-      }        
-      for (int i=0; i<numb1; i++) {
-         ContactConstraint c = new ContactConstraint();
-         c.setState (data, myCollidable1, myCollidable0);
-         putContact (myBilaterals1, c);
+         putContact (myBilaterals, c);
       }        
       for (int i=0; i<numu; i++) {
          ContactConstraint c = new ContactConstraint();
          c.setState (data, myCollidable0, myCollidable1);
-         myUnilaterals.add (c);
+         //HHHmyUnilaterals.add (c);
+         putContact (myUnilaterals, c);
       }        
       // not portable with saved waypoint data
       //myLastContactInfo = (ContactInfo)data.oget();
@@ -1348,44 +1579,30 @@ public class CollisionHandler extends ConstrainerBase
    
    void getContactForces (Map<Vertex3d,Vector3d> map, CollidableBody colA) {
       // add forces associated with vertices on colA. These will arise from
-      // contact constraints in both myBilaterals0 and myBilaterals1. The
-      // associated vertices are stored either in cpnt0 or cpnt1.  For
-      // myBilaterals0, cpnt0 and cpnt1 store the vertices associated
-      // myCollidable0 and myCollidable1, respectively. The reverse is true for
-      // myBilaterals1. Cpnt0 or cpnt1 are then used depending on whether col
-      // equals myCollidable0 or myCollidable1. When cpnt1 is used, the scalar
-      // force is negated since in that case the normal is oriented for the
-      // opposite body.
+      // contact constraints in both the bilateral and unilateral constraint
+      // sets. For each constraint, colA will be associated with either
+      // cpnt0 or cpnt1. In the latter case, the scalar force is negated 
+      // since the normal is oriented for the opposite body.
       
-      for (ContactConstraint c : getBilaterals0()) {
+      for (ContactConstraint c : getOrderedBilaterals()) {
          if (c.myCpnt0.isOnCollidable (colA)) {            
             accumulateForces (
-               map, c.myCpnt0, c.getNormal(), c.getForce());
+               map, c.myCpnt0, c.getNormal(), c.getContactForce());
          }
          else {
             accumulateForces (
-               map, c.myCpnt1, c.getNormal(), -c.getForce());
-         }
-      }
-      for (ContactConstraint c : myBilaterals1.values()) {
-         if (c.myCpnt0.isOnCollidable (colA)) {            
-            accumulateForces (
-               map, c.myCpnt0, c.getNormal(), c.getForce());
-         }
-         else {
-            accumulateForces (
-               map, c.myCpnt1, c.getNormal(), -c.getForce());
+               map, c.myCpnt1, c.getNormal(), -c.getContactForce());
          }
       }
       // added by Fabien Pean, March 28, 2017
-      for (ContactConstraint c : myUnilaterals) {
+      for (ContactConstraint c : getUnilaterals()) {
          if (c.myCpnt0.isOnCollidable (colA)) {            
             accumulateForces (
-               map, c.myCpnt0, c.getNormal(), c.getForce());
+               map, c.myCpnt0, c.getNormal(), c.getContactForce());
          }
          else {
             accumulateForces (
-               map, c.myCpnt1, c.getNormal(), -c.getForce());
+               map, c.myCpnt1, c.getNormal(), -c.getContactForce());
          }
       }
    }
@@ -1482,17 +1699,12 @@ public class CollisionHandler extends ConstrainerBase
             mesh = myCollidable1.getCollisionMesh();
          }
          
-         for (ContactConstraint cc : myBilaterals0.values()) {
+         for (ContactConstraint cc : getBilaterals()) {
             if (cc.myLambda > 0) {
                storeVertexForces (valueMap, cc, mesh);
             }
          }
-         for (ContactConstraint cc : myBilaterals1.values()) {
-            if (cc.myLambda > 0) {
-               storeVertexForces (valueMap, cc, mesh);
-            }
-         }
-         for (ContactConstraint cc : myPrevUnilaterals) {
+         for (ContactConstraint cc : getUnilaterals()) {
             if (cc.myLambda > 0) {
                storeVertexForces (valueMap, cc, mesh);
             }

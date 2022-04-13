@@ -30,6 +30,7 @@ public class KKTSolverTest {
 
       VectorNd Rg; // if non-null, regularization for G
       VectorNd Rn; // if non-null, regularization for N
+      VectorNd Rd; // if non-null, regularization for D
 
       VectorNd bf; // rhs for mass matrix, must not be null
       VectorNd bg; // if non-null, rhs for G
@@ -348,6 +349,7 @@ public class KKTSolverTest {
       VectorNd the = new VectorNd(sizeN);
       int sizeD = mlcp.DT != null ? mlcp.DT.colSize() : 0;
 
+      VectorNd Rd = mlcp.Rd != null ? mlcp.Rd : new VectorNd(sizeD);
       VectorNd bd = mlcp.bd != null ? mlcp.bd : new VectorNd(sizeD);
       VectorNd phi = new VectorNd(sizeD);
       Status status;
@@ -363,7 +365,7 @@ public class KKTSolverTest {
          status = solver.solve (vel, lam, the, mlcp.bf, bg, bn);
       }
       else {
-         solver.factor (mlcp.M, sizeM, mlcp.GT, Rg, mlcp.NT, Rn, mlcp.DT);
+         solver.factor (mlcp.M, sizeM, mlcp.GT, Rg, mlcp.NT, Rn, mlcp.DT, Rd);
          status = solver.solve (
             vel, lam, the, phi, mlcp.bf, bg, bn, bd, mlcp.flim);
       }
@@ -477,6 +479,9 @@ public class KKTSolverTest {
          else if (name.equals ("Rn")) {
             mlcp.Rn = getVector (rtok, setNull);
          }
+         else if (name.equals ("Rd")) {
+            mlcp.Rd = getVector (rtok, setNull);
+         }
          else if (name.equals ("bf")) {
             mlcp.bf = getVector (rtok, setNull);
          }
@@ -533,6 +538,7 @@ public class KKTSolverTest {
       }
       if (sizeD != 0) {
          checkRowSize ("DT", mlcp.DT, sizeM);
+         checkSize ("Rd", mlcp.Rd, "DT", sizeD, true);
          checkSize ("bd", mlcp.bd, "DT", sizeD, true);
          checkSize ("phi", mlcp.phi, "DT", sizeD, true);
          checkSize ("flim", mlcp.flim, "DT", sizeD, false);

@@ -205,6 +205,15 @@ public class PointParticleAttachment
          vel.scaledAdd (scale, myParticle.getVelocity());
       }
    }
+   
+   public void computeForceOnMasters (
+      VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt,
+      SparseBlockMatrix S) {
+      int si;
+      if (myParticle != null && (si=myParticle.getSolveIndex()) != -1) {
+         uvec.addScaledSubVector (S.getBlockRowOffset(si), scale, fc);
+      }
+   }
 
    public boolean isControllable() {
       if (myParticle != null) {

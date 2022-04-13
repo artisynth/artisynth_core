@@ -346,8 +346,16 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doFactorMatrix__J
  * Method:    doSolve
  * Signature: (J[D[D)I
  */
-JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve__J_3D_3D
   (JNIEnv *, jobject, jlong, jdoubleArray, jdoubleArray);
+
+/*
+ * Class:     maspack_solvers_PardisoSolver
+ * Method:    doSolve
+ * Signature: (J[D[DI)I
+ */
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve__J_3D_3DI
+  (JNIEnv *, jobject, jlong, jdoubleArray, jdoubleArray, jint);
 
 /*
  * Class:     maspack_solvers_PardisoSolver

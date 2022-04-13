@@ -92,7 +92,7 @@ public class LaymanDemo extends RootModel {
       // myMechMod.setProfiling (true);
       myMechMod.setIntegrator (Integrator.ConstrainedBackwardEuler);
       //addBreakPoint (0.90);
-
+      //myMechMod.setCompliantContact();
       // try {
       //    String name = "old.txt";
       //    if (MechModel.useNewCollisionManager) {

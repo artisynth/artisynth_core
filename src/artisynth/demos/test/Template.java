@@ -6,6 +6,7 @@ import java.util.*;
 
 import artisynth.core.workspace.*;
 import artisynth.core.mechmodels.*;
+import artisynth.core.modelbase.*;
 import artisynth.core.femmodels.*;
 import artisynth.core.materials.*;
 import artisynth.core.probes.*;
@@ -29,6 +30,11 @@ public class Template extends RootModel {
       
       PolygonalMesh mesh = MeshFactory.createSphere (1.0, 12);
       mech.addMeshBody (new FixedMeshBody (mesh));
+   }
+
+   public StepAdjustment advance (double t0, double t1, int flags) {
+      StepAdjustment sa = super.advance (t0, t1, flags);
+      return sa;
    }
 
 }

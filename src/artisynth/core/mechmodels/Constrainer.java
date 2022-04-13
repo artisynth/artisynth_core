@@ -15,7 +15,7 @@ import maspack.util.*;
 import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import maspack.spatialmotion.FrictionInfo;
 
 /**
  * Implements a constraint acting on one or more dynamic compnents. It provides
@@ -223,6 +223,11 @@ public interface Constrainer {
     */
    public int getUnilateralForces (VectorNd the, int idx);
 
+   public int setUnilateralState (VectorNi state, int idx);
+   
+   public int getUnilateralState (VectorNi state, int idx);
+   
+   
    /**
     * Returns the maximum number of friction constraint sets that can be
     * expected for this constraint. There should be one constraint set for each
@@ -247,11 +252,48 @@ public interface Constrainer {
     * is appended.
     * @param finfo returns friction constraint information for each
     * block column in {@code Dc^T}
+    * @param prune restrict entries of DT to friction constraints
+    * for which the contact force is {@code > 0}.
     * @param idx starting index for friction information in {@code finfo}
     * @return updated value of {@code idx}
     */
    public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int idx);
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
+      boolean prune, int idx);
+   
+   /**
+    * Sets the friction forces that were computed to enforce this
+    * constraint. These are the Lagrange multipliers for the columns of the
+    * transposed friction constraint matrix. The forces are
+    * supplied in {@code phi}, starting at the index {@code idx}, and should be
+    * scaled by {@code s}. (In practice, {@code s} is used to convert from
+    * impulses to forces.) The method must return an updated value of {@code
+    * idx}, incremented by the number of forces associated with this constraint.
+    * 
+    * @param phi supplies the force impulses, which should be scaled by {@code
+    * s}
+    * @param s scaling factor for the force values
+    * @param idx starting index of forces in {@code phi}
+    * @return updated value of {@code idx}
+    */
+   public int setFrictionForces (VectorNd phi, double s, int idx);
+
+   /**
+    * Returns the friction forces that were most recently set for this
+    * constrainer using {@link #setFrictionForces}. The forces are returned in
+    * {@code phi}, starting at the index {@code idx}.  The method must return
+    * an updated value of {@code idx}, incremented by the number of forces
+    * associated with this constraint.
+    *
+    * @param phi returns the forces
+    * @param idx starting index for forces in {@code phi}
+    * @return updated value of {@code idx}
+    */
+   public int getFrictionForces (VectorNd phi, int idx);
+   
+   public int setFrictionState (VectorNi state, int idx);
+   
+   public int getFrictionState (VectorNi state, int idx);
 
    /**
     * Updates the current set of constraints, and returns the maximum

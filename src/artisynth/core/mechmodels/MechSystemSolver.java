@@ -9,11 +9,13 @@ package artisynth.core.mechmodels;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.*;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import maspack.spatialmotion.FrictionInfo;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StepAdjustment;
+import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthIO;
 import maspack.function.Function1x1;
 import maspack.matrix.EigenDecomposition;
@@ -26,9 +28,11 @@ import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseBlockSignature;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.matrix.VectorNi;
 import maspack.solvers.CGSolver;
 import maspack.solvers.DirectSolver;
 import maspack.solvers.IterativeSolver;
@@ -36,7 +40,10 @@ import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.solvers.KKTSolver;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.UmfpackSolver;
+import maspack.solvers.LCPSolver;
 import maspack.solvers.SparseSolverId;
+import maspack.solvers.MurtyMechSolver;
+import maspack.spatialmotion.FrictionInfo;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -48,22 +55,29 @@ public class MechSystemSolver {
    MechSystem mySys;
    RigidBodySolver myRBSolver;
 
+   /**
+    * Flag for KKTSolverFactorAndSolve methods: do not update the system with
+    * the computed velocities and constraint forces.
+    */
+   public static int NO_SYS_UPDATE = 0x02;
+
    public boolean profileKKTSolveTime = false;
    public boolean profileWholeSolve = false;
    public boolean profileConstrainedBE = false;
+   public boolean profileImplicitFriction = false;
    // always updating friction causes inverseMassMatrix updates
    public boolean alwaysProjectFriction = true;
    public boolean implicitFriction = false;
+   public boolean murtyFriction = false;
+
+   public boolean myUseImplicitFriction = false;
    
    //public static boolean useStiffnessPosProjection = true;
    public static boolean useVelProjection = true;
-   public static boolean useGlobalFriction = true;
    public static boolean useFictitousJacobianForces = true;
    // always do an analysis phase before KKTsolves. Only used for testing
    public static boolean myAlwaysAnalyze = false;
-
-   //public static boolean updateForcesAtStepEnd = true;
-
+   
    private boolean myUpdateForcesAtStepEnd = false;
    private boolean computeKKTResidual = false;
 
@@ -83,12 +97,15 @@ public class MechSystemSolver {
    // bilateral constraints
 
    SparseBlockMatrix myGT;
+   SparseBlockSignature myGTSignature;
    private int myGsize = -1;
    private ConstraintInfo[] myGInfo = new ConstraintInfo[0];
    private VectorNd myGdot = new VectorNd();
    private VectorNd myRg = new VectorNd();
    private VectorNd myBg = new VectorNd();
    private VectorNd myLam = new VectorNd();
+   private int myGTSystemVersion = -1;
+   private boolean myGTVersionValid = false;
    private int myGTVersion = -1;
 
    // unilateral constraints
@@ -100,14 +117,19 @@ public class MechSystemSolver {
    private VectorNd myRn = new VectorNd();
    private VectorNd myBn = new VectorNd();
    private VectorNd myThe = new VectorNd();
+   private int myNTSystemVersion = -1;
 
    // friction constraints
 
    SparseBlockMatrix myDT;
-   private int myDsize = -1;
+   private int myDSize = -1;
+   VectorNd myRd = new VectorNd();
    VectorNd myBd = new VectorNd();
    VectorNd myPhi = new VectorNd();
-   FrictionInfo[] myFrictionInfo = new FrictionInfo[0];
+   ArrayList<FrictionInfo> myFrictionInfo = new ArrayList<>();
+   private int myFrictionIters = 1;
+   private int myNumFrictionEntries = 0;
+   private int myFullDSize = 0;
 
    protected PardisoSolver pardiso;
    protected UmfpackSolver umfpack;
@@ -175,9 +197,16 @@ public class MechSystemSolver {
    int myNumActive = 0;
    int myNumParametric = 0;
 
+   FunctionTimer myKKTTimer = new FunctionTimer();
+   int myKKTCnt = 0;
+   FunctionTimer mySolveTimer = new FunctionTimer();
+   int mySolveCnt = 0;
+
    VectorNd myVel = new VectorNd();
    //VectorNd myPos = new VectorNd();
 
+   public static double myT1; // for debugging
+   
    public void setUpdateForcesAtStepEnd (boolean enable) {
       myUpdateForcesAtStepEnd = enable;
    }
@@ -241,6 +270,25 @@ public class MechSystemSolver {
 
    public void setHybridSolve (boolean enable) {
       myHybridSolveP = enable;
+      if (myMurtySolver != null) {
+         myMurtySolver.setHybridSolves (enable);
+      }
+   }
+
+   public boolean getUseImplicitFriction () {
+      return myUseImplicitFriction;
+   }
+
+   public void setUseImplicitFriction (boolean enable) {
+      myUseImplicitFriction = enable;
+   }
+
+   public int getFrictionIterations () {
+      return myFrictionIters;
+   }
+
+   public void setFrictionIterations (int num) {
+      myFrictionIters = num;
    }
 
    PardisoSolver myPardisoSolver;
@@ -248,6 +296,7 @@ public class MechSystemSolver {
    KKTSolver myKKTSolver;
    KKTSolver myConSolver;
    KKTSolver myStaticSolver;
+   MurtyMechSolver myMurtySolver;
 
    private SparseSolverId myMatrixSolver = SparseSolverId.Pardiso;
    Integrator myIntegrator = Integrator.SymplecticEuler;
@@ -385,13 +434,10 @@ public class MechSystemSolver {
       }
    }
 
-   private void ensureFrictionCapacity (int cap) {
-      if (myFrictionInfo.length < cap) {
-         int oldcap = myFrictionInfo.length;
-         myFrictionInfo = Arrays.copyOf (myFrictionInfo, cap);
-         for (int i=oldcap; i<cap; i++) {
-            myFrictionInfo[i] = new MechSystem.FrictionInfo();
-         }
+   private void ensureFrictionCapacity (
+      ArrayList<FrictionInfo> finfo, int cap) {
+      while (finfo.size() < cap) {
+         finfo.add (new FrictionInfo());
       }
    }
 
@@ -603,6 +649,7 @@ public class MechSystemSolver {
       setHybridSolve (solver.getHybridSolve());
       setIntegrator (solver.getIntegrator());
       setMatrixSolver (solver.getMatrixSolver());
+      setUseImplicitFriction (solver.getUseImplicitFriction());
    }
 
    public void nonDynamicSolve (double t0, double t1, StepAdjustment stepAdjust) {
@@ -613,8 +660,16 @@ public class MechSystemSolver {
    public void solve (
       double t0, double t1, StepAdjustment stepAdjust) {
 
+      myT1 = t1;
+      if (t0 == 0) {
+         if (myMurtySolver != null) {
+            myMurtySolver.resetTimers();
+            myMurtySolverTimer.reset();
+            myKKTCnt = 0;
+         }
+      }
       if (profileWholeSolve) {
-         timerStart();
+         mySolveTimer.restart();
       }
       updateStateSizes();
       updateMassMatrix (t0);
@@ -678,8 +733,13 @@ public class MechSystemSolver {
          computeParametricForces(t1-t0);
       }
       if (profileWholeSolve) {
-         timerStop ("wholeSolve");
+         mySolveTimer.stop();
+         mySolveCnt++;
+         if ((mySolveCnt%100) == 0) {
+            System.out.println ("wholeSolve " + mySolveTimer.result(mySolveCnt));
+         }
       }
+      //System.out.println ("t1=" + t1);
    }
 
    protected void forwardEuler (double t0, double t1, StepAdjustment stepAdjust) {
@@ -711,7 +771,8 @@ public class MechSystemSolver {
       mySys.updateConstraints (t0, null, MechSystem.UPDATE_CONTACTS);
       applyVelCorrection (myU, t0, t1);
 
-      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQ, myUtmp, t1, stepAdjust);
    }
 
    //return constraint forces
@@ -760,7 +821,8 @@ public class MechSystemSolver {
 
       mySys.addActivePosImpulse (myQ, h, myU);
       mySys.setActivePosState (myQ);
-      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQ, myUtmp, t1, stepAdjust);
    }
 
    protected void symplecticEulerX (
@@ -782,7 +844,7 @@ public class MechSystemSolver {
       constrainedVelSolve (myU, myF, t0, t1);
       mySys.setActiveVelState (myU);         
 
-      if (updateAndProjectFrictionConstraints (myU, t0)) {
+      if (updateAndProjectFrictionConstraints (myU, t0, h)) {
          mySys.setActiveVelState (myU);
       }
 
@@ -791,7 +853,8 @@ public class MechSystemSolver {
       mySys.addActivePosImpulse (myQ, h, myU);
       mySys.setActivePosState (myQ);
 
-      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQ, myUtmp, t1, stepAdjust);
    }
 
    protected void rungeKutta4 (double t0, double t1, StepAdjustment stepAdjust) {
@@ -889,18 +952,23 @@ public class MechSystemSolver {
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
 
       applyVelCorrection (myUtmp, t0, t1);
-      applyPosCorrection (myQtmp, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQtmp, myUtmp, t1, stepAdjust);
    }
 
-   FunctionTimer timer = new FunctionTimer();
-
-   private void timerStart() {
+   private void timerStart (FunctionTimer timer) {
       timer.start();
    }
 
-   private void timerStop(String msg) {
+   private void timerStop (String msg, FunctionTimer timer) {
       timer.stop();
       System.out.println (msg + ": " + timer.result(1));
+   }
+
+   private void timerStopStart (String msg, FunctionTimer timer) {
+      timer.stop();
+      System.out.println (msg + ": " + timer.result(1));
+      timer.start();
    }
 
    // begin timing code for the solver
@@ -1066,7 +1134,8 @@ public class MechSystemSolver {
       mySys.addActivePosImpulse (myQ, h, myU);
       mySys.setActivePosState (myQ);
 
-      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQ, myUtmp, t1, stepAdjust);
    }
 
    private static PrintWriter myLogWriter;
@@ -1083,7 +1152,6 @@ public class MechSystemSolver {
       }
    }
 
-
    void printArray (String msg, int[] array) {
       System.out.print (msg);
       for (int i=0; i<array.length; i++) {
@@ -1091,21 +1159,48 @@ public class MechSystemSolver {
       }
       System.out.println ("");      
    }
+   
+   private int getGTVersion() {
+      // compute GT version on demand
+      if (!myGTVersionValid) {
+         // compute GT version from GT matrix signature
+         SparseBlockSignature sig = myGT.getSignature();
+         if (myGTSignature == null) {
+            myGTVersion++;
+         }
+         else {
+            boolean structureChanged = !myGTSignature.equals (sig);
+            if (structureChanged) {
+               myGTVersion++;
+            }
+         }
+         myGTSignature = sig;
+         myGTVersionValid = true;
+      }
+      return myGTVersion;
+   }
 
    protected void updateBilateralConstraints () {
       // assumes that updateStateSizes() has been called
-      int[] oldStructure = null;
-
-      if (myGT != null) {
-         oldStructure = myGT.getBlockStructure();
+      if (myGTSystemVersion != mySys.getStructureVersion()) {
+         myGTSystemVersion = mySys.getStructureVersion();
       }
       myGT = new SparseBlockMatrix ();
       mySys.getBilateralConstraints (myGT, myGdot);
       // need to check  to see if structure of GT has changed
-      if (oldStructure == null || 
-          !myGT.blockStructureEquals (oldStructure)) {
-         myGTVersion++;
-      }
+
+      myGTVersionValid = false;
+//      SparseSignature sig = myGT.getSignature();
+//      if (myGTSignature == null) {
+//         myGTVersion++;
+//      }
+//      else {
+//         boolean structureChanged = !myGTSignature.equals (sig);
+//         if (structureChanged) {
+//            myGTVersion++;
+//         }
+//      }
+//      myGTSignature = sig;
       myGsize = myGT.colSize();
       ensureGInfoCapacity (myGsize);
       myRg.setSize (myGsize);
@@ -1114,6 +1209,22 @@ public class MechSystemSolver {
    }
 
    protected void updateUnilateralConstraints () {
+      // assumes that updateStateSizes() has been called
+      if (myNTSystemVersion != mySys.getStructureVersion()) {
+         myNTSystemVersion = mySys.getStructureVersion();
+      }
+
+      myNT = new SparseBlockMatrix ();
+      mySys.getUnilateralConstraints (myNT, myNdot);
+
+      myNsize = myNT.colSize();
+      ensureNInfoCapacity (myNsize);
+      myRn.setSize (myNsize);
+      myBn.setSize (myNsize);
+      myThe.setSize (myNsize);
+   }
+
+   protected void updateUnilateralConstraintsNorm () {
       // assumes that updateStateSizes() has been called
       myNT = new SparseBlockMatrix ();
       mySys.getUnilateralConstraints (myNT, myNdot);
@@ -1124,18 +1235,46 @@ public class MechSystemSolver {
       myThe.setSize (myNsize);
    }
 
-   protected boolean updateFrictionConstraints () {
+   protected boolean updateFrictionConstraints (double h, boolean prune) {
       // assumes that updateStateSizes() has been called
       myDT = new SparseBlockMatrix ();
 
       int fmax = mySys.maxFrictionConstraintSets();
-      ensureFrictionCapacity (fmax);
-      mySys.getFrictionConstraints (myDT, myFrictionInfo);
+      ensureFrictionCapacity (myFrictionInfo, fmax);
+      int numf = mySys.getFrictionConstraints (myDT, myFrictionInfo, prune);
+      myFullDSize = 0;
+      for (int k=0; k<numf; k++) {
+         myFullDSize += myFrictionInfo.get(k).blockSize;
+      }
+      myNumFrictionEntries = numf;
       int sizeD = myDT.colSize();
+      myDSize = sizeD;
+      
+      myRd.setSize (sizeD);
       myBd.setSize (sizeD);
       myPhi.setSize (sizeD);
 
+      int k = 0;
+      for (int i=0; i<numf; i++) {
+         FrictionInfo info = myFrictionInfo.get(i);
+         if (info.blockIdx != -1) {
+            double creep = info.stictionCreep;
+            for (int j=0; j<info.blockSize; j++) {
+               myRd.set (k++, creep/h);
+            }
+         }
+      }
+      // if (myDT != null) {
+      //    FunctionTimer timer = new FunctionTimer();
+      //    timer.start();
+      //    int[] struct = myDT.getBlockStructure();
+      //    myDT.blockStructureEquals (struct);
+      //    timer.stop();
+      //    System.out.println ("  structure test: " + timer.result(1));
+      // }
+
       // compute friction offsets
+      // XXX think we need to add Rd to this, but ignore since Rd assumed small
       if (sizeD > 0 && myParametricVelSize > 0) {
          myDT.mulTranspose (
             myBd, myUpar, 0, sizeD, myActiveVelSize, myParametricVelSize);
@@ -1145,6 +1284,15 @@ public class MechSystemSolver {
          myBd.setZero();
       }
       return alwaysProjectFriction ? true : sizeD > 0;
+   }
+
+   boolean warnIssued = false;
+
+   private void warnFriction (String msg) {
+      if (!warnIssued) {
+         System.out.println ("CHECK FRICTION: " + msg);
+         warnIssued = true;
+      }
    }
 
    /** 
@@ -1176,13 +1324,14 @@ public class MechSystemSolver {
     * @param btmp temporary vector
     * @param vel0 right side velocity
     * @param h interval time step
+    * @param flags NO_SYS_UPDATE
     */
    public void KKTFactorAndSolve (
       VectorNd vel, VectorNd fpar, VectorNd bf, VectorNd btmp, VectorNd vel0, 
-      double h) {
+      double h, int flags) {
 
       KKTFactorAndSolve (
-         vel, fpar, bf, btmp, vel0, h, -h, -h*h, -h, 0);
+         vel, fpar, bf, btmp, vel0, h, -h, -h*h, -h, 0, flags);
    }
 
    // Setting crsFileName will cause the KKT system matrix and RHS
@@ -1250,7 +1399,7 @@ public class MechSystemSolver {
       }
    }
 
-   protected void printEigenValues (Matrix S, int size, String msg, String fmt) {
+   void printEigenValues (Matrix S, int size, String msg, String fmt) {
       MatrixNd SD = new MatrixNd (size, size);
       S.getSubMatrix (0, 0, SD);
       EigenDecomposition ED =
@@ -1260,6 +1409,37 @@ public class MechSystemSolver {
       ED.get (eig, null, null);
       System.out.println (msg + eig.toString (fmt));
    }
+
+   void checkContactSolverPivots() {
+      int nfail = myMurtySolver.numFailedPivots();
+      if (nfail > 0) {
+         System.out.printf (
+            "Failed pivots in constraint solve: %4d. %s\n", nfail,
+            "Try using compliant contacts and/or constraints.");
+      }
+   }
+
+   void showContactSolverTiming() {
+      if ((myKKTCnt%50) == 0) {
+         MurtyMechSolver cs = myMurtySolver;
+         double analyzeFactorTime =
+            (cs.getAvgAnalyzeTime()*cs.getTotalAnalyzeCount() +
+             cs.getAvgFactorTime()*cs.getTotalFactorCount())/myKKTCnt;
+         System.out.printf (
+            "Contact solver: analyze/factor=%g solve=%g "+
+            "nsolves=%g analyzeCnt=%d\n",
+            analyzeFactorTime,
+            cs.getAvgSolveTime(),
+            cs.getTotalSolveCount()/(double)myKKTCnt,
+            cs.getTotalAnalyzeCount());
+         System.out.println (
+            "Total solve time (usec): " +
+            myMurtySolverTimer.getTimeUsec()/myKKTCnt);
+         
+      }
+   }
+
+   FunctionTimer myMurtySolverTimer = new FunctionTimer();
 
    /** 
     * Solves a KKT system in which the Jacobian augmented M matrix and
@@ -1295,21 +1475,29 @@ public class MechSystemSolver {
     * @param a1 left side df/dx coefficient
     * @param a2 right side df/dv coefficient
     * @param a3 right side df/dx coefficient
+    * @param flags NO_SYS_UPDATE
     */
    public void KKTFactorAndSolve (
       VectorNd vel, VectorNd fpar, VectorNd bf, VectorNd btmp, VectorNd vel0,
-      double h, double a0, double a1, double a2, double a3) {
+      double h, double a0, double a1, double a2, double a3, 
+      int flags) {
 
+      myKKTCnt++;
+      boolean updateSystem = ((flags & NO_SYS_UPDATE) == 0);
+      
       if (profileKKTSolveTime) {
-         timerStart();
+         myKKTTimer.start();
       }
       //FunctionTimer timer = new FunctionTimer();
       // assumes that updateMassMatrix() has been called
       updateStateSizes();
 
       int velSize = myActiveVelSize;
-      boolean analyze = myAlwaysAnalyze;
-
+      boolean analyze = (myAlwaysAnalyze | murtyFriction);
+      int contactSolverFlags = 0; // MurtySparseContactSolver.NT_INACTIVE;
+      if (analyze) {
+         contactSolverFlags = MurtyMechSolver.REBUILD_A;
+      }
       updateSolveMatrixStructure();
       if (myKKTSolveMatrixVersion != mySolveMatrixVersion) {
          myKKTSolveMatrixVersion = mySolveMatrixVersion;
@@ -1357,20 +1545,30 @@ public class MechSystemSolver {
             btmp, myUpar, 0, velSize, velSize, myParametricVelSize);
          bf.sub (btmp);
       }
+      
+      VectorNd ff = new VectorNd();
 
-      if (myKKTSolver == null) {
-         myKKTSolver = new KKTSolver(myMatrixSolver);
+      if (myUseImplicitFriction) {
+         if (myMurtySolver == null) {
+            myMurtySolver = new MurtyMechSolver();
+            myMurtySolver.setHybridSolves (myHybridSolveP);
+         }
       }
+      else {
+         if (myKKTSolver == null) {
+            myKKTSolver = new KKTSolver(myMatrixSolver);
+         }
+      }
+      
       if (profileKKTSolveTime) {
-         timerStop("    KKT solve: build matrix");
-         timerStart();
+         timerStopStart ("    KKT solve: build matrix", myKKTTimer);
       }     
 
       updateBilateralConstraints ();
 
-      if (myKKTGTVersion != myGTVersion) {
+      if (myKKTGTVersion != getGTVersion()) {
          analyze = true;
-         myKKTGTVersion = myGTVersion;
+         myKKTGTVersion = getGTVersion();
       }
 
       if (myGsize > 0 && myParametricVelSize > 0) {
@@ -1406,9 +1604,15 @@ public class MechSystemSolver {
       myLam.scale (h);
       myThe.scale (h);
 
+      if (myUseImplicitFriction) {
+         updateFrictionConstraints (h, /*prune=*/false);
+         // XXX set friction offsets?
+         mySys.getFrictionForces (myPhi);
+         myPhi.scale (h);
+      }
+
       if (profileKKTSolveTime) {
-         timerStop("    KKT solve: update constraints");
-         timerStart();
+         timerStop ("    KKT solve: update constraints", myKKTTimer);
       }     
 
       if (!solveModePrinted) {
@@ -1437,31 +1641,107 @@ public class MechSystemSolver {
             // set vel to vel0 in case the solver needs a warm start
             vel.set (vel0);
          }
-         if (analyze) {
-            myKKTSolver.analyze (
-               S, velSize, myGT, myRg, mySys.getSolveMatrixType());
+         if (profileKKTSolveTime|profileImplicitFriction) {
+            System.out.printf (
+               "    KKT solve: M=%d G=%d N=%d\n",
+               S.rowSize(), myGT.colSize(), myNT.colSize());
          }
-         if (analyze && profileKKTSolveTime) {
-            timerStop("    KKT solve: analyze");
-            timerStart();            
-         }
-         if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
-            myKKTSolver.factorAndSolve (
-               S, velSize, myGT, myRg, vel, myLam, bf, myBg, myHybridSolveTol);
-            if (profileKKTSolveTime) {
-               timerStop ("    KKTsolve(hybrid)");
-               timerStart();
+         if (myUseImplicitFriction) {
+            if (profileKKTSolveTime|profileImplicitFriction) {
+               timerStart (myKKTTimer);
             }
+            myMurtySolverTimer.restart();
+            // get state
+            int sizeN = (myNT != null ? myNT.colSize() : 0);
+            int sizeD = (myDT != null ? myDT.colSize() : 0);
+            VectorNi stateN = new VectorNi(sizeN);
+            VectorNi stateD = new VectorNi(sizeD);
+            mySys.getUnilateralState (stateN, 0);
+            getFrictionState (stateD, 0);
+            LCPSolver.Status status = myMurtySolver.solve (
+               vel, myLam, myThe, myPhi, 
+               S, velSize, bf, myKKTSolveMatrixVersion, myGT, myRg, myBg, 
+               myNT, myRn, myBn, stateN, myDT, myRd, myBd, stateD,
+               myFrictionInfo, myFrictionIters, contactSolverFlags); 
+            checkContactSolverPivots();
+            // System.out.println (
+            //    "state out: " + LCPSolver.stateToString (state));
+            // System.out.println (
+            //    "A matrix: " + myMurtySolver.getAConsString());
+            // XXX hack for when NT_INACTIVE is set in solve call
+            for (int i=0; i<sizeN; i++) {
+               if (stateN.get(i) == LCPSolver.W_VAR_UPPER) {
+                  stateN.set(i, LCPSolver.W_VAR_LOWER);
+               }
+            }
+            mySys.setUnilateralState (stateN, 0);
+            setFrictionState (stateD, 0);                   
+            if (profileKKTSolveTime|profileImplicitFriction) {
+               timerStop ("    KKT solve: contact solve", myKKTTimer);
+            }
+               System.out.println ("stateN=" + LCPSolver.stateToString(stateN));
+               System.out.println ("stateD=" + LCPSolver.stateToString(stateD));
+
+            if (status != LCPSolver.Status.SOLVED) {
+               // XXX handle this properly
+               System.out.println ("WARNING: velocity solve failed, "+status);
+               // MatrixNd D = new MatrixNd(myDT);
+               // D.transpose();
+               // System.out.println ("D=\n" + D.toString("%11.8f"));
+               // System.out.println ("Rd=\n" + myRd.toString("%11.8f"));
+               // MatrixNd N = new MatrixNd(myNT);
+               // N.transpose();
+               // System.out.println ("N=\n" + N.toString("%11.8f"));
+               // System.out.println ("Rn=\n" + myRn.toString("%11.8f"));
+               // System.out.println ("S=\n" + S.toString("%11.8f"));
+            }
+            myMurtySolverTimer.stop();
+            //showContactSolverTiming();
          }
          else {
-            myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
-            myKKTSolver.solve (vel, myLam, myThe, bf, myBg, myBn);
-            if (profileKKTSolveTime) {
-               timerStop ("    KKTsolve");
-               timerStart();
+            if (analyze) {
+               if (profileKKTSolveTime|profileImplicitFriction) {
+                  timerStart (myKKTTimer);
+               }
+               myKKTSolver.analyze (
+                  S, velSize, myGT, myRg, mySys.getSolveMatrixType());
+               if (profileKKTSolveTime|profileImplicitFriction) {
+                  timerStop ("    KKT solve: analyze", myKKTTimer);
+               }
+            }
+            if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
+               if (profileKKTSolveTime|profileImplicitFriction) {
+                  timerStart (myKKTTimer);
+               }
+               myKKTSolver.factorAndSolve (
+                  S, velSize, myGT, myRg, vel, myLam, bf, myBg, myHybridSolveTol);
+               if (profileKKTSolveTime|profileImplicitFriction) {
+                  timerStop ("    KKT solve: factorAndSolve(hybrid)", myKKTTimer);
+               }
+            }
+            else {
+               if (profileKKTSolveTime|profileImplicitFriction) {
+                  timerStart (myKKTTimer);
+               }
+               myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
+               myKKTSolver.solve (vel, myLam, myThe, bf, myBg, myBn);
+               if (profileKKTSolveTime|profileImplicitFriction) {
+                  timerStop ("    KKT solve: factor and solve", myKKTTimer);
+               }
             }
          }
-         if (computeKKTResidual) {
+         if (profileKKTSolveTime) {
+            timerStart (myKKTTimer);
+         }
+         if (updateSystem) {
+            mySys.setBilateralForces (myLam, 1/h);
+            mySys.setUnilateralForces (myThe, 1/h);
+            if (myUseImplicitFriction) {
+               setFrictionForces (myPhi, 1/h);
+            }
+            mySys.setActiveVelState (vel);
+         }
+         if (computeKKTResidual && !myUseImplicitFriction) {
             double res = myKKTSolver.residual (
                S, velSize, myGT, myRg, myNT, myRn, 
                vel, myLam, myThe, bf, myBg, myBn);
@@ -1471,7 +1751,7 @@ public class MechSystemSolver {
          }
     
          //System.out.println ("bg=" + myBg);
-         if (crsWriter != null) {
+         if (crsWriter != null && !myUseImplicitFriction) {
             String msg = 
                "# KKTsolve M="+velSize+" G="+myGT.colSize()+
                " N="+myNT.colSize()+(analyze ? " ANALYZE" : "");
@@ -1490,62 +1770,27 @@ public class MechSystemSolver {
       }
 
       if (myLogWriter != null) {
-         try {
-            NumberFormat fmt = new NumberFormat("%g");
-            myLogWriter.println ("M("+velSize+"x"+velSize+")=[");
-            S.write (myLogWriter, fmt, Matrix.WriteFormat.SYMMETRIC_CRS,
-               velSize, velSize);
-            myLogWriter.println ("];");
-            myLogWriter.println ("GT("+velSize+"x"+myGT.colSize()+")=[");
-            myGT.write (myLogWriter, fmt, Matrix.WriteFormat.CRS,
-               velSize, myGT.colSize()); 
-            myLogWriter.println ("];");
-            myLogWriter.println ("NT("+velSize+"x"+myNT.colSize()+")=[");
-            myNT.write (myLogWriter, fmt, Matrix.WriteFormat.CRS,
-               velSize, myNT.colSize());
-            myLogWriter.println ("];");
-            myLogWriter.println ("bf=[");
-            bf.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myBg=[");
-            myBg.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myBn=[");
-            myBn.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("vel=[");
-            vel.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myLam=[");
-            myLam.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myThe=[");
-            myThe.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("");        
-            myLogWriter.flush();
-            System.out.println ("logging");
-         }
-         catch (IOException e) {
-            e.printStackTrace();
-            myLogWriter = null;
-         }
+         writeSystemToLog (vel, bf, velSize);
       }
       
-      mySys.setBilateralForces (myLam, 1/h);
-      mySys.setUnilateralForces (myThe, 1/h);
+      if (profileKKTSolveTime) {
+         timerStop("    KKT solve: end stuff", myKKTTimer);
+      }
+   }
+   
+   protected void maybeAccumulateConstraintForces () {
       if (myUpdateForcesAtStepEnd) {
+         int velSize = myActiveVelSize;
          if (myGsize > 0) {
             myGT.mulAdd (myFcon, myLam, velSize, myGsize);
          }
          if (myNsize > 0) {
             myNT.mulAdd (myFcon, myThe, velSize, myNsize);
          }
-      }
-
-      if (profileKKTSolveTime) {
-         timerStop("    KKT solve: end stuff");
-      }
+         if (myUseImplicitFriction && myDSize > 0) {
+            myDT.mulAdd (myFcon, myPhi, velSize, myDSize);
+         }
+      }     
    }
    
    /**
@@ -1634,9 +1879,9 @@ public class MechSystemSolver {
       }
 
       updateBilateralConstraints ();
-      if (myKKTGTVersion != myGTVersion) {
+      if (myKKTGTVersion != getGTVersion()) {
          analyze = true;
-         myKKTGTVersion = myGTVersion;
+         myKKTGTVersion = getGTVersion();
       }
       // bilateral offsets
       // setBilateralOffsets (h, -a0); // -a0);
@@ -1647,25 +1892,6 @@ public class MechSystemSolver {
       updateUnilateralConstraints ();
       getUnilateralDeviation (myBn);
       
-      //      if (myStaticTikhonov < 0) {
-      //         double fn2 = S.frobeniusNormSquared();
-      //         if (myGsize > 0) {
-      //            fn2 += myGT.frobeniusNormSquared();
-      //         }
-      //         if (myNsize > 0) {
-      //            fn2 += myNT.frobeniusNormSquared();
-      //         }
-      //         double eps = Math.sqrt(0.1*Math.sqrt(fn2/velSize));
-      //         // add scaled identity
-      //         for (int i=0; i<S.numBlockRows(); ++i) {
-      //            MatrixBlock bi = S.getBlock(i, i);
-      //            for (int j=0; j<bi.rowSize(); ++j) {
-      //               bi.set(j,j, bi.get(j, j)+eps);
-      //            }
-      //         }
-      //         System.out.println("Tikhonov: " + eps);
-      //      }
-
       // get these in case we are doing hybrid solves and they are needed to
       // help with a warm start
       mySys.getBilateralForces (myLam);
@@ -1699,25 +1925,13 @@ public class MechSystemSolver {
                S, velSize, myGT, myRg, mySys.getSolveMatrixType());
          }
          if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
-            if (profileKKTSolveTime) {
-               timerStart();
-            }
             myStaticSolver.factorAndSolve (
                S, velSize, myGT, myRg, u, myLam, bf, myBg, myHybridSolveTol);
-            if (profileKKTSolveTime) {
-               timerStop ("KKTsolve(hybrid)");
-            }
          }
          else {
-            if (profileKKTSolveTime) {
-               timerStart();
-            }
             myStaticSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
             // int nperturbed = myStaticSolver.getNumNonZerosInFactors();
             myStaticSolver.solve (u, myLam, myThe, bf, myBg, myBn);
-            if (profileKKTSolveTime) {
-               timerStop ("KKTsolve");
-            }
          }
          if (computeKKTResidual) {
             double res = myStaticSolver.residual (
@@ -1749,59 +1963,11 @@ public class MechSystemSolver {
       }
 
       if (myLogWriter != null) {
-         try {
-            NumberFormat fmt = new NumberFormat("%g");
-            myLogWriter.println ("M("+velSize+"x"+velSize+")=[");
-            S.write (myLogWriter, fmt, Matrix.WriteFormat.Dense,
-               velSize, velSize);
-            myLogWriter.println ("];");
-            myLogWriter.println ("GT("+velSize+"x"+myGT.colSize()+")=[");
-            myGT.write (myLogWriter, fmt, Matrix.WriteFormat.Dense,
-               velSize, myGT.colSize()); 
-            myLogWriter.println ("];");
-            myLogWriter.println ("NT("+velSize+"x"+myNT.colSize()+")=[");
-            myNT.write (myLogWriter, fmt, Matrix.WriteFormat.Dense,
-               velSize, myNT.colSize());
-            myLogWriter.println ("];");
-            myLogWriter.println ("bf=[");
-            bf.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myBg=[");
-            myBg.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myBn=[");
-            myBn.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("u=[");
-            u.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myLam=[");
-            myLam.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("myThe=[");
-            myThe.write (myLogWriter, fmt);
-            myLogWriter.println ("];");
-            myLogWriter.println ("");        
-            myLogWriter.flush();
-            System.out.println ("logging");
-         }
-         catch (IOException e) {
-            e.printStackTrace();
-            myLogWriter = null;
-         }
+         writeSystemToLog (u, bf, velSize);
       }
 
       mySys.setBilateralForces (myLam, 1);
       mySys.setUnilateralForces (myThe, 1);
-      if (myUpdateForcesAtStepEnd) {
-         if (myGsize > 0) {
-            myGT.mulAdd (myFcon, myLam, velSize, myGsize);
-         }
-         if (myNsize > 0) {
-            myNT.mulAdd (myFcon, myThe, velSize, myNsize);
-         }
-      }
-
    }
    
    public void setCrsFileName(String name) {
@@ -1817,6 +1983,51 @@ public class MechSystemSolver {
          myLogWriter.close();
       }
       myLogWriter = writer;
+   }
+
+   private void writeSystemToLog (VectorNd vel, VectorNd bf, int vsize) {
+
+      try {
+         NumberFormat fmt = new NumberFormat("%g");
+         myLogWriter.println ("M("+vsize+"x"+vsize+")=[");
+         mySolveMatrix.write (
+            myLogWriter, fmt, Matrix.WriteFormat.SYMMETRIC_CRS, vsize, vsize);
+         myLogWriter.println ("];");
+         myLogWriter.println ("GT("+vsize+"x"+myGT.colSize()+")=[");
+         myGT.write (myLogWriter, fmt, Matrix.WriteFormat.CRS,
+                     vsize, myGT.colSize()); 
+         myLogWriter.println ("];");
+         myLogWriter.println ("NT("+vsize+"x"+myNT.colSize()+")=[");
+         myNT.write (myLogWriter, fmt, Matrix.WriteFormat.CRS,
+                     vsize, myNT.colSize());
+         myLogWriter.println ("];");
+         myLogWriter.println ("bf=[");
+         bf.write (myLogWriter, fmt);
+         myLogWriter.println ("];");
+         myLogWriter.println ("myBg=[");
+         myBg.write (myLogWriter, fmt);
+         myLogWriter.println ("];");
+         myLogWriter.println ("myBn=[");
+         myBn.write (myLogWriter, fmt);
+         myLogWriter.println ("];");
+         myLogWriter.println ("vel=[");
+         vel.write (myLogWriter, fmt);
+         myLogWriter.println ("];");
+         myLogWriter.println ("myLam=[");
+         myLam.write (myLogWriter, fmt);
+         myLogWriter.println ("];");
+         myLogWriter.println ("myThe=[");
+         myThe.write (myLogWriter, fmt);
+         myLogWriter.println ("];");
+         myLogWriter.println ("");        
+         myLogWriter.flush();
+         System.out.println ("logging");
+      }
+      catch (IOException e) {
+         e.printStackTrace();
+         myLogWriter = null;
+      }
+
    }
 
    /** 
@@ -1850,19 +2061,11 @@ public class MechSystemSolver {
    public void KKTSolve (
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd bf) {
 
-      if (myKKTSolver == null || !myKKTSolver.isFactored()) {
-         throw new IllegalStateException (
-            "KKTFactorAndSolve must be called prior to KKTSolve");
-      }
       int velSize = mySys.getActiveVelStateSize();
       if (velSize != vel.size()) {
          throw new IllegalStateException (
             "Velocity size != current active velocity state size");
       }
-      //SparseBlockMatrix S = mySys.getSolveMatrix (MechSystem.FULL_MATRIX);
-      //if (S != myKKTSolveMatrix) {
-      //   throw new IllegalStateException ("Solve matrix has changed");
-      //}
       if (myKKTSolveMatrixVersion != mySys.getStructureVersion()) {
          throw new IllegalStateException ("Solve structure has changed");
       }
@@ -1875,6 +2078,18 @@ public class MechSystemSolver {
          throw new IllegalStateException (
             "Number of unilateral offsets != number of unilateral constraints");
       }
+      if (myUseImplicitFriction) {
+         if (myMurtySolver == null || !myMurtySolver.isAMatrixFactored()) {
+            throw new IllegalStateException (
+               "KKTFactorAndSolve must be called prior to KKTSolve");
+         }
+      }
+      else {
+         if (myKKTSolver == null || !myKKTSolver.isFactored()) {
+            throw new IllegalStateException (
+               "KKTFactorAndSolve must be called prior to KKTSolve");
+         }
+      }
 
       lam.setSize (myGT.colSize());
       if (myNT != null) {
@@ -1884,14 +2099,20 @@ public class MechSystemSolver {
          the.setSize (0);
       }
       if (velSize != 0) {
-         myKKTSolver.solve (vel, lam, the, bf, myBg, myBn);
+         if (myUseImplicitFriction) {
+            myMurtySolver.resolveMG (vel, lam, bf, myBg);
+         }
+         else {
+            myKKTSolver.solve (vel, lam, the, bf, myBg, myBn);
+         }
       }
    }
 
-   protected void projectFrictionConstraintsImplicitly (
-      VectorNd vel, VectorNd bf, double t0) {
+   //int cnt = 0;
 
-      System.out.println ("implicit Nsize=" + myNT.colSize() + " Dsize=" +myDT.colSize());
+   protected void projectFrictionConstraintsImplicitly (
+      VectorNd vel, VectorNd bf, double t0, double h) {
+
       if (myDT.colSize() == 0) {
          return;
       }
@@ -1901,39 +2122,95 @@ public class MechSystemSolver {
       
       int k = 0;
       VectorNd flim = new VectorNd (myDT.colSize());
-      for (int bk=0; bk<myDT.numBlockCols(); bk++) {
-         FrictionInfo info = myFrictionInfo[bk];
-         double phiMax;
-         if ((info.flags & FrictionInfo.BILATERAL) != 0) {
-            phiMax = info.getMaxFriction (myLam);
+      for (int i=0; i<myNumFrictionEntries; i++) {
+         FrictionInfo info = myFrictionInfo.get(i);
+         if (info.blockIdx != -1) {
+            double phiMax;
+            if ((info.flags & FrictionInfo.BILATERAL) != 0) {
+               phiMax = info.getMaxFriction (myLam);
+            }
+            else {
+               phiMax = info.getMaxFriction (myThe);
+            } 
+            for (int j=0; j<info.blockSize; j++) {
+               flim.set (k++, phiMax);
+            }
          }
-         else {
-            phiMax = info.getMaxFriction (myThe);
-         }         
-         //System.out.println ("fm"+bk+" "+phiMax);
-         for (int i=0; i<myDT.getBlockColSize(bk); i++) {
-            flim.set (k++, phiMax);
+      }
+
+      FunctionTimer timer = new FunctionTimer();
+      if (murtyFriction) {
+         if (myMurtySolver == null) {
+            myMurtySolver = new MurtyMechSolver();
+            myMurtySolver.setSolver (myKKTSolver.getMatrixSolver());
+         }
+         int sizeN = (myNT != null ? myNT.colSize() : 0);
+         int sizeD = (myDT != null ? myDT.colSize() : 0);
+         VectorNi stateN = new VectorNi(sizeN);
+         VectorNi stateD = new VectorNi(sizeD);
+         // if (cnt > 2) {
+         //    myMurtySolver.setBlockPivoting(false);
+         // }
+         // cnt++;
+         timer.start();
+         mySys.getUnilateralState (stateN, 0);
+         getFrictionState (stateD, 0);
+         LCPSolver.Status status = myMurtySolver.solve (
+            vel, myLam, myThe, myPhi, S, velSize, bf, myKKTSolveMatrixVersion, 
+            myGT, myRg, myBg, myNT, myRn, myBn, stateN, 
+            myDT, myRd, myBd, stateD, myFrictionInfo);
+         //mySys.setUnilateralState (state, 0);
+         setFrictionState (stateD, 0);        
+         timer.stop();
+         if (profileImplicitFriction) {
+            System.out.println (
+               "MURTY SOLVE: "+timer.result(1)+
+               " N="+myNT.colSize()+" D="+myDT.colSize());
+            System.out.println (
+               " iters=" + myMurtySolver.getIterationCount() + 
+               " pivots=" + myMurtySolver.getPivotCount() +
+               " solves=" + myMurtySolver.getSolveCount() +
+               " " + status);
+         }
+      }
+      else {
+         timer.start();
+         myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn, myDT, myRd);
+         timer.stop();
+         if (profileImplicitFriction) {
+            System.out.println (
+               "FACTOR: "+timer.result(1)+
+               " N="+myNT.colSize()+" D="+myDT.colSize());
+         }
+         timer.start();
+         myKKTSolver.solve (vel, myLam, myThe, myPhi, bf, myBg, myBn, myBd, flim);
+         timer.stop();
+         if (profileImplicitFriction) {
+            System.out.println ("SOLVE: " + timer.result(1));
          }
       }
       
-      myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn, myDT);
-      myKKTSolver.solve (vel, myLam, myThe, myPhi, bf, myBg, myBn, myBd, flim);
+      setFrictionForces (myPhi, 1/h);
+      mySys.setUnilateralForces (myThe, 1/h);
+      mySys.setBilateralForces (myLam, 1/h);
 
-      //mySys.setBilateralForces (myLam, 1/h);
-      //mySys.setUnilateralForces (myThe, 1/h);
+      // if (mySys instanceof MechModel) {
+      //    MechModel mech = (MechModel)mySys;
+      //    mech.getCollisionManager().printNetContactForces();
+      // }
 
       if (myUpdateForcesAtStepEnd) {
-         if (myDsize > 0) {
-            myDT.mulAdd (myFcon, myPhi, velSize, myDsize);
+         if (myDSize > 0) {
+            myDT.mulAdd (myFcon, myPhi, velSize, myDSize);
          }
       }
       
    }
 
    protected boolean updateAndProjectFrictionConstraints (
-      VectorNd vel, double t0) {
+      VectorNd vel, double t0, double h) {
       // BEGIN project friction constraints
-      if (updateFrictionConstraints()) {
+      if (updateFrictionConstraints(h, /*prune=*/true)) {
          projectFrictionConstraints (vel, t0);
          return true;
       }
@@ -1941,19 +2218,173 @@ public class MechSystemSolver {
          return false;
       }
    }
+   
+   void setFrictionForces (VectorNd phi, double s) {
+      if (myFullDSize != myDSize) {
+         VectorNd fullphi = new VectorNd(myFullDSize);
+         int i = 0;
+         int j = 0;
+         for (int k=0; k<myNumFrictionEntries; k++) {
+            int blkSize = myFrictionInfo.get(k).blockSize;
+            if (myFrictionInfo.get(k).blockIdx != -1) {
+               if (blkSize == 1) {
+                  fullphi.set (i++, phi.get(j++));
+               }
+               else if (blkSize == 2) {
+                  fullphi.set (i++, phi.get(j++));
+                  fullphi.set (i++, phi.get(j++));               
+               }
+            }
+            else {
+               i += blkSize;
+            }
+         }
+         mySys.setFrictionForces (fullphi, s);
+      }
+      else {
+         mySys.setFrictionForces (phi, s);
+      }
+   }
+
+   void getFrictionForces (VectorNd phi) {
+      if (myFullDSize != myDSize) {
+         VectorNd fullphi = new VectorNd(myFullDSize);
+         mySys.getFrictionForces (fullphi);
+         int i = 0;
+         int j = 0;
+         for (int k=0; k<myNumFrictionEntries; k++) {
+            int blkSize = myFrictionInfo.get(k).blockSize;
+            if (myFrictionInfo.get(k).blockIdx != -1) {
+               if (blkSize == 1) {
+                  phi.set (j++, fullphi.get(i++));
+               }
+               else if (blkSize == 2) {
+                  phi.set (j++, fullphi.get(i++));
+                  phi.set (j++, fullphi.get(i++));               
+               }
+            }
+            else {
+               i += blkSize;
+            }
+         }
+      }
+      else {
+         mySys.getFrictionForces (phi);
+      }
+   }
+
+   void setFrictionState (VectorNi state, int startIdx) {
+      if (myFullDSize != myDSize) {
+         VectorNi fullstate = new VectorNi(myFullDSize);
+         int i = 0;
+         int j = startIdx;
+         for (int k=0; k<myNumFrictionEntries; k++) {
+            int blkSize = myFrictionInfo.get(k).blockSize;
+            if (myFrictionInfo.get(k).blockIdx != -1) {
+               if (blkSize == 1) {
+                  fullstate.set (i++, state.get(j++));
+               }
+               else if (blkSize == 2) {
+                  fullstate.set (i++, state.get(j++));
+                  fullstate.set (i++, state.get(j++));               
+               }
+            }
+            else {
+               i += blkSize;
+            }
+         }
+         mySys.setFrictionState (fullstate, 0);
+      }
+      else {
+         mySys.setFrictionState (state, startIdx);
+      }
+   }
+
+   void getFrictionState (VectorNi state, int startIdx) {
+      if (myFullDSize != myDSize) {
+         VectorNi fullstate = new VectorNi(myFullDSize);
+         mySys.getFrictionState (fullstate, 0);
+         int i = 0;
+         int j = startIdx;
+         for (int k=0; k<myNumFrictionEntries; k++) {
+            int blkSize = myFrictionInfo.get(k).blockSize;
+            if (myFrictionInfo.get(k).blockIdx != -1) {
+               if (blkSize == 1) {
+                  state.set (j++, fullstate.get(i++));
+               }
+               else if (blkSize == 2) {
+                  state.set (j++, fullstate.get(i++));
+                  state.set (j++, fullstate.get(i++));               
+               }
+            }
+            else {
+               i += blkSize;
+            }
+         }
+      }
+      else {
+         mySys.getFrictionState (state, startIdx);
+      }
+   }
+
+   boolean prevIndicesChanged (VectorNi idxs) {
+      for (int i=0; i<idxs.size(); i++) {
+         if (idxs.get(i) != i) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   boolean prevIndicesEmpty (VectorNi idxs) {
+      for (int i=0; i<idxs.size(); i++) {
+         if (idxs.get(i) != -1) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+//   void getPrevDIndices (VectorNi idxs) {
+//      int sizeD = (myDT != null ? myDT.colSize() : 0);
+//      idxs.setSize(sizeD);
+//      int k = 0;
+//      for (int i=0; i<myNumFrictionEntries; i++) {
+//         FrictionInfo fi = myFrictionInfo.get(i);
+//         int idx = fi.prevFrictionIdx;
+//         if (idx == -1) {
+//            for (int j=0; j<fi.blockSize; j++) {
+//               idxs.set (k++, -1);
+//            }
+//         }
+//         else {
+//            for (int j=0; j<fi.blockSize; j++) {
+//               idxs.set (k++, idx++);
+//            }
+//         }
+//      }
+//   }
 
    protected void projectFrictionConstraints (VectorNd vel, double t0) {
       
       // assumes that updateMassMatrix() has been called
-      int version = (myAlwaysAnalyze ? -1 : myGTVersion);
+      int version = (myAlwaysAnalyze ? -1 : getGTVersion());
       if (myRBSolver == null) {
          myRBSolver = new RigidBodySolver (mySys);
       }
+      int sizeN = (myNT != null ? myNT.colSize() : 0);
+      int sizeD = (myDT != null ? myDT.colSize() : 0);
+      VectorNi state = new VectorNi(sizeN + sizeD);
+      mySys.getUnilateralState (state, 0);
+      getFrictionState (state, sizeN);
       myRBSolver.updateStructure (myMass, myGT, version);
-
       myRBSolver.projectFriction (
          myMass, myGT, myNT, myDT,
-         myRg, myBg, myRn, myBn, myBd, myFrictionInfo, vel, myLam, myThe, myPhi);
+         myRg, myBg, myRn, myBn, myRd, myBd, myFrictionInfo,
+         state, vel, myLam, myThe, myPhi);
+
+      mySys.setUnilateralState (state, 0);
+      setFrictionState (state, sizeN);        
 
       // do a Gauss-Siedel project on remaining friction constraints:
 
@@ -1975,7 +2406,8 @@ public class MechSystemSolver {
          }
          updateInverseMassMatrix (t0);
          for (i=0; i<DTmap.length; i++) {
-            FrictionInfo info = myFrictionInfo[DTmap[i]];
+            // XXX
+            FrictionInfo info = myFrictionInfo.get(DTmap[i]);
             double phiMax;
             if ((info.flags & FrictionInfo.BILATERAL) != 0) {
                phiMax = info.getMaxFriction (myLam);
@@ -1985,14 +2417,15 @@ public class MechSystemSolver {
             }
             int bj = DTmap[i];
             projectSingleFrictionConstraint (
-               myPhi, vel, myDT, myBd, bj, phiMax, /*ignore rigid bodies=*/true);
+               myPhi, vel, myDT, myBd, bj, phiMax, 
+                  /*ignore rigid bodies=*/true);
          }
       }
 
       if (myUpdateForcesAtStepEnd) {
          int velSize = myActiveVelSize;
-         if (myDsize > 0) {
-            myDT.mulAdd (myFcon, myPhi, velSize, myDsize);
+         if (myDSize > 0) {
+            myDT.mulAdd (myFcon, myPhi, velSize, myDSize);
          }
       }
    }
@@ -2142,13 +2575,13 @@ public class MechSystemSolver {
       // TODO: need to add fictitous forces
       myMass.mul (myBf, vel, velSize, velSize);
 
-      if (myConMassVersion != myMassVersion || myConGTVersion != myGTVersion) {
+      if (myConMassVersion != myMassVersion || myConGTVersion != getGTVersion()) {
          analyze = true;
       }
       if (analyze) {
          myConSolver.analyze (myMass, velSize, myGT, myRg, Matrix.SPD);
          myConMassVersion = myMassVersion;
-         myConGTVersion = myGTVersion;
+         myConGTVersion = getGTVersion();
       }
       // get these in case (at some future point) they are needed for warm
       // startin the solve
@@ -2173,14 +2606,7 @@ public class MechSystemSolver {
       mySys.setBilateralForces (myLam, 1/h);
       mySys.setUnilateralForces (myThe, 1/h);
 
-      if (myUpdateForcesAtStepEnd) {
-         if (myGsize > 0) {
-            myGT.mulAdd (myFcon, myLam, velSize, myGsize);
-         }
-         if (myNsize > 0) {
-            myNT.mulAdd (myFcon, myThe, velSize, myNsize);
-         }
-      }
+      maybeAccumulateConstraintForces();
    }
 
    protected void constrainedVelSolve (
@@ -2249,13 +2675,13 @@ public class MechSystemSolver {
       // System.out.println ("f=\n" + f.toString ("%8.3f"));
 
       myMass.mulAdd (myBf, vel, velSize, velSize);
-      if (myConMassVersion != myMassVersion || myConGTVersion != myGTVersion) {
+      if (myConMassVersion != myMassVersion || myConGTVersion != getGTVersion()) {
          analyze = true;
       }
       if (analyze) {
          myConSolver.analyze (myMass, velSize, myGT, myRg, Matrix.SPD);
          myConMassVersion = myMassVersion;
-         myConGTVersion = myGTVersion;
+         myConGTVersion = getGTVersion();
       }
       // get these in case (at some future point) they are needed for warm
       // startin the solve
@@ -2280,14 +2706,7 @@ public class MechSystemSolver {
       mySys.setBilateralForces (myLam, 1/h);
       mySys.setUnilateralForces (myThe, 1/h);
 
-      if (myUpdateForcesAtStepEnd) {
-         if (myGsize > 0) {
-            myGT.mulAdd (myFcon, myLam, velSize, myGsize);
-         }
-         if (myNsize > 0) {
-            myNT.mulAdd (myFcon, myThe, velSize, myNsize);
-         }
-      }
+      maybeAccumulateConstraintForces();
    }
 
    public void projectPosConstraints (double t) {
@@ -2347,7 +2766,7 @@ public class MechSystemSolver {
          myLam.setZero();
          myThe.setZero();
 
-         int version = (myAlwaysAnalyze ? -1 : myGTVersion);
+         int version = (myAlwaysAnalyze ? -1 : getGTVersion());
          if (myRBSolver == null) {
             myRBSolver = new RigidBodySolver (mySys);
          }
@@ -2363,13 +2782,13 @@ public class MechSystemSolver {
 
    protected void computeMassPosCorrection (VectorNd vel, int velSize) {
       boolean analyze = myAlwaysAnalyze;
-      if (myConMassVersion != myMassVersion || myConGTVersion != myGTVersion) {
+      if (myConMassVersion != myMassVersion || myConGTVersion != getGTVersion()) {
          analyze = true;
       }
       if (analyze) {
          myConSolver.analyze (myMass, velSize, myGT, myRg, Matrix.SPD);
          myConMassVersion = myMassVersion;
-         myConGTVersion = myGTVersion;
+         myConGTVersion = getGTVersion();
       }
       myConSolver.factor (myMass, velSize, myGT, myRg, myNT, myRn);
       myConSolver.solve (vel, myLam, myThe, myBf, myBg, myBn);
@@ -2383,8 +2802,62 @@ public class MechSystemSolver {
       }
    }
 
-   protected void computeStiffnessPosCorrection (VectorNd vel, int velSize) {
-      boolean analyze = myAlwaysAnalyze;
+   /**
+    * Used with implicit friction:
+    */
+   protected void computeImplicitPosCorrection (
+      VectorNd vel, int velSize, double t) {
+      boolean analyze = myAlwaysAnalyze | murtyFriction;
+      int solveFlags = (analyze ? MurtyMechSolver.REBUILD_A : 0);
+      updateSolveMatrixStructure();
+      if (myKKTSolveMatrixVersion != mySolveMatrixVersion) {
+         myKKTSolveMatrixVersion = mySolveMatrixVersion;
+         analyze = true;
+      }
+      SparseNumberedBlockMatrix S = mySolveMatrix;
+      if (t == 0) {
+         S.setZero();
+         mySys.addVelJacobian (S, null, -1);
+         mySys.addPosJacobian (S, null, -1);
+         addActiveMassMatrix (mySys, S);
+      }
+      if (myMurtySolver == null) {
+         myMurtySolver = new MurtyMechSolver();
+         analyze = true;
+      }
+      if (t == 0.01) {
+         analyze = true;
+      }
+      int sizeN = (myNT != null ? myNT.colSize() : 0);
+      VectorNi stateN = new VectorNi(sizeN); 
+      mySys.getUnilateralState (stateN, 0);
+      FunctionTimer timer = new FunctionTimer();
+      // System.out.println (
+      //    "contact state in:  " + LCPSolver.stateToString(state));
+      //timer.start();
+      myMurtySolverTimer.restart();
+      //myMurtySolver.setDebug (MurtySparseContactSolver.SHOW_PIVOTS);
+      LCPSolver.Status status = myMurtySolver.contactSolve (
+         vel, myLam, myThe, S, velSize, myBf, myKKTSolveMatrixVersion, 
+         myGT, myRg, myBg, myNT, myRn, myBn, stateN, solveFlags);
+      myMurtySolverTimer.stop();
+      if (status != LCPSolver.Status.SOLVED) {
+         System.out.println ("WARNING: contact solve failed, "+status);
+      }
+      checkContactSolverPivots();
+      //timer.stop();
+      //System.out.println ("contact solve: " + timer.result(1));
+      mySys.setUnilateralState (stateN, 0);
+      // System.out.println (
+      //    "contact state out: " + LCPSolver.stateToString(state) + "\n");
+      // System.out.println (
+      //    "A matrix: " + myMurtySolver.getAConsString());
+
+    }
+
+   protected void computeStiffnessPosCorrection (
+      VectorNd vel, int velSize, double t) {
+      boolean analyze = myAlwaysAnalyze | murtyFriction;
       updateSolveMatrixStructure();
       if (myKKTSolveMatrixVersion != mySolveMatrixVersion) {
          myKKTSolveMatrixVersion = mySolveMatrixVersion;
@@ -2399,9 +2872,9 @@ public class MechSystemSolver {
          myKKTSolver = new KKTSolver(myMatrixSolver);
          analyze = true;
       }
-      if (myKKTGTVersion != myGTVersion) {
+      if (myKKTGTVersion != getGTVersion()) {
          analyze = true;
-         myKKTGTVersion = myGTVersion;
+         myKKTGTVersion = getGTVersion();
       }
       if (analyze) {
          myKKTSolver.analyze (
@@ -2426,10 +2899,11 @@ public class MechSystemSolver {
    }
 
    protected void applyVelCorrection (VectorNd vel, double t0, double t1) {
+      double h = t1-t0;
       computeVelCorrections (vel, t0, t1);
       mySys.setActiveVelState (vel);
 
-      if (updateAndProjectFrictionConstraints (vel, t0)) {
+      if (updateAndProjectFrictionConstraints (vel, t0, h)) {
          mySys.setActiveVelState (vel);
       }
    }
@@ -2445,8 +2919,7 @@ public class MechSystemSolver {
    }
 
    protected void applyPosCorrection (
-      VectorNd pos, VectorNd vel,
-      double t, StepAdjustment stepAdjust) {
+      VectorNd pos, VectorNd vel, double t, StepAdjustment stepAdjust) {
       
       boolean hasConstraints = mySys.updateConstraints (
          t, stepAdjust, /*flags=*/MechSystem.COMPUTE_CONTACTS);
@@ -2521,9 +2994,13 @@ public class MechSystemSolver {
             //System.out.println ("bn=" + myBn);
             myBf.setSize (velSize);
             myBf.setZero();
-            if (myStabilization == PosStabilization.GlobalStiffness &&
+            if (false && myUseImplicitFriction &&
+                myIntegrator == Integrator.ConstrainedBackwardEuler) {
+               computeImplicitPosCorrection (vel, velSize, t);
+            }
+            else if (myStabilization == PosStabilization.GlobalStiffness &&
                integratorIsImplicit (myIntegrator)) {
-               computeStiffnessPosCorrection (vel, velSize);
+               computeStiffnessPosCorrection (vel, velSize, t);
             }
             else {
                computeMassPosCorrection (vel, velSize);
@@ -2611,49 +3088,42 @@ public class MechSystemSolver {
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
 
-      // solve constrained system for velocities at t1; store in uTmp
-      KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
+      //updateFrictionConstraints0();
+
+      int solveFlags = 0;
+      KKTFactorAndSolve (
+         myUtmp, myFparC, myB, /*tmp=*/myF, myU, h, solveFlags);
       if (profileConstrainedBE) {
          timer.stop();
          System.out.println ("  KKT solve " + timer.result(1));
          timer.start();
       }
+      maybeAccumulateConstraintForces();
       
       // store velocities in system
-      mySys.setActiveVelState (myUtmp);
+      //mySys.setActiveVelState (myUtmp);
       if (profileConstrainedBE) {
          timer.stop();
          System.out.println ("  setActiveVel " + timer.result(1));
       }
 
-      if (useGlobalFriction) {
-         // apply friction as a correction to the velocity
-         if (profileConstrainedBE) {
-            timer.start();
+      // apply friction as a correction to the velocity
+      if (profileConstrainedBE) {
+         timer.start();
+      }
+      if (!myUseImplicitFriction && 
+          updateFrictionConstraints(h, /*prune=*/true)) {
+         if (implicitFriction || murtyFriction) {
+            projectFrictionConstraintsImplicitly (myUtmp, myB, t0, h);
          }
-         //         if (updateAndProjectFrictionConstraints (myUtmp, t0)) {
-         //   mySys.setActiveVelState (myUtmp);
-         // }
-         if (updateFrictionConstraints()) { // && myDT.numBlockCols() > 0) {
-            boolean unilateralOnly = true;
-            for (int k=0; k<myDT.numBlockCols(); k++) {
-               if ((myFrictionInfo[k].flags & FrictionInfo.BILATERAL) != 0) {
-                  unilateralOnly = false;
-                  break;
-               }
-            }
-            if (unilateralOnly && implicitFriction) {
-               projectFrictionConstraintsImplicitly (myUtmp, myB, t0);
-            }
-            else {
-               projectFrictionConstraints (myUtmp, t0);
-            }
-            mySys.setActiveVelState (myUtmp);
+         else {
+            projectFrictionConstraints (myUtmp, t0);
          }
-         if (profileConstrainedBE) {
-            timer.stop();
-            System.out.println ("  friction " + timer.result(1));
-         }
+         mySys.setActiveVelState (myUtmp);
+      }
+      if (profileConstrainedBE) {
+         timer.stop();
+         System.out.println ("  friction " + timer.result(1));
       }
 
       // update positions: q += h u
@@ -2742,9 +3212,10 @@ public class MechSystemSolver {
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
 
-      KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
+      int solveFlags = 0;
+      KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h, solveFlags);
 
-      mySys.setActiveVelState (myUtmp);
+      //mySys.setActiveVelState (myUtmp);
       mySys.getActivePosState (xVec0);
       //mySys.getActivePosDerivative (dxdtVec, t1, 0);
       //xVec.scaledAdd (h, dxdtVec, xVec0);
@@ -2777,9 +3248,9 @@ public class MechSystemSolver {
 
             KKTFactorAndSolve (
                myUtmp, myFparC, myB, /*tmp=*/myF, velk, h,
-               -h, -h*h, -h, -h*h);
+               -h, -h*h, -h, -h*h, solveFlags);
 
-            mySys.setActiveVelState (myUtmp);
+            //mySys.setActiveVelState (myUtmp);
             //mySys.getActivePosDerivative (dxdtVec, t1, 0);
             //xVec.scaledAdd (h, dxdtVec, xVec0);
             myQ.set (xVec0);
@@ -2795,16 +3266,19 @@ public class MechSystemSolver {
             //System.out.printf ("fres[%d]=%g\n", iter, fres);
          }
       }
+      maybeAccumulateConstraintForces();
+
       //System.out.println ("iter=" + iter);
 
       //computeImplicitParametricForces (myUtmp, myFparC);
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
-      if (updateAndProjectFrictionConstraints (myUtmp, -1)) {
+      if (updateAndProjectFrictionConstraints (myUtmp, -1, h)) {
          mySys.setActiveVelState (myUtmp);
       }
       
 
-      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQ, myUtmp, t1, stepAdjust);
    }
 
    public void trapezoidal (double t0, double t1, StepAdjustment stepAdjust) {
@@ -2833,17 +3307,18 @@ public class MechSystemSolver {
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
 
+      int solveFlags = 0;
       KKTFactorAndSolve (
          myUtmp, myFparC, myB, /*tmp=*/myF, myU, 
-         h, -h/2, -h*h/4, -h/2, h*h/4);
+         h, -h/2, -h*h/4, -h/2, h*h/4, solveFlags);
+      
+      maybeAccumulateConstraintForces();
 
       //mySys.getActivePosDerivative (dxdtVec0, t0, 0);
 
-      mySys.setActiveVelState (myUtmp);
-      if (useGlobalFriction) {
-         if (updateAndProjectFrictionConstraints (myUtmp, t0)) {
-            mySys.setActiveVelState (myUtmp);
-         }
+      //mySys.setActiveVelState (myUtmp);
+      if (updateAndProjectFrictionConstraints (myUtmp, t0, h)) {
+         mySys.setActiveVelState (myUtmp);
       }
       //      else {
       //         mySys.projectVelConstraints (t0, t1);
@@ -2860,7 +3335,8 @@ public class MechSystemSolver {
       mySys.addActivePosImpulse (myQ, h/2, myU);
       mySys.setActivePosState (myQ);
 
-      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQ, myUtmp, t1, stepAdjust);
    }
    
    /**
@@ -2955,6 +3431,7 @@ public class MechSystemSolver {
          mySys.addActivePosImpulse (myQ, 1, myUtmp);
          mySys.setActivePosState (myQ);
       }
+      maybeAccumulateConstraintForces();
    }
    
    public void staticIncremental (
@@ -2996,6 +3473,7 @@ public class MechSystemSolver {
          mySys.setActivePosState (myQ);
          
       }
+      maybeAccumulateConstraintForces();
    }
    
    /**
@@ -3381,6 +3859,7 @@ public class MechSystemSolver {
          }
          ++iter;
       }
+      maybeAccumulateConstraintForces();
       
       // System.out.println("exiting static solve");
    }
@@ -3417,15 +3896,16 @@ public class MechSystemSolver {
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
       
+      int solveFlags = 0;
       KKTFactorAndSolve (
          myUtmp, myFparC, myB, /*tmp=*/myF, myU, 
-         h, -h, -h*h/2, -h, h*h/2);
+         h, -h, -h*h/2, -h, h*h/2, solveFlags);
+      
+      maybeAccumulateConstraintForces();
 
-      mySys.setActiveVelState (myUtmp);
-      if (useGlobalFriction) {
-         if (updateAndProjectFrictionConstraints (myUtmp, t0)) {
-            mySys.setActiveVelState (myUtmp);
-         }
+      //mySys.setActiveVelState (myUtmp);
+      if (updateAndProjectFrictionConstraints (myUtmp, t0, h)) {
+         mySys.setActiveVelState (myUtmp);
       }
 
       // move forward
@@ -3434,7 +3914,8 @@ public class MechSystemSolver {
       mySys.addActivePosImpulse (myQ, h/2, myU);
       mySys.setActivePosState (myQ);
 
-      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      applyPosCorrection (
+         myQ, myUtmp, t1, stepAdjust);
    }
 
    public SparseBlockMatrix createActiveStiffnessMatrix (double h) {
@@ -3479,6 +3960,10 @@ public class MechSystemSolver {
          myKKTSolver.dispose();
          myKKTSolver = null;
       }
+      if (myMurtySolver != null) {
+         myMurtySolver.dispose();
+         myMurtySolver = null;
+      }
       if (myStaticSolver != null) {
          myStaticSolver.dispose();
          myStaticSolver = null;
@@ -3503,6 +3988,21 @@ public class MechSystemSolver {
 
    public void finalize() {
       dispose();
+   }
+
+   public void initialize() {
+      if (myMurtySolver != null) {
+         myMurtySolver.initialize();
+      }
+      if (myKKTSolver != null) {
+         myKKTSolver.initialize();
+      }
+      if (myConSolver != null) {
+         myConSolver.initialize();
+      }
+      if (myStaticSolver != null) {
+         myStaticSolver.initialize();
+      }
    }
 
    /*

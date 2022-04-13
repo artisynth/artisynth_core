@@ -82,27 +82,30 @@ public class FrameFem3dConstraint extends ConstrainerBase {
             GT.addBlock (bk, bj, blk);
          }
       }
+      
+      if (dg != null) {
+         dg.set (numb+0, 0);
+         dg.set (numb+1, 0);
+         dg.set (numb+2, 0);
 
-      dg.set (numb++, 0);
-      dg.set (numb++, 0);
-      dg.set (numb++, 0);
-
-      // compute dgw = - inv(B) * dotB * dgw
-      myDotB.mul (dgw, dgw);
-      myInvB.mul (dgw, dgw);
-      myRC.mulTranspose (dgw, dgw);
-      dgw.scale (-1);
-
-      //dgw.setZero();
-
-      dg.set (numb++, dgw.x);
-      dg.set (numb++, dgw.y);
-      dg.set (numb++, dgw.z);
-
+         // compute dgw = - inv(B) * dotB * dgw
+         myDotB.mul (dgw, dgw);
+         myInvB.mul (dgw, dgw);
+         myRC.mulTranspose (dgw, dgw);
+         dgw.scale (-1);
+         
+         //dgw.setZero();
+         
+         dg.set (numb+3, dgw.x);
+         dg.set (numb+4, dgw.y);
+         dg.set (numb+6, dgw.z);
+      }
+      numb += 6;
       return numb;
    }
 
-   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx) {
 
       for (int i=0; i<6; i++) {
          ginfo[idx+i].compliance = 0;

@@ -10,6 +10,7 @@ import java.util.*;
 
 import artisynth.core.modelbase.StepAdjustment;
 import maspack.matrix.*;
+import maspack.spatialmotion.FrictionInfo;
 import maspack.util.IntHolder;
 
 /**
@@ -44,41 +45,6 @@ public interface MechSystem {
       public double compliance;// inverse stiffness; 0 implies rigid constraint
       public double damping;   // damping; only used if compliance > 0
       public double force;     // used for computing non-linear compliance
-   };
-
-   /**
-    * Contains information for a single friction constraint set.
-    * This is associated with one bilateral or unilateral constraint,
-    * and corresponds to a single column block entry in the transposed friction
-    * constraint matrix <code>DT</code> produced by
-    * {@link #getFrictionConstraints getFrictionConstraints()}.
-    * The constraint set contains either one or two friction directions
-    * (corresponding to a column block size of either 1 or 2).
-    */
-   public class FrictionInfo {
-
-      // Flag indicating that the associated contact constraint is BILATERAL
-      public static final int BILATERAL = 0x01;
-
-      public double mu;        // friction coefficient
-      public int contactIdx0;  // corresponding contact constraint index
-      public int contactIdx1;  // second contact constraint index (if needed)
-      public int flags;        // information flags
-      
-      /**
-       * Returns the maximum friction value based on the most recent
-       * contact force and the coefficient of friction. Contacts forces
-       * are stored in the supplied vector lam, at the location(s) indexed
-       * by contactIdx0 and (possibly) contactIdx1. 
-       */
-      public double getMaxFriction (VectorNd lam) {
-         if (contactIdx1 == -1) {
-            return mu*lam.get(contactIdx0);
-         }
-         else {
-            return mu*Math.hypot (lam.get(contactIdx0), lam.get(contactIdx1));
-         }
-      }
    };
 
    /**
@@ -613,6 +579,10 @@ public interface MechSystem {
     * Unilateral constraint forces being returned from the system.
     */
    public void getUnilateralForces (VectorNd the);
+   
+   public int setUnilateralState (VectorNi state, int idx);
+   
+   public int getUnilateralState (VectorNi state, int idx);
 
    /** 
     * Returns that maximum number of friction constraint set that may be added by
@@ -634,16 +604,54 @@ public interface MechSystem {
     * set associated with one unilateral or bilateral constraint. Information
     * about each friction constraint set is returned in the array
     * <code>finfo</code>, which should contain preallocated 
-    * {@link artisynth.core.mechmodels.MechSystem.FrictionInfo FrictionInfo}
+    * {@link maspack.spatialmotion.FrictionInfo FrictionInfo}
     * structures and should have a length greater or 
     * equal to the value returned by
     * {@link #maxFrictionConstraintSets FrictionConstraintSets()}.
     *
     * @param DT returns the transpose of D
     * @param finfo returns information for each friction constraint set
+    * @param prune limit DT entries to those for which the corresponding
+    * contact forces are {@code > 0}
+    * @return number of friction entries
     */
-   public void getFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo);
+   public int getFrictionConstraints (
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, boolean prune);
+
+   /** 
+    * Supplies to the system the most recently computed friction constraint
+    * forces. These are supplied in the form {@code phi*s}, where {@code phi}
+    * is a vector of impulses and {@code s} is the inverse of the step size
+    * used in the computation. <code>phi</code> should have a size greater or
+    * equal to the column size of <code>DT</code> returned by {@link
+    * #getFrictionConstraints getFrictionConstraints()}.
+    * 
+    * @param phi When scaled by {@code s}, gives the friction constraint forces
+    * being supplied to the system.
+    * @param s 
+    * Scaling factor to be applied to the {@code phi}.
+    */
+   public void setFrictionForces (VectorNd phi, double s);
+   
+   /** 
+    * Returns from the system the most recently computed friction constraint
+    * forces.  These are stored in the vector <code>phi</code>, which should
+    * have a size greater or equal to the column size of <code>DT</code>
+    * returned by {@link #getFrictionConstraints getFrictionConstraints()}.
+    * For constraints which where present in the previous solve step, the force
+    * values should equal those which were set by the previous call to {@link
+    * #setFrictionForces setFrictionForces()}.  Otherwise, values can be
+    * estimated from previous force values (where appropriate), or supplied as
+    * 0.
+    * 
+    * @param phi
+    * Unilateral constraint forces being returned from the system.
+    */
+   public void getFrictionForces (VectorNd phi);
+   
+   public int setFrictionState (VectorNi state, int idx);
+
+   public int getFrictionState (VectorNi state, int idx);
 
    /**
     * Computes an adjustment to the active positions of the system (stored

@@ -43,11 +43,14 @@ public class MeshEditTest extends RootModel {
             3.0, 2.0, 1.0, Point3d.ZERO, 2, 2, 1, false,
             MeshFactory.FaceType.QUAD);
       }
-      if (true) {
+      if (false) {
          double size = 10;
          mesh = MeshFactory.createPointedCylinder (size, size, size/10, 4);
       }
-      
+      if (true) {
+         double radius = 10.0;
+         mesh = MeshFactory.createIcosahedralSphere (radius, 3);
+      }
 
       if (args.length > 0) {
          try {
@@ -73,5 +76,12 @@ public class MeshEditTest extends RootModel {
       RenderProps.setDrawEdges (editMesh, true);
       RenderProps.setEdgeColor (editMesh, Color.CYAN);
       mech.addRenderable (editMesh);
+
+      ArrayList<Vertex3d> nearv =
+         mesh.findNeighbouringVertices (mesh.getVertex(585), 5);
+      for (Vertex3d v : nearv) {
+         RenderProps.setPointColor (
+            editMesh.getVertexComponents().get (v.getIndex()), Color.GREEN);
+      }
    }
 }

@@ -180,16 +180,17 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
    }
 
    public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
-
+      
       if (!myUnilateralP) {
          for (int i=0; i<myParticleInfo.size(); i++) {      
             ParticleInfo pi = myParticleInfo.get(i);
             if (pi.myPart.getSolveIndex() != -1) {
-               ConstraintInfo gi = ginfo[idx++];
+               ConstraintInfo gi = ginfo[idx];
                gi.dist = pi.myDist;
                gi.compliance = myCompliance;
                gi.damping = myDamping;
                gi.force = 0;
+               idx++;
             }
          }
       }
@@ -260,11 +261,12 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
          for (int i=0; i<myParticleInfo.size(); i++) {      
             ParticleInfo pi = myParticleInfo.get(i);
             if (pi.myEngagedP && pi.myPart.getSolveIndex() != -1) {
-               ConstraintInfo gi = ninfo[idx++];
+               ConstraintInfo gi = ninfo[idx];
                gi.dist = pi.myDist;
                gi.compliance = myCompliance;
                gi.damping = myDamping;
                gi.force = 0;
+               idx++;
             }
          }
       }
@@ -305,7 +307,6 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
    }
 
    protected double updateEngagement (ParticleInfo pi, double maxpen) {
-      boolean oldEngaged = pi.myEngagedP;
       if (pi.myDist < 0) {
          pi.myEngagedP = true;
          if (-pi.myDist > maxpen) {
@@ -382,6 +383,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
       data.zput (myParticleInfo.size());
       for (int i=0; i<myParticleInfo.size(); i++) {
          data.zputBool (myParticleInfo.get(i).myEngagedP);
+         //data.zput (myParticleInfo.get(i).myIdx);
       }
    }
 
@@ -394,6 +396,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
       }
       for (int i=0; i<myParticleInfo.size(); i++) {
          myParticleInfo.get(i).myEngagedP = data.zgetBool();
+         //myParticleInfo.get(i).myIdx = data.zget();
       }
    }      
 

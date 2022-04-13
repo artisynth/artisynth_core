@@ -1889,6 +1889,13 @@ public class SkinMeshBody extends SkinMeshBase
    
    /**
     * {@inheritDoc}
+    */
+   public boolean hasInvariantMasters() {
+      return false;
+   }
+   
+   /**
+    * {@inheritDoc}
     */   
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
       if (comp instanceof Frame) {

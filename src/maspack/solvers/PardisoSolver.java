@@ -114,6 +114,12 @@ import java.util.*;
 public class PardisoSolver implements DirectSolver {
 
    public static boolean printThreadInfo = true;
+   
+   public static boolean supportsMultipleRhs = false;
+   // Bit of a hack to allow things to work without the native
+   // library that supports multiple rhs:  
+   static String nativeLibrary = supportsMultipleRhs ?
+      "PardisoJNI.2021.1.1" : "PardisoJNI.2021.1";         
 
    /**
     * Describes the reorder methods that can be used during the analyze phase
@@ -404,8 +410,6 @@ public class PardisoSolver implements DirectSolver {
    private static void doLoadLibraries() {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
-         //String pardisoLibrary = "PardisoJNI.11.1.2.1"; // uses MKL 11.1.2
-         String pardisoLibrary = "PardisoJNI.2021.1"; // uses MKL 2021.1
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {
@@ -424,7 +428,7 @@ public class PardisoSolver implements DirectSolver {
                break;
             }
          }
-         NativeLibraryManager.load (pardisoLibrary);
+         NativeLibraryManager.load (nativeLibrary);
          myInitStatus = INIT_LIBRARIES_LOADED;
       }
       catch (Exception e) {

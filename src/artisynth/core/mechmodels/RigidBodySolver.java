@@ -8,7 +8,7 @@ package artisynth.core.mechmodels;
 
 import java.util.*;
 
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import maspack.spatialmotion.FrictionInfo;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.solvers.KKTSolver;
@@ -55,17 +55,20 @@ public class RigidBodySolver {
 
    VectorNd myRg = new VectorNd();
    VectorNd myRn = new VectorNd();
+   VectorNd myRd = new VectorNd();
 
    VectorNd myBf = new VectorNd();
    VectorNd myBg = new VectorNd();
    VectorNd myBn = new VectorNd();
    VectorNd myBd = new VectorNd();
    VectorNd myFlim = new VectorNd();
+   VectorNi myContactIdxs = new VectorNi();
 
    VectorNd myVel = new VectorNd();
    VectorNd myLam = new VectorNd();
    VectorNd myThe = new VectorNd();
    VectorNd myPhi = new VectorNd();
+   VectorNi myState = new VectorNi();
 
    KKTSolver mySolver;
 
@@ -278,8 +281,10 @@ public class RigidBodySolver {
       mySizeD = myDT.colSize();
       myPhiIdxs = createConstraintIdxs (DT, myDTMap, mySizeD);
       myPhi.setSize (mySizeD);
+      myRd.setSize (mySizeD);
       myBd.setSize (mySizeD);
       myFlim.setSize (mySizeD);
+      myContactIdxs.setSize (mySizeD);
    }
 
    public boolean updateStructure (
@@ -324,6 +329,7 @@ public class RigidBodySolver {
       updateMass (M);
       updateGT (GT);
       updateNT (NT);
+      myState.setSize (mySizeN);
 
       if (mySizeG == 0 && mySizeN == 0) {
          return false;
@@ -355,6 +361,7 @@ public class RigidBodySolver {
       updateMass (M);
       updateGT (GT);
       updateNT (NT);
+      myState.setSize (mySizeN);
 
       if (mySizeG == 0 && mySizeN == 0) {
          return false;
@@ -381,12 +388,16 @@ public class RigidBodySolver {
       return true;
    }
 
+   FunctionTimer myFactorTimer = new FunctionTimer();
+   FunctionTimer mySolveTimer = new FunctionTimer();
+   int myCnt;
+
    public boolean projectFriction (
       SparseBlockMatrix M,
       SparseBlockMatrix GT, SparseBlockMatrix NT, SparseBlockMatrix DT,
-      VectorNd Rg, VectorNd bg, VectorNd Rn, VectorNd bn, VectorNd bd,
-      FrictionInfo[] finfo, VectorNd vel,
-      VectorNd lam, VectorNd the, VectorNd phi) {
+      VectorNd Rg, VectorNd bg, VectorNd Rn, 
+      VectorNd bn, VectorNd Rd, VectorNd bd, ArrayList<FrictionInfo> finfo, 
+      VectorNi state, VectorNd vel, VectorNd lam, VectorNd the, VectorNd phi) {
       
       if (mySizeM == 0) {
          myDTMap = new int[0];
@@ -397,6 +408,7 @@ public class RigidBodySolver {
       updateGT (GT);
       updateNT (NT);
       updateDT (DT);
+      myState.setSize (mySizeN + mySizeD);
 
       if (mySizeD == 0) {
          return false;
@@ -408,7 +420,18 @@ public class RigidBodySolver {
       the.getSubVector (myTheIdxs, myThe);
       Rn.getSubVector (myTheIdxs, myRn);
       bn.getSubVector (myTheIdxs, myBn);
+      Rd.getSubVector (myPhiIdxs, myRd);
       bd.getSubVector (myPhiIdxs, myBd);
+      if (state != null) {
+         for (int i=0; i<mySizeN; i++) {
+            myState.set (i, state.get(myTheIdxs[i]));
+         }
+         int Noff = NT.colSize();
+         for (int i=0; i<mySizeD; i++) {
+            myState.set (mySizeN+i, state.get(Noff+myPhiIdxs[i]));
+         }
+      }
+      
 
       // remove initial constraints from righthand side. This means
       // we will 'solve' for theta again, but greatly reduces chatter.
@@ -422,8 +445,14 @@ public class RigidBodySolver {
       // XXX also need to set bd from info.offset - or compute this elsewhere
       // set the friction limits
       int k = 0;
+      int fi = 0; // friction info index
       for (int bk=0; bk<myDT.numBlockCols(); bk++) {
-         FrictionInfo info = finfo[myDTMap[bk]];
+         // find the friction info corresponding to myDTMap[bk]:
+         FrictionInfo info = null;
+         do {
+            info = finfo.get(fi++);
+         }
+         while (info.blockIdx != myDTMap[bk]);
          double phiMax;
          if ((info.flags & FrictionInfo.BILATERAL) != 0) {
             phiMax = info.getMaxFriction (lam);
@@ -432,14 +461,36 @@ public class RigidBodySolver {
             phiMax = info.getMaxFriction (the);
          }         
          //System.out.println ("fm"+bk+" "+phiMax);
-         for (int i=0; i<myDT.getBlockColSize(bk); i++) {
-            myFlim.set (k++, phiMax);
+         for (int j=0; j<info.blockSize; j++) {
+            myFlim.set (k, phiMax);
+            myContactIdxs.set (k, info.contactIdx0);
+            k++;
          }
       }
 
+      myFactorTimer.restart();
+      mySolver.factor (myMass, mySizeM, myGT, myRg, myNT, myRn, myDT, myRd);
+      myFactorTimer.stop();
+      mySolveTimer.restart();
+      mySolver.solve (
+         myVel, myLam, myThe, myPhi, myBf, myBg, myBn, myBd, myFlim,
+         myState, myContactIdxs);
+      mySolveTimer.stop();
+      myCnt++;
+      // if ((myCnt%300) == 0) {
+      //    System.out.printf ("Factor time=%g\n", myFactorTimer.getTimeUsec()/(double)myCnt);
+      //    System.out.printf ("Solve time=%g\n", mySolveTimer.getTimeUsec()/(double)myCnt);
+      // }
       
-      mySolver.factor (myMass, mySizeM, myGT, myRg, myNT, myRn, myDT);
-      mySolver.solve (myVel, myLam, myThe, myPhi, myBf, myBg, myBn, myBd, myFlim);
+      if (state != null) {
+         for (int i=0; i<mySizeN; i++) {
+            state.set (myTheIdxs[i], myState.get(i));
+         }
+         int Noff = NT.colSize();
+         for (int i=0; i<mySizeD; i++) {
+            state.set (Noff+myPhiIdxs[i], myState.get(mySizeN+i));
+         }
+      }
 
       // ArraySupport.print ("zstate", mySolver.getZState());
       // System.out.println ("the: " + myThe.toString ("%8.3f"));
@@ -451,12 +502,8 @@ public class RigidBodySolver {
       return true;
    }
 
-   public boolean[] getZBasic() {
-      return mySolver.getZBasic();
-   }
-
-   public int[] getZState() {
-      return mySolver.getZState();
+   public VectorNi getLcpState() {
+      return mySolver.getLcpState();
    }
 
    public void dispose() {

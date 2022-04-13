@@ -26,7 +26,7 @@ import maspack.matrix.LUDecomposition;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
-import maspack.matrix.SparseMatrixCRS;
+import maspack.matrix.SparseCRSMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.numerics.GoldenSectionSearch;
@@ -257,7 +257,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       }
    }
 
-   SparseMatrixCRS volumeExtrapolationMatrix;
+   SparseCRSMatrix volumeExtrapolationMatrix;
    public static boolean extrapolateVolumeFromShapeFunctions = true;
    
    public boolean extrapolatesNodalVolume() {
@@ -328,12 +328,12 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
          }
       }
       
-      volumeExtrapolationMatrix = new SparseMatrixCRS (numIntegrationPoints (), numNodes ());
+      volumeExtrapolationMatrix = new SparseCRSMatrix (numIntegrationPoints (), numNodes ());
       volumeExtrapolationMatrix.set (values, indices, numVals);
       
    }
 
-   public SparseMatrixCRS getNodalVolumeExtrapolationMatrix () {
+   public SparseCRSMatrix getNodalVolumeExtrapolationMatrix () {
       if (volumeExtrapolationMatrix == null) {
          computeVolumeExtrapolationMatrix ();
       }

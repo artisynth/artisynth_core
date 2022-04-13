@@ -86,6 +86,18 @@ public class HexBeam3d extends FemBeam3d {
    //    addMarker ( 0, 0, 2);
        addMarker ( 0.1, -0.05, 2);
    //    addMarker ( 2, -0.05, 0);
+
+      // NodeDisplacementRenderer dispren =
+      //    new NodeDisplacementRenderer();
+
+      // dispren.addNode (myFemMod.getNode (34));
+      // dispren.addNode (myFemMod.getNode (39));
+      // dispren.addNode (myFemMod.getNode (44));
+      // myMechMod.addRenderable (dispren);
+
+      // RenderProps.setLineStyle (dispren, Renderer.LineStyle.SOLID_ARROW);
+      // RenderProps.setLineColor (dispren, Color.BLUE);
+      // RenderProps.setLineRadius (dispren, 0.005);
    }
 
    private void addMarker (double x, double y, double z) {

@@ -122,6 +122,7 @@ public class BeamBodyCollide extends RootModel {
       addControlPanel (myMech);
 
       myMech.setDefaultCollisionBehavior (true, 0.2);
+      //myMech.setCompliantContact();
    }
 
    ControlPanel myControlPanel;

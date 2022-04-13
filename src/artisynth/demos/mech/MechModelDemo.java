@@ -263,10 +263,9 @@ public class MechModelDemo extends RootModel {
 
       //myMech.setProfiling (true);
       //myMech.setIntegrator (Integrator.ForwardEuler);
-      //addBreakPoint (0.57);
+      //addBreakPoint (2.13);
 
       //addController (new PanController (this, 5.0, 1.0, 11.0));
-
    }
 
    ControlPanel myControlPanel;

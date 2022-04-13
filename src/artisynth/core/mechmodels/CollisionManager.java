@@ -43,11 +43,13 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.FunctionTimer;
 import maspack.util.DoubleInterval;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionBehavior.Method;
 import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import artisynth.core.mechmodels.MechSystemSolver;
+import maspack.spatialmotion.FrictionInfo;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -309,6 +311,10 @@ public class CollisionManager extends RenderableCompositeBase
    double myDamping = defaultDamping;
    PropertyMode myDampingMode = PropertyMode.Inherited;
 
+   static double defaultStictionCreep = 0.0;
+   double myStictionCreep = defaultStictionCreep;
+   PropertyMode myStictionCreepMode = PropertyMode.Inherited;
+
    static double defaultAcceleration = 0;
    double myAcceleration = defaultAcceleration;
    PropertyMode myAccelerationMode = PropertyMode.Inherited;
@@ -341,6 +347,10 @@ public class CollisionManager extends RenderableCompositeBase
    static boolean defaultDrawContactForces = false;
    boolean myDrawContactForces = defaultDrawContactForces;
    PropertyMode myDrawContactForcesMode = PropertyMode.Inherited;
+
+   static boolean defaultDrawFrictionForces = false;
+   boolean myDrawFrictionForces = defaultDrawFrictionForces;
+   PropertyMode myDrawFrictionForcesMode = PropertyMode.Inherited;
 
    static ColorInterpolation defaultColorMapInterpolation =
       ColorInterpolation.HSV;
@@ -419,6 +429,9 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "damping:Inherited", "damping for each contact constraint",
          defaultDamping, "[0,inf)");
+      myProps.addInheritable (
+         "stictionCreep:Inherited", "stictionCreep for each contact constraint",
+         defaultStictionCreep);
 
       myProps.addInheritable (
          "drawIntersectionFaces:Inherited", 
@@ -435,6 +448,9 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "drawContactForces:Inherited", 
          "draw forces at each contact point", defaultDrawContactForces);
+      myProps.addInheritable (
+         "drawFrictionForces:Inherited", 
+         "draw friction forces at each contact point", defaultDrawFrictionForces);
       myProps.addInheritable (
          "drawColorMap:Inherited", 
          "draw a color map of the specified data",
@@ -546,6 +562,8 @@ public class CollisionManager extends RenderableCompositeBase
       myComplianceMode = PropertyMode.Inherited;
       myDamping = defaultDamping;
       myDampingMode = PropertyMode.Inherited;
+      myStictionCreep = defaultStictionCreep;
+      myStictionCreepMode = PropertyMode.Inherited;
       myRigidRegionTol = defaultRigidRegionTol;
       myRigidRegionTolMode = defaultRigidRegionTolMode;
       myRigidPointTol = defaultRigidPointTol;
@@ -564,6 +582,8 @@ public class CollisionManager extends RenderableCompositeBase
       myDrawContactNormalsMode = PropertyMode.Inherited;
       myDrawContactForces = defaultDrawContactForces;
       myDrawContactForcesMode = PropertyMode.Inherited;
+      myDrawFrictionForces = defaultDrawFrictionForces;
+      myDrawFrictionForcesMode = PropertyMode.Inherited;
       myDrawColorMap = defaultDrawColorMap;
       myDrawColorMapMode = PropertyMode.Inherited;
       myColorMapInterpolation = defaultColorMapInterpolation;
@@ -916,6 +936,45 @@ public class CollisionManager extends RenderableCompositeBase
       return myDampingMode;
    }
 
+   /** 
+    * Returns the default stiction creep. See {@link
+    * #setStictionCreep}.
+    * 
+    * @return stiction creep
+    */
+   public double getStictionCreep() {
+      return myStictionCreep;
+   }
+
+   /** 
+    * Sets the default stiction creep. This is the velocity that a nominally
+    * stationary contact in ``stiction'' is allowed to move. While the default
+    * (and usually desired) value is 0, a value {@code > 0} regularizes the
+    * computation of friction forces by removing redundancy.
+    *
+    * <p>Creep values can be specified for individual collidable pairs by
+    * setting the {@code stictionCreep} property of their associated {@link
+    * CollisionBehavior}.
+    * 
+    * @param creep new stiction creep
+    */
+   public void setStictionCreep (double creep) {
+      myStictionCreep = creep;
+      myStictionCreepMode =
+         PropertyUtils.propagateValue (
+            this, "stictionCreep", myStictionCreep, myStictionCreepMode);      
+   }
+
+   public void setStictionCreepMode (PropertyMode mode) {
+      myStictionCreepMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "stictionCreep", myStictionCreepMode, mode);
+   }
+
+   public PropertyMode getStictionCreepMode() {
+      return myStictionCreepMode;
+   }
+
    /**
     * Returns the desired collision acceleration. See {@link #setAcceleration}.
     */
@@ -1059,6 +1118,28 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getDrawContactForcesMode() {
       return myDrawContactForcesMode;
+   }
+
+   public boolean getDrawFrictionForces() {
+      return myDrawFrictionForces;
+   }
+
+   public void setDrawFrictionForces (boolean enable) {
+      myDrawFrictionForces = enable;
+      myDrawFrictionForcesMode =
+         PropertyUtils.propagateValue (
+            this, "drawFrictionForces",
+            myDrawFrictionForces, myDrawFrictionForcesMode);
+   }
+
+   public void setDrawFrictionForcesMode (PropertyMode mode) {
+      myDrawFrictionForcesMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "drawFrictionForces", myDrawFrictionForcesMode, mode);
+   }
+
+   public PropertyMode getDrawFrictionForcesMode() {
+      return myDrawFrictionForcesMode;
    }
 
    public void setColorMapInterpolation (ColorInterpolation interp) {
@@ -2341,10 +2422,15 @@ public class CollisionManager extends RenderableCompositeBase
          cinfo = new ContactInfo (c0.getCollisionMesh(), c1.getCollisionMesh());
       }
       else {
+         //FunctionTimer timer = new FunctionTimer();
+         //timer.start();
          cinfo = computeContactInfo (c0, c1, behav);
          //timer.stop();
-         //System.out.println ("time=" + timer.getTimeUsec());
-         //cinfo = myCollider.getContacts (mesh0, mesh1);
+         // if (cinfo != null &&
+         //     (behav.getColliderType() != ColliderType.AJL_CONTOUR ||
+         //      cinfo.numContours() > 0)) {
+         //    System.out.println ("contact " + timer.result(1));
+         // }
       }
       if (cinfo != null) {
          addOrUpdateHandler (cinfo, c0, c1, behav, src);
@@ -2595,6 +2681,7 @@ public class CollisionManager extends RenderableCompositeBase
       }
       myContactForceLenScale *= s;
       myAcceleration *= s;
+      myStictionCreep *= s;
       myColorMapRange.scale (s);
       myRenderProps.scaleDistance (s);
       for (CollisionBehavior behav : myBehaviors) {
@@ -2802,7 +2889,8 @@ public class CollisionManager extends RenderableCompositeBase
       return numb;
    }
 
-   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx) {
       for (int i=0; i<myHandlers.size(); i++) {
          idx = myHandlers.get(i).getBilateralInfo (ginfo, idx);
       }
@@ -2871,6 +2959,20 @@ public class CollisionManager extends RenderableCompositeBase
       return idx;
    }
 
+   public int setUnilateralState (VectorNi state, int idx) {
+      for (int i=0; i<myHandlers.size(); i++) {
+         idx = myHandlers.get(i).setUnilateralState (state, idx);
+      }
+      return idx;      
+   }
+   
+   public int getUnilateralState (VectorNi state, int idx) {
+      for (int i=0; i<myHandlers.size(); i++) {
+         idx = myHandlers.get(i).getUnilateralState (state, idx);
+      }
+      return idx;      
+   }
+   
    public int maxFrictionConstraintSets() {
       int max = 0;
       for (int i=0; i<myHandlers.size(); i++) {      
@@ -2878,15 +2980,91 @@ public class CollisionManager extends RenderableCompositeBase
       }
       return max;
    }
+
+   FunctionTimer myFullTimer = new FunctionTimer();
+   int myFullNum = 0;
+   FunctionTimer myRegTimer = new FunctionTimer();
+   int myRegNum = 0;
+   int myCnt = 0;
    
    public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
+      boolean prune, int numf) {
+
+      // int numf0 = numf;
+      // SparseBlockMatrix DTF = 
+      //    new SparseBlockMatrix (DT.getBlockRowSizes(), new int[0]);
+      // FrictionInfo[] finfoFull = new FrictionInfo[200];
+      // for (int i=0; i<200; i++) {
+      //    finfoFull[i] = new FrictionInfo();
+      // }
+      // int full = 0;
+      // CollisionHandler.ftol = -1;
+      // myFullTimer.restart();
+      // for (int i=0; i<myHandlers.size(); i++) {
+      //    full = myHandlers.get(i).addFrictionConstraints (DTF, finfoFull, full);
+      // }
+      // myFullTimer.stop();
+      // myFullNum += full;
+      // CollisionHandler.ftol = 1e-2;
+      //myRegTimer.restart();
       for (int i=0; i<myHandlers.size(); i++) {
-         numf = myHandlers.get(i).addFrictionConstraints (DT, finfo, numf);
+         numf = myHandlers.get(i).addFrictionConstraints (
+            DT, finfo, prune, numf);
       }
+      // myRegTimer.stop();
+      // myRegNum += (numf-numf0);
+      // myCnt++;
+      // if ((myCnt % 100) == 0) {
+      //    System.out.printf (
+      //       "friction full: %g %g\n", myFullTimer.getTimeUsec()/myCnt, myFullNum/(double)myCnt);
+      //    System.out.printf (
+      //       "friction reg:  %g %g\n", myRegTimer.getTimeUsec()/myCnt, myRegNum/(double)myCnt);
+      // }
       return numf;
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int setFrictionForces (VectorNd phi, double s, int idx) {
+      for (int i=0; i<myHandlers.size(); i++) {
+         idx = myHandlers.get(i).setFrictionForces (phi, s, idx);
+      }
+      return idx;
+   }
 
+   /**
+    * {@inheritDoc}
+    */
+   public int getFrictionForces (VectorNd phi, int idx) {
+      for (int i=0; i<myHandlers.size(); i++) {
+         idx = myHandlers.get(i).getFrictionForces (phi, idx);
+      }
+      return idx;
+   }
+   
+   public int setFrictionState (VectorNi state, int idx) {
+      for (int i=0; i<myHandlers.size(); i++) {
+         idx = myHandlers.get(i).setFrictionState (state, idx);
+      }
+      return idx;      
+   }
+   
+   public int getFrictionState (VectorNi state, int idx) {
+      for (int i=0; i<myHandlers.size(); i++) {
+         idx = myHandlers.get(i).getFrictionState (state, idx);
+      }
+      return idx;      
+   }
+
+   // For testing only
+   public void printNetContactForces() {
+      for (CollisionHandler ch : myHandlers) {
+         ch.printNetContactForces();
+      }      
+   }
+   
    public void getConstrainedComponents (List<DynamicComponent> list) {
       // STUB - not currently used
    }
@@ -3087,6 +3265,11 @@ public class CollisionManager extends RenderableCompositeBase
          myHandlers.clear();
          collectHandlers (myHandlers);
       }
+   }
+
+   public boolean use2DFrictionForBilateralContact() {
+      MechSystemSolver solver = myMechModel.mySolver;
+      return solver.murtyFriction || solver.myUseImplicitFriction; 
    }
 
    /* TODO:

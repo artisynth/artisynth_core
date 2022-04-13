@@ -716,8 +716,8 @@ public abstract class LCPSolverTestBase extends UnitTest {
          // with h = 0.01
          double rn = (0.001)/(10*mass)/(0.01*0.01);
          double rd = 1e-2;
-         Rn.set (rn);
-         Rd.set (rd);
+         Rn.setAll (rn);
+         Rd.setAll (rd);
       }
    }
 
@@ -1388,7 +1388,7 @@ public abstract class LCPSolverTestBase extends UnitTest {
    }
 
    public void pegInHoleContactTests (
-      int ntests, int nz, int nr, boolean regularize) {
+      int nz, int nr, int ntests, boolean regularize) {
       for (int i=0; i<ntests; i++) {
          Vector3d force = new Vector3d();
          force.setRandom();

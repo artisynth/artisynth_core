@@ -97,7 +97,7 @@ public interface LCPSolver {
             return 'L';
          }
          case W_VAR_UPPER: {
-            return 'U';
+            return 'H';
          }
          default: {
             return '?';

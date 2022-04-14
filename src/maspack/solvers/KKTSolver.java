@@ -1569,24 +1569,9 @@ public class KKTSolver {
    public void solveMG (double[] Xbuf, double[] Bbuf, int nrhs) {
       if (myPardiso != null) {
          int w = mySizeM+myNumG;
-         if (myPardiso.supportsMultipleRhs) {
-            // NOTE: solve arguments with multiple right hand sides are stored in
-            // column major form
-            myPardiso.solve (Xbuf, Bbuf, nrhs);
-         }
-         else {
-            double[] x = new double[w];
-            double[] b = new double[w];
-            for (int i=0; i<nrhs; i++) {
-               for (int j=0; j<w; j++) {
-                  b[j] = Bbuf[i*w+j];
-               }
-               myPardiso.solve (x, b);
-               for (int j=0; j<w; j++) {
-                  Xbuf[i*w+j] = x[j];
-               }             
-            }
-         }
+         // NOTE: solve arguments with multiple right hand sides are stored in
+         // column major form
+         myPardiso.solve (Xbuf, Bbuf, nrhs);
          // negate lam.
          for (int i=0; i<nrhs; i++) {
             for (int j=mySizeM; j<w; j++) {

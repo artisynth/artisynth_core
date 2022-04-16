@@ -18,10 +18,9 @@ editing, and simulation control.
 Full details are provided on the ArtiSynth website at
 [www.artisynth.org](https://www.artisynth.org).
 
-For details on how to install artisynth_core from Github, see the
-section "Cloning from Github" in the installation guide appropriate to
-your system at
-:www.artisynth.org/doc/info/installation](https://www.artisynth.org/doc/info/installation).
+Installation instructions, including what to do after
+you clone from Github, are available at
+[www.artisynth.org/installGuides](https://www.artisynth.org/installGuides).
 
 Other documentation on how to use the system and build models is
 available at [www.artisynth.org/doc](https://www.artisynth.org/doc).

@@ -604,11 +604,11 @@ public class Face extends Feature implements Boundable {
       }
       while (he != he0);
 
-      double planarArea = normal.norm();
-      if (planarArea != 0) {
-         normal.scale (1 / planarArea);
+      double nmag = normal.norm();
+      if (nmag != 0) {
+         normal.scale (1 / nmag);
       }
-      return planarArea;
+      return nmag/2;
    }
 
    public static double computeTriangleArea (Point3d p0, Point3d p1, Point3d p2) {

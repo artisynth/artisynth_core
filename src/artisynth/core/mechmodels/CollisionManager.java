@@ -602,14 +602,19 @@ public class CollisionManager extends RenderableCompositeBase
       return myHandlers;
    }
 
-   void collectHandlers (ArrayList<CollisionHandler> handlers) {
+   void collectHandlers (
+      ArrayList<CollisionHandler> handlers, boolean updateResponses) {
+      int hidx0 = handlers.size();
       for (MechSystemModel m : myMechModel.getLocalModels()) {
          if (m instanceof MechModel) {
             CollisionManager cm = ((MechModel)m).getCollisionManager();
             cm.myHandlerTable.collectHandlers (handlers);
          }
       }
-      myHandlerTable.collectHandlers (handlers);       
+      myHandlerTable.collectHandlers (handlers);
+      if (updateResponses) {
+         updateResponses (handlers, hidx0);
+      }
    }
 
    // property accessors
@@ -2125,14 +2130,23 @@ public class CollisionManager extends RenderableCompositeBase
          ArrayList<CollidableBody> bodies = myMechModel.getCollidableBodies();
          myHandlerTable.reinitialize (bodies);     
          myHandlers.clear();
-         collectHandlers (myHandlers);
+         collectHandlers (myHandlers, /*updateResponses=*/false);
          myHandlerTableValid = true;
       }
    }
 
-   CollisionHandlerTable getHandlerTable() {
+   public CollisionHandlerTable getHandlerTable() {
       updateHandlerTable();
       return myHandlerTable;
+   }
+   
+   public ArrayList<CollisionHandler> getHandlers() {
+      updateHandlerTable();
+      return myHandlers;
+   }
+   
+   public ArrayList<CollidableBody> getHandlerTableBodies() {
+      return myHandlerTable.getBodies();
    }
 
    private CollisionBehavior dominantBehavior (
@@ -2543,7 +2557,6 @@ public class CollisionManager extends RenderableCompositeBase
       else {
          ch.setBehavior (behav, src);
       }
-      ch.setActive (true);
       ch.myStateNeedsContactInfo = isVisible(ch);
       double pen = ch.computeCollisionConstraints (cinfo);
       if (pen > myMaxpen) {
@@ -2744,7 +2757,7 @@ public class CollisionManager extends RenderableCompositeBase
 
    // ==== Begin Constrainer implementation ====
    
-   public int maxNumContourPoints = 0;
+   //private int maxNumContourPoints = 0;
    
    public double updateConstraints (double t, int flags) {
       
@@ -2756,13 +2769,6 @@ public class CollisionManager extends RenderableCompositeBase
 
       myHandlers.clear();
       double maxpen = updateConstraints (myHandlers, t, flags);
-      int nump = 0;
-      for (CollisionHandler ch : myHandlers) {
-         nump += ch.getLastContactInfo().numContourPoints();
-      }
-      if (nump > maxNumContourPoints ) {
-         maxNumContourPoints = nump;
-      }
       return myHandlers.size() == 0 ? -1 : maxpen;
    }
    
@@ -2796,7 +2802,8 @@ public class CollisionManager extends RenderableCompositeBase
 
       // start of handlers added by this manager only
       int hidx1 = handlers.size(); 
-      myHandlerTable.setHandlerActivity (false);
+      myHandlerTable.saveLastConstraintData();
+      //myHandlerTable.setHandlerActivity (false);
 
       // compute explicit collisions
       for (Map.Entry<CollidablePair,CollisionBehavior> e :
@@ -2854,7 +2861,13 @@ public class CollisionManager extends RenderableCompositeBase
          handlers.get(i).removeInactiveContacts();
       }
       
-      // Now update collision responses, if any. 
+      updateResponses(handlers, hidx0);
+      return myMaxpen;
+   }   
+
+   private void updateResponses (
+      ArrayList<CollisionHandler> handlers, int hidx0) {
+     // Update collision responses, if any. 
       if (myResponses.size() > 0) {
          for (CollisionResponse resp : myResponses) {
             resp.clearHandlers();
@@ -2869,58 +2882,56 @@ public class CollisionManager extends RenderableCompositeBase
                ch.myStateNeedsContactInfo = true;
             }
          }
-      }
-
-      return myMaxpen;
-   }   
+      }      
+   }
 
    public void getBilateralSizes (VectorNi sizes) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         myHandlers.get(i).getBilateralSizes (sizes);
+      int size0 = sizes.sum();
+      for (CollisionHandler ch  : myHandlers) {
+         ch.getBilateralSizes (sizes);
       }
    }
 
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         numb = myHandlers.get(i).addBilateralConstraints (
-            GT, dg, numb);
+      for (CollisionHandler ch  : myHandlers) {
+         numb = ch.addBilateralConstraints (GT, dg, numb);
       }
       return numb;
    }
 
    public int getBilateralInfo (
       ConstraintInfo[] ginfo, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getBilateralInfo (ginfo, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getBilateralInfo (ginfo, idx);
       }
       return idx;
    }
 
    public int setBilateralForces (VectorNd lam, double s, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setBilateralForces (lam, s, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setBilateralForces (lam, s, idx);
       }
       return idx;
    }
 
    public int getBilateralForces (VectorNd lam, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getBilateralForces (lam, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getBilateralForces (lam, idx);
       }
       return idx;
    }
    
    public void zeroForces() {
-      for (int i=0; i<myHandlers.size(); i++) {
-         myHandlers.get(i).zeroForces();
+      for (CollisionHandler ch  : myHandlers) {
+         ch.zeroForces();
       }
    }
 
    public void getUnilateralSizes (VectorNi sizes) {
       //System.out.println ("unilateral sizes");
-      for (int i=0; i<myHandlers.size(); i++) {
-         myHandlers.get(i).getUnilateralSizes (sizes);
+      for (CollisionHandler ch  : myHandlers) {
+         ch.getUnilateralSizes (sizes);
 //         CollisionHandler ch = myHandlers.get(i);
 //         int numu = ch.numUnilateralConstraints();
 //         if (numu > 0) {
@@ -2931,52 +2942,51 @@ public class CollisionManager extends RenderableCompositeBase
 
    public int addUnilateralConstraints (
       SparseBlockMatrix NT, VectorNd dn, int numu) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         numu = myHandlers.get(i).addUnilateralConstraints (
-            NT, dn, numu);
+      for (CollisionHandler ch : myHandlers) {
+         numu = ch.addUnilateralConstraints (NT, dn, numu);
       }
       return numu;
    }
 
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getUnilateralInfo (ninfo, idx);
+      for (CollisionHandler ch : myHandlers) {
+         idx = ch.getUnilateralInfo (ninfo, idx);
       }
       return idx;
    }
 
    public int setUnilateralForces (VectorNd the, double s, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setUnilateralForces (the, s, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setUnilateralForces (the, s, idx);
       }
       return idx;
    }
 
    public int getUnilateralForces (VectorNd the, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getUnilateralForces (the, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getUnilateralForces (the, idx);
       }
       return idx;
    }
 
    public int setUnilateralState (VectorNi state, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setUnilateralState (state, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setUnilateralState (state, idx);
       }
       return idx;      
    }
    
    public int getUnilateralState (VectorNi state, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getUnilateralState (state, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getUnilateralState (state, idx);
       }
       return idx;      
    }
    
    public int maxFrictionConstraintSets() {
       int max = 0;
-      for (int i=0; i<myHandlers.size(); i++) {      
-         max += myHandlers.get(i).maxFrictionConstraintSets();
+      for (CollisionHandler ch  : myHandlers) {      
+         max += ch.maxFrictionConstraintSets();
       }
       return max;
    }
@@ -3001,15 +3011,15 @@ public class CollisionManager extends RenderableCompositeBase
       // int full = 0;
       // CollisionHandler.ftol = -1;
       // myFullTimer.restart();
-      // for (int i=0; i<myHandlers.size(); i++) {
-      //    full = myHandlers.get(i).addFrictionConstraints (DTF, finfoFull, full);
+      // for (CollisionHandler ch  : myHandlers) {
+      //    full = ch.addFrictionConstraints (DTF, finfoFull, full);
       // }
       // myFullTimer.stop();
       // myFullNum += full;
       // CollisionHandler.ftol = 1e-2;
       //myRegTimer.restart();
-      for (int i=0; i<myHandlers.size(); i++) {
-         numf = myHandlers.get(i).addFrictionConstraints (
+      for (CollisionHandler ch  : myHandlers) {
+         numf = ch.addFrictionConstraints (
             DT, finfo, prune, numf);
       }
       // myRegTimer.stop();
@@ -3028,8 +3038,8 @@ public class CollisionManager extends RenderableCompositeBase
     * {@inheritDoc}
     */
    public int setFrictionForces (VectorNd phi, double s, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setFrictionForces (phi, s, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setFrictionForces (phi, s, idx);
       }
       return idx;
    }
@@ -3038,22 +3048,22 @@ public class CollisionManager extends RenderableCompositeBase
     * {@inheritDoc}
     */
    public int getFrictionForces (VectorNd phi, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getFrictionForces (phi, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getFrictionForces (phi, idx);
       }
       return idx;
    }
    
    public int setFrictionState (VectorNi state, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setFrictionState (state, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setFrictionState (state, idx);
       }
       return idx;      
    }
    
    public int getFrictionState (VectorNi state, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getFrictionState (state, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getFrictionState (state, idx);
       }
       return idx;      
    }
@@ -3263,7 +3273,7 @@ public class CollisionManager extends RenderableCompositeBase
       myHandlerTable.setState (data);
       if (myMechModel == MechModel.topMechModel(this)) {
          myHandlers.clear();
-         collectHandlers (myHandlers);
+         collectHandlers (myHandlers, /*updateResponses=*/true);
       }
    }
 

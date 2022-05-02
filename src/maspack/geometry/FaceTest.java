@@ -9,7 +9,7 @@ package maspack.geometry;
 import maspack.matrix.*;
 import maspack.util.*;
 
-public class FaceTest {
+public class FaceTest extends UnitTest {
    Face face;
 
    private final static double EPS = 1e-12;
@@ -166,24 +166,42 @@ public class FaceTest {
       CChk.set (3.25, 1.375, 0, 1.375, 2.25, 0, 0, 0, 0);
       areaChk = 4.5;
       testCentroidAndCovariance (face, centroidChk, CChk, areaChk);
-
-
    }
+   
+   private void testArea (Face face, double areaChk) {
+      double area = face.computeNormal();
+      checkEquals (
+         "area from computeNormal()", area, areaChk, 1e-13);      
+      checkEquals (
+         "area from getPlanarArea()", face.getPlanarArea(), areaChk, 1e-13);      
+   }
+   
+   public void testArea() {
+      Face face;
+      double areaChk;
+
+      face = Face.create (vtx0, vtx1, vtx2);
+      areaChk = 1;
+      testArea (face, areaChk);
+
+      face = Face.create (vtx0, vtx1, vtx2, vtx3);
+      areaChk = 2;
+      testArea (face, areaChk);
+
+      face = Face.create (vtx1, vtx2, vtx3, vtx4, vtx5);
+      areaChk = 4.5;
+      testArea (face, areaChk);
+   } 
 
    public void test() throws TestException {
       testNearestPoint();
       testCentroidAndCovariance();
+      testArea();
    }
 
    public static void main (String[] args) {
       FaceTest tester = new FaceTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      System.out.println ("\nPassed\n");
+      
+      tester.runtest();
    }
 }

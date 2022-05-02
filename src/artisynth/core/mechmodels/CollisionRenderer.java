@@ -85,24 +85,11 @@ public class CollisionRenderer {
       ro.addLine (v0idx, v1idx);
    }
 
-   private void addConstraintRenderInfo (
-      RenderObject ro, Collection<ContactConstraint> cons, double nrmlLen) {
-
-      Point3d p0 = new Point3d();
-      Point3d p1 = new Point3d();
-      for (ContactConstraint c : cons) {
-         double lam = c.myLambda;
-         p0.add (c.myCpnt0.myPoint, c.myCpnt1.myPoint);
-         p0.scale (0.5);
-         p1.scaledAdd (nrmlLen*(lam/maxlam), c.myNormal, p0);
-         addLineSeg (ro, p0, p1);
-      }
-   }
 
    private double maxlam = 20;
 
    private void maybeAddVertexFaceNormal (
-      RenderObject ro, ContactConstraint cc, double normalLen) {
+      RenderObject ro, ContactConstraintData cc, double normalLen) {
 
       addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, normalLen);
    }
@@ -223,10 +210,10 @@ public class CollisionRenderer {
       }
       if (normalLen != 0 && cinfo != null) {
          ro.lineGroup (SEGMENT_GRP);
-         for (ContactConstraint cc : handler.getUnilaterals()) {
+         for (ContactConstraintData cc : handler.myLastUnilateralData) {
             maybeAddVertexFaceNormal (ro, cc, normalLen);
          }
-         for (ContactConstraint cc : handler.getBilaterals()) {
+         for (ContactConstraintData cc : handler.myLastBilateralData) {
             maybeAddVertexFaceNormal (ro, cc, normalLen);
          }
       }
@@ -239,13 +226,13 @@ public class CollisionRenderer {
 
       if (forceScale != 0 && cinfo != null) {
          ro.lineGroup (FORCE_GRP);
-         for (ContactConstraint cc : handler.getUnilaterals()) {
+         for (ContactConstraintData cc : handler.myLastUnilateralData) {
             double len = forceScale*cc.myLambda;
             if (len != 0) {
                addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
             }
          }
-         for (ContactConstraint cc : handler.getBilaterals()) {
+         for (ContactConstraintData cc : handler.myLastBilateralData) {
             double len = forceScale*cc.myLambda;
             if (len != 0) {
                addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
@@ -259,14 +246,14 @@ public class CollisionRenderer {
       }
       if (forceScale != 0 && cinfo != null) {
          ro.lineGroup (FRICTION_FORCE_GRP);
-         for (ContactConstraint cc : handler.myBilaterals.values()) {
+         for (ContactConstraintData cc : handler.myLastBilateralData) {
             double fmag = cc.myFrictionForce.norm();
             if (fmag > 0) {
                addLineSeg (
                   ro, cc.myCpnt0.myPoint, cc.myFrictionForce, forceScale);
             }
          }
-         for (ContactConstraint cc : handler.getUnilaterals()) {
+         for (ContactConstraintData cc : handler.myLastUnilateralData) {
             double fmag = cc.myFrictionForce.norm();
             if (fmag > 0) {
                addLineSeg (

@@ -25,6 +25,9 @@ if (isempty(varargin) == 0)
       args(i) = java.lang.String(varargin{i});
    end
 end
+% set the class loader to the one used by MATLAB
+loader = maspack.matrix.Vector3d().getClass().getClassLoader();
+maspack.util.ClassFinder.setClassLoader(loader);
 artisynth.core.driver.Main.setRunningUnderMatlab (1);
 % quit any existing ArtiSynth that is running
 main = artisynth.core.driver.Main.getMain();

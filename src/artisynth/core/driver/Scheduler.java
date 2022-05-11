@@ -192,6 +192,10 @@ public class Scheduler {
       void doadvance (double t0sec, double t1sec, int flags) {
          
          RootModel rootModel = getRootModel();
+         if (rootModel == null) {
+            // can happen if ArtiSynth quits suddenly
+            return;
+         }
          if (checkState) {
             checkState (rootModel);
          }

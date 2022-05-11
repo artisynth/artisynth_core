@@ -32,15 +32,31 @@ import java.util.regex.Pattern;
 public class ClassFinder {
 
    static Logger myLogger = null;
+   static ClassLoader myClassLoader = null;
+   
+   /**
+    * Explicitly sets the class loader to be used by this class. If
+    * set to {@code null}, the current thread's context class loader will
+    * be used instead.
+    * 
+    * @param loader new class loader
+    */
+   static public void setClassLoader (ClassLoader loader) {
+      myClassLoader = loader;
+   }
 
    /**
-    * Returns the context class loader. This can be set at the start of an
-    * application to a loader that looks for classes in places other than the
-    * default class path used by the application.
+    * Returns the class loader to be used by this class. This is either
+    * an explicit value set by {@link #setClassLoader}, or the context class
+    * loader of the current thread.
     */
    static public ClassLoader getContextClassLoader() {
-      ClassLoader loader = Thread.currentThread().getContextClassLoader();
-      return loader;
+      if (myClassLoader != null) {
+         return myClassLoader;
+      }
+      else {
+         return Thread.currentThread().getContextClassLoader();
+      }
    }
 
    /**

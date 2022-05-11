@@ -163,7 +163,7 @@ else ifeq ($(SYSTEM),Darwin)
 	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
 	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o
 	PARDISO_MKL_TARGET = libPardisoJNI.$(PARDISO_VERSION).dylib
-	LIB_FLAGS = -bundle -framework JavaVM 
+	LIB_FLAGS = -bundle -framework JavaNativeFoundation 
 endif
 
 LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
@@ -206,10 +206,15 @@ $(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET): $(PARDISO_MKL_OBJS)
 	$(CC_COMP)  $(LIB_FLAGS) $(CC_FLAGS) -o $@ \
 	$(PARDISO_MKL_OBJS) $(LDS_PARDISO_MKL) 
 ifeq ($(SYSTEM),Darwin)
-        # add to @loader_path to libiomp5 name so that we don't need to
-        # set DYLD_LIBRARY_PATH in applications; see
-        # http://dssheep.blogspot.ca/2011/11/how-to-avoid-dyldlibrarypath-with-jni.html
-	install_name_tool -change "@rpath/libiomp5.dylib" "@loader_path/libiomp5.dylib" $@
+        #	
+        # John Lloyd, May 2022: this no longer appears to be needed,
+        # and in fact prevents operation under MATLAB because libiomp5
+        # gets reloaded
+        # 
+        ## add to @loader_path to libiomp5 name so that we don't need to
+        ## set DYLD_LIBRARY_PATH in applications; see
+        ## http://dssheep.blogspot.ca/2011/11/how-to-avoid-dyldlibrarypath-with-jni.html
+	##install_name_tool -change "@rpath/libiomp5.dylib" "@loader_path/libiomp5.dylib" $@
 endif
 
 .PHONY: pardiso

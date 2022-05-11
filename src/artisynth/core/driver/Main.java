@@ -1816,7 +1816,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public void clearRootModel() {
-      myWorkspace.cancelRenderRequests();
+      if (myWorkspace != null) {
+         myWorkspace.cancelRenderRequests();
+      }
       myModelName = null;
       myLastLoadInfo = null;
       mySaveWayPointData = false;
@@ -1832,17 +1834,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (myAddMarkerHandler != null) {
          myAddMarkerHandler.setDefaultHandler ();  // reset handler to default
       }
-      mySelectionManager.clearSelections();
-      myUndoManager.clearCommands();
-      myWorkspace.removeDisposables();
-      ArtisynthPath.setWorkingDir (null);
+      if (mySelectionManager != null) {
+         mySelectionManager.clearSelections();
+      }
+      if (myUndoManager != null) {
+         myUndoManager.clearCommands();
+      }
+      if (myWorkspace !=null) {
+         myWorkspace.removeDisposables();
+      }
+      ArtisynthPath.setWorkingFolder (null);
       // myWorkspace.getWayPoints().clear();
       // myWorkspace.clearInputProbes();
       // myWorkspace.clearOutputProbes();
       if (myViewerManager != null) {
          myViewerManager.clearRenderables();
       }
-      getWorkspace().setRootModel (null);
+      if (getWorkspace() != null) {
+         getWorkspace().setRootModel (null);
+      }
       if (myMenuBarHandler != null) {
          myMenuBarHandler.clearModelInfoFrame();
       }

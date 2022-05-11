@@ -294,10 +294,17 @@ public class PardisoSolverTest implements ActionListener {
    void testParameterAccessMethods (PardisoSolver solver) {
 
       int defaultNumThreads = solver.getNumThreads();
-      solver.setNumThreads (3);
-      TestSupport.doassert (
-         solver.getNumThreads() == 3,
-         "solver.getNumThreads() == 3");
+      // see how many threads are available up to 4:
+      solver.setNumThreads (4);
+      int maxNumThreads = solver.getNumThreads();
+      for (int n=1; n<=maxNumThreads; n++) {
+         solver.setNumThreads (n);
+         int nchk = solver.getNumThreads();
+         if (n != nchk) {
+            throw new TestException (
+               "solver.getNumThreads() = "+nchk+", expected " + n);
+         }
+      }
       solver.setNumThreads (-1);
       TestSupport.doassert (
          solver.getNumThreads()==defaultNumThreads, 
@@ -400,10 +407,6 @@ public class PardisoSolverTest implements ActionListener {
    public void dotest () {
 
       PardisoSolver solver = new PardisoSolver();
-      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
-      solver.setNumThreads (4);
-      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
-      solver.setNumThreads (0);
       int i;
 
       // set test symmetric matrix:

@@ -244,7 +244,7 @@ class DualQuaternionTest extends UnitTest {
       DualQuaternionTest tester = new DualQuaternionTest();
 
       RandomGenerator.setSeed (0x1234);
-      //tester.runtest();
-      tester.timeTest();
+      tester.runtest();
+      //tester.timeTest();
    }
 }

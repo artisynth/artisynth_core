@@ -70,6 +70,9 @@ a shell environment</dd>
 <dt>README.md</dt>
 <dd>This file</dd>
 
+<dt>CODE_OF_CONDUCT.md</dt>
+<dd>Project code of conduct</dd>
+
 <dt>VERSION</dt>
 <dd>Current distribution version</dd>
 

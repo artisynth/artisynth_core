@@ -2,7 +2,7 @@
 
 ## Pledge
 
-Contributors and maintainers of this project pledge to make project and community participation a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+Contributors and maintainers of the ArtiSynth project pledge to make project and community participation a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 ## Standards
 

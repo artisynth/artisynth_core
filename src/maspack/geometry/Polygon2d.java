@@ -572,24 +572,25 @@ public class Polygon2d implements Renderable {
       return xprod (p0, p1, p2) < 0;
    }
    
-   private Polygon2d listToHull (LinkedList<Point2d> list) {
+   private ConvexPolygon2d listToHull (LinkedList<Point2d> list) {
       int numv = list.size()-1;
       if (numv < 1) {
-         return new Polygon2d();
+         return new ConvexPolygon2d();
       }
       Point2d[] pnts = new Point2d[numv];
-      Iterator<Point2d> it = list.iterator();
-      it.next(); // discard first vertex
-      for (int k=0; k<numv; k++) {
-         pnts[k] = it.next();
+      ListIterator<Point2d> it = list.listIterator(list.size());
+      it.previous(); // discard first vertex
+      int k = 0;
+      while (it.hasPrevious()) {
+         pnts[k++] = it.previous();
       }
-      return new Polygon2d (pnts);
+      return new ConvexPolygon2d (pnts);
    }
 
    /**
     * Computes the convex hull of this Polygon2d, under the assumption that it
-    * describes a simple polygon. The result is returned as another Polygon2d,
-    * with vertices arranged clockwise.
+    * describes a simple polygon. The result is returned as a ConvexPolygon2d,
+    * with vertices arranged counter-clockwise.
     *
     * <p>The method uses the O(n) time algorithm described by A Melkman, "On-Li
     * Construction of the Convex Hull of a Simple Polyline", Information
@@ -597,10 +598,10 @@ public class Polygon2d implements Renderable {
     * predicates and so may produce results that are inaccurate at a
     * machine-precision level.
     */
-   public Polygon2d simpleConvexHull() {
+   public ConvexPolygon2d simpleConvexHull() {
 
       if (numVertices() <= 2) {
-         Polygon2d poly = new Polygon2d();
+         ConvexPolygon2d poly = new ConvexPolygon2d();
          poly.set (this);
          return poly;
       }

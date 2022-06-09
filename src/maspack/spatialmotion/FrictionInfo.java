@@ -26,6 +26,29 @@ public class FrictionInfo {
    public FrictionInfo() {
       contactIdx1 = -1;
    }
+
+   public FrictionInfo (FrictionInfo finfo) {
+      set (finfo);
+   }
+
+   public void set (FrictionInfo finfo) {
+      this.mu = finfo.mu;
+      this.blockIdx = finfo.blockIdx;
+      this.blockSize = finfo.blockSize;
+      this.contactIdx0 = finfo.contactIdx0;
+      this.contactIdx1 = finfo.contactIdx1;
+      this.flags = finfo.flags;
+      this.stictionCreep = finfo.stictionCreep;
+   }
+
+   public void set2D (int bi, int ci, double mu) {
+      this.mu = mu;
+      this.blockIdx = bi;
+      this.blockSize = 2;
+      this.contactIdx0 = ci;
+      this.contactIdx1 = -1;
+      this.flags = 0;
+   }
       
    /**
     * Returns the maximum friction value based on the most recent contact force

@@ -7,6 +7,7 @@
 package maspack.matrix;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 
 import maspack.util.TestException;
 
@@ -48,13 +49,13 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
             myFreeNumbers, (3*myFreeNumbers.length)/2+1);
       }
       myFreeNumbers[myNumFreeNumbers++] = num;
-      if (num == myMaxNumber - 1) {
-         int k = num - 1;
-         while (k >= 0 && myNumberMap[k] == null) {
-            k--;
-         }
-         myMaxNumber = k + 1;
-      }
+      // if (num == myMaxNumber - 1) {
+      //    int k = num - 1;
+      //    while (k >= 0 && myNumberMap[k] == null) {
+      //       k--;
+      //    }
+      //    myMaxNumber = k + 1;
+      // }
    }
 
    public SparseNumberedBlockMatrix() {
@@ -86,7 +87,10 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
    public SparseNumberedBlockMatrix (
       int[] rowSizes, int[] colSizes, int initialCapacity) {
       super (rowSizes, colSizes);
+      initializeFreeList (initialCapacity);
+   }
 
+   void initializeFreeList (int initialCapacity) {
       myInitialCapacity = initialCapacity;
       if (initialCapacity < 0) {
          initialCapacity =
@@ -98,10 +102,20 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
       myNumFreeNumbers = 0;
    }
 
+   void copyFreeList (SparseNumberedBlockMatrix S) {
+      myNumFreeNumbers = S.myNumFreeNumbers;
+      myInitialCapacity = S.myInitialCapacity;
+      myMaxNumber = S.myMaxNumber;
+      myFreeNumbers = Arrays.copyOf (S.myFreeNumbers, S.myNumFreeNumbers);
+   }
+
    public int addBlock (int bi, int bj, MatrixBlock blk) {
-      MatrixBlock oldBlk = addBlockWithoutNumber (bi, bj, blk);
+      MatrixBlock oldBlk = doAddBlock (bi, bj, blk);
       int num;
-      if (oldBlk == null) {
+      if (blk.getBlockNumber() != -1) {
+         num = blk.getBlockNumber();
+      }
+      else if (oldBlk == null) {
          num = allocNumber();
       }
       else {
@@ -114,11 +128,8 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
    }
 
    public boolean removeBlock (MatrixBlock oldBlk) {
-      if (removeBlockWithoutNumber (oldBlk)) {
-         int num = oldBlk.getBlockNumber();
-         myNumberMap[num] = null;
-         freeNumber (num);
-         oldBlk.setBlockNumber (-1);
+      if (doRemoveBlock (oldBlk)) {
+         disposeBlock (oldBlk);
          return true;
       }
       else {
@@ -126,8 +137,14 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
       }
    }
 
-   public void removeAllBlocks() {
-      super.removeAllBlocks();
+   protected void disposeBlock (MatrixBlock blk) {
+      int num = blk.getBlockNumber();
+      myNumberMap[num] = null;
+      freeNumber (num);
+      blk.setBlockNumber (-1);
+   }
+
+   private void clearNumberMap() {
       for (int i=0; i<myNumberMap.length; i++) {
          myNumberMap[i] = null;
       }
@@ -135,8 +152,33 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
       myNumFreeNumbers = 0;
    }
 
+   public void removeAllBlocks() {
+      super.removeAllBlocks();
+      clearNumberMap();
+   }
+
+   public void removeAllRows() {
+      super.removeAllRows();
+      clearNumberMap();
+   }
+
+   public void removeAllCols() {
+      super.removeAllCols();
+      clearNumberMap();
+   }
+
    public MatrixBlock getBlockByNumber (int num) {
       return myNumberMap[num];
+   }
+
+   String getBlockStr (MatrixBlock blk) {
+      if (blk == null) {
+         return "null";
+      }
+      else {
+         return ("("+blk.getBlockRow()+","+blk.getBlockCol()+
+                 "), number "+blk.getBlockNumber()+", hash "+blk.hashCode());
+      }
    }
 
    public void checkConsistency() {
@@ -147,7 +189,9 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
          for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk = blk.next()) {
             if (myNumberMap[blk.getBlockNumber()] != blk) {
                throw new TestException (
-                  "inconsistent number map entry for blk "+blk.getBlockNumber());
+                  "blk" + getBlockStr(blk) +
+                  ": inconsistent map entry: " +
+                  getBlockStr(myNumberMap[blk.getBlockNumber()]));
             }
             numBlksChk++;
          }
@@ -201,6 +245,19 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
             "myMaxNumber="+myMaxNumber+", expecting "+(numBlks+numFree));
       }
 
+   }
+
+   public void set (SparseBlockMatrix S) {
+      if (S instanceof SparseNumberedBlockMatrix) {
+         SparseNumberedBlockMatrix SN = (SparseNumberedBlockMatrix)S;
+         copyFreeList (SN);
+         myNumberMap = new MatrixBlock[myNumberMap.length];
+         super.set (SN);
+      }
+      else {
+         initializeFreeList (-1);
+         super.set (S);
+      }     
    }
 
    /**

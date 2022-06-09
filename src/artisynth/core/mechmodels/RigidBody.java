@@ -1868,9 +1868,19 @@ public class RigidBody extends Frame
       return false;
    }
 
+   /**
+    * {@inheritDoc}
+    */ 
    public void collectVertexMasters (
       List<ContactMaster> mlist, Vertex3d vtx) {
       mlist.add (this);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean hasInvariantMasters() {
+      return true;
    }
    
    public boolean containsContactMaster (CollidableDynamicComponent comp) {

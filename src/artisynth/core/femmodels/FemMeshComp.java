@@ -2195,7 +2195,10 @@ implements CollidableBody, PointAttachable {
    public double getMass () {
       return myFem.getMass ();
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */
    public void collectVertexMasters (
       List<ContactMaster> mlist, Vertex3d vtx) {
       PointAttachment pa = getVertexAttachment(vtx.getIndex());
@@ -2207,6 +2210,13 @@ implements CollidableBody, PointAttachable {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
          mlist.add (ppa);
       }      
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean hasInvariantMasters() {
+      return false;
    }
 
    public boolean containsContactMaster (CollidableDynamicComponent comp) {

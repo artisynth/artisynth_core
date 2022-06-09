@@ -295,6 +295,49 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       return hasNormal;
    }
 
+   private void addEdgeCrossProduct (Vector3d sum, HalfEdge he0, HalfEdge he1) {
+      Vector3d vec01 = new Vector3d();
+      Vector3d vec12 = new Vector3d();
+      Point3d pnt0 =  he0.getTail().getPosition(); 
+      Point3d pnt1 =  he0.getHead().getPosition(); 
+      Point3d pnt2 =  he1.getHead().getPosition(); 
+      vec01.sub (pnt1, pnt0);
+      vec12.sub (pnt2, pnt1);
+      sum.crossAdd (vec01, vec12, sum);
+   }
+
+   /**
+    * Sums the cross products of all inbound (indicent) and 
+    * outbound half edges.
+    * 
+    * @param sum
+    * returns the summed cross products
+    */
+   public void sumEdgeCrossProducts (Vector3d sum) {
+      sortHedgesIfNecessary();      
+      sum.setZero();
+      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
+         HalfEdge he = node.he;
+         if (he.getNext() != null) {
+            addEdgeCrossProduct (sum, he, he.getNext());
+         }
+      }
+   }
+
+   /**
+    * Sums the cross products of all inbound (incident) and outbound
+    * half edges, and returns the result in world coordinates.
+    * 
+    * @param sum
+    * returns the summed cross products
+    */
+   public void sumEdgeCrossProductsWorld (Vector3d sum) {
+      sumEdgeCrossProducts (sum);
+      if (myMesh != null && !myMesh.myXMeshToWorldIsIdentity) {
+         sum.transform (myMesh.XMeshToWorld.R);
+      }
+   }
+
 //   /**
 //    * Compute the normals for all the half-edges incident on this vertex.
 //    * If none of the half-edges are open or hard, then only one normal

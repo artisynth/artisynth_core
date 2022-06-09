@@ -566,7 +566,7 @@ public class ScanWriteUtils {
       while (tokens.peek() != ScanToken.END) {
          refs.add (postscanReference (tokens, clazz, ancestor));
       }
-      tokens.poll(); // consume BEGIN token
+      tokens.poll(); // consume END token
       return refs.toArray ((C[])Array.newInstance (clazz, 0));
    }
    

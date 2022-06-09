@@ -65,6 +65,16 @@ public interface ContactMaster {
       Vector3d vel, double scale, ContactPoint cpnt);
    
    /**
+    * XXX Experimental XXX
+    * Compute the forces on the masters resulting from a force
+    * fc applied at the contact point, and accumulate them in uvec,
+    * whose size should equal that of the system forces.
+    */
+   public void computeForceOnMasters (
+      VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt, 
+      SparseBlockMatrix S); 
+   
+   /**
     * Queries whether at least one of the underlying dynamic components is
     * controllable.
     * 

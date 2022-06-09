@@ -838,6 +838,15 @@ public class VectorNi extends VectoriBase implements java.io.Serializable {
    }
 
    /**
+    * Sets the elements of this vector to a specific value.
+    */
+   public void setAll (int value) {
+      for (int i = 0; i < size; i++) {
+         buf[i] = value;
+      }
+   }
+
+   /**
     * Sets the elements of this vector to their absolute values.
     *
     * @return this vector

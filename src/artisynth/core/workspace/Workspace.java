@@ -148,7 +148,9 @@ public class Workspace {
       if (myRequestedUpdateAction == null) {
          myRequestedUpdateAction = new UpdateAction();
          Scheduler scheduler = myMain.getScheduler();
-         if (scheduler.requestAction (myRequestedUpdateAction)) {
+         // scheduler might be null during disorderly shutdown
+         if (scheduler != null &&
+             scheduler.requestAction (myRequestedUpdateAction)) {
             // System.out.println ("$sched");
          }
          else {

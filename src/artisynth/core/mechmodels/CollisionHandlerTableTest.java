@@ -151,7 +151,7 @@ public class CollisionHandlerTableTest extends UnitTest {
          }
       }
       // and reinitialize
-      table.setHandlerActivity (true);
+      table.makeAllHandlersActive();
       table.reinitialize (bodies);
       handlers.clear();
       table.collectHandlers (handlers);

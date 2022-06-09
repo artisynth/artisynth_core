@@ -220,6 +220,13 @@ public abstract class DenseMatrixBase extends MatrixBase implements DenseMatrix 
    /**
     * {@inheritDoc}
     */
+   public void setRandom() {
+      super.setRandom();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    protected void setRandom (
       double lower, double upper, Random generator) {
       double range = upper - lower;

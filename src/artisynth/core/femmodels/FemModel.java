@@ -35,6 +35,7 @@ import maspack.util.FunctionTimer;
 import maspack.util.StringHolder;
 import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
+import maspack.spatialmotion.FrictionInfo;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
@@ -1098,7 +1099,8 @@ public abstract class FemModel extends MechSystemBase
       return numb;
    }
 
-   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx) {
       return idx;
    }
 
@@ -1119,10 +1121,11 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
+      boolean prune, int numf) {
       return numf;
    }
-
+   
    public int setBilateralForces (VectorNd lam, double s, int idx) {
       return idx;
    }
@@ -1139,6 +1142,36 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public int getUnilateralForces (VectorNd the, int idx) {
+      return idx;
+   }
+
+   public int setUnilateralState (VectorNi state, int idx) {
+      return idx;
+   }
+
+   public int getUnilateralState (VectorNi state, int idx) {
+      return idx;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int setFrictionForces (VectorNd phi, double s, int idx) {
+      return idx;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getFrictionForces (VectorNd phi, int idx) {
+      return idx;
+   }
+   
+   public int setFrictionState (VectorNi state, int idx) {
+      return idx;
+   }
+
+   public int getFrictionState (VectorNi state, int idx) {
       return idx;
    }
 

@@ -71,7 +71,7 @@ public class ContactPoint {
 
    public void set (Point3d pnt) {
       myPoint.set (pnt);
-      myVtxs = null;
+      myVtxs = new Vertex3d[0];
       myWgts = null;
    }
 
@@ -85,12 +85,16 @@ public class ContactPoint {
       myPoint.set (cpnt.myPoint);
       if (cpnt.myVtxs == null) {
          myVtxs = null;
-         myWgts = null;
       }
       else {
          myVtxs = Arrays.copyOf (cpnt.myVtxs, cpnt.myVtxs.length);
-         myWgts = Arrays.copyOf (cpnt.myWgts, cpnt.myWgts.length);
       }
+      if (cpnt.myWgts == null) {
+         myWgts = null;
+      }
+      else {
+         myWgts = Arrays.copyOf (cpnt.myWgts, cpnt.myWgts.length);
+      }     
    }
 
    public void set (Point3d pnt, Feature feat) {
@@ -263,6 +267,7 @@ public class ContactPoint {
       ContactPoint cpnt = new ContactPoint();
       data.dget(cpnt.myPoint);
       if (numv == 0) {
+         cpnt.myVtxs = new Vertex3d[0];
          return cpnt;
       }
       Vertex3d[] vtxs = new Vertex3d[numv];
@@ -287,34 +292,38 @@ public class ContactPoint {
                code += vtx.hashCode();
             }
          }
-         return code;
+         return (code == 0 ? super.hashCode() : code);
       }
    }
-
-   public boolean equals(Object obj) {
-      if (obj instanceof ContactPoint) {
-         Vertex3d[] otherVtxs = ((ContactPoint)obj).myVtxs;
-
-         if (otherVtxs.length != myVtxs.length) {
-            return false;
-         }
-
-         // XXX Should we account for potential directional ambiguity?
-         //     e.g. in face or edge... 
-         //     I believe these will always be consistent
+   
+   public boolean verticesEqual (ContactPoint pnt) {
+      Vertex3d[] otherVtxs = pnt.myVtxs;
+      if (myVtxs.length != otherVtxs.length) {
+         return false;
+      }
+      if (myVtxs.length == 1) {
+         return myVtxs[0] == otherVtxs[0];
+         
+      }
+      else {
          for (int i=0; i<myVtxs.length; i++) {
             if (myVtxs[i] != otherVtxs[i]) {
                return false;
             }
-         }
+         } 
          return true;
-
+      }
+   }
+   
+   public boolean equals(Object obj) {
+      if (obj instanceof ContactPoint) {
+         return verticesEqual ((ContactPoint)obj);
       }
       return false;
    }
 
    public boolean isOnCollidable (CollidableBody cbody) {
-      if (myVtxs != null) {
+      if (myVtxs != null && myVtxs.length > 0) {
          return myVtxs[0].getMesh() == cbody.getCollisionMesh();
       }
       else {
@@ -324,8 +333,10 @@ public class ContactPoint {
    
    public String toString (String fmtStr) {
       String str = "[ pos=" + myPoint.toString (fmtStr);
-      for (int i=0; i<myVtxs.length; i++) {
-         str += " v"+i+"=" + myVtxs[i].getIndex();
+      if (myVtxs != null) {
+         for (int i=0; i<myVtxs.length; i++) {
+            str += " v"+i+"=" + myVtxs[i].getIndex();
+         }
       }
       str += " ]";
       return str;

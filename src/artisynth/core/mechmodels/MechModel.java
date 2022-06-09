@@ -944,47 +944,89 @@ TransformableGeometry, ScalableUnits {
       }
    }
 
-   // public void getTopCollidables (List<Collidable> list, int level) {
-   //    recursivelyGetTopLocalComponents (this, list, Collidable.class);
-   // } 
-   
+   /**
+    * Sets the default behavior for collisions to be compliant, using estimated
+    * values for the compliance, damping, and stiction creep. This also ensures
+    * that contact computations are regularized. Values are estimated using the
+    * radius {@code r} of the model's current bounding sphere, the average mass
+    * {@code m} of the model's collidables, and the current magnitude {@code g}
+    * for the acceleration of gravity. In order for the estimated values to
+    * make sense, it is important to call this method <i>after</i> the model
+    * has been assembled. If gravity is set to 0, 9.8 is used instead. If there
+    * are no collidable bodies, {@code m} is set to 1.
+    *
+    * <ul>
+    *
+    * <li>Compliance is set to {@code (0.001 r)/(m g)}, which allows contact
+    * penetrations of {@code 0.001 r} under a force of {@code m g}.</li>
+    *
+    * <li>Damping is set to {@code 2 sqrt(m/c)}, where {@code c} is the
+    * compliance. This enables critical damping.</li>
+    *
+    * <li>Stiction creep is set to {@code 1e-5 r}, so that stiction contacts
+    * can be expected to move by about {@code 0.001 r} in 100 seconds. This
+    * allows the creep to be small while still providing a large enough value
+    * to regularize the static friction constraints.</li>
+    *
+    * </ul>
+    *
+    * <p>This method works by setting the compliance, damping, and stiction
+    * creep properties for the collision manager of this model and all other
+    * {@code MechModel}s contained within it.
+    */
+   public void setCompliantContact() {
+      double r = RenderableUtils.getRadius (this);
+      double g = getGravity().norm();
+      if (g == 0) {
+         g = 9.8;
+      }
+      double m = 0;
+      ArrayList<CollidableBody> bodies = getCollidableBodies();
+      if (bodies.size() > 0) {
+         for (CollidableBody body : bodies) {
+            m += body.getMass();
+         }
+         m /= bodies.size();      
+      }
+      else {
+         m = 1.0;
+      }
+      double c = 0.001*r/(m*g);
+      setCompliantContact (c, 2*Math.sqrt(m/c), 1e-5*r);
+   }
 
-   // /**
-   //  * Creates and returns a collision response object that contains information
-   //  * about all the current collisions between a <code>target</code> collidable
-   //  * and one or more <code>source</code> collidables.
-   //  *
-   //  * <p>If <code>target</code> and <code>source</code> are the same, then the
-   //  * response will provide information on self-collisions within
-   //  * <code>target</code>, which is the same as specifying <code>source =
-   //  * Collidable.Self</code>. At present, self-collision is supported only for
-   //  * deformable compound collidables; if this is not the case, then the
-   //  * collision response object will be empty.
-   //  *
-   //  * <p>If <code>source</code> is set to <code>Collidable.All</code>, then the
-   //  * collision response will contain information for all collisions involving
-   //  * the <code>target</code>, including self-collisions if appropriate.
-   //  *
-   //  * @param target target collidable. Must be a specific collidable.
-   //  * @param source source collidable(s). May be a specific collidable
-   //  * or a colliable group.
-   //  * @return collision response object for the specified target and source
-   //  */
-   // public CollisionResponse getCollisionResponse (
-   //    Collidable target, Collidable source) {
+   /**
+    * Sets the default behavior for collisions to be compliant, with a
+    * specified compliance, damping, and stiction creep. If the compliance and
+    * creep are both {@code > 0}, then the contact computations will be
+    * regularized.
+    *
+    * <p>This method works by setting the compliance, damping, and stiction
+    * creep properties for the collision manager of this model and all other
+    * {@code MechModel}s contained within it.
+    *
+    * @param c compliance
+    * @param d damping
+    * @param sc stiction creep
+    */
+   public void setCompliantContact (double c, double d, double sc) {
+      recursivelySetCompliantContact (this, c, d, sc);
+   }
 
-   //    if (useNewCollisionManager) {
-   //       return myCollisionManager.getCollisionResponse (target, source);
-   //    }
-   //    else {
-   //       return null;
-   //    }
-   // }
+   void recursivelySetCompliantContact (
+      MechModel mech, double c, double d, double sc) {
+      mech.updateLocalModels();
+      for (MechSystemModel m : mech.myLocalModels) {
+         if (m instanceof MechModel) {
+            recursivelySetCompliantContact ((MechModel)m, c, d, sc);
+         }
+      }      
+      CollisionManager cm = mech.myCollisionManager;
+      cm.setCompliance (c);
+      cm.setDamping (d);
+      cm.setStictionCreep (sc);
+   }
 
-//   public CollisionManagerOld getCollisionManagerOld() {
-//      return null;
-//   }
-//
    public CollisionManager getCollisionManager() {
       return myCollisionManager;
    }
@@ -1685,6 +1727,9 @@ TransformableGeometry, ScalableUnits {
    }
    
    public void getConstrainers (List<Constrainer> list, int level) {
+      // if (level == 0) {
+      //    list.add (myCollisionManager);
+      // }
       recursivelyGetConstrainers (this, list, level);
    }
 

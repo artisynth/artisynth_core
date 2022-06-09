@@ -85,6 +85,11 @@ import maspack.util.Logger;
 public abstract class GLViewer implements GLEventListener, GLRenderer, 
    HasProperties, Viewer {
 
+   /**
+    * Ratio of the radius of solid arrow head to its shaft radius.
+    */
+   protected static final double ARROW_RATIO = 2.5;
+
    public enum GLVersion {
       GL2(2, 1), 
       GL3(3, 3);

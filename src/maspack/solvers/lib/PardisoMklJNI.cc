@@ -385,7 +385,7 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doFactorAndSolve (
 	return retcode;
 }
 
-JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve (
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve__J_3D_3D (
    JNIEnv *env, jobject obj, jlong handle,
    jdoubleArray jxvec, jdoubleArray jbvec)
 {
@@ -408,12 +408,33 @@ JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve (
 	 { xvec[i] = pardiso->myX[i];
 	 }
 	env->ReleaseDoubleArrayElements (jxvec, xvec, 0);
-// 	// DEBUG
-// 	double *xvec = env->GetDoubleArrayElements (jxvec, &isCopy);
-// 	for (i=0; i<size; i++)
-// 	 { xvec[i] = 0;
-// 	 }
-// 	env->ReleaseDoubleArrayElements (jxvec, xvec, 0);
+	return retcode;
+}
+
+JNIEXPORT jint JNICALL Java_maspack_solvers_PardisoSolver_doSolve__J_3D_3DI (
+   JNIEnv *env, jobject obj, jlong handle,
+   jdoubleArray jxvec, jdoubleArray jbvec, jint nrhs)
+{
+	Pardiso4* pardiso = (Pardiso4*)handle;
+	jboolean isCopy;
+	int retcode = 0;
+        int size = pardiso->getSize();
+
+	double *bvec = env->GetDoubleArrayElements (jbvec, &isCopy);
+	double *xvec = env->GetDoubleArrayElements (jxvec, &isCopy);
+
+        // alternate was to do this, in case isCopy returns true:
+        // allocate x memory, then copy it into jxvec. However,
+        // doesn't see to run any faster
+        //
+        // (double*)calloc (size*nrhs, 8);
+
+	retcode = pardiso->solveMatrix (xvec, bvec, nrhs);
+        
+	//env->SetDoubleArrayRegion (jxvec, 0, size*nrhs, x);
+
+	env->ReleaseDoubleArrayElements (jxvec, xvec, 0);
+	env->ReleaseDoubleArrayElements (jbvec, bvec, JNI_ABORT);
 
 	return retcode;
 }

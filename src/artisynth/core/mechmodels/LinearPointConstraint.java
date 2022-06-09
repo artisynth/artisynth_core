@@ -169,11 +169,7 @@ public class LinearPointConstraint extends ConstrainerBase {
 
    @Override
    public void getBilateralSizes(VectorNi sizes) {
-      for (Point p : myPoints) {
-         if (p.getSolveIndex() != -1) {
-            sizes.append(3);
-         }
-      }
+      sizes.append(3);
    }
 
    @Override
@@ -186,19 +182,22 @@ public class LinearPointConstraint extends ConstrainerBase {
          if (bi != -1) {
             myBlks[idx].setBlockRow(bi);
             GT.addBlock(bi, bj, myBlks[idx]);
-            if (dg != null) {
-               dg.set(numb, 0);
-            }
-            numb++;
          }
          idx++;
       }
+      if (dg != null) {
+         dg.set(numb+0, 0);
+         dg.set(numb+1, 0);
+         dg.set(numb+2, 0);
+      }
       // System.out.println(GT.toString());
+      numb += 3;
       return numb;
    }
 
    @Override
-   public int getBilateralInfo(ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx) {
 
       Point3d sumPos = new Point3d();
       int nValid = 0;
@@ -214,7 +213,7 @@ public class LinearPointConstraint extends ConstrainerBase {
       if (nValid == 0) {
          return idx;
       }
-
+      
       // x
       ConstraintInfo gi = ginfo[idx++];
       gi.dist = sumPos.x;

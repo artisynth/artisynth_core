@@ -29,6 +29,9 @@ public abstract class MuscleBaseFactory<E extends MuscleBase> extends ForceSprin
          comp.setTendonSlackLength (parseDoubleValue (child));
       } else if ("pennation_angle_at_optimal".equals(name)) {
          comp.setPennationAngle (parseDoubleValue (child));
+      } else if ("pennation_angle".equals(name)) {
+         // old version of pennation angle
+         comp.setPennationAngle (parseDoubleValue (child));
       } else if ("max_contraction_velocity".equals(name)) {
          comp.setMaxContractionVelocity (parseDoubleValue (child));
       } else if ("ignore_activation_dynamics".equals(name)) {

@@ -28,6 +28,7 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.RenderableUtils;
+import maspack.spatialmotion.FrictionInfo;
 import maspack.solvers.SparseSolverId;
 import maspack.util.DataBuffer;
 import maspack.util.IntHolder;
@@ -81,6 +82,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected int myAttachedPosStateSize;
    protected int myParametricVelStateSize;
    protected int myParametricPosStateSize;
+   protected int myTotalVelStateSize;
 
    protected MechSystemSolver mySolver;
    protected DynamicAttachmentWorker myAttachmentWorker;
@@ -114,6 +116,9 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected static SparseSolverId myDefaultMatrixSolver =
       DEFAULT_MATRIX_SOLVER;
    protected SparseSolverId myMatrixSolver = DEFAULT_MATRIX_SOLVER;
+
+   protected static boolean DEFAULT_USE_IMPLICIT_FRICTION = false;
+   protected boolean myUseImplicitFriction = DEFAULT_USE_IMPLICIT_FRICTION;
 
    protected boolean myInsideAdvanceP = false;
    protected double myAvgSolveTime;
@@ -232,6 +237,10 @@ public abstract class MechSystemBase extends RenderableModelBase
          "profiling", "print step time and computation time", DEFAULT_PROFILING);
       myProps.add ("integrator", "integration method", DEFAULT_INTEGRATOR);
       myProps.add ("matrixSolver", "matrix solver", DEFAULT_MATRIX_SOLVER);
+      myProps.add (
+         "useImplicitFriction", "combine friction with implicit integration",
+         DEFAULT_USE_IMPLICIT_FRICTION);
+         
 
    }
 
@@ -265,6 +274,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       setMatrixSolver (myDefaultMatrixSolver);
       setIntegrator (DEFAULT_INTEGRATOR);
+      setUseImplicitFriction (DEFAULT_USE_IMPLICIT_FRICTION);
    }
 
    public boolean getDynamicsEnabled() {
@@ -285,6 +295,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          mySolver.setUpdateForcesAtStepEnd (getUpdateForcesAtStepEnd());
          mySolver.setIntegrator (getIntegrator());
          mySolver.setMatrixSolver (getMatrixSolver());
+         mySolver.setUseImplicitFriction (getUseImplicitFriction());
       }
    }
 
@@ -350,7 +361,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       }      
    }
 
-   public void getUnilateralConstraints (SparseBlockMatrix NT, VectorNd dn) {
+   public void getUnilateralConstraints (
+      SparseBlockMatrix NT, VectorNd dn) {
 
       if (NT.numBlockRows() != 0 || NT.numBlockCols() != 0) {
          throw new IllegalArgumentException (
@@ -361,8 +373,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       getUnilateralConstraintSizes (myUnilateralSizes);
       NT.setColCapacity (myUnilateralSizes.size());
       NT.addRows (myDynamicSizes, myDynamicSizes.length);
+      int sizeN = myUnilateralSizes.sum();
       if (dn != null) {
-         dn.setSize (myUnilateralSizes.sum());
+         dn.setSize (sizeN);
       }
       int idx = 0;
       for (int i=0; i<myConstrainers.size(); i++) {
@@ -397,7 +410,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       return true;
    }
    
-   public void getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg) {
+   public void getBilateralConstraints (
+      SparseBlockMatrix GT, VectorNd dg) {
 
       if (GT.numBlockRows() != 0 || GT.numBlockCols() != 0) {
          throw new IllegalArgumentException (
@@ -409,11 +423,11 @@ public abstract class MechSystemBase extends RenderableModelBase
       getBilateralConstraintSizes (myBilateralSizes);
       GT.setColCapacity (myBilateralSizes.size());
       GT.addRows (myDynamicSizes, myDynamicSizes.length);
+      
+      int sizeG = myBilateralSizes.sum();
       if (dg != null) {
-         dg.setSize (myBilateralSizes.sum());
+         dg.setSize (sizeG);
       }
-
-      IntHolder changeCnt = new IntHolder(0);
       int idx = 0;
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).addBilateralConstraints (
@@ -426,7 +440,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       GT.setVerticallyLinked (true);
    }
 
-   public void getBilateralInfo (ConstraintInfo[] ginfo) {
+   public void getBilateralInfo (
+      ConstraintInfo[] ginfo) {
       updateForceComponentList();
       int idx = 0;
       for (int i=0; i<myConstrainers.size(); i++) {
@@ -490,6 +505,31 @@ public abstract class MechSystemBase extends RenderableModelBase
       return idx;
    }
 
+   public void setUnilateralState (VectorNi state) {
+      setUnilateralState (state, 0);
+   }         
+
+   public int setUnilateralState (VectorNi state, int idx) {
+      updateForceComponentList();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).setUnilateralState (state, idx);
+      }
+      return idx;
+   }
+
+   public void getUnilateralState (VectorNi state) {
+      updateForceComponentList();
+      getUnilateralState (state, 0);
+   }         
+
+   public int getUnilateralState (VectorNi state, int idx) {
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).getUnilateralState (state, idx);
+      }
+      return idx;
+   }
+
+
    public int maxFrictionConstraintSets () {
       updateForceComponentList();
       int max = 0;
@@ -500,8 +540,8 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    // Called from the top level
-   public void getFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo) {
+   public int getFrictionConstraints (
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, boolean prune) {
 
       if (DT.numBlockRows() != 0 || DT.numBlockCols() != 0) {
          throw new IllegalArgumentException (
@@ -511,14 +551,64 @@ public abstract class MechSystemBase extends RenderableModelBase
       DT.addRows (myDynamicSizes, myDynamicSizes.length);
       int idx = 0;
       for (int i=0; i<myConstrainers.size(); i++) {
-         idx = myConstrainers.get(i).addFrictionConstraints (DT, finfo, idx);
+         idx = myConstrainers.get(i).addFrictionConstraints (
+            DT, finfo, prune, idx);
       }      
       //idxh.value = addFrictionConstraints (DT, finfo, idxh.value);
       for (DynamicAttachment a : getAttachments()) {
          myAttachmentWorker.reduceConstraints (a, DT, null, false);
       }
+      return idx;
    }
-   
+
+   public void setFrictionForces (VectorNd phi, double s) {
+      setFrictionForces (phi, s, 0);
+   }         
+
+   public int setFrictionForces (VectorNd phi, double s, int idx) {
+      updateForceComponentList();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).setFrictionForces (phi, s, idx);
+      }
+      return idx;
+   }
+
+   public void getFrictionForces (VectorNd phi) {
+      updateForceComponentList();
+      getFrictionForces (phi, 0);
+   }         
+
+   public int getFrictionForces (VectorNd phi, int idx) {
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).getFrictionForces (phi, idx);
+      }
+      return idx;
+   }
+
+   public void setFrictionState (VectorNi state) {
+      setFrictionState (state, 0);
+   }         
+
+   public int setFrictionState (VectorNi state, int idx) {
+      updateForceComponentList();
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).setFrictionState (state, idx);
+      }
+      return idx;
+   }
+
+   public void getFrictionState (VectorNi state) {
+      updateForceComponentList();
+      getFrictionState (state, 0);
+   }         
+
+   public int getFrictionState (VectorNi state, int idx) {
+      for (int i=0; i<myConstrainers.size(); i++) {
+         idx = myConstrainers.get(i).getFrictionState (state, idx);
+      }
+      return idx;
+   }
+
    public boolean updateConstraints (
       double t, StepAdjustment stepAdjust, int flags) {
 
@@ -667,6 +757,9 @@ public abstract class MechSystemBase extends RenderableModelBase
             mySystemSize += myDynamicSizes[i];
          }
          myNumComponents = myDynamicSizes.length;
+         myTotalVelStateSize = 
+            myActiveVelStateSize + myAttachedVelStateSize + 
+            myParametricVelStateSize;
       }
    }
 
@@ -899,8 +992,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public void getForces (VectorNd f) {
       updateDynamicComponentLists();
-      f.setSize (
-         myActiveVelStateSize+myAttachedVelStateSize+myParametricVelStateSize);
+      f.setSize (myTotalVelStateSize);
       double[] buf = f.getBuffer();
       int idx = 0;
       for (int i=0; i<myDynamicComponents.size(); i++) {
@@ -1112,7 +1204,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          // Force solver to perform an analyze step on its bilateral constraint
          // matrices if state is volatile, the bilateral constraint structure
          // is not constant, and t0 != 0. This is to ensure precise numeric
-         // repeatability: if the orginal advance didn't require an analyze
+         // repeatability: if the original advance didn't require an analyze
          // step but the restored state did, there may be small (machine
          // precision level) differences in the results. t0 == 0 is ignored
          // because it is assume an analyze step will be performed there
@@ -1438,6 +1530,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       if (t == 0) {
          myAvgSolveTime = 0;
          myProfilingCnt = 0;
+         mySolver.initialize();
       }
       updatePosState();
       updateVelState();
@@ -1524,6 +1617,17 @@ public abstract class MechSystemBase extends RenderableModelBase
          if (mySolver.getIntegrator() != integrator) {
             myIntegrator = mySolver.getIntegrator();
          }
+      }
+   }
+
+   public boolean getUseImplicitFriction () {
+      return myUseImplicitFriction;
+   }
+
+   public void setUseImplicitFriction (boolean enable) {
+      myUseImplicitFriction = enable;
+      if (mySolver != null) {
+         mySolver.setUseImplicitFriction (enable);
       }
    }
 
@@ -2045,6 +2149,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       msb.myActivePosStateSize = 0;
       msb.myParametricVelStateSize = 0;
       msb.myParametricPosStateSize = 0;
+      msb.myTotalVelStateSize = 0;
       msb.myProfilingP = myProfilingP;
 
       msb.setUpdateForcesAtStepEndMode (myUpdateForcesAtStepEndMode);

@@ -156,6 +156,7 @@ public class PardisoSolverTest implements ActionListener {
          rhs = new VectorNd(size);
          res = new VectorNd(size);
          x = new VectorNd(size);
+
          for (int i=0; i<nvals; i++) {
             colIdxs[i] = rtok.scanInteger();
          }
@@ -175,15 +176,48 @@ public class PardisoSolverTest implements ActionListener {
                rhs.set (i, rtok.scanNumber());
             }
          }
-         SparseMatrixCRS M = new SparseMatrixCRS(size, size);
+         // test for multiple right-hand sides
+         int nrhs = 20;
+         double[] X = new double[nrhs*size];
+         double[] B = new double[nrhs*size];
+         for (int i=0; i<size; i++) {
+            for (int j=0; j<nrhs; j++) {
+               B[j*size+i] = rhs.get(i);
+            }
+         }
+         SparseCRSMatrix M = new SparseCRSMatrix (size, size);
          System.out.println (
             "solving "+getMatrixType(myMatrixType)+" matrix");
          M.setCRSValues (vals, colIdxs, rowOffs, nvals, size, myPartition);
+         FunctionTimer timer = new FunctionTimer();
+         timer.start();
          solver.analyze (M, size, myMatrixType);
+         timer.stop();
+         if (verbose) {
+            System.out.println ("analyze time=" + timer.result(1));
+         }
          System.out.println (
             "numNonZerosInFactors=" + solver.getNumNonZerosInFactors());
+         timer.start();
          solver.factor ();
+         timer.stop();
+         if (verbose) {
+            System.out.println ("factor time=" + timer.result(1));
+         }
+         timer.start();
          solver.solve (x, rhs);
+         timer.stop();
+         if (verbose) {
+            System.out.println ("solve time=" + timer.result(1));
+         }
+         timer.start();
+         solver.setMaxRefinementSteps (0);
+         solver.solve (X, B, nrhs);
+         timer.stop();
+         if (verbose) {
+            System.out.println (
+               "solve time for "+nrhs+" rhs (no refinement) =" + timer.result(1));
+         }
          M.mul (res, x);
          res.sub (rhs);
          if (size > 10) {
@@ -196,18 +230,81 @@ public class PardisoSolverTest implements ActionListener {
             System.out.println (x.get(i)+" ");
          }        
          System.out.println ("residual norm=" + res.norm()/rhs.norm());
+         double maxerr = 0;
+         for (int i=0; i<size; i++) {
+            for (int j=0; j<nrhs; j++) {
+               maxerr = Math.max (Math.abs(X[j*size+i] - x.get(i)), maxerr);
+            }
+         }
+         System.out.println ("maxerr for "+nrhs+" rhs = " + maxerr);
          // PrintWriter pw = new PrintWriter (new FileWriter ("foo"));
          // M.write (pw, new NumberFormat("%g"), Matrix.WriteFormat.CRS);
       }
    }
 
+   void symmetricTest1() {
+      PardisoSolver solver = new PardisoSolver();
+
+      int size = 4;
+      int nvals = 6;
+      int[] colIdxs = new int[] { 1, 3, 2, 4, 3, 4 };
+      int[] rowOffs = new int[] { 1, 3, 5, 6, 7 };
+      double[] valuesDiag = new double[] { 1, 0, 1, 0, 1, 1 };
+      double[] valuesOff = new double[] { 1, 1, 1, 1, 0, 0 };
+
+      double[] rhs = new double[] { 1, 1, 1, 1 };
+      double[] x = new double[4];
+
+      SparseCRSMatrix M = new SparseCRSMatrix (size, size);
+      M.setCRSValues (
+         valuesOff, colIdxs, rowOffs, nvals, size, Partition.UpperTriangular);
+      solver.analyze (M, size, Matrix.SYMMETRIC);
+      solver.factor (valuesDiag);
+      solver.solve (x, rhs);
+      //System.out.println ("diag= " + new VectorNd(x));
+      solver.factor (valuesOff);
+      solver.solve (x, rhs);
+      //System.out.println ("off= " + new VectorNd(x));
+   }
+
+   void symmetricTest2() {
+      PardisoSolver solver = new PardisoSolver();
+      solver.setMaxRefinementSteps(0);
+
+      CRSValues crs0 = new CRSValues();
+      CRSValues crs1 = new CRSValues();
+
+      crs0.scan ("AF.txt");
+      crs1.scan ("AZ.txt");
+
+      int size = crs0.rowSize();
+      int nvals = crs0.numNonZeros();
+      VectorNd x = new VectorNd(size);
+      VectorNd y = new VectorNd(size);
+      x.setAll (1.0);
+      solver.analyze (
+         crs0.getValues(), crs0.getColIdxs(), crs0.getRowOffs(),
+         size, Matrix.SYMMETRIC);
+      solver.factor (crs0.getValues());
+      solver.solve (y, x);
+      solver.factor (crs1.getValues());
+      solver.solve (y, x);
+   }
+
    void testParameterAccessMethods (PardisoSolver solver) {
 
       int defaultNumThreads = solver.getNumThreads();
-      solver.setNumThreads (3);
-      TestSupport.doassert (
-         solver.getNumThreads() == 3,
-         "solver.getNumThreads() == 3");
+      // see how many threads are available up to 4:
+      solver.setNumThreads (4);
+      int maxNumThreads = solver.getNumThreads();
+      for (int n=1; n<=maxNumThreads; n++) {
+         solver.setNumThreads (n);
+         int nchk = solver.getNumThreads();
+         if (n != nchk) {
+            throw new TestException (
+               "solver.getNumThreads() = "+nchk+", expected " + n);
+         }
+      }
       solver.setNumThreads (-1);
       TestSupport.doassert (
          solver.getNumThreads()==defaultNumThreads, 
@@ -310,10 +407,6 @@ public class PardisoSolverTest implements ActionListener {
    public void dotest () {
 
       PardisoSolver solver = new PardisoSolver();
-      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
-      solver.setNumThreads (4);
-      System.out.println ("Pardiso: max threads=" + solver.getNumThreads());
-      solver.setNumThreads (0);
       int i;
 
       // set test symmetric matrix:
@@ -366,15 +459,36 @@ public class PardisoSolverTest implements ActionListener {
             System.out.println (fmt.format (x3[i]));
          }
       }
-      checkSolution (
-         x3,
-         new double[] {
-            0.1111111111111, 
-            -0.8888888888889,
-            0.7777777777778,
-            0.5555555555556,
-            0.8333333333333 
-         });
+      double[] x3chk = new double[] {
+         0.111111111111111,
+         -0.88888888888888,
+         0.777777777777777,
+         0.555555555555555,
+         0.833333333333333
+      };
+
+      checkSolution (x3, x3chk);
+
+      // check with multiple rhs:
+
+      int nrhs = 3;
+      MatrixNd B = new MatrixNd (nrhs, 5);
+      MatrixNd X = new MatrixNd (nrhs, 5);
+      MatrixNd Xchk = new MatrixNd (nrhs, 5);
+      VectorNd b = new VectorNd (b3);
+      VectorNd xchk = new VectorNd (x3chk);
+      for (i=0; i<nrhs; i++) {
+         B.setRow (i, b);
+         Xchk.setRow (i, xchk);
+         b.scale (2);
+         xchk.scale (2);
+      }
+      solver.solve (X.getBuffer(), B.getBuffer(), nrhs);
+      if (!X.epsilonEquals (Xchk, EPS)) {
+         System.out.println ("X=\n" + X);
+         System.out.println ("Xchk=\n" + Xchk);
+         throw new TestException ("solve with multiple rhs failed");
+      }
 
       // Now change matrix but keep topology:
       // M = [3 1 2 0 0
@@ -607,6 +721,9 @@ public class PardisoSolverTest implements ActionListener {
          }
       }
       
+      //tester.symmetricTest1();
+      //tester.symmetricTest2();
+
       if (testFileName != null) {
          try {
             ReaderTokenizer rtok = new ReaderTokenizer (

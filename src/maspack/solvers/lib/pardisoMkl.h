@@ -244,6 +244,7 @@ class DLLEXPORT Pardiso4
 	int factorMatrix (const double* vals);
 
 	int solveMatrix (double *x, double* b);
+	int solveMatrix (double *x, double* b, int nrhs);
 	int iterativeSolve (
            const double *vals, double *x, double* b, int tolExp);
 

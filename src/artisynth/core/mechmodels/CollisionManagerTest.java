@@ -655,7 +655,7 @@ public class CollisionManagerTest extends UnitTest {
       }
       HashSet<CollisionHandler> expected = new HashSet<CollisionHandler>();
       ArrayList<CollisionHandler> allHandlers = new ArrayList<CollisionHandler>();
-      cm.collectHandlers (allHandlers);
+      cm.collectHandlers (allHandlers, /*updateResponses=*/false);
       for (CollisionHandler ch : allHandlers) {
          CollidableBody cb0 = ch.getCollidable(0);
          CollidableBody cb1 = ch.getCollidable(1);

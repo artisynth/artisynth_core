@@ -2265,7 +2265,7 @@ public class MultiPointSpring extends PointSpringBase
     */
    @Override
    public void getNumericStateComponents (List<HasNumericState> list) {
-      if (hasState()) {
+      if (super.hasState()) {
          list.add (this); // might have state if material does
       }
       for (int i=0; i<numSegments(); i++) {
@@ -2274,6 +2274,15 @@ public class MultiPointSpring extends PointSpringBase
             list.add ((WrapSegment)seg);
          }
       }
+   }
+   
+   public boolean hasState() {
+      for (int i=0; i<numSegments(); i++) {
+         if (mySegments.get(i) instanceof WrapSegment) {
+            return true;
+         }
+      }
+      return super.hasState();
    }
 
    // public void notifyStateVersionChanged() {

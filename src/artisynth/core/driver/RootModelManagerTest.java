@@ -288,8 +288,8 @@ public class RootModelManagerTest extends UnitTest {
       checkDiffers (manager, "artisynth.demos.wrapping", false);
       
       // remove the cache file
-      originalCacheFile.delete();
-      modifiedCacheFile.delete();
+      //originalCacheFile.delete();
+      //modifiedCacheFile.delete();
    }
 
    public void timing() {
@@ -322,8 +322,8 @@ public class RootModelManagerTest extends UnitTest {
    public static void main (String[] args) {
       RandomGenerator.setSeed (0x1234);
       RootModelManagerTest tester = new RootModelManagerTest();
-      tester.timing();
-      //tester.runtest();
+      //tester.timing();
+      tester.runtest();
    }
 
 }

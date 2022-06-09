@@ -26,14 +26,14 @@ import java.util.*;
  * <li>A <i>factor</i> phase that numerically factors the matrix into
  * a sutiable decomposition;
  * <li>A <i>solve</i> phase that uses the factorization to solve
- * M x = b for some given right-hand-side b.
+ * M x = b for some given right-hand side b.
  * </ul>
  *
  * Typical usage of this solver is exemplified by 
  * the following call sequence:
  * <pre>
  *    Matrix M;                 // matrix to be solved
- *    VectorNd x, b;            // solution vector and right-hand-side
+ *    VectorNd x, b;            // solution vector and right-hand side
  *    
  *    PardisoSolver solver = new PardisoSolver();
  *    solver.analyze (M, M.rowSize(), Matrix.SYMMETRIC); // symbolic factorization
@@ -114,6 +114,12 @@ import java.util.*;
 public class PardisoSolver implements DirectSolver {
 
    public static boolean printThreadInfo = true;
+   
+   public static boolean supportsMultipleRhs = true;
+   // Bit of a hack to allow things to work without the native
+   // library that supports multiple rhs:  
+   static String nativeLibrary = supportsMultipleRhs ?
+      "PardisoJNI.2021.1.1" : "PardisoJNI.2021.1";         
 
    /**
     * Describes the reorder methods that can be used during the analyze phase
@@ -320,6 +326,9 @@ public class PardisoSolver implements DirectSolver {
 
    private native int doSolve (long handle, double[] x, double[] b);
 
+   private native int doSolve (
+      long handle, double[] xvecs, double[] bvecs, int nrhs);
+
    private native int doIterativeSolve (
       long handle, double[] vals, double[] x, double[] b, int tolExp);
 
@@ -401,8 +410,6 @@ public class PardisoSolver implements DirectSolver {
    private static void doLoadLibraries() {
       try {
          NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
-         //String pardisoLibrary = "PardisoJNI.11.1.2.1"; // uses MKL 11.1.2
-         String pardisoLibrary = "PardisoJNI.2021.1"; // uses MKL 2021.1
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {
@@ -421,7 +428,7 @@ public class PardisoSolver implements DirectSolver {
                break;
             }
          }
-         NativeLibraryManager.load (pardisoLibrary);
+         NativeLibraryManager.load (nativeLibrary);
          myInitStatus = INIT_LIBRARIES_LOADED;
       }
       catch (Exception e) {
@@ -715,7 +722,7 @@ public class PardisoSolver implements DirectSolver {
     * reasons
     */
    public void autoFactorAndSolve (VectorNd x, VectorNd b, int tolExp) {
-      checkSolveArgs (x, b);
+      checkSolveArgs (x, b, 1);
       autoFactorAndSolve (x.getBuffer(), b.getBuffer(), tolExp);
    }
 
@@ -1454,36 +1461,36 @@ public class PardisoSolver implements DirectSolver {
       }
    }
 
-   private void checkSolveArgs (double[] x, double[] b) {
-      if (x.length < mySize) {
+   private void checkSolveArgs (double[] x, double[] b, int nrhs) {
+      if (x.length < nrhs*mySize) {
          throw new IllegalArgumentException (
-            "x is too small: length="+x.length+", expected size is " + mySize);
+            "x is too small: length="+x.length+", expected size is " + nrhs*mySize);
       }
-      else if (b.length < mySize) {
+      else if (b.length < nrhs*mySize) {
          throw new IllegalArgumentException (
-            "b is too small: length="+b.length+", expected size is " + mySize);
+            "b is too small: length="+b.length+", expected size is " + nrhs*mySize);
       }
    }
 
-   private void checkSolveArgs (VectorNd x, VectorNd b) {
-      if (x.size() < mySize) {
+   private void checkSolveArgs (VectorNd x, VectorNd b, int nrhs) {
+      if (x.size() < nrhs*mySize) {
          throw new IllegalArgumentException (
-            "x is too small: size="+x.size()+", expected size is " + mySize);
+            "x is too small: size="+x.size()+", expected size is " + nrhs*mySize);
       }
-      else if (b.size() < mySize) {
+      else if (b.size() < nrhs*mySize) {
          throw new IllegalArgumentException (
-            "b is too small: size="+b.size()+", expected size is " + mySize);
+            "b is too small: size="+b.size()+", expected size is " + nrhs*mySize);
       }
    }
 
    /**
     * Solves the matrix associated with this solver for x, given a
-    * specific right-hand-side b. It is assumed that the matrix
+    * specific right-hand side b. It is assumed that the matrix
     * has been factored and that this solver's state is
     * {@link #FACTORED FACTORED}.
     *
     * @param x returns the solution value
-    * @param b supplies the right-hand-side
+    * @param b supplies the right-hand side
     * @throws IllegalStateException if this solver's state is not
     * {@link #FACTORED FACTORED}
     * @throws IllegalArgumentException if the dimensions of <code>x</code> or
@@ -1491,18 +1498,18 @@ public class PardisoSolver implements DirectSolver {
     */
    public synchronized void solve (VectorNd x, VectorNd b) {
       checkFactored();
-      checkSolveArgs (x, b);
+      checkSolveArgs (x, b, 1);
       int rcode = doSolve (myHandle, x.getBuffer(), b.getBuffer());
    }
 
    /**
     * Solves the matrix associated with this solver for x, given a
-    * specific right-hand-side b. It is assumed that the matrix
+    * specific right-hand side b. It is assumed that the matrix
     * has been factored and that this solver's state is
     * {@link #FACTORED FACTORED}.
     *
     * @param x returns the solution value
-    * @param b supplies the right-hand-side
+    * @param b supplies the right-hand side
     * @throws IllegalStateException if this solver's state is not
     * {@link #FACTORED FACTORED}
     * @throws IllegalArgumentException if the dimensions of <code>x</code> or
@@ -1510,8 +1517,30 @@ public class PardisoSolver implements DirectSolver {
     */
    public synchronized void solve (double[] x, double[] b) {
       checkFactored();
-      checkSolveArgs (x, b);
+      checkSolveArgs (x, b, 1);
       int rcode = doSolve (myHandle, x, b);
+   }
+
+   /**
+    * Solves the matrix associated with this solver for a set of vectors X,
+    * given a set of right-hand sides B. The number of right-hand sides is
+    * given by {@code nrhs}. Both {@code X} and {@code B} should be stored in
+    * the column major ordering used by FORTRAN. It is assumed that the matrix
+    * has been factored and that this solver's state is
+    * {@link #FACTORED FACTORED}.
+    *
+    * @param X returns the solutions in column major order
+    * @param B supplies the right-hand sides in column major order
+    * @param nrhs number of right-hand sides to solve for
+    * @throws IllegalStateException if this solver's state is not
+    * {@link #FACTORED FACTORED}
+    * @throws IllegalArgumentException if the dimensions of <code>X</code> or
+    * <code>B</code> are incompatible with the matrix size and {@code rhs}.
+    */
+   public synchronized void solve (double[] X, double[] B, int nrhs) {
+      checkFactored();
+      checkSolveArgs (X, B, nrhs);
+      int rcode = doSolve (myHandle, X, B, nrhs);
    }
 
    /**
@@ -1527,7 +1556,7 @@ public class PardisoSolver implements DirectSolver {
     * @param vals non-zero element value (CRS format)
     * @param size size of the matrix
     * @param x supplies the solution value
-    * @param b supplies the right-hand-side
+    * @param b supplies the right-hand side
     * @param symmetric if <code>true</code>, assumes that the arguments
     * define only the upper triangular portion of a symmetric matrix.
     * @throws IllegalArgumentException if the dimensions of <code>x</code> or
@@ -1583,7 +1612,7 @@ public class PardisoSolver implements DirectSolver {
     */
    public int iterativeSolve (VectorNd x, VectorNd b, int tolExp) {
       checkFactored();
-      checkSolveArgs (x, b);
+      checkSolveArgs (x, b, 1);
       return iterativeSolve (x.getBuffer(), b.getBuffer(), tolExp);
    }
 
@@ -1649,7 +1678,7 @@ public class PardisoSolver implements DirectSolver {
    public synchronized int iterativeSolve (
       double[] vals, double[] x, double[] b, int tolExp) {
       checkFactored();
-      checkSolveArgs (x, b);
+      checkSolveArgs (x, b, 1);
       if (vals.length < myNumVals) {
          throw new IllegalArgumentException (
             "vals is too small: length="+vals.length+

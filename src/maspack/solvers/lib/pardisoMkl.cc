@@ -594,6 +594,7 @@ int Pardiso4::factorAndSolve (
    int error;
    int phase = 23;
    int idummy;
+   myIParams[5] = 0; // write solution into x
    myIParams[7] = getMaxRefinementSteps();
    myIParams[3] = 0; /* default: no iterative solving */
    myIParams[9] = getPivotPerturbation();
@@ -653,6 +654,7 @@ int Pardiso4::solveMatrix (double* x, double* b)
    int phase = 33;
    int idummy;
    //double ddummy;
+   myIParams[5] = 0; // write solution into x
    myIParams[7] = getMaxRefinementSteps();
    myIParams[3] = 0; /* no iterative solving */
    myIParams[26] = 0; // no matrix checking here
@@ -672,6 +674,33 @@ int Pardiso4::solveMatrix (double* x, double* b)
    return error;	
 }
 
+int Pardiso4::solveMatrix (double* x, double* b, int nrhs)
+{
+   int error;
+   // phase = 23 will do a factor and a solve
+   int phase = 33;
+   int idummy;
+   //double ddummy;
+   myIParams[5] = 0; // write solution into x
+   myIParams[7] = getMaxRefinementSteps();
+   myIParams[3] = 0; /* no iterative solving */
+   myIParams[26] = 0; // no matrix checking here
+
+   PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,
+            &phase, &mySize, myVals, myRows, myCols, &idummy, 
+            &nrhs, myIParams, &myMessageLevel,
+            b, x, &error);
+
+   if (error != 0)
+    { printf ("\nPardiso: ERROR during solution: %d\n", error); 
+    }
+   else
+    { myLastPhase = phase; 
+      myNumRefinementSteps = myIParams[6];
+    }
+   return error;	
+}
+
 int Pardiso4::iterativeSolve (
    const double* vals, double* x, double* b, int tolExp)
 {
@@ -679,7 +708,8 @@ int Pardiso4::iterativeSolve (
    // phase = 23 will do a direct factor/solve if iterative solve fails
    int phase = 33;
    int idummy;
-   //double ddummy;
+   //double ddummy;   
+   myIParams[5] = 0; // write solution into x
    myIParams[7] = getMaxRefinementSteps();
    myIParams[26] = 0; // no matrix checking here
 

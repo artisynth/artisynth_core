@@ -5007,23 +5007,17 @@ PointAttachable, ConnectableBody {
    }
 
    public void getState(DataBuffer data) {
-//      ArrayList<FemElement3dBase> elist = getAllElements();
-//      for (int i = 0; i < elist.size(); i++) {
-//         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
-//         for (int k = 0; k < idata.length; k++) {
-//            idata[k].getState(data);
-//         }          
-//      }
+      if (usingAttachedRelativeFrame()) {
+         myFrameConstraint.getState (data);
+      }
+      //data.zput (myHardIncompIdx);
    }
    
    public void setState(DataBuffer data) {
-//      ArrayList<FemElement3dBase> elist = getAllElements();
-//      for (int i = 0; i < elist.size(); i++) {
-//         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
-//         for (int k = 0; k < idata.length; k++) {
-//            idata[k].setState (data);
-//         }
-//      }
+      if (usingAttachedRelativeFrame()) {
+         myFrameConstraint.setState (data);
+      }
+      //myHardIncompIdx = data.zget();
    }
 
    /* --- Render Methods --- */

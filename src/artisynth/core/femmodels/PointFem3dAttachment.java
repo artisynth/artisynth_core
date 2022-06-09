@@ -755,6 +755,19 @@ public class PointFem3dAttachment
       }
    }
 
+   public void computeForceOnMasters (
+      VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt,
+      SparseBlockMatrix S) {
+      int si;
+      for (int i=0; i<myNodes.length; i++) {
+         FemNode node = myNodes[i];
+         if ((si=node.getSolveIndex()) != -1) {
+            uvec.addScaledSubVector (
+               S.getBlockRowOffset(si), scale*myCoords.get(i), fc);            
+         }
+      }
+   }
+   
    public boolean isControllable() {
       for (FemNode node : myNodes) {
          if (node.isControllable()) {

@@ -193,23 +193,52 @@ public class AxialMaterialTest extends UnitTest {
       testDfdldotOverRange (mat, l, l, ldot, ldot, l0, ex, tol);
    }
 
-   public void testMillard2012 (double tol) {
+   public void testMillard2012AxialLigament (double tol) {
+
+      Millard2012AxialLigament mmat =
+         new Millard2012AxialLigament (2.0, 3.0);
+
+      double maxL = 3.3;
+      double minL = 2.5;
+
+      testDfdlOverRange (mmat, minL, maxL, 0, 0, 0, 0, tol);
+   }
+
+   public void testThelen2003AxialMuscle (double tol) {
+      double ex = 0.5;
+      Thelen2003AxialMuscle mmat = new Thelen2003AxialMuscle (
+         2.0, 2.0, 0.6, Math.toRadians(30));
+
+      double maxL = 2.0;
+      double minL = -0.2; 
+      double maxV = 2.5;
+      double minV = -2.5;
+
+      mmat.setIgnoreForceVelocity (true);
+      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      mmat.setIgnoreForceVelocity (false);
+      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+   }
+
+   public void testMillard2012AxialMuscle (double tol) {
       double ex = 0.5;
       Millard2012AxialMuscle mmat = new Millard2012AxialMuscle (
          2.0, 2.0, 0.6, Math.toRadians(30));
 
       double maxL = 2.0;
-      double minL = 0.2;
+      double minL = -0.2; 
       double maxV = 2.5;
       double minV = -2.5;
 
       mmat.setFibreDamping (1.0);
       mmat.setIgnoreForceVelocity (true);
-      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, 1e-7);
-      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, 2e-7);
+      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
       mmat.setIgnoreForceVelocity (false);
-      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, 1e-7);
-      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, 2e-7);
+      testDfdlOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
+      testDfdldotOverRange (mmat, minL, maxL, minV, maxV, 0, ex, tol);
    }
 
    public void testBlankevoort1991Ligament (double tol) {
@@ -283,7 +312,9 @@ public class AxialMaterialTest extends UnitTest {
 
       testHill3ElemMuscleRigidTendon(5*tol);
       testBlankevoort1991Ligament(tol);
-      testMillard2012(1e-5);      
+      testMillard2012AxialMuscle(2e-6);
+      testMillard2012AxialLigament(5e-7);
+      testThelen2003AxialMuscle(2e-6);
    }
 
    public static void main (String[] args) {

@@ -44,7 +44,7 @@ public class CollisionHandlerTable {
          return myBody;
       }
 
-      void addRow (CollisionHandler ch) {
+      void addToRow (CollisionHandler ch) {
          ch.setNext (null);
          if (myRowTail == null) {
             myRowHead = ch;
@@ -55,7 +55,7 @@ public class CollisionHandlerTable {
          myRowTail = ch;
       }
 
-      void addCol (CollisionHandler ch) {
+      void addToCol (CollisionHandler ch) {
          ch.setDown (null);
          if (myColTail == null) {
             myColHead = ch;
@@ -113,22 +113,34 @@ public class CollisionHandlerTable {
          }
       }
 
-      void collectRowHandlers (ArrayList<CollisionHandler> handlers) {
+      void collectHandlersInRow (ArrayList<CollisionHandler> handlers) {
          for (CollisionHandler ch=myRowHead; ch!=null; ch=ch.getNext()) {
             handlers.add (ch);
          }
       }
 
-      void setRowActivity (boolean active) {
+      void saveLastConstraintDataInRow() {
          for (CollisionHandler ch=myRowHead; ch!=null; ch=ch.getNext()) {
-            ch.setActive (active);
+            ch.saveLastConstraintData();
          }
       }
+      
+      void clearActivityInRow() {
+         for (CollisionHandler ch=myRowHead; ch!=null; ch=ch.getNext()) {
+            ch.clearActivity();
+         }         
+      }
 
-      void setColActivity (boolean active) {
+      void makeActiveInRow() {
+         for (CollisionHandler ch=myRowHead; ch!=null; ch=ch.getNext()) {
+            ch.makeActive();
+         }         
+      }
+
+      void clearActivityInCol() {
          for (CollisionHandler ch=myColHead; ch!=null; ch=ch.getDown()) {
-            ch.setActive (active);
-         }
+            ch.clearActivity();
+         }        
       }
 
       void collectHandlers (ArrayList<CollisionHandler> handlers) {
@@ -162,10 +174,26 @@ public class CollisionHandlerTable {
       myManager = manager;
    }
 
-   void setHandlerActivity (boolean activity) {
+//   void setHandlerActivity (boolean activity) {
+//      for (Anchor a : myAnchors.values()) {
+//         a.setRowActivity (activity);
+//      }
+//   }
+   
+   void saveLastConstraintData() {
       for (Anchor a : myAnchors.values()) {
-         a.setRowActivity (activity);
-      }
+         a.saveLastConstraintDataInRow();
+      }     
+   }
+
+   /**
+    * Ensure that all handlers are active, using empty ContactInfo
+    * structures if necessary. Used for testing only.
+    */
+   void makeAllHandlersActive() {
+      for (Anchor a : myAnchors.values()) {
+         a.makeActiveInRow();
+      }     
    }
 
    void removeInactiveHandlers () {
@@ -182,7 +210,7 @@ public class CollisionHandlerTable {
 
    void collectHandlers (ArrayList<CollisionHandler> handlers) {
       for (Anchor a : myAnchors.values()) {
-         a.collectRowHandlers (handlers);
+         a.collectHandlersInRow (handlers);
       }
    }
 
@@ -296,7 +324,6 @@ public class CollisionHandlerTable {
     * @param collidables new collidables
     */
    public void reinitialize (List<CollidableBody> collidables) {
-
       if (myAnchors.size() == 0) {
          // if no existing anchors, initialize is faster
          initialize (collidables);
@@ -307,7 +334,7 @@ public class CollisionHandlerTable {
          new LinkedHashSet<CollidableBody>();
       newCollidables.addAll (collidables);
 
-      boolean removeNeeded = false;
+      ArrayList<CollidableBody> oldBodies = new ArrayList<>();
       for (Map.Entry<CollidableBody,Anchor> e : myAnchors.entrySet()) {
          CollidableBody cbody = e.getKey();         
          Anchor anchor = e.getValue();
@@ -315,25 +342,29 @@ public class CollisionHandlerTable {
             newCollidables.remove (cbody);
          }
          else {
-            anchor.setRowActivity (false);
-            anchor.setColActivity (false);
-            myAnchors.remove (anchor);
-            removeNeeded = true;
+            //anchor.setRowActivity (false);
+            //anchor.setColActivity (false);
+            anchor.clearActivityInRow();
+            anchor.clearActivityInCol();
+            oldBodies.add (cbody);
          }
       }
-
-      if (removeNeeded) {
+      if (oldBodies.size() > 0) {
+         for (CollidableBody body : oldBodies) {
+            myAnchors.remove (body);
+         }
          removeInactiveHandlers();
       }
-      ArrayList<CollisionHandler> handlers = new ArrayList<CollisionHandler>();
-      collectHandlers(handlers);
+
+//      ArrayList<CollisionHandler> handlers = new ArrayList<CollisionHandler>();
+//      collectHandlers(handlers);
       if (!newCollidables.isEmpty()) {
          for (CollidableBody cbody : newCollidables) {
             myAnchors.put (cbody, new Anchor (cbody));
          }
       }
 
-      setHandlerActivity (false); // XXXX
+      //setHandlerActivity (false); // XXXX
    }
 
    public CollisionHandler get (CollidableBody col0, CollidableBody col1) {
@@ -365,13 +396,13 @@ public class CollisionHandlerTable {
       Anchor anchor1 = myAnchors.get(col1);
       if (col0.getCollidableIndex() <= col1.getCollidableIndex()) {
          ch = new CollisionHandler (myManager, col0, col1, behav, src);
-         anchor0.addRow (ch);
-         anchor1.addCol (ch);
+         anchor0.addToRow (ch);
+         anchor1.addToCol (ch);
       }
       else {
          ch = new CollisionHandler (myManager, col1, col0, behav, src);
-         anchor1.addRow (ch);
-         anchor0.addCol (ch);
+         anchor1.addToRow (ch);
+         anchor0.addToCol (ch);
       }
       return ch;
    }
@@ -410,7 +441,6 @@ public class CollisionHandlerTable {
          BehaviorSource bsrc = BehaviorSource.values()[data.zget()];
          CollisionBehavior behav = myManager.getBehavior (cb0, cb1, bsrc);
          CollisionHandler ch = put (cb0, cb1, behav, bsrc);
-         ch.setActive (true);
          ch.setState (data);
       }
       //removeInactiveHandlers();
@@ -425,7 +455,7 @@ public class CollisionHandlerTable {
    /**
     * For debugging
     */
-   void printTable() {
+   public void printTable() {
       int maxlen = 0;
       for (Anchor a : myAnchors.values()) {
          int len = ComponentUtils.getPathName(a.getBody()).length();
@@ -459,5 +489,14 @@ public class CollisionHandlerTable {
          System.out.println ("");
       }
       System.out.println ("");      
+   }
+   
+   /**
+    * Returns a list of all the bodies in this table. Used for debugging.
+    */
+   ArrayList<CollidableBody> getBodies() {
+      ArrayList<CollidableBody> bodies = new ArrayList<>();
+      bodies.addAll (myAnchors.keySet());
+      return bodies;
    }
 }

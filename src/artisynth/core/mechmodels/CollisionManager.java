@@ -43,11 +43,13 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.FunctionTimer;
 import maspack.util.DoubleInterval;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionBehavior.Method;
 import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import artisynth.core.mechmodels.MechSystemSolver;
+import maspack.spatialmotion.FrictionInfo;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -309,6 +311,10 @@ public class CollisionManager extends RenderableCompositeBase
    double myDamping = defaultDamping;
    PropertyMode myDampingMode = PropertyMode.Inherited;
 
+   static double defaultStictionCreep = 0.0;
+   double myStictionCreep = defaultStictionCreep;
+   PropertyMode myStictionCreepMode = PropertyMode.Inherited;
+
    static double defaultAcceleration = 0;
    double myAcceleration = defaultAcceleration;
    PropertyMode myAccelerationMode = PropertyMode.Inherited;
@@ -341,6 +347,10 @@ public class CollisionManager extends RenderableCompositeBase
    static boolean defaultDrawContactForces = false;
    boolean myDrawContactForces = defaultDrawContactForces;
    PropertyMode myDrawContactForcesMode = PropertyMode.Inherited;
+
+   static boolean defaultDrawFrictionForces = false;
+   boolean myDrawFrictionForces = defaultDrawFrictionForces;
+   PropertyMode myDrawFrictionForcesMode = PropertyMode.Inherited;
 
    static ColorInterpolation defaultColorMapInterpolation =
       ColorInterpolation.HSV;
@@ -419,6 +429,9 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "damping:Inherited", "damping for each contact constraint",
          defaultDamping, "[0,inf)");
+      myProps.addInheritable (
+         "stictionCreep:Inherited", "stictionCreep for each contact constraint",
+         defaultStictionCreep);
 
       myProps.addInheritable (
          "drawIntersectionFaces:Inherited", 
@@ -435,6 +448,9 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "drawContactForces:Inherited", 
          "draw forces at each contact point", defaultDrawContactForces);
+      myProps.addInheritable (
+         "drawFrictionForces:Inherited", 
+         "draw friction forces at each contact point", defaultDrawFrictionForces);
       myProps.addInheritable (
          "drawColorMap:Inherited", 
          "draw a color map of the specified data",
@@ -546,6 +562,8 @@ public class CollisionManager extends RenderableCompositeBase
       myComplianceMode = PropertyMode.Inherited;
       myDamping = defaultDamping;
       myDampingMode = PropertyMode.Inherited;
+      myStictionCreep = defaultStictionCreep;
+      myStictionCreepMode = PropertyMode.Inherited;
       myRigidRegionTol = defaultRigidRegionTol;
       myRigidRegionTolMode = defaultRigidRegionTolMode;
       myRigidPointTol = defaultRigidPointTol;
@@ -564,6 +582,8 @@ public class CollisionManager extends RenderableCompositeBase
       myDrawContactNormalsMode = PropertyMode.Inherited;
       myDrawContactForces = defaultDrawContactForces;
       myDrawContactForcesMode = PropertyMode.Inherited;
+      myDrawFrictionForces = defaultDrawFrictionForces;
+      myDrawFrictionForcesMode = PropertyMode.Inherited;
       myDrawColorMap = defaultDrawColorMap;
       myDrawColorMapMode = PropertyMode.Inherited;
       myColorMapInterpolation = defaultColorMapInterpolation;
@@ -582,14 +602,19 @@ public class CollisionManager extends RenderableCompositeBase
       return myHandlers;
    }
 
-   void collectHandlers (ArrayList<CollisionHandler> handlers) {
+   void collectHandlers (
+      ArrayList<CollisionHandler> handlers, boolean updateResponses) {
+      int hidx0 = handlers.size();
       for (MechSystemModel m : myMechModel.getLocalModels()) {
          if (m instanceof MechModel) {
             CollisionManager cm = ((MechModel)m).getCollisionManager();
             cm.myHandlerTable.collectHandlers (handlers);
          }
       }
-      myHandlerTable.collectHandlers (handlers);       
+      myHandlerTable.collectHandlers (handlers);
+      if (updateResponses) {
+         updateResponses (handlers, hidx0);
+      }
    }
 
    // property accessors
@@ -916,6 +941,45 @@ public class CollisionManager extends RenderableCompositeBase
       return myDampingMode;
    }
 
+   /** 
+    * Returns the default stiction creep. See {@link
+    * #setStictionCreep}.
+    * 
+    * @return stiction creep
+    */
+   public double getStictionCreep() {
+      return myStictionCreep;
+   }
+
+   /** 
+    * Sets the default stiction creep. This is the velocity that a nominally
+    * stationary contact in ``stiction'' is allowed to move. While the default
+    * (and usually desired) value is 0, a value {@code > 0} regularizes the
+    * computation of friction forces by removing redundancy.
+    *
+    * <p>Creep values can be specified for individual collidable pairs by
+    * setting the {@code stictionCreep} property of their associated {@link
+    * CollisionBehavior}.
+    * 
+    * @param creep new stiction creep
+    */
+   public void setStictionCreep (double creep) {
+      myStictionCreep = creep;
+      myStictionCreepMode =
+         PropertyUtils.propagateValue (
+            this, "stictionCreep", myStictionCreep, myStictionCreepMode);      
+   }
+
+   public void setStictionCreepMode (PropertyMode mode) {
+      myStictionCreepMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "stictionCreep", myStictionCreepMode, mode);
+   }
+
+   public PropertyMode getStictionCreepMode() {
+      return myStictionCreepMode;
+   }
+
    /**
     * Returns the desired collision acceleration. See {@link #setAcceleration}.
     */
@@ -1059,6 +1123,28 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getDrawContactForcesMode() {
       return myDrawContactForcesMode;
+   }
+
+   public boolean getDrawFrictionForces() {
+      return myDrawFrictionForces;
+   }
+
+   public void setDrawFrictionForces (boolean enable) {
+      myDrawFrictionForces = enable;
+      myDrawFrictionForcesMode =
+         PropertyUtils.propagateValue (
+            this, "drawFrictionForces",
+            myDrawFrictionForces, myDrawFrictionForcesMode);
+   }
+
+   public void setDrawFrictionForcesMode (PropertyMode mode) {
+      myDrawFrictionForcesMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "drawFrictionForces", myDrawFrictionForcesMode, mode);
+   }
+
+   public PropertyMode getDrawFrictionForcesMode() {
+      return myDrawFrictionForcesMode;
    }
 
    public void setColorMapInterpolation (ColorInterpolation interp) {
@@ -2044,14 +2130,23 @@ public class CollisionManager extends RenderableCompositeBase
          ArrayList<CollidableBody> bodies = myMechModel.getCollidableBodies();
          myHandlerTable.reinitialize (bodies);     
          myHandlers.clear();
-         collectHandlers (myHandlers);
+         collectHandlers (myHandlers, /*updateResponses=*/false);
          myHandlerTableValid = true;
       }
    }
 
-   CollisionHandlerTable getHandlerTable() {
+   public CollisionHandlerTable getHandlerTable() {
       updateHandlerTable();
       return myHandlerTable;
+   }
+   
+   public ArrayList<CollisionHandler> getHandlers() {
+      updateHandlerTable();
+      return myHandlers;
+   }
+   
+   public ArrayList<CollidableBody> getHandlerTableBodies() {
+      return myHandlerTable.getBodies();
    }
 
    private CollisionBehavior dominantBehavior (
@@ -2341,10 +2436,15 @@ public class CollisionManager extends RenderableCompositeBase
          cinfo = new ContactInfo (c0.getCollisionMesh(), c1.getCollisionMesh());
       }
       else {
+         //FunctionTimer timer = new FunctionTimer();
+         //timer.start();
          cinfo = computeContactInfo (c0, c1, behav);
          //timer.stop();
-         //System.out.println ("time=" + timer.getTimeUsec());
-         //cinfo = myCollider.getContacts (mesh0, mesh1);
+         // if (cinfo != null &&
+         //     (behav.getColliderType() != ColliderType.AJL_CONTOUR ||
+         //      cinfo.numContours() > 0)) {
+         //    System.out.println ("contact " + timer.result(1));
+         // }
       }
       if (cinfo != null) {
          addOrUpdateHandler (cinfo, c0, c1, behav, src);
@@ -2457,7 +2557,6 @@ public class CollisionManager extends RenderableCompositeBase
       else {
          ch.setBehavior (behav, src);
       }
-      ch.setActive (true);
       ch.myStateNeedsContactInfo = isVisible(ch);
       double pen = ch.computeCollisionConstraints (cinfo);
       if (pen > myMaxpen) {
@@ -2595,6 +2694,7 @@ public class CollisionManager extends RenderableCompositeBase
       }
       myContactForceLenScale *= s;
       myAcceleration *= s;
+      myStictionCreep *= s;
       myColorMapRange.scale (s);
       myRenderProps.scaleDistance (s);
       for (CollisionBehavior behav : myBehaviors) {
@@ -2657,7 +2757,7 @@ public class CollisionManager extends RenderableCompositeBase
 
    // ==== Begin Constrainer implementation ====
    
-   public int maxNumContourPoints = 0;
+   //private int maxNumContourPoints = 0;
    
    public double updateConstraints (double t, int flags) {
       
@@ -2669,13 +2769,6 @@ public class CollisionManager extends RenderableCompositeBase
 
       myHandlers.clear();
       double maxpen = updateConstraints (myHandlers, t, flags);
-      int nump = 0;
-      for (CollisionHandler ch : myHandlers) {
-         nump += ch.getLastContactInfo().numContourPoints();
-      }
-      if (nump > maxNumContourPoints ) {
-         maxNumContourPoints = nump;
-      }
       return myHandlers.size() == 0 ? -1 : maxpen;
    }
    
@@ -2709,7 +2802,8 @@ public class CollisionManager extends RenderableCompositeBase
 
       // start of handlers added by this manager only
       int hidx1 = handlers.size(); 
-      myHandlerTable.setHandlerActivity (false);
+      myHandlerTable.saveLastConstraintData();
+      //myHandlerTable.setHandlerActivity (false);
 
       // compute explicit collisions
       for (Map.Entry<CollidablePair,CollisionBehavior> e :
@@ -2767,7 +2861,13 @@ public class CollisionManager extends RenderableCompositeBase
          handlers.get(i).removeInactiveContacts();
       }
       
-      // Now update collision responses, if any. 
+      updateResponses(handlers, hidx0);
+      return myMaxpen;
+   }   
+
+   private void updateResponses (
+      ArrayList<CollisionHandler> handlers, int hidx0) {
+     // Update collision responses, if any. 
       if (myResponses.size() > 0) {
          for (CollisionResponse resp : myResponses) {
             resp.clearHandlers();
@@ -2782,57 +2882,56 @@ public class CollisionManager extends RenderableCompositeBase
                ch.myStateNeedsContactInfo = true;
             }
          }
-      }
-
-      return myMaxpen;
-   }   
+      }      
+   }
 
    public void getBilateralSizes (VectorNi sizes) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         myHandlers.get(i).getBilateralSizes (sizes);
+      int size0 = sizes.sum();
+      for (CollisionHandler ch  : myHandlers) {
+         ch.getBilateralSizes (sizes);
       }
    }
 
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         numb = myHandlers.get(i).addBilateralConstraints (
-            GT, dg, numb);
+      for (CollisionHandler ch  : myHandlers) {
+         numb = ch.addBilateralConstraints (GT, dg, numb);
       }
       return numb;
    }
 
-   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getBilateralInfo (ginfo, idx);
+   public int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx) {
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getBilateralInfo (ginfo, idx);
       }
       return idx;
    }
 
    public int setBilateralForces (VectorNd lam, double s, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setBilateralForces (lam, s, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setBilateralForces (lam, s, idx);
       }
       return idx;
    }
 
    public int getBilateralForces (VectorNd lam, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getBilateralForces (lam, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getBilateralForces (lam, idx);
       }
       return idx;
    }
    
    public void zeroForces() {
-      for (int i=0; i<myHandlers.size(); i++) {
-         myHandlers.get(i).zeroForces();
+      for (CollisionHandler ch  : myHandlers) {
+         ch.zeroForces();
       }
    }
 
    public void getUnilateralSizes (VectorNi sizes) {
       //System.out.println ("unilateral sizes");
-      for (int i=0; i<myHandlers.size(); i++) {
-         myHandlers.get(i).getUnilateralSizes (sizes);
+      for (CollisionHandler ch  : myHandlers) {
+         ch.getUnilateralSizes (sizes);
 //         CollisionHandler ch = myHandlers.get(i);
 //         int numu = ch.numUnilateralConstraints();
 //         if (numu > 0) {
@@ -2843,50 +2942,139 @@ public class CollisionManager extends RenderableCompositeBase
 
    public int addUnilateralConstraints (
       SparseBlockMatrix NT, VectorNd dn, int numu) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         numu = myHandlers.get(i).addUnilateralConstraints (
-            NT, dn, numu);
+      for (CollisionHandler ch : myHandlers) {
+         numu = ch.addUnilateralConstraints (NT, dn, numu);
       }
       return numu;
    }
 
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getUnilateralInfo (ninfo, idx);
+      for (CollisionHandler ch : myHandlers) {
+         idx = ch.getUnilateralInfo (ninfo, idx);
       }
       return idx;
    }
 
    public int setUnilateralForces (VectorNd the, double s, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setUnilateralForces (the, s, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setUnilateralForces (the, s, idx);
       }
       return idx;
    }
 
    public int getUnilateralForces (VectorNd the, int idx) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getUnilateralForces (the, idx);
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getUnilateralForces (the, idx);
       }
       return idx;
    }
 
+   public int setUnilateralState (VectorNi state, int idx) {
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setUnilateralState (state, idx);
+      }
+      return idx;      
+   }
+   
+   public int getUnilateralState (VectorNi state, int idx) {
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getUnilateralState (state, idx);
+      }
+      return idx;      
+   }
+   
    public int maxFrictionConstraintSets() {
       int max = 0;
-      for (int i=0; i<myHandlers.size(); i++) {      
-         max += myHandlers.get(i).maxFrictionConstraintSets();
+      for (CollisionHandler ch  : myHandlers) {      
+         max += ch.maxFrictionConstraintSets();
       }
       return max;
    }
+
+   FunctionTimer myFullTimer = new FunctionTimer();
+   int myFullNum = 0;
+   FunctionTimer myRegTimer = new FunctionTimer();
+   int myRegNum = 0;
+   int myCnt = 0;
    
    public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
-      for (int i=0; i<myHandlers.size(); i++) {
-         numf = myHandlers.get(i).addFrictionConstraints (DT, finfo, numf);
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
+      boolean prune, int numf) {
+
+      // int numf0 = numf;
+      // SparseBlockMatrix DTF = 
+      //    new SparseBlockMatrix (DT.getBlockRowSizes(), new int[0]);
+      // FrictionInfo[] finfoFull = new FrictionInfo[200];
+      // for (int i=0; i<200; i++) {
+      //    finfoFull[i] = new FrictionInfo();
+      // }
+      // int full = 0;
+      // CollisionHandler.ftol = -1;
+      // myFullTimer.restart();
+      // for (CollisionHandler ch  : myHandlers) {
+      //    full = ch.addFrictionConstraints (DTF, finfoFull, full);
+      // }
+      // myFullTimer.stop();
+      // myFullNum += full;
+      // CollisionHandler.ftol = 1e-2;
+      //myRegTimer.restart();
+      for (CollisionHandler ch  : myHandlers) {
+         numf = ch.addFrictionConstraints (
+            DT, finfo, prune, numf);
       }
+      // myRegTimer.stop();
+      // myRegNum += (numf-numf0);
+      // myCnt++;
+      // if ((myCnt % 100) == 0) {
+      //    System.out.printf (
+      //       "friction full: %g %g\n", myFullTimer.getTimeUsec()/myCnt, myFullNum/(double)myCnt);
+      //    System.out.printf (
+      //       "friction reg:  %g %g\n", myRegTimer.getTimeUsec()/myCnt, myRegNum/(double)myCnt);
+      // }
       return numf;
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int setFrictionForces (VectorNd phi, double s, int idx) {
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setFrictionForces (phi, s, idx);
+      }
+      return idx;
+   }
 
+   /**
+    * {@inheritDoc}
+    */
+   public int getFrictionForces (VectorNd phi, int idx) {
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getFrictionForces (phi, idx);
+      }
+      return idx;
+   }
+   
+   public int setFrictionState (VectorNi state, int idx) {
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.setFrictionState (state, idx);
+      }
+      return idx;      
+   }
+   
+   public int getFrictionState (VectorNi state, int idx) {
+      for (CollisionHandler ch  : myHandlers) {
+         idx = ch.getFrictionState (state, idx);
+      }
+      return idx;      
+   }
+
+   // For testing only
+   public void printNetContactForces() {
+      for (CollisionHandler ch : myHandlers) {
+         ch.printNetContactForces();
+      }      
+   }
+   
    public void getConstrainedComponents (List<DynamicComponent> list) {
       // STUB - not currently used
    }
@@ -3085,8 +3273,13 @@ public class CollisionManager extends RenderableCompositeBase
       myHandlerTable.setState (data);
       if (myMechModel == MechModel.topMechModel(this)) {
          myHandlers.clear();
-         collectHandlers (myHandlers);
+         collectHandlers (myHandlers, /*updateResponses=*/true);
       }
+   }
+
+   public boolean use2DFrictionForBilateralContact() {
+      MechSystemSolver solver = myMechModel.mySolver;
+      return solver.murtyFriction || solver.myUseImplicitFriction; 
    }
 
    /* TODO:

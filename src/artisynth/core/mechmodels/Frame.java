@@ -1560,6 +1560,19 @@ public class Frame extends DynamicComponentBase
       addToPointVelocity (vel, scale, cpnt);
    }
 
+   public void computeForceOnMasters (
+      VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt,
+      SparseBlockMatrix S) {
+      int si;
+      if ((si=getSolveIndex()) != -1) {
+         Wrench wr = new Wrench(); // force to add
+         Point3d locw = new Point3d(); // point location in world
+         locw.sub (cpnt.myPoint, getPosition());
+         wr.f.set (fc);
+         wr.m.cross (locw, fc);
+         uvec.addScaledSubVector (S.getBlockRowOffset(si), scale, wr);
+      }
+   }
    // isControllable already defined
 
    public int collectMasterComponents (

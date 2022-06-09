@@ -5,26 +5,33 @@ import maspack.interpolation.CubicHermiteSpline1d;
 
 public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
 
-   public static double DEFAULT_FIBRE_DAMPING = 0.1;
-   protected double myDamping = DEFAULT_FIBRE_DAMPING;
+   // from OpenSim Muscle:
 
-   public static double DEFAULT_MAX_ISO_FORCE = 1;
+   public static double DEFAULT_MAX_ISO_FORCE = 1000;
    protected double myMaxIsoForce = DEFAULT_MAX_ISO_FORCE;
 
-   public static double DEFAULT_OPT_FIBRE_LENGTH = 1;
+   public static double DEFAULT_OPT_FIBRE_LENGTH = 0.1;
    protected double myOptFibreLength = DEFAULT_OPT_FIBRE_LENGTH;
 
-   public static double DEFAULT_OPT_PENNATION_ANGLE = 0.5;
+   public static double DEFAULT_TENDON_SLACK_LENGTH = 0.2;
+   protected double myTendonSlackLength = DEFAULT_TENDON_SLACK_LENGTH;
+
+   public static double DEFAULT_OPT_PENNATION_ANGLE = 0.0;
    protected double myOptPennationAngle = DEFAULT_OPT_PENNATION_ANGLE;
 
-   public static double DEFAULT_MAX_PENNATION_ANGLE = Math.toRadians(84.3);
-   protected double myMaxPennationAngle = DEFAULT_MAX_PENNATION_ANGLE;
-
-   public static double DEFAULT_TENDON_SLACK_LENGTH = 1;
-   protected double myTendonSlackLength = DEFAULT_TENDON_SLACK_LENGTH;
+   public static double DEFAULT_MAX_CONTRACTION_VELOCITY = 10;
+   protected double myMaxContractionVelocity = DEFAULT_MAX_CONTRACTION_VELOCITY;
 
    public static boolean DEFAULT_IGNORE_TENDON_COMPLIANCE = true;
    protected boolean myIgnoreTendonCompliance = DEFAULT_IGNORE_TENDON_COMPLIANCE;
+
+   // from OpenSim Millard2012EquilibriumMuscle:
+
+   public static double DEFAULT_FIBRE_DAMPING = 0.1;
+   protected double myDamping = DEFAULT_FIBRE_DAMPING;
+
+   public static double DEFAULT_MAX_PENNATION_ANGLE = Math.acos(0.1);
+   protected double myMaxPennationAngle = DEFAULT_MAX_PENNATION_ANGLE;
 
    public static boolean DEFAULT_IGNORE_FORCE_VELOCITY = true;
    protected boolean myIgnoreForceVelocity = DEFAULT_IGNORE_FORCE_VELOCITY;
@@ -49,10 +56,13 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
          "maximum isometric force", DEFAULT_MAX_ISO_FORCE);
       myProps.add (
          "optFibreLength",
-         "optimal fibre length", DEFAULT_OPT_FIBRE_LENGTH);
+         "optimal fiber length", DEFAULT_OPT_FIBRE_LENGTH);
       myProps.add (
          "optPennationAngle",
          "pennation angle at optimal length", DEFAULT_OPT_PENNATION_ANGLE);
+      myProps.add (
+         "maxContractionVelocity",
+         "maximum fiber contraction velocity", DEFAULT_MAX_CONTRACTION_VELOCITY);
       myProps.add (
          "maxPennationAngle",
          "maximum pennation angle", DEFAULT_MAX_PENNATION_ANGLE);
@@ -159,6 +169,14 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
       myH = myOptFibreLength*Math.sin(myOptPennationAngle);
    }
 
+   public double getMaxContractionVelocity() {
+      return myMaxContractionVelocity;
+   }
+
+   public void setMaxContractionVelocity (double maxv) {
+      myMaxContractionVelocity = maxv;
+   }
+
    public double getOptPennationAngle() {
       return myOptPennationAngle;
    }
@@ -190,7 +208,7 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
    }
 
    public void setIgnoreTendonCompliance (boolean enable) {
-      myIgnoreTendonCompliance = enable;
+      myIgnoreTendonCompliance = true; // enable 
    }
 
    public boolean getIgnoreForceVelocity () {
@@ -218,17 +236,29 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
          double lm = Math.sqrt (myH*myH + calm*calm); // muscle length
          double ca = calm/lm; // ca = cos(alpha)
 
+         if (ca < 0) {
+            // XXX does this happen?
+            return 0;
+         }
+
          double ln = lm/myOptFibreLength; // normalized muscle length
-         double vn = ldot*ca/myOptFibreLength; // normalized muscle velocity
+         // normalized muscle velocity:
+         double vn = ldot*ca/(myOptFibreLength*myMaxContractionVelocity); 
+         //double vn = ldot*ca/(myOptFibreLength); 
          double fa = myActiveForceLengthCurve.evalY (ln);
          double fp = myPassiveForceLengthCurve.evalY (ln);
+         double fm;
          if (myIgnoreForceVelocity) {
-            return myMaxIsoForce*(fa*excitation+fp+myDamping*vn)*ca;
+            fm = myMaxIsoForce*(fa*excitation+fp+myDamping*vn)*ca;
          }
          else {
             double fv = myForceVelocityCurve.evalY (vn);
-            return myMaxIsoForce*(fa*fv*excitation+fp+myDamping*vn)*ca;
+            if (fv < 0) {
+               fv = 0;
+            }
+            fm = myMaxIsoForce*(fa*fv*excitation+fp+myDamping*vn)*ca;
          }
+         return fm;
       }
       return 0;
    }
@@ -246,13 +276,19 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
          double lm = Math.sqrt (lmSqr); // muscle length
          double ca = calm/lm; // ca = cos(alpha)
 
+         if (ca < 0) {
+            return 0;
+         }
+
          double ln = lm/myOptFibreLength; // normalized muscle length
-         double vn = ldot*ca/myOptFibreLength; // normalized muscle velocity
+         // normalized muscle velocity:
+         double vn = ldot*ca/(myOptFibreLength*myMaxContractionVelocity); 
+         //double vn = ldot*ca/(myOptFibreLength); 
          double fa = myActiveForceLengthCurve.evalY (ln);
          double fp = myPassiveForceLengthCurve.evalY (ln);
 
          double dca = myH*myH/(lmSqr*lm);
-         double dvn = ldot*dca/myOptFibreLength;
+         double dvn = ldot*dca/(myOptFibreLength*myMaxContractionVelocity);
          double dln = ca/myOptFibreLength;
 
          double dfa = myActiveForceLengthCurve.evalDy(ln)*dln;
@@ -265,8 +301,12 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
          }
          else {
             double fv = myForceVelocityCurve.evalY (vn);
-            double fm = myMaxIsoForce*(fa*fv*excitation+fp+myDamping*vn);
             double dfv = myForceVelocityCurve.evalDy(vn)*dvn;
+            if (fv < 0) {
+               fv = 0;
+               dfv = 0;
+            }
+            double fm = myMaxIsoForce*(fa*fv*excitation+fp+myDamping*vn);
             return myMaxIsoForce*(
                (dfa*fv+fa*dfv)*excitation + dfp + myDamping*dvn)*ca + fm*dca;
          }
@@ -288,6 +328,10 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
          double calm = l-myTendonSlackLength; // calm = cos(alpha)*lm
          double lm = Math.sqrt (myH*myH + calm*calm); // muscle length
          double ca = calm/lm; // ca = cos(alpha)
+         
+         if (ca < 0) {
+            return 0;
+         }
 
          double ftmp;
          if (myIgnoreForceVelocity) {
@@ -296,10 +340,13 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
          else {
             double ln = lm/myOptFibreLength; // normalized muscle length
             double fa = myActiveForceLengthCurve.evalY(ln);
-            double vn = ldot*ca/myOptFibreLength; // normalized muscle velocity
+            // normalized muscle velocity:
+            //double vn = ldot*ca/myOptFibreLength;
+            double vn = ldot*ca/(myOptFibreLength*myMaxContractionVelocity); 
             ftmp = fa*myForceVelocityCurve.evalDy(vn)*excitation + myDamping;
          }
-         return myMaxIsoForce*ftmp*ca*ca/myOptFibreLength;
+         return (myMaxIsoForce*ftmp*ca*ca/
+                 (myOptFibreLength*myMaxContractionVelocity));
       }
       return 0;
    }
@@ -317,7 +364,6 @@ public class Millard2012AxialMuscle extends AxialMuscleMaterialBase {
       for (double l=0.5; l<2.0; l+=0.01) {
          System.out.printf ("%g %g\n", l, m.computeF (l, 0, 0, 1.0));
       }
-      
    }
 
 }

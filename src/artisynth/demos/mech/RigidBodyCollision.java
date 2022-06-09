@@ -156,6 +156,7 @@ public class RigidBodyCollision extends RootModel {
          for (int i=1; i<=10; i++) {
             addWayPoint (0.1*i);
          }
+         //mechmod.setCompliantContact();
       }
       catch (IOException e) {
          throw e;

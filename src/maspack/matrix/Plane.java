@@ -9,6 +9,7 @@ package maspack.matrix;
 import maspack.util.*;
 
 import java.io.*;
+import java.util.Collection;
 
 /**
  * Implements a plane in three space, as characterized by the points x which
@@ -697,6 +698,16 @@ public class Plane implements java.io.Serializable {
       for (int i = 1; i < num; i++) {
          x[off + i] += w * v[i];
       }
+   }
+
+   /**
+    * Fits this plane to a collection of points.
+    * 
+    * @param pnts
+    * points to fit
+    */
+   public void fit (Collection<Point3d> pnts) {
+      fit (pnts.toArray(new Point3d[0]), pnts.size());
    }
 
    /**

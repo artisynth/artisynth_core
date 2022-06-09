@@ -9,7 +9,6 @@ package maspack.solvers;
 import maspack.matrix.*;
 import maspack.matrix.Matrix.Partition;
 import maspack.solvers.*;
-import maspack.solvers.*;
 import maspack.solvers.LCPSolver.Status;
 import maspack.util.*;
 
@@ -21,6 +20,8 @@ public class KKTSolver {
    private SparseSolverId mySolverType = SparseSolverId.Pardiso;
 
    public static boolean computeResidualMG = false;
+   // when building an LCP matrix, use solves with multiple right sides:
+   public static boolean useBlockSolves = false;
 
    boolean myTimeSolves = false;
    boolean myMDiagonalP = false;
@@ -60,10 +61,9 @@ public class KKTSolver {
    MatrixNd myLcpM = new MatrixNd();
    VectorNd myQ = new VectorNd();
    VectorNd myZ = new VectorNd();
-   boolean[] myZBasic = new boolean[0];
 
    // if myDT != null, used zbasic, along with hi, lo, and W.
-   int[] myZState = new int[0];
+   VectorNi myLcpState = new VectorNi();
    VectorNd myLo = new VectorNd();
    VectorNd myHi = new VectorNd();
    VectorNd myW = new VectorNd();
@@ -79,7 +79,7 @@ public class KKTSolver {
     */
    public enum Status {
       /**
-       * A solution was found.
+       * A solution wasfound.
        */
       SOLVED,
       /**
@@ -239,6 +239,7 @@ public class KKTSolver {
             myLocalOffs, 0, myPartitionM, sizeM, sizeM);
       }
       else {
+         // M is a diagonal matrix
          for (int i = 0; i < sizeM; i++) {
             myLocalOffs[i] = 1;
          }
@@ -247,13 +248,6 @@ public class KKTSolver {
       int sizeMG = sizeM + numG;
       if (numG != 0) {
          GT.addNumNonZerosByRow (myLocalOffs, 0, Partition.Full, sizeM, numG);
-         // if (GT.colSize() == 5) {
-         //    System.out.println ("rowOffs:");
-         //    for (int i=0; i<sizeM; i++) {
-         //       System.out.print (myLocalOffs[i]+" "); 
-         //    }
-         //    System.out.println ("");
-         // }
          for (int i=sizeM; i<sizeMG; i++) {
             myLocalOffs[i] = 0;
          }
@@ -268,7 +262,7 @@ public class KKTSolver {
       int off = 0;
       for (int i=0; i<sizeMG; i++) {
          myRowOffs[i] = off; // XXX
-         off += myLocalOffs[i];;
+         off += myLocalOffs[i];
       }
       myRowOffs[sizeMG] = off; // XXX
    }
@@ -286,6 +280,7 @@ public class KKTSolver {
             myColIdxs, 0, myLocalOffs, myPartitionM, sizeM, sizeM);
       }
       else {
+         // M is a diagonal matrix 
          for (int i = 0; i < sizeM; i++) {
             myColIdxs[myLocalOffs[i]++] = i;
          }
@@ -294,11 +289,9 @@ public class KKTSolver {
          int numG = GT.colSize();
          GT.getBlockCRSIndices (
             myColIdxs, sizeM, myLocalOffs, Partition.Full, sizeM, numG);
-         // now do the lower block(s). Reset localOffs to the cober rows sizeM
-         // to sizeM+numG
+         // now do the lower block(s). Reset localOffs for the lower rows
          for (int i=0; i<numG; i++) {
             myLocalOffs[i] = myRowOffs[sizeM+i];
-            // XXX
             if (myIndices1Based) {
                myLocalOffs[i]--;
             }
@@ -307,6 +300,7 @@ public class KKTSolver {
             GT.getBlockCCSIndices (
                myColIdxs, 0, myLocalOffs, Partition.Full, sizeM, numG);
          }
+         // set indices for lower right diagonal
          for (int i=0; i<numG; i++) {
             myColIdxs[myLocalOffs[i]++] = i + sizeM;
          }
@@ -317,7 +311,6 @@ public class KKTSolver {
       Object M, int sizeM, int numVals, SparseBlockMatrix GT, VectorNd Rg) {
       for (int i = 0; i < sizeM; i++) {
          myLocalOffs[i] = myRowOffs[i];
-         // XXX
          if (myIndices1Based) {
             myLocalOffs[i]--;
          }
@@ -327,34 +320,18 @@ public class KKTSolver {
             myVals, myLocalOffs, myPartitionM, sizeM, sizeM);
       }
       else {
+         // M is a diagonal matrix represented by a VectorNd
          double[] diag = ((VectorNd)M).getBuffer();
          for (int i = 0; i < sizeM; i++) {
             myVals[myLocalOffs[i]++] = diag[i];
          }
       }
-      // if (GT != null) {
-      //    int numG = GT.colSize();
-      //    GT.getBlockCRSValues (myVals, myLocalOffs, Partition.Full, sizeM, numG);
-      //    if (Rg != null) {
-      //       double[] Rgbuf = Rg.getBuffer();
-      //       for (int i = 0; i < numG; i++) {
-      //          myVals[numVals - numG + i] = -Rgbuf[i];
-      //       }
-      //    }
-      //    else {
-      //       for (int i = 0; i < numG; i++) {
-      //          myVals[numVals - numG + i] = 0;
-      //       }
-      //    }
-      // }
       if (GT != null) {
          int numG = GT.colSize();
          GT.getBlockCRSValues (myVals, myLocalOffs, Partition.Full, sizeM, numG);
-         // now do the lower block(s). Reset localOffs to the cober rows sizeM
-         // to sizeM+numG
+         // now do the lower block(s). Reset localOffs for the lower rows
          for (int i=0; i<numG; i++) {
             myLocalOffs[i] = myRowOffs[sizeM+i];
-            // XXX
             if (myIndices1Based) {
                myLocalOffs[i]--;
             }
@@ -363,6 +340,7 @@ public class KKTSolver {
             GT.getBlockCCSValues (
                myVals, myLocalOffs, Partition.Full, sizeM, numG);
          }        
+         // set values for lower right diagonal
          if (Rg != null) {
             double[] Rgbuf = Rg.getBuffer();
             for (int i=0; i<numG; i++) {
@@ -472,6 +450,7 @@ public class KKTSolver {
       SparseBlockMatrix NT, VectorNd Rn) {
       long t0 = System.nanoTime();
       checkMGStructure (M, sizeM, GT);
+
       if (myTimeSolves) timerStart();
       factorMG (M, sizeM, GT, Rg);
 
@@ -481,7 +460,7 @@ public class KKTSolver {
             warnAboutUnsymmetricUnilateralSolves();
          }
          if (myTimeSolves) timerStart();
-         buildLCP (NT, Rn);
+         buildLCP (NT, Rn, null, null);
          if (myTimeSolves) {
             timerStop ("buildLCP m=" + NT.colSize() + ":");
          }
@@ -502,15 +481,17 @@ public class KKTSolver {
     */
    public void factor (
       SparseBlockMatrix M, int sizeM, SparseBlockMatrix GT, VectorNd Rg,
-      SparseBlockMatrix NT, VectorNd Rn, SparseBlockMatrix DT) {
+      SparseBlockMatrix NT, VectorNd Rn, SparseBlockMatrix DT, VectorNd Rd) {
       long t0 = System.nanoTime();
       checkMGStructure (M, sizeM, GT);
       factorMG (M, sizeM, GT, Rg);
-      if (NT != null && NT.colSize() != 0) {
+      int sizeN = (NT != null ? NT.colSize() : 0);
+      int sizeD = (DT != null ? DT.colSize() : 0);
+      if (sizeN > 0 || sizeD > 0) {
          if ((myTypeM & Matrix.SYMMETRIC) == 0) {
             warnAboutUnsymmetricUnilateralSolves();
          }
-         buildLCP (NT, Rn, DT);
+         buildLCP (NT, Rn, DT, Rd);
       }
       myState = State.FACTORED;
       long t1 = System.nanoTime();
@@ -545,7 +526,7 @@ public class KKTSolver {
          if ((myTypeM & Matrix.SYMMETRIC) == 0) {
             warnAboutUnsymmetricUnilateralSolves();
          }
-         buildLCP (NT, Rn);
+         buildLCP (NT, Rn, null, null);
       }
       myState = State.FACTORED;
    }
@@ -562,7 +543,20 @@ public class KKTSolver {
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd phi,
       VectorNd bm, VectorNd bg, VectorNd bn, VectorNd bd, VectorNd flim) {
       myLastSolveWasIterative = false;
-      return dosolve (vel, lam, the, phi, bm, bg, bn, bd, flim);
+      return dosolve (vel, lam, the, phi, bm, bg, bn, bd, flim, null, null);
+   }
+
+   /**
+    * Solves the equality, inequality, and frictional parts of a factored
+    * system.
+    */
+   public Status solve (
+      VectorNd vel, VectorNd lam, VectorNd the, VectorNd phi,
+      VectorNd bm, VectorNd bg, VectorNd bn, VectorNd bd,
+      VectorNd flim, VectorNi state, VectorNi contactIdxs) {
+      myLastSolveWasIterative = false;
+      return dosolve (
+         vel, lam, the, phi, bm, bg, bn, bd, flim, state, contactIdxs);
    }
 
    /**
@@ -572,7 +566,17 @@ public class KKTSolver {
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd bm, VectorNd bg,
       VectorNd bn) {
       myLastSolveWasIterative = false;
-      return dosolve (vel, lam, the, null, bm, bg, bn, null, null);
+      return dosolve (vel, lam, the, null, bm, bg, bn, null, null, null, null);
+   }
+
+   /**
+    * Solves the equality and inequality parts of a factored system.
+    */
+   public Status solve (
+      VectorNd vel, VectorNd lam, VectorNd the, VectorNd bm, VectorNd bg,
+      VectorNd bn, VectorNi state) {
+      myLastSolveWasIterative = false;
+      return dosolve (vel, lam, the, null, bm, bg, bn, null, null, state, null);
    }
 
    public double residual (
@@ -629,7 +633,7 @@ public class KKTSolver {
     */
    public Status solve (VectorNd vel, VectorNd lam, VectorNd bm, VectorNd bg) {
       myLastSolveWasIterative = false;
-      return dosolve (vel, lam, null, null, bm, bg, null, null, null);
+      return dosolve (vel, lam, null, null, bm, bg, null, null, null, null, null);
    }
 
    double myDirectTimeMsec = 0;
@@ -703,7 +707,7 @@ public class KKTSolver {
       myNT = null;
       myNumD = 0;
       myDT = null;
-      
+
       if (myPardiso != null && myDirectCnt > 0 &&
           (myIterativeCnt == 0 || myIterativeCnt+1 < estimateOptimalCount())) {
          long t0 = System.nanoTime();
@@ -739,6 +743,10 @@ public class KKTSolver {
                myFirstIterativeTimeMsec = myIterativeTimeMsec;
             }
             myLastSolveWasIterative = true;
+            if (myTimeSolves) {
+               System.out.println (
+                  "factorAndSolve: " + myIterativeTimeMsec + " msec");
+            }
             return Status.SOLVED;
          }
       }
@@ -757,7 +765,9 @@ public class KKTSolver {
 
    private Status dosolve (
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd phi,
-      VectorNd bm, VectorNd bg, VectorNd bn, VectorNd bd, VectorNd flim) {
+      VectorNd bm, VectorNd bg, VectorNd bn, VectorNd bd,
+      VectorNd flim, VectorNi state, VectorNi contactIdxs) {
+      
       long t0 = System.nanoTime();
       if (myState != State.FACTORED) {
          throw new ImproperStateException ("Factor has not been called");
@@ -804,34 +814,45 @@ public class KKTSolver {
                "'flim' size "+flim.size()+" incompatible with DT size " + myNumD);
          }
       }
+      if (state != null) {
+         if (state.size() < myNumN + myNumD) {
+            throw new IllegalArgumentException (
+               "'state' must have have a size >= " + (myNumN + myNumD));
+         }
+      }
+      
       Status status;
-      if (myNumN == 0 || the == null) {
+      boolean hasN = (myNumN > 0 && the != null);
+      boolean hasD = (myNumD > 0 && phi != null);
+      // if (state != null) {
+      //    System.out.println ("start state:");
+      //    LCPSolver.printState (state.getBuffer(), state.size());
+      // }
+      
+      if (!hasN && !hasD) {
          if (myTimeSolves) timerStart();
          solveMG (vel, lam, bm, bg);
          if (myTimeSolves) timerStop ("solveMG:");
          status = Status.SOLVED;
       }
-      else if (the != null && phi == null) {
-         status = solveLCP (vel, lam, the, bm, bg, bn);
+      else if (hasN && !hasD) {
+         status = solveLCP (vel, lam, the, bm, bg, bn, state);
       }
       else {
-         status = solveLCP (vel, lam, the, phi, bm, bg, bn, bd, flim);
+         status = solveLCP (
+            vel, lam, the, phi, bm, bg, bn, bd, flim, state, contactIdxs);
       }
       long t1 = System.nanoTime();
       return status;
    }
 
-   public boolean[] getZBasic() {
-      return Arrays.copyOf (myZBasic, myNumN);
-   }
-
-   public int[] getZState() {
-      return Arrays.copyOf (myZState, myNumN+myNumD);
+   public VectorNi getLcpState() {
+      return new VectorNi (myLcpState);
    }
 
    private Status solveLCP (
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd bm, VectorNd bg,
-      VectorNd bn) {
+      VectorNd bn, VectorNi state) {
       double[] xbuf = myMGx.getBuffer();
       double[] ybuf = myMGy.getBuffer();
       double[] bbuf;
@@ -850,19 +871,31 @@ public class KKTSolver {
       for (int i = 0; i < myNumN; i++) {
          qbuf[i] -= bn.get(i);
       }
-      // don't currently need this:
-      for (int i = 0; i < myQ.size(); i++) {
-         myZBasic[i] = false;
-      }
+      initializeState (state);
+
       //System.out.println ("LCP M=[\n" + myLcpM + "]");
       //System.out.println ("Q=" + myQ);
-
+      DantzigLCPSolver.Status status;
+      // MurtyLCPSolver murty = new MurtyLCPSolver();
+      //murty.setBlockPivoting(true);
+      // status = murty.solve (myZ, myLcpM, myQ, myZState);
+      // System.out.println (
+      //    "murty (no friction): iters=" + murty.getIterationCount() +
+      //    " pivots=" + murty.getPivotCount() + " " + status);
+      // for (int i = 0; i < myQ.size(); i++) {
+      //    myZState[i] = LCPSolver.W_VAR_LOWER;
+      // }
       myDantzig.setComputeResidual (true);
       if (myTimeSolves) timerStart();
-      DantzigLCPSolver.Status status =
-         myDantzig.solve (myZ, myLcpM, myQ, myZBasic);
+      status = myDantzig.solve (myZ, myLcpState, myLcpM, myQ);
       if (myTimeSolves) timerStop("solveLCP:");
       myDantzig.setComputeResidual (false);
+      if (state != null) {
+         for (int i=0; i<myQ.size(); i++) {
+            state.set (i, myLcpState.get(i));
+         }
+      }     
+      //System.out.println ("num pivots=" + myDantzig.getIterationCount());
       //System.out.println ("status=" + status + " res=" + myDantzig.getResidual());
       // System.out.println ("M=\n" + myLcpM);
       // System.out.println ("q=\n" + myQ);
@@ -910,9 +943,28 @@ public class KKTSolver {
       return Status.SOLVED;
    }
 
+   private void initializeState (VectorNi state) {
+      if (state != null) {
+         for (int i=0; i<myQ.size(); i++) {
+            myLcpState.set (i, state.get(i));
+         }
+      }
+      else {
+         LCPSolver.clearState (myLcpState);
+      }      
+   }
+
+   FunctionTimer myMurtyTimer = new FunctionTimer();
+   FunctionTimer myDantzigTimer = new FunctionTimer();
+   int myMurtyPivots;
+   int myMurtyIters;
+   int myDantzigPivots;
+   int myCnt;
+   
    private Status solveLCP (
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd phi,
-      VectorNd bm, VectorNd bg, VectorNd bn, VectorNd bd, VectorNd flim) {
+      VectorNd bm, VectorNd bg, VectorNd bn, VectorNd bd, 
+      VectorNd flim, VectorNi state, VectorNi contactIdxs) {
 
       double[] xbuf = myMGx.getBuffer();
       double[] ybuf = myMGy.getBuffer();
@@ -946,8 +998,69 @@ public class KKTSolver {
          myLo.set (myNumN+i, -fmax);
          myHi.set (myNumN+i, +fmax);
       }
-      DantzigLCPSolver.Status status =
-         myDantzig.solve (myZ, myW, myLcpM, myQ, myLo, myHi, 0, myZState);
+      initializeState (state);
+
+      LCPSolver.Status status;
+      MurtyLCPSolver murty = new MurtyLCPSolver();
+      murty.setBlockPivoting(true);
+      LCPSolver.clearState (myLcpState);
+      //System.out.println (
+      //   "sizeG=" + myNumG + " sizeN=" + myNumN + " sizeD=" + myNumD);
+      myMurtyTimer.restart();
+      //status = murty.solve (myZ, myW, myLcpState, myLcpM, myQ, myLo, myHi, 0);
+      myMurtyTimer.stop();
+      myMurtyPivots += murty.getPivotCount();
+      myMurtyIters += murty.getIterationCount();
+ 
+      // if (contactIdxs != null) {
+      //    StringBuilder sb = new StringBuilder();
+      //    for (int i=0; i<myNumN-1; i++) {
+      //       sb.append (' ');
+      //    }
+      //    sb.append ('|');
+      //    for (int i=0; i<myNumD; i++) {
+      //       int idx = contactIdxs.get(i);
+      //       if (myZState[idx] == LCPSolver.Z_VAR) {
+      //          sb.append ('.');
+      //       }
+      //       else if (myZState[myNumN+i] == LCPSolver.Z_VAR) {
+      //          sb.append ('X');
+      //       }
+      //       else {
+      //          sb.append (' ');
+      //       }
+      //       System.out.print (idx+" ");
+      //    }
+      //    System.out.println ("");
+      //    System.out.println (sb);
+      // }
+      //LCPSolver.clearState (myLcpState);
+
+      myDantzigTimer.restart();
+      status=myDantzig.solve (myZ, myW, myLcpState, myLcpM, myQ, myLo, myHi, 0);
+      myDantzigTimer.stop();
+      myDantzigPivots += myDantzig.getPivotCount();
+      //System.out.println ("status=" + status + " "+ myDantzig.getPivotCount() + " " + myDantzigTimer.getTimeUsec());
+
+      myCnt++;
+      // if ((myCnt%100) == 0) {
+      //    System.out.printf (
+      //       "Murty:   pivots=%g iters=%g time=%g usec\n",
+      //       myMurtyPivots/(double)myCnt, 
+      //       myMurtyIters/(double)myCnt, 
+      //       myMurtyTimer.getTimeUsec()/(double)myCnt);
+      //    System.out.printf (
+      //       "Dantzig: pivots=%g time=%g usec\n",
+      //       myDantzigPivots/(double)myCnt, 
+      //       myDantzigTimer.getTimeUsec()/(double)myCnt);
+      // }
+
+      //LCPSolver.printState (myZState, myQ.size());
+      if (state != null) {
+         for (int i=0; i<myQ.size(); i++) {
+            state.set (i, myLcpState.get(i));
+         }
+      }
       if (status != DantzigLCPSolver.Status.SOLVED) {
          switch (status) {
             case NO_SOLUTION: {
@@ -965,6 +1078,15 @@ public class KKTSolver {
             }
          }
       }
+      // System.out.println ("npivots=" + myDantzig.getIterationCount());
+      // System.out.print ("zstate=");
+      // for (int i=0; i<myNumN+myNumD; i++) {
+      //    System.out.print (" " + myZState[i]);
+      // }
+      // System.out.println ("");
+      
+      
+      //System.out.println ("num pivots=" + myDantzig.getIterationCount());
       //System.out.println ("kktF= " + myQ.toString("%12.8f"));
       //System.out.println ("kktQ= " + myQ);
       // System.out.println ("myM11=\n" + myLcpM);
@@ -1001,86 +1123,201 @@ public class KKTSolver {
       return Status.SOLVED;
    }
 
-   private void buildLCP (SparseBlockMatrix NT, VectorNd Rn) {
-      int n = NT.colSize();
-      myLcpM.setSize (n, n);
-      if (myZBasic.length < n) {
-         myZBasic = new boolean[n];
-      }
-      myQ.setSize (n);
-      myZ.setSize (n);
-      double[] xbuf = myMGx.getBuffer();
-      double[] ybuf = myMGy.getBuffer();
-      for (int i = mySizeM; i < mySizeM + myNumG; i++) {
-         xbuf[i] = 0;
-      }
-      VectorNd mcol = new VectorNd (n);
-      for (int j = 0; j < n; j++) {
-         NT.getColumn (j, xbuf, 0, mySizeM);
-         solveMG (myMGy, myMGx);
-         NT.mulTranspose (mcol, myMGy, NT.colSize(), mySizeM);
-         myLcpM.setColumn (j, mcol);
-      }
-      if (Rn != null) {
-         for (int i = 0; i < n; i++) {
-            myLcpM.set (i, i, myLcpM.get (i, i) + Rn.get(i));
+   /**
+    * Get the composition of the N and D matrices as a dense matrix, which can
+    * then be passed to the solver to obtain multiple solutions at once.
+    */
+   private void getDenseND (
+      MatrixNd ND, SparseBlockMatrix NT, SparseBlockMatrix DT) {
+      int sizeN = (NT != null ? NT.colSize() : 0);
+      int sizeD = (DT != null ? DT.colSize() : 0);
+      ND.setSize (sizeN+sizeD, mySizeM + myNumG);
+      double[] buf = ND.getBuffer();
+      int w = ND.getBufferWidth();
+      ND.setZero();
+      int blkSizeM = NT.getAlignedBlockRow (mySizeM);
+      if (sizeN > 0) {
+         for (int bi=0; bi<blkSizeM; bi++) {
+            int i0 = NT.getBlockRowOffset(bi);
+            MatrixBlock blk = NT.firstBlockInRow(bi);
+            while (blk != null) {
+               int bj = blk.getBlockCol();
+               int j0 = NT.getBlockColOffset(bj);            
+               for (int i=0; i<blk.rowSize(); i++) {
+                  for (int j=0; j<blk.colSize(); j++) {
+                     buf[(j0+j)*w + (i0+i)] = blk.get(i,j);
+                  }
+               }
+               blk = blk.next();
+            }
          }
       }
-      myNumN = n;
-      myNT = NT;
-      myNumD = 0;
-      myDT = null;
+      if (sizeD > 0) {
+         for (int bi=0; bi<blkSizeM; bi++) {
+            int i0 = DT.getBlockRowOffset(bi);
+            MatrixBlock blk = DT.firstBlockInRow(bi);
+            while (blk != null) {
+               int bj = blk.getBlockCol();
+               int j0 = DT.getBlockColOffset(bj) + sizeN;         
+               for (int i=0; i<blk.rowSize(); i++) {
+                  for (int j=0; j<blk.colSize(); j++) {
+                     buf[(j0+j)*w + (i0+i)] = blk.get(i,j);
+                  }
+               }
+               blk = blk.next();
+            }
+         }
+      }
    }
 
+   // private void buildLCP (SparseBlockMatrix NT, VectorNd Rn) {
+   //    int n = NT.colSize();
+   //    myLcpM.setSize (n, n);
+   //    if (myZState.length < n) {
+   //       myZState = new int[n];
+   //    }
+   //    myQ.setSize (n);
+   //    myZ.setSize (n);
+
+   //    if (myPardiso != null && useBlockSolves) {
+   //       MatrixNd N = getDenseND (NT, null);
+   //       MatrixNd Nsol = new MatrixNd (N.rowSize(), N.colSize());
+   //       solveMG (Nsol.getBuffer(), N.getBuffer(), n);
+   //       //MatrixNd M = new MatrixNd (n, n);
+   //       VectorNd sol = new VectorNd(n);
+   //       VectorNd colN = new VectorNd(n);
+   //       double[] buf = myLcpM.getBuffer();
+   //       int w = myLcpM.getBufferWidth();
+   //       for (int j=0; j<n; j++) {
+   //          Nsol.getRow (j, sol);
+   //          NT.mulTranspose (colN, sol, n, mySizeM);
+   //          for (int i=0; i<n; i++) {
+   //             buf[i*w+j] = colN.get(i);
+   //          }
+   //       }         
+   //    }
+   //    else {
+   //       double[] xbuf = myMGx.getBuffer();
+   //       double[] ybuf = myMGy.getBuffer();
+   //       for (int i = mySizeM; i < mySizeM + myNumG; i++) {
+   //          xbuf[i] = 0;
+   //       }
+   //       VectorNd mcol = new VectorNd (n);
+   //       for (int j = 0; j < n; j++) {
+   //          NT.getColumn (j, xbuf, 0, mySizeM);
+   //          solveMG (myMGy, myMGx);
+   //          NT.mulTranspose (mcol, myMGy, n, mySizeM);
+   //          myLcpM.setColumn (j, mcol);
+   //       }
+   //    }
+
+   //    if (Rn != null) {
+   //       for (int i = 0; i < n; i++) {
+   //          myLcpM.set (i, i, myLcpM.get (i, i) + Rn.get(i));
+   //       }
+   //    }
+   //    myNumN = n;
+   //    myNT = NT;
+   //    myNumD = 0;
+   //    myDT = null;
+   // }
+
    private void buildLCP (
-      SparseBlockMatrix NT, VectorNd Rn, SparseBlockMatrix DT) {
+      SparseBlockMatrix NT, VectorNd Rn, SparseBlockMatrix DT, VectorNd Rd) {
       
-      int Nsize = NT.colSize();
-      int Dsize = DT.colSize();
-      int n = Nsize + Dsize;
+      int sizeN = NT != null ? NT.colSize() : 0;
+      int sizeD = DT != null ? DT.colSize() : 0;
+      int n = sizeN + sizeD;
       myLcpM.setSize (n, n);
-      if (myZState.length < n) {
-         myZState = new int[n];
-      }
+      myLcpState.setSize (n);
       myQ.setSize (n);
       myZ.setSize (n);
       myW.setSize (n);
       myHi.setSize (n);
       myLo.setSize (n);
-      double[] xbuf = myMGx.getBuffer();
-      double[] ybuf = myMGy.getBuffer();
-      for (int i = mySizeM; i < mySizeM + myNumG; i++) {
-         xbuf[i] = 0;
-      }
-      VectorNd nmul = new VectorNd (Nsize);
-      VectorNd dmul = new VectorNd (Dsize);
-      VectorNd mcol = new VectorNd (n);
-      for (int j = 0; j < Nsize; j++) {
-         NT.getColumn (j, xbuf, 0, mySizeM);
-         solveMG (myMGy, myMGx);
-         NT.mulTranspose (nmul, myMGy, Nsize, mySizeM);
-         mcol.setSubVector (0, nmul);
-         DT.mulTranspose (dmul, myMGy, Dsize, mySizeM);
-         mcol.setSubVector (Nsize, dmul);
-         myLcpM.setColumn (j, mcol);
-      }
-      for (int j = 0; j < Dsize; j++) {
-         DT.getColumn (j, xbuf, 0, mySizeM);
-         solveMG (myMGy, myMGx);
-         NT.mulTranspose (nmul, myMGy, Nsize, mySizeM);
-         mcol.setSubVector (0, nmul);
-         DT.mulTranspose (dmul, myMGy, Dsize, mySizeM);
-         mcol.setSubVector (Nsize, dmul);
-         myLcpM.setColumn (Nsize+j, mcol);
-      }
-      if (Rn != null) {
-         for (int i = 0; i < Nsize; i++) {
-            myLcpM.set (i, i, myLcpM.get (i, i) + Rn.get(i));
+
+      if (myPardiso != null && useBlockSolves) {
+         MatrixNd ND = new MatrixNd();
+         getDenseND (ND, NT, DT);
+         solveMG (ND.getBuffer(), ND.getBuffer(), n);
+         //MatrixNd M = new MatrixNd (n, n);
+         VectorNd sol = new VectorNd(n);
+         VectorNd colN = new VectorNd(sizeN);
+         VectorNd colD = new VectorNd(sizeD);
+         double[] buf = myLcpM.getBuffer();
+         int w = myLcpM.getBufferWidth();
+         for (int j=0; j<n; j++) {
+            ND.getRow (j, sol);
+            if (sizeN > 0) {
+               NT.mulTranspose (colN, sol, sizeN, mySizeM);
+               for (int i=0; i<sizeN; i++) {
+                  buf[i*w+j] = colN.get(i);
+               }
+            }
+            if (sizeD > 0) {
+               DT.mulTranspose (colD, sol, sizeD, mySizeM);
+               for (int i=0; i<sizeD; i++) {
+                  buf[(i+sizeN)*w+j] = colD.get(i);
+               }
+            }
          }
       }
-      myNumN = Nsize;
+      //MatrixNd M = new MatrixNd(myLcpM);
+      else {
+         double[] xbuf = myMGx.getBuffer();
+         double[] ybuf = myMGy.getBuffer();
+         for (int i = mySizeM; i < mySizeM + myNumG; i++) {
+            xbuf[i] = 0;
+         }
+         VectorNd nmul = new VectorNd (sizeN);
+         VectorNd dmul = new VectorNd (sizeD);
+         VectorNd mcol = new VectorNd (n);
+         //FunctionTimer timer = new FunctionTimer();
+         //timer.start();
+         for (int j = 0; j < sizeN; j++) {
+            NT.getColumn (j, xbuf, 0, mySizeM);
+            solveMG (myMGy, myMGx);
+            NT.mulTranspose (nmul, myMGy, sizeN, mySizeM);
+            mcol.setSubVector (0, nmul);
+            if (sizeD > 0) {
+               DT.mulTranspose (dmul, myMGy, sizeD, mySizeM);
+            }
+            mcol.setSubVector (sizeN, dmul);
+            myLcpM.setColumn (j, mcol);
+         }
+         for (int j = 0; j < sizeD; j++) {
+            DT.getColumn (j, xbuf, 0, mySizeM);
+            solveMG (myMGy, myMGx);
+            if (sizeN > 0) {
+               NT.mulTranspose (nmul, myMGy, sizeN, mySizeM);
+            }
+            mcol.setSubVector (0, nmul);
+            DT.mulTranspose (dmul, myMGy, sizeD, mySizeM);
+            mcol.setSubVector (sizeN, dmul);
+            myLcpM.setColumn (sizeN+j, mcol);
+         }
+      }
+      
+         // MatrixNd E = new MatrixNd();
+         // E.sub (myLcpM, M);
+         // System.out.println ("ERR=" + E.frobeniusNorm()/M.frobeniusNorm());
+
+      //timer.stop();
+      //System.out.println ("  buildLCPM: " + timer.result(1));
+      if (Rn != null) {
+         for (int i = 0; i < sizeN; i++) {
+            myLcpM.add (i, i, Rn.get(i));
+         }
+      }
+      if (Rd != null) {
+         for (int i = 0; i < sizeD; i++) {
+            int k = i + sizeN;
+            myLcpM.add (k, k, Rd.get(i));
+         }
+      }
+      myNumN = sizeN;
       myNT = NT;
-      myNumD = Dsize;
+      myNumD = sizeD;
       myDT = DT;
    }
 
@@ -1329,6 +1566,25 @@ public class KKTSolver {
       }
    }
 
+   public void solveMG (double[] Xbuf, double[] Bbuf, int nrhs) {
+      if (myPardiso != null) {
+         int w = mySizeM+myNumG;
+         // NOTE: solve arguments with multiple right hand sides are stored in
+         // column major form
+         myPardiso.solve (Xbuf, Bbuf, nrhs);
+         // negate lam.
+         for (int i=0; i<nrhs; i++) {
+            for (int j=mySizeM; j<w; j++) {
+               Xbuf[i*w+j] = -Xbuf[i*w+j];
+            }
+         }        
+      }
+      else {
+         throw new UnsupportedOperationException (
+            "solve for multiple rhs only supported for Pardiso");
+      }
+   }
+
    public static boolean myDebug = false;
 
    /**
@@ -1428,6 +1684,19 @@ public class KKTSolver {
 
    public void finalize() {
       dispose();
+   }
+
+   public DirectSolver getMatrixSolver() {
+      return myMatrixSolver;
+   }
+
+   public void initialize() {
+      // reset hybrid solve stats
+      myDirectTimeMsec = 0;
+      myDirectCnt = 0;
+      myIterativeTimeMsec = 0;
+      myFirstIterativeTimeMsec = 0;
+      myIterativeCnt = 0;
    }
 
 }

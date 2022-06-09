@@ -53,7 +53,14 @@ public class CollisionResponse extends CollisionComponent {
     * @return <code>true</code> if the collidables are in contact.
     */
    public boolean inContact () {
-      return myHandlers.size () == 0;
+      // Will be in contact if at least one handler has non-null contact
+      // information.
+      for (CollisionHandler ch : myHandlers) {
+         if (ch.hasLastContactData()) {
+            return true;
+         }
+      }
+      return false;
    }
 
    /**
@@ -82,7 +89,7 @@ public class CollisionResponse extends CollisionComponent {
       LinkedHashMap<Vertex3d,Vector3d> map =
          new LinkedHashMap<Vertex3d,Vector3d> ();
       for (CollisionHandler ch : myHandlers) {
-         ch.getContactForces (
+         ch.collectLastContactForces (
             map, getBodyForCollidable (myPair.get(cidx), ch));
       }
       return map;
@@ -108,38 +115,7 @@ public class CollisionResponse extends CollisionComponent {
     */
    public Map<Vertex3d,Double> getContactPressures (int cidx) {
       Map<Vertex3d,Vector3d> fmap = getContactForces (cidx);
-      
-      // convert forces into pressures:
-      
-      // set of faces for which planar area has been updated:
-      HashSet<Face> faces = new HashSet<>();
-      // pressure map to be completed:
-      LinkedHashMap<Vertex3d,Double> pmap = new LinkedHashMap<>();
-
-      for (Map.Entry<Vertex3d,Vector3d> entry : fmap.entrySet()) {
-         Vertex3d vertex = entry.getKey();
-         double force = entry.getValue().norm();
-         // Pressure at the vertex is related to force at the vertex
-         // by the formula
-         // 
-         //    force = 1/3 * pressure * adjacentFaceArea
-         //
-         double adjacentFaceArea = 0;
-         Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
-         while (it.hasNext()) {
-            HalfEdge he = it.next();
-            Face face = he.getFace();
-            if (!faces.contains(face)) {
-               // update planar area for the face
-               face.computeNormal();
-               faces.add (face);
-            }
-            adjacentFaceArea += face.getPlanarArea();
-         }
-         double pressure = 3*force/adjacentFaceArea;
-         pmap.put (vertex, pressure);              
-      }
-      return pmap;
+      return CollisionHandler.createVertexPressureMap (/*faces=*/null, fmap);
    }
 
    /**
@@ -196,20 +172,22 @@ public class CollisionResponse extends CollisionComponent {
       Collidable target = myPair.get (cidx);
       double area = 0;
       for (CollisionHandler ch : myHandlers) {
-         ContactInfo cinfo = ch.myLastContactInfo;
-         ArrayList<PenetrationRegion> localRegions;
-         if (getBodyForCollidable (target, ch) == ch.getCollidable(0)) {
-            localRegions = cinfo.getRegions(0);
-         }
-         else {
-            localRegions = cinfo.getRegions(1);
-         }
-         if (localRegions == null) {
-            // regions not available
-            return -1;
-         }
-         for (PenetrationRegion r : localRegions) {
-            area += r.getArea ();
+         ContactInfo cinfo = ch.getLastContactInfo();
+         if (cinfo != null) {
+            ArrayList<PenetrationRegion> localRegions;
+            if (getBodyForCollidable (target, ch) == ch.getCollidable(0)) {
+               localRegions = cinfo.getRegions(0);
+            }
+            else {
+               localRegions = cinfo.getRegions(1);
+            }
+            if (localRegions == null) {
+               // regions not available
+               return -1;
+            }
+            for (PenetrationRegion r : localRegions) {
+               area += r.getArea ();
+            }
          }
       }
       return area;

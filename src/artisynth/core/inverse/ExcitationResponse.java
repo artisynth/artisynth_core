@@ -161,17 +161,18 @@ public class ExcitationResponse
       // bf = M v + h fp
       bf.scaledAdd(h, fp, Mv);
       
+      int solveFlags = MechSystemSolver.NO_SYS_UPDATE;
       if (useTrapezoidal) {
          // use Trapezoidal integration
          myMechSysSolver.KKTFactorAndSolve (
             u0, null, bf, /*tmp=*/ftmp, curVel, 
-            h, -h/2, -h*h/4, -h/2, h*h/4);
+            h, -h/2, -h*h/4, -h/2, h*h/4, solveFlags);
 
       }
       else {
          // use ConstrainedBackwardEuler integration
          myMechSysSolver.KKTFactorAndSolve(
-            u0, null, bf, /*tmp=*/ftmp, curVel, h);
+            u0, null, bf, /*tmp=*/ftmp, curVel, h, solveFlags);
       }
       
       lam0.set (myMechSysSolver.getLambda ());
@@ -213,12 +214,12 @@ public class ExcitationResponse
                 // use Trapezoidal integration
                 myMechSysSolver.KKTFactorAndSolve (
                    HuCols[j], null, bf, /*tmp=*/ftmp, curVel, 
-                   h, -h/2, -h*h/4, -h/2, h*h/4);
+                   h, -h/2, -h*h/4, -h/2, h*h/4, solveFlags);
              }
              else {
                 // use ConstrainedBackwardEuler integration
                 myMechSysSolver.KKTFactorAndSolve(
-                   HuCols[j], null, bf, /*tmp=*/ftmp, curVel, h);
+                   HuCols[j], null, bf, /*tmp=*/ftmp, curVel, h, solveFlags);
              }     
             HlamCols[j].set(myMechSysSolver.getLambda());
             if (incremental) {

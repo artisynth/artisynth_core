@@ -137,6 +137,10 @@ public class CollisionBehavior extends CollisionComponent
    double myDamping = defaultDamping;
    PropertyMode myDampingMode = PropertyMode.Inherited;
 
+   static double defaultStictionCreep = 0.0;
+   double myStictionCreep = defaultStictionCreep;
+   PropertyMode myStictionCreepMode = PropertyMode.Inherited;
+
    static double defaultAcceleration = 0;
    double myAcceleration = defaultAcceleration;
    PropertyMode myAccelerationMode = PropertyMode.Inherited;
@@ -177,9 +181,13 @@ public class CollisionBehavior extends CollisionComponent
    boolean myDrawContactForces = defaultDrawContactForces;
    PropertyMode myDrawContactForcesMode = PropertyMode.Inherited;
 
-   static boolean defaultDrawConstraints = false;
-   boolean myDrawConstraints = defaultDrawConstraints;
-   PropertyMode myDrawConstraintsMode = PropertyMode.Inherited;
+   static boolean defaultDrawFrictionForces = false;
+   boolean myDrawFrictionForces = defaultDrawFrictionForces;
+   PropertyMode myDrawFrictionForcesMode = PropertyMode.Inherited;
+
+   // static boolean defaultDrawConstraints = false;
+   // boolean myDrawConstraints = defaultDrawConstraints;
+   // PropertyMode myDrawConstraintsMode = PropertyMode.Inherited;
 
    static ScalarRange defaultColorMapRange = null;
    ScalarRange myColorMapRange = null;
@@ -216,6 +224,8 @@ public class CollisionBehavior extends CollisionComponent
       myComplianceMode = PropertyMode.Inherited;
       myDamping = defaultDamping;
       myDampingMode = PropertyMode.Inherited;
+      myStictionCreep = defaultStictionCreep;
+      myStictionCreepMode = PropertyMode.Inherited;
       myAcceleration = defaultAcceleration;
       myAccelerationMode = PropertyMode.Inherited;
       myRigidRegionTol = defaultRigidRegionTol;
@@ -236,8 +246,10 @@ public class CollisionBehavior extends CollisionComponent
       myDrawContactNormalsMode = PropertyMode.Inherited;
       myDrawContactForces = defaultDrawContactForces;
       myDrawContactForcesMode = PropertyMode.Inherited;
-      myDrawConstraints = defaultDrawConstraints;
-      myDrawConstraintsMode = PropertyMode.Inherited;
+      myDrawFrictionForces = defaultDrawFrictionForces;
+      myDrawFrictionForcesMode = PropertyMode.Inherited;
+      // myDrawConstraints = defaultDrawConstraints;
+      // myDrawConstraintsMode = PropertyMode.Inherited;
       myDrawColorMap = defaultDrawColorMap;
       myDrawColorMapMode = PropertyMode.Inherited;
       myColorMapInterpolation = defaultColorMapInterpolation;
@@ -276,6 +288,9 @@ public class CollisionBehavior extends CollisionComponent
          "damping:Inherited", "damping for each contact constraint",
          defaultDamping);
       myProps.addInheritable (
+         "stictionCreep:Inherited", "stictionCreep for each contact constraint",
+         defaultStictionCreep);
+      myProps.addInheritable (
          "acceleration:Inherited",
          "acceleration used to compute collision compliance from penetrationTol",
          defaultAcceleration);
@@ -309,8 +324,12 @@ public class CollisionBehavior extends CollisionComponent
          "drawContactForces:Inherited", "draw forces at each contact point",
          defaultDrawContactForces);
       myProps.addInheritable (
-         "drawConstraints:Inherited", "draw contact constraints",
-         defaultDrawConstraints);
+         "drawFrictionForces:Inherited",
+         "draw friction orces at each contact point",
+         defaultDrawFrictionForces);
+      // myProps.addInheritable (
+      //    "drawConstraints:Inherited", "draw contact constraints",
+      //    defaultDrawConstraints);
       myProps.addInheritable (
          "drawColorMap:Inherited", 
          "draw a color map of the specified data",
@@ -614,6 +633,42 @@ public class CollisionBehavior extends CollisionComponent
       return myDampingMode;
    }
 
+   /** 
+    * Gets the stiction creep associated with this behavior. See {@link
+    * #setStictionCreep}.
+    * 
+    * @return stiction creep
+    */
+   public double getStictionCreep() {
+      return myStictionCreep;
+   }
+
+   /** 
+    * Sets the stiction creep associated with this behavior. Stiction creep is
+    * the velocity that a nominally stationary contact in ``stiction'' is
+    * allowed to move. While the default (and usually desired) value is 0, a
+    * value {@code > 0} regularizes the computation of friction forces by
+    * removing redundancy.
+    * 
+    * @param creep new stiction creep
+    */
+   public void setStictionCreep (double creep) {
+      myStictionCreep = creep;
+      myStictionCreepMode =
+         PropertyUtils.propagateValue (
+            this, "stictionCreep", myStictionCreep, myStictionCreepMode);      
+   }
+
+   public void setStictionCreepMode (PropertyMode mode) {
+      myStictionCreepMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "stictionCreep", myStictionCreepMode, mode);
+   }
+
+   public PropertyMode getStictionCreepMode() {
+      return myStictionCreepMode;
+   }
+
    /**
     * Returns the desired collision acceleration. See {@link #setAcceleration}.
     */
@@ -900,26 +955,48 @@ public class CollisionBehavior extends CollisionComponent
       return myDrawContactForcesMode;
    }
 
-   public boolean getDrawConstraints() {
-      return myDrawConstraints;
+   public boolean getDrawFrictionForces() {
+      return myDrawFrictionForces;
    }
 
-   public void setDrawConstraints (boolean enable) {
-      myDrawConstraints = enable;
-      myDrawConstraintsMode =
+   public void setDrawFrictionForces (boolean enable) {
+      myDrawFrictionForces = enable;
+      myDrawFrictionForcesMode =
          PropertyUtils.propagateValue (
-            this, "drawConstraints", myDrawConstraints, myDrawConstraintsMode);
+            this, "drawFrictionForces",
+            myDrawFrictionForces, myDrawFrictionForcesMode);
    }
 
-   public void setDrawConstraintsMode (PropertyMode mode) {
-      myDrawConstraintsMode =
+   public void setDrawFrictionForcesMode (PropertyMode mode) {
+      myDrawFrictionForcesMode =
          PropertyUtils.setModeAndUpdate (
-            this, "drawConstraints", myDrawConstraintsMode, mode);
+            this, "drawFrictionForces", myDrawFrictionForcesMode, mode);
    }
 
-   public PropertyMode getDrawConstraintsMode() {
-      return myDrawConstraintsMode;
+   public PropertyMode getDrawFrictionForcesMode() {
+      return myDrawFrictionForcesMode;
    }
+
+   // public boolean getDrawConstraints() {
+   //    return myDrawConstraints;
+   // }
+
+   // public void setDrawConstraints (boolean enable) {
+   //    myDrawConstraints = enable;
+   //    myDrawConstraintsMode =
+   //       PropertyUtils.propagateValue (
+   //          this, "drawConstraints", myDrawConstraints, myDrawConstraintsMode);
+   // }
+
+   // public void setDrawConstraintsMode (PropertyMode mode) {
+   //    myDrawConstraintsMode =
+   //       PropertyUtils.setModeAndUpdate (
+   //          this, "drawConstraints", myDrawConstraintsMode, mode);
+   // }
+
+   // public PropertyMode getDrawConstraintsMode() {
+   //    return myDrawConstraintsMode;
+   // }
 
    /**
     * @deprecated
@@ -1088,6 +1165,8 @@ public class CollisionBehavior extends CollisionComponent
       myComplianceMode = behav.myComplianceMode;
       myDamping = behav.myDamping;
       myDampingMode = behav.myDampingMode;
+      myStictionCreep = behav.myStictionCreep;
+      myStictionCreepMode = behav.myStictionCreepMode;
       myAcceleration = behav.myAcceleration;
       myAccelerationMode = behav.myAccelerationMode;
       myRigidRegionTol = behav.myRigidRegionTol;
@@ -1102,8 +1181,8 @@ public class CollisionBehavior extends CollisionComponent
       myDrawIntersectionFacesMode = behav.myDrawIntersectionFacesMode;
       myDrawIntersectionPoints = behav.myDrawIntersectionPoints;
       myDrawIntersectionPointsMode = behav.myDrawIntersectionPointsMode;
-      myDrawConstraints = behav.myDrawConstraints;
-      myDrawConstraintsMode = behav.myDrawConstraintsMode;
+      // myDrawConstraints = behav.myDrawConstraints;
+      // myDrawConstraintsMode = behav.myDrawConstraintsMode;
       myDrawColorMap = behav.myDrawColorMap;
       myDrawColorMapMode = behav.myDrawColorMapMode;
       myColorMapCollidableNum = behav.myColorMapCollidableNum;
@@ -1169,6 +1248,13 @@ public class CollisionBehavior extends CollisionComponent
                myDamping != behav.myDamping) {
          return false;
       }
+      if (myStictionCreepMode != behav.myStictionCreepMode) {
+         return false;
+      }
+      else if (myStictionCreepMode == EXPLICIT &&
+               myStictionCreep != behav.myStictionCreep) {
+         return false;
+      }
       if (myAccelerationMode != behav.myAccelerationMode) {
          return false;
       }
@@ -1218,13 +1304,13 @@ public class CollisionBehavior extends CollisionComponent
                myDrawIntersectionPoints != behav.myDrawIntersectionPoints) {
          return false;
       }
-      if (myDrawConstraintsMode != behav.myDrawConstraintsMode) {
-         return false;
-      }
-      else if (myDrawConstraintsMode == EXPLICIT &&
-               myDrawConstraints != behav.myDrawConstraints) {
-         return false;
-      }
+      // if (myDrawConstraintsMode != behav.myDrawConstraintsMode) {
+      //    return false;
+      // }
+      // else if (myDrawConstraintsMode == EXPLICIT &&
+      //          myDrawConstraints != behav.myDrawConstraints) {
+      //    return false;
+      // }
       if (myDrawColorMapMode != behav.myDrawColorMapMode) {
          return false;
       }
@@ -1313,6 +1399,7 @@ public class CollisionBehavior extends CollisionComponent
          myRigidRegionTol *= s;
       }
       myAcceleration *= s;
+      myStictionCreep *= s;
       if (myColorMapRange != null) {
          myColorMapRange.scale (s);
       }

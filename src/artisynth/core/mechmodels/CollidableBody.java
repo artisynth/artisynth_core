@@ -42,11 +42,28 @@ public interface CollidableBody extends Collidable {
     * Collects the contact masters for a particular mesh vertex. The
     * masters should be appended to <code>mlist</code>.  The vertex
     * should be a vertex of the mesh returned by {@link #getCollisionMesh()}.
+    *
+    * <p>If {@link #hasInvariantMasters} returns {@code true}, then the
+    * contact masters will not depend on {@code vtx}.
     * 
     * @param mlist collected master components
     * @param vtx vertex for which the master components are requested
     */
    public void collectVertexMasters (List<ContactMaster> mlist, Vertex3d vtx);
+   
+   /**
+    * Queries whether or not the contact masters for a particular collision
+    * point are invariant across all contacts. An example where they are
+    * is a rigid body, where the body is the (single) master regardless of the 
+    * contacts. An example where they are not is a finite element model, 
+    * where the nodes associated with each contacting vertex form the 
+    * masters for that contact.
+    *
+    * <p>A collidable that has invariant contact masters typically
+    * has fewer dynamic degrees of freedom compared to one that does not.
+    * @return {@code true} if contact masters are constant
+    */
+   public boolean hasInvariantMasters();
    
    /**
     * Returns true if this Collidable contains a specified contact master

@@ -1231,7 +1231,7 @@ public class VectorNd extends VectorBase
    /**
     * Sets the elements of this vector to a specific value.
     */
-   public void set (double value) {
+   public void setAll (double value) {
       for (int i = 0; i < size; i++) {
          buf[i] = value;
       }

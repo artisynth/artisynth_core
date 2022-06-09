@@ -64,8 +64,8 @@ public class FemCollision extends RootModel {
       try {
 
          MechModel mechmod = new MechModel();
-         //mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
-         mechmod.setIntegrator(Integrator.BackwardEuler);
+         mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
+         //mechmod.setIntegrator(Integrator.BackwardEuler);
          //mechmod.setProfiling (true);
 
          CollisionManager collisions = mechmod.getCollisionManager();
@@ -215,7 +215,8 @@ public class FemCollision extends RootModel {
          for (int i=1; i<=10; i++) {
             addWayPoint (i*0.5);
          }
-         addBreakPoint (2.33);
+         //addBreakPoint (1.00);
+         //addBreakPoint (1.20);
       }
       catch (IOException e) {
          throw e;

@@ -378,6 +378,11 @@ public class PointSkinAttachment extends PointAttachment
             vel.scaledAdd (scale*(myWeight*myCoords[i]), nodes[i].getVelocity());
          }
       }
+      
+      public void computeForceOnMasters (
+         VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt) {
+         
+      }
 
       public boolean isControllable() {
          for (FemNode3d node : getNodes()) {
@@ -749,6 +754,11 @@ public class PointSkinAttachment extends PointAttachment
          for (int i=0; i<nodes.length; i++) {
             vel.scaledAdd (scale*(myWeight*myCoords[i]), nodes[i].getVelocity());
          }
+      }
+      
+      public void computeForceOnMasters (
+         VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt) {
+         
       }
 
       /* --- end ContactMaster reimplementation --- */
@@ -2291,6 +2301,12 @@ public class PointSkinAttachment extends PointAttachment
             c.addRelativeVelocity (vel, scale, cpnt);
          }
       }
+   }
+   
+   public void computeForceOnMasters (
+      VectorNd uvec, Vector3d fc, double scale, ContactPoint cpnt, 
+      SparseBlockMatrix S) {
+      // TODO FINISH
    }
 
    public boolean isControllable() {

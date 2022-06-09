@@ -15,7 +15,7 @@ import maspack.util.*;
 import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import maspack.spatialmotion.FrictionInfo;
 
 public abstract class ConstrainerBase
    extends RenderableComponentBase implements Constrainer, HasNumericState {
@@ -25,7 +25,8 @@ public abstract class ConstrainerBase
    public abstract int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb);
 
-   public abstract int getBilateralInfo (ConstraintInfo[] ginfo, int idx);
+   public abstract int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx);
 
    public abstract int setBilateralForces (VectorNd lam, double s, int idx);   
 
@@ -53,12 +54,43 @@ public abstract class ConstrainerBase
       return idx;
    }
 
+   public int setUnilateralState (VectorNi state, int idx) {
+      return idx;
+   }
+   
+   public int getUnilateralState (VectorNi state, int idx) {
+      return idx;
+   }
+
    public int maxFrictionConstraintSets() {
       return 0;
    }
 
    public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int idx) {
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
+      boolean prune, int idx) {
+      return idx;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int setFrictionForces (VectorNd phi, double s, int idx) {
+      return idx;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getFrictionForces (VectorNd phi, int idx) {
+      return idx;
+   }
+   
+   public int setFrictionState (VectorNi state, int idx) {
+      return idx;
+   }
+   
+   public int getFrictionState (VectorNi state, int idx) {
       return idx;
    }
 
@@ -70,9 +102,11 @@ public abstract class ConstrainerBase
    }
 
    public void getState (DataBuffer data) {
+      //data.zput (myBaseIdx);
    }
    
    public void setState (DataBuffer data) {
+      //myBaseIdx = data.zget();
    }
  
    /**
@@ -82,5 +116,4 @@ public abstract class ConstrainerBase
       public boolean hasState() {
       return true;
    }
-
 }

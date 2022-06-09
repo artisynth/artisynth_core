@@ -19,7 +19,6 @@ import maspack.render.*;
 import maspack.render.Renderer.AxisDrawStyle;
 import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.util.*;
 
@@ -32,7 +31,7 @@ public abstract class BodyConnector extends RenderableComponentBase
               Constrainer, HasCoordinateFrame {
               
    public static boolean debug = false;
-
+   
    protected ConnectableBody myBodyA;
    protected ConnectableBody myBodyB;
    protected FrameAttachment myAttachmentA;
@@ -936,7 +935,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          GC = getConstraintMatrix (myBilaterals, myTDwG, -1);
          addMasterBlocks (GT, bj, GC, myAttachmentB);
          if (dg != null) {
-            setDerivativeTerm (dg, myBilaterals, nc, numb);
+            setDerivativeTerm (dg, myBilaterals, numb, nc);
          }
       }
       return numb + nc;
@@ -945,7 +944,8 @@ public abstract class BodyConnector extends RenderableComponentBase
    /**
     * {@inheritDoc}
     */
-   public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
+   public int getBilateralInfo (
+      ConstraintInfo[] ginfo, int idx) {
 
       int nc = numBilateralConstraints();
       if (nc > 0) {
@@ -955,11 +955,12 @@ public abstract class BodyConnector extends RenderableComponentBase
          }         
          for (int j=0; j<nc; j++) {
             RigidBodyConstraint bc = myBilaterals.get (j);
-            ConstraintInfo gi = ginfo[idx++];
+            ConstraintInfo gi = ginfo[idx];
             gi.dist = bc.getDistance();
             gi.compliance = bc.getCompliance();
             gi.damping = bc.getDamping();
             gi.force = 0;
+            idx++;
          }
       }
       return idx;
@@ -973,17 +974,17 @@ public abstract class BodyConnector extends RenderableComponentBase
       return idx;
    }
    
-   /**
-    * Returns the current bilateral constraint forces (Lagrange multipliers).
-    * They are returned in {@code lam}, whose size is set to 
-    * {@link #numBilateralConstraints()}.
-    * 
-    * @param lam returns the bilateral forces.
-    */
-   public void getBilateralForces (VectorNd lam) {
-      lam.setSize (numBilateralConstraints());
-      getBilateralForces (lam, 0);
-   }
+//   /**
+//    * Returns the current bilateral constraint forces (Lagrange multipliers).
+//    * They are returned in {@code lam}, whose size is set to 
+//    * {@link #numBilateralConstraints()}.
+//    * 
+//    * @param lam returns the bilateral forces.
+//    */
+//   public void getBilateralForces (VectorNd lam) {
+//      lam.setSize (numBilateralConstraints());
+//      getBilateralForces (lam, 0);
+//   }
    
    /**
     * {@inheritDoc}
@@ -1025,7 +1026,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          GC = getConstraintMatrix (myUnilaterals, myTDwG, -1);
          addMasterBlocks (NT, bj, GC, myAttachmentB);
          if (dn != null) {
-            setDerivativeTerm (dn, myUnilaterals, nc, numu);
+            setDerivativeTerm (dn, myUnilaterals, numu, nc);
          }
       }  
       return numu + nc;
@@ -1041,8 +1042,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       if (nc > 0) {
          for (int j = 0; j < nc; j++) {
             RigidBodyConstraint uc = myUnilaterals.get (j);
-            uc.setSolveIndex (idx);
-            ConstraintInfo ni = ninfo[idx++];
+            ConstraintInfo ni = ninfo[idx];
             double tol = uc.isLinear() ? 
                getPenetrationTol() : getRotaryLimitTol();
             //tol = getPenetrationTol();
@@ -1055,6 +1055,7 @@ public abstract class BodyConnector extends RenderableComponentBase
             ni.compliance = uc.getCompliance();
             ni.damping = uc.getDamping();
             ni.force = 0;
+            idx++;
          }
       }
       return idx;
@@ -1068,23 +1069,37 @@ public abstract class BodyConnector extends RenderableComponentBase
       return idx;
    }
    
-   /**
-    * Returns the current unilateral constraint forces (Lagrange multipliers).
-    * They are returned in {@code the}, whose size is set to 
-    * {@link #numUnilateralConstraints()}.
-    * 
-    * @param the returns the unilateral forces.
-    */
-   public void getUnilateralForces (VectorNd the) {
-      the.setSize (numEngagedUnilateralConstraints());
-      getUnilateralForces (the, 0);
-   }
+//   /**
+//    * Returns the current unilateral constraint forces (Lagrange multipliers).
+//    * They are returned in {@code the}, whose size is set to 
+//    * {@link #numUnilateralConstraints()}.
+//    * 
+//    * @param the returns the unilateral forces.
+//    */
+//   public void getUnilateralForces (VectorNd the) {
+//      the.setSize (numEngagedUnilateralConstraints());
+//      getUnilateralForces (the, 0);
+//   }
    
    /**
     * {@inheritDoc}
     */
    public int getUnilateralForces (VectorNd the, int idx) {
       return myCoupling.getUnilateralForces (the, idx);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int setUnilateralState (VectorNi state, int idx) {
+      return myCoupling.setUnilateralState (state, idx);
+   }
+
+   /**
+    * {@inheritDoc}
+    */  
+   public int getUnilateralState (VectorNi state, int idx) {
+      return myCoupling.getUnilateralState (state, idx);
    }
 
    /**
@@ -1098,12 +1113,47 @@ public abstract class BodyConnector extends RenderableComponentBase
     * {@inheritDoc}
     */
    public int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf) {
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo,
+      boolean prune, int numf) {
 
       numf = addFrictionConstraints (DT, finfo, numf, myUnilaterals);
       return numf;
    }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int setFrictionForces (VectorNd phi, double s, int idx) {
+      // XXX XXX 
+      // Needs to be implemented to set the friction forces resulting
+      // from the constraints returned by {@link #addFrictionConstraints}.
+      return idx;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getFrictionForces (VectorNd phi, int idx) {
+      // XXX XXX 
+      // Needs to be implemented to return the friction forces stored for
+      // the constraints returned by {@link #addFrictionConstraints}.
+      return idx;
+   }
    
+   public int setFrictionState (VectorNi state, int idx) {
+      // XXX XXX 
+      // Needs to be implemented to return the friction forces stored for
+      // the constraints returned by {@link #addFrictionConstraints}.
+      return idx;  
+   }
+
+   public int getFrictionState (VectorNi state, int idx) {
+      // XXX XXX 
+      // Needs to be implemented to return the friction forces stored for
+      // the constraints returned by {@link #addFrictionConstraints}.
+      return idx;  
+   }
+
    /**
     * {@inheritDoc}
     */
@@ -1387,7 +1437,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
       return GC;
    }
-
+   
    protected void computeConstraintMatrix (
       Matrix6x1 GC, Wrench wr, RigidTransform3d TXwG, double scale) {
       
@@ -1455,7 +1505,7 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    protected void setDerivativeTerm (
       VectorNd dg, ArrayList<RigidBodyConstraint> constraints,
-      int nc, int idx) {
+      int idx, int nc) {
 
       double[] dbuf = dg.getBuffer();
 
@@ -1466,7 +1516,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          dbuf[idx+j] = c.getEngaged()*accel;
       }
    }
-
+   
    private final double EPS = 1e-10;
 
    protected int accumulateFrictionDir (Vector3d dir, Vector3d vec, int dim) {
@@ -1534,7 +1584,7 @@ public abstract class BodyConnector extends RenderableComponentBase
    private static double ftol = 1e-2;
 
    protected int addFrictionConstraints (
-      SparseBlockMatrix DT, FrictionInfo[] finfo, int numf,
+      SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, int numf,
       ArrayList<RigidBodyConstraint> constraints) {
 
       int nc = (constraints != null ? constraints.size() : 0);
@@ -1546,7 +1596,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          double lam = 0; // current normal impulse value
          for (int j=0; j<nc; j++) {
             // check each constraint to determine direction(s) along which
-            // frction should be allowed to act. Only examine constraints with
+            // friction should be allowed to act. Only examine constraints with
             // mu != 0
             RigidBodyConstraint c = constraints.get (j);
             if (c.getFriction() > 0) {
@@ -1588,8 +1638,8 @@ public abstract class BodyConnector extends RenderableComponentBase
                wr1 = new Wrench();
                wr1.f.cross (vdir, tdir);
                // friction calculation will use forces from 1 constraint
-               finfo[numf].contactIdx0 = idxs[0];
-               finfo[numf].contactIdx1 = -1;
+               finfo.get(numf).contactIdx0 = idxs[0];
+               finfo.get(numf).contactIdx1 = -1;
             }
             else { // fdimv == 1
                // friction can act in only one directions parallel to vdir.
@@ -1597,11 +1647,11 @@ public abstract class BodyConnector extends RenderableComponentBase
                wr0 = new Wrench();
                wr0.f.set (vdir);
                // friction calculation will use forces from 2 constraints
-               finfo[numf].contactIdx0 = idxs[0];
-               finfo[numf].contactIdx1 = idxs[1];
+               finfo.get(numf).contactIdx0 = idxs[0];
+               finfo.get(numf).contactIdx1 = idxs[1];
             }
-            finfo[numf].mu = mu;
-            finfo[numf].flags = 0;
+            finfo.get(numf).mu = mu;
+            finfo.get(numf).flags = 0;
             numf++;
             MatrixNdBlock GC;
             int bj = DT.numBlockCols();

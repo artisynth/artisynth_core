@@ -30,12 +30,6 @@ public class DualQuaternion {
    private Vector3d B = new Vector3d();
 
    // temporary variables for manipulations
-   private Quaternion rQtmp = new Quaternion();
-   private Quaternion tQtmp = new Quaternion();
-   private Vector3d ltmp = new Vector3d();
-   private Vector3d mtmp = new Vector3d();
-   Vector3d dtmp = new Vector3d();
-   Vector3d rtmp = new Vector3d();
    double[] tmp = new double[8];
 
    /**
@@ -185,6 +179,9 @@ public class DualQuaternion {
     * transformation
     */
    public void set(RigidTransform3d trans) {
+      Quaternion rQtmp = new Quaternion();
+      Quaternion tQtmp = new Quaternion();
+      
       rQtmp.set(trans.R);
       this.a = rQtmp.s;
       this.A.set(rQtmp.u);
@@ -852,7 +849,9 @@ public class DualQuaternion {
 
       // q = [ cos(theta/2), sin(theta/2)L]
       // + eps [-alpha/2*sin(theta/2), sin(theta/2)M + alpha/2*cos(theta/2)L]
-
+      Vector3d ltmp = new Vector3d();
+      Vector3d mtmp = new Vector3d();
+      
       double normA = getScrewParameters(ltmp, mtmp, tmp, q);
 
       // pure translation
@@ -881,7 +880,9 @@ public class DualQuaternion {
 
       // q = [ cos(theta/2), sin(theta/2)L]
       // + eps [-alpha/2*sin(theta/2), sin(theta/2)M + alpha/2*cos(theta/2)L]
-
+      Vector3d ltmp = new Vector3d();
+      Vector3d mtmp = new Vector3d();
+      
       double normA = getScrewParameters(ltmp, mtmp, tmp, q);
       // pure translation
       if (normA < 1e-14) {
@@ -977,11 +978,11 @@ public class DualQuaternion {
       double sina = Math.sin(theta / 2);
 
       this.a = cosa;
-      this.A.scale(sina, ltmp);
+      this.A.scale(sina, l);
 
       this.b = -alpha / 2 * sina;
-      this.B.scale(sina, mtmp);
-      this.B.scaledAdd(alpha / 2 * cosa, ltmp);
+      this.B.scale(sina, m);
+      this.B.scaledAdd(alpha / 2 * cosa, l);
       normalize();
    }
 
@@ -1034,6 +1035,8 @@ public class DualQuaternion {
     * places the answer in this. This only applies to unit dual quaternions
     */
    public void log(DualQuaternion q) {
+      Vector3d ltmp = new Vector3d();
+      Vector3d mtmp = new Vector3d();
       getScrewParameters(ltmp, mtmp, tmp, q);
       this.a = 0;
       this.b = 0;
@@ -1059,7 +1062,9 @@ public class DualQuaternion {
          this.B.setZero();
          return;
       }
-
+      Vector3d ltmp = new Vector3d();
+      Vector3d mtmp = new Vector3d();
+      
       double alpha = A.dot(B) / 2 / theta;
       ltmp.normalize(A);
       mtmp.scale(1.0 / theta, B);
@@ -1103,6 +1108,11 @@ public class DualQuaternion {
       int nSteps = 0;
       double tol2 = tol * tol;
       double err = tol2 + 1;
+      
+      Vector3d ltmp = new Vector3d();
+      Vector3d mtmp = new Vector3d();
+      Vector3d dtmp = new Vector3d();
+      Vector3d rtmp = new Vector3d();
       
       while (err > tol2 && nSteps < maxIters) {
 

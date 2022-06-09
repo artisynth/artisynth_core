@@ -604,11 +604,43 @@ public class Face extends Feature implements Boundable {
       }
       while (he != he0);
 
-      double planarArea = normal.norm();
-      if (planarArea != 0) {
-         normal.scale (1 / planarArea);
+      double nmag = normal.norm();
+      if (nmag != 0) {
+         normal.scale (1 / nmag);
       }
-      return planarArea;
+      return nmag/2;
+   }
+
+   /**
+    * Compute the normal of a face given by a set of points arranged
+    * counter-clockwise. This is done by averaging the normals of the
+    * successive triangles that are formed with respect to the first point.
+    * For the results of this method to be useful, the points should be close
+    * to planar and their projection onto the plane should be close to convex.
+    *
+    * @param nrm computed normal vector.
+    * @param pnts array of points (must have at least three)
+    * @return area of the face
+    */
+   public static double computeNormal (Vector3d nrm, Point3d... pnts) {
+      if (pnts.length < 3) {
+         throw new IllegalArgumentException (
+            "Must specify at least three points");
+      }
+      Vector3d d0 = new Vector3d();
+      Vector3d d1 = new Vector3d();
+      Vector3d xprod = new Vector3d();
+      double area = 0;
+      d0.sub (pnts[1], pnts[0]);
+      for (int i=2; i<3; i++) {
+         d1.sub (pnts[i], pnts[0]);
+         xprod.cross (d0, d1);
+         area += xprod.norm()/2;
+         nrm.add (xprod);
+         d0.set (d1);
+      }
+      nrm.normalize();
+      return area;
    }
 
    public static double computeTriangleArea (Point3d p0, Point3d p1, Point3d p2) {

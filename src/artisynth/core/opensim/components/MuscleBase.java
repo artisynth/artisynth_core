@@ -34,14 +34,14 @@ public abstract class MuscleBase extends ForceSpringBase {
       min_control = 0;
       max_control = 1;
       optimal_force = 0;
-      max_isometric_force = 0;
-      optimal_fiber_length = 0;
-      tendon_slack_length = 0;
-      pennation_angle_at_optimal = 0;
-      max_contraction_velocity = 0;
-      ignore_activation_dynamics = false;
+   
+      max_isometric_force = 1000.0;
+      optimal_fiber_length = 0.1;
+      tendon_slack_length = 0.2;
+      pennation_angle_at_optimal = 0.0;
+      max_contraction_velocity = 10;
       ignore_tendon_compliance = false;
-
+      ignore_activation_dynamics = false;
    }
    
    public String getMuscleClassName() {

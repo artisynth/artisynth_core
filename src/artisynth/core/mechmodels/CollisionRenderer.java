@@ -346,6 +346,10 @@ public class CollisionRenderer {
       if (value != null) {
          depth = range.clip(value);
       }
+      else {
+         // clip 0 to lower range bound
+         depth = range.getLowerBound();
+      }
       int idx = (int)(255*((depth-range.getLowerBound())/range.getRange()));
       return idx;
    }

@@ -929,6 +929,21 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
 
    /**
+    * Writes this mesh to a file, with the file format being inferred from the
+    * file name suffix.
+    * 
+    * @param filePath
+    * Path name of the file to write this mesh to
+    * @throws IOException if an I/O error occurred or if the file format is not
+    * compatible with the mesh type
+    */
+   public void write (String filePath) throws IOException {
+      GenericMeshWriter writer = new GenericMeshWriter (filePath);
+      writer.setFormat ("%g");
+      writer.writeMesh (this);
+   }
+
+   /**
     * Writes this mesh to a File, with the file format being inferred from the
     * file name suffix.
     *

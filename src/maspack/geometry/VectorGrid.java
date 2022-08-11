@@ -19,12 +19,13 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorObject;
+import maspack.properties.PropertyDesc;
+import maspack.properties.PropertyDesc.TypeCode;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.ParameterizedClass;
-
 
 /**
  * Implements a regular 3D grid that interpolates {@link VectorObject} values
@@ -60,6 +61,7 @@ public class VectorGrid<T extends VectorObject<T>>
    extends InterpolatingGridBase implements ParameterizedClass {
    
    protected Class<T> myTypeParameter;
+   protected TypeCode myValueType = TypeCode.OTHER;
    protected ArrayList<T> myValues;  // values at each vertex
 
    protected static final double INF = Double.POSITIVE_INFINITY;
@@ -69,21 +71,22 @@ public class VectorGrid<T extends VectorObject<T>>
          throw new IllegalArgumentException ("type cannot be null");
       }
       myTypeParameter = type;
+      myValueType = PropertyDesc.getTypeCode(type);
       // make sure the type has a fixed size
       if (Vector.class.isAssignableFrom (type)) {
-         T value = createInstance();
+         T value = createTypeInstance();
          if (!((Vector)value).isFixedSize()) {
             throw new IllegalArgumentException (
                "type "+type+" does not have a fixed size; " +
-               "use VectorNdGridField instead");
+               "use VectorNdGrid instead");
          }
       }
       else if (Matrix.class.isAssignableFrom (type)) {
-         T value = createInstance();
+         T value = createTypeInstance();
          if (!((Matrix)value).isFixedSize()) {
             throw new IllegalArgumentException (
                "type "+type+" does not have a fixed size; " +
-               "use MatrixNdGridField instead");
+               "use MatrixNdGrid instead");
          }
       }
    }     
@@ -101,7 +104,24 @@ public class VectorGrid<T extends VectorObject<T>>
       initType (type);
    }
    
-  /**
+   /**
+    * Creates a new grid with specified widths and resolution, centered on the
+    * local coordinate system. The grid values are initialized to zero.
+    *
+    * @param type class type for the {@link VectorObject} associated with this
+    * grid.
+    * @param widths widths along the x, y, and z axes
+    * @param resolution cell resolution along the x, y, and z axes
+    */
+   public VectorGrid (
+      Class<T> type,
+      Vector3d widths, Vector3i resolution) {
+
+      initType (type);
+      initGrid (widths, resolution, null);
+   }
+
+   /**
     * Creates a new grid with specified widths, resolution, and position and
     * orientation of the center given by <code>TCL</code>.  The grid values
     * are initialized to zero.
@@ -110,8 +130,8 @@ public class VectorGrid<T extends VectorObject<T>>
     * grid.
     * @param widths widths along the x, y, and z axes
     * @param resolution cell resolution along the x, y, and z axes
-    * @param TCL transformation giving the position and orientation
-    * of the grid center. 
+    * @param TCL if not {@code null}, describes the position and orientation
+    * of the grid center in local coordinates. 
     */
    public VectorGrid (
       Class<T> type,
@@ -145,7 +165,7 @@ public class VectorGrid<T extends VectorObject<T>>
       set (grid);
    }
 
-   protected T createInstance() {
+   public T createTypeInstance() {
       try {
          return myTypeParameter.newInstance();
       }
@@ -172,7 +192,7 @@ public class VectorGrid<T extends VectorObject<T>>
    protected void initVertexValues (int numv) {
       myValues = new ArrayList<T>(numv);
       for (int i=0; i<numv; i++) {
-         T value = createInstance();
+         T value = createTypeInstance();
          value.setZero();
          myValues.add (value);
       }      
@@ -190,7 +210,7 @@ public class VectorGrid<T extends VectorObject<T>>
       if (grid.myValues != null) {
          myValues = new ArrayList<T>(grid.myValues.size());
          for (int i=0; i<grid.myValues.size(); i++) {
-            T value = createInstance();
+            T value = createTypeInstance();
             value.set (grid.myValues.get(i));
             myValues.add (value);
          }
@@ -263,11 +283,33 @@ public class VectorGrid<T extends VectorObject<T>>
          throw new IllegalArgumentException (
             "value for vertex "+vi+": "+sizeErr);
       }
-      T copy = createInstance();
+      T copy = createTypeInstance();
       copy.set(value);
       myValues.set (vi, copy);
       myRobValid = false;
    }
+   
+   /**
+    * Sets the value for the vertex indexed by its x, y, z indices.
+    * 
+    * @param xi x vertex index
+    * @param yj y vertex index
+    * @param zk z vertex index
+    * @param value new value for the vertex
+    */   
+   public void setVertexValue (int xi, int yj, int zk, T value) {
+      String sizeErr = checkSize (value);
+      if (sizeErr != null) {
+         throw new IllegalArgumentException (
+            "value for vertex ("+xi+","+yj+","+zk+"):"+sizeErr);
+      }
+      T copy = createTypeInstance();
+      copy.set(value);
+      myValues.set (xyzIndicesToVertex(xi, yj, zk), copy);
+      myRobValid = false;
+   }
+
+  
 
    /**
     * Queries the value for the vertex indexed by {@code vi}. See {@link
@@ -309,7 +351,7 @@ public class VectorGrid<T extends VectorObject<T>>
     * @param zk z vertex index
     * @return value at the vertex
     */
-   protected T getVertexValue (int xi, int yj, int zk) {
+   public T getVertexValue (int xi, int yj, int zk) {
       return myValues.get(xyzIndicesToVertex(xi, yj, zk));
    }
 
@@ -338,13 +380,32 @@ public class VectorGrid<T extends VectorObject<T>>
     * null} is returned.
     *
     * @param point point at which to calculate the value
-    * (world coordinates).
-    * @return interpolated value, or <code>null</code>.
+    * (world coordinates)
+    * @return interpolated value, or <code>null</code>
     */
    public T getWorldValue (Point3d point) {
       Point3d lpnt = new Point3d();
       myLocalToWorld.inverseTransformPnt (lpnt, point);
       return getLocalValue(lpnt);
+   }
+
+   /** 
+    * Calculates the value at an arbitrary point in world coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, then
+    * the method returns either the nearest grid value or {@code null},
+    * depending on whether {@code clipToGrid} is {@code true} or false.
+    *
+    * @param point point at which to calculate the value
+    * (world coordinates)
+    * @param clipToGrid if {@code true}, return the nearest grid value if
+    * {@code point} is outside the grid volume
+    * @return interpolated value, or <code>null</code>
+    */
+   public T getWorldValue (Point3d point, boolean clipToGrid) {
+      Point3d lpnt = new Point3d();
+      myLocalToWorld.inverseTransformPnt (lpnt, point);
+      return getLocalValue(lpnt, clipToGrid);
    }
 
    /** 
@@ -354,14 +415,31 @@ public class VectorGrid<T extends VectorObject<T>>
     * null} is returned.
     *
     * @param point point at which to calculate the normal and value
-    * (local coordinates).
-    * @return interpolated value, or <code>null</code>.
+    * (local coordinates)
+    * @return interpolated value, or <code>null</code>
     */
    public T getLocalValue (Point3d point) {
+      return getLocalValue (point, false);
+   }
+
+   /** 
+    * Calculates the value at an arbitrary point in local coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, then
+    * the method returns either the nearest grid value or {@code null},
+    * depending on whether {@code clipToGrid} is {@code true} or false.
+    *
+    * @param point point at which to calculate the normal and value
+    * (local coordinates)
+    * @param clipToGrid if {@code true}, return the nearest grid value if
+    * {@code point} is outside the grid volume
+    * @return interpolated value, or <code>null</code>
+    */
+   public T getLocalValue (Point3d point, boolean clipToGrid) {
 
       Vector3d coords = new Vector3d();
       Vector3i vidx = new Vector3i();
-      if (!getCellCoords (vidx, coords, point)) {
+      if (!getCellCoords (vidx, coords, point) && !clipToGrid) {
          return null;
       }
       double dx = coords.x;
@@ -387,7 +465,7 @@ public class VectorGrid<T extends VectorObject<T>>
       double w110  = w111z*(1-dz);
       double w111  = w111z*dz;
 
-      T result = createInstance();
+      T result = createTypeInstance();
       result.setZero();
       result.scaledAddObj (w000, getVertexValue (vidx.x  , vidx.y  , vidx.z  ));
       result.scaledAddObj (w001, getVertexValue (vidx.x  , vidx.y  , vidx.z+1));
@@ -424,7 +502,7 @@ public class VectorGrid<T extends VectorObject<T>>
          rtok.scanToken ('[');
          while (rtok.nextToken() != ']') {
             rtok.pushBack();
-            T value = createInstance();
+            T value = createTypeInstance();
             value.scan (rtok, null);
             String sizeErr = checkSize (value);
             if (sizeErr != null) {
@@ -500,5 +578,52 @@ public class VectorGrid<T extends VectorObject<T>>
       }
       return true;
    }
+
+   /**
+    * Scans and returns an instance of the vector type associated with this
+    * grid from a reader tokenizer. Returns {@code null} if the next token is
+    * the word {@code "null"}.
+    *
+    * @param rtok tokenizer to read the value from
+    * @return parsed vector value, or {@code null}
+    */
+   public T scanValue (ReaderTokenizer rtok) throws IOException {
+      rtok.nextToken();
+      if (rtok.tokenIsWord() && rtok.sval.equals ("null")) {
+         return null;
+      }
+      else {
+         rtok.pushBack();
+         T value = (T)PropertyDesc.scanValue (
+            rtok, myValueType, myTypeParameter);
+         String sizeErr = checkSize (value);
+         if (sizeErr != null) {
+            throw new IOException (
+               "scanned value: "+sizeErr+", line "+rtok.lineno());
+         }
+         return value;
+      }
+   }
+
+   /**
+    * Writes a vector of the type associated with this grid to a
+    * {@code PrintWriter}. If the value is {@code null}, writes
+    * out the word {@code "null"}.
+    *
+    * @param pw writer to write the value to
+    * @param fmt format for the floating point values
+    * @param val value to be written
+    */    
+   public <S> void writeValue (
+      PrintWriter pw, NumberFormat fmt, T val) throws IOException {
+      if (val == null) {
+         pw.println ("null");
+      }
+      else {
+         PropertyDesc.writeValue (
+            val, pw, myValueType, myTypeParameter, fmt, null, /*ancestor=*/null);
+      }
+   }
+
 }
 

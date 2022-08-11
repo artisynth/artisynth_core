@@ -50,15 +50,27 @@ public class ScalarGrid extends ScalarGridBase {
    }
    
    /**
+    * Creates a new grid with specified widths and resolution, centered on the
+    * local coordinate system.  The grid values are initialized to zero.
+    * 
+    * @param widths widths along the x, y, and z axes
+    * @param resolution cell resolution along the x, y, and z axes
+    */
+   public ScalarGrid (
+      Vector3d widths, Vector3i resolution) {
+      initGrid (widths, resolution, null);
+   }
+
+
+   /**
     * Creates a new grid with specified widths, resolution, and position and
     * orientation of the center given by <code>TCL</code>.  The grid values
     * are initialized to zero.
     * 
     * @param widths widths along the x, y, and z axes
     * @param resolution cell resolution along the x, y, and z axes
-    * @param TCL transformation giving the position and orientation of the grid
-    * center, or {@code null} if the grid is centered and aligned with the
-    * local coordinate frame.
+    * @param TCL if not {@code null}, describes the position and orientation 
+    * of the grid center in local coordinates.
     */
    public ScalarGrid (
       Vector3d widths, Vector3i resolution, RigidTransform3d TCL) {
@@ -116,6 +128,13 @@ public class ScalarGrid extends ScalarGridBase {
    /**
     * {@inheritDoc}
     */
+   public void setVertexValue (int xi, int yi, int zi, double value) {
+      super.setVertexValue (xi, yi, zi, value);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public double getVertexValue (int vi) {
       return super.getVertexValue (vi);
    }
@@ -151,8 +170,22 @@ public class ScalarGrid extends ScalarGridBase {
    /**
     * {@inheritDoc}
     */
+   public double getWorldValue (Point3d point, boolean clipToGrid) {
+      return super.getWorldValue (point, clipToGrid);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public double getLocalValue (Point3d point) {
       return super.getLocalValue (point);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public double getLocalValue (Point3d point, boolean clipToGrid) {
+      return super.getLocalValue (point, clipToGrid);
    }
 
    /**

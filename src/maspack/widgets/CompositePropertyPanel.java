@@ -171,9 +171,11 @@ public class CompositePropertyPanel extends LabeledPanel
             }
             if (state == ExpandState.Expanded) {
                myExpandButton.setLabelText ("less ...");
+               myExpandButton.setValue (true);
             }
             else {
-               myExpandButton.setLabelText ("more ..."); 
+               myExpandButton.setLabelText ("more ...");
+               myExpandButton.setValue (false);
             }
          }
          rebuildPanel(/*setFromWidgets=*/false);         

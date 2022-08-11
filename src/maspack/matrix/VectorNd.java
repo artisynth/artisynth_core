@@ -668,8 +668,7 @@ public class VectorNd extends VectorBase
     */
    public VectorNd add (VectorNd v1, VectorNd v2) throws ImproperSizeException {
       if (v1.size != v2.size) {
-         throw new ImproperSizeException (
-            "Incompatible dimensions: v1.size="+v1.size()+"; v2.size="+v2.size());
+         throw new ImproperSizeException ("Incompatible dimensions");
       }
       if (size != v1.size) {
          resetSize (v1.size);

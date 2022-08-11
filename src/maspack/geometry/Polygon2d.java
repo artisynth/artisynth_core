@@ -9,6 +9,7 @@ package maspack.geometry;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Iterator;
+import java.util.Collection;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
@@ -128,6 +129,10 @@ public class Polygon2d implements Renderable {
 
    public Polygon2d (Point2d[] pnts) {
       set (pnts, pnts.length);
+   }
+
+   public Polygon2d (Collection<Point2d> pnts) {
+      set (pnts);
    }
 
    public double getMaxCoordinate() {
@@ -291,7 +296,6 @@ public class Polygon2d implements Renderable {
 
    public void set (double[] coords, int numVertices) {
       clear();
-
       if (coords.length < numVertices * 2) {
          throw new IllegalArgumentException (
             "not enough coords to specify all vertices");
@@ -306,6 +310,7 @@ public class Polygon2d implements Renderable {
    }
 
    public void set (Point2d[] pnts, int numVertices) {
+      clear();
       if (pnts.length < numVertices) {
          throw new IllegalArgumentException (
             "not enough points to specify all vertices");
@@ -316,6 +321,17 @@ public class Polygon2d implements Renderable {
       }
       for (int i = 0; i < numVertices; i++) {
          appendVertex (new Vertex2d (pnts[i]));
+      }
+   }
+
+   public void set (Collection<Point2d> pnts) {
+      clear();
+      if (pnts.size() < 2) {
+         throw new IllegalArgumentException (
+            "number of vertices must be at least two");
+      }
+      for (Point2d p : pnts) {
+         appendVertex (new Vertex2d (p));
       }
    }
 
@@ -652,6 +668,68 @@ public class Polygon2d implements Renderable {
          nv++;
       }
       return listToHull (list);
+   }
+
+   protected static int counterClockwise (
+      Point2d p0, Point2d p1, Point2d p2, double angTol) {
+      
+      double d1x = p1.x-p0.x;
+      double d1y = p1.y-p0.y;
+      double d2x = p2.x-p0.x;
+      double d2y = p2.y-p0.y;
+      double cross = d1x*d2y - d1y*d2x;
+
+      if (angTol > 0) {
+         // adjust tolerance to use approximate magnitudes of d1 and d2
+         double d1mag = Math.abs (d1x) + Math.abs (d1y);
+         double d2mag = Math.abs (d2x) + Math.abs (d2y);
+         angTol *= d1mag*d2mag;
+      }
+      if (cross > angTol) {
+         return 1;
+      }
+      else if (cross < -angTol) {
+         return -1;
+      }
+      else {
+         if (d1x*d2x + d1y*d2y > 0) {
+            return 0;
+         }
+         else {
+            return -1;
+         }
+      }
+   }      
+
+   /**
+    * Returns {@code true} if this 2d polygon is convex.
+    */
+   public boolean isConvex () {
+      return isConvex (0);
+   }
+
+   /**
+    * Returns {@code true} if this 2d polygon is convex, within a presribed
+    * angular tolerance.
+    */  
+   public boolean isConvex (double angTol) {
+      Vertex2d vtx = firstVertex;
+      if (vtx != null) {
+         Vertex2d vprev = vtx.prev;
+         do {
+            Vertex2d vnext = vtx.next;
+            if (counterClockwise (vprev.pnt, vtx.pnt, vnext.pnt, angTol) < 0) {
+               return false;
+            }
+            vprev = vtx;
+            vtx = vnext;
+         }
+         while (vtx != firstVertex);
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
 }

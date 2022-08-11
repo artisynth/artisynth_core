@@ -7,6 +7,8 @@
 package maspack.geometry;
 
 import maspack.matrix.*;
+import maspack.util.DynamicIntArray;
+import java.util.*;
 
 public class ConvexPolygon2d extends Polygon2d {
    public ConvexPolygon2d() {
@@ -46,6 +48,211 @@ public class ConvexPolygon2d extends Polygon2d {
          vtx = vtx.next;
       }
       return a / 2;
+   }
+
+   private static class LexicalComparatorOld implements Comparator<Point2d> {
+
+      LexicalComparatorOld () {
+      }
+      
+      public int compare (Point2d p1, Point2d p2) {
+         if (p1.x == p2.x) {
+            if (p1.y < p2.y) {
+               return -1;
+            }
+            else {
+               return p1.y > p2.y ? 1 : 0;
+            }
+         }
+         else {
+            return p1.x > p2.x ? 1 : -1;
+         }
+      }
+   }
+
+   /**
+    * Computes a 2D convex hull from a set on input points, using the Graham
+    * Scan algorithm, which is O(n log n).
+    */
+   public static ArrayList<Point2d> computeOld (
+      Collection<Point2d> input, double tol) {
+      ArrayList<Point2d> points = new ArrayList<>();
+      ArrayList<Point2d> upper = new ArrayList<>();
+      ArrayList<Point2d> lower = new ArrayList<>();
+
+      if (input.size() < 3) {
+         throw new IllegalArgumentException (
+            "Number of input points must be at least 3");
+      }
+      points.addAll (input);
+
+      Collections.sort (points, new LexicalComparatorOld());
+      System.out.println ("sorted:");
+      for (Point2d p : points) {
+         System.out.println ("  "+p.toString("%8.3f"));
+      }
+      for (int k=0; k<points.size(); k++) {
+         Point2d p = points.get(k);
+         int nu;
+         while ((nu=lower.size()) > 1 &&
+                counterClockwise (
+                   lower.get(nu-2), lower.get(nu-1), p, tol) <= 0) {
+            lower.remove (nu-1);
+         }
+         lower.add (p);
+      }
+      for (int k=points.size()-1; k>=0; k--) {
+         Point2d p = points.get(k);
+         int nl;
+         while ((nl=upper.size()) > 1 &&
+                counterClockwise (
+                   upper.get(nl-2), upper.get(nl-1), p, tol) <= 0) {
+            upper.remove (nl-1);
+         }
+         upper.add (p);
+      }
+      lower.remove (lower.size()-1);
+      upper.remove (upper.size()-1);
+      lower.addAll (upper);
+      return lower;
+   }
+
+   private static class LexicalComparator implements Comparator<Integer> {
+
+      ArrayList<Point2d> myPoints;
+
+      LexicalComparator (ArrayList<Point2d> points) {
+         myPoints = points;
+      }
+      
+      public int compare (Integer idx1, Integer idx2) {
+         Point2d p1 = myPoints.get(idx1);
+         Point2d p2 = myPoints.get(idx2);
+         if (p1.x == p2.x) {
+            if (p1.y < p2.y) {
+               return -1;
+            }
+            else {
+               return p1.y > p2.y ? 1 : 0;
+            }
+         }
+         else {
+            return p1.x > p2.x ? 1 : -1;
+         }
+      }
+   }
+
+   private static void removeColinearPoints (
+      DynamicIntArray idxs, ArrayList<Point2d> points, double angTol) {
+      
+      DynamicIntArray removeIdxs = new DynamicIntArray();
+      if (idxs.size() <= 3) {
+         return;
+      }
+      Point2d p0 = points.get(idxs.get(idxs.size()-1));
+      Point2d p1 = points.get(idxs.get (0));
+      for (int k=0; k<idxs.size(); k++) {
+         Point2d p2 = points.get(idxs.get((k+1)%idxs.size()));
+         if (counterClockwise (p0, p1, p2, angTol) <= 0) {
+            removeIdxs.add (k);
+            p1 = p2;
+         }
+         else {
+            p0 = p1;
+            p1 = p2;
+         }
+      }
+      for (int i=removeIdxs.size()-1; i>=0; i--) {
+         idxs.remove (removeIdxs.get(i));
+      }    
+   }
+
+
+   /**
+    * Computes the indices of a 2D convex hull within a set of input points,
+    * using the Monotone Chain algorithm, by A. M. Andrew, 1979 (which is a
+    * variation on the Graham scan method).
+    *
+    * @param input points from which the hull should be formed
+    * @param angTol if {@code > 0}, specifies an angular tolerance which should
+    * be used to remove nearly colinear points
+    * @return list of the indices of the point in {@code input} which
+    * form the hull, in counter-clockwise order
+    */
+   public static int[] computeHullIndices (
+      Collection<Point2d> input, double angTol) {
+      ArrayList<Point2d> points = new ArrayList<>();
+      DynamicIntArray upper = new DynamicIntArray();
+      DynamicIntArray lower = new DynamicIntArray();
+
+      if (input.size() < 3) {
+         throw new IllegalArgumentException (
+            "Number of input points must be at least 3");
+      }
+      points.addAll (input);
+      ArrayList<Integer> allidxs = new ArrayList<>(points.size());
+      for (int i=0; i<points.size(); i++) {
+         allidxs.add (i);
+      }
+      Collections.sort (allidxs, new LexicalComparator(points));
+      for (int k=0; k<allidxs.size(); k++) {
+         int pi = allidxs.get(k);
+         int nu;
+         while ((nu=lower.size()) > 1 &&
+                counterClockwise (
+                   points.get(lower.get(nu-2)),
+                   points.get(lower.get(nu-1)),
+                   points.get(pi), 0) <= 0) {
+            lower.remove (nu-1);
+         }
+         lower.add (pi);
+      }
+      for (int k=allidxs.size()-1; k>=0; k--) {
+         int pi = allidxs.get(k);
+         int nl;
+         while ((nl=upper.size()) > 1 &&
+                counterClockwise (
+                   points.get(upper.get(nl-2)),
+                   points.get(upper.get(nl-1)),
+                   points.get(pi), 0) <= 0) {
+            upper.remove (nl-1);
+         }
+         upper.add (pi);
+      }
+      lower.remove (lower.size()-1);
+      upper.remove (upper.size()-1);
+      lower.addAll (upper);
+      if (angTol > 0) {
+         removeColinearPoints (lower, points, angTol);
+      }
+      return lower.toArray();
+   }
+
+
+   /**
+    * Computes a 2D convex hull for a set of input points, using the Monotone
+    * Chain algorithm, by A. M. Andrew, 1979 (which is a variation on the
+    * Graham scan method).
+    *
+    * @param input points from which the hull should be formed
+    * @param angTol if {@code > 0}, specifies an angular tolerance which should
+    * be used to remove nearly colinear points
+    * @return a list of points, copied from {@code input}, which form the hull
+    * in counter-clockwise order
+    */
+   public static ArrayList<Point2d> computeHull (
+      List<Point2d> input, double angTol) {
+
+      int[] indices = computeHullIndices (input, angTol);
+      ArrayList<Point2d> hull = new ArrayList<>();
+      for (int i : indices) {
+         hull.add (input.get(i));
+      }
+      return hull;
+   }
+
+   public void computeAndSetHull (List<Point2d> input, double angTol) {
+      set (computeHull (input, angTol));
    }
 
    /**

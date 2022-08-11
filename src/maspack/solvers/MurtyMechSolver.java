@@ -1061,7 +1061,8 @@ public class MurtyMechSolver {
          //System.out.println ("Achanged");
          rebuildA = true;
       }
-      else if (!myContactSolveP && mySizeND/(double)myAConsData.size() <= myRebuildARatio) {
+      else if (!myContactSolveP &&
+               mySizeND/(double)myAConsData.size() <= myRebuildARatio) {
          rebuildA = true;
       }
       
@@ -3129,7 +3130,11 @@ public class MurtyMechSolver {
                   System.out.println ("FRICTION INTERATION " + k);
                }
             }
+            //int icnt0 = myIterationCnt;
             status = runPivotingLoop (vel, lam, the, phi);
+            // System.out.printf (
+            //    " %c iters %d: %d\n",
+            //    myContactSolveP ? 'C' : 'F', k, myIterationCnt-icnt0);
          }
          adjustStateForEqualBounds();
       }

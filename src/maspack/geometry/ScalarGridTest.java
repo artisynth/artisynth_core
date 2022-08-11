@@ -25,16 +25,20 @@ import maspack.util.UnitTest;
 
 public class ScalarGridTest extends InterpolatingGridTestBase {
 
-   public double getCheckLocalValue (ScalarGrid grid, Point3d pnt) {
+   double OUTSIDE = ScalarGrid.OUTSIDE_GRID;
+
+   public double getCheckLocalValue (
+      ScalarGrid grid, Point3d pnt, boolean clipToGrid) {
 
       double[] wgts = new double[8];
       Vector3i xyzi = new Vector3i();
-      if (!getCellVertexAndWeights (xyzi, wgts, grid, pnt)) {
+      if (!getCellVertexAndWeights (xyzi, wgts, grid, pnt, clipToGrid)) {
          return ScalarGrid.OUTSIDE_GRID;
       }
       int vi = xyzi.x;
       int vj = xyzi.y;
       int vk = xyzi.z;
+
       double res = 0;
       res += wgts[0]*grid.getVertexValue (vi  , vj  , vk  );
       res += wgts[1]*grid.getVertexValue (vi  , vj  , vk+1);
@@ -47,7 +51,8 @@ public class ScalarGridTest extends InterpolatingGridTestBase {
       return res;
    }
    
-   public double getCheckWorldValue (ScalarGrid grid, Point3d pnt) {
+   public double getCheckWorldValue (
+      ScalarGrid grid, Point3d pnt, boolean clipToGrid) {
 
       RigidTransform3d TLW = new RigidTransform3d();
       if (grid.getLocalToWorld() != null) {
@@ -55,7 +60,7 @@ public class ScalarGridTest extends InterpolatingGridTestBase {
       }
       Point3d loc = new Point3d(pnt);
       loc.inverseTransform (TLW);
-      return getCheckLocalValue (grid, loc);
+      return getCheckLocalValue (grid, loc, clipToGrid);
    }
 
    public void test (ScalarGrid grid, RigidTransform3d TLW) {
@@ -81,17 +86,17 @@ public class ScalarGridTest extends InterpolatingGridTestBase {
       }
 
       int ntests = 100;
-      double OUTSIDE = ScalarGrid.OUTSIDE_GRID;
       for (int k=0; k<ntests; k++) {
          Point3d pnt = createTestPoint (grid);
          double val, chk;
+         boolean clipToGrid = (k%2 == 0);
          if (grid.getLocalToWorld() == null) {
-            val = grid.getLocalValue (pnt);
-            chk = getCheckLocalValue (grid, pnt);
+            val = grid.getLocalValue (pnt, clipToGrid);
+            chk = getCheckLocalValue (grid, pnt, clipToGrid);
          }
          else {
-            val = grid.getWorldValue (pnt);
-            chk = getCheckWorldValue (grid, pnt);
+            val = grid.getWorldValue (pnt, clipToGrid);
+            chk = getCheckWorldValue (grid, pnt, clipToGrid);
          }
          check ("value==OUTSIDE |= check==OUTSIDE",
                 ((val==OUTSIDE) == (chk==OUTSIDE)));
@@ -119,6 +124,82 @@ public class ScalarGridTest extends InterpolatingGridTestBase {
       }
    }
 
+   private void checkValue (
+      ScalarGrid grid, double x, double y, double z, double chk) {
+
+      Point3d pos = new Point3d(x, y, z);
+      double val = grid.getLocalValue (pos);
+      if (Math.abs(val-chk) > 1e-10) {
+         throw new TestException (
+            "value at "+pos+" is "+val+", expecting "+chk);
+      }
+      // expand position to push it outside
+      pos.scale (1.1);
+      val = grid.getLocalValue (pos);
+      if (val != OUTSIDE) {
+         throw new TestException (
+            "value at "+pos+" is "+val+", expecting OUTSIDE");
+      }
+      val = grid.getLocalValue (pos, /*clipped=*/true);
+      if (Math.abs(val-chk) > 1e-10) {
+         throw new TestException (
+            "clipped value at "+pos+" is "+val+", expecting "+chk);
+      }
+   }
+
+   /**
+    * Test points outside the grid directly.
+    */
+   public void hardTest() {
+      double w = 2.0;
+      ScalarGrid grid =
+         new ScalarGrid (
+            new Vector3d (w, w, w),
+            new Vector3i (2, 2, 2), null);
+      for (int k=0; k<grid.numVertices(); k++) {
+         Vector3d pos = new Vector3d();
+         grid.getLocalVertexCoords (pos, k);
+         grid.setVertexValue (k, pos.norm());
+      }
+      double SQR3 = Math.sqrt (3);
+      double SQR2 = Math.sqrt (2);
+
+      // corners
+
+      checkValue (grid, -1.0, -1.0, -1.0, SQR3);
+      checkValue (grid, -1.0, -1.0,  1.0, SQR3);
+      checkValue (grid, -1.0,  1.0, -1.0, SQR3);
+      checkValue (grid, -1.0,  1.0,  1.0, SQR3);
+      checkValue (grid,  1.0, -1.0, -1.0, SQR3);
+      checkValue (grid,  1.0, -1.0,  1.0, SQR3);
+      checkValue (grid,  1.0,  1.0, -1.0, SQR3);
+      checkValue (grid,  1.0,  1.0,  1.0, SQR3);
+
+      // edge midpoints
+
+      checkValue (grid,  0.0, -1.0, -1.0, SQR2);
+      checkValue (grid,  0.0, -1.0,  1.0, SQR2);
+      checkValue (grid,  0.0,  1.0, -1.0, SQR2);
+      checkValue (grid,  0.0,  1.0,  1.0, SQR2);
+      checkValue (grid, -1.0,  0.0, -1.0, SQR2);
+      checkValue (grid, -1.0,  0.0,  1.0, SQR2);
+      checkValue (grid,  1.0,  0.0, -1.0, SQR2);
+      checkValue (grid,  1.0,  0.0,  1.0, SQR2);
+      checkValue (grid, -1.0, -1.0,  0.0, SQR2);
+      checkValue (grid, -1.0,  1.0,  0.0, SQR2);
+      checkValue (grid,  1.0, -1.0,  0.0, SQR2);
+      checkValue (grid,  1.0,  1.0,  0.0, SQR2);
+
+      // face midpoints
+
+      checkValue (grid,  1.0,  0.0,  0.0, 1.0);
+      checkValue (grid, -1.0,  0.0,  0.0, 1.0);
+      checkValue (grid,  0.0,  1.0,  0.0, 1.0);
+      checkValue (grid,  0.0, -1.0,  0.0, 1.0);
+      checkValue (grid,  0.0,  0.0,  1.0, 1.0);
+      checkValue (grid,  0.0,  0.0, -1.0, 1.0);
+   }
+
    public void test() {
       for (Vector3d widths : myWidths) {
          for (Vector3i res : myResolutions) {
@@ -129,6 +210,7 @@ public class ScalarGridTest extends InterpolatingGridTestBase {
             }
          }
       }
+      hardTest();
    }
 
    public static void main (String[] args) {

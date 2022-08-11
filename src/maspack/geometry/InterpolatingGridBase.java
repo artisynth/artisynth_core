@@ -1056,9 +1056,10 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
    /**
     * Find the local coordinates of a vertex, as specified by its vertex index.
     * 
-    * @param coords returns the coordinates
+    * @param coords if not {@code null}, supplies a vector for returning
+    * the coordinates
     * @param vi vertex index
-    * @return coords
+    * @return vertex coordinates
     */
    public Vector3d getLocalVertexCoords (Vector3d coords, int vi) {
       if (coords == null) {
@@ -1074,9 +1075,10 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
     * Find the local coordinates of a vertex, as specified by its x, y, z
     * indices.
     * 
-    * @param coords returns the coordinates
+    * @param coords if not {@code null}, supplies a vector for returning
+    * the coordinates
     * @param vxyz x, y, z vertex indices
-    * @return coords
+    * @return vertex coordinates
     */
    public Vector3d getLocalVertexCoords (Vector3d coords, Vector3i vxyz) {
       if (coords == null) {
@@ -1088,14 +1090,40 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
    }
 
    /**
+    * Find the world coordinates of a vertex, as specified by its
+    * vertex index.
+    * 
+    * @param coords if not {@code null}, supplies a vector for returning
+    * the coordinates
+    * @param vi vertex index
+    * @return vertex coordinates
+    */
+   public Vector3d getWorldVertexCoords (Vector3d coords, int vi) {
+      if (coords == null) {
+         coords = new Vector3d();
+      }
+      Vector3i vxyz = new Vector3i();
+      vertexToXyzIndices (vxyz, vi);
+      Point3d pnt = new Point3d(vxyz.x, vxyz.y, vxyz.z);
+      myGridToLocal.transformPnt (pnt, pnt);
+      myLocalToWorld.transformPnt (pnt, pnt);
+      coords.set(pnt);
+      return coords;
+   }
+
+   /**
     * Find the world coordinates of a vertex, as specified by its x, y, z
     * indices.
     * 
-    * @param coords returns the coordinates
+    * @param coords if not {@code null}, supplies a vector for returning
+    * the coordinates
     * @param vxyz x, y, z vertex indices
-    * @return coords
+    * @return vertex coordinates
     */
    public Vector3d getWorldVertexCoords (Vector3d coords, Vector3i vxyz) {
+      if (coords == null) {
+         coords = new Vector3d();
+      }
       Point3d pnt = new Point3d(vxyz.x, vxyz.y, vxyz.z);
       myGridToLocal.transformPnt (pnt, pnt);
       myLocalToWorld.transformPnt (pnt, pnt);
@@ -1359,7 +1387,7 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
       pw.println ("center=[" + center.toString(fmt) +"]");
       if (!R.isIdentity()) {
          pw.println (
-            "orientation=" + R.toString(fmt, RotationMatrix3d.AXIS_ANGLE_STRING));
+            "orientation=" + R.toString(fmt, RotationMatrix3d.MATRIX_STRING));
       }
       if (myTLocalToWorld != null) {
          pw.println ("LocalToWorld=\n" + myTLocalToWorld);

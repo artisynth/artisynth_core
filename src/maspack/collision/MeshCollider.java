@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.BVIntersector;
+import maspack.geometry.ConvexPolygon3d;
 import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriTriIntersection;
@@ -18,49 +19,16 @@ import maspack.matrix.Vector3d;
 
 public class MeshCollider implements AbstractCollider {
 
-   //private TriangleIntersector intersector = new TriangleIntersector();
-   //private BVIntersector myIntersector = new BVIntersector();
-   //private BVFeatureQuery myQuery = new BVFeatureQuery();
-
    private static final double EPS = 1e-12;
-   //private double epsilon = 0;
-
-//   // The minimum distance between contact points
-//   private double pointtolerance = 1e-4;
-//
-//   // The minimum distance between regions
-//   private double regiontolerance = 1e-2;
 
    // The number of axes to take extrema along when throwing out contact points
    // 0 = disabled
    private static int numextremaaxes = 0;
 
-   //   public long sumTime = 0;
-   //   public long averageTime = 0;
-   //   public long startTime = 0;
-   //   public long finishTime = 0;
-   //   public int runCount = 0;
-   //   boolean warmup = false;
-
-   // public static CollisionMetrics collisionMetrics = new
-   // CollisionMetrics("elliot");
-
    public static double maxErr = 0;
 
    public MeshCollider() {
-//      //setEpsilon (1e-12);
-//      setPointTolerance (1e-4);
-//      setRegionTolerance (1e-2);
    }
-
-//   public double getEpsilon() {
-//      return epsilon;
-//   }
-//
-//   public void setEpsilon (double epsilon) {
-//      this.epsilon = epsilon;
-//      //intersector.setEpsilon (epsilon);
-//   }
 
    static int iFirst = 0;
    public static int numIntNodes;
@@ -68,138 +36,17 @@ public class MeshCollider implements AbstractCollider {
    public ContactInfo getContacts (
       PolygonalMesh mesh0, PolygonalMesh mesh1) {
 
-      //long t0 = System.nanoTime();
-      // collisionMetrics.totalTime -= time;
-      // collisionMetrics.cullTime -= time;
-      // if (iFirst++ == 0) collisionMetrics.elapsedRealTime = -time;
 
       mesh0.updateFaceNormals();
       mesh1.updateFaceNormals();
       BVIntersector intersector = new BVIntersector();
       ContactInfo info = new ContactInfo (mesh0, mesh1);
-      //      boolean didInt =
-      //         mesh0.getObbtree().intersectFully (
-      //            mesh1.getObbtree(), info.intersections, intersector);
       info.myIntersections = new ArrayList<TriTriIntersection>();
       boolean didInt = 
          intersector.intersectMeshMesh (info.myIntersections, mesh0, mesh1);
-
-      //long t1 = System.nanoTime();
-      //System.out.println ("time=" + (t1-t0)*1e-3);
-
-      // ArrayList<TriangleTriangleIntersection> check = new
-      //    ArrayList<TriangleTriangleIntersection>();
-      // mesh0.getObbtree().intersectFully (
-      //    mesh1.getObbtree(), check, intersector);
-      // if (check.size() != info.intersections.size()) {
-      //    System.out.println (
-      //       "NumIsects differ: "+check.size()+" vs "+info.intersections.size());
-      // }
-      // for (int k=0; k<check.size(); k++) {
-      //    TriangleTriangleIntersection isec1 = info.intersections.get(k);
-      //    TriangleTriangleIntersection isec2 = check.get(k);
-      //    if ((isec1.faces[0] != isec2.faces[0]) ||
-      //        (isec1.faces[1] != isec2.faces[1])) {
-      //       System.out.println (
-      //          "face pair "+isec1.faces[0]+"-"+isec1.faces[1]+ " differs from "+
-      //          isec2.faces[0]+"-"+isec2.faces[1]);
-      //    }
-      //    if (isec1.points.size() != isec2.points.size()) {
-      //       System.out.println (
-      //          "point sizes differ: " +
-      //          isec1.points.size() + " " + isec2.points.size());
-      //    }
-      //    for (int i=0; i<isec1.points.size(); i++) {
-      //       Vector3d diff = new Vector3d();
-      //       diff.sub (isec2.points.get(i), isec1.points.get(i));
-      //       if (diff.norm() > maxErr) {
-      //          maxErr = diff.norm();
-      //       }
-      //    }
-      // }
-      // System.out.println ("maxErr= " + maxErr);
-
-      //startTime = System.nanoTime ();
-
-      // time = System.nanoTime();
-      // collisionMetrics.cullTime += time;
       if (!didInt) {
-         // System.out.println("no intersections");
-         // collisionMetrics.report(info);
          return null;
       }
-
-//      // calculate transformations
-//      RigidTransform3d trans0 = new RigidTransform3d(), trans1 =
-//         new RigidTransform3d();
-//
-//      mesh0.getMeshToWorld (trans0);
-//      mesh1.getMeshToWorld (trans1);
-//      mesh0.updateFaceNormals();
-//      mesh1.updateFaceNormals();
-//      Point3d wpnt = new Point3d();
-//
-//      boolean isX0WIdentity = trans0.isIdentity ();
-//      boolean isX1WIdentity = trans1.isIdentity ();
-
-//         // calculate contact regions
-//         createRegions (info.regions, info.intersections, regiontolerance);
-//         // calculate contact region info
-//         for (ContactRegion region : info.regions) {
-//            getRegionInfo (
-//               region, mesh0, mesh1, pointtolerance);
-//         }
-//         // collisionMetrics.femTime -= System.nanoTime();
-//         // get internal vertices
-//         //Point3d p = new Point3d();
-//         Point3d nearest = new Point3d();
-//         Vector3d disp = new Vector3d();
-//         Vector2d uv = new Vector2d();
-//
-//         //Vector3d diff = new Vector3d();
-//
-//         BVFeatureQuery query = new BVFeatureQuery();
-//         for (Vertex3d v : mesh0.getVertices()) {
-//            // John Lloyd, Jan 3, 2014: rewrote to use isInsideOrientedMesh()
-//            // to determine if a vertex is inside another mesh. Previous code
-//            // would not always work and broke when the BVTree code was
-//            // refactored.
-//            wpnt.set (v.pnt);
-//            if (!isX0WIdentity) {
-//               wpnt.transform (trans0);
-//            }
-//            if (query.isInsideOrientedMesh (mesh1, wpnt, -1)) {
-//               Face f = query.getFaceForInsideOrientedTest (nearest, uv);
-//               nearest.transform (trans1);
-//               disp.sub (nearest, wpnt);
-//               info.myPoints0.add (
-//                  new ContactPenetratingPoint (
-//                     v, f, uv, nearest, disp));
-//            }
-//         }
-//
-//         for (Vertex3d v : mesh1.getVertices()) {
-//            // John Lloyd, Jan 3, 2014: rewrote to use isInsideOrientedMesh()
-//            // to determine if a vertex is inside another mesh. Previous code
-//            // would not always work and broke when the BVTree code was
-//            // refactored.
-//            wpnt.set (v.pnt);
-//            if (!isX1WIdentity) {
-//               wpnt.transform (trans1);
-//            }
-//            if (query.isInsideOrientedMesh (mesh0, wpnt, -1)) {
-//               Face f = query.getFaceForInsideOrientedTest (nearest, uv);
-//               nearest.transform (trans0);
-//               disp.sub (nearest, wpnt);
-//               info.myPoints1.add (
-//                  new ContactPenetratingPoint (
-//                     v, f, uv, nearest, disp));
-//            }
-//         }
-         // collisionMetrics.femTime += System.nanoTime();
-//      info.myPointTol = pointtolerance;
-//      info.myRegionTol = regiontolerance;
-
       return info;
    }
 
@@ -223,7 +70,6 @@ public class MeshCollider implements AbstractCollider {
                p.z + regionTol / 2);
             ArrayList<TriTriIntersection> candidates =
                accgrid.find_overlapping_elements (min, max);
-            // System.out.println("candidates " + candidates.size());
             for (TriTriIntersection c : candidates) {
                for (Point3d cp : c.points)
                   if (cp.greaterEquals (min) && max.greaterEquals (max)) {
@@ -286,15 +132,6 @@ public class MeshCollider implements AbstractCollider {
          for (Point3d p : isect.points)
             accgrid.add_element (isect, p, p);
 
-      // System.out.println("cells");
-      // for(LinkedHashSet<TriangleTriangleIntersection> s:accgrid.cells)
-      // {
-      // if(s != null)
-      // {
-      // System.out.println("set " + s.size());
-      // }
-      // }
-
       for (TriTriIntersection isect : intersections) {
          ContactPlane region = new ContactPlane();
          if (accgrid.elementidxs.get (isect) != null) {
@@ -302,8 +139,6 @@ public class MeshCollider implements AbstractCollider {
             regions.add (region);
          }
       }
-
-      // System.out.println("region time " + (System.currentTimeMillis() - t0));
    }
 
    /**
@@ -311,24 +146,6 @@ public class MeshCollider implements AbstractCollider {
     */
    private static void getCoordinates (
       Vector3d coords, Point3d u0, Point3d u1, Point3d u2, Point3d v) {
-      // double inv = 1.0/(u0.z*u1.y*u2.x - u0.y*u1.z*u2.x - u0.z*u1.x*u2.y +
-      // u0.x*u1.z*u2.y + u0.y*u1.x*u2.z - u0.x*u1.y*u2.z);
-      //    
-      // System.out.println("inv det " + inv);
-      // if(Double.isInfinite(inv))
-      // {
-      // System.out.println(u0);
-      // System.out.println(u1);
-      // System.out.println(u2);
-      // System.out.println(v);
-      // }
-      //    
-      // coords.x = (u1.z*u2.y*v.x - u1.y*u2.z*v.x - u1.z*u2.x*v.y +
-      // u1.x*u2.z*v.y + u1.y*u2.x*v.z - u1.x*u2.y*v.z)*inv;
-      // coords.y = (u0.z*u2.y*v.x - u0.y*u2.z*v.x - u0.z*u2.x*v.y +
-      // u0.x*u2.z*v.y + u0.y*u2.x*v.z - u0.x*u2.y*v.z)*inv;
-      // coords.z = (u0.z*u1.y*v.x - u0.y*u1.z*v.x - u0.z*u1.x*v.y +
-      // u0.x*u1.z*v.y + u0.y*u1.x*v.z - u0.x*u1.y*v.z)*inv;
 
       Vector3d edge0 = new Vector3d(), edge1 = new Vector3d();
       edge0.sub (u1, u0);
@@ -391,18 +208,6 @@ public class MeshCollider implements AbstractCollider {
    private static Vector3d vertexEdgeNormal (
       RigidTransform3d trans0, RigidTransform3d trans1, Face face0, Face face1,
       int v, int e) {
-      // use the vertex normal orthogonalized to the edge
-      // Vector3d edge = new Vector3d();
-      // edge.sub(face1.getVertex((e+1)%3).pnt, face1.getVertex(e).pnt);
-      // edge.transform(trans1);
-      //    
-      // Vector3d normal = new Vector3d();
-      // face0.getVertex(v).computeNormal(normal);
-      // normal.transform(trans0);
-      // normal.negate();
-      //    
-      // normal.scaledAdd(-normal.dot(edge), edge);
-      // normal.normalize();
 
       // use the normal associated with the edge
       Vector3d normal = new Vector3d();
@@ -822,23 +627,22 @@ public class MeshCollider implements AbstractCollider {
                region.points.remove (j);
          }
       }
+      else {
+         // reduce contact points using convex hull
+         if (region.points.size() >= 3) {
+            int[] idxs = ConvexPolygon3d.computeHullIndices (
+               region.points, region.normal, /*angTol=*/1e-8);
+            if (idxs.length < region.points.size()) {
+               // hull is small, so replace region.points with hull
+               ArrayList<Point3d> newpoints = new ArrayList<>(idxs.length);
+               for (int i : idxs) {
+                  newpoints.add (region.points.get(i));
+               }
+               region.points = newpoints;
+            }
+         }
+      }
    }
-
-//   public double getPointTolerance() {
-//      return pointtolerance;
-//   }
-//
-//   public void setPointTolerance (double tolerance) {
-//      this.pointtolerance = tolerance;
-//   }
-//
-//   public double getRegionTolerance() {
-//      return regiontolerance;
-//   }
-//
-//   public void setRegionTolerance (double regiontolerance) {
-//      this.regiontolerance = regiontolerance;
-//   }
 
    /**
     * See setter.

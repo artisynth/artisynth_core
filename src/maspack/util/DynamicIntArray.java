@@ -46,6 +46,13 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
       notifyModified ();
    }
 
+   public DynamicIntArray(DynamicIntArray array) {
+      elementData = Arrays.copyOf (
+         array.elementData, array.elementData.length);
+      size = array.size;
+      notifyModified ();
+   }
+
    public void ensureCapacity(int cap) {
 
       int oldCap = elementData.length;
@@ -78,6 +85,17 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
          ensureCapacity (size+e.length);
          for (int i=0; i<e.length; ++i) {
             elementData[size++] = e[i];
+         }
+         notifyModified ();
+      }
+   }
+
+   public void addAll(DynamicIntArray array) {
+      int asize = array.size();
+      if (asize > 0) {
+         ensureCapacity (size+asize);
+         for (int i=0; i<asize; ++i) {
+            elementData[size++] = array.elementData[i];
          }
          notifyModified ();
       }
@@ -138,6 +156,7 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
          for (int i=this.size; i<size; ++i) {
             elementData[i] = 0;
          }
+         this.size = size;
          notifyModified ();
       }
    }
@@ -207,6 +226,19 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
    }
       
    /**
+    * Copies the contents of this DynamicIntArray into an array.
+    *
+    * @return new array
+    */
+   public int[] toArray() { 
+      int[] array = new int[size];
+      for (int i=0; i<size; i++) {
+         array[i] = elementData[i];
+      }
+      return array;
+   }
+      
+   /**
     * Creates a shallow copy
     */
    @Override
@@ -225,4 +257,21 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
       return out;
    }
 
+   /**
+    * Returns {@code true} if this DynamicIntArray is equals to
+    * another one.
+    * 
+    * @param array array to compare with
+    */
+   public boolean equals (DynamicIntArray array) {
+      if (size != array.size) {
+         return false;
+      }
+      for (int i=0; i<size(); i++) {
+         if (elementData[i] != array.elementData[i]) {
+            return false;
+         }
+      }
+      return true;
+   }
 }

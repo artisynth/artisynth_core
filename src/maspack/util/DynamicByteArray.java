@@ -11,22 +11,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * Dynamic integer array (saves on memory vs {@link ArrayList})
+ * Dynamic byte array (saves on memory vs {@link ArrayList})
  * @author Antonio
  *
  */
-public class DynamicBooleanArray extends ModifiedVersionBase
+public class DynamicByteArray extends ModifiedVersionBase
    implements Cloneable {
 
    public static final int DEFAULT_INITIAL_CAPACITY = 10;
 
-   boolean[] elementData;
+   byte[] elementData;
    int size;
 
    /**
     * Dynamic array of integers with default capacity of 10
     */
-   public DynamicBooleanArray() {
+   public DynamicByteArray() {
       this(DEFAULT_INITIAL_CAPACITY);
    }
 
@@ -35,19 +35,19 @@ public class DynamicBooleanArray extends ModifiedVersionBase
     * @param initialCapacity initial capacity.  If {@code <=} 0, uses 
     * the default capacity
     */
-   public DynamicBooleanArray(int initialCapacity) {
+   public DynamicByteArray(int initialCapacity) {
       if (initialCapacity <= 0) {
          initialCapacity = DEFAULT_INITIAL_CAPACITY;
       }
-      elementData = new boolean[initialCapacity];
+      elementData = new byte[initialCapacity];
    }
    
-   public DynamicBooleanArray(boolean... vals) {
+   public DynamicByteArray(byte... vals) {
       elementData = Arrays.copyOf (vals, vals.length);
       notifyModified ();
    }
 
-   public DynamicBooleanArray(DynamicBooleanArray array) {
+   public DynamicByteArray(DynamicByteArray array) {
       elementData = Arrays.copyOf (
          array.elementData, array.elementData.length);
       size = array.size;
@@ -75,13 +75,13 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       return size;
    }
 
-   public void add(boolean e) {
+   public void add (byte e) {
       ensureCapacity (size+1);
       elementData[size++] = e;
       notifyModified ();
    }
    
-   public void addAll(boolean[] e) {
+   public void addAll (byte[] e) {
       if (e.length > 0) {
          ensureCapacity (size+e.length);
          for (int i=0; i<e.length; ++i) {
@@ -91,7 +91,7 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       }
    }
 
-   public void addAll (DynamicBooleanArray array) {
+   public void addAll (DynamicByteArray array) {
       int asize = array.size();
       if (asize > 0) {
          ensureCapacity (size+asize);
@@ -109,9 +109,9 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       }
    }
 
-   public boolean remove(int idx) {
+   public byte remove(int idx) {
       --size;
-      boolean out = elementData[idx];
+      byte out = elementData[idx];
       for (int i=idx; i<size; ++i) {
          elementData[i] = elementData[i+1];
       }
@@ -155,7 +155,7 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       } else if (size > this.size) {
          ensureCapacity (size);
          for (int i=this.size; i<size; ++i) {
-            elementData[i] = false;
+            elementData[i] = 0;
          }
          this.size = size;
          notifyModified ();
@@ -168,8 +168,8 @@ public class DynamicBooleanArray extends ModifiedVersionBase
     * @param size number of elements
     * @return portion of array
     */
-   public DynamicBooleanArray slice(int start, int size) {
-      DynamicBooleanArray out = new DynamicBooleanArray (size);
+   public DynamicByteArray slice(int start, int size) {
+      DynamicByteArray out = new DynamicByteArray (size);
       for (int i=0; i<size; ++i) {
          out.add (get(start+i));
       }
@@ -191,7 +191,7 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       }
    }
 
-   public boolean get(int idx) {
+   public byte get(int idx) {
       return elementData[idx];
    }
 
@@ -201,7 +201,7 @@ public class DynamicBooleanArray extends ModifiedVersionBase
     * @param idx index at which to modify the value
     * @param e new value
     */
-   public void set(int idx, boolean e) {
+   public void set(int idx, byte e) {
       if (idx == size) {
          add(e);
       } else {
@@ -219,20 +219,20 @@ public class DynamicBooleanArray extends ModifiedVersionBase
     * before being returned.
     * @return the underlying array.  
     */
-   public boolean[] getArray() {
+   public byte[] getArray() {
       if (size != elementData.length) {
          trimToSize();
       }
       return elementData;
    }
-
+      
    /**
-    * Copies the contents of this DynamicBooleanArray into an array.
+    * Copies the contents of this DynamicByteArray into an array.
     *
     * @return new array
     */
-   public boolean[] toArray() { 
-      boolean[] array = new boolean[size];
+   public byte[] toArray() { 
+      byte[] array = new byte[size];
       for (int i=0; i<size; i++) {
          array[i] = elementData[i];
       }
@@ -243,11 +243,11 @@ public class DynamicBooleanArray extends ModifiedVersionBase
     * Creates a shallow copy
     */
    @Override
-   public DynamicBooleanArray clone ()  {
+   public DynamicByteArray clone ()  {
       
-      DynamicBooleanArray out;
+      DynamicByteArray out;
       try {
-         out = (DynamicBooleanArray)(super.clone ());
+         out = (DynamicByteArray)(super.clone ());
       }
       catch (CloneNotSupportedException e) {
          throw new InternalErrorException ("Failed to clone");
@@ -259,12 +259,12 @@ public class DynamicBooleanArray extends ModifiedVersionBase
    }
 
    /**
-    * Returns {@code true} if this DynamicBooleanArray is equals to
+    * Returns {@code true} if this DynamicByteArray is equals to
     * another one.
     * 
     * @param array array to compare with
     */
-   public boolean equals (DynamicBooleanArray array) {
+   public boolean equals (DynamicByteArray array) {
       if (size != array.size) {
          return false;
       }
@@ -275,5 +275,4 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       }
       return true;
    }
-
 }

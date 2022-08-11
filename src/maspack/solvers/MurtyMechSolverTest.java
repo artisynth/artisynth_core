@@ -2959,7 +2959,7 @@ public class MurtyMechSolverTest extends UnitTest {
          mass, stiffness, C, 5, "Z SZ ", cidxs, mu, prob);
       VectorNd theSave = prob.getTheta();
       prob.createSolutionCheck ("ZLZZL", USE_THE);
-      //murty.setDebug (MurtySparseContactSolver.SHOW_PIVOTS);
+      // murty.setDebug (MurtySparseContactSolver.SHOW_PIVOTS);
       prob.checkSolve (
          "added new contacts", murty, "ZLZZL", USE_THE, 1e-10);
 

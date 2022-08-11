@@ -71,7 +71,7 @@ public class InterpolatingGridTestBase extends UnitTest {
 
    protected boolean getCellVertexAndWeights (
       Vector3i xyzi, double[] wgts,
-      InterpolatingGridBase grid, Point3d pnt) {
+      InterpolatingGridBase grid, Point3d pnt, boolean clipToGrid) {
 
       Point3d loc = new Point3d(pnt);
       RigidTransform3d TCL = new RigidTransform3d();
@@ -85,22 +85,45 @@ public class InterpolatingGridTestBase extends UnitTest {
       loc.y = res.y*(loc.y/widths.y + 0.5);
       loc.z = res.z*(loc.z/widths.z + 0.5);
 
-      if (loc.x < 0.0 || loc.x > res.x ||
-          loc.y < 0.0 || loc.y > res.y || 
-          loc.z < 0.0 || loc.z > res.z) {
+      boolean outside = false;
+      if (loc.x < 0.0) {
+         loc.x = 0;
+         outside = true;
+      }
+      else if (loc.x > res.x) {
+         loc.x = res.x;
+         outside = true;
+      }
+      if (loc.y < 0.0) {
+         loc.y = 0;
+         outside = true;
+      }
+      else if (loc.y > res.y) {
+         loc.y = res.y;
+         outside = true;
+      }
+      if (loc.z < 0.0) {
+         loc.z = 0;
+         outside = true;
+      }
+      else if (loc.z > res.z) {
+         loc.z = res.z;
+         outside = true;
+      }
+      if (outside && !clipToGrid) {
          return false;
       }
       xyzi.x = (int)loc.x;
       xyzi.y = (int)loc.y;
       xyzi.z = (int)loc.z;
-      if (xyzi.x > res.x) {
-         xyzi.x = res.x;
+      if (xyzi.x >= res.x) {
+         xyzi.x = res.x-1;
       }
-      if (xyzi.y > res.y) {
-         xyzi.y = res.y;
+      if (xyzi.y >= res.y) {
+         xyzi.y = res.y-1;
       }
-      if (xyzi.z > res.z) {
-         xyzi.z = res.z;
+      if (xyzi.z >= res.z) {
+         xyzi.z = res.z-1;
       }
       double lamx = loc.x - xyzi.x;
       double lamy = loc.y - xyzi.y;

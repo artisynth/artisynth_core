@@ -105,7 +105,7 @@ public class PropertyDesc implements PropertyInfo {
    /**
     * Creates an empty PropertyDesc.
     */
-   protected PropertyDesc() {
+   public PropertyDesc() {
       super();
    }
 

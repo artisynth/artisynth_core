@@ -1,6 +1,7 @@
 package maspack.matrix;
 
 import maspack.util.Scannable;
+import maspack.util.Clonable;
 
 /**
  * Defines basic vector operations for a type T.
@@ -12,7 +13,7 @@ import maspack.util.Scannable;
  * incompatitable return types (some return a reference to their object, while
  * others return {@code void}).
  */
-public interface VectorObject<T> extends Scannable {
+public interface VectorObject<T> extends Scannable, Clonable {
 
    /**
     * Scales this vector by {@code s}.

@@ -2477,7 +2477,7 @@ The penetration distance $d$ (the value of which is negative).
 
 \item[cpnt0, cpnt1]\mbox{}
 
-\javaclass[artisynth.core.mechmodels]{ContactPoint} objects
+\javaclass[artisynth.core.modelbase]{ContactPoint} objects
 containing information about the two points associated with the
 contact (Figure \ref{contactPoints:fig}), including each point's
 position (returned by {\tt getPoint()}) and associated vertices and
@@ -2579,7 +2579,7 @@ it will be set to -1.
 
 For option (A), {\tt ContactForceBehavior} provides the convenience
 method
-\javamethodAlt{artisynth.core.material.ContactForceBehavior.computeContactArea}%
+\javamethodAlt{artisynth.core.materials.ContactForceBehavior.computeContactArea()}%
 {computeContactArea(cpnt0,cpnt1,nrml)}, which estimates the local
 contact area given the contact points and normal. If the above example
 of {\tt computeResponse()} is modified so that the stiffness parameter
@@ -3055,17 +3055,17 @@ returns an empty list; this can occur, for instance, for vertex
 penetration contact when the collision meshes intersect in a small
 region without any interpenetrating vertices.
 
-\item {\tt List<ContactConstraintData> getContactData()}
+\item {\tt List<ContactData> getContactData()}
 
 Returns a list of the most recently computed contacts between the
 collidables. Each contact is described by a {\tt
-ContactConstraintData} object supplying information about the contact
+ContactData} object supplying information about the contact
 points on each collidable, the normal, and contact and friction
 forces.  If there are no current contacts, the returned list is empty.
 For more details on this information, consult the API documentation
 for
-\javaclass[artisynth.core.mechmodels]{ContactConstraintData} and
-\javaclass[artisynth.core.mechmodels]{ContactPoint}.
+\javaclass[artisynth.core.mechmodels]{ContactData} and
+\javaclass[artisynth.core.modelbase]{ContactPoint}.
 
 \item {\tt Map<Vertex3d,Vector3d> getContactForces(int cidx)}
 

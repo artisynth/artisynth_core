@@ -1,34 +1,43 @@
 package artisynth.core.materials;
 
-import java.util.ArrayList;
-import java.io.*;
-
-import artisynth.core.mechmodels.CollisionResponse;
-import artisynth.core.mechmodels.ContactForceBehavior;
-import artisynth.core.mechmodels.ContactPoint;
-import artisynth.core.mechmodels.CollisionHandler;
-import maspack.collision.*;
-import maspack.geometry.*;
-import maspack.util.*;
+import artisynth.core.modelbase.ContactPoint;
+import artisynth.core.modelbase.FunctionPropertyList;
+import artisynth.core.modelbase.ScalarFieldComponent;
 import maspack.matrix.Vector3d;
 
 /**
  * Implementation of non-linear elastic foundation compliance model from:
- * Bei, Y., & Fregly, B. J. (2004). Multibody dynamic simulation of knee 
- * contact mechanics. Medical engineering & physics, 26(9), 777-789.
+ * Bei, Y. and Fregly, B. J. (2004). Multibody dynamic simulation of knee 
+ * contact mechanics. Medical engineering and physics, 26(9), 777-789.
  * 
  * @author stavness
  */
-public class LinearElasticContact
-   implements ContactForceBehavior, Scannable {
-   
-   double tol = 1e-10; // tolerance on distance < thickness
-   double myPoissonRatio;
-   double myYoungsModulus;
-   double myThickness;
-   double myDamping;
+public class LinearElasticContact extends ElasticContactBase {
+
+   protected static double DEFAULT_NU = 0.33;
+   double myPoissonsRatio = DEFAULT_NU;
+
+   protected static double DEFAULT_E = 500000;
+   double myYoungsModulus = DEFAULT_E;
+   ScalarFieldComponent myYoungsModulusField = null;
+
    double K;
-   CollisionResponse response = null;
+   double myStiffnessMultiplier;
+
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (
+         LinearElasticContact.class, ElasticContactBase.class);
+
+   public FunctionPropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+
+   static {
+      myProps.addWithField (
+         "YoungsModulus", "Young's elasticty modulus of elasticity", DEFAULT_E);
+      myProps.add (
+         "PoissonsRatio", "Poisson's ratio", DEFAULT_NU);
+   }
 
    /**
     * Need no-args constructor for scanning
@@ -36,139 +45,141 @@ public class LinearElasticContact
    public LinearElasticContact () {
    }
 
-   public LinearElasticContact (double youngsModulus, 
-      double poissionRatio, double damping, double thickness) {
+   /**
+    * Constructs a new LinearElasticContact material with specified properties.
+    *
+    * @param youngsModulus Young's modulus (the "stiffness")
+    * @param poissonsRatio Poissons ratio 
+    * @param dampingFactor multiplier for damping forces
+    * @param thickness thickness of the foundation layer
+    */
+   public LinearElasticContact (
+      double youngsModulus, double poissonsRatio,
+      double dampingFactor, double thickness) {
 //      handler = h;
       myThickness = thickness;
       myYoungsModulus = youngsModulus;
-      myDamping = damping;
-      myPoissonRatio = poissionRatio;
-      updateStiffness ();
+      myDampingFactor = dampingFactor;
+      myPoissonsRatio = poissonsRatio;
+      updateStiffnessMultiplier ();
    }
 
-   public void updateStiffness() {
-      K = -(1-myPoissonRatio)*myYoungsModulus/((1+myPoissonRatio)*(1-2*myPoissonRatio));      
+   protected void updateStiffnessMultiplier() {
+      myStiffnessMultiplier =
+         (1-myPoissonsRatio)/((1+myPoissonsRatio)*(1-2*myPoissonsRatio));      
    }
    
-   public void setResponse(CollisionResponse resp) {
-      response = resp;
-   }
-   
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public void computeResponse (
-      double[] fres, double dist, ContactPoint cpnt1, ContactPoint cpnt2,
-      Vector3d normal, double area) {
+      double[] fres, double dist, ContactPoint cpnt0, ContactPoint cpnt1,
+      Vector3d normal, double contactArea, int flags) {
       
+      double area = getContactArea (cpnt0, normal, contactArea);
 
-      // XXX assume cpnt1 is always interpenetrating vertex
-      //double area = 0.001d;
-
-      
-      
-      if (area==-1) {
-         System.err.println (
-            "EFContact: no region supplied; must use AJL_CONTOUR collisions");
+      double h = getThickness (cpnt0, cpnt1);
+      double E = getYoungsModulus(cpnt0, cpnt1);
+      double Ka = E*myStiffnessMultiplier*area;
+      if ((flags & TWO_WAY_CONTACT) != 0) {
+         Ka *= 0.5;
       }
       
-      if (myThickness+dist<tol) { // XXX how best to handle penetration larger than thickness?
-         dist = tol-myThickness;
+      if (myUseLogDistance) {
+         double r = myMinThicknessRatio;
+         if ((1+dist/h) < r) {
+            // linear zone near layer boundary
+            double slope = Ka/(h*r);
+            double fmin = Ka*Math.log(r);
+            fres[0] = fmin + slope*(dist-h*(r-1));
+            fres[1] = 1/slope;              
+         }
+         else {
+            fres[0] = Ka*Math.log (1+dist/h); // force (distance is negative)
+            fres[1] = (h+dist)/Ka; // compliance
+         }
       }
-      
-      fres[0] = -K*Math.log (1+dist/myThickness)*area; // force (distance is negative)
-      fres[1] = -(myThickness+dist)/(K*area); // compliance
-      fres[2] = myDamping;
-      
-   //   System.out.printf("d=%1.2e, area=%1.2e, [ %8.8f, %4.2f, %4.2f ]\n",dist,area,fres[0],fres[1],fres[2]);
+      else {
+         fres[0] = Ka*(dist/h); // force (distance is negative)
+         fres[1] = h/Ka; // compliance
+      }
+      fres[2] = computeDamping (fres[0], fres[1]);
    }
 
-   public double getPoissonRatio () {
-      return myPoissonRatio;
+   /**
+    * Queries Poisson's ratio for this material.
+    * 
+    * @return Poission's ratio
+    */
+   public double getPoissonsRatio () {
+      return myPoissonsRatio;
    }
 
-   public void setPoissonRatio (double poissionRatio) {
-      myPoissonRatio = poissionRatio;
-      updateStiffness ();
+   /**
+    * Sets Poisson's ratio for this material.
+    * 
+    * @param nu new value of Poission's ratio
+    */
+   public void setPoissonsRatio (double nu) {
+      myPoissonsRatio = nu;
+      updateStiffnessMultiplier ();
    }
 
+   /**
+    * Queries Young's modulus for this material.
+    *
+    * @return Young's modulus
+    */
    public double getYoungsModulus () {
       return myYoungsModulus;
    }
 
-   public void setYoungsModulus (double youngsModulus) {
-      this.myYoungsModulus = youngsModulus;
-      updateStiffness ();
+   /**
+    * Sets Young's modulus for this material.
+    * 
+    * @param E new value for Young's modulus
+    */
+   public void setYoungsModulus (double E) {
+      this.myYoungsModulus = E;
    }
 
-   public double getThickness () {
-      return myThickness;
-   }
-
-   public void setThickness (double thickness) {
-      this.myThickness = thickness;
-   }
-
-   public double getDamping () {
-      return myDamping;
-   }
-
-   public void setDamping (double damping) {
-      this.myDamping = damping;
-   }
-   
-   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
-      rtok.scanToken ('[');
-      while (rtok.nextToken() != ']') {
-         if (rtok.tokenIsWord()) {
-            if (rtok.sval.equals ("PoissonsRatio")) {
-               rtok.scanToken ('=');
-               myPoissonRatio = rtok.scanNumber();
-            }
-            else if (rtok.sval.equals ("YoungsModulus")) {
-               rtok.scanToken ('=');
-               myYoungsModulus = rtok.scanNumber();
-            }
-            else if (rtok.sval.equals ("thickness")) {
-               rtok.scanToken ('=');
-               myThickness = rtok.scanNumber();
-            }
-            else if (rtok.sval.equals ("damping")) {
-               rtok.scanToken ('=');
-               myDamping = rtok.scanNumber();
-            }
-            else {
-               throw new IOException (
-                  "Error scanning " + getClass().getName() +
-                  ": unexpected attribute name: " + rtok);
-            }
-         }
-         else {
-            throw new IOException (
-               "Error scanning " + getClass().getName() +
-               ": unexpected token: " + rtok);
-         }
+   /**
+    * Internal method to find Young's modulus in case it is bound to a
+    * field. Works the same as {@link #getThickness(ContactPoint,ContactPoint)}.
+    */
+   protected double getYoungsModulus (ContactPoint cpnt0, ContactPoint cpnt1) {
+      if (myYoungsModulusField == null) {
+         return getYoungsModulus();
       }
-      updateStiffness ();
+      else {
+         return getScalarFieldValue (myYoungsModulusField, cpnt0, cpnt1);
+      }
    }
 
-   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
-      throws IOException {
-
-      IndentingPrintWriter.printOpening (pw, "[ ");
-      IndentingPrintWriter.addIndentation (pw, 2);
-      pw.println ("YoungsModulus=" + fmt.format(myYoungsModulus));
-      pw.println ("PoissonsRatio=" + fmt.format(myPoissonRatio));
-      pw.println ("thickness=" + fmt.format(myThickness));
-      pw.println ("damping=" + fmt.format(myDamping));
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");     
+   /**
+    * Queries the field, if any, associated with Young's modulus.
+    *
+    * @return Young's modulus field, or {@code null}
+    */
+   public ScalarFieldComponent getYoungsModulusField() {
+      return myYoungsModulusField;
    }
 
-   public boolean isWritable() {
-      return true;
+   /**
+    * Binds Young's modulus to a field, or unbinds it if {@code field} is
+    * {@code null}.
+    *
+    * @param field field to bind to, or {@code null}
+    */
+   public void setYoungsModulusField (ScalarFieldComponent field) {
+      myYoungsModulusField = field;
    }
    
-   public LinearElasticContact clone() 
-      throws CloneNotSupportedException {
+   /**
+    * {@inheritDoc}
+    */
+   public LinearElasticContact clone() {
       return (LinearElasticContact)super.clone();
    }
    

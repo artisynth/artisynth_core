@@ -333,14 +333,11 @@ public class PointPlaneForce extends RenderableComponentBase
          return;
       }
       double d = distance();
-      double ddot = distanceDot();
-      double sgn = 1;
       if (myUnilateral && d > 0) {
          // no force to apply
          return;
       }
       else if (d < 0) {
-         sgn = -1;
          d = -d;
       }
       int idx = myPoint.getSolveIndex();

@@ -78,7 +78,7 @@ public class SimpleCollide extends RootModel {
    private ObjectType myBottomType = null;
 
    private enum ObjectType {
-      FemEllipsoid, FemCube, FemSphere, Box, Molar, Bin, Paw, House
+      FemEllipsoid, FemCube, FemSphere, Ellipsoid, Box, Molar, Bin, Paw, House
    }
 
    public static PropertyList myProps =
@@ -182,6 +182,16 @@ public class SimpleCollide extends RootModel {
             // }
             // }
             comp = fem;
+            break;
+         }
+         case Ellipsoid: {
+            PolygonalMesh mesh =
+               MeshFactory.createIcosahedralSphere (mySize, 2);
+            mesh.transform (new RigidTransform3d (0, 0, 0, 0, 0, Math.PI/3));
+            mesh.scale (1.5, 1, 1);
+            RigidBody body = RigidBody.createFromMesh (
+               "top", mesh, myDensity, 1.0);
+            comp = body;
             break;
          }
          case Box: {
@@ -374,6 +384,7 @@ public class SimpleCollide extends RootModel {
          case Molar:
          case Bin:
          case Paw:
+         case Ellipsoid:
          case House: {
             mechMod.removeRigidBody ((RigidBody)comp);
             break;
@@ -408,6 +419,10 @@ public class SimpleCollide extends RootModel {
             break;
          }
          case Molar: {
+            mechMod.addRigidBody ((RigidBody)comp);
+            break;
+         }
+         case Ellipsoid: {
             mechMod.addRigidBody ((RigidBody)comp);
             break;
          }
@@ -460,6 +475,11 @@ public class SimpleCollide extends RootModel {
                   0, 0, 2 * mySeparation, 1, 1, 0, Math.toRadians (170)));
             break;
          }
+         case Ellipsoid: {
+            RenderProps.setAlpha (rcomp, 0.3);
+            RenderProps.setDrawEdges (rcomp, true);
+            break;
+         }            
          case Box:
          case Molar:
          case Bin:
@@ -531,6 +551,7 @@ public class SimpleCollide extends RootModel {
             break;
          }
          case Paw:
+         case Ellipsoid:
          case House: {
             ((RigidBody)comp).setDynamic (false);
             break;
@@ -556,11 +577,14 @@ public class SimpleCollide extends RootModel {
       CollisionManager cm = mechMod.getCollisionManager();
       cm.setColliderType (ColliderType.SIGNED_DISTANCE);
       cm.setDrawIntersectionContours(true);
+      cm.setDrawContactNormals(true);
       RenderProps.setEdgeWidth (cm, 2);
       RenderProps.setEdgeColor (cm, Color.YELLOW);
+      RenderProps.setLineColor (cm, Color.BLUE);
+      RenderProps.setLineWidth (cm, 2);
       RenderProps.setVisible (cm, true);
 
-      setTopObject (ObjectType.FemEllipsoid);
+      setTopObject (ObjectType.Ellipsoid);
       setBottomObject (ObjectType.Box);
 
       // for block/block friction test

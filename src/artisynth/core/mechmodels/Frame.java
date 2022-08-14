@@ -47,6 +47,7 @@ import maspack.spatialmotion.Wrench;
 import maspack.util.DataBuffer;
 
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
+import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.modelbase.HasCoordinateFrame;
@@ -1338,9 +1339,10 @@ public class Frame extends DynamicComponentBase
    public void setContactConstraint (
       double[] buf, double w, Vector3d dir, ContactPoint cpnt) {
 
-      double lx = cpnt.myPoint.x - myState.pos.x;
-      double ly = cpnt.myPoint.y - myState.pos.y;
-      double lz = cpnt.myPoint.z - myState.pos.z;
+      Point3d cpos = cpnt.getPosition();
+      double lx = cpos.x - myState.pos.x;
+      double ly = cpos.y - myState.pos.y;
+      double lz = cpos.z - myState.pos.z;
 
       double nx = w*dir.x;
       double ny = w*dir.y;
@@ -1360,9 +1362,10 @@ public class Frame extends DynamicComponentBase
       // get point in world-oriented body coords
       Vector3d v = myState.vel.v;
       Vector3d o = myState.vel.w; // o for omega
-      double lx = cpnt.myPoint.x - myState.pos.x;
-      double ly = cpnt.myPoint.y - myState.pos.y;
-      double lz = cpnt.myPoint.z - myState.pos.z;
+      Point3d cpos = cpnt.getPosition();
+      double lx = cpos.x - myState.pos.x;
+      double ly = cpos.y - myState.pos.y;
+      double lz = cpos.z - myState.pos.z;
       vel.x += w*(v.x - ly*o.z + lz*o.y);
       vel.y += w*(v.y - lz*o.x + lx*o.z);
       vel.z += w*(v.z - lx*o.y + ly*o.x);
@@ -1567,7 +1570,7 @@ public class Frame extends DynamicComponentBase
       if ((si=getSolveIndex()) != -1) {
          Wrench wr = new Wrench(); // force to add
          Point3d locw = new Point3d(); // point location in world
-         locw.sub (cpnt.myPoint, getPosition());
+         locw.sub (cpnt.getPosition(), getPosition());
          wr.f.set (fc);
          wr.m.cross (locw, fc);
          uvec.addScaledSubVector (S.getBlockRowOffset(si), scale, wr);

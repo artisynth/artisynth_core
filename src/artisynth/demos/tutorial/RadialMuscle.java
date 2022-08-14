@@ -57,7 +57,7 @@ public class RadialMuscle extends RootModel {
       MaterialBundle bun = new MaterialBundle ("bundle",/*all elements=*/true);
       fem.addMaterialBundle (bun);
       SimpleForceMuscle muscleMat = new SimpleForceMuscle (500000);
-      muscleMat.setRestDirField (dirField, true);
+      muscleMat.setRestDirField (dirField);
       bun.setMaterial (muscleMat);
 
       // add a control panel to control the excitation

@@ -1,31 +1,43 @@
 package artisynth.core.modelbase;
 
-import java.io.PrintWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Deque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Collection;
-import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.FieldUtils.ScalarFieldFunction;
-import artisynth.core.util.*;
 
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.geometry.*;
-import maspack.render.*;
-import maspack.properties.*;
+import artisynth.core.util.ScanToken;
+import maspack.geometry.InterpolatingGridBase;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.ScalarGrid;
+import maspack.geometry.ScalarGridBase;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3i;
+import maspack.matrix.Vector3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.properties.PropertyList;
+import maspack.render.RenderList;
+import maspack.render.Renderer;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
- * Component that encapsulates a ScalarGrid.
+ * A scalar field defined over a regular 3D grid, using values set at the
+ * grid's vertices, with values at other points obtained using trilinear
+ * interpolation. The field is implemented using an embedded {@link ScalarGrid}
+ * component.
  */
 public class ScalarGridField 
-   extends GridCompBase implements ScalarField, FieldComponent {
+   extends GridFieldBase implements ScalarFieldComponent {
 
    ScalarGrid myGrid = null;
    PolygonalMesh mySurface = null;
    PolygonalMesh myRenderSurface = null;
    boolean mySurfaceValidP = false;
+
+   /**
+    * Special value indicating that a query point is outside the grid.
+    */
+   public static double OUTSIDE_GRID = ScalarGridBase.OUTSIDE_GRID;
 
    protected static double DEFAULT_SURFACE_DISTANCE = 0;
    private double mySurfaceDistance = DEFAULT_SURFACE_DISTANCE;
@@ -34,7 +46,7 @@ public class ScalarGridField
    private boolean myRenderSurfaceP = DEFAULT_RENDER_SURFACE;
 
    public static PropertyList myProps =
-      new PropertyList (ScalarGridField.class, GridCompBase.class);
+      new PropertyList (ScalarGridField.class, GridFieldBase.class);
 
    static {
       myProps.add (
@@ -50,80 +62,45 @@ public class ScalarGridField
       return myProps;
    }
 
-   public class RestFieldFunction extends ScalarFieldFunction {
-
-      public RestFieldFunction () {
-      }
-
-      public ScalarGridField getField() {
-         return ScalarGridField.this;
-      }
-
-      public double eval (FieldPoint def) {
-         return getValue (def.getRestPos());
-      }
-   }
-
-   public class SpatialFieldFunction extends ScalarFieldFunction {
-
-      public SpatialFieldFunction () {
-      }
-
-      public ScalarGridField getField() {
-         return ScalarGridField.this;
-      }
-
-      public double eval (FieldPoint def) {
-         return getValue (def.getRestPos());
-      }
-
-      public boolean useRestPos() {
-         return false;
-      }
-   }
-
-   public ScalarFieldFunction createFieldFunction (boolean useRestPos) {
-      if (useRestPos) {
-         return new RestFieldFunction();
-      }
-      else {
-         return new SpatialFieldFunction();
-      }
-   }
-
+   /**
+    * This constructor should not be called by applications, unless {@link
+    * #scan} is called immediately after.
+    */
    public ScalarGridField() {
       super();
    }
 
-   public ScalarGridField (String name) {
-      super(name);
-   }
-
-   public ScalarGridField (String name, ScalarGrid grid) {
-      super (name);
-      setGrid (grid);
-   }
-
-   public ScalarGridField ( ScalarGrid grid) {
+   /**
+    * Constructs a field using a given grid.
+    *
+    * @param grid scalar grid used to implement the field.
+    */
+   public ScalarGridField (ScalarGrid grid) {
       super();
       setGrid (grid);
    }
 
    /**
-    * Queries the field value associated with this grid at a specifed position.
-    * The position is assumed to be in either local or world coordinates
-    * depeneding on whether {@link #getLocalValuesForField} returns {@code true}.
-    * 
-    * @param pos query position
+    * Constructs a named field using a given grid.
+    *
+    * @param grid name name of the field
+    * @param grid scalar grid used to implement the field
     */
-   public double getValue (Point3d pos) {
-      if (myLocalValuesForFieldP) {
-         return myGrid.getLocalValue (pos);
-      }
-      else {
-         return myGrid.getWorldValue (pos);
-      }
+   public ScalarGridField (String name, ScalarGrid grid) {
+      super (name);
+      setGrid (grid);
    }
+
+   /**
+    * Returns the number of vertices in the grid.
+    *
+    * @return number of grid vertices
+    */
+   public int numVertices() {
+      return myGrid.numVertices();
+   }
+   
+   /* --- Begin property accessors --- */
 
    /**
     * Returns the distance value used for creating this grid's iso-surface.
@@ -166,6 +143,8 @@ public class ScalarGridField
       myRenderSurfaceP = enable;
    }
 
+   /* --- end property accessors --- */
+
    public void setLocalToWorld (RigidTransform3d TGW) {
       super.setLocalToWorld (TGW);
       if (mySurface != null) {
@@ -173,8 +152,152 @@ public class ScalarGridField
       }
    }
 
+   /**
+    * Queries the field value associated with this grid at a specified
+    * position.  The position is assumed to be in either local or world
+    * coordinates depending on whether {@link
+    * getUseLocalValuesForField} returns {@code true}.
+    *
+    * <p>If the query point is outside the grid, then the value for the nearest
+    * grid point is returned if the property {@code cliptoGrid} is {@code
+    * true}; otherwise the special value {@link #OUTSIDE_GRID} is returned.
+    * 
+    * @param pos query position
+    * @return value at the query position
+    */
+   public double getValue (Point3d pos) {
+      if (myUseLocalValuesForFieldP) {
+         return myGrid.getLocalValue (pos, myClipToGrid);
+      }
+      else {
+         return myGrid.getWorldValue (pos, myClipToGrid);
+      }
+   }
+   
+   /**
+    * Gets the position of the vertex indexed by its indices along the x, y,
+    * and z axes. The position is in either local or world coordinates
+    * depending on whether #getUseLocalValuesForField} returns
+    * {@code true}.
+    *
+    * @param xi x vertex index
+    * @param yj y vertex index
+    * @param zk z vertex index
+    * @return position of the vertex
+    */
+   public Point3d getVertexPosition (int xi, int yj, int zk) {
+      Point3d coords = new Point3d();
+      if (myUseLocalValuesForFieldP) {
+         return (Point3d)myGrid.getLocalVertexCoords (
+            coords, new Vector3i(xi, yj, zk));
+      }
+      else {
+         return (Point3d)myGrid.getWorldVertexCoords (
+            coords, new Vector3i(xi, yj, zk));
+      }
+   }
+        
+   /**
+    * Gets the position of the vertex indexed by {@code vi}.  See {@link
+    * #setVertexValue(int,double)} for a description of how {@code vi} is
+    * computed. The position is in either local or world coordinates depending
+    * on whether {@link #getUseLocalValuesForField} returns {@code true}.
+    *
+    * @param vi vertex index
+    * @return position of the vertex
+    */
+   public Point3d getVertexPosition (int vi) {
+      Point3d coords = new Point3d();
+      if (myUseLocalValuesForFieldP) {
+         return (Point3d)myGrid.getLocalVertexCoords (coords, vi);
+      }
+      else {
+         return (Point3d)myGrid.getWorldVertexCoords (coords, vi);
+      }
+   }
+        
+   public double getValue (FieldPoint fp) {
+      Point3d pos;
+      if (myUseFemRestPositions) {
+         pos = fp.getRestPos();
+      }
+      else {
+         pos = fp.getSpatialPos();
+      }
+      if (myUseLocalValuesForFieldP) {
+         return myGrid.getLocalValue (pos, myClipToGrid);
+      }
+      else {
+         return myGrid.getWorldValue (pos, myClipToGrid);
+      }
+   }
+
+   public double getValue (MeshFieldPoint fp) {
+      if (myUseLocalValuesForFieldP) {
+         return myGrid.getLocalValue (fp.getPosition(), myClipToGrid);
+      }
+      else {
+         return myGrid.getWorldValue (fp.getPosition(), myClipToGrid);
+      }
+   }
+
    public ScalarGrid getGrid() {
       return myGrid;
+   }
+
+   /**
+    * Returns the value at the grid vertex indexed by {@code vi}.  See {@link
+    * #setVertexValue(int,double)} for a description of how {@code vi} is
+    * computed.
+    *
+    * @param vi index of the vertex
+    * @return value at the vertex
+    */
+   public double getVertexValue (int vi) {
+      return myGrid.getVertexValue (vi);
+   }
+
+   /**
+    * Sets the value at the grid vertex indexed by its indices along the x,
+    * y, and z axes.
+    *
+    * @param xi x vertex index
+    * @param yj y vertex index
+    * @param zk z vertex index
+    * @param value new vertex value
+    */
+   public void setVertexValue (int xi, int yj, int zk, double value) {
+      myGrid.setVertexValue (xi, yj, zk, value);
+   }
+
+   /**
+    * Sets the value at the grid vertex indexed by {@code vi}, which is
+    * computed from the axial vertex indices {@code xi}, {@code yj}, {@code zk}
+    * according to
+    * <pre>
+    * vi = xi + nx*yj + (nx*ny)*zk
+    * </pre>
+    * where <code>nx</code> and <code>ny</code> are the number
+    * of vertices along x and y axes.
+    *
+    * @param vi index of the vertex
+    * @param value new vertex value
+    */
+   public void setVertexValue (int vi, double value) {
+      myGrid.setVertexValue (vi, value);
+   }
+
+   /**
+    * Returns the value at the grid vertex indexed by its indices along the x,
+    * y, and z axes.
+    *
+    * @param xi x vertex index
+    * @param yj y vertex index
+    * @param zk z vertex index
+    * @return value for the vertex
+    */
+   public double getVertexValue (int xi, int yj, int zk) {
+      return myGrid.getVertexValue (xi, yj, zk);
    }
 
    /**
@@ -235,6 +358,8 @@ public class ScalarGridField
          surf.render (renderer, myRenderProps, flags);
       }
    }
+
+   /* --- I/O --- */
 
    protected void writeGrid (PrintWriter pw, NumberFormat fmt)
       throws IOException {

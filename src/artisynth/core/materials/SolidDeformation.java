@@ -14,10 +14,6 @@ public class SolidDeformation implements DeformedPoint {
    double myP;              // local pressure
    RotationMatrix3d myRot;  // local rotation (if stiffness warping)
    
-   public int availableInfo() {
-      return 0;
-   }
-   
    public SolidDeformation() {
       myF = new Matrix3d();
       clear();
@@ -118,11 +114,7 @@ public class SolidDeformation implements DeformedPoint {
    public int getElementSubIndex() {
       return -1;
    }
-         
-   public int getPointIndex() {
-      return -1;
-   }
-
+ 
    public double[] getNodeWeights() {
       return null;
    }

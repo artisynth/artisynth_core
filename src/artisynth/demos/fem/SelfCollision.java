@@ -46,7 +46,17 @@ public class SelfCollision extends FemBeam3d {
          System.exit(1);
       }
 
+      FemMeshComp m1 = myFemMod.getMeshComp(1);
+      FemMeshComp m2 = myFemMod.getMeshComp(2);
+
       myMechMod.setCollisionBehavior (myFemMod, myFemMod, true);
+      //myMechMod.setCollisionBehavior (m1, m2, true);
+      //m1.setCollidable (Collidable.Collidability.OFF);
+      myFemMod.setCollidable (Collidable.Collidability.OFF);
+
+      CollisionBehavior behav = myMechMod.getActingCollisionBehavior (m1,m2);
+      System.out.println (
+         "behav=" + (behav != null ? behav.getName() : "null"));
       myFemMod.setMaterial (new LinearMaterial (40000, 0.2));
 
       // flair the ends so collision works properly

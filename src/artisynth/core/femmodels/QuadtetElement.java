@@ -269,26 +269,9 @@ public class QuadtetElement extends FemElement3d {
 
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         // adjusting barycentric coordinates 'a' to reflect a scaling by s
-         // is done by
-         //
-         // a' = s a + (1-s)/(n+1) e
-         //
-         // where a' is the new coordinates, n is the dimension of the
-         // space, and e is a column vector of ones.
-         //
-         // In particular, for n=3, the coordinates (1, 0, 0) which describe the
-         // first vertex of the simplex map onto (alpha, beta, beta), where
-         //
-         // alpha = (3 s + 1)/4, beta = (1-s)/4
-         //          
-         double s = 1/0.4472136;
-         Vector3d offset = new Vector3d ((1-s)/4, (1-s)/4, (1-s)/4);
-         Vector3d[] ncoords = getScaledNodeCoords (s, offset);
-         myNodalExtrapolationMatrix =
-            createNodalExtrapolationMatrix (ncoords, 4, new TetElement());
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalExtrapolationMatrix;         
    }
 
    public double getN (int i, Vector3d coords) {

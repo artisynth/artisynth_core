@@ -92,45 +92,45 @@ public class FunctionPropertyDesc extends PropertyDesc {
       }
    }
 
-   public void maybeWritePropertyFunction (
-      PrintWriter pw, HasProperties host, NumberFormat fmt,
-      CompositeComponent ancestor) throws IOException {
-      if (myGetFunctionMethod != null) {
-         FieldPointFunction func = getFunction (host);
-         FieldUtils.writeFunctionInfo (
-            pw, myFunctionName, func, fmt, ancestor);
-      }
-   }
+//   public void maybeWritePropertyFunction (
+//      PrintWriter pw, HasProperties host, NumberFormat fmt,
+//      CompositeComponent ancestor) throws IOException {
+//      if (myGetFunctionMethod != null) {
+//         FieldPointFunction func = getFunction (host);
+//         FieldUtils.writeFunctionInfo (
+//            pw, myFunctionName, func, fmt, ancestor);
+//      }
+//   }
 
    public void scanPropertyFunction (
       ReaderTokenizer rtok, HasProperties host,
       Deque<ScanToken> tokens) throws IOException {
 
-      FieldPointFunction fxn;
-      if (myFunctionIsScalar) {
-         fxn = FieldUtils.scanScalarFunctionInfo (
-            rtok, myFunctionName, tokens);
-      }
-      else {
-         fxn = FieldUtils.scanVectorFunctionInfo (
-            rtok, myFunctionName, tokens);
-      }
-      if (fxn != null) {
-         setFunction (host, fxn);
-      }
+//      FieldPointFunction fxn;
+//      if (myFunctionIsScalar) {
+//         fxn = FieldUtils.scanScalarFunctionInfo (
+//            rtok, myFunctionName, tokens);
+//      }
+//      else {
+//         fxn = FieldUtils.scanVectorFunctionInfo (
+//            rtok, myFunctionName, tokens);
+//      }
+//      if (fxn != null) {
+//         setFunction (host, fxn);
+//      }
    }
 
    public void postscanPropertyFunction (
       Deque<ScanToken> tokens, HasProperties host,
       CompositeComponent ancestor) throws IOException {
 
-      FieldPointFunction fxn;
-      if (myFunctionIsScalar) {
-         fxn = FieldUtils.postscanScalarFunctionInfo (tokens, ancestor);
-      }
-      else {
-         fxn = FieldUtils.postscanVectorFunctionInfo (tokens, ancestor);
-      }
-      setFunction (host, fxn);
+//      FieldPointFunction fxn;
+//      if (myFunctionIsScalar) {
+//         fxn = FieldUtils.postscanScalarFunctionInfo (tokens, ancestor);
+//      }
+//      else {
+//         fxn = FieldUtils.postscanVectorFunctionInfo (tokens, ancestor);
+//      }
+//      setFunction (host, fxn);
    }
 }

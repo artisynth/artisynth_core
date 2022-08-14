@@ -4906,6 +4906,75 @@ public class FemFactory {
    }
 
    /**
+    * Creates a hollow partial torus made of hex elements.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param R major radius
+    * @param rin inner part of the minor radius
+    * @param rout outer part of the minor radius
+    * @param nt element resolution around the minor radius
+    * @param nl element resolution around the major radius
+    * @param nr element resolution (plus 1) along the inner thickness
+    * @parsm theta angular circumference around the major radius.  Specifying
+    * {@code 2*Math.PI} will result in a full torus.
+    * @return created FEM model
+    */
+   public static FemModel3d createPartialHexTorus(
+      FemModel3d model,
+      double R, double rin, double rout, int nt, int nl, int nr, double theta) {
+
+      double dT = theta / nl;
+      double dt = 2 * Math.PI / nt;
+      double dr = (rout - rin) / (nr - 1);
+
+      boolean fullTorus = (Math.abs(theta-2*Math.PI) <= 1e-15);
+      int nnl = fullTorus ? nl : nl+1;
+      FemNode3d nodes[][][] = new FemNode3d[nt][nnl][nr];
+
+      RotationMatrix3d RM = new RotationMatrix3d(1.0, 0, 0, Math.PI / 2.0);
+      Vector3d pos = new Vector3d();
+
+      for (int k = 0; k < nr; k++) {
+         for (int j = 0; j < nnl; j++) {
+            for (int i = 0; i < nt; i++) {
+               pos.set(
+                  R * Math.cos(dT * j) + (rin + dr * k) * Math.cos(dt * i)
+                     * Math.cos(dT * j), R * Math.sin(dT * j) + (rin + dr * k)
+                     * Math.cos(dt * i) * Math.sin(dT * j), (rin + dr * k)
+                     * Math.sin(dt * i));
+               RM.mul(pos);
+
+               nodes[i][j][k] = new FemNode3d(new Point3d(pos));
+               model.addNode(nodes[i][j][k]);
+            }
+         }
+      }
+
+      HexElement elems[][][] = new HexElement[nt][nl][nr - 1];
+
+      for (int k = 0; k < nr - 1; k++) {
+         for (int j = 0; j < nl; j++) {
+            int jnext = fullTorus ? ((j+1)%nl) : j+1;
+            for (int i = 0; i < nt; i++) {
+               int inext = ((i+1)%nt);
+               elems[i][j][k] =
+                  new HexElement(
+                     nodes[i][j][k], nodes[inext][j][k],
+                     nodes[inext][jnext][k], nodes[i][jnext][k],
+                     nodes[i][j][k + 1], nodes[inext][j][k + 1],
+                     nodes[inext][jnext][k + 1], nodes[i][jnext][k + 1]
+                  );
+
+               model.addElement(elems[i][j][k]);
+            }
+         }
+      }
+
+      return model;
+   }
+
+   /**
     * Creates a hollow torus made of tet elements. Identical to {@link
     * #createTorus(FemModel3d,FemElementType,double,double,double,int,int,int)}
     * with the element type set to {@link FemElementType#Tet}.
@@ -6787,6 +6856,12 @@ public class FemFactory {
    public static void addFem(
       FemModel3d fem0, FemModel3d fem1, double nodeMergeDist) {
 
+
+      if (fem0 == fem1) {
+         throw new IllegalArgumentException (
+            "fem0 and fem1 are the same");
+      }
+      
       int flags = CopyableComponent.COPY_REFERENCES;
       HashMap<ModelComponent,ModelComponent> copyMap =
          new HashMap<ModelComponent,ModelComponent>();
@@ -6813,6 +6888,7 @@ public class FemFactory {
       for (FemNode3d n : newNodes) {
          fem0.myNodes.add(n);
       }
+      int oldsize = fem1.myElements.size();
       for (FemElement3d e : fem1.myElements) {
          FemElement3d newe = e.copy(flags, copyMap);
          newe.setName(e.getName());

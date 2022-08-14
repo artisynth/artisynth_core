@@ -34,7 +34,7 @@ public interface Renderable extends IsSelectable, HasRenderProps {
 
    // /**
    // * Saves the render state for this component and places any
-   // * necessary sub-components on the render list by calling
+   // * necessary subcomponents on the render list by calling
    // * {@link maspack.render.RenderList#addIfVisible
    // * RenderList.addIfVisible}.
    // *

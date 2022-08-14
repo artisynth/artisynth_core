@@ -2,23 +2,50 @@ package artisynth.core.modelbase;
 
 import maspack.matrix.Point3d;
 
+/**
+ * Provides information about an FEM integration point that can be used to
+ * evaluate the value of a {@link FieldComponent} at that point.
+ */
 public interface FieldPoint {
 
-   static int NODAL_INFO = 0x1;
-   static int ELEMENT_INFO = 0x2;
-   static int SUBELEM_INFO = (0x4 | ELEMENT_INFO);
-   static int ALL_INFO = (NODAL_INFO | ELEMENT_INFO);
-
-   int availableInfo();
-
+   /**
+    * Returns the point's rest position.
+    */
    Point3d getRestPos();
+
+   /**
+    * Returns the point's current spatial position.
+    */
    Point3d getSpatialPos();
 
-   double[] getNodeWeights();
-   int[] getNodeNumbers();   
-   
+   /**
+    * Returns an integer describing the type of element containing the point.
+    * 0 indicates a volumetric element, 1 indicates a shell element.
+    */
    int getElementType();
+
+   /**
+    * Returns the number of the element containing the point.
+    */
    int getElementNumber();
+
+   /**
+    * Returns the index of the integration point within the element.  This
+    * should be in the range 0 to n-1, where n is the total number of element
+    * integration point, including the warping point.
+    */
    int getElementSubIndex();
-   int getPointIndex();
+
+   /**
+    * Returns the node numbers of the element containing the point.
+    */
+   int[] getNodeNumbers();   
+
+   /**
+    * Returns the nodal weights of the point within the element, with each
+    * weight corresponding to the node whose number is returned by {@link
+    * #getNodeNumbers}.
+    */
+   double[] getNodeWeights();
+
 }

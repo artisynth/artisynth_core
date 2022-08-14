@@ -6,6 +6,7 @@
  */
 package artisynth.core.mechmodels;
 
+import artisynth.core.modelbase.ContactPoint;
 import maspack.matrix.*;
 
 /**

@@ -47,47 +47,47 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    PropertyMode myAlpha5Mode = PropertyMode.Inherited;
    PropertyMode myAlpha6Mode = PropertyMode.Inherited;
 
-   ScalarFieldPointFunction myMu1Function    = null;
-   ScalarFieldPointFunction myMu2Function    = null;
-   ScalarFieldPointFunction myMu3Function    = null;
-   ScalarFieldPointFunction myMu4Function    = null;
-   ScalarFieldPointFunction myMu5Function    = null;
-   ScalarFieldPointFunction myMu6Function    = null;
-   ScalarFieldPointFunction myAlpha1Function = null;
-   ScalarFieldPointFunction myAlpha2Function = null;
-   ScalarFieldPointFunction myAlpha3Function = null;
-   ScalarFieldPointFunction myAlpha4Function = null;
-   ScalarFieldPointFunction myAlpha5Function = null;
-   ScalarFieldPointFunction myAlpha6Function = null;
+   ScalarFieldComponent myMu1Field    = null;
+   ScalarFieldComponent myMu2Field    = null;
+   ScalarFieldComponent myMu3Field    = null;
+   ScalarFieldComponent myMu4Field    = null;
+   ScalarFieldComponent myMu5Field    = null;
+   ScalarFieldComponent myMu6Field    = null;
+   ScalarFieldComponent myAlpha1Field = null;
+   ScalarFieldComponent myAlpha2Field = null;
+   ScalarFieldComponent myAlpha3Field = null;
+   ScalarFieldComponent myAlpha4Field = null;
+   ScalarFieldComponent myAlpha5Field = null;
+   ScalarFieldComponent myAlpha6Field = null;
 
    private SymmetricMatrix3d myB;
    private SymmetricMatrix3d myB2;
    private SymmetricMatrix3d myTmp;
    
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Alpha1:Inherited", "Alpha1", DEFAULT_ALPHA1);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Alpha2:Inherited", "Alpha2", DEFAULT_ALPHA2);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Alpha3:Inherited", "Alpha3", DEFAULT_ALPHA3);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Alpha4:Inherited", "Alpha4", DEFAULT_ALPHA4);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Alpha5:Inherited", "Alpha5", DEFAULT_ALPHA5);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Alpha6:Inherited", "Alpha6", DEFAULT_ALPHA6);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Mu1:Inherited", "Mu1", DEFAULT_MU1);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Mu2:Inherited", "Mu2", DEFAULT_MU2);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Mu3:Inherited", "Mu3", DEFAULT_MU3);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Mu4:Inherited", "Mu4", DEFAULT_MU4);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Mu5:Inherited", "Mu5", DEFAULT_MU5);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "Mu6:Inherited", "Mu6", DEFAULT_MU6);
    }
 
@@ -239,141 +239,81 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    }
 
    public double getMu1 (FieldPoint dp) {
-      return (myMu1Function == null ? getMu1() : myMu1Function.eval(dp));
+      return (myMu1Field == null ? getMu1() : myMu1Field.getValue(dp));
    }
 
    public double getMu2 (FieldPoint dp) {
-      return (myMu2Function == null ? getMu2() : myMu2Function.eval(dp));
+      return (myMu2Field == null ? getMu2() : myMu2Field.getValue(dp));
    }
 
    public double getMu3 (FieldPoint dp) {
-      return (myMu3Function == null ? getMu3() : myMu3Function.eval(dp));
+      return (myMu3Field == null ? getMu3() : myMu3Field.getValue(dp));
    }
 
    public double getMu4 (FieldPoint dp) {
-      return (myMu4Function == null ? getMu4() : myMu4Function.eval(dp));
+      return (myMu4Field == null ? getMu4() : myMu4Field.getValue(dp));
    }
 
    public double getMu5 (FieldPoint dp) {
-      return (myMu5Function == null ? getMu5() : myMu5Function.eval(dp));
+      return (myMu5Field == null ? getMu5() : myMu5Field.getValue(dp));
    }
 
    public double getMu6 (FieldPoint dp) {
-      return (myMu6Function == null ? getMu6() : myMu6Function.eval(dp));
+      return (myMu6Field == null ? getMu6() : myMu6Field.getValue(dp));
    }
 
-   public ScalarFieldPointFunction getMu1Function() {
-      return myMu1Function;
+   public ScalarFieldComponent getMu1Field() {
+      return myMu1Field;
    }
 
-   public ScalarFieldPointFunction getMu2Function() {
-      return myMu2Function;
+   public ScalarFieldComponent getMu2Field() {
+      return myMu2Field;
    }
 
-   public ScalarFieldPointFunction getMu3Function() {
-      return myMu3Function;
+   public ScalarFieldComponent getMu3Field() {
+      return myMu3Field;
    }
 
-   public ScalarFieldPointFunction getMu4Function() {
-      return myMu4Function;
+   public ScalarFieldComponent getMu4Field() {
+      return myMu4Field;
    }
 
-   public ScalarFieldPointFunction getMu5Function() {
-      return myMu5Function;
+   public ScalarFieldComponent getMu5Field() {
+      return myMu5Field;
    }
 
-   public ScalarFieldPointFunction getMu6Function() {
-      return myMu6Function;
+   public ScalarFieldComponent getMu6Field() {
+      return myMu6Field;
    }
 
-   public void setMu1Function (ScalarFieldPointFunction func) {
-      myMu1Function = func;
+   public void setMu1Field (ScalarFieldComponent func) {
+      myMu1Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMu2Function (ScalarFieldPointFunction func) {
-      myMu2Function = func;
+   public void setMu2Field (ScalarFieldComponent func) {
+      myMu2Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMu3Function (ScalarFieldPointFunction func) {
-      myMu3Function = func;
+   public void setMu3Field (ScalarFieldComponent func) {
+      myMu3Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMu4Function (ScalarFieldPointFunction func) {
-      myMu4Function = func;
+   public void setMu4Field (ScalarFieldComponent func) {
+      myMu4Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMu5Function (ScalarFieldPointFunction func) {
-      myMu5Function = func;
+   public void setMu5Field (ScalarFieldComponent func) {
+      myMu5Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMu6Function (ScalarFieldPointFunction func) {
-      myMu6Function = func;
+   public void setMu6Field (ScalarFieldComponent func) {
+      myMu6Field = func;
       notifyHostOfPropertyChange();
-   }
-
-   public void setMu1Field (
-      ScalarField field, boolean useRestPos) {
-      myMu1Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setMu2Field (
-      ScalarField field, boolean useRestPos) {
-      myMu2Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setMu3Field (
-      ScalarField field, boolean useRestPos) {
-      myMu3Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setMu4Field (
-      ScalarField field, boolean useRestPos) {
-      myMu4Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-   
-   public void setMu5Field (
-      ScalarField field, boolean useRestPos) {
-      myMu5Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-   
-   public void setMu6Field (
-      ScalarField field, boolean useRestPos) {
-      myMu6Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getMu1Field () {
-      return FieldUtils.getFieldFromFunction (myMu1Function);
-   }
-
-   public ScalarField getMu2Field () {
-      return FieldUtils.getFieldFromFunction (myMu2Function);
-   }
-
-   public ScalarField getMu3Field () {
-      return FieldUtils.getFieldFromFunction (myMu3Function);
-   }
-
-   public ScalarField getMu4Field () {
-      return FieldUtils.getFieldFromFunction (myMu4Function);
-   }
-
-   public ScalarField getMu5Field () {
-      return FieldUtils.getFieldFromFunction (myMu5Function);
-   }
-
-   public ScalarField getMu6Field () {
-      return FieldUtils.getFieldFromFunction (myMu6Function);
    }
 
    public synchronized void setAlpha1 (double alpha) {
@@ -497,141 +437,81 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
    }
 	   
    public double getAlpha1 (FieldPoint dp) {
-      return (myAlpha1Function == null ? getAlpha1() : myAlpha1Function.eval(dp));
+      return (myAlpha1Field == null ? getAlpha1() : myAlpha1Field.getValue(dp));
    }
 
    public double getAlpha2 (FieldPoint dp) {
-      return (myAlpha2Function == null ? getAlpha2() : myAlpha2Function.eval(dp));
+      return (myAlpha2Field == null ? getAlpha2() : myAlpha2Field.getValue(dp));
    }
 
    public double getAlpha3 (FieldPoint dp) {
-      return (myAlpha3Function == null ? getAlpha3() : myAlpha3Function.eval(dp));
+      return (myAlpha3Field == null ? getAlpha3() : myAlpha3Field.getValue(dp));
    }
 
    public double getAlpha4 (FieldPoint dp) {
-      return (myAlpha4Function == null ? getAlpha4() : myAlpha4Function.eval(dp));
+      return (myAlpha4Field == null ? getAlpha4() : myAlpha4Field.getValue(dp));
    }
 
    public double getAlpha5 (FieldPoint dp) {
-      return (myAlpha5Function == null ? getAlpha5() : myAlpha5Function.eval(dp));
+      return (myAlpha5Field == null ? getAlpha5() : myAlpha5Field.getValue(dp));
    }
 
    public double getAlpha6 (FieldPoint dp) {
-      return (myAlpha6Function == null ? getAlpha6() : myAlpha6Function.eval(dp));
+      return (myAlpha6Field == null ? getAlpha6() : myAlpha6Field.getValue(dp));
    }
 
-   public ScalarFieldPointFunction getAlpha1Function() {
-      return myAlpha1Function;
+   public ScalarFieldComponent getAlpha1Field() {
+      return myAlpha1Field;
    }
 
-   public ScalarFieldPointFunction getAlpha2Function() {
-      return myAlpha2Function;
+   public ScalarFieldComponent getAlpha2Field() {
+      return myAlpha2Field;
    }
 
-   public ScalarFieldPointFunction getAlpha3Function() {
-      return myAlpha3Function;
+   public ScalarFieldComponent getAlpha3Field() {
+      return myAlpha3Field;
    }
 
-   public ScalarFieldPointFunction getAlpha4Function() {
-      return myAlpha4Function;
+   public ScalarFieldComponent getAlpha4Field() {
+      return myAlpha4Field;
    }
 
-   public ScalarFieldPointFunction getAlpha5Function() {
-      return myAlpha5Function;
+   public ScalarFieldComponent getAlpha5Field() {
+      return myAlpha5Field;
    }
 
-   public ScalarFieldPointFunction getAlpha6Function() {
-      return myAlpha6Function;
+   public ScalarFieldComponent getAlpha6Field() {
+      return myAlpha6Field;
    }
 
-   public void setAlpha1Function (ScalarFieldPointFunction func) {
-      myAlpha1Function = func;
+   public void setAlpha1Field (ScalarFieldComponent func) {
+      myAlpha1Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setAlpha2Function (ScalarFieldPointFunction func) {
-      myAlpha2Function = func;
+   public void setAlpha2Field (ScalarFieldComponent func) {
+      myAlpha2Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setAlpha3Function (ScalarFieldPointFunction func) {
-      myAlpha3Function = func;
+   public void setAlpha3Field (ScalarFieldComponent func) {
+      myAlpha3Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setAlpha4Function (ScalarFieldPointFunction func) {
-      myAlpha4Function = func;
+   public void setAlpha4Field (ScalarFieldComponent func) {
+      myAlpha4Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setAlpha5Function (ScalarFieldPointFunction func) {
-      myAlpha5Function = func;
+   public void setAlpha5Field (ScalarFieldComponent func) {
+      myAlpha5Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setAlpha6Function (ScalarFieldPointFunction func) {
-      myAlpha6Function = func;
+   public void setAlpha6Field (ScalarFieldComponent func) {
+      myAlpha6Field = func;
       notifyHostOfPropertyChange();
-   }
-
-   public void setAlpha1Field (
-      ScalarField field, boolean useRestPos) {
-      myAlpha1Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setAlpha2Field (
-      ScalarField field, boolean useRestPos) {
-      myAlpha2Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setAlpha3Field (
-      ScalarField field, boolean useRestPos) {
-      myAlpha3Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setAlpha4Field (
-      ScalarField field, boolean useRestPos) {
-      myAlpha4Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-   
-   public void setAlpha5Field (
-      ScalarField field, boolean useRestPos) {
-      myAlpha5Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-   
-   public void setAlpha6Field (
-      ScalarField field, boolean useRestPos) {
-      myAlpha6Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getAlpha1Field () {
-      return FieldUtils.getFieldFromFunction (myAlpha1Function);
-   }
-
-   public ScalarField getAlpha2Field () {
-      return FieldUtils.getFieldFromFunction (myAlpha2Function);
-   }
-
-   public ScalarField getAlpha3Field () {
-      return FieldUtils.getFieldFromFunction (myAlpha3Function);
-   }
-
-   public ScalarField getAlpha4Field () {
-      return FieldUtils.getFieldFromFunction (myAlpha4Function);
-   }
-
-   public ScalarField getAlpha5Field () {
-      return FieldUtils.getFieldFromFunction (myAlpha5Function);
-   }
-
-   public ScalarField getAlpha6Field () {
-      return FieldUtils.getFieldFromFunction (myAlpha6Function);
    }
 
   // See JC Simo and RL Taylor, Quasi-Incompressible Finite Elasticity in

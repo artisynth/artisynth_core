@@ -89,10 +89,10 @@ ComponentList<C> implements RenderableComponentListView<C>, RenderableComponent 
    }
 
    /**
-    * Queries if this list automatically renders any sub-components which do
+    * Queries if this list automatically renders any subcomponents which do
     * not have their own render props.
     *
-    * @return <code>true</code> if this list renders sub-components
+    * @return <code>true</code> if this list renders subcomponents
     * without render props
     */
    public boolean rendersSubComponents() {

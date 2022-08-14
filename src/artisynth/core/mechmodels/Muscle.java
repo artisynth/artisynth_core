@@ -341,7 +341,7 @@ public class Muscle extends AxialSpring
    public void render (Renderer renderer, int flags) {
       renderer.drawLine (
          myRenderProps, myPnt0.myRenderCoords, myPnt1.myRenderCoords,
-         myRenderColor, /*capped=*/false, isSelected());
+         myRenderColor, /*capped=*/true, isSelected());
    }
 
    /**

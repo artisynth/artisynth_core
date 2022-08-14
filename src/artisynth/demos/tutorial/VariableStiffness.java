@@ -45,7 +45,7 @@ public class VariableStiffness extends RootModel {
       // create a linear material, bind its Youngs modulus property to the
       // field, and set the material in the FEM model
       LinearMaterial linearMat = new LinearMaterial (100000, 0.49);
-      linearMat.setYoungsModulusField (stiffnessField, /*useRestPos=*/true);
+      linearMat.setYoungsModulusField (stiffnessField); //, /*useRestPos=*/true);
       fem.setMaterial (linearMat);
 
       // set some render properties for the FEM model

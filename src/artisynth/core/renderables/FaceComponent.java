@@ -34,6 +34,9 @@ public class FaceComponent extends RenderableComponentBase {
 
    static {
       myProps.add ("renderProps * *", "render properties", null);
+      myProps.addReadOnly ("normal", "face normal in mesh coordinates");
+      myProps.addReadOnly ("worldNormal", "face normal in world coordinates");
+      myProps.addReadOnly ("faceIndex", "index of the face");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -47,6 +50,10 @@ public class FaceComponent extends RenderableComponentBase {
 
    public Face getFace() {
       return myFace;
+   }
+
+   public int getFaceIndex() {
+      return myFace.getIndex();
    }
   
    @Override
@@ -219,7 +226,14 @@ public class FaceComponent extends RenderableComponentBase {
          k++;
       } while (he != face.firstHalfEdge());
       renderer.endDraw ();
+   }
 
+   public Vector3d getNormal() {
+      return myFace.getNormal();
+   }
+
+   public Vector3d getWorldNormal() {
+      return myFace.getWorldNormal();
    }
 
 }

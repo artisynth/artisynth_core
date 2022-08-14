@@ -19,6 +19,63 @@ public class TetElement extends FemElement3d {
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static FemElementRenderer myRenderer;
 
+   private static double[] myNodeCoords = new double[] 
+      {
+         0, 0, 0,
+         1, 0, 0,
+         0, 1, 0,
+         0, 0, 1
+      };
+
+   private static double[] myIntegrationCoords = new double[] {
+      0.25, 0.25, 0.25, 1/6.0,
+   };
+
+   private static double[] myNodeMassWeights = new double[] {
+      0.250,
+      0.250,
+      0.250,
+      0.250
+   };
+
+   /**
+    * Shape functions for the tet are
+    *
+    * N_0 = 1 - s1 - s2 - s3
+    * N_1 = s1
+    * N_2 = s2
+    * N_3 = s3
+    */
+   private static int myNumIntPoints = 1;
+
+   private static MatrixNd myNodalExtrapolationMatrix = null;
+
+   static int[] myEdgeIdxs = new int[]
+      {
+         2,   0, 1,
+         2,   0, 2,
+         2,   0, 3,
+         2,   1, 2,
+         2,   2, 3,
+         2,   3, 1 
+      };
+      
+   static int[] myFaceIdxs = new int[] 
+      {
+         3,   0, 2, 1,
+         3,   0, 1, 3,
+         3,   1, 2, 3, 
+         3,   2, 0, 3
+      };
+
+   static int[] myTriangulatedFaceIdxs = new int[] 
+      {
+         0, 2, 1,
+         0, 1, 3,
+         1, 2, 3, 
+         2, 0, 3
+      };
+
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
          myDefaultIntegrationPoints = 
@@ -191,36 +248,19 @@ public class TetElement extends FemElement3d {
       return (s0 >= 0 && s1 >= 0 && s2 >= 0 && s3 >= 0);
    }
 
-   /**
-    * Shape functions for the tet are
-    *
-    * N_0 = 1 - s1 - s2 - s3
-    * N_1 = s1
-    * N_2 = s2
-    * N_3 = s3
-    */
-   private static int myNumIntPoints = 1;
-
    public int numIntegrationPoints() {
       return myNumIntPoints;
    }
-
-   private static double[] myIntegrationCoords = new double[] {
-      0.25, 0.25, 0.25, 1/6.0,
-   };
 
    public double[] getIntegrationCoords () {
       return myIntegrationCoords;
    }
 
-   private static MatrixNd myNodalExtrapolationMatrix = null;
-
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         myNodalExtrapolationMatrix = new MatrixNd (1, 4);
-         myNodalExtrapolationMatrix.set (new double[] { 1, 1, 1, 1 });
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalExtrapolationMatrix;         
    }
 
    public double getN (int i, Vector3d coords) {
@@ -253,55 +293,13 @@ public class TetElement extends FemElement3d {
       }
    }
 
-
-   private static double[] myNodeCoords = new double[] 
-      {
-         0, 0, 0,
-         1, 0, 0,
-         0, 1, 0,
-         0, 0, 1
-      };
-
    public double[] getNodeCoords () {
       return myNodeCoords;
    }
 
-   private static double[] myNodeMassWeights = new double[] {
-      0.250,
-      0.250,
-      0.250,
-      0.250
-   };
-
    public double[] getNodeMassWeights () {
       return myNodeMassWeights;
    }
-
-   static int[] myEdgeIdxs = new int[]
-      {
-         2,   0, 1,
-         2,   0, 2,
-         2,   0, 3,
-         2,   1, 2,
-         2,   2, 3,
-         2,   3, 1 
-      };
-      
-   static int[] myFaceIdxs = new int[] 
-      {
-         3,   0, 2, 1,
-         3,   0, 1, 3,
-         3,   1, 2, 3, 
-         3,   2, 0, 3
-      };
-
-   static int[] myTriangulatedFaceIdxs = new int[] 
-      {
-         0, 2, 1,
-         0, 1, 3,
-         1, 2, 3, 
-         2, 0, 3
-      };
 
    public int[] getEdgeIndices() {
       return myEdgeIdxs;

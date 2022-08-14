@@ -1,20 +1,35 @@
 package artisynth.core.mechmodels;
 
-import java.io.PrintWriter;
 import java.io.IOException;
-import java.util.Deque;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Collection;
-import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.FieldUtils.ScalarFieldFunction;
-import artisynth.core.util.*;
+import java.util.Deque;
+import java.util.List;
 
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.geometry.*;
-import maspack.render.*;
-import maspack.properties.*;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.GridCompBase;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.util.ScanToken;
+import maspack.geometry.DistanceGrid;
+import maspack.geometry.DistanceGridSurfCalc;
+import maspack.geometry.Feature;
+import maspack.geometry.InterpolatingGridBase;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
+import maspack.properties.PropertyList;
+import maspack.render.RenderList;
+import maspack.render.Renderer;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Component that encapsulates a DistanceGrid.

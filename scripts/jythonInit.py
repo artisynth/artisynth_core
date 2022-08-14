@@ -218,3 +218,12 @@ def rundemos (fileName, time) :
           loadModel (demoname)
           play (time)
           waitForStop()
+
+def selnums() : 
+    for i in range (0, sel.size()) :
+        if i < sel.size()-1 :
+            print str(sel[i].getNumber())+',',
+        else:
+            print str(sel[i].getNumber()),
+    print
+

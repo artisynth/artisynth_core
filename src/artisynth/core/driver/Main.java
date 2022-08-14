@@ -2867,6 +2867,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
             int pidx = idx;
             // check for list of arguments:
             if ("-model".equals(pargs[pidx])) {
+               if (idx+1 == pargs.length) {
+                  System.err.println (
+                     "Error: option -model expects additional argument");
+                  return;
+               }
                modelName.value = pargs[++idx];
                modelArgs = new ArrayList<String>();
                int nidx = maybeCollectArgs(pargs, ++idx, modelArgs);
@@ -2876,6 +2881,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
                idx = nidx;
             }
             else if ("-script".equals(pargs[pidx])) {
+               if (idx+1 == pargs.length) {
+                  System.err.println (
+                     "Error: option -script expects additional argument");
+                  return;
+               }
                scriptFile.value = pargs[++idx];
                scriptArgs = new ArrayList<String>();
                int nidx = maybeCollectArgs(pargs, ++idx, scriptArgs);
@@ -2885,6 +2895,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
                idx = nidx;
             }
             else if ("-taskManager".equals(pargs[pidx])) {
+               if (idx+1 == pargs.length) {
+                  System.err.println (
+                     "Error: option -taskManager expects additional argument");
+                  return;
+               }
                taskManagerClassName.value = pargs[++idx];
                taskManagerArgs = new ArrayList<String>();
                int nidx = maybeCollectArgs(pargs, ++idx, taskManagerArgs);

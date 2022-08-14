@@ -80,7 +80,7 @@ public class PenetrationRender extends RootModel {
       CollisionBehavior behav = new CollisionBehavior (true, 0);
       behav.setMethod (CollisionBehavior.Method.INACTIVE);
       behav.setDrawColorMap (ColorMapType.PENETRATION_DEPTH); 
-      behav.setColorMapCollidable (1); // show penetration of mesh 0
+      behav.setRenderingCollidable (1); // show penetration of mesh 0
       mech.setCollisionBehavior (body0, body1, behav);
 
       CollisionManager cm = mech.getCollisionManager();

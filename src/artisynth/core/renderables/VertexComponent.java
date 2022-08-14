@@ -33,7 +33,13 @@ public class VertexComponent extends RenderableComponentBase implements
 
    static {
       myProps.add ("renderProps * *", "render properties", null);
-      myProps.add ("position * *", "position state", Point3d.ZERO, "%.8g");
+      myProps.add (
+         "position", "vertex position in mesh coordinates",
+         Point3d.ZERO, "%.8g");
+      myProps.add (
+         "worldPosition", "vertex position in world coordinates",
+         Point3d.ZERO, "%.8g");
+      myProps.addReadOnly ("vertexIndex", "index of the vertex");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -46,6 +52,10 @@ public class VertexComponent extends RenderableComponentBase implements
    
    public Vertex3d getVertex() {
       return myVertex;
+   }
+
+   public int getVertexIndex() {
+      return myVertex.getIndex();
    }
 
    @Override
@@ -122,10 +132,19 @@ public class VertexComponent extends RenderableComponentBase implements
    }
    
    public Point3d getPosition() {
-      return myVertex.getWorldPoint();
+      return myVertex.getPosition();
    }
    
    public void setPosition(Point3d pnt) {
+      myVertex.setPosition(pnt);
+      notifyVertexPositionModified();
+   }
+
+   public Point3d getWorldPosition() {
+      return myVertex.getWorldPoint();
+   }
+   
+   public void setWorldPosition(Point3d pnt) {
       
       MeshBase mesh = myVertex.getMesh();
       if (mesh == null || mesh.meshToWorldIsIdentity()) {

@@ -17,7 +17,7 @@ public class NeoHookeanMaterial extends FemMaterial {
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
-   private ScalarFieldPointFunction myEFunc;
+   private ScalarFieldComponent myEField;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
@@ -26,7 +26,7 @@ public class NeoHookeanMaterial extends FemMaterial {
    //private SymmetricMatrix3d myB2;
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "YoungsModulus:Inherited", "Youngs modulus", DEFAULT_E);
       myProps.addInheritable (
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU, "[-1,0.5]");
@@ -88,26 +88,16 @@ public class NeoHookeanMaterial extends FemMaterial {
    }
 
    public double getYoungsModulus (FieldPoint dp) {
-      return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
+      return (myEField == null ? getYoungsModulus() : myEField.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getYoungsModulusFunction() {
-      return myEFunc;
+   public ScalarFieldComponent getYoungsModulusField() {
+      return myEField;
    }
       
-   public void setYoungsModulusFunction (ScalarFieldPointFunction func) {
-      myEFunc = func;
+   public void setYoungsModulusField (ScalarFieldComponent func) {
+      myEField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setYoungsModulusField (
-      ScalarField field, boolean useRestPos) {
-      myEFunc = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getYoungsModulusField () {
-      return FieldUtils.getFieldFromFunction (myEFunc);
    }
 
    public void computeStressAndTangent (

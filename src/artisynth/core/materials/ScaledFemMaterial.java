@@ -28,13 +28,13 @@ public class ScaledFemMaterial extends FemMaterial {
 
    FemMaterial myBaseMaterial = DEFAULT_BASE_MATERIAL;
    double myScaling = DEFAULT_SCALING;
-   ScalarFieldPointFunction myScalingFunction;
+   ScalarFieldComponent myScalingField;
 
    public static FunctionPropertyList myProps =
       new FunctionPropertyList(ScaledFemMaterial.class, FemMaterial.class);
 
    static {
-      myProps.addWithFunction (
+      myProps.addWithField (
          "scaling", "scaling factor for the base material", DEFAULT_SCALING);
       PropertyDesc desc = myProps.add (
          "baseMaterial",
@@ -66,31 +66,21 @@ public class ScaledFemMaterial extends FemMaterial {
    }
 
    public double getScaling (FieldPoint dp) {
-      if (myScalingFunction == null) {
+      if (myScalingField == null) {
          return getScaling();
       }
       else {
-         return myScalingFunction.eval (dp);
+         return myScalingField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getScalingFunction() {
-      return myScalingFunction;
+   public ScalarFieldComponent getScalingField() {
+      return myScalingField;
    }
       
-   public void setScalingFunction (ScalarFieldPointFunction func) {
-      myScalingFunction = func;
+   public void setScalingField (ScalarFieldComponent func) {
+      myScalingField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setScalingField (
-      ScalarField field, boolean useRestPos) {
-      myScalingFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getScalingField () {
-      return FieldUtils.getFieldFromFunction (myScalingFunction);
    }
 
    /**

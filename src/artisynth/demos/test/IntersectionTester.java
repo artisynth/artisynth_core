@@ -450,8 +450,8 @@ public class IntersectionTester extends ControllerBase {
 
       ArrayList<IntersectionContour> contours = myContours;
       if (contours != null) {
-         renderer.setLineWidth (3);
-         renderer.setColor (Color.RED);
+         renderer.setLineWidth (myRenderProps.getLineWidth());
+         renderer.setColor (myRenderProps.getLineColor());
          for (IntersectionContour c : contours) {
             if (c.isClosed()) {
                renderer.beginDraw (DrawMode.LINE_LOOP);

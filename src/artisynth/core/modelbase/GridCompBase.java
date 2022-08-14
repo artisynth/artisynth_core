@@ -28,9 +28,6 @@ public abstract class GridCompBase extends RenderableComponentBase
    protected InterpolatingGridBase myRenderGrid;
    protected RigidTransform3d myLocalToWorld = new RigidTransform3d();
 
-   protected static boolean DEFAULT_LOCAL_VALUES_FOR_FIELD = true;
-   protected boolean myLocalValuesForFieldP = DEFAULT_LOCAL_VALUES_FOR_FIELD;
-
    protected static boolean DEFAULT_RENDER_GRID = true;
    protected boolean myRenderGridP = DEFAULT_RENDER_GRID;
 
@@ -42,9 +39,6 @@ public abstract class GridCompBase extends RenderableComponentBase
 
    static {
       myProps.add ("renderProps * *", "render properties", null);
-      myProps.add (
-         "localValuesForField", "use local values for field values", 
-         DEFAULT_LOCAL_VALUES_FOR_FIELD);
       myProps.add (
          "renderGrid", 
          "render the grid in the viewer",
@@ -66,24 +60,6 @@ public abstract class GridCompBase extends RenderableComponentBase
    public GridCompBase (String name) {
       this();
       setName (name);
-   }
-
-   /**
-    * Queries whether or local values should be used for field queries.
-    *
-    * @return {@code true} if local values should be used for field queries
-    */
-   public boolean getLocalValuesForField() {
-      return myLocalValuesForFieldP;
-   }
-
-   /**
-    * Sets whether or not local values should be used for field queries.
-    *
-    * @param enable if {@code true}, enables using local values for field queries
-    */
-   public void setLocalValuesForField (boolean enable) {
-      myLocalValuesForFieldP = enable;
    }
 
    /**

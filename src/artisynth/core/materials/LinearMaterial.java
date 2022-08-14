@@ -1,7 +1,6 @@
 package artisynth.core.materials;
 
 import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
@@ -19,13 +18,14 @@ public class LinearMaterial extends LinearMaterialBase {
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
-   private ScalarFieldPointFunction myEFunc;
+   //private ScalarFieldPointFunction myEFunc;
+   private ScalarFieldComponent myEField;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "YoungsModulus:Inherited", "Youngs modulus", DEFAULT_E, "[0,inf]");
       myProps.addInheritable (
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU, "[-1,0.5]");
@@ -90,26 +90,16 @@ public class LinearMaterial extends LinearMaterialBase {
    }
 
    public double getYoungsModulus (FieldPoint dp) {
-      return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
+      return (myEField == null ? getYoungsModulus() : myEField.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getYoungsModulusFunction() {
-      return myEFunc;
-   }
-      
-   public void setYoungsModulusFunction (ScalarFieldPointFunction func) {
-      myEFunc = func;
-      notifyHostOfPropertyChange();
+   public ScalarFieldComponent getYoungsModulusField() {
+      return myEField;
    }
    
-   public void setYoungsModulusField (
-      ScalarField field, boolean useRestPos) {
-      myEFunc = FieldUtils.setFunctionFromField (field, useRestPos);
+   public void setYoungsModulusField (ScalarFieldComponent field) {
+      myEField = field;
       notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getYoungsModulusField () {
-      return FieldUtils.getFieldFromFunction (myEFunc);
    }
 
    @Override

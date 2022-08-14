@@ -220,6 +220,13 @@ dorun()
 SurfaceMeshCollider.doEdgeEdgeContacts = False
 SurfaceMeshCollider.useAjlCollision = False
 
+loadModel ("artisynth.demos.test.Trampoline")
+mech = setModelOpts (2.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("Trampoline ConstrainedBackwardEuler");
+dorun()
+
 print SurfaceMeshIntersector.numRegularCalls
 print SurfaceMeshIntersector.numRobustCalls
 print SurfaceMeshIntersector.numClosestIntersectionCalls

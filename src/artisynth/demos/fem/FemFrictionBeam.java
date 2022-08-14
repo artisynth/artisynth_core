@@ -222,7 +222,7 @@ public class FemFrictionBeam extends RootModel {
       RenderProps.setVisible (cm, true);  
       CollisionBehavior behav = new CollisionBehavior (true, -1);
       // behav.setDrawColorMap (ColorMapType.CONTACT_PRESSURE); 
-      // behav.setColorMapCollidable (0); // show color map on collidable 0 (fem);
+      // behav.setRenderingCollidable (0); // show color map on collidable 0 (fem);
       // behav.setColorMapRange (new ScalarRange(0, 1.0));
       mech.setCollisionBehavior (fem, plate, behav);
       //mech.setStabilization (PosStabilization.GlobalStiffness);

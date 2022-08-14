@@ -17,12 +17,12 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
 
    private double myG = DEFAULT_G;
    PropertyMode myGMode = PropertyMode.Inherited;
-   ScalarFieldPointFunction myGFunction = null;
+   ScalarFieldComponent myGField = null;
 
    private SymmetricMatrix3d myB;
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "shearModulus:Inherited", "shear modulus", DEFAULT_G);
    }
 
@@ -61,31 +61,21 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
    }
 
    public double getShearModulus (FieldPoint dp) {
-      if (myGFunction == null) {
+      if (myGField == null) {
          return getShearModulus();
       }
       else {
-         return myGFunction.eval (dp);
+         return myGField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getShearModulusFunction() {
-      return myGFunction;
+   public ScalarFieldComponent getShearModulusField() {
+      return myGField;
    }
       
-   public void setShearModulusFunction (ScalarFieldPointFunction func) {
-      myGFunction = func;
+   public void setShearModulusField (ScalarFieldComponent func) {
+      myGField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setShearModulusField (
-      ScalarField field, boolean useRestPos) {
-      myGFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getShearModulusField () {
-      return FieldUtils.getFieldFromFunction (myGFunction);
    }
 
    public void computeDevStressAndTangent (

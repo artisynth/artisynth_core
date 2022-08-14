@@ -4,21 +4,19 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package artisynth.core.mechmodels;
+package artisynth.core.modelbase;
 
 import java.util.Arrays;
-import java.util.Iterator;
 
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.geometry.*;
 
 /**
- * Stores information about a contact point, including the point
- * value (in world coordinates), and, if necessary, the associated
- * vertices and weights.
+ * Stores information about a contact point, including its position value (in
+ * world coordinates), and, if necessary, the associated vertices and weights.
  */
-public class ContactPoint {
+public class ContactPoint implements MeshFieldPoint {
    
    Point3d myPoint;     // location of the point (world coordinates)
    Vertex3d[] myVtxs;   // vertices associated with the point
@@ -26,6 +24,7 @@ public class ContactPoint {
 
    public ContactPoint () {
       myPoint = new Point3d();
+      myVtxs = new Vertex3d[0];
    }
 
    public ContactPoint (Point3d pnt) {
@@ -52,35 +51,69 @@ public class ContactPoint {
       this();
       set (pnt, he, w1);
    }
-   
-   public Point3d getPoint() {
+
+   /**
+    * Returns the position of this contact point, in world coordinates.
+    *
+    * @return point position. Should not be modified.
+    */
+   public Point3d getPosition() {
       return myPoint;
    }
 
+   /**
+    * Returns the mesh vertices associated with this contact, if any. If there
+    * are no vertices, the returned array with have a length of 0.
+    *
+    * @return vertices associated with this contact. Should not be modified.
+    */
    public Vertex3d[] getVertices() {
       return myVtxs;
    }
 
+   /**
+    * Returns the number of mesh vertices associated with this contact, or 0 if
+    * there are no vertices.
+    *
+    * @return number of mesh vertices
+    */
    public int numVertices() {
       return myVtxs != null ? myVtxs.length : 0;
    }
 
+   /**
+    * Returns the mesh vertex weight associated with this contact, if any. If
+    * there are no vertices, this method will return {@code null}.
+    *
+    * @return vertex weights associated with this contact, or {@code
+    * null}. Should not be modified.
+    */
    public double[] getWeights() {
       return myWgts;
    }
 
+   /**
+    * Sets this contact point to correspond to a specific position in world
+    * coordinates, with no mesh vertices.
+    */
    public void set (Point3d pnt) {
       myPoint.set (pnt);
       myVtxs = new Vertex3d[0];
       myWgts = null;
    }
 
+   /**
+    * Sets this contact point to correspond to a single mesh vertex.
+    */
    public void set (Vertex3d vtx) {
       myPoint.set (vtx.getWorldPoint());
       myVtxs = new Vertex3d[] { vtx };
       myWgts = new double[] { 1.0 };
    }
 
+   /**
+    * Sets this contact point to be identical to another contact point.
+    */
    public void set (ContactPoint cpnt) {
       myPoint.set (cpnt.myPoint);
       if (cpnt.myVtxs == null) {
@@ -97,11 +130,15 @@ public class ContactPoint {
       }     
    }
 
-   public void set (Point3d pnt, Feature feat) {
-      myPoint.set (pnt);
-      setVerticesAndWeights (feat);
-   }
+//   void set (Point3d pnt, Feature feat) {
+//      myPoint.set (pnt);
+//      setVerticesAndWeights (feat);
+//   }
 
+   /**
+    * Sets this contact point to correspond to point on a mesh face, with
+    * specified barycentric coordinates.
+    */
    public void set (Point3d pnt, Face face, Vector2d coords) {
       myPoint.set (pnt);
       double w1 = coords.x;
@@ -110,50 +147,58 @@ public class ContactPoint {
       myWgts = new double[] { 1-(w1+w2), w1, w2 };
    }
 
+   /**
+    * Sets this contact point to correspond to a point on a mesh half edge.
+    */
    public void set (Point3d pnt, HalfEdge he, double w1) {
       myPoint.set (pnt);
       myVtxs = new Vertex3d[] { he.tail, he.head };
       myWgts = new double[] { 1-w1, w1 };
    }
 
-   public void set (Point3d pnt, Vertex3d[] vtxs, double[] wgts) {
-      myPoint.set (pnt);
-      if (vtxs.length != wgts.length) {
-         throw new IllegalArgumentException (
-            "vtxs and wgts differ in length: "+vtxs.length+" vs. "+wgts.length);
-      }
-      myVtxs = Arrays.copyOf (vtxs, vtxs.length);
-      myWgts = Arrays.copyOf (wgts, wgts.length);
-   }
+//   void set (Point3d pnt, Vertex3d[] vtxs, double[] wgts) {
+//      myPoint.set (pnt);
+//      if (vtxs.length != wgts.length) {
+//         throw new IllegalArgumentException (
+//            "vtxs and wgts differ in length: "+vtxs.length+" vs. "+wgts.length);
+//      }
+//      myVtxs = Arrays.copyOf (vtxs, vtxs.length);
+//      myWgts = Arrays.copyOf (wgts, wgts.length);
+//   }
 
-   public void setVerticesAndWeights (Feature feat) {
-      switch (feat.getType()) {
-         case Feature.VERTEX_3D: {
-            Vertex3d vtx = (Vertex3d)feat;
-            myVtxs = new Vertex3d[] {vtx};
-            myWgts = new double[] { 1 };
-            break;
-         }
-         case Feature.HALF_EDGE: {
-            HalfEdge he = (HalfEdge)feat;
-            setForEdge (he.tail, he.head);
-            break;
-         }
-         case Feature.FACE: {
-            Face face = (Face)feat;
-            HalfEdge he0 = face.firstHalfEdge();
-            HalfEdge he1 = he0.getNext();
-            HalfEdge he2 = he1.getNext();
-            setForTriangle (he0.head, he1.head, he2.head);
-            break;
-         }
-         default:{
-            throw new InternalErrorException (
-               "Unimplemented feature type " + feat.getClass());
-         }
-      }
-   }
+//   void setVerticesAndWeights (Feature feat) {
+//      switch (feat.getType()) {
+//         case Feature.VERTEX_3D: {
+//            Vertex3d vtx = (Vertex3d)feat;
+//            myVtxs = new Vertex3d[] {vtx};
+//            myWgts = new double[] { 1 };
+//            break;
+//         }
+//         case Feature.HALF_EDGE: {
+//            HalfEdge he = (HalfEdge)feat;
+//            setForEdge (he.tail, he.head);
+//            break;
+//         }
+//         case Feature.FACE: {
+//            Face face = (Face)feat;
+//            HalfEdge he0 = face.firstHalfEdge();
+//            HalfEdge he1 = he0.getNext();
+//            HalfEdge he2 = he1.getNext();
+//            setForTriangle (he0.head, he1.head, he2.head);
+//            break;
+//         }
+//         default:{
+//            throw new InternalErrorException (
+//               "Unimplemented feature type " + feat.getClass());
+//         }
+//      }
+//   }
 
+
+   /**
+    * Sets this contact point to correspond to an edge contact between two
+    * vertices. Used for testing.
+    */
    void setForEdge (Vertex3d v1, Vertex3d v2) {
       Vector3d u = new Vector3d();
       u.sub (v1.pnt, v2.pnt);
@@ -186,6 +231,10 @@ public class ContactPoint {
       myVtxs = new Vertex3d[] { v1, v2 };
    }
 
+   /**
+    * Sets this contact point to correspond to a face contact defined by three
+    * vertices. Used for testing.
+    */
    void setForTriangle (Vertex3d v1, Vertex3d v2, Vertex3d v3) {
       Vector3d r2 = new Vector3d();
       Vector3d r3 = new Vector3d();
@@ -236,6 +285,9 @@ public class ContactPoint {
       myVtxs = new Vertex3d[] { v1, v2, v3 };
    }
 
+   /**
+    * Save the information of contact point {@code cpnt} into a data buffer.
+    */
    public static void getState (DataBuffer data, ContactPoint cpnt) {
       if (cpnt == null) {
          data.zput (-1);
@@ -257,7 +309,11 @@ public class ContactPoint {
       }
    }
 
-   protected static ContactPoint setState (
+   /**
+    * Creates a contact point for information stored in a data buffer, using
+    * additional information supplied by the point's collision mesh.
+    */
+   public static ContactPoint setState (
       DataBuffer data, PolygonalMesh mesh) {
 
       int numv = data.zget();
@@ -281,6 +337,13 @@ public class ContactPoint {
       return cpnt;
    }
 
+   /**
+    * Returns a hash code for this contact point. If the point has associated
+    * vertices, the code is computed based on them, allowing contact points to
+    * be stored in a hash map based solely on their vertex structure.
+    *
+    * @return hash code for this contact point
+    */
    public int hashCode() {
       if (myVtxs == null) {
          return super.hashCode();
@@ -296,6 +359,13 @@ public class ContactPoint {
       }
    }
    
+   /**
+    * Queries the vertices associated with this contact point equal those of
+    * another. Vertex orderings are assumed to be the same.
+    *
+    * @param pnt contact point to which vertices are compared
+    * @return {@code true} if this point's vertices equal those of {@code pnt}
+    */
    public boolean verticesEqual (ContactPoint pnt) {
       Vertex3d[] otherVtxs = pnt.myVtxs;
       if (myVtxs.length != otherVtxs.length) {
@@ -314,23 +384,68 @@ public class ContactPoint {
          return true;
       }
    }
-   
+
+   /**
+    * Queries whether this contact point equals another object, based on
+    * equality of the vertices. This allows contact points to be stored in a
+    * hash map based solely on their vertex structure.
+    *
+    * @param obj object to which this contact point is compared
+    * @return {@code true} if {@code obj} is a contact point whose vertices
+    * equal those of this point
+    */
    public boolean equals(Object obj) {
       if (obj instanceof ContactPoint) {
          return verticesEqual ((ContactPoint)obj);
       }
       return false;
    }
-
-   public boolean isOnCollidable (CollidableBody cbody) {
+   
+   /**
+    * Returns the mesh of the first vertex associated with this contact point,
+    * or {@code null} if there are no vertices.
+    *
+    * @return mesh of the first vertex
+    */
+   public MeshBase getMesh() {
       if (myVtxs != null && myVtxs.length > 0) {
-         return myVtxs[0].getMesh() == cbody.getCollisionMesh();
+         return myVtxs[0].getMesh();
       }
       else {
-         return false;
+         return null;
       }
    }
+
+   /**
+    * Computes an estimate of the local contact for this point, assuming that
+    * it is associated with a vertex or edge-edge contact.  Otherwise, the
+    * method returns -1.
+    *
+    * @param nrml contact normal
+    * @return area estimate, or -1 if not vertex or edge-edge.
+    */
+   public double computeContactArea (Vector3d nrml) {
+      if (myVtxs == null || myVtxs.length != 1) {
+         return -1;
+      }
+      Vector3d xsum = new Vector3d();
+      // sum the cross products of all the face edges surrounding this
+      // vertex. This effectively gives an area-weighted vertex normal.
+      myVtxs[0].sumEdgeCrossProductsWorld (xsum);
+      // take the dot product of the vertex normal with the contact normal to
+      // get the area component in the contact plane. Divide by 6 because (a)
+      // cross products give twice the area, and (b) the vertex should take
+      // only 1/3 of the area of each incident face.
+      return Math.abs(nrml.dot(xsum)/6);     
+   }
    
+   /**
+    * Produces a string representation of this contact point, giving the
+    * position and vertex indices.
+    *
+    * @param fmtStr numeric format for the position information
+    * @return string representation of this contact point
+    */
    public String toString (String fmtStr) {
       String str = "[ pos=" + myPoint.toString (fmtStr);
       if (myVtxs != null) {

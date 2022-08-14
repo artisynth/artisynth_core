@@ -19,7 +19,9 @@ import maspack.matrix.VectorNi;
 import maspack.util.DataBuffer;
 import maspack.util.NumberFormat;
 import maspack.spatialmotion.FrictionInfo;
+import artisynth.core.materials.ContactForceBehavior;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
+import artisynth.core.modelbase.ContactPoint;
 
 /**
  * Information for a contact constraint formed by a single contact point.
@@ -182,7 +184,6 @@ public class ContactConstraint {
       myMasters1 = new ArrayList<ContactMaster>();
       myNormal = new Vector3d();
       myCpnt0 = new ContactPoint();
-      myCpnt0.myVtxs = new Vertex3d[0];
       myIdentifyByPoint1 = false;
       myFrictionForce = new Vector3d();
    }
@@ -253,8 +254,8 @@ public class ContactConstraint {
    }
 
    public int getBilateralInfo (
-      ConstraintInfo[] ginfo, int idx, double penTol, double[] fres,
-      ContactForceBehavior forceBehavior) {
+      int idx, double penTol, double[] fres, ContactForceBehavior forceBehavior,
+      ConstraintInfo[] ginfo, boolean twoWayContact, int flags) {
 
       setSolveIndex (idx);
       ConstraintInfo gi = ginfo[idx];
@@ -266,8 +267,7 @@ public class ContactConstraint {
       }
       if (forceBehavior != null) {
          forceBehavior.computeResponse (
-            fres, myDistance, myCpnt0, myCpnt1, 
-               myNormal, myContactArea);
+            fres, myDistance, myCpnt0, myCpnt1, myNormal, myContactArea, flags);
       }
       gi.force =      fres[0];
       gi.compliance = fres[1];
@@ -363,8 +363,16 @@ public class ContactConstraint {
    
    public int set1DFrictionForce (VectorNd phi, double s, int idx) {
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
-         if (myTangentialVelocity.norm() > 0) {
+         double mag;
+         if ((mag=myTangentialVelocity.norm()) > 0) {
             myPhi0 = s*phi.get(idx++);
+            // compute and store the actual friction force
+            if (myPhi0 != 0) {
+               myFrictionForce.scale (-myPhi0/mag, myTangentialVelocity);
+            }
+            else {
+               myFrictionForce.setZero();
+            }
          }
       }
       return idx;

@@ -1,54 +1,48 @@
 package artisynth.core.femmodels;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Deque;
+import java.util.List;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
-import artisynth.core.modelbase.FieldUtils.ScalarFieldFunction;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.FieldPoint;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.util.ScanToken;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.util.DynamicBooleanArray;
+import maspack.util.DynamicDoubleArray;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.properties.*;
-
+/**
+ * A scalar field defined over an FEM model, using values set at the
+ * nodes. Values at other points are obtained by nodal interpolation on the
+ * elements nearest to those points. Values at nodes for which no explicit
+ * value has been set are given by the field's <i>default value</i>.
+ */
 public class ScalarNodalField extends ScalarFemField {
 
-   DynamicDoubleArray myValues;
-   DynamicBooleanArray myValuesSet;
-   protected ArrayList<double[]> myValueArrays;  
-
-   protected class NodalFieldFunction 
-      extends ScalarFieldFunction {
-
-      public NodalFieldFunction () {
-      }
-
-      public ScalarNodalField getField() {
-         return ScalarNodalField.this;
-      }
-
-      public double eval (FieldPoint def) {
-         return getCachedValue (
-            def.getElementNumber(), def.getElementSubIndex());
-      }
-   }
-
-   public ScalarFieldFunction createFieldFunction (boolean useRestPos) {
-      return new NodalFieldFunction();
-   }
+   DynamicDoubleArray myValues;  // values at each node
+   DynamicBooleanArray myValset; // whether value is set at each node 
+   
+   // cached values
+   protected ArrayList<double[]> myVolumetricValues;  
+   protected ArrayList<double[]> myShellValues;  
 
    protected void initValues() {
       myValues = new DynamicDoubleArray();
-      myValuesSet = new DynamicBooleanArray();
+      myValset = new DynamicBooleanArray();
       updateValueLists();
    }
 
    protected void updateValueLists() {
       int size = myFem.getNodes().getNumberLimit();
       myValues.resize (size);
-      myValuesSet.resize (size);
+      myValset.resize (size);
    }
 
    /**
@@ -58,28 +52,73 @@ public class ScalarNodalField extends ScalarFemField {
    public ScalarNodalField () {
    }
    
+   /**
+    * Constructs a field for a given FEM model, with a default value of 0.
+    *
+    * @param fem FEM model over which the field is defined
+    */
    public ScalarNodalField (FemModel3d fem) {
       super (fem);
       initValues();
    }
 
+   /**
+    * Constructs a field for a given FEM model and default value.
+    * 
+    * @param fem FEM model over which the field is defined
+    * @param defaultValue default value for nodes which don't have
+    * explicitly set values
+    */
    public ScalarNodalField (FemModel3d fem, double defaultValue) {
       super (fem, defaultValue);
       initValues();
    }
 
+   /**
+    * Constructs a named field for a given FEM model, with a default value of
+    * 0.
+    * 
+    * @param name name of the field
+    * @param fem FEM model over which the field is defined
+    */
    public ScalarNodalField (String name, FemModel3d fem) {
       this (fem);
       setName (name);
    }
 
+   /**
+    * Constructs a named field for a given FEM model and default value.
+    *
+    * @param name name of the field
+    * @param fem FEM model over which the field is defined
+    * @param defaultValue default value for nodes which don't have
+    * explicitly set values
+    */
    public ScalarNodalField (String name, FemModel3d fem, double defaultValue) {
       this (fem, defaultValue);
       setName (name);
    }
 
+   private void checkNodeNum (int nodeNum) {
+      if (nodeNum >= myValset.size()) {
+         throw new IllegalArgumentException (
+            "nodeNum="+nodeNum+
+            ", max node num is "+ myFem.getNodes().getNumberLimit());
+      }
+   }
+
+   /**
+    * Returns the value at the node specified by the given number. The default
+    * value is returned if a value has not been explicitly set for that node.
+    * Node numbers are used instead of indices as they are more persistent if
+    * the FEM model is modified.
+    * 
+    * @param nodeNum node number
+    * @return value at the node
+    */
    public double getValue (int nodeNum) {
-      if (myValuesSet.get(nodeNum)) {
+      checkNodeNum (nodeNum);
+      if (myValset.get(nodeNum)) {
          return myValues.get (nodeNum);
       }
       else {
@@ -87,15 +126,98 @@ public class ScalarNodalField extends ScalarFemField {
       }
    }
 
+   /**
+    * Returns the value at a node. The default value is returned if a value
+    * has not been explicitly set for that node.
+    *
+    * @param node node for which the value is requested
+    * @return value at the node
+    */
    public double getValue (FemNode3d node) {
+      checkNodeBelongsToFem (node);
       return getValue (node.getNumber());
    }
 
-   public void setValue (FemNode3d node, double value) {
-      int nodeNum = node.getNumber();
-      myValues.set (nodeNum, value);
-      myValuesSet.set (nodeNum, true);
+   /**
+    * {@inheritDoc}
+    */
+   public double getValue (FieldPoint fp) {
+      return getCachedValue (
+         fp.getElementType(), fp.getElementNumber(), fp.getElementSubIndex());
    }
+
+   /**
+    * {@inheritDoc}
+    */  
+   public double getValue (Point3d pos) {
+      Point3d loc = new Point3d();
+      FemElement3dBase elem = myFem.findNearestElement (loc, pos);
+      if (elem == null) {
+         // shouldn't happen, but just in case
+         return myDefaultValue;
+      }
+      // TODO: if loc != pnt, then we are outside the element and we may want
+      // to handle this differently - like by returning the default value.
+      VectorNd weights = new VectorNd(elem.numNodes());
+      elem.getMarkerCoordinates (weights, null, loc, /*checkInside=*/false);
+      FemNode3d[] nodes = elem.getNodes();
+      int[] nodeNums = new int[nodes.length];
+      Vector3d posx = new Vector3d();
+      for (int i=0; i<nodeNums.length; i++) {
+         nodeNums[i] = nodes[i].getNumber();
+         posx.scaledAdd (weights.get(i), nodes[i].getPosition());
+      }
+      return getValue (nodeNums, weights.getBuffer());
+   }
+   
+   /**
+    * Sets the value at a node.
+    * 
+    * @param node node for which the value is to be set
+    * @param value new value for the node
+    */
+   public void setValue (FemNode3d node, double value) {
+      checkNodeBelongsToFem (node);
+      int nodeNum = node.getNumber();
+      checkNodeNum (nodeNum);      
+      myValues.set (nodeNum, value);
+      myValset.set (nodeNum, true);
+   }
+
+   /**
+    * Queries whether a value has been seen at a given node.
+    * 
+    * @param node node being queried
+    * @return {@code true} if a value has been set at the node
+    */
+   public boolean isValueSet (FemNode3d node) {
+      checkNodeBelongsToFem (node);
+      int nodeNum = node.getNumber();
+      checkNodeNum (nodeNum);      
+      return myValset.get (nodeNum);
+   }
+   
+   /**
+    * Clears the value at a given node. After this call, the node will be
+    * associated with the default value.
+    * 
+    * @param node node whose value is to be cleared
+    */
+   public void clearValue (FemNode3d node) {
+      checkNodeBelongsToFem (node);
+      int nodeNum = node.getNumber();
+      checkNodeNum (nodeNum);
+      myValset.set (nodeNum, false);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void clearAllValues() {
+      for (int i=0; i<myValset.size(); i++) {
+         myValset.set (i, false);
+      }
+   }   
 
    public double getValue (int[] nodeNums, double[] weights) {
       double value = 0;
@@ -105,9 +227,14 @@ public class ScalarNodalField extends ScalarFemField {
       return value;
    }
 
-   protected double[] initValueArray (int elemIdx) {
-      FemElement3dBase elem = getElementAtIndex (elemIdx);
-
+   protected double[] initValueArray (int elemType, int elemIdx) {
+      FemElement3dBase elem;
+      if (elemType == 0) {
+         elem = myFem.getElementByNumber (elemIdx);
+      }
+      else {
+         elem = myFem.getShellElementByNumber (elemIdx);
+      }
       FemNode3d[] nodes = (FemNode3d[])elem.getNodes();
       int[] nodeNums = new int[nodes.length];
       double[] weights = new double[nodes.length];
@@ -126,47 +253,51 @@ public class ScalarNodalField extends ScalarFemField {
       return varray;
    }
 
-   void initializeCache() {
-      myShellIndexOffset = myFem.getElements().getNumberLimit();
-      int maxelems =
-         myShellIndexOffset + myFem.getShellElements().getNumberLimit();
-      myValueArrays = new ArrayList<double[]>(maxelems);
-      for (int i=0; i<maxelems; i++) {
-         myValueArrays.add (null);
+   ArrayList<double[]> initCacheArray (int maxvals) {
+      ArrayList<double[]> array = new ArrayList<>(maxvals);
+      for (int i=0; i<maxvals; i++) {
+         array.add (null);
       }
+      return array;
+   }
+   
+   void initializeCache() {
+      myVolumetricValues = 
+         initCacheArray (myFem.getElements().getNumberLimit());
+      myShellValues = 
+         initCacheArray (myFem.getShellElements().getNumberLimit());
    }
 
-   protected double getCachedValue (int elemIdx, int subIdx) {
-      if (myValueArrays == null) {
+   protected double getCachedValue (int elemType, int elemIdx, int subIdx) {
+      if (myVolumetricValues == null) {
          initializeCache();
       }
-      double[] varray = myValueArrays.get(elemIdx);
-      if (varray == null) {
-         varray = initValueArray (elemIdx);
-         myValueArrays.set (elemIdx, varray);
+      double[] varray;
+      if (elemType == 0) {
+         varray = myVolumetricValues.get(elemIdx);
+         if (varray == null) {
+            varray = initValueArray (elemType, elemIdx);
+            myVolumetricValues.set (elemIdx, varray);
+         }
+      }
+      else {
+         varray = myShellValues.get(elemIdx);
+         if (varray == null) {
+            varray = initValueArray (elemType, elemIdx);
+            myShellValues.set (elemIdx, varray);
+         }
+      }
+      if (subIdx == -1) {
+         subIdx = 0;
       }
       return varray[subIdx];
    }
 
-   public double getValue (Point3d pos) {
-      Point3d loc = new Point3d();
-      FemElement3dBase elem = myFem.findNearestElement (loc, pos);
-      if (elem == null) {
-         // shouldn't happen, but just in case
-         return myDefaultValue;
-      }
-      // TODO: if loc != pnt, then we are outside the element and we may want
-      // to handle this differently - like by returning the default value.
-      VectorNd weights = new VectorNd(elem.numNodes());
-      elem.getMarkerCoordinates (weights, null, loc, /*checkInside=*/false);
-      FemNode3d[] nodes = elem.getNodes();
-      int[] nodeNums = new int[nodes.length];
-      for (int i=0; i<nodeNums.length; i++) {
-         nodeNums[i] = nodes[i].getNumber();
-      }
-      return getValue (nodeNums, weights.getBuffer());
-   }
-   
+   /* ---- Begin I/O methods ---- */
+
+   /**
+    * {@inheritDoc}
+    */  
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
@@ -174,51 +305,83 @@ public class ScalarNodalField extends ScalarFemField {
       super.writeItems (pw, fmt, ancestor);
       pw.println ("values=");
       writeValues (
-         pw, fmt, myValues, myValuesSet, 
+         pw, fmt, myValues, myValset, 
          new NodeWritableTest(myFem.getNodes()));
    }
 
+   /**
+    * {@inheritDoc}
+    */  
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
       if (scanAttributeName (rtok, "values")) {
          myValues = new DynamicDoubleArray();
-         myValuesSet = new DynamicBooleanArray();
-         scanValues (rtok, myValues, myValuesSet);
+         myValset = new DynamicBooleanArray();
+         scanValues (rtok, myValues, myValset);
          return true;
       }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);      
    }
 
+   /**
+    * {@inheritDoc}
+    */  
    public void postscan (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       super.postscan (tokens, ancestor);
       updateValueLists();
    }
 
+   /* ---- Begin edit methods ---- */
+
+   /**
+    * {@inheritDoc}
+    */  
    public void getSoftReferences (List<ModelComponent> refs) {
       for (int i=0; i<myValues.size(); i++) {
-         if (myValuesSet.get(i)) {
+         if (myValset.get(i)) {
             refs.add (myFem.getNodes().getByNumber(i));
          }
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */  
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
       if (undo) {
-         restoreReferencedValues (myValues, myValuesSet, undoInfo);
+         restoreReferencedValues (myValues, myValset, undoInfo);
       }
       else {
          removeUnreferencedValues (
-            myValues, myValuesSet, 
+            myValues, myValset, 
             new NodeReferencedTest (myFem.getNodes()), undoInfo);
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */  
    public void clearCacheIfNecessary() {
-      myValueArrays = null;
+      myVolumetricValues = null;
+      myShellValues = null;
    }
-   
+
+   /**
+    * Returns {@code true} if this field is functionally equal to another field.
+    * Intended mainly for testing and debugging.
+    */
+   public boolean equals (ScalarNodalField field) {
+      if (!super.equals (field)) {
+         return false;
+      }
+      if (!valueSetArraysEqual (
+             myValues, myValset, field.myValues, field.myValset)) {
+         return false;
+      }
+      return true;
+   }
 }

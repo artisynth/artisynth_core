@@ -76,7 +76,7 @@ public class ContactPressureRender extends RootModel {
       // create and set a collision behavior between the ball and surface.
       CollisionBehavior behav = new CollisionBehavior (true, 0);
       behav.setDrawColorMap (ColorMapType.CONTACT_PRESSURE); 
-      behav.setColorMapCollidable (1); // show color map on collidable 1 (sheet);
+      behav.setRenderingCollidable (1); // show color map on collidable 1 (sheet);
       behav.setColorMapRange (new ScalarRange(0, 15000.0));
       mech.setCollisionBehavior (ball, sheet, behav);
 

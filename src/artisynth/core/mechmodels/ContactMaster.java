@@ -8,6 +8,7 @@ package artisynth.core.mechmodels;
 
 import java.util.HashSet;
 
+import artisynth.core.modelbase.ContactPoint;
 import maspack.matrix.*;
 
 /**

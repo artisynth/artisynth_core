@@ -1,19 +1,24 @@
 package artisynth.core.femmodels;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Deque;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.femmodels.FemElement.ElementClass;
-import artisynth.core.util.*;
-import artisynth.core.modelbase.FieldUtils.VectorFieldFunction;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.util.ScanToken;
+import maspack.matrix.MatrixNd;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.properties.*;
-
+/**
+ * A vector field, for vectors of type {@link MatrixNd}, defined over an FEM
+ * model, using values set at the elements.  Values at other points are
+ * obtained by finding the elements nearest to those points. Values at element
+ * for which no explicit value has been set are given by the field's <i>default
+ * value</i>. Since values are assumed to be constant over a given element,
+ * this field is not continuous. The {@code MatrixNd} values must be a of a
+ * fixed size as specified in the field's constructor.
+ */
 public class MatrixNdElementField extends VectorElementField<MatrixNd> {
 
    protected int myRowSize;
@@ -29,6 +34,9 @@ public class MatrixNdElementField extends VectorElementField<MatrixNd> {
       myColSize = colSize;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    protected String checkSize (MatrixNd value) {
       if (value.rowSize() != myRowSize || value.colSize() != myColSize) {
@@ -40,11 +48,17 @@ public class MatrixNdElementField extends VectorElementField<MatrixNd> {
       }
    }  
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
-   protected MatrixNd createInstance () {
+   public MatrixNd createTypeInstance () {
       return new MatrixNd (myRowSize, myColSize);
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public boolean hasParameterizedType() {
       return false;
    }   
@@ -57,6 +71,13 @@ public class MatrixNdElementField extends VectorElementField<MatrixNd> {
       super (MatrixNd.class);
    }
 
+   /**
+    * Constructs a field for a given FEM model, with a default value of 0.
+    *
+    * @param rowSize row size of the field's {@code MatrixNd} values
+    * @param colSize column size of the field's {@code MatrixNd} values
+    * @param fem FEM model over which the field is defined
+    */
    public MatrixNdElementField (int rowSize, int colSize, FemModel3d fem) {
       super (MatrixNd.class); 
       initSize (rowSize, colSize);
@@ -64,6 +85,15 @@ public class MatrixNdElementField extends VectorElementField<MatrixNd> {
       initValues();
    }
 
+   /**
+    * Constructs a field for a given FEM model and default value.
+    * 
+    * @param rowSize row size of the field's {@code MatrixNd} values
+    * @param colSize column size of the field's {@code MatrixNd} values
+    * @param fem FEM model over which the field is defined
+    * @param defaultValue default value for elements which don't have
+    * explicitly set values
+    */
    public MatrixNdElementField (
       int rowSize, int colSize, FemModel3d fem, MatrixNd defaultValue) {
       super (MatrixNd.class);
@@ -72,12 +102,30 @@ public class MatrixNdElementField extends VectorElementField<MatrixNd> {
       initValues();
    }
 
+   /**
+    * Constructs a named field for a given FEM model, with a default value of 0.
+    * 
+    * @param name name of the field
+    * @param rowSize row size of the field's {@code MatrixNd} values
+    * @param colSize column size of the field's {@code MatrixNd} values
+    * @param fem FEM model over which the field is defined
+    */
    public MatrixNdElementField (
       String name, int rowSize, int colSize, FemModel3d fem) {
       this (rowSize, colSize, fem);
       setName (name);
    }
 
+   /**
+    * Constructs a named field for a given FEM model and default value.
+    *
+    * @param name name of the field
+    * @param rowSize row size of the field's {@code MatrixNd} values
+    * @param colSize column size of the field's {@code MatrixNd} values
+    * @param fem FEM model over which the field is defined
+    * @param defaultValue default value for elements which don't have
+    * explicitly set values
+    */
    public MatrixNdElementField (
       String name, int rowSize, int colSize, FemModel3d fem,
       MatrixNd defaultValue) {
@@ -85,6 +133,9 @@ public class MatrixNdElementField extends VectorElementField<MatrixNd> {
       setName (name);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
@@ -93,6 +144,9 @@ public class MatrixNdElementField extends VectorElementField<MatrixNd> {
       super.writeItems (pw, fmt, ancestor);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 

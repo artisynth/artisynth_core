@@ -301,9 +301,6 @@ public class PointMeshForce extends RenderableComponentBase
 
    /**
     * Removes all mesh-interacting points from this PointMeshForce.
-    *
-    * @param idx index of the requested point
-    * @return requested mesh-interacting point
     */
    public void clearAllPoints() {
       myPointInfo.clear();
@@ -327,7 +324,6 @@ public class PointMeshForce extends RenderableComponentBase
     *
     * @param enable if {@code true}, enables unilateral point-mesh
     * interactions.
-    * @return requested mesh-interacting point
     */
    public void setUnilateral (boolean enable) {
       if (enable != myUnilateral) {

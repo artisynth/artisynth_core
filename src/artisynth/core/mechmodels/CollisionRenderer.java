@@ -85,13 +85,32 @@ public class CollisionRenderer {
       ro.addLine (v0idx, v1idx);
    }
 
+   private void addForceLineSeg (
+      RenderObject ro, ContactConstraintData cc, Vector3d dir, double scale) {
+
+      if (scale != 0 && !dir.equals(Vector3d.ZERO)) {
+         Point3d p0 = cc.myCpnt0.getPosition();
+         Point3d p1 = new Point3d(p0);
+
+         if (cc.myPnt0OnCollidable1) {
+            // negate because we want to show the forces on collidable0
+            scale = -scale;
+         }
+         p1.scaledAdd (scale, dir);
+         
+         int v0idx = ro.vertex ((float)p0.x, (float)p0.y, (float)p0.z);
+         int v1idx = ro.vertex ((float)p1.x, (float)p1.y, (float)p1.z);
+         ro.addLine (v0idx, v1idx);
+      }
+   }
+
 
    private double maxlam = 20;
 
    private void maybeAddVertexFaceNormal (
       RenderObject ro, ContactConstraintData cc, double normalLen) {
 
-      addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, normalLen);
+      addLineSeg (ro, cc.myCpnt0.getPosition(), cc.myNormal, normalLen);
    }
 
    protected void findInsideFaces (
@@ -208,6 +227,12 @@ public class CollisionRenderer {
       if (behav.getDrawContactNormals()) {
          normalLen = handler.getContactNormalLen();
       }
+      // we want normals drawn to show the action against collidable0 as
+      // specified by the behavior, so negate normalLen if necessary to
+      // achieve this:  
+//      if (!handler.collidable0MatchesBehavior()) {
+//         normalLen = -normalLen;
+//      }
       if (normalLen != 0 && cinfo != null) {
          ro.lineGroup (SEGMENT_GRP);
          for (ContactConstraintData cc : handler.myLastUnilateralData) {
@@ -218,47 +243,35 @@ public class CollisionRenderer {
          }
       }
 
+      // we want forces drawn to show the action against collidable0 as
+      // specified by the behavior, so negate the force scale if necessary to
+      // achieve this:
+      //double baseForceScale = handler.collidable0MatchesBehavior() ? 1 : -1;
       double forceScale = 0;
-
       if (behav.getDrawContactForces()) {
-         forceScale = handler.getContactForceLenScale();
+         forceScale = /*baseForceScale*/handler.getContactForceLenScale();
       }
-
       if (forceScale != 0 && cinfo != null) {
          ro.lineGroup (FORCE_GRP);
          for (ContactConstraintData cc : handler.myLastUnilateralData) {
-            double len = forceScale*cc.myLambda;
-            if (len != 0) {
-               addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
-            }
+            addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
          }
          for (ContactConstraintData cc : handler.myLastBilateralData) {
-            double len = forceScale*cc.myLambda;
-            if (len != 0) {
-               addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
-            }
+            addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
          }
       }
 
       forceScale = 0;
       if (behav.getDrawFrictionForces()) {
-         forceScale = handler.getFrictionForceLenScale();
+         forceScale = /*baseForceScale*/handler.getFrictionForceLenScale();
       }
       if (forceScale != 0 && cinfo != null) {
          ro.lineGroup (FRICTION_FORCE_GRP);
          for (ContactConstraintData cc : handler.myLastBilateralData) {
-            double fmag = cc.myFrictionForce.norm();
-            if (fmag > 0) {
-               addLineSeg (
-                  ro, cc.myCpnt0.myPoint, cc.myFrictionForce, forceScale);
-            }
+            addForceLineSeg (ro, cc, cc.myFrictionForce, forceScale);
          }
          for (ContactConstraintData cc : handler.myLastUnilateralData) {
-            double fmag = cc.myFrictionForce.norm();
-            if (fmag > 0) {
-               addLineSeg (
-                  ro, cc.myCpnt0.myPoint, cc.myFrictionForce, forceScale);
-            }
+            addForceLineSeg (ro, cc, cc.myFrictionForce, forceScale);
          }
       }
        
@@ -347,7 +360,7 @@ public class CollisionRenderer {
          depth = range.clip(value);
       }
       else {
-         // clip 0 to lower range bound
+         // clip depth to lower bound to prevent negative color indices
          depth = range.getLowerBound();
       }
       int idx = (int)(255*((depth-range.getLowerBound())/range.getRange()));

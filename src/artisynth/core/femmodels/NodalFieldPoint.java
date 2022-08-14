@@ -19,20 +19,12 @@ public class NodalFieldPoint implements FieldPoint {
       myNodeNumbers[0] = node.getNumber();
    }
 
-   public int availableInfo() {
-      return NODAL_INFO;
-   }
-
    public Point3d getSpatialPos() {
       return myNode.getPosition();
    }
 
    public Point3d getRestPos() {
       return myNode.getRestPosition();
-   }
-
-   public int getPointIndex() {
-      return -1;
    }
 
    public int[] getNodeNumbers() {

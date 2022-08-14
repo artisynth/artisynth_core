@@ -27,6 +27,7 @@ public class BSpline3dElement extends FemElement3d {
    
    IntegrationPoint3d[] integrationPoints = null;
    IntegrationPoint3d warpingPoint = null;
+   static MatrixNd myNodalExtrapolationMatrix = null;
    
    public SplineBasis[] uvw = new SplineBasis[3];
 
@@ -565,10 +566,11 @@ public class BSpline3dElement extends FemElement3d {
       dNds.set(dN[idx]);
    }
 
-   @Override
    public MatrixNd getNodalExtrapolationMatrix () {
-      // TODO Auto-generated method stub
-      return null;
+      if (myNodalExtrapolationMatrix == null) {
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+      }
+      return myNodalExtrapolationMatrix;
    }
 
    @Override

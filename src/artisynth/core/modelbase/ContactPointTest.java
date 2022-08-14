@@ -4,7 +4,7 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package artisynth.core.mechmodels;
+package artisynth.core.modelbase;
 
 import maspack.util.*;
 import maspack.matrix.*;

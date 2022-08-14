@@ -30,25 +30,29 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    private Vector2d myNu;       // radial, z-axis Poisson's ratio
    private boolean stiffnessValid;
 
-   private VectorFieldPointFunction<Vector2d> myEFunction = null;
-   private ScalarFieldPointFunction myGFunction = null;
-   private VectorFieldPointFunction<Vector3d> myDirectionFunction = null;
+   // private VectorFieldPointFunction<Vector2d> myEFunction = null;
+   // private ScalarFieldPointFunction myGFunction = null;
+   // private VectorFieldPointFunction<Vector3d> myDirectionFunction = null;
+   
+   private VectorFieldComponent<Vector2d> myEField = null;
+   private ScalarFieldComponent myGField = null;
+   private VectorFieldComponent<Vector3d> myDirectionField = null;
    
    public static FunctionPropertyList myProps =
       new FunctionPropertyList (
          TransverseLinearMaterial.class, LinearMaterialBase.class);
 
    static {
-      myProps.addWithFunction (
+      myProps.addWithField (
          "youngsModulus", "radial and z-axis Young's modulus,",
          DEFAULT_YOUNGS_MODULUS);
-      myProps.addWithFunction (
+      myProps.addWithField (
          "shearModulus", "radial-to-z-axis shear modulus,",
          DEFAULT_SHEAR_MODULUS);
       myProps.add (
          "poissonsRatio", "radial and z-axis Young's modulus,",
          DEFAULT_POISSONS_RATIO);
-      myProps.addWithFunction (
+      myProps.addWithField (
          "direction", "anisotropic direction", DEFAULT_DIRECTION);
    }
 
@@ -149,32 +153,16 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    public Vector2d getYoungsModulus (FieldPoint dp) {
-      if (myEFunction == null) {
-         return getYoungsModulus();
-      }
-      else {
-         return myEFunction.eval (dp);
-      }
+      return myEField == null ? getYoungsModulus() : myEField.getValue (dp);
    }
 
-   public VectorFieldPointFunction<Vector2d> getYoungsModulusFunction() {
-      return myEFunction;
+   public VectorFieldComponent<Vector2d> getYoungsModulusField() {
+      return myEField;
    }
       
-   public void setYoungsModulusFunction (
-      VectorFieldPointFunction<Vector2d> func) {
-      myEFunction = func;
+   public void setYoungsModulusField (VectorFieldComponent<Vector2d> field) {
+      myEField = field;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setYoungsModulusField (
-      VectorField<Vector2d> field, boolean useRestPos) {
-      myEFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public VectorField<Vector2d> getYoungsModulusField () {
-      return FieldUtils.getFieldFromFunction (myEFunction);
    }
 
    /**
@@ -196,32 +184,17 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    public Vector3d getDirection (FieldPoint dp) {
-      if (myDirectionFunction == null) {
-         return getDirection();
-      }
-      else {
-         return myDirectionFunction.eval (dp);
-      }
+      return (myDirectionField == null ?
+              getDirection() : myDirectionField.getValue (dp));
    }
 
-   public VectorFieldPointFunction<Vector3d> getDirectionFunction() {
-      return myDirectionFunction;
+   public VectorFieldComponent<Vector3d> getDirectionField() {
+      return myDirectionField;
    }
       
-   public void setDirectionFunction (
-      VectorFieldPointFunction<Vector3d> func) {
-      myDirectionFunction = func;
+   public void setDirectionField (VectorFieldComponent<Vector3d> field) {
+      myDirectionField = field;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setDirectionField (
-      VectorField<Vector3d> field, boolean useRestPos) {
-      myDirectionFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public VectorField<Vector3d> getDirectionField () {
-      return FieldUtils.getFieldFromFunction (myDirectionFunction);
    }
 
    /**
@@ -247,31 +220,16 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
 
    public double getShearModulus (FieldPoint dp) {
-      if (myGFunction == null) {
-         return getShearModulus();
-      }
-      else {
-         return myGFunction.eval (dp);
-      }
+      return myGField == null ? getShearModulus() : myGField.getValue(dp);
    }
 
-   public ScalarFieldPointFunction getShearModulusFunction() {
-      return myGFunction;
+   public ScalarFieldComponent getShearModulusField() {
+      return myGField;
    }
       
-   public void setShearModulusFunction (ScalarFieldPointFunction func) {
-      myGFunction = func;
+   public void setShearModulusField (ScalarFieldComponent field) {
+      myGField = field;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setShearModulusField (
-      ScalarField field, boolean useRestPos) {
-      myGFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getShearModulusField () {
-      return FieldUtils.getFieldFromFunction (myGFunction);
    }
    
    /**
@@ -308,7 +266,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    protected void maybeUpdateStiffness(DeformedPoint defp) {
-      boolean functionalParams = (myEFunction != null || myGFunction != null);
+      boolean functionalParams = (myEField != null || myGField != null);
       if (!stiffnessValid || functionalParams) {
          Vector2d E;
          double G;

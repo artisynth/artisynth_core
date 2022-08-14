@@ -22,6 +22,7 @@ import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentListImpl;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
@@ -143,7 +144,8 @@ public class RigidBody extends Frame
 
     static {
       myProps.remove ("renderProps");
-      myProps.add ("renderProps * *", "render properties", null);
+      myProps.add (
+         "renderProps * *", "render properties", createDefaultRenderProps());
       myProps.add (
          "inertiaMethod", "means by which inertia is determined",
          DEFAULT_INERTIA_METHOD);
@@ -1307,6 +1309,11 @@ public class RigidBody extends Frame
 
    /* ======== Renderable implementation ======= */
 
+   private static RenderProps createDefaultRenderProps() {
+      RenderProps mr = new RenderProps();
+      return mr;
+   }
+
    public RenderProps createRenderProps() {
       return RenderProps.createRenderProps (this);
    }
@@ -1853,7 +1860,7 @@ public class RigidBody extends Frame
 
    @Override
    public boolean isCompound() {
-      return true;
+      return false;
    }
 
    public void setCollidable (Collidability c) {
@@ -2106,4 +2113,6 @@ public class RigidBody extends Frame
    public boolean hasChildren() {
       return myComponents != null && myComponents.size() > 0;
    }
+   
+   
 }

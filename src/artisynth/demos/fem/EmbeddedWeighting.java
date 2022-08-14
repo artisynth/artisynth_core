@@ -165,7 +165,7 @@ public class EmbeddedWeighting extends FemBeam3d {
       
       FemMaterial mat = fem.getMaterial ();
       ScaledFemMaterial smat = new ScaledFemMaterial (mat, 1.0);
-      smat.setScalingField (density, true);
+      smat.setScalingField (density);
       fem.setMaterial (smat);
       
       timer.stop();

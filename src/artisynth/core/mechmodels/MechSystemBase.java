@@ -2371,7 +2371,7 @@ public abstract class MechSystemBase extends RenderableModelBase
                list.add (t);
             }
             // sometimes a component can be a of type T
-            // with sub-components also of type T
+            // with subcomponents also of type T
             if (c instanceof CompositeComponent) {
                recursivelyGetLocalComponents ((CompositeComponent)c, list, type);
             }

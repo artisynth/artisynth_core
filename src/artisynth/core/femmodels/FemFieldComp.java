@@ -20,29 +20,34 @@ import maspack.properties.PropertyDesc;
 public abstract class FemFieldComp
    extends ModelComponentBase implements FieldComponent {
    
-   protected int myShellIndexOffset;
    protected FemModel3d myFem;
    protected RenderProps myRenderProps;
 
    protected void setFem (FemModel3d fem) {
       myFem = fem;
-      myShellIndexOffset = fem.getElements().getNumberLimit();
    }
 
-   protected int getElementIndex (FemElement3dBase elem) {
-      int idx = elem.getNumber();
-      if (elem.getElementClass() != ElementClass.VOLUMETRIC) {
-         idx += myShellIndexOffset;
+   public FemModel3d getFemModel() {
+      return myFem;
+   }
+   
+   /**
+    * Check to ensure a particular node belongs to this field's FEM model.
+    */
+   protected void checkNodeBelongsToFem (FemNode3d node) {
+      if (node.getGrandParent() != myFem) {
+         throw new IllegalArgumentException (
+            "Node does not belong to this field's FEM model");
       }
-      return idx;
    }
 
-   protected FemElement3dBase getElementAtIndex (int elemIdx) {
-      if (elemIdx >= myShellIndexOffset) {
-         return myFem.getShellElementByNumber (elemIdx-myShellIndexOffset);
-      }
-      else {
-         return myFem.getElementByNumber (elemIdx);
+   /**
+    * Check to ensure a particular element belongs to this field's FEM model.
+    */
+   protected void checkElementBelongsToFem (FemElement3dBase elem) {
+      if (elem.getGrandParent() != myFem) {
+         throw new IllegalArgumentException (
+            "Element does not belong to this field's FEM model");
       }
    }
 
@@ -55,93 +60,7 @@ public abstract class FemFieldComp
       }
    }
 
-   protected void writeValues (
-      PrintWriter pw, NumberFormat fmt, DynamicDoubleArray values, 
-      DynamicBooleanArray valuesSet, WritableTest writableTest)
-      throws IOException {
-
-      pw.println ("[");
-      IndentingPrintWriter.addIndentation (pw, 2);
-      for (int num=0; num<values.size(); num++) {
-         if (!valuesSet.get(num) || !writableTest.isWritable(num)) {
-            pw.println ("null");
-         }
-         else {
-            pw.println (fmt.format (values.get(num)));
-         }
-      }
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");
-   }
- 
-   protected void writeScalarValueArrays (
-      PrintWriter pw, NumberFormat fmt,
-      ArrayList<double[]> valueArrays, WritableTest writableTest)
-      throws IOException {
-
-      pw.println ("[");
-      IndentingPrintWriter.addIndentation (pw, 2);
-      for (int num=0; num<valueArrays.size(); num++) {
-         double[] varray = valueArrays.get(num);
-         if (varray == null || !writableTest.isWritable(num)) {
-            pw.println ("null");
-         }
-         else {
-            pw.print ("[ ");
-            for (int k=0; k<varray.length; k++) {
-               pw.print (fmt.format(varray[k])+" ");
-            }
-            pw.println ("]");
-         }
-      }
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");
-   }
- 
-   protected void scanValues (
-      ReaderTokenizer rtok,
-      DynamicDoubleArray values, DynamicBooleanArray valuesSet)
-      throws IOException {
-
-      rtok.scanToken ('[');
-      while (rtok.nextToken() != ']') {
-         if (rtok.tokenIsWord() && rtok.sval.equals ("null")) {
-            values.add (0);
-            valuesSet.add (false);
-         }
-         else if (rtok.tokenIsNumber()) {
-            values.add (rtok.nval);
-            valuesSet.add (true);
-         }
-         else {
-            throw new IOException ("Expecting number or 'null', got "+rtok);
-         }
-      }
-   }
-
-   protected void scanScalarValueArrays (
-      ReaderTokenizer rtok, ArrayList<double[]> valueArrays)
-      throws IOException {
-
-      ArrayList<Double> values = new ArrayList<>();
-      rtok.scanToken ('[');
-      while (rtok.nextToken() != ']') {
-         if (rtok.tokenIsWord() && rtok.sval.equals ("null")) {
-            valueArrays.add (null);
-         }
-         else {
-            if (rtok.ttype != '[') {
-               throw new IOException ("Expecting token '[', got "+rtok);
-            }
-            values.clear();
-            while (rtok.nextToken() != ']') {
-               rtok.pushBack();
-               values.add (rtok.scanNumber());
-            }
-            valueArrays.add (ArraySupport.toDoubleArray(values));
-         }
-      }
-   }
+   /* ---- Begin I/O methods ---- */
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
@@ -162,68 +81,12 @@ public abstract class FemFieldComp
       pw.println ("fem=" + ComponentUtils.getWritePathName (ancestor, myFem));
    }
 
-   private String elemName (ElementClass eclass, int num) {
+   protected String elemName (ElementClass eclass, int num) {
       if (eclass == ElementClass.VOLUMETRIC) {
          return "volumetric element number "+num;
       }
       else {
          return "shell element number"+num;
-      }
-   }
-
-   protected <T> void checkValueArraysSizes (
-      ArrayList<T[]> valueArrays, ElementClass eclass) throws IOException {
-
-      FemElement3dList<?> elems;
-      if (eclass == ElementClass.VOLUMETRIC) {
-         elems = myFem.getElements();
-      }
-      else {
-         elems = myFem.getShellElements();
-      }
-      for (int i=0; i<valueArrays.size(); i++) {
-         T[] varray = valueArrays.get(i);
-         if (varray != null) {
-            FemElement3dBase elem = elems.getByNumber(i);
-            if (elem == null) {
-               throw new IOException (
-                  "Values defined for nonexistent "+elemName(eclass,i));
-            }
-            int npnts = elem.numAllIntegrationPoints();
-            if (varray.length != npnts) {
-               throw new IOException (
-                  "Number of values ("+varray.length+") for "+elemName(eclass,i)+
-                  " does not equal number of integration points ("+npnts+")");
-            }
-         }
-      }
-   }
-
-   protected void checkScalarValueArraysSizes (
-      ArrayList<double[]> valueArrays, ElementClass eclass) throws IOException {
-
-      FemElement3dList<?> elems;
-      if (eclass == ElementClass.VOLUMETRIC) {
-         elems = myFem.getElements();
-      }
-      else {
-         elems = myFem.getShellElements();
-      }
-      for (int i=0; i<valueArrays.size(); i++) {
-         double[] varray = valueArrays.get(i);
-         if (varray != null) {
-            FemElement3dBase elem = elems.getByNumber(i);
-            if (elem == null) {
-               throw new IOException (
-                  "Values defined for nonexistent "+elemName(eclass,i));
-            }
-            int npnts = elem.numAllIntegrationPoints();
-            if (varray.length != npnts) {
-               throw new IOException (
-                  "Number of values ("+varray.length+") for "+elemName(eclass,i)+
-                  " does not equal number of integration points ("+npnts+")");
-            }
-         }
       }
    }
 
@@ -297,6 +160,8 @@ public abstract class FemFieldComp
          return n != null && n.isWritable();
       }      
    }
+   
+   /* ---- begin edit methods ---- */
 
    protected static class NumDoublePair {
       int myNum;
@@ -386,7 +251,9 @@ public abstract class FemFieldComp
          }
       }
    }
- 
+   /**
+    * {@inheritDoc}
+    */
    public void clearCacheIfNecessary() {
    }
 
@@ -401,6 +268,15 @@ public abstract class FemFieldComp
       while (list.size() > newsize) {
          list.remove (list.size()-1);
       }
+   }
+
+   protected boolean allUnset (boolean[] valueset) {
+      for (boolean b : valueset) {
+         if (b) {
+            return false;
+         }
+      }
+      return true;
    }
 
    /* --- Begin partial implemetation of Renderable --- */
@@ -445,4 +321,11 @@ public abstract class FemFieldComp
 
    /* --- End partial implemetation of Renderable --- */
 
+   /**
+    * Returns {@code true} if this field is functionally equal to another field.
+    * Intended mainly for testing and debugging.
+    */
+   public boolean equals (FemFieldComp comp) {
+      return (myFem == comp.myFem);
+   }
 }

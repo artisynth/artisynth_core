@@ -39,11 +39,11 @@ public class BlemkerMuscle extends MuscleMaterial {
    protected PropertyMode myExpStressCoeffMode = PropertyMode.Inherited;
    protected PropertyMode myUncrimpingFactorMode = PropertyMode.Inherited;
 
-   protected ScalarFieldPointFunction myMaxLambdaFunction = null;
-   protected ScalarFieldPointFunction myOptLambdaFunction = null;
-   protected ScalarFieldPointFunction myMaxStressFunction = null;
-   protected ScalarFieldPointFunction myExpStressCoeffFunction = null;
-   protected ScalarFieldPointFunction myUncrimpingFactorFunction = null;
+   protected ScalarFieldComponent myMaxLambdaField = null;
+   protected ScalarFieldComponent myOptLambdaField = null;
+   protected ScalarFieldComponent myMaxStressField = null;
+   protected ScalarFieldComponent myExpStressCoeffField = null;
+   protected ScalarFieldComponent myUncrimpingFactorField = null;
 
    protected Vector3d myTmp = new Vector3d();
    protected Matrix3d myMat = new Matrix3d();
@@ -71,18 +71,18 @@ public class BlemkerMuscle extends MuscleMaterial {
       new FunctionPropertyList (BlemkerMuscle.class, MuscleMaterial.class);   
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "maxLambda", "maximum stretch for straightened fibres",
          DEFAULT_MAX_LAMBDA, "%.8g");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "optLambda", "optimal stretch for straightened fibres",
          DEFAULT_OPT_LAMBDA, "%.8g");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "maxStress", "maximum isometric stress", DEFAULT_MAX_STRESS);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "expStressCoeff", "exponential stress coefficient",
          DEFAULT_EXP_STRESS_COEFF);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "uncrimpingFactor", "fibre uncrimping factor",
          DEFAULT_UNCRIMPING_FACTOR);
    }
@@ -119,31 +119,21 @@ public class BlemkerMuscle extends MuscleMaterial {
    }
 
    public double getMaxLambda (FieldPoint dp) {
-      if (myMaxLambdaFunction == null) {
+      if (myMaxLambdaField == null) {
          return getMaxLambda();
       }
       else {
-         return myMaxLambdaFunction.eval (dp);
+         return myMaxLambdaField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getMaxLambdaFunction() {
-      return myMaxLambdaFunction;
+   public ScalarFieldComponent getMaxLambdaField() {
+      return myMaxLambdaField;
    }
       
-   public void setMaxLambdaFunction (ScalarFieldPointFunction func) {
-      myMaxLambdaFunction = func;
+   public void setMaxLambdaField (ScalarFieldComponent func) {
+      myMaxLambdaField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setMaxLambdaField (
-      ScalarField field, boolean useRestPos) {
-      myMaxLambdaFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getMaxLambdaField () {
-      return FieldUtils.getFieldFromFunction (myMaxLambdaFunction);
    }
 
    // optLambda
@@ -172,31 +162,21 @@ public class BlemkerMuscle extends MuscleMaterial {
    }
 
    public double getOptLambda (FieldPoint dp) {
-      if (myOptLambdaFunction == null) {
+      if (myOptLambdaField == null) {
          return getOptLambda();
       }
       else {
-         return myOptLambdaFunction.eval (dp);
+         return myOptLambdaField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getOptLambdaFunction() {
-      return myOptLambdaFunction;
+   public ScalarFieldComponent getOptLambdaField() {
+      return myOptLambdaField;
    }
       
-   public void setOptLambdaFunction (ScalarFieldPointFunction func) {
-      myOptLambdaFunction = func;
+   public void setOptLambdaField (ScalarFieldComponent func) {
+      myOptLambdaField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setOptLambdaField (
-      ScalarField field, boolean useRestPos) {
-      myOptLambdaFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getOptLambdaField () {
-      return FieldUtils.getFieldFromFunction (myOptLambdaFunction);
    }
 
    // maxStress
@@ -224,31 +204,21 @@ public class BlemkerMuscle extends MuscleMaterial {
    }
 
    public double getMaxStress (FieldPoint dp) {
-      if (myMaxStressFunction == null) {
+      if (myMaxStressField == null) {
          return getMaxStress();
       }
       else {
-         return myMaxStressFunction.eval (dp);
+         return myMaxStressField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getMaxStressFunction() {
-      return myMaxStressFunction;
+   public ScalarFieldComponent getMaxStressField() {
+      return myMaxStressField;
    }
       
-   public void setMaxStressFunction (ScalarFieldPointFunction func) {
-      myMaxStressFunction = func;
+   public void setMaxStressField (ScalarFieldComponent func) {
+      myMaxStressField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setMaxStressField (
-      ScalarField field, boolean useRestPos) {
-      myMaxStressFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getMaxStressField () {
-      return FieldUtils.getFieldFromFunction (myMaxStressFunction);
    }
 
    // expStressCoeff
@@ -277,31 +247,21 @@ public class BlemkerMuscle extends MuscleMaterial {
    }
 
    public double getExpStressCoeff (FieldPoint dp) {
-      if (myExpStressCoeffFunction == null) {
+      if (myExpStressCoeffField == null) {
          return getExpStressCoeff();
       }
       else {
-         return myExpStressCoeffFunction.eval (dp);
+         return myExpStressCoeffField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getExpStressCoeffFunction() {
-      return myExpStressCoeffFunction;
+   public ScalarFieldComponent getExpStressCoeffField() {
+      return myExpStressCoeffField;
    }
       
-   public void setExpStressCoeffFunction (ScalarFieldPointFunction func) {
-      myExpStressCoeffFunction = func;
+   public void setExpStressCoeffField (ScalarFieldComponent func) {
+      myExpStressCoeffField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setExpStressCoeffField (
-      ScalarField field, boolean useRestPos) {
-      myExpStressCoeffFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getExpStressCoeffField () {
-      return FieldUtils.getFieldFromFunction (myExpStressCoeffFunction);
    }
 
    // uncrimpingFactor
@@ -330,31 +290,21 @@ public class BlemkerMuscle extends MuscleMaterial {
    }
 
    public double getUncrimpingFactor (FieldPoint dp) {
-      if (myUncrimpingFactorFunction == null) {
+      if (myUncrimpingFactorField == null) {
          return getUncrimpingFactor();
       }
       else {
-         return myUncrimpingFactorFunction.eval (dp);
+         return myUncrimpingFactorField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getUncrimpingFactorFunction() {
-      return myUncrimpingFactorFunction;
+   public ScalarFieldComponent getUncrimpingFactorField() {
+      return myUncrimpingFactorField;
    }
       
-   public void setUncrimpingFactorFunction (ScalarFieldPointFunction func) {
-      myUncrimpingFactorFunction = func;
+   public void setUncrimpingFactorField (ScalarFieldComponent func) {
+      myUncrimpingFactorField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setUncrimpingFactorField (
-      ScalarField field, boolean useRestPos) {
-      myUncrimpingFactorFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getUncrimpingFactorField () {
-      return FieldUtils.getFieldFromFunction (myUncrimpingFactorFunction);
    }
 
    // END parameter accessors

@@ -4,13 +4,13 @@ import java.awt.Color;
 
 import artisynth.core.driver.Main;
 import artisynth.core.gui.ControlPanel;
+import artisynth.core.materials.ContactForceBehavior;
 import artisynth.core.mechmodels.CollisionBehavior;
 import artisynth.core.mechmodels.CollisionManager;
-import artisynth.core.mechmodels.ContactForceBehavior;
-import artisynth.core.mechmodels.ContactPoint;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.workspace.RootModel;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -26,20 +26,16 @@ public class BlockTestX extends RootModel {
    RigidBody myBase;
    private static boolean seeContacts = true;
 
-   private class ContactForce implements ContactForceBehavior {
+   private class ContactForce extends ContactForceBehavior {
       public void computeResponse (
-         double[] fres, double dist, ContactPoint cpnt1, ContactPoint cpnt2, 
-         Vector3d nrml, double regionArea) {
+         double[] fres, double dist, ContactPoint cpnt0, ContactPoint cpnt1, 
+         Vector3d nrml, double regionArea, int flags) {
 
          double c = 0.001;
 
          fres[0] = dist/c;
          fres[1] = c;
          fres[2] = 0.01;
-      }
-      
-      public ContactForce clone() throws CloneNotSupportedException {
-         return (ContactForce)super.clone();
       }
    }
 

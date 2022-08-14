@@ -14,9 +14,7 @@ import maspack.spatialmotion.*;
 import maspack.util.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.materials.*;
-import artisynth.core.modelbase.ComponentChangeEvent.Code;      
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.util.ScanToken;
 import java.io.*;
 import java.util.*;
@@ -1238,9 +1236,10 @@ public abstract class DeformableBody extends RigidBody
    public void setContactConstraint (
       double[] buf, double w, Vector3d dir, ContactPoint cpnt) {
 
-      double lx = cpnt.myPoint.x - myState.pos.x;
-      double ly = cpnt.myPoint.y - myState.pos.y;
-      double lz = cpnt.myPoint.z - myState.pos.z;
+      Point3d cpos = cpnt.getPosition();
+      double lx = cpos.x - myState.pos.x;
+      double ly = cpos.y - myState.pos.y;
+      double lz = cpos.z - myState.pos.z;
 
       double nx = w*dir.x;
       double ny = w*dir.y;
@@ -1258,7 +1257,7 @@ public abstract class DeformableBody extends RigidBody
       dirl.inverseTransform (myState.XFrameToWorld.R);
       Vector3d loc = new Vector3d();
       Vector3d shp = new Vector3d();      
-      computePointLocation (loc, cpnt.myPoint);
+      computePointLocation (loc, cpnt.getPosition());
       int numc = numElasticCoords();
       for (int i=0; i<numc; i++) {
          getShape (shp, i, loc);
@@ -1271,7 +1270,7 @@ public abstract class DeformableBody extends RigidBody
 
       Vector3d loc = new Vector3d();
       Vector3d tmp = new Vector3d();
-      computePointLocation (loc, cpnt.myPoint);
+      computePointLocation (loc, cpnt.getPosition());
       // compute elastic velocity in body coords
       computeDeformedVelocity (tmp, loc);
       // rotate to world coords
@@ -1280,9 +1279,10 @@ public abstract class DeformableBody extends RigidBody
       // add additional velocity components from body motion
       Vector3d v = myState.vel.v;
       Vector3d o = myState.vel.w; // o for omega
-      double lx = cpnt.myPoint.x - myState.pos.x;
-      double ly = cpnt.myPoint.y - myState.pos.y;
-      double lz = cpnt.myPoint.z - myState.pos.z;
+      Point3d cpos = cpnt.getPosition();
+      double lx = cpos.x - myState.pos.x;
+      double ly = cpos.y - myState.pos.y;
+      double lz = cpos.z - myState.pos.z;
       vel.x += w*(v.x - ly*o.z + lz*o.y + tmp.x);
       vel.y += w*(v.y - lz*o.x + lx*o.z + tmp.y);
       vel.z += w*(v.z - lx*o.y + ly*o.x + tmp.z);

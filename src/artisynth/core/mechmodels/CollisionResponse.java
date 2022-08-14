@@ -48,7 +48,11 @@ public class CollisionResponse extends CollisionComponent {
 
    /**
     * Queries if the collidables associated with this response are in
-    * contact.
+    * contact. This will be considered true if <i>any</i> intersection is
+    * detected between the collision meshes of the collidables, even if no
+    * contacts are generated. For example, with vertex penetration collisions
+    * (see {@link CollisionBehavior.Method}), it is possible for meshes to
+    * interesect in a small region without having any penetrating vertices.
     *
     * @return <code>true</code> if the collidables are in contact.
     */
@@ -64,16 +68,35 @@ public class CollisionResponse extends CollisionComponent {
    }
 
    /**
-    * Returns a map specifying the contact forces acting on all the deformable
-    * bodies associated with either the first or second collidable (as indicated
-    * by <code> cidx</code>).
+    * Returns a list of the most recently computed contacts between the
+    * collidables. Each contact is described by a {@link ContactConstraintData}
+    * object providing information about the contact points (on each
+    * collidable), the normal, and contact and friction forces.
     *
-    * <p>
-    * The map gives the most recently computed forces acting on each vertex of
-    * the collision meshes of the deformable bodies (this is the same mesh
-    * returned by {@link CollidableBody#getCollisionMesh}). Vertices for which
-    * no forces were computed do not appear in the map.
+    * @return list of the most recently compacts
+    */
+   public List<ContactConstraintData> getContactData() {
+      ArrayList<ContactConstraintData> contacts = new ArrayList<>();
+      for (CollisionHandler ch : myHandlers) {
+         contacts.addAll (ch.myLastBilateralData);
+         contacts.addAll (ch.myLastUnilateralData);
+      }
+      return contacts;
+   }
+
+   /**
+    * Returns a map of the most recenty computed contact forces acting on the
+    * vertices of the collision meshes associated with either the first or
+    * second collidable (as indicated by <code> cidx</code>). Vertices for
+    * which no forces were computed do not appear in the map. The information
+    * returned by this method is most useful and accurate when used in
+    * conjunction with vertex penetration collisions (see {@link
+    * CollisionBehavior.Method}).
     *
+    * <p>The meshes containing the vertices can be obtained using the {@link
+    * CollidableBody#getCollisionMesh()} method of the indicated collidable
+    * and/or its sub-collidables.
+    * 
     * <p>
     * Contact forces are those that arise in order to prevent further
     * interpenetration between <code>colA</code> and <code>colB</code>. They do
@@ -96,14 +119,17 @@ public class CollisionResponse extends CollisionComponent {
    }
 
    /**
-    * Returns a map specifying the contact pressures acting on all the
-    * deformable bodies associated with either the first or second collidable
-    * (as indicated by <code> cidx</code>).
+    * Returns a map of the most recenty computed contact pressures acting on
+    * the vertices of the collision meshes associated with either the first or
+    * second collidable (as indicated by <code> cidx</code>). Vertices for
+    * which no pressures were computed do not appear in the map. The information
+    * returned by this method is most useful and accurate when used in
+    * conjunction with vertex penetration collisions (see {@link
+    * CollisionBehavior.Method}).
     *
-    * <p> The map gives the most recently computed pressures acting on each
-    * vertex of the collision meshes of the deformable bodies (this is the same
-    * mesh returned by {@link CollidableBody#getCollisionMesh}). Vertices for
-    * which no forces were computed do not appear in the map.
+    * <p>The meshes containing the vertices can be obtained using the {@link
+    * CollidableBody#getCollisionMesh()} method of the indicated collidable
+    * and/or its sub-collidables.
     *
     * <p> This method works by first calling {@link #getContactForces} to
     * obtain the vertex forces, and then converting these to pressures by

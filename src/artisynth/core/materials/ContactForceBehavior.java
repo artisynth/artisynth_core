@@ -81,7 +81,7 @@ public abstract class ContactForceBehavior extends MaterialBase {
     * @param cpnt0 first contact point
     * @param cpnt1 second contact point
     * @param normal contact normal, directed from cpnt0 to cpnt1
-    * @param local contact area, or -1 if the contact was not produced by
+    * @return local contact area, or -1 if the contact was not produced by
     * vertex penetration contact
     */
    public static double computeContactArea (

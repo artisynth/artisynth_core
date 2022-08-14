@@ -113,7 +113,7 @@ public class ContactData {
     * when contact is being handled using bilateral constraints which
     * have not yet separated.
     * 
-    * @param contact force scalar
+    * @return contact force scalar
     */
    public double getContactForceScalar () {
       return myLambda;   

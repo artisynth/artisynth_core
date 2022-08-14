@@ -1185,7 +1185,7 @@ public class CollisionBehavior extends CollisionComponent
    }
 
    /**
-    * @deprecated Use {@link #getRenderingollidable} instead.
+    * @deprecated Use {@link #getRenderingCollidable} instead.
     */
    public int getColorMapCollidable() {
       return getRenderingCollidable();

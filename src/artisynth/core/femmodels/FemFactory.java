@@ -4916,7 +4916,7 @@ public class FemFactory {
     * @param nt element resolution around the minor radius
     * @param nl element resolution around the major radius
     * @param nr element resolution (plus 1) along the inner thickness
-    * @parsm theta angular circumference around the major radius.  Specifying
+    * @param theta angular circumference around the major radius.  Specifying
     * {@code 2*Math.PI} will result in a full torus.
     * @return created FEM model
     */

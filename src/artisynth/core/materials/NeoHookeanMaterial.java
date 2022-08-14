@@ -9,8 +9,8 @@ import maspack.properties.PropertyUtils;
 
 public class NeoHookeanMaterial extends FemMaterial {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (NeoHookeanMaterial.class, FemMaterial.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (NeoHookeanMaterial.class, FemMaterial.class);
 
    protected static double DEFAULT_NU = 0.33;
    protected static double DEFAULT_E = 500000;
@@ -32,7 +32,7 @@ public class NeoHookeanMaterial extends FemMaterial {
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU, "[-1,0.5]");
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -87,7 +87,7 @@ public class NeoHookeanMaterial extends FemMaterial {
       return myEMode;
    }
 
-   public double getYoungsModulus (FieldPoint dp) {
+   public double getYoungsModulus (FemFieldPoint dp) {
       return (myEField == null ? getYoungsModulus() : myEField.getValue (dp));
    }
 

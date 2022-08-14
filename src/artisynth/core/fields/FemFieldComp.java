@@ -1,4 +1,4 @@
-package artisynth.core.femmodels;
+package artisynth.core.fields;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -8,6 +8,11 @@ import java.util.LinkedList;
 import java.util.ArrayList;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.PointList;
+import artisynth.core.femmodels.FemElement;
+import artisynth.core.femmodels.FemElement3dBase;
+import artisynth.core.femmodels.FemElement3dList;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.util.*;
 

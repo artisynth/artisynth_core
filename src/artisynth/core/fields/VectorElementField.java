@@ -1,4 +1,4 @@
-package artisynth.core.femmodels;
+package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -6,9 +6,13 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.FemElement3dBase;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.ShellElement3d;
 import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.FieldPoint;
+import artisynth.core.modelbase.FemFieldPoint;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.Point3d;
@@ -184,7 +188,7 @@ public class VectorElementField<T extends VectorObject<T>>
    /**
     * {@inheritDoc}
     */
-   public T getValue (FieldPoint fp) {
+   public T getValue (FemFieldPoint fp) {
       if (fp.getElementType() == 0) {
          return getElementValue (fp.getElementNumber());
       }

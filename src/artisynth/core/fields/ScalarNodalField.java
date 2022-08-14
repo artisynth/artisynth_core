@@ -1,4 +1,4 @@
-package artisynth.core.femmodels;
+package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -6,8 +6,12 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+import artisynth.core.femmodels.FemElement3dBase;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemNode3d;
+import artisynth.core.femmodels.IntegrationPoint3d;
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.FieldPoint;
+import artisynth.core.modelbase.FemFieldPoint;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.Point3d;
@@ -141,7 +145,7 @@ public class ScalarNodalField extends ScalarFemField {
    /**
     * {@inheritDoc}
     */
-   public double getValue (FieldPoint fp) {
+   public double getValue (FemFieldPoint fp) {
       return getCachedValue (
          fp.getElementType(), fp.getElementNumber(), fp.getElementSubIndex());
    }

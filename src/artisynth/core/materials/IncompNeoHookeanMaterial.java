@@ -9,8 +9,8 @@ import maspack.properties.PropertyUtils;
 
 public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (IncompNeoHookeanMaterial.class,
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (IncompNeoHookeanMaterial.class,
                         IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_G = 150000;
@@ -26,7 +26,7 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
          "shearModulus:Inherited", "shear modulus", DEFAULT_G);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -60,7 +60,7 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
       return myGMode;
    }
 
-   public double getShearModulus (FieldPoint dp) {
+   public double getShearModulus (FemFieldPoint dp) {
       if (myGField == null) {
          return getShearModulus();
       }

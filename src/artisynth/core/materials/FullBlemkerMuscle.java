@@ -74,8 +74,8 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       setG2 (g2);
    }
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (FullBlemkerMuscle.class, MuscleMaterial.class);   
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (FullBlemkerMuscle.class, MuscleMaterial.class);   
 
    static {
       myProps.addInheritableWithField (
@@ -98,7 +98,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
          "G2", "cross-fibre shear", DEFAULT_G2);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -129,7 +129,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       return myMaxLambdaMode;
    }
 
-   public double getMaxLambda (FieldPoint dp) {
+   public double getMaxLambda (FemFieldPoint dp) {
       if (myMaxLambdaField == null) {
          return getMaxLambda();
       }
@@ -172,7 +172,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       return myOptLambdaMode;
    }
 
-   public double getOptLambda (FieldPoint dp) {
+   public double getOptLambda (FemFieldPoint dp) {
       if (myOptLambdaField == null) {
          return getOptLambda();
       }
@@ -214,7 +214,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       return myMaxStressMode;
    }
 
-   public double getMaxStress (FieldPoint dp) {
+   public double getMaxStress (FemFieldPoint dp) {
       if (myMaxStressField == null) {
          return getMaxStress();
       }
@@ -253,7 +253,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
             this, "expStressCoeff", myExpStressCoeffMode, mode);
    }
 
-   public double getExpStressCoeff (FieldPoint dp) {
+   public double getExpStressCoeff (FemFieldPoint dp) {
       if (myExpStressCoeffField == null) {
          return getExpStressCoeff();
       }
@@ -300,7 +300,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       return myUncrimpingFactorMode;
    }
 
-   public double getUncrimpingFactor (FieldPoint dp) {
+   public double getUncrimpingFactor (FemFieldPoint dp) {
       if (myUncrimpingFactorField == null) {
          return getUncrimpingFactor();
       }
@@ -341,7 +341,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       return myG1Mode;
    }
 
-   public double getG1 (FieldPoint dp) {
+   public double getG1 (FemFieldPoint dp) {
       if (myG1Field == null) {
          return getG1();
       }
@@ -382,7 +382,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       return myG2Mode;
    }
 
-   public double getG2 (FieldPoint dp) {
+   public double getG2 (FemFieldPoint dp) {
       if (myG2Field == null) {
          return getG2();
       }

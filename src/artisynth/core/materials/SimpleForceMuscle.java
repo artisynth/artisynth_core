@@ -46,15 +46,15 @@ public class SimpleForceMuscle extends MuscleMaterial {
       setMaxStress (maxStress);
    }
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (SimpleForceMuscle.class, MuscleMaterial.class);   
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (SimpleForceMuscle.class, MuscleMaterial.class);   
 
    static {
       myProps.addInheritableWithField (
          "maxStress", "maximum isometric stress", DEFAULT_MAX_STRESS);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -80,7 +80,7 @@ public class SimpleForceMuscle extends MuscleMaterial {
       return myMaxStressMode;
    }
 
-   public double getMaxStress (FieldPoint dp) {
+   public double getMaxStress (FemFieldPoint dp) {
       if (myMaxStressField == null) {
          return getMaxStress();
       }

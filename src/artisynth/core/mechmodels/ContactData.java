@@ -15,7 +15,7 @@ import maspack.util.DataBuffer;
  * Information about a single contact constraint that is needed for later
  * processing, either in a collision response or for rendering.
  */
-public class ContactConstraintData {
+public class ContactData {
    
    static final double DOUBLE_PREC = 2.2204460492503131e-16;
 
@@ -30,7 +30,7 @@ public class ContactConstraintData {
    /**
     * Constructs a new, empty ContactConstraintData object.
     */
-   public ContactConstraintData () {
+   public ContactData () {
       myNormal = new Vector3d();
       myFrictionForce = new Vector3d();
    }
@@ -43,7 +43,7 @@ public class ContactConstraintData {
     * @param isBilateral if {@code true}, indicates the contact constraint
     * is bilateral
     */
-   public ContactConstraintData (ContactConstraint cons, boolean isBilateral) {
+   public ContactData (ContactConstraint cons, boolean isBilateral) {
       // we can store contact points by reference since they are regenerated
       // whenever contact constraints are updated
       myCpnt0 = cons.myCpnt0;

@@ -1,9 +1,10 @@
-package artisynth.core.femmodels;
+package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 
+import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.MatrixNd;

@@ -1,7 +1,9 @@
-package artisynth.core.femmodels;
+package artisynth.core.fields;
 
 import maspack.matrix.Vector3d;
 import maspack.geometry.PolylineMesh;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemNode3d;
 import maspack.geometry.PolylineInterpolator;
 
 /**

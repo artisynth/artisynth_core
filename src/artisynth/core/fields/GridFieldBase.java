@@ -1,5 +1,7 @@
-package artisynth.core.modelbase;
+package artisynth.core.fields;
 
+import artisynth.core.modelbase.FemFieldPoint;
+import artisynth.core.modelbase.GridCompBase;
 import maspack.properties.PropertyList;
 
 /**
@@ -82,7 +84,7 @@ public abstract class GridFieldBase extends GridCompBase {
     * points within an FEM mesh. If rest positions are not used, the point's
     * current spatial position is used instead. The default value is {@code
     * true}.  (Values within an FEM mesh are determined using special methods of
-    * the form {@code getValue(FieldPoint)}, where {@link FieldPoint} contains
+    * the form {@code getValue(FieldPoint)}, where {@link FemFieldPoint} contains
     * both spatial and rest positions.)
     *
     * @param enable if {@code true}, enables using rest positions

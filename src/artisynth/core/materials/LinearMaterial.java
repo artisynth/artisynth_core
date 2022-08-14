@@ -10,8 +10,8 @@ import maspack.properties.PropertyUtils;
 
 public class LinearMaterial extends LinearMaterialBase {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (LinearMaterial.class, LinearMaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (LinearMaterial.class, LinearMaterialBase.class);
 
    protected static double DEFAULT_NU = 0.33;
    protected static double DEFAULT_E = 500000;
@@ -31,7 +31,7 @@ public class LinearMaterial extends LinearMaterialBase {
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU, "[-1,0.5]");
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -89,7 +89,7 @@ public class LinearMaterial extends LinearMaterialBase {
       return myEMode;
    }
 
-   public double getYoungsModulus (FieldPoint dp) {
+   public double getYoungsModulus (FemFieldPoint dp) {
       return (myEField == null ? getYoungsModulus() : myEField.getValue (dp));
    }
 

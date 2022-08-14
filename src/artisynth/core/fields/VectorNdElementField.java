@@ -1,9 +1,10 @@
-package artisynth.core.femmodels;
+package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 
+import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.Vector3d;
@@ -14,13 +15,14 @@ import maspack.util.ReaderTokenizer;
 
 /**
  * A vector field, for vectors of type {@link VectorNd}, defined over an FEM
- * model, using values set at the nodes. Values at other points are obtained by
- * nodal interpolation on the elements nearest to those points. Values at nodes
+ * model, using values set at the elements.  Values at other points are
+ * obtained by finding the elements nearest to those points. Values at element
  * for which no explicit value has been set are given by the field's <i>default
- * value</i>. The {@code VectorNd} values must be a of a fixed size as
- * specified in the field's constructor.
+ * value</i>. Since values are assumed to be constant over a given element,
+ * this field is not continuous. The {@code VectorNd} values must be a of a
+ * fixed size as specified in the field's constructor.
  */
-public class VectorNdNodalField extends VectorNodalField<VectorNd> {
+public class VectorNdElementField extends VectorElementField<VectorNd> {
 
    protected int myVecSize;
 
@@ -65,17 +67,17 @@ public class VectorNdNodalField extends VectorNodalField<VectorNd> {
     * This constructor should not be called by applications, unless {@link
     * #scan} is called immediately after.
     */
-   public VectorNdNodalField () {
+   public VectorNdElementField () {
       super (VectorNd.class);
    }
-   
+
    /**
     * Constructs a field for a given FEM model, with a default value of 0.
     *
     * @param vecSize size of the field's {@code VectorNd} values
     * @param fem FEM model over which the field is defined
     */
-   public VectorNdNodalField (int vecSize, FemModel3d fem) {
+   public VectorNdElementField (int vecSize, FemModel3d fem) {
       super (VectorNd.class); 
       initSize (vecSize);
       initFemAndDefaultValue (fem, null);
@@ -87,10 +89,10 @@ public class VectorNdNodalField extends VectorNodalField<VectorNd> {
     * 
     * @param vecSize size of the field's {@code VectorNd} values
     * @param fem FEM model over which the field is defined
-    * @param defaultValue default value for nodes which don't have
+    * @param defaultValue default value for elements which don't have
     * explicitly set values
     */
-   public VectorNdNodalField (
+   public VectorNdElementField (
       int vecSize, FemModel3d fem, VectorNd defaultValue) {
       super (VectorNd.class);
       initSize (vecSize);
@@ -105,7 +107,7 @@ public class VectorNdNodalField extends VectorNodalField<VectorNd> {
     * @param vecSize size of the field's {@code VectorNd} values
     * @param fem FEM model over which the field is defined
     */
-   public VectorNdNodalField (String name, int vecSize, FemModel3d fem) {
+   public VectorNdElementField (String name, int vecSize, FemModel3d fem) {
       this (vecSize, fem);
       setName (name);
    }
@@ -116,10 +118,10 @@ public class VectorNdNodalField extends VectorNodalField<VectorNd> {
     * @param name name of the field
     * @param vecSize size of the field's {@code VectorNd} values
     * @param fem FEM model over which the field is defined
-    * @param defaultValue default value for nodes which don't have
+    * @param defaultValue default value for elements which don't have
     * explicitly set values
     */
-   public VectorNdNodalField (
+   public VectorNdElementField (
       String name, int vecSize, FemModel3d fem, VectorNd defaultValue) {
       this (vecSize, fem, defaultValue);
       setName (name);
@@ -149,7 +151,7 @@ public class VectorNdNodalField extends VectorNodalField<VectorNd> {
       }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);      
-   } 
+   }
 
    protected boolean hasThreeVectorValue() {
       return myVecSize == 3;

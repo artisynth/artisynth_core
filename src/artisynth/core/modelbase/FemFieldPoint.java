@@ -6,7 +6,7 @@ import maspack.matrix.Point3d;
  * Provides information about an FEM integration point that can be used to
  * evaluate the value of a {@link FieldComponent} at that point.
  */
-public interface FieldPoint {
+public interface FemFieldPoint {
 
    /**
     * Returns the point's rest position.

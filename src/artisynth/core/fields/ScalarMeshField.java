@@ -36,7 +36,7 @@ public abstract class ScalarMeshField
    /**
     * {@inheritDoc}
     */
-   public double getValue (FieldPoint fp) {
+   public double getValue (FemFieldPoint fp) {
       return getValue(fp.getSpatialPos());
    }
 

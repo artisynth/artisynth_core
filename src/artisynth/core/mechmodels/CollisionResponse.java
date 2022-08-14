@@ -69,14 +69,14 @@ public class CollisionResponse extends CollisionComponent {
 
    /**
     * Returns a list of the most recently computed contacts between the
-    * collidables. Each contact is described by a {@link ContactConstraintData}
+    * collidables. Each contact is described by a {@link ContactData}
     * object providing information about the contact points (on each
     * collidable), the normal, and contact and friction forces.
     *
     * @return list of the most recently compacts
     */
-   public List<ContactConstraintData> getContactData() {
-      ArrayList<ContactConstraintData> contacts = new ArrayList<>();
+   public List<ContactData> getContactData() {
+      ArrayList<ContactData> contacts = new ArrayList<>();
       for (CollisionHandler ch : myHandlers) {
          contacts.addAll (ch.myLastBilateralData);
          contacts.addAll (ch.myLastUnilateralData);

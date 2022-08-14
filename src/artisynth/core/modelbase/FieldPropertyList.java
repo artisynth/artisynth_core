@@ -18,13 +18,13 @@ import maspack.util.ReaderTokenizer;
  * external files, using {@link #writePropertyFields}, {@link
  * #scanPropertyField}, and {@link #postscanPropertyField}.
  */
-public class FunctionPropertyList extends PropertyList {
+public class FieldPropertyList extends PropertyList {
 
-   public FunctionPropertyList (Class<?> hostClass) {
+   public FieldPropertyList (Class<?> hostClass) {
       super (hostClass);
    }
 
-   public FunctionPropertyList (Class<?> hostClass, Class<?> ancestorClass) {
+   public FieldPropertyList (Class<?> hostClass, Class<?> ancestorClass) {
       super (hostClass, ancestorClass);
    }
 

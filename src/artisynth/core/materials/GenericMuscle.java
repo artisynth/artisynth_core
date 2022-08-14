@@ -68,8 +68,8 @@ public class GenericMuscle extends MuscleMaterial {
       setUncrimpingFactor (uncrimpingFactor);
    }
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (GenericMuscle.class, MuscleMaterial.class);   
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (GenericMuscle.class, MuscleMaterial.class);   
 
    static {
       myProps.addInheritableWithField (
@@ -87,7 +87,7 @@ public class GenericMuscle extends MuscleMaterial {
          "fibreModulus", "modulus of straightened fibres");
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -136,7 +136,7 @@ public class GenericMuscle extends MuscleMaterial {
       return myMaxLambdaMode;
    }
 
-   public double getMaxLambda (FieldPoint dp) {
+   public double getMaxLambda (FemFieldPoint dp) {
       if (myMaxLambdaField == null) {
          return getMaxLambda();
       }
@@ -178,7 +178,7 @@ public class GenericMuscle extends MuscleMaterial {
       return myMaxStressMode;
    }
 
-   public double getMaxStress (FieldPoint dp) {
+   public double getMaxStress (FemFieldPoint dp) {
       if (myMaxStressField == null) {
          return getMaxStress();
       }
@@ -221,7 +221,7 @@ public class GenericMuscle extends MuscleMaterial {
       return myExpStressCoeffMode;
    }
 
-   public double getExpStressCoeff (FieldPoint dp) {
+   public double getExpStressCoeff (FemFieldPoint dp) {
       if (myExpStressCoeffField == null) {
          return getExpStressCoeff();
       }
@@ -264,7 +264,7 @@ public class GenericMuscle extends MuscleMaterial {
       return myUncrimpingFactorMode;
    }
 
-   public double getUncrimpingFactor (FieldPoint dp) {
+   public double getUncrimpingFactor (FemFieldPoint dp) {
       if (myUncrimpingFactorField == null) {
          return getUncrimpingFactor();
       }

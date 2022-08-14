@@ -86,7 +86,7 @@ public class CollisionRenderer {
    }
 
    private void addForceLineSeg (
-      RenderObject ro, ContactConstraintData cc, Vector3d dir, double scale) {
+      RenderObject ro, ContactData cc, Vector3d dir, double scale) {
 
       if (scale != 0 && !dir.equals(Vector3d.ZERO)) {
          Point3d p0 = cc.myCpnt0.getPosition();
@@ -108,7 +108,7 @@ public class CollisionRenderer {
    private double maxlam = 20;
 
    private void maybeAddVertexFaceNormal (
-      RenderObject ro, ContactConstraintData cc, double normalLen) {
+      RenderObject ro, ContactData cc, double normalLen) {
 
       addLineSeg (ro, cc.myCpnt0.getPosition(), cc.myNormal, normalLen);
    }
@@ -235,10 +235,10 @@ public class CollisionRenderer {
 //      }
       if (normalLen != 0 && cinfo != null) {
          ro.lineGroup (SEGMENT_GRP);
-         for (ContactConstraintData cc : handler.myLastUnilateralData) {
+         for (ContactData cc : handler.myLastUnilateralData) {
             maybeAddVertexFaceNormal (ro, cc, normalLen);
          }
-         for (ContactConstraintData cc : handler.myLastBilateralData) {
+         for (ContactData cc : handler.myLastBilateralData) {
             maybeAddVertexFaceNormal (ro, cc, normalLen);
          }
       }
@@ -253,10 +253,10 @@ public class CollisionRenderer {
       }
       if (forceScale != 0 && cinfo != null) {
          ro.lineGroup (FORCE_GRP);
-         for (ContactConstraintData cc : handler.myLastUnilateralData) {
+         for (ContactData cc : handler.myLastUnilateralData) {
             addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
          }
-         for (ContactConstraintData cc : handler.myLastBilateralData) {
+         for (ContactData cc : handler.myLastBilateralData) {
             addForceLineSeg (ro, cc, cc.myNormal, forceScale*cc.myLambda);
          }
       }
@@ -267,10 +267,10 @@ public class CollisionRenderer {
       }
       if (forceScale != 0 && cinfo != null) {
          ro.lineGroup (FRICTION_FORCE_GRP);
-         for (ContactConstraintData cc : handler.myLastBilateralData) {
+         for (ContactData cc : handler.myLastBilateralData) {
             addForceLineSeg (ro, cc, cc.myFrictionForce, forceScale);
          }
-         for (ContactConstraintData cc : handler.myLastUnilateralData) {
+         for (ContactData cc : handler.myLastUnilateralData) {
             addForceLineSeg (ro, cc, cc.myFrictionForce, forceScale);
          }
       }

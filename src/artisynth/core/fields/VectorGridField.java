@@ -1,9 +1,13 @@
-package artisynth.core.modelbase;
+package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 
+import artisynth.core.modelbase.FemFieldPoint;
+import artisynth.core.modelbase.MeshFieldPoint;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.VectorFieldComponent;
 import artisynth.core.modelbase.ScanWriteUtils.ClassInfo;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.InterpolatingGridBase;
@@ -142,7 +146,7 @@ public class VectorGridField<T extends VectorObject<T>>
       }
    }
 
-   public T getValue (FieldPoint fp) {
+   public T getValue (FemFieldPoint fp) {
       Point3d pos;
       if (myUseFemRestPositions) {
          pos = fp.getRestPos();

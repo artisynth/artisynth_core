@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.util.Deque;
 
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.FunctionPropertyList;
+import artisynth.core.modelbase.FieldPropertyList;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScanToken;
@@ -64,10 +64,10 @@ public abstract class FemMaterial extends MaterialBase
       }
    }
    
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList(FemMaterial.class, MaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList(FemMaterial.class, MaterialBase.class);
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 

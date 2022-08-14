@@ -16,8 +16,8 @@ import maspack.properties.PropertyUtils;
  */
 public abstract class LinearMaterialBase extends FemMaterial {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (LinearMaterialBase.class, FemMaterial.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (LinearMaterialBase.class, FemMaterial.class);
 
    protected static boolean DEFAULT_COROTATED = true;
 
@@ -30,7 +30,7 @@ public abstract class LinearMaterialBase extends FemMaterial {
          "apply corotation", DEFAULT_COROTATED);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 

@@ -10,8 +10,8 @@ import maspack.properties.PropertyUtils;
 
 public class OgdenMaterial extends IncompressibleMaterialBase {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (OgdenMaterial.class, IncompressibleMaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (OgdenMaterial.class, IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_MU1    = 300000.0;
    protected static double DEFAULT_MU2    = 0.0;
@@ -91,7 +91,7 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
          "Mu6:Inherited", "Mu6", DEFAULT_MU6);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -238,27 +238,27 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
 	  return myMu6Mode;
    }
 
-   public double getMu1 (FieldPoint dp) {
+   public double getMu1 (FemFieldPoint dp) {
       return (myMu1Field == null ? getMu1() : myMu1Field.getValue(dp));
    }
 
-   public double getMu2 (FieldPoint dp) {
+   public double getMu2 (FemFieldPoint dp) {
       return (myMu2Field == null ? getMu2() : myMu2Field.getValue(dp));
    }
 
-   public double getMu3 (FieldPoint dp) {
+   public double getMu3 (FemFieldPoint dp) {
       return (myMu3Field == null ? getMu3() : myMu3Field.getValue(dp));
    }
 
-   public double getMu4 (FieldPoint dp) {
+   public double getMu4 (FemFieldPoint dp) {
       return (myMu4Field == null ? getMu4() : myMu4Field.getValue(dp));
    }
 
-   public double getMu5 (FieldPoint dp) {
+   public double getMu5 (FemFieldPoint dp) {
       return (myMu5Field == null ? getMu5() : myMu5Field.getValue(dp));
    }
 
-   public double getMu6 (FieldPoint dp) {
+   public double getMu6 (FemFieldPoint dp) {
       return (myMu6Field == null ? getMu6() : myMu6Field.getValue(dp));
    }
 
@@ -436,27 +436,27 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       return myAlpha6Mode;
    }
 	   
-   public double getAlpha1 (FieldPoint dp) {
+   public double getAlpha1 (FemFieldPoint dp) {
       return (myAlpha1Field == null ? getAlpha1() : myAlpha1Field.getValue(dp));
    }
 
-   public double getAlpha2 (FieldPoint dp) {
+   public double getAlpha2 (FemFieldPoint dp) {
       return (myAlpha2Field == null ? getAlpha2() : myAlpha2Field.getValue(dp));
    }
 
-   public double getAlpha3 (FieldPoint dp) {
+   public double getAlpha3 (FemFieldPoint dp) {
       return (myAlpha3Field == null ? getAlpha3() : myAlpha3Field.getValue(dp));
    }
 
-   public double getAlpha4 (FieldPoint dp) {
+   public double getAlpha4 (FemFieldPoint dp) {
       return (myAlpha4Field == null ? getAlpha4() : myAlpha4Field.getValue(dp));
    }
 
-   public double getAlpha5 (FieldPoint dp) {
+   public double getAlpha5 (FemFieldPoint dp) {
       return (myAlpha5Field == null ? getAlpha5() : myAlpha5Field.getValue(dp));
    }
 
-   public double getAlpha6 (FieldPoint dp) {
+   public double getAlpha6 (FemFieldPoint dp) {
       return (myAlpha6Field == null ? getAlpha6() : myAlpha6Field.getValue(dp));
    }
 

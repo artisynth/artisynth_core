@@ -2,7 +2,7 @@ package artisynth.core.materials;
 
 import artisynth.core.fields.ScalarMeshField;
 import artisynth.core.modelbase.ContactPoint;
-import artisynth.core.modelbase.FunctionPropertyList;
+import artisynth.core.modelbase.FieldPropertyList;
 import artisynth.core.modelbase.ScalarFieldComponent;
 import maspack.geometry.MeshBase;
 import maspack.matrix.Vector3d;
@@ -52,10 +52,10 @@ public abstract class ElasticContactBase extends ContactForceBehavior {
    protected static boolean DEFAULT_USE_LOCAL_CONTACT_AREA = true;
    boolean myUseLocalContactArea = DEFAULT_USE_LOCAL_CONTACT_AREA;
 
-   public static FunctionPropertyList myProps =
-   new FunctionPropertyList (ElasticContactBase.class, MaterialBase.class);
+   public static FieldPropertyList myProps =
+   new FieldPropertyList (ElasticContactBase.class, MaterialBase.class);
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 

@@ -8,7 +8,7 @@ import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.CollisionResponse;
-import artisynth.core.mechmodels.ContactConstraintData;
+import artisynth.core.mechmodels.ContactData;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.MonitorBase;
@@ -25,11 +25,11 @@ public class ContactForceMonitor extends RootModel {
       public void apply (double t0, double t1) {
          // get the contacts from the collision response and print their
          // positions and forces.
-         List<ContactConstraintData> cdata = myResp.getContactData();
+         List<ContactData> cdata = myResp.getContactData();
          if (cdata.size() > 0) {
             System.out.println (
                "num contacts: "+ cdata.size() + ", time=" + t0);
-            for (ContactConstraintData cd : cdata) {
+            for (ContactData cd : cdata) {
                System.out.print (
                   " pos:   " + cd.getPosition0().toString("%8.3f"));
                System.out.println (

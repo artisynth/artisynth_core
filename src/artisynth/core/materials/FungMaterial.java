@@ -12,8 +12,8 @@ import maspack.properties.PropertyUtils;
 
 public class FungMaterial extends IncompressibleMaterialBase {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (FungMaterial.class, IncompressibleMaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (FungMaterial.class, IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_MU1 = 1000.0;
    protected static double DEFAULT_MU2 = 2000.0;
@@ -89,7 +89,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
          "CC:Inherited", "CC", DEFAULT_CC, "[0,inf]");
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -314,7 +314,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       return myCCMode;
    }
 
-   public double getMU1 (FieldPoint dp) {
+   public double getMU1 (FemFieldPoint dp) {
       if (myMU1Field == null) {
          return getMU1();
       }
@@ -323,7 +323,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getMU2 (FieldPoint dp) {
+   public double getMU2 (FemFieldPoint dp) {
       if (myMU2Field == null) {
          return getMU2();
       }
@@ -332,7 +332,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getMU3 (FieldPoint dp) {
+   public double getMU3 (FemFieldPoint dp) {
       if (myMU3Field == null) {
          return getMU3();
       }
@@ -341,7 +341,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getL11 (FieldPoint dp) {
+   public double getL11 (FemFieldPoint dp) {
       if (myL11Field == null) {
          return getL11();
       }
@@ -350,7 +350,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getL22 (FieldPoint dp) {
+   public double getL22 (FemFieldPoint dp) {
       if (myL22Field == null) {
          return getL22();
       }
@@ -359,7 +359,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getL33 (FieldPoint dp) {
+   public double getL33 (FemFieldPoint dp) {
       if (myL33Field == null) {
          return getL33();
       }
@@ -368,7 +368,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getL12 (FieldPoint dp) {
+   public double getL12 (FemFieldPoint dp) {
       if (myL12Field == null) {
          return getL12();
       }
@@ -377,7 +377,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getL23 (FieldPoint dp) {
+   public double getL23 (FemFieldPoint dp) {
       if (myL23Field == null) {
          return getL23();
       }
@@ -386,7 +386,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getL31 (FieldPoint dp) {
+   public double getL31 (FemFieldPoint dp) {
       if (myL31Field == null) {
          return getL31();
       }
@@ -395,7 +395,7 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public double getCC (FieldPoint dp) {
+   public double getCC (FemFieldPoint dp) {
       if (myCCField == null) {
          return getCC();
       }

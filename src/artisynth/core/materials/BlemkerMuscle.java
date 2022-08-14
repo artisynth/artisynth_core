@@ -67,8 +67,8 @@ public class BlemkerMuscle extends MuscleMaterial {
       setUncrimpingFactor (uncrimp);
    }
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (BlemkerMuscle.class, MuscleMaterial.class);   
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (BlemkerMuscle.class, MuscleMaterial.class);   
 
    static {
       myProps.addInheritableWithField (
@@ -87,7 +87,7 @@ public class BlemkerMuscle extends MuscleMaterial {
          DEFAULT_UNCRIMPING_FACTOR);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -118,7 +118,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       return myMaxLambdaMode;
    }
 
-   public double getMaxLambda (FieldPoint dp) {
+   public double getMaxLambda (FemFieldPoint dp) {
       if (myMaxLambdaField == null) {
          return getMaxLambda();
       }
@@ -161,7 +161,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       return myOptLambdaMode;
    }
 
-   public double getOptLambda (FieldPoint dp) {
+   public double getOptLambda (FemFieldPoint dp) {
       if (myOptLambdaField == null) {
          return getOptLambda();
       }
@@ -203,7 +203,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       return myMaxStressMode;
    }
 
-   public double getMaxStress (FieldPoint dp) {
+   public double getMaxStress (FemFieldPoint dp) {
       if (myMaxStressField == null) {
          return getMaxStress();
       }
@@ -246,7 +246,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       return myExpStressCoeffMode;
    }
 
-   public double getExpStressCoeff (FieldPoint dp) {
+   public double getExpStressCoeff (FemFieldPoint dp) {
       if (myExpStressCoeffField == null) {
          return getExpStressCoeff();
       }
@@ -289,7 +289,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       return myUncrimpingFactorMode;
    }
 
-   public double getUncrimpingFactor (FieldPoint dp) {
+   public double getUncrimpingFactor (FemFieldPoint dp) {
       if (myUncrimpingFactorField == null) {
          return getUncrimpingFactor();
       }

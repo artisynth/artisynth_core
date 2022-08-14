@@ -21,7 +21,7 @@ public interface ScalarFieldComponent extends FieldComponent {
     * @param fp point at which value is requested
     * @return value at the point
     */ 
-   public double getValue (FieldPoint fp);
+   public double getValue (FemFieldPoint fp);
 
    /**
     * Returns the value of the this field at a specified mesh field point.

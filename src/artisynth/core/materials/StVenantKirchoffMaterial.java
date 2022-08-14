@@ -15,8 +15,8 @@ import maspack.properties.PropertyUtils;
  */
 public class StVenantKirchoffMaterial extends FemMaterial {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (StVenantKirchoffMaterial.class, FemMaterial.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (StVenantKirchoffMaterial.class, FemMaterial.class);
 
    protected static double DEFAULT_NU = 0.33;
    protected static double DEFAULT_E = 500000;
@@ -39,7 +39,7 @@ public class StVenantKirchoffMaterial extends FemMaterial {
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -94,7 +94,7 @@ public class StVenantKirchoffMaterial extends FemMaterial {
       return myEMode;
    }
 
-   public double getYoungsModulus (FieldPoint dp) {
+   public double getYoungsModulus (FemFieldPoint dp) {
       return (myEField == null ? getYoungsModulus() : myEField.getValue (dp));
    }
 

@@ -30,8 +30,8 @@ public class ScaledFemMaterial extends FemMaterial {
    double myScaling = DEFAULT_SCALING;
    ScalarFieldComponent myScalingField;
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList(ScaledFemMaterial.class, FemMaterial.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList(ScaledFemMaterial.class, FemMaterial.class);
 
    static {
       myProps.addWithField (
@@ -42,7 +42,7 @@ public class ScaledFemMaterial extends FemMaterial {
       desc.setAllowedTypes (myBaseClasses);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -65,7 +65,7 @@ public class ScaledFemMaterial extends FemMaterial {
       notifyHostOfPropertyChange();
    }
 
-   public double getScaling (FieldPoint dp) {
+   public double getScaling (FemFieldPoint dp) {
       if (myScalingField == null) {
          return getScaling();
       }

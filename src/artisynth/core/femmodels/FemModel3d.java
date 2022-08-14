@@ -60,6 +60,7 @@ import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.femmodels.FemElement.ElementClass;
+import artisynth.core.fields.ScalarNodalField;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.IntegerToken;
 import artisynth.core.util.ScalableUnits;

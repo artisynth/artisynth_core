@@ -4,9 +4,9 @@ import java.awt.Color;
 
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
+import artisynth.core.fields.ScalarNodalField;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.ScalarNodalField;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.workspace.RootModel;

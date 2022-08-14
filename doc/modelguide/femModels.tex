@@ -141,7 +141,7 @@ which is why it is referred to as ``particle damping''.
 \label{sec:componentStructure}
 
 Each \javaclass[artisynth.core.femmodels]{FemModel3d} contains several 
-lists of sub-components:
+lists of subcomponents:
 
 \begin{description}
 \item[{\tt nodes}]\mbox{}
@@ -193,7 +193,7 @@ illustrated in Figure \ref{fig:fem}.
 (a) FEM model & (b) Nodes & (c) Elements & (d) Geometry
 \end{tabular}
 \caption{
-Sub-components of \javaclass[artisynth.core.femmodels]{FemModel3d}. 
+Subcomponents of \javaclass[artisynth.core.femmodels]{FemModel3d}. 
 \label{fig:fem}}
 \end{figure}
 
@@ -334,7 +334,7 @@ containing {\tt FemModel3d} object.  When set, the mass of the element is
 computed and divided amongst all its nodes, updating the lumped mass
 matrix.
 
-Each element's' {\tt material} property is also inherited by default from the 
+Each element's {\tt material} property is also inherited by default from the 
 containing {\tt FemModel3d}. Specifying a material here allows for spatially-%
 varying material properties across the model.  Materials will be discussed
 further in Section \ref{sec:fem:materials}.
@@ -641,9 +641,8 @@ mechanism. Attachments will be discussed further in Section
 \ref{sec:fem:nodeattachments}.
 
 Finally, the boundary of an FEM can be constrained by enabling collisions
-with other components.  This will be covered in Section
-\ref{sec:fem:collision}.
-
+with other components.  This will be covered in Chapter
+\ref{ContactAndCollision:sec}.
 
 \section{FEM model creation}
 
@@ -892,7 +891,8 @@ will be discussed further in Section \ref{sec:fem:rendering}.
 
 Associated with each FEM model is a list of geometry with the heading 
 {\tt meshes}.  This geometry can be used for either display purposes, 
-or for interactions such as collisions.  A geometry itself has no 
+or for interactions such as collisions
+(Section \ref{CompoundCollidablesAndSelf:sec}).  A geometry itself has no 
 physical properties; its motion is entirely governed by the FEM model 
 that contains it.  
 
@@ -2745,177 +2745,128 @@ stiffness parameters of an FEM material may vary at different points
 within the volumetric mesh.  When modeling muscles, the activation
 direction vector will also typically vary over the mesh.
 
-ArtiSynth provides {\it field} objects which can be used to represent
-such spatially varying quantities, together with mechanisms to attach
-these to properties within FEM materials.  Field objects can provide
-either {\it scalar} or {\it vector} fields. Scalar fields
-implement the interface 
-\javaclass[artisynth.core.modelbase]{ScalarField}
-and supply the method
+ArtiSynth provides {\it field components} which can be used to
+represent such spatially varying quantities, together with mechanisms
+to attach these to certain properties within various materials.  Field
+components can implement either {\it scalar} or {\it vector}
+fields. Scalar field components implement the interface
+\javaclass[artisynth.core.modelbase]{ScalarFieldComponent} and supply
+the method
 %
 \begin{lstlisting}[]
-   double getValue (Point3d pos)
+   double getValue (Point3d p)
 \end{lstlisting}
 %
 while vector fields implement
-\javaclass[artisynth.core.modelbase]{VectorField}
+\javaclass[artisynth.core.modelbase]{VectorFieldComponent}
 and supply the method
 %
 \begin{lstlisting}[]
-   T getValue (Point3d pos)
+   T getValue (Point3d p)
 \end{lstlisting}
 %
-where {\tt T} is any class implementing
-\javaclass{maspack.matrix.VectorObject}. (Most of the fixed-size
-matrix objects in {\tt maspack.matrix}, along with {\tt MatrixNd} and
-{\tt VectorNd}, implement {\tt VectorObject}.)  In both cases, the
-idea is to provide values at arbitrary points over some spatial
-domain.
+where {\tt T} parameterizes a class implementing
+\javaclass{maspack.matrix.VectorObject}.  In both cases, the idea is
+to provide values at arbitrary points over some spatial domain.
+
+For vector fields, the {\tt VectorObject} represented by {\tt T} can
+generally be any {\it fixed-size} vector or matrix located in the
+package {\tt maspack.matrix}, such as
+\javaclass[maspack.matrix]{Vector2d},
+\javaclass[maspack.matrix]{Vector3d}, or
+\javaclass[maspack.matrix]{Matrix3d}. {\tt T} can {\it also} be one of
+the variable-sized objects \javaclass[maspack.matrix]{VectorNd} or
+\javaclass[maspack.matrix]{MatrixNd}, although this requires using
+special wrapper classes and the sizing must remain constant within the
+field (Section \ref{sec:wrapperFields}).
 
 \begin{sideblock}
-Both {\tt ScalarField} and {\tt VectorField} are subclassed from {\tt
-Field}. The reason for separating scalar and vector fields is simply
-efficiency: having scalar fields work with the primitive type {\tt
-double}, instead of the object {\tt Double}, requires considerably
-less storage and somewhat less computational effort.
+Both {\tt ScalarFieldComponent} and {\tt VectorFieldComponent} are
+subclassed from {\tt FieldComponent}. The reason for separating scalar
+and vector fields is simply efficiency: having scalar fields work with
+the primitive type {\tt double}, instead of the object {\tt Double},
+requires considerably less storage and somewhat less computational
+effort.
 \end{sideblock}
 
-\subsection{Field types}
-
 A field is typically implemented by specifying a finite set of values
-at discrete locations on an underlying spatial grid and then using
-different methods to determine values at arbitrary points.
+at discrete locations on an underlying spatial grid and then using an
+interpolation method to determine values at arbitrary points. The
+field components themselves are defined within the package {\tt
+artisynth.core.fields}.
 
-At present, ArtiSynth provides the following different field types:
+At present, three types of fields are implemented:
 
 \begin{description}
 
-\item[Grid fields] Implemented by classes that extend either
-\javaclass[artisynth.core.modelbase]{ScalarGridField} or
-\javaclass[artisynth.core.modelbase]{VectorGridField}, grid fields
-specify their values at the vertices of a regular 3D grid.
-Values at an
-arbitrary position $\p$ are determined by finding the grid
-cell containing $\p$, and then using 
-trilinear interpolation of the surrounding nodal values.
+\item[Grid fields]\mbox{}
 
-\item[Nodal fields] Implemented by classes that extend either
-\javaclass[artisynth.core.femmodels]{ScalarNodalField} or
-\javaclass[artisynth.core.femmodels]{VectorNodalField}, nodal fields
-specify their values at the nodes of an FEM mesh.  Values at an
-arbitrary position $\p$ are determined by finding the element
-containing $\p$, and then finding the nodal coordinates (i.e., weights) of
-$\p$ within that element and interpolating the value
-accordingly. Values within a nodal field can also be queried directly
-either by node, or a set of node numbers and weights:
-\begin{verbatim}
-   T getValue (FemNode3d node)
+The most basic type of field, in which the values are specified at the
+vertices of a regular Cartesian grid and then interpolated between
+vertices. As discussed further in Section \ref{sec:gridFields}, there
+are two main types grid field component:
+\javaclass[artisynth.core.fields]{ScalarGridField} and
+\javaclassAlt{artisynth.core.fields.VectorGridField}{VectorGridField<T>}.
 
-   T getValue (int[] nodeNums, double[] weights)
-\end{verbatim}
+\item[FEM fields]\mbox{}
 
-\item[Element fields] Implemented by classes that extend either
-\javaclass[artisynth.core.femmodels]{ScalarElementField} or
-\javaclass[artisynth.core.femmodels]{VectorElementField}, element
-fields specify their values at the elements of an FEM mesh, with the
-value assumed to be constant over the element. Values at an arbitrary
-position $\p$ are determined by finding the element containing $\p$
-and then returning the value for that element. Values within a nodal
-field can also be queried directly by element:
-\begin{verbatim}
-   T getValue (FemElement3dBase elem)
-\end{verbatim}
+Fields for which values are specified at the features of an FEM mesh
+(e.g., nodes, elements or element integration points).  As discussed
+further in Section \ref{sec:femFields}, there are six primary types of
+FEM field component:
+\javaclass[artisynth.core.fields]{ScalarNodalField}
+and
+\javaclassAlt{artisynth.core.fields.VectorNodalField}{VectorNodalField<T>}
+(nodes),
+\javaclass[artisynth.core.fields]{ScalarElementField}
+and
+\javaclassAlt{artisynth.core.fields.VectorElementField}{VectorElementField<T>}
+(elements), and
+\javaclass[artisynth.core.fields]{ScalarSubElemField}
+and
+\javaclassAlt{artisynth.core.fields.VectorSubElemField}{VectorSubElemField<T>}
+(integation points).
 
-\item[Sub-element fields] Implemented by classes that extend either
-\javaclass[artisynth.core.femmodels]{ScalarSubElemField} or
-\javaclass[artisynth.core.femmodels]{VectorSubElemField}, sub-element
-fields specify their values at specific points within each element of
-an FEM mesh, with the points corresponding to the
-element's integration points. Values at an arbitrary position $\p$ are
-determined by finding the element containing $\p$, extrapolating the
-point values back to the nodes, and then using nodal interpolation.
-While this is computationally expensive (and it is also possible to
-create a nodal field that gives the same result), the purpose of
-sub-element fields is to provide precise values at element integration
-points, which can be queried directly using the element and
-point sub-index:
-\begin{verbatim}
-   T getValue (FemElement3dBase elem, int subIdx)
-\end{verbatim}
+\item[Mesh fields]\mbox{}
+
+Fields in which values are specified for either the vertices or faces
+of a triangular mesh. As discussed
+further in Section \ref{sec:meshFields}, there are four primary types of
+mesh field component:
+\javaclass[artisynth.core.fields]{ScalarVertexField}
+and
+\javaclassAlt{artisynth.core.fields.VectorVertexField}{VectorVertexField<T>}
+(vertices), and 
+\javaclass[artisynth.core.fields]{ScalarFaceField}
+and
+\javaclassAlt{artisynth.core.fields.VectorFaceField}{VectorFaceField<T>}
+(faces).
 
 \end{description}
 
-Internally, field features, such as nodes or elements, are generally
-referred to by their {\it number}. This is because node and element
-numbers are guaranteed to be {\it persistent}, in the sense that the
-number will remain unchanged as long as the node or element is not
-removed from the FEM model. Element field implementations also need to
-distinguish between volumetric and shell elements, since these are each
-numbered independently.
+Within an application model, field deployment typically involves the
+following steps:
 
-Table \ref{Fields:tab} gives a list of all the currently implemented
-fields. Some of them, such as those prefaced with {\tt Vector3d}, {\tt
-VectorNd}, and {\tt MatrixNd}, are specialized because they
-implement special features for their value type, or require
-specialized construction because the value type does not have a fixed
-size.
+\begin{enumerate}
 
-\begin{table}
-\begin{center}
-\begin{tabular}{|lll|}
-\hline
-Field component & value & field type \\
-\hline
-{\tt modelbase.ScalarGridField} & {\tt double} & scalar grid \\
-{\tt modelbase.VectorGridField} & {\tt VectorObject} & vector grid \\
-{\tt femmodels.ScalarNodalField} & {\tt double} & scalar nodal \\
-{\tt femmodels.VectorNodalField} & {\tt VectorObject} & vector nodal \\
-{\tt femmodels.Vector3dNodalField} & {\tt Vector3d} & vector nodal \\
-{\tt femmodels.VectorNdNodalField} & {\tt VectorNd} & vector nodal \\
-{\tt femmodels.MatrixNdNodalField} & {\tt MatrixNd} & vector nodal \\
-{\tt femmodels.ScalarElementField} & {\tt double} & scalar element \\
-{\tt femmodels.VectorElementField} & {\tt VectorObject} & vector element \\
-{\tt femmodels.Vector3dElementField} & {\tt Vector3d} & vector element \\
-{\tt femmodels.VectorNdElementField} & {\tt VectorNd} & vector element \\
-{\tt femmodels.MatrixNdElementField} & {\tt MatrixNd} & vector element \\
-{\tt femmodels.ScalarSubElemField} & {\tt double} & scalar sub-element \\
-{\tt femmodels.VectorSubElemField} & {\tt VectorObject} & vector sub-element \\
-{\tt femmodels.Vector3dSubElemField} & {\tt Vector3d} & vector sub-element \\
-{\tt femmodels.VectorNdSubElemField} & {\tt VectorNd} & vector sub-element \\
-{\tt femmodels.MatrixNdSubElemField} & {\tt MatrixNd} & vector sub-element \\
-\hline
-\end{tabular}
-\end{center}
-\caption{List of all the field components available in ArtiSynth, with
-their value and field types.}
-\label{Fields:tab}
-\end{table}
+\item Create the field component and add it to the model. Grid and
+mesh fields are usually added to the {\it fields} component list of a
+\javaclass[artisynth.core.mechmodels]{MechModel}, while FEM fields are
+added to the {\it fields} list of the
+\javaclass[artisynth.core.femmodels]{FemModel3d} for which the field
+is defined.
 
-Each field component also has a {\it default value}, which is returned
-for any query for which the specified position lies outside the field's
-domain. For a grid field, this means lying outside the bounds of the
-grid. For an FEM-based field, this means lying outside the FEM mesh.
-The default value can be specified in the field's constructor. If not
-specified, it is usually set to 0.
+\item Specify field values for the appropriate features (e.g.,
+grid vertices, FEM nodes, mesh faces).
 
-\begin{sideblock}
-Having a default value also means that explicit values do not have to
-specified at all of the features (e.g., nodes or elements) used to
-define the field. If an explicit value is missing, the default value is
-used instead.
-\end{sideblock}
+\item If necessary, bind any needed material properties
+to the field, as discussed further in Section \ref{sec:fieldBinding}.
 
-\subsection{Adding fields to a model}
+\end{enumerate}
 
-Fields are added to an ArtiSynth model by first creating an instance
-of the desired field class, populating it with values (at vertices,
-nodes, or elements, as required by the field), and then adding it to
-the model. Grid fields can generally be added anywhere, whereas
-FEM-based fields should be added to the {\sf fields} sublist of their
-associated FEM model (grid fields can be added there as well).
-
-As a simple example, one can construct a scalar nodal field, associated
-with an FEM model named {\tt fem}, like this:
+As a simple example of the first two steps, the following code
+fragment constructs a scalar nodal field associated with an FEM model
+named {\tt fem}:
 %
 \begin{lstlisting}[]
    FemModel3d fem; 
@@ -2928,81 +2879,455 @@ with an FEM model named {\tt fem}, like this:
    fem.addField (field); // add the field to the fem
 \end{lstlisting}
 %
-Each field type has several constructors available. The one used above
-takes a component name ({\tt "stiffness"}), the FEM modal associated with
-the field, and a default value (0 in this case). When setting field
-values, it is often easiest to simply specify the node (although the
-node's number (i.e., {\tt node.getNumber()}) can be specified as well.
-After being created and initialized, the field is added to the FEM
-model using its {\tt addField()} method.
 
-\begin{sideblock}
-As noted in the previous section, it is not necessary to specify
-values for all the features of a field (e.g., nodes for a nodal field,
-or elements for an element field). For features with undefined values,
-the default value will be used instead.
-\end{sideblock}
+More details on specific field components are given in the sections
+below.
 
-As another example, consider constructing a vector element field, with
-two-dimensional values characterized by {\tt Vector2d}. An example
-of this is as follows:
+\subsection{Grid fields}
+\label{sec:gridFields}
+
+A grid field specifies scalar or vector values at the vertices of a
+regular Cartesian grid and interpolates values between vertices.
+ArtiSynth currently provides two grid field components in {\tt
+artisynth.core.fields}:
 %
 \begin{lstlisting}[]
-   VectorElementField<Vector2d> field = 
-      new VectorElementField<> ("uv", Vector2d.class, fem);
-   for (FemElement3d e : fem.getElements()) {
-      Vector2d value = ... // compute value for the element
-      field.setValue (e, value);
+   ScalarGridField
+
+   VectorGridField<T>
+\end{lstlisting}
+%
+where {\tt T} is any class implementing
+\javaclass{maspack.matrix.VectorObject}.  For both grid types, the
+value returned by {\tt getValue(p)} is determined by finding the grid
+cell containing $\p$ and then using trilinear interpolation of the
+surrounding nodal values. If $\p$ lies {\it outside} the grid volume,
+then {\tt getValue(p)} either returns the value at the nearest grid
+point $\p'$ (if the component property {\sf clipToGrid} is set to {\tt
+true}), or else returns a special value indicating that $\p$ is
+outside the grid. This special value is {\tt
+ScalarGridField.OUTSIDE\_GRID} for scalar fields or {\tt null} for
+vector fields.
+
+Grid field components are implemented as wrappers around the more
+basic objects \javaclass[maspack.geometry]{ScalarGrid} and
+\javaclassAlt{maspack.geometry.VectorGrid}{VectorGrid<T>} defined in
+{\tt maspack.geometry}. Applications first create one of these primary
+grid objects and then use it to create the field component.  Instances
+of {\tt ScalarGrid} and {\tt VectorGrid<T>} can be created with
+constructors such as
+%
+\begin{lstlisting}[]
+  ScalarGrid (Vector3d widths, Vector3i res)
+  ScalarGrid (Vector3d widths, Vector3i res, RigidTransform3d TCL)
+
+  VectorGrid (Class<T> type, Vector3d widths, Vector3i res)
+  VectorGrid (Class<T> type, Vector3d widths, Vector3i res, RigidTransform3d TCL)
+\end{lstlisting}
+%
+where {\tt widths} gives the grid widths along each of the $x$, $y$
+and $z$ axes, {\tt res} gives the number of cells along each axis, and
+for vector grids {\tt type} is the class type of the
+\javaclass{maspack.matrix.VectorObject} object parameterized by {\tt
+T}.  {\tt TCL} is an optional argument which, if not {\tt null},
+describes the position and orientation of the grid center with respect
+to local coordinates; otherwise, in local coordinates the grid is
+centered at the origin and aligned with the $x$, $y$ and $z$ axes.
+
+\begin{sideblock}
+For the vector grid constructors above, {\tt T} should be a fixed-size
+vector or matrix, such as {\tt Vector3d} or {\tt Matrix3d}.  The
+variable sized objects {\tt VectorNd} and {\tt MatrixNd} can also be
+used with the aid of special wrapper classes, as described in Section
+\ref{sec:wrapperFields}.
+\end{sideblock}
+
+By default, grids are axis-aligned and centered at the origin of the
+world coordinate system. A transform {\tt TLW} can be specified to
+place the grid at a different position and/or orientation.  {\tt TLW}
+represents the transform from local to world coordinates and can be
+controlled with the methods
+%
+\begin{lstlisting}[]
+  void setLocalToWorld (RigidTransform3d TLW)
+  RigidTransform3d getLocalToWorld()
+\end{lstlisting}
+%
+If not specified, {\tt TLW} is the identity and local and world
+coordinates are the same.
+
+Once a grid is created, it can be used to instantiate a grid field
+component using one of the constructors
+%
+\begin{lstlisting}[]
+  ScalarGridField (ScalarGrid grid)
+  ScalarGridField (String name, ScalarGrid grid)
+
+  VectorGridField (VectorGrid grid)
+  VectorGridField (String name, VectorGrid grid)
+\end{lstlisting}
+%
+where {\tt grid} is the primary grid and {\tt name} is an optional
+component name. Note that the primary grid is not copied, so any
+subsequent changes to it will be relected in the enclosing field
+component.
+
+Once the grid field component is created, its values can be set by
+specifying the values at its vertices. The methods to 
+query and set vertex values for scalar and vector fields are
+%
+\begin{lstlisting}[]
+  int numVertices()
+
+  // scalar fields:
+  double getVertexValue (int xi, int yj, int zk)
+  double getVertexValue (int vi)
+  void setVertexValue (int xi, int yj, int zk, double value)
+  void setVertexValue (int vi, double value)
+
+  // vector fields:
+  T getVertexValue (int xi, int yj, int zk)
+  T getVertexValue (int vi)
+  void setVertexValue (int xi, int yj, int zk, T value)
+  void setVertexValue (int vi, T value)
+\end{lstlisting}
+%
+where {\tt xi}, {\tt yj}, and {\tt zk} are the vertex's indices along
+the x, y, and z axes, and {\tt vi} is a general index that should be
+in the range {\tt 0} to {\tt field.numVertices()-1} and is related to
+{\tt xi}, {\tt yj}, and {\tt zk} by
+%
+\begin{verbatim}
+  vi = xi + nx*yj + (nx*ny)*zk,
+\end{verbatim}
+where {\tt nx} and {\tt ny} are the number of vertices along the $x$
+and $y$ axes.
+
+When computing a grid value using {\tt getValue(p)}, the point {\tt p}
+is assumed to be in either grid local or world coordinates, depending
+on whether the field component's property {\sf localValuesForField} is
+{\tt true} or {\tt false} (local and world coordinates are the same
+unless the primary grid's local-to-world transform {\tt TLW} has been
+set as described above).
+
+To find the spatial position of a vertex within a grid field
+component, one may use the methods
+%
+\begin{lstlisting}[]
+  Vector3d getVertexPosition (xi, yj, zk)
+  Vector3d getVertexPosition (vi)
+\end{lstlisting}
+%
+which return the vertex position in either local or world coordinates
+depending on the setting of {\sf localValuesForField}.
+
+The following code example shows the creation of a {\tt
+ScalarGridField}, with widths $5 \times 5 \times 10$ and a cell
+resolution of $10 \times 10 \times 20$, centered at the origin and
+whose vertex values are set to their distance from the origin,
+in order to create a simple distance field:
+%
+\begin{lstlisting}[]
+   // create a 5 x 5 x 10 grid with resolution 10 x 10 x 20 centered on the
+   // origin
+   ScalarGrid grid = new ScalarGrid (
+      new Vector3d (5, 5, 10), new Vector3i (10, 10, 20));
+
+   // use this to create a scalar grid field where the value at each vertex
+   // is the distance from the origin
+   ScalarGridField field = new ScalarGridField (grid);
+
+   // iterate through all the vertices and set the value for each to its
+   // distance from the origin, as given by the norm of it's position
+   for (int vi=0; vi<grid.numVertices(); vi++) {
+      Vector3d vpos = grid.getVertexCoords (vi);
+      grid.setVertexValue (vi, vpos.norm()); 
+   }
+   // add to a mech model:
+   mech.addField (field);
+\end{lstlisting}
+%
+As shown in the example and as mentioned earlier, grid field are
+generally added to the {\tt fields} list of a {\tt MechModel}.
+
+\subsection{FEM fields}
+\label{sec:femFields}
+
+A FEM field specifies scalar or vector values for the features of an
+FEM mesh. These can be either the nodes (nodal fields), elements
+(element fields), or element integration points (sub-element fields).
+As such, FEM fields provide a way to augment the mesh to store
+application-specific quantities, and are typically used to bind
+properties of FEM materials that need to vary over the domain (Section
+\ref{sec:fieldBinding}).
+
+To evaluate {\tt getValue(p)} at an arbitrary point $\p$, the field
+finds the FEM element containing $\p$ (or nearest to $\p$, if $\p$ is
+outside the FEM mesh), and either interpolates the value from the
+surrounding nodes (nodal fields), uses the element value directly
+(element fields), or interpolates from the integration point values
+(sub-element fields).
+
+\begin{sideblock}
+When finding a FEM field value at a point $\p$, 
+{\tt getValue(p)} is evaluated with respect to the FEM model's current
+{\it spatial} position, as opposed to its {\it rest} position.
+\end{sideblock}
+
+FEM fields maintain a {\it default value} which describes the value at
+features for which values are not explicitly set. If unspecified,
+the default value itself is zero.
+
+In the remainder of this section, it is assumed that vector fields are
+constructed using fixed-size vectors or matrices, such as {\tt
+Vector3d} or {\tt Matrix3d}.  However, it is also possible to
+construct fields using {\tt VectorNd} or {\tt MatrixNd}, with the aid
+of special wrapper classes, as described in Section
+\ref{sec:wrapperFields}. That section also details a convenience
+wrapper class for {\tt Vector3d}.
+
+The three field types are now described in detail.
+
+\subsubsection{Nodal fields}
+
+Implemented by
+\javaclass[artisynth.core.fields]{ScalarNodalField},
+\javaclassAlt{artisynth.core.fields.VectorNodalField}{VectorNodalField<T>}, 
+or subclasses
+of the latter, nodal fields specify their values at the nodes of an
+FEM mesh. They can be created with constructors such as
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  ScalarNodalField (FemModel3d fem)
+  ScalarNodalField (FemModel3d fem, double defaultValue)
+  ScalarNodalField (String name, FemModel3d fem, double defaultValue)
+
+  // vector fields (with vector type parameterized by T):
+  VectorNodalField (Class<T> type, FemModel3d fem)
+  VectorNodalField (Class<T> type, (FemModel3d fem, T defaultValue)
+  VectorNodalField (String name, Class<T> type, FemModel3d fem, T defaultValue)
+\end{lstlisting}
+%
+where {\tt fem} is the associated FEM model, {\tt defaultValue} is the
+default value, and {\tt name} is a component name. For vector fields,
+the \javaclass{maspack.matrix.VectorObject} type is parameterized by
+{\tt T}, and {\tt type} gives its actual class type (e.g., {\tt
+Vector3d.class}).
+
+Once the grid has been created, values can be queried and set at the
+nodes using methods such as
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  void setValue (FemNode3d node, double value) // set value for node
+  double getValue (FemNode3d node)             // get value for node
+  double getValue (int nodeNum)                // get value using node number
+
+  // vector fields:
+  void setValue (FemNode3d node, T value)      // set value for node
+  T getValue (FemNode3d node)                  // get value for node
+  T getValue (int nodeNum)                     // get value using node number
+
+  // all fields:
+  boolean isValueSet (FemNode3d node)          // query if value set for node
+  void clearValue (FemNode3d node)             // unset value for node
+  void clearAllValues()                        // unset values for all nodes
+\end{lstlisting}
+%
+Here {\tt nodeNum} refers to an FEM node's {\it number} (which can be
+obtained using {\tt node.getNumber()}). Numbers are used instead of
+indices to identity FEM nodes and elements because they are guaranteed
+to be {\it persistent} in case of mesh editing, and will remain
+unchanged as long as the node or element is not removed from the FEM
+model. Note that values don't need to be set at all nodes, and set
+values can be unset using the {\tt clear} methods. For nodes with no
+value set, the {\tt getValue()} methods will return the default value.
+
+As a simple example, the following code fragment constructs a {\tt
+ScalarNodalField} for an FEM model {\tt fem} that describes stiffness
+values at every node of an FEM:
+%
+\begin{lstlisting}[]
+   // instantiate the field and set values for each node:
+   ScalarNodalField field = new ScalarNodalField ("stiffness", fem);
+   for (FemNode3d n : fem.getNodes()) {
+      double stiffness = ... // compute stiffness value for the node
+      field.setValue (n, stiffness);
    }
    fem.addField (field); // add the field to the fem
 \end{lstlisting}
 %
-General vector fields are declared using type parameterization, in
-which the class type of the vector must be appended to the declaration
-between angle brackets ({\tt < >}). Also, the constructor also
-requires the class type to be specified as an argument. In the example
-above, the field is constructed with a name ({\tt "uv"}), value class
-type ({\tt Vector2d.class}), and the FEM model. Since no default value is
-specified, a value of 0 will be assumed.
+As noted earlier, FEM fields should be stored in the {\tt fields} list
+of the associated FEM model.
 
-Since it is widely used, the vector type {\tt Vector3d} has its own
-predefined field classes, which don't require parameterization and may
-also contain special methods and features relevant for 3D vectors.  A
-{\tt Vector3d} nodal field can be declared and created as follows:
+Another example shows the creation of a field of 3D direction vectors:
 %
 \begin{lstlisting}[]
-    Vector3dNodalField field = new Vector3dNormalField ("normals", fem);  
+  VectorNodalField<Vector3d> field =
+    new VectorNodalField<Vector3d> ("directions", Vector3d.class, fem);
+  Vector3d dir = new Vector3d();
+  for (FemNode3d node : fem.getNodes()) {
+     ... // compute direction and store in dir
+     field.setValue (node, dir);
+  }
 \end{lstlisting}
 %
-Since the vector type is explicitly ``wired in'', no type
-parameterization is required, and {\tt Vector3d.class} does not need
-to be specified to the constructor.
+When creating a vector field, the constructor needs the class type of
+the field's {\tt VectorObject}. However, for the special case of {\tt
+Vector3d}, one may also use the convenience wrapper class {\tt
+Vector3dNodalField}, described in Section \ref{sec:wrapperFields}.
 
-The vector types {\tt VectorNd} and {\tt MatrixNd} also have special
-predefined classes, because these components do not have a
-predetermined size and so it is necessary to specify this size
-information when constructing the field. Some constructors for fields
-with these types look like:
+\subsubsection{Element fields}
+
+Implemented by
+\javaclass[artisynth.core.fields]{ScalarElementField},
+\javaclassAlt{artisynth.core.fields.VectorElementField}{VectorElementField<T>}, 
+or subclasses of the latter, element fields specify their values at
+the elements of an FEM mesh, and these values are assumed to be {\it
+constant} within the element. To evaluate {\tt getValue(p)}, the field
+finds the containing (or nearest) element for $\p$, and then returns
+the value for that element.
+
+\begin{sideblock}
+Because values are assume to be constant within each element, element
+fields are inherently discontinuous across element boundaries.
+\end{sideblock}
+
+The constructors for element fields are analogous to those
+for nodal fields:
 %
 \begin{lstlisting}[]
-   MatrixNdElementField field = 
-      new MatrixNdElementField ("matrixField", 3, 6, fem);
-   VectorNdNodalField field = 
-      new VectorNdNodalField ("params", 7, fem);
+  // scalar fields:
+  ScalarElementField (FemModel3d fem)
+  ScalarElementField (FemModel3d fem, double defaultValue)
+  ScalarElementField (String name, FemModel3d fem, double defaultValue)
+
+  // vector fields (with vector type parameterized by T):
+  VectorElementField (Class<T> type, FemModel3d fem)
+  VectorElementField (Class<T> type, (FemModel3d fem, T defaultValue)
+  VectorElementField (String name, Class<T> type, FemModel3d fem, T defaultValue)
 \end{lstlisting}
 %
-Both of these contain size information after the name
-argument: $3 \times 6$ for the matrix field, and 7 for the vector
-field. Again, no default value is specified, so 0 will be assumed.
-
-Lastly, we consider constructing a sub-element field. This is normally
-done when we need precisely computed information at each of the
-element's integration points, and we can't assume that nodal
-interpolation will give an accurate enough approximation. A general
-template for constructing a sub-element field might look like this:
+and the methods for setting values at elements are similar as
+well:
 %
 \begin{lstlisting}[]
-   ScalarSubElemField field = new ScalarSubElemField ("precise", fem, -1);
+  // scalar fields:
+  void setValue (FemElement3dBase elem, double value) // set value for element
+  double getValue (FemElement3dBase elem)      // get value for element
+  double getElementValue (int elemNum)         // get value for volume element
+  double getShellElementValue (int elemNum)    // get value for shell element
+
+  // vector fields:
+  void setValue (FemElement3dBase elem, T value) // set value for element
+  T getValue (FemElement3dBase elem)           // get value for element
+  T getElementValue (int elemNum)              // get value for volume element
+  T getShellElementValue (int elemNum)         // get value for shell element
+
+  // all fields:
+  boolean isValueSet (FemElement3dBase elem)   // query if value set for element
+  void clearValue (FemElement3dBase elem)      // unset value for element
+  void clearAllValues()                        // unset values for all elements
+\end{lstlisting}
+%
+The elements associated with an element field can be either volume
+{\it or} shell elements, which are stored in the FEM component lists
+{\tt elements} and {\tt shellElements}, respectively. Since volume and
+shell elements may share element numbers, the separate methods {\tt
+getElementValue()} and {\tt getShellElementValue()} are used to access
+values by element number.
+
+The following code fragment constructs a {\tt VectorElementField}
+based on {\tt Vector2d} that stores a 2D coordinate value at all
+regular and shell elements:
+%
+\begin{lstlisting}[]
+  VectorElementField<Vector2d> efield =
+    new VectorElementField<Vector2d> ("coordinates", Vector2d.class, fem);
+  Vector2d coords = new Vector2d();
+  for (FemElement3d e : fem.getElements()) {
+     ... // compute coordinate values and store in coords
+     efield.setValue (e, coords);
+  }
+  for (ShellElement3d e : fem.getShellElements()) {
+     ... // compute coordinate values and store in coords
+     efield.setValue (e, coords);
+  }
+\end{lstlisting}
+%
+
+\subsubsection{Sub-element fields}
+
+Implemented by
+\javaclass[artisynth.core.fields]{ScalarSubElemField},
+\javaclassAlt{artisynth.core.fields.VectorSubElemField}{VectorSubElemField<T>}, 
+or subclasses of the latter, sub-element fields specify their values
+at the integration points within each element of an FEM mesh. These
+fields are used when we need precisely computed information at each of
+the element's integration points, and we can't assume that nodal
+interpolation will give an accurate enough approximation.
+
+To evaluate {\tt getValue(p)}, the field finds the containing (or
+nearest) element for $\p$, extrapolating the intergration point values
+back to the nodes, and then using nodal interpolation.
+
+Constructors are similar to those for element fields:
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  ScalarSubElemField (FemModel3d fem)
+  ScalarSubElemField (FemModel3d fem, double defaultValue)
+  ScalarSubElemField (String name, FemModel3d fem, double defaultValue)
+
+  // vector fields:
+  VectorSubElemField (Class<T> type, FemModel3d fem)
+  VectorSubElemField (Class<T> type, (FemModel3d fem, T defaultValue)
+  VectorSubElemField (String name, Class<T> type, FemModel3d fem, T defaultValue)
+\end{lstlisting}
+%
+Value accessors are also similar, except that an additional argument
+{\tt k} is required to specify the index of the integration
+point: 
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  void setValue (FemElement3dBase e, int k, double value) // set value for point
+  double getValue (int elemNum, int k)               // get value for point
+  double getElementValue (FemElement3dBase e, int k) // get value for volume point
+  double getShellElementValue (int elemNum, int k)   // get value for shell point
+
+  // vector fields:
+  void setValue (FemElement3dBase e, T value, int k) // set value for point
+  T getValue (FemElement3dBase e, int k)             // get value for point
+  T getElementValue (int elemNum, int k)             // get value for volume point
+  T getShellElementValue (int elemNum, int k)        // get value for shell point
+
+  // all fields:
+  boolean isValueSet (FemElement3dBase e, int k)     // query if value set for point
+  void clearValue (FemElement3dBase e, int k)        // unset value for point
+  void clearAllValues()                              // unset values for all points
+\end{lstlisting}
+%
+The integration point index {\tt k} should be in the range 0 to $n-1$,
+where $n$ is the total number of integration points for the element in
+question and can be queried by the method
+\javamethod[artisynth.core.femmodels.FemElement3dBase]{numAllIntegrationPoints()}.
+
+\begin{sideblock}
+The total number of integration points $n$ includes both the regular
+integration point as well as the {\it warping} point, which is located
+at the element center, is indexed by $n-1$, and is used for corotated
+linear materials. If a {\tt SubElemField} is being using to supply
+mesh-varying values to one of the linear material parameters (Section
+\ref{sec:fieldBinding}), then it is important to supply values at the
+warping point.
+\end{sideblock}
+
+The example below shows the construction of a {\tt ScalarSubElemField}:
+%
+\begin{lstlisting}[]
+   ScalarSubElemField field = new ScalarSubElemField ("modulus", fem);
    for (FemElement3d e : fem.getElements()) {
       IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
       for (int k=0; k<ipnts.length; k++) {
@@ -3013,26 +3338,15 @@ template for constructing a sub-element field might look like this:
    fem.addField (field); // add the field to the fem
 \end{lstlisting}
 %
-Here, we create a scalar sub-element field named {\tt "precise"} with
-a default value of -1. Then we iterate first through the FEM elements,
-and then through each element's integration points, computing values
-appropriate to each one. Since we are likely to need information from
-the integration points themselves to compute the value, we use {\tt
-e.getAllIntegrationPoints()} to obtain a list of them. 
-
-\begin{sideblock}
-Assigning values to a sub-element field, it is important to use the
-element's {\tt getAllIntegrationPoints()} method instead of {\tt
-getIntegrationPoints()}, since the former returns a list of {\it all}
-integration points, including the special {\it warping} point which is
-contained in the element's center and is used by the solver under some
-circumstances. Likewise, the number of sub-element values
-required is given by {\tt numAllIntegrationPoints()}.
-\end{sideblock}
-
-When computing sub-element field values, if it is necessary to obtain
-either the rest or current (spatial) position for an integration
-point, these can be obtained as follows:
+First, the field is instantiated with the name {\tt "modulus"}.  The
+code then iterates first through the FEM elements, and then through
+each element's integration points, computing values appropriate to
+each one. A list of each element's integration points is returned by
+{\tt e.getAllIntegrationPoints()}. Having access to the actual
+integration points is useful in case information about them is needed
+to compute the field values. In particular, if it is necessary to
+obtain an integration point's rest or current (spatial) position,
+these can be queried as follows:
 %
 \begin{lstlisting}[]
       IntegrationPoint3d ipnt;
@@ -3049,22 +3363,331 @@ point, these can be obtained as follows:
 \end{lstlisting}
 %
 
-\subsection{Binding to material properties}
+\begin{sideblock}
+The regular integration points, {\it excluding} the warping point, can
+be queried using {\tt getIntegrationPoints()} and {\tt
+numIntergrationPoints()} instead of {\tt getAllIntegrationPoints()}
+and {\tt numAllIntegrationPoints()}.
+\end{sideblock}
 
-Once a field has been created and added to the model, one may {\it
-bind} it to certain properties of a {\tt FemMaterial}. When this is
-done, then whenever those properties are queried internally by the
-solver at the integration points for each FEM element, the field value
-at that integration point is used instead of the regular property
-value.
+\subsection{Mesh fields}
+\label{sec:meshFields}
+
+A mesh field specifies scalar or vector values for the features of an
+FEM mesh. These can be either the vertices (vertex fields) or faces
+(face fields). Mesh fields have been introduced in particular to allow
+properties of contact force behaviors
+(Section \ref{ContactForceBehavior:sec}), such as 
+\javaclass[artisynth.core.materials]{LinearElasticContact},
+to vary over the contact mesh. Mesh fields can currently be defined
+only for triangular polyhedral meshes.
+
+To evaluate {\tt getValue(p)} at an arbitrary point $\p$, the field
+finds the mesh face nearest to $\p$, and then either interpolates the
+value from the surrounding vertices (vertex fields) or uses the face
+value directly (face fields).
+
+Mesh fields make use of the classes
+\javaclass[maspack.geometry]{PolygonalMesh},
+\javaclass[maspack.geometry]{Vertex3d}, and
+\javaclass[maspack.geometry]{Face}, defined in the package
+{\tt maspack.geometry}.  They maintain a {\it default value} which
+describes the value at features for which values are not explicitly
+set. If unspecified, the default value itself is zero.
+
+In the remainder of this section, it is assumed that vector fields are
+constructed using fixed-size vectors or matrices, such as {\tt
+Vector3d} or {\tt Matrix3d}.  However, it is also possible to
+construct fields using {\tt VectorNd} or {\tt MatrixNd}, with the aid
+of special wrapper classes, as described in Section
+\ref{sec:wrapperFields}. That section also details a convenience
+wrapper class for {\tt Vector3d}.
+
+The two field types are now described in detail.
+
+\subsubsection{Vertex fields}
+
+Implemented by
+\javaclass[artisynth.core.fields]{ScalarVertexField},
+\javaclassAlt{artisynth.core.fields.VectorVertexField}{VectorVertexField<T>}, 
+or subclasses of the latter, vertex fields specify their values at the
+vertices of a mesh. They can be created with constructors such as
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  ScalarVertexField (MeshComponent mcomp)
+  ScalarVertexField (MeshComponent mcomp, double defaultValue)
+  ScalarVertexField (String name, MeshComponent mcomp, double defaultValue)
+
+  // vector fields (with vector type parameterized by T):
+  VectorVertexField (Class<T> type, MeshComponent mcomp)
+  VectorVertexField (Class<T> type, (MeshComponent mcomp, T defaultValue)
+  VectorVertexField (String name, Class<T> type, MeshComponent mcomp, T defaultValue)
+\end{lstlisting}
+%
+where {\tt mcomp} is a mesh component containing the mesh, {\tt
+defaultValue} is the default value, and {\tt name} is a component
+name. For vector fields, the \javaclass{maspack.matrix.VectorObject}
+type is parameterized by {\tt T}, and {\tt type} gives its actual
+class type (e.g., {\tt Vector3d.class}).
+
+Once the field has been created, values can be queried and set at the
+vertices using methods such as
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  void setValue (Vertex3d vtx, double value)   // set value for vertex
+  double getValue (Vertex3d vtx)               // get value for vertex
+  double getValue (int vidx)                   // get value for vertex number
+
+  // vector fields:
+  void setValue (Vertex3d vtx, T value)        // set value for vertex
+  T getValue (Vertex3d vtx)                    // get value for vertex
+  T getValue (int vidx)                        // get value for vertex number
+
+  // all fields:
+  boolean isValueSet (Vertex3d vtx)            // query if value set for vertex
+  void clearValue (Vertex3d vtx)               // unset value for vertex
+  void clearAllValues()                        // unset values for all vertices
+\end{lstlisting}
+%
+where {\tt vidx} is the vertex's index. Note that values don't need to
+be set at all vertices, and set values can be unset using the {\tt
+clear} methods. For vertices with no value set, {\tt getValue()} will
+return the default value.
+
+As a simple example, the following code fragment constructs a {\tt
+ScalarVertexField} for a mesh contained in the 
+\javaclass[artisynth.core.mechmodels]{MeshComponent} {\tt mcomp}
+that describes contact stiffness values 
+at every vertex:
+%
+\begin{lstlisting}[]
+   MechModel mech; // containing mech model
+   
+   ...
+
+   // instantiate the field and set values for each node:
+   ScalarVertexField field = new ScalarVertexField ("stiffness", mcomp);
+   // extract the mesh from the component
+   PolygonalMesh mesh = (PolygonalMesh)mcomp.getMesh();
+   for (Vertex3d vtx : mesh.getVertices()) {
+      double stiffness = ... // compute stiffness value for the vertex
+      field.setValue (vtx, stiffness);
+   }
+   mech.addField (field); // add the field to the mech model
+\end{lstlisting}
+%
+As noted earlier, mesh fields are usually stored in the {\tt fields}
+list of a \javaclass[artisynth.core.mechmodels]{MechModel}.
+
+Another example shows the creation of a field of 3D direction vectors:
+%
+\begin{lstlisting}[]
+  VectorVertexField<Vector3d> field =
+    new VectorVertexField<Vector3d> ("directions", Vector3d.class, mcomp);
+  Vector3d dir = new Vector3d();
+  for (Vertex3d vtx : mesh.getVertices()) {
+     ... // compute direction and store in dir
+     field.setValue (vtx, dir);
+  }
+\end{lstlisting}
+%
+When creating a vector field, the constructor needs the class type of
+the field's {\tt VectorObject}. However, for the special case of {\tt
+Vector3d}, one may also use the convenience wrapper class {\tt
+Vector3dVertexField}, described in Section \ref{sec:wrapperFields}.
+
+\subsubsection{Face fields}
+
+Implemented by
+\javaclass[artisynth.core.fields]{ScalarFaceField},
+\javaclassAlt{artisynth.core.fields.VectorFaceField}{VectorFaceField<T>}, 
+or subclasses of the latter, face fields specify their values at the
+faces of a polygonal mesh, and these values are assumed to be {\it
+constant} within the face. To evaluate {\tt getValue(p)}, the field
+finds the containing (or nearest) face for $\p$, and then returns the
+value for that face.
 
 \begin{sideblock}
-As long as a property {\sf XXX} is bound to a field, its regular value will
-still appear (and can be set) through widgets in control or property
-panels, or via the {\tt getXXX()} and {\tt setXXX()} accessors.
-However, the regular value won't be used internally by the FEM
-simulation.
+Because values are assume to be constant within each face, face fields
+are inherently discontinuous across face boundaries.
 \end{sideblock}
+
+The constructors for face fields are analogous to those
+for vertex fields:
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  ScalarFaceField (MeshComponent mcomp)
+  ScalarFaceField (MeshComponent mcomp, double defaultValue)
+  ScalarFaceField (String name, MeshComponent mcomp, double defaultValue)
+
+  // vector fields (with vector type parameterized by T):
+  VectorFaceField (Class<T> type, MeshComponent mcomp)
+  VectorFaceField (Class<T> type, (MeshComponent mcomp, T defaultValue)
+  VectorFaceField (String name, Class<T> type, MeshComponent mcomp, T defaultValue)
+\end{lstlisting}
+%
+and the methods for setting values at faces are similar as
+well, where {\tt fidx} refers to the face index:
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  void setValue (Face face, double value)      // set value for face
+  double getValue (Face face)                  // get value for face
+  double getValue (int fidx)                   // get value using face index
+
+  // vector fields:
+  void setValue (Face face, T value)           // set value for face
+  T getValue (Face face)                       // get value for face
+  T getValue (int fidx)                        // get value using face index
+
+  // all fields:
+  boolean isValueSet (Face face)               // query if value set for face
+  void clearValue (Face face)                  // unset value for face
+  void clearAllValues()                        // unset values for all faces
+\end{lstlisting}
+%
+
+The following code fragment constructs a {\tt VectorFaceField} based
+on {\tt Vector2d} that stores a 2D coordinate value at all faces
+of a mesh:
+%
+\begin{lstlisting}[]
+  VectorFaceField<Vector2d> field =
+    new VectorFaceField<Vector2d> ("coordinates", Vector2d.class, mcomp);
+  Vector2d coords = new Vector2d();
+  // extract the mesh from the component
+  PolygonalMesh mesh = (PolygonalMesh)mcomp.getMesh();
+  for (Face face : mesh.getFaces()) {
+     ... // compute coordinate values and store in coords
+     field.setValue (face, coords);
+  }
+\end{lstlisting}
+%
+
+\subsection{Fields for VectorNd, MatrixNd and Vector3d}
+\label{sec:wrapperFields}
+
+The vector fields described above can be implemented for most
+fixed-size vectors and matrices defined in the package {\tt
+maspack.matrix} (e.g.,
+\javaclass[maspack.matrix]{Vector2d},
+\javaclass[maspack.matrix]{Vector3d},
+\javaclass[maspack.matrix]{Matrix3d}).
+However, if vectors or matrices with different size are needed,
+it is also possible to create vector fields using
+\javaclass[maspack.matrix]{VectorNd} and
+\javaclass[maspack.matrix]{MatrixNd}, provided that the
+sizing remain constant within any given field. This is acheived
+using special wrapper classes that contain the sizing information,
+which is supplied in the constructors. For convenience, wrapper
+classes are also provided for vector fields that use {\tt Vector3d},
+since that vector size is quite common.
+
+For vector FEM and mesh fields, the complete set of wrapper classes is listed 
+below:
+%
+\begin{center}
+\begin{tabular}{|lll|}
+\hline
+Class & base class & vector type {\tt T} \\
+\hline
+\multicolumn{3}{|l|}{Vector FEM fields:}\\
+\hline
+\javaclass[artisynth.core.fields]{Vector3dNodalField} & 
+{\tt VectorNodalField<T>} & {\tt Vector3d} \\
+\javaclass[artisynth.core.fields]{VectorNdNodalField} & 
+{\tt VectorNodalField<T>} & {\tt VectorNd} \\
+\javaclass[artisynth.core.fields]{MatrixNdNodalField} & 
+{\tt VectorNodalField<T>} & {\tt MatrixNd} \\
+\javaclass[artisynth.core.fields]{Vector3dElementField} & 
+{\tt VectorElementField<T>} & {\tt Vector3d} \\
+\javaclass[artisynth.core.fields]{VectorNdElementField} & 
+{\tt VectorElementField<T>} & {\tt VectorNd} \\
+\javaclass[artisynth.core.fields]{MatrixNdElementField} & 
+{\tt VectorElementField<T>} & {\tt MatrixNd} \\
+\javaclass[artisynth.core.fields]{Vector3dSubElemField} & 
+{\tt VectorSubElemField<T>} & {\tt Vector3d} \\
+\javaclass[artisynth.core.fields]{VectorNdSubElemField} & 
+{\tt VectorSubElemField<T>} & {\tt VectorNd} \\
+\javaclass[artisynth.core.fields]{MatrixNdSubElemField} & 
+{\tt VectorSubElemField<T>} & {\tt MatrixNd} \\
+\hline
+\multicolumn{3}{|l|}{Vector mesh fields:} \\
+\hline
+\javaclass[artisynth.core.fields]{Vector3dVertexField} & 
+{\tt VectorVertexField<T>} & {\tt Vector3d} \\
+\javaclass[artisynth.core.fields]{VectorNdVertexField} & 
+{\tt VectorVertexField<T>} & {\tt VectorNd} \\
+\javaclass[artisynth.core.fields]{MatrixNdVertexField} & 
+{\tt VectorVertexField<T>} & {\tt MatrixNd} \\
+\javaclass[artisynth.core.fields]{Vector3dFaceField} & 
+{\tt VectorFaceField<T>} & {\tt Vector3d} \\
+\javaclass[artisynth.core.fields]{VectorNdFaceField} & 
+{\tt VectorFaceField<T>} & {\tt VectorNd} \\
+\javaclass[artisynth.core.fields]{MatrixNdFaceField} & 
+{\tt VectorFaceField<T>} & {\tt MatrixNd} \\
+\hline
+\end{tabular}
+\end{center}
+%
+These all behave identically to their base classes,
+except that their constructors omit the {\tt type} argument (since
+this is built into the class definition) and, for {\tt VectorNd} and
+{\tt MatrixNd}, supply information about the vector or matrix sizes.
+For example, constructors for the FEM nodal fields include
+%
+\begin{lstlisting}[]
+  Vector3dNodalField (FemModel3d fem)
+  Vector3dNodalField (FemModel3d fem, Vector3d defaultValue)
+  Vector3dNodalField (String name, FemModel3d fem, Vector3d defaultValue)
+
+  VectorNdNodalField (int vecSize, FemModel3d fem)
+  VectorNdNodalField (int vecSize, FemModel3d fem, VectorNd defaultValue)
+  VectorNdNodalField (
+    int vecSize, String name, FemModel3d fem, VectorNd defaultValue)
+
+  MatrixNdNodalField (int rowSize, int colSize, FemModel3d fem)
+  MatrixNdNodalField (
+    int rowSize, int colSize, FemModel3d fem, MatrixNd defaultValue)
+  MatrixNdNodalField (
+    int rowSize, int colSize, String name, FemModel3d fem, MatrixNd defaultValue)
+\end{lstlisting}
+%
+where {\tt vecSize}, {\tt rowSize} and {\tt colSize} give the sizes of
+the {\tt VectorNd} or {\tt MatrixNd} objects within the
+field. Constructors for other field types are equivalent and are described
+in their API documentation.
+
+For grid fields, one can use either
+\javaclass[maspack.geometry]{VectorNdGrid} or
+\javaclass[maspack.geometry]{MatrixNdGrid}, both defined in {\tt
+maspack.geometry}, as the primary grid used to construct the
+field. Constructors for these include
+%
+\begin{lstlisting}[]
+  VectorNdGrid (int VecSize, Vector3d widths, Vector3i res)
+  MatrixNdGrid (
+    int rowSizem int colSize, Vector3d widths, Vector3i res, RigidTransform3d TCL)
+\end{lstlisting}
+%
+
+\subsection{Binding material properties}
+\label{sec:fieldBinding}
+
+A principal purpose of field components is to enable certain FEM
+material properties to vary spatially over the FEM geometry.  Many
+material properties can be {\it bound} to a field, so that when they
+are queried internally by the solver at the integration points for
+each FEM element, the field value at that integration point is used
+instead of the regular property value. Likewise, some
+properties of contact force behaviors, such as
+the {\sf YoungsModulus} and {\sf thickness} properties of
+\javaclass[artisynth.core.materials]{LinearElasticContact}
+(Section \ref{ElasticFoundationContact:sec}) can be bound to a field
+that varies over the contact mesh geometry.
 
 To bind a property to a field, it is necessary that 
 
@@ -3077,29 +3700,35 @@ To bind a property to a field, it is necessary that
 \end{enumerate}
 
 If the property has a {\tt double} value, then it can be bound to any
-{\tt ScalarField}. Otherwise, if the property has a value {\tt T},
+{\tt ScalarFieldComponent}. Otherwise, if the property has a value {\tt T},
 where {\tt T} is an instance of {\tt maspack.matrix.VectorObject},
-then it can be bound to any {\tt VectorField<T>}.
+then it can be bound to a vector field.
 
 Bindable properties export two methods with the signature
 %
 \begin{lstlisting}[]
-   setXXXField (T field, boolean useRestPos)
+   setXXXField (F field)
 
-   T getXXXField ()
+   F getXXXField ()
 \end{lstlisting}
 %
-where {\tt XXX} is the property name and {\tt T} is an appropriate
-field type. The second argument, {\tt useRestPos}, is relevant only
-for grid fields, and indicates whether the grid should be queried
-using the integration point's {\it rest} position, or current {\it
-spatial} position. For FEM-based fields, this distinction is
-irrelevant, since the field is assumed to always move with the FEM.
-
-For example, consider the {\sf YoungsModulus} property of a
-\javaclass[artisynth.core.materials]{NeoHookeanMaterial} material. This
-has a {\tt double} value, and is bindable, and so can be
-bound to a {\tt ScalarField} as follows:
+where {\tt XXX} is the property name and {\tt F} is an appropriate
+field type. 
+%
+\begin{sideblock}
+As long as a property {\sf XXX} is bound to a field, its regular value will
+still appear (and can be set) through widgets in control or property
+panels, or via its {\tt getXXX()} and {\tt setXXX()} accessors.
+However, the regular value won't be used internally by the FEM
+simulation.
+\end{sideblock}
+%
+For example, consider the {\sf YoungsModulus} property, which is
+present in several FEM materials, including
+\javaclass[artisynth.core.materials]{LinearMaterial} and
+\javaclass[artisynth.core.materials]{NeoHookeanMaterial}.
+This has a {\tt double} value, and is bindable, and so can be bound to
+a {\tt ScalarFieldComponent} as follows:
 %
 \begin{lstlisting}[]
    FemModel3d fem;
@@ -3108,7 +3737,7 @@ bound to a {\tt ScalarField} as follows:
   
    ... other initialization ...
 
-   mat.setYoungsModulusField (field, false);  // bind to the field
+   mat.setYoungsModulusField (field);  // bind to the field
    fem.setMaterial (mat);   // set the material in the FEM model
 \end{lstlisting}
 %
@@ -3120,22 +3749,71 @@ as {\tt MuscleBundles}). That's because the {\tt setMaterial()} method
 afterwards won't be seen by the FEM:
 \begin{verbatim}
    // works: field will be seen by the copied version of 'mat'
-   mat.setYoungsModulusField (field, false); 
+   mat.setYoungsModulusField (field); 
    fem.setMaterial (mat);
 
    // does NOT work: field not seen by the copied version of 'mat'
    fem.setMaterial (mat);
-   mat.setYoungsModulusField (field, false); 
+   mat.setYoungsModulusField (field); 
 \end{verbatim}
 \end{sideblock}
 
-To unbind {\sf YoungsModulus}, one can do
+To unbind {\sf YoungsModulus}, one can call
 %
 \begin{lstlisting}[]
-   mat.setYoungsModulusField (null, false);
+   mat.setYoungsModulusField (null);
 \end{lstlisting}
 %
-where the value of the {\tt useRestPos} argument is ignored.
+
+Usually, FEM fields are used to bind properties in FEM materials while
+mesh fields are used for contact properties, but other fields {\it
+can} be used, particularly grid fields. To understand this a bit
+better, we discuss briefly some of the internals of how binding
+works. When evaluating stresses, FEM materials have access to a
+\javaclass[artisynth.core.modelbase]{FemFieldPoint} object that
+provides information about the integation point, including its
+element, nodal weights, and integration point index. This can be used
+to rapidly evaluate values within nodal, element and sub-element FEM
+fields. Likewise, when evaluating contact forces, contact materials
+like \javaclass[artisynth.core.materials]{LinearElasticContact} have
+access to a \javaclass[artisynth.core.modelbase]{MeshFieldPoint}
+object that describes the contact point position as a weighted sum of
+mesh vertex positions, which can then be used to rapidly evaluate
+evaluate values within vertex or face mesh fields.  However, all
+fields, regardless of type, implement methods for determining values
+at both {\tt FemFieldPoints} and {\tt MeshFieldPoints}:
+%
+\begin{lstlisting}[]
+  T getValue (FemFieldPoint fp)
+
+  T getValue (MeshFieldPoint mp)
+\end{lstlisting}
+%
+If necessay, these methods simply fall back on the {\tt
+getValue(Point3d)} method, which is defined for all fields and works
+relatively fast for grid fields.
+
+There are some additional details to consider when binding FEM
+material properties:
+
+\begin{enumerate}
+
+\item When binding to a grid field, one has the choice of whether to
+use the grid to represent values with respect to the FEM's {\it rest}
+position or {\it spatial} position. This can be controlled by setting
+the {\sf useFemRestPositions} property of the grid field, the default
+value for which is {\tt true}.
+
+\item When binding the {\sf bulkModulus} property of an incompressible
+material, it is best to use a nodal field if the FEM model is using
+nodal-based soft incompressibility (i.e., the model's {\sf
+softIncompMethod} property is set to either {\tt NODAL} or {\tt AUTO};
+Section \ref{SoftIncomp:sec}). That's because soft nodal
+incompressibility require evaluating the bulk modulus property at
+nodes instead of integration points, which is much easier to do with a
+nodal-based field.
+
+\end{enumerate}
 
 \subsection{Example: FEM with variable stiffness}
 \label{VariableStiffness:sec}
@@ -3164,7 +3842,7 @@ for which the Young's modulus $E$ is made to vary nonlinearly along the
 x axis of the rest position according to the formula
 %
 \begin{equation}
-E = \frac{10^8}{1 + 1000 \, x^3}
+E = \frac{10^8}{1 + 1000 \; x^3}
 \label{EFunction:eqn}
 \end{equation}
 %
@@ -3185,12 +3863,12 @@ is aligned with the origin, while lines 12-17 fix the leftmost
 nodes. Lines 21-27 create a scalar nodal field for the Young's modulus,
 with lines 23-24 computing $E$ according to (\ref{EFunction:eqn}).
 The field is then bound to a linear material which is then set in the
-model (lined 30-32).
+model (lines 30-32).
 
 The example can be run in ArtiSynth by selecting {\sf All demos >
-tutorial > VariableStiffness} from the {\sf Models} menu.  When it is
-run, the beam will bend under gravity, but mostly on the right side,
-due to the much higher stiffness on the left (Figure
+tutorial > VariableStiffness} from the {\sf Models} menu.  When run,
+the beam will bend under gravity, but mostly on the right side, due to
+the much higher stiffness on the left (Figure
 \ref{VariableStiffness:fig}).
 
 % TODO: ScaledFemMaterial
@@ -3257,7 +3935,7 @@ per-element basis, for the muscle material which will be added subsequently
 (lines 21-32). While we could create an instance of {\tt
 VectorElementField<Vector3d>}, we use
 \javaclass[artisynth.core.femmodels]{Vector3dElementField}, since this
-is available and may provide additional functionality (such as the
+is available and provides additional functionality (such as the
 ability to render the directions). Directions are set to lie outward
 in a radial direction perpendicular to the $z$ axis, and since the
 model is centered on the origin, they can be computed easily by first
@@ -3272,10 +3950,10 @@ We next add to the model a muscle material whose directions will be
 determined by the field. To hold the material, we first create and add
 a {\tt MaterialBundle} which is set to act on all elements (line
 35-36). Then we set this bundle's material to {\tt SimpleForceMuscle},
-which simply adds a stress along the muscle direction that equals
-the excitation value times the value of its {\sf maxStress} property,
-and bind the material's {\sf restDir}
-property to the direction field (lines 37-39).
+which adds a stress along the muscle direction that equals the
+excitation value times the value of its {\sf maxStress} property, and
+bind the material's {\sf restDir} property to the direction field
+(lines 37-39).
 
 Finally, we create and add a control panel to allow interactive
 control over the muscle material's excitation property (lines 42-44),
@@ -3285,82 +3963,18 @@ and set some rendering properties for the FEM model.
 
 The example can be run in ArtiSynth by selecting {\sf All demos >
 tutorial > RadialMuscle} from the {\sf Models} menu.  When it is first
-runs, it falls around the edges under gravity (Figure
+run, it falls around the edges under gravity (Figure
 \ref{RadialMuscle:fig}, top). Applying an excitation causes a radial
 contraction which pulls the edges upward and, if high enough, causes
 then to buckle (Figure \ref{RadialMuscle:fig}, bottom).
 
 % TODO: show how to compute nodal and sub-element fields
 
-\section{Collisions}
-\label{sec:fem:collision}
-
-As described in Section \ref{sec:mechii:collisions}, collisions can be enabled 
-for any class that implements the 
-\javaclass[artisynth.core.mechmodels]{Collidable} interface.  Both 
-\javaclass[artisynth.core.femmodels]{FemModel3d} and 
-\javaclass[artisynth.core.femmodels]{FemMeshComp} implement 
-\javaclass[artisynth.core.mechmodels]{Collidable}.  {\tt FemModel3d}
-will use its surface mesh as the collision surface.  A {\tt FemMeshComp} will use
-its underlying mesh structure.  At present, only meshes of type 
-\javaclass[maspack.geometry]{PolygonalMesh} are supported.
-
-Since {\tt FemMeshComp} is also a {\tt Collidable}, this means we can enable 
-collisions with any embedded mesh inside an FEM.  Any forces resulting from
-the collision are then automatically transferred back to the underlying nodes 
-of the model using Equation \eqref{pointFemForces:eqn}.
-
-\begin{sideblock}
-{\bf Note:} Collisions involving shell elements are not yet fully
-supported.  This relates to the fact that shells are thin and can
-therefore pass through each other easily in a single time step.
-However, collisions {\it should} work properly if
-
-\begin{enumerate}
-
-\item The collider type is set to {\tt AJL\_CONTOUR} (Sections
-\ref{collisionBehavior:sec} and \ref{CollisionImplemenetation:sec});
-
-\item Collisions result in closed intersection contours between
-the colliding surfaces. This is more likely to occur if one of the
-surfaces encloses a volume.
-
-\end{enumerate}
-
-\end{sideblock}
-
-\subsection{Example: FEM collisions}
-
-\begin{figure}[ht]
-	\centering
-	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
-	\includegraphics[width=\imglength]{images/FemCollisions}
-	\caption{FemCollisions model loaded into ArtiSynth.}
-	\label{fig:fem:collisions}
-\end{figure}
-
-An example of FEM collisions is shown in Figure \ref{fig:fem:collisions}.
-The full source code can be found in the ArtiSynth repository under
-{\tt artisynth.demos.tutorial.FemCollisions}.  The collision-enabling
-code is as follows:
-\begin{lstlisting}[]
-// Set up collisions
-mech.setCollisionBehavior(ellipsoid, beam, true);   // beam-ellipsoid
-mech.setCollisionBehavior(ellipsoid, table, true);  // ellipsoid-table
-mech.setCollisionBehavior(table, beam, true);       // beam-table
-
-FemMeshComp embeddedSphere = block.getMeshComp("embedded");      // get embedded FemMeshComp
-mech.setCollisionBehavior(embeddedSphere, table, true);      // sphere-table
-mech.setCollisionBehavior(ellipsoid, embeddedSphere, true);  // sphere-ellipsoid   
-\end{lstlisting}
-Notice in the figure that the surface of the green block passes through
-the table and ellipsoid; only the embedded sphere has collisions enabled.
-
 \section{Rendering and Visualizations}
 \label{sec:fem:rendering}
 
 In addition to the standard {\tt RenderProps} that control how the
-nodes and surfaces appear, finite element models and their sub-components
+nodes and surfaces appear, finite element models and their subcomponents
 have a few additional properties that affect rendering.  Some of these
 are listed in Table \ref{tbl:fem:rendering}.
 
@@ -3388,9 +4002,11 @@ The property {\tt elementWidgetSize} applies only to
 draw each element volume.  For instance, the blue beam in Figure \ref{fig:fem:collisions}
 uses a widget size of 0.8, resulting in a mosaic-like pattern.
 
-The next two properties in Table \ref{tbl:fem:rendering} apply to the muscle classes 
+The next two properties in Table \ref{tbl:fem:rendering} apply to the
+muscle classes
 \javaclass[artisynth.core.femmodels]{FemMuscleModel}, 
 \javaclass[artisynth.core.femmodels]{MuscleBundle}, and
+\pdfbreak
 \javaclass[artisynth.core.femmodels]{MuscleElementDesc}.
 When {\tt directionRenderLen > 0}, lines are drawn inside elements to indicate fibre
 directions.  If {\tt directionRenderType = ELEMENT}, then one line is drawn per
@@ -3475,92 +4091,6 @@ color bar.  The loaded model is shown in Figure \ref{fig:fem:beamcolored}.
 \lstset{numbers=left}
 \lstinputlisting{../../src/artisynth/demos/tutorial/FemBeamColored.java}
 \lstset{numbers=none}
-
-\subsection{Example: rendering contact pressures}
-\label{renderingContactPressure:sec}
-
-As mentioned in Section \ref{ContactRendering:sec}, it is possible to
-render the contact pressure involved in the collision between two
-bodies, and this is often particularly desirable in the case of FEM
-models. A simple example is defined in
-%
-\begin{verbatim}
-  artisynth.demos.tutorial.ContactPressureRender
-\end{verbatim}
-%
-which sets the {\sf drawColorMap} property of the collision behavior to {\tt
-CONTACT\_PRESSURE} in order to display a color map of the contact
-pressure. The example is similar to that
-of Section \ref{renderingDepth:sec}, which shows how to render
-penetration depth.
-
-\begin{sideblock}
-The caveats about color map rendering described in Section
-\ref{ContactRendering:sec} apply. In particular, the resolution of the
-color map is limited by the resolution of the collision mesh for the
-collidable on which the map is drawn, and so the application should
-ensure that this is sufficiently fine. Also, to allow the map to blend
-properly with the rest of the collidable, the color corresponding to
-$0$ should match the default face color for the collidable.
-\end{sideblock}
-
-\begin{figure}[ht]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/ContactPressureRender}
-\else
- \includegraphics[width=3.75in]{images/ContactPressureRender}
-\fi
-\end{center}
-\caption{ContactPressureRender showing the contact pressure as a
-spherical FEM model falls onto an FEM sheet.  The color map is drawn
-on the sheet model, with redder values indicating greater pressure.}
-\label{ContactPressureRender:fig}
-\end{figure}
-
-The complete source code is shown below:
-%
-\lstset{numbers=left}
-\lstinputlisting{../../src/artisynth/demos/tutorial/ContactPressureRender.java}
-\lstset{numbers=none} 
-
-To begin, the demo creates two FEM models: a spherical ball (lines
-52-56) and a rectangular sheet (lines 59-66), and then fixes the end
-nodes of the sheet (lines 69-74). Surface rendering is enabled for
-the sheet (line 65), but not for the ball, in order to improve the
-visibility of the color map.
-
-Lines 77-81 create and set a collision behavior between the two
-models, with the {\sf drawColorMap} property set to {\tt
-CONTACT\_PRESSURE}. Because for this example we want the color map to
-be drawn on the {\it second} collidable (the sheet), we set the {\sf
-setColorMapCollidable} property to 1 (line 79); otherwise, the default
-value of 0 would cause the color map to be drawn on the first
-collidable (the ball). (Alternatively, we could have simply defined
-the collision behavior as being between the surface and the ball
-instead of the ball and the sheet.) The color map range is explicitly
-set to lie between $[0, 15000]$ (line 80); this is in contrast to the
-example in Section \ref{renderingDepth:sec}, where the range is
-auto-updated on each step. The color range is also set explicitly in
-the behavior, but if multiple objects were colliding it would likely
-be preferable to set it in the collision manager (with the behavior's
-value left as {\tt null}) to ensure a uniform render range across all
-collisions.  Other rendering properties are set for the collision
-manager at lines 83-97, including a custom color map that varies
-between {\tt CREAM} (the color of the mesh) for no pressure and dark
-red for maximum pressure.
-
-At line 100, a color bar is created and added to the scene, using the
-method {\tt createColorBar()} (lines 36-45), to explicitly show the
-pressure that corresponds to the different colors. The color bar is
-given the same color map and value range used to render the
-pressure. Finally, default face and line colors for all components in
-the model are set at lines 105-106.
-
-To run this example in ArtiSynth, select {\sf All demos > tutorial >
-ContactPressureRender} from the {\sf Models} menu. When run, the FEM
-models will collide and render the contact pressure on the sheet, as
-shown in Figure \ref{ContactPressureRender:fig}.
 
 \ifdefined\maindoc
 \else

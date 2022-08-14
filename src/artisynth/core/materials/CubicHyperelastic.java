@@ -9,8 +9,8 @@ import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
 public class CubicHyperelastic extends IncompressibleMaterialBase {
-   protected static FunctionPropertyList myProps =
-      new FunctionPropertyList (CubicHyperelastic.class,IncompressibleMaterialBase.class);
+   protected static FieldPropertyList myProps =
+      new FieldPropertyList (CubicHyperelastic.class,IncompressibleMaterialBase.class);
    
    protected static double DEFAULT_G10 = 150000;
    protected static double DEFAULT_G20 = 0;
@@ -38,7 +38,7 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
 	 "G30:Inherited", "G30 parameter", DEFAULT_G30);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -80,7 +80,7 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
       return myG10Mode;
    }
 
-   public double getG10 (FieldPoint dp) {
+   public double getG10 (FemFieldPoint dp) {
       if (myG10Field == null) {
          return getG10();
       }
@@ -120,7 +120,7 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
       return myG20Mode;
    }
 
-   public double getG20 (FieldPoint dp) {
+   public double getG20 (FemFieldPoint dp) {
       if (myG20Field == null) {
          return getG20();
       }
@@ -160,7 +160,7 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
       return myG30Mode;
    }
 
-   public double getG30 (FieldPoint dp) {
+   public double getG30 (FemFieldPoint dp) {
       if (myG30Field == null) {
          return getG30();
       }

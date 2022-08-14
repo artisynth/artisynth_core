@@ -1,7 +1,7 @@
 package artisynth.core.materials;
 
 import artisynth.core.modelbase.ContactPoint;
-import artisynth.core.modelbase.FunctionPropertyList;
+import artisynth.core.modelbase.FieldPropertyList;
 import artisynth.core.modelbase.ScalarFieldComponent;
 import maspack.matrix.Vector3d;
 
@@ -24,11 +24,11 @@ public class LinearElasticContact extends ElasticContactBase {
    double K;
    double myStiffnessMultiplier;
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (
          LinearElasticContact.class, ElasticContactBase.class);
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 

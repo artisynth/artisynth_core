@@ -1266,7 +1266,7 @@ public class ScanWriteUtils {
     * the associated class information. The scanned class must be
     * an instance of the specified baseClass.
     */
-   protected static <C> ClassInfo<C> scanClassInfo (
+   public static <C> ClassInfo<C> scanClassInfo (
       ReaderTokenizer rtok, Class<C> baseClass) throws IOException {
       
       Class<?> compClass = null;

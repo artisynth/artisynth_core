@@ -1,12 +1,12 @@
 package artisynth.core.materials;
 
 import maspack.matrix.*;
-import artisynth.core.modelbase.FieldPoint;
+import artisynth.core.modelbase.FemFieldPoint;
 
 /**
  * Extends FieldPoint to include information about the deformation gradient.
  */
-public interface DeformedPoint extends FieldPoint {
+public interface DeformedPoint extends FemFieldPoint {
    
    public Matrix3d getF();
    

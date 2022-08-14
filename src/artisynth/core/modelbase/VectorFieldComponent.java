@@ -24,7 +24,7 @@ public interface VectorFieldComponent<T extends VectorObject<T>>
     * @param fp point at which value is requested
     * @return value at the point
     */ 
-   public T getValue (FieldPoint fp);
+   public T getValue (FemFieldPoint fp);
 
    /**
     * Returns the value of the this field at a specified mesh field point.

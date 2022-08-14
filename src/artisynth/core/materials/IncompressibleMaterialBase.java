@@ -25,8 +25,8 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
    protected BulkPotential myBulkPotential = DEFAULT_BULK_POTENTIAL;
    PropertyMode myBulkPotentialMode = PropertyMode.Inherited;
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (
          IncompressibleMaterialBase.class, FemMaterial.class);
 
    static {
@@ -37,7 +37,7 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
          DEFAULT_BULK_POTENTIAL);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -63,7 +63,7 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
       return myBulkModulusMode;
    }
    
-   public double getBulkModulus (FieldPoint dp) {
+   public double getBulkModulus (FemFieldPoint dp) {
       if (myBulkModulusField == null) {
          return getBulkModulus();
       }

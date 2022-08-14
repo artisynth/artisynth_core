@@ -1,8 +1,10 @@
-package artisynth.core.femmodels;
+package artisynth.core.fields;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Deque;
+
+import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 

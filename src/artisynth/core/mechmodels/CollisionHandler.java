@@ -87,14 +87,14 @@ public class CollisionHandler extends ConstrainerBase
    // collision response
 
    LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals;
-   ArrayList<ContactConstraintData> myLastBilateralData;
+   ArrayList<ContactData> myLastBilateralData;
    // list of bilaterals arranged in order, with those for which cpnt0 is on
    // collidable0 first and those with cpnt0 on collidable1 second. This
    // is done simply to maintain exact numeric compatibility with some
    // legacy tests.
    ArrayList<ContactConstraint> myOrderedBilaterals;
    LinkedHashMap<ContactPoint,ContactConstraint> myUnilaterals;
-   ArrayList<ContactConstraintData> myLastUnilateralData;
+   ArrayList<ContactData> myLastUnilateralData;
    int myMaxUnilaterals = 100;
    ContactInfo myContactInfo; // most recent contact info for this handler
    ContactInfo myLastContactInfo; // previous contact info for this handler
@@ -339,12 +339,12 @@ public class CollisionHandler extends ConstrainerBase
       myLastBilateralData.clear();
       for (ContactConstraint cc : getOrderedBilaterals()) {
          myLastBilateralData.add (
-            new ContactConstraintData(cc, /*bilateral=*/true)); 
+            new ContactData(cc, /*bilateral=*/true)); 
       }
       myLastUnilateralData.clear();
       for (ContactConstraint cc : getUnilaterals()) {
          myLastUnilateralData.add (
-            new ContactConstraintData(cc, /*bilateral=*/false)); 
+            new ContactData(cc, /*bilateral=*/false)); 
       }
       myLastContactInfo = myContactInfo;
       myOrderedBilaterals = null; // will be rebuilt on demand
@@ -1525,10 +1525,10 @@ public class CollisionHandler extends ConstrainerBase
          myLastContactInfo.getState (data);
          data.zput (myLastBilateralData.size());
          data.zput (myLastUnilateralData.size());
-         for (ContactConstraintData c : myLastBilateralData) {
+         for (ContactData c : myLastBilateralData) {
             c.getState (data);
          }
-         for (ContactConstraintData c : myLastUnilateralData) {
+         for (ContactData c : myLastUnilateralData) {
             c.getState (data);
          }
       }
@@ -1576,12 +1576,12 @@ public class CollisionHandler extends ConstrainerBase
          numb = data.zget();
          numu = data.zget();
          for (int i=0; i<numb; i++) {
-            ContactConstraintData c = new ContactConstraintData();
+            ContactData c = new ContactData();
             c.setState (data, myCollidable0, myCollidable1);
             myLastBilateralData.add (c);
          }        
          for (int i=0; i<numu; i++) {
-            ContactConstraintData c = new ContactConstraintData();
+            ContactData c = new ContactData();
             c.setState (data, myCollidable0, myCollidable1);
             myLastUnilateralData.add (c);
          }
@@ -1690,12 +1690,12 @@ public class CollisionHandler extends ConstrainerBase
 
       // Start by finding mesh vertex forces for both the selected and opposite
       // collidables.
-      for (ContactConstraintData cd : myLastBilateralData) {
+      for (ContactData cd : myLastBilateralData) {
          if (cd.myLambda > 0) {
             collectVertexForces (forceMap, oppositeMap, cd, num);
          }
       }
-      for (ContactConstraintData cd : myLastUnilateralData) {
+      for (ContactData cd : myLastUnilateralData) {
          if (cd.myLambda > 0) {
             collectVertexForces (forceMap, oppositeMap, cd, num);
          }
@@ -1707,10 +1707,10 @@ public class CollisionHandler extends ConstrainerBase
       if (forceMap.size() > 0) {
          // since oppositeMap.size also > 0, which implies two-way vertex
          // penetration collisions
-         for (ContactConstraintData cd : myLastBilateralData) {
+         for (ContactData cd : myLastBilateralData) {
             addOppositeVertexForces (forceMap, oppositeMap, cd, num);
          }
-         for (ContactConstraintData cd : myLastUnilateralData) {
+         for (ContactData cd : myLastUnilateralData) {
             addOppositeVertexForces (forceMap, oppositeMap, cd, num);
          }
       }
@@ -1737,7 +1737,7 @@ public class CollisionHandler extends ConstrainerBase
 
    private void collectVertexForces (
       Map<Vertex3d,Vector3d> forceMap, Map<Vertex3d,Vector3d> oppositeMap,
-      ContactConstraintData cd, int num) {
+      ContactData cd, int num) {
 
       Vertex3d[] vtxs = null;
       double[] wgts = null;
@@ -1814,7 +1814,7 @@ public class CollisionHandler extends ConstrainerBase
 
    private void addOppositeVertexForces (
       Map<Vertex3d,Vector3d> forceMap, Map<Vertex3d,Vector3d> oppositeMap,
-      ContactConstraintData cd, int num) {
+      ContactData cd, int num) {
 
       if ((num == 0 && cd.myPnt0OnCollidable1) ||
           (num == 1 && !cd.myPnt0OnCollidable1)) {

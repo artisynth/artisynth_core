@@ -1,9 +1,9 @@
 package artisynth.core.femmodels;
 
-import artisynth.core.modelbase.FieldPoint;
+import artisynth.core.modelbase.FemFieldPoint;
 import maspack.matrix.Point3d;
 
-public class NodalFieldPoint implements FieldPoint {
+public class NodalFieldPoint implements FemFieldPoint {
 
    private FemNode myNode;
    private int[] myNodeNumbers;

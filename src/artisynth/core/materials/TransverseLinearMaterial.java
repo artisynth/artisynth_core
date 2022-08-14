@@ -38,8 +38,8 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    private ScalarFieldComponent myGField = null;
    private VectorFieldComponent<Vector3d> myDirectionField = null;
    
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (
          TransverseLinearMaterial.class, LinearMaterialBase.class);
 
    static {
@@ -56,7 +56,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
          "direction", "anisotropic direction", DEFAULT_DIRECTION);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -152,7 +152,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       notifyHostOfPropertyChange("youngsModulus");
    }
    
-   public Vector2d getYoungsModulus (FieldPoint dp) {
+   public Vector2d getYoungsModulus (FemFieldPoint dp) {
       return myEField == null ? getYoungsModulus() : myEField.getValue (dp);
    }
 
@@ -183,7 +183,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       return myDirection;
    }
    
-   public Vector3d getDirection (FieldPoint dp) {
+   public Vector3d getDirection (FemFieldPoint dp) {
       return (myDirectionField == null ?
               getDirection() : myDirectionField.getValue (dp));
    }
@@ -219,7 +219,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       return myG;
    }
 
-   public double getShearModulus (FieldPoint dp) {
+   public double getShearModulus (FemFieldPoint dp) {
       return myGField == null ? getShearModulus() : myGField.getValue(dp);
    }
 

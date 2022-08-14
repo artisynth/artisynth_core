@@ -930,11 +930,12 @@ and/or the FEM model so that their resolutions are more compatible
 \end{itemize}
 
 \section{Collisions}
+\label{SkinCollisions:sec}
 
 It is possible to make skin bodies collide with other ArtiSynth
 bodies, such as {\tt RigidBody} and {\tt FemModel3d}, which implement
 the \javaclass[artisynth.core.mechmodels]{Collidable} interface
-(Section \ref{sec:mechii:collisions}). {\tt SkinMeshBody} itself
+(Chapter \ref{ContactAndCollision:sec}). {\tt SkinMeshBody} itself
 implements \javaclass[artisynth.core.mechmodels]{CollidableBody}, and
 is considered a deformable body, so that collisions can be activated
 either by setting one of the default collision behaviors involving
@@ -942,7 +943,7 @@ deformable bodies, or by setting an explicit collision behavior
 between it and another body. Self collisions involving {\tt
 SkinMeshBody} are not currently supported.
 
-As described in Section \ref{CollisionImplemenetation:sec}, collisions
+As described in Section \ref{CollisionImplementation:sec}, collisions
 work by computing the intersection between the meshes of the skin body
 and other collidables. The vertices, faces, and (possibly) edges of
 the resulting intersection region are then used to compute contact

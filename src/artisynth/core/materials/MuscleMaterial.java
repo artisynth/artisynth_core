@@ -37,8 +37,8 @@ public abstract class MuscleMaterial extends FemMaterial {
    //private VectorFieldPointFunction<Vector3d> myRestDirFxn;
    private VectorFieldComponent<Vector3d> myRestDirField;
    
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList(MuscleMaterial.class, MaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList(MuscleMaterial.class, MaterialBase.class);
 
    static {
       myProps.add (
@@ -47,7 +47,7 @@ public abstract class MuscleMaterial extends FemMaterial {
          "restDir", "rest activation direction", DEFAULT_REST_DIR);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -67,7 +67,7 @@ public abstract class MuscleMaterial extends FemMaterial {
       myRestDir = new Vector3d(dir);
    }
 
-   public Vector3d getRestDir (FieldPoint dp) {
+   public Vector3d getRestDir (FemFieldPoint dp) {
       return myRestDirField == null ? getRestDir() : myRestDirField.getValue (dp);
    }
 

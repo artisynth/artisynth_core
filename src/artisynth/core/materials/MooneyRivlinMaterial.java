@@ -9,8 +9,8 @@ import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
 public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
-   protected static FunctionPropertyList myProps =
-      new FunctionPropertyList (
+   protected static FieldPropertyList myProps =
+      new FieldPropertyList (
          MooneyRivlinMaterial.class, IncompressibleMaterialBase.class);
    
    /**
@@ -71,7 +71,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
          DEFAULT_JLIMIT);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -117,7 +117,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC10Mode;
    }
 
-   public double getC10 (FieldPoint dp) {
+   public double getC10 (FemFieldPoint dp) {
       return (myC10Field == null ? getC10() : myC10Field.getValue (dp));
    }
 
@@ -152,7 +152,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC01Mode;
    }
 
-   public double getC01 (FieldPoint dp) {
+   public double getC01 (FemFieldPoint dp) {
       return (myC01Field == null ? getC01() : myC01Field.getValue (dp));
    }
 
@@ -187,7 +187,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC11Mode;
    }
 
-   public double getC11 (FieldPoint dp) {
+   public double getC11 (FemFieldPoint dp) {
       return (myC11Field == null ? getC11() : myC11Field.getValue (dp));
    }
 
@@ -222,7 +222,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC20Mode;
    }
 
-   public double getC20 (FieldPoint dp) {
+   public double getC20 (FemFieldPoint dp) {
       return (myC20Field == null ? getC20() : myC20Field.getValue (dp));
    }
 
@@ -257,7 +257,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC02Mode;
    }
 
-   public double getC02 (FieldPoint dp) {
+   public double getC02 (FemFieldPoint dp) {
       return (myC02Field == null ? getC02() : myC02Field.getValue (dp));
    }
 

@@ -1,9 +1,12 @@
-package artisynth.core.modelbase;
+package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 
+import artisynth.core.modelbase.FemFieldPoint;
+import artisynth.core.modelbase.MeshFieldPoint;
+import artisynth.core.modelbase.ScalarFieldComponent;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.InterpolatingGridBase;
 import maspack.geometry.PolygonalMesh;
@@ -216,7 +219,7 @@ public class ScalarGridField
       }
    }
         
-   public double getValue (FieldPoint fp) {
+   public double getValue (FemFieldPoint fp) {
       Point3d pos;
       if (myUseFemRestPositions) {
          pos = fp.getRestPos();

@@ -154,7 +154,7 @@ public abstract class VectorMeshField<T extends VectorObject<T>>
    /**
     * {@inheritDoc}
     */
-   public T getValue (FieldPoint fp) {
+   public T getValue (FemFieldPoint fp) {
       return getValue(fp.getSpatialPos());
    }
 

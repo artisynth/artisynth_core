@@ -10,7 +10,6 @@ JAVA_TEST_PROGRAMS = \
 	AxialSpringTest \
 	CollisionHandlerTableTest \
 	CollisionManagerTest \
-	ContactPointTest \
         EBBeamBodyTest \
 	FrameSpringTest \
 	FrameTargetTest \

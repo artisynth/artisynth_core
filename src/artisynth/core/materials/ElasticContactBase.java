@@ -1,11 +1,19 @@
 package artisynth.core.materials;
 
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.util.Deque;
+
 import artisynth.core.fields.ScalarMeshField;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.FieldPropertyList;
 import artisynth.core.modelbase.ScalarFieldComponent;
+import artisynth.core.util.ScanToken;
 import maspack.geometry.MeshBase;
 import maspack.matrix.Vector3d;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Base class for elastic foundation contact implementations.
@@ -339,5 +347,41 @@ public abstract class ElasticContactBase extends ContactForceBehavior {
       }
       return field.getValue (cpnt0.getPosition());
    }
-   
+
+   /**
+    * {@inheritDoc}
+    */
+   public void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      super.writeItems (pw, fmt, ancestor);
+      getAllPropertyInfo().writePropertyFields (pw, this, fmt, ancestor);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   protected boolean scanItem (
+      ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
+      rtok.nextToken();
+      if (getAllPropertyInfo().scanPropertyField (rtok, this, tokens)) {
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (getAllPropertyInfo().postscanPropertyField (
+             tokens, this, ancestor)) {
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }       
+  
 }

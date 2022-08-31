@@ -522,6 +522,7 @@ public class ContactConstraint {
       ContactPoint.getState (data, myCpnt0);
       ContactPoint.getState (data, myCpnt1);
       data.dput (myLambda);
+      data.zput (myState);
       data.dput (myDistance);
       data.zputBool (myActive);
       data.zputBool (myIdentifyByPoint1);
@@ -531,6 +532,8 @@ public class ContactConstraint {
       data.dput (myFrictionForce);
       data.dput (myPhi0);
       data.dput (myPhi1);
+      data.zput (myFrictionState0);
+      data.zput (myFrictionState1);
    }
 
    public void setState (
@@ -549,6 +552,7 @@ public class ContactConstraint {
          myCpnt1 = myCpnt0;
       }
       myLambda = data.dget();
+      myState = data.zget();
       myDistance = data.dget();
       myActive = data.zgetBool();
       myIdentifyByPoint1 = data.zgetBool();
@@ -558,6 +562,8 @@ public class ContactConstraint {
       data.dget(myFrictionForce);
       myPhi0 = data.dget();
       myPhi1 = data.dget();
+      myFrictionState0 = data.zget();
+      myFrictionState1 = data.zget();
       // clear previous indices. For CollisionHandlers whose masters are
       // invariant, indices will be set based simply on the
       // number of active constraints.

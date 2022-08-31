@@ -91,9 +91,11 @@ public class FieldPropertyDesc extends PropertyDesc {
       CompositeComponent ancestor) throws IOException {
       if (myGetFieldMethod != null) {
          FieldComponent field = getField (host);
-         String fieldPath = 
+         if (field != null) {
+            String fieldPath = 
             ComponentUtils.getWritePathName (ancestor, field);
-         pw.println (myFieldName + "=" + fieldPath);
+            pw.println (myFieldName + "=" + fieldPath);
+         }
       }
    }
 

@@ -1202,29 +1202,29 @@ public class CollisionBehavior extends CollisionComponent
       return (myCompliance != 0 || myForceBehavior != null);
    }
 
-   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-      throws IOException {
-
-      rtok.nextToken();
-      if (scanAttributeName (rtok, "forceBehavior")) {
-         myForceBehavior =
-            (ContactForceBehavior)Scan.scanClassAndObject (rtok, null);
-         return true;
-      }
-      rtok.pushBack();
-      return super.scanItem (rtok, tokens);
-   }
-
-   protected void writeItems (
-      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
-      throws IOException {
-
-      if (myForceBehavior instanceof Scannable) {
-         pw.print ("forceBehavior="+myForceBehavior.getClass().getName());
-         ((Scannable)myForceBehavior).write (pw, fmt, ancestor);
-      }    
-      super.writeItems (pw, fmt, ancestor); 
-   }
+//   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+//      throws IOException {
+//
+//      rtok.nextToken();
+//      if (scanAttributeName (rtok, "forceBehavior")) {
+//         myForceBehavior =
+//            (ContactForceBehavior)Scan.scanClassAndObject (rtok, null);
+//         return true;
+//      }
+//      rtok.pushBack();
+//      return super.scanItem (rtok, tokens);
+//   }
+//
+//   protected void writeItems (
+//      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+//      throws IOException {
+//
+//      if (myForceBehavior instanceof Scannable) {
+//         pw.print ("forceBehavior="+myForceBehavior.getClass().getName());
+//         ((Scannable)myForceBehavior).write (pw, fmt, ancestor);
+//      }    
+//      super.writeItems (pw, fmt, ancestor); 
+//   }
 
    public void set (CollisionBehavior behav) {
       if (behav == this) {

@@ -1838,8 +1838,9 @@ public class CollisionHandler extends ConstrainerBase
          for (int i=0; i<vtxs0.length; i++) {
             Vector3d force = forceMap.get (vtxs0[i]);
             if (force == null) {
-               throw new InternalErrorException (
-                  "No force set for vertex "+vtxs0[i].getIndex());
+               // force might be null if cd.myLamba <= 0
+               force = new Vector3d();
+               forceMap.put (vtxs0[i], force);
             }
             // add force contributions for the opposite mesh
             Vector3d opforce = new Vector3d();

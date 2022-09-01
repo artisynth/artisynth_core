@@ -15,7 +15,7 @@ public class DicomTest extends RootModel {
    // Dicom file name and URL from which to load it
    String dicom_file = "MR-MONO2-8-16x-heart";
    String dicom_url =
-      "http://www.artisynth.org/files/data/dicom/MR-MONO2-8-16x-heart.gz";
+      "https://www.artisynth.org/files/data/dicom/MR-MONO2-8-16x-heart.gz";
    
    public void build(String[] args) throws IOException {
       

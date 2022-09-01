@@ -135,7 +135,7 @@ public class Test {
 
    public void testConfig() throws Exception {
       String config = "{\n"
-      + "\t\"uri\":\"http://www.artisynth.org/files/lib/vfs2.jar\",\n"
+      + "\t\"uri\":\"https://www.artisynth.org/files/lib/vfs2.jar\",\n"
       + "\t\"username\":\"artisynth\",\n"
       + "\t\"password\":\"abcdefghijklmnopqrstuvwxyz\",\n"
       + "\t\"cipher\":\"AES/CBC/PKCS5Padding\",\n"
@@ -144,7 +144,7 @@ public class Test {
       // System.out.println(config);
 
       HashMap<String,Object> sol = new HashMap<String,Object>();
-      sol.put("uri", "http://www.artisynth.org/files/lib/vfs2.jar");
+      sol.put("uri", "https://www.artisynth.org/files/lib/vfs2.jar");
       sol.put("username", "artisynth");
       sol.put("password", "abcdefghijklmnopqrstuvwxyz");
       sol.put("cipher", "AES/CBC/PKCS5Padding");

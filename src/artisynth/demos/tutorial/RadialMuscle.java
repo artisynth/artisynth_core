@@ -5,10 +5,10 @@ import java.awt.Color;
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
+import artisynth.core.fields.Vector3dElementField;
 import artisynth.core.femmodels.FemMuscleModel;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.MaterialBundle;
-import artisynth.core.femmodels.Vector3dElementField;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.materials.NeoHookeanMaterial;
 import artisynth.core.materials.SimpleForceMuscle;
@@ -57,7 +57,7 @@ public class RadialMuscle extends RootModel {
       MaterialBundle bun = new MaterialBundle ("bundle",/*all elements=*/true);
       fem.addMaterialBundle (bun);
       SimpleForceMuscle muscleMat = new SimpleForceMuscle (500000);
-      muscleMat.setRestDirField (dirField, true);
+      muscleMat.setRestDirField (dirField);
       bun.setMaterial (muscleMat);
 
       // add a control panel to control the excitation

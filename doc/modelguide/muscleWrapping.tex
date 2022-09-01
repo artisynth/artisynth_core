@@ -462,7 +462,7 @@ general mesh geometries is implemented using a quadratically
 interpolated signed distance grid. By default, for a rigid body, this
 grid is generated automatically from the body's collision mesh (as
 returned by {\tt getCollisionMesh()}; see Section
-\ref{collisionMeshes:sec}).
+\ref{CollisionMeshesAndCompounds:sec}).
 
 Using a distance grid allows very efficient collision handling between
 the body and the wrap segment knots. However, it also means that the
@@ -778,8 +778,8 @@ computation.
 There are a couple of ways to handle this. One, discussed in Section
 \ref{GeneralSurfaceWrapping:sec}, involves creating a collision mesh
 which is separate from the general mesh geometry. However, that same
-collision mesh must then also be used for collision handling (Section
-\ref{sec:mechii:collisions}). If that is undesirable, or if {\it
+collision mesh must then also be used for collision handling (Chapter
+\ref{ContactAndCollision:sec}). If that is undesirable, or if {\it
 multiple} wrapping surfaces are needed, then a different approach may
 be used. This involves creating the desired wrappable as a separate
 object and then {\it attaching} it to the main {\tt
@@ -907,7 +907,6 @@ contact forces are then given by
 -K_c \, d_k \, \n_k & \text{if} \; d_k < 0 \\
 0 & \text{otherwise},
 \end{cases}
-%\label{contactForce:eqn}
 \end{equation*}
 %
 where $K_c$ is the {\it contact stiffness}.

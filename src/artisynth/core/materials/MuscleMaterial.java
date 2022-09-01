@@ -34,19 +34,20 @@ public abstract class MuscleMaterial extends FemMaterial {
    private double myExcitation = DEFAULT_EXCITATION;
    public static Vector3d DEFAULT_REST_DIR = new Vector3d();
    private Vector3d myRestDir = new Vector3d(DEFAULT_REST_DIR);
-   private VectorFieldPointFunction<Vector3d> myRestDirFxn;
+   //private VectorFieldPointFunction<Vector3d> myRestDirFxn;
+   private VectorFieldComponent<Vector3d> myRestDirField;
    
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList(MuscleMaterial.class, MaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList(MuscleMaterial.class, MaterialBase.class);
 
    static {
       myProps.add (
          "excitation", "muscle excitation value", DEFAULT_EXCITATION);
-      myProps.add (
+      myProps.addWithField (
          "restDir", "rest activation direction", DEFAULT_REST_DIR);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -66,32 +67,17 @@ public abstract class MuscleMaterial extends FemMaterial {
       myRestDir = new Vector3d(dir);
    }
 
-   public Vector3d getRestDir (FieldPoint dp) {
-      if (myRestDirFxn == null) {
-         return getRestDir();
-      }
-      else {
-         return myRestDirFxn.eval (dp);
-      }
+   public Vector3d getRestDir (FemFieldPoint dp) {
+      return myRestDirField == null ? getRestDir() : myRestDirField.getValue (dp);
    }
 
-   public VectorFieldPointFunction<Vector3d> getRestDirFunction() {
-      return myRestDirFxn;
-   }
-      
-   public void setRestDirFunction (VectorFieldPointFunction<Vector3d> func) {
-      myRestDirFxn = func;
-      notifyHostOfPropertyChange();
-   }
-   
-   public void setRestDirField (
-      VectorField<Vector3d> field, boolean useRestPos) {
-      myRestDirFxn = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
+   public VectorFieldComponent<Vector3d> getRestDirField() {
+      return myRestDirField;
    }
 
-   public VectorField<Vector3d> getRestDirField () {
-      return FieldUtils.getFieldFromFunction (myRestDirFxn);
+   public void setRestDirField (VectorFieldComponent<Vector3d> field) {
+      myRestDirField = field;
+      notifyHostOfPropertyChange();
    }
 
    /** 
@@ -137,37 +123,37 @@ public abstract class MuscleMaterial extends FemMaterial {
       return false;
    }
 
-   public void writeItems (
-      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
-      throws IOException {
-      super.writeItems (pw, fmt, ancestor);
-      FieldUtils.writeVectorFunctionInfo (
-         pw, "restDirFxn", myRestDirFxn, fmt, ancestor);
-   }
+   // public void writeItems (
+   //    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+   //    throws IOException {
+   //    super.writeItems (pw, fmt, ancestor);
+   //    FieldUtils.writeVectorFunctionInfo (
+   //       pw, "restDirFxn", myRestDirFxn, fmt, ancestor);
+   // }
 
-   protected boolean scanItem (
-      ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
-      rtok.nextToken();
-      if (ScanWriteUtils.scanAttributeName (rtok, "restDirFxn")) {
-         myRestDirFxn = FieldUtils.scanVectorFunctionInfo (
-            rtok, "restDirFxn", tokens);
-         return true;
-      }
-      rtok.pushBack();
-      return super.scanItem (rtok, tokens);
-   }
+   // protected boolean scanItem (
+   //    ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
+   //    rtok.nextToken();
+   //    if (ScanWriteUtils.scanAttributeName (rtok, "restDirFxn")) {
+   //       myRestDirFxn = FieldUtils.scanVectorFunctionInfo (
+   //          rtok, "restDirFxn", tokens);
+   //       return true;
+   //    }
+   //    rtok.pushBack();
+   //    return super.scanItem (rtok, tokens);
+   // }
 
-   protected boolean postscanItem (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+   // protected boolean postscanItem (
+   //    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-       if (ScanWriteUtils.postscanAttributeName (
-          tokens, "restDirFxn")) {
-          myRestDirFxn = FieldUtils.postscanVectorFunctionInfo (
-             tokens, ancestor);
-          return true;
-       }
-       return super.postscanItem (tokens, ancestor);
-   }
+   //     if (ScanWriteUtils.postscanAttributeName (
+   //        tokens, "restDirFxn")) {
+   //        myRestDirFxn = FieldUtils.postscanVectorFunctionInfo (
+   //           tokens, ancestor);
+   //        return true;
+   //     }
+   //     return super.postscanItem (tokens, ancestor);
+   // }
    
 }
 

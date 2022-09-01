@@ -2039,7 +2039,7 @@ public class MayaAsciiReader {
             attribute.data = scanBoolean(rtok);
          } else if ("uvSet".equals(attribute.name)) {
             // ignore
-            // XXX should parse sub-properties
+            // XXX should parse subproperties
             readToNextSemicolon(rtok);
          } else if ("currentUVSet".equals(attribute.name)) {
             attribute.data = readToNextSemicolon(rtok);

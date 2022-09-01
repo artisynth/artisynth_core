@@ -12,8 +12,8 @@ import maspack.properties.PropertyUtils;
 
 public class FungMaterial extends IncompressibleMaterialBase {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (FungMaterial.class, IncompressibleMaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (FungMaterial.class, IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_MU1 = 1000.0;
    protected static double DEFAULT_MU2 = 2000.0;
@@ -51,45 +51,45 @@ public class FungMaterial extends IncompressibleMaterialBase {
    PropertyMode myL31Mode = PropertyMode.Inherited;
    PropertyMode myCCMode  = PropertyMode.Inherited;
 
-   ScalarFieldPointFunction myMU1Function = null;
-   ScalarFieldPointFunction myMU2Function = null;
-   ScalarFieldPointFunction myMU3Function = null;
-   ScalarFieldPointFunction myL11Function = null;
-   ScalarFieldPointFunction myL22Function = null;
-   ScalarFieldPointFunction myL33Function = null;
-   ScalarFieldPointFunction myL12Function = null;
-   ScalarFieldPointFunction myL23Function = null;
-   ScalarFieldPointFunction myL31Function = null;
-   ScalarFieldPointFunction myCCFunction  = null;
+   ScalarFieldComponent myMU1Field = null;
+   ScalarFieldComponent myMU2Field = null;
+   ScalarFieldComponent myMU3Field = null;
+   ScalarFieldComponent myL11Field = null;
+   ScalarFieldComponent myL22Field = null;
+   ScalarFieldComponent myL33Field = null;
+   ScalarFieldComponent myL12Field = null;
+   ScalarFieldComponent myL23Field = null;
+   ScalarFieldComponent myL31Field = null;
+   ScalarFieldComponent myCCField  = null;
 
    private SymmetricMatrix3d myB;
    private SymmetricMatrix3d myC;
    private SymmetricMatrix3d myC2;
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "MU1:Inherited", "MU1", DEFAULT_MU1, "[0,inf]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "MU2:Inherited", "MU2", DEFAULT_MU2, "[0,inf]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "MU3:Inherited", "MU3", DEFAULT_MU3, "[0,inf]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "L11:Inherited", "L11", DEFAULT_L11, "[0,inf]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "L22:Inherited", "L22", DEFAULT_L22, "[0,inf]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "L33:Inherited", "L33", DEFAULT_L33, "[0,inf]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "L12:Inherited", "L12", DEFAULT_L12, "[0,1]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "L23:Inherited", "L23", DEFAULT_L23, "[0,1]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "L31:Inherited", "L31", DEFAULT_L31, "[0,1]");
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "CC:Inherited", "CC", DEFAULT_CC, "[0,inf]");
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -314,284 +314,184 @@ public class FungMaterial extends IncompressibleMaterialBase {
       return myCCMode;
    }
 
-   public double getMU1 (FieldPoint dp) {
-      if (myMU1Function == null) {
+   public double getMU1 (FemFieldPoint dp) {
+      if (myMU1Field == null) {
          return getMU1();
       }
       else {
-         return myMU1Function.eval (dp);
+         return myMU1Field.getValue (dp);
       }
    }
 
-   public double getMU2 (FieldPoint dp) {
-      if (myMU2Function == null) {
+   public double getMU2 (FemFieldPoint dp) {
+      if (myMU2Field == null) {
          return getMU2();
       }
       else {
-         return myMU2Function.eval (dp);
+         return myMU2Field.getValue (dp);
       }
    }
 
-   public double getMU3 (FieldPoint dp) {
-      if (myMU3Function == null) {
+   public double getMU3 (FemFieldPoint dp) {
+      if (myMU3Field == null) {
          return getMU3();
       }
       else {
-         return myMU3Function.eval (dp);
+         return myMU3Field.getValue (dp);
       }
    }
 
-   public double getL11 (FieldPoint dp) {
-      if (myL11Function == null) {
+   public double getL11 (FemFieldPoint dp) {
+      if (myL11Field == null) {
          return getL11();
       }
       else {
-         return myL11Function.eval (dp);
+         return myL11Field.getValue (dp);
       }
    }
 
-   public double getL22 (FieldPoint dp) {
-      if (myL22Function == null) {
+   public double getL22 (FemFieldPoint dp) {
+      if (myL22Field == null) {
          return getL22();
       }
       else {
-         return myL22Function.eval (dp);
+         return myL22Field.getValue (dp);
       }
    }
 
-   public double getL33 (FieldPoint dp) {
-      if (myL33Function == null) {
+   public double getL33 (FemFieldPoint dp) {
+      if (myL33Field == null) {
          return getL33();
       }
       else {
-         return myL33Function.eval (dp);
+         return myL33Field.getValue (dp);
       }
    }
 
-   public double getL12 (FieldPoint dp) {
-      if (myL12Function == null) {
+   public double getL12 (FemFieldPoint dp) {
+      if (myL12Field == null) {
          return getL12();
       }
       else {
-         return myL12Function.eval (dp);
+         return myL12Field.getValue (dp);
       }
    }
 
-   public double getL23 (FieldPoint dp) {
-      if (myL23Function == null) {
+   public double getL23 (FemFieldPoint dp) {
+      if (myL23Field == null) {
          return getL23();
       }
       else {
-         return myL23Function.eval (dp);
+         return myL23Field.getValue (dp);
       }
    }
 
-   public double getL31 (FieldPoint dp) {
-      if (myL31Function == null) {
+   public double getL31 (FemFieldPoint dp) {
+      if (myL31Field == null) {
          return getL31();
       }
       else {
-         return myL31Function.eval (dp);
+         return myL31Field.getValue (dp);
       }
    }
 
-   public double getCC (FieldPoint dp) {
-      if (myCCFunction == null) {
+   public double getCC (FemFieldPoint dp) {
+      if (myCCField == null) {
          return getCC();
       }
       else {
-         return myCCFunction.eval (dp);
+         return myCCField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getMU1Function() {
-      return myMU1Function;
+   public ScalarFieldComponent getMU1Field() {
+      return myMU1Field;
    }
       
-   public ScalarFieldPointFunction getMU2Function() {
-      return myMU2Function;
+   public ScalarFieldComponent getMU2Field() {
+      return myMU2Field;
    }
       
-   public ScalarFieldPointFunction getMU3Function() {
-      return myMU3Function;
+   public ScalarFieldComponent getMU3Field() {
+      return myMU3Field;
    }
       
-   public ScalarFieldPointFunction getL11Function() {
-      return myL11Function;
+   public ScalarFieldComponent getL11Field() {
+      return myL11Field;
    }
       
-   public ScalarFieldPointFunction getL22Function() {
-      return myL22Function;
+   public ScalarFieldComponent getL22Field() {
+      return myL22Field;
    }
       
-   public ScalarFieldPointFunction getL33Function() {
-      return myL33Function;
+   public ScalarFieldComponent getL33Field() {
+      return myL33Field;
    }
       
-   public ScalarFieldPointFunction getL12Function() {
-      return myL12Function;
+   public ScalarFieldComponent getL12Field() {
+      return myL12Field;
    }
       
-   public ScalarFieldPointFunction getL23Function() {
-      return myL23Function;
+   public ScalarFieldComponent getL23Field() {
+      return myL23Field;
    }
       
-   public ScalarFieldPointFunction getL31Function() {
-      return myL31Function;
+   public ScalarFieldComponent getL31Field() {
+      return myL31Field;
    }
       
-   public ScalarFieldPointFunction getCCFunction() {
-      return myCCFunction;
+   public ScalarFieldComponent getCCField() {
+      return myCCField;
    }
       
-   public void setMU1Function (ScalarFieldPointFunction func) {
-      myMU1Function = func;
+   public void setMU1Field (ScalarFieldComponent func) {
+      myMU1Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMU2Function (ScalarFieldPointFunction func) {
-      myMU2Function = func;
+   public void setMU2Field (ScalarFieldComponent func) {
+      myMU2Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMU3Function (ScalarFieldPointFunction func) {
-      myMU3Function = func;
+   public void setMU3Field (ScalarFieldComponent func) {
+      myMU3Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL11Function (ScalarFieldPointFunction func) {
-      myL11Function = func;
+   public void setL11Field (ScalarFieldComponent func) {
+      myL11Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL22Function (ScalarFieldPointFunction func) {
-      myL22Function = func;
+   public void setL22Field (ScalarFieldComponent func) {
+      myL22Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL33Function (ScalarFieldPointFunction func) {
-      myL33Function = func;
+   public void setL33Field (ScalarFieldComponent func) {
+      myL33Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL12Function (ScalarFieldPointFunction func) {
-      myL12Function = func;
+   public void setL12Field (ScalarFieldComponent func) {
+      myL12Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL23Function (ScalarFieldPointFunction func) {
-      myL23Function = func;
+   public void setL23Field (ScalarFieldComponent func) {
+      myL23Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL31Function (ScalarFieldPointFunction func) {
-      myL31Function = func;
+   public void setL31Field (ScalarFieldComponent func) {
+      myL31Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setCCFunction (ScalarFieldPointFunction func) {
-      myCCFunction = func;
+   public void setCCField (ScalarFieldComponent func) {
+      myCCField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setMU1Field (
-      ScalarField field, boolean useRestPos) {
-      myMU1Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setMU2Field (
-      ScalarField field, boolean useRestPos) {
-      myMU2Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setMU3Field (
-      ScalarField field, boolean useRestPos) {
-      myMU3Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setL11Field (
-      ScalarField field, boolean useRestPos) {
-      myL11Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setL22Field (
-      ScalarField field, boolean useRestPos) {
-      myL22Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setL33Field (
-      ScalarField field, boolean useRestPos) {
-      myL33Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setL12Field (
-      ScalarField field, boolean useRestPos) {
-      myL12Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setL23Field (
-      ScalarField field, boolean useRestPos) {
-      myL23Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setL31Field (
-      ScalarField field, boolean useRestPos) {
-      myL31Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public void setCCField (
-      ScalarField field, boolean useRestPos) {
-      myCCFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getMU1Field () {
-      return FieldUtils.getFieldFromFunction (myMU1Function);
-   }
-
-   public ScalarField getMU2Field () {
-      return FieldUtils.getFieldFromFunction (myMU2Function);
-   }
-
-   public ScalarField getMU3Field () {
-      return FieldUtils.getFieldFromFunction (myMU3Function);
-   }
-
-   public ScalarField getL11Field () {
-      return FieldUtils.getFieldFromFunction (myL11Function);
-   }
-
-   public ScalarField getL22Field () {
-      return FieldUtils.getFieldFromFunction (myL22Function);
-   }
-
-   public ScalarField getL33Field () {
-      return FieldUtils.getFieldFromFunction (myL33Function);
-   }
-
-   public ScalarField getL12Field () {
-      return FieldUtils.getFieldFromFunction (myL12Function);
-   }
-
-   public ScalarField getL23Field () {
-      return FieldUtils.getFieldFromFunction (myL23Function);
-   }
-
-   public ScalarField getL31Field () {
-      return FieldUtils.getFieldFromFunction (myL31Function);
-   }
-
-   public ScalarField getCCField () {
-      return FieldUtils.getFieldFromFunction (myCCFunction);
    }
 
    public void computeDevStressAndTangent (

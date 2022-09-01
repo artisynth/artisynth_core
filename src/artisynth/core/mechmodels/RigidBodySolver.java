@@ -497,7 +497,7 @@ public class RigidBodySolver {
       // System.out.println ("phi: " + myPhi.toString ("%8.3f"));
 
       vel.setSubVector (myVelIdxs, myVel);
-      phi.getSubVector (myPhiIdxs, myPhi);
+      phi.setSubVector (myPhiIdxs, myPhi);
       // add lam to the total force result?
       return true;
    }

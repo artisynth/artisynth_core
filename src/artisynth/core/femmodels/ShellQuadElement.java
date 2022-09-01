@@ -21,6 +21,7 @@ public class ShellQuadElement extends ShellElement3d {
    protected static int[] myFaceIdxs = null;
    protected static int[] myTriangulatedFaceIdxs = null;
    protected static MatrixNd myNodalExtrapolationMatrix = null;
+   protected static MatrixNd myNodalAveragingMatrix = null;
    protected static IntegrationPoint3d[] myDefaultIntegrationPoints;
    protected static IntegrationPoint3d[] myMembraneIntegrationPoints;
    protected IntegrationPoint3d myWarpingPoint;
@@ -296,18 +297,25 @@ public class ShellQuadElement extends ShellElement3d {
 //      }
 //   }
 
-   public MatrixNd getNodalExtrapolationMatrix() {
-      if (myNodalExtrapolationMatrix == null) {
+   public MatrixNd getNodalAveragingMatrix() {
+      if (myNodalAveragingMatrix == null) {
          // For now, just use integration point values at corresponding nodes
-         myNodalExtrapolationMatrix = new MatrixNd (4, 8);
-         myNodalExtrapolationMatrix.set (new double[] {
+         myNodalAveragingMatrix = new MatrixNd (4, 8);
+         myNodalAveragingMatrix.set (new double[] {
             0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,
             0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0,
             0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0,
             0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5,
          });
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalAveragingMatrix;
+   }
+
+   public MatrixNd getNodalExtrapolationMatrix() {
+      if (myNodalExtrapolationMatrix == null) {
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+      }
+      return myNodalExtrapolationMatrix;         
    }
 
    public double nearestPoint (Point3d near, Point3d pnt) {

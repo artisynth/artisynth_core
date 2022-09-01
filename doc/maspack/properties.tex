@@ -553,7 +553,7 @@ may be null. By default, this is false, {\it unless} the
 default value has been specified as null. Whether
 or not a property may be set to null is particularly
 relevant in the case of CompositeProperties (Section \ref{compositeSec}),
-where one may choose between setting individual sub-properties or
+where one may choose between setting individual subproperties or
 setting the entrie structure to null altogether.
 
 \item[{\tt \%fmt} ] \mbox{}
@@ -680,9 +680,9 @@ value changes in the sub-class:
 
 A property's value may itself be an object which exports properties;
 such an object is known as a {\it composite property}, and
-its properties are called {\it sub-properties}.
+its properties are called {\it subproperties}.
 
-{\tt Property} handles for sub-properties may be obtained from the
+{\tt Property} handles for subproperties may be obtained from the
 top-level exporting class using {\tt getProperty()}, with successive
 sub-property names delimited by a '{\tt .}' character.  For example,
 if a class exports a property {\tt textureProps}, whose value is a
@@ -1057,7 +1057,7 @@ Each of these may be inheritable, although {\tt renderProps} may not be.
 
 It should be noted that all the leaves in a composite property tree
 are considered to be unique properties and do not affect each other
-with respect to inheritance, even if some of the sub-component names
+with respect to inheritance, even if some of the subcomponent names
 are the same. For instance, in the above example, the properties 
 {\tt width} and {\tt renderProps.width} are different; each may inherit,
 respectively, from occurrences of {\tt width} and 
@@ -1078,7 +1078,7 @@ renderProps.width} within a hierarchy}%
 \end{figure}
 
 Also, if a CompositeProperty is set to {\tt null} within a particular
-node, then the inheritance of its sub-properties passes straight
+node, then the inheritance of its subproperties passes straight
 through that node as though the property was not defined there at
 all. For example, in Figure \ref{compositesFig}, {\tt renderProps} is
 set to {\tt null} in node C, and so {\tt renderProps.width} in node F

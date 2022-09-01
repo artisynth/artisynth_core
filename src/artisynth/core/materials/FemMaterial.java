@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.util.Deque;
 
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.FunctionPropertyList;
+import artisynth.core.modelbase.FieldPropertyList;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScanToken;
@@ -13,6 +13,7 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyUtils;
+import maspack.properties.PropertyList;
 import maspack.util.DynamicArray;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -63,10 +64,10 @@ public abstract class FemMaterial extends MaterialBase
       }
    }
    
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList(FemMaterial.class, MaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList(FemMaterial.class, MaterialBase.class);
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -244,13 +245,13 @@ public abstract class FemMaterial extends MaterialBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
-      getAllPropertyInfo().writePropertyFunctions (pw, this, fmt, ancestor);
+      getAllPropertyInfo().writePropertyFields (pw, this, fmt, ancestor);
    }
 
    protected boolean scanItem (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
       rtok.nextToken();
-      if (getAllPropertyInfo().scanPropertyFunction (rtok, this, tokens)) {
+      if (getAllPropertyInfo().scanPropertyField (rtok, this, tokens)) {
          return true;
       }
       rtok.pushBack();
@@ -260,7 +261,7 @@ public abstract class FemMaterial extends MaterialBase
    protected boolean postscanItem (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      if (getAllPropertyInfo().postscanPropertyFunction (
+      if (getAllPropertyInfo().postscanPropertyField (
              tokens, this, ancestor)) {
          return true;
       }

@@ -15,16 +15,33 @@ import maspack.util.NumberFormat;
 import artisynth.core.modelbase.ComponentList;
 
 public class TetGenWriter implements FemWriter {
+
+   private boolean myZeroIndexed = true;
+
+   public boolean isZetIndexed() {
+      return myZeroIndexed;
+   }
+
+   public void setZeroIndexed (boolean enable) {
+      myZeroIndexed = enable;
+   }
+
    public static void writeNodeFile (FemModel3d fem, String fileName) {
+      writeNodeFile (fem, fileName, /*zeroIndexed=*/true);
+   }
+   
+   public static void writeNodeFile (
+      FemModel3d fem, String fileName, boolean zeroIndexed) {
       try {
          PrintWriter pw = new PrintWriter (new File (fileName));
          NumberFormat fmt = new NumberFormat ("%19g");
          
          ComponentList<FemNode3d> nodeList = fem.getNodes ();
          
+         int idxOff = zeroIndexed ? 0 : 1;
          pw.println (nodeList.size() + " 3 0 0");
          for (FemNode3d n : nodeList) {
-            pw.print (n.getNumber ());
+            pw.print (n.getNumber()+idxOff);
             pw.println (" " + n.getPosition().toString (fmt));
          }
          
@@ -34,8 +51,13 @@ public class TetGenWriter implements FemWriter {
          e.printStackTrace ();
       }
    }
-   
+
    public static void writeElemFile (FemModel3d fem, String fileName) {
+      writeElemFile (fem, fileName, /*zeroIndexed=*/true);
+   }
+   
+   public static void writeElemFile (
+      FemModel3d fem, String fileName, boolean zeroIndexed) {
       try {
          PrintWriter pw = new PrintWriter (new File (fileName));
          NumberFormat dfmt = new NumberFormat ("%6d");
@@ -44,15 +66,16 @@ public class TetGenWriter implements FemWriter {
          
          pw.println (elemList.size() + " 4 0");
          
+         int idxOff = zeroIndexed ? 0 : 1;
          for (FemElement3d e : elemList) {
             FemNode3d[] nodes = e.getNodes();
             int[] firstRow = new int[4];
             
             if (e instanceof TetElement) {
-               firstRow[0] = nodes[0].getNumber ();
-               firstRow[1] = nodes[1].getNumber ();
-               firstRow[2] = nodes[2].getNumber ();
-               firstRow[3] = nodes[3].getNumber ();
+               firstRow[0] = nodes[0].getNumber()+idxOff;
+               firstRow[1] = nodes[1].getNumber()+idxOff;
+               firstRow[2] = nodes[2].getNumber()+idxOff;
+               firstRow[3] = nodes[3].getNumber()+idxOff;
             }
             else {
                System.out.println ("Unknown element type: " + 
@@ -60,7 +83,7 @@ public class TetGenWriter implements FemWriter {
                continue;
             }
             
-            pw.print (e.getNumber () + " ");
+            pw.print ((e.getNumber()+idxOff) + " ");
             
             for (int i = 0; i < firstRow.length; i++) {
                pw.print (dfmt.format (firstRow[i]));
@@ -91,8 +114,8 @@ public class TetGenWriter implements FemWriter {
    
    @Override
    public void writeFem(FemModel3d fem) throws IOException {
-      writeNodeFile(fem, myNodeFile.getAbsolutePath());
-      writeElemFile(fem, myElemFile.getAbsolutePath());
+      writeNodeFile(fem, myNodeFile.getAbsolutePath(), myZeroIndexed);
+      writeElemFile(fem, myElemFile.getAbsolutePath(), myZeroIndexed);
    }
 }
       

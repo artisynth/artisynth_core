@@ -30,7 +30,8 @@ public class SimpleMuscle extends MuscleMaterial {
    
    protected double myMaxStress = DEFAULT_MAX_STRESS;
    protected PropertyMode myMaxStressMode = PropertyMode.Inherited;
-   protected ScalarFieldPointFunction myMaxStressFunction = null;
+   //protected ScalarFieldPointFunction myMaxStressFunction = null;
+   protected ScalarFieldComponent myMaxStressField = null;
 
    protected Vector3d myTmp = new Vector3d();
    protected Matrix3d myMat = new Matrix3d();
@@ -49,15 +50,15 @@ public class SimpleMuscle extends MuscleMaterial {
       setMaxStress (maxStress);
    }
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (SimpleMuscle.class, MuscleMaterial.class);   
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (SimpleMuscle.class, MuscleMaterial.class);   
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "maxStress", "maximum isometric stress", DEFAULT_MAX_STRESS);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -83,32 +84,22 @@ public class SimpleMuscle extends MuscleMaterial {
       return myMaxStressMode;
    }
 
-   public double getMaxStress (FieldPoint dp) {
-      if (myMaxStressFunction == null) {
+   public double getMaxStress (FemFieldPoint dp) {
+      if (myMaxStressField == null) {
          return getMaxStress();
       }
       else {
-         return myMaxStressFunction.eval(dp);
+         return myMaxStressField.getValue(dp);
       }
    }
 
-   public ScalarFieldPointFunction getMaxStressFunction() {
-      return myMaxStressFunction;
+   public ScalarFieldComponent getMaxStressField() {
+      return myMaxStressField;
    }
       
-   public void setMaxStressFunction (ScalarFieldPointFunction func) {
-      myMaxStressFunction = func;
+   public void setMaxStressField (ScalarFieldComponent func) {
+      myMaxStressField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setMaxStressField (
-      ScalarField field, boolean useRestPos) {
-      myMaxStressFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getMaxStressField () {
-      return FieldUtils.getFieldFromFunction (myMaxStressFunction);
    }
 
    /** 

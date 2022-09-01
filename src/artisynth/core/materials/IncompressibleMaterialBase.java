@@ -21,23 +21,23 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
 
    private double myBulkModulus = DEFAULT_BULK_MODULUS; // bulk modulus
    PropertyMode myBulkModulusMode = PropertyMode.Inherited;
-   ScalarFieldPointFunction myBulkModulusFunction = null;
+   ScalarFieldComponent myBulkModulusField = null;
    protected BulkPotential myBulkPotential = DEFAULT_BULK_POTENTIAL;
    PropertyMode myBulkPotentialMode = PropertyMode.Inherited;
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (
          IncompressibleMaterialBase.class, FemMaterial.class);
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "bulkModulus:Inherited", "Bulk modulus", DEFAULT_BULK_MODULUS);
       myProps.addInheritable (
          "bulkPotential:Inherited", "Incompressibility potential function",
          DEFAULT_BULK_POTENTIAL);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -63,32 +63,22 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
       return myBulkModulusMode;
    }
    
-   public double getBulkModulus (FieldPoint dp) {
-      if (myBulkModulusFunction == null) {
+   public double getBulkModulus (FemFieldPoint dp) {
+      if (myBulkModulusField == null) {
          return getBulkModulus();
       }
       else {
-         return myBulkModulusFunction.eval (dp);
+         return myBulkModulusField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getBulkModulusFunction() {
-      return myBulkModulusFunction;
+   public ScalarFieldComponent getBulkModulusField() {
+      return myBulkModulusField;
    }
       
-   public void setBulkModulusFunction (ScalarFieldPointFunction func) {
-      myBulkModulusFunction = func;
+   public void setBulkModulusField (ScalarFieldComponent func) {
+      myBulkModulusField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setBulkModulusField (
-      ScalarField field, boolean useRestPos) {
-      myBulkModulusFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getBulkModulusField () {
-      return FieldUtils.getFieldFromFunction (myBulkModulusFunction);
    }
 
    public synchronized void setBulkPotential (BulkPotential potential) {

@@ -15,6 +15,7 @@ SOURCES = \
 	mechanicalModelsII.tex \
 	simulationControl.tex \
 	femModels.tex \
+	collisions.tex \
 	muscleWrapping.tex \
 	skinning.tex \
         dicom.tex \

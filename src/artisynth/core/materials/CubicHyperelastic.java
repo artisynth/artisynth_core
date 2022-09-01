@@ -9,8 +9,8 @@ import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
 public class CubicHyperelastic extends IncompressibleMaterialBase {
-   protected static FunctionPropertyList myProps =
-      new FunctionPropertyList (CubicHyperelastic.class,IncompressibleMaterialBase.class);
+   protected static FieldPropertyList myProps =
+      new FieldPropertyList (CubicHyperelastic.class,IncompressibleMaterialBase.class);
    
    protected static double DEFAULT_G10 = 150000;
    protected static double DEFAULT_G20 = 0;
@@ -22,23 +22,23 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
    PropertyMode myG10Mode = PropertyMode.Inherited;
    PropertyMode myG30Mode = PropertyMode.Inherited;
    PropertyMode myG20Mode = PropertyMode.Inherited;
-   ScalarFieldPointFunction myG10Function = null;
-   ScalarFieldPointFunction myG30Function = null;
-   ScalarFieldPointFunction myG20Function = null;
+   ScalarFieldComponent myG10Field = null;
+   ScalarFieldComponent myG30Field = null;
+   ScalarFieldComponent myG20Field = null;
 
    private SymmetricMatrix3d myB;
    private SymmetricMatrix3d myTmp;
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "G10:Inherited", "G10 parameter", DEFAULT_G10);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "G20:Inherited", "G20 parameter", DEFAULT_G20);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
 	 "G30:Inherited", "G30 parameter", DEFAULT_G30);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -80,32 +80,22 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
       return myG10Mode;
    }
 
-   public double getG10 (FieldPoint dp) {
-      if (myG10Function == null) {
+   public double getG10 (FemFieldPoint dp) {
+      if (myG10Field == null) {
          return getG10();
       }
       else {
-         return myG10Function.eval (dp);
+         return myG10Field.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getG10Function() {
-      return myG10Function;
+   public ScalarFieldComponent getG10Field() {
+      return myG10Field;
    }
       
-   public void setG10Function (ScalarFieldPointFunction func) {
-      myG10Function = func;
+   public void setG10Field (ScalarFieldComponent func) {
+      myG10Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setG10Field (
-      ScalarField field, boolean useRestPos) {
-      myG10Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getG10Field () {
-      return FieldUtils.getFieldFromFunction (myG10Function);
    }
 
    // G20
@@ -130,32 +120,22 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
       return myG20Mode;
    }
 
-   public double getG20 (FieldPoint dp) {
-      if (myG20Function == null) {
+   public double getG20 (FemFieldPoint dp) {
+      if (myG20Field == null) {
          return getG20();
       }
       else {
-         return myG20Function.eval (dp);
+         return myG20Field.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getG20Function() {
-      return myG20Function;
+   public ScalarFieldComponent getG20Field() {
+      return myG20Field;
    }
       
-   public void setG20Function (ScalarFieldPointFunction func) {
-      myG20Function = func;
+   public void setG20Field (ScalarFieldComponent func) {
+      myG20Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setG20Field (
-      ScalarField field, boolean useRestPos) {
-      myG20Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getG20Field () {
-      return FieldUtils.getFieldFromFunction (myG20Function);
    }
 
    // G30
@@ -180,32 +160,22 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
       return myG30Mode;
    }
 
-   public double getG30 (FieldPoint dp) {
-      if (myG30Function == null) {
+   public double getG30 (FemFieldPoint dp) {
+      if (myG30Field == null) {
          return getG30();
       }
       else {
-         return myG30Function.eval (dp);
+         return myG30Field.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getG30Function() {
-      return myG30Function;
+   public ScalarFieldComponent getG30Field() {
+      return myG30Field;
    }
       
-   public void setG30Function (ScalarFieldPointFunction func) {
-      myG30Function = func;
+   public void setG30Field (ScalarFieldComponent func) {
+      myG30Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setG30Field (
-      ScalarField field, boolean useRestPos) {
-      myG30Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getG30Field () {
-      return FieldUtils.getFieldFromFunction (myG30Function);
    }
 
    // end G accessors

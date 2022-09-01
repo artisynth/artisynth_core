@@ -173,7 +173,6 @@ public abstract class FemModel extends MechSystemBase
    protected boolean myRestVolumeValid = false;
 
    protected double myCharacteristicSize = -1;
-   protected int myNumIntegrationIndices = -1;
 
    protected FemMaterial myMaterial = null;
 
@@ -1183,7 +1182,6 @@ public abstract class FemModel extends MechSystemBase
       super.clearCachedData(e);
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
-      invalidateIntegrationIndices();
    }
 
    public double getCharacteristicSize() {
@@ -1295,22 +1293,4 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public abstract void addSolveBlocks (SparseNumberedBlockMatrix M);
-   
-   public void updateIntegrationIndices() {
-      if (myNumIntegrationIndices == -1) {
-         myNumIntegrationIndices = assignIntegrationIndices();
-      }
-   }
-   
-   protected void invalidateIntegrationIndices() {
-      myNumIntegrationIndices = -1;
-   }
-   
-   public int numIntegrationIndices() {
-      updateIntegrationIndices();
-      return myNumIntegrationIndices;
-   }
-   
-   protected abstract int assignIntegrationIndices();
-
 }

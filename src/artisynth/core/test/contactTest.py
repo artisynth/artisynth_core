@@ -127,14 +127,14 @@ dorun()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("SelfCollision ConstrainedBackwardEuler");
 dorun()
-loadModel ("artisynth.models.collision.EmbeddedCollisionTest")
+loadModel ("artisynth.demos.mech.EmbeddedCollisionTest")
 mech = setModelOpts (1.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("EmbeddedCollisionTest ConstrainedBackwardEuler");
 dorun()
 
-loadModel ("artisynth.models.collision.MultiCollisionTest")
+loadModel ("artisynth.demos.mech.MultiCollisionTest")
 mech = setModelOpts (1.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
@@ -155,14 +155,14 @@ mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("FemSkinCollide -dcon -twoFems");
 dorun()
 
-loadModel ("artisynth.models.collision.RigidCollisionTest")
+loadModel ("artisynth.demos.mech.RigidCollisionTest")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("RigidCollisionTest ConstrainedBackwardEuler");
 dorun()
 
-loadModel ("artisynth.models.collision.RedundantCollisionTest")
+loadModel ("artisynth.demos.mech.RedundantCollisionTest")
 mech = setModelOpts (1.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
@@ -210,7 +210,7 @@ mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("EmbeddedEmbeddedCollision ConstrainedBackwardEuler -friction 0.0005");
 dorun()
 
-loadModel ("artisynth.models.collision.EdgeEdgeCollisionTest")
+loadModel ("artisynth.demos.mech.EdgeEdgeCollisionTest")
 mech = setModelOpts (2.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
@@ -219,6 +219,13 @@ dorun()
 # undo settings used by EdgeEdgeCollisionTest
 SurfaceMeshCollider.doEdgeEdgeContacts = False
 SurfaceMeshCollider.useAjlCollision = False
+
+loadModel ("artisynth.demos.test.Trampoline")
+mech = setModelOpts (2.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("Trampoline ConstrainedBackwardEuler");
+dorun()
 
 print SurfaceMeshIntersector.numRegularCalls
 print SurfaceMeshIntersector.numRobustCalls

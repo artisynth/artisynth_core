@@ -632,7 +632,7 @@ public class PropertyList implements PropertyInfoList {
             System.out.println ("getProperty(" + pathName + ") for class "
             + host.getClass().getName() + ":");
             System.out.println ("   property '" + name
-            + "' does not contain sub-properties");
+            + "' does not contain subproperties");
             return null;
          }
          if (value != PropertyUtils.getValue (info, host)) {

@@ -416,6 +416,35 @@ public class VectorNd extends VectorBase
       buf[size++] = value;
    }
 
+   /** 
+    * Appends the values of {@code vec} to the end of this vector, increasing
+    * its size by the size of {@code vec}.  If the vector's capacity (i.e., the
+    * length of the underlying array) needs to be increased, this is done by an
+    * extended amount in order to reduce the overall number of capacity
+    * increases that may be incurred by a sequence of <code>append</code>
+    * calls.
+    * 
+    * @param vec vector to append to the end of this vector
+    * @throws ImproperSizeException if the capacity needs to be increased but
+    * the internal buffer is explicit and so cannot be increased.
+    */
+   public void append (VectorNd vec) {
+      int newsize = size + vec.size();
+      if (newsize > buf.length) {
+         if (explicitBuffer) {
+            throw new ImproperSizeException (
+               "Adjusted vector size too large for explicit internal buffer");
+         }
+         else {
+            int newcap = Math.max (3*newsize/2, 4); // 1.5x growth
+            resizeBuffer (size, newcap);
+         }
+      }
+      for (int i=0; i<vec.size(); i++) {
+         buf[size++] = vec.buf[i];
+      }
+   }
+
    /**
     * Removes the {@code i}-th value from this vector, decreasing its size by
     * one.  Indices for all values greater than {@code i} are decremented by
@@ -668,8 +697,7 @@ public class VectorNd extends VectorBase
     */
    public VectorNd add (VectorNd v1, VectorNd v2) throws ImproperSizeException {
       if (v1.size != v2.size) {
-         throw new ImproperSizeException (
-            "Incompatible dimensions: v1.size="+v1.size()+"; v2.size="+v2.size());
+         throw new ImproperSizeException ("Incompatible dimensions");
       }
       if (size != v1.size) {
          resetSize (v1.size);

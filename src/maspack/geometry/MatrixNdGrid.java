@@ -111,6 +111,24 @@ public class MatrixNdGrid extends VectorGrid<MatrixNd> {
    }
 
    /**
+    * Creates a new grid with specified matrix size, widths, and resolution,
+    * centered on the local coordinate system. The grid values are initialized
+    * to zero.
+    *
+    * @param rowSize row size of the matrices
+    * @param colSize column size of the matrices
+    * @param widths widths along the x, y, and z axes
+    * @param resolution cell resolution along the x, y, and z axes
+    */
+   public MatrixNdGrid (
+      int rowSize, int colSize,
+      Vector3d widths, Vector3i resolution) {
+
+      super (MatrixNd.class, widths, resolution, null);     
+      initSize (rowSize, colSize);
+   }
+
+   /**
     * Creates a new grid with specified matrix size, widths, resolution, and
     * position and orientation of the center given by <code>TCL</code>.  The
     * grid values are initialized to zero.
@@ -169,7 +187,7 @@ public class MatrixNdGrid extends VectorGrid<MatrixNd> {
       super.set (grid);
    }
 
-   protected MatrixNd createInstance() {
+   public MatrixNd createTypeInstance() {
       return new MatrixNd (myRowSize, myColSize);
    }
 

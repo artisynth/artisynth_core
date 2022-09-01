@@ -930,66 +930,59 @@ public abstract class FemElement3dBase extends FemElement
 
    /* --- Extrapolation matrices --- */
 
+   /**
+    * Returns the nodal averaging matrix for this element, used for
+    * extrapolating values from the integration points to the element nodes for
+    * purposes of computing average nodal values. By default, this matrix is
+    * the same as that returned by {@link #getNodalExtrapolationMatrix}.
+    * However, since the purpose of this matrix is for computing nodal
+    * averages, simpler matrices can sometimes be used, such as an identity or
+    * permutation matrix that assigns the value at each node to that of a
+    * specific integration point. Element subclasses may override this method
+    * to supply such simplified matrices.
+    * 
+    * @return nodal extrapolation matrix
+    */
+   public MatrixNd getNodalAveragingMatrix() {
+      return getNodalExtrapolationMatrix();
+   }
+   
+   /**
+    * Returns the nodal extrapolation matrix for this element. This is a matrix
+    * that maps values from the integration points to the element nodes, and is
+    * the inverse (or pseudo-inverse) of the integration point shape matrix
+    * returned by {@link #getIntegrationShapeMatrix}.
+    * 
+    * @return nodal extrapolation matrix
+    */
    public abstract MatrixNd getNodalExtrapolationMatrix();
    
    /**
-    * Creates and returns a shape matrix for this element. This is an N x K
-    * matrix, where N is the number of nodes and K is the number of integration
-    * points. Each column gives the current nodal shape function values for a
-    * particular integration point. 
+    * Creates and returns a shape matrix for integration points of this
+    * element. This is an {@code p X n} matrix, where p is the number of
+    * integration points and n is the number of nodes.  Each row gives the
+    * current nodal shape function values for a particular integration point.
     *
     * <p>The shape matrix maps data from the nodes to the integration points,
     * and so has inverse functionality to the matrix returned by
-    * getNodalExtrapolationMatrix().
+    * {@link #getNodalExtrapolationMatrix}.
     * 
-    * @return shape matrix for this element.
+    * @return integration point shape matrix for this element.
     */
-   public MatrixNd getShapeMatrix() {
+   public MatrixNd getIntegrationShapeMatrix() {
       int numNodes = myNodes.length;
       int numIntegPts = numIntegrationPoints();
       
-      MatrixNd shapeMtx = new MatrixNd(numNodes, numIntegPts);
-      for (int n = 0; n < numNodes; n++) {
-         for (int k = 0; k < numIntegPts; k++) {
+      MatrixNd shapeMtx = new MatrixNd(numIntegPts, numNodes);
+      for (int k = 0; k < numIntegPts; k++) {
+         for (int n = 0; n < numNodes; n++) {
             IntegrationPoint3d iPt = getIntegrationPoints()[k];
             double shapeFunc = getN(n, iPt.getCoords ()) ;
-            shapeMtx.set (n,k, shapeFunc);
+            shapeMtx.set (k, n, shapeFunc);
          }
       }
       return shapeMtx;
    } 
-
-   /*
-    * Support methods for computing the extrapolants that map values at an
-    * element's integration points back to its nodes. These are used to
-    * determine the extrapolation matrix that is returned by the element's
-    * getNodalExtroplationMatrix() method. Extrapolation from integration
-    * points to nodes is used to compute things such as nodal stresses.
-    *
-    * In general, the extrapolants are determined by mapping the integration
-    * points (or a suitable subset thereof) onto a special finite element of
-    * their own, and computing the shape function values for the nodes in the
-    * new coordinate system.
-    */
-
-   /** 
-    * Returns scaled values for the nodal coordinates of this element as an
-    * array of Vector3d. An optional offset value can be added to the values as
-    * well.
-    */
-   protected Vector3d[] getScaledNodeCoords (double s, Vector3d offset) {
-      int nn = numNodes();
-      Vector3d[] array = new Vector3d[nn];
-      double[] coords = getNodeCoords();
-      for (int i=0; i<array.length; i++) {
-         array[i] = new Vector3d (coords[i*3], coords[i*3+1], coords[i*3+2]);
-         array[i].scale (s);
-         if (offset != null) {
-            array[i].add (offset);
-         }
-      }
-      return array;
-   }
 
    /** 
     * Creates a node extrapolation matrix from a set of (transformed) nodal
@@ -1012,6 +1005,26 @@ public abstract class FemElement3dBase extends FemElement
          }
       }
       return mat;
+   }
+   
+   /**
+    * Creates a nodal extrapolation matrix by computing the inverse (
+    * or pseudo-inverse) of the matrix whose 
+    * 
+    * @return nodal extrapolation matrix
+    */
+   protected MatrixNd createNodalExtrapolationMatrix () {
+      MatrixNd N = getIntegrationShapeMatrix();
+      MatrixNd E = new MatrixNd();
+      if (N.rowSize() == N.colSize()) {
+         // S is square; just invert it
+         E.invert (N);
+      }
+      else {
+         SVDecomposition svd = new SVDecomposition (N);
+         svd.pseudoInverse (E);
+      }
+      return E;
    }
 
    /* --- Edges and Faces --- */

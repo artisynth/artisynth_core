@@ -493,7 +493,7 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
 
-      if (false) {
+      if (true) {
          String dataDir = 
             PathFinder.expand (
                "${srcdir PolygonalMesh}/sampleData/");
@@ -793,7 +793,7 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
 
-      if (true && meshFile0 != null && meshFile1 != null) {
+      if (meshFile0 != null && meshFile1 != null) {
          try {
             mesh1 = new PolygonalMesh (meshFile0);
             mesh0 = new PolygonalMesh (meshFile1);
@@ -845,6 +845,8 @@ public class AjlCollisionTest extends RootModel {
       }
       RenderProps.setSphericalPoints (myTester, 0.02, Color.CYAN);
       RenderProps.setFaceColor (myTester, new Color (0.8f, 0.8f, 1f));
+      RenderProps.setLineColor (myTester, Color.RED);
+      RenderProps.setLineWidth (myTester, 3);
       addController (myTester);
       addControlPanel ();
       

@@ -320,18 +320,35 @@ public class VectorNi extends VectoriBase implements java.io.Serializable {
          }
       }
       buf[size++] = value;      
-      // if (++size > buf.length) {
-      //    if (explicitBuffer) {
-      //       size--;
-      //       throw new ImproperSizeException (
-      //          "Adjusted vector size too large for explicit internal buffer");
-      //    }
-      //    else {
-      //       int newcap = 2*size;
-      //       resizeBuffer (size-1, newcap);
-      //    }
-      // }
-      // buf[size-1] = value;
+   }
+
+   /** 
+    * Appends the values of {@code vec} to the end of this vector, increasing
+    * its size by the size of {@code vec}.  If the vector's capacity (i.e., the
+    * length of the underlying array) needs to be increased, this is done by an
+    * extended amount in order to reduce the overall number of capacity
+    * increases that may be incurred by a sequence of <code>append</code>
+    * calls.
+    * 
+    * @param vec vector to append to the end of this vector
+    * @throws ImproperSizeException if the capacity needs to be increased but
+    * the internal buffer is explicit and so cannot be increased.
+    */
+   public void append (VectorNi vec) {
+      int newsize = size + vec.size();
+      if (newsize > buf.length) {
+         if (explicitBuffer) {
+            throw new ImproperSizeException (
+               "Adjusted vector size too large for explicit internal buffer");
+         }
+         else {
+            int newcap = Math.max (3*newsize/2, 4); // 1.5x growth
+            resizeBuffer (size, newcap);
+         }
+      }
+      for (int i=0; i<vec.size(); i++) {
+         buf[size++] = vec.buf[i];
+      }
    }
 
    /**

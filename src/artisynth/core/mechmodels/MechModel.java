@@ -41,6 +41,7 @@ import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ComponentListView;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.FieldComponent;
 import artisynth.core.modelbase.GeometryChangeEvent;
 import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.HasNumericStateComponents;
@@ -81,6 +82,7 @@ TransformableGeometry, ScalableUnits {
    protected ArrayList<CollidableBody> myCollidableBodies;
 
    protected ComponentList<MuscleExciter> myExciterList;
+   protected ComponentList<FieldComponent> myFieldList;
    protected RenderableComponentList<RenderableComponent> myRenderables;
    protected Point3d myMinBound;
    protected Point3d myMaxBound;
@@ -253,6 +255,11 @@ TransformableGeometry, ScalableUnits {
 
       myExciterList =
          new ComponentList<MuscleExciter> (MuscleExciter.class, "exciters", "e");
+
+      myFieldList =
+         new ComponentList<FieldComponent> (
+            FieldComponent.class, "fields", "fld");
+
       myRenderables =
          new RenderableComponentList<RenderableComponent> (
             RenderableComponent.class, "renderables", "re");
@@ -278,6 +285,7 @@ TransformableGeometry, ScalableUnits {
       addFixed (myFrameSprings);
       addFixed (myForceEffectors);
       addFixed (myExciterList);
+      addFixed (myFieldList);
 
       addFixed (myCollisionManager);         
  
@@ -681,7 +689,7 @@ TransformableGeometry, ScalableUnits {
     * will be applied only among collidables for which this
     * <code>MechModel</code> is the lowest common model.
     *
-    * <p>Since behaviors are added to the collision manager as sub-components,
+    * <p>Since behaviors are added to the collision manager as subcomponents,
     * the specified behavior cannot be currently set and in particular can not
     * be reused in other <code>setCollisionBehavior</code> calls. If reuse
     * is desired, the behavior should be copied:
@@ -718,7 +726,7 @@ TransformableGeometry, ScalableUnits {
     * <code>Colidability.INTERNAL</code>.
     *
     * <p>This method works by adding the indicated behavior to the collision
-    * manager as a sub-component. If a behavior has been previously set for the
+    * manager as a subcomponent. If a behavior has been previously set for the
     * specified pair, the previous behavior is removed. The behavior can be
     * queried later using {@link #getCollisionBehavior
     * getCollisionBehavior(c0,c1)} and removed using {@link
@@ -793,7 +801,7 @@ TransformableGeometry, ScalableUnits {
     * previoulsy specified for the same pair. At every subsequent integration
     * step, the response object will be updated to contain the current
     * collision information for the collidable pair. Since responses are added
-    * to the collision manager as sub-components, the specified response cannot
+    * to the collision manager as subcomponents, the specified response cannot
     * be currently set.
     *
     * <p>There are restrictions on what pair of collidables can be
@@ -818,7 +826,7 @@ TransformableGeometry, ScalableUnits {
     * <code>Colidability.INTERNAL</code>.
     *
     * <p>This method works by adding the indicated response to the collision
-    * manager as a sub-component. If a response has been previously set for the
+    * manager as a subcomponent. If a response has been previously set for the
     * specified pair, the previous response is removed. The response can be
     * queried later using {@link #getCollisionResponse
     * getCollisionResponse(c0,c1)} and removed using {@link
@@ -1271,6 +1279,32 @@ TransformableGeometry, ScalableUnits {
 
    public ComponentList<MuscleExciter> getMuscleExciters() {
       return myExciterList;
+   }
+
+   public void clearMuscleExciters () {
+      myExciterList.removeAll();
+   }
+
+   public void addField (FieldComponent fcomp) {
+      if (fcomp.getParent() == myFieldList) {
+         throw new IllegalArgumentException (
+            "MechModel already contains specified field component");
+      }     
+      myFieldList.add (fcomp);
+   }
+
+   public boolean removeField (FieldComponent fcomp) {
+      return myFieldList.remove (fcomp);
+   }
+
+   public void clearFields () {
+      for (int i=myFieldList.size()-1; i>0; i--) {
+         myFieldList.remove (i);
+      }
+   }
+
+   public ComponentList<FieldComponent> getFields() {
+      return myFieldList;
    }
 
    public ComponentListView<RigidBody> rigidBodies() {

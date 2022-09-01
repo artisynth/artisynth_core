@@ -104,14 +104,22 @@ public class PyramidElement extends FemElement3d {
    }
 
    private static MatrixNd myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalAveragingMatrix = null;
+
+   public MatrixNd getNodalAveragingMatrix() {
+      if (myNodalAveragingMatrix == null) {
+         // For now, just use integration point values at corresponding nodes
+         myNodalAveragingMatrix = new MatrixNd (5, 5);
+         myNodalAveragingMatrix.setIdentity();
+      }
+      return myNodalAveragingMatrix;
+   }
 
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         // For now, just use integration point values at corresponding nodes
-         myNodalExtrapolationMatrix = new MatrixNd (5, 5);
-         myNodalExtrapolationMatrix.setIdentity();
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalExtrapolationMatrix;         
    }
 
    // Shape functions are the same as those used by FEBio for

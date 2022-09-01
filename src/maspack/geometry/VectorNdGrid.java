@@ -99,6 +99,21 @@ public class VectorNdGrid extends VectorGrid<VectorNd> {
    }
 
    /**
+    * Creates a new grid with specified vector size, widths and resolution,
+    * centered on the local coordinate system. The grid values are initialized
+    * to zero.
+    *
+    * @param vsize size of the vectors to be interpolated
+    * @param widths widths along the x, y, and z axes
+    * @param resolution cell resolution along the x, y, and z axes
+    */
+   public VectorNdGrid (
+      int vsize, Vector3d widths, Vector3i resolution) {
+      super (VectorNd.class, widths, resolution, null);
+      initSize (vsize);
+   }
+
+   /**
     * Creates a new grid with specified vector size, widths, resolution, and
     * position and orientation of the center given by <code>TCL</code>.  The
     * grid values are initialized to zero.
@@ -152,7 +167,7 @@ public class VectorNdGrid extends VectorGrid<VectorNd> {
       super.set (grid);
    }
 
-   protected VectorNd createInstance() {
+   public VectorNd createTypeInstance() {
       return new VectorNd (myVecSize);
    }
 

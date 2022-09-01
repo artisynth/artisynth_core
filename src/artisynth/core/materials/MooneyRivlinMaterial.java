@@ -9,8 +9,8 @@ import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
 public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
-   protected static FunctionPropertyList myProps =
-      new FunctionPropertyList (
+   protected static FieldPropertyList myProps =
+      new FieldPropertyList (
          MooneyRivlinMaterial.class, IncompressibleMaterialBase.class);
    
    /**
@@ -41,11 +41,11 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
    PropertyMode myC02Mode = PropertyMode.Inherited;
    PropertyMode myJLimitMode = PropertyMode.Inherited;
 
-   ScalarFieldPointFunction myC10Function = null;
-   ScalarFieldPointFunction myC01Function = null;
-   ScalarFieldPointFunction myC11Function = null;
-   ScalarFieldPointFunction myC20Function = null;
-   ScalarFieldPointFunction myC02Function = null;
+   ScalarFieldComponent myC10Field = null;
+   ScalarFieldComponent myC01Field = null;
+   ScalarFieldComponent myC11Field = null;
+   ScalarFieldComponent myC20Field = null;
+   ScalarFieldComponent myC02Field = null;
 
    private SymmetricMatrix3d myB;
    private SymmetricMatrix3d myB2;
@@ -55,15 +55,15 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
    private double[] myPhiVals = new double[3];
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "C10:Inherited", "C10 parameter", DEFAULT_C10);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "C01:Inherited", "C01 parameter", DEFAULT_C01);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "C11:Inherited", "C11 parameter", DEFAULT_C11);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "C20:Inherited", "C20 parameter", DEFAULT_C20);
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "C02:Inherited", "C02 parameter", DEFAULT_C02);
       myProps.addInheritable (
          "JLimit:Inherited",
@@ -71,7 +71,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
          DEFAULT_JLIMIT);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -117,27 +117,17 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC10Mode;
    }
 
-   public double getC10 (FieldPoint dp) {
-      return (myC10Function == null ? getC10() : myC10Function.eval (dp));
+   public double getC10 (FemFieldPoint dp) {
+      return (myC10Field == null ? getC10() : myC10Field.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getC10Function() {
-      return myC10Function;
+   public ScalarFieldComponent getC10Field() {
+      return myC10Field;
    }
       
-   public void setC10Function (ScalarFieldPointFunction func) {
-      myC10Function = func;
+   public void setC10Field (ScalarFieldComponent func) {
+      myC10Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setC10Field (
-      ScalarField field, boolean useRestPos) {
-      myC10Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getC10Field () {
-      return FieldUtils.getFieldFromFunction (myC10Function);
    }
 
    // C01
@@ -162,27 +152,17 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC01Mode;
    }
 
-   public double getC01 (FieldPoint dp) {
-      return (myC01Function == null ? getC01() : myC01Function.eval (dp));
+   public double getC01 (FemFieldPoint dp) {
+      return (myC01Field == null ? getC01() : myC01Field.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getC01Function() {
-      return myC01Function;
+   public ScalarFieldComponent getC01Field() {
+      return myC01Field;
    }
       
-   public void setC01Function (ScalarFieldPointFunction func) {
-      myC01Function = func;
+   public void setC01Field (ScalarFieldComponent func) {
+      myC01Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setC01Field (
-      ScalarField field, boolean useRestPos) {
-      myC01Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getC01Field () {
-      return FieldUtils.getFieldFromFunction (myC01Function);
    }
 
    // C11
@@ -207,27 +187,17 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC11Mode;
    }
 
-   public double getC11 (FieldPoint dp) {
-      return (myC11Function == null ? getC11() : myC11Function.eval (dp));
+   public double getC11 (FemFieldPoint dp) {
+      return (myC11Field == null ? getC11() : myC11Field.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getC11Function() {
-      return myC11Function;
+   public ScalarFieldComponent getC11Field() {
+      return myC11Field;
    }
       
-   public void setC11Function (ScalarFieldPointFunction func) {
-      myC11Function = func;
+   public void setC11Field (ScalarFieldComponent func) {
+      myC11Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setC11Field (
-      ScalarField field, boolean useRestPos) {
-      myC11Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getC11Field () {
-      return FieldUtils.getFieldFromFunction (myC11Function);
    }
 
    // C20
@@ -252,27 +222,17 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC20Mode;
    }
 
-   public double getC20 (FieldPoint dp) {
-      return (myC20Function == null ? getC20() : myC20Function.eval (dp));
+   public double getC20 (FemFieldPoint dp) {
+      return (myC20Field == null ? getC20() : myC20Field.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getC20Function() {
-      return myC20Function;
+   public ScalarFieldComponent getC20Field() {
+      return myC20Field;
    }
       
-   public void setC20Function (ScalarFieldPointFunction func) {
-      myC20Function = func;
+   public void setC20Field (ScalarFieldComponent func) {
+      myC20Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setC20Field (
-      ScalarField field, boolean useRestPos) {
-      myC20Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getC20Field () {
-      return FieldUtils.getFieldFromFunction (myC20Function);
    }
 
    // C02
@@ -297,27 +257,17 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myC02Mode;
    }
 
-   public double getC02 (FieldPoint dp) {
-      return (myC02Function == null ? getC02() : myC02Function.eval (dp));
+   public double getC02 (FemFieldPoint dp) {
+      return (myC02Field == null ? getC02() : myC02Field.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getC02Function() {
-      return myC02Function;
+   public ScalarFieldComponent getC02Field() {
+      return myC02Field;
    }
       
-   public void setC02Function (ScalarFieldPointFunction func) {
-      myC02Function = func;
+   public void setC02Field (ScalarFieldComponent func) {
+      myC02Field = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setC02Field (
-      ScalarField field, boolean useRestPos) {
-      myC02Function = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getC02Field () {
-      return FieldUtils.getFieldFromFunction (myC02Function);
    }
 
    // JLimit

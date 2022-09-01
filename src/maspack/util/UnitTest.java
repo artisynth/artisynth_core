@@ -134,4 +134,44 @@ public class UnitTest {
       System.exit(1);
    }
 
+
+   protected interface ExceptionTest {
+      void run();
+   }
+
+   protected void checkForException (
+      Exception chk, ExceptionTest test) {
+      try {
+         test.run();
+      }
+      catch (Exception e) {
+         if (e.getClass() != chk.getClass()) {
+            throw new TestException (
+               "Expecting \""+chk.getClass().getName()+
+               "\", got \""+e.getClass().getName()+"\"");
+         }
+         if (chk.getMessage() != null) {
+            if (e.getMessage() == null ||
+                !chk.getMessage().equals(e.getMessage())) {
+               throw new TestException (
+                  "Expecting \""+chk+"\", got \""+e+"\"");
+            }
+         }
+         return;
+      }
+      throw new TestException (
+         "Expecting exception "+chk.getClass().getName());
+   }
+
+   protected void checkForIllegalArgumentException (ExceptionTest test) {
+      checkForException (
+         new IllegalArgumentException(), test);
+   }
+
+   protected void checkForIllegalArgumentException (
+      String msg, ExceptionTest test) {
+      checkForException (
+         new IllegalArgumentException(msg), test);
+   }
+
 }

@@ -59,8 +59,8 @@ public class ViscoelasticMaterial extends FemMaterial {
 
    FemMaterial myBaseMaterial = DEFAULT_BASE_MATERIAL;
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList(ViscoelasticMaterial.class, FemMaterial.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList(ViscoelasticMaterial.class, FemMaterial.class);
 
    static {
       PropertyDesc desc = myProps.add (
@@ -72,7 +72,7 @@ public class ViscoelasticMaterial extends FemMaterial {
          DEFAULT_VISCO_BEHAVIOR);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 

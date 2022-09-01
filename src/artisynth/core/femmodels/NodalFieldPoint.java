@@ -1,9 +1,9 @@
 package artisynth.core.femmodels;
 
-import artisynth.core.modelbase.FieldPoint;
+import artisynth.core.modelbase.FemFieldPoint;
 import maspack.matrix.Point3d;
 
-public class NodalFieldPoint implements FieldPoint {
+public class NodalFieldPoint implements FemFieldPoint {
 
    private FemNode myNode;
    private int[] myNodeNumbers;
@@ -19,20 +19,12 @@ public class NodalFieldPoint implements FieldPoint {
       myNodeNumbers[0] = node.getNumber();
    }
 
-   public int availableInfo() {
-      return NODAL_INFO;
-   }
-
    public Point3d getSpatialPos() {
       return myNode.getPosition();
    }
 
    public Point3d getRestPos() {
       return myNode.getRestPosition();
-   }
-
-   public int getPointIndex() {
-      return -1;
    }
 
    public int[] getNodeNumbers() {

@@ -7,6 +7,7 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	ComponentTest \
+	ContactPointTest \
 	ScannableListTest
 	# DependencyClosureTest \
 

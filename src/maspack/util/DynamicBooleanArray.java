@@ -47,6 +47,13 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       notifyModified ();
    }
 
+   public DynamicBooleanArray(DynamicBooleanArray array) {
+      elementData = Arrays.copyOf (
+         array.elementData, array.elementData.length);
+      size = array.size;
+      notifyModified ();
+   }
+
    public void ensureCapacity(int cap) {
 
       int oldCap = elementData.length;
@@ -79,6 +86,17 @@ public class DynamicBooleanArray extends ModifiedVersionBase
          ensureCapacity (size+e.length);
          for (int i=0; i<e.length; ++i) {
             elementData[size++] = e[i];
+         }
+         notifyModified ();
+      }
+   }
+
+   public void addAll (DynamicBooleanArray array) {
+      int asize = array.size();
+      if (asize > 0) {
+         ensureCapacity (size+asize);
+         for (int i=0; i<asize; ++i) {
+            elementData[size++] = array.elementData[i];
          }
          notifyModified ();
       }
@@ -139,6 +157,7 @@ public class DynamicBooleanArray extends ModifiedVersionBase
          for (int i=this.size; i<size; ++i) {
             elementData[i] = false;
          }
+         this.size = size;
          notifyModified ();
       }
    }
@@ -206,6 +225,19 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       }
       return elementData;
    }
+
+   /**
+    * Copies the contents of this DynamicBooleanArray into an array.
+    *
+    * @return new array
+    */
+   public boolean[] toArray() { 
+      boolean[] array = new boolean[size];
+      for (int i=0; i<size; i++) {
+         array[i] = elementData[i];
+      }
+      return array;
+   }
       
    /**
     * Creates a shallow copy
@@ -224,6 +256,24 @@ public class DynamicBooleanArray extends ModifiedVersionBase
       out.size = size;
       
       return out;
+   }
+
+   /**
+    * Returns {@code true} if this DynamicBooleanArray is equals to
+    * another one.
+    * 
+    * @param array array to compare with
+    */
+   public boolean equals (DynamicBooleanArray array) {
+      if (size != array.size) {
+         return false;
+      }
+      for (int i=0; i<size(); i++) {
+         if (elementData[i] != array.elementData[i]) {
+            return false;
+         }
+      }
+      return true;
    }
 
 }

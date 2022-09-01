@@ -203,23 +203,9 @@ public class QuadpyramidElement extends FemElement3d {
 
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         // set the transform parameters that map the integration
-         // points onto nodes 0-4.
-         double sxy = 1.0/(8/5.0)*Math.sqrt(2/15.0);
-         double sz = 15.0/8;
-         double bz = 2/15.0;
-         Vector3d[] ncoords = getScaledNodeCoords (1, null);
-         for (int i=0; i<ncoords.length; i++) {
-            Vector3d v = ncoords[i];
-            v.x = sxy*v.x;
-            v.y = sxy*v.y;
-            v.z = sz*v.z + bz;
-         }
-         myNodalExtrapolationMatrix =
-            createNodalExtrapolationMatrix (
-               ncoords, numIntegrationPoints(), new PyramidElement());
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalExtrapolationMatrix;         
    }
 
    // Shape functions are obtained from

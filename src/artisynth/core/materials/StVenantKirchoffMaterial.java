@@ -15,15 +15,16 @@ import maspack.properties.PropertyUtils;
  */
 public class StVenantKirchoffMaterial extends FemMaterial {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (StVenantKirchoffMaterial.class, FemMaterial.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (StVenantKirchoffMaterial.class, FemMaterial.class);
 
    protected static double DEFAULT_NU = 0.33;
    protected static double DEFAULT_E = 500000;
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
-   private ScalarFieldPointFunction myEFunc;
+   //private ScalarFieldPointFunction myEFunc;
+   private ScalarFieldComponent myEField;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
@@ -32,13 +33,13 @@ public class StVenantKirchoffMaterial extends FemMaterial {
    private SymmetricMatrix3d myB2;
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "YoungsModulus:Inherited", "Youngs modulus", DEFAULT_E);
       myProps.addInheritable (
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -93,27 +94,17 @@ public class StVenantKirchoffMaterial extends FemMaterial {
       return myEMode;
    }
 
-   public double getYoungsModulus (FieldPoint dp) {
-      return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
+   public double getYoungsModulus (FemFieldPoint dp) {
+      return (myEField == null ? getYoungsModulus() : myEField.getValue (dp));
    }
 
-   public ScalarFieldPointFunction getYoungsModulusFunction() {
-      return myEFunc;
+   public ScalarFieldComponent getYoungsModulusField() {
+      return myEField;
    }
       
-   public void setYoungsModulusFunction (ScalarFieldPointFunction func) {
-      myEFunc = func;
+   public void setYoungsModulusField (ScalarFieldComponent field) {
+      myEField = field;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setYoungsModulusField (
-      ScalarField field, boolean useRestPos) {
-      myEFunc = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getYoungsModulusField () {
-      return FieldUtils.getFieldFromFunction (myEFunc);
    }
 
    /**

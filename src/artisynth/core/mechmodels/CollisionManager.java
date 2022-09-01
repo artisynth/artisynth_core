@@ -43,11 +43,13 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.FunctionTimer;
 import maspack.util.DoubleInterval;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
-import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionBehavior.VertexPenetrations;
 import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
+import artisynth.core.materials.ContactForceBehavior;
+import artisynth.core.materials.MaterialBase;
 import artisynth.core.mechmodels.MechSystemSolver;
 import maspack.spatialmotion.FrictionInfo;
 import artisynth.core.modelbase.ComponentChangeEvent;
@@ -286,9 +288,9 @@ public class CollisionManager extends RenderableCompositeBase
    boolean myReduceConstraints = defaultReduceConstraints;
    PropertyMode myReduceConstraintsMode = PropertyMode.Inherited;
 
-   static boolean defaultBodyFaceContact = false;
-   boolean myBodyFaceContact = defaultBodyFaceContact;
-   PropertyMode myBodyFaceContactMode = PropertyMode.Inherited;
+   static VertexPenetrations defaultVertexPenetrations = VertexPenetrations.AUTO;
+   VertexPenetrations myVertexPenetrations = defaultVertexPenetrations;
+   PropertyMode myVertexPenetrationsMode = PropertyMode.Inherited;
 
    // rigidRegionTol and rigidPointTol are both computed automatically
    // at the first initialize() if their values are not -1:
@@ -361,9 +363,9 @@ public class CollisionManager extends RenderableCompositeBase
    ColorMapType myDrawColorMap = defaultDrawColorMap;
    PropertyMode myDrawColorMapMode = PropertyMode.Inherited;
 
-   static int defaultColorMapCollidableNum = 0;
-   int myColorMapCollidableNum = defaultColorMapCollidableNum;
-   PropertyMode myColorMapCollidableMode = PropertyMode.Inherited;
+   static int defaultRenderingCollidableNum = 0;
+   int myRenderingCollidableNum = defaultRenderingCollidableNum;
+   PropertyMode myRenderingCollidableMode = PropertyMode.Inherited;
 
    static ColorMapBase defaultColorMap = new HueColorMap (2.0/3, 0);
    ColorMapBase myColorMap = defaultColorMap.copy();
@@ -382,47 +384,26 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.add (
          "renderProps * *", "render properties for this constraint",
          defaultRenderProps);
-
       myProps.addInheritable (
          "friction:Inherited", "friction coefficient", defaultFriction);
-
+      myProps.addInheritable (
+         "method:Inherited", "collision handling method", defaultMethod);
+      myProps.addInheritable (
+         "vertexPenetrations:Inherited",
+         "whether vertex penetrations are calculated for the first, second" +
+         " or both collidables",
+         defaultVertexPenetrations);
       myProps.addInheritable (
          "bilateralVertexContact:Inherited",
          "allow bilateral constraints for vertex-based contacts", 
          defaultBilateralVertexContact);
-
+      myProps.addInheritable (
+         "colliderType", "type of collider to use for collisions",
+         myDefaultColliderType);
       myProps.addInheritable (
          "reduceConstraints:Inherited",
          "try to reduce the number of constraints", 
          defaultReduceConstraints);
-
-      myProps.addInheritable (
-         "bodyFaceContact:Inherited",
-         "add contacts for interpenetrating rigid body vertices",
-         defaultBodyFaceContact);
-
-      myProps.addInheritable (
-         "rigidRegionTol", "region size tolerance for creating contact planes",
-         defaultRigidRegionTol);
-
-      myProps.addInheritable (
-         "rigidPointTol", "point tolerance for creating contact planes",
-         defaultRigidPointTol);
-
-      myProps.add (
-         "contactNormalLen",
-         "draw contact normals with indicated length", Property.DEFAULT_DOUBLE);
-
-      myProps.add (
-         "contactForceLenScale",
-         "length scale to be used when drawing contact forces",
-         DEFAULT_CONTACT_FORCE_LEN_SCALE);
-
-      myProps.addInheritable (
-         "acceleration:Inherited",
-         "acceleration used to compute collision compliance from penetrationTol",
-         defaultAcceleration);
-
       myProps.addInheritable (
          "compliance:Inherited", "compliance for each contact constraint",
          defaultCompliance, "[0,inf)");
@@ -432,10 +413,24 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "stictionCreep:Inherited", "stictionCreep for each contact constraint",
          defaultStictionCreep);
+      myProps.add (
+         "forceBehavior", 
+         "behavior for explicitly computing contact forces", null, "CE");
+      myProps.addInheritable (
+         "rigidRegionTol", "region size tolerance for creating contact planes",
+         defaultRigidRegionTol);
+      myProps.addInheritable (
+         "rigidPointTol", "point tolerance for creating contact planes",
+         defaultRigidPointTol);
+      myProps.addInheritable (
+         "acceleration:Inherited",
+         "acceleration used to compute collision compliance from penetrationTol",
+         defaultAcceleration);
 
       myProps.addInheritable (
-         "drawIntersectionFaces:Inherited", 
-         "draw intersection faces", defaultDrawIntersectionFaces);
+         "renderingCollidable:Inherited", 
+         "collidable (0 or 1) for which normals, forces, colorMaps, etc. show be drawn",
+         defaultRenderingCollidableNum, "[0,1] NoSlider");
       myProps.addInheritable (
          "drawIntersectionContours:Inherited", 
          "draw intersection contours", defaultDrawIntersectionContours);
@@ -443,41 +438,38 @@ public class CollisionManager extends RenderableCompositeBase
          "drawIntersectionPoints:Inherited", 
          "draw intersection points", defaultDrawIntersectionPoints);
       myProps.addInheritable (
+         "drawIntersectionFaces:Inherited", 
+         "draw intersection faces", defaultDrawIntersectionFaces);
+      myProps.addInheritable (
          "drawContactNormals:Inherited", 
          "draw normals at each contact point", defaultDrawContactNormals);
+      myProps.add (
+         "contactNormalLen",
+         "draw contact normals with indicated length", Property.DEFAULT_DOUBLE);
       myProps.addInheritable (
          "drawContactForces:Inherited", 
          "draw forces at each contact point", defaultDrawContactForces);
       myProps.addInheritable (
          "drawFrictionForces:Inherited", 
          "draw friction forces at each contact point", defaultDrawFrictionForces);
+      myProps.add (
+         "contactForceLenScale",
+         "length scale to be used when drawing contact forces",
+         DEFAULT_CONTACT_FORCE_LEN_SCALE);
       myProps.addInheritable (
          "drawColorMap:Inherited", 
          "draw a color map of the specified data",
          defaultDrawColorMap);
-      myProps.addInheritable (
-         "colorMapCollidable:Inherited", 
-         "number of the collidable (0 or 1) on which the color map show be drawn",
-         defaultColorMapCollidableNum, "[0,1] NoSlider");
-
-       myProps.add (
+      myProps.add (
          "colorMapRange", "range for drawing color maps", 
          defaultColorMapRange);
       myProps.addInheritable (
          "colorMapInterpolation",
          "explicit setting for how to interpolate color map (RGB or HSV)",
          defaultColorMapInterpolation);
-
       myProps.add (
          "colorMap", "color map for penetration plotting", 
          defaultColorMap, "CE");
-
-      myProps.addInheritable (
-         "method:Inherited", "collision handling method", defaultMethod);
-
-      myProps.addInheritable (
-         "colliderType", "type of collider to use for collisions",
-         myDefaultColliderType);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -570,8 +562,8 @@ public class CollisionManager extends RenderableCompositeBase
       myRigidPointTolMode = defaultRigidPointTolMode;
       myReduceConstraints = defaultReduceConstraints;
       myReduceConstraintsMode = PropertyMode.Inherited;
-      myBodyFaceContact = defaultBodyFaceContact;
-      myBodyFaceContactMode = PropertyMode.Inherited;
+      myVertexPenetrations = defaultVertexPenetrations;
+      myVertexPenetrationsMode = PropertyMode.Inherited;
       myDrawIntersectionContours = defaultDrawIntersectionContours;
       myDrawIntersectionContoursMode = PropertyMode.Inherited;
       myDrawIntersectionFaces = defaultDrawIntersectionFaces;
@@ -588,8 +580,8 @@ public class CollisionManager extends RenderableCompositeBase
       myDrawColorMapMode = PropertyMode.Inherited;
       myColorMapInterpolation = defaultColorMapInterpolation;
       myColorMapInterpolationMode = PropertyMode.Inherited;
-      myColorMapCollidableNum = defaultColorMapCollidableNum;
-      myColorMapCollidableMode = PropertyMode.Inherited;
+      myRenderingCollidableNum = defaultRenderingCollidableNum;
+      myRenderingCollidableMode = PropertyMode.Inherited;
       setColorMapRange (defaultColorMapRange);
       myForceBehavior = null;
       myMethod = defaultMethod;
@@ -841,40 +833,54 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Queries whether body face contact is enabled. See {@link
-    * #setBodyFaceContact} for details.
-    * 
-    * @return true if body face face is enabled
+    * @deprecated Use {@link #getVertexPenetrations()} {@code =
+    * VertexPenetrations.BOTH_COLLIDABLES} instead.
     */
    public boolean getBodyFaceContact() {
-      return myBodyFaceContact;
+      return getVertexPenetrations() == VertexPenetrations.BOTH_COLLIDABLES;
    }
 
    /** 
-    * Enables or disables body face contact. If enabled, this means that for
-    * rigid-deformable contact, contacts are also computed based on the rigid
-    * body vertices that are penetrating the deformable body. The default value
-    * for this property is <code>false</code>, since such contacts can result
-    * in an overconstrained system.
-    * 
-    * @param enable true if body face contact should be enabled
-    */
+    * @deprecated Use {@link #setVertexPenetrations}{@code(BOTH_COLLIDABLES)}
+    * instead.
+    */   
    public void setBodyFaceContact (boolean enable) {
-      myBodyFaceContact = enable;
-      myBodyFaceContactMode =
+      setVertexPenetrations (VertexPenetrations.BOTH_COLLIDABLES);
+   }
+
+   /** 
+    * Queries when two-way contact is enabled. See {@link VertexPenetrations} for
+    * details.
+    * 
+    * @return when two-way contact is enabled.
+    */
+   public VertexPenetrations getVertexPenetrations() {
+      return myVertexPenetrations;
+   }
+
+   /** 
+    * Sets when two-way contact is enabled. See {@link VertexPenetrations} for
+    * details.
+    * 
+    * @param mode specifies when two-way contact is enabled.
+    */
+   public void setVertexPenetrations (VertexPenetrations mode) {
+      myVertexPenetrations = mode;
+      myVertexPenetrationsMode =
          PropertyUtils.propagateValue (
-            this, "bodyFaceContact", myBodyFaceContact, myBodyFaceContactMode);
+            this, "vertexPenetrations",
+            myVertexPenetrations, myVertexPenetrationsMode);
 
    }
 
-   public void setBodyFaceContactMode (PropertyMode mode) {
-      myBodyFaceContactMode =
+   public void setVertexPenetrationsMode (PropertyMode mode) {
+      myVertexPenetrationsMode =
          PropertyUtils.setModeAndUpdate (
-            this, "bodyFaceContact", myBodyFaceContactMode, mode);
+            this, "vertexPenetrations", myVertexPenetrationsMode, mode);
    }
 
-   public PropertyMode getBodyFaceContactMode() {
-      return myBodyFaceContactMode;
+   public PropertyMode getVertexPenetrationsMode() {
+      return myVertexPenetrationsMode;
    }
 
    /** 
@@ -1191,29 +1197,43 @@ public class CollisionManager extends RenderableCompositeBase
       return myDrawColorMapMode;
    }
 
-   public int getColorMapCollidable() {
-      return myColorMapCollidableNum;
+   public int getRenderingCollidable() {
+      return myRenderingCollidableNum;
    }
 
-   public void setColorMapCollidable (int colNum) {
+   public void setRenderingCollidable (int colNum) {
       if (colNum != 0 && colNum != 1) {
          throw new InternalErrorException ("colNum must be 0 or 1");
       }
-      myColorMapCollidableNum = colNum;
-      myColorMapCollidableMode =
+      myRenderingCollidableNum = colNum;
+      myRenderingCollidableMode =
          PropertyUtils.propagateValue (
-            this, "colorMapCollidable",
-            myColorMapCollidableNum, myColorMapCollidableMode);
+            this, "renderingCollidable",
+            myRenderingCollidableNum, myRenderingCollidableMode);
    }
 
-   public void setColorMapCollidableMode (PropertyMode mode) {
-      myColorMapCollidableMode =
+   public void setRenderingCollidableMode (PropertyMode mode) {
+      myRenderingCollidableMode =
          PropertyUtils.setModeAndUpdate (
-            this, "colorMapCollidable", myColorMapCollidableMode, mode);
+            this, "renderingCollidable", myRenderingCollidableMode, mode);
    }
 
-   public PropertyMode getColorMapCollidableMode() {
-      return myColorMapCollidableMode;
+   public PropertyMode getRenderingCollidableMode() {
+      return myRenderingCollidableMode;
+   }
+   
+   /**
+    * @deprecated Use {@link #getRenderingCollidable} instead.
+    */
+   public int getColorMapCollidable() {
+      return getRenderingCollidable();
+   }
+   
+   /**
+    * @deprecated Use {@link #setRenderingCollidable} instead.
+    */  
+   public void setColorMapCollidable (int colNum) {
+      setRenderingCollidable (colNum);      
    }
 
    public void setColorMap (ColorMapBase map) {
@@ -1238,29 +1258,32 @@ public class CollisionManager extends RenderableCompositeBase
       return myColorMapRange;
    }
    
-   public ContactForceBehavior getForceBehavior () {
+   public <T extends ContactForceBehavior> void setForceBehavior (T behav) {
+      ContactForceBehavior oldBehav = myForceBehavior;
+      T newBehav = (T)MaterialBase.updateMaterial (
+         this, "forceBehavior", myForceBehavior, behav);
+      myForceBehavior = newBehav;
+   }
+   
+   public ContactForceBehavior getForceBehavior() {
       return myForceBehavior;
    }
 
-   public void setForceBehavior (ContactForceBehavior fb) {
-      myForceBehavior = fb;
-   }
-
    /** 
-    * Returns the collision method to be used for collisions.
+    * Returns the contact method to be used for collisions.
     * 
-    * @return collision method
+    * @return contact method
     */
    public Method getMethod() {
       return myMethod;
    }
 
    /** 
-    * Set the collision method to be used for collisions. The default value is
+    * Set the contact method to be used for collisions. The default value is
     * {@link Method#DEFAULT}, which means that the method will be determined
     * based on the colliding bodies.
     * 
-    * @param method collision method to be used
+    * @param method contact method to be used
     */
    public void setMethod (Method method) {
       myMethod = method;
@@ -1345,6 +1368,16 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /**
+    * Sets collision behavior behav0 to behav1 and updates inherited
+    * properties in behav0 from this collision manager.
+    */
+   private void setBehavior (
+      CollisionBehavior behav0, CollisionBehavior behav1) {
+      behav0.set (behav1);
+      PropertyUtils.updateAllInheritedProperties (behav0);
+   }
+   
+   /**
     * Implements {@link
     * MechModel#setDefaultCollisionBehavior(Collidable.Group,Collidable.Group,CollisionBehavior)
     * MechModel.setDefaultCollisionBehavior(groupA,groupB,behavior)}; see
@@ -1368,7 +1401,7 @@ public class CollisionManager extends RenderableCompositeBase
           groupB == Collidable.Self ||
           (groupA == Collidable.All && groupB != Collidable.Rigid) ||
           (groupB == Collidable.All && groupA != Collidable.Rigid)) {
-         myDefaultDeformableSelf.set (behavior);
+         setBehavior (myDefaultDeformableSelf, behavior);
       }
       // for remainder, All is equivalent to Bodies
       if (groupA == Collidable.All) {
@@ -1379,45 +1412,45 @@ public class CollisionManager extends RenderableCompositeBase
       }
       if (groupA == Collidable.AllBodies && groupB == Collidable.AllBodies) {
          // set all body defaults
-         myDefaultRigidRigid.set (behavior);
-         myDefaultDeformableRigid.set (behavior);
-         myDefaultDeformableDeformable.set (behavior);
+         setBehavior (myDefaultRigidRigid, behavior);
+         setBehavior (myDefaultDeformableRigid, behavior);
+         setBehavior (myDefaultDeformableDeformable, behavior);
       }
       else if (groupA == Collidable.AllBodies) {
          if (groupB == Collidable.Rigid) {
-            myDefaultRigidRigid.set (behavior);
-            myDefaultDeformableRigid.set (behavior);
+            setBehavior (myDefaultRigidRigid, behavior);
+            setBehavior (myDefaultDeformableRigid, behavior);
          }
          else if (groupB == Collidable.Deformable) {
-            myDefaultDeformableRigid.set (behavior);
-            myDefaultDeformableDeformable.set (behavior);
+            setBehavior (myDefaultDeformableRigid, behavior);
+            setBehavior (myDefaultDeformableDeformable, behavior);
          }
       }
       else if (groupB == Collidable.AllBodies) {
          if (groupA == Collidable.Rigid) {
-            myDefaultRigidRigid.set (behavior);
-            myDefaultDeformableRigid.set (behavior);
+            setBehavior (myDefaultRigidRigid, behavior);
+            setBehavior (myDefaultDeformableRigid, behavior);
          }
          else if (groupA == Collidable.Deformable) {
-            myDefaultDeformableRigid.set (behavior);
-            myDefaultDeformableDeformable.set (behavior);
+            setBehavior (myDefaultDeformableRigid, behavior);
+            setBehavior (myDefaultDeformableDeformable, behavior);
          }
       }
       // if we got this far then only rigid or deformable specified
       else if (groupA == Collidable.Rigid) {
          if (groupB == Collidable.Rigid) {
-            myDefaultRigidRigid.set (behavior);
+            setBehavior (myDefaultRigidRigid, behavior);
          }
          else if (groupB == Collidable.Deformable) {
-            myDefaultDeformableRigid.set (behavior);
+            setBehavior (myDefaultDeformableRigid, behavior);
          }
       }
       else if (groupA == Collidable.Deformable) {
          if (groupB == Collidable.Rigid) {
-            myDefaultDeformableRigid.set (behavior);
+            setBehavior (myDefaultDeformableRigid, behavior);
          }
          else if (groupB == Collidable.Deformable) {
-            myDefaultDeformableDeformable.set (behavior);
+            setBehavior (myDefaultDeformableDeformable, behavior);
          }
       }
       // will to rebuild internal structures
@@ -1846,7 +1879,7 @@ public class CollisionManager extends RenderableCompositeBase
             }
          }
       }
-      // NOTE: self intersection case c0 == c1 should no happen because
+      // NOTE: self intersection case c0 == c1 should not happen because
       // it gets turned into c0,Self and handled before this method is called
       else {
          ArrayList<CollidableBody> bodiesA = getExternallyCollidableBodies (c0);
@@ -2427,24 +2460,18 @@ public class CollisionManager extends RenderableCompositeBase
       
       if (c0.getCollidableIndex() > c1.getCollidableIndex()) {
          // swap the collidable references to reflect their handler order
-         CollidableBody tmp = c0;
-         c0 = c1;
-         c1 = tmp;
+         CollidableBody tmp = c0; c0 = c1; c1 = tmp;
+      }
+      if (!behav.collidable0MatchesBody (c0)) {
+         // swap the collidable references to match the behavior
+         CollidableBody tmp = c0; c0 = c1; c1 = tmp;
       }
       ContactInfo cinfo;
       if (testMode) {
          cinfo = new ContactInfo (c0.getCollisionMesh(), c1.getCollisionMesh());
       }
       else {
-         //FunctionTimer timer = new FunctionTimer();
-         //timer.start();
          cinfo = computeContactInfo (c0, c1, behav);
-         //timer.stop();
-         // if (cinfo != null &&
-         //     (behav.getColliderType() != ColliderType.AJL_CONTOUR ||
-         //      cinfo.numContours() > 0)) {
-         //    System.out.println ("contact " + timer.result(1));
-         // }
       }
       if (cinfo != null) {
          addOrUpdateHandler (cinfo, c0, c1, behav, src);
@@ -2551,7 +2578,6 @@ public class CollisionManager extends RenderableCompositeBase
 
       CollisionHandler ch = myHandlerTable.get (c0, c1);
       if (ch == null) {
-         //ch = new CollisionHandlerX (this, c0, c1, behav);
          ch = myHandlerTable.put (c0, c1, behav, src);
       }
       else {

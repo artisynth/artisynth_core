@@ -15,6 +15,7 @@ JAVA_TEST_PROGRAMS = \
 	BVFeatureQueryTest \
 	BVIntersectorTest \
 	BVTreeTest \
+	ConvexPolygon3dTest \
 	ConvexPolygonIntersectorTest \
 	DeformationTransformerTest \
 	DelaunayInterpolatorTest \
@@ -24,6 +25,7 @@ JAVA_TEST_PROGRAMS = \
 	MeshFactoryTest \
 	MeshRayIntersectionTest \
 	NagataInterpolatorTest \
+	Polygon2dTest \
 	Polygon3dCalcTest \
 	PolygonalMeshTest \
 	PolylineMeshTest \

@@ -26,14 +26,14 @@ import maspack.util.UnitTest;
 public class VectorGridTest extends InterpolatingGridTestBase {
 
    public <T extends VectorObject<T>> T getCheckLocalValue (
-      VectorGrid<T> grid, Point3d pnt) {
+      VectorGrid<T> grid, Point3d pnt, boolean clipToGrid) {
 
       double[] wgts = new double[8];
       Vector3i xyzi = new Vector3i();
-      if (!getCellVertexAndWeights (xyzi, wgts, grid, pnt)) {
+      if (!getCellVertexAndWeights (xyzi, wgts, grid, pnt, clipToGrid)) {
          return null;
       }
-      T chk = grid.createInstance();
+      T chk = grid.createTypeInstance();
       int vi = xyzi.x;
       int vj = xyzi.y;
       int vk = xyzi.z;
@@ -49,7 +49,7 @@ public class VectorGridTest extends InterpolatingGridTestBase {
    }
    
    public <T extends VectorObject<T>> T getCheckWorldValue (
-      VectorGrid<T> grid, Point3d pnt) {
+      VectorGrid<T> grid, Point3d pnt, boolean clipToGrid) {
 
       RigidTransform3d TLW = new RigidTransform3d();
       if (grid.getLocalToWorld() != null) {
@@ -57,7 +57,7 @@ public class VectorGridTest extends InterpolatingGridTestBase {
       }
       Point3d loc = new Point3d(pnt);
       loc.inverseTransform (TLW);
-      return getCheckLocalValue (grid, loc);
+      return getCheckLocalValue (grid, loc, clipToGrid);
    }
 
    public <T extends VectorObject<T>> void test (
@@ -68,7 +68,7 @@ public class VectorGridTest extends InterpolatingGridTestBase {
       // set random values for the grid
       int numv = grid.numVertices();
       for (int i=0; i<numv; i++) {
-         T value = grid.createInstance();
+         T value = grid.createTypeInstance();
          if (value instanceof Vector) {
             Vector vec = (Vector)value;
             VectorNd rvec = new VectorNd(vec.size());
@@ -107,17 +107,18 @@ public class VectorGridTest extends InterpolatingGridTestBase {
          check ("value at vertex "+i, val.epsilonEquals (chk, 0));
       }
 
-      int ntests = 100;
+      int ntests = 1000;
       for (int k=0; k<ntests; k++) {
          Point3d pnt = createTestPoint (grid);
+         boolean clipToGrid = (k%2 == 0);
          T val, chk;
          if (grid.getLocalToWorld() == null) {
-            val = grid.getLocalValue (pnt);
-            chk = getCheckLocalValue (grid, pnt);
+            val = grid.getLocalValue (pnt, clipToGrid);
+            chk = getCheckLocalValue (grid, pnt, clipToGrid);
          }
          else {
-            val = grid.getWorldValue (pnt);
-            chk = getCheckWorldValue (grid, pnt);
+            val = grid.getWorldValue (pnt, clipToGrid);
+            chk = getCheckWorldValue (grid, pnt, clipToGrid);
          }
          check ("value==null |= check==null", ((val==null) == (chk==null)));
          if (val != null) {

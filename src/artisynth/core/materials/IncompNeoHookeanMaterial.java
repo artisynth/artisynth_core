@@ -9,24 +9,24 @@ import maspack.properties.PropertyUtils;
 
 public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (IncompNeoHookeanMaterial.class,
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (IncompNeoHookeanMaterial.class,
                         IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_G = 150000;
 
    private double myG = DEFAULT_G;
    PropertyMode myGMode = PropertyMode.Inherited;
-   ScalarFieldPointFunction myGFunction = null;
+   ScalarFieldComponent myGField = null;
 
    private SymmetricMatrix3d myB;
 
    static {
-      myProps.addInheritableWithFunction (
+      myProps.addInheritableWithField (
          "shearModulus:Inherited", "shear modulus", DEFAULT_G);
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -60,32 +60,22 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
       return myGMode;
    }
 
-   public double getShearModulus (FieldPoint dp) {
-      if (myGFunction == null) {
+   public double getShearModulus (FemFieldPoint dp) {
+      if (myGField == null) {
          return getShearModulus();
       }
       else {
-         return myGFunction.eval (dp);
+         return myGField.getValue (dp);
       }
    }
 
-   public ScalarFieldPointFunction getShearModulusFunction() {
-      return myGFunction;
+   public ScalarFieldComponent getShearModulusField() {
+      return myGField;
    }
       
-   public void setShearModulusFunction (ScalarFieldPointFunction func) {
-      myGFunction = func;
+   public void setShearModulusField (ScalarFieldComponent func) {
+      myGField = func;
       notifyHostOfPropertyChange();
-   }
-   
-   public void setShearModulusField (
-      ScalarField field, boolean useRestPos) {
-      myGFunction = FieldUtils.setFunctionFromField (field, useRestPos);
-      notifyHostOfPropertyChange();
-   }
-
-   public ScalarField getShearModulusField () {
-      return FieldUtils.getFieldFromFunction (myGFunction);
    }
 
    public void computeDevStressAndTangent (

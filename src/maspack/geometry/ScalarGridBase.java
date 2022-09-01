@@ -114,6 +114,18 @@ public class ScalarGridBase extends InterpolatingGridBase {
    }
 
    /**
+    * Sets the value for the vertex indexed by its x, y, z indices.
+    * 
+    * @param xi x vertex index
+    * @param yj y vertex index
+    * @param zk z vertex index
+    * @param value new value for the vertex
+    */   
+   public void setVertexValue (int xi, int yj, int zk, double value) {
+      myValues[xyzIndicesToVertex(xi, yj, zk)] = value;
+   }
+
+   /**
     * Queries the value for the vertex indexed by {@code vi}. See {@link
     * #setVertexValues} for a description of how vertices are indexed.
     * 
@@ -170,13 +182,33 @@ public class ScalarGridBase extends InterpolatingGridBase {
     * #OUTSIDE_GRID} is returned.
     *
     * @param point point at which to calculate the value
-    * (world coordinates).
-    * @return interpolated value, or <code>OUTSIDE_GRID</code>.
+    * (world coordinates)
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
     */
    protected double getWorldValue (Point3d point) {
       Point3d lpnt = new Point3d();
       myLocalToWorld.inverseTransformPnt (lpnt, point);
       return getLocalValue(lpnt);
+   }
+
+   /** 
+    * Calculates the value at an arbitrary point in world coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, then
+    * the method returns either the nearest grid value or {@link
+    * #OUTSIDE_GRID}, depending on whether {@code clipToGrid} is {@code true}
+    * or false.
+    *
+    * @param point point at which to calculate the value
+    * (world coordinates)
+    * @param clipToGrid if {@code true}, return the nearest grid value if
+    * {@code point} is outside the grid volume
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
+    */
+   protected double getWorldValue (Point3d point, boolean clipToGrid) {
+      Point3d lpnt = new Point3d();
+      myLocalToWorld.inverseTransformPnt (lpnt, point);
+      return getLocalValue(lpnt, clipToGrid);
    }
 
    /** 
@@ -186,14 +218,32 @@ public class ScalarGridBase extends InterpolatingGridBase {
     * #OUTSIDE_GRID} is returned.
     *
     * @param point point at which to calculate the normal and value
-    * (local coordinates).
-    * @return interpolated value, or <code>OUTSIDE_GRID</code>.
+    * (local coordinates)
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
     */
    protected double getLocalValue (Point3d point) {
+      return getLocalValue (point, false);
+   }
+
+   /** 
+    * Calculates the value at an arbitrary point in local coordinates using
+    * multilinear interpolation of the vertex values for the grid cell
+    * containing the point.  If the point lies outside the grid volume, then
+    * the method returns either the nearest grid value or {@link
+    * #OUTSIDE_GRID}, depending on whether {@code clipToGrid} is {@code true}
+    * or false.
+    *
+    * @param point point at which to calculate the normal and value
+    * (local coordinates)
+    * @param clipToGrid if {@code true}, return the nearest grid value if
+    * {@code point} is outside the grid volume
+    * @return interpolated value, or <code>OUTSIDE_GRID</code>
+    */
+   protected double getLocalValue (Point3d point, boolean clipToGrid) {
 
       Vector3d coords = new Vector3d();
       Vector3i vidx = new Vector3i();
-      if (!getCellCoords (vidx, coords, point)) {
+      if (!getCellCoords (vidx, coords, point) && !clipToGrid) {
          return OUTSIDE_GRID;
       }
       double dx = coords.x;

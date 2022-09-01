@@ -23,7 +23,9 @@ import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix3x1;
 import maspack.matrix.Matrix3x2;
-import maspack.matrix.Matrix6d;
+import maspack.matrix.Matrix6x1;
+import maspack.matrix.Matrix6x2;
+import maspack.matrix.Matrix6dBase;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.RotationMatrix3d;
@@ -250,8 +252,21 @@ public class MechSystemSolver {
     * Indicates the method by which positions should be stabilized.
     */
    public enum PosStabilization {
+      /**
+       * Use only the mass matrix. Good for less stiff systems.
+       */
       GlobalMass,
-      GlobalStiffness;
+
+      /**
+       * Use the combined mass-stiffness matrix. More accurate
+       * and stable, but more computationally expensive.
+       */
+      GlobalStiffness,
+
+      /**
+       * No stabilization. Usually used only for debugging or testing.
+       */
+      None;
 
       // like valueOf() but returns null if no match
       public static PosStabilization fromString (String str) {
@@ -1217,6 +1232,12 @@ public class MechSystemSolver {
       myNT = new SparseBlockMatrix ();
       mySys.getUnilateralConstraints (myNT, myNdot);
 
+      // if (myT1 >= 1.10 && myT1 <= 1.14) {
+      //    MatrixNd N = new MatrixNd (myNT);
+      //    N.transpose();
+      //    System.out.println ("N=\n" + N);
+      // }      
+
       myNsize = myNT.colSize();
       ensureNInfoCapacity (myNsize);
       myRn.setSize (myNsize);
@@ -1414,7 +1435,7 @@ public class MechSystemSolver {
       int nfail = myMurtySolver.numFailedPivots();
       if (nfail > 0) {
          System.out.printf (
-            "Failed pivots in constraint solve: %4d. %s\n", nfail,
+            "%d failed pivots in constraint solve. %s\n", nfail,
             "Try using compliant contacts and/or constraints.");
       }
    }
@@ -1600,6 +1621,7 @@ public class MechSystemSolver {
       // help with a warm start
       mySys.getBilateralForces (myLam);
       mySys.getUnilateralForces (myThe);
+      
       // convert forces to impulses:
       myLam.scale (h);
       myThe.scale (h);
@@ -1679,8 +1701,6 @@ public class MechSystemSolver {
             if (profileKKTSolveTime|profileImplicitFriction) {
                timerStop ("    KKT solve: contact solve", myKKTTimer);
             }
-               System.out.println ("stateN=" + LCPSolver.stateToString(stateN));
-               System.out.println ("stateD=" + LCPSolver.stateToString(stateD));
 
             if (status != LCPSolver.Status.SOLVED) {
                // XXX handle this properly
@@ -1694,6 +1714,12 @@ public class MechSystemSolver {
                // System.out.println ("N=\n" + N.toString("%11.8f"));
                // System.out.println ("Rn=\n" + myRn.toString("%11.8f"));
                // System.out.println ("S=\n" + S.toString("%11.8f"));
+               // System.out.println ("bf=\n" + bf.toString("%11.8f"));
+               // System.out.println ("bn=\n" + myBn.toString("%11.8f"));
+               // System.out.println ("bd=\n" + myBd.toString("%11.8f"));
+               // System.out.println ("stateN=" + LCPSolver.stateToString(stateN));
+               // System.out.println ("stateD=" + LCPSolver.stateToString(stateD));
+               // System.out.println ("myT1=" + myT1);
             }
             myMurtySolverTimer.stop();
             //showContactSolverTiming();
@@ -2211,7 +2237,7 @@ public class MechSystemSolver {
       VectorNd vel, double t0, double h) {
       // BEGIN project friction constraints
       if (updateFrictionConstraints(h, /*prune=*/true)) {
-         projectFrictionConstraints (vel, t0);
+         projectFrictionConstraints (vel, t0, h);
          return true;
       }
       else {
@@ -2365,7 +2391,8 @@ public class MechSystemSolver {
 //      }
 //   }
 
-   protected void projectFrictionConstraints (VectorNd vel, double t0) {
+   protected void projectFrictionConstraints (
+      VectorNd vel, double t0, double h) {
       
       // assumes that updateMassMatrix() has been called
       int version = (myAlwaysAnalyze ? -1 : getGTVersion());
@@ -2391,6 +2418,8 @@ public class MechSystemSolver {
       int[] RBDTmap = myRBSolver.getDTMap();
       if (RBDTmap != null) {
          int[] DTmap = new int[myDT.numBlockCols()-RBDTmap.length];
+         // compute DT map to be the list of all block columns of DT whose
+         // constraints were *not* solved for by the rigid body solver.
          int i = 0;
          int k = 0;
          for (int bj=0; bj<myDT.numBlockCols(); bj++) {
@@ -2405,10 +2434,12 @@ public class MechSystemSolver {
             throw new InternalErrorException ("inconsistent DTmap");
          }
          updateInverseMassMatrix (t0);
+         // apply remaining friction constraints in the DT map
          for (i=0; i<DTmap.length; i++) {
             // XXX
             FrictionInfo info = myFrictionInfo.get(DTmap[i]);
             double phiMax;
+            boolean bilateral = ((info.flags & FrictionInfo.BILATERAL) != 0);
             if ((info.flags & FrictionInfo.BILATERAL) != 0) {
                phiMax = info.getMaxFriction (myLam);
             }
@@ -2417,11 +2448,12 @@ public class MechSystemSolver {
             }
             int bj = DTmap[i];
             projectSingleFrictionConstraint (
-               myPhi, vel, myDT, myBd, bj, phiMax, 
+               myPhi, vel, myDT, myBd, bj, phiMax, bilateral,
                   /*ignore rigid bodies=*/true);
          }
       }
-
+      
+      setFrictionForces (myPhi, 1/h);
       if (myUpdateForcesAtStepEnd) {
          int velSize = myActiveVelSize;
          if (myDSize > 0) {
@@ -2430,9 +2462,37 @@ public class MechSystemSolver {
       }
    }
 
+   private void setVec (VectorNd vec, Matrix6x1 D) {
+      vec.set (0, D.m00);
+      vec.set (1, D.m10);
+      vec.set (2, D.m20);
+      vec.set (3, D.m30);
+      vec.set (4, D.m40);
+      vec.set (5, D.m50);
+   }
+   
+   private void setVec (VectorNd vec, Matrix6x2 D, int col) {
+      if (col == 0) {
+         vec.set (0, D.m00);
+         vec.set (1, D.m10);
+         vec.set (2, D.m20);
+         vec.set (3, D.m30);
+         vec.set (4, D.m40);
+         vec.set (5, D.m50);
+      }
+      else {
+         vec.set (0, D.m01);
+         vec.set (1, D.m11);
+         vec.set (2, D.m21);
+         vec.set (3, D.m31);
+         vec.set (4, D.m41);
+         vec.set (5, D.m51);         
+      }
+   }
+   
    private void projectSingleFrictionConstraint (
       VectorNd phiVec, VectorNd vel, SparseBlockMatrix DT, VectorNd bd, int bj,
-      double phiMax, boolean ignoreRigidBodies) {
+      double phiMax, boolean bilateral, boolean ignoreRigidBodies) {
 
       int nactive = mySys.numActiveComponents();
       int nparam = mySys.numParametricComponents();
@@ -2446,7 +2506,11 @@ public class MechSystemSolver {
       double[] vtbuf = new double[ndirs];
       double[] dmd = new double[ndirs];
       double[] phi = new double[ndirs];
-
+      
+      // allocate these in case we need them below
+      VectorNd d6 = new VectorNd(6);
+      VectorNd d6prod = new VectorNd(6);
+      
       for (MatrixBlock blk=DT.firstBlockInCol(bj); blk != null; blk=blk.down()) {
          int bi = blk.getBlockRow();
          if (bi < nactive) {
@@ -2465,6 +2529,23 @@ public class MechSystemSolver {
                Matrix3x2 D = (Matrix3x2)blk;
                dmd[0] += minv*(D.m00*D.m00 + D.m10*D.m10 + D.m20*D.m20);
                dmd[1] += minv*(D.m01*D.m01 + D.m11*D.m11 + D.m21*D.m21);
+            }
+            else if (bilateral && blk instanceof Matrix6x1) {
+               Matrix6dBase Minv = (Matrix6dBase)myInverseMass.getBlock(bi,bi);
+               Matrix6x1 D = (Matrix6x1)blk;
+               setVec (d6, D);
+               Minv.mul (d6prod, d6);
+               dmd[0] = d6prod.dot (d6);
+            }
+            else if (bilateral && blk instanceof Matrix6x2) {
+               Matrix6dBase Minv = (Matrix6dBase)myInverseMass.getBlock(bi,bi);
+               Matrix6x2 D = (Matrix6x2)blk;
+               setVec (d6, D, 0);
+               Minv.mul (d6prod, d6);
+               dmd[0] = d6prod.dot (d6);  
+               setVec (d6, D, 1);
+               Minv.mul (d6prod, d6);
+               dmd[1] = d6prod.dot (d6);                
             }
             else if (!ignoreRigidBodies) {
                // XXX implement
@@ -2516,6 +2597,34 @@ public class MechSystemSolver {
             vbuf[ioff  ] += minv*(D.m00*phi[0]+D.m01*phi[1]);
             vbuf[ioff+1] += minv*(D.m10*phi[0]+D.m11*phi[1]);
             vbuf[ioff+2] += minv*(D.m20*phi[0]+D.m21*phi[1]);
+         }
+         else if (bilateral && blk instanceof Matrix6x1) {
+            Matrix6dBase Minv = (Matrix6dBase)myInverseMass.getBlock(bi,bi);
+            Matrix6x1 D = (Matrix6x1)blk;
+            setVec (d6, D);
+            d6.scale (phi[0]);
+            Minv.mul (d6prod, d6);
+            vbuf[ioff  ] += d6prod.get(0);
+            vbuf[ioff+1] += d6prod.get(1);
+            vbuf[ioff+2] += d6prod.get(2);
+            vbuf[ioff+3] += d6prod.get(3);
+            vbuf[ioff+4] += d6prod.get(4);
+            vbuf[ioff+5] += d6prod.get(5);
+         }
+         else if (bilateral && blk instanceof Matrix6x2) {
+            Matrix6dBase Minv = (Matrix6dBase)myInverseMass.getBlock(bi,bi);
+            Matrix6x2 D = (Matrix6x2)blk;
+            setVec (d6, D, 0);
+            d6prod.scale (phi[0], d6);
+            setVec (d6, D, 1);
+            d6prod.scaledAdd (phi[1], d6);
+            Minv.mul (d6prod, d6prod);
+            vbuf[ioff  ] += d6prod.get(0);
+            vbuf[ioff+1] += d6prod.get(1);
+            vbuf[ioff+2] += d6prod.get(2);
+            vbuf[ioff+3] += d6prod.get(3);
+            vbuf[ioff+4] += d6prod.get(4);
+            vbuf[ioff+5] += d6prod.get(5);
          }
          else if (!ignoreRigidBodies) {
             // XXX implement
@@ -2986,7 +3095,8 @@ public class MechSystemSolver {
             }
          }
          // only need to do the correction if some constraints are non-compliant
-         if (!allConstraintsCompliant) {
+         if (!allConstraintsCompliant && 
+              myStabilization != PosStabilization.None) {
             correctionNeeded = true;
             //myRg.setZero();
             //myRn.setZero();
@@ -2994,12 +3104,12 @@ public class MechSystemSolver {
             //System.out.println ("bn=" + myBn);
             myBf.setSize (velSize);
             myBf.setZero();
-            if (false && myUseImplicitFriction &&
-                myIntegrator == Integrator.ConstrainedBackwardEuler) {
+            if (myUseImplicitFriction &&
+            myIntegrator == Integrator.ConstrainedBackwardEuler) {
                computeImplicitPosCorrection (vel, velSize, t);
             }
             else if (myStabilization == PosStabilization.GlobalStiffness &&
-               integratorIsImplicit (myIntegrator)) {
+                     integratorIsImplicit (myIntegrator)) {
                computeStiffnessPosCorrection (vel, velSize, t);
             }
             else {
@@ -3117,7 +3227,7 @@ public class MechSystemSolver {
             projectFrictionConstraintsImplicitly (myUtmp, myB, t0, h);
          }
          else {
-            projectFrictionConstraints (myUtmp, t0);
+            projectFrictionConstraints (myUtmp, t0, h);
          }
          mySys.setActiveVelState (myUtmp);
       }

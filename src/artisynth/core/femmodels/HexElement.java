@@ -220,22 +220,26 @@ public class HexElement extends FemElement3d {
    }
 
    private static MatrixNd myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalAveragingMatrix = null;
    
-   public void setNodalExtrapolationMatrix (MatrixNd NX) {
-      myNodalExtrapolationMatrix = new MatrixNd(NX);
+   public static void setNodalAveragingMatrix (MatrixNd NX) {
+      myNodalAveragingMatrix = new MatrixNd(NX);
    }
    
+   public MatrixNd getNodalAveragingMatrix() {
+      if (myNodalAveragingMatrix == null) {
+         // For now, just use integration point values at corresponding nodes
+         myNodalAveragingMatrix = new MatrixNd (8, 8);
+         myNodalAveragingMatrix.setIdentity();
+      }
+      return myNodalAveragingMatrix;
+   }
+
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         Vector3d[] ncoords = getScaledNodeCoords (Math.sqrt(3), null);
-         myNodalExtrapolationMatrix =
-            createNodalExtrapolationMatrix (ncoords, 8, new HexElement());
-         
-         // For now, just use integration point values at corresponding nodes
-         myNodalExtrapolationMatrix = new MatrixNd (8, 8);
-         myNodalExtrapolationMatrix.setIdentity();
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalExtrapolationMatrix;         
    }
 
    public double getN (int i, Vector3d coords) {

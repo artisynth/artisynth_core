@@ -391,7 +391,8 @@ public class PolygonalMesh extends MeshBase {
                   // otherwise, any edge will do.
                   if ((printCode & OPEN_EDGES) != 0) {
                      System.out.println (
-                        "Edge "+he.vertexStr()+" is open");
+                        "Edge "+he.vertexStr()+
+                        " is open (face "+he.getFace().getIndex()+")");
                   }
                   myHasOpenEdges = true;
                   he0 = he;
@@ -1203,7 +1204,7 @@ public class PolygonalMesh extends MeshBase {
 
                while (!vertexRemoveList.isEmpty()) {
                   Vertex3d vrm = vertexRemoveList.poll();
-                  HalfEdge he = vtx.findOppositeHalfEdge (vrm);
+                  HalfEdge he = vtx.findIncidentHalfEdge (vrm);
                   if (halfEdgeIsCollapsible (he)) {
                      // we can remove this vertex right now
                      collapseEdge (he, deadFaces, debug);
@@ -4527,71 +4528,11 @@ public class PolygonalMesh extends MeshBase {
     * </dl>
     */
    public void printDegeneracies (int printCode) {
-
       updateTopologyPredicates (printCode);
-
    }
 
    public void printDegeneracies() {
-
-      HashSet<Vertex3d> adjacentVertices = new HashSet<Vertex3d>();
-      // check to see all faces around each vertex form a fan
-      for (int i=0; i<myVertices.size(); i++) {
-         Vertex3d vtx = myVertices.get(i);
-
-         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
-         if (it.hasNext()) {
-            int nume = 0;
-            HalfEdge he0 = vtx.firstIncidentHalfEdge();            
-            adjacentVertices.clear();
-            while (it.hasNext()) {
-               HalfEdge he = it.next();
-               if (adjacentVertices.contains(he.tail)) {
-                  // there is more than one edge involving this tail
-                  System.out.println (
-                     "Multiple edges between "+he.head.getIndex()+
-                     " and "+he.tail.getIndex());
-
-               }
-               adjacentVertices.add (he.tail);
-               if (he.opposite == null) {
-                  // boundary edge; use this to start fan traverse.
-                  // otherwise, any edge will do.
-                  he0 = he;
-               }
-               nume++;
-            }
-            HalfEdge heNext = he0.next.opposite;
-            int cnt = 1;
-            while (heNext != null && heNext.head == vtx && heNext != he0) {
-               heNext = heNext.next.opposite;
-               cnt++;
-            }
-            if (cnt != nume) {
-               // some half edges can't be reached by traverse, so not a fan
-               System.out.println (
-                  "Vertex "+vtx.getIndex()+
-                  " has open edges ("+nume+" vs "+cnt+")");
-            }
-         }
-      }
-      for (Face face : myFaces) {
-         HalfEdge he = face.he0;
-         do {
-            if (he.opposite == null) {
-               System.out.println (
-                  "Open edge "+he.vertexStr()+" on face "+face.getIndex());
-            }
-            else if (he.opposite.face == null) {
-               System.out.println (
-                  "Open edge (null face) "+he.toString()+
-                  " on face "+face.getIndex());
-            }
-            he = he.next;
-         }
-         while (he != face.he0);
-      }
-
+      printDegeneracies (ALL_DEGENERACIES);
    }
 
    /**

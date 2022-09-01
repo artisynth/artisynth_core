@@ -194,7 +194,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       }
       updateAllVolumes();
       myNodalExtrapolationMatrix = null;
-      
    }
    
    public void setIntegrationPoints(MFreeIntegrationPoint3d[] points, IntegrationData3d[] data) {

@@ -7,6 +7,7 @@
 package artisynth.core.modelbase;
 
 import artisynth.core.util.*;
+import artisynth.core.modelbase.ScanWriteUtils.ClassInfo;
 import maspack.util.*;
 
 import java.io.*;
@@ -17,13 +18,28 @@ import java.util.*;
  */
 public class ScanTest {
 
+   public static boolean showOutput = false;
+
+   static String getClassTag (ModelComponent mc) {
+      String classTag;
+      if (mc instanceof ParameterizedClass &&
+          ((ParameterizedClass)mc).hasParameterizedType()) {
+         classTag = ScanWriteUtils.getParameterizedClassTag (
+            mc, ((ParameterizedClass)mc).getParameterType());
+      }
+      else {
+         classTag = ScanWriteUtils.getClassTag (mc);
+      }
+      return classTag;
+   }
+
    /**
     * Tests the scan and write methods of an object by writing the object,
     * scanning it, writing it again, and making sure that the second write
     * output equals the first.
     */
-   public static void testScanAndWrite (
-      ModelComponent s, CompositeComponent ref, String fmtStr) {
+   public static ModelComponent testScanAndWrite (
+      ModelComponent mc, CompositeComponent ref, String fmtStr) {
 
       NumberFormat fmt;
       if (fmtStr == null) {
@@ -38,7 +54,9 @@ public class ScanTest {
       sw = new StringWriter();
       pw = new IndentingPrintWriter (sw);
       try {
-         s.write (pw, fmt, ref);
+         String classTag = getClassTag (mc);
+         pw.print (classTag+" ");
+         mc.write (pw, fmt, ref);
       }
       catch (Exception e) {
          throw new TestException (
@@ -46,22 +64,50 @@ public class ScanTest {
       }
       pw.flush();
       String str1 = sw.toString();
-
+      if (showOutput) {
+         System.out.println (str1);
+      }
+      
       ReaderTokenizer rtok = new ReaderTokenizer (new StringReader (str1));
       Deque<ScanToken> tokens = new ArrayDeque<ScanToken>();
       rtok.wordChars ("./$");
+      ModelComponent nc = null;
+      // create a new model component
       try {
-         s.scan (rtok, tokens);
-         s.postscan (tokens, ref);
+         ClassInfo<?> classInfo =
+            ScanWriteUtils.scanClassInfo (rtok, ModelComponent.class);
+         nc = (ModelComponent)ScanWriteUtils.newComponent (
+            rtok, classInfo, /*warnOnly=*/false);      
+         // if (mc instanceof ParameterizedClass) {
+         //    Class<?> ptype = ((ParameterizedClass)mc).getParameterType();
+         //    nc = mc.getClass().getDeclaredConstructor(
+         //       ptype.getClass()).newInstance(ptype);
+         // }
+         // else {
+         //    nc = mc.getClass().newInstance();
+         // }
       }
       catch (Exception e) {
+         System.out.println (str1);
+         throw new TestException (
+            "unable to create new instance of "+mc.getClass());
+      }
+
+      try {
+         nc.scan (rtok, tokens);
+         nc.postscan (tokens, ref);
+      }
+      catch (Exception e) {
+         e.printStackTrace();
          throw new TestException (
             "exception during scan: " + e);
       }
       sw = new StringWriter();
       pw = new IndentingPrintWriter (sw);
       try {
-         s.write (pw, fmt, ref);
+         String classTag = getClassTag (nc);
+         pw.print (classTag+" ");
+         nc.write (pw, fmt, ref);
       }
       catch (Exception e) {
          throw new TestException (
@@ -77,5 +123,6 @@ public class ScanTest {
          throw new TestException (
             "write-scan-write does not reproduce the same output");
       }
+      return nc;
    }
 }

@@ -1427,7 +1427,7 @@ public class GL3Viewer extends GLViewer {
 
       double len = Math.sqrt(dx*dx+dy*dy+dz*dz);
 
-      double arrowRad = 3*rad;
+      double arrowRad = ARROW_RATIO*rad;
       double arrowLen = Math.min(2*arrowRad,len/2);
       double lenFrac = 1-arrowLen/len;
       float[] coordsMid = new float[]{pnt0[0] + (float)(lenFrac*dx),
@@ -1484,7 +1484,7 @@ public class GL3Viewer extends GLViewer {
       utmp.scale(1.0/len);
 
       Vector3d vtmp = new Vector3d(pnt0[0], pnt0[1], pnt0[2]);
-      double arrowRad = 3 * props.getLineRadius();
+      double arrowRad = ARROW_RATIO*props.getLineRadius();
       double arrowLen = Math.min(2*arrowRad,len/2);
       vtmp.scaledAdd (len-arrowLen, utmp);
       float[] ctmp = new float[3];
@@ -2041,19 +2041,33 @@ public class GL3Viewer extends GLViewer {
                   break;
                }
                case SOLID_ARROW: {
-                  gro.setRadius (gl, (float)rad);
-                  GL3Primitive cylinder = getPrimitive (gl, PrimitiveType.CYLINDER);
-                  GL3Primitive cone = getPrimitive (gl, PrimitiveType.CONE);
-
-                  float arrowRad = 3*(float)rad;
-                  float arrowLen = 2*arrowRad;
-
-                  float[] coneBoundary = {1, 0, -arrowLen, 1};
-                  
-                  gro.setRadiusOffsets (gl, (float)rad, null, coneBoundary);
-                  gro.drawInstancedLineGroup (gl, cylinder, gidx, offset, count);
-                  gro.setRadiusOffsets (gl, arrowRad, coneBoundary, null);
-                  gro.drawInstancedLineGroup (gl, cone, gidx, offset, count);
+                  // John Lloyd, Jun 2022. The vertex buffer method of rendering
+                  // arrows does not allow arrow lengths to be clipped if the 
+                  // line length is too short. Therefore we fall back on
+                  // individual rendering of each arrow.
+                  // 
+                  // gro.setRadius (gl, (float)rad);
+                  // GL3Primitive cylinder = getPrimitive (gl, PrimitiveType.CYLINDER);
+                  // GL3Primitive cone = getPrimitive (gl, PrimitiveType.CONE);
+                  //
+                  // float arrowRad = 3*(float)rad;
+                  // float arrowLen = 2*arrowRad;
+                  //
+                  // float[] coneBoundary = {1, 0, -arrowLen, 1};
+                  // gro.setRadiusOffsets (gl, (float)rad, null, coneBoundary);
+                  // gro.drawInstancedLineGroup (gl, cylinder, gidx, offset, count);
+                  // gro.setRadiusOffsets (gl, arrowRad, coneBoundary, null);
+                  // gro.drawInstancedLineGroup (gl, cone, gidx, offset, count);
+                  int[] lines = robj.getLines(gidx);
+                  int lineStride = robj.getLineStride ();                
+                  for (int i=0; i<count; ++i) {
+                     int baseIdx = lineStride*(i+offset);
+                     int vidx1 = lines[baseIdx];
+                     int vidx2 = lines[baseIdx+1];
+                     float[] p0 = robj.getVertexPosition(vidx1);
+                     float[] p1 = robj.getVertexPosition(vidx2);
+                     drawArrow (p0, p1, rad, /*capped=*/true);
+                  }
                   break;
                }
                case SPINDLE: {

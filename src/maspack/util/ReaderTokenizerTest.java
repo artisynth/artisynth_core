@@ -234,7 +234,7 @@ public class ReaderTokenizerTest {
       String escapeStr = ReaderTokenizer.getQuotedString (
          "\"'\" C:\\foo\\bar \t\b\n\r\f \" \"", '"');
       String escapeStrCheck =
-         "\"\\\"'\\\" C:\\\\foo\\\\bar \\t\\b\\n\\r\\f \\\"\"";
+         "\"\\\"'\\\" C:\\\\foo\\\\bar \\t\\b\\n\\r\\f \\\" \\\"\"";
 
       if (!escapeStr.equals (escapeStrCheck)) {
          throw new TestException (

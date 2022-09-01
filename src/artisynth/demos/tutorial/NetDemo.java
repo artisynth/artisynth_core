@@ -25,8 +25,8 @@ public class NetDemo extends RootModel {
    protected MechModel mech;
    protected PointList<Particle> balls;
    protected ComponentList<ModelComponent> springs;   
-   protected RenderableComponentList<AxialSpring> greenSprings;
-   protected RenderableComponentList<AxialSpring> blueSprings;
+   protected AxialSpringList<AxialSpring> greenSprings;
+   protected AxialSpringList<AxialSpring> blueSprings;
 
    private AxialSpring createSpring (
       PointList<Particle> parts, int idx0, int idx1) {
@@ -50,10 +50,10 @@ public class NetDemo extends RootModel {
       // create custom containers:
       balls = new PointList<Particle> (Particle.class, "balls");
       springs = new ComponentList<ModelComponent>(ModelComponent.class,"springs");
-      greenSprings = new RenderableComponentList<AxialSpring> (
-         AxialSpring.class, "greenSprings");
-      blueSprings = new RenderableComponentList<AxialSpring> (
-         AxialSpring.class, "blueSprings");
+      greenSprings = new AxialSpringList (
+         AxialSpring.class, "greenSprings", null);
+      blueSprings = new AxialSpringList (
+         AxialSpring.class, "blueSprings", null);
 
       // create balls in a grid pattern and add to the list 'balls'
       for (int i=0; i<=numx; i++) {

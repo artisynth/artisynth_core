@@ -7,6 +7,9 @@
 package artisynth.core.mechmodels;
 
 import java.util.HashSet;
+
+import artisynth.core.modelbase.ContactPoint;
+
 import java.util.Arrays;
 import java.util.ArrayList;
 

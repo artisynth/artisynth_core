@@ -12,6 +12,7 @@ import java.util.Map;
 
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;

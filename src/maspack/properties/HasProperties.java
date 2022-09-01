@@ -15,7 +15,7 @@ public interface HasProperties {
     * Returns a property associated with a specified path name. All properties
     * exported by this object must have a name which is a valid Java identifier.
     * Specifying one of these names causes the corresponding Property to be
-    * returned. Handles to sub-properties can also be obtained by delimiting the
+    * returned. Handles to subproperties can also be obtained by delimiting the
     * sub-property name(s) by '<code>.</code>' characters. A sub-property
     * exists if the value of a property is itself an object which exports
     * properties. It is only possible to obtain a sub-property handle if each of

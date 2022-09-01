@@ -9,6 +9,7 @@ package artisynth.core.mechmodels;
 import java.util.List;
 import java.util.Set;
 
+import artisynth.core.modelbase.ContactPoint;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.geometry.DistanceGrid;

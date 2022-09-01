@@ -1,5 +1,6 @@
 package artisynth.demos.mech;
 
+
 import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
@@ -19,6 +20,7 @@ import artisynth.core.gui.*;
 import maspack.render.*;
 
 import java.awt.Color;
+import java.util.*;
 import java.io.*;
 
 import javax.swing.*;
@@ -41,7 +43,8 @@ public class BeamBodyCollide extends RootModel {
    MechModel myMech;
 
    DeformableBody createBody (
-      double x, double y, double z, double roll, double pitch, double yaw) {
+      String name, double x, double y, double z,
+      double roll, double pitch, double yaw) {
 
       double lenx1 = 2;
       double leny1 = 0.4;
@@ -59,6 +62,7 @@ public class BeamBodyCollide extends RootModel {
       body.setMaterial (new LinearMaterial (5*stiffness, 0.3));
       body.setPose (
          new RigidTransform3d (x, y, z, DTOR*roll, DTOR*pitch, DTOR*yaw));
+      body.setName (name);
 
       RenderProps.setFaceColor (body, myLinkColor);
       RenderProps.setEdgeColor (body, myEdgeColor);
@@ -78,6 +82,8 @@ public class BeamBodyCollide extends RootModel {
       myMech.setRotaryDamping (0.3);
       myMech.setIntegrator (
          MechSystemSolver.Integrator.ConstrainedBackwardEuler);
+         //MechSystemSolver.Integrator.BackwardEuler);
+
 
       RigidTransform3d XMB = new RigidTransform3d();
       RigidTransform3d XLW = new RigidTransform3d();
@@ -103,12 +109,12 @@ public class BeamBodyCollide extends RootModel {
 
       // first link
       //DeformableBody link1 = createBody (0, 0, 1, 5, 10, 7);
-      DeformableBody link1 = createBody (0, 0, 1, 5, 10, 7);
+      DeformableBody link1 = createBody ("link1", 0, 0, 1, 5, 10, 7);
       myMech.addRigidBody (link1);
       //DeformableBody link2 = createBody (0, 0, 2, 90, 10, 5);
-      DeformableBody link2 = createBody (0, 0, 2, 90, 10, 5);
+      DeformableBody link2 = createBody ("link2", 0, 0, 2, 90, 10, 5);
       myMech.addRigidBody (link2);
-      DeformableBody link3 = createBody (0, -0.2, 6, 60, 7, 15);
+      DeformableBody link3 = createBody ("link3", 0, -0.2, 6, 60, 7, 15);
       myMech.addRigidBody (link3);
 
       RigidBody base = RigidBody.createBox ("base", 4, 2, 0.2, density);
@@ -122,7 +128,15 @@ public class BeamBodyCollide extends RootModel {
       addControlPanel (myMech);
 
       myMech.setDefaultCollisionBehavior (true, 0.2);
-      //myMech.setCompliantContact();
+      //myMech.setUseImplicitFriction(true);
+      myMech.setCompliantContact();
+
+      CollisionManager cm = myMech.getCollisionManager();
+      RenderProps.setVisible (cm, true);
+      RenderProps.setLineWidth (cm, 3);
+      RenderProps.setLineColor (cm, Color.BLUE);
+      cm.setDrawContactNormals (true);
+      cm.setContactNormalLen (0.6);      
    }
 
    ControlPanel myControlPanel;
@@ -135,6 +149,18 @@ public class BeamBodyCollide extends RootModel {
    }
 
    public StepAdjustment advance (double t0, double t1, int flags) {
+
+      // System.out.println ("t1=" + t1);
+      // ArrayList<CollisionHandler> handlers =
+      //    myMech.getCollisionManager().getHandlers();
+      // if (handlers != null && handlers.size() > 0) {
+      //    System.out.print ("handlers:");
+      //    for (CollisionHandler ch : handlers) {
+      //       System.out.print (
+      //          " "+ch.getCollidable(0).getName()+"-"+ch.getCollidable(1).getName());
+      //    }
+      //    System.out.println ("");
+      // }
       
       // int sec = (int)t1;
       // if (sec > 4 && sec%4 == 0) {

@@ -117,6 +117,24 @@ public class RandomGenerator {
       Collections.shuffle (list, randGen);
       return ArraySupport.toIntArray (list.subList (0, n));
    }
+
+   /**
+    * Generates a random sequence of {@code n} numbers that sum to 1.
+    *
+    * @param n number of sequence values
+    */
+   public static double[] randomUnityPartition (int n) {
+      double[] sequence = new double[n];
+      double sum = 0;
+      for (int i=0; i<n; i++) {
+         sequence[i] = randGen.nextDouble();
+         sum += sequence[i];
+      }
+      for (int i=0; i<n; i++) {
+         sequence[i] /= sum;
+      }
+      return sequence;
+   }
    
    public static void main (String[] args) {
 

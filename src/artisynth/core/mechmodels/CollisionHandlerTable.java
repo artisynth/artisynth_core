@@ -372,14 +372,14 @@ public class CollisionHandlerTable {
       Anchor anchor1 = myAnchors.get(col1);
       if (col0.getCollidableIndex() <= col1.getCollidableIndex()) {
          for (CollisionHandler ch=anchor0.myRowHead; ch!=null; ch=ch.getNext()) {
-            if (ch.getCollidable(1) == col1) {
+            if (ch.getOtherCollidable(col0) == col1) {
                return ch;
             }
          }
       }
       else {
          for (CollisionHandler ch=anchor1.myRowHead; ch!=null; ch=ch.getNext()) {
-            if (ch.getCollidable(1) == col0) {
+            if (ch.getOtherCollidable(col1) == col0) {
                return ch;
             }
          }
@@ -394,13 +394,12 @@ public class CollisionHandlerTable {
       CollisionHandler ch;
       Anchor anchor0 = myAnchors.get(col0);
       Anchor anchor1 = myAnchors.get(col1);
+      ch = new CollisionHandler (myManager, col0, col1, behav, src);
       if (col0.getCollidableIndex() <= col1.getCollidableIndex()) {
-         ch = new CollisionHandler (myManager, col0, col1, behav, src);
          anchor0.addToRow (ch);
          anchor1.addToCol (ch);
       }
       else {
-         ch = new CollisionHandler (myManager, col1, col0, behav, src);
          anchor1.addToRow (ch);
          anchor0.addToCol (ch);
       }

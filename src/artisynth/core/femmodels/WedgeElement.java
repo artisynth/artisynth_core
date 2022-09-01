@@ -20,6 +20,84 @@ public class WedgeElement extends FemElement3d {
    private static IntegrationPoint3d myWarpingPoint;
    private static FemElementRenderer myRenderer;
 
+   private static double[] myNodeCoords = new double[] 
+      {
+         0, 0, -1,
+         1, 0, -1,
+         0, 1, -1,
+         0, 0,  1,
+         1, 0,  1,
+         0, 1,  1,
+      };         
+
+   private static double[] myIntegrationCoords;
+
+   static {
+      double a = 1.0/6.0;
+      double b = 2.0/3.0;
+      double q = 1/Math.sqrt(3); // quadrature point
+      double w = 1.0/6.0;
+      myIntegrationCoords = new double[]
+         {
+             a,  a, -q,  w,
+             b,  a, -q,  w,
+             a,  b, -q,  w,
+             a,  a,  q,  w,
+             b,  a,  q,  w,
+             a,  b,  q,  w,
+         };
+   }
+
+   private static double[] myNodeMassWeights = new double[] {
+      1.0/6,
+      1.0/6,
+      1.0/6,
+      1.0/6,
+      1.0/6,
+      1.0/6,
+   };
+
+   private static MatrixNd myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalAveragingMatrix = null;
+
+   static int[] myEdgeIdxs = new int[] 
+      {
+         2,   0, 1,
+         2,   0, 2,
+         2,   1, 2,
+         2,   3, 4,
+         2,   3, 5,
+         2,   4, 5,
+         2,   0, 3,
+         2,   1, 4,
+         2,   2, 5
+      };
+
+   static int[] myFaceIdxs = new int[] 
+      {
+         3,   0, 2, 1,
+         3,   3, 4, 5,
+         4,   0, 1, 4, 3,
+         4,   1, 2, 5, 4,
+         4,   2, 0, 3, 5
+      };
+
+   static int[] myTriangulatedFaceIdxs = new int[] 
+      {
+         0, 2, 1,
+         3, 4, 5,
+         0, 1, 4,
+         0, 4, 3,
+         1, 2, 5,
+         1, 5, 4,
+         2, 0, 3,
+         2, 3, 5
+      };
+
+   public int numIntegrationPoints() {
+      return myIntegrationCoords.length/4;
+   }
+
    /**
     * {@inheritDoc}
     */ 
@@ -52,38 +130,6 @@ public class WedgeElement extends FemElement3d {
               (s1+s2) >= 0 && (s1+s2) <= 1 );
    }
 
-   private static double[] myIntegrationCoords;
-
-   public int numIntegrationPoints() {
-      return myIntegrationCoords.length/4;
-   }
-
-   private static double[] myNodeCoords = new double[] 
-      {
-         0, 0, -1,
-         1, 0, -1,
-         0, 1, -1,
-         0, 0,  1,
-         1, 0,  1,
-         0, 1,  1,
-      };         
-
-   static {
-      double a = 1.0/6.0;
-      double b = 2.0/3.0;
-      double q = 1/Math.sqrt(3); // quadrature point
-      double w = 1.0/6.0;
-      myIntegrationCoords = new double[]
-         {
-             a,  a, -q,  w,
-             b,  a, -q,  w,
-             a,  b, -q,  w,
-             a,  a,  q,  w,
-             b,  a,  q,  w,
-             a,  b,  q,  w,
-         };
-   }
-
    public double[] getIntegrationCoords () {
       return myIntegrationCoords;
    }
@@ -92,39 +138,23 @@ public class WedgeElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private static double[] myNodeMassWeights = new double[] {
-      1.0/6,
-      1.0/6,
-      1.0/6,
-      1.0/6,
-      1.0/6,
-      1.0/6,
-   };
-
    public double[] getNodeMassWeights () {
       return myNodeMassWeights;
    }
 
-   private static MatrixNd myNodalExtrapolationMatrix = null;
+   public MatrixNd getNodalAveragingMatrix() {
+      if (myNodalAveragingMatrix == null) {
+         myNodalAveragingMatrix = new MatrixNd (6,6);
+         myNodalAveragingMatrix.setIdentity();
+      }
+      return myNodalAveragingMatrix;
+   }
 
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         // nodal coordinates for the wedge are a hybrid of barycentric
-         // and euclidean. See the comment in QuadtetElement on transforming
-         // barycentric coordinates to reflect scaling.
-         double s0 = 2; // end triangles are scaled by 2
-         double s1 = Math.sqrt(3);
-         Vector3d[] ncoords = getScaledNodeCoords (1, null);
-         for (int i=0; i<ncoords.length; i++) {
-            Vector3d v = ncoords[i];
-            v.x = v.x*s0 + (1-s0)/3;
-            v.y = v.y*s0 + (1-s0)/3;
-            v.z = v.z*s1;
-         }
-         myNodalExtrapolationMatrix =
-            createNodalExtrapolationMatrix (ncoords, 6, this);
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalExtrapolationMatrix;         
    }
 
    // Shape functions are the same as those used by FEBio for
@@ -216,40 +246,6 @@ public class WedgeElement extends FemElement3d {
       myRenderer.renderWidget (renderer, this, size, props);
    }
 
-   static int[] myEdgeIdxs = new int[] 
-      {
-         2,   0, 1,
-         2,   0, 2,
-         2,   1, 2,
-         2,   3, 4,
-         2,   3, 5,
-         2,   4, 5,
-         2,   0, 3,
-         2,   1, 4,
-         2,   2, 5
-      };
-
-   static int[] myFaceIdxs = new int[] 
-      {
-         3,   0, 2, 1,
-         3,   3, 4, 5,
-         4,   0, 1, 4, 3,
-         4,   1, 2, 5, 4,
-         4,   2, 0, 3, 5
-      };
-
-   static int[] myTriangulatedFaceIdxs = new int[] 
-      {
-         0, 2, 1,
-         3, 4, 5,
-         0, 1, 4,
-         0, 4, 3,
-         1, 2, 5,
-         1, 5, 4,
-         2, 0, 3,
-         2, 3, 5
-      };
-
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
    }
@@ -298,3 +294,4 @@ public class WedgeElement extends FemElement3d {
               TetElement.isInside (pnt, p2, p4, p5, p0));
    }
 }
+

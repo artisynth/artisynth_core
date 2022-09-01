@@ -27,12 +27,33 @@ public class FemElement3dBaseTest extends UnitTest {
       myElements.add (
          new HexElement (n[0], n[3], n[4], n[1], n[9], n[12], n[13], n[10]));
       myElements.add (
-         new WedgeElement (n[0], n[1], n[3], n[9], n[10], n[13]));
+         new WedgeElement (n[0], n[1], n[3], n[9], n[10], n[12]));
       myElements.add (
          new PyramidElement (n[0], n[1], n[4], n[3], n[9]));
       myElements.add (
          new QuadtetElement (
             n[0], n[2], n[6], n[18], n[1], n[3], n[9], n[4], n[10], n[12]));
+      FemNode3d[] quadhexNodes = new FemNode3d[] {
+         n[0], n[6], n[8], n[2], n[18], n[24], n[26], n[20],
+         n[3], n[7], n[5], n[1], n[21], n[25], n[23], n[19],
+         n[9], n[15], n[17], n[11]
+      };
+      myElements.add (new QuadhexElement (quadhexNodes));
+      FemNode3d[] quadwedgeNodes = new FemNode3d[] {
+         n[0], n[2], n[6], n[18], n[20], n[24],
+         n[1], n[4], n[3], n[19], n[22], n[21], n[9], n[11], n[15]
+      };
+      myElements.add (new QuadwedgeElement (quadwedgeNodes));
+
+      FemNode3d[] quadpyramidNodes = new FemNode3d[] {
+         n[0], n[2], n[8], n[6], n[18],
+         n[1], n[5], n[7], n[3], n[9], n[10], n[13], n[12]
+      };
+      myElements.add (new QuadpyramidElement (quadpyramidNodes));
+
+      myElements.add (new ShellTriElement (n[0], n[3], n[1], 0.1, false));
+
+      myElements.add (new ShellQuadElement (n[0], n[3], n[4], n[1], 0.1, false));
    }
 
    public FemElement3dBaseTest() {
@@ -106,9 +127,27 @@ public class FemElement3dBaseTest extends UnitTest {
       }
    }      
 
+   void testNodalExtrapolationMatrix (FemElement3dBase elem) {
+      MatrixNd E = elem.getNodalExtrapolationMatrix();
+      MatrixNd N = elem.getIntegrationShapeMatrix();
+      MatrixNd P = new MatrixNd();
+      if (E.rowSize() >= E.colSize()) {
+         P.mul (N, E);
+      }
+      else {
+         P.mul (E, N);
+      }
+      MatrixNd I = new MatrixNd(P.colSize(), P.colSize());      
+      I.setIdentity();
+      checkEquals ("extrapolation/shape matrix product", P, I, 1e-10);      
+   }
+
    public void test() {
       testContainsEdge();
       testContainsFace();
+      for (FemElement3dBase e : myElements) {
+         testNodalExtrapolationMatrix (e);
+      }
    }
 
    public static void main (String[] args) {

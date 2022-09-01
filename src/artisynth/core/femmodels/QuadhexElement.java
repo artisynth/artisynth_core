@@ -320,10 +320,10 @@ public class QuadhexElement extends FemElement3d {
       }
    }
 
-   private static MatrixNd myNodalExtrapolationMatrix8 = null;
+   private static MatrixNd myNodalAveragingMatrix8 = null;
    static {
-      myNodalExtrapolationMatrix8 = new MatrixNd (20,8);
-      myNodalExtrapolationMatrix8.set (new double[] 
+      myNodalAveragingMatrix8 = new MatrixNd (20,8);
+      myNodalAveragingMatrix8.set (new double[] 
       {
        1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
@@ -348,10 +348,10 @@ public class QuadhexElement extends FemElement3d {
       });
    }
 
-   private static MatrixNd myNodalExtrapolationMatrix14 = null;
+   private static MatrixNd myNodalAveragingMatrix14 = null;
    static {
-      myNodalExtrapolationMatrix14 = new MatrixNd (20, 14);
-      myNodalExtrapolationMatrix14.set (new double[] 
+      myNodalAveragingMatrix14 = new MatrixNd (20, 14);
+      myNodalAveragingMatrix14.set (new double[] 
       {
        1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
@@ -376,22 +376,30 @@ public class QuadhexElement extends FemElement3d {
       });
    }
 
-   private static MatrixNd myNodalExtrapolationMatrix27;   
+   private static MatrixNd myNodalAveragingMatrix27;   
+   protected static MatrixNd myNodalExtrapolationMatrix = null;
 
-   public MatrixNd getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalAveragingMatrix() {
       if (myNumIntPoints == 27) {
-         if (myNodalExtrapolationMatrix27 == null) {
-            myNodalExtrapolationMatrix27 = new MatrixNd(20, 27);
-            myNodalExtrapolationMatrix27.setIdentity();
+         if (myNodalAveragingMatrix27 == null) {
+            myNodalAveragingMatrix27 = new MatrixNd(20, 27);
+            myNodalAveragingMatrix27.setIdentity();
          }
-         return myNodalExtrapolationMatrix27;
+         return myNodalAveragingMatrix27;
       }
       else if (myNumIntPoints == 14) {
-         return myNodalExtrapolationMatrix14;
+         return myNodalAveragingMatrix14;
       }
       else {
-         return myNodalExtrapolationMatrix8;
+         return myNodalAveragingMatrix8;
       }
+   }
+
+   public MatrixNd getNodalExtrapolationMatrix() {
+      if (myNodalExtrapolationMatrix == null) {
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+      }
+      return myNodalExtrapolationMatrix;         
    }
 
    public double getN (int i, Vector3d coords) {

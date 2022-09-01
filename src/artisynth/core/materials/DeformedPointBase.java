@@ -20,19 +20,13 @@ public class DeformedPointBase implements DeformedPoint {
    protected int myElemType;
    protected int myElemNum;
    protected int myElemSubIndex;
-   protected int myPointIdx = -1;
 
-   public int availableInfo() {
-      return ALL_INFO;
-   }
-   
    public DeformedPointBase() {
       myF = new Matrix3d();
       myDetF = 0;
       myR = null;
       myP = 0;
 
-      myPointIdx = -1;
       myNodeNumbers = null;
       myNodeWeights = null;
       myElemType = -1;
@@ -97,10 +91,6 @@ public class DeformedPointBase implements DeformedPoint {
 
    public int getElementSubIndex() {
       return myElemSubIndex;
-   }
-
-   public int getPointIndex() {
-      return myPointIdx;
    }
 
    public int[] getNodeNumbers() {

@@ -12,18 +12,17 @@ import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
 import artisynth.core.femmodels.MaterialBundle;
 import artisynth.core.femmodels.PyramidElement;
-import artisynth.core.femmodels.ScalarElementField;
-import artisynth.core.femmodels.ScalarFemField;
-import artisynth.core.femmodels.ScalarNodalField;
-import artisynth.core.femmodels.ScalarSubElemField;
 import artisynth.core.femmodels.TetElement;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.ScaledFemMaterial;
-import artisynth.core.modelbase.ScalarField;
-import artisynth.core.modelbase.ScalarFieldPointFunction;
+import artisynth.core.modelbase.ScalarFieldComponent;
 import artisynth.core.femmodels.integration.FemElementIntegrator;
 import artisynth.core.femmodels.integration.IPointFemElementIntegrator;
 import artisynth.core.femmodels.integration.MonteCarloFemElementIntegrator;
+import artisynth.core.fields.ScalarElementField;
+import artisynth.core.fields.ScalarFemField;
+import artisynth.core.fields.ScalarNodalField;
+import artisynth.core.fields.ScalarSubElemField;
 import artisynth.core.femmodels.integration.EulerianFemElementSampler;
 import artisynth.core.femmodels.integration.FemElementSampler;
 import artisynth.core.femmodels.integration.LagrangianFemElementSampler;
@@ -137,8 +136,6 @@ public class EmbeddedFem {
          elem.setExplicitMass(0);
       }
       
-      ScalarFieldPointFunction func = density.createFieldFunction (true);
-
       VectorNd v = new VectorNd();
       VectorNd ivals = new VectorNd();
       FemDeformedPoint dpnt = new FemDeformedPoint();
@@ -151,7 +148,7 @@ public class EmbeddedFem {
 
          for (int k = 0; k < ipnts.length; ++k) {
             dpnt.setFromIntegrationPoint (ipnts[k], idat[k], null, elem, k);
-            double val = func.eval (dpnt);
+            double val = density.getValue (dpnt);
             ivals.set(k, val*scale);
          }
 
@@ -179,12 +176,12 @@ public class EmbeddedFem {
     * @return generated material bundle
     */
    public static MaterialBundle createMaterialBundle(
-      FemModel3d fem, FemMaterial mat, ScalarField density) {
+      FemModel3d fem, FemMaterial mat, ScalarFieldComponent density) {
       
       MaterialBundle bundle = new MaterialBundle();
       bundle.setUseAllElements (true);
       ScaledFemMaterial smat = new ScaledFemMaterial (mat, 1.0);
-      smat.setScalingField (density, true);
+      smat.setScalingField (density);
         
       return bundle;
    }
@@ -444,7 +441,7 @@ public class EmbeddedFem {
       
       // replace base material with scaled version
       ScaledFemMaterial smat = new ScaledFemMaterial (oldMat, 1.0);
-      smat.setScalingField (density, true);
+      smat.setScalingField (density);
       fem.setMaterial (smat);
       
       // compute node mass to check error
@@ -544,7 +541,7 @@ public class EmbeddedFem {
       
       // replace base material with scaled version
       ScaledFemMaterial smat = new ScaledFemMaterial (oldMat, 1.0);
-      smat.setScalingField (density, true);
+      smat.setScalingField (density);
       fem.setMaterial (smat);
 
       // compute node mass to check error

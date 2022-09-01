@@ -288,7 +288,7 @@ public abstract class LabeledControl extends LabeledComponent {
    }
 
    /**
-    * Sets the background of this control and all its sub-components, except for
+    * Sets the background of this control and all its subcomponents, except for
     * JTextFields, where setting the background would obscure the text field.
     * 
     * @param color

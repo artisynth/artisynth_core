@@ -609,7 +609,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    /**
     * Looks for an incident half-edge with a given tail.
     */
-   HalfEdge findOppositeHalfEdge (Vertex3d tail) {
+   public HalfEdge findIncidentHalfEdge (Vertex3d tail) {
       for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
          if (node.he.tail == tail) {
             return node.he;

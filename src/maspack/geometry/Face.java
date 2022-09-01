@@ -282,7 +282,7 @@ public class Face extends Feature implements Boundable {
          HalfEdge oppHe = null;
          Vertex3d vtx = vtxs[i];
          if (connect) {
-            oppHe = vtxPrev.findOppositeHalfEdge (vtx);
+            oppHe = vtxPrev.findIncidentHalfEdge (vtx);
          }
          if (oppHe == null) {
             he = new HalfEdge (vtx, vtxPrev, this);
@@ -1065,7 +1065,12 @@ public class Face extends Feature implements Boundable {
    }
 
    public PolygonalMesh getMesh() {
-      return (PolygonalMesh)he0.head.getMesh();
+      if (he0 == null) {
+         return null;
+      }
+      else {
+         return (PolygonalMesh)he0.head.getMesh();
+      }
    }
 
    public Vertex3d[] getVertices() {

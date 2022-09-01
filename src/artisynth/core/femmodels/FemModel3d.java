@@ -54,13 +54,13 @@ import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.modelbase.ScalarField;
-import artisynth.core.modelbase.ScalarFieldPointFunction;
+import artisynth.core.modelbase.ScalarFieldComponent;
 import artisynth.core.modelbase.StepAdjustment;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.femmodels.FemElement.ElementClass;
+import artisynth.core.fields.ScalarNodalField;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.IntegerToken;
 import artisynth.core.util.ScalableUnits;
@@ -2408,21 +2408,21 @@ PointAttachable, ConnectableBody {
    private class BulkModulusExtractor {
       double myK;
       ScalarNodalField myField;
-      ScalarFieldPointFunction myFunction;
+      ScalarFieldComponent myBMField;
       NodalFieldPoint myFpnt;
       
       BulkModulusExtractor (IncompressibleMaterialBase imat) {
          myK = imat.getBulkModulus();
-         myFunction = imat.getBulkModulusFunction();
-         if (myFunction != null) {
-            ScalarField field = imat.getBulkModulusField();
+         myBMField = imat.getBulkModulusField();
+         if (myBMField != null) {
+            ScalarFieldComponent field = imat.getBulkModulusField();
             if (field != null) {
                if (field instanceof ScalarNodalField) {
                   myField = (ScalarNodalField)field;
                }
                else if (!myWarnedOnNodalIncompBulkModulus) {
                   System.out.println (myNodalIncompBulkModulusWarning);
-                  myFunction = null;
+                  myBMField = null;
                   myWarnedOnNodalIncompBulkModulus = true;
                }
             }
@@ -2433,7 +2433,7 @@ PointAttachable, ConnectableBody {
       }
       
       double getBulkModulus (FemNode3d node) {
-         if (myFunction == null) {
+         if (myBMField == null) {
             return myK;
          }
          else if (myField != null) {
@@ -2441,7 +2441,7 @@ PointAttachable, ConnectableBody {
          }
          else {
             myFpnt.setNode (node);
-            return myFunction.eval (myFpnt);
+            return myBMField.getValue (myFpnt);
          }
          
       }
@@ -2772,7 +2772,6 @@ PointAttachable, ConnectableBody {
    }
 
    public void updateStress() {
-      updateIntegrationIndices();
       // clear existing internal forces and maybe stiffnesses
       timerStart();
       for (FemNode3d n : myNodes) {
@@ -2824,7 +2823,6 @@ PointAttachable, ConnectableBody {
       if (profileStressAndStiffness) {
          timerStart();
       }
-      updateIntegrationIndices();
       // allocate or deallocate nodal incompressibility blocks
       setNodalIncompBlocksAllocated (getSoftIncompMethod()==IncompMethod.NODAL);
 
@@ -3270,7 +3268,7 @@ PointAttachable, ConnectableBody {
       }
       double[] nodalExtrapMat = null;
       if (needsStressStrain != 0) {
-         nodalExtrapMat = e.getNodalExtrapolationMatrix().getBuffer();
+         nodalExtrapMat = e.getNodalAveragingMatrix().getBuffer();
       }    
 
       // cache invertible flag
@@ -3566,7 +3564,7 @@ PointAttachable, ConnectableBody {
       }
       double[] nodalExtrapMat = null;
       if (needsStressStrain != 0) {
-         nodalExtrapMat = e.getNodalExtrapolationMatrix().getBuffer();
+         nodalExtrapMat = e.getNodalAveragingMatrix().getBuffer();
       }
       
       boolean invertible = (e.materialsAreInvertible() && areInvertible(amats));
@@ -3744,7 +3742,7 @@ PointAttachable, ConnectableBody {
       }
       double[] nodalExtrapMat = null;
       if (needsStressStrain != 0) {
-         nodalExtrapMat = e.getNodalExtrapolationMatrix().getBuffer();
+         nodalExtrapMat = e.getNodalAveragingMatrix().getBuffer();
       }
       
       boolean invertible = (e.materialsAreInvertible() && areInvertible(amats));
@@ -5883,20 +5881,6 @@ PointAttachable, ConnectableBody {
    public BVTree getBVTree () {
       return super.getBVTree ();
    }
-
-   protected int assignIntegrationIndices() {
-      int idx = 0;
-      for (FemElement3dBase e : getAllElements()) {
-         e.setIntegrationIndex (idx);
-         int numi = e.numIntegrationPoints();
-         // increase the index to accommodate the warping point, if any
-         // if there is only one integration point, then it is assumed
-         // to be the same as the warping point.
-         idx += (numi == 1 ? 1 : numi + 1);
-      }
-      return idx;
-   }
-
 }
 
 /**

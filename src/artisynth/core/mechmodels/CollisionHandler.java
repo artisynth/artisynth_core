@@ -17,11 +17,14 @@ import java.util.Map;
 import java.util.Set;
 
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionBehavior.VertexPenetrations;
 import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.CollisionManager.BehaviorSource;
 import artisynth.core.mechmodels.CollisionManager.ColliderType;
+import artisynth.core.materials.ContactForceBehavior;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
+import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.util.ScalarRange;
 import maspack.collision.ContactInfo;
 import maspack.collision.ContactPlane;
@@ -84,14 +87,14 @@ public class CollisionHandler extends ConstrainerBase
    // collision response
 
    LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals;
-   ArrayList<ContactConstraintData> myLastBilateralData;
+   ArrayList<ContactData> myLastBilateralData;
    // list of bilaterals arranged in order, with those for which cpnt0 is on
    // collidable0 first and those with cpnt0 on collidable1 second. This
    // is done simply to maintain exact numeric compatibility with some
    // legacy tests.
    ArrayList<ContactConstraint> myOrderedBilaterals;
    LinkedHashMap<ContactPoint,ContactConstraint> myUnilaterals;
-   ArrayList<ContactConstraintData> myLastUnilateralData;
+   ArrayList<ContactData> myLastUnilateralData;
    int myMaxUnilaterals = 100;
    ContactInfo myContactInfo; // most recent contact info for this handler
    ContactInfo myLastContactInfo; // previous contact info for this handler
@@ -139,30 +142,36 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    double getContactNormalLen() {
+      double len = 0;
       if (myManager != null) {
-         return myManager.getContactNormalLen();
+         len = myManager.getContactNormalLen();
+         if (myBehavior.getRenderingCollidable() == 1) {
+            len = -len;
+         }
       }
-      else {
-         return 0;
-      }
+      return len;
    }
 
    double getContactForceLenScale() {
+      double scale = 0;
       if (myManager != null && myBehavior.getDrawContactForces()) {
-         return myManager.getContactForceLenScale();
+         scale = myManager.getContactForceLenScale();
+         if (myBehavior.getRenderingCollidable() == 1) {
+            scale = -scale;
+         }
       }
-      else {
-         return 0;
-      }
+      return scale;
    }
 
    double getFrictionForceLenScale() {
+      double scale = 0;
       if (myManager != null && myBehavior.getDrawFrictionForces()) {
-         return myManager.getContactForceLenScale();
+         scale = myManager.getContactForceLenScale();
+         if (myBehavior.getRenderingCollidable() == 1) {
+            scale = -scale;
+         }
       }
-      else {
-         return 0;
-      }
+      return scale;
    }
 
    public ContactInfo getLastContactInfo() {
@@ -248,7 +257,7 @@ public class CollisionHandler extends ConstrainerBase
       if (attachedVertices == null || attachedVertices.size() == 0) {
          return false;
       }
-      Vertex3d[] vtxs = cpnt.myVtxs;
+      Vertex3d[] vtxs = cpnt.getVertices();
       for (int i=0; i<vtxs.length; i++) {
          if (attachedVertices.contains (vtxs[i])) {
             return true;
@@ -329,11 +338,13 @@ public class CollisionHandler extends ConstrainerBase
    void saveLastConstraintData () {
       myLastBilateralData.clear();
       for (ContactConstraint cc : getOrderedBilaterals()) {
-         myLastBilateralData.add (new ContactConstraintData(cc)); 
+         myLastBilateralData.add (
+            new ContactData(cc, /*bilateral=*/true)); 
       }
       myLastUnilateralData.clear();
       for (ContactConstraint cc : getUnilaterals()) {
-         myLastUnilateralData.add (new ContactConstraintData(cc)); 
+         myLastUnilateralData.add (
+            new ContactData(cc, /*bilateral=*/false)); 
       }
       myLastContactInfo = myContactInfo;
       myOrderedBilaterals = null; // will be rebuilt on demand
@@ -362,7 +373,7 @@ public class CollisionHandler extends ConstrainerBase
             }
             default: {
                throw new InternalErrorException (
-                  "Unimplemented collision method: "+getMethod());
+                  "Unimplemented contact method: "+getMethod());
             }
          }
          myContactInfo = cinfo;
@@ -390,7 +401,7 @@ public class CollisionHandler extends ConstrainerBase
          }
          default: {
             throw new InternalErrorException (
-               "Unimplemented collision method: "+getMethod(col0, col1, behav));
+               "Unimplemented contact method: "+getMethod(col0, col1, behav));
          }        
       }
    }
@@ -545,7 +556,7 @@ public class CollisionHandler extends ConstrainerBase
 
       // This should be -cpp.distance - do we need to compute this?
       Vector3d disp = new Vector3d();
-      disp.sub(cons.myCpnt0.myPoint, cons.myCpnt1.myPoint);
+      disp.sub(cons.myCpnt0.getPosition(), cons.myCpnt1.getPosition());
       double dist = disp.dot(cons.myNormal);
       return dist;
    }
@@ -561,7 +572,7 @@ public class CollisionHandler extends ConstrainerBase
 
       // This should be -cpp.distance - do we need to compute this?
       Vector3d disp = new Vector3d();
-      disp.sub(cons.myCpnt0.myPoint, cons.myCpnt1.myPoint);
+      disp.sub(cons.myCpnt0.getPosition(), cons.myCpnt1.getPosition());
       double dist = disp.dot(cons.myNormal);
 
       return dist;
@@ -738,7 +749,7 @@ public class CollisionHandler extends ConstrainerBase
       for (PenetratingPoint cpp : points) {
          ContactPoint pnt0, pnt1;
          pnt0 = new ContactPoint (cpp.vertex);
-         if (cpp.face == null || (collidable1 instanceof RigidBody)) {
+         if (cpp.face == null) { // || (collidable1 instanceof RigidBody)) {
             pnt1 = new ContactPoint (cpp.position);
          }
          else {
@@ -824,6 +835,26 @@ public class CollisionHandler extends ConstrainerBase
       return isRigid (collidable);
    }
 
+   private boolean usingTwoWayContact() {
+      switch (myBehavior.getVertexPenetrations()) {
+         case BOTH_COLLIDABLES: {
+            return true;
+         }
+         case FIRST_COLLIDABLE:
+         case SECOND_COLLIDABLE: {
+            return false;
+         }
+         case AUTO: {
+            return (!hasLowDOF (myCollidable0) && !hasLowDOF (myCollidable1));
+         }
+         default:{
+            throw new InternalErrorException (
+               "Unimplemented TwoWayContact mode :" +
+               myBehavior.getVertexPenetrations());
+         }
+      }
+   }
+   
    double computeVertexPenetrationConstraints (ContactInfo info) {
       double maxpen = 0;
       clearContactActivity();
@@ -833,16 +864,21 @@ public class CollisionHandler extends ConstrainerBase
          CollidableBody col1 = myCollidable1;
          ArrayList<PenetratingPoint> pnts0 = info.getPenetratingPoints(0);
          ArrayList<PenetratingPoint> pnts1 = info.getPenetratingPoints(1);
-         if (isRigid(myCollidable0) && !isRigid(myCollidable1)) {
-            // swap bodies so that we compute vertex penetrations of 
-            // collidable1 with respect to collidable0
-            col0 = myCollidable1;
-            col1 = myCollidable0;
-            pnts0 = info.getPenetratingPoints(1);
-            pnts1 = info.getPenetratingPoints(0);
-         }
+          if (!usingTwoWayContact()) {
+             // see if we need to swap the body for which vertex penetrations 
+             // should be computed
+             VertexPenetrations vpen = myBehavior.getVertexPenetrations();
+             if (((vpen == VertexPenetrations.SECOND_COLLIDABLE) ||
+                  (vpen == VertexPenetrations.AUTO &&
+                   isRigid(myCollidable0) && !isRigid(myCollidable1)))) {
+                col0 = myCollidable1;
+                col1 = myCollidable0;
+                pnts0 = info.getPenetratingPoints(1);
+                pnts1 = info.getPenetratingPoints(0);              
+             }                
+          }
          maxpen = computeVertexPenetrationConstraints (pnts0,col0,col1);
-         if (!hasLowDOF (col1) || myBehavior.getBodyFaceContact()) {
+         if (usingTwoWayContact()) {
             double pen = computeVertexPenetrationConstraints (pnts1,col1,col0);
             if (pen > maxpen) {
                maxpen = pen;
@@ -908,14 +944,14 @@ public class CollisionHandler extends ConstrainerBase
       // be set.      
       for (ContactConstraint prev : prevUnilaterals) {
          if (prev.myState == LCPSolver.Z_VAR) {
-            Point3d ppnt = prev.myCpnt0.getPoint();
+            Point3d ppnt = prev.myCpnt0.getPosition();
             ContactConstraint nearc = null;
             double mindist = Double.MAX_VALUE;
             // search using brute force since using KDTrees or other
             // accelerating structures is slower unless we have many points
             // (like > 1000).
             for (ContactConstraint c : getUnilaterals()) {
-               Point3d cpnt = c.myCpnt0.getPoint();
+               Point3d cpnt = c.myCpnt0.getPosition();
                double dist = ppnt.distance (cpnt);
                if (dist < mindist) {
                   mindist = dist;
@@ -923,6 +959,7 @@ public class CollisionHandler extends ConstrainerBase
                }
             }
             nearc.myState = prev.myState;
+            nearc.myLambda = prev.myLambda;
             nearc.myFrictionState0 = prev.myFrictionState0;
             nearc.myFrictionState1 = prev.myFrictionState1;
          }
@@ -1116,9 +1153,45 @@ public class CollisionHandler extends ConstrainerBase
       ContactForceBehavior forceBehavior = getForceBehavior();
       double penTol = myBehavior.myPenetrationTol;
       
+      int flags = 
+         (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
+      for (ContactConstraint c : getOrderedBilaterals()) {
+         c.setSolveIndex (idx);
+         ConstraintInfo gi = ginfo[idx];
+         if (c.getDistance() < -penTol) {
+            gi.dist = (c.getDistance() + penTol);
+         }
+         else {
+            gi.dist = 0;
+         }
+         if (forceBehavior != null) {
+            forceBehavior.computeResponse (
+               fres, c.myDistance, c.myCpnt0, c.myCpnt1, 
+               c.myNormal, c.myContactArea, flags);
+         }
+         gi.force =      fres[0];
+         gi.compliance = fres[1];
+         gi.damping =    fres[2];
+         idx++;
+      }
+      return idx;
+   }
+
+   public int getBilateralInfoOld (
+      ConstraintInfo[] ginfo, int idx) {
+      
+      double[] fres = new double[] { 
+         0, myCompliance, myDamping };
+
+      ContactForceBehavior forceBehavior = getForceBehavior();
+      double penTol = myBehavior.myPenetrationTol;
+      
+      int flags = 
+         (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
       for (ContactConstraint c : getOrderedBilaterals()) {
          idx = c.getBilateralInfo (
-            ginfo, idx, penTol, fres, forceBehavior);
+            idx, penTol, fres, forceBehavior, 
+            ginfo, usingTwoWayContact(), flags);
       }
       return idx;
    }
@@ -1172,7 +1245,7 @@ public class CollisionHandler extends ConstrainerBase
       }
       return numu;
    }
-
+   
    @Override
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
 
@@ -1180,12 +1253,15 @@ public class CollisionHandler extends ConstrainerBase
          0, myCompliance, myDamping };
 
       ContactForceBehavior forceBehavior = getForceBehavior();
+       double penTol = myBehavior.myPenetrationTol;
       
+      int flags = 
+         (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
       for (ContactConstraint c : getUnilaterals()) {
          c.setSolveIndex (idx);
          ConstraintInfo ni = ninfo[idx];
-         if (c.getDistance() < -myBehavior.myPenetrationTol) {
-            ni.dist = (c.getDistance() + myBehavior.myPenetrationTol);
+         if (c.getDistance() < -penTol) {
+            ni.dist = (c.getDistance() + penTol);
          }
          else {
             ni.dist = 0;
@@ -1193,7 +1269,7 @@ public class CollisionHandler extends ConstrainerBase
          if (forceBehavior != null) {
             forceBehavior.computeResponse (
                fres, c.myDistance, c.myCpnt0, c.myCpnt1, 
-               c.myNormal, c.myContactArea);
+               c.myNormal, c.myContactArea, flags);
          }
          ni.force =      fres[0];
          ni.compliance = fres[1];
@@ -1449,10 +1525,10 @@ public class CollisionHandler extends ConstrainerBase
          myLastContactInfo.getState (data);
          data.zput (myLastBilateralData.size());
          data.zput (myLastUnilateralData.size());
-         for (ContactConstraintData c : myLastBilateralData) {
+         for (ContactData c : myLastBilateralData) {
             c.getState (data);
          }
-         for (ContactConstraintData c : myLastUnilateralData) {
+         for (ContactData c : myLastUnilateralData) {
             c.getState (data);
          }
       }
@@ -1500,12 +1576,12 @@ public class CollisionHandler extends ConstrainerBase
          numb = data.zget();
          numu = data.zget();
          for (int i=0; i<numb; i++) {
-            ContactConstraintData c = new ContactConstraintData();
+            ContactData c = new ContactData();
             c.setState (data, myCollidable0, myCollidable1);
             myLastBilateralData.add (c);
          }        
          for (int i=0; i<numu; i++) {
-            ContactConstraintData c = new ContactConstraintData();
+            ContactData c = new ContactData();
             c.setState (data, myCollidable0, myCollidable1);
             myLastUnilateralData.add (c);
          }
@@ -1541,6 +1617,9 @@ public class CollisionHandler extends ConstrainerBase
       createVertexForceMap (map, colA == myCollidable0 ? 0 : 1);
    }
 
+   /**
+    * Create a vertex pressure map from a vertex force map.
+    */
    static HashMap<Vertex3d,Double> createVertexPressureMap (
       HashSet<Face> faces, Map<Vertex3d,Vector3d> forceMap) {
       HashMap<Vertex3d,Double> map = new LinkedHashMap<>();
@@ -1573,7 +1652,9 @@ public class CollisionHandler extends ConstrainerBase
             funit.scale (1/fmag);
             Vertex3d vertex = entry.getKey();
             vertex.sumEdgeCrossProductsWorld (xsum);
-            double pressure = Math.abs(6*fmag/funit.dot(xsum));
+            // Assume pressure > 0 if vertex normal and force are in opposite
+            // directions. Pressure can be negative if funit.dot(xsum) > 0
+            double pressure = -6*fmag/funit.dot(xsum);
             map.put (vertex, pressure);
             if (faces != null) {
                // add all faces adjacent to this vertex
@@ -1595,43 +1676,84 @@ public class CollisionHandler extends ConstrainerBase
       return createVertexPressureMap (faces, forceMap);
    }
 
+
+   /**
+    * Create map between vertices and contact forces for the collision meshes
+    * of the collidale indexed by {@code num}.
+    */
    private void createVertexForceMap (
       Map<Vertex3d,Vector3d> forceMap, int num) {
-      for (ContactConstraintData cd : myLastBilateralData) {
+      
+      // Create a vertex force map for the vertices on the opposite collidable.
+      // In the case of two-way contact, these will to be added to forceMap.
+      HashMap<Vertex3d,Vector3d> oppositeMap = new HashMap<>();
+
+      // Start by finding mesh vertex forces for both the selected and opposite
+      // collidables.
+      for (ContactData cd : myLastBilateralData) {
          if (cd.myLambda > 0) {
-            storeVertexForces (forceMap, cd, num);
+            collectVertexForces (forceMap, oppositeMap, cd, num);
          }
       }
-      for (ContactConstraintData cd : myLastUnilateralData) {
+      for (ContactData cd : myLastUnilateralData) {
          if (cd.myLambda > 0) {
-            storeVertexForces (forceMap, cd, num);
+            collectVertexForces (forceMap, oppositeMap, cd, num);
+         }
+      }
+      if (oppositeMap.size() == 0) {
+         // no opposite forces, so we are done
+         return;
+      }
+      if (forceMap.size() > 0) {
+         // since oppositeMap.size also > 0, which implies two-way vertex
+         // penetration collisions
+         for (ContactData cd : myLastBilateralData) {
+            addOppositeVertexForces (forceMap, oppositeMap, cd, num);
+         }
+         for (ContactData cd : myLastUnilateralData) {
+            addOppositeVertexForces (forceMap, oppositeMap, cd, num);
+         }
+      }
+      else {
+         // map opposite forces onto the vertices of the penetrating points
+         PolygonalMesh opmesh;
+         if (num == 0) {
+            opmesh = myCollidable1.getCollisionMesh();
+         }
+         else {
+            opmesh = myCollidable0.getCollisionMesh();
+         }
+         for (PenetratingPoint p : myLastContactInfo.getPenetratingPoints(num)) {
+            transferForceToVertex (forceMap, oppositeMap, p, opmesh);
          }
       }
    }
 
-   private void storeVertexForces (
-      Map<Vertex3d,Vector3d> forceMap, ContactConstraintData cd, int num) {
+   private double computeVertexArea (Vertex3d vtx) {
+      Vector3d xprod = new Vector3d();
+      vtx.sumEdgeCrossProducts (xprod);
+      return xprod.norm()/6;
+   }
+
+   private void collectVertexForces (
+      Map<Vertex3d,Vector3d> forceMap, Map<Vertex3d,Vector3d> oppositeMap,
+      ContactData cd, int num) {
 
       Vertex3d[] vtxs = null;
       double[] wgts = null;
       double lam = cd.myLambda;
-      
-      ContactPoint cpnt;
-      if (num == 0) {
-         cpnt = cd.myPnt0OnCollidable1 ? cd.myCpnt1 : cd.myCpnt0;
+
+      if (cd.myCpnt0.numVertices() > 0) {
+         vtxs = cd.myCpnt0.getVertices();
+         wgts = cd.myCpnt0.getWeights();
       }
-      else {
-         cpnt = cd.myPnt0OnCollidable1 ? cd.myCpnt0 : cd.myCpnt1;
-      }
-      if (cpnt.numVertices() > 0) {
-         vtxs = cpnt.getVertices();
-         wgts = cpnt.getWeights();
-         if (cpnt == cd.myCpnt1) {
-            lam = -lam;
-         }
-      }
-      else {
-         // have to find the face and vertices directly. Assume that we can use
+
+      // true if cpnt0 is on the collidable specified by num
+      boolean cpnt0OnCollidable = ((num == 0) ^ cd.myPnt0OnCollidable1);
+
+      if (vtxs == null) {
+         // Will only happen with the CONTOUR_REGION contact method. Need
+         // to find the face and vertices directly. Assume that we can use
          // the position of cpnt0
          PolygonalMesh mesh;
          if (num == 0) {
@@ -1643,18 +1765,25 @@ public class CollisionHandler extends ConstrainerBase
          Vector2d uv = new Vector2d();
          Point3d nearPnt = new Point3d();
          Face face = BVFeatureQuery.getNearestFaceToPoint (
-            nearPnt, uv, mesh, cd.myCpnt0.getPoint());
+            nearPnt, uv, mesh, cd.myCpnt0.getPosition());
          if (face != null) {
             vtxs = face.getVertices();
             wgts = new double[] {1-uv.x-uv.y, uv.x, uv.y};
          }
-         if (num == 1) {
+         else {
+            // shouldn't happen, but just in case face not found
+            return;
+         }
+         if (!cpnt0OnCollidable) {
+            // negate lam since the normal will be pointing the other way
             lam = -lam;
+            // set cpnt0OnCollidable true since vertices have been computed for
+            // collidable's mesh and we want to add forces to forceMap:
+            cpnt0OnCollidable = true;
          }
       }
-      // check vtxs == null just in case query.getNearestFaceToPoint failed for
-      // some reason
-      if (vtxs != null) {
+      if (cpnt0OnCollidable) {
+         // add forces to forceMap
          Vector3d nrm = cd.getNormal();
          for (int i=0; i<vtxs.length; i++) {
             Vector3d force = forceMap.get (vtxs[i]);
@@ -1665,6 +1794,102 @@ public class CollisionHandler extends ConstrainerBase
             force.scaledAdd (lam*wgts[i], nrm);
          }
       }
+      else {
+         // add forces to oppositeMap
+         Vector3d nrm = cd.getNormal();
+         for (int i=0; i<vtxs.length; i++) {
+            Vector3d force = oppositeMap.get (vtxs[i]);
+            if (force == null) {
+               force = new Vector3d();
+               oppositeMap.put (vtxs[i], force);
+            }
+            double area = computeVertexArea (vtxs[i]);
+            // Use -lam because we want the force acting on num.  Store force
+            // per unit area so we can properly distribute it onto the other
+            // mesh
+            force.scaledAdd (-lam*wgts[i]/area, nrm);
+         }
+      }
+   }
+
+   private void addOppositeVertexForces (
+      Map<Vertex3d,Vector3d> forceMap, Map<Vertex3d,Vector3d> oppositeMap,
+      ContactData cd, int num) {
+
+      if ((num == 0 && cd.myPnt0OnCollidable1) ||
+          (num == 1 && !cd.myPnt0OnCollidable1)) {
+         // cpnt0 is not on the collidable corresponding to num
+         return;
+      }
+      Vertex3d[] vtxs0 = null;
+      double[] wgts0 = null;
+      Vertex3d[] vtxs1 = null;
+      double[] wgts1 = null;
+      
+      if (cd.myCpnt0.numVertices() > 0) {
+         vtxs0 = cd.myCpnt0.getVertices();
+         wgts0 = cd.myCpnt0.getWeights();
+      }
+      if (cd.myCpnt1.numVertices() > 0) {
+         vtxs1 = cd.myCpnt1.getVertices();
+         wgts1 = cd.myCpnt1.getWeights();
+      }
+      if (vtxs0 != null && vtxs1 != null) {
+         for (int i=0; i<vtxs0.length; i++) {
+            Vector3d force = forceMap.get (vtxs0[i]);
+            if (force == null) {
+               // force might be null if cd.myLamba <= 0
+               force = new Vector3d();
+               forceMap.put (vtxs0[i], force);
+            }
+            // add force contributions for the opposite mesh
+            Vector3d opforce = new Vector3d();
+            for (int j=0; j<vtxs1.length; j++) {
+               Vector3d force1 = oppositeMap.get(vtxs1[j]);
+               if (force1 != null) {
+                  opforce.scaledAdd (wgts1[j], force1);
+               }
+            }
+            force.scaledAdd (computeVertexArea (vtxs0[i]), opforce);
+         }
+      }
+   }
+
+   private void transferForceToVertex (
+      Map<Vertex3d,Vector3d> forceMap, Map<Vertex3d,Vector3d> oppositeMap,
+      PenetratingPoint p, PolygonalMesh opmesh) {
+      
+      Vertex3d vtx0 = p.vertex;
+      Vertex3d[] vtxs1;
+      double[] wgts1;
+
+      Face face = p.face;
+      Vector2d uv = p.coords;
+      if (face == null) {
+         // must find the nearest face on the opposite mesh         
+         uv = new Vector2d();
+         Point3d nearPnt = new Point3d();
+         face = BVFeatureQuery.getNearestFaceToPoint (
+            nearPnt, uv, opmesh, p.getPosition());
+         if (face == null) {
+            // just in case
+            return;
+         }
+      }
+      vtxs1 = face.getVertices();
+      wgts1 = new double[] {1-uv.x-uv.y, uv.x, uv.y};
+
+      // add force contributions for the opposite mesh
+      Vector3d opforce = new Vector3d();
+      for (int j=0; j<vtxs1.length; j++) {
+         Vector3d force1 = oppositeMap.get(vtxs1[j]);
+         if (force1 != null) {
+            opforce.scaledAdd (wgts1[j], force1);
+         }
+      }
+      Vector3d force = new Vector3d();
+      force.scale (computeVertexArea (vtx0), opforce);
+      forceMap.put (vtx0, force);
    }
 
    /* ===== Begin Render methods ===== */
@@ -1711,6 +1936,14 @@ public class CollisionHandler extends ConstrainerBase
          }
       }
    }
+   
+   /**
+    * Returns {@code true} if collidble0 for this handler corresponds to the
+    * first collidable specified by its behavior.
+    */
+   boolean collidable0MatchesBehavior() {
+      return myBehavior.collidable0MatchesBody(getCollidable(0));
+   }
  
    /**
     * Called by the CollisionManager.
@@ -1720,15 +1953,11 @@ public class CollisionHandler extends ConstrainerBase
       ContactInfo cinfo = myLastContactInfo;
       if (cinfo != null && myBehavior.myDrawColorMap != ColorMapType.NONE) {
 
-         int num = myBehavior.myColorMapCollidableNum;
-         Collidable b0 = myBehavior.getCollidable(0);
-         CollidableBody h0 = getCollidable(0);
-         if (!(b0 instanceof Group)) {
-            if (h0 != b0 && h0.getCollidableAncestor() != b0) {
-               // then we want the *other* collidable body, so switch num
-               num = (num == 0 ? 1 : 0);
-            }
-         }
+         int num = myBehavior.myRenderingCollidableNum;
+//         if (!collidable0MatchesBehavior()) {
+//            // then we want the *other* collidable body, so switch num
+//            num = (num == 0 ? 1 : 0);
+//         }
          HashSet<Face> faces = new HashSet<Face>();
          HashMap<Vertex3d,Double> valueMap =
             createVertexValueMap (faces, cinfo, num);

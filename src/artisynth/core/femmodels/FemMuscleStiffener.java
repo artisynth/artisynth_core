@@ -13,9 +13,14 @@ import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MooneyRivlinMaterial;
 
 /**
- * Helper class to implement fem element stiffening with muscle activation
+ * Helper class to implement fem element stiffening with muscle activation.
+ *
+ * NOTE: This was implemented to mimic the behaviour of Stephanie Buchaillard's
+ * ANSYS tongue model and is very specialized. Stress-stiffening should be part
+ * of the constitutive equation for a muscle material, but it was added on
+ * separately for the tongue model. Probably due to limitations of ANSYS.
  * 
- * NOTE: at present, the stiffening effects apply only to volumetric elements
+ * At present, the stiffening effects apply only to volumetric elements
  * 
  * @author stavness
  */

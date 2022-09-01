@@ -93,7 +93,6 @@ public abstract class FemElement extends RenderableComponentBase
    protected boolean myInvertedP = false;
    protected Matrix3d myFg = null; // plastic deformation gradient component
    int myIndex;  // index number for associating with other info
-   int myIntegrationIndex; // base index of element's integration points
 
    FemMaterial myMaterial = null;
    // Augmenting materials, used to add to behavior
@@ -893,28 +892,6 @@ public abstract class FemElement extends RenderableComponentBase
       myIndex = idx;
    }
    
-   /**
-    * Returns the index of this element's first integration point with respect
-    * to it's FEM model.
-    * @see #setIntegrationIndex
-    * @return index of first integration point
-    */
-   public int getIntegrationIndex () {
-      return myIntegrationIndex;
-   }
-   
-   /**
-    * Sets the index of this element's first integration point with respect to
-    * it's FEM model. Used internally by FEM models to assign each integration
-    * point an index, which is in turn used for caching Field values on a
-    * per-integration point basis.
-    * @see #getIntegrationIndex
-    * @param idx assigned index of first integration point
-    */
-   public void setIntegrationIndex(int idx) {
-      myIntegrationIndex = idx;
-   }
-
    /**
     * {@inheritDoc}
     */

@@ -10,6 +10,7 @@ import maspack.matrix.*;
 import maspack.util.NumberFormat;
 
 import java.util.ListIterator;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 
 import maspack.util.ReaderTokenizer;
@@ -111,6 +112,10 @@ public class Polygon3d {
 
    public Polygon3d (Point3d[] pnts) {
       set (pnts, pnts.length);
+   }
+
+   public Polygon3d (Collection<Point3d> pnts) {
+      set (pnts);
    }
 
    public double getMaxCoordinate() {
@@ -287,7 +292,6 @@ public class Polygon3d {
 
    public void set (double[] coords, int numVertices) {
       clear();
-
       if (coords.length < numVertices * 3) {
          throw new IllegalArgumentException (
             "not enough coords to specify all vertices");
@@ -303,6 +307,7 @@ public class Polygon3d {
    }
 
    public void set (Point3d[] pnts, int numVertices) {
+      clear();
       if (pnts.length < numVertices) {
          throw new IllegalArgumentException (
             "not enough points to specify all vertices");
@@ -315,6 +320,84 @@ public class Polygon3d {
          appendVertex (new PolygonVertex3d (pnts[i]));
       }
    }
+
+   public <P extends Point3d> void set (Collection<P> pnts) {
+      clear();
+      if (pnts.size() < 2) {
+         throw new IllegalArgumentException (
+            "number of points must be at least two");
+      }
+      for (Point3d p : pnts) {
+         appendVertex (new PolygonVertex3d (p));
+      }
+   }
+
+   protected static <P extends Point3d> int counterClockwise (
+      P p0, P p1, P p2, Vector3d nrml, double angTol) {
+      
+      Vector3d del01 = new Vector3d();
+      Vector3d del02 = new Vector3d();
+      Vector3d xprod = new Vector3d();
+
+      del01.sub (p1, p0);
+      del02.sub (p2, p0);
+      xprod.cross (del01, del02);
+      double cross = xprod.dot (nrml);
+
+      if (angTol > 0) {
+         // adjust angTol by the approximate magnitudes of del01 and del02
+         angTol *= del01.oneNorm()*del02.oneNorm();
+      }
+      if (cross > angTol) {
+         return 1;
+      }
+      else if (cross < -angTol) {
+         return -1;
+      }
+      else {
+         if (del01.dot(del02) > 0) {
+            return 0;
+         }
+         else {
+            return -1;
+         }
+      }
+   }      
+
+   /**
+    * Returns {@code true} if this 3d polygon is convex with respect
+    * to the plane defined by the normal vector {@code nrml}.
+    */
+   public boolean isConvex (Vector3d nrml) {
+      return isConvex (nrml, 0);
+   }
+
+   /**
+    * Returns {@code true} if this 3d polygon is convex, within a presribed
+    * angular tolerance, with respect to the plane defined by the normal vector
+    * {@code nrml}.
+    */
+   public boolean isConvex (Vector3d nrml, double angTol) {
+      PolygonVertex3d vtx = firstVertex;
+      if (vtx != null) {
+         PolygonVertex3d vprev = vtx.prev;
+         do {
+            PolygonVertex3d vnext = vtx.next;
+            if (counterClockwise (
+                   vprev.pnt, vtx.pnt, vnext.pnt, nrml, angTol) < 0) {
+               return false;
+            }
+            vprev = vtx;
+            vtx = vnext;
+         }
+         while (vtx != firstVertex);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
 
    public String toString() {
       return toString (new NumberFormat ("%g"));

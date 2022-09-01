@@ -1670,7 +1670,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       double len = utmp.norm();
       utmp.normalize();
 
-      double arrowRad = 3*rad;
+      double arrowRad = ARROW_RATIO*rad;
       double arrowLen = Math.min(2*arrowRad,len/2);
 
       ctmp[0] = pnt1[0] - (float)(arrowLen*utmp.x);
@@ -1860,7 +1860,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       utmp.normalize();
       vtmp.set (pnt0[0], pnt0[1], pnt0[2]);
-      double arrowRad = 3 * props.getLineRadius();
+      double arrowRad = ARROW_RATIO*props.getLineRadius();
       double arrowLen = Math.min(2*arrowRad,len/2);      
       vtmp.scaledAdd (len-arrowLen, utmp);
       ctmp[0] = (float)vtmp.x;
@@ -2544,6 +2544,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       GL2Viewer.mulTransform (gl, Xtmp);
 
       double h2 = utmp.norm();
+      // handle case where line is very short
+      arrowHeight = (float)Math.min (arrowHeight, 0.5*h2);
       double h = h2-arrowHeight;
 
 
@@ -3313,7 +3315,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                }
                break;
             case SOLID_ARROW: {
-               float arad = rad*3;
+               float arad = (float)ARROW_RATIO*rad;
                float aheight = arad*2;
                if (!selecting && useColors) {
                   for (int i=0; i<count; ++i) {

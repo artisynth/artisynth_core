@@ -12,6 +12,7 @@ import maspack.geometry.TriTriIntersection;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.*;
 import maspack.matrix.Vector3d;
+import maspack.util.DynamicIntArray;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 
@@ -131,7 +132,67 @@ public class ContactPlane {
       }
    }
 
-   double turn (Point3d p0, Point3d p1, Point3d p2, Vector3d nrm) {
+   /**
+    * Remove points from a circular list that are concave with respect to
+    * a given normal vector.
+    */
+   static void removeConcavePoints (
+      ArrayList<? extends Point3d> list, Vector3d normal) {
+      DynamicIntArray removeIdxs = new DynamicIntArray();
+      if (list.size() < 3) {
+         return;
+      }
+      do {
+         removeIdxs.clear();
+         Point3d p0 = list.get (list.size()-1);
+         Point3d p1 = list.get (0);
+         for (int k=0; k<list.size(); k++) {
+            Point3d p2 = list.get ((k+1)%list.size());
+            if (turn (p0, p1, p2, normal) < 0) {
+               removeIdxs.add (k);
+               p1 = p2;
+            }
+            else {
+               p0 = p1;
+               p1 = p2;
+            }
+         }
+         for (int i=removeIdxs.size()-1; i>=0; i--) {
+            list.remove (removeIdxs.get(i));
+         }
+      }
+      while (removeIdxs.size() > 0);
+   }
+
+   // static void removeConcavePointsOld (
+   //    ArrayList<? extends Point3d> list, Vector3d normal) {
+
+   //    int removeCnt;
+   //    do {
+   //       removeCnt = 0;
+   //       Point3d p0;
+   //       Point3d p1 = list.get (0);
+   //       Point3d p2 = list.get (1);
+   //       int i = 2;
+   //       for (int k = 1; k <= list.size(); k++) {
+   //          p0 = p1;
+   //          p1 = p2;
+   //          p2 = list.get (i%list.size());
+   //          if (turn (p0, p1, p2, normal) < 0) {
+   //             list.remove ((i-1)%list.size());
+   //             removeCnt++;
+   //             p1 = p0;              
+   //          }
+   //          else {
+   //             i++;
+   //          }
+   //       }
+   //       System.out.println ("removed " + removeCnt);
+   //    }
+   //    while (removeCnt > 0);
+   // }
+
+   static double turn (Point3d p0, Point3d p1, Point3d p2, Vector3d nrm) {
       Vector3d del01 = new Vector3d();
       Vector3d del12 = new Vector3d();
       Vector3d xprod = new Vector3d();
@@ -194,13 +255,6 @@ public class ContactPlane {
             }
          }
       }
-
-      /*
-       * depth was computed to be the max distance between opposing features
-       * along the normal. Divide by 2 so it is now the distance the bodies
-       * should each move in order to separate.
-       */
-      depth *= 0.5;
 
       /* Filter the points to remove one of any pair <i>closer</i> than
        * pointTolerance. */
@@ -398,29 +452,7 @@ public class ContactPlane {
        * if the point sequence p0, p1, p2 forms a right turn with respect to
        * the normal.
        */
-      boolean removedPoint;
-      Vector3d xprod = new Vector3d();
-      do {
-         removedPoint = false;
-         IntersectionPoint p0;
-         IntersectionPoint p1 = mPoints.get (0);
-         IntersectionPoint p2 = mPoints.get (1);
-         int i = 2;
-         for (int k = 1; k <= mPoints.size(); k++) {
-            p0 = p1;
-            p1 = p2;
-            p2 = mPoints.get (i%mPoints.size());
-            if (turn (p0, p1, p2, normal) < 0) {
-               mPoints.remove ((i-1)%mPoints.size());
-               removedPoint = true;
-               p1 = p0;              
-            }
-            else {
-               i++;
-            }
-         }
-      }
-      while (removedPoint);
+      removeConcavePoints (mPoints, normal);
       
       /*
        * Adjust depth so it is greater than or equal to the maximum distance

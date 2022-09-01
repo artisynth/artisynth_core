@@ -32,8 +32,8 @@
    keepspaces=true,                 % keeps spaces in text
    keywordstyle=\color{myblue},     % keyword style
    numbers=none,                    % line-numbers; values: (none, left, right)
-   numbersep=5pt,                   % how far the line-numbers are from code
-   numberstyle=\tiny\color{mygray}, % line-numbers style
+   numbersep=7pt,                   % how far the line-numbers are from code
+   numberstyle=\scriptsize\color{mygray}, % line-numbers style
    showspaces=false,                % show spaces everywhere
    showstringspaces=false,          % underline spaces within strings
    showtabs=false,                  % show tabs
@@ -45,8 +45,8 @@
    rulesepcolor=\color{mygray},
    rulecolor=\color{myblack},
    framerule=0pt,
-   xleftmargin=2.2ex,               % numbers inside box
-   framexleftmargin=2.2ex,			% indentation of frame
+   xleftmargin=3ex,               % numbers inside box
+   framexleftmargin=3ex,			% indentation of frame
 }
 
 \begin{document}
@@ -70,6 +70,196 @@
 
 % \subsection*{Query methods added directly to PolygonalMesh}
 
+\section*{Aug 14, 2022}
+
+\subsubsection{Elastic foundation contact}
+
+Elastic foundation contact (EFC) has been formally added to ArtiSynth, and
+is available via the class
+\javaclass[artisynth.core.materials]{LinearElasticContact} in the
+package {\tt artisynth.core.materials}. It builds on top of
+\javaclass[artisynth.core.materials]{ContactForceBehavior}, which has
+been modified slightly and also moved to the {\tt materials} package.
+
+EFC was originally implmented by Stavness and Sagl, based on a
+formulation described by Bei and Fregly in ``Multibody dynamic
+simulation of knee contact mechanics'', {\it Medical Engineering and
+Physics}, 2004.
+
+Once created, an EFC can be added to a collision behavior using its
+{\tt setForceBehavior()} method. For example:
+%
+\begin{lstlisting}[]
+   // Create a collision behavior that uses EFC. Set friction
+   // to 0.1 so that the ball will actually roll.
+   CollisionBehavior behav = new CollisionBehavior (true, 0.1);
+   behav.setMethod (Method.VERTEX_PENETRATION); // needed for EFC
+   // create the EFC and set it in the behavior
+   LinearElasticContact efc =
+      new LinearElasticContact (
+         /*E=*/100000.0, /*nu=*/0.4, /*damping=*/0.1, /*thickness=*/0.1);
+   behav.setForceBehavior (efc);
+
+   // set the collision behavior between the ball and bowl
+   mech.setCollisionBehavior (ball, bowl, behav);
+\end{lstlisting}
+%
+The {\sf YoungsModulus} and {\sf thickness} properties can be bound to
+a field in case an application requires them to vary over the mesh
+surface. Mesh field components (see below) have been added to support
+this.
+
+An illustration of the pressure resulting from EFC between
+a ball and bowl is shown below:
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/ElasticFoundationContact}
+\else
+ \includegraphics[width=3.75in]{../modelguide/images/ElasticFoundationContact}
+\fi
+\end{center}
+
+Full details are given in the section ``Elastic foundation contact'',
+in the (new) ``Contact and Collisions'' chapter of the
+\href{http://www.artisynth.org/doc/pdf/modelguide.pdf}{Modeling
+Guide}.
+
+\subsubsection{New collision chapter in the Modeling Guide}
+
+The \href{http://www.artisynth.org/doc/pdf/modelguide.pdf}{Modeling
+Guide} has been revised to include a new ``Contact and Collision''
+chapter specifically dedicated to explaining collision handling in
+greater detail, with addtional code examples added to {\tt
+artisynth.demos.tutorial}.
+
+\subsubsection{Collision rendering property ``colorMapCollidable''
+changed to ``renderingCollidable''}
+
+The collision rendering property {\sf colorMapCollidable}, exported by both
+\javaclass[artisynth.core.mechmodels]{CollisionManager} and
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior}, has been
+changed to {\sf renderingCollidable}, and now controls the collidable
+for which normals and contact forces are rendered, in addition to the
+color map. The set/get accessors for {\sf colorMapCollidable} still
+exist in deprecated form.
+
+\subsubsection{Field components moved to artisynth.core.fields}
+
+All application-level field components have been moved to the new
+package {\tt artisynth.core.fields}, in order to reduce clutter in
+other packages. Moved field components and their previous
+packages are listed below:
+
+\begin{tabular}{|ll|}
+\hline
+Component & Previous package\\
+\hline
+{\tt ScalarGridField} & {\tt artisynth.core.modelbase} \\
+{\tt VectorGridField} & {\tt artisynth.core.modelbase} \\
+{\tt ScalarNodalField} & {\tt artisynth.core.femmodels} \\
+{\tt ScalarElementField} & {\tt artisynth.core.femmodels} \\
+{\tt ScalarSubElemField} & {\tt artisynth.core.femmodels} \\
+{\tt ScalarNodalField} & {\tt artisynth.core.femmodels} \\
+{\tt ScalarElementField} & {\tt artisynth.core.femmodels} \\
+{\tt ScalarSubElemField} & {\tt artisynth.core.femmodels} \\
+{\tt VectorNodalField} & {\tt artisynth.core.femmodels} \\
+{\tt Vector3dNodalField} & {\tt artisynth.core.femmodels} \\
+{\tt VectorNdNodalField} & {\tt artisynth.core.femmodels} \\
+{\tt MatrixNdNodalField} & {\tt artisynth.core.femmodels} \\
+{\tt VectorElementField} & {\tt artisynth.core.femmodels} \\
+{\tt Vector3dElementField} & {\tt artisynth.core.femmodels} \\
+{\tt VectorNdElementField} & {\tt artisynth.core.femmodels} \\
+{\tt MatrixNdElementField} & {\tt artisynth.core.femmodels} \\
+{\tt VectorSubElemField} & {\tt artisynth.core.femmodels} \\
+{\tt Vector3dSubElemField} & {\tt artisynth.core.femmodels} \\
+{\tt VectorNdSubElemField} & {\tt artisynth.core.femmodels} \\
+{\tt MatrixNdSubElemField} & {\tt artisynth.core.femmodels}
+\end{tabular}
+
+\subsubsection{API change for binding properties to fields}
+
+Some component properties, primarly those related to FEM materials,
+can be bound to a field such that their value varies over the field
+domain. The API method for binding some property XXX to a field 
+component of type {\tt T} has been changed from
+%
+\begin{lstlisting}[]
+  setXXField (T field, boolean useRestPos)
+\end{lstlisting}
+%
+to
+%
+\begin{lstlisting}[]
+  setXXField (T field)
+\end{lstlisting}
+%
+In other words, the second argument {\tt useRestPos} has been
+removed. This argument applied only to the grid-based fields
+\javaclass[artisynth.core.fields]{ScalarGridField} and
+\javaclass[artisynth.core.fields]{VectorGridField}, and specified
+whether or not rest positions should be used when determining values
+for points within an FEM mesh. Instead, this behavior should now be
+specified by setting the new {\sf useFemRestPosition} property within {\tt
+ScalarGridField} or {\tt VectorGridField}.
+
+\subsubsection{Field components for meshes}
+
+Additional field components have been added to the package {\tt
+artisynth.core.fields} to describe fields on meshes. At present, the
+mesh types are restricted to triangular polygonal meshes. The field
+component include:
+
+\begin{description}
+
+\item[ScalarVertexField]\mbox{}
+
+Specifies scalar values at the mesh vertices. Values at points not
+lying on a vertex are determined by first finding the nearest
+(triangular) face to the point, and then interpolating from the vertex
+values using the barycentric coordinates of the nearest point.
+
+\item[VectorVertexField]\mbox{}
+
+Specifies a vector value at the mesh vertices. Values at points not
+lying on a vertex are determined by first finding the nearest
+(triangular) face to the point, and then interpolating from the vertex
+values using the barycentric coordinates of the nearest point.
+
+\item[ScalarFaceField]\mbox{}
+
+Specifies scalar values at the mesh faces. Values at points not lying
+on a face are determined by finding the nearest (triangular) face to
+the point, and then using the value for that face. Note that this
+implies the field will generally be discontinuous.
+
+\item[VectorFaceField]\mbox{}
+
+Specifies vector values at the mesh faces. Values at points not lying
+on a face are determined by finding the nearest (triangular) face to
+the point, and then using the value for that face. Note that this
+implies the field will generally be discontinuous. 
+
+\end{description}
+
+A primary use of mesh fields is to bind them to property values
+associated with elastic foundation contact. In particular, the {\sf
+YoungsModulus} and {\sf thickness} properties of
+\javaclass[artisynth.core.materials]{LinearElasticContact} can be
+bound to fields.
+
+The vector fields can be defined for any
+\javaclass[maspack.matrix]{VectorObject}.  Subclasses for specific
+vector objects include:
+%
+\begin{lstlisting}[]
+  Vector3dVertexField
+  VectorNdVertexField
+  Vector3dFaceField
+  VectorNdFaceField
+\end{lstlisting}
+%
+
 \section*{Apr 13, 2022}
 
 ArtiSynth 3.7 has been released and is available on the website.  This
@@ -82,6 +272,70 @@ support for solves with multiple right hand sides. This is in
 prepartion for the coming addition of implicit friction integration,
 which will allow large Coulomb friction forces to be incorporated into
 FEM models.
+
+\section*{Mar 28, 2022}
+
+\subsubsection{New OpenSim muscle materials}
+
+New muscle and ligament materials based on OpenSim have been added to
+{\tt core.materials}:
+
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Material & Description \\
+\hline
+{\tt Thelen2003AxialMuscle} & rigid-tendon version of the OpenSim
+Thelen2003Muscle\\
+{\tt Blankevoort1991Ligament} & implements the OpenSim 
+Blankevoort1991Ligament	\\
+{\tt Millard2012AxialMuscle} & rigid-tendon version of the OpenSim 
+Millard2012 muscle\\
+\hline
+\end{tabular}
+\end{center}
+
+\section*{Jan 28, 2022}
+
+\subsubsection{Improved I/O for FEM models}
+
+The ART file format for FEM models has been modified for greater
+efficiency:
+
+\begin{itemize}
+
+\item Rest positions for {\tt FemNode3d} are no longer written to ART
+files if they are the same as the current position.
+
+\item Nodes for elements and {\tt FemMeshComp} attachments are now
+stored and read by node number instead of component path name.
+The previous format is still valid.
+
+\item Meshes in {\tt FemMeshComp} are now written internally, using
+the tag 'meshdata', if they are polygonal, not associated with a file,
+and do not contain colors, textures, or explicit normals.
+
+\end{itemize}
+
+\subsubsection{Changes to {\tt maspack}}
+
+\begin{itemize}
+
+\item Added {\tt solvers.MurtyLCPSolver} to implement Murty's method
+for LCPs and BLCPs, including block pivoting.
+
+\item Added {\tt matrix.SparseCRSMatrix} as a simpler CRS-based sparse
+matrix replacement for {\tt SparseMatrixCRS}.
+
+\item Added methods to {\tt matrix.SparseBlockMatrix}: {\tt
+removeRows()}, {\tt removeCols()}, {\tt addBlock(bi,bj,Matrix)}, {\tt
+mul(MatrixNd,MatrixNd)}, {\tt mulLeft(MatrixNd,MatrixNd)},
+and {\tt mulTransposeRight(MatrixNd,MatrixNd)}.
+
+\item Added {\tt matrix.SparseBlockSignature} to represent the
+structure of sparse block matrices.
+
+\end{itemize}
 
 \section*{Sep 16, 2021}
 
@@ -1314,7 +1568,7 @@ property within a {\tt CompositePropertyPanel}.
 \item In {\tt maspack.widgets}, modified {\tt CompositePropertyPanel}
 to use reflection to look for the method \\ {\tt
 initializePropertyValues()} in the declaration of a {\tt
-CompositeProperty}, and use this to help initialize the sub-properties
+CompositeProperty}, and use this to help initialize the subproperties
 of a {\tt CompositeProperty} based on the value of a previous
 object with the same base class.
 
@@ -2359,7 +2613,7 @@ contains {\it all} information related to collision control, including
 not just the friction and whether collisions are enabled, but also the
 parameters used to fine tune the behavior, compliance (if desired),
 rendering of quantities such as contact normals and points,
-etc. Collision behavior objects are now stored as sub-components of
+etc. Collision behavior objects are now stored as subcomponents of
 the collision manager as proper ArtiSynth components, allowing users
 to select them and edit their properties. Most of the properties
 exported by {\tt CollisionBehavior} are also exported by the collision
@@ -2461,7 +2715,7 @@ Another change is that information about the {\it results} of a
 collision are now collected by
 \javaclass[artisynth.core.mechmodels]{CollisionResponse} components,
 which are created the application as needed and also stored as
-sub-components of the collision manager. This removes the need for an
+subcomponents of the collision manager. This removes the need for an
 application to query internal
 \javaclass[artisynth.core.mechmodels]{CollisionHandler} objects to
 determine things like contact impulses, mesh interpenetration regions,
@@ -8218,7 +8472,7 @@ cleanly divisible by 200.
 
 Support has been added for nonlinear FEM materials. For application
 programming, a {\tt material} property has been added to both {\tt FemModel}
-and {\tt FemElement}. This is a composite property whose sub-properties
+and {\tt FemElement}. This is a composite property whose subproperties
 describe the parameters of the material in question. A FemElement's
 material can be {\tt null}, in which case the material for the FemModel is
 used instead.

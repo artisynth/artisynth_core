@@ -9,6 +9,18 @@ import maspack.render.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.femmodels.*;
+import artisynth.core.fields.MatrixNdElementField;
+import artisynth.core.fields.MatrixNdNodalField;
+import artisynth.core.fields.MatrixNdSubElemField;
+import artisynth.core.fields.ScalarElementField;
+import artisynth.core.fields.ScalarNodalField;
+import artisynth.core.fields.ScalarSubElemField;
+import artisynth.core.fields.VectorElementField;
+import artisynth.core.fields.VectorNdElementField;
+import artisynth.core.fields.VectorNdNodalField;
+import artisynth.core.fields.VectorNdSubElemField;
+import artisynth.core.fields.VectorNodalField;
+import artisynth.core.fields.VectorSubElemField;
 import artisynth.core.workspace.*;
 
 public class FemFieldTest extends RootModel {

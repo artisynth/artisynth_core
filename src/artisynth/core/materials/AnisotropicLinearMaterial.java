@@ -15,8 +15,8 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
 
    private Matrix6d myC;  // anisotropic stiffness matrix
 
-   public static FunctionPropertyList myProps =
-      new FunctionPropertyList (AnisotropicLinearMaterial.class, LinearMaterialBase.class);
+   public static FieldPropertyList myProps =
+      new FieldPropertyList (AnisotropicLinearMaterial.class, LinearMaterialBase.class);
 
    static {
       myProps.add (
@@ -25,7 +25,7 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
          + " in row-major form", DEFAULT_STIFFNESS_TENSOR_VEC, "D36");
    }
 
-   public FunctionPropertyList getAllPropertyInfo() {
+   public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 

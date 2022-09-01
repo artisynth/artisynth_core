@@ -208,23 +208,9 @@ public class QuadwedgeElement extends FemElement3d {
 
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         // nodal coordinates for the wedge are a hybrid of barycentric
-         // and euclidean. See the comment in QuadtetElement on transforming
-         // barycentric coordinates to reflect scaling.
-         double s0 = 2; // triangles are scaled by 2
-         double s1 = 1/Math.sqrt(3/5.0);
-         Vector3d[] ncoords = getScaledNodeCoords (1, null);
-         for (int i=0; i<ncoords.length; i++) {
-            Vector3d v = ncoords[i];
-            v.x = v.x*s0 + (1-s0)/3;
-            v.y = v.y*s0 + (1-s0)/3;
-            v.z = v.z*s1;
-         }
-         myNodalExtrapolationMatrix =
-            createNodalExtrapolationMatrix (
-               ncoords, numIntegrationPoints(), this);
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
       }
-      return myNodalExtrapolationMatrix;
+      return myNodalExtrapolationMatrix;         
    }
 
    // Shape functions are the same as those used by FEBio for

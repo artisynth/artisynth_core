@@ -884,6 +884,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          if (!cons.isBilateral()) {
             data.zput (cons.engaged);
             data.zput (cons.engagedCnt);
+            data.zput (cons.state);
          }
       }     
       if (numCoordinates() > 0) {
@@ -906,6 +907,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          if (!cons.isBilateral()) {
             cons.engaged = data.zget();
             cons.engagedCnt = data.zget();
+            cons.state = data.zget();
             //cons.coordinate = data.dget();
          }
       }

@@ -6,9 +6,9 @@ import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemFactory.FemElementType;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
+import artisynth.core.fields.ScalarSubElemField;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.ScalarSubElemField;
 import artisynth.core.femmodels.TetElement;
 import artisynth.core.femmodels.EmbeddedFem;
 import artisynth.core.materials.FemMaterial;
@@ -165,7 +165,7 @@ public class EmbeddedWeighting extends FemBeam3d {
       
       FemMaterial mat = fem.getMaterial ();
       ScaledFemMaterial smat = new ScaledFemMaterial (mat, 1.0);
-      smat.setScalingField (density, true);
+      smat.setScalingField (density);
       fem.setMaterial (smat);
       
       timer.stop();

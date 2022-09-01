@@ -44,7 +44,7 @@ public interface HasState {
     * substate values for B and C that are taken from
     * <code>prevstate</code>. To facilitate this, the information returned in
     * <code>state</code> should contain additional information such as the
-    * identities of all the (current) sub-components.
+    * identities of all the (current) subcomponents.
     *
     * @param state
     * receives the state information

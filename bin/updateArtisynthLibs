@@ -47,5 +47,5 @@ if [ $? != "0" ] ; then
     echo Error: Java executable not found. Please ensure that Java is in your path
     exit 1
 fi
-ARGS="$ARGS -remoteSource http://www.artisynth.org/files/lib"
+ARGS="$ARGS -remoteSource https://www.artisynth.org/files/lib"
 java artisynth.core.driver.LibraryInstaller $ARGS 

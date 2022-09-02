@@ -1,4 +1,4 @@
-package artisynth.demos.mech;
+package artisynth.demos.fem;
 
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
@@ -7,9 +7,11 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
 import artisynth.core.mechmodels.Collidable.Collidability;
+import artisynth.core.mechmodels.MechSystemSolver.*;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel3d;
+import artisynth.demos.mech.CollisionTestBase;
 
 public class EmbeddedCollisionTest extends CollisionTestBase {
 
@@ -34,6 +36,8 @@ public class EmbeddedCollisionTest extends CollisionTestBase {
       sphere.transformGeometry (X);
       
       mech.setCollisionBehavior (embedded, table, true, 0.2);
+      //mech.setIntegrator (Integrator.Trapezoidal);
+      //mech.setGravity (0, 0, -9);
    }
    
 }

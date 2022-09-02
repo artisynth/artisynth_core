@@ -1,4 +1,4 @@
-package artisynth.demos.mech;
+package artisynth.demos.fem;
 
 import java.awt.Color;
 

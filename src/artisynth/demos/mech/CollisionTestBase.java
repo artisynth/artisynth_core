@@ -18,9 +18,9 @@ import artisynth.core.workspace.RootModel;
 
 public class CollisionTestBase extends RootModel {
    
-   MechModel mech;
-   RigidBody table;
-   boolean wireframe = true;
+   protected MechModel mech;
+   protected RigidBody table;
+   protected boolean wireframe = true;
    
    public CollisionTestBase () {
       super();

@@ -26,6 +26,7 @@ MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
 FemModel3d.noIncompressStiffnessDamping = False
 #SurfaceMeshCollider.useAjlCollision = True;
 PardisoSolver.setDefaultNumThreads (1)
+MurtyMechSolver.setDefaultAdaptivelyRebuildA (False)
 
 main.maskFocusStealing (True)
 dataFileName = "contactTest.out"
@@ -134,7 +135,7 @@ mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("EmbeddedCollisionTest ConstrainedBackwardEuler");
 dorun()
 
-loadModel ("artisynth.demos.mech.MultiCollisionTest")
+loadModel ("artisynth.demos.fem.MultiCollisionTest")
 mech = setModelOpts (1.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
@@ -162,7 +163,7 @@ mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("RigidCollisionTest ConstrainedBackwardEuler");
 dorun()
 
-loadModel ("artisynth.demos.mech.RedundantCollisionTest")
+loadModel ("artisynth.demos.fem.RedundantCollisionTest")
 mech = setModelOpts (1.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
@@ -210,21 +211,67 @@ mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("EmbeddedEmbeddedCollision ConstrainedBackwardEuler -friction 0.0005");
 dorun()
 
-loadModel ("artisynth.demos.mech.EdgeEdgeCollisionTest")
+loadModel ("artisynth.demos.fem.EdgeEdgeCollisionTest")
 mech = setModelOpts (2.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("EdgeEdgeCollisionTest ConstrainedBackwardEuler");
 dorun()
-# undo settings used by EdgeEdgeCollisionTest
-SurfaceMeshCollider.doEdgeEdgeContacts = False
-SurfaceMeshCollider.useAjlCollision = False
 
 loadModel ("artisynth.demos.test.Trampoline")
 mech = setModelOpts (2.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("Trampoline ConstrainedBackwardEuler");
+dorun()
+
+loadModel ("artisynth.demos.tutorial.RollingFem")
+mech = setModelOpts (1.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("RollingFem ConstrainedBackwardEuler");
+dorun()
+
+loadModel ("artisynth.demos.tutorial.SlidingFem")
+mech = setModelOpts (1.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("SlidingFem ConstrainedBackwardEuler");
+dorun()
+
+loadModel ("artisynth.demos.tutorial.FemSelfCollide")
+mech = setModelOpts (1.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("FemSelfCollide ConstrainedBackwardEuler");
+dorun()
+
+loadModel ("artisynth.demos.tutorial.ContactForceMonitor")
+mech = setModelOpts (2.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("ContactForceMonitor ConstrainedBackwardEuler");
+dorun()
+
+loadModel ("artisynth.demos.tutorial.JointedBallCollide")
+mech = setModelOpts (2.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("JointedBallCollide ConstrainedBackwardEuler");
+dorun()
+
+loadModel ("artisynth.demos.tutorial.VariableElasticContact")
+mech = setModelOpts (0.2, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("VariableElasticContact ConstrainedBackwardEuler");
+dorun()
+
+loadModel ("artisynth.demos.tutorial.ElasticFoundationContact")
+mech = setModelOpts (0.2, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("ElasticFoundationContact ConstrainedBackwardEuler");
 dorun()
 
 print SurfaceMeshIntersector.numRegularCalls

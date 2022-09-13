@@ -243,9 +243,12 @@ public class ModelScriptMenuParser {
       Document dom, ModelScriptMenu.Type type, MenuEntry menu) {
       
       Element modelMenu = dom.createElement (getRootTag(type));
-      modelMenu.setAttribute ("xmlns", "https://www.artisynth.org");
+      // Can use http://www.artisynth.org instead of https://www.artisynth.org
+      // since this is only being used as a namespace, and changing to https
+      // would break existing menus
+      modelMenu.setAttribute ("xmlns", "http://www.artisynth.org");
       modelMenu.setAttribute ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-      modelMenu.setAttribute ("xsi:schemaLocation", "https://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd");
+      modelMenu.setAttribute ("xsi:schemaLocation", "http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd");
       
       if (menu.isScrolling() != DEFAULT_SCROLLING) {
          modelMenu.setAttribute (

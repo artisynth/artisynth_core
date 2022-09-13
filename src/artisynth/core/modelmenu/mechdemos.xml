@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!-- Mech-System demos -->
-<ModelMenu xmlns="https://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="https://www.artisynth.org modelmenu.xsd">
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
 	<model text="Frame-Spring" class="artisynth.demos.mech.FrameSpringDemo" />	
 	<model text="Layman" class="artsiynth.demos.mech.LaymanDemo" />
 	<model text="MechModel" class="artisynth.demos.mech.MechModelDemo" />

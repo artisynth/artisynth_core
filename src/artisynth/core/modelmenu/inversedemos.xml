@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!-- Inverse demos -->
-<ModelMenu xmlns="https://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="https://www.artisynth.org modelmenu.xsd">
+<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
 	
 	<model text="Point 2D" class="artisynth.demos.inverse.PointModel2d" />
 	<model text="Point 3D" class="artisynth.demos.inverse.PointModel3d" />

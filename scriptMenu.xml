@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScriptMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.artisynth.org src/artisynth/core/modelmenu/scriptmenu.xsd">
+<ScriptMenu xmlns="https://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://www.artisynth.org src/artisynth/core/modelmenu/scriptmenu.xsd">
 
   <!-- create an unrolled submenu from the current directory -->
   <scriptFolder title="Demo scripts" file="src/artisynth/demos/scripts" />

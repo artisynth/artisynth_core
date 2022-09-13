@@ -5,8 +5,8 @@
 	Enable this demos menu with the command-line option "-demosMenu	<filename>" 
 	-->
 
-<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+<ModelMenu xmlns="https://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://www.artisynth.org modelmenu.xsd">
 
 	<menu text="Distribution" icon="src/artisynth/core/gui/icon/artisynth16.gif">
 		<!-- loads a regular .demoModes file and places models in the current submenu -->

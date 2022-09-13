@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!-- Flat display of all the demo models -->
-<ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.artisynth.org modelmenu.xsd">
+<ModelMenu xmlns="https://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://www.artisynth.org modelmenu.xsd">
 
 	<label text=" FEM" fontstyle="italic" />
 	<include file="src/artisynth/core/modelmenu/femdemos.xml" />

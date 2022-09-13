@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-	targetNamespace="http://www.artisynth.org"
-	xmlns="http://www.artisynth.org" elementFormDefault="unqualified">
+	targetNamespace="https://www.artisynth.org"
+	xmlns="https://www.artisynth.org" elementFormDefault="unqualified">
 
 	<xs:annotation>
 		<xs:documentation>

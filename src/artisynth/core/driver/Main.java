@@ -707,7 +707,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       // create viewer manager now, and even if there is no gui, because the
       // preferences manager wants one
-      myViewerManager = new ViewerManager();
+      myViewerManager = new ViewerManager(createGui);
       
       if (myUseConfigDir) {
          // set user config directory and preferences manager if possible

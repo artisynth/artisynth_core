@@ -360,10 +360,16 @@ public class ViewerManager extends SettingsBase {
       }
    }
 
-   public ViewerManager () {
+   public ViewerManager (boolean createGui) {
       ViewerMouseInputListener listener = new ViewerMouseInputListener();
       myMouseBindings = MouseBindings.Default;
-      myEffectiveMouseBindings = MouseBindings.createDefaultBindings();
+      if (createGui) {
+         myEffectiveMouseBindings = MouseBindings.createDefaultBindings();
+      }
+      else {
+         myEffectiveMouseBindings = 
+            new MouseBindings (MouseBindings.ThreeButton);
+      }
       addMouseListener (listener);
    }
 

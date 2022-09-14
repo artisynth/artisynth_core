@@ -18,6 +18,7 @@ contains()
 
 HELP=no
 SILENT=no
+NO_GUI=no
 JAVA_OPTS="-Xms200M -Xmn100M"
 MEM_LIMIT="-Xmx6G"
 ART_HOME=
@@ -43,6 +44,11 @@ function parse_options()
                 shift 2 ;;
             -s)
                 SILENT=yes
+                shift ;;
+            -noGui)
+                MAIN_OPTS[$IDX]=$1
+                IDX=$(($IDX+1))
+                NO_GUI=yes
                 shift ;;
             *)
                 MAIN_OPTS[$IDX]=$1
@@ -153,6 +159,9 @@ if [ $? != "0" ] ; then
     exit 1
 fi
 JAVA_OPTS="$JAVA_OPTS $MEM_LIMIT"
+if [ $NO_GUI = yes ] ; then
+   JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
+fi
 if [ $SILENT = yes ] ; then
     java $JAVA_OPTS artisynth.core.driver.Launcher "${MAIN_OPTS[@]}" > /dev/null 2>&1
 else

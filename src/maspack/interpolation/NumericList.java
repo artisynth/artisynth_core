@@ -248,10 +248,16 @@ public class NumericList
    }
 
    private void updateMinMaxValues() {
-      myMinValue = Double.POSITIVE_INFINITY;
-      myMaxValue = Double.NEGATIVE_INFINITY;
-      for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
-         updateMinMaxValues (knot);
+      if (myHead != null) {
+         myMinValue = Double.POSITIVE_INFINITY;
+         myMaxValue = Double.NEGATIVE_INFINITY;
+         for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
+            updateMinMaxValues (knot);
+         }
+      }
+      else {
+         myMinValue = 0;
+         myMaxValue = 0;
       }
       myMinMaxValid = true;
    }

@@ -335,9 +335,12 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
 
    public double[] getDefaultDisplayRange() {
       if (myDefaultDisplayMin != defaultDefaultDisplayRange[0] ||
-          myDefaultDisplayMax != defaultDefaultDisplayRange[1])
+          myDefaultDisplayMax != defaultDefaultDisplayRange[1]) {
          return new double[] { myDefaultDisplayMin, myDefaultDisplayMax };
-      return getRange();
+      }
+      else {
+         return getRange();
+      }
    }
 
    public double[] getMinMaxValues() {

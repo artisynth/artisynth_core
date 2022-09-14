@@ -403,11 +403,8 @@ public class ContactInfo {
     */
    public HashMap<PenetrationRegion,PenetrationRegion> findMatchingRegions() {
       if (myRegions0 != null) {
-         HashSet<PenetrationRegion> unmatched1 = 
-            new HashSet<PenetrationRegion>();
-         HashMap<PenetrationRegion,PenetrationRegion> matchingRegions = 
-            new HashMap<PenetrationRegion,PenetrationRegion>();
-         unmatched1.addAll (myRegions1);
+         LinkedHashMap<PenetrationRegion,PenetrationRegion> matchingRegions = 
+            new LinkedHashMap<PenetrationRegion,PenetrationRegion>();
          for (PenetrationRegion r0 : myRegions0) {
             PenetrationRegion found = null;
             for (PenetrationRegion r1 : myRegions1) {
@@ -426,7 +423,6 @@ public class ContactInfo {
          return null;
       }
    }      
-
 
    /**
     * Directly set edge-edge contacts for the contact. The values are * set by

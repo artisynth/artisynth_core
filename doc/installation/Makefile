@@ -20,6 +20,9 @@ EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 WIN_SOURCES = windowsInstallation.tex installation.tex
 LINUX_SOURCES = linuxInstallation.tex installation.tex
 MACOS_SOURCES = macosInstallation.tex installation.tex
+WIN_GE_SOURCES = windowsGitEclipseInstall.tex gitEclipseInstall.tex
+LINUX_GE_SOURCES = linuxGitEclipseInstall.tex gitEclipseInstall.tex
+MACOS_GE_SOURCES = macosGitEclipseInstall.tex gitEclipseInstall.tex
 QUICK_SOURCES = quickInstallation.tex
 
 .PHONY: html pdf chunked
@@ -27,7 +30,10 @@ QUICK_SOURCES = quickInstallation.tex
 html: $(HTML_DIR)/windows/windowsInstallation.html \
       $(HTML_DIR)/linux/linuxInstallation.html \
       $(HTML_DIR)/macos/macosInstallation.html \
-      $(HTML_DIR)/quickInstallation.html
+      $(HTML_DIR)/windows/windowsGitEclipseInstall.html \
+      $(HTML_DIR)/linux/linuxGitEclipseInstall.html \
+      $(HTML_DIR)/macos/macosGitEclipseInstall.html \
+   $(HTML_DIR)/quickInstallation.html
 
 sectioned: $(HTML_DIR)/windows/windowsInstallationToc.html \
       $(HTML_DIR)/linux/linuxInstallationToc.html \
@@ -111,26 +117,38 @@ $(PDF_DIR)/quickInstallation.pdf: quickInstallation.pdf
 $(PDF_DIR)/macosGitEclipseInstall.pdf: macosGitEclipseInstall.pdf
 	cp macosGitEclipseInstall.pdf $(PDF_DIR)
 
-macosGitEclipseInstall.pdf: macosGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
+macosGitEclipseInstall.pdf: $(MACOS_GE_SOURCES) $(EPS_FILES)
 	latex -interaction=batchmode $<
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) macosGitEclipseInstall.ps
 
+$(HTML_DIR)/macos/macosGitEclipseInstall.html: $(MACOS_GE_SOURCES) $(IMG_FILES)
+	$(BUILD_HTML)
+	rm -f macosGitEclipseInstall.xml
+
 $(PDF_DIR)/windowsGitEclipseInstall.pdf: windowsGitEclipseInstall.pdf
 	cp windowsGitEclipseInstall.pdf $(PDF_DIR)
 
-windowsGitEclipseInstall.pdf: windowsGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
+windowsGitEclipseInstall.pdf: $(WIN_GE_SOURCES) $(EPS_FILES)
 	latex -interaction=batchmode $<
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) windowsGitEclipseInstall.ps
 
+$(HTML_DIR)/windows/windowsGitEclipseInstall.html: $(WIN_GE_SOURCES) $(IMG_FILES)
+	$(BUILD_HTML)
+	rm -f windowsGitEclipseInstall.xml
+
 $(PDF_DIR)/linuxGitEclipseInstall.pdf: linuxGitEclipseInstall.pdf
 	cp linuxGitEclipseInstall.pdf $(PDF_DIR)
 
-linuxGitEclipseInstall.pdf: linuxGitEclipseInstall.tex gitEclipseInstall.tex $(EPS_FILES)
+linuxGitEclipseInstall.pdf: $(LINUX_GE_SOURCES) $(EPS_FILES)
 	latex -interaction=batchmode $<
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) linuxGitEclipseInstall.ps
+
+$(HTML_DIR)/linux/linuxGitEclipseInstall.html: $(LINUX_GE_SOURCES) $(IMG_FILES)
+	$(BUILD_HTML)
+	rm -f linuxGitEclipseInstall.xml
 
 %.pdf: %.tex $(EPS_FILES)
 	$(BUILD_PDF)

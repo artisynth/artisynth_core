@@ -14,7 +14,7 @@
 
 \title{Installing ArtiSynth from GitHub into Eclipse (\SYSTEM{})}
 \author{John Lloyd}
-\setpubdate{Last updated: March, 2021}
+\setpubdate{Last updated: September, 2022}
 \iflatexml
 \date{}
 \fi
@@ -53,7 +53,7 @@ There are three parts to the installation process:
 
 \begin{enumerate}
 
-\item Installing Java
+\item Installing the Java development kit (JDK)
 
 \item Installing Eclipse
 
@@ -67,8 +67,9 @@ Intel compatibility layer.
 %
 \ifMacOS
 \begin{sideblock}
-The new Apple ARM-based systems provide an Intel compatibility layer,
-named Rosetta, that appears to allow ArtiSynth to run as is.
+The new Mac ARM-based systems (using the M1 or M2 chips) provide an
+Intel compatibility layer, named Rosetta, that allows ArtiSynth to run
+as is, provided that you install an 64-bit Intel-based JDK.
 \end{sideblock}
 \fi
 %
@@ -111,21 +112,36 @@ and simulating models are given in the
 Instructions on how to {\it build} a model using Java are given in
 the \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
 
-\section{Installing Java}
+\section{Installing the JDK}
 \label{InstallingJava:sec}
 
-ArtiSynth requires that you have a full Java development kit (JDK)
-installed, which comes with a Java compiler; a simple run time
-environment (JRE) will not be sufficient. 
+ArtiSynth requires that you have a full 64-bit Java development kit
+(JDK) installed, which comes with a Java compiler; a simple run time
+environment (JRE) will not be sufficient.  
+
+\begin{sideblock}
+Important: on ARM-based machines, you must still install a 64-bit {\it
+Intel-based} JDK which must then execute through 
+\ifMacOS
+the Rosetta Intel compatibility layer. Invocation of Rosetta
+will generally be invisible to the user.
+\else
+an Intel compatibility layer. Invocation of the compatibility layer
+should generally be invisible to the user.
+\fi
+64-bit Intel-based JDKs
+contain the string {\tt x64} in their download names, whereas
+ARM-based JDKs contain {\tt aarch64} or {\tt arm32}.
+\end{sideblock}
+
 By default, ArtiSynth is compiled to be compliant with Java 8. While
-ArtiSynth will generally work under later Java versions, use
-of both the MATLAB and Jython interfaces generally requires Java 8.
-Therefore we currently recommend using Java
-8; this also provides maximum compatibility with MATLAB.
-We specifically recommend the Java SE Development Kit 8u{\it
-XXX} (where {\it XXX} is the latest revision number), which can be
-obtained from Oracle (registration required).  At the time of this
-writing, the download page is located at
+ArtiSynth will generally work under later Java versions, use of both
+the MATLAB and Jython interfaces generally requires Java 8.  Therefore
+we currently recommend using Java 8; this also provides maximum
+compatibility with MATLAB.  We specifically recommend the Java SE
+Development Kit 8u{\it XXX} (where {\it XXX} is the latest revision
+number), which can be obtained from Oracle (registration required).
+At the time of this writing, the download page is located at
 
 \href{https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}%
 {www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}
@@ -257,8 +273,18 @@ to make it easier to restart.
 
 Newer versions of Eclipse come with their own version of
 Java. However, since we want to use the Java 8 JDK, as discussed
-above, we need to configure Eclipse to use that instead. This can be
-done as follows:
+above, we need to configure Eclipse to use that instead. 
+
+\ifMacOS
+\begin{sideblock}
+If you are running newer ARM-based hardware (M1 or M2 chip sets), then
+even if you're not using Java 8, you {\it will} need to use an
+Intel-based JDK (as mentioned above) and will need to set Eclipse to
+use it, as described here.
+\end{sideblock}
+\fi
+
+Eclipse can be configured to use your JDK as follows:
 
 \begin{enumerate}
 
@@ -626,15 +652,17 @@ initialization file for whichever command line shell you are using.
 Assume that the desired JDK has version number {\tt 1.8.0\_281} and
 that your home folder is {\tt <HOMEDIR>}.  Then for the {\tt bash}
 shell, one can use a plain text editor to edit {\tt <HOMEDIR>/.bashrc}
-and insert a line of the form
-\begin{verbatim}
-  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_281`
-\end{verbatim}
-while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
-<HOMEDIR>/.cshrc} and insert a line of the form
-\begin{verbatim}
-  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_281`
-\end{verbatim}
+(or create the file if it does not already exist) and insert a line of
+the form
+\begin{quote}
+  {\tt export JAVA\_HOME=\`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
+\end{quote}
+where the left quote character {\tt \`{}} is used instead of the more
+common right quote {\tt '}. For the {\tt csh} or {\tt tcsh} shells,
+one can edit {\tt <HOMEDIR>/.cshrc} and insert a line of the form
+\begin{quote}
+  {\tt setenv JAVA\_HOME \`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
+\end{quote}
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -647,7 +675,7 @@ installation \directory{} for your JDK.  In particular, {\tt
 <JDK\_HOME>\SEP bin} should be added {\it ahead} of any other Java
 installations that might be specified on the {\tt PATH}.  If you are
 using the {\tt bash} shell, then modifications to {\tt PATH} can be
-made inside the {\tt .bashrc} file located in your home directory.
+made inside a {\tt .bashrc} file located in your home directory.
 For example, if {\tt <JDK\_HOME>} is {\tt /opt/java/jdk1.8.0\_281},
 then you can add the line
 \begin{verbatim}

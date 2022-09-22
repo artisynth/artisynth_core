@@ -2,7 +2,7 @@
 
 \title{ArtiSynth Installation Guide for \SYSTEM{}}
 \author{John Lloyd, Sebastian Kazenbroot-Guppy, and Antonio S{\'a}nchez}
-\setpubdate{Last updated: September, 2021}
+\setpubdate{Last updated: September, 2022}
 \iflatexml
 \date{}
 \fi
@@ -114,22 +114,28 @@ To install ArtiSynth on \SYSTEM{}, you will need:
 
 \begin{itemize}
 
-\item A 64 bit version of \SYSTEM{} on an Intel processor.
+\item A 64 bit version of \SYSTEM{} running on either an Intel-based
+machine, or an ARM-based machine that implements an Intel
+compatibility layer.
 
+\ifMacOS
 \begin{sideblock}
-ArtiSynth is currently compiled to run on systems using Intel
-processors, and so will not run on ARM-based systems unless they
-implement an Intel compatibility layer. Apple ARM machines implement a
-compatibility layer (called Rosetta) that does appear to allow
-ArtiSynth to run as is.
+Apple ARM-based machines include those based on the M1 or M2 chip
+designs, and currently implement a compatibility layer (called
+Rosetta) that allows ArtiSynth to run as is, provided that you use an
+Intel-based JDK (see Section \ref{InstallingJava}).
 \end{sideblock}
+\fi
 
-\item Java. We recommend the older Java 8; see Section \ref{InstallingJava}.
+\item A Java development kit (JDK) for 64 bit machines. We recommend
+the JDK for the older Java 8. If your machine is based on the ARM
+processor, you must still use an Intel-based JDK.  See Section
+\ref{InstallingJava} for details.
 
 \begin{sideblock}
 ArtiSynth will generally work with later versions of Java, but Java 8
-currently provides maximum compatibility with MATLAB, which still uses
-Java 8, as well as the Jython interface.
+provides maximum compatibility with MATLAB (which still uses Java 8)
+and the Jython interface.
 \end{sideblock}
 
 \ifLinux
@@ -183,18 +189,29 @@ utilities function correctly.
 \section{Installing Java}
 \label{InstallingJava}
 
-ArtiSynth requires that you have a full Java development kit (JDK)
-installed, which comes with a Java compiler; a simple run time
-environment (JRE) will not be sufficient.  By default, ArtiSynth is
-compiled to be compliant with Java 8. While ArtiSynth will work under
-later Java versions, Java 8 provides compatibility with MATLAB (which
-still uses Java 8), as well as the Jython console.  Therefore we
-currently recommend using Java 8; this also provides maximum
-compatibility with MATLAB and Jython, as indicated above. We
-specifically recommend the Java SE Development Kit 8u{\it XXX} (where
-{\it XXX} is the latest revision number), which can be obtained from
-Oracle (registration required).  At the time of this writing, the
-download page is located at
+ArtiSynth requires that you have a full 64-bit Java development kit
+(JDK) installed. A JDK comes with a Java compiler, whereas the simpler
+Java run time environment (JRE) does not. Note, however, that a JDK
+usually {\it includes} a JRE.
+
+\begin{sideblock}
+Important: on ARM-based machines, you must still install a 64-bit {\it
+Intel-based} JDK which must then execute through an Intel
+compatibility layer. Invocation of the compatibility layer should
+generally be invisible to the user.  64-bit Intel-based JDKs
+contain the string {\tt x64} in their download names, whereas
+ARM-based JDKs contain {\tt aarch64} or {\tt arm32}.
+\end{sideblock}
+
+By default, ArtiSynth is compiled to be compliant with Java 8. While
+ArtiSynth will work under later Java versions, Java 8 provides
+compatibility with MATLAB (which still uses Java 8), as well as the
+Jython console.  Therefore we currently recommend using Java 8; this
+also provides maximum compatibility with MATLAB and Jython, as
+indicated above. We specifically recommend the Java SE Development Kit
+8u{\it XXX} (where {\it XXX} is the latest revision number), which can
+be obtained from Oracle (registration required).  At the time of this
+writing, the download page is located at
 
 \href{https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}%
 {www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}
@@ -245,15 +262,17 @@ initialization file for whichever command line shell you are using.
 Assume that the desired JDK has version number {\tt 1.8.0\_281} and
 that your home \directory{} is {\tt <HOMEDIR>}.  Then for the {\tt
 bash} shell, one can use a plain text editor to edit {\tt
-<HOMEDIR>/.bashrc} and insert a line of the form
-\begin{verbatim}
-  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_281`
-\end{verbatim}
-while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
-<HOMEDIR>/.cshrc} and insert a line of the form
-\begin{verbatim}
-  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_281`
-\end{verbatim}
+<HOMEDIR>/.bashrc} (or create the file if it does not already exist)
+and insert a line of the form
+\begin{quote}
+  {\tt export JAVA\_HOME=\`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
+\end{quote}
+where the left quote character {\tt \`{}} is used instead of the more
+common right quote {\tt '}. For the {\tt csh} or {\tt tcsh} shells,
+one can edit {\tt <HOMEDIR>/.cshrc} and insert a line of the form
+\begin{quote}
+  {\tt setenv JAVA\_HOME \`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
+\end{quote}
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -1621,7 +1640,18 @@ to make it easier to restart.
 Newer versions of Eclipse come with their own version of
 Java. However, since we generally want to use our own Java JDK (such
 as Java 8, as described in Section \ref{InstallingJava}), we need to
-configure Eclipse to use that instead. This can be done as follows:
+configure Eclipse to use that instead. 
+
+\ifMacOS
+\begin{sideblock}
+If you are running newer ARM-based hardware (M1 or M2 chip sets), then
+even if you're not using Java 8, you {\it will} need to use an
+Intel-based JDK (as mentioned above) and will need to set Eclipse to
+use it, as described here.
+\end{sideblock}
+\fi
+
+Eclipse can be configured to use your JDK as follows:
 
 \begin{enumerate}
 
@@ -2255,8 +2285,8 @@ by colons `{\tt :}'. The most direct way to do this is to redefine
 command line shell you are using.
 
 Assume that your home folder is {\tt <HOMEDIR>}. Then for the {\tt
-bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} and insert a line of
-the form
+bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} (or create the file
+if it does not already exist) and insert a line of the form
 \begin{verbatim}
    export PATH=<DIR>:$PATH
 \end{verbatim}

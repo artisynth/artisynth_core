@@ -16,7 +16,7 @@
 
 \title{ArtiSynth Quick Installation Guide}
 \author{John Lloyd}
-\setpubdate{Last updated: January, 2020}
+\setpubdate{Last updated: September, 2022}
 \iflatexml
 \date{}
 \fi
@@ -60,17 +60,23 @@ and
 \item You need a 64 bit Windows, MacOS, or Linux system based on an
 Intel processor. You can also use systems based on the ARM processor
 if they implement an Intel compatibility layer. MacOS systems based on
-the new Apple ARM processor implement a compatibility layer (called
-Rosetta) that does appear to allow ArtiSynth to run as is.
+the new Apple ARM processor (the M1 or M2 chips) implement a
+compatibility layer (called Rosetta) that appears to allow ArtiSynth
+to run as is, provided that you install a 64-bit {\it Intel-based}
+Java development kit (JDK).
 
-\item Java should be installed. ArtiSynth will work with the most
-recent Java versions, but we recommend using the older Java 8 since
-that will also provide compatibility with MATLAB and the Jython
-console. You need a full Java Development Kit (JDK), not simply a
-runtime environment (JRE). We recommend the Java SE Development Kit
-8u{\it XXX} ({\it XXX} being the latest update) which can be obtained
-from Oracle (registration required)
-at\\ \href{https://www.oracle.com/technetwork/java/javase/downloads/index.html}%
+\item A 64-bit Java development kit (JDK) should be installed. This
+should be an Intel-based JDK (containing {\tt x64} in its download
+name); on ARM-based machines, this should run using the Intel
+compatibility layer. ArtiSynth will work with the most recent Java
+versions, but we recommend using the older Java 8 since that will also
+provide compatibility with MATLAB and the Jython console. You need a
+full Java Development Kit (JDK), not simply a runtime environment
+(JRE). We recommend the Java SE Development Kit 8u{\it XXX} ({\it XXX}
+being the latest update) which can be obtained from Oracle
+(registration
+required) at\\
+\href{https://www.oracle.com/technetwork/java/javase/downloads/index.html}%
 {www.oracle.com/technetwork/java/javase/downloads/index.htm}.
  
 \item To verify that the Java JDK is visible to your system, open a
@@ -149,15 +155,17 @@ initialization file for whichever command line shell you are using.
 Assume that the desired JDK has version number {\tt 1.8.0\_281} and
 that your home folder is {\tt <HOMEDIR>}.  Then for the {\tt bash}
 shell, one can use a plain text editor to edit {\tt <HOMEDIR>/.bashrc}
+(or create the file if it does not already exist) 
 and insert a line of the form
-\begin{verbatim}
-  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_281`
-\end{verbatim}
-while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
-<HOMEDIR>/.cshrc} and insert a line of the form
-\begin{verbatim}
-  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_281`
-\end{verbatim}
+\begin{quote}
+  {\tt export JAVA\_HOME=\`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
+\end{quote}
+where the left quote character {\tt \`{}} is used instead of the more
+common right quote {\tt '}. For the {\tt csh} or {\tt tcsh} shells,
+one can edit {\tt <HOMEDIR>/.cshrc} and insert a line of the form
+\begin{quote}
+  {\tt setenv JAVA\_HOME \`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
+\end{quote}
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -261,8 +269,8 @@ redefine {\tt PATH} inside one of the initialization files for
 whichever command line shell you are using.
 
 Assume that your home folder is {\tt <HOMEDIR>}. Then for the {\tt
-bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} and insert a line of
-the form
+bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} (or create the file
+if it does not already exist) and insert a line of the form
 \begin{verbatim}
    export PATH=<DIR>:$PATH
 \end{verbatim}

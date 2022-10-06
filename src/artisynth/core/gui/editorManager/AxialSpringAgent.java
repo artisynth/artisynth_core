@@ -48,7 +48,7 @@ AddComponentAgent<C> {
    private static HashMap<Class,ModelComponent> myPrototypeMap;
    private static RootModel myLastRootModel = null;
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == AxialSpring.class) {
          AxialSpring axial = (AxialSpring)comp;
          RenderProps.setLineRadius (axial, getDefaultLineRadius());

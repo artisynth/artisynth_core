@@ -57,7 +57,7 @@ public class MuscleElementAgent extends AddComponentAgent<MuscleElementDesc> {
    private static HashMap<Class,ModelComponent> myPrototypeMap;
    private static RootModel myLastRootModel = null;
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == MuscleElementDesc.class) {
          MuscleElementDesc desc = (MuscleElementDesc)comp;
       }

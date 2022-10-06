@@ -136,7 +136,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       setState (State.SelectingLocation);
    }
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == RigidBody.class) {
          RigidBody mkr = (RigidBody)comp;
          RenderProps.setPointRadius (mkr, getDefaultPointRadius());

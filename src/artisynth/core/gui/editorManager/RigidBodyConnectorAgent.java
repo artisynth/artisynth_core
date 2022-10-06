@@ -50,7 +50,7 @@ AddComponentAgent<BodyConnector> {
 
    private JButton myFixedButton;
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == RevoluteJoint.class) {
          RevoluteJoint joint = (RevoluteJoint)comp;
          joint.setAxisLength (getDefaultAxisLength());

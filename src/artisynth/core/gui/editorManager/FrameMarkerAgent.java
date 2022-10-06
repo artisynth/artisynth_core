@@ -18,6 +18,7 @@ import javax.swing.*;
 import javax.swing.event.*;
 
 import maspack.render.*;
+import maspack.render.Renderer.*;
 import maspack.render.GL.GLViewer;
 import maspack.geometry.*;
 import maspack.matrix.*;
@@ -35,14 +36,20 @@ import artisynth.core.workspace.RootModel;
  */
 public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
    private MechModel myModel;
+   private RenderableComponentList<FrameMarker> myMarkerList; // marker dest
+   private RigidBody myRigidBody; // if non-null, body to add markers to
 
    private static HashMap<Class,ModelComponent> myPrototypeMap;
    private static RootModel myLastRootModel = null;
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (
+      ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == FrameMarker.class) {
-         FrameMarker mkr = (FrameMarker)comp;
-         RenderProps.setPointRadius (mkr, getDefaultPointRadius());
+         if (!hasSphericalPointRendering(container)) {
+            FrameMarker mkr = (FrameMarker)comp;
+            RenderProps.setPointRadius (mkr, getDefaultPointRadius());
+            RenderProps.setPointStyle (mkr, PointStyle.SPHERE);
+         }
       }
       else {
          throw new InternalErrorException ("unimplemented type " + type);
@@ -66,7 +73,17 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
    private void setState (State state) {
       switch (state) {
          case SelectingLocation: {
-            myInstructionBox.setText ("Pick location on a rigid body");
+            String targetName;
+            if (myRigidBody != null) {
+               targetName = myRigidBody.getName();
+               if (targetName == null) {
+                  targetName = "the rigid body";
+               }
+            }
+            else {
+               targetName = "a rigid body";
+            }
+            myInstructionBox.setText ("Pick location on "+targetName);
             installLocationListener();
             break;
          }
@@ -82,8 +99,16 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
    }
 
    public FrameMarkerAgent (Main main, MechModel model) {
-      super (main, (ComponentList<FrameMarker>)model.frameMarkers(), model);
+      this (main, model, model.frameMarkers(), /*rigidBody=*/null);
+   }
+
+   public FrameMarkerAgent (
+      Main main, MechModel model, 
+      RenderableComponentList<FrameMarker> markers, RigidBody body) { 
+      super (main, (ComponentList<FrameMarker>)markers, model);
       myModel = model;
+      myMarkerList = markers;
+      myRigidBody = body;
    }
 
    protected void createDisplay() {
@@ -96,7 +121,7 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
 
       createComponentList (
          "Existing frame markers:", new ComponentListWidget<FrameMarker> (
-            myModel.frameMarkers(), myModel));
+            myMarkerList, myModel));
       // createSeparator();
       // createTypeSelector();
       createNameField();
@@ -134,22 +159,42 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
    // }
    // }
 
+   private Point3d rayIntersectsBody (
+      RigidBody body, MouseRayEvent rayEvent, DoubleHolder minDist) {
+      if (body.getSurfaceMesh() != null) {
+         Point3d isectPoint = BVFeatureQuery.nearestPointAlongRay (
+            body.getSurfaceMesh (),
+            rayEvent.getRay().getOrigin(), rayEvent.getRay().getDirection());             
+         if (isectPoint != null) {
+            double d = isectPoint.distance (rayEvent.getRay().getOrigin());
+            if (d < minDist.value) {
+               minDist.value = d;
+               return isectPoint;
+            }
+         }
+      } 
+      return null;
+   }
+   
    public void handleLocationEvent (GLViewer viewer, MouseRayEvent rayEvent) {
-      double mind = Double.POSITIVE_INFINITY;
+      DoubleHolder minDist = new DoubleHolder(Double.POSITIVE_INFINITY);
       RigidBody nearestBody = null;
       Point3d nearestIntersection = null;
-      for (RigidBody body : myModel.rigidBodies()) {
-         if (body.getMesh() != null) {
-            Point3d isectPoint = BVFeatureQuery.nearestPointAlongRay (
-               body.getMesh (),
-               rayEvent.getRay().getOrigin(), rayEvent.getRay().getDirection());             
+      if (myRigidBody != null) {
+         // confine search to single body
+         Point3d isectPoint = rayIntersectsBody (myRigidBody, rayEvent, minDist);
+         if (isectPoint != null) {
+            nearestBody = myRigidBody;
+            nearestIntersection = isectPoint;
+         }
+      }
+      else {
+         // search among all rigid bodies
+         for (RigidBody body : myModel.rigidBodies()) {
+            Point3d isectPoint = rayIntersectsBody (body, rayEvent, minDist);
             if (isectPoint != null) {
-               double d = isectPoint.distance (rayEvent.getRay().getOrigin());
-               if (d < mind) {
-                  mind = d;
-                  nearestBody = body;
-                  nearestIntersection = isectPoint;
-               }
+               nearestBody = body;
+               nearestIntersection = isectPoint;
             }
          }
       }
@@ -176,8 +221,7 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
       setProperties (myPrototype, myPrototype);
 
       addComponent (new AddComponentsCommand (
-         "add FrameMarker", marker,
-         (MutableCompositeComponent<?>)myModel.frameMarkers()));
+         "add FrameMarker", marker, myMarkerList));
 
       setState (State.SelectingLocation);
    }

@@ -19,6 +19,7 @@ import javax.swing.event.*;
 
 import maspack.render.*;
 import maspack.render.GL.GLViewer;
+import maspack.render.Renderer.PointStyle;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.util.*;
@@ -41,10 +42,13 @@ public class ParticleAgent extends AddComponentAgent<Particle> {
 
    private JCheckBox myUsePlaneToggle;
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == Particle.class) {
-         Particle mkr = (Particle)comp;
-         RenderProps.setPointRadius (mkr, getDefaultPointRadius());
+         if (!hasSphericalPointRendering(container)) {
+            Particle mkr = (Particle)comp;
+            RenderProps.setPointRadius (mkr, getDefaultPointRadius());
+            RenderProps.setPointStyle (mkr, PointStyle.SPHERE);
+         }         
       }
       else {
          throw new InternalErrorException ("unimplemented type " + type);

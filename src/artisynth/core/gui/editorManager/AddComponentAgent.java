@@ -33,6 +33,9 @@ import maspack.properties.HostList;
 import maspack.properties.PropTreeCell;
 import maspack.properties.Property;
 import maspack.render.MouseRayEvent;
+import maspack.render.Renderable;
+import maspack.render.Renderer.*;
+import maspack.render.RenderProps;
 import maspack.render.Viewer;
 import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
@@ -95,6 +98,20 @@ ValueChangeListener {
          myDesc = desc;
       }
    }
+   
+   protected boolean hasSphericalPointRendering (ComponentList<?> container) {
+      CompositeComponent ccomp = (CompositeComponent)container;
+      while (ccomp != null) {
+         if (ccomp instanceof Renderable) {
+            RenderProps props = ((Renderable)ccomp).getRenderProps ();
+            if (props != null) {
+               return props.getPointStyle() == PointStyle.SPHERE;
+            }
+         }
+         ccomp = ccomp.getParent();
+      }
+      return false;
+   }
 
    private LinkedHashMap<Class,ArrayList<PropName>> myTypePropertyMap;
 
@@ -117,7 +134,7 @@ ValueChangeListener {
                   throw new InternalErrorException (
                      "cannot create no-args instance of " + type);
                }
-               initializePrototype (comp, type);
+               initializePrototype (comp, myContainer, type);
             }
             else {
                comp = ((CopyableComponent)comp).copy (0, null);
@@ -147,8 +164,10 @@ ValueChangeListener {
    /**
     * Initializes a prototype class instance. In particular, the property values
     * are expected to be initialized.
+    * @param container TODO
     */
-   protected abstract void initializePrototype (ModelComponent comp, Class type);
+   protected abstract void initializePrototype (
+      ModelComponent comp, ComponentList<?> container, Class type);
 
    public AddComponentAgent (Main main, ComponentList<?> container,
                              CompositeComponent ancestor) {

@@ -48,7 +48,7 @@ public class AttachParticleAgent
    /**
     * Not used because we don't have property panels for attachments.
     */
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (ModelComponent comp, ComponentList<?> container, Class type) {
    }
 
    protected void setInitialState() {

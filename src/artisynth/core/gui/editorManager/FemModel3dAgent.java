@@ -226,7 +226,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       setState (State.SelectingLocation);
    }
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == FemModel3d.class) {
          FemModel3d mkr = (FemModel3d) comp;
          RenderProps.setPointRadius (mkr, getDefaultPointRadius());

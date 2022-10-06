@@ -22,6 +22,7 @@ import javax.swing.filechooser.FileFilter;
 
 import maspack.render.*;
 import maspack.render.GL.GLViewer;
+import maspack.render.Renderer.*;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.util.*;
@@ -48,10 +49,14 @@ public class Fem3dMarkerAgent extends AddComponentAgent<FemMarker> {
 
    private JCheckBox myUsePlaneToggle;
 
-   protected void initializePrototype (ModelComponent comp, Class type) {
+   protected void initializePrototype (
+      ModelComponent comp, ComponentList<?> container, Class type) {
       if (type == FemMarker.class) {
-         FemMarker mkr = (FemMarker)comp;
-         RenderProps.setPointRadius (mkr, getDefaultPointRadius());
+         if (!hasSphericalPointRendering(container)) {
+            FemMarker mkr = (FemMarker)comp;
+            RenderProps.setPointRadius (mkr, getDefaultPointRadius());
+            RenderProps.setPointStyle (mkr, PointStyle.SPHERE);
+         }
       }
       else {
          throw new InternalErrorException ("unimplemented type " + type);

@@ -58,11 +58,15 @@ public class PointMeshForce extends RenderableComponentBase
 
       void applyForce() {
          Vector3d tmp = new Vector3d();
-         tmp.scale (computeForce(), myNrm);
+         computeForce (tmp);
          myPoint.addForce (tmp);
       }
 
-      double computeForce() {
+      void computeForce (Vector3d f) {
+         f.scale (computeForceMag(), myNrm);
+      }
+
+      double computeForceMag() {
          double d = myDist;
          double ddot = myDistDot;
          double sgn = 1;
@@ -497,6 +501,23 @@ public class PointMeshForce extends RenderableComponentBase
       for (PointInfo pinfo : myPointInfo) {
          pinfo.applyForce();
       }
+   }
+
+   /**
+    * Computes the force currently acting on a specific point.
+    * 
+    * @param f
+    * returns the computed force acting on the point
+    * @param idx
+    * index of the point
+    */
+   public void computePointForce (Vector3d f, int idx) {
+      if (!myEnabledP) {
+         f.setZero();
+         return;
+      }
+      updatePointInfo();
+      myPointInfo.get(idx).computeForce (f);
    }
 
    /**

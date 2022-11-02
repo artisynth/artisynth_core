@@ -71,6 +71,19 @@ public class MeshFileChooser extends JFileChooser {
          return null;
       }
    }
+
+   public FileFilter getFilterForExtension (String ext) {
+      for (FileFilter filter : myAllFilters) {
+         if (filter instanceof ExtensionFileFilter) {
+            ExtensionFileFilter efilter = (ExtensionFileFilter)filter;
+            if (efilter.numExtensions() == 1 &&
+                efilter.containsExtension (ext)) {
+               return filter;
+            }
+         }
+      }
+      return null;
+   }
    
    public MeshFileChooser (File file) {
       this (file, /*forReading=*/true, /*fileExtensions=*/null);
@@ -139,6 +152,24 @@ public class MeshFileChooser extends JFileChooser {
    }
 
    /**
+    * Returns the file extension currently associated with this chooser's file
+    * filter. Returns {@code null} if the current file filter is not associated
+    * with a single extension.
+    *
+    * @return current default file extension, or {@code null}.
+    */
+   public String getDefaultFileExtension() {
+      FileFilter filter = getFileFilter();
+      if (filter instanceof ExtensionFileFilter) {
+         String[] exts = ((ExtensionFileFilter)filter).getExtensions();
+         if (exts.length == 1) {
+            return exts[0];
+         }
+      }
+      return null;
+   }
+
+   /**
     * Returns the extension that should be associated with the selected
     * file. If the selected file is non-null and has extension, then that
     * extension is returned. Otherwise, returns the lowercase version of the
@@ -155,39 +186,4 @@ public class MeshFileChooser extends JFileChooser {
       return ext;
    }
 
-//   public boolean isValidFile (File file) {
-//      String ext = getFileExtension (file);
-//      if (ext != null) {
-//         for (ExtensionFileFilter filter : myAllFilters) {
-//            if (filter.containsExtension (ext)) {
-//               return true;
-//            }
-//         }
-//      }
-//      return false;      
-//   }
-//
-//   public int showValidatedDialog (Component comp, String approveButtonText) {
-//      int returnVal = showDialog (comp, approveButtonText);
-//      if (returnVal == JFileChooser.APPROVE_OPTION) {
-//         File file = getSelectedFileWithExtension();
-//         if (!isValidFile (file)) {
-//            GuiUtils.showError (
-//               comp, "Invalid file extension ." + getFileExtension(file));
-//            returnVal = JFileChooser.ERROR_OPTION;
-//         }
-//      }
-//      return returnVal;
-//   }
-
-   // public static void main (String[] args) {
-   //    for (String s : MeshIO.getWriterFileSuffixes()) {
-   //       System.out.println (s);
-   //    }
-   //    System.out.println ("");
-   //    for (String s : MeshIO.getWriterFormatNames()) {
-   //       System.out.println (s);
-   //    }
-      
-   // }
 }

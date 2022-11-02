@@ -280,18 +280,19 @@ public class MeshComponent extends RenderableComponentBase
       setRenderProps(createDefaultRenderProps());
    }
 
-   @Override
-   public void prerender(RenderList list) {
+   public void prerenderMesh () {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          if (!mesh.isFixed()) {
             mesh.notifyVertexPositionsModified();
          }
          mesh.prerender (myRenderProps);
-         //if (((PolygonalMesh)mesh).getBVTree() != null) {
-         //   list.addIfVisible (((PolygonalMesh)mesh).getBVTree());
-         //}
       }
+   }
+
+   @Override
+   public void prerender(RenderList list) {
+      prerenderMesh();
    }
 
    public void render(

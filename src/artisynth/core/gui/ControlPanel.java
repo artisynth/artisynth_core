@@ -362,12 +362,8 @@ public class ControlPanel extends ModelComponentBase
       myPanel.addWidgets (PropertyUtils.createProperties (host));
    }
 
-   public Component addLabel (String text) {
-      JLabel label = new JLabel (text);
-      label.setForeground (new Color (0.4f, 0.4f, 0.8f));
-      GuiUtils.setItalicFont (label);
-      addWidget (label);
-      return label;
+   public JLabel addLabel (String text) {
+      return myPanel.addLabel (text);
    }
 
    public PropertyPanel getPropertyPanel() {

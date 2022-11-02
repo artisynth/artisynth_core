@@ -23,7 +23,8 @@ import maspack.util.GenericFileFilter;
 public class ModelFileChooser extends PanelFileChooser {
 
    private static final long serialVersionUID = 1L;
-   
+
+   GenericFileFilter myArtFilter;
    BooleanSelector mySaveWayPointData;
    BooleanSelector myCoreCompsOnly;
 
@@ -67,14 +68,13 @@ public class ModelFileChooser extends PanelFileChooser {
          setSelectedFile (modelFile);
       }
       setApproveButtonText("Save");
-      
-      GenericFileFilter filter = new GenericFileFilter (
-         "art", "ArtiSynth model files (*.art)");
-      addChoosableFileFilter (filter);
-      if (modelFile == null || filter.fileExtensionMatches (modelFile)) {
-         setFileFilter (filter);
-      }
 
+      myArtFilter = new GenericFileFilter (
+         "art", "ArtiSynth model files (*.art)");
+      addChoosableFileFilter (myArtFilter);
+      if (modelFile == null || myArtFilter.fileExtensionMatches (modelFile)) {
+         setFileFilter (myArtFilter);
+      }
       if (mySaveWayPointData != null || myCoreCompsOnly != null) {
          PropertyPanel panel = createPropertyPanel();
 
@@ -115,5 +115,21 @@ public class ModelFileChooser extends PanelFileChooser {
       if (myCoreCompsOnly != null) {
          myCoreCompsOnly.setValue(enable);
       }
+   }
+
+   public boolean isArtFilterSelected() {
+      return getFileFilter() == myArtFilter;
+   }
+
+   /**
+    * Returns the selected file, appending a .art extension if there is no
+    * extension and the .art filter is selected.
+    */
+   public File getSelectedFileWithExtension() {
+      File file = getSelectedFile();
+      if (file.getName().indexOf ('.') == -1 && isArtFilterSelected()) {
+         file = new File(file.getPath() + ".art");
+      }
+      return file;
    }
 }

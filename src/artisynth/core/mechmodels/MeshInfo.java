@@ -11,6 +11,7 @@ import java.io.*;
 import artisynth.core.util.*;
 
 import maspack.geometry.*;
+import maspack.geometry.io.*;
 import maspack.matrix.*;
 import maspack.render.*;
 import maspack.util.*;
@@ -302,7 +303,9 @@ public class MeshInfo {
                   throw new IOException (
                      "file '" + rtok.sval + "' not found or unreadable");
                }
-               mesh.read (new BufferedReader (new FileReader (file)), false);
+               GenericMeshReader reader = new GenericMeshReader(file);
+               reader.readMesh (mesh);
+               //mesh.read (new BufferedReader (new FileReader (file)), false);
                fileName = new String (rtok.sval);
                while (rtok.nextToken() != ']') {
                   if (rtok.ttype == ReaderTokenizer.TT_WORD) {

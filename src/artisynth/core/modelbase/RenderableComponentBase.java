@@ -103,6 +103,9 @@ implements RenderableComponent {
    }
 
    public static boolean isVisible (RenderableComponent rcomp) {
+      if (rcomp == null) {
+         return false;
+      }
       RenderProps props = rcomp.getRenderProps();
       if (props != null) {
          return props.isVisible();
@@ -116,8 +119,8 @@ implements RenderableComponent {
       return false;
    }
 
-   public static void setVisible (RenderableComponent rcomp, boolean enable) {
-      if (isVisible (rcomp) != enable) {
+   public static boolean setVisible (RenderableComponent rcomp, boolean enable) {
+      if (rcomp != null && isVisible (rcomp) != enable) {
          // One option would be to climb hierarchy to see there is an ancestor
          // with RenderProps, and then if the "visible" value of those props ==
          // enable, set the "visible" mode for rcomp to inherited, but that
@@ -125,6 +128,10 @@ implements RenderableComponent {
          // we might expect it to stay visible even if an ancestor is made
          // invisible. So we just explicitly set the visible property for now.
          RenderProps.setVisible (rcomp, enable);
+         return true;
+      }
+      else {
+         return false;
       }
    }
 

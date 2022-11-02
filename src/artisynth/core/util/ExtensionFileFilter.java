@@ -43,6 +43,10 @@ public class ExtensionFileFilter extends FileFilter {
       return Arrays.copyOf (extensions, extensions.length);
    }
 
+   public int numExtensions() {
+      return extensions.length;
+   }
+
    public String getDescription() {
       return description;
    }

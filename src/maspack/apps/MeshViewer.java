@@ -98,6 +98,8 @@ import maspack.widgets.ViewerToolBar;
 public class MeshViewer extends GLViewerFrame
    implements ActionListener, HasProperties, RenderListener {
 
+   private static final double INF = Double.POSITIVE_INFINITY;
+
    private static final long serialVersionUID = 1L;
    ArrayList<MeshBase> myMeshes = new ArrayList<MeshBase> (0);
    ArrayList<String> myMeshQueue = null;
@@ -116,6 +118,10 @@ public class MeshViewer extends GLViewerFrame
    double mySmoothingLambda = DEFAULT_SMOOTHING_LAMBDA;
    double mySmoothingMu = DEFAULT_SMOOTHING_MU;
    int mySmoothingCount = DEFAULT_SMOOTHING_COUNT;
+
+   Point3d myBBCenter = new Point3d();
+   Vector3d myBBWidths = new Vector3d();
+   boolean myBBValid = false;
 
    PropertyDialog myPropertyDialog;
    ViewerPopupManager myPopupManager; // manages viewer property pop-ups
@@ -146,6 +152,10 @@ public class MeshViewer extends GLViewerFrame
       myProps.add (
          "smoothingCount", "count for two-stage Laplacian smoothing",
          DEFAULT_SMOOTHING_COUNT);
+      myProps.addReadOnly (
+         "boundingBoxCenter", "center of the bounding box");
+      myProps.addReadOnly (
+         "boundingBoxWidths", "widths of the bounding box");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -214,6 +224,30 @@ public class MeshViewer extends GLViewerFrame
    public void setSmoothingCount (int count) {
       mySmoothingCount = count;
    }
+
+   private void updateBB() {
+      if (!myBBValid) {
+         Vector3d min = new Vector3d(INF, INF, INF);
+         Vector3d max = new Vector3d(-INF, -INF, -INF);
+         for (MeshBase mesh : myMeshes) {
+            mesh.updateBounds (min, max);
+         }
+         myBBCenter.add (min, max);
+         myBBCenter.scale (0.5);
+         myBBWidths.sub (max, min);
+         myBBValid = true;
+      }
+   }
+
+   public Point3d getBoundingBoxCenter() {
+      updateBB();
+      return myBBCenter;
+   }         
+
+   public Vector3d getBoundingBoxWidths() {
+      updateBB();
+      return myBBWidths;
+   }         
 
    RenderProps myRenderProps;
 
@@ -495,6 +529,7 @@ public class MeshViewer extends GLViewerFrame
       viewer.addRenderable (mesh);     
       myLastMeshName = name;
       setLabelText (name, mesh);
+      myBBValid = false;
    }
 
    public void setMeshQueue (ArrayList<String> queue) {
@@ -601,6 +636,7 @@ public class MeshViewer extends GLViewerFrame
             pmesh.notifyVertexPositionsModified();
          }
       }
+      myBBValid = false;
       viewer.rerender();
    }
 
@@ -629,6 +665,7 @@ public class MeshViewer extends GLViewerFrame
             }
          }
       }
+      myBBValid = false;
       System.out.println ("done");
       viewer.rerender();
    }
@@ -688,6 +725,7 @@ public class MeshViewer extends GLViewerFrame
          myMeshes.clear();
          addMesh (file.getName(), mesh);
          viewer.autoFitPerspective ();
+         myBBValid = false;
          viewer.rerender();
       }
       return mesh != null;

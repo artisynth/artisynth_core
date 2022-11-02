@@ -1253,7 +1253,7 @@ public class SurfaceMeshIntersector {
       if (nearest.myVtx != null) {
          if ((newVtx = map.get (nearest.myVtx)) == null) {
             nearest.myVtx.getWorldPoint (wpnt);
-            newVtx = new Vertex3d (wpnt);
+            newVtx = new Vertex3d (new Point3d(wpnt));
          }
          if (headVtx != null) {
             addVertexToMap (headVtx, newVtx, map);
@@ -1273,7 +1273,7 @@ public class SurfaceMeshIntersector {
          isCoincident.value = true;
       }
       else {
-         newVtx = new Vertex3d (mip);
+         newVtx = new Vertex3d (new Point3d(mip));
          isCoincident.value = false;
       }
       return newVtx;
@@ -1323,7 +1323,8 @@ public class SurfaceMeshIntersector {
             for (Vertex3d vtx : r.myVertices) {
                if (vertexMap.get (vtx) == null) {
                   //System.out.println ("adding inside vertex");
-                  vertexMap.put (vtx, new Vertex3d(vtx.getWorldPoint()));
+                  vertexMap.put (
+                     vtx, new Vertex3d(new Point3d(vtx.getWorldPoint())));
                }
             }
          }

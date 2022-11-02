@@ -58,6 +58,19 @@ public class Plane implements java.io.Serializable {
    }
 
    /**
+    * Creates a plane from the x-y plane of the coordinate frame indicated
+    * by {@code TPW}. The plane passes through the frame origin and its
+    * normal is aligned with the frames's z axis. 
+    * 
+    * @param TPW
+    * transform defining the plane
+    */
+   public Plane (RigidTransform3d TPW) {
+      this();
+      set (TPW);
+   }
+
+   /**
     * Creates a plane which passes through a particular point with a specified
     * normal direction.
     * 

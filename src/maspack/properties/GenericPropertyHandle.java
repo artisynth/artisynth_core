@@ -38,6 +38,19 @@ public class GenericPropertyHandle implements Property {
    public HasProperties getHost() {
       return myHost;
    }
+   
+   public void resetHost (HasProperties host) {
+      if (myHost == null) {
+         throw new IllegalStateException (
+            "Property does not currently have a host");
+      }
+      if (myHost.getClass() != host.getClass()) {
+         throw new IllegalStateException (
+             "New host has class "+host.getClass()+
+             "; previous host had class "+myHost.getClass());
+      }
+      myHost = host;      
+   }
 
    public Object get() {
       try {

@@ -6,7 +6,10 @@
  */
 package maspack.matrix;
 
+import java.util.ArrayList;
+
 import maspack.util.RandomGenerator;
+import maspack.util.FunctionTimer;
 
 class RotationMatrix3dTest extends MatrixTest {
    void mul (Matrix MR, Matrix M1) {
@@ -461,12 +464,38 @@ class RotationMatrix3dTest extends MatrixTest {
       }
    }
 
+   void timeSetZDirection() {
+      ArrayList<Vector3d> dirs = new ArrayList<>();
+      int ntests = 1000000;
+      for (int i=0; i<ntests; i++) {
+         Vector3d dir = new Vector3d();
+         dir.setRandom();
+         dir.normalize();
+         dirs.add (dir);
+      }
+      // warmup:
+      RotationMatrix3d R = new RotationMatrix3d();
+      for (Vector3d dir : dirs) {
+         R.setZDirection (dir);
+      }
+      FunctionTimer timer = new FunctionTimer();
+      timer.start();
+      for (Vector3d dir : dirs) {
+         R.setZDirection (dir);
+      }
+      timer.stop();
+      System.out.println ("setZDirection: " + timer.result(ntests));
+   }
+
+
+   public void timing () {
+      timeSetZDirection();
+   }      
+   
    public void execute() {
       RotationMatrix3d RR = new RotationMatrix3d();
       RotationMatrix3d R1 = new RotationMatrix3d();
       RotationMatrix3d R2 = new RotationMatrix3d();
-
-      RandomGenerator.setSeed (0x1234);
 
       testGeneric (R1);
 
@@ -572,14 +601,30 @@ class RotationMatrix3dTest extends MatrixTest {
    public static void main (String[] args) {
       RotationMatrix3dTest test = new RotationMatrix3dTest();
 
-      try {
-         test.execute();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
+      boolean doTiming = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-timing")) {
+            doTiming = true;
+         }
+         else {
+            System.out.println ("Unknown option "+args[i]+"; ignoring");
+         }
       }
 
-      System.out.println ("\nPassed\n");
+      RandomGenerator.setSeed (0x1234);
+
+      if (doTiming) {
+         test.timing();
+      }
+      else {
+         try {
+            test.execute();
+         }
+         catch (Exception e) {
+            e.printStackTrace();
+            System.exit (1);
+         }
+         System.out.println ("\nPassed\n");
+      }
    }
 }

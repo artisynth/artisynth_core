@@ -331,11 +331,9 @@ public class PropertyWidget {
             }
          }
       }
-
    }
 
    public static void finishWidget (LabeledComponentBase widget, Property prop) {
-
       Object value = prop.get();
       PropertyInfo info = prop.getInfo();
 

@@ -260,7 +260,7 @@ public class BVFeatureQuery {
    /**
     * Returns the nearest triangular mesh face to a point along a line.  This
     * method uses the default bounding volume hierarchy produced by the mesh.
-    * If no face is found, the results returned int <code>nearPnt</code> and
+    * If no face is found, the results returned in <code>nearPnt</code> and
     * <code>duv</code> are undefined. The search can be restricted to a line
     * segment by restricting <code>min</code> and <code>max</code> to finite
     * values. Setting them to negative and positive infinity causes the entire
@@ -1582,13 +1582,15 @@ public class BVFeatureQuery {
          myDir = new Vector3d();
          myDuv = new Vector3d();
          myNearest = new Point3d();
+         myMin = 0;
+         myMax = INF;
          reset();
       }
 
       @Override
       public void reset() {
-         myMin = 0;
-         myMax = INF;
+//         myMin = 0;
+//         myMax = INF;
          myFace = null;
          myDist = Double.POSITIVE_INFINITY;
       }

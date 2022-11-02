@@ -10,13 +10,14 @@ import maspack.matrix.*;
 import maspack.util.NumberFormat;
 
 import java.util.ListIterator;
+import java.util.Iterator;
 import java.util.Collection;
 import java.util.NoSuchElementException;
 
 import maspack.util.ReaderTokenizer;
 import java.io.IOException;
 
-public class Polygon3d {
+public class Polygon3d implements Iterable<PolygonVertex3d> {
    PolygonVertex3d firstVertex;
 
    private class VertexIterator implements ListIterator {
@@ -90,6 +91,10 @@ public class Polygon3d {
    }
 
    public ListIterator getVertices() {
+      return new VertexIterator();
+   }
+
+   public Iterator<PolygonVertex3d> iterator() {
       return new VertexIterator();
    }
 

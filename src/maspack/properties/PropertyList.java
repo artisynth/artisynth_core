@@ -706,7 +706,7 @@ public class PropertyList implements PropertyInfoList {
                mode = desc.getMode (host);
             }
             if (mode == PropertyMode.Inherited) {
-               pw.print (desc.myName + ":" + mode);
+               pw.println (desc.myName + ":" + mode);
             }
             else if (mode == PropertyMode.Explicit) {
                pw.print (desc.myName + "=");

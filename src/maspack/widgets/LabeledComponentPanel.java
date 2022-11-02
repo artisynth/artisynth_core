@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -275,6 +276,14 @@ public class LabeledComponentPanel extends JPanel
    public Component addWidget (Component comp) {
       addWidget (comp, myNumBasicWidgets);
       return comp;
+   }
+   
+   public JLabel addLabel (String text) {
+      JLabel label = new JLabel (text);
+      //label.setForeground (new Color (0.4f, 0.4f, 0.8f));
+      GuiUtils.setItalicFont (label);
+      addWidget (label);
+      return label;
    }
 
    public Component addWidget (Component comp, int idx) {

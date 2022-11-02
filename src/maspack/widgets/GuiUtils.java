@@ -814,6 +814,12 @@ public class GuiUtils {
          "Notice", JOptionPane.INFORMATION_MESSAGE);
    }
 
+   public static void showResult (Component comp, String msg) {
+      JOptionPane.showMessageDialog (
+         windowForComponent (comp), msg,
+         "Result", JOptionPane.INFORMATION_MESSAGE);
+   }
+
    public static boolean confirmAction (Component comp, String msg) {
       int confirmation = JOptionPane.showConfirmDialog (
          windowForComponent (comp), msg,

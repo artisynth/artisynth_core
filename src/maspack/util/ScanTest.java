@@ -74,4 +74,40 @@ public class ScanTest {
             "write-scan-write does not reproduce the same output");
       }
    }
+
+   /**
+    * Writes a Scannable to a string using its write method and returns the
+    * string.
+    */
+   public static String writeToString (Scannable s, String fmtStr, Object ref) {
+      StringWriter sw;
+      PrintWriter pw;
+         
+      sw = new StringWriter();
+      pw = new IndentingPrintWriter (sw);
+      try {
+         s.write (pw, new NumberFormat(fmtStr), ref);
+      }
+      catch (Exception e) {
+         throw new TestException (
+            "exception during write: " + e);
+      }
+      pw.flush();
+      return sw.toString();
+   }
+
+   /**
+    * Reads a Scannable from a string using its scan method.
+    */
+   public static void scanFromString (Scannable s, Object ref, String str) {
+      ReaderTokenizer rtok = new ReaderTokenizer (new StringReader (str));
+      rtok.wordChars ("./$");
+      try {
+         s.scan (rtok, ref);
+      }
+      catch (Exception e) {
+         throw new TestException (
+            "exception during scan: " + e);
+      }
+   }   
 }

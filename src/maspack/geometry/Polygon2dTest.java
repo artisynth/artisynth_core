@@ -167,11 +167,46 @@ public class Polygon2dTest extends UnitTest {
          new int[] { 0, 3, 15, 12 });
    }
 
+   void testNearestEdge (
+      Polygon2d poly, double x, double y, double nearx, double neary) {
+      
+      double tol = 1e-14;
+      Point2d nearChk = new Point2d (nearx, neary);
+      Point2d nearPnt = new Point2d ();
+      Vertex2d vtx = poly.nearestEdge (nearPnt, new Point2d (x, y));
+      checkEquals ("nearPnt", nearPnt, nearChk, tol);
+   }
+
+   private void testNearestEdge() {
+      Polygon2d poly = new Polygon2d(
+            new double[] { 0,0, 2,0, 2,2, 1,1, -1,1 });
+      
+      testNearestEdge (poly, 0,0,  0,0);
+      testNearestEdge (poly, 2,0,  2,0);
+      testNearestEdge (poly, 2,2,  2,2);
+      testNearestEdge (poly, 1,1,  1,1);
+      testNearestEdge (poly, -1,1,  -1,1);
+
+      testNearestEdge (poly, 1,0,   1,0);
+      testNearestEdge (poly, 1,-1,  1,0);
+      testNearestEdge (poly, 1,0.1, 1,0);      
+      testNearestEdge (poly, 3,-1,  2,0);
+      testNearestEdge (poly, 2,1,  2,1);
+      testNearestEdge (poly, 2.1,1,  2,1);
+      testNearestEdge (poly, 1.9,1,  2,1);
+
+      testNearestEdge (poly, -2,2,  -1,1);
+      testNearestEdge (poly, -1,2,  -1,1);
+      testNearestEdge (poly, -2,1,  -1,1);
+      testNearestEdge (poly,  0,2,  0,1);
+   }
+
    public void test() {
       RandomGenerator.setSeed (0x1234);
       //testSpecial();
       testSimpleConvexHull();
       testConvexHull();
+      testNearestEdge();
    }
 
    public static void main (String[] args) {

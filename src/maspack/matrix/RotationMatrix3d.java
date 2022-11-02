@@ -573,6 +573,38 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
+    * Returns an array of vectors giving the normalized directions of the x, y
+    * and z axes of this rotation. These represent the first, second and third
+    * matrix columns.
+    *
+    * @return array of three {@link Vector3d} objects containing the
+    * directions.
+    */
+   public Vector3d[] getXYZDirections () {
+      Vector3d[] dirs = new Vector3d[3];
+      getXYZDirections (dirs);
+      return dirs;
+   }
+
+   /**
+    * Returns an array of vectors giving the normalized directions of the x, y
+    * and z axes of this rotation. These represent the first, second and third
+    * matrix columns.
+    *
+    * @param dirs array of three {@link Vector3d} objects in which the
+    * directions are returned. If any of the array elements are {@code null},
+    * they will be initialized with a {@code Vector3d}.
+    */
+   public void getXYZDirections (Vector3d[] dirs) {
+      for (int i=0; i<3; i++) {
+         if (dirs[i] == null) {
+            dirs[i] = new Vector3d();
+         }
+         getColumn (i, dirs[i]);
+      }
+   }
+
+   /**
     * Sets this rotation to one represented by the quaternion q.
     * 
     * @param q
@@ -768,46 +800,63 @@ public class RotationMatrix3d extends Matrix3dBase {
    public void setAxisAngle (double ux, double uy, double uz, double ang) {
       double s = Math.sin (ang);
       double c = Math.cos (ang);
-      double ver = 1 - c;
-
-      double x = ux;
-      double y = uy;
-      double z = uz;
 
       if (ang == 0) {
          setIdentity();
          return;
       }
 
-      double len = Math.sqrt (x * x + y * y + z * z);
+      double len = Math.sqrt (ux * ux + uy * uy + uz * uz);
       if (len != 0) {
-         x /= len;
-         y /= len;
-         z /= len;
+         ux /= len;
+         uy /= len;
+         uz /= len;
       }
       else {
          setIdentity();
          return;
       }
+      setAxisAngle (ux, uy, uz, c, s);
+   }
+   
+   /**
+    * Sets the rotation to one produced by rotating about an axis. For 
+    * computational efficiency, the axis must be of uniform length. If it is 
+    * not, the resulting matrix will be incorrect.
+    * 
+    * @param ux
+    * axis x coordinate
+    * @param uy
+    * axis y coordinate
+    * @param uz
+    * axis z coordinate
+    * @param cos
+    * cosine of the angle of rotation about the axis
+    * @param sin
+    * sine of the angle of rotation about the axis
+    */
+   public void setAxisAngle (
+      double ux, double uy, double uz, double cos, double sin) {
+      
+      double ver = 1 - cos;
+      double xv = ver * ux;
+      double xs = ux * sin;
+      double yv = ver * uy;
+      double ys = uy * sin;
+      double zv = ver * uz;
+      double zs = uz * sin;
 
-      double xv = ver * x;
-      double xs = x * s;
-      double yv = ver * y;
-      double ys = y * s;
-      double zv = ver * z;
-      double zs = z * s;
+      m00 = ux * xv + cos;
+      m10 = ux * yv + zs;
+      m20 = ux * zv - ys;
 
-      m00 = x * xv + c;
-      m10 = x * yv + zs;
-      m20 = x * zv - ys;
+      m01 = uy * xv - zs;
+      m11 = uy * yv + cos;
+      m21 = uy * zv + xs;
 
-      m01 = y * xv - zs;
-      m11 = y * yv + c;
-      m21 = y * zv + xs;
-
-      m02 = z * xv + ys;
-      m12 = z * yv - xs;
-      m22 = z * zv + c;
+      m02 = uz * xv + ys;
+      m12 = uz * yv - xs;
+      m22 = uz * zv + cos;     
    }
 
    /**
@@ -1441,10 +1490,12 @@ public class RotationMatrix3d extends Matrix3dBase {
       axis_x = -dirz.y;
       axis_y = dirz.x;
       double len = Math.sqrt (axis_x * axis_x + axis_y * axis_y);
-
       if (len != 0) {
-         double ang = Math.atan2 (len, dirz.z);
-         setAxisAngle (axis_x / len, axis_y / len, 0.0, ang);
+         double r = Math.sqrt (len*len + dirz.z*dirz.z);
+         setAxisAngle (axis_x/len, axis_y/len, 0.0, dirz.z/r, len/r);
+         // not using atan2 speeds things up about 6 times
+         //double ang = Math.atan2 (len, dirz.z);
+         //setAxisAngle (axis_x/len, axis_y/len, 0.0, ang);
       }
       else if (dirz.z >= 0) {
          setIdentity();
@@ -1473,8 +1524,11 @@ public class RotationMatrix3d extends Matrix3dBase {
       double len = Math.sqrt (axis_y * axis_y + axis_z * axis_z);
 
       if (len != 0) {
-         double ang = Math.atan2 (len, dirx.x);
-         setAxisAngle (0.0, axis_y / len, axis_z / len, ang);
+         double r = Math.sqrt (len*len + dirx.x*dirx.x);
+         setAxisAngle (0.0, axis_y/len, axis_z/len, dirx.x/r, len/r);
+         // not using atan2 speeds things up about 6 times
+         //double ang = Math.atan2 (len, dirx.x);
+         //setAxisAngle (0.0, axis_y/len, axis_z/len, ang);
       }
       else if (dirx.x >= 0) {
          setIdentity();
@@ -1503,8 +1557,11 @@ public class RotationMatrix3d extends Matrix3dBase {
       double len = Math.sqrt (axis_z * axis_z + axis_x * axis_x);
 
       if (len != 0) {
-         double ang = Math.atan2 (len, diry.y);
-         setAxisAngle (axis_x / len, 0.0, axis_z / len, ang);
+         double r = Math.sqrt (len*len + diry.y*diry.y);
+         setAxisAngle (axis_x/len, 0.0, axis_z/len, diry.y/r, len/r);
+         // not using atan2 speeds things up about 6 times
+         //double ang = Math.atan2 (len, diry.y);
+         //setAxisAngle (axis_x/len, 0.0, axis_z/len, ang);
       }
       else if (diry.y >= 0) {
          setIdentity();

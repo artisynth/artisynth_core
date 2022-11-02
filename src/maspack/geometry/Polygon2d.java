@@ -17,6 +17,7 @@ import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector2d;
 import maspack.render.PointLineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -27,7 +28,7 @@ import maspack.render.Renderer.Shading;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
-public class Polygon2d implements Renderable {
+public class Polygon2d implements Renderable, Iterable<Vertex2d> {
    Vertex2d firstVertex;
 
    RenderProps myRenderProps = new PointLineRenderProps();
@@ -100,6 +101,10 @@ public class Polygon2d implements Renderable {
       return new VertexIterator();
    }
 
+   public Iterator<Vertex2d> iterator() {
+      return new VertexIterator();
+   }
+
    public Point2d[] getPoints() {
       Point2d[] pnts = new Point2d[numVertices()];
       Vertex2d vtx = firstVertex;
@@ -108,6 +113,67 @@ public class Polygon2d implements Renderable {
          vtx = vtx.next;
       }
       return pnts;
+   }
+
+   /**
+    * Computes the distance from {@code pnt} to the edge starting
+    * at vertex {@code vtx}.
+    */
+   private void nearestPointOnEdge (Point2d nearPnt, Vertex2d vtx, Point2d pnt) {
+      Point2d p0 = vtx.pnt;
+      Point2d p1 = vtx.next.pnt;
+      Vector2d u = new Vector2d();
+      u.sub (p1, p0);
+      double len = u.norm();
+      if (len == 0) {
+         nearPnt.set (p0);
+         return;
+      }
+      u.scale (1/len);
+      Vector2d dp = new Vector2d();
+      dp.sub (pnt, p0);
+      double proj = dp.dot (u);
+      if (proj < 0) {
+         nearPnt.set (p0);
+      }
+      else if (proj > len) {
+         nearPnt.set (p1);
+      }
+      else {
+         nearPnt.scaledAdd (proj, u, p0);
+      }
+   }
+
+   /**
+    * Finds a nearest edge of this polygon to a given point, using a simple
+    * O(n) search of all edges. The edge is represented by its starting vertex.
+    * Note that the nearest edge is generally unique only if the polygon is
+    * convex and {@code pnt} is outside it.
+    *
+    * @param nearPnt if non-null, returns the point nearest to {@code pnt}
+    * @param pnt point for which the nearest distance is sought
+    */
+   public Vertex2d nearestEdge (Point2d nearPnt, Point2d pnt) {
+      double dmin = Double.POSITIVE_INFINITY;
+      Vertex2d nearVtx = null;
+      Vertex2d vtx = firstVertex;
+      Point2d edgePnt = new Point2d();
+      if (vtx != null) {
+         do {
+            nearestPointOnEdge (edgePnt, vtx, pnt);
+            double d = edgePnt.distance (pnt);
+            if (d < dmin) {
+               dmin = d;
+               nearVtx = vtx;
+               if (nearPnt != null) {
+                  nearPnt.set (edgePnt);
+               }
+            }
+            vtx = vtx.next;
+         }
+         while (vtx != firstVertex);
+      }
+      return nearVtx;
    }
 
    public int numVertices() {
@@ -700,6 +766,18 @@ public class Polygon2d implements Renderable {
          }
       }
    }      
+
+   /**
+    * Computes the convex hull of a list of points, under the assumption that
+    * they describe a simple polygon. The result is returned as a
+    * ConvexPolygon2d, with vertices arranged counter-clockwise.
+    *
+    * <p>The method is the same as that used by {@link #simpleConvexHull()}.
+    */
+   public static ConvexPolygon2d simpleConvexHull (Collection<Point2d> pnts) {
+      Polygon2d poly = new Polygon2d(pnts);
+      return poly.simpleConvexHull();
+   }
 
    /**
     * Returns {@code true} if this 2d polygon is convex.

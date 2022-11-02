@@ -44,11 +44,12 @@ public class MouseSettingsPanel extends PropertyPanel
       text.setValue (settings.maskToString(settings.getFullMask (action)));
    }
 
-   protected void addLabel (String text) {
-      JLabel label = new JLabel(text);
-      GuiUtils.setItalicFont (label);
-      addWidget (label);
-   }
+//   public JLabel addLabel (String text) {
+//      JLabel label = new JLabel(text);
+//      GuiUtils.setItalicFont (label);
+//      addWidget (label);
+//      return label;
+//   }
 
    protected void build (
       MouseBindings bindings, List<MouseBindings> allBindings, double zoomScale) {

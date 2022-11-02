@@ -32,6 +32,7 @@ public class BVFeatureQueryTest {
    PolylineMesh myLineMesh;
 
    public static final double EPS = 1e-13;
+   public static final double INF = Double.POSITIVE_INFINITY;
 
    private PolygonalMesh loadMesh (String baseName) {
       String meshFileName =
@@ -113,7 +114,7 @@ public class BVFeatureQueryTest {
          Vector3d coords = new Vector3d();
          int rcode = intersector.intersect (p0, p1, p2, pnt, dir, coords);
          if (rcode == 0) {
-            myDist = Double.POSITIVE_INFINITY;
+            myDist = INF;
          }
          else if (rcode == 1) {
             myDist = coords.x;
@@ -298,7 +299,7 @@ public class BVFeatureQueryTest {
       ArrayList<Face> faces = mesh.getFaces();
       NearestFaceInfo[] faceInfo = new NearestFaceInfo[faces.size()];
       TriangleIntersector intersector = new TriangleIntersector();
-      double mind = Double.POSITIVE_INFINITY;
+      double mind = INF;
       for (int i=0; i<faces.size(); i++) {
          NearestFaceInfo ninfo = new NearestFaceInfo();
          faceInfo[i] = ninfo;
@@ -329,25 +330,63 @@ public class BVFeatureQueryTest {
       ArrayList<Face> faces = mesh.getFaces();
       NearestFaceInfo[] faceInfo = new NearestFaceInfo[faces.size()];
       TriangleIntersector intersector = new TriangleIntersector();
-      double mind = Double.POSITIVE_INFINITY;
+      double mind = INF;
       for (int i=0; i<faces.size(); i++) {
          NearestFaceInfo ninfo = new NearestFaceInfo();
          faceInfo[i] = ninfo;
          double d = ninfo.computeDistanceToRay (
             faces.get(i), lpnt, ldir, intersector);
          ninfo.myNear.transform (mesh.getMeshToWorld());
-         if (d >= 0 && d < Double.POSITIVE_INFINITY) {
+         if (d >= 0 && d < INF) {
             if (d < mind) {
                mind = d;
             }
          }
       }
       ArrayList<NearestFaceInfo> nearestFaces = new ArrayList<NearestFaceInfo>();
-      if (mind < Double.POSITIVE_INFINITY) {
+      if (mind < INF) {
          for (int i=0; i<faces.size(); i++) {
             double d = faceInfo[i].myDist;
-            if (d >= 0 && d < Double.POSITIVE_INFINITY) {
+            if (d >= 0 && d < INF) {
                if (Math.abs(d-mind) < tol) {
+                  nearestFaces.add (faceInfo[i]);
+               }
+            }
+         }
+      }
+      return nearestFaces;
+   }
+
+   private ArrayList<NearestFaceInfo> getNearestFacesToLine (
+      PolygonalMesh mesh, Point3d pnt, Vector3d dir, double tol) {
+
+      Point3d lpnt = new Point3d();
+      Vector3d ldir = new Vector3d();
+      lpnt.inverseTransform (mesh.getMeshToWorld(), pnt);
+      ldir.inverseTransform (mesh.getMeshToWorld(), dir);
+      
+      ArrayList<Face> faces = mesh.getFaces();
+      NearestFaceInfo[] faceInfo = new NearestFaceInfo[faces.size()];
+      TriangleIntersector intersector = new TriangleIntersector();
+      double mind = INF;
+      for (int i=0; i<faces.size(); i++) {
+         NearestFaceInfo ninfo = new NearestFaceInfo();
+         faceInfo[i] = ninfo;
+         double d = ninfo.computeDistanceToRay (
+            faces.get(i), lpnt, ldir, intersector);
+         ninfo.myNear.transform (mesh.getMeshToWorld());
+         if (d != INF) {
+            if (Math.abs(d) < mind) {
+               mind = Math.abs(d);
+            }
+         }
+      }
+      ArrayList<NearestFaceInfo> nearestFaces = new ArrayList<NearestFaceInfo>();
+      if (mind != INF) {
+         for (int i=0; i<faces.size(); i++) {
+            double d = faceInfo[i].myDist;
+            if (d != INF) {
+               if (Math.abs(Math.abs(d)-mind) < tol) {
                   nearestFaces.add (faceInfo[i]);
                }
             }
@@ -363,7 +402,7 @@ public class BVFeatureQueryTest {
       loc.inverseTransform (mesh.getMeshToWorld(), pnt);
 
       NearestEdgeInfo[] edgeInfo;
-      double mind = Double.POSITIVE_INFINITY;
+      double mind = INF;
 
       if (mesh instanceof PolygonalMesh) {
          ArrayList<Face> faces = ((PolygonalMesh)mesh).getFaces();
@@ -434,7 +473,7 @@ public class BVFeatureQueryTest {
       loc.inverseTransform (mesh.getMeshToWorld(), pnt);
 
       ArrayList<Vertex3d> verts = mesh.getVertices();
-      double mind = Double.POSITIVE_INFINITY;
+      double mind = INF;
       for (int i=0; i<verts.size(); i++) {
          double d = verts.get(i).pnt.distance (loc);
          if (d < mind) {
@@ -557,6 +596,46 @@ public class BVFeatureQueryTest {
                "Face "+rinfo.myFace.getIndex()+
                " computed as nearest does not match brute force calculation");
          } 
+
+         ArrayList<NearestFaceInfo> nearestLineFaces =
+            getNearestFacesToLine (mesh, pnt, dir, tol);
+
+         rinfo.myFace = query.nearestFaceAlongLine (
+            rinfo.myNear, rinfo.myCoords3, bvh, pnt, dir, -INF, INF);
+         if (rinfo.myFace == null) {
+            if (nearestLineFaces.size() != 0) {
+               System.out.println ("Possible faces:");
+               for (int k=0; k<nearestLineFaces.size(); k++) {
+                  NearestFaceInfo ni = nearestLineFaces.get(k);
+                  System.out.printf (
+                     " Face %d dist=%g near=%s\n", 
+                     ni.myFace.getIndex(), ni.myDist,
+                     ni.myNear.toString ("%10.6f")); 
+               }
+               throw new TestException (
+                  "nearestFaceIntersectedByLine returned null; "+
+                  "brute force did not");
+            }
+         }
+         else if (!rinfo.lineFaceIsContained (nearestLineFaces, tol)) {
+            System.out.println ("Computed face:");
+            System.out.println (
+               "Face "+ rinfo.myFace.getIndex() +
+               " near: " + rinfo.myNear.toString ("%10.6f") +
+               ", coords " + rinfo.myCoords3);
+            System.out.println ("Possible faces:");
+            for (int k=0; k<nearestLineFaces.size(); k++) {
+               NearestFaceInfo ni = nearestLineFaces.get(k);
+               System.out.println (
+                  "Face "+ ni.myFace.getIndex() +
+                  " near: " + ni.myNear.toString ("%10.6f") + 
+                  ", coords " + ni.myCoords3);
+            }
+            throw new TestException (
+               "Face "+rinfo.myFace.getIndex()+
+               " computed as nearest does not match brute force calculation");
+         } 
+
 
          // NearestFaceInfo oinfo = new NearestFaceInfo();        
          // if (bvh instanceof OBBTree) {
@@ -695,7 +774,7 @@ public class BVFeatureQueryTest {
    private void nearestFaceTest (PolygonalMesh mesh) {
 
       // //NearestFeatureQuery query = new NearestFeatureQuery();
-      // double inf = Double.POSITIVE_INFINITY;
+      // double inf = INF;
       // Point3d max = new Point3d (-inf, -inf, -inf);
       // Point3d min = new Point3d ( inf,  inf,  inf);
       // Point3d center = new Point3d();
@@ -716,16 +795,16 @@ public class BVFeatureQueryTest {
       double diameter = 2*aabbTree.getRadius();
       aabbTree.getCenter (center);
 
-      nearestFaceTest (mesh, obbTree, X, center, diameter);
+      //nearestFaceTest (mesh, obbTree, X, center, diameter);
       nearestFaceTest (mesh, aabbTree, X, center, diameter);
       X.setRandom();
-      nearestFaceTest (mesh, obbTree, X, center, diameter);
+      //nearestFaceTest (mesh, obbTree, X, center, diameter);
       nearestFaceTest (mesh, aabbTree, X, center, diameter);
       X.setRandom();
-      nearestFaceTest (mesh, obbTree, X, center, diameter);
+      //nearestFaceTest (mesh, obbTree, X, center, diameter);
       nearestFaceTest (mesh, aabbTree, X, center, diameter);
       X.setRandom();
-      nearestFaceTest (mesh, obbTree, X, center, diameter);
+      //nearestFaceTest (mesh, obbTree, X, center, diameter);
       nearestFaceTest (mesh, aabbTree, X, center, diameter);
    }
 
@@ -1020,7 +1099,7 @@ public class BVFeatureQueryTest {
    private void nearestVertexAndEdgeTest (MeshBase mesh) {
 
       //NearestFeatureQuery query = new NearestFeatureQuery();
-      double inf = Double.POSITIVE_INFINITY;
+      double inf = INF;
       Point3d max = new Point3d (-inf, -inf, -inf);
       Point3d min = new Point3d ( inf,  inf,  inf);
       Point3d center = new Point3d();

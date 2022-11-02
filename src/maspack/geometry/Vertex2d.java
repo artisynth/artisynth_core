@@ -14,6 +14,29 @@ public class Vertex2d { // extends Feature {
 
    public Point2d pnt;
 
+   public Point2d getPosition() {
+      return pnt;
+   }
+
+   public Vertex2d getNext() {
+      return next;
+   }
+
+   public Vertex2d getPrev() {
+      return prev;
+   }
+
+   public Vector2d getEdge() {
+      if (next != null) {
+         Vector2d edge = new Vector2d();
+         edge.sub (next.pnt, pnt);
+         return edge;
+      }
+      else {
+         return null;
+      }
+   }
+
    public Vertex2d() {
       pnt = new Point2d();
    }

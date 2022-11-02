@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.CRC32;
@@ -3015,4 +3016,30 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * @return bounding volume tree
     */
    public abstract BVTree getBVTree();
+
+   /**
+    * For debugging only: checks to see if mesh1 has any vertices, or vertex
+    * points, in common with mesh0.
+    */
+   private static boolean hasCommonVertices (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      HashSet<Vertex3d> verts0 = new HashSet<>();
+      HashSet<Point3d> pnts0 = new HashSet<>();
+
+      for (Vertex3d vtx : mesh0.getVertices()) {
+         verts0.add (vtx);
+         pnts0.add (vtx.pnt);
+      }
+      for (Vertex3d vtx : mesh1.getVertices()) {
+         if (verts0.contains (vtx)) {
+            System.out.println ("Has common vertices");
+            return true;
+         }
+         if (pnts0.contains (vtx.pnt)) {
+            System.out.println ("Has common points");
+            return true;
+         }
+      }
+      return false;
+   }
 }

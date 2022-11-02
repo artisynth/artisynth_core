@@ -332,7 +332,12 @@ public class Write {
     * @see #getQuotedString
     */
    public static void writeString (PrintWriter pw, String s) {
-      pw.println (getQuotedString (s));
+      if (s == null) {
+         pw.println ("null");
+      }
+      else {
+         pw.println (getQuotedString (s));
+      }
    }
 
    /**

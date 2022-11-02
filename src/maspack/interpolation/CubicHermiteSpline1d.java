@@ -77,7 +77,7 @@ public class CubicHermiteSpline1d
          // interpolation is done locally, with respect to x - x0
          x -= x0;
          if (x < 0) {
-            return 2*a2;
+            return 0;
          }
          else {
             return 6*a3*x + 2*a2;
@@ -232,7 +232,6 @@ public class CubicHermiteSpline1d
          knot.dy0 = dy0;
          knot.a2 = a2;
          knot.a3 = a3;
-         knot.myIndex = myIndex;
          return knot;
       }
       
@@ -696,7 +695,7 @@ public class CubicHermiteSpline1d
     */
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
-      if (myKnots.size() == 0) {
+      if (myKnots.size() == 1) {
          pw.println ("[ "+segToString(myKnots.get(0),fmt)+" ]");
       }
       else {

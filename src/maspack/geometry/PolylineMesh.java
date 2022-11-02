@@ -140,7 +140,22 @@ public class PolylineMesh extends MeshBase {
    }
 
    /**
-    * Sets the vertex points and line associated with this mesh.
+    * Sets this mesh to a single polyline indicated by the specified
+    * vertex points.
+    * 
+    * @param pnts
+    * points from which the vertices are formed
+    */
+   public void set (Point3d[] pnts) {
+      int[][] lineIndices = new int[1][pnts.length];
+      for (int i=0; i<pnts.length; i++) {
+         lineIndices[0][i] = i;
+      }
+      set (pnts, lineIndices, /* byReference= */false);
+   }  
+   
+   /**
+    * Sets the vertex points and lines associated with this mesh.
     * 
     * @param pnts
     * points from which the vertices are formed
@@ -254,7 +269,7 @@ public class PolylineMesh extends MeshBase {
    }
 
    /**
-    * Sets the vertex points and line associated with this mesh.
+    * Sets the vertex points and lines associated with this mesh.
     * 
     * @param pnts
     * points from which the vertices are formed

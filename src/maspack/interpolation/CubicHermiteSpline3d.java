@@ -16,6 +16,8 @@ import maspack.matrix.*;
 public class CubicHermiteSpline3d
    implements Scannable, Iterable<CubicHermiteSpline3d.Knot> {
 
+   private static double DOUBLE_PREC = 1e-16;
+
    public static class Knot {
       double myS0;   // initial s value
       Vector3d myA0;   // initial x value
@@ -173,6 +175,14 @@ public class CubicHermiteSpline3d
                  myA2.equals(knot.myA2) &&
                  myA3.equals(knot.myA3));
       }
+
+      public boolean epsilonEquals (
+         Knot knot, double stol, double a0tol, double a1tol) {
+         
+         return (Math.abs(myS0-knot.myS0) <= stol &&
+                 (myA0.distance(knot.myA0) <= a0tol) &&
+                 (myA1.distance(knot.myA1) <= a1tol));
+      }
    }
 
    ArrayList<Knot> myKnots;
@@ -313,6 +323,157 @@ public class CubicHermiteSpline3d
       clearKnots();
       addKnot (s0, a0, a1);
       addKnot (s1, x1, dx1);      
+   }
+
+   /**
+    * Sets this spline to one consisting of n segments with n+1 knots, at s
+    * values given by {@code svals}, with the coeffcients computed to best fit
+    * a set of x values uniformly placed along the entire interval.  C(2)
+    * continuity is enforced between intervals, with the second derivatives at
+    * the end points equal to 0.
+    */
+   public void setMultiSegment (
+      ArrayList<? extends Vector3d> xVals, double[] svals) {
+
+      int nsegs = svals.length-1;
+      if (nsegs <= 0) {
+         throw new IllegalArgumentException (
+            "svals must have at least two values");
+      }
+      int numc = 2*(nsegs-1); // number of constraints
+      int dir = 0;
+      for (int i=0; i<nsegs; i++) {
+         boolean nonmonotone = false;
+         if (i == 0) {
+            if (svals[i] == svals[i+1]) {
+               nonmonotone = true;
+            }
+            dir = (svals[i] < svals[i+1] ? 1 : -1);
+         }
+         else {
+            if ((svals[i+1]-svals[i])*dir <= 0) {
+               nonmonotone = true;
+            }
+         }
+         if (nonmonotone) {
+            throw new IllegalArgumentException (
+               "svals must be monotonically increasing or decreasing");
+         }
+      }
+      int nump = xVals.size();
+      if (nump < (nsegs+1)*2) {
+          throw new IllegalArgumentException (
+             "not enough points: at least "+(nsegs+1)*2+
+             " required for "+nsegs+" segments");
+      }
+
+      // build the A matrix for determining coefficents without constraints
+      MatrixNd A = new MatrixNd (nump, 4*nsegs);
+      double slen = svals[nsegs]-svals[0];  // length of whole interval
+      int kseg = 0; // index of the segment
+      int netrank = 0; // net rank of the matrix A
+      int segrank = 0; // rank added to A for a particular segment
+      for (int i=0; i<nump; i++) {
+         double s = svals[0] + i*slen/(double)(nump-1);
+         while (s >= svals[kseg+1] && kseg < nsegs-1) {
+            if (segrank == 0) {
+               throw new IllegalArgumentException (
+                  "No points supplied for segment "+kseg);
+            }
+            netrank += segrank;
+            segrank = 0;
+            kseg++;
+         }
+         double ss = s - svals[kseg]; // local s value in segment
+         double a = 1;
+         for (int j=0; j<4; j++) {
+            A.set (i, 4*kseg+j, a);
+            a *= ss;
+         }
+         if (segrank < 4) {
+            segrank++;
+         }
+      }
+      if (kseg != nsegs-1) {
+          throw new IllegalArgumentException (
+             "No points supplied for segments beyond "+kseg);
+      }
+      netrank += segrank;
+      if (netrank < 2*(nsegs+1)) {
+         throw new IllegalArgumentException (
+            "Points insufficiently distributed for full rank solve matrix. " +
+            "Ranks is " + netrank + ", must be >= "+(2*(nsegs+1)));
+      }
+      
+      // constraint matrix
+      MatrixNd C = new MatrixNd (numc, 4*nsegs);
+      for (int i=0; i<numc; i += 2) {
+         kseg = i/2; // segment associated with this constraint
+         double sl = svals[kseg+1]-svals[kseg];
+         double c = 1;
+         for (int j=0; j<4; j++) {
+            C.set (i, 4*kseg+j, c);
+            c *= sl;
+         }
+         C.set (i, 4*kseg+4, -1);
+         C.set (i+1, 4*kseg+1, 1);
+         C.set (i+1, 4*kseg+2, 2*sl);
+         C.set (i+1, 4*kseg+3, 3*sl*sl);
+         C.set (i+1, 4*kseg+5, -1);
+      }
+      // system matrix
+      MatrixNd M = new MatrixNd (4*nsegs+numc, 4*nsegs+numc);
+      MatrixNd ATA = new MatrixNd (4*nsegs, 4*nsegs); // Gram matrix
+      ATA.mulTransposeLeft (A, A);
+      M.setSubMatrix (0, 0, ATA);
+      // add constraint matrix
+      M.setSubMatrix (4*nsegs, 0, C);
+      MatrixNd CT = new MatrixNd();
+      CT.transpose(C);
+      M.setSubMatrix (0, 4*nsegs, CT);
+      LUDecomposition lud = new LUDecomposition (M);
+      //double condEst = lud.conditionEstimate (M);
+
+      // coefficient vectors, one each for x, y, z
+      VectorNd a[] = new VectorNd[3];
+      for (int k=0; k<3; k++) {
+         VectorNd p = new VectorNd (nump);
+         for (int i=0; i<nump; i++) {
+            p.set (i, xVals.get(i).get(k));
+         }
+         VectorNd b = new VectorNd (4*nsegs);
+         A.mulTranspose (b, p);
+         b.setSize (4*nsegs+numc); // add extra 0s for constraints
+         a[k] = new VectorNd(4*nsegs+numc);
+         lud.solve (a[k], b);
+      }
+
+      clearKnots();
+      Vector3d a0 = new Vector3d();
+      Vector3d a1 = new Vector3d();
+      for (int i=0; i<nsegs; i++) {
+         for (int k=0; k<3; k++) {
+            a0.set (k, a[k].get(i*4));
+            a1.set (k, a[k].get(i*4+1));
+         }
+         addKnot (svals[i], a0, a1);
+      }
+      // for last knot, need a2 and a3 so we can compute final x and dx 
+      Vector3d a2 = new Vector3d();
+      Vector3d a3 = new Vector3d();
+      for (int k=0; k<3; k++) {
+         a2.set (k, a[k].get((nsegs-1)*4+2));
+         a3.set (k, a[k].get((nsegs-1)*4+3));
+      }
+      Vector3d xl = new Vector3d();
+      Vector3d dxl = new Vector3d();
+      double s = svals[nsegs]-svals[nsegs-1];
+      xl.scaledAdd (s, a3, a2);
+      xl.scaledAdd (s, xl, a1);
+      xl.scaledAdd (s, xl, a0);
+      dxl.combine (3*s, a3, 2, a2);
+      dxl.scaledAdd (s, dxl, a1);
+      addKnot (svals[nsegs], xl, dxl);      
    }
 
    /**
@@ -863,6 +1024,74 @@ public class CubicHermiteSpline3d
       }
       return true;
    }
-   
+
+
+   /**
+    * Queries whether this spline is equal to another spline within a specified
+    * absolute tolerance. Only the s0, a0 and a1 values of each knot are
+    * compared, since other values are derived from these.
+    *
+    * @param spline spline to compare to this one
+    * @param tol absolute tolerance with which to compare the splines
+    * @return {@code true} if the splines are equal within tolerance
+    */
+   public boolean epsilonEquals (CubicHermiteSpline3d spline, double tol) {
+      if (numKnots() != spline.numKnots()) {
+         return false;
+      }
+      for (int i=0; i<numKnots(); i++) {
+         if (!getKnot(i).epsilonEquals (
+                spline.getKnot(i), tol, tol, tol)) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   // /**
+   //  * Queries whether this spline is equal to another spline within a specified
+   //  * relative tolerance.
+   //  *
+   //  * @param spline spline to compare to this one
+   //  * @param rtol relative tolerance with which to compare the splines
+   //  * @return {@code true} if the splines are equal within tolerance
+   //  */
+   // public boolean epsilonEquals (CubicHermiteSpline3d spline, double rtol) {
+   //    if (numKnots() != spline.numKnots()) {
+   //       return false;
+   //    }
+   //    double stol = Math.abs(getS0()-getSLast())*rtol;
+   //    // travere both splines to obtain magnitudes with which
+   //    // to determine relative tolerances
+   //    double a0mag = 0;
+   //    double a1mag = 0;
+   //    for (int i=0; i<numKnots(); i++) {
+   //       Knot knot0 = getKnot(i);
+   //       Knot knot1 = spline.getKnot(i);
+   //       if (knot0.myA0.norm() > a0mag) {
+   //          a0mag = knot0.myA0.norm();
+   //       }
+   //       if (knot1.myA0.norm() > a0mag) {
+   //          a0mag = knot1.myA0.norm();
+   //       }
+   //       if (knot0.myA1.norm() > a0mag) {
+   //          a0mag = knot0.myA1.norm();
+   //       }
+   //       if (knot1.myA1.norm() > a0mag) {
+   //          a0mag = knot1.myA1.norm();
+   //       }
+   //    }
+   //    // estimate of the minumin reasonable resolvable value:
+   //    double minres = Double.MIN_VALUE/(100*DOUBLE_PREC);
+   //    double a0tol = Math.max(minres, rtol*a0mag);
+   //    double a1tol = Math.max(minres, rtol*a1mag);
+   //    for (int i=0; i<numKnots(); i++) {
+   //       if (!getKnot(i).epsilonEquals (
+   //              spline.getKnot(i), stol, a0tol, a1tol)) {
+   //          return false;
+   //       }
+   //    }
+   //    return true;
+   // }
 
 }

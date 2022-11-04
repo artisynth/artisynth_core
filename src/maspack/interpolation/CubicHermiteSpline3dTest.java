@@ -85,20 +85,23 @@ public class CubicHermiteSpline3dTest extends UnitTest {
       return new Vector3d (val, val, val);
    }
 
+   /**
+    * Create a list of Vector3d objects, where the x,y,z values
+    * of each vector is the same.
+    */
+   ArrayList<Vector3d> createVec3dList (double... vals) {
+      ArrayList<Vector3d> vlist = new ArrayList<>();
+      for (double val : vals) {
+         vlist.add (vec3d(val));
+      }
+      return vlist;
+   }
+
    public void testRegular() {
       // create a known spline and check its behavior
 
-      ArrayList<Vector3d> xVals = new ArrayList<>();
-      ArrayList<Vector3d> dxdsVals = new ArrayList<>();
-      xVals.add (vec3d(-0.5));
-      xVals.add (vec3d(0.5));
-      xVals.add (vec3d(0.5));
-      xVals.add (vec3d(-0.5));
-
-      dxdsVals.add (vec3d (-0.1));
-      dxdsVals.add (vec3d (2.0));
-      dxdsVals.add (vec3d (2.0));
-      dxdsVals.add (vec3d (-0.1));
+      ArrayList<Vector3d> xVals = createVec3dList (-0.5, 0.5, 0.5, -0.5);
+      ArrayList<Vector3d> dxdsVals = createVec3dList (-0.1, 2.0, 2.0, -0.1);
 
       CubicHermiteSpline3d curve = new CubicHermiteSpline3d();
       curve.set (
@@ -152,6 +155,55 @@ public class CubicHermiteSpline3dTest extends UnitTest {
       ScanTest.scanFromString (check, null, str);
       if (!curve.equals (check)) {
          throw new TestException ("write/scan failed");
+      }
+   }
+
+   void printSpline (String msg, CubicHermiteSpline3d spline) {
+      System.out.println (msg + ScanTest.writeToString (spline, "%g", null));
+   }
+
+   public void testMultiSegment() {
+
+      // start by with one segments special case
+
+      double[] svals = new double[] { 1, 3 };
+      ArrayList<Vector3d> pnts = createVec3dList (0, 1, -1, 0);
+
+      CubicHermiteSpline3d spline = new CubicHermiteSpline3d();
+      spline.setMultiSegment (pnts, svals);
+      CubicHermiteSpline3d splineChk = new CubicHermiteSpline3d();
+      splineChk.setSingleSegment (pnts, svals[0], svals[1]);
+
+      if (!spline.epsilonEquals (splineChk, 1e-10)) {
+         printSpline ("spline", spline);
+         printSpline ("splineChk", splineChk);
+         throw new TestException (
+            "single segment and multisegment spline differ");
+      }
+
+      // now try to reconstruct known splines
+
+      ArrayList<Vector3d> xVals = createVec3dList (-0.5, 0.5, 0.5, -0.5);
+      ArrayList<Vector3d> dxdsVals = createVec3dList (-0.1, 2.0, 2.0, -0.1);
+
+      CubicHermiteSpline3d curve = new CubicHermiteSpline3d();
+      svals = new double [] { 1, 2, 4, 7 };
+      curve.set (svals, xVals, dxdsVals);
+
+      int npnts = 10;
+      double slen = svals[svals.length-1]-svals[0];
+      pnts.clear();
+      for (int i=0; i<npnts; i++) {
+         double s = svals[0] + i*slen/(double)(npnts-1);
+         Vector3d p = curve.eval(s);
+         pnts.add (p);
+      }
+      spline.setMultiSegment (pnts, svals);
+      if (!spline.epsilonEquals (curve, 1e-10)) {
+         printSpline ("spline", spline);
+         printSpline ("curve", curve);
+         throw new TestException (
+            "multisegment call does not reproduce spline");
       }
    }
 
@@ -245,6 +297,7 @@ public class CubicHermiteSpline3dTest extends UnitTest {
    public void test() {
       testSpecial();
       testRegular();
+      testMultiSegment();
    }
 
    public static void main (String[] args) {

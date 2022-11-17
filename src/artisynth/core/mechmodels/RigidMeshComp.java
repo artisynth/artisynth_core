@@ -107,12 +107,12 @@ public class RigidMeshComp extends DynamicMeshComponent
    @Override
    public void setMesh (
       MeshBase mesh, String fileName, AffineTransform3dBase X) {
-      super.setMesh (mesh, fileName, X);
       if (mesh instanceof PolygonalMesh) {
          myCollidableP = true;
       } else {
          myCollidableP = false;
-      }
+      }     
+      super.setMesh (mesh, fileName, X);
    }
 
    private void updateMeshVolume() {

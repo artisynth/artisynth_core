@@ -139,6 +139,11 @@ public class RigidBody extends Frame
    protected MeshComponentList<RigidMeshComp> myMeshList = null;
    protected ArrayList<MeshComponent> myCollisionMeshes = new ArrayList<>();
    protected PolygonalMesh myCompoundCollisionMesh;
+   // When the body has only one mesh, we render it explicitly, and so need to
+   // keep references to the mesh and its RenderProps for rendering purposes in
+   // case the mesh is changed.
+   protected MeshBase myRenderMesh; 
+   protected RenderProps myRenderMeshProps; 
 
    DistanceGridComp myDistanceGridComp;
 
@@ -913,6 +918,8 @@ public class RigidBody extends Frame
          addMeshComp (newComp, 0);
       }
       setSurfaceMeshFromInfo();
+      // notify parent, to get a rerender and since collisions might change
+      notifyParentOfChange (new StructureChangeEvent (this));
    }
 
    public void scaleSurfaceMesh (double sx, double sy, double sz) {
@@ -1338,6 +1345,7 @@ public class RigidBody extends Frame
             "RigidBody has null RenderProps");
       }
       PolygonalMesh surf = null;
+      MeshBase renderMesh = null;
       if (myGridSurfaceRendering && (surf = getDistanceSurface()) != null) {
          surf.prerender (myRenderProps); 
       }
@@ -1350,12 +1358,15 @@ public class RigidBody extends Frame
             // Otherwise, render directly, so rigid body can be 
             // selected directly
             RigidMeshComp mcomp = myMeshList.get(0);
-            if (mcomp.getRenderProps().isVisible()) {
-               mcomp.myMeshInfo.prerender(mcomp.getRenderProps());
+            renderMesh = mcomp.myMeshInfo.getMesh();
+            myRenderMeshProps = mcomp.getRenderProps();
+            if (myRenderMeshProps.isVisible() && renderMesh != null) {
+               renderMesh.prerender(myRenderMeshProps);
             }
          }
       }
       mySDRenderSurface = surf;
+      myRenderMesh = renderMesh;
       list.addIfVisible (myDistanceGridComp);
       // check for other renderable components:
       for (int idx=2; idx<numComponents(); idx++) {
@@ -1372,16 +1383,14 @@ public class RigidBody extends Frame
          flags |= Renderer.HIGHLIGHT;
       }
       PolygonalMesh surf = null;
+      MeshBase renderMesh;
       if (myGridSurfaceRendering && (surf = mySDRenderSurface) != null) {
          surf.render (renderer, myRenderProps, flags);
       }
-      else if (myMeshList.size() == 1) {
-         // If only one mesh, render directly, so rigid body can be selected
-         // directly
-         RigidMeshComp mcomp = myMeshList.get(0);
-         if (mcomp.getRenderProps().isVisible()) {
-            mcomp.myMeshInfo.render (renderer, mcomp.getRenderProps(), flags);
-         }
+      else if ((renderMesh=myRenderMesh) != null) {
+         // Only one mesh, so render directly, so rigid body can be selected
+         // directly. 
+         renderMesh.render (renderer, myRenderMeshProps, flags);
       }
    }
    

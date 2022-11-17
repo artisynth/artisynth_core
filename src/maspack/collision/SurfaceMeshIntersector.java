@@ -70,7 +70,7 @@ public class SurfaceMeshIntersector {
 
    public boolean triangulationError = false;
    public boolean coincidentError = false;
-
+   
    class EdgeInfo {
 
       class PointData {
@@ -366,6 +366,24 @@ public class SurfaceMeshIntersector {
    
    public void setSilent (boolean silent) {
       mySilentP = silent;
+   }
+
+   /**
+    * Queries whether zero area faces should be removed when constructing CSG
+    * primitives. See {@link #setRemoveZeroAreaFaces}.
+    */
+   public boolean getRemoveZeroAreaFaces() {
+      return removeZeroAreaFaces;
+   }
+
+   /**
+    * Sets whether zero area faces should be removed when constructing CSG
+    * primitives. A face is taken to have zero area if its area is less that a
+    * tolerance given by double precision times the square of the maximum
+    * ``radius'' of the two meshes.
+    */
+   public void setRemoveZeroAreaFaces (boolean enable) {
+      removeZeroAreaFaces = enable;
    }
    
    /*

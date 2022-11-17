@@ -34,6 +34,7 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
@@ -48,6 +49,8 @@ public class MeshComponent extends RenderableComponentBase
    implements TransformableGeometry, ScalableUnits {
 
    protected MeshInfo myMeshInfo;
+   // reference to mesh for rendering - used in case mesh changes
+   protected MeshBase myRenderMesh;
 
    public static PropertyList myProps = new PropertyList(
       MeshComponent.class, RenderableComponentBase.class);
@@ -107,6 +110,8 @@ public class MeshComponent extends RenderableComponentBase
       }
       myMeshInfo.set (mesh, fileName, X);
       setMeshFromInfo ();
+      // notify parent, to get a rerender and since collisions might change
+      notifyParentOfChange (new StructureChangeEvent (this));
    }
    
    public void setMesh (
@@ -281,13 +286,14 @@ public class MeshComponent extends RenderableComponentBase
    }
 
    public void prerenderMesh () {
-      MeshBase mesh = getMesh();
-      if (mesh != null) {
-         if (!mesh.isFixed()) {
-            mesh.notifyVertexPositionsModified();
+      MeshBase renderMesh = getMesh();
+      if (renderMesh != null) {
+         if (!renderMesh.isFixed()) {
+            renderMesh.notifyVertexPositionsModified();
          }
-         mesh.prerender (myRenderProps);
+         renderMesh.prerender (myRenderProps);
       }
+      myRenderMesh = renderMesh;
    }
 
    @Override
@@ -295,17 +301,24 @@ public class MeshComponent extends RenderableComponentBase
       prerenderMesh();
    }
 
-   public void render(
-      Renderer renderer, RenderProps props, int flags) {
-      myMeshInfo.render (renderer, props, flags);
+   public void render (Renderer renderer, RenderProps props, int flags) {     
+      MeshBase renderMesh = myRenderMesh;
+      if (renderMesh != null) {
+         renderMesh.render (renderer, props, flags);
+      }
    }
-
+   
    @Override
    public void render(Renderer renderer, int flags) {
-      if (isSelected() || isAncestorSelected()) {
-         flags |= Renderer.HIGHLIGHT;
+      MeshBase renderMesh = myRenderMesh;
+      if (renderMesh != null) {
+         if (isSelected() || isAncestorSelected()) {
+            flags |= Renderer.HIGHLIGHT;
+         }
+         // call render(,,) instead of renderMesh.render(,,) in case the former
+         // is overridden
+         render (renderer, getRenderProps(), flags);
       }
-      render(renderer, getRenderProps(), flags);
    }
    
    protected boolean isAncestorSelected() {

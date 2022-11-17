@@ -300,6 +300,9 @@ public class IntersectionTester extends ControllerBase {
          System.out.println ("finding contours");
          myContours = myIntersector.findContours(myMesh0, myMesh1);
          System.out.println ("num contours=" + myContours.size());
+         for (IntersectionContour c : myContours) {
+            System.out.println (" "+c.size());
+         }
          timer.stop();
          if (myContours.size() == 0) {
             return;
@@ -637,6 +640,10 @@ public class IntersectionTester extends ControllerBase {
          while (he != he0);
          return heMin;         
       }
+   }
+
+   ArrayList<IntersectionContour> getContours() {
+      return myContours;
    }
 
    /**

@@ -241,15 +241,6 @@ public class Muscle extends AxialSpring
    /**
     * {@inheritDoc}
     */
-   public void initialize (double t) {
-      if (t == 0) {
-         setExcitation (0);         
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
    public void setExcitation (double a) {
       // set activation within valid range
       double valid_a = a;
@@ -349,7 +340,7 @@ public class Muscle extends AxialSpring
     */
    public double getNetExcitation() {
       double net = ExcitationUtils.combineWithAncestor (
-         this, myExcitationSources, /*up to grandparent=*/2, myComboRule);
+         this, getExcitation(), myExcitationSources, /*up to grandparent=*/2, myComboRule);
       return net;
    }
 
@@ -618,5 +609,23 @@ public class Muscle extends AxialSpring
       }   
       return super.postscanItem (tokens, ancestor);
    }
+
+   /* --- Overrides of HasNumericState to save/restore excitation --- */
+   
+   public void getState (DataBuffer data) {
+      data.dput (myExcitation);
+      super.getState (data);
+   }
+
+   public void setState (DataBuffer data) {
+      myExcitation = data.dget();
+      super.setState (data);
+   }
+
+   public boolean hasState() {
+      return true;
+   }
+   
+   /* --- End HasNumericState overrides --- */
 
 }

@@ -20,6 +20,7 @@ import maspack.render.color.ColorUtils;
 import maspack.properties.*;
 import maspack.properties.PropertyInfo.Edit;
 import maspack.spatialmotion.Wrench;
+import maspack.util.DataBuffer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -277,15 +278,6 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
     */
    public CombinationRule getCombinationRule() {
       return myComboRule;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void initialize (double t) {
-      if (t == 0) {
-         setExcitation (0);         
-      }
    }
 
    /**
@@ -712,5 +704,23 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
       }   
       return super.postscanItem (tokens, ancestor);
    }
+
+   /* --- Overrides of HasNumericState to save/restore excitation --- */
+   
+   public void getState (DataBuffer data) {
+      data.dput (myExcitation);
+      super.getState (data);
+   }
+
+   public void setState (DataBuffer data) {
+      myExcitation = data.dget();
+      super.setState (data);
+   }
+
+   public boolean hasState() {
+      return true;
+   }
+   
+   /* --- End HasNumericState overrides --- */
 
 }

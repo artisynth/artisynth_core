@@ -53,6 +53,7 @@ import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.MuscleExciter;
 import artisynth.core.modelbase.ComponentList;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.PropertyChangeEvent;
@@ -65,8 +66,8 @@ import artisynth.core.util.ScanToken;
 public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
 
    // option added just in case at some point it proves necessary to save
-   // muscle excitation values as state
-   protected static boolean saveExcitationsAsState = false;
+   // component muscle excitation values as state
+   protected static boolean saveComponentExcitationsAsState = false;
 
    protected MuscleBundleList myMuscleList;
    protected MuscleMaterial myMuscleMat;
@@ -533,19 +534,9 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
 
    @Override
    public void recursivelyInitialize(double t, int level) {
-      if (t == 0) {
-         // zero the excitations of any ExcitableComponent at t = 0.
-         // Note that inputProbe.setState should do that same thing,
-         // so we're just being extra careful here.
-         for (MuscleBundle mus : myMuscleList) {
-            mus.setExcitation(0);
-//            for (MuscleElementDesc desc : mus.getElements()) {
-//               desc.setExcitation(0);
-//            }
-         }
-         for (MuscleExciter ex : myExciterList) {
-            ex.setExcitation(0);
-         }
+      // call initialize for the muscle bundles
+      for (MuscleBundle mus : myMuscleList) {
+         mus.initialize (t);
       }
       super.recursivelyInitialize(t, level);
    }
@@ -738,13 +729,20 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
     * disabled.
     */
 
+   public void getAuxStateComponents(List<HasNumericState> comps, int level) {
+      super.getAuxStateComponents (comps, level);
+      comps.addAll (myMuscleList);
+      comps.addAll (myExciterList);
+   }
+
    public void advanceState(double t0, double t1) {
       super.advanceState (t0, t1);
    }
 
    public void getState(DataBuffer data) {
       super.getState (data);
-      if (saveExcitationsAsState) {
+      data.dput (myExcitation);
+      if (saveComponentExcitationsAsState) {
          // save exitation values for both muscles and exciters
          data.zput (myMuscleList.size());
          for (MuscleBundle b : myMuscleList) {
@@ -758,9 +756,9 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
    }
    
    public void setState(DataBuffer data) {
-
       super.setState (data);
-      if (saveExcitationsAsState) {
+      myExcitation = data.dget();
+      if (saveComponentExcitationsAsState) {
          // restore exitation values for both muscles and exciters
          int numm = data.zget();
          if (numm != myMuscleList.size()) {

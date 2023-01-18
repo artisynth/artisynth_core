@@ -16,12 +16,13 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CompositeComponentBase;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.util.*;
 
 public class MuscleExciter extends ModelComponentBase implements
-ExcitationComponent {
+ExcitationComponent, HasNumericState {
    protected double myExcitation; // default = 0.0;
    protected ExcitationSourceList myExcitationSources; 
    protected CombinationRule myComboRule = CombinationRule.Sum;
@@ -119,15 +120,6 @@ ExcitationComponent {
     */
    public double getExcitation() {
       return myExcitation;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void initialize (double t) {
-      if (t == 0) {
-         setExcitation (0);         
-      }
    }
 
    /**
@@ -416,6 +408,19 @@ ExcitationComponent {
       return super.postscanItem (tokens, ancestor);
    }
    
+   /* --- Implementation of HasNumericState to save/restore excitation --- */
    
+   public void getState (DataBuffer data) {
+      data.dput (myExcitation);
+   }
 
+   public void setState (DataBuffer data) {
+      myExcitation = data.dget();
+   }
+
+   public boolean hasState() {
+      return true;
+   }
+   
+   /* --- End HasNumericState implementation --- */   
 }

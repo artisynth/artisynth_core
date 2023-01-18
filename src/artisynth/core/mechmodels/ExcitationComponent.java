@@ -11,7 +11,7 @@ import artisynth.core.modelbase.*;
 /**
  * Defines an object that can emit and recieve muscle control excitations.
  */
-public interface ExcitationComponent extends ModelComponent, RequiresInitialize {
+public interface ExcitationComponent extends ModelComponent {
    /**
     * Combination rules for excitations.
     */

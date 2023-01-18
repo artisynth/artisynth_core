@@ -45,9 +45,10 @@ public class ExcitationUtils {
    }
    
    public static double combineWithAncestor (
-      ExcitationComponent ecomp, ExcitationSourceList sources, 
-      int height, CombinationRule rule) {
-      double net = ecomp.getExcitation();
+      ModelComponent ecomp, double excitation, 
+      ExcitationSourceList sources, int height, CombinationRule rule) {
+      //double net = ecomp.getExcitation();
+      double net = excitation;
       double ea = getAncestorNetExcitation (ecomp, height);
       switch (rule) {
          case Sum: {

@@ -31,6 +31,7 @@ import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
+import maspack.util.DataBuffer;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -51,6 +52,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CompositeComponentBase;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.PropertyChangeEvent;
@@ -64,7 +66,7 @@ import artisynth.core.util.ScanToken;
 
 public class MuscleBundle extends CompositeComponentBase 
    implements ExcitationComponent, RenderableComponent, TransformableGeometry,
-   PropertyChangeListener {
+   PropertyChangeListener, HasNumericState {
 
    private static DirectionRenderType DEFAULT_FIBER_RENDER_TYPE = DirectionRenderType.ELEMENT; 
    private DirectionRenderType myDirectionRenderType = DEFAULT_FIBER_RENDER_TYPE;
@@ -308,8 +310,8 @@ public class MuscleBundle extends CompositeComponentBase
     * {@inheritDoc}
     */
    public void initialize (double t) {
-      if (t == 0) {
-         setExcitation (0);
+      for (MuscleElementDesc d : myElementDescs) {
+         d.initialize (t);
       }
    }
    
@@ -1101,6 +1103,21 @@ public class MuscleBundle extends CompositeComponentBase
       }
       return muscleDirs;
    }
+   
+   /* --- Implementation of HasNumericState to save/restore excitation --- */
+   
+   public void getState (DataBuffer data) {
+      data.dput (myExcitation);
+   }
 
+   public void setState (DataBuffer data) {
+      myExcitation = data.dget();
+   }
+
+   public boolean hasState() {
+      return true;
+   }
+   
+   /* --- End HasNumericState implementation --- */ 
 
 }

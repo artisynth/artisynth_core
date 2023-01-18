@@ -86,15 +86,6 @@ ExcitationComponent, ForceComponent {
       return myComboRule;
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public void initialize (double t) {
-      if (t == 0) {
-         setExcitation (0);   
-      }
-   }
-
    @Override
    public void setExcitation (double e) {
       myExcitation = e;

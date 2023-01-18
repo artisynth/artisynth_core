@@ -39,6 +39,7 @@ import artisynth.core.mechmodels.ExcitationComponent;
 import artisynth.core.mechmodels.ExcitationComponent.CombinationRule;
 import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.ExcitationUtils;
+import artisynth.core.mechmodels.RequiresInitialize;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CompositeComponentBase;
@@ -58,7 +59,8 @@ import artisynth.core.util.*;
 */
 public class MuscleElementDesc
    extends RenderableComponentBase
-   implements AuxiliaryMaterial, ExcitationComponent, ScalableUnits, TransformableGeometry {
+   implements AuxiliaryMaterial, ExcitationComponent, 
+   ScalableUnits, TransformableGeometry, RequiresInitialize {
 
    FemElement3dBase myElement;
 //   private MuscleMaterial myMuscleMat;
@@ -271,7 +273,7 @@ public class MuscleElementDesc
   /**
    * {@inheritDoc}
    */
-  @Override
+  //@Override
   public boolean setExcitationGain (ExcitationComponent ex, double gain) {
      return ExcitationUtils.setGain (myExcitationSources, ex, gain);
   }
@@ -279,10 +281,10 @@ public class MuscleElementDesc
  /**   
   * {@inheritDoc}
   */
-  @Override
+  //@Override
   public double getNetExcitation() {
      double net = ExcitationUtils.combineWithAncestor (
-        this, myExcitationSources, /*up to grandparent=*/2, myComboRule);
+        this, 0, myExcitationSources, /*up to grandparent=*/2, myComboRule);
      return net;
   }
 

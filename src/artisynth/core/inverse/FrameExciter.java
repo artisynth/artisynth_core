@@ -13,6 +13,7 @@ import java.util.InputMismatchException;
 import java.util.List;
 import java.util.ArrayList;
 
+import maspack.util.DataBuffer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -27,12 +28,13 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.ExcitationUtils;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.CompositeComponent;
 
 public class FrameExciter extends ModelComponentBase implements
-ExcitationComponent, ForceComponent {
+ExcitationComponent, ForceComponent, HasNumericState {
 
    public enum WrenchComponent {
       FX,
@@ -88,15 +90,6 @@ ExcitationComponent, ForceComponent {
    @Override
    public CombinationRule getCombinationRule () {
       return myComboRule;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void initialize (double t) {
-      if (t == 0) {
-         setExcitation (0);
-      }
    }
 
    @Override
@@ -328,4 +321,20 @@ ExcitationComponent, ForceComponent {
       }   
       return super.postscanItem (tokens, ancestor);
    }
+   
+   /* --- Implementation of HasNumericState to save/restore excitation --- */
+   
+   public void getState (DataBuffer data) {
+      data.dput (myExcitation);
+   }
+
+   public void setState (DataBuffer data) {
+      myExcitation = data.dget();
+   }
+
+   public boolean hasState() {
+      return true;
+   }
+   
+   /* --- End HasNumericState implementation --- */    
 }

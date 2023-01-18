@@ -35,6 +35,7 @@ import artisynth.core.mechmodels.MuscleExciter;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.TransformGeometryContext;
@@ -61,6 +62,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.LineStyle;
+import maspack.util.DataBuffer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.LabeledComponentBase;
@@ -1160,4 +1162,18 @@ public class MFreeMuscleModel extends MFreeModel3d
       }   
       return super.postscanItem (tokens, ancestor);
    }
+   
+   /* --- Implementation of HasNumericState to save/restore excitation --- */
+   
+   public void getState (DataBuffer data) {
+      data.dput (myExcitation);
+      super.getState (data);
+   }
+
+   public void setState (DataBuffer data) {
+      myExcitation = data.dget();
+      super.setState (data);
+   }
+   
+   /* --- End HasNumericState implementation --- */   
 }

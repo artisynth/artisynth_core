@@ -44,7 +44,7 @@ import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScanToken;
 
 public class Muscle extends AxialSpring
-   implements ExcitationComponent, PropertyChangeListener {
+   implements ExcitationComponent, RequiresInitialize, PropertyChangeListener {
 
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;
@@ -610,6 +610,14 @@ public class Muscle extends AxialSpring
       return super.postscanItem (tokens, ancestor);
    }
 
+   /**
+    * stub implementation of RequiresInitialize which can be overridden
+    * as needed by subclasses. Provided only for legacy support for some
+    * applications in artisynth_projects.
+    */
+   public void initialize (double t) {
+   }
+   
    /* --- Overrides of HasNumericState to save/restore excitation --- */
    
    public void getState (DataBuffer data) {

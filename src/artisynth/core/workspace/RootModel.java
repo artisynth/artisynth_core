@@ -1868,8 +1868,8 @@ public class RootModel extends RenderableModelBase
                   + Write.getQuotedString (ArtisynthPath.getWorkingDirPath()));
       
       myProps.writeNonDefaultProps (root, pw, fmt, root);
-      if (!root.myComponents.getZeroBasedNumbering()) {
-         pw.println ("zeroBasedNumbering=false");
+      if (root.myComponents.getOneBasedNumbering()) {
+         pw.println ("oneBasedNumbering=true");
       }
       root.myComponents.writeComponents (pw, fmt, root);     
  

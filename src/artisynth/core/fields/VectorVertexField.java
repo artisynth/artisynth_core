@@ -176,9 +176,15 @@ public class VectorVertexField<T extends VectorObject<T>>
          throw new IllegalArgumentException (
             "value for vertex "+vtx.getIndex()+": "+sizeErr);
       }
-      T storedValue = createTypeInstance();
-      storedValue.set (value);
-      myValues.set (vtx.getIndex(), storedValue);
+      int vidx = vtx.getIndex();
+      if (vidx >= myValues.size()) {
+         updateValueLists();
+      }
+      if (vidx < myValues.size()) {
+         T storedValue = createTypeInstance();
+         storedValue.set (value);
+         myValues.set (vidx, storedValue);
+      }
    }
 
    /**

@@ -5414,8 +5414,41 @@ PointAttachable, ConnectableBody {
       pw.flush();
    }
 
-   public void useAnsysNumbering() {
-      myNodes.setZeroBasedNumbering (false);
+   /**
+    * Sets the numbering for the nodes, elements and shell elements in this FEM
+    * to be one-based (as opposed to the default numbering, which is
+    * zero-based). Numbering for other component lists is unchanged.  This
+    * method is intended to help make the node and element numbering compatible
+    * with FEM systems, such as Abaqus and ANSYS, that use one-based numbering.
+    * 
+    * <p> This method is mainly intended to be used for testing and debugging.
+    * When one-based numbering is enabled, the numbers of any existing nodes
+    * and elements are incremented by one. Likewise, when numbering is
+    * disabled, the numbers of existing nodes and elements are decremented
+    * incremented by one. To avoid number-related inconsistencies with other
+    * components, such as fields, is it recommended that this method be called
+    * when the FEM is first created, and before it is used within an Ansys or
+    * Abaqus reader.
+    *
+    * @param oneBased enables (or diables) one-based numbering for this FEM
+    */
+   public void setOneBasedNodeElementNumbering (boolean oneBased) {
+     myNodes.setOneBasedNumbering (oneBased);
+     myElements.setOneBasedNumbering (oneBased);     
+     myShellElements.setOneBasedNumbering (oneBased);     
+   }
+
+   /**
+    * Queries whether the numbering for the nodes, elements and shell elements
+    * in this FEM is one-based. See {@link #setOneBasedNodeElementNumbering}
+    * for details.
+    *
+    * @return {@code true} if node and element numbering is one-based.
+    */
+   public boolean getOneBasedNodeElementNumbering () {
+      return (myNodes.getOneBasedNumbering() &&
+              myElements.getOneBasedNumbering() &&
+              myShellElements.getOneBasedNumbering());
    }
 
    /* --- Frame Support Methods --- */

@@ -78,9 +78,9 @@ public class AnsysReaderWriterTest extends UnitTest {
 
    // checks to make sure entries a field size of less than 6 will still work
    public static final String reducedElemStr =
-      "  1  2 3  4  5    6     7     8     1     1     1     1     0     1\n" +
-      "15  16 17  18 19 20 21    22 1     3     1     1     0     3\n" +
-      "    23 24 25 26   27  28 29   30  31  32  33  34\n" +
+      "     1     2     3     4     5     6     7     8     1     1     1     1     0     1\n" +
+      " 15 16 17 18 19 20 21    22 1     3     1     1     0     3\n" +
+      " 23 24 25 26 27  28 29   30  31  32  33  34\n" +
       " 40 41 42  43   0 0 0  0     1     5     1     1 0  5\n" +
       "  50  51 52 53 54  55    56    57 1 7 1 1     0     7\n" +
       "58 59\n" +

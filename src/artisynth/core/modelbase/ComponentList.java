@@ -229,9 +229,17 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       addComponents (new ModelComponent[] { comp }, new int[] { idx }, 1);
    }
 
+   void checkComponentNumber (int num) {
+      if (getOneBasedNumbering() && num == 0) {
+         throw new IllegalArgumentException (
+            "Non-positive component number " + num + 
+         " with one-based numbering");
+      }      
+   }
+   
    // XXX we need this?
    public boolean addNumbered (C comp, int number) {
-      
+      checkComponentNumber (number);
       return myComponents.addNumbered (comp, number);
       //notifyStructureChanged (this, !comp.hasState());
       //return status;
@@ -242,6 +250,7 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    }
    
    public C setNumbered (int idx, C comp, int number) {
+      checkComponentNumber (number);
       return myComponents.setNumbered(idx, comp, number);
    }
 
@@ -331,24 +340,24 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    // ========== End MutableCompositeComponent implementation ===== 
 
    /**
-    * Sets whether or not zero-based numbering is enabled for this component
-    * list. Zero-based numbering implies that numbers start at zero.
-    * Otherwise, numbers start at one.
+    * Sets whether or not one-based numbering is enabled for this component
+    * list. One-based numbering implies that numbers start at one instead 
+    * of zero.
     * 
-    * @param enable if {@code true}, enabled zero-based numbering
+    * @param enable if {@code true}, enabled one-based numbering
     */
-   public void setZeroBasedNumbering (boolean enable) {
-      myComponents.setZeroBasedNumbering (enable);
+   public void setOneBasedNumbering (boolean enable) {
+      myComponents.setOneBasedNumbering (enable);
    }
 
    /**
-    * Queries if zero-based numbering is enabled for this component list.
-    * See {@link #setZeroBasedNumbering}.
+    * Queries if one-based numbering is enabled for this component list.
+    * See {@link #setOneBasedNumbering}.
     * 
-    * @return {@code true} if zero-based numbering is enabled 
+    * @return {@code true} if one-based numbering is enabled 
     */
-   public boolean getZeroBasedNumbering() {
-      return myComponents.getZeroBasedNumbering();
+   public boolean getOneBasedNumbering() {
+      return myComponents.getOneBasedNumbering();
    }
 
    public void setShortName (String name) {
@@ -381,8 +390,8 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
          ancestor = this;
       }
       super.writeItems (pw, fmt, ancestor);
-      if (!myComponents.getZeroBasedNumbering()) {
-         pw.println ("zeroBasedNumbering=false");
+      if (myComponents.getOneBasedNumbering()) {
+         pw.println ("oneBasedNumbering=true");
       }
       myComponents.writeComponents (pw, fmt, ancestor);
    }
@@ -413,8 +422,8 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
          return true;
       }
-      else if (ScanWriteUtils.scanAttributeName (rtok, "zeroBasedNumbering")) {
-         myComponents.setZeroBasedNumbering (rtok.scanBoolean());
+      else if (ScanWriteUtils.scanAttributeName (rtok, "oneBasedNumbering")) {
+         myComponents.setOneBasedNumbering (rtok.scanBoolean());
          return true;
       }
       else if (myComponents.scanAndStoreComponent (rtok, tokens)) {
@@ -499,7 +508,8 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    }
 
    /**
-    * Reset the numbering so that numbers and indices match.
+    * Reset the numbering so that numbers and indices match. This
+    * also disables one-based numbering, if it was set.
     */
    public void resetNumbersToIndices() {
       myComponents.resetNumbersToIndices ();

@@ -178,7 +178,7 @@ public class AnsysReader implements FemReader {
       }
       
       if (useAnsysNum) {
-         model.useAnsysNumbering ();
+         //model.setOneBasedNodeElementNumbering (true);
       }
       
       LinkedHashMap<Integer, Point3d> nodeMap = readNodeFile (nodeReader, useAnsysNum);

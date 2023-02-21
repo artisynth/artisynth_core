@@ -161,6 +161,9 @@ public class ScalarVertexField extends ScalarMeshField {
    public void setValue (Vertex3d vtx, double value) {
       checkVertexBelongsToMesh (vtx);
       int vidx = vtx.getIndex();
+      if (vidx >= myValues.size()) {
+         updateValueLists();
+      }
       if (vidx < myValues.size()) {
          myValues.set (vidx, value);
          myValuesSet.set (vidx, true);

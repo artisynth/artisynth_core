@@ -109,10 +109,13 @@ public class VectorNodalField<T extends VectorObject<T>>
    }
 
    private void checkNodeNum (int nodeNum) {
-      if (nodeNum >= myValues.size()) {
+      int maxNum = myFem.getNodes().getNumberLimit();
+      if (nodeNum >= maxNum) {
          throw new IllegalArgumentException (
-            "nodeNum="+nodeNum+
-            ", max node num is "+ myFem.getNodes().getNumberLimit());
+            "nodeNum="+nodeNum+", max node num is "+ maxNum);
+      }
+      else if (myValues.size() < maxNum) {
+         updateValueLists();
       }
    }
 

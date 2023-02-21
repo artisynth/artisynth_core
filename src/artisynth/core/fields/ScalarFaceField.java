@@ -200,8 +200,13 @@ public class ScalarFaceField extends ScalarMeshField {
    public void setValue (Face face, double value) {
       checkFaceBelongsToMesh (face);
       int fidx = face.getIndex();
-      myValues.set (fidx, value);
-      myValuesSet.set (fidx, true);
+      if (fidx >= myValues.size()) {
+         updateValueLists();
+      }
+      if (fidx < myValues.size()) {
+         myValues.set (fidx, value);
+         myValuesSet.set (fidx, true);
+      }
    }
 
    /**

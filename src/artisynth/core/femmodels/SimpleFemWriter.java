@@ -16,6 +16,9 @@ import maspack.geometry.Vertex3d;
 import maspack.util.NumberFormat;
 
 /**
+ * Writes FEM geometry to a file that uses a format analagous to
+ * Alias Wavefront .obj files, with an 'e' token to signify elements.
+ * 
  * NOTE: Does not currently support shell elements
  */
 public class SimpleFemWriter {

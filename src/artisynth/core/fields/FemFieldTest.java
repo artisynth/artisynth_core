@@ -100,14 +100,18 @@ public class FemFieldTest extends FieldTestBase {
             valueChk = field.getDefaultValue();
          }
          checkEquals (
-            "value at node "+i, field.getValue (i), valueChk);
+            "value at node "+i, field.getValue (node.getNumber()), valueChk);
          checkEquals (
             "value at node pos "+i,
             field.getValue(node.getPosition()), valueChk, 1e-10);
       }
-       // check bad number exception 
-      checkForIllegalArgumentException (
-         () -> field.getValue (fem.numNodes()));
+      // check bad number exception 
+      if (fem.getOneBasedNodeElementNumbering()) {
+         checkForIllegalArgumentException (()->field.getValue (fem.numNodes()+1));
+      }
+      else {
+         checkForIllegalArgumentException (()->field.getValue (fem.numNodes()));
+      }
 
       for (int i=0; i<fem.numElements(); i++) {
          testScalarValueInElem ("elem "+i, fem.getElement(i), field);
@@ -146,10 +150,18 @@ public class FemFieldTest extends FieldTestBase {
             "shell elem " + i, fem.getShellElement(i), i, field);
       }
       // check bad number exception 
-      checkForIllegalArgumentException (
-         () -> field.getElementValue (fem.numElements()));
-      checkForIllegalArgumentException (
-         () -> field.getShellElementValue (fem.numShellElements()));
+      if (fem.getOneBasedNodeElementNumbering()) {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements()+1));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements()+1));
+      }
+      else {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements()));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements()));
+      }
    }
 
    public void checkScalarSubElemValues (
@@ -223,10 +235,18 @@ public class FemFieldTest extends FieldTestBase {
             "shell elem " + i, fem.getShellElement(i), field);
       }
       // check bad number exception 
-      checkForIllegalArgumentException (
-         () -> field.getElementValue (fem.numElements(), 0));
-      checkForIllegalArgumentException (
-         () -> field.getShellElementValue (fem.numShellElements(), 0));
+      if (fem.getOneBasedNodeElementNumbering()) {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements()+1, 0));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements()+1, 0));
+      }
+      else {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements(), 0));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements(), 0));
+      }
    }
 
    public <T extends VectorObject<T>> void checkVectorNodalField (
@@ -242,7 +262,7 @@ public class FemFieldTest extends FieldTestBase {
          else {
             valueChk = field.getDefaultValue();
          }
-         T value = field.getValue(i);
+         T value = field.getValue(node.getNumber());
          if (!value.epsilonEquals (valueChk, 0)) {
             throw new TestException (
                "value at node "+i+" = " + value + ", expecting "+valueChk);
@@ -253,9 +273,13 @@ public class FemFieldTest extends FieldTestBase {
                "value at node pos "+i+" = " + value + ", expecting "+valueChk);
          }
       }
-       // check bad number exception 
-      checkForIllegalArgumentException (
-         () -> field.getValue (fem.numNodes()));
+      // check bad number exception 
+      if (fem.getOneBasedNodeElementNumbering()) {
+         checkForIllegalArgumentException (()->field.getValue (fem.numNodes()+1));
+      }
+      else {
+         checkForIllegalArgumentException (()->field.getValue (fem.numNodes()));
+      }
 
       for (int i=0; i<fem.numElements(); i++) {
          testVectorValueInElem ("elem "+i, fem.getElement(i), field);
@@ -266,13 +290,13 @@ public class FemFieldTest extends FieldTestBase {
    }
 
    public <T extends VectorObject<T>> void checkVectorElemValue (
-      String name, FemElement3dBase elem, VectorElementField<T> field) {
+      String name, FemElement3dBase elem, int idx, VectorElementField<T> field) {
 
       double[] wgts = getRandomCoords (elem);
       T valueChk;
       if (field.isValueSet (elem)) {
          valueChk = field.createTypeInstance();
-         setValue (valueChk, elem.getNumber());
+         setValue (valueChk, idx);
       }
       else {
          valueChk = field.getDefaultValue();
@@ -294,16 +318,24 @@ public class FemFieldTest extends FieldTestBase {
       VectorElementField<T> field) {
       FemModel3d fem = field.getFemModel();
       for (int i=0; i<fem.numElements(); i++) {
-         checkVectorElemValue ("elem "+i, fem.getElement(i), field);
+         checkVectorElemValue ("elem "+i, fem.getElement(i), i, field);
       }
       for (int i=0; i<fem.numShellElements(); i++) {
-         checkVectorElemValue ("shell elem "+i, fem.getShellElement(i), field);
+         checkVectorElemValue ("shell elem "+i, fem.getShellElement(i), i, field);
       }
       // check bad number exception 
-      checkForIllegalArgumentException (
-         () -> field.getElementValue (fem.numElements()));
-      checkForIllegalArgumentException (
-         () -> field.getShellElementValue (fem.numShellElements()));
+      if (fem.getOneBasedNodeElementNumbering()) {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements()+1));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements()+1));
+      }
+      else {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements()));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements()));
+      }
    }
 
    public <T extends VectorObject<T>> void checkVectorSubElemField (
@@ -318,10 +350,18 @@ public class FemFieldTest extends FieldTestBase {
             "shell elem "+i, fem.getShellElement(i), field);
       }
       // check bad number exception 
-      checkForIllegalArgumentException (
-         () -> field.getElementValue (fem.numElements(), 0));
-      checkForIllegalArgumentException (
-         () -> field.getShellElementValue (fem.numShellElements(), 0));
+      if (fem.getOneBasedNodeElementNumbering()) {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements()+1, 0));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements()+1, 0));
+      }
+      else {
+         checkForIllegalArgumentException (
+            () -> field.getElementValue (fem.numElements(), 0));
+         checkForIllegalArgumentException (
+            () -> field.getShellElementValue (fem.numShellElements(), 0));
+      }
    }
 
    void testScalarNodalField (MechModel mech, ScalarNodalField field) {
@@ -779,9 +819,132 @@ public class FemFieldTest extends FieldTestBase {
       return fem;
    }
 
-   public void test() {
+   public void testWithChangingFem() {
+      FemModel3d fem = new FemModel3d ("fem");
+      FemFactory.createHexGrid (fem, 0.5, 0.5, 0.5, 1, 1, 1);
 
-      FemModel3d fem = createFem();
+      ScalarNodalField snfield = new ScalarNodalField (fem);
+      VectorNodalField<Vector3d> vnfield =
+         new VectorNodalField (Vector3d.class, fem);
+      ScalarElementField sefield = new ScalarElementField (fem);
+      VectorElementField<Vector3d> vefield =
+         new VectorElementField (Vector3d.class, fem);
+      ScalarSubElemField ssfield = new ScalarSubElemField (fem);
+      VectorSubElemField<Vector3d> vsfield =
+         new VectorSubElemField (Vector3d.class, fem);
+
+      // assign field values for original mesh
+      for (int i=0; i<fem.numNodes(); i++) {
+         FemNode3d node = fem.getNode(i);
+         snfield.setValue (node, i);
+         vnfield.setValue (node, new Vector3d(i,i,i));
+      }
+      for (int i=0; i<fem.numElements(); i++) {
+         FemElement3d elem = fem.getElement(i);
+         sefield.setValue (elem, i);
+         vefield.setValue (elem, new Vector3d(i,i,i));
+         int nipnts = elem.numAllIntegrationPoints();
+         for (int j=0; j<nipnts; j++) {
+            double val = i*10 + j;
+            ssfield.setValue (elem, j, val);
+            vsfield.setValue (elem, j, new Vector3d(val,val,val));
+         }
+      }
+
+      int oldNumNodes = fem.numNodes();
+      int oldNumElems = fem.numElements();
+
+      // add nodea and elems to the FEM
+      FemModel3d xfem =
+         FemFactory.createHexGrid (null, 1.0, 1.0, 1.0, 1, 1, 1);
+      FemFactory.addFem (fem, xfem);
+      xfem = FemFactory.createShellTriGrid (null, 1.0, 1.0, 2, 2, 0.01, false);
+      FemFactory.addFem (fem, xfem);      
+
+
+      // check values for the enlarged FEM, assigning values for new
+      // nodes/elems
+      for (int i=0; i<fem.numNodes(); i++) {
+         FemNode3d node = fem.getNode(i);
+         double schk = i;
+         Vector3d vchk = new Vector3d (i, i, i);
+         if (i >= oldNumNodes) {
+            checkEquals ("valueIsSet ", snfield.isValueSet(node), false);
+            checkEquals ("valueIsSet ", vnfield.isValueSet(node), false);
+            snfield.setValue (node, schk);
+            vnfield.setValue (node, vchk);
+         }
+         checkEquals ("valueIsSet ", snfield.isValueSet(node), true);
+         checkEquals ("valueIsSet ", vnfield.isValueSet(node), true);
+         checkEquals ("value at vertex "+i, snfield.getValue(node), schk);
+         checkEquals ("value at vertex "+i, vnfield.getValue(node), vchk);
+      }
+
+      for (int i=0; i<fem.numElements(); i++) {
+         FemElement3d elem = fem.getElement(i);
+         double schk = i;
+         Vector3d vchk = new Vector3d (i, i, i);
+         int nipnts = elem.numAllIntegrationPoints();
+         if (i >= oldNumElems) {
+            checkEquals ("valueIsSet ", sefield.isValueSet(elem), false);
+            checkEquals ("valueIsSet ", vefield.isValueSet(elem), false);
+            sefield.setValue (elem, schk);
+            vefield.setValue (elem, vchk);
+            for (int j=0; j<nipnts; j++) {
+               double val = i*10 + j;
+               checkEquals ("valueIsSet ", ssfield.isValueSet(elem, j), false);
+               checkEquals ("valueIsSet ", vsfield.isValueSet(elem, j), false);
+               ssfield.setValue (elem, j, val);
+               vsfield.setValue (elem, j, new Vector3d(val,val,val));
+            }
+         }
+         checkEquals ("valueIsSet ", sefield.isValueSet(elem), true);
+         checkEquals ("valueIsSet ", vefield.isValueSet(elem), true);
+         checkEquals ("value at elem "+i, sefield.getValue(elem), schk);
+         checkEquals ("value at elem "+i, vefield.getValue(elem), vchk);
+         for (int j=0; j<nipnts; j++) {
+            double val = i*10 + j;
+            checkEquals ("valueIsSet ", ssfield.isValueSet(elem, j), true);
+            checkEquals ("valueIsSet ", vsfield.isValueSet(elem, j), true);
+            checkEquals (
+               "value at subelem "+i+","+j, ssfield.getValue (elem, j), val);
+            checkEquals (
+               "value at subelem "+i+","+j, vsfield.getValue (elem, j),
+               new Vector3d (val,val,val));
+         }
+      }
+
+      for (int i=0; i<fem.numShellElements(); i++) {
+         ShellElement3d elem = fem.getShellElement(i);
+         double schk = i;
+         Vector3d vchk = new Vector3d (i, i, i);
+         int nipnts = elem.numAllIntegrationPoints();
+         checkEquals ("valueIsSet ", sefield.isValueSet(elem), false);
+         checkEquals ("valueIsSet ", vefield.isValueSet(elem), false);
+         sefield.setValue (elem, schk);
+         vefield.setValue (elem, vchk);
+         checkEquals ("valueIsSet ", sefield.isValueSet(elem), true);
+         checkEquals ("valueIsSet ", vefield.isValueSet(elem), true);
+         checkEquals ("value at shell elem "+i, sefield.getValue(elem), schk);
+         checkEquals ("value at shell elem "+i, vefield.getValue(elem), vchk);
+         for (int j=0; j<nipnts; j++) {
+            schk = i*10 + j;
+            vchk = new Vector3d (schk, schk, schk);
+            checkEquals ("valueIsSet ", ssfield.isValueSet(elem, j), false);
+            checkEquals ("valueIsSet ", vsfield.isValueSet(elem, j), false);
+            ssfield.setValue (elem, j, schk);
+            vsfield.setValue (elem, j, vchk);
+            checkEquals ("valueIsSet ", ssfield.isValueSet(elem, j), true);
+            checkEquals ("valueIsSet ", vsfield.isValueSet(elem, j), true);
+            checkEquals (
+               "value at subelem "+i+","+j, ssfield.getValue (elem, j), schk);
+            checkEquals (
+               "value at subelem "+i+","+j, vsfield.getValue (elem, j), vchk);
+         }
+      }
+   }
+
+   public void testWithFixedFem (FemModel3d fem) {
       MechModel mech = new MechModel();
       mech.addModel (fem);
 
@@ -828,6 +991,14 @@ public class FemFieldTest extends FieldTestBase {
       testVectorSubElemField (
          mech, new MatrixNdSubElemField ("vefield", 2, 3, fem));
 
+   }
+
+   public void test() {
+      FemModel3d fem = createFem();
+      testWithFixedFem (fem);
+      fem.setOneBasedNodeElementNumbering (true);
+      testWithFixedFem (fem);
+      testWithChangingFem();
    }
 
    public static void main (String[] args) {

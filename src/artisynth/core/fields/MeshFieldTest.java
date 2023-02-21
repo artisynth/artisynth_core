@@ -239,7 +239,79 @@ public class MeshFieldTest extends FieldTestBase {
       checkVectorFaceField (fieldChk);      
    }
 
+   public void testWithChangingMesh() {
+      PolygonalMesh mesh = MeshFactory.createBox (0.5, 0.5, 0.5);
+      FixedMeshBody meshBody = new FixedMeshBody ("mesh", mesh);
+
+      ScalarVertexField svfield =
+         new ScalarVertexField ("svfield", meshBody);
+      ScalarFaceField sffield =
+         new ScalarFaceField ("sffield", meshBody);
+      VectorVertexField<Vector3d> vvfield =
+         new VectorVertexField ("vvfield", Vector3d.class, meshBody);
+      VectorFaceField<Vector3d> vffield =
+         new VectorFaceField ("vffield", Vector3d.class, meshBody);
+
+      // assign field values for original mesh
+      for (int i=0; i<mesh.numVertices(); i++) {
+         Vertex3d vtx = mesh.getVertex(i);
+         svfield.setValue (vtx, i);
+         vvfield.setValue (vtx, new Vector3d (i, i, i));
+      }
+      for (int i=0; i<mesh.numFaces(); i++) {
+         Face face = mesh.getFace(i);
+         sffield.setValue (face, i);
+         vffield.setValue (face, new Vector3d (i, i, i));
+      }
+
+      int oldNumVerts = mesh.numVertices();
+      int oldNumFaces = mesh.numFaces();
+
+      // now grow the mesh
+      PolygonalMesh meshx = MeshFactory.createBox (1.0, 1.0, 1.0);
+      mesh.addMesh (meshx);
+
+      // check values for new mesh, and assign values for now verts/faces
+      for (int i=0; i<mesh.numVertices(); i++) {
+         Vertex3d vtx = mesh.getVertex(i);
+         double schk = i;
+         Vector3d vchk = new Vector3d (i, i, i);
+         if (i >= oldNumVerts) {
+            checkEquals ("valueIsSet ", svfield.isValueSet(vtx), false);
+            checkEquals ("valueIsSet ", vvfield.isValueSet(vtx), false);
+            svfield.setValue (vtx, schk);
+            vvfield.setValue (vtx, vchk);
+         }
+         checkEquals ("valueIsSet ", svfield.isValueSet(vtx), true);
+         checkEquals ("valueIsSet ", vvfield.isValueSet(vtx), true);
+         checkEquals ("value at vertex "+i, svfield.getValue(vtx), schk);
+         checkEquals ("value at vertex "+i, vvfield.getValue(vtx), vchk);
+      }
+
+      for (int i=0; i<mesh.numFaces(); i++) {
+         Face face = mesh.getFace(i);
+         double schk = i;
+         Vector3d vchk = new Vector3d (i, i, i);
+         if (i >= oldNumFaces) {
+            checkEquals ("valueIsSet ", sffield.isValueSet(face), false);
+            checkEquals ("valueIsSet ", vffield.isValueSet(face), false);
+            sffield.setValue (face, schk);
+            vffield.setValue (face, vchk);
+         }
+         checkEquals ("valueIsSet ", sffield.isValueSet(face), true);
+         checkEquals ("valueIsSet ", vffield.isValueSet(face), true);
+         checkEquals ("value at vertex "+i, sffield.getValue(face), schk);
+         checkEquals ("value at vertex "+i, vffield.getValue(face), vchk);
+      }
+
+   }
+
    public void test() {
+      testWithFixedMesh();
+      testWithChangingMesh();
+   }
+
+   public void testWithFixedMesh() {
       PolygonalMesh mesh = MeshFactory.createBox (1.0, 2.0, 3.0);
       MechModel mech = new MechModel();
       FixedMeshBody meshBody = new FixedMeshBody ("mesh", mesh);

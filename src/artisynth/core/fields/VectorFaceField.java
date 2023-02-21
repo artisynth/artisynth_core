@@ -220,9 +220,15 @@ public class VectorFaceField<T extends VectorObject<T>>
          throw new IllegalArgumentException (
             "value for face "+face.getIndex()+": "+sizeErr);
       }
-      T storedValue = createTypeInstance();
-      storedValue.set (value);
-      myValues.set (face.getIndex(), storedValue);
+      int fidx = face.getIndex();
+      if (fidx >= myValues.size()) {
+         updateValueLists();
+      }
+      if (fidx < myValues.size()) {
+         T storedValue = createTypeInstance();
+         storedValue.set (value);
+         myValues.set (fidx, storedValue);
+      }
    }
 
    /**

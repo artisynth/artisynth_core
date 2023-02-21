@@ -7,6 +7,7 @@
 package artisynth.core.modelbase;
 
 import java.util.*;
+import maspack.util.InternalErrorException;
 
 /**
  * Used by CompositeComponents to map between names and numbers and
@@ -18,17 +19,25 @@ public class ComponentMap {
    private int myDefaultNumberCapacity;
 
    private int myNumberLimit;    // next number beyond the current highest number
-   private int[] myNameStack;    // stack of free numbers
-   private int myNameStackSize;  // size of free number stack
+   private int[] myNumberStack;    // stack to implement the free number cache
+   private int myNumberStackSize;  // size of free number stack
    private boolean myNumberCacheValid = true;
+   
+   private boolean myOneBasedNumbering = false;
 
-   public int allocNumber() {
+   // === begin free number cache methods ====
+
+   /**
+    * Allocate a number, either from the free cache, or by bumping the number
+    * limit.
+    */
+   private int allocNumber() {
       if (!myNumberCacheValid) {
-         collectFreeNumbers();
+         rebuildNumberCache();
       }
       int num;
-      if (myNameStackSize > 0) {
-         num = myNameStack[--myNameStackSize];
+      if (myNumberStackSize > 0) {
+         num = myNumberStack[--myNumberStackSize];
       }
       else {
          num = myNumberLimit;
@@ -39,45 +48,59 @@ public class ComponentMap {
       return num;
    }
 
-   public void printNameStack () {
-      for (int i=myNameStackSize-1; i>=0; i--) {
-         System.out.println (" " + myNameStack[i]);
+   /**
+    * Print the number cache. For debugging.
+    */
+   void printNumberCache () {
+      for (int i=myNumberStackSize-1; i>=0; i--) {
+         System.out.println (" " + myNumberStack[i]);
       }
    }
 
    /**
-    * Returns the next number that will be allocated, without actually doing the
-    * allocation.
+    * Clear the number cache.
+    */
+   private void clearNumberCache() {
+      myNumberStackSize = 0;
+      myNumberCacheValid = true;
+   }
+
+   /**
+    * Returns the next number that will be allocated, without actually doing
+    * the allocation.
     * 
     * @return next number that will be allocated
     */
-   public int nextNumber() {
+   int nextNumber() {
       if (!myNumberCacheValid) {
-         collectFreeNumbers();
+         rebuildNumberCache();
       }
-      if (myNameStackSize > 0) {
-         return myNameStack[myNameStackSize - 1];
+      if (myNumberStackSize > 0) {
+         return myNumberStack[myNumberStackSize - 1];
       }
       else {
          return myNumberLimit;
       }
    }
 
-   public void freeNumber (int num) {
+   /**
+    * Free a number by placing it on the number cache.
+    */
+   private void freeNumber (int num) {
       if (!myNumberCacheValid) {
-         collectFreeNumbers();
+         rebuildNumberCache();
       }
       doFreeNumber (num);
    }
 
    private void doFreeNumber (int num) {
-      if (myNameStackSize >= myNameStack.length) { // grow the name stack
-         int newLength = (3 * myNameStack.length) / 2 + 1;
+      if (myNumberStackSize >= myNumberStack.length) { // grow the number cache
+         int newLength = (3 * myNumberStack.length) / 2 + 1;
          int[] newStack = new int[newLength];
-         System.arraycopy (myNameStack, 0, newStack, 0, myNameStack.length);
-         myNameStack = newStack;
+         System.arraycopy (myNumberStack, 0, newStack, 0, myNumberStack.length);
+         myNumberStack = newStack;
       }
-      myNameStack[myNameStackSize++] = num;
+      myNumberStack[myNumberStackSize++] = num;
       if (num == myNumberLimit - 1) {
          int k = num - 1;
          while (k >= 0 && myNumberMap[k] == -1) {
@@ -87,14 +110,22 @@ public class ComponentMap {
       }
    }
 
-   public void collectFreeNumbers() {
+   /**
+    * Rebuild the free number cache.
+    */
+   void rebuildNumberCache() {
+      int base = myOneBasedNumbering ? 1 : 0;
       int highestNum = myNumberMap.length - 1;
-      while (highestNum >= 0 && myNumberMap[highestNum] == -1) {
+      // Iterate backwards from the end of the numberMap and find the first
+      // entry != -1. This is the highest currently allocated number.
+      while (highestNum >= base && myNumberMap[highestNum] == -1) {
          highestNum--;
       }
       myNumberLimit = highestNum + 1;
-      myNameStackSize = 0;
-      for (int i = highestNum - 1; i >= 0; i--) {
+      myNumberStackSize = 0;
+      // Add any unallocated numbers *below* the highest number to the number
+      // stack.
+      for (int i = highestNum - 1; i >= base; i--) {
          if (myNumberMap[i] == -1) {
             doFreeNumber (i);
          }
@@ -102,20 +133,25 @@ public class ComponentMap {
       myNumberCacheValid = true;
    }
 
-   public int mapComponent (ModelComponent comp, int idx) {
-      return mapComponent (comp, idx, -1);
-   }
+   // === end free number cache methods ====
 
    public int mapComponent (ModelComponent comp, int idx, int number) {
+
+      if (number == 0 && myOneBasedNumbering) {
+         throw new InternalErrorException (
+            "mapComponent: number=0 with one-based numbering in effect");
+      }
       if (number == -1) {
          number = allocNumber();
       }
-      else if (number == nextNumber()) {
+      else if (myNumberCacheValid && number == nextNumber()) {
+         // if number == nextNumber, call allocNumber() to update the number
+         // cache. Only do this if the cache is valid, to avoid lots of calls
+         // to rebuildNumberCache() when the numbers don't match nextNumber()
          allocNumber();
       }
       else {
-         // will have to rebuild number cache later since number is being
-         // specified outside of the cache
+         // will have to rebuild number cache later
          myNumberCacheValid = false; 
       }
       put (comp.getName(), number, comp, idx);
@@ -150,25 +186,25 @@ public class ComponentMap {
       }
    }
 
-   private void initializeNameMap() {
+   private void initialize() {
       myNumberMap = new int[myDefaultNumberCapacity];
       for (int i = 0; i < myDefaultNumberCapacity; i++) {
          myNumberMap[i] = -1;
       }
-      myNameStackSize = 0;
-      myNumberLimit = 0;
-      myNameStack = new int[myDefaultNumberCapacity];
+      myNumberStackSize = 0;
+      myNumberLimit = myOneBasedNumbering ? 1 : 0;
+      myNumberStack = new int[myDefaultNumberCapacity];
    }
 
    public ComponentMap() {
       myDefaultNumberCapacity = 64;
       myNameMap = new HashMap<String,ModelComponent>();
-      initializeNameMap();
+      initialize();
    }
 
    public void clear() {
       myNameMap.clear();
-      initializeNameMap();
+      initialize();
    }
 
    private void ensureNumberCapacity (int minCap) {
@@ -196,14 +232,14 @@ public class ComponentMap {
       }
    }
 
-   public int putIndex (int num, int idx) {
+   private int putIndex (int num, int idx) {
       ensureNumberCapacity (num + 1);
       int prev = myNumberMap[num];
       myNumberMap[num] = idx;
       return prev;
    }
 
-   public int removeIndex (int num) {
+   private int removeIndex (int num) {
       if (num < myNumberMap.length) {
          int prev = myNumberMap[num];
          myNumberMap[num] = -1;
@@ -218,22 +254,22 @@ public class ComponentMap {
       return myNameMap.get (name);
    }
 
-   public void put (String name, ModelComponent comp) {
+   private void put (String name, ModelComponent comp) {
       myNameMap.put (name, comp);
    }
 
-   public ModelComponent remove (String name) {
+   private ModelComponent remove (String name) {
       return myNameMap.remove (name);
    }
 
-   public void put (String name, int num, ModelComponent comp, int idx) {
+   private void put (String name, int num, ModelComponent comp, int idx) {
       if (name != null) {
          put (name, comp);
       }
       putIndex (num, idx);
    }
 
-   public void remove (String name, int num) {
+   private void remove (String name, int num) {
       if (name != null) {
          remove (name);
       }
@@ -241,12 +277,16 @@ public class ComponentMap {
    }
 
    public int getNumberLimit() {
+      if (!myNumberCacheValid) {
+         rebuildNumberCache();
+      }
       return myNumberLimit;
    }
 
    /**
     * Reset the number map so that numbers and indices match.  The number of
-    * components is given by {@code numc}.
+    * components is given by {@code numc}. This also disables one-based
+    * numbering, if it was set.
     */
    protected void resetNumbersToIndices (int numc) {
       if (myNumberMap.length < numc) {
@@ -258,10 +298,9 @@ public class ComponentMap {
       for (int i=numc; i<myNumberMap.length; i++) {
          myNumberMap[i] = -1;
       }
-      // clear the name stack
       myNumberLimit = numc;
-      myNameStackSize = 0;
-      myNumberCacheValid = true;
+      myOneBasedNumbering = false;
+      clearNumberCache();
    }
 
    public void resetIndex (ModelComponent comp, int idx) {
@@ -307,37 +346,58 @@ public class ComponentMap {
    }
 
    /**
-    * Adjusts all number values by a given increment. This is used to implement
-    * zero or one-based numbering.
+    * Queries whether the numbering in this component map is one-based.
     */
-   void incrementNumbers (int inc) {
-      ensureNumberCapacity (myNumberLimit + inc);
-      if (inc > 0) {
-         int i = myNumberMap.length-1;
-         // shift all entries up by inc
-         for ( ; i>=inc; i--) {
-            myNumberMap[i] = myNumberMap[i-inc];
+   boolean getOneBasedNumbering() {
+      return myOneBasedNumbering;
+   }
+   
+   /**
+    * Sets whether the numbering in this component map is one-based.
+    */  
+   void setOneBasedNumbering (boolean oneBased) {
+      if (oneBased != myOneBasedNumbering) {
+         if (oneBased) {
+            incrementNumbering();
          }
-         // fill first inc entries with -1
-         for ( ; i>=0; i--) {
-            myNumberMap[i] = -1;
+         else {
+            decrementNumbering();
          }
+         myOneBasedNumbering = oneBased;
       }
-      else if (inc < 0) {
-         int i = 0;
-         // shift all entries down by -inc
-         for ( ; i<myNumberMap.length+inc; i++) {
-            myNumberMap[i] = myNumberMap[i-inc];
-         }
-         // fill last entries with -1
-         for ( ; i<myNumberMap.length; i++) {
-            myNumberMap[i] = -1;
-         }
+   }
+   
+   /**
+    * Increment all number values by one
+    */
+   void incrementNumbering () {
+      ensureNumberCapacity (myNumberLimit+1);
+      // shift all entries up by 1
+      for (int i=myNumberMap.length-1; i>=1; i--) {
+         myNumberMap[i] = myNumberMap[i-1];
       }
-      myNumberLimit += inc;
-      for (int i=0; i<myNameStackSize; i++) {
-         myNameStack[i] += inc;
+      // fill first entry with -1
+      myNumberMap[0] = -1;
+      // invalidate number cache
+      myNumberCacheValid = false; 
+   }
+
+   /**
+    * Decrement all number values by one
+    */
+   void decrementNumbering () {
+      if (myNumberMap[0] != -1) {
+         throw new InternalErrorException (
+            "decrement numbering: number 0 is in use");
       }
+      // shift all entries down by 1      
+      for (int i=0; i<myNumberMap.length-1; i++) {
+         myNumberMap[i] = myNumberMap[i+1];
+      }
+      // fill last entry with -1
+      myNumberMap[myNumberMap.length-1] = -1;
+      // invalidate number cache
+      myNumberCacheValid = false; 
    }
 
 }

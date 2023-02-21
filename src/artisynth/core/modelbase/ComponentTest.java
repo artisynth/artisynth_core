@@ -467,22 +467,22 @@ public class ComponentTest extends UnitTest {
       checkNames (listB, "compJ", "compK", "compL", null, null, null);
       checkNumbers (listB, 0, 1, 2, 3, 4, 5);
 
-      listA.setZeroBasedNumbering (false);
+      listA.setOneBasedNumbering (true);
       checkNames (listA, "compA", "compC", "compB", null, "compG", "compH");
       checkNumbers (listA, 1, 2, 3, 4, 5, 6);
 
-      listA.setZeroBasedNumbering (true);
+      listA.setOneBasedNumbering (false);
       checkNames (listA, "compA", "compC", "compB", null, "compG", "compH");
       checkNumbers (listA, 0, 1, 2, 3, 4, 5);
 
       listA.clear();
-      listA.setZeroBasedNumbering (false);
+      listA.setOneBasedNumbering (true);
       listA.add (G);
       listA.add (H);
       checkNames (listA, "compG", "compH");
       checkNumbers (listA, 1, 2);
 
-      listA.setZeroBasedNumbering (true);
+      listA.setOneBasedNumbering (false);
       checkNames (listA, "compG", "compH");
       checkNumbers (listA, 0, 1);
 

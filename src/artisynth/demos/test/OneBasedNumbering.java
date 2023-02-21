@@ -15,7 +15,7 @@ public class OneBasedNumbering extends RootModel {
       addModel (mech);
 
       PointList points = new PointList(Point.class, "xpoints");
-      points.setZeroBasedNumbering (false);
+      points.setOneBasedNumbering (true);
       mech.add (points);
 
       points.add (new Particle (1, new Point3d (0, 0, 0)));

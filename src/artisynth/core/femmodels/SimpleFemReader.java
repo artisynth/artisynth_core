@@ -14,6 +14,9 @@ import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
 
 /**
+ * Reads FEM geometry from a file that uses a format analagous to
+ * Alias Wavefront .obj files, with an 'e' token to signify elements.
+ * 
  * NOTE: Does not currently support shell elements
  */
 public class SimpleFemReader {

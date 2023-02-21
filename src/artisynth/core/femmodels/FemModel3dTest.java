@@ -542,9 +542,73 @@ public class FemModel3dTest extends UnitTest {
       testFindElem (fem, VOLUME, 9.0,-0.5, 9.0,   1.0,-0.5, 1.0, VOLUME, 5);
    }
 
+   void checkNumbering (FemModel3d fem, boolean zeroBased) {
+      int inc = zeroBased ? 0 : 1;
+      for (int i=0; i< fem.numNodes(); i++) {
+         int num = fem.getNode(i).getNumber();
+         if (num != i+inc) {
+            throw new TestException (
+               "Node at "+i+": number is "+num+", expecting "+(i+inc));
+         }
+      }
+      for (int i=0; i< fem.numElements(); i++) {
+         int num = fem.getElement(i).getNumber();
+         if (num != i+inc) {
+            throw new TestException (
+               "Element at "+i+": number is "+num+", expecting "+(i+inc));
+         }
+      }
+      for (int i=0; i< fem.numShellElements(); i++) {
+         int num = fem.getShellElement(i).getNumber();
+         if (num != i+inc) {
+            throw new TestException (
+               "Shell element at "+i+": number is "+num+", expecting "+(i+inc));
+         }
+      }
+   }
+
+   void addSolidShellElems (FemModel3d fem, double scale) {
+      FemFactory.createHexGrid (fem, scale*1.0, scale*1.0, scale*0.5, 2, 2, 1);
+      FemModel3d xfem =
+         FemFactory.createShellTriGrid (
+            null, scale*1.0, scale*1.0, 2, 2, 0.01, false);
+      xfem.transformGeometry (new RigidTransform3d (0, 0, 0.5));
+      FemFactory.addFem (fem, xfem);
+   }
+
+   void testSetNumbering() {
+      // create an FEM and then adjust one-based numbering
+
+      FemModel3d fem = new FemModel3d ("fem");
+      addSolidShellElems(fem, 1.0);
+
+      checkNumbering (fem, /*zeroBased=*/true);
+      fem.setOneBasedNodeElementNumbering (true);
+      checkNumbering (fem, /*zeroBased=*/false);
+      fem.setOneBasedNodeElementNumbering (false);
+      checkNumbering (fem, /*zeroBased=*/true);
+
+      // try creating the fem with one-based numbering from the start
+      fem = new FemModel3d ("fem");
+      fem.setOneBasedNodeElementNumbering (true);
+      addSolidShellElems(fem, 1.0);
+      checkNumbering (fem, /*zeroBased=*/false);
+
+      // try creating fem, changing to one-based numbering, and then
+      // adding additional elements
+      fem = new FemModel3d ("fem");
+      addSolidShellElems(fem, 1.0);
+      fem.setOneBasedNodeElementNumbering (true);
+      addSolidShellElems(fem, 0.5);
+      checkNumbering (fem, /*zeroBased=*/false);
+      fem.setOneBasedNodeElementNumbering (false);
+      checkNumbering (fem, /*zeroBased=*/true);
+   }
+
    public void test() {
       //testFrameRelativeMass();
       testFindNearestElement();
+      testSetNumbering();
       testFemCopy();
    }
 

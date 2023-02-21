@@ -27,7 +27,6 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    protected int myScanCnt;
    // CompositeComponet that we are implementing for
    protected CompositeComponent myComp;
-   protected boolean myZeroBasedNumbering = true;
 
    protected ComponentMap myComponentMap;
    
@@ -460,19 +459,18 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
 
    // ========== End MutableCompositeComponent implementation ===== 
 
-   public void setZeroBasedNumbering (boolean enable) {
-      if (myZeroBasedNumbering != enable) {
-         int inc = enable ? -1 : 1;
-         myComponentMap.incrementNumbers (inc);
+   public void setOneBasedNumbering (boolean enable) {
+      if (getOneBasedNumbering() != enable) {
+         myComponentMap.setOneBasedNumbering (enable);
+         int shift = enable ? 1 : -1;
          for (ModelComponent mc : this) {
-            mc.setNumber (mc.getNumber()+inc);
+            mc.setNumber (mc.getNumber()+shift);
          }
-         myZeroBasedNumbering = enable;
       }
    }
 
-   public boolean getZeroBasedNumbering() {
-      return myZeroBasedNumbering;
+   public boolean getOneBasedNumbering() {
+      return myComponentMap.getOneBasedNumbering();
    }
 
    protected void printClassTagIfNecessary (PrintWriter pw, C comp) {
@@ -596,7 +594,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
                stateless = false;
             }
          }
-         myComponentMap.collectFreeNumbers();
+         myComponentMap.rebuildNumberCache();
          notifyStructureChanged (myComp, !stateless);
       }
    }
@@ -607,11 +605,21 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
 
       int compNumber = -1;
       ClassInfo<C> classInfo = null;
+      
+      int minCompNumber = getOneBasedNumbering() ? 1 : 0;
       if (rtok.tokenIsInteger()) {
          compNumber = (int)rtok.lval;
-         if (compNumber < 0) {
-            throw new IOException (
-               "Negative component number, line " + rtok.lineno());
+         if (compNumber < minCompNumber) {
+            if (compNumber < 0) {
+               throw new IOException (
+                  "Negative component number " + compNumber + 
+                  ", line " + rtok.lineno());
+            }
+            else {
+               throw new IOException (
+                  "Non-positive component number " + compNumber + 
+                  " with one-based numbering, line " + rtok.lineno());
+            }
          }
          rtok.nextToken();
       }

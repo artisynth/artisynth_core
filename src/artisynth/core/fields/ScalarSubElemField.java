@@ -132,18 +132,24 @@ public class ScalarSubElemField extends ScalarFemField {
    }
 
    private void checkElemNum (int elemNum) {
-      if (elemNum >= myValues.size()) {
+      int maxNum = myFem.getElements().getNumberLimit();
+      if (elemNum >= maxNum) {
          throw new IllegalArgumentException (
-            "elemNum="+elemNum+
-            ", max elem num is "+ myFem.getElements().getNumberLimit());
+            "elemNum="+elemNum+", max elem num is "+maxNum);
+      }
+      else if (myValues.size() < maxNum) {
+         updateValueLists();
       }
    }
 
    private void checkShellElemNum (int elemNum) {
-      if (elemNum >= myShellValues.size()) {
+      int maxNum = myFem.getShellElements().getNumberLimit();
+      if (elemNum >= maxNum) {
          throw new IllegalArgumentException (
-            "elemNum="+elemNum+
-            ", max elem num is "+ myFem.getShellElements().getNumberLimit());
+            "elemNum="+elemNum+", max elem num is "+maxNum);
+      }
+      else if (myShellValues.size() < maxNum) {
+         updateValueLists();
       }
    }
 

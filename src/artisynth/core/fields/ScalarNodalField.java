@@ -104,10 +104,13 @@ public class ScalarNodalField extends ScalarFemField {
    }
 
    private void checkNodeNum (int nodeNum) {
-      if (nodeNum >= myValset.size()) {
+      int maxNum = myFem.getNodes().getNumberLimit();
+      if (nodeNum >= maxNum) {
          throw new IllegalArgumentException (
-            "nodeNum="+nodeNum+
-            ", max node num is "+ myFem.getNodes().getNumberLimit());
+            "nodeNum="+nodeNum+", max node num is "+ maxNum);
+      }
+      else if (myValues.size() < maxNum) {
+         updateValueLists();
       }
    }
 

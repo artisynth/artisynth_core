@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import maspack.matrix.Point3d;
 import maspack.util.ReaderTokenizer;
 import maspack.util.ArraySupport;
+import maspack.util.InternalErrorException;
 
 /**
  * Abaqus File reader, only supports the NODE, ELEMENT and INCLUDE keywords
@@ -226,6 +227,9 @@ public class AbaqusReader implements FemReader {
       } else {
          model.clear ();
       }
+      boolean zeroBasedNumbering = ((options & ZERO_BASED_NUMBERING) != 0);
+      //model.setOneBasedNodeElementNumbering (!zeroBasedNumbering);
+
       model.setDensity (density);
       
       cwHexWarningGiven=false;
@@ -247,7 +251,6 @@ public class AbaqusReader implements FemReader {
          
          FemNode3d node = new FemNode3d (pos);
          model.addNumberedNode (node, nodeId);
-         
          // Store new node ID to match with element node IDs
          nodeIdMap.put (nodeId, node.getNumber ());
       }

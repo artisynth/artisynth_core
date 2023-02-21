@@ -20,6 +20,9 @@ import maspack.util.ReaderTokenizer;
  * A class to read an FEM described as Unstructured Cell Data with a
  * uniform density. The UCD data format is described in Appendix E
  * of the AVS Developer's Guide.
+ * 
+ * This reader currently assumes that all node and element indices
+ * are zero-based.
  */
 public class UCDReader implements FemReader {
 

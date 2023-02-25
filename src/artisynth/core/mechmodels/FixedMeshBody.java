@@ -30,6 +30,7 @@ import maspack.properties.PropertyList;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.modelbase.HasCoordinateFrame;
@@ -269,6 +270,69 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
             myRenderFrame, myAxisDrawStyle, 
             myAxisLength, myRenderProps.getLineWidth(), 0, isSelected());
       }
+   }
+
+   // ==== Methods to transform the coordinate frame ====
+
+   /**
+    * Returns the centroid of this mesh body.
+    *
+    * @retrun mesh centroid
+    */
+   public Point3d getCentroid() {
+      Point3d cent = new Point3d();
+      getMesh().computeCentroid (cent);
+      return cent;
+   }
+
+   /**
+    * Adjusts the pose so that it reflects the mesh's centroid.  Returns the
+    * previous centroid position, with respect to body coordinates. The
+    * negative of this gives the previous location of body frame's origin, also
+    * with respect to body coordinates.
+    *
+    * @return previous centroid position
+    */
+   public Vector3d centerPoseOnCentroid() {
+      Point3d cent = getCentroid();
+      translateCoordinateFrame (cent);
+      return cent;
+   }
+   
+   /**
+    * Shifts the coordinate frame by a specified offset. The offset
+    * is added to the pose, and subtracted from the mesh vertex
+    * positions and inertia.
+    */
+   public void translateCoordinateFrame (Point3d off) {
+      Point3d newPos = new Point3d(getPosition());
+      Point3d newCent = new Point3d(getCentroid());
+      newPos.add (off);
+      newCent.sub (off);
+      Vector3d del = new Vector3d();
+      del.negate (off);
+      transformMesh (new RigidTransform3d (del.x, del.y, del.z));
+      setPosition (newPos);
+      notifyParentOfChange (
+         new StructureChangeEvent (this, /*stateChanged=*/true));
+   }
+   
+   /**
+    * Transforms the coordinate frame of this body, given a transform {@code
+    * TNB} from the new frame N to the current body frame B. If the current
+    * pose if {@code TBW}, the new pose will be updated to {@code TBW TNB}. The
+    * mesh geometry of the body will be adjusted so that they remain ``in
+    * place''.
+    */
+   public void transformCoordinateFrame (RigidTransform3d TNB) {
+      RigidTransform3d TBWnew = new RigidTransform3d ();
+      TBWnew.mul (getPose(), TNB);
+      RigidTransform3d TNBinv = new RigidTransform3d ();
+      TNBinv.invert (TNB);
+      transformMesh (TNBinv);
+      setPose (TBWnew);  
+      notifyParentOfChange (
+         new StructureChangeEvent (this, /*stateChanged=*/true));
    }
 
 }

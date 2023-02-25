@@ -1052,7 +1052,7 @@ public class ScanWriteUtils {
    
       int numw = 0;
       for (ModelComponent c : comps) {
-         if (c.isWritable()) {
+         if (c == null || c.isWritable()) {
             numw++;
          }
       }
@@ -1063,7 +1063,7 @@ public class ScanWriteUtils {
          IndentingPrintWriter.printOpening (pw, "[ ");
          IndentingPrintWriter.addIndentation (pw, 2);
          for (ModelComponent c : comps) {
-            if (c.isWritable()) {
+            if (c == null || c.isWritable()) {
                pw.println (ComponentUtils.getWritePathName (ancestor, c));
             }
          }

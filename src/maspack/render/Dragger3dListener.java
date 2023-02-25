@@ -15,6 +15,8 @@ public interface Dragger3dListener {
    public void draggerMove (Dragger3dEvent e);
 
    public void draggerEnd (Dragger3dEvent e);
+   
+   public void draggerRepositioned (Dragger3dEvent e);
 
    public void draggerRemoved (Dragger3dEvent e);
 }

@@ -19,6 +19,7 @@ import artisynth.core.femmodels.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystemSolver.*;
 import artisynth.core.mechmodels.CollisionManager.*;
+import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.util.*;
 import artisynth.core.util.*;
 import artisynth.core.gui.*;
@@ -42,6 +43,9 @@ public class SimulationSettings extends SettingsBase {
 
    public static final ColliderType DEFAULT_COLLIDER_TYPE =
       CollisionManager.DEFAULT_COLLIDER_TYPE;
+
+   public static final boolean DEFAULT_USE_IMPLICIT_FRICTION =
+      MechSystemBase.DEFAULT_USE_IMPLICIT_FRICTION;
 
    public static final boolean DEFAULT_ABORT_ON_INVERTED_ELEMENTS =
       FemModel3d.DEFAULT_ABORT_ON_INVERTED_ELEMENTS;
@@ -67,6 +71,10 @@ public class SimulationSettings extends SettingsBase {
          "colliderType",
          "default collider type for collision detection",
          DEFAULT_COLLIDER_TYPE);
+      myProps.add (
+         "useImplicitFriction",
+         "default setting for using implicit friction",
+         DEFAULT_USE_IMPLICIT_FRICTION);
       myProps.add (
          "abortOnInvertedElements",
          "abort when FEM encounters inverted elements with non-linear materials",
@@ -114,6 +122,14 @@ public class SimulationSettings extends SettingsBase {
 
    public void setColliderType (ColliderType type) {
       CollisionManager.setDefaultColliderType (type);
+   }
+
+   public boolean getUseImplicitFriction () {
+      return MechSystemBase.getDefaultUseImplicitFriction();
+   }
+
+   public void setUseImplicitFriction (boolean enable) {
+      MechSystemBase.setDefaultUseImplicitFriction (enable);
    }
 
    public boolean getAbortOnInvertedElements () {

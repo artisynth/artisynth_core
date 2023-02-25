@@ -352,7 +352,8 @@ public class TransformGeometryContext {
       }      
    }
    
-   private void notifyParentsOfChange (GeometryTransformer gtr) {
+   private void notifyParentsOfChange (
+      GeometryTransformer gtr, ModelComponent tgenComp) {
       // try to optimize by removing notifications of ancestors which
       // will get notified anyway by descendants ...
       ArrayList<CompositeComponent> allParents =
@@ -367,7 +368,7 @@ public class TransformGeometryContext {
             p = p.getParent();
          }
       }
-      GeometryChangeEvent e = new GeometryChangeEvent (null, gtr);
+      GeometryChangeEvent e = new GeometryChangeEvent (tgenComp, gtr);
       for (CompositeComponent parent : myNotifyParents) {
          parent.componentChanged (e);
       }
@@ -430,7 +431,13 @@ public class TransformGeometryContext {
             add (tg, tgflags | IS_TRANSFORMED);
          }
       }
-      notifyParentsOfChange (gtr);
+      ModelComponent tgenComp = null;
+      if (tgens.size() == 1 && tgens.get(0) instanceof ModelComponent) {
+         // if there is a single component being transformed, set that
+         // as the "component" in the parent notification
+         tgenComp = (ModelComponent)tgens.get(0);
+      }
+      notifyParentsOfChange (gtr, tgenComp);
       clearParents();
       ArrayList<TransformGeometryAction> actions =
          new ArrayList<TransformGeometryAction>();
@@ -444,7 +451,7 @@ public class TransformGeometryContext {
           actions.addAll (myActions);
       }
       collectParents();
-      notifyParentsOfChange (gtr);
+      notifyParentsOfChange (gtr, tgenComp);
    }
    
    /**

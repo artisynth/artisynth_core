@@ -128,7 +128,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
          Knot knotl = mySpline.getLastKnot();
 
          renderer.setShading (Shading.NONE);
-
          // draw the knots
 
          renderer.setPointSize (8);
@@ -712,6 +711,9 @@ public class HermiteSpline1dEditor extends ViewerFrame
    }
 
    public void draggerEnd (Dragger3dEvent e) {
+   }
+
+   public void draggerRepositioned (Dragger3dEvent e) {
    }
 
    public void draggerRemoved (Dragger3dEvent e) {

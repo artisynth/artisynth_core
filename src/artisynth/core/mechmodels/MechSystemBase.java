@@ -117,8 +117,10 @@ public abstract class MechSystemBase extends RenderableModelBase
       DEFAULT_MATRIX_SOLVER;
    protected SparseSolverId myMatrixSolver = DEFAULT_MATRIX_SOLVER;
 
-   protected static boolean DEFAULT_USE_IMPLICIT_FRICTION = false;
-   protected boolean myUseImplicitFriction = DEFAULT_USE_IMPLICIT_FRICTION;
+   public static boolean DEFAULT_USE_IMPLICIT_FRICTION = false;
+   protected static boolean myDefaultUseImplicitFriction = 
+      DEFAULT_USE_IMPLICIT_FRICTION;
+   protected boolean myUseImplicitFriction = myDefaultUseImplicitFriction;
 
    protected boolean myInsideAdvanceP = false;
    protected double myAvgSolveTime;
@@ -1629,6 +1631,14 @@ public abstract class MechSystemBase extends RenderableModelBase
       if (mySolver != null) {
          mySolver.setUseImplicitFriction (enable);
       }
+   }
+
+   public static boolean getDefaultUseImplicitFriction () {
+      return myDefaultUseImplicitFriction;
+   }
+
+   public static void setDefaultUseImplicitFriction (boolean enable) {
+      myDefaultUseImplicitFriction = enable;
    }
 
    public Integrator getIntegrator () {

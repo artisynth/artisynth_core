@@ -76,6 +76,7 @@ public class GenericKeyHandler implements KeyListener {
          "  d   - reset elliptical cursor size to default\n" +
          "  w   - set current manipulator frame to world coordinates\n" +
          "  b   - set current manipulator frame to body/local coordinates\n" +
+         "  u   - set current manipulator frame to default body/local coordinates\n" +
          "\n" +
          "Note: you need to focus on the graphics viewer to get the bindings.");
    }
@@ -154,6 +155,10 @@ public class GenericKeyHandler implements KeyListener {
          }
          case 'b': {
             myMain.resetDraggerFrame (ManipulatorFrameSpec.LOCAL);
+            break;
+         }
+         case 'u': {
+            myMain.clearDraggerFrameOffset();
             break;
          }
          case 'c': {

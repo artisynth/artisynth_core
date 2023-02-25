@@ -78,13 +78,16 @@ public abstract class Dragger3dBase extends DragToolBase {
 
    public void fireDraggerEndListeners (
       AffineTransform3dBase X, AffineTransform3dBase Xinc, int modifiersEx) {
-      if (myDragMode == DragMode.DRAG) {
-         Dragger3dEvent e = null;
+      if (myListeners.size() > 0) {
+         Dragger3dEvent e = 
+         new Dragger3dEvent (this, myViewer, X, Xinc, modifiersEx);
          for (Dragger3dListener l : myListeners) {
-            if (e == null) {
-               e = new Dragger3dEvent (this, myViewer, X, Xinc, modifiersEx);
+            if (myDragMode == DragMode.DRAG) {
+               l.draggerEnd (e);
             }
-            l.draggerEnd (e);
+            else if (myDragMode == DragMode.REPOSITION) {
+               l.draggerRepositioned (e);
+            }
          }
       }
    }

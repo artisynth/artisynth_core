@@ -31,6 +31,7 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -321,7 +322,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private Dragger3dBase currentDragger;
    private LinkedList<ModelComponent> myDraggableComponents =
       new LinkedList<ModelComponent>();
-
+   private HashMap<HasCoordinateFrame,RigidTransform3d>
+      myDraggerFrameOffsetMap = new HashMap<>();
 
    /**
     * Filter to determine classes which belong to artisynth_core.
@@ -1561,6 +1563,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       CollisionManager.setDefaultColliderType (ctype);
       
+      // implicit friction
+      boolean implicitFriction = mySimulationPrefs.getUseImplicitFriction();
+      if (useImplicitFriction.value) {
+         implicitFriction = useImplicitFriction.value;
+      }
+      MechSystemBase.setDefaultUseImplicitFriction (implicitFriction);
+      
       // whether or not to about when elements are inverted
       boolean abortOnInversion = mySimulationPrefs.getAbortOnInvertedElements();
       if (abortOnInvertedElems.value) {
@@ -1865,6 +1874,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.clearRenderables();
          myViewerManager.render();         // refresh the rendering lists
       }
+      myDraggerFrameOffsetMap.clear();
       
       // free up as much space as possible before loading next model
       System.gc();
@@ -2494,6 +2504,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    //    new BooleanHolder (false);
    protected static BooleanHolder useAjlCollision =
       new BooleanHolder (false);
+   protected static BooleanHolder useImplicitFriction =
+      new BooleanHolder (false);
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
@@ -2762,6 +2774,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // parser.addOption ("-useOldTimeline %v #use old timeline", useOldTimeline);
       parser.addOption ("-useAjlCollision" +
          "%v #use AJL collision detection", useAjlCollision);
+      parser.addOption ("-useImplicitFriction" +
+         "%v #whether to use implicit friction with implicit integrators",
+         useImplicitFriction);
       parser.addOption (
          "-useArticulatedTransforms %v #enforce articulation " +
             "constraints with transformers", useArticulatedTransforms);
@@ -3619,7 +3634,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
                rerender();
             }
          }
-
       }
       else if (e.getCode() == ComponentChangeEvent.Code.NAME_CHANGED) {
          ModelComponent c = e.getComponent();
@@ -3875,30 +3889,33 @@ public class Main implements DriverInterface, ComponentChangeListener {
          return transform;
       }
 
-      @SuppressWarnings("unchecked")
-      private void createTransformCommand (Dragger3dEvent e) {
+      private String getDraggerName (Dragger3dEvent e) {
          Dragger3dBase dragger = (Dragger3dBase)e.getSource();
-         String name = null;
          if (dragger instanceof Translator3d ||
             dragger instanceof ConstrainedTranslator3d) {
-            name = "translation";
+            return "translation";
          }
          else if (dragger instanceof Rotator3d) {
-            name = "rotation";
+            return "rotation";
          }
          else if (dragger instanceof RotatableScaler3d) {
-            name = "scaling";
+            return "scaling";
          }
          else if (dragger instanceof Transrotator3d) {
-            name = "transrotation";
+            return "transrotation";
          }
          else {
             throw new InternalErrorException (
                "transform command unimplemented for " + dragger.getClass());
          }
+      }         
+
+      @SuppressWarnings("unchecked")
+      private void createTransformCommand (Dragger3dEvent e) {
          
          // indicate that dragger is responsible for transforming, and 
          // allow auto-flipping of orientation for negative-determinant transforms
+         String name = getDraggerName(e);
          int flags = TransformableGeometry.TG_DRAGGER | OrientedTransformableGeometry.OTG_AUTOFLIP;
          if (myArticulatedTransformsP && name != "scaling") {
             flags |= TransformableGeometry.TG_ARTICULATED;
@@ -3948,6 +3965,24 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
          myUndoManager.addCommand (myTransformCmd);
       }
+      
+      public void draggerRepositioned (Dragger3dEvent e) {
+         if (e.getTransform() instanceof RigidTransform3d &&
+            myDraggableComponents.size() == 1) {
+            Dragger3dBase dragger = (Dragger3dBase)e.getSource();
+            ModelComponent comp = myDraggableComponents.get(0);
+            if (comp instanceof HasCoordinateFrame) {
+               HasCoordinateFrame fcomp = (HasCoordinateFrame)comp;
+               RigidTransform3d TNB = (RigidTransform3d)e.getTransform();
+               RigidTransform3d TDW = dragger.getDraggerToWorld();
+               RigidTransform3d TCW = new RigidTransform3d();
+               fcomp.getPose (TCW);
+               RigidTransform3d TOFF = new RigidTransform3d();
+               TOFF.mulInverseLeft (TCW, TDW);
+               myDraggerFrameOffsetMap.put (fcomp, TOFF);
+            }
+         }
+      }
    }
 
    private static final double inf = Double.POSITIVE_INFINITY;
@@ -3980,6 +4015,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       if (singleCompWithFrame != null) {
          singleCompWithFrame.getPose (TDW);
+         RigidTransform3d TOFF =
+            myDraggerFrameOffsetMap.get (singleCompWithFrame);
+         if (TOFF != null) {
+            TDW.mul (TOFF);
+         }
          if (dragger == null && getInitDraggersInWorldCoords()) {
             TDW.R.setIdentity();
          }
@@ -4027,6 +4067,23 @@ public class Main implements DriverInterface, ComponentChangeListener {
                throw new InternalErrorException (
                   "Unimplemented frame mode "+mode);
             }
+         }
+      }
+   }
+   
+   public void clearDraggerFrameOffset () {
+      if (currentDragger != null && 
+          !currentDragger.isDragging() &&
+          myDraggableComponents.size() == 1) {
+         ModelComponent comp = myDraggableComponents.get(0);
+         if (comp instanceof HasCoordinateFrame) {
+            HasCoordinateFrame fcomp = (HasCoordinateFrame)comp;
+            myDraggerFrameOffsetMap.remove (fcomp);
+            RigidTransform3d TDW = new RigidTransform3d();
+            computeDraggerToWorld (
+               TDW, myDraggableComponents, currentDragger);
+            currentDragger.setDraggerToWorld (TDW);
+            rerender();
          }
       }
    }

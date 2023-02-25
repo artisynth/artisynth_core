@@ -631,6 +631,10 @@ public abstract class CutPlaneProbe extends OutputProbe
    }
 
    @Override
+   public void draggerRepositioned(Dragger3dEvent e) {
+   }
+
+   @Override
    public void draggerRemoved(Dragger3dEvent e) {
    }
 

@@ -19,6 +19,7 @@ import artisynth.core.femmodels.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystemSolver.*;
 import artisynth.core.mechmodels.CollisionManager.*;
+import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.util.*;
 import artisynth.core.util.*;
 import artisynth.core.gui.*;
@@ -46,6 +47,9 @@ public class SimulationPrefs extends Preferences {
 
    private ColliderType myColliderType =
       SimulationSettings.DEFAULT_COLLIDER_TYPE;
+
+   private boolean myUseImplicitFriction =
+      SimulationSettings.DEFAULT_USE_IMPLICIT_FRICTION;
 
    private boolean myAbortOnInvertedElements =
       SimulationSettings.DEFAULT_ABORT_ON_INVERTED_ELEMENTS;
@@ -100,6 +104,14 @@ public class SimulationPrefs extends Preferences {
       myColliderType = colliderType;
    }
 
+   public boolean getUseImplicitFriction () {
+      return myUseImplicitFriction;
+   }
+
+   public void setUseImplicitFriction (boolean enable) {
+      myUseImplicitFriction = enable;
+   }
+
    public boolean getAbortOnInvertedElements () {
       return myAbortOnInvertedElements;
    }
@@ -136,6 +148,7 @@ public class SimulationPrefs extends Preferences {
       setMaxStepSize (mySettings.getMaxStepSize());
       setStabilization (mySettings.getStabilization());
       setColliderType (mySettings.getColliderType());
+      setUseImplicitFriction (mySettings.getUseImplicitFriction());
       setAbortOnInvertedElements (mySettings.getAbortOnInvertedElements());
       setHybridSolvesEnabled (mySettings.getHybridSolvesEnabled());
       setNumSolverThreads (mySettings.getNumSolverThreads());
@@ -145,6 +158,7 @@ public class SimulationPrefs extends Preferences {
       mySettings.setMaxStepSize (getMaxStepSize());
       mySettings.setStabilization (getStabilization());
       mySettings.setColliderType (getColliderType());
+      mySettings.setUseImplicitFriction (getUseImplicitFriction());
       mySettings.setAbortOnInvertedElements (getAbortOnInvertedElements());
       mySettings.setHybridSolvesEnabled (getHybridSolvesEnabled());
       mySettings.setNumSolverThreads (getNumSolverThreads());

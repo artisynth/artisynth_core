@@ -428,8 +428,10 @@ public class RigidBody extends Frame
          mcomp.transformMesh (new RigidTransform3d (del.x, del.y, del.z));
       }
       setPosition (newPos);
+      notifyParentOfChange (
+         new StructureChangeEvent (this, /*stateChanged=*/true));
    }
-
+   
    /**
     * Transform the body coordinate frame. The transformation from the current
     * to the new coordinate frame is given by {@code TNB}, such the if the
@@ -443,17 +445,19 @@ public class RigidBody extends Frame
     * well as the inertia tensor.
     */
    public void transformCoordinateFrame (RigidTransform3d TNB) {
-      RigidTransform3d TNW = new RigidTransform3d();
-      TNW.mul (getPose(), TNB);
+      RigidTransform3d TBWnew = new RigidTransform3d();
+      TBWnew.mul (getPose(), TNB);
+      RigidTransform3d TNBinv = new RigidTransform3d ();
+      TNBinv.invert (TNB);
       if (myInertiaMethod == InertiaMethod.EXPLICIT) {
-         mySpatialInertia.inverseTransform (TNB);
+         mySpatialInertia.transform (TNBinv);
       }
       for (RigidMeshComp mcomp : myMeshList) {
-         RigidTransform3d invTNB = new RigidTransform3d();
-         invTNB.invert (TNB);
-         mcomp.transformMesh (invTNB);
+         mcomp.transformMesh (TNBinv);
       }
-      setPose (TNW);
+      setPose (TBWnew);
+      notifyParentOfChange (
+         new StructureChangeEvent (this, /*stateChanged=*/true));
    }
 
    /** 
@@ -1999,7 +2003,7 @@ public class RigidBody extends Frame
          myGridSurfaceRendering = enable;
       }
    }
-
+   
    /* --- Composite component --- */
 
    public void updateNameMap (

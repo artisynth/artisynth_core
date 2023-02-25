@@ -8,6 +8,7 @@ package artisynth.core.driver;
 
 import maspack.matrix.NumericalException;
 import maspack.util.InternalErrorException;
+import maspack.util.FunctionTimer;
 import artisynth.core.modelbase.*;
 import artisynth.core.probes.*;
 import artisynth.core.util.TimeBase;
@@ -23,15 +24,17 @@ public class Scheduler {
    public static boolean checkState = false;
 
    public boolean setStateBeforeInit = true;
+   public boolean timePlay = false;
    private boolean debugStepComputation = false;
 
+   private FunctionTimer myTimer = new FunctionTimer();
    private double myTime = 0;
    private boolean myRealTimeAdvanceP = true;
    private RenderProbe myRenderProbe;
    private SleepProbe mySleepProbe;
    private Player myPlayer = null;
    private Exception myLastException = null;
-      private double myRealTimeScaling = 1.0;
+   private double myRealTimeScaling = 1.0;
 
    public static boolean useNewAdvance = true;
 
@@ -248,6 +251,9 @@ public class Scheduler {
          RootModel root = getRootModel();
 
          root.setStopRequest (false);
+         if (timePlay) {
+            myTimer.start();
+         }
          while (myAlive) {
             double t0 = myTime;
             double t1;
@@ -296,6 +302,10 @@ public class Scheduler {
                }
             }
 
+         }
+         if (timePlay) {
+            myTimer.stop();
+            System.out.println ("Play time: "+myTimer.result(1));
          }
          fireListeners (Action.Stopped);
       }         

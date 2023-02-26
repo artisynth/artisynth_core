@@ -13,7 +13,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
-\setpubdate{Last update: September, 2021}
+\setpubdate{Last update: February, 2023}
 \iflatexml
 \date{}
 \fi
@@ -1959,12 +1959,19 @@ the viewer's zoom level.
 
 Under the default mouse bindings, pressing the {\tt CTRL} modifier key
 causes the dragger fixture to move independently of the selected
-objects. This allows its position and orientation
-relative to the selected objects to be changed. This is particularly
-useful for changing the orientation of the scaling directions in the
-scaling tool.
+objects. This allows the transformer frame to be changed relative to
+the selected objects being manipulated; this is particularly useful
+for changing the orientation of the scaling directions in the scaling
+tool.
+
+If a single objects is being transformed (as opposed to a group of
+selected objects), the application will remember the modified
+transformer frame if the object is deselected and then reselected. The
+default frame can be restored by hitting the 'u' key (Section
+\ref{ChangingTransformerBaseFrame:sec}).
 
 \subsubsection{Changing the transformer base frame}
+\label{ChangingTransformerBaseFrame:sec}
 
 By default, a transformer is assigned a local coordinate frame for the
 object(s) that it is positioning, based on either the object's own
@@ -1975,7 +1982,8 @@ object(s) if the transformer is repositioned (Section
 
 Sometimes, it may be desirable to explicitly reset the transformer's
 frame. This may be done using the following shortcut keys in the
-viewer:
+viewer (while a transformer tool is being used and objects are
+selected):
 
 \begin{description}
 
@@ -1986,9 +1994,19 @@ subsequent transformations to be performed in world coordinates;
 
 \item[{\tt b}]\mbox{}
 
-Reset the transformer frame to the original local frame for the
+Reset the transformer frame to the local frame for the object(s),
+based on either the object's body frame or the objects' bounding box.
+For single a object, any changes to the transformer frame that were
+made using the {\tt CTRL} modifier (Section
+\ref{ChangingTransformerPose}) will be restored.
+
+\item[{\tt u}]\mbox{}
+
+Reset the transformer frame to the {\it default} local frame for the
 object(s), based on either the object's body frame or the objects'
-bounding box.
+bounding box.  For single a object, any changes to the transformer
+frame that were made using the {\tt CTRL} modifier (Section
+\ref{ChangingTransformerPose}) will be removed.
 
 \end{description}
 
@@ -3801,6 +3819,19 @@ interpenetrations and drift from position constraints. See
 The default collider type used for collision detection. See
 ``Collision methods and collider types'' in the
 \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\item[useImplicitFriction]\mbox{}
+
+The default setting for whether implicit friction should be used. See
+``Implicit Friction'' in the ``Contact and Collision'' chapter of the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.  Use of
+implicit friction can also be enabled from the command line with the
+option
+%
+\begin{verbatim}
+  -useImplicitFriction
+\end{verbatim}
+%
 
 \item[abortOnInvertedElements]\mbox{}
 

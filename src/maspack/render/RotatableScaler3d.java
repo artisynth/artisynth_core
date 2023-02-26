@@ -7,15 +7,18 @@
 package maspack.render;
 
 import maspack.matrix.AffineTransform3d;
+import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.GL.GLViewer;
 
 public class RotatableScaler3d extends Transrotator3d {
 
    RotationMatrix3d myLastR = new RotationMatrix3d();
+   RigidTransform3d myRepositioningTrans = new RigidTransform3d();
 
    public RotatableScaler3d() {
       super();
@@ -42,6 +45,7 @@ public class RotatableScaler3d extends Transrotator3d {
             del.z = s*Math.round(del.z/s);
          }
          myXDraggerToWorld.mulXyz (del.x, del.y, del.z);
+         myRepositioningTrans.mulXyz (del.x, del.y, del.z);
       }
       else {
          AffineTransform3d Tinc = (AffineTransform3d)myIncrementalTransform;
@@ -93,16 +97,29 @@ public class RotatableScaler3d extends Transrotator3d {
       myLastR.set (R);
       if (repositioning) {
          myXDraggerToWorld.R.mul (Rinc);
+         myRepositioningTrans.R.mul (Rinc);
       }
    }
 
    public boolean mousePressed (MouseRayEvent e) {
       if (super.mousePressed (e)) {
          myLastR.setIdentity();
+         myRepositioningTrans.setIdentity();
          return true;
       }
       else {
          return false;
+      }
+   }
+
+   @Override
+   public void fireDraggerEndListeners (
+      AffineTransform3dBase X, AffineTransform3dBase Xinc, int modifiersEx) {
+      if (myDragMode == DragMode.REPOSITION) {
+         super.fireDraggerEndListeners (myRepositioningTrans, Xinc, modifiersEx);
+      }
+      else {
+         super.fireDraggerEndListeners (X, Xinc, modifiersEx);
       }
    }
 

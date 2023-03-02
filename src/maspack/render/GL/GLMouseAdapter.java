@@ -19,6 +19,7 @@ import maspack.render.Dragger3d;
 import maspack.matrix.Vector2d;
 import maspack.render.MouseRayEvent;
 import maspack.render.Viewer;
+import maspack.render.Viewer.ViewControlMask;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.Dragger3d.DragMode;
 
@@ -355,6 +356,12 @@ public class GLMouseAdapter implements GLMouseListener {
 
       switch (dragAction) {
          case ROTATE: {
+            if (viewer.getViewControlMask() == ViewControlMask.ALONG_X_ONLY) {
+               yOff = 0;
+            }
+            else if (viewer.getViewControlMask() == ViewControlMask.ALONG_Y_ONLY) {
+               xOff = 0;
+            }
             viewer.rotate (-xOff / 200.0, -yOff / 200.0);
             break;
          }
@@ -365,6 +372,12 @@ public class GLMouseAdapter implements GLMouseListener {
             break;
          }
          case TRANSLATE: {
+            if (viewer.getViewControlMask() == ViewControlMask.ALONG_X_ONLY) {
+               yOff = 0;
+            }
+            else if (viewer.getViewControlMask() == ViewControlMask.ALONG_Y_ONLY) {
+               xOff = 0;
+            }
             double dpp = viewer.centerDistancePerPixel();
             viewer.translate (dpp * xOff, -dpp * yOff);
             break;

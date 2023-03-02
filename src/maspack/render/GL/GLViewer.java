@@ -352,6 +352,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public static RotationMode DEFAULT_ROTATION_MODE = RotationMode.FIXED_VERTICAL;
    protected RotationMode myRotationMode = DEFAULT_ROTATION_MODE;
+   
+   public static ViewControlMask DEFAULT_VIEW_CONTROL_MASK = 
+      ViewControlMask.NONE;
+   protected ViewControlMask myViewControlMask = DEFAULT_VIEW_CONTROL_MASK;
 
    // enable or disable viewier re-scaling (disable when taking movie)
    protected boolean autoResizeEnabled = true;
@@ -529,6 +533,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myProps.add (
          "rotationMode", "method for interactive rotation",
          DEFAULT_ROTATION_MODE);
+      myProps.add (
+         "viewControlMask", "constrains x or y view control motions",
+         DEFAULT_VIEW_CONTROL_MASK);
       myProps.add (
          "axisRadiusRatio", 
          "default radius/length ratio to be used when rendering solid axes",
@@ -3397,6 +3404,20 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    public RotationMode getRotationMode() {
       return myRotationMode;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void setViewControlMask (ViewControlMask mask) {
+      myViewControlMask = mask;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ViewControlMask getViewControlMask () {
+      return myViewControlMask;
    }
 
    public boolean setTransparencyFaceCulling(boolean enable) {

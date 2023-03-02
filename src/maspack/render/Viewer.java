@@ -52,6 +52,27 @@ public interface Viewer extends Renderer {
        */
       CONTINUOUS;
    }
+   
+   /**
+    * Constrains view control motions along either x or y.
+    */
+   public enum ViewControlMask {
+      /**
+       * No constraints on view control motions.
+       */
+      NONE,
+      
+      /**
+       * View control motions allowed only along the x axis.
+       */
+      ALONG_X_ONLY,
+      
+      /**
+       * View control motions allowed only along the y axis.
+       */     
+      ALONG_Y_ONLY,
+      
+   }
 
    /**
     * Adds a renderable to this viewer.
@@ -500,6 +521,21 @@ public interface Viewer extends Renderer {
     * @return current rotation mode
     */
    public RotationMode getRotationMode();
+
+   /**
+    * Sets the view control mask that constrains view control motions
+    * to either the x or y screens axes.
+    *
+    * @param mode new view control mask
+    */
+   public void setViewControlMask (ViewControlMask mask);
+
+   /**
+    * Queries the view control mask. See {@link #setViewControlMask}.
+    *
+    * @param current view control mask
+    */
+   public ViewControlMask getViewControlMask();
 
    /**
     * Sets an axial (or axis-aligned) view. This is done by setting the 

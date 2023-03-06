@@ -233,7 +233,11 @@ public class AbaqusWriter extends FemWriterBase {
             num = node.getNumber();
          }
          Point3d pos = node.getPosition();
-         pw.println (fmt.format(num) + ", " + pos.x + ", " + pos.y + ", " + pos.z);
+         pw.println (
+            fmt.format(num)+", "+
+            myFmt.format(pos.x)+", "+
+            myFmt.format(pos.y)+", "+
+            myFmt.format(pos.z));
       }
       pw.println("**\n**");
       

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 
 import maspack.geometry.MeshBase;
 import maspack.util.NumberFormat;
@@ -14,26 +15,22 @@ public abstract class FemWriterBase implements FemWriter {
    protected NumberFormat myFmt = new NumberFormat(DEFAULT_FORMAT);
 
    OutputStream myOstream;
+   PrintWriter myPrintWriter;
    File myFile;
 
    // XXX stub - get rid of this when refactoring done
    protected FemWriterBase() {
-      myOstream = null;
    }
 
    protected FemWriterBase (OutputStream os) {
       myOstream = os;
    }
 
-   protected FemWriterBase (File file) throws IOException {
-      this (new FileOutputStream (file));
-      myFile = file;
+   protected FemWriterBase (PrintWriter pw) {
+      myPrintWriter = pw;
    }
 
-   protected FemWriterBase (String fileName) throws IOException {
-      this (new File(fileName));
-   }
-//
+   //
 //   public void write (MeshBase mesh) throws IOException {
 //      write (myOstream, mesh);
 //   }
@@ -67,7 +64,12 @@ public abstract class FemWriterBase implements FemWriter {
    }
    
    public void flush() {
-      flushQuietly(myOstream);
+      if (myOstream != null) {
+         flushQuietly(myOstream);
+      }
+      if (myPrintWriter != null) {
+         myPrintWriter.flush();
+      }
    }
    
    private void flushQuietly(OutputStream out) {
@@ -80,14 +82,18 @@ public abstract class FemWriterBase implements FemWriter {
    
    public void close() {
       flush();
-      closeQuietly(myOstream);
+      if (myOstream != null) {
+         closeQuietly(myOstream);
+      }
+      if (myPrintWriter != null) {
+         myPrintWriter.close();
+      }     
    }
    
    @Override
    protected void finalize() throws Throwable {
       super.finalize();
       close();
-      
    }
 
 }

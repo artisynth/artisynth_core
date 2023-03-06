@@ -18,6 +18,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.VectorNi;
 import maspack.util.ReaderTokenizer;
 import maspack.util.ArraySupport;
+import maspack.util.DynamicIntArray;
 import maspack.util.InternalErrorException;
 
 /**
@@ -28,9 +29,19 @@ import maspack.util.InternalErrorException;
 public class AbaqusReader implements FemReader {
 
    /** 
-    * Tells the reader to number the nodes and elements starting from zero.
+    * In static method calls, tells the reader to number the nodes and elements
+    * starting from zero. This preserves the Abaqus numbering of nodes and
+    * elements, only with the numbers decremented by one.
     */   
    public static int ZERO_BASED_NUMBERING = 0x2;
+
+   /** 
+    * In static method calls, tells the reader to ignore Abaqus numbering of
+    * nodes and elements. Instead, these will be numbered according to the
+    * order they appear in the file, starting at 0. This option takes
+    * precedence over {@link #ZERO_BASED_NUMBERING}.
+    */   
+   public static int RESET_NUMBERING = 0x4;
 
    File myFile = null;
    File[] myIncludeDirs = null;
@@ -38,6 +49,7 @@ public class AbaqusReader implements FemReader {
 
    static public double DEFAULT_SHELL_THICKNESS = 0.001;
    static public boolean DEFAULT_ZERO_BASED_NUMBERING = false;
+   static public boolean DEFAULT_RESET_NUMBERING = false;
    static double myDefaultShellThickness = DEFAULT_SHELL_THICKNESS;
 
    public static void setDefaultShellThickness (double thickness) {
@@ -51,6 +63,10 @@ public class AbaqusReader implements FemReader {
    protected double myDensity = FemModel.DEFAULT_DENSITY;
    protected double myShellThickness = DEFAULT_SHELL_THICKNESS;
    protected boolean myZeroBasedNumbering = DEFAULT_ZERO_BASED_NUMBERING;
+   protected boolean myResetNumbering = DEFAULT_RESET_NUMBERING;
+
+   // used when reseting numbering
+   protected int[] myNodeNumMap;
 
    public void setShellThickness (double thickness) {
       myShellThickness = thickness;
@@ -74,6 +90,14 @@ public class AbaqusReader implements FemReader {
 
    public boolean getZeroBasedNumbering () {
       return myZeroBasedNumbering;
+   }
+
+   public void setResetNumbering (boolean enable) {
+      myResetNumbering = enable;
+   }
+
+   public boolean getResetNumbering () {
+      return myResetNumbering;
    }
 
    boolean mySuppressWarnings = false;
@@ -127,20 +151,30 @@ public class AbaqusReader implements FemReader {
       
       LinkedHashMap<Integer, Point3d> nodeMap = 
          new LinkedHashMap<Integer, Point3d>();
-      LinkedHashMap<Integer, Integer> nodeIdMap = 
-         new LinkedHashMap<Integer, Integer> ();
+//      LinkedHashMap<Integer, Integer> nodeIdMap = 
+//         new LinkedHashMap<Integer, Integer> ();
       LinkedHashMap<Integer, ElemDesc> elemMap = 
          new LinkedHashMap<Integer, ElemDesc>();
       
-      readFile (myRtok, nodeMap, elemMap);
+      int maxNodeId = readFile (myRtok, nodeMap, elemMap);
       
+      if (myResetNumbering) {
+         // map from Abaqus node numbers to new numbers
+         myNodeNumMap = new int[maxNodeId+1];
+      }      
       for (int nodeId : nodeMap.keySet ()) {
          Point3d pos = nodeMap.get (nodeId);
          
          FemNode3d node = new FemNode3d (pos);
-         fem.addNumberedNode (node, nodeId);
+         if (myResetNumbering) {
+            fem.addNode (node);
+            myNodeNumMap[nodeId] = node.getNumber();
+         }
+         else {
+            fem.addNumberedNode (node, nodeId);
+         }         
          // Store new node ID to match with element node IDs
-         nodeIdMap.put (nodeId, node.getNumber ());
+         //nodeIdMap.put (nodeId, node.getNumber ());
       }
          
       ArrayList<HexElement> hexElems = new ArrayList<HexElement> ();
@@ -148,7 +182,11 @@ public class AbaqusReader implements FemReader {
       for (int elemId : elemMap.keySet ()) {
          ElemDesc edesc = elemMap.get (elemId);
          int[] nodeList = edesc.myNodeIds;
-
+         if (myResetNumbering) {
+            for (int i=0; i<nodeList.length; i++) {
+               nodeList[i] = myNodeNumMap[nodeList[i]];
+            }
+         }
          switch (edesc.myType) {
             case C3D4:
                createTet (fem, nodeList, elemId);
@@ -250,7 +288,7 @@ public class AbaqusReader implements FemReader {
     * Creates an FemModel with uniform density (of 1) based on Abaqus data
     * contained in a specified file.
     * 
-    * @param model
+    * @param fem
     * FEM model to be populated by Abaqus data. If <code>null</code>, a
     * new model is created
     * @param fileName
@@ -259,16 +297,16 @@ public class AbaqusReader implements FemReader {
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static FemModel3d read (FemModel3d model, String fileName)
+   public static FemModel3d read (FemModel3d fem, String fileName)
       throws IOException {
-      return read(model, new File(fileName), 1, /*options=*/0);
+      return read(fem, new File(fileName), 1, /*options=*/0);
    }
    
    /**
     * Creates an FemModel with uniform density based on Abaqus data contained
     * in a specified file.
     * 
-    * @param model
+    * @param fem
     * FEM model to be populated by Abaqus data. If <code>null</code>, a
     * new model is created
     * @param fileName
@@ -282,9 +320,9 @@ public class AbaqusReader implements FemReader {
     * if this is a problem reading the file
     */
    public static FemModel3d read (
-      FemModel3d model, String fileName, double density, int options)
+      FemModel3d fem, String fileName, double density, int options)
       throws IOException {
-      return read(model, new File(fileName), density, options);
+      return read(fem, new File(fileName), density, options);
    }
    
    /**
@@ -312,6 +350,7 @@ public class AbaqusReader implements FemReader {
       try {
          reader = new AbaqusReader (file);
          reader.setZeroBasedNumbering ((options & ZERO_BASED_NUMBERING) != 0);
+         reader.setResetNumbering ((options & RESET_NUMBERING) != 0);
          reader.setDensity (density);
          return reader.readFem (fem);
       }
@@ -349,6 +388,7 @@ public class AbaqusReader implements FemReader {
       try {
          reader = new AbaqusReader (file, includeDirs);
          reader.setZeroBasedNumbering ((options & ZERO_BASED_NUMBERING) != 0);
+         reader.setResetNumbering ((options & RESET_NUMBERING) != 0);
          reader.setDensity (density);
          return reader.readFem (fem);
       }
@@ -363,24 +403,33 @@ public class AbaqusReader implements FemReader {
    }
    
    void addElement (
-      FemModel3d model, FemElement3dBase elem, int elemId) {
+      FemModel3d fem, FemElement3dBase elem, int elemId) {
 
       if (elem instanceof FemElement3d) {
-         model.addNumberedElement ((FemElement3d)elem, elemId);
+         if (myResetNumbering) {
+            fem.addElement ((FemElement3d)elem);
+         }
+         else {
+            fem.addNumberedElement ((FemElement3d)elem, elemId);
+         }
       }
       else if (elem instanceof ShellElement3d) {
-         model.addNumberedShellElement ((ShellElement3d)elem, elemId);
+         if (myResetNumbering) {
+            fem.addShellElement ((ShellElement3d)elem);
+         }
+         else {
+            fem.addNumberedShellElement ((ShellElement3d)elem, elemId);
+         }
       }
    }
 
-
    private void createTet (
-      FemModel3d model, int[] nodeIds, int elemId) {
+      FemModel3d fem, int[] nodeIds, int elemId) {
       
-      FemNode3d n0 = model.getByNumber (nodeIds[0]);
-      FemNode3d n1 = model.getByNumber (nodeIds[1]);
-      FemNode3d n2 = model.getByNumber (nodeIds[2]);
-      FemNode3d n3 = model.getByNumber (nodeIds[3]);
+      FemNode3d n0 = fem.getNodeByNumber (nodeIds[0]);
+      FemNode3d n1 = fem.getNodeByNumber (nodeIds[1]);
+      FemNode3d n2 = fem.getNodeByNumber (nodeIds[2]);
+      FemNode3d n3 = fem.getNodeByNumber (nodeIds[3]);
       
       TetElement e;
 
@@ -394,22 +443,22 @@ public class AbaqusReader implements FemReader {
             cwTetWarningGiven = true;
          }
       }
-      addElement (model, e, elemId);
+      addElement (fem, e, elemId);
    }
    
    private void createQuadTet (
-      FemModel3d model, int[] nodeIds, int elemId) {
+      FemModel3d fem, int[] nodeIds, int elemId) {
       
-      FemNode3d n0 = model.getByNumber (nodeIds[0]);
-      FemNode3d n1 = model.getByNumber (nodeIds[1]);
-      FemNode3d n2 = model.getByNumber (nodeIds[2]);
-      FemNode3d n3 = model.getByNumber (nodeIds[3]);
-      FemNode3d n4 = model.getByNumber (nodeIds[4]);
-      FemNode3d n5 = model.getByNumber (nodeIds[5]);
-      FemNode3d n6 = model.getByNumber (nodeIds[6]);
-      FemNode3d n7 = model.getByNumber (nodeIds[7]);
-      FemNode3d n8 = model.getByNumber (nodeIds[8]);
-      FemNode3d n9 = model.getByNumber (nodeIds[9]);
+      FemNode3d n0 = fem.getNodeByNumber (nodeIds[0]);
+      FemNode3d n1 = fem.getNodeByNumber (nodeIds[1]);
+      FemNode3d n2 = fem.getNodeByNumber (nodeIds[2]);
+      FemNode3d n3 = fem.getNodeByNumber (nodeIds[3]);
+      FemNode3d n4 = fem.getNodeByNumber (nodeIds[4]);
+      FemNode3d n5 = fem.getNodeByNumber (nodeIds[5]);
+      FemNode3d n6 = fem.getNodeByNumber (nodeIds[6]);
+      FemNode3d n7 = fem.getNodeByNumber (nodeIds[7]);
+      FemNode3d n8 = fem.getNodeByNumber (nodeIds[8]);
+      FemNode3d n9 = fem.getNodeByNumber (nodeIds[9]);
       
       QuadtetElement e;
       
@@ -427,20 +476,20 @@ public class AbaqusReader implements FemReader {
          }
       }
       
-      addElement (model, e, elemId);
+      addElement (fem, e, elemId);
    }
    
    private HexElement createHex (
-      FemModel3d model, int[] nodeIds, int elemId) {
+      FemModel3d fem, int[] nodeIds, int elemId) {
 
-      FemNode3d n0 = model.getByNumber (nodeIds[0]);
-      FemNode3d n1 = model.getByNumber (nodeIds[1]);
-      FemNode3d n2 = model.getByNumber (nodeIds[2]);
-      FemNode3d n3 = model.getByNumber (nodeIds[3]);
-      FemNode3d n4 = model.getByNumber (nodeIds[4]);
-      FemNode3d n5 = model.getByNumber (nodeIds[5]);
-      FemNode3d n6 = model.getByNumber (nodeIds[6]);
-      FemNode3d n7 = model.getByNumber (nodeIds[7]);
+      FemNode3d n0 = fem.getNodeByNumber (nodeIds[0]);
+      FemNode3d n1 = fem.getNodeByNumber (nodeIds[1]);
+      FemNode3d n2 = fem.getNodeByNumber (nodeIds[2]);
+      FemNode3d n3 = fem.getNodeByNumber (nodeIds[3]);
+      FemNode3d n4 = fem.getNodeByNumber (nodeIds[4]);
+      FemNode3d n5 = fem.getNodeByNumber (nodeIds[5]);
+      FemNode3d n6 = fem.getNodeByNumber (nodeIds[6]);
+      FemNode3d n7 = fem.getNodeByNumber (nodeIds[7]);
       
       HexElement e;
       
@@ -462,7 +511,7 @@ public class AbaqusReader implements FemReader {
       }
       
       try {
-         addElement (model, e, elemId);
+         addElement (fem, e, elemId);
       } catch (Exception err) {
          System.out.println("element " + elemId + " caused a problem");
       }
@@ -471,28 +520,28 @@ public class AbaqusReader implements FemReader {
    }
    
    private void createQuadHex (
-      FemModel3d model, int[] nodeIds, int elemId) {
+      FemModel3d fem, int[] nodeIds, int elemId) {
 
-      FemNode3d n0 = model.getByNumber (nodeIds[0]);
-      FemNode3d n1 = model.getByNumber (nodeIds[1]);
-      FemNode3d n2 = model.getByNumber (nodeIds[2]);
-      FemNode3d n3 = model.getByNumber (nodeIds[3]);
-      FemNode3d n4 = model.getByNumber (nodeIds[4]);
-      FemNode3d n5 = model.getByNumber (nodeIds[5]);
-      FemNode3d n6 = model.getByNumber (nodeIds[6]);
-      FemNode3d n7 = model.getByNumber (nodeIds[7]);
-      FemNode3d n8 = model.getByNumber (nodeIds[8]);
-      FemNode3d n9 = model.getByNumber (nodeIds[9]);
-      FemNode3d n10 = model.getByNumber (nodeIds[10]);
-      FemNode3d n11 = model.getByNumber (nodeIds[11]);
-      FemNode3d n12 = model.getByNumber (nodeIds[12]);
-      FemNode3d n13 = model.getByNumber (nodeIds[13]);
-      FemNode3d n14 = model.getByNumber (nodeIds[14]);
-      FemNode3d n15 = model.getByNumber (nodeIds[15]);
-      FemNode3d n16 = model.getByNumber (nodeIds[16]);
-      FemNode3d n17 = model.getByNumber (nodeIds[17]);
-      FemNode3d n18 = model.getByNumber (nodeIds[18]);
-      FemNode3d n19 = model.getByNumber (nodeIds[19]);
+      FemNode3d n0 = fem.getNodeByNumber (nodeIds[0]);
+      FemNode3d n1 = fem.getNodeByNumber (nodeIds[1]);
+      FemNode3d n2 = fem.getNodeByNumber (nodeIds[2]);
+      FemNode3d n3 = fem.getNodeByNumber (nodeIds[3]);
+      FemNode3d n4 = fem.getNodeByNumber (nodeIds[4]);
+      FemNode3d n5 = fem.getNodeByNumber (nodeIds[5]);
+      FemNode3d n6 = fem.getNodeByNumber (nodeIds[6]);
+      FemNode3d n7 = fem.getNodeByNumber (nodeIds[7]);
+      FemNode3d n8 = fem.getNodeByNumber (nodeIds[8]);
+      FemNode3d n9 = fem.getNodeByNumber (nodeIds[9]);
+      FemNode3d n10 = fem.getNodeByNumber (nodeIds[10]);
+      FemNode3d n11 = fem.getNodeByNumber (nodeIds[11]);
+      FemNode3d n12 = fem.getNodeByNumber (nodeIds[12]);
+      FemNode3d n13 = fem.getNodeByNumber (nodeIds[13]);
+      FemNode3d n14 = fem.getNodeByNumber (nodeIds[14]);
+      FemNode3d n15 = fem.getNodeByNumber (nodeIds[15]);
+      FemNode3d n16 = fem.getNodeByNumber (nodeIds[16]);
+      FemNode3d n17 = fem.getNodeByNumber (nodeIds[17]);
+      FemNode3d n18 = fem.getNodeByNumber (nodeIds[18]);
+      FemNode3d n19 = fem.getNodeByNumber (nodeIds[19]);
       
       QuadhexElement e;
       
@@ -517,18 +566,18 @@ public class AbaqusReader implements FemReader {
          }
       }  
       
-      addElement (model, e, elemId);
+      addElement (fem, e, elemId);
    }
 
    private void createWedge (
-      FemModel3d model, int[] nodeIds, int elemId) {
+      FemModel3d fem, int[] nodeIds, int elemId) {
       
-      FemNode3d n0 = model.getByNumber (nodeIds[0]);
-      FemNode3d n1 = model.getByNumber (nodeIds[1]);
-      FemNode3d n2 = model.getByNumber (nodeIds[2]);
-      FemNode3d n3 = model.getByNumber (nodeIds[3]);
-      FemNode3d n4 = model.getByNumber (nodeIds[4]);
-      FemNode3d n5 = model.getByNumber (nodeIds[5]);
+      FemNode3d n0 = fem.getNodeByNumber (nodeIds[0]);
+      FemNode3d n1 = fem.getNodeByNumber (nodeIds[1]);
+      FemNode3d n2 = fem.getNodeByNumber (nodeIds[2]);
+      FemNode3d n3 = fem.getNodeByNumber (nodeIds[3]);
+      FemNode3d n4 = fem.getNodeByNumber (nodeIds[4]);
+      FemNode3d n5 = fem.getNodeByNumber (nodeIds[5]);
 
       WedgeElement e = new WedgeElement (n0, n1, n2, n3, n4, n5);
 
@@ -546,39 +595,39 @@ public class AbaqusReader implements FemReader {
          }
       }
       
-      addElement (model, e, elemId);
+      addElement (fem, e, elemId);
    }
    
    private void createShellTri (
-      FemModel3d model, int[] nodeIds, int elemId, boolean isMembrane) {
+      FemModel3d fem, int[] nodeIds, int elemId, boolean isMembrane) {
       
-      FemNode3d n0 = model.getByNumber (nodeIds[0]);
-      FemNode3d n1 = model.getByNumber (nodeIds[1]);
-      FemNode3d n2 = model.getByNumber (nodeIds[2]);
+      FemNode3d n0 = fem.getNodeByNumber (nodeIds[0]);
+      FemNode3d n1 = fem.getNodeByNumber (nodeIds[1]);
+      FemNode3d n2 = fem.getNodeByNumber (nodeIds[2]);
       
       ShellTriElement e =
          new ShellTriElement (
             n0, n1, n2, myShellThickness, isMembrane);
       
-      addElement (model, e, elemId);
+      addElement (fem, e, elemId);
    }
    
    private void createShellQuad (
-      FemModel3d model, int[] nodeIds, int elemId, boolean isMembrane) {
+      FemModel3d fem, int[] nodeIds, int elemId, boolean isMembrane) {
       
-      FemNode3d n0 = model.getByNumber (nodeIds[0]);
-      FemNode3d n1 = model.getByNumber (nodeIds[1]);
-      FemNode3d n2 = model.getByNumber (nodeIds[2]);
-      FemNode3d n3 = model.getByNumber (nodeIds[3]);
+      FemNode3d n0 = fem.getNodeByNumber (nodeIds[0]);
+      FemNode3d n1 = fem.getNodeByNumber (nodeIds[1]);
+      FemNode3d n2 = fem.getNodeByNumber (nodeIds[2]);
+      FemNode3d n3 = fem.getNodeByNumber (nodeIds[3]);
       
       ShellQuadElement e =
          new ShellQuadElement (
             n0, n1, n2, n3, myShellThickness, isMembrane);
       
-      addElement (model, e, elemId);
+      addElement (fem, e, elemId);
    }
 
-   private void readFile (
+   private int readFile (
       ReaderTokenizer rtok,
       LinkedHashMap<Integer, Point3d> nodeMap,
       LinkedHashMap<Integer, ElemDesc> elemMap) throws IOException {
@@ -594,6 +643,7 @@ public class AbaqusReader implements FemReader {
       int elemId = 0;
 
       boolean warnedNumNodes = false;
+      int maxNodeId = -1;
       
       while (rtok.nextToken () != ReaderTokenizer.TT_EOF) {
          
@@ -739,6 +789,9 @@ public class AbaqusReader implements FemReader {
                   double y = rtok.scanNumber();
                   double z = rtok.scanNumber();
                   nodeMap.put(nodeId, new Point3d(x,y,z));
+                  if (nodeId > maxNodeId) {
+                     maxNodeId = nodeId;
+                  }
                   toEOL(rtok);
                   break;
                }
@@ -749,6 +802,7 @@ public class AbaqusReader implements FemReader {
             }
          }
       }
+      return maxNodeId;
    }
    
    private File findFile(String fileName, File[] dirs) {

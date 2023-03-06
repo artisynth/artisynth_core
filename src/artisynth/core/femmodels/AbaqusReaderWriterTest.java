@@ -21,6 +21,9 @@ import maspack.matrix.Point3d;
 
 public class AbaqusReaderWriterTest extends UnitTest {
 
+   int RESET_NUMS = AbaqusReader.RESET_NUMBERING;
+   int ZERO_BASED = AbaqusReader.ZERO_BASED_NUMBERING;
+      
    public static final String testStr = 
 "**\n" +
 "**  Test string to simulate .inp file\n"+
@@ -120,6 +123,28 @@ public class AbaqusReaderWriterTest extends UnitTest {
 "16, 11, 12, 13, 14\n" + 
 "17, 14, 15, 16, 17\n" +
 "*****\n";
+
+   protected void checkSerialNumbering (FemModel3d fem) {
+      for (int i=0; i<fem.numNodes(); i++) {
+         int n = fem.getNode(i).getNumber();
+         if (n != i) {
+            throw new TestException ("node "+i+" has number "+n);
+         }
+      }
+      for (int i=0; i<fem.numElements(); i++) {
+         int n = fem.getElement(i).getNumber();
+         if (n != i) {
+            throw new TestException ("element "+i+" has number "+n);
+         }
+      }
+      for (int i=0; i<fem.numShellElements(); i++) {
+         int n = fem.getShellElement(i).getNumber();
+         if (n != i) {
+            throw new TestException (
+               "shell element "+i+" has number "+n);
+         }
+      }
+   }
    
    protected static void checkFileStrings (String input, String check) {
 
@@ -348,24 +373,27 @@ public class AbaqusReaderWriterTest extends UnitTest {
    }
 
    private FemModel3d readFromString (
-      String str, boolean zeroIndexed) throws IOException {
+      String str, int opts) throws IOException {
       BufferedReader breader = new BufferedReader (new StringReader (str));
       AbaqusReader reader = new AbaqusReader (breader, null);
       reader.setSuppressWarnings (true);
-      reader.setZeroBasedNumbering (zeroIndexed);
+      reader.setZeroBasedNumbering ((opts & ZERO_BASED) != 0);
+      reader.setResetNumbering ((opts & RESET_NUMS) != 0);
       return reader.readFem (null);
    }
 
    public void test() throws IOException {
 
-      boolean ONE_BASED = false;
-      boolean ZERO_BASED = true;
-      
-      FemModel3d fem1 = readFromString (testStr, ONE_BASED);
-      
+      FemModel3d fem1 = readFromString (testStr, 0);
       checkEquals ("numNodes", fem1.numNodes(), 61);
       checkEquals ("numElements", fem1.numElements(), 12);
       checkEquals ("numShellElements", fem1.numShellElements(), 5);
+
+      FemModel3d femx = readFromString (testStr, RESET_NUMS);
+      checkEquals ("numNodes", fem1.numNodes(), 61);
+      checkEquals ("numElements", fem1.numElements(), 12);
+      checkEquals ("numShellElements", fem1.numShellElements(), 5);
+      checkSerialNumbering (femx);
 
       FemModel3d fem0 = readFromString (testStr, ZERO_BASED);
       checkComponentNumbering (fem1, fem0, 1);
@@ -376,7 +404,7 @@ public class AbaqusReaderWriterTest extends UnitTest {
 
       fem1 = createTestFem(1);
       String fem1Str = writeToString (fem1);
-      FemModel3d chkFem = readFromString (fem1Str, ONE_BASED);
+      FemModel3d chkFem = readFromString (fem1Str, 0);
       String chkStr = writeToString (chkFem);
       checkFileStrings (fem1Str, chkStr);
       // make sure numberings were preserved

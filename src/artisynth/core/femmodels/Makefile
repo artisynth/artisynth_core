@@ -18,10 +18,10 @@ JAVA_TEST_PROGRAMS = \
 	QuadhexElementTest \
 	QuadpyramidElementTest \
 	QuadwedgeElementTest \
-	FemSkinDerivTest
-
-#	AnsysReaderWriterTest \
-#	FemModel3dTest \
+	FemSkinDerivTest \
+	AnsysReaderWriterTest \
+	AbaqusReaderWriterTest \
+	FemModel3dTest
 
 
 -include $(ROOT_DIR)/Makefile.base

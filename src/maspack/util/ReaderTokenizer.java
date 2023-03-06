@@ -1229,7 +1229,7 @@ public class ReaderTokenizer {
                str = "n=0x" + Long.toHexString (lval);
             }
             else if (myTokenIsInteger) {
-               str = "n=" + lval;
+               str = "l=" + lval;
             }
             else {
                str = "n=" + nval;
@@ -1283,6 +1283,35 @@ public class ReaderTokenizer {
          myLineNum++;
       }
       return c;
+   }
+
+   /**
+    * Reads the current input to the end of the current line, and returns the
+    * read characters as a string (excluding the end-of-line characters).  All
+    * unread tokens are discarded and {@code ttype} is set to either {@link
+    * #TT_EOL} or {@link #TT_EOF}, as appropriate.  Use this method only if you
+    * really know what you're doing!
+    */
+   public String readLine() throws IOException {
+      StringBuilder sb = new StringBuilder();
+      while (true) {
+         int c = getc();
+         if (c < 0) {
+            ttype = ReaderTokenizer.TT_EOF;
+            break;
+         }
+         else if (c == '\n') {
+            myLineNum++;
+            ttype = ReaderTokenizer.TT_EOL;
+            break;
+         }
+         else if (c == '\r') {
+            continue; // ignore CR
+         }
+         sb.append ((char)c);
+      }
+      myTokenPushedBack = false;
+      return sb.toString();
    }
 
    private boolean infinityParsed() throws IOException {
@@ -1402,17 +1431,6 @@ public class ReaderTokenizer {
       return c;
    }
 
-//   private static double[] smallExpTab =
-//      { 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12,
-//       1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22, 1e23, 1e24,
-//       1e25, 1e26, 1e27, 1e28, 1e29, 1e30, 1e31, 1e32, 1e33, 1e34, 1e35, 1e36,
-//       1e37, 1e38, 1e39, 1e40, 1e41, 1e42, 1e43, 1e44, 1e45, 1e46, 1e47, 1e48,
-//       1e49, 1e50, 1e51, 1e52, 1e53, 1e54, 1e55, 1e56, 1e57, 1e58, 1e59, 1e60,
-//       1e61, 1e62, 1e63, 1e64, 1e65, 1e66, 1e67, 1e68, 1e69, 1e70, 1e71, 1e72,
-//       1e73, 1e74, 1e75, 1e76, 1e77, 1e78, 1e79, 1e80, 1e81, 1e82, 1e83, 1e84,
-//       1e85, 1e86, 1e87, 1e88, 1e89, 1e90, 1e91, 1e92, 1e93, 1e94, 1e95, 1e96,
-//       1e97, 1e98, 1e99, };
-
    private void parseNumericExtension() throws IOException {
       int c = getc();
       if (c >= 0 && isNumericExtensionChar (c)) {
@@ -1432,171 +1450,6 @@ public class ReaderTokenizer {
       }
       ungetc (c);
    }
-
-   // private boolean parseNumber (int c)
-   // throws IOException
-   // {
-   // boolean negate = false;
-   // int type;
-
-   // int signChar = 0;
-   // if (c == '-')
-   // { negate = true;
-   // signChar = '-';
-   // c = getc();
-   // }
-   // else if (c == '+')
-   // { signChar = '+';
-   // c = getc();
-   // }
-   // if (c == 'i' || c == 'I')
-   // { if (infinityParsed())
-   // { nval = (negate ?
-   // Double.NEGATIVE_INFINITY :
-   // Double.POSITIVE_INFINITY);
-   // sval = null;
-   // return true;
-   // }
-   // if (signChar != 0)
-   // { ungetc (c);
-   // c = signChar;
-   // }
-   // return false;
-   // }
-   // else
-   // { long l = 0;
-   // int leadDigitCnt = 0;
-   // int fracDigitCnt = 0;
-   // boolean dotseen = false;
-   // if (c == '0')
-   // { c = getc();
-   // if (c == 'x' || c == 'X')
-   // { int d = hexDigitValue(c = getc());
-   // if (d >= 0)
-   // { l = d;
-   // while ((d = hexDigitValue(c = getc())) >= 0)
-   // { l = l*16 + d;
-   // }
-   // // XXX check terminating character?
-   // ungetc(c);
-   // myTokenIsInteger = true;
-   // myTokenIsHex = true;
-   // lval = l;
-   // nval = (double)lval;
-   // if (myNumNumericExtensions > 0)
-   // { parseNumericExtension();
-   // }
-   // else
-   // { sval = null;
-   // }
-   // return true;
-   // }
-   // else
-   // { throw new IOException (
-   // "expecting hex digit, got " + this);
-   // }
-   // }
-   // leadDigitCnt = 1;
-   // }
-   // while (c >= '0' && c <= '9')
-   // { l = l*10 + (c - '0');
-   // c = getc();
-   // leadDigitCnt++;
-   // }
-   // if (c == '.')
-   // { dotseen = true;
-   // c = getc();
-   // }
-   // while (c >= '0' && c <= '9')
-   // { l = l*10 + (c - '0');
-   // c = getc();
-   // fracDigitCnt++;
-   // }
-   // if (fracDigitCnt == 0 && leadDigitCnt == 0)
-   // { // then no number; push the characters back
-   // ungetc (c);
-   // if (dotseen)
-   // { ungetc ('.');
-   // }
-   // if (signChar != 0)
-   // { ungetc (signChar);
-   // }
-   // c = getc();
-   // type = (c < ctype.length ? ctype[c] : C_WORD);
-   // return false;
-   // }
-   // else
-   // { int totalExp = -fracDigitCnt;
-   // boolean hasExponent = false;
-   // if (c == 'e' || c == 'E')
-   // { int expSignChar = 0;
-   // int echar = c;
-   // int exp = 0;
-   // c = getc();
-   // if (c == '+' || c == '-')
-   // { expSignChar = c;
-   // c = getc();
-   // }
-   // if (c >= '0' && c <= '9')
-   // { hasExponent = true;
-   // while (c >= '0' && c <= '9')
-   // { exp = exp*10 + c - '0';
-   // c = getc();
-   // }
-   // }
-   // ungetc (c);
-   // if (!hasExponent)
-   // { if (expSignChar != 0)
-   // { ungetc (expSignChar);
-   // }
-   // ungetc (echar);
-   // }
-   // else
-   // { totalExp += (expSignChar == '-' ? -exp : exp);
-   // }
-   // }
-   // else
-   // { ungetc(c);
-   // }
-   // if (!dotseen && !hasExponent)
-   // { // then this number is an integer
-   // lval = negate ? -l : l;
-   // nval = (double)lval;
-   // myTokenIsInteger = true;
-   // if (myNumNumericExtensions > 0)
-   // { parseNumericExtension();
-   // }
-   // else
-   // { sval = null;
-   // }
-   // return true;
-   // }
-   // double v = (double)l;
-   // while (totalExp >= 100)
-   // { v *= 1e100;
-   // totalExp -= 100;
-   // }
-   // while (totalExp <= -100)
-   // { v /= 1e100;
-   // totalExp += 100;
-   // }
-   // if (totalExp < 0)
-   // { v /= smallExpTab[-totalExp];
-   // }
-   // else if (totalExp > 0)
-   // { v *= smallExpTab[totalExp];
-   // }
-   // nval = negate ? -v : v;
-   // if (myNumNumericExtensions > 0)
-   // { parseNumericExtension();
-   // }
-   // else
-   // { sval = null;
-   // }
-   // return true;
-   // }
-   // }
-   // }
 
    private boolean parseNumber (int c) throws IOException {
       boolean negate = false;
@@ -1756,6 +1609,7 @@ public class ReaderTokenizer {
     * @return type of the token read
     */
    public int nextToken() throws IOException {
+
       if (myTokenPushedBack) {
          myTokenPushedBack = false;
          return ttype;

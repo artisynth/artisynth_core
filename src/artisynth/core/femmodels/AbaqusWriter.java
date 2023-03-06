@@ -12,12 +12,18 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.BufferedWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 
 import maspack.matrix.Point3d;
+import maspack.util.NumberFormat;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ComponentList;
+import artisynth.core.femmodels.FemElement.ElementClass;
 
 /**
  * Abaqus File reader, only supports the NODE and ELEMENT keywords
@@ -36,13 +42,15 @@ public class AbaqusWriter extends FemWriterBase {
    // C3D10 - 10-node quadratic tet
    // C3D20 - 20-node quadratic hex
    public enum ElemType {
-      C3D4(4, "C3D4", TetElement.class), 
-      C3D6(6, "C3D6", WedgeElement.class),
-      C3D8(8, "C3D8", HexElement.class),
-      C3D10(10, "C3D10", QuadtetElement.class),
-      C3D20(20, "C3D20", QuadhexElement.class),
-      S3(3, "S3", ShellTriElement.class),
-      S4(4, "S4", ShellQuadElement.class),
+      C3D4(4, "C3D4"),
+      C3D6(6, "C3D6"),
+      C3D8(8, "C3D8"),
+      C3D10(10, "C3D10"),
+      C3D20(20, "C3D20"),
+      S3(3, "S3"),
+      S4(4, "S4"),
+      CPS3(3, "CPS3"),
+      CPS4(4, "CPS4"),
       UNKNOWN(0, "UNKNOWN");
       
       private int numNodes;
@@ -58,23 +66,10 @@ public class AbaqusWriter extends FemWriterBase {
       private ElemType(int nNodes, String str) {
          numNodes = 4;
          strId = str;
-         myClass = FemElement3dBase.class;
       }
-
-      private ElemType(
-         int nNodes, String str, Class<? extends FemElement3dBase> cls) {
-         numNodes = 4;
-         strId = str;
-         myClass = cls;
-      }
-      
-      public Class<? extends FemElement3dBase> getElemClass() {
-         return myClass; 
-      }
-      
    }
    
-   public static class ElemTypeList extends ArrayList<FemElement3d> {
+   public static class ElemTypeList extends ArrayList<FemElement3dBase> {
       private static final long serialVersionUID = 9812341234L;
       ElemType myType = ElemType.UNKNOWN;
       public ElemTypeList(ElemType type) {
@@ -84,99 +79,132 @@ public class AbaqusWriter extends FemWriterBase {
       public ElemType getType() {
          return myType;
       }
-      
-      public boolean accepts(FemElement3d elem) {
-         if (elem.getClass() == myType.getElemClass()) {
-            return true;
-         }
-         return false;
-      }
-      
    }
    
-   public static final String COMMENT = "**";
-   public static final char KEYWORD = '*';
+   private final String COMMENT = "**";
+   private final char KEYWORD = '*';
    
-   static boolean cwHexWarningGiven;
-   static boolean cwWedgeWarningGiven;
-   static boolean cwTetWarningGiven; 
-   static boolean nodeIdWarningGiven;
+   private boolean cwHexWarningGiven;
+   private boolean cwWedgeWarningGiven;
+   private boolean cwTetWarningGiven; 
+   private boolean nodeIdWarningGiven;
+   private boolean mySuppressWarnings = false;
+
+   public boolean getSuppressWarnings() {
+      return mySuppressWarnings;
+   }
+   
+   public void setSuppressWarnings(boolean enable) {
+      mySuppressWarnings = enable;
+   }
    
    /**
     * Writes a FemModel into an Abaqus data file.
     * 
-    * @param model
+    * @param fem
     * FEM model to be written
     * @param fileName
     * path name of the Abaqus node file
     * @throws IOException
     * if this is a problem writing the file
     */
-   public static void write (
-      FemModel3d model, String fileName)
+   public static void write (FemModel3d fem, String fileName)
       throws IOException {
-      write(model, new File(fileName));
+      write(fem, new File(fileName));
    }
    
    /**
     * Writes a FemModel into an Abaqus data file.
     * 
-    * @param model
+    * @param fem
     * FEM model to be written
     * @param file
     * the Abaqus node file
     * @throws IOException
     * if this is a problem writing the file
     */
-   public static void write (
-      FemModel3d model, File file)
+   public static void write (FemModel3d fem, File file)
       throws IOException {
 
-      PrintWriter fileWriter = null;
-
+      AbaqusWriter writer = null;
       try {
-         fileWriter = new PrintWriter(new FileWriter(file));
-         write (model, fileWriter);
+         writer = new AbaqusWriter (file);
+         writer.writeFem (fem);
       }
       catch (IOException e) {
          throw e;
       }
       finally {
-         if (fileWriter != null) {
-            fileWriter.close ();
+         if (writer != null) {
+            writer.close ();
          }
       }
    }
-   
-   /**
-    * Writes to an Abaqus file
-    * 
-    * @param model
-    * FEM model to be written
-    * @param fileWriter
-    * writer to write out data
-    * @throws IOException
-    * if this is a problem writing the file
-    */
-   public static void write (FemModel3d model, PrintWriter fileWriter) throws IOException {
 
-      // boolean useOneBasedNum = (options & ONE_BASED_NUMBERING) != 0;
+   /**
+    * Nodes must be renumbered if any node has a number of 0.
+    */
+   private boolean nodesMustBeRenumbered (
+      ComponentList<FemNode3d> nodes) {
+
+      for (FemNode3d n : nodes) {
+         if (n.getNumber() == 0) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   /**
+    * Determine the maximum field width required to the numbers for a given
+    * list of elements.
+    */
+   private <T extends ModelComponent> int computeFieldWidth (
+      ComponentList<T> comps, int baseWidth, int numberBase) {
       
-      writeHeader (fileWriter, model.getName());
-      
-      writeNodes(fileWriter, model.getNodes());
-      writeElements(fileWriter, model.getElements());
-      
-      int[] bounds = findMaxMinNumber(model.getNodes());
-      writeNSet(fileWriter, "nodes", bounds[0], bounds[1]);
-      bounds = findMaxMinNumber(model.getElements());
-      writeElSet(fileWriter, "elements", bounds[0], bounds[1]);
-      
-      writeFooter(fileWriter);
-      
+      int maxNum;
+      if (numberBase > 0) {
+         maxNum = comps.size() + numberBase;
+      }
+      else {
+         maxNum = comps.getNumberLimit();
+      }
+      return Math.max (baseWidth, (int)Math.ceil (Math.log10 (maxNum)));
    }
    
-   public static int[] findMaxMinNumber(
+   /**
+    * Elements must be renumbered if (a) any element has a number of 0, or (b)
+    * the same number is used by a solid and shell element.
+    */
+   private boolean elementsMustBeRenumbered (
+      ComponentList<FemElement3d> solids, 
+      ComponentList<ShellElement3d> shells) {
+
+      boolean[] marked =
+         new boolean[Math.max(solids.getNumberLimit(), shells.getNumberLimit())];
+      int solidNumBase = -1;
+      int shellNumBase = -1;
+      for (FemElement3d e : solids) {
+         int num = e.getNumber();
+         if (num == 0) {
+            return true;
+         }
+         marked[num] = true;
+      }
+      for (ShellElement3d e : shells) {
+         int num = e.getNumber();
+         if (num == 0) {
+            return true;
+         }
+         if (marked[num]) {
+            // overlap
+            return true;
+         }
+      }
+      return false;
+   }
+   
+   private int[] findMaxMinNumber(
       Collection<? extends ModelComponentBase> list) {
 
       int[] out = new int[] {Integer.MAX_VALUE, Integer.MIN_VALUE};
@@ -191,107 +219,194 @@ public class AbaqusWriter extends FemWriterBase {
       return out;
    }
    
-   public static void writeNodes(
-      PrintWriter writer, Collection<FemNode3d> nodes) {
-      
-      writer.println("*NODE");
+   private void writeNodes (
+      PrintWriter pw, ComponentList<FemNode3d> nodes, int numBase, int fieldWidth) {
+
+      NumberFormat fmt = new NumberFormat ("%" + fieldWidth + "d");
+      pw.println("*NODE");
       for (FemNode3d node : nodes) {
+         int num;
+         if (numBase > 0) {
+            num = numBase + nodes.indexOf (node);
+         }
+         else {
+            num = node.getNumber();
+         }
          Point3d pos = node.getPosition();
-         writer.println(node.getNumber() + ", " + pos.x + ", " + pos.y + ", " + pos.z);
+         pw.println (fmt.format(num) + ", " + pos.x + ", " + pos.y + ", " + pos.z);
       }
-      writer.println("**\n**");
+      pw.println("**\n**");
       
    }
    
-   public static void writeInclude(PrintWriter writer, String inputFile) {
-      writer.println("*INCLUDE, INPUT=" + inputFile);
+   private void writeInclude(
+      PrintWriter pw, String inputFile) {
+      pw.println("*INCLUDE, INPUT=" + inputFile);
    }
    
-   public static void writeNSet(PrintWriter writer, String name, int minIdx, int maxIdx) {
-      writer.println("*NSET, NSET=" + name + " GENERATE");
-      writer.println(minIdx + ", " + maxIdx);
-   }
-   
-   public static void writeElSet(PrintWriter writer, String name, int minIdx, int maxIdx) {
-      writer.println("*ELSET, ELSET=" + name + " GENERATE");
-      writer.println(minIdx + ", " + maxIdx);
-   }
-   
-   public static void writeElements(
-      PrintWriter writer, Collection<FemElement3d> elems) {
+   private void writeElems (
+      PrintWriter pw, ComponentList<? extends FemElement3dBase> elems,
+      int numBase, ComponentList<FemNode3d> nodes, int nodeNumBase,
+      int fieldWidth) {
+      
+      NumberFormat fmt = new NumberFormat ("%" + fieldWidth + "d");
       ElemTypeList elemLists[] = separateElements(elems);
-      
-      int minIdx = Integer.MAX_VALUE;
-      int maxIdx = Integer.MIN_VALUE;
       
       for (ElemTypeList list : elemLists) {
          if (list.size() > 0) {
             
-            writer.println("*ELEMENT, TYPE=" + list.getType().getString());
-            for (FemElement3d elem : list) {
-               int n = elem.getNumber();
-               writer.print(n);
-               
-               if (n > maxIdx) {
-                  maxIdx = n;
-               } else if (n < minIdx) {
-                  minIdx = n;
+            pw.println("*ELEMENT, TYPE=" + list.getType().getString());
+            for (FemElement3dBase elem : list) {
+               StringBuilder sb = new StringBuilder();
+               int elemNum;
+               if (numBase > 0) {
+                  elemNum = numBase + elems.indexOf (elem);
                }
-               
+               else {
+                  elemNum = elem.getNumber();
+               }
+               sb.append (fmt.format(elemNum));
+               sb.append (", ");
+
+               // get node numbers
+               int[] nodeNums = new int[elem.numNodes()];
+               int k = 0;
                for (FemNode3d node : elem.getNodes()) {
-                  writer.print(", " + node.getNumber());
+                  if (nodeNumBase > 0) {
+                     nodeNums[k++] = nodeNumBase + nodes.indexOf(node);
+                  }
+                  else {
+                     nodeNums[k++] = node.getNumber();
+                  }
                }
-               writer.println();
+               if (elem instanceof HexElement) {
+                  reorderHexNodeNums (nodeNums);
+               }
+               else if (elem instanceof QuadhexElement) {
+                  reorderQuadHexNodeNums (nodeNums);
+               }
+               int numsPerLine = 80/(fieldWidth+2);
+               int num = 1;
+               for (k=0; k<nodeNums.length; k++) {
+                  sb.append (fmt.format(nodeNums[k]));
+                  if (k<nodeNums.length-1) {
+                     if (++num > numsPerLine) {
+                        sb.append (",\n");
+                        num = 0;
+                     }
+                     else {
+                        sb.append (", ");
+                     }
+                  }
+               }
+               pw.println (sb.toString());
             }
-            writer.println("**\n**");
+            pw.println("**\n**");
          }
       }
-      
+   }
+
+   private void swapNumbers (int[] nodeNums, int i, int j) {
+      int tmp = nodeNums[i];
+      nodeNums[i] = nodeNums[j];
+      nodeNums[j] = tmp;
+   }
+
+   private void reorderHexNodeNums (int[] nodeNums) {
+      swapNumbers (nodeNums, 0, 3);
+      swapNumbers (nodeNums, 1, 2);
+      swapNumbers (nodeNums, 4, 7);
+      swapNumbers (nodeNums, 5, 6);
    }
    
-   private static ElemTypeList[] separateElements (
-      Collection<FemElement3d> elems) {
+   private void reorderQuadHexNodeNums (int[] nodeNums) {
+      reorderHexNodeNums (nodeNums);
+      swapNumbers (nodeNums, 8, 10);
+      swapNumbers (nodeNums, 12, 14);
+      swapNumbers (nodeNums, 16, 19);
+      swapNumbers (nodeNums, 17, 18);
+   }
+   
+   private ElemTypeList[] separateElements (
+      Collection<? extends FemElement3dBase> elems) {
       ElemType[] types = ElemType.values();
       ElemTypeList[] elemLists = new ElemTypeList[types.length];
-      ElemTypeList unknown = null;
+      HashSet<Class<? extends FemElement3dBase>> unknowns = new HashSet<>();
       
       for (int i=0; i<elemLists.length; i++) {
          elemLists[i] = new ElemTypeList(types[i]);
-         if (types[i] == ElemType.UNKNOWN) {
-            unknown = elemLists[i];
-         }
       }
       
-      for (FemElement3d elem : elems) {
-         int idx = getElemTypeIdx(elem, types);
+      for (FemElement3dBase elem : elems) {
+         int idx = getElemTypeIdx(elem);
          if (idx >= 0) {
             elemLists[idx].add(elem);
          } else {
-            unknown.add(elem);
+            unknowns.add (elem.getClass());
          }
       }
-      
+      if (unknowns.size() > 0) {
+         if (!mySuppressWarnings) {
+            System.out.println (
+               "WARNING: ignoring the following unsupported elements:");
+         }
+         for (Class<? extends FemElement3dBase> eclass : unknowns) {
+            System.out.println (" " + eclass.getName());
+         }
+      }
       return elemLists;
    }
    
-   private static int getElemTypeIdx(FemElement3d elem, ElemType[] types) {
-      
-      for (int i=0; i<types.length; i++) {
-         if (elem.getClass() == types[i].getElemClass()) {
-            return i;
+   private int getElemTypeIdx(FemElement3dBase elem) {
+      Class<? extends FemElement3dBase> eclass = elem.getClass();
+      ElemType type = null;
+      switch (elem.getElementClass()) {
+         case VOLUMETRIC: {
+            if (eclass == TetElement.class) {
+               type = ElemType.C3D4;
+            }
+            else if (eclass == WedgeElement.class) {
+               type = ElemType.C3D6;
+            }
+            else if (eclass == HexElement.class) {
+               type = ElemType.C3D8;
+            }
+            else if (eclass == QuadtetElement.class) {
+               type = ElemType.C3D10;
+            }
+            else if (eclass == QuadhexElement.class) {
+               type = ElemType.C3D20;
+            }
+            break;
          }
-      } 
-      return -1;
-      
+         case SHELL: {
+            if (eclass == ShellTriElement.class) {
+               type = ElemType.CPS3;
+            }
+            else if (eclass == ShellQuadElement.class) {
+               type = ElemType.CPS4;
+            }
+            break;
+         }
+         case MEMBRANE: {
+            if (eclass == ShellTriElement.class) {
+               type = ElemType.S3;
+            }
+            else if (eclass == ShellQuadElement.class) {
+               type = ElemType.S4;
+            }
+            break;
+         }
+      }
+      return type != null ? type.ordinal() : -1;
    }
    
-   
-   private static void writeHeader(PrintWriter writer, String name) {
+   private void writeHeader(PrintWriter pw, String name) {
       
       String header =  "**=========================================================================\n"
                      + "**     MODEL: " + name + "\n"
                      + "**\n"
-                     + "**     CREATED ON:\n"
+                     + "**     CREATED by ArtiSynth AbaqusWriter ON:\n"
                      + "**        ==> " + new Date() + "\n"
                      + "** \n"
                      + "**     MODIFICATION HISTORY:\n"
@@ -302,11 +417,11 @@ public class AbaqusWriter extends FemWriterBase {
                      + "**=========================================================================\n"
                      + "**                                               Node / Element Definitions\n"
                      + "**\n";
-      writer.print(header);
+      pw.print(header);
       
    }
    
-   private static void writeFooter(PrintWriter writer) {
+   private void writeFooter(PrintWriter pw) {
       
       String footer =  "**\n" +
          "**\n" +
@@ -334,26 +449,79 @@ public class AbaqusWriter extends FemWriterBase {
          "**=========================================================================\n" +
          "**                         END OF ABAQUS INPUT DECK                      **\n" +
          "**=========================================================================\n";
-      writer.print(footer);
+      pw.print(footer);
    }
 
-   protected AbaqusWriter (OutputStream os) {
-      myOstream = os;
+   /**
+    * Writes a FEM model to an Abaqus file
+    * 
+    * @param fem
+    * FEM model to be written
+    * @throws IOException
+    * if this is a problem writing the file
+    */
+   public void writeFem (FemModel3d fem) throws IOException {
+
+      // boolean useOneBasedNum = (options & ONE_BASED_NUMBERING) != 0;
+      PrintWriter pw = myPrintWriter;
+      
+      writeHeader (pw, fem.getName());
+
+      ComponentList<FemNode3d> nodes = fem.getNodes();
+      int nodeNumBase = -1;
+      if (nodesMustBeRenumbered (nodes)) {
+         nodeNumBase = 1;
+      }
+      int nodeFieldWidth = computeFieldWidth (nodes, 0, nodeNumBase);
+      writeNodes(pw, nodes, nodeNumBase, nodeFieldWidth);
+
+      // see if there is a number class between solid and shell elements
+      ComponentList<FemElement3d> solids = fem.getElements();
+      ComponentList<ShellElement3d> shells = fem.getShellElements();
+
+      int solidNumBase = -1;
+      int shellNumBase = -1;
+      if (elementsMustBeRenumbered (solids, shells)) {
+         solidNumBase = 1;
+         shellNumBase = solids.size()+1;
+         if (!mySuppressWarnings) {
+            System.out.println (
+               "WARNING: elements will be renumbered for Abaqus compatibility");
+         }
+      }
+      int elemFieldWidth;
+      elemFieldWidth = computeFieldWidth (solids, nodeFieldWidth, solidNumBase);
+      elemFieldWidth = computeFieldWidth (shells, elemFieldWidth, shellNumBase);
+      
+      //int[] elemNumBounds = new int[] { Integer.MAX_VALUE, Integer.MIN_VALUE };
+      writeElems (pw, solids, solidNumBase, nodes, nodeNumBase, elemFieldWidth);
+      writeElems (pw, shells, shellNumBase, nodes, nodeNumBase, elemFieldWidth);
+      
+      // int[] nodeNumBounds = findMaxMinNumber(fem.getNodes());
+      // writeNSet(pw, "nodes", nodeNumBounds);
+      // writeElSet(pw, "elements", elemNumBounds);
+      
+      writeFooter(pw);
+      pw.flush();
    }
 
-   protected AbaqusWriter (File file) throws IOException {
-      this (new FileOutputStream (file));
+   public AbaqusWriter (PrintWriter pw) throws IOException {
+      super (pw);
+   }
+   
+   public AbaqusWriter (File file) throws IOException {
+      super (new PrintWriter (new BufferedWriter (new FileWriter (file))));
       myFile = file;
    }
 
-   protected AbaqusWriter (String fileName) throws IOException {
+   public AbaqusWriter (String fileName) throws IOException {
       this (new File(fileName));
    }
    
-   @Override
-   public void writeFem(FemModel3d fem) throws IOException {
-      write(fem, new PrintWriter(myOstream));
+   // @Override
+   // public void writeFem (FemModel3d fem) throws IOException {
+   //    write(fem, new PrintWriter(myOstream));
       
-   }
+   // }
    
 }

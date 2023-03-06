@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: Antonio Sanchez (UBC)
+ * Copyright (c) 2023, by the Authors: Antonio Sanchez, John E Lloyd (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 import maspack.matrix.Point3d;
+import maspack.matrix.VectorNi;
 import maspack.util.ReaderTokenizer;
 import maspack.util.ArraySupport;
 import maspack.util.InternalErrorException;
@@ -22,8 +23,7 @@ import maspack.util.InternalErrorException;
 /**
  * Abaqus File reader, only supports the NODE, ELEMENT and INCLUDE keywords
  * 
- * @author Antonio
- * 
+ * @author Antonio, John E Lloyd
  */
 public class AbaqusReader implements FemReader {
 
@@ -33,37 +33,160 @@ public class AbaqusReader implements FemReader {
    public static int ZERO_BASED_NUMBERING = 0x2;
 
    File myFile = null;
+   File[] myIncludeDirs = null;
+   ReaderTokenizer myRtok = null;
 
-   static boolean myReadShellsAsMembranes = false;
-   static double myShellThickness = 0.001;
-   
-   public static void setReadShellsAsMembranes (boolean enable) {
-      myReadShellsAsMembranes = enable;
+   static public double DEFAULT_SHELL_THICKNESS = 0.001;
+   static public boolean DEFAULT_ZERO_BASED_NUMBERING = false;
+   static double myDefaultShellThickness = DEFAULT_SHELL_THICKNESS;
+
+   public static void setDefaultShellThickness (double thickness) {
+      myDefaultShellThickness = thickness;
    }
 
-   public static boolean getReadShellsAsMembranes () {
-      return myReadShellsAsMembranes;
+   public static double getDefaultShellThickness () {
+      return myDefaultShellThickness;
    }
 
-   public static void setShellThickness (double enable) {
-      myShellThickness = enable;
+   protected double myDensity = FemModel.DEFAULT_DENSITY;
+   protected double myShellThickness = DEFAULT_SHELL_THICKNESS;
+   protected boolean myZeroBasedNumbering = DEFAULT_ZERO_BASED_NUMBERING;
+
+   public void setShellThickness (double thickness) {
+      myShellThickness = thickness;
    }
 
-   public static double getShellThickness () {
+   public double getShellThickness () {
       return myShellThickness;
    }
 
-   public AbaqusReader(File file) {
+   public void setDensity (double density) {
+      myDensity = density;
+   }
+
+   public double getDensity () {
+      return myDensity;
+   }
+
+   public void setZeroBasedNumbering (boolean enable) {
+      myZeroBasedNumbering = enable;
+   }
+
+   public boolean getZeroBasedNumbering () {
+      return myZeroBasedNumbering;
+   }
+
+   boolean mySuppressWarnings = false;
+
+   public boolean getSuppressWarnings() {
+      return mySuppressWarnings;
+   }
+   
+   public void setSuppressWarnings(boolean enable) {
+      mySuppressWarnings = enable;
+   }
+   
+   public AbaqusReader (Reader reader, File[] includeDirs) {
+      myRtok = new ReaderTokenizer (new BufferedReader (reader));
+      if (includeDirs == null) {
+         myIncludeDirs = new File[0];
+      }
+      else {
+         myIncludeDirs = new File[includeDirs.length];
+         for (int k=0; k<includeDirs.length; k++) {
+            myIncludeDirs[k] = includeDirs[k];
+         }
+      }
+      myShellThickness = myDefaultShellThickness;
+   }
+
+   public AbaqusReader (File file, File[] includeDirs) throws IOException {
+      this (new FileReader (file), includeDirs);
       myFile = file;
    }
    
-   public AbaqusReader(String filename) {
-      myFile = new File(filename);
+   public AbaqusReader (File file) throws IOException {
+      this (new FileReader (file), new File[] {file.getParentFile()});
+      myFile = file;
+   }
+   
+   public AbaqusReader (String filename) throws IOException {
+      this (new File(filename));
    }
    
    @Override
-   public FemModel3d readFem(FemModel3d fem) throws IOException {
-      return read(fem, myFile.getAbsolutePath());
+   public FemModel3d readFem (FemModel3d fem) throws IOException {
+
+      if (fem == null) {
+         fem = new FemModel3d();
+      } else {
+         fem.clear ();
+      }
+
+      fem.setDensity (getDensity());
+      
+      LinkedHashMap<Integer, Point3d> nodeMap = 
+         new LinkedHashMap<Integer, Point3d>();
+      LinkedHashMap<Integer, Integer> nodeIdMap = 
+         new LinkedHashMap<Integer, Integer> ();
+      LinkedHashMap<Integer, ElemDesc> elemMap = 
+         new LinkedHashMap<Integer, ElemDesc>();
+      
+      readFile (myRtok, nodeMap, elemMap);
+      
+      for (int nodeId : nodeMap.keySet ()) {
+         Point3d pos = nodeMap.get (nodeId);
+         
+         FemNode3d node = new FemNode3d (pos);
+         fem.addNumberedNode (node, nodeId);
+         // Store new node ID to match with element node IDs
+         nodeIdMap.put (nodeId, node.getNumber ());
+      }
+         
+      ArrayList<HexElement> hexElems = new ArrayList<HexElement> ();
+      
+      for (int elemId : elemMap.keySet ()) {
+         ElemDesc edesc = elemMap.get (elemId);
+         int[] nodeList = edesc.myNodeIds;
+
+         switch (edesc.myType) {
+            case C3D4:
+               createTet (fem, nodeList, elemId);
+               break;
+            case C3D6:
+               createWedge (fem, nodeList, elemId);
+               break;
+            case C3D8:
+               hexElems.add (createHex (fem, nodeList, elemId));
+               break;
+            case C3D10:
+               createQuadTet (fem, nodeList, elemId);
+               break;
+            case C3D20:
+               createQuadHex (fem, nodeList, elemId);
+               break;
+            case S3:
+               createShellTri (fem, nodeList, elemId, /*membrane=*/true);
+               break;
+            case S4:
+               createShellQuad (fem, nodeList, elemId, /*membrane=*/true);
+               break;
+            case CPS3:
+               createShellTri (fem, nodeList, elemId, /*membrane=*/false);
+               break;
+            case CPS4:
+               createShellQuad (fem, nodeList, elemId, /*membrane=*/false);
+               break;
+            default:
+               System.out.println (
+                  "Ignoring unknown element type " + edesc.myType);
+         }
+      }
+      
+      // TODO implement for quadhex elements
+      HexElement.setParities (hexElems);
+
+      return fem;
    }
 
    private enum FileSection {
@@ -83,8 +206,10 @@ public class AbaqusReader implements FemReader {
       C3D10(10, "C3D10"),
       C3D20(20, "C3D20"),
       // shell elements
-      S3(3, "S3"), 
-      S4(4, "S4"),
+      S3(3, "S3"), // membrane
+      S4(4, "S4"), // membrane
+      CPS3(3, "CPS3"), 
+      CPS4(4, "CPS4"),
       UNKNOWN(0, "UNKNOWN");
       
       private int numNodes;
@@ -101,7 +226,7 @@ public class AbaqusReader implements FemReader {
       }
    }
 
-   public static class ElemDesc {
+   private static class ElemDesc {
       ElemType myType;
       int[] myNodeIds;
 
@@ -111,17 +236,19 @@ public class AbaqusReader implements FemReader {
       }
    }
    
-   public static final String COMMENT = "**";
-   public static final char KEYWORD = '*';
+   private static final String COMMENT = "**";
+   private static final char KEYWORD = '*';
    
-   static boolean cwHexWarningGiven;
-   static boolean cwWedgeWarningGiven;
-   static boolean cwTetWarningGiven; 
-   static boolean nodeIdWarningGiven;
+   private boolean cwHexWarningGiven;
+   private boolean cwWedgeWarningGiven;
+   private boolean cwTetWarningGiven; 
+   private boolean cwQuadtetWarningGiven; 
+   private boolean cwQuadhexWarningGiven; 
+   private boolean nodeIdWarningGiven;
    
    /**
-    * Creates an FemModel with uniform density based on Abaqus data contained in
-    * a specified file. 
+    * Creates an FemModel with uniform density (of 1) based on Abaqus data
+    * contained in a specified file.
     * 
     * @param model
     * FEM model to be populated by Abaqus data. If <code>null</code>, a
@@ -132,15 +259,14 @@ public class AbaqusReader implements FemReader {
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static FemModel3d read (
-      FemModel3d model, String fileName)
+   public static FemModel3d read (FemModel3d model, String fileName)
       throws IOException {
       return read(model, new File(fileName), 1, /*options=*/0);
    }
    
    /**
-    * Creates an FemModel with uniform density based on Abaqus data contained in
-    * a specified file. 
+    * Creates an FemModel with uniform density based on Abaqus data contained
+    * in a specified file.
     * 
     * @param model
     * FEM model to be populated by Abaqus data. If <code>null</code>, a
@@ -165,162 +291,91 @@ public class AbaqusReader implements FemReader {
     * Creates an FemModel with uniform density based on Abaqus data contained in
     * a specified file. 
     * 
-    * @param model
+    * @param fem
     * FEM model to be populated by Abaqus data. If <code>null</code>, a
     * new model is created
     * @param file
     * the ABAQUS file
     * @param density
-    * density of the model
+    * density of the FEM model
     * @param options
     * option flags. Options include {@link #ZERO_BASED_NUMBERING}.
-    * @return created model
+    * @return created FEM model
     * @throws IOException
     * if this is a problem reading the file
     */
    public static FemModel3d read (
-      FemModel3d model, File file, double density, int options)
+      FemModel3d fem, File file, double density, int options)
       throws IOException {
 
-      Reader fileReader = null;
-
+      AbaqusReader reader = null;
       try {
-         fileReader = new BufferedReader(new FileReader (file));
-         model = read (model, fileReader, density, options,
-                       new File[] {file.getParentFile()});
+         reader = new AbaqusReader (file);
+         reader.setZeroBasedNumbering ((options & ZERO_BASED_NUMBERING) != 0);
+         reader.setDensity (density);
+         return reader.readFem (fem);
       }
       catch (IOException e) {
          throw e;
       }
       finally {
-         if (fileReader != null) {
-            fileReader.close ();
+         if (reader != null) {
+            reader.close ();
          }
       }
-      
-      return model;
    }
    
    /**
     * Creates an FemModel with uniform density based on Abaqus data contained in
     * a specified file
     * 
-    * @param model
-    * FEM model to be populated by Abaqus data
-    * @param fileReader reader supplying node and element data in the Abaqus
-    * format. If <code>null</code>, a new model is created
+    * @param fem FEM model to be populated by Abaqus data format. If
+    * <code>null</code>, a new model is created
+    * @param file the ABAQUS file
     * @param density
-    * density of the model
+    * density of the FEM model
     * @param options
     * option flags. Options include {@link #ZERO_BASED_NUMBERING}.
     * @param includeDirs list of directories to search for include files
-    * @return created model
+    * @return created FEM model
     * @throws IOException
     * if this is a problem reading the file
     */
    public static FemModel3d read (
-      FemModel3d model, Reader fileReader, double density, int options,
+      FemModel3d fem, File file, double density, int options,
       File[] includeDirs) throws IOException {
 
-      if (model == null) {
-         model = new FemModel3d();
-      } else {
-         model.clear ();
+      AbaqusReader reader = null;
+      try {
+         reader = new AbaqusReader (file, includeDirs);
+         reader.setZeroBasedNumbering ((options & ZERO_BASED_NUMBERING) != 0);
+         reader.setDensity (density);
+         return reader.readFem (fem);
       }
-      boolean zeroBasedNumbering = ((options & ZERO_BASED_NUMBERING) != 0);
-      //model.setOneBasedNodeElementNumbering (!zeroBasedNumbering);
-
-      model.setDensity (density);
-      
-      cwHexWarningGiven=false;
-      cwWedgeWarningGiven=false;
-      cwTetWarningGiven=false; 
-      nodeIdWarningGiven=false;
-      
-      LinkedHashMap<Integer, Point3d> nodeMap = 
-         new LinkedHashMap<Integer, Point3d>();
-      LinkedHashMap<Integer, Integer> nodeIdMap = 
-         new LinkedHashMap<Integer, Integer> ();
-      LinkedHashMap<Integer, ElemDesc> elemMap = 
-         new LinkedHashMap<Integer, ElemDesc>();
-      
-      readFile (fileReader, nodeMap, elemMap, includeDirs, options);
-      
-      for (int nodeId : nodeMap.keySet ()) {
-         Point3d pos = nodeMap.get (nodeId);
-         
-         FemNode3d node = new FemNode3d (pos);
-         model.addNumberedNode (node, nodeId);
-         // Store new node ID to match with element node IDs
-         nodeIdMap.put (nodeId, node.getNumber ());
+      catch (IOException e) {
+         throw e;
       }
-         
-      ArrayList<HexElement> hexElems = new ArrayList<HexElement> ();
-      
-      for (int elemId : elemMap.keySet ()) {
-         ElemDesc edesc = elemMap.get (elemId);
-         int[] nodeList = edesc.myNodeIds;
-         
-         switch (edesc.myType) {
-            case C3D4:
-               createTet (model, nodeList, elemId, options);
-               break;
-            case C3D6:
-               createWedge (model, nodeList, elemId, options);
-               break;
-            case C3D8:
-               hexElems.add (createHex (model, nodeList, elemId, options));
-               break;
-            case C3D10:
-               createQuadTet (model, nodeList, elemId, options);
-               break;
-            case C3D20:
-               createQuadHex (model, nodeList, elemId, options);
-               break;
-            case S3:
-               createShellTri (model, nodeList, elemId, options);
-               break;
-            case S4:
-               createShellQuad (model, nodeList, elemId, options);
-               break;
-            default:
-               System.out.println (
-                  "Ignoring unknown element type " + edesc.myType);
+      finally {
+         if (reader != null) {
+            reader.close ();
          }
       }
-      
-      // TODO implement for quadhex elements
-      HexElement.setParities (hexElems);
-
-      return model;
-      
    }
    
-   static void addElement (
-      FemModel3d model, FemElement3dBase elem, int elemId, int options) {
+   void addElement (
+      FemModel3d model, FemElement3dBase elem, int elemId) {
 
       if (elem instanceof FemElement3d) {
-         if ((options & ZERO_BASED_NUMBERING) != 0) {
-            model.addElement ((FemElement3d)elem);
-         }
-         else {
-            model.addNumberedElement ((FemElement3d)elem, elemId);
-         }
+         model.addNumberedElement ((FemElement3d)elem, elemId);
       }
       else if (elem instanceof ShellElement3d) {
-         if ((options & ZERO_BASED_NUMBERING) != 0) {
-            FemNode3d[] nodes = elem.getNodes();
-            model.addShellElement ((ShellElement3d)elem);
-         }
-         else {
-            model.addNumberedShellElement ((ShellElement3d)elem, elemId);
-         }
+         model.addNumberedShellElement ((ShellElement3d)elem, elemId);
       }
    }
 
 
-   private static void createTet (
-      FemModel3d model, int[] nodeIds, int elemId, int options) {
+   private void createTet (
+      FemModel3d model, int[] nodeIds, int elemId) {
       
       FemNode3d n0 = model.getByNumber (nodeIds[0]);
       FemNode3d n1 = model.getByNumber (nodeIds[1]);
@@ -334,17 +389,16 @@ public class AbaqusReader implements FemReader {
       }
       else {
          e = new TetElement (n0, n2, n1, n3);
-
-         if (cwTetWarningGiven) {
-            System.out.println ("found cw tet");
+         if (!mySuppressWarnings && cwTetWarningGiven) {
+            System.out.println ("WARNING: fixed orientation for some tet elements");
             cwTetWarningGiven = true;
          }
       }
-      addElement (model, e, elemId, options);
+      addElement (model, e, elemId);
    }
    
-   private static void createQuadTet (
-      FemModel3d model, int[] nodeIds, int elemId, int options) {
+   private void createQuadTet (
+      FemModel3d model, int[] nodeIds, int elemId) {
       
       FemNode3d n0 = model.getByNumber (nodeIds[0]);
       FemNode3d n1 = model.getByNumber (nodeIds[1]);
@@ -366,18 +420,18 @@ public class AbaqusReader implements FemReader {
       else {
          e = new QuadtetElement (n0, n2, n1, n3, n6, n5, n4,
                n7, n9, n8);
-         
-         if (cwTetWarningGiven) {
-            System.out.println ("found ccw quadtet");
-            cwTetWarningGiven = true;
+
+         if (!mySuppressWarnings && cwQuadtetWarningGiven) {
+            System.out.println ("WARNING: fixed orientation for some quadtet elements");
+            cwQuadtetWarningGiven = true;
          }
       }
       
-      addElement (model, e, elemId, options);
+      addElement (model, e, elemId);
    }
    
-   private static HexElement createHex (
-      FemModel3d model, int[] nodeIds, int elemId, int options) {
+   private HexElement createHex (
+      FemModel3d model, int[] nodeIds, int elemId) {
 
       FemNode3d n0 = model.getByNumber (nodeIds[0]);
       FemNode3d n1 = model.getByNumber (nodeIds[1]);
@@ -395,19 +449,20 @@ public class AbaqusReader implements FemReader {
       }
       else {
          e = new HexElement (n0, n1, n2, n3, n4, n5, n6, n7);
-
-         if (!cwHexWarningGiven) {
-            System.out.println ("found cw hex");
+         
+         if (!mySuppressWarnings && !cwHexWarningGiven) {
+            System.out.println ("WARNING: fixed orientation for some hex elements");
             cwHexWarningGiven = true;
          }
          
-         if (e.computeVolumes () < 0) {
-            System.out.println ("found neg volume hex, # " + e.getNumber ());
+         if (!mySuppressWarnings && e.computeVolumes () < 0) {
+            System.out.println (
+               "WARNING: negative volume for hex number " + e.getNumber());
          }
       }
       
       try {
-         addElement (model, e, elemId, options);
+         addElement (model, e, elemId);
       } catch (Exception err) {
          System.out.println("element " + elemId + " caused a problem");
       }
@@ -415,8 +470,8 @@ public class AbaqusReader implements FemReader {
       return e;
    }
    
-   private static void createQuadHex (
-      FemModel3d model, int[] nodeIds, int elemId, int options) {
+   private void createQuadHex (
+      FemModel3d model, int[] nodeIds, int elemId) {
 
       FemNode3d n0 = model.getByNumber (nodeIds[0]);
       FemNode3d n1 = model.getByNumber (nodeIds[1]);
@@ -451,21 +506,22 @@ public class AbaqusReader implements FemReader {
             new FemNode3d[] {n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11,
                              n12, n13, n14, n15, n16, n17, n18, n19});
 
-         if (!cwHexWarningGiven) {
-            System.out.println ("found cw quadhex");
-            cwHexWarningGiven = true;
+         if (!mySuppressWarnings && !cwQuadhexWarningGiven) {
+            System.out.println ("WARNING: fixed orientation for some quadhex elements");
+            cwQuadhexWarningGiven = true;
          }
          
-         if (e.computeVolumes () < 0) {
-            System.out.println ("found neg volume quadhex, # " + e.getNumber ());
+         if (!mySuppressWarnings && e.computeVolumes () < 0) {
+            System.out.println (
+               "WARNING: negative volume for quadhex number " + e.getNumber());
          }
       }  
       
-      addElement (model, e, elemId, options);
+      addElement (model, e, elemId);
    }
 
-   private static void createWedge (
-      FemModel3d model, int[] nodeIds, int elemId, int options) {
+   private void createWedge (
+      FemModel3d model, int[] nodeIds, int elemId) {
       
       FemNode3d n0 = model.getByNumber (nodeIds[0]);
       FemNode3d n1 = model.getByNumber (nodeIds[1]);
@@ -478,22 +534,23 @@ public class AbaqusReader implements FemReader {
 
       if (e.computeVolumes () < 0) {
          e = new WedgeElement (n2, n1, n0, n5, n4, n3);
-         
-         if (!cwWedgeWarningGiven) {
-            System.out.println ("found ccw wedge");
+
+         if (!mySuppressWarnings && !cwWedgeWarningGiven) {
+            System.out.println ("WARNING: fixed orientation for some wedge elements");
             cwWedgeWarningGiven = true;
          }
          
-         if (e.computeVolumes () < 0) {
-            System.out.println ("found inverted wedge, # " + e.getNumber ());
+         if (!mySuppressWarnings && e.computeVolumes () < 0) {
+            System.out.println (
+               "WARNING: negative volume for wedge number " + e.getNumber());
          }
       }
       
-      addElement (model, e, elemId, options);
+      addElement (model, e, elemId);
    }
    
-   private static void createShellTri (
-      FemModel3d model, int[] nodeIds, int elemId, int options) {
+   private void createShellTri (
+      FemModel3d model, int[] nodeIds, int elemId, boolean isMembrane) {
       
       FemNode3d n0 = model.getByNumber (nodeIds[0]);
       FemNode3d n1 = model.getByNumber (nodeIds[1]);
@@ -501,13 +558,13 @@ public class AbaqusReader implements FemReader {
       
       ShellTriElement e =
          new ShellTriElement (
-            n0, n1, n2, myShellThickness, myReadShellsAsMembranes);
+            n0, n1, n2, myShellThickness, isMembrane);
       
-      addElement (model, e, elemId, options);
+      addElement (model, e, elemId);
    }
    
-   private static void createShellQuad (
-      FemModel3d model, int[] nodeIds, int elemId, int options) {
+   private void createShellQuad (
+      FemModel3d model, int[] nodeIds, int elemId, boolean isMembrane) {
       
       FemNode3d n0 = model.getByNumber (nodeIds[0]);
       FemNode3d n1 = model.getByNumber (nodeIds[1]);
@@ -516,20 +573,16 @@ public class AbaqusReader implements FemReader {
       
       ShellQuadElement e =
          new ShellQuadElement (
-            n0, n1, n2, n3, myShellThickness, myReadShellsAsMembranes);
+            n0, n1, n2, n3, myShellThickness, isMembrane);
       
-      addElement (model, e, elemId, options);
+      addElement (model, e, elemId);
    }
-   
-   private static void readFile (
-      Reader reader, LinkedHashMap<Integer, Point3d> nodeMap,
-      LinkedHashMap<Integer, ElemDesc> elemMap,
-      File [] includeDirs, int options) throws IOException {
 
-      boolean zeroBasedNumbering = ((options & ZERO_BASED_NUMBERING) != 0);
-      
-      ReaderTokenizer rtok =
-         new ReaderTokenizer (new BufferedReader (reader));
+   private void readFile (
+      ReaderTokenizer rtok,
+      LinkedHashMap<Integer, Point3d> nodeMap,
+      LinkedHashMap<Integer, ElemDesc> elemMap) throws IOException {
+
       rtok.eolIsSignificant (true);
       rtok.wordChar('*');
       rtok.whitespaceChar(',');  //ignore commas
@@ -548,98 +601,138 @@ public class AbaqusReader implements FemReader {
          if (rtok.ttype == ReaderTokenizer.TT_WORD) {
             if (rtok.sval.startsWith(COMMENT)) {
                // ignore
-            } else if (rtok.sval.charAt(0) == KEYWORD) {
+            }
+            else if (rtok.sval.charAt(0) == KEYWORD) {
                // potentially change mode
+               rtok.whitespaceChar (',');
                
                String keyword = rtok.sval.substring(1);
                if (keyword.equalsIgnoreCase("NODE")) {
                   mySection = FileSection.NODE;
-               } else if (keyword.equalsIgnoreCase("ELEMENT")) {
+               }
+               else if (keyword.equalsIgnoreCase("ELEMENT")) {
                   mySection = FileSection.ELEM;
                   
                   // determine type
-                  String line = readLine(rtok);
-                  String type = parseKey("TYPE=", line).toUpperCase();
+                  String line = rtok.readLine();
                   myElemType = ElemType.UNKNOWN;
-                  for (ElemType et : ElemType.values()) {
-                     if (type.startsWith (et.getString())) {
-                        myElemType = et;
-                        break;
+                  String type = parseKey("TYPE=", line);
+                  if (type != null) {
+                     type = type.toUpperCase();
+                     for (ElemType et : ElemType.values()) {
+                        if (type.startsWith (et.getString())) {
+                           myElemType = et;
+                           break;
+                        }
+                     }
+                     if (!mySuppressWarnings && myElemType == ElemType.UNKNOWN) {
+                        System.err.println(
+                           "WARNING: unknown element type '" + type +
+                           "', line " + rtok.lineno() + "; ignoring");
                      }
                   }
-                  
-                  if (myElemType == ElemType.UNKNOWN) {
-                     System.err.println("Warning: unknown element type '" + type + "'");
+                  else if (!mySuppressWarnings) {
+                     System.err.println(
+                        "WARNING: element type not specified, line " +
+                        rtok.lineno() + "; ignoring");
                   }
                   warnedNumNodes = false;
-                  
-               } else if (keyword.equalsIgnoreCase("INCLUDE")){
-                  
-                  String line = readLine(rtok);
+               }
+               else if (keyword.equalsIgnoreCase("INCLUDE")){
+                  String line = rtok.readLine();
                   String fileName = parseKey("INPUT=", line);
                   
                   // find file
-                  File input = findFile(fileName, includeDirs);
+                  File input = findFile(fileName, myIncludeDirs);
                   if (input == null) {
-                     throw new IOException("Cannot find INCLUDE file '" + fileName + "'");
+                     throw new IOException(
+                        "Cannot find INCLUDE file '" + fileName + "'");
                   }
                   
-                  FileReader inputReader = null;
+                  ReaderTokenizer rt = null;
                   try {
-                     inputReader = new FileReader(input);
-                     readFile (
-                        inputReader, nodeMap, elemMap, includeDirs, options);
+                     rt = new ReaderTokenizer (
+                        new BufferedReader (new FileReader(input)));
+                     readFile (rt, nodeMap, elemMap);
                   } catch (IOException e) {
                      throw e;
                   } finally {
-                     if (inputReader != null) {
-                        inputReader.close();
+                     if (rt != null) {
+                        rt.close();
                      }
                   }
-               } else {
+               }
+               else {
                   mySection = FileSection.OTHER;
-                  System.out.println("Warning: ignoring section '" + keyword + "'");
+                  if (!mySuppressWarnings) {
+                     System.out.println (
+                        "WARNING: ignoring section '" + keyword +
+                        "', line " + rtok.lineno());
+                  }
                }
             }
             toEOL(rtok);   // skip to end-of-line
-         } else {
+            if (mySection == FileSection.ELEM) {
+               // do *not* ignore commas in ELEM section. That's because a
+               // comma tells us when we still expect an additional element
+               // node number.
+               rtok.ordinaryChar (',');
+            }
+         }
+         else {
             rtok.pushBack();
-            
             // action depends on mode
             switch (mySection) {
-               case ELEM:
-                  ArrayList<Integer> nodes = new ArrayList<Integer>();
-                  if (zeroBasedNumbering) {
-                     elemId = rtok.scanInteger()-1;
-                     while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
-                        nodes.add((int)rtok.nval-1);
+               case ELEM: {
+                  if (myElemType != ElemType.UNKNOWN) {
+                     rtok.nextToken();
+                     if (!rtok.tokenIsInteger()) {
+                        throw new IOException (
+                           "Expecting element number at line start, got "+rtok);
                      }
-                  }
-                  else {
-                     elemId = rtok.scanInteger();
-                     while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
-                        nodes.add((int)rtok.nval);
+                     elemId = (int)(myZeroBasedNumbering ? rtok.lval-1 : rtok.lval);
+                     ArrayList<Integer> nodes = new ArrayList<Integer>();
+                     // scan node numbers until one not followed by a ','
+                     while (rtok.nextToken() == ',') {
+                        rtok.nextToken();
+                        if (rtok.ttype == ReaderTokenizer.TT_EOL) {
+                           // skip to next line
+                           rtok.nextToken();
+                        }
+                        if (rtok.tokenIsInteger()) {
+                           if (myZeroBasedNumbering) {
+                              nodes.add((int)(rtok.lval-1));
+                           }
+                           else {
+                              nodes.add((int)(rtok.lval));
+                           }
+                        }
+                        else {
+                           throw new IOException (
+                              "Expecting node number, got "+rtok);
+                        } 
                      }
-                  }
-                  if (nodes.size() != myElemType.numNodes()) {
-                     if (!warnedNumNodes) {
-                        System.out.println (
-                           "Warning: elementType "+myElemType+" expects "+
-                           myElemType.numNodes() + " nodes; got " + nodes.size());
-                        warnedNumNodes = true;
+                     if (nodes.size() != myElemType.numNodes()) {
+                        if (!mySuppressWarnings && !warnedNumNodes) {
+                           System.out.println (
+                              "WARNING: elementType "+myElemType+" expects "+
+                              myElemType.numNodes()+" nodes; got "+nodes.size());
+                           warnedNumNodes = true;
+                        }
                      }
-                  }
-                  else {
-                     ElemDesc edesc =
-                        new ElemDesc (
-                           myElemType, ArraySupport.toIntArray (nodes));
-                     elemMap.put(elemId, edesc);
+                     else {
+                        ElemDesc edesc =
+                           new ElemDesc (
+                              myElemType, ArraySupport.toIntArray (nodes));
+                        elemMap.put(elemId, edesc);
+                     }
                   }
                   toEOL(rtok);
                   break;
-               case NODE:
+               }
+               case NODE: {
                   nodeId = rtok.scanInteger();
-                  if (zeroBasedNumbering) {
+                  if (myZeroBasedNumbering) {
                      nodeId--;
                   }
                   double x = rtok.scanNumber();
@@ -648,18 +741,17 @@ public class AbaqusReader implements FemReader {
                   nodeMap.put(nodeId, new Point3d(x,y,z));
                   toEOL(rtok);
                   break;
-               case OTHER:
+               }
+               case OTHER: {
                   toEOL(rtok);
                   break;
+               }
             }
-            
          }
-         
       }
-      
    }
    
-   private static File findFile(String fileName, File[] dirs) {
+   private File findFile(String fileName, File[] dirs) {
       
       File file = null;
       
@@ -679,7 +771,7 @@ public class AbaqusReader implements FemReader {
       
    }
    
-   private static void toEOL(ReaderTokenizer rtok) throws IOException {
+   private void toEOL(ReaderTokenizer rtok) throws IOException {
       while (rtok.ttype != ReaderTokenizer.TT_EOL &&  
          rtok.ttype != ReaderTokenizer.TT_EOF) {
          rtok.nextToken();
@@ -689,14 +781,14 @@ public class AbaqusReader implements FemReader {
       }
    }
    
-   private static String readLine(ReaderTokenizer rtok) throws IOException {
+   private String readLine(ReaderTokenizer rtok) throws IOException {
 
       Reader rtokReader = rtok.getReader();
       String line = "";
       int c;
+      StringBuilder sb = new StringBuilder();
       while (true) {
          c = rtokReader.read();
-
          if (c < 0) {
             rtok.ttype = ReaderTokenizer.TT_EOF;
             return line;
@@ -706,14 +798,16 @@ public class AbaqusReader implements FemReader {
             rtok.ttype = ReaderTokenizer.TT_EOL;
             break;
          }
-         line += (char)c;
+         else if (c != '\r') {
+            line += (char)c;
+         }
       }
-
+      System.out.println ("readLine '"+line+"'");
       return line;
    }
    
    
-   private static String parseKey(String keyName, String line) {
+   private String parseKey(String keyName, String line) {
       
       String linesmall = line.toLowerCase();
       String keysmall = keyName.toLowerCase();
@@ -736,7 +830,7 @@ public class AbaqusReader implements FemReader {
       
    }
    
-   private static int findChar(String str, String charSet) {
+   private int findChar(String str, String charSet) {
       for (int i=0; i<str.length(); i++) {
          for (int j=0; j<charSet.length(); j++) {
             if (str.charAt(i)==charSet.charAt(j)) {
@@ -745,6 +839,50 @@ public class AbaqusReader implements FemReader {
          }
       }
       return -1;
+   }
+
+   private static void printUsageAndExit() {
+      System.out.println ("Usage: AbaqusReader [-help] <filename>]");
+   }
+
+   public static void main (String[] args) {
+      String filename = null;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-help")) {
+            printUsageAndExit();
+         }
+         else if (filename == null) {
+            filename = args[i];
+         }
+         else {
+            System.out.println ("Unknown option "+args[i]);
+            printUsageAndExit();
+         }
+      }
+      if (filename == null) {
+         printUsageAndExit();
+      }
+      try {
+         AbaqusReader reader = new AbaqusReader(filename);
+         FemModel3d fem = reader.readFem (null);
+         System.out.println (
+            "numNodes=" + fem.numNodes() + " numElems=" + fem.numElements());
+      }
+      catch (Exception e) {
+         e.printStackTrace();
+      }
+   }
+
+   public void close() {
+      if (myFile != null && myRtok != null) {
+         myRtok.close();
+         myRtok = null;
+      }
+   }
+
+   protected void finalize() throws Throwable {
+      super.finalize();
+      close();
    }
    
 }

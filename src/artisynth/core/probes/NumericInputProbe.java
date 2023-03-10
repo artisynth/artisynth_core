@@ -494,9 +494,6 @@ public class NumericInputProbe extends NumericProbeBase
    }
 
    public void setData (double sec) {
-      double t = getVirtualTime (sec);
-      myNumericList.interpolate (myTmpVec, t);
-
       myTmpVec.setZero();
       double[] buf = myTmpVec.getBuffer();
       int k = 0;
@@ -520,7 +517,7 @@ public class NumericInputProbe extends NumericProbeBase
       }
       NumericListKnot knot = new NumericListKnot (myTmpVec.size());
       knot.v.set (myTmpVec);
-      knot.t = t;
+      knot.t = getClippedVirtualTime (sec);
       myNumericList.add (knot);
    }
 

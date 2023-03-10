@@ -46,6 +46,7 @@ import maspack.util.DataBuffer;
 import maspack.util.PathFinder;
 import artisynth.core.util.TimeBase;
 import artisynth.core.driver.Main;
+import artisynth.core.driver.TaskManager;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeListener;
@@ -149,6 +150,7 @@ public class RootModel extends RenderableModelBase
    
    private JFrame myControlPanelsFrame;
    private JTabbedPane myControlPanelTabs;
+   private TaskManager myTaskManager;
 
    protected class ModelInfo {
       Model model;
@@ -1253,7 +1255,32 @@ public class RootModel extends RenderableModelBase
       myOutputProbes.removeAll();
       myRenderables.removeAll();
    }
-
+   
+   /**
+    * Returns the task manager associated with this root model, if any.
+    * @return task manager, or {@code null} if there is none.
+    * @see setTaskManager
+    */
+   public TaskManager getTaskManager() {
+      return myTaskManager;
+   }
+   
+   /**
+    * Experimental method that sets a task manager for this root model. This is
+    * a simulation control thread that will be started immediately after the
+    * model is loaded.
+    * 
+    * <p>This method will typically be called from the {@link #build()}
+    * method. Currently, task managers are <i>not</i> saved when a model is
+    * written to a file.
+     *
+    * @param tm task manager, or {@code null} to remove a task manager
+    * @see getTaskManager
+    */   
+   public void setTaskManager (TaskManager tm) {
+      myTaskManager = tm;
+   }
+   
    // implementations for Renderable
 
    public void prerender (RenderList list) {

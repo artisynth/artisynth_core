@@ -348,6 +348,16 @@ public abstract class Probe extends ModelAgentBase {
       return (sec - getStartTime()) / myScale;
    }
 
+   public double getClippedVirtualTime (double sec) {
+      if (sec < getStartTime()) {
+         sec = getStartTime();
+      }
+      else if (sec > getStopTime()) {
+         sec = getStopTime();
+      }
+      return (sec - getStartTime()) / myScale;
+   }
+
    public double getTimelineTime (double t) {
       return (myScale * t) + getStartTime();
    }

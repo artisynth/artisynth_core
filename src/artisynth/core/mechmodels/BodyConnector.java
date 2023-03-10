@@ -108,6 +108,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    // when responding to a transformGeometry request, transform only TDW
    // (instead of both TDW and TCW)
    protected boolean myTransformDGeometryOnly = false;
+   // when responding to a transformGeometry request, transform only
+   // the origins of TDW and/or TCW
+   protected boolean myTransformPositionOnly = false;
 
    Twist myDotXv = new Twist();
    Twist myVelAB = new Twist(); // velocity of A wrt B as seen in G
@@ -756,6 +759,29 @@ public abstract class BodyConnector extends RenderableComponentBase
       return myEnabledP;
    }
 
+   /**
+    * Queries whether geometry transforms applied to this connector change only
+    * the origins of the transforms TDW and/or TDC.
+    * 
+    * @return {@code true} if geometry transforms are applied only to the
+    * origins of TDW and/or TCD.
+    */
+   public boolean getTransformPositionOnly() {
+      return myTransformPositionOnly;
+   }
+   
+   /**
+    * Sets whether geometry transforms applied to this connector change only
+    * the origins of the transforms TDW and/or TDC (and ignore changed in
+    * orientation). The default value is false.
+    * 
+    * @param posOnly if {@code true}, geometry transforms are applied only to
+    * the origins of TDW and/or TCD.
+    */
+   public void setTransformPositionOnly(boolean posOnly) {
+      myTransformPositionOnly = posOnly;
+   }
+
    protected BodyConnector() {
    }
 
@@ -930,6 +956,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       if (nc > 0) {
          MatrixNdBlock GC;
          int bj = GT.numBlockCols();
+         setSolveIndices (myBilaterals, GT.colSize());
          GC = getConstraintMatrix (myBilaterals, myTCwG, 1);
          addMasterBlocks (GT, bj, GC, myAttachmentA);
          GC = getConstraintMatrix (myBilaterals, myTDwG, -1);
@@ -1021,6 +1048,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       if (nc > 0) {
          MatrixNdBlock GC;
          int bj = NT.numBlockCols();
+         setSolveIndices (myUnilaterals, NT.colSize());
          GC = getConstraintMatrix (myUnilaterals, myTCwG, 1);
          addMasterBlocks (NT, bj, GC, myAttachmentA);
          GC = getConstraintMatrix (myUnilaterals, myTDwG, -1);
@@ -1436,6 +1464,13 @@ public abstract class BodyConnector extends RenderableComponentBase
          setMatrixColumn (GC, j, wtmp);
       }
       return GC;
+   }
+   
+   protected void setSolveIndices (
+      ArrayList<RigidBodyConstraint> constraints, int idx) {
+      for (int j=0; j<constraints.size(); j++) {      
+         constraints.get (j).setSolveIndex (idx++);
+      }
    }
    
    protected void computeConstraintMatrix (
@@ -2223,6 +2258,17 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
    
+   void transformFrame (GeometryTransformer gtr, RigidTransform3d TXW) {
+      if (myTransformPositionOnly) {
+         Point3d p = new Point3d(TXW.p);
+         gtr.transformPnt (p);
+         TXW.p.set (p);
+      }
+      else {
+         gtr.transform (TXW);
+      }
+   }
+
    /**
     * {@inheritDoc}
     */
@@ -2263,9 +2309,9 @@ public abstract class BodyConnector extends RenderableComponentBase
       if (transforming) {
          // transform TDW, and transform TCW unless it is not specified to
          // transform with this connector
-         gtr.transform (TDW);
+         transformFrame (gtr, TDW);
          if (!myTransformDGeometryOnly) {
-            gtr.transform (TCW);
+            transformFrame (gtr, TCW);
          }
       }
 
@@ -2287,7 +2333,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          // request attachmentA update if all of A masters are transforming
          // non-rigidly
          if (!gtr.isRigid() && allMastersTransforming (myAttachmentA, context)) {
-            gtr.transform (TCW);
+            transformFrame (gtr, TCW);
             updateAttachmentA = true;
          }
       }

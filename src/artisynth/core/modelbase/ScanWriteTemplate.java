@@ -3,6 +3,7 @@ package artisynth.core.modelbase;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.util.Deque;
+import java.util.ArrayList;
 
 import artisynth.core.util.ScanToken;
 import artisynth.core.modelbase.ComponentUtils;
@@ -18,6 +19,7 @@ import maspack.util.NumberFormat;
 public class ScanWriteTemplate extends ModelComponentBase {
 
    ModelComponent myRefComp;
+   ArrayList<RenderableComponent> myRenderables;
    Vector3d myVec = new Vector3d();
    double myScalar = 0;
    String myString;
@@ -37,6 +39,8 @@ public class ScanWriteTemplate extends ModelComponentBase {
          pw.println (
             "refComp="+ComponentUtils.getWritePathName (ancestor,myRefComp));
       }
+      pw.print ("renderables=");
+      ScanWriteUtils.writeBracketedReferences (pw, myRenderables, ancestor);
       pw.print ("vec=");
       myVec.write (pw, fmt, /*withBrackets=*/true);
       pw.println ("");
@@ -50,6 +54,10 @@ public class ScanWriteTemplate extends ModelComponentBase {
 
       rtok.nextToken();
       if (scanAndStoreReference (rtok, "refComp", tokens)) {
+         return true;
+      }
+      else if (ScanWriteUtils.scanAndStoreReferences (
+                  rtok, "renderables", tokens) != -1) {
          return true;
       }
       else if (scanAttributeName (rtok, "vec")) {
@@ -74,6 +82,12 @@ public class ScanWriteTemplate extends ModelComponentBase {
       if (postscanAttributeName (tokens, "refComp")) {
          myRefComp = 
             postscanReference (tokens, ModelComponent.class, ancestor);
+         return true;
+      }
+      else if (postscanAttributeName (tokens, "renderables")) {
+         myRenderables.clear();
+         ScanWriteUtils.postscanReferences (
+            tokens, myRenderables, RenderableComponent.class, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);

@@ -1304,12 +1304,28 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
+   public void playAndWait(double time) {
+      play (time);
+      waitForStop();
+   }
+
    public void pause() {
       myScheduler.pause();
    }
 
    public void waitForStop () {
       while (getScheduler().isPlaying()) {
+         try {
+            Thread.sleep (10);
+         }
+         catch (InterruptedException e) {
+            break;
+         }
+      }
+   }
+   
+   public void waitForStart () {
+      while (!getScheduler().isPlaying()) {
          try {
             Thread.sleep (10);
          }
@@ -2098,6 +2114,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // Component change listener is now active, and so will be called in
       // response to any change events that are dispatched within attach().
       newRoot.attach (this);
+      
+      // If the root model has a task manager, start it
+      if (newRoot.getTaskManager() != null) {
+         TaskManager tm = newRoot.getTaskManager();
+         tm.setMain (this);
+         tm.start();
+      }
    }
 
    private class LoadModelRunner implements Runnable {
@@ -3705,7 +3728,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    private PullController myPullController;
 
-   PullController getPullController() {
+   public PullController getPullController() {
       return myPullController;
    }
 

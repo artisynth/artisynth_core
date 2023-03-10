@@ -19,8 +19,9 @@ import maspack.util.*;
  * @param <E>
  * Model component type found in this list
  */
-public interface ComponentListView<E extends ModelComponent> extends
-ListView<E> {
+public interface ComponentListView<E extends ModelComponent> 
+   extends ListView<E>, Collection<E> {
+
    /**
     * Return an iterator over all components in this list.
     * 

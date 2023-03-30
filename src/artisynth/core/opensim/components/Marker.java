@@ -85,27 +85,29 @@ public class Marker extends HasVisibleObjectOrAppearance
    public FrameMarker createComponent (
       File geometryPath, ModelComponentMap componentMap) {
      
-         String bodyOrSocketParentFrame = getBodyOrSocketParentFrame ();
-         
-         // get rigid body
-         Body body = componentMap.findObjectByPathOrName (Body.class, this, bodyOrSocketParentFrame);
-         RigidBody rb = (RigidBody)componentMap.get (body);
-         
-         if (rb == null) {
-            System.err.println("Failed to find body " + bodyOrSocketParentFrame);
-            return null;
-         }
-         
-         // add frame marker
-         getName();
-         String markerName = getName().replaceAll("[^a-zA-Z0-9]", "_");  
-         FrameMarker fm = new FrameMarker (markerName);
-         fm.setFrame (rb);
-         fm.setLocation (location);
-         // XXX deal with duplicate names
-         
+      String bodyOrSocketParentFrame = getBodyOrSocketParentFrame ();
 
-         
+      // get rigid body
+      PhysicalFrame body = componentMap.findObjectByPathOrName (
+         Body.class, this, bodyOrSocketParentFrame);
+      if (body == null) { // try ground
+         body = componentMap.findObjectByPathOrName (
+            Ground.class, this, bodyOrSocketParentFrame);
+      }
+      RigidBody rb = (RigidBody)componentMap.get (body);
+      if (rb == null) {
+         System.err.println (
+            "Failed to find marker body " + bodyOrSocketParentFrame);
+         return null;
+      }
+
+      // add frame marker
+      getName();
+      String markerName = getName().replaceAll("[^a-zA-Z0-9]", "_");  
+      FrameMarker fm = new FrameMarker (markerName);
+      fm.setFrame (rb);
+      fm.setLocation (location);
+      // XXX deal with duplicate names
 
       return fm;
    }

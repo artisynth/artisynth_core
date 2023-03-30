@@ -29,14 +29,13 @@ public class MarkerSet extends SetBase<Marker>
       
       // add all markers
       for (Marker marker : objects()) {
-         
          // create markers
          FrameMarker m = marker.createComponent(geometryPath, componentMap);
-         markers.add (m);
-         
+         if (m != null) {
+            markers.add (m);
+         }         
       }
-    
-      
+       
       componentMap.put (this, markers);
       return markers;
    }

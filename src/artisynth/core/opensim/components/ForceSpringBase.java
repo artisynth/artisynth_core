@@ -87,10 +87,13 @@ public abstract class ForceSpringBase extends ForceBase {
          String name = pp.getName ();
          
          // get rigid body
-         Body body = componentMap.findObjectByPathOrName (
+         PhysicalFrame body = componentMap.findObjectByPathOrName (
             Body.class, this, bodyOrSocketParentFrame);
+         if (body == null) { // try ground
+            body = componentMap.findObjectByPathOrName (
+               Ground.class, this, bodyOrSocketParentFrame);
+         }
          RigidBody rb = (RigidBody)componentMap.get (body);
-         
          if (rb == null) {
             System.err.println("Failed to find body " + bodyOrSocketParentFrame);
             return null;

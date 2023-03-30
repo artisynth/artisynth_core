@@ -20,6 +20,10 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    private HashMap<String,OpenSimObject> pathMap;
    private HashMap<OpenSimObject,ModelComponent> componentMap;
    
+   HashMap<String,OpenSimObject> getPathMap() {
+      return pathMap;
+   }
+   
    public ModelComponentMap() {
       nameMap = new HashMap<> ();
       pathMap = new HashMap<> ();

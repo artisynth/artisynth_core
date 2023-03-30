@@ -33,7 +33,9 @@ public class FiberForceLengthCurveFactory
       else if ("stiffness_at_one_norm_force".equals(name)) {
          comp.stiffnessAtOneNormForce = parseDoubleValue(child);
       }
-      else if ("default_curviness".equals(name)) {
+      else if ("curviness".equals(name) ||
+               // not sure default curviness was ever used, but just in case
+               "default_curviness".equals(name)) {
          comp.curviness = parseDoubleValue(child);
       }
       else {

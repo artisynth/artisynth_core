@@ -14,7 +14,7 @@ public class LigamentFactory extends ForceSpringBaseFactory<Ligament> {
    
    @Override
    protected boolean parseChild (Ligament comp, Element child) {
-      boolean success = false;
+      boolean success = true;
       
       String name = getNodeName (child);
       
@@ -23,17 +23,29 @@ public class LigamentFactory extends ForceSpringBaseFactory<Ligament> {
       } else if ("pcsa_force".equals(name)) {
          comp.setPCSAForce (parseDoubleValue (child));
       } 
-      // maybe it's the force-length curve
-      else if (child.hasAttribute ("name") && child.getAttribute ("name").equals ("force_length_curve")) {
-         FunctionBase func = parseFunctionValue (child);
-         if (func != null) {
-            comp.setForceLengthCurve (func);
-         } else {
-            success = false;
+      // maybe it's another force-length curve
+      else if (child.hasAttribute ("name") && 
+               child.getAttribute ("name").equals ("force_length_curve")) {
+         // try to parse function, could be empty
+         OpenSimObjectFactory<? extends FunctionBase> factory =
+           findFactory (FunctionBase.class, child);
+         FunctionBase func = null;
+         if (factory != null) {
+            func = factory.parse (child);
+            if (func != null) {
+               comp.setForceLengthCurve (func);
+            }
          }
-      } else {
+         if (func == null) {
+            func = parseFunctionValue (child);
+            if (func != null) {
+               comp.setForceLengthCurve (func);
+            }
+         }
+         success = func != null;
+      } 
+      else {
          success = super.parseChild (comp, child);
-         
       }
       
       return success;

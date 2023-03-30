@@ -477,7 +477,8 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
       Node grandChild = elem.getFirstChild ();
       while (grandChild != null && func == null) {
          if (grandChild.getNodeType () == Node.ELEMENT_NODE) {
-            OpenSimObjectFactory<? extends FunctionBase> factory = findFactory (FunctionBase.class, (Element)grandChild);
+            OpenSimObjectFactory<? extends FunctionBase> factory = 
+               findFactory (FunctionBase.class, (Element)grandChild);
             if (factory != null) {
                func = factory.parse ((Element)grandChild);
             }

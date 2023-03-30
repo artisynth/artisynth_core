@@ -21,13 +21,13 @@ public class ActiveForceLengthCurveFactory
       
       String name = getNodeName (child);
 
-      if ("min_active_norm_fiber_length".equals(name)) {
+      if ("min_norm_active_fiber_length".equals(name)) {
          comp.minActiveNormFiberLength = parseDoubleValue(child);
       }
       else if ("transition_norm_fiber_length".equals(name)) {
          comp.transitionNormFiberLength  = parseDoubleValue(child);
       }
-      else if ("max_active_norm_fiber_length".equals(name)) {
+      else if ("max_norm_active_fiber_length".equals(name)) {
          comp.maxActiveNormFiberLength = parseDoubleValue(child);
       }
       else if ("shallow_ascending_slope".equals(name)) {

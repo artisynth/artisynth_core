@@ -33,9 +33,9 @@ public class MarkerSet extends SetBase<Marker>
          FrameMarker m = marker.createComponent(geometryPath, componentMap);
          if (m != null) {
             markers.add (m);
-         }         
+         }
       }
-       
+
       componentMap.put (this, markers);
       return markers;
    }

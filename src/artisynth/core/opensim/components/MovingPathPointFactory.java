@@ -18,34 +18,52 @@ public class MovingPathPointFactory extends PathPointFactoryBase<MovingPathPoint
       
       String name = getNodeName (child);
       
-      if ("x_coordinate".equals(name)) {
+      // OpenSim 4
+      if ("socket_x_coordinate".equals(name)) {
          comp.setXCoordinate (parseTextValue(child));
-      } else if ("x_location".equals(name)) {
+      }
+      else if ("socket_y_coordinate".equals(name)) {
+         comp.setYCoordinate (parseTextValue(child));
+      }
+      else if ("socket_z_coordinate".equals(name)) {
+         comp.setZCoordinate (parseTextValue(child));
+      }
+      // OpenSim 3
+      else if ("x_coordinate".equals(name)) {
+         comp.setXCoordinate (parseTextValue(child));
+      }
+      else if ("y_coordinate".equals(name)) {
+         comp.setYCoordinate (parseTextValue(child));
+      }
+      else if ("z_coordinate".equals(name)) {
+         comp.setZCoordinate (parseTextValue(child));
+      }
+      // generic
+      else if ("x_location".equals(name)) {
          FunctionBase func = parseFunctionValue (child);
          if (func != null) {
             comp.setXLocation (func);
          } else {
             success = false;
          }
-      } else if ("y_coordinate".equals(name)) {
-         comp.setYCoordinate (parseTextValue(child));
-      } else if ("y_location".equals(name)) {
+      }
+      else if ("y_location".equals(name)) {
          FunctionBase func = parseFunctionValue (child);
          if (func != null) {
             comp.setYLocation (func);
          } else {
             success = false;
          }
-      } else if ("z_coordinate".equals(name)) {
-         comp.setZCoordinate (parseTextValue(child));
-      } else if ("z_location".equals(name)) {
+      }
+      else if ("z_location".equals(name)) {
          FunctionBase func = parseFunctionValue (child);
          if (func != null) {
             comp.setZLocation (func);
          } else {
             success = false;
          }
-      } else {
+      }
+      else {
          success = super.parseChild (comp, child);
       }
       

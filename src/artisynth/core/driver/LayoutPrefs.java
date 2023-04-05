@@ -1,6 +1,7 @@
 package artisynth.core.driver;
 
 import java.awt.Color;
+import java.awt.Point;
 import javax.swing.*;
 
 import maspack.util.*;
@@ -33,6 +34,8 @@ public class LayoutPrefs extends Preferences {
 
    private int myViewerWidth = Main.DEFAULT_VIEWER_WIDTH;
    private int myViewerHeight = Main.DEFAULT_VIEWER_HEIGHT;
+   private int myScreenLocX = Main.DEFAULT_SCREEN_LOC_X;
+   private int myScreenLocY = Main.DEFAULT_SCREEN_LOC_Y;
    private boolean myTimelineVisible = Main.DEFAULT_TIMELINE_VISIBLE;
    private int myTimelineWidth = Main.DEFAULT_TIMELINE_WIDTH;
    private int myTimelineHeight = Main.DEFAULT_TIMELINE_HEIGHT;
@@ -49,6 +52,12 @@ public class LayoutPrefs extends Preferences {
       myProps.add (
          "viewerHeight",
          "main viewer width in pixels", Main.DEFAULT_VIEWER_HEIGHT);
+      myProps.add (
+         "screenLocX",
+         "screen x location of the main viewer", Main.DEFAULT_SCREEN_LOC_X);
+      myProps.add (
+         "screenLocY",
+         "screen y location of the main viewer", Main.DEFAULT_SCREEN_LOC_Y);
       myProps.add (
          "timelineVisible isTimelineVisible",
          "whether or not the timeline is visible", Main.DEFAULT_TIMELINE_VISIBLE);
@@ -103,6 +112,22 @@ public class LayoutPrefs extends Preferences {
 
    public void setViewerHeight (int viewerHeight) {
       myViewerHeight = viewerHeight;
+   }
+
+   public int getScreenLocX () {
+      return myScreenLocX;
+   }
+
+   public void setScreenLocX (int locx) {
+      myScreenLocX = locx;
+   }
+
+   public int getScreenLocY () {
+      return myScreenLocY;
+   }
+
+   public void setScreenLocY (int locy) {
+      myScreenLocY = locy;
    }
 
    public boolean isTimelineVisible () {
@@ -174,6 +199,9 @@ public class LayoutPrefs extends Preferences {
       if (viewer != null) {
          setViewerWidth (viewer.getScreenWidth());
          setViewerHeight (viewer.getScreenHeight());
+         Point point = myMain.getMainFrame().getLocation();
+         setScreenLocX (point.x);
+         setScreenLocY (point.y);
       }
       Timeline timeline = myMain.getTimeline();
       if (timeline != null) {
@@ -193,6 +221,8 @@ public class LayoutPrefs extends Preferences {
       Viewer viewer = myMain.getViewer();
       if (viewer != null) {
          myMain.setViewerSize (getViewerWidth(), getViewerHeight());
+         JFrame frame = myMain.getMainFrame();
+         frame.setLocation (getScreenLocX(), getScreenLocY());
       }
       Timeline timeline = myMain.getTimeline();
       if (timeline != null) {
@@ -220,6 +250,5 @@ public class LayoutPrefs extends Preferences {
 
       return panel;
    }
-
 }
 

@@ -195,8 +195,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public static int DEFAULT_VIEWER_WIDTH = 720;
    public static int DEFAULT_VIEWER_HEIGHT = 540;
+   public static int DEFAULT_SCREEN_LOC_X = 10;
+   public static int DEFAULT_SCREEN_LOC_Y = 10;
    protected int myViewerWidth;
    protected int myViewerHeight;
+   protected int myScreenLocX;
+   protected int myScreenLocY;
 
    protected static boolean myRunningUnderMatlab = false;
 
@@ -600,8 +604,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       @Override
       public void run() {
          myMain.myFrame = new MainFrame (myName, myMain, myWidth, myHeight);
-         myMain.myFrame.setLocation(10, 10); // stay away from multiple monitor divide
-         //myMain.myFrame.setFocusTraversalKeysEnabled(false);
+         myMain.myFrame.setLocation (myMain.myScreenLocX, myMain.myScreenLocY);
       }
    }
    
@@ -811,6 +814,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (viewerHeight.value != -1) {
             myViewerHeight = viewerHeight.value;
          }        
+         myScreenLocX = myLayoutPrefs.getScreenLocX();
+         if (screenLocX.value != -1) {
+            myScreenLocX = screenLocX.value;
+         }
+         myScreenLocY = myLayoutPrefs.getScreenLocY();
+         if (screenLocY.value != -1) {
+            myScreenLocY = screenLocY.value;
+         }
          // execute in AWT thread to prevent deadlock
          try {
             SwingUtilities.invokeAndWait (
@@ -2476,6 +2487,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    protected static IntHolder viewerWidth = new IntHolder(-1);
    protected static IntHolder viewerHeight = new IntHolder(-1);
+   protected static IntHolder screenLocX = new IntHolder(-1);
+   protected static IntHolder screenLocY = new IntHolder(-1);
    protected static BooleanHolder printHelp = new BooleanHolder (false);
    protected static BooleanHolder yup = new BooleanHolder (false);
    protected static BooleanHolder drawAxes = new BooleanHolder (false);
@@ -2716,6 +2729,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption ("-help %v #prints help message", printHelp);
       parser.addOption ("-width %d #viewer width (pixels)", viewerWidth);
       parser.addOption ("-height %d #viewer height (pixels)", viewerHeight);
+      parser.addOption ("-screenx %d #screen x location (pixels)", screenLocX);
+      parser.addOption ("-screeny %d #screen y location (pixels)", screenLocY);
       parser.addOption (
          "-bgColor %fX3 #background color (3 rgb values, 0 to 1)", bgColor);
       parser.addOption (

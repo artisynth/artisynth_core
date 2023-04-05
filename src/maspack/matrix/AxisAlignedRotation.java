@@ -71,6 +71,33 @@ public enum AxisAlignedRotation {
       R.getAxisAngle (axisAng);
    }
 
+   public Vector3d getDirection (int idx) {
+      Vector3d dir = new Vector3d();
+      getDirection (idx, dir);
+      return dir;
+   }
+
+   public void getDirection (int idx, Vector3d dir) {
+      switch (idx) {
+         case 0: {
+            dir.set (myX);
+            break;
+         }
+         case 1: {
+            dir.set (myY);
+            break;
+         }
+         case 2: {
+            dir.cross (myX, myY);
+            break;
+         }
+         default: {
+            throw new IllegalArgumentException (
+               "idx is "+idx+"; must be 0, 1 or 2");
+         }
+      }
+   }
+
    public void getMatrix (RotationMatrix3d R) {
       R.m00 = myX.x;
       R.m10 = myX.y;

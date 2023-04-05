@@ -164,6 +164,10 @@ public class PropertyDialog extends JDialog implements ActionListener,
    // }
    // }
 
+   public LabeledComponentBase getPropertyWidget (String propName) {
+      return myPanel.getPropertyWidget (propName);
+   }
+
    public Component addWidget (Component comp) {
       myPanel.addWidget (comp);
       // setParentIfCompositePropertyWidget (comp);

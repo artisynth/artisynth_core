@@ -19,6 +19,8 @@ import maspack.matrix.*;
 public class CubicHermiteSpline1d
    implements Scannable, Iterable<CubicHermiteSpline1d.Knot> {
 
+   private static final double EPS = 1e-14;
+
    // cached variable describing if this curve is invertible.
    // 1 yes, 0 no, -1 don't know
    private int myInvertible = -1;
@@ -184,6 +186,49 @@ public class CubicHermiteSpline1d
       }
 
       /**
+       * Returns true if y(x) is strictly monotone on the interval between this
+       * knot and the next.
+       */
+      public boolean isStrictlyMonotone (Knot next) {
+         double dely = next.y0-y0;
+         double h = next.x0-x0;
+         if (dely == 0 || h == 0) {
+            return false;
+         }
+         if (dy0 == 0 && next.dy0 == 0) {
+            // zero derivatives at the end points
+            return true;
+         }
+         else if (dy0 == 0) {
+            // have a root at 0; look for the other
+            if (a3 != 0) {
+               double root = -2*a2/3*a3;
+               if (root < 0 || root > h) {
+                  return true; // other root not in the interval
+               }
+            }
+         }
+         else if (next.dy0 == 0) {
+            // have a root at h. Other root is at -dy0*h/(6*dely-3*dy0).
+            double denom = 6*dely-3*dy0;
+            if (denom != 0) {
+               double root = -dy0*h/denom;
+               if (root < 0 || root > h) {
+                  return true; // other root not in the interval
+               }
+            }
+         }
+         else {
+            double[] roots = new double[2];
+            int nr = QuadraticSolver.getRoots (roots, 3*a3, 2*a2, dy0, 0, h);
+            if (nr == 0) {
+               return true; // no other root in the interval
+            }
+         }
+         return false;
+      }
+
+      /**
        * Solves for x given a value of y associated with this interval.  It is
        * assumed that we have already determined that a unqiue solution exists.
        * If by some chance multiple roots are found, we return the first.
@@ -191,7 +236,18 @@ public class CubicHermiteSpline1d
       public double solveX (double y, Knot next) {
          if (next == null) {
             // just x0, y0 and dy0 values
-            return x0 + (y-y0)/dy0;
+            if (dy0 == 0) {
+               return x0;
+            }
+            else {
+               return x0 + (y-y0)/dy0;
+            }
+         }
+         else if (dy0 == 0 && y == y0) {
+            return x0;
+         }
+         else if (next.dy0 == 0 && y == next.y0) {
+            return next.x0;
          }
          else {
             double[] roots = new double[3];
@@ -211,8 +267,17 @@ public class CubicHermiteSpline1d
          double a0 = y0 + alpha*x0;
          double a1 = dy0 + alpha;
          if (next == null) {
-            // just x0, y0 and dy0 values
+            // just x0, a0 and a1 values. a1 won't be zero because
+            // alpha != 0 and must have the same sign as dy0
             return x0 + (y-a0)/a1;
+         }
+         double dely = next.y0 - y0;
+         if (dy0 == 0 && Math.abs((y-a0)/dely) <= EPS) {
+            return x0;
+         }
+         else if (next.dy0 == 0 &&
+                  Math.abs((y-(next.y0+next.x0*alpha)/dely)) <= EPS) {
+            return next.x0;
          }
          else {
             double[] roots = new double[3];
@@ -836,12 +901,11 @@ public class CubicHermiteSpline1d
          for (int i=0; i<numKnots()-1; i++) {
             Knot knot = myKnots.get(i);
             Knot next = myKnots.get(i+1);
-            double dy = next.getY()-knot.getY();
-            double dy0 = next.getY()-y0;
-            // not invertible if change in y is 0, or change not heading in the
-            // same direction, or the y'(x) is zero on the knot interval
-            boolean hasZeroDy = knot.hasZeroDy(next);
-            if (dy == 0 || dy*dy0 < 0 || hasZeroDy) {
+            double dely = next.getY()-knot.getY();
+            double dely0 = next.getY()-y0;
+            // not invertible if segment is not strictly monotone or
+            // direct has changed
+            if (dely*dely0 < 0 || !knot.isStrictlyMonotone(next)) {
                myInvertible = 0;
                return;
             }
@@ -857,6 +921,8 @@ public class CubicHermiteSpline1d
     *
     * @param y value for which x should be solved
     * @throws ImproperStateException if the spline is not invertible
+    * @throws IllegalArgumentException if the spline is invertible
+    * but y is out of range
     */
    public double solveX (double y) {
       if (!isInvertible()) {
@@ -875,13 +941,31 @@ public class CubicHermiteSpline1d
 
          if ((ydir == 1 && y <= first.getY()) || 
              (ydir == -1 && y >= first.getY())) {
-            // extrapolate solution from first knot
-            return first.solveX (y, null);
+            if (first.dy0 == 0) {
+               if (y != first.getY()) {
+                  throw new IllegalArgumentException (
+                     "y value "+y+" out of range; first y value is "+first.y0);
+               }
+               return first.x0;
+            }
+            else {
+               // extrapolate solution from first knot
+               return first.solveX (y, null);
+            }
          }
          else if ((ydir == 1 && y >= last.getY()) || 
                   (ydir == -1 && y <= last.getY())) {
-            // extrapolate solution from last knot
-            return last.solveX (y, null);
+            if (last.dy0 == 0) {
+               if (y != last.getY()) {
+                  throw new IllegalArgumentException (
+                     "y value "+y+" out of range; last y value is "+last.y0);
+               }
+               return last.x0;
+            }
+            else {
+               // extrapolate solution from last knot               
+               return last.solveX (y, null);
+            }
          }
          else {
             for (int i=0; i<numKnots()-1; i++) {
@@ -911,12 +995,15 @@ public class CubicHermiteSpline1d
     * @param alpha slope of the additional linear term
     * @throws ImproperStateException if the spline is not invertible
     * @throws IllegalArgumentException if the sign of {@code alpha}
-    * is inconsistent with the spline's monotonicity.
+    * is inconsistent with the spline's monotonicity
     */
    public double solveX (double y, double alpha) {
       if (!isInvertible()) {
          throw new ImproperStateException (
             "spline is not invertible");
+      }
+      if (alpha == 0) {
+         return solveX (y);
       }
       if (numKnots() == 1) {
          // just use first knot

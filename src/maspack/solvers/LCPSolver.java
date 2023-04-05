@@ -112,7 +112,12 @@ public interface LCPSolver {
     * @return string representation of the state
     */
    public static String stateToString (VectorNi state) {
-      return stateToString (state.getBuffer(), state.size());
+      if (state == null) {
+         return "null";
+      }
+      else {
+         return stateToString (state.getBuffer(), state.size());
+      }
    }
 
    /**

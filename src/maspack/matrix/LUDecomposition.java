@@ -352,8 +352,8 @@ public class LUDecomposition {
    /**
     * Estimates the condition number of the original matrix M associated with
     * this decomposition. M must also be supplied as an argument. The algorithm
-    * for estimating the condition number is given in Section 3.5.4 of Golub and
-    * Van Loan, Matrix Computations (Second Edition).
+    * for estimating the condition number is given in Section 3.5.4 of Golub
+    * and Van Loan, Matrix Computations (Second Edition).
     * 
     * @param M
     * original matrix

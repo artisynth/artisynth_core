@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -1668,11 +1669,25 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
+   private class CompareNumVerticesHiToLo implements Comparator<MeshBase> {
+      
+      @Override
+      public int compare(MeshBase m0, MeshBase m1) {
+         int numv0 = m0.numVertices();
+         int numv1 = m1.numVertices();
+         return numv0 > numv1 ? -1 : (numv0 == numv1 ? 0 : 1);
+      }
+   }
+
+
    /**
     * Copies this mesh into a set of connected meshes and returns these as an
     * array. If this mesh is already fully connected, no meshes are produced
     * and <code>null</code> is returned. At present, the copied meshes do not
     * preserve face normal or texture information.
+    *
+    * <p>The returned meshes are sorted, high to low, by the number of
+    * vertices.
     */
    public PolygonalMesh[] partitionIntoConnectedMeshes() {
 
@@ -1687,7 +1702,7 @@ public class PolygonalMesh extends MeshBase {
       if (numMeshes == 1) {
          return null;
       }
-      PolygonalMesh[] meshes = new PolygonalMesh [numMeshes];
+      ArrayList<PolygonalMesh> meshes = new ArrayList<>(numMeshes);
       for (int i=0; i<numMeshes; i++) {
          PolygonalMesh mesh = new PolygonalMesh();
          int idx = 0;
@@ -1706,9 +1721,10 @@ public class PolygonalMesh extends MeshBase {
             mesh.addFace (idxs);
          }
          mesh.setMeshToWorld (XMeshToWorld);
-         meshes[i] = mesh;
+         meshes.add (mesh);
       }
-      return meshes;
+      Collections.sort (meshes, new CompareNumVerticesHiToLo());
+      return meshes.toArray (new PolygonalMesh[0]);
    }
 
    private void checkIndexConsistency() {

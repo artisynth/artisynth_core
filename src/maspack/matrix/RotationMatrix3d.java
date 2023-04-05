@@ -1448,6 +1448,27 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
+    * Computes a "spherical linear interpolation" (slerp, named after Ken
+    * Shoemake's 1985 paper "Animating Rotations with Quaternion Curves")
+    * between two orientations {@code R0} and {@code R1}. The interpolation is
+    * controlled by the parameter {@code s}, for which values of 0 and 1
+    * corresponds to {@code R0} and {@code R1}, respectively.
+    * 
+    * @param R0 interpolated value at s = 0
+    * @param R1 interpolated value at s = 1
+    * @param s interpolation parameter
+    */
+   public void interpolate (RotationMatrix3d R0, RotationMatrix3d R1, double s) {
+      RotationMatrix3d RD = new RotationMatrix3d();
+      RD.mulInverseLeft (R0, R1);
+      AxisAngle axisAng = new AxisAngle();
+      RD.getAxisAngle (axisAng);
+      axisAng.angle *= s;
+      RD.setAxisAngle (axisAng);
+      mul (R0, RD);
+   }
+
+   /**
     * Gets the Euler angles corresponding to this rotation.
     * 
     * @param angs

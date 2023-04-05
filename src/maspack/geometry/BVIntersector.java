@@ -316,18 +316,14 @@ public class BVIntersector {
             he = he.getNext();
             Point3d p2 = he.head.pnt;
 
-            int isect = myTriIntersector.intersect(p0, p1, p2, orig, dir, duv);
-            int isect2 = myTriIntersector.intersect(p0, p1, p2, orig, rdir, duv);
-               //myTriIntersector.intersectTrianglePlane (p0, p1, p2, p);
-
-            if (isect > 0) {
+            if (myTriIntersector.intersect(p0, p1, p2, orig, dir, duv) > 0) {
                ArrayList<Point3d> points = new ArrayList<Point3d>(1);
                ArrayList<Vector2d> coords = new ArrayList<Vector2d>(1);
                p.setZero();
                p.scaledAdd(1-(duv.y+duv.z), p0);
                p.scaledAdd(duv.y, p1);
                p.scaledAdd(duv.z, p2);
-               points.add(p);
+               points.add(new Point3d(p));
                coords.add(new Vector2d(duv.y, duv.z));
                intersections.add (
                   new TriLineIntersection (face, l, points, coords));

@@ -3517,11 +3517,16 @@ public class MeshFactory {
          }
 
          if (head == tail) {
-            Vertex3d[] vtxArray = new Vertex3d[vtxList.size()];
-            for (int i = 0; i < vtxArray.length; i++) {
-               vtxArray[vtxArray.length - 1 - i] = vtxList.get(i);
+            // triangulate
+            for (int k=2; k<vtxList.size(); k++) {
+              mesh.addFace (vtxList.get(0), vtxList.get(k-1),  vtxList.get(k));
             }
-            mesh.addFace(vtxList.toArray(new Vertex3d[vtxList.size()]));
+            // old code: did not triangulate
+            // Vertex3d[] vtxArray = new Vertex3d[vtxList.size()];
+            // for (int i = 0; i < vtxArray.length; i++) {
+            //    vtxArray[vtxArray.length - 1 - i] = vtxList.get(i);
+            // }
+            // mesh.addFace(vtxList.toArray(new Vertex3d[vtxList.size()]));
          } else {
             return false;
          }

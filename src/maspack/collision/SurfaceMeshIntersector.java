@@ -49,7 +49,7 @@ public class SurfaceMeshIntersector {
    private static final double DOUBLE_PREC = 2.0e-13;
 //   boolean myCheckCoincidentOrdering = false;
 
-   static boolean removeZeroAreaFaces = true;
+   boolean removeZeroAreaFaces = true;
    static boolean mergeCoincidentMips = true;
    static boolean addEmptyFaceVertices = true;
 

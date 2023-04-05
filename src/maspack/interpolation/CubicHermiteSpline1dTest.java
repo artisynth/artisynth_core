@@ -105,6 +105,31 @@ public class CubicHermiteSpline1dTest extends UnitTest {
          x = curve.solveX (y, -alpha);
          checkEquals ("multi-knot inverse with alpha", x, xchk, 1e-10);
       }
+
+      // try some semi-invertable curves
+
+      curve.clearKnots();
+      curve.addKnot (-0.5, 0.55, 0.0);
+      curve.addKnot ( 0.2, 2.00, 2.0);
+      check ("curve should be invertible", curve.isInvertible() == true);
+
+      checkEquals ("inverse at zero deriv point", curve.solveX(0.55), -0.5);
+      checkForIllegalArgumentException (
+         ()->curve.solveX(0.54));
+
+      curve.addKnot (3.0, 3.50, 0.0);
+      check ("curve should be invertible", curve.isInvertible() == true);
+
+      checkEquals ("inverse at zero deriv point", curve.solveX(3.5), 3.0);
+      checkForIllegalArgumentException (
+         ()->curve.solveX(3.51));
+
+      curve.addKnot (4.0, 4.50, 0.0);
+      check ("curve should be invertible", curve.isInvertible() == true);
+      checkEquals ("inverse at zero deriv point", curve.solveX(3.5), 3.0);
+      checkEquals ("inverse at zero deriv point", curve.solveX(4.5), 4.0);
+      checkForIllegalArgumentException (
+         ()->curve.solveX(4.51));
    }
 
    public void test() {

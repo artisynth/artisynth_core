@@ -869,6 +869,23 @@ public class RigidTransform3d extends AffineTransform3dBase {
       R.mul (Ra, R);
    }
 
+   /**
+    * Interpolate between two transforms {@code T0} and {@code T1} according to
+    * a parameter {@code s} that is assumed to vary between 0 and 1, and places
+    * the result in this transform. Rotational interpolation is handled using
+    * "spherical linear interpolation" (slerp, named after Ken Shoemake's 1985
+    * paper "Animating Rotations with Quaternion Curves").
+    *
+    * @param T0 interpolated value at s = 0
+    * @param T1 interpolated value at s = 1
+    * @param s interpolation parameter
+    */
+   public void interpolate (RigidTransform3d T0, RigidTransform3d T1, double s) {
+      R.interpolate (T0.R, T1.R, s);
+      p.combine (1-s, T0.p, s, T1.p);
+   }
+
+
 //   /**
 //    * {@inheritDoc}
 //    */

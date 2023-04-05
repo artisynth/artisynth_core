@@ -25,6 +25,13 @@ public class Slider extends JSlider {
    private int myTrackLength = 200;
    private static int myOffset = -1;
    private static boolean myOffsetDetermined = false;
+   
+   static {
+      // do this statically since otherwise there seems to be a race condition
+      // in which the a slider is forced to handle a resize event before
+      // its UI has been initialized
+      calculateOffset();
+   }
 
    public Slider() {
       super();

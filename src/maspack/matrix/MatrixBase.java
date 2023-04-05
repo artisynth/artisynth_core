@@ -494,17 +494,23 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       return buf.toString();
    }
 
-   public void writeToFile (String fileName, String fmtStr) {
+   public boolean writeToFile (String fileName, String fmtStr) {
       NumberFormat fmt = new NumberFormat (fmtStr);
+      PrintWriter pw = null;      
       try {
-         PrintWriter pw =
-            new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         pw = new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
          write (pw, fmt);
-         pw.close();
+         return true;
       }
       catch (Exception e) {
          System.out.println ("Error writing matrix to file "+ fileName + ":");
          System.out.println (e);
+         return false;
+      }
+      finally {
+         if (pw != null) {
+            pw.close();
+         }
       }
    }
 

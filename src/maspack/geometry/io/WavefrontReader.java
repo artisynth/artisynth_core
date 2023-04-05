@@ -94,7 +94,7 @@ public class WavefrontReader extends MeshReaderBase {
       myGroupMap = new LinkedHashMap<String,Group>();
       myMaterialMap = new LinkedHashMap<String,RenderProps>();
       if (file != null) {
-         currPath = file.getParent();
+         setCurrPath (file);
       }
       setGroup(DEFAULT_GROUP);
    }
@@ -117,7 +117,7 @@ public class WavefrontReader extends MeshReaderBase {
    public WavefrontReader (File file) throws IOException {
       this (new FileReader (file));
       myFile = file;
-      currPath = myFile.getParent();
+      setCurrPath (myFile);
    }
 
    public WavefrontReader (String fileName) throws IOException {
@@ -878,8 +878,8 @@ public class WavefrontReader extends MeshReaderBase {
          if (rtok.ttype == ReaderTokenizer.TT_WORD) {
             setGroup(groupName);
          }
-         while (rtok.ttype != ReaderTokenizer.TT_EOL) { // ignore secondary
-                                                        // groups?
+         while (rtok.ttype != ReaderTokenizer.TT_EOL) { 
+            // ignore secondary groups?
             nextToken(rtok);
          }
          rtok.pushBack();
@@ -940,6 +940,13 @@ public class WavefrontReader extends MeshReaderBase {
    // allow publicly change path to search for sub-files
    public void setParentPath(String pathname) {
       currPath = pathname;
+   }
+
+   private void setCurrPath (File file) {
+      currPath = file.getParent();
+      if (currPath == null) {
+         currPath = file.getAbsoluteFile().getParent();
+      }
    }
 
    // Scans tokens to the end of the line and returns true
@@ -1766,9 +1773,18 @@ public class WavefrontReader extends MeshReaderBase {
       }
    }
 
+   private String getDefaultGroupName() {
+      if (myGroupMap.size() == 2) {
+         return getGroupNames()[1];
+      }
+      else {
+         return null;
+      }
+   }
+   
    public void setMesh (PolygonalMesh mesh)
       throws IOException {
-      setMesh (mesh, /*groupName=*/null);
+      setMesh (mesh, getDefaultGroupName());
    }
 
    public void setMesh (PolygonalMesh mesh, String groupName)
@@ -1871,7 +1887,7 @@ public class WavefrontReader extends MeshReaderBase {
 
    public void setMesh (PointMesh mesh)
       throws IOException {
-      setMesh (mesh, /*groupName=*/null);
+      setMesh (mesh, getDefaultGroupName());
    }
 
    public void setMesh (PointMesh mesh, String groupName)
@@ -1898,7 +1914,7 @@ public class WavefrontReader extends MeshReaderBase {
 
    public void setMesh (PolylineMesh mesh)
       throws IOException {
-      setMesh (mesh, /*groupName=*/null);
+      setMesh (mesh, getDefaultGroupName());
    }
 
    public void setMesh (PolylineMesh mesh, String groupName)

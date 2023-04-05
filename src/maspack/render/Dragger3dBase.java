@@ -183,6 +183,24 @@ public abstract class Dragger3dBase extends DragToolBase {
       myXDraggerToWorld.p.set (pos);
    }
 
+   /**
+    * Sets the line width of this dragger.
+    * 
+    * @param w new line width
+    */
+   public void setLineWidth (int w) {
+      myLineWidth = w;
+   }
+
+   /**
+    * Queries the line width of this dragger.
+    *
+    * @return current line width
+    */
+   public int getLineWidth () {
+      return myLineWidth;
+   }
+
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d pnt = new Point3d (myXDraggerToWorld.p);
       pnt.x -= mySize;

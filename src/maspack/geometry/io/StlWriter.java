@@ -3,9 +3,12 @@ package maspack.geometry.io;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.BufferedOutputStream;
 import java.io.PrintWriter;
 import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import maspack.geometry.Face;
 import maspack.geometry.MeshBase;
@@ -20,7 +23,17 @@ import maspack.util.NumberFormat;
  *
  */
 public class StlWriter extends MeshWriterBase {
+
+   boolean myBinary = false;
    
+   public boolean isBinary() {
+      return myBinary;
+   }
+
+   public void setBinary (boolean enable) {
+      myBinary = enable;
+   }
+
    public StlWriter (OutputStream os) throws IOException{
       super (os);
       setFormat ("%.10g");
@@ -36,6 +49,10 @@ public class StlWriter extends MeshWriterBase {
    }
 
    public void writeMesh (PolygonalMesh mesh) throws IOException {
+      
+      if (!mesh.isTriangular()) {
+         throw new IllegalArgumentException ("Mesh is not triangular");
+      }
       
       NumberFormat fmt = myFmt;
       
@@ -73,12 +90,61 @@ public class StlWriter extends MeshWriterBase {
       pw.close();
    }
 
+   public void writeBinary (PolygonalMesh mesh) throws IOException {
+      BufferedOutputStream os = new BufferedOutputStream (myOstream);
+
+      if (!mesh.isTriangular()) {
+         throw new IllegalArgumentException ("Mesh is not triangular");
+      }
+
+      String header = "Exported from ArtiSynth";
+      byte[] bbuf = header.getBytes();
+      os.write (bbuf, 0, bbuf.length);
+      for (int i=bbuf.length; i<80; i++) {
+         os.write (0);
+      }
+      bbuf = new byte[4];
+      ByteBuffer bb = ByteBuffer.wrap(bbuf);
+      bb.order(ByteOrder.LITTLE_ENDIAN);
+
+      bb.putInt (mesh.numFaces());
+      os.write (bbuf, 0, 4);
+
+      for (Face face : mesh.getFaces()) {
+         bbuf = new byte[50];
+         bb = ByteBuffer.wrap(bbuf);
+         bb.order(ByteOrder.LITTLE_ENDIAN);
+
+         Vector3d nrm = face.getNormal();
+         bb.putFloat ((float)nrm.x);
+         bb.putFloat ((float)nrm.y);
+         bb.putFloat ((float)nrm.z);
+         for (int i=0; i<face.numVertices(); i++) {
+            Point3d pos = face.getVertex(i).getPosition();
+            bb.putFloat ((float)pos.x);
+            bb.putFloat ((float)pos.y);
+            bb.putFloat ((float)pos.z);
+         }
+         bb.putShort ((short)0);
+         os.write (bbuf, 0, 50);         
+      }
+      os.close();
+   }
+
    @Override
    public void writeMesh (MeshBase mesh)
       throws IOException {
 
+      if (!(mesh instanceof PolygonalMesh)) {
+        throw new IllegalArgumentException ("Mesh is not polygonal"); 
+      }
       if (mesh instanceof PolygonalMesh) {
-         writeMesh ((PolygonalMesh)mesh);
+         if (myBinary) {
+            writeBinary ((PolygonalMesh)mesh);
+         }
+         else {
+            writeMesh ((PolygonalMesh)mesh);
+         }
       }
       else {
          throw new UnsupportedOperationException (

@@ -54,7 +54,6 @@ public class ExcitationResponse
    void initializeMech() {
       myMech = myController.getMech ();
       myMechSysSolver = new MechSystemSolver(myMech);
-      //myMechSysSolver = myController.getMech().getSolver();
    }
 
    VectorNd fa = new VectorNd();
@@ -158,20 +157,17 @@ public class ExcitationResponse
       myController.updateConstraints(t1);
       myController.updateForces(t1, fp, ex);
       myMechSysSolver.addMassForces(fp, t0);
-      
+
       // bf = M v + h fp
       bf.scaledAdd(h, fp, Mv);
       
       int solveFlags = MechSystemSolver.NO_SYS_UPDATE;
-      
-      myMechSysSolver.updateConstraintMatrices (
-         h, myMechSysSolver.usingImplicitFriction());
       if (useTrapezoidal) {
          // use Trapezoidal integration
-         solveFlags |= MechSystemSolver.TRAPEZOIDAL;
          myMechSysSolver.KKTFactorAndSolve (
             u0, null, bf, /*tmp=*/ftmp, curVel, 
             h, -h/2, -h*h/4, -h/2, h*h/4, solveFlags);
+
       }
       else {
          // use ConstrainedBackwardEuler integration
@@ -200,6 +196,7 @@ public class ExcitationResponse
             ex.set (j, 1.0);
          }
          myController.updateForces(t1, fa, ex);
+         
          
          // XXX scale fa by excitation weight??
          

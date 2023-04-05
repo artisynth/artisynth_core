@@ -1,10 +1,12 @@
 package artisynth.core.inverse;
 
+import java.io.*;
 import java.util.List;
 import java.util.Collection;
 
 import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNd;
+import maspack.util.*;
 import maspack.solvers.DantzigQPSolver;
 import maspack.solvers.DantzigQPSolver.Status;
 
@@ -17,6 +19,10 @@ public class QPSolver {
     * Default solver
     */
    DantzigQPSolver mySolver = new DantzigQPSolver();
+   String myQPTestCaseFile = null; // "frameQP.txt";
+   int myQPTestCaseCnt = 200;
+   int myQPCnt = 0;
+   FunctionTimer timer = new FunctionTimer();
 
    /**
     * Solves the quadratic program of the form:
@@ -99,7 +105,22 @@ public class QPSolver {
             // System.out.println ("P=\n" + P.toString ("%12.5f"));
             // System.out.println ("A=\n" + A.toString ("%12.5f"));
             // System.out.println ("b=\n" + b.toString ("%12.5f"));
+            FunctionTimer timer = null;
+            if (myQPTestCaseFile != null) {
+               if (myQPCnt == myQPTestCaseCnt) {
+                  timer = new FunctionTimer();
+                  timer.start();
+               }
+            }
             mySolver.solve (x,Q,P,A,b);
+            if (myQPTestCaseFile != null) {
+               if (myQPCnt == myQPTestCaseCnt) {
+                  timer.stop();
+                  System.out.println ("inverse solve time: "+timer.result(1));
+                  writeQP (myQPTestCaseFile, Q, P, A, b, x);
+               }
+               myQPCnt++;
+            }
          }
          else {
             Status qpStatus = mySolver.solve (x, Q, P, A, b, Aeq, beq);
@@ -113,5 +134,32 @@ public class QPSolver {
          e.printStackTrace();
       }
       return x;
+   }
+
+   void writeQP (
+      String fileName, MatrixNd Q, VectorNd f,
+      MatrixNd A, VectorNd b, VectorNd x) {
+
+      try {
+         PrintWriter pw = 
+            new PrintWriter (new FileWriter ("frameQP.txt"));
+         pw.printf ("size: %d nc: %d\n", Q.colSize(), A.rowSize());
+         pw.println ("Q:");
+         NumberFormat fmt = new NumberFormat ("%g");
+         Q.write (pw, fmt);
+         pw.println ("f:");
+         f.write (pw, fmt);
+         pw.println ("\nA:");
+         A.write (pw, fmt);
+         pw.println ("b:");                  
+         b.write (pw, fmt);
+         pw.println ("\nx:");                  
+         x.write (pw, fmt);
+         pw.println ("");
+         pw.close();
+      }
+      catch (Exception e) {
+         e.printStackTrace();
+      }
    }
 }

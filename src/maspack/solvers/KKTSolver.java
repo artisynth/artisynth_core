@@ -22,6 +22,7 @@ public class KKTSolver {
    public static boolean computeResidualMG = false;
    // when building an LCP matrix, use solves with multiple right sides:
    public static boolean useBlockSolves = false;
+   public static String myQPTestCaseFile = null; // "contactQP.txt";
 
    boolean myTimeSolves = false;
    boolean myMDiagonalP = false;
@@ -850,6 +851,8 @@ public class KKTSolver {
       return new VectorNi (myLcpState);
    }
 
+   static int myMaxN = 0;
+
    private Status solveLCP (
       VectorNd vel, VectorNd lam, VectorNd the, VectorNd bm, VectorNd bg,
       VectorNd bn, VectorNi state) {
@@ -887,7 +890,19 @@ public class KKTSolver {
       // }
       myDantzig.setComputeResidual (true);
       if (myTimeSolves) timerStart();
+
+      FunctionTimer timer = null;
+      if (myQPTestCaseFile != null && myNT.colSize() >= myMaxN) {
+         timer = new FunctionTimer();
+         timer.start();
+      }
       status = myDantzig.solve (myZ, myLcpState, myLcpM, myQ);
+      if (myQPTestCaseFile != null && myNT.colSize() >= myMaxN) {
+         timer.stop();
+         writeLcpAsQP (myQPTestCaseFile, myLcpM, myQ, myZ);
+         System.out.println ("time=" + timer.result(1));
+         myMaxN = myNT.colSize();
+      }
       if (myTimeSolves) timerStop("solveLCP:");
       myDantzig.setComputeResidual (false);
       if (state != null) {
@@ -941,6 +956,33 @@ public class KKTSolver {
          lam.set (i - mySizeM, ybuf[i]);
       }
       return Status.SOLVED;
+   }
+
+   private void writeLcpAsQP (
+      String fileName, MatrixNd M, VectorNd q, VectorNd x) {
+      try {
+         PrintWriter pw = 
+            new PrintWriter (new FileWriter (fileName));
+         pw.printf ("size: %d nc: %d\n", M.colSize(), q.size());
+         pw.println ("Q:");
+         NumberFormat fmt = new NumberFormat ("%g");
+         M.write (pw, fmt);
+         pw.println ("f:");
+         q.write (pw, fmt);
+         pw.println ("\nA:");
+         MatrixNd A = new MatrixNd (q.size(), q.size());
+         A.setIdentity();
+         A.write (pw, fmt);
+         pw.println ("b:");                  
+         VectorNd b = new VectorNd();
+         b.write (pw, fmt);
+         pw.println ("\nx:");                  
+         x.write (pw, fmt);
+         pw.close();
+      }
+      catch (Exception e) {
+         e.printStackTrace();
+      }
    }
 
    private void initializeState (VectorNi state) {

@@ -92,7 +92,6 @@ implements CollidableBody, PointAttachable {
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
 
-   HashMap<EdgeDesc,Vertex3d[]> myEdgeVtxs;
    private boolean isSurfaceMesh;
    private boolean isGeneratedSurface;
 
@@ -2064,14 +2063,6 @@ implements CollidableBody, PointAttachable {
          fm.myFem = myFem;
       }
       
-      HashMap<Vertex3d,Vertex3d> vertMap = null;
-      if (getMesh() != fm.getMesh()) {
-         vertMap = new HashMap<Vertex3d,Vertex3d>(myMeshInfo.numVertices());
-         for (int i=0; i<myMeshInfo.numVertices(); i++) {
-            vertMap.put(getVertex(i), fm.getVertex(i));
-         }
-      }
-
       fm.myVertexAttachments = 
          new ArrayList<PointAttachment>(myVertexAttachments.size());
       for (PointAttachment pa : myVertexAttachments) {
@@ -2079,25 +2070,6 @@ implements CollidableBody, PointAttachable {
          fm.myVertexAttachments.add(newPa);
       }
       fm.buildNodeVertexMap();
-
-      //      fm.myEdgeVtxs = new HashMap<EdgeDesc,Vertex3d[]>(myEdgeVtxs.size());
-      //      for (Entry<EdgeDesc,Vertex3d[]> het : myEdgeVtxs.entrySet()) {
-      //         het.getKey();
-      //         Vertex3d[] oldVerts = het.getValue();
-      //         EdgeDesc newEdge = het.getKey().copy(vertMap);
-      //         Vertex3d[] newVerts = new Vertex3d[oldVerts.length];
-      //
-      //         if (vertMap != null) {
-      //            for (int i=0; i<newVerts.length; i++) {
-      //               newVerts[i] = vertMap.get(oldVerts[i]);
-      //            }
-      //         } else {
-      //            for (int i=0; i<newVerts.length; i++) {
-      //               newVerts[i] = oldVerts[i];
-      //            }
-      //         }
-      //         fm.myEdgeVtxs.put(newEdge, newVerts);
-      //      }
 
       fm.isSurfaceMesh = isSurfaceMesh();
       fm.isGeneratedSurface = isGeneratedSurface();

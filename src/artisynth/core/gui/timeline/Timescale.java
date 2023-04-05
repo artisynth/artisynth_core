@@ -5,6 +5,7 @@ import javax.swing.JSlider;
 import javax.swing.plaf.basic.BasicSliderUI;
 
 import java.awt.Color;
+import java.awt.event.*;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.math.BigDecimal;
@@ -15,12 +16,24 @@ public class Timescale extends JSlider {
    private TimelineController controller;
    private TimescaleUI timescaleUI;
    private BigDecimal[] scaleLabelList;
+   private int myMousePressedModifiersEx = 0;
 
    static int HEIGHT = 27; // height of the timescale (hard wired)
    
    static final double USEC_TO_SEC = 1e-6;
    static final double SEC_TO_USEC = 1e6;
+   
+   private class MyMouseAdapter extends MouseAdapter {
+      
+      public void mousePressed (MouseEvent e) {
+         myMousePressedModifiersEx = e.getModifiersEx();
+      }
+   }
 
+   int getMousePressedModifiersEx() {
+      return myMousePressedModifiersEx;   
+   }
+   
    // ===================================================
    // Table for implementing "zooming"
    private static final int[] MAJOR_INCREMENT_IN_UNIT = { 
@@ -95,6 +108,7 @@ public class Timescale extends JSlider {
       setUI (timescaleUI);
 
       updateTimescaleSizeAndScale (durationInSec, zoomLevel);
+      addMouseListener (new MyMouseAdapter());
    } 
 
    /**

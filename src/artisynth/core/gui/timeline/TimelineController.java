@@ -66,6 +66,7 @@ import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.NumericProbeDisplayLarge;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.probes.Probe;
+import artisynth.core.probes.InputProbe;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.WayPointProbe;
 import artisynth.core.util.TimeBase;
@@ -328,7 +329,13 @@ public class TimelineController extends Timeline
                // Else only reset the scheduler time to the closest valid 
                // waypoint when the cursor is dragged past a valid waypoint
                else {
-                  setRestartTime (TimelineConstants.RESTART_BY_CURSOR_DRAG);
+                  int mods = timescale.getMousePressedModifiersEx();
+                  if ((mods & MouseEvent.ALT_DOWN_MASK) != 0) {
+                     applyInputProbes();
+                  }
+                  else {
+                     setRestartTime (TimelineConstants.RESTART_BY_CURSOR_DRAG);
+                  }
                }
             }
             // See if the duration of the timeline has to be extended
@@ -723,6 +730,26 @@ public class TimelineController extends Timeline
       WayPoint way = getWayPoints().getValidOnOrBefore (currentCursorTime);
       if (way.getTime() != myScheduler.getTime()) {
          myScheduler.setTime (way);
+      }
+   }
+   
+   /**
+    * Responsible for applying input probes model after the mouse has been 
+    * used to drag the time with the SHIFT modifier.
+    */
+   public void applyInputProbes() {
+      double t = timescale.getTimescaleCursorTime();
+      // Process all the input probes into proper places
+      boolean applied = false;
+      RootModel root = myMain.getRootModel();
+      for (Probe p : root.getInputProbes()) {
+         if (p.isActive()) {
+            p.apply (t);
+            applied = true;
+         }
+      }
+      if (applied) {
+         myMain.rerender();
       }
    }
    

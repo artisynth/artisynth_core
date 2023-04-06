@@ -56,6 +56,7 @@ import maspack.render.RendererEvent;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.Viewer;
+import maspack.render.Viewer.RotationMode;
 import maspack.render.GraphicsInterface;
 import maspack.render.GL.GLViewer;
 import maspack.util.IndentingPrintWriter;
@@ -455,7 +456,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       viewer.setOrthogonal (10, .2, 200);
       viewer.setGridSizeAndPosition (new Point3d(), 10);
       viewer.setAxialView (AxisAlignedRotation.X_Y);
-      viewer.setViewRotationEnabled (false);
+      viewer.setRotationMode (RotationMode.OFF);
       //viewer.setSelectOnPress (true);
 
       addPopupManager();

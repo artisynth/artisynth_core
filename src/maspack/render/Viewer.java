@@ -50,7 +50,12 @@ public interface Viewer extends Renderer {
        * ``up'' direction will generally not remain parallel to the vertical
        * direction of the viewer plane.
        */
-      CONTINUOUS;
+      CONTINUOUS,
+  bbb
+      /**
+       * Viewer rotation is disabled.
+       */
+      OFF;
    }
    
    /**
@@ -1000,22 +1005,6 @@ public interface Viewer extends Renderer {
     * @return current key listeners
     */
    public KeyListener[] getKeyListeners();
-
-   /**
-    * Queries whether view rotation is enabled.
-    *
-    * @return {@code true} if view rotation is enabled
-    */
-   public boolean isViewRotationEnabled();
-
-   /**
-    * Sets whether view rotation is enabled. If it is not, then it will not be
-    * possible to rotate the view interactively.  The default value is {@code
-    * true},
-    *
-    * @param enable if {@code true}, enables view rotation
-    */   
-   public void setViewRotationEnabled (boolean enable);
 
    //==========================================================================
    // Draggers and draw tools

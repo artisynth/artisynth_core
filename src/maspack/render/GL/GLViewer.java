@@ -501,14 +501,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       new Vector2d(DEFAULT_ELLIPTIC_CURSOR_SIZE);
    public static boolean DEFAULT_ELLIPTIC_CURSOR_ACTIVE = false;
    protected boolean myEllipticCursorActive = DEFAULT_ELLIPTIC_CURSOR_ACTIVE;
-   private static final boolean DEFAULT_VIEW_ROTATION_ENABLED = true;
-   protected boolean myViewRotationEnabled = DEFAULT_VIEW_ROTATION_ENABLED;
    
    // Selection
    protected GLSelector mySelector;
    protected ViewerSelectionFilter mySelectionFilter = null;
    ViewerSelectionEvent selectionEvent;
-   protected ArrayList<ViewerSelectionListener> mySelectionListeners = new ArrayList<ViewerSelectionListener>();
+   protected ArrayList<ViewerSelectionListener> mySelectionListeners =
+      new ArrayList<ViewerSelectionListener>();
    protected boolean selectionEnabled = true;
    protected boolean selectOnPressP = false; 
    protected boolean ellipticSelectionP = false;
@@ -526,22 +525,31 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          "selectionColor getHighlightColor setHighlightColor",
          "color used to highlight selected components",
          createColor (DEFAULT_HIGHLIGHT_COLOR));
-      myProps.add ("axisLength", "length of rendered x-y-z axes", 0);
       myProps.add (
          "axisDrawStyle", "style used for renderering axes", 
          DEFAULT_AXIS_DRAW_STYLE);
+      myProps.add (
+         "axisRadiusRatio",
+         "default radius/length ratio to be used when rendering solid axes",
+         DEFAULT_AXIS_RADIUS_RATIO, "NS");
+      myProps.add ("axisLength", "length of rendered x-y-z axes", 0);
       myProps.add (
          "rotationMode", "method for interactive rotation",
          DEFAULT_ROTATION_MODE);
       myProps.add (
          "viewControlMask", "constrains x or y view control motions",
          DEFAULT_VIEW_CONTROL_MASK);
-      myProps.add (
-         "axisRadiusRatio", 
-         "default radius/length ratio to be used when rendering solid axes",
-         DEFAULT_AXIS_RADIUS_RATIO, "NS");
       myProps.add(
          "axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
+      myProps.add(
+         "ellipticCursorActive", "true if the elliptic cursor is active",
+         DEFAULT_ELLIPTIC_CURSOR_ACTIVE, "NE");
+      myProps.add(
+         "ellipticCursorSize", "dimension of the elliptic cursor",
+         DEFAULT_ELLIPTIC_CURSOR_SIZE);
+      myProps.add(
+         "surfaceResolution", "resolution for built-in curved primitives",
+         DEFAULT_SURFACE_RESOLUTION);
       myProps.add (
          "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
       myProps.add (
@@ -557,20 +565,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          "blendDestFactor", "destination transparency blending",
          DEFAULT_DST_BLENDING);
       myProps.add(
-         "surfaceResolution", "resolution for built-in curved primitives", 
-         DEFAULT_SURFACE_RESOLUTION);
-      myProps.add(
-         "profiling", "print timing for render operations", false);
-      myProps.add(
-         "ellipticCursorActive", "true if the elliptic cursor is active", 
-         DEFAULT_ELLIPTIC_CURSOR_ACTIVE);
-      myProps.add(
-         "ellipticCursorSize", "dimension of the elliptic cursor", 
-         DEFAULT_ELLIPTIC_CURSOR_SIZE);
-      myProps.add(
-         "viewRotationEnabled isViewRotationEnabled *",
-         "viewpoint can be rotated in the GUI", 
-         DEFAULT_VIEW_ROTATION_ENABLED);
+         "profiling", "print timing for render operations", false, "NE");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -613,20 +608,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myEllipticCursorSize.set (DEFAULT_ELLIPTIC_CURSOR_SIZE);
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isViewRotationEnabled() {
-      return myViewRotationEnabled;
-   }
-   
-   /**
-    * {@inheritDoc}
-    */
-   public void setViewRotationEnabled (boolean enable) {
-      myViewRotationEnabled = enable;
-   }
-   
    /**
     * {@inheritDoc}
     */
@@ -1568,8 +1549,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          case CONTINUOUS:
             rotateContinuous(xang, yang);
             break;
-         default:
+         case FIXED_VERTICAL:
             rotateFixedUp(xang, yang);
+            break;
+         default:
+            // no rotation
             break;
       }
 
@@ -3033,11 +3017,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    private Vector3d getActualUpVector() {
       Vector3d up = new Vector3d();
-      if (myRotationMode == RotationMode.CONTINUOUS) {
-         viewMatrix.R.getRow(1, up);         
+      if (myRotationMode == RotationMode.FIXED_VERTICAL) {
+         up.set (myViewState.myUp);
       }
       else {
-         up.set (myViewState.myUp);
+         viewMatrix.R.getRow(1, up);
       }
       return up;
    }

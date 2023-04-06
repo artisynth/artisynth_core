@@ -280,8 +280,7 @@ public class GLMouseAdapter implements GLMouseListener {
          else if (mask == getTranslateButtonMask()) {
             dragAction = TRANSLATE;
          }
-         else if (mask == getRotateButtonMask() &&
-                  viewer.isViewRotationEnabled()) {
+         else if (mask == getRotateButtonMask()) {
             dragAction = ROTATE;
          }
          else if (mask == getZoomButtonMask()) {

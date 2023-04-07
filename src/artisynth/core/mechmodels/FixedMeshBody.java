@@ -277,7 +277,7 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
    /**
     * Returns the centroid of this mesh body.
     *
-    * @retrun mesh centroid
+    * @return mesh centroid
     */
    public Point3d getCentroid() {
       Point3d cent = new Point3d();

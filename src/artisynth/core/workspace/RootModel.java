@@ -1270,7 +1270,7 @@ public class RootModel extends RenderableModelBase
     * a simulation control thread that will be started immediately after the
     * model is loaded.
     * 
-    * <p>This method will typically be called from the {@link #build()}
+    * <p>This method will typically be called from the {@link #build}
     * method. Currently, task managers are <i>not</i> saved when a model is
     * written to a file.
      *

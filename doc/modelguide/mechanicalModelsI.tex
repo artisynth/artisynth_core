@@ -404,7 +404,7 @@ which is listed below:
 
       // create the components
       Particle p1 = new Particle ("p1", /*mass=*/2, /*x,y,z=*/0, 0, 0);
-      // create box and set it's pose (position/orientation):
+      // create box and set its pose (position/orientation):
       RigidBody box =
          RigidBody.createBox ("box", /*wx,wy,wz=*/0.5, 0.3, 0.3, /*density=*/20);
       box.setPose (new RigidTransform3d (/*x,y,z=*/0.75, 0, 0));
@@ -488,6 +488,13 @@ file name from which a mesh is read, and use it as the body's surface
 mesh and then compute the mass and inertia properties from the specified
 (uniform) density.
 
+\begin{sideblock}
+When a body is created directly from a surface mesh, its center of
+mass will typically {\it not} be coincident with the origin of its
+coordinate frame. Section \ref{RigidBodyCOM:sec} discusses the
+implications of this and how to correct it.
+\end{sideblock}
+
 Alternatively, one can create a rigid body directly from a
 constructor, and then set the mesh and inertia properties explicitly:
 %
@@ -561,11 +568,13 @@ described in Section \ref{ControllerImplementation:sec}.
 \subsection{Inertia and the surface mesh}
 \label{rigidBodyInertia:sec}
 
-The ``mass'' of a rigid body is described by its spatial inertia
-(Section \ref{SpatialInertia:sec}), implemented by a
+The ``mass'' of a rigid body is described by its spatial inertia,
+which is a $6 \times 6$ matrix relating its spatial velocity to its
+spatial momentum (Section \ref{SpatialInertia:sec}).  Within
+ArtiSynth, spatial inertia is described by a
 \javaclass[maspack.spatialmotion]{SpatialInertia} object, which
-specifies its mass, center of mass, and rotational inertia with
-respect to the center of mass.
+specifies its mass, center of mass (with respect to body coordinates),
+and rotational inertia (with respect to the center of mass).
 
 Most rigid bodies are also associated with a polygonal surface mesh,
 which can be set and queried using the methods
@@ -677,11 +686,83 @@ contains more than one mesh. Details are given in Section
 \ref{rigidBodyMultipleMeshes:sec}.
 \end{sideblock}
 
+\subsection{Coordinate frames and the center of mass}
+\label{RigidBodyCOM:sec}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[width=3.75in]{images/RigidBodyCOM}
+\else
+ \includegraphics[width=3.75in]{images/RigidBodyCOM}
+\fi
+\end{center}
+\caption{Left: rigid body whose coordinate frame B is not coincident
+with the center of mass (COM). Right: same body, with its coordinate
+frame translated to be coincident with the COM.}
+\label{RigidBodyCOM:fig}
+\end{figure}
+
+It is important to note that the origin of a body's coordinate frame
+will not necessarily coincide with its center of mass (COM), and in
+fact the frame origin does not even have to lie inside the body's
+surface (Figure \ref{RigidBodyCOM:fig}). This typically occurs when a
+body's inertia is computed directly from its surface mesh (or meshes),
+as described in Section \ref{rigidBodyInertia:sec}.
+
+Having the COM differ from the frame origin may lead to some undesired
+effects. For instance, since the body's spatial velocity is defined
+with respect to the frame origin and not the COM, if the two are not
+coincident, then a purely angular body velocity will cause the COM to
+translate. The body's spatial inerta also becomes more complicated,
+with non-zero 3 x 3 blocks in the lower left and upper right
+(Section \ref{SpatialInertia:sec}), which can have a small effect on
+computational accuracy. Finally, manipulating a body's pose in the
+ArtiSynth UI (as described in the section ``Model Manipulation'' in
+the \pdfbreak
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}) can
+also be more cumbersome if the origin is located far from the COM.
+
+There are several ways to ensure that the COM and frame origin are
+coincident. The most direct is to call the method
+\javamethod*[artisynth.core.mechmodels.RigidBody]{centerPoseOnCenterOfMass()}
+after the body has been created:
+%
+\begin{lstlisting}[]
+   String meshFilePath = "/project/geometry/bodyMesh.obj";
+   double density = 1000;
+
+   PolygonalMesh mesh = new PolygonalMesh (meshFilePath); // read in a mesh
+   RigidBody bodyA = RigidBody.createFromMesh (
+      "bodyA", mesh, density, /*scale=*/1); // create body from the mesh
+   bodyA.centerPoseOnCenterOfMass();        // center body on the COM
+\end{lstlisting}
+%
+This will shift the body's frame to be coincident with the COM, while
+at the same time translating its mesh vertices in the opposite
+direction so that its mesh (or meshes) don't move with respect to
+world coordinates. The spatial inertia is updated as well.
+
+Alternatively, if the body is being created from a single mesh, one
+may transform that mesh to be centered on its COM {\it before} it is
+used to define the body. This can be done using the {\tt
+PolygonalMesh} method 
+\javamethod*[maspack.geometry.PolygonalMesh]{translateToCenterOfVolume()},
+which centers a mesh's vertices on its COM (assuming a uniform density):
+%
+\begin{lstlisting}[]
+   PolygonalMesh mesh = new PolygonalMesh (meshFilePath); // read in a mesh
+   mesh.translateToCenterOfVolume();        // center mesh on its COM
+   RigidBody bodyA = RigidBody.createFromMesh (
+      "bodyA", mesh, density, /*scale=*/1); // create body from the mesh
+\end{lstlisting}
+%
+
 \subsection{Damping parameters}
 \label{RigidBodyDamping:sec}
 
 As with particles, it is possible to set damping parameters for rigid
-bodies. 
+bodies.
 
 {\tt MechModel} provides two properties, {\tt frameDamping} and {\tt
 rotaryDamping}, which generate a spatial force centered on each rigid

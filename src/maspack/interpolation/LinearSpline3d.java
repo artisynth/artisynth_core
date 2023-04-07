@@ -309,7 +309,7 @@ public class LinearSpline3d
     * @param lastIdx if non-null, specifies a index value giving a hint on
     * where to start the knot search. On output, this value is set to the index
     * of the returned knot, or -1 if no knot is found.
-    <*/
+    */
    public Knot getPreceedingKnot (double s, IntHolder lastIdx) {
       if (myKnots.size() == 0) {
          return null;

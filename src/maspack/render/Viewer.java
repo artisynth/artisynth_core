@@ -531,14 +531,14 @@ public interface Viewer extends Renderer {
     * Sets the view control mask that constrains view control motions
     * to either the x or y screens axes.
     *
-    * @param mode new view control mask
+    * @param mask new view control mask
     */
    public void setViewControlMask (ViewControlMask mask);
 
    /**
     * Queries the view control mask. See {@link #setViewControlMask}.
     *
-    * @param current view control mask
+    * @return current view control mask
     */
    public ViewControlMask getViewControlMask();
 

@@ -4081,11 +4081,17 @@ PointAttachable, ConnectableBody {
          else if (rendering == SurfaceRender.MAPStress) {
             s = (float)node.getMAPStress();
          }
+         else if (rendering == SurfaceRender.MaxShearStress) {
+            s = (float)node.getMaxShearStress();
+         }
          else if (rendering == SurfaceRender.Strain) {
             s = (float)node.getVonMisesStrain();
          }
          else if (rendering == SurfaceRender.MAPStrain) {
             s = (float)node.getMAPStrain();
+         }
+         else if (rendering == SurfaceRender.MaxShearStrain) {
+            s = (float)node.getMaxShearStrain();
          }
          if (s < min) {
             min = s;

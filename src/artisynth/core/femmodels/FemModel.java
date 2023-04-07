@@ -119,14 +119,24 @@ public abstract class FemModel extends MechSystemBase
        * Render as a color map showing the maximum absolute principal strain
        * component.
        */
-      MAPStrain;
+      MAPStrain,
+
+      /**
+       * Render as a color map showing the maximum shear stress.
+       */
+      MaxShearStress,
+
+      /**
+       * Render as a color map showing the maximum shear strain.
+       */
+      MaxShearStrain;
 
       public boolean usesStress() {
-         return this == Stress || this == MAPStress;
+         return this == Stress || this == MAPStress || this == MaxShearStress;
       }
 
       public boolean usesStrain() {
-         return this == Strain || this == MAPStrain;
+         return this == Strain || this == MAPStrain || this == MaxShearStrain;
       }
       
       public boolean usesStressOrStrain() {

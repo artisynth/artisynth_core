@@ -314,6 +314,25 @@ public class FemNode3d extends FemNode implements Boundable {
    }
 
    /**
+    * Returns the maximum shear stress for this node. The maximum shear stress
+    * is given by
+    * <pre>
+    * max (|s0-s1|/2, |s1-s2|/2, |s2-s0|/2)
+    * </pre>
+    * where {@code s0}, {@code s1}, and {@code s2} are the eigenvalues of
+    * the stress tensor.
+    *
+    * <p>This quantity is available only when stress values are being computed
+    * for this node, as described in the documentation for {@link #getStress}.
+    * If stress values are not being computed, 0 is returned.
+    *
+    * @return maximum shear stress, or 0 is stress is not being computed
+    */
+   public double getMaxShearStress () {
+      return (myAvgStress == null) ? 0 : myAvgStress.computeMaxShear();
+   }
+
+   /**
     * Compute the Von Mises strain equivalent according to
     * http://www.continuummechanics.org/vonmisesstress.html
     * which is equivalent to 
@@ -357,6 +376,24 @@ public class FemNode3d extends FemNode implements Boundable {
       return (myAvgStrain == null) ? 0 : computeMaxAbsEigenvalue(myAvgStrain);
    }
 
+   /**
+    * Returns the maximum shear atrain for this node. The maximum shear strain
+    * is given by
+    * <pre>
+    * max (|s0-s1|/2, |s1-s2|/2, |s2-s0|/2)
+    * </pre>
+    * where {@code s0}, {@code s1}, and {@code s2} are the eigenvalues of
+    * the strain tensor.
+    *
+    * <p>This quantity is available only when strain values are being computed
+    * for this node, as described in the documentation for {@link #getStrain}.
+    * If strain values are not being computed, 0 is returned.
+    *
+    * @return maximum shear strain, or 0 is strain is not being computed
+    */
+   public double getMaxShearStrain () {
+      return (myAvgStrain == null) ? 0 : myAvgStrain.computeMaxShear();
+   }
 
    public Vector3d getDisplacement () {
       Vector3d del = new Vector3d();

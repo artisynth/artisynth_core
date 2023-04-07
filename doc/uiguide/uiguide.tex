@@ -1116,9 +1116,10 @@ used to perform a rotate action (Section \ref{ViewpointControlSec}).
 The default value is {\sf FIXED\_VERTICAL}, which constrains the
 viewer's ``up'' vector to remain vertical with respect to the view
 plane, at the expense of preventing the eye-to-world rotation from
-being adjustable to an arbitrary value. The alternate value is {\sf
+being adjustable to an arbitrary value. Alternate values include {\sf
 CONTINUOUS}, which enables a track-ball type rotation that does allow
-arbitrary adjustment of the eye-to-world rotation.
+arbitrary adjustment of the eye-to-world rotation, and {\tt OFF},
+which disables rotation adjystment.
 
 \item[defaultAxialView]\mbox{}
 
@@ -1176,8 +1177,9 @@ Specifies the second (destination) argument to {\tt glBlendFunc()}.
 Viewer properties can also be set on a per-viewer basis. To do this,
 invoke the context menu (usually right-click) in the viewer when
 nothing is selected, and choose {\sf Set viewer properties}.
-Individual properties include all those described above, along with
-the following:
+Individual properties include all those described above (except with
+{\tt defaultAxialView} renamed to {\tt axialView}), together with the
+following additional properties:
 
 \begin{description}
 
@@ -1186,6 +1188,13 @@ the following:
 Axis lengths used to render the world axes (Section
 \ref{worldCoordAxes:sec}).
 
+\item[viewControlMask]\mbox{}
+
+If set to {\tt ALONG\_X\_ONLY} or {\tt ALONG\_Y\_ONLY}, mouse-based
+view control inputs are restricted to those in the x or y screen
+directions, respectively. This makes it easier to limit changes in the
+view point. The default value is {\tt NONE} (no restriction).
+
 \item[eye]\mbox{}
 
 Location of the eye position, in world coordinates.
@@ -1193,11 +1202,6 @@ Location of the eye position, in world coordinates.
 \item[center]\mbox{}
 
 Location of the viewing frustum center, in world coordinates.
-
-\item[viewRotationEnabled]\mbox{}
-
-Enables or disables the ability to use a mouse to rotate the
-viewpoint.
 
 \end{description}
 
@@ -3941,6 +3945,27 @@ be set from the command line with the option
 %
 \begin{verbatim}
   -height <pixels>
+\end{verbatim}
+%
+
+\item[screenLocX]\mbox{}
+
+Screen x location of the main ArtiSynth frame (in pixels). This
+can also be set from the command line with the option
+%
+\begin{verbatim}
+  -screenx <pixels>
+\end{verbatim}
+%
+
+\item[screenLocY]\mbox{}
+
+Screen y location of the main ArtiSynth frame (in pixels, with 0 at
+the top of the screen). This can also be set from the command line
+with the option
+%
+\begin{verbatim}
+  -screeny <pixels>
 \end{verbatim}
 %
 

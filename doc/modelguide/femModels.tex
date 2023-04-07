@@ -3988,7 +3988,9 @@ are listed in Table \ref{tbl:fem:rendering}.
 	   {\tt elementWidgetSize} & size of element to render $\in [0,1]$\\
 	   {\tt directionRenderLen} & relative length to draw fibre direction indicator $\in [0, 1]$\\
 	   {\tt directionRenderType} & where to draw directions: {\tt ELEMENT}, {\tt INTEGRATION\_POINT}\\
-	   {\tt surfaceRendering} & how to render surface: {\tt None}, {\tt Shaded}, {\tt Stress}, {\tt Strain}, {\tt MAPStress}, {\tt MAPStrain}\\
+	   {\tt surfaceRendering} & how to render surface: 
+{\tt None}, {\tt Shaded}, {\tt Stress}, {\tt Strain}, {\tt MAPStress}, 
+{\tt MAPStrain}, {\tt MaxShearStress}, {\tt MaxShearStrain}\\
 	   {\tt stressPlotRange} & range of values for stress/strain plot\\
 	   {\tt stressPlotRanging} & how to determine stress/strain plot range: {\tt Auto}, {\tt Fixed}\\
 	   {\tt colorMap} & delegate object controlling the map of stress/strain values to color\\
@@ -4026,7 +4028,9 @@ visualizations.  The property {\tt surfaceRendering} sets what to draw:\\
 & {\tt Stress} & the von Mises stress\\
 & {\tt Strain} & the von Mises strain\\
 & {\tt MAPStress} & Maximum absolute value principal stress\\
-& {\tt MAPStrain} & Maximum absolute value principal strain
+& {\tt MAPStrain} & Maximum absolute value principal strain\\
+& {\tt MaxShearStress} & Maximum shear stress\\
+& {\tt MaxStearStrain} & Maximum sheer strain
 \end{tabular}
 \medskip\\
 The {\tt stressPlotRange} controls the range of values to use when plotting 

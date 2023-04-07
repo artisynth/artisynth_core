@@ -377,12 +377,20 @@ public class FemDisplayProbe extends CutPlaneProbe {
                      val = getMAPStress(vtx.getWorldPoint(), myFem);
                      setMapColor (vtx, val, alpha);
                      break;
+                  case MaxShearStress:
+                     val = getMaxShearStress(vtx.getWorldPoint(), myFem);
+                     setMapColor (vtx, val, alpha);
+                     break;
                   case Strain:
                      val = getVMStrain(vtx.getWorldPoint(), myFem);
                      setMapColor (vtx, val, alpha);
                      break;
                   case MAPStrain:
                      val = getMAPStrain(vtx.getWorldPoint(), myFem);
+                     setMapColor (vtx, val, alpha);
+                     break;
+                  case MaxShearStrain:
+                     val = getMaxShearStrain(vtx.getWorldPoint(), myFem);
                      setMapColor (vtx, val, alpha);
                      break;
                   default:
@@ -397,11 +405,17 @@ public class FemDisplayProbe extends CutPlaneProbe {
 
    }
 
-    private static double computeMaxAbsEigenvalue (SymmetricMatrix3d M) {    
+   private static double computeMaxAbsEigenvalue (SymmetricMatrix3d M) {    
       Vector3d eigs = new Vector3d();
       M.getEigenValues (eigs);
       return eigs.get(eigs.maxAbsIndex());
-   }  
+   } 
+   
+   private static double computeMaxShearValue (SymmetricMatrix3d M) {    
+      Vector3d eigs = new Vector3d();
+      M.getEigenValues (eigs);
+      return eigs.get(eigs.maxAbsIndex());
+   } 
 
    // computes stress of a point inside the model based on FEM shape
    // function interpolation
@@ -452,6 +466,15 @@ public class FemDisplayProbe extends CutPlaneProbe {
       return computeMaxAbsEigenvalue (stress);
    }
 
+   // computes maximum principal stress value of a point inside the FemModel
+   // based on shape function interpolation
+   private static double getMaxShearStress (
+      Point3d pnt, FemModel3d model) {
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      getStressValue (stress, pnt, model);
+      return stress.computeMaxShear();
+   }
+
    // computes strain of a point inside the model based on FEM shape
    // function interpolation
    private static void getStrainValue (
@@ -496,6 +519,13 @@ public class FemDisplayProbe extends CutPlaneProbe {
       getStrainValue (strain, pnt, model);
       return computeMaxAbsEigenvalue (strain);
    }
+   
+   private static double getMaxShearStrain (
+      Point3d pnt, FemModel3d model) {
+      SymmetricMatrix3d strain = new SymmetricMatrix3d();
+      getStrainValue (strain, pnt, model);
+      return strain.computeMaxShear();
+   }
 
    // if we are clipped to the FEM, then the shape function values are fixed   
    private void computeClippedVertexColors() {
@@ -527,11 +557,17 @@ public class FemDisplayProbe extends CutPlaneProbe {
             case MAPStress:
                setMapColor (vtx, getMAPStress(clippedVtxMap.get(vtx)), alpha);
                break;
+            case MaxShearStress:
+               setMapColor (vtx, getMaxShearStress(clippedVtxMap.get(vtx)), alpha);
+               break;
             case Strain:
                setMapColor (vtx, getVMStrain(clippedVtxMap.get(vtx)), alpha);
                break;
             case MAPStrain:
                setMapColor (vtx, getMAPStrain(clippedVtxMap.get(vtx)), alpha);
+               break;
+            case MaxShearStrain:
+               setMapColor (vtx, getMaxShearStrain(clippedVtxMap.get(vtx)), alpha);
                break;
             default:
                setColor (vtx, femFaceColor, alpha);
@@ -562,6 +598,12 @@ public class FemDisplayProbe extends CutPlaneProbe {
       return computeMaxAbsEigenvalue (strain);
    }
 
+   private static double getMaxShearStrain (VtxInfo info) {
+      SymmetricMatrix3d strain = new SymmetricMatrix3d();
+      getStrainValue (strain, info);
+      return strain.computeMaxShear();
+   }
+
    private static double getVMStress(VtxInfo info) {
       double stress = 0;
       for (int i = 0; i < info.nodes.length; i++) {
@@ -581,6 +623,12 @@ public class FemDisplayProbe extends CutPlaneProbe {
       SymmetricMatrix3d stress = new SymmetricMatrix3d();
       getStressValue (stress, info);
       return computeMaxAbsEigenvalue (stress);
+   }
+   
+   private static double getMaxShearStress (VtxInfo info) {
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      getStressValue (stress, info);
+      return stress.computeMaxShear();
    }
 
    /**

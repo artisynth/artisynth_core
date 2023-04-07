@@ -719,6 +719,33 @@ public class SymmetricMatrix3d extends Matrix3dBase {
    }
 
    /**
+    * Computes and returns the maximum shear value for this matrix.  The
+    * maximum shear is given by
+    * <pre>
+    * max (|s0-s1|/2, |s1-s2|/2, |s2-s0|/2)
+    * </pre>
+    * where {@code s0}, {@code s1}, and {@code s2} are the eigenvalues of
+    * the matrix.
+    *
+    * @return maximum shear value
+    */
+   public double computeMaxShear () {    
+      Vector3d eigs = new Vector3d();
+      getEigenValues (eigs);
+      double d01 = Math.abs(eigs.x-eigs.y);
+      double d12 = Math.abs(eigs.y-eigs.z);
+      double d20 = Math.abs(eigs.z-eigs.x);
+      double max = d01;
+      if (d12 > max) {
+         max = d12;
+      }
+      if (d20 > max) {
+         max = d20;
+      }
+      return max/2;
+   }
+
+   /**
     * Quickly computes the eigenvalues of this symmetric matrix, as described
     * for {@link #getEigenValues(Vector3d,Matrix3dBase) getEigenValues}.
     * 

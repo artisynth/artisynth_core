@@ -782,6 +782,28 @@ public abstract class BodyConnector extends RenderableComponentBase
       myTransformPositionOnly = posOnly;
    }
 
+   /**
+    * Queries whether geometry transforms applied to this connector change only
+    * the D frame.
+    * 
+    * @return {@code true} if geometry transforms are applied only to the D
+    * frame.
+    */
+   public boolean getTransformDGeometryOnly() {
+      return myTransformDGeometryOnly;
+   }
+   
+   /**
+    * Sets whether geometry transforms applied to this connector change only
+    * the D frame.
+    * 
+    * @param enable if {@code true}, geometry transforms are applied only to
+    * the D frame
+    */
+   public void setTransformDGeometryOnly(boolean enable) {
+      myTransformDGeometryOnly = enable;
+   }
+
    protected BodyConnector() {
    }
 

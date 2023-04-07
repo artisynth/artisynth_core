@@ -724,7 +724,7 @@ public abstract class PointSpringBase extends Spring
    }
 
    public boolean hasState() {
-      return (myStateMat != null);
+      return (myStateMat != null && myStateMat.hasState());
    }
    
    /* --- End HasNumericState interface --- */

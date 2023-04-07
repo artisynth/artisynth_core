@@ -51,7 +51,7 @@ public interface Viewer extends Renderer {
        * direction of the viewer plane.
        */
       CONTINUOUS,
-  bbb
+
       /**
        * Viewer rotation is disabled.
        */

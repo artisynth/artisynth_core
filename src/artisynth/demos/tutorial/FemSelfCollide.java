@@ -1,7 +1,7 @@
 package artisynth.demos.tutorial;
 
 import java.awt.Color;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemFactory;
@@ -47,7 +47,8 @@ public class FemSelfCollide extends RootModel {
       // open torus. At each end, create a mesh component, and use its
       // createVolumetricSurface() method to create the mesh from the
       // elements near the end.
-      HashSet<FemElement3d> elems = new HashSet<>(); // elements for mesh bulding
+      LinkedHashSet<FemElement3d> elems =
+         new LinkedHashSet<>(); // elements for mesh bulding
       FemMeshComp leftMesh = new FemMeshComp (ptorus, "leftMesh");
       // elements near the left end have numbers in the range 180 - 199
       for (int n=180; n<200; n++) {

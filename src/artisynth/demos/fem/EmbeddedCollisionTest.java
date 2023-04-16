@@ -36,8 +36,11 @@ public class EmbeddedCollisionTest extends CollisionTestBase {
       sphere.transformGeometry (X);
       
       mech.setCollisionBehavior (embedded, table, true, 0.2);
-      //mech.setIntegrator (Integrator.Trapezoidal);
-      //mech.setGravity (0, 0, -9);
+
+      if (mech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mech.setCompliantContact();
+      }
    }
    
 }

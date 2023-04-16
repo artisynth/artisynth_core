@@ -46,11 +46,15 @@ public class SkinCollisionTest extends FemSkinDemo {
       myMech.setCollisionBehavior(table, skinBody, true, friction);
 
       myMech.clearBodyConnectors();
-      //myMech.setCompliantContact();
 
       //myMech.setProfiling (true);
       createControlPanel (myMech);
       setCollisionProperties (myMech);
+
+      if (myMech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         myMech.setCompliantContact();
+      }
    }
 
    public void createControlPanel (MechModel mech) {

@@ -62,12 +62,14 @@ public class ContactConstraint {
    double myContactArea; // average area associated with the contact, or
                          // -1 if not available
    
-   Vector3d myFrictionForce;
+   //Vector3d myFrictionForce;
    double myPhi0;        // most recent friction forces
    double myPhi1;
    int myFrictionState0; // most recent friction states resulting for LCP solve
    int myFrictionState1;
+   Vector3d myFrictionDir0; // first friction direction 
    Vector3d myTangentialVelocity; // cached value of the tangential velocity
+   boolean myHasFrictionDir; // 
 
    public double getContactForce() {
       return myLambda;
@@ -185,7 +187,8 @@ public class ContactConstraint {
       myNormal = new Vector3d();
       myCpnt0 = new ContactPoint();
       myIdentifyByPoint1 = false;
-      myFrictionForce = new Vector3d();
+      //myFrictionForce = new Vector3d();
+      myFrictionDir0 = new Vector3d();
    }
 
    public ContactConstraint (
@@ -197,7 +200,8 @@ public class ContactConstraint {
       myCpnt0 = new ContactPoint(cpnt0);
       myCpnt1 = new ContactPoint(cpnt1);
       myIdentifyByPoint1 = false;
-      myFrictionForce = new Vector3d();
+      //myFrictionForce = new Vector3d();
+      myFrictionDir0 = new Vector3d();
       myPnt0OnCollidable1 = pnt0OnCollidable1;
    }
 
@@ -253,28 +257,6 @@ public class ContactConstraint {
       return numb;
    }
 
-   public int getBilateralInfo (
-      int idx, double penTol, double[] fres, ContactForceBehavior forceBehavior,
-      ConstraintInfo[] ginfo, boolean twoWayContact, int flags) {
-
-      setSolveIndex (idx);
-      ConstraintInfo gi = ginfo[idx];
-      if (getDistance() < -penTol) {
-         gi.dist = (getDistance() + penTol);
-      }
-      else {
-         gi.dist = 0;
-      }
-      if (forceBehavior != null) {
-         forceBehavior.computeResponse (
-            fres, myDistance, myCpnt0, myCpnt1, myNormal, myContactArea, flags);
-      }
-      gi.force =      fres[0];
-      gi.compliance = fres[1];
-      gi.damping =    fres[2];
-      return ++idx;
-   }
-   
    public void addConstraintBlocks (SparseBlockMatrix GT, int bj) {
       for (ContactMaster cm : myMasters0) {
          cm.add1DConstraintBlocks (GT, bj, 1, myCpnt0, myNormal);
@@ -304,46 +286,58 @@ public class ContactConstraint {
       // compute relative velocity into dir
       computeTangentialVelocity (myTangentialVelocity);
       // normalize to obtain a direction
-      dir.set (myTangentialVelocity);
-      double mag = dir.norm();
+      double mag = myTangentialVelocity.norm();
       if (mag > DOUBLE_PREC) {
-         dir.scale(-1/mag);
+         dir.scale(-1/mag, myTangentialVelocity);
          return mag;
       }
       else {
+         dir.setZero();
          return 0;
       }
    }
 
-   void zeroTangentialVelocity() {
-      if (myTangentialVelocity == null) {
-         myTangentialVelocity = new Vector3d();
-      }
-      myTangentialVelocity.setZero();
-   }
-
-   void computeFrictionDirs (Vector3d dir1, Vector3d dir2) {
-      if (computeFrictionDir (dir1) == 0) {
+   void computeFrictionDirs (Vector3d dir0, Vector3d dir1) {
+      if (computeFrictionDir (dir0) == 0) {
          // choose an arbitrary direction perpendicular to the normal
-         dir1.perpendicular (myNormal);         
+         dir0.perpendicular (myNormal);
+         dir0.normalize();
       }
-      dir1.negate();
-      dir2.cross (myNormal, dir1);
+      dir0.negate();
+      dir1.cross (myNormal, dir0);
+   }
+   
+   public Vector3d getFrictionForce() {
+      Vector3d force = new Vector3d();
+      if (myPhi0 != 0 || myPhi1 != 0) {
+         if (myPhi1 != 0) {
+            Vector3d dir1 = new Vector3d();
+            dir1.cross (myNormal, myFrictionDir0);
+            force.combine (myPhi0, myFrictionDir0, myPhi1, dir1);
+         }
+         else {
+            force.scale (myPhi0, myFrictionDir0);
+         }
+      }
+      return force;
    }
 
    public int add1DFrictionConstraints (
       SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
-      double mu, double stictionCreep, int numf) {
+      double mu, double stictionCreep, double compliance, int numf) {
 
       Vector3d dir = new Vector3d();
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
-         if (computeFrictionDir(dir) > 0 && mu > 0) {
+         if (computeFrictionDir(dir) > 0) {
+            myFrictionDir0.set (dir);
+            myHasFrictionDir = true;
             FrictionInfo info = finfo.get(numf);
             info.mu = mu;
             info.contactIdx0 = mySolveIndex;
             info.contactIdx1 = -1;
             info.flags = FrictionInfo.BILATERAL;
             info.stictionCreep = stictionCreep;
+            info.stictionCompliance = compliance;
             info.blockIdx = DT.numBlockRows();
             info.blockSize = 1;
             for (ContactMaster cm : myMasters0) {
@@ -355,7 +349,9 @@ public class ContactConstraint {
             numf++;
          }
          else {
-            zeroTangentialVelocity();
+            myFrictionDir0.setZero();
+            myHasFrictionDir = false;
+            myTangentialVelocity.setZero();
          }
       }
       return numf;      
@@ -364,15 +360,20 @@ public class ContactConstraint {
    public int set1DFrictionForce (VectorNd phi, double s, int idx) {
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
          double mag;
-         if ((mag=myTangentialVelocity.norm()) > 0) {
+         if (myHasFrictionDir && (mag=myTangentialVelocity.norm()) > 0) {
             myPhi0 = s*phi.get(idx++);
-            // compute and store the actual friction force
-            if (myPhi0 != 0) {
-               myFrictionForce.scale (-myPhi0/mag, myTangentialVelocity);
-            }
-            else {
-               myFrictionForce.setZero();
-            }
+//            // compute and store the actual friction force
+//            if (myPhi0 != 0) {
+//               myFrictionForce.scale (-1/mag, myTangentialVelocity);
+//               myFrictionForce.scale (myPhi0);
+//            }
+//            else {
+//               myFrictionForce.setZero();
+//            }
+         }
+         else {
+            myPhi0 = 0;
+//            myFrictionForce.setZero();
          }
       }
       return idx;
@@ -380,7 +381,7 @@ public class ContactConstraint {
 
    public int get1DFrictionForce (VectorNd phi, int idx) {
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
-         if (myTangentialVelocity.norm() > 0) {
+         if (myHasFrictionDir) {//myTangentialVelocity.norm() > 0) {
             phi.set(idx++, myPhi0);
          }
       }
@@ -389,7 +390,7 @@ public class ContactConstraint {
    
    public int set1DFrictionState (VectorNi state, int idx) {
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
-         if (myTangentialVelocity.norm() > 0) {
+         if (myHasFrictionDir) { //myTangentialVelocity.norm() > 0) {
             myFrictionState0 = state.get(idx++);
          }
       }
@@ -398,7 +399,7 @@ public class ContactConstraint {
 
    public int get1DFrictionState (VectorNi state, int idx) {
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
-         if (myTangentialVelocity.norm() > 0) {
+         if (myHasFrictionDir) { //myTangentialVelocity.norm() > 0) {
             state.set(idx++, myFrictionState0);
          }
       }
@@ -407,7 +408,7 @@ public class ContactConstraint {
 
    public int add2DFrictionConstraints (
       SparseBlockMatrix DT, ArrayList<FrictionInfo> finfo, 
-      double mu, double stictionCreep, int numf, 
+      double mu, double stictionCreep, double compliance, int numf, 
       boolean prune, boolean bilateralContact) {
 
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
@@ -416,17 +417,42 @@ public class ContactConstraint {
             Math.abs(getContactForce())*mu <= CollisionHandler.ftol) {
             info.blockIdx = -1;
             info.blockSize = 2;
+            myFrictionDir0.setZero();
+            myHasFrictionDir = false;
          }
          else {
             int bj = DT.numBlockCols();
             Vector3d dir0 = new Vector3d();
             Vector3d dir1 = new Vector3d();
             computeFrictionDirs (dir0, dir1);
+            info.stictionDisp0 = 0;
+            info.stictionDisp1 = 0;
+            if (myHasFrictionDir && compliance > 0) {
+               // Estimate stiction displacements from previous phi.
+               // Project previous friction dir to the current plane:
+               Vector3d prevDir0 = new Vector3d(myFrictionDir0);
+               prevDir0.scaledAdd (-myNormal.dot(prevDir0), myNormal);
+               double mag = prevDir0.norm();
+               if (mag > 0) {
+                  // rotate old phi into new friction coordinate system
+                  prevDir0.scale (1/mag);
+                  double c = dir0.dot (prevDir0);
+                  double s = dir1.dot (prevDir0);
+                  info.stictionDisp0 = -(c*myPhi0 - s*myPhi1)*compliance;
+                  info.stictionDisp1 = -(s*myPhi0 + c*myPhi1)*compliance;
+               }
+            }
+            // System.out.printf (" myPhi0=%g myPhi1=%g\n", myPhi0, myPhi1);
+            // System.out.printf (" myState0=%d myState1=%d\n", 
+            //    myFrictionState0, myFrictionState1);
+            myFrictionDir0.set (dir0);
+            myHasFrictionDir = true;
             info.mu = mu;
             info.contactIdx0 = mySolveIndex;
             info.contactIdx1 = -1;
             info.flags = (bilateralContact ? FrictionInfo.BILATERAL : 0);
             info.stictionCreep = stictionCreep;
+            info.stictionCompliance = compliance;
             info.blockIdx = bj;
             info.blockSize = 2;
             for (ContactMaster cm : myMasters0) {
@@ -445,24 +471,6 @@ public class ContactConstraint {
       if (myMasters0.size() > 0 || myMasters1.size() > 0) {
          myPhi0 = s*phi.get(idx++);
          myPhi1 = s*phi.get(idx++);
-         // compute and store the actual friction force
-         if (myPhi0 != 0 || myPhi1 != 0) {
-            Vector3d dir0 = new Vector3d();
-            Vector3d dir1 = new Vector3d();
-            double mag = myTangentialVelocity.norm();
-            if (mag > DOUBLE_PREC) {
-               dir0.scale (-1/mag, myTangentialVelocity);
-            }
-            else {
-               dir0.perpendicular (myNormal); 
-            }
-            dir0.negate();
-            dir1.cross (myNormal, dir0);
-            myFrictionForce.combine (myPhi0, dir0, myPhi1, dir1);
-         }
-         else {
-            myFrictionForce.setZero();
-         }
       }
       return idx;
    }
@@ -529,7 +537,8 @@ public class ContactConstraint {
       data.dput (myNormal);
       data.dput (myContactArea);
       // can we optimize the friction state?
-      data.dput (myFrictionForce);
+      //data.dput (myFrictionForce);
+      data.dput (myFrictionDir0);
       data.dput (myPhi0);
       data.dput (myPhi1);
       data.zput (myFrictionState0);
@@ -559,7 +568,9 @@ public class ContactConstraint {
       data.dget(myNormal);
       myContactArea = data.dget();
       assignMasters (collidable0, collidable1);
-      data.dget(myFrictionForce);
+      //data.dget(myFrictionForce);
+      data.dget(myFrictionDir0);
+      myHasFrictionDir = !myFrictionDir0.equals(Vector3d.ZERO);
       myPhi0 = data.dget();
       myPhi1 = data.dget();
       myFrictionState0 = data.zget();

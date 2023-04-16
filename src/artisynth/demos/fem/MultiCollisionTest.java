@@ -163,6 +163,11 @@ public class MultiCollisionTest extends RootModel {
       addBreakPoint(10);
       
       createControlPanel();
+
+      if (mech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mech.setCompliantContact();
+      }
    }
 
    protected RigidBody getRbBox(String name, Vector3d size, Point3d c, int[] rbRes) {

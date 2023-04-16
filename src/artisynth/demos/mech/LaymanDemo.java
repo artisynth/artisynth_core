@@ -91,17 +91,10 @@ public class LaymanDemo extends RootModel {
 
       // myMechMod.setProfiling (true);
       myMechMod.setIntegrator (Integrator.ConstrainedBackwardEuler);
-      //addBreakPoint (0.90);
-      //myMechMod.setCompliantContact();
-      // try {
-      //    String name = "old.txt";
-      //    if (MechModel.useNewCollisionManager) {
-      //       name = "new.txt";
-      //    }
-      //    MechSystemSolver.setLogWriter (
-      //       ArtisynthIO.newIndentingPrintWriter (name));
-      // }
-      // catch (Exception e)  {
-      // }
+
+      if (myMechMod.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         myMechMod.setCompliantContact();
+      }
    }
 }

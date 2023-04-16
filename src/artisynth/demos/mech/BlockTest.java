@@ -70,6 +70,11 @@ public class BlockTest extends RootModel {
          collisions.setDrawContactNormals (true);
       }
 
+      if (msmod.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         msmod.setCompliantContact();
+      }
+
       ControlPanel panel = new ControlPanel();
       panel.addWidget (msmod, "integrator");
       panel.addWidget (myBlock, "position");
@@ -80,6 +85,5 @@ public class BlockTest extends RootModel {
       addControlPanel (panel);
       addBreakPoint (10);
       Main.getMain().arrangeControlPanels(this);
-      //msmod.setCompliantContact();
    }
 }

@@ -39,6 +39,10 @@ public class RigidCompositeCollide extends RootModel {
 
       // turn on collisions
       mech.setDefaultCollisionBehavior (true, 0.20);
-      //mech.setCompliantContact();
+
+      if (mech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mech.setCompliantContact();
+      }
    }
 }

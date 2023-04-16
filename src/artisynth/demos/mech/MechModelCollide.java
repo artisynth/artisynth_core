@@ -176,7 +176,11 @@ public class MechModelCollide extends RootModel {
       //addBreakPoint (0.51);
       //mechMod.setProfiling (true);
       addControlPanel (mechMod);
-      
+
+      if (mechMod.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mechMod.setCompliantContact();
+      }
    }
 
    ControlPanel myControlPanel;

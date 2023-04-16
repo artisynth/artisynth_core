@@ -191,6 +191,14 @@ public class CollisionBehavior extends CollisionComponent
    double myStictionCreep = defaultStictionCreep;
    PropertyMode myStictionCreepMode = PropertyMode.Inherited;
 
+   static double defaultStictionCompliance = 0.0;
+   double myStictionCompliance = defaultStictionCompliance;
+   PropertyMode myStictionComplianceMode = PropertyMode.Inherited;
+
+   static double defaultStictionDamping = 0.0;
+   double myStictionDamping = defaultStictionDamping;
+   PropertyMode myStictionDampingMode = PropertyMode.Inherited;
+
    static double defaultAcceleration = 0;
    double myAcceleration = defaultAcceleration;
    PropertyMode myAccelerationMode = PropertyMode.Inherited;
@@ -276,6 +284,10 @@ public class CollisionBehavior extends CollisionComponent
       myDampingMode = PropertyMode.Inherited;
       myStictionCreep = defaultStictionCreep;
       myStictionCreepMode = PropertyMode.Inherited;
+      myStictionCompliance = defaultStictionCompliance;
+      myStictionComplianceMode = PropertyMode.Inherited;
+      myStictionDamping = defaultStictionDamping;
+      myStictionDampingMode = PropertyMode.Inherited;
       myAcceleration = defaultAcceleration;
       myAccelerationMode = PropertyMode.Inherited;
       myRigidRegionTol = defaultRigidRegionTol;
@@ -345,6 +357,14 @@ public class CollisionBehavior extends CollisionComponent
       myProps.addInheritable (
          "stictionCreep:Inherited", "stictionCreep for each contact constraint",
          defaultStictionCreep);
+      myProps.addInheritable (
+         "stictionCompliance:Inherited",
+         "compliance for bristle model of static friction",
+         defaultStictionCompliance);
+      myProps.addInheritable (
+         "stictionDamping:Inherited",
+         "damping for bristle model of static friction",
+         defaultStictionDamping);
       myProps.add (
          "forceBehavior",
          "behavior for explicitly computing contact forces", null, "XE");
@@ -718,6 +738,74 @@ public class CollisionBehavior extends CollisionComponent
 
    public PropertyMode getStictionCreepMode() {
       return myStictionCreepMode;
+   }
+
+   /** 
+    * Gets the stiction compliance associated with this behavior. See {@link
+    * #setStictionCompliance}.
+    * 
+    * @return stiction compliance
+    */
+   public double getStictionCompliance() {
+      return myStictionCompliance;
+   }
+
+   /** 
+    * Sets the stiction compliance associated with this behavior. This is the
+    * compliance factor associated with a ``bristle'' model of static friction,
+    * and is used to regularize friction.
+    * 
+    * @param compliance new stiction compliance
+    */
+   public void setStictionCompliance (double compliance) {
+      myStictionCompliance = compliance;
+      myStictionComplianceMode =
+         PropertyUtils.propagateValue (
+            this, "stictionCompliance", myStictionCompliance, myStictionComplianceMode);      
+   }
+
+   public void setStictionComplianceMode (PropertyMode mode) {
+      myStictionComplianceMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "stictionCompliance", myStictionComplianceMode, mode);
+   }
+
+   public PropertyMode getStictionComplianceMode() {
+      return myStictionComplianceMode;
+   }
+
+    /** 
+    * Gets the stiction damping associated with this behavior. See {@link
+    * #setStictionDamping}.
+    * 
+    * @return stiction damping
+    */
+   public double getStictionDamping() {
+      return myStictionDamping;
+   }
+
+   /** 
+    * Sets the stiction damping associated with this behavior. This is the
+    * damping factor associated with a ``bristle'' model of static friction,
+    * and is used to regularize friction.
+    * 
+    * @param damping new stiction damping
+    */
+   public void setStictionDamping (double damping) {
+      myStictionDamping = damping;
+      myStictionDampingMode =
+         PropertyUtils.propagateValue (
+            this, "stictionDamping", myStictionDamping, myStictionDampingMode);      
+   }
+
+   public void setStictionDampingMode (PropertyMode mode) {
+      myStictionDampingMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "stictionDamping", myStictionDampingMode, mode);
+   }
+
+   public PropertyMode getStictionDampingMode() {
+      return myStictionDampingMode;
    }
 
    /**
@@ -1247,6 +1335,10 @@ public class CollisionBehavior extends CollisionComponent
       myDampingMode = behav.myDampingMode;
       myStictionCreep = behav.myStictionCreep;
       myStictionCreepMode = behav.myStictionCreepMode;
+      myStictionCompliance = behav.myStictionCompliance;
+      myStictionComplianceMode = behav.myStictionComplianceMode;
+      myStictionDamping = behav.myStictionDamping;
+      myStictionDampingMode = behav.myStictionDampingMode;
       myAcceleration = behav.myAcceleration;
       myAccelerationMode = behav.myAccelerationMode;
       myRigidRegionTol = behav.myRigidRegionTol;
@@ -1342,6 +1434,20 @@ public class CollisionBehavior extends CollisionComponent
       }
       else if (myStictionCreepMode == EXPLICIT &&
                myStictionCreep != behav.myStictionCreep) {
+         return false;
+      }
+      if (myStictionComplianceMode != behav.myStictionComplianceMode) {
+         return false;
+      }
+      else if (myStictionComplianceMode == EXPLICIT &&
+               myStictionCompliance != behav.myStictionCompliance) {
+         return false;
+      }
+      if (myStictionDampingMode != behav.myStictionDampingMode) {
+         return false;
+      }
+      else if (myStictionDampingMode == EXPLICIT &&
+               myStictionDamping != behav.myStictionDamping) {
          return false;
       }
       if (myAccelerationMode != behav.myAccelerationMode) {
@@ -1500,6 +1606,8 @@ public class CollisionBehavior extends CollisionComponent
    public void scaleMass (double s) {
       myCompliance /= s;
       myDamping *= s;
+      myStictionCompliance /= s;
+      myStictionDamping *= s;
    }   
 
    /**

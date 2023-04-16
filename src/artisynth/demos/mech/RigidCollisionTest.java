@@ -57,7 +57,10 @@ public class RigidCollisionTest extends CollisionTestBase {
       mech.setCollisionBehavior (box0, table, true, 0.20);
       mech.setCollisionBehavior (box1, table, true, 0.20);
 
-
+      if (mech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mech.setCompliantContact();
+      }
    }
    
    RigidBody createCBox (

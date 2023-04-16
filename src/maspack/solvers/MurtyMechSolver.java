@@ -13,6 +13,7 @@ public class MurtyMechSolver {
 
    public boolean debug = false;
    public boolean showAStructureChange = false;
+   public boolean showRebuildReason = false;
 
    // Pivot types
    protected static int Z = LCPSolver.Z_VAR;          // activate constraint
@@ -21,7 +22,7 @@ public class MurtyMechSolver {
    
    public static int CONTACT_SOLVE = 0x0001; // indicates a contact solve
    public static int NT_INACTIVE = 0x0002; // NT state should not be changed
-   public static int REBUILD_A = 0x0004; // indicates that A should be rebuilt
+   public static int REBUILD_A = 0x0004; // A matrix should be rebuilt
 
    enum ConstraintType {
       N,
@@ -51,8 +52,8 @@ public class MurtyMechSolver {
       ConstraintType myType; // constraint type (N or D)
       int myCol;             // corresponding column of N or D
       int[] myBlockRowIdxs;  // block row indices (used to set values if masked)
-      boolean myContactMask; // true if the constraint is masked for a contact solve
-      boolean myRemovedMask; // true if the constraint is masked because it was removed
+      boolean myContactMask; // true if constraint masked for a contact solve
+      boolean myRemovedMask; // true if constraint masked because it was removed
       int myIdx;             // constraint index within A
 
       AConstraintData (ConstraintType type, int col, int idx) {
@@ -377,7 +378,7 @@ public class MurtyMechSolver {
    protected int[] myJRowD;          // index of J constraint for D, or -1 if none
 
    protected int mySizeND;           // sizeN + sizeD
-   protected ArrayList<FrictionInfo> myFrictionInfo; // information for each D constraint
+   protected ArrayList<FrictionInfo> myFrictionInfo; // info for each D constraint
    
    // timers and counters for assessing computational costs with respect to the
    // A system
@@ -402,10 +403,13 @@ public class MurtyMechSolver {
 
    protected boolean mySilentP = false;
    protected int myDebug = SHOW_NONE;
-   protected boolean myAdaptivelyRebuildA = true;
+   protected static boolean myDefaultAdaptivelyRebuildA = true; 
+   protected boolean myAdaptivelyRebuildA = myDefaultAdaptivelyRebuildA;
+   // if possible, update A (instead of rebuilding) between solves:
    protected boolean myUpdateABetweenSolves = true;
-   protected boolean myContactSolveP = false; // flag indicating contact solve
-   // rebuild A if sizeND/myAconsD.size() <= rebuildARatio;
+   protected boolean myFullSolveP = true; // full solve vs. contact solve
+   // explicit request to analyze A. Used to ensure numeric repeatability:
+   // rebuild A if sizeND/myAconsD.size() <= rebuildARatio:
    protected double myRebuildARatio = 0.1;
 
    int[] myARowOffs;
@@ -427,31 +431,82 @@ public class MurtyMechSolver {
       mySilentP = code;
    }
 
-   public void setAdaptivelyRebuildA (boolean enable) {
-      myAdaptivelyRebuildA = enable;
-   }
-
+   /**
+    * Queries whether A should be adaptively rebuilt at the beginning of each
+    * solve. See {@link #setAdaptivelyRebuildA}.
+    *
+    * @return {@code true} if A should be adaptively rebuilt
+    */
    public boolean getAdaptivelyRebuildA () {
       return myAdaptivelyRebuildA;
    }
 
-   public void setUpdateABetweenSolves (boolean enable) {
-      myUpdateABetweenSolves = enable;
+   /**
+    * Sets whether A should be adaptively rebuilt at the beginning of each
+    * solve. If enabled, A will be rebuilt if the average update time is {@code
+    * >=} half the average analyze time.
+    *
+    * @param enable if {@code true},  A should be adaptively rebuilt
+    */
+   public void setAdaptivelyRebuildA (boolean enable) {
+      myAdaptivelyRebuildA = enable;
    }
 
+   /**
+    * Queries the (static) default setting of {@link #getAdaptivelyRebuildA}.
+    *
+    * @return default setting for {@link #getAdaptivelyRebuildA}.
+    */
+   public static boolean getDefaultAdaptivelyRebuildA () {
+      return myDefaultAdaptivelyRebuildA;
+   }
+
+   /**
+    * Sets the (static) default setting of {@link #getAdaptivelyRebuildA}.
+    *
+    * @param enable new default setting for {@link #getAdaptivelyRebuildA}.
+    */
+   public static void setDefaultAdaptivelyRebuildA (boolean enable) {
+      myDefaultAdaptivelyRebuildA = enable;
+   }
+
+   /**
+    * Queries whether the solver should attempt to update A, instead of always
+    * rebuilding it, between solves.
+    *
+    * @return {@code true} if A should be updated between solves
+    */
    public boolean getUpdateABetweenSolves () {
       return myUpdateABetweenSolves;
    }
 
    /**
-    * Rebuild the A matrix if sizeND/myAconsData.size() {@code <=} r.
+    * Sets whether the solver should attempt to update A, instead of always
+    * rebuilding it, between solves.
+    *
+    * @param enable if {@code true}, A should be updated between solves
+    */
+   public void setUpdateABetweenSolves (boolean enable) {
+      myUpdateABetweenSolves = enable;
+   }
+
+   /**
+    * Queries the rebuild A ratio. See {@link #setRebuildARatio}.
+    *
+    * @return current rebuild A ratio
+    */
+   public double getRebuildARatio () {
+      return myRebuildARatio;
+   }
+
+   /**
+    * Sets the rebuild A ratio {@code r}. The A matrix will be rebuilt at the
+    * start of a solve if sizeND/myAconsData.size() {@code <=} r.
+    *
+    * @param r new rebuild A ratio.
     */
    public void setRebuildARatio (double r) {
       myRebuildARatio = r;
-   }
-
-   public double getRebuildARatio () {
-      return myRebuildARatio;
    }
 
    public MurtyMechSolver() {
@@ -724,92 +779,52 @@ public class MurtyMechSolver {
       }
       return blockRowIdxs.getArray();      
    }
-
-   protected void initializeState (VectorNi state) {
-      int basisChangeCnt = 0;
-
-      myAConsN = Arrays.copyOf (myAConsN, mySizeN);
-      if (mySizeN > 0) {
-         for (int i=0; i<mySizeN; i++) {
-            int sval = (state != null ? state.get(i) : W_LO);
-            if ((myAConsN[i] == null) != (sval != Z)) {
-               basisChangeCnt++;
-            }
-            myStateN[i] = sval;
-         }
+   
+   private String getAconsStr (AConstraintData[] acons) {
+      StringBuilder sb = new StringBuilder();
+      for (int i=0; i<acons.length; i++) {
+         sb.append ((acons[i] == null) ? "L" : "Z");
       }
-      myAConsD = Arrays.copyOf (myAConsD, mySizeD); // XXX
-      if (!myContactSolveP) {
-         myAConsDFull = myAConsD;
-        if (myUpdateABetweenSolves) {
-           myAConsDFull = myAConsD;
-        }
-        else {
-           myAConsDFull = new AConstraintData[0];
-        }
-        myLastDTFull = myDT;
-        myLastRdFull = myRd;
-      }
-      if (mySizeD > 0) {
-         for (int i=0; i<mySizeD; i++) {
-            int sval = (state != null ? state.get(mySizeN+i) : W_LO);
-            if (myFlim.get(i) == 0 && sval != W_LO) {
-               sval = W_LO;
-            }
-            if ((myAConsD[i] == null) != (sval != Z)) {
-               basisChangeCnt++;
-            }
-            myStateD[i] = sval;
-         }
-      }
-      if (basisChangeCnt > 0) {
-         if (!myAStructureChanged) {
-            if (showAStructureChange) System.out.println ("rebuild: basis");
-            myAStructureChanged = true;
-         }
-      }
+      return sb.toString();
    }
 
    protected void initializeState (VectorNi stateN, VectorNi stateD) {
       int basisChangeCnt = 0;
 
       myAConsN = Arrays.copyOf (myAConsN, mySizeN);
-      if (mySizeN > 0) {
-         for (int i=0; i<mySizeN; i++) {
-            int sval = (stateN != null ? stateN.get(i) : W_LO);
-            if ((myAConsN[i] == null) != (sval != Z)) {
-               basisChangeCnt++;
-            }
-            myStateN[i] = sval;
+      for (int i=0; i<mySizeN; i++) {
+         int sval = (stateN != null ? stateN.get(i) : W_LO);
+         if ((myAConsN[i] == null) != (sval != Z)) {
+            basisChangeCnt++;
          }
+         myStateN[i] = sval;
       }
       myAConsD = Arrays.copyOf (myAConsD, mySizeD); // XXX
-      if (!myContactSolveP) {
-         myAConsDFull = myAConsD;
-        if (myUpdateABetweenSolves) {
-           myAConsDFull = myAConsD;
-        }
-        else {
-           myAConsDFull = new AConstraintData[0];
-        }
-        myLastDTFull = myDT;
-        myLastRdFull = myRd;
-      }
-      if (mySizeD > 0) {
-         for (int i=0; i<mySizeD; i++) {
-            int sval = (stateD != null ? stateD.get(i) : W_LO);
-            if (myFlim.get(i) == 0 && sval != W_LO) {
-               sval = W_LO;
-            }
-            if ((myAConsD[i] == null) != (sval != Z)) {
-               basisChangeCnt++;
-            }
-            myStateD[i] = sval;
+      if (myFullSolveP) {
+         if (myUpdateABetweenSolves) {
+            myAConsDFull = myAConsD;
          }
+         else {
+            myAConsDFull = new AConstraintData[0];
+         }
+         myLastDTFull = myDT;
+         myLastRdFull = myRd;
+      }
+      for (int i=0; i<mySizeD; i++) {
+         int sval = (stateD != null ? stateD.get(i) : W_LO);
+         if (myFlim.get(i) == 0 && sval != W_LO) {
+            sval = W_LO;
+         }
+         if ((myAConsD[i] == null) != (sval != Z)) {
+            basisChangeCnt++;
+         }
+         myStateD[i] = sval;
       }
       if (basisChangeCnt > 0) {
          if (!myAStructureChanged) {
-            if (showAStructureChange) System.out.println ("rebuild: basis");
+            if (showAStructureChange) {
+               System.out.println ("  AstructureChanged: basis");
+            }
             myAStructureChanged = true;
          }
       }
@@ -933,7 +948,6 @@ public class MurtyMechSolver {
    private void factorA () {
       if (mySolverType == SparseSolverId.Pardiso) {
          myFactorTimer.restart();
-
          myPardiso.factor (myValuesA);
          if (myPardiso.getState() != PardisoSolver.FACTORED) {
             throw new NumericalException (
@@ -981,7 +995,7 @@ public class MurtyMechSolver {
 
    private boolean canDoHybridSolve() {
       if (myHybridSolves && myPardiso != null &&
-          mySizeND == 0 && myAvgDirectTime > 0 && !myAStructureChanged) {
+          mySizeND == 0 && myAvgDirectTime > 0) {
          return (myAvgHybridTime < myHybridRatio*myAvgDirectTime);
       }
       return false;
@@ -1005,7 +1019,6 @@ public class MurtyMechSolver {
       if (status > 0 && !myFakeHybridFail) {
          myAvgHybridTime = updateAvgTime (myTimer.getTimeUsec(), myAvgHybridTime);
          myHybridCnt++;
-         //System.out.println ("hybrid");
          return true;
       }
       else {
@@ -1042,108 +1055,13 @@ public class MurtyMechSolver {
    FunctionTimer idxTimer = new FunctionTimer();
    FunctionTimer altTimer = new FunctionTimer();
    int idxCnt = 0;
-
-   protected int[] rebuildOrUpdateA(ArrayList<Pivot> pivots, VectorNi state) {
-
-      myCnt++;
-
-      //myHasPrevNIdxs = (prevNIdxsVec != null);
-
-      boolean rebuildA = !myUpdateABetweenSolves;
-      if (state == null) {
-         //System.out.println ("state==null");
-         rebuildA = true;
+   
+   private int[] allocUndefinedIndices (int size) {
+      int[] idxs = new int[size];
+      for (int i=0; i<size; i++) {
+         idxs[i] = -1;
       }
-      else if (myTotalAnalyzeCnt == 0) {
-         rebuildA = true;
-      }
-      else if (myAStructureChanged) {
-         //System.out.println ("Achanged");
-         rebuildA = true;
-      }
-      else if (!myContactSolveP &&
-               mySizeND/(double)myAConsData.size() <= myRebuildARatio) {
-         rebuildA = true;
-      }
-      
-
-      int[] prevDIdxs = null;
-      int[] prevNIdxs = null;
-      AConstraintData[] prevAConsD = null;
-      if (!rebuildA && mySizeD > 0) {
-         prevAConsD = myAConsDFull;
-         myAConsD = new AConstraintData[mySizeD];
-         if (!myContactSolveP) {
-            myAConsDFull = myAConsD;
-            myLastDTFull = myDT;
-            myLastRdFull = myRd;
-         }
-      }
-
-      if (state != null) {
-         if (state.size() == 0) {
-            state.setSize (mySizeND);
-            LCPSolver.clearState (state);
-         }
-         else if (state.size() < mySizeND) {
-            throw new IllegalArgumentException (
-               "state size="+state.size()+" when ND size="+mySizeND);
-         }
-      }
-
-      SparseBlockSignature prevNTSignature = myNTSignature;
-      myNTSignature =
-         (myNT != null ? new SparseBlockSignature (myNT, /*vertical=*/true) : null);
-
-      
-      if (!rebuildA) {
-         if (mySizeN > 0 && prevNTSignature != null) {
-            prevNIdxs = myNTSignature.computePrevColIdxs(prevNTSignature);
-         }
-      }
-      else {
-         if (!myAStructureChanged &&
-             !signaturesEqual (myNTSignature, prevNTSignature)) {
-            if (showAStructureChange) System.out.println ("rebuild: N changed");
-            myAStructureChanged = true;
-         }         
-      }
-      
-      if (!myContactSolveP) {
-         SparseBlockSignature prevDTSignature = myDTSignature;
-         myDTSignature =
-            (myDT != null ? new SparseBlockSignature (myDT, /*vertical=*/true) : null);
-
-         if (!rebuildA) {
-            if (mySizeD > 0 && prevDTSignature != null) {
-               prevDIdxs = myDTSignature.computePrevColIdxs (prevDTSignature);
-            }
-         }
-         else {
-            if (!myAStructureChanged &&
-                !signaturesEqual (myDTSignature, prevDTSignature)) {
-               if (showAStructureChange) System.out.println ("rebuild: D change");
-               myAStructureChanged = true;
-            }
-         }
-      }
-      
-      if (!rebuildA) {
-         updateA (pivots, state, prevNIdxs, prevDIdxs, prevAConsD);
-         int nump = pivots.size();
-         // decide whether to update or rebuild
-         //System.out.println ("nump=" + nump);
-         if (!myAdaptivelyRebuildA ||
-            nump*getAvgSolveTime() < 0.5*getAvgAnalyzeTime()) {
-            //System.out.println ("UPDATE");
-            return null;
-         }
-      }
-
-      initializeState (state);
-      pivots.clear();
-
-      return buildA();
+      return idxs;
    }
 
    protected int[] rebuildOrUpdateA (
@@ -1151,32 +1069,42 @@ public class MurtyMechSolver {
 
       myCnt++;
 
-      //myHasPrevNIdxs = (prevNIdxsVec != null);
-
       boolean rebuildA = !myUpdateABetweenSolves;
+      if (rebuildA && showRebuildReason) {
+         System.out.println ("  rebuild, no updates between solves");
+      }
       if (stateN == null && stateD == null) {
-         //System.out.println ("stateN and stateD are null");
+         if (showRebuildReason) {
+            System.out.println ("  rebuild, stateN and stateD are null");
+         }
          rebuildA = true;
       }
       else if (myTotalAnalyzeCnt == 0) {
+         if (showRebuildReason) {
+            System.out.println ("  rebuild, myTotalAnalyzeCnt == 0");
+         }
          rebuildA = true;
       }
       else if (myAStructureChanged) {
-         //System.out.println ("Achanged");
+         if (showRebuildReason) {
+            System.out.println ("  rebuild, Achanged");
+         }
          rebuildA = true;
       }
-      else if (!myContactSolveP && mySizeND/(double)myAConsData.size() <= myRebuildARatio) {
+      else if (myFullSolveP &&
+               mySizeND/(double)myAConsData.size() <= myRebuildARatio) {
+         if (showRebuildReason) {
+            System.out.println ("  rebuild, Ratio");
+         }
          rebuildA = true;
       }
-      
-
       int[] prevDIdxs = null;
       int[] prevNIdxs = null;
       AConstraintData[] prevAConsD = null;
       if (!rebuildA && mySizeD > 0) {
          prevAConsD = myAConsDFull;
          myAConsD = new AConstraintData[mySizeD];
-         if (!myContactSolveP) {
+         if (myFullSolveP) {
             myAConsDFull = myAConsD;
             myLastDTFull = myDT;
             myLastRdFull = myRd;
@@ -1205,197 +1133,86 @@ public class MurtyMechSolver {
       }
 
       SparseBlockSignature prevNTSignature = myNTSignature;
-      myNTSignature =
-         (myNT != null ? new SparseBlockSignature (myNT, /*vertical=*/true) : null);
-
+      if (myNT != null) {
+         myNTSignature = new SparseBlockSignature (myNT, /*vertical=*/true);
+      }
+      else {
+         myNTSignature = null;
+      }
       
       if (!rebuildA) {
-         if (mySizeN > 0 && prevNTSignature != null) {
-            prevNIdxs = myNTSignature.computePrevColIdxs(prevNTSignature);
+         // For updating A, find indices of NT columns wrt previous NT.
+         if (mySizeN > 0) {
+            if (prevNTSignature != null) {
+               prevNIdxs = myNTSignature.computePrevColIdxs(prevNTSignature);
+            }
+            else {
+               prevNIdxs = allocUndefinedIndices (mySizeN);
+            }
          }
       }
       else {
+         // Set AStructureChanged if NT structure differs from previous
          if (!myAStructureChanged &&
              !signaturesEqual (myNTSignature, prevNTSignature)) {
-            if (showAStructureChange) System.out.println ("rebuild: N changed");
+            if (showAStructureChange) {
+               System.out.println ("  AStructureChanged: N changed");
+            }
             myAStructureChanged = true;
          }         
       }
       
-      if (!myContactSolveP) {
+      if (myFullSolveP) {
          SparseBlockSignature prevDTSignature = myDTSignature;
-         myDTSignature =
-            (myDT != null ? new SparseBlockSignature (myDT, /*vertical=*/true) : null);
+         if (myDT != null) {
+            myDTSignature = new SparseBlockSignature (myDT, /*vertical=*/true);
+         }
+         else {
+            myDTSignature = null;
+         }
 
          if (!rebuildA) {
-            if (mySizeD > 0 && prevDTSignature != null) {
-               prevDIdxs = myDTSignature.computePrevColIdxs (prevDTSignature);
+            // For updating A, find indices of DT columns wrt previous DT.
+            if (mySizeD > 0) {
+               if (prevDTSignature != null) {
+                  prevDIdxs = myDTSignature.computePrevColIdxs (prevDTSignature);
+               }
+               else {
+                  prevDIdxs = allocUndefinedIndices (mySizeD);
+               }
             }
          }
          else {
+            // Set AStructureChanged if DT structure differs from previous
             if (!myAStructureChanged &&
                 !signaturesEqual (myDTSignature, prevDTSignature)) {
-               if (showAStructureChange) System.out.println ("rebuild: D change");
+               if (showAStructureChange) {
+                  System.out.println ("rebuild: D change");
+                  System.out.println ("  AStructureChanged: D changed");
+               }
                myAStructureChanged = true;
             }
          }
       }
       
       if (!rebuildA) {
+         // update A instead of rebuilding
          updateA (pivots, stateN, prevNIdxs, stateD, prevDIdxs, prevAConsD);
          int nump = pivots.size();
-         // decide whether to update or rebuild
-         //System.out.println ("nump=" + nump);
+         // rebuild anyway if adaptive rebuilding is enabled and the average
+         // update time is >= 1/2 the average analyze time:
          if (!myAdaptivelyRebuildA ||
             nump*getAvgSolveTime() < 0.5*getAvgAnalyzeTime()) {
-            //System.out.println ("UPDATE");
+            // update OK, no need to rebuild
             return null;
          }
+         if (showRebuildReason) {
+            System.out.println ("  rebuild, adaptive");            
+         }
       }
-
       initializeState (stateN, stateD);
       pivots.clear();
-
       return buildA();
-   }
-
-   protected void updateA (
-      ArrayList<Pivot> pivots, VectorNi state,
-      int[] prevNIdxs, int[] prevDIdxs,
-      AConstraintData[] prevAConsD) {
-
-      if (prevNIdxs != null && prevNIdxs.length < mySizeN) {
-         throw new IllegalArgumentException (
-            "prevNIdxs.length="+prevNIdxs.length+" when N size="+mySizeN);
-      }
-      
-      for (AConstraintData acons : myAConsData) {
-         if (acons.myType == TYPE_D) {
-            if (myContactSolveP) {
-               acons.setContactMask (true);
-            }
-            else {
-               acons.setContactMask (false);
-               acons.setRemovedMask (true);
-            }
-         }
-         else {
-            acons.setRemovedMask(true); // will unmask below if used
-         }
-      }
-
-      int prevSizeN = myAConsN.length;
-      AConstraintData[] prevAConsN = Arrays.copyOf (myAConsN, prevSizeN);
-      myAConsN = new AConstraintData[mySizeN];
-
-      int AIdxMax = mySizeA - mySizeMG;
-      
-      pivots.clear();
-      for (int i=0; i<mySizeN; i++) {
-         int previ = prevNIdxs[i];
-         if (previ >= prevSizeN) {
-            throw new IllegalArgumentException (
-               "prevNIdxs["+i+"]="+previ+
-               "; exceeds previous N size "+prevSizeN);
-         }
-         int sval = state.get(i);         
-         if (previ == -1) {
-            // constraint is new, and so is not in A
-            if (sval == Z) {
-               pivots.add (new Pivot (i, -1, W_LO, Z, TYPE_N));
-            }
-            myAConsN[i] = null;
-         }
-         else {
-            AConstraintData acons = prevAConsN[previ];
-            if (acons != null) {
-               // update A matrix constraint
-               acons.myCol = i;
-               acons.setRemovedMask (false);
-               myAConsN[i] = acons;
-            }
-            else {
-               myAConsN[i] = null;
-            }
-            if (sval == Z) {
-               if (acons == null) {
-                  // constraint is not in A
-                  pivots.add (new Pivot (i, -1, W_LO, Z, TYPE_N));
-               }
-               else {
-                  // use existing A constraint
-               }
-            }
-            else {
-               if (acons == null) {
-                  // constraint is not in A; nothing to do
-               }
-               else {
-                  // pivot to remove constraint
-                  pivots.add (new Pivot (i, acons.myIdx, Z, W_LO, TYPE_N));
-               }
-            }
-         }
-         myStateN[i] = sval;
-         myJRowN[i] = -1;
-      }
-
-      for (int i=0; i<mySizeD; i++) {
-         int previ = prevDIdxs[i];
-         int sval = state.get(mySizeN+i);   
-         if (myFlim.get(i) == 0 && sval != W_LO) {
-            sval = W_LO;
-         }
-         if (previ == -1) {
-            // constraint is new, and so is not in A
-            if (sval == Z) {
-               pivots.add (new Pivot (i, -1, W_LO, Z, TYPE_D));
-            }
-            myAConsD[i] = null;
-         }
-         else {
-            AConstraintData acons;
-            if (previ >= prevAConsD.length ){
-               acons = null;
-            }
-            else {
-               acons = prevAConsD[previ];
-            }
-            if (acons != null) {
-               // update A matrix constraint
-               acons.myCol = i;
-               acons.setRemovedMask(false);
-               myAConsD[i] = acons;
-            }
-            else {
-               myAConsD[i] = null;
-            }
-            if (sval == Z) {
-               if (acons == null) {
-                  // constraint is not in A
-                  pivots.add (new Pivot (i, -1, W_LO, Z, TYPE_D));
-               }
-               else {
-                  // use existing A constraint
-               }
-            }
-            else {
-               if (acons == null) {
-                  // constraint is not in A; nothing to do
-               }
-               else {
-                  if (acons.myIdx >= AIdxMax) {
-                     throw new IndexOutOfBoundsException (
-                        "acons.myIdx=" + acons.myIdx +", max=" + AIdxMax);
-                  }
-                  // pivot to remove constraint
-                  pivots.add (new Pivot (i, acons.myIdx, Z, sval, TYPE_D));
-               }
-            }
-         }
-         myStateD[i] = sval;
-         myJRowD[i] = -1;
-      }
    }
 
    protected void updateA (
@@ -1411,7 +1228,7 @@ public class MurtyMechSolver {
       
       for (AConstraintData acons : myAConsData) {
          if (acons.myType == TYPE_D) {
-            if (myContactSolveP) {
+            if (!myFullSolveP) {
                acons.setContactMask (true);
             }
             else {
@@ -1538,43 +1355,41 @@ public class MurtyMechSolver {
       }
    }
 
-   protected int numMaskedA () {
+   protected int numRemovedA () {
       int n = 0;
       for (AConstraintData acons : myAConsData) {
-         if (acons.isMasked()) {
+         if (acons.getRemovedMask()) {
             n++;
          }
       }
       return n;
    }
 
-   protected int numMaskedNA () {
-      int n = 0;
-      for (AConstraintData acons : myAConsData) {
-         if (acons.isMasked() && acons.myType == TYPE_N) {
-            n++;
-         }
-      }
-      return n;
-   }
+//   protected int numMaskedNA () {
+//      int n = 0;
+//      for (AConstraintData acons : myAConsData) {
+//         if (acons.isMasked() && acons.myType == TYPE_N) {
+//            n++;
+//         }
+//      }
+//      return n;
+//   }
 
-   protected int numMaskedDA () {
-      int n = 0;
-      for (AConstraintData acons : myAConsData) {
-         if (acons.isMasked() && acons.myType == TYPE_D) {
-            n++;
-         }
-      }
-      return n;
-   }
+//   protected int numMaskedDA () {
+//      int n = 0;
+//      for (AConstraintData acons : myAConsData) {
+//         if (acons.isMasked() && acons.myType == TYPE_D) {
+//            n++;
+//         }
+//      }
+//      return n;
+//   }
 
    protected void updateAndSolveA (VectorNi stateN, VectorNi stateD) {
       initializeSolverIfNecessary();
 
       ArrayList<Pivot> pivots = new ArrayList<>();
       int[] colIdxs = rebuildOrUpdateA (pivots, stateN, stateD);
-
-      //System.out.println ("numCons=" + myAConsData.size());
       
       checkConsistency();
       buildRhs();
@@ -1582,16 +1397,16 @@ public class MurtyMechSolver {
 
       boolean solved = false;
       boolean valuesUpdated = false;
-      if (canDoHybridSolve()) {
+      if (colIdxs == null && canDoHybridSolve()) {
          getAValues (null, /*forAnalyze=*/false); 
          valuesUpdated = true;
          solved = hybridSolveA();
       }
       if (!solved) {
-         if (myAStructureChanged) {
+         //if (myAStructureChanged || myTotalAnalyzeCnt == 0) {
+         if (colIdxs != null) {
             getAValues (null, /*forAnalyze=*/true); 
             analyzeA (colIdxs);
-            //System.out.println ("analyze " + mySizeA);
          }
          if (!valuesUpdated) {
             getAValues (null, /*forAnalyze=*/false); 
@@ -1630,7 +1445,6 @@ public class MurtyMechSolver {
       }
       
       if (pivots.size() > 0) {
-         double estTime = pivots.size()*getAvgSolveTime();
          // System.out.println ("initial pivots:");
          // for (Pivot piv : pivots) {
          //    System.out.println ("  " + piv);
@@ -1732,15 +1546,14 @@ public class MurtyMechSolver {
       // diagonal blocks. We first need to analyze and factor A.
       // find number of active columns in NT and DT;
       mySizeNA = 0;
-      int s;
       for (int j=0; j<mySizeN; j++) {
-         if ((s=myStateN[j]) == Z) {
+         if (myStateN[j] == Z) {
             mySizeNA++;
          }
          myJRowN[j] = -1;
       }
       ArrayList<AConstraintData> dConsData = null;
-      if (myContactSolveP && myUpdateABetweenSolves/* && myHasPrevNIdxs*/) {
+      if (!myFullSolveP && myUpdateABetweenSolves) {
          dConsData = new ArrayList<>();
          for (AConstraintData acons : myAConsData) {
             if (acons.myType == TYPE_D && !acons.getRemovedMask()) {
@@ -1753,7 +1566,7 @@ public class MurtyMechSolver {
       else {
          mySizeDA = 0;
          for (int j=0; j<mySizeD; j++) {
-            if ((s=myStateD[j]) == Z) {
+            if (myStateD[j] == Z) {
                mySizeDA++;
             }
             myJRowD[j] = -1;
@@ -1769,11 +1582,20 @@ public class MurtyMechSolver {
       int[] localOffs = new int[mySizeM];
       int[] colIdxs = null; // needed only if structure changed
 
-      if (myAStructureChanged || (dConsData != null && dConsData.size() > 0)) {
+      // System.out.println (
+      //    "  AstructureChanged=" + myAStructureChanged + " " +
+      //    " totalAnalyzeCnt= " + myTotalAnalyzeCnt + " " +
+      //    " myAConsData.size= " + myAConsData.size() + " " +
+      //    " numRemovedA()= " + numRemovedA());
+      if (myAStructureChanged ||
+          myTotalAnalyzeCnt == 0 ||
+          (dConsData != null && dConsData.size() > 0) ||
+          numRemovedA() > 0) {
          // allocate space for row offsets
          if (myRowOffsA == null || myRowOffsA.length < mySizeA + 1) {
             myRowOffsA = new int[mySizeA + 1];
          }
+         //System.out.println ("  clearing");
          myAConsData.clear();
          for (int j=0; j<mySizeN; j++) {
             if (myStateN[j] == Z) {
@@ -1943,7 +1765,9 @@ public class MurtyMechSolver {
            (M.numBlockRows() != myM.numBlockRows() ||
             M.numBlockCols() != myM.numBlockCols()))) {
          if (!myAStructureChanged) {
-            if (showAStructureChange) System.out.println ("rebuild: M changed");
+            if (showAStructureChange) {
+               System.out.println ("  AStructureChanged: M changed");
+            }
             //System.out.println ("M matrix changed");
             myAStructureChanged = true;
          }
@@ -1952,8 +1776,6 @@ public class MurtyMechSolver {
       mySizeM = sizeM;
       myVersionM = versionM;
       myBlkSizeM = M.getAlignedBlockRow (mySizeM);
-
-      SparseBlockMatrix prevGT = myGT;
 
       myGT = GT;
       SparseBlockSignature prevGTSignature = myGTSignature;
@@ -1971,8 +1793,9 @@ public class MurtyMechSolver {
       if (!myAStructureChanged &&
           !signaturesEqual (myGTSignature, prevGTSignature)) {
          if (!myAStructureChanged) {
-            if (showAStructureChange) System.out.println ("rebuild: G changed");
-            //System.out.println ("G matrix changed, size=" + mySizeG);
+            if (showAStructureChange) {
+               System.out.println ("  AStructureChanged: G changed");
+            }
             myAStructureChanged = true;
          }
       }
@@ -2031,7 +1854,6 @@ public class MurtyMechSolver {
       }
       if (sizeN > mySizeN) {
          myStateN = Arrays.copyOf (myStateN, sizeN); // preserve prev state
-         //myAConsN = Arrays.copyOf (myAConsN, sizeN);
          myJRowN = new int[sizeN];
       }
       myWn.setSize (sizeN);
@@ -2095,7 +1917,7 @@ public class MurtyMechSolver {
          return new VectorNd(myFlim);
       }
    }   
-
+   
    protected void updateFrictionLimits (VectorNd lam, VectorNd the) {
       if (myFlim == null) {
          myFlim = new VectorNd (mySizeD);
@@ -2117,9 +1939,6 @@ public class MurtyMechSolver {
          for (int i=0; i<myDT.getBlockColSize(bk); i++) {
             myFlim.set (k++, phiMax);
          }
-      }
-      if (debug) {
-         System.out.println ("flim=" + myFlim.toString("%11.8f"));
       }
 
       // need to update myBe for cases where state corresponds to D
@@ -3088,9 +2907,11 @@ public class MurtyMechSolver {
       myNumFailedPivots = 0;
       myAStructureChanged = ((flags & REBUILD_A) != 0); // also updated below
       if (myAStructureChanged) {
-         if (showAStructureChange) System.out.println ("rebuild: flag");
+         if (showAStructureChange) {
+            System.out.println ("  AStructureChanged: flag");
+         }
       }
-      myContactSolveP = ((flags & CONTACT_SOLVE) != 0);
+      myFullSolveP = ((flags & CONTACT_SOLVE) == 0);
 
       initializeSolverIfNecessary();
 
@@ -3179,7 +3000,13 @@ public class MurtyMechSolver {
       myBlockPivotFailCnt = 0;
       myNumFailedPivots = 0;
       myAStructureChanged = ((flags & REBUILD_A) != 0); // also updated below
-      myContactSolveP = false;
+      if (myAStructureChanged) {
+         if (showAStructureChange) {
+            System.out.println ("  AStructureChanged: flag");
+         }
+      }
+
+      myFullSolveP = true;
 
       initializeSolverIfNecessary();
 
@@ -3387,11 +3214,13 @@ public class MurtyMechSolver {
             "sizeA=" + mySizeA + " != sizeNA=" + mySizeNA +
             " + sizeDA=" + mySizeDA + " + sizeMG=" + mySizeMG);
       }
-      if (myAConsData.size() != mySizeNA + mySizeDA /* + numMaskedDA()*/) {
+      // System.out.println (
+      //    "myAConsData.size=" + myAConsData.size() + " sizeNA="+mySizeNA + 
+      //    " sizeDA=" + mySizeDA);
+      if (myAConsData.size() != mySizeNA + mySizeDA) {
          throw new TestException (
             "myAConsData.size()=" + myAConsData.size() +
-            " != sizeNA=" + mySizeNA + " + sizeDA=" + mySizeDA +
-            " + numMaskedA=" + numMaskedA());
+            " != sizeNA=" + mySizeNA + " + sizeDA=" + mySizeDA);
       }
       AConstraintData[] aconsNChk = new AConstraintData[mySizeN];
       AConstraintData[] aconsDChk = new AConstraintData[mySizeD];
@@ -3487,6 +3316,7 @@ public class MurtyMechSolver {
       myHybridCnt = 0;
       myAvgDirectTime = 0;
       myAvgHybridTime = 0;
+      resetTimers();
    }
 
 }

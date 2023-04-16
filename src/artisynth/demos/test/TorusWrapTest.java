@@ -104,7 +104,11 @@ public class TorusWrapTest extends RootModel {
       RenderProps.setFaceColor (mechMod, new Color (238, 232, 170));
 
       createControlPanel (mechMod);
-      //mechMod.setCompliantContact();
+
+      if (mechMod.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mechMod.setCompliantContact();
+      }
    }
 
    private void createControlPanel (MechModel mech) {

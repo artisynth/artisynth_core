@@ -51,7 +51,7 @@ public class ContactData {
       myLambda = cons.myLambda;
       myPnt0OnCollidable1 = cons.myPnt0OnCollidable1;
       myNormal = new Vector3d(cons.myNormal);
-      myFrictionForce = new Vector3d(cons.myFrictionForce);
+      myFrictionForce = new Vector3d(cons.getFrictionForce());
       myIsBilateral = isBilateral;
    }
 

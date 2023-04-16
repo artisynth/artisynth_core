@@ -84,6 +84,11 @@ public class EmbeddedEmbeddedCollide extends RootModel {
 
       RenderProps.setLineColor (mech, Color.BLUE);
       RenderProps.setSphericalPoints (mech, 0.005, Color.GREEN);
+
+      if (mech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mech.setCompliantContact();
+      }
    }
    
 }

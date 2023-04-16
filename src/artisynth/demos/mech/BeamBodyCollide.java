@@ -128,8 +128,6 @@ public class BeamBodyCollide extends RootModel {
       addControlPanel (myMech);
 
       myMech.setDefaultCollisionBehavior (true, 0.2);
-      //myMech.setUseImplicitFriction(true);
-      myMech.setCompliantContact();
 
       CollisionManager cm = myMech.getCollisionManager();
       RenderProps.setVisible (cm, true);
@@ -137,6 +135,12 @@ public class BeamBodyCollide extends RootModel {
       RenderProps.setLineColor (cm, Color.BLUE);
       cm.setDrawContactNormals (true);
       cm.setContactNormalLen (0.6);      
+
+      if (myMech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set. Use explicit
+         // parameters because default for stictionCreep is too low.
+         myMech.setCompliantContact (0.0005, 80, 0.0003);
+      }
    }
 
    ControlPanel myControlPanel;

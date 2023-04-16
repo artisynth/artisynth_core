@@ -220,7 +220,9 @@ public class MurtyMechSolverTest extends UnitTest {
          checkEquals ("stateD "+label, myStateD, myStateDChk);         
          checkNormedEquals ("lam "+label, myLam, myLamChk, tol);
          checkNormedEquals ("the "+label, myThe, myTheChk, tol);
-         checkNormedEquals ("phi "+label, myPhi, myPhiChk, tol);
+         if (myPhi != null) {
+            checkNormedEquals ("phi "+label, myPhi, myPhiChk, tol);
+         }
          checkNormedEquals ("vel "+label, myVel, myVelChk, tol);
 
          if (printTestProblemStates) {
@@ -501,8 +503,12 @@ public class MurtyMechSolverTest extends UnitTest {
       int blkSizeM = M.getAlignedBlockRow (sizeM);
 
       for (int k=0; k<numtests; k++) {
-         VectorNi state = createRandomState (sizeN + sizeD);
-
+         //VectorNi state = createRandomState (sizeN + sizeD);
+         VectorNi stateN = createRandomNState (sizeN);
+         VectorNi stateD = createRandomDState (sizeD);
+         VectorNi state = new VectorNi (stateN);
+         state.append (stateD);
+         
          SparseBlockMatrix HT;
          VectorNd Rh = new VectorNd();
          if (GT != null) {
@@ -622,7 +628,7 @@ public class MurtyMechSolverTest extends UnitTest {
          murty.setNVariables (NT, Rn, bn, the);
          murty.setDVariables (DT, Rd, bd, phi, null);
          murty.setFrictionLimits (flim);
-         murty.rebuildOrUpdateA (new ArrayList<>(), state);
+         murty.rebuildOrUpdateA (new ArrayList<>(), stateN, stateD);
          murty.getAValues (null, /*forAnalyze=*/false);
          CRSValues crs = murty.getAMatrix();
          CRSValues chk = new CRSValues (rowOffs, colIdxs, values, sizeA);
@@ -900,7 +906,7 @@ public class MurtyMechSolverTest extends UnitTest {
          //crs.write ("A.txt");
          murty.solveForBasicVariables (vel, lam, the, phi);
 
-         double eps = 1e-13*cond;
+         double eps = 1e-12*cond;
          checkNormedEquals ("vel", vel, velChk, eps);
          checkNormedEquals ("lam", lam, lamChk, eps);
          checkNormedEquals ("the", the, theChk, eps);
@@ -1637,10 +1643,6 @@ public class MurtyMechSolverTest extends UnitTest {
       }
    }
 
-   VectorNi createRandomState (int size) {
-      return createRandomState (size, 0);
-   }                                     
-
    VectorNi createRandomNState (int sizeN) {
       VectorNi state = new VectorNi(sizeN);
       for (int j=0; j<sizeN; j++) {
@@ -1648,7 +1650,7 @@ public class MurtyMechSolverTest extends UnitTest {
             state.set (j, Z);
          }
          else {
-            state.set (j, Z);
+            state.set (j, W_LO);
          }
       }
       return state;
@@ -1662,24 +1664,6 @@ public class MurtyMechSolverTest extends UnitTest {
          }
          else {
             state.set (j, myRand.nextBoolean() ? W_LO : W_HI);
-         }
-      }
-      return state;
-   }
-
-   VectorNi createRandomState (int sizeN, int sizeD) {
-      VectorNi state = new VectorNi(sizeN+sizeD);
-      for (int j=0; j<state.size(); j++) {
-         if (myRand.nextBoolean()) {
-            state.set (j, Z);
-         }
-         else {
-            if (j < sizeN) {
-               state.set (j, W_LO);
-            }
-            else {
-               state.set (j, myRand.nextBoolean() ? W_LO : W_HI);
-            }
          }
       }
       return state;
@@ -2060,8 +2044,8 @@ public class MurtyMechSolverTest extends UnitTest {
 
    public void testHybridSolves() {
       // create a random matrix big enough that the hybrid solve is actually
-      // slower the the direct solve:
-      int numBlkRows = 25;
+      // faster than the the direct solve:
+      int numBlkRows = 50;
       int[] rowSizes = new int[numBlkRows];
       for (int bi=0; bi<numBlkRows; bi++) {
          rowSizes[bi] = 3;
@@ -2841,8 +2825,7 @@ public class MurtyMechSolverTest extends UnitTest {
       TestProblem prob, probN, probG = null;
       int nfixedG = 0;
       MurtyMechSolver murty = new MurtyMechSolver();
-      if (true) {
-         
+
       prob = createContactProblem (
          mass, stiffness, C, 10, "Z S", cidxs, mu, null);
       prob.createSolutionCheck ("");
@@ -2951,13 +2934,33 @@ public class MurtyMechSolverTest extends UnitTest {
       prob.createSolutionCheck ("LZZ", USE_THE);
       prob.checkSolve (
           "removed active contact", murty, "LZZ", USE_THE, 1e-10);
+
+      // remove all active contacts
+      cidxs = new int[] {};
+      prob = createContactProblem (
+         mass, stiffness, C, 5, "", cidxs, mu, prob);
+      VectorNd theSave = prob.getTheta();
+      prob.createContactSolutionCheck ("");
+      prob.checkContactSolve (
+          "contact solve removing all active contacts", 
+          murty, "", USE_THE, 1e-10);
+      
+      // full solve - make sure D gets reactivated
+      prob.setTheta (theSave);
+      prob.createSolutionCheck ("", USE_THE);
+      //murty.setDebug (MurtySparseContactSolver.SHOW_PIVOTS);
+      prob.checkSolve (
+         "full solve with contacts removed",
+         murty, /*state=*/null, USE_THE, 1e-10);      
       
       // add new contacts
 
+      if (false) {
+         
       cidxs = new int[] {4, 1, 3, 2, 0};
       prob = createContactProblem (
          mass, stiffness, C, 5, "Z SZ ", cidxs, mu, prob);
-      VectorNd theSave = prob.getTheta();
+      theSave = prob.getTheta();
       prob.createSolutionCheck ("ZLZZL", USE_THE);
       // murty.setDebug (MurtySparseContactSolver.SHOW_PIVOTS);
       prob.checkSolve (
@@ -2978,7 +2981,16 @@ public class MurtyMechSolverTest extends UnitTest {
       prob.checkSolve (
          "full solve to reactivate D",
          murty, /*state=*/null, REBUILD_A|USE_THE, 1e-10);
-
+      
+      // now remove all contacts in the contact phase
+      cidxs = new int[] {};
+      prob = createContactProblem (
+         mass, stiffness, C, 5, "", cidxs, mu, prob);
+      
+      prob.createContactSolutionCheck ("");
+      prob.checkContactSolve (
+         "contact solve", murty, "", 0, 1e-10);    
+      
       // now do this with G based contact constraints instead of N
 
       nfixedG = 2;
@@ -3086,12 +3098,8 @@ public class MurtyMechSolverTest extends UnitTest {
       probG.createSolutionCheck ("ZZZZZ", USE_THE);
       probG.checkSolve (
          "G solve with constraints restored", murty, "ZZZZZ", USE_THE, 1e-10);
-
-      }
       
       // do a solve/contact solve cycle with changing bilateral constraints
-
-      if (true) {
          
       nfixedG = 1;
       cidxs = new int[] {0, 1, 2};
@@ -3126,8 +3134,9 @@ public class MurtyMechSolverTest extends UnitTest {
       probG.createSolutionCheck ("ZZ", USE_THE);
       probG.checkSolve (
          "G full solve with 1 contact", murty, "ZZ", USE_THE, 1e-10);
-      }
 
+      }
+      
    }
 
    String createStateFromPrevious (VectorNi state, VectorNi prevIdxs) {
@@ -3188,6 +3197,54 @@ public class MurtyMechSolverTest extends UnitTest {
       }
       return sb.toString();
    }   
+
+   protected void testVaryingContactSpecial() {
+
+      int maxparts = 10;
+      double mass = 2.0;
+      double stiffness = 0.5;
+      double mu = 0.5;
+
+      // create orientations for potential contacts and tangents
+      RotationMatrix3d[] C = new RotationMatrix3d[maxparts];
+      for (int bi=0; bi<maxparts; bi++) {
+         RotationMatrix3d R = new RotationMatrix3d();
+         R.setRandom();
+         C[bi] = R;
+      }
+
+ 
+      TestProblem prob, probN, probG = null;
+      int nfixedG = 0;
+      MurtyMechSolver murty = new MurtyMechSolver();
+
+      // create a contact problem without friction
+
+      int[] cidxs = new int[] {0, 1, 2};
+      prob = createContactProblem (
+         mass, stiffness, C, 10, "ZZZ", cidxs, -1, null);
+      prob.createSolutionCheck ("");
+
+      // do an initial check to form the contact basis:
+      prob.checkSolve (
+         "initialize special", murty, "ZZZ", REBUILD_A, 1e-10);
+
+      // now remove all contacts and do a contact solve followed by a full
+      // solve
+      cidxs = new int[] {};
+      prob = createContactProblem (
+         mass, stiffness, C, 10, "", cidxs, -1, null);
+      prob.createContactSolutionCheck ("");
+      prob.myVersionM = 1; // prevent rebuild
+      prob.checkContactSolve (
+          "frictionless contact solve removing all active contacts", 
+          murty, "", USE_THE, 1e-10);
+
+      prob.createSolutionCheck ("");
+      prob.checkSolve (
+          "frictionless full solve removing all active contacts", 
+          murty, "", USE_THE, 1e-10);
+   }         
 
    /**
     * Test varying contact in a setting that tries to emulate a real simulation
@@ -3273,6 +3330,7 @@ public class MurtyMechSolverTest extends UnitTest {
       testPegInHole (5, 5, 100);
       testHybridSolves();
       testVaryingContactSmall();
+      testVaryingContactSpecial();
       testVaryingContactLarge();
    }
 

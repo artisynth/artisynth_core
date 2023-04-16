@@ -46,6 +46,11 @@ public class RedundantCollisionTest extends RootModel {
       cm.setReduceConstraints (true);
       
       mech.setCollisionBehavior (fem_hires, table, true);
+
+      if (mech.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mech.setCompliantContact ();
+      }
    }
    
 }

@@ -22,6 +22,13 @@ public class FrictionInfo {
 
    public double stictionCreep; // allowed creep "velocity" for stiction.
    // stictionCreep > 0 regularizes friction force computation
+   
+   public double stictionCompliance;
+   // if stictionCompliance > 0, stictionDisp gives displacements along
+   // first and second friction directions:
+   public double stictionDisp0;
+   public double stictionDisp1;
+
 
    public FrictionInfo() {
       contactIdx1 = -1;

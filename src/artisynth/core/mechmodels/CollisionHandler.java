@@ -693,7 +693,6 @@ public class CollisionHandler extends ConstrainerBase
             // Check if the contact has already been corrected by other contact
             // corrections.
             //if (eec.calculate()) {
-   
             ContactPoint pnt0, pnt1;
             pnt0 = new ContactPoint (eec.point0, eec.edge0, eec.s0);
             if (collidable1 instanceof RigidBody) {
@@ -962,6 +961,15 @@ public class CollisionHandler extends ConstrainerBase
             nearc.myLambda = prev.myLambda;
             nearc.myFrictionState0 = prev.myFrictionState0;
             nearc.myFrictionState1 = prev.myFrictionState1;
+            if (prev.myHasFrictionDir) {
+               nearc.myFrictionDir0.set (prev.myFrictionDir0);
+               nearc.myPhi0 = prev.myPhi0;
+               nearc.myPhi1 = prev.myPhi1;
+               nearc.myHasFrictionDir = true;
+            }
+            else {
+               nearc.myHasFrictionDir = false;
+            }
          }
       }
    }
@@ -1120,7 +1128,9 @@ public class CollisionHandler extends ConstrainerBase
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
       double[] dbuf = (dg != null ? dg.getBuffer() : null);
+      int solveIdx = GT.colSize(); 
       for (ContactConstraint c : getOrderedBilaterals()) {
+         c.setSolveIndex (solveIdx++);
          if (numb >= dbuf.length) {
             System.out.println (
                "  access error: " +myCollidable0.getName()+" "+
@@ -1156,7 +1166,6 @@ public class CollisionHandler extends ConstrainerBase
       int flags = 
          (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
       for (ContactConstraint c : getOrderedBilaterals()) {
-         c.setSolveIndex (idx);
          ConstraintInfo gi = ginfo[idx];
          if (c.getDistance() < -penTol) {
             gi.dist = (c.getDistance() + penTol);
@@ -1173,25 +1182,6 @@ public class CollisionHandler extends ConstrainerBase
          gi.compliance = fres[1];
          gi.damping =    fres[2];
          idx++;
-      }
-      return idx;
-   }
-
-   public int getBilateralInfoOld (
-      ConstraintInfo[] ginfo, int idx) {
-      
-      double[] fres = new double[] { 
-         0, myCompliance, myDamping };
-
-      ContactForceBehavior forceBehavior = getForceBehavior();
-      double penTol = myBehavior.myPenetrationTol;
-      
-      int flags = 
-         (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
-      for (ContactConstraint c : getOrderedBilaterals()) {
-         idx = c.getBilateralInfo (
-            idx, penTol, fres, forceBehavior, 
-            ginfo, usingTwoWayContact(), flags);
       }
       return idx;
    }
@@ -1236,7 +1226,9 @@ public class CollisionHandler extends ConstrainerBase
 
       double[] dbuf = (dn != null ? dn.getBuffer() : null);
       int bj = NT.numBlockCols();
+      int solveIdx = NT.colSize(); 
       for (ContactConstraint c : getUnilaterals()) {
+         c.setSolveIndex (solveIdx++);
          c.addConstraintBlocks (NT, bj++);
          if (dbuf != null) {
             dbuf[numu] = c.getDerivative();
@@ -1258,7 +1250,6 @@ public class CollisionHandler extends ConstrainerBase
       int flags = 
          (usingTwoWayContact() ? ContactForceBehavior.TWO_WAY_CONTACT : 0);
       for (ContactConstraint c : getUnilaterals()) {
-         c.setSolveIndex (idx);
          ConstraintInfo ni = ninfo[idx];
          if (c.getDistance() < -penTol) {
             ni.dist = (c.getDistance() + penTol);
@@ -1337,17 +1328,19 @@ public class CollisionHandler extends ConstrainerBase
          return numf;
       }
       double creep = myBehavior.myStictionCreep;
+      double compliance = myBehavior.myStictionCompliance;
       boolean bilateralContact = true;
 
       if (myManager.use2DFrictionForBilateralContact()) {
          for (ContactConstraint c : getOrderedBilaterals()) {
             numf = c.add2DFrictionConstraints (
-               DT, finfo, mu, creep, numf, false, bilateralContact);
+               DT, finfo, mu, creep, compliance, numf, false, bilateralContact);
          }
       }
       else {
          for (ContactConstraint c : getOrderedBilaterals()) {
-            numf = c.add1DFrictionConstraints (DT, finfo, mu, creep, numf);
+            numf = c.add1DFrictionConstraints (
+               DT, finfo, mu, creep, compliance, numf);
          }
       }
 
@@ -1359,7 +1352,7 @@ public class CollisionHandler extends ConstrainerBase
             }
          }
          numf = c.add2DFrictionConstraints (
-            DT, finfo, mu, creep, numf, prune, bilateralContact);
+            DT, finfo, mu, creep, compliance, numf, prune, bilateralContact);
       }
       return numf;
    }
@@ -1481,7 +1474,7 @@ public class CollisionHandler extends ConstrainerBase
       Vector3d nforce = new Vector3d();
 
       for (ContactConstraint c : getUnilaterals()) {
-         fforce.add (c.myFrictionForce);
+         fforce.add (c.getFrictionForce());
          nforce.scaledAdd (c.getContactForce(), c.myNormal);
       }
 

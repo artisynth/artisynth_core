@@ -31,8 +31,6 @@ public class FemFrictionBeam extends RootModel {
    public enum FrictionMethod {
       IMPLICIT_G,
       IMPLICIT_N,
-      OLD_IMPLICIT,
-      MURTY,
       DEFAULT
    };
 
@@ -58,36 +56,16 @@ public class FemFrictionBeam extends RootModel {
       if (mechMod != null) {
          switch (method) {
             case DEFAULT: {
-               mechMod.getSolver().implicitFriction = false;
-               mechMod.getSolver().murtyFriction = false;
-               mechMod.setUseImplicitFriction (false);
-               mechMod.getCollisionManager().setBilateralVertexContact(true);
-               break;
-            }
-            case OLD_IMPLICIT: {
-               mechMod.getSolver().implicitFriction = true;
-               mechMod.getSolver().murtyFriction = false;
-               mechMod.setUseImplicitFriction (false);
-               mechMod.getCollisionManager().setBilateralVertexContact(false);
-               break;
-            }
-            case MURTY: {
-               mechMod.getSolver().implicitFriction = false;
-               mechMod.getSolver().murtyFriction = true;
                mechMod.setUseImplicitFriction (false);
                mechMod.getCollisionManager().setBilateralVertexContact(true);
                break;
             }
             case IMPLICIT_G: {
-               mechMod.getSolver().implicitFriction = false;
-               mechMod.getSolver().murtyFriction = false;
                mechMod.setUseImplicitFriction (true);
                mechMod.getCollisionManager().setBilateralVertexContact(true);
                break;
             }
             case IMPLICIT_N: {
-               mechMod.getSolver().implicitFriction = false;
-               mechMod.getSolver().murtyFriction = false;
                mechMod.setUseImplicitFriction (true);
                mechMod.getCollisionManager().setBilateralVertexContact(false);
                break;
@@ -178,8 +156,8 @@ public class FemFrictionBeam extends RootModel {
       MechModel mech = new MechModel ("mech");
       FemModel3d fem;
       //fem = FemFactory.createHexGrid (null, feml, femw, femh, 6, 3, 3);
-      //fem = FemFactory.createHexGrid (null,feml,femw,femh, 1, 1, 1);
-      fem = FemFactory.createHexGrid (null, feml, femw, femh, 10, 10, 6);
+      fem = FemFactory.createHexGrid (null,feml,femw,femh, 1, 1, 1);
+      //fem = FemFactory.createHexGrid (null, feml, femw, femh, 10, 10, 6);
       fem.setName("fem");
       fem.setDensity(1000);
 
@@ -264,6 +242,8 @@ public class FemFrictionBeam extends RootModel {
       panel.addWidget (cm, "contactForceLenScale");
       panel.addWidget (cm, "drawContactForces");
       panel.addWidget (cm, "drawFrictionForces");
+      panel.addWidget (cm, "stictionCompliance");
+      panel.addWidget (cm, "stictionCreep");
       panel.addWidget (fem, "material");
       panel.addWidget (this, "profileSolve");
       addControlPanel (panel);

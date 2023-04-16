@@ -317,6 +317,14 @@ public class CollisionManager extends RenderableCompositeBase
    double myStictionCreep = defaultStictionCreep;
    PropertyMode myStictionCreepMode = PropertyMode.Inherited;
 
+   static double defaultStictionCompliance = 0.0;
+   double myStictionCompliance = defaultStictionCompliance;
+   PropertyMode myStictionComplianceMode = PropertyMode.Inherited;
+
+   static double defaultStictionDamping = 0.0;
+   double myStictionDamping = defaultStictionDamping;
+   PropertyMode myStictionDampingMode = PropertyMode.Inherited;
+
    static double defaultAcceleration = 0;
    double myAcceleration = defaultAcceleration;
    PropertyMode myAccelerationMode = PropertyMode.Inherited;
@@ -413,6 +421,14 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "stictionCreep:Inherited", "stictionCreep for each contact constraint",
          defaultStictionCreep);
+      myProps.addInheritable (
+         "stictionCompliance:Inherited",
+         "compliance for bristle model of static friction",
+         defaultStictionCompliance);
+      myProps.addInheritable (
+         "stictionDamping:Inherited",
+         "damping for bristle model of static friction",
+         defaultStictionDamping);
       myProps.add (
          "forceBehavior", 
          "behavior for explicitly computing contact forces", null, "CE");
@@ -556,6 +572,10 @@ public class CollisionManager extends RenderableCompositeBase
       myDampingMode = PropertyMode.Inherited;
       myStictionCreep = defaultStictionCreep;
       myStictionCreepMode = PropertyMode.Inherited;
+      myStictionCompliance = defaultStictionCompliance;
+      myStictionComplianceMode = PropertyMode.Inherited;
+      myStictionDamping = defaultStictionDamping;
+      myStictionDampingMode = PropertyMode.Inherited;
       myRigidRegionTol = defaultRigidRegionTol;
       myRigidRegionTolMode = defaultRigidRegionTolMode;
       myRigidPointTol = defaultRigidPointTol;
@@ -984,6 +1004,72 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getStictionCreepMode() {
       return myStictionCreepMode;
+   }
+
+   /** 
+    * Gets the default stiction compliance. See {@link #setStictionCompliance}.
+    * 
+    * @return stiction compliance
+    */
+   public double getStictionCompliance() {
+      return myStictionCompliance;
+   }
+
+   /** 
+    * Sets the default stiction compliance. This is the compliance factor
+    * associated with a ``bristle'' model of static friction, and is used to
+    * regularize friction.
+    * 
+    * @param compliance new stiction compliance
+    */
+   public void setStictionCompliance (double compliance) {
+      myStictionCompliance = compliance;
+      myStictionComplianceMode =
+         PropertyUtils.propagateValue (
+            this, "stictionCompliance", myStictionCompliance, myStictionComplianceMode);      
+   }
+
+   public void setStictionComplianceMode (PropertyMode mode) {
+      myStictionComplianceMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "stictionCompliance", myStictionComplianceMode, mode);
+   }
+
+   public PropertyMode getStictionComplianceMode() {
+      return myStictionComplianceMode;
+   }
+
+    /** 
+    * Gets the default stiction damping. See {@link #setStictionDamping}.
+    * 
+    * @return stiction damping
+    */
+   public double getStictionDamping() {
+      return myStictionDamping;
+   }
+
+   /** 
+    * Sets the default stiction damping. This is the damping factor associated
+    * with a ``bristle'' model of static friction, and is used to regularize
+    * friction.
+    * 
+    * @param damping new stiction damping
+    */
+   public void setStictionDamping (double damping) {
+      myStictionDamping = damping;
+      myStictionDampingMode =
+         PropertyUtils.propagateValue (
+            this, "stictionDamping", myStictionDamping, myStictionDampingMode);      
+   }
+
+   public void setStictionDampingMode (PropertyMode mode) {
+      myStictionDampingMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "stictionDamping", myStictionDampingMode, mode);
+   }
+
+   public PropertyMode getStictionDampingMode() {
+      return myStictionDampingMode;
    }
 
    /**
@@ -2731,6 +2817,8 @@ public class CollisionManager extends RenderableCompositeBase
    public void scaleMass (double s) {
       myCompliance /= s;
       myDamping *= s;
+      myStictionCompliance /= s;
+      myStictionDamping *= s;
       myContactForceLenScale *= s;
       for (CollisionBehavior behav : myBehaviors) {
          behav.scaleMass (s);
@@ -3305,7 +3393,7 @@ public class CollisionManager extends RenderableCompositeBase
 
    public boolean use2DFrictionForBilateralContact() {
       MechSystemSolver solver = myMechModel.mySolver;
-      return solver.murtyFriction || solver.myUseImplicitFriction; 
+      return solver.usingImplicitFriction(); 
    }
 
    /* TODO:

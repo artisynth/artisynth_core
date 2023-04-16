@@ -61,165 +61,162 @@ public class FemCollision extends RootModel {
 
    public void build (String[] args) throws IOException {
 
-      try {
+      MechModel mechmod = new MechModel();
+      mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
+      //mechmod.setIntegrator(Integrator.BackwardEuler);
+      //mechmod.setProfiling (true);
 
-         MechModel mechmod = new MechModel();
-         mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
-         //mechmod.setIntegrator(Integrator.BackwardEuler);
-         //mechmod.setProfiling (true);
-
-         CollisionManager collisions = mechmod.getCollisionManager();
-         RenderProps.setVisible (collisions, true);
-         RenderProps.setEdgeWidth (collisions, 4);      
-         RenderProps.setEdgeColor (collisions, Color.YELLOW);
-         RenderProps.setLineWidth (collisions, 3);      
-         RenderProps.setLineColor (collisions, Color.GREEN);
-         collisions.setDrawContactNormals (true);
+      CollisionManager collisions = mechmod.getCollisionManager();
+      RenderProps.setVisible (collisions, true);
+      RenderProps.setEdgeWidth (collisions, 4);      
+      RenderProps.setEdgeColor (collisions, Color.YELLOW);
+      RenderProps.setLineWidth (collisions, 3);      
+      RenderProps.setLineColor (collisions, Color.GREEN);
+      collisions.setDrawContactNormals (true);
                   
-         RigidBody table = new RigidBody("table");
-         table.setDynamic (false);
-         //table.setMesh (new PolygonalMesh (new File (rbpath+ "box.obj")), null);
-         table.setMesh (MeshFactory.createBox (2, 2, 2));
-         AffineTransform3d trans = new AffineTransform3d();
-         trans.setIdentity();
-         trans.applyScaling (4, 2, 0.5);
-         table.transformGeometry (trans);
-         table.setPose (
-            new RigidTransform3d (
-               new Vector3d (1, 0, 0.8077474533228615),
-               new AxisAngle (1, 0, 0, Math.toRadians (mu == 0 ? 0.0 : 1.5))));
-         if (wireFrame) {
-            RenderProps.setFaceStyle (table, Renderer.FaceStyle.NONE);
-            RenderProps.setDrawEdges (table, true);
-         }
-         mechmod.addRigidBody (table);
-
-         if (incBox0) {
-            box0 = new RigidBody("box0");
-            //box0.setMesh (
-            //   new PolygonalMesh (new File (rbpath + "box.obj")), null);
-            box0.setMesh (MeshFactory.createBox (2, 2, 2));
-            trans.setIdentity();
-            trans.applyScaling (1.5, 1.5, 0.5);
-            box0.transformGeometry (trans);
-            box0.setInertia (SpatialInertia.createBoxInertia (
-               10000, 4, 4, 1));
-            box0.setPose (new RigidTransform3d (
-               new Vector3d (-0.5, 0, 3.5), new AxisAngle()));
-            RenderProps.setFaceColor (box0, Color.GREEN.darker());
-            if (wireFrame) {
-               RenderProps.setFaceStyle (box0, Renderer.FaceStyle.NONE);
-               RenderProps.setDrawEdges (box0, true);
-            }
-            mechmod.addRigidBody (box0);
-         }
-
-         /*
-          * Tetgen t = new Tetgen("pvq1.2a0.03"); PolygonalMesh pm = new
-          * PolygonalMesh(new File(rbpath + "box.obj"));
-          * pm.writePoly("test.poly"); fem0 = t.createFemModel3d("fem0", pm,
-          * 5000, new Vector3d(0.8, 0.8, 0.8));
-          */
-
-         if (incFem0) {
-            String fem0Name =
-            // "torus508";
-               // "torus422";
-               // "torus546";
-               "sphere2";
-            // "box0023";
-            // "box0048";
-            // "box0144";
-            // "box0604";
-            // "box1056";
-            // "box2463";
-            // "box4257";
-            fem0 =
-               TetGenReader.read (
-                  "fem0", 5000, fempath + fem0Name + ".1.node", fempath
-                  + fem0Name + ".1.ele", new Vector3d (0.8, 0.8, 0.8));
-            fem0.transformGeometry (new RigidTransform3d (
-               new Vector3d (2, 0, 3.5), new AxisAngle()));
-            fem0.setLinearMaterial (1000000, 0.33, true);
-            if (!wireFrame)
-               fem0.setSurfaceRendering (SurfaceRender.Shaded);
-            fem0.setParticleDamping (0.1);
-            RenderProps.setFaceColor (fem0, new Color (0.5f, 0f, 0f));
-//            RenderProps.setAlpha(fem0, 0.33);
-            RenderProps.setAlpha(fem0, 0.5);
-            RenderProps.setShading(fem0, Shading.NONE);
-            RenderProps.setDrawEdges(fem0, true);
-            RenderProps.setVisible(fem0.getElements(), false);
-            RenderProps.setVisible(fem0.getNodes(), false);
-//            RenderProps.setLineColor(fem0, Color.GRAY);
-            mechmod.addModel (fem0);
-         }
-
-         if (incFem1) {
-
-            // Use this code for a box
-            /*
-             * double mySize = 1; fem1 = createFem (name, mySize);
-             * FemFactory.createTetGrid ( fem1, 1*mySize, 4*mySize, mySize, 1,
-             * 1, 1);
-             */
-            // end box code
-
-            // Use this code for a ball
-            String fem1Name = "sphere2";
-            fem1 =
-               TetGenReader.read (
-                  "fem1", 5000, fempath + fem1Name + ".1.node", fempath
-                  + fem1Name + ".1.ele", new Vector3d (0.8, 0.8, 0.8));
-            fem1.setLinearMaterial (1000000, 0.33, true);
-            fem1.setParticleDamping (0.1);
-            // end ball code
-            fem1.setIncompressible (FemModel3d.IncompMethod.AUTO);
-            fem1.transformGeometry (new RigidTransform3d (
-               new Vector3d (1.25, 0, 2), new AxisAngle()));
-            fem1.setSurfaceRendering (
-               wireFrame ? SurfaceRender.None : SurfaceRender.Shaded);
-            RenderProps.setAlpha(fem1, 0.5);
-            RenderProps.setShading(fem1, Shading.NONE);
-            RenderProps.setDrawEdges(fem1, true);
-            RenderProps.setVisible(fem1.getElements(), false);
-            RenderProps.setVisible(fem1.getNodes(), false);
-            RenderProps.setFaceColor (fem1, new Color (0f, 0f, 0.8f));
-            mechmod.addModel (fem1);
-         }
-
-         if (incFem0) {
-            mechmod.setCollisionBehavior (fem0, table, true, mu);
-            mechmod.setCollisionResponse (fem0, Collidable.Deformable);
-            mechmod.setCollisionResponse (fem0, table);
-         }
-         if (incFem1 & incFem0) {
-            mechmod.setCollisionBehavior (fem0, fem1, true, mu);
-         }
-         if (incBox0 & incFem0) {
-            mechmod.setCollisionBehavior (box0, fem0, true, mu);
-         }
-         if (incFem1) {
-            mechmod.setCollisionBehavior (fem1, table, true, mu);
-            mechmod.setCollisionResponse (fem1, Collidable.AllBodies);
-         }
-         if (incBox0 & incFem1) {
-            mechmod.setCollisionBehavior (box0, fem1, true, mu);
-         }
-         if (incBox0) {
-            mechmod.setCollisionBehavior (box0, table, true, mu);
-            mechmod.setCollisionResponse (box0, table);
-         }
-
-         addModel (mechmod);
-         for (int i=1; i<=10; i++) {
-            addWayPoint (i*0.5);
-         }
-         //addBreakPoint (1.00);
-         //addBreakPoint (1.20);
+      RigidBody table = new RigidBody("table");
+      table.setDynamic (false);
+      //table.setMesh (new PolygonalMesh (new File (rbpath+ "box.obj")), null);
+      table.setMesh (MeshFactory.createBox (2, 2, 2));
+      AffineTransform3d trans = new AffineTransform3d();
+      trans.setIdentity();
+      trans.applyScaling (4, 2, 0.5);
+      table.transformGeometry (trans);
+      table.setPose (
+         new RigidTransform3d (
+            new Vector3d (1, 0, 0.8077474533228615),
+            new AxisAngle (1, 0, 0, Math.toRadians (mu == 0 ? 0.0 : 1.5))));
+      if (wireFrame) {
+         RenderProps.setFaceStyle (table, Renderer.FaceStyle.NONE);
+         RenderProps.setDrawEdges (table, true);
       }
-      catch (IOException e) {
-         throw e;
+      mechmod.addRigidBody (table);
+
+      if (incBox0) {
+         box0 = new RigidBody("box0");
+         //box0.setMesh (
+         //   new PolygonalMesh (new File (rbpath + "box.obj")), null);
+         box0.setMesh (MeshFactory.createBox (2, 2, 2));
+         trans.setIdentity();
+         trans.applyScaling (1.5, 1.5, 0.5);
+         box0.transformGeometry (trans);
+         box0.setInertia (SpatialInertia.createBoxInertia (
+                             10000, 4, 4, 1));
+         box0.setPose (new RigidTransform3d (
+                          new Vector3d (-0.5, 0, 3.5), new AxisAngle()));
+         RenderProps.setFaceColor (box0, Color.GREEN.darker());
+         if (wireFrame) {
+            RenderProps.setFaceStyle (box0, Renderer.FaceStyle.NONE);
+            RenderProps.setDrawEdges (box0, true);
+         }
+         mechmod.addRigidBody (box0);
+      }
+
+      /*
+       * Tetgen t = new Tetgen("pvq1.2a0.03"); PolygonalMesh pm = new
+       * PolygonalMesh(new File(rbpath + "box.obj"));
+       * pm.writePoly("test.poly"); fem0 = t.createFemModel3d("fem0", pm,
+       * 5000, new Vector3d(0.8, 0.8, 0.8));
+       */
+
+      if (incFem0) {
+         String fem0Name =
+            // "torus508";
+            // "torus422";
+            // "torus546";
+            "sphere2";
+         // "box0023";
+         // "box0048";
+         // "box0144";
+         // "box0604";
+         // "box1056";
+         // "box2463";
+         // "box4257";
+         fem0 =
+            TetGenReader.read (
+               "fem0", 5000, fempath + fem0Name + ".1.node", fempath
+               + fem0Name + ".1.ele", new Vector3d (0.8, 0.8, 0.8));
+         fem0.transformGeometry (new RigidTransform3d (
+                                    new Vector3d (2, 0, 3.5), new AxisAngle()));
+         fem0.setLinearMaterial (1000000, 0.33, true);
+         if (!wireFrame)
+            fem0.setSurfaceRendering (SurfaceRender.Shaded);
+         fem0.setParticleDamping (0.1);
+         RenderProps.setFaceColor (fem0, new Color (0.5f, 0f, 0f));
+         //            RenderProps.setAlpha(fem0, 0.33);
+         RenderProps.setAlpha(fem0, 0.5);
+         RenderProps.setShading(fem0, Shading.NONE);
+         RenderProps.setDrawEdges(fem0, true);
+         RenderProps.setVisible(fem0.getElements(), false);
+         RenderProps.setVisible(fem0.getNodes(), false);
+         //            RenderProps.setLineColor(fem0, Color.GRAY);
+         mechmod.addModel (fem0);
+      }
+
+      if (incFem1) {
+
+         // Use this code for a box
+         /*
+          * double mySize = 1; fem1 = createFem (name, mySize);
+          * FemFactory.createTetGrid ( fem1, 1*mySize, 4*mySize, mySize, 1,
+          * 1, 1);
+          */
+         // end box code
+
+         // Use this code for a ball
+         String fem1Name = "sphere2";
+         fem1 =
+            TetGenReader.read (
+               "fem1", 5000, fempath + fem1Name + ".1.node", fempath
+               + fem1Name + ".1.ele", new Vector3d (0.8, 0.8, 0.8));
+         fem1.setLinearMaterial (1000000, 0.33, true);
+         fem1.setParticleDamping (0.1);
+         // end ball code
+         fem1.setIncompressible (FemModel3d.IncompMethod.AUTO);
+         fem1.transformGeometry (new RigidTransform3d (
+                                    new Vector3d (1.25, 0, 2), new AxisAngle()));
+         fem1.setSurfaceRendering (
+            wireFrame ? SurfaceRender.None : SurfaceRender.Shaded);
+         RenderProps.setAlpha(fem1, 0.5);
+         RenderProps.setShading(fem1, Shading.NONE);
+         RenderProps.setDrawEdges(fem1, true);
+         RenderProps.setVisible(fem1.getElements(), false);
+         RenderProps.setVisible(fem1.getNodes(), false);
+         RenderProps.setFaceColor (fem1, new Color (0f, 0f, 0.8f));
+         mechmod.addModel (fem1);
+      }
+
+      if (incFem0) {
+         mechmod.setCollisionBehavior (fem0, table, true, mu);
+         mechmod.setCollisionResponse (fem0, Collidable.Deformable);
+         mechmod.setCollisionResponse (fem0, table);
+      }
+      if (incFem1 & incFem0) {
+         mechmod.setCollisionBehavior (fem0, fem1, true, mu);
+      }
+      if (incBox0 & incFem0) {
+         mechmod.setCollisionBehavior (box0, fem0, true, mu);
+      }
+      if (incFem1) {
+         mechmod.setCollisionBehavior (fem1, table, true, mu);
+         mechmod.setCollisionResponse (fem1, Collidable.AllBodies);
+      }
+      if (incBox0 & incFem1) {
+         mechmod.setCollisionBehavior (box0, fem1, true, mu);
+      }
+      if (incBox0) {
+         mechmod.setCollisionBehavior (box0, table, true, mu);
+         mechmod.setCollisionResponse (box0, table);
+      }
+
+      addModel (mechmod);
+      for (int i=1; i<=10; i++) {
+         addWayPoint (i*0.5);
+      }
+
+      if (mechmod.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mechmod.setCompliantContact();
       }
    }
 

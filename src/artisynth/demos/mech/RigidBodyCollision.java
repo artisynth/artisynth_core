@@ -47,119 +47,118 @@ public class RigidBodyCollision extends RootModel {
 
    public void build (String[] args) throws IOException {
 
-      try {
-         mechmod = new MechModel();
-         mechmod.setMaxStepSize (0.005);
-         boxes = new ArrayList<RigidBody>();
-         table = new RigidBody("table");
-         table.setDynamic (false);
-         table.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
-         AffineTransform3d trans = new AffineTransform3d();
-         trans.setIdentity();
-         trans.applyScaling (4, 2, 0.5);
-         table.transformGeometry (trans);
-         table.setPose (new RigidTransform3d (new Vector3d (
-            0, 0, 0.8077474533228615), new AxisAngle()));
-         table.setInertia (SpatialInertia.createBoxInertia (1, 1, 1, 1));
+      mechmod = new MechModel();
+      mechmod.setMaxStepSize (0.005);
+      boxes = new ArrayList<RigidBody>();
+      table = new RigidBody("table");
+      table.setDynamic (false);
+      table.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+      AffineTransform3d trans = new AffineTransform3d();
+      trans.setIdentity();
+      trans.applyScaling (4, 2, 0.5);
+      table.transformGeometry (trans);
+      table.setPose (new RigidTransform3d (new Vector3d (
+                                              0, 0, 0.8077474533228615), new AxisAngle()));
+      table.setInertia (SpatialInertia.createBoxInertia (1, 1, 1, 1));
 
 
-         mechmod.addRigidBody (table);
-         boxes.add (table);
-         if (wireFrame) {
-            setWireFrame (table);
-         }
-
-         box0 = new RigidBody("box0"); // middle box in pile
-         box0.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
-         trans.setIdentity();
-         trans.applyScaling (0.5, 0.5, 0.5);
-         box0.transformGeometry (trans);
-         box0.setInertia (SpatialInertia.createBoxInertia (4, 1, 1, 1));
-
-         addBox (box0, Color.GREEN);
-         if (wireFrame) {
-            setWireFrame (box0);
-         }
-
-         box1 = new RigidBody("box1"); // long thin box, bottom of pile
-         box1.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
-         trans.setIdentity();
-         trans.applyScaling (0.6, 0.1, 1.9);
-         box1.transformGeometry (trans);
-         box1.setInertia (SpatialInertia.createBoxInertia (1, 1, 0.1, 4));
-         addBox (box1, Color.YELLOW);
-         if (wireFrame) {
-            setWireFrame (box1);
-         }
-
-         box2 = new RigidBody("box2"); // left hand box falling on unsupported end of
-         // box1
-         box2.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
-         trans.setIdentity();
-         trans.applyScaling (0.5, 0.5, 0.5);
-         box2.transformGeometry (trans);
-         box2.setInertia (SpatialInertia.createBoxInertia (20, 1, 1, 1));
-         addBox (box2, Color.BLUE);
-         if (wireFrame) {
-            setWireFrame (box2);
-         }
-
-         box3 = new RigidBody("box3"); // top box in pile
-         box3.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
-         trans.setIdentity();
-         trans.applyScaling (0.4, 0.4, 0.4);
-         box3.transformGeometry (trans);
-         box3.setInertia (SpatialInertia.createBoxInertia (
-            0.5, 0.5, 0.5, 4));
-         addBox (box3, Color.CYAN);
-         //box3.getMesh().name = "box3";
-         if (wireFrame) {
-            setWireFrame (box3);
-         }
-
-         box4 = new RigidBody("box4"); // solo box off to the right.
-         box4.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
-         trans.setIdentity();
-         trans.applyScaling (0.6, 0.6, 0.3);
-         box4.transformGeometry (trans);
-         box4.setInertia (SpatialInertia.createBoxInertia (
-            0.5, 0.5, 0.5, 4));
-         box4.setPose (new RigidTransform3d (
-            new Vector3d (1, 0.0, 5), new AxisAngle (0, 0, 0, 0)));
-         addBox (box4, Color.RED);
-         //box4.getMesh().name = "box4";
-         if (wireFrame) {
-            setWireFrame (box4);
-         }
-
-         mechmod.setDefaultCollisionBehavior (true, 0.05);
-
-         reset();
-         addModel (mechmod);
-
-         ControlPanel panel = new ControlPanel();
-         panel.addWidget (mechmod, "integrator");
-         panel.addWidget (mechmod, "maxStepSize");
-         addControlPanel (panel);
-         Main.getMain().arrangeControlPanels (this);
-
-         CollisionManager cm = mechmod.getCollisionManager();
-         RenderProps.setVisible (cm, true);
-         RenderProps.setLineWidth (cm, 3);      
-         RenderProps.setLineColor (cm, Color.RED);
-         cm.setDrawContactNormals (true);
-
-         // mechmod.setProfiling (true);
-         //mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
-         // mechmod.setPrintState ("%12.7f");
-         //addBreakPoint (0.74);
-         for (int i=1; i<=10; i++) {
-            addWayPoint (0.1*i);
-         }
-         //mechmod.setCompliantContact();
+      mechmod.addRigidBody (table);
+      boxes.add (table);
+      if (wireFrame) {
+         setWireFrame (table);
       }
-      catch (IOException e) {
-         throw e;
+
+      box0 = new RigidBody("box0"); // middle box in pile
+      box0.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+      trans.setIdentity();
+      trans.applyScaling (0.5, 0.5, 0.5);
+      box0.transformGeometry (trans);
+      box0.setInertia (SpatialInertia.createBoxInertia (4, 1, 1, 1));
+
+      addBox (box0, Color.GREEN);
+      if (wireFrame) {
+         setWireFrame (box0);
+      }
+
+      box1 = new RigidBody("box1"); // long thin box, bottom of pile
+      box1.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+      trans.setIdentity();
+      trans.applyScaling (0.6, 0.1, 1.9);
+      box1.transformGeometry (trans);
+      box1.setInertia (SpatialInertia.createBoxInertia (1, 1, 0.1, 4));
+      addBox (box1, Color.YELLOW);
+      if (wireFrame) {
+         setWireFrame (box1);
+      }
+
+      box2 = new RigidBody("box2"); // left hand box falling on unsupported end of
+      // box1
+      box2.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+      trans.setIdentity();
+      trans.applyScaling (0.5, 0.5, 0.5);
+      box2.transformGeometry (trans);
+      box2.setInertia (SpatialInertia.createBoxInertia (20, 1, 1, 1));
+      addBox (box2, Color.BLUE);
+      if (wireFrame) {
+         setWireFrame (box2);
+      }
+
+      box3 = new RigidBody("box3"); // top box in pile
+      box3.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+      trans.setIdentity();
+      trans.applyScaling (0.4, 0.4, 0.4);
+      box3.transformGeometry (trans);
+      box3.setInertia (SpatialInertia.createBoxInertia (
+                          0.5, 0.5, 0.5, 4));
+      addBox (box3, Color.CYAN);
+      //box3.getMesh().name = "box3";
+      if (wireFrame) {
+         setWireFrame (box3);
+      }
+
+      box4 = new RigidBody("box4"); // solo box off to the right.
+      box4.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+      trans.setIdentity();
+      trans.applyScaling (0.6, 0.6, 0.3);
+      box4.transformGeometry (trans);
+      box4.setInertia (SpatialInertia.createBoxInertia (
+                          0.5, 0.5, 0.5, 4));
+      box4.setPose (new RigidTransform3d (
+                       new Vector3d (1, 0.0, 5), new AxisAngle (0, 0, 0, 0)));
+      addBox (box4, Color.RED);
+      //box4.getMesh().name = "box4";
+      if (wireFrame) {
+         setWireFrame (box4);
+      }
+
+      mechmod.setDefaultCollisionBehavior (true, 0.05);
+
+      reset();
+      addModel (mechmod);
+
+      ControlPanel panel = new ControlPanel();
+      panel.addWidget (mechmod, "integrator");
+      panel.addWidget (mechmod, "maxStepSize");
+      addControlPanel (panel);
+      Main.getMain().arrangeControlPanels (this);
+
+      CollisionManager cm = mechmod.getCollisionManager();
+      RenderProps.setVisible (cm, true);
+      RenderProps.setLineWidth (cm, 3);      
+      RenderProps.setLineColor (cm, Color.RED);
+      cm.setDrawContactNormals (true);
+
+      // mechmod.setProfiling (true);
+      //mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
+      // mechmod.setPrintState ("%12.7f");
+      //addBreakPoint (0.74);
+      for (int i=1; i<=10; i++) {
+         addWayPoint (0.1*i);
+      }
+
+      if (mechmod.getUseImplicitFriction()) {
+         // need compliant contact if implicit friction is set
+         mechmod.setCompliantContact();
       }
    }
 

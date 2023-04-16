@@ -24,38 +24,45 @@ public class MeshViewer extends RootModel {
       MechModel mech = new MechModel ("msmod");
       addModel (mech);
 
-      String meshFileName = null;
+      ArrayList<String> meshFileNames = new ArrayList<>();
 
       for (int i=0; i<args.length; i++) {
-         if (args[i].equals ("-mesh")) {
-            if (++i == args.length) {
-               System.out.println (
-                  "Warning: -mesh needs an extra argument; ignoring");
-            }
-            else {
-               meshFileName = args[i];
-            }
+         if (!args[i].startsWith ("-")) {
+            meshFileNames.add (args[i]);
          }
          else {
             System.out.println ("Warning: unrecognized model option "+args[i]);
+            System.out.println ("Usage: MeshViewer <meshFile> ...");
          }
       }
 
-      MeshBase mesh = null;
-      if (meshFileName != null) {
-         try {
-            mesh = GenericMeshReader.readMesh (meshFileName);
-         }
-         catch (Exception e) {
-            System.out.println ("Can't read mesh " + meshFileName);
-            e.printStackTrace(); 
+      if (meshFileNames.size() > 0) {
+         for (String fileName : meshFileNames) {
+            try {
+               MeshReader reader = GenericMeshReader.createReader (fileName);
+               MeshBase mesh = reader.readMesh(null);
+               if (reader instanceof WavefrontReader) {
+                  RenderProps props = ((WavefrontReader)reader).getRenderProps();
+                  if (props != null) {
+                     mesh.setRenderProps (props);
+                  }
+                  else {
+                     System.out.println ("No render props specified");
+                  }
+               }
+               mech.addMeshBody (new FixedMeshBody (mesh));
+            }
+            catch (Exception e) {
+               System.out.println ("Can't read mesh " + fileName);
+               e.printStackTrace(); 
+            }
          }
       }
       else {
-         mesh = MeshFactory.createIcosahedralSphere (1.0, 1);
+         PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (1.0, 1);
+         FixedMeshBody mbody = new FixedMeshBody ("mesh", mesh);
+         mech.addMeshBody (mbody);
       }
-      FixedMeshBody mbody = new FixedMeshBody ("mesh", mesh);
-      mech.addMeshBody (mbody);
    }
 }
 

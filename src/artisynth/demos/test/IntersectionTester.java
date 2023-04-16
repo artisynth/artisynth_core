@@ -46,7 +46,8 @@ public class IntersectionTester extends ControllerBase {
 
    private SurfaceMeshIntersector myIntersector;
    private boolean myContoursOnly;
-   private SurfaceMeshIntersector.CSG myCSGOperation = SurfaceMeshIntersector.CSG.NONE;
+   private SurfaceMeshIntersector.CSG
+      myCSGOperation = SurfaceMeshIntersector.CSG.NONE;
    private boolean myRenderCSGMesh = false;
    private PolygonalMesh myMesh0;
    private PolygonalMesh myMesh1;
@@ -233,6 +234,7 @@ public class IntersectionTester extends ControllerBase {
    
    void updateCSGMesh() {
       PolygonalMesh csgMesh = null;
+      FunctionTimer timer = new FunctionTimer();
       try {
          switch (myCSGOperation) {
             case INTERSECTION: {

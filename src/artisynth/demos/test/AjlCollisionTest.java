@@ -231,6 +231,21 @@ public class AjlCollisionTest extends RootModel {
       }      
    }
 
+   void printUsage() {
+      System.out.println ("Options:");
+      System.out.println (" <crashFiled>");
+      System.out.println (" -mesh <meshFile>");
+      System.out.println (" -sphere <radius>");
+      System.out.println (" -union");
+      System.out.println (" -union");
+      System.out.println (" -intersection");
+      System.out.println (" -difference10");
+      System.out.println (" -difference01");
+      System.out.println (" -perturb0");
+      System.out.println (" -perturb1");
+      System.out.println ("");
+   }
+
    public void build (String[] args) {
 
       RandomGenerator.setSeed (0x1234);
@@ -239,12 +254,13 @@ public class AjlCollisionTest extends RootModel {
 
       SurfaceMeshIntersector.CSG csg = null;
       String crashFile = null;
-      String meshFile0 = null;
-      String meshFile1 = null;
       boolean contoursOnly = false;
 
       double perturb0 = 0;
       double perturb1 = 0;
+
+      PolygonalMesh mesh0 = null;
+      PolygonalMesh mesh1 = null;
 
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-intersection")) {
@@ -280,29 +296,60 @@ public class AjlCollisionTest extends RootModel {
                perturb1 = Double.valueOf (args[i]);
             }
          }
-         else if (args[i].equals ("-mesh0")) {
+         else if (args[i].equals ("-mesh")) {
             if (++i == args.length) {
                System.out.println (
-                  "WARNING: -mesh0 needs an additional argument");
+                  "WARNING: -mesh needs an additional argument");
             }
             else {
-               meshFile0 = args[i];
+               PolygonalMesh mesh = null;
+               try {
+                  mesh = new PolygonalMesh (args[i]);
+               }
+               catch (Exception e) {
+                  e.printStackTrace(); 
+               }
+               if (mesh != null) {
+                  if (mesh0 == null) {
+                     mesh0 = mesh;
+                  }
+                  else if (mesh1 == null) {
+                     mesh1 = mesh;
+                  }
+                  else {
+                     mesh0 = mesh1;
+                     mesh1 = mesh;
+                  }
+               }
             }
          }
-         else if (args[i].equals ("-mesh1")) {
+         else if (args[i].equals ("-sphere")) {
             if (++i == args.length) {
                System.out.println (
-                  "WARNING: -mesh1 needs an additional argument");
+                  "WARNING: -sphere needs an additional radius argument");
             }
             else {
-               meshFile1 = args[i];
+               double r = Double.valueOf (args[i]);
+               PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (r, 3);
+               mesh.flip();
+               if (mesh0 == null) {
+                  mesh0 = mesh;
+               }
+               else if (mesh1 == null) {
+                  mesh1 = mesh;
+               }
+               else {
+                  mesh0 = mesh1;
+                  mesh1 = mesh;
+               }
             }
          }
          else if (!args[i].startsWith ("-")) {
             crashFile = args[i];
          }
          else {
-            System.out.println ("Unrecognized model argument "+args[i]);
+            System.out.println ("Unrecognized model option "+args[i]);
+            printUsage();
          }
       }
 
@@ -479,332 +526,12 @@ public class AjlCollisionTest extends RootModel {
 
          "f 9 11 10\n");
       
-      PolygonalMesh mesh0 = null;
-      PolygonalMesh mesh1 = null;
       TestInfo tinfo;
 
-      if (false) {
-         PolygonalMesh tallBox65 = MeshFactory.createBox (0.6, 0.5, 2.0);
-         PolygonalMesh cube = MeshFactory.createBox (1.0, 1.0, 1.0);
-         tallBox65.setMeshToWorld (new RigidTransform3d (0.2, 0, 0.0));
-
-         mesh0 = cube;
-         mesh1 = tallBox65;
+      if (mesh0 != null && mesh1 != null) {
          setupBodies (myMech, mesh0, mesh1);
       }
-
-      if (true) {
-         String dataDir = 
-            PathFinder.expand (
-               "${srcdir PolygonalMesh}/sampleData/");
-         
-         try {
-            mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");
-            mesh1 = new PolygonalMesh (dataDir+"molar2.2.obj");
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-      if (false) {
-         String dataDir = 
-            PathFinder.expand (
-               "${srcdir PolygonalMesh}/sampleData/");
-         
-         try {
-            mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");
-            mesh1 = MeshFactory.createPlane (2, 2);
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-      if (false) {
-         String dataDir = 
-            PathFinder.expand (
-               "${srcdir AjlCollisionTest}/data/");
-         
-         try {
-            mesh0 = new PolygonalMesh (dataDir+"ACLC01-R-femur-cart-072715.obj");
-            mesh1 = new PolygonalMesh (dataDir+"ACLC01-R-tibia-cart-072715.obj");
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-      if (false) {
-         String dataDir = 
-            PathFinder.expand (
-               "${srcdir AjlCollisionTest}/data/");
-         
-         try {
-            mesh1 = new PolygonalMesh (dataDir+"clipmesh.obj");
-            mesh0 = new PolygonalMesh (dataDir+"PatientMesh.obj");
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-      if (false) {
-         mesh0 = MeshFactory.createBox (
-            3.0, 3.0, 1.0, Point3d.ZERO, 1, 1, 1);
-         mesh1 = MeshFactory.createBox (
-            1.0, 1.0, 5.0, Point3d.ZERO, 1, 1, 5);
-         mesh1.transform (new RigidTransform3d (-0.6, 0.6, 0));
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         mesh0 = MeshFactory.createRectangle (2.0, 2.0, false);
-         mesh1 = MeshFactory.createOpenCylinder (0.5, 1.0, 12, 4);
-         PolygonalMesh inner = MeshFactory.createOpenCylinder (0.3, 1.0, 12, 4);
-         mesh1.addMesh (inner);
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         mesh0 = MeshFactory.createBox (
-            6.0, 5.0, 1.0, Point3d.ZERO, 3, 5, 1);
-         mesh1 = MeshFactory.createSkylineMesh (
-            3.0, 4.0, 1.0, 3, 4,
-            "111",
-            "1 1",
-            "1 1",
-            "111");
-         mesh1.transform (new RigidTransform3d (0.0, 0.0, -1.0));
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         mesh0 = MeshFactory.createBox (
-            5.0, 3.0, 0.5, Point3d.ZERO, 1, 1, 1);
-         mesh1 = MeshFactory.createSkylineMesh (
-            3.0, 1.0, 1.0, 3, 1,
-            "1 1");
-         mesh1.transform (new RigidTransform3d (0.0, 0.0, -0.25));
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         PolygonalMesh rect10x4 = MeshFactory.createRectangle (
-            10.0, 6.0, 10, 4, false);
-         PolygonalMesh hollowBox = MeshFactory.createSkylineMesh (
-            3.0, 4.0, 1.0, 3, 4,
-            "222",
-            "2 2",
-            "2 2",
-            "222");
-         hollowBox.transform (new RigidTransform3d (0.0, 2.5, -1.0));
-         //hollowBox.setMeshToWorld (new RigidTransform3d (-3.0, 0.0, 0.0));
-         mesh0 = rect10x4;
-         mesh1 = hollowBox;
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         PolygonalMesh rect = MeshFactory.createBox (
-            10.0, 5.0, 1.0, Point3d.ZERO, 1, 1, 1);
-         PolygonalMesh hollowBox = MeshFactory.createSkylineMesh (
-            3.0, 3.0, 1.0, 3, 3,
-            "333",
-            "3 3",
-            "333");
-         hollowBox.transform (new RigidTransform3d (0.0, 0, -1.5));
-         //hollowBox.setMeshToWorld (new RigidTransform3d (-3.0, 0.0, 0.0));
-         mesh0 = rect;
-         mesh1 = hollowBox;
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         // box and stylus
-         PolygonalMesh box = MeshFactory.createBox (
-            10.0, 5.0, 5.0, Point3d.ZERO, 1, 1, 1);
-         PolygonalMesh stylus = MeshFactory.createRoundedCylinder (
-            0.5, 4.0, 8, 2, /*flatBottom=*/false);
-         //stylus.setMeshToWorld (new RigidTransform3d (-3.0, 0.0, 0.0));
-         mesh0 = box;
-         mesh1 = stylus;
-         setupBodies (myMech, mesh0, mesh1);
-         myBody1.setPose (
-            new RigidTransform3d (0, 5, 2, 0, 0, Math.toRadians(-30)));
-      }
-
-      if (false) {
-         //PolygonalMesh sparseOuter = MeshFactory.createPrism (
-         //      new double[] { 0.0, 3.0, -2.0, -1.0, 2.0, -1.0 }, 1.0);
-         PolygonalMesh sparseInner = MeshFactory.createPrism (
-            new double[] { 1.0, 1.0, -1.0, 1.0, 0.0, -1.0 }, 2.0);
-         //mesh1.transform (new RigidTransform3d (0.0, 0.0, -0.5));
-
-         PolygonalMesh sparseOuter = 
-            WavefrontReader.readFromString (sparseOuterStr, true);
-         PolygonalMesh denseOuter =
-            WavefrontReader.readFromString (denseOuterStr, true);
-         PolygonalMesh denseInner = 
-            WavefrontReader.readFromString (denseInnerStr, true);
-
-         mesh1 = denseInner;
-         mesh0 = denseOuter;
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-      if (false) {
-         mesh0 = MeshFactory.createRectangle (
-            3.0, 3.0, 3, 3, false);
-         mesh1 = MeshFactory.createSkylineMesh (
-            2.0, 1.5, 1.0, 5, 3,
-            "11111",
-            "     ",
-            "11111");
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         mesh0 = MeshFactory.createBox (
-            2.5, 2.5, 2.5, Point3d.ZERO, 2, 2, 2, /*addNormals=*/false);
-         mesh1 = MeshFactory.createSphere (1.0, 20);
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-
-      if (false) {
-         mesh0 = MeshFactory.createBox (
-            2.5, 2.5, 2.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
-         mesh1 = MeshFactory.createBox (
-            1.5, 1.5, 1.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-      if (false) {
-         // crown box
-         mesh0 = MeshFactory.createBox (
-            2.0, 2.0, 2.0, Point3d.ZERO, 2, 2, 2,
-            /*addNormals=*/false, FaceType.ALT_TRI);
-
-         mesh0.getVertex(7).pnt.z -= 0.5;
-         mesh0.getVertex(11).pnt.z -= 0.5;
-         mesh0.getVertex(5).pnt.z += 0.5;
-         mesh0.getVertex(14).pnt.z += 0.5;
-         mesh0.notifyVertexPositionsModified();
-
-         mesh1 = MeshFactory.createBox (
-            3.0, 3.0, 1.0, Point3d.ZERO, 2, 2, 1,
-            /*addNormals=*/false, FaceType.ALT_TRI);
-         setupBodies (myMech, mesh0, mesh1);
-         myBody1.setPose (new RigidTransform3d (0, 0, 1.5));
-      }
-      
-      if (false) {
-         // crown cylinder
-         mesh0 = MeshFactory.createCylinder (1.0, 2.0, 12);
-
-         int[] upVtxs = new int[] {2, 7, 11, 15, 19, 23 };
-         int[] downVtxs = new int[] {3, 5, 9, 13, 17, 21};
-
-         for (int k : upVtxs) {
-            mesh0.getVertex(k).pnt.z += 0.25;
-         }
-         for (int k : downVtxs) {
-            mesh0.getVertex(k).pnt.z -= 0.25;
-         }
-         mesh0.notifyVertexPositionsModified();
-
-         mesh1 = MeshFactory.createBox (
-           4.0, 4.0, 1.0, Point3d.ZERO, 2, 2, 1,
-           /*addNormals=*/false, FaceType.ALT_TRI);
-
-         //mesh1 = MeshFactory.createBox (4.0, 4.0, 1.0);
-
-         setupBodies (myMech, mesh0, mesh1);
-
-         // centered
-         myBody1.setPose (new RigidTransform3d (0, 0, 1.5));
-         // offset to avoid edges
-         //myBody1.setPose (new RigidTransform3d (0.8, -0.8, 1.5));
-      }
-      
-      if (false) {
-         mesh0 = MeshFactory.createBox (
-            1.0, 1.0, 0.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
-         mesh1 = MeshFactory.createBox (
-            2.0, 2.0, 1.0, Point3d.ZERO, 4, 4, 1, /*addNormals=*/false);
-
-         mesh1.getVertex(24).pnt.z = 0;
-
-         // mesh0 = MeshFactory.createRectangle (1.0, 1.0, 1, 1, false);
-         // mesh0.transform (new RigidTransform3d (0, 0, 0.25));
-
-         // mesh1 = MeshFactory.createRectangle (2.0, 2.0, 4, 4, false);
-         // mesh1.transform (new RigidTransform3d (0, 0, 0.5));
-            
-         //mesh1.getVertex(12).pnt.z = 0;
-         mesh1.notifyVertexPositionsModified();
-         mesh1.updateFaceNormals();
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (false) {
-         mesh0 = MeshFactory.createBox (
-            1.0, 1.0, 0.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
-
-         String simpleTet = new String (
-            "v  0.25  0.30 0.5\n" + 
-            "v -0.25  0.00 0.5\n" + 
-            "v  0.25 -0.30 0.5\n" + 
-            "v  0.0   0.0  0.0\n" +
-            "f 0 1 2\n" +
-            "f 0 3 1\n" +
-            "f 1 3 2\n" +
-            "f 2 3 0\n");
-
-         mesh1 = 
-            WavefrontReader.readFromString (simpleTet, true);
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-
-      if (false) {
-         mesh0 = MeshFactory.createBox (2, 2, 1.0);
-
-         mesh0.setMeshToWorld (new RigidTransform3d (0.55, -0.30, 0));
-
-         mesh1 = MeshFactory.createSkylineMesh (
-            3.25, 2.75, 1.0, 13, 11, 
-            "1111111111111",
-            "1111111111111",
-            "1111111111111",
-            "1111111111111",
-            "11111   11111",
-            "11111 1 11111",
-            "11111   11111",
-            "1111111111111",
-            "1111111111111",
-            "1111111111111",
-            "1111111111111");
-         setupBodies (myMech, mesh0, mesh1);
-      }
-
-      if (meshFile0 != null && meshFile1 != null) {
-         try {
-            mesh1 = new PolygonalMesh (meshFile0);
-            mesh0 = new PolygonalMesh (meshFile1);
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         setupBodies (myMech, mesh0, mesh1);
-      }
-      
-      if (crashFile != null) {
+      else if (crashFile != null) {
          mesh0 = new PolygonalMesh();
          mesh1 = new PolygonalMesh();
          readTestFile (crashFile, mesh0, mesh1);
@@ -812,31 +539,331 @@ public class AjlCollisionTest extends RootModel {
          myMech.clearRenderables();
          setupBodies (myMech, mesh0, mesh1);
       }
+      else {
+         if (false) {
+            PolygonalMesh tallBox65 = MeshFactory.createBox (0.6, 0.5, 2.0);
+            PolygonalMesh cube = MeshFactory.createBox (1.0, 1.0, 1.0);
+            tallBox65.setMeshToWorld (new RigidTransform3d (0.2, 0, 0.0));
+
+            mesh0 = cube;
+            mesh1 = tallBox65;
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            String dataDir = 
+               PathFinder.expand (
+                  "${srcdir PolygonalMesh}/sampleData/");
+         
+            try {
+               mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");
+               mesh1 = new PolygonalMesh (dataDir+"molar2.2.obj");
+            }
+            catch (Exception e) {
+               e.printStackTrace(); 
+            }
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+         if (false) {
+            String dataDir = 
+               PathFinder.expand (
+                  "${srcdir PolygonalMesh}/sampleData/");
+         
+            try {
+               mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");
+               mesh1 = MeshFactory.createPlane (2, 2);
+            }
+            catch (Exception e) {
+               e.printStackTrace(); 
+            }
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+         if (false) {
+            String dataDir = 
+               PathFinder.expand (
+                  "${srcdir AjlCollisionTest}/data/");
+         
+            try {
+               mesh0 = new PolygonalMesh (dataDir+"ACLC01-R-femur-cart-072715.obj");
+               mesh1 = new PolygonalMesh (dataDir+"ACLC01-R-tibia-cart-072715.obj");
+            }
+            catch (Exception e) {
+               e.printStackTrace(); 
+            }
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+         if (false) {
+            String dataDir = 
+               PathFinder.expand (
+                  "${srcdir AjlCollisionTest}/data/");
+         
+            try {
+               mesh1 = new PolygonalMesh (dataDir+"clipmesh.obj");
+               mesh0 = new PolygonalMesh (dataDir+"PatientMesh.obj");
+            }
+            catch (Exception e) {
+               e.printStackTrace(); 
+            }
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+         if (false) {
+            mesh0 = MeshFactory.createBox (
+               3.0, 3.0, 1.0, Point3d.ZERO, 1, 1, 1);
+            mesh1 = MeshFactory.createBox (
+               1.0, 1.0, 5.0, Point3d.ZERO, 1, 1, 5);
+            mesh1.transform (new RigidTransform3d (-0.6, 0.6, 0));
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (true) {
+            mesh0 = MeshFactory.createRectangle (2.0, 2.0, false);
+            mesh1 = MeshFactory.createOpenCylinder (0.5, 1.0, 12, 4);
+            PolygonalMesh inner =
+               MeshFactory.createOpenCylinder (0.3, 1.0, 12, 4);
+            mesh1.addMesh (inner);
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            mesh0 = MeshFactory.createBox (
+               6.0, 5.0, 1.0, Point3d.ZERO, 3, 5, 1);
+            mesh1 = MeshFactory.createSkylineMesh (
+               3.0, 4.0, 1.0, 3, 4,
+               "111",
+               "1 1",
+               "1 1",
+               "111");
+            mesh1.transform (new RigidTransform3d (0.0, 0.0, -1.0));
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            mesh0 = MeshFactory.createBox (
+               5.0, 3.0, 0.5, Point3d.ZERO, 1, 1, 1);
+            mesh1 = MeshFactory.createSkylineMesh (
+               3.0, 1.0, 1.0, 3, 1,
+               "1 1");
+            mesh1.transform (new RigidTransform3d (0.0, 0.0, -0.25));
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            PolygonalMesh rect10x4 = MeshFactory.createRectangle (
+               10.0, 6.0, 10, 4, false);
+            PolygonalMesh hollowBox = MeshFactory.createSkylineMesh (
+               3.0, 4.0, 1.0, 3, 4,
+               "222",
+               "2 2",
+               "2 2",
+               "222");
+            hollowBox.transform (new RigidTransform3d (0.0, 2.5, -1.0));
+            //hollowBox.setMeshToWorld (new RigidTransform3d (-3.0, 0.0, 0.0));
+            mesh0 = rect10x4;
+            mesh1 = hollowBox;
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            PolygonalMesh rect = MeshFactory.createBox (
+               10.0, 5.0, 1.0, Point3d.ZERO, 1, 1, 1);
+            PolygonalMesh hollowBox = MeshFactory.createSkylineMesh (
+               3.0, 3.0, 1.0, 3, 3,
+               "333",
+               "3 3",
+               "333");
+            hollowBox.transform (new RigidTransform3d (0.0, 0, -1.5));
+            //hollowBox.setMeshToWorld (new RigidTransform3d (-3.0, 0.0, 0.0));
+            mesh0 = rect;
+            mesh1 = hollowBox;
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            // box and stylus
+            PolygonalMesh box = MeshFactory.createBox (
+               10.0, 5.0, 5.0, Point3d.ZERO, 1, 1, 1);
+            PolygonalMesh stylus = MeshFactory.createRoundedCylinder (
+               0.5, 4.0, 8, 2, /*flatBottom=*/false);
+            //stylus.setMeshToWorld (new RigidTransform3d (-3.0, 0.0, 0.0));
+            mesh0 = box;
+            mesh1 = stylus;
+            setupBodies (myMech, mesh0, mesh1);
+            myBody1.setPose (
+               new RigidTransform3d (0, 5, 2, 0, 0, Math.toRadians(-30)));
+         }
+
+         if (false) {
+            //PolygonalMesh sparseOuter = MeshFactory.createPrism (
+            //      new double[] { 0.0, 3.0, -2.0, -1.0, 2.0, -1.0 }, 1.0);
+            PolygonalMesh sparseInner = MeshFactory.createPrism (
+               new double[] { 1.0, 1.0, -1.0, 1.0, 0.0, -1.0 }, 2.0);
+            //mesh1.transform (new RigidTransform3d (0.0, 0.0, -0.5));
+
+            PolygonalMesh sparseOuter = 
+               WavefrontReader.readFromString (sparseOuterStr, true);
+            PolygonalMesh denseOuter =
+               WavefrontReader.readFromString (denseOuterStr, true);
+            PolygonalMesh denseInner = 
+               WavefrontReader.readFromString (denseInnerStr, true);
+
+            mesh1 = denseInner;
+            mesh0 = denseOuter;
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+         if (false) {
+            mesh0 = MeshFactory.createRectangle (
+               3.0, 3.0, 3, 3, false);
+            mesh1 = MeshFactory.createSkylineMesh (
+               2.0, 1.5, 1.0, 5, 3,
+               "11111",
+               "     ",
+               "11111");
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            mesh0 = MeshFactory.createBox (
+               2.5, 2.5, 2.5, Point3d.ZERO, 2, 2, 2, /*addNormals=*/false);
+            mesh1 = MeshFactory.createSphere (1.0, 20);
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+
+         if (false) {
+            mesh0 = MeshFactory.createBox (
+               2.5, 2.5, 2.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
+            mesh1 = MeshFactory.createBox (
+               1.5, 1.5, 1.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+         if (false) {
+            // crown box
+            mesh0 = MeshFactory.createBox (
+               2.0, 2.0, 2.0, Point3d.ZERO, 2, 2, 2,
+               /*addNormals=*/false, FaceType.ALT_TRI);
+
+            mesh0.getVertex(7).pnt.z -= 0.5;
+            mesh0.getVertex(11).pnt.z -= 0.5;
+            mesh0.getVertex(5).pnt.z += 0.5;
+            mesh0.getVertex(14).pnt.z += 0.5;
+            mesh0.notifyVertexPositionsModified();
+
+            mesh1 = MeshFactory.createBox (
+               3.0, 3.0, 1.0, Point3d.ZERO, 2, 2, 1,
+               /*addNormals=*/false, FaceType.ALT_TRI);
+            setupBodies (myMech, mesh0, mesh1);
+            myBody1.setPose (new RigidTransform3d (0, 0, 1.5));
+         }
+      
+         if (false) {
+            // crown cylinder
+            mesh0 = MeshFactory.createCylinder (1.0, 2.0, 12);
+
+            int[] upVtxs = new int[] {2, 7, 11, 15, 19, 23 };
+            int[] downVtxs = new int[] {3, 5, 9, 13, 17, 21};
+
+            for (int k : upVtxs) {
+               mesh0.getVertex(k).pnt.z += 0.25;
+            }
+            for (int k : downVtxs) {
+               mesh0.getVertex(k).pnt.z -= 0.25;
+            }
+            mesh0.notifyVertexPositionsModified();
+
+            mesh1 = MeshFactory.createBox (
+               4.0, 4.0, 1.0, Point3d.ZERO, 2, 2, 1,
+               /*addNormals=*/false, FaceType.ALT_TRI);
+
+            //mesh1 = MeshFactory.createBox (4.0, 4.0, 1.0);
+
+            setupBodies (myMech, mesh0, mesh1);
+
+            // centered
+            myBody1.setPose (new RigidTransform3d (0, 0, 1.5));
+            // offset to avoid edges
+            //myBody1.setPose (new RigidTransform3d (0.8, -0.8, 1.5));
+         }
+      
+         if (false) {
+            mesh0 = MeshFactory.createBox (
+               1.0, 1.0, 0.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
+            mesh1 = MeshFactory.createBox (
+               2.0, 2.0, 1.0, Point3d.ZERO, 4, 4, 1, /*addNormals=*/false);
+
+            mesh1.getVertex(24).pnt.z = 0;
+
+            // mesh0 = MeshFactory.createRectangle (1.0, 1.0, 1, 1, false);
+            // mesh0.transform (new RigidTransform3d (0, 0, 0.25));
+
+            // mesh1 = MeshFactory.createRectangle (2.0, 2.0, 4, 4, false);
+            // mesh1.transform (new RigidTransform3d (0, 0, 0.5));
+            
+            //mesh1.getVertex(12).pnt.z = 0;
+            mesh1.notifyVertexPositionsModified();
+            mesh1.updateFaceNormals();
+            setupBodies (myMech, mesh0, mesh1);
+         }
+
+         if (false) {
+            mesh0 = MeshFactory.createBox (
+               1.0, 1.0, 0.5, Point3d.ZERO, 1, 1, 1, /*addNormals=*/false);
+
+            String simpleTet = new String (
+               "v  0.25  0.30 0.5\n" + 
+               "v -0.25  0.00 0.5\n" + 
+               "v  0.25 -0.30 0.5\n" + 
+               "v  0.0   0.0  0.0\n" +
+               "f 0 1 2\n" +
+               "f 0 3 1\n" +
+               "f 1 3 2\n" +
+               "f 2 3 0\n");
+
+            mesh1 = 
+               WavefrontReader.readFromString (simpleTet, true);
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      
+
+         if (false) {
+            mesh0 = MeshFactory.createBox (2, 2, 1.0);
+
+            mesh0.setMeshToWorld (new RigidTransform3d (0.55, -0.30, 0));
+
+            mesh1 = MeshFactory.createSkylineMesh (
+               3.25, 2.75, 1.0, 13, 11, 
+               "1111111111111",
+               "1111111111111",
+               "1111111111111",
+               "1111111111111",
+               "11111   11111",
+               "11111 1 11111",
+               "11111   11111",
+               "1111111111111",
+               "1111111111111",
+               "1111111111111",
+               "1111111111111");
+            setupBodies (myMech, mesh0, mesh1);
+         }
+      }
 
       if (perturb0 != 0) {
          myBody0.getMesh().perturb (perturb0);
-         System.out.println ("perturb0 " + perturb0);
+         System.out.println ("perturbed mesh 0 by " + perturb0);
       }
       if (perturb1 != 0) {
          myBody1.getMesh().perturb (perturb1);
-         System.out.println ("perturb1 " + perturb1);
+         System.out.println ("perturbed mesh 1 by " + perturb1);
       }
-
-      //myMech.addMeshBody (new FixedMeshBody (mesh0));
-      //myBody0 = addBody (myMech, mesh0, mesh0.getMeshToWorld());
       
       myTester = new IntersectionTester (
          myBody0.getMesh(), myBody1.getMesh(), 0);
       
-      //myTester.setContoursOnly (true);
-      //myTester.setZPerturb0 ( 0, 0.02);
-      //tester01.setZPerturb1 (-0.01, 0.02);
-      
-      // myTester.setRandomTransform (
-      //    new IntersectionTester.RandomTransform2d (0.5));
-      //addController (tester01);
-      //addController (testerx1);
-
       if (contoursOnly) {
          myTester.setContoursOnly (true);
       }

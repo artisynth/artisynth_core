@@ -2517,6 +2517,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static StringHolder modelMenuFilename = new StringHolder();
    protected static StringHolder scriptMenuFilename = new StringHolder();
    protected static StringHolder historyFilename = new StringHolder();
+   protected static StringHolder configFolder = new StringHolder();
    protected static StringHolder scriptsFilename =
       new StringHolder (".artisynthScripts");
    protected static StringHolder scriptFile = 
@@ -2755,6 +2756,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-historyFile %s #model history file (e.g. .history)", historyFilename);
       parser.addOption (
          "-scriptsFile %s #script file (e.g. .artisynthModels)",scriptsFilename);
+      parser.addOption (
+         "-configFolder %s #folder for configuration info", configFolder);
       parser.addOption (
          "-mousePrefs %s #kees for pure mouse controls", mousePrefs);
       parser.addOption ("-ortho %v #use orthographic viewing", orthographic);
@@ -3021,7 +3024,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
             "Use '-timelineRange <maxtime>' instead"); 
          System.exit(1);
       }
-
+      if (configFolder.value != null) {
+         File dir = new File(configFolder.value);
+         if (!dir.isDirectory()) {
+            System.out.println (
+               "WARNING: configFolder "+dir+" is not valid folder; ignoring");
+         }
+         else {
+            ArtisynthPath.setConfigFolder (dir);
+         }
+      }
       Main m = new Main (PROJECT_NAME, !noGui.value);
 
       if (m.myFrame != null) {

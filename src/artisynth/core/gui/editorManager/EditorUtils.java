@@ -92,7 +92,7 @@ public class EditorUtils {
       chooser.setCurrentDirectory (main.getModelDirectory());
       int retVal = chooser.showDialog (frame, "Save As");
       if (retVal == JFileChooser.APPROVE_OPTION) {
-         File file = chooser.getSelectedFile();
+         File file = chooser.getSelectedFileWithExtension();
          int status = 0;
          try {
             ModelComponent ancestor =

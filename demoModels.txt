@@ -1,3 +1,4 @@
+"Hex 3d Block" artisynth.demos.fem.Hex3dBlock
 "Spring Mesh" artisynth.demos.mech.SpringMeshDemo
 "RigidBody Spring" artisynth.demos.mech.RigidBodyDemo
 "Spring Net" artisynth.demos.tutorial.NetDemo
@@ -5,7 +6,6 @@
 "Multi-Point Muscle" artisynth.demos.mech.MultiMuscleDemo
 "Hex FEM Cube" artisynth.demos.fem.HexCube
 "FEM Locking" artisynth.demos.fem.LockingDemo
-"Hex FEM Blocks" artisynth.demos.fem.Hex3dBlock
 "Robust FEM Cube" artisynth.demos.fem.RobustCube
 "Incompressible FEM" artisynth.demos.fem.IncompressDemo
 "Point FEM Attachment" artisynth.demos.tutorial.PointFemAttachment

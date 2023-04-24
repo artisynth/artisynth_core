@@ -203,11 +203,9 @@ ModelScriptActionListener {
    }
 
    /**
-    * Returns the selected file from a file chooser, with redundant "." parent
-    * folders stripped away.
+    * Strips redundant "." parent folders from a file.
     */
-   static File getSelectedFile (JFileChooser chooser) {
-      File file = chooser.getSelectedFile();
+   static File simplifyFile (File file) {
       if (file != null) {
          File parent = file.getParentFile();
          if (parent != null && parent.getName().equals(".")) {
@@ -737,7 +735,7 @@ ModelScriptActionListener {
       
       if (chooser.showDialog(myFrame, "Save As") ==
           JFileChooser.APPROVE_OPTION) {
-         File file = getSelectedFile(chooser);
+         File file = simplifyFile(chooser.getSelectedFileWithExtension());
          if (file.exists() && !GuiUtils.confirmOverwrite (myFrame, file)) {
             return;
          }
@@ -1169,7 +1167,7 @@ ModelScriptActionListener {
       }
       int retval = chooser.showDialog(myFrame, approveMsg);
       return ((retval == JFileChooser.APPROVE_OPTION) ?
-         getSelectedFile(chooser) : null);
+         simplifyFile(chooser.getSelectedFile()) : null);
    }
 
    private class WaitForRootModelManagerUpdate extends SwingWorker<Void,Void> {

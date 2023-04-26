@@ -83,7 +83,10 @@ public class Hex3dBlock extends Fem3dBlock {
       fem.setSurfaceRendering (SurfaceRender.Shaded);
       RenderProps.setFaceColor (fem, new Color (0.8f, 0.8f, 1.0f));
       // render FEM nodes as purple spheres:
-      RenderProps.setSphericalPoints (fem, 0.01, new Color (153, 0, 204));
+      RenderProps.setSphericalPoints (
+         fem.getNodes(), 0.01, new Color (153, 0, 204));
+      // render all other points as dark green spheres
+      RenderProps.setSphericalPoints (mech, 0.01, new Color (0, 0.5f, 0));
       // render FEM edges blue:
       RenderProps.setLineWidth (fem, 2);
       RenderProps.setLineColor (fem, Color.BLUE);

@@ -2454,20 +2454,26 @@ public class MultiPointSpring extends PointSpringBase
             if (seg_i.hasSubSegments()) {
                Segment sub;
                sub = seg_i.firstSubSegment();
-               X.scale (F/sub.myLength, sub.myP);
-               addToBlock (M, i, i, X, -s);
+               if (F != 0 && sub.myLength != 0) { // avoid NaN
+                  X.scale (F/sub.myLength, sub.myP);
+                  addToBlock (M, i, i, X, -s);
+               }
                uvecB_i = sub.myUvec;
                sub = seg_i.lastSubSegment();
-               X.scale (F/sub.myLength, sub.myP);
-               addToBlock (M, i+1, i+1, X, -s);
+               if (F != 0 && sub.myLength != 0) { // avoid NaN
+                  X.scale (F/sub.myLength, sub.myP);
+                  addToBlock (M, i+1, i+1, X, -s);
+               }
                uvecA_i = sub.myUvec;
             }
             else {
-               X.scale (F/seg_i.myLength, seg_i.myP);
-               addToBlock (M, i, i, X, -s);
-               addToBlock (M, i+1, i, X, s);
-               addToBlock (M, i, i+1, X, s);
-               addToBlock (M, i+1, i+1, X, -s);
+               if (F != 0 && seg_i.myLength != 0) { // avoid NaN
+                  X.scale (F/seg_i.myLength, seg_i.myP);
+                  addToBlock (M, i, i, X, -s);
+                  addToBlock (M, i+1, i, X, s);
+                  addToBlock (M, i, i+1, X, s);
+                  addToBlock (M, i+1, i+1, X, -s);
+               }
                uvecB_i = seg_i.myUvec;
                uvecA_i = seg_i.myUvec;
             }
@@ -5167,12 +5173,6 @@ public class MultiPointSpring extends PointSpringBase
 
          updateSubSegments();
          myLength = computeLength();
-      }
-
-      /**
-       * {@inheritDoc}
-       */
-      public void advanceState (double t0, double t1) {
       }
 
       /**

@@ -253,8 +253,21 @@ public class QRDecomposition {
          beta[j] = rowHouseReduce (QR, j, j, vec, wec);
          // update colMagSqr
          for (int k = j + 1; k < ncols; k++) {
-            double QR_jk = QR.buf[j * QR.width + QR.base + k];
-            colMagSqr[k] -= QR_jk * QR_jk;
+            // Previous version updated colMagSqr this way:
+            // 
+            // double QR_jk = QR.buf[j * QR.width + QR.base + k];
+            // colMagSqr[k] -= QR_jk * QR_jk;
+            //
+            // However, this can cause colMagSqr to become 0 when the remainder
+            // of the column is small, and so instead we recompute colMaxSqr
+            // from scratch.
+            double magSqr = 0;
+            int Qbase = QR.base + k;
+            for (int i = j + 1; i < nrows; i++) {
+               double elem = QR.buf[i * QR.width + Qbase];
+               magSqr += elem * elem;
+            }
+            colMagSqr[k] = magSqr;
          }
          pivotCol = getPivotCol (colMagSqr, j + 1, ncols);
          if (pivotCol == ncols) { // zero entries from j+1 on of QR, to remove

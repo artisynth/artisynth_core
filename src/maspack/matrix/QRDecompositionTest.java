@@ -76,6 +76,15 @@ class QRDecompositionTest {
       testDecomposition (M1);
    }
 
+   private boolean hasPermutation (int[] perm) {
+      for (int i=0; i<perm.length; i++) {
+         if (i != perm[i]) {
+            return true;
+         }
+      }
+      return false;
+   }
+
    public void testDecomposition (MatrixNd M1, boolean usePivoting) {
 
       int nrows = M1.rowSize();
@@ -102,13 +111,15 @@ class QRDecompositionTest {
       for (int p = mind - 1; p <= m + 1; p++) {
          MatrixNd R = new MatrixNd (p, n);
          MatrixNd Q = new MatrixNd (m, p);
+
          qr.get (Q, R, cperm);
          QR.mul (Q, R);
          MP.set (M1);
          MP.permuteColumns (cperm);
          if (!QR.epsilonEquals (MP, EPSILON)) {
-            throw new TestException ("QR=\n" + QR.toString ("%9.4f")
-            + "expected:\n" + MP.toString ("%9.4f"));
+            System.out.println ("R=\n" + R.toString("%18.12f"));
+            throw new TestException ("QR=\n" + QR.toString ("%18.12f")
+            + "expected:\n" + MP.toString ("%18.12f"));
          }
          QTQ.mulTransposeLeft (Q, Q);
          // Q = Q - I
@@ -514,6 +525,8 @@ class QRDecompositionTest {
       testDecomposition (3, 4);
       testDecomposition (6, 3);
       testDecomposition (3, 6);
+      testDecomposition (6, 6);
+      testDecomposition (5, 5);
       testDecomposition (5, 3);
       testDecomposition (3, 5);
       testDecomposition (4, 4);
@@ -526,6 +539,18 @@ class QRDecompositionTest {
       testDecomposition (3, 1);
       testDecomposition (2, 3);
       testDecomposition (1, 3);
+
+      // special case that gave some trouble because 
+      MatrixNd H = new MatrixNd(6,6);
+      H.set (0, 3, 1);
+      H.set (1, 4, 1);
+      H.set (2, 5, 1);
+      H.set (3, 0, 1);
+      H.set (3, 2, -1);
+      H.set (4, 1, 1);
+      H.set (5, 2, -0.000000003205000);
+
+      testDecomposition (H);
    }
 
    public static void main (String[] args) {

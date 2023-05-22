@@ -48,13 +48,17 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.matrix.VectorNd;
 import maspack.properties.HierarchyNode;
 import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.properties.PropertyUtils;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
@@ -132,6 +136,9 @@ public class RigidBody extends Frame
    static boolean DEFAULT_GRID_SURFACE_RENDERING = false;
    boolean myGridSurfaceRendering = DEFAULT_GRID_SURFACE_RENDERING;
 
+   protected double myInertialDamping = 0;
+   protected PropertyMode myInertialDampingMode = PropertyMode.Inherited;
+
    //double myGridMargin = 0.1;
 
    protected ComponentListImpl<ModelComponent> myComponents;
@@ -151,6 +158,8 @@ public class RigidBody extends Frame
       myProps.remove ("renderProps");
       myProps.add (
          "renderProps * *", "render properties", createDefaultRenderProps());
+      myProps.addInheritable (
+         "inertialDamping:Inherited", "intrinsic inertial damping", 0.0);
       myProps.add (
          "inertiaMethod", "means by which inertia is determined",
          DEFAULT_INERTIA_METHOD);
@@ -630,6 +639,43 @@ public class RigidBody extends Frame
    public void setInertia (double m, double Jxx, double Jyy, double Jzz) {
       doSetInertia (
          new SpatialInertia (m, Jxx, Jyy, Jzz));
+   }
+
+   public double getInertialDamping() {
+      return myInertialDamping;
+   }
+
+   public void setInertialDamping (double d) {
+      boolean hadZeroValue = (myInertialDamping == 0);
+      myInertialDamping = d;
+      myInertialDampingMode =
+         PropertyUtils.propagateValue (
+            this, "inertialDamping", d, myInertialDampingMode);
+      if (hadZeroValue != (myInertialDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }
+   }
+
+   public PropertyMode getInertialDampingMode() {
+      return myInertialDampingMode;
+   }
+
+   public void setInertialDampingMode (PropertyMode mode) {
+      boolean hadZeroValue = (myInertialDamping == 0);
+      myInertialDampingMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "inertialDamping", myInertialDampingMode, mode);
+      if (hadZeroValue != (myInertialDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }
+   }
+
+   public boolean hasForce() {
+      return (super.hasForce() || myInertialDamping != 0);
    }
 
    protected boolean hasMassMeshes() {
@@ -1479,6 +1525,32 @@ public class RigidBody extends Frame
 
    public void setDynamic (boolean dynamic) {
       super.setDynamic (dynamic);
+   }
+
+   public void applyForces (double t) {
+      super.applyForces (t);
+      if (myInertialDamping != 0) {
+         RotationMatrix3d R = getPose().R;
+         Twist vel = new Twist();
+         getBodyVelocity (vel);
+         Wrench wr = new Wrench();
+         mySpatialInertia.mul (wr, vel);
+         wr.transform (R);
+         myForce.scaledAdd (-myInertialDamping, wr);
+      }
+   }
+
+   public void addVelJacobian (SparseNumberedBlockMatrix S, double s) {
+      super.addVelJacobian (S, s);
+      if (mySolveBlockNum != -1 && myInertialDamping != 0) {
+         FrameBlock blk =
+            (FrameBlock)S.getBlockByNumber (mySolveBlockNum);
+         // add scaled rotated inertia to blk
+         SpatialInertia SI = getEffectiveInertia();
+         Matrix6d MR = new Matrix6d();
+         SI.getRotated (MR, getPose().R);
+         blk.scaledAdd (s*myInertialDamping, MR);
+      }
    }
 
    /**

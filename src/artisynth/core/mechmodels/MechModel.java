@@ -92,6 +92,8 @@ TransformableGeometry, ScalableUnits {
    protected PropertyMode myFrameDampingMode = PropertyMode.Inherited;
    protected double myRotaryDamping = 0;
    protected PropertyMode myRotaryDampingMode = PropertyMode.Inherited;
+   protected double myInertialDamping = 0;
+   protected PropertyMode myInertialDampingMode = PropertyMode.Inherited;
 
    protected ComponentList<MechSystemModel> myModels;
 
@@ -116,6 +118,7 @@ TransformableGeometry, ScalableUnits {
    protected static double DEFAULT_POINT_DAMPING = 0;
    protected static double DEFAULT_FRAME_DAMPING = 0;
    protected static double DEFAULT_ROTARY_DAMPING = 0;
+   protected static double DEFAULT_INERTIAL_DAMPING = 0;
 
    protected static final Vector3d DEFAULT_GRAVITY = new Vector3d (0, 0, -9.8);
 
@@ -150,11 +153,14 @@ TransformableGeometry, ScalableUnits {
          "frameDamping:Inherited", "intrinsic translational damping",
          DEFAULT_FRAME_DAMPING);
       myProps.addInheritable (
+         "pointDamping:Inherited", "intrinsic translational damping",
+         DEFAULT_POINT_DAMPING);
+      myProps.addInheritable (
          "rotaryDamping:Inherited", "intrinsic rotational damping",
          DEFAULT_ROTARY_DAMPING);
       myProps.addInheritable (
-         "pointDamping:Inherited", "intrinsic translational damping",
-         DEFAULT_POINT_DAMPING);
+         "inertialDamping:Inherited", "intrinsic inertial damping",
+         DEFAULT_INERTIAL_DAMPING);
       myProps.addInheritable (
          "penetrationTol:Inherited", "collision penetration tolerance",
          DEFAULT_PENETRATION_TOL);
@@ -205,6 +211,8 @@ TransformableGeometry, ScalableUnits {
       myFrameDampingMode = PropertyMode.Inherited;
       myRotaryDamping = DEFAULT_ROTARY_DAMPING;
       myRotaryDampingMode = PropertyMode.Inherited;
+      myInertialDamping = DEFAULT_INERTIAL_DAMPING;
+      myInertialDampingMode = PropertyMode.Inherited;
       myMinBound = null;
       myMaxBound = null;
       myExcitationColor = null;
@@ -1178,6 +1186,27 @@ TransformableGeometry, ScalableUnits {
       myRotaryDampingMode =
          PropertyUtils.setModeAndUpdate (
             this, "rotaryDamping", myRotaryDampingMode, mode);
+   }
+
+   public double getInertialDamping() {
+      return myInertialDamping;
+   }
+
+   public void setInertialDamping (double d) {
+      myInertialDamping = d;
+      myInertialDampingMode =
+         PropertyUtils.propagateValue (
+            this, "inertialDamping", d, myInertialDampingMode);
+   }
+
+   public PropertyMode getInertialDampingMode() {
+      return myInertialDampingMode;
+   }
+
+   public void setInertialDampingMode (PropertyMode mode) {
+      myInertialDampingMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "inertialDamping", myInertialDampingMode, mode);
    }
 
    /* ------- gravity stuff ---------- */

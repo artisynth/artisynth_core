@@ -517,7 +517,7 @@ public abstract class DeformableBody extends RigidBody
    @Override public void addVelJacobian (SparseNumberedBlockMatrix S, double s) {
       if (mySolveBlockNum != -1) {
          MatrixNdBlock blk =
-         (MatrixNdBlock)S.getBlockByNumber (mySolveBlockNum);
+            (MatrixNdBlock)S.getBlockByNumber (mySolveBlockNum);
          if (myFrameDamping != 0 || myRotaryDamping != 0) {
             blk.add (0, 0, s*myFrameDamping);
             blk.add (1, 1, s*myFrameDamping);
@@ -525,6 +525,15 @@ public abstract class DeformableBody extends RigidBody
             blk.add (3, 3, s*myRotaryDamping);
             blk.add (4, 4, s*myRotaryDamping);
             blk.add (5, 5, s*myRotaryDamping);
+         }
+         if (myInertialDamping != 0) {
+            // add scaled rotated inertia to blk
+            SpatialInertia SI = getEffectiveInertia();
+            Matrix6d M6 = new Matrix6d();
+            SI.getRotated (M6, getPose().R);
+            MatrixNd MN = new MatrixNd(6, 6);
+            M6.get (MN);
+            blk.addScaledSubMatrix (0, 0, s*myInertialDamping, MN);
          }
          if (myStiffnessDamping != 0) {
             blk.addScaledSubMatrix (

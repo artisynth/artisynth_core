@@ -60,6 +60,9 @@ public class SimulationPrefs extends Preferences {
    private int myNumSolverThreads =
       SimulationSettings.DEFAULT_NUM_SOLVER_THREADS;
 
+   private boolean myShowIllConditionedSolves =
+      SimulationSettings.DEFAULT_SHOW_ILL_CONDITIONED_SOLVES;
+
    // to be incorporated later
    private SparseSolverId myMatrixSolver =
       SimulationSettings.DEFAULT_MATRIX_SOLVER;
@@ -142,7 +145,15 @@ public class SimulationPrefs extends Preferences {
 
    public void setNumSolverThreads (int num) {
       myNumSolverThreads = num;
-  } 
+   } 
+
+   public boolean getShowIllConditionedSolves () {
+      return myShowIllConditionedSolves;
+   }
+
+   public void setShowIllConditionedSolves (boolean enable) {
+      myShowIllConditionedSolves = enable;
+   } 
 
    public void setFromCurrent() {
       setMaxStepSize (mySettings.getMaxStepSize());
@@ -152,6 +163,7 @@ public class SimulationPrefs extends Preferences {
       setAbortOnInvertedElements (mySettings.getAbortOnInvertedElements());
       setHybridSolvesEnabled (mySettings.getHybridSolvesEnabled());
       setNumSolverThreads (mySettings.getNumSolverThreads());
+      setShowIllConditionedSolves (mySettings.getShowIllConditionedSolves());
    }
 
    public void applyToCurrent() {
@@ -162,6 +174,7 @@ public class SimulationPrefs extends Preferences {
       mySettings.setAbortOnInvertedElements (getAbortOnInvertedElements());
       mySettings.setHybridSolvesEnabled (getHybridSolvesEnabled());
       mySettings.setNumSolverThreads (getNumSolverThreads());
+      mySettings.setShowIllConditionedSolves (getShowIllConditionedSolves());
 
       if (mySettings.getDialog() != null) {
          mySettings.getDialog().updateWidgetValues();

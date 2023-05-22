@@ -183,6 +183,8 @@ public class PardisoSolver implements DirectSolver {
 
    static int myInitStatus = INIT_UNKNOWN;
    static int myDefaultNumThreads = -1;
+   public static boolean DEFAULT_SHOW_PERTURBED_PIVOTS = true;
+   static boolean myShowPerturbedPivots = DEFAULT_SHOW_PERTURBED_PIVOTS;
    
    /**
     * Returns a message corresponding to a Pardiso error code.
@@ -673,7 +675,7 @@ public class PardisoSolver implements DirectSolver {
             "Pardiso: unable to factor matrix: "+myErrMsg);
       }
       int nump = getNumPerturbedPivots();
-      if (nump > 0) {
+      if (nump > 0 && myShowPerturbedPivots) {
          System.out.println ("Pardiso: num perturbed pivots=" + nump);
       }
    }
@@ -829,6 +831,24 @@ public class PardisoSolver implements DirectSolver {
       }
    }
 
+   /**
+    * Enables/disables the "num perturbed pivots" message (which usually
+    * indicates an ill-conditioned solve).
+    *
+    * @parsm enable if {@code true}, enables the message
+    */
+   public static void setShowPerturbedPivots (boolean enable) {
+      myShowPerturbedPivots = enable;
+   }
+
+   /**
+    * Queries whether the "num perturbed pivots" message is enabled.
+    *
+    * @parsm {@code true} if the message is enabled
+    */
+   public static boolean getShowPerturbedPivots () {
+      return myShowPerturbedPivots;
+   }
 
    /**
     * Sets the default number of threads that Pardiso is assigned when a

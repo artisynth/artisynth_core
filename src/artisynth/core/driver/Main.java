@@ -1617,6 +1617,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
          numThreads = numSolverThreads.value;
       }
       PardisoSolver.setDefaultNumThreads(numThreads);
+      
+      // display ill-conditioned solves
+      mySimulationSettings.setShowIllConditionedSolves (
+         mySimulationPrefs.getShowIllConditionedSolves());
 
       // settings that are not in preferences:
 

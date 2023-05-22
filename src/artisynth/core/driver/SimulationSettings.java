@@ -1,31 +1,17 @@
 package artisynth.core.driver;
 
-import java.awt.Color;
-import javax.swing.*;
-
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.widgets.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.render.GL.GLViewer.*;
-import maspack.render.GL.GLViewer;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-
-import artisynth.core.mechmodels.*;
-import artisynth.core.femmodels.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.MechSystemSolver.*;
-import artisynth.core.mechmodels.CollisionManager.*;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.mechmodels.CollisionManager;
+import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.mechmodels.MechSystemBase;
-import artisynth.core.util.*;
-import artisynth.core.util.*;
-import artisynth.core.gui.*;
-import artisynth.core.gui.timeline.*;
-import artisynth.core.gui.jythonconsole.*;
-import maspack.solvers.*;
+import artisynth.core.mechmodels.MechSystemSolver;
+import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
+import artisynth.core.modelbase.ModelBase;
+import maspack.properties.PropertyList;
+import maspack.solvers.PardisoSolver;
+import maspack.solvers.SparseSolverId;
+import maspack.util.EnumRange;
+import maspack.util.Range;
 
 /**
  * Preferences related to running simulations
@@ -54,6 +40,10 @@ public class SimulationSettings extends SettingsBase {
       MechSystemSolver.DEFAULT_HYBRID_SOLVES_ENABLED;
 
    public static final int DEFAULT_NUM_SOLVER_THREADS = -1;
+
+   public static final boolean DEFAULT_SHOW_ILL_CONDITIONED_SOLVES = true;
+   private boolean myShowIllConditionedSolves =
+      DEFAULT_SHOW_ILL_CONDITIONED_SOLVES;
 
    // to be incorporated later
    public static SparseSolverId DEFAULT_MATRIX_SOLVER = SparseSolverId.Pardiso;
@@ -87,6 +77,10 @@ public class SimulationSettings extends SettingsBase {
          "numSolverThreads", 
          "number of threads to use in the sparse solver",
          DEFAULT_NUM_SOLVER_THREADS);
+      myProps.add (
+         "showIllConditionedSolves", 
+         "print a message when a solve is ill conditioned",
+         DEFAULT_SHOW_ILL_CONDITIONED_SOLVES);
    }
 
    public PropertyList getAllPropertyInfo () {
@@ -154,6 +148,15 @@ public class SimulationSettings extends SettingsBase {
 
    public void setNumSolverThreads (int num) {
       PardisoSolver.setDefaultNumThreads(num);
+   } 
+
+   public boolean getShowIllConditionedSolves () {
+      return myShowIllConditionedSolves;
+   }
+
+   public void setShowIllConditionedSolves (boolean enable) {
+      PardisoSolver.setShowPerturbedPivots (enable);
+      myShowIllConditionedSolves = enable;
    } 
 
    // for later use:

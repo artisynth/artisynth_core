@@ -7,6 +7,7 @@
 package maspack.render;
 
 import maspack.matrix.*;
+import maspack.render.Renderer.*;
 
 /**
  * Provides utility routines for Renderable objects.
@@ -184,6 +185,80 @@ public class RenderableUtils {
       axisTip.scale (len);
       axisTip.add (TFW.p);
       axisTip.updateBounds (vmin, vmax);
+   }
+
+   /**
+    * Draws the points in a specified point group of a {@code RenderObject},
+    * using the shading, point style and point coloring specified by the
+    * supplied {@code RenderProps}.
+    *
+    * @param renderer renderer used to draw the points
+    * @param rob render object containing the points
+    * @param gidx point group index within the render object
+    * @param props specifies the shading, point style and point coloring
+    * @param selected if {@code true}, sets the color to the highlighting
+    * color
+    */
+   public static void drawPoints (
+      Renderer renderer, RenderObject rob,
+      int gidx, RenderProps props, boolean selected) {
+   
+      Shading savedShading = renderer.setPointShading (props);
+      renderer.setPointColoring (props, selected);
+      PointStyle style = props.getPointStyle ();
+      switch (style) {
+         case POINT: {
+            int size = props.getPointSize();
+            if (size > 0) {
+               //renderer.setLightingEnabled (false);
+               //renderer.setColor (props.getPointColorArray(), selected);
+               renderer.drawPoints (rob, gidx, PointStyle.POINT, size);
+               //renderer.setLightingEnabled (true);
+            }
+            break;
+         }
+         case CUBE:
+         case SPHERE: {
+            double rad = props.getPointRadius();
+            if (rad > 0) {
+               //Shading savedShading = renderer.getShadeModel();
+               //renderer.setPointLighting (props, selected);
+               renderer.drawPoints (rob, gidx, style, rad);
+               //renderer.setShadeModel(savedShading);
+            }
+            break;
+         }
+      }
+      renderer.setShading(savedShading);
+   }
+
+   /**
+    * Draws the triangles in a specified triangle group of a {@code RenderObject},
+    * using the shading, face style and face coloring specified by the
+    * supplied {@code RenderProps}.
+    *
+    * @param renderer renderer used to draw the triangles
+    * @param rob render object containing the triangles
+    * @param gidx triangle group index within the render object
+    * @param props specifies the shading, face style and face coloring
+    * @param selected if {@code true}, sets the color to the highlighting
+    * color
+    */
+   public static void drawTriangles (
+      Renderer renderer, RenderObject rob, int gidx,
+      RenderProps props, boolean selected) {
+   
+      Shading savedShadeModel = renderer.getShading();
+      FaceStyle savedFaceStyle = renderer.getFaceStyle();
+
+      renderer.setFaceColoring (props, /*highlight=*/false);
+      renderer.setFaceStyle (props.getFaceStyle());
+      renderer.setShading (props.getShading());
+
+      renderer.drawTriangles (rob, gidx);
+      
+      renderer.setFaceStyle (savedFaceStyle);
+      renderer.setShading (savedShadeModel);
    }
 
 }

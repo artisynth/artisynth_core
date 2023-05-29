@@ -324,4 +324,8 @@ public interface PropertyInfo {
     * @return list of allowed classes
     */
    public List<Class<?>> getAllowedTypes();
+   
+   public boolean writeIfNonDefault (
+      HasProperties host, PrintWriter pw, NumberFormat fmt, Object ref) 
+      throws IOException;
 }

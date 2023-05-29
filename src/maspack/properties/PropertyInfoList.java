@@ -58,5 +58,35 @@ public interface PropertyInfoList extends Iterable<PropertyInfo> {
     * @return true if list contains inheritable properties
     */
    public boolean hasNoInheritableProperties();
+   
+   /**
+    * Writes properties in this list whose current values differ from their
+    * default values to a PrintWriter. This allows the conservation of space
+    * within persistent storage. Otherwise, the behaviour of this method is
+    * identical to {@link #writeProps writeProps}; in particular only those
+    * properties for which {@link maspack.properties.PropertyInfo#getAutoWrite
+    * PropertyInfo.getAutoWrite} returns true are written.
+    * 
+    * @param host
+    * class exporting the properties
+    * @param pw
+    * PrintWriter to which properties are written
+    * @param fmt
+    * Numeric formatting information. This is only used when the value to be
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
+    * it is passed to that value's {@link maspack.util.Scannable#write write}
+    * method.
+    * @param ref
+    * Reference object. This is only used when the value to be
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
+    * it is passed to that value's {@link maspack.util.Scannable#write write}
+    * method.
+    * @throws IOException
+    * if an I/O error occurred writing to the stream
+    */
+   public boolean writeNonDefaultProps (
+      HasProperties host, PrintWriter pw, NumberFormat fmt, Object ref) 
+      throws IOException;
+   
 
 }

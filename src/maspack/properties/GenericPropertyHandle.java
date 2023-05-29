@@ -18,6 +18,7 @@ public class GenericPropertyHandle implements Property {
    Method myGetMethod;
    Method mySetMethod;
    Method myGetRangeMethod;
+   Object myKey;
    protected PropertyDesc myDesc;
 
    // private boolean returnByReferenceP;
@@ -28,6 +29,7 @@ public class GenericPropertyHandle implements Property {
       myGetMethod = desc.myGetMethod;
       mySetMethod = desc.mySetMethod;
       myGetRangeMethod = desc.myGetRangeMethod;
+      myKey = desc.myKey;
       myDesc = desc;
    }
 
@@ -54,7 +56,12 @@ public class GenericPropertyHandle implements Property {
 
    public Object get() {
       try {
-         return myGetMethod.invoke (myHost);
+         if (myKey != null) {
+            return myGetMethod.invoke (myHost, myKey);
+         }
+         else {
+            return myGetMethod.invoke (myHost);
+         }
       }
       catch (RuntimeException e) {
          System.out.println ("exception invoking getMethod for " + getName());
@@ -79,7 +86,12 @@ public class GenericPropertyHandle implements Property {
          return;
       }
       try {
-         mySetMethod.invoke (myHost, obj);
+         if (myKey != null) {
+            mySetMethod.invoke (myHost, myKey, obj);
+         }
+         else {
+            mySetMethod.invoke (myHost, obj);            
+         }
       }
       catch (RuntimeException e) {
          throw e;
@@ -95,7 +107,12 @@ public class GenericPropertyHandle implements Property {
    public Range getRange () {
       if (myGetRangeMethod != null) {
          try {
-            return (Range)myGetRangeMethod.invoke (myHost);
+            if (myKey != null) {
+               return (Range)myGetRangeMethod.invoke (myHost, myKey);
+            }
+            else {
+               return (Range)myGetRangeMethod.invoke (myHost);
+            }
          }
          catch (RuntimeException e) {
             System.out.println (

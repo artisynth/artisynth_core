@@ -268,8 +268,8 @@ public class PropertyList implements PropertyInfoList {
       String options) {
       PropertyDesc desc = new PropertyDesc();
       if (PropertyDesc.initialize (
-            desc, nameAndMethods, myHostClass, description, defaultValue,
-            options, PropertyDesc.REGULAR)) {
+            desc, nameAndMethods, null, myHostClass, description,
+            defaultValue, options, PropertyDesc.REGULAR)) {
          add (desc);
          return desc;
       }
@@ -413,8 +413,8 @@ public class PropertyList implements PropertyInfoList {
       String options) {
       PropertyDesc desc = new PropertyDesc();
       if (PropertyDesc.initialize (
-            desc, nameAndMethods, myHostClass, description, defaultValue,
-            options, PropertyDesc.INHERITABLE)) {
+            desc, nameAndMethods, null, myHostClass, description,
+            defaultValue, options, PropertyDesc.INHERITABLE)) {
          add (desc);
          return desc;
       }
@@ -472,8 +472,8 @@ public class PropertyList implements PropertyInfoList {
       String nameAndMethods, String description, String options) {
       PropertyDesc desc = new PropertyDesc();
       if (PropertyDesc.initialize (
-            desc, nameAndMethods, myHostClass, description,
-            Property.VoidValue, options, PropertyDesc.READ_ONLY)) {
+            desc, nameAndMethods, null, myHostClass,
+            description, Property.VoidValue, options, PropertyDesc.READ_ONLY)) {
          add (desc);
          return desc;
       }

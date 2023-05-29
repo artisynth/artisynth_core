@@ -55,6 +55,9 @@ public class PropertyDesc implements PropertyInfo {
    protected Method myGetModeMethod;
    protected Method mySetModeMethod;
    protected Method myCreateMethod;
+   // if present, leading argument for the methods
+   protected Object myKey;
+   protected Class<?> myKeyClass;
 
    boolean myDefaultIsAuto = false;
    Object myDefaultValue;
@@ -146,6 +149,7 @@ public class PropertyDesc implements PropertyInfo {
    public void set (PropertyDesc desc, Class<?> hostClass) {
       setName (desc.myName);
       setHostClass (hostClass);
+      setKey (desc.myKey);
       myDescription = desc.myDescription;
       myValueClass = desc.myValueClass;
       myValueType = desc.myValueType;
@@ -458,6 +462,37 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    /**
+    * Returns the key for the property associated with this descriptor,
+    * or {@code null} if there is no key.
+    * 
+    * @return key for the property
+    */
+   public Object getKey () {
+      return myKey;
+   }
+
+   /**
+    * Sets a key for the property associated with this descriptor.  If present,
+    * a key is passed as an additonal (leading) argument to the various set/get
+    * accessors.
+    * 
+    * @param key
+    * new key for the property
+    */
+   public void setKey (Object key) {
+      myKey = key;
+      if (key instanceof Integer) {
+         myKeyClass = int.class;
+      }
+      else if (key == null) {
+         myKeyClass = null;
+      }
+      else {
+         myKeyClass = key.getClass();
+      }
+   }
+
+   /**
     * {@inheritDoc}
     * 
     * @see #setDescription
@@ -690,7 +725,12 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    private void initGetMethod (String methodName) {
-      myGetMethod = locateMethod (methodName);
+      if (myKey != null) {
+         myGetMethod = locateMethod (methodName, myKeyClass);
+      }
+      else {
+         myGetMethod = locateMethod (methodName);
+      }
       if (myValueClass == null) {
          setPropertyType (myGetMethod.getReturnType());
       }
@@ -702,7 +742,12 @@ public class PropertyDesc implements PropertyInfo {
          throw new IllegalStateException (
             "attempt to set set method with value class unknown");
       }
-      mySetMethod = locateMethod (methodName, myValueClass);
+      if (myKey != null) {
+         mySetMethod = locateMethod (methodName, myKeyClass, myValueClass);
+      }
+      else {
+         mySetMethod = locateMethod (methodName, myValueClass);
+      }
    }
    
    private void initGetRangeMethod (String methodName) {
@@ -710,7 +755,12 @@ public class PropertyDesc implements PropertyInfo {
          throw new IllegalStateException (
             "attempt to set getRange method with value class unknown");
       }
-      myGetRangeMethod = locateMethod (methodName);
+      if (myKey != null) {
+         myGetRangeMethod = locateMethod (methodName, myKeyClass);
+      }
+      else {
+         myGetRangeMethod = locateMethod (methodName);
+      }
       checkReturnType (myGetRangeMethod, Range.class);
    }
 
@@ -725,16 +775,16 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    private void maybeSetGetRangeMethod (String methodName) {
-      if (myValueClass == null) {
-         throw new IllegalStateException (
-            "attempt to set getRange method with value class unknown");
-      }
-      try {
-         myGetRangeMethod = myHostClass.getMethod (methodName);
-         checkReturnType (myGetRangeMethod, Range.class);
-      }
-      catch (Exception e) {
+      if (methodName == null) {
          myGetRangeMethod = null;
+      }
+      else {
+         try {
+            initGetRangeMethod (methodName);
+         }
+         catch (Exception e) {
+            myGetRangeMethod = null;
+         }
       }
    }
 
@@ -774,10 +824,18 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    public void setGetMethod (String methodName) {
+      if (methodName == null) {
+         throw new IllegalArgumentException (
+            "No get() method specified for property '"+myName);
+      }
       initGetMethod (methodName);
    }
 
    public void setSetMethod (String methodName) {
+      if (methodName == null) {
+         throw new IllegalArgumentException (
+            "No set() method specified for property '"+myName);
+      }
       initSetMethod (methodName);
    }
 
@@ -990,7 +1048,12 @@ public class PropertyDesc implements PropertyInfo {
       else {
          checkHostClass (host);
          try {
-            return myGetMethod.invoke (host);
+            if (myKey == null) {
+               return myGetMethod.invoke (host);
+            }
+            else {
+               return myGetMethod.invoke (host, myKey);
+            }
          }
          catch (Exception e) {
             methodInvocationError (e, host, myGetMethod);
@@ -1003,7 +1066,12 @@ public class PropertyDesc implements PropertyInfo {
       if (myGetRangeMethod != null) {
          checkHostClass (host);
          try {
-            return (Range)myGetRangeMethod.invoke (host);
+            if (myKey == null) {
+               return (Range)myGetRangeMethod.invoke (host);
+            }
+            else {
+               return (Range)myGetRangeMethod.invoke (host, myKey);
+            }
          }
          catch (Exception e) {
             methodInvocationError (e, host, myGetRangeMethod);
@@ -1025,7 +1093,12 @@ public class PropertyDesc implements PropertyInfo {
       else {
          checkHostClass (host);
          try {
-            mySetMethod.invoke (host, value);
+            if (myKey == null) {
+               mySetMethod.invoke (host, value);
+            }
+            else {
+               mySetMethod.invoke (host, myKey, value);
+            }
          }
          catch (Exception e) {
             methodInvocationError (e, host, mySetMethod);
@@ -1091,13 +1164,15 @@ public class PropertyDesc implements PropertyInfo {
       }
    }
 
-   static String[] parseMethodNames (
-      String nameAndMethods, String[] defaults, int propType) {
-      String[] splits = nameAndMethods.split ("\\s+");
-      if (splits.length < 1) {
-         throw new IllegalArgumentException (
-            "Error: Blank name/method specifier");
+   static String[] parseNameAndMethodNames (
+      String propName, String methods, 
+      String[] defaults, int propType, boolean hasKey) {
+      
+      String[] splits = methods.split ("\\s+");
+      if (splits.length == 1 && splits[0].equals ("")) {
+         splits = new String[0];
       }
+      
       int maxMethods = 3;
       if (propType == READ_ONLY) {
          maxMethods = 1;
@@ -1105,38 +1180,38 @@ public class PropertyDesc implements PropertyInfo {
       else if (propType == INHERITABLE) {
          maxMethods = 5;
       }
-      if (splits.length > maxMethods + 1) {
+      if (splits.length > maxMethods) {
          throw new IllegalArgumentException (
             "Error: too many method names specified for "
             + propTypeName (propType) + "property");
       }
-
       String[] strs = new String[maxMethods + 2];
-
-      String propName = splits[0];
 
       int qidx = propName.indexOf (':');
       if (qidx != -1) {
          strs[maxMethods + 1] = propName.substring (qidx + 1); // qualifier
          propName = propName.substring (0, qidx);
       }
-      strs[0] = propName;
-
       if (!isJavaIdentifier (propName)) {
          throw new IllegalArgumentException ("Error: property name '"
          + propName + "' is not a Java identifier");
       }
-
-      for (int i = 1; i < maxMethods + 1; i++) {
+      strs[0] = propName;
+      for (int i = 0; i < maxMethods; i++) {
          if (i >= splits.length || splits[i].equals ("*")) {
-            strs[i] = defaults[i - 1].replace ("XXX", capitalize (propName));
+            if (!hasKey) {
+               strs[i+1] = defaults[i].replace ("XXX", capitalize (propName));
+            }
+            else {
+               // no default methods when there is a key
+            }
          }
          else {
             if (!isJavaIdentifier (splits[i])) {
                throw new IllegalArgumentException ("Error: method name '"
                + splits[i] + "' is not a Java identifier");
             }
-            strs[i] = splits[i];
+            strs[i+1] = splits[i];
          }
       }
       return strs;
@@ -1164,10 +1239,39 @@ public class PropertyDesc implements PropertyInfo {
      { "getXXX", "setXXX", "getXXXRange", "getXXXMode", "setXXXMode" };
 
    static public boolean initialize (
-      PropertyDesc desc, String nameAndMethods, Class<?> hostClass,
-      String descriptor, Object defaultValue, String options, int propType) {
+      PropertyDesc desc, String nameAndMethods, Object key,
+      Class<?> hostClass, String descriptor, Object defaultValue, 
+      String options, int propType) {
+
+      // split nameAnMethods into separate name and methods strings
+      nameAndMethods = nameAndMethods.trim();
+      if (nameAndMethods.length() == 0) {
+         throw new IllegalArgumentException (
+             "Argument 'nameAndMethods' is empty or contains only whitespace");
+      }
+      int widx = nameAndMethods.length();
+      for (int i=0; i<nameAndMethods.length(); i++) {
+         if (Character.isWhitespace(nameAndMethods.charAt(i))) {
+            widx = i;
+            break;
+         }
+      }
+      String name = nameAndMethods.substring (0, widx);
+      String methods = nameAndMethods.substring (widx).trim();
+      return initialize (
+         desc, name, methods, key, hostClass, descriptor,
+         defaultValue, options, propType);
+   }
+
+   static public boolean initialize (
+      PropertyDesc desc, String name, String methods, Object key,
+      Class<?> hostClass, String descriptor, Object defaultValue, 
+      String options, int propType) {
+
       String[] strs;
-      strs = parseMethodNames (nameAndMethods, defaultNames, propType);
+      //strs = parseMethodNames (nameAndMethods, defaultNames, propType);
+      strs = parseNameAndMethodNames (
+         name, methods, defaultNames, propType, key != null);
       if (strs == null) {
          return false;
       }
@@ -1175,6 +1279,7 @@ public class PropertyDesc implements PropertyInfo {
       String qualifier = strs[strs.length - 1];
 
       desc.setName (propName);
+      desc.setKey (key);
       desc.setHostClass (hostClass);
       desc.setGetMethod (strs[1]);
       if (propType == REGULAR || propType == INHERITABLE) {

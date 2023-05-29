@@ -161,9 +161,9 @@ public class MatrixTest extends UnitTest {
       if (expected != null) {
          if (actual == null ||
              !actual.toString().equals (expected.toString())) {
-            throw new TestException ("Expected exception "
-            + expected.toString() + ",\nGot "
-            + (actual == null ? "null" : actual.toString()));
+            throw new TestException ("Expected exception:\n"
+            + "\""+ expected.toString() + "\"\nGot:\n"
+            + (actual == null ? "null" : "\"" + actual.toString() + "\""));
          }
       }
       else if (actual != null) {

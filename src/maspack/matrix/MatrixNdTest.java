@@ -361,9 +361,9 @@ class MatrixNdTest extends MatrixTest {
       testScan (MR_3x3, "[ ( 0 0 1 ) \n ( 1 1 1 1 ", new IOException (
          "Token ')' expected for sparse matrix input, line 2"));
       testScan (MR_3x3, "[ ( 0 0 1 ) \n ( -1 0 3) ]", new IOException (
-"Expected non-negative integer for row index, got Token[n=-1], line 2"));
+"Expected non-negative integer for row index, got Token[l=-1], line 2"));
       testScan (MR_3x3, "[ ( 0 0 1 ) \n ( 1 -3 3) ]", new IOException (
-"Expected non-negative integer for column index, got Token[n=-3], line 2"));
+"Expected non-negative integer for column index, got Token[l=-3], line 2"));
       testScan (
          MAsub_3x4, "[ 1 2 3 ; 4 5 6 ; 7 8 9 ] ", new ImproperSizeException (
             "Matrix size incompatible with input, line 1"));

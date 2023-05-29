@@ -260,9 +260,9 @@ class SparseMatrixNdTest extends MatrixTest {
       testScan (MR_3x3, "[ ( 0 0 1 ) \n ( 1 1 1 1 ", new IOException (
          "Token ')' expected for sparse matrix input, line 2"));
       testScan (MR_3x3, "[ ( 0 0 1 ) \n ( -1 0 3) ]", new IOException (
-"Expected non-negative integer for row index, got Token[n=-1], line 2"));
+"Expected non-negative integer for row index, got Token[l=-1], line 2"));
       testScan (MR_3x3, "[ ( 0 0 1 ) \n ( 1 -3 3) ]", new IOException (
-"Expected non-negative integer for column index, got Token[n=-3], line 2"));
+"Expected non-negative integer for column index, got Token[l=-3], line 2"));
 
       M1_3x3.set (new double[] { 1, 5, 9 }, new int[] { 0, 0, 1, 1, 2, 2 }, 3);
       testScan (MR_3x3, "[ (0 0 1) (1 1 5) (2 2 9) ]", M1_3x3);

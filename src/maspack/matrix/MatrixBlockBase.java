@@ -523,5 +523,4 @@ public abstract class MatrixBlockBase extends DenseMatrixBase implements MatrixB
       }
       return new MatrixNdBlock (nrows, ncols);
    }
-
 }

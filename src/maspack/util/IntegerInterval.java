@@ -11,7 +11,7 @@ import java.io.PrintWriter;
 
 /**
  * A Range object which inspects a number to make sure it lies within a
- * prescibed interval.
+ * prescribed interval.
  */
 public class IntegerInterval extends NumericInterval {
    /**
@@ -119,6 +119,20 @@ public class IntegerInterval extends NumericInterval {
       myLower = rng.myLower;
    }
 
+   /**
+    * Adjusts the upper or lower bounds of this interval such that it contains
+    * {@code val}.
+    * 
+    * @param val value to be contained by the interval
+    */
+   public void updateBounds (int val) {
+      if (val > myUpper) {
+         myUpper = val; 
+      }
+      else if (val < myLower) {
+         myLower = val;
+      }
+   }
 //   /** 
 //    * {@inheritDoc}
 //    */

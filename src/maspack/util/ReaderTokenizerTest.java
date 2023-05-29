@@ -9,12 +9,14 @@ package maspack.util;
 import java.io.*;
 
 public class ReaderTokenizerTest {
-   private static final int WORD = StreamTokenizer.TT_WORD;
-   private static final int NUMBER = StreamTokenizer.TT_NUMBER;
-   private static final int EOL = StreamTokenizer.TT_EOL;
-   private static final int EOF = StreamTokenizer.TT_EOF;
+   private static final int WORD = StreamTokenizer.TT_WORD; // -3
+   private static final int NUMBER = StreamTokenizer.TT_NUMBER; // -2
+   private static final int EOL = StreamTokenizer.TT_EOL; // 10
+   private static final int EOF = StreamTokenizer.TT_EOF; // -1
    private static final int TOKEN = 0;
    private static final int QUOTE = 1;
+   private static final int INTEGER = 2;
+   private static final int HEX_INTEGER = 3;
 
    private class Record {
       String sval;
@@ -36,6 +38,10 @@ public class ReaderTokenizerTest {
             }
             case NUMBER: {
                s = "n=" + sval;
+               break;
+            }
+            case INTEGER: {
+               s = "l=" + sval;
                break;
             }
             case TOKEN: {
@@ -94,11 +100,11 @@ public class ReaderTokenizerTest {
                     new Record ("-67.33", NUMBER, 11),
                     new Record ("-0.00345", NUMBER, 11),
                     new Record ("-0.34", NUMBER, 11),
-                    new Record ("-45", NUMBER, 11),
+                    new Record ("-45", INTEGER, 11),
                     new Record ("12.5679", NUMBER, 11),
                     new Record ("99.0", NUMBER, 11),
 
-                    new Record ("0", NUMBER, 12),
+                    new Record ("0", INTEGER, 12),
                     new Record ("0xabcdef", NUMBER, 12),
                     new Record ("0xdeadbeef", NUMBER, 12),
                     new Record ("0x123", NUMBER, 12),
@@ -128,7 +134,7 @@ public class ReaderTokenizerTest {
                     new Record ("-1.4536267E-12", NUMBER, 2),
                     new Record ("0.5", NUMBER, 2), new Record ("e", WORD, 2),
                     new Record ("-", TOKEN, 2), new Record ("0.8", NUMBER, 2),
-                    new Record ("E", WORD, 2), new Record ("9", NUMBER, 2),
+                    new Record ("E", WORD, 2), new Record ("9", INTEGER, 2),
                     new Record ("E", WORD, 2), new Record ("+", TOKEN, 2),
 
                     new Record ("Infinity", NUMBER, 3),
@@ -174,11 +180,11 @@ public class ReaderTokenizerTest {
 
    private Record[] testResults5x =
       new Record[] { new Record ("axialSprings/x", WORD, 1),
-                     new Record ("-1", NUMBER, 1),
+                     new Record ("-1", INTEGER, 1),
                      new Record ("y", WORD, 1),
-                     new Record ("-1", NUMBER, 1),
+                     new Record ("-1", INTEGER, 1),
                      new Record ("z", WORD, 1),
-                     new Record ("-1", NUMBER, 1) };
+                     new Record ("-1", INTEGER, 1) };
 
    private String quoteTest =
       " \"\\\"'\\\"\" \"C:\\\\foo\\\\bar\" \"whitespace:\\t\\n\\r\" ";

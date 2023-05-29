@@ -186,6 +186,21 @@ public class DoubleInterval extends NumericInterval {
       myLower = lower;
    }
 
+   /**
+    * Adjusts the upper or lower bounds of this interval such that it contains
+    * {@code val}.
+    * 
+    * @param val value to be contained by the interval
+    */
+   public void updateBounds (double val) {
+      if (val > myUpper) {
+         myUpper = val; 
+      }
+      else if (val < myLower) {
+         myLower = val;
+      }
+   }
+   
 //   /** 
 //    * {@inheritDoc}
 //    */

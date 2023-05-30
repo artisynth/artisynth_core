@@ -602,7 +602,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       myCoupling.setDamping (damping);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public PropertyInfoList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -2651,13 +2651,6 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    /* --- begin HasNumericState implementation --- */
    
-   /**
-    * {@inheritDoc}
-    */
-   public void advanceState (double t0, double t1) {
-      // nothing to do in the base class
-   }
-
    /**
     * {@inheritDoc}
     */

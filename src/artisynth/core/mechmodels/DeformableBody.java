@@ -533,7 +533,7 @@ public abstract class DeformableBody extends RigidBody
             SI.getRotated (M6, getPose().R);
             MatrixNd MN = new MatrixNd(6, 6);
             M6.get (MN);
-            blk.addScaledSubMatrix (0, 0, s*myInertialDamping, MN);
+            blk.addScaledSubMatrix (0, 0, -s*myInertialDamping, MN);
          }
          if (myStiffnessDamping != 0) {
             blk.addScaledSubMatrix (

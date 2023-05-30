@@ -1549,7 +1549,7 @@ public class RigidBody extends Frame
          SpatialInertia SI = getEffectiveInertia();
          Matrix6d MR = new Matrix6d();
          SI.getRotated (MR, getPose().R);
-         blk.scaledAdd (s*myInertialDamping, MR);
+         blk.scaledAdd (-s*myInertialDamping, MR);
       }
    }
 

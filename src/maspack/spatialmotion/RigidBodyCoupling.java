@@ -17,6 +17,7 @@ import maspack.matrix.VectorNi;
 import maspack.util.DataBuffer;
 import maspack.util.DoubleInterval;
 import maspack.util.InternalErrorException;
+import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 
 /**
  * Base class for the mechanism to enforce constraints between two rigid frame
@@ -75,8 +76,10 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected class CoordinateInfo {
 
       private double value;      // current coordinate value
+      private double speed;      // current coordinate speed
       private double maxValue;   // maximum value
       private double minValue;   // minimum value
+      private String name;       // name of the coordinate (optional)
 
       // unilateral constraint for enforcing limits:
       public RigidBodyConstraint limitConstraint;
@@ -135,7 +138,21 @@ public abstract class RigidBodyCoupling implements Cloneable {
          }
       }
             
-      protected void updateLimitEngaged (Twist velCD) {
+      public void setSpeed (double val) {
+         speed = val;
+      }
+      
+      public void computeSpeed (Twist velGD) {
+         if (limitConstraint != null) {
+            speed = limitConstraint.wrenchG.dot (velGD);
+         }
+      }
+      
+      public double getSpeed() {
+         return speed;
+      }
+      
+     protected void updateLimitEngaged (Twist velCD) {
          updateEngaged (limitConstraint, value, minValue, maxValue, velCD);
       }
 
@@ -150,6 +167,23 @@ public abstract class RigidBodyCoupling implements Cloneable {
          else {
             return maxValue-value;
          }
+      }
+      
+      public MotionType getMotionType() {
+         if (limitConstraint != null) {
+            return limitConstraint.getMotionType();
+         }
+         else {
+            return MotionType.UNDEFINED;
+         }
+      }
+
+      public void setName (String name) {
+         this.name = name;
+      }
+      
+      public String getName() {
+         return name;
       }
    }      
 
@@ -426,7 +460,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
     * @param TCD transform from frame C to D
     * @param TGD transform from frame G to D
     * @param TERR error transform from frame C to G
-    * @param velGD velocity of frame G wuth respect to D, as seen in frame G
+    * @param velGD velocity of frame G with respect to D, as seen in frame G
     * @param updateEngaged if {@code true}, update {@code engaged} for the
     * unilateral constraints
     */
@@ -457,6 +491,11 @@ public abstract class RigidBodyCoupling implements Cloneable {
          // compute distance information for bilateral constraints
          if (cons.isBilateral()) {
             cons.distance = cons.wrenchG.dot (myErr);
+         }
+      }
+      for (CoordinateInfo cinfo : myCoordinates) {
+         if (cinfo.limitConstraint != null) {
+            cinfo.computeSpeed (velGD);
          }
       }
    }
@@ -890,6 +929,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       if (numCoordinates() > 0) {
          for (int i=0; i<myCoordinates.size(); i++) {
             data.dput (myCoordinates.get(i).value);
+            data.dput (myCoordinates.get(i).speed);
          }
       }
    }
@@ -914,6 +954,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       if (numCoordinates() > 0) {
          for (int i=0; i<myCoordinates.size(); i++) {
             myCoordinates.get(i).value = data.dget();
+            myCoordinates.get(i).speed = data.dget();
          }
          myCoordValueCnt++;
       }
@@ -1216,6 +1257,51 @@ public abstract class RigidBodyCoupling implements Cloneable {
       }
       return myCoordinates.get(idx).value;
    }
+   
+   /**
+    * Returns the current speed for the {@code idx}-ith coordinate supported by
+    * this coupling. An exception will be generated if coordinates are not
+    * supported.
+    * 
+    * @param idx coordinate index
+    * @return current speed
+    */   
+   public double getCoordinateSpeed (int idx) {
+      return myCoordinates.get(idx).speed;
+   }
+   
+   /**
+    * Returns the motion type for the {@code idx}-th coordinate supported by
+    * this coupling. An exception will be generated if coordinates are not
+    * supported.
+    *
+    * @param idx index of the coordinate
+    * @return coordinate motion type
+    */   
+   public MotionType getCoordinateMotionType (int idx) {
+      return myCoordinates.get(idx).getMotionType();
+   } 
+   
+   /**
+    * Returns the wrench used to apply forces to the {@code idx}-ith coordinate 
+    * supported by the coupling, or {@code null} if the coordinate does not 
+    * have a limit constraint.
+    * 
+    * An exception will be generated if coordinates are not
+    * supported.
+    * 
+    * @param idx coordinate index
+    * @return coordinate force wrench
+    */   
+   public Wrench getCoordinateWrench (int idx) {
+      CoordinateInfo cinfo = myCoordinates.get(idx);
+      if (cinfo.limitConstraint != null) {
+         return cinfo.limitConstraint.getWrenchG();
+      }
+      else {
+         return null;
+      }
+   }   
 
    /**
     * Returns the range for the {@code idx}-ith coordinate supported by this

@@ -761,7 +761,28 @@ public class FrameFem3dAttachment extends FrameAttachment {
             dg.w.crossAdd (fvel.w, evel.w, dg.w);
          }
       }
-   }   
+   }  
+   
+   public void applyForce (Wrench wr) {
+      double[] wforce = new double[6];
+      double[] nforce = new double[3];
+      int idx = 0;
+      wr.get (wforce);
+      Frame femFrame = getFemFrame();
+      if (femFrame != null) {
+         MatrixBlock blk = myMasterBlocks[idx++];
+         double[] fforce = new double[6];
+         blk.mulAdd (fforce, 0, wforce, 0);
+         femFrame.addForce (fforce, 0);
+      }
+      for (int i=0; i<myNodes.length; i++) {
+         MatrixBlock blk = myMasterBlocks[idx++];
+         // need to zero nforce because blk supplied mulAdd but not mul
+         nforce[0] = 0; nforce[1] = 0; nforce[2] = 0;
+         blk.mulAdd (nforce, 0, wforce, 0);
+         myNodes[i].addForce (nforce, 0);
+      }
+    }
 
    private void computeAngularVelDeriv (Vector3d dw, Vector3d wD) {
 

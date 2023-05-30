@@ -135,6 +135,14 @@ public abstract class FrameAttachment extends DynamicAttachmentBase
     * @param dvel if not <code>null</code>, returns the velocity derivative term
     */
    public abstract void getCurrentVel (Twist vel, Twist dvel);
+   
+   /**
+    * Applies a force to this frame, in world coordinates, by propagating
+    * it through to the underlying master bodies.
+    *     
+    * @param wr force to apply to the frame
+    */  
+   public abstract void applyForce (Wrench wr);
 
    /**
     * Returns the average mass of the master components as seen by the attached
@@ -250,7 +258,6 @@ public abstract class FrameAttachment extends DynamicAttachmentBase
 
       myMasterBlocks[idx].mulAdd (ybuf, yoff, xbuf, xoff);
    }
-
 
    /**
     * Nothing to do for scale mass.

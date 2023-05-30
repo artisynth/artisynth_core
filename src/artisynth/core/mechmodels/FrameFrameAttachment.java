@@ -330,12 +330,6 @@ public class FrameFrameAttachment extends FrameAttachment {
             // into coords of the attached frame
             vel.inverseTransform (myTFW.R);
          }
-
-         // Twist chk = new Twist();
-         // defBody.computeFrameVelocity (chk, myTFM);
-         // chk.inverseTransform (myTFW.R);
-         // System.out.println ("vel=" + vel.toString ("%12.8f"));
-         // System.out.println ("chk=" + chk.toString ("%12.8f"));          
       }
       else if (myMaster != null) {
          double[] bvel = new double[6];
@@ -367,6 +361,28 @@ public class FrameFrameAttachment extends FrameAttachment {
             dg.setZero();
          }
       }
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void applyForce (Wrench wr) {
+      if (myMaster instanceof DeformableBody) {
+         DeformableBody defBody = (DeformableBody)myMaster;
+         // assumes that master blocks have been updated
+         double[] bforce = new double[defBody.getVelStateSize()];
+         double[] wforce = new double[6];
+         wr.get (wforce);
+         myMasterBlocks[0].mulAdd (bforce, 0, wforce, 0);
+         myMaster.addForce (bforce, 0);
+      }
+      else if (myMaster != null) {
+         double[] bforce = new double[6];
+         double[] wforce = new double[6];
+         wr.get (wforce);
+         myMasterBlocks[0].mulAdd (bforce, 0, wforce, 0);
+         myMaster.addForce (bforce, 0);
+      }      
    }
 
    /**

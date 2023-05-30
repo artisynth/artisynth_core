@@ -14,6 +14,7 @@ import artisynth.core.util.*;
 import maspack.properties.HierarchyNode;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
+import maspack.properties.PropertyInfoList;
 import maspack.util.*;
 
 /**
@@ -100,7 +101,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
          DEFAULT_NAVPANEL_VISIBILITY, "NE");
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public PropertyInfoList getAllPropertyInfo() {
       return myProps;
    }
 

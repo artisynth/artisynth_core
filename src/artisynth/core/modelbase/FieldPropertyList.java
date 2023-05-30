@@ -33,8 +33,8 @@ public class FieldPropertyList extends PropertyList {
       String options) {
       FieldPropertyDesc desc = new FieldPropertyDesc();
       if (PropertyDesc.initialize (
-            desc, nameAndMethods, myHostClass, description, defaultValue,
-            options, PropertyDesc.INHERITABLE)) {
+            desc, nameAndMethods, null, myHostClass, description,
+            defaultValue, options, PropertyDesc.INHERITABLE)) {
          desc.initializeFieldMethods();
          add (desc);
          return desc;
@@ -55,8 +55,8 @@ public class FieldPropertyList extends PropertyList {
       String options) {
       FieldPropertyDesc desc = new FieldPropertyDesc();
       if (PropertyDesc.initialize (
-            desc, nameAndMethods, myHostClass, description, defaultValue,
-            options, PropertyDesc.REGULAR)) {
+            desc, nameAndMethods, null, myHostClass, description,
+            defaultValue, options, PropertyDesc.REGULAR)) {
          desc.initializeFieldMethods();
          add (desc);
          return desc;

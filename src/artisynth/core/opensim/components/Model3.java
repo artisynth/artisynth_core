@@ -9,6 +9,7 @@ import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.ComponentList;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderableUtils;
 import maspack.render.RenderProps;
@@ -42,6 +43,12 @@ public class Model3 extends ModelBase {
          forceSet.createComponent(geometryPath, componentMap);
       mech.add (forces);
       
+      // constrainers
+      ConstraintSet constraintSet = this.getConstraintSet ();
+      ComponentList<ModelComponent> constraints =
+         constraintSet.createComponent(geometryPath, componentMap);
+      mech.add (constraints);
+
       // markers
       MarkerSet markerSet = this.getMarkerSet ();
       PointList<FrameMarker> markers =

@@ -26,6 +26,7 @@ public class OpenSimParser {
    OpenSimObjectFactoryStore myFactories;
    OpenSimDocument myDocument;
    File myGeometryPath;
+   ModelComponentMap myComponentMap;
 
    /**
     * Creates a new parser
@@ -100,20 +101,31 @@ public class OpenSimParser {
          load();
       }
       ModelBase model = myDocument.getModel ();
-      ModelComponentMap componentMap = new ModelComponentMap ();
+      myComponentMap = new ModelComponentMap ();
       
       File geometryPath = myGeometryPath;
       if (geometryPath == null) {
          geometryPath = DEFAULT_GEOMETRY_PATH;
       }
       
-      return model.createModel (mech, geometryPath, componentMap);
+      return model.createModel (mech, geometryPath, myComponentMap);
 
    }
    
    public MechModel createModel() {
       return createModel(null);
    }
+   
+   /**
+    * Returns the ModelComponentMap for the most recently created model,
+    * or {#code null} if no model has been created yet.
+    * 
+    * @return most recent component map.
+    */
+   public ModelComponentMap getComponentMap() {
+      return myComponentMap;
+   }
+   
 }
 
 

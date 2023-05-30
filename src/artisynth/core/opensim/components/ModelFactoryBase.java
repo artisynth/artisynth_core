@@ -62,6 +62,15 @@ public abstract class ModelFactoryBase<E extends ModelBase> extends OpenSimObjec
             success = false;
          }
          
+      } else if ("ConstraintSet".equals(name)) {
+       
+         OpenSimObjectFactory<? extends ConstraintSet> factory = getFactory (ConstraintSet.class);
+         if (factory != null) {
+            comp.setConstraintSet (factory.parse (child));
+         } else {
+            success = false;
+         }
+         
       } else if ("MarkerSet".equals(name)) {
        
          OpenSimObjectFactory<? extends MarkerSet> factory = getFactory (MarkerSet.class);

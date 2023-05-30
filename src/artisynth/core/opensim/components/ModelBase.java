@@ -19,6 +19,7 @@ public abstract class ModelBase extends OpenSimObject implements ModelComponentG
    
    private BodySet bodySet;
    private ForceSet forceSet;
+   private ConstraintSet constraintSet;
    
    // private ConstraintSet constraintSet;
    private MarkerSet markerSet;
@@ -39,6 +40,7 @@ public abstract class ModelBase extends OpenSimObject implements ModelComponentG
       gravity = null;
       bodySet = null;
       forceSet = null;
+      constraintSet = null;
       markerSet = null;
    }
    
@@ -124,6 +126,15 @@ public abstract class ModelBase extends OpenSimObject implements ModelComponentG
       this.forceSet.setParent (this);
    }
 
+   public ConstraintSet getConstraintSet () {
+      return constraintSet;
+   }
+
+   public void setConstraintSet (ConstraintSet constraintSet) {
+      this.constraintSet = constraintSet;
+      this.constraintSet.setParent (this);
+   }
+
    public MarkerSet getMarkerSet () {
       return markerSet;
    }
@@ -142,6 +153,9 @@ public abstract class ModelBase extends OpenSimObject implements ModelComponentG
       }
       if (forceSet != null) {
          model.setForceSet (forceSet.clone ());
+      }
+      if (constraintSet != null) {
+         model.setConstraintSet (constraintSet.clone ());
       }
       if (markerSet != null) {
          model.setMarkerSet (markerSet.clone ());

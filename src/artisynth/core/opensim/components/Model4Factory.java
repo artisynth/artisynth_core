@@ -64,8 +64,8 @@ public class Model4Factory extends ModelFactoryBase<Model4> {
          }
       } else if ("ControllerSet".equals(name)) {
          System.out.println ("Model4Factory: ignoring ControllerSet");
-      } else if ("ConstraintSet".equals(name)) {
-         System.out.println ("Model4Factory: ignoring ConstraintSet");
+      // } else if ("ConstraintSet".equals(name)) {
+      //    System.out.println ("Model4Factory: ignoring ConstraintSet");
       } else if ("ProbeSet".equals(name)) {
          System.out.println ("Model4Factory: ignoring ProbeSet");
       } else if ("ContactGeometrySet".equals(name)) {

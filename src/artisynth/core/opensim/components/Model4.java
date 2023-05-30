@@ -10,6 +10,7 @@ import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.ComponentList;
 import artisynth.core.opensim.components.JointBase.BodyAndTransform;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -152,6 +153,12 @@ public class Model4 extends ModelBase {
       RenderableComponentList<ModelComponent> forces =
          forceSet.createComponent(geometryPath, componentMap);
       mech.add (forces);
+      
+      // constrainers
+      ConstraintSet constraintSet = this.getConstraintSet ();
+      ComponentList<ModelComponent> constraints =
+         constraintSet.createComponent(geometryPath, componentMap);
+      mech.add (constraints);
       
       // markers
       MarkerSet markerSet = this.getMarkerSet ();

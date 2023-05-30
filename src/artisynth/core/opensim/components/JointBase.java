@@ -182,7 +182,12 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
       if (coordinates != null) {
          return coordinates.objects ();
       }
-      return coordinateSet.objects ();
+      else if (coordinateSet != null) {
+         return coordinateSet.objects ();
+      }
+      else {
+         return new ArrayList<Coordinate>();
+      }
    }
    
    public CoordinateSet getCoordinateSet() {

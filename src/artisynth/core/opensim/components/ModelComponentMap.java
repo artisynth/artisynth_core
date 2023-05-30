@@ -19,6 +19,7 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    private HashMap<String,ArrayList<OpenSimObject>> nameMap;
    private HashMap<String,OpenSimObject> pathMap;
    private HashMap<OpenSimObject,ModelComponent> componentMap;
+   private JointSet jointSet; // hack so we can quickly get the joint set
    
    HashMap<String,OpenSimObject> getPathMap() {
       return pathMap;
@@ -165,6 +166,9 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
          addToNameMap (obj.getName (), obj);
          addToPathMap (obj.getPath ().toString (), obj);
       }
+      if (obj instanceof JointSet) {
+         jointSet = (JointSet)obj;
+      }
       
       return old;
       
@@ -177,6 +181,13 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
     */
    public ModelComponent get(OpenSimObject obj) {
       return componentMap.get (obj);
+   }
+   
+   /**
+    * Returns the joint set, if present
+    */
+   public JointSet getJointSet() {
+      return jointSet;
    }
 
    @Override
@@ -203,6 +214,8 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    public ModelComponent get (Object key) {
       return componentMap.get (key);
    }
+   
+   
 
    @Override
    public ModelComponent remove (Object key) {

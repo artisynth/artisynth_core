@@ -3,7 +3,6 @@ package artisynth.core.opensim.components;
 import java.io.*;
 
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.mechmodels.PointPointConstraint;
 import artisynth.core.mechmodels.*;
 import maspack.util.DoubleInterval;
 import maspack.matrix.Point3d;

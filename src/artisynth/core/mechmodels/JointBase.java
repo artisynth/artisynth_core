@@ -13,9 +13,14 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.VectorNd;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.MatrixBlock;
+import maspack.matrix.*;
 import maspack.util.DoubleInterval;
 import maspack.properties.*;
 import maspack.render.*;
+import maspack.spatialmotion.Wrench;
+import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.render.Renderer.AxisDrawStyle;
 
 import artisynth.core.modelbase.*;
@@ -48,7 +53,7 @@ public abstract class JointBase extends BodyConnector  {
          "radius of rendered shaft", DEFAULT_SHAFT_RADIUS);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public PropertyInfoList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -252,6 +257,31 @@ public abstract class JointBase extends BodyConnector  {
       return myCoupling.numCoordinates();
    }
 
+   private void checkCoordinateIndex (int idx) {
+      int numc = numCoordinates();
+      if (idx < 0 || idx >= numc) {
+         if (numc == 0) {
+            throw new IndexOutOfBoundsException (
+               "joint does not have coordinates");
+         }
+         else {
+            throw new IndexOutOfBoundsException (
+               "idx is "+idx+", must be between 0 and "+(numc-1));
+         }
+      }
+   }
+
+   /**
+    * Returns the {@code idx}-th coordinate value for this joint, converted
+    * to degrees.
+    *
+    * @param idx index of the coordinate
+    * @return coordinate value, converted to degrees.
+    */
+   public double getCoordinateDeg (int idx) {
+      return Math.toDegrees (getCoordinate(idx));
+   }
+
    /**
     * Returns the {@code idx}-th coordinate for this joint. If the joint is
     * connected to other bodies, the value is inferred from the current TCD
@@ -261,11 +291,7 @@ public abstract class JointBase extends BodyConnector  {
     * @return the coordinate value
     */
    public double getCoordinate (int idx) {
-      int numc = numCoordinates();
-      if (idx < 0 || idx >= numc) {
-         throw new IndexOutOfBoundsException (
-            "idx is "+idx+", must be between 0 and "+(numc-1));
-      }
+      checkCoordinateIndex (idx);
       RigidTransform3d TCD = null;
       if (attachmentsInitialized()) {
          // get TCD for estimating coordinates
@@ -275,6 +301,221 @@ public abstract class JointBase extends BodyConnector  {
       return myCoupling.getCoordinate (idx, TCD);
    }
 
+   /**
+    * Returns the current speed of the {@code idx}-th coordinate for this joint.
+    *
+    * @param idx index of the coordinate
+    * @return the coordinate speed
+    */
+   public double getCoordinateSpeed (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getCoordinateSpeed (idx);
+   }
+   
+   /**
+    * Returns the motion type of the {@code idx}-th coordinate for this joint.
+    *
+    * @param idx index of the coordinate
+    * @return coordinate motion type
+    */   
+   public MotionType getCoordinateMotionType (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getCoordinateMotionType(idx);
+   }
+   
+   /**
+    * Applies a generalized force to the {@code idx}-th coordinate for this 
+    * joint.
+    *
+    * @param idx index of the coordinate
+    * @param f generalized force to apply
+    */
+   public void applyCoordinateForce (int idx, double f) {
+      checkCoordinateIndex (idx);
+      Wrench wrG = myCoupling.getCoordinateWrench (idx);
+      if (wrG != null) {
+         Wrench wrX = new Wrench();
+         wrX.inverseTransform (myTCwG, wrG); // transform to world-aligned TC
+         wrX.scale (f);
+         myAttachmentA.applyForce (wrX);
+         wrX.inverseTransform (myTDwG, wrG); // transform to world-aligned TD
+         wrX.scale (-f);
+         myAttachmentB.applyForce (wrX);
+      }
+   }
+
+   private void addSolveBlocks (
+      SparseNumberedBlockMatrix M, DynamicComponent ci, DynamicComponent cj) {
+      int bi = ci.getSolveIndex();
+      int bj = cj.getSolveIndex();
+      if (bi != -1 && bj != -1) {
+         MatrixBlock blk = M.getBlock (bi, bj);
+         if (blk == null) {
+            M.addBlock (
+               bi, bj, MatrixBlockBase.alloc (
+                  ci.getVelStateSize(), cj.getVelStateSize()));
+         }
+      }
+   }
+
+   public void addCoordinateSolveBlocks (SparseNumberedBlockMatrix M, int idx) {
+      checkCoordinateIndex (idx);
+      Wrench wrG = myCoupling.getCoordinateWrench (idx);
+      if (wrG != null) {
+         DynamicComponent[] Amasters = myAttachmentA.getMasters();
+         DynamicComponent[] Bmasters = myAttachmentB.getMasters();
+         for (DynamicComponent cAi : Amasters) {
+            for (DynamicComponent cAj : Amasters) {
+               addSolveBlocks (M, cAi, cAj);
+            }
+            for (DynamicComponent cBj : Bmasters) {
+               addSolveBlocks (M, cAi, cBj);
+            }
+         }
+         for (DynamicComponent cBi : Bmasters) {
+            for (DynamicComponent cAj : Amasters) {
+               addSolveBlocks (M, cBi, cAj);
+            }
+            for (DynamicComponent cBj : Bmasters) {
+               addSolveBlocks (M, cBi, cBj);
+            }
+         }
+      }
+   }
+
+   private void addVelJacobian (
+      MatrixBlock blk, double[] wi, double[] wj, double s) {
+
+      if (blk instanceof Matrix6dBase) {
+         Matrix6dBase M = (Matrix6dBase)blk;
+
+         double wj0 = wj[0]*s;
+         double wj1 = wj[1]*s;
+         double wj2 = wj[2]*s;
+         double wj3 = wj[3]*s;
+         double wj4 = wj[4]*s;
+         double wj5 = wj[5]*s;
+
+         M.m00 += wi[0]*wj0;
+         M.m01 += wi[0]*wj1;
+         M.m02 += wi[0]*wj2;
+         M.m03 += wi[0]*wj3;
+         M.m04 += wi[0]*wj4;
+         M.m05 += wi[0]*wj5;
+
+         M.m10 += wi[1]*wj0;
+         M.m11 += wi[1]*wj1;
+         M.m12 += wi[1]*wj2;
+         M.m13 += wi[1]*wj3;
+         M.m14 += wi[1]*wj4;
+         M.m15 += wi[1]*wj5;
+
+         M.m20 += wi[2]*wj0;
+         M.m21 += wi[2]*wj1;
+         M.m22 += wi[2]*wj2;
+         M.m23 += wi[2]*wj3;
+         M.m24 += wi[2]*wj4;
+         M.m25 += wi[2]*wj5;
+
+         M.m30 += wi[3]*wj0;
+         M.m31 += wi[3]*wj1;
+         M.m32 += wi[3]*wj2;
+         M.m33 += wi[3]*wj3;
+         M.m34 += wi[3]*wj4;
+         M.m35 += wi[3]*wj5;
+
+         M.m40 += wi[4]*wj0;
+         M.m41 += wi[4]*wj1;
+         M.m42 += wi[4]*wj2;
+         M.m43 += wi[4]*wj3;
+         M.m44 += wi[4]*wj4;
+         M.m45 += wi[4]*wj5;
+
+         M.m50 += wi[5]*wj0;
+         M.m51 += wi[5]*wj1;
+         M.m52 += wi[5]*wj2;
+         M.m53 += wi[5]*wj3;
+         M.m54 += wi[5]*wj4;
+         M.m55 += wi[5]*wj5;
+      }
+      else {
+         for (int i=0; i<wi.length; i++) {
+            for (int j=0; j<wj.length; j++) {
+               blk.set (i, j, blk.get(i, j)+s*wi[i]*wj[j]);
+            }
+         }
+      }
+   }
+
+   public void addCoordinateVelJacobian (SparseNumberedBlockMatrix M, int idx, double s) {
+      checkCoordinateIndex (idx);
+      //s = 0;
+      Wrench wrG = myCoupling.getCoordinateWrench (idx);
+      if (wrG != null) {
+         Wrench wrC = new Wrench();
+         wrC.inverseTransform (myTCwG, wrG); // transform to world-aligned TC
+         double[] wc = new double[6];
+         wrC.get (wc);
+         Wrench wrD = new Wrench();
+         wrD.inverseTransform (myTDwG, wrG); // transform to world-aligned TD
+         double[] wd = new double[6];
+         wrD.get (wd);
+
+         MatrixBlock[] Ablks = myAttachmentA.getMasterBlocks();
+         double[][] wAc = new double[Ablks.length][];
+         for (int i=0; i<Ablks.length; i++) {
+            MatrixBlock blk = Ablks[i];
+            wAc[i] = new double[blk.rowSize()];
+            blk.mulAdd (wAc[i], 0, wc, 0);            
+         }
+         MatrixBlock[] Bblks = myAttachmentB.getMasterBlocks();
+         double[][] wBd = new double[Bblks.length][];
+         for (int i=0; i<Bblks.length; i++) {
+            MatrixBlock blk = Bblks[i];
+            wBd[i] = new double[blk.rowSize()];
+            blk.mulAdd (wBd[i], 0, wd, 0);            
+         }
+
+         DynamicComponent[] Amasters = myAttachmentA.getMasters();
+         DynamicComponent[] Bmasters = myAttachmentB.getMasters();
+         for (int i=0; i<Amasters.length; i++) {
+            int bi = Amasters[i].getSolveIndex();
+            if (bi != -1) {
+               for (int j=0; j<Amasters.length; j++) {
+                  int bj = Amasters[j].getSolveIndex();
+                  if (bj != -1) {
+                     addVelJacobian (M.getBlock(bi, bj), wAc[i], wAc[j], s);
+                  }
+               }
+               for (int j=0; j<Bmasters.length; j++) {
+                  int bj = Bmasters[j].getSolveIndex();
+                  if (bj != -1) {
+                     addVelJacobian (M.getBlock(bi, bj), wAc[i], wBd[j], -s);
+                  }
+               }
+            }
+         }
+         for (int i=0; i<Bmasters.length; i++) {
+            int bi = Bmasters[i].getSolveIndex();
+            if (bi != -1) {
+               for (int j=0; j<Amasters.length; j++) {
+                  int bj = Amasters[j].getSolveIndex();
+                  if (bj != -1) {
+                     MatrixBlock blkAj = Ablks[j];
+                     addVelJacobian (M.getBlock(bi, bj), wBd[i], wAc[j], -s);
+                  }
+               }
+               for (int j=0; j<Bmasters.length; j++) {
+                  int bj = Bmasters[j].getSolveIndex();
+                  if (bj != -1) {
+                     addVelJacobian (M.getBlock(bi, bj), wBd[i], wBd[j], s);
+                  }
+               }
+            }
+         }
+      }
+   }
+      
    /**
     * Returns the current coordinates, if any, for this joint. Coordinates are
     * returned in {@code coords}, whose size is set to the value returned by
@@ -354,6 +595,17 @@ public abstract class JointBase extends BodyConnector  {
       }        
    }
 
+   /**
+    * Sets the {@code idx}-th coordinate for this joint, with the value
+    * specified in degrees.
+    *
+    * @param idx index of the coordinate  
+    * @param new coordinate value, in degrees
+    */
+   public void setCoordinateDeg (int idx, double value) {
+      setCoordinate (idx, Math.toRadians(value));
+   }
+   
    /**
     * Sets the current coordinates, if any, for this joint. If coordinates are
     * not supported, this method does nothing. Otherwise, {@code coords}

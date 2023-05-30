@@ -164,7 +164,7 @@ public class SphericalJoint extends SphericalJointBase {
    /**
     * Creates a {@code SphericalJoint} connecting a single connectable body,
     * {@code bodyA}, to ground. The joint frames D and C are assumed to be
-    * initially coincident, with D (and C) is located (with respect to world)
+    * initially coincident, with D (and C) located (with respect to world)
     * so that its origin is at {@code originD} and its orientation is aligned
     * with the world.
     *

@@ -47,7 +47,7 @@ import artisynth.core.modelbase.TransformGeometryAction;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
-import maspack.function.ConstantFuntion1x1;
+import maspack.function.ConstantFunction1x1;
 import maspack.function.SISOFunction;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
@@ -1294,7 +1294,7 @@ public class SkinMeshBody extends SkinMeshBase
     * @param networkDist number of paths to traverse to collect vertices
     */
    public void smoothWeights(int networkDist) {
-      smoothWeights(new ConstantFuntion1x1(1), networkDist);
+      smoothWeights(new ConstantFunction1x1(1), networkDist);
    }
    
    /**

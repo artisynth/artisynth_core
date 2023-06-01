@@ -27,7 +27,7 @@ import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
-import maspack.function.ConstantFuntion3x1;
+import maspack.function.ConstantFunction3x1;
 import maspack.function.Function3x1;
 import maspack.geometry.AABBTree;
 import maspack.geometry.BVFeatureQuery;
@@ -678,11 +678,11 @@ public class MFreeModel3d extends FemModel3d  {
    }
 
    public double integrateVolume() {
-      return integrate(new ConstantFuntion3x1(1));
+      return integrate(new ConstantFunction3x1(1));
    }
 
    public double integrateMass() {
-      return integrate(new ConstantFuntion3x1(myDensity));
+      return integrate(new ConstantFunction3x1(myDensity));
    }
 
    public SparseMatrixNd computeConsistentMassMatrix() {

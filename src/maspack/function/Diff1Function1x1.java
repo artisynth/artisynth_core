@@ -7,11 +7,21 @@
 package maspack.function;
 
 import maspack.util.DoubleHolder;
+import maspack.matrix.VectorNd;
 
 /**
  * Once-differentiable single-input, single output function
  */
-public interface Diff1Function1x1 extends Function1x1 {
+public interface Diff1Function1x1 extends Function1x1, Diff1FunctionNx1 {
+   
+   /**
+    * Evaluates both the first derivative of this function at a
+    * specified input value.
+    *
+    * @param x input value
+    * @return derivative value
+    */  
+   double evalDeriv (double x);
    
    /**
     * Evaluates both the value and first derivative of this function at a
@@ -21,6 +31,19 @@ public interface Diff1Function1x1 extends Function1x1 {
     * @param x input value
     * @return function value
     */
-   double eval (DoubleHolder dval, double x);
+   default double eval (DoubleHolder dval, double x) {
+      if (dval != null) {
+         dval.value = evalDeriv (x);
+      }
+      return eval (x);
+   }
+   
+   default void evalDeriv (VectorNd deriv, VectorNd in) {
+      deriv.set (0, evalDeriv(in.get(0)));
+   }
+   
+   default void evalDeriv (double[] deriv, double[] in) {
+      deriv[0] = evalDeriv(in[0]);
+   }
      
 }

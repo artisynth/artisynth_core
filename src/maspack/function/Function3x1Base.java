@@ -10,7 +10,7 @@ public abstract class Function3x1Base implements Function3x1 {
    }
 
    @Override
-   public int getInputSize() {
+   public int inputSize() {
       return 3;
    }
 

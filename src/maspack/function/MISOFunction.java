@@ -18,13 +18,13 @@ public interface MISOFunction {
     *
     * @return number of expected inputs
     */
-   int getInputSize();
+   int inputSize();
    
    /**
     * Evaluates this function for the specified inputs.
     *
     * @param in function inputs. Should have a length {@code >=} {@link
-    * #getInputSize}.
+    * #inputSize}.
     * @return function output value
     */
    double eval(double[] in);
@@ -33,7 +33,7 @@ public interface MISOFunction {
     * Evaluates this function for the specified inputs.
     *
     * @param in function inputs. Should have a length {@code >=} {@link
-    * #getInputSize}.
+    * #inputSize}.
     * @return function output value
     */
    default double eval (VectorNd in) {

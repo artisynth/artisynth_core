@@ -47,7 +47,7 @@ public class GaussianFunction3x1 implements Function3x1 {
       return eval(new Point3d(in[0],in[1],in[2]));
    }
 
-   public int getInputSize() {
+   public int inputSize() {
       return 3;
    }
 

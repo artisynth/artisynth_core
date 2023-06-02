@@ -55,7 +55,7 @@ public abstract class RadialWeightFunction extends MFreeWeightFunction {
       return center;
    }
 
-   public int getInputSize() {
+   public int inputSize() {
       return 3;
    }
    

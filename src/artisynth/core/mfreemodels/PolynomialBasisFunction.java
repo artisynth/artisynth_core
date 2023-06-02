@@ -25,7 +25,7 @@ public class PolynomialBasisFunction implements DifferentiableFunction3x1{
       return eval(in[0], in[1], in[2]);
    }
 
-   public int getInputSize() {
+   public int inputSize() {
       return 3;
    }
 

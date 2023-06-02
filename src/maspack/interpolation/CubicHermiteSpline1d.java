@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import maspack.util.*;
 import maspack.matrix.*;
+import maspack.function.*;
 
 /**
  * Implements one dimensional cubic Hermite spline interpolation in the {@code
@@ -17,7 +18,7 @@ import maspack.matrix.*;
  * derivative for a given value of {@code x}.
  */
 public class CubicHermiteSpline1d
-   implements Scannable, Iterable<CubicHermiteSpline1d.Knot> {
+   implements Scannable, Diff1Function1x1, Iterable<CubicHermiteSpline1d.Knot> {
 
    private static final double EPS = 1e-14;
 
@@ -308,6 +309,10 @@ public class CubicHermiteSpline1d
          myIndex = idx;
       }
 
+      public String toString () {
+         return "x0="+x0+" y0="+y0+" dy0="+dy0+" a2="+a2+" a3="+a3;
+      }
+
       public boolean equals (Knot knot) {
          return (x0 == knot.x0 &&
                  y0 == knot.y0 &&
@@ -405,6 +410,8 @@ public class CubicHermiteSpline1d
    }
 
    private void set (double[] x, double[] y, double[] dy) {
+      myKnots.clear();
+      myInvertible = -1;
       for (int i=0; i<x.length-1; i++) {
          if (x[i] > x[i+1]) {
             // need to reorder
@@ -436,6 +443,116 @@ public class CubicHermiteSpline1d
       }
    }
 
+   /**
+    * Sets this spline to a natural cubic spline for a set of knot points whose
+    * x and y positions are given. This is a wrapper for {@link
+    * #setNatural(double[],double[],double,double)} with {@code ddy0} and
+    * {@code ddyL} both set to 0.
+    *
+    * @param x knot point x values
+    * @param y knot point y values
+    */
+   public void setNatural (double[] x, double[] y) {
+      setNatural (x, y, 0, 0);
+   }
+
+   /**
+    * Sets this spline to a natural cubic spline for a set of knot points whose
+    * x and y positions are given. The implementation is based on a some notes
+    * published by James Keesling, in
+    * <a href="https://people.clas.ufl.edu/kees/files/CubicSplines.pdf">
+    * people.clas.ufl.edu/kees/files/CubicSplines.pdf</a>
+    *
+    * @param x knot point x values
+    * @param y knot point y values
+    * @param ddy0 desired second derivative at the first knot
+    * @param ddyL desired second derivative at the last knot
+    */
+   public void setNatural (
+      double[] x, double[] y, double ddy0, double ddyL) {
+
+      myKnots.clear();
+      myInvertible = -1;
+      if (x.length != y.length) {
+         throw new IllegalArgumentException (
+            "x and y inputs have different lengths");
+      }
+      int numk = x.length;
+      if (numk == 0) {
+         return;
+      }
+      else if (numk == 1) {
+         // constant value
+         myKnots.add (new Knot (x[0], y[0], 0));
+         myInvertible = 0;
+      }
+      else if (numk == 2) {
+         // linear function
+         if (x[1] == x[0]) {
+            throw new IllegalArgumentException (
+               "x inputs at 0 and 1 are the same");
+         }
+         double slope = (y[1]-y[0])/(x[1]-x[0]);
+         myKnots.add (new Knot (x[0], y[0], slope));
+         myKnots.add (new Knot (x[1], y[1], slope));
+      }
+      else {
+         double[] dx = new double[numk-1];
+         double[] dy = new double[numk-1];
+         for (int i=0; i<numk-1; i++) {
+            dx[i] = x[i+1] - x[i];
+            dy[i] = y[i+1] - y[i];
+            if (dx[i] == 0) {
+               throw new IllegalArgumentException (
+                  "x inputs at "+i+" and "+(i+1)+" are the same");
+            }
+         }
+         MatrixNd M = new MatrixNd (numk, numk);
+         VectorNd r = new VectorNd (numk); // right hand side
+         M.set (0, 0, 1);
+         r.set (0, ddy0/2);
+         for (int k=1; k<numk-1; k++) {
+            double hp = dx[k-1]; // hk previous
+            double hk = dx[k];
+            M.set (k, k-1, hp);
+            M.set (k, k, 2*(hp+hk));
+            M.set (k, k+1, hk);
+            r.set (k, 3*(dy[k])/hk - 3*(dy[k-1])/hp);
+         }
+         M.set (numk-1, numk-1, 1);
+         r.set (numk-1, ddyL/2);
+
+         LUDecomposition LUD = new LUDecomposition (M);
+         VectorNd z = new VectorNd (numk); // a2 coefficients to solve for
+         if (!LUD.solve (z, r)) {
+            throw new IllegalArgumentException (
+               "unable to solve for spline - x/y inputs are ill-conditioned");
+         }
+         for (int k=0; k<numk; k++) {
+            double a2 = z.get(k);
+            double a3 = 0;
+            double Dy = 0; // derivative of y at knot
+            if (k < numk-1) {
+               double hk = dx[k];
+               double a2next = z.get(k+1);
+               a3 = (a2next - a2)/(3*hk);
+               Dy = dy[k]/hk - hk*(2*a2 + a2next)/3;
+            }
+            else {
+               double hp = dx[k-1];
+               Knot prev = myKnots.get(k-1);
+               Dy = prev.dy0 + (3*prev.a3*hp + 2*prev.a2)*hp;
+               a3 = 0;
+            }
+            Knot knot = new Knot (x[k], y[k], Dy);
+            knot.a2 = a2;
+            knot.a3 = a3;
+            myKnots.add (knot);
+         }
+         updateCoefficients();
+      }
+   }
+   
    /**
     * Creates a spline from a copy of an existing one.
     *
@@ -690,8 +807,17 @@ public class CubicHermiteSpline1d
       return prev.getDy3();
    }
    
-   
-    /**
+   /* ---- Function interface ---- */
+
+   public double eval (double x) {
+      return evalY (x);
+   }
+
+   public double evalDeriv (double x) {
+      return evalDy (x);
+   }
+
+   /**
     * Scans this spline from a ReaderTokenizer. The expected format consists of
     * an openning square bracket, followed by {@code 3 n} numeric values giving
     * the x, y amd y derivative values for each of the {@code n} knots, and
@@ -764,7 +890,7 @@ public class CubicHermiteSpline1d
          pw.println ("[ "+segToString(myKnots.get(0),fmt)+" ]");
       }
       else {
-         pw.print ("[ ");
+         pw.println ("[ ");
          IndentingPrintWriter.addIndentation (pw, 2);
          for (int i=0; i<myKnots.size(); i++) {
             pw.println (segToString(myKnots.get(i),fmt));

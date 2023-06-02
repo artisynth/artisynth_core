@@ -2,9 +2,11 @@ package maspack.interpolation;
 
 import maspack.util.*;
 import maspack.matrix.*;
+import maspack.interpolation.CubicHermiteSpline1d.Knot;
 
 public class CubicHermiteSpline1dTest extends UnitTest {
 
+   double EPS = 1e-12;
 
    public static double numericDerivativeError (CubicHermiteSpline1d curve) {
 
@@ -132,8 +134,113 @@ public class CubicHermiteSpline1dTest extends UnitTest {
          ()->curve.solveX(4.51));
    }
 
+   /**
+    * Checks that a spline is in fact a natural spline corresponding to the
+    * specified x and y inputs.
+    */
+   private void validateNatural (
+      CubicHermiteSpline1d spline,
+      double[] x, double[] y, double ddy0, double ddyL) {
+
+      int numk = spline.numKnots();
+      if (numk != x.length) {
+         throw new TestException (
+            "incorrect number of knots: "+spline.numKnots()+
+            ", expected "+x.length);
+      }
+      for (int k=0; k<numk; k++) {
+         Knot knot = spline.getKnot(k);
+         if (knot.x0 != x[k]) {
+            throw new TestException (
+               "incorrect x value at k="+k+": "+knot.x0+", expected "+x[k]);
+         }
+         if (knot.y0 != y[k]) {
+            throw new TestException (
+               "incorrect y value at k="+k+": "+knot.y0+", expected "+y[k]);
+         }
+      }
+      if (numk == 2) {
+         Knot knot0 = spline.getKnot(0);
+         Knot knot1 = spline.getKnot(1);
+         double dx = knot0.x0 - knot1.x0;
+         double dy = knot0.y0 - knot1.y0;
+         
+         checkEquals ("knot0.dy0", knot0.dy0, dy/dx, EPS);
+         checkEquals ("knot1.dy0", knot1.dy0, dy/dx, EPS);
+
+         checkEquals ("knot0.a2", knot0.a2, 0.0);
+         checkEquals ("knot0.a3", knot0.a3, 0.0);
+         checkEquals ("knot1.a2", knot1.a2, 0.0);
+         checkEquals ("knot1.a3", knot1.a3, 0.0);
+      }
+      else if (numk > 2) {
+         Knot knot = spline.getKnot(0);
+         checkEquals ("ddy0", 2*knot.a2, ddy0, EPS);
+         knot = spline.getLastKnot();
+         checkEquals ("ddyL", 2*knot.a2, ddyL, EPS);
+
+         for (int k=0; k<numk-1; k++) {
+            knot = spline.getKnot(k);
+            Knot next = spline.getKnot(k+1);
+            double hk = next.x0 - knot.x0;
+            
+            double dy = knot.dy0 + (3*knot.a3*hk + 2*knot.a2)*hk;
+            if (Math.abs(dy-next.dy0) > EPS) {
+               throw new TestException (
+                  "discontinous dy at k="+(k+1)+
+                  ": "+next.dy0+" vs. "+dy+" computed from previous");
+            }
+            double ddy = 2*(knot.a2 + 3*knot.a3*hk);
+            if (Math.abs(ddy-2*next.a2) > EPS) {
+               throw new TestException (
+                  "discontinous ddy at k="+(k+1)+
+                  ": "+2*next.a2+" vs. "+ddy+" computed from previous");
+            }
+         }
+      }
+   }
+
+   void testWriteAndScan (CubicHermiteSpline1d spline) {
+      CubicHermiteSpline1d newspline =
+         (CubicHermiteSpline1d)ScanTest.testWriteAndScanWithClass (
+            spline, null, "%g");
+      if (!spline.equals (newspline)) {
+         throw new TestException (
+            "written-scanned spline not equal to original");
+      }
+   }
+
+   void testNatural() {
+      CubicHermiteSpline1d spline = new CubicHermiteSpline1d();
+
+      double[] x = { 0.9, 1.3, 1.9, 2.1 };
+      double[] y = { 1.3, 1.5, 1.85, 2.1 };
+      spline.setNatural (x, y, 0, 0);
+      validateNatural (spline, x, y, 0, 0);
+      testWriteAndScan (spline);
+
+      x = new double[] { -1, 1, 3 };
+      y = new double[] {  4, 0, 4 };
+      spline.setNatural (x, y, 0, 0);
+      validateNatural (spline, x, y, 0, 0);
+      testWriteAndScan (spline);
+
+      x = new double[] { -1, 0, 1.2, 3.4, 4 };
+      y = new double[] { 2.3, -1.2, 3.4, 4.5, 2 };
+      spline.setNatural (x, y, 0, 0);
+      validateNatural (spline, x, y, 0, 0);
+      testWriteAndScan (spline);
+
+      x = new double[] { -1, 0 };
+      y = new double[] { 2.3, 7.3 };
+      spline.setNatural (x, y, 0, 0);
+      validateNatural (spline, x, y, 0, 0);
+      testWriteAndScan (spline);
+   }
+
    public void test() {
       testInverse();
+      testNatural();
    }
 
    public static void main (String[] args) {

@@ -20,8 +20,25 @@ public class ScanTest {
     * scanning it, writing it again, and making sure that the second write
     * output equals the first.
     */
-   public static void testScanAndWrite (
+   public static void testWriteAndScan (
       Scannable s, Object ref, String fmtStr) {
+      testWriteAndScan (s, ref, fmtStr, /*useClassTag=*/false);
+   }
+   
+   /**
+    * Tests the scan and write methods of an object by writing the object,
+    * preceded by its class name, and then using this to scan a new instance of
+    * the object. The new object is then written again and the outout is
+    * checked to see that it matched that of the first. The new object
+    * instance is returned.
+    */
+   public static Scannable testWriteAndScanWithClass (
+      Scannable s, Object ref, String fmtStr) {
+      return testWriteAndScan (s, ref, fmtStr, /*useClassTag=*/true);
+   }
+
+   private static Scannable testWriteAndScan (
+      Scannable s, Object ref, String fmtStr, boolean useClassTag) {
 
       NumberFormat fmt;
       if (fmtStr == null) {
@@ -36,7 +53,12 @@ public class ScanTest {
       sw = new StringWriter();
       pw = new IndentingPrintWriter (sw);
       try {
-         s.write (pw, fmt, ref);
+         if (useClassTag) {
+            Write.writeClassAndObject (pw, s, fmt, ref);
+         }
+         else {
+            s.write (pw, fmt, ref);
+         }
       }
       catch (Exception e) {
          throw new TestException (
@@ -48,7 +70,12 @@ public class ScanTest {
       ReaderTokenizer rtok = new ReaderTokenizer (new StringReader (str1));
       rtok.wordChars ("./$");
       try {
-         s.scan (rtok, ref);
+         if (useClassTag) {
+            s = Scan.scanClassAndObject (rtok, ref, s.getClass());
+         }
+         else {
+            s.scan (rtok, ref);
+         }
       }
       catch (Exception e) {
          throw new TestException (
@@ -57,7 +84,12 @@ public class ScanTest {
       sw = new StringWriter();
       pw = new IndentingPrintWriter (sw);
       try {
-         s.write (pw, fmt, ref);
+         if (useClassTag) {
+            Write.writeClassAndObject (pw, s, fmt, ref);
+         }
+         else {
+            s.write (pw, fmt, ref);
+         }
       }
       catch (Exception e) {
          throw new TestException (
@@ -73,6 +105,7 @@ public class ScanTest {
          throw new TestException (
             "write-scan-write does not reproduce the same output");
       }
+      return s;
    }
 
    /**

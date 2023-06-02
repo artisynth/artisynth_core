@@ -368,5 +368,27 @@ public class Write {
       pw.print (font.getStyle ());
       pw.println (" ]");
    }
-   
+
+   /**
+    * Writes a Scannable object, preceeded by its class identifier ( name or
+    * alias). This method is the counterpart to {@link
+    * Scan#scanClassAndObject}.
+    *
+    * @param pw PrintWriter to which object should be written
+    * @param obj object to write
+    * @param fmt
+    * numeric formating information
+    * @param ref
+    * optional reference object which can be used for producing references to
+    * other objects
+    * @throws IOException
+    * if an I/O error occured
+    */
+   public static void writeClassAndObject (
+      PrintWriter pw, Scannable sobj, NumberFormat fmt, Object ref)
+      throws IOException {
+      String classTag = ClassAliases.getAliasOrName (sobj.getClass());
+      pw.print (classTag + " ");
+      sobj.write (pw, fmt, null);
+   }   
 }

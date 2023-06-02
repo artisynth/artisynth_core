@@ -431,8 +431,8 @@ public class Scan {
    }
 
    /**
-    * Scans a class name and then returns the class associated with that
-    * name.
+    * Scans a class name (or known class name alias) and then returns the class
+    * associated with that name.
     * 
     * <p><i>Since this method temporarily changes the accepted word characters
     * in order to read a class name, it should not be called if the next
@@ -455,13 +455,10 @@ public class Scan {
       rtok.setCharSetting ('.', savedDotSetting);
       rtok.setCharSetting ('$', savedDollarSetting);
       
-      Class<?> clazz = null;
-      try {
-         clazz = ClassFinder.forName (className, true);
-      }
-      catch (Exception e) {
+      Class<?> clazz = ClassAliases.resolveClass (className);
+      if (clazz == null) {
          throw new IOException (
-            "No class found for class name '"+className+"'");
+            "No class found for class name (or alias) '"+className+"'");
       }
       return clazz;
    }
@@ -489,20 +486,62 @@ public class Scan {
       ReaderTokenizer rtok, Object ref) throws IOException {
       Class<?> clazz = scanClass (rtok);
       Object obj = null;
-      if (clazz != null) {
-         try {
-            obj = clazz.newInstance();
-         }
-         catch (Exception e) {
-            throw new IOException (
-               "Cannot instantiate class "+clazz.getName()+": "+e.getMessage());
-         }
-         if (obj instanceof Scannable) {
-            Scannable sobj = (Scannable)obj;
-            sobj.scan (rtok, ref);
-         }
+      try {
+         obj = clazz.newInstance();
+      }
+      catch (Exception e) {
+         throw new IOException (
+            "Cannot instantiate class "+clazz.getName()+": "+e.getMessage());
+      }
+      if (obj instanceof Scannable) {
+         Scannable sobj = (Scannable)obj;
+         sobj.scan (rtok, ref);
       }
       return obj;
+   }
+
+   /**
+    * Scans a class name, creates an instance of that class, and then, if the
+    * class is Scannable, scans the instance.
+    * 
+    * <p><i>Since this method temporarily changes the accepted word characters
+    * in order to read a class name, it should not be called if the next
+    * available token might have been pushed back on the token stream using
+    * {@link ReaderTokenizer#pushBack pushBack()}</i>.
+    * 
+    * @param rtok
+    * Tokenizer from which values are read
+    * @param ref 
+    * if the object is {@link Scannable}, is passed to its {@link Scannable#scan
+    * scan()} method.
+    * @param classTyoe class type for the object being scanned
+    * @return instantiated and scanned object
+    * @throws IOException
+    * if no class is found for the class name, the class
+    * cannot be instantiated, or there was an error in scanning
+    */
+   public static <T> T scanClassAndObject (
+      ReaderTokenizer rtok, Object ref, Class<T> classType) throws IOException {
+      Class<?> clazz = scanClass (rtok);
+      if (!classType.isAssignableFrom(clazz)) {
+         throw new IOException (
+            "Class "+clazz+" not a subclass of "+classType);
+      }
+      Object obj = null;
+      try {
+         obj = clazz.newInstance();
+      }
+      catch (Exception e) {
+         throw new IOException (
+            "Cannot instantiate class "+clazz.getName()+": "+e.getMessage());
+      }
+      if (!(obj instanceof Scannable)) {
+         throw new IOException (
+            "Class "+clazz+" is not Scannable");
+      }
+      Scannable sobj = (Scannable)obj;
+      sobj.scan (rtok, ref);
+      return classType.cast (sobj);
    }
 
    /**

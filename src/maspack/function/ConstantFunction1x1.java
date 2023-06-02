@@ -6,11 +6,18 @@
  */
 package maspack.function;
 
-public class ConstantFuntion1x1 implements SISOFunction {
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import maspack.util.Scannable;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+
+public class ConstantFunction1x1 implements Diff1Function1x1, Scannable {
 
    double c;
    
-   public ConstantFuntion1x1(double c) {
+   public ConstantFunction1x1(double c) {
       setVal(c);
    }
    
@@ -24,6 +31,28 @@ public class ConstantFuntion1x1 implements SISOFunction {
    
    public double eval(double in) {
       return c;
+   }
+
+   public double evalDeriv (double in) {
+      return 0;
+   }
+
+   public boolean isWritable() {
+      return true;
+   }
+
+   public boolean equals (ConstantFunction1x1 fxn) {
+      return c == fxn.c;
+   }
+ 
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      rtok.scanToken ('[');
+      c = rtok.scanNumber();
+      rtok.scanToken (']');
+   }
+
+   public void write (PrintWriter pw, NumberFormat fmt, Object ref) {
+      pw.println ("[ "+fmt.format(c)+" ]");
    }
 
 }

@@ -8,11 +8,11 @@ package maspack.function;
 
 import maspack.matrix.Point3d;
 
-public class ConstantFuntion3x1 implements DifferentiableFunction3x1 {
+public class ConstantFunction3x1 implements DifferentiableFunction3x1 {
 
    double c;
    
-   public ConstantFuntion3x1(double c) {
+   public ConstantFunction3x1(double c) {
       setVal(c);
    }
    
@@ -36,7 +36,7 @@ public class ConstantFuntion3x1 implements DifferentiableFunction3x1 {
       return c;
    }
    
-   public int getInputSize() {
+   public int inputSize() {
       return 3;
    }
 

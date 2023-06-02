@@ -3,7 +3,8 @@ PACKAGE_NAME = maspack.function
 
 PACKAGE_JAVA_FILES = 
 
-JAVA_TEST_PROGRAMS = 
+JAVA_TEST_PROGRAMS = \
+	ConstantFunction1x1Test
 
 OTHER_CLASSES = 
 

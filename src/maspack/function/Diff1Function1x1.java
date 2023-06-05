@@ -13,16 +13,7 @@ import maspack.matrix.VectorNd;
  * Once-differentiable single-input, single output function
  */
 public interface Diff1Function1x1 extends Function1x1, Diff1FunctionNx1 {
-   
-   /**
-    * Evaluates both the first derivative of this function at a
-    * specified input value.
-    *
-    * @param x input value
-    * @return derivative value
-    */  
-   double evalDeriv (double x);
-   
+
    /**
     * Evaluates both the value and first derivative of this function at a
     * specified input value.
@@ -31,19 +22,42 @@ public interface Diff1Function1x1 extends Function1x1, Diff1FunctionNx1 {
     * @param x input value
     * @return function value
     */
-   default double eval (DoubleHolder dval, double x) {
-      if (dval != null) {
-         dval.value = evalDeriv (x);
+   double eval (DoubleHolder dval, double x);
+   
+   /**
+    * Evaluates first derivative of this function at a
+    * specified input value.
+    *
+    * @param x input value
+    * @return derivative value
+    */  
+   default double evalDeriv (double x) {
+      DoubleHolder dval = new DoubleHolder();
+      eval (dval, x);
+      return dval.value;
+   }
+
+   default double eval (VectorNd deriv, VectorNd in) {
+      if (in.size() != 1) {
+         throw new IllegalArgumentException (
+            "argument 'in' has size "+in.size()+"; should be 1");
       }
-      return eval (x);
+      if (deriv != null) {
+         if (deriv.size() != 1) {
+            deriv.setSize (1);
+         }
+         DoubleHolder dval = new DoubleHolder();
+         double val = eval (dval, in.get(0));
+         deriv.set (0, dval.value);
+         return val;
+      }
+      else {
+         return eval (null, in.get(0));
+      }
    }
    
    default void evalDeriv (VectorNd deriv, VectorNd in) {
       deriv.set (0, evalDeriv(in.get(0)));
-   }
-   
-   default void evalDeriv (double[] deriv, double[] in) {
-      deriv[0] = evalDeriv(in[0]);
    }
      
 }

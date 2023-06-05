@@ -7,6 +7,7 @@
 package artisynth.core.mfreemodels;
 
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 
 public class SplineWeightFunction extends RadialWeightFunction {
 
@@ -43,6 +44,24 @@ public class SplineWeightFunction extends RadialWeightFunction {
       return Math.pow(1-q2, k);
    }
    
+   public double eval (Vector3d deriv, Vector3d pnt) {
+      Vector3d del = new Vector3d (pnt);
+      del.sub (center);
+      double q2 = del.normSquared()/rho2;
+
+      if (q2 > 1) {
+         // XXX eval(r2) return 0 when q2 >= 1; not sure what's up with that
+         if (deriv != null) {
+            deriv.setZero();
+         }
+         return 0;
+      }
+      if (deriv != null) {
+         deriv.scale (-2*k/rho2*Math.pow(1-q2, k-1), del);
+      }
+      return Math.pow(1-q2, k);
+   }
+
    public void setRadius(double rho) {
       rho2 = rho*rho;
       super.setRadius(rho);

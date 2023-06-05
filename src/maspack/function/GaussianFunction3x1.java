@@ -8,6 +8,8 @@ package maspack.function;
 
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
 public class GaussianFunction3x1 implements Function3x1 {
 
@@ -43,8 +45,8 @@ public class GaussianFunction3x1 implements Function3x1 {
       return s;
    }
 
-   public double eval(double[] in) {
-      return eval(new Point3d(in[0],in[1],in[2]));
+   public double eval(VectorNd in) {
+      return eval(new Point3d(in.get(0), in.get(1), in.get(2)));
    }
 
    public int inputSize() {
@@ -55,7 +57,7 @@ public class GaussianFunction3x1 implements Function3x1 {
       return eval(new Point3d(x,y,z));
    }
 
-   public double eval(Point3d in) {
+   public double eval(Vector3d in) {
       Point3d tmp = new Point3d(in);
       tmp.mul(A, in);
       return s*Math.exp(tmp.dot(in)+m.dot(in));

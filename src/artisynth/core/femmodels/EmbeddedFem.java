@@ -2,32 +2,20 @@ package artisynth.core.femmodels;
 
 import java.util.ArrayList;
 
-import artisynth.core.femmodels.FemDeformedPoint;
-import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemFactory;
-import artisynth.core.femmodels.FemModel3d;
-import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.HexElement;
-import artisynth.core.femmodels.IntegrationData3d;
-import artisynth.core.femmodels.IntegrationPoint3d;
-import artisynth.core.femmodels.MaterialBundle;
-import artisynth.core.femmodels.PyramidElement;
-import artisynth.core.femmodels.TetElement;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.ScaledFemMaterial;
-import artisynth.core.modelbase.ScalarFieldComponent;
+import artisynth.core.femmodels.integration.EulerianFemElementSampler;
 import artisynth.core.femmodels.integration.FemElementIntegrator;
+import artisynth.core.femmodels.integration.FemElementSampler;
 import artisynth.core.femmodels.integration.IPointFemElementIntegrator;
+import artisynth.core.femmodels.integration.LagrangianFemElementSampler;
 import artisynth.core.femmodels.integration.MonteCarloFemElementIntegrator;
 import artisynth.core.fields.ScalarElementField;
 import artisynth.core.fields.ScalarFemField;
 import artisynth.core.fields.ScalarNodalField;
 import artisynth.core.fields.ScalarSubElemField;
-import artisynth.core.femmodels.integration.EulerianFemElementSampler;
-import artisynth.core.femmodels.integration.FemElementSampler;
-import artisynth.core.femmodels.integration.LagrangianFemElementSampler;
+import artisynth.core.materials.FemMaterial;
+import artisynth.core.materials.ScaledFemMaterial;
+import artisynth.core.modelbase.ScalarFieldComponent;
 import maspack.function.Function3x1;
-import maspack.function.Function3x1Base;
 import maspack.geometry.DistanceGrid;
 import maspack.geometry.OBB;
 import maspack.geometry.PolygonalMesh;
@@ -357,7 +345,7 @@ public class EmbeddedFem {
    /**
     * Is-inside function using a signed-distance grid
     */
-   private static class IsInsideFunctionSD extends Function3x1Base {
+   private static class IsInsideFunctionSD implements Function3x1 {
       PolygonalMesh mesh;
       DistanceGrid sdgrid;
       Point3d pnt;
@@ -369,14 +357,8 @@ public class EmbeddedFem {
       }
 
       @Override
-      public double eval(double x, double y, double z) {
-         pnt.set(x, y, z);
-         return eval(pnt);
-      }
-
-      @Override
-      public double eval(Point3d pnt) {
-         this.pnt.inverseTransform(mesh.getMeshToWorld(), pnt);
+      public double eval(Vector3d vec) {
+         this.pnt.inverseTransform(mesh.getMeshToWorld(), new Point3d(vec));
          double dist = sdgrid.getLocalDistanceAndNormal(null, this.pnt);
          boolean inside = (dist < 1e-5);
          return inside ? 1 : 0;

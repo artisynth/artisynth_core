@@ -12,10 +12,14 @@ import java.io.PrintWriter;
 import maspack.util.Scannable;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.DoubleHolder;
 
 public class ConstantFunction1x1 implements Diff1Function1x1, Scannable {
 
    double c;
+   
+   public ConstantFunction1x1() {
+   }
    
    public ConstantFunction1x1(double c) {
       setVal(c);
@@ -33,7 +37,10 @@ public class ConstantFunction1x1 implements Diff1Function1x1, Scannable {
       return c;
    }
 
-   public double evalDeriv (double in) {
+   public double eval (DoubleHolder deriv, double in) {
+      if (deriv != null) {
+         deriv.value = 0;
+      }
       return 0;
    }
 

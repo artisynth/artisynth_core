@@ -8,6 +8,7 @@ package artisynth.core.mfreemodels;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
 public abstract class RadialWeightFunction extends MFreeWeightFunction {
 
@@ -22,8 +23,8 @@ public abstract class RadialWeightFunction extends MFreeWeightFunction {
    public abstract RadialWeightFunction clone();
    public abstract RadialWeightFunctionType getType();
    
-   public double eval(Point3d pnt) {
-      return eval(pnt.distanceSquared(center));
+   public double eval(Vector3d vec) {
+      return eval(vec.distanceSquared(center));
    }
 
    public void setRadius(double r) {
@@ -41,10 +42,8 @@ public abstract class RadialWeightFunction extends MFreeWeightFunction {
       return eval(r2);
    }
    
-   public double eval(double[] in) {
-      return eval(in[0]-center.x,
-         in[1]-center.y,
-         in[2]-center.z);
+   public double eval (VectorNd in) {
+      return eval(in.get(0)-center.x, in.get(1)-center.y, in.get(2)-center.z);
    }
    
    public void setCenter(Point3d c) {

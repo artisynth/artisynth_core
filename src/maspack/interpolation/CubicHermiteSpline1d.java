@@ -812,6 +812,13 @@ public class CubicHermiteSpline1d
    public double eval (double x) {
       return evalY (x);
    }
+   
+   public double eval (DoubleHolder deriv, double x) {
+      if (deriv != null) {
+         deriv.value = evalDy (x);
+      }
+      return evalY (x);
+   }
 
    public double evalDeriv (double x) {
       return evalDy (x);

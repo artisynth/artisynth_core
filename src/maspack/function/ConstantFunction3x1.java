@@ -7,8 +7,10 @@
 package maspack.function;
 
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
-public class ConstantFunction3x1 implements DifferentiableFunction3x1 {
+public class ConstantFunction3x1 implements Diff2Function3x1 {
 
    double c;
    
@@ -28,11 +30,18 @@ public class ConstantFunction3x1 implements DifferentiableFunction3x1 {
       return c;
    }
 
-   public double eval(double[] in) {
+   public double eval (VectorNd in) {
       return c;
    }
 
-   public double eval(Point3d in) {
+   public double eval(Vector3d in) {
+      return c;
+   }
+   
+   public double eval(Vector3d deriv, Vector3d in) {
+      if (deriv != null) {
+         deriv.setZero();
+      }
       return c;
    }
    

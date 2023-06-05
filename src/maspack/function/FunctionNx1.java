@@ -6,5 +6,25 @@
  */
 package maspack.function;
 
-public interface FunctionNx1 extends MISOFunction {
+import maspack.matrix.VectorNd;
+
+/**
+ * Multi-input, single output
+ */
+public interface FunctionNx1 {
+
+   /**
+    * Queries the number of inputs expected by this function.
+    *
+    * @return number of expected inputs
+    */
+   int inputSize();
+   
+   /**
+    * Evaluates this function for the specified inputs. The input vector size
+    * must the value returned by {@link #inputSize}.
+    * 
+    * @return function output value
+    */
+   double eval (VectorNd in);
 }

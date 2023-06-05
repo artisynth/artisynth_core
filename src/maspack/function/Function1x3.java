@@ -7,21 +7,19 @@
 package maspack.function;
 
 import maspack.matrix.Point3d;
+import maspack.matrix.VectorNd;
 
-public abstract class Function1x3 implements SIMOFunction {
+public abstract class Function1x3 implements Function1xN {
 	
 	public abstract Point3d eval(double x); 
 	
 	@Override
-	public void eval(double in, double[] out) {
-		Point3d tmp = eval(in);
-		out[0] = tmp.x;
-		out[1] = tmp.y;
-		out[2] = tmp.z;
+	public void eval (VectorNd out, double in) {
+	   out.set (eval(in));
 	}
 	
 	@Override
-	public int getOutputSize() {
+	public int outputSize() {
 		return 1;
 	}
    

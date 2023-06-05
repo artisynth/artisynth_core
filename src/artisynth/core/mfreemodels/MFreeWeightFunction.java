@@ -6,11 +6,11 @@
  */
 package artisynth.core.mfreemodels;
 
-import maspack.function.DifferentiableFunction3x1;
+import maspack.function.Diff2Function3x1;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 
-public abstract class MFreeWeightFunction implements DifferentiableFunction3x1 {
+public abstract class MFreeWeightFunction implements Diff2Function3x1 {
 
    public abstract MFreeWeightFunction clone();
    public abstract boolean intersects(MFreeWeightFunction fun);

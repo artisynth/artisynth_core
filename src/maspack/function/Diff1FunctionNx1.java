@@ -12,26 +12,31 @@ import maspack.matrix.VectorNd;
  * Once-differentiable muliple-input, single output function
  */
 public interface Diff1FunctionNx1 extends FunctionNx1 {
-   
+
    /**
-    * Evaluates the derivative of this function at the specified input value.
-    * Both the input and output arguments should have a length {@code >=}
-    * {@link #getInputSize}.
+    * Evaluates this function for the specified inputs. If {@code deriv} is not
+    * {@code null}, the derivative is also computed and returned in this
+    * argument. The input vector size should equal the value returned by {@link
+    * #inputSize}. If present, {@code deriv} will be resized, if necessary, to
+    * {@link #inputSize}.
     *
-    * @param deriv returns the derivatives values
-    * @param in input values at which the derivative should be evaluated
+    * @param deriv if not {@code null}, returns the derivative values
+    * @param in function input values
+    * @return function output value
     */
-   void evalDeriv (double[] deriv, double[] in);
+   double eval (VectorNd deriv, VectorNd in);
    
    /**
-    * Evaluates the derivative of this function at the specified input value.
-    * Both the input and output arguments should have a length {@code >=}
-    * {@link #getInputSize}.
+    * Evaluates the derivative of this function for the specified inputs. The
+    * input vector size should equal the value returned by {@link
+    * #inputSize}. The derivative vector will be resized, if necessary, to
+    * {@link #inputSize}.
     *
-    * @param deriv returns the derivatives values
-    * @param in input values at which the derivative should be evaluated
+    * @param deriv returns the derivative values
+    * @param in function input values
     */
    default void evalDeriv (VectorNd deriv, VectorNd in) {
-      evalDeriv (deriv.getBuffer(), in.getBuffer());
+      eval (deriv, in);
    }
+   
 }

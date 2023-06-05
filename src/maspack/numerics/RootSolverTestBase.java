@@ -11,10 +11,13 @@ public class RootSolverTestBase extends UnitTest {
    protected class CosFxn implements Diff1Function1x1 {
 
       public double eval (double x) {
-        return -Math.sin(x);
+         return Math.cos(x);
       }
-      
-      public double evalDeriv (double x) {
+
+      public double eval (DoubleHolder deriv, double x) {
+         if (deriv != null) {
+            deriv.value = -Math.sin(x);
+         }
          return Math.cos(x);
       }
    }
@@ -37,8 +40,11 @@ public class RootSolverTestBase extends UnitTest {
          return ((myA3*x + myA2)*x + myA1)*x + myA0;
       }
       
-      public double evalDeriv (double x) {
-         return (3*myA3*x + 2*myA2)*x + myA1;
+      public double eval (DoubleHolder deriv, double x) {
+         if (deriv != null) {
+            deriv.value = (3*myA3*x + 2*myA2)*x + myA1;
+         }
+         return ((myA3*x + myA2)*x + myA1)*x + myA0;
       }
    }
 
@@ -62,8 +68,11 @@ public class RootSolverTestBase extends UnitTest {
          return (((myA4*x + myA3)*x + myA2)*x + myA1)*x + myA0;
       }
       
-      public double evalDeriv (double x) {
-         return ((4*myA4*x + 3*myA3)*x + 2*myA2)*x + myA1;
-      }
+      public double eval (DoubleHolder deriv, double x) {
+         if (deriv != null) {
+            deriv.value = ((4*myA4*x + 3*myA3)*x + 2*myA2)*x + myA1;
+         }
+         return (((myA4*x + myA3)*x + myA2)*x + myA1)*x + myA0;
+      }      
    }
 }

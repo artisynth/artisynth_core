@@ -8,7 +8,7 @@ package artisynth.core.mfreemodels;
 
 import java.util.Arrays;
 
-import maspack.function.DifferentiableFunction3x1;
+import maspack.function.Diff2Function3x1;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.SVDecomposition;
@@ -32,7 +32,7 @@ public class MLSShapeFunction implements MFreeShapeFunction {
    VectorNd pRest[];
    VectorNd dpRest[][];
    
-   protected DifferentiableFunction3x1[] myBasisFunctions;
+   protected Diff2Function3x1[] myBasisFunctions;
    protected int nBasis;
    
    // stored values of shape function and derivatives
@@ -54,7 +54,7 @@ public class MLSShapeFunction implements MFreeShapeFunction {
       myPnt = new Point3d();
    }
    
-   public void setBasisFunctions(DifferentiableFunction3x1[] functions) {
+   public void setBasisFunctions(Diff2Function3x1[] functions) {
       myBasisFunctions = functions;
       nBasis = functions.length;
       //      M = null;
@@ -94,7 +94,7 @@ public class MLSShapeFunction implements MFreeShapeFunction {
       restDataValid = true;
    }
    
-   public static DifferentiableFunction3x1[] getPolynomialBasis(int order) {
+   public static Diff2Function3x1[] getPolynomialBasis(int order) {
       
       int order3 = (order+1)*(order+2)*(order+3)/6;
       PolynomialBasisFunction[] basis = new PolynomialBasisFunction[order3];

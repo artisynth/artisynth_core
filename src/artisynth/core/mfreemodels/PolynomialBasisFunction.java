@@ -6,10 +6,12 @@
  */
 package artisynth.core.mfreemodels;
 
-import maspack.function.DifferentiableFunction3x1;
+import maspack.function.Diff2Function3x1;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
-public class PolynomialBasisFunction implements DifferentiableFunction3x1{
+public class PolynomialBasisFunction implements Diff2Function3x1{
 
    private static double EPSILON = 1e-15; 
    private int [] p;
@@ -21,24 +23,31 @@ public class PolynomialBasisFunction implements DifferentiableFunction3x1{
       p[2] = zn;
    }
    
-   public double eval(double[] in) {
-      return eval(in[0], in[1], in[2]);
+   public double eval(VectorNd in) {
+      return eval(in.get(0), in.get(1), in.get(2));
    }
 
    public int inputSize() {
       return 3;
    }
 
-   public double eval(Point3d in) {
+   public double eval(Vector3d in) {
       return eval(in.x, in.y, in.z);
+   }
+
+   public double eval (Vector3d deriv, Vector3d in) {
+      if (deriv != null) {
+         deriv.x = evalDerivative (in.x, in.y, in.z, 1, 0, 0);
+         deriv.x = evalDerivative (in.x, in.y, in.z, 0, 1, 0);
+         deriv.x = evalDerivative (in.x, in.y, in.z, 0, 0, 1);
+      }
+      return eval (in);
    }
 
    public double evalDerivative(Point3d in, int[] derivatives) {
       return evalDerivative(in.x,in.y,in.z,
          derivatives[0], derivatives[1], derivatives[2]);
    }
-
-
 
    public double evalDerivative(double x, double y, double z, int dx, int dy,
       int dz) {

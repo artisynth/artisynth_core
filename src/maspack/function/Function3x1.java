@@ -6,12 +6,38 @@
  */
 package maspack.function;
 
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
-public interface Function3x1 extends MISOFunction {
+public interface Function3x1 extends FunctionNx1 {
 
-   double eval(double x, double y, double z);
-   double eval(Point3d in);
-   
-   
+   /**
+    * {@inheritDoc}
+    */
+   default double eval (VectorNd in) {
+      if (in.size() != 3) {
+         throw new IllegalArgumentException (
+            "Argument 'in' has size "+in.size()+"; expected 3");
+      }
+      Vector3d vec = new Vector3d (in.get(0), in.get(1), in.get(2));
+      return eval (vec);      
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   default int inputSize() {
+      return 3;
+   }
+
+   /**
+    * Evaluates this function for the specified inputs.
+    * 
+    * @return function output value
+    */
+   double eval(Vector3d in);
+
+   default double eval(double x, double y, double z) {
+      return eval (new Vector3d (x, y, z));
+   }
 }

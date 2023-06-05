@@ -1,23 +1,15 @@
 package artisynth.core.femmodels;
 
-import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.HexElement;
-import artisynth.core.femmodels.IntegrationPoint3d;
-import artisynth.core.femmodels.PyramidElement;
-import artisynth.core.femmodels.TetElement;
-import artisynth.core.femmodels.FemFieldApproximation;
-import artisynth.core.femmodels.integration.IPointFemElementIntegrator;
-import artisynth.core.femmodels.integration.MonteCarloFemElementIntegrator;
-import artisynth.core.femmodels.integration.MonteCarloIntegrator;
-import artisynth.core.femmodels.integration.MonteCarloIntegrator.FunctionNdSampler;
 import artisynth.core.femmodels.integration.CanonicalFemElementSampler;
 import artisynth.core.femmodels.integration.CanonicalSampler;
 import artisynth.core.femmodels.integration.EulerianFemElementSampler;
 import artisynth.core.femmodels.integration.FemElementSampler;
+import artisynth.core.femmodels.integration.IPointFemElementIntegrator;
 import artisynth.core.femmodels.integration.LagrangianFemElementSampler;
+import artisynth.core.femmodels.integration.MonteCarloFemElementIntegrator;
+import artisynth.core.femmodels.integration.MonteCarloIntegrator;
+import artisynth.core.femmodels.integration.MonteCarloIntegrator.FunctionNdSampler;
 import maspack.function.Function3x1;
-import maspack.function.Function3x1Base;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -123,25 +115,25 @@ public class FemMonteCarloTests {
       return pyr;
    }
    
-   private static class TestFunc extends Function3x1Base {
+   private static class TestFunc implements Function3x1 {
       @Override
-      public double eval(double x, double y, double z) {
+      public double eval(Vector3d vec) {
          // return x*x + Math.cos(Math.PI/2*y)*Math.exp(z) + 1;
-         return x;
+         return vec.x;
       }
    }
    
    // simpler function
-   private static class TestFunc2 extends Function3x1Base {
+   private static class TestFunc2 implements Function3x1 {
       @Override
-      public double eval(double x, double y, double z) {
-         return 3*x+2*y*z+2;
+      public double eval(Vector3d vec) {
+         return 3*vec.x+2*vec.y*vec.z+2;
       }
    }
    
-   private static class Constant extends Function3x1Base {
+   private static class Constant implements Function3x1 {
       @Override
-      public double eval(double x, double y, double z) {
+      public double eval(Vector3d vec) {
          return 1;
       }
    }

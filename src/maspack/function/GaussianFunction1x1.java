@@ -6,7 +6,7 @@
  */
 package maspack.function;
 
-public class GaussianFunction1x1 implements SISOFunction {
+public class GaussianFunction1x1 implements Function1x1 {
 
    private double m;
    private double s;

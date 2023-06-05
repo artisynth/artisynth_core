@@ -7,6 +7,7 @@
 package artisynth.core.mfreemodels;
 
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 
 public class CInfinityWeightFunction extends RadialWeightFunction {
    
@@ -31,6 +32,33 @@ public class CInfinityWeightFunction extends RadialWeightFunction {
          return 0;
       }
       return (Math.exp(1/(q2-1)));
+   }
+   
+   public double eval (Vector3d deriv, Vector3d pnt) {
+      Vector3d del = new Vector3d (pnt);
+      del.sub (center);
+      double r2 = del.normSquared();
+      double q2 = r2 / rho2;
+
+      if (q2 > 1-EPSILON) {
+         // XXX eval(r2) return 0 when q2 >= 1; not sure what's up with that
+         if (deriv != null) {
+            deriv.setZero();
+         }
+         return 0;
+      }
+
+      double f = eval(r2);
+      double q2m1= q2-1;
+      double q2m12 = q2m1*q2m1;
+      double rho4 = rho2*rho2;
+
+      if (deriv != null) {
+         deriv.x = -2*del.x/(rho2*q2m12)*f;
+         deriv.y = -2*del.y/(rho2*q2m12)*f;
+         deriv.z = -2*del.z/(rho2*q2m12)*f;
+      }
+      return f;
    }
    
    public void setRadius(double rho) {

@@ -6,22 +6,13 @@
  */
 package maspack.function;
 
-public abstract class Function3x3 implements MIMOFunction {
-
-   double[] tmpIn = new double[3];
+public abstract class Function3x3 implements FunctionNxM {
    
-   public void eval(double x, double y, double z, double [] out) {
-      tmpIn[0] = x;
-      tmpIn[1] = y;
-      tmpIn[2] = z;
-      eval(tmpIn, out);
-   }
-   
-   public int getInputSize() {
+   public int inputSize() {
       return 3;
    }
    
-   public int getOutputSize() {
+   public int outputSize() {
       return 3;
    }
    

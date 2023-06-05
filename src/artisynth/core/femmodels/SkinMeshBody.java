@@ -48,7 +48,7 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 import maspack.function.ConstantFunction1x1;
-import maspack.function.SISOFunction;
+import maspack.function.Function1x1;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
 import maspack.geometry.GeometryTransformer;
@@ -1232,7 +1232,7 @@ public class SkinMeshBody extends SkinMeshBase
     *       to use as weights
     * @param networkDist number of paths to traverse to collect vertices
     */
-   public void smoothWeights (SISOFunction weightFunction, int networkDist) {
+   public void smoothWeights (Function1x1 weightFunction, int networkDist) {
       
       for (BodyInfo binfo : myBodyInfos) {
          if (!(binfo instanceof FrameInfo)) {
@@ -1286,7 +1286,7 @@ public class SkinMeshBody extends SkinMeshBase
 
    /**
     * Smooths vertex connection weights according to a function of
-    * distance.  Identical to {@link #smoothWeights(SISOFunction,int)} with
+    * distance.  Identical to {@link #smoothWeights(Function1x1,int)} with
     * {@code weightFunction} set to a constant value of 1.
     *
     * <p>This method is experimental.
@@ -1299,7 +1299,7 @@ public class SkinMeshBody extends SkinMeshBase
    
    /**
     * Smooths vertex connection weights by looking at neighbouring vertices.
-    * Identical to {@link #smoothWeights(SISOFunction,int)} with {@code
+    * Identical to {@link #smoothWeights(Function1x1,int)} with {@code
     * weightFunction} set to a constant value of 1 and {@code networkDist}
     * set to 1.
     *

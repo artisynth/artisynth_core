@@ -197,6 +197,7 @@ public class Body extends PhysicalFrame implements ModelComponentGenerator<Rigid
                   new RenderableComponentList<>(ModelComponent.class, "joint");
                rb.add (j);
                j.add (jb);
+               componentMap.put (joint, jb);
             } else {
                // can this happen?
                System.out.println ("null joint");

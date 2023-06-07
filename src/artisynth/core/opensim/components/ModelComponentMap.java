@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 import artisynth.core.modelbase.ModelComponent;
@@ -20,6 +22,7 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    private HashMap<String,OpenSimObject> pathMap;
    private HashMap<OpenSimObject,ModelComponent> componentMap;
    private JointSet jointSet; // hack so we can quickly get the joint set
+   private BodySet bodySet; // hack so we can quickly get the body set
    
    HashMap<String,OpenSimObject> getPathMap() {
       return pathMap;
@@ -169,7 +172,9 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
       if (obj instanceof JointSet) {
          jointSet = (JointSet)obj;
       }
-      
+      else if (obj instanceof BodySet) {
+         bodySet = (BodySet)obj;
+      }
       return old;
       
    }
@@ -188,6 +193,13 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
     */
    public JointSet getJointSet() {
       return jointSet;
+   }
+
+   /**
+    * Returns the body set, if present
+    */
+   public BodySet getBodySet() {
+      return bodySet;
    }
 
    @Override
@@ -276,6 +288,16 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    @Override
    public Set<Entry<OpenSimObject,ModelComponent>> entrySet () {
       return componentMap.entrySet ();
+   }
+   
+   public HashMap<ModelComponent,OpenSimObject> reverseMap() {
+      LinkedHashMap<ModelComponent,OpenSimObject> rmap = 
+         new LinkedHashMap<>();
+      for (Map.Entry<OpenSimObject,ModelComponent> entry : 
+           componentMap.entrySet()) {
+         rmap.put (entry.getValue(), entry.getKey());
+      }
+      return rmap;
    }
      
 }

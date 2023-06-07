@@ -112,7 +112,30 @@ public class CoordinateHandle implements HasProperties {
       return myJoint.getCoupling().getCoordinateWrench (myIdx);
    }
 
-   public static CoordinateHandle create (
+   public static CoordinateHandle createFromJoint (
+      String coordName, JointBase joint, int cidx,
+      ModelComponentMap componentMap) {
+
+      CoordinateHandle handle = new CoordinateHandle();
+      ModelComponent comp = componentMap.get (joint);
+      if (!(comp instanceof artisynth.core.mechmodels.JointBase)) {
+         System.out.println (
+            "WARNING: joint component not found for "+joint.getName());
+         return null;
+      }
+      handle.myJoint = (artisynth.core.mechmodels.JointBase)comp;
+      if (handle.myJoint.numCoordinates() <= cidx) {
+         System.out.println (
+            "WARNING: joint component "+ handle.myJoint +
+            " does not have coordinate "+cidx+" for name " + coordName);
+         return null;
+      }
+      handle.myIdx = cidx;
+      handle.myName = coordName;
+      return handle;
+   }
+
+   public static CoordinateHandle createFromJointSet (
       String coordName, ModelComponentMap componentMap) {
 
       JointSet joints = componentMap.getJointSet();
@@ -120,23 +143,31 @@ public class CoordinateHandle implements HasProperties {
          int cidx = 0;
          for (Coordinate c : joint.getCoordinateArray()) {
             if (c.getName().equals (coordName)) {
-               CoordinateHandle handle = new CoordinateHandle();
-               ModelComponent comp = componentMap.get (joint);
-               if (!(comp instanceof artisynth.core.mechmodels.JointBase)) {
-                  System.out.println (
-                     "WARNING: joint component not found for "+joint.getName());
-                  return null;
-               }
-               handle.myJoint = (artisynth.core.mechmodels.JointBase)comp;
-               if (handle.myJoint.numCoordinates() <= cidx) {
-                  System.out.println (
-                     "WARNING: joint component "+ handle.myJoint +
-                     " does not have coordinate "+cidx+" for name " + coordName);
-                  return null;
-               }
-               handle.myIdx = cidx;
-               handle.myName = coordName;
-               return handle;
+               return createFromJoint (coordName, joint, cidx, componentMap);
+            }
+            cidx++;
+         }
+      }
+      System.out.println ("WARNING: cannot find joint coordinate " + coordName);
+      return null;
+   }
+
+   public static CoordinateHandle createFromBodySet (
+      String coordName, ModelComponentMap componentMap) {
+
+      BodySet bodies = componentMap.getBodySet();
+      for (Body body : bodies.objects()) {
+         JointBase joint = null;
+         if (body.getJoint() != null) {
+            joint = body.getJoint().getJoint();
+         }
+         if (joint == null) {
+            continue;
+         }
+         int cidx = 0;
+         for (Coordinate c : joint.getCoordinateArray()) {
+            if (c.getName().equals (coordName)) {
+               return createFromJoint (coordName, joint, cidx, componentMap);
             }
             cidx++;
          }
@@ -150,13 +181,15 @@ public class CoordinateHandle implements HasProperties {
       CoordinateHandle handle = new CoordinateHandle();
       int sidx = path.lastIndexOf ('/');
       if (sidx == -1) {
-         JointSet joints = componentMap.getJointSet();
-         if (joints == null) {
-            System.out.println ("WARNING: joint set not specified");
-            return null;
+         if (componentMap.getJointSet() != null) {
+            return createFromJointSet (path, componentMap);
+         }
+         else if (componentMap.getBodySet() != null) {
+            return createFromBodySet (path, componentMap);
          }
          else {
-            return create (path, componentMap);
+            System.out.println ("WARNING: joint set not specified");
+            return null;
          }
       }
 

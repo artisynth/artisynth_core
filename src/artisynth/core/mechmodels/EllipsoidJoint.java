@@ -68,14 +68,14 @@ public class EllipsoidJoint extends JointBase
    
    PolygonalMesh ellipsoid;
 
-//   private static DoubleInterval DEFAULT_X_RANGE =
-//      new DoubleInterval ("[-inf,inf])");
-//
-//   private static DoubleInterval DEFAULT_Y_RANGE =
-//      new DoubleInterval ("[-inf,inf])");
-//
-//   private static DoubleInterval DEFAULT_THETA_RANGE =
-//      new DoubleInterval ("[-inf,inf])");
+   private static DoubleInterval DEFAULT_X_RANGE =
+      new DoubleInterval ("[-inf,inf])");
+
+   private static DoubleInterval DEFAULT_Y_RANGE =
+      new DoubleInterval ("[-inf,inf])");
+
+   private static DoubleInterval DEFAULT_THETA_RANGE =
+      new DoubleInterval ("[-inf,inf])");
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createRenderProps (host);
@@ -84,15 +84,15 @@ public class EllipsoidJoint extends JointBase
    }
 
    static {
-      myProps.add ("x", "x translation distance", 0);
-//      myProps.add (
-//         "xRange", "range for x", DEFAULT_X_RANGE);
-      myProps.add ("y", "y translation distance", 0);
-//      myProps.add (
-//         "yRange", "range for y", DEFAULT_Y_RANGE);
+      myProps.add ("x", "u ellipsoid paramter", 45, "[-360,360]");
+      myProps.add (
+         "xRange", "range for x", DEFAULT_X_RANGE);
+      myProps.add ("y", "v ellipsoid parameter", 45, "[0,180]");
+      myProps.add (
+         "yRange", "range for y", DEFAULT_Y_RANGE);
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
-//      myProps.add (
-//         "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+      myProps.add (
+         "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
       myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
       myProps.add (
          "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
@@ -119,9 +119,9 @@ public class EllipsoidJoint extends JointBase
       RenderProps.setFaceStyle (ellipsoid, FaceStyle.NONE);
       RenderProps.setDrawEdges (ellipsoid, true);
       RenderProps.setEdgeColor (ellipsoid, Color.DARK_GRAY);
-//      setXRange (DEFAULT_X_RANGE);
-//      setYRange (DEFAULT_Y_RANGE);
-//      setThetaRange (DEFAULT_THETA_RANGE);
+      setXRange (DEFAULT_X_RANGE);
+      setYRange (DEFAULT_Y_RANGE);
+      setThetaRange (DEFAULT_THETA_RANGE);
    }
    
    /**
@@ -176,7 +176,7 @@ public class EllipsoidJoint extends JointBase
     * @return x range limits for this joint
     */
    public double getX() {
-      return getCoordinate (X_IDX);
+      return RTOD*getCoordinate (X_IDX);
    }
 
    /**
@@ -187,7 +187,7 @@ public class EllipsoidJoint extends JointBase
     * @param x new x value
     */
    public void setX (double x) {
-      setCoordinate (X_IDX, x);
+      setCoordinate (X_IDX, DTOR*x);
    }
 
    /**
@@ -196,27 +196,27 @@ public class EllipsoidJoint extends JointBase
     *
     * @return x range limits for this joint
     */
-//   public DoubleInterval getXRange () {
-//      return getCoordinateRange (X_IDX);
-//   }
+   public DoubleInterval getXRange () {
+      return getCoordinateRange (X_IDX);
+   }
 
    /**
     * Queries the lower x range limit for this joint, in degrees.
     *
     * @return lower x range limit
     */
-//   public double getMinX () {
-//      return getMinCoordinate (X_IDX);
-//   }
+   public double getMinX () {
+      return getMinCoordinate (X_IDX);
+   }
 
    /**
     * Queries the upper x range limit for this joint, in degrees.
     *
     * @return upper x range limit
     */
-//   public double getMaxX () {
-//      return getMaxCoordinate (X_IDX);
-//   }
+   public double getMaxX () {
+      return getMaxCoordinate (X_IDX);
+   }
 
    /**
     * Sets the x range limits for this joint. The default range is {@code
@@ -228,9 +228,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param range x range limits for this joint
     */
-//   public void setXRange (DoubleInterval range) {
-//      setCoordinateRange (X_IDX, range);
-//   }
+   public void setXRange (DoubleInterval range) {
+      setCoordinateRange (X_IDX, range);
+   }
 
    /**
     * Sets the x range limits for this joint. This is a
@@ -239,9 +239,9 @@ public class EllipsoidJoint extends JointBase
     * @param min minimum x value
     * @param max maximum x value
     */   
-//   public void setXRange(double min, double max) {
-//      setXRange(new DoubleInterval(min, max));
-//   }
+   public void setXRange(double min, double max) {
+      setXRange(new DoubleInterval(min, max));
+   }
 
    /**
     * Sets the upper x range limit for this joint. Setting a
@@ -249,9 +249,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param max upper x range limit
     */
-//   public void setMaxX (double max) {
-//      setXRange (new DoubleInterval (getMinX(), max));
-//   }
+   public void setMaxX (double max) {
+      setXRange (new DoubleInterval (getMinX(), max));
+   }
 
    /**
     * Sets the lower x range limit for this joint. Setting a
@@ -259,9 +259,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param min lower x range limit
     */
-//   public void setMinX (double min) {
-//      setXRange (new DoubleInterval (min, getMaxX()));
-//   }
+   public void setMinX (double min) {
+      setXRange (new DoubleInterval (min, getMaxX()));
+   }
 
    /**
     * Queries this joint's y value. See {@link #setY} for more details.
@@ -269,7 +269,7 @@ public class EllipsoidJoint extends JointBase
     * @return current y value
     */
    public double getY() {
-      return getCoordinate (Y_IDX);
+      return RTOD*getCoordinate (Y_IDX);
    }
 
    /**
@@ -280,7 +280,7 @@ public class EllipsoidJoint extends JointBase
     * @param y new y value
     */
    public void setY (double y) {
-      setCoordinate (Y_IDX, y);
+      setCoordinate (Y_IDX, DTOR*y);
    }
 
    /**
@@ -289,27 +289,27 @@ public class EllipsoidJoint extends JointBase
     *
     * @return y range limits for this joint
     */
-//   public DoubleInterval getYRange () {
-//      return getCoordinateRange (Y_IDX);
-//   }
+   public DoubleInterval getYRange () {
+      return getCoordinateRange (Y_IDX);
+   }
 
    /**
     * Queries the lower x range limit for this joint, in degrees.
     *
     * @return lower x range limit
     */
-//   public double getMinY () {
-//      return getMinCoordinate (Y_IDX);
-//   }
+   public double getMinY () {
+      return getMinCoordinate (Y_IDX);
+   }
 
    /**
     * Queries the upper x range limit for this joint, in degrees.
     *
     * @return upper x range limit
     */
-//   public double getMaxY () {
-//      return getMaxCoordinate (Y_IDX);
-//   }
+   public double getMaxY () {
+      return getMaxCoordinate (Y_IDX);
+   }
 
    /**
     * Sets the y range limits for this joint. The default range is {@code
@@ -321,9 +321,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param range y range limits for this joint
     */
-//   public void setYRange (DoubleInterval range) {
-//      setCoordinateRange (Y_IDX, range);
-//   }
+   public void setYRange (DoubleInterval range) {
+      setCoordinateRange (Y_IDX, range);
+   }
    
    /**
     * Sets the y range limits for this joint. This is a
@@ -332,9 +332,9 @@ public class EllipsoidJoint extends JointBase
     * @param min minimum y value
     * @param max maximum y value
     */
-//   public void setYRange(double min, double max) {
-//      setYRange(new DoubleInterval(min, max));
-//   }
+   public void setYRange(double min, double max) {
+      setYRange(new DoubleInterval(min, max));
+   }
 
    /**
     * Sets the upper y range limit for this joint. Setting a
@@ -342,9 +342,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param max upper y range limit
     */
-//   public void setMaxY (double max) {
-//      setYRange (new DoubleInterval (getMinY(), max));
-//   }
+   public void setMaxY (double max) {
+      setYRange (new DoubleInterval (getMinY(), max));
+   }
 
    /**
     * Sets the lower y range limit for this joint. Setting a
@@ -352,9 +352,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param min lower y range limit
     */
-//   public void setMinY (double min) {
-//      setYRange (new DoubleInterval (min, getMaxY()));
-//   }
+   public void setMinY (double min) {
+      setYRange (new DoubleInterval (min, getMaxY()));
+   }
 
    /**
     * Queries this joint's theta value, in degrees. See {@link #setTheta} for
@@ -383,27 +383,27 @@ public class EllipsoidJoint extends JointBase
     *
     * @return theta range limits for this joint
     */
-//   public DoubleInterval getThetaRange () {
-//      return getCoordinateRangeDeg (THETA_IDX);
-//   }
+   public DoubleInterval getThetaRange () {
+      return getCoordinateRangeDeg (THETA_IDX);
+   }
 
    /**
     * Queries the lower theta range limit for this joint, in degrees.
     *
     * @return lower theta range limit
     */
-//   public double getMinTheta () {
-//      return getMinCoordinateDeg (THETA_IDX);
-//   }
+   public double getMinTheta () {
+      return getMinCoordinateDeg (THETA_IDX);
+   }
 
    /**
     * Queries the upper theta range limit for this joint, in degrees.
     *
     * @return upper theta range limit
     */
-//   public double getMaxTheta () {
-//      return getMaxCoordinateDeg (THETA_IDX);
-//   }
+   public double getMaxTheta () {
+      return getMaxCoordinateDeg (THETA_IDX);
+   }
 
    /**
     * Sets the theta range limits for this joint, in degrees. The default range
@@ -416,9 +416,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param range theta range limits for this joint
     */
-//   public void setThetaRange (DoubleInterval range) {
-//      setCoordinateRangeDeg (THETA_IDX, range);
-//   }
+   public void setThetaRange (DoubleInterval range) {
+      setCoordinateRangeDeg (THETA_IDX, range);
+   }
    
    /**
     * Sets the theta range limits for this joint. This is a
@@ -427,9 +427,9 @@ public class EllipsoidJoint extends JointBase
     * @param min minimum theta value
     * @param max maximum theta value
     */
-//   public void setThetaRange(double min, double max) {
-//      setThetaRange(new DoubleInterval(min, max));
-//   }
+   public void setThetaRange(double min, double max) {
+      setThetaRange(new DoubleInterval(min, max));
+   }
 
    /**
     * Sets the upper theta range limit for this joint, in degrees. Setting a
@@ -437,9 +437,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param max upper theta range limit
     */
-//   public void setMaxTheta (double max) {
-//      setThetaRange (new DoubleInterval (getMinTheta(), max));
-//   }
+   public void setMaxTheta (double max) {
+      setThetaRange (new DoubleInterval (getMinTheta(), max));
+   }
 
    /**
     * Sets the lower theta range limit for this joint, in degrees. Setting a
@@ -447,9 +447,9 @@ public class EllipsoidJoint extends JointBase
     *
     * @param min lower theta range limit
     */
-//   public void setMinTheta (double min) {
-//      setThetaRange (new DoubleInterval (min, getMaxTheta()));
-//   }
+   public void setMinTheta (double min) {
+      setThetaRange (new DoubleInterval (min, getMaxTheta()));
+   }
 
    /**
     * Queries the size used to render this joint's tangent plane as a square.

@@ -8,8 +8,10 @@ package maspack.spatialmotion;
 
 import maspack.geometry.QuadraticUtils;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.spatialmotion.GimbalCoupling.AxisSet;
 
 /** 
  * Constraints a rigid body to 2D motion (with rotation) on the surface
@@ -40,15 +42,15 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
    @Override
    public void projectToConstraints (
       RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
-      
+
       TGD.set (TCD);
+      
       QuadraticUtils.nearestPointEllipsoid (p, a, b, c, TGD.p);
       n.x = p.x/(a*a);
       n.y = p.y/(b*b);
       n.z = p.z/(c*c);
-      
       TGD.p.set (p);
-      TGD.R.rotateZDirection (n);
+      TGD.R.rotateZDirection (n); // TODO: update for additional rotation DOFs     
 
       if (coords != null) {
          TCDToCoordinates (coords, TGD);
@@ -56,8 +58,9 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
    }
 
    /** 
-    * TODO - add additional rotational dof for u-joint
+    * TODO - add additional rotational DOFs
     */
+   @Override
    public void initializeConstraints () {
       addConstraint (BILATERAL|LINEAR, new Wrench(0, 0, 1, 0, 0, 0));
       addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 1, 0, 0));
@@ -80,6 +83,8 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
       Twist velGD, boolean updateEngaged) {
 
+      System.out.println("updateCon");
+      
       Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
 
       // might be needed for x, y limits:
@@ -103,32 +108,83 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       }
       // theta limit constraint is constant, so no need to update
    }
+   
+   static void setROD(RotationMatrix3d ROD, Vector3d ndir) {
+      Vector3d bitangent = new Vector3d();
+      bitangent.cross (Vector3d.X_UNIT, ndir); // x-axis is up-direction for ellipsoid (D-frame)
+      ROD.setZXDirections (ndir, bitangent);
+   }
+   
+   static void setTheta(RotationMatrix3d RCD, Vector3d ndir, double theta) {
+
+      // O frame is co-incident with C and at neutral orientation
+      RotationMatrix3d RCO = new RotationMatrix3d ();
+      RotationMatrix3d ROD = new RotationMatrix3d ();
+      setROD (ROD, ndir);
+      
+      GimbalCoupling.setRpy (RCO, 0, 0, theta, AxisSet.XYZ);     
+      RCD.mul (ROD, RCO);
+   }
+   
+   static double getTheta(Vector3d ndir, RotationMatrix3d RCD) {
+      
+      // O frame is co-incident with C and at neutral orientation
+      RotationMatrix3d RCO = new RotationMatrix3d ();
+      RotationMatrix3d ROD = new RotationMatrix3d ();
+      setROD (ROD, ndir);
+      
+      RCO.mulInverseLeft (ROD, RCD);
+      double[] rpy = new double[3];
+      GimbalCoupling.getRpy (rpy, RCO, AxisSet.XYZ);
+      return rpy[2]; // theta
+   }
  
-   /** 
-    * TODO - update for ellipsoid
-    */
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
-      coords.set(X_IDX, TCD.p.x);
-      coords.set(Y_IDX, TCD.p.y);
-      double theta = Math.atan2 (TCD.R.m10, TCD.R.m00);
-      coords.set (THETA_IDX, getCoordinateInfo(THETA_IDX).nearestAngle(theta));
+//      QuadraticUtils.nearestPointEllipsoid (ptmp, a, b, c, TCD.p);
+      p.set (TCD.p);
+      n.x = p.x/(a*a);
+      n.y = p.y/(b*b);
+      n.z = p.z/(c*c);
+      
+      double u1, u2;
+      double cos2 = Math.sqrt(n.y*n.y + n.z*n.z);
+      double sin2 = n.x;
+
+      if (Math.abs(cos2) < Math.abs(sin2)) { 
+         u2 = Math.acos (cos2);
+      }
+      else {
+         u2 = Math.asin (sin2);
+      }
+         
+      u1 = Math.atan2 (-n.y/cos2, n.z/cos2);
+      
+      coords.set (X_IDX, u1);
+      coords.set (Y_IDX, u2);
+      coords.set (THETA_IDX, getTheta (n, TCD.R));
    }
 
-   /** 
-    * TODO - update for ellipsoid
-    */
    public void coordinatesToTCD (
-      RigidTransform3d TCD, double x, double y, double theta) {
+      RigidTransform3d TCD, double u1, double u2, double theta) {
 
       TCD.setIdentity();
-      double c = Math.cos (theta);
-      double s = Math.sin (theta);
-      TCD.R.m00 = c;
-      TCD.R.m01 = -s;
-      TCD.R.m10 = s;
-      TCD.R.m11 = c;  
-      TCD.p.x = x;
-      TCD.p.y = y;
+      
+      double cos1 = Math.cos (u1);
+      double sin1 = Math.sin (u1);
+      double cos2 = Math.cos (u2);
+      double sin2 = Math.sin (u2);
+      
+      // Seth Paper eq (6)
+      p.x = a*sin2;
+      p.y = -b*sin1*cos2;
+      p.z = c*cos1*cos2;
+      
+      n.x = p.x/(a*a);
+      n.y = p.y/(b*b);
+      n.z = p.z/(c*c);
+      
+      TCD.p.set (p);
+      setTheta (TCD.R, n, theta);
    }
 
    /**

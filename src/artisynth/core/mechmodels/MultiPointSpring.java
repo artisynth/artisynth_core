@@ -21,6 +21,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.HasNumericState;
+import artisynth.core.mechmodels.HasSlaveObjects;
 import artisynth.core.modelbase.HasNumericStateComponents;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
@@ -117,7 +118,7 @@ import maspack.util.ReaderTokenizer;
 public class MultiPointSpring extends PointSpringBase
    implements ScalableUnits, TransformableGeometry,
               CopyableComponent, RequiresPrePostAdvance,
-              HasNumericStateComponents {
+              HasNumericStateComponents, HasSlaveObjects {
 
    public static boolean myDrawWrapPoints = true;
    protected boolean myUpdateContactsP = true;
@@ -1232,7 +1233,7 @@ public class MultiPointSpring extends PointSpringBase
     * 
     * @return number of spring segments
     */
-   protected int numSegments() {
+   public int numSegments() {
       // we ignore the last segment because that is used to simply store the
       // terminating point
       return mySegments.size()-1;
@@ -1470,8 +1471,9 @@ public class MultiPointSpring extends PointSpringBase
    private static int FREE_KNOTS = 0;
    private static int CONTACTING_KNOTS = 1;
 
-   private static int STRAND = 0;
-   private static int DISPLACEMENTS = 1;
+   private static int STRAIGHT_SEGS = 0;
+   private static int WRAPPED_SEGS = 1;
+   private static int DISPLACEMENTS = 2;
 
    /**
     * Adds the information to a render object needed to render a specific knot.
@@ -1504,16 +1506,21 @@ public class MultiPointSpring extends PointSpringBase
       // causes lines to not be added - in which case, drawLines() would fail
       robj.createLineGroup();
       robj.createLineGroup();
-      robj.lineGroup (STRAND);
+      robj.createLineGroup();
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
-         addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
          if (seg instanceof WrapSegment) {
+            robj.lineGroup (WRAPPED_SEGS);
+            addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
             WrapSegment wrapSeg = (WrapSegment)seg;
             for (int k=0; k<wrapSeg.myNumKnots; k++) {
                WrapKnot knot = wrapSeg.myKnots[k];
                addRenderPos (robj, knot.updateRenderPos(), knot);
             }
+         }
+         else {
+            robj.lineGroup (STRAIGHT_SEGS);
+            addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
          }
          if (i == numSegments()-1) {
             addRenderPos (robj, seg.myPntA.getRenderCoords(), null);
@@ -1651,7 +1658,12 @@ public class MultiPointSpring extends PointSpringBase
          else {
             renderer.setLineColoring (props, isSelected());
          }
-         robj.lineGroup (STRAND);
+         robj.lineGroup (STRAIGHT_SEGS);
+         renderer.drawLines (robj, lineStyle, size);
+         robj.lineGroup (WRAPPED_SEGS);
+         if (lineStyle == LineStyle.SPINDLE) {
+            lineStyle = LineStyle.CYLINDER;
+         }
          renderer.drawLines (robj, lineStyle, size);
 
          if (myDrawKnotsP) {
@@ -2235,6 +2247,7 @@ public class MultiPointSpring extends PointSpringBase
     */
    public void preadvance (double t0, double t1, int flags) {
       if (t0 == 0) {
+         updateStructure();
          updateWrapSegments(10*myMaxWrapIterations);
       }
    }
@@ -2255,6 +2268,22 @@ public class MultiPointSpring extends PointSpringBase
     * or removing points.
     */
    public void updateStructure() {
+   }
+
+   // HasSlaveObjects interface. This interface is implemented to enable a call
+   // to updateStructure() upon initialization.
+
+   /**
+    * {@inheritDoc}
+    */
+   public void updateSlavePos() {
+      updateStructure();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void updateSlaveVel() {
    }
 
    /**
@@ -2371,6 +2400,7 @@ public class MultiPointSpring extends PointSpringBase
       updateSegsIfNecessary();
       double len = getActiveLength();
       double dldt = getActiveLengthDot();
+
       double F = computeF (len, dldt);
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
@@ -5275,9 +5305,11 @@ public class MultiPointSpring extends PointSpringBase
        * Transforms the geometry of this wrappable segment.
        */      
       void transformGeometry (GeometryTransformer gtr) {
+         gtr.transformPnt (myLastPntA);
          for (int k=0; k<myNumKnots; k++) {
             gtr.transformPnt (myKnots[k].myPos);
          }
+         gtr.transformPnt (myLastPntB);
       }
       
       /**

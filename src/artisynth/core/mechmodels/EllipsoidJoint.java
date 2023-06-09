@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2023, by the Authors: John E Lloyd (UBC), Ian Stavness (USask)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -7,44 +7,30 @@
 package artisynth.core.mechmodels;
 
 import java.awt.Color;
-import java.io.IOException;
-import java.util.Deque;
-import java.util.Map;
 
-import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.util.ScanToken;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.GeometryTransformer;
-import maspack.geometry.MeshFactory;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
-import maspack.render.Renderer.FaceStyle;
-import maspack.render.Renderer.LineStyle;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
 import maspack.spatialmotion.EllipsoidCoupling;
 import maspack.util.DoubleInterval;
-import maspack.util.ReaderTokenizer;
 
 /**
  * Implements a 3 DOF joint, in which the origin of frame C is constrained to lie 
  * on the surface of an ellipsoid in frame D, while being free to rotate about the 
  * axis normal to the ellipsoid surface. The x and y displacements of C are given by 
  * the coordinates {@code x} and {@code y}, while the (counter-clockwise) rotation
- * of C about z is given by the coordinate {@code theta}.
+ * of C about z is given by the coordinate {@code theta} and rotation of C about the
+ * y is given by the coordinate {@code phi}.
  *
- * <p>The {@code x}, {@code y} and {@code theta} values are available as
- * properties (with {@code theta} given in degrees) which can be read and also,
+ * <p>The {@code x}, {@code y} {@code theta} {@code phi} values are available as
+ * properties (given in degrees) which can be read and also,
  * under appropriate circumstances, set.  Setting these values causes an
  * adjustment in the positions of one or both bodies connected to this joint,
  * along with adjacent bodies connected to them, with preference given to
@@ -59,6 +45,7 @@ public class EllipsoidJoint extends JointBase
    public static final int X_IDX = EllipsoidCoupling.X_IDX; 
    public static final int Y_IDX = EllipsoidCoupling.Y_IDX; 
    public static final int THETA_IDX = EllipsoidCoupling.THETA_IDX; 
+   public static final int PHI_IDX = EllipsoidCoupling.PHI_IDX; 
 
    private static final double DEFAULT_PLANE_SIZE = 0;
    private double myPlaneSize = DEFAULT_PLANE_SIZE;
@@ -77,6 +64,9 @@ public class EllipsoidJoint extends JointBase
    private static DoubleInterval DEFAULT_THETA_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static DoubleInterval DEFAULT_PHI_RANGE =
+      new DoubleInterval ("[-inf,inf])");
+   
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createRenderProps (host);
       props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
@@ -84,15 +74,18 @@ public class EllipsoidJoint extends JointBase
    }
 
    static {
-      myProps.add ("x", "u ellipsoid paramter", 45, "[-360,360]");
+      myProps.add ("x", "u ellipsoid paramter", 0, "[-360,360]");
       myProps.add (
          "xRange", "range for x", DEFAULT_X_RANGE);
-      myProps.add ("y", "v ellipsoid parameter", 45, "[0,180]");
+      myProps.add ("y", "v ellipsoid parameter", 0, "[0,180]");
       myProps.add (
          "yRange", "range for y", DEFAULT_Y_RANGE);
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+      myProps.add ("phi", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
+      myProps.add (
+         "phiRange", "range for phi", DEFAULT_PHI_RANGE, "%8.3f 1E");
       myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
       myProps.add (
          "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
@@ -121,7 +114,9 @@ public class EllipsoidJoint extends JointBase
       RenderProps.setEdgeColor (ellipsoid, Color.DARK_GRAY);
       setXRange (DEFAULT_X_RANGE);
       setYRange (DEFAULT_Y_RANGE);
-      setThetaRange (DEFAULT_THETA_RANGE);
+      setThetaRange (DEFAULT_THETA_RANGE);      
+      setPhiRange (DEFAULT_PHI_RANGE);
+
    }
    
    /**
@@ -452,6 +447,102 @@ public class EllipsoidJoint extends JointBase
    }
 
    /**
+    * Queries this joint's phi value, in degrees. See {@link #setTheta} for
+    * more details.
+    *
+    * @return current phi value
+    */
+   public double getPhi() {
+      return RTOD*getCoordinate (PHI_IDX);
+   }
+
+   /**
+    * Sets this joint's phi value, in degrees. This describes the
+    * rotation of frame C about the y axis of frame D. See this class's Javadoc
+    * header for a discussion of what happens when this value is set.
+    *
+    * @param phi new phi value
+    */
+   public void setPhi (double phi) {
+      setCoordinate (PHI_IDX, DTOR*phi);
+   }
+
+   /**
+    * Queries the phi range limits for this joint, in degrees. See {@link
+    * #setPhiRange(DoubleInterval)} for more details.
+    *
+    * @return phi range limits for this joint
+    */
+   public DoubleInterval getPhiRange () {
+      return getCoordinateRangeDeg (THETA_IDX);
+   }
+
+   /**
+    * Queries the lower phi range limit for this joint, in degrees.
+    *
+    * @return lower phi range limit
+    */
+   public double getMinPhi () {
+      return getMinCoordinateDeg (THETA_IDX);
+   }
+
+   /**
+    * Queries the upper phi range limit for this joint, in degrees.
+    *
+    * @return upper phi range limit
+    */
+   public double getMaxPhi () {
+      return getMaxCoordinateDeg (THETA_IDX);
+   }
+
+   /**
+    * Sets the phi range limits for this joint, in degrees. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If phi travels beyond
+    * these limits during dynamic simulation, unilateral constraints will be
+    * activated to enforce them. Setting the lower limit to {@code -inf} or the
+    * upper limit to {@code inf} removes the lower or upper limit,
+    * respectively. Specifying {@code range} as {@code null} will set the range
+    * to {@code (-inf, inf)}.
+    *
+    * @param range phi range limits for this joint
+    */
+   public void setPhiRange (DoubleInterval range) {
+      setCoordinateRangeDeg (THETA_IDX, range);
+   }
+   
+   /**
+    * Sets the phi range limits for this joint. This is a
+    * convenience wrapper for {@link #setPhiRange(DoubleInterval)}.
+    *
+    * @param min minimum phi value
+    * @param max maximum phi value
+    */
+   public void setPhiRange(double min, double max) {
+      setPhiRange(new DoubleInterval(min, max));
+   }
+
+   /**
+    * Sets the upper phi range limit for this joint, in degrees. Setting a
+    * value of {@code inf} removes the upper limit.
+    *
+    * @param max upper phi range limit
+    */
+   public void setMaxPhi (double max) {
+      setPhiRange (new DoubleInterval (getMinPhi(), max));
+   }
+
+   /**
+    * Sets the lower phi range limit for this joint, in degrees. Setting a
+    * value of {@code -inf} removes the lower limit.
+    *
+    * @param min lower phi range limit
+    */
+   public void setMinPhi (double min) {
+      setPhiRange (new DoubleInterval (min, getMaxPhi()));
+   }
+
+   
+   /**
     * Queries the size used to render this joint's tangent plane as a square.
     *
     * @return size used to render the plane
@@ -479,19 +570,19 @@ public class EllipsoidJoint extends JointBase
    public void prerender (RenderList list) {
       super.prerender (list);
       ellipsoid.XMeshToWorld.set (myRenderFrameD);
-      list.addIfVisible (ellipsoid);
+      if (isVisible (this)) {
+         list.addIfVisible (ellipsoid);
+      }
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       super.updateBounds (pmin, pmax);
-//      updateZShaftBounds (pmin, pmax, getCurrentTCW(), getShaftLength());
       PlanarConnector.updateXYSquareBounds (
          pmin, pmax, getCurrentTDW(), myPlaneSize);
    }
 
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
-//      renderZShaft (renderer, myRenderFrameC);
       PlanarConnector.renderXYSquare (
          renderer, myRenderProps, myRenderFrameC, myPlaneSize, isSelected());
    }

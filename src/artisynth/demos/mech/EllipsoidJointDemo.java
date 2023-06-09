@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2023, by the Authors: John E Lloyd (UBC), Ian Stavness (USask)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
 package artisynth.demos.mech;
 
 import java.awt.Color;
@@ -5,19 +11,13 @@ import java.io.IOException;
 
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.EllipsoidJoint;
-import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.PlanarJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import artisynth.demos.fem.HydrostatModel.Axis;
 import maspack.matrix.AxisAlignedRotation;
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
-import maspack.render.Viewer;
 import maspack.render.Renderer.AxisDrawStyle;
 
 public class EllipsoidJointDemo extends RootModel {
@@ -71,10 +71,13 @@ public class EllipsoidJointDemo extends RootModel {
       joint.setMaxY (90);
       joint.setMinTheta (-180);
       joint.setMaxTheta (180);
+      joint.setMinPhi (-180);
+      joint.setMaxPhi (180);
       
       joint.setCoordinate (0, 0);
       joint.setCoordinate (1, 0);
       joint.setCoordinate (2, 0);
+//      joint.setCoordinate (3, 0);
       
       getMainViewer ().setAxialView (AxisAlignedRotation.NX_Z);
 
@@ -100,11 +103,11 @@ public class EllipsoidJointDemo extends RootModel {
       panel.addWidget (joint, "yRange");
       panel.addWidget (joint, "theta");
       panel.addWidget (joint, "thetaRange");
+      panel.addWidget (joint, "phi");
+      panel.addWidget (joint, "phiRange");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");
-      panel.addWidget (joint, "shaftLength");
-      panel.addWidget (joint, "shaftRadius");
       panel.addWidget (joint, "linearCompliance");
       panel.addWidget (joint, "rotaryCompliance");
       panel.addWidget (joint, "compliance");

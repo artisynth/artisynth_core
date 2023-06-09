@@ -22,6 +22,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
    public static final int X_IDX = 0;
    public static final int Y_IDX = 1;
    public static final int THETA_IDX = 2;
+   public static final int PHI_IDX = 3;
    
    // ellipsoid radii
    private double a, b, c;
@@ -50,26 +51,26 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       n.y = p.y/(b*b);
       n.z = p.z/(c*c);
       TGD.p.set (p);
-      TGD.R.rotateZDirection (n); // TODO: update for additional rotation DOFs     
+      
+      // TODO: update for additional rotation DOFs 
+//      TGD.R.rotateZDirection (n);     
 
       if (coords != null) {
          TCDToCoordinates (coords, TGD);
       }     
    }
 
-   /** 
-    * TODO - add additional rotational DOFs
-    */
    @Override
    public void initializeConstraints () {
       addConstraint (BILATERAL|LINEAR, new Wrench(0, 0, 1, 0, 0, 0));
       addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 1, 0, 0));
-      addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 0, 1, 0));
       
       addConstraint (LINEAR);
       addConstraint (LINEAR);
+      addConstraint (ROTARY, new Wrench(0, 0, 0, 0, 1, 0));
       addConstraint (ROTARY, new Wrench(0, 0, 0, 0, 0, 1));
 
+      addCoordinate (-INF, INF, 0, getConstraint(2));
       addCoordinate (-INF, INF, 0, getConstraint(3));
       addCoordinate (-INF, INF, 0, getConstraint(4));
       addCoordinate (-INF, INF, 0, getConstraint(5));
@@ -83,7 +84,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
       Twist velGD, boolean updateEngaged) {
 
-      System.out.println("updateCon");
+//      System.out.println("updateCon");
       
       Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
 
@@ -115,18 +116,18 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       ROD.setZXDirections (ndir, bitangent);
    }
    
-   static void setTheta(RotationMatrix3d RCD, Vector3d ndir, double theta) {
+   static void setRot(RotationMatrix3d RCD, Vector3d ndir, double theta, double phi) {
 
       // O frame is co-incident with C and at neutral orientation
       RotationMatrix3d RCO = new RotationMatrix3d ();
       RotationMatrix3d ROD = new RotationMatrix3d ();
       setROD (ROD, ndir);
       
-      GimbalCoupling.setRpy (RCO, 0, 0, theta, AxisSet.XYZ);     
+      GimbalCoupling.setRpy (RCO, theta, phi, 0, AxisSet.ZYX);     
       RCD.mul (ROD, RCO);
    }
    
-   static double getTheta(Vector3d ndir, RotationMatrix3d RCD) {
+   static double[] getRot(Vector3d ndir, RotationMatrix3d RCD) {
       
       // O frame is co-incident with C and at neutral orientation
       RotationMatrix3d RCO = new RotationMatrix3d ();
@@ -135,8 +136,8 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       
       RCO.mulInverseLeft (ROD, RCD);
       double[] rpy = new double[3];
-      GimbalCoupling.getRpy (rpy, RCO, AxisSet.XYZ);
-      return rpy[2]; // theta
+      GimbalCoupling.getRpy (rpy, RCO, AxisSet.ZYX);
+      return rpy; // roll = theta, pitch = phi 
    }
  
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
@@ -146,9 +147,10 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       n.y = p.y/(b*b);
       n.z = p.z/(c*c);
       
+      // TODO - fix because radii b, c ignored currently
       double u1, u2;
       double cos2 = Math.sqrt(n.y*n.y + n.z*n.z);
-      double sin2 = n.x;
+      double sin2 = a*n.x;
 
       if (Math.abs(cos2) < Math.abs(sin2)) { 
          u2 = Math.acos (cos2);
@@ -161,11 +163,13 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       
       coords.set (X_IDX, u1);
       coords.set (Y_IDX, u2);
-      coords.set (THETA_IDX, getTheta (n, TCD.R));
+      double[] rpy = getRot (n, TCD.R);
+      coords.set (THETA_IDX, rpy[0]); // theta about z-axis, ZYX rpy
+      coords.set (PHI_IDX, rpy[1]); // phi about y-axis, ZYX rpy
    }
 
    public void coordinatesToTCD (
-      RigidTransform3d TCD, double u1, double u2, double theta) {
+      RigidTransform3d TCD, double u1, double u2, double theta, double phi) {
 
       TCD.setIdentity();
       
@@ -184,7 +188,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       n.z = p.z/(c*c);
       
       TCD.p.set (p);
-      setTheta (TCD.R, n, theta);
+      setRot (TCD.R, n, theta, phi);      
    }
 
    /**
@@ -193,7 +197,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
    public void coordinatesToTCD (
       RigidTransform3d TCD, VectorNd coords) {
 
-      coordinatesToTCD (TCD, coords.get(0), coords.get(1), coords.get(2));
+      coordinatesToTCD (TCD, coords.get(0), coords.get(1), coords.get(2), coords.get (3));
    }
 
 }

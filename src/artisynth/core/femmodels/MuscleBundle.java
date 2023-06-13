@@ -925,7 +925,6 @@ public class MuscleBundle extends CompositeComponentBase
       if (myMuscleMat != null) {
          myMuscleMat.scaleDistance (s);
       }
-      myDirectionRenderLen *= s;
    }
 
    public void scaleMass (double s) {

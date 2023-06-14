@@ -99,7 +99,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
 //      mech.setGravity (Vector3d.ZERO);
       joint.setCoordinate (0, DTOR*10);
       joint.setCoordinate (1, DTOR*10);
-      joint.setCoordinate (3, DTOR*0);
+      joint.setCoordinate (2, DTOR*0);
       
       getMainViewer ().setAxialView (AxisAlignedRotation.NX_Z);
 

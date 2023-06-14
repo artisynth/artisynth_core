@@ -57,6 +57,38 @@ public class StlReader extends MeshReaderBase {
    public double getTolerance() {
       return myTol;
    }
+
+   /**
+    * Tries to determine if the file is ascii or binary. Ideally, ascii files
+    * start with the keyword "solid", but some binary files do as well.  So we
+    * read (up to) the first 1000 bytes and look for (a) all ascii characters,
+    * and (b) the keyword "facet".
+    */
+   private static boolean isAscii (InputStream is) throws IOException {
+      boolean ascii = true;
+      int TESTSIZE = 1000;
+      is.mark (TESTSIZE);
+      byte[] bbuf = new byte[TESTSIZE];
+      int nr = is.read (bbuf, 0, TESTSIZE);
+
+      String str = (new String(bbuf));
+      if (!str.startsWith ("solid") ||
+          !str.contains ("facet")) {
+         ascii = false;
+      }
+      if (ascii) {
+         // extra check for non-ascii characters
+         for (int i=0; i<nr; i++) {
+            if (bbuf[i] < 0) {
+               // non-ascii character
+               ascii = false;
+               break;
+            }
+         }
+      }
+      is.reset ();
+      return ascii;
+   }
    
 //   public static PolygonalMesh read(PolygonalMesh mesh, Reader reader) throws IOException {
 //      
@@ -66,12 +98,12 @@ public class StlReader extends MeshReaderBase {
 //   public static PolygonalMesh read(PolygonalMesh mesh, Reader reader, double tol) throws IOException {
    public static PolygonalMesh read(PolygonalMesh mesh, InputStream is, double tol) throws IOException {
       // Determine if ASCII or Binary and call appropriate method
-      is.mark (5);
-      byte[] bbuf = new byte[5];
-      is.read (bbuf, 0, 5);
-      is.reset ();
-         
-      if ((new String(bbuf)).equals ("solid")) {
+      // is.mark (5);
+      // byte[] bbuf = new byte[5];
+      // is.read (bbuf, 0, 5);
+      // is.reset ();
+
+      if (isAscii (is)) {
          BufferedReader iread = 
             new BufferedReader (new InputStreamReader(is));         
          return readASCII(mesh, iread, tol);

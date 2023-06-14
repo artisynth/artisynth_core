@@ -1073,14 +1073,32 @@ public class WavefrontReader extends MeshReaderBase {
 
    String scanFileName(ReaderTokenizer rtok) throws IOException {
       rtok.parseNumbers(false);
-      int saveDot = rtok.getCharSetting('.');
-      int saveSlash = rtok.getCharSetting('/');
+      int saveDash = rtok.getCharSetting('-');
+      int saveLParen = rtok.getCharSetting('(');
+      int saveRParen = rtok.getCharSetting(')');
+      int savePeriod = rtok.getCharSetting('.');
+      int saveColon = rtok.getCharSetting(':');
+      int saveSlash = rtok.getCharSetting ('/');
+      int saveBackslash = rtok.getCharSetting ('\\');
+      rtok.wordChar('-');
+      rtok.wordChar('(');
+      rtok.wordChar(')');
       rtok.wordChar('.');
-      rtok.wordChar('/');
+      rtok.wordChar(':');
+      rtok.wordChar ('/');
+      rtok.wordChar ('\\');
+
       String fileName = rtok.scanWord();
-      rtok.setCharSetting('/', saveSlash);
-      rtok.setCharSetting('.', saveDot);
+
       rtok.parseNumbers(true);
+      rtok.setCharSetting('-', saveDash);
+      rtok.setCharSetting('(', saveLParen);
+      rtok.setCharSetting(')', saveRParen);
+      rtok.setCharSetting('.', savePeriod);
+      rtok.setCharSetting(':', saveColon);
+      rtok.setCharSetting ('/', saveSlash);
+      rtok.setCharSetting ('\\', saveBackslash);
+
       return fileName;
    }
 
@@ -1262,7 +1280,7 @@ public class WavefrontReader extends MeshReaderBase {
          }
          else if (rtok.ttype != ReaderTokenizer.TT_EOL) {
             throw new IOException(
-               "unexpected token " + rtok.ttype + " , line " + rtok.lineno());
+               "unexpected token: "+rtok);
          }
       }
       rtok.eolIsSignificant(savedEol);

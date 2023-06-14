@@ -192,7 +192,7 @@ public class EllipsoidJoint extends JointBase
     * @return x range limits for this joint
     */
    public DoubleInterval getXRange () {
-      return getCoordinateRange (X_IDX);
+      return getCoordinateRangeDeg (X_IDX);
    }
 
    /**
@@ -201,7 +201,7 @@ public class EllipsoidJoint extends JointBase
     * @return lower x range limit
     */
    public double getMinX () {
-      return getMinCoordinate (X_IDX);
+      return getMinCoordinateDeg (X_IDX);
    }
 
    /**
@@ -210,7 +210,7 @@ public class EllipsoidJoint extends JointBase
     * @return upper x range limit
     */
    public double getMaxX () {
-      return getMaxCoordinate (X_IDX);
+      return getMaxCoordinateDeg (X_IDX);
    }
 
    /**
@@ -224,7 +224,7 @@ public class EllipsoidJoint extends JointBase
     * @param range x range limits for this joint
     */
    public void setXRange (DoubleInterval range) {
-      setCoordinateRange (X_IDX, range);
+      setCoordinateRangeDeg (X_IDX, range);
    }
 
    /**
@@ -285,7 +285,7 @@ public class EllipsoidJoint extends JointBase
     * @return y range limits for this joint
     */
    public DoubleInterval getYRange () {
-      return getCoordinateRange (Y_IDX);
+      return getCoordinateRangeDeg (Y_IDX);
    }
 
    /**
@@ -294,7 +294,7 @@ public class EllipsoidJoint extends JointBase
     * @return lower x range limit
     */
    public double getMinY () {
-      return getMinCoordinate (Y_IDX);
+      return getMinCoordinateDeg (Y_IDX);
    }
 
    /**
@@ -303,7 +303,7 @@ public class EllipsoidJoint extends JointBase
     * @return upper x range limit
     */
    public double getMaxY () {
-      return getMaxCoordinate (Y_IDX);
+      return getMaxCoordinateDeg (Y_IDX);
    }
 
    /**
@@ -317,7 +317,7 @@ public class EllipsoidJoint extends JointBase
     * @param range y range limits for this joint
     */
    public void setYRange (DoubleInterval range) {
-      setCoordinateRange (Y_IDX, range);
+      setCoordinateRangeDeg (Y_IDX, range);
    }
    
    /**

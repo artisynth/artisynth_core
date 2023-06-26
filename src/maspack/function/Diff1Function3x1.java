@@ -6,7 +6,6 @@
  */
 package maspack.function;
 
-import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 

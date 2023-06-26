@@ -3,20 +3,20 @@ package maspack.function;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import maspack.matrix.VectorNd;
+import maspack.util.DoubleHolder;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
-public class ScaledDiff1FunctionNx1 extends Diff1FunctionNx1Base {
+public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
 
    double myScale;
-   Diff1FunctionNx1 myFxn;
+   Diff1Function1x1 myFxn;
    
-   public ScaledDiff1FunctionNx1() {
+   public ScaledDiff1Function1x1() {
    }
 
-   public ScaledDiff1FunctionNx1 (double s, Diff1FunctionNx1 fxn) {
+   public ScaledDiff1Function1x1 (double s, Diff1Function1x1 fxn) {
       myScale = s;
       myFxn = fxn;
    }
@@ -29,29 +29,29 @@ public class ScaledDiff1FunctionNx1 extends Diff1FunctionNx1Base {
       myScale = s;
    }
    
-   public Diff1FunctionNx1 getFunction() {
+   public Diff1Function1x1 getFunction() {
       return myFxn;
    }
    
-   public void setFunction (Diff1FunctionNx1 fxn) {
+   public void setFunction (Diff1Function1x1 fxn) {
       myFxn = fxn;
    }
 
    public int inputSize() {
-      return myFxn.inputSize();
+      return 1;
    }
    
-   public double eval (VectorNd in) {
-      return myScale*myFxn.eval (in);
+   public double eval (double x) {
+      return myScale*myFxn.eval (x);
    }
 
    /**
     * {@inheritDoc}
     */
-   public double eval (VectorNd deriv, VectorNd in) {
-      double value = myScale*myFxn.eval (deriv, in);
-      if (deriv != null) {
-         deriv.scale (myScale);
+   public double eval (DoubleHolder dval, double x) {
+      double value = myScale*myFxn.eval (dval, x);
+      if (dval != null) {
+         dval.value *= myScale;
       }
       return value;
    }
@@ -71,7 +71,7 @@ public class ScaledDiff1FunctionNx1 extends Diff1FunctionNx1Base {
          }
          else if (rtok.tokenIsWord ("function")) {
             rtok.scanToken ('=');
-            myFxn = FunctionUtils.scan (rtok, Diff1FunctionNx1.class);
+            myFxn = FunctionUtils.scan (rtok, Diff1Function1x1.class);
          }
          else {
             throw new IOException (

@@ -385,10 +385,16 @@ public class Write {
     * if an I/O error occured
     */
    public static void writeClassAndObject (
-      PrintWriter pw, Scannable sobj, NumberFormat fmt, Object ref)
+      PrintWriter pw, Object obj, NumberFormat fmt, Object ref)
       throws IOException {
-      String classTag = ClassAliases.getAliasOrName (sobj.getClass());
+      String classTag = ClassAliases.getAliasOrName (obj.getClass());
       pw.print (classTag + " ");
-      sobj.write (pw, fmt, null);
+      if (obj instanceof Scannable) {
+         Scannable sobj = (Scannable)obj;
+         sobj.write (pw, fmt, null);
+      }
+      else {
+         pw.println ("[]");
+      }
    }   
 }

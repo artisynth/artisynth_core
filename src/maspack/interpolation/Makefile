@@ -6,7 +6,10 @@ JAVA_SUBDIRS =
 PACKAGE_JAVA_FILES = 
 
 JAVA_TEST_PROGRAMS = \
-	NumericListTest
+	NumericListTest \
+	CubicHermiteSpline1dTest \
+	CubicHermiteSpline3dTest \
+	LinearSpline3dTest
 
 default: build
 

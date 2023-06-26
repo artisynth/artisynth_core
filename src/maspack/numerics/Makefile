@@ -7,6 +7,9 @@ PACKAGE_NAME = maspack.numerics
 PACKAGE_JAVA_FILES = 
 
 JAVA_TEST_PROGRAMS = \
+	BisectionRootSolverTest \
+	NewtonRootSolverTest \
+	BrentRootSolverTest \
 	PolynomialFitTest
 
 OTHER_CLASSES = 

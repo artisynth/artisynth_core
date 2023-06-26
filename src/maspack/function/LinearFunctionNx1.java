@@ -1,9 +1,14 @@
 package maspack.function;
 
-import java.util.*;
-import java.io.*;
-import maspack.util.*;
-import maspack.matrix.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Arrays;
+
+import maspack.matrix.VectorNd;
+import maspack.util.DynamicDoubleArray;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Implements a linear function of n arguments defined by a set of
@@ -12,7 +17,7 @@ import maspack.matrix.*;
  * y = sum c[i]*in[i] + c[n]
  *</pre>
  */
-public class LinearFunctionNx1 implements Diff1FunctionNx1, Scannable {
+public class LinearFunctionNx1 extends Diff1FunctionNx1Base {
 
    private double[] myC;
    private int myInputSize;
@@ -141,13 +146,6 @@ public class LinearFunctionNx1 implements Diff1FunctionNx1, Scannable {
          val += myC[i];
       }
       return val;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isWritable() {
-      return true;
    }
 
    /**

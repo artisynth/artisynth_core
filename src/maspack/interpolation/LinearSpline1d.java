@@ -10,16 +10,15 @@ import maspack.util.InternalErrorException;
 import maspack.util.*;
 import maspack.util.IntHolder;
 import maspack.util.ReaderTokenizer;
-import maspack.util.Scannable;
-import maspack.function.Diff1Function1x1;
+import maspack.function.Diff1Function1x1Base;
 
 /**
  * Implements 1D piecewise-linear spline interpolation.  The spline is defined
  * by a sequence of knots delimiting the boundaries between linear
  * interpolation segements.
  */
-public class LinearSpline1d
-   implements Scannable, Diff1Function1x1, Iterable<LinearSpline1d.Knot> {
+public class LinearSpline1d extends Diff1Function1x1Base
+   implements Iterable<LinearSpline1d.Knot> {
 
    public static class Knot {
       double myX0;   // s value at knot

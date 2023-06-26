@@ -7,8 +7,6 @@
 package maspack.function;
 
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
 
 /**
  * Twice differentiable 3 x 1 function.

@@ -17,8 +17,8 @@ import maspack.function.*;
  * boundaries of these segments, with each knot specifying {@code y} and its
  * derivative for a given value of {@code x}.
  */
-public class CubicHermiteSpline1d
-   implements Scannable, Diff1Function1x1, Iterable<CubicHermiteSpline1d.Knot> {
+public class CubicHermiteSpline1d extends Diff1Function1x1Base
+   implements Iterable<CubicHermiteSpline1d.Knot> {
 
    private static final double EPS = 1e-14;
 
@@ -489,6 +489,8 @@ public class CubicHermiteSpline1d
       else if (numk == 2) {
          // linear function
          if (x[1] == x[0]) {
+            System.out.println ("x: " + new VectorNd(x));
+            System.out.println ("y: " + new VectorNd(y));
             throw new IllegalArgumentException (
                "x inputs at 0 and 1 are the same");
          }
@@ -503,6 +505,8 @@ public class CubicHermiteSpline1d
             dx[i] = x[i+1] - x[i];
             dy[i] = y[i+1] - y[i];
             if (dx[i] == 0) {
+            System.out.println ("x: " + new VectorNd(x));
+            System.out.println ("y: " + new VectorNd(y));
                throw new IllegalArgumentException (
                   "x inputs at "+i+" and "+(i+1)+" are the same");
             }

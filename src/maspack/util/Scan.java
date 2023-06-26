@@ -497,6 +497,10 @@ public class Scan {
          Scannable sobj = (Scannable)obj;
          sobj.scan (rtok, ref);
       }
+      else {
+         rtok.scanToken ('[');
+         rtok.scanToken (']');
+      }
       return obj;
    }
 

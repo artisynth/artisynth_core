@@ -86,10 +86,21 @@ public class RandomGenerator {
     * @param n size of the subsequence
     */
    public static int[] randomSubsequence (int n) {
+      return randomSubsequence (0, n);
+   }
+   
+   /**
+    * Generates a random subsequence of the integers in the range
+    * {@code min, ... max},
+    *
+    * @param n size of the subsequence
+    */
+   public static int[] randomSubsequence (int min, int max) {
+      int n = max - min + 1;
       ArrayList<Integer> list = new ArrayList<>();
       for (int i=0; i<n; i++) {
          if (randGen.nextBoolean()) {
-            list.add (i);
+            list.add (min+i);
          }
       }
       return ArraySupport.toIntArray (list);

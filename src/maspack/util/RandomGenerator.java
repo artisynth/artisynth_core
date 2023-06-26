@@ -86,7 +86,7 @@ public class RandomGenerator {
     * @param n size of the subsequence
     */
    public static int[] randomSubsequence (int n) {
-      return randomSubsequence (0, n);
+      return randomSubsequence (0, n-1);
    }
    
    /**

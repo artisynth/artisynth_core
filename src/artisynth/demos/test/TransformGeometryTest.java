@@ -952,9 +952,10 @@ public class TransformGeometryTest extends UnitTest {
 
    public void testHex3dBlock() {
 
-      Hex3dBlock demo = new Hex3dBlock();
+      Fem3dBlock demo = new Fem3dBlock();
 
-      demo.build (new String[] { "-reduced" });
+      //demo.build (new String[] { "-reduced" });
+      demo.build ("hex", 3, 1, 0);
       demo.setConnected (true);
       
       MechModel mech = (MechModel)demo.findComponent ("models/0");

@@ -160,26 +160,29 @@ public class FemNodeNeighbor {
       
       int bi0 = node.getLocalSolveIndex();
       int bj0 = myNode.getLocalSolveIndex();
+      boolean hasBackNodeBlocks = false;
 
       if (bi0 != -1 && bj0 != -1) {
          myBlkNum = getOrCreateBlock (S, bi0, bj0);
 
-         int bi1 = node.getBackSolveIndex();
-         int bj1 = myNode.getBackSolveIndex();
-
-         if (bi1 != -1 && bj1 != -1) {
-            myBlkNum01 = getOrCreateBlock (S, bi0, bj1);
-            myBlkNum10 = getOrCreateBlock (S, bi1, bj0);
-            myBlkNum11 = getOrCreateBlock (S, bi1, bj1);
-         }
-         else {
-            myBlkNum01 = -1;
-            myBlkNum10 = -1;
-            myBlkNum11 = -1;
+         if (myK01 != null) {
+            int bi1 = node.getBackSolveIndex();
+            int bj1 = myNode.getBackSolveIndex();
+            if (bi1 != -1 && bj1 != -1) {
+               myBlkNum01 = getOrCreateBlock (S, bi0, bj1);
+               myBlkNum10 = getOrCreateBlock (S, bi1, bj0);
+               myBlkNum11 = getOrCreateBlock (S, bi1, bj1);
+               hasBackNodeBlocks = true;
+            }
          }
       }
       else {
          myBlkNum = -1;
+      }
+      if (!hasBackNodeBlocks) {
+         myBlkNum01 = -1;
+         myBlkNum10 = -1;
+         myBlkNum11 = -1;
       }
    }
 

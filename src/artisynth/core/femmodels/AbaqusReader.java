@@ -204,22 +204,24 @@ public class AbaqusReader implements FemReader {
                createQuadHex (fem, nodeList, elemId);
                break;
             case S3:
-               createShellTri (fem, nodeList, elemId, /*membrane=*/true);
-               break;
-            case S4:
-               createShellQuad (fem, nodeList, elemId, /*membrane=*/true);
-               break;
-            case CPS3:
                createShellTri (fem, nodeList, elemId, /*membrane=*/false);
                break;
-            case CPS4:
+            case S4:
                createShellQuad (fem, nodeList, elemId, /*membrane=*/false);
+               break;
+            case CPS3:
+               createShellTri (fem, nodeList, elemId, /*membrane=*/true);
+               break;
+            case CPS4:
+               createShellQuad (fem, nodeList, elemId, /*membrane=*/true);
                break;
             default:
                System.out.println (
                   "Ignoring unknown element type " + edesc.myType);
          }
       }
+
+      // C3D4 C3D10M C3D8R S3 S4 CPS3
       
       // TODO implement for quadhex elements
       HexElement.setParities (hexElems);

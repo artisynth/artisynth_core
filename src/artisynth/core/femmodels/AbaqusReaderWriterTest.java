@@ -14,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.StringWriter;
 import java.util.*;
 
+import artisynth.core.mechmodels.*;
 import maspack.util.ReaderTokenizer;
 import maspack.util.TestException;
 import maspack.util.UnitTest;
@@ -24,7 +25,7 @@ public class AbaqusReaderWriterTest extends UnitTest {
    int RESET_NUMS = AbaqusReader.RESET_NUMBERING;
    int ZERO_BASED = AbaqusReader.ZERO_BASED_NUMBERING;
       
-   public static final String testStr = 
+   public static final String testStr1 = 
 "**\n" +
 "**  Test string to simulate .inp file\n"+
 "**  This does not necessarily define valid geometry\n"+
@@ -122,6 +123,13 @@ public class AbaqusReaderWriterTest extends UnitTest {
 "*ELEMENT, TYPE=S4\n" +
 "16, 11, 12, 13, 14\n" + 
 "17, 14, 15, 16, 17\n" +
+"*ELEMENT, TYPE=CPS3\n" +
+"18, 11, 12, 13\n" + 
+"19, 14, 15, 16\n" +
+"20, 17, 18, 19\n" +
+"*ELEMENT, TYPE=CPS4\n" +
+"21, 11, 12, 13, 14\n" + 
+"22, 14, 15, 16, 17\n" +
 "*****\n";
 
    protected void checkSerialNumbering (FemModel3d fem) {
@@ -181,7 +189,7 @@ public class AbaqusReaderWriterTest extends UnitTest {
             System.out.println ("input: " + si);
             System.out.println ("check: " + sc);
             throw new TestException (
-               "input and check strings "+i+" differ");
+               "input and check strings differ at entry " + i);
          }
       }
    }
@@ -193,7 +201,7 @@ public class AbaqusReaderWriterTest extends UnitTest {
          "numElements", fem.numElements(), chk.numElements());
       checkEquals (
          "numShellElements", fem.numShellElements(), chk.numShellElements());
-      
+
       for (int i=0; i<fem.numNodes(); i++) {
          int n = fem.getNode(i).getNumber();
          int c = chk.getNode(i).getNumber() + off;
@@ -340,16 +348,6 @@ public class AbaqusReaderWriterTest extends UnitTest {
       if (baseNum == -1) {
          num = 0;
       }
-      // tri membranes
-      addShellElem (fem, num++, thickness, MEMBRANE, 0, 1, 9);
-      addShellElem (fem, num++, thickness, MEMBRANE, 1, 2, 10);
-      addShellElem (fem, num++, thickness, MEMBRANE, 9, 10, 18);
-
-      // quad membranes
-      addShellElem (fem, num++, thickness, MEMBRANE, 0, 1, 10, 9);
-      addShellElem (fem, num++, thickness, MEMBRANE, 1, 2, 11, 10);
-      addShellElem (fem, num++, thickness, MEMBRANE, 9, 10, 19, 18);
-
       // tri shells
       addShellElem (fem, num++, thickness, NO_MEMBRANE, 10, 11, 19);
       addShellElem (fem, num++, thickness, NO_MEMBRANE, 4, 5, 13);
@@ -359,6 +357,16 @@ public class AbaqusReaderWriterTest extends UnitTest {
       addShellElem (fem, num++, thickness, NO_MEMBRANE, 10, 11, 19, 18);
       addShellElem (fem, num++, thickness, NO_MEMBRANE, 4, 5, 13, 12);
       addShellElem (fem, num++, thickness, NO_MEMBRANE, 7, 8, 16, 15);
+
+      // tri membranes
+      addShellElem (fem, num++, thickness, MEMBRANE, 0, 1, 9);
+      addShellElem (fem, num++, thickness, MEMBRANE, 1, 2, 10);
+      addShellElem (fem, num++, thickness, MEMBRANE, 9, 10, 18);
+
+      // quad membranes
+      addShellElem (fem, num++, thickness, MEMBRANE, 0, 1, 10, 9);
+      addShellElem (fem, num++, thickness, MEMBRANE, 1, 2, 11, 10);
+      addShellElem (fem, num++, thickness, MEMBRANE, 9, 10, 19, 18);
 
       return fem;
    }
@@ -382,25 +390,23 @@ public class AbaqusReaderWriterTest extends UnitTest {
       return reader.readFem (null);
    }
 
-   public void test() throws IOException {
-
-      FemModel3d fem1 = readFromString (testStr, 0);
+   public void testReadWrite() throws IOException {
+      
+      FemModel3d fem1 = readFromString (testStr1, 0);
       checkEquals ("numNodes", fem1.numNodes(), 61);
       checkEquals ("numElements", fem1.numElements(), 12);
-      checkEquals ("numShellElements", fem1.numShellElements(), 5);
+      checkEquals ("numShellElements", fem1.numShellElements(), 10);
 
-      FemModel3d femx = readFromString (testStr, RESET_NUMS);
+      FemModel3d femx = readFromString (testStr1, RESET_NUMS);
       checkEquals ("numNodes", fem1.numNodes(), 61);
       checkEquals ("numElements", fem1.numElements(), 12);
-      checkEquals ("numShellElements", fem1.numShellElements(), 5);
+      checkEquals ("numShellElements", fem1.numShellElements(), 10);
       checkSerialNumbering (femx);
 
-      FemModel3d fem0 = readFromString (testStr, ZERO_BASED);
+      FemModel3d fem0 = readFromString (testStr1, ZERO_BASED);
       checkComponentNumbering (fem1, fem0, 1);
 
-      //System.out.println (writeToString (fem));
-
-      checkFileStrings (testStr, writeToString (fem1));
+      checkFileStrings (testStr1, writeToString (fem1));
 
       fem1 = createTestFem(1);
       String fem1Str = writeToString (fem1);
@@ -415,6 +421,10 @@ public class AbaqusReaderWriterTest extends UnitTest {
       // fem0Str and fem1Str should be the same because the
       // writer will force one-based numbering
       checkFileStrings (fem1Str, fem0Str);
+   }      
+
+   public void test() throws IOException {
+      testReadWrite();
    }      
 
    public static void main (String args[]) {

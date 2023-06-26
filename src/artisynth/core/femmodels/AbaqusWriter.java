@@ -385,19 +385,19 @@ public class AbaqusWriter extends FemWriterBase {
          }
          case SHELL: {
             if (eclass == ShellTriElement.class) {
-               type = ElemType.CPS3;
+               type = ElemType.S3;
             }
             else if (eclass == ShellQuadElement.class) {
-               type = ElemType.CPS4;
+               type = ElemType.S4;
             }
             break;
          }
          case MEMBRANE: {
             if (eclass == ShellTriElement.class) {
-               type = ElemType.S3;
+               type = ElemType.CPS3;
             }
             else if (eclass == ShellQuadElement.class) {
-               type = ElemType.S4;
+               type = ElemType.CPS4;
             }
             break;
          }

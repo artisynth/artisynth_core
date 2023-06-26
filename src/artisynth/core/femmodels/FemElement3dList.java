@@ -30,6 +30,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLSupport;
 
@@ -151,6 +152,10 @@ public class FemElement3dList<C extends FemElement3dBase> extends
 
    public PropertyMode getElementWidgetSizeMode() {
       return myElementWidgetSizeMode;
+   }
+
+   private boolean isShellElemList() {
+      return ShellElement3d.class.isAssignableFrom (getParameterType());
    }
    
    public FemElement3dList (Class<C> type) {
@@ -493,9 +498,22 @@ public class FemElement3dList<C extends FemElement3dBase> extends
       }
       
       if (myWidgetRob != null) {
-         drawWidgets (renderer, myWidgetRob, myWidgetFeatures[SEL_GRP], props, SEL_GRP);
-         drawWidgets (renderer, myWidgetRob, myWidgetFeatures[REG_GRP], props, REG_GRP);
-         drawWidgets (renderer, myWidgetRob, myWidgetFeatures[INV_GRP], props, INV_GRP);
+         FaceStyle savedFaceStyle = null;
+         if (isShellElemList()) {
+            savedFaceStyle = renderer.getFaceStyle();
+            renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+         }
+
+         drawWidgets (
+            renderer, myWidgetRob, myWidgetFeatures[SEL_GRP], props, SEL_GRP);
+         drawWidgets (
+            renderer, myWidgetRob, myWidgetFeatures[REG_GRP], props, REG_GRP);
+         drawWidgets (
+            renderer, myWidgetRob, myWidgetFeatures[INV_GRP], props, INV_GRP);
+
+         if (isShellElemList()) {
+            renderer.setFaceStyle (savedFaceStyle);
+         }
       }
    }
 

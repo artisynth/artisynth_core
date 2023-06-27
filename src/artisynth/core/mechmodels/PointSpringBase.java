@@ -29,6 +29,7 @@ import artisynth.core.materials.LinearAxialMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponent;
@@ -710,6 +711,13 @@ public abstract class PointSpringBase extends Spring
          myStateMat.advanceState (t0, t1);
       }
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean requiresAdvance() {
+      return myStateMat != null;
+   }   
    
    public void getState (DataBuffer data) {
       if (myStateMat != null) {

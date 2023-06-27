@@ -191,11 +191,23 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       PropertyUtils.updateAllInheritedProperties (comp);
       return prev;
    }
+   
+   private boolean componentOrDescendantsHasState (ModelComponent comp) {
+      if (comp instanceof CompositeComponent) {
+         CompositeComponent ccomp = (CompositeComponent)comp;
+         for (int k=0; k<ccomp.numComponents(); k++) {
+            if (componentOrDescendantsHasState (ccomp.get(k))) {
+               return true;
+            }
+         }
+      }
+      return comp.hasState();
+   }
 
-   // returns true if the indicated components do not have state
+   // returns true if the indicated components or descendents do not have state
    private boolean isStateless (ModelComponent[] comps, int num) {
       for (int i=0; i<num; i++) {
-         if (comps[i].hasState()) {
+         if (componentOrDescendantsHasState(comps[i])) {
             return false;
          }
       }

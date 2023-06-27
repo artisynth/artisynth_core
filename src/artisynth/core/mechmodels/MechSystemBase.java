@@ -65,6 +65,9 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected ArrayList<Constrainer> myConstrainers;
    protected ArrayList<ForceEffector> myForceEffectors;
    protected ArrayList<HasNumericState> myAuxStateComponents;
+   protected ArrayList<HasNumericState> myAuxAdvanceComponents;
+   protected ArrayList<HasNumericState> myAuxVarComponents;
+   protected int myNumAuxVars;
    protected ArrayList<HasSlaveObjects> mySlaveObjectComponents;
 
    protected VectorNd myInitialForces = new VectorNd();
@@ -795,9 +798,25 @@ public abstract class MechSystemBase extends RenderableModelBase
          // clearCachedData(). So, we need to make sure
          // updateAuxStateComponentList() is called before any other updates
          // are called.
-         ArrayList<HasNumericState> list = new ArrayList<HasNumericState>();
-         getAuxStateComponents (list, 0);
-         myAuxStateComponents = list;
+         ArrayList<HasNumericState> newStateComps = new ArrayList<>();
+         ArrayList<HasNumericState> newAdvanceComps = new ArrayList<>();
+         ArrayList<HasNumericState> newVarComps = new ArrayList<>();
+         getAuxStateComponents (newStateComps, 0);
+         int numAuxVars = 0;
+         for (HasNumericState aux : newStateComps) {
+            if (aux.requiresAdvance()) {
+               newAdvanceComps.add (aux);
+            }
+            int numv = aux.numAuxVars();
+            if (numv > 0) {
+               numAuxVars += numv;
+               newVarComps.add (aux);               
+            }
+         }
+         myAuxStateComponents = newStateComps;
+         myAuxAdvanceComponents = newAdvanceComps;
+         myAuxVarComponents = newVarComps;
+         myNumAuxVars = numAuxVars;
       }
    }
 
@@ -1153,15 +1172,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   protected void advanceState (double t0, double t1) {
-      updateAuxStateComponentList();
-      for (int i=0; i<myAuxStateComponents.size(); i++) {
-         myAuxStateComponents.get(i).advanceState (t0, t1);
-      }
-   }      
-
    public StepAdjustment preadvance (double t0, double t1, int flags) {
-      advanceState (t0, t1);
+      //advanceAuxState (t0, t1);
       // zero forces
       updateDynamicComponentLists();
       //FunctionTimer timer = new FunctionTimer();
@@ -1333,8 +1345,8 @@ public abstract class MechSystemBase extends RenderableModelBase
          for (DynamicComponent c : myAllDynamicComponents) {
             c.setState (state);
          }
-         updateSlavePos();
-         updateSlaveVel();
+         //updateSlavePos();
+         //updateSlaveVel();
       }
       else {
          if (numDynComps != myNumActive+myNumParametric) {
@@ -1352,8 +1364,8 @@ public abstract class MechSystemBase extends RenderableModelBase
             DynamicComponent c = myDynamicComponents.get(i);
             c.setState (state);
          }
-         updatePosState(); // do we need?
-         updateVelState(); // do we need?
+         //updatePosState(); // do we need?
+         //updateVelState(); // do we need?
       }
       
 //      state.dskip (di);
@@ -1363,6 +1375,17 @@ public abstract class MechSystemBase extends RenderableModelBase
       for (int i=0; i<myAuxStateComponents.size(); i++) {
          myAuxStateComponents.get(i).setState (state);
       }
+      if (useAllDynamicComps) {
+         updateSlavePos();
+         updateSlaveVel();
+      }
+      else {
+         updatePosState();
+         updateVelState();
+      }
+      
+      //updatePosState(); // do we need?
+      //updateVelState(); // do we need?          
       myConstraintForceStateSaver.setState (state);
    }
    
@@ -2199,6 +2222,12 @@ public abstract class MechSystemBase extends RenderableModelBase
       return mySolver.createActiveStiffnessMatrix(1);
    }
 
+   public SparseBlockMatrix getActiveDampingMatrix () {
+      updatePosState();
+      updateVelState();
+      return mySolver.createActiveDampingMatrix(1);
+   }
+
    public void printActiveMass() {
       printActiveMass ("%.6g");
    }
@@ -2445,4 +2474,64 @@ public abstract class MechSystemBase extends RenderableModelBase
    
    static UpdateAttachmentsAction myAttachmentsPosAction = 
       new UpdateAttachmentsAction();
+
+//   protected void advanceState (double t0, double t1) {
+//      updateAuxStateComponentList();
+//      for (HasNumericState aux : myAuxAdvanceComponents) {
+//         aux.advanceState (t0, t1);
+//      }
+//   }      
+
+   public void advanceAuxState (double t0, double t1) {
+      updateAuxStateComponentList();
+      for (HasNumericState aux : myAuxAdvanceComponents) {
+         aux.advanceState (t0, t1);
+      }
+   }
+
+   public void getAuxAdvanceState (DataBuffer buf) {
+      updateAuxStateComponentList();
+      for (HasNumericState aux : myAuxAdvanceComponents) {
+         aux.getState (buf);
+      }
+   }
+
+   public void setAuxAdvanceState (DataBuffer buf) {
+      updateAuxStateComponentList();
+      for (HasNumericState aux : myAuxAdvanceComponents) {
+         aux.setState (buf);
+      }
+   }
+
+   public int getAuxVarStateSize() {
+      updateAuxStateComponentList();
+      return myNumAuxVars;
+   }
+
+   public void getAuxVarState (VectorNd w) {
+      updateAuxStateComponentList();
+      double[] buf = w.getBuffer();
+      int idx = 0;
+      for (HasNumericState aux : myAuxVarComponents) {
+         idx = aux.getAuxVarState (buf, idx);
+      }
+   }
+
+   public void setAuxVarState (VectorNd w) {
+      updateAuxStateComponentList();
+      double[] buf = w.getBuffer();
+      int idx = 0;
+      for (HasNumericState aux : myAuxVarComponents) {
+         idx = aux.setAuxVarState (buf, idx);
+      }
+   }
+
+   public void getAuxVarDerivative (VectorNd dwdt) {
+      updateAuxStateComponentList();
+      double[] buf = dwdt.getBuffer();
+      int idx = 0;
+      for (HasNumericState aux : myAuxVarComponents) {
+         idx = aux.getAuxVarDerivative (buf, idx);
+      }
+   }
 }

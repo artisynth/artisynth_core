@@ -42,12 +42,12 @@ public class TubeDemo extends RootModel {
 
    double myAmplitude = 0.60;
 
-   double myFrequency = 1.0;
+   double myFrequency = 0.5;
 
    boolean myAddProbes = true;
 
    public enum ElementType {
-      Tet, Hex, Quadtet, TetAndQuadtet
+      Tet, Hex, Quadtet, TetAndQuadtet, TetAndHex
    }
 
    public static PropertyList myProps =
@@ -55,8 +55,8 @@ public class TubeDemo extends RootModel {
 
    // add addtional properties to the list:
    static {
-      myProps.add ("youngsModulus", "stiffness of the FEMs", 200000);
-      myProps.add ("poissonsRatio", "stiffness of the FEMs", 0.33);
+      myProps.add ("youngsModulus", "stiffness of the FEMs", 20000);
+      myProps.add ("poissonsRatio", "stiffness of the FEMs", 0.49);
       myProps.add ("warping", "element warping", true);
       myProps.add ("amplitude", "vibration amplitude", 0.25);
       myProps.add ("frequency", "vibration frequency", 1);
@@ -116,7 +116,7 @@ public class TubeDemo extends RootModel {
    }
    
    public TubeDemo(String name) {
-      this(name, ElementType.Quadtet, 7, 6, 3);  // default to hex tube
+      this(name, ElementType.TetAndHex, 7, 10, 3);  // default to hex tube
    }
 
    public TubeDemo (String name, ElementType type, int nt, int nl, int nr) {
@@ -130,10 +130,10 @@ public class TubeDemo extends RootModel {
       double length = 1.0;
 
       tetMod = new FemModel3d();
-      FemFactory.createTetTube (tetMod, length, 0.05, 0.1, 6, 7, 2);
+      FemFactory.createTetTube (tetMod, length, 0.05, 0.12, 8, 10, 2);
       
       hexMod = new FemModel3d();
-      FemFactory.createHexTube (hexMod, length, 0.05, 0.08, 7, 5, 2);
+      FemFactory.createHexTube (hexMod, length, 0.05, 0.12, 8, 10, 2);
       
       quadMod = new FemModel3d ();
       FemFactory.createQuadtetTube (quadMod, length, 0.05, 0.1, 4, 3, 1);
@@ -150,9 +150,9 @@ public class TubeDemo extends RootModel {
       X.R.setAxisAngle (0, 0, 1, Math.toRadians (30));
       X.p.y = width / 2;
       tetMod.transformGeometry (X);
-      hexMod.transformGeometry (X);
       X.p.y = -width / 2;
       quadMod.transformGeometry (X);
+      hexMod.transformGeometry (X);
 
       plate0.setMesh (
          MeshFactory.createBox (width, width, height), null);
@@ -228,11 +228,11 @@ public class TubeDemo extends RootModel {
 
       setRenderProps();
 
-      // mechMod.addRigidBody (plate0);
-      // mechMod.addRigidBody (plate1);
+      //mechMod.addRigidBody (plate0);
+      //mechMod.addRigidBody (plate1);
 
-      setPoissonsRatio (0.33);
-      setYoungsModulus (500000);
+      setPoissonsRatio (0.49);
+      setYoungsModulus (50000);
 
       tetMod.setSurfaceRendering (SurfaceRender.Shaded);
 
@@ -282,6 +282,23 @@ public class TubeDemo extends RootModel {
                }
             }
             for (FemNode3d n : quadMod.getNodes()) {
+               if (!n.isDynamic()) {
+                  mechMod.attachPoint (n, plate1);
+               }
+            }
+            break;
+         }
+         case TetAndHex: {
+            mechMod.addRigidBody (plate0);
+            mechMod.addModel (tetMod);
+            mechMod.addRigidBody (plate1);
+            mechMod.addModel (hexMod);
+            for (FemNode3d n : tetMod.getNodes()) {
+               if (!n.isDynamic()) {
+                  mechMod.attachPoint (n, plate0);
+               }
+            }
+            for (FemNode3d n : hexMod.getNodes()) {
                if (!n.isDynamic()) {
                   mechMod.attachPoint (n, plate1);
                }
@@ -354,7 +371,7 @@ public class TubeDemo extends RootModel {
       if (plate0 != null) {
          InputProbe probe0 = new PlateProbe (plate0);
          probe0.setStartTime (2);
-         probe0.setStopTime (3.5);
+         probe0.setStopTime (4);
          addInputProbe (probe0);
       }
 
@@ -363,7 +380,7 @@ public class TubeDemo extends RootModel {
       if (plate1 != null) {
          InputProbe probe1 = new PlateProbe (plate1);
          probe1.setStartTime (2);
-         probe1.setStopTime (3.5);
+         probe1.setStopTime (4);
          addInputProbe (probe1);
       }
    }
@@ -371,13 +388,16 @@ public class TubeDemo extends RootModel {
    private void setRenderProps() {
       RenderProps.setDrawEdges (tetMod, true);
       RenderProps.setLineColor (tetMod, Color.BLUE);
+      RenderProps.setSphericalPoints (tetMod, 0.005, Color.GREEN);
       RenderProps.setFaceColor (tetMod, new Color (153, 153, 255));
       RenderProps.setLineWidth (tetMod, 2);
-      RenderProps.setShading (tetMod, Shading.SMOOTH);
+      //RenderProps.setShading (tetMod, Shading.SMOOTH);
 
       RenderProps.setLineWidth (hexMod.getElements(), 2);
-      RenderProps.setLineColor (hexMod.getElements(), Color.GREEN);
-      RenderProps.setShading (hexMod, Shading.SMOOTH);
+      RenderProps.setFaceColor (hexMod, new Color (153, 153, 255));
+      RenderProps.setLineColor (hexMod.getElements(), Color.BLUE);
+      RenderProps.setSphericalPoints (hexMod, 0.005, Color.GREEN);
+      //RenderProps.setShading (hexMod, Shading.SMOOTH);
 
       RenderProps.setLineWidth (quadMod.getElements(), 2);
       RenderProps.setLineColor (quadMod.getElements(), Color.RED);

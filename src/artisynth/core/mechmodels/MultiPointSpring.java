@@ -38,7 +38,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.ImproperStateException;
 import maspack.matrix.Matrix;
-import maspack.matrix.Matrix3d;
+import maspack.matrix.*;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixBlockBase;
@@ -47,6 +47,8 @@ import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.properties.PropertyUtils;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
@@ -59,6 +61,7 @@ import maspack.render.Renderer.PointStyle;
 import maspack.util.Clonable;
 import maspack.util.DataBuffer;
 import maspack.util.DoubleHolder;
+import maspack.util.DynamicIntArray;
 import maspack.util.FunctionTimer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -118,21 +121,22 @@ import maspack.util.ReaderTokenizer;
 public class MultiPointSpring extends PointSpringBase
    implements ScalableUnits, TransformableGeometry,
               CopyableComponent, RequiresPrePostAdvance,
-              HasNumericStateComponents, HasSlaveObjects {
+              HasSlaveObjects {
 
    public static boolean myDrawWrapPoints = true;
    protected boolean myUpdateContactsP = true;
    protected int myStateVersion = 0;
-
+   
    /* === segment, wrappable and solve block information === */
 
+   protected ArrayList<SegmentSpec> mySegmentSpecs;
    protected ArrayList<Segment> mySegments;
    protected ArrayList<Wrappable> myWrappables;
-   protected boolean mySubSegsValidP = false;
-   protected boolean mySegsValidP = true;
    protected int myNumBlks; // set to numPoints()
    protected int[] mySolveBlkNums;
    protected int myHasWrappableSegs = -1; // -1 means we don't know
+   protected int myHasConditionalPoints = -1; // -1 means we don't know
+   protected int myHasMovingMarkers = -1; // -1 means we don't know
    protected ArrayList<Point3d[]> myWrapPaths; // used only for scanning
 
    /* === property attributes === */
@@ -174,7 +178,7 @@ public class MultiPointSpring extends PointSpringBase
    protected static final Color DEFAULT_CONTACTING_KNOTS_COLOR = null;
    protected Color myContactingKnotsColor = DEFAULT_CONTACTING_KNOTS_COLOR;
 
-   // successive overrelaxation parameter (nomonally 1.0)
+   // successive overrelaxation parameter (nominally 1.0)
    protected static double DEFAULT_SOR = 1.0;
    protected double mySor = DEFAULT_SOR;
 
@@ -183,6 +187,10 @@ public class MultiPointSpring extends PointSpringBase
    
    protected static boolean DEFAULT_PROFILING = false;
    protected boolean myProfilingP = DEFAULT_PROFILING;
+
+   protected static final double DEFAULT_WRAP_KNOT_DENSITY = 50; 
+   protected double myWrapKnotDensity = DEFAULT_WRAP_KNOT_DENSITY;
+   protected PropertyMode myWrapKnotDensityMode = PropertyMode.Inherited;
 
    protected double myDrawDisplacements = 0;
 
@@ -230,6 +238,10 @@ public class MultiPointSpring extends PointSpringBase
       myProps.add (
          "contactDamping", "contact damping for wrapping strands",
          DEFAULT_CONTACT_DAMPING);
+      myProps.addInheritable (
+         "wrapKnotDensity:Inherited",
+         "default number of wrap knots per unit distance",
+         DEFAULT_WRAP_KNOT_DENSITY);
       myProps.add (
          "maxWrapIterations", "max number of wrap iterations per step",
          DEFAULT_MAX_WRAP_ITERATIONS);
@@ -361,6 +373,46 @@ public class MultiPointSpring extends PointSpringBase
     */
    public void setContactDamping (double damping) {
       myContactDamping = damping;
+   }
+
+   /**
+    * Sets the default knot density for wrapping strands.  This is the number
+    * of knots used per unit distance. When a wrapping strand is initialized,
+    * and the number of knots is not explicitly specified, this number is
+    * multiplied by the strand's initial length to determine the number of
+    * knots.
+    *
+    * @param p desired knot density
+    */
+   public void setWrapKnotDensity (double p) {
+      if (p <= 0) {
+         throw new IllegalArgumentException (
+            "knot density must be positive");
+      }
+      myWrapKnotDensity = p;
+      myWrapKnotDensityMode =
+         PropertyUtils.propagateValue (
+            this, "wrapKnotDensity", p, myWrapKnotDensityMode);
+   }
+
+   /**
+    * Returns the default knot density for wrapping strands.  See {@link
+    * #setWrapKnotDensity} for details.
+    *
+    * @return current knot density
+    */
+   public double getWrapKnotDensity () {
+      return myWrapKnotDensity;
+   }
+
+   public PropertyMode getWrapKnotDensityMode() {
+      return myWrapKnotDensityMode;
+   }
+
+   public void setWrapKnotDensityMode (PropertyMode mode) {
+      myWrapKnotDensityMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "wrapKnotDensity", myWrapKnotDensityMode, mode);
    }
 
    /**
@@ -624,7 +676,7 @@ public class MultiPointSpring extends PointSpringBase
     */
    public void setDebugLevel (int level) {
       myDebugLevel = level;
-      for (Segment seg : mySegments) {
+      for (Segment seg : getSegments()) {
          if (seg instanceof WrapSegment) {
             ((WrapSegment)seg).debugLevel = level;
          }
@@ -768,11 +820,11 @@ public class MultiPointSpring extends PointSpringBase
     */
    public MultiPointSpring (String name) {
       super (name);
-      mySegments = new ArrayList<Segment>();
+      mySegmentSpecs = new ArrayList<SegmentSpec>();
+      mySegments = null;
       myWrappables = new ArrayList<Wrappable>();
       mySolveBlkNums = new int[0];
       myNumBlks = 0;
-      mySegsValidP = true;
    }
 
    /**
@@ -816,43 +868,17 @@ public class MultiPointSpring extends PointSpringBase
     * @param pnt point to add
     */
    public void addPoint (int idx, Point pnt) {
-      if (idx > mySegments.size()) {
+      if (idx > mySegmentSpecs.size()) {
          throw new ArrayIndexOutOfBoundsException (
             "specified index "+idx+
-            " exceeds number of points "+mySegments.size());
+            " exceeds number of points "+mySegmentSpecs.size());
       }
-      Segment seg = new Segment();
-      seg.myPntB = pnt;
-      if (idx > 0) {
-         Segment prev = mySegments.get(idx-1);
-         prev.myPntA = pnt;
-         if (idx == numPoints() && prev instanceof WrapSegment) {
-            WrapSegment wrapSeg = (WrapSegment)prev;
-            wrapSeg.initializeStrand (wrapSeg.myInitialPnts);
-         }
+      SegmentSpec spec = new SegmentSpec();
+      spec.setPntB (pnt);
+      mySegmentSpecs.add (idx, spec);
+      if (invalidateSegments()) {
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       }
-      if (idx < mySegments.size()) {
-         seg.myPntA = mySegments.get(idx).myPntB;
-      }
-      mySegments.add (idx, seg);
-      //
-      // sanity check:
-      // 
-      // for (int i=0; i<mySegments.size(); i++) {
-      //    Segment s = mySegments.get(i);
-      //    if (s.myPntB != getPoint(i)) {
-      //       throw new InternalErrorException (
-      //          "pntB for segment i != point(i)");
-      //    }
-      //    if (i < mySegments.size()-1) {
-      //       if (s.myPntA != getPoint(i+1)) {
-      //          throw new InternalErrorException (
-      //             "pntA for segment i != point(i+1)");
-      //       }
-      //    }
-      // }
-      invalidateSegments();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
    /**
@@ -876,7 +902,7 @@ public class MultiPointSpring extends PointSpringBase
          throw new IndexOutOfBoundsException (
             "idx=" + idx + ", number of points=" + numPoints());
       }
-      return mySegments.get(idx).myPntB;
+      return mySegmentSpecs.get(idx).myPntB;
    }
 
    /**
@@ -885,7 +911,7 @@ public class MultiPointSpring extends PointSpringBase
     * @return number of points in the spring
     */
    public int numPoints() {
-      return mySegments.size();
+      return mySegmentSpecs.size();
    }
 
    /**
@@ -896,9 +922,9 @@ public class MultiPointSpring extends PointSpringBase
     * @return index of the point, or -1 if not present
     */
    public int indexOfPoint (Point pnt) {
-      for (int i=0; i<mySegments.size(); i++) {
-         Segment seg = mySegments.get(i);
-         if (seg.myPntB == pnt) {
+      for (int i=0; i<mySegmentSpecs.size(); i++) {
+         SegmentSpec spec = mySegmentSpecs.get(i);
+         if (spec.myPntB == pnt) {
             return i;
          }
       }
@@ -924,12 +950,10 @@ public class MultiPointSpring extends PointSpringBase
    public boolean removePoint (Point pnt) {
       int idx = indexOfPoint (pnt);
       if (idx != -1) {      
-         if (idx > 0) {
-            mySegments.get(idx-1).myPntA = mySegments.get(idx).myPntA;
+         mySegmentSpecs.remove (idx);
+         if (invalidateSegments()) {
+            notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
          }
-         mySegments.remove (idx);
-         invalidateSegments();
-         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
          return true;
       }
       else {
@@ -941,9 +965,10 @@ public class MultiPointSpring extends PointSpringBase
     * Removes all points (and segments) from this spring.
     */
    public void clearPoints() {
-      mySegments.clear();
-      invalidateSegments();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      mySegmentSpecs.clear();
+      if (invalidateSegments()) {
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      }
    }
 
    /* === wrappable methods === */
@@ -1006,10 +1031,12 @@ public class MultiPointSpring extends PointSpringBase
    }
    
    protected void removeWrappableFromContacts (int widx) {
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
-         if (seg instanceof WrapSegment) {
-            ((WrapSegment)seg).removeWrappableFromContacts (widx);
+      // XXX check this
+      if (mySegments != null) {
+         for (Segment seg : mySegments) {
+            if (seg instanceof WrapSegment) {
+               ((WrapSegment)seg).removeWrappableFromContacts (widx);
+            }
          }
       }     
    }
@@ -1035,10 +1062,12 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    protected void removeAllWrappablesFromContacts() {
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
-         if (seg instanceof WrapSegment) {
-            ((WrapSegment)seg).removeAllWrappablesFromContacts();
+      // XXX check this
+      if (mySegments != null) {
+         for (Segment seg : mySegments) {
+            if (seg instanceof WrapSegment) {
+               ((WrapSegment)seg).removeAllWrappablesFromContacts();
+            }
          }
       }     
    }
@@ -1051,7 +1080,7 @@ public class MultiPointSpring extends PointSpringBase
       removeAllWrappablesFromContacts();
       invalidateSegments();
       maybeInvalidateMaxWrapDisplacement();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      //notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
    /* === segment query and control === */
@@ -1063,8 +1092,18 @@ public class MultiPointSpring extends PointSpringBase
     * @param segIdx index of the segment
     * @return the {@code idx}-th segment
     */
+   public SegmentSpec getSegmentSpec(int segIdx) {
+      return mySegmentSpecs.get(segIdx);
+   }
+
+   /**
+    * Returns the curren segment indexed by {@code segIdx} in this spring.
+    * 
+    * @param segIdx index of the segment
+    * @return the {@code idx}-th segment
+    */
    public Segment getSegment(int segIdx) {
-      return mySegments.get(segIdx);
+      return getSegments().get(segIdx);
    }
 
    /**
@@ -1094,13 +1133,12 @@ public class MultiPointSpring extends PointSpringBase
     * @param initialPnts initialization points
     */
    public void setSegmentWrappable (int numk, Point3d[] initialPnts) {
-      if (mySegments.size() == 0) {
+      if (mySegmentSpecs.size() == 0) {
          throw new ImproperStateException (
             "setSegmentWrappable() called before first call to addPoint()");
       }
-      doSetSegmentWrappable (mySegments.size()-1, numk, initialPnts);
+      doSetSegmentWrappable (mySegmentSpecs.size()-1, numk, initialPnts);
       invalidateSegments();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
    /**
@@ -1115,13 +1153,12 @@ public class MultiPointSpring extends PointSpringBase
     */
    public void setSegmentWrappable (
       int segIdx, int numk, Point3d[] initialPnts) {
-      if (segIdx >= mySegments.size()) {
+      if (segIdx >= mySegmentSpecs.size()) {
          throw new IllegalArgumentException (
             "Segment "+segIdx+" does not exist");
       }
       doSetSegmentWrappable (segIdx, numk, initialPnts);
       invalidateSegments();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
    /**
@@ -1132,75 +1169,55 @@ public class MultiPointSpring extends PointSpringBase
     * @param numk number of knots to be used in each segment
     */
    public void setAllSegmentsWrappable (int numk) {
-      if (mySegments.size() == 0) {
+      if (mySegmentSpecs.size() == 0) {
          throw new ImproperStateException (
             "setAllSegmentsWrappable() called before first call to addPoint()");
       }
-      for (int i=0; i<mySegments.size(); i++) {
-         WrapSegment wseg = doSetSegmentWrappable (i, numk, null);
-         if (i < mySegments.size()-1) {
-            wseg.initializeStrand (null);
-         }
+      for (int i=0; i<mySegmentSpecs.size(); i++) {
+         mySegmentSpecs.get(i).setWrappable (true);
       }
       invalidateSegments();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }   
          
-   protected WrapSegment doSetSegmentWrappable (
+   protected void doSetSegmentWrappable (
       int segIdx, int numk, Point3d[] initialPnts) {
 
-      WrapSegment wseg = new WrapSegment(numk, initialPnts);
-      Segment oldSeg = mySegments.get (segIdx);
-      wseg.myPntB = oldSeg.myPntB;
-      // note: if segIdx corresponds to the last current segment, pntA will
-      // still be null and will not be set until the next call to addPoint().
-      wseg.myPntA = oldSeg.myPntA;
-      mySegments.set (segIdx, wseg);
-      return wseg;
+      SegmentSpec spec = mySegmentSpecs.get (segIdx);
+      spec.setWrappable (true);
+      spec.myNumKnots = numk;
+//      if (numk > 0) {
+//         spec.setNumKnotsExplicit (true);
+//      }
+      spec.myInitialPnts = initialPnts;
    }
 
-   public boolean clearAllWrapableSegments () {
-      if (mySegments.size() == 0) {
-         throw new ImproperStateException (
-            "clearAllWrappableSegments() called before first call to addPoint()");
-      }
-      boolean cleared = false;
-      for (int i=0; i<mySegments.size(); i++) {
-         if (doClearWrappableSegment (i)) {
-            cleared = true;
-         }
-      }
-      if (cleared) {
-         invalidateSegments();
-         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-      }
-      return cleared;
-   }   
+//   public boolean clearAllWrapableSegments () {
+//      if (mySegmentSpecs.size() == 0) {
+//         throw new ImproperStateException (
+//            "clearAllWrappableSegments() called before first call to addPoint()");
+//      }
+//      boolean cleared = false;
+//      for (SegmentSpec spec : mySegmentSpecs) {
+//         if (spec.isWrappable()) {
+//            spec.setWrappable (false);
+//            cleared = true;
+//         }
+//      }
+//      if (cleared) {
+//         invalidateSegments();
+//      }
+//      return cleared;
+//   }   
          
    public boolean clearWrappableSegment (int segIdx) {
-      if (segIdx >= mySegments.size()) {
+      if (segIdx >= mySegmentSpecs.size()) {
          throw new IllegalArgumentException (
             "Segment "+segIdx+" does not exist");
       }
-      if (doClearWrappableSegment (segIdx)) {
-         invalidateSegments();
+      SegmentSpec spec = mySegmentSpecs.get(segIdx);
+      if (spec.isWrappable()) {
+         spec.setWrappable (false);
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-
-   protected boolean doClearWrappableSegment (int segIdx) {
-      Segment oldSeg = mySegments.get (segIdx);
-      if (oldSeg instanceof WrapSegment) {
-         Segment newSeg = new Segment();
-         newSeg.myPntB = oldSeg.myPntB;
-         // note: if segIdx corresponds to the last current segment, pntA will
-         // still be null and will not be set until the next call to addPoint().
-         newSeg.myPntA = oldSeg.myPntA;
-         mySegments.set (segIdx, newSeg);
          return true;
       }
       else {
@@ -1218,25 +1235,41 @@ public class MultiPointSpring extends PointSpringBase
     * @param initialPnts initialization points
     */
    public void initializeSegment (int segIdx, Point3d[] initialPnts) {
-      if (segIdx >= mySegments.size()) {
+      // XXX do something with this
+      if (segIdx >= mySegmentSpecs.size()) {
          throw new IllegalArgumentException (
             "Segment "+segIdx+" does not exist");
       }
-      Segment seg = mySegments.get (segIdx);
-      if (seg instanceof WrapSegment) {
-         ((WrapSegment)seg).initializeStrand (initialPnts);
+      SegmentSpec spec = mySegmentSpecs.get (segIdx);
+      if (spec.isWrappable()) {
+         if (mySegments == null) {
+            spec.myInitialPnts = initialPnts;
+         }
+         else {
+            // XXX finish
+         }
       }
    }
 
    /**
-    * Returns the number of segments in this spring.
+    * Returns the number of specified segment in this spring.
     * 
-    * @return number of spring segments
+    * @return number of specified segments
     */
-   public int numSegments() {
+   public int numSegmentSpecs() {
       // we ignore the last segment because that is used to simply store the
       // terminating point
-      return mySegments.size()-1;
+      return Math.max (0, mySegmentSpecs.size()-1);
+   }
+
+   /**
+    * Returns the current number of segments in this spring. For internal
+    * use only.
+    * 
+    * @return current number of segments
+    */
+   public int numSegments() {
+      return getSegments().size();
    }
 
    /**
@@ -1245,11 +1278,24 @@ public class MultiPointSpring extends PointSpringBase
     * @return {@code true} if the segment is passive
     */
    public boolean isSegmentPassive (int segIdx) {
-      if (segIdx >= numSegments()) {
+      if (segIdx >= mySegmentSpecs.size()) {
          throw new IndexOutOfBoundsException (
             "Segment "+segIdx+" is not defined");
       }
-      return mySegments.get(segIdx).myPassiveP;
+      return mySegmentSpecs.get(segIdx).isPassive();
+   }
+
+   /**
+    * Sets the current spring segment (the one following the most recently
+    * added point) to be <i>passive</i>, meaning that its length is not
+    * included as part of the spring's <i>active</i> length.
+    */
+   public void setSegmentPassive () {
+      if (mySegmentSpecs.size() == 0) {
+         throw new ImproperStateException (
+            "setSegmentPassive() called before first call to addPoint()");
+      }
+      setSegmentPassive (mySegmentSpecs.size()-1, true);
    }
 
    /**
@@ -1261,13 +1307,14 @@ public class MultiPointSpring extends PointSpringBase
     * @param passive if {@code true}, makes the segment passive
     */
    public void setSegmentPassive (int segIdx, boolean passive) {
-      if (segIdx >= numSegments()) {
+      if (segIdx >= mySegmentSpecs.size()) {
          throw new IndexOutOfBoundsException (
             "Segment "+segIdx+" is not defined");
       }
-      Segment seg = mySegments.get(segIdx);
-      if (seg.myPassiveP != passive) {
-         seg.myPassiveP = passive;
+      SegmentSpec spec = mySegmentSpecs.get(segIdx);
+      if (spec.isPassive() != passive) {
+         spec.setPassive (passive);
+         // XXX notify spec change
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       }
    }
@@ -1279,8 +1326,8 @@ public class MultiPointSpring extends PointSpringBase
     */
    public int numPassiveSegments() {
       int num = 0;
-      for (int i=0; i<numSegments(); i++) {
-         if (mySegments.get(i).myPassiveP) {
+      for (int i=0; i<numSegmentSpecs(); i++) {
+         if (mySegmentSpecs.get(i).isPassive()) {
             num++;
          }
       }
@@ -1288,19 +1335,21 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Queries the number of knots in the segment indexed by {@code segIdx}.
+    * Queries the number of knots in the current segment indexed by 
+    * {@code segIdx}. Returns 0 if the segment is not wrappable.
     * 
-    * @param segIdx index of the segment
+    * @param segIdx index of the current segment
     * @return number of knots in the segment
     */
    public int numKnots (int segIdx) {
-      if (segIdx >= numSegments()) {
+      ArrayList<Segment> segs = getSegments();
+      if (segIdx >= segs.size()) {
          throw new IndexOutOfBoundsException (
             "Segment "+segIdx+" is not defined");
       }
-      Segment seg = mySegments.get(segIdx);
+      Segment seg = segs.get(segIdx);
       if (seg instanceof WrapSegment) {
-         return ((WrapSegment)seg).myNumKnots;
+         return ((WrapSegment)seg).numKnots();
       }
       else {
          return 0;
@@ -1308,18 +1357,20 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Returns the {@code k}-th knot in the segment indexed by {@code segIdx}.
+    * Returns the {@code k}-th knot in the current segment indexed by {@code
+    * segIdx}.
     * 
-    * @param segIdx index of the segment
+    * @param segIdx index of the current segment
     * @param k index of the knot within the segment
     * @return {@code k}-th knot in segment
     */
    public WrapKnot getKnot (int segIdx, int k) {
-      if (segIdx >= numSegments()) {
+      ArrayList<Segment> segs = getSegments();
+      if (segIdx >= segs.size()) {
          throw new IndexOutOfBoundsException (
             "Segment "+segIdx+" is not defined");
       }
-      Segment seg = mySegments.get(segIdx);
+      Segment seg = segs.get(segIdx);
       if (seg instanceof WrapSegment) {
          WrapSegment wseg = (WrapSegment)seg;
          if (k >= 0 && k < wseg.myNumKnots) {
@@ -1331,21 +1382,151 @@ public class MultiPointSpring extends PointSpringBase
    
    /**
     * Invalidates all segments in this spring. Called when the spring
-    * structure is changed. Any wrappable segments 
+    * structure is changed. Returns {@code true} if the segments were
+    * actually invalidated.
     */
-   protected void invalidateSegments() {
-      mySegsValidP = false;
+   protected boolean invalidateSegments() {
       myRenderObjValidP = false;
       myHasWrappableSegs = -1; // set to "don't know"
+      myHasConditionalPoints = -1; // set to "don't know"
+      myHasMovingMarkers = -1; // set to "don't know"
       myStateVersion++;
+      if (mySegments != null) {
+         mySegments = null;
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   private WrapSegment createWrapSegment (int numk) {
+      WrapSegment wseg = new WrapSegment(numk, null);
+      wseg.debugLevel = myDebugLevel;
+      wseg.setWrappable (true); // set the WRAPPABLE flag
+      return wseg;
+   }      
+
+   private ArrayList<Point3d> getInitialSegmentPoints (int i0, int i1) {
+      ArrayList<Point3d> pnts = new ArrayList<>();
+      
+      pnts.add (mySegmentSpecs.get(i0).myPntB.getPosition());
+      for (int i=i0; i<i1; i++) {
+         SegmentSpec spec = mySegmentSpecs.get(i);
+         if (i > i0) {
+            pnts.add (spec.myPntB.getPosition());
+         }
+         if (spec.myInitialPnts != null) {
+            for (Point3d p : spec.myInitialPnts) {
+               pnts.add (p);
+            }
+         }
+      }
+      pnts.add (mySegmentSpecs.get(i1).myPntB.getPosition());
+      return pnts;
    }
 
    /**
-    * Calls {@code updateSegs(false)} if segments are invalid.
+    * Create initial segments from the specs.
     */
-   protected void updateSegsIfNecessary() {
-      if (!mySegsValidP) {
-         updateSegs(/*updateWrapSegs=*/false);
+   private void initializeSegments() {
+      // make sure the that the number of solve block corresponds to 
+      // the number of points
+      int nump = numPoints();
+      if (nump != myNumBlks) {
+         mySolveBlkNums = new int[nump*nump];
+         myNumBlks = nump;
+      }
+      boolean debug = false; // getName().equals ("LAT3");
+      if (debug) {
+         System.out.println ("LAT3 init");
+      }
+      ArrayList<Segment> segs = new ArrayList<>(numSegmentSpecs());
+      if (nump > 1) {
+         if (mySegmentSpecs.get(0).isPointConditional()) {
+            throw new IllegalStateException (
+               "First point in MultiPointSpring must not be conditional");
+         }
+         if (mySegmentSpecs.get(numSegmentSpecs()).isPointConditional()) {
+            throw new IllegalStateException (
+               "Last point in MultiPointSpring must not be conditional");
+         }
+         int i0 = 0;
+         for (int i=1; i<mySegmentSpecs.size(); i++) {
+            SegmentSpec spec = mySegmentSpecs.get(i);
+            if (spec.isPointActive()) {
+               int numk = findNumSegmentKnots (i0, i);
+               Segment seg;
+               if (numk > 0) {
+                  seg = createWrapSegment (numk);
+               }
+               else {
+                  seg = new Segment();
+               }
+               seg.setPassive (isSegmentPassive (i0, i));
+               seg.mySpecIdx = i0;
+               seg.setPntB (mySegmentSpecs.get(i0).myPntB);
+               seg.myPntA = mySegmentSpecs.get(i).myPntB;
+               if (numk > 0) {
+                  WrapSegment wseg = (WrapSegment)seg;
+                  ArrayList<Point3d> ipnts =
+                     getInitialSegmentPoints (i0, i);
+                  wseg.initializeStrand (ipnts);
+                  if (debug) {
+                     System.out.println (" init for i0=" + i0);
+                     for (Point3d p : ipnts) {
+                        System.out.println ("  " + p);
+                     }
+                  }
+               }
+               segs.add (seg);
+               i0 = i;
+            }
+         }
+      }
+      mySegments = segs;
+      //mySegsValidP = true;
+   }
+
+   private void setSegmentPointsFromSpecs (ArrayList<Segment> seglist) {
+      for (int k=0; k<seglist.size(); k++) {
+         Segment seg = seglist.get(k);
+         int sidx = seg.mySpecIdx;
+         if (sidx >= mySegmentSpecs.size()) {
+            throw new InternalErrorException (
+               "specIdx "+sidx+" is out of bounds");
+         }
+         seg.setPntB (mySegmentSpecs.get(sidx).myPntB);
+         int nidx;
+         if (k+1 < seglist.size()) {
+            nidx = seglist.get(k+1).mySpecIdx;
+            if (sidx >= mySegmentSpecs.size()) {
+               throw new InternalErrorException (
+                  "next specIdx "+nidx+" is out of bounds");
+            }
+         }
+         else {
+            nidx = mySegmentSpecs.size()-1;
+         }
+         seg.myPntA = mySegmentSpecs.get(nidx).myPntB;
+      }
+   }
+
+   /**
+    * Returns the segment list, initializing it on demand.
+    */
+   ArrayList<Segment> getSegments() {
+      if (mySegments == null) {
+         initializeSegments();
+      }
+      return mySegments;
+   }
+   
+   private void allocateSolveBlocks() {
+      int nump = numPoints();
+      if (nump != myNumBlks) {
+         mySolveBlkNums = new int[nump*nump];
+         myNumBlks = nump;
       }
    }
    
@@ -1356,13 +1537,309 @@ public class MultiPointSpring extends PointSpringBase
     * any wrap paths will also be updated.
     */
    protected void updateSegs (boolean updateWrapSegs) {
+      // XXX finish
       int nump = numPoints();
       myNumBlks = nump;
       mySolveBlkNums = new int[myNumBlks*myNumBlks];
-      mySegsValidP = true;
-      updateSegs (mySegments, updateWrapSegs);
+//      updateSegs (getSegments(), updateWrapSegs);
    }
    
+   /**
+    * Determines whether a spanning segment is wrappable and if it is, returns
+    * the number of knots that should be used for that segment. Otherwise, the
+    * method returns 0. The spanning segment spans the segment specs starting
+    * at index {@code sidx} and ending at index {@code eidx} (exclusive). It is
+    * wrappable if any sub-segment is wrappable.
+    */
+   private int findNumSegmentKnots (int sidx, int eidx) {
+      int numk = 0;
+      boolean wrappable = false;
+      for (int i=sidx; i<eidx; i++) {
+         SegmentSpec spec = mySegmentSpecs.get(i);
+         wrappable |= spec.isWrappable();
+         if (spec.isWrappable() && spec.getNumKnots() > 0) {
+            numk += spec.getNumKnots();
+         }
+         else {
+            double dist = spec.myPntB.distance (mySegmentSpecs.get(i+1).myPntB);
+            numk += Math.max (1, dist*myWrapKnotDensity);
+         }
+      }
+      return wrappable ? numk : 0;
+   }
+
+   /**
+    * Determines whether a spanning segment is passive. The spanning segment
+    * spans the segment specs starting at index {@code sidx} and ending at
+    * index {@code eidx} (exclusive). It is passive only if all sub-segments
+    * are passive.
+    */
+   private boolean isSegmentPassive (int sidx, int eidx) {
+      for (int i=sidx; i<eidx; i++) {
+         SegmentSpec spec = mySegmentSpecs.get(i);
+         if (!spec.isPassive()) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   private void initializeStrandFromPrevious (
+      WrapSegment newseg, int nidx0, int nidx1, int j0, int j1) {
+
+      ArrayList<Point3d> pnts = new ArrayList<>();
+
+      for (int j=j0; j<=j1; j++) {
+         Point3d p0 = null;
+         Point3d p1 = null;
+         Segment seg = null;
+         if (j < mySegments.size()) {
+            seg = mySegments.get(j);
+         }
+         if (seg != null && seg.mySpecIdx == nidx1) {
+            seg = null;
+         }
+         if (j == j0) {
+            // start point is the first point of newseg
+            p0 = mySegmentSpecs.get(nidx0).myPntB.getPosition();
+         }
+         else if (seg != null) {
+            p0 = seg.myPntB.getPosition();
+         }
+         if (j == j1) {
+            // stop point is the last point of newseg
+            p1 = mySegmentSpecs.get(nidx1).myPntB.getPosition();
+         }
+         if (seg != null) {
+            pnts.add (p0);
+            if (seg instanceof WrapSegment) {
+               WrapSegment wseg = (WrapSegment)seg;
+               int numk = wseg.numKnots();
+               // need to fill in with knot points on wseg.
+               int k0 = 0;
+               int k1 = numk-1;
+               if (j == j0 && seg.mySpecIdx < nidx0) {
+                  k0 = Math.max (0, wseg.findNearestKnot (p0));
+               }
+               if (j == j1 && seg.mySpecIdx < nidx1) {
+                  k1 = Math.min (numk-1, wseg.findNearestKnot (p1));
+               }
+               if (k0 >= k1) {
+                  for (int k=k0; k<=k1; k++) {
+                     pnts.add (wseg.getKnotPos (k));
+                  }
+               }
+               else {
+                  // unlikely to happen; ignore
+               }
+            }
+         }
+         if (p1 != null) {
+            pnts.add (p1);            
+         }
+      }
+      newseg.initializeStrand (pnts);
+   }
+
+   private void initializeStrandFromPreviousInterp (
+      WrapSegment newseg, int nidx0, int nidx1, int j0, int j1) {
+
+      int pidx0 = mySegments.get(j0).mySpecIdx;
+      int pidx1 = mySegments.get(j1).mySpecIdx;
+
+      ArrayList<Point3d> pnts = new ArrayList<>();
+      if (j0 == j1) {
+         if (mySegments.get(j0) instanceof WrapSegment) {
+            WrapSegment wseg = (WrapSegment)mySegments.get(j0);
+            Point3d p0 = mySegmentSpecs.get(nidx0).myPntB.getPosition();
+            int k0 = wseg.findNearestKnot (p0); // will be -1 if pidx0 == nidx0
+            Point3d p1 = mySegmentSpecs.get(nidx1).myPntB.getPosition();
+            int k1 = wseg.findNearestKnot (p1);
+            pnts.add (p0);
+            if (k1 - k0 > 1) {
+               Point3d ps = new Point3d();
+               Vector3d disp0 = new Vector3d();
+               disp0.sub (p0, wseg.getKnotPos (k0));
+               Vector3d disp1 = new Vector3d();
+               disp1.sub (p1, wseg.getKnotPos (k1));
+               for (int k=k0+1; k<k1; k++) {
+                  double s = (k-k0)/(double)(k1-k0);
+                  ps.combine (1-s, disp0, s, disp1);
+                  ps.add (wseg.getKnotPos (k));
+               }
+            }
+            pnts.add (p1);            
+         }
+      }
+      else {
+         if (pidx0 < nidx0) {
+            // previous extends back before current segment
+            if (mySegments.get(j0) instanceof WrapSegment) {
+               WrapSegment wseg = (WrapSegment)mySegments.get(j0);
+               int numk = wseg.numKnots();
+               Point3d p0 = mySegmentSpecs.get(nidx0).myPntB.getPosition();
+               int k0 = wseg.findNearestKnot (p0);
+               pnts.add (p0);
+               if (k0 < numk-1) {
+                  Vector3d disp = new Vector3d();
+                  disp.sub (p0, wseg.getKnotPos (k0));
+                  for (int k=k0+1; k<numk; k++) {
+                     Point3d px = new Point3d();
+                     px.scaledAdd (
+                        (numk-k)/(double)(numk-k0), disp, wseg.getKnotPos(k));
+                     pnts.add (px);
+                  }
+               }
+            }
+         }
+         for (int j=j0; j<=j1; j++) {
+            Segment seg = mySegments.get(j);
+            pnts.add (seg.myPntB.getPosition());
+            if (seg instanceof WrapSegment) {
+               WrapSegment wseg = (WrapSegment)seg;
+               for (int i=0; i<wseg.numKnots(); i++) {
+                  pnts.add (wseg.getKnot(i).myPos);
+               }
+            }
+         }
+         if (pidx1 < nidx1) {
+            // previous extends back before current segment
+            if (mySegments.get(j1) instanceof WrapSegment) {
+               WrapSegment wseg = (WrapSegment)mySegments.get(j1);
+               int numk = wseg.numKnots();
+               Point3d p1 = mySegmentSpecs.get(nidx1).myPntB.getPosition();
+               int k1 = wseg.findNearestKnot (p1);
+               if (k1 > 0) {
+                  Vector3d disp = new Vector3d();
+                  disp.sub (p1, wseg.getKnotPos (k1));
+                  for (int k=0; k<k1; k++) {
+                     Point3d px = new Point3d();
+                     px.scaledAdd (
+                        (k+1)/(double)(k1+1), disp, wseg.getKnotPos(k));
+                     pnts.add (px);
+                  }
+               }
+               pnts.add (p1);
+            }
+         }
+      }
+      newseg.initializeStrand (pnts);
+   }
+
+   /**
+    * Update the segments to reflect a change in the activity of
+    * conditional points.
+    */
+   private void updateForConditionals (DynamicIntArray newActivePnts) {
+      ArrayList<Segment> segs = new ArrayList<>();
+
+      // create a list of the old active points
+      DynamicIntArray oldActivePnts = new DynamicIntArray();
+      for (int j=0; j<mySegments.size(); j++) {
+         oldActivePnts.add (mySegments.get(j).mySpecIdx);
+      }
+      oldActivePnts.add (numSegmentSpecs());
+
+      // System.out.println ("conditionals: " + getName());
+      // System.out.println ("  " + new VectorNi(oldActivePnts.getArray()));
+      // System.out.println ("  " + new VectorNi(newActivePnts.getArray()));
+
+      // Iterate through all the new segments, based on the point (spec)
+      // indices in newActivePoints. Each new segment is defined by the spec
+      // indices (nidx0, nidx1). As we iterative, keep track of the nearest
+      // trailing old segment. j0 is the nearest old segment whose spec index
+      // is <= nid0, while j1 is the nearest old segment whose spec index is <=
+      // nidx1. Note that j0 and j1 may be the same.
+      int nidx0 = 0;
+
+      int j0 = 0; // index into old segments
+      for (int i=1; i<newActivePnts.size(); i++) {
+         int nidx1 = newActivePnts.get(i); // new segment index
+         int j1 = j0;
+         while (j1+1 < oldActivePnts.size() && oldActivePnts.get(j1+1) <= nidx1) {
+            j1++;
+         }
+         Segment seg;
+         int numk = 0;
+         if (oldActivePnts.get(j1) == nidx1) {
+            // new and old points at segment end coincide
+            int pidx0 = oldActivePnts.get(j0);
+            if (pidx0 == nidx0 && j1-j0 == 1) {
+               // segment unchanged; use the old one
+               seg = mySegments.get(pidx0);
+            }
+            else {
+               // new segment consolidates several segments
+               numk = findNumSegmentKnots (nidx0, nidx1);
+               if (numk > 0) {
+                  // new segment is wrappable
+                  seg = createWrapSegment (numk);
+               }
+               else {
+                  // new segment is not wrappable
+                  seg = new Segment();
+               }
+               seg.mySpecIdx = nidx0;
+               seg.setPntB (mySegmentSpecs.get(nidx0).myPntB);
+               seg.myPntA = mySegmentSpecs.get(nidx1).myPntB;
+               seg.setPassive (isSegmentPassive (nidx0, nidx1));
+            }
+         }
+         else {
+            // new segment includes a fraction of a previous segment
+            numk = findNumSegmentKnots (nidx0, nidx1);
+            if (numk > 0) {
+               // new segment is wrappable
+               seg = createWrapSegment (numk);
+            }
+            else {
+               // new segment is not wrappable
+               seg = new Segment();
+            }
+            seg.mySpecIdx = nidx0;
+            seg.setPntB (mySegmentSpecs.get(nidx0).myPntB);
+            seg.myPntA = mySegmentSpecs.get(nidx1).myPntB;
+            seg.setPassive (isSegmentPassive (nidx0, nidx1));
+         } 
+         if (numk > 0) {
+            // initialize wrap segment from old segmnet
+            initializeStrandFromPrevious (
+               (WrapSegment)seg, nidx0, nidx1, j0, j1);
+         }
+         segs.add (seg);
+         nidx0 = nidx1;
+      }
+      mySegments = segs;
+   }
+
+   /**
+    * Checks to see if conditional point activity has changed, and
+    * if it has, updates the segment structure and returns {@code true}.
+    */
+   boolean maybeUpdateForConditionals() {
+      ArrayList<Segment> segs = getSegments();
+
+      // get currently active segments
+      DynamicIntArray newActivePnts = new DynamicIntArray();
+      for (int k=0; k<mySegmentSpecs.size(); k++) { 
+         if (mySegmentSpecs.get(k).isPointActive()) {
+            newActivePnts.add (k);
+         }
+      }
+      // see if there is a change
+      if (newActivePnts.size() != segs.size()+1) {
+         updateForConditionals(newActivePnts);
+         return true;
+      }
+      for (int i=0; i<segs.size(); i++) {
+         if (newActivePnts.get(i) != segs.get(i).mySpecIdx) {
+            updateForConditionals(newActivePnts);
+            return true;
+         }
+      }
+      return false;
+   }
+
    /**
     * Updates a list of segments so that their end points correspond to the
     * points of this spring.  If {@code updateWrapSegs} is {@code true}, then
@@ -1370,24 +1847,25 @@ public class MultiPointSpring extends PointSpringBase
     */
    protected void updateSegs (
       ArrayList<Segment> segments, boolean updateWrapSegs) {
-      int nump = numPoints();
-      // make sure segment pointers are correct
-      for (int i=0; i<nump-1; i++) {
-         Segment seg = segments.get(i);
-         Segment segNext = segments.get(i+1);
-         if (seg.myPntA != segNext.myPntB) {
-            // then this segment was changed
-            seg.myPntA = segNext.myPntB;
-            if (updateWrapSegs && seg instanceof WrapSegment) {
-               WrapSegment wrapSeg = (WrapSegment)seg;
-               wrapSeg.initializeStrand (/*initialPnts=*/null);
-               wrapSeg.updateWrapStrand(myMaxWrapIterations);
-               // A/B points are computed here:
-               wrapSeg.updateSubSegments();
-            }
-         }
-      }
-      segments.get(nump-1).myPntA = null;     
+      // XXX finish
+      // int nump = numPoints();
+      // // make sure segment pointers are correct
+      // for (int i=0; i<nump-1; i++) {
+      //    Segment seg = segments.get(i);
+      //    Segment segNext = segments.get(i+1);
+      //    if (seg.myPntA != segNext.myPntB) {
+      //       // then this segment was changed
+      //       seg.myPntA = segNext.myPntB;
+      //       if (updateWrapSegs && seg instanceof WrapSegment) {
+      //          WrapSegment wrapSeg = (WrapSegment)seg;
+      //          wrapSeg.initializeStrand (/*initialPnts=*/null);
+      //          wrapSeg.updateWrapStrand(myMaxWrapIterations);
+      //          // A/B points are computed here:
+      //          wrapSeg.updateSubSegments();
+      //       }
+      //    }
+      // }
+      // segments.get(nump-1).myPntA = null;     
    }
 
    /**
@@ -1400,8 +1878,7 @@ public class MultiPointSpring extends PointSpringBase
       if (myProfilingP) {
          myProfileTimer.restart();
       }
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      for (Segment seg : getSegments()) {
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
             wrapSeg.updateWrapStrand(maxIter);
@@ -1416,7 +1893,7 @@ public class MultiPointSpring extends PointSpringBase
             System.out.println (
                "MultiPointSpring: updateWrapSegments time=" + 
                myProfileTimer.result(myProfileCnt));
-               myProfileTimer.reset();
+            myProfileTimer.reset();
          }
       }
    }      
@@ -1424,14 +1901,40 @@ public class MultiPointSpring extends PointSpringBase
    public boolean hasWrappableSegments() {
       if (myHasWrappableSegs == -1) {
          myHasWrappableSegs = 0;
-         for (Segment seg : mySegments) {
-            if (seg instanceof WrapSegment) {
+         for (int k=0; k<numSegmentSpecs(); k++) {
+            if (mySegmentSpecs.get(k).isWrappable()) {
                myHasWrappableSegs = 1;
                break;
             }
          }
       }
       return myHasWrappableSegs == 1;
+   }
+
+   public boolean hasConditionalPoints() {
+      if (myHasConditionalPoints == -1) {
+         myHasConditionalPoints = 0;
+         for (int k=0; k<numSegmentSpecs(); k++) {
+            if (mySegmentSpecs.get(k).isPointConditional()) {
+               myHasConditionalPoints = 1;
+               break;
+            }
+         }
+      }
+      return myHasConditionalPoints == 1;
+   }
+
+   public boolean hasMovingMarkers() {
+      if (myHasMovingMarkers == -1) {
+         myHasMovingMarkers = 0;
+         for (int k=0; k<numSegmentSpecs(); k++) {
+            if (mySegmentSpecs.get(k).isPointMoving()) {
+               myHasMovingMarkers = 1;
+               break;
+            }
+         }
+      }
+      return myHasMovingMarkers == 1;
    }
 
    /* === rendering methods === */
@@ -1507,8 +2010,9 @@ public class MultiPointSpring extends PointSpringBase
       robj.createLineGroup();
       robj.createLineGroup();
       robj.createLineGroup();
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
          if (seg instanceof WrapSegment) {
             robj.lineGroup (WRAPPED_SEGS);
             addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
@@ -1516,21 +2020,22 @@ public class MultiPointSpring extends PointSpringBase
             for (int k=0; k<wrapSeg.myNumKnots; k++) {
                WrapKnot knot = wrapSeg.myKnots[k];
                addRenderPos (robj, knot.updateRenderPos(), knot);
+               
             }
          }
          else {
             robj.lineGroup (STRAIGHT_SEGS);
             addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
          }
-         if (i == numSegments()-1) {
+         if (i == segs.size()-1) {
             addRenderPos (robj, seg.myPntA.getRenderCoords(), null);
          }
       }
       if (myDrawDisplacements > 0) {
          robj.lineGroup (DISPLACEMENTS);
          int vidxBase = 0;
-         for (int i=0; i<numSegments(); i++) {
-            Segment seg = mySegments.get(i);
+         for (int i=0; i<segs.size(); i++) {
+            Segment seg = segs.get(i);
             if (seg instanceof WrapSegment) {
                WrapSegment wrapSeg = (WrapSegment)seg;
                Vector3d disp = new Vector3d();
@@ -1556,8 +2061,9 @@ public class MultiPointSpring extends PointSpringBase
     */
    protected void updateRenderObject (RenderObject robj) {
       // updating the render object involves updating the knot render positions
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
             for (int k=0; k<wrapSeg.myNumKnots; k++) {
@@ -1593,8 +2099,9 @@ public class MultiPointSpring extends PointSpringBase
          // for each wrappable segment, update the current list of AB points to
          // be rendered:
          updateABRenderProps();
-         for (int i=0; i<numSegments(); i++) {
-            Segment seg = mySegments.get(i);
+         ArrayList<Segment> segs = getSegments();
+         for (int i=0; i<segs.size(); i++) {
+            Segment seg = segs.get(i);
             if (seg instanceof WrapSegment) {
                WrapSegment wrapSeg = (WrapSegment)seg;
                ArrayList<float[]> renderPoints = null;
@@ -1626,8 +2133,9 @@ public class MultiPointSpring extends PointSpringBase
 
       if (myDrawABPointsP) {
          // draw AB points
-         for (int i=0; i<numSegments(); i++) {
-            Segment seg = mySegments.get(i);
+         ArrayList<Segment> segs = getSegments();
+         for (int i=0; i<segs.size(); i++) {
+            Segment seg = segs.get(i);
             if (seg instanceof WrapSegment) {
                WrapSegment wrapSeg = (WrapSegment)seg;
                ArrayList<float[]> renderPoints = wrapSeg.myRenderABPoints;
@@ -1702,6 +2210,88 @@ public class MultiPointSpring extends PointSpringBase
    /* === scanning and writing methods === */
 
    /**
+    * Helper method to write the segment specs of this spring.
+    */
+   protected void writeSegmentSpecs (
+      PrintWriter pw, ArrayList<SegmentSpec> specs, 
+      NumberFormat fmt, CompositeComponent ancestor) 
+      throws IOException {
+      
+      pw.println ("segmentSpecs=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      for (int i=0; i<specs.size(); i++) {
+         SegmentSpec spec = specs.get(i);
+         pw.print ("[ ");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         spec.writeItems (pw, fmt, ancestor);
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");      
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");      
+   }
+
+   /**
+    * Helper method to scan the segment specs of this spring.
+    */
+   protected void scanSegmentSpecs (
+      ReaderTokenizer rtok, Deque<ScanToken> tokens) 
+      throws IOException {
+      tokens.offer (new StringToken ("segmentSpecs", rtok.lineno()));
+      rtok.scanToken ('[');
+      tokens.offer (ScanToken.BEGIN);
+      mySegmentSpecs = new ArrayList<>();
+      while (rtok.nextToken() != ']') {
+         SegmentSpec spec = new SegmentSpec();
+         if (rtok.ttype != '[') {
+            throw new IOException ("Expecting token '[', got "+rtok);
+         }
+         tokens.offer (ScanToken.BEGIN);
+         while (rtok.nextToken() != ']') {
+            rtok.pushBack();
+            if (!spec.scanItem (rtok, tokens)) {
+               throw new IOException ("Unexpected token: "+rtok);
+            }
+         }
+         tokens.offer (ScanToken.END); // terminator token
+         mySegmentSpecs.add (spec);
+      }
+      tokens.offer (ScanToken.END);
+   }
+
+   /**
+    * Helper method to postscan the segment specs of this spring.
+    */
+   protected void postscanSegmentSpecs (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      ScanToken tok = tokens.poll();
+      if (tok != ScanToken.BEGIN) {
+         throw new IOException (
+            "BEGIN token expected for segment list, got " + tok);
+      }
+      for (int i=0; i<mySegmentSpecs.size(); i++) {
+         SegmentSpec spec = mySegmentSpecs.get(i);
+         tok = tokens.poll();
+         if (tok != ScanToken.BEGIN) {
+            throw new IOException (
+               "BEGIN token expected for segment "+i+", got " + tok);
+         }
+         while (tokens.peek() != ScanToken.END) {
+            if (!spec.postscanItem (tokens, ancestor)) {
+               throw new IOException (
+                  "Unexpected token for segment "+i+": " + tokens.poll());
+            }
+         }
+         tokens.poll(); // eat END token      
+      }
+      tok = tokens.poll();
+      if (tok != ScanToken.END) {
+         throw new IOException (
+            "END token expected for segment list, got " + tok);
+      }
+   }
+
+   /**
     * Helper method to write the segments of this spring.
     */
    protected void writeSegments (
@@ -1733,9 +2323,8 @@ public class MultiPointSpring extends PointSpringBase
     */
    protected void scanSegments (ReaderTokenizer rtok, Deque<ScanToken> tokens) 
       throws IOException {
-      tokens.offer (new StringToken ("segments", rtok.lineno()));
       rtok.scanToken ('[');
-      tokens.offer (ScanToken.BEGIN);
+      mySegments = new ArrayList<>();
       while (rtok.nextToken() != ']') {
          Segment seg;
          if (rtok.tokenIsWord ("Segment")) {
@@ -1743,68 +2332,20 @@ public class MultiPointSpring extends PointSpringBase
          }
          else if (rtok.tokenIsWord ("WrapSegment")) {
             seg = new WrapSegment();            
+            seg.setWrappable (true);
          }
          else {
             throw new IOException (
                "Expecting word token, Segment or WrapSegment, " + rtok); 
          }
          rtok.scanToken ('[');
-         tokens.offer (ScanToken.BEGIN);
          while (rtok.nextToken() != ']') {
             rtok.pushBack();
             if (!seg.scanItem (rtok, tokens)) {
                throw new IOException ("Unexpected token: "+rtok);
             }
          }
-         tokens.offer (ScanToken.END); // terminator token
          mySegments.add (seg);
-      }
-      tokens.offer (ScanToken.END);
-   }
-
-   /**
-    * Helper method to postscan the segments of this spring.
-    */
-   protected void postscanSegments (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-      ScanToken tok = tokens.poll();
-      if (tok != ScanToken.BEGIN) {
-         throw new IOException (
-            "BEGIN token expected for segment list, got " + tok);
-      }
-      for (int i=0; i<mySegments.size(); i++) {
-         Segment seg = mySegments.get(i);
-         tok = tokens.poll();
-         if (tok != ScanToken.BEGIN) {
-            throw new IOException (
-               "BEGIN token expected for segment "+i+", got " + tok);
-         }
-         while (tokens.peek() != ScanToken.END) {
-            if (!seg.postscanItem (tokens, ancestor)) {
-               throw new IOException (
-                  "Unexpected token for segment "+i+": " + tokens.poll());
-            }
-         }
-         if (seg instanceof WrapSegment) {
-            WrapSegment wrapSeg = (WrapSegment)seg;
-            if (wrapSeg.myPntA == null) {
-               // then this is just a terminating wrap segment
-               wrapSeg.myLength = 0;
-            }
-            else {
-               if (wrapSeg.inContact()) {
-                  wrapSeg.updateContacts (/*getNormalDeriv=*/true);
-               }
-               wrapSeg.updateSubSegments();
-               wrapSeg.myLength = wrapSeg.computeLength();
-            }
-         }
-         tokens.poll(); // eat END token      
-      }
-      tok = tokens.poll();
-      if (tok != ScanToken.END) {
-         throw new IOException (
-            "END token expected for segment list, got " + tok);
       }
    }
 
@@ -1815,7 +2356,11 @@ public class MultiPointSpring extends PointSpringBase
       throws IOException {
 
       rtok.nextToken();
-      if (scanAttributeName (rtok, "segments")) {
+      if (scanAttributeName (rtok, "segmentSpecs")) {
+         scanSegmentSpecs (rtok, tokens);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "segments")) {
          scanSegments (rtok, tokens);
          return true;
       }
@@ -1843,18 +2388,10 @@ public class MultiPointSpring extends PointSpringBase
    /**
     * {@inheritDoc}
     */
-   public void postscan (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-      super.postscan (tokens, ancestor);
-   }
-   
-   /**
-    * {@inheritDoc}
-    */
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-      if (postscanAttributeName (tokens, "segments")) {
-         postscanSegments (tokens, ancestor);
+      if (postscanAttributeName (tokens, "segmentSpecs")) {
+         postscanSegmentSpecs (tokens, ancestor);
          return true;
       }
       else if (postscanAttributeName (tokens, "wrappables")) {
@@ -1866,11 +2403,33 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
+    * {@inheritDoc}
+    */
+   public void postscan (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      super.postscan (tokens, ancestor);
+      if (mySegments != null) {
+         setSegmentPointsFromSpecs (mySegments);
+         for (Segment seg : mySegments) {
+            if (seg instanceof WrapSegment) {
+               WrapSegment wrapSeg = (WrapSegment)seg;
+               if (wrapSeg.inContact()) {
+                  wrapSeg.updateContacts (/*getNormalDeriv=*/true);
+               }
+               wrapSeg.updateSubSegments();
+               wrapSeg.myLength = wrapSeg.computeLength();
+            }
+         }
+      }
+      allocateSolveBlocks();
+   }
+   
+   /**
     * Returns {@code true} if all segments in this spring are writable.
     */
    private boolean allSegmentsWritable() {
-      for (int i=1; i<mySegments.size(); i++) {
-         if (!mySegments.get(i).myPntB.isWritable()) {
+      for (int i=1; i<mySegmentSpecs.size(); i++) {
+         if (!mySegmentSpecs.get(i).myPntB.isWritable()) {
             return false;
          }
       }
@@ -1878,14 +2437,31 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Returns a list of clones of all writable segments.
+    * Creates a cloned list of all writable segment specs.
+    */
+   private ArrayList<SegmentSpec> cloneWritableSegmentSpecs() {
+      ArrayList<SegmentSpec> specs = new ArrayList<>();
+
+      for (int i=0; i<mySegmentSpecs.size(); i++) {
+         if (i==0 || mySegmentSpecs.get(i).myPntB.isWritable()) {
+            specs.add (mySegmentSpecs.get(i).clone());
+         }
+      }
+      // XXX finish
+      // updateSegs (segments, /*updateWrapSegs=*/true);
+      return specs;
+   }
+      
+   /**
+    * Creates a cloned list of all writable segments.
     */
    private ArrayList<Segment> cloneWritableSegments() {
       ArrayList<Segment> segments = new ArrayList<>();
 
-      for (int i=0; i<mySegments.size(); i++) {
-         if (i==0 || mySegments.get(i).myPntB.isWritable()) {
-            segments.add (mySegments.get(i).clone());
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         if (i==0 || segs.get(i).myPntB.isWritable()) {
+            segments.add (segs.get(i).clone());
          }
       }
       updateSegs (segments, /*updateWrapSegs=*/true);
@@ -1902,9 +2478,11 @@ public class MultiPointSpring extends PointSpringBase
       pw.print ("wrappables=");
       ScanWriteUtils.writeBracketedReferences (pw, myWrappables, ancestor);
       if (allSegmentsWritable()) {
-         writeSegments (pw, mySegments, fmt, ancestor);
+         writeSegmentSpecs (pw, mySegmentSpecs, fmt, ancestor);
+         writeSegments (pw, getSegments(), fmt, ancestor);
       }
       else {
+         writeSegmentSpecs (pw, cloneWritableSegmentSpecs(), fmt, ancestor);
          writeSegments (pw, cloneWritableSegments(), fmt, ancestor);
       }
       if (myMaxWrapDisplacementExplicitP) {
@@ -1927,8 +2505,10 @@ public class MultiPointSpring extends PointSpringBase
          RenderableUtils.cloneRenderProps (this);
          myRenderProps.scaleDistance (s);
       }
-      for (int i=0; i<numSegments(); i++) {
-         mySegments.get(i).scaleDistance (s);
+      if (mySegments != null) {
+         for (int i=0; i<mySegments.size(); i++) {
+            mySegments.get(i).scaleDistance (s);
+         }
       }
    }
 
@@ -1955,9 +2535,14 @@ public class MultiPointSpring extends PointSpringBase
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       // just transform the segments. Points and wrappables will be
-      // transformed elsewhere      
-      for (int i=0; i<numSegments(); i++) {
-         mySegments.get(i).transformGeometry (gtr);
+      // transformed elsewhere 
+      for (SegmentSpec spec : mySegmentSpecs) {
+         spec.transformGeometry (gtr);
+      }
+      if (mySegments != null) {
+         for (Segment seg : mySegments) {
+            seg.transformGeometry (gtr);
+         }
       }
    }
    
@@ -2051,12 +2636,13 @@ public class MultiPointSpring extends PointSpringBase
          }
          obj = undoInfo.removeFirst();
          if (obj != NULL_OBJ) {
-            ((ListRemove<Segment>)obj).undo();
-            updateSegs(/*updateWrapSegs=*/false);
+            ((ListRemove<SegmentSpec>)obj).undo();
+            allocateSolveBlocks();
          }
       }
       else {
          // remove soft references which aren't in the hierarchy any more:
+         DynamicIntArray removedWrappableIndices = new DynamicIntArray();
          ListRemove<Wrappable> wrappableRemove = null;
          for (int i=0; i<myWrappables.size(); i++) {
             if (!ComponentUtils.areConnected (
@@ -2064,6 +2650,7 @@ public class MultiPointSpring extends PointSpringBase
                if (wrappableRemove == null) {
                   wrappableRemove = new ListRemove<Wrappable>(myWrappables);
                }
+               removedWrappableIndices.add (i);
                wrappableRemove.requestRemove(i);
             }
          }
@@ -2075,23 +2662,30 @@ public class MultiPointSpring extends PointSpringBase
          else {
             undoInfo.addLast (NULL_OBJ);
          }
-         ListRemove<Segment> segmentRemove = null;
-         for (int i=1; i<mySegments.size(); i++) {
-            if (!ComponentUtils.areConnected (this, mySegments.get(i).myPntB)) {
-               if (segmentRemove == null) {
-                  segmentRemove = new ListRemove<Segment>(mySegments);
+         ListRemove<SegmentSpec> specRemove = null;
+         for (int i=1; i<mySegmentSpecs.size()-1; i++) {
+            if (!ComponentUtils.areConnected (
+                   this, mySegmentSpecs.get(i).myPntB)) {
+               if (specRemove == null) {
+                  specRemove = new ListRemove<SegmentSpec>(mySegmentSpecs);
                }
-               segmentRemove.requestRemove(i);
+               specRemove.requestRemove(i);
             }
          }
-         if (segmentRemove != null) {
-            segmentRemove.remove();
-            undoInfo.addLast (segmentRemove);
+         if (specRemove != null) {
+            specRemove.remove();
+            undoInfo.addLast (specRemove);
             myRenderObjValidP = false;
-            updateSegs(/*updateWrapSegs=*/true);
+            mySegments = null;
+            initializeSegments();
+            allocateSolveBlocks();
             // remove render object
          }
          else {
+            for (int i=0; i<removedWrappableIndices.size(); i++) {
+               removeWrappableFromContacts (removedWrappableIndices.get(i));
+            }
+            updateWrapSegments(myMaxWrapIterations);
             undoInfo.addLast (NULL_OBJ);
          }         
       }
@@ -2114,9 +2708,9 @@ public class MultiPointSpring extends PointSpringBase
     */
    private double computeLength (boolean activeOnly) {
       double len = 0;
-      updateSegsIfNecessary();
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
          
          if (seg.hasSubSegments()) {
             for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
@@ -2126,7 +2720,7 @@ public class MultiPointSpring extends PointSpringBase
          else {
             seg.updateU();
          }
-         if (activeOnly && seg.myPassiveP) {
+         if (activeOnly && seg.isPassive()) {
             continue;
          }
          len += seg.myLength;
@@ -2159,10 +2753,10 @@ public class MultiPointSpring extends PointSpringBase
     */
    private double computeLengthDot (boolean activeOnly) {
       double lenDot = 0;
-      updateSegsIfNecessary();
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
-         if (activeOnly && seg.myPassiveP) {
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
+         if (activeOnly && seg.isPassive()) {
             continue;
          }
          // TODO: need to make sure uvec is up to for the segments
@@ -2208,8 +2802,9 @@ public class MultiPointSpring extends PointSpringBase
     */
    private void updateDfdx (double dFdl, double dFdldot) {
       // assume that PointData v vectors and segment P and u is up to date
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
          if (seg.hasSubSegments()) {
             for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
                ss.updateDfdx (dFdl, dFdldot);
@@ -2226,8 +2821,9 @@ public class MultiPointSpring extends PointSpringBase
     * wrappable segments, in this spring.
     */
    private void updateP () {
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
          if (seg.hasSubSegments()) {
             for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
                ss.updateP();
@@ -2263,11 +2859,32 @@ public class MultiPointSpring extends PointSpringBase
       updateWrapSegments(myMaxWrapIterations);
    }
 
+   public String pathWrapString() {
+      ArrayList<Segment> segs = getSegments();
+      String str = "";
+      for (Segment seg : segs) {
+         if (seg.isWrappable()) {
+            str += "W";
+         }
+         else {
+            str += "r";
+         }
+      }
+      return str;
+   }
+
    /** 
     * Hook method to allow sub-classes to update their structure by adding
     * or removing points.
     */
    public void updateStructure() {
+      if (hasConditionalPoints()) {
+         if (maybeUpdateForConditionals()) {
+            // update the warp segments, with additional iterations since
+            // the knots may be somewhat perturbed.
+            updateWrapSegments(5*myMaxWrapIterations);
+         }
+      }
    }
 
    // HasSlaveObjects interface. This interface is implemented to enable a call
@@ -2277,7 +2894,17 @@ public class MultiPointSpring extends PointSpringBase
     * {@inheritDoc}
     */
    public void updateSlavePos() {
-      updateStructure();
+      // For now, update marker positions here, so that they are updated
+      // whenever state is restored. This is current inefficient since
+      // updateSlavePos can be called several times at the start of a
+      // simulation step, but that's a separate issue.
+      if (hasMovingMarkers()) {
+         for (Segment seg : getSegments()) {
+            if (seg.isPointMoving()) {
+               ((MovingMarker)seg.myPntB).updateMarkerLocation();
+            }
+         }
+      }
    }
 
    /**
@@ -2285,33 +2912,90 @@ public class MultiPointSpring extends PointSpringBase
     */
    public void updateSlaveVel() {
    }
+   
+   public boolean hasState() {
+      return hasWrappableSegments() || hasConditionalPoints() || super.hasState();
+   }
 
    /**
     * {@inheritDoc}
-    *
-    * The HasNumericState components for MultiPointSpring consist of all the
-    * wrappable segments.
     */
-   @Override
-   public void getNumericStateComponents (List<HasNumericState> list) {
-      if (super.hasState()) {
-         list.add (this); // might have state if material does
+   public void getState (DataBuffer data) {
+      super.getState (data);
+      ArrayList<Segment> segs = getSegments();
+      data.zput (segs.size());
+      for (Segment seg : segs) {
+         data.zput (seg.mySpecIdx);
       }
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      for (Segment seg : segs) {
          if (seg instanceof WrapSegment) {
-            list.add ((WrapSegment)seg);
+            ((WrapSegment)seg).getState (data);
          }
       }
+   }         
+
+   private ArrayList<Segment> rebuildSegments (int[] specIdxs) {
+      int nsegs = specIdxs.length;
+      ArrayList<Segment> segs = new ArrayList<>(nsegs);
+      for (int i=0; i<nsegs; i++) {
+         int sidx = specIdxs[i];
+         int eidx = (i+1 < nsegs ? specIdxs[i+1] : numSegmentSpecs());
+         boolean passive = isSegmentPassive (sidx, eidx);
+         boolean wrappable = (findNumSegmentKnots (sidx, eidx) > 0);
+         Segment seg;
+         if (wrappable) {
+            seg = createWrapSegment (0);
+         }
+         else {
+            seg = new Segment();
+         }
+         seg.setPassive (passive);
+         seg.mySpecIdx = sidx;
+         seg.setPntB (mySegmentSpecs.get(sidx).myPntB);
+         seg.myPntA = mySegmentSpecs.get(eidx).myPntB;
+         segs.add (seg);
+      }
+      mySegments = segs;
+      return segs;
    }
-   
-   public boolean hasState() {
-      for (int i=0; i<numSegments(); i++) {
-         if (mySegments.get(i) instanceof WrapSegment) {
-            return true;
+
+   private ArrayList<Segment> rebuildSegmentsIfNecessary (int[] specIdxs) {
+      ArrayList<Segment> segs = getSegments();
+      int nsegs = specIdxs.length;
+      if (segs.size() != nsegs) {
+         return rebuildSegments (specIdxs);
+      }
+      for (int i=0; i<segs.size(); i++) {
+         if (segs.get(i).mySpecIdx != specIdxs[i]) {
+            return rebuildSegments (specIdxs);
          }
       }
-      return super.hasState();
+      return segs;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setState (DataBuffer data) {
+      super.setState (data);
+      int nsegs = data.zget();
+      int[] specIdxs = new int[nsegs];
+      for (int i=0; i<nsegs; i++) {
+         specIdxs[i] = data.zget();
+      }
+      ArrayList<Segment> segs = rebuildSegmentsIfNecessary (specIdxs);
+      for (Segment seg : segs) {
+         if (seg instanceof WrapSegment) {
+            ((WrapSegment)seg).setState (data);
+         }
+      }
+      if (hasConditionalPoints()) {
+         // XXX hack here: check activity of conditional points to
+         // update their visibility
+         for (SegmentSpec spec : mySegmentSpecs) {
+            spec.isPointActive(); // visibility may be updated in this method
+         }
+      }
    }
 
    // public void notifyStateVersionChanged() {
@@ -2319,18 +3003,19 @@ public class MultiPointSpring extends PointSpringBase
    // }
 
    /**
-    * Sets the knot positions for a wrappable segment indexed by
-    * {@code segIdx}. Used for debugging and testing.
+    * Sets the knot positions for a wrappable current segment
+    * indxed by {@code segIdx}. Used for debugging and testing.
     * 
-    * @param segIdx index of the segment
+    * @param segIdx index of the current segment
     * @param plist array of knot positions
     */
    public void setKnotPositions (int segIdx, Point3d[] plist) {
-      if (segIdx >= mySegments.size()) {
+      ArrayList<Segment> segs = getSegments();
+      if (segIdx >= segs.size()) {
          throw new IllegalArgumentException (
             "Segment "+segIdx+" does not exist");
       }
-      Segment seg = mySegments.get (segIdx);
+      Segment seg = segs.get (segIdx);
       if (seg instanceof WrapSegment) {
          ((WrapSegment)seg).setKnotPositions (plist);
       }
@@ -2367,8 +3052,9 @@ public class MultiPointSpring extends PointSpringBase
     */
    public int getAllABPoints (ArrayList<Point> pnts) {
       pnts.clear();
-      for (int i = 0; i < numSegments (); i++) {
-         Segment seg = mySegments.get (i);
+      ArrayList<Segment> segs = getSegments();
+      for (int i = 0; i < segs.size(); i++) {
+         Segment seg = segs.get (i);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
             SubSegment ss = wrapSeg.firstSubSegment ();
@@ -2397,13 +3083,13 @@ public class MultiPointSpring extends PointSpringBase
     * time (seconds)
     */
    public void applyForces (double t) {
-      updateSegsIfNecessary();
       double len = getActiveLength();
       double dldt = getActiveLengthDot();
 
       double F = computeF (len, dldt);
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
+      ArrayList<Segment> segs = getSegments();
+      for (int i=0; i<segs.size(); i++) {
+         Segment seg = segs.get(i);
          if (seg.hasSubSegments()) {
             for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
                ss.applyForce (F);
@@ -2419,9 +3105,11 @@ public class MultiPointSpring extends PointSpringBase
     * {@inheritDoc}
     */
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
-      updateSegsIfNecessary();
       // TODO: FINISH - currently adds solve blocks only for the points
       int nump = numPoints();
+      if (nump != myNumBlks) {
+         allocateSolveBlocks();
+      }
       if (nump > 1) {
          for (int i=0; i<nump; i++) {
             int bi = getPoint(i).getSolveIndex();
@@ -2467,8 +3155,8 @@ public class MultiPointSpring extends PointSpringBase
       // TODO: FINISH. currently computes Jacobian only for the points
 
       Matrix3d X = new Matrix3d();
-      int numSegs = numSegments();
-      updateSegsIfNecessary();
+      ArrayList<Segment> segs = getSegments();
+      int numSegs = segs.size();
       if (numSegs > 0) {
          double l = getActiveLength();
          double ldot = getActiveLengthDot();
@@ -2479,7 +3167,7 @@ public class MultiPointSpring extends PointSpringBase
          updateDfdx (dFdl, dFdldot);
 
          for (int i=0; i<numSegs; i++) {
-            Segment seg_i = mySegments.get(i);
+            Segment seg_i = segs.get(i);
             Vector3d uvecB_i, uvecA_i;
             if (seg_i.hasSubSegments()) {
                Segment sub;
@@ -2508,7 +3196,7 @@ public class MultiPointSpring extends PointSpringBase
                uvecA_i = seg_i.myUvec;
             }
             for (int j=0; j<numSegs; j++) {
-               Segment seg_j = mySegments.get(j);
+               Segment seg_j = segs.get(j);
                Vector3d dFdxB_j, dFdxA_j; 
                if (seg_j.hasSubSegments()) {
                   dFdxB_j = seg_j.firstSubSegment().mydFdxB;
@@ -2535,14 +3223,14 @@ public class MultiPointSpring extends PointSpringBase
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
       // TODO: FINISH. currently computes Jacobian only for the points
       Matrix3d X = new Matrix3d();
-      int numSegs = numSegments();
-      updateSegsIfNecessary();
+      ArrayList<Segment> segs = getSegments();
+      int numSegs = segs.size();
       if (numSegs > 0) {
          double l = getActiveLength();
          double ldot = getActiveLengthDot();
          double dFdldot = computeDFdldot (l, ldot);
          for (int i=0; i<numSegs; i++) {
-            Segment seg_i = mySegments.get(i);
+            Segment seg_i = segs.get(i);
             Vector3d uvecB_i, uvecA_i;
             if (seg_i.hasSubSegments()) {
                uvecB_i = seg_i.firstSubSegment().myUvec;
@@ -2553,9 +3241,9 @@ public class MultiPointSpring extends PointSpringBase
                uvecA_i = seg_i.myUvec;
             }
             for (int j=0; j<numSegs; j++) {
-               Segment seg_j = mySegments.get(j);
+               Segment seg_j = segs.get(j);
                Vector3d uvecB_j, uvecA_j;
-               if (!seg_j.myPassiveP) {
+               if (!seg_j.isPassive()) {
                   if (seg_j.hasSubSegments()) {
                      uvecB_j = seg_j.firstSubSegment().myUvec;
                      uvecA_j = seg_j.lastSubSegment().myUvec;
@@ -2816,6 +3504,204 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
+    * Base class for both SegmentSpec and Segment. Contains flag information.
+    */
+   static class SegmentBase {
+
+      int myFlags;
+
+      // flags describing characteristic of specific segments
+      static final int SEG_POINT_CONDITIONAL = 0x0002;
+      static final int SEG_POINT_MOVING = 0x0004;
+      static final int SEG_WRAPPABLE = 0x0008;
+      static final int SEG_PASSIVE = 0x0010;
+   
+      void setFlag (int flag, boolean enable) {
+         if (enable) {
+            myFlags |= flag;
+         }
+         else {
+            myFlags &= ~flag;
+         }
+      }
+
+      boolean isPointConditional() {
+         return (myFlags & SEG_POINT_CONDITIONAL) != 0;
+      }
+
+      boolean isPointMoving() {
+         return (myFlags & SEG_POINT_MOVING) != 0;
+      }
+
+      boolean isPassive() {
+         return (myFlags & SEG_PASSIVE) != 0;
+      }
+
+      void setPassive (boolean enable) {
+         setFlag (SEG_PASSIVE, enable);
+      }
+
+      boolean isWrappable() {
+         return (myFlags & SEG_WRAPPABLE) != 0;
+      }
+
+      void setWrappable (boolean enable) {
+         setFlag (SEG_WRAPPABLE, enable);
+      }
+   }
+
+   /**
+    * Stores specification information for the segments of this spring.
+    */
+   static class SegmentSpec extends SegmentBase implements Clonable {
+      Point myPntB; 
+      ConditionalPoint myCondB;
+
+      int myNumKnots;
+
+      // Optional list of points that are used to help provide an initial
+      // "path" for the segment
+      Point3d[] myInitialPnts;
+
+//      boolean isNumKnotsExplicit() {
+//         return (myFlags & NUM_KNOTS_EXPLICIT) != 0;
+//      }
+//
+//      void setNumKnotsExplicit (boolean enable) {
+//         setFlag (NUM_KNOTS_EXPLICIT, enable);
+//      }
+
+      void setPntB (Point p) {
+         if (p instanceof ConditionalPoint) {
+            myCondB = (ConditionalPoint)p;
+            setFlag (SEG_POINT_CONDITIONAL, true);
+         }
+         else {
+            myCondB = null;
+            setFlag (SEG_POINT_CONDITIONAL, false);
+         }
+         setFlag (SEG_POINT_MOVING, p instanceof MovingMarker);
+         myPntB = p;
+      }         
+
+      boolean isPointActive() {
+         if (myCondB != null) {
+            return myCondB.isPointActive();
+         }
+         else {
+            return true;
+         }
+      }
+
+      int getNumKnots() {
+         return myNumKnots;
+      }
+
+      void setNumKnots (int numk) {
+         myNumKnots = numk;
+      }
+
+      /**
+       * Scan attributes of this segment spec from a ReaderTokenizer. Used when
+       * reading the spring from a file.
+       */
+      boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+         throws IOException {
+
+         rtok.nextToken();
+         if (ScanWriteUtils.scanAttributeName (rtok, "flags")) {
+            myFlags = rtok.scanInteger();
+            return true;
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "numKnots")) {
+            myNumKnots = rtok.scanInteger();
+            return true;
+         }
+         else if (ScanWriteUtils.scanAndStoreReference (rtok, "pntB", tokens)) {
+            return true;
+         }
+         else if (ScanWriteUtils.scanAndStoreReference (rtok, "pntA", tokens)) {
+            return true;
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "initialPoints")) {
+            Vector3d[] list = ScanWriteUtils.scanVector3dList (rtok);
+            myInitialPnts = new Point3d[list.length];
+            for (int i=0; i<list.length; i++) {
+               myInitialPnts[i] = new Point3d (list[i]);
+            }
+            return true;
+         }
+         rtok.pushBack();
+         return false;
+      }
+
+      /**
+       * Postscans end-point information for this segment spec. Used to when
+       * reading the spring from a file.
+       */
+      boolean postscanItem (
+         Deque<ScanToken> tokens, CompositeComponent ancestor)
+         throws IOException {
+         if (ScanWriteUtils.postscanAttributeName (tokens, "pntB")) {
+            setPntB (ScanWriteUtils.postscanReference (
+                        tokens, Point.class, ancestor));
+            return true;
+         }
+         return false;         
+      }
+
+      /**
+       * Writes attributes of this segment spec to a PrintWriter. Used when
+       * writing the spring to a file.
+       */
+      void writeItems (
+         PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+         throws IOException {
+         
+         pw.println (
+            "pntB=" + ComponentUtils.getWritePathName (ancestor, myPntB));
+         pw.println ("flags=0x" + Integer.toHexString(myFlags));
+         if (myNumKnots > 0) {
+            pw.println ("numKnots=" + myNumKnots);
+         }
+         if (myInitialPnts != null) {
+            pw.print ("initialPoints=");
+            ScanWriteUtils.writeVector3dList (pw, fmt, myInitialPnts);
+         }
+      }
+
+      /**
+       * Transforms the geometry of this segment spec
+       */      
+      void transformGeometry (GeometryTransformer gtr) {
+         if (myInitialPnts != null) {
+            for (Point3d pnt : myInitialPnts) {
+               gtr.transformPnt (pnt);
+            }
+         }
+      }
+
+      public SegmentSpec clone() {
+         SegmentSpec spec;
+         try {
+            spec = (SegmentSpec)super.clone();
+         }
+         catch (Exception e) {
+            throw new InternalErrorException (
+               "cannot clone MultiPointSpring.Segment");
+         }
+         if (myInitialPnts != null) {
+            spec.myInitialPnts = new Point3d[myInitialPnts.length];
+            for (int k=0; k<myInitialPnts.length; k++) {
+               spec.myInitialPnts[k] = new Point3d(myInitialPnts[k]);
+            }
+         }
+         return spec;
+      }
+   }
+
+
+   /**
     * Stores information for the segments of this spring. There is a segment
     * between each of this spring's point. Wrappable segments are described in
     * further detail by the subclass {@link WrapSegment}.
@@ -2823,28 +3709,35 @@ public class MultiPointSpring extends PointSpringBase
     * <p>This class is also used as the baseclass for the {@link SubSegment},
     * which described the subsegments within a wrappable segment.
     */
-   public class Segment implements Clonable {
+   public class Segment extends SegmentBase implements Clonable {
 
       // myPntB and myPntA are the first and last segment end points
       // as we traverse the segments in point order
       public Point myPntB; 
       public Point myPntA; 
+      int mySpecIdx;       // index into the segment specs
+
       Vector3d mydFdxB;    // derivative of tension force F wrt point B
       Vector3d mydFdxA;    // derivative of tension force F wrt point A
-      
-      // passiveP, if true, means segment does not contribute to overall
-      // "length" of its MultiPointSpring
-      boolean myPassiveP = false; 
 
       Vector3d myUvec;     // unit vector in direction of segment
       Matrix3d myP;        // (I - uvec uvec^T)
       double myLength;     // length of the segment
-
+      
       protected Segment() {
          myP = new Matrix3d();
          myUvec = new Vector3d();
          mydFdxB = new Vector3d();
          mydFdxA = new Vector3d();
+      }
+
+      void setPntB (Point p) {
+         setFlag (SEG_POINT_MOVING, p instanceof MovingMarker);
+         myPntB = p;
+      }         
+
+      public Point getPntB() {
+         return myPntB;
       }
 
       /**
@@ -2904,7 +3797,7 @@ public class MultiPointSpring extends PointSpringBase
        * in end-points A and B. Assumes that uvec and P are both up to date.
        */
       void updateDfdx (double dFdl, double dFdldot) {
-         if (!myPassiveP) {
+         if (!isPassive()) {
             mydFdxA.scale (dFdl, myUvec);
             if (!myIgnoreCoriolisInJacobian) {
                Vector3d y = new Vector3d();
@@ -2962,38 +3855,16 @@ public class MultiPointSpring extends PointSpringBase
          throws IOException {
 
          rtok.nextToken();
-         if (ScanWriteUtils.scanAttributeName (rtok, "passive")) {
-            myPassiveP = rtok.scanBoolean();
+         if (ScanWriteUtils.scanAttributeName (rtok, "specIdx")) {
+            mySpecIdx = rtok.scanInteger();
             return true;
          }
-         else if (ScanWriteUtils.scanAndStoreReference (rtok, "pntB", tokens)) {
-            return true;
-         }
-         else if (ScanWriteUtils.scanAndStoreReference (rtok, "pntA", tokens)) {
+         else if (ScanWriteUtils.scanAttributeName (rtok, "flags")) {
+            myFlags = rtok.scanInteger();
             return true;
          }
          rtok.pushBack();
          return false;
-      }
-
-      /**
-       * Postscans end-point information for this segment. Used to when reading
-       * the spring from a file.
-       */
-      boolean postscanItem (
-         Deque<ScanToken> tokens, CompositeComponent ancestor)
-         throws IOException {
-         if (ScanWriteUtils.postscanAttributeName (tokens, "pntB")) {
-            myPntB = ScanWriteUtils.postscanReference (
-               tokens, Point.class, ancestor);
-            return true;
-         }
-         else if (ScanWriteUtils.postscanAttributeName (tokens, "pntA")) {
-            myPntA = ScanWriteUtils.postscanReference (
-               tokens, Point.class, ancestor);
-            return true;
-         }
-         return false;         
       }
 
       /**
@@ -3003,12 +3874,11 @@ public class MultiPointSpring extends PointSpringBase
       void writeItems (
          PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
          throws IOException {
-         
-         pw.println (
-            "pntB=" + ComponentUtils.getWritePathName (ancestor, myPntB));
-         pw.println (
-            "pntA=" + ComponentUtils.getWritePathName (ancestor, myPntA));
-         pw.println ("passive=" + myPassiveP);
+
+         pw.println ("specIdx=" + mySpecIdx);
+         if (myFlags != 0) {
+            pw.println ("flags=0x" + Integer.toHexString(myFlags));
+         }
       }
 
       /**
@@ -3184,10 +4054,6 @@ public class MultiPointSpring extends PointSpringBase
 
       ArrayList<float[]> myRenderABPoints;// rendering positions for A/B points
 
-      // Optional list of points that are used to help provide an initial
-      // "path" for the segment
-      Point3d[] myInitialPnts;             
-
       // if this segment is in contact with one or more wrappables,
       // it keeps list of subsegments describing the free line segments
       // between wrappables.
@@ -3302,14 +4168,18 @@ public class MultiPointSpring extends PointSpringBase
        */
       protected WrapSegment (int numk, Point3d[] initialPnts) {
          super();
+         setNumKnots (numk);
+         myRenderABPoints = null; // will be created in prerender()
+      }
+
+      private void setNumKnots (int numk) {
          myNumKnots = numk;
          myKnots = new WrapKnot[numk];
          for (int i=0; i<numk; i++) {
             myKnots[i] = new WrapKnot();
          }
-         myRenderABPoints = null; // will be created in prerender()
-         myInitialPnts = initialPnts;
       }
+                                   
 
       /**
        * Returns the index of knot in this wrappable segment, or -1 if
@@ -3397,7 +4267,7 @@ public class MultiPointSpring extends PointSpringBase
                sg = sg.myNext;
             }
          }
-     }
+      }
 
       /**
        * Append subsegment seg to the list of SubSegments
@@ -3429,19 +4299,35 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
          pnts.add (myPntA.getPosition());
-         // compute the length of this path
+         initializeStrand (pnts);
+      }
+
+      /**
+       * Initialize the knots in the strand so that they are distributed evenly
+       * along a specified list of points. This list is assumed to begin and
+       * end with the strand's start point (myPntB) and end point (myPntA).
+       */      
+      public void initializeStrand (ArrayList<Point3d> pnts) {
+         // compute the length of this path, saving the inter-point distances
+         // in 'lens'.
          double length = 0;
-         for (int i=1; i<pnts.size(); i++) {
-            length += pnts.get(i).distance (pnts.get(i-1));
+         double[] lens = new double[pnts.size()-1];
+         for (int i=0; i<pnts.size()-1; i++) {
+            lens[i] = pnts.get(i+1).distance (pnts.get(i));
+            length += lens[i];
          }
-         // distribute knots along the path according to distance
+         if (myNumKnots == 0) {
+            // compute the knots from the knot density
+            setNumKnots((int)Math.max (1, myWrapKnotDensity*length));            
+         }
          
+         // distribute knots along the path according to distance
          double seglen;  // length of each segment
          double dist0;   // path distance at the beginning of each segment
          int pidx;       // index of last point on each segment
          pidx = 1;
          dist0 = 0;
-         seglen = pnts.get(pidx).distance (pnts.get(pidx-1));
+         seglen = lens[pidx-1];
          for (int k=0; k<myNumKnots; k++) {
             // interpolate knot position along current segment
             double dist = (k+1)*length/(myNumKnots+1);
@@ -3449,7 +4335,7 @@ public class MultiPointSpring extends PointSpringBase
             while (s > 1 && pidx < pnts.size()-1) {
                pidx++;
                dist0 += seglen;
-               seglen = pnts.get(pidx).distance (pnts.get(pidx-1));
+               seglen = lens[pidx-1];
                s = (dist-dist0)/seglen;
             }
             if (s > 1) {               
@@ -3459,6 +4345,70 @@ public class MultiPointSpring extends PointSpringBase
                 1-s, pnts.get(pidx-1), s, pnts.get(pidx));
          }
          myLength = computeLength();
+      }
+
+      /**
+       * Returns the index of the nearest knot to a given point. An index value
+       * of {@code -1} indicates that the nearest point is the segment's start
+       * point ({@code myPntB}), while a value of {@code numKnots()} indicates
+       * that the nearest point is the segment's end point ({@code myPntA}).
+       */
+      int findNearestKnot (Point3d p) {
+         int neark = -1;
+         double nearDist = myPntB.distance(p);
+         for (int k=0; k<myNumKnots; k++) {
+            double d = myKnots[k].myPos.distance(p);
+            if (d < nearDist) {
+               nearDist = d;
+               neark = k;
+            }
+         }
+         double d = myPntA.distance(p);
+         if (d < nearDist) {
+            neark = myNumKnots;
+         }
+         return neark;
+      }
+
+      /**
+       * Returns the nearest point on the wrap strand to a given point.
+       */
+      Point3d nearestPoint (Point3d p) {
+         // This method works by checking the distance between p and each of
+         // the inter-knot segments.
+         double nearDist = Double.POSITIVE_INFINITY;
+         Point3d nearPnt = new Point3d();
+         Vector3d r = new Vector3d(); // displacement from knot segment start to p
+         Vector3d u = new Vector3d(); // direction along the knot segment
+         Point3d qs = new Point3d();  // computed nearest point on knot segment
+
+         Point3d q0, q1; // first and second points on each knot segment
+         q0 = myKnots[0].myPos;
+         for (int i=1; i<myNumKnots; i++) {
+            q1 = myKnots[i].myPos;
+            r.sub (p, q0);
+            u.sub (q1, q0);
+            u.normalize(); // ok if u == 0 since then s will be 0
+            Point3d qd;    // nearest point on this segment
+            double s = r.dot(u);
+            if (s <= 0) {
+               qd = q0;
+            }
+            else if (s < 1) {
+               qs.scaledAdd (s, u, q0);
+               qd = qs;
+            }
+            else {
+               qd = q1;
+            }
+            double d = qd.distance (p);
+            if (d < nearDist) {
+               nearDist = d;
+               nearPnt.set (qd);
+            }
+            q0 = q1;
+         }
+         return nearPnt;
       }
 
       /***
@@ -3656,7 +4606,6 @@ public class MultiPointSpring extends PointSpringBase
             dprev.set (dnext);
          }
       }        
-
 
       /**
        * Returns the force tolerance for this segment that corresponds to the
@@ -4898,9 +5847,10 @@ public class MultiPointSpring extends PointSpringBase
       }
 
       /**
-       * Returns the position for knot k. If k < 0, returns the position of the
-       * segment's initial point. If k >= numKnots, returns the position of the
-       * segment's final point.
+       * Returns the position for knot k. If k == -1, returns the position of
+       * the segment's initial point. If k === numKnots, returns the position
+       * of the segment's final point. If k is outside the range [-1,numKnots],
+       * returns null.
        */
       Point3d getKnotPos (int k) {
          if (k < 0) {
@@ -5036,6 +5986,9 @@ public class MultiPointSpring extends PointSpringBase
                computeSideNormal (sideNrm, pb, pa, pnext, nrml);
                wrappableA.surfaceTangent (
                   tanA, pb, pa, lam0, sideNrm);
+               if (tanA.equals (pa)) {
+                  System.out.println ("surfaceTanA " + getName());
+               }
             }
          }
          Point3d tanB = null;
@@ -5055,6 +6008,9 @@ public class MultiPointSpring extends PointSpringBase
                computeSideNormal (sideNrm, pa, pb, pnext, nrml);
                wrappableB.surfaceTangent (
                   tanB, pa, pb, lam0, sideNrm);
+               if (tanB.equals (pb)) {
+                  System.out.println ("surfaceTanB " + getName());
+               }
             }
          }
          
@@ -5164,7 +6120,8 @@ public class MultiPointSpring extends PointSpringBase
       */
       public void getState (DataBuffer data) {
          data.dput (myLastPntA);
-
+         data.dput (myLastPntB);
+         data.zput (myNumKnots);
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
             data.dput (knot.myPos);
@@ -5174,15 +6131,20 @@ public class MultiPointSpring extends PointSpringBase
             data.zput (knot.myWrappableIdx);
             data.zput (knot.myPrevWrappableIdx);
          }
-         data.dput (myLastPntB);
       }
 
       /**
        * {@inheritDoc}
        */
       public void setState (DataBuffer data) {
-         boolean contacting = false;
          data.dget (myLastPntA);
+         data.dget (myLastPntB);
+         int numk = data.zget();
+         if (numk != myNumKnots) {
+            // adjust number of knots
+            setNumKnots (numk);
+         }
+         boolean contacting = false;
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
             data.dget (knot.myPos);
@@ -5194,13 +6156,12 @@ public class MultiPointSpring extends PointSpringBase
             if (knot.myWrappableIdx != -1) {
                contacting = true;
             }
+
          }
          if (contacting) {
             // call updateContacts to update the myWrappable field for each knot
             updateContacts (/*getNormalDeriv=*/true); 
          }
-         data.dget (myLastPntB);
-
          updateSubSegments();
          myLength = computeLength();
       }
@@ -5250,14 +6211,6 @@ public class MultiPointSpring extends PointSpringBase
             myNumKnots = knots.size();
             return true;
          }
-         else if (ScanWriteUtils.scanAttributeName (rtok, "initialPoints")) {
-            Vector3d[] list = ScanWriteUtils.scanVector3dList (rtok);
-            myInitialPnts = new Point3d[list.length];
-            for (int i=0; i<list.length; i++) {
-               myInitialPnts[i] = new Point3d (list[i]);
-            }
-            return true;
-         }
          rtok.pushBack();
          return super.scanItem (rtok, tokens);
       }
@@ -5285,10 +6238,6 @@ public class MultiPointSpring extends PointSpringBase
             }
             IndentingPrintWriter.addIndentation (pw, -2);
             pw.println ("]");
-         }
-         if (myInitialPnts != null) {
-            pw.print ("initialPoints=");
-            ScanWriteUtils.writeVector3dList (pw, fmt, myInitialPnts);
          }
       }
 
@@ -5349,13 +6298,6 @@ public class MultiPointSpring extends PointSpringBase
 
          seg.myLastPntA = new Point3d(myLastPntA);
          seg.myLastPntB = new Point3d(myLastPntB);
-
-         if (myInitialPnts != null) {
-            seg.myInitialPnts = new Point3d[myInitialPnts.length];
-            for (int i=0; i<myInitialPnts.length; i++) {
-               seg.myInitialPnts[i] = new Point3d(myInitialPnts[i]);
-            }
-         }
 
          if (myKnots != null) {
             seg.myKnots = new WrapKnot[myKnots.length];

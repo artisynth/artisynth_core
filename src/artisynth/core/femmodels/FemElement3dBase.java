@@ -1619,6 +1619,16 @@ public abstract class FemElement3dBase extends FemElement
          }
       }
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean requiresAdvance() {
+      if (myNumMaterialsWithState == -1) {
+         updateStateObjects();
+      }
+      return myNumMaterialsWithState > 0;
+   }
 
    public void getState (DataBuffer data) {
       if (myNumMaterialsWithState == -1) {

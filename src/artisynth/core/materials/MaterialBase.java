@@ -226,9 +226,17 @@ public abstract class MaterialBase
          ((PropertyChangeListener)myPropHost).propertyChanged (e);
       }
    }
+   
+   protected void notifyHostOfStateChange (String name) {
+      if (myPropHost instanceof PropertyChangeListener) {
+         MaterialChangeEvent e = new MaterialChangeEvent (
+            this, name, /*stateChanged=*/true, 
+            /*tangentSymmetryChanged=*/false);
+         ((PropertyChangeListener)myPropHost).propertyChanged (e);
+      }
+   }
 
    protected void notifyHostOfPropertyChange (String name) {
-
       if (myPropHost instanceof PropertyChangeListener) {
          ((PropertyChangeListener)myPropHost).propertyChanged (
             new MaterialChangeEvent (this, name, false, false));

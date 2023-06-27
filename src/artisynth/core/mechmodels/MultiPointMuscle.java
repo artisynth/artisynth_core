@@ -450,14 +450,12 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
    }
 
    public double getForceNorm() {
-      updateSegsIfNecessary();
       double len = getActiveLength();
       double dldt = getActiveLengthDot();
       return computeF (len, dldt);
    }
    
    public double getPassiveForceNorm() {
-      updateSegsIfNecessary();
       double len = getActiveLength();
       double dldt = getActiveLengthDot();
       return computePassiveF (len, dldt);

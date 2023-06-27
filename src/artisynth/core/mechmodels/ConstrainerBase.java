@@ -98,9 +98,6 @@ public abstract class ConstrainerBase
    
    public abstract void getConstrainedComponents (List<DynamicComponent> list);
    
-   public void advanceState (double t0, double t1) {
-   }
-
    public void getState (DataBuffer data) {
       //data.zput (myBaseIdx);
    }

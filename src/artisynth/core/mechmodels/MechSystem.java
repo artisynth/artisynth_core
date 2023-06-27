@@ -12,6 +12,7 @@ import artisynth.core.modelbase.StepAdjustment;
 import maspack.matrix.*;
 import maspack.spatialmotion.FrictionInfo;
 import maspack.util.IntHolder;
+import maspack.util.DataBuffer;
 
 /**
  * Interface to a second order mechanical system that can be integrated by 
@@ -725,5 +726,19 @@ public interface MechSystem {
     * current time
     */
    public void updateForces (double t);
+
+   public void advanceAuxState (double t0, double t1);
+
+   public void getAuxAdvanceState (DataBuffer buf);
+
+   public void setAuxAdvanceState (DataBuffer buf);
+
+   public int getAuxVarStateSize();
+
+   public void getAuxVarState (VectorNd w);
+
+   public void setAuxVarState (VectorNd w);
+
+   public void getAuxVarDerivative (VectorNd dwdt);
    
 }

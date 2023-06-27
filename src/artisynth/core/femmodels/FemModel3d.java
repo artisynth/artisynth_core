@@ -5007,9 +5007,6 @@ PointAttachable, ConnectableBody {
       }
    }
 
-   public void advanceState (double t0, double t1) {
-   }
-
    public void getState(DataBuffer data) {
       if (usingAttachedRelativeFrame()) {
          myFrameConstraint.getState (data);

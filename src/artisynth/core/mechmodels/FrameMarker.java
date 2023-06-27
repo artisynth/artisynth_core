@@ -20,7 +20,7 @@ import artisynth.core.util.*;
 
 public class FrameMarker extends Marker {
    protected Point3d myRefPos;
-   private PointFrameAttachment myFrameAttachment = null;
+   protected PointFrameAttachment myFrameAttachment = null;
 
    public static PropertyList myProps =
       new PropertyList (FrameMarker.class, Marker.class);

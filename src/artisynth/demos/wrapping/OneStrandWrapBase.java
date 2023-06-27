@@ -248,9 +248,6 @@ public abstract class OneStrandWrapBase extends RootModel {
          myLastEnergy = energy;
       }
 
-      public void advanceState (double t0, double t1) {
-      }
-
       public void getState (DataBuffer data) {
          data.dput (myLastEnergy);
       }

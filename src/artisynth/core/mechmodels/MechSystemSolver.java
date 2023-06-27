@@ -48,6 +48,7 @@ import maspack.solvers.MurtyMechSolver;
 import maspack.numerics.BrentRootSolver;
 import maspack.spatialmotion.FrictionInfo;
 import maspack.util.FunctionTimer;
+import maspack.util.DataBuffer;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 
@@ -150,6 +151,10 @@ public class MechSystemSolver {
    private VectorNd myUtmp = new VectorNd (0); // active velocity temp
    private VectorNd myDudt = new VectorNd (0); // active velocity derivative
 
+   private VectorNd myW = new VectorNd (0); // aux variables
+   private VectorNd myDwdt = new VectorNd (0); // aux variable derivatives
+   private VectorNd myWtmp = new VectorNd (0); // temp aux variables
+
    // extra vectors for RungeKutta
    private VectorNd myQtmp = new VectorNd (0);
    private VectorNd myDqdtAvg = new VectorNd (0);
@@ -198,9 +203,7 @@ public class MechSystemSolver {
    int myParametricVelSize = 0;
    int myActivePosSize = 0;
    int myActiveVelSize = 0;
-   int myDoubleAuxSize = 0;
-   int myIntegerAuxSize = 0;
-   //int myNumComponents = 0;
+   int myAuxVarSize = 0;
    int myNumActive = 0;
    int myNumParametric = 0;
 
@@ -430,35 +433,51 @@ public class MechSystemSolver {
          myParametricPosSize = mySys.getParametricPosStateSize();
          myParametricVelSize = mySys.getParametricVelStateSize();
 
-         //myNumComponents = mySys.numDynamicComponents();
-         //myComponentSizes = new int[myNumComponents];
-         //VectorNi sizes = new VectorNi();
-         //mySys.getComponentSizes (myComponentSizes);
-         //mySys.getComponentSizes (sizes);
-         //myComponentSizes = Arrays.copyOf (sizes.getBuffer(), sizes.size());
+         myQ.setSize (myActivePosSize); // positions
+         myU.setSize (myActiveVelSize); // velociies
+         myUtmp.setSize (myActiveVelSize); // temp velocities
+         myF.setSize (myActiveVelSize); // forces
 
-         myQ.setSize (myActivePosSize);
-         myU.setSize (myActiveVelSize);
-         myUtmp.setSize (myActiveVelSize);
-
-         myF.setSize (myActiveVelSize);
          if (myUpdateForcesAtStepEnd) {
             myFcon.setSize (myActiveVelSize);
          }
 
-         myQpar.setSize (myParametricPosSize);
-         myUpar.setSize (myParametricVelSize);
-         myUpar0.setSize (myParametricVelSize);
-         myFpar.setSize (myParametricVelSize);
+         myQpar.setSize (myParametricPosSize); // parametric positions
+         myUpar.setSize (myParametricVelSize); // parametric velocities
+         myUpar0.setSize (myParametricVelSize); // initial parametric velocities
+         myFpar.setSize (myParametricVelSize); // parametric forces
+
+         // auxiliary variables
+         myAuxVarSize = mySys.getAuxVarStateSize();
+         myW.setSize (myAuxVarSize);
+         myWtmp.setSize (myAuxVarSize);
+         myDwdt.setSize (myAuxVarSize);
 
          myVel.setSize (myActiveVelSize);
-         //myPos.setSize (myActivePosSize);
 
          myStateSizeVersion = version;
 
          myNumActive = mySys.numActiveComponents();
          myNumParametric = mySys.numParametricComponents();
       }
+   }
+
+   private int updateExplicitSolveStateSizes() {
+      myDudt.setSize (myActiveVelSize);
+      myDqdt.setSize (myActivePosSize);
+      return myActiveVelSize;
+   }
+
+   private int updateImplicitSolveStateSizes() {
+      myB.setSize (myActiveVelSize);
+      myFparC.setSize (myParametricVelSize);
+      return myActiveVelSize;
+   }
+
+   private int updateStaticSolveStateSizes() {
+      myB.setSize (myActiveVelSize);
+      myFx.setSize (myParametricVelSize);
+      return myActiveVelSize;
    }
 
    private void ensureFrictionCapacity (
@@ -652,6 +671,40 @@ public class MechSystemSolver {
       setParametricTargets (1, t1-t0);
    }
 
+   private void singleStepAuxComponents (double t0, double t1) {
+      mySys.advanceAuxState (t0, t1);
+      if (myAuxVarSize > 0) {
+         mySys.getAuxVarState (myW);
+         mySys.getAuxVarDerivative (myDwdt);
+         myWtmp.scaledAdd (t1-t0, myDwdt, myW);
+         mySys.setAuxVarState (myWtmp);
+      }
+   }
+
+   private void subStepAuxComponents (
+      DataBuffer auxState0, double wgt, VectorNd dwdtAvg, 
+      double t0, double t1, double endWgt) {
+      auxState0.resetOffsets();
+      mySys.setAuxAdvanceState (auxState0);
+      mySys.advanceAuxState (t0, t1);
+      if (myAuxVarSize > 0) {
+         mySys.getAuxVarDerivative (myDwdt);
+         dwdtAvg.scaledAdd (wgt, myDwdt);
+         if (endWgt == 0) {
+            myWtmp.scaledAdd (t1-t0, myDwdt, myW); 
+            mySys.setAuxVarState (myWtmp);
+         }
+         else {
+            // last sub-step, advance w by weighted dwdtAvg 
+            myWtmp.scaledAdd ((t1-t0)/endWgt, dwdtAvg, myW); 
+            mySys.setAuxVarState (myWtmp);
+         }
+      }
+   }
+
+   private void advanceAuxVar (double h, VectorNd dwdt) {
+   }
+
    public void solve (
       double t0, double t1, StepAdjustment stepAdjust) {
 
@@ -696,15 +749,15 @@ public class MechSystemSolver {
             break;
          }
          case StaticIncrementalStep: {
-            staticIncrementalStep(t1, 1.0/myStaticIncrements, stepAdjust);
+            staticIncrementalStep (t0, t1, 1.0/myStaticIncrements, stepAdjust);
             break;
          }
          case StaticIncremental: {
-            staticIncremental(t1, myStaticIncrements, stepAdjust);
+            staticIncremental (t0, t1, myStaticIncrements, stepAdjust);
             break;
          }
          case StaticLineSearch: {
-            staticLineSearch(t1, stepAdjust);
+            staticLineSearch (t0, t1, stepAdjust);
             break;
          }
          default: {
@@ -731,25 +784,17 @@ public class MechSystemSolver {
       // boolean useBodyCoords = useBodyCoordsForExplicit;
       double h = t1 - t0;
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      updateExplicitSolveStateSizes();
 
-      myF.setSize (velSize);
-      myU.setSize (velSize);
-      myDudt.setSize (velSize);
-      myQ.setSize (posSize);
-      myDqdt.setSize (posSize);
-
+      singleStepAuxComponents (t0, t1);
       mySys.updateForces (t0);
       updateInverseMassMatrix (t0);
 
-      mySys.getActiveVelState (myU);
       getActiveVelDerivative (myDudt, myF);
+      mySys.getActiveVelState (myU);
       mySys.getActivePosState (myQ);
-
       mySys.addActivePosImpulse (myQ, h, myU);
       mySys.setActivePosState (myQ);
-
       myU.scaledAdd (h, myDudt, myU);
       mySys.setActiveVelState (myU);         
 
@@ -780,30 +825,22 @@ public class MechSystemSolver {
       double t0, double t1, StepAdjustment stepAdjust) {
       double h = t1 - t0;
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      updateExplicitSolveStateSizes();
 
-      myF.setSize (velSize);
-      myU.setSize (velSize);
-      myDudt.setSize (velSize);
-      myQ.setSize (posSize);
-      myDqdt.setSize (posSize);
+      singleStepAuxComponents (t0, t1);
 
       mySys.updateForces (t0);
       updateInverseMassMatrix (t0);
 
-      mySys.getActiveVelState (myU);
       getActiveVelDerivative (myDudt, myF);
-
-      mySys.getActivePosState (myQ);
-
+      mySys.getActiveVelState (myU);
       myU.scaledAdd (h, myDudt, myU);
       mySys.setActiveVelState (myU);
 
       mySys.updateConstraints (t0, null, MechSystem.UPDATE_CONTACTS);
-      
       applyVelCorrection (myU, t0, t1);
 
+      mySys.getActivePosState (myQ);
       mySys.addActivePosImpulse (myQ, h, myU);
       mySys.setActivePosState (myQ);
       applyPosCorrection (
@@ -818,12 +855,9 @@ public class MechSystemSolver {
       double t0, double t1, StepAdjustment stepAdjust) {
       double h = t1 - t0;
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      updateExplicitSolveStateSizes();
 
-      myF.setSize (velSize);
-      myU.setSize (velSize);
-      myQ.setSize (posSize);
+      singleStepAuxComponents (t0, t1);
 
       mySys.updateConstraints (t0, null, MechSystem.UPDATE_CONTACTS);
       mySys.updateForces (t0);
@@ -832,7 +866,7 @@ public class MechSystemSolver {
       mySys.getActiveForces (myF);
       constrainedVelSolve (myU, myF, t0, t1);
       mySys.setActiveVelState (myU);         
-
+     
       if (updateAndProjectFrictionConstraints (myU, t0, h)) {
          mySys.setActiveVelState (myU);
       }
@@ -847,94 +881,87 @@ public class MechSystemSolver {
       double h = t1 - t0;
       double th = (t0 + t1) / 2;
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      updateExplicitSolveStateSizes();
+      myDudtAvg.setSize (myActiveVelSize);
+      myQtmp.setSize (myActivePosSize);
+      myDqdtAvg.setSize (myActivePosSize);
 
-      myF.setSize (velSize);
-      myU.setSize (velSize);
-      myUtmp.setSize (velSize);
-      myDudt.setSize (velSize);
-      myDudtAvg.setSize (velSize);
+      // initialize objects for aux state
+      VectorNd wtmp = null;
+      VectorNd dwdtAvg = null;
+      DataBuffer auxState0 = new DataBuffer();
+      mySys.getAuxAdvanceState (auxState0);
+      if (myAuxVarSize > 0) {
+         wtmp = new VectorNd (myAuxVarSize);
+         dwdtAvg = new VectorNd (myAuxVarSize);
+      }
 
-      myQ.setSize (posSize);
-      myQtmp.setSize (posSize);
-      myDqdt.setSize (posSize);
-      myDqdtAvg.setSize (posSize);
+      // step by h/2, using derivatives k1 evaluated at t0
 
+      singleStepAuxComponents (t0, th);
+      if (dwdtAvg != null) {
+         dwdtAvg.set (myDwdt);
+      }
       mySys.updateForces (t0);
-
       mySys.getActivePosState (myQ);
       mySys.getActiveVelState (myU);
-      mySys.getActivePosDerivative (myDqdtAvg, t0);
       updateInverseMassMatrix (t0);
+      mySys.getActivePosDerivative (myDqdtAvg, t0); // k1 derivatives
       getActiveVelDerivative (myDudtAvg, myF);
-
-      // k2 term
-
-      myQtmp.scaledAdd (h / 2, myDqdtAvg, myQ);
-      //xTmp.set (xVec);
-      //mySys.addActivePosImpulse (xTmp, h/2, vVec);
-      myUtmp.scaledAdd (h / 2, myDudtAvg, myU);
+      myQtmp.scaledAdd (h/2, myDqdtAvg, myQ);
+      myUtmp.scaledAdd (h/2, myDudtAvg, myU);
       mySys.setActivePosState (myQtmp);
       mySys.setActiveVelState (myUtmp);
       updateMassMatrix (-1);
       updateInverseMassMatrix (-1);
-      mySys.updateForces (th);
 
-      mySys.getActivePosDerivative (myDqdt, th);
+      // step by h/2 again, using derivatives k2 evaluated at t0 + h/2
+
+      subStepAuxComponents (auxState0, 2, dwdtAvg, t0, th, /*endWgt=*/0);
+
+      mySys.updateForces (th);
+      mySys.getActivePosDerivative (myDqdt, th); // k2 derivatives
       getActiveVelDerivative (myDudt, myF);
       myDqdtAvg.scaledAdd (2, myDqdt, myDqdtAvg);
       myDudtAvg.scaledAdd (2, myDudt, myDudtAvg);
-
-      // k3 term
-
-      myQtmp.scaledAdd (h / 2, myDqdt, myQ);
-      //xTmp.set (xVec);
-      //mySys.addActivePosImpulse (xTmp, h/2, vTmp);
-      myUtmp.scaledAdd (h / 2, myDudt, myU);
+      myQtmp.scaledAdd (h/2, myDqdt, myQ);
+      myUtmp.scaledAdd (h/2, myDudt, myU);
       mySys.setActivePosState (myQtmp);
       mySys.setActiveVelState (myUtmp);
-
       updateMassMatrix (-1);
       updateInverseMassMatrix (-1);
+
+      // step by h, using derivatives k3 evaluated at t0 + h/2
+
+      subStepAuxComponents (auxState0, 2, dwdtAvg, t0, t1, /*endWgt=*/0);
+
       mySys.updateForces (th);
-
-      mySys.getActivePosDerivative (myDqdt, th);
+      mySys.getActivePosDerivative (myDqdt, th); // k3 derivatives
       getActiveVelDerivative (myDudt, myF);
-      VectorNd dvdtNew = new VectorNd (myDudt);
-
-      dvdtNew.sub (myDudt);
       myDqdtAvg.scaledAdd (2, myDqdt, myDqdtAvg);
       myDudtAvg.scaledAdd (2, myDudt, myDudtAvg);
-
-      // k4 term
-
       myQtmp.scaledAdd (h, myDqdt, myQ);
-      //xTmp.set (xVec);
-      //mySys.addActivePosImpulse (xTmp, h, vTmp);
       myUtmp.scaledAdd (h, myDudt, myU);
       mySys.setActivePosState (myQtmp);
       mySys.setActiveVelState (myUtmp);
       updateMassMatrix (-1);
       updateInverseMassMatrix (-1);
-      mySys.updateForces (t1);
 
-      mySys.getActivePosDerivative (myDqdt, t1);
+      // final step by h, using average derivative (k1 + 2 k2 + 2 k3 + k4)/6.
+      // where k4 is the derivative evaluated at t1
+
+      subStepAuxComponents (auxState0, 1, dwdtAvg, t0, t1, /*endWgt=*/6);
+
+      mySys.updateForces (t1);
+      mySys.getActivePosDerivative (myDqdt, t1); // k4 derivatives
       getActiveVelDerivative (myDudt, myF);
       myDqdtAvg.add (myDqdt);
       myDudtAvg.add (myDudt);
-
-      //dxdtAvg.scale (1/6.0);
-      //dvdtAvg.scale (1/6.0);
-
-
       myUtmp.scaledAdd (h/6, myDudtAvg, myU);
       myQtmp.scaledAdd (h/6, myDqdtAvg, myQ);
-      //xTmp.set (xVec);
-      //mySys.addActivePosImpulse (xTmp, h, vTmp);
-
       mySys.setActivePosState (myQtmp);
       mySys.setActiveVelState (myUtmp);         
+
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
 
       applyVelCorrection (myUtmp, t0, t1);
@@ -1031,21 +1058,11 @@ public class MechSystemSolver {
       double h = t1 - t0;
       // timer.start();
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
-
+      int vsize = updateImplicitSolveStateSizes();
       updateSolveMatrixStructure();
-
-      myB.setSize (velSize);
-      //myV.setSize (velSize);
-      myF.setSize (velSize);
-      // collects coriolis forces for attachments
       myC.setSize (mySolveMatrix.rowSize()); 
-      //myU.setSize (velSize);
-      myDudt.setSize (velSize);
-      myQ.setSize (posSize);
-      myDqdt.setSize (posSize);
 
+      singleStepAuxComponents (t0, t1);
       mySys.updateForces (t1);
 
       // b = M v
@@ -1068,7 +1085,7 @@ public class MechSystemSolver {
       //System.out.println ("SV=\n" + S.toString("%g"));
 
       // b += Jv v
-      mySolveMatrix.mulAdd (myB, myU, velSize, velSize);
+      mySolveMatrix.mulAdd (myB, myU, vsize, vsize);
 
       myC.setZero ();
       mySys.addPosJacobian (mySolveMatrix, myC, -h * h);
@@ -1089,10 +1106,10 @@ public class MechSystemSolver {
       if (analyze) {
          myRegSolveMatrixVersion = mySolveMatrixVersion;
          int matrixType = mySys.getSolveMatrixType();
-         if (velSize != 0) {
+         if (vsize != 0) {
             if (myUseDirectSolver) {
                myDirectSolver.analyze (
-                  mySolveMatrix, velSize, matrixType);
+                  mySolveMatrix, vsize, matrixType);
             }
             else {
                if (!myIterativeSolver.isCompatible (matrixType)) {
@@ -1102,7 +1119,7 @@ public class MechSystemSolver {
             }
          }
       }
-      if (velSize != 0) {
+      if (vsize != 0) {
          if (myUseDirectSolver) {
             doDirectSolve (myU, mySolveMatrix, myB);
          }
@@ -3005,21 +3022,15 @@ public class MechSystemSolver {
 
       double h = t1 - t0;
 
-      int velSize = myActiveVelSize; // active velocity state size
-      int posSize = myActivePosSize; // active position state size
+      updateImplicitSolveStateSizes();
+
+      singleStepAuxComponents (t0, t1);
 
       FunctionTimer timer = null;
       if (profileConstrainedBE) {
          timer = new FunctionTimer();
          timer.start();
       }
-      // size vectors appropriately
-      myB.setSize (velSize);
-      myUtmp.setSize (velSize); // tmp velocity vector
-      myF.setSize (velSize);    // forces
-      myU.setSize (velSize);    // velocities
-      myQ.setSize (posSize);    // positions
-      myFparC.setSize (myParametricVelSize);
 
       // update constraints and forces appropriately for time t1.
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
@@ -3138,17 +3149,10 @@ public class MechSystemSolver {
 
       double h = t1 - t0;
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      int vsize = updateImplicitSolveStateSizes();
+      VectorNd xVec0 = new VectorNd (myQ.size());
 
-      VectorNd xVec0 = new VectorNd (posSize);
-
-      myB.setSize (velSize);
-      myUtmp.setSize (velSize);
-      myF.setSize (velSize);
-      myU.setSize (velSize);
-      myQ.setSize (posSize);
-      myFparC.setSize (myParametricVelSize);
+      singleStepAuxComponents (t0, t1);
 
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
       mySys.updateForces (t1);
@@ -3171,7 +3175,7 @@ public class MechSystemSolver {
       mySys.setActivePosState (myQ);
 
       mySys.updateForces (t1);
-      double fres = computeForceResidual (t0, t1, /*tmp=*/myF, velSize);
+      double fres = computeForceResidual (t0, t1, /*tmp=*/myF, vsize);
 
       double FRES_TOL = 1e-8;
       int MAX_ITER = 5;
@@ -3182,7 +3186,7 @@ public class MechSystemSolver {
       //System.out.printf ("fres[%d]=%g\n", 0, fres);
 
       if (fres > FRES_TOL) {
-         VectorNd velk = new VectorNd (velSize);
+         VectorNd velk = new VectorNd (vsize);
          while (fres > FRES_TOL && iter < MAX_ITER) {
             velk.set (myUtmp);
 
@@ -3203,7 +3207,7 @@ public class MechSystemSolver {
             mySys.setActivePosState (myQ);
 
             mySys.updateForces (t1);
-            fres = computeForceResidual (t0, t1, /*tmp=*/myF, velSize);
+            fres = computeForceResidual (t0, t1, /*tmp=*/myF, vsize);
 
             iter++;
             //System.out.println ("vel=" + myUtmp.toString ("%10.4f"));
@@ -3229,15 +3233,9 @@ public class MechSystemSolver {
  
       double h = t1 - t0;
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      updateImplicitSolveStateSizes();
 
-      myB.setSize (velSize);
-      myUtmp.setSize (velSize);
-      myF.setSize (velSize);
-      myU.setSize (velSize);
-      myQ.setSize (posSize);
-      myFparC.setSize (myParametricVelSize);
+      singleStepAuxComponents (t0, t1);
 
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
       mySys.updateForces (t1);
@@ -3320,23 +3318,18 @@ public class MechSystemSolver {
    
    /**
     * Scales forces and constraints down by alpha, and solves the adjusted problem
-    * @param t1 time at which to solve the system
+    * @param t0 start time for solve
+    * @param t1 stop time for solve
     * @param alpha step factor
     * @param stepAdjust step adjustment description
     */
    public void staticIncrementalStep (
-      double t1, double alpha, StepAdjustment stepAdjust) {
+      double t0, double t1, double alpha, StepAdjustment stepAdjust) {
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
-
-      myB.setSize (velSize);
-      myUtmp.setSize (velSize);
-      myF.setSize (velSize);
-      myQ.setSize (posSize);
-      myFx.setSize(myParametricVelSize);
+      updateStaticSolveStateSizes();
       myFx.setZero();
 
+      singleStepAuxComponents (t0, t1);
 
       // compute our new constraints and forces at time t1
       myUtmp.setZero();
@@ -3373,16 +3366,11 @@ public class MechSystemSolver {
    }
    
    public void staticIncremental (
-      double t1, int nincrements, StepAdjustment stepAdjust) {
+      double t0, double t1, int nincrements, StepAdjustment stepAdjust) {
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      updateStaticSolveStateSizes();
 
-      myB.setSize (velSize);
-      myUtmp.setSize (velSize);
-      myF.setSize (velSize);
-      myQ.setSize (posSize);
-      myFx.setSize(myParametricVelSize);
+      singleStepAuxComponents (t0, t1);
 
       // zero out velocities
       myUtmp.setZero();
@@ -3666,17 +3654,13 @@ public class MechSystemSolver {
       
    }
    
-   public void staticLineSearch(double t1, StepAdjustment stepAdjust) {
+   public void staticLineSearch (
+      double t0, double t1, StepAdjustment stepAdjust) {
 
-      int velSize = myActiveVelSize;
-      int posSize = myActivePosSize;
+      int vsize = updateStaticSolveStateSizes();
+      myQtmp.setSize(myQ.size());
 
-      myB.setSize (velSize);
-      myU.setSize (velSize);
-      myF.setSize (velSize);
-      myQ.setSize (posSize);
-      myQtmp.setSize(posSize);
-      myFx.setSize(myParametricVelSize);
+      singleStepAuxComponents (t0, t1);
 
       double FRES_TOL = 1e-8;
       int MAX_ITER = 100;
@@ -3717,7 +3701,7 @@ public class MechSystemSolver {
          KKTStaticFactorAndSolve(myU, myB, 1, /*tmp=*/myF);
          if (first) {
             // expected norm of converged tolerance
-            utol = myStaticTol*Math.sqrt((double)velSize);
+            utol = myStaticTol*Math.sqrt((double)vsize);
          }
             
          // initial state
@@ -3740,11 +3724,11 @@ public class MechSystemSolver {
          myF.setZero();
          if (myGsize > 0) {
             mySys.getBilateralForces(myLam);
-            myGT.mulAdd(myF, myLam, velSize, myGsize);
+            myGT.mulAdd(myF, myLam, vsize, myGsize);
          }
          if (myNsize > 0) {
             mySys.getUnilateralForces(myThe);
-            myNT.mulAdd(myF, myThe, velSize, myNsize);
+            myNT.mulAdd(myF, myThe, vsize, myNsize);
          }
          cenergy = myF.dot(myU);
          Ra.setConstraintEnergy(cenergy);
@@ -3770,11 +3754,11 @@ public class MechSystemSolver {
          // current active forces now in myF, add constraint forces
          if (myGsize > 0) {
             myLam.scale(alpha);
-            myGT.mulAdd (myF, myLam, velSize, myGT.colSize());
+            myGT.mulAdd (myF, myLam, vsize, myGT.colSize());
          }
          if (myNsize > 0) {
             myThe.scale(alpha);
-            myNT.mulAdd (myF, myThe, velSize, myNT.colSize());
+            myNT.mulAdd (myF, myThe, vsize, myNT.colSize());
          }
          
          // final norm of residual forces
@@ -3812,6 +3796,16 @@ public class MechSystemSolver {
       SparseNumberedBlockMatrix S = new SparseNumberedBlockMatrix();
       mySys.buildSolveMatrix (S);
       mySys.addPosJacobian (S, null, h);
+      int nactive = mySys.numActiveComponents();
+      return S.createSubMatrix (nactive, nactive);
+   }
+
+   public SparseBlockMatrix createActiveDampingMatrix (double h) {
+      updateStateSizes();
+      mySys.updateForces (0);
+      SparseNumberedBlockMatrix S = new SparseNumberedBlockMatrix();
+      mySys.buildSolveMatrix (S);
+      mySys.addVelJacobian (S, null, h);
       int nactive = mySys.numActiveComponents();
       return S.createSubMatrix (nactive, nactive);
    }

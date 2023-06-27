@@ -519,5 +519,23 @@ public abstract class AxialMuscleMaterialBase extends AxialMaterial {
       return curve;
    }
 
+   private CubicHermiteSpline1d maybeCopy (CubicHermiteSpline1d curve) {
+      if (curve != null) {
+         curve = new CubicHermiteSpline1d (curve);
+      }
+      return curve;
+   }
+
+   public AxialMuscleMaterialBase clone() {
+      AxialMuscleMaterialBase mat = (AxialMuscleMaterialBase)super.clone();
+
+      mat.myActiveForceLengthCurve = maybeCopy (myActiveForceLengthCurve);
+      mat.myPassiveForceLengthCurve = maybeCopy (myPassiveForceLengthCurve);
+      mat.myTendonForceLengthCurve = maybeCopy (myTendonForceLengthCurve);
+      mat.myForceVelocityCurve = maybeCopy (myForceVelocityCurve);
+
+      return mat;
+   }
+
 }
 

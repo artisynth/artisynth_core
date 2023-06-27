@@ -141,6 +141,10 @@ TransformableGeometry, ScalableUnits {
    protected double myMaxColoredExcitation = 1.0;
    protected PropertyMode myMaxColoredExcitationMode = PropertyMode.Explicit;
 
+   protected static final double DEFAULT_WRAP_KNOT_DENSITY = -1; 
+   protected double myWrapKnotDensity = DEFAULT_WRAP_KNOT_DENSITY;
+   protected PropertyMode myWrapKnotDensityMode = PropertyMode.Inherited;
+
    public static PropertyList myProps =
       new PropertyList (MechModel.class, MechSystemBase.class);
 
@@ -164,6 +168,10 @@ TransformableGeometry, ScalableUnits {
       myProps.addInheritable (
          "penetrationTol:Inherited", "collision penetration tolerance",
          DEFAULT_PENETRATION_TOL);
+      myProps.addInheritable (
+         "wrapKnotDensity:Inherited",
+         "default number of wrap knots per unit distance",
+         DEFAULT_WRAP_KNOT_DENSITY);
       myProps.addInheritable (
          "rotaryLimitTol:Inherited", "rotary limit tolerance",
          DEFAULT_ROTARY_LIMIT_TOL);
@@ -422,6 +430,66 @@ TransformableGeometry, ScalableUnits {
          tol = defaultTol;
       }
       return tol;
+   }
+
+   /**
+    * Sets the default knot density for wrapping strands in {@link
+    * MultiPointSpring} and {@link MultiPointSpring}. This is the number of
+    * knots used per unit distance. When a wrapping strand is initialized, and
+    * the number of knots is not explicitly specified, this number is
+    * multiplied by the strand's initial length to determine the number of
+    * knots.
+    *
+    * <p> If specified as a negative number, the knot density will be set to a
+    * default value based on the overall size of this <code>MechModel</code>.
+    *
+    * @param p desired knot density
+    */
+   public void setWrapKnotDensity (double p) {
+      if (p < 0) {
+         p = computeDefaultWrapKnotDensity();
+      }
+      myWrapKnotDensity = p;
+      myWrapKnotDensityMode =
+         PropertyUtils.propagateValue (
+            this, "wrapKnotDensity", p, myWrapKnotDensityMode);
+   }
+
+   /**
+    * Returns the default knot density for wrapping strands in {@link
+    * MultiPointSpring} and {@link MultiPointSpring}. See {@link
+    * #setWrapKnotDensity} for details.
+    *
+    * @return current knot density
+    */
+   public double getWrapKnotDensity () {
+      return myWrapKnotDensity;
+   }
+
+   public PropertyMode getWrapKnotDensityMode() {
+      return myWrapKnotDensityMode;
+   }
+
+   public void setWrapKnotDensityMode (PropertyMode mode) {
+      myWrapKnotDensityMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "wrapKnotDensity", myWrapKnotDensityMode, mode);
+   }
+
+   /**
+    * Computes a default value for the wrap knot density, based on the
+    * radius of this MechModel.
+    *
+    * @return default wrap knot density.
+    */
+   public double computeDefaultWrapKnotDensity() {
+      double radius = RenderableUtils.getRadius (this);
+      if (radius != 0) {
+         return 50/radius;
+      }
+      else {
+         return 50;
+      }
    }
 
    /**
@@ -2150,6 +2218,9 @@ TransformableGeometry, ScalableUnits {
       myRotaryDamping *= (s * s);
       if (myPenetrationTol != -1) {
          myPenetrationTol *= s;
+      }
+      if (myWrapKnotDensity != -1) {
+         myWrapKnotDensity /= s;
       }
    }
 

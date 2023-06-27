@@ -1797,7 +1797,9 @@ public class RootModel extends RenderableModelBase
             info.getFullState (fullState);
             info.setFullState (fullState);
             info.getFullState (testState);
-            if (!testState.equals (fullState, null)) {
+            StringBuilder msg = new StringBuilder();
+            if (!testState.equals (fullState, msg)) {
+               System.out.println ("states differ: " + msg);
                throw new InternalErrorException (
                   "Error: save/restore state test failed");
             }  

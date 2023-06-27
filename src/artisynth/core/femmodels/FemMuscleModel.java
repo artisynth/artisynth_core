@@ -731,12 +731,16 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
 
    public void getAuxStateComponents(List<HasNumericState> comps, int level) {
       super.getAuxStateComponents (comps, level);
-      comps.addAll (myMuscleList);
-      comps.addAll (myExciterList);
-   }
-
-   public void advanceState(double t0, double t1) {
-      super.advanceState (t0, t1);
+      for (HasNumericState aux : myMuscleList) {
+         if (aux.hasState()) {
+            comps.add (aux);
+         }
+      }
+      for (HasNumericState aux : myExciterList) {
+         if (aux.hasState()) {
+            comps.add (aux);
+         }
+      }
    }
 
    public void getState(DataBuffer data) {

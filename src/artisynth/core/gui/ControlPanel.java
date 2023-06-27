@@ -738,8 +738,7 @@ public class ControlPanel extends ModelComponentBase
    private boolean isStale (Property prop) {
       ModelComponent comp = ComponentUtils.getPropertyComponent (prop);
       if (comp == null) {
-         System.out.println ("no comp");
-         return true;
+         return false;
       }
       if (!PropertyUtils.isConnectedToHierarchy (prop)) {
          System.out.println ("not connected");

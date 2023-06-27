@@ -192,6 +192,13 @@ public class MaxwellAxialMaterial
       myH = (t1 - t0); // store step size for updating springLength in computeF()
       mySpringLengthPrev = mySpringLength;
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean requiresAdvance() {
+      return true;
+   }   
 
 }
 

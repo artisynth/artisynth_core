@@ -283,8 +283,8 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
-    * Returns the {@code idx}-th coordinate for this joint. If the joint is
-    * connected to other bodies, the value is inferred from the current TCD
+    * Returns the {@code idx}-th coordinate value for this joint. If the joint 
+    * is connected to other bodies, the value is inferred from the current TCD
     * transform.  Otherwise, it is obtained from a stored internal value.
     *
     * @param idx index of the coordinate
@@ -299,6 +299,18 @@ public abstract class JointBase extends BodyConnector  {
          getCurrentTCD (TCD);
       }
       return myCoupling.getCoordinate (idx, TCD);
+   }
+
+   /**
+    * Returns the current stored value of the {@code idx}-th coordinate for 
+    * this joint.
+    *
+    * @param idx index of the coordinate
+    * @return the coordinate value
+    */
+   public double getCoordinateValue (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getCoordinate (idx, null);
    }
 
    /**

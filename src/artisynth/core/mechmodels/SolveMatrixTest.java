@@ -20,6 +20,8 @@ public class SolveMatrixTest {
    SparseNumberedBlockMatrix myS;
    MatrixNd myK;
    MatrixNd myKnumeric;
+   MatrixNd myD;
+   MatrixNd myDnumeric;
    boolean myUseYPRStiffness = false;
 
    public boolean getYPRStiffness() {
@@ -75,7 +77,6 @@ public class SolveMatrixTest {
       VectorNd q0 = new VectorNd (myQsize);
       VectorNd f0 = new VectorNd (myVsize);
       VectorNd uimp = new VectorNd (myVsize);
-      VectorNd q = new VectorNd (myQsize);
       VectorNd f = new VectorNd (myVsize);
 
       ComponentState savestate = sys.createState (null);
@@ -93,16 +94,13 @@ public class SolveMatrixTest {
 
       // the aux state code is necessary to handle situations involving
       // state-bearing force effectors like viscous materials
-      sys.advanceState (0, h);
+      sys.advanceAuxState (0, h);
 
       for (int i=0; i<myVsize; i++) {
          // increment position by a small amount
          uimp.setZero();
          uimp.set (i, 1);
          applyActiveImpulse (sys, q0, uimp, h);
-         // q.set (q0);
-         // sys.addActivePosImpulse (q, h, uimp);
-         // sys.setActivePosState (q);
 
          sys.updateForces (h);
          getActiveForces (f, sys);
@@ -171,6 +169,87 @@ public class SolveMatrixTest {
       return getKerror().infinityNorm()/norm;
    }
 
+   public double testDamping (
+      MechSystemBase sys, double h, String fmtStr) {
+
+      SparseBlockMatrix S = new SparseNumberedBlockMatrix();
+      myVsize = sys.getActiveVelStateSize();
+      myQsize = sys.getActivePosStateSize();
+      //int qsize = sys.getActivePosStateSize();
+      myDnumeric = new MatrixNd (myVsize, myVsize);
+      myD = new MatrixNd (myVsize, myVsize);
+
+      VectorNd u0 = new VectorNd (myVsize);
+      VectorNd f0 = new VectorNd (myVsize);
+      VectorNd u = new VectorNd (myVsize);
+      VectorNd f = new VectorNd (myVsize);
+
+      ComponentState savestate = sys.createState (null);
+      savestate.setAnnotated(true);
+      // save old state, because we are going to zero the velocity and advance
+      // the state and we will need to restore
+      sys.getState (savestate);
+      sys.setActiveVelState (u0);
+
+      // build numeric damping matrix
+      sys.updateForces (0);
+      getActiveForces (f0, sys);
+      //System.out.println ("f0=  " + f0.toString("%16.6f"));
+
+      // the aux state code is necessary to handle situations involving
+      // state-bearing force effectors like viscous materials
+      sys.advanceAuxState (0, h);
+
+      for (int i=0; i<myVsize; i++) {
+         // increment velocity by a small amount
+         u.set (u0);
+         u.add (i, h);
+         sys.setActiveVelState (u);
+
+         sys.updateForces (h);
+         getActiveForces (f, sys);
+         //System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
+         f.sub (f0);
+         f.scale (1/h);
+         //System.out.println ("df=" + f);
+         myDnumeric.setColumn (i, f);
+      }
+      sys.setActiveVelState (u0);
+      sys.updateForces (0);
+
+      boolean saveIgnoreCoriolis = PointSpringBase.myIgnoreCoriolisInJacobian;
+      boolean saveSymmetricJacobian = FrameSpring.mySymmetricJacobian;
+      PointSpringBase.myIgnoreCoriolisInJacobian = false;
+      FrameSpring.mySymmetricJacobian = false;
+
+      S = sys.getActiveDampingMatrix ();
+
+      // restore entire system state
+      sys.setState (savestate);
+
+      MatrixNd Sdense = new MatrixNd (S);
+      Sdense.getSubMatrix (0, 0, myD);
+
+      double norm = Math.max (myD.infinityNorm(), myDnumeric.infinityNorm());
+      if (fmtStr != null) {
+         NumberFormat fmt = new NumberFormat (fmtStr);
+         System.out.println ("D=\n" + myD.toString (fmt));
+         System.out.println ("Dnumeric=\n" + myDnumeric.toString (fmt));
+         MatrixNd E = new MatrixNd (myD);
+         E.sub (myDnumeric);
+         System.out.println ("Err=\n" + E.toString (fmt));
+         MatrixNd ET = new MatrixNd ();
+         ET.transpose (E);
+         E.sub (ET);
+         System.out.println (
+            "SymErr=" + E.infinityNorm()/norm + "\n" + E.toString (fmt));
+      }
+      PointSpringBase.myIgnoreCoriolisInJacobian = saveIgnoreCoriolis;
+      FrameSpring.mySymmetricJacobian = saveSymmetricJacobian;
+
+      return getDerror().infinityNorm()/norm;
+   }
+
    private double symmetryError (MatrixNd M) {
       double norm = M.infinityNorm();
       MatrixNd MT = new MatrixNd();
@@ -195,6 +274,12 @@ public class SolveMatrixTest {
    public MatrixNd getKerror() {
       MatrixNd error = new MatrixNd (myVsize, myVsize);
       error.sub (myK, myKnumeric);
+      return error;
+   }
+   
+   public MatrixNd getDerror() {
+      MatrixNd error = new MatrixNd (myVsize, myVsize);
+      error.sub (myD, myDnumeric);
       return error;
    }
 }

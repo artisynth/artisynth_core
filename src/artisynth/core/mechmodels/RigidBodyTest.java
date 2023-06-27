@@ -443,9 +443,43 @@ public class RigidBodyTest extends UnitTest {
    }
 
 
+   void testDampingMatrix() {
+      SolveMatrixTest tester = new SolveMatrixTest();
+
+      RigidBody body = RigidBody.createBox (null, .3, .2, .1, 1000.0);
+      MechModel mech = new MechModel();
+      mech.addRigidBody (body);
+
+      double tol = 1e-7;
+      body.setInertialDamping (1.0);
+      double err = tester.testDamping (mech, tol, null);
+      if (err > tol) {
+         throw new TestException (
+            "Damping matrix error with inertial damping = " + err);
+      }
+      body.setInertialDamping (0.0);
+
+      body.setFrameDamping (1.0);
+      err = tester.testDamping (mech, tol, null);
+      if (err > tol) {
+         throw new TestException (
+            "Damping matrix error with frame damping = " + err);
+      }
+      body.setFrameDamping (0.0);
+
+      body.setRotaryDamping (1.0);
+      err = tester.testDamping (mech, tol, null);
+      if (err > tol) {
+         throw new TestException (
+            "Damping matrix error with rotary damping = " + err);
+      }
+      body.setRotaryDamping (0.0);
+   }
+
    public void test() {
       testInertiaMethods();
       testRigidCompositeBody();
+      testDampingMatrix();
    }
 
    public static void main (String[] args) {

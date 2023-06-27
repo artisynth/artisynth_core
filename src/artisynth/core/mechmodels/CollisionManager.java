@@ -3359,10 +3359,6 @@ public class CollisionManager extends RenderableCompositeBase
 
    // ***** Begin HasNumericState *****
 
-   public void advanceState (double t0, double t1) {
-      // contact constraints don't need to advance their aux state
-   }
-
    public void getState (DataBuffer data) {
       updateHandlerTable();
       myHandlerTable.getState (data);

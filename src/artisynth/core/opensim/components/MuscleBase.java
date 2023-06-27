@@ -150,6 +150,7 @@ public abstract class MuscleBase extends ForceSpringBase {
 
    @Override
    protected MultiPointMuscle createDefaultMultiSpring (String name) {
+      //MultiPointMuscle mpm = new OpenSimMultiMuscle (name);
       MultiPointMuscle mpm = new MultiPointMuscle (name);
       mpm.setExcitation (getDefaultActivation());
       return mpm;

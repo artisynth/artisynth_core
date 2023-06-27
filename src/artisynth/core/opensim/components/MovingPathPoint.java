@@ -1,5 +1,9 @@
 package artisynth.core.opensim.components;
 
+import java.io.*;
+import artisynth.core.mechmodels.*;
+import maspack.function.*;
+
 public class MovingPathPoint extends PathPoint {
 
    String x_coordinate;
@@ -68,6 +72,41 @@ public class MovingPathPoint extends PathPoint {
    public void setZLocation (FunctionBase z_location) {
       this.z_location = z_location;
       this.z_location.setParent (this);
+   }
+
+   Diff1Function1x1 getFunction (String fname, FunctionBase fbase) {
+      Diff1FunctionNx1 fxn = fbase.getFunction();
+      if (fxn instanceof Diff1Function1x1) {
+         return (Diff1Function1x1)fxn;
+      }
+      else {
+         System.out.println (
+            "WARNING: MovingPathPoint " + getName() +
+            ": " + fname + " function is not 1x1");
+         return null;
+      }
+   }
+
+   public JointBasedMovingMarker createComponent (
+      File geometryPath, ModelComponentMap componentMap) {
+
+      JointCoordinateHandle xch =
+         CoordinateHandle.createJCH (x_coordinate, this, componentMap);
+      JointCoordinateHandle ych =
+         CoordinateHandle.createJCH (y_coordinate, this, componentMap);
+      JointCoordinateHandle zch =
+         CoordinateHandle.createJCH (z_coordinate, this, componentMap);
+      if (xch == null || ych == null || zch == null) {
+         return null;
+      }
+      Diff1Function1x1 xfxn = getFunction ("x_location", x_location);
+      Diff1Function1x1 yfxn = getFunction ("y_location", y_location);
+      Diff1Function1x1 zfxn = getFunction ("z_location", z_location);
+      if (xfxn == null || yfxn == null || zfxn == null) {
+         return null;
+      }
+      return new JointBasedMovingMarker (
+         getName(), xfxn, xch, yfxn, ych, zfxn, zch);
    }
 
    @Override

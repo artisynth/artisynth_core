@@ -20,6 +20,7 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.*;
 import maspack.render.*;
 import maspack.spatialmotion.*;
+import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 
 public class OpenSimCustomJoint extends JointBase {
 
@@ -40,7 +41,6 @@ public class OpenSimCustomJoint extends JointBase {
       OpenSimCustomJoint.class, JointBase.class);
    //public LocalPropertyList myLocalProps = new LocalPropertyList (myProps);
 
-   //private void initializePropertyList() {
    static {
       myProps.remove ("shaftLength");
       myProps.remove ("shaftRadius");
@@ -52,8 +52,13 @@ public class OpenSimCustomJoint extends JointBase {
          "draw translational axes for this joint", DEFAULT_DRAW_TRANS_AXES);
    }
 
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
+   LocalPropertyList myLocalProps; 
+
+   public PropertyInfoList getAllPropertyInfo() {
+      if (myLocalProps == null) {
+         myLocalProps = new LocalPropertyList (myProps);
+      }
+      return myLocalProps;
    }
 
    public void setDefaultValues() {
@@ -80,7 +85,7 @@ public class OpenSimCustomJoint extends JointBase {
    public OpenSimCustomJoint(TransformAxis[] axes, Coordinate[] coords) {
       setDefaultValues();
       setCoupling (new OpenSimCustomCoupling(axes, coords));
-      // initializePropertyList();
+      addCoordinateProperties(coords);
    }
    
    // not used
@@ -112,6 +117,26 @@ public class OpenSimCustomJoint extends JointBase {
       XDB.mulInverseLeft(bodyB.getPose(), XJointWorld);
 
       setBodies(bodyA, XFA, bodyB, XDB);
+   }
+
+   private void addCoordinateProperties (Coordinate[] coords) {
+      String degMethods =
+         "getCoordinateDeg setCoordinateDeg getCoordinateRangeDeg";
+      String regMethods =
+         "getCoordinate setCoordinate getCoordinateRange";
+
+      for (int i=0; i<coords.length; i++) {
+         Coordinate c = coords[i];
+         String methods;
+         if (getCoordinateMotionType(i) == MotionType.ROTARY) {
+            methods = degMethods;
+         }
+         else {
+            methods = regMethods;
+         }
+         myLocalProps.add (
+            c.getName(), methods, i, "joint coordinate value", 0);
+      }
    }
 
    public AxisDrawStyle getDrawRotAxes () {
@@ -265,5 +290,11 @@ public class OpenSimCustomJoint extends JointBase {
 
    public double updateConstraints (double t, int flags) {
       return super.updateConstraints (t, flags);
+   }   
+   
+   public int getCoordIndex (String name) {
+      return ((OpenSimCustomCoupling)myCoupling).getCoordIndex (name);
    }
+   
+   
 }

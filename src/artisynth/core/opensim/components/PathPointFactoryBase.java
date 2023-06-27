@@ -16,9 +16,9 @@ public abstract class PathPointFactoryBase<F extends PathPoint> extends HasVisib
       
       if ("location".equals(name)) {
          comp.setLocation (parsePoint3dValue (child));
-      } else if ("body".equals(name)) {
+      } else if ("body".equals(name)) { // OpenSim 3
          comp.setBody (parseTextValue(child));
-      } else if ("socket_parent_frame".equals(name)) {
+      } else if ("socket_parent_frame".equals(name)) { // OpenSim 4
          comp.setSocketParentFrame (parseTextValue(child));
       } else {
          success = super.parseChild (comp, child);

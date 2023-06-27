@@ -22,7 +22,7 @@ import maspack.util.DataBuffer;
 /**
  * OpenSim Custom Joint coupling
  * - According to forums and documentation, OpenSim uses INTRINSIC rotations
- * - Tranlation is performed after rotation
+ * - Translation is performed after rotation
  */
 public class OpenSimCustomCoupling extends RigidBodyCoupling {
 
@@ -70,7 +70,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
             Integer idx = cmap.get(coordsNames[i]);
             if (idx == null) {
                throw new InternalErrorException (
-                  "No index foound for coordinate "+coordsNames[i]);
+                  "No index found for coordinate "+coordsNames[i]);
             }
             myCidxs[i] = idx;
          }
@@ -85,7 +85,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            double tval = func.evaluate(myCvals);
+            double tval = func.eval(myCvals);
             p.scaledAdd (tval, myInfo.getAxis());
          }
       }     
@@ -100,7 +100,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            func.evaluateDerivative (myCvals, myDvals);
+            func.evalDeriv (myDvals, myCvals);
             Vector3d uaxis = myInfo.getAxis();
             for (int i=0; i<myDvals.size(); i++) {
                double dval = myDvals.get(i);
@@ -121,7 +121,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            R.mulAxisAngle (myInfo.getAxis(), func.evaluate(myCvals));
+            R.mulAxisAngle (myInfo.getAxis(), func.eval(myCvals));
          }
       }         
 
@@ -137,7 +137,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            func.evaluateDerivative (myCvals, myDvals);
+            func.evalDeriv (myDvals, myCvals);
             Vector3d uaxis = new Vector3d();
             uaxis.transform (R, myInfo.getAxis());
             for (int i=0; i<myDvals.size(); i++) {
@@ -148,7 +148,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
                H.add (5, j, dval*uaxis.z);
             }
             if (!last) {
-               R.mulAxisAngle (myInfo.getAxis(), func.evaluate(myCvals));
+               R.mulAxisAngle (myInfo.getAxis(), func.eval(myCvals));
             }
          }
       }
@@ -211,8 +211,8 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       for (int i=0; i<numb; i++) {
          addConstraint (BILATERAL);
       }
-      // add unilateral constraints
-      for (int i=0; i<myNumClamped; i++) {
+      // add unilateral constraints for coordinates
+      for (int i=0; i<numc; i++) {
          addConstraint (0);
       }
       // create coordinates with associated constraints if needed
@@ -233,7 +233,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
                0, getConstraint(uidx++));
          }
          else {
-            cinfo = addCoordinate ();
+            cinfo = addCoordinate (-INF, INF, 0, getConstraint(uidx++));
          }
          cinfo.setValue (c.getDefaultValue());
       }
@@ -284,8 +284,16 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       if (myQRD.rank (1e-8) < numc) {
          System.out.println (
             "WARNING: joint has rank "+myQRD.rank(1e-8)+" vs. " + numc);
-         System.out.println ("coupling=" + this);
+         // System.out.println ("coupling=" + this);
+         // System.out.println ("H=\n" + myH.toString ("%18.12f"));
+         // MatrixNd RR = new MatrixNd();
+         // myQRD.get (null, RR, null);
+         // System.out.println ("R0=\n" + RR);
+         // QRDecomposition qrd = new QRDecomposition(myH);
+         // qrd.get (null, RR, null);
+         // System.out.println ("R1=\n" + RR);
       }
+      
       VectorNd gcol = new VectorNd(numc);
       for (int i=0; i<6; i++) {
          for (int j=0; j<numc; j++) {
@@ -488,7 +496,15 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
 
    public Wrench getCoordinateWrenchG (int idx) {
       return myG[idx];
-
+   }
+   
+   public int getCoordIndex (String name) {
+      for (int i=0; i<myCoords.length; i++) {
+         if (myCoords[i].getName().equals(name)) {
+            return i;
+         }
+      }
+      return -1;
    }
 
 }

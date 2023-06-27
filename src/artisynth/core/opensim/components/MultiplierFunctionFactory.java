@@ -25,7 +25,7 @@ public class MultiplierFunctionFactory extends OpenSimObjectFactory<MultiplierFu
          
          FunctionBase func = parseFunctionValue (child);
          if (func != null) {
-            comp.setFunction (func);
+            comp.setBaseFunction (func);
          } else {
             success = false;
          }

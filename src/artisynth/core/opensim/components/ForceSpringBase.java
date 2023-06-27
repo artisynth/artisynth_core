@@ -9,7 +9,7 @@ import artisynth.core.mechmodels.PointSpringBase;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.Wrappable;
-import artisynth.core.mechmodels.AxialSpring;
+import artisynth.core.mechmodels.*;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.matrix.Point3d;
@@ -46,6 +46,7 @@ public abstract class ForceSpringBase extends ForceBase {
    protected abstract AxialMaterial createMaterial();
    
    protected MultiPointSpring createDefaultMultiSpring (String name) {
+      //return new OpenSimMultiSpring (name);
       return new MultiPointSpring (name);
    }
    
@@ -99,12 +100,7 @@ public abstract class ForceSpringBase extends ForceBase {
             return null;
          }
          
-         // add frame marker
-         FrameMarker fm = new FrameMarker (name);
-         fm.setFrame (rb);
-         fm.setLocation (loc);
-         // XXX deal with duplicate names?
-         
+         // make sure marker name is unique
          if (name != null) {
             int idx = 0;
             String pname = name;
@@ -114,8 +110,32 @@ public abstract class ForceSpringBase extends ForceBase {
                pname = name + idx;               
                marker = markers.get (pname);
             }
-            fm.setName (pname);
+            name = pname;
          }
+         
+         // add frame marker
+         FrameMarker fm = null;
+         if (pp instanceof MovingPathPoint) {
+            MovingPathPoint mpp = (MovingPathPoint)pp;
+            //fm = MovingFrameMarker.create (name, mpp, mpp, componentMap);
+            fm = mpp.createComponent (geometryPath, componentMap);
+            fm.setName (name);
+         }
+         else if (pp instanceof ConditionalPathPoint) {
+            ConditionalPathPoint cpp = (ConditionalPathPoint)pp;
+            //fm = ConditionalFrameMarker.create (name, cpp, this, componentMap);
+            fm = cpp.createComponent (geometryPath, componentMap);
+            fm.setName (name);
+            if (fm != null) {
+               fm.setLocation (loc);
+            }
+         }
+         if (fm == null) {
+            fm = new FrameMarker (name);
+            fm.setLocation (loc);
+         }
+         fm.setFrame (rb);
+         
          markers.add (fm);
       }
 
@@ -147,22 +167,42 @@ public abstract class ForceSpringBase extends ForceBase {
          FrameMarker mprev = null;
          for (int i=0; i<markers.size(); ++i) {
             // add wrap segment if wrappables are present and frame markers are
-            // on different bodies
+            // on different bodies or are movable
             FrameMarker mi = markers.get(i);
+            if (mi instanceof JointBasedMovingMarker) {
+               ((JointBasedMovingMarker)mi).updateMarkerLocation();
+               JointBasedMovingMarker mm = (JointBasedMovingMarker)mi;
+               // if (getName().equals ("DELT2") && mm.getName().equals ("default")) {
+               //    System.out.println (
+               //       "updated default: " + mm.getLocation());
+               // }
+            }
             if (mps.numWrappables() > 0 && mprev != null &&
-                mprev.getFrame () != mi.getFrame ()) {
+                (mprev.getFrame () != mi.getFrame() ||
+                 mi instanceof JointBasedMovingMarker)) {
                int numknots = getNumWrapPoints(mprev, mi);
                Point3d[] initialPnts = computeInitialPoints (
                   mprev.getPosition(), mi.getPosition(), mps, numknots);
+               // if (mps.getName().equals ("LAT3")) {
+               //    if (initialPnts != null) {
+               //       System.out.println ("initial points for "+ i);               
+               //       for (Point3d p : initialPnts) {
+               //          System.out.println ("  " + p.toString("%8.3"));
+               //       }
+               //    }
+               //    else {
+               //       System.out.println ("initial points for "+ i + " NULL");
+               //    }
+               // }
                mps.setSegmentWrappable (numknots, initialPnts);
             }
             mps.addPoint (mi);
             mprev = mi;
          }
+         //mps.updateStructure();
          if (wrapPath != null) {
             mps.updateWrapSegments();
          }
-
          spr = mps;
       }
       else {
@@ -216,10 +256,19 @@ public abstract class ForceSpringBase extends ForceBase {
          for (int i=0; i<mps.numWrappables(); i++) {
             Wrappable wrappable = mps.getWrappable(i);
             double d = wrappable.penetrationDistance (nrml, null, p);
-            if (d < mind) {
-               mind = d;
-               mindNrml.set (nrml);
-               mindPos.set (p);
+            if (d < 0) {
+               if (wrappable instanceof RigidTorus) {
+                  // special case: set the target point to the center of the
+                  // torus to make sure we thread it
+                  nrml.sub (wrappable.getPose().p, p);
+                  d = -nrml.norm();
+                  nrml.normalize();
+               }
+               if (d < mind) {
+                  mind = d;
+                  mindNrml.set (nrml);
+                  mindPos.set (p);
+               }
             }
          }
       }

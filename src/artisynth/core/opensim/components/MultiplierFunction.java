@@ -1,11 +1,13 @@
 package artisynth.core.opensim.components;
 
+import maspack.function.*;
 import maspack.matrix.VectorNd;
 
 public class MultiplierFunction extends FunctionBase {
    
    double scale;
    FunctionBase function;
+   Diff1FunctionNx1 myFxn;
    
    public MultiplierFunction() {
       scale = 0;
@@ -14,7 +16,7 @@ public class MultiplierFunction extends FunctionBase {
    
    public MultiplierFunction(double scale, FunctionBase function) {
       this.scale = scale;
-      setFunction(function);
+      setBaseFunction(function);
    }
    
    public double getScale() {
@@ -25,23 +27,38 @@ public class MultiplierFunction extends FunctionBase {
       this.scale = scale;
    }
    
-   public FunctionBase getFunction() {
+   public FunctionBase getBaseFunction() {
       return function;
    }
    
-   public void setFunction(FunctionBase f) {
+   public void setBaseFunction(FunctionBase f) {
       function = f;
       function.setParent (this);
    }
 
-   @Override
-   public double evaluate (VectorNd x) {
-      return scale*function.evaluate (x);
+   public Diff1FunctionNx1 getFunction() {
+      if (myFxn == null) {
+         Diff1FunctionNx1 fxn = function.getFunction();
+         if (fxn instanceof Diff1Function1x1) {
+            myFxn = 
+               new ScaledDiff1Function1x1 (scale, (Diff1Function1x1)fxn);
+         }
+         else {
+            myFxn = 
+               new ScaledDiff1FunctionNx1 (scale, fxn);
+         }
+      }
+      return myFxn;
    }
    
    @Override
-   public void evaluateDerivative (VectorNd x, VectorNd df) {
-      function.evaluateDerivative (x, df);
+   public double eval (VectorNd x) {
+      return scale*function.eval (x);
+   }
+   
+   @Override
+   public void evalDeriv (VectorNd df, VectorNd x) {
+      function.evalDeriv (df, x);
       df.scale (scale);
    }
    
@@ -49,8 +66,9 @@ public class MultiplierFunction extends FunctionBase {
    public MultiplierFunction clone () {
       MultiplierFunction c = (MultiplierFunction)super.clone ();
       if (function != null) {
-         c.setFunction(function.clone());
+         c.setBaseFunction(function.clone());
       }
+      c.myFxn = null; // clone should recreate function
       return c;
    }
 }

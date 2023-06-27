@@ -21,9 +21,16 @@ public class ConditionalPathPointFactory extends PathPointFactoryBase<Conditiona
       if ("range".equals(name)) {
          double[] range = parseDoubleArrayValue (child);
          comp.setRange (range[0], range[1]);
-      } else if ("coordinate".equals(name)) {
+      }
+      // OpenSim 4
+      else if ("socket_coordinate".equals(name)) {
          comp.setCoordinate (parseTextValue (child));
-      } else {
+      }
+      // OpenSim 3
+      else if ("coordinate".equals(name)) {
+         comp.setCoordinate (parseTextValue (child));
+      }
+      else {
          success = super.parseChild (comp, child);
       }
       

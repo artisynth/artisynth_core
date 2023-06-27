@@ -3,11 +3,15 @@ package artisynth.core.opensim.components;
 import java.util.List;
 
 import maspack.matrix.VectorNd;
+import maspack.interpolation.*;
+import maspack.function.*;
 
 /**
  * Simple 2D piecewise linear function for interpolation in OpenSim Models
  */
 public class PiecewiseLinearFunction extends FunctionBase {
+
+   LinearSpline1d myFxn;
 
    private static class Knot {
       double x;
@@ -159,15 +163,31 @@ public class PiecewiseLinearFunction extends FunctionBase {
       }
    }
 
-   public double evaluate(VectorNd x) {
+   public double eval (VectorNd x) {
       int idx = findSegmentIdx(x.get(0));
       return segments[idx].eval(x.get(0));
    }
    
    @Override
-   public void evaluateDerivative (VectorNd x, VectorNd df) {
+   public void evalDeriv (VectorNd x, VectorNd df) {
       int idx = findSegmentIdx(x.get(0));
       df.set(0, segments[idx].evalDerivative(x.get(0)));
+   }
+
+   public LinearSpline1d getFunction() {
+      if (myFxn == null) {
+         myFxn = new LinearSpline1d();
+         if (knots != null) {
+            double[] x = new double[knots.length];
+            double[] y = new double[knots.length];
+            for (int k=0; k<knots.length; k++) {
+               x[k] = knots[k].x;
+               y[k] = knots[k].y;
+            }
+            myFxn.set (x, y);
+         }
+      }
+      return myFxn;
    }
 
    public int solveForX(double y, List<Double> x, double eps) {

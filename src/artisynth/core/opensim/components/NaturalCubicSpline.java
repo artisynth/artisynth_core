@@ -6,11 +6,16 @@ import maspack.matrix.MatrixNd;
 import maspack.matrix.Point2d;
 import maspack.matrix.QRDecomposition;
 import maspack.matrix.VectorNd;
+import maspack.function.*;
+import maspack.interpolation.*;
+import maspack.util.*;
 
 /**
  * Simple 2D Natural Cubic Spline for interpolation in OpenSim Models
  */
 public class NaturalCubicSpline extends FunctionBase {
+
+   CubicHermiteSpline1d myFxn;
 
    private static class Knot {
       double x;
@@ -181,6 +186,10 @@ public class NaturalCubicSpline extends FunctionBase {
             ipnts[1] = new Point2d(xrange[1], y1);
          }
 
+      }
+
+      public String toString () {
+         return ("a="+a+" b="+b+" c="+c+" d="+d);
       }
 
       private double binarySolveSegment(
@@ -357,6 +366,7 @@ public class NaturalCubicSpline extends FunctionBase {
       double eps = 1e-6;
       for (int i = 0; i < splines.length - 1; i++) {
          SplineSegment spline = splines[i];
+         System.out.println (spline);
 
          double yh = spline.eval(knots[i].x);
          if (Math.abs(yh - knots[i].y) > eps) {
@@ -432,15 +442,31 @@ public class NaturalCubicSpline extends FunctionBase {
       }
    }
 
-   public double evaluate(VectorNd x) {
+   public double eval(VectorNd x) {
       int idx = findSplineIdx(x.get(0));
       return splines[idx].eval(x.get(0));
    }
    
    @Override
-   public void evaluateDerivative (VectorNd x, VectorNd df) {
+   public void evalDeriv (VectorNd df, VectorNd x) {
       int idx = findSplineIdx(x.get(0));
       df.set(0, splines[idx].evalDerivative(x.get(0)));
+   }
+
+   public CubicHermiteSpline1d getFunction() {
+      if (myFxn == null) {
+         myFxn = new CubicHermiteSpline1d();
+         if (knots != null) {
+            double[] x = new double[knots.length];
+            double[] y = new double[knots.length];
+            for (int k=0; k<knots.length; k++) {
+               x[k] = knots[k].x;
+               y[k] = knots[k].y;
+            }
+            myFxn.setNatural (x, y);
+         }
+      }
+      return myFxn;
    }
 
    public int solveForX(double y, List<Double> x, double eps) {
@@ -483,7 +509,7 @@ public class NaturalCubicSpline extends FunctionBase {
             spline.splines[i] = splines[i].clone();
          }
       }
-      
+      spline.myFxn = null; // clone should recreate function
       return spline;
    }
    

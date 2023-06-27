@@ -67,22 +67,9 @@ public class JointCoordinateHandle {
    }
 
    public Range getValueRange() {
-      DoubleInterval range;
-      if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
-         range = myJoint.getCoordinateRangeDeg(myIdx);
-         if (range.getLowerBound() < -180) {
-            range.setLowerBound (-180);
-         }
-         if (range.getUpperBound() > 180) {
-            range.setUpperBound (180);
-         }
-      }
-      else {
-         range = myJoint.getCoordinateRange(myIdx);
-      }
-      return range;
+      return myJoint.getCoordinateRange(myIdx);
    }
-
+   
    public double getNatValue() {
       double value = getValue();
       if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
@@ -105,6 +92,15 @@ public class JointCoordinateHandle {
          value *= DTOR;
       }
       setValue (value);
+   }
+
+   public Range getNatValueRange() {
+      if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
+         return myJoint.getCoordinateRangeDeg(myIdx);
+      }
+      else {
+         return myJoint.getCoordinateRange(myIdx);
+      }
    }
 
    public double getSpeed() {

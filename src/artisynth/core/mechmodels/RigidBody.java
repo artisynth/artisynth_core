@@ -1413,6 +1413,9 @@ public class RigidBody extends Frame
             if (myRenderMeshProps.isVisible() && renderMesh != null) {
                renderMesh.prerender(myRenderMeshProps);
             }
+            else {
+               renderMesh = null;
+            }
          }
       }
       mySDRenderSurface = surf;
@@ -1469,8 +1472,9 @@ public class RigidBody extends Frame
 
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags) {
-      context.addAll (myMeshList);
-      context.add (myDistanceGridComp);
+      context.addTransformableDescendants (this, flags);
+      //context.addAll (myMeshList);
+      //context.add (myDistanceGridComp);
    }
 
    public void transformGeometry (

@@ -203,6 +203,10 @@ public class CollisionBehavior extends CollisionComponent
    double myAcceleration = defaultAcceleration;
    PropertyMode myAccelerationMode = PropertyMode.Inherited;
 
+   static boolean defaultReportNegContactForces = true;
+   boolean myReportNegContactForces = defaultReportNegContactForces;
+   PropertyMode myReportNegContactForcesMode = PropertyMode.Inherited;
+
    static double defaultRigidRegionTol = 0.0;
    double myRigidRegionTol = defaultRigidRegionTol;
    PropertyMode myRigidRegionTolMode = PropertyMode.Inherited;
@@ -290,6 +294,8 @@ public class CollisionBehavior extends CollisionComponent
       myStictionDampingMode = PropertyMode.Inherited;
       myAcceleration = defaultAcceleration;
       myAccelerationMode = PropertyMode.Inherited;
+      myReportNegContactForces = defaultReportNegContactForces;
+      myReportNegContactForcesMode = PropertyMode.Inherited;
       myRigidRegionTol = defaultRigidRegionTol;
       myRigidRegionTolMode = PropertyMode.Inherited;
       myRigidPointTol = defaultRigidPointTol;
@@ -382,7 +388,10 @@ public class CollisionBehavior extends CollisionComponent
          "acceleration:Inherited",
          "acceleration used to compute collision compliance from penetrationTol",
          defaultAcceleration);
-
+      myProps.addInheritable (
+         "reportNegContactForces:Inherited",
+         "use negative contact forces in pressure maps and collision reporting",
+         defaultReportNegContactForces);
       myProps.addInheritable (
          "renderingCollidable:Inherited", 
          "collidable (0 or 1) for which normals, forces, color maps, etc. show be drawn",
@@ -840,6 +849,41 @@ public class CollisionBehavior extends CollisionComponent
 
    public PropertyMode getAccelerationMode() {
       return myAccelerationMode;
+   }
+
+   /**
+    * Queries whether negative contact forces should be used in force
+    * pressure maps and collision reporting.
+    * 
+    * @return {@code true} if negative contact forces being shown
+    */
+   public boolean getReportNegContactForces() {
+      return myReportNegContactForces;
+   }
+
+   /**
+    * Sets a whether negative contact forces should be used in force pressure
+    * maps and collision reporting.
+    *
+    * @param enables if {@code true}, enables showing negative contact forces
+    */
+   public void setReportNegContactForces (boolean enable) {
+      myReportNegContactForces = enable;
+      myReportNegContactForcesMode =
+      PropertyUtils.propagateValue (
+         this, "reportNegContactForces",
+         myReportNegContactForces, myReportNegContactForcesMode);        
+   }
+
+   public void setReportNegContactForcesMode (PropertyMode mode) {
+      myReportNegContactForcesMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "reportNegContactForces", 
+            myReportNegContactForcesMode, mode);
+   }
+
+   public PropertyMode getReportNegContactForcesMode() {
+      return myReportNegContactForcesMode;
    }
 
    /** 
@@ -1341,6 +1385,8 @@ public class CollisionBehavior extends CollisionComponent
       myStictionDampingMode = behav.myStictionDampingMode;
       myAcceleration = behav.myAcceleration;
       myAccelerationMode = behav.myAccelerationMode;
+      myReportNegContactForces = behav.myReportNegContactForces;
+      myReportNegContactForcesMode = behav.myReportNegContactForcesMode;
       myRigidRegionTol = behav.myRigidRegionTol;
       myRigidRegionTolMode = behav.myRigidRegionTolMode;
       myRigidPointTol = behav.myRigidPointTol;
@@ -1455,6 +1501,14 @@ public class CollisionBehavior extends CollisionComponent
       }
       else if (myAccelerationMode == EXPLICIT &&
                myAcceleration != behav.myAcceleration) {
+         return false;
+      }
+      if (myReportNegContactForcesMode != 
+          behav.myReportNegContactForcesMode) {
+         return false;
+      }
+      else if (myReportNegContactForcesMode == EXPLICIT &&
+               myReportNegContactForces != behav.myReportNegContactForces) {
          return false;
       }
       if (myRigidRegionTolMode != behav.myRigidRegionTolMode) {

@@ -1680,16 +1680,17 @@ public class CollisionHandler extends ConstrainerBase
       // Create a vertex force map for the vertices on the opposite collidable.
       // In the case of two-way contact, these will to be added to forceMap.
       HashMap<Vertex3d,Vector3d> oppositeMap = new HashMap<>();
+      boolean useNegForces = myBehavior.myReportNegContactForces;
 
       // Start by finding mesh vertex forces for both the selected and opposite
       // collidables.
       for (ContactData cd : myLastBilateralData) {
-         if (cd.myLambda > 0) {
+         if (cd.myLambda > 0 || useNegForces) {
             collectVertexForces (forceMap, oppositeMap, cd, num);
          }
       }
       for (ContactData cd : myLastUnilateralData) {
-         if (cd.myLambda > 0) {
+         if (cd.myLambda > 0 || useNegForces) {
             collectVertexForces (forceMap, oppositeMap, cd, num);
          }
       }

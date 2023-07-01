@@ -3553,7 +3553,7 @@ public class MultiPointSpring extends PointSpringBase
    /**
     * Stores specification information for the segments of this spring.
     */
-   static class SegmentSpec extends SegmentBase implements Clonable {
+   static public class SegmentSpec extends SegmentBase implements Clonable {
       Point myPntB; 
       ConditionalPoint myCondB;
 
@@ -3570,6 +3570,9 @@ public class MultiPointSpring extends PointSpringBase
 //      void setNumKnotsExplicit (boolean enable) {
 //         setFlag (NUM_KNOTS_EXPLICIT, enable);
 //      }
+      public Point3d[] getInitialPoints() {
+         return myInitialPnts;
+      }
 
       void setPntB (Point p) {
          if (p instanceof ConditionalPoint) {
@@ -3593,7 +3596,7 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
 
-      int getNumKnots() {
+      public int getNumKnots() {
          return myNumKnots;
       }
 

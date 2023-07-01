@@ -1808,9 +1808,9 @@ public abstract class BodyConnector extends RenderableComponentBase
     * gives the transform from D to world coordinates.  The location of joint
     * frame C is then determined from the transform TCD returned by get {@link
     * getCurrentTCD}. If bodies have not get been attached to this connector,
-    * TCD will then be determined by its joint coordinates, if any. If
-    * the joint coordinates have 0 values, TCD will be the identity and
-    * C and D will be coincident.
+    * TCD will then be determined by its joint coordinates, if any. Typically,
+    * if the joint coordinates have 0 values, TCD will be the identity and
+    * C and D will be coincident, but this is not necessarily the case.
     *
     * <p>{@code bodyB} may be specified as {@code null}, in which case this
     * connector will attach {@code bodyA} to ground.

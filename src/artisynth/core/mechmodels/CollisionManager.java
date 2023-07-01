@@ -329,6 +329,10 @@ public class CollisionManager extends RenderableCompositeBase
    double myAcceleration = defaultAcceleration;
    PropertyMode myAccelerationMode = PropertyMode.Inherited;
 
+   static boolean defaultReportNegContactForces = true;
+   boolean myReportNegContactForces = defaultReportNegContactForces;
+   PropertyMode myReportNegContactForcesMode = PropertyMode.Inherited;
+
    private double myContactNormalLen = Property.DEFAULT_DOUBLE;
 
    static double DEFAULT_CONTACT_FORCE_LEN_SCALE = 1.0;
@@ -442,7 +446,10 @@ public class CollisionManager extends RenderableCompositeBase
          "acceleration:Inherited",
          "acceleration used to compute collision compliance from penetrationTol",
          defaultAcceleration);
-
+      myProps.addInheritable (
+         "reportNegContactForces:Inherited",
+         "use negative contact forces in pressure maps and collision reporting",
+         defaultReportNegContactForces);
       myProps.addInheritable (
          "renderingCollidable:Inherited", 
          "collidable (0 or 1) for which normals, forces, colorMaps, etc. show be drawn",
@@ -1104,6 +1111,41 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getAccelerationMode() {
       return myAccelerationMode;
+   }
+
+   /**
+    * Queries whether negative contact forces should be used in force
+    * pressure maps and collision reporting.
+    * 
+    * @return {@code true} if negative contact forces being shown
+    */
+   public boolean getReportNegContactForces() {
+      return myReportNegContactForces;
+   }
+
+   /**
+    * Sets a whether negative contact forces should be used in force pressure
+    * maps and collision reporting.
+    *
+    * @param enables if {@code true}, enables showing negative contact forces
+    */
+   public void setReportNegContactForces (boolean enable) {
+      myReportNegContactForces = enable;
+      myReportNegContactForcesMode =
+      PropertyUtils.propagateValue (
+         this, "reportNegContactForces",
+         myReportNegContactForces, myReportNegContactForcesMode);        
+   }
+
+   public void setReportNegContactForcesMode (PropertyMode mode) {
+      myReportNegContactForcesMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "reportNegContactForces", 
+            myReportNegContactForcesMode, mode);
+   }
+
+   public PropertyMode getReportNegContactForcesMode() {
+      return myReportNegContactForcesMode;
    }
 
    public boolean getDrawIntersectionContours() {

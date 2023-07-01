@@ -430,7 +430,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       // projection is based on current coordinate values, so we need these
       // regardless:
       if (coords == null) {
-         coords = new VectorNd();
+         coords = new VectorNd(numc);
       }
       doGetCoords (coords);
       coordinatesToTCD (TGD, coords);

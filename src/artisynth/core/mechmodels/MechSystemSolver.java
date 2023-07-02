@@ -235,10 +235,11 @@ public class MechSystemSolver {
 
    public static enum Integrator {
       ForwardEuler,
-      SymplecticEuler,
-      // SymplecticEulerX,
-      RungeKutta4,
       BackwardEuler,
+      SymplecticEuler,
+      RungeKutta4,
+      ConstrainedForwardEuler,
+      // SymplecticEulerX,
       ConstrainedBackwardEuler,
       FullBackwardEuler,
       Trapezoidal,
@@ -508,26 +509,28 @@ public class MechSystemSolver {
    }
 
    public void setIntegrator (Integrator integrator) {
-      myIntegrator = integrator;
-      switch (integrator) {
-         case ConstrainedBackwardEuler:
-         case Trapezoidal:
-         case FullBackwardEuler: {
-            myComplianceSupported = true;
-            break;
+      if (myIntegrator != integrator) {
+         switch (integrator) {
+            case ConstrainedBackwardEuler:
+            case Trapezoidal:
+            case FullBackwardEuler: {
+               myComplianceSupported = true;
+               break;
+            }
+            case StaticIncrementalStep:
+            case StaticIncremental:
+            case StaticLineSearch:
+               myComplianceSupported = false;
+               break;
+            default: {
+               myComplianceSupported = true;
+               break;
+            }
          }
-         case StaticIncrementalStep:
-         case StaticIncremental:
-         case StaticLineSearch:
-            myComplianceSupported = false;
-            break;
-         default: {
-            myComplianceSupported = true;
-            break;
-         }
+         mySolveMatrix = null;
+         resetMatrixVersions();
+         myIntegrator = integrator;
       }
-      mySolveMatrix = null;
-      //myKKTSolveMatrix = null;
    }
 
    public void setIterativeSolver (IterativeSolver solver) {
@@ -730,6 +733,10 @@ public class MechSystemSolver {
          }
          case SymplecticEuler: {
             symplecticEuler (t0, t1, stepAdjust);
+            break;
+         }
+         case ConstrainedForwardEuler: {
+            constrainedForwardEuler (t0, t1, stepAdjust);
             break;
          }
          case BackwardEuler: {
@@ -1543,36 +1550,38 @@ public class MechSystemSolver {
       SparseNumberedBlockMatrix S = mySolveMatrix;      
 
       S.setZero();
-      myC.setSize (S.rowSize());
-      myC.setZero();
 
-      mySys.addVelJacobian (S, myC, a0);
-      //System.out.println ("myC=" + myC);
-      //printEigenValues (S, velSize, "VEL:\n", "%8.2e");
-      if (useFictitousJacobianForces) {
-         bf.scaledAdd (-a0, myC);
-         if (fpar != null && myParametricVelSize > 0) {
-            setSubVector (fpar, myC, velSize, myParametricVelSize);
-         }
-      }
-      if (vel0 != null) {
-         double alpha = a2/a0 - a3/a1;
-         S.mul (btmp, vel0, velSize, velSize);
-         bf.scaledAdd (alpha, btmp);
-      }
-      myC.setZero();
-      mySys.addPosJacobian (S, myC, a1);
+      if (a0 != 0 && a1 != 0) {
+         // add implicit integration terms
+         myC.setSize (S.rowSize());
+         myC.setZero();
 
-      if (useFictitousJacobianForces) {
-         bf.scaledAdd (-a0, myC);
-         if (fpar != null && myParametricVelSize > 0) {
-            addSubVector (fpar, myC, velSize, myParametricVelSize);
+         mySys.addVelJacobian (S, myC, a0);
+         if (useFictitousJacobianForces) {
+            bf.scaledAdd (-a0, myC);
+            if (fpar != null && myParametricVelSize > 0) {
+               setSubVector (fpar, myC, velSize, myParametricVelSize);
+            }
          }
-      }
-      if (vel0 != null && a3 != 0) {
-         double beta = a3/a1;
-         S.mul (btmp, vel0, velSize, velSize);
-         bf.scaledAdd (beta, btmp);
+         if (vel0 != null) {
+            double alpha = a2/a0 - a3/a1;
+            S.mul (btmp, vel0, velSize, velSize);
+            bf.scaledAdd (alpha, btmp);
+         }
+         myC.setZero();
+         mySys.addPosJacobian (S, myC, a1);
+
+         if (useFictitousJacobianForces) {
+            bf.scaledAdd (-a0, myC);
+            if (fpar != null && myParametricVelSize > 0) {
+               addSubVector (fpar, myC, velSize, myParametricVelSize);
+            }
+         }
+         if (vel0 != null && a3 != 0) {
+            double beta = a3/a1;
+            S.mul (btmp, vel0, velSize, velSize);
+            bf.scaledAdd (beta, btmp);
+         }
       }
 
       addActiveMassMatrix (mySys, S);
@@ -1616,8 +1625,8 @@ public class MechSystemSolver {
          }
       }
       // a0 is assumed to be negative, which moves myGdot over to the rhs
-      //myBg.scaledAdd (a0, myGdot);
-      setBilateralOffsets (h, -a0); // -a0);
+      double dotscale = (a0 != 0 ? -a0 : h);
+      setBilateralOffsets (h, dotscale);
 
       //updateUnilateralConstraintMatrix ();
 
@@ -1635,7 +1644,7 @@ public class MechSystemSolver {
       }
       
       // a0 is assumed to be negative, which moves myNdot over to the rhs
-      setUnilateralOffsets (h, -a0); // -a0);
+      setUnilateralOffsets (h, dotscale);
 
       // get these in case we are doing hybrid solves and they are needed to
       // help with a warm start
@@ -1749,6 +1758,17 @@ public class MechSystemSolver {
                if (profileKKTSolveTime|profileImplicitFriction) {
                   timerStop ("    KKT solve: factor and solve", myKKTTimer);
                }
+               // MatrixNd MS = new MatrixNd (velSize, velSize);
+               // MatrixNd GT = new MatrixNd (velSize, myGT.colSize());
+               // S.getSubMatrix (0, 0, MS);
+               // System.out.println ("MS=\n" + MS.toString("%15.8f"));
+               // myGT.getSubMatrix (0, 0, GT);
+               // System.out.println ("GT=\n" + GT.toString ("%15.8f"));
+               // System.out.println ("Rg=\n" + myRg.toString ("%15.8f"));
+               // System.out.println ("Bg=\n" + myBg.toString ("%15.8f"));
+               // System.out.println ("bf=\n" + bf.toString ("%15.8f"));
+               // System.out.println ("vel=\n" + vel.toString ("%15.8f"));
+               // System.out.println ("lam=\n" + myLam.toString ("%15.8f"));
             }
          }
          if (profileKKTSolveTime) {
@@ -3017,6 +3037,53 @@ public class MechSystemSolver {
       }
    }
 
+   public void constrainedForwardEuler (
+      double t0, double t1, StepAdjustment stepAdjust) {
+
+      double h = t1 - t0;
+
+      updateImplicitSolveStateSizes();
+
+      singleStepAuxComponents (t0, t1);
+
+      // update constraints and forces appropriately for time t1.
+      mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
+      mySys.updateForces (t1);
+
+      // b = M u
+      mySys.getActiveVelState (myU);
+      mulActiveInertias (myB, myU);
+      // b += h f 
+      mySys.getActiveForces (myF);
+      myF.add (myMassForces);
+      myB.scaledAdd (h, myF, myB);
+
+      updateConstraintMatrices (h, usingImplicitFriction());
+      
+      int solveFlags = 0;
+      // setting a0 ... a3 = 0 in KKTFactorAndSolve disables
+      // adding the implicit terms to the solve
+      KKTFactorAndSolve (
+         myUtmp, myFparC, myB, /*tmp=*/myF, myU, 
+         h, 0, 0, 0, 0, solveFlags);
+
+      maybeAccumulateConstraintForces();
+      
+      if (!usingImplicitFriction() && 
+          updateFrictionConstraints (h, /*prune=*/true)) {
+         projectFrictionConstraints (myUtmp, t0, h);
+         mySys.setActiveVelState (myUtmp);
+      }
+
+      // update positions: q += h u
+      mySys.getActivePosState (myQ);
+      mySys.addActivePosImpulse (myQ, h, myUtmp);
+      mySys.setActivePosState (myQ);
+
+      // apply position correction using updated constraints and contact
+      applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+   }
+
    public void constrainedBackwardEuler (
       double t0, double t1, StepAdjustment stepAdjust) {
 
@@ -3834,6 +3901,28 @@ public class MechSystemSolver {
       myForceAnalyzeInMurtySolver = true;
    }
 
+   /**
+    * Reset the versions for the various solve matrices, forcing analysis steps
+    * to be reperformed. Used when changing integrators.
+    */
+   private void resetMatrixVersions() {
+      myKKTGTVersion = -1;
+      myStaticKKTVersion = -1;
+      myConGTVersion = -1;
+      myConMassVersion = -1;
+      myGTVersion = -1;
+      myGTVersionValid = false;
+      myGTSignature = null;
+      myGTSystemVersion = -1;
+      myNTSystemVersion = -1;
+      mySolveMatrixVersion = -1;
+      myRegSolveMatrixVersion = -1;
+      myKKTSolveMatrixVersion = -1;      
+      if (myRBSolver != null) {
+         myRBSolver.resetBilateralVersion();
+      }
+   }
+   
    private void disposeSolvers() {
       if (myPardisoSolver != null) {
          myPardisoSolver.dispose();

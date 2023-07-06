@@ -7,6 +7,7 @@
 package maspack.spatialmotion;
 
 import maspack.geometry.QuadraticUtils;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6x3;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.QRDecomposition;
@@ -14,8 +15,6 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
-import maspack.spatialmotion.GimbalCoupling.AxisSet;
-import maspack.spatialmotion.RigidBodyCoupling.CoordinateInfo;
 
 /** 
  * Constraints a rigid body to 2D motion (with rotation) on the surface
@@ -33,9 +32,13 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
    // temporary variables
    private Vector3d p = new Vector3d();
    private Vector3d n = new Vector3d();
-   Matrix6x3 myH;
+
    protected QRDecomposition myQRD; 
    protected MatrixNd myQ;
+   
+   Matrix6x3 H;
+   Matrix3d Ninv;
+   MatrixNd A;
    Wrench[] myG;
 
    private static final double INF = Double.POSITIVE_INFINITY; 
@@ -45,6 +48,13 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       this.a = a;
       this.b = b;
       this.c = c;
+      
+      MatrixNd A = new MatrixNd(3,6);
+      A.setRandom ();
+      System.out.println("A="+A.toString ("%4.1f"));
+      A.transpose ();
+      System.out.println("AT="+A.toString ("%4.1f"));
+      
    }
 
    @Override
@@ -91,10 +101,12 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       
       // initializations for temporary variables used in updateConstraints
       int numc = myCoordinates.size ();
-      myH = new Matrix6x3 ();
       myQRD = new QRDecomposition (); 
-      myQ = new MatrixNd (6, 6);
+      myQ = new MatrixNd (6, numc);
       myG = new Wrench[numc];
+      H = new Matrix6x3 ();
+      Ninv = new Matrix3d();
+      A = new MatrixNd (6, numc);
       for (int i=0; i<numc; i++) {
          myG[i] = new Wrench();
       }
@@ -107,25 +119,78 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       
       // compute n from Seth eq (6), note this is not the surface normal
       TGD.p.set (p);
-      n.x = p.x/(a);
-      n.y = p.y/(b);
-      n.z = p.z/(c);
+      n.x = p.x/a;
+      n.y = p.y/b;
+      n.z = p.z/c;
       
       // compute H matrix - Seth eq (8), with spatial vel V = [ v  w ]^T
-      myH.setZero ();
-      myH.m01 = a*n.z;
-      myH.m02 = -a*n.y;
-      myH.m10 = -b*n.z;
-      myH.m12 = b*n.x;
-      myH.m20 = c*n.y;
-      myH.m21 = -c*n.x;
-      myH.m30 = 1d;
-      myH.m41 = 1d;
-      myH.m52 = 1d;
+      H.setZero ();
+      H.m10 = -b*n.z;
+      H.m20 = c*n.y;
+      
+      H.m01 = a*n.z;
+      H.m21 = -c*n.x;
+      
+      H.m02 = -a*n.y;
+      H.m12 = b*n.x;
+      
+      H.m30 = 1d;
+      H.m41 = 1d;
+      H.m52 = 1d;
+      
+      // compute Ninv coupling matrix: u = Ninv qdot
+      VectorNd coords = new VectorNd (3);
+      TCDToCoordinates (coords, TGD);
+      double x = coords.get (X_IDX);
+      double y = coords.get (Y_IDX);
+      double theta = coords.get (THETA_IDX);
+      double cos1 = Math.cos (x);
+      double sin1 = Math.sin (x);
+      double cos2 = Math.cos (y);
+      double sin2 = Math.sin (y);
+      double cos3 = Math.cos (theta);
+      double sin3 = Math.sin (theta);
+      
+      // Ninv mechmodel notes X-Y-Z, roll=1 pitch=2 yaw=3
+      Ninv.m00 = 1;
+      Ninv.m10 = 0;
+      Ninv.m20 = 0;
+      
+      Ninv.m01 = 0;
+      Ninv.m11 = cos1;
+      Ninv.m21 = sin1;
+      
+      Ninv.m02 = sin2;
+      Ninv.m12 = -cos2*sin1;
+      Ninv.m22 = cos2*cos1;
+      
+      // Ninv john's email
+//      Ninv.m00 = cos2*cos3;
+//      Ninv.m10 = -cos2*sin3;
+//      Ninv.m20 = sin2;
+//      
+//      Ninv.m01 = sin3;
+//      Ninv.m11 = cos3;
+//      Ninv.m21 = 0;
+//      
+//      Ninv.m02 = 0;
+//      Ninv.m12 = 0;
+//      Ninv.m22 = 1;
       
       // from OpenSimCustomJoint
       int numc = numCoordinates();
-      myQRD.factorWithPivoting (myH);
+      VectorNd gcol = new VectorNd(numc);
+      VectorNd acol = new VectorNd(6);
+
+      // A = H Ninv
+      for (int j=0; j<numc; j++) {
+         Ninv.getColumn (j, acol);
+         H.mul (acol, acol);
+         A.setColumn (j, acol);
+      }
+      
+      // QR decomposition to compute pseudoinverse A* = inv(R) Q^T
+      myQRD.factorWithPivoting (A);
       int[] perm = new int[numc];
       myQRD.get (myQ, null, perm);
       if (myQRD.rank (1e-8) < numc) {
@@ -133,7 +198,6 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
             "WARNING: joint has rank "+myQRD.rank(1e-8)+" vs. " + numc);
          System.out.println ("coupling=" + this);
       }
-      VectorNd gcol = new VectorNd(numc);
       for (int i=0; i<6; i++) {
          for (int j=0; j<numc; j++) {
             gcol.set (j, myQ.get(i, j));
@@ -143,6 +207,7 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
             myG[j].set (i, gcol.get(j));
          }
       }
+      
       // convert to G coords
       for (int j=0; j<numc; j++) {
          myG[j].inverseTransform (TGD.R);
@@ -151,43 +216,7 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
          con.dotWrenchG.setZero ();
          // LINEAR/ROTARY flags set at initialization, so no need to update
       }
-   }
-
-   // updateConstraints from FullPlanarCoupling, which
-   // ignores velocity coupling due to changing surface normal
-   // in the case of an ellipsoid surface
-   public void updateConstraintsX (
-      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
-      Twist velGD, boolean updateEngaged) {
-
-      Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
-
-      // might be needed for x, y limits:
-      double s = TGD.R.m10; // extract sine and cosine of theta
-      double c = TGD.R.m00;
-      double dotTheta = -wDC.z; // negate because wDC in C      
-
-      // update x limit constraint if necessary
-      RigidBodyConstraint xcons = myCoordinates.get(X_IDX).limitConstraint;
-      if (xcons.engaged != 0) {
-         System.out.println("x-limit");
-         // constraint wrench along x, transformed to C, is (c, -s, 0)
-         xcons.wrenchG.set (c, -s, 0, 0, 0, 0);
-//         xcons.dotWrenchG.set (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
-         xcons.dotWrenchG.setZero ();
-      }
-      // update y limit constraint if necessary
-      RigidBodyConstraint ycons = myCoordinates.get(Y_IDX).limitConstraint;
-      if (ycons.engaged != 0) {
-         System.out.println("y-limit");
-         // constraint wrench along y, transformed to C, is (s, c, 0)
-         ycons.wrenchG.set (s, c, 0, 0, 0, 0);
-//         ycons.dotWrenchG.set (c*dotTheta, -s*dotTheta, 0, 0, 0, 0);
-         ycons.dotWrenchG.setZero ();
-      }
-      // theta limit constraint is constant, so no need to update
-   }
-   
+   } 
    
    static private void getROD(RotationMatrix3d ROD, Vector3d ndir) {
       Vector3d bitangent = new Vector3d();

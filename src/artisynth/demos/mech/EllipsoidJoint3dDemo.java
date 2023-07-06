@@ -82,12 +82,12 @@ public class EllipsoidJoint3dDemo extends RootModel {
       
       mech.addBodyConnector (joint);
       // set coordinate ranges
-      joint.setMinX (-45);
-      joint.setMaxX (45);
-      joint.setMinY (0);
-      joint.setMaxY (45);
-      joint.setMinTheta (-10);
-      joint.setMaxTheta (10);
+      joint.setMinX (-135);
+      joint.setMaxX (135);
+      joint.setMinY (-30);
+      joint.setMaxY (30);
+//      joint.setMinTheta (-10);
+//      joint.setMaxTheta (10);
       
 //      joint.setMinX (-180);
 //      joint.setMaxX (180);
@@ -100,6 +100,8 @@ public class EllipsoidJoint3dDemo extends RootModel {
       joint.setCoordinate (0, DTOR*10);
       joint.setCoordinate (1, DTOR*10);
       joint.setCoordinate (2, DTOR*0);
+      
+//      box.setVelocity (0, 0, -5, 0, 0, 0);
       
       getMainViewer ().setAxialView (AxisAlignedRotation.NX_Z);
 
@@ -132,6 +134,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
       panel.addWidget (joint, "rotaryCompliance");
       panel.addWidget (joint, "compliance");
       panel.addWidget (joint, "damping");
+      panel.addWidget (box, "velocity");
       addControlPanel (panel);
    }
 

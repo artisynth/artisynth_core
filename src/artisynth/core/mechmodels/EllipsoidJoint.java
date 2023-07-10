@@ -10,6 +10,7 @@ import java.awt.Color;
 
 import artisynth.core.modelbase.CopyableComponent;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshFactory;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
@@ -108,7 +109,7 @@ public class EllipsoidJoint extends JointBase
     */
    public EllipsoidJoint(double a, double b, double c) {
       setCoupling (new EllipsoidCoupling(a, b, c));
-      ellipsoid = maspack.geometry.MeshFactory.createEllipsoid (a, b, c, /*slices=*/100);
+      ellipsoid = MeshFactory.createEllipsoid (a, b, c, /*slices=*/100);
       RenderProps.setFaceStyle (ellipsoid, FaceStyle.NONE);
       RenderProps.setDrawEdges (ellipsoid, true);
       RenderProps.setEdgeColor (ellipsoid, Color.DARK_GRAY);
@@ -116,7 +117,6 @@ public class EllipsoidJoint extends JointBase
       setYRange (DEFAULT_Y_RANGE);
       setThetaRange (DEFAULT_THETA_RANGE);      
       setPhiRange (DEFAULT_PHI_RANGE);
-
    }
    
    /**

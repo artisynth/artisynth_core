@@ -14,47 +14,70 @@ import maspack.matrix.QRDecomposition;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Point3d;
 import maspack.matrix.VectorNd;
 
 /** 
- * Constraints a rigid body to 2D motion (with rotation) on the surface
- *  of an ellipsoid. 
+ * Constraints a rigid body to 2D motion (with rotation) on the surface of an
+ * ellipsoid.
  */
 public class EllipsoidCoupling3d extends RigidBodyCoupling {
 
    public static final int X_IDX = 0;
    public static final int Y_IDX = 1;
    public static final int THETA_IDX = 2;
+
+   // OpenSim approximation for ellipsoid joints: assumes orientation is given
+   // directy by the x, y, theta angles. This simplifies the calculations but
+   // means that the z axis of C is generally not parallel to the ellipsoid
+   // surface normal.
+   public boolean myUseOpenSimApprox = true;
+
+   static double EPS = 2e-15;
    
    // ellipsoid radii
-   private double a, b, c;
+   private double myA, myB, myC;
    
-   // temporary variables
-   private Vector3d p = new Vector3d();
-   private Vector3d n = new Vector3d();
-
    protected QRDecomposition myQRD; 
    protected MatrixNd myQ;
-   
-   Matrix6x3 H;
-   Matrix3d Ninv;
-   MatrixNd A;
    Wrench[] myG;
 
    private static final double INF = Double.POSITIVE_INFINITY; 
 
-   public EllipsoidCoupling3d(double a, double b, double c) {
+   public EllipsoidCoupling3d () {
+      this (1.0, 1.0, 1.0, false);
+   }
+
+   public EllipsoidCoupling3d (double a, double b, double c) {
+      this (a, b, c, false);
+   }
+
+   public EllipsoidCoupling3d (
+      double a, double b, double c, boolean useOpenSimApprox) {
+
       super();
-      this.a = a;
-      this.b = b;
-      this.c = c;
-      
-      MatrixNd A = new MatrixNd(3,6);
-      A.setRandom ();
-      System.out.println("A="+A.toString ("%4.1f"));
-      A.transpose ();
-      System.out.println("AT="+A.toString ("%4.1f"));
-      
+      this.myA = a;
+      this.myB = b;
+      this.myC = c;
+      this.myUseOpenSimApprox = useOpenSimApprox;
+   }
+
+   public boolean getUseOpenSimApprox() {
+      return myUseOpenSimApprox;
+   }
+
+   public void setUseOpenSimApprox (boolean enable) {
+      myUseOpenSimApprox = enable;
+   }
+
+   public void setSemiAxisLengths (Vector3d lengths) {
+      myA = lengths.x;
+      myB = lengths.y;
+      myC = lengths.z;
+   }
+
+   public Vector3d getSemiAxisLengths () {
+      return new Vector3d (myA, myB, myC);
    }
 
    @Override
@@ -62,24 +85,27 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
 
       TGD.set (TCD);
-  
-      double dist = QuadraticUtils.nearestPointEllipsoid (p, a, b, c, TGD.p);
+      Vector3d p = new Vector3d();
+      Vector3d n = new Vector3d();
+
+      double dist = QuadraticUtils.nearestPointEllipsoid (
+         p, myA, myB, myC, TGD.p);
       TGD.p.set (p);
-      
-      // compute normal direction
-      n.x = p.x/(a*a);
-      n.y = p.y/(b*b);
-      n.z = p.z/(c*c);
+
+      // align z axis with surface normal
+      if (!myUseOpenSimApprox) {
+         n.x = p.x/(myA*myA);
+         n.y = p.y/(myB*myB);
+         n.z = p.z/(myC*myC);
+      }
+      else {
+         // normal is approximated
+         n.x = p.x/myA;
+         n.y = p.y/myB;
+         n.z = p.z/myC;
+      }
+      n.normalize();
       TGD.R.rotateZDirection (n);
-
-      // construct RCO frame in tangent plane of ellipsoid
-//      RotationMatrix3d RCO = new RotationMatrix3d ();
-//      RotationMatrix3d ROD = new RotationMatrix3d ();
-//      getROD (ROD, n);
-//      RCO.mulInverseLeft (ROD, TGD.R);
-//      RCO.rotateZDirection (Vector3d.Z_UNIT);      
-//      TGD.R.mul (ROD, RCO);
-
       if (coords != null) {
          TCDToCoordinates (coords, TGD);
       }     
@@ -88,109 +114,168 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
    @Override
    public void initializeConstraints () {
       
-      addConstraint (BILATERAL|LINEAR, new Wrench(0, 0, 1, 0, 0, 0)); // constrain translation in normal
-      addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 1, 0, 0)); // constrain rotations about bi-tangent 
-      addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 0, 1, 0)); // constrain rotations about tangent
-      addConstraint (LINEAR);
-      addConstraint (LINEAR);
-      addConstraint (ROTARY, new Wrench(0, 0, 0, 0, 0, 1));
+      // regular constraints
+      addConstraint (BILATERAL|COUPLED);
+      addConstraint (BILATERAL|COUPLED); 
+      addConstraint (BILATERAL|COUPLED);
+      // coordinate limit constraints
+      addConstraint (ROTARY);
+      addConstraint (ROTARY);
+      addConstraint (ROTARY);
 
       addCoordinate (-INF, INF, 0, getConstraint(3));
       addCoordinate (-INF, INF, 0, getConstraint(4));
       addCoordinate (-INF, INF, 0, getConstraint(5));
       
       // initializations for temporary variables used in updateConstraints
+
       int numc = myCoordinates.size ();
       myQRD = new QRDecomposition (); 
-      myQ = new MatrixNd (6, numc);
+      myQ = new MatrixNd (6, 6);
       myG = new Wrench[numc];
-      H = new Matrix6x3 ();
-      Ninv = new Matrix3d();
-      A = new MatrixNd (6, numc);
       for (int i=0; i<numc; i++) {
          myG[i] = new Wrench();
       }
    }
-   
 
-   public void updateConstraints (
-      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
-      Twist velGD, boolean updateEngaged) {
-      
-      // compute n from Seth eq (6), note this is not the surface normal
-      TGD.p.set (p);
-      n.x = p.x/a;
-      n.y = p.y/b;
-      n.z = p.z/c;
-      
-      // compute H matrix - Seth eq (8), with spatial vel V = [ v  w ]^T
-      H.setZero ();
-      H.m10 = -b*n.z;
-      H.m20 = c*n.y;
-      
-      H.m01 = a*n.z;
-      H.m21 = -c*n.x;
-      
-      H.m02 = -a*n.y;
-      H.m12 = b*n.x;
-      
-      H.m30 = 1d;
-      H.m41 = 1d;
-      H.m52 = 1d;
-      
-      // compute Ninv coupling matrix: u = Ninv qdot
+   /**
+    * Computes and returns a matrix to project vectors onto the space
+    * perpendicular to the unit vector of vec.
+    */
+   Matrix3d computeUnitPerpProjector (Vector3d vec) {
+      double mag = vec.norm();
+      Vector3d uvec = new Vector3d();
+      uvec.scale (1/mag, vec);
+      Matrix3d P = new Matrix3d();
+      P.outerProduct (uvec, uvec);
+      P.m00 -= 1;
+      P.m11 -= 1;
+      P.m22 -= 1;
+      P.scale (-1/mag);
+      return P;
+   }
+
+   /**
+    * Computes the coordinate Jacobian. This is a 6 x numc matrix that maps
+    * coordinate speeds onto spatial velocities in the C frame.
+    */
+   public MatrixNd computeCoordinateJacobian (RigidTransform3d TGD) {
+      int numc = numCoordinates();
+      MatrixNd J = new MatrixNd (6, numc);
+
       VectorNd coords = new VectorNd (3);
       TCDToCoordinates (coords, TGD);
       double x = coords.get (X_IDX);
       double y = coords.get (Y_IDX);
       double theta = coords.get (THETA_IDX);
-      double cos1 = Math.cos (x);
-      double sin1 = Math.sin (x);
-      double cos2 = Math.cos (y);
-      double sin2 = Math.sin (y);
-      double cos3 = Math.cos (theta);
-      double sin3 = Math.sin (theta);
-      
-      // Ninv mechmodel notes X-Y-Z, roll=1 pitch=2 yaw=3
-      Ninv.m00 = 1;
-      Ninv.m10 = 0;
-      Ninv.m20 = 0;
-      
-      Ninv.m01 = 0;
-      Ninv.m11 = cos1;
-      Ninv.m21 = sin1;
-      
-      Ninv.m02 = sin2;
-      Ninv.m12 = -cos2*sin1;
-      Ninv.m22 = cos2*cos1;
-      
-      // Ninv john's email
-//      Ninv.m00 = cos2*cos3;
-//      Ninv.m10 = -cos2*sin3;
-//      Ninv.m20 = sin2;
-//      
-//      Ninv.m01 = sin3;
-//      Ninv.m11 = cos3;
-//      Ninv.m21 = 0;
-//      
-//      Ninv.m02 = 0;
-//      Ninv.m12 = 0;
-//      Ninv.m22 = 1;
+      double c1 = Math.cos (x);
+      double s1 = Math.sin (x);
+      double c2 = Math.cos (y);
+      double s2 = Math.sin (y);
+      double c3 = Math.cos (theta);
+      double s3 = Math.sin (theta);
+
+      // rotation Jacobian - maps coordinate speeds onto angular velocities in
+      // the C frame
+      Matrix3d JR = new Matrix3d();
+
+      if (myUseOpenSimApprox) {
+         // rotational Jacobian is quite simple
+         JR.m00 = c2*c3;
+         JR.m10 = -c2*s3;
+         JR.m20 = s2;
+     
+         JR.m01 = s3;
+         JR.m11 = c3;
+         JR.m21 = 0;
+     
+         JR.m02 = 0;
+         JR.m12 = 0;
+         JR.m22 = 1;
+      }
+      else {
+         RotationMatrix3d RC2 = new RotationMatrix3d();
+         RC2.setRotZ (theta); // transforms from last frame 3 to frame 2
+         
+         // for simplicity, do the rotation jacobian calculations for x and y
+         // in frame 2, which is the intermediate frame on the ellipsoid
+         // surface after x and y have been applied but before the theta
+         // rotation. The orientation of this frame is given by R2.
+         RotationMatrix3d R2 = new RotationMatrix3d();
+         R2.mulInverseRight (TGD.R, RC2);
+
+         // extract the x and y direction vectors from R2
+         Vector3d xdir = new Vector3d();
+         Vector3d ydir = new Vector3d();
+         R2.getColumn (0, xdir);
+         R2.getColumn (1, ydir);
+
+         // comoute the projection vectors for the x and z directions
+         Matrix3d PX =
+            computeUnitPerpProjector (
+               new Vector3d (myA*c2, myB*s1*s2, -myC*c1*s2));
+         Matrix3d PZ =
+            computeUnitPerpProjector (
+               new Vector3d (s2/myA, -s1*c2/myB, c1*c2/myC));
+
+         Vector3d dxd1 = new Vector3d(0, myB*s2*c1, myC*s1*s2);
+         PX.mul (dxd1, dxd1);
+         Vector3d dxd2 = new Vector3d(-myA*s2, myB*s1*c2, -myC*c1*c2);
+         PX.mul (dxd2, dxd2);
+
+         Vector3d dzd1 = new Vector3d(0, -c1*c2/myB, -s1*c2/myC);
+         PZ.mul (dzd1, dzd1);
+         Vector3d dzd2 = new Vector3d(c2/myA, s1*s2/myB, -c1*s2/myC);
+         PZ.mul (dzd2, dzd2);
+
+         JR.m00 = -ydir.dot (dzd1);
+         JR.m10 =  xdir.dot (dzd1);
+         JR.m20 =  ydir.dot (dxd1);
+
+         JR.m01 = -ydir.dot (dzd2);
+         JR.m11 =  xdir.dot (dzd2);
+         JR.m21 =  ydir.dot (dxd2);
+
+         JR.m02 = 0;
+         JR.m12 = 0;
+         JR.m22 = 1;
+
+         // transform J2 from frame 2 to frame C
+         JR.mulTransposeLeft (RC2, JR);
+      }
+
+      Vector3d dpd1 = new Vector3d (0, -myB*c1*c2, -myC*s1*c2);
+      Vector3d dpd2 = new Vector3d (myA*c2, myB*s1*s2, -myC*c1*s2);
+
+      dpd1.inverseTransform (TGD.R);
+      dpd2.inverseTransform (TGD.R);
+
+      J.set (0, 0, dpd1.x);
+      J.set (1, 0, dpd1.y);
+      J.set (2, 0, dpd1.z);
+
+      J.set (0, 1, dpd2.x);
+      J.set (1, 1, dpd2.y);
+      J.set (2, 1, dpd2.z);
+
+      J.setSubMatrix (3, 0, JR);
+
+      return J;
+   }
+
+   public void updateConstraints (
+      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
+      Twist velGD, boolean updateEngaged) {
       
       // from OpenSimCustomJoint
+
       int numc = numCoordinates();
       VectorNd gcol = new VectorNd(numc);
-      VectorNd acol = new VectorNd(6);
 
-      // A = H Ninv
-      for (int j=0; j<numc; j++) {
-         Ninv.getColumn (j, acol);
-         H.mul (acol, acol);
-         A.setColumn (j, acol);
-      }
+      MatrixNd C = computeCoordinateJacobian (TGD);
       
       // QR decomposition to compute pseudoinverse A* = inv(R) Q^T
-      myQRD.factorWithPivoting (A);
+      myQRD.factorWithPivoting (C);
       int[] perm = new int[numc];
       myQRD.get (myQ, null, perm);
       if (myQRD.rank (1e-8) < numc) {
@@ -208,107 +293,142 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
          }
       }
       
-      // convert to G coords
+      // set joint coordinate wrenches from myG
       for (int j=0; j<numc; j++) {
-         myG[j].inverseTransform (TGD.R);
          RigidBodyConstraint con = myCoordinates.get (j).limitConstraint;
          con.wrenchG.set (myG[j]);
          con.dotWrenchG.setZero ();
-         // LINEAR/ROTARY flags set at initialization, so no need to update
+      }      
+      // non-coordinate constraints are given by the orthogonal complement
+      // of H, which is given by the last numc-6 columns of Q
+      Wrench wr = new Wrench();
+      for (int i=0; i<6-numc; i++) {
+         RigidBodyConstraint cons = getConstraint(i);
+         myQ.getColumn (numc+i, wr);
+         cons.setWrenchG (wr);
       }
    } 
-   
-   static private void getROD(RotationMatrix3d ROD, Vector3d ndir) {
-      Vector3d bitangent = new Vector3d();
-      bitangent.cross (Vector3d.X_UNIT, ndir); // x-axis is up-direction for ellipsoid (D-frame)
-      ROD.setZXDirections (ndir, bitangent);
-   }
-   
-   static void setRot(RotationMatrix3d RCD, Vector3d ndir, double theta) {
-
-      // O frame is co-incident with C and at neutral orientation
-      RotationMatrix3d RCO = new RotationMatrix3d ();
-      RotationMatrix3d ROD = new RotationMatrix3d ();
-      getROD (ROD, ndir);
-      
-      double sr, cr;
-
-      sr = Math.sin (theta);
-      cr = Math.cos (theta);
-      RCO.m00 = cr;
-      RCO.m01 = -sr;
-      RCO.m10 = sr;
-      RCO.m11 = cr;
-      
-      RCD.mul (ROD, RCO);
-   }
-   
-   static double[] getRot(Vector3d ndir, RotationMatrix3d RCD) {
-      
-      // O frame is co-incident with C and at neutral orientation
-      RotationMatrix3d RCO = new RotationMatrix3d ();
-      RotationMatrix3d ROD = new RotationMatrix3d ();
-      getROD (ROD, ndir);
-      
-      RCO.mulInverseLeft (ROD, RCD);
-      double[] angs = new double[2];
-      angs[0] = Math.atan2 (-RCO.m01, RCO.m11);
-      angs[1] = Math.atan2 (-RCO.m20, RCO.m22);
-      return angs;
-   }
  
+   private void setToNearestAngle (VectorNd coords, int idx, double ang) {
+      coords.set (idx, getCoordinateInfo(idx).nearestAngle(ang));
+   }
+
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
 
-      // compute n from Seth eq (6), note this is not the surface normal
-      p.set (TCD.p);
-      n.x = p.x/a;
-      n.y = p.y/b;
-      n.z = p.z/c;
-      
-      double x, y;
-      double cos2 = Math.sqrt(n.y*n.y + n.z*n.z);
-      double sin2 = n.x;
+      if (myUseOpenSimApprox) {
+         // this is just the TCDToCoordinates code for an XYZ GimbalCoupling
+         double x, y, theta;
 
-      if (Math.abs(cos2) < Math.abs(sin2)) { 
-         y = Math.acos (cos2);
+         RotationMatrix3d R = TCD.R;
+         if (Math.abs(R.m12) < EPS && Math.abs(R.m22) < EPS) {
+            x = 0;
+            y = Math.atan2 (R.m02, R.m22);
+            theta = Math.atan2 (R.m10, R.m11);
+         }
+         else {
+            double sr, cr, r;
+            x = (r = Math.atan2 (-R.m12, R.m22));
+            sr = Math.sin (r);
+            cr = Math.cos (r);
+            y = Math.atan2 (R.m02, -sr*R.m12 + cr*R.m22);
+            theta = Math.atan2 (cr*R.m10 + sr*R.m20, cr*R.m11 + sr*R.m21);
+         }
+         setToNearestAngle (coords, X_IDX, x);
+         setToNearestAngle (coords, Y_IDX, y);
+         setToNearestAngle (coords, THETA_IDX, theta);
       }
       else {
-         y = Math.asin (sin2);
+         Vector3d p = new Vector3d();
+         Vector3d n = new Vector3d();
+
+         // compute n from Seth eq (6), note this is not the surface normal
+         p.set (TCD.p);
+         n.x = p.x/myA;
+         n.y = p.y/myB;
+         n.z = p.z/myC;
+      
+         double x, y;
+         double cos2 = Math.sqrt(n.y*n.y + n.z*n.z);
+         double sin2 = n.x;
+
+         y = Math.atan2 (sin2, cos2);
+         x = Math.atan2 (-n.y, n.z);
+         double cos1 = Math.cos (x);
+         double sin1 = Math.sin (x);
+      
+         setToNearestAngle (coords, X_IDX, x);
+         setToNearestAngle (coords, Y_IDX, y);
+
+         Vector3d zdir = new Vector3d();
+         Vector3d xdir = new Vector3d();
+      
+         // scale n to get surface normal direction at p
+         zdir.x = n.x/myA; // nrml.x = p.x/(a*a)
+         zdir.y = n.y/myB; // nrml.y = p.y/(b*b)
+         zdir.z = n.z/myC; // nrml.z = p.z/(c*c)
+
+         xdir.x = myA*cos2;
+         xdir.y = myB*sin1*sin2;
+         xdir.z = -myC*cos1*sin2;
+
+         RotationMatrix3d R = new RotationMatrix3d();
+         R.setZXDirections (zdir, xdir);
+         R.mulInverseLeft (R, TCD.R);
+
+         double theta = Math.atan2 (R.m10, R.m00);
+         setToNearestAngle (coords, THETA_IDX, theta);
       }
-      x = Math.atan2 (-n.y/cos2, n.z/cos2);
-      
-      coords.set (X_IDX, x);
-      coords.set (Y_IDX, y);
-      
-      // scale n to get surface normal direction at p
-      n.x = n.x/a; // nrml.x = p.x/(a*a)
-      n.y = n.y/b; // nrml.y = p.y/(b*b)
-      n.z = n.z/c; // nrml.z = p.z/(c*c)
-      
-      double[] rpy = getRot (n, TCD.R);
-      coords.set (THETA_IDX, rpy[0]); // theta about z-axis, ZYX rpy
    }
 
    public void coordinatesToTCD (
       RigidTransform3d TCD, double x, double y, double theta) {
 
-      TCD.setIdentity();
+      Vector3d p = new Vector3d();
+      Vector3d zdir = new Vector3d();
+      Vector3d xdir = new Vector3d();
       
-      double cos1 = Math.cos (x);
-      double sin1 = Math.sin (x);
-      double cos2 = Math.cos (y);
-      double sin2 = Math.sin (y);
+      double c1 = Math.cos (x);
+      double s1 = Math.sin (x);
+      double c2 = Math.cos (y);
+      double s2 = Math.sin (y);
       
-      p.x = a*sin2;
-      p.y = -b*sin1*cos2;
-      p.z = c*cos1*cos2;
-      
-      n.x = p.x/(a*a);
-      n.y = p.y/(b*b);
-      n.z = p.z/(c*c);
- 
+      p.x = myA*s2;
+      p.y = -myB*s1*c2;
+      p.z = myC*c1*c2;
+
       TCD.p.set (p);
-      setRot (TCD.R, n, theta);      
+
+      if (myUseOpenSimApprox) {
+         // this is just coordinatesToTCD for an XYZ GimbalCoupling
+         double s3 = Math.sin (theta);
+         double c3 = Math.cos (theta);
+
+         RotationMatrix3d R = TCD.R;
+
+         R.m00 = c2*c3;
+         R.m01 = -c2*s3;
+         R.m02 = s2;
+
+         R.m10 = c1*s3 + c3*s2*s1;
+         R.m11 = c1*c3 - s2*s1*s3;
+         R.m12 = -c2*s1;
+
+         R.m20 = s1*s3 - c1*c3*s2;
+         R.m21 = c3*s1 + c1*s2*s3;
+         R.m22 = c2*c1;
+      }
+      else {
+         zdir.x = p.x/(myA*myA);
+         zdir.y = p.y/(myB*myB);
+         zdir.z = p.z/(myC*myC);
+
+         xdir.x = myA*c2;
+         xdir.y = myB*s1*s2;
+         xdir.z = -myC*c1*s2;
+
+         TCD.R.setZXDirections (zdir, xdir);
+         TCD.R.mulRotZ (theta);
+      }
    }
 
    /**
@@ -316,7 +436,6 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
     */
    public void coordinatesToTCD (
       RigidTransform3d TCD, VectorNd coords) {
-
       coordinatesToTCD (TCD, coords.get(0), coords.get(1), coords.get(2));
    }
 

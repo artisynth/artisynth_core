@@ -619,6 +619,12 @@ public class QuadraticUtils {
          func.setIterationCnt (i);
          return snew;
       }
+      else if (Math.abs(flo) <= EPS) {
+         return slo;
+      }
+      else if (Math.abs(fhi) <= EPS) {
+         return shi;
+      }
       else {
          throw new IllegalArgumentException (
             "Root not bracketed: f("+slo+")="+flo+", f("+shi+")=" + fhi);

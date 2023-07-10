@@ -140,6 +140,10 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       return rpy; // roll = theta, pitch = phi 
    }
  
+   private void setToNearestAngle (VectorNd coords, int idx, double ang) {
+      coords.set (idx, getCoordinateInfo(idx).nearestAngle(ang));
+   }
+
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
 //      QuadraticUtils.nearestPointEllipsoid (ptmp, a, b, c, TCD.p);
       p.set (TCD.p);
@@ -158,14 +162,13 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       else {
          u2 = Math.asin (sin2);
       }
-         
       u1 = Math.atan2 (-n.y/cos2, n.z/cos2);
       
-      coords.set (X_IDX, u1);
-      coords.set (Y_IDX, u2);
+      setToNearestAngle (coords, X_IDX, u1);
+      setToNearestAngle (coords, Y_IDX, u2);
       double[] rpy = getRot (n, TCD.R);
-      coords.set (THETA_IDX, rpy[0]); // theta about z-axis, ZYX rpy
-      coords.set (PHI_IDX, rpy[1]); // phi about y-axis, ZYX rpy
+      setToNearestAngle (coords, THETA_IDX, rpy[0]); // theta about z-axis, ZYX rpy
+      setToNearestAngle (coords, PHI_IDX, rpy[1]); // phi about y-axis, ZYX rpy
    }
 
    public void coordinatesToTCD (

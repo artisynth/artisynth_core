@@ -55,6 +55,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected static final int BILATERAL = RigidBodyConstraint.BILATERAL;
    protected static final int LINEAR    = RigidBodyConstraint.LINEAR;
    protected static final int ROTARY    = RigidBodyConstraint.ROTARY;
+   protected static final int COUPLED   = RigidBodyConstraint.COUPLED;
    protected static final int CONSTANT  = RigidBodyConstraint.CONSTANT;
    protected static final int LIMIT     = RigidBodyConstraint.LIMIT;
 

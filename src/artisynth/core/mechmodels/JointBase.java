@@ -604,7 +604,7 @@ public abstract class JointBase extends BodyConnector  {
          // if we are connected to the hierarchy, adjust the poses of the
           // attached bodies appropriately.
          adjustPoses (TGD);
-      }        
+      }
    }
 
    /**

@@ -7,9 +7,13 @@
 package artisynth.core.mechmodels;
 
 import java.awt.Color;
+import java.io.*;
+import java.util.Deque;
 
-import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshFactory;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
@@ -19,7 +23,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
 import maspack.spatialmotion.EllipsoidCoupling3d;
-import maspack.util.DoubleInterval;
+import maspack.util.*;
 
 /**
  * Implements a 3 DOF joint, in which the origin of frame C is constrained to lie 
@@ -47,6 +51,9 @@ public class EllipsoidJoint3d extends JointBase
 
    private static final double DEFAULT_PLANE_SIZE = 0;
    private double myPlaneSize = DEFAULT_PLANE_SIZE;
+
+   private static final boolean DEFAULT_DRAW_ELLIPSOID = true;
+   private boolean myDrawEllipsoid = DEFAULT_DRAW_ELLIPSOID;
    
    public static PropertyList myProps =
       new PropertyList (EllipsoidJoint3d.class, JointBase.class);
@@ -84,6 +91,9 @@ public class EllipsoidJoint3d extends JointBase
       myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
       myProps.add (
          "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
+      myProps.add (
+         "drawEllipsoid",
+         "draw the ellipsoid surface", DEFAULT_DRAW_ELLIPSOID);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -96,21 +106,29 @@ public class EllipsoidJoint3d extends JointBase
       setRenderProps (defaultRenderProps (null));
    }
 
+   public boolean getDrawEllipsoid() {
+      return myDrawEllipsoid;
+   }
+
+   public void setDrawEllipsoid (boolean enable) {
+      myDrawEllipsoid = enable;
+   }
+
    /**
     * Creates a {@code PlanarJoint} which is not attached to any
     * bodies.  It can subsequently be connected using one of the {@code
     * setBodies} methods.
     */
-   public EllipsoidJoint3d(double a, double b, double c) {
-      setCoupling (new EllipsoidCoupling3d(a, b, c));
-      ellipsoid = maspack.geometry.MeshFactory.createEllipsoid (a, b, c, /*slices=*/100);
+   public EllipsoidJoint3d (
+      double a, double b, double c, boolean useOpenSimApprox) {
+      setCoupling (new EllipsoidCoupling3d(a, b, c, useOpenSimApprox));
+      ellipsoid = MeshFactory.createEllipsoid (a, b, c, /*slices=*/100);
       RenderProps.setFaceStyle (ellipsoid, FaceStyle.NONE);
       RenderProps.setDrawEdges (ellipsoid, true);
       RenderProps.setEdgeColor (ellipsoid, Color.DARK_GRAY);
       setXRange (DEFAULT_X_RANGE);
       setYRange (DEFAULT_Y_RANGE);
       setThetaRange (DEFAULT_THETA_RANGE);      
-
    }
    
    /**
@@ -132,8 +150,9 @@ public class EllipsoidJoint3d extends JointBase
     */
    public EllipsoidJoint3d (
       RigidBody bodyA, RigidTransform3d TCA,
-      RigidBody bodyB, RigidTransform3d TDB, double a, double b, double c) {
-      this(a, b, c);
+      RigidBody bodyB, RigidTransform3d TDB,
+      double a, double b, double c, boolean useOpenSimApprox) {
+      this(a, b, c, useOpenSimApprox);
       setBodies (bodyA, TCA, bodyB, TDB);
    }
    
@@ -153,9 +172,19 @@ public class EllipsoidJoint3d extends JointBase
     */
    public EllipsoidJoint3d (
       ConnectableBody bodyA, ConnectableBody bodyB,
-      RigidTransform3d TCW, RigidTransform3d TDW, double a, double b, double c) {
-      this(a, b, c);
+      RigidTransform3d TCW, RigidTransform3d TDW,
+      double a, double b, double c, boolean useOpenSimApprox) {
+      this(a, b, c, useOpenSimApprox);
       setBodies (bodyA, bodyB, TCW, TDW);
+   }
+   
+   @Override
+   public EllipsoidCoupling3d getCoupling () {
+      return (EllipsoidCoupling3d)myCoupling;
+   }
+
+   public boolean getUseOpenSimApprox() {
+      return getCoupling().getUseOpenSimApprox();
    }
 
    /**
@@ -165,7 +194,8 @@ public class EllipsoidJoint3d extends JointBase
     * @return x range limits for this joint
     */
    public double getX() {
-      return RTOD*getCoordinate (X_IDX);
+      double x = RTOD*getCoordinate (X_IDX);
+      return x;
    }
 
    /**
@@ -467,9 +497,9 @@ public class EllipsoidJoint3d extends JointBase
    @Override
    public void prerender (RenderList list) {
       super.prerender (list);
-      ellipsoid.XMeshToWorld.set (myRenderFrameD);
-      if (isVisible (this)) {
-         list.addIfVisible (ellipsoid);
+      if (myDrawEllipsoid) {
+         ellipsoid.XMeshToWorld.set (myRenderFrameD);
+         ellipsoid.prerender (myRenderProps);
       }
    }
 
@@ -483,7 +513,46 @@ public class EllipsoidJoint3d extends JointBase
       super.render (renderer, flags);
       PlanarConnector.renderXYSquare (
          renderer, myRenderProps, myRenderFrameC, myPlaneSize, isSelected());
+      if (myDrawEllipsoid) {
+         flags |= isSelected() ? Renderer.HIGHLIGHT : 0;
+         ellipsoid.render (renderer, myRenderProps, flags);
+      }
    }
 
    /* --- end Renderable implementation --- */
+
+   // need to implement write and scan so we can handle the semi axis lengths
+   // and the useOpenSimApprox settings.
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      pw.print ("semiAxisLengths=");
+      getCoupling().getSemiAxisLengths().write (
+         pw, fmt, /*withBrackets=*/true);      
+      if (getCoupling().getUseOpenSimApprox()) {
+         pw.print ("useOpenSimApprox=true");
+      }
+      super.writeItems (pw, fmt, ancestor);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "semiAxisLengths")) {
+         Vector3d lens = new Vector3d();
+         lens.scan (rtok);
+         getCoupling().setSemiAxisLengths (lens);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "useOpenSimApprox")) {
+         getCoupling().setUseOpenSimApprox (rtok.scanBoolean());
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
 }

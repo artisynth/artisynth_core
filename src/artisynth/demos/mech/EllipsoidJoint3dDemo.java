@@ -33,6 +33,17 @@ public class EllipsoidJoint3dDemo extends RootModel {
    
    public void build (String[] args) throws IOException {
 
+      boolean useOpenSimApprox = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-openSim")) {
+            useOpenSimApprox = true;
+         }
+         else {
+            System.out.println (
+               "WARNING: unknown option " + args[i]);
+         }
+      }
+
       // create mech model and set rigid body damping parameters
       MechModel mech = new MechModel ("mech");
       mech.setFrameDamping (50.0);
@@ -71,7 +82,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
       TCA.p.set (0, 0, -size/16/2);
       
       EllipsoidJoint3d joint = new EllipsoidJoint3d (
-         box, TCA, base, TDB, a, b, c);
+         box, TCA, base, TDB, a, b, c, useOpenSimApprox);
       
       EllipsoidCoupling3d ec = (EllipsoidCoupling3d)joint.getCoupling ();
       RigidTransform3d T = new RigidTransform3d ();
@@ -86,6 +97,9 @@ public class EllipsoidJoint3dDemo extends RootModel {
       joint.setMaxX (135);
       joint.setMinY (-30);
       joint.setMaxY (30);
+      joint.setMinTheta (-360);
+      joint.setMaxTheta (360);
+
 //      joint.setMinTheta (-10);
 //      joint.setMaxTheta (10);
       
@@ -97,8 +111,8 @@ public class EllipsoidJoint3dDemo extends RootModel {
 //      joint.setMaxTheta (180);
       
 //      mech.setGravity (Vector3d.ZERO);
-      joint.setCoordinate (0, DTOR*10);
-      joint.setCoordinate (1, DTOR*10);
+      joint.setCoordinate (0, DTOR*20);
+      joint.setCoordinate (1, DTOR*0);
       joint.setCoordinate (2, DTOR*0);
       
 //      box.setVelocity (0, 0, -5, 0, 0, 0);

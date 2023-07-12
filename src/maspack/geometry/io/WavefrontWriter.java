@@ -116,7 +116,7 @@ public class WavefrontWriter extends MeshWriterBase {
 
       ArrayList<Vertex3d> vertices = mesh.getVertices();
       ArrayList<Vector3d> normals = null;
-      int[] normalIndices = mesh.getNormalIndices();
+      int[] normalIndices = null;
       int[] indexOffs = mesh.getFeatureIndexOffsets();
       ArrayList<Vector3d> textureCoords = mesh.getTextureCoords();
       int[] textureIndices = mesh.getTextureIndices();
@@ -124,6 +124,7 @@ public class WavefrontWriter extends MeshWriterBase {
 
       boolean writeTextureInfo = textureCoords != null;
       if (getWriteNormals (mesh)) {
+         normalIndices = mesh.getNormalIndices();
          normals = mesh.getNormals();
       }
 

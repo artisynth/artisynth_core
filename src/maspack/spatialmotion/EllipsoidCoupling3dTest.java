@@ -65,40 +65,39 @@ public class EllipsoidCoupling3dTest extends UnitTest {
       System.out.println ("J=\n" + J.toString("%14.8f"));
    }
 
+   void testKinematics (
+      EllipsoidCoupling3d coupling, VectorNd coordsChk) {
+
+      VectorNd coords = new VectorNd(coordsChk.size());
+      RigidTransform3d TCD = new RigidTransform3d();
+      coupling.coordinatesToTCD (TCD, coordsChk);
+      coupling.setCoordinateValues (coordsChk, null);
+      coupling.TCDToCoordinates (coords, TCD);
+
+      checkEquals ("testCoordinateSolutions", coords, coordsChk, 1e-12);
+      checkCoordinateJacobian (coupling, coordsChk);
+   }
+
    void testKinematics (boolean useOpenSimApprox) {
 
       int ntests = 100;
-
-      RigidTransform3d TCD = new RigidTransform3d();
       double size = 0.5;
       EllipsoidCoupling3d coupling = 
          new EllipsoidCoupling3d (size/2, size/3, size/4, useOpenSimApprox);
 
-      checkCoordinateJacobian (coupling, new VectorNd(3));
+      VectorNd coordsChk = new VectorNd(3);
+      testKinematics (coupling, coordsChk);
+      // check at the singularity
+      coordsChk.set (1, Math.PI/2);
+      testKinematics (coupling, coordsChk);
 
+      checkCoordinateJacobian (coupling, new VectorNd(3));
       for (int i=0; i<ntests; i++) {
-         VectorNd coordsChk = new VectorNd(3);
-         VectorNd coords = new VectorNd(3);
 
          coordsChk.set (0, RandomGenerator.nextDouble(-Math.PI, Math.PI));
          coordsChk.set (1, RandomGenerator.nextDouble(-Math.PI/2, Math.PI/2));
-         coordsChk.set (2, Math.PI/2);
-         //coordsChk.set (2, RandomGenerator.nextDouble(-Math.PI, Math.PI));
-            
-         coupling.coordinatesToTCD (TCD, coordsChk);
-         coupling.setCoordinateValues (coordsChk, null);
-         coupling.TCDToCoordinates (coords, TCD);
-
-         //System.out.println ("coords=" + coords.toString ("%12.6f"));
-         checkCoordinateJacobian (coupling, coordsChk);
-            
-         checkEquals ("testCoordinateSolutions", coords, coordsChk, 1e-12);
-
-         // RigidTransform3d TGD = new RigidTransform3d();
-         // coupling.projectToConstraints (TGD, TCD, coords);
-
-         // checkEquals ("TGD after projection", TGD, TCD, 1e-12);
-         // checkEquals ("coords after projection", coords, coordsChk, 1e-12);
+         coordsChk.set (2, RandomGenerator.nextDouble(-Math.PI, Math.PI));
+         testKinematics (coupling, coordsChk);
       }
    }
 

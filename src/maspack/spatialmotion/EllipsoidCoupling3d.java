@@ -180,7 +180,8 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       Matrix3d JR = new Matrix3d();
 
       if (myUseOpenSimApprox) {
-         // rotational Jacobian is quite simple
+         // rotational Jacobian is quite simple, and is the same as for
+         // an XYZ GimbalCoupling
          JR.m00 = c2*c3;
          JR.m10 = -c2*s3;
          JR.m20 = s2;
@@ -210,7 +211,39 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
          R2.getColumn (0, xdir);
          R2.getColumn (1, ydir);
 
-         // comoute the projection vectors for the x and z directions
+         // We know that the x and z directions of the R2 are given by
+         // normalizing the vectors
+         // 
+         // xvec = (A*c2, B*s1*s2, -C*c1*s2)'
+         //
+         // zvec = (s2/A, -s1*c2/B, c1*c2/C)'
+         //
+         // such that
+         //
+         // xdir = xvec/||xvec||  and  zdir = zvec/||zvec||
+         //
+         // Then, if dxdj and dzdj are the derivatives of xdir and zdir with
+         // respect to joint coordinate j, it is possible to show that the
+         // angular velocity (in frame 2) imparted by j is:
+         //
+         // [ wx ] = [ -ydir . dzdj ]
+         // [ wy ] = [  xdir . dzdj ] dotj
+         // [ wz ] = [  ydir . dxdj ]
+         //
+         // where dotj is the coordinate speed of j. The column of R2
+         // corresponding to j is then the right side vector.
+         
+         // To compute dxdj and dzdj, we take the derivatives of xvec and zvec
+         // with respect to j, and then use the following formula for
+         // differentiating a unit vector u that is formed from a non-unit
+         // vector v::
+         //
+         // dudj = PU vdj, where PU = (I - u*u^T)/||v||
+         //
+         // We call PU the unit perpendicular projector for the vector v.
+         //
+
+         // compute unit perpendicular projectors PX and PZ for xvec and zvec:
          Matrix3d PX =
             computeUnitPerpProjector (
                new Vector3d (myA*c2, myB*s1*s2, -myC*c1*s2));
@@ -218,15 +251,21 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
             computeUnitPerpProjector (
                new Vector3d (s2/myA, -s1*c2/myB, c1*c2/myC));
 
+         // compute the derivatives of xdir with respect to coordinates 1 and
+         // 2, by multiplying the derivatives of xvec and zvec by PX
          Vector3d dxd1 = new Vector3d(0, myB*s2*c1, myC*s1*s2);
          PX.mul (dxd1, dxd1);
          Vector3d dxd2 = new Vector3d(-myA*s2, myB*s1*c2, -myC*c1*c2);
          PX.mul (dxd2, dxd2);
 
+         // compute the derivatives of zdir with respect to coordinates 1 and 2
          Vector3d dzd1 = new Vector3d(0, -c1*c2/myB, -s1*c2/myC);
          PZ.mul (dzd1, dzd1);
          Vector3d dzd2 = new Vector3d(c2/myA, s1*s2/myB, -c1*s2/myC);
          PZ.mul (dzd2, dzd2);
+
+         // compute the first two columns of JR, corresponding to dot1 and
+         // dot2, using the angular velocity formula given above:
 
          JR.m00 = -ydir.dot (dzd1);
          JR.m10 =  xdir.dot (dzd1);
@@ -235,6 +274,9 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
          JR.m01 = -ydir.dot (dzd2);
          JR.m11 =  xdir.dot (dzd2);
          JR.m21 =  ydir.dot (dxd2);
+
+         // The last column is (0, 0, 1), since dot3 imparts an angular
+         // velocity about z in frame 2.
 
          JR.m02 = 0;
          JR.m12 = 0;
@@ -315,50 +357,37 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
 
-      if (myUseOpenSimApprox) {
-         // this is just the TCDToCoordinates code for an XYZ GimbalCoupling
-         double x, y, theta;
+      Vector3d p = new Vector3d();
+      Vector3d n = new Vector3d();
 
-         RotationMatrix3d R = TCD.R;
-         if (Math.abs(R.m12) < EPS && Math.abs(R.m22) < EPS) {
-            x = 0;
-            y = Math.atan2 (R.m02, R.m22);
-            theta = Math.atan2 (R.m10, R.m11);
-         }
-         else {
-            double sr, cr, r;
-            x = (r = Math.atan2 (-R.m12, R.m22));
-            sr = Math.sin (r);
-            cr = Math.cos (r);
-            y = Math.atan2 (R.m02, -sr*R.m12 + cr*R.m22);
-            theta = Math.atan2 (cr*R.m10 + sr*R.m20, cr*R.m11 + sr*R.m21);
-         }
-         setToNearestAngle (coords, X_IDX, x);
-         setToNearestAngle (coords, Y_IDX, y);
-         setToNearestAngle (coords, THETA_IDX, theta);
+      // compute n from Seth eq (6), note this is not the surface normal
+      p.set (TCD.p);
+      n.x = p.x/myA;
+      n.y = p.y/myB;
+      n.z = p.z/myC;
+      
+      double x, y, theta;
+      double c2 = Math.sqrt(n.y*n.y + n.z*n.z);
+      double s2 = n.x;
+
+      y = Math.atan2 (s2, c2);
+      if (Math.abs(n.y) < EPS && Math.abs(n.z) < EPS) {
+         x = 0;
       }
       else {
-         Vector3d p = new Vector3d();
-         Vector3d n = new Vector3d();
-
-         // compute n from Seth eq (6), note this is not the surface normal
-         p.set (TCD.p);
-         n.x = p.x/myA;
-         n.y = p.y/myB;
-         n.z = p.z/myC;
-      
-         double x, y;
-         double cos2 = Math.sqrt(n.y*n.y + n.z*n.z);
-         double sin2 = n.x;
-
-         y = Math.atan2 (sin2, cos2);
          x = Math.atan2 (-n.y, n.z);
-         double cos1 = Math.cos (x);
-         double sin1 = Math.sin (x);
+      }
+      double c1 = Math.cos (x);
+      double s1 = Math.sin (x);
       
-         setToNearestAngle (coords, X_IDX, x);
-         setToNearestAngle (coords, Y_IDX, y);
+      setToNearestAngle (coords, X_IDX, x);
+      setToNearestAngle (coords, Y_IDX, y);
 
+      if (myUseOpenSimApprox) {
+         RotationMatrix3d R = TCD.R;
+         theta = Math.atan2 (c1*R.m10 + s1*R.m20, c1*R.m11 + s1*R.m21);
+      }
+      else {
          Vector3d zdir = new Vector3d();
          Vector3d xdir = new Vector3d();
       
@@ -366,18 +395,18 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
          zdir.x = n.x/myA; // nrml.x = p.x/(a*a)
          zdir.y = n.y/myB; // nrml.y = p.y/(b*b)
          zdir.z = n.z/myC; // nrml.z = p.z/(c*c)
-
-         xdir.x = myA*cos2;
-         xdir.y = myB*sin1*sin2;
-         xdir.z = -myC*cos1*sin2;
-
+            
+         xdir.x = myA*c2;
+         xdir.y = myB*s1*s2;
+         xdir.z = -myC*c1*s2;
+            
          RotationMatrix3d R = new RotationMatrix3d();
          R.setZXDirections (zdir, xdir);
          R.mulInverseLeft (R, TCD.R);
 
-         double theta = Math.atan2 (R.m10, R.m00);
-         setToNearestAngle (coords, THETA_IDX, theta);
+         theta = Math.atan2 (R.m10, R.m00);
       }
+      setToNearestAngle (coords, THETA_IDX, theta);
    }
 
    public void coordinatesToTCD (
@@ -399,36 +428,33 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       TCD.p.set (p);
 
       if (myUseOpenSimApprox) {
-         // this is just coordinatesToTCD for an XYZ GimbalCoupling
-         double s3 = Math.sin (theta);
-         double c3 = Math.cos (theta);
+         // Note: this is equivalent to coordinatesToTCD for an XYZ
+         // GimbalCoupling
 
-         RotationMatrix3d R = TCD.R;
+         // set z direction to an approximation of the surface normal
+         zdir.x = p.x/myA;
+         zdir.y = p.y/myB;
+         zdir.z = p.z/myC;
 
-         R.m00 = c2*c3;
-         R.m01 = -c2*s3;
-         R.m02 = s2;
-
-         R.m10 = c1*s3 + c3*s2*s1;
-         R.m11 = c1*c3 - s2*s1*s3;
-         R.m12 = -c2*s1;
-
-         R.m20 = s1*s3 - c1*c3*s2;
-         R.m21 = c3*s1 + c1*s2*s3;
-         R.m22 = c2*c1;
+         // set x direction to that imparted by the first two joints of an XYZ
+         // GimbalCoupling
+         xdir.x = c2;
+         xdir.y = s1*s2;
+         xdir.z = -c1*s2;
       }
       else {
+         // set z direction to the ellipsoid surface normal at p
          zdir.x = p.x/(myA*myA);
          zdir.y = p.y/(myB*myB);
          zdir.z = p.z/(myC*myC);
 
+         // set x direction to the surface tangent direction imparted by y
          xdir.x = myA*c2;
          xdir.y = myB*s1*s2;
          xdir.z = -myC*c1*s2;
-
-         TCD.R.setZXDirections (zdir, xdir);
-         TCD.R.mulRotZ (theta);
       }
+      TCD.R.setZXDirections (zdir, xdir);
+      TCD.R.mulRotZ (theta);
    }
 
    /**

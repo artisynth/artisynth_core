@@ -1437,10 +1437,6 @@ public class MultiPointSpring extends PointSpringBase
          mySolveBlkNums = new int[nump*nump];
          myNumBlks = nump;
       }
-      boolean debug = false; // getName().equals ("LAT3");
-      if (debug) {
-         System.out.println ("LAT3 init");
-      }
       ArrayList<Segment> segs = new ArrayList<>(numSegmentSpecs());
       if (nump > 1) {
          if (mySegmentSpecs.get(0).isPointConditional()) {
@@ -1472,12 +1468,6 @@ public class MultiPointSpring extends PointSpringBase
                   ArrayList<Point3d> ipnts =
                      getInitialSegmentPoints (i0, i);
                   wseg.initializeStrand (ipnts);
-                  if (debug) {
-                     System.out.println (" init for i0=" + i0);
-                     for (Point3d p : ipnts) {
-                        System.out.println ("  " + p);
-                     }
-                  }
                }
                segs.add (seg);
                i0 = i;
@@ -6134,6 +6124,7 @@ public class MultiPointSpring extends PointSpringBase
             data.zput (knot.myWrappableIdx);
             data.zput (knot.myPrevWrappableIdx);
          }
+         data.dput (myLength);
       }
 
       /**
@@ -6166,7 +6157,7 @@ public class MultiPointSpring extends PointSpringBase
             updateContacts (/*getNormalDeriv=*/true); 
          }
          updateSubSegments();
-         myLength = computeLength();
+         myLength = data.dget();
       }
 
       /**

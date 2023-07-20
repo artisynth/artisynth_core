@@ -66,8 +66,10 @@ public class PlanarTranslationJointDemo extends RootModel {
       ControlPanel panel = new ControlPanel();
       panel.addWidget (joint, "x");
       panel.addWidget (joint, "xRange");
+      panel.addWidget (joint, "xLocked");
       panel.addWidget (joint, "y");
       panel.addWidget (joint, "yRange");
+      panel.addWidget (joint, "yLocked");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");

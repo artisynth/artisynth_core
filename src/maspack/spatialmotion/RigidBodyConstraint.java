@@ -167,6 +167,8 @@ public class RigidBodyConstraint {
       if (enabled) {
          flags = (flags & ~BILATERAL);
          engaged = 0;
+         engagedCnt = 0;
+         state = 0;
       }
       else {
          flags = (flags | BILATERAL);

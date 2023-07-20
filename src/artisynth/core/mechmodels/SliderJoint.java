@@ -53,10 +53,15 @@ public class SliderJoint extends JointBase
    private static DoubleInterval DEFAULT_Z_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static boolean DEFAULT_Z_LOCKED = false;
+
    static {
       myProps.add ("z", "slider distance", 0);
       myProps.add (
          "zRange", "range for z", DEFAULT_Z_RANGE);
+      myProps.add (
+         "zLocked isZLocked",
+         "set whether z is locked", DEFAULT_Z_LOCKED);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -266,6 +271,24 @@ public class SliderJoint extends JointBase
     */
    public void setMinZ (double min) {
       setZRange (new DoubleInterval (min, getMaxZ()));
+   }
+
+   /**
+    * Queries whether the z coordinate for this joint is locked.
+    *
+    * @return {@code true} if z is locked
+    */
+   public boolean isZLocked() {
+      return isCoordinateLocked (Z_IDX);
+   }
+
+   /**
+    * Set whether the z coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks z
+    */
+   public void setZLocked (boolean locked) {
+      setCoordinateLocked (Z_IDX, locked);
    }
 
    /* --- begin Renderable implementation --- */

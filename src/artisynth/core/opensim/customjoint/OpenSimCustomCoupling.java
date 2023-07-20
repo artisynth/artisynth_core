@@ -188,16 +188,6 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    }
 
    @Override
-   public int numBilaterals() {
-      return 6 - numCoordinates() + myNumLocked;
-   }
-
-   @Override
-   public int numUnilaterals() {
-      return myNumClamped;
-   }
-
-   @Override
    public void initializeConstraints() {
 
       if (myCoords == null) {
@@ -206,7 +196,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          return;
       }
       int numc = myCoords.length;
-      int numb = 6 - numc + myNumLocked;
+      int numb = 6 - numc;
       // add bilateral constraints
       for (int i=0; i<numb; i++) {
          addConstraint (BILATERAL);
@@ -217,23 +207,21 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       }
       // create coordinates with associated constraints if needed
       int bidx = 6 - numc;
-      int uidx = numb;
       for (int i=0; i<numc; i++) {
          Coordinate c = myCoords[i];
          CoordinateInfo cinfo;
-         if (c.getLocked()) {
-            // coordinate is locked
-            cinfo = addCoordinate (-INF, INF, 0, getConstraint(bidx++));
-         }
-         else if (c.getClamped()) {
+         if (c.getClamped()) {
             // range limited
             cinfo = addCoordinate (
                c.getRange().getLowerBound(), 
                c.getRange().getUpperBound(), 
-               0, getConstraint(uidx++));
+               0, getConstraint(bidx++));
          }
          else {
-            cinfo = addCoordinate (-INF, INF, 0, getConstraint(uidx++));
+            cinfo = addCoordinate (-INF, INF, 0, getConstraint(bidx++));
+         }
+         if (c.getLocked()) {
+            cinfo.setLocked (true);
          }
          cinfo.setValue (c.getDefaultValue());
       }

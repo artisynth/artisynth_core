@@ -102,6 +102,8 @@ public class UniversalJointDemo extends RootModel {
       panel.addWidget (joint, "pitch");
       panel.addWidget (joint, "rollRange");
       panel.addWidget (joint, "pitchRange");
+      panel.addWidget (joint, "rollLocked");
+      panel.addWidget (joint, "pitchLocked");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");

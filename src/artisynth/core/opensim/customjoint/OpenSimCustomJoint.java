@@ -137,6 +137,15 @@ public class OpenSimCustomJoint extends JointBase {
          myLocalProps.add (
             c.getName(), methods, i, "joint coordinate value", 0);
       }
+
+      String lockMethods =
+         "isCoordinateLocked setCoordinateLocked";
+      for (int i=0; i<coords.length; i++) {
+         Coordinate c = coords[i];
+         myLocalProps.add (
+            c.getName() + "_locked", lockMethods, i,
+            "whether or not joint is locked", false);
+      }
    }
 
    public AxisDrawStyle getDrawRotAxes () {

@@ -46,8 +46,8 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected ArrayList<RigidBodyConstraint> myConstraints = new ArrayList<>();
    protected ArrayList<CoordinateInfo> myCoordinates = new ArrayList<>();
    protected VectorNd myCoordValues = new VectorNd(); //used for temp storage
-   protected int myNumBilaterals = 0;
-   protected int myNumUnilaterals = 0;
+   protected int myNumBilaterals = -1; // -1 means we don't know
+   protected int myNumUnilaterals = -1;
    protected int myCoordValueCnt; // incremented when coordinate values change
 
    // Flags imported from RigidBodyConstraint for convenience:
@@ -58,6 +58,12 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected static final int COUPLED   = RigidBodyConstraint.COUPLED;
    protected static final int CONSTANT  = RigidBodyConstraint.CONSTANT;
    protected static final int LIMIT     = RigidBodyConstraint.LIMIT;
+
+   protected static final int LOCKED    = 0x100;
+
+   protected final double sqr (double x) {
+      return x*x;
+   }
 
    protected double clip(double value, double min, double max) {
       if (value < min) {
@@ -185,6 +191,34 @@ public abstract class RigidBodyCoupling implements Cloneable {
       
       public String getName() {
          return name;
+      }
+
+      void setFlag (int flag) {
+         infoFlags |= flag;
+      }
+
+      void clearFlag (int flag) {
+         infoFlags &= ~flag;
+      }
+
+      boolean isFlagSet (int flag) {
+         return (infoFlags & flag) != 0;
+      }
+
+      public boolean isLocked() {
+         return isFlagSet (LOCKED);
+      }
+
+      public void setLocked(boolean locked) {
+         if (locked) {
+            setFlag (LOCKED);
+         }
+         else {
+            clearFlag (LOCKED);
+         }
+         if (limitConstraint != null) {
+            limitConstraint.setUnilateral (!locked);
+         }
       }
    }      
 
@@ -432,8 +466,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected void initializeConstraintInfo() {
       myCoordinates = new ArrayList<>();
       myConstraints = new ArrayList<>();
-      myNumUnilaterals = 0;
-      myNumBilaterals = 0;
+      invalidateConstraintCounts();
       initializeConstraints ();
       myCoordValues.setSize (myCoordinates.size());
    }
@@ -828,6 +861,9 @@ public abstract class RigidBodyCoupling implements Cloneable {
     * @return number of bilateral constraints
     */
    public int numBilaterals() {
+      if (myNumBilaterals == -1) {
+         updateConstraintCounts();
+      }
       return myNumBilaterals;
    }
 
@@ -838,6 +874,9 @@ public abstract class RigidBodyCoupling implements Cloneable {
     * @return number of unilateral constraints
     */
    public int numUnilaterals() {
+      if (myNumUnilaterals == -1) {
+         updateConstraintCounts();
+      }
       return myNumUnilaterals;
    }
 
@@ -875,6 +914,31 @@ public abstract class RigidBodyCoupling implements Cloneable {
    public abstract void updateConstraints (
       RigidTransform3d TGD, RigidTransform3d TCD, Twist errC, 
       Twist velGD, boolean updateEngaged);
+
+
+   /**
+    * Called to update the number of bilateral and unilateral constraints.
+    */
+   protected void updateConstraintCounts() {
+      myNumBilaterals = 0;
+      myNumUnilaterals = 0;
+      for (RigidBodyConstraint rc : myConstraints) {
+         if (rc.isUnilateral()) {
+            myNumUnilaterals++;
+         }
+         else {
+            myNumBilaterals++;
+         }
+      }
+   }
+
+   /**
+    * Invalidates the number of bilateral and unilateral constraints.
+    */
+   protected void invalidateConstraintCounts() {
+      myNumBilaterals = -1;
+      myNumUnilaterals = -1;
+   }
 
    /**
     * Called inside the {@link RigidBodyCoupling} constructor to allocate
@@ -1067,12 +1131,14 @@ public abstract class RigidBodyCoupling implements Cloneable {
          flags |= CONSTANT;
          cons.wrenchG.set (wrenchG);
       }
-      if ((flags & BILATERAL) != 0) {
-         myNumBilaterals++;
-      }
-      else {
-         myNumUnilaterals++;
-      }
+      // if ((flags & BILATERAL) != 0) {
+      //    myNumBilaterals++;
+      // }
+      // else {
+      //    myNumUnilaterals++;
+      // }
+      myNumBilaterals = -1;
+      myNumUnilaterals = -1;
       cons.setFlags(flags);
       cons.index = myConstraints.size();
       myConstraints.add (cons);
@@ -1257,6 +1323,29 @@ public abstract class RigidBodyCoupling implements Cloneable {
          projectAndUpdateCoordinates (TGD, TGD);
       }
       return myCoordinates.get(idx).value;
+   }
+   
+   /**
+    * Sets whether the {@code idx}-th coordinate is locked.
+    * 
+    * @param idx coordinate index
+    * @param locked if {@code true}, locks the coordinate
+    */
+   public void setCoordinateLocked (int idx, boolean locked) {
+      if (locked != isCoordinateLocked (idx)) {
+         myCoordinates.get(idx).setLocked (locked);
+         invalidateConstraintCounts();
+      }
+   }
+   
+   /**
+    * Queries whether the {@code idx}-th coordinate is locked.
+    * 
+    * @param idx coordinate index
+    * @return {@code true} if the coordinate is locked
+    */
+   public boolean isCoordinateLocked (int idx) {
+      return myCoordinates.get(idx).isLocked();
    }
    
    /**

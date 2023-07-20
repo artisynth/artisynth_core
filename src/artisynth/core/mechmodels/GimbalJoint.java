@@ -46,6 +46,10 @@ public class GimbalJoint extends SphericalJointBase {
    private static DoubleInterval DEFAULT_ANGLE_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static boolean DEFAULT_ROLL_LOCKED = false;
+   private static boolean DEFAULT_PITCH_LOCKED = false;
+   private static boolean DEFAULT_YAW_LOCKED = false;
+
    /**
     * Specifies whether the roll-pitch-yaw angles of this joint describe
     * instrinic rotations about the Z-Y-X or X-Y-Z axes.
@@ -94,6 +98,15 @@ public class GimbalJoint extends SphericalJointBase {
          "pitchRange", "range for pitch", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
       myProps.add (
          "yawRange", "range for yaw", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
+      myProps.add (
+         "rollLocked isRollLocked",
+         "set whether the roll coordinate is locked", DEFAULT_ROLL_LOCKED);
+      myProps.add (
+         "pitchLocked isPitchLocked",
+         "set whether the pitch coordinate is locked", DEFAULT_PITCH_LOCKED);
+      myProps.add (
+         "yawLocked isYawLocked",
+         "set whether the yaw coordinate is locked", DEFAULT_YAW_LOCKED);
       myProps.add (
          "applyEuler", "enable/disable Euler filter", true);
    }
@@ -341,6 +354,24 @@ public class GimbalJoint extends SphericalJointBase {
    }
 
    /**
+    * Queries whether the roll coordinate for this joint is locked.
+    *
+    * @return {@code true} if roll is locked
+    */
+   public boolean isRollLocked() {
+      return isCoordinateLocked (ROLL_IDX);
+   }
+
+   /**
+    * Set whether the roll coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks roll
+    */
+   public void setRollLocked (boolean locked) {
+      setCoordinateLocked (ROLL_IDX, locked);
+   }
+   
+   /**
     * Queries this joint's pitch value, in degrees. See {@link #setPitch} for
     * more details.
     *
@@ -454,6 +485,24 @@ public class GimbalJoint extends SphericalJointBase {
    }
 
    /**
+    * Queries whether the pitch coordinate for this joint is locked.
+    *
+    * @return {@code true} if pitch is locked
+    */
+   public boolean isPitchLocked() {
+      return isCoordinateLocked (PITCH_IDX);
+   }
+
+   /**
+    * Set whether the pitch coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks pitch
+    */
+   public void setPitchLocked (boolean locked) {
+      setCoordinateLocked (PITCH_IDX, locked);
+   }
+   
+   /**
     * Queries this joint's yaw value, in degrees. See {@link #setYaw} for
     * more details.
     *
@@ -547,6 +596,24 @@ public class GimbalJoint extends SphericalJointBase {
     */
    public void setMinYaw (double min) {
       setYawRange (new DoubleInterval (min, getMaxYaw()));
+   }
+
+   /**
+    * Queries whether the yaw coordinate for this joint is locked.
+    *
+    * @return {@code true} if yaw is locked
+    */
+   public boolean isYawLocked() {
+      return isCoordinateLocked (YAW_IDX);
+   }
+
+   /**
+    * Set whether the yaw coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks yaw
+    */
+   public void setYawLocked (boolean locked) {
+      setCoordinateLocked (YAW_IDX, locked);
    }
    
    public void setApplyEuler(boolean apply) {

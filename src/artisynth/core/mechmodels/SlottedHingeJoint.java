@@ -54,6 +54,9 @@ public class SlottedHingeJoint extends JointBase
    private static DoubleInterval DEFAULT_X_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static boolean DEFAULT_THETA_LOCKED = false;
+   private static boolean DEFAULT_X_LOCKED = false;
+
    private static double DEFAULT_SLOT_DEPTH = 1;
    private double mySlotDepth = DEFAULT_SLOT_DEPTH;
 
@@ -81,9 +84,15 @@ public class SlottedHingeJoint extends JointBase
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
       myProps.add (
+         "thetaLocked isThetaLocked",
+         "set whether theta is locked", DEFAULT_THETA_LOCKED);
+      myProps.add (
          "x", "translation along the slot", 0);
       myProps.add (
          "xRange", "range for x", DEFAULT_X_RANGE, "%8.3f 1E");
+      myProps.add (
+         "xLocked isXLocked",
+         "set whether x is locked", DEFAULT_X_LOCKED);
       myProps.add (
          "slotDepth", 
          "depth of the slot for rendering purposes", DEFAULT_SLOT_DEPTH);
@@ -316,6 +325,24 @@ public class SlottedHingeJoint extends JointBase
    }
 
    /**
+    * Queries whether the theta coordinate for this joint is locked.
+    *
+    * @return {@code true} if theta is locked
+    */
+   public boolean isThetaLocked() {
+      return isCoordinateLocked (THETA_IDX);
+   }
+
+   /**
+    * Set whether the theta coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks theta
+    */
+   public void setThetaLocked (boolean locked) {
+      setCoordinateLocked (THETA_IDX, locked);
+   }
+
+   /**
     * Queries this joint's x value. See {@link #setX} for more details.
     *
     * @return current x value
@@ -406,6 +433,24 @@ public class SlottedHingeJoint extends JointBase
     */
    public void setMinX (double min) {
       setXRange (new DoubleInterval (min, getMaxX()));
+   }
+
+   /**
+    * Queries whether the x coordinate for this joint is locked.
+    *
+    * @return {@code true} if x is locked
+    */
+   public boolean isXLocked() {
+      return isCoordinateLocked (X_IDX);
+   }
+
+   /**
+    * Set whether the x coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks x
+    */
+   public void setXLocked (boolean locked) {
+      setCoordinateLocked (X_IDX, locked);
    }
 
    private void clearSlotRenderData() {

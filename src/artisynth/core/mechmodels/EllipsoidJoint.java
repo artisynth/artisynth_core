@@ -7,8 +7,11 @@
 package artisynth.core.mechmodels;
 
 import java.awt.Color;
+import java.io.*;
+import java.util.Deque;
 
-import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.MeshFactory;
 import maspack.matrix.RigidTransform3d;
@@ -20,7 +23,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
 import maspack.spatialmotion.EllipsoidCoupling;
-import maspack.util.DoubleInterval;
+import maspack.util.*;
 
 /**
  * Implements a 3 DOF joint, in which the origin of frame C is constrained to lie 
@@ -51,6 +54,9 @@ public class EllipsoidJoint extends JointBase
    private static final double DEFAULT_PLANE_SIZE = 0;
    private double myPlaneSize = DEFAULT_PLANE_SIZE;
    
+   private static final boolean DEFAULT_DRAW_ELLIPSOID = true;
+   private boolean myDrawEllipsoid = DEFAULT_DRAW_ELLIPSOID;
+   
    public static PropertyList myProps =
       new PropertyList (EllipsoidJoint.class, JointBase.class);
    
@@ -67,7 +73,12 @@ public class EllipsoidJoint extends JointBase
 
    private static DoubleInterval DEFAULT_PHI_RANGE =
       new DoubleInterval ("[-inf,inf])");
-   
+
+   private static boolean DEFAULT_X_LOCKED = false;
+   private static boolean DEFAULT_Y_LOCKED = false;
+   private static boolean DEFAULT_THETA_LOCKED = false;
+   private static boolean DEFAULT_PHI_LOCKED = false;
+
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createRenderProps (host);
       props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
@@ -78,18 +89,33 @@ public class EllipsoidJoint extends JointBase
       myProps.add ("x", "u ellipsoid paramter", 0, "[-360,360]");
       myProps.add (
          "xRange", "range for x", DEFAULT_X_RANGE);
+      myProps.add (
+         "xLocked isXLocked",
+         "set whether x is locked", DEFAULT_X_LOCKED);
       myProps.add ("y", "v ellipsoid parameter", 0, "[0,180]");
       myProps.add (
          "yRange", "range for y", DEFAULT_Y_RANGE);
+      myProps.add (
+         "yLocked isYLocked",
+         "set whether y is locked", DEFAULT_Y_LOCKED);
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+      myProps.add (
+         "thetaLocked isThetaLocked",
+         "set whether theta is locked", DEFAULT_THETA_LOCKED);
       myProps.add ("phi", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "phiRange", "range for phi", DEFAULT_PHI_RANGE, "%8.3f 1E");
+      myProps.add (
+         "phiLocked isPhiLocked",
+         "set whether phi is locked", DEFAULT_PHI_LOCKED);
       myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
       myProps.add (
          "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
+      myProps.add (
+         "drawEllipsoid",
+         "draw the ellipsoid surface", DEFAULT_DRAW_ELLIPSOID);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -102,13 +128,22 @@ public class EllipsoidJoint extends JointBase
       setRenderProps (defaultRenderProps (null));
    }
 
+   public boolean getDrawEllipsoid() {
+      return myDrawEllipsoid;
+   }
+
+   public void setDrawEllipsoid (boolean enable) {
+      myDrawEllipsoid = enable;
+   }
+
    /**
     * Creates a {@code PlanarJoint} which is not attached to any
     * bodies.  It can subsequently be connected using one of the {@code
     * setBodies} methods.
     */
-   public EllipsoidJoint(double a, double b, double c) {
-      setCoupling (new EllipsoidCoupling(a, b, c));
+   public EllipsoidJoint(
+      double a, double b, double c, double alpha, boolean useOpenSimApprox) {
+      setCoupling (new EllipsoidCoupling(a, b, c, alpha, useOpenSimApprox));
       ellipsoid = MeshFactory.createEllipsoid (a, b, c, /*slices=*/100);
       RenderProps.setFaceStyle (ellipsoid, FaceStyle.NONE);
       RenderProps.setDrawEdges (ellipsoid, true);
@@ -138,8 +173,9 @@ public class EllipsoidJoint extends JointBase
     */
    public EllipsoidJoint (
       RigidBody bodyA, RigidTransform3d TCA,
-      RigidBody bodyB, RigidTransform3d TDB, double a, double b, double c) {
-      this(a, b, c);
+      RigidBody bodyB, RigidTransform3d TDB,
+      double a, double b, double c, double alpha, boolean useOpenSimApprox) {
+      this(a, b, c, alpha, useOpenSimApprox);
       setBodies (bodyA, TCA, bodyB, TDB);
    }
    
@@ -160,8 +196,21 @@ public class EllipsoidJoint extends JointBase
    public EllipsoidJoint (
       ConnectableBody bodyA, ConnectableBody bodyB,
       RigidTransform3d TCW, RigidTransform3d TDW, double a, double b, double c) {
-      this(a, b, c);
+      this(a, b, c, 0, false);
       setBodies (bodyA, bodyB, TCW, TDW);
+   }
+
+   @Override
+   public EllipsoidCoupling getCoupling () {
+      return (EllipsoidCoupling)myCoupling;
+   }
+
+   public boolean getUseOpenSimApprox() {
+      return getCoupling().getUseOpenSimApprox();
+   }
+
+   public double getAlpha() {
+      return getCoupling().getAlpha();
    }
 
    /**
@@ -259,6 +308,24 @@ public class EllipsoidJoint extends JointBase
    }
 
    /**
+    * Queries whether the x coordinate for this joint is locked.
+    *
+    * @return {@code true} if x is locked
+    */
+   public boolean isXLocked() {
+      return isCoordinateLocked (X_IDX);
+   }
+
+   /**
+    * Set whether the x coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks x
+    */
+   public void setXLocked (boolean locked) {
+      setCoordinateLocked (X_IDX, locked);
+   }
+
+   /**
     * Queries this joint's y value. See {@link #setY} for more details.
     *
     * @return current y value
@@ -349,6 +416,24 @@ public class EllipsoidJoint extends JointBase
     */
    public void setMinY (double min) {
       setYRange (new DoubleInterval (min, getMaxY()));
+   }
+
+   /**
+    * Queries whether the y coordinate for this joint is locked.
+    *
+    * @return {@code true} if y is locked
+    */
+   public boolean isYLocked() {
+      return isCoordinateLocked (Y_IDX);
+   }
+
+   /**
+    * Set whether the y coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks y
+    */
+   public void setYLocked (boolean locked) {
+      setCoordinateLocked (Y_IDX, locked);
    }
 
    /**
@@ -447,7 +532,25 @@ public class EllipsoidJoint extends JointBase
    }
 
    /**
-    * Queries this joint's phi value, in degrees. See {@link #setTheta} for
+    * Queries whether the theta coordinate for this joint is locked.
+    *
+    * @return {@code true} if theta is locked
+    */
+   public boolean isThetaLocked() {
+      return isCoordinateLocked (THETA_IDX);
+   }
+
+   /**
+    * Set whether the theta coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks theta
+    */
+   public void setThetaLocked (boolean locked) {
+      setCoordinateLocked (THETA_IDX, locked);
+   }
+
+   /**
+    * Queries this joint's phi value, in degrees. See {@link #setPhi} for
     * more details.
     *
     * @return current phi value
@@ -474,7 +577,7 @@ public class EllipsoidJoint extends JointBase
     * @return phi range limits for this joint
     */
    public DoubleInterval getPhiRange () {
-      return getCoordinateRangeDeg (THETA_IDX);
+      return getCoordinateRangeDeg (PHI_IDX);
    }
 
    /**
@@ -483,7 +586,7 @@ public class EllipsoidJoint extends JointBase
     * @return lower phi range limit
     */
    public double getMinPhi () {
-      return getMinCoordinateDeg (THETA_IDX);
+      return getMinCoordinateDeg (PHI_IDX);
    }
 
    /**
@@ -492,7 +595,7 @@ public class EllipsoidJoint extends JointBase
     * @return upper phi range limit
     */
    public double getMaxPhi () {
-      return getMaxCoordinateDeg (THETA_IDX);
+      return getMaxCoordinateDeg (PHI_IDX);
    }
 
    /**
@@ -507,7 +610,7 @@ public class EllipsoidJoint extends JointBase
     * @param range phi range limits for this joint
     */
    public void setPhiRange (DoubleInterval range) {
-      setCoordinateRangeDeg (THETA_IDX, range);
+      setCoordinateRangeDeg (PHI_IDX, range);
    }
    
    /**
@@ -541,6 +644,23 @@ public class EllipsoidJoint extends JointBase
       setPhiRange (new DoubleInterval (min, getMaxPhi()));
    }
 
+   /**
+    * Queries whether the phi coordinate for this joint is locked.
+    *
+    * @return {@code true} if phi is locked
+    */
+   public boolean isPhiLocked() {
+      return isCoordinateLocked (PHI_IDX);
+   }
+
+   /**
+    * Set whether the phi coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks phi
+    */
+   public void setPhiLocked (boolean locked) {
+      setCoordinateLocked (PHI_IDX, locked);
+   }
    
    /**
     * Queries the size used to render this joint's tangent plane as a square.
@@ -569,9 +689,9 @@ public class EllipsoidJoint extends JointBase
    @Override
    public void prerender (RenderList list) {
       super.prerender (list);
-      ellipsoid.XMeshToWorld.set (myRenderFrameD);
-      if (isVisible (this)) {
-         list.addIfVisible (ellipsoid);
+      if (myDrawEllipsoid) {
+         ellipsoid.XMeshToWorld.set (myRenderFrameD);
+         ellipsoid.prerender (myRenderProps);
       }
    }
 
@@ -585,7 +705,52 @@ public class EllipsoidJoint extends JointBase
       super.render (renderer, flags);
       PlanarConnector.renderXYSquare (
          renderer, myRenderProps, myRenderFrameC, myPlaneSize, isSelected());
+      if (myDrawEllipsoid) {
+         flags |= isSelected() ? Renderer.HIGHLIGHT : 0;
+         ellipsoid.render (renderer, myRenderProps, flags);
+      }
    }
 
    /* --- end Renderable implementation --- */
+
+   // need to implement write and scan so we can handle the semi axis lengths
+   // and the useOpenSimApprox settings.
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      pw.print ("semiAxisLengths=");
+      getCoupling().getSemiAxisLengths().write (
+         pw, fmt, /*withBrackets=*/true);      
+      if (getCoupling().getAlpha() != 0) {
+         pw.print ("alpha=" + fmt.format(getCoupling().getAlpha()));
+      }
+      if (getCoupling().getUseOpenSimApprox()) {
+         pw.print ("useOpenSimApprox=true");
+      }
+      super.writeItems (pw, fmt, ancestor);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "semiAxisLengths")) {
+         Vector3d lens = new Vector3d();
+         lens.scan (rtok);
+         getCoupling().setSemiAxisLengths (lens);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "useOpenSimApprox")) {
+         getCoupling().setUseOpenSimApprox (rtok.scanBoolean());
+         return true;
+      }
+      else if (scanAttributeName (rtok, "alpha")) {
+         getCoupling().setAlpha (rtok.scanNumber());
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
 }

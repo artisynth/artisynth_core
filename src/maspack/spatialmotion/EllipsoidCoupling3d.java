@@ -371,7 +371,7 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       double s2 = n.x;
 
       y = Math.atan2 (s2, c2);
-      if (Math.abs(n.y) < EPS && Math.abs(n.z) < EPS) {
+      if (c2 < EPS) {
          x = 0;
       }
       else {
@@ -455,7 +455,36 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       }
       TCD.R.setZXDirections (zdir, xdir);
       TCD.R.mulRotZ (theta);
+
+      /**
+         checking way to compute x without s1 and c1
+
+      Vector3d xchk = new Vector3d();
+      Vector3d xraw = new Vector3d();
+      double c2x = Math.sqrt (sqr(p.y/myB) + sqr(p.z/myC));
+      if (c2x <= EPS) {
+         xchk.set (0, 0, -1);
+         xraw.set (xchk);
+      }
+      else {
+         if (myUseOpenSimApprox) {
+            xchk.set (c2x, -p.x*p.y/(c2x*myA*myB), -p.x*p.z/(c2x*myA*myC));
+         }
+         else {
+            xchk.set (myA*c2x, -p.x*p.y/(c2x*myA), -p.x*p.z/(c2x*myA));
+         }
+         xraw.set (xchk);
+         xchk.normalize();
+      }
+      xdir.normalize();
+      if (xdir.distance (xchk) > maxXerr) {
+         maxXerr = xdir.distance (xchk);
+         System.out.println ("maxXerr=" + maxXerr);
+      }
+      */
    }
+
+   static double maxXerr = 0;
 
    /**
     * {@inheritDoc}

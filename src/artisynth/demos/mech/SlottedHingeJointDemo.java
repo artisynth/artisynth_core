@@ -74,8 +74,10 @@ public class SlottedHingeJointDemo extends RootModel {
       ControlPanel panel = new ControlPanel();
       panel.addWidget (joint, "theta");
       panel.addWidget (joint, "thetaRange");
+      panel.addWidget (joint, "thetaLocked");
       panel.addWidget (joint, "x");
       panel.addWidget (joint, "xRange");
+      panel.addWidget (joint, "xLocked");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");

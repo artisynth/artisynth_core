@@ -83,7 +83,12 @@ public class ScapulothoracicJoint extends JointBase {
       // TODO: set scapula_winging axis origin/direction. For now, assuming
       // scapula_winging is the local y-axis of the joint's C frame.
      
-     EllipsoidJoint joint = new EllipsoidJoint (childRB, TJC, parentRB, TJP, radii[0], radii[1], radii[2]);
+     EllipsoidJoint joint = new EllipsoidJoint (
+        childRB, TJC, parentRB, TJP, 
+        radii[0], radii[1], radii[2],
+        scapula_winging_axis_direction, 
+        /*useOpenSimApprox=*/true);
+     joint.setName (getName());
 
      // set joint ranges for the joint coordinate properties
      ArrayList<Coordinate> cs = getCoordinateArray ();

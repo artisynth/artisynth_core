@@ -46,8 +46,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
 
       // create mech model and set rigid body damping parameters
       MechModel mech = new MechModel ("mech");
-      mech.setFrameDamping (50.0);
-      mech.setRotaryDamping (10.0);
+      mech.setInertialDamping (0.1);
       addModel (mech);
 
       double size = 5.0; // size parameter
@@ -59,7 +58,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
       RigidTransform3d XBW = new RigidTransform3d ();
       XBW.R.set (0, 1, 0, 0, 0, 1, 1, 0, 0);
       base.setPose (XBW);
-      base.setAxisLength (size*2);
+      //base.setAxisLength (size*2);
       base.setDynamic (false);
       mech.addRigidBody (base);
 
@@ -67,7 +66,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
       RigidBody box = RigidBody.createBox (
          "box", size/4, size/4, size/16, /*density=*/1000.0);
 //      box.translateCoordinateFrame (new Point3d(0,0,-size/16));
-      box.setAxisLength (size);
+      //box.setAxisLength (size);
       RigidTransform3d XAW = new RigidTransform3d();
 //      XAW.R.set (0, 0, 1, 0, 0, -1, 0, 1, 0);
       XAW.R.mulRotX90 ();
@@ -111,7 +110,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
 //      joint.setMaxTheta (180);
       
 //      mech.setGravity (Vector3d.ZERO);
-      joint.setCoordinate (0, DTOR*20);
+      joint.setCoordinate (0, DTOR*0);
       joint.setCoordinate (1, DTOR*0);
       joint.setCoordinate (2, DTOR*0);
       
@@ -130,7 +129,7 @@ public class EllipsoidJoint3dDemo extends RootModel {
       joint.setDrawFrameD (AxisDrawStyle.ARROW);
       joint.setShaftLength (0.4*size); // draw the shaft
       joint.setShaftRadius (0.02*size);
-      RenderProps.setFaceColor (joint, Color.BLUE); // set colors
+      RenderProps.setFaceColor (joint, new Color (0.3f, 0.6f, 0.6f));
       RenderProps.setFaceColor (box, new Color (0.5f, 1f, 1f));
 
       // create control panel to interactively adjust properties

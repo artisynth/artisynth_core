@@ -56,6 +56,9 @@ public class CylindricalJoint extends JointBase
    private static DoubleInterval DEFAULT_THETA_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static boolean DEFAULT_Z_LOCKED = false;
+   private static boolean DEFAULT_THETA_LOCKED = false;
+
    public static PropertyList myProps =
       new PropertyList (CylindricalJoint.class, JointBase.class);
 
@@ -63,9 +66,15 @@ public class CylindricalJoint extends JointBase
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+      myProps.add (
+         "thetaLocked isThetaLocked",
+         "set whether theta is locked", DEFAULT_THETA_LOCKED);
       myProps.add ("z", "slider distance", 0);
       myProps.add (
          "zRange", "range for z", DEFAULT_Z_RANGE);
+      myProps.add (
+         "zLocked isZLocked",
+         "set whether z is locked", DEFAULT_Z_LOCKED);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -284,6 +293,24 @@ public class CylindricalJoint extends JointBase
    }
 
    /**
+    * Queries whether the theta coordinate for this joint is locked.
+    *
+    * @return {@code true} if theta is locked
+    */
+   public boolean isThetaLocked() {
+      return isCoordinateLocked (THETA_IDX);
+   }
+
+   /**
+    * Set whether the theta coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks theta
+    */
+   public void setThetaLocked (boolean locked) {
+      setCoordinateLocked (THETA_IDX, locked);
+   }
+
+   /**
     * Queries this joint's z value. See {@link #setZ} for more details.
     *
     * @return current z value
@@ -374,6 +401,24 @@ public class CylindricalJoint extends JointBase
     */
    public void setMinZ (double min) {
       setZRange (new DoubleInterval (min, getMaxZ()));
+   }
+
+   /**
+    * Queries whether the z coordinate for this joint is locked.
+    *
+    * @return {@code true} if z is locked
+    */
+   public boolean isZLocked() {
+      return isCoordinateLocked (Z_IDX);
+   }
+
+   /**
+    * Set whether the z coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks z
+    */
+   public void setZLocked (boolean locked) {
+      setCoordinateLocked (Z_IDX, locked);
    }
 
    /* --- begin Renderable implementation --- */

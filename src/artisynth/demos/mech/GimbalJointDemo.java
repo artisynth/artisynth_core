@@ -72,6 +72,9 @@ public class GimbalJointDemo extends RootModel {
       panel.addWidget (joint, "rollRange");
       panel.addWidget (joint, "pitchRange");
       panel.addWidget (joint, "yawRange");
+      panel.addWidget (joint, "rollLocked");
+      panel.addWidget (joint, "pitchLocked");
+      panel.addWidget (joint, "yawLocked");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");

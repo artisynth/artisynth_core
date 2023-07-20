@@ -70,6 +70,7 @@ public class HingeJointDemo extends RootModel {
       ControlPanel panel = new ControlPanel();
       panel.addWidget (joint, "theta");
       panel.addWidget (joint, "thetaRange");
+      panel.addWidget (joint, "thetaLocked");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");

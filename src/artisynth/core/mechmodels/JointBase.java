@@ -151,6 +151,7 @@ public abstract class JointBase extends BodyConnector  {
     * @return coordinate range
     */
    public DoubleInterval getCoordinateRange (int idx) {
+      checkCoordinateIndex (idx);
       return myCoupling.getCoordinateRange (idx);
    }
 
@@ -161,6 +162,7 @@ public abstract class JointBase extends BodyConnector  {
     * @return minimum range
     */
    public double getMinCoordinate (int idx) {
+      checkCoordinateIndex (idx);
       return myCoupling.getCoordinateRange(idx).getLowerBound();
    }
 
@@ -171,6 +173,7 @@ public abstract class JointBase extends BodyConnector  {
     * @return maximum range
     */
    public double getMaxCoordinate (int idx) {
+      checkCoordinateIndex (idx);
       return myCoupling.getCoordinateRange(idx).getUpperBound();
    }
 
@@ -185,6 +188,7 @@ public abstract class JointBase extends BodyConnector  {
       if (range == null) {
          range = new DoubleInterval (-INF, INF);
       }
+      checkCoordinateIndex (idx);
       myCoupling.setCoordinateRange (idx, range);
       if (attachmentsInitialized()) {
          // if we are connected to bodies, might have to update the coordinate
@@ -203,6 +207,7 @@ public abstract class JointBase extends BodyConnector  {
     * @return coordinate range in degrees
     */
    public DoubleInterval getCoordinateRangeDeg (int idx) {
+      checkCoordinateIndex (idx);
       DoubleInterval range = myCoupling.getCoordinateRange (idx);
       return new DoubleInterval (
          RTOD*range.getLowerBound(), RTOD*range.getUpperBound());
@@ -216,6 +221,7 @@ public abstract class JointBase extends BodyConnector  {
     * @return minimum range in degrees
     */
    public double getMinCoordinateDeg (int idx) {
+      checkCoordinateIndex (idx);
       return RTOD*myCoupling.getCoordinateRange(idx).getLowerBound();
    }
 
@@ -227,6 +233,7 @@ public abstract class JointBase extends BodyConnector  {
     * @return maximum range in degrees
     */
    public double getMaxCoordinateDeg (int idx) {
+      checkCoordinateIndex (idx);
       return RTOD*myCoupling.getCoordinateRange(idx).getUpperBound();
    }
 
@@ -241,6 +248,7 @@ public abstract class JointBase extends BodyConnector  {
       if (range == null) {
          range = new DoubleInterval (-INF, INF);
       }
+      checkCoordinateIndex (idx);
       setCoordinateRange (
          idx, new DoubleInterval (
             toRadians(range.getLowerBound()),
@@ -334,7 +342,7 @@ public abstract class JointBase extends BodyConnector  {
       checkCoordinateIndex (idx);
       return myCoupling.getCoordinateMotionType(idx);
    }
-   
+
    /**
     * Applies a generalized force to the {@code idx}-th coordinate for this 
     * joint.
@@ -641,6 +649,36 @@ public abstract class JointBase extends BodyConnector  {
             adjustPoses (TGD);
          }
       }        
+   }
+
+   /**
+    * Queries whether the {@code idx}-th coordinate for this joint is locked.
+    * See {@link #setCoordinateLocked} for details.
+    *
+    * @param idx index of the coordinate
+    * @return {@code true} if the coordinate is locked
+    */
+   public boolean isCoordinateLocked (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.isCoordinateLocked (idx);
+   }
+
+
+   /**
+    * Sets whether the {@code idx}-th coordinate for this joint is locked,
+    * meaning that it will hold its current value. Locking a coordinate will
+    * reduce the number of joint DOFs by one.
+    *
+    * @param idx index of the coordinate  
+    * @param locked if {@code true}, sets the coordinate to be locked
+    */
+   public void setCoordinateLocked (int idx, boolean locked) {
+      checkCoordinateIndex (idx);
+      if (locked != isCoordinateLocked(idx)) {
+         myCoupling.setCoordinateLocked (idx, locked);
+         myStateVersion++;
+         notifyParentOfChange (new DynamicActivityChangeEvent(this));
+      }
    }
 
    /**

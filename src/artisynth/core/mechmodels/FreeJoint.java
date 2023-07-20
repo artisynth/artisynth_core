@@ -54,6 +54,13 @@ public class FreeJoint extends JointBase {
    private static DoubleInterval DEFAULT_COORD_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static boolean DEFAULT_X_LOCKED = false;
+   private static boolean DEFAULT_Y_LOCKED = false;
+   private static boolean DEFAULT_Z_LOCKED = false;
+   private static boolean DEFAULT_ROLL_LOCKED = false;
+   private static boolean DEFAULT_PITCH_LOCKED = false;
+   private static boolean DEFAULT_YAW_LOCKED = false;
+
    static {
       myProps.add ("x", "x translation", 0);
       myProps.add ("y", "y translation", 0);
@@ -73,6 +80,24 @@ public class FreeJoint extends JointBase {
          "pitchRange", "range for pitch", DEFAULT_COORD_RANGE, "%8.3f 1E");
       myProps.add (
          "yawRange", "range for yaw", DEFAULT_COORD_RANGE, "%8.3f 1E");
+      myProps.add (
+         "xLocked isXLocked",
+         "set whether x is locked", DEFAULT_X_LOCKED);
+      myProps.add (
+         "yLocked isYLocked",
+         "set whether y is locked", DEFAULT_Y_LOCKED);
+      myProps.add (
+         "zLocked isZLocked",
+         "set whether z is locked", DEFAULT_Z_LOCKED);
+      myProps.add (
+         "rollLocked isRollLocked",
+         "set whether the roll coordinate is locked", DEFAULT_ROLL_LOCKED);
+      myProps.add (
+         "pitchLocked isPitchLocked",
+         "set whether the pitch coordinate is locked", DEFAULT_PITCH_LOCKED);
+      myProps.add (
+         "yawLocked isYawLocked",
+         "set whether the yaw coordinate is locked", DEFAULT_YAW_LOCKED);
       myProps.add (
          "applyEuler", "enable/disable Euler filter", true);
    }
@@ -265,6 +290,24 @@ public class FreeJoint extends JointBase {
    }
 
    /**
+    * Queries whether the x coordinate for this joint is locked.
+    *
+    * @return {@code true} if x is locked
+    */
+   public boolean isXLocked() {
+      return isCoordinateLocked (X_IDX);
+   }
+
+   /**
+    * Set whether the x coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks x
+    */
+   public void setXLocked (boolean locked) {
+      setCoordinateLocked (X_IDX, locked);
+   }
+
+   /**
     * Queries this joint's y value. See {@link #setY} for more details.
     *
     * @return current y value
@@ -310,6 +353,24 @@ public class FreeJoint extends JointBase {
    }
 
    /**
+    * Queries whether the y coordinate for this joint is locked.
+    *
+    * @return {@code true} if y is locked
+    */
+   public boolean isYLocked() {
+      return isCoordinateLocked (Y_IDX);
+   }
+
+   /**
+    * Set whether the y coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks y
+    */
+   public void setYLocked (boolean locked) {
+      setCoordinateLocked (Y_IDX, locked);
+   }
+
+   /**
     * Queries this joint's z value. See {@link #setZ} for more details.
     *
     * @return current z value
@@ -352,6 +413,24 @@ public class FreeJoint extends JointBase {
     */
    public void setZRange (DoubleInterval range) {
       setCoordinateRange (Z_IDX, range);
+   }
+
+   /**
+    * Queries whether the z coordinate for this joint is locked.
+    *
+    * @return {@code true} if z is locked
+    */
+   public boolean isZLocked() {
+      return isCoordinateLocked (Z_IDX);
+   }
+
+   /**
+    * Set whether the z coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks z
+    */
+   public void setZLocked (boolean locked) {
+      setCoordinateLocked (Z_IDX, locked);
    }
 
    /**
@@ -450,6 +529,24 @@ public class FreeJoint extends JointBase {
       setRollRange (new DoubleInterval (min, getMaxRoll()));
    }
 
+   /**
+    * Queries whether the roll coordinate for this joint is locked.
+    *
+    * @return {@code true} if roll is locked
+    */
+   public boolean isRollLocked() {
+      return isCoordinateLocked (ROLL_IDX);
+   }
+
+   /**
+    * Set whether the roll coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks roll
+    */
+   public void setRollLocked (boolean locked) {
+      setCoordinateLocked (ROLL_IDX, locked);
+   }
+   
    /**
     * Queries this joint's pitch value, in degrees. See {@link #setPitch} for
     * more details.
@@ -564,6 +661,24 @@ public class FreeJoint extends JointBase {
    }
 
    /**
+    * Queries whether the pitch coordinate for this joint is locked.
+    *
+    * @return {@code true} if pitch is locked
+    */
+   public boolean isPitchLocked() {
+      return isCoordinateLocked (PITCH_IDX);
+   }
+
+   /**
+    * Set whether the pitch coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks pitch
+    */
+   public void setPitchLocked (boolean locked) {
+      setCoordinateLocked (PITCH_IDX, locked);
+   }
+   
+   /**
     * Queries this joint's yaw value, in degrees. See {@link #setYaw} for
     * more details.
     *
@@ -657,6 +772,24 @@ public class FreeJoint extends JointBase {
     */
    public void setMinYaw (double min) {
       setYawRange (new DoubleInterval (min, getMaxYaw()));
+   }
+   
+   /**
+    * Queries whether the yaw coordinate for this joint is locked.
+    *
+    * @return {@code true} if yaw is locked
+    */
+   public boolean isYawLocked() {
+      return isCoordinateLocked (YAW_IDX);
+   }
+
+   /**
+    * Set whether the yaw coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks yaw
+    */
+   public void setYawLocked (boolean locked) {
+      setCoordinateLocked (YAW_IDX, locked);
    }
    
    public void setApplyEuler(boolean apply) {

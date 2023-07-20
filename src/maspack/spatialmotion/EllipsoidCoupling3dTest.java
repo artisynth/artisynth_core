@@ -8,6 +8,9 @@ public class EllipsoidCoupling3dTest extends UnitTest {
    private double RTOD = 180/Math.PI;
    private double DTOR = Math.PI/180;
 
+   private double DOUBLE_PREC = 1e-16;
+   private double EPS = 1000*DOUBLE_PREC;
+
    void checkCoordinateJacobian (
       EllipsoidCoupling3d coupling, VectorNd coords0) {
 
@@ -26,14 +29,21 @@ public class EllipsoidCoupling3dTest extends UnitTest {
       RigidTransform3d TCD10 = new RigidTransform3d();
       for (int j=0; j<numc; j++) {
          coords1.set (coords0);
-         coords1.set (j, coords0.get(j) + h);
-
+         double scale = 1/h;
+         if (j == 1 && coords0.get(j) + h >= Math.PI/2) {
+            // respect PI/2 limit on second coords
+            scale = -scale;
+            coords1.set (j, coords0.get(j) - h);
+         }
+         else {
+            coords1.set (j, coords0.get(j) + h);
+         }
          coupling.coordinatesToTCD (TCD1, coords1);
          TCD10.mulInverseLeft (TCD0, TCD1);
          
          Twist velC = new Twist();
          velC.set (TCD10);
-         velC.scale (1/h);
+         velC.scale (scale);
          Jnum.set (0, j, velC.v.x);
          Jnum.set (1, j, velC.v.y);
          Jnum.set (2, j, velC.v.z);
@@ -65,6 +75,23 @@ public class EllipsoidCoupling3dTest extends UnitTest {
       System.out.println ("J=\n" + J.toString("%14.8f"));
    }
 
+   void testProjection (EllipsoidCoupling3d coupling) {
+      RigidTransform3d TCD = new RigidTransform3d();
+      RigidTransform3d TGD = new RigidTransform3d();
+      RigidTransform3d ERR = new RigidTransform3d();
+      int ntests = 100;
+      VectorNd coords = new VectorNd (coupling.numCoordinates());
+      for (int i=0; i<ntests; i++) {
+         TCD.setRandom();
+         coupling.projectToConstraints (TGD, TCD, coords);
+         coupling.coordinatesToTCD (ERR, coords);
+         ERR.mulInverseLeft (TGD, ERR);
+         checkEquals (
+            "TGD projection error", ERR,
+            RigidTransform3d.IDENTITY, 10000*DOUBLE_PREC);
+      }
+   }
+
    void testKinematics (
       EllipsoidCoupling3d coupling, VectorNd coordsChk) {
 
@@ -78,9 +105,9 @@ public class EllipsoidCoupling3dTest extends UnitTest {
       checkCoordinateJacobian (coupling, coordsChk);
    }
 
-   void testKinematics (boolean useOpenSimApprox) {
+   void testCoupling (boolean useOpenSimApprox) {
 
-      int ntests = 100;
+      int ntests = 1000;
       double size = 0.5;
       EllipsoidCoupling3d coupling = 
          new EllipsoidCoupling3d (size/2, size/3, size/4, useOpenSimApprox);
@@ -89,22 +116,22 @@ public class EllipsoidCoupling3dTest extends UnitTest {
       testKinematics (coupling, coordsChk);
       // check at the singularity
       coordsChk.set (1, Math.PI/2);
-      testKinematics (coupling, coordsChk);
-
-      checkCoordinateJacobian (coupling, new VectorNd(3));
       for (int i=0; i<ntests; i++) {
-
          coordsChk.set (0, RandomGenerator.nextDouble(-Math.PI, Math.PI));
          coordsChk.set (1, RandomGenerator.nextDouble(-Math.PI/2, Math.PI/2));
          coordsChk.set (2, RandomGenerator.nextDouble(-Math.PI, Math.PI));
          testKinematics (coupling, coordsChk);
       }
+
+      for (int i=0; i<ntests; i++) {
+         testProjection (coupling);
+      }
    }
 
    public void test() {
       //testSpecial();
-      testKinematics (true);
-      testKinematics (false);
+      testCoupling (true);
+      testCoupling (false);
    }
 
    public static void main (String[] args) {

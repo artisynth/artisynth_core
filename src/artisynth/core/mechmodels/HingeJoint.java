@@ -53,10 +53,15 @@ public class HingeJoint extends JointBase implements CopyableComponent {
    private static DoubleInterval DEFAULT_THETA_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static boolean DEFAULT_THETA_LOCKED = false;
+
    static {
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+      myProps.add (
+         "thetaLocked isThetaLocked",
+         "set whether theta is locked", DEFAULT_THETA_LOCKED);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -270,6 +275,24 @@ public class HingeJoint extends JointBase implements CopyableComponent {
     */
    public void setMinTheta (double min) {
       setThetaRange (new DoubleInterval (min, getMaxTheta()));
+   }
+
+   /**
+    * Queries whether the theta coordinate for this joint is locked.
+    *
+    * @return {@code true} if theta is locked
+    */
+   public boolean isThetaLocked() {
+      return isCoordinateLocked (THETA_IDX);
+   }
+
+   /**
+    * Set whether the theta coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks theta
+    */
+   public void setThetaLocked (boolean locked) {
+      setCoordinateLocked (THETA_IDX, locked);
    }
 
    /* --- begin Renderable implementation --- */

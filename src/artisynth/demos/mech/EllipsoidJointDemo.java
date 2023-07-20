@@ -22,16 +22,30 @@ import maspack.render.Renderer.AxisDrawStyle;
 
 public class EllipsoidJointDemo extends RootModel {
 
+   protected static final double RTOD = 180/Math.PI;
+   protected static final double DTOR = Math.PI/180;
+
    public void build (String[] args) throws IOException {
+
+      boolean useOpenSimApprox = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-openSim")) {
+            useOpenSimApprox = true;
+         }
+         else {
+            System.out.println (
+               "WARNING: unknown option " + args[i]);
+         }
+      }
 
       // create mech model and set rigid body damping parameters
       MechModel mech = new MechModel ("mech");
-      mech.setFrameDamping (50.0);
-      mech.setRotaryDamping (10.0);
+      mech.setInertialDamping (0.1);
       addModel (mech);
 
-      double size = 1.0; // size parameter
-      double a = size, b = size/2, c = size/2;
+      double size = 5.0; // size parameter
+      double a = size/2, b = size/3, c = size/4;
+      double alpha = 0;
 
       // create base box at centre of ellipsoid joint
       RigidBody base = RigidBody.createBox (
@@ -39,7 +53,7 @@ public class EllipsoidJointDemo extends RootModel {
       RigidTransform3d XBW = new RigidTransform3d ();
       XBW.R.set (0, 1, 0, 0, 0, 1, 1, 0, 0);
       base.setPose (XBW);
-      base.setAxisLength (size*2);
+      //base.setAxisLength (size*2);
       base.setDynamic (false);
       mech.addRigidBody (base);
 
@@ -47,7 +61,7 @@ public class EllipsoidJointDemo extends RootModel {
       RigidBody box = RigidBody.createBox (
          "box", size/4, size/4, size/16, /*density=*/1000.0);
 //      box.translateCoordinateFrame (new Point3d(0,0,-size/16));
-      box.setAxisLength (size);
+      //box.setAxisLength (size);
       RigidTransform3d XAW = new RigidTransform3d();
 //      XAW.R.set (0, 0, 1, 0, 0, -1, 0, 1, 0);
       XAW.R.mulRotX90 ();
@@ -62,22 +76,23 @@ public class EllipsoidJointDemo extends RootModel {
       TCA.p.set (0, 0, -size/16/2);
       
       EllipsoidJoint joint = new EllipsoidJoint (
-         box, TCA, base, TDB, a, b, c);
+         box, TCA, base, TDB, a, b, c, alpha, useOpenSimApprox);
+
       mech.addBodyConnector (joint);
       // set coordinate ranges
-      joint.setMinX (-180);
-      joint.setMaxX (180);
-      joint.setMinY (-90);
-      joint.setMaxY (90);
-      joint.setMinTheta (-180);
-      joint.setMaxTheta (180);
-      joint.setMinPhi (-180);
-      joint.setMaxPhi (180);
+      joint.setMinX (-135);
+      joint.setMaxX (135);
+      joint.setMinY (-30);
+      joint.setMaxY (30);
+      joint.setMinTheta (-360);
+      joint.setMaxTheta (360);
+      joint.setMinPhi (-30);
+      joint.setMaxPhi (30);
       
       joint.setCoordinate (0, 0);
       joint.setCoordinate (1, 0);
       joint.setCoordinate (2, 0);
-//      joint.setCoordinate (3, 0);
+      joint.setCoordinate (3, 0);
       
       getMainViewer ().setAxialView (AxisAlignedRotation.NX_Z);
 
@@ -92,19 +107,23 @@ public class EllipsoidJointDemo extends RootModel {
       joint.setDrawFrameD (AxisDrawStyle.ARROW);
       joint.setShaftLength (0.4*size); // draw the shaft
       joint.setShaftRadius (0.02*size);
-      RenderProps.setFaceColor (joint, Color.BLUE); // set colors
+      RenderProps.setFaceColor (joint, new Color (0.3f, 0.6f, 0.6f));
       RenderProps.setFaceColor (box, new Color (0.5f, 1f, 1f));
 
       // create control panel to interactively adjust properties
       ControlPanel panel = new ControlPanel();
       panel.addWidget (joint, "x");
       panel.addWidget (joint, "xRange");
+      panel.addWidget (joint, "xLocked");
       panel.addWidget (joint, "y");
       panel.addWidget (joint, "yRange");
+      panel.addWidget (joint, "yLocked");
       panel.addWidget (joint, "theta");
       panel.addWidget (joint, "thetaRange");
+      panel.addWidget (joint, "thetaLocked");
       panel.addWidget (joint, "phi");
       panel.addWidget (joint, "phiRange");
+      panel.addWidget (joint, "phiLocked");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");

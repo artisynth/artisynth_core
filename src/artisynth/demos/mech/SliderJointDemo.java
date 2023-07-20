@@ -67,6 +67,7 @@ public class SliderJointDemo extends RootModel {
       ControlPanel panel = new ControlPanel();
       panel.addWidget (joint, "z");
       panel.addWidget (joint, "zRange");
+      panel.addWidget (joint, "zLocked");
       panel.addWidget (joint, "drawFrameC");
       panel.addWidget (joint, "drawFrameD");
       panel.addWidget (joint, "axisLength");

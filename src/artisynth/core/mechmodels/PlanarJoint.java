@@ -68,6 +68,10 @@ public class PlanarJoint extends JointBase
    private static DoubleInterval DEFAULT_THETA_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
+   private static boolean DEFAULT_X_LOCKED = false;
+   private static boolean DEFAULT_Y_LOCKED = false;
+   private static boolean DEFAULT_THETA_LOCKED = false;
+
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createRenderProps (host);
       props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
@@ -78,12 +82,21 @@ public class PlanarJoint extends JointBase
       myProps.add ("x", "x translation distance", 0);
       myProps.add (
          "xRange", "range for x", DEFAULT_X_RANGE);
+      myProps.add (
+         "xLocked isXLocked",
+         "set whether x is locked", DEFAULT_X_LOCKED);
       myProps.add ("y", "y translation distance", 0);
       myProps.add (
          "yRange", "range for y", DEFAULT_Y_RANGE);
+      myProps.add (
+         "yLocked isYLocked",
+         "set whether y is locked", DEFAULT_Y_LOCKED);
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+      myProps.add (
+         "thetaLocked isThetaLocked",
+         "set whether theta is locked", DEFAULT_THETA_LOCKED);
       myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
       myProps.add (
          "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
@@ -310,6 +323,24 @@ public class PlanarJoint extends JointBase
    }
 
    /**
+    * Queries whether the x coordinate for this joint is locked.
+    *
+    * @return {@code true} if x is locked
+    */
+   public boolean isXLocked() {
+      return isCoordinateLocked (X_IDX);
+   }
+
+   /**
+    * Set whether the x coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks x
+    */
+   public void setXLocked (boolean locked) {
+      setCoordinateLocked (X_IDX, locked);
+   }
+
+   /**
     * Queries this joint's y value. See {@link #setY} for more details.
     *
     * @return current y value
@@ -400,6 +431,24 @@ public class PlanarJoint extends JointBase
     */
    public void setMinY (double min) {
       setYRange (new DoubleInterval (min, getMaxY()));
+   }
+
+   /**
+    * Queries whether the y coordinate for this joint is locked.
+    *
+    * @return {@code true} if y is locked
+    */
+   public boolean isYLocked() {
+      return isCoordinateLocked (Y_IDX);
+   }
+
+   /**
+    * Set whether the y coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks y
+    */
+   public void setYLocked (boolean locked) {
+      setCoordinateLocked (Y_IDX, locked);
    }
 
    /**
@@ -495,6 +544,24 @@ public class PlanarJoint extends JointBase
     */
    public void setMinTheta (double min) {
       setThetaRange (new DoubleInterval (min, getMaxTheta()));
+   }
+
+   /**
+    * Queries whether the theta coordinate for this joint is locked.
+    *
+    * @return {@code true} if theta is locked
+    */
+   public boolean isThetaLocked() {
+      return isCoordinateLocked (THETA_IDX);
+   }
+
+   /**
+    * Set whether the theta coordinate for this joint is locked.
+    *
+    * @param locked if {@code true}, locks theta
+    */
+   public void setThetaLocked (boolean locked) {
+      setCoordinateLocked (THETA_IDX, locked);
    }
 
    /**

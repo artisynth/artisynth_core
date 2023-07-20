@@ -22,6 +22,28 @@ import maspack.spatialmotion.*;
 import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.properties.*;
 
+/**
+ * Applies a restoring force to a joint coordinate when its value falls outside
+ * a specfied range. This is used to implement ``soft'' limits on joint
+ * coordinates.
+ *
+ * <p>The applied force is nominally linear. If {@code x} and {@code v} are the
+ * coordinate value and speed, then for an upper limit {@code ul} the force is
+ * nominally given by
+ * <pre>
+ * f = - Ku (x - ul) - Du v
+ * </pre>
+ * where {@code Ku} and {@code Du} are the stiffness and damping coefficients
+ * associated with the upper limit, while for a lower limit {@code ll} it is
+ * <pre>
+ * f = - Kl (ll - x) - Dl v
+ * </pre>
+ * where {@code Kl} and {@code Dl} are the coefficients for the lower
+ * limit. However, each limit can also be associated with a transition region
+ * {@code tau}. If {@code tau > 0}, then the restoring force is applied more
+ * gradually in the intervals {@code [ul, ul+tau]} (for the upper limit) and
+ * {@code [ll-tau, ll]} (for the lower limit).
+ */
 public class JointLimitForce extends ModelComponentBase
    implements ForceComponent {
 
@@ -53,11 +75,11 @@ public class JointLimitForce extends ModelComponentBase
    static {
       myProps.add (
          "upperLimit",
-         "coordinate upper limit (deg for rotary joints)",
+         "coordinate upper limit",
          DEFAULT_LIMIT);
       myProps.add (
          "upperStiffness",
-         "upper limit stiffness (force/deg for rotary joints)",
+         "upper limit stiffness",
          DEFAULT_STIFFNESS);
       myProps.add (
          "upperDamping",
@@ -65,15 +87,15 @@ public class JointLimitForce extends ModelComponentBase
          DEFAULT_DAMPING);
       myProps.add (
          "upperTransition",
-         "upper limit transition region (deg for rotary joints)",
+         "upper limit transition region",
          DEFAULT_TRANSITION);
       myProps.add (
          "lowerLimit",
-         "coordinate lower limit (deg for rotary joints)",
+         "coordinate lower limit",
          -DEFAULT_LIMIT);
       myProps.add (
          "lowerStiffness",
-         "lower limit stiffness (force/deg for rotary joints)",
+         "lower limit stiffness)",
          DEFAULT_STIFFNESS);
       myProps.add (
          "lowerDamping",
@@ -81,7 +103,7 @@ public class JointLimitForce extends ModelComponentBase
          DEFAULT_DAMPING);
       myProps.add (
          "lowerTransition",
-         "lower limit transition region (deg for rotary joints)",
+         "lower limit transition region",
          DEFAULT_TRANSITION);
    }
 
@@ -89,66 +111,156 @@ public class JointLimitForce extends ModelComponentBase
       return myProps;
    }
 
-   public void setUpperLimit (double lim) {
-      myUpperLimit = lim;
+   /**
+    * Sets the upper limit for the joint coordinate, beyond which a restoring
+    * force will be applied. The default value is {@code infinity} (no upper
+    * limit).
+    *
+    * @param ul new upper coordinate limit,
+    */
+   public void setUpperLimit (double ul) {
+      myUpperLimit = ul;
    }
    
+   /**
+    * Queries the upper limit for the joint coordinate.
+    *
+    * @return upper coordinate limit,
+    */
    public double getUpperLimit () {
       return myUpperLimit;
    }
    
+   /**
+    * Sets the stiffness for the upper limit restoring force. The default value
+    * is 0 (no stiffness force).
+    *
+    * @param k new upper limit stiffness,
+    */
    public void setUpperStiffness (double k) {
       myUpperStiffness = k;
    }
    
+   /**
+    * Queries the stiffness for the upper limit restoring force.
+    *
+    * @return upper limit stiffness,
+    */
    public double getUpperStiffness () {
       return myUpperStiffness;
    }
-   
-   public void setLowerLimit (double lim) {
-      myLowerLimit = lim;
-   }
-   
-   public double getLowerLimit () {
-      return myLowerLimit;
-   }
-   
-   public void setLowerStiffness (double k) {
-      myLowerStiffness = k;
-   }
-   
-   public double getLowerStiffness () {
-      return myLowerStiffness;
-   }
-   
+
+   /**
+    * Sets the damping parameter for the upper limit restoring force. The
+    * default value is 0 (no damping force).
+    *
+    * @param d new upper limit damping
+    */
    public void setUpperDamping (double d) {
       myUpperDamping = d;
    }
    
+   /**
+    * Queries the damping parameter for the upper limit restoring force.
+    *
+    * @return upper limit damping
+    */
    public double getUpperDamping () {
       return myUpperDamping;
    }
    
-   public void setLowerDamping (double d) {
-      myLowerDamping = d;
+   /**
+    * Sets the transition region size for the upper limit restoring force.  The
+    * default valus is 0 (no transition region).
+    *
+    * @param tau new upper limit transition region
+    */
+   public void setUpperTransition (double tau) {
+      myUpperTransition = tau;
    }
    
-   public double getLowerDamping () {
-      return myLowerDamping;
-   }
-   
-   public void setUpperTransition (double d) {
-      myUpperTransition = d;
-   }
-   
+   /**
+    * Queries the transition region size for the upper limit restoring force.
+    *
+    * @return upper limit transition region
+    */
    public double getUpperTransition () {
       return myUpperTransition;
    }
 
-   public void setLowerTransition (double d) {
-      myLowerTransition = d;
+   /**
+    * Sets the lower limit for the joint coordinate, beyond which a restoring
+    * force will be applied. The default value is {@code -infinity} (no lower
+    * limit).
+    *
+    * @param ll new lower coordinate limit,
+    */
+   public void setLowerLimit (double ll) {
+      myLowerLimit = ll;
    }
    
+   /**
+    * Queries the lower limit for the joint coordinate.
+    *
+    * @return lower coordinate limit,
+    */
+   public double getLowerLimit () {
+      return myLowerLimit;
+   }
+   
+   /**
+    * Sets the stiffness for the lower limit restoring force. The default value
+    * is 0 (no stiffness force).
+    *
+    * @param k new lower limit stiffness,
+    */
+   public void setLowerStiffness (double k) {
+      myLowerStiffness = k;
+   }
+   
+   /**
+    * Queries the stiffness for the lower limit restoring force.
+    *
+    * @return lower limit stiffness,
+    */
+   public double getLowerStiffness () {
+      return myLowerStiffness;
+   }
+   
+   /**
+    * Sets the damping parameter for the lower limit restoring force. The
+    * default value is 0 (no damping force).
+    *
+    * @param d new lower limit damping
+    */
+   public void setLowerDamping (double d) {
+      myLowerDamping = d;
+   }
+   
+   /**
+    * Queries the damping parameter for the lower limit restoring force.
+    *
+    * @return lower limit damping
+    */
+   public double getLowerDamping () {
+      return myLowerDamping;
+   }
+
+   /**
+    * Sets the transition region size for the lower limit restoring force.  The
+    * default valus is 0 (no transition region).
+    *
+    * @param tau new lower limit transition region
+    */
+   public void setLowerTransition (double tau) {
+      myLowerTransition = tau;
+   }
+   
+   /**
+    * Queries the transition region size for the lower limit restoring force.
+    *
+    * @return lower limit transition region
+    */
    public double getLowerTransition () {
       return myLowerTransition;
    }
@@ -165,20 +277,36 @@ public class JointLimitForce extends ModelComponentBase
       setName (name);
    }
 
+   /**
+    * Set all the upper limit parameters.
+    *
+    * @param ul upper limit
+    * @param k stiffness
+    * @param d damping factor
+    * @param tau transition region size
+    */
    public void setUpper (
-      double limit, double stiffness, double damping, double transition) {
-      setUpperLimit (limit);
-      setUpperStiffness (stiffness);
-      setUpperDamping (damping);
-      setUpperTransition (transition);
+      double ul, double k, double d, double tau) {
+      setUpperLimit (ul);
+      setUpperStiffness (k);
+      setUpperDamping (d);
+      setUpperTransition (tau);
    }
 
+   /**
+    * Set all the lower limit parameters.
+    *
+    * @param ll upper limit
+    * @param k stiffness
+    * @param d damping factor
+    * @param tau transition region size
+    */
    public void setLower (
-      double limit, double stiffness, double damping, double transition) {
-      setLowerLimit (limit);
-      setLowerStiffness (stiffness);
-      setLowerDamping (damping);
-      setLowerTransition (transition);
+      double ll, double k, double d, double tau) {
+      setLowerLimit (ll);
+      setLowerStiffness (k);
+      setLowerDamping (d);
+      setLowerTransition (tau);
    }
 
    private double getLimitForce (double del, double k, double trans) {
@@ -200,7 +328,7 @@ public class JointLimitForce extends ModelComponentBase
     * {@inheritDoc}
     */
    public void applyForces (double t) {
-      double val = myCoord.getNatValue();
+      double val = myCoord.getValue();
       double f = 0;
 
       if (val >= myUpperLimit) {
@@ -211,7 +339,7 @@ public class JointLimitForce extends ModelComponentBase
             if (myUpperStiffness != 0 && del < myUpperTransition) {
                damping *= Math.sqrt(del/myUpperTransition);
             }
-            f -= damping*myCoord.getNatSpeed();
+            f -= damping*myCoord.getSpeed();
          }
          myCoord.applyForce (f);
       }
@@ -223,7 +351,7 @@ public class JointLimitForce extends ModelComponentBase
             if (myLowerStiffness != 0 && del < myLowerTransition) {
                damping *= Math.sqrt(del/myLowerTransition);
             }
-            f -= damping*myCoord.getNatSpeed();
+            f -= damping*myCoord.getSpeed();
          }
          myCoord.applyForce (f);
       }
@@ -250,15 +378,15 @@ public class JointLimitForce extends ModelComponentBase
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
       if (myLowerDamping != 0 || myUpperDamping != 0) {
          double damping;
-         double val = myCoord.getNatValue();
+         double val = myCoord.getValue();
          if (myUpperDamping != 0 && val >= myUpperLimit) {
             double del = val-myUpperLimit;
             damping = myUpperDamping;
             if (myUpperStiffness != 0 && del < myUpperTransition) {
                damping *= Math.sqrt(del/myUpperTransition);
             }
-            // scale to natural coords since Jacobian is in regular coords
-            damping *= myCoord.getNatScale();
+            // // scale to natural coords since Jacobian is in regular coords
+            // damping *= myCoord.getNatScale();
             myCoord.addVelJacobian (M, -s*damping);
          }
          else if (myLowerDamping != 0 && val <= myLowerLimit) {
@@ -267,8 +395,8 @@ public class JointLimitForce extends ModelComponentBase
             if (myLowerStiffness != 0 && del < myLowerTransition) {
                damping *= Math.sqrt(del/myLowerTransition);
             }
-            // scale to natural coords since Jacobian is in regular coords
-            damping *= myCoord.getNatScale();
+            // // scale to natural coords since Jacobian is in regular coords
+            // damping *= myCoord.getNatScale();
             myCoord.addVelJacobian (M, -s*damping);
          }
       }
@@ -317,43 +445,4 @@ public class JointLimitForce extends ModelComponentBase
    }
 
    /* --- end I/O methods --- */
-
-   // public static JointLimitForce create (
-   //    String name, CoordinateLimitForce clf, OpenSimObject ref,
-   //    ModelComponentMap componentMap) {
-
-   //    JointLimitForce jlf = new JointLimitForce (name);
-   //    jlf.myCoord = CoordinateHandle.create (clf.coordinate, ref, componentMap);
-   //    if (jlf.myCoord == null) {
-   //       return null;
-   //    }
-   //    MotionType type = jlf.myCoord.getMotionType();
-   //    double scale = 1.0;
-   //    if (jlf.myCoord.getMotionType() == MotionType.ROTARY) {
-   //       scale = Math.PI/180.0;
-   //    }
-   //    double kupper = clf.upper_stiffness/scale;
-   //    double klower = clf.lower_stiffness/scale;
-   //    double dupper = clf.damping/scale;
-   //    double dlower = dupper;
-
-   //    // adjust upper and lower damping to reflect proper critcal damping
-   //    if (kupper != 0 && klower != 0) {
-   //       if (kupper > klower) {
-   //          dlower *= Math.sqrt(klower/kupper);
-   //       }
-   //       else if (klower > kupper) {
-   //          dupper *= Math.sqrt(kupper/klower);            
-   //       }
-   //    }
-   //    jlf.setUpperLimit (scale*clf.upper_limit);
-   //    jlf.setUpperStiffness (kupper);
-   //    jlf.setUpperDamping (dupper);
-   //    jlf.setLowerLimit (scale*clf.lower_limit);
-   //    jlf.setLowerStiffness (klower);
-   //    jlf.setLowerDamping (dlower);
-   //    jlf.setTransition (scale*clf.transition);
-   //    return jlf;
-   // }
-   
 }

@@ -46,12 +46,7 @@ public class ConditionalPathPoint extends PathPoint {
       if (ch == null) {
          return null;
       }
-      DoubleInterval mkrRange = range;
-      if (ch.getMotionType() == MotionType.ROTARY) {
-         mkrRange = new DoubleInterval (
-            RTOD*range.getLowerBound(), RTOD*range.getUpperBound());
-      }
-      return new JointConditionalMarker (ch, mkrRange);
+      return new JointConditionalMarker (ch, range);
    }
    
    @Override

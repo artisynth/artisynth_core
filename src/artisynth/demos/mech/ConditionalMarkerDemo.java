@@ -21,6 +21,8 @@ import maspack.properties.*;
 
 public class ConditionalMarkerDemo extends RootModel {
 
+   private double DTOR = Math.PI/180;
+
    public void build (String[] args) {
       MechModel mech = new MechModel ("mech");
       addModel (mech);
@@ -98,7 +100,7 @@ public class ConditionalMarkerDemo extends RootModel {
             link0,
             new Point3d (cos*size/6, 0, -size*(0.5+sin/6)),
             new JointCoordinateHandle (joint1, 0),
-            new DoubleInterval (-240, -45-Math.toDegrees(ang)));
+            new DoubleInterval (-DTOR*240, -DTOR*45-ang));
          mech.addFrameMarker (cmkrs[i]);
       }
 

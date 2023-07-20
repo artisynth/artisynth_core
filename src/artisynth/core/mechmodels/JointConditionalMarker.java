@@ -1,24 +1,18 @@
 package artisynth.core.mechmodels;
 
-import java.io.PrintWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Deque;
-import java.util.ArrayList;
-import java.util.List;
 
-import artisynth.core.util.*;
-import artisynth.core.util.ObjectToken;
-import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
-import maspack.matrix.Vector3d;
+import artisynth.core.util.ScanToken;
+import artisynth.core.util.StringToken;
+import maspack.matrix.Point3d;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.util.DoubleInterval;
+import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.*;
-import maspack.properties.*;
-
-import maspack.matrix.*;
-import maspack.function.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.modelbase.*;
 
 /**
  * Special frame marker that is conditional upon being within a certain joint
@@ -63,7 +57,7 @@ public class JointConditionalMarker extends FrameMarker
    }
    
    public boolean isPointActive() {
-      boolean active = myRange.withinRange (myCoord.getNatValue());
+      boolean active = myRange.withinRange (myCoord.getValue());
       if (myInvisibleIfInactive) {
          myRenderProps.setVisible (active);
       }

@@ -21,6 +21,9 @@ import maspack.properties.*;
 
 public class JointLimitDemo extends RootModel {
 
+   public static final double DTOR = Math.PI/180;
+   public static final double RTOD = 180/Math.PI;
+
    public void build (String[] args) {
       MechModel mech = new MechModel ("mech");
       addModel (mech);
@@ -47,8 +50,7 @@ public class JointLimitDemo extends RootModel {
       JointCoordinateHandle handle =
          new JointCoordinateHandle (joint0, 0);
       JointLimitForce jlf = new JointLimitForce ("jlf", handle);
-      jlf.setLower (0, 100, 0.5, 10);
-      jlf.setLowerTransition (0);
+      jlf.setLower (DTOR*0, RTOD*100, RTOD*0.5, DTOR*10);
       mech.addForceEffector (jlf);
       // handles.add (new JointCoordinateHandle (joint1, 0));
       // handles.add (new JointCoordinateHandle (joint0, 0));

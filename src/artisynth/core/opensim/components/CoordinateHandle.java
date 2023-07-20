@@ -26,7 +26,7 @@ public class CoordinateHandle implements HasProperties {
 
    static {
       myProps.add (
-         "value getNatValue setNatValue",
+         "value getValueDeg setValueDeg",
          "coordinate value", 0);
    }
 
@@ -59,16 +59,16 @@ public class CoordinateHandle implements HasProperties {
       myJCH.setValue (value);
    }
 
-   public double getNatValue() {
-      return myJCH.getNatValue();
+   public double getValueDeg() {
+      return myJCH.getValueDeg();
    }
 
-   public void setNatValue(double value) {
-      myJCH.setNatValue (value);
+   public void setValueDeg(double value) {
+      myJCH.setValueDeg (value);
    }
 
    public Range getValueRange() {
-      return myJCH.getNatValueRange();
+      return myJCH.getValueRangeDeg();
    }
 
    // public static CoordinateHandle createFromJoint (

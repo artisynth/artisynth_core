@@ -70,7 +70,7 @@ public class JointCoordinateHandle {
       return myJoint.getCoordinateRange(myIdx);
    }
    
-   public double getNatValue() {
+   public double getValueDeg() {
       double value = getValue();
       if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
          value *= RTOD;
@@ -78,23 +78,14 @@ public class JointCoordinateHandle {
       return value;
    }
 
-   public double getNatScale() {
-      if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
-         return RTOD;
-      }
-      else {
-         return 1;
-      }
-   }
-
-   public void setNatValue(double value) {
+   public void setValueDeg(double value) {
       if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
          value *= DTOR;
       }
       setValue (value);
    }
 
-   public Range getNatValueRange() {
+   public Range getValueRangeDeg() {
       if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
          return myJoint.getCoordinateRangeDeg(myIdx);
       }
@@ -107,7 +98,7 @@ public class JointCoordinateHandle {
       return myJoint.getCoordinateSpeed (myIdx);
    }
 
-   public double getNatSpeed() {
+   public double getSpeedDeg() {
       double speed = myJoint.getCoordinateSpeed (myIdx);
       if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
          speed *= RTOD;

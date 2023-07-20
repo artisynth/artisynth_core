@@ -10,6 +10,9 @@ import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 
 public class CoordinateLimitForce extends ForceBase {
 
+   private static double RTOD = 180/Math.PI;
+   private static double DTOR = Math.PI/180;
+
    String coordinate;
    double upper_stiffness;
    double upper_limit;
@@ -101,8 +104,17 @@ public class CoordinateLimitForce extends ForceBase {
          }
       }    
       JointLimitForce jlf = new JointLimitForce (getName(), ch);
-      jlf.setUpper (upper_limit, kupper, dupper, transition);
-      jlf.setLower (lower_limit, klower, dlower, transition);
+      if (ch.getMotionType() == MotionType.ROTARY) {
+         // convert from degrees to radians
+         jlf.setUpper (
+            DTOR*upper_limit, RTOD*kupper, RTOD*dupper, DTOR*transition);
+         jlf.setLower (
+            DTOR*lower_limit, RTOD*klower, RTOD*dlower, DTOR*transition);
+      }
+      else {
+         jlf.setUpper (upper_limit, kupper, dupper, transition);
+         jlf.setLower (lower_limit, klower, dlower, transition);
+      }
       return jlf;
    }
 

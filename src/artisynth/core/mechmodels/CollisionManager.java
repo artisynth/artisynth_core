@@ -1127,7 +1127,7 @@ public class CollisionManager extends RenderableCompositeBase
     * Sets a whether negative contact forces should be used in force pressure
     * maps and collision reporting.
     *
-    * @param enables if {@code true}, enables showing negative contact forces
+    * @param enable if {@code true}, enables showing negative contact forces
     */
    public void setReportNegContactForces (boolean enable) {
       myReportNegContactForces = enable;

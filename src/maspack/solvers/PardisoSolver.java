@@ -835,7 +835,7 @@ public class PardisoSolver implements DirectSolver {
     * Enables/disables the "num perturbed pivots" message (which usually
     * indicates an ill-conditioned solve).
     *
-    * @parsm enable if {@code true}, enables the message
+    * @param enable if {@code true}, enables the message
     */
    public static void setShowPerturbedPivots (boolean enable) {
       myShowPerturbedPivots = enable;
@@ -844,7 +844,7 @@ public class PardisoSolver implements DirectSolver {
    /**
     * Queries whether the "num perturbed pivots" message is enabled.
     *
-    * @parsm {@code true} if the message is enabled
+    * @return {@code true} if the message is enabled
     */
    public static boolean getShowPerturbedPivots () {
       return myShowPerturbedPivots;

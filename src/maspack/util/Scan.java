@@ -518,7 +518,7 @@ public class Scan {
     * @param ref 
     * if the object is {@link Scannable}, is passed to its {@link Scannable#scan
     * scan()} method.
-    * @param classTyoe class type for the object being scanned
+    * @param classType class type for the object being scanned
     * @return instantiated and scanned object
     * @throws IOException
     * if no class is found for the class name, the class

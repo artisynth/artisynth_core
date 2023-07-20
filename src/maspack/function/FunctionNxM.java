@@ -20,7 +20,6 @@ public interface FunctionNxM {
     * 
     * @param out function output
     * @param in function input
-    * @return function value
     */
    void eval (VectorNd out, VectorNd in);
    

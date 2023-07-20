@@ -160,7 +160,7 @@ public class LocalPropertyList implements PropertyInfoList {
     * Writes properties in this list whose current values differ from their
     * default values to a PrintWriter. This allows the conservation of space
     * within persistent storage. Otherwise, the behaviour of this method is
-    * identical to {@link #writeProps writeProps}; in particular only those
+    * identical to {@link PropertyList#writeProps}; in particular only those
     * properties for which {@link maspack.properties.PropertyInfo#getAutoWrite
     * PropertyInfo.getAutoWrite} returns true are written.
     * 

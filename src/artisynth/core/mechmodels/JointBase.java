@@ -620,7 +620,7 @@ public abstract class JointBase extends BodyConnector  {
     * specified in degrees.
     *
     * @param idx index of the coordinate  
-    * @param new coordinate value, in degrees
+    * @param value new coordinate value, in degrees
     */
    public void setCoordinateDeg (int idx, double value) {
       setCoordinate (idx, Math.toRadians(value));

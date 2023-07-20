@@ -91,9 +91,10 @@ public class RandomGenerator {
    
    /**
     * Generates a random subsequence of the integers in the range
-    * {@code min, ... max},
+    * {@code min, ... max}, inclusive.
     *
-    * @param n size of the subsequence
+    * @param min lowest possible integer in the sequence
+    * @param max highest possible integer in the sequence
     */
    public static int[] randomSubsequence (int min, int max) {
       int n = max - min + 1;

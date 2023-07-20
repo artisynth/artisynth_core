@@ -10,7 +10,7 @@ public class PathWrap extends OpenSimObject {
    public PathWrap() {
       wrap_object = null;
       method = null;
-      range = new IntegerInterval();
+      range = new IntegerInterval(-1, -1);
    }
    
    public String getWrapObject() {

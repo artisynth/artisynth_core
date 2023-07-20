@@ -156,7 +156,15 @@ public abstract class ForceSpringBase extends ForceBase {
                WrapObject wo = componentMap.findObjectByName (
                   WrapObject.class, wrapObject);
                RigidBody wrappable = (RigidBody)componentMap.get (wo);
-               mps.addWrappable (wrappable);
+               int pntIdx0 = (int)pw.range.getLowerBound();
+               int pntIdx1 = (int)pw.range.getUpperBound();
+               if (pntIdx0 != -1) {
+                  pntIdx0--; // zero indiced
+               }
+               if (pntIdx1 != -1) {
+                  pntIdx1--; // zero indiced
+               }
+               mps.addWrappable (wrappable, pntIdx0, pntIdx1);
                System.out.println (mps.getName() + " " + wrappable.getName());
             }
          }
@@ -182,7 +190,7 @@ public abstract class ForceSpringBase extends ForceBase {
                  mi instanceof JointBasedMovingMarker)) {
                int numknots = getNumWrapPoints(mprev, mi);
                Point3d[] initialPnts = computeInitialPoints (
-                  mprev.getPosition(), mi.getPosition(), mps, numknots);
+                  mprev.getPosition(), mi.getPosition(), mps, i, numknots);
                // if (mps.getName().equals ("LAT3")) {
                //    if (initialPnts != null) {
                //       System.out.println ("initial points for "+ i);               
@@ -233,7 +241,7 @@ public abstract class ForceSpringBase extends ForceBase {
     * any of the wrappables, return null.
     */
    Point3d[] computeInitialPoints (
-      Point3d p0, Point3d p1, MultiPointSpring mps, int numknots) {
+      Point3d p0, Point3d p1, MultiPointSpring mps, int segIdx, int numknots) {
 
       Vector3d u = new Vector3d(); // direction vector from p0 to p1
       u.sub (p1, p0);
@@ -255,19 +263,24 @@ public abstract class ForceSpringBase extends ForceBase {
          p.scaledAdd ((k+1)/(numknots+1.0), u, p0);
          for (int i=0; i<mps.numWrappables(); i++) {
             Wrappable wrappable = mps.getWrappable(i);
-            double d = wrappable.penetrationDistance (nrml, null, p);
-            if (d < 0) {
-               if (wrappable instanceof RigidTorus) {
-                  // special case: set the target point to the center of the
-                  // torus to make sure we thread it
-                  nrml.sub (wrappable.getPose().p, p);
-                  d = -nrml.norm();
-                  nrml.normalize();
-               }
-               if (d < mind) {
-                  mind = d;
-                  mindNrml.set (nrml);
-                  mindPos.set (p);
+            int[] pntIdxs = mps.getWrappableRange(i);
+            // check if this wrappable actually applies to this segment
+            if (pntIdxs[0] == -1 ||
+                (pntIdxs[0] <= segIdx && segIdx < pntIdxs[1])) {
+               double d = wrappable.penetrationDistance (nrml, null, p);
+               if (d < 0) {
+                  if (wrappable instanceof RigidTorus) {
+                     // special case: set the target point to the center of the
+                     // torus to make sure we thread it
+                     nrml.sub (wrappable.getPose().p, p);
+                     d = -nrml.norm();
+                     nrml.normalize();
+                  }
+                  if (d < mind) {
+                     mind = d;
+                     mindNrml.set (nrml);
+                     mindPos.set (p);
+                  }
                }
             }
          }

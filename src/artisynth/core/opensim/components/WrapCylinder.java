@@ -37,7 +37,7 @@ public class WrapCylinder extends WrapObject {
    
    @Override
    public RigidCylinder createComponent (File geometryPath, ModelComponentMap componentMap) {
-      RigidCylinder rb = new RigidCylinder (getName(), getRadius (), getLength(), 0);
+      RigidCylinder rb = new RigidCylinder (getName(), getRadius (), 10*getLength(), 0);
       rb.setPose (getTransform());
       rb.setRenderProps (createRenderProps ());
       componentMap.put(this, rb);

@@ -893,6 +893,31 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
+    * Post-multiplies this rotation by an implicit second rotation consisting of
+    * a rotation about the x axis, and places the result in this rotation.
+    * 
+    * @param cos cosine of the rotation angle
+    * @param sin sine of the rotation angle
+    */
+   public void mulRotX (double cos, double sin) {
+      double R01 = m01;
+      double R11 = m11;
+      double R21 = m21;
+
+      double R02 = m02;
+      double R12 = m12;
+      double R22 = m22;
+
+      m01 = cos*R01 + sin*R02;
+      m11 = cos*R11 + sin*R12;
+      m21 = cos*R21 + sin*R22;
+
+      m02 = -sin*R01 + cos*R02;
+      m12 = -sin*R11 + cos*R12;
+      m22 = -sin*R21 + cos*R22;
+   }
+
+   /**
     * Post-multiplies this rotation by an implicit second rotation consisting
     * of a rotation of 90 degrees about the x axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
@@ -982,6 +1007,31 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
+    * Post-multiplies this rotation by an implicit second rotation consisting of
+    * a rotation about the y axis, and places the result in this rotation.
+    * 
+    * @param cos cosine of the rotation angle
+    * @param sin sine of the rotation angle
+    */
+   public void mulRotY (double cos, double sin) {
+      double R00 = m00;
+      double R10 = m10;
+      double R20 = m20;
+
+      double R02 = m02;
+      double R12 = m12;
+      double R22 = m22;
+
+      m00 = cos*R00 - sin*R02;
+      m10 = cos*R10 - sin*R12;
+      m20 = cos*R20 - sin*R22;
+
+      m02 = sin*R00 + cos*R02;
+      m12 = sin*R10 + cos*R12;
+      m22 = sin*R20 + cos*R22;
+   }
+
+   /**
     * Post-multiplies this rotation by an implicit second rotation consisting
     * of a rotation of 90 degrees about the x axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
@@ -1068,6 +1118,31 @@ public class RotationMatrix3d extends Matrix3dBase {
       RotationMatrix3d Tmp = new RotationMatrix3d();
       Tmp.setRotZ (ang);
       mul (Tmp);
+   }
+
+   /**
+    * Post-multiplies this rotation by an implicit second rotation consisting of
+    * a rotation about the z axis, and places the result in this rotation.
+    * 
+    * @param cos cosine of the rotation angle
+    * @param sin sine of the rotation angle
+    */
+   public void mulRotZ (double cos, double sin) {
+      double R00 = m00;
+      double R10 = m10;
+      double R20 = m20;
+
+      double R01 = m01;
+      double R11 = m11;
+      double R21 = m21;
+
+      m00 = cos*R00 + sin*R01;
+      m10 = cos*R10 + sin*R11;
+      m20 = cos*R20 + sin*R21;
+
+      m01 = -sin*R00 + cos*R01;
+      m11 = -sin*R10 + cos*R11;
+      m21 = -sin*R20 + cos*R21;
    }
 
    /**

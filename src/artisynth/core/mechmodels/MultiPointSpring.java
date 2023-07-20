@@ -131,7 +131,7 @@ public class MultiPointSpring extends PointSpringBase
 
    protected ArrayList<SegmentSpec> mySegmentSpecs;
    protected ArrayList<Segment> mySegments;
-   protected ArrayList<Wrappable> myWrappables;
+   protected ArrayList<WrappableSpec> myWrappables;
    protected int myNumBlks; // set to numPoints()
    protected int[] mySolveBlkNums;
    protected int myHasWrappableSegs = -1; // -1 means we don't know
@@ -483,7 +483,8 @@ public class MultiPointSpring extends PointSpringBase
       if (comp instanceof Renderable) {
          mind = RenderableUtils.getRadius ((Renderable)comp)/10;
       }
-      for (Wrappable w : myWrappables) {
+      for (WrappableSpec wspec : myWrappables) {
+         Wrappable w = wspec.myWrappable;
          if (w instanceof HasSurfaceMesh) {
             PolygonalMesh mesh = ((HasSurfaceMesh)w).getSurfaceMesh();
             if (mesh != null) {
@@ -822,7 +823,7 @@ public class MultiPointSpring extends PointSpringBase
       super (name);
       mySegmentSpecs = new ArrayList<SegmentSpec>();
       mySegments = null;
-      myWrappables = new ArrayList<Wrappable>();
+      myWrappables = new ArrayList<WrappableSpec>();
       mySolveBlkNums = new int[0];
       myNumBlks = 0;
    }
@@ -974,20 +975,45 @@ public class MultiPointSpring extends PointSpringBase
    /* === wrappable methods === */
 
    /**
-    * Adds a wrappable to this spring.
+    * Adds a wrappable to this spring which is applied to all wrap segments.
     * 
     * @param wrappable wrappable to add
     */
    public void addWrappable (Wrappable wrappable) {
-      if (!myWrappables.contains(wrappable)) {
-         myWrappables.add (wrappable);
+      addWrappable (wrappable, -1, -1);
+   }
+
+   /**
+    * Adds a wrappable to this spring which is applied to the segments between
+    * the points indexed by {@code pntIdx0} and {@code pntIdx1}.  {@code
+    * pntIdx0} and {@code pntIdx1} are assumed to be non-negative with {@code
+    * pntIdx0 <= pntIdx1}; otherwise, the wrappable will be applied to all
+    * segments.
+    *
+    * <p>The range indicated by {@code pntIdx0} and {@code pntIdx1} may lie
+    * partly or completely outside the range of actual points. The range will
+    * also remain fixed even if points are subseqently added or removed from
+    * the spring.
+    * 
+    * @param wrappable wrappable to add
+    * @param pntIdx0 index of the first point in the wrapping range
+    * @param pntIdx1 index of the second point in the wrapping range
+    */
+   public void addWrappable (Wrappable wrappable, int pntIdx0, int pntIdx1) {
+      if (pntIdx0 < 0 || pntIdx1 < 0 || pntIdx0 > pntIdx1) {
+         pntIdx0 = -1;
+         pntIdx1 = -1;
+      }
+      if (!containsWrappable (wrappable, pntIdx0, pntIdx1)) {
+         myWrappables.add (new WrappableSpec(wrappable, pntIdx0, pntIdx1));
          invalidateSegments();
          maybeInvalidateMaxWrapDisplacement();
       }        
    }
 
    /**
-    * Queries whether or not this spring contains a specified wrappable.
+    * Queries whether or not this spring contains a wrappable 
+    * for which wrapping is applied to all segments.
     * 
     * @param wrappable wrappable to query
     * @return {@code true} if the wrappable is present in the spring
@@ -997,7 +1023,25 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Queries the number of wrappables in this spring.
+    * Queries whether or not this spring contains a wrappable which is applied
+    * to the segments between the points indexed by {@code pntIdx0} and {@code
+    * pntIdx1}.  See {@link #addWrappable(Wrappable,int,int)} for a description
+    * of the constraints on {@code pntIdx0} and {@code pntIdx1}.
+    * 
+    * @param wrappable wrappable to query
+    * @param pntIdx0 index of the first point in the wrapping range
+    * @param pntIdx1 index of the second point in the wrapping range
+    * @return {@code true} if the wrappable is present in the spring
+    */
+   public boolean containsWrappable (
+      Wrappable wrappable, int pntIdx0, int pntIdx1) {
+      return indexOfWrappable (wrappable, pntIdx0, pntIdx1) != -1;
+   }
+
+   /**
+    * Queries the number of wrappables specified in this spring.  Note that the
+    * same wrappable may be specified multiple times if it has different
+    * segment ranges.
     * 
     * @return number of wrappables in this spring
     */
@@ -1006,14 +1050,41 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Returns the index of a given wrappable in this spring, or
-    * -1 if the wrappable is not present.
+    * Returns the index of a wrappable in this spring which is applied to
+    * all segments, or -1 if such a wrappable is not present.
     *
     * @param wrappable wrappable to locate
     * @return index of the wrappable, or -1 if not present
     */
    public int indexOfWrappable (Wrappable wrappable) {
-      return myWrappables.indexOf (wrappable);
+      return indexOfWrappable (wrappable, -1, -1);
+   }
+
+   /**
+    * Returns the index of a wrappable in this spring which is applied to the
+    * segments between the points indexed by {@code pntIdx0} and {@code
+    * pntIdx1}.  See {@link #addWrappable(Wrappable,int,int)} for a description
+    * of the constraints on {@code pntIdx0} and {@code pntIdx1}. If no such
+    * wrappable is present, the method returns -1.
+    *
+    * @param wrappable wrappable to locate
+    * @param pntIdx0 index of the first point in the wrapping range
+    * @param pntIdx1 index of the second point in the wrapping range
+    * @return index of the wrappable, or -1 if not present
+    */
+   public int indexOfWrappable (Wrappable wrappable, int pntIdx0, int pntIdx1) {
+      if (pntIdx0 < 0 || pntIdx1 < 0 || pntIdx0 > pntIdx1) {
+         pntIdx0 = -1;
+         pntIdx1 = -1;
+      }
+      for (int i=0; i<myWrappables.size(); i++) {
+         WrappableSpec wspec = myWrappables.get(i);
+         if (wspec.myWrappable == wrappable &&
+             wspec.myPntIdx0 == pntIdx0 && wspec.myPntIdx1 == pntIdx1) {
+            return i;
+         }
+      }
+      return -1;
    }
 
    /**
@@ -1027,7 +1098,24 @@ public class MultiPointSpring extends PointSpringBase
          throw new IndexOutOfBoundsException (
             "idx=" + idx + ", num wrappables=" + numWrappables());
       }
-      return myWrappables.get(idx);
+      return myWrappables.get(idx).myWrappable;
+   }
+   
+   /**
+    * Returns the point indices defining the wrappable range for the idx-th
+    * wrappable in this spring. Values of -1 indicate that the wrappable is
+    * applied to all segments.
+    *
+    * @param idx index of the wrappable
+    * @return point indices defining the wrappable range.
+    */
+   public int[] getWrappableRange (int idx) {
+      if (idx < 0 || idx >= myWrappables.size()) {
+         throw new IndexOutOfBoundsException (
+            "idx=" + idx + ", num wrappables=" + numWrappables());
+      }
+      WrappableSpec wspec = myWrappables.get(idx);
+      return new int[] { wspec.myPntIdx0, wspec.myPntIdx1 };
    }
    
    protected void removeWrappableFromContacts (int widx) {
@@ -1042,13 +1130,29 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Remove a wrappable from this spring.
+    * Remove from this spring a wrappable which is applied to all segments.
     * 
     * @param wrappable wrappable to remove
     * @return {@code true} if the wrappable was present
     */
    public boolean removeWrappable (Wrappable wrappable) {
-      int widx = myWrappables.indexOf (wrappable);
+      return removeWrappable (wrappable, -1, -1);
+   }
+
+   /**
+    * Remove from this spring a wrappable which is applied to the segments
+    * between the points indexed by {@code pntIdx0} and {@code pntIdx1}.  See
+    * {@link #addWrappable(Wrappable,int,int)} for a description of the
+    * constraints on {@code pntIdx0} and {@code pntIdx1}.
+    * 
+    * @param wrappable wrappable to remove
+    * @param pntIdx0 index of the first point in the wrapping range
+    * @param pntIdx1 index of the second point in the wrapping range
+    * @return {@code true} if the wrappable was present
+    */
+   public boolean removeWrappable (
+      Wrappable wrappable, int pntIdx0, int pntIdx1) {
+      int widx = indexOfWrappable (wrappable, pntIdx0, pntIdx1);
       if (widx != -1) {
          myWrappables.remove (widx);
          removeWrappableFromContacts (widx);
@@ -2200,25 +2304,26 @@ public class MultiPointSpring extends PointSpringBase
    /* === scanning and writing methods === */
 
    /**
-    * Helper method to write the segment specs of this spring.
+    * Helper method to scan the wrappables of this spring.
     */
-   protected void writeSegmentSpecs (
-      PrintWriter pw, ArrayList<SegmentSpec> specs, 
-      NumberFormat fmt, CompositeComponent ancestor) 
+   protected void scanWrappables (
+      ReaderTokenizer rtok, Deque<ScanToken> tokens) 
       throws IOException {
-      
-      pw.println ("segmentSpecs=[");
-      IndentingPrintWriter.addIndentation (pw, 2);
-      for (int i=0; i<specs.size(); i++) {
-         SegmentSpec spec = specs.get(i);
-         pw.print ("[ ");
-         IndentingPrintWriter.addIndentation (pw, 2);
-         spec.writeItems (pw, fmt, ancestor);
-         IndentingPrintWriter.addIndentation (pw, -2);
-         pw.println ("]");      
+      tokens.offer (new StringToken ("wrappables", rtok.lineno()));
+      rtok.scanToken ('[');
+      tokens.offer (ScanToken.BEGIN);
+      myWrappables = new ArrayList<>();
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         WrappableSpec wspec = new WrappableSpec(null);
+         if (!ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
+            throw new IOException ("Expected wrappble path, got: "+rtok);
+         }
+         wspec.myPntIdx0 = rtok.scanInteger();
+         wspec.myPntIdx1 = rtok.scanInteger();
+         myWrappables.add (wspec);
       }
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");      
+      tokens.offer (ScanToken.END);
    }
 
    /**
@@ -2282,30 +2387,25 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Helper method to write the segments of this spring.
+    * Helper method to postscan the wrappables of this spring.
     */
-   protected void writeSegments (
-      PrintWriter pw, ArrayList<Segment> segments, 
-      NumberFormat fmt, CompositeComponent ancestor) 
-      throws IOException {
-      
-      pw.println ("segments=[");
-      IndentingPrintWriter.addIndentation (pw, 2);
-      for (int i=0; i<segments.size(); i++) {
-         Segment seg = segments.get(i);
-         if (seg instanceof WrapSegment) {
-            pw.println ("WrapSegment [");
-         }
-         else {
-            pw.println ("Segment [");
-         }
-         IndentingPrintWriter.addIndentation (pw, 2);
-         seg.writeItems (pw, fmt, ancestor);
-         IndentingPrintWriter.addIndentation (pw, -2);
-         pw.println ("]");      
+   protected void postscanWrappables (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      ScanToken tok = tokens.poll();
+      if (tok != ScanToken.BEGIN) {
+         throw new IOException (
+            "BEGIN token expected for segment list, got " + tok);
       }
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");      
+      for (int i=0; i<myWrappables.size(); i++) {
+         WrappableSpec wspec = myWrappables.get(i);
+         wspec.myWrappable = ScanWriteUtils.postscanReference (
+            tokens, Wrappable.class, ancestor);
+      }
+      tok = tokens.poll();
+      if (tok != ScanToken.END) {
+         throw new IOException (
+            "END token expected for segment list, got " + tok);
+      }
    }
 
    /**
@@ -2354,7 +2454,8 @@ public class MultiPointSpring extends PointSpringBase
          scanSegments (rtok, tokens);
          return true;
       }
-      else if (scanAndStoreReferences (rtok, "wrappables", tokens) != -1) {
+      else if (scanAttributeName (rtok, "wrappables")) {
+         scanWrappables (rtok, tokens);
          return true;
       }
       else if (scanAttributeName (rtok, "maxWrapDisplacement")) {
@@ -2385,8 +2486,7 @@ public class MultiPointSpring extends PointSpringBase
          return true;
       }
       else if (postscanAttributeName (tokens, "wrappables")) {
-         ScanWriteUtils.postscanReferences (
-            tokens, myWrappables, Wrappable.class, ancestor);
+         postscanWrappables (tokens, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -2414,6 +2514,84 @@ public class MultiPointSpring extends PointSpringBase
       allocateSolveBlocks();
    }
    
+   /**
+    * Helper method to write information about the wrappables
+    */
+   protected void writeWrappables (
+      PrintWriter pw, CompositeComponent ancestor) throws IOException {
+      int numw = 0;
+      for (WrappableSpec wspec : myWrappables) {
+         if (wspec.myWrappable.isWritable()) {
+            numw++;
+         }
+      }
+      if (numw == 0) {
+         pw.println ("wrappables=[ ]");
+      }
+      else {
+         pw.println ("wrappables=[");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         for (WrappableSpec wspec : myWrappables) {
+            Wrappable w = wspec.myWrappable;
+            if (w.isWritable()) {
+               pw.print (ComponentUtils.getWritePathName (ancestor, w));
+               pw.println (" " + wspec.myPntIdx0 + " " + wspec.myPntIdx1);
+            }
+         }
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
+   }
+
+   /**
+    * Helper method to write the segment specs of this spring.
+    */
+   protected void writeSegmentSpecs (
+      PrintWriter pw, ArrayList<SegmentSpec> specs, 
+      NumberFormat fmt, CompositeComponent ancestor) 
+      throws IOException {
+      
+      pw.println ("segmentSpecs=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      for (int i=0; i<specs.size(); i++) {
+         SegmentSpec spec = specs.get(i);
+         pw.print ("[ ");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         spec.writeItems (pw, fmt, ancestor);
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");      
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");      
+   }
+
+   /**
+    * Helper method to write the segments of this spring.
+    */
+   protected void writeSegments (
+      PrintWriter pw, ArrayList<Segment> segments, 
+      NumberFormat fmt, CompositeComponent ancestor) 
+      throws IOException {
+      
+      pw.println ("segments=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      for (int i=0; i<segments.size(); i++) {
+         Segment seg = segments.get(i);
+         if (seg instanceof WrapSegment) {
+            pw.println ("WrapSegment [");
+         }
+         else {
+            pw.println ("Segment [");
+         }
+         IndentingPrintWriter.addIndentation (pw, 2);
+         seg.writeItems (pw, fmt, ancestor);
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");      
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");      
+   }
+
    /**
     * Returns {@code true} if all segments in this spring are writable.
     */
@@ -2465,8 +2643,9 @@ public class MultiPointSpring extends PointSpringBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      pw.print ("wrappables=");
-      ScanWriteUtils.writeBracketedReferences (pw, myWrappables, ancestor);
+      // write wrappable specs
+      writeWrappables (pw, ancestor);
+      // write segment specs
       if (allSegmentsWritable()) {
          writeSegmentSpecs (pw, mySegmentSpecs, fmt, ancestor);
          writeSegments (pw, getSegments(), fmt, ancestor);
@@ -2608,7 +2787,9 @@ public class MultiPointSpring extends PointSpringBase
             refs.add (getPoint(i));
          }
       }
-      refs.addAll (myWrappables);
+      for (WrappableSpec wspec : myWrappables) {
+         refs.add (wspec.myWrappable);
+      }
    }
 
    /**
@@ -2621,7 +2802,7 @@ public class MultiPointSpring extends PointSpringBase
       if (undo) {
          Object obj = undoInfo.removeFirst();
          if (obj != NULL_OBJ) {
-            ((ListRemove<Wrappable>)obj).undo();
+            ((ListRemove<WrappableSpec>)obj).undo();
             maybeInvalidateMaxWrapDisplacement();
          }
          obj = undoInfo.removeFirst();
@@ -2633,12 +2814,12 @@ public class MultiPointSpring extends PointSpringBase
       else {
          // remove soft references which aren't in the hierarchy any more:
          DynamicIntArray removedWrappableIndices = new DynamicIntArray();
-         ListRemove<Wrappable> wrappableRemove = null;
+         ListRemove<WrappableSpec> wrappableRemove = null;
          for (int i=0; i<myWrappables.size(); i++) {
             if (!ComponentUtils.areConnected (
-                   this, myWrappables.get(i))) {
+                   this, myWrappables.get(i).myWrappable)) {
                if (wrappableRemove == null) {
-                  wrappableRemove = new ListRemove<Wrappable>(myWrappables);
+                  wrappableRemove = new ListRemove<WrappableSpec>(myWrappables);
                }
                removedWrappableIndices.add (i);
                wrappableRemove.requestRemove(i);
@@ -3350,7 +3531,7 @@ public class MultiPointSpring extends PointSpringBase
             return null;
          }
          else {
-            return myWrappables.get(myWrappableIdx);
+            return myWrappables.get(myWrappableIdx).myWrappable;
          }
       }
 
@@ -3363,7 +3544,7 @@ public class MultiPointSpring extends PointSpringBase
             return null;
          }
          else {
-            return myWrappables.get(myPrevWrappableIdx);
+            return myWrappables.get(myPrevWrappableIdx).myWrappable;
          }
       }
 
@@ -3492,6 +3673,28 @@ public class MultiPointSpring extends PointSpringBase
       }
 
    }
+
+   /**
+    * Gives information about a specific wrappable, including points delimiting
+    * the range of spring segments for which the wrappable should be applied.
+    */
+   static class WrappableSpec {
+      Wrappable myWrappable;
+      int myPntIdx0; // index of first point (inclusive)
+      int myPntIdx1; // index of last point (exclusive)
+ 
+      WrappableSpec (Wrappable w) {
+         myWrappable = w;
+         myPntIdx0 = -1;
+         myPntIdx1 = -1;
+      }
+
+      WrappableSpec (Wrappable w, int pntIdx0, int pntIdx1) {
+         myWrappable = w;
+         myPntIdx0 = pntIdx0;
+         myPntIdx1 = pntIdx1;
+      }
+  }
 
    /**
     * Base class for both SegmentSpec and Segment. Contains flag information.
@@ -4539,16 +4742,20 @@ public class MultiPointSpring extends PointSpringBase
             knot.setWrappableIdx (-1);
             knot.myDist = Wrappable.OUTSIDE;
             for (int i=0; i<myWrappables.size(); i++) {
-               Wrappable wrappable = myWrappables.get(i);
-               double d = wrappable.penetrationDistance (
-                  nrml, dnrm, knot.myPos);
-               if (d < knot.myDist) {
-                  knot.myDist = d;
-                  if (d < 0) {
-                     knot.setWrappableIdx (i);
-                     knot.myNrml.set (nrml);
-                     if (dnrm != null) {
-                        knot.myDnrm.set (dnrm);
+               WrappableSpec wspec = myWrappables.get(i);
+               if (wspec.myPntIdx0 == -1 ||
+                   (wspec.myPntIdx0 <= mySpecIdx &&
+                    mySpecIdx < wspec.myPntIdx1)) {
+                  double d = wspec.myWrappable.penetrationDistance (
+                     nrml, dnrm, knot.myPos);
+                  if (d < knot.myDist) {
+                     knot.myDist = d;
+                     if (d < 0) {
+                        knot.setWrappableIdx (i);
+                        knot.myNrml.set (nrml);
+                        if (dnrm != null) {
+                           knot.myDnrm.set (dnrm);
+                        }
                      }
                   }
                }

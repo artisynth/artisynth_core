@@ -1524,31 +1524,32 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       myConstraintForceStateSaver.getInitialState (nstate);
       
-//      For debugging state frame errors:
-//
-//      System.out.println (
-//         "new initial state, num frames=" + nstate.numDataFrames() +
-//         ", state=" + nstate.hashCode());
-//      try {
-//         PrintWriter pw =
-//            ArtisynthIO.newIndentingPrintWriter ("stateComps.txt");
-//         for (int i=0; i<nstate.numDataFrames(); i++) {
-//            HasNumericState comp = nstate.getDataFrame(i).getComp();
-//            if (comp instanceof ModelComponent) {
-//               pw.println (ComponentUtils.getPathName ((ModelComponent)comp));
-//            }
-//            else if (comp != null) {
-//               pw.println (comp);
-//            }
-//            else {
-//               pw.println ("null");
-//            }
-//         }
-//         pw.close();
-//      }
-//      catch (Exception e) {
-//         e.printStackTrace(); 
-//      }
+      // For debugging state frame errors:
+      //
+      // System.out.println (
+      //    "new initial state, num frames=" + nstate.numDataFrames() +
+      //    ", state.hashCode()=" + nstate.hashCode());
+      // System.out.println (" state=" + nstate);
+      // try {
+      //    PrintWriter pw =
+      //       ArtisynthIO.newIndentingPrintWriter ("stateComps.txt");
+      //    for (int i=0; i<nstate.numDataFrames(); i++) {
+      //       HasNumericState comp = nstate.getDataFrame(i).getComp();
+      //       if (comp instanceof ModelComponent) {
+      //          pw.println (ComponentUtils.getPathName ((ModelComponent)comp));
+      //       }
+      //       else if (comp != null) {
+      //          pw.println (comp);
+      //       }
+      //       else {
+      //          pw.println ("null");
+      //       }
+      //    }
+      //    pw.close();
+      // }
+      // catch (Exception e) {
+      //    e.printStackTrace(); 
+      // }
    }
 
    public void initialize (double t) {

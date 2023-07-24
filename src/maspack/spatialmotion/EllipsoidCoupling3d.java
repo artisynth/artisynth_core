@@ -123,9 +123,9 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
       addConstraint (ROTARY);
       addConstraint (ROTARY);
 
-      addCoordinate (-INF, INF, 0, getConstraint(3));
-      addCoordinate (-INF, INF, 0, getConstraint(4));
-      addCoordinate (-INF, INF, 0, getConstraint(5));
+      addCoordinate ("x", -INF, INF, 0, getConstraint(3));
+      addCoordinate ("y", -INF, INF, 0, getConstraint(4));
+      addCoordinate ("theta", -INF, INF, 0, getConstraint(5));
       
       // initializations for temporary variables used in updateConstraints
 

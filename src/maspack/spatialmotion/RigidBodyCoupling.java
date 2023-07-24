@@ -50,6 +50,8 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected int myNumUnilaterals = -1;
    protected int myCoordValueCnt; // incremented when coordinate values change
 
+   public boolean debug;
+
    // Flags imported from RigidBodyConstraint for convenience:
 
    protected static final int BILATERAL = RigidBodyConstraint.BILATERAL;
@@ -94,27 +96,30 @@ public abstract class RigidBodyCoupling implements Cloneable {
       public int infoFlags;     // information flags. Reserved for future use
 
       CoordinateInfo () {
-         value = 0;
-         maxValue = Double.POSITIVE_INFINITY;
-         minValue = Double.NEGATIVE_INFINITY;
-         limitConstraint = null;
+         this (null, -INF, INF, 0, null);
       }
 
       CoordinateInfo (double min, double max) {
-         value = 0;
-         maxValue = max;
-         minValue = min;
-         limitConstraint = null;
+         this (null, min, max, 0, null);
       }
 
       CoordinateInfo (
          double min, double max, int flags, RigidBodyConstraint cons) {
+         this (null, min, max, flags, cons);
+      }
+
+      CoordinateInfo (
+         String name, double min, double max,
+         int flags, RigidBodyConstraint cons) {
+         this.name = name;
          value = 0;
          maxValue = max;
          minValue = min;
          infoFlags = flags;
          limitConstraint = cons;
-         cons.flags |= LIMIT;
+         if (cons != null) {
+            cons.flags |= LIMIT;
+         }
       }
 
       public boolean hasRestrictedRange() {
@@ -122,9 +127,9 @@ public abstract class RigidBodyCoupling implements Cloneable {
                  maxValue != Double.POSITIVE_INFINITY);        
       }
 
-//      public void setNearestAngle (double ang) {
-//         value = findNearestAngle (value, ang);
-//      }
+      //      public void setNearestAngle (double ang) {
+      //         value = findNearestAngle (value, ang);
+      //      }
       
       public double nearestAngle (double ang) {
          return findNearestAngle (value, ang);
@@ -159,7 +164,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          return speed;
       }
       
-     protected void updateLimitEngaged (Twist velCD) {
+      protected void updateLimitEngaged (Twist velCD) {
          updateEngaged (limitConstraint, value, minValue, maxValue, velCD);
       }
 
@@ -1058,10 +1063,10 @@ public abstract class RigidBodyCoupling implements Cloneable {
 
    /**
     * Called inside {@link #initializeConstraints} to add a new coordinate.
-    * Range limits are specified, along with a unilateral constraint that will
-    * be activated when the coordinate goes out of range. This constraint must
-    * have been added previously in {@link #initializeConstraintInfo} using
-    * {@link #addCoordinate}.
+    * Range limits are specified, along with flags and a unilateral constraint
+    * that will be activated when the coordinate goes out of range. This
+    * constraint must have been added previously in {@link
+    * #initializeConstraintInfo} using {@link #addCoordinate}.
     *
     * @param min minimum range value 
     * @param min maximum range value
@@ -1073,6 +1078,28 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected CoordinateInfo addCoordinate (
       double min, double max, int flags, RigidBodyConstraint cons) {
       CoordinateInfo cinfo = new CoordinateInfo(min, max, flags, cons);
+      myCoordinates.add (cinfo);
+      return cinfo;
+   }
+
+   /**
+    * Called inside {@link #initializeConstraints} to add a new coordinate.  A
+    * name is specified, along with range limits, flags, and a unilateral
+    * constraint that will be activated when the coordinate goes out of range
+    * or is locked. This constraint must have been added previously in {@link
+    * #initializeConstraintInfo} using {@link #addCoordinate}.
+    *
+    * @param name name of the coordinate 
+    * @param min minimum range value 
+    * @param min maximum range value
+    * @param flags reserved for future use; currently ignore
+    * @param cons unilateral constraint that gets activated when the coordinate
+    * goes out of range or is locked
+    * @return information structure for the new coordinate
+    */
+   protected CoordinateInfo addCoordinate (
+      String name, double min, double max, int flags, RigidBodyConstraint cons) {
+      CoordinateInfo cinfo = new CoordinateInfo(name, min, max, flags, cons);
       myCoordinates.add (cinfo);
       return cinfo;
    }
@@ -1372,6 +1399,35 @@ public abstract class RigidBodyCoupling implements Cloneable {
       return myCoordinates.get(idx).getMotionType();
    } 
    
+   /**
+    * Returns the name type for the {@code idx}-th coordinate supported by this
+    * coupling. If the coordinate does not have a name, {@code null} is
+    * returned.
+    *
+    * @param idx index of the coordinate
+    * @return coordinate name, or {@code null}
+    */   
+   public String getCoordinateName (int idx) {
+      return myCoordinates.get(idx).getName();
+   } 
+   
+   /**
+    * Returns the index for the coordinate with a given name. If the coupling
+    * does not contain a coordinate with the specified name, returns {@code
+    * -1}.
+    *
+    * @param name name of the coordinate
+    * @return coordinate index, or {@code -1}
+    */   
+   public int getCoordinateIndex (String name) {
+      for (int i=0; i<numCoordinates(); i++) {
+         if (name.equals (myCoordinates.get(i).getName())) {
+            return i;
+         }
+      }
+      return -1;
+   } 
+
    /**
     * Returns the wrench used to apply forces to the {@code idx}-ith coordinate 
     * supported by the coupling, or {@code null} if the coordinate does not 

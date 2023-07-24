@@ -45,10 +45,10 @@ public class FullPlanarCoupling extends RigidBodyCoupling {
       addConstraint (LINEAR);
       addConstraint (ROTARY, new Wrench(0, 0, 0, 0, 0, 1));
 
-      addCoordinate (-INF, INF, 0, getConstraint(3));
-      addCoordinate (-INF, INF, 0, getConstraint(4));
-      addCoordinate (-INF, INF, 0, getConstraint(5));
-   }
+      addCoordinate ("x", -INF, INF, 0, getConstraint(3));
+      addCoordinate ("y", -INF, INF, 0, getConstraint(4));
+      addCoordinate ("theta", -INF, INF, 0, getConstraint(5));
+  }
 
    @Override
    public void updateConstraints (

@@ -252,9 +252,9 @@ public class GimbalCoupling extends RigidBodyCoupling {
       addConstraint (ROTARY);
       addConstraint (ROTARY);
 
-      addCoordinate (-Math.PI, Math.PI, 0, getConstraint(3));
-      addCoordinate (-Math.PI/2, Math.PI/2, 0, getConstraint(4));
-      addCoordinate (-Math.PI, Math.PI, 0, getConstraint(5));
+      addCoordinate ("roll", -Math.PI, Math.PI, 0, getConstraint(3));
+      addCoordinate ("pitch", -Math.PI/2, Math.PI/2, 0, getConstraint(4));
+      addCoordinate ("yaw", -Math.PI, Math.PI, 0, getConstraint(5));
    }
 
    static void updateRpyLimitConstraints (

@@ -58,8 +58,8 @@ public class CylindricalCoupling extends RigidBodyCoupling {
       addConstraint (LINEAR, new Wrench (0, 0, 1, 0, 0, 0));
       addConstraint (ROTARY, new Wrench (0, 0, 0, 0, 0, 1));
 
-      addCoordinate (-INF, INF, 0, getConstraint(4));
-      addCoordinate (-INF, INF, 0, getConstraint(5));
+      addCoordinate ("z", -INF, INF, 0, getConstraint(4));
+      addCoordinate ("theta", -INF, INF, 0, getConstraint(5));
    }
 
    @Override

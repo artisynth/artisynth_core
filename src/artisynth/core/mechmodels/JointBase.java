@@ -344,6 +344,30 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
+    * Returns the name type for the {@code idx}-th coordinate for this
+    * joint. If the coordinate does not have a name, {@code null} is returned.
+    *
+    * @param idx index of the coordinate
+    * @return coordinate name, or {@code null}
+    */   
+   public String getCoordinateName (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getCoordinateName(idx);
+   } 
+   
+   /**
+    * Returns the index for the coordinate with a given name. If the
+    * joint does not contain a coordinate with the specified name,
+    * returns {@code -1}.
+    *
+    * @param name name of the coordinate
+    * @return coordinate index, or {@code -1}
+    */   
+   public int getCoordinateIndex (String name) {
+      return myCoupling.getCoordinateIndex (name);
+   } 
+   
+   /**
     * Applies a generalized force to the {@code idx}-th coordinate for this 
     * joint.
     *

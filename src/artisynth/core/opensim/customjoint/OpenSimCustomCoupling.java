@@ -213,12 +213,14 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          if (c.getClamped()) {
             // range limited
             cinfo = addCoordinate (
+               c.getName(),
                c.getRange().getLowerBound(), 
                c.getRange().getUpperBound(), 
                0, getConstraint(bidx++));
          }
          else {
-            cinfo = addCoordinate (-INF, INF, 0, getConstraint(bidx++));
+            cinfo = addCoordinate (
+               c.getName(), -INF, INF, 0, getConstraint(bidx++));
          }
          if (c.getLocked()) {
             cinfo.setLocked (true);
@@ -410,11 +412,6 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       }
       
       int numc = numCoordinates();
-      if (numc == 6) {
-         // nothing to do; there are no independent constraints
-         return;
-      }
-
       // projection is based on current coordinate values, so we need these
       // regardless:
       if (coords == null) {
@@ -422,6 +419,12 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       }
       doGetCoords (coords);
       coordinatesToTCD (TGD, coords);
+
+      if (numc == 6) {
+         // nothing more to do; there are no independent constraints
+         return;
+      }
+
       // find differential displacement del from TGD to TCD:
       Twist del = new Twist();
       RigidTransform3d TDEL = new RigidTransform3d ();
@@ -466,8 +469,6 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    //    RigidTransform3d TCD, VectorNd coords) {
    //    coordinatesToTCD (TCD);
    // }
-
-   public boolean debug = false;
 
    @Override
    public void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords) {

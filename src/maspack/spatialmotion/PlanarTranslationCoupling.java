@@ -44,8 +44,8 @@ public class PlanarTranslationCoupling extends RigidBodyCoupling {
       addConstraint (LINEAR, new Wrench(1, 0, 0, 0, 0, 0));
       addConstraint (LINEAR, new Wrench(0, 1, 0, 0, 0, 0));
 
-      addCoordinate (-INF, INF, 0, getConstraint(4));
-      addCoordinate (-INF, INF, 0, getConstraint(5));
+      addCoordinate ("x", -INF, INF, 0, getConstraint(4));
+      addCoordinate ("y", -INF, INF, 0, getConstraint(5));
    }
 
    @Override

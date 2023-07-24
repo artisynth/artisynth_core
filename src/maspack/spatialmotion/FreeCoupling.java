@@ -78,13 +78,13 @@ public class FreeCoupling extends RigidBodyCoupling {
       addConstraint (ROTARY);
       addConstraint (ROTARY);
 
-      addCoordinate (-INF, INF, 0, getConstraint(0));
-      addCoordinate (-INF, INF, 0, getConstraint(1));
-      addCoordinate (-INF, INF, 0, getConstraint(2));
+      addCoordinate ("x", -INF, INF, 0, getConstraint(0));
+      addCoordinate ("y", -INF, INF, 0, getConstraint(1));
+      addCoordinate ("z", -INF, INF, 0, getConstraint(2));
 
-      addCoordinate (-INF, INF, 0, getConstraint(3));
-      addCoordinate (-INF, INF, 0, getConstraint(4));
-      addCoordinate (-INF, INF, 0, getConstraint(5));
+      addCoordinate ("roll", -INF, INF, 0, getConstraint(3));
+      addCoordinate ("pitch", -INF, INF, 0, getConstraint(4));
+      addCoordinate ("yaw", -INF, INF, 0, getConstraint(5));
    }
 
    @Override

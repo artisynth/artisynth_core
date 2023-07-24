@@ -320,8 +320,8 @@ public class UniversalCoupling extends RigidBodyCoupling {
       addConstraint (ROTARY);
       addConstraint (ROTARY);
 
-      addCoordinate (-Math.PI, Math.PI, 0, getConstraint(5));
-      addCoordinate (-Math.PI, Math.PI, 0, getConstraint(4));
+      addCoordinate ("roll", -Math.PI, Math.PI, 0, getConstraint(5));
+      addCoordinate ("pitch", -Math.PI, Math.PI, 0, getConstraint(4));
    }
 
    @Override

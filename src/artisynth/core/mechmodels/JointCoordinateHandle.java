@@ -122,6 +122,10 @@ public class JointCoordinateHandle {
       return myJoint.getCoordinateMotionType (myIdx);
    }
 
+   public String getCoordinateName() {
+      return myJoint.getCoordinateName (myIdx);
+   }
+
    public Wrench getWrench() {
       return myJoint.getCoupling().getCoordinateWrench (myIdx);
    }

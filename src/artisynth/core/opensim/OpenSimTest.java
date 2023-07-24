@@ -13,10 +13,10 @@ import maspack.render.Renderer.Shading;
 
 public class OpenSimTest extends RootModel {
 
-
-    File osimFile = ArtisynthPath.getSrcRelativeFile (this, "osim/arm26_v4.osim");
-   // File osimFile = ArtisynthPath.getSrcRelativeFile (this, "osim/arm26.osim");
-    
+   String modelName = "osim/arm26_v4.osim";
+   //String modelName = "osim/arm26.osim";
+   File osimFile = ArtisynthPath.getSrcRelativeFile (this, modelName);   
+ 
    @Override
    public void build (String[] args) throws IOException {
       super.build (args);

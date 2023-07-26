@@ -20,21 +20,21 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix3x4;
 
 /** 
- * Constraints a rigid body to 2D motion (with rotation) on the surface of an
- * ellipsoid.
+ * Constrains a coordinate frame to the surface of an ellipsoid, together with
+ * two additional degrees of rotational freedom.
  */
 public class EllipsoidCoupling extends RigidBodyCoupling {
 
-   public static final int X_IDX = 0;
-   public static final int Y_IDX = 1;
+   public static final int LONGITUDE_IDX = 0;
+   public static final int LATITUDE_IDX = 1;
    public static final int THETA_IDX = 2;
    public static final int PHI_IDX = 3;
 
    // OpenSim approximation for ellipsoid joints: assumes orientation is given
-   // directy by the x, y, theta angles. This simplifies the calculations but
-   // means that the z axis of C is generally not parallel to the ellipsoid
-   // surface normal.
-   public boolean myUseOpenSimApprox = true;
+   // directly by the longitude, latitude, theta and phi angles. This simplifies
+   // the calculations but means that the z axis of C is generally not parallel 
+   // to the ellipsoid surface normal.
+   public boolean myOpenSimCompatible = true;
 
    static double EPS = 2e-15;
    
@@ -60,22 +60,22 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
    }
 
    public EllipsoidCoupling (
-      double a, double b, double c, double alpha, boolean useOpenSimApprox) {
+      double a, double b, double c, double alpha, boolean openSimCompatible) {
 
       super();
       this.myA = a;
       this.myB = b;
       this.myC = c;
       setAlpha (alpha);
-      this.myUseOpenSimApprox = useOpenSimApprox;
+      this.myOpenSimCompatible = openSimCompatible;
    }
 
-   public boolean getUseOpenSimApprox() {
-      return myUseOpenSimApprox;
+   public boolean isOpenSimCompatible() {
+      return myOpenSimCompatible;
    }
 
-   public void setUseOpenSimApprox (boolean enable) {
-      myUseOpenSimApprox = enable;
+   public void setOpenSimCompatible (boolean enable) {
+      myOpenSimCompatible = enable;
    }
 
    public void setSemiAxisLengths (Vector3d lengths) {
@@ -98,50 +98,6 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       return myAlpha;
    }
 
-   private void mulRotAlpha (RotationMatrix3d R1, RotationMatrix3d R0) {
-      double m00 = R0.m00;
-      double m10 = R0.m10;
-      double m20 = R0.m20;
-
-      double m01 = R0.m01;
-      double m11 = R0.m11;
-      double m21 = R0.m21;
-
-      R1.m02 = R0.m02;
-      R1.m12 = R0.m12;
-      R1.m22 = R0.m22;
-
-      R1.m00 = myCosA*m00 + mySinA*m01;
-      R1.m10 = myCosA*m10 + mySinA*m11;
-      R1.m20 = myCosA*m20 + mySinA*m21;
-
-      R1.m01 = -mySinA*m00 + myCosA*m01;
-      R1.m11 = -mySinA*m10 + myCosA*m11;
-      R1.m21 = -mySinA*m20 + myCosA*m21;
-   }
-
-   private void mulInvRotAlpha (RotationMatrix3d R1, RotationMatrix3d R0) {
-      double m00 = R0.m00;
-      double m10 = R0.m10;
-      double m20 = R0.m20;
-
-      double m01 = R0.m01;
-      double m11 = R0.m11;
-      double m21 = R0.m21;
-
-      R1.m02 = R0.m02;
-      R1.m12 = R0.m12;
-      R1.m22 = R0.m22;
-
-      R1.m00 = myCosA*m00 - mySinA*m01;
-      R1.m10 = myCosA*m10 - mySinA*m11;
-      R1.m20 = myCosA*m20 - mySinA*m21;
-
-      R1.m01 = mySinA*m00 + myCosA*m01;
-      R1.m11 = mySinA*m10 + myCosA*m11;
-      R1.m21 = mySinA*m20 + myCosA*m21;
-   }
-
    @Override
    public void projectToConstraints (
       RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
@@ -151,8 +107,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       Vector3d zdir = new Vector3d();
       Vector3d xdir = new Vector3d();
 
-      double dist = QuadraticUtils.nearestPointEllipsoid (
-         p, myA, myB, myC, TCD.p);
+      QuadraticUtils.nearestPointEllipsoid (p, myA, myB, myC, TCD.p);
       TGD.p.set (p);
 
       n.x = p.x/myA;
@@ -171,7 +126,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
             xdir.set (0, 0, 1);
          }
       }
-      else if (myUseOpenSimApprox) {
+      else if (myOpenSimCompatible) {
          // use n as an approximate normal
          zdir.x = n.x;
          zdir.y = n.y;
@@ -195,7 +150,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       R2D.setZXDirections (zdir, xdir);
       RotationMatrix3d RC2 = new RotationMatrix3d();
       RC2.mulInverseLeft (R2D, TCD.R);
-      // post mult R2D by RotZ(alpha) so that y corrseponds to the pitch axis
+      // post mult R2D by RotZ(alpha) so that y corresponds to the pitch axis
       RC2.mulRotZ (myCosA, mySinA);
       // project the pitch axis (y axis) onto the x-y plane
       double yx = RC2.m01;
@@ -233,8 +188,8 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       addConstraint (ROTARY);
       addConstraint (ROTARY);
 
-      addCoordinate ("x", -INF, INF, 0, getConstraint(2));
-      addCoordinate ("y", -INF, INF, 0, getConstraint(3));
+      addCoordinate ("longitude", -INF, INF, 0, getConstraint(2));
+      addCoordinate ("latitude", -INF, INF, 0, getConstraint(3));
       addCoordinate ("theta", -INF, INF, 0, getConstraint(4));
       addCoordinate ("phi", -INF, INF, 0, getConstraint(5));
       
@@ -291,14 +246,14 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
 
       VectorNd coords = new VectorNd (4);
       TCDToCoordinates (coords, TGD);
-      double x = coords.get (X_IDX);
-      double y = coords.get (Y_IDX);
+      double longitude  = coords.get (LONGITUDE_IDX);
+      double latitude = coords.get (LATITUDE_IDX);
       double theta = coords.get (THETA_IDX);
       double phi = coords.get (PHI_IDX);
-      double c1 = Math.cos (x);
-      double s1 = Math.sin (x);
-      double c2 = Math.cos (y);
-      double s2 = Math.sin (y);
+      double c1 = Math.cos (longitude);
+      double s1 = Math.sin (longitude);
+      double c2 = Math.cos (latitude);
+      double s2 = Math.sin (latitude);
       double c3 = Math.cos (theta);
       double s3 = Math.sin (theta);
 
@@ -327,7 +282,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
 
       // Set the first two columns of the rotational Jacobian
 
-      if (myUseOpenSimApprox) {
+      if (myOpenSimCompatible) {
          // First three columns of rotational Jacobian are quite simple, and
          // are the same as for an XYZ GimbalCoupling
  
@@ -357,10 +312,11 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
          // approximation
       }
       else {
-         // for simplicity, do the rotation jacobian calculations for x and y
-         // in frame 2, which is the intermediate frame on the ellipsoid
-         // surface after x and y have been applied but before the theta
-         // rotation. The orientation of this frame is given by R2.
+         // for simplicity, do the rotation jacobian calculations for longitude 
+         // and latitude in frame 2, which is the intermediate frame on the 
+         // ellipsoid surface after longitude and latitude have been applied 
+         // but before the theta and phi rotations. The orientation of this 
+         // frame is given by R2.
          RotationMatrix3d R2 = new RotationMatrix3d();
          R2.mulInverseRight (TGD.R, RC2);
 
@@ -522,27 +478,27 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       n.y = p.y/myB;
       n.z = p.z/myC;
       
-      double x, y;
+      double longitude, latitude;
       double c2 = Math.sqrt(n.y*n.y + n.z*n.z);
       double s2 = n.x;
 
-      y = Math.atan2 (s2, c2);
+      latitude = Math.atan2 (s2, c2);
       if (Math.abs(n.y) < EPS && Math.abs(n.z) < EPS) {
-         x = 0;
+         longitude = 0;
       }
       else {
-         x = Math.atan2 (-n.y, n.z);
+         longitude = Math.atan2 (-n.y, n.z);
       }
-      double c1 = Math.cos (x);
-      double s1 = Math.sin (x);
+      double c1 = Math.cos (longitude);
+      double s1 = Math.sin (longitude);
       
-      setToNearestAngle (coords, X_IDX, x);
-      setToNearestAngle (coords, Y_IDX, y);
+      setToNearestAngle (coords, LONGITUDE_IDX, longitude);
+      setToNearestAngle (coords, LATITUDE_IDX, latitude);
 
       Vector3d zdir = new Vector3d();
       Vector3d xdir = new Vector3d();
 
-      if (myUseOpenSimApprox) {
+      if (myOpenSimCompatible) {
          // set z direction to an approximation of the surface normal
          zdir.x = p.x/myA;
          zdir.y = p.y/myB;
@@ -577,16 +533,16 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
    }
 
    public void coordinatesToTCD (
-      RigidTransform3d TCD, double x, double y, double theta, double phi) {
+      RigidTransform3d TCD, double longitude, double latitude, double theta, double phi) {
 
       Vector3d p = new Vector3d();
       Vector3d zdir = new Vector3d();
       Vector3d xdir = new Vector3d();
       
-      double c1 = Math.cos (x);
-      double s1 = Math.sin (x);
-      double c2 = Math.cos (y);
-      double s2 = Math.sin (y);
+      double c1 = Math.cos (longitude);
+      double s1 = Math.sin (longitude);
+      double c2 = Math.cos (latitude);
+      double s2 = Math.sin (latitude);
       
       p.x = myA*s2;
       p.y = -myB*s1*c2;
@@ -594,7 +550,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
 
       TCD.p.set (p);
 
-      if (myUseOpenSimApprox) {
+      if (myOpenSimCompatible) {
          // Note: this is equivalent to coordinatesToTCD for an XYZ
          // GimbalCoupling
 
@@ -615,7 +571,8 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
          zdir.y = p.y/(myB*myB);
          zdir.z = p.z/(myC*myC);
 
-         // set x direction to the surface tangent direction imparted by y
+         // set x direction to the surface tangent direction imparted by the
+         // longitude angle
          xdir.x = myA*c2;
          xdir.y = myB*s1*s2;
          xdir.z = -myC*c1*s2;

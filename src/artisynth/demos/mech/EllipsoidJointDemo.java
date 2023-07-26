@@ -80,10 +80,10 @@ public class EllipsoidJointDemo extends RootModel {
 
       mech.addBodyConnector (joint);
       // set coordinate ranges
-      joint.setMinX (-135);
-      joint.setMaxX (135);
-      joint.setMinY (-30);
-      joint.setMaxY (30);
+      joint.setMinLongitude (-135);
+      joint.setMaxLongitude (135);
+      joint.setMinLatitude (-30);
+      joint.setMaxLatitude (30);
       joint.setMinTheta (-360);
       joint.setMaxTheta (360);
       joint.setMinPhi (-30);
@@ -112,12 +112,12 @@ public class EllipsoidJointDemo extends RootModel {
 
       // create control panel to interactively adjust properties
       ControlPanel panel = new ControlPanel();
-      panel.addWidget (joint, "x");
-      panel.addWidget (joint, "xRange");
-      panel.addWidget (joint, "xLocked");
-      panel.addWidget (joint, "y");
-      panel.addWidget (joint, "yRange");
-      panel.addWidget (joint, "yLocked");
+      panel.addWidget (joint, "longitude");
+      panel.addWidget (joint, "longitudeRange");
+      panel.addWidget (joint, "longitudeLocked");
+      panel.addWidget (joint, "latitude");
+      panel.addWidget (joint, "latitudeRange");
+      panel.addWidget (joint, "latitudeLocked");
       panel.addWidget (joint, "theta");
       panel.addWidget (joint, "thetaRange");
       panel.addWidget (joint, "thetaLocked");

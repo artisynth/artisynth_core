@@ -229,4 +229,12 @@ public class JointCoordinateHandle {
       return handles;
    }
 
+   /**
+    * Checks if this coordinate handle equals another. Handles are equal if
+    * they refer to the same joint and the same coordinate index.
+    */
+   public boolean equals (JointCoordinateHandle jch) {
+      return (myJoint == jch.myJoint && myIdx == jch.myIdx);
+   }
+
 }

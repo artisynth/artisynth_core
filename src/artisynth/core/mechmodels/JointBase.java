@@ -7,7 +7,8 @@
 package artisynth.core.mechmodels;
 
 import java.awt.Color;
-import java.util.Map;
+import java.util.*;
+import java.io.*;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -16,7 +17,7 @@ import maspack.matrix.VectorNd;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.*;
-import maspack.util.DoubleInterval;
+import maspack.util.*;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.spatialmotion.Wrench;
@@ -24,6 +25,7 @@ import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.render.Renderer.AxisDrawStyle;
 
 import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
 
 /**
  * Subclass of BodyConnector that provides support for coordinates.
@@ -43,6 +45,10 @@ public abstract class JointBase extends BodyConnector  {
 
    public static PropertyList myProps =
       new PropertyList (JointBase.class, BodyConnector.class);
+
+   // indicates that one or more coordinate names have been set and so need to
+   // be saved/restored with wtite/scan
+   protected boolean myCoordinateNamesSet = false;
 
    static {
       myProps.add (
@@ -344,7 +350,7 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
-    * Returns the name type for the {@code idx}-th coordinate for this
+    * Returns the name for the {@code idx}-th coordinate for this
     * joint. If the coordinate does not have a name, {@code null} is returned.
     *
     * @param idx index of the coordinate
@@ -353,6 +359,27 @@ public abstract class JointBase extends BodyConnector  {
    public String getCoordinateName (int idx) {
       checkCoordinateIndex (idx);
       return myCoupling.getCoordinateName(idx);
+   } 
+   
+   /**
+    * Sets the name for the {@code idx}-th coordinate supported by this
+    * coupling.
+    *
+    * <p>This method allows joint coordinates to be renamed so as to be
+    * compatible with the names used by equivalent joints in different modeling
+    * systems (e.g., OpenSim). If the joint provides special methods with
+    * hardwired names to access coordinate values (e.g., {@link
+    * HingeJoint#setTheta} and {@link HingeJoint#getTheta} in {@link
+    * HingeJoint}), those methods will be unaffacted and will continue to
+    * access the coordinate at the same location.
+    *
+    * @param idx index of the coordinate
+    * @param new coordinate name
+    */   
+   public void setCoordinateName (int idx, String name) {
+      checkCoordinateIndex (idx);
+      myCoupling.setCoordinateName (idx, name);
+      myCoordinateNamesSet = true;
    } 
    
    /**
@@ -613,6 +640,12 @@ public abstract class JointBase extends BodyConnector  {
       coordinatesToTCD (TCD, coords);
    }
 
+   public RigidTransform3d getStoredTCD() {
+      RigidTransform3d TCD = new RigidTransform3d();
+      getStoredTCD (TCD);
+      return TCD;
+   }
+
    /**
     * Sets the {@code idx}-th coordinate for this joint. If the joint is
     * connected to other bodies, their poses are adjusted appropriately.
@@ -765,5 +798,52 @@ public abstract class JointBase extends BodyConnector  {
       p0.updateBounds (pmin, pmax);
       p1.updateBounds (pmin, pmax);
    }
+
+   // begin I/O methods
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "coordinateNames")) {
+         ArrayList<String> names = new ArrayList<>();
+         rtok.scanToken ('[');
+         while (rtok.nextToken() != ']') {
+            if (!rtok.tokenIsQuotedString('"')) {
+               throw new IOException (
+                  "Quoted coordinate name expected; got " + rtok);
+            }
+            names.add (rtok.sval);
+         }
+         if (names.size() != numCoordinates()) {
+            throw new IOException (
+               "Expected "+numCoordinates()+
+               " coordinate names, got " + names.size());
+         }
+         for (int i=0; i<numCoordinates(); i++) {
+            setCoordinateName (i, names.get(i));
+         }
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+   
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      super.writeItems (pw, fmt, ancestor);
+      if (myCoordinateNamesSet) {
+         pw.println ("coordinateNames=[");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         for (int i=0; i<numCoordinates(); i++) {
+            pw.println ("\"" + getCoordinateName(i) + "\"");
+         }
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
+   }
+
 
 }

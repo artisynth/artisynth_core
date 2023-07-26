@@ -26,15 +26,53 @@ import maspack.spatialmotion.EllipsoidCoupling;
 import maspack.util.*;
 
 /**
- * Implements a 3 DOF joint, in which the origin of frame C is constrained to lie 
- * on the surface of an ellipsoid in frame D, while being free to rotate about the 
- * axis normal to the ellipsoid surface. The x and y displacements of C are given by 
- * the coordinates {@code x} and {@code y}, while the (counter-clockwise) rotation
- * of C about z is given by the coordinate {@code theta} and rotation of C about the
- * y is given by the coordinate {@code phi}.
+ * Implements a 4 DOF joint, in which the origin of frame C is constrained to
+ * lie on the surface of an ellipsoid in frame D, while being free to rotate
+ * about the axis normal to the ellipsoid surface and a second axis in the
+ * surface tangent plane. The origin of C with respect to D is described by two
+ * coordinate angles, {@code longitude} and {@code latitude}, which describe a
+ * point on the ellipsoid in polar coordinates. If {@code c1}, {@code s1}
+ * {@code c2}, and {@code s2} are the cosine and sine of {@code longitude} and
+ * {@code latitude}, respectively, the semi-axis lengths of the ellipsoid are
+ * {@code rx}, {@code ry}, and {@code rz}, and the origin of C is given with
+ * respect to D by a vector {@code p}, then
+ * <pre>
+ *     [   rx s2   ]
+ * p = [ -ry s1 c2 ]
+ *     [  rz c1 c2 ]
+ * </pre>
+ * which is the equation of an ellipsoid in polar coordinates, with longitude
+ * giving the rotation angle about the x axis.
  *
- * <p>The {@code x}, {@code y} {@code theta} {@code phi} values are available as
- * properties (given in degrees) which can be read and also,
+ * <p>The longitude and latitude coordinates define a frame with respect to D
+ * known as "frame 2". With respect to D, the origin of frame 2 is {@code p}
+ * described above, while the orientation of frame 2 is determined in
+ * one of two ways:
+ *
+ * <ul>
+ * 
+ * <li>By default, the z axis is set to point outward from the surface normal,
+ * while the x axis is the surface tangent direction imparted by the
+ * {@code latitude} angle.
+ *
+ * <li>If the joint is set to be compatible with the OpenSim ellipsoid joint,
+ * then the z axis is instead set to an approximation of the surface normal
+ * given by {@code (p.x/rx, p.y/ry, p.z/rz)}, while the x direction is the same
+ * as that which would result by treating the longitude and latitude
+ * coordinates as the first two joints of an XYZ GimbalCoupling.
+ *
+ * </ul>
+ *
+ * Two additional angles, {@code theta} and {@code phi}, provide two additional
+ * rotational degrees of freedom between frame 2 and frame C, consisting of a
+ * rotation by {@code theta} about the frame 2 z axis, followed by an
+ * additional rotation about a ``wing'' axis in the (rotated) x-y plane, where
+ * the wing axis is defined by an angle {@code alpha} with respect to the y
+ * axis. The default wing axis corresponds to the y axis (i.e., {@code alpha} =
+ * 0).
+ *
+ * <p>The {@code longitude}, {@code latitude} {@code theta} {@code phi} values
+ * are available as properties (given in degrees) which can be read and also,
  * under appropriate circumstances, set.  Setting these values causes an
  * adjustment in the positions of one or both bodies connected to this joint,
  * along with adjacent bodies connected to them, with preference given to
@@ -46,8 +84,8 @@ import maspack.util.*;
 public class EllipsoidJoint extends JointBase 
    implements CopyableComponent {
 
-   public static final int X_IDX = EllipsoidCoupling.X_IDX; 
-   public static final int Y_IDX = EllipsoidCoupling.Y_IDX; 
+   public static final int LONGITUDE_IDX = EllipsoidCoupling.LONGITUDE_IDX; 
+   public static final int LATITUDE_IDX = EllipsoidCoupling.LATITUDE_IDX; 
    public static final int THETA_IDX = EllipsoidCoupling.THETA_IDX; 
    public static final int PHI_IDX = EllipsoidCoupling.PHI_IDX; 
 
@@ -62,10 +100,10 @@ public class EllipsoidJoint extends JointBase
    
    PolygonalMesh ellipsoid;
 
-   private static DoubleInterval DEFAULT_X_RANGE =
+   private static DoubleInterval DEFAULT_LONGITUDE_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
-   private static DoubleInterval DEFAULT_Y_RANGE =
+   private static DoubleInterval DEFAULT_LATITUDE_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
    private static DoubleInterval DEFAULT_THETA_RANGE =
@@ -74,8 +112,8 @@ public class EllipsoidJoint extends JointBase
    private static DoubleInterval DEFAULT_PHI_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
-   private static boolean DEFAULT_X_LOCKED = false;
-   private static boolean DEFAULT_Y_LOCKED = false;
+   private static boolean DEFAULT_LONGITUDE_LOCKED = false;
+   private static boolean DEFAULT_LATITUDE_LOCKED = false;
    private static boolean DEFAULT_THETA_LOCKED = false;
    private static boolean DEFAULT_PHI_LOCKED = false;
 
@@ -86,18 +124,20 @@ public class EllipsoidJoint extends JointBase
    }
 
    static {
-      myProps.add ("x", "u ellipsoid paramter", 0, "[-360,360]");
       myProps.add (
-         "xRange", "range for x", DEFAULT_X_RANGE);
+         "longitude", "longitude angle on the ellipsoid", 0, "[-360,360]");
       myProps.add (
-         "xLocked isXLocked",
-         "set whether x is locked", DEFAULT_X_LOCKED);
-      myProps.add ("y", "v ellipsoid parameter", 0, "[0,180]");
+         "longitudeRange", "range for longitude", DEFAULT_LONGITUDE_RANGE);
       myProps.add (
-         "yRange", "range for y", DEFAULT_Y_RANGE);
+         "longitudeLocked isLongitudeLocked",
+         "set whether longitude angle is locked", DEFAULT_LONGITUDE_LOCKED);
       myProps.add (
-         "yLocked isYLocked",
-         "set whether y is locked", DEFAULT_Y_LOCKED);
+         "latitude", "latitude angle on the ellipsoid", 0, "[0,180]");
+      myProps.add (
+         "latitudeRange", "range for latitude", DEFAULT_LATITUDE_RANGE);
+      myProps.add (
+         "latitudeLocked isLatitudeLocked",
+         "set whether latitude is locked", DEFAULT_LATITUDE_LOCKED);
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
          "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
@@ -111,8 +151,8 @@ public class EllipsoidJoint extends JointBase
          "phiLocked isPhiLocked",
          "set whether phi is locked", DEFAULT_PHI_LOCKED);
       myProps.get ("renderProps").setDefaultValue (defaultRenderProps(null));
-      myProps.add (
-         "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
+      //     myProps.add (
+      //         "planeSize", "renderable size of the plane", DEFAULT_PLANE_SIZE);
       myProps.add (
          "drawEllipsoid",
          "draw the ellipsoid surface", DEFAULT_DRAW_ELLIPSOID);
@@ -137,9 +177,9 @@ public class EllipsoidJoint extends JointBase
    }
 
    /**
-    * Creates a {@code PlanarJoint} which is not attached to any
-    * bodies.  It can subsequently be connected using one of the {@code
-    * setBodies} methods.
+    * Creates an {@code EllipsoidJoint} which is not attached to any bodies.
+    * It can subsequently be connected using one of the {@code setBodies}
+    * methods.
     */
    public EllipsoidJoint(
       double a, double b, double c, double alpha, boolean useOpenSimApprox) {
@@ -148,8 +188,8 @@ public class EllipsoidJoint extends JointBase
       RenderProps.setFaceStyle (ellipsoid, FaceStyle.NONE);
       RenderProps.setDrawEdges (ellipsoid, true);
       RenderProps.setEdgeColor (ellipsoid, Color.DARK_GRAY);
-      setXRange (DEFAULT_X_RANGE);
-      setYRange (DEFAULT_Y_RANGE);
+      setLongitudeRange (DEFAULT_LONGITUDE_RANGE);
+      setLatitudeRange (DEFAULT_LATITUDE_RANGE);
       setThetaRange (DEFAULT_THETA_RANGE);      
       setPhiRange (DEFAULT_PHI_RANGE);
    }
@@ -170,33 +210,45 @@ public class EllipsoidJoint extends JointBase
     * @param TCA transform from joint frame C to body frame A
     * @param bodyB rigid body B (or {@code null})
     * @param TDB transform from joint frame D to body frame B
+    * @param rx semi-axis length along x
+    * @param ry semi-axis length along y
+    * @param rz semi-axis length along z
+    * @param alpha angle of the second rotation axis, with respect to the y
+    * axis of frame 2, as described in this class's Javadoc header
+    * @param openSimCompatible if {@code true}, make this joint compatible with
+    * the OpenSim ellispoid joint, as described in this class's Javadoc header.
     */
    public EllipsoidJoint (
       RigidBody bodyA, RigidTransform3d TCA,
       RigidBody bodyB, RigidTransform3d TDB,
-      double a, double b, double c, double alpha, boolean useOpenSimApprox) {
-      this(a, b, c, alpha, useOpenSimApprox);
+      double rx, double ry, double rz, double alpha, boolean openSimCompatible) {
+      this(rx, ry, rz, alpha, openSimCompatible);
       setBodies (bodyA, TCA, bodyB, TDB);
    }
    
    /**
-    * Creates a {@code EllipsoidJoint} connecting two connectable bodies, {@code
-    * bodyA} and {@code bodyB}. The joint frames C and D are located
+    * Creates a {@code EllipsoidJoint} connecting two connectable bodies,
+    * {@code bodyA} and {@code bodyB}. The joint frames C and D are located
     * independently with respect to world coordinates by {@code TCW} and {@code
-    * TDW}.
+    * TDW}. Specifying {@code bodyB} as {@code null} will cause {@code bodyA}
+    * to be connected to ground.
     *
-    * <p>Specifying {@code bodyB} as {@code null} will cause {@code bodyA} to
-    * be connected to ground.
+    * <p>
+    * 
     *
     * @param bodyA body A
     * @param bodyB body B (or {@code null})
     * @param TCW initial transform from joint frame C to world
     * @param TDW initial transform from joint frame D to world
+    * @param rx semi-axis length along x
+    * @param ry semi-axis length along y
+    * @param rz semi-axis length along z
     */
    public EllipsoidJoint (
       ConnectableBody bodyA, ConnectableBody bodyB,
-      RigidTransform3d TCW, RigidTransform3d TDW, double a, double b, double c) {
-      this(a, b, c, 0, false);
+      RigidTransform3d TCW, RigidTransform3d TDW,
+      double rx, double ry, double rz) {
+      this(rx, ry, rz, 0, false);
       setBodies (bodyA, bodyB, TCW, TDW);
    }
 
@@ -205,8 +257,8 @@ public class EllipsoidJoint extends JointBase
       return (EllipsoidCoupling)myCoupling;
    }
 
-   public boolean getUseOpenSimApprox() {
-      return getCoupling().getUseOpenSimApprox();
+   public boolean isOpenSimCompatible() {
+      return getCoupling().isOpenSimCompatible();
    }
 
    public double getAlpha() {
@@ -214,287 +266,287 @@ public class EllipsoidJoint extends JointBase
    }
 
    /**
-    * Queries the x range limits for this joint. See {@link
-    * #setXRange(DoubleInterval)} for more details.
+    * Queries this joint's longitude angle. See this class's Javadoc header for
+    * a description of this coordinate.
     *
-    * @return x range limits for this joint
+    * @return longitude angle (in degrees)
     */
-   public double getX() {
-      return RTOD*getCoordinate (X_IDX);
+   public double getLongitude() {
+      return RTOD*getCoordinate (LONGITUDE_IDX);
    }
 
    /**
-    * Sets this joint's x value. This describes the displacement of frame C
-    * along the x axis of frame D. See this class's Javadoc header for a
-    * discussion of what happens when this value is set.
+    * Sets this joint's longitude angle. See this class's Javadoc header for a
+    * description of this coordinate.
     *
-    * @param x new x value
+    * @param longitude new longitude angle (in degrees)
     */
-   public void setX (double x) {
-      setCoordinate (X_IDX, DTOR*x);
+   public void setLongitude (double longitude) {
+      setCoordinate (LONGITUDE_IDX, DTOR*longitude);
    }
 
    /**
-    * Queries the x range limits for this joint. See {@link
-    * #setXRange(DoubleInterval)} for more details.
+    * Queries the longitude angle range limits for this joint. See {@link
+    * #setLongitudeRange(DoubleInterval)} for more details.
     *
-    * @return x range limits for this joint
+    * @return longitude range limits for this joint (in degrees)
     */
-   public DoubleInterval getXRange () {
-      return getCoordinateRangeDeg (X_IDX);
+   public DoubleInterval getLongitudeRange () {
+      return getCoordinateRangeDeg (LONGITUDE_IDX);
    }
 
    /**
-    * Queries the lower x range limit for this joint, in degrees.
+    * Queries the lower longitude range limit for this joint.
     *
-    * @return lower x range limit
+    * @return lower longitude range limit (in degrees)
     */
-   public double getMinX () {
-      return getMinCoordinateDeg (X_IDX);
+   public double getMinLongitude () {
+      return getMinCoordinateDeg (LONGITUDE_IDX);
    }
 
    /**
-    * Queries the upper x range limit for this joint, in degrees.
+    * Queries the upper longitude range limit for this joint.
     *
-    * @return upper x range limit
+    * @return upper longitude range limit (in degrees)
     */
-   public double getMaxX () {
-      return getMaxCoordinateDeg (X_IDX);
+   public double getMaxLongitude () {
+      return getMaxCoordinateDeg (LONGITUDE_IDX);
    }
 
    /**
-    * Sets the x range limits for this joint. The default range is {@code
-    * [-inf, inf]}, which implies no limits. If x travels beyond these limits
-    * during dynamic simulation, unilateral constraints will be activated to
-    * enforce them. Setting the lower limit to {@code -inf} or the upper limit
-    * to {@code inf} removes the lower or upper limit, respectively. Specifying
-    * {@code range} as {@code null} will set the range to {@code (-inf, inf)}.
+    * Sets the range limits of the longitude for this joint. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If the longitude travels
+    * beyond these limits during dynamic simulation, unilateral constraints
+    * will be activated to enforce them. Setting the lower limit to {@code
+    * -inf} or the upper limit to {@code inf} removes the lower or upper limit,
+    * respectively. Specifying {@code range} as {@code null} will set the range
+    * to {@code (-inf, inf)}.
     *
-    * @param range x range limits for this joint
+    * @param range longitude range limits for this joint (in degrees)
     */
-   public void setXRange (DoubleInterval range) {
-      setCoordinateRangeDeg (X_IDX, range);
+   public void setLongitudeRange (DoubleInterval range) {
+      setCoordinateRangeDeg (LONGITUDE_IDX, range);
    }
 
    /**
-    * Sets the x range limits for this joint. This is a
-    * convenience wrapper for {@link #setXRange(DoubleInterval)}.
+    * Sets the longitude range limits for this joint. This is a
+    * convenience wrapper for {@link #setLongitudeRange(DoubleInterval)}.
     *
-    * @param min minimum x value
-    * @param max maximum x value
+    * @param min minimum longitude angle (in degrees)
+    * @param max maximum longitude angle (in degrees)
     */   
-   public void setXRange(double min, double max) {
-      setXRange(new DoubleInterval(min, max));
+   public void setLongitudeRange(double min, double max) {
+      setLongitudeRange(new DoubleInterval(min, max));
    }
 
    /**
-    * Sets the upper x range limit for this joint. Setting a
+    * Sets the upper longitude range limit for this joint. Setting a
     * value of {@code inf} removes the upper limit.
     *
-    * @param max upper x range limit
+    * @param max upper longitude range limit (in degrees)
     */
-   public void setMaxX (double max) {
-      setXRange (new DoubleInterval (getMinX(), max));
+   public void setMaxLongitude (double max) {
+      setLongitudeRange (new DoubleInterval (getMinLongitude(), max));
    }
 
    /**
-    * Sets the lower x range limit for this joint. Setting a
+    * Sets the lower longitude range limit for this joint. Setting a
     * value of {@code -inf} removes the lower limit.
     *
-    * @param min lower x range limit
+    * @param min lower longitude range limit (in degrees)
     */
-   public void setMinX (double min) {
-      setXRange (new DoubleInterval (min, getMaxX()));
+   public void setMinLongitude (double min) {
+      setLongitudeRange (new DoubleInterval (min, getMaxLongitude()));
    }
 
    /**
-    * Queries whether the x coordinate for this joint is locked.
+    * Queries whether the longitude coordinate for this joint is locked.
     *
-    * @return {@code true} if x is locked
+    * @return {@code true} if longitude is locked
     */
-   public boolean isXLocked() {
-      return isCoordinateLocked (X_IDX);
+   public boolean isLongitudeLocked() {
+      return isCoordinateLocked (LONGITUDE_IDX);
    }
 
    /**
-    * Set whether the x coordinate for this joint is locked.
+    * Set whether the longitude coordinate for this joint is locked.
     *
-    * @param locked if {@code true}, locks x
+    * @param locked if {@code true}, locks longitude
     */
-   public void setXLocked (boolean locked) {
-      setCoordinateLocked (X_IDX, locked);
+   public void setLongitudeLocked (boolean locked) {
+      setCoordinateLocked (LONGITUDE_IDX, locked);
    }
 
    /**
-    * Queries this joint's y value. See {@link #setY} for more details.
+    * Queries this joint's latitude angle. See this class's Javadoc header for
+    * a description of this coordinate.
     *
-    * @return current y value
+    * @return latitude angle (in degrees)
     */
-   public double getY() {
-      return RTOD*getCoordinate (Y_IDX);
+   public double getLatitude() {
+      return RTOD*getCoordinate (LATITUDE_IDX);
    }
 
    /**
-    * Sets this joint's y value. This describes the displacement of frame C
-    * along the y axis of frame D. See this class's Javadoc header for a
-    * discussion of what happens when this value is set.
+    * Sets this joint's latitude angle. See this class's Javadoc header for
+    * a description of this coordinate.
     *
-    * @param y new y value
+    * @param latitude new latitude angle (in degrees)
     */
-   public void setY (double y) {
-      setCoordinate (Y_IDX, DTOR*y);
+   public void setLatitude (double latitude) {
+      setCoordinate (LATITUDE_IDX, DTOR*latitude);
    }
 
    /**
-    * Queries the y range limits for this joint. See {@link
-    * #setYRange(DoubleInterval)} for more details.
+    * Queries the latitude range limits for this joint. See {@link
+    * #setLatitudeRange(DoubleInterval)} for more details.
     *
-    * @return y range limits for this joint
+    * @return latitude range limits for this joint (in degrees)
     */
-   public DoubleInterval getYRange () {
-      return getCoordinateRangeDeg (Y_IDX);
+   public DoubleInterval getLatitudeRange () {
+      return getCoordinateRangeDeg (LATITUDE_IDX);
    }
 
    /**
-    * Queries the lower x range limit for this joint, in degrees.
+    * Queries the lower latitude range limit for this joint.
     *
-    * @return lower x range limit
+    * @return lower latitude range limit (in degrees)
     */
-   public double getMinY () {
-      return getMinCoordinateDeg (Y_IDX);
+   public double getMinLatitude () {
+      return getMinCoordinateDeg (LATITUDE_IDX);
    }
 
    /**
-    * Queries the upper x range limit for this joint, in degrees.
+    * Queries the upper latitude range limit for this joint.
     *
-    * @return upper x range limit
+    * @return upper latitude range limit (in degrees)
     */
-   public double getMaxY () {
-      return getMaxCoordinateDeg (Y_IDX);
+   public double getMaxLatitude () {
+      return getMaxCoordinateDeg (LATITUDE_IDX);
    }
 
    /**
-    * Sets the y range limits for this joint. The default range is {@code
-    * [-inf, inf]}, which implies no limits. If y travels beyond these limits
-    * during dynamic simulation, unilateral constraints will be activated to
-    * enforce them. Setting the lower limit to {@code -inf} or the upper limit
-    * to {@code inf} removes the lower or upper limit, respectively. Specifying
-    * {@code range} as {@code null} will set the range to {@code (-inf, inf)}.
+    * Sets the range limits of the latitude for this joint. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If the latitude travels
+    * beyond these limits during dynamic simulation, unilateral constraints
+    * will be activated to enforce them. Setting the lower limit to {@code
+    * -inf} or the upper limit to {@code inf} removes the lower or upper limit,
+    * respectively. Specifying {@code range} as {@code null} will set the range
+    * to {@code (-inf, inf)}.
     *
-    * @param range y range limits for this joint
+    * @param range latitude range limits for this joint (in degrees)
     */
-   public void setYRange (DoubleInterval range) {
-      setCoordinateRangeDeg (Y_IDX, range);
+   public void setLatitudeRange (DoubleInterval range) {
+      setCoordinateRangeDeg (LATITUDE_IDX, range);
    }
    
    /**
-    * Sets the y range limits for this joint. This is a
-    * convenience wrapper for {@link #setYRange(DoubleInterval)}.
+    * Sets the latitude range limits for this joint. This is a convenience
+    * wrapper for {@link #setLatitudeRange(DoubleInterval)}.
     *
-    * @param min minimum y value
-    * @param max maximum y value
+    * @param min minimum latitude angle (in degrees)
+    * @param max maximum latitude angle (in degrees)
     */
-   public void setYRange(double min, double max) {
-      setYRange(new DoubleInterval(min, max));
+   public void setLatitudeRange(double min, double max) {
+      setLatitudeRange(new DoubleInterval(min, max));
    }
 
    /**
-    * Sets the upper y range limit for this joint. Setting a
+    * Sets the upper latitude range limit for this joint. Setting a
     * value of {@code inf} removes the upper limit.
     *
-    * @param max upper y range limit
+    * @param max upper latitude range limit (in degrees)
     */
-   public void setMaxY (double max) {
-      setYRange (new DoubleInterval (getMinY(), max));
+   public void setMaxLatitude (double max) {
+      setLatitudeRange (new DoubleInterval (getMinLatitude(), max));
    }
 
    /**
-    * Sets the lower y range limit for this joint. Setting a
+    * Sets the lower latitude range limit for this joint. Setting a
     * value of {@code -inf} removes the lower limit.
     *
-    * @param min lower y range limit
+    * @param min lower latitude range limit (in degrees)
     */
-   public void setMinY (double min) {
-      setYRange (new DoubleInterval (min, getMaxY()));
+   public void setMinLatitude (double min) {
+      setLatitudeRange (new DoubleInterval (min, getMaxLatitude()));
    }
 
    /**
-    * Queries whether the y coordinate for this joint is locked.
+    * Queries whether the latitude coordinate for this joint is locked.
     *
-    * @return {@code true} if y is locked
+    * @return {@code true} if latitude is locked
     */
-   public boolean isYLocked() {
-      return isCoordinateLocked (Y_IDX);
+   public boolean isLatitudeLocked() {
+      return isCoordinateLocked (LATITUDE_IDX);
    }
 
    /**
-    * Set whether the y coordinate for this joint is locked.
+    * Set whether the latitude coordinate for this joint is locked.
     *
-    * @param locked if {@code true}, locks y
+    * @param locked if {@code true}, locks latitude
     */
-   public void setYLocked (boolean locked) {
-      setCoordinateLocked (Y_IDX, locked);
+   public void setLatitudeLocked (boolean locked) {
+      setCoordinateLocked (LATITUDE_IDX, locked);
    }
 
    /**
-    * Queries this joint's theta value, in degrees. See {@link #setTheta} for
-    * more details.
+    * Queries this joint's theta angle. See this class's Javadoc header for a
+    * description of this coordinate.  more details.
     *
-    * @return current theta value
+    * @return theta angle (in degrees)
     */
    public double getTheta() {
       return RTOD*getCoordinate (THETA_IDX);
    }
 
    /**
-    * Sets this joint's theta value, in degrees. This describes the clockwise
-    * rotation of frame C about the z axis of frame D. See this class's Javadoc
-    * header for a discussion of what happens when this value is set.
+    * Sets this joint's theta angle. See this class's Javadoc header for a
+    * description of this coordinate.
     *
-    * @param theta new theta value
+    * @param theta new theta angle (in degrees)
     */
    public void setTheta (double theta) {
       setCoordinate (THETA_IDX, DTOR*theta);
    }
 
    /**
-    * Queries the theta range limits for this joint, in degrees. See {@link
+    * Queries the theta angle range limits for this joint. See {@link
     * #setThetaRange(DoubleInterval)} for more details.
     *
-    * @return theta range limits for this joint
+    * @return theta range limits for this joint (in degrees)
     */
    public DoubleInterval getThetaRange () {
       return getCoordinateRangeDeg (THETA_IDX);
    }
 
    /**
-    * Queries the lower theta range limit for this joint, in degrees.
+    * Queries the lower theta range limit for this joint.
     *
-    * @return lower theta range limit
+    * @return lower theta range limit (in degrees)
     */
    public double getMinTheta () {
       return getMinCoordinateDeg (THETA_IDX);
    }
 
    /**
-    * Queries the upper theta range limit for this joint, in degrees.
+    * Queries the upper theta range limit for this joint.
     *
-    * @return upper theta range limit
+    * @return upper theta range limit (in degrees)
     */
    public double getMaxTheta () {
       return getMaxCoordinateDeg (THETA_IDX);
    }
 
    /**
-    * Sets the theta range limits for this joint, in degrees. The default range
-    * is {@code [-inf, inf]}, which implies no limits. If theta travels beyond
-    * these limits during dynamic simulation, unilateral constraints will be
-    * activated to enforce them. Setting the lower limit to {@code -inf} or the
-    * upper limit to {@code inf} removes the lower or upper limit,
+    * Sets the range limits of theta for this joint. The default range
+    * is {@code [-inf, inf]}, which implies no limits. If theta travels
+    * beyond these limits during dynamic simulation, unilateral constraints
+    * will be activated to enforce them. Setting the lower limit to {@code
+    * -inf} or the upper limit to {@code inf} removes the lower or upper limit,
     * respectively. Specifying {@code range} as {@code null} will set the range
     * to {@code (-inf, inf)}.
     *
-    * @param range theta range limits for this joint
+    * @param range theta range limits for this joint (in degrees)
     */
    public void setThetaRange (DoubleInterval range) {
       setCoordinateRangeDeg (THETA_IDX, range);
@@ -504,28 +556,28 @@ public class EllipsoidJoint extends JointBase
     * Sets the theta range limits for this joint. This is a
     * convenience wrapper for {@link #setThetaRange(DoubleInterval)}.
     *
-    * @param min minimum theta value
-    * @param max maximum theta value
+    * @param min minimum theta angle (in degrees)
+    * @param max maximum theta angle (in degrees)
     */
    public void setThetaRange(double min, double max) {
       setThetaRange(new DoubleInterval(min, max));
    }
 
    /**
-    * Sets the upper theta range limit for this joint, in degrees. Setting a
+    * Sets the upper theta range limit for this joint. Setting a
     * value of {@code inf} removes the upper limit.
     *
-    * @param max upper theta range limit
+    * @param max upper theta range limit (in degrees)
     */
    public void setMaxTheta (double max) {
       setThetaRange (new DoubleInterval (getMinTheta(), max));
    }
 
    /**
-    * Sets the lower theta range limit for this joint, in degrees. Setting a
-    * value of {@code -inf} removes the lower limit.
+    * Sets the lower theta range limit for this joint. Setting a value of
+    * {@code -inf} removes the lower limit.
     *
-    * @param min lower theta range limit
+    * @param min lower theta range limit (in degrees)
     */
    public void setMinTheta (double min) {
       setThetaRange (new DoubleInterval (min, getMaxTheta()));
@@ -550,31 +602,30 @@ public class EllipsoidJoint extends JointBase
    }
 
    /**
-    * Queries this joint's phi value, in degrees. See {@link #setPhi} for
-    * more details.
+    * Queries this joint's phi angle. See this class's Javadoc header for a
+    * description of this coordinate.
     *
-    * @return current phi value
+    * @return phi angle (in degrees)
     */
    public double getPhi() {
       return RTOD*getCoordinate (PHI_IDX);
    }
 
    /**
-    * Sets this joint's phi value, in degrees. This describes the
-    * rotation of frame C about the y axis of frame D. See this class's Javadoc
-    * header for a discussion of what happens when this value is set.
+    * Sets this joint's phi angle. See this class's Javadoc header for a
+    * description of this coordinate.
     *
-    * @param phi new phi value
+    * @param phi new phi angle (in degrees)
     */
    public void setPhi (double phi) {
       setCoordinate (PHI_IDX, DTOR*phi);
    }
 
    /**
-    * Queries the phi range limits for this joint, in degrees. See {@link
+    * Queries the phi angle range limits for this joint. See {@link
     * #setPhiRange(DoubleInterval)} for more details.
     *
-    * @return phi range limits for this joint
+    * @return phi range limits for this joint (in degrees)
     */
    public DoubleInterval getPhiRange () {
       return getCoordinateRangeDeg (PHI_IDX);
@@ -583,7 +634,7 @@ public class EllipsoidJoint extends JointBase
    /**
     * Queries the lower phi range limit for this joint, in degrees.
     *
-    * @return lower phi range limit
+    * @return lower phi range limit (in degrees)
     */
    public double getMinPhi () {
       return getMinCoordinateDeg (PHI_IDX);
@@ -592,22 +643,21 @@ public class EllipsoidJoint extends JointBase
    /**
     * Queries the upper phi range limit for this joint, in degrees.
     *
-    * @return upper phi range limit
+    * @return upper phi range limit (in degrees)
     */
    public double getMaxPhi () {
       return getMaxCoordinateDeg (PHI_IDX);
    }
 
    /**
-    * Sets the phi range limits for this joint, in degrees. The default range
-    * is {@code [-inf, inf]}, which implies no limits. If phi travels beyond
-    * these limits during dynamic simulation, unilateral constraints will be
-    * activated to enforce them. Setting the lower limit to {@code -inf} or the
-    * upper limit to {@code inf} removes the lower or upper limit,
-    * respectively. Specifying {@code range} as {@code null} will set the range
-    * to {@code (-inf, inf)}.
+    * Sets the range limits of phi for this joint. The default range is {@code
+    * [-inf, inf]}, which implies no limits. If phi travels beyond these limits
+    * during dynamic simulation, unilateral constraints will be activated to
+    * enforce them. Setting the lower limit to {@code -inf} or the upper limit
+    * to {@code inf} removes the lower or upper limit, respectively. Specifying
+    * {@code range} as {@code null} will set the range to {@code (-inf, inf)}.
     *
-    * @param range phi range limits for this joint
+    * @param range phi range limits for this joint (in degrees)
     */
    public void setPhiRange (DoubleInterval range) {
       setCoordinateRangeDeg (PHI_IDX, range);
@@ -617,28 +667,28 @@ public class EllipsoidJoint extends JointBase
     * Sets the phi range limits for this joint. This is a
     * convenience wrapper for {@link #setPhiRange(DoubleInterval)}.
     *
-    * @param min minimum phi value
-    * @param max maximum phi value
+    * @param min minimum phi angle (in degrees)
+    * @param max maximum phi angle (in degrees)
     */
    public void setPhiRange(double min, double max) {
       setPhiRange(new DoubleInterval(min, max));
    }
 
    /**
-    * Sets the upper phi range limit for this joint, in degrees. Setting a
-    * value of {@code inf} removes the upper limit.
+    * Sets the upper phi range limit for this joint. Setting a value of {@code
+    * inf} removes the upper limit.
     *
-    * @param max upper phi range limit
+    * @param max upper phi range limit (in degrees)
     */
    public void setMaxPhi (double max) {
       setPhiRange (new DoubleInterval (getMinPhi(), max));
    }
 
    /**
-    * Sets the lower phi range limit for this joint, in degrees. Setting a
-    * value of {@code -inf} removes the lower limit.
+    * Sets the lower phi range limit for this joint. Setting a value of {@code
+    * -inf} removes the lower limit.
     *
-    * @param min lower phi range limit
+    * @param min lower phi range limit (in degrees)
     */
    public void setMinPhi (double min) {
       setPhiRange (new DoubleInterval (min, getMaxPhi()));
@@ -661,24 +711,33 @@ public class EllipsoidJoint extends JointBase
    public void setPhiLocked (boolean locked) {
       setCoordinateLocked (PHI_IDX, locked);
    }
-   
-   /**
-    * Queries the size used to render this joint's tangent plane as a square.
-    *
-    * @return size used to render the plane
-    */
-   public double getPlaneSize() {
-      return myPlaneSize;
-   }
 
    /**
-    * Sets the size used to render this joint's tangent plane as a square.
+    * Queries the semi-axis lengths for this ellipsoid.
     *
-    * @param size used to render the plane
+    * @return 3-vector containing the semi-axis lengths
     */
-   public void setPlaneSize (double size) {
-      myPlaneSize = size;
+   public Vector3d getSemiAxisLengths () {
+      return getCoupling().getSemiAxisLengths();
    }
+   
+   // /**
+   //  * Queries the size used to render this joint's tangent plane as a square.
+   //  *
+   //  * @return size used to render the plane
+   //  */
+   // public double getPlaneSize() {
+   //    return myPlaneSize;
+   // }
+
+   // /**
+   //  * Sets the size used to render this joint's tangent plane as a square.
+   //  *
+   //  * @param size used to render the plane
+   //  */
+   // public void setPlaneSize (double size) {
+   //    myPlaneSize = size;
+   // }
    
    /* --- begin Renderable implementation --- */
 
@@ -697,14 +756,28 @@ public class EllipsoidJoint extends JointBase
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       super.updateBounds (pmin, pmax);
-      PlanarConnector.updateXYSquareBounds (
-         pmin, pmax, getCurrentTDW(), myPlaneSize);
+      if (myDrawEllipsoid) {
+         // set bounds for the ellipsoid
+         Vector3d axisLens = getSemiAxisLengths();
+         RigidTransform3d TDW = getCurrentTDW();
+         Vector3d p = new Vector3d();
+         Vector3d axis = new Vector3d();
+         for (int i=0; i<3; i++) {
+            TDW.R.getColumn (i, axis);
+            p.scaledAdd (axisLens.get(i), axis, TDW.p);
+            p.updateBounds (pmin, pmax);
+            p.scaledAdd (-axisLens.get(i), axis, TDW.p);
+            p.updateBounds (pmin, pmax);
+         }
+      }
+      // PlanarConnector.updateXYSquareBounds (
+      //    pmin, pmax, getCurrentTDW(), myPlaneSize);
    }
 
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
-      PlanarConnector.renderXYSquare (
-         renderer, myRenderProps, myRenderFrameC, myPlaneSize, isSelected());
+      // PlanarConnector.renderXYSquare (
+      //    renderer, myRenderProps, myRenderFrameC, myPlaneSize, isSelected());
       if (myDrawEllipsoid) {
          flags |= isSelected() ? Renderer.HIGHLIGHT : 0;
          ellipsoid.render (renderer, myRenderProps, flags);
@@ -714,7 +787,7 @@ public class EllipsoidJoint extends JointBase
    /* --- end Renderable implementation --- */
 
    // need to implement write and scan so we can handle the semi axis lengths
-   // and the useOpenSimApprox settings.
+   // and the openSimCompatible settings.
 
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
@@ -726,8 +799,8 @@ public class EllipsoidJoint extends JointBase
       if (getCoupling().getAlpha() != 0) {
          pw.print ("alpha=" + fmt.format(getCoupling().getAlpha()));
       }
-      if (getCoupling().getUseOpenSimApprox()) {
-         pw.print ("useOpenSimApprox=true");
+      if (getCoupling().isOpenSimCompatible()) {
+         pw.print ("openSimCompatible=true");
       }
       super.writeItems (pw, fmt, ancestor);
    }
@@ -742,8 +815,8 @@ public class EllipsoidJoint extends JointBase
          getCoupling().setSemiAxisLengths (lens);
          return true;
       }
-      else if (scanAttributeName (rtok, "useOpenSimApprox")) {
-         getCoupling().setUseOpenSimApprox (rtok.scanBoolean());
+      else if (scanAttributeName (rtok, "openSimCompatible")) {
+         getCoupling().setOpenSimCompatible (rtok.scanBoolean());
          return true;
       }
       else if (scanAttributeName (rtok, "alpha")) {

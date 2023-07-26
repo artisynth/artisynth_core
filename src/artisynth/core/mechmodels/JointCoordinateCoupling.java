@@ -95,6 +95,24 @@ public class JointCoordinateCoupling extends ConstrainerBase {
       return myICoords;
    }
 
+   /**
+    * Explicitly update the coordinate value associated with this coupling,
+    * based on the current value of the independent coordinates.
+    */
+   public void updateCoordinateValue() {
+      double cval = myScaleFactor*myCouplingFunction.eval (getICoordValues());
+      myCoords.get(0).setValue(cval);
+   }
+
+
+   /**
+    * Returns the coordinate handles used by this coupling. These should not be
+    * modified.
+    */
+   public ArrayList<JointCoordinateHandle> getCoordinateHandles() {
+      return myCoords;
+   }
+      
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
       myCouplingFunction.evalDeriv (myFxnDeriv, getICoordValues());

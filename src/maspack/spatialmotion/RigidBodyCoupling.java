@@ -1400,7 +1400,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
    } 
    
    /**
-    * Returns the name type for the {@code idx}-th coordinate supported by this
+    * Returns the name for the {@code idx}-th coordinate supported by this
     * coupling. If the coordinate does not have a name, {@code null} is
     * returned.
     *
@@ -1409,6 +1409,17 @@ public abstract class RigidBodyCoupling implements Cloneable {
     */   
    public String getCoordinateName (int idx) {
       return myCoordinates.get(idx).getName();
+   } 
+   
+   /**
+    * Sets the name for the {@code idx}-th coordinate supported by this
+    * coupling.
+    *
+    * @param idx index of the coordinate
+    * @param new coordinate name
+    */   
+   public void setCoordinateName (int idx, String name) {
+      myCoordinates.get(idx).setName (name);
    } 
    
    /**

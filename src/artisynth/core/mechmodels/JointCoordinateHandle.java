@@ -79,19 +79,11 @@ public class JointCoordinateHandle {
    }
 
    public void setValueDeg(double value) {
-      if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
-         value *= DTOR;
-      }
-      setValue (value);
+      myJoint.setCoordinateDeg (myIdx, value);
    }
 
    public Range getValueRangeDeg() {
-      if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
-         return myJoint.getCoordinateRangeDeg(myIdx);
-      }
-      else {
-         return myJoint.getCoordinateRange(myIdx);
-      }
+      return myJoint.getCoordinateRangeDeg(myIdx);
    }
 
    public double getSpeed() {

@@ -8,6 +8,7 @@ import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.PointList;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.ComponentList;
@@ -146,6 +147,13 @@ public class Model4 extends ModelBase {
          }
          RigidBody rb = (RigidBody)componentMap.get (body);
          rb.setPose (pose);
+      }
+
+      // update joint attachments, since poses have changed
+      for (ModelComponent mc : joints) {
+         if (mc instanceof BodyConnector) {
+            ((BodyConnector)mc).updateAttachments();
+         }
       }
       
       // force effectors

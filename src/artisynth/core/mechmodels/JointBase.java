@@ -207,58 +207,68 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
-    * Queries the range for the {@code idx}-th coordinate in degrees.
+    * Queries the range for the {@code idx}-th coordinate. If the coordinate
+    * motion type is {@link MotionType#ROTARY}, then the range is returned in
+    * degrees.
     *
     * @param idx coordinate index
-    * @return coordinate range in degrees
+    * @return coordinate range
     */
    public DoubleInterval getCoordinateRangeDeg (int idx) {
       checkCoordinateIndex (idx);
       DoubleInterval range = myCoupling.getCoordinateRange (idx);
-      return new DoubleInterval (
-         RTOD*range.getLowerBound(), RTOD*range.getUpperBound());
+      if (getCoordinateMotionType(idx) == MotionType.ROTARY) {
+         range.scale (RTOD);
+      }
+      return range;
    }
 
    /**
-    * Queries the minimum range value for the {@code idx}-th coordinate in
-    * degrees.
+    * Queries the minimum range value for the {@code idx}-th coordinate.  If
+    * the coordinate motion type is {@link MotionType#ROTARY}, then the value
+    * is returned in degrees.
     *
     * @param idx coordinate index
-    * @return minimum range in degrees
+    * @return minimum range
     */
    public double getMinCoordinateDeg (int idx) {
       checkCoordinateIndex (idx);
-      return RTOD*myCoupling.getCoordinateRange(idx).getLowerBound();
+      return getCoordinateRangeDeg(idx).getLowerBound();
    }
 
    /**
-    * Queries the maximum range value for the {@code idx}-th coordinate in
-    * degrees.
+    * Queries the maximum range value for the {@code idx}-th coordinate.  If
+    * the coordinate motion type is {@link MotionType#ROTARY}, then the value
+    * is returned in degrees.
     *
     * @param idx coordinate index
-    * @return maximum range in degrees
+    * @return maximum range
     */
    public double getMaxCoordinateDeg (int idx) {
       checkCoordinateIndex (idx);
-      return RTOD*myCoupling.getCoordinateRange(idx).getUpperBound();
+      return getCoordinateRangeDeg(idx).getUpperBound();
    }
 
    /**
-    * Sets the range for the {@code idx}-th coordinate in degrees. Specifying
-    * {@code range} as {@code null} will set the range to {@code (-inf, inf)}.
+    * Sets the range for the {@code idx}-th coordinate. If the coordinate
+    * motion type is {@link MotionType#ROTARY}, then the range is specified in
+    * degrees. Specifying {@code range} as {@code null} will set the range to
+    * {@code (-inf, inf)}.
     *
     * @param idx coordinate index
-    * @param range new range value in degrees
+    * @param range new range value
     */
    public void setCoordinateRangeDeg (int idx, DoubleInterval range) {
+      checkCoordinateIndex (idx);
       if (range == null) {
          range = new DoubleInterval (-INF, INF);
       }
-      checkCoordinateIndex (idx);
-      setCoordinateRange (
-         idx, new DoubleInterval (
+      else if (getCoordinateMotionType(idx) == MotionType.ROTARY) {
+         range = new DoubleInterval (
             toRadians(range.getLowerBound()),
-            toRadians(range.getUpperBound())));
+            toRadians(range.getUpperBound()));
+      }
+      setCoordinateRange (idx, range);
    }
 
    /**
@@ -286,14 +296,19 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
-    * Returns the {@code idx}-th coordinate value for this joint, converted
-    * to degrees.
+    * Returns the {@code idx}-th coordinate value for this joint. If the
+    * coordinate motion type is {@link MotionType#ROTARY}, then the value is
+    * returned in degrees.
     *
     * @param idx index of the coordinate
-    * @return coordinate value, converted to degrees.
+    * @return coordinate value
     */
    public double getCoordinateDeg (int idx) {
-      return Math.toDegrees (getCoordinate(idx));
+      double value = getCoordinate(idx);
+      if (getCoordinateMotionType(idx) == MotionType.ROTARY) {
+         value *= RTOD;
+      }
+      return value;
    }
 
    /**
@@ -673,14 +688,18 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
-    * Sets the {@code idx}-th coordinate for this joint, with the value
-    * specified in degrees.
+    * Sets the {@code idx}-th coordinate for this joint. If the coordinate
+    * motion type is {@link MotionType#ROTARY}, then the value is specified
+    * in degrees.
     *
     * @param idx index of the coordinate  
-    * @param value new coordinate value, in degrees
+    * @param value new coordinate value
     */
    public void setCoordinateDeg (int idx, double value) {
-      setCoordinate (idx, Math.toRadians(value));
+      if (getCoordinateMotionType(idx) == MotionType.ROTARY) {
+         value *= DTOR;
+      }
+      setCoordinate (idx, value);
    }
    
    /**

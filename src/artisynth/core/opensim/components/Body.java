@@ -227,7 +227,10 @@ public class Body extends PhysicalFrame implements ModelComponentGenerator<Rigid
                pose.mulInverse (jointToChild);
             }
             rb.setPose (pose);
-
+            if (jb != null) {
+               // update attachments because rb pose has changed
+               jb.updateAttachments();
+            }
          }
       }
          

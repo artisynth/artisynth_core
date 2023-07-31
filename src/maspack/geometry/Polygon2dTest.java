@@ -53,7 +53,6 @@ public class Polygon2dTest extends UnitTest {
       }
       return new Polygon2d (hpnts);
    }
-
    protected void testConvexHull (double[] pcoords, int[] hidxs) {
       double tol = 1e-10;
       Point2d[] parray = doubleToPoint2d(pcoords);

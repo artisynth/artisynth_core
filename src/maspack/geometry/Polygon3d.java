@@ -12,6 +12,7 @@ import maspack.util.NumberFormat;
 import java.util.ListIterator;
 import java.util.Iterator;
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.NoSuchElementException;
 
 import maspack.util.ReaderTokenizer;
@@ -98,6 +99,64 @@ public class Polygon3d implements Iterable<PolygonVertex3d> {
       return new VertexIterator();
    }
 
+   public Point3d[] getPoints() {
+      Point3d[] pnts = new Point3d[numVertices()];
+      PolygonVertex3d vtx = firstVertex;
+      for (int i=0; i<pnts.length; i++) {
+         pnts[i] = new Point3d (vtx.pnt);
+         vtx = vtx.next;
+      }
+      return pnts;
+   }
+
+
+   /**
+    * Computes the area of this contour with respect to a plane formed
+    * by computing the centroid and then summing the cross products of
+    * rays from the centroid to adjacent contour points.
+    * 
+    * @return planar area
+    */
+   public double computePlanarArea() {
+      PolygonVertex3d vtx0 = firstVertex;
+      Vector3d vec0 = new Vector3d();
+      Vector3d vec1 = new Vector3d();
+      Vector3d xprod = new Vector3d();
+      if (vtx0 != null && vtx0.next != vtx0) {
+         do {
+            PolygonVertex3d vtx1 = vtx0.next;
+            vec0.sub (vtx0.pnt, firstVertex.pnt);
+            vec1.sub (vtx1.pnt, firstVertex.pnt);
+            xprod.crossAdd (vec0, vec1, xprod);
+            vtx0 = vtx1;
+         }
+         while (vtx0 != firstVertex);
+      }
+      return 0.5*xprod.norm();
+   }
+
+   /**
+    * Computes the centroid of the vertices of this polygon. If the polygon is
+    * empty, a zero vector is returned.
+    *
+    * @return centroid of the polygon
+    */
+   public Point3d computeCentroid() {
+      Point3d cent = new Point3d();
+      PolygonVertex3d vtx = firstVertex;
+      if (vtx != null) {
+         int num = 0;
+         do {
+            cent.add (vtx.pnt);
+            vtx = vtx.next;
+            num++;
+         }
+         while (vtx != firstVertex);
+         cent.scale (1/(double)num);
+      }
+      return cent;
+   }
+
    public int numVertices() {
       int num = 0;
       PolygonVertex3d vtx = firstVertex;
@@ -119,7 +178,24 @@ public class Polygon3d implements Iterable<PolygonVertex3d> {
       set (pnts, pnts.length);
    }
 
-   public Polygon3d (Collection<Point3d> pnts) {
+   public Polygon3d (Collection<? extends Point3d> pnts) {
+      set (pnts);
+   }
+
+   public Polygon3d (Polygon2d poly, RigidTransform3d TPW) {
+      ArrayList<Point3d> pnts = new ArrayList<>();
+      Vertex2d firstVtx = poly.getFirstVertex();
+      if (firstVtx != null) {
+         Vertex2d vtx = firstVtx;
+         do {
+            Point3d pnt = new Point3d();
+            pnt.set (vtx.pnt.x, vtx.pnt.y, 0);
+            pnt.transform (TPW);
+            pnts.add (pnt);
+            vtx = vtx.next;
+         }
+         while (vtx != firstVtx);
+      }
       set (pnts);
    }
 

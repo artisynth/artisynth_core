@@ -26,7 +26,9 @@ JAVA_TEST_PROGRAMS = \
 	MeshRayIntersectionTest \
 	NagataInterpolatorTest \
 	Polygon2dTest \
+	Polygon3dTest \
 	Polygon3dCalcTest \
+	PolygonIntersectorTest \
 	PolygonalMeshTest \
 	PolylineMeshTest \
 	PointMeshTest \

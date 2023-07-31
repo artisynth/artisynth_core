@@ -9,6 +9,7 @@ PACKAGE_JAVA_FILES =
 JAVA_TEST_PROGRAMS = \
 	SpatialInertiaTest \
 	GimbalCouplingTest \
+	EllipsoidCouplingTest \
 	UniversalCouplingTest \
 	TwistTest
 

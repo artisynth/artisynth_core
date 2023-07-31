@@ -809,5 +809,4 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
          return false;
       }
    }
-
 }

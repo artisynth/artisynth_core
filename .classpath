@@ -24,5 +24,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/matconsolectl-4.4.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jsoup-1.11.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/gdcm.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/gpcj-2.2.0-full.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

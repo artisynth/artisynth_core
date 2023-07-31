@@ -25,9 +25,8 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-----------------------------------------------------------------------
-The ArtiSynth distribution contains a copy of TetGen, released under
-the following license:
+======================================================================
+The ArtiSynth distribution contains a copy of TetGen, released underthe following license:
 
 Copyright (C) 2002--2011
 Hang Si
@@ -47,7 +46,7 @@ ArtiSynth code that depends on the TetGen interface class
    maspack.geometry.TetgenTessellator
 
 is bound by the terms of the TetGen license.
-----------------------------------------------------------------------
+======================================================================
 The ArtiSynth distribution contains binary copies of JOGL, available
 under the following license terms:
 
@@ -76,17 +75,68 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-----------------------------------------------------------------------
+======================================================================
 The ArtiSynth distribution contains a copy of matlabcontrol,
 https://code.google.com/p/matlabcontrol, which allows access to
 matlab from Java. 
 
 matlabcontrol is released under the the New BSD Licence: 
 http://opensource.org/licenses/BSD-3-Clause
-----------------------------------------------------------------------
+======================================================================
 Some utility packages in maspack contain source code from, or
 derived from, the Apache Commons, released under the Apache License,
 Version 2.0. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
+======================================================================
+The ArtiSynth distribution contains a copy of GPCJ2 (General Polygon
+Clipper for Java), developed by from GPCJ by Christian Lutz:
+
+ https://github.com/ChristianLutz/gpcj
+
+GPC (General Polygon Clipper) was written by Alan Murta
+http://www.cs.man.ac.uk/~toby/gpc/
+
+GPCJ (General Polygon Clipper for Java) was written by Daniel
+Bridenbecker and extended by David Legland
+http://web.archive.org/web/20090213122910/http://www.seisw.com/GPCJ/GPCJ.html
+
+The original License for GPC is as follows:
+-------------------------------------------------------------------
+The SEI Software Open Source License, Version 1.0
+
+Copyright (c) 2004, Solution Engineering, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. The end-user documentation included with the redistribution, if
+   any, must include the following acknowledgment:
+      "This product includes software developed by the
+       Solution Engineering, Inc. (http://www.seisw.com/)."
+   Alternately, this acknowledgment may appear in the software itself,
+   if and wherever such third-party acknowledgments normally appear.
+
+3. The name "Solution Engineering" must not be used to endorse or
+   promote products derived from this software without prior written
+   permission. For written permission, please contact admin@seisw.com.
+
+THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL SOLUTION ENGINEERING, INC. OR ITS CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+----------------------------------------------------------------------
+======================================================================
 

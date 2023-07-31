@@ -53,6 +53,7 @@ jsoup-1.11.2.jar
 matconsolectl-4.4.4.jar
 gdcm.jar
 flatlaf-1.5.jar
+gpcj-2.2.0-full.jar
 #
 # JOGL native libraries are bundled into jar files that are extracted
 # into and loaded from a temporary directory:

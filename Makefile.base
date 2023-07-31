@@ -68,8 +68,14 @@ ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 else
    JAVAC = javac
 endif
-JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.8 -target 1.8 -encoding UTF-8
-#JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -encoding UTF-8
+JAVA_VERSION := $(shell $(JAVAC) -version 2>&1)
+JAVA_VERSION_8 = javac 1.8
+# If Java release is > 8, we can use the --release option:
+ifeq ($(findstring $(JAVA_VERSION_8),$(JAVA_VERSION)),$(JAVA_VERSION_8))
+   JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.8 -target 1.8 -encoding UTF-8
+else
+   JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src --release 8 -encoding UTF-8
+endif
 JAVAH = javah
 JAVAHFLAGS = -jni -force
 

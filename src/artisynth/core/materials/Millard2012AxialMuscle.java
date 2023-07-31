@@ -382,10 +382,14 @@ public class Millard2012AxialMuscle
          return fm;
       }
       else {
-         if (!myLengthValid) {
-            updateMuscleLength (l, ldot, excitation);
-            myLengthValid = true;
-         }
+         // Compute length regardless of whether length is valid. This ensures
+         // that length will be recomputed if updateForces() is called multiple
+         // times the same time step (e.g., by the inverse controller). without
+         // having to call adbvancestate again.
+         //if (!myLengthValid) {
+         updateMuscleLength (l, ldot, excitation);
+         myLengthValid = true;
+         //}
          return getTendonForce (myLength-myMuscleLength);
       }
    }

@@ -136,6 +136,7 @@ public class OpenSimCustomJoint extends JointBase {
          }
          myLocalProps.add (
             c.getName(), methods, i, "joint coordinate value", 0);
+         setCoordinateName (i, c.getName());
       }
 
       String lockMethods =

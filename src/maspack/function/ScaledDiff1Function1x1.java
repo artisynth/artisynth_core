@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 import maspack.util.DoubleHolder;
+import maspack.util.Clonable;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.InternalErrorException;
 
 public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
 
@@ -91,6 +93,19 @@ public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
       FunctionUtils.write (pw, myFxn, fmt);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
+   }
+
+   public ScaledDiff1Function1x1 clone() {
+      ScaledDiff1Function1x1 fxn = (ScaledDiff1Function1x1)super.clone();
+      if (myFxn instanceof Clonable) {
+         try {
+            fxn.myFxn = (Diff1Function1x1)((Clonable)myFxn).clone();
+         }
+         catch (Exception e) {
+            throw new InternalErrorException ("Can't clone " + getClass());
+         }
+      }
+      return fxn;
    }
 
 }

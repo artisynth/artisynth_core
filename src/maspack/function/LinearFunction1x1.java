@@ -22,4 +22,9 @@ public class LinearFunction1x1 extends PolyFunction1x1Base {
    public void set (double a1, double a0) {
       setCoefficients (a0, a1);
    }
+
+   public LinearFunction1x1 clone() {
+      return (LinearFunction1x1)super.clone();
+   }
+
 }

@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import maspack.util.IndentingPrintWriter;
-import maspack.util.InternalErrorException;
 import maspack.util.*;
 import maspack.util.IntHolder;
 import maspack.util.ReaderTokenizer;
@@ -639,6 +638,11 @@ public class LinearSpline1d extends Diff1Function1x1Base
       }
       return true;
    }
-   
+
+   public LinearSpline1d clone() {
+      LinearSpline1d spline = (LinearSpline1d)super.clone();
+      spline.set (this);
+      return spline;
+   }
 
 }

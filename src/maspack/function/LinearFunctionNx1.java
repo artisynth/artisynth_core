@@ -6,7 +6,6 @@ import java.util.Arrays;
 
 import maspack.matrix.VectorNd;
 import maspack.util.DynamicDoubleArray;
-import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -193,13 +192,7 @@ public class LinearFunctionNx1 extends Diff1FunctionNx1Base {
 
    @Override
    public LinearFunctionNx1 clone ()  {
-      LinearFunctionNx1 fxn;
-      try {
-         fxn = (LinearFunctionNx1)super.clone();
-      }
-      catch (Exception e) {
-         throw new InternalErrorException ("clone not supported for "+this);
-      }
+      LinearFunctionNx1 fxn = (LinearFunctionNx1)super.clone();
       if (myC != null) {
          fxn.setCoefficients (myC);
       }

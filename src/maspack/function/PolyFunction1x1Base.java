@@ -129,4 +129,12 @@ public abstract class PolyFunction1x1Base extends Diff1Function1x1Base {
       pw.println ("]");
    }
 
+   @Override
+   public PolyFunction1x1Base clone ()  {
+      PolyFunction1x1Base fxn = (PolyFunction1x1Base)super.clone();
+      if (myA != null) {
+         fxn.setCoefficients (myA);
+      }
+      return fxn;
+   } 
 }

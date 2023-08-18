@@ -1204,6 +1204,12 @@ public class CubicHermiteSpline1d extends Diff1Function1x1Base
       }
       return true;
    }
+
+   public CubicHermiteSpline1d clone() {
+      CubicHermiteSpline1d spline = (CubicHermiteSpline1d)super.clone();
+      spline.set (this);
+      return spline;
+   }
    
 
 }

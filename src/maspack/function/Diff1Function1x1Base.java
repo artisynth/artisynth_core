@@ -7,12 +7,14 @@ import maspack.util.DoubleHolder;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.Scannable;
+import maspack.util.Clonable;
+import maspack.util.InternalErrorException;
 
 /**
  * Base class for Diff1Function1x1 that implements Scannable
  */
 public abstract class Diff1Function1x1Base
-   implements Diff1Function1x1, Scannable {
+   implements Diff1Function1x1, Scannable, Clonable {
 
    /**
     * {@inheritDoc}
@@ -38,4 +40,12 @@ public abstract class Diff1Function1x1Base
       pw.println ("[ ]");
    }
 
+   public Diff1Function1x1Base clone() {
+      try {
+         return (Diff1Function1x1Base)super.clone();
+      }
+      catch (Exception e) {
+         throw new InternalErrorException ("Can't clone " + getClass());
+      }
+   }
 }

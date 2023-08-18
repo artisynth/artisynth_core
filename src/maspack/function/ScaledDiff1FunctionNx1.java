@@ -7,6 +7,8 @@ import maspack.matrix.VectorNd;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.Clonable;
+import maspack.util.InternalErrorException;
 
 public class ScaledDiff1FunctionNx1 extends Diff1FunctionNx1Base {
 
@@ -91,6 +93,19 @@ public class ScaledDiff1FunctionNx1 extends Diff1FunctionNx1Base {
       FunctionUtils.write (pw, myFxn, fmt);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
+   }
+
+   public ScaledDiff1FunctionNx1 clone() {
+      ScaledDiff1FunctionNx1 fxn = (ScaledDiff1FunctionNx1)super.clone();
+      if (myFxn instanceof Clonable) {
+         try {
+            fxn.myFxn = (Diff1FunctionNx1)((Clonable)myFxn).clone();
+         }
+         catch (Exception e) {
+            throw new InternalErrorException ("Can't clone " + getClass());
+         }
+      }
+      return fxn;
    }
 
 }

@@ -57,4 +57,8 @@ public class ConstantFunction1x1 extends Diff1Function1x1Base {
       pw.println ("[ "+fmt.format(c)+" ]");
    }
 
+   public ConstantFunction1x1 clone() {
+      return (ConstantFunction1x1)super.clone();
+   }
+
 }

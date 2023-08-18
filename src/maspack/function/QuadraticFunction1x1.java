@@ -22,4 +22,8 @@ public class QuadraticFunction1x1 extends PolyFunction1x1Base {
    void set (double a2, double a1, double a0) {
       setCoefficients (a0, a1, a2);
    }
+
+   public QuadraticFunction1x1 clone() {
+      return (QuadraticFunction1x1)super.clone();
+   }
 }

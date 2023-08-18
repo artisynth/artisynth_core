@@ -427,6 +427,37 @@ public class HermiteSpline1dEditor extends ViewerFrame
       }         
    }
 
+   private void exportSpline (File file) {
+      try {
+         PrintWriter pw = new IndentingPrintWriter (
+            new FileWriter (file));
+         Knot knot0 = mySpline.getFirstKnot();
+         Knot knotl = mySpline.getLastKnot();
+
+         if (knot0 != knotl) {
+            int nstotal = 200;            
+            double dxtotal = knotl.getX() - knot0.getX();
+            for (int k=0; k<mySpline.numKnots()-1; k++) {
+               Knot knot = mySpline.getKnot (k);
+               Knot next = mySpline.getKnot (k+1);
+               double dx = next.getX() - knot.getX();
+               double dy = Math.abs(next.getY() - knot.getY())/myYScale;
+               int ns = (int)Math.ceil(nstotal*(dx+dy)/dxtotal);
+               for (int i=0; i<=ns; i++) {
+                  double x = knot.getX() + i*dx/ns;
+                  double y = mySpline.evalY(x);
+                  pw.println ("" + x + " " + y);
+               }
+            }
+         }
+         pw.close();
+      }
+      catch (Exception ex) {
+         ex.printStackTrace(); 
+         GuiUtils.showError (this, "Can't write file: " + ex);
+      }         
+   }
+
 
    public HermiteSpline1dEditor (int w, int h) {
       super ("HermiteSpline1dEditor", w, h);
@@ -477,6 +508,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
             addMenuItem (menu, "Save");
          }
          addMenuItem (menu, "Save as ...");
+         addMenuItem (menu, "Export ...");
       }
       addMenuItem (menu, "Load curve ...");
       super.createFileMenu (menu);
@@ -530,6 +562,15 @@ public class HermiteSpline1dEditor extends ViewerFrame
             if (saveSpline (file)) {
                setSplineFile (file);
             }
+         }
+      }
+      else if (cmd.equals ("Export ...")) {
+         JFileChooser chooser = new JFileChooser();
+         chooser.setCurrentDirectory (new File("."));
+         int retVal = chooser.showDialog (this, "Export");
+         if (retVal == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            exportSpline (file);
          }
       }
       else if (cmd.equals ("Load curve ...")) {

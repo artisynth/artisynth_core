@@ -189,7 +189,7 @@ public class Thelen2003Muscle extends MuscleBase {
          tendon_slack_length, pennation_angle_at_optimal);
 
       mat.setMaxContractionVelocity (max_contraction_velocity);
-      mat.setIgnoreTendonCompliance (ignore_tendon_compliance);
+      mat.setRigidTendon (ignore_tendon_compliance);
 
       mat.setFmaxTendonStrain (FmaxTendonStrain);
       mat.setFmaxMuscleStrain (FmaxMuscleStrain);

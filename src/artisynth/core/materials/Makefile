@@ -8,7 +8,10 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	FemMaterialTest \
-	AxialMaterialTest
+	AxialMaterialTest \
+	TensorUtilsTest \
+	Thelen2003AxialMuscleTest \
+	EquilibriumAxialMuscleTest
 
 default: build
 

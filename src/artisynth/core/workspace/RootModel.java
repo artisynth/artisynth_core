@@ -529,6 +529,9 @@ public class RootModel extends RenderableModelBase
    public void build (String[] args) throws IOException {
    }
 
+   public void postscanInitialize () throws IOException {
+   }
+
    /**
     * Returns a text string giving a short description of this model.
     * 

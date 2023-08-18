@@ -2346,6 +2346,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       System.out.println (
          "Scanned "+file.length()+" byte file in "+((t1-t0)*1e-9) + " sec");
       rtok.close();
+      // allow the model to reinitialize references, etc.
+      newRoot.postscanInitialize();
 
       String modelName = file.getName();
       setRootModel (newRoot, modelName);

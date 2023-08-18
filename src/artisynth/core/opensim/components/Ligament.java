@@ -2,6 +2,9 @@ package artisynth.core.opensim.components;
 
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.LinearAxialMuscle;
+import artisynth.core.materials.AxialLigament;
+
+import maspack.function.*;
 
 public class Ligament extends ForceSpringBase {
    
@@ -51,7 +54,13 @@ public class Ligament extends ForceSpringBase {
    
    @Override
    public AxialMaterial createMaterial () {
-      AxialMaterial mat = new LinearAxialMuscle (getPCSAForce(), getRestingLength());
+      AxialLigament mat = new AxialLigament (
+         getPCSAForce(), getRestingLength(), /*damping=*/0);
+      if (force_length_curve != null &&
+          force_length_curve.getFunction() instanceof Diff1Function1x1Base) {
+         mat.setForceLengthCurve (
+            (Diff1Function1x1Base)force_length_curve.getFunction());
+      }
       return mat;
    }
    

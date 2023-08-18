@@ -61,9 +61,11 @@ public class AxialMaterialTest extends UnitTest {
          System.out.println (
             "error between computed and numeric dFdl is "+ err);
          System.out.println ("F=" + F);
+         System.out.println ("Fh=" +mat.computeF (l+h*l, ldot, l0, ex));
          System.out.println ("dFdl computed=" + dFdl);
          System.out.println ("dFdl numeric=" + dFdlChk);
          System.out.println ("l=" + l + " v=" + ldot);
+         System.out.println ("l+h*l=" + (l+h*l));
          if (err != err) {
             throw new TestException (
                "Error between numeric and computed dFdl is NaN");
@@ -193,10 +195,10 @@ public class AxialMaterialTest extends UnitTest {
       testDfdldotOverRange (mat, l, l, ldot, ldot, l0, ex, tol);
    }
 
-   public void testMillard2012AxialLigament (double tol) {
+   public void testMillard2012AxialTendon (double tol) {
 
-      Millard2012AxialLigament mmat =
-         new Millard2012AxialLigament (2.0, 3.0);
+      Millard2012AxialTendon mmat =
+         new Millard2012AxialTendon (2.0, 3.0);
 
       double maxL = 3.3;
       double minL = 2.5;
@@ -261,6 +263,21 @@ public class AxialMaterialTest extends UnitTest {
       testDfdldotOverRange (lmatdot, minL, maxL, minV, maxV, 0, ex, 2*tol);
    }
 
+   public void testAxialLigament (double tol) {
+
+      AxialLigament lmat = new AxialLigament (3.0, 2.0, 0.1);
+
+      double minL = 0.1;
+      double maxL = 4.0;
+
+      testDfdlOverRange (lmat, minL, maxL, 0, 0, 0, 0, tol);
+
+      double maxV = 0.1*(minL+maxL)/2;
+      double minV = maxV;
+
+      testDfdldotOverRange (lmat, minL, maxL, minV, maxV, 0, 0, 2*tol);
+   }
+
    public void testHill3ElemMuscleRigidTendon (double tol) {
       double ex = 0.5;
 
@@ -313,8 +330,9 @@ public class AxialMaterialTest extends UnitTest {
       testHill3ElemMuscleRigidTendon(5*tol);
       testBlankevoort1991Ligament(tol);
       testMillard2012AxialMuscle(2e-6);
-      testMillard2012AxialLigament(5e-7);
+      testMillard2012AxialTendon(5e-7);
       testThelen2003AxialMuscle(2e-6);
+      testAxialLigament(2e-6);
    }
 
    public static void main (String[] args) {

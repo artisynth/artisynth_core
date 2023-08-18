@@ -1,18 +1,44 @@
 package artisynth.core.materials;
 
+import java.io.*;
+
+import artisynth.core.modelbase.*;
 import maspack.properties.*;
+import maspack.function.*;
+import maspack.numerics.*;
+import maspack.util.*;
 import maspack.interpolation.CubicHermiteSpline1d;
 
 /**
- * Implements the Thelen2003Muscle from OpenSim. At present, only the rigid
- * tendon version is supported. The names of the various properties
- * should match those in OpenSim closely enough to be unambiguous.
+ * Implements the Thelen2003Muscle from OpenSim. One should consult the OpenSim
+ * API documentation for a detailed explanation of the muscle model's
+ * parameters and behavior. The names of this class's muscle parameter
+ * properties should match the OpenSim equivalents closely enough to be
+ * unambiguous.
  *
  * <p>The force velocity curve has been modified to remove a derivative
  * discontinuity at vn = 0, where vn is the normalized velocity.
+ *
+ * <p>Equilbrium muscle models contain a muscle component and tendon component
+ * in series. The muscle and tendon lengths sum to the combined length {@code
+ * l} that is supplied the the method {@link #computeF}, which computes the
+ * muacle tension, while the equilibrum condition implies that the tension from
+ * the muscle and tendon components must both equal the value returned by
+ * {@link #computeF}. To implement this, we store the muscle length as a state
+ * variable which is updated at each time step to ensure that the equilbrium
+ * condition is satisfied. We do this differently from OpenSim: rather than
+ * solving for and then integrating the muscle velocity, the velocity inferred
+ * by dividing the cnange in muscle length by the time step size.  This avoids
+ * the singularity that arises in the OpenSim method at zero activation, and so
+ * removes the need for always ensuring that the activation is non-zero.
+ *
+ * <p>We also a support, via the {@code rigidTendon} property, a mode where the
+ * tendon is considered to be rigid (via the {@code rigidTendon} property),
+ * which simplifies the computation in situations where this approximation is
+ * acceptable.
  */
-public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
-
+public class Thelen2003AxialMuscle
+   extends EquilibriumAxialMuscle implements HasNumericState {
    
    // from Thelan paper:
 
@@ -102,36 +128,6 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
     deactivation_time_constant - for muscle dynamics    
    */
 
-   // generic muscle properties
-
-   // Maximum isometric force that the fibers can generate
-   public static double DEFAULT_MAX_ISO_FORCE = 1000.0;
-   protected double myMaxIsoForce = DEFAULT_MAX_ISO_FORCE;
-
-   // Optimal length of the muscle fibers
-   public static double DEFAULT_OPT_FIBRE_LENGTH = 0.1;
-   protected double myOptFibreLength = DEFAULT_OPT_FIBRE_LENGTH;
-
-   // Resting length of the tendo
-   public static double DEFAULT_TENDON_SLACK_LENGTH = 0.2;
-   protected double myTendonSlackLength = DEFAULT_TENDON_SLACK_LENGTH;
-
-   // Angle between tendon and fibers at optimal fiber length, in radians
-   public static double DEFAULT_OPT_PENNATION_ANGLE = 0.0;
-   protected double myOptPennationAngle = DEFAULT_OPT_PENNATION_ANGLE;
-
-   // aximum contraction velocity of the fibers, in optimal fiberlengths/second
-   public static double DEFAULT_MAX_CONTRACTION_VELOCITY = 10;
-   protected double myMaxContractionVelocity = DEFAULT_MAX_CONTRACTION_VELOCITY;
-
-   // Compute muscle dynamics ignoring tendon compliance (rigid tendon)
-   public static boolean DEFAULT_IGNORE_TENDON_COMPLIANCE = true;
-   protected boolean myIgnoreTendonCompliance = DEFAULT_IGNORE_TENDON_COMPLIANCE;
-
-   // Compute muscle dynamics ignoring the force velocity curve
-   public static boolean DEFAULT_IGNORE_FORCE_VELOCITY = true;
-   protected boolean myIgnoreForceVelocity = DEFAULT_IGNORE_FORCE_VELOCITY;
-
    // Thelen2003 specific properties
 
    // tendon strain at maximum isometric muscle force
@@ -159,19 +155,20 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
    protected double myFlen = DEFAULT_FLEN;
 
    // fv threshold where beyond which linear extrapolation is used
-   public static double DEFAULT_FV_LINEAR_EXTRAP_THRESHOLD = 0.95;
+   public static double DEFAULT_FV_LINEAR_EXTRAP_THRESHOLD = 0.99;
    protected double myFvLinearExtrapThreshold =
       DEFAULT_FV_LINEAR_EXTRAP_THRESHOLD;
 
-   // maximum pennation angle, in radians
+   // maximum pennation angle, in radians. Used by OpenSim, but not needed here
+   // because of the manner in which we solve for muscle equilibrium.
    public static double DEFAULT_MAX_PENNATION_ANGLE = Math.acos(0.1);
    protected double myMaxPennationAngle = DEFAULT_MAX_PENNATION_ANGLE;
 
-   // lower bound on activation
+   // lower bound on activation. Used by OpenSim, but not needed here because
+   // of the manner in which we solve for muscle equilibrium.
    public static double DEFAULT_MINIMUM_ACTIVATION = 0.01;
    protected double myMinimumActivation = DEFAULT_MINIMUM_ACTIVATION;
 
-   double myH;
    double myFibreLength;
    double myMinCos; // minimun cosine of the pennation angle
 
@@ -184,32 +181,9 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
 
    public static PropertyList myProps =
       new PropertyList(Thelen2003AxialMuscle.class,
-                       AxialMuscleMaterialBase.class);
+                       EquilibriumAxialMuscle.class);
 
    static {
-      myProps.add (
-         "maxIsoForce",
-         "maximum isometric force", DEFAULT_MAX_ISO_FORCE);
-      myProps.add (
-         "optFibreLength",
-         "optimal fibre length", DEFAULT_OPT_FIBRE_LENGTH);
-      myProps.add (
-         "tendonSlackLength",
-         "resting length of the tendon", DEFAULT_TENDON_SLACK_LENGTH);
-      myProps.add (
-         "optPennationAngle",
-         "pennation angle at optimal length", DEFAULT_OPT_PENNATION_ANGLE);
-      myProps.add (
-         "maxContractionVelocity",
-         "maximum fiber contraction velocity", DEFAULT_MAX_CONTRACTION_VELOCITY);
-      myProps.add(
-         "ignoreTendonCompliance",
-         "if true, assume that the tendon is rigid",
-         DEFAULT_IGNORE_TENDON_COMPLIANCE);
-      myProps.add(
-         "ignoreForceVelocity",
-         "if true, ignore the force velocity curve",
-         DEFAULT_IGNORE_FORCE_VELOCITY);
       myProps.add (
          "fmaxTendonStrain",
          "tendon strain at max isometric muscle force",
@@ -232,15 +206,15 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
          "flen", "maximum normalized lengthening force", DEFAULT_FLEN);
       myProps.add (
          "fvLinearExtrapThreshold", 
-         "force velocity threshold where linear extrpolation is used",
+         "force velocity threshold where linear extrapolation is used",
          DEFAULT_FV_LINEAR_EXTRAP_THRESHOLD);
-      myProps.add (
-         "maxPennationAngle",
-         "maximum pennation angle", DEFAULT_MAX_PENNATION_ANGLE);
-      myProps.add (
-         "minimumActivation",
-         "minimum activation value (to prevent equilibrium singularities)",
-         DEFAULT_MINIMUM_ACTIVATION);
+      // myProps.add (
+      //    "maxPennationAngle",
+      //    "maximum pennation angle", DEFAULT_MAX_PENNATION_ANGLE);
+      // myProps.add (
+      //    "minimumActivation",
+      //    "minimum activation value (to prevent equilibrium singularities)",
+      //    DEFAULT_MINIMUM_ACTIVATION);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -248,9 +222,14 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
    }
 
    public Thelen2003AxialMuscle() {
-      myH = DEFAULT_OPT_FIBRE_LENGTH*Math.sin(DEFAULT_OPT_PENNATION_ANGLE);
+      super();
+      myHeight = DEFAULT_OPT_FIBRE_LENGTH*Math.sin(DEFAULT_OPT_PENNATION_ANGLE);
       myMinCos = Math.cos(DEFAULT_MAX_PENNATION_ANGLE);
       setFmaxTendonStrain (DEFAULT_FMAX_TENDON_STRAIN);
+
+      myMuscleLength = DEFAULT_MUSCLE_LENGTH;
+      myMuscleLengthPrev = DEFAULT_MUSCLE_LENGTH;
+      myH = -1;
    }
 
    public Thelen2003AxialMuscle (
@@ -262,67 +241,6 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
       setOptFibreLength (optFibreLen);
       setTendonSlackLength (tendonSlackLen);
       setOptPennationAngle (optPennationAng);
-   }
-
-   // generic muscle properties
-
-   public double getMaxIsoForce() {
-      return myMaxIsoForce;
-   }
-
-   public void setMaxIsoForce (double maxf) {
-      myMaxIsoForce = maxf;
-   }
-
-   public double getOptFibreLength() {
-      return myOptFibreLength;
-   }
-
-   public void setOptFibreLength (double l) {
-      myOptFibreLength = l;
-      myH = myOptFibreLength*Math.sin(myOptPennationAngle);
-   }
-
-   public double getTendonSlackLength() {
-      return myTendonSlackLength;
-   }
-
-   public void setTendonSlackLength (double l) {
-      myTendonSlackLength = l;
-   }
-
-   public double getOptPennationAngle() {
-      return myOptPennationAngle;
-   }
-
-   public void setOptPennationAngle (double ang) {
-      myOptPennationAngle = ang;
-      myH = myOptFibreLength*Math.tan(myOptPennationAngle);
-   }
-
-   public double getMaxContractionVelocity() {
-      return myMaxContractionVelocity;
-   }
-
-   public void setMaxContractionVelocity (double maxv) {
-      myMaxContractionVelocity = maxv;
-   }
-
-  public boolean getIgnoreTendonCompliance () {
-      return myIgnoreTendonCompliance;
-   }
-
-   public void setIgnoreTendonCompliance (boolean enable) {
-      // elastic tendons not implemented yet
-      //myIgnoreTendonCompliance = enable;
-   }
-
-   public boolean getIgnoreForceVelocity () {
-      return myIgnoreForceVelocity;
-   }
-
-   public void setIgnoreForceVelocity (boolean enable) {
-      myIgnoreForceVelocity = enable;
    }
 
    // Thelen2003 specific properties
@@ -401,17 +319,6 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
       myMinimumActivation = mina;
    }
 
-   // util methods
-
-   private final double sqr (double x) {
-      return x*x;
-   }
-
-   private double cosPennationAngle (double fl) {
-      double c = fl/Math.sqrt(myH*myH+fl*fl);
-      return Math.max (c, myMinCos);
-   }
-
    private void updateTendonConstants() {
       double e0 = getFmaxTendonStrain();
 
@@ -424,7 +331,7 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
     * Compute normalized tendon force from normalized tendon length.  Adapted
     * from OpenSim code.
     */
-   double computeTendonForce (double tln) {
+   protected double computeTendonForce (double tln) {
       double x = tln-1;
 
       //Compute tendon force
@@ -445,7 +352,7 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
     * Compute derivative of normalized tendon force from normalized tendon
     * length.  Adapted from OpenSim code.
     */
-   double computeDTendonForce (double tln) {
+   protected double computeDTendonForce (double tln) {
       double x = tln-1;
 
       //Compute tendon force
@@ -453,7 +360,7 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
       if (x > myEToe) {
          dft = myKlin;
       }
-      else if (x > 0.0) { 
+      else if (x >= 0.0) {
          dft = 
             (myFToe/(myExpKToe-1.0)) *
             (myKToe/myEToe) * (Math.exp(myKToe*x/myEToe));
@@ -468,14 +375,14 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
    /**
     * Computes the active force length curve.
     */
-   double computeActiveForceLength (double ln) {
+   protected double computeActiveForceLength (double ln) {
       return Math.exp(-sqr(ln-1.0)/myKShapeActive);
    }
 
    /**
     * Computes the derivate of the active force length curve.
     */
-   double computeDActiveForceLength (double ln) {
+   protected double computeDActiveForceLength (double ln) {
       double x = ln - 1.0;
       return -2*x/myKShapeActive * Math.exp(-x*x/myKShapeActive);
    }
@@ -483,13 +390,13 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
    /**
     * Computes the passive force length curve. Adapated from OpenSim code.
     */
-   double computePassiveForceLength (double ln) {
+   protected double computePassiveForceLength (double ln) {
       double fpe = 0;
       double e0 = myFmaxMuscleStrain;
       double kpe = myKShapePassive;
       
       //Compute the passive force developed by the muscle
-      if (ln > 1.0) {
+      if (ln >= 1.0) {
          double t5 = Math.exp(kpe * (ln - 0.10e1) / e0);
          double t7 = Math.exp(kpe);
          fpe = (t5 - 0.10e1) / (t7 - 0.10e1);
@@ -501,12 +408,12 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
     * Computes the derivative of the passive force length curve. Adapated from
     * OpenSim code.
     */
-   double computeDPassiveForceLength (double ln) {
+   protected double computeDPassiveForceLength (double ln) {
       double dfpe = 0;
       double e0 = myFmaxMuscleStrain;
       double kpe = myKShapePassive;
 
-      if(ln > 1.0){
+      if(ln >= 1.0){
          double t1 = 0.1e1 / e0;
          double t6 = Math.exp(kpe * (ln - 0.10e1) * t1);
          double t7 = Math.exp(kpe);
@@ -528,8 +435,8 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
          fv = (alpha + vn)/(alpha - vn/myAf);
       }
       else {
-         double alphax = alpha*(myFlen-1)/(1+1/myAf); // 2 
-         fv = (alphax + vn*myFlen)/(alphax + vn);
+         double beta = alpha*(myFlen-1)/(1+1/myAf); // 2 
+         fv = (beta + vn*myFlen)/(beta + vn);
       }
       return fv;
    }         
@@ -545,8 +452,8 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
          dfv = alpha*(1 + 1/myAf)/sqr(alpha -vn/myAf);
       }
       else {
-         double alphax = alpha*(myFlen-1)/(1+1/myAf); // 2
-         dfv = alphax*(myFlen-1)/sqr(alphax + vn);
+         double beta = alpha*(myFlen-1)/(1+1/myAf); // 2
+         dfv = beta*(myFlen-1)/sqr(beta + vn);
       }
       return dfv;
    }
@@ -556,13 +463,13 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
     * for the zone where fv {@code > Flen*FvLinearExtrapThreshold},
     * and not allowing fv to become negative.
     */
-   double computeForceVelocity (double vn, double a) {
+   protected double computeForceVelocity (double vn, double a) {
       double alpha = 0.25 + 0.75*a;
+      double beta = alpha*(myFlen-1)/(1+1/myAf); // 2 
       double fvt = myFlen*myFvLinearExtrapThreshold;
       double vThreshLo = -alpha;
-      double vThreshHi =
-         alpha*(fvt-1)*(myFlen-1)/((1+1/myAf)*(myFlen-fvt)); // 2
-      if (vn <= vThreshLo) {
+      double vThreshHi = beta*(fvt-1)/(myFlen-fvt); // 2
+      if (vn < vThreshLo) {
          //double dfvt = computeDForceVelocityRaw (vThreshLo, a);
          return 0;
       }
@@ -581,13 +488,13 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
     * Flen*FvLinearExtrapThreshold}, and where fv is not allowed to become
     * negative.
     */
-   double computeDForceVelocity (double vn, double a) {
+   protected double computeDForceVelocity (double vn, double a) {
       double alpha = 0.25 + 0.75*a;
       double fvt = myFlen*myFvLinearExtrapThreshold;
       double vThreshLo = -alpha;
       double vThreshHi =
          alpha*(fvt-1)*(myFlen-1)/((1+1/myAf)*(myFlen-fvt)); // 2
-      if (vn <= vThreshLo) {
+      if (vn < vThreshLo) {
          return 0;
       }
       else if (vn > vThreshHi) {
@@ -598,131 +505,19 @@ public class Thelen2003AxialMuscle extends AxialMuscleMaterialBase {
       }
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public double computeF (
-      double l, double ldot, double l0, double excitation) {
-
-      if (myIgnoreTendonCompliance) {
-         // rigid tendon case
-         double calm = l-myTendonSlackLength; // calm = cos(alpha)*lm
-         double lm = Math.sqrt (myH*myH + calm*calm); // muscle length
-         double ca = calm/lm; // ca = cos(alpha)
-
-         if (ca < 0) {
-            // XXX does this happen?
-            return 0;
-         }
-
-         double ln = lm/myOptFibreLength; // normalized muscle length
-         // normalized muscle velocity:
-         double vn = ldot*ca/(myOptFibreLength*myMaxContractionVelocity); 
-         double fa = computeActiveForceLength (ln);
-         double fp = computePassiveForceLength (ln);
-         double fm;
-         if (myIgnoreForceVelocity) {
-            fm = myMaxIsoForce*(fa*excitation+fp)*ca;
-         }
-         else {
-            double fv = computeForceVelocity (vn, excitation);
-            if (fv < 0) {
-               fv = 0;
-            }
-            fm = myMaxIsoForce*(fa*fv*excitation+fp)*ca;
-         }
-         return fm;
-      }
-      return 0;
+   public Thelen2003AxialMuscle clone() {
+      Thelen2003AxialMuscle mat = (Thelen2003AxialMuscle)super.clone();
+      mat.myLengthValid = false;
+      return mat;
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public double computeDFdl (
-      double l, double ldot, double l0, double excitation) {
+   public static void main (String[] args) throws IOException {
+      Thelen2003AxialMuscle m = new Thelen2003AxialMuscle();
 
-      if (myIgnoreTendonCompliance) {
-         // rigid tendon case
-         double calm = l-myTendonSlackLength; // calm = cos(alpha)*lm
-         double lmSqr = myH*myH + calm*calm;
-         double lm = Math.sqrt (lmSqr); // muscle length
-         double ca = calm/lm; // ca = cos(alpha)
-
-         if (ca < 0) {
-            return 0;
-         }
-
-         double ln = lm/myOptFibreLength; // normalized muscle length
-         // normalized muscle velocity:
-         double vn = ldot*ca/(myOptFibreLength*myMaxContractionVelocity); 
-         double fa = computeActiveForceLength (ln);
-         double fp = computePassiveForceLength (ln);
-
-         double dca = myH*myH/(lmSqr*lm);
-         double dvn = ldot*dca/(myOptFibreLength*myMaxContractionVelocity);
-         double dln = ca/myOptFibreLength;
-
-         double dfa = computeDActiveForceLength(ln)*dln;
-         double dfp = computeDPassiveForceLength(ln)*dln;
-
-         if (myIgnoreForceVelocity) {
-            double fm = myMaxIsoForce*(fa*excitation+fp);
-            return myMaxIsoForce*(
-               dfa*excitation + dfp)*ca + fm*dca;
-         }
-         else {
-            double fv = computeForceVelocity (vn, excitation);
-            double dfv = computeDForceVelocity(vn, excitation)*dvn;
-            if (fv < 0) {
-               fv = 0;
-               dfv = 0;
-            }
-            double fm = myMaxIsoForce*(fa*fv*excitation+fp);
-            return myMaxIsoForce*(
-               (dfa*fv+fa*dfv)*excitation + dfp)*ca + fm*dca;
-         }
-      }
-      return 0;
+      m.writeActiveForceLengthCurve ("ThelenAFLC.txt", 0, 2, 400, "%g");
+      m.writePassiveForceLengthCurve ("ThelenPFLC.txt", 0, 2, 400, "%g");
+      m.writeTendonForceLengthCurve ("ThelenTFLC.txt", 0.9, 1.1, 100, "%g");
+      m.writeForceVelocityCurve ("ThelenFVC_1.txt", 1, -1, 1, 400, "%g");
+      m.writeForceVelocityCurve ("ThelenFVC_h.txt", 0.5, -1, 1, 400, "%g");
    }
-   
-   /**
-    * {@inheritDoc}
-    */
-   public double computeDFdldot (
-      double l, double ldot, double l0, double excitation) {
-
-      if (myIgnoreTendonCompliance) {
-         // rigid tendon case
-         if (myIgnoreForceVelocity) {
-            return 0;
-         }
-         double calm = l-myTendonSlackLength; // calm = cos(alpha)*lm
-         double lm = Math.sqrt (myH*myH + calm*calm); // muscle length
-         double ca = calm/lm; // ca = cos(alpha)
-         
-         if (ca < 0) {
-            return 0;
-         }
-
-         double ftmp;
-         double ln = lm/myOptFibreLength; // normalized muscle length
-         double fa = computeActiveForceLength(ln);
-         // normalized muscle velocity:
-         double vn = ldot*ca/(myOptFibreLength*myMaxContractionVelocity); 
-         ftmp = fa*computeDForceVelocity(vn,excitation)*excitation;
-
-         return (myMaxIsoForce*ftmp*ca*ca/
-                 (myOptFibreLength*myMaxContractionVelocity));
-      }
-      return 0;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isDFdldotZero() {
-      return myIgnoreForceVelocity;
-   }
-
 }

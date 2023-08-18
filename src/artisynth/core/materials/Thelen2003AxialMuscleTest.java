@@ -209,7 +209,9 @@ public class Thelen2003AxialMuscleTest extends UnitTest {
    void testForceVel (double vmin, double vmax, double a, int cnt) {
       double dv = (vmax-vmin)/cnt;
       double maxFvErr = 0;
+      double maxFvErrV = 0;
       double maxDfvErr = 0;
+      double maxDfvErrV = 0;
       for (int i=0; i<=cnt; i++) {
          double v = vmin + i*dv;
          double fal = 1.0;
@@ -218,10 +220,11 @@ public class Thelen2003AxialMuscleTest extends UnitTest {
          double err = Math.abs(fv-fvChk);
          if (err > maxFvErr) {
             maxFvErr = err;
+            maxFvErrV = v;
          }
          double dfv = myMuscle.computeDForceVelocity (v, a);
          double dfvChk;
-         if (fv <= 0) {
+         if (fv < 0) {
             dfvChk = 0;
          }
          else {
@@ -230,16 +233,17 @@ public class Thelen2003AxialMuscleTest extends UnitTest {
          err = 2*(dfv-dfvChk)/Math.abs(dfv+dfvChk);
          if (err > maxDfvErr) {
             maxDfvErr = err;
+            maxDfvErrV = v;
          }
 
       }
       if (maxFvErr > 1e-13) {
          throw new TestException (
-            "forceVel computation: maxFvErr=" + maxFvErr);
+            "forceVel computation: maxFvErr=" + maxFvErr + ", v=" + maxFvErrV);
       }
       if (maxDfvErr > 5e-7) {
          throw new TestException (
-            "forceVel computation: maxDfvErr=" + maxDfvErr);
+            "forceVel computation: maxDfvErr=" + maxDfvErr + ", v=" + maxDfvErrV);
       }
    }
 

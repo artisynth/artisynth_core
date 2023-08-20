@@ -37,6 +37,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
    public boolean myOpenSimCompatible = true;
 
    static double EPS = 2e-15;
+   static double RTOD = 180/Math.PI;
    
    // ellipsoid radii
    double myA, myB, myC;
@@ -150,21 +151,21 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       R2D.setZXDirections (zdir, xdir);
       RotationMatrix3d RC2 = new RotationMatrix3d();
       RC2.mulInverseLeft (R2D, TCD.R);
-      // post mult R2D by RotZ(alpha) so that y corresponds to the pitch axis
+      // post mult R2D by RotZ(alpha) so that x corresponds to the pitch axis
       RC2.mulRotZ (myCosA, mySinA);
-      // project the pitch axis (y axis) onto the x-y plane
-      double yx = RC2.m01;
-      double yy = RC2.m11;
-      double yz = RC2.m21;
-      double r = Math.sqrt(yx*yx+yy*yy); // length of projection into x/y plane
+      // project the pitch axis (x axis) onto the x-y plane
+      double xx = RC2.m00;
+      double xy = RC2.m10;
+      double xz = RC2.m20;
+      double r = Math.sqrt(xx*xx+xy*xy); // length of projection into x/y plane
       RotationMatrix3d RP = new RotationMatrix3d();
       if (r == 0) {
-         // unlikely to happen. Just rotate about x by PI/2
-         RP.setRotX (Math.PI/2);
+         // unlikely to happen. Just rotate about y by PI/2
+         RP.setRotY (Math.PI/2);
       }
       else {
-         double ang = Math.atan2 (yz, r);
-         Vector3d axis = new Vector3d (yy, -yx, 0);
+         double ang = Math.atan2 (xz, r);
+         Vector3d axis = new Vector3d (xy, -xx, 0);
          RP.setAxisAngle (new AxisAngle (axis, -ang));
       }  
       RC2.mul (RP, RC2);
@@ -277,7 +278,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       // transforms from frame C to frame 2
       RotationMatrix3d RC2 = new RotationMatrix3d();
       RC2.setRotZ (theta+myAlpha);
-      RC2.mulRotY (phi);
+      RC2.mulRotX (phi);
       RC2.mulRotZ (myCosA, -mySinA);
 
       // Set the first two columns of the rotational Jacobian
@@ -406,13 +407,13 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       if (myAlpha == 0) {
          setRotationalJacobianCol (
             J, RC2, 3,
-            -s3, c3, 0);
+            c3, s3, 0);
       }
       else {
          setRotationalJacobianCol (
             J, RC2, 3,
-            -c3*mySinA - s3*myCosA, 
-            -s3*mySinA + c3*myCosA,
+            -s3*mySinA + c3*myCosA, 
+            c3*mySinA + s3*myCosA,
             0);
       }
       return J;
@@ -526,8 +527,8 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       if (myAlpha != 0) {
          RC2.mulRotZ (myCosA, mySinA);
       }
-      double theta = Math.atan2 (-RC2.m01, RC2.m11) - myAlpha;
-      double phi = Math.atan2 (-RC2.m20, RC2.m22);
+      double theta = Math.atan2 (RC2.m10, RC2.m00) - myAlpha;
+      double phi = Math.atan2 (RC2.m21, RC2.m22);
       setToNearestAngle (coords, THETA_IDX, theta);
       setToNearestAngle (coords, PHI_IDX, phi);
    }
@@ -580,7 +581,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       RotationMatrix3d R = new RotationMatrix3d();
       R.setZXDirections (zdir, xdir);
       R.mulRotZ (theta + myAlpha);
-      R.mulRotY (phi);
+      R.mulRotX (phi);
       if (myAlpha != 0) {
          R.mulRotZ (myCosA, -mySinA);         
       }

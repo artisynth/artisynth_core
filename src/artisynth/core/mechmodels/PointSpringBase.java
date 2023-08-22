@@ -706,33 +706,110 @@ public abstract class PointSpringBase extends Spring
 
    /* --- Begin HasNumericState interface --- */
 
-   public void advanceState (double t0, double t1) {
-      if (myStateMat != null) {
-         myStateMat.advanceState (t0, t1);
-      }
-   }
-   
    /**
     * {@inheritDoc}
     */
-   public boolean requiresAdvance() {
-      return myStateMat != null;
-   }   
-   
+   public boolean hasState() {
+      return (myStateMat != null && myStateMat.hasState());
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getStateVersion() {
+      if (myStateMat != null) {
+         return myStateMat.getStateVersion();
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public void getState (DataBuffer data) {
       if (myStateMat != null) {
          myStateMat.getState (data);
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setState (DataBuffer data) {
       if (myStateMat != null) {
          myStateMat.setState (data);
       }
    }
 
-   public boolean hasState() {
-      return (myStateMat != null && myStateMat.hasState());
+   /**
+    * {@inheritDoc}
+    */
+   public boolean requiresAdvance() {
+      if (myStateMat != null) {
+         return myStateMat.requiresAdvance();
+      }
+      else {
+         return false;
+      }
+   }   
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void advanceState (double t0, double t1) {
+      if (myStateMat != null) {
+         myStateMat.advanceState (t0, t1);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numAuxVars () {
+      if (myStateMat != null) {
+         return myStateMat.numAuxVars();
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getAuxVarState (double[] buf, int idx) {
+      if (myStateMat != null) {
+         return myStateMat.getAuxVarState (buf, idx);
+      }
+      else {
+         return idx;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int setAuxVarState (double[] buf, int idx) {
+      if (myStateMat != null) {
+         return myStateMat.setAuxVarState (buf, idx);
+      }
+      else {
+         return idx;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getAuxVarDerivative (double[] buf, int idx) {
+      if (myStateMat != null) {
+         return myStateMat.getAuxVarDerivative (buf, idx);
+      }
+      else {
+         return idx;
+      }
    }
    
    /* --- End HasNumericState interface --- */

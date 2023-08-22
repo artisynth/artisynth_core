@@ -21,6 +21,7 @@ import artisynth.core.materials.RotAxisFrameMaterial;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponent;
@@ -50,11 +51,12 @@ import maspack.render.Renderer;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import maspack.util.NumberFormat;
+import maspack.util.DataBuffer;
 import maspack.util.ReaderTokenizer;
 
 public class FrameSpring extends Spring
    implements RenderableComponent, ScalableUnits, TransformableGeometry,
-              CopyableComponent, ForceTargetComponent {
+              CopyableComponent, ForceTargetComponent, HasNumericState {
 
    protected Frame myFrameA;
    protected Frame myFrameB;
@@ -106,6 +108,9 @@ public class FrameSpring extends Spring
       new PropertyList (FrameSpring.class, ModelComponentBase.class);
 
    protected FrameMaterial myMaterial;
+   // if myMaterial implements HasNumericState, myStateMat is set to its value
+   // as a cached reference for use in implementing HasNumericState
+   protected HasNumericState myStateMat;
 
    static {
       myProps.add ("renderProps * *", "renderer properties", null);
@@ -317,6 +322,13 @@ public class FrameSpring extends Spring
       T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       myMaterial = newMat;
+      if (mat instanceof HasNumericState) {
+         // use getMaterial() since mat may have been copied
+         myStateMat = (HasNumericState)getMaterial();
+      }
+      else {
+         myStateMat = null;
+      }     
       // issue change event in case solve matrix symmetry or state has changed:
       MaterialChangeEvent mce = 
          MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
@@ -1183,6 +1195,116 @@ public class FrameSpring extends Spring
       // which means we need to make Frames copyable
       return false;
    }
+
+   /* --- Begin HasNumericState interface --- */
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean hasState() {
+      return (myStateMat != null && myStateMat.hasState());
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getStateVersion() {
+      if (myStateMat != null) {
+         return myStateMat.getStateVersion();
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void getState (DataBuffer data) {
+      if (myStateMat != null) {
+         myStateMat.getState (data);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setState (DataBuffer data) {
+      if (myStateMat != null) {
+         myStateMat.setState (data);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean requiresAdvance() {
+      if (myStateMat != null) {
+         return myStateMat.requiresAdvance();
+      }
+      else {
+         return false;
+      }
+   }   
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void advanceState (double t0, double t1) {
+      if (myStateMat != null) {
+         myStateMat.advanceState (t0, t1);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numAuxVars () {
+      if (myStateMat != null) {
+         return myStateMat.numAuxVars();
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getAuxVarState (double[] buf, int idx) {
+      if (myStateMat != null) {
+         return myStateMat.getAuxVarState (buf, idx);
+      }
+      else {
+         return idx;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int setAuxVarState (double[] buf, int idx) {
+      if (myStateMat != null) {
+         return myStateMat.setAuxVarState (buf, idx);
+      }
+      else {
+         return idx;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getAuxVarDerivative (double[] buf, int idx) {
+      if (myStateMat != null) {
+         return myStateMat.getAuxVarDerivative (buf, idx);
+      }
+      else {
+         return idx;
+      }
+   }
+   
+   /* --- End HasNumericState interface --- */
 
    /**
     * {@inheritDoc}

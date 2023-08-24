@@ -68,7 +68,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
    protected boolean myRigidTendonP = DEFAULT_RIGID_TENDON;
 
    // Compute muscle dynamics ignoring the force velocity curve
-   public static boolean DEFAULT_IGNORE_FORCE_VELOCITY = true;
+   public static boolean DEFAULT_IGNORE_FORCE_VELOCITY = false;
    protected boolean myIgnoreForceVelocity = DEFAULT_IGNORE_FORCE_VELOCITY;
 
    // Estimate muscle velocity at each time step from the length time

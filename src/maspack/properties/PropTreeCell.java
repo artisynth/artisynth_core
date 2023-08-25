@@ -451,7 +451,7 @@ public class PropTreeCell {
     */
    public PropTreeCell extendToHierarchyNode (HasProperties host) {
       PropTreeCell retCell = this;
-      Object obj = host;
+      HasProperties obj = host;
       while (!(obj instanceof HierarchyNode) &&
              (obj instanceof CompositeProperty)) {
          CompositeProperty cprop = (CompositeProperty)obj;

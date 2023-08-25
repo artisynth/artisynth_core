@@ -1056,7 +1056,19 @@ public class ComponentUtils {
     * @return model component associated with the property
     */
    public static ModelComponent getPropertyComponent (Property prop) {
-      HasProperties superHost = prop.getHost();
+      return getPropertyComponent (prop.getHost());
+   }
+
+   /**
+    * Returns the ModelComponent, if any, associated with a given property
+    * host.
+    * 
+    * @param host
+    * property host to be queried
+    * @return model component associated with the host
+    */
+   public static ModelComponent getPropertyComponent (HasProperties host) {
+      HasProperties superHost = host;
       while (superHost != null) {
          if (superHost instanceof ModelComponent) {
             return (ModelComponent)superHost;
@@ -1459,6 +1471,12 @@ public class ComponentUtils {
          doGetPropertyPathName (prop, topAncestor, /*excludeLeaf=*/false));
    }
 
+   public static String getWritePropertyPathName (
+      String name, HasProperties host, ModelComponent topAncestor) {
+      return Write.getQuotedString (
+         doGetPropertyPathName (name, host, topAncestor));
+   }
+
    public static String getPropertyPathName (
       Property prop, ModelComponent topAncestor, boolean excludeLeaf) {
       return doGetPropertyPathName (prop, topAncestor, excludeLeaf);
@@ -1471,11 +1489,16 @@ public class ComponentUtils {
 
    private static String doGetPropertyPathName (
       Property prop, ModelComponent topAncestor, boolean excludeLeaf) {
+      String propName = excludeLeaf ? null : prop.getName();
+      return doGetPropertyPathName (propName, prop.getHost(), topAncestor);
+   }
+
+   private static String doGetPropertyPathName (
+      String propName, HasProperties host, ModelComponent topAncestor) {
       StringBuilder buf = new StringBuilder();
-      if (!excludeLeaf) {
-         buf.append (prop.getName());
+      if (propName != null) {
+         buf.append (propName);
       }
-      HasProperties host = prop.getHost();
       while (!(host instanceof ModelComponent) &&
              (host instanceof CompositeProperty)) {
          CompositeProperty cprop = (CompositeProperty)host;

@@ -4,7 +4,7 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public abstract class AxialMuscleMaterial extends AxialMaterial {
+public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
 
    public static double DEFAULT_MAX_FORCE = 1.0;
    public static double DEFAULT_OPT_LENGTH = 0.0;
@@ -37,7 +37,7 @@ public abstract class AxialMuscleMaterial extends AxialMaterial {
    public static final double minStretch = 0.5;
 
    public static PropertyList myProps =
-      new PropertyList(AxialMuscleMaterial.class, AxialMaterial.class);
+      new PropertyList(AxialMuscleMaterial.class, AxialMuscleMaterialBase.class);
 
    static {
       myProps.addInheritable(

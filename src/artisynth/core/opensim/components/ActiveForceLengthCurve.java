@@ -2,7 +2,7 @@ package artisynth.core.opensim.components;
 
 import maspack.matrix.Vector3d;
 import maspack.interpolation.CubicHermiteSpline1d;
-import artisynth.core.materials.AxialMuscleMaterialBase;
+import artisynth.core.materials.Millard2012AxialMuscle;
 
 public class ActiveForceLengthCurve extends OpenSimObject {
 
@@ -27,7 +27,7 @@ public class ActiveForceLengthCurve extends OpenSimObject {
    }
 
    public CubicHermiteSpline1d createCurve() {
-      return AxialMuscleMaterialBase.createActiveForceLengthCurve (
+      return Millard2012AxialMuscle.createActiveForceLengthCurve (
          minActiveNormFiberLength,
          transitionNormFiberLength,
          maxActiveNormFiberLength,

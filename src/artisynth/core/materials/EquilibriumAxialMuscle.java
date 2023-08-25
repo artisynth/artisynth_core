@@ -64,7 +64,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
    protected double myDamping = DEFAULT_FIBRE_DAMPING;
 
    // Compute muscle dynamics ignoring tendon compliance (rigid tendon)
-   public static boolean DEFAULT_RIGID_TENDON = true;
+   public static boolean DEFAULT_RIGID_TENDON = false;
    protected boolean myRigidTendonP = DEFAULT_RIGID_TENDON;
 
    // Compute muscle dynamics ignoring the force velocity curve
@@ -93,7 +93,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
    double myLengthPrev;
    boolean myLengthValid = false;
    double myMuscleLengthPrev;
-   double myMuscleVel; // computed for diagnostics only
+   double myMuscleVel; // cached value of muscle velocity
    boolean myMuscleLengthValid = false;
 
    public static PropertyList myProps =
@@ -402,6 +402,44 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
          myLengthValid = true;
          //}
          return getTendonForce (myLength-myMuscleLength);
+      }
+   }
+
+   public double computePassiveF (
+      double l, double ldot, double l0, double excitation) {
+
+      if (myRigidTendonP) {
+         return computeF (l, ldot, l0, 0);
+      }
+      else {
+         if (!myLengthValid) {
+            updateMuscleLength (l, ldot, excitation);
+            myLengthValid = true;
+         }
+         // solve for passive force given muscle length
+         double lm = myMuscleLength;
+         double vm = myMuscleVel;
+         double H = myHeight;
+         double Vmax = myMaxContractionVelocity;
+         double lo = myOptFibreLength;
+
+         double lf; // fibre length
+         double ca; // cos(alpha)
+         if (H == 0) {
+            lf = lm;
+            ca = 1.0;
+         }
+         else {
+            lf = Math.sqrt (H*H + lm*lm);
+            ca = lm/lf;
+         }
+         double ln = lf/lo; // normalized muscle length
+         // normalized muscle velocity:
+         double vn = 0;
+         if (vm != 0) {
+            vn = vm*ca/(lo*Vmax); 
+         }
+         return ca*(computePassiveForceLength(ln) + myDamping*vn);
       }
    }
 

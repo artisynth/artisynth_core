@@ -644,7 +644,8 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
          if (!comp.isFixed() ||
              !scannedCompMatches (comp, classInfo, compNumber)) {
             // try creating a new component to replace the existing one
-            newcomp = newComponent(rtok, classInfo, /*warnOnly=*/true);
+            newcomp = newComponent (
+               rtok, classInfo, myComp.getParent(), /*warnOnly=*/true);
          }
          if (newcomp != null) {
             // was able to create a new component. Use this to replace the
@@ -670,7 +671,8 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       }
       else {
          // scan new component
-         comp = newComponent(rtok, classInfo, /*warnOnly=*/true);
+         comp = newComponent (
+            rtok, classInfo, myComp.getParent(), /*warnOnly=*/true);
          if (comp != null) {
             tokens.offer (new ObjectToken (comp, rtok.lineno()));
             comp.scan (rtok, tokens);

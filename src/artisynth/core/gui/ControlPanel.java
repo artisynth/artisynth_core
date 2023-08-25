@@ -32,6 +32,7 @@ import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 
 import maspack.properties.HasProperties;
+import maspack.properties.HostList;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
@@ -358,6 +359,71 @@ public class ControlPanel extends ModelComponentBase
       return myPanel.addWidget (labelText, host, name, min, max);
    }
 
+   /**
+    * Create and add a labeled widget that controls a specified property in one
+    * or more hosts. The property's name is used as the widget's label.
+    *
+    * @param propPath path of the property with respect to each host
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified
+    * property was not found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String propName, HasProperties... hosts) {
+      return myPanel.addWidget (propName, hosts);
+   }
+
+   /**
+    * Create and add a labeled widget that controls a specified property in one
+    * or more hosts. The property's name is used as the widget's label.
+    *
+    * @param propPath path of the property with respect to each host
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified
+    * property was not found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String propName, double min, double max, HasProperties... hosts) {
+      return myPanel.addWidget (propName, min, max, hosts);
+   }
+
+   /**
+    * Create and add a labeled widget that controls a specified property in one
+    * or more hosts.
+    *
+    * @param labelText label text for the widget 
+    * @param propPath path of the property with respect to each host
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified
+    * property was not found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String labelText, String propName, HasProperties... hosts) {
+      return myPanel.addWidget (labelText, propName, hosts);
+   }
+
+   /**
+    * Create and add a slider widget that controls a specified scalar property
+    * in one or more hosts.
+    *
+    * @param labelText label text for the widget 
+    * @param propPath path of the property with respect to each host
+    * @param min initial minimum value for the slider
+    * @param max initial maximum value for the slider
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified property is
+    * not a scalar property found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String labelText, String propName,
+      double min, double max, HasProperties... hosts) {
+      return myPanel.addWidget (labelText, propName, min, max, hosts);
+   }
+
    public void addWidgets (HasProperties host) {
       myPanel.addWidgets (PropertyUtils.createProperties (host));
    }
@@ -436,6 +502,8 @@ public class ControlPanel extends ModelComponentBase
       }
    }
 
+   // Serialization methods
+
    public void writeWidget (
       PrintWriter pw, Component comp, NumberFormat fmt,
       CompositeComponent ancestor) throws IOException {
@@ -449,7 +517,23 @@ public class ControlPanel extends ModelComponentBase
          pw.print ("[ ");
          IndentingPrintWriter.addIndentation (pw, 2);
          Property prop = PropertyWidget.getProperty (widget);
-         if (prop != null) {
+         if (prop instanceof EditingProperty) {
+            // editing property, multiple hosts: write out the path of each
+            // hosts with respect to the ancestor
+            HostList hostList = ((EditingProperty)prop).getHostList();
+            pw.println ("properties=[");
+            IndentingPrintWriter.addIndentation (pw, 2);
+            for (HasProperties host : hostList) {
+               pw.println (
+                  ComponentUtils.getWritePropertyPathName (
+                     prop.getName(), host, ancestor));
+            }
+            IndentingPrintWriter.addIndentation (pw, -2);
+            pw.println ("]");
+         }
+         else if (prop != null) {
+            // standard property, single host: write out the path of the host
+            // with respect to the ancestor
             String propPath =
                ComponentUtils.getWritePropertyPathName (prop, ancestor);
             if (propPath != null) {
@@ -539,10 +623,25 @@ public class ControlPanel extends ModelComponentBase
       LabeledComponentBase widget = (LabeledComponentBase)comp;
       widget.setScanning (true);
       rtok.scanToken ('[');
-      String propPath = null;
+      String propPath = null; // one property path specified
+      String[] propPaths = null; // multiple property paths specified
       while (rtok.nextToken() != ']') {
          if (scanAttributeName (rtok, "property")) {
+            // widget controls property in one host
             propPath = rtok.scanQuotedString ('"');
+         }
+         else if (scanAttributeName (rtok, "properties")) {
+            // widget controls same property in multiple hosts
+            rtok.scanToken ('[');
+            ArrayList<String> paths = new ArrayList<>();
+            while (rtok.nextToken() != ']') {
+               if (!rtok.tokenIsQuotedString ('"')) {
+                  throw new IOException (
+                     "Expected property path, got " + rtok);
+               }
+               paths.add (rtok.sval);
+            }
+            propPaths = paths.toArray(new String[0]);
          }
          else if (rtok.tokenIsWord()) {
             String fieldName = rtok.sval;               
@@ -563,6 +662,9 @@ public class ControlPanel extends ModelComponentBase
          if (propPath != null) {
             tokens.offer (new StringToken (propPath, rtok.lineno()));
          }
+         else if (propPaths != null) {
+            tokens.offer (new ObjectToken (propPaths, rtok.lineno()));
+         }
          tokens.offer (new ObjectToken (widget, rtok.lineno()));
       }
    }
@@ -570,15 +672,30 @@ public class ControlPanel extends ModelComponentBase
    public void postscanWidget (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      String propPath = null;
+      String propPath = null; // one property path specified
+      String[] propPaths = null; // multiple property paths specified
+      // look for a StringToken specifying a single property path
       if (tokens.peek() instanceof StringToken) {
          propPath = (String)tokens.poll().value();
       }
-      if (!(tokens.peek() instanceof ObjectToken)) {
+      Component comp = null; 
+      if (tokens.peek() instanceof ObjectToken) {
+         Object obj = tokens.poll().value();
+         // look for an ObjectToken specifying multiple property paths      
+         if (obj instanceof String[]) {
+            propPaths = (String[])obj;
+            if (tokens.peek() instanceof ObjectToken) {
+               obj = tokens.poll().value();
+            }
+         }
+         if (obj instanceof Component) {
+            comp = (Component)obj;
+         }
+      }
+      if (comp == null) {
          throw new IOException (
             "Expecting ObjectToken containing widget");
       }
-      Component comp = (Component)tokens.poll().value();
       if (comp instanceof LabeledComponentBase) {
          Property property = null;
          LabeledComponentBase widget = (LabeledComponentBase)comp;
@@ -587,31 +704,40 @@ public class ControlPanel extends ModelComponentBase
          if (widget instanceof LabeledControl) {
             ((LabeledControl)widget).maskValueChangeListeners (true);
          }
+         String propErrDesc = null; // describes prop path(s) in error messages
          if (propPath != null) {
+            // for a single property path create a standard property
+            propErrDesc = "property " + propPath; // for error messages
             property = ancestor.getProperty (propPath);
-            if (property == null) {
-               System.out.println (
-                  "Ignoring control panel widget for " + propPath);
-               widget = null;
+         }
+         else if (propPaths != null) {
+            // for multiple property paths create an EditingProperty
+            propErrDesc = "properties " + propPaths[0] + "...";
+            property = EditingProperty.createProperty (
+               propPaths, ancestor, /*isLive=*/true);
+         }
+         if (property == null) {
+            System.out.println (
+               "Ignoring control panel widget for " + propErrDesc);
+            widget = null;
+         }
+         else {
+            boolean widgetSet = false;
+            try {
+               // initialize widget, but don't set properties because
+               // these will have already been set in the scan method
+               widgetSet = PropertyWidget.initializeWidget (
+                  widget, property);
             }
-            else {
-               boolean widgetSet = false;
-               try {
-                  // initialize widget, but don't set properties because
-                  // these will have already been set in the scan method
-                  widgetSet = PropertyWidget.initializeWidget (
-                     widget, property);
-               }
-               catch (Exception e) {
-                  e.printStackTrace(); 
-                  widgetSet = false;
-               }
-               if (widgetSet == false) {
-                  System.out.println (
-                     "Warning: widget " + widget +
-                     " inappropriate for property " + propPath + "; ignoring");
-                  widget = null;
-               }
+            catch (Exception e) {
+               e.printStackTrace(); 
+               widgetSet = false;
+            }
+            if (widgetSet == false) {
+               System.out.println (
+                  "Warning: widget " + widget +
+                  " inappropriate for " + propErrDesc + "; ignoring");
+               widget = null;
             }
          }
          if (widget instanceof LabeledControl) {
@@ -864,20 +990,33 @@ public class ControlPanel extends ModelComponentBase
                (LabeledComponentBase)myPanel.getWidget(i);
             Property prop = myPanel.getWidgetProperty (widget);
             if (prop instanceof GenericPropertyHandle) {
+               // standard property associated with a single component
                ModelComponent comp =
                   ComponentUtils.getPropertyComponent (prop);
                if (comp != null && !ComponentUtils.isAncestorOf (comp, this)) {
                   myrefs.add (comp);
                }
             }
-            else {
-               // TODO - handle other cases
+            else if (prop instanceof EditingProperty) {
+               // EditingProperty associated with multiple components
+               HostList hostList = ((EditingProperty)prop).getHostList();
+               for (HasProperties host : hostList) {
+                  ModelComponent comp =
+                     ComponentUtils.getPropertyComponent (host);
+                  if (comp != null && !ComponentUtils.isAncestorOf (comp, this)) {
+                     myrefs.add (comp);
+                  }
+               }
             }
-         }
+            // XXX - other cases?
+      }
       }
       refs.addAll (myrefs);
    }
 
+   /**
+    * Information about a widget that was removed and may need to be returned.
+    */
    private class WidgetRemoveInfo {
       Property myProp;
       LabeledComponentBase myComp;
@@ -887,6 +1026,27 @@ public class ControlPanel extends ModelComponentBase
          myProp = prop;
          myComp = comp;
          myIdx = idx;
+      }
+   }         
+
+   /**
+    * Information about an EditingProperty whose hostList was changed and may
+    * need to be restored.
+    */
+   private class WidgetHostInfo {
+      EditingProperty myProp;
+      LabeledComponentBase myComp;
+      HostList myHostList;
+
+      WidgetHostInfo (
+         EditingProperty prop, LabeledComponentBase comp, HostList hostList) {
+         myProp = prop;
+         myComp = comp;
+         myHostList = hostList;
+      }
+      
+      void restore() {
+         myProp.setHostList (myHostList, /*isLive=*/true);
       }
    }         
 
@@ -905,6 +1065,12 @@ public class ControlPanel extends ModelComponentBase
       boolean changed = false;
       if (undo) {
          Object obj;
+         // check first for host lists that need to be restored
+         while ((obj=undoInfo.removeFirst()) != NULL_OBJ) {
+            WidgetHostInfo info = (WidgetHostInfo)obj;
+            info.restore();
+         }
+         // check next for widgets that need to be restored
          while ((obj=undoInfo.removeFirst()) != NULL_OBJ) {
             WidgetRemoveInfo info = (WidgetRemoveInfo)obj;
             myPanel.addPropertyWidget (info.myProp, info.myComp, info.myIdx);
@@ -918,11 +1084,44 @@ public class ControlPanel extends ModelComponentBase
          for (int i=0; i<myPanel.numWidgets(); i++) {
             Component widget = myPanel.getWidget(i);
             Property prop = getWidgetProperty (widget);
-            ModelComponent comp = null;
+            boolean removeWidget = false;
             if (prop instanceof GenericPropertyHandle) {
-               comp = ComponentUtils.getPropertyComponent (prop);
+               // standard property associated with a single host. If the
+               // host's component has been removed, removed the widget.
+               ModelComponent comp = ComponentUtils.getPropertyComponent (prop);
+               if (comp != null && !ComponentUtils.areConnected (this, comp)) {
+                  removeWidget = true;
+               }
             }
-            if (comp != null && !ComponentUtils.areConnected (this, comp)) {
+            else if (prop instanceof EditingProperty) {
+               // EditingProperty associated with multiple hosts. Store the
+               // hosts which still have components in curHostList.
+               EditingProperty eprop = (EditingProperty)prop;
+               HostList hostList = eprop.getHostList();
+               HostList curHostList = new HostList(hostList.numHosts());
+               for (HasProperties host : hostList) {
+                  ModelComponent comp =
+                     ComponentUtils.getPropertyComponent (host);
+                  if (comp == null || ComponentUtils.areConnected (this, comp)) {
+                     curHostList.addHost (host);
+                  }
+               }
+               if (curHostList.numHosts() == hostList.numHosts()) {
+                  // all present; no need to change anything
+               }
+               else if (curHostList.numHosts() == 0) {
+                  // all gone, remove the widget
+                  removeWidget = true;
+               }
+               else {
+                  // some gone; update the host list
+                  LabeledComponentBase lwidget = (LabeledComponentBase)widget;
+                  undoInfo.add (
+                     new WidgetHostInfo (eprop, lwidget, hostList));
+                  eprop.setHostList (curHostList, /*isLive=*/true);
+               }
+            }
+            if (removeWidget) {
                LabeledComponentBase lwidget = (LabeledComponentBase)widget;
                removeList.add (new WidgetRemoveInfo (prop, lwidget, i));
                changed = true;
@@ -932,6 +1131,7 @@ public class ControlPanel extends ModelComponentBase
          for (WidgetRemoveInfo info : removeList) {
             myPanel.removeWidget (info.myComp);
          }
+         undoInfo.addLast (NULL_OBJ); // terminator for restore info 
          undoInfo.addAll (removeList);
          undoInfo.addLast (NULL_OBJ);
       }

@@ -301,13 +301,21 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
     * <code>true</code> and <code>classInfo</code> is non-<code>null</code>,
     * then if the class can't be instantiated, the method prints a warning
     * and returns <code>null</code>.
+    *
+    * @param rtok contains line info for error messages
+    * @param info about the class to be created
+    * @param ancestor ancestor component, which if non-{@code null} and the
+    * component is a member class, will be used to search for the containing
+    * class
+    * @param warnOnly print a warning if the component can't be created
     */
    protected C newComponent (
-      ReaderTokenizer rtok, ClassInfo<C> classInfo, boolean warnOnly) 
+      ReaderTokenizer rtok, ClassInfo<C> classInfo, 
+      CompositeComponent ancestor, boolean warnOnly) 
       throws IOException {
       C comp = null;
       try {
-         comp = createComponent (classInfo);
+         comp = createComponent (classInfo, ancestor);
       }
       catch (Exception e) {
          String errMsg;
@@ -354,7 +362,7 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
    protected C scanComponent (
       ReaderTokenizer rtok, ClassInfo<C> classInfo, Object ref)
       throws IOException {
-      C comp = newComponent(rtok, classInfo, /*warnOnly=*/false);
+      C comp = newComponent(rtok, classInfo, null, /*warnOnly=*/false);
       comp.scan (rtok, ref);
       return comp;
    }
@@ -370,7 +378,8 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
       }
    }
 
-   public C createComponent (ClassInfo<C> classInfo)
+   public C createComponent (
+      ClassInfo<C> classInfo, CompositeComponent ancestor)
       throws InstantiationException, IllegalAccessException,
       InvocationTargetException {
       Class<?> baseClass =
@@ -388,6 +397,24 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
          return (C)ctor.newInstance (classInfo.typeParam);
       }
       else {
+         if (baseClass.isMemberClass()) {
+            Class<?> dclass = baseClass.getDeclaringClass();
+            // try to find the declaring class in the ancestor or its parents
+            while (ancestor != null) {
+               if (dclass == ancestor.getClass()) {
+                  try {
+                     Constructor<?> constructor = 
+                        baseClass.getConstructor(dclass);
+                     return (C)constructor.newInstance (ancestor);
+                  }
+                  catch (NoSuchMethodException e) {
+                     // ignore
+                  }
+                  break;
+               }
+               ancestor = ancestor.getParent();
+            }
+         }
          return (C)baseClass.newInstance();
       }
    }

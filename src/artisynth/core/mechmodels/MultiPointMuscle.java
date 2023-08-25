@@ -28,6 +28,7 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.SimpleAxialMuscle;
 import artisynth.core.materials.AxialMuscleMaterial;
+import artisynth.core.materials.EquilibriumAxialMuscle;
 import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.materials.LinearAxialMaterial;
 import artisynth.core.materials.LinearAxialMuscle;
@@ -159,7 +160,7 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
 
    static {
       myProps.add ("enabled isEnabled *", "muscle is enabled", true);
-      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1] NW");
+      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1]");
       myProps.addReadOnly (
          "netExcitation", "total excitation including excitation sources");
       myProps.addReadOnly (
@@ -382,11 +383,19 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
     */
    public double computePassiveF (double l, double ldot) {
       AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-	 return mat.computeF(l, ldot, myRestLength, 0);
+      if (!enabled) {
+         return 0;
+      }
+      if (mat instanceof EquilibriumAxialMuscle) {
+         EquilibriumAxialMuscle emat = (EquilibriumAxialMuscle)mat;
+         return emat.computePassiveF (
+            l, ldot, myRestLength, getNetExcitation());
+      }
+      else if (mat != null) {
+         return mat.computeF (l, ldot, myRestLength, 0);
       }
       else {
-	 return 0;
+         return 0;
       }
    }
 

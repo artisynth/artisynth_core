@@ -1,14 +1,23 @@
 package artisynth.core.materials;
 
+import java.io.*;
+import java.util.*;
+
 import maspack.properties.*;
 import maspack.interpolation.CubicHermiteSpline1d;
+
+import artisynth.core.modelbase.*;
+import artisynth.core.util.ScanToken;
+import maspack.util.*;
 
 /**
  * Base class for point-to-point muscle materials that implement
  * muscle tendons.
  */
-public abstract class AxialTendonBase extends AxialMuscleMaterialBase {
+public abstract class AxialTendonBase extends AxialMaterial {
    
+   CubicHermiteSpline1d myTendonForceLengthCurve;
+
    // generic tendon properties
 
    // Maximum isometric force that the fibers can generate
@@ -34,7 +43,7 @@ public abstract class AxialTendonBase extends AxialMuscleMaterialBase {
 
    public static PropertyList myProps =
       new PropertyList(AxialTendonBase.class,
-                       AxialMuscleMaterialBase.class);
+                       AxialMaterial.class);
 
    static {
       myProps.add (
@@ -87,6 +96,32 @@ public abstract class AxialTendonBase extends AxialMuscleMaterialBase {
    protected abstract double computeDTendonForce (double tln);   
 
    /**
+    * Queries the tendon force length curve for this material.  Returns {@code
+    * null} if this curve has not been set.
+    *
+    * @return current tendon force length curve
+    */
+   public CubicHermiteSpline1d getTendonForceLengthCurve() {
+      return myTendonForceLengthCurve;
+   }
+
+   /**
+    * Sets the tendon force length curve for this material, or removes it if
+    * {@code curve} is set to {@code null}. Any specified curve is copied
+    * internally.
+    *
+    * @param curve new tendon force length curve
+    */
+   public void setTendonForceLengthCurve (CubicHermiteSpline1d curve) {
+      if (curve != null) {
+         myTendonForceLengthCurve = new CubicHermiteSpline1d (curve);
+      }
+      else {
+         myTendonForceLengthCurve = null;
+      }
+   }
+
+   /**
     * {@inheritDoc}
     */
    public double computeF (
@@ -121,6 +156,43 @@ public abstract class AxialTendonBase extends AxialMuscleMaterialBase {
     */
    public boolean isDFdldotZero() {
       return true;
+   }
+
+   public void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      super.writeItems (pw, fmt, ancestor);
+      if (myTendonForceLengthCurve != null) {
+         pw.print ("tendonForceLengthCurve=");
+         myTendonForceLengthCurve.write (pw, fmt, ancestor);
+      }
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+      // if keyword is a property name, try scanning that
+      rtok.nextToken();
+      if (ScanWriteUtils.scanAttributeName (
+                  rtok, "tendonForceLengthCurve")) {
+         myTendonForceLengthCurve = new CubicHermiteSpline1d();
+         myTendonForceLengthCurve.scan (rtok, null);
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   private CubicHermiteSpline1d maybeCopy (CubicHermiteSpline1d curve) {
+      if (curve != null) {
+         curve = new CubicHermiteSpline1d (curve);
+      }
+      return curve;
+   }
+
+   public AxialTendonBase clone() {
+      AxialTendonBase mat = (AxialTendonBase)super.clone();
+      mat.myTendonForceLengthCurve = maybeCopy (myTendonForceLengthCurve);
+      return mat;
    }
 
 }

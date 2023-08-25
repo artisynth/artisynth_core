@@ -25,6 +25,119 @@ public class EditingProperty implements InheritableProperty {
       myLiveP = isLive;
    }
 
+   /**
+    * Create an EditingProperty that edits a single property across a set of
+    * hosts, each specified by a property path with respect to a common
+    * ancestor host.
+    *
+    * @param propPaths paths of the property with respect to the ancestor host
+    * @param ancestor ancestor property host
+    * @param isLive if {@code true}, this widget should support live updating
+    * of the property value within the hosts
+    * @return created EditingProperty, or {@code null} if the specified
+    * property is not the same across all hosts.
+    */
+   public static EditingProperty createProperty (
+      String[] propPaths, HasProperties ancestor, boolean isLive) {
+      Property prop = null;
+      HostList hostList = new HostList (propPaths.length);
+      String propName = null;
+      // see if a property with the indicated name exists under all hosts,
+      // saving the property's immediate host in the hostList.
+      for (String propPath : propPaths) {
+         prop = ancestor.getProperty (propPath);
+         if (prop == null) {
+            return null;
+         }
+         if (propName == null) {
+            propName = prop.getName();
+         }
+         else if (!propName.equals (prop.getName())) {
+            return null;
+         }
+         hostList.addHost (prop.getHost());
+      }
+      // Create a property tree from the immediate hosts, verifying that
+      // property does in fact match (with respect to value, name, etc.)
+      // across all hosts.
+      PropTreeCell tree = hostList.commonProperty (
+         prop.getName(), /*allowReadonly=*/true);
+      if (tree == null) {
+         return null;
+      }
+      // finish hostList initialization by calling saveBackupValues().
+      hostList.saveBackupValues (tree);
+      hostList.getCommonValues (tree, isLive);
+      return new EditingProperty (tree.getFirstChild(), hostList, isLive);
+   }
+
+   /**
+    * Create an EditingProperty that edits a property specified by propPath
+    * with respect to a set of property hosts.
+    *
+    * @param propPath path of the property with respect to each host
+    * @param hosts property host object
+    * @param isLive if {@code true}, this widget should support live updating
+    * of the property value in the hosts
+    * @return created EditingProperty, of {@code null} if the specified
+    * property is not common to all hosts.
+    */
+   public static EditingProperty createProperty (
+      String propPath, HasProperties[] hosts, boolean isLive) {
+      Property prop = null;
+      HostList hostList = new HostList (hosts.length);
+      // see if a property with the indicated name exists under all hosts,
+      // saving the property's immediate host in the hostList.
+      for (HasProperties host : hosts) {
+         prop = host.getProperty (propPath);
+         if (prop == null) {
+            return null;
+         }
+         hostList.addHost (prop.getHost());
+      }
+      // Create a property tree from the immediate hosts, verifying that
+      // property does in fact match (with respect to value, name, etc.)
+      // across all hosts.
+      PropTreeCell tree = hostList.commonProperty (
+         prop.getName(), /*allowReadonly=*/true);
+      if (tree == null) {
+         return null;
+      }
+      // finish hostList initialization
+      hostList.saveBackupValues (tree);
+      hostList.getCommonValues (tree, isLive);
+      return new EditingProperty (tree.getFirstChild(), hostList, isLive);
+   }
+
+   /**
+    * Resets the host list within this EditingProperty. The specified hosts
+    * must all be immediate hosts of the current property.
+    *
+    * @param hostList new host list
+    */
+   public void setHostList (HostList hostList, boolean isLive) {
+      // check that all hosts contain the specified property
+      String propName = (myCell != null ? myCell.getPropName() : null);
+      if (propName == null) {
+         throw new IllegalStateException (
+            "EditingProperty is does not have a property set");
+      }
+      // Create a property tree from the new hostList, verifying that property
+      // does in fact match (with respect to value, name, etc.)  across all
+      // hosts.
+      PropTreeCell tree = hostList.commonProperty (
+         propName, /*allowReadonly=*/true);
+      if (tree == null) {
+         throw new IllegalArgumentException (
+            "Existing property is not common to all hosts in the new hostList");
+      }
+      // finish hostList initialization.  Have to create a root tree node for
+      // this.
+      hostList.saveBackupValues (tree);
+      hostList.getCommonValues (tree, isLive);
+      myHostList = hostList;
+   }
+
    public void updateValue() {
       Object value = myHostList.getCommonValue (myCell);
       myCell.setValue (value);
@@ -51,18 +164,6 @@ public class EditingProperty implements InheritableProperty {
    public Range getRange () {
       return myHostList.getCommonRange (myCell);
    }
-
-//   public Object validate (Object value, StringHolder errMsg) {
-//      if (myLiveP) {
-//         return myHostList.validateValue (myCell, value, errMsg);
-//      }
-//      else {
-//         if (errMsg != null) {
-//            errMsg.value = null;
-//         }
-//         return value;
-//      }
-//   }
 
    public PropertyMode getMode() {
       return myCell.getMode();

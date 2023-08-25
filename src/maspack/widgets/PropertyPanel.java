@@ -318,6 +318,113 @@ public class PropertyPanel extends LabeledComponentPanel {
       return widget;
    }
 
+   /**
+    * Create and add a labeled widget that controls a specified property in one
+    * or more hosts. The property's name is used as the widget's label.
+    *
+    * @param propPath path of the property with respect to each host
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified
+    * property was not found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String propName, HasProperties... hosts) {
+      if (hosts.length == 0) {
+         throw new IllegalArgumentException (
+            "No host specified for property '"+propName+"'");
+      }
+      else if (hosts.length == 1) {
+         return addWidget (hosts[0], propName);
+      }
+      else {
+         Property prop = EditingProperty.createProperty (
+            propName, hosts, /*live=*/true);
+         if (prop != null) {
+            return addWidget (prop);
+         }
+         else {
+            return null;
+         }
+      }
+   }
+
+   /**
+    * Create and add a slider widget that controls a specified scalar property
+    * in one or more hosts.
+    *
+    * @param propPath path of the property with respect to each host
+    * @param min initial minimum value for the slider
+    * @param max initial maximum value for the slider
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified property is
+    * not a scalar property found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String propName, double min, double max, HasProperties... hosts) {
+      if (hosts.length == 0) {
+         throw new IllegalArgumentException (
+            "No host specified for property '"+propName+"'");
+      }
+      else if (hosts.length == 1) {
+         return addWidget (hosts[0], propName, min, max);
+      }
+      else {
+         Property prop = EditingProperty.createProperty (
+            propName, hosts, /*live=*/true);
+         if (prop != null) {
+            return addWidget (prop, min, max);
+         }
+         else {
+            return null;
+         }
+      }
+   }
+
+   /**
+    * Create and add a labeled widget that controls a specified property in one
+    * or more hosts.
+    *
+    * @param labelText label text for the widget 
+    * @param propPath path of the property with respect to each host
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified
+    * property was not found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String labelText, String propName, HasProperties... hosts) {
+      LabeledComponentBase widget = addWidget (propName, hosts);
+      if (widget != null) {
+         widget.setLabelText (labelText);
+      }
+      return widget;
+   }
+
+   /**
+    * Create and add a slider widget that controls a specified scalar property
+    * in one or more hosts.
+    *
+    * @param labelText label text for the widget 
+    * @param propPath path of the property with respect to each host
+    * @param min initial minimum value for the slider
+    * @param max initial maximum value for the slider
+    * @param hosts one or more hosts of the specified property
+    * @return the created widget, or {@code null} if the specified property is
+    * not a scalar property found in all hosts
+    * @throws IllegalArgumentException if no hosts are specified
+    */
+   public LabeledComponentBase addWidget (
+      String labelText, String propName,
+      double min, double max, HasProperties... hosts) {
+      LabeledComponentBase widget = addWidget (propName, min, max, hosts);
+      if (widget != null) {
+         widget.setLabelText (labelText);
+      }
+      return widget;
+   }
+
    private void disconnectControl (LabeledControl comp) {
       for (ValueChangeListener l : myGlobalValueChangeListeners) {
          removeValueChangeListener(comp, l);

@@ -33,6 +33,7 @@ import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.materials.LinearAxialMuscle;
+import artisynth.core.materials.EquilibriumAxialMuscle;
 import artisynth.core.materials.PeckAxialMuscle;
 import artisynth.core.materials.SimpleAxialMuscle;
 import artisynth.core.materials.MaterialChangeEvent;
@@ -138,7 +139,7 @@ public class Muscle extends AxialSpring
 
    static {
       myProps.add ("enabled isEnabled *", "muscle is enabled", true);
-      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1] NW");
+      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1]");
       myProps.addReadOnly (
          "netExcitation", "total excitation including excitation sources");
       myProps.addReadOnly (
@@ -367,7 +368,18 @@ public class Muscle extends AxialSpring
     * @return force tension
     */
    public double computePassiveF (double l, double ldot) {
-      return computeF (l, ldot, 0);
+      AxialMaterial mat = getEffectiveMaterial();
+      if (mat instanceof EquilibriumAxialMuscle) {
+         EquilibriumAxialMuscle emat = (EquilibriumAxialMuscle)mat;
+         return emat.computePassiveF (
+            l, ldot, myRestLength, getNetExcitation());
+      }
+      else if (mat != null) {
+         return mat.computeF (l, ldot, myRestLength, 0);
+      }
+      else {
+         return 0;
+      }
    }
 
    /**

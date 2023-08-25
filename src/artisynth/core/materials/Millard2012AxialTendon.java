@@ -23,7 +23,7 @@ public class Millard2012AxialTendon extends AxialTendonBase {
       if (myDefaultTendonForceLengthCurve == null) {
          double strainAtOneNormForce = 0.049;
          myDefaultTendonForceLengthCurve =
-            createTendonForceLengthCurve (
+            Millard2012AxialMuscle.createTendonForceLengthCurve (
                strainAtOneNormForce, 1.375/strainAtOneNormForce, 2.0/3.0, 0.5);
       }
       return myDefaultTendonForceLengthCurve;

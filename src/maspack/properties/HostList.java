@@ -10,6 +10,7 @@ import java.util.*;
 import maspack.util.InternalErrorException;
 import maspack.util.Range;
 import maspack.util.Clonable;
+import maspack.matrix.VectorNi;
 
 /**
  * Container class for a list of property hosts that can be queried for common
@@ -95,7 +96,7 @@ import maspack.util.Clonable;
  * <code>getIndexPath()</code> on the corresponding PropTreeCell within the
  * master hierarchy.
  */
-public class HostList {
+public class HostList implements Iterable<HasProperties> {
    private ArrayList<HasProperties> myHosts;
    private PropTreeData[] myDataList;
 
@@ -123,6 +124,10 @@ public class HostList {
       return myHosts.size();
    }
 
+   public int size() {
+      return myHosts.size();
+   }
+
    public void set (HasProperties[] hosts) {
       myDataList = null;
       myHosts = new ArrayList<HasProperties> (hosts.length);
@@ -142,33 +147,11 @@ public class HostList {
    public Iterator<HasProperties> getHosts() {
       return myHosts.iterator();
    }
-   
-   /**
-    * Returns an array of the PropTreeData corresponding to <code>cell</code>
-    * for every host.
-    */
-//   public PropTreeData[] getAllData (PropTreeCell cell) {
-//      PropTreeData[] dataArray = new PropTreeData[myHosts.size()];
-//      if (myDataList == null) {
-//         initializeDataList();
-//      }
-//      int[] indexPath = cell.getIndexPath();
-//      for (int i = 0; i < myHosts.size(); i++) {
-//         PropTreeData data = myDataList[i];
-//         for (int level = 0; level < indexPath.length; level++) {
-//            if (data.getSubData() == null) {
-//               throw new InternalErrorException (
-//                  "data tree not initialized at level " + level + " for "
-//                  + cell.pathString());
-//            }
-//            // XXSystem.out.println ("2");
-//            data = data.getSubData()[indexPath[level]];
-//         }
-//         dataArray[i] = data;
-//      }
-//      return dataArray;
-//   }
-   
+
+   public Iterator<HasProperties> iterator() {
+      return myHosts.iterator();
+   }   
+
    /**
     * Returns an array containing the values corresponding to <code>cell</code>
     * for each host. The corresponding property must exist for each host.
@@ -225,7 +208,6 @@ public class HostList {
    }
 
    private void initializeDataList() {
-      // XXSystem.out.println ("1");
       myDataList = new PropTreeData[myHosts.size()];
       for (int i = 0; i < myHosts.size(); i++) {
          PropTreeData data =
@@ -300,7 +282,6 @@ public class HostList {
          // XXSystem.out.println ("3");
          if (info.isInheritable()) {
             childData.setMode (PropertyUtils.getMode (info, host));
-            // XXSystem.out.println ("4");
          }
          dataList[i++] = childData;
       }
@@ -403,14 +384,12 @@ public class HostList {
    public PropTreeCell commonProperties (
       PropTreeCell cell, boolean allowReadonly, String[] restricted,
       String[] excluded) {
-      PropTreeCell newRoot = new PropTreeCell();
-      int[] indexPath = (cell == null ? new int[0] : cell.getIndexPath());
-      // PropTreeCell path = (cell == null ? null : cell.createPathToRoot());
-
       if (myDataList == null) {
          initializeDataList();
       }
-
+      PropTreeCell newRoot = new PropTreeCell();
+      int[] indexPath = (cell == null ? new int[0] : cell.getIndexPath());
+      // PropTreeCell path = (cell == null ? null : cell.createPathToRoot());
       for (int i = 0; i < myHosts.size(); i++) {
          PropTreeData data = myDataList[i];
          HasProperties host = null;
@@ -478,10 +457,75 @@ public class HostList {
    }
 
    /**
+    * Returns a PropTreeCell with a single child representing a specified
+    * property that is common to all hosts. If the specified property is not
+    * common to all hosts, null is returned.
+    */
+   public PropTreeCell commonProperty (
+      String propName, boolean allowReadonly) {
+
+      if (myDataList == null) {
+         initializeDataList();
+      }
+      PropTreeCell newRoot = new PropTreeCell();
+      PropertyInfo info = null;
+      for (int i = 0; i < myHosts.size(); i++) {
+         PropTreeData data = myDataList[i];
+         HasProperties host = null;
+         HasProperties subHost = (HasProperties)data.myValue;
+         if (subHost == null) {
+            Object newHost = PropertyUtils.createInstance (data.myInfo, host);
+            // XXSystem.out.println ("10");
+            if (!(newHost instanceof CompositeProperty)) {
+               throw new InternalErrorException ("Property '"
+               + data.myInfo.getName()
+               + "' not an instance of CompositeProperty");
+            }
+            subHost = (HasProperties)newHost;
+         }
+         data.myHost = subHost;
+
+         if (i == 0) {
+            info = subHost.getAllPropertyInfo().get (propName);
+            if (info == null) {
+               return null;
+            }
+            if ((info.getEditing() == PropertyInfo.Edit.Always ||
+                 (myHosts.size() == 1 &&
+                  info.getEditing() == PropertyInfo.Edit.Single)) &&
+                (allowReadonly || !info.isReadOnly()) &&
+                (!info.isInheritable() ||
+                 (PropertyUtils.getMode (info, subHost) !=
+                  PropertyMode.Inactive))) {
+               
+               PropTreeCell child = new PropTreeCell (
+                  info, PropertyUtils.getValue (info, subHost));
+               newRoot.addChild (child);
+            }
+         }
+         else {
+            PropertyInfo matchingInfo =
+               PropTreeCell.findMatchingProperty (subHost, info);
+            if (matchingInfo == null ||
+                matchingInfo.getEditing() != PropertyInfo.Edit.Always ||
+                (matchingInfo.isInheritable() &&
+                 (PropertyUtils.getMode (matchingInfo, subHost) ==
+                  PropertyMode.Inactive))) {
+               return null;
+            }
+         }
+      }
+      return newRoot;
+   }
+
+   /**
     * Gets the common values of the properties represented by the children of a
     * specified host node.
     */
    public void getCommonValues (PropTreeCell cell, boolean live) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       // copy the children because we may be pruning them to remove
       // properties which are not common
@@ -602,6 +646,9 @@ public class HostList {
    // }
 
    public void setValue (PropTreeCell cell, Object value) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          throw new InternalErrorException (
@@ -624,6 +671,9 @@ public class HostList {
    }
 
    public Object getCommonValue (PropTreeCell cell) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          throw new InternalErrorException (
@@ -656,6 +706,9 @@ public class HostList {
    }
 
    public Range getCommonRange (PropTreeCell cell) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          throw new InternalErrorException (
@@ -694,6 +747,9 @@ public class HostList {
    }
 
    public PropertyMode getCommonMode (PropTreeCell cell) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          throw new InternalErrorException (
@@ -726,6 +782,9 @@ public class HostList {
    }
 
    public void setMode (PropTreeCell cell, PropertyMode mode) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          throw new InternalErrorException (
@@ -757,6 +816,9 @@ public class HostList {
     * to <code>commonProperties</code>.
     */
    public void addSubHostsIfNecessary (PropTreeCell cell) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          return;
@@ -783,6 +845,9 @@ public class HostList {
    }
 
    public void setSubHostsFromValue (PropTreeCell cell) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          return;
@@ -813,6 +878,9 @@ public class HostList {
     * of <code>myHost</code> is set to the new value.
     */
    public void replaceSubHostsIfNecessary (PropTreeCell cell) {
+      if (myDataList == null) {
+         initializeDataList();
+      }
       int[] indexPath = cell.getIndexPath();
       if (indexPath.length == 0) {
          return;

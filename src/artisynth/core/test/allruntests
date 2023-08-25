@@ -1,20 +1,23 @@
 #!/bin/bash
 COMPSTATE="java artisynth.core.util.CompareStateFiles"
 echo mechmodelTest
-artisynth -noGui -script mechmodelTest.py &> /dev/null
+artisynth -noGui -script mechmodelTest.py &> log.allrun
 $COMPSTATE mechmodelTest.out mechmodelTest.ref
+echo inverseTest
+artisynth -noGui -script inverseTest.py &>> log.allrun
+$COMPSTATE inverseTest.out inverseTest.ref
 echo wraptest
-artisynth -noGui -script wraptest.py &> /dev/null
+artisynth -noGui -script wraptest.py &>> log.allrun
 $COMPSTATE wraptest.out wraptest.ref
 echo contestAjl
-artisynth -useAjlCollision -noGui -script contactTest.py [ contestAjl.out ] &> /dev/null
+artisynth -useAjlCollision -noGui -script contactTest.py [ contestAjl.out ] &>> log.allrun
 $COMPSTATE contestAjl.out contestAjl.ref
 echo contestReg
-artisynth -noGui -script contactTest.py [ contestReg.out ] &> /dev/null
+artisynth -noGui -script contactTest.py [ contestReg.out ] &>> log.allrun
 $COMPSTATE contestReg.out contestReg.ref
 echo femtest
-artisynth -noGui -script femtest.py &> /dev/null
+artisynth -noGui -script femtest.py &>> log.allrun
 $COMPSTATE femtest.out femtest.ref
 echo skinningTest
-artisynth -noGui -script skinningTest.py &> /dev/null
+artisynth -noGui -script skinningTest.py &>> log.allrun
 $COMPSTATE skinningTest.out skinningTest.ref

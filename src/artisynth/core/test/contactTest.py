@@ -128,7 +128,7 @@ dorun()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("SelfCollision ConstrainedBackwardEuler");
 dorun()
-loadModel ("artisynth.demos.mech.EmbeddedCollisionTest")
+loadModel ("artisynth.demos.fem.EmbeddedCollisionTest")
 mech = setModelOpts (1.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
@@ -231,6 +231,12 @@ pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("RollingFem ConstrainedBackwardEuler");
 dorun()
+mech.setIntegrator (MechSystemSolver.Integrator.FullBackwardEuler)
+mech.writePrintStateHeader ("RollingFem FullBackwardEuler");
+dorun()
+mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
+mech.writePrintStateHeader ("RollingFem Trapezoidal");
+dorun()
 
 loadModel ("artisynth.demos.tutorial.SlidingFem")
 mech = setModelOpts (1.0, dataFileName)
@@ -255,6 +261,10 @@ dorun()
 
 loadModel ("artisynth.demos.tutorial.JointedBallCollide")
 mech = setModelOpts (2.0, dataFileName)
+# model doesn't check for implict friction:
+if mech.getUseImplicitFriction() :
+   mech.setCompliantContact()
+
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("JointedBallCollide ConstrainedBackwardEuler");
@@ -262,6 +272,10 @@ dorun()
 
 loadModel ("artisynth.demos.tutorial.VariableElasticContact")
 mech = setModelOpts (0.2, dataFileName)
+# model doesn't check for implict friction:
+if mech.getUseImplicitFriction() :
+   mech.setCompliantContact()
+
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("VariableElasticContact ConstrainedBackwardEuler");
@@ -269,6 +283,10 @@ dorun()
 
 loadModel ("artisynth.demos.tutorial.ElasticFoundationContact")
 mech = setModelOpts (0.2, dataFileName)
+# model doesn't check for implict friction:
+if mech.getUseImplicitFriction() :
+   mech.setCompliantContact()
+
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("ElasticFoundationContact ConstrainedBackwardEuler");

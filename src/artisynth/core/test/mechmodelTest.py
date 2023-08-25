@@ -20,6 +20,7 @@ MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
 FemModel3d.noIncompressStiffnessDamping = False
 SurfaceMeshCollider.useAjlCollision = False
 PardisoSolver.setDefaultNumThreads (1)
+MurtyMechSolver.setDefaultAdaptivelyRebuildA (False)
 
 main.maskFocusStealing (True)
 dataFileName = "mechmodelTest.out"
@@ -185,6 +186,16 @@ waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("ArticulatedFem ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.FullBackwardEuler)
+mech.writePrintStateHeader ("ArticulatedFem FullBackwardEuler");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
+mech.writePrintStateHeader ("ArticulatedFem Trapezoidal");
 run()
 waitForStop()
 reset()
@@ -383,6 +394,9 @@ reset()
 
 loadModel ("artisynth.demos.mech.BeamBodyCollide")
 mech = setModelOpts (1.5, dataFileName)
+if mech.getUseImplicitFriction():
+   mech.setCompliantContact (0.0005, 80, 0.0003)
+
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 mech.writePrintStateHeader ("BeamBodyCollide ConstrainedBackwardEuler");
@@ -518,6 +532,16 @@ mech.writePrintStateHeader ("LaymanDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
+mech.setIntegrator (MechSystemSolver.Integrator.FullBackwardEuler)
+mech.writePrintStateHeader ("LaymanDemo FullBackwardEuler");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
+mech.writePrintStateHeader ("LaymanDemo Trapezoidal");
+run()
+waitForStop()
+reset()
 
 loadModel ("artisynth.demos.fem.FemCollision")
 mech = setModelOpts (1, dataFileName)
@@ -534,7 +558,7 @@ waitForStop()
 reset()
 
 loadModel ("artisynth.models.dynjaw.JawLarynxDemo");
-mech = setModelOpts (2, dataFileName) # there is an earlier breakpoint at 0.575
+mech = setModelOpts (2, dataFileName) # there is an earlier breakpoint at 0.57, 5
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
 mech.writePrintStateHeader ("JawLarynxDemo SymplecticEuler");
@@ -548,6 +572,25 @@ waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
 mech.writePrintStateHeader ("JawLarynxDemo Trapezoidal");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.models.tongue3d.HexTongueDemo", "-exciter", "GGP")
+mech = setModelOpts (0.25, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("HexTongueDemo ConstrainedBackwardEuler")
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
+mech.writePrintStateHeader ("HexTongueDemo Trapezoidal")
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.FullBackwardEuler)
+mech.writePrintStateHeader ("HexTongueDemo FullBackwardEuler")
 run()
 waitForStop()
 reset()
@@ -606,6 +649,24 @@ waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
 mech.writePrintStateHeader ("PointPlaneForceTest quadratic SymplecticEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.test.EquilibriumMuscleTest")
+mech = setModelOpts (2.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+#mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("EquilibriumMuscleTest -force");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.test.EquilibriumMuscleTest", "-thelen")
+mech = setModelOpts (2.0, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+#mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("EquilibriumMuscleTest -thelen");
 run()
 waitForStop()
 reset()
@@ -678,45 +739,6 @@ loadModel ("artisynth.demos.mech.PlanarTranslationJointDemo")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.writePrintStateHeader ("PlanarTranslationJointDemo")
-run()
-waitForStop()
-reset()
-
-loadModel ("artisynth.models.tongue3d.TongueInvDemo")
-mech = setModelOpts (0.1, dataFileName)
-pw = mech.reopenPrintStateFile (dataFileName)
-mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-mech.writePrintStateHeader ("TongueInvDemo ConstrainedBackwardEuler");
-run()
-waitForStop()
-reset()
-# reset to false since it was set by the TongueInvDemo
-InverseManager.useLegacyNames = False
-
-loadModel ("artisynth.demos.inverse.PointModel2d")
-mech = setModelOpts (1, dataFileName)
-pw = mech.reopenPrintStateFile (dataFileName)
-mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-mech.writePrintStateHeader ("PointInv2d Trapezoidal");
-run()
-waitForStop()
-reset()
-
-loadModel ("artisynth.demos.inverse.PointModel3d")
-mech = setModelOpts (1, dataFileName)
-mech.setMaxStepSize (0.05)
-pw = mech.reopenPrintStateFile (dataFileName)
-mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-mech.writePrintStateHeader ("PointInv3d Trapezoidal");
-run()
-waitForStop()
-reset()
-
-loadModel ("artisynth.demos.inverse.HydrostatInvDemo")
-mech = setModelOpts (1, dataFileName)
-pw = mech.reopenPrintStateFile (dataFileName)
-mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-mech.writePrintStateHeader ("HydrostatInvDemo Trapezoidal");
 run()
 waitForStop()
 reset()

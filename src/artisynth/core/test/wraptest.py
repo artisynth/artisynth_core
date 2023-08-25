@@ -23,6 +23,7 @@ from artisynth.demos.wrapping import StaticWrapTest
 StaticWrapTest.highMeshRes = False;
 StaticWrapTest.highGridRes = False;
 PardisoSolver.setDefaultNumThreads (1)
+MurtyMechSolver.setDefaultAdaptivelyRebuildA (False)
 
 main.maskFocusStealing (True)
 dataFileName = "wraptest.out"
@@ -147,6 +148,22 @@ loadModel ("artisynth.demos.wrapping.DynamicWrapTest", "-geo", "PHALANX")
 mech = setModelOpts (1.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.writePrintStateHeader ("DynamicWrapTest PHALANX")
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.mech.ConditionalMarkerDemo")
+mech = setModelOpts (1.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("ConditionalMarkerDemo")
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.mech.ConditionalMarkerDemo", "-wrapping")
+mech = setModelOpts (1.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("ConditionalMarkerDemo wrapping")
 run()
 waitForStop()
 reset()

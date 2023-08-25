@@ -20,6 +20,7 @@ MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
 FemModel3d.noIncompressStiffnessDamping = False
 SurfaceMeshCollider.useAjlCollision = False
 PardisoSolver.setDefaultNumThreads (1)
+MurtyMechSolver.setDefaultAdaptivelyRebuildA (False)
 
 main.maskFocusStealing (True)
 dataFileName = "skinningTest.out"

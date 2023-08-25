@@ -153,6 +153,8 @@ runTest ("ShellBlock membrane MooneyRivlin", 0.25, dataFileName)
 
 loadModel ("artisynth.demos.fem.CombinedShellFem")
 runTest ("CombinedShellFem", 0.5, dataFileName)
+loadModel ("artisynth.demos.fem.CombinedElemFem")
+runTest ("CombinedShellFem", 0.5, dataFileName)
 
 loadModel ("artisynth.demos.fem.TetCube")
 fem = find ("models/mech/models/tet")

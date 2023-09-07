@@ -1416,7 +1416,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
     * coupling.
     *
     * @param idx index of the coordinate
-    * @param new coordinate name
+    * @param name new coordinate name
     */   
    public void setCoordinateName (int idx, String name) {
       myCoordinates.get(idx).setName (name);

@@ -389,7 +389,7 @@ public abstract class JointBase extends BodyConnector  {
     * access the coordinate at the same location.
     *
     * @param idx index of the coordinate
-    * @param new coordinate name
+    * @param name new coordinate name
     */   
    public void setCoordinateName (int idx, String name) {
       checkCoordinateIndex (idx);

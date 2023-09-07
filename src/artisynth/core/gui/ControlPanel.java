@@ -370,8 +370,8 @@ public class ControlPanel extends ModelComponentBase
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String propName, HasProperties... hosts) {
-      return myPanel.addWidget (propName, hosts);
+      String propPath, HasProperties... hosts) {
+      return myPanel.addWidget (propPath, hosts);
    }
 
    /**
@@ -385,8 +385,8 @@ public class ControlPanel extends ModelComponentBase
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String propName, double min, double max, HasProperties... hosts) {
-      return myPanel.addWidget (propName, min, max, hosts);
+      String propPath, double min, double max, HasProperties... hosts) {
+      return myPanel.addWidget (propPath, min, max, hosts);
    }
 
    /**
@@ -401,8 +401,8 @@ public class ControlPanel extends ModelComponentBase
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String labelText, String propName, HasProperties... hosts) {
-      return myPanel.addWidget (labelText, propName, hosts);
+      String labelText, String propPath, HasProperties... hosts) {
+      return myPanel.addWidget (labelText, propPath, hosts);
    }
 
    /**
@@ -419,9 +419,9 @@ public class ControlPanel extends ModelComponentBase
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String labelText, String propName,
+      String labelText, String propPath,
       double min, double max, HasProperties... hosts) {
-      return myPanel.addWidget (labelText, propName, min, max, hosts);
+      return myPanel.addWidget (labelText, propPath, min, max, hosts);
    }
 
    public void addWidgets (HasProperties host) {

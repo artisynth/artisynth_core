@@ -329,17 +329,17 @@ public class PropertyPanel extends LabeledComponentPanel {
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String propName, HasProperties... hosts) {
+      String propPath, HasProperties... hosts) {
       if (hosts.length == 0) {
          throw new IllegalArgumentException (
-            "No host specified for property '"+propName+"'");
+            "No host specified for property '"+propPath+"'");
       }
       else if (hosts.length == 1) {
-         return addWidget (hosts[0], propName);
+         return addWidget (hosts[0], propPath);
       }
       else {
          Property prop = EditingProperty.createProperty (
-            propName, hosts, /*live=*/true);
+            propPath, hosts, /*live=*/true);
          if (prop != null) {
             return addWidget (prop);
          }
@@ -362,17 +362,17 @@ public class PropertyPanel extends LabeledComponentPanel {
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String propName, double min, double max, HasProperties... hosts) {
+      String propPath, double min, double max, HasProperties... hosts) {
       if (hosts.length == 0) {
          throw new IllegalArgumentException (
-            "No host specified for property '"+propName+"'");
+            "No host specified for property '"+propPath+"'");
       }
       else if (hosts.length == 1) {
-         return addWidget (hosts[0], propName, min, max);
+         return addWidget (hosts[0], propPath, min, max);
       }
       else {
          Property prop = EditingProperty.createProperty (
-            propName, hosts, /*live=*/true);
+            propPath, hosts, /*live=*/true);
          if (prop != null) {
             return addWidget (prop, min, max);
          }
@@ -394,8 +394,8 @@ public class PropertyPanel extends LabeledComponentPanel {
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String labelText, String propName, HasProperties... hosts) {
-      LabeledComponentBase widget = addWidget (propName, hosts);
+      String labelText, String propPath, HasProperties... hosts) {
+      LabeledComponentBase widget = addWidget (propPath, hosts);
       if (widget != null) {
          widget.setLabelText (labelText);
       }
@@ -416,9 +416,9 @@ public class PropertyPanel extends LabeledComponentPanel {
     * @throws IllegalArgumentException if no hosts are specified
     */
    public LabeledComponentBase addWidget (
-      String labelText, String propName,
+      String labelText, String propPath,
       double min, double max, HasProperties... hosts) {
-      LabeledComponentBase widget = addWidget (propName, min, max, hosts);
+      LabeledComponentBase widget = addWidget (propPath, min, max, hosts);
       if (widget != null) {
          widget.setLabelText (labelText);
       }

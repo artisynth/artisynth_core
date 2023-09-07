@@ -1,7 +1,10 @@
 package artisynth.core.materials;
 
+import java.io.*;
+
 import maspack.matrix.*;
 import maspack.properties.*;
+import maspack.function.*;
 
 /**
  * A generic muscle material
@@ -36,7 +39,7 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
    protected Vector3d myTmp = new Vector3d();
    protected Matrix3d myMat = new Matrix3d();
 
-   // Set this true to keep dF/dl continuous at
+   // Set this false to keep dF/dl continuous at
    // lam = lamOpt, at the expense of slightly negative forces for lam < lamOpt
    protected static boolean myZeroForceBelowLenOptP = true;
 
@@ -187,6 +190,48 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
       return x*x;
    }
 
+   protected double computeActiveForceLength (double l) {
+      double ln = l/myOptLength;
+
+      if (ln < 0.4 || ln > 1.6) {
+         return 0;
+      }
+      else if (ln <= 0.6) {
+         return 9*square(ln-0.4);
+      }
+      else if (ln < 1.4) {
+         return 1-4*square(1-ln);
+      }
+      else {
+         return 9*square(ln-1.6);
+      }
+   }
+
+   protected double computePassiveForceLength (double l) {
+
+      double lenOpt = myOptLength;
+      double lenRat = l/lenOpt;
+
+      double P1 = myExpStressCoeff;
+      double P2 = myUncrimpingFactor;
+
+      if (!myP3P4Valid) {
+         myP3 = P1*P2*Math.exp(P2*(myMaxLength/lenOpt-1));
+         myP4 = P1*(Math.exp(P2*(myMaxLength/lenOpt-1))-1) - myP3*myMaxLength/lenOpt;
+         myP3P4Valid = true;
+      }
+
+      if (myZeroForceBelowLenOptP && l <= lenOpt) {
+         return 0;
+      }
+      else if (l <= myMaxLength) {
+         return P1*(Math.exp(P2*(lenRat-1))-1);
+      }
+      else {
+         return myP3*lenRat + myP4;
+      }
+   }
+
    public double computeF (
 	      double l, double ldot, double l0, double excitation) {
  
@@ -234,7 +279,7 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
       }
 
       // calculate total fiber force
-      return myMaxForce*(fpas + excitation*fact);
+      return myMaxForce*(fpas + excitation*fact) + myDamping * ldot;
    }
 
    public double computeDFdl (
@@ -285,14 +330,13 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
 
       return myMaxForce*(dfpasDl + excitation*dfactDl);
    }
-   
-   public double computeDFdldot (
-	      double l, double ldot, double l0, double excitation) {
-      return 0;
+
+   public double computeDFdldot(double l, double ldot, double l0, double ex) {
+      return forceScaling * myDamping;
    }
 
-   public boolean isDFdldotZero () {
-      return true;
+   public boolean isDFdldotZero() {
+      return myDamping == 0;
    }
 
    public boolean equals (AxialMaterial mat) {
@@ -334,5 +378,48 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
          setMaxForce (myMaxForce*s);
       }
    }
-   
+
+   public void writeActiveForceLengthCurve (
+      String fileName, double x0, double x1,
+      int npnts, String fmtStr) throws IOException {
+      Function1x1 fxn = new Function1x1() {
+            public double eval(double ln) {
+               return computeActiveForceLength (ln);
+            }
+         };
+      FunctionUtils.writeValues (new File(fileName), fxn, x0, x1, npnts, fmtStr);
+   }
+
+   public void writePassiveForceLengthCurve (
+      String fileName, double x0, double x1,
+      int npnts, String fmtStr) throws IOException {
+      Function1x1 fxn = new Function1x1() {
+            public double eval(double ln) {
+               return computePassiveForceLength (ln);
+            }
+         };
+      FunctionUtils.writeValues (new File(fileName), fxn, x0, x1, npnts, fmtStr);
+   }
+
+   public void writeCombinedForceLengthCurve (
+      String fileName, double x0, double x1,
+      int npnts, String fmtStr) throws IOException {
+      Function1x1 fxn = new Function1x1() {
+            public double eval(double l) {
+               return computeActiveForceLength(l) + computePassiveForceLength(l);
+            }
+         };
+      FunctionUtils.writeValues (new File(fileName), fxn, x0, x1, npnts, fmtStr);
+   }
+
+   public static void main (String[] args) throws IOException {
+      BlemkerAxialMuscle blemker =
+         new BlemkerAxialMuscle (
+            /*maxL*/1.4, /*optL*/1, /*maxF*/1,
+            /*expCoeff*/0.05, /*uncrimping*/6.6);
+      blemker.writeActiveForceLengthCurve ("BlemkerAFL.txt", 0, 2, 400, "%g");
+      blemker.writePassiveForceLengthCurve ("BlemkerPFL.txt", 0, 2, 400, "%g");
+      blemker.writeCombinedForceLengthCurve ("BlemkerCFL.txt", 0, 2, 400, "%g");
+   }
+
 }

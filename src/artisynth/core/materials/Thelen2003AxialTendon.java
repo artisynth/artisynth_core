@@ -122,7 +122,7 @@ public class Thelen2003AxialTendon extends AxialTendonBase {
     * Compute derivative of normalized tendon force from normalized tendon
     * length.  Adapted from OpenSim code.
     */
-   protected double computeDTendonForce (double tln) {
+   protected double computeTendonForceDeriv (double tln) {
       double x = tln-1;
 
       //Compute tendon force

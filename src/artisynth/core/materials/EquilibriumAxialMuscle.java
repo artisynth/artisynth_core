@@ -151,7 +151,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
     * @param ln normalized fibre length
     * @return force length curve derivative at ln
     */
-   protected abstract double computeDActiveForceLength (double ln);
+   protected abstract double computeActiveForceLengthDeriv (double ln);
 
    /**
     * Computes the passive force length curve.
@@ -167,7 +167,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
     * @param ln normalized fibre length
     * @return passive force length curve derivative at ln
     */
-   protected abstract double computeDPassiveForceLength (double ln);
+   protected abstract double computePassiveForceLengthDeriv (double ln);
 
    /**
     * Computes the force velocity curve.
@@ -186,7 +186,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
     * @param activation
     * @return force velocity curve derivative at vn
     */
-   protected abstract double computeDForceVelocity (double vn, double a);
+   protected abstract double computeForceVelocityDeriv (double vn, double a);
 
    /**
     * Computes the tendon force curve.
@@ -202,7 +202,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
     * @param tln normalized tendon length
     * @return tendon force curve derivative at tln
     */
-   protected abstract double computeDTendonForce (double tln);   
+   protected abstract double computeTendonForceDeriv (double tln);   
 
    protected EquilibriumAxialMuscle() {
       myHeight = DEFAULT_OPT_FIBRE_LENGTH*Math.sin(DEFAULT_OPT_PENNATION_ANGLE);
@@ -343,6 +343,22 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
 
    protected double sqr (double x) {
       return x*x;
+   }
+
+   /**
+    * Computes the muscle length corresponding to a given fibre length.
+    * If the fibre length is less that the muscle height, returns 0.
+    *
+    * @param lf fibre length
+    * @return corresponding muscle length
+    */
+   public double fibreToMuscleLength (double lf) {
+      if (lf < myHeight) {
+         return 0;
+      }
+      else {
+         return Math.sqrt(lf*lf - myHeight*myHeight);
+      }
    }
 
    /**
@@ -666,11 +682,11 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
       double ff = fa*fv*a+fp+myDamping*vn;
 
       double dln = ca/lo;
-      double dfa = computeDActiveForceLength(ln)*dln;
-      double dfp = computeDPassiveForceLength(ln)*dln;
+      double dfa = computeActiveForceLengthDeriv(ln)*dln;
+      double dfp = computePassiveForceLengthDeriv(ln)*dln;
       double vterm = myDamping;
       if (!myIgnoreForceVelocity && vn != 0) {
-         double dfv = computeDForceVelocity (vn, a);
+         double dfv = computeForceVelocityDeriv (vn, a);
          vterm += a*fa*dfv;
       }
       double dvn = dcdlm*vm/(lo*Vmax);
@@ -727,11 +743,11 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
       double ff = fa*fv*a+fp+myDamping*vn;
       if (dF != null) {
          double dln = ca/lo;
-         double dfa = computeDActiveForceLength(ln)*dln;
-         double dfp = computeDPassiveForceLength(ln)*dln;
+         double dfa = computeActiveForceLengthDeriv(ln)*dln;
+         double dfp = computePassiveForceLengthDeriv(ln)*dln;
          double vterm = myDamping;
          if (!myIgnoreForceVelocity) {
-            double dfv = computeDForceVelocity (vn, a);
+            double dfv = computeForceVelocityDeriv (vn, a);
             vterm += a*fa*dfv;
          }
          double dvn = 0;
@@ -755,7 +771,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
    }
 
    double computeDFt (double ltn) {
-      return computeDTendonForce (ltn)/myTendonSlackLength;
+      return computeTendonForceDeriv (ltn)/myTendonSlackLength;
    }
 
    public double computeG (
@@ -814,8 +830,8 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
          double dvn = ldot*dcdlm/(lo*Vmax);
          double dln = ca/lo;
 
-         double dfa = computeDActiveForceLength(ln)*dln;
-         double dfp = computeDPassiveForceLength(ln)*dln;
+         double dfa = computeActiveForceLengthDeriv(ln)*dln;
+         double dfp = computePassiveForceLengthDeriv(ln)*dln;
 
          if (myIgnoreForceVelocity) {
             double fm = myMaxIsoForce*(fa*excitation+fp+myDamping*vn);
@@ -824,7 +840,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
          }
          else {
             double fv = computeForceVelocity (vn, excitation);
-            double dfv = computeDForceVelocity(vn, excitation)*dvn;
+            double dfv = computeForceVelocityDeriv(vn, excitation)*dvn;
             double fm = myMaxIsoForce*(fa*fv*excitation+fp+myDamping*vn);
             return myMaxIsoForce*(
                (dfa*fv+fa*dfv)*excitation + dfp + myDamping*dvn)*ca + fm*dcdlm;
@@ -891,7 +907,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
             double fa = computeActiveForceLength (ln);
             // normalized muscle velocity:
             double vn = ldot*ca/(lo*Vmax); 
-            ftmp = fa*computeDForceVelocity(vn,excitation)*excitation + myDamping;
+            ftmp = fa*computeForceVelocityDeriv(vn,excitation)*excitation + myDamping;
          }
          return (myMaxIsoForce*ftmp*ca*ca/(lo*Vmax));
       }

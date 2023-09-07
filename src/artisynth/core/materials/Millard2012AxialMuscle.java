@@ -120,7 +120,7 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle
    /**
     * {@inheritDoc}
     */
-   protected double computeDActiveForceLength (double ln) {
+   protected double computeActiveForceLengthDeriv (double ln) {
       return myActiveForceLengthCurve.evalDy (ln);
    }
    
@@ -134,7 +134,7 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle
    /**
     * {@inheritDoc}
     */
-   protected double computeDPassiveForceLength (double ln) {
+   protected double computePassiveForceLengthDeriv (double ln) {
       return myPassiveForceLengthCurve.evalDy (ln);
    }
 
@@ -153,7 +153,7 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle
    /**
     * {@inheritDoc}
     */
-   protected double computeDForceVelocity (double vn, double a) {
+   protected double computeForceVelocityDeriv (double vn, double a) {
       if (vn < -1) {
          return 0;
       }
@@ -172,7 +172,7 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle
    /**
     * {@inheritDoc}
     */
-   protected double computeDTendonForce (double tln) {
+   protected double computeTendonForceDeriv (double tln) {
       return myTendonForceLengthCurve.evalDy (tln);
    }
 

@@ -1,161 +1,158 @@
 package artisynth.demos.tutorial;
 
 import java.awt.Color;
-import java.io.*;
-import java.util.*;
-import artisynth.core.workspace.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.femmodels.*;
 
+import artisynth.core.gui.ControlPanel;
+import artisynth.core.materials.EquilibriumAxialMuscle;
+import artisynth.core.materials.Millard2012AxialMuscle;
+import artisynth.core.materials.Millard2012AxialTendon;
+import artisynth.core.mechmodels.AxialSpring;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.Muscle;
+import artisynth.core.mechmodels.Particle;
+import artisynth.core.modelbase.ControllerBase;
+import artisynth.core.probes.NumericOutputProbe;
+import artisynth.core.workspace.RootModel;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
 
-import artisynth.core.materials.*;
-import artisynth.core.probes.*;
-import artisynth.core.gui.*;
-
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.geometry.*;
-import maspack.render.*;
-import maspack.render.Renderer.*;
-import maspack.properties.*;
-
+/**
+ * Demo showing the forces generated the length of a Millard2012 muscle,
+ * implemented using both separate muscle and tendon components, and a combined
+ * muscle/tendon material.
+ */
 public class EquilibriumMuscleDemo extends RootModel {
 
-   private double DTOR = Math.PI/180;
-
-   Particle myPE0;
-   Particle myPE1;
-   Particle myPM;
-   Muscle myMus0;
-   AxialSpring myTendon0;
-   Muscle myMus1;
-
-   private double myLength0;
+   Particle pr0, pr1; // right end point particles; used by controller
    
-   private double myOptPennationAng = DTOR*20.0;
+   // default muscle parameter settings
+   private double myOptPennationAng = Math.toRadians(20.0);
    private double myMaxIsoForce = 10.0;
    private double myTendonSlackLen = 0.5;
    private double myOptFibreLen = 0.5;
 
-   Millard2012AxialMuscle createMuscleMat() {
-      return new Millard2012AxialMuscle (
+   // initial total length of the muscles:
+   private double len0 = 0.25 + myTendonSlackLen;
+
+   public void build (String[] args) {
+      // create a mech model with zero gravity
+      MechModel mech = new MechModel ("mech");
+      addModel (mech);
+      mech.setGravity (0, 0, 0);
+
+      // build first muscle, consisting of a tendonless muscle, attached to a
+      // tendon via a connecting particle pc0 with a small mass.
+      Particle pl0 = new Particle ("pl0", 1.0, 0.0, 0, 0); // left end point
+      pl0.setDynamic (false); // point is fixed
+      mech.addParticle (pl0);
+
+      // create connecting particle. x coordinate will be set later.
+      Particle pc0 = new Particle ("pc0", /*mass=*/1e-5, 0, 0, 0);
+      mech.addParticle (pc0);
+
+      pr0 = new Particle ("pr0", 1.0, len0, 0, 0); // right end point
+      pr0.setDynamic (false); // point will be positioned by length controller
+      mech.addParticle (pr0);
+
+      // create muscle and attach it between pl0 and pc0
+      Muscle mus0 = new Muscle("mus0"); // muscle 
+      Millard2012AxialMuscle mat0 = new Millard2012AxialMuscle (
          myMaxIsoForce, myOptFibreLen, myTendonSlackLen, myOptPennationAng);
+      mat0.setRigidTendon (true); // set muscle to rigid tendon with zero length
+      mat0.setTendonSlackLength (0);
+      mus0.setMaterial (mat0); 
+      mech.attachAxialSpring (pl0, pc0, mus0);
+
+      // create explicit tendon and attach it between pc0 and pr0
+      AxialSpring tendon = new AxialSpring(); // tendon
+      tendon.setMaterial (
+         new Millard2012AxialTendon (myMaxIsoForce, myTendonSlackLen));
+      mech.attachAxialSpring (pc0, pr0, tendon);
+
+      // build second muscle, using combined muscle/tendom material, and attach
+      // it between pl1 and pr1.
+      Particle pl1 = new Particle (1.0, 0, 0, -0.5); // left end point
+      pl1.setDynamic (false);
+      mech.addParticle (pl1);
+
+      pr1 = new Particle ("pr1", 1.0, len0, 0, -0.5); // right end point
+      pr1.setDynamic (false);
+      mech.addParticle (pr1);
+
+      Muscle mus1 = new Muscle("mus1");
+      Millard2012AxialMuscle mat1 = new Millard2012AxialMuscle (
+         myMaxIsoForce, myOptFibreLen, myTendonSlackLen, myOptPennationAng);
+      mus1.setMaterial (mat1);
+      mech.attachAxialSpring (pl1, pr1, mus1);
+
+      // initialize both muscle excitations to 1, and then adjust the muscle
+      // lengths to the corresponding (zero velocity) equilibrium position
+      mus0.setExcitation (1);
+      mus1.setExcitation (1);
+      // compute equilibrium muscle length with for 0 velocity
+      double lm = mat1.computeLmWithConstantVm (
+         len0, /*vel=*/0, /*excitation=*/1);
+      // set muscle length of mat1 and x coord of pc0 to muscle length:
+      mat1.setMuscleLength (lm);         
+      pc0.setPosition (new Point3d (lm, 0, 0));
+
+      // set render properties:
+      // render markers as white spheres, and muscles as red spindles
+      RenderProps.setSphericalPoints (mech, 0.03, Color.WHITE);
+      RenderProps.setSpindleLines (mech, 0.02, Color.RED);
+      // render tendon in blue and the juntion point in cyan
+      RenderProps.setLineColor (tendon, Color.BLUE);
+      RenderProps.setPointColor (pc0, Color.CYAN);
+
+      // create a control panel to adjust material parameters and excitation
+      ControlPanel panel = new ControlPanel();
+      panel.addWidget ("material.optPennationAngle", mus0, mus1);
+      panel.addWidget ("material.fibreDamping", mus0, mus1);
+      panel.addWidget ("material.ignoreForceVelocity", mus0, mus1);
+      panel.addWidget ("excitation", mus0, mus1);
+      addControlPanel (panel);
+
+      // add a controller to extend/contract the muscle end points, and probes
+      // to record both muscle forces
+      addController (new LengthController());
+      addForceProbe ("muscle/tendon force", mus0, 2);
+      addForceProbe ("equilibrium force", mus1, 2);
    }
 
+   /**
+    * A controller to extend and the contract the muscle length by moving the
+    * rightmost muscle end points.
+    */
    public class LengthController extends ControllerBase {
       
-      double myRunTime = 1.5;
-      double mySpeed = 1.0;
+      double myRunTime = 1.5; // total extensions/contraction time
+      double mySpeed = 1.0;   // speed of the end point motion
 
-      public LengthController() {
+      public LengthController() { 
+         // need null args constructor if this model is read from a file
       }
 
       public void apply (double t0, double t1) {
-         double xlen = 0;
-         double xvel = 0;
-         if (t1 <= myRunTime/2) {
-            xlen = mySpeed*t0;
+         double xlen = len0; // x position of the end points
+         double xvel = 0; // x velocity of the end points
+         if (t1 <= myRunTime/2) { // extend
+            xlen += mySpeed*t0; 
             xvel = mySpeed;
          }
-         else if (t1 <= myRunTime) {
-            xlen = mySpeed*(2*myRunTime/2 - t1);
+         else if (t1 <= myRunTime) { // contract
+            xlen += mySpeed*(2*myRunTime/2 - t1);
             xvel = -mySpeed;
          }
-         myPE0.setPosition (new Point3d (xlen, 0, 0));
-         myPE1.setPosition (new Point3d (xlen, 0, -0.5));
-         myPE1.setVelocity (new Vector3d (xvel, 0, 0));
+         // update end point positions and velocities
+         pr0.setPosition (new Point3d (xlen, 0, 0));
+         pr1.setPosition (new Point3d (xlen, 0, -0.5));
+         pr0.setVelocity (new Vector3d (xvel, 0, 0));
+         pr1.setVelocity (new Vector3d (xvel, 0, 0));
       }
    }
 
-   private double sqr (double x) {
-      return x*x;
-   }
-
-   public void build (String[] args) {
-      MechModel mech = new MechModel ("mech");
-      addModel (mech);
-
-      mech.setGravity (0, 0, 0);
-      double H = Math.sin(myOptPennationAng)*myOptFibreLen;
-      double lm0 = Math.sqrt(sqr(0.6*myOptFibreLen) - H*H);
-
-      myLength0 = lm0 + myTendonSlackLen;
-
-      // build first muscle
-
-      Particle p0 = new Particle (1.0, 0.0, 0, 0);
-      p0.setDynamic (false);
-      mech.addParticle (p0);
-
-      myPM = new Particle ("pm", 1e-5, lm0, 0, 0);
-      mech.addParticle (myPM);
-
-      myPE0 = new Particle ("pe0", 1.0, myLength0, 0, 0);
-      myPE0.setDynamic (false);
-      mech.addParticle (myPE0);
-
-      myMus0 = new Muscle("mus0");
-      myTendon0 = new AxialSpring();
-
-      EquilibriumAxialMuscle mat0;
-      EquilibriumAxialMuscle mat1;
-      AxialTendonBase tmat;
-      
-      mat0 = createMuscleMat();
-      mat0.setRigidTendon (true);
-      mat0.setTendonSlackLength (0);
-
-      mat1 = createMuscleMat();
-      tmat = new Millard2012AxialTendon (myMaxIsoForce, myTendonSlackLen);
-
-      myMus0.setMaterial (mat0);
-      myTendon0.setMaterial (tmat);
-
-      mech.attachAxialSpring (p0, myPM, myMus0);
-      mech.attachAxialSpring (myPM, myPE0, myTendon0);
-
-      // build second muscle
-
-      Particle p1 = new Particle (1.0, 0, 0, -0.5);
-      p1.setDynamic (false);
-      mech.addParticle (p1);
-
-      myPE1 = new Particle ("pe1", 1.0, myLength0, 0, -0.5);
-      myPE1.setDynamic (false);
-      mech.addParticle (myPE1);
-
-      myMus1 = new Muscle("mus1");
-
-      myMus1.setMaterial (mat1);
-      mech.attachAxialSpring (p1, myPE1, myMus1);
-
-      // render properties
-      
-      RenderProps.setSphericalPoints (mech, 0.03, Color.WHITE);
-      RenderProps.setSpindleLines (mech, 0.02, Color.RED);
-      RenderProps.setLineColor (myTendon0, Color.BLUE);
-      RenderProps.setPointColor (myPM, Color.CYAN);
-
-      myMus0.setExcitation (1.0);
-      myMus1.setExcitation (1.0);
-      initializeMuscleLength (myLength0, 1.0);
-
-      // control panel
-
-      ControlPanel panel = new ControlPanel();
-      panel.addWidget ("material.optPennationAngle", myMus0, myMus1);
-      panel.addWidget ("material.fibreDamping", myMus0, myMus1);
-      panel.addWidget ("material.ignoreForceVelocity", myMus0, myMus1);
-      panel.addWidget ("excitation", myMus0, myMus1);
-      addControlPanel (panel);
-
-      addController (new LengthController());
-      
-      addForceProbe ("force 0", myMus0, 2);
-      addForceProbe ("force 1", myMus1, 2);
-   }
-
+   // Create and add an output probe to record the tension force of a muscle
    void addForceProbe (String name, Muscle mus, double stopTime) {
       try {
          NumericOutputProbe probe =
@@ -168,26 +165,15 @@ public class EquilibriumMuscleDemo extends RootModel {
       }
    }
 
-   void initializeMuscleLength (double l, double excitation) {
-      double lm = 0;
-
-      EquilibriumAxialMuscle mat1 =
-         (EquilibriumAxialMuscle)myMus1.getMaterial();
-      lm = mat1.computeLmWithConstantVm (l, 0, excitation);
-      System.out.println ("setting mat1.muscleLength to " + lm);
-      mat1.setMuscleLength (lm);         
-
-      myPM.setPosition (new Point3d (lm, 0, 0));
-   }
-
+   /**
+    * Method that is called if this model is read from a saved file.
+    * Reinitializes the global member references to pr0, pr1 and pc0.
+    */
    public void postscanInitialize() {
-      if (myPE0 == null) {
+      if (pr0 == null) {
          MechModel mech = (MechModel)findComponent("models/mech");
-         myPE0 = mech.particles().get("pe0");
-         myPE1 = mech.particles().get("pe1");
-         myPM = mech.particles().get("pm");
-         myMus0 = (Muscle)mech.axialSprings().get("mus0");
-         myMus1 = (Muscle)mech.axialSprings().get("mus1");
+         pr0 = mech.particles().get("pr0");
+         pr1 = mech.particles().get("pr1");
       }
    }
 }

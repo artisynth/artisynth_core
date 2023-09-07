@@ -1,5 +1,8 @@
 package artisynth.core.materials;
 
+import java.io.*;
+import maspack.function.*;
+
 public class PeckAxialMuscle extends AxialMuscleMaterial {
    
    public PeckAxialMuscle () {
@@ -66,4 +69,26 @@ public class PeckAxialMuscle extends AxialMuscleMaterial {
    public boolean isDFdldotZero() {
       return myDamping == 0;
    }
+
+   public void writeForceLengthCurve (
+      String fileName, double x0, double x1,
+      int npnts, String fmtStr) throws IOException {
+      Function1x1 fxn = new Function1x1() {
+            public double eval(double l) {
+               return computeF (l, 0, 0, /*excitation=*/1.0);
+            }
+         };
+      FunctionUtils.writeValues (new File(fileName), fxn, x0, x1, npnts, fmtStr);
+   }
+
+   public static void main (String[] args) throws IOException {
+      PeckAxialMuscle peck =
+         new PeckAxialMuscle (
+            /*maxf*/1, /*optL*/1, /*maxL*/2,
+            /*tratio*/0, /*passivefrac*/1, /*damping*/0);
+      peck.setForceScaling (1.0);
+
+      peck.writeForceLengthCurve ("peckFLC.txt", 0, 2.5, 400, "%g");
+   }
 }
+

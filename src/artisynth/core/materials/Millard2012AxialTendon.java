@@ -39,7 +39,7 @@ public class Millard2012AxialTendon extends AxialTendonBase {
    /**
     * {@inheritDoc}
     */
-   protected double computeDTendonForce (double tln) {
+   protected double computeTendonForceDeriv (double tln) {
       return myTendonForceLengthCurve.evalDy (tln);
    }
 

@@ -93,7 +93,7 @@ public abstract class AxialTendonBase extends AxialMaterial {
     * @param tln normalized tendon length
     * @return tendon force curve derivative at tln
     */
-   protected abstract double computeDTendonForce (double tln);   
+   protected abstract double computeTendonForceDeriv (double tln);   
 
    /**
     * Queries the tendon force length curve for this material.  Returns {@code
@@ -138,7 +138,7 @@ public abstract class AxialTendonBase extends AxialMaterial {
       double l, double ldot, double l0, double excitation) {
 
       double tln = l/myTendonSlackLength; // normalized tendon length
-      double dy = computeDTendonForce (tln);
+      double dy = computeTendonForceDeriv (tln);
       return myMaxIsoForce*dy/myTendonSlackLength;
    }
    

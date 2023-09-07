@@ -222,7 +222,7 @@ public class Thelen2003AxialMuscleTest extends UnitTest {
             maxFvErr = err;
             maxFvErrV = v;
          }
-         double dfv = myMuscle.computeDForceVelocity (v, a);
+         double dfv = myMuscle.computeForceVelocityDeriv (v, a);
          double dfvChk;
          if (fv < 0) {
             dfvChk = 0;
@@ -277,7 +277,7 @@ public class Thelen2003AxialMuscleTest extends UnitTest {
          double v = vmin + i*dv;
          double fal = 1.0;
          double fv = myMuscle.computeForceVelocity (v, a);
-         double dfv = myMuscle.computeDForceVelocity (v, a);
+         double dfv = myMuscle.computeForceVelocityDeriv (v, a);
          double dfvChk;
          if (fv <= 0) {
             dfvChk = 0;

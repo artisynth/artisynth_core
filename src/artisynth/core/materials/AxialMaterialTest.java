@@ -210,6 +210,7 @@ public class AxialMaterialTest extends UnitTest {
       double ex = 0.5;
       Thelen2003AxialMuscle mmat = new Thelen2003AxialMuscle (
          2.0, 2.0, 0.6, Math.toRadians(30));
+      mmat.setRigidTendon (true);
 
       double maxL = 2.0;
       double minL = -0.2; 
@@ -228,6 +229,7 @@ public class AxialMaterialTest extends UnitTest {
       double ex = 0.5;
       Millard2012AxialMuscle mmat = new Millard2012AxialMuscle (
          2.0, 2.0, 0.6, Math.toRadians(30));
+      mmat.setRigidTendon (true);
 
       double maxL = 2.0;
       double minL = -0.2; 

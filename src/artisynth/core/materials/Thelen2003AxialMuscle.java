@@ -352,7 +352,7 @@ public class Thelen2003AxialMuscle
     * Compute derivative of normalized tendon force from normalized tendon
     * length.  Adapted from OpenSim code.
     */
-   protected double computeDTendonForce (double tln) {
+   protected double computeTendonForceDeriv (double tln) {
       double x = tln-1;
 
       //Compute tendon force
@@ -382,7 +382,7 @@ public class Thelen2003AxialMuscle
    /**
     * Computes the derivate of the active force length curve.
     */
-   protected double computeDActiveForceLength (double ln) {
+   protected double computeActiveForceLengthDeriv (double ln) {
       double x = ln - 1.0;
       return -2*x/myKShapeActive * Math.exp(-x*x/myKShapeActive);
    }
@@ -408,7 +408,7 @@ public class Thelen2003AxialMuscle
     * Computes the derivative of the passive force length curve. Adapated from
     * OpenSim code.
     */
-   protected double computeDPassiveForceLength (double ln) {
+   protected double computePassiveForceLengthDeriv (double ln) {
       double dfpe = 0;
       double e0 = myFmaxMuscleStrain;
       double kpe = myKShapePassive;
@@ -488,7 +488,7 @@ public class Thelen2003AxialMuscle
     * Flen*FvLinearExtrapThreshold}, and where fv is not allowed to become
     * negative.
     */
-   protected double computeDForceVelocity (double vn, double a) {
+   protected double computeForceVelocityDeriv (double vn, double a) {
       double alpha = 0.25 + 0.75*a;
       double fvt = myFlen*myFvLinearExtrapThreshold;
       double vThreshLo = -alpha;

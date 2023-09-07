@@ -25,7 +25,7 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
          }
          double fv0 = mat.computeForceVelocity (vn, a);
          double fv1 = mat.computeForceVelocity (vn+h, a);
-         double dfv = mat.computeDForceVelocity (vn, a);
+         double dfv = mat.computeForceVelocityDeriv (vn, a);
          double dfvNum = (fv1-fv0)/h;
 
          double err = Math.abs(dfv-dfvNum)/Math.max(1.0, Math.abs(dfv));
@@ -41,7 +41,7 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
          }
          double fa0 = mat.computeActiveForceLength (ln);
          double fa1 = mat.computeActiveForceLength (ln+h);
-         double dfa = mat.computeDActiveForceLength (ln);
+         double dfa = mat.computeActiveForceLengthDeriv (ln);
          double dfaNum = (fa1-fa0)/h;
 
          err = Math.abs(dfa-dfaNum)/Math.max(1.0, Math.abs(dfa));
@@ -53,7 +53,7 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
          // active force length curve
          double fp0 = mat.computePassiveForceLength (ln);
          double fp1 = mat.computePassiveForceLength (ln+h);
-         double dfp = mat.computeDPassiveForceLength (ln);
+         double dfp = mat.computePassiveForceLengthDeriv (ln);
          double dfpNum = (fp1-fp0)/h;
 
          err = Math.abs(dfp-dfpNum)/Math.max(1.0, Math.abs(dfp));
@@ -67,7 +67,7 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
          double ltn = 1.0-0.01 + 0.1*i/nsamps;
          double ft0 = mat.computeTendonForce (ltn);
          double ft1 = mat.computeTendonForce (ltn+h);
-         double dft = mat.computeDTendonForce (ltn);
+         double dft = mat.computeTendonForceDeriv (ltn);
          double dftNum = (ft1-ft0)/h;
 
          err = Math.abs(dft-dftNum)/Math.max(1.0, Math.abs(dft));

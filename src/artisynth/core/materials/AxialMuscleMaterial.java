@@ -3,6 +3,7 @@ package artisynth.core.materials;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.util.NumberFormat;
 
 public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
 
@@ -253,14 +254,17 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
 
    public void scaleDistance(double s) {
       super.scaleDistance(s);
-      forceScaling *= s;
+      //forceScaling *= s;
+      myMaxForce *= s;
+      myDamping *= s;
       myOptLength *= s;
       myMaxLength *= s;
    }
 
    public void scaleMass(double s) {
       super.scaleMass(s);
-      forceScaling *= s;
+      //forceScaling *= s;
+      myMaxForce *= s;
       myDamping *= s;
    }
 
@@ -274,5 +278,39 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
 
    public static Class<?>[] getSubClasses() {
       return mySubClasses;
+   }
+
+   /**
+    * Folds the forceScaling term into the maxForce and damping terms, and then
+    * sets the forceScaling to 1. For use in removing the use of the
+    * forceScaling term.
+    */
+   public boolean normalizeForceScaling() {
+      if (forceScaling != 1) {
+         myDamping *= forceScaling;
+         myMaxForce *= forceScaling;
+         forceScaling = 1;
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+   
+   /**
+    * Creates a string showing the seven primary properties of this muscle
+    * material. Used for diagnostics and testing.
+    */
+   public String toString (String fmtStr) {
+      NumberFormat fmt = new NumberFormat(fmtStr);
+      StringBuilder sb = new StringBuilder();
+      sb.append ("scaling=" + fmt.format(forceScaling).trim());
+      sb.append (" maxf=" + fmt.format(myMaxForce).trim());
+      sb.append (" lopt=" + fmt.format(myOptLength).trim());
+      sb.append (" lmax=" + fmt.format(myMaxLength).trim());
+      sb.append (" pfrac=" + fmt.format(myPassiveFraction).trim());
+      sb.append (" tratio=" + fmt.format(myTendonRatio).trim());
+      sb.append (" d=" + fmt.format(myDamping).trim());
+      return sb.toString();      
    }
 }

@@ -40,7 +40,9 @@ public class DicomTest extends RootModel {
    @Override
    public void attach(DriverInterface driver) {
       super.attach(driver);
-      getMainViewer().setBackgroundColor(Color.WHITE);
+      if (getMainViewer() != null) {
+         getMainViewer().setBackgroundColor(Color.WHITE);
+      }
    }
    
    @Override

@@ -16,6 +16,7 @@ import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.TimeBase;
 import artisynth.core.workspace.RootModel;
+import artisynth.core.materials.PeckAxialMuscle;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.*;
@@ -158,7 +159,8 @@ public class MuscleArm extends RootModel
         l.setName("lowerAttachment");
         
         Muscle muscle = new Muscle("muscle");
-        muscle.setPeckMuscleMaterial(40.0, 22.0, 30, 0.2, 0.5, 0.1);
+        muscle.setMaterial (
+           PeckAxialMuscle.create (40000.0, 22.0, 30, 0.2, 0.5, 100.0));
         muscle.setFirstPoint(u);
         muscle.setSecondPoint(l);
         

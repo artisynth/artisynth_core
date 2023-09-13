@@ -68,7 +68,8 @@ public class InverseParticle extends RootModel {
          muscle.setName (
             "muscle_"+Integer.toString (
                Math.round ((float)Math.toDegrees (a)))+"_deg");
-         muscle.setMaterial (new ConstantAxialMuscle (/*fmax=*/1d));
+         muscle.setMaterial (
+            new ConstantAxialMuscle (/*fmax=*/1000.0, /*pfrac=*/0));
 
          // make muscles red when activated
          RenderProps.setCylindricalLines (muscle, len/50, Color.BLUE.darker ());

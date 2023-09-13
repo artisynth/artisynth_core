@@ -64,7 +64,7 @@ public class AttachedMuscleBeam extends RootModel {
 
    private AxialSpring createMuscle (String name) {
       AxialSpring spring = new Muscle (name);
-      spring.setMaterial (new LinearAxialMuscle (1000.0, 200.0));
+      spring.setMaterial (new LinearAxialMuscle (2000, 0, 2, 0));
       RenderProps.setLineStyle (spring, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius (spring, 0.04);
       RenderProps.setLineColor (spring, Color.RED);

@@ -16,7 +16,7 @@ import maspack.render.*;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.ColorInterpolation;
 
-public class MeshTestBase extends RootModel {
+public abstract class MeshTestBase extends RootModel {
 
    public static PropertyList myProps =
       new PropertyList (MeshTestBase.class, RootModel.class);

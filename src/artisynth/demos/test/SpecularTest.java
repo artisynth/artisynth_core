@@ -53,33 +53,36 @@ public class SpecularTest extends MeshTestBase {
    public void attach (DriverInterface driver) {
       super.attach (driver);
       
-      GLViewer viewer = driver.getViewer ();
-     
-      for (int i=viewer.numLights (); i-->0;) {
-         viewer.removeLight (i);
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         for (int i=viewer.numLights (); i-->0;) {
+            viewer.removeLight (i);
+         }
+      
+         Light light = new Light ();
+         light.setAmbient (0, 0, 0, 0);
+         light.setDiffuse (0, 0, 0, 0);
+         light.setSpecular (1, 1, 1, 1);
+         light.setPosition (0, 0, 1);
+         light.setDirection (0, 0, -1);
+         light.setType (LightType.POINT);
+         
+         viewer.addLight (light);
+      
+         LightComponent lc = new LightComponent (light);
+         ComponentList<LightComponent> lights = new ComponentList<> (LightComponent.class, "lights");
+         lights.add (lc);
+         add(lights);
       }
-      
-      Light light = new Light ();
-      light.setAmbient (0, 0, 0, 0);
-      light.setDiffuse (0, 0, 0, 0);
-      light.setSpecular (1, 1, 1, 1);
-      light.setPosition (0, 0, 1);
-      light.setDirection (0, 0, -1);
-      light.setType (LightType.POINT);
-      
-      viewer.addLight (light);
-      
-      LightComponent lc = new LightComponent (light);
-      ComponentList<LightComponent> lights = new ComponentList<> (LightComponent.class, "lights");
-      lights.add (lc);
-      add(lights);
    }
    
    @Override
    public void detach (DriverInterface driver) {
       super.detach (driver);
       
-      GLViewer viewer = driver.getViewer ();
-      viewer.setDefaultLights ();
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         viewer.setDefaultLights ();
+      }
    }
 }

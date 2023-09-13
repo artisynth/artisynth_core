@@ -109,12 +109,12 @@ public class PointModel extends RootModel
    double springD = 0.1;
    double springRestLen = len*0.5;
 
-   protected double muscleF = 1.0;
+   protected double muscleF = 1000.0;
    protected double passiveFraction = 0.1;//1e-9;
    protected double muscleOptLen = len*0.5; //len*1.5); 
    protected double muscleMaxLen = labels.length;//len*2;
-   protected double muscleD = 0.001;
-   protected double muscleScaleFactor = 1000;
+   protected double muscleD = 1.0;
+   protected double muscleScaleFactor = 1;
    protected double pointDamping = 0.1;
 
    
@@ -402,14 +402,14 @@ public class PointModel extends RootModel
 //      Muscle m = Muscle.createLinear(muscleF, muscleMaxLen);
       Muscle m = new Muscle();
 //      ConstantAxialMuscleMaterial mat = new ConstantAxialMuscleMaterial();
-      LinearAxialMuscle mat = new LinearAxialMuscle();
+      LinearAxialMuscle mat = LinearAxialMuscle.create();
 //      PeckAxialMuscleMaterial mat = new PeckAxialMuscleMaterial();
       mat.setMaxForce(muscleF);
       mat.setMaxLength(muscleMaxLen);
       mat.setDamping(muscleD);
       mat.setOptLength(muscleOptLen);
       mat.setPassiveFraction(passiveFraction);
-      mat.setForceScaling(muscleScaleFactor);
+      //mat.setForceScaling(muscleScaleFactor);
       m.setMaterial(mat);
       m.setRestLength (len);
       m.setFirstPoint(p0);

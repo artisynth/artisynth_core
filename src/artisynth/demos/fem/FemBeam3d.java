@@ -22,6 +22,7 @@ import maspack.interpolation.Interpolation;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.*;
 import artisynth.core.materials.AxialMuscleMaterial;
+import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.materials.MooneyRivlinMaterial;
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
@@ -297,7 +298,12 @@ public class FemBeam3d extends RootModel {
       RenderProps.setFaceColor (mod, new Color (0.7f, 0.7f, 0.9f));
       RenderProps.setLineWidth (mod.getElements(), 2);
       RenderProps.setLineColor (mod.getElements(), Color.blue);
-      RenderProps.setPointRadius (myMechMod, 0.01*length);
+      if (myMechMod != null) {
+         RenderProps.setPointRadius (myMechMod, 0.01*length);
+      }
+      else {
+         RenderProps.setPointRadius (mod, 0.01*length);
+      }
       RenderProps.setPointStyle (mod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (mod.getNodes(), Color.GREEN);
    }
@@ -357,7 +363,7 @@ public class FemBeam3d extends RootModel {
          fem.addMarker (mkr);
          if (lastMkr != null) {
             Muscle muscle = new Muscle();
-            muscle.setConstantMuscleMaterial(2);
+            muscle.setMaterial (ConstantAxialMuscle.create (2000));
             muscle.setFirstPoint (lastMkr);
             muscle.setSecondPoint (mkr);
             RenderProps.setLineRadius (muscle, 0.01);

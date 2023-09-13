@@ -14,6 +14,7 @@ import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.Muscle; 
 import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.materials.PeckAxialMuscle;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.RootModel;
 import maspack.geometry.MeshFactory;
@@ -184,9 +185,11 @@ public class DoubleArmDemo extends RootModel {
        tl.setName("thirdLowerAttachment");
        
        Muscle muscle = new Muscle("muscle");
-       muscle.setPeckMuscleMaterial(20.0, 22.0, 30, 0.2, 0.5, 0.1);
+       muscle.setMaterial (
+          PeckAxialMuscle.create (20000.0, 22.0, 30, 0.2, 0.5, 100));
        Muscle muscle2 = new Muscle("muscle2");
-       muscle2.setPeckMuscleMaterial(8,20,30,0.2, 0.5, 0.1);
+       muscle2.setMaterial (
+        PeckAxialMuscle.create (8000,20,30,0.2, 0.5, 100));
 
        muscle.setFirstPoint(u);
        muscle2.setFirstPoint(tu);

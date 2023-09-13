@@ -2,10 +2,109 @@ package artisynth.core.materials;
 
 public class PaiAxialMuscle extends AxialMuscleMaterial {
    
+   /**
+    * Creates a new PaiAxialMuscle with default values. The (deprecated) {@code
+    * forceScaling} property is set to 1.
+    *
+    * @return created material
+    */
+   public static PaiAxialMuscle create () {
+      PaiAxialMuscle mus = new PaiAxialMuscle();
+      mus.setForceScaling (1);
+      return mus;
+   }
+   
+   /**
+    * Creates a new PaiAxialMuscle with specified values. The damping property
+    * is set to 0 and the (deprecated) {@code forceScaling} property is set to
+    * 1.
+    * 
+    * @param fmax maximum contractile force
+    * @param optL length beyond which maximum active force is generated
+    * @param maxL length at which maximum passive force is generated
+    * @param tratio tendon to fibre length ratio
+    * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
+    * passive force
+    * @return created material
+    */
+   public static PaiAxialMuscle create (
+      double maxF, double optL, double maxL, 
+      double tendonRatio, double passiveFraction) {
+      PaiAxialMuscle mus = new PaiAxialMuscle (
+         maxF, optL, maxL, tendonRatio, passiveFraction);
+      mus.setForceScaling (1);
+      return mus;
+   }
+   
+   /**
+    * Creates a new PaiAxialMuscle with specified values. The (deprecated)
+    * {@code forceScaling} property is set to 1.
+    * 
+    * @param fmax maximum contractile force
+    * @param optL length beyond which maximum active force is generated
+    * @param maxL length at which maximum passive force is generated
+    * @param tratio tendon to fibre length ratio
+    * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
+    * passive force
+    * @param damping damping parameter
+    * @return created material
+    */
+   public static PaiAxialMuscle create (
+      double maxF, double optL, double maxL, 
+      double tendonRatio, double passiveFraction, double damping) {
+      PaiAxialMuscle mus = new PaiAxialMuscle (
+         maxF, optL, maxL, tendonRatio, passiveFraction, damping);
+      mus.setForceScaling (1);
+      return mus;
+   }  
+
+   /**
+    * Constructs a new PaiAxialMuscle.
+    *
+    * <p>Important: for historical reasons, this constructor sets the
+    * deprecated {@code forceScaling} property to 1000, thus scaling the
+    * effective values of the {@code maxForce} and {@code damping} properties.
+    */
    public PaiAxialMuscle() {
       super();
    }
    
+   /**
+    * Constructs a new PaiAxialMuscle with specified values. The damping
+    * parameter is set to 0.
+    *
+    * @deprecated For historical reasons, this constructor sets the deprecated
+    * {@code forceScaling} property to 1000, thus scaling the effective value
+    * of {@code fmax}.
+    *
+    * @param fmax maximum contractile force
+    * @param optL length beyond which maximum active force is generated
+    * @param maxL length at which maximum passive force is generated
+    * @param tratio tendon to fibre length ratio
+    * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
+    * passive force
+    */
+   public PaiAxialMuscle (
+      double maxF, double optL, double maxL, 
+      double tendonRatio, double passiveFraction) {
+      this (maxF, optL, maxL, tendonRatio, passiveFraction, /*damping=*/0);
+   }
+
+   /**
+    * Constructs a new PaiAxialMuscle with specified values.
+    * 
+    * @deprecated For historical reasons, this constructor sets the deprecated
+    * {@code forceScaling} property to 1000, this scaling the effective values
+    * of {@code fmax} and {@code damping}.
+    *
+    * @param fmax maximum contractile force
+    * @param optL length beyond which maximum active force is generated
+    * @param maxL length at which maximum passive force is generated
+    * @param tratio tendon to fibre length ratio
+    * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
+    * passive force
+    * @param damping damping parameter
+    */
    public PaiAxialMuscle (
       double maxF, double optL, double maxL, 
       double tendonRatio, double passiveFraction, double damping) {

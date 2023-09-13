@@ -43,7 +43,7 @@ public class HydrostatModel extends FemMuscleModel {
 
    double eps = 1e-10;
 
-   double muscleForce = 1000.0; // 1 Newton
+   double muscleForce = 1000; // 1 Newton
 
    double toldist = 1e-10; // tolerance used for point closeness
 

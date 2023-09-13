@@ -80,6 +80,12 @@ import artisynth.core.probes.WayPointProbe;
 import artisynth.core.renderables.IsRenderableHolder;
 import artisynth.core.util.*;
 
+import artisynth.core.mechmodels.PointSpringBase;
+import artisynth.core.materials.AxialMuscleMaterial;
+import artisynth.core.materials.AxialMaterial;
+import artisynth.core.materials.PaiAxialMuscle;
+import artisynth.core.materials.PeckAxialMuscle;;
+
 /**
  * RootModel is the top-most model of an ArtiSynth model hierarchy. It contains
  * a list of models, plus a number of other workspace components such as

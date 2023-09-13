@@ -160,8 +160,7 @@ public class WrappedMuscleArm extends RootModel {
       RenderProps.setSphericalPoints (l, 0.5, Color.WHITE);
         
       MultiPointMuscle muscle = new MultiPointMuscle("muscle");
-      muscle.setMaterial (
-         new LinearAxialMuscle (2, 22));
+      muscle.setMaterial (LinearAxialMuscle.create (2000, 22));
 
       muscle.addPoint(u);
       muscle.setSegmentWrappable (
@@ -238,7 +237,7 @@ public class WrappedMuscleArm extends RootModel {
    public void addControlPanel () {
       panel = new ControlPanel("Muscle Control", "");
       panel.addWidget (
-         "Activation", model, "axialSprings/muscle:excitation", 0.0, 1.0);
+         "Activation", model, "multiPointSprings/muscle:excitation", 0.0, 1.0);
       addControlPanel (panel);
    }
     

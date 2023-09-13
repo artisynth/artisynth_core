@@ -12,7 +12,7 @@ import artisynth.core.femmodels.SkinMeshBody;
 import artisynth.core.femmodels.SkinWeightingFunction;
 import artisynth.core.femmodels.SkinMarker;
 import artisynth.core.femmodels.PointSkinAttachment;
-import artisynth.core.materials.LinearMaterial;
+import artisynth.core.materials.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.probes.*;
 import artisynth.core.mechmodels.Point;
@@ -100,10 +100,10 @@ public class ActuatedSkinning extends AllBodySkinning {
       myMech.setGravity (0, 0, 0);
 
       Muscle muscle0 = new Muscle ("muscle0");
-      muscle0.setConstantMuscleMaterial (1.0);
+      muscle0.setMaterial (new ConstantAxialMuscle (1000.0, 0));
       myMech.attachAxialSpring (mkr0, mkr1, muscle0);
       Muscle muscle1 = new Muscle ("muscle1");
-      muscle1.setConstantMuscleMaterial (0.5); // half power
+      muscle1.setMaterial (new ConstantAxialMuscle (500.0, 0)); // half power
       myMech.attachAxialSpring (par0, par1, muscle1);
 
       RenderProps.setSphericalPoints (myMech.points(), 0.04, Color.BLUE);

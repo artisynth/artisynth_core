@@ -188,6 +188,22 @@ public class ComponentUtils {
    }
 
    /**
+    * Deletes a single component, along with all its hard dependencies, and
+    * updates its soft dependencies. In some cases, it is not possible to
+    * delete certain components, in which case an exception is thrown.
+    *
+    * <p>The effect of this method is the same as deleting the component in the
+    * graphical interface.
+    *
+    * @param comp component to delete.
+    */
+   public static void deleteComponentAndDependencies (ModelComponent comp) {
+      ArrayList<ModelComponent> list = new ArrayList<>(1);
+      list.add (comp);
+      deleteComponentsAndDependencies (list);
+   }
+
+   /**
     * Takes a list of components and removes them along with all their
     * hard dependencies, and updates their soft dependencies. In some
     * cases, it is not possible to delete certain components, in

@@ -94,8 +94,6 @@ public class EllipsoidJointDemo extends RootModel {
       joint.setCoordinate (2, 0);
       joint.setCoordinate (3, 0);
       
-      getMainViewer ().setAxialView (AxisAlignedRotation.NX_Z);
-
       // tilt the entire model by 45 degrees about the x axis, so the box will
       // slide under gravity
 //      mech.transformGeometry (
@@ -134,11 +132,12 @@ public class EllipsoidJointDemo extends RootModel {
       addControlPanel (panel);
    }
 
-   @Override
    public void attach (DriverInterface driver) {
       // TODO Auto-generated method stub
       super.attach (driver);
-      driver.getViewer ().setAxialView (AxisAlignedRotation.NX_Z);
+      if (getMainViewer() != null) {
+         getMainViewer().setAxialView (AxisAlignedRotation.NX_Z);
+      }
    }
    
    

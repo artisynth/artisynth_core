@@ -93,6 +93,35 @@ public abstract class PointSpringBase extends Spring
       return myMaterial;
    }
 
+   /**
+    * Special method that checks if the material is an instance of
+    * AxialMuscleMaterial, and if it is, returns the forceScaling of that
+    * material. Used to try and eliminate the use of forceScaling.
+    */
+   public double getForceScaling() {
+      if (myMaterial instanceof AxialMuscleMaterial) {
+         return ((AxialMuscleMaterial)myMaterial).getForceScaling();
+      }
+      else {
+         return 1;
+      }   
+   }
+
+   /**
+    * Special method that checks if the material is an instance of
+    * AxialMuscleMaterial, and if it is, sets the forceScaling to 1 and adjusts
+    * the maxforce and damping accordingly.
+    */
+   public void normalizeForceScaling() {
+      if (myMaterial instanceof AxialMuscleMaterial) {
+         AxialMuscleMaterial amus = (AxialMuscleMaterial)myMaterial;
+         double fscale = amus.getForceScaling();
+         amus.setMaxForce (fscale*amus.getMaxForce());
+         amus.setDamping (fscale*amus.getDamping());
+         amus.setForceScaling (1);
+      }
+   }
+
    public void setLinearMaterial (double k, double d) {
       setMaterial (new LinearAxialMaterial (k, d));
    }

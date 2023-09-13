@@ -227,9 +227,11 @@ public class KnotDensityTest2 extends RootModel {
    }
 
    public void attach (DriverInterface di) {
-      getMainViewer().setOrthographicView(true);
-      setViewerCenter (new Point3d(0, 0, 0));
-      setViewerEye (new Point3d(0, -13, 0));
+      if (getMainViewer() != null) {
+         getMainViewer().setOrthographicView(true);
+         setViewerCenter (new Point3d(0, 0, 0));
+         setViewerEye (new Point3d(0, -13, 0));
+      }
    }
 
    protected void addPerformanceProbes() {

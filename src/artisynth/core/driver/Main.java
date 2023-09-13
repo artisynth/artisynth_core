@@ -29,6 +29,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -2395,7 +2396,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (newRoot == null) {
          return false;
       }
-      setRootModel (newRoot, modelName);
+      try {
+         setRootModel (newRoot, modelName);
+      }
+      catch (Exception e) {
+         myErrMsg = 
+            "Model class "+demoClass.getName()+" cannot be instantiated";
+         myErrMsg += ": \n" + e.toString();
+         e.printStackTrace();
+         return false;
+      }
       return true;
    }
 
@@ -2572,6 +2582,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder openMatlab = new BooleanHolder(false);
 
    protected static StringHolder matrixSolver = new StringHolder();
+   protected static StringHolder testModelLoading = new StringHolder();
 
    // Dimension getViewerSize() {
    //    if (myViewer != null) {
@@ -2864,6 +2875,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-waypoints %s # specifies a waypoints file to load",
          wayPointsFile);
+      parser.addOption (
+         "-testModelLoading %s " +
+         "#test loading of all models in the given package", testModelLoading);
       
       Locale.setDefault(Locale.CANADA);
 
@@ -3083,6 +3097,69 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       if (openMatlab.value) {
          m.openMatlabConnection();
+      }
+
+      if (testModelLoading.value != null) {
+         m.testModelLoading(testModelLoading.value);
+      }
+   }
+
+   /**
+    * List of models that cause ArtiSynth to crash, due to memory exhaustion,
+    * calls to exit, or lack of GUI access. These should be avoided by
+    * testModelLoading.
+    */
+   private String[] myBadModels = new String[] {
+      "artisynth.models.jawTongue.AirwaySkinDemo",
+      "artisynth.models.tubesounds.VTNTDemo",
+      "artisynth.models.face.MeshEdit",
+      "artisynth.models.jawTongue.BadinDataDemo",
+      "artisynth.models.palate.RegisteredSoftPalate",
+      "artisynth.models.palate.SoftPalate_spring",
+      "artisynth.models.palate.SoftPalate_springPeter",
+      "artisynth.models.template.HybridFemFactoryDemo",
+   };
+
+   /**
+    * Returns true if a model is in the "bad model" list.
+    */
+   private boolean isBadModel (String className) {
+      for (String s : myBadModels) {
+         if (s.equals (className)) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   /**
+    * Tests whether all models in a given package can be loaded.  Used for
+    * package testing and maintenance.
+    */
+   private void testModelLoading (String packageName) {
+      delay (1.0); // not sure we need this
+      ArrayList<String> allModels =
+         myRootModelManager.findModels (
+            packageName,
+            RootModelManager.RECURSIVE |
+            RootModelManager.INCLUDE_HIDDEN);
+      for (String className : allModels) {
+         if (!isBadModel (className)) {
+            String modelName = className;
+            System.out.println ("MODEL " + className);
+            int lastDot = modelName.lastIndexOf ('.');
+            if (lastDot != -1) {
+               modelName = modelName.substring (lastDot+1);
+            }
+            if (!loadModelFromClass (className, modelName, new String[0])) {
+               System.out.println ("LOAD FAILED: "+className);
+            }
+            else {
+               System.out.println ("LOAD OK: " +  className);
+               ForceScalingUtils.findForceScaling (getRootModel(), false);
+            }
+         }
+         
       }
    }
 

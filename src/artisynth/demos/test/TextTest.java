@@ -111,9 +111,10 @@ public class TextTest extends RootModel {
    @Override
    public void attach (DriverInterface driver) {
       super.attach (driver);
-      
-      driver.getViewer ().setAxialView (AxisAlignedRotation.X_Y);
-      
+
+      if (getMainViewer() != null) {
+         getMainViewer().setAxialView (AxisAlignedRotation.X_Y);
+      }
    }
 
 }

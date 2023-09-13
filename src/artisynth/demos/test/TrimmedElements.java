@@ -164,8 +164,10 @@ public class TrimmedElements extends RootModel {
    @Override
    public void attach (DriverInterface driver) {
       super.attach (driver);
-      driver.getViewer ().setBackgroundColor (new float[] {1,1,1,0});
-      driver.getViewer ().setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
+      if (getMainViewer() != null) {
+         getMainViewer().setBackgroundColor (new float[] {1,1,1,0});
+         getMainViewer().setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
+      }
    }
    
    void label(FemModel3d fem) {

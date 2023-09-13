@@ -51,8 +51,10 @@ public class DicomLoader extends RootModel {
    @Override
    public void attach(DriverInterface driver) {
       super.attach(driver);
-      driver.getViewer().setBackgroundColor(Color.WHITE);
-      driver.getViewer().setBlendDestFactor(BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
+      if (driver.getViewer() != null) {
+         driver.getViewer().setBackgroundColor(Color.WHITE);
+         driver.getViewer().setBlendDestFactor(BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
+      }
    }
    
    void createControlPanel() {

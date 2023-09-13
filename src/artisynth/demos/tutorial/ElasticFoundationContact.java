@@ -79,4 +79,11 @@ public class ElasticFoundationContact extends RootModel {
       panel.addWidget (cm, "colorMapRange");
       addControlPanel (panel);
    }
+
+// may need to add this the build() method:
+//    if (mech.getUseImplicitFriction()) {
+//       mech.setCompliantContact();
+//    }
 }
+
+

@@ -119,21 +119,15 @@ public class Muscle extends AxialSpring
       setMaterial (mat);
    }
    
-   public void setPeckMuscleMaterial (double maxF, double optL, double maxL, double tendonRatio) {
+   public void setPeckMuscleMaterial (
+      double maxF, double optL, double maxL, double tendonRatio) {
+
       PeckAxialMuscle mat = new PeckAxialMuscle();
       mat.setMaxForce (maxF);
       mat.setOptLength (optL);
       mat.setMaxLength (maxL);
-      mat.setTendonRatio (tendonRatio);
-      mat.setPassiveFraction(0.015); //Peck value = 0.0115
-      setMaterial(mat);
-   }
-   
-   public void setPeckMuscleMaterial (double maxF, double optL, double maxL, 
-      double tendonRatio, double passiveFraction, double damping) {
-      PeckAxialMuscle mat = new PeckAxialMuscle();
-      mat.setAxialMuscleMaterialProps(maxF, optL, maxL, passiveFraction, 
-	    tendonRatio, damping, AxialMuscleMaterial.DEFAULT_SCALING);
+      mat.setTendonRatio (tendonRatio);     
+      mat.setPassiveFraction (0.015); //Peck value = 0.0115
       setMaterial(mat);
    }
 
@@ -563,15 +557,6 @@ public class Muscle extends AxialSpring
 	 RenderProps.setLineStyle(this, disabledLineStyle);
       }
 	 
-   }
-
-   private double getForceScaling() {
-      if (myMaterial instanceof AxialMuscleMaterial) {
-         return ((AxialMuscleMaterial)myMaterial).getForceScaling();
-      }
-      else {
-         return 1;
-      }   
    }
 
    public void getSoftReferences (List<ModelComponent> refs) {

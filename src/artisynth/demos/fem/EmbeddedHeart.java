@@ -241,14 +241,16 @@ public class EmbeddedHeart extends RootModel {
       ComponentList<LightComponent> lights = new ComponentList<>(LightComponent.class, "lights");
       add(lights);
       
-      GLViewer viewer = driver.getViewerManager().getViewer(0);
-      for (int i=0; i<viewer.numLights(); ++i) {
-         Light light = viewer.getLight(i);
-         LightComponent lc = new LightComponent(light);
-         lights.add(lc);
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         for (int i=0; i<viewer.numLights(); ++i) {
+            Light light = viewer.getLight(i);
+            LightComponent lc = new LightComponent(light);
+            lights.add(lc);
+         }
+         viewer.setBackgroundColor(Color.WHITE);
       }
       
-      viewer.setBackgroundColor(Color.WHITE);
    }
    
 }

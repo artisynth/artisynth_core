@@ -26,6 +26,7 @@ import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.HingeJoint;
+import artisynth.core.materials.PeckAxialMuscle;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
@@ -188,7 +189,8 @@ public class SkinDemo extends RootModel {
       l.setName("lowerAttachment");
         
       Muscle muscle = new Muscle("muscle");
-      muscle.setPeckMuscleMaterial(20.0, 22.0, 30, 0.2, 0.5, 0.1);
+      muscle.setMaterial (
+         PeckAxialMuscle.create (20000.0, 22.0, 30, 0.2, 0.5, 100.0));
       muscle.setFirstPoint(u);
       muscle.setSecondPoint(l);
         

@@ -3156,7 +3156,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
             else {
                System.out.println ("LOAD OK: " +  className);
-               ForceScalingUtils.findForceScaling (getRootModel(), false);
+               //ForceScalingUtils.findForceScaling (getRootModel(), false);
             }
          }
          

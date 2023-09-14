@@ -106,8 +106,8 @@ public class Hill3ElemMuscleRigidTendon extends AxialMaterial {
       return myOptFibreLength;
    }
 
-   public synchronized void setOptFibreLength(double optL) {
-      myOptFibreLength = optL;
+   public synchronized void setOptFibreLength(double lopt) {
+      myOptFibreLength = lopt;
       myOptFibreLengthMode =
          PropertyUtils.propagateValue(
             this, "optFibreLength", myOptFibreLength, myOptFibreLengthMode);

@@ -50,6 +50,13 @@ public class Blankevoort1991AxialLigament extends AxialMaterial {
    public Blankevoort1991AxialLigament () {
    }
 
+   public Blankevoort1991AxialLigament (
+      double stiffness, double slackLen, double damping) {
+      setLinearStiffness (stiffness);
+      setSlackLength (slackLen);
+      setDamping (damping);
+   }
+
    @Override
    public double computeF (
       double l, double ldot, double l0, double excitation) {

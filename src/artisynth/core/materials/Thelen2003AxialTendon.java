@@ -69,11 +69,11 @@ public class Thelen2003AxialTendon extends AxialTendonBase {
    }
 
    public Thelen2003AxialTendon (
-      double maxIsoForce, double tendonSlackLen) {
+      double fmax, double tslack) {
       
       this();
-      setMaxIsoForce (maxIsoForce);
-      setTendonSlackLength (tendonSlackLen);
+      setMaxIsoForce (fmax);
+      setTendonSlackLength (tslack);
    }
 
    // Thelen2003 specific properties

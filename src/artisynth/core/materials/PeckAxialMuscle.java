@@ -23,17 +23,17 @@ public class PeckAxialMuscle extends AxialMuscleMaterial {
     * 1.
     * 
     * @param fmax maximum contractile force
-    * @param optL length at which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length at which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
     * @return created material
     */
    public static PeckAxialMuscle create (
-      double fmax, double optL, double maxL, double tratio, double pfrac) {
+      double fmax, double lopt, double lmax, double tratio, double pfrac) {
       PeckAxialMuscle mus = new PeckAxialMuscle (
-         fmax, optL, maxL, tratio, pfrac);
+         fmax, lopt, lmax, tratio, pfrac);
       mus.setForceScaling (1);
       return mus;
    }
@@ -43,8 +43,8 @@ public class PeckAxialMuscle extends AxialMuscleMaterial {
     * {@code forceScaling} property is set to 1.
     * 
     * @param fmax maximum contractile force
-    * @param optL length at which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length at which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
@@ -52,10 +52,10 @@ public class PeckAxialMuscle extends AxialMuscleMaterial {
     * @return created material
     */
    public static PeckAxialMuscle create (
-      double fmax, double optL, double maxL, 
+      double fmax, double lopt, double lmax, 
       double tratio, double pfrac, double damping) {
       PeckAxialMuscle mus = new PeckAxialMuscle (
-         fmax, optL, maxL, tratio, pfrac, damping);
+         fmax, lopt, lmax, tratio, pfrac, damping);
       mus.setForceScaling (1);
       return mus;
    }
@@ -79,16 +79,16 @@ public class PeckAxialMuscle extends AxialMuscleMaterial {
     * of {@code fmax}.
     *
     * @param fmax maximum contractile force
-    * @param optL length at which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length at which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
     */
    public PeckAxialMuscle (
-      double fmax, double optL, double maxL, 
+      double fmax, double lopt, double lmax, 
       double tratio, double pfrac) {
-      this (fmax, optL, maxL, tratio, pfrac, /*damping=*/0);
+      this (fmax, lopt, lmax, tratio, pfrac, /*damping=*/0);
    }
 
    /**
@@ -99,19 +99,19 @@ public class PeckAxialMuscle extends AxialMuscleMaterial {
     * of {@code fmax} and {@code damping}.
     *
     * @param fmax maximum contractile force
-    * @param optL length at which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length at which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
     * @param damping damping parameter
     */
    public PeckAxialMuscle (
-      double fmax, double optL, double maxL, 
+      double fmax, double lopt, double lmax, 
       double tratio, double pfrac, double damping) {
       setMaxForce (fmax);
-      setOptLength (optL);
-      setMaxLength (maxL);
+      setOptLength (lopt);
+      setMaxLength (lmax);
       setTendonRatio (tratio);
       setPassiveFraction (pfrac);
       setDamping (damping);
@@ -181,7 +181,7 @@ public class PeckAxialMuscle extends AxialMuscleMaterial {
    public static void main (String[] args) throws IOException {
       PeckAxialMuscle peck =
          new PeckAxialMuscle (
-            /*maxf*/1, /*optL*/1, /*maxL*/2,
+            /*fmax*/1, /*lopt*/1, /*lmax*/2,
             /*tratio*/0, /*passivefrac*/1, /*damping*/0);
       peck.setForceScaling (1.0);
 

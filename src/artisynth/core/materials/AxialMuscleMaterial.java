@@ -65,8 +65,8 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
       return myMaxForce;
    }
 
-   public synchronized void setMaxForce(double maxF) {
-      myMaxForce = maxF;
+   public synchronized void setMaxForce(double fmax) {
+      myMaxForce = fmax;
       myMaxForceMode =
          PropertyUtils.propagateValue(
             this, "maxForce", myMaxForce, myMaxForceMode);
@@ -87,8 +87,8 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
       return myPassiveFraction;
    }
 
-   public synchronized void setPassiveFraction(double passiveFraction) {
-      myPassiveFraction = passiveFraction;
+   public synchronized void setPassiveFraction(double pfrac) {
+      myPassiveFraction = pfrac;
       myPassiveFractionMode =
          PropertyUtils.propagateValue(
             this, "passiveFraction", myPassiveFraction, myPassiveFractionMode);
@@ -109,8 +109,8 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
       return myOptLength;
    }
 
-   public synchronized void setOptLength(double optL) {
-      myOptLength = optL;
+   public synchronized void setOptLength(double lopt) {
+      myOptLength = lopt;
       myOptLengthMode =
          PropertyUtils.propagateValue(
             this, "optLength", myOptLength, myOptLengthMode);
@@ -131,8 +131,8 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
       return myMaxLength;
    }
 
-   public synchronized void setMaxLength(double maxL) {
-      myMaxLength = maxL;
+   public synchronized void setMaxLength(double lmax) {
+      myMaxLength = lmax;
       myMaxLengthMode =
          PropertyUtils.propagateValue(
             this, "maxLength", myMaxLength, myMaxLengthMode);
@@ -153,8 +153,8 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
       return myTendonRatio;
    }
 
-   public synchronized void setTendonRatio(double tendonRatio) {
-      myTendonRatio = tendonRatio;
+   public synchronized void setTendonRatio(double tratio) {
+      myTendonRatio = tratio;
       myTendonRatioMode =
          PropertyUtils.propagateValue(
             this, "tendonRatio", myTendonRatio, myTendonRatioMode);
@@ -218,14 +218,14 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
    public AxialMuscleMaterial () {
    }
 
-   public void setAxialMuscleMaterialProps(double maxF, double optL, 
-      double maxL, double passiveFraction, double tendonRatio, 
+   public void setAxialMuscleMaterialProps(double fmax, double lopt, 
+      double lmax, double pfrac, double tratio, 
       double damping, double forceScaling) {
-      setMaxForce(maxF);
-      setOptLength(optL);
-      setMaxLength(maxL);
-      setPassiveFraction(passiveFraction);
-      setTendonRatio(tendonRatio);
+      setMaxForce(fmax);
+      setOptLength(lopt);
+      setMaxLength(lmax);
+      setPassiveFraction(pfrac);
+      setTendonRatio(tratio);
       setDamping(damping);
       setForceScaling(forceScaling);
    }
@@ -305,7 +305,7 @@ public abstract class AxialMuscleMaterial extends AxialMuscleMaterialBase {
       NumberFormat fmt = new NumberFormat(fmtStr);
       StringBuilder sb = new StringBuilder();
       sb.append ("scaling=" + fmt.format(forceScaling).trim());
-      sb.append (" maxf=" + fmt.format(myMaxForce).trim());
+      sb.append (" fmax=" + fmt.format(myMaxForce).trim());
       sb.append (" lopt=" + fmt.format(myOptLength).trim());
       sb.append (" lmax=" + fmt.format(myMaxLength).trim());
       sb.append (" pfrac=" + fmt.format(myPassiveFraction).trim());

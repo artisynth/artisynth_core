@@ -48,13 +48,13 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
    }
 
    public BlemkerAxialMuscle (
-      double maxLen, double optLen, double maxForce, double expStress,
+      double lmax, double optLen, double maxForce, double escoef,
       double uncrimp) {
       this();
-      setMaxLength (maxLen);
+      setMaxLength (lmax);
       setOptLength (optLen);
       setMaxForce (maxForce);
-      setExpStressCoeff (expStress);
+      setExpStressCoeff (escoef);
       setUncrimpingFactor (uncrimp);
    }
 
@@ -72,9 +72,9 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
       return myProps;
    }
 
-   public synchronized void setMaxLength (double maxLength) {
+   public synchronized void setMaxLength (double lmax) {
       myP3P4Valid = false;
-      myMaxLength = maxLength;
+      myMaxLength = lmax;
       myMaxLengthMode =
          PropertyUtils.propagateValue (
             this, "maxLength", myMaxLength, myMaxLengthMode);
@@ -95,9 +95,9 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
       return myMaxLengthMode;
    }
 
-   public synchronized void setOptLength (double optLength) {
+   public synchronized void setOptLength (double lopt) {
       myP3P4Valid = false;
-      myOptLength = optLength;
+      myOptLength = lopt;
       myOptLengthMode =
          PropertyUtils.propagateValue (
             this, "optLength", myOptLength, myOptLengthMode);
@@ -140,9 +140,9 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
       return myMaxForceMode;
    }
 
-   public synchronized void setExpStressCoeff (double coeff) {
+   public synchronized void setExpStressCoeff (double escoef) {
       myP3P4Valid = false;
-      myExpStressCoeff = coeff;
+      myExpStressCoeff = escoef;
       myExpStressCoeffMode =
          PropertyUtils.propagateValue (
             this, "expStressCoeff", myExpStressCoeff, myExpStressCoeffMode);
@@ -163,9 +163,9 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
       return myExpStressCoeffMode;
    }
 
-   public synchronized void setUncrimpingFactor (double factor) {
+   public synchronized void setUncrimpingFactor (double uncrimp) {
       myP3P4Valid = false;
-      myUncrimpingFactor = factor;
+      myUncrimpingFactor = uncrimp;
       myUncrimpingFactorMode =
          PropertyUtils.propagateValue (
             this, "uncrimpingFactor", myUncrimpingFactor, myUncrimpingFactorMode);
@@ -413,13 +413,20 @@ public class BlemkerAxialMuscle extends AxialMuscleMaterial {
    }
 
    public static void main (String[] args) throws IOException {
-      BlemkerAxialMuscle blemker =
-         new BlemkerAxialMuscle (
-            /*maxL*/1.4, /*optL*/1, /*maxF*/1,
-            /*expCoeff*/0.05, /*uncrimping*/6.6);
-      blemker.writeActiveForceLengthCurve ("BlemkerAFL.txt", 0, 2, 400, "%g");
-      blemker.writePassiveForceLengthCurve ("BlemkerPFL.txt", 0, 2, 400, "%g");
-      blemker.writeCombinedForceLengthCurve ("BlemkerCFL.txt", 0, 2, 400, "%g");
+      // BlemkerAxialMuscle blemker =
+      //    new BlemkerAxialMuscle (
+      //       /*lmax*/1.4, /*lopt*/1, /*fmax*/1,
+      //       /*expCoeff*/0.05, /*uncrimping*/6.6);
+      // blemker.writeActiveForceLengthCurve ("BlemkerAFL.txt", 0, 2, 400, "%g");
+      // blemker.writePassiveForceLengthCurve ("BlemkerPFL.txt", 0, 2, 400, "%g");
+      // blemker.writeCombinedForceLengthCurve ("BlemkerCFL.txt", 0, 2, 400, "%g");
+      BlemkerAxialMuscle blemker = new BlemkerAxialMuscle();
+      System.out.println ("lmax=" + blemker.getMaxLength());
+      System.out.println ("lopt=" + blemker.getOptLength());
+      System.out.println ("fmax=" + blemker.getMaxForce());
+      System.out.println ("escoef=" + blemker.getExpStressCoeff());
+      System.out.println ("uncrimp=" + blemker.getUncrimpingFactor());
+      System.out.println ("damping=" + blemker.getDamping());
    }
 
 }

@@ -67,8 +67,8 @@ public abstract class AxialTendonBase extends AxialMaterial {
       return myMaxIsoForce;
    }
 
-   public void setMaxIsoForce (double maxf) {
-      myMaxIsoForce = maxf;
+   public void setMaxIsoForce (double fmax) {
+      myMaxIsoForce = fmax;
    }
 
    public double getTendonSlackLength() {

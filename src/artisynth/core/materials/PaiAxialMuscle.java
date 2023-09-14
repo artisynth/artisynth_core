@@ -20,18 +20,18 @@ public class PaiAxialMuscle extends AxialMuscleMaterial {
     * 1.
     * 
     * @param fmax maximum contractile force
-    * @param optL length beyond which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length beyond which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
     * @return created material
     */
    public static PaiAxialMuscle create (
-      double maxF, double optL, double maxL, 
-      double tendonRatio, double passiveFraction) {
+      double fmax, double lopt, double lmax, 
+      double tratio, double pfrac) {
       PaiAxialMuscle mus = new PaiAxialMuscle (
-         maxF, optL, maxL, tendonRatio, passiveFraction);
+         fmax, lopt, lmax, tratio, pfrac);
       mus.setForceScaling (1);
       return mus;
    }
@@ -41,8 +41,8 @@ public class PaiAxialMuscle extends AxialMuscleMaterial {
     * {@code forceScaling} property is set to 1.
     * 
     * @param fmax maximum contractile force
-    * @param optL length beyond which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length beyond which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
@@ -50,10 +50,10 @@ public class PaiAxialMuscle extends AxialMuscleMaterial {
     * @return created material
     */
    public static PaiAxialMuscle create (
-      double maxF, double optL, double maxL, 
-      double tendonRatio, double passiveFraction, double damping) {
+      double fmax, double lopt, double lmax, 
+      double tratio, double pfrac, double damping) {
       PaiAxialMuscle mus = new PaiAxialMuscle (
-         maxF, optL, maxL, tendonRatio, passiveFraction, damping);
+         fmax, lopt, lmax, tratio, pfrac, damping);
       mus.setForceScaling (1);
       return mus;
    }  
@@ -78,16 +78,16 @@ public class PaiAxialMuscle extends AxialMuscleMaterial {
     * of {@code fmax}.
     *
     * @param fmax maximum contractile force
-    * @param optL length beyond which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length beyond which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
     */
    public PaiAxialMuscle (
-      double maxF, double optL, double maxL, 
-      double tendonRatio, double passiveFraction) {
-      this (maxF, optL, maxL, tendonRatio, passiveFraction, /*damping=*/0);
+      double fmax, double lopt, double lmax, 
+      double tratio, double pfrac) {
+      this (fmax, lopt, lmax, tratio, pfrac, /*damping=*/0);
    }
 
    /**
@@ -98,22 +98,22 @@ public class PaiAxialMuscle extends AxialMuscleMaterial {
     * of {@code fmax} and {@code damping}.
     *
     * @param fmax maximum contractile force
-    * @param optL length beyond which maximum active force is generated
-    * @param maxL length at which maximum passive force is generated
+    * @param lopt length beyond which maximum active force is generated
+    * @param lmax length at which maximum passive force is generated
     * @param tratio tendon to fibre length ratio
     * @param pfrac passive fraction (of {@code fmax}) that forms the maximum
     * passive force
     * @param damping damping parameter
     */
    public PaiAxialMuscle (
-      double maxF, double optL, double maxL, 
-      double tendonRatio, double passiveFraction, double damping) {
+      double fmax, double lopt, double lmax, 
+      double tratio, double pfrac, double damping) {
 
-      setMaxForce (maxF);
-      setOptLength (optL);
-      setMaxLength (maxL);
-      setTendonRatio (tendonRatio);
-      setPassiveFraction (passiveFraction);
+      setMaxForce (fmax);
+      setOptLength (lopt);
+      setMaxLength (lmax);
+      setTendonRatio (tratio);
+      setPassiveFraction (pfrac);
       setDamping (damping);      
    }
    

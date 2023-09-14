@@ -21,11 +21,11 @@ public class SimpleAxialMuscle extends LinearAxialMaterial {
       super();
    }
 
-   public SimpleAxialMuscle (double k, double d, double maxf) {
+   public SimpleAxialMuscle (double stiffness, double damping, double fmax) {
       super();
-      setStiffness (k);
-      setDamping (d);
-      setMaxForce (maxf);
+      setStiffness (stiffness);
+      setDamping (damping);
+      setMaxForce (fmax);
    }
 
    public PropertyList getAllPropertyInfo() {

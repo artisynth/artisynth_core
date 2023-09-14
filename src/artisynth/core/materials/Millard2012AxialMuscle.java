@@ -98,15 +98,15 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle
    }
 
    public Millard2012AxialMuscle (
-      double maxIsoForce, double optFibreLen,
-      double tendonSlackLen, double optPennationAng) {
+      double fmax, double lopt,
+      double tslack, double optPenAng) {
       
       this();
-      setMaxIsoForce (maxIsoForce);
-      setOptFibreLength (optFibreLen);
-      setTendonSlackLength (tendonSlackLen);
-      setOptPennationAngle (optPennationAng);
-      myMuscleLength = myOptFibreLength*Math.cos(optPennationAng);
+      setMaxIsoForce (fmax);
+      setOptFibreLength (lopt);
+      setTendonSlackLength (tslack);
+      setOptPennationAngle (optPenAng);
+      myMuscleLength = myOptFibreLength*Math.cos(optPenAng);
       myMuscleLengthPrev = myMuscleLength;
    }
 

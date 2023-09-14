@@ -12,11 +12,11 @@ public class Millard2012AxialTendon extends AxialTendonBase {
    }
 
    public Millard2012AxialTendon (
-      double maxIsoForce, double tendonSlackLen) {
+      double fmax, double tslack) {
       
       this();
-      setMaxIsoForce (maxIsoForce);
-      setTendonSlackLength (tendonSlackLen);
+      setMaxIsoForce (fmax);
+      setTendonSlackLength (tslack);
    }
 
    public static CubicHermiteSpline1d getDefaultTendonForceLengthCurve() {

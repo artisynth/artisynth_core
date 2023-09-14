@@ -233,14 +233,14 @@ public class Thelen2003AxialMuscle
    }
 
    public Thelen2003AxialMuscle (
-      double maxIsoForce, double optFibreLen,
-      double tendonSlackLen, double optPennationAng) {
+      double fmax, double lopt,
+      double tslack, double optPenAng) {
       
       this();
-      setMaxIsoForce (maxIsoForce);
-      setOptFibreLength (optFibreLen);
-      setTendonSlackLength (tendonSlackLen);
-      setOptPennationAngle (optPennationAng);
+      setMaxIsoForce (fmax);
+      setOptFibreLength (lopt);
+      setTendonSlackLength (tslack);
+      setOptPennationAngle (optPenAng);
    }
 
    // Thelen2003 specific properties

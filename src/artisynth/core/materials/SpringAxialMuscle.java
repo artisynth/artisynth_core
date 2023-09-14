@@ -21,11 +21,11 @@ public class SpringAxialMuscle extends LinearAxialMaterial {
       super();
    }
 
-   public SpringAxialMuscle (double k, double d, double maxf) {
+   public SpringAxialMuscle (double k, double d, double fmax) {
       super();
       setStiffness (k);
       setDamping (d);
-      setMaxForce (maxf);
+      setMaxForce (fmax);
    }
 
    public PropertyList getAllPropertyInfo() {

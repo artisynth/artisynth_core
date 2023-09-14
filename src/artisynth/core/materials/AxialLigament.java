@@ -84,16 +84,16 @@ public class AxialLigament extends AxialMaterial {
       myForceLengthCurve = myDefaultForceLengthCurve;
    }
 
-   public AxialLigament (double maxf, double slackLen, double damping) {
-      myMaxForce = maxf;
+   public AxialLigament (double fmax, double slackLen, double damping) {
+      myMaxForce = fmax;
       mySlackLength = slackLen;
       myDamping = damping;
       myForceLengthCurve = myDefaultForceLengthCurve;
    }
 
    public AxialLigament (
-      double maxf, double slackLen, double damping, Diff1Function1x1Base flc) {
-      this (maxf, slackLen, damping);
+      double fmax, double slackLen, double damping, Diff1Function1x1Base flc) {
+      this (fmax, slackLen, damping);
       setForceLengthCurve (flc);
    }
 

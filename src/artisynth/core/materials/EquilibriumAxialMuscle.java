@@ -214,8 +214,8 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
       return myMaxIsoForce;
    }
 
-   public void setMaxIsoForce (double maxf) {
-      myMaxIsoForce = maxf;
+   public void setMaxIsoForce (double fmax) {
+      myMaxIsoForce = fmax;
    }
 
    public double getOptFibreLength() {

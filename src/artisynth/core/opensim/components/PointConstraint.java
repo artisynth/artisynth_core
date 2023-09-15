@@ -97,7 +97,9 @@ public class PointConstraint extends ConstraintBase {
          // set body B to null
          bodyB = null;
       }
-      return new SphericalJoint (bodyA, TCA, bodyB, TDB);
+      SphericalJoint jnt = new SphericalJoint (bodyA, TCA, bodyB, TDB);
+      jnt.setName (getName());
+      return jnt;
    }
 
    private RigidBody findBody (int num, ModelComponentMap componentMap) {

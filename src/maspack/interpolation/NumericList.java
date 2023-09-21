@@ -7,6 +7,7 @@
 package maspack.interpolation;
 
 import java.util.Iterator;
+import java.util.ArrayDeque;
 import java.util.NoSuchElementException;
 import java.io.*;
 
@@ -260,6 +261,51 @@ public class NumericList
          myMaxValue = 0;
       }
       myMinMaxValid = true;
+   }
+
+   /**
+    * Returns the sum of the square of each vector element over all the knots.
+    *
+    * @param sumsqr returns the mean square values
+    */
+   public void getSumSquaredValues (VectorNd sumsqr) {
+      sumsqr.setSize (getVectorSize());
+      sumsqr.setZero();
+      for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
+         for (int i=0; i<getVectorSize(); i++) {
+            double x = knot.v.get(i);
+            sumsqr.add (i, x*x);
+         }
+      }
+   }
+
+   /**
+    * Queries the minimum and maximun values of each vector
+    * element over all the knots.
+    *
+    * @param min returns the minimum values
+    * @param max returns the maximum values
+    */
+   public void getMinMaxValues (VectorNd min, VectorNd max) {
+      min.setSize (getVectorSize());
+      max.setSize (getVectorSize());
+      for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
+         if (knot == myHead) {
+            min.set (knot.v);
+            max.set (knot.v);
+         }
+         else {
+            for (int i=0; i<getVectorSize(); i++) {
+               double x = knot.v.get(i);
+               if (x > max.get(i)) {
+                  max.set (i, x);
+               }
+               else if (x < min.get(i)) {
+                  min.set (i, x);
+               }
+            }
+         }
+      }
    }
 
    /**
@@ -966,6 +1012,56 @@ public class NumericList
          knot.v.scale (s);
       }      
       myMinMaxValid = false;
+   }
+
+   /**
+    * Smooths all the values in this list by averaging over the
+    * specified number of knots.
+    * 
+    * @param winSize number of knots to average
+    */
+   public void smooth (int winSize) {
+      if (winSize > 1) {
+         // store computed values in 'averages' until we have passed over the
+         // averaging window:
+         ArrayDeque<VectorNd> averages = new ArrayDeque<>();
+         int nnext = winSize/2;     // num succeeding knots needed
+         int nprev = (winSize-1)/2; // num preceeding knots needed
+         NumericListKnot tail = myHead; // trailing knot whose value will be set
+         for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
+            VectorNd avg = new VectorNd(knot.v);
+            NumericListKnot prev = knot.prev;
+            int cnt = 1; // actual number of knots averaged
+            for (int i=0; i<nprev && prev != null; i++) {
+               avg.add (prev.v);
+               prev = prev.prev;
+               cnt++;
+            }
+            NumericListKnot next = knot.next;
+            for (int i=0; i<nnext && next != null; i++) {
+               avg.add (next.v);
+               next = next.prev;
+               cnt++;
+            }
+            avg.scale (1/(double)cnt);
+            if (nprev > 0) {
+               // only need to store results if nprev > 0
+               averages.add (avg);
+               if (averages.size() > nprev) {
+                  tail.v.set (averages.remove());
+                  tail = tail.next;
+               }
+            }
+            else {
+               knot.v.set (avg);
+            }
+         }       
+         while (averages.size() > 0) {
+            tail.v.set (averages.remove());
+            tail = tail.next;
+         }
+         myMinMaxValid = false;
+      }
    }
 
    /**

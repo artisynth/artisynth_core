@@ -87,6 +87,28 @@ public class NumericProbePanel extends JPanel
 
    private static final double EPS = 1e-15;
 
+   /**
+    * Describes different ways that traces can be ordered within this display.
+    */
+   enum TraceOrdering {
+      /**
+       * Ordered by their index within the probe.
+       */
+      ORDINAL,
+
+      /**
+       * Ordered in descending order based on the root mean square of their
+       * values.
+       */
+      MAX_RMS,
+
+      /**
+       * Ordered in descending order based on the distance between their
+       * maximum and minimum values.
+       */
+      MAX_RANGE
+   };
+
    float[] myMargins = new float[4];
 
    public static Color DARK_GREEN = new Color (0f, 0.5f, 0f);
@@ -1497,22 +1519,43 @@ public class NumericProbePanel extends JPanel
     * author: Chad version 1.0: Requests a scale vactor from the user, by which
     * all of the values in the numeric probe are multiplied.
     */
-
    protected void scaleProbeValues() {
       String input =
          JOptionPane.showInputDialog (
             this, "Scale factor", "Scale Probe", JOptionPane.PLAIN_MESSAGE);
 
-      Double scaleFactor = null;
-
+      double scaleFactor = 0;
       try {
-         scaleFactor = (Double.parseDouble (input));
+         scaleFactor = Double.parseDouble (input);
+      }
+      catch (Exception ignore) {
+         GuiUtils.showError (this, "Scale factor is not a number");
+         return;
+      }
+      myNumericList.scale (scaleFactor);
+      updateDisplays();
+   }
+
+   /**
+    * Smooths the probe data bby averaging over a specified window size.
+    */
+   protected void smoothProbeValues() {
+      String input =
+         JOptionPane.showInputDialog (
+            this, "Smoothing window",
+            "Smooth Probe", JOptionPane.PLAIN_MESSAGE);
+
+      int winSize = 0;
+      try {
+         winSize = Integer.parseInt (input);
       }
       catch (Exception ignore) {
       }
-
-      if (scaleFactor != null && !scaleFactor.isNaN()) {
-         myNumericList.scale (scaleFactor);
+      if (winSize <= 0) {
+         GuiUtils.showError (this, "Window size is not a positive integer");
+      }
+      else {
+         myNumericList.smooth (winSize);
          updateDisplays();
       }
    }
@@ -1743,6 +1786,59 @@ public class NumericProbePanel extends JPanel
       repaint();
    }
 
+   /**
+    * Reverses a list of integers.
+    */
+   private int[] reverse (int[] values) {
+      int[] rev = new int[values.length];
+      for (int i=0; i<values.length; i++) {
+         rev[values.length-1-i] = values[i];
+      }
+      return rev;
+   }
+
+   /**
+    * Finds the trace indices required for a particular ordering based on the
+    * display's current values. These indices can be specified as an argument
+    * to {@link PlotTraceManager#setTraceOrder}.
+    *
+    * @param ordering requested ordering
+    * @return trace indices
+    */
+   public int[] getTraceOrder (TraceOrdering ordering) {
+      int vsize = myNumericList.getVectorSize();
+      int[] idxs = new int[vsize];
+      for (int i=0; i<idxs.length; i++) {
+         idxs[i] = i;
+      }
+      switch (ordering) {
+         case ORDINAL: {
+            return idxs;
+         }
+         case MAX_RMS: {
+            VectorNd sumsqr = new VectorNd(vsize);
+            myNumericList.getSumSquaredValues (sumsqr);
+            ArraySort.quickSort (sumsqr.getBuffer(), idxs);
+            // reverse indices since sort is in ascending order
+            return reverse (idxs);
+         }
+         case MAX_RANGE: {
+            VectorNd min = new VectorNd(vsize);
+            VectorNd max = new VectorNd(vsize);
+            VectorNd rng = new VectorNd(vsize);
+            myNumericList.getMinMaxValues (min, max);
+            rng.sub (max, min);
+            ArraySort.quickSort (rng.getBuffer(), idxs);
+            // reverse indices since sort is in ascending order
+            return reverse (idxs);
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented ordering " + ordering);
+         }
+      }
+   }
+
    public Point2d pixelsToCoords (Point p) {
       ScreenTransform xform = createScreenTransform();
       return new Point2d (xform.pixelToXvalue (p.x), xform.pixelToYvalue (p.y));
@@ -1930,6 +2026,7 @@ public class NumericProbePanel extends JPanel
          }
          popupMenu.addSeparator();
          popupMenu.add (createMenuItem ("Scale data ..."));
+         popupMenu.add (createMenuItem ("Smooth data ..."));
          popupMenu.add (createMenuItem ("Fit ranges to data"));
 
          return popupMenu;
@@ -2223,6 +2320,9 @@ public class NumericProbePanel extends JPanel
          }
          else if (nameOfAction == "Scale data ...") {
             scaleProbeValues();
+         }
+         else if (nameOfAction == "Smooth data ...") {
+            smoothProbeValues();
          }
          else if (nameOfAction == "Show knot points") {
             setKnotsVisible (true);

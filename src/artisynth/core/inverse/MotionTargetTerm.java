@@ -48,16 +48,17 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    // Avoids recomputation of the velocity Jacobian. This actually gives
    // incorrect results and is provided for comparison with legacy code only.
    public static boolean keepVelocityJacobianConstant = false;
+   public boolean useNewPDControl = false;
 
    // property attributes
 
    public static final boolean DEFAULT_USE_PD_CONTROL = false;
    protected boolean usePDControl = DEFAULT_USE_PD_CONTROL;
 
-   public static double DEFAULT_Kd = 1.0;
+   public static double DEFAULT_Kd = 0.0;
    protected double Kd = DEFAULT_Kd;
 
-   public static double DEFAULT_Kp = 100;
+   public static double DEFAULT_Kp = 1;
    protected double Kp = DEFAULT_Kp;
 
 //   public static final boolean DEFAULT_USE_DELTA_ACTIVATIONS = false;
@@ -167,13 +168,25 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       double h = TimeBase.round(t1 - t0);
       if (usePDControl) {       
          if (t0 == 0) { // XXX need better way to reset
-            prevTargetPos = null;
+            prevTargetPos = new VectorNd();
          }
          interpolateTargetVelocity(h);
          updatePositionError ();
-         updateVelocityError ();
-         myTargetVel.scale (Kp/h, positionError);
-         myTargetVel.scaledAdd (Kd, velocityError);
+         if (useNewPDControl) {
+            VectorNd errorDeriv = new VectorNd (myTargetVelSize);
+            if (t0 > 0) {
+               errorDeriv.sub (positionError, prevPositionError);
+               errorDeriv.scale (1/h);
+            }
+            prevPositionError.set (positionError);
+            myTargetVel.scale (Kp/h, positionError);
+            myTargetVel.scaledAdd (Kd, errorDeriv);
+         }
+         else {
+            updateVelocityError ();
+            myTargetVel.scale (Kp/h, positionError);
+            myTargetVel.scaledAdd (Kd, velocityError);
+         }
       }
       else {
          setTargetVelocityFromPositionError(h);
@@ -183,6 +196,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
    
    protected VectorNd positionError = new VectorNd();
+   protected VectorNd prevPositionError = new VectorNd();
    protected VectorNd velocityError = new VectorNd();
    
    public double getPositionError () {
@@ -291,7 +305,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
    
    VectorNd prevTargetPos = new VectorNd();
-   VectorNd diffTargetPos = new VectorNd();
+   VectorNd prevPositionErr = new VectorNd();
    Frame tmpFrame = new Frame ();
    Point tmpPoint = new Point ();
    

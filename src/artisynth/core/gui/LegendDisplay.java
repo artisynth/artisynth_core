@@ -15,14 +15,17 @@ import javax.swing.border.BevelBorder;
 
 import artisynth.core.gui.widgets.*;
 import artisynth.core.probes.*;
+import artisynth.core.gui.NumericProbePanel.TraceOrdering;
 import maspack.util.*;
 import maspack.widgets.BooleanSelector;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.ColorSelector;
+import maspack.widgets.EnumSelector;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.LabelSpacing;
 import maspack.widgets.LabeledComponent;
 import maspack.widgets.PropertyFrame;
+import maspack.properties.Property;
 import maspack.widgets.PropertyPanel;
 import maspack.widgets.StringField;
 import maspack.widgets.ValueChangeEvent;
@@ -36,6 +39,8 @@ public class LegendDisplay extends PropertyFrame {
    private NumericProbePanel myDataPanel;
    
    private LabeledComponent myCaption;
+   private BooleanSelector myAllVisible;
+   private EnumSelector myOrdering;
    private JLabel myColorLabel;
    private JLabel myVisibleLabel;
 
@@ -63,8 +68,13 @@ public class LegendDisplay extends PropertyFrame {
       setPanel (new Panel());
 
       myCaption = createCaptionWidget();
+      myAllVisible = createAllVisibleWidget();
+      myOrdering = createOrderingWidget();
 
       buildWidgets();
+
+      updateAllVisibleWidget();
+      updateOrderingWidget();
 
       myOptionPanel.addMouseListener (new MouseHandler());
       //enableAutoRerendering (true);
@@ -91,6 +101,61 @@ public class LegendDisplay extends PropertyFrame {
       return caption;
    }
 
+   private void updateAllVisibleWidget() {
+      int vstate = isAllVisible();
+      myAllVisible.maskValueChangeListeners (true);
+      if (vstate == -1) {
+         myAllVisible.setValue (Property.VoidValue);
+      }
+      else {
+         myAllVisible.setValue (vstate == 1);
+      }
+      myAllVisible.maskValueChangeListeners (false);
+   }
+
+   private void updateOrderingWidget() {
+      boolean isOrdinal = true;
+      for (int order=0; order<myTraceManager.numTraces(); order++) {
+         if (myTraceManager.getOrderedTraceIndex(order) != order) {
+            isOrdinal = false;
+            break;
+         }
+      }
+      myOrdering.maskValueChangeListeners (true);
+      if (isOrdinal) {
+         myOrdering.setValue (TraceOrdering.ORDINAL);
+      }
+      else {
+         myOrdering.setValue (Property.VoidValue);
+      }
+      myOrdering.maskValueChangeListeners (false);
+   }
+
+   BooleanSelector createAllVisibleWidget() {
+      BooleanSelector widget = new BooleanSelector("All visible");
+      widget.addValueChangeListener (
+         new ValueChangeListener() {
+            public void valueChange (ValueChangeEvent e) {
+               setAllVisible ((Boolean)e.getValue());
+            }
+         });
+      widget.setVoidValueEnabled (true);
+      return widget;
+   }
+
+   EnumSelector createOrderingWidget() {
+      EnumSelector widget = 
+         new EnumSelector ("Trace ordering", TraceOrdering.values());
+      widget.addValueChangeListener (
+         new ValueChangeListener() {
+            public void valueChange (ValueChangeEvent e) {
+               setTraceOrdering ((TraceOrdering)e.getValue());
+            }
+         });
+      widget.setVoidValueEnabled (true);
+      return widget;
+   }
+
    private void buildWidgets() {
       addWidget (myCaption);
       for (int order=0; order<myTraceManager.numTraces(); order++) {
@@ -102,6 +167,42 @@ public class LegendDisplay extends PropertyFrame {
          }
          addWidget (widget);
       }
+      addWidget (new JSeparator());
+      addWidget (myAllVisible);
+      addWidget (myOrdering);
+   }
+
+   int isAllVisible() {
+      Component[] comps = myPanel.getComponents();
+      int state = -1;
+      for (int i=0; i<comps.length; i++) {
+         if (comps[i] instanceof Widget) {
+            boolean visible = ((Widget)comps[i]).isTraceVisible();
+            if (state == -1) {
+               state = (visible ? 1 : 0);
+            }
+            else if (state != (visible ? 1 : 0)) {
+               return -1;
+            }
+         }
+      }
+      return state;
+   }
+
+   void setAllVisible (boolean visible) {
+      Component[] comps = myPanel.getComponents();
+      for (int i=0; i<comps.length; i++) {
+         if (comps[i] instanceof Widget) {
+            ((Widget)comps[i]).setTraceVisible (visible);
+         }
+      }
+      updateDisplaysWithoutAutoRanging();
+   }
+
+   void setTraceOrdering (TraceOrdering ordering) {
+      myTraceManager.setTraceOrder (myDataPanel.getTraceOrder (ordering));
+      updateDisplaysWithoutAutoRanging();
+      rebuild();
    }
 
    public void rebuild() {
@@ -117,6 +218,11 @@ public class LegendDisplay extends PropertyFrame {
       }
    }
 
+   public void updateWidgetValues () {
+      myPanel.updateWidgetValues();
+      updateAllVisibleWidget();
+   }
+   
    private class ResizeHandler extends ComponentAdapter {
       public void componentResized (ComponentEvent e) {
          // resize captionLabel manually if labels are editable
@@ -186,6 +292,7 @@ public class LegendDisplay extends PropertyFrame {
                "Number of widgets = "+order+", number of traces="+numTraces);
          }
          myTraceManager.setTraceOrder (indices);
+         updateOrderingWidget();
          updateDisplaysWithoutAutoRanging();
       }
 
@@ -223,12 +330,7 @@ public class LegendDisplay extends PropertyFrame {
          pack();
       }
       else if (cmd == "Set all visible") {
-         Component[] comps = myPanel.getComponents();
-         for (int i=0; i<comps.length; i++) {
-            if (comps[i] instanceof Widget) {
-               ((Widget)comps[i]).setTraceVisible (true);
-            }
-         }
+         setAllVisible (true);
       }
       else {
          super.actionPerformed (e);
@@ -263,6 +365,7 @@ public class LegendDisplay extends PropertyFrame {
          else if (e.getSource() == myVisibilitySelector) {
             myTraceManager.setTraceVisible (
                myPlotTraceIdx, myVisibilitySelector.getBooleanValue());
+            updateAllVisibleWidget();
             updateDisplaysWithoutAutoRanging();
          }
          else if (e.getSource() == myLabelField) {
@@ -282,8 +385,15 @@ public class LegendDisplay extends PropertyFrame {
 
       void setTraceVisible (boolean visible) {
          if (visible != myVisibilitySelector.getBooleanValue()) {
+            myVisibilitySelector.maskValueChangeListeners (true);
             myVisibilitySelector.setValue (visible);
+            myVisibilitySelector.maskValueChangeListeners (false);
+            myTraceManager.setTraceVisible (myPlotTraceIdx, visible);
          }
+      }
+
+      boolean isTraceVisible () {
+         return myVisibilitySelector.getBooleanValue();
       }
 
       public void setLabelEditable (boolean enable) {

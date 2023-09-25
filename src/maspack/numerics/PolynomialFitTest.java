@@ -41,6 +41,35 @@ public class PolynomialFitTest extends UnitTest {
       }      
    }
 
+   public void  testSavitzkyGolay() {
+      PolynomialFit fit;
+      VectorNd wgts;
+      VectorNd wchk;
+
+      double EPS = 1e-12;
+
+      wchk = new VectorNd(new double[] {-3, 12, 17, 12, -3});
+      wchk.scale (1/35.0);
+      
+      fit = new PolynomialFit (3, 5, 0.0, 1.0);
+      wgts = fit.getSavitzkyGolayWeights (0.5);
+      checkEquals ("SavitzkyGolay win=5, deg=3", wgts, wchk, EPS);
+      fit = new PolynomialFit (2, 5, 0.0, 1.0);
+      wgts = fit.getSavitzkyGolayWeights (0.5);
+      checkEquals ("SavitzkyGolay win=5, deg=2", wgts, wchk, EPS);
+
+      wchk = new VectorNd(new double[] {5, -30, 75, 131, 75, -30, 5});
+      wchk.scale (1/231.0);
+      
+      fit = new PolynomialFit (4, 7, 0.0, 1.0);
+      wgts = fit.getSavitzkyGolayWeights (0.5);
+      checkEquals ("SavitzkyGolay win=7, deg=4", wgts, wchk, EPS);
+      fit = new PolynomialFit (5, 7, 0.0, 1.0);
+      wgts = fit.getSavitzkyGolayWeights (0.5);
+      checkEquals ("SavitzkyGolay win=7, deg=5", wgts, wchk, EPS);
+
+   }
+
    public void test() {
 
       for (int deg=1; deg<5; deg++) {
@@ -49,6 +78,7 @@ public class PolynomialFitTest extends UnitTest {
          testForDegree (deg, 20);
          testForDegree (deg, 50);
       }
+      testSavitzkyGolay();
    }
 
    public static void main (String[] args) {

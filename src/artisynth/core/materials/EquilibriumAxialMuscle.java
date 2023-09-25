@@ -614,7 +614,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
       return 0;
    }
 
-   boolean debug;
+   public boolean debug;
    
    private double computeVmFromLm (double l, double ldot, double lm) {
       if (vmFromTendon) {
@@ -694,11 +694,6 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
       myDv = ca*ca*vterm/(lo*Vmax);
       double ltn = (l-lm)/myTendonSlackLength;
       myDt = computeDFt (ltn);
-      if (debug) {
-         System.out.printf (
-            "  G=%g ltn=%g fm=%g vn=%g\n",
-            (ca*ff - computeFt(ltn)), ltn, ca*ff, vn);
-      }
    }
 
    double computeFm (

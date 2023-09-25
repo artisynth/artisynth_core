@@ -63,6 +63,7 @@ import artisynth.core.probes.Probe;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ExtensionFileFilter;
 import artisynth.core.gui.widgets.ImageFileChooser;
+import artisynth.core.gui.widgets.SmoothingDialog;
 import artisynth.core.gui.DataRenderer.TextAlign;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
@@ -189,6 +190,7 @@ public class NumericProbePanel extends JPanel
 
    protected PropertyDialog myPropertyDialog = null;
    protected LegendDisplay myLegendDisplay = null;
+   protected SmoothingDialog mySmoothingDialog = null;
    protected File myExportFile = null;
 
    // ===========================================================
@@ -1537,27 +1539,44 @@ public class NumericProbePanel extends JPanel
    }
 
    /**
-    * Smooths the probe data bby averaging over a specified window size.
+    * Smooths the probe data by averaging over a specified window size.
     */
-   protected void smoothProbeValues() {
-      String input =
-         JOptionPane.showInputDialog (
-            this, "Smoothing window",
-            "Smooth Probe", JOptionPane.PLAIN_MESSAGE);
+   protected void showSmoothingDialog (boolean visible) {
+      if (visible) {
+         if (mySmoothingDialog == null) {
+            mySmoothingDialog = new SmoothingDialog("Smooth data");
+            mySmoothingDialog.addApplyListener (displayListener);
+            GuiUtils.locateCenter (mySmoothingDialog, this);
+         }
+         mySmoothingDialog.setVisible (true);
+      }
+      else if (mySmoothingDialog != null) {
+         mySmoothingDialog.setVisible (false);
+      }
+   }
 
-      int winSize = 0;
-      try {
-         winSize = Integer.parseInt (input);
+   protected void smoothData () {
+      if (mySmoothingDialog == null) {
+         throw new InternalErrorException (
+            "Smoothing dialog has not been created");
       }
-      catch (Exception ignore) {
+      int winSize = mySmoothingDialog.getWindowSize();
+      switch (mySmoothingDialog.getMethod()) {
+         case MOVING_AVERAGE: {
+            myNumericList.applyMovingAverageSmoothing (winSize);
+            break;
+         }
+         case SAVITZKY_GOLAY: {
+            myNumericList.applySavitzkyGolaySmoothing (
+               winSize, mySmoothingDialog.getPolynomialDegree());
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented smoothing method " + mySmoothingDialog.getMethod());
+         }
       }
-      if (winSize <= 0) {
-         GuiUtils.showError (this, "Window size is not a positive integer");
-      }
-      else {
-         myNumericList.smooth (winSize);
-         updateDisplays();
-      }
+      updateDisplays();
    }
 
    /**
@@ -2284,7 +2303,10 @@ public class NumericProbePanel extends JPanel
       public void actionPerformed (ActionEvent e) {
          String nameOfAction = e.getActionCommand();
 
-         if (nameOfAction == "Step") {
+         if (e.getSource() == mySmoothingDialog) {
+            smoothData();
+         }
+         else if (nameOfAction == "Step") {
             if (myInputDataP) {
                setInterpolationOrder (Interpolation.Order.Step);
             }
@@ -2322,7 +2344,7 @@ public class NumericProbePanel extends JPanel
             scaleProbeValues();
          }
          else if (nameOfAction == "Smooth data ...") {
-            smoothProbeValues();
+            showSmoothingDialog(true);
          }
          else if (nameOfAction == "Show knot points") {
             setKnotsVisible (true);
@@ -2593,6 +2615,10 @@ public class NumericProbePanel extends JPanel
       if (myLegendDisplay != null) {
          myLegendDisplay.dispose();
          myLegendDisplay = null;
+      }
+      if (mySmoothingDialog != null) {
+         mySmoothingDialog.dispose();
+         mySmoothingDialog = null;
       }
    }
 }

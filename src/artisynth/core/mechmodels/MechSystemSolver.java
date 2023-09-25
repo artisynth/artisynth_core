@@ -3922,7 +3922,14 @@ public class MechSystemSolver {
          myRBSolver.resetBilateralVersion();
       }
    }
-   
+
+   /**
+    * Returns the solve matrix. For debugging and testing only.
+    */
+   public SparseBlockMatrix getSolveMatrix() {
+      return mySolveMatrix;
+   }
+    
    private void disposeSolvers() {
       if (myPardisoSolver != null) {
          myPardisoSolver.dispose();

@@ -77,8 +77,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    // quantities used in the computation which are allocated on demand
 
    protected SparseBlockMatrix myVelJacobian = null;
-   protected VectorNd myTargetVel = new VectorNd();
+   protected VectorNd myTrackingVel = new VectorNd();
    protected VectorNd myTargetPos = new VectorNd();
+   protected VectorNd myTargetVel = new VectorNd();
    protected int myTargetVelSize;
    protected int myTargetPosSize;
    
@@ -167,31 +168,28 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // identical to earlier results when t0, t1 where given as nsec integers
       double h = TimeBase.round(t1 - t0);
       if (usePDControl) {       
-         if (t0 == 0) { // XXX need better way to reset
-            prevTargetPos = new VectorNd();
+         if (t0 == 0) { 
+            // XXX need better way to reset
+            collectTargetPosition (prevTargetPos);
          }
          interpolateTargetVelocity(h);
          updatePositionError ();
          if (useNewPDControl) {
-            VectorNd errorDeriv = new VectorNd (myTargetVelSize);
-            if (t0 > 0) {
-               errorDeriv.sub (positionError, prevPositionError);
-               errorDeriv.scale (1/h);
-            }
+            collectTargetVelocity (myTargetVel);
             prevPositionError.set (positionError);
-            myTargetVel.scale (Kp/h, positionError);
-            myTargetVel.scaledAdd (Kd, errorDeriv);
+            myTrackingVel.scale (Kp/h, positionError);
+            myTrackingVel.scaledAdd (Kd, myTargetVel);
          }
          else {
             updateVelocityError ();
-            myTargetVel.scale (Kp/h, positionError);
-            myTargetVel.scaledAdd (Kd, velocityError);
+            myTrackingVel.scale (Kp/h, positionError);
+            myTrackingVel.scaledAdd (Kd, velocityError);
          }
       }
       else {
          setTargetVelocityFromPositionError(h);
          // updateTargetPosAndVel(h);
-         updateTargetVelocityVec(); // set myTargetVel
+         collectTargetVelocity (myTrackingVel);
       }
    }
    
@@ -649,17 +647,41 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       }
       myTargetVelSize = vsize;
       myTargetPosSize = psize;
-      myTargetVel.setSize (vsize);
+      myTrackingVel.setSize (vsize);
    }
    
    private void updateTargetVelocityVec() {
-      double[] buf = myTargetVel.getBuffer();
+      double[] buf = myTrackingVel.getBuffer();
       int idx = 0;
       for (TargetPoint target : myTargetPoints) {
          idx = target.getVelState (buf, idx);
       }
       for (TargetFrame target : myTargetFrames) {
          idx = target.getVelState (buf, idx);
+      }
+   }
+
+   private void collectTargetVelocity (VectorNd vel) {
+      vel.setSize (myTargetVelSize);
+      double[] vbuf = vel.getBuffer();
+      int idx = 0;
+      for (TargetPoint target : myTargetPoints) {
+         idx = target.getVelState (vbuf, idx);
+      }
+      for (TargetFrame target : myTargetFrames) {
+         idx = target.getVelState (vbuf, idx);
+      }
+   }
+
+   private void collectTargetPosition (VectorNd pos) {
+      pos.setSize (myTargetPosSize);
+      double[] pbuf = pos.getBuffer();
+      int idx = 0;
+      for (TargetPoint target : myTargetPoints) {
+         idx = target.getPosState (pbuf, idx);
+      }
+      for (TargetFrame target : myTargetFrames) {
+         idx = target.getPosState (pbuf, idx);
       }
    }
 
@@ -677,7 +699,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
    public VectorNd getTargetVel(double t0, double t1) {
       updateTarget (t0, t1);
-      return myTargetVel;
+      return myTrackingVel;
    }
 
    /**
@@ -757,13 +779,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          myHv.setColumn (j, Hv_j);
       }
       
-      myVbar.sub (myTargetVel, v0);
+      myVbar.sub (myTrackingVel, v0);
 
       if (controller.getDebug ()) {
          System.out.println (
             "(MotionTargetTerm)");
          System.out.println (
-            "\tmyTargetVel: " + myTargetVel.toString ("%.3f"));
+            "\tmyTargetVel: " + myTrackingVel.toString ("%.3f"));
          System.out.println (
             "\tV0: " + v0.toString ("%.3f"));
          System.out.println (

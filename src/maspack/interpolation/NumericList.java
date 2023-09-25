@@ -8,10 +8,12 @@ package maspack.interpolation;
 
 import java.util.Iterator;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.io.*;
 
 import maspack.interpolation.Interpolation.Order;
+import maspack.numerics.PolynomialFit;
 import maspack.matrix.*;
 import maspack.util.*;
 
@@ -969,6 +971,20 @@ public class NumericList
    }
 
    /**
+    * Returns the idx-th knot in this list, or {@code null} if so such
+    * knot exists;
+    * 
+    * @return idx-th knot
+    */
+   public NumericListKnot getKnot(int idx) {
+      NumericListKnot knot = myHead;
+      for (int i=0; i<idx && knot != null; i++) {
+         knot = knot.next;
+      }
+      return knot;
+   }
+
+   /**
     * Returns the number of knots in this list.
     * 
     * @return number of knots
@@ -1015,46 +1031,44 @@ public class NumericList
    }
 
    /**
-    * Smooths all the values in this list by averaging over the
-    * specified number of knots.
+    * Smooths all the values in this list by applying a mean avergae filter
+    * over a specified window size.
     * 
-    * @param winSize number of knots to average
+    * @param winSize size of averaging window. Method does nothing if this is
+    * less than 1. If {@code winSize} is even, it is rounded up to be odd.
     */
-   public void smooth (int winSize) {
-      if (winSize > 1) {
+   public void applyMeanSmoothing (int winSize) {
+      if (winSize > 0) {
+         if (winSize%2 == 0) {
+            winSize++;
+         }
          // store computed values in 'averages' until we have passed over the
          // averaging window:
          ArrayDeque<VectorNd> averages = new ArrayDeque<>();
-         int nnext = winSize/2;     // num succeeding knots needed
-         int nprev = (winSize-1)/2; // num preceeding knots needed
          NumericListKnot tail = myHead; // trailing knot whose value will be set
+         int numk = getNumKnots();
+         int k = 0;
          for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
-            VectorNd avg = new VectorNd(knot.v);
-            NumericListKnot prev = knot.prev;
-            int cnt = 1; // actual number of knots averaged
-            for (int i=0; i<nprev && prev != null; i++) {
-               avg.add (prev.v);
-               prev = prev.prev;
-               cnt++;
+            VectorNd avg = new VectorNd(getVectorSize());
+            int hsize = winSize/2; // half window size
+            // reduce the window size near the ends
+            hsize = Math.min(k, hsize);
+            hsize = Math.min(numk-1-k, hsize);
+            NumericListKnot wknot = knot;
+            for (int i=0; i<hsize; i++) {
+               wknot = wknot.prev;
             }
-            NumericListKnot next = knot.next;
-            for (int i=0; i<nnext && next != null; i++) {
-               avg.add (next.v);
-               next = next.prev;
-               cnt++;
+            for (int i=0; i<(hsize*2+1); i++) {
+               avg.add (wknot.v);
+               wknot = wknot.next;
             }
-            avg.scale (1/(double)cnt);
-            if (nprev > 0) {
-               // only need to store results if nprev > 0
-               averages.add (avg);
-               if (averages.size() > nprev) {
-                  tail.v.set (averages.remove());
-                  tail = tail.next;
-               }
+            avg.scale (1/(double)(2*hsize+1));
+            averages.add (avg);
+            if (averages.size() > winSize/2) {
+               tail.v.set (averages.remove());
+               tail = tail.next;
             }
-            else {
-               knot.v.set (avg);
-            }
+            k++;
          }       
          while (averages.size() > 0) {
             tail.v.set (averages.remove());
@@ -1062,6 +1076,74 @@ public class NumericList
          }
          myMinMaxValid = false;
       }
+   }
+
+   private VectorNd convolve (NumericListKnot knot, VectorNd wgts, int winSize) {
+      VectorNd avg = new VectorNd(getVectorSize());
+      for (int i=0; i<winSize; i++) {
+         avg.scaledAdd (wgts.get(i), knot.v);
+         knot = knot.next;
+      }
+      return avg;
+   }
+
+   /**
+    * Smooths all the values in this list by applying Savitzky-Golay smoothing
+    * over a specified window size.
+    * 
+    * @param deg degree of the smoothing polynomial. Must be at least 1.
+    * @param winSize size of averaging window. Must be {@code >= deg+1}.
+    * If {@code winSize} is even, it is rounded up to be odd.
+    */
+   public void applySavitzkyGolaySmoothing (int winSize, int deg) {
+      System.out.println ("win=" + winSize + " deg=" + deg);
+      if (deg < 1) {
+         throw new IllegalArgumentException (
+            "deg=" + deg + "; must be >= 1");
+      }
+      if (winSize < deg+1) {
+         throw new IllegalArgumentException (
+            "winSize=" + winSize + "; must be >= deg+1");
+      }
+      if (winSize%2 == 0) {
+         winSize++;
+      }
+      PolynomialFit fit = new PolynomialFit (deg, winSize, 0.0, 1.0);
+      VectorNd[] wgts = new VectorNd[winSize];
+      // create a weight set for every window point, to allow us to interpolate
+      // values at the ends
+      for (int i=0; i<winSize; i++) {
+         wgts[i] = fit.getSavitzkyGolayWeights (i/(double)(winSize-1));
+      }
+      // store computed values in 'averages' until we have passed over the
+      // averaging window:
+      ArrayDeque<VectorNd> averages = new ArrayDeque<>();
+      NumericListKnot tail = myHead; // trailing knot whose value will be set
+      int numk = getNumKnots();
+      NumericListKnot knot = myHead;
+      for (int k=0; k<numk-winSize+1; k++) {
+         if (k == 0) {
+            for (int j=0; j<winSize/2; j++) {
+               averages.add (convolve (knot, wgts[j], winSize));
+            }
+         }
+         averages.add (convolve (knot, wgts[winSize/2], winSize));
+         if (k == numk-winSize) {
+            for (int j=winSize/2+1; j<winSize; j++) {
+               averages.add (convolve (knot, wgts[j], winSize));
+            }
+         }
+         if (averages.size() > winSize/2) {
+            tail.v.set (averages.remove());
+            tail = tail.next;
+         }
+         knot = knot.next;
+      }       
+      while (averages.size() > 0) {
+         tail.v.set (averages.remove());
+         tail = tail.next;
+      }
+      myMinMaxValid = false;
    }
 
    /**

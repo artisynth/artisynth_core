@@ -459,7 +459,7 @@ public interface MechSystem {
     * <code>dg</code> will also be sized appropriately by the system.
     *
     * @param GT returns the transpose of G
-    * @param dg returns the derivative term for G
+    * @param dg if non-null, returns the derivative term for G
     */
    public void getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg);
 
@@ -527,7 +527,7 @@ public interface MechSystem {
     * <code>dn</code> will also be sized appropriately by the system.
     *
     * @param NT returns the transpose of N
-    * @param dn returns the derivative term for N
+    * @param dn if non-null. returns the derivative term for N
     */
    public void getUnilateralConstraints (SparseBlockMatrix NT, VectorNd dn);
 

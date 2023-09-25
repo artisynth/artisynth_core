@@ -8,6 +8,74 @@ import maspack.matrix.*;
  */
 public class PolynomialFit {
 
+   int myDegree;
+   int myNumY;
+   double myXhi;
+   double myXlo;
+   QRDecomposition myQR;
+
+   public PolynomialFit () {
+   }
+
+   public PolynomialFit (int degree, int numy, double xlo, double xhi) {
+      if (degree < 1) {
+         throw new IllegalArgumentException ("degree must be at least 1");
+      }
+      if (numy < degree+1) {
+         throw new IllegalArgumentException (
+            "number of data points must be >= degree+1 ("+(degree+1)+")");
+      }
+      if (xlo == xhi) {
+         throw new IllegalArgumentException (
+            "xlo equals xhi ("+xhi+")");
+      }
+      myDegree = degree;
+      myNumY = numy;
+      MatrixNd A = new MatrixNd (numy, degree+1);
+      for (int i=0; i<numy; i++) {
+         double x = xlo + i*(xhi-xlo)/(numy-1.0);
+         double pow = 1;
+         for (int j=0; j<degree+1; j++) {
+            A.set (i, degree-j, pow);
+            pow *= x;
+         }
+      }
+      myQR = new QRDecomposition();
+      myQR.factor (A);
+      myDegree = degree;
+      myNumY = numy;
+      myXhi = xhi;
+      myXlo = xlo;
+   }
+
+   public void fit (VectorNd coefs, double[] yv) {
+      if (myQR == null) {
+         throw new IllegalStateException (
+            "PolynomialFit is not initialized");
+      }
+      if (yv.length < myNumY) {
+         throw new IllegalArgumentException (
+            "length of yv is less then specified numy ("+myNumY+")");
+      }
+      coefs.setSize (myDegree+1);
+      VectorNd b = new VectorNd(yv);
+      b.setSize (myNumY);
+      myQR.solve (coefs, b);
+   }
+
+   public VectorNd getSavitzkyGolayWeights (double s) {
+      VectorNd uvec = new VectorNd (myDegree+1);
+      VectorNd weights = new VectorNd(myNumY);
+      double pow = 1;
+      double x = myXlo + s*(myXhi-myXlo);
+      for (int j=0; j<myDegree+1; j++) {
+         uvec.set (myDegree-j, pow);
+         pow *= x;
+      }
+      myQR.leftSolve (weights, uvec);
+      return weights;
+   }
+
    private final double sqr (double x) {
       return x*x;
    }         
@@ -122,6 +190,13 @@ public class PolynomialFit {
    }
 
    public static void main (String[] args) {
+      PolynomialFit fit = new PolynomialFit (3, 5, 0.0, 1.0);
+      for (int i=0; i<5; i++) {
+         double s = i/4.0;
+         VectorNd wgts = fit.getSavitzkyGolayWeights (s);
+         System.out.println (
+            "SavitzkyGolay 3/5 "+s+" =" + wgts.toString ("%12.8f"));
+      }
    }
 
 }

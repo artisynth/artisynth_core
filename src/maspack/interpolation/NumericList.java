@@ -1031,13 +1031,13 @@ public class NumericList
    }
 
    /**
-    * Smooths all the values in this list by applying a mean avergae filter
+    * Smooths all the values in this list by applying a mean average filter
     * over a specified window size.
     * 
     * @param winSize size of averaging window. Method does nothing if this is
     * less than 1. If {@code winSize} is even, it is rounded up to be odd.
     */
-   public void applyMeanSmoothing (int winSize) {
+   public void applyMovingAverageSmoothing (int winSize) {
       if (winSize > 0) {
          if (winSize%2 == 0) {
             winSize++;

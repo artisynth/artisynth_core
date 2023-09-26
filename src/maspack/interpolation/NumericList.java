@@ -1031,22 +1031,32 @@ public class NumericList
    }
 
    /**
-    * Smooths all the values in this list by applying a mean average filter
-    * over a specified window size.
+    * Smooths the values in this list by applying a mean average filter over a
+    * moving window of specified size. This window is centered on each knot,
+    * and is reduced in size near the end knots to ensure a symmetric fit. The
+    * end knot values are not changed.
     * 
-    * @param winSize size of averaging window. Method does nothing if this is
-    * less than 1. If {@code winSize} is even, it is rounded up to be odd.
+    * @param winSize size of the averaging window. The value should be odd; if
+    * it is even, it will be incremented internally to be odd.  The method does
+    * nothing if the value is is less than 1. Finally, {@code winSize} will be
+    * reduced if necessary to fit the number of knots.
     */
    public void applyMovingAverageSmoothing (int winSize) {
-      if (winSize > 0) {
-         if (winSize%2 == 0) {
-            winSize++;
-         }
+      if (winSize <= 0) {
+         return;
+      }
+      if (winSize%2 == 0) {
+         winSize++;
+      }
+      int numk = getNumKnots();
+      if (winSize > numk) {
+         winSize = (numk%2 == 0 ? numk-1 : numk);
+      }
+      if (winSize >= 3) {
          // store computed values in 'averages' until we have passed over the
          // averaging window:
          ArrayDeque<VectorNd> averages = new ArrayDeque<>();
          NumericListKnot tail = myHead; // trailing knot whose value will be set
-         int numk = getNumKnots();
          int k = 0;
          for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
             VectorNd avg = new VectorNd(getVectorSize());
@@ -1087,16 +1097,23 @@ public class NumericList
       return avg;
    }
 
-   /**
-    * Smooths all the values in this list by applying Savitzky-Golay smoothing
-    * over a specified window size.
+
+    /**
+    * Smooths the values in this list by applying Savitzky-Golay smoothing over
+    * a moving window of specified size. Savitzky-Golay smoothing works by
+    * fitting the data values in the window to a polynomial of degree {@code
+    * deg}, and then using this to recompute the value in the middle of the
+    * window. The polynomial is also used to interpolate the first and last
+    * {@code winSize/2} values, since it is not possible to center the window
+    * on these.
     * 
     * @param deg degree of the smoothing polynomial. Must be at least 1.
-    * @param winSize size of averaging window. Must be {@code >= deg+1}.
-    * If {@code winSize} is even, it is rounded up to be odd.
+    * @param winSize size of the averaging window. The value must be {@code >=
+    * deg+1} and should also be odd; if it is even, it will be incremented
+    * internally to be odd. Finally, {@code winSize} will be reduced if
+    * necessary to fit the number of knots.
     */
    public void applySavitzkyGolaySmoothing (int winSize, int deg) {
-      System.out.println ("win=" + winSize + " deg=" + deg);
       if (deg < 1) {
          throw new IllegalArgumentException (
             "deg=" + deg + "; must be >= 1");
@@ -1105,8 +1122,16 @@ public class NumericList
          throw new IllegalArgumentException (
             "winSize=" + winSize + "; must be >= deg+1");
       }
+      int minWinSize = (deg%2 == 0 ? deg+1 : deg+2);
       if (winSize%2 == 0) {
          winSize++;
+      }
+      int numk = getNumKnots();
+      if (winSize > numk) {
+         winSize = (numk%2 == 0 ? numk-1 : numk);
+      }
+      if (winSize < minWinSize) {
+         return;
       }
       PolynomialFit fit = new PolynomialFit (deg, winSize, 0.0, 1.0);
       VectorNd[] wgts = new VectorNd[winSize];
@@ -1119,7 +1144,6 @@ public class NumericList
       // averaging window:
       ArrayDeque<VectorNd> averages = new ArrayDeque<>();
       NumericListKnot tail = myHead; // trailing knot whose value will be set
-      int numk = getNumKnots();
       NumericListKnot knot = myHead;
       for (int k=0; k<numk-winSize+1; k++) {
          if (k == 0) {

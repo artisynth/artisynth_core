@@ -423,6 +423,40 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       return myPropList.toArray (new Property[0]);
    }
 
+   /**
+    * Smooths the values in this probe by applying a mean average filter over a
+    * moving window of specified size. This window is centered on each data
+    * point, and is reduced in size near the end values to ensure a symmetric
+    * fit. The end values themselves are not changed.
+    * 
+    * @param winSize size of the averaging window. The value should be odd; if
+    * it is even, it will be incremented internally to be odd.  The method does
+    * nothing if the value is is less than 1. Finally, {@code winSize} will be
+    * reduced if necessary to fit the number of data points.
+    */
+   public void smoothWithMovingAverage (int winSize) {
+      myNumericList.applyMovingAverageSmoothing (winSize);
+   }
+
+   /**
+    * Smooths the values in this probe by applying Savitzky-Golay smoothing
+    * over a moving window of specified size. Savitzky-Golay smoothing works by
+    * fitting the data values in the window to a polynomial of degree {@code
+    * deg}, and then using this to recompute the value in the middle of the
+    * window. The polynomial is also used to interpolate the first and last
+    * {@code winSize/2} values, since it is not possible to center the window
+    * on these.
+    * 
+    * @param deg degree of the smoothing polynomial. Must be at least 1.
+    * @param winSize size of the averaging window. The value must be {@code >=
+    * deg+1} and should also be odd; if it is even, it will be incremented
+    * internally to be odd. Finally, {@code winSize} will be reduced if
+    * necessary to fit the number of data points.
+    */
+   public void smoothWithSavitzkyGolay (int winSize, int deg) {
+      myNumericList.applySavitzkyGolaySmoothing (winSize, deg);
+   }
+
    // public abstract void set (
    // Property[] props,
    // NumericProbeDriver[] drivers,

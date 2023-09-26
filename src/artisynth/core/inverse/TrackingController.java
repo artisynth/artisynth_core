@@ -947,7 +947,8 @@ public class TrackingController extends ControllerBase
     * @param ex exciter to add
     */
    public void addExciter(double weight, ExcitationComponent ex) {
-      myExciters.add (new ExciterComp (ex, weight));
+      ExciterComp ecomp = new ExciterComp (ex, weight);
+      myExciters.add (ecomp);
       // keep size of myExcitations synced with number of exciters
       myExcitations.append (0); 
       
@@ -964,6 +965,10 @@ public class TrackingController extends ControllerBase
             RenderProps.setLineColor(m, Color.WHITE);
             m.setExcitationColor(Color.RED);
          }
+      }
+      else if (ex instanceof PointExciter ||
+               ex instanceof FrameExciter) {
+         ecomp.setExcitationBounds (new DoubleInterval(-1, 1));
       }
    }
    

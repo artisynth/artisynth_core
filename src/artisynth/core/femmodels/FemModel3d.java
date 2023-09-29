@@ -4115,7 +4115,7 @@ PointAttachable, ConnectableBody {
 
    }
 
-   /* --- --- */
+   /* --- Mesh query methods --- */
 
    private double getVolumeError(FemElement3d e) {
       // System.out.println ("vol= " + e.getVolume());
@@ -4228,6 +4228,41 @@ PointAttachable, ConnectableBody {
          }
       }
       return false;
+   }
+   
+   /**
+    * Returns a list of element-value pairs describing the aspect ratios of all
+    * the tet elements in this model. Thie is sorted into descending order, so
+    * that the lowest quality elements appear at the beginning.
+    */
+   public ArrayList<Element3dValuePair> getTetAspectRatios() {
+      ArrayList<Element3dValuePair> pairs = new ArrayList<>(numTetElements());
+      for (FemElement3d elem : getElements()) {
+         if (elem instanceof TetElement) {
+            TetElement tet = (TetElement)elem;
+            pairs.add (new Element3dValuePair(tet, tet.computeAspectRatio()));
+         }
+      }
+      // sort list into descending order
+      Collections.sort (
+         pairs, (a,b) -> a.value > b.value ? -1 : (a.value==b.value ? 0 : 1));
+      return pairs;      
+   }
+
+   /**
+    * Returns a list of element-value pairs describing the rest volumes of all
+    * the volumetric elements in this model. Thie is sorted into ascending
+    * order, so that the smallest elements appear at the beginning.
+    */
+   public ArrayList<Element3dValuePair> getElementRestVolumes() {
+      ArrayList<Element3dValuePair> pairs = new ArrayList<>(numElements());
+      for (FemElement3d elem : getElements()) {
+         pairs.add (new Element3dValuePair(elem, elem.getRestVolume()));
+      }
+      // sort list into ascending order
+      Collections.sort (
+         pairs, (a,b) -> a.value < b.value ? -1 : (a.value==b.value ? 0 : 1));
+      return pairs;      
    }
 
    private int numActiveNodes() {

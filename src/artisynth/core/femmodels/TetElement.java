@@ -568,5 +568,57 @@ public class TetElement extends FemElement3d {
               containsNode (n1) && 
               containsNode (n2));
    }
+
+   /**
+    * Compute face size based on the length of the cross product of its two
+    * edges.
+    */
+   private double faceSize (Point3d p0, Point3d p1, Point3d p2) {
+      Vector3d v01 = new Vector3d();
+      Vector3d v02 = new Vector3d();
+      Vector3d xprod = new Vector3d();
+      v01.sub (p1, p0);
+      v02.sub (p2, p0);
+      xprod.cross (v01, v02);
+      return xprod.norm();
+   }
+
+   /**
+    * Computes the aspect ratio for this tet, based on its rest position, as
+    * defined by <a
+    * href="https://docs.salome-platform.org/latest/gui/SMESH/aspect_ratio_3d.html">docs.salome-platform.org/latest/gui/SMESH/aspect_ratio_3d.html</a>.
+    */
+   public double computeAspectRatio() {
+      // get rest positions of nodes
+      Point3d p0 = myNodes[0].getRestPosition();
+      Point3d p1 = myNodes[1].getRestPosition();
+      Point3d p2 = myNodes[2].getRestPosition();
+      Point3d p3 = myNodes[3].getRestPosition();
+
+      // compute max edge length
+      double maxl = Math.max (p0.distance(p1), p0.distance(p2));
+      maxl = Math.max (p0.distance(p3), maxl);
+      maxl = Math.max (p1.distance(p2), maxl);
+      maxl = Math.max (p1.distance(p3), maxl);
+      maxl = Math.max (p2.distance(p3), maxl);
+
+      // calculate alpha
+      Vector3d v01 = new Vector3d();
+      Vector3d v02 = new Vector3d();
+      Vector3d v03 = new Vector3d();
+      Vector3d xprod = new Vector3d();
+      v01.sub (p1, p0);
+      v02.sub (p2, p0);
+      v03.sub (p3, p0);
+      xprod.cross (v02, v03);
+      double alpha = v01.dot (xprod);
+
+      // calculate radius
+      double r = Math.abs(alpha) /
+         (faceSize(p0,p1,p2) + faceSize(p0,p1,p3) +
+          faceSize(p0,p2,p3) + faceSize(p1,p2,p3));
+      
+      return maxl/(2*Math.sqrt(6)*r);
+   }
    
 }

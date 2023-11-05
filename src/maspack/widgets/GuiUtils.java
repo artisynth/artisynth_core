@@ -16,6 +16,7 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Window;
+import java.awt.Insets;
 import java.awt.event.ActionListener;
 import java.io.File;
 
@@ -29,6 +30,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSlider;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.TitledBorder;
 import javax.swing.plaf.basic.BasicSliderUI;
@@ -871,6 +873,47 @@ public class GuiUtils {
       button.addActionListener (listener);
       button.setAlignmentX (Component.CENTER_ALIGNMENT);
       comp.add (button);
+      return button;
+   }
+
+   /**
+    * Creates a button to be arranged vertically in JComponent.
+    *
+    * @param cmd name and command associated with the button
+    * @param listener action listener for the button command
+    * @param toolTip if not {@code null}, specifies tool tip text
+    * @return created button
+    */
+   public static JButton createVerticalButton (
+      String cmd, ActionListener listener, String toolTip) {
+      JButton button = new JButton (cmd);
+      button.setActionCommand (cmd);
+      if (toolTip != null) {
+         button.setToolTipText (toolTip);
+      }
+      button.addActionListener (listener);
+      button.setAlignmentX (Component.LEFT_ALIGNMENT);
+      Dimension size = button.getPreferredSize();
+      button.setMaximumSize (new Dimension (Short.MAX_VALUE, size.height));
+      button.setHorizontalAlignment (SwingConstants.LEFT);
+      button.setMargin (new Insets (5, 10, 5, 10));
+      return button;
+   }
+
+   /**
+    * Creates a vertical button and adds it to a JComponent.
+    *
+    * @param comp component to which the button should be added
+    * @param cmd name and command associated with the button
+    * @param listener action listener for the button command
+    * @param toolTip if not {@code null}, specifies tool tip text
+    * @return created button
+    */
+   public static JButton addVerticalButton (
+      JComponent comp, String cmd, ActionListener listener, String toolTip) {
+      JButton button = createVerticalButton (cmd, listener, toolTip);
+      comp.add (button);
+      comp.add (Box.createRigidArea (new Dimension(0, 2)));
       return button;
    }
 

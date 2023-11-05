@@ -63,6 +63,7 @@ public class VectorGrid<T extends VectorObject<T>>
    protected Class<T> myTypeParameter;
    protected TypeCode myValueType = TypeCode.OTHER;
    protected ArrayList<T> myValues;  // values at each vertex
+   protected double myRenderVectorScale = 1.0;
 
    protected static final double INF = Double.POSITIVE_INFINITY;
    
@@ -479,17 +480,20 @@ public class VectorGrid<T extends VectorObject<T>>
       return result;
    }
 
-   public Vector3d getRenderVector (int xi, int yj, int zk) {
-      if (myTypeParameter == Vector3d.class) {
-         return (Vector3d)getVertexValue (xi, yj, zk);
-      }
-      else {
-         return null;
-      }
+   public boolean getRenderVector (Vector3d vec3, int xi, int yj, int zk) {
+      T value = getVertexValue (xi, yj, zk);
+      return value.getThreeVectorValue (vec3);
    }
 
    public double getRenderVectorScale() {
-      return 1.0;
+      return myRenderVectorScale;
+   }
+   
+   public void setRenderVectorScale (double scale) {
+      if (scale != myRenderVectorScale) {
+         myRenderVectorScale = scale;
+         myRobValid = false;
+      }
    }
    
    protected boolean scanItem (
@@ -516,6 +520,10 @@ public class VectorGrid<T extends VectorObject<T>>
          }
          return true;
       }
+      else if (scanAttributeName (rtok, "renderVectorScale")) {
+         myRenderVectorScale = rtok.scanNumber();
+         return true;
+      }
       rtok.pushBack();
       return super.scanItem (rtok, ref);      
    }
@@ -524,6 +532,7 @@ public class VectorGrid<T extends VectorObject<T>>
       throws IOException {
 
       super.writeItems (pw, fmt, ref);
+      pw.println ("renderVectorScale=" + fmt.format(myRenderVectorScale));
       pw.println ("values=[");
       IndentingPrintWriter.addIndentation (pw, 2);
       int numv = numVertices();

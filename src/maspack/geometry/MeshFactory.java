@@ -1152,14 +1152,6 @@ public class MeshFactory {
    //      }
    //   }
 
-   public static PolygonalMesh subdivide(PolygonalMesh orig, int numIters) {
-      PolygonalMesh out = orig;
-      for (int i = 0; i < numIters; i++) {
-         out = subdivide(out);
-      }
-      return out;
-   }
-   
    /**
     * Wrap all features of a mesh with a polygonal mesh
     * 
@@ -1208,6 +1200,14 @@ public class MeshFactory {
       return out;
    }
 
+   public static PolygonalMesh subdivide(PolygonalMesh orig, int numIters) {
+      PolygonalMesh mesh = orig;
+      for (int i = 0; i < numIters; i++) {
+         mesh = subdivide(mesh);
+      }
+      return mesh;
+   }
+   
    public static PolygonalMesh subdivide(PolygonalMesh orig) {
 
       PolygonalMesh mesh = new PolygonalMesh();
@@ -1317,6 +1317,127 @@ public class MeshFactory {
 
       return mesh;
 
+   }
+
+   public static PolygonalMesh subdivideCatClark (
+      PolygonalMesh orig, int numIters) {
+      PolygonalMesh mesh = orig;
+      for (int i = 0; i < numIters; i++) {
+         mesh = subdivideCatClark(mesh);
+      }
+      return mesh;
+   }
+   
+   public static PolygonalMesh subdivideCatClark (PolygonalMesh orig) {
+
+      Vertex3d[] faceVtxs = new Vertex3d[orig.numFaces()];
+
+      // create new face vertices for the center points
+      int i=0;
+      for (Face face : orig.getFaces()) {
+         Point3d pos = new Point3d();
+         face.computeCentroid(pos);
+         faceVtxs[i++] = new Vertex3d(pos);
+      }
+
+      // create new vertex vertices to replace the original vertices
+      Vertex3d[] vertexVtxs = new Vertex3d[orig.numVertices()];
+      i=0;
+      for (Vertex3d vtx : orig.getVertices()) {
+         // compute average face positions and edge midpoints for or all
+         // incident faces and half edges
+         Point3d avgFacePos = new Point3d();
+         Point3d avgEdgeMid = new Point3d();
+         int nedges = 0;
+         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+         while (it.hasNext()) {
+            HalfEdge he = it.next();
+            avgEdgeMid.add (he.getTail().getPosition());
+            int faceIdx = he.getFace().getIndex();
+            avgFacePos.add (faceVtxs[faceIdx].getPosition());
+            nedges++;
+         }
+         // finish conputing averages
+         avgEdgeMid.scaledAdd (nedges, vtx.getPosition());
+         avgEdgeMid.scale (1.0/(2*nedges));
+         avgFacePos.scale (1.0/nedges);
+         // compute new vertex positions from
+         //
+         // pos = (avgFacePos + 2*avgEdgeMid + (nedges-3)*oldPos)/nedges
+         //
+         Point3d pos = new Point3d();
+         pos.add (avgFacePos);
+         pos.scaledAdd (2, avgEdgeMid);
+         pos.scaledAdd (nedges-3, vtx.getPosition());
+         pos.scale (1.0/nedges);
+         vertexVtxs[i++] = new Vertex3d(pos);
+      }
+
+      // create the new mesh and add the new vertex and face vertices
+      PolygonalMesh mesh = new PolygonalMesh();
+      for (Vertex3d vtx : vertexVtxs) {
+         mesh.addVertex (vtx);
+      }
+      for (Vertex3d vtx : faceVtxs) {
+         mesh.addVertex (vtx);
+      }
+
+      // Create new edge vertices and add them to the mesh. Do this using only
+      // primary half edges, so we don't have to do the computation twice
+      HashMap<HalfEdge,Vertex3d> edgeVtxs = new HashMap<>();
+      for (Face face : orig.getFaces ()) {
+         HalfEdge he0 = face.firstHalfEdge ();
+         HalfEdge he = he0;
+         do {
+            if (he.isPrimary()) {                  
+               // letting avgFacePos be the average of the two adjacent face
+               // positions, and edgeMid the edge midpoint, the new edge
+               // position is given by
+               //
+               // pos = (avgFacePos + edgeMid)/2
+               //
+               Point3d pos = new Point3d();
+               pos.add (faceVtxs[he.getFace().getIndex()].getPosition());
+               Face opface = he.getOppositeFace();
+               if (opface != null) {
+                  pos.add (faceVtxs[opface.getIndex()].getPosition());
+                  pos.scale (0.5);
+               }
+               pos.scaledAdd (0.5, he.getHead().getPosition());
+               pos.scaledAdd (0.5, he.getTail().getPosition());
+               pos.scale (0.5);
+               Vertex3d vtx = mesh.addVertex (pos);
+               edgeVtxs.put (he, vtx);
+            }
+            he = he.getNext ();
+         }
+         while (he != he0);
+      }
+
+      // create new faces and add them to the mesh
+      for (Face face : orig.getFaces()) {
+         Vertex3d faceVtx = faceVtxs[face.getIndex()];
+         HalfEdge he0 = face.firstHalfEdge ();
+         HalfEdge he = he0;
+         Vertex3d prevEdgeVtx = null; // vertex for the previous half edge
+         do {
+            Vertex3d tailVtx = vertexVtxs[he.tail.getIndex()];
+            HalfEdge hep = (he.isPrimary () ? he : he.opposite);
+            Vertex3d edgeVtx = edgeVtxs.get (hep);
+            if (prevEdgeVtx != null) {
+               mesh.addFace (prevEdgeVtx, tailVtx, edgeVtx, faceVtx);
+            }
+            prevEdgeVtx = edgeVtx;
+            he = he.next;
+         }
+         while (he != he0);
+         // add face for first edge
+         Vertex3d tailVtx = vertexVtxs[he.tail.getIndex()];
+         HalfEdge hep = (he.isPrimary () ? he : he.opposite);
+         Vertex3d edgeVtx = edgeVtxs.get (hep);
+         mesh.addFace (prevEdgeVtx, tailVtx, edgeVtx, faceVtx);
+      }
+      return mesh;
    }
 
    /**
@@ -1686,6 +1807,78 @@ public class MeshFactory {
       RigidTransform3d XLM = new RigidTransform3d();
       addQuadCylindricalSection (
          mesh, r, h, 2*Math.PI, nh, nslices, /*outward=*/true, XLM, vtxMap);
+      return mesh;
+   }
+
+   /**
+    * Creates a quad cylindrical wedge centered on the origin with the main
+    * axis of rotation aligned with the z axis. The wedge extends for an
+    * angular extent of+/-<code>ang/2</code> on either side of the x axis; if
+    * <code>ang</code> is within machine precision of 2 PI then the section
+    * will become a whole cylinder.  Normals are oriented to face outwards. All
+    * faces are quads except for those at the center of the end caps.
+    *
+    * @param r outer radius of the wedge
+    * @param h height of the wedge
+    * @param ang total angular extent of the wedge
+    * @param nr number of radial slices    
+    * @param nh number of height slices
+    * @param nang number of angular slices
+    */
+   public static PolygonalMesh createQuadCylindricalWedge (
+      double r, double h, double ang, int nr, int nh, int nang) {
+
+      if (nang < 3) {
+         throw new IllegalArgumentException(
+            "argument nang must be at least 3");
+      }
+      if (Math.abs(ang-2*Math.PI) <= EPS) {
+         return createQuadCylinder (r, h, nang, nr, nh);
+      }
+      
+      // set map tolerance to be 0.01 times smallest spacing between vertices
+      double tol = Math.min(0.01*h/nh, 0.01*r/nr*Math.sin(2*Math.PI/nang));
+      VertexMap vtxMap = new VertexMap (tol);
+      PolygonalMesh mesh = new PolygonalMesh();
+      RigidTransform3d XLM = new RigidTransform3d();
+      addQuadCylindricalSection (
+         mesh, r, h, ang, nh, nang, /*outward=*/true, XLM, vtxMap);
+      XLM.p.set (0, 0, h/2);
+      addQuadAnnularSector (mesh, 0, r, ang, nr, nang, XLM, vtxMap);
+      XLM.p.set (0, 0, -h/2);
+      XLM.R.mulRpy (0, 0, Math.PI); // flip 180 about x
+      addQuadAnnularSector (mesh, 0, r, ang, nr, nang, XLM, vtxMap);
+
+      // now add wedgse sides
+      RigidTransform3d TR = new RigidTransform3d (0, 0, 0, ang/2, 0, 0);
+      XLM = new RigidTransform3d (r/2, 0, 0, 0, 0, -Math.PI/2);
+      XLM.mul (TR, XLM);
+      addQuadRectangle (mesh, r, h, nr, nh, XLM, vtxMap);
+      TR = new RigidTransform3d (0, 0, 0, -ang/2, 0, 0);
+      XLM = new RigidTransform3d (r/2, 0, 0, 0, 0, Math.PI/2);
+      XLM.mul (TR, XLM);
+      addQuadRectangle (mesh, r, h, nr, nh, XLM, vtxMap);
+      return mesh;
+   }
+
+   /**
+    * Creates a cylindrical wedge centered on the origin with the main axis of
+    * rotation aligned with the z axis. The wedge extends for an angular extent
+    * of+/-<code>ang/2</code> on either side of the x axis; if <code>ang</code>
+    * is within machine precision of 2 PI then the section will become a whole
+    * cylinder.  Normals are oriented to face outwards.
+    *
+    * @param r outer radius of the wedge
+    * @param h height of the wedge
+    * @param ang total angular extent of the wedge
+    * @param nr number of radial slices    
+    * @param nh number of height slices
+    * @param nang number of angular slices
+    */
+   public static PolygonalMesh createCylindricalWedge (
+      double r, double h, double ang, int nr, int nh, int nang) {
+      PolygonalMesh mesh = createQuadCylindricalWedge (r, h, ang, nr, nh, nang);
+      mesh.triangulate();
       return mesh;
    }
 

@@ -47,4 +47,33 @@ public interface VectorObject<T> extends Scannable, Clonable {
     */
    public boolean epsilonEquals (T v1, double tol);
 
+   /**
+    * Where possible, maps or projects this VectorObject onto a 3-vector.
+    * Currently used for rendering vector fields.
+    */
+   public default boolean getThreeVectorValue (Vector3d vec) {
+      if (this instanceof Vector3d) {
+         vec.set ((Vector3d)this);
+         return true;
+      }
+      else if (this instanceof Vector2d) {
+         Vector2d vec2 = (Vector2d)this;
+         vec.set (vec2.x, vec2.y, 0);
+         return true;
+      }
+      else if (this instanceof Vector) {
+         Vector vecx = (Vector)this;         
+         int size = Math.min (3, vecx.size());
+         vec.setZero();
+         for (int i=0; i<size; i++) {
+            vec.set (i, vecx.get(i));
+         }
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+
 }

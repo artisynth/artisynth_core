@@ -111,6 +111,10 @@ public class LabeledComponentPanel extends JPanel
       return myLayout.getSpacing();
    }
 
+   public int getLabelWidth() {
+      return myLabelSpacing.labelWidth;
+   }
+
    public void setSpacing (int spacing) {
       myLayout.setSpacing (spacing);
    }

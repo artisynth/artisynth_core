@@ -47,12 +47,20 @@ public class PropertyFrame extends JFrame implements ActionListener,
    }
 
    public OptionPanel addOptionPanel (String options) {
+     String[] opts = null;
+      if (options != null && OptionPanel.containsNonWhitespace (options)) {
+         opts = options.split ("\\s+");
+      }
+      return addOptionPanel (opts);
+   }
+
+   public OptionPanel addOptionPanel (String[] opts) {
       JSeparator sep = new JSeparator();
       sep.setAlignmentX (Component.LEFT_ALIGNMENT);
       getContentPane().add (GuiUtils.createBoxFiller());
       getContentPane().add (sep);
 
-      myOptionPanel = new OptionPanel (options, this);
+      myOptionPanel = new OptionPanel (opts, this);
       myOptionPanel.setAlignmentX (Component.LEFT_ALIGNMENT);
       // GuiUtils.setFixedHeight (
       // myOptionPanel, myOptionPanel.getPreferredSize().height);

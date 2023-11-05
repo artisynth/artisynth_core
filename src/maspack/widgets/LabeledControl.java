@@ -146,6 +146,13 @@ public abstract class LabeledControl extends LabeledComponent {
    }
 
    /**
+    * Remove all ValueChangeListeners from this control.
+    */
+   public void clearValueChangeListeners() {
+      myChangeListeners.clear();
+   }
+
+   /**
     * Returns a list of all the ValueChangeListeners currently held by this
     * control.
     * 

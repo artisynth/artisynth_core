@@ -90,6 +90,7 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
    protected int[] myRenderRanges = null;
 
    protected RenderObject myRob;      // render object used for rendering
+   protected boolean myVertexRenderingEnabled = true;
    protected boolean myRobValid = false;
    private static final int VECTOR_GROUP = 0; // rendering line group for vectors
    private static final int EDGE_GROUP = 1;   // rendering line group for edges
@@ -737,12 +738,14 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
     * returns {@code null} if no vector information should be rendered at that
     * vertex.
     *
+    * @param vec3 three vector value
     * @param xi x vertex index
     * @param yj y vertex index
     * @param zk z vertex index
+    * @return {@code true} if the vector quantity maps to a 3-vector value
     */
-   public Vector3d getRenderVector (int xi, int yj, int zk) {
-      return null;
+   public boolean getRenderVector (Vector3d vec3, int xi, int yj, int zk) {
+      return false;
    }
 
    /**
@@ -806,15 +809,15 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
          }
       }
       if (veclen != 0) {
+         Vector3d vec3 = new Vector3d();
          int pidx = 0;
          for (int zk=zlo; zk<zhi; zk++) {
             for (int yj=ylo; yj<yhi; yj++) {
                for (int xi=xlo; xi<xhi; xi++) {
-                  Vector3d vec = getRenderVector (xi, yj, zk);
-                  if (vec != null) {
+                  if (getRenderVector (vec3, xi, yj, zk)) {
                      float[] pos = rob.getPosition(pidx);
                      coords.set (pos[0], pos[1], pos[2]);
-                     coords.scaledAdd (veclen, vec);
+                     coords.scaledAdd (veclen, vec3);
                      int cidx = myColorMap != null ? myColorIndices[pidx] : -1;
                      rob.addPosition (coords);
                      rob.addVertex (vidx, -1, cidx, -1);
@@ -891,7 +894,23 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
       myRenderProps = createRenderProps();
       myRenderProps.set (props);
    }
-
+   
+   /**
+    * Enable or disable rendering of vertices. Default is {@code true}.
+    * @param enable if {@code true}, enables vertex rendering
+    */
+   public void setVertexRenderingEnabled (boolean enable) {
+      myVertexRenderingEnabled = enable;
+   }
+   
+   /**
+    * Queries whether rendering of vertices is enabled.
+    * @return {@code true} if vertex rendering is enabled
+    */
+   public boolean isVertexRenderingEnabled () {
+      return myVertexRenderingEnabled;
+   }
+   
    /**
     * {@inheritDoc}
     */
@@ -947,17 +966,20 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
       }
       RenderObject rob = myRob;
       if (rob != null) {
-         if (props.getPointStyle() == PointStyle.POINT) {
-            if (props.getPointSize() != 0) {
-               renderer.setPointColoring (props, highlight);
-               renderer.drawPoints (rob, PointStyle.POINT, props.getPointSize());
+         if (myVertexRenderingEnabled) {
+            if (props.getPointStyle() == PointStyle.POINT) {
+               if (props.getPointSize() != 0) {
+                  renderer.setPointColoring (props, highlight);
+                  renderer.drawPoints (
+                     rob, PointStyle.POINT, props.getPointSize());
+               }
             }
-         }
-         else {
-            if (props.getPointRadius() > 0) {
-               renderer.setPointColoring (props, highlight);
-               renderer.drawPoints (
-                  rob, props.getPointStyle(), props.getPointRadius());
+            else {
+               if (props.getPointRadius() > 0) {
+                  renderer.setPointColoring (props, highlight);
+                  renderer.drawPoints (
+                     rob, props.getPointStyle(), props.getPointRadius());
+               }
             }
          }
          if (props.getLineStyle() == LineStyle.LINE) {

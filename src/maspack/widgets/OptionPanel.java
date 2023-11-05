@@ -35,6 +35,19 @@ public class OptionPanel extends JPanel {
 
    public OptionPanel (String options, ActionListener actionl) {
       super();
+      String[] opts = null;
+      if (options != null && containsNonWhitespace (options)) {
+         opts = options.split ("\\s+");
+      }
+      initialize (opts, actionl);
+   }
+
+   public OptionPanel (String[] opts, ActionListener actionl) {
+      super();
+      initialize (opts, actionl);
+   }
+
+   private void initialize (String[] opts, ActionListener actionl) {
       setBorder (BorderFactory.createEmptyBorder (5, 5, 5, 5));
       setLayout (new BoxLayout (this, BoxLayout.X_AXIS));
       add (Box.createRigidArea (new Dimension (20, 10)));
@@ -43,10 +56,8 @@ public class OptionPanel extends JPanel {
       add (Box.createRigidArea (new Dimension (20, 10)));
 
       myActionListener = actionl;
-
       myButtonMap = new LinkedHashMap<String,JButton>();
-      if (options != null && containsNonWhitespace (options)) {
-         String[] opts = options.split ("\\s+");
+      if (opts != null && opts.length > 0) {
          for (int i = 0; i < opts.length; i++) {
             addButton (opts[i]);
          }
@@ -164,7 +175,7 @@ public class OptionPanel extends JPanel {
       return true;
    }
 
-   private boolean containsNonWhitespace (String str) {
+   static boolean containsNonWhitespace (String str) {
       for (int i = 0; i < str.length(); i++) {
          if (!Character.isWhitespace (str.charAt (i))) {
             return true;

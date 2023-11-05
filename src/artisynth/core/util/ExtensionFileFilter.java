@@ -9,6 +9,7 @@ package artisynth.core.util;
 import java.io.File;
 import java.util.Arrays;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.JFileChooser;
 
 public class ExtensionFileFilter extends FileFilter {
    String description;
@@ -51,7 +52,7 @@ public class ExtensionFileFilter extends FileFilter {
       return description;
    }
 
-   private String getFileExtension (File file) {
+   public static String getFileExtension (File file) {
       if (file == null) {
          return null;
       }
@@ -86,5 +87,17 @@ public class ExtensionFileFilter extends FileFilter {
          }
          return false;
       }
+   }
+
+   public static File getSelectedFileWithExtension (JFileChooser chooser) {
+      File file = chooser.getSelectedFile();
+      if (getFileExtension(file) == null) {
+         FileFilter filter = chooser.getFileFilter();
+         if (filter instanceof ExtensionFileFilter) {
+            String ext = ((ExtensionFileFilter)filter).getExtensions()[0];
+            file =  new File(file.getPath() + "." + ext.toLowerCase());
+         }
+      }
+      return file;
    }
 }

@@ -43,6 +43,8 @@ public class SelectionManager {
    
    protected LinkedList<SelectionListener> mySelectionListeners;
    protected boolean myPopupMenuEnabledP = true;
+   // force regular viewer selection to act like multiple selection
+   protected boolean myViewerMultiSelectionP = false;
    protected int myMaxSelections = -1;
 
    protected NavigationPanel myNavPanel;
@@ -127,7 +129,27 @@ public class SelectionManager {
          return null;
       }
    }
-
+   
+   /**
+    * Forces regular selection in the viewer to perform multiple selection. In 
+    * other words, viewer selection will act like the multiple-selection key
+    * is always pressed. 
+    * 
+    * @param enable if {@code true}, sets viewer multiple selection
+    */
+   public void setViewerMultiSelection (boolean enable) {
+      myViewerMultiSelectionP = enable;
+   }
+   
+   /**
+    * Queries whether viewer multiple selection has been set.
+    * 
+    * @return{@code true} if viewer multiple selection is set
+    */
+   public boolean getViewerMultiSelection () {
+      return myViewerMultiSelectionP;
+   }
+   
    /**
     * Sets the maximum number of components that may be concurrently selected. A
     * value of -1 indicates that there is no limit.
@@ -205,6 +227,8 @@ public class SelectionManager {
    //    }
    //    return myDependencyExpandedSelection;
    // }
+   
+   
 
    /**
     * Returns a list of the currently selected components, expanded to include
@@ -331,17 +355,18 @@ public class SelectionManager {
       }
    }
 
-   public void addSelected (List<ModelComponent> addList) {
+   public void addSelected (List<? extends ModelComponent> addList) {
       addAndRemoveSelected (addList, null);
    }
 
-   public void removeSelected (List<ModelComponent> removeList) {
+   public void removeSelected (List<? extends ModelComponent> removeList) {
       addAndRemoveSelected (null, removeList);
    }
 
    public void addAndRemoveSelected (
-      List<ModelComponent> addList, List<ModelComponent> removeList) {
-      LinkedList<ModelComponent> added = new LinkedList<ModelComponent>();
+      List<? extends ModelComponent> addList,
+      List<? extends ModelComponent> removeList) {
+      LinkedList<ModelComponent> added = new LinkedList<>();
       if (addList != null) {
          for (ModelComponent c : addList) {
             if (!c.isSelected()) {
@@ -584,6 +609,9 @@ public class SelectionManager {
          HashSet<ModelComponent> handled = new HashSet<ModelComponent>();
          
          int selOp = (e.getFlags() & ViewerSelectionEvent.OP_MASK);
+         if (myViewerMultiSelectionP && selOp == ViewerSelectionEvent.SET) {
+            selOp = ViewerSelectionEvent.XADD;
+         }
 
          // multiple selection mode
          boolean dragging = ((e.getFlags() & ViewerSelectionEvent.DRAG) != 0);
@@ -606,7 +634,7 @@ public class SelectionManager {
                            case ViewerSelectionEvent.SET: {
                               //   added   = V minus S
                               //   removed = S minus V
-                              //   S       = V                            
+                              //   S       = V 
                               if (!c.isSelected()) {
                                  added.add (c);
                                  c.setSelected (true);

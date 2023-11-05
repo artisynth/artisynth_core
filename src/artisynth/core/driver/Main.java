@@ -3158,8 +3158,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
                System.out.println ("LOAD OK: " +  className);
                //ForceScalingUtils.findForceScaling (getRootModel(), false);
             }
+            //System.console().readLine();
          }
-         
       }
    }
 
@@ -3926,7 +3926,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (myMenuBarHandler.modeSelectionToolbar != null) {
             SelectionToolbar toolbar =
                (SelectionToolbar)myMenuBarHandler.modeSelectionToolbar;
-            toolbar.setSelectionButtons();
+          toolbar.setSelectionButtons();
          }
 
          if (myWorkspace != null) {

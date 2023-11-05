@@ -84,7 +84,7 @@ public class RootModelManager {
       // omitFromMenu whose value con be converted to 'true'
       try {
          Field field = clazz.getField ("omitFromMenu");
-         return field.getBoolean (null);         
+         return field.getBoolean (null);
       }
       catch (Exception e) {
          return false;

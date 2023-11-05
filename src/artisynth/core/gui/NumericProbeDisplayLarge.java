@@ -36,6 +36,7 @@ import maspack.widgets.ValueChangeListener;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.matrix.Point2d;
+import maspack.interpolation.NumericList;
 import artisynth.core.gui.timeline.GuiStorage;
 import artisynth.core.probes.NumericProbeBase;
 import artisynth.core.probes.Probe;
@@ -189,6 +190,24 @@ public class NumericProbeDisplayLarge extends JFrame // implements KeyListener
       setDefaultCloseOperation (DISPOSE_ON_CLOSE);     
    }
    
+   public NumericProbeDisplayLarge (
+      String title, NumericList nlist, boolean inputData) {
+      myProbe = null;
+      setTitle (title);
+
+      // create probe panels based on the fact if it is input or output probes
+      myPanel = new NumericProbePanel (
+         nlist, 700, 400, /*large=*/true, inputData);
+      myPanel.addPropertyChangeListener (this);
+      CursorPositionListener l = new CursorPositionListener();
+      myPanel.addMouseMotionListener (l);
+      myPanel.addMouseListener (l);
+      myPanel.addMouseWheelListener (l);
+            
+      initialize();
+      setDefaultCloseOperation (DISPOSE_ON_CLOSE);     
+   }
+   
    public NumericProbeDisplayLarge (Probe probe, String trackNumber) {
       super();
 
@@ -296,7 +315,6 @@ public class NumericProbeDisplayLarge extends JFrame // implements KeyListener
       updateWidgets();
       
       pack();
-      System.out.println ("size=" + myCursorPanel.getSize());
    }
 
    private JButton getCursorButton (CursorMode mode) {

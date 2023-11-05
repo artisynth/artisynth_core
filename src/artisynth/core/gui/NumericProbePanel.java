@@ -101,13 +101,13 @@ public class NumericProbePanel extends JPanel
        * Ordered in descending order based on the root mean square of their
        * values.
        */
-      MAX_RMS,
+      RMS,
 
       /**
        * Ordered in descending order based on the distance between their
        * maximum and minimum values.
        */
-      MAX_RANGE
+      RANGE
    };
 
    float[] myMargins = new float[4];
@@ -295,21 +295,46 @@ public class NumericProbePanel extends JPanel
       double maxYval;
       public float leftMargin;
       float topMargin;
+      boolean undefined = false;
 
       ScreenTransform (
          DoubleInterval xrange, double plotWidth, float left,
          DoubleInterval yrange, double plotHeight, float top, double scale) {
 
-         xvelPerPixel = xrange.getRange()/(plotWidth-1)/scale;
+//         if (plotWidth < 0 || plotHeight < 0) {
+//            throw new InternalErrorException (
+//               "plotWidth=" + plotWidth + " plotHeight=" + plotHeight);
+//         }
+         if (plotWidth > 1) {
+            xvelPerPixel = xrange.getRange()/(plotWidth-1)/scale;
+            pixelsPerXval = 1/xvelPerPixel;
+         }
+         else {
+            // undefined - window is too small
+            xvelPerPixel = -1;
+            pixelsPerXval = -1;
+            undefined = true;
+         }
          minXval = xrange.getLowerBound();
-         pixelsPerXval = 1/xvelPerPixel;
          leftMargin = left;
-         yvalPerPixel = yrange.getRange()/(plotHeight-1);
+         if (plotHeight > 1) {
+            yvalPerPixel = yrange.getRange()/(plotHeight-1);
+            pixelsPerYval = 1/yvalPerPixel; 
+         }
+         else {
+            // undefined - window is too small
+            yvalPerPixel = -1;
+            pixelsPerYval = -1;
+            undefined = true;
+         }
          maxYval = yrange.getUpperBound();
-         pixelsPerYval = 1/yvalPerPixel;        
          topMargin = top;
       }
 
+      public boolean isUndefined() {
+         return undefined;
+      }
+      
       public double yvaluePerPixel() {
          return yvalPerPixel;
       }
@@ -998,6 +1023,10 @@ public class NumericProbePanel extends JPanel
    public void drawPlot (DataRenderer r, boolean largeDisplay) {
       updateMargins (myMargins, largeDisplay);
       ScreenTransform xform = createScreenTransform();
+      
+      if (xform.isUndefined()) {
+         return; // unable to draw - window too small
+      }
 
       r.beginPlot (getWidth(), getHeight(), /*antialiasing=*/true);
       if (largeDisplay) {
@@ -1834,14 +1863,14 @@ public class NumericProbePanel extends JPanel
          case ORDINAL: {
             return idxs;
          }
-         case MAX_RMS: {
+         case RMS: {
             VectorNd sumsqr = new VectorNd(vsize);
             myNumericList.getSumSquaredValues (sumsqr);
             ArraySort.quickSort (sumsqr.getBuffer(), idxs);
             // reverse indices since sort is in ascending order
             return reverse (idxs);
          }
-         case MAX_RANGE: {
+         case RANGE: {
             VectorNd min = new VectorNd(vsize);
             VectorNd max = new VectorNd(vsize);
             VectorNd rng = new VectorNd(vsize);
@@ -2563,6 +2592,37 @@ public class NumericProbePanel extends JPanel
       setDisplaySize (panel.getWidth(), panel.getHeight());
    }
    
+   public NumericProbePanel (
+      NumericList nlist, int width, int height,
+      boolean largeDisplay, boolean inputData) {
+
+      double xstart = nlist.getFirst().t;
+      double xlast = nlist.getLast().t;
+
+      myProbe = null;
+      myNumericList = nlist;
+      myTraceManager =
+         new PlotTraceManager (inputData ? "input" : "output");
+      myTraceManager.rebuild (new Object[] { nlist.getVectorSize() });
+
+      myStartTime = xstart;
+      myStopTime = xlast;
+      myInputDataP = inputData;
+      myDrawGrid = DEFAULT_DRAW_GRID;
+      myAutoRangingP = false;
+      myTickLength = DEFAULT_TICK_LENGTH;
+      myLineWidth = DEFAULT_LINE_WIDTH;
+      myKnotSize = DEFAULT_KNOT_SIZE;
+      myKnotsVisible = inputData ? true : false;
+      build();
+      if (largeDisplay) {
+         setLargeDisplay (true);
+      }
+      setXRange (new DoubleInterval (xstart, xlast));
+      adjustRangeIfNecessary();
+      setDisplaySize (width, height);
+   }
+   
    protected void build() {
       fieldInitialization();
       appearanceInitialization();
@@ -2577,7 +2637,7 @@ public class NumericProbePanel extends JPanel
 
 
    public void resetColors() {
-      myTraceManager.resetTraceColors();
+      myTraceManager.resetTraceColors(/*useCurrentOrdeing=*/false);
       updateDisplaysWithoutAutoRanging();
    }
 

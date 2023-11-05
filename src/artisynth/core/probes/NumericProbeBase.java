@@ -746,7 +746,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    }
 
    public void resetTraceColors (){
-      myPlotTraceManager.resetTraceColors();
+      myPlotTraceManager.resetTraceColors(/*useCurrentOrdering=*/false);
       updateDisplays();
    }
    

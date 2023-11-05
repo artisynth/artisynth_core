@@ -64,7 +64,7 @@ public class LegendDisplay extends PropertyFrame {
    
    protected void build() {
       initialize();
-      addOptionPanel ("Close");
+      addOptionPanel (new String[] {"Reset Colors", "Close"});
       setPanel (new Panel());
 
       myCaption = createCaptionWidget();
@@ -205,6 +205,17 @@ public class LegendDisplay extends PropertyFrame {
       rebuild();
    }
 
+   void resetTraceColors () {
+      myTraceManager.resetTraceColors(/*useCurrentOrdering=*/true);
+      Component[] comps = myPanel.getComponents();
+      for (int i=0; i<comps.length; i++) {
+         if (comps[i] instanceof Widget) {
+            ((Widget)comps[i]).updateColor();
+         }
+      }
+      updateDisplaysWithoutAutoRanging();
+   }
+
    public void rebuild() {
       myPanel.removeAllWidgets();
       buildWidgets();
@@ -332,6 +343,9 @@ public class LegendDisplay extends PropertyFrame {
       else if (cmd == "Set all visible") {
          setAllVisible (true);
       }
+      else if (cmd == "Reset Colors") {
+         resetTraceColors();
+      }
       else {
          super.actionPerformed (e);
       }
@@ -377,6 +391,12 @@ public class LegendDisplay extends PropertyFrame {
             throw new InternalErrorException (
                "Unknown value change event from " + e.getSource());
          }
+      }
+
+      public void updateColor() {
+         maskValueChangeListeners (true);
+         setColor (myTraceManager.getTraceColor (myPlotTraceIdx));
+         maskValueChangeListeners (false);
       }
 
       public int getPlotTraceIndex() {

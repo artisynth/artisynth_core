@@ -119,9 +119,14 @@ public class PlotTraceManager {
    }
  
 
-   private String getFullName (Object propOrDimen, int idx) {
+   private String getFullName (Object propOrDimen, int idx, int nobjs) {
       if (propOrDimen instanceof Integer) {
-         return myDefaultPrefix + idx;
+         if (nobjs > 1) {
+            return myDefaultPrefix + idx;
+         }
+         else {
+            return myDefaultPrefix;
+         }
       }
       else if (propOrDimen instanceof Property) {
          return ComponentUtils.getPropertyPathName ((Property)propOrDimen);
@@ -219,7 +224,8 @@ public class PlotTraceManager {
       int k = 0;
       TraceColor[] palette = PlotTraceInfo.getPaletteColors();
       for (int i=0; i<propsOrDimens.length; i++){
-         String fullname = getFullName (propsOrDimens[i], i);         
+         String fullname = getFullName (
+            propsOrDimens[i], i, propsOrDimens.length);         
          PlotTraceInfo[] infos;
          infos = myPlotTraceMap.get(propsOrDimens[i]);
          if (infos == null) {
@@ -308,11 +314,18 @@ public class PlotTraceManager {
       }
    }
 
-   public void resetTraceColors () {
+   /**
+    * Resets the colors to that of the original palette.
+    *
+    * @param useCurrentOrdering if {@code true}, reset the colors with respect
+    * to the current ordering
+    */
+   public void resetTraceColors (boolean useCurrentOrdering) {
       myFreeColors.clear();
       TraceColor[] palette = PlotTraceInfo.getPaletteColors();      
-      for (int i=0; i<myPlotTraceList.size(); i++) {
-         myPlotTraceList.get(i).setColor (palette[i % palette.length]);
+      for (int k=0; k<myPlotTraceList.size(); k++) {
+         int idx = (useCurrentOrdering ? myPlotTraceOrdering[k] : k);
+         myPlotTraceList.get(idx).setColor (palette[k % palette.length]);
       }
       myFreeColorIdx = myPlotTraceList.size();
    }
@@ -394,7 +407,8 @@ public class PlotTraceManager {
       for (int i=0; i<propsOrDimens.length; i++){
          PlotTraceInfo[] infos = myPlotTraceMap.get (propsOrDimens[i]);
          if (infos == null) {
-            String fullname = getFullName (propsOrDimens[i], i);
+            String fullname = getFullName (
+               propsOrDimens[i], i, propsOrDimens.length);
             infos = createPlotTraces (fullname, propsOrDimens[i]);
             add (propsOrDimens[i], infos);
          }

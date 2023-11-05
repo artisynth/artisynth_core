@@ -46,10 +46,10 @@ public class EditorManager {
 
       // create the list of editors;
       myEditors.add (new RootModelEditor (myMain, this));
+      myEditors.add (new FemModel3dEditor (myMain, this));
       myEditors.add (new MechModelEditor (myMain, this));
       myEditors.add (new RigidBodyEditor (myMain, this));
       myEditors.add (new MeshBodyEditor (myMain, this));
-      myEditors.add (new FemModel3dEditor (myMain, this));
       myEditors.add (new FemMeshCompEditor (myMain, this));
       myEditors.add (new FemMuscleModelEditor (myMain, this));
       myEditors.add (new FrameMarkerEditor (myMain, this));

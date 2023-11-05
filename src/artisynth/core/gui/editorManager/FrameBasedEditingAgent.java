@@ -118,6 +118,14 @@ ActionListener, Disposable, ComponentChangeListener {
       createInstructionBox ("Instructions:");
    }
 
+   protected void setInstructions (String text) {
+      myInstructionBox.setText (text);
+   }
+
+   protected String getInstructions () {
+      return myInstructionBox.getText();
+   }
+
    /**
     * Called by subclasses inside {@link #createDisplay createDisplay} to create
     * a progress box. This is a text box whose messages indicate progress as the
@@ -239,5 +247,9 @@ ActionListener, Disposable, ComponentChangeListener {
 
    public boolean isVisible () {
       return myDisplay != null && myDisplay.isVisible();
+   }
+   
+   public JFrame getDisplay() {
+      return myDisplay;
    }
 }

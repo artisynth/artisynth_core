@@ -34,7 +34,6 @@ import artisynth.core.modelbase.ModelComponent;
 /**
  * This class is responsible for knowing which components can be added to a
  * FemModel3d.
- * 
  */
 public class FemModel3dEditor extends EditorBase {
 
@@ -43,6 +42,7 @@ public class FemModel3dEditor extends EditorBase {
 
       if (containsSingleSelection (selection, FemModel3d.class)) {
          FemModel3d model = (FemModel3d)selection.get (0);
+         actions.add (this, "Select nodes ...");
          actions.add (this, "Add FemMarkers ...", EXCLUSIVE);
          actions.add (this, "Rebuild surface mesh");
          actions.add (this, "Add new surface mesh");
@@ -68,7 +68,12 @@ public class FemModel3dEditor extends EditorBase {
       Rectangle popupBounds) {
       if (containsSingleSelection (selection, FemModel3d.class)) {
          FemModel3d model = (FemModel3d)selection.get (0);
-         if (actionCommand == "Add FemMarkers ...") {
+         if (actionCommand == "Select nodes ...") {
+            FemNodeSelectionAgent agent =
+               new FemNodeSelectionAgent (myMain, model);
+            agent.show (popupBounds);
+         }
+         else if (actionCommand == "Add FemMarkers ...") {
             if (myEditManager.acquireEditLock()) {
                Fem3dMarkerAgent agent = new Fem3dMarkerAgent (myMain, model);
                agent.show (popupBounds);

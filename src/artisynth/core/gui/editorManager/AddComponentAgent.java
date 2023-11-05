@@ -348,7 +348,7 @@ ValueChangeListener {
     * hair, viewer selections are disabled, and a left mouse click will produce
     * a call to {@link #handleLocationEvent handleLocationEvent}.
     */
-   void installLocationListener() {
+   protected void installLocationListener() {
       if (myLocationListener == null) {
          myLocationListener = new LocationListener();
          myViewerManager.addMouseListener (myLocationListener);

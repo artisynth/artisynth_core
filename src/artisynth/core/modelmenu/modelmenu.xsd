@@ -32,7 +32,7 @@
 		</xs:choice>
 		<xs:attribute name="scrolling" type="xs:boolean" default="false"
 			use="optional" />
-		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "30" 
 			use="optional" />
 	</xs:complexType>
 
@@ -68,7 +68,7 @@
 			use="optional" />
 		<xs:attribute name="scrolling" type="xs:boolean" default="false"
 				use="optional" />
-		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "30" 
 			use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
@@ -78,7 +78,7 @@
 		<xs:attribute name="file" type="xs:anyURI" use="required" />
 		<xs:attribute name="scrolling" type="xs:boolean" default="false"
 				use="optional" />
-		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "30" 
 			use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>

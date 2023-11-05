@@ -142,7 +142,7 @@ public class ModelScriptMenuParser {
    public static final String SCRIPT_FOLDER_TAG_MAX_ROWS = "maxRows";
 
    public static final boolean DEFAULT_SCROLLING = false;
-   public static final int DEFAULT_MAX_ROWS = 20; 
+   public static final int DEFAULT_MAX_ROWS = 30; 
    public static final String DEFAULT_BASECLASS =
       "artisynth.core.workspace.RootModel";
 

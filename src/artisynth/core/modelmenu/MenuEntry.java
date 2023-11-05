@@ -23,7 +23,7 @@ public class MenuEntry extends MenuNode {
    protected static final boolean DEFAULT_SCROLLING = false;
    protected boolean myScrolling = DEFAULT_SCROLLING;
 
-   protected static final int DEFAULT_MAX_ROWS = 20;
+   protected static final int DEFAULT_MAX_ROWS = 30;
    protected int myMaxRows = DEFAULT_MAX_ROWS;
 
    private boolean expandable;

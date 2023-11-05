@@ -453,7 +453,7 @@ public class FemElementRenderer {
     * @param elem element
     */
    public static void addWidgetFaces (RenderObject r, FemElement3dBase elem) {
-      addWidgetFaces(r, null, elem); 
+      addWidgetFaces(r, null, elem, elem.getElementWidgetSize()); 
    }
    
    /**
@@ -463,7 +463,7 @@ public class FemElementRenderer {
     * @param elem element
     */
    public static void addWidgetFaces (RenderObject r, 
-      FeatureIndexArray faces, FemElement3dBase elem) {
+      FeatureIndexArray faces, FemElement3dBase elem, double size) {
       
       // add positions for storing widget vertices, one for each node
       int p0idx = r.numPositions();
@@ -471,7 +471,6 @@ public class FemElementRenderer {
          r.addPosition (0, 0, 0);
       }
       
-      double size = elem.getElementWidgetSize();
       FemElementRenderer.updateWidgetPositions (r, elem, size, p0idx);
       
       int[] fidxs = elem.getFaceIndices ();

@@ -945,6 +945,14 @@ public class FemNode3d extends FemNode implements Boundable {
       return myElementDeps.size();
    }
    
+   public int numAdjacentShellElements() {
+      return myShellElemCnt;
+   }
+   
+   public int numAdjacentVolumeElements() {
+      return myElementDeps.size() - myShellElemCnt;
+   }
+   
    public double computeMassFromDensity() {
       double mass = 0;
       if (myBackNode != null) {

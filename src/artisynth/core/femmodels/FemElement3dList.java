@@ -330,7 +330,9 @@ public class FemElement3dList<C extends FemElement3dBase> extends
                   int gidx = flags & GRP_MASK;
                   r.triangleGroup (gidx);
                   myWidgetFeatures[gidx].beginFeature (i);
-                  FemElementRenderer.addWidgetFaces (r, myWidgetFeatures[gidx], elem);
+                  FemElementRenderer.addWidgetFaces (
+                     r, myWidgetFeatures[gidx], elem, 
+                     elem.getElementWidgetSize());
                   myWidgetFeatures[gidx].endFeature ();
                }              
             }

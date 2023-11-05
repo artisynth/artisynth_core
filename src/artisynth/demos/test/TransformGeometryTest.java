@@ -1647,9 +1647,10 @@ public class TransformGeometryTest extends UnitTest {
 
       for (AffineTransform3dBase X : myRandomTransforms) {
 
-         // move the ebedded mesh - nothing should happen
+         // move the ebedded mesh - it should move
 
          check = original.copy();
+         setFemMeshCheck (X, check, mcomp);
          checkTransformAndUndo (X, check, mech, mcomp);
 
          // move the whole thing

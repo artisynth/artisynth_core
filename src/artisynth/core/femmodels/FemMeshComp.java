@@ -44,6 +44,7 @@ import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ObjectToken;
 import artisynth.core.util.ScanToken;
@@ -57,6 +58,7 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.geometry.DistanceGrid;
+import maspack.geometry.GeometryTransformer;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
@@ -81,21 +83,89 @@ public class FemMeshComp extends FemMeshBase
 implements CollidableBody, PointAttachable {
 
    FemModel3d myFem;
-
    protected static double EPS = 1e-10;
-   protected ArrayList<PointAttachment> myVertexAttachments;
-   // myNodeVertexMap maps each node used by this FemMeshComp onto either
-   // a single vertex which it completely controls, or the dummy variable 
-   // NO_SINGLE_VERTEX if there is no such vertex.
-   protected HashMap<FemNode3d,Vertex3d> myNodeVertexMap;
+
    protected static final Vertex3d NO_SINGLE_VERTEX = new Vertex3d();
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
 
+   /**
+    * Container for vertex attachment info so we can update this info
+    * atomically.
+    */
+   protected static class VertexInfo {
+      protected ArrayList<PointAttachment> myAttachments = new ArrayList<>();
+      // myNodeMap maps each node used by this FemMeshComp onto either
+      // a single vertex which it completely controls, or the dummy variable 
+      // NO_SINGLE_VERTEX if there is no such vertex.
+      protected HashMap<FemNode3d,Vertex3d> myNodeMap = new HashMap<>();
+      protected int myNumSingleAttachments;
+
+      protected VertexInfo() {
+      }
+
+      protected void buildNodeMap(MeshBase mesh) {
+         myNodeMap = new HashMap<FemNode3d,Vertex3d>();
+         myNumSingleAttachments = 0;
+         for (int i=0; i<myAttachments.size(); i++) {
+            PointAttachment pa = myAttachments.get(i);
+            if (pa instanceof PointParticleAttachment) {
+               FemNode3d node = 
+                  (FemNode3d)((PointParticleAttachment)pa).getParticle();
+               myNodeMap.put (node, mesh.getVertex(i));
+               myNumSingleAttachments++;
+            }
+            else if (pa instanceof PointFem3dAttachment) {
+               PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+               for (FemNode node : pfa.getNodes()) {
+                  if (myNodeMap.get(node) == null) {
+                     myNodeMap.put ((FemNode3d)node, NO_SINGLE_VERTEX);
+                  }
+               }
+            }
+         }
+      }
+
+      protected Vertex3d getVertexForNode (FemNode3d node) {
+         if (myNodeMap == null) {
+            return null;
+         }
+         Vertex3d vtx = myNodeMap.get (node);
+         if (vtx == NO_SINGLE_VERTEX) {
+            vtx = null;
+         }
+         return vtx;
+      }
+
+      public boolean containsContactMaster (CollidableDynamicComponent comp) {
+         if (myNodeMap != null && comp instanceof FemNode3d &&
+             myNodeMap.get((FemNode3d)comp) != null) {
+            return true;
+         }
+         else {
+            return false;
+         }
+      }
+
+      protected VertexInfo copy (
+         int flags, MeshBase mesh, Map<ModelComponent,ModelComponent> copyMap) {
+
+         VertexInfo info = new VertexInfo();
+         info.myAttachments.ensureCapacity (myAttachments.size());
+         for (PointAttachment pa : myAttachments) {
+            PointAttachment newPa = pa.copy(flags, copyMap);
+            info.myAttachments.add(newPa);
+         }
+         info.buildNodeMap(mesh);
+         return info;
+      }
+   }
+
+   protected VertexInfo myVertexInfo;
+
    private boolean isSurfaceMesh;
    private boolean isGeneratedSurface;
 
-   private int myNumSingleAttachments;
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
    protected int myCollidableIndex;
 
@@ -117,7 +187,7 @@ implements CollidableBody, PointAttachable {
 
    public FemMeshComp () {
       super();
-      myVertexAttachments = new ArrayList<PointAttachment>();
+      myVertexInfo = new VertexInfo();
    }
 
    public FemMeshComp (FemModel3d fem) {
@@ -182,7 +252,7 @@ implements CollidableBody, PointAttachable {
    }
 
    public int numVertexAttachments () {
-      return myVertexAttachments.size();
+      return myVertexInfo.myAttachments.size();
    }
 
    public PointAttachment getVertexAttachment(Vertex3d vtx) {
@@ -190,7 +260,7 @@ implements CollidableBody, PointAttachable {
    }
 
    public PointAttachment getVertexAttachment (int idx) {
-      return myVertexAttachments.get (idx);
+      return myVertexInfo.myAttachments.get (idx);
    }
 
    /** 
@@ -199,31 +269,6 @@ implements CollidableBody, PointAttachable {
     */
    protected void initializeSurfaceBuild() {
       super.initializeSurfaceBuild();
-      //myEdgeVtxs = new HashMap<EdgeDesc,Vertex3d[]>();
-      myVertexAttachments = new ArrayList<PointAttachment>();
-      myNodeVertexMap = null;
-   }
-
-   protected void buildNodeVertexMap() {
-      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
-      myNumSingleAttachments = 0;
-      for (int i=0; i<myVertexAttachments.size(); i++) {
-         PointAttachment pa = myVertexAttachments.get(i);
-         if (pa instanceof PointParticleAttachment) {
-            FemNode3d node = 
-               (FemNode3d)((PointParticleAttachment)pa).getParticle();
-            myNodeVertexMap.put (node, getMesh().getVertex(i));
-            myNumSingleAttachments++;
-         }
-         else if (pa instanceof PointFem3dAttachment) {
-            PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
-            for (FemNode node : pfa.getNodes()) {
-               if (myNodeVertexMap.get(node) == null) {
-                  myNodeVertexMap.put ((FemNode3d)node, NO_SINGLE_VERTEX);
-               }
-            }
-         }
-      }
    }
 
    /** 
@@ -231,10 +276,6 @@ implements CollidableBody, PointAttachable {
     */
    protected void finalizeSurfaceBuild() {
       super.finalizeSurfaceBuild();
-      if (myNodeVertexMap == null) {
-         buildNodeVertexMap();
-      }
-      //myEdgeVtxs.clear();
 
       notifyParentOfChange (
          new ComponentChangeEvent (Code.STRUCTURE_CHANGED, this));
@@ -309,7 +350,7 @@ implements CollidableBody, PointAttachable {
     * a single node
     */
    public boolean isSingleNodeMapped() {
-      return myNumSingleAttachments == getMesh().numVertices();
+      return myVertexInfo.myNumSingleAttachments == getMesh().numVertices();
    }
 
    /**
@@ -324,8 +365,9 @@ implements CollidableBody, PointAttachable {
     */
    public FemNode3d getNodeForVertex (Vertex3d vtx) {
       int idx = vtx.getIndex();
-      if (idx < myVertexAttachments.size()) {
-         return getNodeForVertex (myVertexAttachments.get(idx));
+      ArrayList<PointAttachment> attachments = myVertexInfo.myAttachments;
+      if (idx < attachments.size()) {
+         return getNodeForVertex (attachments.get(idx));
       }
       else {
          return null;
@@ -353,14 +395,7 @@ implements CollidableBody, PointAttachable {
     * @return vertex directly attached to the node, or <code>null</code>.
     */
    public Vertex3d getVertexForNode (FemNode3d node) {
-      if (myNodeVertexMap == null) {
-         return null;
-      }
-      Vertex3d vtx = myNodeVertexMap.get (node);
-      if (vtx == NO_SINGLE_VERTEX) {
-         vtx = null;
-      }
-      return vtx;
+      return myVertexInfo.getVertexForNode (node);
    }
 
    private void addVertexNodes (HashSet<FemNode3d> nodes, PointAttachment pa) {
@@ -452,11 +487,12 @@ implements CollidableBody, PointAttachable {
       return (FemElement3dBase)elems.toArray()[0];
    }
 
-   private Vertex3d createVertex (FemNode3d node, Vertex3d v) {
+   private Vertex3d createVertex (
+      ArrayList<PointAttachment> vtxAttachments, FemNode3d node, Vertex3d v) {
       Vertex3d vtx = new Vertex3d (v.getPosition());
       PointParticleAttachment attacher =
          new PointParticleAttachment (node, null);
-      myVertexAttachments.add (attacher);
+      vtxAttachments.add (attacher);
       getMesh().addVertex (vtx);
       return vtx;
    }
@@ -494,6 +530,7 @@ implements CollidableBody, PointAttachable {
    }
 
    private Vertex3d createVertex (
+      ArrayList<PointAttachment> vtxAttachments,
       double s0, double s1, double s2, FemElement3dBase elem, 
       FemNode3d n0, FemNode3d n1, FemNode3d n2) {
 
@@ -523,13 +560,14 @@ implements CollidableBody, PointAttachable {
       Vertex3d vtx = new Vertex3d (pos);
       PointFem3dAttachment attacher = new PointFem3dAttachment();
       attacher.setFromNodes (nodes, weights);
-      myVertexAttachments.add (attacher);
+      vtxAttachments.add (attacher);
 
       getMesh().addVertex (vtx);
       return vtx;
    }
 
    private Vertex3d[] collectEdgeVertices (
+      ArrayList<PointAttachment> vtxAttachments,
       HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap, Vertex3d v0, Vertex3d v1, 
       FemNode3d n0, FemNode3d n1, FemElement3dBase elem, int res) {
 
@@ -544,7 +582,8 @@ implements CollidableBody, PointAttachable {
          // create vertices along edge
          for (int i=1; i<numv-1; i++) {
             double s1 = i/(double)res;
-            vtxs[i] = createVertex (1-s1, s1, 0, elem, n0, n1, null);
+            vtxs[i] = createVertex (
+               vtxAttachments, 1-s1, s1, 0, elem, n0, n1, null);
          }
          edgeVtxMap.put (new EdgeDesc (v0, v1), vtxs);
          return vtxs;
@@ -575,7 +614,8 @@ implements CollidableBody, PointAttachable {
    }
 
    public void addVertexAttachment (PointAttachment attachment) {
-      setVertexAttachment (myVertexAttachments.size(), attachment);
+      setVertexAttachment (
+         myVertexInfo.myAttachments.size(), attachment);
    }
 
    // XXX Sanchez: needed when attachment info already known and want to
@@ -583,16 +623,17 @@ implements CollidableBody, PointAttachable {
    //              in in-progess hex-mesher
    public void setVertexAttachment(int vidx, PointAttachment attachment) {
       // update vertex attachment size
-      if (vidx == myVertexAttachments.size()) {
-         myVertexAttachments.add(attachment);
-      } else if (vidx < myVertexAttachments.size()) {
-         myVertexAttachments.set(vidx, attachment);   
+      ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
+      if (vidx == vtxAttachments.size()) {
+         vtxAttachments.add(attachment);
+      } else if (vidx < vtxAttachments.size()) {
+         vtxAttachments.set(vidx, attachment);   
       } else {
          // add null attachments
-         for (int i=myVertexAttachments.size(); i<vidx; i++) {
-            myVertexAttachments.add(null);
+         for (int i=vtxAttachments.size(); i<vidx; i++) {
+            vtxAttachments.add(null);
          }
-         myVertexAttachments.add(attachment);
+         vtxAttachments.add(attachment);
       }
    }
 
@@ -612,32 +653,36 @@ implements CollidableBody, PointAttachable {
    public static FemMeshComp createEmbedded (
       FemMeshComp surf, MeshBase mesh, FemModel3d fem) {
 
-      double reduceTol = 1e-8;
-
-      ArrayList<FemNode> nodes = new ArrayList<FemNode>();
-      VectorNd weights = new VectorNd();
-
       if (surf == null) {
          surf = new FemMeshComp(fem);
       }
       surf.setMesh (mesh);
-      ArrayList<Vertex3d> verts = mesh.getVertices();
+      surf.createEmbeddingAttachments();
+      return surf;
+   }
 
-      surf.myVertexAttachments.clear();
+   public void createEmbeddingAttachments () {
+
+      ArrayList<FemNode> nodes = new ArrayList<FemNode>();
+      VectorNd weights = new VectorNd();
+      double reduceTol = 1e-8;
+
+      ArrayList<Vertex3d> verts = getMesh().getVertices();
+      VertexInfo info = new VertexInfo();
       for (int i=0; i<verts.size(); i++) {
-         // this could works very similarly to the code that adds
+         // this code works very similarly to the code that adds
          // marker points into a mesh
          Vertex3d vtx = verts.get(i);
-         FemElement3dBase elem = surf.myFem.findContainingElement (vtx.pnt);
+         FemElement3dBase elem = myFem.findContainingElement (vtx.pnt);
          Point3d newLoc = new Point3d(vtx.pnt);
          if (elem == null) {
             // won't use newLoc since we're not projecting vertex onto FEM
-            elem = surf.myFem.findNearestSurfaceElement (newLoc, vtx.pnt);
+            elem = myFem.findNearestSurfaceElement (newLoc, vtx.pnt);
          }
          VectorNd coords = new VectorNd (elem.numNodes());
 
-         // first see if there's a node within reduceTol of the point,
-         // and if so just use that
+         // first see if there's a node within reduceTol of the point, and if
+         // so just use that.
          double maxd = Double.NEGATIVE_INFINITY;
          double mind = Double.POSITIVE_INFINITY;
          FemNode3d nearestNode = null;
@@ -691,16 +736,15 @@ implements CollidableBody, PointAttachable {
          if (weights.size() > 1) {
             PointFem3dAttachment attacher = new PointFem3dAttachment();
             attacher.setFromNodes (nodes, weights);
-            surf.myVertexAttachments.add (attacher);
+            info.myAttachments.add (attacher);
          } else if (weights.size() == 1) {
             PointParticleAttachment attacher =
                new PointParticleAttachment(nodes.get(0), null);
-            surf.myVertexAttachments.add(attacher);
+            info.myAttachments.add(attacher);
          }
       }
-      surf.buildNodeVertexMap();
-
-      return surf;
+      info.buildNodeMap (getMesh());
+      myVertexInfo = info;
    }
 
    public static FemMeshComp createEmbedded (
@@ -714,7 +758,7 @@ implements CollidableBody, PointAttachable {
          surf = new FemMeshComp(fem);
       }
       surf.setMesh (mesh);
-      surf.myVertexAttachments.clear();
+      VertexInfo info = new VertexInfo();
       for (Vertex3d vtx : mesh.getVertices()) {
          // attach vertex to nearest node
          FemNode3d node = surf.myFem.findNearestNode (vtx.pnt, 1e-8);
@@ -724,13 +768,14 @@ implements CollidableBody, PointAttachable {
          else {
             PointParticleAttachment attacher =
                new PointParticleAttachment(node, null);
-            surf.myVertexAttachments.add(attacher);
+            info.myAttachments.add(attacher);
          }
          if ((vtx.getIndex() % 1000) == 0) {
             System.out.println ("vertex " + vtx.getIndex());
          }
       }
-      surf.buildNodeVertexMap();
+      info.buildNodeMap (surf.getMesh());
+      surf.myVertexInfo = info;
       return surf;
    }
 
@@ -795,6 +840,8 @@ implements CollidableBody, PointAttachable {
       createSurface(efilter);
       isGeneratedSurface = true;
 
+      System.out.println ("before numa= " + numVertexAttachments());
+
       if (resolution < 2) {
          // if resolution < 2, just return regular surface
          return;
@@ -806,22 +853,24 @@ implements CollidableBody, PointAttachable {
       PolygonalMesh baseMesh = (PolygonalMesh)getMesh(); // since previously built
       ArrayList<Face> baseFaces = baseMesh.getFaces();
       ArrayList<Vertex3d> baseVertices = baseMesh.getVertices();
-      ArrayList<PointAttachment> baseAttachments = myVertexAttachments;
 
       int numv = resolution+1; // num vertices along the edge of each sub face
       initializeSurfaceBuild();
+
+      //ArrayList<PointAttachment> baseAttachments = info.myAttachments;
+      ArrayList<PointAttachment> baseAttachments = myVertexInfo.myAttachments;
+      VertexInfo info = new VertexInfo();
+
       HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap =
          new HashMap<EdgeDesc,Vertex3d[]>();
 
       // get newly empty mesh
       PolygonalMesh surfMesh = (PolygonalMesh)getMesh();
-      //myNodeVertexMap.clear();
 
       for (Vertex3d vtx : baseVertices) {
          FemNode3d node =
             getNodeForVertex (baseAttachments.get(vtx.getIndex()));
-         createVertex (node, vtx);
-         //myNodeVertexMap.put (node, newVtx);
+         createVertex (info.myAttachments, node, vtx);
       }
       // System.out.println ("num base faces: " + baseFaces.size());
       for (int k=0; k<baseFaces.size(); k++) {
@@ -850,17 +899,17 @@ implements CollidableBody, PointAttachable {
          subv.set (numv-1, numv-1, getVertex(v1.getIndex()));
 
          Vertex3d[] vtxs01 = collectEdgeVertices (
-            edgeVtxMap, v0, v1, n0, n1, elem, resolution);
+            info.myAttachments,edgeVtxMap, v0, v1, n0, n1, elem, resolution);
          for (int i=1; i<numv-1; i++) {
             subv.set (i, i, vtxs01[i]);
          }
          Vertex3d[] vtxs02 = collectEdgeVertices (
-            edgeVtxMap, v0, v2, n0, n2, elem, resolution);
+            info.myAttachments, edgeVtxMap, v0, v2, n0, n2, elem, resolution);
          for (int j=1; j<numv-1; j++) {
             subv.set (0, j, vtxs02[j]);
          }
          Vertex3d[] vtxs21 = collectEdgeVertices (
-            edgeVtxMap, v2, v1, n2, n1, elem, resolution);
+            info.myAttachments, edgeVtxMap, v2, v1, n2, n1, elem, resolution);
          for (int i=1; i<numv-1; i++) {
             subv.set (i, numv-1, vtxs21[i]);
          }
@@ -869,7 +918,8 @@ implements CollidableBody, PointAttachable {
             for (int j=i+1; j<numv-1; j++) {
                double s1 = i/(double)resolution;
                double s0 = 1-j/(double)resolution;
-               Vertex3d vtx = createVertex (s0, s1, 1-s0-s1, elem, n0, n1, n2);
+               Vertex3d vtx = createVertex (
+                  info.myAttachments, s0, s1, 1-s0-s1, elem, n0, n1, n2);
                subv.set (i, j, vtx);
             }
          }
@@ -886,7 +936,8 @@ implements CollidableBody, PointAttachable {
             }
          }
       }
-
+      info.buildNodeMap (getMesh());
+      myVertexInfo = info;
       finalizeSurfaceBuild();
    }
 
@@ -987,8 +1038,7 @@ implements CollidableBody, PointAttachable {
       // nodeVertexMap is used during the construction of this surface,
       // so we build it during the construction rather then letting
       // it be built in finalizeSurfaceBuild()
-      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
-      myNumSingleAttachments = 0;
+      VertexInfo info = new VertexInfo();
 
       // faces nodes adjacent to each node
       ArrayList<LinkedList<FaceNodes3d>> faceNodesPerNode =
@@ -1001,8 +1051,10 @@ implements CollidableBody, PointAttachable {
 
       markOverlappingFaces (faceNodes, faceNodesPerNode, myFem);
       faceNodes = removeOverlappingFaces (faceNodes);
-      createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
+      createMeshFromFaceNodes (info, (PolygonalMesh)getMesh(), faceNodes);
 
+      info.buildNodeMap (getMesh());
+      myVertexInfo = info;
       finalizeSurfaceBuild();
       isGeneratedSurface = true;
    }
@@ -1013,11 +1065,12 @@ implements CollidableBody, PointAttachable {
       // nodeVertexMap is used during the construction of this surface,
       // so we build it during the construction rather then letting
       // it be built in finalizeSurfaceBuild()
-      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
-      myNumSingleAttachments = 0;
+      VertexInfo info = new VertexInfo();
 
       LinkedList<FaceNodes3d> faceNodes = createFaceNodes (null, elems, myFem);
-      createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
+      createMeshFromFaceNodes (info, (PolygonalMesh)getMesh(), faceNodes);
+      info.buildNodeMap (getMesh());
+      myVertexInfo = info;
       finalizeSurfaceBuild();
       isGeneratedSurface = true;
    }
@@ -1029,8 +1082,7 @@ implements CollidableBody, PointAttachable {
       // nodeVertexMap is used during the construction of this surface,
       // so we build it during the construction rather then letting
       // it be built in finalizeSurfaceBuild()
-      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
-      myNumSingleAttachments = 0;
+      VertexInfo info = new VertexInfo();
 
       // faces nodes adjacent to each node
       ArrayList<LinkedList<FaceNodes3d>> faceNodesPerNode =
@@ -1044,8 +1096,10 @@ implements CollidableBody, PointAttachable {
       markOverlappingFaces (faceNodes, faceNodesPerNode, myFem);
       faceNodes = removeOverlappingFaces (faceNodes);
       faceNodes.addAll (createFaceNodes (null, shellElems, myFem));
-      createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
+      createMeshFromFaceNodes (info, (PolygonalMesh)getMesh(), faceNodes);
 
+      info.buildNodeMap (getMesh());
+      myVertexInfo = info;
       finalizeSurfaceBuild();
       isGeneratedSurface = true;
    }
@@ -1177,7 +1231,7 @@ implements CollidableBody, PointAttachable {
    }
 
    protected void createMeshFromFaceNodes (
-      PolygonalMesh mesh, LinkedList<FaceNodes3d> faceNodes) {
+      VertexInfo info, PolygonalMesh mesh, LinkedList<FaceNodes3d> faceNodes) {
 
       for (FaceNodes3d fn : faceNodes) {
          FemNode3d[][] triangles = fn.triangulate();
@@ -1188,14 +1242,14 @@ implements CollidableBody, PointAttachable {
             Vertex3d[] vtxs = new Vertex3d[3];
             for (int j = 0; j < 3; j++) {
                FemNode3d node = tri[j];
-               if ((vtxs[j] = myNodeVertexMap.get(node)) == null) {
+               if ((vtxs[j] = info.myNodeMap.get(node)) == null) {
                   Vertex3d vtx =
                      new Vertex3d (new Point3d(node.getPosition()));
                   mesh.addVertex (vtx);
-                  myVertexAttachments.add (
+                  info.myAttachments.add (
                      new PointParticleAttachment (node, null));
-                  myNumSingleAttachments++;
-                  myNodeVertexMap.put (node, vtx);
+                  info.myNumSingleAttachments++;
+                  info.myNodeMap.put (node, vtx);
                   vtxs[j] = vtx;
                }
             }
@@ -1215,8 +1269,9 @@ implements CollidableBody, PointAttachable {
     * Used internally by the system.
     */
    protected void addAllVertexNodes (HashSet<FemNode3d> nodes) {
-      for (int i=0; i<myVertexAttachments.size(); i++) {
-         addVertexNodes (nodes, myVertexAttachments.get(i));
+      ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
+      for (int i=0; i<vtxAttachments.size(); i++) {
+         addVertexNodes (nodes, vtxAttachments.get(i));
       }
    }
 
@@ -1236,8 +1291,9 @@ implements CollidableBody, PointAttachable {
       MeshBase mesh = getMesh();
 
       double sval = 0;
-      for (int i=0; i<myVertexAttachments.size(); i++) {
-         PointAttachment attacher = myVertexAttachments.get(i);
+      ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
+      for (int i=0; i<vtxAttachments.size(); i++) {
+         PointAttachment attacher = vtxAttachments.get(i);
          sval = 0;
          if (attacher instanceof PointFem3dAttachment) {
             PointFem3dAttachment pfa = (PointFem3dAttachment)attacher;
@@ -1302,7 +1358,7 @@ implements CollidableBody, PointAttachable {
 
    private void writeVertexInfo (PrintWriter pw, Vertex3d vtx, NumberFormat fmt) {
       PointAttachment pa = null;
-      if (vtx.getIndex() < myVertexAttachments.size()) {
+      if (vtx.getIndex() < numVertexAttachments()) {
          pa = getVertexAttachment(vtx.getIndex());
       }
       if (pa instanceof PointFem3dAttachment) {
@@ -1459,8 +1515,7 @@ implements CollidableBody, PointAttachable {
       // nodeVertexMap is used during the construction of the mesh,
       // so we build it during the construction rather then letting
       // it be built in finalizeSurfaceBuild()
-      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
-      myNumSingleAttachments = 0;
+      VertexInfo info = new VertexInfo();
       ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
       rtok.nextToken();
       while (rtok.tokenIsWord("f")) {
@@ -1469,13 +1524,13 @@ implements CollidableBody, PointAttachable {
          while (rtok.tokenIsInteger()) {
             int nnum = (int)rtok.lval;
             FemNode3d node = getNodeFromNumber (rtok, nnum);
-            Vertex3d vtx = myNodeVertexMap.get(node);
+            Vertex3d vtx = info.myNodeMap.get(node);
             if (vtx == null) {
                vtx = new Vertex3d (new Point3d(node.getPosition()));
-               myNodeVertexMap.put(node, vtx);
-               myVertexAttachments.add (
+               info.myNodeMap.put(node, vtx);
+               info.myAttachments.add (
                   new PointParticleAttachment(node, null));
-               myNumSingleAttachments++;
+               info.myNumSingleAttachments++;
                mesh.addVertex(vtx);
             }
             vtxList.add(vtx);
@@ -1483,6 +1538,7 @@ implements CollidableBody, PointAttachable {
          }
          mesh.addFace(vtxList.toArray(new Vertex3d[0]));
       }
+      myVertexInfo = info;
       rtok.pushBack();
    }
 
@@ -1494,6 +1550,7 @@ implements CollidableBody, PointAttachable {
       PolygonalMesh mesh = (PolygonalMesh)getMesh();
       ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
       ArrayList<FemNode> nodes = new ArrayList<FemNode>();
+      VertexInfo info = new VertexInfo();
       VectorNd weights = new VectorNd();
       rtok.nextToken();
       while (rtok.tokenIsWord()) {
@@ -1504,7 +1561,7 @@ implements CollidableBody, PointAttachable {
                double y = rtok.scanNumber();
                double z = rtok.scanNumber();
                mesh.addVertex (new Vertex3d (x, y, z));
-               myVertexAttachments.add (null);
+               info.myAttachments.add (null);
                rtok.nextToken();
             }
             else {
@@ -1529,9 +1586,11 @@ implements CollidableBody, PointAttachable {
                else {
                   FemNode3d node = getNodeFromNumber (rtok, nnum);
                   ax = new PointParticleAttachment (node, null);
+                  info.myNodeMap.put(node, vtx);
+                  info.myNumSingleAttachments++;
                }
                mesh.addVertex (vtx);
-               myVertexAttachments.add (ax);
+               info.myAttachments.add (ax);
             }
          }
          else if (rtok.sval.equals ("f")) {
@@ -1552,6 +1611,7 @@ implements CollidableBody, PointAttachable {
             throw new IOException ("Unexpected token: "+rtok);
          }
       }
+      myVertexInfo = info;
       rtok.pushBack();
    }
 
@@ -1649,12 +1709,13 @@ implements CollidableBody, PointAttachable {
          throw new IOException (
             "Expected node reference or number; got "+rtok);
       }
+      ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
       if (scanNodesByNumber) {
          int num0 = (int)rtok.lval;
          if (rtok.nextToken() == ']') {
             tokens.offer (new IntegerToken (num0));
             PointParticleAttachment ppa = new PointParticleAttachment ();
-            myVertexAttachments.add (ppa);            
+            vtxAttachments.add (ppa);            
          }
          else {
             ArrayList<Integer> nodeNums = new ArrayList<Integer>();
@@ -1674,7 +1735,7 @@ implements CollidableBody, PointAttachable {
             tokens.offer (new ObjectToken(ArraySupport.toIntArray (nodeNums)));
             tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
             PointFem3dAttachment pfa = new PointFem3dAttachment(); 
-            myVertexAttachments.add (pfa);
+            vtxAttachments.add (pfa);
          }
       }
       else {
@@ -1691,66 +1752,12 @@ implements CollidableBody, PointAttachable {
          tokens.offer (ScanToken.END); // add null terminator
          if (weights.size() == 1) {
             PointParticleAttachment ppa = new PointParticleAttachment ();
-            myVertexAttachments.add (ppa);
+            vtxAttachments.add (ppa);
          }
          else {
             PointFem3dAttachment pfa = new PointFem3dAttachment();
             tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
-            myVertexAttachments.add (pfa);
-         }
-      }
-   }
-   
-   protected void scanAttachmentOld (
-      ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
-
-      rtok.scanToken ('[');
-      if (FemElement.writeNodeRefsByNumber) {
-         int num0 = rtok.scanInteger();
-         if (rtok.nextToken() == ']') {
-            tokens.offer (new IntegerToken (num0));
-            PointParticleAttachment ppa = new PointParticleAttachment ();
-            myVertexAttachments.add (ppa);            
-         }
-         else {
-            ArrayList<Integer> nodeNums = new ArrayList<Integer>();
-            ArrayList<Double> weights = new ArrayList<Double>();
-            if (!rtok.tokenIsNumber()) {
-               throw new IOException ("Expected node weight, got "+rtok);
-            }
-            nodeNums.add (num0);
-            weights.add (rtok.nval);
-            while (rtok.nextToken() != ']') {
-               if (!rtok.tokenIsInteger()) {
-                  throw new IOException ("Expected node number, got "+rtok);
-               }
-               nodeNums.add ((int)rtok.lval);
-               weights.add (rtok.scanNumber());
-            }
-            tokens.offer (new ObjectToken(ArraySupport.toIntArray (nodeNums)));
-            tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
-            PointFem3dAttachment pfa = new PointFem3dAttachment(); 
-            myVertexAttachments.add (pfa);
-         }
-      }
-      else {
-         ArrayList<Double> weights = new ArrayList<Double>();
-         tokens.offer (ScanToken.BEGIN);
-         while (ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
-            weights.add (rtok.scanNumber());
-         }
-         if (rtok.ttype != ']') {
-            throw new IOException ("Expected ']', got " + rtok);
-         }
-         tokens.offer (ScanToken.END); // add null terminator
-         if (weights.size() == 1) {
-            PointParticleAttachment ppa = new PointParticleAttachment ();
-            myVertexAttachments.add (ppa);
-         }
-         else {
-            PointFem3dAttachment pfa = new PointFem3dAttachment();
-            tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
-            myVertexAttachments.add (pfa);
+            vtxAttachments.add (pfa);
          }
       }
    }
@@ -1792,8 +1799,8 @@ implements CollidableBody, PointAttachable {
          return true;
       }
       else if (postscanAttributeName (tokens, "attachments")) {
-         for (int i=0; i<myVertexAttachments.size(); i++) {
-            PointAttachment va = myVertexAttachments.get(i);
+         for (int i=0; i<myVertexInfo.myAttachments.size(); i++) {
+            PointAttachment va = myVertexInfo.myAttachments.get(i);
             if (tokens.peek() == ScanToken.BEGIN) {
                // nodes are by reference
                FemNode[] nodes = ScanWriteUtils.postscanReferences (
@@ -1837,64 +1844,7 @@ implements CollidableBody, PointAttachable {
                }
             }
          }
-         buildNodeVertexMap();
-         return true;
-      }
-      return super.postscanItem (tokens, ancestor);
-   }
-
-   protected boolean postscanItemOld (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-      if (postscanAttributeName (tokens, "fem")) {
-         myFem = postscanReference (tokens, FemModel3d.class, ancestor);
-         return true;
-      }
-      else if (postscanAttributeName (tokens, "attachments")) {
-         for (int i=0; i<myVertexAttachments.size(); i++) {
-            PointAttachment va = myVertexAttachments.get(i);
-            if (FemElement.writeNodeRefsByNumber) {
-               if (va instanceof PointParticleAttachment) {
-                  int nodeNum = (int)tokens.poll().value();
-                  PointParticleAttachment ppa = (PointParticleAttachment)va;
-                  FemNode node = myFem.getNodeByNumber (nodeNum);
-                  if (node == null) {
-                     throw new IOException (
-                        "Fem attachment node num "+nodeNum+" not found");
-                  }
-                  ppa.setParticle (node);
-               }
-               else {
-                  int[] nodeNums = (int[])tokens.poll().value();
-                  FemNode[] nodes = new FemNode[nodeNums.length];
-                  for (int k=0; k<nodes.length; k++) {
-                     FemNode node = myFem.getNodeByNumber (nodeNums[k]);
-                     if (node == null) {
-                        throw new IOException (
-                           "Fem attachment node num "+nodeNums[k]+" not found");
-                     }
-                     nodes[k] = node;
-                  }
-                  PointFem3dAttachment pfa = (PointFem3dAttachment)va;
-                  double[] coords = (double[])tokens.poll().value();
-                  pfa.setFromNodes (nodes, coords);
-               }
-            }
-            else {
-               FemNode[] nodes = ScanWriteUtils.postscanReferences (
-                  tokens, FemNode.class, ancestor);
-               if (va instanceof PointParticleAttachment) {
-                  PointParticleAttachment ppa = (PointParticleAttachment)va;
-                  ppa.setParticle (nodes[0]);
-               }
-               else if (va instanceof PointFem3dAttachment) {
-                  PointFem3dAttachment pfa = (PointFem3dAttachment)va;
-                  double[] coords = (double[])tokens.poll().value();
-                  pfa.setFromNodes (nodes, coords);
-               }
-            }
-         }
-         buildNodeVertexMap();
+         myVertexInfo.buildNodeMap(getMesh());
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -1914,8 +1864,9 @@ implements CollidableBody, PointAttachable {
       }
       pw.println ("attachments=["); 
       IndentingPrintWriter.addIndentation (pw, 2);
-      for (int i=0; i<myVertexAttachments.size(); i++) {
-         writeAttachment (myVertexAttachments.get(i), pw, fmt, ancestor);
+      ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
+      for (int i=0; i<vtxAttachments.size(); i++) {
+         writeAttachment (vtxAttachments.get(i), pw, fmt, ancestor);
       }
       IndentingPrintWriter.addIndentation (pw, -2); 
       pw.println ("]");
@@ -1952,12 +1903,13 @@ implements CollidableBody, PointAttachable {
       PrintWriter pw, PolygonalMesh mesh, NumberFormat fmt) {
       pw.println ("[");
       IndentingPrintWriter.addIndentation (pw, 2);
-      if (myVertexAttachments.size() < mesh.numVertices()) {
+      ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
+      if (vtxAttachments.size() < mesh.numVertices()) {
          // note: right now, all mesh creation methods ensure that
          // the number of attachments equals the number of mesh
          // vertices; there are no unattached vertices.
          pw.println ("# unattached vertices:");
-         for (int i=myVertexAttachments.size(); i<mesh.numVertices(); i++) {
+         for (int i=vtxAttachments.size(); i<mesh.numVertices(); i++) {
             pw.println (
                "v " + mesh.getVertex(i).getPosition().toString(fmt));
          }
@@ -1981,7 +1933,7 @@ implements CollidableBody, PointAttachable {
    }
 
    void createBlankAttachmentVertices (PolygonalMesh mesh) {
-      int numa = myVertexAttachments.size();
+      int numa = myVertexInfo.myAttachments.size();
       while (mesh.numVertices() < numa) {
          // fill in missing vertices
          mesh.addVertex (new Vertex3d (0, 0, 0));
@@ -2074,14 +2026,7 @@ implements CollidableBody, PointAttachable {
       else {
          fm.myFem = myFem;
       }
-      
-      fm.myVertexAttachments = 
-         new ArrayList<PointAttachment>(myVertexAttachments.size());
-      for (PointAttachment pa : myVertexAttachments) {
-         PointAttachment newPa = pa.copy(flags, copyMap);
-         fm.myVertexAttachments.add(newPa);
-      }
-      fm.buildNodeVertexMap();
+      fm.myVertexInfo = myVertexInfo.copy (flags, fm.getMesh(), copyMap);
 
       fm.isSurfaceMesh = isSurfaceMesh();
       fm.isGeneratedSurface = isGeneratedSurface();
@@ -2117,7 +2062,7 @@ implements CollidableBody, PointAttachable {
     */
    public boolean hasNodeDependency(FemNode3d node) {
 
-      for (PointAttachment pa : myVertexAttachments) {
+      for (PointAttachment pa : myVertexInfo.myAttachments) {
          for (DynamicComponent dmc : pa.getMasters()) {
             if (dmc == node) {
                return true;
@@ -2204,8 +2149,7 @@ implements CollidableBody, PointAttachable {
    }
 
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
-      if (myNodeVertexMap != null && comp instanceof FemNode3d &&
-         myNodeVertexMap.get((FemNode3d)comp) != null) {
+      if (myVertexInfo.containsContactMaster (comp)) {
          return true;
       }
       else if (myFem.getFrame() == comp) {
@@ -2234,6 +2178,48 @@ implements CollidableBody, PointAttachable {
    }
    
    // end Collidable implementation
+
+   /**
+    * {@inheritDoc}
+    */
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      // if we are simulating, make no changes
+      if ((flags & TransformableGeometry.TG_SIMULATING) != 0) {
+         return;
+      } 
+
+      // see if context contains only FemMeshComps
+      boolean onlyFemMeshComps = true;
+      for (TransformableGeometry comp : context.getTransformables()) {
+         if (!(comp instanceof FemMeshComp)) {
+            onlyFemMeshComps = false;
+            break;
+         }
+      }
+      // revert to default behavior is mesh is generated or components other
+      // than FemMeshComps are being transformed
+      if (!onlyFemMeshComps || isGeneratedSurface) {
+         super.transformGeometry (gtr, context, flags);
+         return;
+      }
+      
+      if (getMesh() != null) {
+         gtr.transform (getMesh());
+      }
+      // request an action to update vertex attachments
+      context.addAction (
+         new TransformGeometryAction() {
+            public void transformGeometry (
+               GeometryTransformer gtr,
+               TransformGeometryContext context, int flags) {
+               createEmbeddingAttachments();
+            }
+         });
+      //super.transformGeometry (gtr, context, flags);
+   }   
+
 
    private void accumulateNodeWeights (
       FemNode node, double w, HashMap<FemNode,Double> nodeWeights) {
@@ -2267,8 +2253,9 @@ implements CollidableBody, PointAttachable {
       double[] wgts = new double[] { 1-uv.x-uv.y, uv.x, uv.y };          
 
       HashMap<FemNode,Double> nodeWeights = new HashMap<FemNode,Double>();
+      ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
       for (int i=0; i<vtxs.length; i++) {
-         PointAttachment va = myVertexAttachments.get(vtxs[i].getIndex());
+         PointAttachment va = vtxAttachments.get(vtxs[i].getIndex());
          if (va instanceof PointParticleAttachment) {
             PointParticleAttachment ppa = (PointParticleAttachment)va;
             FemNode node = (FemNode)ppa.getParticle();

@@ -34,11 +34,15 @@ public class VectorGridField<T extends VectorObject<T>>
 
    VectorGrid<T> myGrid = null;
 
+   protected static double DEFAULT_RENDER_SCALE = 0;
+   protected double myRenderScale = DEFAULT_RENDER_SCALE;
+
    public static PropertyList myProps =
       new PropertyList (VectorGridField.class, GridFieldBase.class);
 
    static {
-      //myProps.add ("renderProps * *", "render properties", null);
+      myProps.add (
+         "renderScale", "scale factor for rendered values", DEFAULT_RENDER_SCALE);
    }
   
    public PropertyList getAllPropertyInfo() {
@@ -72,6 +76,32 @@ public class VectorGridField<T extends VectorObject<T>>
    public VectorGridField (String name, VectorGrid<T> grid) {
       super (name);
       setGrid (grid);
+   }
+
+   /**
+    * Queries the {@code renderScale} property for this vector grid field.
+    * See {@link #setRenderScale}.
+    *
+    * @return render scale property value
+    */
+   public double getRenderScale() {
+      return myRenderScale;
+   }
+
+   /**
+    * Set the {@code renderScale} property for this vector grid field.  This is
+    * used to scale the rendered size of the vector components of this field in
+    * subclasses that support rendering of those values. The default value is
+    * 0, meaning that the components will not be rendered.
+    *
+    * @param scale new scale property value
+    */
+   public void setRenderScale (double scale) {
+      myRenderScale = scale;
+      System.out.println ("setscale " + scale + " grid=" + myGrid);
+      if (myGrid != null) {
+         myGrid.setRenderVectorScale (scale);
+      }
    }
 
    /**
@@ -246,6 +276,7 @@ public class VectorGridField<T extends VectorObject<T>>
       myGrid = grid;
       grid.setLocalToWorld (myLocalToWorld);
       grid.setRenderRanges (myRenderRanges);
+      grid.setRenderVectorScale (myRenderScale);
    }
 
    /* --- I/O methods --- */

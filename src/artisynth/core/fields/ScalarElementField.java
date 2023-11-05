@@ -1,12 +1,15 @@
 package artisynth.core.fields;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.List;
 
-import artisynth.core.femmodels.FemElement3dBase;
+import artisynth.core.femmodels.*;
+import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemElementRenderer;
 import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.FemFieldPoint;
@@ -17,6 +20,10 @@ import maspack.util.DynamicBooleanArray;
 import maspack.util.DynamicDoubleArray;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.*;
+import maspack.properties.*;
+import maspack.render.Renderer.*;
+import maspack.render.*;
 
 /**
  * A scalar field defined over an FEM model, using values set at the
@@ -31,6 +38,64 @@ public class ScalarElementField extends ScalarFemField {
    protected DynamicBooleanArray myValset;     // is volumetric value set?
    protected DynamicDoubleArray myShellValues; // values at shell elements
    protected DynamicBooleanArray myShellValset;// is shell value set?
+
+   public static double DEFAULT_ELEMENT_WIDGET_SIZE = 0.75;
+   protected double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE = 0.75;
+
+   public static boolean DEFAULT_VOLUME_ELEMS_VISIBLE = true;
+   protected boolean myVolumeElemsVisible = DEFAULT_VOLUME_ELEMS_VISIBLE;
+
+   public static boolean DEFAULT_SHELL_ELEMS_VISIBLE = true;
+   protected boolean myShellElemsVisible = DEFAULT_SHELL_ELEMS_VISIBLE;
+
+   public static PropertyList myProps =
+      new PropertyList (ScalarElementField.class, ScalarFemField.class);
+
+   static {
+      myProps.add (
+         "elementWidgetSize", "widget size for rendering elements",
+         DEFAULT_ELEMENT_WIDGET_SIZE, "[0,1]");
+      myProps.add (
+         "volumeElemsVisible", "field is visible for volume elements",
+         DEFAULT_VOLUME_ELEMS_VISIBLE);
+      myProps.add (
+         "shellElemsVisible", "field is visible for shell elements",
+         DEFAULT_SHELL_ELEMS_VISIBLE);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }   
+
+   public Range getVisualizationRange() {
+      return new EnumRange<Visualization>(
+         Visualization.class, new Visualization[] {
+            Visualization.POINT, Visualization.ELEMENT, Visualization.OFF });
+   }
+
+   public double getElementWidgetSize () {
+      return myElementWidgetSize;
+   }
+
+   public void setElementWidgetSize (double size) {
+      myElementWidgetSize = size;
+   }
+
+   public boolean getVolumeElemsVisible () {
+      return myVolumeElemsVisible;
+   }
+
+   public void setVolumeElemsVisible (boolean visible) {
+      myVolumeElemsVisible = visible;
+   }
+
+   public boolean getShellElemsVisible () {
+      return myShellElemsVisible;
+   }
+
+   public void setShellElemsVisible (boolean visible) {
+      myShellElemsVisible = visible;
+   }
 
    protected void initValues () {
       myValues = new DynamicDoubleArray();
@@ -47,6 +112,19 @@ public class ScalarElementField extends ScalarFemField {
       myValset.resize (maxElements);
       myShellValues.resize (maxShellElements);
       myShellValset.resize (maxShellElements);
+   }
+
+   void updateValueRange (DoubleInterval range) {
+      for (int i=0; i<myValset.size(); i++) {
+         if (myValset.get(i)) {
+            range.updateBounds (myValues.get(i));
+         }
+      }
+      for (int i=0; i<myShellValset.size(); i++) {
+         if (myShellValset.get(i)) {
+            range.updateBounds (myShellValues.get(i));         
+         }
+      }
    }
 
    /**
@@ -226,6 +304,7 @@ public class ScalarElementField extends ScalarFemField {
          myShellValues.set (elemNum, value);
          myShellValset.set (elemNum, true);
       }
+      notifyValuesChanged();
    }
    
    /**
@@ -265,6 +344,7 @@ public class ScalarElementField extends ScalarFemField {
          checkShellElemNum (elemNum);
          myShellValset.set (elemNum, false);
       }
+      notifyValuesChanged();
    }
    
    /**
@@ -277,6 +357,7 @@ public class ScalarElementField extends ScalarFemField {
       for (int i=0; i<myShellValset.size(); i++) {
          myShellValset.set (i, false);
       }
+      notifyValuesChanged();
    }   
 
    /* ---- Begin I/O methods ---- */
@@ -337,6 +418,7 @@ public class ScalarElementField extends ScalarFemField {
     * {@inheritDoc}
     */
    public void getSoftReferences (List<ModelComponent> refs) {
+      super.getSoftReferences (refs);
       for (int i=0; i<myValues.size(); i++) {
          if (myValset.get(i)) {
             refs.add (myFem.getElements().getByNumber(i));
@@ -353,6 +435,7 @@ public class ScalarElementField extends ScalarFemField {
     * {@inheritDoc}
     */
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo);
       if (undo) {
          restoreReferencedValues (myValues, myValset, undoInfo);
          restoreReferencedValues (myShellValues, myShellValset, undoInfo);
@@ -380,11 +463,77 @@ public class ScalarElementField extends ScalarFemField {
          return false;
       }
       if (!valueSetArraysEqual (
-             myShellValues, myShellValset,
+             myShellValues, myShellValset, 
              field.myShellValues, field.myShellValset)) {
          return false;
       }
       return true;
    }
 
-}  
+   // --- rendering interface ----
+
+   /**
+    * Add element widgets for every element in elist.
+    */
+   private void addElemWidgets (
+      RenderObject rob, int gid,
+      FemElement3dList<? extends FemElement3dBase> elist, DoubleInterval range) {
+
+      rob.triangleGroup (gid);
+      for (FemElement3dBase elem : elist) {
+         int cidx = getColorIndex (getValue(elem), range);
+         rob.setCurrentColor (cidx);
+         FemElementRenderer.addWidgetFaces (
+            rob, null, elem, getElementWidgetSize());
+      }     
+      FemElementRenderer.updateWidgetNormals (rob, gid);
+   }
+
+   protected RenderObject buildElementRenderObject (DoubleInterval range) {
+      RenderObject rob = new RenderObject();
+      rob.createTriangleGroup(); // for volume widgets
+      rob.createTriangleGroup(); // for shell widgets
+      ScalarFieldUtils.addColors (rob, myColorMap);
+      if (getVolumeElemsVisible()) {
+         addElemWidgets (rob, 0, myFem.getElements(), range);
+      }
+      if (getShellElemsVisible()) {
+         addElemWidgets (rob, 1, myFem.getShellElements(), range);
+      }
+      return rob;
+   }
+
+   /**
+    * Add points for every elements in elist.
+    */
+   private int addElemPoints (
+      RenderObject rob, FemElement3dList<? extends FemElement3dBase> elist,
+      DoubleInterval range, int vidx) {
+
+      Point3d cent = new Point3d();
+      for (FemElement3dBase elem : elist) {
+         elem.computeCentroid (cent);
+         rob.addPosition (cent);
+         int cidx = getColorIndex (getValue(elem), range);
+         rob.addVertex (vidx, -1, cidx, -1);
+         rob.addPoint (vidx);
+         vidx++;
+      }
+      return vidx;
+   }
+
+   protected RenderObject buildPointRenderObject (DoubleInterval range) {
+      RenderObject rob = new RenderObject();
+      rob.createPointGroup();
+      ScalarFieldUtils.addColors (rob, myColorMap);
+      int vidx = 0;
+      if (getVolumeElemsVisible()) {
+         vidx = addElemPoints (rob, myFem.getElements(), range, vidx);
+      }
+      if (getShellElemsVisible()) {
+         vidx = addElemPoints (rob, myFem.getShellElements(), range, vidx);
+      }
+      return rob;
+   }
+
+}

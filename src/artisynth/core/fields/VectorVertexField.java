@@ -8,6 +8,7 @@ import java.util.Deque;
 import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.MeshFieldPoint;
+import artisynth.core.modelbase.VectorFieldComponent;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.Vertex3d;
 import maspack.geometry.PolygonalMesh;
@@ -34,7 +35,6 @@ public class VectorVertexField<T extends VectorObject<T>>
    protected void initValues() {
       myValues = new ArrayList<>();
       updateValueLists();
-      setRenderProps (createRenderProps());
    }
 
    protected void updateValueLists() {
@@ -271,7 +271,7 @@ public class VectorVertexField<T extends VectorObject<T>>
          Point3d pos = new Point3d();
          Vector3d vec = new Vector3d();
          for (int idx=0; idx<myValues.size(); idx++) {
-            if (getThreeVectorValue (vec, myValues.get(idx))) {
+            if (myValues.get(idx).getThreeVectorValue (vec)) {
                Vertex3d vtx = myMeshComp.getMesh().getVertex (idx);
                addLineSegment (robj, vtx.getPosition(), vec);
             }

@@ -47,7 +47,7 @@ import maspack.properties.PropertyDesc;
  * FemElement3dBase#numAllIntegrationPoints} - 1.
  */
 public class VectorSubElemField<T extends VectorObject<T>> 
-   extends VectorFemField<T> {
+   extends VectorElemFieldBase<T> {
   
    protected ArrayList<T[]> myValues;
    protected ArrayList<T[]> myShellValues;
@@ -56,7 +56,6 @@ public class VectorSubElemField<T extends VectorObject<T>>
       myValues = new ArrayList<T[]>();
       myShellValues = new ArrayList<T[]>();
       updateValueLists();
-      setRenderProps (createRenderProps());
    }
 
    protected void updateValueLists() {
@@ -606,7 +605,7 @@ public class VectorSubElemField<T extends VectorObject<T>>
                FemElement3d e = myFem.getElements().getByNumber(num);
                IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
                for (int k=0; k<vecs.length; k++) {
-                  if (getThreeVectorValue (vec, vecs[k])) {
+                  if (vecs[k].getThreeVectorValue (vec)) {
                      ipnts[k].computePosition (pos, e.getNodes());
                      addLineSegment (robj, pos, vec);
                   }
@@ -619,7 +618,7 @@ public class VectorSubElemField<T extends VectorObject<T>>
                ShellElement3d e = myFem.getShellElements().getByNumber(num);
                IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
                for (int k=0; k<vecs.length; k++) {
-                  if (getThreeVectorValue (vec, vecs[k])) {
+                  if (vecs[k].getThreeVectorValue (vec)) {
                      ipnts[k].computePosition (pos, e.getNodes());
                      addLineSegment (robj, pos, vec);
                   }

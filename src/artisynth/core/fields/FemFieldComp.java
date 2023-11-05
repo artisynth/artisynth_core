@@ -65,6 +65,12 @@ public abstract class FemFieldComp
       }
    }
 
+   /**
+    * Should be called by subclasses whenever the field values are changed.
+    */
+   protected void notifyValuesChanged() {
+   }
+
    /* ---- Begin I/O methods ---- */
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -188,12 +194,12 @@ public abstract class FemFieldComp
             if (!test.isReferenced(i)) {
                removedValues.add (new NumDoublePair (i, values.get(i)));
                valuesSet.set (i, false);
-               System.out.println ("removed double value at " + i);
             }
          }
       }
       if (removedValues.size() > 0) {
          undoInfo.addLast (removedValues);
+         notifyValuesChanged();
       }
       else {
          undoInfo.addLast (NULL_OBJ);
@@ -209,8 +215,8 @@ public abstract class FemFieldComp
          for (NumDoublePair pair : (ArrayList<NumDoublePair>)obj) {
             values.set (pair.myNum, pair.myValue);
             valuesSet.set (pair.myNum, true);
-            System.out.println ("restored double value at " + pair.myNum);
          }
+         notifyValuesChanged();
       }
    }
 
@@ -233,12 +239,12 @@ public abstract class FemFieldComp
             if (!test.isReferenced(i)) {
                removedValues.add (new NumValuePair<T> (i, values.get(i)));
                values.set (i, null);
-               System.out.println ("removed value at " + i);
             }
          }
       }
       if (removedValues.size() > 0) {
          undoInfo.addLast (removedValues);
+         notifyValuesChanged();
       }
       else {
          undoInfo.addLast (NULL_OBJ);
@@ -252,8 +258,8 @@ public abstract class FemFieldComp
       if (obj != NULL_OBJ) {
          for (NumValuePair<T> pair : (ArrayList<NumValuePair<T>>)obj) {
             values.set (pair.myNum, pair.myValue);
-            System.out.println ("restored value at " + pair.myNum);
          }
+         notifyValuesChanged();
       }
    }
    /**
@@ -320,9 +326,7 @@ public abstract class FemFieldComp
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
-   public RenderProps createRenderProps() {
-      return RenderProps.createRenderProps (this);
-   }
+   // createRenderProps is defined in subclasses
 
    /* --- End partial implemetation of Renderable --- */
 

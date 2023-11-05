@@ -33,11 +33,12 @@ public abstract class VectorMeshField<T extends VectorObject<T>>
    protected double myRenderScale = DEFAULT_RENDER_SCALE;
    protected RenderObject myRenderObj = null;
 
-   static PropertyList myProps =
+   public static PropertyList myProps =
       new PropertyList (VectorMeshField.class, MeshFieldComp.class);
 
    static {
-      myProps.add ("renderProps", "renderer properties", null);
+      myProps.add (
+         "renderProps", "renderer properties", createDefaultRenderProps());
       myProps.add (
          "renderScale", "scale factor for rendered values", DEFAULT_RENDER_SCALE);
    }
@@ -134,15 +135,18 @@ public abstract class VectorMeshField<T extends VectorObject<T>>
 
    public VectorMeshField (Class<T> type) {
       initType (type);
+      setRenderProps (createRenderProps());
    }
 
    public VectorMeshField (Class<T> type, MeshComponent mcomp) {
       initType (type);
+      setRenderProps (createRenderProps());
       initMeshAndDefaultValue (mcomp, null);
    }
 
    public VectorMeshField (Class<T> type, MeshComponent mcomp, T defaultValue) {
       initType (type);
+      setRenderProps (createRenderProps());
       initMeshAndDefaultValue (mcomp, defaultValue);
    }
 
@@ -325,23 +329,22 @@ public abstract class VectorMeshField<T extends VectorObject<T>>
    // This default implementation of renderable provides for the rendering of
    // 3D vectors as lines
 
+   public RenderProps createRenderProps() {
+      RenderProps props = RenderProps.createPointLineProps (this);
+      return props;
+   }
+
+   public static RenderProps createDefaultRenderProps() {
+      RenderProps props = RenderProps.createPointLineProps (null);
+      return props;
+   }
+
    public void prerender (RenderList list) {
       myRenderObj = buildRenderObject();
    }
 
    protected boolean hasThreeVectorValue() {
-      return myTypeParameter.isAssignableFrom (Vector3d.class);
-   }
-
-   // Converts, if possible, a VectorObject value to a three-vector.
-   protected boolean getThreeVectorValue (Vector3d vec, VectorObject<T> vobj) {
-      if (vobj instanceof Vector3d) {
-         vec.set ((Vector3d)vobj);
-         return true;
-      }
-      else {
-         return false;
-      }
+      return Vector.class.isAssignableFrom (myTypeParameter);
    }
 
    void addLineSegment (RenderObject robj, Point3d pos, Vector3d vec) {

@@ -31,6 +31,9 @@ public abstract class GridCompBase extends RenderableComponentBase
    protected static boolean DEFAULT_RENDER_GRID = true;
    protected boolean myRenderGridP = DEFAULT_RENDER_GRID;
 
+   protected static boolean DEFAULT_RENDER_VERTICES = false;
+   protected boolean myRenderVerticesP = DEFAULT_RENDER_VERTICES;
+
    protected static String DEFAULT_RENDER_RANGES = "* * *";
    protected String myRenderRanges = DEFAULT_RENDER_RANGES;
 
@@ -43,6 +46,10 @@ public abstract class GridCompBase extends RenderableComponentBase
          "renderGrid", 
          "render the grid in the viewer",
          DEFAULT_RENDER_GRID);
+      myProps.add (
+         "renderVertices", 
+         "if grid rendering is enabled, render the vertices",
+         DEFAULT_RENDER_VERTICES);
       myProps.add (
          "renderRanges",
          "controls which part of the grid to render", 
@@ -79,6 +86,25 @@ public abstract class GridCompBase extends RenderableComponentBase
     */
    public void setRenderGrid (boolean enable) {
       myRenderGridP = enable;
+   }
+
+   /**
+    * Queries whether or not vertex rendering is enabled.
+    *
+    * @return {@code true} if vertex rendering is enabled 
+    */
+   public boolean getRenderVertices() {
+      return myRenderVerticesP;
+   }
+
+   /**
+    * Sets whether or not vertex rendering is enabled for this grid.  If
+    * enabled, the vertices are rendered whenever grid rendering is enabled.
+    *
+    * @param enable if {@code true}, enables vertex rendering
+    */
+   public void setRenderVertices (boolean enable) {
+      myRenderVerticesP = enable;
    }
 
    /**
@@ -266,6 +292,7 @@ public abstract class GridCompBase extends RenderableComponentBase
       }
       InterpolatingGridBase gridBase = myRenderGrid;
       if (gridBase != null) {
+         gridBase.setVertexRenderingEnabled (myRenderVerticesP);
          gridBase.render (renderer, myRenderProps, flags);
       }
    }

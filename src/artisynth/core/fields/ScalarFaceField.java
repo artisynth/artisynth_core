@@ -18,6 +18,11 @@ import maspack.util.DynamicBooleanArray;
 import maspack.util.DynamicDoubleArray;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.*;
+import maspack.properties.*;
+import maspack.render.Renderer.*;
+import maspack.render.*;
+import maspack.matrix.*;
 
 /**
  * A scalar field defined over a triangular polygonal mesh, using values set at
@@ -30,6 +35,15 @@ public class ScalarFaceField extends ScalarMeshField {
 
    protected DynamicDoubleArray myValues;
    protected DynamicBooleanArray myValuesSet;
+   
+   public Range getVisualizationRange() {
+      return new EnumRange<Visualization>(
+         Visualization.class, new Visualization[] {
+            Visualization.FACE,
+            Visualization.POINT,
+            Visualization.OFF
+         });
+   }
 
    protected void initValues () {
       myValues = new DynamicDoubleArray();
@@ -41,6 +55,14 @@ public class ScalarFaceField extends ScalarMeshField {
       int maxFaces = ((PolygonalMesh)myMeshComp.getMesh()).numFaces();
       myValues.resize (maxFaces);
       myValuesSet.resize (maxFaces);
+   }
+
+   void updateValueRange (DoubleInterval range) {
+      for (int i=0; i<myValuesSet.size(); i++) {
+         if (myValuesSet.get(i)) {
+            range.updateBounds (myValues.get(i));
+         }
+      }
    }
 
    /**
@@ -286,6 +308,106 @@ public class ScalarFaceField extends ScalarMeshField {
       super.postscan (tokens, ancestor);
       updateValueLists();
    }
+
+   // --- rendering interface ----
+
+   protected RenderObject buildFaceRenderObject (DoubleInterval range) {
+      PolygonalMesh mesh = (PolygonalMesh)getMesh();
+      RenderObject rob = new RenderObject();
+      rob.createTriangleGroup();
+      ScalarFieldUtils.addColors (rob, myColorMap);
+      // add the positions
+      Point3d wpnt = new Point3d();
+      int i = 0;
+      for (Vertex3d vtx : mesh.getVertices()) {
+         vtx.getWorldPoint (wpnt);
+         rob.addPosition (wpnt);
+      }
+
+      // add faces to render object
+      Vector3d nrm = new Vector3d();
+      Point3d cent = new Point3d();
+      Point3d wpos = new Point3d(); // widget position
+      Point3d ppos = new Point3d(); // point position
+      for (Face face : mesh.getFaces()) {
+         int[] pidxs = face.getVertexIndices();
+         int cidx = ScalarFieldUtils.getColorIndex (getValue(face), range);
+         face.getWorldNormal (nrm);
+         int nidx = rob.addNormal ((float)nrm.x, (float)nrm.y, (float)nrm.z);
+         // add triangles. 
+         for (i=1; i<pidxs.length-1; i++) {
+            int v0idx = rob.addVertex (pidxs[0], nidx, cidx, -1);
+            int v1idx = rob.addVertex (pidxs[i], nidx, cidx, -1);
+            int v2idx = rob.addVertex (pidxs[i+1], nidx, cidx, -1);
+            rob.addTriangle (v0idx, v1idx, v2idx);     
+         }
+      }
+      return rob;
+   }
+
+   protected RenderObject buildPointRenderObject (DoubleInterval range) {
+      PolygonalMesh mesh = (PolygonalMesh)getMesh();
+      RenderObject rob = new RenderObject();
+      rob.createPointGroup();
+      float[] rgb = new float[3];
+      for (int i=0; i<256; i++) {
+         myColorMap.getRGB (i/255.0, rgb);
+         rob.addColor (rgb);
+      }
+      Point3d pos = new Point3d();
+      int vidx = 0;
+      for (Face face : mesh.getFaces()) {
+         face.computeWorldCentroid (pos);
+         rob.addPosition (pos);
+         int cidx = ScalarFieldUtils.getColorIndex (getValue(face), range);
+         rob.addVertex (vidx, -1, cidx, -1);
+         rob.addPoint (vidx);
+         vidx++;
+      }     
+      return rob;
+   }
+
+//    public void prerender (RenderList list) {
+//       switch (myVisualization) {
+//          case FACE: {
+//             DoubleInterval range = updateRenderRange();
+//             myRenderObj = buildFaceRenderObject (range);
+//             break;
+//          }
+//          case POINT: {
+//             DoubleInterval range = updateRenderRange();
+//             myRenderObj = buildPointRenderObject (range);
+//             break;
+//          }
+//          default:{
+//             myRenderObj = null;
+//             break;
+//          }
+//       }
+//    }
+   
+//    public void render (Renderer renderer, int flags) {
+//       RenderObject robj = myRenderObj;
+//       RenderProps props = myRenderProps;
+      
+//       if (robj != null) {
+//          switch (myVisualization) {
+//             case FACE: {
+//                if (robj.numTriangles() > 0) {
+//                   renderer.setShading (props.getShading());
+//                   renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+//                   renderer.drawTriangles (robj, /*group=*/0);
+//                }
+//                break;
+//             }
+//             case POINT: {
+//                RenderableUtils.drawPoints (
+//                   renderer, robj, 0, props, isSelected());
+//                break;
+//             }
+//          }
+//       }
+//    }
 
 
 }

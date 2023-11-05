@@ -2,19 +2,25 @@ package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Deque;
+import java.util.*;
 
 import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.MeshFieldPoint;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshBase;
 import maspack.matrix.Point3d;
 import maspack.util.DynamicBooleanArray;
 import maspack.util.DynamicDoubleArray;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.render.*;
+import maspack.matrix.*;
+import maspack.properties.*;
+import maspack.util.*;
 
 /**
  * A scalar field defined over a triangular polygonal mesh, using values set at
@@ -28,6 +34,15 @@ public class ScalarVertexField extends ScalarMeshField {
    DynamicDoubleArray myValues;
    DynamicBooleanArray myValuesSet;
 
+   public Range getVisualizationRange() {
+      return new EnumRange<Visualization>(
+         Visualization.class, new Visualization[] {
+            Visualization.SURFACE,
+            Visualization.POINT,
+            Visualization.OFF
+         });
+   }
+
    protected void initValues() {
       myValues = new DynamicDoubleArray();
       myValuesSet = new DynamicBooleanArray();
@@ -38,6 +53,14 @@ public class ScalarVertexField extends ScalarMeshField {
       int size = myMeshComp.numVertices();
       myValues.resize (size);
       myValuesSet.resize (size);
+   }
+
+   void updateValueRange (DoubleInterval range) {
+      for (int i=0; i<myValuesSet.size(); i++) {
+         if (myValuesSet.get(i)) {
+            range.updateBounds (myValues.get(i));
+         }
+      }
    }
 
    /**
@@ -247,4 +270,87 @@ public class ScalarVertexField extends ScalarMeshField {
       super.postscan (tokens, ancestor);
       updateValueLists();
    }
+
+   // --- Renderable interface ---
+
+   protected RenderObject buildPointRenderObject(DoubleInterval range) {
+      RenderObject rob = new RenderObject();
+      rob.createPointGroup();
+      ScalarFieldUtils.addColors (rob, myColorMap);
+      MeshBase mesh = getMesh();
+      int vidx = 0;
+      Point3d pos = new Point3d();
+      for (Vertex3d vtx : mesh.getVertices()) {
+         vtx.getWorldPoint (pos);
+         rob.addPosition (pos);
+         int cidx = ScalarFieldUtils.getColorIndex (getValue(vtx), range);
+         rob.addVertex (vidx, -1, cidx, -1);
+         rob.addPoint (vidx);
+         vidx++;
+      }     
+      return rob;
+   }
+
+   protected RenderObject buildMeshRenderObject(DoubleInterval range) {
+      if (!myMeshComp.isMeshPolygonal()) {
+         return null;
+      }
+      else {
+         ArrayList<MeshComponent> mlist = new ArrayList<>(1);
+         mlist.add (myMeshComp);
+         return ScalarFieldUtils.buildMeshRenderObject (
+            mlist, myColorMap, range, (mcomp,vtx) -> getValue(vtx));
+      }
+   }
+
+   // public void prerender (RenderList list) {
+   //    switch (myVisualization) {
+   //       case MESH: {
+   //          DoubleInterval range = updateRenderRange();
+   //          if (!myMeshComp.isMeshPolygonal()) {
+   //             myRenderObj = null;
+   //          }
+   //          else {
+   //             ArrayList<MeshComponent> mlist = new ArrayList<>(1);
+   //             mlist.add (myMeshComp);
+   //             myRenderObj = ScalarFieldUtils.buildMeshRenderObject (
+   //                mlist, myColorMap, range, (mcomp,vtx) -> getValue(vtx));
+   //          }
+   //          break;
+   //       }
+   //       case POINT: {
+   //          DoubleInterval range = updateRenderRange();
+   //          myRenderObj = buildPointRenderObject(range);
+   //          break;
+   //       }
+   //       default:{
+   //          myRenderObj = null;
+   //          break;
+   //       }
+   //    }
+   // }
+   
+   // public void render (Renderer renderer, int flags) {
+   //    RenderObject robj = myRenderObj;
+   //    RenderProps props = myRenderProps;
+      
+   //    if (robj != null) {
+   //       switch (myVisualization) {
+   //          case MESH: {
+   //             RenderableUtils.drawTriangles (
+   //                renderer, robj, 0, props, isSelected());
+   //             break;
+   //          }
+   //          case POINT: {
+   //             RenderableUtils.drawPoints (
+   //                renderer, robj, 0, props, isSelected());
+   //             break;
+   //          }
+   //          default: {
+   //             break;
+   //          }
+   //       }
+   //    }
+   // }
+
 }

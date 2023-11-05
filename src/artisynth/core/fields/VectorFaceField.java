@@ -317,7 +317,7 @@ public class VectorFaceField<T extends VectorObject<T>>
          Point3d pos = new Point3d();
          Vector3d vec = new Vector3d();
          for (int idx=0; idx<myValues.size(); idx++) {
-            if (getThreeVectorValue (vec, myValues.get(idx))) {
+            if (myValues.get(idx).getThreeVectorValue(vec)) {
                Face face = ((PolygonalMesh)myMeshComp.getMesh()).getFace(idx);
                face.computeCentroid (pos);
                addLineSegment (robj, pos, vec);

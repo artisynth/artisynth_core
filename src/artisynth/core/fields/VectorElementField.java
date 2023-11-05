@@ -32,7 +32,7 @@ import maspack.util.ReaderTokenizer;
  * VectorObject}.
  */
 public class VectorElementField<T extends VectorObject<T>> 
-   extends VectorFemField<T> {
+   extends VectorElemFieldBase<T> {
 
    protected ArrayList<T> myValues;
    protected ArrayList<T> myShellValues;
@@ -41,7 +41,6 @@ public class VectorElementField<T extends VectorObject<T>>
       myValues = new ArrayList<T>();
       myShellValues = new ArrayList<T>();
       updateValueLists();
-      setRenderProps (createRenderProps());
    }
 
    protected void updateValueLists() {
@@ -388,14 +387,14 @@ public class VectorElementField<T extends VectorObject<T>>
          Point3d pos = new Point3d();
          Vector3d vec = new Vector3d();
          for (int num=0; num<myValues.size(); num++) {
-            if (getThreeVectorValue (vec, myValues.get(num))) {
+            if (myValues.get(num).getThreeVectorValue (vec)) {
                FemElement3d e = myFem.getElements().getByNumber(num);
                e.computeCentroid (pos);
                addLineSegment (robj, pos, vec);
             }
          }
          for (int num=0; num<myShellValues.size(); num++) {
-            if (getThreeVectorValue (vec, myShellValues.get(num))) {
+            if (myShellValues.get(num).getThreeVectorValue (vec)) {
                ShellElement3d e = myFem.getShellElements().getByNumber(num);
                e.computeCentroid (pos);
                addLineSegment (robj, pos, vec);

@@ -39,7 +39,6 @@ public class VectorNodalField<T extends VectorObject<T>>
    protected void initValues() {
       myValues = new ArrayList<>();
       updateValueLists();
-      setRenderProps (createRenderProps());
    }
 
    protected void updateValueLists() {
@@ -392,7 +391,7 @@ public class VectorNodalField<T extends VectorObject<T>>
          Point3d pos = new Point3d();
          Vector3d vec = new Vector3d();
          for (int num=0; num<myValues.size(); num++) {
-            if (getThreeVectorValue (vec, myValues.get(num))) {
+            if (myValues.get(num).getThreeVectorValue(vec)) {
                FemNode3d n = myFem.getNodes().getByNumber(num);
                addLineSegment (robj, n.getPosition(), vec);
             }

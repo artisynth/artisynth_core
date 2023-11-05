@@ -23,8 +23,7 @@ public abstract class MeshFieldComp
    
    protected MeshComponent myMeshComp;
    protected PolygonalMesh myMesh;
-   protected RenderProps myRenderProps;
-
+   protected RenderProps myRenderProps; 
    /**
     * Check to ensure a particular vertex belongs to this field's mesh.
     */
@@ -324,9 +323,7 @@ public abstract class MeshFieldComp
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
-   public RenderProps createRenderProps() {
-      return RenderProps.createRenderProps (this);
-   }
+   // createRenderProps is defined in subclasses
 
    /* --- End partial implemetation of Renderable --- */
 

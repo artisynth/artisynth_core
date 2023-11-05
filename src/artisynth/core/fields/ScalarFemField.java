@@ -3,33 +3,159 @@ package artisynth.core.fields;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.*;
 
 import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemMeshComp;
+import artisynth.core.fields.ScalarFieldUtils.ScalarVertexFunction;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 import maspack.matrix.*;
 import maspack.util.*;
+import maspack.geometry.*;
 import maspack.properties.PropertyDesc.TypeCode;
 import maspack.properties.PropertyDesc;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
+import maspack.render.*;
+import maspack.render.Renderer.*;
+import maspack.render.color.ColorMapBase;
+import maspack.render.color.HueColorMap;
 
 /**
  * Base class for scalar field defined over an FEM model.
  */
 public abstract class ScalarFemField
-   extends FemFieldComp implements ScalarFieldComponent {
+   extends FemFieldComp implements RenderableComponent, ScalarFieldComponent {
 
    double myDefaultValue = 0;   
+   DoubleInterval myValueRange;
+ 
+   RenderObject myRenderObj;
 
+   public enum Visualization {
+      POINT,
+      SURFACE,
+      ELEMENT,
+      OFF
+   };
+
+   protected ArrayList<FemMeshComp> myRenderMeshComps = new ArrayList<>();
+
+   protected static ColorMapBase defaultColorMap =  new HueColorMap(2.0/3, 0);
+   protected ColorMapBase myColorMap = defaultColorMap.copy();
+
+   static ScalarRange defaultRenderRange = new ScalarRange();
+   ScalarRange myRenderRange = defaultRenderRange.clone();
+
+   public static Visualization DEFAULT_VISUALIZATION = Visualization.OFF;
+   protected Visualization myVisualization = DEFAULT_VISUALIZATION;
+
+   public static PropertyList myProps =
+      new PropertyList (ScalarFemField.class, FemFieldComp.class);
+
+   static {
+      myProps.add (
+         "renderProps", "renderer properties", createDefaultRenderProps());
+      myProps.add (
+         "visualization", "how to visualize this field",
+         DEFAULT_VISUALIZATION);
+      myProps.add (
+         "renderRange", "range for drawing color maps", 
+         defaultRenderRange);
+      myProps.add (
+         "colorMap", "color map for visualization", 
+         defaultColorMap, "CE");
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }   
+
+   public Visualization getVisualization() {
+      return myVisualization;
+   }
+
+   public void setVisualization (Visualization vis) {
+      myVisualization = vis;
+   }
+
+   public Range getVisualizationRange() {
+      return new EnumRange<Visualization>(
+         Visualization.class, Visualization.values());
+   }
+
+   public ColorMapBase getColorMap() {
+      return myColorMap;
+   }
+   
+   public void setColorMap(ColorMapBase map) {
+      myColorMap = map;
+   }
+
+    public void setRenderRange (ScalarRange range) {
+      if (range != null) {
+         ScalarRange newRange = range.clone();
+         PropertyUtils.updateCompositeProperty (
+            this, "renderRange", myRenderRange, newRange);
+         myRenderRange = newRange;        
+      }
+      else if (myRenderRange != null) {
+         PropertyUtils.updateCompositeProperty (
+            this, "renderRange", myRenderRange, null);
+         myRenderRange = null;
+      }
+   }
+   
+   public ScalarRange getRenderRange() {
+      return myRenderRange;
+   }
+
+   protected boolean isTriangular (FemMeshComp mcomp) {
+      return ((mcomp.getMesh() instanceof PolygonalMesh) &&
+              ((PolygonalMesh)mcomp.getMesh()).isTriangular());
+   }
+
+   public void addRenderMeshComp (FemMeshComp mcomp) {
+      if (mcomp.getFem() != myFem) {
+         throw new IllegalArgumentException (
+            "Render mesh component not associated with field's FEM");
+      }
+      if (!isTriangular(mcomp)) {
+         throw new IllegalArgumentException ("Render mesh is not triangular");
+      }
+      myRenderMeshComps.add (mcomp);
+   }
+
+   public boolean removeRenderMeshComp (FemMeshComp mcomp) {
+      return myRenderMeshComps.remove (mcomp);
+   }
+   
+   public FemMeshComp getRenderMeshComp (int idx) {
+      return myRenderMeshComps.get(idx);
+   }
+   
+   public int numRenderMeshComps() {
+      return myRenderMeshComps.size();
+   }
+   
+   public void clearRenderMeshComps () {
+      myRenderMeshComps.clear();
+   }
+   
    public ScalarFemField () {
+      setRenderProps (createRenderProps());
    }
 
    public ScalarFemField (FemModel3d fem) {
+      setRenderProps (createRenderProps());
       myDefaultValue = 0;
       setFem (fem);
    }
 
    public ScalarFemField (FemModel3d fem, double defaultValue) {
+      setRenderProps (createRenderProps());
       myDefaultValue = defaultValue;
       setFem (fem);
    }
@@ -81,6 +207,7 @@ public abstract class ScalarFemField
             throw new IOException ("Expecting number or 'null', got "+rtok);
          }
       }
+      notifyValuesChanged();
    }
 
    /**
@@ -92,6 +219,10 @@ public abstract class ScalarFemField
       rtok.nextToken();
       if (scanAttributeName (rtok, "defaultValue")) {
          myDefaultValue = rtok.scanNumber();
+         return true;
+      }
+      else if (ScanWriteUtils.scanAndStoreReferences (
+                  rtok, "renderMeshes", tokens) != -1) {
          return true;
       }
       rtok.pushBack();
@@ -107,13 +238,68 @@ public abstract class ScalarFemField
 
       super.writeItems (pw, fmt, ancestor);
       pw.println ("defaultValue=" + fmt.format(myDefaultValue));
+      if (myRenderMeshComps.size() > 0) {
+         pw.print ("renderMeshes=");
+         ScanWriteUtils.writeBracketedReferences (
+            pw, myRenderMeshComps, ancestor);
+      }
    }
 
    /**
     * {@inheritDoc}
     */  
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      
+      if (postscanAttributeName (tokens, "renderMeshes")) {
+         myRenderMeshComps.clear();
+         ScanWriteUtils.postscanReferences (
+            tokens, myRenderMeshComps, FemMeshComp.class, ancestor);
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+
+   /* ---- value methods ---- */
+
+   /**
+    * {@inheritDoc}
+    */  
    public abstract double getValue (Point3d pos);
-   
+
+   /**
+    * Returns the range of all values in this field, including
+    * the default value.
+    */
+   public DoubleInterval getValueRange() {
+      if (myValueRange == null) {
+         DoubleInterval range =
+            new DoubleInterval (myDefaultValue, myDefaultValue);
+         updateValueRange (range);
+         myValueRange = range;
+      }
+      return myValueRange;
+   }
+
+   /**
+    * Updates range to include all values in this field
+    */
+   abstract void updateValueRange (DoubleInterval range);
+
+   DoubleInterval updateRenderRange() {
+      if (myRenderRange.getUpdating() != ScalarRange.Updating.FIXED) {
+         myRenderRange.updateInterval (getValueRange());
+      }
+      return myRenderRange.getInterval();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   protected void notifyValuesChanged() {
+      myValueRange = null;
+   }
+
    /**
     * Clear all values defined for the features (e.g., nodes, elements)
     * associated with this field. After this call, the field will have a
@@ -139,6 +325,7 @@ public abstract class ScalarFemField
     */
    public void setDefaultValue (double value) {
       myDefaultValue = value;
+      notifyValuesChanged();
    }
    
    /**
@@ -180,6 +367,166 @@ public abstract class ScalarFemField
       return (
          super.equals (field) &&
          myDefaultValue == field.getDefaultValue());
+   }
+
+   /* --- Begin partial implementation of Renderable --- */
+
+   protected int getColorIndex (double value, DoubleInterval range) {
+      return ScalarFieldUtils.getColorIndex (value, range);
+   }
+
+   // This default implementation of renderable provides for the rendering of
+   // scalar values
+
+   public RenderProps createRenderProps() {
+      RenderProps props = RenderProps.createPointFaceProps (this);
+      props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+      return props;
+   }
+
+   public static RenderProps createDefaultRenderProps() {
+      RenderProps props = RenderProps.createPointFaceProps (null);
+      props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+      return props;
+   }
+
+   protected RenderObject buildPointRenderObject(DoubleInterval range) {
+      // by default, don't render anything
+      return null;
+   }
+
+   protected RenderObject buildElementRenderObject(DoubleInterval range) {
+      // by default, don't render anything
+      return null;
+   }
+
+   protected ScalarVertexFunction getVertexFunction () {
+      return null;
+   }
+
+   public void prerender (RenderList list) {
+      switch (myVisualization) {
+         case SURFACE: {
+            RenderObject robj = null;
+            ScalarVertexFunction vfxn = getVertexFunction();
+            if (vfxn != null) {
+               DoubleInterval range = updateRenderRange();
+               ArrayList<FemMeshComp> rmeshComps = null;
+               if (myRenderMeshComps.size() > 0) {
+                  rmeshComps = myRenderMeshComps;
+               }
+               else {
+                  rmeshComps = new ArrayList<>(1);
+                  rmeshComps.add (myFem.getSurfaceMeshComp());
+               }
+               if (rmeshComps != null) {
+                  robj = ScalarFieldUtils.buildMeshRenderObject (
+                     rmeshComps, myColorMap, range, vfxn);
+               }
+            }
+            myRenderObj = robj;
+            break;
+         }
+         case POINT: {
+            DoubleInterval range = updateRenderRange();
+            myRenderObj = buildPointRenderObject(range);
+            break;
+         }
+         case ELEMENT: {
+            DoubleInterval range = updateRenderRange();
+            myRenderObj = buildElementRenderObject(range);
+            break;
+         }
+         case OFF: {
+            myRenderObj = null;
+            break;
+         }
+         default:{
+            throw new UnsupportedOperationException (
+               "Visualiztion "+myVisualization+" not implemented");
+         }
+      }
+   }
+
+   public void render (Renderer renderer, int flags) {
+      RenderObject robj = myRenderObj;
+      RenderProps props = myRenderProps;
+      
+      if (robj != null) {
+         switch (myVisualization) {
+            case SURFACE: {
+               boolean selecting = renderer.isSelecting();
+               for (int mid=0; mid<robj.numTriangleGroups(); mid++) {
+                  if (selecting) {
+                     renderer.beginSelectionQuery (mid);
+                  }
+                  RenderableUtils.drawTriangles (
+                     renderer, robj, mid, props, /*selected=*/false);
+                  if (selecting) {
+                     renderer.endSelectionQuery ();
+                  }
+               }
+               break;
+            }
+            case ELEMENT: {
+               if (robj.numTriangles(0) > 0) {
+                  renderer.setShading (props.getShading());
+                  renderer.drawTriangles (robj, /*group=*/0);
+               }
+               if (robj.numTriangles(1) > 0) {
+                  renderer.setShading (props.getShading());
+                  renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+                  renderer.drawTriangles (robj, /*group=*/1);
+               }
+               break;
+            }
+            case POINT: {
+               RenderableUtils.drawPoints (
+                  renderer, robj, 0, props, isSelected());
+               break;
+            }
+            default: {
+               break;
+            }
+         }
+      }
+   }
+
+   @Override
+   public int numSelectionQueriesNeeded() {
+      if (getVisualization() == Visualization.SURFACE) {
+         return myRenderMeshComps.size();
+      }
+      else {
+         return -1;
+      }
+   }
+
+   @Override
+   public void getSelection(LinkedList<Object> list, int qid) {
+      if (qid >= 0 && qid < myRenderMeshComps.size()) {
+         list.addLast(myRenderMeshComps.get(qid));
+      }
+   }
+
+   // render method will be implemented as needed by subclasses
+
+   /* --- Edit methods --- */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void getSoftReferences (List<ModelComponent> refs) {
+      for (FemMeshComp mcomp : myRenderMeshComps) {
+         refs.add (mcomp);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      ComponentUtils.updateReferences (this, myRenderMeshComps, undo, undoInfo);
    }
 
 }

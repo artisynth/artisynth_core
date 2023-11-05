@@ -5,14 +5,18 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.LinkedList;
 
+import artisynth.core.fields.ScalarFieldUtils.ScalarVertexFunction;
 import artisynth.core.femmodels.FemElement3dBase;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.IntegrationPoint3d;
+import artisynth.core.femmodels.FemMeshComp;
+import artisynth.core.femmodels.*;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.FemFieldPoint;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.mechmodels.*;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -21,6 +25,13 @@ import maspack.util.DynamicBooleanArray;
 import maspack.util.DynamicDoubleArray;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.DoubleInterval;
+import maspack.render.*;
+import maspack.util.DoubleInterval;
+import maspack.util.*;
+import maspack.geometry.*;
+import maspack.properties.*;
+import maspack.render.Renderer.*;
 
 /**
  * A scalar field defined over an FEM model, using values set at the
@@ -32,10 +43,16 @@ public class ScalarNodalField extends ScalarFemField {
 
    DynamicDoubleArray myValues;  // values at each node
    DynamicBooleanArray myValset; // whether value is set at each node 
-   
+
    // cached values
    protected ArrayList<double[]> myVolumetricValues;  
    protected ArrayList<double[]> myShellValues;  
+
+   public Range getVisualizationRange() {
+      return new EnumRange<Visualization>(
+         Visualization.class, new Visualization[] {
+            Visualization.POINT, Visualization.SURFACE, Visualization.OFF });
+   }
 
    protected void initValues() {
       myValues = new DynamicDoubleArray();
@@ -47,6 +64,14 @@ public class ScalarNodalField extends ScalarFemField {
       int size = myFem.getNodes().getNumberLimit();
       myValues.resize (size);
       myValset.resize (size);
+   }
+
+   void updateValueRange (DoubleInterval range) {
+      for (int i=0; i<myValset.size(); i++) {
+         if (myValset.get(i)) {
+            range.updateBounds (myValues.get(i));
+         }
+      }
    }
 
    /**
@@ -189,6 +214,7 @@ public class ScalarNodalField extends ScalarFemField {
       checkNodeNum (nodeNum);      
       myValues.set (nodeNum, value);
       myValset.set (nodeNum, true);
+      notifyValuesChanged();
    }
 
    /**
@@ -215,6 +241,7 @@ public class ScalarNodalField extends ScalarFemField {
       int nodeNum = node.getNumber();
       checkNodeNum (nodeNum);
       myValset.set (nodeNum, false);
+      notifyValuesChanged();
    }
    
    /**
@@ -224,6 +251,7 @@ public class ScalarNodalField extends ScalarFemField {
       for (int i=0; i<myValset.size(); i++) {
          myValset.set (i, false);
       }
+      notifyValuesChanged();
    }   
 
    public double getValue (int[] nodeNums, double[] weights) {
@@ -348,6 +376,7 @@ public class ScalarNodalField extends ScalarFemField {
     * {@inheritDoc}
     */  
    public void getSoftReferences (List<ModelComponent> refs) {
+      super.getSoftReferences (refs);
       for (int i=0; i<myValues.size(); i++) {
          if (myValset.get(i)) {
             refs.add (myFem.getNodes().getByNumber(i));
@@ -359,6 +388,7 @@ public class ScalarNodalField extends ScalarFemField {
     * {@inheritDoc}
     */  
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo);
       if (undo) {
          restoreReferencedValues (myValues, myValset, undoInfo);
       }
@@ -391,4 +421,64 @@ public class ScalarNodalField extends ScalarFemField {
       }
       return true;
    }
+
+   // --- rendering interface ----
+
+   protected RenderObject buildPointRenderObject(DoubleInterval range) {
+      RenderObject rob = new RenderObject();
+
+      rob.createPointGroup();
+      ScalarFieldUtils.addColors (rob, myColorMap);
+      int vidx = 0;
+      for (FemNode3d n : myFem.getNodes()) {
+         rob.addPosition (n.getPosition());
+         int cidx = getColorIndex (getValue(n), range);
+         rob.addVertex (vidx, -1, cidx, -1);
+         rob.addPoint (vidx);
+         vidx++;
+      }     
+      return rob;
+   }
+
+   private double getVertexValue (PointAttachment pa) {
+      if (pa instanceof PointParticleAttachment) {
+         // XXX is this checking needed? Can we assume getParticle() is a
+         // FemNode3d and that the node belongs to the right FEM?
+         Particle p = ((PointParticleAttachment)pa).getParticle();
+         if (p instanceof FemNode3d) {
+            FemNode3d node = (FemNode3d)p;
+            if (node.getGrandParent() == myFem) {
+               return getValue(node);
+            }
+         }
+         return myDefaultValue;
+      }
+      else if (pa instanceof PointFem3dAttachment) {
+         PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+         double[] wgts = pfa.getCoordinates().getBuffer();
+         double value = 0;
+         int k = 0;
+         for (FemNode n : pfa.getNodes()) {
+            // XXX is this checking needed? Can we assume the node is a
+            // FemNode3d that it belongs to the right FEM?
+            if (n instanceof FemNode3d && n.getGrandParent() == myFem) {
+               value += wgts[k++]*getValue ((FemNode3d)n);
+            }
+            else {
+               value += wgts[k++]*myDefaultValue;
+            }
+         }
+         return value;
+      }
+      else {
+         return myDefaultValue;
+      }
+   }
+
+   protected ScalarVertexFunction getVertexFunction () {
+      return ((mcomp, vtx) ->
+              getVertexValue (
+                 ((FemMeshComp)mcomp).getVertexAttachment(vtx)));
+   }
+ 
 }

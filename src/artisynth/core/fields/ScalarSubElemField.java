@@ -4,18 +4,22 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.List;
+import java.util.*;
 
-import artisynth.core.femmodels.FemElement;
+import artisynth.core.fields.ScalarFieldUtils.ScalarVertexFunction;
+import artisynth.core.femmodels.*;
 import artisynth.core.femmodels.FemElement3dBase;
 import artisynth.core.femmodels.FemElement3dList;
 import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.FemFieldPoint;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.mechmodels.*;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.matrix.MatrixNd;
 import maspack.util.InternalErrorException;
@@ -25,6 +29,11 @@ import maspack.util.ArraySupport;
 import maspack.util.DynamicDoubleArray;
 import maspack.util.DynamicBooleanArray;
 import maspack.util.IndentingPrintWriter;
+import maspack.util.*;
+import maspack.render.*;
+import maspack.geometry.*;
+import maspack.properties.*;
+import maspack.render.Renderer.*;
 
 /**
  * A scalar field defined over an FEM model, using values set at the element
@@ -47,6 +56,50 @@ public class ScalarSubElemField extends ScalarFemField {
    protected ArrayList<boolean[]> myValset;     // is volume elem value set?
    protected ArrayList<double[]> myShellValues; // values at each shell element
    protected ArrayList<boolean[]> myShellValset;// is shell elem value set?
+   
+   public static boolean DEFAULT_VOLUME_ELEMS_VISIBLE = true;
+   protected boolean myVolumeElemsVisible = DEFAULT_VOLUME_ELEMS_VISIBLE;
+
+   public static boolean DEFAULT_SHELL_ELEMS_VISIBLE = true;
+   protected boolean myShellElemsVisible = DEFAULT_SHELL_ELEMS_VISIBLE;
+
+   public static PropertyList myProps =
+      new PropertyList (ScalarSubElemField.class, ScalarFemField.class);
+
+   static {
+      myProps.add (
+         "volumeElemsVisible", "field is visible for volume elements",
+         DEFAULT_VOLUME_ELEMS_VISIBLE);
+      myProps.add (
+         "shellElemsVisible", "field is visible for shell elements",
+         DEFAULT_SHELL_ELEMS_VISIBLE);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }   
+
+   public Range getVisualizationRange() {
+      return new EnumRange<Visualization>(
+         Visualization.class, new Visualization[] {
+            Visualization.POINT, Visualization.SURFACE, Visualization.OFF });
+   }
+
+   public boolean getVolumeElemsVisible () {
+      return myVolumeElemsVisible;
+   }
+
+   public void setVolumeElemsVisible (boolean visible) {
+      myVolumeElemsVisible = visible;
+   }
+
+   public boolean getShellElemsVisible () {
+      return myShellElemsVisible;
+   }
+
+   public void setShellElemsVisible (boolean visible) {
+      myShellElemsVisible = visible;
+   }
 
    protected void initValues () {
       myValues = new ArrayList<double[]>();
@@ -65,6 +118,31 @@ public class ScalarSubElemField extends ScalarFemField {
          myShellValues, myFem.getShellElements().getNumberLimit());
       resizeArrayList (
          myShellValset, myFem.getShellElements().getNumberLimit());
+   }
+
+   void updateValueRange (DoubleInterval range) {
+      for (int i=0; i<myValset.size(); i++) {
+         boolean[] valueset = myValset.get(i);
+         if (valueset != null) {
+            double[] values = myValues.get(i);
+            for (int j=0; j<valueset.length; j++) {
+               if (valueset[j]) {
+                  range.updateBounds (values[j]);
+               }
+            }
+         }
+      }
+      for (int i=0; i<myShellValset.size(); i++) {
+         boolean[] valueset = myShellValset.get(i);
+         if (valueset != null) {
+            double[] values = myShellValues.get(i);
+            for (int j=0; j<valueset.length; j++) {
+               if (valueset[j]) {
+                  range.updateBounds (values[j]);
+               }
+            }
+         }
+      }
    }
 
    /**
@@ -347,6 +425,7 @@ public class ScalarSubElemField extends ScalarFemField {
       checkSubIndex (valueset, subIdx);
       varray[subIdx] = value;
       valueset[subIdx] = true;
+      notifyValuesChanged();
    }
 
    /**
@@ -415,6 +494,7 @@ public class ScalarSubElemField extends ScalarFemField {
             }
          }
       }
+      notifyValuesChanged();
    }
    
    /**
@@ -429,6 +509,7 @@ public class ScalarSubElemField extends ScalarFemField {
          myShellValues.set (i, null);
          myShellValset.set (i, null);
       }
+      notifyValuesChanged();
    }   
 
    /* ---- Begin I/O methods ---- */
@@ -599,6 +680,7 @@ public class ScalarSubElemField extends ScalarFemField {
     * {@inheritDoc}
     */
    public void getSoftReferences (List<ModelComponent> refs) {
+      super.getSoftReferences (refs);
       for (int i=0; i<myValues.size(); i++) {
          if (myValues.get(i) != null) {
             refs.add (myFem.getElements().getByNumber(i));
@@ -615,6 +697,7 @@ public class ScalarSubElemField extends ScalarFemField {
     * {@inheritDoc}
     */
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo);
       if (undo) {
          restoreReferencedValues (myValues, undoInfo);
          restoreReferencedValues (myShellValues, undoInfo);
@@ -712,5 +795,134 @@ public class ScalarSubElemField extends ScalarFemField {
       }
       return true;
     }
+
+   // --- rendering interface ----
+
+   /**
+    * Add points every regular integration point in the elements of elist.
+    */
+   private int addElemPoints (
+      RenderObject rob, FemElement3dList<? extends FemElement3dBase> elist,
+      DoubleInterval range, int vidx) {
+
+      Point3d pos = new Point3d();
+      for (FemElement3dBase elem : elist) {
+         IntegrationPoint3d [] ipnts = elem.getAllIntegrationPoints() ;
+         for (int k=0; k<ipnts.length; k++) {
+            ipnts[k].computePosition (pos, elem);
+            rob.addPosition (pos);
+            int cidx = getColorIndex (getValue(elem, k), range);
+            rob.addVertex (vidx, -1, cidx, -1);
+            rob.addPoint (vidx);
+            vidx++;
+         }   
+      }
+      return vidx;
+   }
+
+   protected RenderObject buildPointRenderObject(DoubleInterval range) {
+      RenderObject rob = new RenderObject();
+      rob.createPointGroup();
+      ScalarFieldUtils.addColors (rob, myColorMap);
+      int vidx = 0;
+      if (getVolumeElemsVisible()) {
+         vidx = addElemPoints (rob, myFem.getElements(), range, vidx);
+      }
+      if (getShellElemsVisible()) {
+         vidx = addElemPoints (rob, myFem.getShellElements(), range, vidx);
+      }
+      return rob;
+   }
+
+   private double getVertexValue (PointAttachment pa, double[] valueAtNodes) {
+      PointList<FemNode3d> nodes = myFem.getNodes();
+      if (pa instanceof PointParticleAttachment) {
+         // XXX is this checking needed? Can we assume getParticle() is a
+         // FemNode3d and that the node belongs to the right FEM?
+         Particle p = ((PointParticleAttachment)pa).getParticle();
+         if (p instanceof FemNode3d) {
+            FemNode3d node = (FemNode3d)p;
+            if (node.getGrandParent() == myFem) {
+               return valueAtNodes[nodes.indexOf(node)];
+            }
+         }
+         return myDefaultValue;
+      }
+      else if (pa instanceof PointFem3dAttachment) {
+         PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
+         double[] wgts = pfa.getCoordinates().getBuffer();
+         double value = 0;
+         int k = 0;
+         for (FemNode n : pfa.getNodes()) {
+            // XXX is this checking needed? Can we assume the node is a
+            // FemNode3d that it belongs to the right FEM?
+            if (n instanceof FemNode3d && n.getGrandParent() == myFem) {
+               value += wgts[k++]*valueAtNodes[nodes.indexOf((FemNode3d)n)];
+            }
+            else {
+               value += wgts[k++]*myDefaultValue;
+            }
+         }
+         return value;
+      }
+      else {
+         return myDefaultValue;
+      }
+   }
+
+   /**
+    * Find the values at every node.
+    */
+   private double[] getValuesAtNodes() {
+      double[] values = new double[myFem.numNodes()];
+      PointList<FemNode3d> allNodes = myFem.getNodes();
+      if (getVolumeElemsVisible()) {
+         for (FemElement3d elem : myFem.getElements()) {
+            double[] nodalExtrapMat = elem.getNodalAveragingMatrix().getBuffer();
+            FemNode3d[] enodes = elem.getNodes();
+            int numIpnts = elem.numIntegrationPoints();
+            for (int k=0; k<numIpnts; k++) {
+               for (int i=0; i<enodes.length; i++) {
+                  int nadjacent = enodes[i].numAdjacentVolumeElements();
+                  if (getShellElemsVisible()) {
+                     nadjacent += enodes[i].numAdjacentShellElements();
+                  }
+                  int nidx = allNodes.indexOf(enodes[i]);
+                  double a = nodalExtrapMat[i*numIpnts + k];
+                  if (a != 0) {
+                     values[nidx] += a*getValue(elem,k)/(double)nadjacent;
+                  }
+               }
+            }
+         }
+      }
+      if (getShellElemsVisible()) {
+         for (ShellElement3d elem : myFem.getShellElements()) {
+            double[] nodalExtrapMat = elem.getNodalAveragingMatrix().getBuffer();
+            FemNode3d[] enodes = elem.getNodes();
+            int numIpnts = elem.numIntegrationPoints();
+            for (int k=0; k<numIpnts; k++) {
+               for (int i=0; i<enodes.length; i++) {
+                  int nadjacent = enodes[i].numAdjacentShellElements();
+                  if (getVolumeElemsVisible()) {
+                     nadjacent += enodes[i].numAdjacentVolumeElements();
+                  }
+                  int nidx = allNodes.indexOf(enodes[i]);
+                  double a = nodalExtrapMat[i*numIpnts + k];
+                  if (a != 0) {
+                     values[nidx] += a*getValue(elem,k)/(double)nadjacent;
+                  }
+               }
+            }
+         }
+      }
+      return values;
+   }
+
+   protected ScalarVertexFunction getVertexFunction () {
+      double[] values = getValuesAtNodes();
+      return ((mcomp,vtx) -> getVertexValue (
+                 ((FemMeshComp)mcomp).getVertexAttachment(vtx), values));
+   }
 
 }

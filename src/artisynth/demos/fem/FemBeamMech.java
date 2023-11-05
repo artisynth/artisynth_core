@@ -30,6 +30,9 @@ import maspack.render.Renderable;
 import maspack.render.Renderer;
 
 public class FemBeamMech extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    MechModel myMechMod;
 
    FemModel3d myFemMod;

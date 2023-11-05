@@ -5,6 +5,8 @@ import artisynth.demos.fem.FemBeam3d;
 
 public class PyramidBeam3d extends FemBeam3d {
 
+   public static boolean omitFromMenu = true;
+
    public void build (String[] args) {
       //super (name, "tet", 1, 1, 
       //       /*options=*/ADD_MUSCLES | VERTICAL | ADD_DISPLACEMENT);

@@ -22,7 +22,9 @@ import maspack.render.Renderer;
  * 9 gauss points. Drag the nodes around.
  */
 public class SingleShellTri extends RootModel {
-   
+
+   public static boolean omitFromMenu = true;
+
    protected final double myDensity = 10000;
    protected final double myParticleDamping = 10;       
    protected final double myNodeRadius = 0.05;

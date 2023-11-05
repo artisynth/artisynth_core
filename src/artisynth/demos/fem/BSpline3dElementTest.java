@@ -22,6 +22,9 @@ import artisynth.core.workspace.RootModel;
 import maspack.render.RenderProps;
 
 public class BSpline3dElementTest extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    @Override
    public void build(String[] args) throws IOException {
       Main.getMain().getScheduler().setRealTimeAdvance(true);

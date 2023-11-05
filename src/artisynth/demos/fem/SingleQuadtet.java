@@ -10,9 +10,6 @@ import artisynth.core.driver.*;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.FemControlPanel;
 //import artisynth.core.gui.widgets.MaterialPanel;
-
-
-
 import java.awt.Color;
 import java.awt.Point;
 
@@ -23,6 +20,9 @@ import maspack.render.*;
 import maspack.matrix.*;
 
 public class SingleQuadtet extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    FemModel3d mod;
 
    private double EPS = 1e-8;

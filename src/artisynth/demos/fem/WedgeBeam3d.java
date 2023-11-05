@@ -6,6 +6,8 @@ import maspack.matrix.*;
 
 public class WedgeBeam3d extends FemBeam3d {
 
+   public static boolean omitFromMenu = true;
+
    public void build (String[] args) {
       super.build ("wedge", 1.0, 0.2, 6, 3, /*flags=*/0);
    }

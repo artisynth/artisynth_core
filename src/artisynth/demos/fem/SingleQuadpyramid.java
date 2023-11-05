@@ -23,6 +23,9 @@ import maspack.render.*;
 import maspack.matrix.*;
 
 public class SingleQuadpyramid extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    FemModel3d mod;
 
    private double EPS = 1e-8;

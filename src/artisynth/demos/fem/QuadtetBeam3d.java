@@ -7,6 +7,8 @@ import maspack.matrix.*;
 
 public class QuadtetBeam3d extends FemBeam3d {
 
+   public static boolean omitFromMenu = true;
+
    public void build (String[] args) {
       super.build ("quadtet", 1.0, 0.2, 2, 1, /*flags=*/0);
       //super (name, "quadtet", 1.0, 1.0, 4, 4,/*flags=*/VERTICAL);

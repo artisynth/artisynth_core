@@ -6,6 +6,8 @@ import artisynth.demos.fem.FemBeam3d;
 
 public class QuadwedgeBeam3d extends FemBeam3d {
 
+   public static boolean omitFromMenu = true;
+
    public void build (String[] args) {
       super.build ("quadwedge", 4, 2, 0);
       //super (name, "quadwedge", 4, 2, /*options=*/VERTICAL | ADD_DISPLACEMENT);

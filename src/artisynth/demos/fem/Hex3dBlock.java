@@ -10,6 +10,7 @@ import artisynth.core.materials.LinearMaterial;
 import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.workspace.RootModel;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.RigidTransform3d;
 import maspack.render.RenderProps;
@@ -18,7 +19,7 @@ import maspack.render.RenderProps;
  * Simple model showing an FEM connected to two rigid body blocks and a hinge
  * joint.
  */
-public class Hex3dBlock extends Fem3dBlock {
+public class Hex3dBlock extends RootModel {
 
    private double DENSITY = 1000;
 

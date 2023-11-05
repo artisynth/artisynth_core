@@ -19,7 +19,7 @@ import maspack.render.Renderer;
  * 8 gauss points. Drag the nodes around.
  */
 public class SingleShellQuad extends RootModel {
-   
+
    protected final double myDensity = 1000;
    protected final double myParticleDamping = 10;              
    protected final double myNodeRadius = 0.05;

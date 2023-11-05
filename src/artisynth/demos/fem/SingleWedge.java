@@ -24,6 +24,9 @@ import maspack.render.*;
 import maspack.matrix.*;
 
 public class SingleWedge extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    FemModel3d mod;
 
    public void build (String[] args) {
@@ -47,7 +50,6 @@ public class SingleWedge extends RootModel {
       WedgeElement wedge =
          new WedgeElement (nodes[0], nodes[1], nodes[2], 
                            nodes[3], nodes[4], nodes[5]);
-
 
       mod.addElement (wedge);
 

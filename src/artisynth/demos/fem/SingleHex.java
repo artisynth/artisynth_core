@@ -23,6 +23,9 @@ import maspack.render.*;
 import maspack.matrix.*;
 
 public class SingleHex extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    FemModel3d mod;
    MechModel mechMod;
 

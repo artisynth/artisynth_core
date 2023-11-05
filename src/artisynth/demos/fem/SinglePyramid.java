@@ -24,6 +24,9 @@ import maspack.render.*;
 import maspack.matrix.*;
 
 public class SinglePyramid extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    FemModel3d mod;
 
    public void build (String[] args) {

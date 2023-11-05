@@ -37,6 +37,8 @@ import java.util.*;
 
 public class AttachedMuscleBeam extends RootModel {
 
+   public static boolean omitFromMenu = true;
+
    static double myDensity = 1000;
    private double myYoungsModulus = 500000;
    private double myPoissonsRatio = 0.33;

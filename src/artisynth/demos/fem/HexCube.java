@@ -70,6 +70,24 @@ public class HexCube extends RootModel {
 
    public void build (String[] args) {
 
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-n")) {
+            if (i == args.length-1) {
+               System.out.println (
+                  "WARNING: option '-n' requires another argument");
+            }
+            else {
+               i++;
+               int n = Integer.valueOf (args[i]);
+               NX = NY = NZ = n;
+            }
+         }
+         else {
+            System.out.println (
+               "WARNING: unknown argument '"+args[i]+"'; ignoring");
+         }
+      }
+
       myHexMod = new FemModel3d ("hex");
       FemFactory.createHexGrid (
          myHexMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);

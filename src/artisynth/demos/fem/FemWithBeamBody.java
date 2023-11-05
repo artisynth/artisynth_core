@@ -15,6 +15,8 @@ import java.util.*;
 
 public class FemWithBeamBody extends RootModel {
 
+   public static boolean omitFromMenu = true;
+
    private final double EPS = 1e-8;
    protected MechModel mech;
 

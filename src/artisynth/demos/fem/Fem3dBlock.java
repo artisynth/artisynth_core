@@ -43,6 +43,9 @@ import java.awt.*;
 import java.util.*;
 
 public class Fem3dBlock extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    double EPS = 1e-9;
 
    double myDensity = 1000;

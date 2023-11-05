@@ -48,6 +48,8 @@ import maspack.util.RandomGenerator;
  */
 public class EmbeddedHeart extends RootModel {
 
+   public static boolean omitFromMenu = true;
+
    // Constructor
    public EmbeddedHeart() {}
    

@@ -11,8 +11,6 @@ import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.FemControlPanel;
 //import artisynth.core.gui.widgets.MaterialPanel;
 
-
-
 import java.awt.Color;
 import java.awt.Point;
 
@@ -23,6 +21,9 @@ import maspack.render.*;
 import maspack.matrix.*;
 
 public class SingleQuadwedge extends RootModel {
+
+   public static boolean omitFromMenu = true;
+
    FemModel3d mod;
 
    public void build (String[] args) {

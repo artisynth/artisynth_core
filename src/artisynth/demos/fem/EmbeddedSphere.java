@@ -30,6 +30,8 @@ import maspack.render.GL.GLViewer;
  */
 public class EmbeddedSphere extends RootModel {
 
+   public static boolean omitFromMenu = true;
+
    @Override
    public void build(String[] args) throws IOException {
       super.build(args);

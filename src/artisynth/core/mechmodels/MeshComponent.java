@@ -264,6 +264,15 @@ public class MeshComponent extends RenderableComponentBase
       return myMeshInfo.myMeshModifiedP;
    }
 
+   public boolean isMeshTriangular() {
+      return ((getMesh() instanceof PolygonalMesh) &&
+              ((PolygonalMesh)getMesh()).isTriangular());
+   }
+
+   public boolean isMeshPolygonal() {
+      return ((getMesh() instanceof PolygonalMesh));
+   }
+
    public RenderProps createRenderProps() {
       return RenderProps.createRenderProps(this);
       // MeshBase mesh = getMesh();

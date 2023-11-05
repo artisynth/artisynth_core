@@ -68,11 +68,21 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       return myProps;
    }
 
+   /**
+    * Sets the pose of this body's coordinate frame relative to world.
+    * 
+    * @param XFrameToWorld pose of this body relative to world
+    */
    public void setPose (RigidTransform3d XFrameToWorld) {
       myState.setPose (XFrameToWorld);
       updatePosState();
    }
 
+   /**
+    * Queries the pose of this body's coordinate frame relative to world.
+    * 
+    * @return pose of this body relative to world
+    */
    public RigidTransform3d getPose() {
       return myState.XFrameToWorld;
    }
@@ -81,19 +91,39 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       myState.getPose (XFrameToWorld);
    }
 
+   /**
+    * Queries the position of this body's coordinate frame relative to world.
+    * 
+    * @return body position relative to world
+    */
    public Point3d getPosition() {
       return new Point3d (myState.XFrameToWorld.p);
    }
 
+   /**
+    * Sets the position of this body's coordinate frame relative to world.
+    * 
+    * @param pos 
+    */
    public void setPosition (Point3d pos) {
       myState.setPosition (pos);
       updatePosState();
    }
 
+   /**
+    * Queries the orientation of this body's coordinate frame relative to world.
+    * 
+    * @return body orientation relative to world
+    */
    public AxisAngle getOrientation() {
       return myState.getAxisAngle();
    }
-
+   
+   /**
+    * Sets the orientation of this body's coordinate frame relative to world.
+    * 
+    * @param axisAng body orientation relative to world
+    */
    public void setOrientation (AxisAngle axisAng) {
       RigidTransform3d X = new RigidTransform3d (myState.XFrameToWorld);
       X.R.setAxisAngle (axisAng);
@@ -125,20 +155,43 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       myAxisDrawStyle = style;
    }
 
+   /**
+    * Create an empty, unnamed FixedMeshBody.
+    */
    public FixedMeshBody () {
       super();
    }
-   
+
+   /**
+    * Create an empty, named FixedMeshBody.
+    * 
+    * @param name name of the body
+    */  
    public FixedMeshBody(String name) {
       this();
       setName(name);
    }
 
+   /**
+    * Create an unnamed FixedMeshBody containing the specified mesh. Note
+    * that the mesh is stored by reference, and not copied, so that
+    * subsequent changes to it will be reflected in the body.
+    * 
+    * @param mesh mesh geometry
+    */
    public FixedMeshBody (MeshBase mesh) {
       this();
       setMesh (mesh);
    }
    
+   /**
+    * Create a named FixedMeshBody containing the specified mesh. Note
+    * that the mesh is stored by reference, and not copied, so that
+    * subsequent changes to it will be reflected in the body.
+    * 
+    * @param name name of the body
+    * @param mesh mesh geometry
+    */  
    public FixedMeshBody(String name, MeshBase mesh) {
       this(name);
       setMesh(mesh);

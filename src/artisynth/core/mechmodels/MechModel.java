@@ -1436,18 +1436,37 @@ TransformableGeometry, ScalableUnits {
       myFrames.removeAll();
    }
 
+   /**
+    * Returns the list used to store mesh component in this model.
+    *
+    * @return mesh component list
+    */
    public ComponentListView<MeshComponent> meshBodies() {
       return myMeshBodies;
    }
 
-   public void addMeshBody (MeshComponent rb) {
-      myMeshBodies.add (rb);
+   /**
+    * Adds a mesh component to the {@code meshBodies} list of this model.
+    *
+    * @param mcomp mesh component to be added
+    */
+   public void addMeshBody (MeshComponent mcomp) {
+      myMeshBodies.add (mcomp);
    }
 
-   public void removeMeshBody (MeshComponent rb) {
-      myMeshBodies.remove (rb);
+   /**
+    * Removes a mesh component from the {@code meshBodies} list of this model.
+    *
+    * @param mcomp mesh component to be removed
+    * @return {@code true} if the component was present and actually removed
+    */
+   public boolean removeMeshBody (MeshComponent mcomp) {
+      return myMeshBodies.remove (mcomp);
    }
 
+   /**
+    * Removes all mesh components from the {@code meshBodies} list of this model.
+    */
    public void clearMeshBodies() {
       myMeshBodies.removeAll();
    }

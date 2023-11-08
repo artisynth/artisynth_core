@@ -59,7 +59,6 @@ public class Mesh extends Geometry {
          }
          mesh.setRenderProps (createRenderProps ());
       }
-      
       return mesh;
    }
    
@@ -68,6 +67,9 @@ public class Mesh extends Geometry {
       File geometryPath, ModelComponentMap componentMap) {
       
       MeshBase mesh = createMesh (geometryPath);
+      if (mesh == null) {
+         return null;
+      }
       RigidMeshComp rmc = new RigidMeshComp (getName());
       rmc.setMesh (mesh);
       rmc.setRenderProps (mesh.getRenderProps ());

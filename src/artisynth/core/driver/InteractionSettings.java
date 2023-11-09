@@ -45,6 +45,9 @@ public class InteractionSettings extends SettingsBase {
    public static final boolean DEFAULT_INIT_DRAGGERS_IN_WORLD =
       Main.DEFAULT_INIT_DRAGGERS_IN_WORLD;
 
+   public static final boolean DEFAULT_ALIGN_DRAGGERS_TO_POINTS =
+      Main.DEFAULT_ALIGN_DRAGGERS_TO_POINTS;
+
    public static final double DEFAULT_REAL_TIME_SCALING = 1.0;
 
    public static final boolean DEFAULT_NAVIGATION_PANEL_LINES = false;
@@ -69,6 +72,10 @@ public class InteractionSettings extends SettingsBase {
          "initDraggersInWorld", 
          "align initial dragger orientation with world (vs. local) coordinates",
          DEFAULT_INIT_DRAGGERS_IN_WORLD, "NS");
+      myProps.add (
+         "alignDraggersToPoints", 
+         "align dragger orientation to points when appropriate",
+         DEFAULT_ALIGN_DRAGGERS_TO_POINTS, "NS");
       myProps.add (
          "navigationPanelLines", 
          "draw lines between nodes in the navigation panel",
@@ -113,6 +120,14 @@ public class InteractionSettings extends SettingsBase {
 
    public void setInitDraggersInWorld(boolean enable) {
       myMain.setInitDraggersInWorldCoords(enable);
+   }
+
+   public boolean getAlignDraggersToPoints() {
+      return myMain.getAlignDraggersToPoints();
+   }
+
+   public void setAlignDraggersToPoints(boolean enable) {
+      myMain.setAlignDraggersToPoints(enable);
    }
 
    public double getRealTimeScaling() {

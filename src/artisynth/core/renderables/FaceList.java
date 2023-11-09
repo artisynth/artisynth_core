@@ -29,6 +29,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    private final int SEL_GRP = 1;
    
    PolygonalMesh myMesh;
+
+   public static boolean DEFAULT_SELECTABLE = true;
+   protected boolean mySelectable = DEFAULT_SELECTABLE;
    
    private PolygonalMeshRenderer myMeshRenderer;
    FeatureIndexArray[] myFaces;
@@ -41,6 +44,9 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
    static {
       myProps.get ("renderProps").setDefaultValue (new PointRenderProps());
+      myProps.add (
+         "selectable isSelectable", 
+         "true if faces in this list are selectable", DEFAULT_SELECTABLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -58,7 +64,6 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       myFaceIdxsVersions = null;
       myFaces = null;
       myEdges = null;
-      
    }
 
    /* ======== Renderable implementation ======= */
@@ -153,11 +158,15 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
     * {@inheritDoc}
     */
    public boolean isSelectable() {
-      return true;
+      return mySelectable;
+   }
+
+   public void setSelectable (boolean enable) {
+      mySelectable = enable;
    }
 
    public int numSelectionQueriesNeeded() {
-      return size ();
+      return mySelectable ? size() : -1;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {

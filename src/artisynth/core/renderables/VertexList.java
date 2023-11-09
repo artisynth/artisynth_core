@@ -28,11 +28,17 @@ public class VertexList<P extends VertexComponent> extends RenderableComponentLi
 
    protected static final long serialVersionUID = 1;
 
+   public static boolean DEFAULT_SELECTABLE = true;
+   protected boolean mySelectable = DEFAULT_SELECTABLE;
+   
    public static PropertyList myProps =
    new PropertyList (VertexList.class, RenderableComponentList.class);
 
    static {
       myProps.get ("renderProps").setDefaultValue (new PointRenderProps());
+      myProps.add (
+         "selectable isSelectable", 
+         "true if faces in this list are selectable", DEFAULT_SELECTABLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -240,11 +246,15 @@ public class VertexList<P extends VertexComponent> extends RenderableComponentLi
     * {@inheritDoc}
     */
    public boolean isSelectable() {
-      return true;
+      return mySelectable;
+   }
+
+   public void setSelectable (boolean enable) {
+      mySelectable = enable;
    }
 
    public int numSelectionQueriesNeeded() {
-      return size();
+      return mySelectable ? size() : -1;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {

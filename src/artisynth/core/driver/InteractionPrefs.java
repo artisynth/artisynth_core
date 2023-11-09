@@ -44,6 +44,9 @@ public class InteractionPrefs extends Preferences {
    private boolean myInitDraggersInWorld =
       InteractionSettings.DEFAULT_INIT_DRAGGERS_IN_WORLD;
 
+   private boolean myAlignDraggersToPoints =
+      InteractionSettings.DEFAULT_ALIGN_DRAGGERS_TO_POINTS;
+
    private double myRealTimeScaling =
       InteractionSettings.DEFAULT_REAL_TIME_SCALING;
 
@@ -86,6 +89,14 @@ public class InteractionPrefs extends Preferences {
       myInitDraggersInWorld = enable;
    }
 
+   public boolean getAlignDraggersToPoints() {
+      return myAlignDraggersToPoints;
+   }
+
+   public void setAlignDraggersToPoints(boolean enable) {
+      myAlignDraggersToPoints = enable; 
+   }
+
    public double getRealTimeScaling() {
       return myRealTimeScaling;
    }
@@ -106,6 +117,7 @@ public class InteractionPrefs extends Preferences {
       setFrameRate (mySettings.getFrameRate());
       setArticulatedTransforms (mySettings.getArticulatedTransforms());
       setInitDraggersInWorld (mySettings.getInitDraggersInWorld());
+      setAlignDraggersToPoints (mySettings.getAlignDraggersToPoints());
       setRealTimeScaling (mySettings.getRealTimeScaling());
       setNavigationPanelLines (mySettings.getNavigationPanelLines());
    }
@@ -114,6 +126,7 @@ public class InteractionPrefs extends Preferences {
       mySettings.setFrameRate (getFrameRate());
       mySettings.setArticulatedTransforms (getArticulatedTransforms());
       mySettings.setInitDraggersInWorld (getInitDraggersInWorld());
+      mySettings.setAlignDraggersToPoints (getAlignDraggersToPoints());
       mySettings.setRealTimeScaling (getRealTimeScaling());
       mySettings.setNavigationPanelLines (getNavigationPanelLines());
 

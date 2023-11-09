@@ -74,7 +74,7 @@ public class FrameFrameAttachment extends FrameAttachment {
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
    
-   protected void set (Frame frame, Frame master, RigidTransform3d TFM) {
+   public void set (Frame frame, Frame master, RigidTransform3d TFM) {
       myFrame = frame;
       setMaster (master);
       myTFM.set (TFM);

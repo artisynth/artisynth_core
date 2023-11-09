@@ -52,6 +52,9 @@ public class MeshComponent extends RenderableComponentBase
    // reference to mesh for rendering - used in case mesh changes
    protected MeshBase myRenderMesh;
 
+   public static boolean DEFAULT_SELECTABLE = true;
+   protected boolean mySelectable = DEFAULT_SELECTABLE;
+
    public static PropertyList myProps = new PropertyList(
       MeshComponent.class, RenderableComponentBase.class);
    
@@ -73,6 +76,9 @@ public class MeshComponent extends RenderableComponentBase
       myProps.add (
          "vertexColorMixing", "color mixing for vertex coloring", 
          DEFAULT_VERTEX_COLOR_MIXING);
+      myProps.add (
+         "selectable isSelectable", 
+         "true if this mesh is selectable", DEFAULT_SELECTABLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -273,12 +279,26 @@ public class MeshComponent extends RenderableComponentBase
       return ((getMesh() instanceof PolygonalMesh));
    }
 
+   /* --- Renderable interface ---
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isSelectable() {
+      return mySelectable;
+   }
+
+   public void setSelectable (boolean enable) {
+      mySelectable = enable;
+   }
+
    public RenderProps createRenderProps() {
       return RenderProps.createRenderProps(this);
       // MeshBase mesh = getMesh();
       // if (mesh != null) {
       //    RenderProps props = mesh.createRenderProps(this);
       //    return props;
+
       // }
       // else {
       //    return RenderProps.createRenderProps(this);

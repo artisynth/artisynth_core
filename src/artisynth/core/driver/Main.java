@@ -105,6 +105,7 @@ import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RenderProbe;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.workspace.Workspace;
+import artisynth.core.renderables.VertexComponent;
 import maspack.geometry.ConstrainedTranslator3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.geometry.GeometryTransformer.UndoState;
@@ -113,9 +114,11 @@ import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.AxisAngle;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dBase;
@@ -317,6 +320,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private boolean myArticulatedTransformsP = DEFAULT_ARTICULATED_TRANSFORMS;
    public static boolean DEFAULT_INIT_DRAGGERS_IN_WORLD = false;
    private boolean myInitDraggersInWorldCoordsP = DEFAULT_INIT_DRAGGERS_IN_WORLD;
+   public static boolean DEFAULT_ALIGN_DRAGGERS_TO_POINTS = false;
+   private boolean myAlignDraggersToPointsP = DEFAULT_ALIGN_DRAGGERS_TO_POINTS;
 
    private Translator3d translator3d = new Translator3d();
    private Transrotator3d transrotator3d = new Transrotator3d();
@@ -1679,6 +1684,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       setRealTimeScaling (myInteractionPrefs.getRealTimeScaling());
       setInitDraggersInWorldCoords (
          myInteractionPrefs.getInitDraggersInWorld());
+      setAlignDraggersToPoints (
+         myInteractionPrefs.getAlignDraggersToPoints());
       myInteractionSettings.setNavigationPanelLines (
          myInteractionPrefs.getNavigationPanelLines());
    }      
@@ -3824,6 +3831,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myInitDraggersInWorldCoordsP = enable;
    }
 
+   public boolean getAlignDraggersToPoints() {
+      return myAlignDraggersToPointsP;
+   }
+
+   public void setAlignDraggersToPoints(boolean enable) {
+      myAlignDraggersToPointsP = enable; 
+   }
+
    public boolean getArticulatedTransformsEnabled () {
       return myArticulatedTransformsP;
    }
@@ -4120,46 +4135,145 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    private static final double inf = Double.POSITIVE_INFINITY;
 
+   /**
+    * Given a collection of points, set the dragger-to-world transform to their
+    * centroid. Also, if getAlignDraggersToPoints() and
+    * getInitDraggersInWorldCoords() return true and false, respectively, then
+    * if the points are colinear or coplanar, align the dragger orientation
+    * with either the line or plane normal. Otherwise, align the dragger
+    * orientation with world.
+    */
+   private void estimatePoseFromPoints (
+      RigidTransform3d TDW, ArrayList<Point3d> positions) {
+      
+      Vector3d centroid = new Vector3d();
+      for (Point3d p : positions) {
+         centroid.add (p);
+      }
+      centroid.scale (1.0/positions.size());
+      TDW.p.set (centroid);
+      if (getAlignDraggersToPoints() && !getInitDraggersInWorldCoords()) {
+         // compute covariance wrt the centroid and use SVD to test
+         // for colinear or coplanar.
+         Matrix3d C = new Matrix3d();
+         Vector3d vec = new Vector3d();
+         for (Point3d p : positions) {
+            vec.sub (p, centroid);
+            C.addOuterProduct (vec, vec);
+         }
+         SVDecomposition3d svd = new SVDecomposition3d();
+         svd.factor (C);
+         Vector3d sig = new Vector3d();
+         svd.getS (sig);
+         Matrix3d U = new Matrix3d (svd.getU());
+         double tol = 1e-8*C.frobeniusNorm();
+         Vector3d dir = null;
+         if (Math.abs(sig.y) < tol) {
+            // colinear, along the first column of U
+            dir = new Vector3d();
+            U.getColumn (0, dir);
+         }
+         else if (Math.abs(sig.z) < tol) {
+            // coplanar, perpendicular to the third column of U
+            dir = new Vector3d();
+            U.getColumn (2, dir);
+         }
+         if (dir != null) {
+            // Align the orientation with the line or plane direction.  Do this
+            // by realigning the axis closest to the direction.
+            double maxdot = Double.NEGATIVE_INFINITY;
+            int nearestAxis = -1;
+            for (int i=0; i<3; i++) {
+               Vector3d axis = new Vector3d();
+               axis.set (i, 1);
+               double dot = Math.abs (axis.dot(dir));
+               if (dot > maxdot) {
+                  maxdot = dot;
+                  nearestAxis = i;
+               }
+            }
+            switch (nearestAxis) {
+               case 0: {
+                  TDW.R.setXDirection (dir);
+                  break;
+               }
+               case 1: {
+                  TDW.R.setYDirection (dir);
+                  break;
+               }
+               case 2: {
+                  TDW.R.setZDirection (dir);
+                  break;
+               }
+               default: {
+                  TDW.R.setIdentity();
+               }
+            }
+            return;            
+         }
+      }
+      TDW.R.setIdentity();
+   }
+
    protected double computeDraggerToWorld (
       RigidTransform3d TDW, List<ModelComponent> draggables,
       Dragger3dBase dragger) {
 
       double radius = 0;
+      boolean frameDetermined = false;
+
       if (dragger != null) {
          TDW.set (dragger.getDraggerToWorld());
       }
-      HasCoordinateFrame singleCompWithFrame = null;
       if (draggables.size() == 1 &&
           draggables.get(0) instanceof HasCoordinateFrame) {
-         singleCompWithFrame = (HasCoordinateFrame)draggables.get(0);
-      }
-      Point3d pmin = null;
-      Point3d pmax = null;
-      if (dragger == null || singleCompWithFrame == null) {
-         // need to compute bounds if there is no dragger (to determine
-         // radius), or if there is no single component with a frame (to
-         // determine the transform).
-         pmin = new Point3d (inf, inf, inf);
-         pmax = new Point3d (-inf, -inf, -inf);
-         for (ModelComponent c : draggables) {
-            ((Renderable)c).updateBounds (pmin, pmax);
-         }
-         radius = pmin.distance (pmax);
-      }
-      if (singleCompWithFrame != null) {
-         singleCompWithFrame.getPose (TDW);
-         RigidTransform3d TOFF =
-            myDraggerFrameOffsetMap.get (singleCompWithFrame);
+         // there is only one component, and it has a coordinate frame
+         HasCoordinateFrame hasFrame = (HasCoordinateFrame)draggables.get(0);
+         hasFrame.getPose (TDW);
+         RigidTransform3d TOFF = myDraggerFrameOffsetMap.get (hasFrame);
          if (TOFF != null) {
             TDW.mul (TOFF);
          }
          if (dragger == null && getInitDraggersInWorldCoords()) {
             TDW.R.setIdentity();
          }
+         frameDetermined = true;
       }
-      else {
-         TDW.p.add (pmin, pmax);
-         TDW.p.scale (0.5);
+      else if (draggables.size() > 1) {
+         // if there are multiple draggables that are points, determine the
+         // frame from the point positions
+         ArrayList<Point3d> positions = new ArrayList<>();
+         for (ModelComponent c : draggables) {
+            if (c instanceof Point) {
+               positions.add (((Point)c).getPosition());
+            }
+            else if (c instanceof VertexComponent) {
+               positions.add (((VertexComponent)c).getPosition());
+            }
+            else {
+               positions = null;
+               break;
+            }
+         }
+         if (positions != null) {
+            estimatePoseFromPoints (TDW, positions);
+            frameDetermined = true;
+         }
+      }
+      if (dragger == null || !frameDetermined) {
+         // need to compute bounds if there is no dragger (to determine
+         // radius), or if we haven't computed a frame yet (to determine the
+         // frame).
+         Point3d pmin = new Point3d (inf, inf, inf);
+         Point3d pmax = new Point3d (-inf, -inf, -inf);
+         for (ModelComponent c : draggables) {
+            ((Renderable)c).updateBounds (pmin, pmax);
+         }
+         radius = pmin.distance (pmax);
+         if (!frameDetermined) {
+            TDW.p.add (pmin, pmax);
+            TDW.p.scale (0.5);
+         }
       }
       return radius;
    } 

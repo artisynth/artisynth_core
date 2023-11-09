@@ -35,8 +35,8 @@ import artisynth.core.workspace.RootModel;
  * Responsible for adding FrameMarkers to a MechModel.
  */
 public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
-   private MechModel myModel;
-   private RenderableComponentList<FrameMarker> myMarkerList; // marker dest
+   protected MechModel myModel;
+   protected RenderableComponentList<FrameMarker> myMarkerList; // marker dest
    private RigidBody myRigidBody; // if non-null, body to add markers to
 
    private static HashMap<Class,ModelComponent> myPrototypeMap;
@@ -212,7 +212,7 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
       // }
    }
 
-   private void createAndAddMarker (Point3d pnt, Frame frame) {
+   protected void createAndAddMarker (Point3d pnt, Frame frame) {
       FrameMarker marker = new FrameMarker (pnt);
       marker.setFrame (frame);
       marker.setName (getNameFieldValue());

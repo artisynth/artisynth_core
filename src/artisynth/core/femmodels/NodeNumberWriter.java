@@ -93,7 +93,8 @@ public class NodeNumberWriter {
       boolean useBrackets = ((myFlags & USE_BRACKETS) != 0);
       if ((myFlags & ADD_HEADER_COMMENT) != 0) {
          myPw.println (
-            "# node numbers from "+ComponentUtils.getPathName(femModel));
+            "# FemModel: " + ComponentUtils.getPathName(femModel) +
+            ", numNodes=" + femModel.numNodes());
       }
       if (useBrackets) {
          myPw.print ("[ ");

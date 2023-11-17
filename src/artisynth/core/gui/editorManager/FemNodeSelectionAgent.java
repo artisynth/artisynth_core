@@ -72,7 +72,7 @@ SelectionListener {
    public static final double DEFAULT_DISTANCE = 1.0;
    static double myDefaultDistance = DEFAULT_DISTANCE;
 
-   public static final boolean DEFAULT_SURFACE_NODES_ONLY = false;
+   public static final boolean DEFAULT_SURFACE_NODES_ONLY = true;
    static boolean myDefaultSurfaceNodesOnly = DEFAULT_SURFACE_NODES_ONLY;
 
    public static final boolean DEFAULT_USE_SIGNED_DISTANCE = true;
@@ -81,13 +81,15 @@ SelectionListener {
    public static final int DEFAULT_MAX_COLS = 10;
    static int myDefaultMaxCols = DEFAULT_MAX_COLS;
 
-   public static final int DEFAULT_WRITE_FLAGS = 0;
+   public static final int DEFAULT_WRITE_FLAGS =
+      NodeNumberWriter.ADD_HEADER_COMMENT;
    static int myDefaultWriteFlags = DEFAULT_WRITE_FLAGS;
 
    static File myNumberFile;
 
    protected boolean myMaskSelectionChanged = false;
    protected boolean myAttachingP = false;
+   protected boolean myFillingRegionP = false;
    protected String mySavedInstructions = null;
 
    protected DoubleField myMaxBendAngField;
@@ -95,9 +97,14 @@ SelectionListener {
    protected DoubleField myMaxEdgeAngField;
    protected BooleanSelector myBranchingSelector;
    protected DoubleField myDistanceField;
-   protected BooleanSelector mySurfaceNodesSelector;
+   protected BooleanSelector mySurfaceOnlySelector;
    protected BooleanSelector mySignedDistanceSelector;
    protected JButton myClearButton;
+   protected JButton myShrinkButton;
+   protected JButton myGrowButton;
+   protected JButton myBoundaryButton;
+   protected JButton myFillButton;
+
    protected JButton mySaveButton;
    protected JButton mySaveAsButton;
    protected JButton myLoadButton;
@@ -112,19 +119,16 @@ SelectionListener {
    protected Component[] myRidgeWidgets;
    protected Component[] myDistanceWidgets;
 
-   private State myState = State.Complete;
-
    public enum SelectionMode {
       INDIVIDUAL,
       PATCH,
-      PATCH_BORDER,
       EDGE_LINE,
       DISTANCE,
+      MINIMUM_PATH
    }
 
-   private enum State {
-      SelectingTargets, Complete
-   };
+   // used by MINIMUM_PATH
+   FemNode3d myLastSelectedNode;
 
    private RigidBody getSelectedBody (ModelComponent selComp) {
       if (selComp instanceof RigidBody) {
@@ -181,7 +185,13 @@ SelectionListener {
                   return isValidMeshComponent (c);
                }
                default: {
-                  return (c instanceof FemNode3d);
+                  if (surfaceNodesOnly()) {
+                     return (c instanceof FemNode3d &&
+                             myFemModel.isSurfaceNode((FemNode3d)c));
+                  }
+                  else {
+                     return (c instanceof FemNode3d);
+                  }
                }
             }
          }
@@ -206,6 +216,7 @@ SelectionListener {
       mySelectionManager.removeSelectionListener (this);
       uninstallSelectionFilter();
       mySelectionManager.setViewerMultiSelection (false);
+      myLastSelectedNode = null;
    }
 
    public SelectionMode getSelectionMode() {
@@ -223,7 +234,6 @@ SelectionListener {
       }
       Component[] widgets;
       switch (getSelectionMode()) {
-         case PATCH_BORDER:
          case PATCH: {
             widgets = myPatchWidgets;
             break;
@@ -236,6 +246,7 @@ SelectionListener {
             widgets = myDistanceWidgets;
             break;
          }
+         case MINIMUM_PATH: 
          case INDIVIDUAL: {
             widgets = null;
             break;
@@ -309,9 +320,9 @@ SelectionListener {
       myDistanceField.addValueChangeListener (
          e -> myDefaultDistance = (Double)e.getValue());
 
-      mySurfaceNodesSelector =
+      mySurfaceOnlySelector =
          new BooleanSelector ("surfaceNodesOnly", myDefaultSurfaceNodesOnly);
-      mySurfaceNodesSelector.addValueChangeListener (
+      mySurfaceOnlySelector.addValueChangeListener (
          e -> myDefaultSurfaceNodesOnly = (Boolean)e.getValue());
 
       mySignedDistanceSelector =
@@ -319,10 +330,9 @@ SelectionListener {
       mySignedDistanceSelector.addValueChangeListener (
          e -> myDefaultUseSignedDistance = (Boolean)e.getValue());
 
-      myDistanceWidgets = new Component[3];
+      myDistanceWidgets = new Component[2];
       myDistanceWidgets[0] = myDistanceField;
-      myDistanceWidgets[1] = mySurfaceNodesSelector;
-      myDistanceWidgets[2] = mySignedDistanceSelector;
+      myDistanceWidgets[1] = mySignedDistanceSelector;
 
       // XXX Hack: add and remove widget with widest label to preset the
       // overall label width
@@ -344,15 +354,27 @@ SelectionListener {
    }
 
    protected void createButtons() {
-      JPanel panel = new JPanel();
-      panel.setLayout (new BoxLayout (panel, BoxLayout.PAGE_AXIS));
-
-      //panel.add (Box.createVerticalGlue());
       ArrayList<JButton> buttons = new ArrayList<>();
 
       myClearButton = createVerticalButton (
          "Clear", "Clear selection");
       buttons.add (myClearButton);
+
+      myGrowButton = createVerticalButton (
+         "Grow", "Grow selection");
+      buttons.add (myGrowButton);
+
+      myShrinkButton = createVerticalButton (
+         "Shrink", "Shrink selection");
+      buttons.add (myShrinkButton);
+
+      myBoundaryButton = createVerticalButton (
+         "Boundary", "Reduce selection to its border");
+      buttons.add (myBoundaryButton);
+
+      myFillButton = createVerticalButton (
+         "Fill", "Fill current selection");
+      buttons.add (myFillButton);
 
       mySaveButton = createVerticalButton (
          "Save", "Save node numbers to a file");
@@ -399,17 +421,43 @@ SelectionListener {
          attachComp = Box.createRigidArea (maxSize);
          detachComp = Box.createRigidArea (maxSize);
       }
-      panel.add (Box.createRigidArea (new Dimension(0, 2)));
-      panel.add (createButtonPair (myClearButton, mySaveButton));
-      panel.add (Box.createRigidArea (new Dimension(0, 2)));
 
-      panel.add (createButtonPair (attachComp, mySaveAsButton));
-      panel.add (Box.createRigidArea (new Dimension(0, 2)));
+      // arrange buttons into a couple of panels
 
-      panel.add (createButtonPair (detachComp, myLoadButton));
-      panel.add (Box.createRigidArea (new Dimension(0, 2)));
+      myContentPane.addWidget (mySurfaceOnlySelector);
 
-      myContentPane.addWidget (panel);
+      JPanel panel0 = new JPanel();
+      panel0.setLayout (new BoxLayout (panel0, BoxLayout.PAGE_AXIS));
+
+      panel0.add (Box.createRigidArea (new Dimension(0, 2)));
+      panel0.add (createButtonPair (myClearButton, myBoundaryButton));
+      panel0.add (Box.createRigidArea (new Dimension(0, 2)));
+
+      panel0.add (createButtonPair (myGrowButton, myFillButton));
+      panel0.add (Box.createRigidArea (new Dimension(0, 2)));
+
+      panel0.add (createButtonPair (
+                     myShrinkButton, Box.createRigidArea (maxSize)));
+      panel0.add (Box.createRigidArea (new Dimension(0, 2)));
+
+      myContentPane.addWidget (panel0);
+
+      myContentPane.addWidget (new JSeparator());
+
+      JPanel panel1 = new JPanel();
+      panel1.setLayout (new BoxLayout (panel1, BoxLayout.PAGE_AXIS));
+
+      panel1.add (Box.createRigidArea (new Dimension(0, 2)));
+      panel1.add (createButtonPair (mySaveButton, attachComp));
+      panel1.add (Box.createRigidArea (new Dimension(0, 2)));
+
+      panel1.add (createButtonPair (mySaveAsButton, detachComp));
+      panel1.add (Box.createRigidArea (new Dimension(0, 2)));
+
+      panel1.add (createButtonPair (
+                     myLoadButton, Box.createRigidArea (maxSize)));
+
+      myContentPane.addWidget (panel1);
    }
 
    private JButton createVerticalButton (
@@ -434,8 +482,11 @@ SelectionListener {
             text = "Selected desired nodes";
             break;
          }
-         case PATCH:
-         case PATCH_BORDER: {
+         case MINIMUM_PATH: {
+            text = "Select node to find path to";
+            break;
+         }
+         case PATCH: {
             text = "Select node inside the patch";
             break;
          }
@@ -470,6 +521,7 @@ SelectionListener {
       installSelectionFilter (new FemNodeFilter());
       mySelectionManager.filterSelections (new FemNodeFilter());
       mySelectionManager.setViewerMultiSelection (true);
+      updateButtons();
    }
 
    public void selectionChanged (SelectionEvent e) {
@@ -477,13 +529,22 @@ SelectionListener {
          return;
       }
       ModelComponent selComp = e.getLastAddedComponent();
+      if (selComp == null) {
+         return;
+      }
       if (myAttachingP) {
          doAttachNodes (selComp);
          return;
       }
       ArrayList<FemNode3d> nodes = null;
       SelectionMode mode = (SelectionMode)myModeSelector.getValue();
-      if (mode == SelectionMode.DISTANCE) {
+      if (myFillingRegionP) {
+         if (selComp instanceof FemNode3d) {
+            nodes = fillRegion ((FemNode3d)selComp);
+            endFillRegion();
+         }
+      }
+      else if (mode == SelectionMode.DISTANCE) {
          PolygonalMesh pmesh = null;
          if (selComp instanceof RigidBody) {         
             pmesh = ((RigidBody)selComp).getSurfaceMesh();
@@ -495,12 +556,11 @@ SelectionListener {
             }
          }
          if (pmesh != null) {
-            boolean surfaceOnly = mySurfaceNodesSelector.getBooleanValue();
             nodes = new ArrayList<>();
             double distThresh = myDistanceField.getDoubleValue();
             boolean useSignedDist = mySignedDistanceSelector.getBooleanValue();
             for (FemNode3d n : myFemModel.getNodes()) {
-               if (surfaceOnly && !myFemModel.isSurfaceNode (n)) {
+               if (surfaceNodesOnly() && !myFemModel.isSurfaceNode (n)) {
                   continue;
                }
                double d = pmesh.distanceToPoint (n.getPosition());
@@ -516,6 +576,13 @@ SelectionListener {
          }
          removeSelected (selComp); // don't want the body or mesh selected
       }
+      else if (mode == SelectionMode.MINIMUM_PATH) {
+         if (myLastSelectedNode != null && selComp instanceof FemNode3d) {
+            nodes = FemQuery.findNodePath (
+               myFemModel, myLastSelectedNode, 
+               (FemNode3d)selComp, surfaceNodesOnly());
+         }
+      }
       else {
          if (selComp instanceof FemNode3d) {
             FemNode3d node = (FemNode3d)selComp;
@@ -527,19 +594,14 @@ SelectionListener {
                   double minBendAng = DTOR*myMinBendAngField.getDoubleValue();
                   double maxEdgeAng = DTOR*myMaxEdgeAngField.getDoubleValue();
                   boolean branching = myBranchingSelector.getBooleanValue();
-                  nodes = myFemModel.findEdgeLineNodes (
-                     node, minBendAng, maxEdgeAng, branching);
+                  nodes = FemQuery.findEdgeLineNodes (
+                     myFemModel, node, minBendAng, maxEdgeAng, branching);
                   break;
                }
                case PATCH: {
                   double maxBendAng = DTOR*myMaxBendAngField.getDoubleValue();
-                  nodes = myFemModel.findPatchNodes (node, maxBendAng);
-                  break;
-               }
-               case PATCH_BORDER: {
-                  double maxBendAng = DTOR*myMaxBendAngField.getDoubleValue();
-                  nodes = myFemModel.findPatchBorderNodes (node, maxBendAng);
-                  removeSelected (node); // node may not be on the border
+                  nodes = FemQuery.findPatchNodes (
+                     myFemModel, node, maxBendAng);
                   break;
                }
                default: {
@@ -549,11 +611,14 @@ SelectionListener {
             }
          }
       }
+      if (selComp instanceof FemNode3d) {
+         myLastSelectedNode = (FemNode3d)selComp;
+      }
       if (nodes != null) {
          addSelected (nodes);
          myMain.rerender();
       }
-      updateAttachButtons();
+      updateButtons();
    }
 
    private void addSelected (List<FemNode3d> nodes) {
@@ -562,23 +627,114 @@ SelectionListener {
       myMaskSelectionChanged = false;
    }
 
+   private void removeSelected (List<FemNode3d> nodes) {
+      myMaskSelectionChanged = true;
+      mySelectionManager.removeSelected (nodes);
+      myMaskSelectionChanged = false;
+      for (FemNode3d node : nodes) {
+         if (myLastSelectedNode == node) {
+            myLastSelectedNode = null;
+         }
+      }
+   }
+
    private void removeSelected (ModelComponent c) {
       myMaskSelectionChanged = true;
       mySelectionManager.removeSelected (c);
       myMaskSelectionChanged = false;
+      if (c == myLastSelectedNode) {
+         myLastSelectedNode = null;
+      }
    }
 
-   private void clearSelected () {
+   private boolean clearSelected () {
+      boolean hadSelection = (mySelectionManager.getNumSelected() > 0);
       myMaskSelectionChanged = true;
       mySelectionManager.clearSelections();
       myMaskSelectionChanged = false;
-      myAttachButton.setEnabled (false);      
-      myDetachButton.setEnabled (false);      
+      myLastSelectedNode = null;
+      updateButtons();
+      return hadSelection;
    }
 
-   private void updateAttachButtons() {
+   private boolean surfaceNodesOnly() {
+      return myDefaultSurfaceNodesOnly;
+   }
+   
+   private boolean growSelected () {
+      ArrayList<FemNode3d> region = new ArrayList<>();
+      for (ModelComponent c : mySelectionManager.getCurrentSelection()) {
+         if (c instanceof FemNode3d) {
+            region.add ((FemNode3d)c);
+         }
+      }
+      ArrayList<FemNode3d> adjacent =
+         FemQuery.findAdjacentNodes (myFemModel, region, surfaceNodesOnly());
+      if (adjacent.size() > 0) {
+         myMaskSelectionChanged = true;
+         mySelectionManager.addSelected (adjacent);
+         myMaskSelectionChanged = false;
+         updateButtons();
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   private boolean shrinkSelected () {
+      ArrayList<FemNode3d> region = new ArrayList<>();
+      for (ModelComponent c : mySelectionManager.getCurrentSelection()) {
+         if (c instanceof FemNode3d) {
+            region.add ((FemNode3d)c);
+         }
+      }
+      ArrayList<FemNode3d> bounding =
+         FemQuery.findBoundaryNodes (myFemModel, region, surfaceNodesOnly());
+      if (bounding.size() > 0) {
+         removeSelected (bounding);
+         updateButtons();
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   private boolean reduceToBoundary () {
+      ArrayList<FemNode3d> region = new ArrayList<>();
+      for (ModelComponent c : mySelectionManager.getCurrentSelection()) {
+         if (c instanceof FemNode3d) {
+            region.add ((FemNode3d)c);
+         }
+      }
+      ArrayList<FemNode3d> enclosed =
+         FemQuery.findEnclosedNodes (myFemModel, region, surfaceNodesOnly());
+      if (enclosed.size() > 0) {
+         removeSelected (enclosed);
+         updateButtons();
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   private ArrayList<FemNode3d> fillRegion (FemNode3d node) {
+      ArrayList<FemNode3d> region = new ArrayList<>();
+      for (ModelComponent c : mySelectionManager.getCurrentSelection()) {
+         if (c instanceof FemNode3d) {
+            region.add ((FemNode3d)c);
+         }
+      }
+      return FemQuery.fillNodeRegion (
+         myFemModel, region, node, surfaceNodesOnly());
+   }
+
+   private void updateButtons() {
       boolean hasUnattached = false;
       boolean hasAttached = false;
+      boolean hasNodes = false;
       for (ModelComponent c : mySelectionManager.getCurrentSelection()) {
          if (c instanceof FemNode3d) {
             FemNode3d node = (FemNode3d)c;
@@ -591,10 +747,15 @@ SelectionListener {
             if (hasAttached && hasUnattached) {
                break;
             }
+            hasNodes = true;
          }
       }
       myAttachButton.setEnabled (hasUnattached);
       myDetachButton.setEnabled (hasAttached);
+      myClearButton.setEnabled (mySelectionManager.getNumSelected() > 0);
+      myGrowButton.setEnabled (hasNodes);
+      myShrinkButton.setEnabled (hasNodes);
+      myBoundaryButton.setEnabled (hasNodes);
    }
 
    public void objectDeselected (SelectionEvent e) {
@@ -636,7 +797,7 @@ SelectionListener {
          clearSelected();
          addSelected (nodes);
          myMain.rerender();  
-         updateAttachButtons();
+         updateButtons();
       }
       catch (Exception e) {
          GuiUtils.showError (myDisplay, "Error writing file "+file, e);
@@ -661,6 +822,21 @@ SelectionListener {
       myAttachButton.setText ("Attach nodes");
       myAttachButton.setActionCommand ("Attach nodes");
       myAttachingP = false;
+   }
+
+   private void startFillRegion() {
+      myFillingRegionP = true;
+      mySavedInstructions = getInstructions();
+      setInstructions ("Select node in region to fill");
+      myFillButton.setText ("Cancel fill");
+      myFillButton.setActionCommand ("Cancel fill");
+   }
+
+   private void endFillRegion() {
+      setInstructions (mySavedInstructions);
+      myFillButton.setText ("Fill");
+      myFillButton.setActionCommand ("Fill");
+      myFillingRegionP = false;
    }
 
    private void doAttachNodes (ModelComponent selComp) {
@@ -688,7 +864,7 @@ SelectionListener {
       }
       removeSelected (selComp);
       endAttachNodes();
-      updateAttachButtons();
+      updateButtons();
    }
 
    private void detachNodes () {
@@ -706,7 +882,7 @@ SelectionListener {
             new RemoveComponentsCommand ("detach nodes", attachments);
          myUndoManager.saveStateAndExecute (cmd);
       }
-      updateAttachButtons();
+      updateButtons();
    }
 
    private NodeNumberFileChooser createNumberFileChooser (boolean save) {
@@ -752,8 +928,30 @@ SelectionListener {
    public void actionPerformed (ActionEvent e) {
       String cmd = e.getActionCommand();
       if (cmd.equals ("Clear")) {
-         clearSelected();
-         myMain.rerender();
+         if (clearSelected()) {
+            myMain.rerender();
+         }
+      }
+      else if (cmd.equals ("Grow")) {
+         if (growSelected()) {
+            myMain.rerender();
+         }
+      }
+      else if (cmd.equals ("Shrink")) {
+         if (shrinkSelected()) {
+            myMain.rerender();
+         }
+      }
+      else if (cmd.equals ("Boundary")) {
+         if (reduceToBoundary()) {
+            myMain.rerender();
+         }
+      }
+      else if (cmd.equals ("Fill")) {
+         startFillRegion();
+      }
+      else if (cmd.equals ("Cancel fill")) {
+         endFillRegion();
       }
       else if (cmd.equals ("Save")) {
          if (myNumberFile != null) {

@@ -17,6 +17,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +77,7 @@ import maspack.geometry.Face;
 import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolygonalMeshQuery;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DenseMatrix;
@@ -1425,96 +1427,6 @@ PointAttachable, ConnectableBody {
       return nodes;
    }
 
-   private void nodesFromVertices (
-      ArrayList<FemNode3d> nodes, HashSet<Vertex3d> verts) {
-      FemMeshComp surfc = getSurfaceMeshComp();
-      for (Vertex3d vtx : verts) {
-         FemNode3d node = surfc.getNodeForVertex (vtx);
-         if (node != null) {
-            nodes.add (node);
-         }
-      }
-   }
-
-   /**
-    * Find all the surface nodes that lie along an <i>edge line</i>, starting
-    * at {@code node0}. Edges along the edge line must have a <i>bend angle</i>
-    * that is {@code >= minBendAngle}, where the bend angle is the absolute
-    * value of the angle between an edge's adjacent faces. In addition, the
-    * <i>edge angle</i> between adjacent edges must be {@code <=
-    * maxEdgeAngle}. Branching is allowed if {@code allowBranching} is {@code
-    * true}; otherwise, edges are followed so as to minimize the edge angle.
-    *
-    * <p>The returned node list will always include {@code node0}.
-    *
-    * @param node0 starting node
-    * @param minBendAngle minimum bend angle between adjacent faces (radians)
-    * @param maxEdgeAngle maximum edge angle between adjacent edges (radians)
-    * @param allowBranching if {@code true}, allow branching
-    * @return a list of the nodes on the line
-    */
-   public ArrayList<FemNode3d> findEdgeLineNodes (
-      FemNode3d node0, double minBendAngle, 
-      double maxEdgeAngle, boolean allowBranching) {
-      ArrayList<FemNode3d> nodes = new ArrayList<>();
-      Vertex3d vtx0 = getSurfaceVertex (node0);
-      PolygonalMesh surf = getSurfaceMesh();
-      if (vtx0 != null && surf != null) {
-         HashSet<Vertex3d> verts = surf.findEdgeLineVertices(
-            vtx0, minBendAngle, maxEdgeAngle, allowBranching);
-         nodesFromVertices (nodes, verts);
-      }
-      return nodes;      
-   }
-
-   /**
-    * Find all the surface nodes in a <i>patch</i> containing {@code node0}.
-    * The patch is the collection of all faces surrounding {@code node0} for
-    * which the <i>bend angle</i> between them is {@code <= maxBendAngle},
-    * where the bend angle is the absolute value of the angle between two faces
-    * about their common edge.
-    *
-    * <p>The returned node list will always include {@code node0}.
-    * 
-    * @param node0 starting node within the patch
-    * @param maxBendAngle maximum bend angle between adjacent faces (radians)
-    * @return a list of the nodes in the patch
-    */
-   public ArrayList<FemNode3d> findPatchNodes (
-      FemNode3d node0, double maxBendAngle) {
-      ArrayList<FemNode3d> nodes = new ArrayList<>();
-      Vertex3d vtx0 = getSurfaceVertex (node0);
-      PolygonalMesh surf = getSurfaceMesh();
-      if (vtx0 != null && surf != null) {
-         HashSet<Vertex3d> verts = surf.findPatchVertices(vtx0, maxBendAngle);
-         nodesFromVertices (nodes, verts);
-      }
-      return nodes;      
-   }
-
-   /**
-    * Find all the surface nodes that border a <i>patch</i> containing {@code
-    * node0}.  The patch is the collection of all faces surrounding {@code
-    * node0} for which the <i>bend angle</i> between them is {@code <=
-    * maxBendAngle}, where the bend angle is the absolute value of the angle
-    * between two faces about their common edge.
-    *
-    * @param node0 starting node within the patch
-    * @param maxBendAngle maximum bend angle between adjacent faces (radians)
-    * @return a list of the nodes on the patch border
-    */
-   public ArrayList<FemNode3d> findPatchBorderNodes (
-      FemNode3d node0, double maxBendAngle) {
-      ArrayList<FemNode3d> nodes = new ArrayList<>();
-      Vertex3d vtx0 = getSurfaceVertex (node0);
-      PolygonalMesh surf = getSurfaceMesh();
-      if (vtx0 != null && surf != null) {
-         HashSet<Vertex3d> verts = surf.findPatchBorderVertices(vtx0, maxBendAngle);
-         nodesFromVertices (nodes, verts);
-      }
-      return nodes;      
-   }
-
    /* --- Mesh Component Methods --- */
 
    public FemMeshComp addMesh(MeshBase mesh) {
@@ -1666,6 +1578,24 @@ PointAttachable, ConnectableBody {
     */
    public boolean isSurfaceNode (FemNode3d node) {
       return getSurfaceVertex (node) != null;
+   }
+
+   /**
+    * Returns true if a specified node pair lies along an edge of the surface
+    * mesh returned by {@link #getSurfaceMesh}.
+    * 
+    * @param node0 first node to check
+    * @param node1 secnd node to check
+    * @return <code>true</code> if both nodes form an edge on the surface mesh
+    */
+   public boolean isSurfaceEdge (FemNode3d node0, FemNode3d node1) {
+      FemMeshComp femMesh = getSurfaceMeshComp();
+      if (femMesh != null) {
+         return femMesh.isSurfaceEdge (node0, node1);
+      }
+      else {
+         return false;
+      }
    }
 
    /**

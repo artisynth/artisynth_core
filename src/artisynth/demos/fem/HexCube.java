@@ -70,11 +70,13 @@ public class HexCube extends RootModel {
 
    public void build (String[] args) {
 
+      boolean printUsage = false;
+      boolean quad = false;
       for (int i=0; i<args.length; i++) {
-         if (args[i].equals ("-n")) {
+         if (args[i].equals ("-res")) {
             if (i == args.length-1) {
                System.out.println (
-                  "WARNING: option '-n' requires another argument");
+                  "WARNING: option '-res' requires another argument");
             }
             else {
                i++;
@@ -82,15 +84,29 @@ public class HexCube extends RootModel {
                NX = NY = NZ = n;
             }
          }
+         else if (args[i].equals ("-quad")) {
+            quad = true;
+         }
          else {
             System.out.println (
                "WARNING: unknown argument '"+args[i]+"'; ignoring");
+            printUsage = true;
          }
+      }
+      if (printUsage) {
+         System.out.println (
+            "Options: [-res <n>] [-quad]");
       }
 
       myHexMod = new FemModel3d ("hex");
-      FemFactory.createHexGrid (
-         myHexMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
+      if (quad) {
+         FemFactory.createQuadhexGrid (
+            myHexMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
+      }
+      else {
+         FemFactory.createHexGrid (
+            myHexMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
+      }
 
       setModelProperties (myHexMod);
 

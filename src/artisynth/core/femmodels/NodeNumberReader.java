@@ -2,6 +2,7 @@ package artisynth.core.femmodels;
 
 import java.io.*;
 import java.util.*;
+import artisynth.core.modelbase.ComponentUtils;
 
 import maspack.util.*;
 
@@ -35,6 +36,7 @@ public class NodeNumberReader {
 
    protected ReaderTokenizer myRtok;
    protected boolean myParsedBrackets;
+   protected boolean myWarningsEnabled = true;
 
    public NodeNumberReader (ReaderTokenizer rtok) {
       myRtok = rtok;
@@ -61,6 +63,45 @@ public class NodeNumberReader {
    public boolean nodesWereBracketed() {
       return myParsedBrackets;
    }
+
+   public boolean getWarningsEnabled() {
+      return myWarningsEnabled;
+   }
+
+   public void setWarningsEnabled (boolean enable) {
+      myWarningsEnabled = enable;
+   }
+
+   /**
+    * Use the header comment, if any, to check the number of nodes.
+    */
+   private void maybeCheckNodeNumbers (FemModel3d fem) {
+      // parse the comment to see if it says how many nodes the FEM has.
+      String headerComment = myRtok.lastCommentLine();
+      if (headerComment != null) {
+         String nodeNumTag = "numNodes=";
+         int idx = headerComment.indexOf (nodeNumTag);
+         if (idx != -1) {
+            int numNodes = -1;
+            try {
+               numNodes = 
+                  Integer.valueOf (
+                     headerComment.substring (idx+nodeNumTag.length()));
+            }
+            catch (Exception e) {
+               // ignore any problems
+            }
+            if (numNodes >= 0 && numNodes != fem.numNodes()) {
+               System.out.println (
+                  "WARNING: NodeNumberReader for " +
+                  ComponentUtils.getPathName(fem) + ":");
+               System.out.println (
+                  "Model has "+fem.numNodes()+" nodes vs. " + numNodes +
+                  " when numbers were written");
+            }
+         }
+      }
+   }
    
    /**
     * Reads a set of nodes for a FEM model, based on the node numbers in the
@@ -83,14 +124,19 @@ public class NodeNumberReader {
          myParsedBrackets = false;
          myRtok.pushBack();
       }
+      if (myWarningsEnabled) {
+         maybeCheckNodeNumbers(fem);
+      }
       while (myRtok.nextToken() != endToken) {
          if (!myRtok.tokenIsInteger()) {
             throw new IOException ("Expected node number, got " + myRtok);
          }
          FemNode3d node = fem.getNodeByNumber ((int)myRtok.lval);
          if (node == null) {
-            System.out.println (
-               "WARNING: node number "+myRtok.lval+" not found");
+            if (myWarningsEnabled) {
+               System.out.println (
+                  "WARNING: node number "+myRtok.lval+" not found");
+            }
          }
          else {
             nodes.add (node);
@@ -110,8 +156,9 @@ public class NodeNumberReader {
    /**
     * Reads node numbers from a file and uses them to locate nodes within a
     * specified FEM model. The format is described in the class
-    * documentation. Numbers which do <i>not</i> correspond to nodes with the
-    * model are ignored and cause a warning message to be printed.
+    * documentation. If warnings are enabled, numbers which do <i>not</i>
+    * correspond to nodes with the model are ignored and cause a warning
+    * message to be printed.
     *
     * @param file file to read the node numbers from
     * @param fem FEM model containing the nodes
@@ -141,8 +188,9 @@ public class NodeNumberReader {
    /**
     * Reads node numbers from a file and uses them to locate nodes within a
     * specified FEM model. The format is described in the class
-    * documentation. Numbers which do <i>not</i> correspond to nodes with the
-    * model are ignored and cause a warning message to be printed.
+    * documentation. If warnings are enabled, numbers which do <i>not</i>
+    * correspond to nodes with the model are ignored and cause a warning
+    * message to be printed.
     *
     * @param filePath path name of the file to read the node numbers from
     * @param fem FEM model containing the nodes

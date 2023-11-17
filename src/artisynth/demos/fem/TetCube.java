@@ -70,9 +70,43 @@ public class TetCube extends RootModel {
 
    public void build (String[] args) {
 
+      boolean printUsage = false;
+      boolean quad = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-res")) {
+            if (i == args.length-1) {
+               System.out.println (
+                  "WARNING: option '-res' requires another argument");
+            }
+            else {
+               i++;
+               int n = Integer.valueOf (args[i]);
+               NX = NY = NZ = n;
+            }
+         }
+         else if (args[i].equals ("-quad")) {
+            quad = true;
+         }
+         else {
+            System.out.println (
+               "WARNING: unknown argument '"+args[i]+"'; ignoring");
+            printUsage = true;
+         }
+      }
+      if (printUsage) {
+         System.out.println (
+            "Options: [-res <n>] [-quad]");
+      }
+
       myTetMod = new FemModel3d ("tet");
-      FemFactory.createTetGrid (
-         myTetMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
+      if (quad) {
+         FemFactory.createQuadtetGrid (
+            myTetMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
+      }
+      else {
+         FemFactory.createTetGrid (
+            myTetMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
+      }
 
       setModelProperties (myTetMod);
 

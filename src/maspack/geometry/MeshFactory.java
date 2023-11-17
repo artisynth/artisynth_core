@@ -933,6 +933,138 @@ public class MeshFactory {
    }
 
    /**
+    * Creates a quad-dominant planar mesh of a circular sector with radius
+    * {@code r} and central angle {@code ang}. The mesh lies in the $x-y$ plane
+    * with the circle centered on the origin and the sector bisceted by the x
+    * axis.  The mesh is composed of quads <i>except</i> for the part adjcent
+    * to the center of the circle. If {@code nr} is 1, then the mesh is
+    * composed only of triangles. If <i>ang</i> equals 2 PI (within machine
+    * precision), then the sector becomes a disk.
+    *
+    * @param rad radius of the sector
+    * @param ang total angle of the sector (radians)
+    * @param nr number of radial divisions
+    * @param nang number of angular divisions
+    * @return created mesh
+    */
+   public static PolygonalMesh createQuadCircularSector (
+      double rad, double ang, int nr, int nang) {
+
+      if (nr < 1) {
+         throw new IllegalArgumentException ("nr must be >= 1");
+      }
+      if (nang < 1) {
+         throw new IllegalArgumentException ("nang must be >= 1");
+      }
+
+      boolean isDisk = (Math.abs(ang-2*Math.PI) <= EPS);
+
+      PolygonalMesh mesh = new PolygonalMesh();
+      // create vertices
+      mesh.addVertex (new Point3d());
+      int maxi = isDisk ? nang-1 : nang;
+      for (int i=0; i<=maxi; i++) {
+         for (int j=1; j<=nr; j++) {
+            double r = j*rad/nr;
+            double a = -ang/2 + i*ang/nang;
+            mesh.addVertex (new Point3d (r*Math.cos(a), r*Math.sin(a), 0));
+         }
+      }
+      // create faces
+      int idx0, idx1, idx2, idx3;
+      for (int i=0; i<nang; i++) {
+         for (int j=0; j<nr; j++) {
+            // wrap last j index if we are creating a disk
+            int inext = isDisk ? ((i+1)%nang) : i+1;
+            if (j == 0) {
+               // add inner triangle
+               idx0 = 0;
+               idx1 = i*nr + 1;
+               idx2 = inext*nr + 1;
+               mesh.addFace (idx0, idx1, idx2);
+            }
+            else {
+               // quad
+               idx0 = i*nr+j;
+               idx1 = i*nr+j+1;
+               idx2 = inext*nr+j+1;
+               idx3 = inext*nr+j;
+               mesh.addFace (idx0, idx1, idx2, idx3);
+            }
+         }
+      }
+      return mesh;
+   }
+
+   /**
+    * Creates a triangular planar mesh of a circular sector with radius {@code
+    * r} and central angle {@code ang}. The mesh lies in the $x-y$ plane with
+    * the circle centered on the origin and the sector bisceted by the x axis.
+    * If <i>ang</i> equals 2 PI (within machine precision), then the sector
+    * becomes a disk.
+    *
+    * @param rad radius of the sector
+    * @param ang total angle of the sector (radians)
+    * @param nr number of radial divisions
+    * @param nang number of angular divisions
+    * @return created mesh
+    */
+   public static PolygonalMesh createCircularSector (
+      double rad, double ang, int nr, int nang) {
+      PolygonalMesh mesh = createQuadCircularSector (rad, ang, nr, nang);
+      mesh.triangulate();
+      return mesh;
+   }
+
+   /**
+    * Creates a triangular planar mesh of a circular sector with radius {@code
+    * r} and central angle {@code ang}. The mesh lies in the $x-y$ plane with
+    * the circle centered on the origin and the sector bisceted by the x axis.
+    * There is only one radial segment, and so the mesh is triangular fan.  If
+    * <i>ang</i> equals 2 PI (within machine precision), then the sector
+    * becomes a disk.
+    *
+    * @param rad radius of the sector
+    * @param ang total angle of the sector (radians)
+    * @param nang number of angular divisions
+    * @return created mesh
+    */
+   public static PolygonalMesh createCircularSector (
+      double rad, double ang, int nang) {
+      return createQuadCircularSector (rad, ang, 1, nang);
+   }
+
+   /**
+    * Creates a quad-dominant planar disk with radius {@code r}, lying in the
+    * $x-y$ plane and centered on the origin. The mesh is composed of quads
+    * <i>except</i> for the part adjcent to the center of the disk. If {@code
+    * nr} is 1, then the mesh is composed only of triangles.
+    *
+    * @param rad radius of the disk
+    * @param nr number of radial divisions
+    * @param nang number of angular divisions
+    * @return created mesh
+    */
+   public static PolygonalMesh createQuadDisk (double rad, int nr, int nang) {
+      return createQuadCircularSector (rad, 2*Math.PI, nr, nang);
+   }
+
+   /**
+    * Creates a triangular planar disk with radius {@code r}, lying in the
+    * $x-y$ plane and centered on the origin.
+    *
+    * @param rad radius of the disk
+    * @param nr number of radial divisions
+    * @param nang number of angular divisions
+    * @return created mesh
+    */
+   public static PolygonalMesh createDisk (double rad, int nr, int nang) {
+      PolygonalMesh mesh = createQuadCircularSector (rad, 2*Math.PI, nr, nang);
+      mesh.triangulate();
+      return mesh;
+   }
+
+   /**
     * Creates a quad-based box mesh, with one quad per side, centered on the
     * origin.
     *

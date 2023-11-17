@@ -18,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 
 import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.Ranging;
@@ -44,21 +45,22 @@ import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
-import artisynth.core.modelbase.*;
+import artisynth.core.modelbase.TransformGeometryAction;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ArtisynthIO;
+import artisynth.core.util.IntegerToken;
 import artisynth.core.util.ObjectToken;
 import artisynth.core.util.ScanToken;
-import artisynth.core.util.IntegerToken;
 import artisynth.core.util.StringToken;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
+import maspack.geometry.GeometryTransformer;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshBase;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.DistanceGrid;
-import maspack.geometry.GeometryTransformer;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
@@ -69,11 +71,11 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.util.ArraySupport;
+import maspack.util.DynamicIntArray;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.FunctionTimer;
 
 /**
  * Describes a mesh that is "skinned" onto an FEM, such that its vertex
@@ -100,6 +102,13 @@ implements CollidableBody, PointAttachable {
       // NO_SINGLE_VERTEX if there is no such vertex.
       protected HashMap<FemNode3d,Vertex3d> myNodeMap = new HashMap<>();
       protected int myNumSingleAttachments;
+      // myVertexAdjacencies describe which vertices should be considered
+      // adjacent to each other, overiding the adjacency relationships
+      // specified by half-edge connectivity. At present, this is only used for
+      // computing isSurfaceEdge(), and only in the case where we automatically
+      // create a fine surface mesh but want to preserve the connectivity of
+      // the original surface mesh,
+      protected int[][] myVertexAdjacencies;
 
       protected VertexInfo() {
       }
@@ -126,6 +135,49 @@ implements CollidableBody, PointAttachable {
          }
       }
 
+      protected int[][] getVertexAdjacencies() {
+         return myVertexAdjacencies;
+      }
+
+      protected void setVertexAdjacencies (int[][] adjacencies) {
+         myVertexAdjacencies = adjacencies;
+      }
+
+      protected int[][] buildVertexAdjacencies (MeshBase mesh) {
+         // Vertex adjacency is stored in an upper triangular sparse format:
+         // for each vertex vtx there is an array that stores the indices of
+         // all adjacent vertices whose index is higher than that of vtx.
+         if (mesh instanceof PolygonalMesh) {
+            DynamicIntArray[] adjArrays = new DynamicIntArray[mesh.numVertices()];
+            int i = 0;
+            for (Vertex3d vtx : mesh.getVertices()) {
+               adjArrays[i] = new DynamicIntArray();
+               Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+               while (it.hasNext()) {
+                  HalfEdge he = it.next();
+                  if (he.isPrimary()) {
+                     Vertex3d tail = he.getTail();
+                     if (tail.getIndex() > vtx.getIndex()) {
+                        adjArrays[i].add (tail.getIndex());
+                     }
+                     else {
+                        adjArrays[tail.getIndex()].add (i);
+                     }
+                  }
+               }
+               i++;
+            }
+            int[][] adjacencies = new int[mesh.numVertices()][];
+            for (i=0; i<mesh.numVertices(); i++) {
+               adjacencies[i] = adjArrays[i].getArray();
+            }
+            return adjacencies;
+         }
+         else {
+            return null;
+         }
+      }
+
       protected Vertex3d getVertexForNode (FemNode3d node) {
          if (myNodeMap == null) {
             return null;
@@ -135,6 +187,40 @@ implements CollidableBody, PointAttachable {
             vtx = null;
          }
          return vtx;
+      }
+
+      private boolean contains (int[] array, int idx) {
+         for (int i=0; i<array.length; i++) {
+            if (array[i] == idx) {
+               return true;
+            }
+         }
+         return false;
+      }
+
+      public boolean isSurfaceEdge (FemNode3d node0, FemNode3d node1) {
+         Vertex3d vtx0 = getVertexForNode (node0);
+         Vertex3d vtx1 = getVertexForNode (node1);
+         if (vtx0 == null || vtx1 == null) {
+            return false;
+         }
+         if (myVertexAdjacencies != null) {
+            int vidx0 = vtx0.getIndex();
+            int vidx1 = vtx1.getIndex();
+            // make sure vertices are within range of the adjacency info
+            if (vidx0 < myVertexAdjacencies.length &&
+                vidx1 < myVertexAdjacencies.length) {
+               if (vidx0 < vidx1) {
+                  return contains (myVertexAdjacencies[vidx0], vidx1);
+               }
+               else {
+                  return contains (myVertexAdjacencies[vidx1], vidx0);
+               }
+            }
+         }
+         // default: use half-edge connectivity
+         return (vtx0.findIncidentHalfEdge(vtx1) != null ||
+                 vtx1.findIncidentHalfEdge(vtx0) != null);
       }
 
       public boolean containsContactMaster (CollidableDynamicComponent comp) {
@@ -155,6 +241,15 @@ implements CollidableBody, PointAttachable {
          for (PointAttachment pa : myAttachments) {
             PointAttachment newPa = pa.copy(flags, copyMap);
             info.myAttachments.add(newPa);
+         }
+         if (myVertexAdjacencies != null) {
+            info.myVertexAdjacencies = new int[myVertexAdjacencies.length][];
+            for (int i=0; i<myVertexAdjacencies.length; i++) {
+               int[] vadj = myVertexAdjacencies[i];
+               if (vadj != null) {
+                  info.myVertexAdjacencies[i] = Arrays.copyOf (vadj, vadj.length);
+               }
+            }
          }
          info.buildNodeMap(mesh);
          return info;
@@ -396,6 +491,38 @@ implements CollidableBody, PointAttachable {
     */
    public Vertex3d getVertexForNode (FemNode3d node) {
       return myVertexInfo.getVertexForNode (node);
+   }
+
+   /**
+    * If {@code nodeTail} and {@code nodeHead} are directly attached to the
+    * tail and head vertices of a half-edge on this mesh, return the
+    * half-edge. Otherwise, return {@code null}.
+    * 
+    * @param nodeTail node attached to the tail vertex
+    * @param nodeHead node attached to the head vertex
+    * @return half-edge connecting nodeTail to nodeHead
+    */
+   public HalfEdge getHalfEdgeForNodes (FemNode3d nodeTail, FemNode3d nodeHead) {
+     Vertex3d vtxTail = myVertexInfo.getVertexForNode (nodeTail);
+     Vertex3d vtxHead = myVertexInfo.getVertexForNode (nodeHead);
+     if (vtxTail != null && vtxHead != null) {
+        return vtxHead.findIncidentHalfEdge (vtxTail);
+     }
+     else {
+        return vtxHead.findIncidentHalfEdge (vtxTail);
+     }
+   }
+
+   /**
+    * If {@code node0} and {@code node1} are directly attached to vertices of
+    * the mesh, return {@code true} if they are connected by a half-edge.
+    * 
+    * @param node0 first node to query
+    * @param node1 second node to query
+    * @return {@code true} if nodes are attached to a half-edge on the mesh
+    */
+   public boolean isSurfaceEdge (FemNode3d node0, FemNode3d node1) {
+      return myVertexInfo.isSurfaceEdge (node0, node1);
    }
 
    private void addVertexNodes (HashSet<FemNode3d> nodes, PointAttachment pa) {
@@ -840,8 +967,6 @@ implements CollidableBody, PointAttachable {
       createSurface(efilter);
       isGeneratedSurface = true;
 
-      System.out.println ("before numa= " + numVertexAttachments());
-
       if (resolution < 2) {
          // if resolution < 2, just return regular surface
          return;
@@ -849,10 +974,11 @@ implements CollidableBody, PointAttachable {
 
       // Note: can no longer rely on the surface mesh consisting of only 
       // FemMeshVertex
-      // PolygonalMesh baseMesh = myFem.getSurfaceMesh();
       PolygonalMesh baseMesh = (PolygonalMesh)getMesh(); // since previously built
       ArrayList<Face> baseFaces = baseMesh.getFaces();
       ArrayList<Vertex3d> baseVertices = baseMesh.getVertices();
+      // create vertex adjacencies to pass on for refined mesh
+      int[][] vertexAdjacencies = myVertexInfo.buildVertexAdjacencies(baseMesh);
 
       int numv = resolution+1; // num vertices along the edge of each sub face
       initializeSurfaceBuild();
@@ -938,6 +1064,7 @@ implements CollidableBody, PointAttachable {
       }
       info.buildNodeMap (getMesh());
       myVertexInfo = info;
+      myVertexInfo.setVertexAdjacencies (vertexAdjacencies);
       finalizeSurfaceBuild();
    }
 
@@ -1638,6 +1765,7 @@ implements CollidableBody, PointAttachable {
    public MeshBase scanMesh (ReaderTokenizer rtok) throws IOException {
 
       initializeSurfaceBuild();
+      isGeneratedSurface = false;
 
       rtok.scanToken('[');
       ArrayList<Vertex3d> vtxList = new ArrayList<Vertex3d>();
@@ -1655,6 +1783,42 @@ implements CollidableBody, PointAttachable {
       finalizeSurfaceBuild();
       updateSlavePos();
       return (PolygonalMesh)getMesh();
+   }
+
+   private void writeVertexAdjacencies (
+      PrintWriter pw, int[][] vtxAdjacencies) throws IOException {
+      pw.println ("["); 
+      IndentingPrintWriter.addIndentation (pw, 2);        
+      for (int i=0; i<vtxAdjacencies.length; i++) {
+         int[] vadj = vtxAdjacencies[i];
+         StringBuilder sb = new StringBuilder();
+         sb.append (vadj.length + " ");
+         for (int j=0; j<vadj.length; j++) {
+            sb.append (" " + vadj[j]);
+         }
+         pw.println (sb.toString());
+      }
+      IndentingPrintWriter.addIndentation (pw, -2); 
+      pw.println ("]");
+   }
+
+   private int[][] scanVertexAdjacencies (ReaderTokenizer rtok)
+      throws IOException {
+      ArrayList<int[]> adjacenciesList = new ArrayList<>();
+      rtok.scanToken ('[');
+      while (rtok.nextToken() != ']') {
+         if (!rtok.tokenIsInteger()) {
+            throw new IOException (
+               "Expected adjacency count, got " + rtok);
+         }
+         int nadj = (int)rtok.lval;
+         int[] vadj = new int[nadj];
+         for (int j=0; j<nadj; j++) {
+            vadj[j] = rtok.scanInteger();
+         }
+         adjacenciesList.add (vadj);
+      }
+      return adjacenciesList.toArray(new int[0][]);
    }
 
    protected void writeAttachment (
@@ -1783,6 +1947,10 @@ implements CollidableBody, PointAttachable {
          }
          return true;
       }
+      else if (scanAttributeName (rtok, "vertexAdjacencies")) {
+         myVertexInfo.setVertexAdjacencies (scanVertexAdjacencies(rtok));
+         return true;
+      }
       else if (scanAttributeName (rtok, "meshdata")) {
          scanDirectMesh (rtok);
          return true;
@@ -1870,6 +2038,11 @@ implements CollidableBody, PointAttachable {
       }
       IndentingPrintWriter.addIndentation (pw, -2); 
       pw.println ("]");
+      int[][] vtxAdjacencies = myVertexInfo.getVertexAdjacencies();
+      if (vtxAdjacencies != null) {
+         pw.print ("vertexAdjacencies="); 
+         writeVertexAdjacencies (pw, vtxAdjacencies);
+      }
       // have to write attachments before calling super.writeItems() because
       // they have to be written *before* the surfaceRender property
       super.writeItems (pw, fmt, ancestor);

@@ -103,7 +103,7 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
    /**
     * Sets the position of this body's coordinate frame relative to world.
     * 
-    * @param pos 
+    * @param pos new body position
     */
    public void setPosition (Point3d pos) {
       myState.setPosition (pos);

@@ -1119,7 +1119,7 @@ plane, at the expense of preventing the eye-to-world rotation from
 being adjustable to an arbitrary value. Alternate values include {\sf
 CONTINUOUS}, which enables a track-ball type rotation that does allow
 arbitrary adjustment of the eye-to-world rotation, and {\tt OFF},
-which disables rotation adjystment.
+which disables rotation adjustment.
 
 \item[defaultAxialView]\mbox{}
 
@@ -1592,6 +1592,7 @@ from within the viewer
 (Section \ref{keyShortcutsSec}) clears the current selection.
 
 \subsubsection{Click and box selection}
+\label{clickAndBoxSelection:sec}
 
 Click and box selection are enabled by the arrow icon at the top of
 the selection toolbar:
@@ -1777,6 +1778,288 @@ While this has the potential to be confusing, we have not yet found
 this to be problematic, as the navigation panel and selection display
 provide alternative indicators as to what is currently selected.
 
+\subsection{Selecting FEM nodes}
+
+A specialized tool is available for selecting FEM nodes, because it is
+often necessary to identify collections of nodes for connecting to
+rigid bodies or other FEM models, or to set localized properties
+and/or boundary conditions.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+   \includegraphics[]{images/nodeSelectTool} &
+   \includegraphics[]{images/nodeSelectToolEdge}
+\else
+   \includegraphics[width=0.35\textwidth]{images/nodeSelectTool} &
+   \includegraphics[width=0.35\textwidth]{images/nodeSelectToolEdge}
+\fi
+\end{tabular}
+\end{center}
+\caption{FEM node selection tool with different selection mode values.
+Left: selection mode set to the default value {\tt INDIVIDUAL}. Right:
+selection mode set to {\tt EDGE\_LINE}, with fields for adjusting the
+{\tt EDGE\_LINE} behavior appearing immediately below the mode
+selector.}
+\label{nodeSelection:fig}
+\end{figure}
+
+To open the node selection tool, first select the FEM model containing
+the nodes, and then invoke the context menu (usually via right-click)
+and choose ``{\sf Select nodes ...}''. A node selection tool will
+appear, as shown in Figure \ref{nodeSelection:fig}. From top to
+bottom, this contains several controls:
+
+\begin{enumerate}
+
+\item A {\sf selection mode} chooser that specifies how nodes are
+selected, possibly followed by mode-specific fields to adjust the
+selection behavior;
+
+\item An instruction box describing what action the user should take;
+
+\item A {\sf surfaceNodesOnly} check box that allows selected nodes to
+be restricted to the FEM model's surface;
+
+\item Buttons for clearing, growing or shrinking the selection,
+reducing the selection to its boundary, or for filling it in;
+
+\item Buttons for saving/loading a list of the selected nodes to/from
+a file, or for attaching or detaching selected nodes from other
+bodies.
+
+\end{enumerate}
+
+\begin{sideblock}
+While a node selection tool is open, GUI selections are restricted to
+certain components, usually nodes of the indicated FEM model. If {\sf
+surfaceNodesOnly} is checked, selection is restricted to the FEM
+surface nodes. Selection is also held in a ``multiple component''
+mode, equivalent to holding down the multiple selection key (usually
+{\tt CTRL}), so that the selection can be easily edited and is not
+reset with each selection action.
+\end{sideblock}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+\includegraphics[]{images/nodePatchSelect} &
+\includegraphics[]{images/nodePatchBorderSelect}
+\else
+\includegraphics[width=3.2in]{images/nodePatchSelect} &
+\includegraphics[width=3.2in]{images/nodePatchBorderSelect}
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: selection of nodes on the top face of a FEM cube using
+{\tt PATCH} selection. Right: reduction of the selected region
+to its border after clicking on the {\sf Boundary} button.}%
+\label{nodePatchSelect:fig}
+\end{figure}
+
+The different selection modes and their parameters include:
+
+\begin{description}
+
+\item[INDIVIDUAL]\mbox{}
+
+Nodes are selected directly by the user, using click, box or elliptic
+selection (Sections \ref{clickAndBoxSelection:sec} and
+\ref{ellipticSelection:sec}). Selection is held in a ``multiple
+component'' mode, regardless of whether the ``multiple selection''
+modifier key is pressed.
+
+\item[PATCH]\mbox{}
+
+Nodes are selected, on the mesh surface, within a {\it patch} region
+defined by a set of faces for which the {\it bend angle} between
+adjacent faces is less than or equal to a specified {\it maximum bend
+angle}. The bend angle is defined as the absolute value of the angle
+between two faces along their common edge, such that parallel faces
+have a bend angle of $0^\circ$ and perpendicular ones have a bend
+angle of $90^\circ$.  Within the tool, the maximum bend angle is
+specified (in degrees) by the field {\sf maxBendAngle}. To find the
+patch nodes, the user selects a node within the desired patch
+area. Starting with the node's adjacent faces, the patch is then grown
+outwards to find all neighboring faces such that the bend angle
+between them does not exceed {\tt maxBendAngle} (Figure
+\ref{nodePatchSelect:fig}, left).
+
+\item[EDGE\_LINE]\mbox{}
+
+Nodes are selected, on the mesh surface, along an {\it edge line}
+defined by faces meeting at a bend angle greater than or equal to a
+specified {\it minimum bend angle}.  Within the tool, this minimum
+angle is specified (in degrees) by the field {\sf minBendAngle}. To
+find edge line nodes, the user selects a node lying along the desired
+edge line. The line is then followed from node to node, by locating
+edges with a large enough bend angle.
+
+{\tt EDGE\_LINE} selection is illustrated in Figure
+\ref{nodeEdgeSelect:fig}, and the following fields adjust
+its behavior:
+
+\begin{description}
+
+\item[{\sf minBendAngle}]\mbox{}
+
+Minimum bend angle, described above.
+
+\item[{\sf maxEdgeAngle}]\mbox{}
+
+Specifies (in degrees) the {\it maximum edge angle} between two
+adjacent edges along the edge line. Line following is terminated when
+the angle between the current edge and the next edge exceeds this
+threshold.
+
+\item[{\sf allowBranching}]\mbox{}
+
+If selected, allows the edge line to branch in different directions.
+Otherwise, edges are followed sequentially so as to minimize the edge
+angle between them.
+
+\end{description}
+
+\item[DISTANCE]\mbox{}
+
+Nodes are selected based on being within a prescribed distance of a
+polygonal mesh, which may be the surface mesh for a rigid body or FEM
+model, or some other mesh component. The distance threshold is
+specified by the field {\sf distance}. To select nodes, the user may
+select any mesh component containing a polygonal mesh.  The user may
+also select a rigid body or FEM model, which will cause the body's
+surface mesh to be used for the distance calculation.
+
+The following fields adjust the behavior of {\tt
+DISTANCE} selection:
+
+\begin{description}
+
+\item[{\sf distance}]\mbox{}
+
+Distance threshold, described above.
+
+\item[{\sf useSignedDistance}]\mbox{}
+
+If selected, causes the distance computation for closed meshes to be
+{\it signed}, so that nodes inside the mesh will have a negative
+distance.  This means that for a non-negative distance threshold,
+nodes inside the mesh will always be selected.
+
+\item[{\sf surfaceNodesOnly}]\mbox{}
+
+If checked, the selection is restricted to the FEM model's surface.
+
+\end{description}
+
+\item[MINIMUM\_PATH]\mbox{}
+
+In this mode, the user selects an individual node, and the tool then
+selects a {\it minimum path} of nodes between it and the previously
+selected node. This is particularly useful for ``drawing'' the
+boundary of a nodal region on the FEM model's surface.
+
+If {\sf surfaceNodesOnly} is checked, the path will be restricted to
+the FEM surface; otherwise, the path may proceed through the FEM
+interior.
+
+\begin{sideblock}
+When forming the path, the tool chooses from adjacent nodes based on
+the topology induced by the FEM elements. This can sometimes lead to a
+path that is less minimal than if nodes could be chosen arbitrarily,
+particularly for quadratic hex, wedge and pyramid elements.
+\end{sideblock}
+
+\end{description}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+\includegraphics[]{images/nodeEdgeSelect} &
+\includegraphics[]{images/nodeEdgeSelectBranching}
+\else
+\includegraphics[width=3.2in]{images/nodeEdgeSelect} &
+\includegraphics[width=3.2in]{images/nodeEdgeSelectBranching}
+\fi
+\end{tabular}
+\end{center}
+\caption{Node selection of ridges on an FEM using {\tt EDGE\_LINE}
+selection, with {\tt maxBendAngle} and {\tt maxEdgeAngle} set to
+$30^\circ$ and $120^\circ$, respectively. The left and right images
+show the resulting selection with branching disabled and enabled.}
+\label{nodeEdgeSelect:fig}
+\end{figure}
+
+The user is free to change modes during the selection process. Because
+selection is held in multiple selection mode, it is easy to edit the
+selection. In particular, {\tt INDIVIDUAL} selection can be used for
+fine editing of selections obtained using {\tt PATCH}, {\tt
+EDGE\_LINE}, {\tt DISTANCE}, or {\tt MINIMAL\_PATH}.
+
+Below the {\sf surfaceNodesOnly} check box, the tool contains a number
+of buttons:
+
+\begin{description}
+
+\item[Clear]\mbox{}
+
+Unselects all the nodes.
+
+\item[Grow]\mbox{}
+
+Enlarges the current selection to include adjacent nodes.
+
+\item[Shrink]\mbox{}
+
+Reduces the current selection by removing nodes on the boundary.
+
+\item[Boundary]\mbox{}
+
+Reduces the current selection to include {\it only} its boundary
+nodes (Figure \ref{nodePatchSelect:fig}, right).
+
+\item[Fill]\mbox{}
+
+Fills a region in the current selection. After clicking this button,
+the user selects a node inside the desired region. The selection is
+then grown outward from the selected node until it reaches the
+region's boundary.
+
+\item[Attach nodes]\mbox{}
+
+Attaches the selected nodes to another body which is either a rigid
+body or an FEM model. The body may be chosen by selecting it directly,
+or by selecting one of its component meshes. Nodes which are currently
+attached are {\it not} attached to the body.
+
+\item[Detach nodes]\mbox{}
+
+Detaches all selected nodes from any body or particle that they are
+currently attached to.
+
+\item[Save]\mbox{}
+
+Saves the nodes to a file that has been previously specified
+using either ``{\sf Save as ...}'' or ``{\sf Load ...}''.
+
+\item[Save as ...]\mbox{}
+
+Saves the nodes to a user-specified text file. The format consists
+simply of integer node numbers (with respect to the selection tool's
+FEM model), separated by white space. More details on the file format
+are given in the section ``Selecting nodes in the viewer'' of the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\item[Load ...]\mbox{}
+
+Loads the selected nodes from a text file, the format for which is
+described under ``{\sf Save as ...}''.
+
+\end{description}
+
 \section{Model Manipulation}
 \label{ModelManipulation}
 
@@ -1803,7 +2086,7 @@ The transformation tools employ the dragger fixtures shown
 in Figure \ref{transformToolsFig}, which allow 3D geometrical
 transformations to be performed within the viewer.
 
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/transformTools}
@@ -1850,24 +2133,38 @@ or repositioning of the fixture, as described below.
 \subsection{Transformer tools}
 \label{TransformerToolsSec}
 
-A number of transformer tools use the dragger fixtures described
-above to translate, rotate, and scale components. Once a tool is
-activated, then selecting one or more transformable components will
-cause the corresponding dragger fixture to appear in the viewer at the
-components' location. If a single component is selected and 
-that component is 
-associated with a coordinate frame (by implementing the
-\javaclass[artisynth.core.modelbase]{HasCoordinateFrame} interface), 
-then the dragger's initial position
-and orientation are aligned with this coordinate frame.
-Otherwise, the dragger is initially placed at the center of the
-components' bounding box and its orientation is aligned to world
-coordinates.
+A number of transformer tools use the dragger fixtures described above
+to translate, rotate, and scale components. Once a tool is activated,
+then selecting one or more transformable components will cause the
+corresponding dragger fixture to appear in the viewer at the
+components' location. If a single component is selected and that
+component is associated with a coordinate frame (by implementing the
+\javaclass[artisynth.core.modelbase]{HasCoordinateFrame} interface),
+then the dragger's initial position and orientation are aligned with
+this coordinate frame.  Otherwise, the dragger is initially placed at
+the center of the selected components with an orientation aligned to
+world coordinates.
 
+The initial dragger orientation can be adjusted in the following ways:
+
+\begin{enumerate}
+
+\item
 To request that a dragger's initial orientation is {\it always}
 aligned with world coordinates, choose {\sf ``Interaction ...''}  from
 the {\sf Settings} menu and set {\sf initDraggersInWorld} to {\tt
 true}.
+
+\item
+Conversely, when transforming a set of point-like objects which lie
+either within a plane or along a straight line, it can be useful to
+align the dragger's orientation to the points. To request this
+behavior, choose {\sf ``Interaction ...''}  from the {\sf Settings}
+menu and set {\sf alignDraggersToPoints} to {\tt true}.
+
+\end{enumerate}
+
+The transformer tools include:
 
 %\iflatexml
 %% HACK: we put a '.' before the image to get LaTeXML to set it on the
@@ -2748,13 +3045,7 @@ muted together.
 \subsection{Numeric probe displays}
 \label{numericProbeDisplaysSec}
 
-Data associated with numeric probes is displayed as a graph within the
-display (Figure \ref{numericDisplayFig}), with each entry in a probe's
-data vector drawn as a separate trace.  If the probe's vector size is
-greater than one, each trace is drawn using a different color (up to a
-limit, after which colors are recycled).
-
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/numericDisplay}
@@ -2765,6 +3056,12 @@ limit, after which colors are recycled).
 \caption{Expanded input and output tracks showing numeric data.}%
 \label{numericDisplayFig}
 \end{figure}
+
+Data associated with numeric probes is displayed as a graph within the
+display (Figure \ref{numericDisplayFig}), with each entry in a probe's
+data vector drawn as a separate trace.  If the probe's vector size is
+greater than one, each trace is drawn using a different color (up to a
+limit, after which colors are reused).
 
 \subsubsection{Setting the range and display properties}
 
@@ -2779,176 +3076,10 @@ display and selecting {\sf Fit ranges to data}.
 Large data displays (Section \ref{LargeDisplay:sec}) contain
 additional GUI-based features to adjust the display range.
 
-\subsubsection{Visibility control}
-
-As mentioned above, each entry in a numeric probe's data vector is
-rendered in a different color (up to a limit).  If the vector size is
-large (say more than three or four), or if there is much overlapping
-of values, then the result can be difficult to visualize.
-
-To manage this problem, numeric displays provide a {\it legend} tool that
-allows the user to control the color, drawing order, and visibility
-for each vector entry (Figure \ref{legendFig}).
-
-\begin{figure}
-\begin{center}
-\iflatexml
-\includegraphics[]{images/legend}
-\else
-\includegraphics[width=0.30\textwidth]{images/legend}
-\fi
-\end{center}
-\caption{Legend tool for controlling display visibility.}%
-\label{legendFig}
-\end{figure}
-
-To create the legend tool, right-click in the display panel and select
-{\sf Show legend}. Each row in the legend tool is associated with an
-entry in the data vector. The dimensions of the vectors are listed,
-followed by the color the entry is drawn in and a toggle controlling
-its visibility.  Entries are rendered in bottom-to-top order, so those
-at the top will be most visible.
-
-\begin{itemize}
-
-\item To change an entry's color, click the {\sf Set} button, which
-will bring up a color menu.
-
-\item To make an entry visible or invisible, use the {\sf Visible}
-toggle box.
-
-\item To change the order in which an entry is drawn, click and drag the
-entry vertically within the panel.
-
-\end{itemize}
-
-\subsubsection{Editing and scaling data}
-\label{EditingData:sec}
-
-As mentioned in Section \ref{ProbesAndWaypoints:sec}, numeric probe data
-is described by a temporal sequence of {\it knots}, between which data
-is interpolated as described in Section \ref{interpolation:sec}.
-
-Knot points can be made visible or invisible by setting the display's
-{\sf knotsVisible} property. This can also be done by right-clicking
-in the display and selecting {\sf Show knot points} or {\sf Hide knot
-points}. The rendered size of the knot, in pixels, is controlled by
-the {\sf knotSize} property.
-
-\begin{sideblock}
-Since output probes typically have a very high knot density, their
-knots are set to be invisible by default.
-\end{sideblock}
-
-For input probes, knot points (when visible) can be edited by moving,
-adding, or deleting them:
-
-\begin{itemize}
-
-\item To move a knot point, left click on the knot and drag it.
-
-\item To add a knot point, place the mouse at the desired location
-and double left-click.
-
-\item To delete a knot point, right-click on the knot and select 
-{\sf Delete knot point}.
-
-\item To edit a knot point data value, right-click on the knot and
-select {\sf Edit knot point}.
-
-\end{itemize}
-
-The data for all numeric probes (input or output) can be scaled by
-right-clicking in the display and selecting {\sf ``Scale data ...''}.
-This allows the user to enter a scaling factor that is applied
-uniformly to all the knot points.
-
-\subsubsection{Interpolation control}
-\label{interpolation:sec}
-
-The data between knot points in a numeric probe is interpolated, using
-one of the interpolation {\it orders} described below, with the
-default interpolation order being {\sf Linear}. Linear interpolation
-is almost always sufficient for output probes, which typically have a
-close spacing between knots that equals the simulation step
-size. Input probes, on the other hand, often have a much sparser knot
-spacing and so different interpolation orders can be useful.  The
-interpolation order of input probes can be set by right-clicking in
-the display and selecting the {\sf Interpolation} menu item.  This is
-illustrated in Figure \ref{interpolationFig}, which shows two input
-probes, one using {\sf Cubic} interpolation and the other using {\sf
-Linear} interpolation.
-
-\begin{figure}
-\begin{center}
-\iflatexml
-\includegraphics[]{images/interpolation}
-\else
-\includegraphics[width=0.66\textwidth]{images/interpolation}
-\fi
-\end{center}
-\caption{Two expanding tracks with probes showing
-cubic interpolation (upper) and linear interpolation (lower).}%
-\label{interpolationFig}
-\end{figure}
-
-The interpolation options for a numeric probe include:
-
-\begin{description}
-
-\item[Step]\mbox{}
-
-Values are set to the values of the closest previous knots
-points.
-
-\item[Linear]\mbox{}
-
-Values are set by linear interpolation of the closest surrounding knot
-points.
-
-\item[Cubic]\mbox{}
-
-Values are set by cubic Catmull interpolation between the surrounding
-knot points.
-
-\item[CubicStep]\mbox{}
-
-Values are set by cubic Hermite interpolation between the surrounding
-knot points, with the slopes at knot points set to zero.
-
-\item[SphericalLinear]\mbox{}
-
-When interpolating quaternions or $4 \times 4$ rigid transformation
-matrices, 3D rotation values are set by piecewise spherical linear
-interpolation (i.e., "slerp", as described by Shoemake's 1985 SIGGRAPH
-paper).  Otherwise, interpolation is linear. Quaternions are assumed
-if the vector size of the numeric probe is 4, and $4 \times 4$ rigid
-transformation matrices are assumed if the vector size is 16.
-
-\item[SphericalCubic]\mbox{}
-
-When interpolating quaternions or $4 \times 4$ rigid transformation
-matrices, 3D rotation values are set by spherical cubic interpolation
-(i.e., "slerp", as described by Shoemake's 1985 SIGGRAPH paper).
-Otherwise, interpolation is cubic. Quaternions are assumed if the
-vector size of the numeric probe is 4, and $4 \times 4$ rigid
-transformation matrices are assumed if the vector size is 16.
-
-\end{description}
-
-All of the above interpolation orders are instances of the enumeration
-type \javaclass[maspack.interpolation]{Interpolation\$Order}.
-
 \subsubsection{Large displays}
-
 \label{LargeDisplay:sec}
 
-A large display for a numeric probe can be created by right-clicking
-on the probe icon and selecting {\sf Large Display}. This will create a
-large numeric display in a separate panel, allowing more precise
-inspection of data (Figure \ref{largeDisplayFig}).
-
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/largeDisplay}
@@ -2959,6 +3090,11 @@ inspection of data (Figure \ref{largeDisplayFig}).
 \caption{A large display for a numeric probe.}%
 \label{largeDisplayFig}
 \end{figure}
+
+A large display for a numeric probe can be created by right-clicking
+on the probe icon and selecting {\sf Large Display}. This will create a
+large numeric display in a separate panel, allowing more precise
+inspection of data (Figure \ref{largeDisplayFig}).
 
 In addition to the functionality of the smaller displays, large
 displays have additional buttons, located across the top, for
@@ -3086,7 +3222,7 @@ attached to the probe, and so the data does not change when the probe
 is reset or additional data is added to the probe. This is useful for
 comparing outputs between different simulations.
 
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/clonedDisplay}
@@ -3105,6 +3241,347 @@ The file's type is indicated by its extension. A range of image file
 types are supported, including JPEG ({\tt .jpg, .jpeg}), PNG ({\tt
 .png}), scalable vector graphics ({\tt .svg}), and encapsulated
 PostScript ({\tt .eps}).
+
+\subsubsection{Legends and visibility control}
+
+As mentioned above, each entry in a numeric probe's data vector is
+rendered in a different color (up to a limit, currently 30, after
+which colors are reused).  If the vector size is large (say more than
+three or four), or if there is much overlapping of values, then the
+result can be difficult to visualize.
+
+To manage this problem, numeric displays provide a {\it legend} dialog that
+allows the user to control the color, drawing order, and visibility
+for each vector entry (Figure \ref{legendFig}).
+
+\begin{figure}
+\begin{center}
+\iflatexml
+\includegraphics[]{images/legend}
+\else
+\includegraphics[width=0.30\textwidth]{images/legend}
+\fi
+\end{center}
+\caption{Legend dialog for the displays of Figure
+\ref{largeDisplayFig}. The label for each entry shows its associated
+property and vector element value (in this case, the $x$, $y$ and $z$
+values for the {\sf targetPosition} property of the particle {\tt
+pnt0}).
+}%
+\label{legendFig}
+\end{figure}
+
+To open the legend dialog, right-click in the display panel and select
+{\sf Show legend}. Each row in the legend dialog is associated with a
+specific trace, consisting of a descriptive label followed by the
+trace color and a toggle controlling its visibility.  For traces
+associated with component properties, the label consists of a partial
+path identifying the property, and for vector-valued properties this
+is followed by the name or number of the corresponding vector
+element. Traces are rendered in bottom-to-top order, so those at the
+top will be most visible.
+
+\begin{itemize}
+
+\item To change a trace's color, click the {\sf Set} button, which
+will bring up a color menu.
+
+\item To make an trace visible or invisible, use the {\sf visible}
+toggle box.
+
+\item To make {\it all} traces visible or invisible, use the {\sf All
+visible} toggle box at the bottom of the dialog.
+
+\item To change the order in which a trace is drawn, click and drag
+its dialog entry vertically.
+
+\end{itemize}
+
+Traces can also be reordered using the {\sf Trace ordering} selector
+at the dialog bottom. At the time of this writing, the available
+orderings include:
+
+\begin{description}
+
+\item[ORDINAL] \mbox{}
+
+Traces are ordered by their natural place in the probe data. This is
+the default.
+
+\item[RMS] \mbox{}
+
+Traces are ordered in descending order by the RMS (root mean square)
+of their values over time.
+
+\item[RANGE] \mbox{}
+
+Traces are ordered in decreasing order by the difference between their
+maximum and minimum values over time.
+
+\end{description}
+
+Reordering traces, and then restricting visibility to a few at the
+top, can allow visualization of the most prominent data in an
+otherwise crowded display. For example, Figure
+\ref{hydrostatExcitations1:fig} shows the 16 muscle excitations
+produced by inverse simulation of a muscular hydrostat model, with the
+legend dialog shown in Figure \ref{hydrostatLegend:fig}
+(left). To view only the five excitations with the largest RMS values,
+one can use the {\sf Trace ordering} selector to sort them in
+decreasing RMS order, and then make all traces invisible except the
+top five. The resulting display is shown in Figure
+\ref{hydrostatExcitations2:fig}, with the corresponding legend dialog
+shown in Figure \ref{hydrostatLegend:fig} (middle). 
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/hydrostatExcitations1}
+\else
+\includegraphics[width=0.60\textwidth]{images/hydrostatExcitations1}
+\fi
+\end{center}
+\caption{Display showing the muscle excitations produced by inverse 
+simulation of a muscular hydrostat.}%
+\label{hydrostatExcitations1:fig}
+\end{figure}
+
+When traces are reordered, their colors are not changed. To reassign
+the default colors to the traces based on their current ordering, one
+may use the {\sf Reset Colors} button at the bottom of the legend
+dialog. Figure \ref{hydrostatExcitations3:fig} shows the result of
+doing this for the display of Figure \ref{hydrostatExcitations2:fig},
+with the corresponding legend dialog shown in Figure
+\ref{hydrostatLegend:fig} (right).
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{ccc}
+\iflatexml
+\includegraphics[]{images/hydrostatLegend1} &
+\includegraphics[]{images/hydrostatLegend2} &
+\includegraphics[]{images/hydrostatLegend3}
+\else
+\includegraphics[height=4in]{images/hydrostatLegend1} &
+\includegraphics[height=4in]{images/hydrostatLegend2} &
+\includegraphics[height=4in]{images/hydrostatLegend3}
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: legend dialog for Figure
+\ref{hydrostatExcitations1:fig}.  Middle: legend dialog for Figure
+\ref{hydrostatExcitations2:fig}, where the traces have been sorted in
+decreasing RMS order and only the first five traces have been made
+visible. Right: legend dialog for Figure
+\ref{hydrostatExcitations3:fig}, where the ``{\sf Reset Colors}''
+button has been used to reset the trace colors to their canonical
+values with respect to the current ordering.}%
+\label{hydrostatLegend:fig}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/hydrostatExcitations2}
+\else
+\includegraphics[width=0.60\textwidth]{images/hydrostatExcitations2}
+\fi
+\end{center}
+\caption{Display showing the five excitations from Figure
+\ref{hydrostatExcitations1:fig} with the largest RMS, arranged by
+sorting the traces by maximum RMS and then making only the first five
+visible.}%
+\label{hydrostatExcitations2:fig}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/hydrostatExcitations3}
+\else
+\includegraphics[width=0.60\textwidth]{images/hydrostatExcitations3}
+\fi
+\end{center}
+\caption{Display showing the excitations from Figure
+\ref{hydrostatExcitations2:fig}, with the trace colors reset
+to their canonical values with respect to the current ordering.}%
+\label{hydrostatExcitations3:fig}
+\end{figure}
+
+\iflatexml\else\clearpage\fi
+
+\subsubsection{Editing and scaling data}
+\label{EditingData:sec}
+
+As mentioned in Section \ref{ProbesAndWaypoints:sec}, numeric probe data
+is described by a temporal sequence of {\it knots}, between which data
+is interpolated as described in Section \ref{interpolation:sec}.
+
+Knot points can be made visible or invisible by setting the display's
+{\sf knotsVisible} property. This can also be done by right-clicking
+in the display and selecting {\sf Show knot points} or {\sf Hide knot
+points}. The rendered size of the knot, in pixels, is controlled by
+the {\sf knotSize} property.
+
+\begin{sideblock}
+Since output probes typically have a very high knot density, their
+knots are set to be invisible by default.
+\end{sideblock}
+
+For input probes, knot points (when visible) can be edited by moving,
+adding, or deleting them:
+
+\begin{itemize}
+
+\item To move a knot point, left click on the knot and drag it.
+
+\item To add a knot point, place the mouse at the desired location
+and double left-click.
+
+\item To delete a knot point, right-click on the knot and select 
+{\sf Delete knot point}.
+
+\item To edit a knot point data value, right-click on the knot and
+select {\sf Edit knot point}.
+
+\end{itemize}
+
+The data for all numeric probes (input or output) can be scaled by
+right-clicking in the display and selecting {\sf ``Scale data ...''}.
+This allows the user to enter a scaling factor that is applied
+uniformly to all the knot points.
+
+\subsubsection{Smoothing data}
+\label{SmoothingData:sec}
+
+Numeric probe data can also be smoothed, which is convenient for
+removing noise from either input or output data. To apply data
+smoothing, right click in the display and select {\sf ``Smooth data
+...''}; this will open a {\it smoothing dialog} as shown in Figure
+\ref{smoothingDialog:fig}.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/smoothingDialog}
+\else
+\includegraphics[width=0.3\textwidth]{images/smoothingDialog}
+\fi
+\end{center}
+\caption{Dialog for smoothing probe data.}%
+\label{smoothingDialog:fig}
+\end{figure}
+
+Different smoothing methods are available and can be selected using
+the dialog's {\sf method} field. At the time of this writing, the
+following methods are available:
+
+\begin{description}
+
+\item[MOVING\_AVERAGE] \mbox{}
+
+Applies a mean average filter across the knots, using a moving window
+whose size is specified by the {\sf window size} field. The window is
+centered on each knot, and is reduced in size near the end knots to
+ensure a symmetric fit. The end knot values are not changed.  The
+window size must be odd and the {\sf window size} field enforces this.
+
+\item[SAVITZKY\_GOLAY] \mbox{}
+
+Applies Savitzky-Golay smoothing across the knots, using a moving
+window of size $w$.  Savitzky-Golay smoothing works by fitting the
+data values in the window to a polynomial of a specified degree $d$, and
+using this to recompute the value in the middle of the window.  The
+polynomial is also used to interpolate the first and last $w/2$
+values, since it is not possible to center the window on these.
+
+The window size $w$ and the polynomial degree $d$ are specified by the
+{\sf window size} and {\sf polynomial degree} fields. $w$ must be odd,
+and must also be larger than $d$, and the fields enforce these
+constraints.
+
+\end{description}
+
+\begin{sideblock}
+Note that smoothing makes no adjustment to account for uneven knot
+spacing, which may sometimes occur for input data.
+\end{sideblock}
+
+\subsubsection{Interpolation control}
+\label{interpolation:sec}
+
+The data between knot points in a numeric probe is interpolated, using
+one of the interpolation {\it orders} described below, with the
+default interpolation order being {\sf Linear}. Linear interpolation
+is almost always sufficient for output probes, which typically have a
+close spacing between knots that equals the simulation step
+size. Input probes, on the other hand, often have a much sparser knot
+spacing and so different interpolation orders can be useful.  The
+interpolation order of input probes can be set by right-clicking in
+the display and selecting the {\sf Interpolation} menu item.  This is
+illustrated in Figure \ref{interpolationFig}, which shows two input
+probes, one using {\sf Cubic} interpolation and the other using {\sf
+Linear} interpolation.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/interpolation}
+\else
+\includegraphics[width=0.66\textwidth]{images/interpolation}
+\fi
+\end{center}
+\caption{Two expanding tracks with probes showing
+cubic interpolation (upper) and linear interpolation (lower).}%
+\label{interpolationFig}
+\end{figure}
+
+The interpolation options for a numeric probe include:
+
+\begin{description}
+
+\item[Step]\mbox{}
+
+Values are set to the values of the closest previous knots
+points.
+
+\item[Linear]\mbox{}
+
+Values are set by linear interpolation of the closest surrounding knot
+points.
+
+\item[Cubic]\mbox{}
+
+Values are set by cubic Catmull interpolation between the surrounding
+knot points.
+
+\item[CubicStep]\mbox{}
+
+Values are set by cubic Hermite interpolation between the surrounding
+knot points, with the slopes at knot points set to zero.
+
+\item[SphericalLinear]\mbox{}
+
+When interpolating quaternions or $4 \times 4$ rigid transformation
+matrices, 3D rotation values are set by piecewise spherical linear
+interpolation (i.e., "slerp", as described by Shoemake's 1985 SIGGRAPH
+paper).  Otherwise, interpolation is linear. Quaternions are assumed
+if the vector size of the numeric probe is 4, and $4 \times 4$ rigid
+transformation matrices are assumed if the vector size is 16.
+
+\item[SphericalCubic]\mbox{}
+
+When interpolating quaternions or $4 \times 4$ rigid transformation
+matrices, 3D rotation values are set by spherical cubic interpolation
+(i.e., "slerp", as described by Shoemake's 1985 SIGGRAPH paper).
+Otherwise, interpolation is cubic. Quaternions are assumed if the
+vector size of the numeric probe is 4, and $4 \times 4$ rigid
+transformation matrices are assumed if the vector size is 16.
+
+\end{description}
+
+All of the above interpolation orders are instances of the enumeration
+type \javaclass[maspack.interpolation]{Interpolation\$Order}.
 
 \section{Saving and Loading Probes}
 \label{savingLoadingProbes:sec}
@@ -3767,6 +4244,14 @@ If {\tt true}, sets the initial orientation of transformer tools to be
 aligned with world coordinates, as described in Section
 \ref{TransformerToolsSec}. The default value is {\tt false}.
 
+\item[alignDraggersToPoints]\mbox{}
+
+If {\tt true}, and if {\tt initDraggersInWorld} is {\tt false}, then
+when a dragger is selected for a collection of point-like objects
+which lie either within a plane or along a straight line, the
+dragger's orientation will be aligned with the points, as described in
+Section \ref{TransformerToolsSec}.  The default value is {\tt false}.
+
 \item[navigationPanelLines]\mbox{}
 
 If {\tt true}, causes lines to be drawn linking components in
@@ -4070,7 +4555,7 @@ look and feel.
 \item[METAL]\mbox{}
 
 The standard Swing cross-platform look and feel. On MacOS, it is
-necessary to specify this explicity to avoid its native look and feel.
+necessary to specify this explicitly to avoid its native look and feel.
 
 \item[SYSTEM]\mbox{}
 
@@ -4745,7 +5230,7 @@ display in the menu panel (left) and the corresponding model menu (right).}%
 \label{modelMenuExample:fig}
 \end{figure}
 
-\iflatexml\else\pagebreak\fi
+%\iflatexml\else\pagebreak\fi
 
 Editing actions that may be initiated include:
 
@@ -5689,15 +6174,26 @@ rate and method used to create the movie, can be obtained by setting
 options in the movie panel's {\sf Recorder}, {\sf Encoder}, and {\sf
 Advanced} tabs, as described below.
 
+\begin{sideblock}
+Movies produced by the default method, which creates JPEG-based movie
+files, tend to be rather large. If you are making movies regularly,
+you should consider installing an external movie making application,
+such as {\tt FFmpeg}, and then setting the movie maker to use this via
+the {\sf Method} field on the Encoder tab (Section
+\ref{EncoderTab:sec}). This will significantly reduce the size of the
+movie file and likely improve movie quality. Installing FFMEG is
+discussed in Section \ref{InstallingFFmpeg:sec}.
+\end{sideblock}
+
 When capturing a movie, individual images for each frame are first
 saved in the movie folder and then used to create the movie itself.
-Each image file is named {\tt frameXXXXX.zzz}, where {\tt XXXXX} is the sequential
-frame number, each X is a digit, and {\tt .zzz} is the image format
-extension (usually {\tt .png} or {\tt .jpg}).  If {\sf ``Remove
-temporary files''} is selected in the {\sf Recorder} tab of the movie
-panel, the image files will be removed once the movie is made. If the
-files are not removed, they will be overwritten by any subsequent
-movie creation.
+Each image file is named {\tt frameXXXXX.zzz}, where {\tt XXXXX} is
+the sequential frame number, each {\tt X} is a digit, and {\tt .zzz} is the
+image format extension (usually {\tt .png} or {\tt .jpg}).  If {\sf
+``Remove temporary files''} is selected in the {\sf Recorder} tab of
+the movie panel, the image files will be removed once the movie is
+made. If the files are not removed, they will be overwritten by any
+subsequent movie creation.
 
 Text messages describing the movie making process will be displayed in
 the {\sf Messages} tab (Figure \ref{moviePanelMessages:fig}), and a
@@ -5883,8 +6379,9 @@ pictures into an animated JPEG.
 
 \item[FFMPEG]\mbox{}
 
-Use the ffmpeg command-line utility to generate the movie.  Requires
-ffmpeg to be installed and runnable from the command line.
+Use the FFmpeg command-line utility to generate the movie.  Requires
+FFmpeg to be installed and runnable from the command line (see Section
+\ref{InstallingFFmpeg:sec}).
 
 \item[MENCODER]\mbox{}
 
@@ -5900,7 +6397,7 @@ the frame rate (defaults to capture frame rate).
 
 \item[AVCONV]\mbox{}
 
-Uses the avconv utility that has replaced FFMPEG on some linux systems
+Uses the avconv utility, that is sometimes available on linux systems,
 to generate the movie.  Requires avconv to be installed and runnable
 from the command line.
 
@@ -6057,6 +6554,45 @@ Preferences that can be currently saved include:
 
 To specify a method customization, select the desired method and then
 click the {\sf``Customize Method''} button.
+
+\subsection{Installing FFmpeg}
+\label{InstallingFFmpeg:sec}
+
+As described above, movies produced by the default method, which
+creates JPEG-based movie files, tend to be rather large. If you are
+making movies regularly, you should consider installing an external
+movie making application such as {\tt FFmpeg}, and then setting the
+movie maker to use this via the {\sf Method} field on the Encoder tab
+(Section \ref{EncoderTab:sec}). This will significantly reduce the
+size of the movie file and likely improve movie quality.
+
+At the time of this writing, FFmpeg is available for Windows, Mac and
+Linux through
+\begin{quote}
+\href{https://ffmpeg.org/download.html}{ffmpeg.org/download.html}
+\end{quote}
+
+The easiest option is to download a precompiled release. The FFmpeg
+download site does not provide these itself, but refers to other sites
+that do. For example, the Windows download page currently contains a
+link to
+\begin{quote}
+\href{https://www.gyan.dev/ffmpeg/builds}{Windows builds from
+gyan.dev}
+\end{quote}
+which under {\sf git master builds} contains a download link for {\sf
+ffmpeg-git-full.7z}. This can be extracted into a location such as
+{\tt C:\BKS ffmpeg}, after which the installation's {\tt bin} folder
+(e.g., {\tt C:\BKS ffmpeg\BKS bin}) should be added to your Windows
+{\tt Path} environment variable. How to do this is described 
+in the section ``Adding Directories to the System Path'' in the
+Windows version of the ArtiSynth Installation Guide.
+
+Detailed instructions for installing FFmpeg on Windows can also be
+found at sites such as
+\begin{quote}
+\href{https://phoenixnap.com/kb/ffmpeg-windows}{phoenixnap.com/kb/ffmpeg-windows}.
+\end{quote}
 
 \section{Control Panels}
 

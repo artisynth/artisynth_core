@@ -11,6 +11,7 @@
 \usepackage{latexml}
 \usepackage{graphicx}
 \usepackage{framed}
+\usepackage{booktabs}
 \usepackage{color}
 
 \newcommand{\pubdate}{\today}
@@ -27,6 +28,23 @@
 \usepackage{xstring}
 \usepackage{pslatex} % fixes fonts; in particular sets a better-fitting \tt font
 
+\usepackage[most]{tcolorbox}
+\definecolor{shadecolor}{rgb}{0.95,0.95,0.95}
+\tcbset{
+    frame code={}
+    center title,
+    left=0pt,
+    right=0pt,
+    top=0pt,
+    bottom=0pt,
+    colback=shadecolor,
+    colframe=white,
+    width=\dimexpr\textwidth\relax,
+    enlarge left by=0mm,
+    boxsep=0pt,
+    arc=0pt,outer arc=0pt,
+}%
+
 \usepackage[A4]{artisynth_papersize}
 %\usepackage[letter]{artisynth_papersize}
 \usepackage[hyperlink]{asciidoc-dblatex} 
@@ -42,7 +60,7 @@
 % set hypertext links to be dark blue:
 \definecolor{darkblue}{rgb}{0,0,0.8}
 \definecolor{sidebar}{rgb}{0.5,0.5,0.7}
-\hypersetup{colorlinks=true,urlcolor=darkblue,linkcolor=darkblue}
+\hypersetup{colorlinks=true,urlcolor=darkblue,linkcolor=darkblue,breaklinks=true}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -230,5 +248,75 @@
   #1 %
   \fi %
 }
+
+% new methodtable environment for documenting methods
+
+% base width of the method table
+\newlength{\methodtablewidth}
+\iflatexml
+\setlength{\methodtablewidth}{1.4\textwidth}
+\else
+\setlength{\methodtablewidth}{0.94\textwidth}
+\fi
+% horizontal space added at end of call to \methodentry
+\newlength{\methodskip}
+\setlength{\methodskip}{0pt}
+% lengths set inside methodtable environment:
+\newlength{\methodsiglength} % length of the method signature
+\newlength{\methodcomlength} % length of the method comment
+\setlength{\methodsiglength}{0.5\methodtablewidth}
+\setlength{\methodcomlength}{0.5\methodtablewidth}
+
+% command to add a method to a method table:
+% arg #1: package and signature for finding URL
+% arg #2: anchor text
+% arg #3: comment describing the method
+\newcommand{\methodentry}[3]{%
+\javamethodAlt{#1}{\parbox[t]{\methodsiglength}{#2}}&
+{\parbox[t]{\methodcomlength}{#3}}\\%
+\noalign{\vspace{\methodskip}}}
+
+% methodtable environment takes two arguments, both scale factors for
+% methodtablewidth:
+% arg #1: width of the method signature column
+% arg #2: width of the method comment column
+\newenvironment{methodtable}[3][0pt]{%
+\begingroup
+\setlength{\topskip}{0pt}
+\setlength{\methodskip}{#1}
+\setlength{\methodsiglength}{#2\methodtablewidth}%
+\setlength{\methodcomlength}{#3\methodtablewidth}%
+\iflatexml
+\begin{snugshade}
+\else
+\begin{tcolorbox}
+\fi
+\renewcommand{\arraystretch}{1}
+\begin{tabular}{ll}}{%
+\end{tabular}
+\renewcommand{\arraystretch}{1}
+\iflatexml
+\end{snugshade}
+\else
+\end{tcolorbox}
+\fi
+\endgroup}
+
+% commands for added top, mid and bottom lines in the table.
+% uses booktabs for PDF, regular hline for HTML
+\newcommand{\topline}{\iflatexml\hline\else\toprule\fi}
+\newcommand{\midline}{\iflatexml\hline\else\midrule\fi}
+\newcommand{\botline}{\iflatexml\hline\else\bottomrule\fi}
+\newcommand{\blankline}{%
+\multicolumn{2}{l}{\iflatexml{@SPACE}\else\phantom{M}\fi}\\}%
+% add vertical space within a two colum method environment
+\newcommand{\methodspace}[1]{%
+\iflatexml
+\multicolumn{2}{l}{@VERTSPACE[#1]}\\
+\else
+\noalign{\vspace{#1}}%
+\fi}%
+% break a line and add an indentation of 1em
+\newcommand{\brh}{\\\phantom{M}}
 
 \makeatother

@@ -959,6 +959,25 @@ public class ArtisynthPath {
    }
 
    /**
+    * Tries to convert file separation characters in a file to ones
+    * appropriate for the local system. In particular, on Unix, the Windows
+    * separation character <code>'\'</code> will be converted to
+    * <code>'/'</code>, and on Windows, <code>'/'</code> will be converted
+    * to a <code>'\'</code>.
+    * 
+    * @return converted path
+    */
+   public static File convertToLocalSeparators (File file) {
+      String pathName = file.getAbsolutePath();
+      if (File.separatorChar == '\\') {
+         return new File(convertToWindowsSeparators (pathName));
+      }
+      else {
+         return new File(convertToUnixSeparators (pathName));
+      }
+   }
+
+   /**
     * Tries to convert file separation characters in a path name to ones
     * appropriate for Unix. In particular, the Windows separation character
     * <code>'\'</code> will be converted to <code>'/'</code>.

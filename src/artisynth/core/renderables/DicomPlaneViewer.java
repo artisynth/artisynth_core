@@ -15,6 +15,9 @@ import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.TransformGeometryContext;
 import maspack.geometry.GeometryTransformer;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.Vertex3d;
+import maspack.geometry.Face;
 import maspack.image.dicom.DicomImage;
 import maspack.image.dicom.DicomPixelInterpolator;
 import maspack.image.dicom.DicomPlaneTextureContent;
@@ -39,6 +42,7 @@ public class DicomPlaneViewer extends TexturePlaneBase {
    DicomPlaneTextureContent texture;
    PolygonalMesh imageMesh;
    MeshInfo imageMeshInfo;
+   RigidTransform3d myTVI; // optional transform from image to viewer
    
    Vector2d widths;
 
@@ -46,10 +50,10 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       DicomPlaneViewer.class, TexturePlaneBase.class);
    
    static {
-      myProps.add("size * *", "plane size", null);
-      // myProps.add("resolution * *", "x and y resolution of image texture", null);
-      myProps.add("timeIndex * *", "time coordinate", 0);
-      myProps.add("spatialInterpolation * *", "trilinearly interpolate between voxels", false);
+      myProps.add("size", "plane dimensions", null);
+      myProps.add("timeIndex", "time coordinate", 0);
+      myProps.add(
+         "spatialInterpolation", "trilinearly interpolate between voxels", false);
       myProps.addReadOnly("pixelInterpolator", "pixel converter");
    }
    
@@ -66,12 +70,50 @@ public class DicomPlaneViewer extends TexturePlaneBase {
     * 
     * @param name widget name
     * @param image DICOM image data
-    * @param loc location/orientation of center of image plane
-    * @param widths widths of image plane
+    * @param templateMesh defines the topology of the mesh onto which the image
+    * will be mapped
+    * @param TPW location/orientation of image plane center (world coordinates)
+    * @param TVI if non-null, gives transform from image to viewer
     */
-   public DicomPlaneViewer(String name, DicomImage image, RigidTransform3d loc, Vector2d widths) {
+   public DicomPlaneViewer(
+      String name, DicomImage image, PolygonalMesh templateMesh,
+      RigidTransform3d TPW, RigidTransform3d TVI) {
       super();
-      init(name, image, loc, widths);
+      init(name, image, templateMesh, TPW, TVI);
+   }
+   
+   /**
+    * Creates a new image-plane viewer widget, with supplied name and DICOM image
+    * 
+    * @param name widget name
+    * @param image DICOM image data
+    * @param widths widths of image plane
+    * @param TPW location/orientation of image plane center (world coordinates)
+    * @param TVI if non-null, gives transform from image to viewer
+    */
+   public DicomPlaneViewer(
+      String name, DicomImage image, Vector2d widths, 
+      RigidTransform3d TPW, RigidTransform3d TVI) {
+      super();
+      PolygonalMesh templateMesh = MeshFactory.createRectangle (
+         widths.x, widths.y, /*addTextureCoords=*/false);
+      init(name, image, templateMesh, TPW, TVI);
+   }
+   
+   /**
+    * Creates a new image-plane viewer widget, with supplied name and DICOM image
+    * 
+    * @param name widget name
+    * @param image DICOM image data
+    * @param widths widths of image plane
+    * @param TPW location/orientation of image plane center (world coordinates)
+    */
+   public DicomPlaneViewer(
+      String name, DicomImage image, Vector2d widths, RigidTransform3d TPW) {
+      super();
+      PolygonalMesh templateMesh = MeshFactory.createRectangle (
+         widths.x, widths.y, /*addTextureCoords=*/false);
+      init(name, image, templateMesh, TPW, null);
    }
    
    /**
@@ -79,33 +121,75 @@ public class DicomPlaneViewer extends TexturePlaneBase {
     * name of the component becomes the image name
     * 
     * @param image DICOM image data
-    * @param loc location/orientation of center of image plane
     * @param widths widths of image plane
+    * @param TPW location/orientation of image plane center (world coordinates)
     */
-   public DicomPlaneViewer(DicomImage image, RigidTransform3d loc, Vector2d widths) {
-      this(image.getTitle(), image, loc, widths);
+   public DicomPlaneViewer (
+      DicomImage image, Vector2d widths, RigidTransform3d TPW) {
+      this(image.getTitle(), image, widths, TPW);
    }
    
-   private void init(String name, DicomImage image, RigidTransform3d loc, Vector2d widths) {
+   private void get2DBounds (
+      Point2d origin, Vector2d widths, PolygonalMesh mesh) {
+      Point3d pmin = new Point3d();
+      Point3d pmax = new Point3d();
+      mesh.getLocalBounds (pmin, pmax);
+
+      if (origin != null) {
+         origin.set (pmin.x, pmin.y);
+      }
+      if (widths != null) {
+         widths.set (pmax.x-pmin.x, pmax.y-pmin.y);
+      }
+   }
+
+   private void init (
+      String name, DicomImage image, PolygonalMesh templateMesh,
+      RigidTransform3d TPW, RigidTransform3d TVI) {
       setName(ModelComponentBase.makeValidName(name));
       myRenderProps = createRenderProps();
-      
-      this.widths = widths.clone();
-      
+
+      Point2d origin = new Point2d();
+      this.widths = new Point2d ();
+      get2DBounds (origin, widths, templateMesh);
+
       myImage = image;
-      texture = new DicomPlaneTextureContent (image, loc, widths);
+      if (TVI != null) {
+         myTVI = new RigidTransform3d(TVI);
+      }
+      else {
+         myTVI = null;
+      }
+      texture = new DicomPlaneTextureContent (
+         image, computeTTW(TPW), this.widths);
       myRenderProps.getColorMap ().setContent (texture);
-      
-      imageMesh = buildImageMesh ();
-      updateImageWidths (widths);
+
+      imageMesh = buildImageMesh (origin, this.widths, templateMesh);
       imageMeshInfo = new MeshInfo();
       imageMeshInfo.set (imageMesh);
       imageMesh.setMeshToWorld (getPose());
       
-      setPose(loc);
-      
+      setPose(TPW);
    }
-   
+
+   /**
+    * Compute the texture-to-world transform from the plane-to-world
+    * transform TPW.
+    */
+   private RigidTransform3d computeTTW (RigidTransform3d TPW) {
+      RigidTransform3d TTW = new RigidTransform3d();
+      if (myTVI != null) {
+         RigidTransform3d TIW = myImage.getTransform();
+         TTW.mulInverseLeft (TIW, TPW);
+         TTW.mulInverseLeft (myTVI, TTW);
+         TTW.mul (TIW, TTW);
+      }
+      else {
+         TTW.set (TPW);
+      }
+      return TTW;
+   }
+ 
    @Override
    public RenderProps createRenderProps() {
       RenderProps props = RenderProps.createLineFaceProps (this);
@@ -126,7 +210,7 @@ public class DicomPlaneViewer extends TexturePlaneBase {
    }
    
    @Override
-   protected PolygonalMesh getImageMesh () {
+   public PolygonalMesh getImageMesh () {
       return imageMesh;
    }
    
@@ -163,71 +247,44 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       texture.prerender ();
    }
    
-   protected PolygonalMesh buildImageMesh() {
+   protected PolygonalMesh buildImageMesh (
+      Vector2d origin, Vector2d widths, PolygonalMesh templateMesh) {
       
       PolygonalMesh mesh = new PolygonalMesh();
       
-      float[][] coords = {{-0.5f, -0.5f}, {-0.5f, 0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}};
-      
-      // xy-slice
-      Point2d[] texcoords = texture.getTextureCoordinates ();
-       
-      for (int i=0; i<4; ++i) {
-         mesh.addVertex (coords[i][0], coords[i][1], 0);
+      for (Vertex3d v : templateMesh.getVertices()) {
+         Point3d p = v.getPosition();
+         mesh.addVertex (new Vertex3d (new Point3d (p.x, p.y, 0)));
       }
-      mesh.addFace (new int[]{0,1,2});
-      mesh.addFace (new int[]{0,2,3});
-      
+      for (Face f : templateMesh.getFaces()) {
+         mesh.addFace (f.getVertexIndices());
+      }
+
       // add normals
-      int[] idx = mesh.createFeatureIndices ();
-      for (int i=0; i<idx.length; ++i) {
-         idx[i] = 0;
+      int[] idxs = mesh.createFeatureIndices ();
+      for (int i=0; i<idxs.length; ++i) {
+         idxs[i] = 0;
       }
       ArrayList<Vector3d> normals = new ArrayList<>(1);
       normals.add (new Vector3d(0,0,1));
-      mesh.setNormals (normals, idx);
-      
+      mesh.setNormals (normals, idxs);
+
       // add texture coordinates
-      idx = mesh.createVertexIndices ();
+      idxs = mesh.createVertexIndices ();
+      Vector2d tscale = texture.getTextureCoordinateScaling();
       ArrayList<Vector3d> tcoords = new ArrayList<>();
-      for (int i=0; i<4; ++i) {
-         tcoords.add (new Vector3d(texcoords[i].x, texcoords[i].y, 0));
+      for (Vertex3d v : mesh.getVertices()) {
+         Point3d p = v.getPosition();
+         Vector3d tcoord =
+            new Vector3d (
+               tscale.x*(p.x-origin.x)/widths.x, 
+               tscale.y*(p.y-origin.y)/widths.y, 0);
+         tcoords.add (tcoord);
       }
-      mesh.setTextureCoords (tcoords, idx);
+      mesh.setTextureCoords (tcoords, idxs);
       
       return mesh;
    }   
-   
-//   @Override
-//   public synchronized void render(Renderer renderer, int flags) {
-//      
-//      RenderProps rprops = getRenderProps();
-//      
-//      renderer.pushModelMatrix ();
-//      
-//      // adjust for widths and location
-//      renderer.mulModelMatrix(getPose());
-//      AffineTransform3d scaling = new AffineTransform3d();
-//      scaling.applyScaling(widths.x, widths.y, 1);
-//      renderer.mulModelMatrix(scaling);
-//     
-//      ColorMapProps oldColorMap = renderer.setColorMap (rprops.getColorMap ());
-//      FaceStyle oldFaceStyle = renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
-//      Shading oldShading = renderer.setShading (rprops.getShading ());
-//      
-//      if (!renderer.isSelecting()) {
-//         renderer.setFaceColoring (rprops, isSelected());
-//      }      
-//      
-//      
-//      renderer.drawTriangles (robj, 0);
-//      
-//      renderer.setShading (oldShading);
-//      renderer.setFaceStyle (oldFaceStyle);
-//      renderer.setColorMap (oldColorMap);
-//      
-//      renderer.popModelMatrix ();
-//   }
    
    /**
     * @return the current pixel interpolator
@@ -248,23 +305,30 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       return true;
    }
    
-   protected void updateImageWidths(Vector2d width) {
-      float[][] coords = {{-0.5f, -0.5f}, {-0.5f, 0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}};
-      for (int i=0; i<4; ++i) {
-         imageMesh.getVertex (i).setPosition (new Point3d(coords[i][0]*width.x, coords[i][1]*width.y, 0));
-      }
-      imageMesh.notifyVertexPositionsModified ();
-   }
-   
    /**
     * Sets the widths of the plane
     * @param widths plane widths
     */
-   public void setSize(Vector2d widths) {
+   public void setSize (Vector2d widths) {
+      Point2d origin = new Point2d();
+      get2DBounds (origin, null, imageMesh);
+
+      // get centers and scale factors
+      double cx = origin.x + this.widths.x/2;
+      double cy = origin.y + this.widths.y/2;
+      double sx = widths.x/this.widths.x;
+      double sy = widths.y/this.widths.y;
+
+      // scale vertex positions
+      for (Vertex3d v : imageMesh.getVertices()) {
+         Point3d p = v.getPosition();
+         v.setPosition (new Point3d(cx+sx*(p.x-cx), cy+sy*(p.y-cy), 0));
+      }
+      imageMesh.notifyVertexPositionsModified ();
+
       texture.setWidths(widths);
       // update surface widths
       this.widths.set(widths);
-      updateImageWidths(widths);
    }
    
    /**
@@ -326,7 +390,15 @@ public class DicomPlaneViewer extends TexturePlaneBase {
    public void transformGeometry(
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       super.transformGeometry (gtr, context, flags);
-      texture.setLocation(getPose());
+      texture.setLocation (computeTTW (getPose()));
+   }
+   
+   public RigidTransform3d getTextureLocation() {
+      return texture.getLocation();
+   }
+   
+   public void setTextureLocation (RigidTransform3d TTW) {
+      texture.setLocation (TTW);
    }
    
 }

@@ -190,11 +190,13 @@ public class DicomViewer extends Frame
     * Reads DICOM files into a 3D (+time) image
     * @param name name of the viewer component
     * @param imagePath directory containing DICOM files
-    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
+    * @param filePattern pattern for accepting/rejecting contained files.  The
+    * pattern is applied
     * to the absolute file names of all files contained in the imagePath
     * @param checkSubdirs recursively check sub-folders for further DICOM files
     */
-   public DicomViewer(String name, String imagePath, Pattern filePattern, boolean checkSubdirs) {
+   public DicomViewer (
+      String name, String imagePath, Pattern filePattern, boolean checkSubdirs) {
       DicomImage im = null;
       try {
          DicomReader rs = new DicomReader();
@@ -202,7 +204,8 @@ public class DicomViewer extends Frame
       } catch (IOException ioe) {
          throw new RuntimeException(ioe);
       } catch(Exception e) {
-         throw new RuntimeException("Failed to read dicom images in " + imagePath, e);
+         throw new RuntimeException(
+            "Failed to read dicom images in " + imagePath, e);
       }
       if (im == null) {
          throw new RuntimeException("No image data loaded");
@@ -233,8 +236,9 @@ public class DicomViewer extends Frame
     * Reads DICOM files into a 3D (+time) image
     * @param name name of the viewer component
     * @param imagePath directory containing DICOM files
-    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
-    * to the absolute file names of all files contained in the imagePath
+    * @param filePattern pattern for accepting/rejecting contained files.  The
+    * pattern is applied to the absolute file names of all files contained in
+    * the imagePath
     */
    public DicomViewer(String name, String imagePath, Pattern filePattern) {
       this(name, imagePath, filePattern, false);
@@ -253,8 +257,9 @@ public class DicomViewer extends Frame
     * Reads DICOM files into a 3D (+time) image
     * @param name name of the viewer component
     * @param imagePath directory containing DICOM files
-    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
-    * to the absolute file names of all files contained in the imagePath
+    * @param filePattern pattern for accepting/rejecting contained files.  The
+    * pattern is applied to the absolute file names of all files contained in
+    * the imagePath
     * @param checkSubdirs recursively check sub-folders for further DICOM files
     */
    public DicomViewer(String name, File imagePath, Pattern filePattern, boolean checkSubdirs) {
@@ -265,8 +270,9 @@ public class DicomViewer extends Frame
     * Reads DICOM files into a 3D (+time) image
     * @param name name of the viewer component
     * @param imagePath directory containing DICOM files
-    * @param filePattern pattern for accepting/rejecting contained files.  The pattern is applied
-    * to the absolute file names of all files contained in the imagePath
+    * @param filePattern pattern for accepting/rejecting contained files.  The
+    * pattern is applied to the absolute file names of all files contained in
+    * the imagePath
     */
    public DicomViewer(String name, File imagePath, Pattern filePattern) {
       this(name, imagePath, filePattern, false);
@@ -306,7 +312,8 @@ public class DicomViewer extends Frame
    }
 
    /**
-    * @return the names of all possible interpolation windows available in the DICOM image
+    * @return the names of all possible interpolation windows available in the
+    * DICOM image
     */
    public String[] getWindowNames() {
       return texture.getWindowConverter ().getWindowNames ();
@@ -601,7 +608,8 @@ public class DicomViewer extends Frame
 
       // xy-slice
       ArrayList<Vector3d> xytextures = new ArrayList<>();
-      Point2d[] texcoords = texture.getTextureCoordinates (DicomTextureContent.COL_ROW_PLANE);
+      Point2d[] texcoords = texture.getTextureCoordinates (
+         DicomTextureContent.COL_ROW_PLANE);
       float[][] xycoords = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
       for (int i=0; i<4; ++i) {
          getPosition(xycoords[i][0], xycoords[i][1], z, pos);
@@ -615,7 +623,8 @@ public class DicomViewer extends Frame
 
       // xz-slice
       ArrayList<Vector3d> xztextures = new ArrayList<>();
-      texcoords = texture.getTextureCoordinates (DicomTextureContent.COL_SLICE_PLANE);
+      texcoords = texture.getTextureCoordinates (
+         DicomTextureContent.COL_SLICE_PLANE);
       // bottom-left
       getPosition (0, y, 0, pos);
       xzPlane.addVertex (pos);
@@ -650,14 +659,17 @@ public class DicomViewer extends Frame
       // triangles
       int baseIdx = 0;
       for (int i=0; i <= nslices; ++i) {
-         xzPlane.addFace (new int[] {baseIdx + i, baseIdx + i + 1, baseIdx + 2*nslices + 2 - i});
-         xzPlane.addFace (new int[] {baseIdx + i, baseIdx + 2*nslices + 2 - i, baseIdx + 2*nslices + 3 - i});
+         xzPlane.addFace (
+            new int[] {baseIdx+i, baseIdx+i+1, baseIdx+2*nslices+2 - i});
+         xzPlane.addFace (
+            new int[] {baseIdx+i, baseIdx+2*nslices+2-i, baseIdx+2*nslices+3-i});
       }
       xzPlane.setTextureCoords (xztextures, xzPlane.createVertexIndices ());
 
       // yz-slice
       ArrayList<Vector3d> yztextures = new ArrayList<>();
-      texcoords = texture.getTextureCoordinates (DicomTextureContent.ROW_SLICE_PLANE);
+      texcoords = texture.getTextureCoordinates (
+         DicomTextureContent.ROW_SLICE_PLANE);
       // bottom-left
       getPosition (x, 0, 0, pos);
       yzPlane.addVertex (pos);
@@ -691,8 +703,10 @@ public class DicomViewer extends Frame
       // triangles
       baseIdx = 0;
       for (int i=0; i <= nslices; ++i) {
-         yzPlane.addFace (new int[] {baseIdx + i, baseIdx + i + 1, baseIdx + 2*nslices + 2 - i});
-         yzPlane.addFace (new int[] {baseIdx + i, baseIdx + 2*nslices + 2 - i, baseIdx + 2*nslices + 3 - i});
+         yzPlane.addFace (
+            new int[] {baseIdx+i, baseIdx+i+1, baseIdx+2*nslices+2-i});
+         yzPlane.addFace (
+            new int[] {baseIdx+i, baseIdx+2*nslices+2-i, baseIdx+2*nslices+3-i});
       }
       yzPlane.setTextureCoords (yztextures, yzPlane.createVertexIndices ());
 
@@ -882,250 +896,6 @@ public class DicomViewer extends Frame
       getPosition(1,0,1,pos);
       robj.setPosition( pidx++, pos);
       
-   }
-
-   protected RenderObject buildRenderObjectOld() {
-      RenderObject robj = new RenderObject();
-
-      float x = (float)getX();
-      float y = (float)getY();
-      float z = (float)getZ();
-
-      Point3d pos = new Point3d();
-
-      int nslices = myImage.getNumSlices ();
-      double dz = 1.0/nslices;
-
-      // xy-slice
-      Point2d[] texcoords = texture.getTextureCoordinates (DicomTextureContent.COL_ROW_PLANE);
-      float[][] xycoords = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-      for (int i=0; i<4; ++i) {
-         getPosition(xycoords[i][0], xycoords[i][1], z, pos);
-         robj.addPosition (pos);
-         robj.addTextureCoord (texcoords[i]);
-         robj.addVertex ();
-      }
-      // triangles
-      robj.createTriangleGroup ();
-      robj.addTriangle (0, 1, 2);
-      robj.addTriangle (0, 2, 3);
-
-      // xz-slice
-      texcoords = texture.getTextureCoordinates (DicomTextureContent.COL_SLICE_PLANE);
-      // bottom-left
-      getPosition (0, y, 0, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[0]);
-      robj.addVertex ();
-      // up slices
-      Point2d tcoord = new Point2d();
-      for (int i=0; i<nslices; ++i) {
-         getPosition (0, y, (i+0.5)*dz, pos);
-         robj.addPosition (pos);
-         tcoord.interpolate (texcoords[0], (i+0.5)/nslices, texcoords[1]);
-         robj.addTextureCoord (tcoord);
-         robj.addVertex ();
-      }
-      // top
-      getPosition(0, y, 1, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[1]);
-      robj.addVertex ();
-      // across
-      getPosition (1, y, 1, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[2]);
-      robj.addVertex ();
-      // down slices
-      for (int i=nslices; i-->0;) {
-         getPosition(1, y, (i+0.5)*dz, pos);
-         robj.addPosition (pos);
-         tcoord.interpolate (texcoords[3], (i+0.5)/nslices, texcoords[2]);
-         robj.addTextureCoord (tcoord);
-         robj.addVertex ();
-      }
-      // bottom
-      getPosition (1, y, 0, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[3]);
-      robj.addVertex ();
-      // triangles
-      int baseIdx = 4;
-      robj.createTriangleGroup ();
-      for (int i=0; i <= nslices; ++i) {
-         robj.addTriangle (baseIdx + i, baseIdx + i + 1, baseIdx + 2*nslices + 2 - i);
-         robj.addTriangle (baseIdx + i, baseIdx + 2*nslices + 2 - i, baseIdx + 2*nslices + 3 - i);
-      }
-
-      // yz-slice
-      texcoords = texture.getTextureCoordinates (DicomTextureContent.ROW_SLICE_PLANE);
-      // bottom-left
-      getPosition (x, 0, 0, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[0]);
-      robj.addVertex ();
-      // up slices
-      for (int i=0; i<nslices; ++i) {
-         getPosition (x, 0, (i+0.5)*dz, pos);
-         robj.addPosition (pos);
-         tcoord.interpolate (texcoords[0], (i+0.5)/nslices, texcoords[1]);
-         robj.addTextureCoord (tcoord);
-         robj.addVertex ();
-      }
-      // top
-      getPosition (x, 0, 1, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[1]);
-      robj.addVertex ();
-      // across
-      getPosition (x, 1, 1, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[2]);
-      robj.addVertex ();
-      // down slices
-      for (int i=nslices; i-->0;) {
-         getPosition (x, 1, (i+0.5)*dz, pos);
-         robj.addPosition (pos);
-         tcoord.interpolate (texcoords[3], (i+0.5)/nslices, texcoords[2]);
-         robj.addTextureCoord (tcoord);
-         robj.addVertex ();
-      }
-      // bottom
-      getPosition (x, 1, 0, pos);
-      robj.addPosition (pos);
-      robj.addTextureCoord (texcoords[3]);
-      robj.addVertex ();
-      // triangles
-      baseIdx = 8 + 2*nslices;
-      robj.createTriangleGroup ();
-      for (int i=0; i <= nslices; ++i) {
-         robj.addTriangle (baseIdx + i, baseIdx + i + 1, baseIdx + 2*nslices + 2 - i);
-         robj.addTriangle (baseIdx + i, baseIdx + 2*nslices + 2 - i, baseIdx + 2*nslices + 3 - i);
-      }
-
-      // box coordinates
-      // base
-      getPosition(0,0,0, pos);
-      int base_vidx = robj.vertex (pos);
-      getPosition(0,1,0, pos);
-      robj.vertex (pos);
-      getPosition(1,1,0, pos);
-      robj.vertex (pos);
-      getPosition(1,0,0, pos);
-      robj.vertex (pos);
-      // sides
-      for (int i=0; i<nslices; ++i) {
-         float w = (float)((i+0.5)*dz);
-         getPosition(0,0,w, pos);
-         robj.vertex (pos);
-         getPosition(0,1,w, pos);
-         robj.vertex (pos);
-         getPosition(1,1,w, pos);
-         robj.vertex (pos);
-         getPosition(1,0,w, pos);
-         robj.vertex (pos);
-      }      
-      // top
-      getPosition(0,0,1, pos);
-      int top_vidx = robj.vertex (pos);
-      getPosition(0,1,1,pos);
-      robj.vertex (pos);
-      getPosition(1,1,1,pos);
-      robj.vertex (pos);
-      getPosition(1,0,1,pos);
-      robj.vertex (pos);
-      // lines
-      // base
-      robj.addLine (base_vidx, base_vidx+1);
-      robj.addLine (base_vidx+1, base_vidx+2);
-      robj.addLine (base_vidx+2, base_vidx+3);
-      robj.addLine (base_vidx+3, base_vidx);
-      // sides
-      for (int i=0; i<=nslices; ++i) {
-         robj.addLine (base_vidx+4*i, base_vidx+4*(i+1));
-         robj.addLine (base_vidx+4*i+1, base_vidx+4*(i+1)+1);
-         robj.addLine (base_vidx+4*i+2, base_vidx+4*(i+1)+2);
-         robj.addLine (base_vidx+4*i+3, base_vidx+4*(i+1)+3);
-      }
-      // top
-      robj.addLine (top_vidx, top_vidx+1);
-      robj.addLine (top_vidx+1, top_vidx+2);
-      robj.addLine (top_vidx+2, top_vidx+3);
-      robj.addLine (top_vidx+3, top_vidx);
-
-      return robj;
-   }
-
-   // updates positions of vertices
-   protected void updateRenderObjectOld() {
-      float x = (float)getX();
-      float y = (float)getY();
-      float z = (float)getZ();
-
-      int nslices = myImage.getNumSlices ();
-      double dz = 1.0/nslices;
-
-      // xy-slice
-      float[][] xycoords = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-      Point3d pos = new Point3d();
-      // AffineTransform3d T = getZTransform (z);
-      int pidx = 0;
-      for (int i=0; i<4; ++i) {
-         getPosition( xycoords[i][0], xycoords[i][1], z, pos);
-         robj.setPosition (pidx++, pos);
-      }
-
-      // xz-slice
-      getPosition (0, y, 0, pos);
-      robj.setPosition (pidx++, pos);
-
-      // up slices
-      for (int i=0; i<nslices; ++i) {
-         double w = (i+0.5)*dz;
-         getPosition(0, y, w, pos);
-         robj.setPosition (pidx++, pos);
-      }
-      // top
-      getPosition(0, y, 1, pos);
-      robj.setPosition (pidx++, pos);
-      // across
-      getPosition(1, y, 1, pos);
-      robj.setPosition (pidx++, pos);
-      // down slices
-      for (int i=nslices; i-->0;) {
-         double w = ((i+0.5)*dz);
-         getPosition(1, y, w, pos);
-         robj.setPosition (pidx++, pos);
-      }
-      // bottom
-      getPosition(1, y, 0, pos);
-      robj.setPosition (pidx++, pos);
-
-      // yz-slice
-      // bottom-left
-      getPosition(x, 0, 0, pos);
-      robj.setPosition (pidx++, pos);
-      // up slices
-      for (int i=0; i<nslices; ++i) {
-         double w = (i+0.5)*dz;
-         getPosition(x, 0, w, pos);
-         robj.setPosition (pidx++, pos);
-      }
-      // top
-      getPosition(x, 0, 1, pos);
-      robj.setPosition (pidx++, pos);
-      // across
-      getPosition(x, 1, 1, pos);
-      robj.setPosition (pidx++, pos);
-      // down slices
-      for (int i=nslices; i-->0;) {
-         double w = (i+0.5)*dz;
-         getPosition(x, 1, w, pos);
-         robj.setPosition (pidx++, pos);
-      }
-      // bottom
-      getPosition(x, 1, 0, pos);
-      robj.setPosition (pidx++, pos);
    }
 
    /**

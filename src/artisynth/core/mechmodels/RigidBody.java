@@ -412,7 +412,7 @@ public class RigidBody extends Frame
     *
     * @return previous center of mass position
     */
-   public Vector3d centerPoseOnCenterOfMass() {
+   public Point3d centerPoseOnCenterOfMass() {
       Point3d com = new Point3d(getCenterOfMass());
       translateCoordinateFrame (com);
       return com;

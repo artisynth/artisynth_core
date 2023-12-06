@@ -50,6 +50,8 @@ import maspack.geometry.io.GenericMeshReader;
  * connected in some specific way.
  */
 public abstract class MeshBase implements Renderable, Cloneable {
+
+   private static double INF = Double.POSITIVE_INFINITY;
    
    public RigidTransform3d XMeshToWorld = new RigidTransform3d();
    protected boolean myXMeshToWorldIsIdentity = true;
@@ -615,61 +617,52 @@ public abstract class MeshBase implements Renderable, Cloneable {
       throws IOException;
 
    protected void recomputeLocalBounds() {
-      Point3d pmin = myLocalMinCoords;
-      Point3d pmax = myLocalMaxCoords;
-      if (myVertices.size() == 0) {
-         pmin.set (0, 0, 0);
-         pmax.set (0, 0, 0);
-      }
-      else {
-         double inf = Double.POSITIVE_INFINITY;
-         pmin.set (inf, inf, inf);
-         pmax.set (-inf, -inf, -inf);
-      }
-      for (Vertex3d vertex : myVertices) {
-         Point3d pnt = vertex.pnt;
-         if (pnt.x > pmax.x) {
-            pmax.x = pnt.x;
-         }
-         if (pnt.x < pmin.x) {
-            pmin.x = pnt.x;
-         }
-         if (pnt.y > pmax.y) {
-            pmax.y = pnt.y;
-         }
-         if (pnt.y < pmin.y) {
-            pmin.y = pnt.y;
-         }
-         if (pnt.z > pmax.z) {
-            pmax.z = pnt.z;
-         }
-         if (pnt.z < pmin.z) {
-            pmin.z = pnt.z;
-         }
-      }
+      computeLocalBounds (
+         myLocalMinCoords, myLocalMaxCoords, RigidTransform3d.IDENTITY);
       myLocalBoundsValid = true;
    }
 
-   private static double inf = Double.POSITIVE_INFINITY;
+   /**
+    * Compute the bounds of the vertices of this mesh with respect to a frame F
+    * that is described with respect to world coordinates. F is specified by a
+    * transform {@code TFW} that maps from F to world coordinates.  Specifying
+    * {@code TFW} as {@code null} is equivalent to specifying it as the
+    * identity, in which case F will be the same as the world frame.
+    *
+    * @param pmin returns the minimum corner of the bounding box (in F)
+    * @param pmax returns the maximum corner of the bounding box (in F)
+    * @param TFW pose of F with respect to world. If {@code null}, F
+    * is taken to be the world frame.
+    */
+   public void computeWorldBounds (
+      Vector3d pmin, Vector3d pmax, RigidTransform3d TFW) {
 
-   protected void recomputeWorldBounds() {
+      if (TFW == null) {
+         TFW = new RigidTransform3d(); // set to identity
+      }
+      RigidTransform3d TMF = new RigidTransform3d();
+      if (!myXMeshToWorldIsIdentity) {
+         TMF.mulInverseLeft (TFW, XMeshToWorld);
+      }
+      else {
+         TMF.invert (TFW);
+      }
+      boolean TMFIsIdentity = TMF.isIdentity();
       Point3d pnt = new Point3d();
-      Point3d pmin = myWorldMinCoords;
-      Point3d pmax = myWorldMaxCoords;
       if (myVertices.size() == 0) {
          pmin.set (0, 0, 0);
          pmax.set (0, 0, 0);
       }
       else {
-         pmin.set (inf, inf, inf);
-         pmax.set (-inf, -inf, -inf);
+         pmin.set (INF, INF, INF);
+         pmax.set (-INF, -INF, -INF);
       }
       for (Vertex3d vertex : myVertices) {
-         if (!myXMeshToWorldIsIdentity) {
-            pnt.transform (XMeshToWorld, vertex.pnt);
+         if (!TMFIsIdentity) {
+            pnt.transform (TMF, vertex.pnt);
          }
          else {
-            pnt.set (vertex.pnt);
+            pnt = vertex.pnt;
          }
          if (pnt.x > pmax.x) {
             pmax.x = pnt.x;
@@ -690,6 +683,64 @@ public abstract class MeshBase implements Renderable, Cloneable {
             pmin.z = pnt.z;
          }
       }
+   }
+ 
+   /**
+    * Compute the bounds of the vertices of this mesh with respect to a frame F
+    * that is described with respect to local mesh coordinates. F is specified
+    * by a transform {@code TFM} that maps from F to mesh coordinates.
+    * Specifying {@code TFM} as {@code null} is equivalent to specifying it as
+    * the identity, in which case F will be the same as mesh frame.
+    *
+    * @param pmin returns the minimum corner of the bounding box (in F)
+    * @param pmax returns the maximum corner of the bounding box (in F)
+    * @param TFM pose of F with respect to mesh coordinates. If {@code null}, F
+    * is taken to be the mesh frame.
+    */
+   public void computeLocalBounds (
+      Vector3d pmin, Vector3d pmax, RigidTransform3d TFM) {
+
+      boolean TFMIsIdentity = (TFM == null || TFM.isIdentity());
+      if (myVertices.size() == 0) {
+         pmin.set (0, 0, 0);
+         pmax.set (0, 0, 0);
+      }
+      else {
+         pmin.set (INF, INF, INF);
+         pmax.set (-INF, -INF, -INF);
+      }
+      Point3d pnt = new Point3d();
+      for (Vertex3d vertex : myVertices) {
+         if (!TFMIsIdentity) {
+            pnt.inverseTransform (TFM, vertex.pnt);
+         }
+         else {
+            pnt = vertex.pnt;
+         }
+         if (pnt.x > pmax.x) {
+            pmax.x = pnt.x;
+         }
+         if (pnt.x < pmin.x) {
+            pmin.x = pnt.x;
+         }
+         if (pnt.y > pmax.y) {
+            pmax.y = pnt.y;
+         }
+         if (pnt.y < pmin.y) {
+            pmin.y = pnt.y;
+         }
+         if (pnt.z > pmax.z) {
+            pmax.z = pnt.z;
+         }
+         if (pnt.z < pmin.z) {
+            pmin.z = pnt.z;
+         }
+      }
+   }
+
+   protected void recomputeWorldBounds() {
+      computeWorldBounds (
+         myWorldMinCoords, myWorldMaxCoords, RigidTransform3d.IDENTITY);
       myWorldBoundsValid = true;
    }
 
@@ -1065,9 +1116,8 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * vertices of the mesh, in mesh coordinates.
     */
    public Point3d size() {
-      double inf = Double.POSITIVE_INFINITY;
-      Point3d pmin = new Point3d (inf, inf, inf);
-      Point3d pmax = new Point3d (-inf, -inf, -inf);
+      Point3d pmin = new Point3d (INF, INF, INF);
+      Point3d pmax = new Point3d (-INF, -INF, -INF);
       updateBounds (pmin, pmax);
       pmin.sub (pmax, pmin);
       return pmin;

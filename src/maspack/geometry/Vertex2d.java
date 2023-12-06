@@ -50,4 +50,13 @@ public class Vertex2d { // extends Feature {
       this();
       pnt.set (p);
    }
+
+   public double distance (Vector2d p) {
+      return pnt.distance (p);
+   }
+
+   public double distance (Vertex2d vtx) {
+      return pnt.distance (vtx.pnt);
+   }
+
 }

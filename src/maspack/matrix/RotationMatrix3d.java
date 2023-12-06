@@ -1456,7 +1456,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * Sets this rotation to one produced by Euler angles. The coordinate frame
     * corresponding to Euler angles is produced by a rotation of phi about the z
     * axis, followed by a rotation of theta about the new y axis, and finally a
-    * rotation of psi about the new x axis.
+    * rotation of psi about the new z axis.
     * 
     * @param phi
     * first Euler angle (radians)

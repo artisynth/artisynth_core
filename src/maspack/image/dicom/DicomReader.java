@@ -27,6 +27,7 @@ import maspack.image.dicom.DicomElement.VR;
 import maspack.util.BinaryFileInputStream;
 import maspack.util.BinaryInputStream;
 import maspack.util.FunctionTimer;
+import maspack.util.IntHolder;
 
 /**
  * Reads DICOM files and folders, creating DicomSlices and populating a
@@ -36,6 +37,13 @@ import maspack.util.FunctionTimer;
  *
  */
 public class DicomReader {
+
+   /**
+    * Concurrent reading doesn't work at present, because the associated
+    * freeing of objects in the GDCM native library doesn't appear to be thread
+    * safe and results in memory corruption.
+    */
+   boolean myUseConcurrent = false;
 
    /**
     * List of known image decoders
@@ -48,7 +56,7 @@ public class DicomReader {
 
    private void initializeDecoders() {
       imageDecoders = new ArrayList<DicomImageDecoder>(3);
-      
+
       imageDecoders.add(new DicomImageDecoderGDCM()); // GDCM decoder
       imageDecoders.add(new DicomImageDecoderRaw()); // raw format
 
@@ -102,13 +110,6 @@ public class DicomReader {
          sliceName = file.getName();
          this.file = file;
 
-      }
-
-      public Throwable getRootCause(Throwable e) {
-         while (e.getCause() != null && e.getCause() != e) {
-            e = e.getCause();
-         }
-         return e;
       }
 
       @Override
@@ -243,11 +244,29 @@ public class DicomReader {
       if (files.size() == 0) {
          return null;
       }
+      if (myUseConcurrent) {
+         im = readConcurrently (im, files, temporalPosition);
+      }
+      else {
+         im = readSequentially (im, files, temporalPosition);
+      }
+      if (im == null) {
+         return null;
+      }
+      if (im.title == null) {
+         String imageName = files.get(0).getParentFile().getName();
+         im.title = imageName;
+      }
+      return im;
+   }
+
+   private DicomImage readConcurrently (
+      DicomImage im, List<File> files, int temporalPosition)
+      throws IOException {
 
       String imageName = files.get(0).getParentFile().getName();
 
       int cpus = Runtime.getRuntime().availableProcessors();
-
       ExecutorService executor =
          Executors
             .newFixedThreadPool(cpus, new NamedThreadFactory("dicom_reader"));
@@ -329,19 +348,72 @@ public class DicomReader {
       timer.stop();
       double usec = timer.getTimeUsec();
       System.out.println("Read took " + usec * 1e-6 + " seconds");
-
-      if (im == null) {
-         return null;
-      }
-
-      if (im.title == null) {
-         im.title = imageName;
-      }
-
       return im;
    }
 
-   private ArrayList<File> getAllFiles(
+   private DicomImage readSequentially (
+      DicomImage im, List<File> files, int temporalPosition)
+      throws IOException {
+
+      String imageName = files.get(0).getParentFile().getName();
+
+      FunctionTimer timer = new FunctionTimer();
+      timer.start();
+
+      int nTimes = 0;
+      if (im != null) {
+         nTimes = im.getNumTimes();
+      }
+
+      for (int i = 0; i < files.size(); i++) {
+         File file = files.get(i);
+         try {
+            DicomSlice[] slices = readSlices(file.getName(), file);
+            if (slices != null) {
+               // split up into frames
+               for (int j = 0; j < slices.length; j++) {
+                  int stime = temporalPosition;
+                  if (stime < 0) {
+                     // attempt to read time from slice
+                     int[] vals =
+                        slices[j].getHeader().getMultiIntValue(
+                           DicomTag.TEMPORAL_POSITON_IDENTIFIER);
+                     if (vals != null) {
+                        stime = vals[0];
+                     } else {
+                        // set unknown time?
+                        stime = nTimes;
+                     }
+                  }
+                  slices[j].info.temporalPosition = stime;
+                  if (im == null) {
+                     im = new DicomImage(imageName, slices[j]);
+                  } else {
+                     im.addSlice(slices[j]);
+                  }
+               }
+            }
+         }
+         catch (Exception e) {
+            Throwable cause = getRootCause(e);
+            throw new IOException(
+               "Unable to read DICOM file:\n" + cause.getMessage(), cause);
+         }
+      }
+      timer.stop();
+      double usec = timer.getTimeUsec();
+      System.out.println("Read took " + usec * 1e-6 + " seconds");
+      return im;
+   }
+
+   private Throwable getRootCause(Throwable e) {
+      while (e.getCause() != null && e.getCause() != e) {
+         e = e.getCause();
+      }
+      return e;
+   }
+
+   public ArrayList<File> getAllFiles(
       File root, Pattern filePattern, boolean recursive) {
 
       ArrayList<File> out = new ArrayList<File>();
@@ -404,6 +476,54 @@ public class DicomReader {
       in.setLittleEndian(true);
       in.setByteChar(true);
 
+      IntHolder lastTagId = new IntHolder();
+      DicomHeader header = readHeader (
+         lastTagId, in, "file " + file.getPath());
+
+      if (lastTagId.value == DicomTag.PIXEL_DATA) {
+
+         DicomPixelBuffer[] pixels = decodeFrames(header, in);
+         DicomSlice[] out = new DicomSlice[pixels.length];
+
+         // split up into frames
+         for (int i = 0; i < pixels.length; i++) {
+            String title = sliceTitle;
+            if (pixels.length > 1) {
+               title = sliceTitle + "_" + i;
+            }
+
+            // XXX adjust frame header
+            // DicomHeader sliceHeader = header.clone();
+
+            out[i] = new DicomSlice(title, header, pixels[i]);
+         }
+
+         in.close();
+         return out;
+      }
+
+      in.close();
+      return null;
+   }
+
+   /**
+    * Reads a header from a single input stream (e.g. from a file).
+    * 
+    * @param lastTagId if non-null, stores the last tagId read from the stream
+    * @param in input stream
+    * @param sourceName name of the stream source, for error messages
+    * @return the header
+    * @throws IOException
+    * if there is a read failure
+    */
+   public DicomHeader readHeader (
+      IntHolder lastTagId, BinaryFileInputStream in, String sourceName) 
+      throws IOException {
+
+      if (sourceName == null) {
+         sourceName = "input stream";
+      }
+
       // HEADER INFO
       // check first characters, look for DICOM header
       char[] c4 = new char[4];
@@ -426,9 +546,8 @@ public class DicomReader {
       // ensure format
       if (c4[0] != 'D' || c4[1] != 'I' || c4[2] != 'C' || c4[3] != 'M') {
          System.err.println(
-            "Couldn't find 'DICM' identifer in file '" + file.getPath()
-               + "', found: " + c4[0] + c4[1] + c4[2] + c4[3]);
-         in.close();
+            "Couldn't find 'DICM' identifer in " + sourceName
+               + ", found: " + c4[0] + c4[1] + c4[2] + c4[3]);
          return null;
       }
 
@@ -480,7 +599,8 @@ public class DicomReader {
             tagId = toTagId(s[0], s[1]);
          } catch (IOException ioe) {
             // XXX
-            System.err.println("Failed to load slice from file " + file.getAbsolutePath());
+            System.err.println(
+               "Failed to reader header from " + sourceName);
             return null;
          }
 
@@ -499,33 +619,10 @@ public class DicomReader {
             }
          }
       }
-
-      // pixel data
-
-      if (tagId == DicomTag.PIXEL_DATA) {
-
-         DicomPixelBuffer[] pixels = decodeFrames(header, in);
-         DicomSlice[] out = new DicomSlice[pixels.length];
-
-         // split up into frames
-         for (int i = 0; i < pixels.length; i++) {
-            String title = sliceTitle;
-            if (pixels.length > 1) {
-               title = sliceTitle + "_" + i;
-            }
-
-            // XXX adjust frame header
-            // DicomHeader sliceHeader = header.clone();
-
-            out[i] = new DicomSlice(title, header, pixels[i]);
-         }
-
-         in.close();
-         return out;
+      if (lastTagId != null) {
+         lastTagId.value = tagId;
       }
-
-      in.close();
-      return null;
+      return header;
    }
 
    private short flipBytes(short s) {

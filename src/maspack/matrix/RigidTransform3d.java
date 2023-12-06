@@ -7,6 +7,7 @@
 package maspack.matrix;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
 
 import maspack.util.NumberFormat;
@@ -768,6 +769,22 @@ public class RigidTransform3d extends AffineTransform3dBase {
          throw new IllegalArgumentException ("Unknown display format");
       }
       return sbuf.toString();
+   }
+
+   /**
+    * Sets this transform from a string reprentation that has been created by
+    * one of the {@code toString()} methods.
+    * 
+    * @param str string representation
+    */
+   public void fromString (String str) {
+      ReaderTokenizer rtok = new ReaderTokenizer (new StringReader(str));
+      try {
+         scan (rtok);
+      }
+      catch (IOException e) {
+         throw new IllegalArgumentException (e.getMessage());
+      }
    }
 
    /**

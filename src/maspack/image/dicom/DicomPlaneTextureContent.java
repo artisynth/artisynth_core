@@ -24,8 +24,10 @@ import maspack.render.TextureContent;
 import maspack.util.BufferUtilities;
 import maspack.util.Rectangle;
 import maspack.util.ReferenceCountedBase;
+import maspack.geometry.GeometryTransformer;
 
-public class DicomPlaneTextureContent extends ReferenceCountedBase implements TextureContent {
+public class DicomPlaneTextureContent 
+   extends ReferenceCountedBase implements TextureContent {
 
    DicomImage image;
    DicomWindowPixelInterpolator window;
@@ -125,7 +127,7 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
          res.y = (int)(2*Math.ceil(widths.y/mind));
       }
 
-      rect  = new Rectangle(0,0,res.x, res.y);
+      rect = new Rectangle(0,0,res.x, res.y);
       this.res = new Vector2i(get2Fold(res.x), get2Fold(res.y));
 
       textureImage = BufferUtilities.newNativeByteBuffer (getPixelSize()*this.res.x*this.res.y);
@@ -157,6 +159,10 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
          invalidateData();
       }
    }
+   
+   public RigidTransform3d getLocation() {
+      return new RigidTransform3d (location);
+   }
 
    public void setWidths(Vector2d widths) {
       if (!this.widths.equals(widths)) {
@@ -164,7 +170,6 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
          invalidateData();
       }
    }
-
 
    /**
     * For 4D DICOM images, sets the time index for all slices
@@ -213,6 +218,7 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
       // voxels into spatial
       AffineTransform3d vtrans = image.getVoxelTransform();
       vtrans.invert();  // spatial into voxels
+
 
       // point for computing location
       Point3d pnt = new Point3d();
@@ -421,6 +427,12 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
       return res.y;
    }
 
+   public Vector2d getTextureCoordinateScaling() {
+      return new Vector2d (
+         (rect.width()-1)/(res.x-1.0), (rect.height()-1)/(res.y-1.0));
+   }
+
+   
    /**
     * Texture coordinates, starting with the
     * bottom-left corner and working around clockwise.

@@ -20,6 +20,26 @@ public class DicomTransferSyntax {
    boolean explicit;
    boolean encoded;
 
+   public String getName() {
+      return name;
+   }
+
+   public String getUid() {
+      return uid;
+   }
+
+   public boolean isExplicit() {
+      return explicit;
+   }
+
+   public boolean isEncoded() {
+      return encoded;
+   }
+
+   public boolean isLittleEndian() {
+      return littleEndian;
+   }
+
    /**
     * Basic constructor, assumes default of little endian, explicit VR, and
     * encoded image

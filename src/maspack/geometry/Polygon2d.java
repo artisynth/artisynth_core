@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
  *
- * This software is freely available under a 2-clause BSD license. Please see
+ * This software is freely available under a 2-clause BSD licence. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 package maspack.geometry;
@@ -14,6 +14,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
 import maspack.matrix.AffineTransform2dBase;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -197,8 +198,12 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       set (pnts, pnts.length);
    }
 
-   public Polygon2d (Collection<Point2d> pnts) {
+   public Polygon2d (Collection<? extends Point2d> pnts) {
       set (pnts);
+   }
+
+   public Polygon2d (Collection<? extends Point3d> pnts, RigidTransform3d TPW) {
+      set (pnts, TPW);
    }
 
    public double getMaxCoordinate() {
@@ -348,6 +353,19 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       pnt.scale (1 / (double)nverts);
    }
 
+   public double computeLength () {
+      double len = 0;
+      Vertex2d vtx = firstVertex;
+      if (vtx != null) {
+         do {
+            len += vtx.distance (vtx.next);
+            vtx = vtx.next;
+         }
+         while (vtx != firstVertex);
+      }
+      return len;
+   }
+
    public void set (Polygon2d poly) {
       clear();
       Vertex2d vtx = poly.firstVertex;
@@ -390,7 +408,7 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       }
    }
 
-   public void set (Collection<Point2d> pnts) {
+   public void set (Collection<? extends Point2d> pnts) {
       clear();
       if (pnts.size() < 2) {
          throw new IllegalArgumentException (
@@ -398,6 +416,19 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       }
       for (Point2d p : pnts) {
          appendVertex (new Vertex2d (p));
+      }
+   }
+
+   public void set (Collection<? extends Point3d> pnts, RigidTransform3d TPW) {
+      clear();
+      if (pnts.size() < 2) {
+         throw new IllegalArgumentException (
+            "number of vertices must be at least two");
+      }
+      Point3d p2d = new Point3d();
+      for (Point3d p : pnts) {
+         p2d.inverseTransform (TPW, p);
+         appendVertex (new Vertex2d (p2d.x, p2d.y));
       }
    }
 

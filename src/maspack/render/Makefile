@@ -1,7 +1,7 @@
 ROOT_DIR = ../../..
 PACKAGE_NAME = maspack.render
 
-JAVA_SUBDIRS =
+JAVA_SUBDIRS = color
 
 PACKAGE_JAVA_FILES = \
 	ConvexPoly2dTest

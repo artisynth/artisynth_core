@@ -1,5 +1,5 @@
-ROOT_DIR = ../../..
-PACKAGE_NAME = maspack.dicom
+ROOT_DIR = ../../../..
+PACKAGE_NAME = maspack.images.dicom
 
 JAVA_SUBDIRS =
 

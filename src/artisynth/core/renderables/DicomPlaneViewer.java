@@ -561,14 +561,12 @@ public class DicomPlaneViewer extends TexturePlaneBase {
          Point3d pos = new Point3d();
          pos.scan (rtok);
          setPosition (pos);
-         System.out.println ("position\n" + getPose().toString("%10.6f"));
          return true;
       }
       else if (scanAttributeName (rtok, "rotation")) {
          Quaternion q = new Quaternion();
          q.scan (rtok);
          setRotation (q);
-         System.out.println ("rotation\n" + getPose().toString("%10.6f"));
          return true;
       }
       else if (scanAttributeName (rtok, "TVI")) {

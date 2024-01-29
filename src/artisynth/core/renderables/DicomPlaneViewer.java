@@ -9,9 +9,15 @@ package artisynth.core.renderables;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.util.Deque;
+import java.util.ArrayList;
+import java.util.List;
 
 import artisynth.core.mechmodels.MeshInfo;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import maspack.geometry.GeometryTransformer;
 import maspack.geometry.PolygonalMesh;
@@ -25,6 +31,7 @@ import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
+import maspack.matrix.Quaternion;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.ColorMapProps;
@@ -36,20 +43,32 @@ import maspack.render.Renderer.Shading;
 import maspack.util.IntegerInterval;
 import maspack.util.StringRange;
 
+import artisynth.core.util.ScanToken;
+import artisynth.core.modelbase.*;
+import artisynth.core.modelbase.CompositeComponent;
+import maspack.matrix.Vector3d;
+import maspack.util.ReaderTokenizer;
+import maspack.util.NumberFormat;
+
 public class DicomPlaneViewer extends TexturePlaneBase {
 
-   DicomImage myImage;
-   DicomPlaneTextureContent texture;
-   PolygonalMesh imageMesh;
-   MeshInfo imageMeshInfo;
+   DicomViewer myDicomViewer;
+   DicomPlaneTextureContent myTexture;
+   MeshInfo myMeshInfo;
    RigidTransform3d myTVI; // optional transform from image to viewer
    
    Vector2d widths;
+
+   public static boolean DEFAULT_DICOM_VISIBLE = true;
+   protected boolean myDicomVisible = DEFAULT_DICOM_VISIBLE;
 
    public static PropertyList myProps = new PropertyList(
       DicomPlaneViewer.class, TexturePlaneBase.class);
    
    static {
+      myProps.add(
+         "dicomVisible", "controls whether the dicom image is visible",
+         DEFAULT_DICOM_VISIBLE);
       myProps.add("size", "plane dimensions", null);
       myProps.add("timeIndex", "time coordinate", 0);
       myProps.add(
@@ -64,71 +83,77 @@ public class DicomPlaneViewer extends TexturePlaneBase {
    public static RenderProps createDefaultRenderProps() {
       return new LineRenderProps();
    }
+
+   public boolean getDicomVisible() {
+      return myDicomVisible && myDicomViewer != null;
+   }
+
+   public void setDicomVisible (boolean enable) {
+      myDicomVisible = enable;
+      updateRenderProps();
+   }
+   
+   /**
+    * Creates an empty image-plane viewer widget. Used by scan methods.
+    */
+   public DicomPlaneViewer () {
+      super();
+      widths = new Point2d ();
+      myMeshInfo = new MeshInfo();
+      myRenderProps = createRenderProps();
+   }
    
    /**
     * Creates a new image-plane viewer widget, with supplied name and DICOM image
     * 
     * @param name widget name
-    * @param image DICOM image data
+    * @param dviewer DicomViewer providing the DICOM image data
     * @param templateMesh defines the topology of the mesh onto which the image
     * will be mapped
     * @param TPW location/orientation of image plane center (world coordinates)
     * @param TVI if non-null, gives transform from image to viewer
     */
    public DicomPlaneViewer(
-      String name, DicomImage image, PolygonalMesh templateMesh,
+      String name, DicomViewer dviewer, PolygonalMesh templateMesh,
       RigidTransform3d TPW, RigidTransform3d TVI) {
-      super();
-      init(name, image, templateMesh, TPW, TVI);
+      this();
+      init(name, dviewer, templateMesh, TPW, TVI);
    }
-   
+
    /**
     * Creates a new image-plane viewer widget, with supplied name and DICOM image
     * 
     * @param name widget name
-    * @param image DICOM image data
+    * @param dviewer DicomViewer providing the DICOM image data
     * @param widths widths of image plane
     * @param TPW location/orientation of image plane center (world coordinates)
     * @param TVI if non-null, gives transform from image to viewer
     */
    public DicomPlaneViewer(
-      String name, DicomImage image, Vector2d widths, 
+      String name, DicomViewer dviewer, Vector2d widths, 
       RigidTransform3d TPW, RigidTransform3d TVI) {
-      super();
+      this();
       PolygonalMesh templateMesh = MeshFactory.createRectangle (
          widths.x, widths.y, /*addTextureCoords=*/false);
-      init(name, image, templateMesh, TPW, TVI);
+      init(name, dviewer, templateMesh, TPW, TVI);
    }
    
    /**
     * Creates a new image-plane viewer widget, with supplied name and DICOM image
     * 
     * @param name widget name
-    * @param image DICOM image data
+    * @param dviewer DicomViewer providing the DICOM image data
     * @param widths widths of image plane
     * @param TPW location/orientation of image plane center (world coordinates)
     */
    public DicomPlaneViewer(
-      String name, DicomImage image, Vector2d widths, RigidTransform3d TPW) {
-      super();
+      String name, DicomViewer dviewer, Vector2d widths, RigidTransform3d TPW) {
+      this();
       PolygonalMesh templateMesh = MeshFactory.createRectangle (
          widths.x, widths.y, /*addTextureCoords=*/false);
-      init(name, image, templateMesh, TPW, null);
+      init(name, dviewer, templateMesh, TPW, null);
    }
-   
-   /**
-    * Creates a new image-plane viewer widget, with supplied DICOM image.  The
-    * name of the component becomes the image name
-    * 
-    * @param image DICOM image data
-    * @param widths widths of image plane
-    * @param TPW location/orientation of image plane center (world coordinates)
-    */
-   public DicomPlaneViewer (
-      DicomImage image, Vector2d widths, RigidTransform3d TPW) {
-      this(image.getTitle(), image, widths, TPW);
-   }
-   
+
    private void get2DBounds (
       Point2d origin, Vector2d widths, PolygonalMesh mesh) {
       Point3d pmin = new Point3d();
@@ -144,32 +169,66 @@ public class DicomPlaneViewer extends TexturePlaneBase {
    }
 
    private void init (
-      String name, DicomImage image, PolygonalMesh templateMesh,
+      String name, DicomViewer dviewer, PolygonalMesh templateMesh,
       RigidTransform3d TPW, RigidTransform3d TVI) {
       setName(ModelComponentBase.makeValidName(name));
-      myRenderProps = createRenderProps();
 
       Point2d origin = new Point2d();
-      this.widths = new Point2d ();
       get2DBounds (origin, widths, templateMesh);
 
-      myImage = image;
       if (TVI != null) {
          myTVI = new RigidTransform3d(TVI);
       }
       else {
          myTVI = null;
       }
-      texture = new DicomPlaneTextureContent (
-         image, computeTTW(TPW), this.widths);
-      myRenderProps.getColorMap ().setContent (texture);
-
-      imageMesh = buildImageMesh (origin, this.widths, templateMesh);
-      imageMeshInfo = new MeshInfo();
-      imageMeshInfo.set (imageMesh);
-      imageMesh.setMeshToWorld (getPose());
-      
+      if (dviewer != null) {
+         setImageFromViewer (dviewer, TPW);
+      }
+      else {
+         updateRenderProps();
+      }
+      PolygonalMesh imageMesh =
+         buildImageMesh (origin, widths, templateMesh);
+      imageMesh.setMeshToWorld (getPose());                                
+      myMeshInfo.set (imageMesh);
       setPose(TPW);
+   }
+
+   public void scaleMesh (double s) {
+      PolygonalMesh mesh = getImageMesh();
+      if (mesh != null) {
+         mesh.scale (s);
+         // //widths.scale (s);
+         // if (myTexture != null) {
+         //    Point2d origin = new Point2d();
+         //    get2DBounds (origin, null, mesh);
+         //    int[] idxs = mesh.createVertexIndices ();
+         //    Vector2d tscale = myTexture.getTextureCoordinateScaling();
+         //    ArrayList<Vector3d> tcoords = new ArrayList<>();
+         //    for (Vertex3d v : mesh.getVertices()) {
+         //       Point3d p = v.getPosition();
+         //       Vector3d tcoord =
+         //          new Vector3d (
+         //             tscale.x*(p.x-origin.x)/widths.x, 
+         //             tscale.y*(p.y-origin.y)/widths.y, 0);
+         //       tcoords.add (tcoord);
+         //    }
+         //    System.out.println ("here " + tscale + "  " + widths);
+         //    mesh.setTextureCoords (tcoords, idxs);
+         // }
+         widths.scale (s);
+         if (myTexture != null) {
+            myTexture.setWidths (widths);
+         }
+      }
+   }
+
+   private void setImageFromViewer (DicomViewer dviewer, RigidTransform3d TPW) {
+      myDicomViewer = dviewer;
+      myTexture = new DicomPlaneTextureContent (
+         dviewer.getImage(), computeTTW(TPW), this.widths);
+      myRenderProps.getColorMap ().setContent (myTexture);
    }
 
    /**
@@ -179,7 +238,7 @@ public class DicomPlaneViewer extends TexturePlaneBase {
    private RigidTransform3d computeTTW (RigidTransform3d TPW) {
       RigidTransform3d TTW = new RigidTransform3d();
       if (myTVI != null) {
-         RigidTransform3d TIW = myImage.getTransform();
+         RigidTransform3d TIW = getImage().getTransform();
          TTW.mulInverseLeft (TIW, TPW);
          TTW.mulInverseLeft (myTVI, TTW);
          TTW.mul (TIW, TTW);
@@ -201,50 +260,93 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       props.setColorMap (cprops);
       return props;
    }
+
+   public void updateRenderProps() {
+      RenderProps props = myRenderProps;
+      if (getDicomVisible()) {
+         if (props.getColorMap() == null) {
+            ColorMapProps cprops = new ColorMapProps ();
+            cprops.setEnabled (true);
+            cprops.setColorMixing (ColorMixing.MODULATE);
+            cprops.setColorMixing (ColorMixing.MODULATE);
+            cprops.setContent(myTexture);
+            props.setColorMap (cprops);
+            props.setFaceColor (Color.WHITE);
+            props.setShading (Shading.NONE);
+         }
+      }
+      else {
+         if (props.getColorMap() != null) {
+            props.setColorMap (null);
+            props.setFaceColor (new Color (0.5f, 0.5f, 0.5f));
+            props.setShading (Shading.FLAT);
+         }
+      }
+   }
    
    /**
     * @return the DICOM image being displayed
     */
    public DicomImage getImage() {
-      return myImage;
+      if (myDicomViewer != null) {
+         return myDicomViewer.getImage();
+      }
+      else {
+         return null;
+      }
    }
    
    @Override
    public PolygonalMesh getImageMesh () {
-      return imageMesh;
+      return (PolygonalMesh)myMeshInfo.getMesh();
    }
    
    @Override
    protected MeshInfo getImageMeshInfo () {
-      return imageMeshInfo;
+      return myMeshInfo;
    }
  
    /**
-    * @return the number of interpolation windows available in the DICOM image
+    * @return the number of interpolation windows available in the DICOM image,
+    * or 0 if there is no dicom image.
     */
    public int numWindows() {
-      return texture.getWindowConverter ().numWindows ();
+      return myTexture != null ? myTexture.getWindowConverter().numWindows() : 0;
    }
    
    /**
-    * @return the names of all possible interpolation windows available in the DICOM image
+    * @return the names of all possible interpolation windows available in the
+    * DICOM image. Returns a zero-length array if there is no texture image.
     */
    public String[] getWindowNames() {
-      return texture.getWindowConverter ().getWindowNames ();
+      if (myTexture != null) {
+         return myTexture.getWindowConverter().getWindowNames();
+      }
+      else {
+         return new String[0];
+      }
    }
    
    /**
-    * Sets the current interpolation window to use, based on a preset name
+    * Sets the current interpolation window to use, based on a preset name.
+    * Does nothing if there is no DICOM image.
     * @param presetName name of the interpolation window
     */
    public void setWindow(String presetName) {
-      texture.getWindowConverter ().setWindow (presetName);
+      if (myTexture != null) {
+         myTexture.getWindowConverter ().setWindow (presetName);
+      }
    }
    
    @Override
    public void prerender(RenderList list) {
       super.prerender(list);
-      texture.prerender ();
+      if (myTexture != null) {
+         myTexture.prerender();
+      }
+      else {
+         myMeshInfo.prerender(getRenderProps());
+      }
    }
    
    protected PolygonalMesh buildImageMesh (
@@ -270,34 +372,41 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       mesh.setNormals (normals, idxs);
 
       // add texture coordinates
-      idxs = mesh.createVertexIndices ();
-      Vector2d tscale = texture.getTextureCoordinateScaling();
-      ArrayList<Vector3d> tcoords = new ArrayList<>();
-      for (Vertex3d v : mesh.getVertices()) {
-         Point3d p = v.getPosition();
-         Vector3d tcoord =
-            new Vector3d (
-               tscale.x*(p.x-origin.x)/widths.x, 
-               tscale.y*(p.y-origin.y)/widths.y, 0);
-         tcoords.add (tcoord);
+      if (myTexture != null) {
+         idxs = mesh.createVertexIndices ();
+         Vector2d tscale = myTexture.getTextureCoordinateScaling();
+         ArrayList<Vector3d> tcoords = new ArrayList<>();
+         for (Vertex3d v : mesh.getVertices()) {
+            Point3d p = v.getPosition();
+            Vector3d tcoord =
+               new Vector3d (
+                  tscale.x*(p.x-origin.x)/widths.x, 
+                  tscale.y*(p.y-origin.y)/widths.y, 0);
+            tcoords.add (tcoord);
+         }
+         mesh.setTextureCoords (tcoords, idxs);
       }
-      mesh.setTextureCoords (tcoords, idxs);
       
       return mesh;
    }   
    
    /**
-    * @return the current pixel interpolator
+    * @return the current pixel interpolator, or null if there is no DICOM image
     */
    public DicomPixelInterpolator getPixelInterpolator() {
-      return texture.getWindowConverter ();
+      return myTexture != null ? myTexture.getWindowConverter() : null;
    }
    
    /**
-    * @return range of valid window names
+    * @return range of valid window names, or null if there is no DICOM image
     */
    public StringRange getWindowRange() {
-      return texture.getWindowConverter().getWindowRange();
+      if (myTexture != null) {
+         return myTexture.getWindowConverter().getWindowRange();
+      }
+      else {
+         return null;
+      }
    }
    
    @Override
@@ -310,24 +419,26 @@ public class DicomPlaneViewer extends TexturePlaneBase {
     * @param widths plane widths
     */
    public void setSize (Vector2d widths) {
-      Point2d origin = new Point2d();
-      get2DBounds (origin, null, imageMesh);
-
-      // get centers and scale factors
-      double cx = origin.x + this.widths.x/2;
-      double cy = origin.y + this.widths.y/2;
-      double sx = widths.x/this.widths.x;
-      double sy = widths.y/this.widths.y;
-
-      // scale vertex positions
-      for (Vertex3d v : imageMesh.getVertices()) {
-         Point3d p = v.getPosition();
-         v.setPosition (new Point3d(cx+sx*(p.x-cx), cy+sy*(p.y-cy), 0));
+      if (!isScanning()) {
+         Point2d origin = new Point2d();
+         PolygonalMesh imageMesh = getImageMesh();
+         get2DBounds (origin, null, imageMesh);
+         
+         // get centers and scale factors
+         double cx = origin.x + this.widths.x/2;
+         double cy = origin.y + this.widths.y/2;
+         double sx = widths.x/this.widths.x;
+         double sy = widths.y/this.widths.y;
+         
+         // scale vertex positions
+         for (Vertex3d v : imageMesh.getVertices()) {
+            Point3d p = v.getPosition();
+            v.setPosition (new Point3d(cx+sx*(p.x-cx), cy+sy*(p.y-cy), 0));
+         }
+         imageMesh.notifyVertexPositionsModified ();
+         
+         myTexture.setWidths(widths);
       }
-      imageMesh.notifyVertexPositionsModified ();
-
-      texture.setWidths(widths);
-      // update surface widths
       this.widths.set(widths);
    }
    
@@ -343,62 +454,223 @@ public class DicomPlaneViewer extends TexturePlaneBase {
    /**
     * Checks if spatial interpolation between voxels is enabled
     * @return true if interpolating, false if using nearest neighbour
+    * or if there is no DICOM image
     */
    public boolean getSpatialInterpolation() {
-      return texture.getSpatialInterpolation();
+      return myTexture != null ? myTexture.getSpatialInterpolation() : false;
    }
    
    /**
     * Sets whether to use spatial interpolation (tri-linear) or nearest neighbour
-    * when computing voxels
+    * when computing voxels. Does nothing if there is no dicom image.
     * @param set enable/disable spatial interpolation
     */
    public void setSpatialInterpolation(boolean set) {
-      texture.setSpatialInterpolation(set);
+      if (myTexture != null) {
+         myTexture.setSpatialInterpolation(set);
+      }
    }
    
      
    /**
-    * @return the current time index
+    * @return the current time index, or -1 if there s no dicom image
     */
    public int getTimeIndex() {
-      return texture.getTime ();
+      return myTexture != null ? myTexture.getTime() : -1;
    }
    
    /**
-    * Sets the current time index
+    * Sets the current time index. Does nothing if there is no dicom image.
     * 
     * @param idx time index
     */
    public void setTimeIndex(int idx) {
-      if (idx < 0) {
-         idx = 0;
-      } else if (idx > myImage.getNumTimes()) {
-         idx = myImage.getNumTimes()-1;
+      if (myTexture != null) {
+         DicomImage image = getImage();
+         if (idx < 0) {
+            idx = 0;
+         } else if (idx > image.getNumTimes()) {
+            idx = image.getNumTimes()-1;
+         }
+         myTexture.setTime (idx);
       }
-      texture.setTime (idx);
    }
    
    /**
     * @return the number of time indices available in the DICOM image
     */
    public IntegerInterval getTimeIndexRange() {
-      return new IntegerInterval(0, myImage.getNumTimes()-1);
+      return new IntegerInterval(0, getImage().getNumTimes()-1);
    }
 
    @Override
    public void transformGeometry(
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       super.transformGeometry (gtr, context, flags);
-      texture.setLocation (computeTTW (getPose()));
+      if (getImageMesh() != null) {
+         get2DBounds (null, widths, getImageMesh());
+      }
+      if (myTexture != null) {
+         myTexture.setLocation (computeTTW (getPose()));
+         myTexture.setWidths (widths);
+      }
    }
+
+   // public RigidTransform3d getTextureLocation() {
+   //    return myTexture.getLocation();
+   // }
    
-   public RigidTransform3d getTextureLocation() {
-      return texture.getLocation();
+   // public void setTextureLocation (RigidTransform3d TTW) {
+   //    myTexture.setLocation (TTW);
+   // }
+   
+   // --- I/O methods --- 
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      pw.println ("position=[ " + myState.getPosition().toString (fmt) + "]");
+      pw.println ("rotation=[ " + myState.getRotation().toString (fmt) + "]");
+      if (myDicomViewer != null) {
+         pw.println (
+            "dicomViewer="+
+            ComponentUtils.getWritePathName (ancestor,myDicomViewer));
+      }
+      if (myTVI != null) {
+         pw.println (
+            "TVI=" + myTVI.toString (fmt, RigidTransform3d.AXIS_ANGLE_STRING));
+      }
+      pw.print ("imageMesh=");
+      myMeshInfo.write (pw, fmt);
+      // pw.print ("renderables=");
+      // ScanWriteUtils.writeBracketedReferences (pw, myRenderables, ancestor);
+      // pw.print ("vec=");
+      // myVec.write (pw, fmt, /*withBrackets=*/true);
+      // pw.println ("");
+      // pw.print ("scalar=" + myScalar);
+      // pw.print ("string=\"" + myString + "\"");
+      super.writeItems (pw, fmt, ancestor);
    }
-   
-   public void setTextureLocation (RigidTransform3d TTW) {
-      texture.setLocation (TTW);
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "position")) {
+         Point3d pos = new Point3d();
+         pos.scan (rtok);
+         setPosition (pos);
+         System.out.println ("position\n" + getPose().toString("%10.6f"));
+         return true;
+      }
+      else if (scanAttributeName (rtok, "rotation")) {
+         Quaternion q = new Quaternion();
+         q.scan (rtok);
+         setRotation (q);
+         System.out.println ("rotation\n" + getPose().toString("%10.6f"));
+         return true;
+      }
+      else if (scanAttributeName (rtok, "TVI")) {
+         myTVI = new RigidTransform3d();
+         myTVI.scan (rtok);
+         return true;         
+      }
+      else if (scanAndStoreReference (rtok, "dicomViewer", tokens)) {
+         return true;
+      }
+      else if (scanAttributeName (rtok, "imageMesh")) {
+         myMeshInfo.scan (rtok);  
+         getImageMesh().setMeshToWorld (getPose());
+         return true;
+      }
+      else if (ScanWriteUtils.scanAndStorePropertyValue (
+                  rtok, this, "timeIndex", tokens)) {
+         return true;
+      }
+      else if (ScanWriteUtils.scanAndStorePropertyValue (
+                  rtok, this, "spatialInterpolation", tokens)) {
+         return true;
+      }
+      // else if (ScanWriteUtils.scanAndStoreReferences (
+      //             rtok, "renderables", tokens) != -1) {
+      //    return true;
+      // }
+      // else if (scanAttributeName (rtok, "vec")) {
+      //    myVec.scan (rtok);
+      //    return true;
+      // }
+      // else if (scanAttributeName (rtok, "scalar")) {
+      //    myScalar = rtok.scanNumber();
+      //    return true;
+      // }
+      // else if (scanAttributeName (rtok, "string")) {
+      //    myString = rtok.scanQuotedString('"');
+      //    return true;
+      // }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
    }
-   
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      
+      if (postscanAttributeName (tokens, "dicomViewer")) {
+         DicomViewer dviewer = 
+            postscanReference (tokens, DicomViewer.class, ancestor);
+         System.out.println ("viewer\n" + getPose().toString("%10.6f"));
+         setImageFromViewer (dviewer, getPose());
+         return true;
+      }
+      else if (ScanWriteUtils.postscanPropertyValue (tokens, ancestor)) {
+         return true;
+      }
+      // else if (postscanAttributeName (tokens, "renderables")) {
+      //    myRenderables.clear();
+      //    ScanWriteUtils.postscanReferences (
+      //       tokens, myRenderables, RenderableComponent.class, ancestor);
+      //    return true;
+      // }
+      return super.postscanItem (tokens, ancestor);
+   }
+
+   // --- editing ---
+
+   /**
+    * {@inheritDoc}
+    */
+   public void getSoftReferences (List<ModelComponent> refs) {
+      if (myDicomViewer != null) {
+         refs.add (myDicomViewer);
+      }
+   }  
+
+   @Override
+   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo);   
+
+      if (undo) {
+         Object obj = undoInfo.removeFirst();
+         if (obj != NULL_OBJ) {
+            myDicomViewer = (DicomViewer)obj;
+            myTexture = (DicomPlaneTextureContent)undoInfo.removeFirst();
+            updateRenderProps();
+         }
+      }
+      else {
+         // remove dicomViewer if it is no longer in the hierarchy:
+         if (!ComponentUtils.areConnected (this, myDicomViewer)) {
+            undoInfo.addLast (myDicomViewer);
+            undoInfo.addLast (myTexture);
+            myDicomViewer = null;
+            myTexture = null;
+            updateRenderProps();
+         }
+         else {
+            undoInfo.addLast (NULL_OBJ);
+         }
+      }
+   }
+
+
 }

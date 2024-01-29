@@ -13,52 +13,127 @@ import java.util.Iterator;
 import java.util.Map;
 
 import artisynth.core.mechmodels.MeshComponent;
+import artisynth.core.mechmodels.MeshInfo;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentListImpl;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.MeshBase;
 import maspack.geometry.Vertex3d;
-import maspack.matrix.Vector3d;
-import maspack.properties.HierarchyNode;
+import maspack.matrix.*;
+import maspack.properties.*;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
-public class EditableMeshComp extends MeshComponent
+public class EditableMeshComp extends RenderableComponentBase
    implements CompositeComponent {
 
-   MeshBase myMesh = null;
+   MeshComponent myMeshComp = null;
+   protected MeshInfo myMeshInfo;
+   // reference to mesh for rendering - used in case mesh changes
+   protected MeshBase myRenderMesh;
+   
    VertexList<VertexComponent> myVertexList = null;
 
-   public RenderProps createRenderProps() {
-      return new RenderProps();
+   public static boolean DEFAULT_SELECTABLE = true;
+   protected boolean mySelectable = DEFAULT_SELECTABLE;
+
+   public static PropertyList myProps = new PropertyList(
+      EditableMeshComp.class, RenderableComponentBase.class);
+   
+   static {
+      myProps.add(
+         "renderProps * *", "render properties for this component",
+         createDefaultRenderProps());
+      myProps.add (
+         "selectable isSelectable", 
+         "true if this mesh is selectable", DEFAULT_SELECTABLE);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+
+   public EditableMeshComp() {
+      myComponents =
+         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+      myVertexList =
+         new VertexList<VertexComponent>(VertexComponent.class, "vertices", "v");
+      add(myVertexList);
    }
    
    public EditableMeshComp(MeshBase mesh) {
-      myMesh = mesh;
-      myVertexList =
-         new VertexList<VertexComponent>(VertexComponent.class, "vertices", "v");
-      myComponents =
-         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
-      add(myVertexList);
-      updateVertices();
+      this();
+      setMesh (mesh);
+   }
+
+   public EditableMeshComp(MeshComponent mcomp) {
+      this();
+      setMeshComp (mcomp);
+   }
+
+   public void setMesh (MeshBase mesh) {
+      myMeshInfo = new MeshInfo();
+      myMeshInfo.set (mesh);
+      myMeshComp = null;
+      updateComponents();
    }
    
-   public void updateVertices() {
+   public void setMeshComp (MeshComponent mcomp) {
+      myMeshComp = mcomp;
+      myMeshInfo = null;
+      updateComponents();
+   }
+
+   public MeshBase getMesh() {
+      if (myMeshInfo != null) {
+         return myMeshInfo.getMesh();
+      }
+      else if (myMeshComp != null) {
+         return myMeshComp.getMesh();
+      }
+      else {
+         return null;
+      }
+   }      
+   
+   public void setMeshToWorld (RigidTransform3d TMW) {
+      MeshBase mesh = getMesh();
+      if (mesh != null) {
+         mesh.setMeshToWorld (TMW);
+      }
+   }
+
+   public RigidTransform3d getMeshToWorld () {
+      MeshBase mesh = getMesh();
+      if (mesh != null) {
+         return mesh.getMeshToWorld();
+      }
+      else {
+         return null;
+      }
+   }
+
+   public void updateComponents() {
+      updateVertices();
+   }
+
+   public void updateVertices() { // XXX
       myVertexList.clear();
-      if (myMesh == null) {
+      MeshBase mesh = getMesh();
+      System.out.println ("mesh=" + mesh);
+      if (mesh == null) {
          return;
       }
-      
-      for (Vertex3d vtx : myMesh.getVertices()) {
+      for (Vertex3d vtx : mesh.getVertices()) {
          myVertexList.add(new VertexComponent(vtx));
       }
    }
@@ -141,6 +216,9 @@ public class EditableMeshComp extends MeshComponent
    }
 
    protected void notifyStructureChanged (Object comp) {
+      if (isScanning()) {
+         return;
+      }
       if (comp instanceof CompositeComponent) {
          notifyParentOfChange (new StructureChangeEvent (
             (CompositeComponent)comp));
@@ -154,10 +232,13 @@ public class EditableMeshComp extends MeshComponent
       throws IOException {
 
       rtok.nextToken();
-      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
+      if (scanAttributeName (rtok, "mesh")) {
+         myMeshInfo = new MeshInfo();
+         myMeshInfo.scan (rtok); 
+         getMesh().setFixed (true);
          return true;
       }
-      else if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
+      else if (scanAndStoreReference (rtok, "meshComp", tokens)) {
          return true;
       }
       rtok.pushBack();
@@ -167,48 +248,34 @@ public class EditableMeshComp extends MeshComponent
    protected boolean postscanItem (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       
-      if (myComponents.postscanComponent (tokens, ancestor)) {
+      if (postscanAttributeName (tokens, "meshComp")) {
+         myMeshComp = 
+            postscanReference (tokens, MeshComponent.class, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
    }
 
    @Override
-      public void scan (
-         ReaderTokenizer rtok, Object ref) throws IOException {
-
-      myComponents.scanBegin();
-      super.scan (rtok, ref);
-   }
-
-   @Override
    public void postscan (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       super.postscan (tokens, ancestor);
-      myComponents.scanEnd();
-   }
-
-   protected void writeComponent (
-      PrintWriter pw, ModelComponent comp, NumberFormat fmt, Object ref)
-         throws IOException {
-
-      pw.print (comp.getName() + "=");
-      if (hierarchyContainsReferences()) {
-         comp.write (pw, fmt, this);
-      }
-      else {
-         comp.write (pw, fmt, ref);
-      }  
+      updateComponents();
    }
 
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      // properties
-      super.writeItems(pw, fmt, ancestor);
-      // components
-      myComponents.writeComponentsByName (pw, fmt, ancestor);
+      if (myMeshComp != null) {
+         pw.println (
+            "meshComp="+ComponentUtils.getWritePathName (ancestor,myMeshComp));
+      }
+      else if (myMeshInfo != null) {
+         pw.print ("mesh=");
+         myMeshInfo.write (pw, fmt);
+      }
+      super.writeItems (pw, fmt, ancestor);
    }
 
    public Iterator<? extends HierarchyNode> getChildren() {
@@ -269,29 +336,94 @@ public class EditableMeshComp extends MeshComponent
       myVertexList.updateBounds(pmin, pmax);
    }
 
+   public void prerenderMesh () {
+      MeshBase renderMesh = getMesh();
+      if (renderMesh != null) {
+         if (!renderMesh.isFixed()) {
+            renderMesh.notifyVertexPositionsModified();
+         }
+         renderMesh.prerender (myRenderProps);
+      }
+      myRenderMesh = renderMesh;
+   }
+
    @Override
    public void prerender(RenderList list) {
-      myMesh.prerender (myRenderProps);
+      if (myMeshInfo != null) {
+         prerenderMesh();
+      }
+      else {
+         myRenderMesh = null;
+      }
       list.addIfVisible(myVertexList);
    }
    
-   @Override
+   //@Override
    public void updateSlavePos () {
       // nothing
    }
 
-   @Override
+   //@Override
    public void scaleDistance(double s) {
       myVertexList.scaleDistance(s);
    }
 
-   @Override
-   public MeshBase getMesh() {
-      return myMesh;
+   // @Override
+   // public MeshBase getMesh() {
+   //    return myMesh;
+   // }
+
+  /* --- Renderable interface ---
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isSelectable() {
+      return mySelectable;
+   }
+
+   public void setSelectable (boolean enable) {
+      mySelectable = enable;
+   }
+
+   public RenderProps createRenderProps() {
+      return RenderProps.createRenderProps(this);
+   }
+
+   private static RenderProps createDefaultRenderProps() {
+      RenderProps mr = new RenderProps();
+      return mr;
+   }
+
+   public void render (Renderer renderer, RenderProps props, int flags) {     
+      MeshBase renderMesh = myRenderMesh;
+      if (renderMesh != null) {
+         renderMesh.render (renderer, props, flags);
+      }
+   }
+
+   protected boolean isAncestorSelected() {
+      ModelComponent comp = this;
+      while (comp != null) {
+         if (comp.isSelected()) {
+            return true;
+         }
+         comp = comp.getParent();
+      }
+      return false;
    }
 
    @Override
-   public void render(Renderer renderer, int flags) {      
+   public void render(Renderer renderer, int flags) { 
+      MeshBase renderMesh = myRenderMesh;
+      if (renderMesh != null) {
+         if (isSelected() || isAncestorSelected()) {
+            flags |= Renderer.HIGHLIGHT;
+         }
+         // call render(,,) instead of renderMesh.render(,,) in case the former
+         // is overridden
+         render (renderer, getRenderProps(), flags);
+      }
    }
 
    public VertexList<VertexComponent> getVertexComponents() {

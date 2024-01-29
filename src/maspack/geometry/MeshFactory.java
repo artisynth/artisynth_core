@@ -4275,4 +4275,26 @@ public class MeshFactory {
       
       return hull;
    }
+
+   /**
+    * Expands (or shrinks) a mesh by displacing its vertices along their their
+    * normals.
+    *
+    * @param mesh mesh to be extruded
+    * @param displacement to be applied along vertex normals
+    * @return new extruded mesh
+    */
+   public static PolygonalMesh extrudeAlongVertexNormals (
+      PolygonalMesh mesh, double dx) {
+
+      mesh = mesh.clone();
+      Vector3d nrm = new Vector3d();
+      for (Vertex3d vtx : mesh.getVertices()) {
+         vtx.computeNormal(nrm);
+         vtx.pnt.scaledAdd (dx, nrm);
+      }
+      mesh.notifyVertexPositionsModified();
+      return mesh;      
+   }
+
 }

@@ -107,7 +107,9 @@ implements CompositeComponent, TransformableGeometry, HasSurfaceMesh, IsMarkable
    @Override
    protected void updatePosState () {
       super.updatePosState ();
-      getImageMesh().setMeshToWorld (getPose ());
+      if (getImageMesh() != null) {
+         getImageMesh().setMeshToWorld (getPose ());
+      }
    }
 
    public void prerender (RenderList list) {

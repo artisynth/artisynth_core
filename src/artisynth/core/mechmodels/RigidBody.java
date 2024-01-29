@@ -136,6 +136,9 @@ public class RigidBody extends Frame
    static boolean DEFAULT_GRID_SURFACE_RENDERING = false;
    boolean myGridSurfaceRendering = DEFAULT_GRID_SURFACE_RENDERING;
 
+   static public boolean DEFAULT_SUBMESHES_SELECTABLE = true;
+   boolean mySubmeshesSelectable = DEFAULT_SUBMESHES_SELECTABLE;
+
    protected double myInertialDamping = 0;
    protected PropertyMode myInertialDampingMode = PropertyMode.Inherited;
 
@@ -182,6 +185,10 @@ public class RigidBody extends Frame
          "gridSurfaceRendering", 
          "renders the grid surface instead of the meshes", 
          DEFAULT_GRID_SURFACE_RENDERING);
+      myProps.add (
+         "submeshesSelectable", 
+         "enables submeshes to be selected in the viewer", 
+         DEFAULT_SUBMESHES_SELECTABLE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -194,6 +201,14 @@ public class RigidBody extends Frame
 
    public double getMass (double t) {
       return getMass();
+   }
+
+   public void setSubmeshesSelectable (boolean value) {
+      mySubmeshesSelectable = value;
+   }
+
+   public boolean getSubmeshesSelectable() {
+      return mySubmeshesSelectable;      
    }
 
    public void getMass (Matrix M, double t) {

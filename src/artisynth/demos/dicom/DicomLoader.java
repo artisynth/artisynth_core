@@ -149,7 +149,8 @@ public class DicomLoader extends RootModel {
       trans.p.interpolate(pmin,  0.5, pmax);
       
       Vector2d size = new Vector2d(pmax.x-pmin.x, pmax.y-pmin.y);
-      DicomPlaneViewer dpv = new DicomPlaneViewer("plane_" + viewerPlanes.size(), image, size, trans);
+      DicomPlaneViewer dpv = new DicomPlaneViewer(
+         "plane_" + viewerPlanes.size(), viewer, size, trans);
       addRenderable(dpv);
       
       viewerPlanes.add(dpv);

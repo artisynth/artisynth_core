@@ -50,7 +50,16 @@ public class MeshViewer extends RootModel {
                      System.out.println ("No render props specified");
                   }
                }
-               mech.addMeshBody (new FixedMeshBody (mesh));
+               if (mesh instanceof PolygonalMesh) {
+                  // use rigid body so we can add markers to it
+                  RigidBody body = RigidBody.createFromMesh (
+                     null, (PolygonalMesh)mesh, /*density=*/1.0, /*scale=*/1.0);
+                  body.setDynamic (false);
+                  mech.addRigidBody (body);
+               }
+               else {
+                  mech.addMeshBody (new FixedMeshBody(mesh));
+               }
             }
             catch (Exception e) {
                System.out.println ("Can't read mesh " + fileName);
@@ -63,6 +72,8 @@ public class MeshViewer extends RootModel {
          FixedMeshBody mbody = new FixedMeshBody ("mesh", mesh);
          mech.addMeshBody (mbody);
       }
+      double rad = RenderableUtils.getRadius (this);
+      RenderProps.setSphericalPoints (mech, 0.01*rad, Color.GREEN);
    }
 }
 

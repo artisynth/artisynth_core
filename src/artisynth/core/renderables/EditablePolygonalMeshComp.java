@@ -6,35 +6,52 @@
  */
 package artisynth.core.renderables;
 
+import artisynth.core.mechmodels.MeshComponent;
 import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshBase;
 import maspack.render.RenderList;
 
 public class EditablePolygonalMeshComp extends EditableMeshComp {
 
-   PolygonalMesh pmesh;
    FaceList<FaceComponent> myFaceList = null;
    
-   public EditablePolygonalMeshComp (PolygonalMesh mesh) {
-      super(mesh);
-      pmesh = mesh;
-      myFaceList = new FaceList<FaceComponent>(FaceComponent.class, 
-         "faces", "f", pmesh);
+   public EditablePolygonalMeshComp () {
+      super();
+      myFaceList = new FaceList<FaceComponent>(
+         FaceComponent.class, "faces", "f");
       add(myFaceList);
-      updateFaces();
+   }
+
+   public EditablePolygonalMeshComp (PolygonalMesh mesh) {
+      this();
+      setMesh (mesh);
    }
    
+   public EditablePolygonalMeshComp (MeshComponent mcomp) {
+      this();
+      if (!(mcomp.getMesh() instanceof PolygonalMesh)) {
+         throw new IllegalArgumentException (
+            "mesh component does not contain a PolygonalMesh");
+      }
+      setMeshComp (mcomp);
+   }
+
    public void updateFaces() {
       myFaceList.clear();
-      if (myMesh == null) {
+      MeshBase mesh = getMesh();
+      if (mesh == null || !(mesh instanceof PolygonalMesh)) {
          return;
       }
-      
+      PolygonalMesh pmesh = (PolygonalMesh)mesh;
       for (Face face : pmesh.getFaces()) {
          myFaceList.add(new FaceComponent(face, pmesh));
       }
-      
-      
+   }
+   
+   public void updateComponents() {
+      super.updateComponents();
+      updateFaces();
    }
    
    @Override
@@ -43,10 +60,10 @@ public class EditablePolygonalMeshComp extends EditableMeshComp {
       list.addIfVisible(myFaceList);
    }
    
-   @Override
-   public PolygonalMesh getMesh() {
-      return pmesh;
-   }
+   // @Override
+   // public PolygonalMesh getMesh() {
+   //    return pmesh;
+   // }
    
    public FaceList<FaceComponent> getFaceList() {
       return myFaceList;

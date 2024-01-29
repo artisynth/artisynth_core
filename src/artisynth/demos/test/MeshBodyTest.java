@@ -220,7 +220,7 @@ public class MeshBodyTest extends RootModel {
          mesh.transform (new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0));
       }
       
-      if (true) {
+      if (false) {
          String filePath = PathFinder.getSourceRelativePath (
             this, "geometry/OsCoxaeLeft_Red4.obj");
          try {
@@ -229,6 +229,17 @@ public class MeshBodyTest extends RootModel {
          catch (Exception e) {
          }
       }
+
+      if (false) {
+         mesh = MeshFactory.createQuadCylindricalWedge (
+            0.5, 2.0, Math.toRadians(90), 4, 10, 10);
+         mesh.triangulate();
+      }
+
+      if (true) {
+         mesh = MeshFactory.createQuadDisk (1.0, 4, 30);
+      }
+      
       
       if (false) {
          mesh = MeshFactory.createBox (

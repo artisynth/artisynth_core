@@ -188,7 +188,12 @@ public abstract class TextureMapProps implements CompositeProperty, Scannable, C
    
    public void setContent(TextureContent content) {
       setFileName (defaultFileName);
-      myContent = content.acquire();  // keep reference
+      if (content != null) {
+         myContent = content.acquire();  // keep reference
+      }
+      else {
+         myContent = null;
+      }
    }
   
    /**

@@ -177,6 +177,70 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       return nearVtx;
    }
 
+   /**
+    * Intersects this polygon with a ray defined by p + s u, using O(n) search
+    * of all edges. If there is more than one intersection, the nearest to p is
+    * returned.
+    *
+    * @param p starting point of the ray
+    * @param u direction of the ray
+    * @return intersection point, or null if none
+    */
+   public Point2d intersectRay (Point2d p, Vector2d u) {
+      double dmin = Double.POSITIVE_INFINITY;
+      Point2d nearIsect = null;
+      Vertex2d vtx = firstVertex;
+      Point2d edgePnt = new Point2d();
+      if (vtx != null) {
+         do {
+            Point2d isect = intersectRay (vtx, p, u);
+            if (isect != null) {
+               double d = isect.distance (p);
+               if (d < dmin) {
+                  dmin = d;
+                  nearIsect = isect;
+               }
+            }
+            vtx = vtx.next;
+         }
+         while (vtx != firstVertex);
+      }
+      return nearIsect;
+   }
+
+   /**
+    * Intersect a line segment (p0, p1) defined by a vertex with a ray (p2, s
+    * u).
+    */
+   private Point2d intersectRay (Vertex2d vtx, Point2d p2, Vector2d u) {
+      Point2d p0 = vtx.pnt;
+      Point2d p1 = vtx.next.pnt;
+
+      Vector2d u01 = new Vector2d();
+      Vector2d u23 = u;
+      Vector2d u02 = new Vector2d();
+      u01.sub (p1, p0);
+      u02.sub (p2, p0);
+
+      double denom = u01.cross(u23);
+      double numt = u02.cross(u23);
+      double numu = u02.cross(u01);
+
+      // t = numt/denom and u = numu/denom.
+      if (denom == 0) {
+         // segments are parallel
+         return null;
+      }
+      if (numt*denom < 0 || numu*denom < 0 ||
+          Math.abs(numt) > Math.abs(denom)) {
+         // intersection does not lie on both segments
+         return null;
+      }
+      Point2d isect = new Point2d();
+      isect.scaledAdd (numt/denom, u01, p0);
+      return isect;      
+   }      
+
    public int numVertices() {
       int num = 0;
       Vertex2d vtx = firstVertex;

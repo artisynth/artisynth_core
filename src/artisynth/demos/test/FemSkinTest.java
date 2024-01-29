@@ -51,16 +51,20 @@ public class FemSkinTest extends RootModel {
                System.out.println (
                   "WARNING option -nelems needs an integer argument");
             }
-            i++;
-            nelems = Integer.valueOf (args[i]);
+            else {
+               i++;
+               nelems = Integer.valueOf (args[i]);
+            }
          }
          else if (args[i].equals ("-nfaces")) {
             if (i == args.length-1) {
                System.out.println (
                   "WARNING option -nfaces needs an integer argument");
             }
-            i++;
-            nfaces = Integer.valueOf (args[i]);
+            else {
+               i++;
+               nfaces = Integer.valueOf (args[i]);
+            }
          }
          else {
             System.out.println ("WARNING: unrecognized option "+args[i]);

@@ -174,6 +174,10 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       myNumericList.setInterpolation (myInterpolation);
    }
 
+   public void clearData() {
+      myNumericList.clear();
+   }
+
    public void updateDisplays() {
       updateDisplays (null);
    }

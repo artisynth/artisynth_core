@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import artisynth.core.mechmodels.RigidMeshComp;
+import artisynth.core.util.ArtisynthPath;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.io.GenericMeshReader;
@@ -36,7 +37,9 @@ public class Mesh extends Geometry {
       MeshBase mesh = null;
       if (mesh_file != null) {
          try {
-            mesh = GenericMeshReader.readMesh (new File(geometryPath, mesh_file));
+            File file = ArtisynthPath.convertToLocalSeparators 
+               (new File(geometryPath, mesh_file));
+            mesh = GenericMeshReader.readMesh (file);
             // scale and transform
             Vector3d scale = getScaleFactors ();
             if (scale != null) {

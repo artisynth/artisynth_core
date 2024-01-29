@@ -460,9 +460,15 @@ public class RigidMeshComp extends DynamicMeshComponent
    public void getSelection(LinkedList<Object> list, int qid) {
       CompositeComponent gp = getGrandParent();
       if (gp instanceof RigidBody) {
-         list.addLast(getGrandParent());
+         RigidBody rb = (RigidBody)gp;
+         list.addLast(rb);
+         if (rb.getSubmeshesSelectable()) {
+            list.addLast(this);
+         }
       }
-      list.addLast(this);
+      else {
+         list.addLast(this);
+      }
    }
 
    /**

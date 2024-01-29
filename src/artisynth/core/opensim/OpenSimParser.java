@@ -1,6 +1,7 @@
 package artisynth.core.opensim;
 
 import java.io.File;
+import java.util.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -9,12 +10,18 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.ForceComponent;
+import artisynth.core.mechmodels.*;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.opensim.components.ModelBase;
 import artisynth.core.opensim.components.ModelComponentMap;
 import artisynth.core.opensim.components.OpenSimDocument;
 import artisynth.core.opensim.components.OpenSimObjectFactory;
 import artisynth.core.opensim.components.OpenSimObjectFactoryStore;
+import maspack.render.*;
 
 public class OpenSimParser {
    
@@ -124,6 +131,86 @@ public class OpenSimParser {
     */
    public ModelComponentMap getComponentMap() {
       return myComponentMap;
+   }
+
+   protected <T> void recursivelyGetComponents (
+      CompositeComponent comp, List<T> list, Class<T> type) {
+
+      for (int i=0; i<comp.numComponents(); i++) {
+         ModelComponent c = comp.get (i);
+         if (type.isAssignableFrom(c.getClass())) {
+            T t = type.cast(c);      // checked cast
+            list.add (t);
+         }
+         // sometimes a component can be a of type T
+         // with subcomponents also of type T
+         if (c instanceof CompositeComponent) {
+            recursivelyGetComponents ((CompositeComponent)c, list, type);
+         }
+      }
+   }
+
+   public ArrayList<ForceComponent> getForceComponents(MechModel mech) {
+      ArrayList<ForceComponent> list = new ArrayList<>();
+      recursivelyGetComponents (mech, list, ForceComponent.class);
+      return list;
+   }
+   
+   public ArrayList<PointSpringBase> getMusclesAndSprings(MechModel mech) {
+      ArrayList<PointSpringBase> list = new ArrayList<>();
+      recursivelyGetComponents (mech, list, PointSpringBase.class);
+      return list;
+   }
+
+   /**
+    * Return the list of rigid bodies.
+    */
+   public RenderableComponentList<RigidBody> getBodySet(MechModel mech) {
+      return (RenderableComponentList<RigidBody>)mech.get ("bodyset"); 
+   }
+
+   /**
+    * Return the force set list.
+    */
+   public RenderableComponentList<ModelComponent> getForceSet(MechModel mech) {
+      return (RenderableComponentList<ModelComponent>)mech.get ("forceset"); 
+   }
+
+
+   /**
+    * Return the list of constraints.
+    */
+   public ComponentList<ModelComponent> getConstraintSet(MechModel mech) {
+      return (ComponentList<ModelComponent>)mech.get ("constraintset"); 
+   }
+
+   public void zeroExcitations(MechModel mech) {
+      for (PointSpringBase psb : getMusclesAndSprings(mech)) {
+         if (psb instanceof ExcitationComponent) {
+            ExcitationComponent ec = (ExcitationComponent)psb;
+            ec.setExcitation (0);
+         }
+      }
+   }
+   
+   public ArrayList<RigidBody> getWrapObjects(MechModel mech) {
+      ArrayList<RigidBody> list = new ArrayList<>();
+      for (RigidBody rb : getBodySet(mech)) {
+         RenderableComponentList<RigidBody> wrapobjs =
+            (RenderableComponentList<RigidBody>)rb.get("wrapobjectset");
+         if (wrapobjs != null && wrapobjs.numComponents() > 0) {
+            for (RigidBody wobj : wrapobjs) {
+               list.add (wobj);
+            }
+         }           
+      }
+      return list;
+   }
+
+   public void setWrapObjectsVisible (MechModel mech, boolean visible) {
+      for (RigidBody wo : getWrapObjects(mech)) {
+         RenderProps.setVisible (wo, visible);
+      }
    }
    
 }

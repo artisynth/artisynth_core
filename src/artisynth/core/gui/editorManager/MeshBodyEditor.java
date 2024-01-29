@@ -65,16 +65,21 @@ public class MeshBodyEditor extends EditorBase {
             }
             else if (actionCommand == "Add mesh inspector") {
                MeshComponent body = (MeshComponent)selection.get (0);
-               MechModel mech = (MechModel)body.getGrandParent();
-               PolygonalMesh mesh = (PolygonalMesh)body.getMesh();
-               EditablePolygonalMeshComp editMesh =
-                  new EditablePolygonalMeshComp (mesh);
-               double size = RenderableUtils.getRadius (editMesh);
-               double maxRad = mesh.computeAverageEdgeLength()/8;
-               RenderProps.setVisible (editMesh, true);
-               RenderProps.setPointStyle (editMesh, Renderer.PointStyle.SPHERE);
-               RenderProps.setPointRadius (editMesh, Math.min(0.05*size,maxRad));
-               mech.addRenderable (editMesh);
+               MeshBase mesh = body.getMesh();
+               if (mesh instanceof PolygonalMesh) {
+                  PolygonalMesh pmesh = (PolygonalMesh)mesh;
+                  MechModel mech = (MechModel)body.getGrandParent();
+                  EditablePolygonalMeshComp editMesh =
+                     new EditablePolygonalMeshComp (body);
+                  double size = RenderableUtils.getRadius (editMesh);
+                  double maxRad = pmesh.computeAverageEdgeLength()/8;
+                  RenderProps.setVisible (editMesh, true);
+                  RenderProps.setPointStyle (
+                     editMesh, Renderer.PointStyle.SPHERE);
+                  RenderProps.setPointRadius (
+                     editMesh, Math.min(0.05*size,maxRad));
+                  mech.addRenderable (editMesh);
+               }
             }
          }
          if (selection.size() == 2) {

@@ -66,7 +66,7 @@ import maspack.render.Renderer.Shading;
 import maspack.util.IntegerInterval;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.StringRange;
+import maspack.util.*;
 
 /**
  * Non-regular stacks of slices
@@ -77,6 +77,14 @@ public class DicomViewer extends Frame
 
    DicomImage myImage;
    DicomTextureContent texture;
+
+   static boolean IGNORE_UPDATE_BOUNDS = false;
+   private boolean myIgnoreUpdateBounds = IGNORE_UPDATE_BOUNDS;
+
+   // information about the file use to define the image
+   String myImagePath;
+   Pattern myFilePattern;
+   boolean myCheckSubdirs;
 
    static int XY_IDX = 0;
    static int XZ_IDX = 1;
@@ -99,6 +107,9 @@ public class DicomViewer extends Frame
       myProps.add("drawXZ * *", "draw XY plane", true);
       myProps.add("drawXY * *", "draw XY plane", true);
       myProps.add("drawBox * *", "draw image box", true);
+      myProps.add(
+         "ignoreUpdateBounds", 
+         "cause updateBounds() to do nothing", false);
       myProps.addReadOnly("pixelInterpolator", "pixel converter");
    }
 
@@ -109,6 +120,15 @@ public class DicomViewer extends Frame
    public static RenderProps createDefaultRenderProps() {
       return new LineRenderProps();
    }
+
+   public boolean getIgnoreUpdateBounds() {
+      return myIgnoreUpdateBounds;
+   }
+
+   public void setIgnoreUpdateBounds(boolean enable) {
+      myIgnoreUpdateBounds = enable;
+   }
+   
 
    // decompose transform into rigid frame and affine
    //     T_net = T_frame T_affine
@@ -127,29 +147,10 @@ public class DicomViewer extends Frame
    boolean surfacesValid;
 
    /**
-    * Creates a new viewer widget, with supplied name and DICOM image
-    * 
-    * @param name widget name
-    * @param image DICOM image data
+    * Creates a new, empty, viewer widget. Used internally by the scan code.
     */
-   public DicomViewer(String name, DicomImage image) {
+   public DicomViewer() {
       super();
-      init(name, image);
-   }
-
-   /**
-    * Creates a new viewer widget, with supplied DICOM image.  The
-    * name of the component becomes the image name
-    * 
-    * @param image DICOM image data
-    */
-   public DicomViewer(DicomImage image) {
-      this(image.getTitle(), image);
-   }
-
-   private void init(String name, DicomImage image) {
-      setName(ModelComponentBase.makeValidName(name));
-
       markers = new PointList<FrameMarker>(FrameMarker.class, "markers");
       add(markers);
 
@@ -163,8 +164,36 @@ public class DicomViewer extends Frame
       drawSlice = new boolean[]{true, true, true};
 
       snap = false;
-
       coord = new Vector3d();
+   }
+
+   /**
+    * Creates a new viewer widget, with supplied name and DICOM image
+    * 
+    * @param name widget name
+    * @param image DICOM image data
+    */
+   public DicomViewer(String name, DicomImage image) {
+      this();
+      initNameAndImage(name, image);
+   }
+
+   /**
+    * Creates a new viewer widget, with supplied DICOM image.  The
+    * name of the component becomes the image name
+    * 
+    * @param image DICOM image data
+    */
+   public DicomViewer(DicomImage image) {
+      this(image.getTitle(), image);
+   }
+
+   private void initNameAndImage(String name, DicomImage image) {
+      setName(ModelComponentBase.makeValidName(name));
+      initImage (image);
+   }
+
+   private void initImage(DicomImage image) {
       setImage(image);
       setSliceCoordinates(0.5, 0.5, 0.5);
 
@@ -197,6 +226,33 @@ public class DicomViewer extends Frame
     */
    public DicomViewer (
       String name, String imagePath, Pattern filePattern, boolean checkSubdirs) {
+      this();
+      setName(ModelComponentBase.makeValidName(name));
+      setImage (imagePath, filePattern, checkSubdirs);
+   }
+
+   /**
+    * Reads DICOM files into a 3D (+time) image
+    * @param name name of the viewer component
+    * @param files list of DICOM files to load
+    */
+   public DicomViewer(String name, List<File> files) {
+      this();
+      DicomImage im = null;
+      try {
+         DicomReader rs = new DicomReader();
+         im = rs.read(im, files);
+      } catch(Exception e) {
+         throw new RuntimeException("Failed to read dicom images", e);
+      }
+      if (im == null) {
+         throw new RuntimeException("No image data loaded");
+      }
+      initNameAndImage(name, im);
+   }
+
+   private void setImage (
+      String imagePath, Pattern filePattern, boolean checkSubdirs) {
       DicomImage im = null;
       try {
          DicomReader rs = new DicomReader();
@@ -210,26 +266,10 @@ public class DicomViewer extends Frame
       if (im == null) {
          throw new RuntimeException("No image data loaded");
       }
-      init(name, im);
-   }
-
-   /**
-    * Reads DICOM files into a 3D (+time) image
-    * @param name name of the viewer component
-    * @param files list of DICOM files to load
-    */
-   public DicomViewer(String name, List<File> files) {
-      DicomImage im = null;
-      try {
-         DicomReader rs = new DicomReader();
-         im = rs.read(im, files);
-      } catch(Exception e) {
-         throw new RuntimeException("Failed to read dicom images", e);
-      }
-      if (im == null) {
-         throw new RuntimeException("No image data loaded");
-      }
-      init(name, im);
+      myImagePath = imagePath;
+      myFilePattern = filePattern;
+      myCheckSubdirs = checkSubdirs;
+      initImage(im);
    }
 
    /**
@@ -1007,6 +1047,9 @@ public class DicomViewer extends Frame
 
    @Override
    public void updateBounds(Vector3d pmin, Vector3d pmax) {
+      if (myIgnoreUpdateBounds) {
+         return;
+      }
       // super.updateBounds(pmin, pmax); ignore frame coordinates
       maybeUpdateRenderObject();
       updateNetTransform();
@@ -1496,7 +1539,21 @@ public class DicomViewer extends Frame
    throws IOException {
 
       rtok.nextToken();
-      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
+      if (scanAttributeName (rtok, "image")) {
+         rtok.scanToken ('[');
+         String imagePath = rtok.scanQuotedString ('"');
+         String patternStr = rtok.scanQuotedString ('"');
+         Pattern filePattern = null;
+         if (patternStr != null) {
+            int flags = rtok.scanInteger();
+            filePattern = Pattern.compile (patternStr, flags);
+         }
+         boolean checkSubdirs = rtok.scanBoolean();
+         rtok.scanToken (']');
+         setImage (imagePath, filePattern, checkSubdirs);
+         return true;
+      }
+      else if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
          return true;
       }
       else if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
@@ -1536,7 +1593,23 @@ public class DicomViewer extends Frame
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
-
+      
+      if (myImagePath != null) {
+         pw.println ("image=[");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         pw.println (Write.getQuotedString (myImagePath));
+         if (myFilePattern == null) {
+            pw.println ("null");
+         }
+         else {
+            pw.println (
+               Write.getQuotedString(myFilePattern.toString()) +
+               " " + myFilePattern.flags());
+         }
+         pw.println (myCheckSubdirs);
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
       super.writeItems (pw, fmt, ancestor);
       myComponents.writeComponentsByName (pw, fmt, ancestor);
    }

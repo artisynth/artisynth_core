@@ -9,7 +9,9 @@ package artisynth.core.renderables;
 import java.util.LinkedList;
 
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.ModelComponent;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMeshRenderer;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
@@ -28,16 +30,18 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    private final int REG_GRP = 0;
    private final int SEL_GRP = 1;
    
-   PolygonalMesh myMesh;
-
    public static boolean DEFAULT_SELECTABLE = true;
    protected boolean mySelectable = DEFAULT_SELECTABLE;
-   
-   private PolygonalMeshRenderer myMeshRenderer;
-   FeatureIndexArray[] myFaces;
-   FeatureIndexArray[] myEdges;
-   DynamicIntArray[] myFaceIdxs;
-   int[] myFaceIdxsVersions;
+
+   private class RenderData {
+      PolygonalMeshRenderer myMeshRenderer;
+      FeatureIndexArray[] myFaces;
+      FeatureIndexArray[] myEdges;
+      DynamicIntArray[] myFaceIdxs;
+      int[] myFaceIdxsVersions;
+   };
+
+   RenderData myRenderData = null;
 
    public static PropertyList myProps =
       new PropertyList (FaceList.class, RenderableComponentList.class);
@@ -54,16 +58,11 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
    }
    
    public FaceList (
-      Class<P> type, String name, String shortName, PolygonalMesh mesh) {
+      Class<P> type, String name, String shortName) {
       super (type, name, shortName);
       setRenderProps (createRenderProps());
-      
-      myMesh = mesh;
-      myMeshRenderer = null;
-      myFaceIdxs = null;
-      myFaceIdxsVersions = null;
-      myFaces = null;
-      myEdges = null;
+
+      myRenderData = null;
    }
 
    /* ======== Renderable implementation ======= */
@@ -72,20 +71,37 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       return RenderProps.createMeshProps (this);
    }
 
+   protected PolygonalMesh getMesh() {
+      ModelComponent comp = getParent();
+      if (comp instanceof EditablePolygonalMeshComp) {
+         MeshBase mesh = ((EditablePolygonalMeshComp)comp).getMesh();
+         if (mesh instanceof PolygonalMesh) {
+            return (PolygonalMesh)mesh;
+         }
+      }
+      return null;
+   }
+
    public void prerender (RenderList list) {
+      PolygonalMesh pmesh = getMesh();
+      if (pmesh == null) {
+         myRenderData = null;
+         return;
+      }
       
       // create stored copy of render information
-      if (myMeshRenderer == null) {
-         myMeshRenderer = new PolygonalMeshRenderer (myMesh);
+      RenderData rd = myRenderData;
+      if (rd == null) {
+         rd = new RenderData();
+         rd.myMeshRenderer = new PolygonalMeshRenderer (pmesh);
+
+         rd.myFaceIdxs = new DynamicIntArray[2];
+         rd.myFaceIdxs[0] = new DynamicIntArray (size());
+         rd.myFaceIdxs[1] = new DynamicIntArray (size());
+         rd.myFaceIdxsVersions = new int[]{-1, -1};
       }
-      myMeshRenderer.prerender (getRenderProps());
-      
-      if (myFaceIdxs == null) {
-         myFaceIdxs = new DynamicIntArray[2];
-         myFaceIdxs[0] = new DynamicIntArray (size());
-         myFaceIdxs[1] = new DynamicIntArray (size());
-         myFaceIdxsVersions = new int[]{-1, -1};
-      }
+
+      rd.myMeshRenderer.prerender (getRenderProps());
       
       // assign faces in a way that does not trigger a list
       // modification if it indeed does not change
@@ -99,13 +115,13 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          else {
             int gidx = fc.isSelected () ? SEL_GRP : REG_GRP;
             int faceIdx = fc.getFace ().getIndex ();
-            myFaceIdxs[gidx].set (nFaces[gidx], faceIdx);
+            rd.myFaceIdxs[gidx].set (nFaces[gidx], faceIdx);
             nFaces[gidx]++;
          }
       }
-      myFaceIdxs[REG_GRP].resize (nFaces[REG_GRP]);
-      myFaceIdxs[SEL_GRP].resize (nFaces[SEL_GRP]);
-      
+      rd.myFaceIdxs[REG_GRP].resize (nFaces[REG_GRP]);
+      rd.myFaceIdxs[SEL_GRP].resize (nFaces[SEL_GRP]);
+      myRenderData = rd;
    }
 
    public boolean rendersSubComponents() {
@@ -114,34 +130,44 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
 
    public void render (Renderer renderer, int flags) {
       
+      RenderData rd = myRenderData;
+      if (rd == null) { 
+         return;
+      }
       RenderProps props = getRenderProps();
       
-      if (myFaces == null) {
-         myFaces = new FeatureIndexArray[2];
-         myEdges = new FeatureIndexArray[2];
+      if (rd.myFaces == null) {
+         rd.myFaces = new FeatureIndexArray[2];
+         rd.myEdges = new FeatureIndexArray[2];
          
          for (int i=0; i<2; ++i) {
-            int size = myFaceIdxs[i].size ();
-            myFaces[i] = new FeatureIndexArray (size, 3*size);
-            myEdges[i] = new FeatureIndexArray (size, 6*size);
+            int size = rd.myFaceIdxs[i].size ();
+            rd.myFaces[i] = new FeatureIndexArray (size, 3*size);
+            rd.myEdges[i] = new FeatureIndexArray (size, 6*size);
          }
       }
       
       if ( (flags & Renderer.SORT_FACES) != 0) {
          Vector3d zdir = renderer.getEyeZDirection ();
-         myMeshRenderer.sortFaces (myFaceIdxs[REG_GRP].getArray (), 0, myFaceIdxs[REG_GRP].size(), zdir);
-         myMeshRenderer.sortFaces (myFaceIdxs[SEL_GRP].getArray (), 0, myFaceIdxs[SEL_GRP].size(), zdir);
-         myFaceIdxs[REG_GRP].notifyModified ();
-         myFaceIdxs[SEL_GRP].notifyModified ();
+         DynamicIntArray[] faceIdxs = rd.myFaceIdxs;
+
+         rd.myMeshRenderer.sortFaces (
+            faceIdxs[REG_GRP].getArray (), 0, faceIdxs[REG_GRP].size(), zdir);
+         rd.myMeshRenderer.sortFaces (
+            faceIdxs[SEL_GRP].getArray (), 0, faceIdxs[SEL_GRP].size(), zdir);
+         faceIdxs[REG_GRP].notifyModified ();
+         faceIdxs[SEL_GRP].notifyModified ();
       }
       
       for (int i=0; i<2; ++i) {
-         if (myFaceIdxsVersions[i] != myFaceIdxs[i].getVersion ()) {
-            int[] faceIdxs = myFaceIdxs[i].getArray ();
-            int len = myFaceIdxs[i].size ();
-            myMeshRenderer.updateFaceTriangles (faceIdxs, 0, len, myFaces[i]);
-            myMeshRenderer.updateFaceLines (faceIdxs, 0, len, myEdges[i]);
-            myFaceIdxsVersions[i] = myFaceIdxs[i].getVersion ();
+         if (rd.myFaceIdxsVersions[i] != rd.myFaceIdxs[i].getVersion ()) {
+            int[] faceIdxs = rd.myFaceIdxs[i].getArray ();
+            int len = rd.myFaceIdxs[i].size ();
+            rd.myMeshRenderer.updateFaceTriangles (
+               faceIdxs, 0, len, rd.myFaces[i]);
+            rd.myMeshRenderer.updateFaceLines (
+               faceIdxs, 0, len, rd.myEdges[i]);
+            rd.myFaceIdxsVersions[i] = rd.myFaceIdxs[i].getVersion ();
          }
       }
 
@@ -150,8 +176,12 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
       if (renderer.getHighlightStyle () == HighlightStyle.COLOR) {
          highlight = true;
       }
-      myMeshRenderer.render (renderer, props, highlight, myFaces[SEL_GRP], myEdges[SEL_GRP], true);
-      myMeshRenderer.render (renderer, props, false, myFaces[REG_GRP], myEdges[REG_GRP], true);
+      rd.myMeshRenderer.render (
+         renderer, props, highlight,
+         rd.myFaces[SEL_GRP], rd.myEdges[SEL_GRP], true);
+      rd.myMeshRenderer.render (
+         renderer, props, false, rd.myFaces[REG_GRP],
+         rd.myEdges[REG_GRP], true);
    }
 
    /**

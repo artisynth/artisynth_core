@@ -132,7 +132,7 @@ public class Transrotator3d extends Dragger3dBase {
          renderer.drawPoint(coords);
          renderer.setPointSize(1);
       }
-      renderer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(getNetSize());
       
       if (renderObject == null) {
          renderObject = createTransrotatorRenderable();
@@ -327,16 +327,17 @@ public class Transrotator3d extends Dragger3dBase {
       // First find the axis the mouse is within the bounds of. When within
       // multiple bounds, select the axis that the mouse is closest to.
 
+      double size = getNetSize();
       l = xAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= 0 && l <= mySize && tempDist < lineDist) {
+      if (l >= 0 && l <= size && tempDist < lineDist) {
          resultAxisOrPlane = X_AXIS;
          minDist = tempDist;
       }
 
       l = yAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= 0 && l <= mySize && tempDist < lineDist && tempDist < minDist)
+      if (l >= 0 && l <= size && tempDist < lineDist && tempDist < minDist)
 
       {
          resultAxisOrPlane = Y_AXIS;
@@ -345,14 +346,14 @@ public class Transrotator3d extends Dragger3dBase {
 
       l = zAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= 0 && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+      if (l >= 0 && l <= size && tempDist < lineDist && tempDist < minDist) {
          resultAxisOrPlane = Z_AXIS;
          minDist = tempDist;
       }
 
       // now check rotators, and if there is any that are selected and
       // closer to the mouse than any of the axes, then select it.
-      double len = myRotatorRelativeSize * mySize;
+      double len = myRotatorRelativeSize * size;
 
       d = draggerRay.intersectPlane (p, yzPlane);
       tempDist = Math.abs (p.norm() - len);
@@ -386,7 +387,7 @@ public class Transrotator3d extends Dragger3dBase {
 
       // now check if the mouse is on any of the planes. If true,
       // then return the selected plane closest to the user.
-      len = myPlaneBoxRelativeSize * mySize;
+      len = myPlaneBoxRelativeSize * size;
       minDist = Double.POSITIVE_INFINITY;
 
       d = draggerRay.intersectPlane (p, xyPlane);
@@ -493,7 +494,7 @@ public class Transrotator3d extends Dragger3dBase {
       }
       double mag = p.norm();
       if (mag != 0) {
-         p.scale (myRotatorRelativeSize * mySize / mag);
+         p.scale (myRotatorRelativeSize * getNetSize() / mag);
       }
    }
 

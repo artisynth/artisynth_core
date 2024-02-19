@@ -70,7 +70,7 @@ public class Rotator3d extends Dragger3dBase {
 
       Shading savedShading = renderer.setShading (Shading.NONE);
       renderer.setLineWidth(myLineWidth);
-      renderer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(getNetSize());
       
       if (renderObject == null || !renderObject.isValid()) {
          renderObject = createRotatorRenderable();
@@ -209,22 +209,23 @@ public class Rotator3d extends Dragger3dBase {
       // the closest rotator if it is.
       int axis = NONE;
 
+      double size = getNetSize();
       d = draggerRay.intersectPlane (p, yzPlane);
-      tempDist = Math.abs (p.norm() - mySize);
+      tempDist = Math.abs (p.norm() - size);
       if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
          axis = X_AXIS;
          minDist = tempDist;
       }
 
       d = draggerRay.intersectPlane (p, zxPlane);
-      tempDist = Math.abs (p.norm() - mySize);
+      tempDist = Math.abs (p.norm() - size);
       if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
          axis = Y_AXIS;
          minDist = tempDist;
       }
 
       d = draggerRay.intersectPlane (p, xyPlane);
-      tempDist = Math.abs (p.norm() - mySize);
+      tempDist = Math.abs (p.norm() - size);
       if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
          axis = Z_AXIS;
       }
@@ -263,7 +264,7 @@ public class Rotator3d extends Dragger3dBase {
       }
       double mag = p.norm();
       if (mag != 0) {
-         p.scale (mySize / mag);
+         p.scale (getNetSize() / mag);
       }
    }
 

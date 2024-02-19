@@ -560,8 +560,9 @@ public class MeshFactory {
 
    /**
     * Adds a toroidal section to an existing mesh. The section lies in the
-    * x-y plane and curves about the z-axis for an angular distance of
-    * <code>maxthe</code>, with the starting end aligned with the x-z plane.
+    * x-y plane and curves about the z-axis between the angles 
+    * <code>minthe</code> and <code>maxthe</code> with respect to the
+    * postive x axis.
     * The major radius from the z axis to the center of the tube is given by
     * <code>rmajor</code>, and the minor radius of the tube section itself is
     * given by <code>rminor</code>.
@@ -572,9 +573,12 @@ public class MeshFactory {
     * @param mesh existing mesh to add the section to
     * @param rmajor major radius of bending about the z axis
     * @param rminor minor radius of the tube
+    * @param minthe minimum bending angle about the z axis
     * @param maxthe maximum bending angle about the z axis
     * @param nmajor number of slices along the major radius
     * @param nminor number of slices along the minor radius
+    * @param capmin if {@code true}, cap the end at {@code minthe}
+    * @param capmax if {@code true}, cap the end at {@code maxthe}
     * @param XLM transform from the local coordinate frame L to mesh
     * coordinates M.
     * @param vtxMap spatial hash map storing all existing vertices in the
@@ -582,8 +586,9 @@ public class MeshFactory {
     * map and to the mesh.
     */
    public static void addQuadToroidalSection (
-      PolygonalMesh mesh, double rmajor, double rminor, double maxthe,
-      int nmajor, int nminor, RigidTransform3d XLM, VertexMap vtxMap) {
+      PolygonalMesh mesh, double rmajor, double rminor, double minthe,
+      double maxthe, int nmajor, int nminor, boolean capmin, boolean capmax,
+      RigidTransform3d XLM, VertexMap vtxMap) {
 
       double PI_TIMES_2 = 2*Math.PI;
 
@@ -596,15 +601,16 @@ public class MeshFactory {
       if (rmajor <= rminor) {
          throw new IllegalArgumentException ("rmajor must be greater than rminor");
       }
-      if (Math.abs(maxthe-PI_TIMES_2) < EPS) {
-         maxthe = PI_TIMES_2;
+      double rngthe = maxthe - minthe;
+      if (Math.abs(rngthe-PI_TIMES_2) < EPS) {
+         rngthe = PI_TIMES_2;
       }
 
-      double ct0 = 1.0;
-      double st0 = 0.0;
+      double ct0 = Math.cos (minthe);
+      double st0 = Math.sin (minthe);
       for (int i=1; i<=nmajor; i++) {
-         double ct1 = Math.cos (i*maxthe/nmajor);
-         double st1 = Math.sin (i*maxthe/nmajor);
+         double ct1 = Math.cos (minthe + i*rngthe/nmajor);
+         double st1 = Math.sin (minthe + i*rngthe/nmajor);
 
          double cp0 = 1.0;
          double sp0 = 0.0;
@@ -631,10 +637,48 @@ public class MeshFactory {
          ct0 = ct1;
          st0 = st1;
       }
+      if (capmin || capmax) {
+         // create min end cap vertex
+         Vertex3d vmin = null;
+         Vertex3d vmax = null;
+         double cmin = Math.cos (minthe);
+         double smin = Math.sin (minthe);
+         double cmax = Math.cos (maxthe);
+         double smax = Math.sin (maxthe);
+         if (capmin) {
+            vmin = vtxMap.getOrCreate (mesh, rmajor*cmin, rmajor*smin, 0, XLM);
+         }
+         if (capmax) {
+            vmax = vtxMap.getOrCreate (mesh, rmajor*cmax, rmajor*smax, 0, XLM);
+         }
+         double cp0 = 1.0;
+         double sp0 = 0.0;
+         for (int j=1; j<=nminor; j++) {
+            double cp1 = Math.cos (j*PI_TIMES_2/nminor);
+            double sp1 = Math.sin (j*PI_TIMES_2/nminor);
+
+            double r0 = rmajor+cp0*rminor;
+            double r1 = rmajor+cp1*rminor;
+
+            Vertex3d v0, v1;
+            if (capmin) {
+               v0 = vtxMap.getOrCreate (mesh, r0*cmin, r0*smin, sp0*rminor, XLM);
+               v1 = vtxMap.getOrCreate (mesh, r1*cmin, r1*smin, sp1*rminor, XLM);
+               mesh.addFace (vmin, v0, v1);
+            }
+            if (capmax) {
+               v0 = vtxMap.getOrCreate (mesh, r0*cmax, r0*smin, sp0*rminor, XLM);
+               v1 = vtxMap.getOrCreate (mesh, r1*cmax, r1*smin, sp1*rminor, XLM);
+               mesh.addFace (vmax, v1, v0);
+            }
+            cp0 = cp1;
+            sp0 = sp1;
+         }
+      }
    }
 
    /**
-    * Creates a toroidal section. The section lies in the x-y plane and
+    * Creates a quad toroidal section. The section lies in the x-y plane and
     * curves about the z-axis for an angular distance of <code>maxthe</code>,
     * with the starting end aligned with the x-z plane. For additional
     * information, see the documentation for {@link #addQuadToroidalSection}.
@@ -648,14 +692,63 @@ public class MeshFactory {
    public static PolygonalMesh createQuadToroidalSection (
       double rmajor, double rminor, double maxthe, int nmajor, int nminor) {
 
+      return createQuadToroidalSection (
+         rmajor, rminor, /*minthe=*/0, maxthe, nmajor, nminor,
+         /*capmin=*/false, /*capmax=*/false);
+   }
+
+   /**
+    * Creates a quad toroidal section. The section lies in the x-y plane and
+    * curves about the z-axis between {@code minthe} and {@code maxthe} with
+    * respect to the x axis. For additional information, see the documentation
+    * for {@link #addQuadToroidalSection}.
+    *
+    * @param rmajor major radius of bending about the z axis
+    * @param rminor minor radius of the tube
+    * @param minthe minimum bending angle about the z axis
+    * @param maxthe maximum bending angle about the z axis
+    * @param nmajor number of slices along the major radius
+    * @param nminor number of slices along the minor radius
+    * @param capmin if {@code true}, cap the end at {@code minthe}
+    * @param capmax if {@code true}, cap the end at {@code maxthe}
+    */
+   public static PolygonalMesh createQuadToroidalSection (
+      double rmajor, double rminor, double minthe, double maxthe,
+      int nmajor, int nminor, boolean capmin, boolean capmax) {
+
       double tol = computeToroidalTolerance (
          rmajor, rminor, maxthe, nmajor, nminor);
 
       VertexMap vtxMap = new VertexMap (tol);
       PolygonalMesh mesh = new PolygonalMesh();
       addQuadToroidalSection (
-         mesh, rmajor, rminor, maxthe, nmajor, nminor,
+         mesh, rmajor, rminor, minthe, maxthe, nmajor, nminor, capmin, capmax,
          RigidTransform3d.IDENTITY, vtxMap);
+      return mesh;
+   }
+
+   /**
+    * Creates a triangular toroidal section. The section lies in the x-y plane 
+    * and curves about the z-axis between {@code minthe} and {@code maxthe} with
+    * respect to the x axis. For additional information, see the documentation
+    * for {@link #addQuadToroidalSection}.
+    *
+    * @param rmajor major radius of bending about the z axis
+    * @param rminor minor radius of the tube
+    * @param minthe minimum bending angle about the z axis
+    * @param maxthe maximum bending angle about the z axis
+    * @param nmajor number of slices along the major radius
+    * @param nminor number of slices along the minor radius
+    * @param capmin if {@code true}, cap the end at {@code minthe}
+    * @param capmax if {@code true}, cap the end at {@code maxthe}
+    */
+   public static PolygonalMesh createToroidalSection (
+      double rmajor, double rminor, double minthe, double maxthe,
+      int nmajor, int nminor, boolean capmin, boolean capmax) {
+
+      PolygonalMesh mesh = createQuadToroidalSection (
+         rmajor, rminor, minthe, maxthe, nmajor, nminor, capmin, capmax);
+      mesh.triangulate();
       return mesh;
    }
 
@@ -714,11 +807,13 @@ public class MeshFactory {
       XLM.p.set (xlen/2, 0, 0);
       XLM.R.setRpy (-Math.PI/2, 0, 0);
       addQuadToroidalSection (
-         mesh, rmajor, rminor, Math.PI, nmajor, nminor, XLM, vtxMap);
+         mesh, rmajor, rminor, 0, Math.PI,
+         nmajor, nminor, /*capmin=*/false, /*capmax=*/false, XLM, vtxMap);
       XLM.p.set (-xlen/2, 0, 0);
       XLM.R.setRpy (Math.PI/2, 0, 0);
       addQuadToroidalSection (
-         mesh, rmajor, rminor, Math.PI, nmajor, nminor, XLM, vtxMap);
+         mesh, rmajor, rminor, 0, Math.PI,
+         nmajor, nminor, /*capmin=*/false, /*capmax=*/false, XLM, vtxMap);
 
       double outerChordLen = 2*(rmajor+rminor)*Math.sin(Math.PI/(nmajor));
       int nx = (int)Math.ceil(xlen/outerChordLen);

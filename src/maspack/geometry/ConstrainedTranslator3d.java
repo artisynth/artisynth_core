@@ -71,7 +71,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       renderer.pushModelMatrix();
       Vector3d t = myXDraggerToWorld.p;
       renderer.translateModelMatrix(t.x, t.y, t.z);
-      renderer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(getNetSize());
       
       if (renderObject == null) {
          renderObject = createRenderable(); 
@@ -238,21 +238,22 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
       Point3d p = new Point3d();
 
       // check axes first
-
+      double size = getNetSize();
+      
       l = xAxis.nearestPoint (p, draggerRay);
-      if (l >= -mySize && l <= mySize) {
+      if (l >= -size && l <= size) {
          if (draggerRay.distance (p) < lineDist) {
             return true;
          }
       }
       l = yAxis.nearestPoint (p, draggerRay);
-      if (l >= -mySize && l <= mySize) {
+      if (l >= -size && l <= size) {
          if (draggerRay.distance (p) < lineDist) {
             return true;
          }
       }
       l = zAxis.nearestPoint (p, draggerRay);
-      if (l >= -mySize && l <= mySize) {
+      if (l >= -size && l <= size) {
          if (draggerRay.distance (p) < lineDist) {
             return true;
          }

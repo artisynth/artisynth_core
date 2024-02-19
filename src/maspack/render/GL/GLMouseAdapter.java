@@ -66,8 +66,7 @@ public class GLMouseAdapter implements GLMouseListener {
    
    private int draggerConstrainMask = MouseEvent.SHIFT_DOWN_MASK;
    private int draggerDragMask = InputEvent.BUTTON1_DOWN_MASK;
-   protected int draggerRepositionMask = 
-      (InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
+   protected int draggerRepositionMask = InputEvent.CTRL_DOWN_MASK;
 
    private int ellipticCursorResizeMask =
       (MouseEvent.BUTTON1_DOWN_MASK |
@@ -158,7 +157,7 @@ public class GLMouseAdapter implements GLMouseListener {
       Dragger3d drawTool = viewer.getDrawTool();
       int mods = e.getModifiersEx() & ALL_MODIFIERS;
       boolean grabbed = false;
-
+      
       List<Dragger3d> draggers = viewer.getAllDraggers();
       if (draggers.size() > 0 || drawTool != null) {
          MouseRayEvent rayEvt = MouseRayEvent.create (e, viewer);
@@ -224,12 +223,15 @@ public class GLMouseAdapter implements GLMouseListener {
       if ((mods & draggerConstrainMask) == draggerConstrainMask) {
          draggerFlags |= Dragger3d.CONSTRAIN;
       }
-      if ((mods & draggerRepositionMask) == draggerRepositionMask) {
-         draggerFlags |= Dragger3d.REPOSITION;
-         dragMode = Dragger3d.DragMode.REPOSITION;
-      } else if ((mods & draggerDragMask) == draggerDragMask) {
-         dragMode = Dragger3d.DragMode.DRAG;
-      }
+      if ((mods & draggerDragMask) == draggerDragMask) {
+         if ((mods & draggerRepositionMask) == draggerRepositionMask) {
+            draggerFlags |= Dragger3d.REPOSITION;
+            dragMode = Dragger3d.DragMode.REPOSITION;
+         }
+         else {
+            dragMode = Dragger3d.DragMode.DRAG;
+         }
+      } 
       
       dragger.setDragMode(dragMode);
       dragger.setFlags(draggerFlags);
@@ -237,7 +239,6 @@ public class GLMouseAdapter implements GLMouseListener {
    }
    
    public void mousePressed (MouseEvent e) {
-
       int mask = (e.getModifiersEx() & ALL_MODIFIERS);
       int selectionMask = getSelectionButtonMask();
 
@@ -310,7 +311,6 @@ public class GLMouseAdapter implements GLMouseListener {
    }
 
    public void mouseReleased (MouseEvent e) {
-      
       // End any dragger modes
       Dragger3d drawTool = viewer.getDrawTool();
       boolean grabbed = false;
@@ -763,8 +763,7 @@ public class GLMouseAdapter implements GLMouseListener {
 
       setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);      
       setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
-      setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
-         | InputEvent.ALT_DOWN_MASK);
+      setDraggerRepositionMask(InputEvent.ALT_DOWN_MASK);
    }
 
 }

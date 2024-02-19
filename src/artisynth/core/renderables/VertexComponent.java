@@ -166,4 +166,9 @@ public class VertexComponent extends RenderableComponentBase implements
       }
    }
 
+   public double distance (VertexComponent vc) {
+      return myVertex.distance (vc.myVertex);
+   }
+
 }
+

@@ -18,6 +18,7 @@ public abstract class Dragger3dBase extends DragToolBase {
    protected boolean myVisibleP;
    //protected boolean myMovableP = true;
    protected double mySize = 1;
+   protected double mySizeScale = 1;
    protected int myLineWidth = 2;
    protected LinkedList<Dragger3dListener> myListeners;
 
@@ -29,6 +30,7 @@ public abstract class Dragger3dBase extends DragToolBase {
       //mySelectedP = false;
       myVisibleP = true;
       mySize = 1;
+      mySizeScale = 1;
    }
 
    public void addListener (Dragger3dListener l) {
@@ -148,6 +150,22 @@ public abstract class Dragger3dBase extends DragToolBase {
       return mySize;
    }
 
+   public void scaleSize (double s) {
+      mySizeScale *= s;
+   }
+
+   public double getSizeScale () {
+      return mySizeScale;
+   }
+   
+   public void setSizeScale (double s) {
+      mySizeScale = s;
+   }
+   
+   public double getNetSize() {
+      return mySizeScale*mySize;
+   }
+
    public boolean mouseClicked (MouseRayEvent e) {
       return false;
    }
@@ -203,13 +221,14 @@ public abstract class Dragger3dBase extends DragToolBase {
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d pnt = new Point3d (myXDraggerToWorld.p);
-      pnt.x -= mySize;
-      pnt.y -= mySize;
-      pnt.z -= mySize;
+      double size = getNetSize();
+      pnt.x -= size;
+      pnt.y -= size;
+      pnt.z -= size;
       pnt.updateBounds (pmin, pmax);
-      pnt.x += 2 * mySize;
-      pnt.y += 2 * mySize;
-      pnt.z += 2 * mySize;
+      pnt.x += 2 * size;
+      pnt.y += 2 * size;
+      pnt.z += 2 * size;
       pnt.updateBounds (pmin, pmax);
    }
 
@@ -272,7 +291,7 @@ public abstract class Dragger3dBase extends DragToolBase {
          }
       }
       else {
-         return mySize/10;
+         return getNetSize()/10;
       }
    }
 }

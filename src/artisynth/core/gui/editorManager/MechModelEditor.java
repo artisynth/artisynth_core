@@ -17,6 +17,7 @@ import artisynth.core.driver.Main;
 import artisynth.core.gui.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.modelbase.*;
+import artisynth.core.renderables.VertexComponent;
 import artisynth.core.gui.selectionManager.SelectionManager;
 
 import javax.swing.*;
@@ -139,6 +140,12 @@ public class MechModelEditor extends EditorBase {
          if (MechModel.lowestCommonModel (
                 selection.get (0), selection.get (1)) != null) {
             actions.add (this, "Add AxialSpring ...", EXCLUSIVE);
+            actions.add (this, "Compute distance");
+         }
+      }
+      else if (containsDoubleSelection (selection, VertexComponent.class)) {
+         if (MechModel.lowestCommonModel (
+                selection.get (0), selection.get (1)) != null) {
             actions.add (this, "Compute distance");
          }
       }
@@ -280,6 +287,13 @@ public class MechModelEditor extends EditorBase {
          }
          else if (actionCommand == "Compute distance") {
             System.out.printf ("distance = %g\n", pointB.distance (pointA));
+         }
+      }
+      else if (containsDoubleSelection (selection, VertexComponent.class)) {
+         VertexComponent vtxB = (VertexComponent)selection.get (0);
+         VertexComponent vtxA = (VertexComponent)selection.get (1);
+         if (actionCommand == "Compute distance") {
+            System.out.printf ("distance = %g\n", vtxB.distance (vtxA));
          }
       }
       else {

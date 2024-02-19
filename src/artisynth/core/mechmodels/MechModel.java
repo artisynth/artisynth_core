@@ -1570,8 +1570,8 @@ TransformableGeometry, ScalableUnits {
       myRenderables.add (rb);
    }
 
-   public void removeRenderable (RenderableComponent rb) {
-      myRenderables.remove (rb);
+   public boolean removeRenderable (RenderableComponent rb) {
+      return myRenderables.remove (rb);
    }
 
    public void clearRenderables() {

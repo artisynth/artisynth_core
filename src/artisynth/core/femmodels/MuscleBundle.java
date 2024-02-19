@@ -36,6 +36,7 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.AxialMuscleMaterial;
+import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.SimpleAxialMuscle;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.GenericMuscle;
@@ -550,11 +551,23 @@ public class MuscleBundle extends CompositeComponentBase
       return myFibres;
    }
 
-   public Muscle addFibre (Point p0, Point p1, AxialMuscleMaterial mat) {
+   public Muscle addFibre (Point p0, Point p1, AxialMaterial mat) {
       
       Muscle fibre = new Muscle();
       fibre.setPoints(p0, p1);
       fibre.setRestLength(p0.distance(p1));
+      fibre.setMaterial(mat);
+      addFibre(fibre);
+      
+      return fibre;
+      
+   }
+   
+   public Muscle addFibre (Point p0, Point p1, AxialMaterial mat, double l0) {
+      
+      Muscle fibre = new Muscle();
+      fibre.setPoints(p0, p1);
+      fibre.setRestLength(l0);
       fibre.setMaterial(mat);
       addFibre(fibre);
       

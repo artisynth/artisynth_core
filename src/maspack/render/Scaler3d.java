@@ -80,7 +80,7 @@ public class Scaler3d extends Dragger3dBase {
          renderer.setPointSize(1);
       }
       
-      renderer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(getNetSize());
 
       if (renderObject == null) {
          renderObject = createScalerRenderable();
@@ -191,27 +191,28 @@ public class Scaler3d extends Dragger3dBase {
 
       // check axes first
 
+      double size = getNetSize();
       l = xAxis.nearestPoint (p, draggerRay);
-      if (l >= 0 && l <= mySize) {
+      if (l >= 0 && l <= size) {
          if (draggerRay.distance (p) < lineDist) {
             return X_AXIS;
          }
       }
       l = yAxis.nearestPoint (p, draggerRay);
-      if (l >= 0 && l <= mySize) {
+      if (l >= 0 && l <= size) {
          if (draggerRay.distance (p) < lineDist) {
             return Y_AXIS;
          }
       }
       l = zAxis.nearestPoint (p, draggerRay);
-      if (l >= 0 && l <= mySize) {
+      if (l >= 0 && l <= size) {
          if (draggerRay.distance (p) < lineDist) {
             return Z_AXIS;
          }
       }
 
       // now check planes
-      double len = myPlaneBoxRelativeSize * mySize;
+      double len = myPlaneBoxRelativeSize * size;
       d = draggerRay.intersectPlane (p, xyPlane);
       if (d != inf && p.x >= 0 && p.x <= len && p.y >= 0 && p.y <= len) {
          return XY_PLANE;

@@ -315,6 +315,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }      
    };
 
+   /**
+    * Information about offests and resizing for a manipulator frame.
+    */
+   class DraggerFrameInfo {
+      RigidTransform3d myTOFF = new RigidTransform3d();
+      double mySizeScale = 1;
+   }
+
    private SelectionMode mySelectionMode;
    public static boolean DEFAULT_ARTICULATED_TRANSFORMS = false;
    private boolean myArticulatedTransformsP = DEFAULT_ARTICULATED_TRANSFORMS;
@@ -332,8 +340,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    private Dragger3dBase currentDragger;
    private LinkedList<ModelComponent> myDraggableComponents =
       new LinkedList<ModelComponent>();
-   private HashMap<HasCoordinateFrame,RigidTransform3d>
-      myDraggerFrameOffsetMap = new HashMap<>();
+   private HashMap<ModelComponent,DraggerFrameInfo>
+      myDraggerFrameInfoMap = new HashMap<>();
 
    /**
     * Filter to determine classes which belong to artisynth_core.
@@ -1913,7 +1921,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.clearRenderables();
          myViewerManager.render();         // refresh the rendering lists
       }
-      myDraggerFrameOffsetMap.clear();
+      myDraggerFrameInfoMap.clear();
       
       // free up as much space as possible before loading next model
       System.gc();
@@ -4117,18 +4125,21 @@ public class Main implements DriverInterface, ComponentChangeListener {
       public void draggerRepositioned (Dragger3dEvent e) {
          if (e.getTransform() instanceof RigidTransform3d &&
             myDraggableComponents.size() == 1) {
-            Dragger3dBase dragger = (Dragger3dBase)e.getSource();
+
             ModelComponent comp = myDraggableComponents.get(0);
-            if (comp instanceof HasCoordinateFrame) {
-               HasCoordinateFrame fcomp = (HasCoordinateFrame)comp;
-               RigidTransform3d TNB = (RigidTransform3d)e.getTransform();
-               RigidTransform3d TDW = dragger.getDraggerToWorld();
-               RigidTransform3d TCW = new RigidTransform3d();
-               fcomp.getPose (TCW);
-               RigidTransform3d TOFF = new RigidTransform3d();
-               TOFF.mulInverseLeft (TCW, TDW);
-               myDraggerFrameOffsetMap.put (fcomp, TOFF);
+            RigidTransform3d TDW = currentDragger.getDraggerToWorld();
+            RigidTransform3d TCW = new RigidTransform3d();
+            computeDraggerToWorld (
+               TCW, myDraggableComponents, currentDragger);
+
+            RigidTransform3d TOFF = new RigidTransform3d();
+            TOFF.mulInverseLeft (TCW, TDW);
+            DraggerFrameInfo finfo = myDraggerFrameInfoMap.get (comp);
+            if (finfo == null) {
+               finfo = new DraggerFrameInfo();
+               myDraggerFrameInfoMap.put (comp, finfo);
             }
+            finfo.myTOFF.set (TOFF);
          }
       }
    }
@@ -4225,14 +4236,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (dragger != null) {
          TDW.set (dragger.getDraggerToWorld());
       }
+      DraggerFrameInfo finfo = null;
+      if (draggables.size() == 1) {
+         finfo = myDraggerFrameInfoMap.get (draggables.get(0));
+      }
       if (draggables.size() == 1 &&
           draggables.get(0) instanceof HasCoordinateFrame) {
-         // there is only one component, and it has a coordinate frame
+         // there is only one component and it has a coordinate frame
          HasCoordinateFrame hasFrame = (HasCoordinateFrame)draggables.get(0);
          hasFrame.getPose (TDW);
-         RigidTransform3d TOFF = myDraggerFrameOffsetMap.get (hasFrame);
-         if (TOFF != null) {
-            TDW.mul (TOFF);
+         if (finfo != null) {
+            TDW.mul (finfo.myTOFF);
          }
          if (dragger == null && getInitDraggersInWorldCoords()) {
             TDW.R.setIdentity();
@@ -4248,7 +4262,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
                positions.add (((Point)c).getPosition());
             }
             else if (c instanceof VertexComponent) {
-               positions.add (((VertexComponent)c).getPosition());
+               positions.add (((VertexComponent)c).getWorldPosition());
             }
             else {
                positions = null;
@@ -4273,7 +4287,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (!frameDetermined) {
             TDW.p.add (pmin, pmax);
             TDW.p.scale (0.5);
+            if (finfo != null) {
+               TDW.mul (finfo.myTOFF);
+            }
          }
+      }
+      if (finfo != null) {
+         radius *= finfo.mySizeScale;
       }
       return radius;
    } 
@@ -4318,20 +4338,102 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
    
-   public void clearDraggerFrameOffset () {
+   public void clearDraggerFrameInfo() {
       if (currentDragger != null && 
-          !currentDragger.isDragging() &&
-          myDraggableComponents.size() == 1) {
-         ModelComponent comp = myDraggableComponents.get(0);
-         if (comp instanceof HasCoordinateFrame) {
-            HasCoordinateFrame fcomp = (HasCoordinateFrame)comp;
-            myDraggerFrameOffsetMap.remove (fcomp);
-            RigidTransform3d TDW = new RigidTransform3d();
-            computeDraggerToWorld (
-               TDW, myDraggableComponents, currentDragger);
-            currentDragger.setDraggerToWorld (TDW);
-            rerender();
+          !currentDragger.isDragging()) {
+         if (myDraggableComponents.size() == 1) {
+            ModelComponent comp = myDraggableComponents.get(0);
+            myDraggerFrameInfoMap.remove (comp);               
          }
+         RigidTransform3d TDW = new RigidTransform3d();
+         computeDraggerToWorld (TDW, myDraggableComponents, null);
+         currentDragger.setDraggerToWorld (TDW);
+         currentDragger.setSizeScale (1);
+         rerender();
+      }
+   }
+
+   public void scaleDraggerSize (double s) {
+      if (currentDragger != null) {
+         double sizeScale = s*currentDragger.getSizeScale();
+         currentDragger.setSizeScale (sizeScale);
+         if (myDraggableComponents.size() == 1) {
+            ModelComponent comp = myDraggableComponents.get(0);
+            DraggerFrameInfo finfo = myDraggerFrameInfoMap.get (comp);
+            if (finfo == null) {
+               finfo = new DraggerFrameInfo();
+               myDraggerFrameInfoMap.put (comp, finfo);
+            }
+            finfo.mySizeScale = sizeScale;
+         }
+         rerender();
+      }
+   }
+
+   public void flipDraggerAxesForward () {
+      if (currentDragger != null) {
+         RigidTransform3d TDW =
+            new RigidTransform3d(currentDragger.getDraggerToWorld());
+         RigidTransform3d TDE = new RigidTransform3d();
+         TDE.mul (getViewer().getViewMatrix(), TDW);
+         
+         final int FLIP_X = 0x1;
+         final int FLIP_Y = 0x2;
+         final int FLIP_Z = 0x4;
+
+         int flipCode = 0;
+         if (TDE.R.m20 < 0) flipCode |= FLIP_X;
+         if (TDE.R.m21 < 0) flipCode |= FLIP_Y;
+         if (TDE.R.m22 < 0) flipCode |= FLIP_Z;
+         if (flipCode == 0) {
+            return;
+         }
+         RigidTransform3d TFLIP = new RigidTransform3d();
+
+         System.out.println ("flipCode=" + flipCode);
+         switch (flipCode) {
+            case FLIP_X: {
+               TFLIP.R.set (0, 0, -1,  0, 1, 0,  1, 0, 0);
+               break;
+            }
+            case FLIP_Y: {
+               TFLIP.R.set (0, 1, 0,  -1, 0, 0,  0, 0, 1);
+               break;
+            }
+            case FLIP_Z: {
+               TFLIP.R.set (1, 0, 0,  0, 0, 1,  0, -1, 0);
+               break;
+            }
+            case FLIP_X | FLIP_Y: {
+               TFLIP.R.set (-1, 0, 0,  0, -1, 0,  0, 0, 1);
+               break;
+            }
+            case FLIP_Y | FLIP_Z: {
+               TFLIP.R.set (1, 0, 0,  0, -1, 0,  0, 0, -1);
+               break;
+            }
+            case FLIP_Z | FLIP_X: {
+               TFLIP.R.set (-1, 0, 0,  0, 1, 0,  0, 0, -1);
+               break;
+            }
+            case FLIP_X | FLIP_Y | FLIP_Z: {
+               TFLIP.R.set (-1, 0, 0,  0, 0, -1,  0, -1, 0);
+               break;
+            }
+         }
+         TDW.mul (TFLIP);
+         currentDragger.setDraggerToWorld (TDW);
+         if (myDraggableComponents.size() == 1) {
+            // store the offset 
+            ModelComponent comp = myDraggableComponents.get(0);
+            DraggerFrameInfo finfo = myDraggerFrameInfoMap.get (comp);
+            if (finfo == null) {
+               finfo = new DraggerFrameInfo();
+               myDraggerFrameInfoMap.put (comp, finfo);
+            }
+            finfo.myTOFF.mul (TFLIP);
+         }
+         rerender();
       }
    }
 

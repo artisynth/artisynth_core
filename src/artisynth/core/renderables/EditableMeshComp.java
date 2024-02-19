@@ -129,7 +129,6 @@ public class EditableMeshComp extends RenderableComponentBase
    public void updateVertices() { // XXX
       myVertexList.clear();
       MeshBase mesh = getMesh();
-      System.out.println ("mesh=" + mesh);
       if (mesh == null) {
          return;
       }

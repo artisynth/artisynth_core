@@ -65,7 +65,7 @@ public class Jack3d extends Dragger3dBase {
       myPnt0.get(coords);
       renderer.drawPoint(coords);
 
-      renderer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(getNetSize());
 
       if (renderObject == null) {
          renderObject = createJackRenderable();
@@ -228,24 +228,25 @@ public class Jack3d extends Dragger3dBase {
       Point3d p = new Point3d();
 
       // check axes first
+      double size = getNetSize();
 
       l = xAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= -mySize && l <= mySize && tempDist < lineDist) {
+      if (l >= -size && l <= size && tempDist < lineDist) {
          resultAxisOrPlane = X_AXIS;
          minDist = tempDist;
       }
 
       l = yAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >=-mySize && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+      if (l >=-size && l <= size && tempDist < lineDist && tempDist < minDist) {
          resultAxisOrPlane = Y_AXIS;
          minDist = tempDist;
       }
 
       l = zAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= -mySize && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+      if (l >= -size && l <= size && tempDist < lineDist && tempDist < minDist) {
          resultAxisOrPlane = Z_AXIS;
          minDist = tempDist;
       }
@@ -256,24 +257,23 @@ public class Jack3d extends Dragger3dBase {
 
       // now check rotators, and if there is any that are selected and
       // closer to the mouse than any of the axes, then select it.
-      double len = mySize;
 
       d = draggerRay.intersectPlane (p, yzPlane);
-      tempDist = Math.abs (p.norm() - mySize);
+      tempDist = Math.abs (p.norm() - size);
       if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
          resultAxisOrPlane = X_ROTATE;
          minDist = tempDist;
       }
 
       d = draggerRay.intersectPlane (p, zxPlane);
-      tempDist = Math.abs (p.norm() - mySize);
+      tempDist = Math.abs (p.norm() - size);
       if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
          resultAxisOrPlane = Y_ROTATE;
          minDist = tempDist;
       }
 
       d = draggerRay.intersectPlane (p, xyPlane);
-      tempDist = Math.abs (p.norm() - mySize);
+      tempDist = Math.abs (p.norm() - size);
       if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
          resultAxisOrPlane = Z_ROTATE;
       }

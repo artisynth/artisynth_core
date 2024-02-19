@@ -81,7 +81,7 @@ public class Translator3d extends Dragger3dBase {
          renderer.setPointSize(1);
       }
       
-      renderer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(getNetSize());
 
       if (renderObject == null) {
          renderObject = createTranslatorRenderable();
@@ -202,23 +202,24 @@ public class Translator3d extends Dragger3dBase {
 
       // check axes first
 
+      double size = getNetSize();
       l = xAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= 0 && l <= mySize && tempDist < lineDist) {
+      if (l >= 0 && l <= size && tempDist < lineDist) {
          resultAxisOrPlane = X_AXIS;
          minDist = tempDist;
       }
 
       l = yAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= 0 && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+      if (l >= 0 && l <= size && tempDist < lineDist && tempDist < minDist) {
          resultAxisOrPlane = Y_AXIS;
          minDist = tempDist;
       }
 
       l = zAxis.nearestPoint (p, draggerRay);
       tempDist = draggerRay.distance (p);
-      if (l >= 0 && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+      if (l >= 0 && l <= size && tempDist < lineDist && tempDist < minDist) {
          resultAxisOrPlane = Z_AXIS;
          minDist = tempDist;
       }
@@ -229,7 +230,7 @@ public class Translator3d extends Dragger3dBase {
 
       // now check if the mouse is on any of the planes. If true,
       // then return the selected plane closest to the user.
-      double len = myPlaneBoxRelativeSize * mySize;
+      double len = myPlaneBoxRelativeSize * size;
       minDist = inf;
 
       d = draggerRay.intersectPlane (p, xyPlane);

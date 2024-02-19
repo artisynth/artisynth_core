@@ -25,6 +25,8 @@ public class GenericKeyHandler implements KeyListener {
    MainFrame myMainFrame;
    SelectionManager mySelectionManager;
 
+   static final double myDraggerScaleFactor = 4/3.0;
+
    /**
     * Create a KeyHandler using a handle to Main
     */
@@ -71,12 +73,17 @@ public class GenericKeyHandler implements KeyListener {
          "  g   - toggle viewer grid\n" +
          "  l   - toggle viewer grid labels\n" +
          "\n" +
-         "Selection and manipulation:\n" +
+         "Selection:\n" +
          "  c   - clear selection\n" +
          "  d   - reset elliptical cursor size to default\n" +
+         "\n" + 
+         "Manipulator frame and sizing:\n" +
          "  w   - set current manipulator frame to world coordinates\n" +
          "  b   - set current manipulator frame to body/local coordinates\n" +
-         "  u   - set current manipulator frame to default body/local coordinates\n" +
+         "  u   - reset manipulator frame to default orientation and size\n" +
+         "  CTRL f - flip manipulator frame axes forward\n" +
+         "  CTRL u or UP_ARROW - increase manipulator size\n" +
+         "  CTRL d or DOWN_ARROW - reduce manipulator size\n" +
          "\n" +
          "Note: you need to focus on the graphics viewer to get the bindings.");
    }
@@ -85,6 +92,7 @@ public class GenericKeyHandler implements KeyListener {
     * parsing the keys typed and performing actions
     */
    public void keyTyped (KeyEvent e) {
+
       switch (e.getKeyChar()) {
          case 'q':
 
@@ -158,7 +166,19 @@ public class GenericKeyHandler implements KeyListener {
             break;
          }
          case 'u': {
-            myMain.clearDraggerFrameOffset();
+            myMain.clearDraggerFrameInfo();
+            break;
+         }
+         case '\u0015': { // ^u
+            myMain.scaleDraggerSize (myDraggerScaleFactor);
+            break;
+         }
+         case '\u0004': { // ^d
+            myMain.scaleDraggerSize (1/myDraggerScaleFactor);
+            break;
+         }
+         case 'f': {
+            myMain.flipDraggerAxesForward();
             break;
          }
          case 'c': {
@@ -200,6 +220,12 @@ public class GenericKeyHandler implements KeyListener {
       }
       else if (code == KeyEvent.VK_LEFT) {
 	 myMain.getScheduler().rewind();
+      }
+      else if (code == KeyEvent.VK_UP) {
+         myMain.scaleDraggerSize (myDraggerScaleFactor);
+      }
+      else if (code == KeyEvent.VK_DOWN) {
+         myMain.scaleDraggerSize (1/myDraggerScaleFactor);
       }
    }
 

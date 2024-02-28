@@ -667,8 +667,8 @@ public class MeshFactory {
                mesh.addFace (vmin, v0, v1);
             }
             if (capmax) {
-               v0 = vtxMap.getOrCreate (mesh, r0*cmax, r0*smin, sp0*rminor, XLM);
-               v1 = vtxMap.getOrCreate (mesh, r1*cmax, r1*smin, sp1*rminor, XLM);
+               v0 = vtxMap.getOrCreate (mesh, r0*cmax, r0*smax, sp0*rminor, XLM);
+               v1 = vtxMap.getOrCreate (mesh, r1*cmax, r1*smax, sp1*rminor, XLM);
                mesh.addFace (vmax, v1, v0);
             }
             cp0 = cp1;
@@ -4393,3 +4393,4 @@ public class MeshFactory {
    }
 
 }
+

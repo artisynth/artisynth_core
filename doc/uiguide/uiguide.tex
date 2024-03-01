@@ -2311,6 +2311,57 @@ frame that were made using the {\tt CTRL} modifier (Section
 
 \end{description}
 
+\subsubsection{Flipping transformer axes forward}
+
+Sometimes, a user may discover that a transformer's frame is
+inconveniently oriented, with one or more axes directed away from the
+viewer window, obscuring them and making the transformer difficult to
+use. This can be mitigated by hitting the 'f' key in the viewer, which will
+cause the axes of any active transformer to be flipped so that they
+are directed toward the viewer window (Figure
+\ref{transformerFlip:fig}).
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c c}
+\iflatexml
+\includegraphics[]{images/transformerUnflipped} &
+\includegraphics[]{images/transformerFlipped}
+\else
+\includegraphics[width=0.3\textwidth]{images/transformerUnflipped} &
+\includegraphics[width=0.3\textwidth]{images/transformerFlipped}
+\fi
+\end{tabular}
+\end{center}
+\caption{Translational transformer applied to a frame marker,
+with axes initialy obscured (left) and then brought
+forward after hitting the 'f' key (right).}%
+\label{transformerFlip:fig}
+\end{figure}
+
+\subsubsection{Resizing  transformers}
+
+ArtiSynth will try to automatically set a transformer's dragger
+fixture to an appropriate size. In some cases, the user may wish to
+change this size, which may be done using the following shortcut keys
+in the viewer (while a transformer tool is being used and objects are
+selected):
+
+\begin{description}
+
+\item[{\tt CTRL u} or {\tt UP\_ARROW} ]\mbox{}
+
+Increases the transformer size.
+
+\item[{\tt CTRL d} or {\tt DOWN\_ARROW} ]\mbox{}
+
+Decreases the transformer size.
+
+\end{description}
+
+The default size can be restored by hitting the 'u' key (Section
+\ref{ChangingTransformerBaseFrame:sec}).
+
 \subsection{Pull manipulation}
 \label{PullControllerSec}
 
@@ -2324,6 +2375,13 @@ frame that were made using the {\tt CTRL} modifier (Section
 Pulls on certain components using a spring-like force
 when simulation is running.
 
+Selecting the {\it pull} tool allows a user to interactively apply a
+spring-like force to certain component types by clicking on it and
+then dragging (Figure \ref{PullManipulationFig}). Double clicking on
+the component adds a {\it pull point} that persists between mouse
+clicks; to remove the pull point, double click on the viewer
+background.
+
 \begin{figure}[h]
 \begin{center}
 \iflatexml
@@ -2336,13 +2394,6 @@ when simulation is running.
 attached to a multi-point spring.}%
 \label{PullManipulationFig}
 \end{figure}
-
-Selecting the {\it pull} tool allows a user to interactively apply a
-spring-like force to certain component types by clicking on it and
-then dragging (Figure \ref{PullManipulationFig}). Double clicking on
-the component adds a {\it pull point} that persists between mouse
-clicks; to remove the pull point, double click on the viewer
-background.
 
 The pull tool works on points, rigid bodies, FEM models, or any other
 component that implements the

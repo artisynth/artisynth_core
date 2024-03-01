@@ -239,7 +239,12 @@ public class MeshBodyTest extends RootModel {
       if (true) {
          mesh = MeshFactory.createQuadDisk (1.0, 4, 30);
       }
-      
+
+      if (true) {
+         double ext = Math.toRadians(10);
+         mesh = MeshFactory. createToroidalSection (
+            1.0, 0.4, -ext, Math.PI/2, 32, 32, true, true);
+      }
       
       if (false) {
          mesh = MeshFactory.createBox (

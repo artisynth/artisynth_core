@@ -187,12 +187,13 @@ master component(s) to which it is attached.
 \end{description}
 
 \subsection{Custom axial materials}
+\label{CustomAxialMaterials:sec}
 
 Application authors may create their
 own axial materials by subclassing 
 \javaclass[artisynth.core.materials]{AxialMaterial}
 and overriding the functions
-%
+% method table
 \begin{lstlisting}[]
   double computeF (l, ldot, l0, excitation);
   double computeDFdl (l, ldot, l0, excitation);
@@ -238,7 +239,7 @@ pointDamping} and $\v_i$ is the particle's velocity.
 
 {\tt pointDamping} can be set and queried using the {\tt MechModel}
 methods
-%
+% method table
 \begin{lstlisting}[]
   setPointDamping (double d);
   double getPointDamping();
@@ -310,7 +311,7 @@ Frame markers are implemented by the class
 is a subclass of
 \javaclass[artisynth.core.mechmodels]{Point}.
 The methods
-%
+% method table
 \begin{lstlisting}[]
   Point3d getLocation();
   void setLocation (Point3d r);
@@ -327,7 +328,7 @@ generates a spatial force $\hat\f$ (Section
 %
 
 Frame markers can be created using a variety of constructors, including
-%
+% method table
 \begin{lstlisting}[]
   FrameMarker ();
   FrameMarker (String name);
@@ -340,7 +341,7 @@ FrameMarker(frame,loc)} creates an unnamed marker attached to {\tt
 frame} at the location {\tt loc} with respect to the frame's
 coordinates. Once created, a marker's frame can be set and queried
 with
-%
+% method table
 \begin{lstlisting}[]
   void setFrame (Frame frame);
   Frame getFrame (); 
@@ -348,7 +349,7 @@ with
 %
 A frame marker can be added to a \javaclass[\mech]{MechModel} with the
 {\tt MechModel} methods
-%
+% method table
 \begin{lstlisting}[]
   void addFrameMarker (FrameMarker mkr);
   void addFrameMarker (FrameMarker mkr, Frame frame, Point3d loc);
@@ -359,7 +360,7 @@ marker's location with respect to it.
 
 {\tt MechModel} also supplies convenience methods to create a
 marker, attach it to a frame, and add it to the model:
-%
+% method table
 \begin{lstlisting}[]
   FrameMarker addFrameMarker (Frame frame, Point3d loc);
   FrameMarker addFrameMarkerWorld (Frame frame, Point3d locw);
@@ -464,7 +465,7 @@ to fall and swing about under gravity.
 As illustrated above, rigid bodies can be created using factory
 methods supplied by \javaclass[artisynth.core.mechmodels]{RigidBody}.
 Some of these include:
-%
+% method table
 \begin{lstlisting}[]
   createBox (name, widthx, widthy, widthz, density);
   createCylinder (name, radius, height, density, nsides);
@@ -477,7 +478,7 @@ name} and can be specified as {\tt null}.
 
 In addition, there are also
 factory methods for creating a rigid body directly from a mesh:
-%
+% method table
 \begin{lstlisting}[]
   createFromMesh (name, mesh, density, scale);
   createFromMesh (name, meshFileName, density, scale);
@@ -514,7 +515,7 @@ constructor, and then set the mesh and inertia properties explicitly:
 
 A body's pose can be set and
 queried using the methods
-%
+% method table
 \begin{lstlisting}[]
   setPose (RigidTransform3d T);   // sets the pose to T
   getPose (RigidTransform3d T);   // gets the current pose in T
@@ -530,7 +531,7 @@ the rigid transform $\T_{AW}$.
 Rigid bodies also expose the translational and rotational components of
 their pose via the properties {\tt position} and {\tt orientation},
 which can be queried and set independently using the methods
-%
+% method table
 \begin{lstlisting}[]
   setPosition (Point3d p);       // sets the position to p
   getPosition (Point3d p);       // gets the current position in p
@@ -548,7 +549,7 @@ The velocity of a rigid body is described using a
 rotational velocities. The following methods
 set and query the spatial velocity as described with respect to world
 coordinates:
-%
+% method table
 \begin{lstlisting}[]
   setVelocity (Twist v);         // sets the spatial velocity to v
   getVelocity (Twist v);         // gets the current spatial velocity in v
@@ -578,7 +579,7 @@ and rotational inertia (with respect to the center of mass).
 
 Most rigid bodies are also associated with a polygonal surface mesh,
 which can be set and queried using the methods
-%
+% method table
 \begin{lstlisting}[]
   setSurfaceMesh (PolygonalMesh mesh);
   setSurfaceMesh (PolygonalMesh mesh, String meshFileName);
@@ -596,7 +597,7 @@ in Section \ref{rigidBodyMultipleMeshes:sec}.
 
 The inertia of a rigid body can be explicitly set using a variety
 of methods including
-%
+% method table
 \begin{lstlisting}[]
   setInertia (M)                    // set using SpatialInertia M
   setInertia (mass, Jxx, Jyy, Jzz); // mass and diagonal rotational inertia
@@ -605,7 +606,7 @@ of methods including
 \end{lstlisting}
 %
 and can be queried using 
-%
+% method table
 \begin{lstlisting}[]
   getInertia (M);                   // get SpatialInertia in M
   getInertia ();                    // return read-only SpatialInertia
@@ -646,7 +647,7 @@ determine the mass.
 \end{sideblock}
 
 The {\sf inertiaMethod} property can be set and queried using
-%
+% method table
 \begin{lstlisting}[]
   setInertiaMethod (InertiaMethod method);
   InertiaMethod getInertiaMethod();
@@ -655,7 +656,7 @@ The {\sf inertiaMethod} property can be set and queried using
 and its default value is {\tt DENSITY}. Explicitly setting the
 inertia using one of {\tt setInertia()} methods described above will
 set {\tt inertiaMethod} to {\tt EXPLICIT}. The method
-%
+% method table
 \begin{lstlisting}[]
   setInertiaFromDensity (density); 
 \end{lstlisting}
@@ -663,7 +664,7 @@ set {\tt inertiaMethod} to {\tt EXPLICIT}. The method
 will (re)compute the inertia using the mesh geometry and a density value
 and set {\tt inertiaMethod} to {\tt DENSITY}, and
 the method
-%
+% method table
 \begin{lstlisting}[]
   setInertiaFromMass (mass); 
 \end{lstlisting}
@@ -673,7 +674,7 @@ and set {\tt inertiaMethod} to {\tt MASS}.
 
 Finally, the (assumed uniform) density of the body can be queried
 using
-%
+% method table
 \begin{lstlisting}[]
    getDensity();
 \end{lstlisting}
@@ -714,7 +715,7 @@ Having the COM differ from the frame origin may lead to some undesired
 effects. For instance, since the body's spatial velocity is defined
 with respect to the frame origin and not the COM, if the two are not
 coincident, then a purely angular body velocity will cause the COM to
-translate. The body's spatial inerta also becomes more complicated,
+translate. The body's spatial inertia also becomes more complicated,
 with non-zero 3 x 3 blocks in the lower left and upper right
 (Section \ref{SpatialInertia:sec}), which can have a small effect on
 computational accuracy. Finally, manipulating a body's pose in the
@@ -762,29 +763,43 @@ which centers a mesh's vertices on its COM (assuming a uniform density):
 \label{RigidBodyDamping:sec}
 
 As with particles, it is possible to set damping parameters for rigid
-bodies.
+bodies. Damping can be specified in two different ways:
 
-{\tt MechModel} provides two properties, {\tt frameDamping} and {\tt
-rotaryDamping}, which generate a spatial force centered on each rigid
-body's coordinate frame
+\begin{enumerate}
+
+\item {\it Translational/rotational} damping which is proportional to a
+body's translational and rotational velocity;
+
+\item {\it Inertial} damping, which is  proportional to a
+body's spatial inertia multiplied by its spatial velocity.
+
+\end{enumerate}
+
+Translational/rotational damping is controlled by the {\tt
+MechModel} properties {\sf frameDamping} and {\sf rotaryDamping}, and
+generates a spatial force centered on each rigid body's coordinate
+frame given by
 %
 \begin{equation}
-\hat\f_i = \matl -d_f \v_i \\ -d_r \Bom_i \matr,
+\hat\f = - \matl d_f \v \\ d_r \Bom \matr,
 \end{equation}
 %
-where $d_f$ and $d_r$ are the {\tt frameDamping} and {\tt
-rotaryDamping} values, and $\v_i$ and $\Bom_i$ are the translational
-and angular velocity of the body's coordinate frame.
-The damping parameters can be set and queried using the {\tt MechModel}
-methods
-%
+where $d_f$ and $d_r$ are the {\sf frameDamping} and {\sf
+rotaryDamping} values, and $\v$ and $\Bom$ are the translational
+and angular velocity of the body's coordinate frame.  The damping
+parameters can be set and queried using the {\tt MechModel} methods
+% method table
 \begin{lstlisting}[]
-  setFrameDamping (double df);
-  setRotaryDamping (double dr);
-  double getFrameDamping();
-  double getRotaryDamping();
+  setFrameDamping (double df)
+  setRotaryDamping (double dr)
+  double getFrameDamping()
+  double getRotaryDamping()
 \end{lstlisting}
 %
+These damping parameters can also be set for individual bodies using
+their own (inherited) {\sf frameDamping} and {\sf rotaryDamping}
+properties.
+
 \begin{sideblock}
 For models involving rigid bodies, it is often necessary to set {\tt
 rotaryDamping} to a non-zero value because {\tt frameDamping} will
@@ -792,9 +807,42 @@ provide no damping at all when a rigid body is simply rotating about
 its coordinate frame origin.
 \end{sideblock}
 
-Frame and rotary damping can also be set for individual bodies using
-their own (inherited) {\tt frameDamping} and {\tt rotaryDamping}
-properties.
+Inertial damping is controlled by the {\tt MechModel} property {\sf
+inertialDamping}, and generates a spatial force centered on a rigid
+body's coordinate frame given by
+%
+\begin{equation}
+\hat\f = -d_I \, \M \, \hat\v, \quad \hat\v \equiv 
+\matl \v \\ \Bom \matr,
+\end{equation}
+%
+where $d_I$ is the {\sf inertialDamping}, $\M$ is the body's $6 \times
+6$ spatial inertia matrix (Section \ref{SpatialInertia:sec}), and
+$\hat\v$ is the body's spatial velocity. The inertial damping property
+can be set and queried using the {\tt MechModel} methods
+% method table
+\begin{lstlisting}[]
+  setInertialDamping (double di)
+  double getInertialDamping()
+\end{lstlisting}
+%
+This parameter can also be set for individual bodies using their own
+(inherited) {\sf inertialDamping} property.
+
+\begin{sideblock}
+Inertial damping offers two advantages over translational/rotational damping:
+\begin{enumerate}
+
+\item It is independent of the location of the body's coordinate
+frame with respect to its center of mass;
+
+\item 
+There is no need to adjust two different translational and rotational
+parameters or to consider their relative sizes, as these
+considerations are contained within the spatial inertia itself.
+
+\end{enumerate}
+\end{sideblock}
 
 \subsection{Rendering rigid bodies}
 \label{rigidBodyRendering:sec}
@@ -957,7 +1005,7 @@ As with the rendering proprieties, the {\sf axisLength} and {\sf
 axisDrawStyle} properties can be managed either interactively in the
 GUI (by selecting the body, right clicking and choosing {\sf Edit
 properties ...}), or in code, using the following methods:
-%
+% method table
 \begin{lstlisting}[]
   double getAxisLength()
   void setAxisLength (double len)
@@ -1039,7 +1087,7 @@ restore the default value.
 A boolean, which if {\tt true}, and if the mesh is a
 {\tt PolygonalMesh}, means that the mesh will take part in collision
 and wrapping interactions (Chapter \ref{ContactAndCollision:sec} and
-Seection \ref{GeneralSurfaceWrapping:sec}). The default value is {\tt true},
+Section \ref{GeneralSurfaceWrapping:sec}). The default value is {\tt true},
 and the get/set accessors have the names {\tt isCollidable()} and
 {\tt setIsCollidable()}.
 
@@ -1117,7 +1165,7 @@ or
 %
 after which they can be added or removed from the {\tt meshes} list
 using the methods
-%
+% method table
 \begin{lstlisting}[]
   void addMeshComp (RigidMeshComp mcomp)
   void addMeshComp (RigidMeshComp mcomp, int idx)
@@ -1129,7 +1177,7 @@ using the methods
 %
 It is also possible to add meshes directly to the {\tt meshes} list,
 using the methods
-%
+% method table
 \begin{lstlisting}[]
   RigidMeshComp addMesh (MeshBase mesh)
   RigidMeshComp addMesh (MeshBase mesh, boolean hasMass, boolean collidable)
@@ -1384,7 +1432,8 @@ the form
 and are added to the system's global unilateral constraint matrix
 $\N$.  They give rise to constraint forces corresponding to $\Bthe$ in
 (\ref{impulsesToForces:eqn}). A common use of unilateral constraints
-is to enforce range limits of the joint coordinates, such as
+is to enforce range limits of the joint coordinates (Section
+\ref{coordinateLimitsAndLocking:sec}), such as
 %
 \begin{equation}
 \theta_{\text{min}} \le \theta \le \theta_{\text{max}}.
@@ -1413,7 +1462,7 @@ the
 class (Section \ref{JointTypes:sec}) exports its $\theta$ coordinate
 as the property {\sf theta}, which can be accessed in the GUI, or via
 the accessor methods
-%
+% method table
 \begin{lstlisting}[]
   double getTheta()          // get theta in degrees
 
@@ -1459,7 +1508,7 @@ and complaint motion.}
 \label{jointFrames:fig}
 \end{figure}
 
-\subsection{Creating Joints}
+\subsection{Creating joints}
 \label{CreatingJoints:sec}
 
 Joint and connector components in ArtiSynth are both derived from the
@@ -1572,7 +1621,7 @@ joint types provide constructors that let the application locate
 specific joint features. These may be easier to use in some cases. For
 instance, \javaclass[artisynth.core.mechmodels]{HingeJoint} provides a
 constructor
-%
+% method table
 \begin{lstlisting}[]
    HingeJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
@@ -1582,7 +1631,7 @@ axis), with the remaining orientation of D aligned as closely as
 possible with the world.
 \javaclass[artisynth.core.mechmodels]{SphericalJoint} provides a
 constructor
-%
+% method table
 \begin{lstlisting}[]
    SphericalJoint (bodyA, bodyB, originD)
 \end{lstlisting}
@@ -1619,7 +1668,7 @@ numCoordinates()}; if this returns 0, then coordinates are not
 supported. Each coordinate has an index in the range $0 \ldots M-1$,
 where $M$ is the number of coordinates. Coordinate values can be
 queried or set using the following methods:
-%
+% method table
 \begin{lstlisting}[]
   getCoordinate (int idx)               // get coordinate value with index idx
   getCoordinates (VectorNd coords)      // get all coordinates values
@@ -1628,30 +1677,10 @@ queried or set using the following methods:
   setCoordinates (VectorNd values)      // set all coordinates values
 \end{lstlisting}
 %
-Similarly, there are methods for managing coordinate ranges:
-%
-\begin{lstlisting}[]
-  // get/set range information for coordinate with index idx
-  DoubleInterval getCoordinateRange (int idx)	
-  double getMinCoordinate (int idx)
-  double getMaxCoordinate (int idx)
-  void setCoordinateRange (idx, DoubleInterval rng)
-
-  // get/set range information in degrees for coordinate with index idx
-  DoubleInterval getCoordinateRangeDeg (int idx)
-  double getMinCoordinateDeg (int idx)
-  double getMaxCoordinateDeg (int idx)
-  void setCoordinateRangeDeg (idx, DoubleInterval rng)
-\end{lstlisting}
-%
-Range checking can be disabled by setting the range to
-$(-\inf, \inf)$, or by specifying {\tt rng} as {\tt null}, which
-implicitly does the same thing.
 
 Specific joint types usually also provide names for their joint
 coordinates, along with integer constants describing their indices
-and methods for managing their ranges and
-values. For example,
+and methods for accessing their values. For example,
 \javaclass[artisynth.core.mechmodels]{CylindricalJoint}
 supports two coordinates, $z$ and $\theta$, along with
 the following:
@@ -1664,22 +1693,17 @@ the following:
   // set/get z value and range
   double getZ()
   void setZ (double z)
-  DoubleInterval getZRange()
-  void setZRange (double min, double max)
 
   // set/get theta value and range in degrees
   double getTheta()
   void setTheta (double theta)
-  DoubleInterval getThetaRange()
-  void setThetaRange (double min, double max)
-  void setThetaRange (DoubleInterval rng)
 \end{lstlisting}
 %
-The coordinate value and range information is also exported as the
-properties {\sf z}, {\sf theta}, {\sf zRange} and {\sf thetaRange},
-allowing them to be set in the GUI. For convenience, particularly in
-GUI applications, the properties and methods controlling the value and
-range of angular coordinates generally use degrees instead of radians.
+The coordinate values are also exported as the properties {\sf z} and
+{\sf theta}, allowing them to be set in the GUI. For convenience,
+particularly in GUI applications, the properties and methods for
+controlling specific angular coordinates generally use degrees instead
+of radians.
 
 As discussed in Section \ref{JointCoordinates:sec}, unlike in some
 multibody simulation systems (such as OpenSim), joint coordinates are
@@ -1727,7 +1751,7 @@ values.
 
 To determine the $\T_{CD}$ corresponding to a particular set of
 coordinates, one may use the method
-%
+% method table
 \begin{lstlisting}[]
   void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords)
 \end{lstlisting}
@@ -1741,6 +1765,92 @@ calculate the poses from the joint coordinates. As mentioned
 above, the system will make a decision about which attached bodies are
 most ``free'' and adjust their poses accordingly. This is done in the
 example of the next section.
+
+\subsection{Coordinate limits and locking}
+\label{coordinateLimitsAndLocking:sec}
+
+It is possible to set limits on a joint coordinate's range, and also
+to lock a coordinate in place at its current value.
+
+When a joint coordinate hits either an upper or lower range limit, a
+unilateral constraint is invoked to prevent it from violating the
+limit, and remains engaged until the joint moves away from the
+limit. Each range constraint that is engaged reduces the number of
+joint DOFs by one.
+
+By default, joint range limits are usually disabled (i.e., they are
+set to $(-\inf, \inf)$). They can be queried and set, for a given
+joint with index {\tt idx}, using the methods:
+% method table
+\begin{lstlisting}[]
+  DoubleInterval getCoordinateRange (int idx)	
+  double getMinCoordinate (int idx)
+  double getMaxCoordinate (int idx)
+  void setCoordinateRange (idx, DoubleInterval rng)
+\end{lstlisting}
+%
+where range limits for angular coordinates are specified in
+radians. For convenience, the following methods are also provided
+which use degrees instead of radians for angular coordinates:
+% method table
+\begin{lstlisting}[]
+  DoubleInterval getCoordinateRangeDeg (int idx)
+  double getMinCoordinateDeg (int idx)
+  double getMaxCoordinateDeg (int idx)
+  void setCoordinateRangeDeg (idx, DoubleInterval rng)
+\end{lstlisting}
+%
+Range checking can be disabled by setting the range to
+$(-\inf, \inf)$, or by specifying {\tt rng} as {\tt null}, which
+implicitly does the same thing.
+
+\begin{sideblock}
+Ranges for angular coordinates are not limited to $\pm 180^\circ$ but
+can instead be set to larger values; the joint will continue to wrap
+until the limit is reached.
+\end{sideblock}
+
+Joint coordinates can also be {\it locked}, so that they hold their
+current value and don't move. A joint is locked using a bilateral
+constraint that prevents motion in either direction and reduces the
+joint's DOF count by one.  The following methods are available for
+querying or setting a coordinate's locked status:
+% method table
+\begin{lstlisting}[]
+  boolean isLocked (int idx)	
+  void setLocked (int idx, boolean locked)
+\end{lstlisting}
+%
+
+As with coordinate values, specific joint types usually provide
+methods for controlling the ranges and locking status of individual
+coordinates, with ranges for angular coordinates specified in degrees
+instead of radians.  For example,
+\javaclass[artisynth.core.mechmodels]{CylindricalJoint}
+supplies the methods
+% method table
+\begin{lstlisting}[]
+  // set/get z range
+  DoubleInterval getZRange()
+  void setZRange (double min, double max)
+
+  // control z locking
+  boolean isZLocked()
+  void setZLocked (boolean locked)
+
+  // set/get theta range in degrees
+  DoubleInterval getThetaRange()
+  void setThetaRange (double min, double max)
+  void setThetaRange (DoubleInterval rng)
+
+  // control theta locking
+  boolean isThetaLocked()
+  void setThetaLocked (boolean locked)
+\end{lstlisting}
+%
+The range and locking information is also exported as the properties
+{\sf zRange}, {\sf thetaRange}, {\sf zLocked}, and {\sf thetaLocked},
+allowing them to be set in the GUI.
 
 \subsection{Example: a simple hinge joint}
 \label{RigidBodyJoint:sec}
@@ -1894,7 +2004,7 @@ Applications may sometimes need to query the current constraint force
 values, typically from within a controller
 or monitor (Section \ref{ControllersAndMonitors:sec}).
 The Lagrange multipliers themselves may be obtained with
-%
+% method table
 \begin{lstlisting}[]
   void getBilateralForces (VectorNd lam)
 
@@ -1905,7 +2015,7 @@ which load the multipliers into {\tt lam} or {\tt the} and set their
 sizes to the number of bilateral or engaged unilateral
 constraints. Alternatively, one can retrieve the individual multiplier
 for the constraint indexed by {\tt idx} using
-%
+% method table
 \begin{lstlisting}[]
   double getConstraintForce (int idx);
 \end{lstlisting}
@@ -1913,7 +2023,7 @@ for the constraint indexed by {\tt idx} using
 
 Typically, it is more useful to find the spatial constraint forces
 $\f_g$ and $\f_n$, which can be obtained with respect to frame C:
-%
+% method table
 \begin{lstlisting}[]
   // place the forces in the wrench f
   void getBilateralForcesInC (Wrench f)
@@ -1926,7 +2036,7 @@ $\f_g$ and $\f_n$, which can be obtained with respect to frame C:
 %
 If the attached bodies A and B are rigid bodies, it is also possible
 to obtain the constraint wrenches experienced by those bodies:
-%
+% method table
 \begin{lstlisting}[]
   // place the forces in the wrench f
   void getBilateralForcesInA (Wrench f)
@@ -2095,7 +2205,7 @@ individual compliance values $C_i$ and damping values $D_i$ to be set
 for each of the joint's $i$ constraints. These values comprise the
 diagonal entries in the compliance and damping matrices $\C$ and $\D$,
 and can be queried and set using the methods
-%
+% method table
 \begin{lstlisting}[]
   VectorNd getCompliance()
   void setCompliance (VectorNd compliance)
@@ -2146,7 +2256,7 @@ different compliance values from those associated with rotation.  To
 make this process easier, joint components allow the setting of
 collective compliance values for their linear and rotary constraints,
 using the methods
-%
+% method table
 \begin{lstlisting}[]
   void setLinearCompliance (double c)
   double getLinearCompliance()
@@ -2170,7 +2280,7 @@ users to experimentally gain a feel for their behavior.
 
 To determine programmatically whether a particular constraint is linear
 or rotary, one can use the joint method
-%
+% method table
 \begin{lstlisting}[]
   VectorNi getConstraintFlags()
 \end{lstlisting}
@@ -2321,7 +2431,7 @@ either as lines or solid arrows. The {\sf axisLength} property has
 type {\tt double} and specifies the length with which the axes are
 drawn. As with all properties, these properties can be set either in
 the GUI, or in code using accessor methods supplied by the joint:
-%
+% method table
 \begin{lstlisting}[]
   void setAxisLength (double l)
   double getAxisLength()
@@ -2390,7 +2500,7 @@ properties (Section \ref{JointCompliance:sec}).  One can inspect the
 source code for each demo in its {\tt .java} file located in the
 folder {\tt <ARTISYNTH\_HOME>/src/artisynth/demos/mech}.
 
-\subsection{Hinge Joint}
+\subsection{Hinge joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -2435,7 +2545,7 @@ artisynth.demos.mech.HingeJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   HingeJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
@@ -2464,7 +2574,7 @@ Index & type/name & description \\
 \label{HingeConstraints:tbl}
 \end{table}
 
-\subsection{Slider Joint}
+\subsection{Slider joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -2508,7 +2618,7 @@ A demo is provided by {\tt artisynth.demos.mech.SliderJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   SliderJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
@@ -2537,7 +2647,7 @@ Index & type/name & description \\
 \label{SliderConstraints:tbl}
 \end{table}
 
-\subsection{Cylindrical Joint}
+\subsection{Cylindrical joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -2583,7 +2693,7 @@ A demo is provided by {\tt artisynth.demos.mech.CylindricalJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   CylindricalJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
@@ -2613,7 +2723,7 @@ Index & type/name & description \\
 \label{CylindricalConstraints:tbl}
 \end{table}
 
-\subsection{Slotted Hinge Joint}
+\subsection{Slotted hinge joint}
 \label{SlottedHingeJoint:sec}
 
 \begin{figure}[h]
@@ -2668,7 +2778,7 @@ bound) exceeds 0.  A demo of {\tt SlottedHingeJoint} is provided by
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   SlottedHingeJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
@@ -2698,7 +2808,7 @@ Index & type/name & description \\
 \label{SlottedHingeConstraints:tbl}
 \end{table}
 
-\subsection{Universal Joint}
+\subsection{Universal joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -2776,7 +2886,7 @@ the radius of a ball drawn around the origin of D; both are drawn
 using the {\sf faceColor} rendering property. A demo is provided by
 {\tt artisynth.demos.mech.UniversalJointDemo}.
 
-\subsection{Skewed Universal Joint}
+\subsection{Skewed universal joint}
 
 The \javaclass[artisynth.core.mechmodels]{SkewedUniversalJoint}
 (Figure \ref{SkewedUniversalJoint:fig}) is a version of the universal
@@ -2838,7 +2948,7 @@ degrees.
 Constructors for skewed universal joints take the standard forms
 described in Section \ref{CreatingJoints:sec}, with an additional
 argument at the end indicating the skew angle:
-%
+% method table
 \begin{lstlisting}[]
   SkewedUniveralJoint (bodyA, TCA, bodyB, TCB, skewAngle)
 
@@ -2848,7 +2958,7 @@ argument at the end indicating the skew angle:
 \end{lstlisting}
 %
 In addition, the constructor
-%
+% method table
 \begin{lstlisting}[]
   SkewedUniveralJoint (bodyA, bodyB, originD, rollAxis, pitchAxis)
 \end{lstlisting}
@@ -2858,7 +2968,7 @@ together with the directions of the roll and pitch axes (in world
 coordinates). Frames C and D are coincident and the skew angle is
 inferred from the angle between the axes.
 
-\subsection{Gimbal Joint}
+\subsection{Gimbal joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -2920,7 +3030,7 @@ artisynth.demos.mech.GimbalJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   GimbalJoint (bodyA, bodyB, originD)
 \end{lstlisting}
@@ -2961,7 +3071,7 @@ Index & type/name & description \\
 \label{GimbalConstraints:tbl}
 \end{table}
 
-\subsection{Spherical Joint}
+\subsection{Spherical joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -3030,7 +3140,7 @@ artisynth.demos.mech.SphericalJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   SphericalJoint (bodyA, bodyB, originD)
 \end{lstlisting}
@@ -3060,7 +3170,7 @@ Index & type/name & description \\
 \label{SphericalConstraints:tbl}
 \end{table}
 
-\subsection{Planar Joint}
+\subsection{Planar joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -3123,7 +3233,7 @@ artisynth.demos.mech.PlanarJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   PlanarJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
@@ -3154,7 +3264,7 @@ Index & type/name & description \\
 \label{PlanarConstraints:tbl}
 \end{table}
 
-\subsection{Planar Translation Joint}
+\subsection{Planar translation joint}
 
 \begin{figure}[h]
 \begin{center}
@@ -3225,7 +3335,7 @@ artisynth.demos.mech.PlanarJointDemo}.
 
 In addition to the standard constructors described in
 Section \ref{CreatingJoints:sec},
-%
+% method table
 \begin{lstlisting}[]
   PlanarTranslationJoint (bodyA, bodyB, originD, zaxis)
 \end{lstlisting}
@@ -3234,7 +3344,215 @@ creates a planar translation joint with a specified origin and $z$
 axis direction for frame D (in world coordinates), and frames C and D
 coincident.
 
-\subsection{Solid Joint}
+\subsection{Ellipsoid joint}
+
+The \javaclass[artisynth.core.mechmodels]{EllipsoidJoint} is a 4 DOF
+joint that provides similar functionality to the ellipsoidal and
+scapulothoracic joints available in OpenSim. It allows the origin of C
+to slide around on the surface of an ellipsoid centered on the origin
+of D, together with two additional rotational degrees of freedom.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{c@{\hskip .5in}c@{\hskip .5in}c}
+ \iflatexml
+   \includegraphics[width=2.333in]{images/ellipsoidJointS}&
+   \includegraphics[width=1.8n]{images/ellipsoidJointC}&
+   \includegraphics[width=2.333in]{images/EllipsoidJointDemo}
+ \else
+   \includegraphics[width=1.75in]{images/ellipsoidJointS}&
+   \includegraphics[width=1.4in]{images/ellipsoidJointC}&
+   \includegraphics[width=1.75in]{images/EllipsoidJointDemo}
+ \fi
+\end{tabular}
+\end{center}
+\caption{Ellipsoidal joint. Left: frame relationships between
+D and S (blue). Middle: frame relationships between S and C (blue).
+Right: the demo model {\tt EllipsoidJointDemo}, with
+$\psi$, $\gamma$, $\theta$ and $\phi$ set to $45^\circ$, $30^\circ$,
+$-40^\circ$, and $20^\circ$.}
+\label{EllipsoidalJoint:fig}
+\end{figure}
+
+The joint kinematics is easiest to describe in terms of an
+intermediate frame S whose origin lies on the ellipsoid surface,
+with its position controlled by two coordinates: a {\it longitude}
+angle $\psi$, and a {\it latitude} angle $\gamma$ (Figure
+\ref{EllipsoidalJoint:fig}, left). Frame C has the same origin as
+S, with two additional coordinates, $\theta$ and $\phi$ which allow it
+to rotate about S (Figure \ref{EllipsoidalJoint:fig}, middle).  If the
+transform $\T_{SD}$ from S to D and the (rotational-only) transform
+$\T_{CS}$ from C to S are given by
+%
+\begin{equation*}
+\T_{SD} = \matl \R_{SD} & \p_{SD} \\ 0 & 1 \matr
+\quad \text{and} \quad
+\T_{CS} = \matl \R_{CS} & 0 \\ 0 & 1 \matr,
+\end{equation*}
+%
+then $\T_{CD}$ is given by
+%
+\begin{equation*}
+\T_{CD} = \T_{SD} \T_{CS} =
+\matl \R_{SD} \R_{CS} & \p_{SD} \\ 0 & 1 \matr.
+\end{equation*}
+%
+The six constraints and four coordinates of the ellipsoidal joint are
+described in table \ref{EllipsoidalConstraints:tbl}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Index & type/name & description \\
+\hline
+0 & bilateral & restricts C to the ellipsoid surface and limits rotation \\
+1 & bilateral & restricts C to the ellipsoid surface and limits rotation \\
+2 & unilateral & enforces limits on the $\psi$ coordinate \\
+3 & unilateral & enforces limits on the $\gamma$ coordinate \\
+4 & unilataral & enforces limits on the $\theta$ coordinate \\
+5 & unilataral & enforces limits on the $\phi$ coordinate \\
+\hline
+\hline
+0 & $\psi$ & longitude angle for origin of S (and C) on the ellipsoid \\
+1 & $\gamma$ & latitude angle for origin of S (and C) on the ellipsoid \\
+2 & $\theta$ & first rotation of C about the $z$ axis of S \\
+3 & $\phi$ & second rotation of C about rotated $x$ (or $x'$ if $\alpha \ne 0$) \\
+\hline
+\end{tabular}
+\caption{Constraints (top) and coordinates (bottom) for the
+ellipsoidal joint.}
+\label{EllipsoidalConstraints:tbl}
+\end{table}
+
+For frame S, if $A$, $B$ and $C$ are the ellipsoid semi-axis lengths
+for the $x$, $y$, and $z$ axes, and $c_\psi$, $s_\psi$, $c_\gamma$,
+and $s_\gamma$ are the cosines and sines of $\psi$ and $\gamma$, we
+can show that
+%
+\begin{equation*}
+\p_{SD} = \matl A \, s_\gamma \\ -B \, s_\psi c_\gamma \\ C \, c_\psi c_\gamma \matr.
+\end{equation*}
+%
+For the orientation of S, the $z$ axis of S is parallel to the surface
+normal and the $x$ axis is parallel to the tangent direction imparted
+by the latitudinal velocity $\dot\gamma$.  That means $x$ and $z$
+axes are parallel to the direction vectors $\d_x$ and $\d_z$
+given by
+%
+\begin{equation}
+\d_x = \matl A \, c_\gamma \\ B \, s_\psi s_\gamma \\ -C \, c_\psi s_\gamma \matr
+\quad \text{and} \quad
+\d_z = \matl p_x/A^2 \\ p_y/B^2 \\ p_z/C^2 \matr.
+\label{xzdirections:eqn}
+\end{equation}
+%
+The columns of $\R_{SD}$ are then given by the normalized values
+of $\d_x$, $\d_z \times \d_x$, and $\d_z$, respectively.
+
+The rotation $\R_{CS}$ is formed by a rotation $\theta$ about the $z$
+axis, followed by a rotation of $\phi$ about the new $x$ axis.
+Letting $\Ct$, $\St$, $\Cp$, and $\Sp$ be the cosines and sines of
+$\theta$ and $\phi$, we then have
+%
+\begin{equation*}
+\R_{CS} = \matl 
+\Ct & -\St \Cp & \St \Sp \\
+\St & \Ct \Cp & -\Ct \Sp \\
+0 & \Sp & \Cp
+\matr.
+\end{equation*}
+%
+
+If desired, the $\phi$ rotation can instead be performed about a
+modified axis $x'$ that makes an angle $\alpha$ with respect to $x$
+in the $x$-$y$ plane. $\alpha$ is controlled by the joint's {\sf alpha}
+property (default value $0$) and corresponds to the ``winging'' angle
+of the OpenSim scapulothoracic joint. If $\alpha \ne 0$,
+$\R_{CS}$ takes the more complex form
+%
+\begin{equation*}
+\R_{CS} = \matl 
+c_0 \Ca + s_0 \Cp \Sa & c_0 \Sa - s_0 \Cp \Ca & s_0 \Sp \\
+s_0 \Ca - c_0 \Cp \Sa & s_0 \Sa + c_0 \Cp \Ca & -c_0 \Sp\\
+-\Sp \Sa & \Sp \Ca & \Cp 
+\matr
+\end{equation*}
+%
+where $c_0$, $s_0$, $\Ca$, and $\Sa$ are the cosines and sines of
+$\theta + \alpha$ and $\alpha$, respectively.
+
+Within an {\tt EllipsoidJoint}, the values and ranges for $\psi$,
+$\gamma$, $\theta$ and $\phi$ are exported by the properties {\sf
+longitude}, {\sf latitude}, {\sf theta}, {\sf phi}, {\sf
+longitudeRange}, {\sf latitudeRange}, {\sf thetaRange}, and {\sf
+phiRange}, and the coordinate indices are defined by the constants
+{\tt LONGITUDE\_IDX}, {\tt LATITUDE\_IDX}, {\tt THETA\_IDX}, and {\tt
+PHI\_IDX}.  For rendering, the property {\sf drawEllipsoid} specifies
+whether the ellipsoid surface should be drawn; if {\tt true}, it will
+be drawn using the joint's face rendering properties.  A demo is
+provided by {\tt artisynth.demos.mech.EllipsoidJointDemo}.
+
+Ellipsoid joints can be created with the following constructors:
+%
+\begin{lstlisting}[]
+  EllipsoidJoint (A, B, C, alpha, openSimCompatible)
+
+  EllipsoidJoint (rbodyA, TCA, rbodyB, TDB, A, B, C, alpha, openSimCompatible)
+
+  EllipsoidJoint (cbodyA, cbodyB, TCW, TDW, A, B, C)
+\end{lstlisting}
+%
+The first of these creates a joint that is {\it not} attached to any
+bodies; attachment can be done later using one of the {\tt
+setBodies()} methods.  Its semi-axis lengths are given by {\tt A},
+{\tt B}, and {\tt C}, its $\alpha$ angle is given by {\tt alpha}, and
+the argument {\tt openSimCompatible}, if {\tt true}, makes the joint
+kinematics compatible with OpenSim (Section \ref{OpenSimCompat:sec}).
+The second constructor creates a joint and then attaches it to rigid
+bodies {\tt rbodyA} and {\tt rbodyB}, with the specified $\T_{CA}$ and
+$\T_{DB}$ transformations. The third constructor creates a joint and
+attaches it to connectable bodies {\tt cbodyA} and {\tt cbodyB}, with
+the locations of the C and D frames specified in world coordinates by
+{\tt TCW} and {\tt TDW}.
+
+\begin{sideblock}
+Unlike in many joints, $\T_{CD}$ is {\it not} the identity when the
+joint coordinates are all $0$. That is because the origin of C must
+lie on the ellipsoid surface, and since D is at the center of the
+ellipsoid, $\T_{CD}$ can never be the identity. In particular,
+when all coordinate values are 0, $\R_{CD} = \I$ but
+$\p_{CD} = \p_{SD} = (0, 0, C)^T$.
+\end{sideblock}
+
+\subsubsection{OpenSim compatibility}
+\label{OpenSimCompat:sec}
+
+The {\tt openSimCompatible} argument in some of the joint's
+constructors makes the kinematics compatible with the ellipsoidal
+joint used by OpenSim. This means that $\R_{SD}$ is computed
+differently: in OpenSim, instead of
+using (\ref{xzdirections:eqn}), the $z$ and $x$ axis directions of
+$\R_{SD}$ are computed using
+%
+\begin{equation}
+\d_x = \matl c_\gamma \\ s_\psi s_\gamma \\ -c_\psi s_\gamma \matr
+\quad \text{and} \quad
+\d_z = \matl p_x/A \\ p_y/B \\ p_z/C \matr.
+\end{equation}
+%
+In particular, this means that the $z$ axis is only approximately
+parallel to the ellipsoid surface normal.
+
+\begin{sideblock}
+In OpenSim, the axes of the C frame of both the ellipsoid and
+scapulothoracic joints are oriented differently that those of the
+ArtiSynth joint: they are rotated by $-\pi/2$ about $z$, so that the
+$x$ and $y$ axes correspond to the $-y$ and $x$ axes of the ArtiSynth
+joint.
+\end{sideblock}
+
+\subsection{Solid joint}
 
 The \javaclass[artisynth.core.mechmodels]{SolidJoint} 
 is a 0 DOF joint that rigidly constrains C to D.  It
@@ -3345,7 +3663,7 @@ FRONT\_AND\_BACK}, so that the plane (when drawn) can be seen from
 both sides.
 
 Constructors for the {\tt PlanarConnector} include
-%
+% method table
 \begin{lstlisting}[]
   PlanarConnector (bodyA, pCA, bodyB, TDB)
 
@@ -3427,7 +3745,7 @@ $y$ axis is controlled by {\sf planeSize}.
 
 Constructors for a {\tt SegmentedPlanarConnector} are analogous to
 those used for {\tt PlanarConnector},
-%
+% method table
 \begin{lstlisting}[]
   SegmentedPlanarConnector (bodyA, pCA, bodyB, TDB, segs)
 
@@ -3749,7 +4067,7 @@ instances of \javaclass[artisynth.core.mechmodels]{PointAttachment}.
 Modeling applications do not generally handle the attachment
 components directly, but instead create them implicitly using the
 following {\tt MechModel} method:
-%
+% method table
 \begin{lstlisting}[]
   attachPoint (Point p1, PointAttachable comp);
 \end{lstlisting}
@@ -3762,7 +4080,7 @@ include rigid bodies, particles, and finite element models. The
 attachment is created based on the the current position of the point
 and component in question.  For attaching a point to a rigid body,
 another method may be used:
-%
+% method table
 \begin{lstlisting}[]
   attachPoint (Point p1, RigidBody body, Point3d loc);
 \end{lstlisting}
@@ -3775,7 +4093,7 @@ Once a point is attached, it
 will be in the {\it attached} state, as described in Section
 \ref{DynamicVsParametric:sec}.  Attachments can be removed by
 calling
-%
+% method table
 \begin{lstlisting}[]
   detachPoint (Point p1);   
 \end{lstlisting}
@@ -3897,7 +4215,7 @@ As with point attachments, modeling applications do not generally
 handle frame attachment components directly, but instead create and
 add them
 implicitly using the following {\tt MechModel} methods:
-%
+% method table
 \begin{lstlisting}[]
   attachFrame (Frame frame, FrameAttachable comp);
 
@@ -3918,7 +4236,7 @@ Once a frame is attached, it
 will be in the {\it attached} state, as described in Section
 \ref{DynamicVsParametric:sec}.  Frame attachments can be removed by
 calling
-%
+% method table
 \begin{lstlisting}[]
   detachFrame (Frame frame);   
 \end{lstlisting}
@@ -3992,6 +4310,239 @@ and initially appear as in Figure \ref{ParticleAttachment:fig}.  The
 frame attached to {\tt bodyA} is visible in the lower right corner.
 Running the model (Section \ref{LoadingAndRunning:sec}) will cause
 both bodies to fall and swing about the joint under gravity.
+
+\section{Mesh components}
+\label{MeshComponents:sec}
+
+ArtiSynth models frequently incorporate 3D mesh geometry, as defined
+by the geometry classes \javaclass[maspack.geometry]{PolygonalMesh},
+\javaclass[maspack.geometry]{PolylineMesh}, and
+\javaclass[maspack.geometry]{PointMesh} described in Section
+\ref{Meshes:sec}. Within a model, these basic classes are typically
+enclosed within container components that are subclasses of
+\javaclass[artisynth.core.mechmodels]{MeshComponent}. Commonly
+used instances of these include
+
+\begin{description}
+
+\item[\protect{\javaclass[\mech]{RigidMeshComp}}]\mbox{}
+
+Introduced in Section \ref{rigidBodyMultipleMeshes:sec}, these contain
+the mesh geometry for rigid bodies, and are stored in a rigid body
+subcomponent list named {\tt meshes}. Their mesh vertex positions
+are fixed with respect to their body's coordinate frame.
+
+\item[\protect{\javaclass[\fem]{FemMeshComp}}]\mbox{}
+
+Contain mesh geometry associated with finite element models (Chapter
+\ref{FEMModels:sec}), including surfaces meshes and embedded mesh
+geometry, and are stored in a subcomponent list of the FEM model
+named {\tt meshes}. Their mesh vertex positions change as the FEM model
+deforms.
+
+\item[\protect{\javaclass[\fem]{SkinMeshBody}}]\mbox{}
+
+Described in detail in Chapter \ref{skinning:sec}, these describe
+``skin'' geometry that encloses both rigid bodies and/or FEM models.
+Their mesh vertex positions change as the underlying bodies move and
+deform. Skinning meshes may be placed anywhere, but are typically
+stored in the {\tt meshBodies} component list of a {\tt MechModel}.
+
+\item[\protect{\javaclass[\mech]{FixedMeshBody}}]\mbox{}
+
+Described further below, these store arbitrary mesh geometry
+(polygonal, polyline, and point) and provide (like rigid bodies) a
+rigid coordinate frame that allows the mesh to be positioned and
+oriented arbitrarily. As their name suggests, their mesh vertex
+positions are fixed with respect to this coordinate frame. Fixed body
+meshes may be placed anywhere, but are typically stored in the {\tt
+meshBodies} component list of a {\tt MechModel}.
+
+\end{description}
+
+\subsection{Fixed mesh bodies}
+\label{FixedMeshBodies:sec}
+
+As mentioned above, \javaclass[\mech]{FixedMeshBody} can be used for
+placing arbitrary mesh geometry within an ArtiSynth model.  These mesh
+bodies are non-dynamic: they do not interact or collide with other
+model components, and they function primarily as 3D graphical
+objects. They can be created from primary mesh components using
+constructors such as:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech .FixedMeshBody.FixedMeshBody(MeshBase)}%
+{FixedMeshBody (MeshBase mesh)}%
+{Create an unnamed body containing a specified mesh.}%
+%
+\methodentry
+{\mech .FixedMeshBody.FixedMeshBody(String,MeshBase)}%
+{FixedMeshBody (String name, MeshBase mesh)}%
+{Create a named body containing a specified mesh.}%
+%
+\midline
+\end{methodtable}
+%
+It should be noted that the primary meshes are not copied and are
+instead stored by reference, and so any subsequent changes to them
+will be reflected in the mesh body. As with rigid bodies, fixed mesh
+bodies contain a coordinate frame, or {\it pose}, that describes the
+position and orientation of the body with respect to world
+coordinates. Methods to control the pose include:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech .FixedMeshBody.getPose()}%
+{RigidTransform3d getPose()}%
+{Returns the pose of the body (with respect to world).}%
+%
+\methodentry
+{\mech .FixedMeshBody.setPose()}%
+{void setPose (RigidTransform3d XFrameToWorld)}%
+{Sets the pose of the body.}%
+\methodspace{0.5em}
+%
+\methodentry
+{\mech .FixedMeshBody.getPosition()}%
+{Point3d getPosition()}%
+{Returns the body position (pose translation component).}%
+%
+\methodentry
+{\mech .FixedMeshBody.setPosition()}%
+{void setPosition (Point3d pos)}%
+{Sets the body position.}%
+\methodspace{0.5em}
+%
+\methodentry
+{\mech .FixedMeshBody.getOrientation()}%
+{AxisAngle getOrientation()}%
+{Returns the body orientation (pose rotation component).}%
+%
+\methodentry
+{\mech .FixedMeshBody.setOrientation()}%
+{void setOrientation (AxisAngle axisAng)}%
+{Sets the body orientation.}%
+%
+\midline
+\end{methodtable}
+%
+Once created, a canonical place for storing mesh bodies is the {\tt
+MechModel} component list {\tt meshBodies}. Methods for
+maintaining this list include:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry{\mech .MechModel.meshBodies()}%
+{ComponentListView<MeshComponent> meshBodies()}%
+{Returns the {\tt meshBodies} list.}%
+%
+\methodentry{\mech .MechModel.addMeshBody()}%
+{void addMeshBody (MeshComponent mcomp)}%
+{Adds {\tt mcomp} to {\tt meshBodies}.}%
+%
+\methodentry{\mech .MechModel.removeMeshBody()}%
+{boolean removeMeshBody (MeshComponent mcomp)}%
+{Removes {\tt mcomp} from {\tt meshBodies}.}%
+%
+\methodentry{\mech .MechModel.clearMeshBodies()}%
+{void clearMeshBodies()}%
+{Clears the {\tt meshBodies} list.}%
+%
+\midline
+\end{methodtable}
+%
+Meshes used for instantiating fixed mesh bodies are typically read
+from files (Section \ref{MeshFileIO:sec}), but can also be created
+using factory methods (Section \ref{MeshCreation:sec}).  As an
+example, the following code fragment creates a torus mesh using a
+factory method, set its pose, and then adds it to a {\tt MechModel}:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   ...
+   PolygonalMesh mesh = MeshFactory.createTorus (
+      /*rmajor=*/1.0, /*rminor=*/0.2, /*nmajor=*/32, /*nminor=*/10);
+   FixedMeshBody mbody = new FixedMeshBody ("torus", mesh);
+   mbody.setPose (
+      new RigidTransform3d (/*xyz=*/0,0,0, /*rpy=*/0,0,Math.toRadians(90)));
+   mech.addMeshBody (mbody);
+\end{lstlisting}
+%
+
+Rendering of mesh bodies is controlled using the same properties
+described in Section \ref{rigidBodyRendering:sec} for rigid bodies,
+including the {\sf renderProps} subproperties {\sf faceColor}, {\sf
+shading}, {\sf alpha}, {\sf faceStyle}, and {\sf drawEdges}, and the
+properties {\sf axisLength} and {\sf axisDrawStyle} for displaying a
+body's coordinate frame.
+
+\subsection{Example: adding mesh bodies to MechModel}
+\label{FixedMeshesExample:sec}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/FixedMeshes}
+\else
+ \includegraphics[width=3.75in]{images/FixedMeshes}
+\fi
+\end{center}
+\caption{FixedMeshes model loaded into ArtiSynth.}
+\label{FixedMeshes:fig}
+\end{figure}
+
+An simple application that creates a pair of fixed meshes and adds
+them to a {\tt MechModel} is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.FixedMeshes
+\end{verbatim}
+%
+The {\tt build()} method for this is shown below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-18}}
+\lstinputlisting[firstline=1,lastline=42]{../../src/artisynth/demos/tutorial/FixedMeshes.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=20,lastline=61]{../../src/artisynth/demos/tutorial/FixedMeshes.java}
+\fi
+\lstset{numbers=none}
+%
+After creating a {\tt MechModel} (lines 3-4), a torus shaped mesh is
+imported from the file {\tt data/torus\_9\_24.obj} (lines 8-16). As
+described in Section \ref{PathFinder:sec}, the {\tt RootModel} method
+{\tt getSourceRelativePath()} is used to locate this file relative to
+the model's source folder. The file path is used in the {\tt
+PolygonalMesh} constructor, which is enclosed within a {\tt try/catch}
+block to handle possible I/O exceptions. Once imported, the mesh is
+used to instantiate a {\tt FixedMeshBody} named {\tt "torus"} which is
+added to the {\tt MechModel} (lines 18-19).
+
+Another mesh, representing a square, is created with a factory method
+and used to instantiate a mesh body named {\tt "square"} (lines
+22-26). The factory method specifies both the size and triangle
+density of the mesh in the $x-y$ plane. Once created, the square's
+pose is set to a 90 degree rotation about the $x$ axis and a
+translation of 0.5 along $y$ (lines 28-29).
+
+Rendering properties are set at lines 33-41. The torus is made pale
+green by setting it face color; the coordinate frame for the square is
+made visible as solid arrows using the {\tt axisLength} and {\tt
+axisDrawStyle} properties; and the square is made blue grey, with its
+edges made visible and drawn using a darker color, and its face style
+set to {\tt FRONT\_AND\_BACK} so that it's visible from either side.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+FixedMeshes} from the {\sf Models} menu. The model should load and
+initially appear as in Figure \ref{FixedMeshes:fig}.
 
 \ifdefined\maindoc
 \else

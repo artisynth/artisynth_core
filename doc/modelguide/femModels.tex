@@ -88,19 +88,56 @@ system's stiffness term.\\
 \end{tabular}
 \end{center}
 These properties can be set and retrieved using the methods
-\begin{lstlisting}[]
-    setDensity (double density);    // sets the density
-    double getDensity ();           // gets the density
-
-    setMaterial (FemMaterial mat);  // sets the FEM's material
-    FemMaterial getMaterial ();     // gets the FEM's material
-
-    setParticleDamping (double d);  // sets the particle (mass) damping coefficient
-    double getParticleDamping ();   // gets the particle (mass) damping coefficient
-
-    setStiffnessDamping (double d); // sets the stiffness damping coefficient
-    double getStiffnessDamping ();  // gets the stiffness damping coefficient
-\end{lstlisting}
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\fem.FemModel.setDensity(double)}%
+{void setDensity (double density)}%
+{Sets the density.}%
+%
+\methodentry
+{\fem.FemModel.getDensity()}%
+{double getDensity()}%
+{Gets the density.}%
+\methodspace{0.5em}
+%
+\methodentry
+{\fem.FemModel.setMaterial(FemMaterial)}%
+{void setMaterial (FemMaterial mat)}%
+{Sets the FEM's material.}%
+%
+\methodentry
+{\fem.FemModel.getMaterial()}%
+{FemMaterial getMaterial()}%
+{Gets the FEM's material.}%
+\methodspace{0.5em}
+%
+\methodentry
+{\fem.FemModel.setParticleDamping(double)}%
+{void setParticleDamping (double d)}%
+{Sets the particle (mass) damping.}%
+%
+\methodentry
+{\fem.FemModel.getParticleDamping()}%
+{double getParticleDamping()}%
+{Gets the particle (mass) damping.}%
+\methodspace{0.5em}
+%
+\methodentry
+{\fem.FemModel.setStiffnessDamping(double)}%
+{void setStiffnessDamping (double d)}%
+{Sets the stiffness damping.}%
+%
+\methodentry
+{\fem.FemModel.getStiffnessDamping()}%
+{double getStiffnessDamping()}%
+{Gets the stiffness damping.}%
+%
+\midline
+\end{methodtable}
+%
 Keep in mind that ArtiSynth is essentially ``unitless'' (Section 
 \ref{sec:mechii:units}), so it is the responsibility of the developer to
 ensure that all properties are specified in a compatible way.  
@@ -201,9 +238,18 @@ Subcomponents of \javaclass[artisynth.core.femmodels]{FemModel3d}.
 \ifLaTeXML{\newline}
 
 The set of nodes belong to a finite element model can be obtained by the method
-\begin{lstlisting}[]
-PointList<FemNode3d> getNodes();  // returns list of FEM nodes
-\end{lstlisting}
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\fem.FemModel3d.getNodes()}%
+{PointList<FemNode3d> getNodes()}%
+{Returns the list of FEM nodes.}%
+%
+\midline
+\end{methodtable}
+%
 Nodes are implemented in the class 
 \javaclass[artisynth.core.femmodels]{FemNode3d}, which is a subclass of 
 \javaclass[artisynth.core.mechmodels]{Particle} (Section 
@@ -310,10 +356,18 @@ to create the (tangent) stiffness matrix.  This integration is performed
 by evaluating the stress and stiffness at a set of \emph{integration points}
 within each element, and applying numerical quadrature.  The list of elements
 in a model can be obtained with the method
-\begin{lstlisting}[]
-  RenderableComponentList<FemElement3d> getElements();
-\end{lstlisting}
-
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\fem.FemModel3d.getElements()}%
+{RenderableComponentList<FemElement3d> getElements()}%
+{Returns the list of volumetric elements.}%
+%
+\midline
+\end{methodtable}
+%
 All objects of type \javaclass[artisynth.core.femmodels]{FemElement3d} have the 
 following properties:
 \begin{center}
@@ -383,18 +437,41 @@ additional property {\sf defaultThickness}, whose use will be
 described below.
 
 The list of shell elements in a model can be obtained with the method
-\begin{lstlisting}[]
-  RenderableComponentList<ShellElement3d> getShellElements();
-\end{lstlisting}
-
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\fem.FemModel3d.getShellElements()}%
+{RenderableComponentList<ShellElement3d> getShellElements()}%
+{Returns the list of shell elements.}%
+%
+\midline
+\end{methodtable}
+%
+%\begin{lstlisting}[]
+%  RenderableComponentList<ShellElement3d> getShellElements();
+%\end{lstlisting}
 Both the volumetric elements ({\tt FemElement3d}) and the shell
 elements ({\tt ShellElement3d}) derive from the base class
 \javaclass[artisynth.core.femmodels]{FemElement3dBase}.
 To obtain {\it all} the elements in an FEM model, both shell and
 volumetric, one may use the method
-\begin{lstlisting}[]
-  ArrayList<FemElement3dBase> getAllElements();
-\end{lstlisting}
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\fem.FemModel3d.getAllElements()}%
+{ArrayList<FemElement3dBase> getAllElements()}%
+{Returns a list of all elements.}%
+%
+\midline
+\end{methodtable}
+
+%\begin{lstlisting}[]
+%  ArrayList<FemElement3dBase> getAllElements();
+%\end{lstlisting}
 
 Each shell element can actually be instantiated in two forms:
 
@@ -1210,11 +1287,22 @@ Various prolixity queries are available for this task. To find the
 distance of a point to a polygonal mesh, we can use the
 following \javaclass[maspack.geometry]{PolygonalMesh} methods,
 %
-\begin{lstlisting}[]
-   double distanceToPoint (Point3d pnt)
-
-   int isInside (Point3d pnt) // for closed meshes only
-\end{lstlisting}
+%
+\begin{methodtable}[4pt]{0.5}{0.5}
+\midline
+%
+\methodentry
+{maspack.geometry.PolygonalMesh.distanceToPoint(Point3d)}%
+{double distanceToPoint(Point3d pnt)}%
+{Returns the distance of {\tt pnt} to the mesh.}%
+%
+\methodentry
+{maspack.geometry.PolygonalMesh.pointIsInside(Point3d)}%
+{int pointIsInside (Point3d pnt)}%
+{Returns {\tt true} if {\tt pnt} is inside the mesh.}%
+%
+\midline
+\end{methodtable}
 %
 where the latter method returns 1 if the point is inside and 0
 otherwise. For checking the distance of an FEM node, {\tt pnt} can be obtained
@@ -1264,35 +1352,66 @@ before} the mesh-based component has been added to the model.
 For connecting an FEM model to another FEM model, {\tt FemModel3d}
 provides a number of query methods:
 %
-\begin{lstlisting}[]
-   /* nearest element queries */
-
-   // find the nearest element (shell or volumetric) to pnt:
-   FemElement3dBase findNearestElement (Point3d near, Point3d pnt)
-   FemElement3dBase findNearestElement (
-      Point3d near, Point3d pnt, ElementFilter filter)
-
-   // find the nearest surface element (shell or volumetric) to pnt:
-   FemElement3dBase findNearestSurfaceElement(Point3d near, Point3d pnt)
-
-   // find the nearest volumetric element to pnt:
-   FemElement3d findNearestVolumetricElement (Point3d near, Point3d pnt)
-
-   // find the nearest shell element to pnt:
-   ShellElement3d findNearestShellElement (Point3d near, Point3d pnt)
-
-   // find the volumetric element (if any) containing pnt:
-   FemElement3d findContainingElement(Point3d pnt)
-
-   /* nearest node queries */
-
-   // find the nearest node to pnt that is within maxDist:
-   FemNode3d findNearestNode (Point3d pnt, double maxDist)
-
-   // find all nodes that are within maxDist of pnt:
-   ArrayList<FemNode3d> findNearestNodes (Point3d pnt, double maxDist)
-\end{lstlisting}
 %
+\begin{methodtable}[4pt]{0.5}{0.5}
+\midline
+\multicolumn{2}{l}{Nearest element queries:}\\
+\midline
+%
+\methodentry
+{\fem.FemModel3d.findNearestElement(Point3d,Point3d)}%
+{FemElement3dBase findNearestElement(\brh
+  Point3d near, Point3d pnt)}%
+{Find nearest element (shell or volumetric) to {\tt pnt}.}%
+%
+\methodentry
+{\fem.FemModel3d.findNearestElement(,,)}%
+{FemElement3dBase findNearestElement(\brh
+  Point3d near, Point3d pnt, ElementFilter filter)}%
+{Find nearest filtered element (shell or volumetric) to {\tt pnt}.}%
+%
+%\methodspace{0.5em}%
+\methodentry
+{\fem.FemModel3d.findNearestSurfaceElement(,)}%
+{FemElement3dBase findNearestSurfaceElement(\brh Point3d near, Point3d pnt)}%
+{Find nearest surface element (shell or volumetric) to {\tt pnt}.}%
+%
+\methodentry
+{\fem.FemModel3d.findNearestVolumetricElement(,)}%
+{FemElement3d findNearestVolumetricElement (\brh Point3d near, Point3d pnt)}%
+{Find nearest volumetric element to {\tt pnt}.}%
+%
+\methodentry
+{\fem.FemModel3d.findNearestShellElement(,)}%
+{ShellElement3d findNearestShellElement (\brh Point3d near, Point3d pnt)}%
+{Find nearest shell element to {\tt pnt}.}%
+%
+\methodentry
+{\fem.FemModel3d.findContainingElement()}%
+{FemElement3d findContainingElement(Point3d pnt)}%
+{Find volumetric element (if any) containing {\tt pnt}.}%
+%
+\midline
+\end{methodtable}
+
+\begin{methodtable}[4pt]{0.5}{0.5}
+\midline
+\multicolumn{2}{l}{Nearest node queries:}\\
+\midline
+\methodentry
+{\fem.FemModel3d.findNearestNode(,)}%
+{FemNode3d findNearestNode (\brh Point3d pnt, double maxDist)}%
+{Find nearest node to pnt that is within {\tt maxDist}.}%
+%
+\methodentry
+{\fem.FemModel3d.findNearestNodes(,)}%
+{ArrayList<FemNode3d> findNearestNodes (\brh Point3d pnt, double maxDist)}%
+{Find all nodes that are within maxDist of {\tt pnt}.}%
+%
+\midline
+\end{methodtable}
+%
+
 All the above queries are based on the FEM model's {\it current} nodal
 positions.  The method\\
 \javamethodAlt%
@@ -1364,6 +1483,235 @@ surface of {\tt femB}. Then we could use the following code:
 \end{lstlisting}
 %
 
+Finally, it is possible to identify nodes on the surface of an FEM
+model according to whether they belong to specific features, such as a
+smooth {\it patch} or a sharp {\it edge line}.  Methods for doing this
+are provided as static methods in the
+class \javaclass[\fem]{FemQuery}, and include:
+%
+\begin{methodtable}[4pt]{0.6}{0.4}
+\midline
+\multicolumn{2}{l}{Feature based node queries:}\\
+\midline
+%
+\methodentry
+{\fem.FemQuery.findPatchNodes(,,)}%
+{ArrayList<FemNode3d> findPatchNodes (\brh
+FemModel3d fem, FemNode3d node0, double maxBendAng)}%
+{Find nodes in patch defined by a maximum bend angle.}%
+%
+\methodentry
+{\fem.FemQuery.findPatchBoundaryNodes(,,)}%
+{ArrayList<FemNode3d> findPatchBoundaryNodes (\brh
+FemModel3d fem, FemNode3d node0, double maxBendAng)}%
+{Find the border nodes of a patch.}%
+%
+\methodentry
+{\fem.FemQuery.findEdgeLineNodes(,,,,)}%
+{ArrayList<FemNode3d> findEdgeLineNodes (\brh
+FemModel3d fem, FemNode3d node0, double minBendAng, \brh 
+double maxEdgeAng, double allowBranching)}%
+{Find the nodes along an edge defined by a minimum bend angle.}%
+%
+\midline
+\end{methodtable}
+%
+Details of how these methods work are given in their API
+documentation. They use the notion of a {\it bend angle}, which is the
+absolute value of the angle between two faces about their common
+edge. A patch is defined by a collection of faces whose bend angles do
+not exceed a minimum value, while an edge line is a collection of edges
+with bend angles not below a maximum value. The feature methods start
+with an initial node ({\tt node0}) and then grow the requested feature
+out from there. For example, suppose we have a regular hexahedral FEM
+grid, and we wish to find all the nodes on one of the faces. If we
+know {\it one} of the nodes on the face, then we can find {\it all} of
+the nodes using {\tt findPatchNodes}:
+%
+\begin{lstlisting}[]
+  FemModel3d fem = 
+     FemFactory.createHexGrid (null, 1.0, 0.5, 0.5, 40, 20, 20);
+      
+  // find any point on the left face
+  FemNode3d node0 = fem.findNearestNode (new Point3d (-0.5, 0, 0), /*tol=*/1e-8);
+  // use this to find all nodes on the left face
+  ArrayList<FemNode3d> nodes = 
+     FemQuery.findPatchNodes (fem, node0, /*maxBendAngle=*/Math.toRadians(10));
+\end{lstlisting}
+%
+Note that the feature query above uses a maximum bend angle of
+$10^\circ$. Because grid faces are flat, this choice is somewhat
+arbitrary; any angle larger than 0 (within machine precision) would also
+work.
+
+\subsection{Selecting nodes in the viewer}
+
+Often, it is most convenient to select nodes in the ArtiSynth viewer.
+For this, a node selection tool is available
+(Figure \ref{nodeSelection:fig}), as described in the section
+``Selecting FEM nodes'' of the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
+It allows nodes to be selected in various ways, including the usual
+click, drag box and elliptical selection tools, as well as specialized
+operations that select nodes based on patches, edge lines, and
+distances to other bodies. Once nodes have been selected, their
+numbers can be saved to a {\it node number file} which can then be
+read by a model's {\tt build()} method to determine which nodes to
+connect to some body.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/nodeSelectToolPatch}
+\else
+   \includegraphics[width=0.35\textwidth]{images/nodeSelectToolPatch}
+\fi
+\end{center}
+\caption{FEM node selection tool, described in detail in the
+User Interface Guide. It allows nodes to be selected,
+and the selected nodes to be saved to (or loaded from) a node number file.}
+\label{nodeSelection:fig}
+\end{figure}
+
+Node number files are text files with a very simple format, consisting
+of integers (the node numbers), separated by white space. There is no
+limit to how many numbers can appear on a line but typically this is
+limited to ten or so to make the file more readable. Optionally, the
+numbers can be surrounded by square brackets ({\tt [ ]}). The special
+character `{\tt \#}' is a comment character, commenting out all
+characters from itself to the end of the current line. For a file
+containing the node numbers 2, 12, 4, 8, 23 and 47, the following
+formats are all valid:
+%
+\begin{lstlisting}[]
+2 12 4 8 23 47
+\end{lstlisting}
+%
+\begin{lstlisting}[]
+[ 2 12 4 8 23 47 ]
+\end{lstlisting}
+%
+\begin{lstlisting}[]
+# this is a node number file
+[ 2 12 4 8 
+  23 47
+]
+\end{lstlisting}
+%
+
+Once node numbers have been identified in the viewer and saved in a
+file, they can be read by the {\tt build()} method using
+a \javaclass[artisynth.core.femmodels]{NodeNumberReader}.  For
+convenience, this class supplies two static methods for extracting the
+FEM nodes specified by the numbers in a file:
+%
+\begin{methodtable}[4pt]{0.45}{0.55}
+\midline
+%
+\methodentry
+{\fem.NodeNumberReader.read(File,FemModel3d)}%
+{static ArrayList<FemNode3d> read(\brh File file, FemModel3d fem)}%
+{Returns nodes in {\tt fem} corresponding to file's numbers.}%
+%
+\methodentry
+{\fem.NodeNumberReader.read(String,FemModel3d)}%
+{static ArrayList<FemNode3d> read(\brh String filePath, FemModel3d fem)}%
+{Returns nodes in {\tt fem} corresponding to file's numbers.}%
+%
+\midline
+\end{methodtable}
+%
+Extracted nodes can be used to set boundary conditions or form
+connections with other bodies. For example, suppose we wish to connect
+a face of an FEM model {\tt fem} to a rigid body {\tt block}, using a
+set of nodes specified in a file called {\tt faceNodes.txt}.  A code
+fragment to accomplish this could be the following:
+%
+\begin{lstlisting}[]
+  FemModel3d fem;   // FEM model to attach
+  RigidBody block; // block to attach fem to
+  MechModel mech;   // mech model containing fem and block
+  ...
+
+  // Get the file path. Assume it is in a folder "geometry" beneath the
+  // model source folder:
+  String filePath = getSourceRelativePath ("geometry/faceNodes.txt");
+
+  // Read the nodes and attach them to block. Wrap the code in a try/catch 
+  // block to handle I/O errors
+  try {
+     ArrayList<FemNode3d> nodes = NodeNumberReader.read (filePath, fem);
+     for (FemNode3d n : nodes) {
+        mech.attachPoint (n, block);
+     }
+  }
+  catch (IOException e) {
+     System.out.println ("Couldn't read node file " + filePath);
+  }
+\end{lstlisting}
+%
+
+The process of selecting nodes in the viewer, saving them in a file,
+and using them in a model can be done iteratively: if the selected
+nodes need to be adjusted, one can reopen the node selection tool, load the
+selection from file, adjust the selection, and resave the file,
+without needing to make any modifications to the model's {\tt build()}
+code.
+
+If desired, one can also determine a set of nodes in code, and then
+write their numbers to a file using the
+class \javaclass[artisynth.core.femmodels]{NodeNumberWriter}, which
+supplies static methods for writing number files:
+%
+\begin{methodtable}[4pt]{0.45}{0.55}
+\midline
+\methodentry
+{\fem.NodeNumberWriter.write(String,)}%
+{static void write(\brh String filePath, Collection<FemNode3d> nodes)}%
+{Writes the numbers of {\tt nodes} to the specified file.}%
+%
+\methodentry
+{\fem.NodeNumberWriter.write(File,)}%
+{static void write(\brh File file, Collection<FemNode3d> nodes)}%
+{Writes the numbers of {\tt nodes} to {\tt file}.}%
+%
+\methodentry
+{\fem.NodeNumberWriter.write(File,,)}%
+{static void write(\brh File file,
+  Collection<FemNode3d> nodes, \brh int maxCols, int flags)}%
+{Writes the numbers of {\tt nodes} to {\tt file}, using
+the specified number of columns and format flags.}%
+%
+\midline
+\end{methodtable}
+%
+For example:
+%
+\begin{lstlisting}[]
+  FemModel3d fem;   // FEM model
+  ...
+
+  // find the nodes to write:
+  ArrayList<FemNode3d> nodes = new ArrayList<>();
+  for (FemNode3d n : nodes) {
+     if (n satisfies appropriate criteria) {
+        nodes.add (n);
+     }
+  }
+  // write the node numbers, using a try/catch block to handle I/O errors
+  String filePath = getSourceRelativePath ("geometry/special.txt");
+  try {
+     NodeNumberWriter.write (filePath, nodes);
+  }
+  catch (IOException e) {
+     System.out.println ("Couldn't write node file " + filePath);
+  }
+\end{lstlisting}
+%
+
+\subsection{Example: two bodies connected by an FEM ``spring''}
+\label{sec:fem:LumarFEMDisk}
+
 \begin{figure}[h]
 \begin{center}
 \iflatexml
@@ -1376,9 +1724,6 @@ surface of {\tt femB}. Then we could use the following code:
 a simplified FEM model connecting two vertebrae.}
 \label{LumbarFEMDisk:fig}
 \end{figure}
-
-\subsection{Example: two bodies connected by an FEM ``spring''}
-\label{sec:fem:LumarFEMDisk}
 
 The {\tt LumbarFrameSpring} example in
 Section \ref{LumbarFrameSpring:sec} uses a frame spring to connect two
@@ -2825,7 +3170,7 @@ and
 \javaclass[artisynth.core.fields]{ScalarSubElemField}
 and
 \javaclassAlt{artisynth.core.fields.VectorSubElemField}{VectorSubElemField<T>}
-(integation points).
+(integration points).
 
 \item[Mesh fields]\mbox{}
 
@@ -2969,7 +3314,7 @@ component using one of the constructors
 %
 where {\tt grid} is the primary grid and {\tt name} is an optional
 component name. Note that the primary grid is not copied, so any
-subsequent changes to it will be relected in the enclosing field
+subsequent changes to it will be reflected in the enclosing field
 component.
 
 Once the grid field component is created, its values can be set by
@@ -3269,7 +3614,7 @@ the element's integration points, and we can't assume that nodal
 interpolation will give an accurate enough approximation.
 
 To evaluate {\tt getValue(p)}, the field finds the containing (or
-nearest) element for $\p$, extrapolating the intergration point values
+nearest) element for $\p$, extrapolating the integration point values
 back to the nodes, and then using nodal interpolation.
 
 Constructors are similar to those for element fields:
@@ -3366,7 +3711,7 @@ these can be queried as follows:
 \begin{sideblock}
 The regular integration points, {\it excluding} the warping point, can
 be queried using {\tt getIntegrationPoints()} and {\tt
-numIntergrationPoints()} instead of {\tt getAllIntegrationPoints()}
+numIntegrationPoints()} instead of {\tt getAllIntegrationPoints()}
 and {\tt numAllIntegrationPoints()}.
 \end{sideblock}
 
@@ -3433,28 +3778,77 @@ class type (e.g., {\tt Vector3d.class}).
 
 Once the field has been created, values can be queried and set at the
 vertices using methods such as
-%
-\begin{lstlisting}[]
-  // scalar fields:
-  void setValue (Vertex3d vtx, double value)   // set value for vertex
-  double getValue (Vertex3d vtx)               // get value for vertex
-  double getValue (int vidx)                   // get value for vertex number
 
-  // vector fields:
-  void setValue (Vertex3d vtx, T value)        // set value for vertex
-  T getValue (Vertex3d vtx)                    // get value for vertex
-  T getValue (int vidx)                        // get value for vertex number
-
-  // all fields:
-  boolean isValueSet (Vertex3d vtx)            // query if value set for vertex
-  void clearValue (Vertex3d vtx)               // unset value for vertex
-  void clearAllValues()                        // unset values for all vertices
-\end{lstlisting}
+\begin{methodtable}{0.5}{0.5}
+\midline
+\multicolumn{2}{l}{Scalar fields:}\\
+\midline
 %
-where {\tt vidx} is the vertex's index. Note that values don't need to
-be set at all vertices, and set values can be unset using the {\tt
-clear} methods. For vertices with no value set, {\tt getValue()} will
-return the default value.
+\methodentry{artisynth.core.fields.ScalarVertexField.setValue(Vertex3d,double)}%
+{void setValue(Vertex3d vtx, double value)}%
+{Set value for vertex {\tt vtx}.}%
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.getValue(Vertex3d)}%
+{double getValue(Vertex3d vtx)}%
+{Get value for vertex {\tt vtx}.}%
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.getValue(int)}%
+{double getValue(int vidx)}%
+{Get value for vertex at index {\tt vidx}.}%
+%
+\midline
+\multicolumn{2}{l}{Vector fields with parameterized type T:}\\
+\midline
+%
+\methodentry{artisynth.core.fields.VectorVertexField.setValue(Vertex3d,VectorObject)}%
+{void setValue(Vertex3d vtx, T value)}%
+{Set value for vertex {\tt vtx}.}%
+%
+\methodentry{artisynth.core.fields.VectorVertexField.getValue(Vertex3d)}%
+{T getValue(Vertex3d vtx)}%
+{Get value for vertex {\tt vtx}.}%
+%
+\methodentry{artisynth.core.fields.VectorVertexField.getValue(int)}%
+{T getValue(int vidx)}%
+{Get value for vertex at index {\tt vidx}.}%
+%
+\midline
+\multicolumn{2}{l}{All fields:}\\
+\midline
+\methodentry{artisynth.core.fields.ScalarVertexField.isValueSet(Vertex3d)}%
+{boolean isValueSet(Vertex3d vtx)}%
+{Query if value set for vertex {\tt vtx}.}
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.clearValue(Vertex3d)}%
+{void clearValue(Vertex3d vtx)}%
+{Unset value for vertex {\tt vtx}.}%
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.clearAllValues()}%
+{void clearAllValues()}%
+{Unset values for all vertices.}%
+\midline
+\end{methodtable}
+
+%\begin{lstlisting}[]
+%  // scalar fields:
+%  void setValue (Vertex3d vtx, double value)   // set value for vertex
+%  double getValue (Vertex3d vtx)               // get value for vertex
+%  double getValue (int vidx)                   // get value for vertex number
+%
+%  // vector fields:
+%  void setValue (Vertex3d vtx, T value)        // set value for vertex
+%  T getValue (Vertex3d vtx)                    // get value for vertex
+%  T getValue (int vidx)                        // get value for vertex number
+%
+%  // all fields:
+%  boolean isValueSet (Vertex3d vtx)            // query if value set for vertex
+%  void clearValue (Vertex3d vtx)               // unset value for vertex
+%  void clearAllValues()                        // unset values for all vertices
+%\end{lstlisting}
+%
+Note that values don't need to be set at all vertices, and set values
+can be unset using the {\tt clear} methods. For vertices with no value
+set, {\tt getValue()} will return the default value.
 
 As a simple example, the following code fragment constructs a {\tt
 ScalarVertexField} for a mesh contained in the 
@@ -3580,7 +3974,7 @@ However, if vectors or matrices with different size are needed,
 it is also possible to create vector fields using
 \javaclass[maspack.matrix]{VectorNd} and
 \javaclass[maspack.matrix]{MatrixNd}, provided that the
-sizing remain constant within any given field. This is acheived
+sizing remain constant within any given field. This is achieved
 using special wrapper classes that contain the sizing information,
 which is supplied in the constructors. For convenience, wrapper
 classes are also provided for vector fields that use {\tt Vector3d},
@@ -3670,7 +4064,7 @@ field. Constructors for these include
 \begin{lstlisting}[]
   VectorNdGrid (int VecSize, Vector3d widths, Vector3i res)
   MatrixNdGrid (
-    int rowSizem int colSize, Vector3d widths, Vector3i res, RigidTransform3d TCL)
+    int rowSize int colSize, Vector3d widths, Vector3i res, RigidTransform3d TCL)
 \end{lstlisting}
 %
 
@@ -3771,7 +4165,7 @@ can} be used, particularly grid fields. To understand this a bit
 better, we discuss briefly some of the internals of how binding
 works. When evaluating stresses, FEM materials have access to a
 \javaclass[artisynth.core.modelbase]{FemFieldPoint} object that
-provides information about the integation point, including its
+provides information about the integration point, including its
 element, nodal weights, and integration point index. This can be used
 to rapidly evaluate values within nodal, element and sub-element FEM
 fields. Likewise, when evaluating contact forces, contact materials
@@ -3781,7 +4175,7 @@ object that describes the contact point position as a weighted sum of
 mesh vertex positions, which can then be used to rapidly evaluate
 evaluate values within vertex or face mesh fields.  However, all
 fields, regardless of type, implement methods for determining values
-at both {\tt FemFieldPoints} and {\tt MeshFieldPoints}:
+at both {\tt FemFieldPoint}s and {\tt MeshFieldPoint}s:
 %
 \begin{lstlisting}[]
   T getValue (FemFieldPoint fp)
@@ -3789,7 +4183,7 @@ at both {\tt FemFieldPoints} and {\tt MeshFieldPoints}:
   T getValue (MeshFieldPoint mp)
 \end{lstlisting}
 %
-If necessay, these methods simply fall back on the {\tt
+If necessary, these methods simply fall back on the {\tt
 getValue(Point3d)} method, which is defined for all fields and works
 relatively fast for grid fields.
 
@@ -3969,6 +4363,489 @@ contraction which pulls the edges upward and, if high enough, causes
 then to buckle (Figure \ref{RadialMuscle:fig}, bottom).
 
 % TODO: show how to compute nodal and sub-element fields
+
+\subsection{Visualizing fields}
+
+It is often useful to be able to visualize the contents of a field,
+particularly for testing and validation purposes. ArtiSynth field
+components export various properties that allow their values to be
+visualized in the viewer.
+
+\begin{sideblock}
+As described in Section \ref{gridFields:sec}, the grid field
+components, {\tt ScalarGridField} and {\tt VectorGridField}, are not
+visible by default, and so must be made visible to enable
+visualization.
+\end{sideblock}
+
+\subsubsection{Scalar fields}
+
+Scalar fields are visualized by means of a color map that associates
+scalar values with colors, with the actually visualization typically
+taking the form of either a discrete set of colored points, or a
+colored surface embedded within the field. The color map and its
+associated visualization is controlled by the following properties:
+
+\begin{description}
+
+\item[colorMap]\mbox{}
+
+An instance of the \javaclass[maspack.render.color]{ColorMap} interface
+that controls how field values are mapped onto colors.
+Various types of maps exist, including 
+\javaclass[maspack.render.color]{GreyscaleColorMap},
+\javaclass[maspack.render.color]{HueColorMap},
+\javaclass[maspack.render.color]{RainbowColorMap}, and
+\javaclass[maspack.render.color]{JetColorMap},
+each containing subproperties controlling how its colors are generated.
+
+\item[renderRange]\mbox{}
+
+Composite property of the type
+\javaclass[artisynth.core.util]{ScalarRange} that controls the range
+of field values used for color map rendering. Subproperties include
+{\sf interval}, which gives the value range itself, and {\sf
+updating}, which specifies how this interval is determined from the
+field: {\tt FIXED} (interval can be set manually), {\tt AUTO\_EXPAND}
+(interval is expanded to accommodate all field values), and {\tt
+AUTO\_FIT} (interval is tightly fit to the field values).  Note that
+for {\tt AUTO\_EXPAND} and {\tt AUTO\_FIT}, the interval is determined
+by the range of field values, and {\it not} the values that actually
+appear in the visualization. The latter can differ from the former
+when the surface does not cover the whole field, or lies outside the
+field, resulting in extrapolated values that fall outside the field's
+range. Setting {\sf updating} to {\tt FIXED} and manually setting the
+interval can be useful in such cases.
+
+\item[visualization]\mbox{}
+
+An enumerated type that specifies the actual type of rendering used to
+visualize the field (e.g., points, surface, or other). While its
+definition is specific to the field type
+(\javaclass[artisynth.core.fields]{ScalarFemField\$Visualization} for
+FEM fields,
+\javaclass[artisynth.core.fields]{ScalarMeshField\$Visualization} for
+mesh fields;
+\javaclass[artisynth.core.fields]{ScalarGridField\$Visualization} for
+grid fields), overall it will have one of five values ({\tt POINT},
+{\tt SURFACE}, {\tt ELEMENT}, {\tt FACE}, or {\tt OFF})
+described further below.
+
+\item[volumeElemsVisible]\mbox{}
+
+A boolean property, exported by {\tt ScalarElementField} and {\tt
+ScalarSubElemField}, which if {\tt false} causes volumetric element
+values to be ignored in the visualization. The default value is {\tt
+true}.
+
+\item[shellElemsVisible]\mbox{}
+
+A boolean property, exported by {\tt ScalarElementField} and {\tt
+ScalarSubElemField}, which if {\tt false} causes shell element values
+to be ignored in the visualization. The default value is {\tt true}.
+
+\item[renderProps]\mbox{}
+
+Basic rendering properties of the field component that are used to
+control some aspects of the rendering
+(Section \ref{RenderProperties:sec}), as described below.
+
+\end{description}
+
+The above properties can be accessed either interactively in the GUI,
+or in code, using the field's methods {\tt getColorMap()}, {\tt
+setColorMap(map)}, {\tt getRenderRange()}, {\tt
+setRenderRange(range)}, {\tt getVisualization()}, and \pdfbreak {\tt
+setVisualization(type)}.
+
+While the enumerated type associated with the {\sf visualization}
+property is specific to the field type, all values together will be
+one of the following:
+
+\begin{description}
+
+\item[POINT]\mbox{}
+
+Field is visualized using colored points placed at the features used
+to define the field (e.g., nodes, element centers, or integration
+points for FEM fields; vertices and face centers for mesh fields;
+vertices for grid fields). How the points are displayed is controlled
+using the {\sf pointStyle} subproperty of the grid's {\sf
+renderProps}, with their size controlled either by {\sf pointRadius}
+or {\sf pointSize} (if the {\sf pointStyle} is {\tt POINT}).
+
+\item[SURFACE]\mbox{}
+
+Field is visualized using a colored surface, specified by one or more
+polygonal meshes associated with the field, where the values at mesh
+vertices are either determined directly, or interpolated from, the
+field. This type of visualization is available for {\tt
+ScalarNodalField}, {\tt ScalarSubElemField}, {\tt ScalarVertexField}
+and {\tt ScalarGridField}. For {\tt ScalarVertexField}, the mesh is
+the mesh associated with the field itself. Otherwise, the meshes are
+supplied by external mesh components that are attached to the field as
+{\it render meshes}, as described in Section
+\ref{renderingMeshes:sec}. For {\tt ScalarNodalField} and {\tt
+ScalarSubElemField}, these mesh components must be {\tt FemMeshComp}s
+associated with the FEM model (Section \ref{sec:fem:geometry}), and
+may include its surface mesh; while for {\tt ScalarGridField}, the
+mesh components are fixed mesh bodies
+(Section \ref{FixedMeshBodies:sec}).
+
+\item[ELEMENT]\mbox{}
+
+Used only by {\tt ScalarElementField}, allows the field to be
+visualized by element shaped widgets that are colored according to
+each element's field value and the color map. The size of the widget,
+relative to the true element size, is controlled by the property {\sf
+elementWidgetSize}, which is a scalar in the range $[0,1]$.
+
+\item[FACE]\mbox{}
+
+Used only by {\tt ScalarFaceField}, allows the field to be visualized
+by rendering the associated field mesh, with each face colored
+according to its field value and the color map.
+
+\item[OFF]\mbox{}
+
+No visualization (the default value).
+	
+\end{description}
+
+\subsubsection{Vector fields}
+
+Vector fields can be visualized, when possible, by drawing three
+dimensional line segments, with a length proportional to the field
+value, originating at the features used to define the field (nodes,
+element centers, or integration points for FEM fields; vertices and
+face centers for mesh fields; vertices for grid fields).  This can
+done for any field whose vector type is an instance of
+\javaclass[maspack.matrix]{Vector} (which includes
+\javaclass[maspack.matrix]{Vector2d},
+\javaclass[maspack.matrix]{Vector3d}, and
+\javaclass[maspack.matrix]{VectorNd}) by mapping the vector values
+onto a 3-vector. This means ignoring element values for vectors whose
+size is greater than 3, and setting higher element values to 0 for
+vectors whose size is less than 3.
+
+Vector field rendering is controlled by the following properties:
+
+\begin{description}
+
+\item[renderScale]\mbox{}
+
+A double which scales the vector field value to determine the length
+of the drawn line segment. The default value is 0, implying the no
+vectors are drawn.
+
+\item[renderProps]\mbox{}
+
+Basic rendering properties of the field component, as described in
+Section \ref{RenderProperties:sec}. How the lines are displayed is
+controlled by the line subproperties, with the color specified by {\sf
+lineColor}, the style by {\sf lineStyle} ({\tt LINE}, {\tt CYLINDER},
+{\tt SOLID\_ARROW}, {\tt SPINDLE}), and the size by either {\sf
+lineRadius} or {\sf lineWidth} (if the {\tt lineStyle} is {\tt LINE}).
+
+\end{description}
+
+\subsubsection{Grid fields}
+\label{gridFields:sec}
+
+As mentioned above, the grid field components, {\tt ScalarGridField}
+and {\tt VectorGridField}, are not visible by default, and so must be
+made visible to enable visualization:
+%
+\begin{lstlisting}[]
+  RenderProps.setVisible (gridField, true);
+\end{lstlisting}
+%
+
+By default, grid field components also render their grid edges, using
+the edge subproperties of {\sf renderProps} ({\sf drawEdges}, {\sf
+edgeWidth}, and {\sf edgeColor}). If {\sf edgeColor} is not set (i.e.,
+is set to {\tt null}), the {\sf lineColor} subproperty is used instead.
+Grid components also have a {\sf renderGrid} property which can be set
+to {\tt false} to disable rendering of the grid.
+
+For {\tt VectorGridField}, when rendering the grid and {\it and}
+visualizing the vectors, one can make them different colors by using
+the {\sf edgeColor} subproperty of {\sf renderProps} to set the grid
+color:
+%
+\begin{lstlisting}[]
+  RenderProps.setLineColor (gridField, Color.BLUE); // vectors drawn in blue
+  RenderProps.setEdgeColor (gridField, Color.GRAY); // grid edges drawn in gray
+\end{lstlisting}
+%
+
+\subsubsection{Render meshes}
+\label{renderingMeshes:sec}
+
+The scalar fields {\tt ScalarNodalField}, {\tt ScalarSubElemField},
+and {\tt ScalarGridField} all make use of {\it render meshes} when
+being visualized using {\tt SURFACE} visualization. These are a
+collection of one or more mesh components (Section
+\ref{MeshComponents:sec}), each containing a polygonal mesh,
+which define surfaces for rendering a color map of the field, based on
+values at the mesh vertices that are themselves determined from the
+field.  For {\tt ScalarNodalField} and {\tt ScalarSubElemField}), the
+mesh components must be {\tt FemMeshComp}s contained within the FEM's
+{\tt meshes} list (Section \ref{sec:fem:geometry}), while for {\tt
+ScalarGridField}, they are {\tt FixedMeshBody}s
+(Section \ref{FixedMeshBodies:sec}) that are usually contained within
+the {\tt MechModel}.
+
+Adding render meshes to a field must be done in code. For {\tt
+ScalarNodalField} and {\tt ScalarSubElemField}, the set of rendering
+meshes is controlled by the following methods:
+%
+\begin{methodtable}{0.55}{0.45}
+\midline
+%
+\methodentry
+{\fields.ScalarFemField.addRenderMeshComp()}
+{void addRenderMeshComp (FemMeshComp mcomp)}%
+{Add the render mesh component {\tt mcomp}.}%
+%
+\methodentry
+{\fields.ScalarFemField.removeRenderMeshComp()}%
+{boolean removeRenderMeshComp (FemMeshComp mcomp)}%
+{Remove the render mesh component {\tt mcomp}.}%
+%
+\methodentry
+{\fields.ScalarFemField.getRenderMeshComp()}%
+{FemMeshComp getRenderMeshComp (idx)}%
+{Return the {\tt idx}-th render mesh component.}%
+%
+\methodentry
+{\fields.ScalarFemField.numRenderMeshComps()}%
+{int numRenderMeshComps()}%
+{Return the number of render mesh components.}%
+%
+\methodentry
+{\fields.ScalarFemField.clearRenderMeshComps()}%
+{void clearRenderMeshComps()}%
+{Clear all the render mesh components.}%
+%
+\midline
+\end{methodtable}
+%
+Equivalent methods exist for {\tt ScalarGridField}, using {\tt
+FixedMeshBody} instead of {\tt FemMeshComp}.
+
+The following should be noted with respect to render meshes:
+
+\begin{itemize}
+
+\item A render mesh can be created for the sole
+purpose of visualizing a field. A rectangle often does well for this
+purpose.
+
+\item Rendering of the visualization is done by the {\it field component},
+not the render mesh component(s), and so it is usually necessary to
+make the latter invisible to avoid rendering conflicts.
+
+\item Render meshes should have a large enough number of triangles to
+support the resolution required to visualize the field properly.
+
+\item One can often use the GUI transformer tools
+to interactively adjust a render mesh's pose (see ``Transformer
+tools'' in the \artisynthManual{uiguide}{ArtiSynth User Interface
+Guide}), allowing the user to move a render surface throughout the
+field.  For {\tt FixedMeshBody}, the tools change the body's pose,
+while for {\tt FemMeshComp}, they change the location of its embedding
+within the FEM.
+
+\begin{sideblock}
+Transformer tools have no effect on FEM meshes which are
+auto-generated, such as the default surface mesh.
+\end{sideblock}
+
+\end{itemize}
+
+As a simple example, the following code fragment creates a square
+render mesh for a {\tt ScalarGridField}:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   ScalarGridField field;
+
+   ...
+
+   // create a square mesh, with size 1.0 x 1.0 and resolution 20 x 20, and
+   // use it to instantiate a FixedMeshBody which is added to the MechModel:
+   PolygonalMesh mesh = MeshFactory.createPlane (1.0, 1.0, 20, 20);
+   FixedMeshComp mcomp = new FixedMeshComp (mesh);
+   mech.addMeshBody (mcomp);
+
+   // set the mesh component invisible and add it to the field as a render mesh
+   RenderProps.setVisible (mcomp, false);
+   field.addRenderMeshComp (mcomp);
+\end{lstlisting}
+%
+
+\subsection{Example: Visualizing a scalar nodal field}
+\label{ScalarFieldVisualization:sec}
+
+\begin{figure}[t]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/ScalarFieldVisualization}
+\else
+ \includegraphics[width=3.75in]{images/ScalarFieldVisualization}
+\fi
+\end{center}
+\caption{ScalarFieldVisualization model loaded into ArtiSynth.}
+\label{ScalarFieldVisualization:fig}
+\end{figure}
+
+A simple application showing visualization of a {\tt
+ScalarNodalField} is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.ScalarFieldVisualization
+\end{verbatim}
+%
+The {\tt build()} method for this is shown below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-24}}
+\lstinputlisting[firstline=1,lastline=51]{../../src/artisynth/demos/tutorial/ScalarFieldVisualization.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=26,lastline=76]{../../src/artisynth/demos/tutorial/ScalarFieldVisualization.java}
+\fi
+\lstset{numbers=none}
+%
+After first creating a {\tt MechModel} (lines 2-3), a cylindrical
+hexahedral FEM model is created to contain the field, with its top
+nodes fixed to allow it to deform under gravity (lines 13-17). A {\tt
+ScalarNodalField} is then defined for this FEM, where the value at
+each node is set to $r^2$, with $r$ being the radial distance from the
+node to the FEM's central axis (lines 21-27).
+
+To visualize the field, a factory method is used to create a
+$1.0 \times 1.0$ square mesh, with a triangle resolution of $20 \times
+20$, which is then rotated (using {\tt mesh.transform()}) about the
+$x$ axis to align it with the $z-x$ plane (lines 31-32). The mesh is
+then embedded within the FEM using {\tt addMesh()}, and its containing
+{\tt FemMeshComp} is made invisible so that it will not interfere with
+the field visualization (lines 33-34). The mesh is then added to the
+field as a render mesh and the field's visualization is set to {\tt
+SURFACE} (lines 37-38).
+
+At lines 41-45, a control panel is created to allow interactive
+adjustment of the field's {\sf visualization}, {\sf renderRange}, and
+{\sf colorMap} properties. Finally, render properties are set (lines
+48-50), with {\tt field} set to render points as spheres with a radius
+of $0.25$ (for {\tt POINT} visualization), and the FEM line color
+(used to render element edges) set to white.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+ScalarFieldVisualization} from the {\sf Models} menu. Users can employ
+the control panel to adjust the visualization, the render range, and
+the color map. When {\tt SURFACE} visualization is selected, the field
+will be rendered onto the surface defined by the mesh contained inside
+{\tt mcomp}. Simulating the model will cause the FEM to deform,
+deforming the mesh with it. Clicking on the visualization surface will
+cause {\tt mcomp} to be selected. Its location within the FEM can then
+be adjusted using the GUI transformer tools (see ``Model
+Manipulation'' in the \artisynthManual{uiguide}{ArtiSynth User
+Interface Guide}), as shown in
+Figure \ref{ScalarFieldVisualization:fig}.
+
+\begin{sideblock}
+When the {\sf updating} property of the render range is set to {\tt
+AUTO\_FIT}, the range will be automatically set to the range of values
+in the field, and {\it not} the values evaluated over the render
+surface. The latter may exceed the former due to extrapolation when
+the surface extends outside of the FEM, in which case the
+visualization will appear to saturate. While this is not generally a
+concern because FEM field values are unreliable outside of the FEM,
+one can override this effect by setting the {\sf updating} property to
+{\tt FIXED} and setting the range interval manually.
+\end{sideblock}
+
+\subsection{Examples: Visualizing other fields}
+\label{OtherFieldVisualization:sec}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/ScalarNodalFieldDemo}
+ \includegraphics[]{images/ScalarGridFieldDemo}
+\else
+ \includegraphics[width=3.25in]{images/ScalarNodalFieldDemo}
+ \includegraphics[width=3.25in]{images/ScalarGridFieldDemo}
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: {\tt ScalarNodalFieldDemo} with {\tt POINT} visualization.
+Right: {\tt ScalarGridFieldDemo} with {\tt SURFACE} visualization on
+two perpendicular meshes.}
+\label{OtherFields1:fig}
+\end{figure}
+
+Numerous examples exist for creating and visualizing other field types:
+%
+\begin{verbatim}
+  artisynth.demos.fem.ScalarNodalFieldDemo  
+  artisynth.demos.fem.ScalarElementFieldDemo  
+  artisynth.demos.fem.ScalarSubElemFieldDemo
+  artisynth.demos.fem.VertexNodalFieldDemo  
+  artisynth.demos.fem.VertexElementFieldDemo  
+  artisynth.demos.fem.VertexSubElemFieldDemo
+
+  artisynth.demos.mech.ScalarVertexFieldDemo
+  artisynth.demos.mech.ScalarFaceFieldDemo
+  artisynth.demos.mech.ScalarGridFieldDemo
+  artisynth.demos.mech.VertexVertexFieldDemo
+  artisynth.demos.mech.VertexFaceFieldDemo
+  artisynth.demos.mech.VertexGridFieldDemo
+\end{verbatim}
+
+Illustrations of some of these are shown in
+Figures \ref{OtherFields1:fig}, \ref{OtherFields2:fig},
+and \ref{OtherFields3:fig},
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/ScalarElementFieldDemo}
+ \includegraphics[]{images/VectorSubElemFieldDemo}
+\else
+ \includegraphics[width=3.25in]{images/ScalarElementFieldDemo}
+ \includegraphics[width=3.25in]{images/VectorSubElemFieldDemo}
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: {\tt ScalarElementFieldDemo} with {\tt ELEMENT}
+visualization.
+Right: {\tt VectorSubElemFieldDemo} showing vectors in blue.}
+\label{OtherFields2:fig}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/ScalarFaceFieldDemo}
+ \includegraphics[]{images/VectorFaceFieldDemo}
+\else
+ \includegraphics[width=3.25in]{images/ScalarFaceFieldDemo}
+ \includegraphics[width=3.25in]{images/VectorFaceFieldDemo}
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: {\tt ScalarFaceFieldDemo} with {\tt FACE}
+visualization.  Right: {\tt VectorFaceFieldDemo} showing vectors in
+blue.}
+\label{OtherFields3:fig}
+\end{figure}
 
 \section{Rendering and Visualizations}
 \label{sec:fem:rendering}

@@ -62,6 +62,7 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
+import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
@@ -1399,6 +1400,82 @@ implements CollidableBody, PointAttachable {
       ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
       for (int i=0; i<vtxAttachments.size(); i++) {
          addVertexNodes (nodes, vtxAttachments.get(i));
+      }
+   }
+
+   /**
+    * Computes the stress value for a particular vertex in this mesh. The value
+    * is interpolated from the nodes (if any) to which the vertex is attached,
+    * and it is assumed that stress values are being calculated for the nodes,
+    * either as a result of stress values being rendered for the mesh, or
+    * {@link FemNode3d#setComputeStress} being called for the nodes or {@link
+    * FemModel3d#setComputeNodalStress} being called for the entire FEM model.
+    *
+    * @param S returns the computes stress value
+    * @param idx index of the vertex
+    */ 
+   public void getVertexStress (SymmetricMatrix3d S, int idx) {
+      if (idx < numVertexAttachments()) {
+         PointAttachment va = getVertexAttachment(idx);
+         if (va instanceof PointFem3dAttachment) {
+            S.setZero();
+            PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+            FemNode[] nodes = pfa.getNodes();
+            VectorNd weights = pfa.getCoordinates();
+            for (int j=0; j<nodes.length; j++) {
+               if (nodes[j] instanceof FemNode3d) { // paranoid!
+                  FemNode3d node = (FemNode3d)nodes[j];
+                  double w = weights.get(j);
+                  S.scaledAdd (w, node.getStress());
+               }
+            }
+         }
+         else if (va instanceof PointParticleAttachment) {
+            PointParticleAttachment ppa = (PointParticleAttachment)va;
+            FemNode3d node = (FemNode3d)ppa.getParticle();
+            S.set (node.getStress());
+         }
+      }
+      else {
+         S.setZero();
+      }
+   }
+
+   /**
+    * Computes the strain value for a particular vertex in this mesh. The value
+    * is interpolated from the nodes (if any) to which the vertex is attached,
+    * and it is assumed that strain values are being calculated for the nodes,
+    * either as a result of strain values being rendered for the mesh, or
+    * {@link FemNode3d#setComputeStrain} being called for the nodes or {@link
+    * FemModel3d#setComputeNodalStrain} being called for the entire FEM model.
+    *
+    * @param S returns the computes strain value
+    * @param idx index of the vertex
+    */ 
+   public void getVertexStrain (SymmetricMatrix3d S, int idx) {
+      if (idx < numVertexAttachments()) {
+         PointAttachment va = getVertexAttachment(idx);
+         if (va instanceof PointFem3dAttachment) {
+            S.setZero();
+            PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+            FemNode[] nodes = pfa.getNodes();
+            VectorNd weights = pfa.getCoordinates();
+            for (int j=0; j<nodes.length; j++) {
+               if (nodes[j] instanceof FemNode3d) { // paranoid!
+                  FemNode3d node = (FemNode3d)nodes[j];
+                  double w = weights.get(j);
+                  S.scaledAdd (w, node.getStrain());
+               }
+            }
+         }
+         else if (va instanceof PointParticleAttachment) {
+            PointParticleAttachment ppa = (PointParticleAttachment)va;
+            FemNode3d node = (FemNode3d)ppa.getParticle();
+            S.set (node.getStrain());
+         }
+      }
+      else {
+         S.setZero();
       }
    }
 

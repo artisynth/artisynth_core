@@ -67,8 +67,8 @@ import maspack.util.*;
  * rotational degrees of freedom between frame 2 and frame C, consisting of a
  * rotation by {@code theta} about the frame 2 z axis, followed by an
  * additional rotation about a ``wing'' axis in the (rotated) x-y plane, where
- * the wing axis is defined by an angle {@code alpha} with respect to the y
- * axis. The default wing axis corresponds to the y axis (i.e., {@code alpha} =
+ * the wing axis is defined by an angle {@code alpha} with respect to the x
+ * axis. The default wing axis corresponds to the x axis (i.e., {@code alpha} =
  * 0).
  *
  * <p>The {@code longitude}, {@code latitude} {@code theta} {@code phi} values
@@ -98,7 +98,7 @@ public class EllipsoidJoint extends JointBase
    public static PropertyList myProps =
       new PropertyList (EllipsoidJoint.class, JointBase.class);
    
-   PolygonalMesh ellipsoid;
+   PolygonalMesh myEllipsoid;
 
    private static DoubleInterval DEFAULT_LONGITUDE_RANGE =
       new DoubleInterval ("[-inf,inf])");
@@ -168,6 +168,13 @@ public class EllipsoidJoint extends JointBase
       setRenderProps (defaultRenderProps (null));
    }
 
+   private void createEllipsoid (double A, double B, double C) {
+      myEllipsoid = MeshFactory.createEllipsoid (A, B, C, /*slices=*/100);
+      RenderProps.setFaceStyle (myEllipsoid, FaceStyle.NONE);
+      RenderProps.setDrawEdges (myEllipsoid, true);
+      RenderProps.setEdgeColor (myEllipsoid, Color.DARK_GRAY);
+   }
+
    public boolean getDrawEllipsoid() {
       return myDrawEllipsoid;
    }
@@ -177,17 +184,21 @@ public class EllipsoidJoint extends JointBase
    }
 
    /**
+    * No-args constructor needed for writing/scanning.
+    */
+   public EllipsoidJoint() {
+
+   }
+
+   /**
     * Creates an {@code EllipsoidJoint} which is not attached to any bodies.
     * It can subsequently be connected using one of the {@code setBodies}
     * methods.
     */
    public EllipsoidJoint(
-      double a, double b, double c, double alpha, boolean useOpenSimApprox) {
-      setCoupling (new EllipsoidCoupling(a, b, c, alpha, useOpenSimApprox));
-      ellipsoid = MeshFactory.createEllipsoid (a, b, c, /*slices=*/100);
-      RenderProps.setFaceStyle (ellipsoid, FaceStyle.NONE);
-      RenderProps.setDrawEdges (ellipsoid, true);
-      RenderProps.setEdgeColor (ellipsoid, Color.DARK_GRAY);
+      double A, double B, double C, double alpha, boolean useOpenSimApprox) {
+      setCoupling (new EllipsoidCoupling(A, B, C, alpha, useOpenSimApprox));
+      createEllipsoid (A, B, C);
       setLongitudeRange (DEFAULT_LONGITUDE_RANGE);
       setLatitudeRange (DEFAULT_LATITUDE_RANGE);
       setThetaRange (DEFAULT_THETA_RANGE);      
@@ -210,10 +221,10 @@ public class EllipsoidJoint extends JointBase
     * @param TCA transform from joint frame C to body frame A
     * @param bodyB rigid body B (or {@code null})
     * @param TDB transform from joint frame D to body frame B
-    * @param rx semi-axis length along x
-    * @param ry semi-axis length along y
-    * @param rz semi-axis length along z
-    * @param alpha angle of the second rotation axis, with respect to the y
+    * @param A semi-axis length along x
+    * @param B semi-axis length along y
+    * @param C semi-axis length along z
+    * @param alpha angle of the second rotation axis, with respect to the x
     * axis of frame 2, as described in this class's Javadoc header
     * @param openSimCompatible if {@code true}, make this joint compatible with
     * the OpenSim ellispoid joint, as described in this class's Javadoc header.
@@ -221,8 +232,8 @@ public class EllipsoidJoint extends JointBase
    public EllipsoidJoint (
       RigidBody bodyA, RigidTransform3d TCA,
       RigidBody bodyB, RigidTransform3d TDB,
-      double rx, double ry, double rz, double alpha, boolean openSimCompatible) {
-      this(rx, ry, rz, alpha, openSimCompatible);
+      double A, double B, double C, double alpha, boolean openSimCompatible) {
+      this(A, B, C, alpha, openSimCompatible);
       setBodies (bodyA, TCA, bodyB, TDB);
    }
    
@@ -233,22 +244,19 @@ public class EllipsoidJoint extends JointBase
     * TDW}. Specifying {@code bodyB} as {@code null} will cause {@code bodyA}
     * to be connected to ground.
     *
-    * <p>
-    * 
-    *
     * @param bodyA body A
     * @param bodyB body B (or {@code null})
     * @param TCW initial transform from joint frame C to world
     * @param TDW initial transform from joint frame D to world
-    * @param rx semi-axis length along x
-    * @param ry semi-axis length along y
-    * @param rz semi-axis length along z
+    * @param A semi-axis length along x
+    * @param B semi-axis length along y
+    * @param C semi-axis length along z
     */
    public EllipsoidJoint (
       ConnectableBody bodyA, ConnectableBody bodyB,
       RigidTransform3d TCW, RigidTransform3d TDW,
-      double rx, double ry, double rz) {
-      this(rx, ry, rz, 0, false);
+      double A, double B, double C) {
+      this(A, B, C, 0, false);
       setBodies (bodyA, bodyB, TCW, TDW);
    }
 
@@ -749,8 +757,8 @@ public class EllipsoidJoint extends JointBase
    public void prerender (RenderList list) {
       super.prerender (list);
       if (myDrawEllipsoid) {
-         ellipsoid.XMeshToWorld.set (myRenderFrameD);
-         ellipsoid.prerender (myRenderProps);
+         myEllipsoid.XMeshToWorld.set (myRenderFrameD);
+         myEllipsoid.prerender (myRenderProps);
       }
    }
 
@@ -780,7 +788,7 @@ public class EllipsoidJoint extends JointBase
       //    renderer, myRenderProps, myRenderFrameC, myPlaneSize, isSelected());
       if (myDrawEllipsoid) {
          flags |= isSelected() ? Renderer.HIGHLIGHT : 0;
-         ellipsoid.render (renderer, myRenderProps, flags);
+         myEllipsoid.render (renderer, myRenderProps, flags);
       }
    }
 
@@ -793,15 +801,12 @@ public class EllipsoidJoint extends JointBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      pw.print ("semiAxisLengths=");
+      pw.print ("couplingParams=[");
       getCoupling().getSemiAxisLengths().write (
-         pw, fmt, /*withBrackets=*/true);      
-      if (getCoupling().getAlpha() != 0) {
-         pw.print ("alpha=" + fmt.format(getCoupling().getAlpha()));
-      }
-      if (getCoupling().isOpenSimCompatible()) {
-         pw.print ("openSimCompatible=true");
-      }
+         pw, fmt, /*withBrackets=*/false);   
+      pw.print (" " + fmt.format(getCoupling().getAlpha()));
+      pw.print (" " + getCoupling().isOpenSimCompatible());
+      pw.println ("]");
       super.writeItems (pw, fmt, ancestor);
    }
 
@@ -809,18 +814,16 @@ public class EllipsoidJoint extends JointBase
       throws IOException {
 
       rtok.nextToken();
-      if (scanAttributeName (rtok, "semiAxisLengths")) {
-         Vector3d lens = new Vector3d();
-         lens.scan (rtok);
-         getCoupling().setSemiAxisLengths (lens);
-         return true;
-      }
-      else if (scanAttributeName (rtok, "openSimCompatible")) {
-         getCoupling().setOpenSimCompatible (rtok.scanBoolean());
-         return true;
-      }
-      else if (scanAttributeName (rtok, "alpha")) {
-         getCoupling().setAlpha (rtok.scanNumber());
+      if (scanAttributeName (rtok, "couplingParams")) {
+         rtok.scanToken ('[');
+         double A = rtok.scanNumber();
+         double B = rtok.scanNumber();
+         double C = rtok.scanNumber();
+         double alpha = rtok.scanNumber();
+         boolean openSimCompat = rtok.scanBoolean();
+         rtok.scanToken (']');
+         setCoupling (new EllipsoidCoupling (A, B, C, alpha, openSimCompat));
+         createEllipsoid (A, B, C);
          return true;
       }
       rtok.pushBack();

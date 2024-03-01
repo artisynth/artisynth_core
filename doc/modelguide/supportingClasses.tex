@@ -91,7 +91,7 @@ Rotations (Section \ref{Rotations:sec}) are commonly described using a
 rotation matrix and contains numerous methods for setting rotation
 values and transforming other quantities. Some of the more commonly
 used methods are:
-%
+% method table
 \begin{lstlisting}[]
    RotationMatrix3d();         // create and set to the identity
    RotationMatrix3d(u, angle); // create and set using an axis-angle
@@ -120,7 +120,7 @@ Vector3d}). Rotational and translational values can be set and
 accessed directly through these fields.  In addition, {\tt
 RigidTransform3d} provides numerous methods, some of the more commonly
 used of which include:
-%
+% method table
 \begin{lstlisting}[]
    RigidTransform3d();         // create and set to the identity
    RigidTransform3d(x, y, z);  // create and set translation to x, y, z
@@ -173,7 +173,7 @@ while the representation for a point {\tt p} is
 
 Both classes provide a number of methods for applying rotational and
 affine transforms. Those used for rotations are
-%
+% method table
 \begin{lstlisting}[]
   void transform (R);             // this = R * this
   void transform (R, v1);         // this = R * v1
@@ -185,12 +185,14 @@ where {\tt R} is a rotation matrix and {\tt v1} is a vector (or a point
 in the case of {\tt Point3d}).
 
 The methods for applying rigid or affine transforms include:
+% method table
 \begin{lstlisting}[]
   void transform (X);             // transforms this by X         
   void transform (X, v1);         // sets this to v1 transformed by X
   void inverseTransform (X);      // transforms this by the inverse of X
   void inverseTransform (X, v1);  // sets this to v1 transformed by inverse of X
 \end{lstlisting}
+%
 where {\tt X} is a rigid or affine transform.
 As described above, in the case of {\tt Vector3d}, these methods
 ignore the translational part of the transform and apply only the
@@ -258,7 +260,7 @@ definitions, while subclasses provide the topology.
 
 Through {\tt MeshBase}, all meshes provide methods for
 adding and accessing vertices. Some of these include:
-%
+% method table
 \begin{lstlisting}[]
   int numVertices();                 // return the number of vertices
   Vertex3d getVertex (int idx);      // return the idx-th vertex
@@ -301,7 +303,7 @@ no topological connectivity.
 
 \javaclass[\mgeo]{PolygonalMesh} is used quite extensively
 and provides a number of methods for implementing faces, including:
-%
+% method table
 \begin{lstlisting}[]
   int numFaces();                 // return the number of faces
   Face getFace (int idx);         // return the idx-th face
@@ -325,6 +327,7 @@ made triangular using
 \javamethod[\mgeo.PolygonalMesh]{triangulate()}.
 
 \subsection{Mesh creation}
+\label{MeshCreation:sec}
 
 Meshes are most commonly created using either one of the factory
 methods supplied by \javaclass[\mgeo]{MeshFactory}, or by reading a
@@ -348,7 +351,7 @@ following code fragment creates a simple closed tetrahedral surface:
 
 Some of the more commonly used factory methods for creating polyhedral
 meshes include:
-%
+% method table
 \begin{lstlisting}[]
   MeshFactory.createSphere (radius, nslices, nlevels);
   MeshFactory.createIcosahedralSphere (radius, divisons);
@@ -419,7 +422,7 @@ determined directly from the faces themselves.
 
 Normal information can be set and queried using
 the following methods:
-%
+% method table
 \begin{lstlisting}[]
   setNormals (
      List<Vector3d> nrmls, int[] indices);  // set all normals and indices
@@ -479,7 +482,7 @@ All normals and indices can be explicitly cleared using
 
 Color and texture information can be set using analogous methods.
 For colors, we have
-%
+% method table
 \begin{lstlisting}[]
   setColors (
      List<float[]> colors, int[] indices);  // set all colors and indices
@@ -515,7 +518,7 @@ this:
 %
 
 Finally, for texture coordinates, we have
-%
+% method table
 \begin{lstlisting}[]
   setTextureCoords (
      List<Vector3d> coords, int[] indices); // set all texture coords and indices
@@ -536,7 +539,7 @@ When specifying indices using
 it is common to use the same index set as that which
 associates vertices with features. For convenience,
 this index set can be created automatically using
-%
+% method def
 \begin{lstlisting}[]
    int[] createVertexIndices();
 \end{lstlisting}
@@ -546,7 +549,7 @@ that assigns the same attribute to each feature vertex. If
 there is one attribute per feature, the resulting
 index set is called a {\it feature index} set, and
 can be created using
-%
+% method def
 \begin{lstlisting}[]
    int[] createFeatureIndices();
 \end{lstlisting}
@@ -582,7 +585,7 @@ associated with the vertices of a specific feature. To know this,
 it is necessary to find that feature's offset into the 
 attribute's index set. This offset information can
 be found using the array returned by
-%
+% method def
 \begin{lstlisting}[]
   int[] getFeatureIndexOffsets()
 \end{lstlisting}
@@ -600,7 +603,7 @@ For example, the three normals associated with a triangle at index
 \end{lstlisting}
 %
 Alternatively, one may use the convenience methods
-%
+% method table
 \begin{lstlisting}[]
    Vector3d getFeatureNormal (int fidx, int k);
    float[] getFeatureColor (int fidx, int k);
@@ -641,7 +644,7 @@ For some mesh subclasses, if normals are not explicitly set, they are
 computed automatically whenever {\tt getNormals()} or {\tt
 getNormalIndices()} is called. Whether or not this is true
 for a particular mesh can be queried by the method
-%
+% method def
 \begin{lstlisting}[]
    boolean hasAutoNormalCreation();
 \end{lstlisting}
@@ -649,7 +652,7 @@ for a particular mesh can be queried by the method
 Setting normals explicitly, using a call to {\tt
 setNormals(nrmls,indices)}, will overwrite any existing normal information,
 automatically computed or otherwise. The method
-%
+% method def
 \begin{lstlisting}[]
    boolean hasExplicitNormals();
 \end{lstlisting}
@@ -665,7 +668,7 @@ be available for specific mesh subclasses. For example, {\tt
 PolygonalMesh} allows normals to be created with multiple normals per
 vertex, for vertices that are associated with either open or hard
 edges. This ability can be controlled using the methods
-%
+% method table
 \begin{lstlisting}[]
    boolean getMultipleAutoNormals();
    setMultipleAutoNormals (boolean enable);
@@ -674,7 +677,7 @@ edges. This ability can be controlled using the methods
 Having multiple normals means that even with smooth shading, open or
 hard edges will still appear sharp. To make an edge hard within
 a {\tt PolygonalMesh}, one may use the methods
-%
+% method table
 \begin{lstlisting}[]
    boolean setHardEdge (Vertex3d v0, Vertex3d v1);
    boolean setHardEdge (int vidx0, int vidx1);
@@ -701,7 +704,7 @@ colors will then be maintained when vertices or features are added or
 removed, with default colors being automatically created as necessary.
 
 Vertex-based coloring can be requested with the method
-%
+% method def
 \begin{lstlisting}[]
    setVertexColoringEnabled();
 \end{lstlisting}
@@ -722,7 +725,7 @@ for any vertex using {\tt getColor(idx)}, or any of the
 various {\tt setColor} methods.
 Whether or not vertex coloring
 is enabled can be queried using
-%
+% method def
 \begin{lstlisting}[]
    getVertexColoringEnabled();
 \end{lstlisting}
@@ -741,7 +744,7 @@ like this:
 %
 
 Similarly, feature-based coloring can be requested using the method
-%
+% method def
 \begin{lstlisting}[]
    setFeatureColoringEnabled();
 \end{lstlisting}
@@ -762,7 +765,7 @@ Applications can query or set the colors
 for any vertex using {\tt getColor(idx)}, or any of the
 various {\tt setColor} methods. Whether or not feature coloring
 is enabled can be queried using
-%
+% method def
 \begin{lstlisting}[]
    getFeatureColoringEnabled();
 \end{lstlisting}
@@ -775,7 +778,7 @@ is enabled can be queried using
 provide constructors that allow them to be created from a definition
 file, with the file format being inferred from the file name
 suffix:
-%
+% method table
 \begin{lstlisting}[]
    PolygonalMesh (String fileName) throws IOException
    PolygonalMesh (File file) throws IOException
@@ -840,7 +843,7 @@ or thrown out of the calling routine.
 In addition to file-based constructors, all mesh types implement read
 and write methods that allow a mesh to be read from or written to a
 file, with the file format again inferred from the file name suffix:
-%
+% method table
 \begin{lstlisting}[]
    read (File file) throws IOException
    write (File file) throws IOException
@@ -961,7 +964,7 @@ information.
 
 Whether or not normal information will be written is returned by the
 method
-%
+% method def
 \begin{lstlisting}[]
    boolean getWriteNormals();
 \end{lstlisting}
@@ -975,7 +978,7 @@ getWriteNormals()} will return {\tt true}.
 Default normal writing behavior can be overridden within 
 the \javaclass[\mgeo.io]{MeshWriter} classes
 using the following methods:
-%
+% method table
 \begin{lstlisting}[]
    int getWriteNormals()
    setWriteNormals (enable)
@@ -1020,7 +1023,7 @@ two balls and a cylinder.}
 
 The CSG operations include union, intersection, and difference, and
 are implemented by the following methods of {\tt SurfaceMeshIntersector}:
-%
+% method table
 \begin{lstlisting}[]
   findUnion (mesh0, mesh1);         // volume0 U volume1
   findIntersection (mesh0, mesh1);  // volume0 ^ volume1
@@ -1088,6 +1091,7 @@ useful to determine the application's source (or class) directory at
 run time. ArtiSynth supplies several ways to conveniently handle this
 situation. First, the {\tt RootModel} itself supplies the following
 methods:
+% method table
 \begin{lstlisting}[]
   // find path to the root model's source directory
   String findSourceDir ();
@@ -1124,7 +1128,7 @@ directory. This could be done as follows:
 A more general path finding utility is provided by
 \javaclass{maspack.util.PathFinder}, which provides several static
 methods for locating source and class directories:
-%
+% method table
 \begin{lstlisting}[]
   // find path to the source directory associated with classObj
   String findSourceDir (Object classObj);
@@ -1224,7 +1228,7 @@ provides a {\it file manager} utility that allows such files to be
 stored on a separate server, and then downloaded on-demand and cached
 locally. To use this, one starts by creating an instance of a
 \javaclass[maspack.fileutil]{FileManager}, using the constructor
-%
+% method def
 \begin{lstlisting}[]
   FileManager (String downloadPath, String remoteSourceName)
 \end{lstlisting}
@@ -1234,7 +1238,7 @@ downloaded file should be placed, and {\tt remoteSourceName} is a URI
 indicating the remote server location of the files.  After the file
 manager has been created, it can be used to fetch remote files and
 cache them locally, using various {\it get} methods:
-%
+% methd table
 \begin{lstlisting}[]
   File get (String destName);
 

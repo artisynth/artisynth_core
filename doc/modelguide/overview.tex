@@ -39,6 +39,7 @@ properties, and edit and temporally arrange the input and output
 probes using a {\it timeline} display.
 
 \subsection{Model components}
+\label{ModelComponents:sec}
 
 Every ArtiSynth component is an instance of
 \javaclass[artisynth.core.modelbase]{ModelComponent}. When connected
@@ -50,6 +51,32 @@ respectively.  Components may also be assigned a name (using
 \javamethod*[artisynth.core.modelbase.ModelComponent]{setName()})
 which is then returned using
 \javamethod*[artisynth.core.modelbase.ModelComponent]{getName()}.
+
+\begin{sideblock}
+A component's number is not the same as its {\it index}.  The index
+gives the component's sequential list position within the parent, and
+is always in the range $0 \ldots n-1$, where $n$ is the parent's
+number of child components. While indices and numbers frequently are
+the same, they sometimes are not. For example, a component's number is
+guaranteed to remain unchanged as long as it remains attached to its
+parent; this is different from its index, which will change if any
+preceding components are removed from the parent. For example, if we
+have a set of components with numbers
+%
+\begin{verbatim}
+0 1 2 3 4 5
+\end{verbatim}
+%
+and components 2 and 4 are then removed, the remaining components will
+have numbers
+%
+\begin{verbatim}
+0 1 3 5
+\end{verbatim}
+%
+whereas the indices will be {\tt 0 1 2 3}. This consistency of
+numbers is why they are used to identify components.
+\end{sideblock}
 
 A sub-interface of {\tt ModelComponent} includes
 \javaclass[artisynth.core.modelbase]{CompositeComponent}, which

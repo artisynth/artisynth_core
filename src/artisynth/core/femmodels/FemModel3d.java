@@ -622,6 +622,12 @@ PointAttachable, ConnectableBody {
       return mat;
    }
    
+   /**
+    * Explicitly enables or disables stress computation for all the nodes in
+    * this FEM, regardless of whether it is needed for surface rendering.
+    *
+    * @param enable if {@code true}, enables explicit stress computation
+    */
    public void setComputeNodalStress(boolean enable) {
       for (FemNode3d n : myNodes) {
          n.setComputeStress (enable);
@@ -651,6 +657,12 @@ PointAttachable, ConnectableBody {
       }
    }
    
+   /**
+    * Explicitly enables or disables strain computation for all the nodes in
+    * this FEM, regardless of whether it is needed for surface rendering.
+    *
+    * @param enable if {@code true}, enables explicit strain computation
+    */
    public void setComputeNodalStrain(boolean enable) {
       for (FemNode3d n : myNodes) {
          n.setComputeStrain (enable);

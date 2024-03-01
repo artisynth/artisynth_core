@@ -491,6 +491,12 @@ public class FemNode3d extends FemNode implements Boundable {
       myAvgStress.scaledAdd (s, sig);
    }      
 
+   /**
+    * Explicitly enables or disables stress computation for this node,
+    * regardless of whether it is needed for surface rendering.
+    *
+    * @param enable if {@code true}, enables explicit stress computation
+    */
    public void setComputeStress (boolean enable) {
       if (enable) {
          setFlag (COMPUTE_STRESS_EXTERNAL);
@@ -501,6 +507,12 @@ public class FemNode3d extends FemNode implements Boundable {
       updateStressAllocation();
    }
    
+   /**
+    * Queries whether stress computation has been explicitly enabled
+    * for this node.
+    *
+    * @return {@code true} if explicit stress computation is enabled
+    */
    public boolean getComputeStress() {
       return (myFlags & COMPUTE_STRESS_EXTERNAL) != 0;
    }
@@ -574,6 +586,12 @@ public class FemNode3d extends FemNode implements Boundable {
       myAvgStrain.scaledAdd (s, sig);
    }
    
+   /**
+    * Explicitly enables or disables strain computation for this node,
+    * regardless of whether it is needed for surface rendering.
+    *
+    * @param enable if {@code true}, enables explicit strain computation
+    */
    public void setComputeStrain (boolean enable) {
       if (enable) {
          setFlag (COMPUTE_STRAIN_EXTERNAL);
@@ -584,6 +602,12 @@ public class FemNode3d extends FemNode implements Boundable {
       updateStrainAllocation();
    }
    
+   /**
+    * Queries whether strain computation has been explicitly enabled
+    * for this node.
+    *
+    * @return {@code true} if explicit strain computation is enabled
+    */
    public boolean getComputeStrain() {
       return (myFlags & COMPUTE_STRAIN_EXTERNAL) != 0;
    }

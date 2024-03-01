@@ -233,7 +233,7 @@ public class AjlCollisionTest extends RootModel {
 
    void printUsage() {
       System.out.println ("Options:");
-      System.out.println (" <crashFiled>");
+      System.out.println (" <crashFile>");
       System.out.println (" -mesh <meshFile>");
       System.out.println (" -sphere <radius>");
       System.out.println (" -union");
@@ -550,7 +550,7 @@ public class AjlCollisionTest extends RootModel {
             setupBodies (myMech, mesh0, mesh1);
          }
 
-         if (false) {
+         if (true) {
             String dataDir = 
                PathFinder.expand (
                   "${srcdir PolygonalMesh}/sampleData/");
@@ -619,7 +619,7 @@ public class AjlCollisionTest extends RootModel {
             setupBodies (myMech, mesh0, mesh1);
          }
 
-         if (true) {
+         if (false) {
             mesh0 = MeshFactory.createRectangle (2.0, 2.0, false);
             mesh1 = MeshFactory.createOpenCylinder (0.5, 1.0, 12, 4);
             PolygonalMesh inner =

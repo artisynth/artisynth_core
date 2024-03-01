@@ -905,7 +905,6 @@ public class RenderDemo extends RootModel {
          v2 = robj.addVertex (pi3, ni2, c, -1);
          robj.addTriangle (v0, v1, v2);
 
-
          renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK); 
          renderer.drawTriangles (robj);
          renderer.setFaceStyle (FaceStyle.FRONT); 
@@ -1357,7 +1356,7 @@ public class RenderDemo extends RootModel {
       //drawable = new DrawGridX();
       //drawable = new DrawBasic();
       //drawable = new DrawFrame();
-      //drawable = new DrawRenderTet();
+      drawable = new DrawRenderTet();
       //drawable = new DrawRenderTet3();
       //drawable = new DrawCylinder();
       //drawable = new DrawCone();
@@ -1366,7 +1365,7 @@ public class RenderDemo extends RootModel {
       //drawable = new DrawOffset();
       //drawable = new DrawBorderedTriangle();
       //drawable = new DrawMappingsMesh();
-      drawable = new DrawText();
+      //drawable = new DrawText();
       //drawable = new DrawSquares();
       //drawable = new DrawSquaresX();
 

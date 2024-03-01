@@ -5,6 +5,12 @@
 \mainmatter
 \fi
 
+\def\lfn{\hat{l}_f} % normalized muscle fibre length
+\def\vfn{\hat{v}_f} % normalized muscle fibre velocity
+\def\ltn{\hat{l}_t} % normalized tendon length
+\def\vmax{V_{m}} % max contraction velocity
+\def\eps{\epsilon} % max contraction velocity
+\def\Flen{\bar{F}^M_{len}} % maximum normalized lengthening force
 \chapter{Mechanical Models II}
 \label{MechModelsII:sec}
 
@@ -17,23 +23,23 @@ Both \javaclass[artisynth.core.workspace]{RootModel} and
 \javaclass[artisynth.core.mechmodels]{MechModel} contain properties
 that control the simulation behavior. 
 
-\subsection{maxStepSize}
+\subsection{Simulation step size}
 
-One of the most important of
-these is {\tt maxStepSize}. By default, simulation proceeds using the
-{\tt maxStepSize} value defined for the root model. A {\tt MechModel}
-(or any other type of {\tt Model}) contained in the root model's {\tt
-models} list may also request a smaller step size by specifying a
-smaller value for its own {\tt maxStepSize} property.  For all models,
-the {\tt maxStepSize} may be set and queried using
-%
+One of the most important properties is {\tt maxStepSize}. By default,
+simulation proceeds using the {\tt maxStepSize} value defined for the
+root model. A {\tt MechModel} (or any other type of {\tt Model})
+contained in the root model's {\tt models} list may also request a
+smaller step size by specifying a smaller value for its own {\tt
+maxStepSize} property.  For all models, the {\tt maxStepSize} may be
+set and queried using
+% method table
 \begin{lstlisting}[]
   void setMaxStepSize (double maxh);
   double getMaxStepSize();
 \end{lstlisting}
 %
 
-\subsection{integrator}
+\subsection{Integrator}
 
 Another important simulation property is {\tt integrator} in {\tt
 MechModel}, which determines the type of integrator used for the
@@ -84,7 +90,7 @@ values decrease the propagation time and hence the allowable step
 size.
 \end{sideblock}
 
-\subsection{stabilization}
+\subsection{Position stabilization}
 
 Another {\tt MechModel} simulation property is {\tt stabilization},
 which controls the stabilization method used to correct drift from
@@ -176,7 +182,7 @@ For convenience, many ArtiSynth components, including {\tt MechModel},
 implement the interface
 \javaclass[artisynth.core.util]{ScalableUnits}, which
 provides the following methods for scaling mass and distance units:
-%
+% method table
 \begin{lstlisting}[]
   scaleDistance (s);    // scale distance units by s
   scaleMass (s);        // scale mass units by s
@@ -231,32 +237,6 @@ shown above is run, it should behave exactly the same as the
 non-scaled version.
 \end{sideblock}
 
-%\section{Multi-point springs}
-%OPTIONAL
-%\subsection{Operation}
-%\subsection{Example: A single multi-point spring}
-
-%\begin{figure}[ht]
-%\begin{center}
-%\iflatexml
-% \includegraphics[]{images/MultiPointSpring}
-%\else
-% \includegraphics[width=3.75in]{images/MultiPointSpring}
-%\fi
-%\end{center}
-%\caption{MultiPointSpring model loaded into ArtiSynth.}
-%\label{MultiPointSpring:fig}
-%\end{figure}
-%
-%A simple model showing a multi-point spring is defined in
-%%
-%\begin{verbatim}
-%  artisynth.demos.tutorial.MultiPointSpring
-%\end{verbatim}
-%
-
-% MultiPointSpring
-
 \section{Render properties}
 \label{RenderProperties:sec}
 
@@ -267,7 +247,7 @@ of subproperties used to control an object's rendered appearance.
 
 In code, the {\tt renderProps} property for an object can be set or
 queried using the methods
-%
+% method table
 \begin{lstlisting}[]
   setRenderProps (RenderProps props); // set render properties
   RenderProps getRenderProps();       // get render properties (read-only)
@@ -562,7 +542,7 @@ To set up a texture map, one creates an instance of the appropriate
 {\sf normalMap}, or {\sf bumpMap} property of {\tt RenderProps}.  
 For a specific renderable, the map properties can be set
 using the static methods
-%
+% method table
 \begin{lstlisting}[]
    void RenderProps.setColorMap (Renderable r, ColorMapProps tprops);
    void RenderProps.setNormalMap (Renderable r, NormalMapProps tprops);
@@ -576,7 +556,7 @@ name of the source image.  Normal and bump maps also often require
 adjustment of their {\sf scaling} properties.  The following static
 methods are available for setting the {\sf enabled} and
 {\sf fileName} subproperties within a renderable:
-%
+% method table
 \begin{lstlisting}[]
    void RenderProps.setColorMapEnabled (Renderable r, boolean enabled);
    void RenderProps.setColorMapFileName (Renderable r, String fileName);
@@ -643,7 +623,7 @@ RigidBody} via the method
 \item Use a simple mesh object with predefined
 texture coordinates. The class \javaclass[maspack.geometry]{MeshFactory}
 provides the methods
-%
+% method table
 \begin{lstlisting}[]
    PolygonalMesh createRectangle (width, height, xdivs, ydivs, addTextureCoords);
   
@@ -707,13 +687,13 @@ to adjust the depth amplitude to relative to the sphere radius.
 
 \begin{figure}[ht]
 \begin{center}
-\begin{tabular}{c}
+\begin{tabular}{cc}
    \iflatexml
-      \includegraphics[]{images/TennisBallColorMap}\\
+      \includegraphics[]{images/TennisBallColorMap}&
       \includegraphics[]{images/TennisBallBumpMap}
    \else
-      \includegraphics[width=3in]{images/TennisBallColorMap}\\
-      \includegraphics[width=3in]{images/TennisBallBumpMap}
+      \includegraphics[width=2.5in]{images/TennisBallColorMap}&
+      \includegraphics[width=2.5in]{images/TennisBallBumpMap}
    \fi
 \end{tabular}
 \end{center}
@@ -740,7 +720,7 @@ load and initially appear as in Figure
 legacy OpenGL 2 viewer (command line option {\tt -GLVersion 2}), bump
 mapping will not be supported and will not appear.
 
-\section{Point-to-point muscles}
+\section{Point-to-point muscles, tendons and ligaments}
 \label{PointToPointMuscles:sec}
 
 Point-to-point muscles are a simple type of component in biomechanical
@@ -750,109 +730,413 @@ between two points. ArtiSynth provides this through
 \javaclass[artisynth.core.mechmodels]{AxialSpring} that generates an
 active muscle force in response to its {\tt excitation} property. The
 excitation property can be set and queried using the methods
-%
+% method table
 \begin{lstlisting}[]
-   setExcitation (double a);
-   double getExcitation();
+   setExcitation (double excitation)
+   double getExcitation()
 \end{lstlisting}
 %
 
-\subsection{Muscle materials}
-\label{sec:mechii:musclematerials}
-
-As with {\tt AxialSpring}s, {\tt Muscle} components use an
+As with {\tt AxialSpring}s, {\tt Muscle} components use subclasses of
 \javaclass[artisynth.core.materials]{AxialMaterial} to compute the
 applied force $f (l, \dot l, a)$ in response to the muscle's length
-$l$, length velocity $\dot l$, and excitation signal $a$.  Usually the
-force is the sum of a {\it passive} component plus an {\it active}
-component that arises in response to the excitation signal.
+$l$, length velocity $\dot l$, and excitation signal $a$, which is
+assumed to lie in the interval $a \in [0,1]$. Special {\it muscle}
+subclasses of {\tt AxialMaterial} exist that compute forces that vary
+in response to the excitation. As with other axial materials, this is
+done by the material's {\tt computeF()} method, first described in
+Section \ref{CustomAxialMaterials:sec}:
+%
+\begin{lstlisting}[]
+  double computeF (l, ldot, l0, excitation)
+\end{lstlisting}
+%
+Usually the force is the sum of a {\it passive} component plus an {\it
+active} component that arises in response to the excitation signal.
 
-The default {\tt AxialMaterial} for a {\tt Muscle} is
-\javaclass[artisynth.core.materials]{SimpleAxialMuscle},
-which is essentially an activated version of 
-\javaclass[artisynth.core.materials]{LinearAxialMaterial}
-and 
-which computes a simple force according to
+Once a muscle material is created, it can be assigned to a muscle
+or queried using {\tt Muscle} methods
+% method table
+\begin{lstlisting}[]
+  setMaterial (AxialMaterial mat)
+  AxialMaterial getMaterial()
+\end{lstlisting}
+%
+
+\begin{sideblock}
+Muscle materials can also be assigned to axial springs, although the
+resulting force will always be computed with 0 excitation.
+\end{sideblock}
+
+\subsection{Simple muscle materials}
+\label{sec:mechii:musclematerials}
+
+A number of simple muscle materials are described below. All compute
+force as a function of $a$ and $l$, with an optional damping force
+that is proportional to $\dot l$. More complex Hill-type muscles, with
+force velocity curves, pennation angle, and a tendon component in
+series, are also available and described in
+Section \ref{equilibriumMuscles:sec}.
+
+\begin{sideblock}
+For historical reasons, the materials {\tt ConstantAxialMuscle}, {\tt
+LinearAxialMuscle} and {\tt PeckAxialMuscle}, described below, contain
+a property called {\sf forceScaling} that uniformly scales the
+computed force. This property is now deprecated, and should therefore
+have a value of 1. However, creating these materials with constructors
+{\it not} indicated in the documentation below will cause {\sf
+forceScaling} to be set to a default value of 1000, thus requiring
+that the maximum force and damping values be correspondingly reduced.
+\end{sideblock}
+
+\subsubsection{SimpleAxialMuscle}
+
+\javaclass[artisynth.core.materials]{SimpleAxialMuscle} is the default
+{\tt AxialMaterial} for {\tt Muscle}, and is essentially an activated
+version of \javaclass[artisynth.core.materials]{LinearAxialMaterial}.
+It computes a simple force according to
 %
 \begin{equation}
-f(l, \dot l) = k (l-l_0) + d \dot l + m_f a
+f(l, \dot l) = k (l-l_0) + d \dot l + f_{max} \, a,
 \label{SimpleAxialMuscle:eqn}
 \end{equation}
 %
-where $k$ and $d$ are stiffness and damping terms, $a$ is the
-excitation value, and $m_f$ is the maximum excitation force.
-$k$, $d$ and $m_f$ are exposed through the properties {\tt
-stiffness}, {\tt damping}, and {\tt maxForce}.
+where $l_0$ is the muscle rest length, $k$ and $d$ are stiffness and
+damping terms, and $f_{max}$ is the maximum excitation force. $l_0$ is
+specified by the {\sf restLength} property of the muscle component,
+$a$ by the {\sf excitation} property of the {\tt Muscle}, and $k$, $d$
+and $f_{max}$ by the following properties of {\tt
+SimpleAxialMuscle}:
 
-More complex muscle materials are typically used for biomechanical
-modeling applications, generally with nonlinear passive terms and
-active terms that depend on the muscle length $l$.  Some of those
-available in ArtiSynth include
-\javaclass[artisynth.core.materials]{ConstantAxialMuscle},
-\javaclass[artisynth.core.materials]{BlemkerAxialMuscle},
-\javaclass[artisynth.core.materials]{MasoudMillardLAM}, and
-\javaclass[artisynth.core.materials]{PeckAxialMuscle}.
+\begin{center}
+\begin{tabular}{|l|l|l|c|} 
+\hline
+ & Property & Description & Default \\
+\hline
+$k$ & {\sf stiffness} & stiffness term & 0 \\
+$d$ & {\sf damping} & damping term & 0 \\
+$f_{max}$ & {\sf maxForce} & maximum activation force that can be 
+imparted by $a$ & 1 \\
+\hline
+\end{tabular}
+\end{center}
 
-\paragraph{\javaclass[artisynth.core.materials]{ConstantAxialMuscle}}
-This is a simple muscle material that has a contractile force proportional to its activation, a constant passive tension, and linear damping, as follows:
+{\tt SimpleAxialMuscle}s can be created with the following
+constructors:
+% method table
+\begin{lstlisting}[]
+SimpleAxialMuscle()
+SimpleAxialMuscle (stiffness, damping, fmax)
+\end{lstlisting}
+%
+where {\tt stiffness}, {\tt damping}, and {\tt fmax} specify $k$, $d$
+and $f_{max}$, and properties are otherwise set to their defaults.
 
+\subsubsection{ConstantAxialMuscle}
+
+\javaclass[artisynth.core.materials]{ConstantAxialMuscle}
+is a simple muscle material that has a contractile force proportional
+to its activation, a constant passive tension, and linear damping.
+The resulting force is described by:
+%
 \begin{equation}
-f(\dot l) = a f_{max} +  f_{passive} f_{max} + d \dot l 
+f(\dot l) = f_{max} ( a  +  f_{p} ) + d \dot l.
 \label{ConstantAxialMaterial:eqn}
 \end{equation}
+%
+The parameters $f_{max}$, $f_{p}$ and $d$ are specified as properties of
+{\tt ConstantAxialMuscle}:
 
-
-The parameters for this material include:\\
-\begin{tabular}{|l|l|l|} \hline
- & Property & Description \\
-$f_{max}$ & {\tt maxForce} & the maximum contractile force \\
-$f_{passive}$ & {\tt passiveFraction} & the proportion of $f_{max}$ to apply as passive tension \\
-$d$ & {\tt damping} & damping \\ 
-$a$ & {\tt Muscle:excitation} & the {\tt Muscle}'s activation \\ \hline
+\begin{center}
+\begin{tabular}{|l|l|l|c|} \hline
+ & Property & Description & Default \\
+\hline
+$f_{max}$ & {\sf maxForce} & maximum contractile force & 1 \\
+$f_{p}$ & {\sf passiveFraction} & 
+proportion of $f_{max}$ to apply as passive tension & 0 \\
+$d$ & {\sf damping} & damping parameter & 0 \\
+\hline
 \end{tabular}
+\end{center}
 
+{\tt ConstantAxialMuscle}s can be created with the following factory
+methods and constructors:
+% method table
+\begin{lstlisting}[]
+ConstantAxialMuscle.create()
+ConstantAxialMuscle.create (fmax)
+ConstantAxialMuscle (fmax, pfrac)
+ConstantAxialMuscle (fmax, pfrac, damping)
+\end{lstlisting}
+%
+where {\tt fmax}, {\tt pfrac}, and {\tt damping} specify $f_{max}$, $f_p$
+and $d$, and properties are otherwise set to their defaults.
 
-\paragraph{\javaclass[artisynth.core.materials]{LinearAxialMuscle}}
-This is a simple muscle material that has a linear relationship between length and tension, as well as linear damping, as follows:
+\begin{sideblock}
+Creating a {\tt ConstantAxialMuscle} with the no-args constructor, or
+another constructor {\it not} listed above, will cause its {\sf
+forceScaling} property (Section \ref{sec:mechii:musclematerials}) to
+be set to 1000 instead of 1, thus requiring that {\tt fmax} and {\tt
+damping} be corresponding reduced.
+\end{sideblock}
 
+\subsubsection{LinearAxialMuscle}
+
+\javaclass[artisynth.core.materials]{LinearAxialMuscle}
+is a simple muscle material that has a linear relationship between
+length and tension, as well as linear damping. Given a normalized
+length described by
+%
 \begin{equation}
-l' = \frac{l - l_{opt}}{l_{max} - l_{opt}}, \mathrm{with}~ 0 \le l' \le 1~\mathrm{enforced}
+\hat l= \frac{l - l_{opt}}{l_{max} - l_{opt}}, 
+\quad \mathrm{with}~ 0 \le \hat l \le 1~\mathrm{enforced},
 \end{equation}
-
+%
+the force generated by this material is:
+%
 \begin{equation}
-f(l, \dot l) = a f_{max} l' +  f_{passive} f_{max} l' + d \dot l 
+f(l, \dot l) = f_{max} \left( a \hat l +  f_{p} \hat l \, \right) + d \dot l.
 \label{LinearAxialMaterial:eqn}
 \end{equation}
+%
+The parameters are specified as properties of {\tt LinearAxialMaterial}:
 
-The parameters for this material include:\\
-\begin{tabular}{|l|l|l|} \hline
- & Property & Description \\
-$l_{max}$ & {\tt maxLength} & the length at which maximum force is generated \\
-$l_{opt}$ & {\tt optLength} & the length at which zero active force is generate \\
-$f_{max}$ & {\tt maxForce} & the maximum contractile force \\
-$f_{passive}$ & {\tt passiveFraction} & the proportion of $f_{max}$ to apply as passive tension \\
-$d$ & {\tt damping} & damping \\ 
-$a$ & {\tt Muscle:excitation} & the {\tt Muscle}'s activation \\ \hline
+\begin{center}
+\begin{tabular}{|l|l|l|c|} \hline
+& Property & Description & Default \\
+\hline
+$f_{max}$ & {\sf maxForce} & maximum contractile force & 1 \\
+$f_{p}$ & {\sf passiveFraction} & 
+proportion of $f_{max}$ that forms the maximum passive force & 0 \\
+$l_{max}$ & {\sf maxLength} &
+length beyond which maximum passive and active forces are generated & 1 \\
+$l_{opt}$ & {\sf optLength} &
+length below which zero active force is generated & 0 \\
+$d$ & {\sf damping} & damping parameter & 0 \\
+\hline
 \end{tabular}
+\end{center}
 
+{\tt LinearAxialMuscle}s can be created with the following factory
+methods and constructors:
+% method table
+\begin{lstlisting}[]
+LinearAxialMuscle.create()
+LinearAxialMuscle.create (fmax, lrest)
+LinearAxialMuscle (fmax, lopt, lmax, pfrac)
+LinearAxialMuscle (fmax, lopt, lmax, pfrac, damping)
+\end{lstlisting}
+%
+where {\tt fmax}, {\tt lopt}, {\tt lmax}, {\tt pfrac} and {\tt
+damping} specify $f_{max}$, $l_{opt}$, $l_{max}$, $f_{p}$ and $d$,
+{\tt lrest} specifies $l_{opt}$ and $l_{max}$ via
+$l_{opt} = \mathrm{\tt lrest}$ and
+$l_{max} = 3/2 \; \mathrm{\tt lrest}$, and other properties are set to
+their defaults.
 
-\paragraph{\javaclass[artisynth.core.materials]{BlemkerAxialMuscle}}
-This muscle material generates a force as described in~\cite{blemker:2005:muscle}. It is the axial muscle
-equivalent to the constitutive equation along the muscle fiber direction specified in the 
+\begin{sideblock}
+Creating a {\tt LinearAxialMuscle} with the no-args constructor, or
+another constructor {\it not} listed above, will cause its {\sf
+forceScaling} property (Section \ref{sec:mechii:musclematerials}) to
+be set to 1000 instead of 1, thus requiring that {\tt fmax} and {\tt
+damping} be corresponding reduced.
+\end{sideblock}
+
+\subsubsection{PeckAxialMuscle}
+
+The \javaclass[artisynth.core.materials]{PeckAxialMuscle}
+material generates a force as described in~\cite{peck2000dynamic}. 
+It has a typical Hill-type active force-length relationship (modeled
+as a cosine), but the passive force-length properties are linear. This
+muscle model was empirically verified for jaw muscles during wide jaw
+opening.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+   \iflatexml
+      \includegraphics[width=3in]{images/PeckAPFLC}&
+      \includegraphics[width=3in]{images/PeckCFLC}
+   \else
+      \includegraphics[width=3in]{images/PeckAPFLC}&
+      \includegraphics[width=3in]{images/PeckCFLC}
+   \fi
+\end{tabular}
+\end{center}
+\caption{Left: active (red) and passive force length curve (green)
+for a {\tt PeckAxialMuscle} with $f_{max} = 1$, $f_{p} = 1$, $T_r =
+0$, $l_{opt} = 1$, $l_{max} = 2$, and $a = 1$. Note that the passive
+force curve is linear for $l \in [l_{opt}, l_{max}]$ and saturates for
+$l > l_{max}$. Right: combined active and passive force (blue).}
+\label{PeckCurves:fig}
+\end{figure}
+
+Given a normalized fibre length described by
+%
+\begin{equation}
+\hat l_f = \frac{l - l_{opt} T_r}{l_{opt} (1 - T_r)}, 
+\quad \mathrm{with}~ 1/2 \le \hat l \le 3/2~\mathrm{enforced},
+\end{equation}
+%
+and a normalized muscle length 
+%
+\begin{equation}
+\hat l_m = \frac{l - l_{opt}}{l_{max} - l_{opt}}, 
+\quad \mathrm{with}~ 0 \le \hat l \le 1~\mathrm{enforced},
+\end{equation}
+%
+the force generated by this material is:
+%
+\begin{equation}
+f(l, \dot l) = 
+f_{max} \left( a \frac{1 + \cos(2 \pi \hat l_f)}{2} +  f_{p} \hat l_m \right) + d \dot l.
+\label{PeckAxialMuscle:eqn}
+\end{equation}
+%
+The parameters are specified as properties of {\tt PeckAxialMuscle}:
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|} \hline
+ & Property & Description & Default \\
+\hline
+$f_{max}$ & {\sf maxForce} & maximum contractile force & 1 \\
+$f_{p}$ & {\sf passiveFraction} & 
+proportion of $f_{max}$ that forms the maximum passive force & 0 \\
+$T_r$ & {\sf tendonRatio} & tendon to fibre length ratio & 0 \\
+$l_{max}$ & {\sf maxLength} & 
+length at which maximum passive force is generated & 1 \\
+$l_{opt}$ & {\sf optLength} & 
+length at which maximum active force is generated & 0 \\
+$d$ & {\sf damping} & damping parameter & 0 \\ 
+\hline
+\end{tabular}
+\end{center}
+
+Figure \ref{PeckCurves:fig} illustrates the force length relationship
+for a {\tt PeckAxialMuscle}. 
+
+{\tt PeckAxialMuscle}s can be created with the following factory
+methods:
+% method table
+\begin{lstlisting}[]
+PeckAxialMuscle.create()
+PeckAxialMuscle.create (fmax, lopt, lmax, tratio, pfrac)
+PeckAxialMuscle.create (fmax, lopt, lmax, tratio, pfrac, damping)
+\end{lstlisting}
+%
+where {\tt fmax}, {\tt lopt}, {\tt lmax}, {\tt tratio}, {\tt pfrac}
+and {\tt damping} specify $f_{max}$, $l_{opt}$, $l_{max}$, $T_r$,
+$f_{p}$ and $d$, and other properties are set to their defaults.
+
+\begin{sideblock}
+Creating a {\tt PeckAxialMuscle} with the no-args constructor, or
+another constructor {\it not} listed above, will cause its {\sf
+forceScaling} property (Section \ref{sec:mechii:musclematerials}) to
+be set to 1000 instead of 1, thus requiring that {\tt fmax} and {\tt
+damping} be corresponding reduced.
+\end{sideblock}
+
+\subsubsection{BlemkerAxialMuscle}
+
+The \javaclass[artisynth.core.materials]{BlemkerAxialMuscle} material
+generates a force as described in~\cite{blemker:2005:muscle}. It is
+the axial muscle equivalent to the constitutive equation along the
+muscle fiber direction specified in the
 \javaclass[artisynth.core.materials]{BlemkerMuscle} FEM material.
 
-\paragraph{\javaclass[artisynth.core.materials]{PeckAxialMuscle}}
-This muscle material generates a force as described in~\cite{peck2000dynamic}. 
-It has a typical Hill-type active force-length relationship (modeled as a cosine), but 
-the passive force-length properties are linear. This muscle model was empirically
-verified for jaw muscles during wide jaw opening~\cite{peck2000dynamic}.
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+   \iflatexml
+      \includegraphics[width=3in]{images/BlemkerAPFL}&
+      \includegraphics[width=3in]{images/BlemkerCFL}
+   \else
+      \includegraphics[width=3in]{images/BlemkerAPFL}&
+      \includegraphics[width=3in]{images/BlemkerCFL}
+   \fi
+\end{tabular}
+\end{center}
+\caption{Left: active force curve $f_L(\hat l)$ (red) and 
+passive force curve $f_P(\hat l)$ (green) for a {\tt
+BlemkerAxialMuscle} with $l_{opt} = 1$, $l_{max} = 1.4$, $P_1 = 0.05$,
+and $P_2 = 6.6$. Right: total force length curve (blue) with 
+$f_{max} = 1$ and $a = 1$.}
+\label{BlemkerCurves:fig}
+\end{figure}
 
-\paragraph{\javaclass[artisynth.core.materials]{MasoudMillardLAM}}
-This muscle material generates a force as described in~\cite{millard2013flexing} for 
-the rigid tendon case. 
+The force produced is a combination of active and passive terms,
+plus a damping term, given by
+%
+\begin{equation}
+f(l, \dot l) = 
+f_{max} \left( a f_L (\hat l) + f_P (\hat l) \right) + d \dot l,
+\label{BlemkerAxialMaterial:eqn}
+\end{equation}
+%
+where $f_{max}$ is the maximum force, $\hat l \equiv l/l_{opt}$ is the
+normalized muscle length, and
+$f_L (\hat l)$ and $f_P(\hat l)$ are the active and passive
+force length curves, given by
+%
+\begin{equation}
+f_L (\hat l) = 
+\begin{cases}
+9 \, (\hat l - 0.4); & \hat l \in [0.4, 0.6] \\
+1 - 4 (1 - \hat l); & \hat l \in [0.6, 1.4] \\
+9 \, (\hat l - 1.6); & \hat l \in [1.4, 1.6] \\
+0 & \mathrm{otherwise} \\
+\end{cases}
+\end{equation}
+%
+and
+%
+\begin{equation}
+f_P (\hat l) = 
+\begin{cases}
+0 & \hat l < 1 \\
+P_1 (e^{P_2 (\hat l-1)}-1); & \hat l \in [l_{opt}, l_{max}/l_{opt}]\\
+P_3 \hat l + P_4; & \hat l > l_{max}/l_{opt}. \\
+\end{cases}
+\label{BlemkerPassive:eqn}
+\end{equation}
+%
+For the passive force length curve, $P_3$ and $P_4$ are computed to
+provide linear extrapolation for $\hat l > l_{max}/l_{opt}$. The other
+parameters are specified by properties of {\tt BlemkerAxialMuscle}:
 
+\begin{center}
+\begin{tabular}{|l|l|l|c|} 
+\hline
+ & Property & Description & Default\\
+\hline
+$f_{max}$ & {\sf maxForce} & the maximum contractile force & $3 \times 10^5$ \\
+$P_1$ & {\sf expStressCoeff} & exponential stress coefficient & 0.05 \\
+$P_2$ & {\sf uncrimpingFactor} & fibre uncrimping factor & 6.6 \\
+$l_{max}$ & {\sf maxLength} & 
+length at which passive force becomes linear & 1.4 \\
+$l_{opt}$ & {\sf optLength} & 
+length at which maximum active force is generated & 1 \\
+$d$ & {\sf damping} & damping parameter & 0 \\ 
+\hline
+\end{tabular}
+\end{center}
 
-\subsection{Example: Muscle attached to a rigid body}
+Figure \ref{BlemkerCurves:fig} illustrates the force length relationship
+for a {\tt BlemkerAxialMuscle}. 
+
+{\tt BlemkerAxialMuscle}s can be created with the following 
+constructors, 
+% method table
+\begin{lstlisting}[]
+BlemkerAxialMuscle()
+BlemkerAxialMuscle (lmax, lopt, fmax, ecoef, uncrimp)
+\end{lstlisting}
+%
+where {\tt lmax}, {\tt lopt}, {\tt fmax}, {\tt ecoef}, and {\tt
+uncrimp} specify $l_{max}$, $l_{opt}$, $f_{max}$, $P_1$, $P_2$ and
+$d$, and properties are otherwise set to their defaults.
+
+\subsection{Example: muscle attached to a rigid body}
 \label{SimpleMuscleExample:sec}
 
 \begin{figure}[ht]
@@ -885,7 +1169,7 @@ with a {\tt SimpleAxialMuscle} material:
       muscle = new Muscle ("mus", /*restLength=*/0);
       muscle.setPoints (p1, mkr);
       muscle.setMaterial (
-         new SimpleAxialMuscle (/*stiffness=*/20, /*damping=*/10, /*maxf=*/10));
+         new SimpleAxialMuscle (/*stiffness=*/20, /*damping=*/10, /*fmax=*/10));
 \end{lstlisting}
 %
 Also, so that the muscle renders differently, the rendering style
@@ -907,7 +1191,412 @@ editing panel that allows the muscle's properties to be adjusted
 interactively. Adjusting the {\tt excitation} property using the
 adjacent slider will cause the muscle force to vary.
 
-% LATER \subsection{Multi-point muscles}
+\subsection{Equilibrium muscles}
+\label{equilibriumMuscles:sec}
+
+ArtiSynth supplies several muscle materials that simulate a pennated
+muscle in series with a tendon. Both the muscle and tendon generate
+forces which are functions of their respective lengths $l_m$ and
+$l_t$, and because these components are in series, their respective
+forces must be equal when the system is in equilibrium. Given an
+overall muscle-tendon length $l \equiv l_m + l_t$, ArtiSynth solves
+for $l_m$ at each time step to ensure that this equilibrium condition
+is met.
+
+\begin{figure}[h]
+\begin{center}
+ \includegraphics[width=4in]{images/muscleModel}
+\end{center}
+\caption{Schematic illustration of an pennated muscle in series with a
+tendon.}
+\label{equilibriumMuscles:fig}
+\end{figure}
+
+A general muscle-tendon system is illustrated by Figure
+\ref{equilibriumMuscles:fig}, where $l_m$ and $l_t$ are the muscle and
+tendon lengths.  These two components generate forces given by
+$f_m(l_m, v_m)$ and $f_t(l_t)$, where $v_m \equiv \dot l_m$, and the
+fact that these components are in series implies that their forces
+must be in equilibrium:
+%
+\begin{equation}
+f_m(l_m, v_m) = f_t(l_t).
+\label{equilibrium:eqn}
+\end{equation}
+%
+The muscle force is in turn produced by a {\it fibre force} $f_f$
+acting at an {\it pennation angle} $\phi$ with respect to the
+principal muscle direction, such that
+%
+ \begin{equation*}
+f_m = \cos(\phi) f_f (l_f, v_f),
+\end{equation*}
+%
+where $l_f$ is the fibre length, which satisfies
+$l_m = \cos(\phi) l_f$, and $v_f \equiv \dot l_f$.
+
+The fibre force is usually computed from the normalized fibre length
+$\lfn$ and normalized fibre velocity $\vfn$, defined by
+%
+\begin{equation}
+\lfn = \frac{l_f}{l_o}, \quad \vfn = \frac{v_f}{l_o \vmax},
+\label{lfn:eqn}
+\end{equation}
+%
+where $l_o$ is the {\it optimal fibre length} and $\vmax$ is the {\it maximum
+contraction velocity}. It is composed of three components in parallel,
+such that
+%
+\begin{equation}
+f_f (\lfn, \vfn) = F_o \left( a f_L(\lfn) f_V(\vfn) + f_P(\lfn) +
+\beta \vfn \right),
+\label{ff:eqn}
+\end{equation}
+%
+where $F_o$ is the {\it maximum isometric force},
+$a f_L(\lfn) f_V(\vfn)$ is the active force term induced by an
+activation level $a$ and modulated by the {\it active force length
+curve} $f_L(\lfn)$ and the {\it force velocity curve} $f_V(\vfn)$,
+$f_P(\lfn)$ is the {\it passive force length curve}, and $\beta \vfn$
+is an optional damping term induced by a {\it fibre damping} parameter
+$\beta$.
+
+The tendon force $f_t(\ltn)$ is computed from 
+%
+\begin{equation*}
+f_t(l_t) = F_o f_T (\ltn),
+\end{equation*}
+%
+where $F_o$ is (again) the maximum isometric force, $f_T(\ltn)$ is the
+{\it tendon force length curve} and $\ltn$ is the normalized tendon
+length, defined by dividing $l_t$ by the {\it tendon slack length}
+$T$:
+%
+\begin{equation*}
+\ltn = \frac{l_t}{T}.
+\end{equation*}
+%
+
+As the muscle moves, it is assumed that the height $H$ from the fibre
+origin to the main muscle line of action remains constant.
+This height is defined by
+%
+\begin{equation*}
+H = l_o \sin \phi_o,
+\end{equation*}
+%
+where $\phi_o$ is the {\it optimal pennation angle} at the optimal
+fibre length when $l_f = l_o$.
+
+\subsection{Equilibrium muscle materials}
+\label{EquilibriumMuscleMaterials:sec}
+
+The equilibrium muscle materials supplied by ArtiSynth include
+\javaclass[artisynth.core.materials]{Thelen2003AxialMuscle} and
+\javaclass[artisynth.core.materials]{Millard2012AxialMuscle}.  These
+are all controlled by properties which specify the parameters
+presented in Section \ref{equilibriumMuscles:sec}:
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|} 
+\hline
+& Property & Description & Default\\
+\hline
+$F_{o}$ & {\sf maxIsoForce} & 
+maximum isometric force & 1000 \\
+$l_o$ & {\sf optFibreLength} & 
+optimal fibre length & 0.1 \\
+$T$ & {\sf tendonSlackLength} & 
+length beyond which tendon exerts force & 0.2 \\
+$\phi_o$ & {\sf optPennationAngle} & 
+pennation angle at optimal fibre length (radians) & 0 \\
+$\vmax$ & {\sf maxContractionVelocity} & 
+maximum contraction velocity & 10 \\
+$\beta$ & {\sf fibreDamping} & 
+damping parameter for normalized fibre velocity & 0 \\
+\hline
+\end{tabular}
+\end{center}
+
+The materials differ from each other with respect to their active,
+passive and tendon force length curves ($f_L(\lfn)$, $f_P(\lfn)$, and
+$f_T(\ltn)$) and their force velocity curves ($f_V(\vfn)$).
+
+For a given muscle instance, it is typically only necessary to specify
+$F_o$, $l_o$, $T$ and $\phi_o$, where $F_o$, $l_o$ and $T$ are given
+in the model's basic force and length units. $\vmax$ is given in units
+of $l_o$ per second and has a default value of 10; changing this value
+will stretch or contract the domain of the force velocity curve
+$f_V(\vfn)$. The damping parameter $\beta$ imparts a damping force
+proportional to $\vfn$ and has a default value of 0 (i.e., no
+damping). It is often not necessary to add fibre damping (since
+damping can be readily applied to the model in other ways), but
+$\beta$ is supplied for formulations that do specify damping.  If
+non-zero, $\beta$ is usually set to a value less than or equal to
+$0.1$.
+
+In addition to the above parameters, equilibrium muscle materials also
+export the following properties to adjust their behavior:
+
+\begin{center}
+\begin{tabular}{|l|l|l|} 
+\hline
+Property & Description & Default \\
+\hline
+{\sf rigidTendon} & forces the tendon to be rigid & {\tt false} \\
+{\sf ignoreForceVelocity} & 
+ignore the force velocity curve $f_V(\vfn)$ & {\tt false} \\
+\hline
+\end{tabular}
+\end{center}
+
+If {\tt rigidTendon} is {\tt true}, the tendon will be assumed to be
+rigid with a length given by the tendon slack length parameter $T$.
+This simplifies the muscle computations since $l_m$ is then given by
+$l_m = l - T$ and there is no need to compute an equilibrium position.
+If {\tt ignoreForceVelocity} is {\tt true}, then force velocity
+effects are ignored by replacing the force velocity curve $f_V(\vfn)$
+with $1$.
+
+The different equilibrium muscle materials are now summarized:
+
+\subsubsection{Millard2012AxialMuscle}
+\label{Millard2012AxialMuscle:sec}
+
+\javaclass[artisynth.core.materials]{Millard2012AxialMuscle}
+implements the default version of the {\tt
+Millard2012EquilibriumMuscle} model supplied by OpenSim
+\cite{delp2007opensim} and described in \cite{millard2013flexing}.
+
+The active, passive and tendon force length curves ($f_L(\lfn)$,
+$f_P(\lfn)$, and $f_T(\ltn)$) and force velocity curve ($f_V(\vfn)$)
+are implemented using cubic Hermite spline curves to conform closely
+to the default curve values provided by OpenSim's {\tt
+Millard2012EquilibriumMuscle}. Plots of these curves are shown in
+Figures \ref{MillardCurvesA:fig} and \ref{MillardCurvesB:fig}.  Both
+the passive and tendon force curves are linearly extrapolated (and
+hence exhibit constant stiffness) past $\lfn = 1.7$ and
+$\ltn = 1.049$, respectively, with stiffness values of 2.857 and
+29.06.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+   \iflatexml
+      \includegraphics[width=3in]{images/MillardAFLC}&
+      \includegraphics[width=3in]{images/MillardPFLC}
+   \else
+      \includegraphics[width=3in]{images/MillardAFLC}&
+      \includegraphics[width=3in]{images/MillardPFLC}
+   \fi
+\end{tabular}
+\end{center}
+\caption{Default active force length curve $f_L(\lfn)$ (left) and 
+passive force length curve $f_P(\lfn)$ (right) for the Millard 2012
+muscle material.}
+\label{MillardCurvesA:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+   \iflatexml
+      \includegraphics[width=3in]{images/MillardFVC}&
+      \includegraphics[width=3in]{images/MillardTFLC}
+   \else
+      \includegraphics[width=3in]{images/MillardFVC}&
+      \includegraphics[width=3in]{images/MillardTFLC}
+   \fi
+\end{tabular}
+\end{center}
+\caption{Default force velocity curve $f_V(\vfn)$ (left) 
+and tendon force length curve $f_T(\ltn)$ (right) for the Millard 2012
+muscle material. Note that the tendon force curve is about 10 times
+stiffer than the passive force curve, as seen by that fact the tendon
+curve is shown with a horizontal range of $[0.9, 1.1]$ vs. $[0, 2]$
+for the passive curve.}
+\label{MillardCurvesB:fig}
+\end{figure}
+
+\begin{sideblock}
+OpenSim requires that the {\tt Millard2012EquilibriumMuscle} always
+exhibits a small bias activation, even when the activation should be
+zero, in order to avoid a singularity in the computation of the muscle
+length. ArtiSynth computes the muscle length in a manner that makes
+this unnecessary.
+\end{sideblock}
+
+{\tt Millard2012AxialMuscle}s can be created using the constructors
+% method table
+\begin{lstlisting}[]
+Millard2012AxialMuscle()
+Millard2012AxialMuscle(fmax, lopt, tslack, optPenAng)
+\end{lstlisting}
+%
+where {\tt fmax}, {\tt lopt}, {\tt tslack}, and {\tt optPenAng}
+specify $F_{o}$, $l_o$, $T$, and $\phi_o$, and other properties are
+set to their defaults.
+
+\subsubsection{Thelen2003AxialMuscle}
+\label{Thelen2003AxialMuscle:sec}
+
+\javaclass[artisynth.core.materials]{Thelen2003AxialMuscle} implements
+the {\tt Thelen2003Muscle} model supplied by OpenSim
+\cite{delp2007opensim} and introduced in \cite{thelen2003adjustment}.
+
+The active and passive force length curves are described by
+%
+\begin{equation}
+f_L(\lfn) = e^{-(\lfn-1)^2/\gamma}
+\end{equation}
+%
+and
+%
+\begin{equation}
+f_P(\lfn) = \frac{e^{k^{PE} (\lfn-1)/\eps_0^M}-1}{e^{k^{PE}-1}},`
+\end{equation}
+%
+where $\gamma$, $k^{PE}$, and $\eps_0^M$ are parameters, described
+in \cite{thelen2003adjustment}, that control the curve shapes.  These
+are exposed as properties of {\tt Thelen2003AxialMuscle} and are
+described in Table \ref{ThelenProps:tab}.
+
+The tendon force length curve is described by
+\begin{equation}
+f_T(\ltn) = 
+\begin{cases}
+0 & \ltn < 1 \\
+\dfrac{F_{toe}}{e^{k_{toe}}-1}(e^{k_{toe} (\ltn-1)/\eps^T_{toe}}-1); &
+\ltn \le 1+\eps^T_{toe}\\
+k_{lin} (\ltn - 1 - \eps^T_{toe}) + F_{toe}; &
+\ltn  > 1+\eps^T_{toe},
+\end{cases}
+\label{Thelen2003TFLC:eqn}
+\end{equation}
+%
+where $F_{toe}$, $k_{toe}$, $k_{lin}$ and $\eps^T_{toe}$ are
+parameters, described in \cite{thelen2003adjustment}, that control the
+curve shape. The values of these are either fixed, or derived from the
+{\it maximum isometric tendon strain} $\eps_0^T$ (controlled by the
+{\sf fmaxTendonStrain} property, Table \ref{ThelenProps:tab}),
+according to
+%
+\begin{equation}
+F_{toe} = 0.33, \quad k_{toe} = 3.0, \quad
+\eps^T_{toe} = \frac{99 \eps_0^T e^3}{166 e^3 - 67}, \quad
+k_{lin} = \frac{0.67}{\eps_0^T - \eps^T_{toe}}.
+\label{Thelen2003TFLCParams:eqn}
+\end{equation}
+%
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l|l|l|c|} 
+\hline
+& Property & Description & Default\\
+\hline
+$\gamma$ & {\sf kShapeActive} & 
+shape factor for active force length curve & 0.45 \\
+$k^{PE}$ & {\sf kShapePassive} & 
+shape factor for active force length curve & 5.0 \\
+$\eps_0^M$ & {\sf fmaxMuscleStrain} & 
+passive muscle strain at maximum isometric muscle force & 0.6 \\
+$\eps_0^T$ & {\sf fmaxTendonStrain} & 
+tendon strain at maximum isometric muscle force & 0.04 \\
+$A_f$ & {\sf af} & 
+force velocity shape factor & 0.25 \\
+$\Flen$ & {\sf flen} & 
+maximum normalized lengthening force & 1.4 \\
+& {\sf fvLinearExtrapThreshold} &
+$\vfn$ beyond which $f_V(\vfn)$ is linearly extrapolated & 0.95\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Properties of {\tt Thelen2003AxialMuscle} that control
+the shapes of the force curves.}
+\label{ThelenProps:tab}
+\end{table}
+
+The force velocity curve is determined from equation (6)
+in \cite{thelen2003adjustment}. In the notation used by that equation
+and the accompanying equation (7), $V^M/V^M_\text{max} = \vfn$, $f_l =
+f_L(\lfn)$, and $\bar F^M = a f_L(\lfn) f_V(\vfn)$. Inverting equation
+(6) yields the force velocity curve:
+%
+\begin{equation*}
+f_v = 
+\begin{cases}
+\dfrac {\alpha + \bar{v}^M}{\alpha -\bar{v}^M/A_f}; & \bar{v}^M \le 0 \\[1.5em]
+\dfrac {\beta + \bar{v}^M \Flen}{\beta + \bar{v}^M}; 
+& \bar{v}^M > 0,
+\end{cases}
+\label{fv:eqn}
+\end{equation*}
+%
+where
+%
+\begin{equation*}
+\alpha \equiv 0.25 + 0.75 a, \qquad 
+\beta \equiv \alpha \frac{\Flen - 1}{2 + 2/A_f},
+\end{equation*}
+%
+and $a$ is the activation level. Parameters include the {\it maximum
+normalized lengthening force} $\Flen$, and force velocity shape factor
+$A_f$, described in Table \ref{ThelenProps:tab}.
+
+Plots of the curves resulting from the above equations are shown, for
+default values, in Figures \ref{ThelenCurvesA:fig}
+and \ref{ThelenCurvesB:fig}.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+   \iflatexml
+      \includegraphics[width=3in]{images/ThelenAFLC}&
+      \includegraphics[width=3in]{images/ThelenPFLC}
+   \else
+      \includegraphics[width=3in]{images/ThelenAFLC}&
+      \includegraphics[width=3in]{images/ThelenPFLC}
+   \fi
+\end{tabular}
+\end{center}
+\caption{Default active force length curve $f_L(\lfn)$ (left) and 
+passive force length curve $f_P(\lfn)$ (right) for the Thelen 2003
+muscle material. Note that the passive curve is exponential and does
+{\it not} transition to a constant slope for high values of $\lfn$.}
+\label{ThelenCurvesA:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+   \iflatexml
+      \includegraphics[width=3in]{images/ThelenFVC}&
+      \includegraphics[width=3in]{images/ThelenTFLC}
+   \else
+      \includegraphics[width=3in]{images/ThelenFVC}&
+      \includegraphics[width=3in]{images/ThelenTFLC}
+   \fi
+\end{tabular}
+\end{center}
+\caption{Default force velocity curve $f_V(\vfn)$ (left) and tendon
+force length curve $f_T(\ltn)$ (right) for the Thelen 2003 muscle
+model. Since the force velocity curve also depends on the activation,
+its plot shows the curve for two activation values: 1.0 (dark
+magenta), and 0.5 (light magenta).}
+\label{ThelenCurvesB:fig}
+\end{figure}
+
+{\tt Thelen2003AxialMuscle}s can be created using the constructors
+% method table
+\begin{lstlisting}[]
+Thelen2003AxialMuscle()
+Thelen2003AxialMuscle(fmax, lopt, tslack, optPenAng)
+\end{lstlisting}
+%
+where {\tt fmax}, {\tt lopt}, {\tt tslack}, and {\tt optPenAng}
+specify $F_{o}$, $l_o$, $T$, and $\phi_o$, and other properties are
+set to their defaults.
 
 % LATER \section{Mesh components}
 %OPTIONAL 
@@ -920,6 +1609,368 @@ adjacent slider will cause the muscle force to vary.
 % LATER \subsection{Simple skinned mesh example}
 
 % SimpleSkinnedMesh
+
+\subsection{Tendons and ligaments}
+\label{TendonsAndLigaments:sec}
+
+Special point-to-point spring materials are also available to model
+tendons and ligaments. Because these are passive materials, they would
+normally be assigned to {\tt AxialSpring} instead of {\tt Muscle}
+components, although they will also work correctly in the latter.  The
+materials include:
+
+\subsubsection{Millard2012AxialTendon}
+
+\javaclass[artisynth.core.materials]{Millard2012AxialTendon}
+implements the default tendon material of the {\tt
+Millard2012AxialMuscle} (Section \ref{Millard2012AxialMuscle:sec}),
+with a force length relationship given by
+%
+\begin{equation}
+f(l) = F_o f_T (\ltn), \quad \ltn \equiv \frac{l}{T},
+\end{equation}
+%
+where $F_o$ is the maximum isometric force, $f_T()$ is the {\it tendon
+force length curve} (shown in Figure \ref{MillardCurvesB:fig},
+right), and $T$ is the tendon slack length. $F_o$ and $T$ are specified
+by the following properties of {\tt Millard2012AxialTendon}:
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|} 
+\hline
+& Property & Description & Default\\
+\hline
+$F_{o}$ & {\sf maxIsoForce} & 
+maximum isometric force & 1000 \\
+$T$ & {\sf tendonSlackLength} & 
+length beyond which tendon exerts force & 0.2 \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt Millard2012AxialTendon}s can be created with the constructors
+% method table
+\begin{lstlisting}[]
+Millard2012AxialTendon()
+Millard2012AxialTendon (fmax, tslack)
+\end{lstlisting}
+%
+where {\tt fmax} and {\tt tslack} specify $F_{o}$ and $T$, and
+other properties are set to their defaults.
+
+\subsubsection{Thelen2003AxialTendon}
+
+\javaclass[artisynth.core.materials]{Thelen2003AxialTendon}
+implements the default tendon material of the {\tt
+Thelen2003AxialMuscle} (Section \ref{Thelen2003AxialMuscle:sec}),
+with a force length relationship given by
+%
+\begin{equation}
+f(l) = F_o f_T (\ltn), \quad \ltn \equiv \frac{l}{T},
+\end{equation}
+%
+where $F_o$ is the maximum isometric force, $f_T()$ is the {\it tendon
+force length curve} described by equation (\ref{Thelen2003TFLC:eqn}),
+and $T$ is the tendon slack length. $F_o$, $T$, and the {\it maximum
+isometric tendon strain} $\eps_0^T$ (used to determine the parameters
+of (\ref{Thelen2003TFLC:eqn}), according to (\ref{Thelen2003TFLCParams:eqn})),
+are specified by the following properties of {\tt
+Thelen2003AxialTendon}:
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|} 
+\hline
+& Property & Description & Default\\
+\hline
+$F_{o}$ & {\sf maxIsoForce} & 
+maximum isometric force & 1000 \\
+$T$ & {\sf tendonSlackLength} & 
+length beyond which tendon exerts force & 0.2 \\
+$\eps_0^T$ & {\sf fmaxTendonStrain} & 
+tendon strain at maximum isometric muscle force & 0.04 \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt Thelen2003AxialTendon}s can be created with the constructors
+% method table
+\begin{lstlisting}[]
+Thelen2003AxialTendon()
+Thelen2003AxialTendon (fmax, tslack)
+\end{lstlisting}
+%
+where {\tt fmax} and {\tt tslack} specify $F_{o}$ and $T$, and
+other properties are set to their defaults.
+
+\subsubsection{Blankevoort1991AxialLigament}
+
+\javaclass[artisynth.core.materials]{Blankevoort1991AxialLigament}
+implements the {\tt Blankevoort1991Ligament} model supplied
+by OpenSim \cite{delp2007opensim} and described in
+\cite{blankevoort1991ligament,smith2016influence}.
+
+With the ligament strain and its derivative defined by
+%
+\begin{equation}
+\eps \equiv \frac{l-l_0}{l_0}, \quad \dot\eps \equiv \frac{\dot l}{l_0},
+\end{equation}
+%
+the ligament force is given by
+%
+\begin{equation}
+f(l,\dot l) = f_e(\eps) + f_d(\dot \eps),
+\end{equation}
+%
+where
+%
+\begin{equation*}
+f_e(\eps) = 
+\begin{cases}
+0 & \eps < 0 \\
+\dfrac{1}{2 \eps_t} k \eps^2 & 0 \le \eps \le \eps_t\\
+k(\eps - \dfrac{\eps_t}{2}) & \eps > \eps_t,
+\end{cases}
+\end{equation*}
+%
+and
+%
+\begin{equation*}
+f_d(\dot\eps) = 
+\begin{cases}
+d \dot\eps  & \eps > 0 \; \mathrm{and} \; \dot\eps > 0 \\
+0 & \mathrm{otherwise}.
+\end{cases}
+\end{equation*}
+%
+The parameters $l_0$, $\eps_t$, $k$, and $d$ are specified by the following
+properties of {\tt Blankevoort1991Ligament}:
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|} 
+\hline
+& Property & Description & Default\\
+\hline
+$l_0$ & {\sf slackLength} &
+ligament slack length & 0 \\
+$\eps_t$ & {\sf transitionStrain} & 
+strain at transition from toe to linear & 0.06 \\
+$k$ & {\sf linearStiffness} & 
+maximum stiffness of force-length curve & 100 \\
+$d$ & {\sf damping} & 
+damping parameter & 0.003 \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt Blankevoort1991Ligament}s can be created with the constructors
+% method table
+\begin{lstlisting}[]
+Blankevoort1991Ligament()
+Blankevoort1991Ligament (stiffness, slackLen, damping)
+\end{lstlisting}
+%
+where {\tt stiffness}, {\tt slackLen} and {\tt damping} specify $k$,
+$l_o$ and $d$, and other properties are set to their defaults.
+
+\subsection{Example: muscles with separate tendons}
+
+An alternate way to model the equilibrium muscles of Section
+\ref{equilibriumMuscles:sec} is to use {\tt two} separate
+point-to-point muscles, attached in series via a connecting particle
+with a small mass (and possibly damping), thus implementing the muscle
+and tendon components separately. This approach allows the muscle
+equilibrium length to be determined automatically by the physical
+response of the connecting particle, in a manner similar to that
+employed by OpenSim's {\tt Millard2012AccelerationMuscle} (described
+in \cite{millard2012computationally}). For the muscle material, one
+can use any of the tendonless materials of Section
+\ref{sec:mechii:musclematerials}, {\it or} the materials of Section
+\ref{equilibriumMuscles:sec} with the properties {\sf rigidTendon} and
+{\sf tendonSlackLength} set to {\tt true} and $0$, respectively, while
+the tendon material can be one described in Section
+\ref{TendonsAndLigaments:sec} or some other suitable passive material.
+The implicit integrators used by ArtiSynth should permit relatively
+stable simulation of the arrangement.
+
+While it is usually easier to employ the equilibrium muscle materials
+of Section \ref{EquilibriumMuscleMaterials:sec}, especially for models
+involving wrapping and/or via points (Chapter
+\ref{multipointSpringIntro:sec}) where it may be difficult to handle
+the connecting particle correctly, in some situations the separate
+muscle/tendon method may offer a more versatile solution. It can also
+be used to validate the equilibrium muscles, as illustrated by the
+application model defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.EquilibriumMuscleDemo
+\end{verbatim}
+%
+which provides a direct comparison of the methods. It creates two
+simple instances of a Millard 2012 muscle, one above the other in the
+x-z plane, with the top instance implemented using the separate
+muscle/tendon method and the bottom instance implemented using an
+equilibrium muscle material (Figure
+\ref{EquilibriumMuscleDemo:fig}). The application model uses control
+and monitoring components introduced in Chapter
+\ref{SimulationControl:sec} to drive the simulation and record its
+results: a {\it controller} (Section \ref{ControllersAndMonitors:sec})
+is used to uniformly extend the length of both muscles; {\it output
+probes} (Section \ref{Probes:sec}) are used to record the resulting
+tension forces; and a {\it control panel} (Section
+\ref{ControlPanels:sec}) is created to allow the user to interactively
+adjust some of the muscle parameters.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/EquilibriumMuscleDemo}
+\else
+ \includegraphics[width=6in]{images/EquilibriumMuscleDemo}
+\fi
+\end{center}
+\caption{{\tt EquilibriumMuscleDemo} loaded into ArtiSynth,
+with different particles and muscle components labeled. The separate
+muscle/tendon muscle is at the top, the equilibrium muscle at the
+bottom, and the control panel is overlaid on the viewer.}
+\label{EquilibriumMuscleDemo:fig}
+\end{figure}
+
+The code for the {\tt EquilibriumMuscleDemo} class attributes and
+{\tt build()} method is shown below:
+%
+\lstset{numbers=left} 
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-25}}
+\lstinputlisting[firstline=1,lastline=95]{../../src/artisynth/demos/tutorial/EquilibriumMuscleDemo.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=27,lastline=121]{../../src/artisynth/demos/tutorial/EquilibriumMuscleDemo.java}
+\fi
+\lstset{numbers=none}
+%
+Lines 4-10 declare attributes for muscle parameters and the initial
+length of the combined muscle-tendon. Within the {\tt build()} method,
+a {\tt MechModel} is created with zero gravity (lines 14-16).  
+
+Next, the separate muscle/tendon muscle is assembled, consisting of
+three particles ({\tt pl0}, {\tt pc0}, and {\tt pr0}, lines 20-30), a
+muscle {\tt mus0} connected between {\tt pr0} and {\tt pc0} (lines
+33-39), and an {\tt tendon} connected between {\tt pc0} and {\tt pr0}
+(lines 42-45). Particles {\tt pl0} and {\tt pr0} are both set to be
+non-dynamic, since {\tt pl0} will be fixed and {\tt pr0} will be moved
+parametrically, while the connecting particle {\tt pc0} has a small
+mass and its position is updated by the simulation and so
+automatically maintains force equilibrium between the muscle and
+tendon. The material {\tt mat0} used for {\tt mus0} is an instance of
+{\tt Millard2012AxialMuscle}, with the tendon removed by setting the
+{\sf tendonSlackLength} and {\sf rigidTendon} properties to $0$ and
+{\tt true}, respectively, while the material for {\tt tendon} is an
+instance of {\tt Millard2012AxialTendon}.
+
+The equilibrium muscle is then assembled, consisting of two particles
+({\tt pl1} and {\tt pr1}, lines 49-55) and a muscle {\tt mus1}
+connected between them (lines 57-61).  {\tt pl1} and {\tt pr1} are
+both set to be non-dynamic, since {\tt pl1} will be fixed and {\tt
+pr1} will be moved parametrically, and the material {\tt mat1} for
+{\tt mus1} is an instance of {\tt Millard2012AxialMuscle} in its
+default equilibrium mode. Excitations for both {\tt mus0} and {\tt
+mus1} are initialized to 1, and the zero-velocity equilibrium muscle
+length is computed using {\tt mat1.computeLmWithConstantVm()} (lines
+65-69). This is used to update the muscle position, for {\tt mus0} by
+setting the x coordinate of {\tt pc0} and for {\tt mus1} by setting
+the internal muscle length variable of {\tt mat1} (lines 71-72).
+
+Render properties for different components are set at lines 76-80, and
+then a {\it control panel} is created to allow interactive adjustment
+of the muscle material properties {\sf optPennationAngle}, {\sf
+fibreDamping}, and {\sf ignoreForceVelocity}, as well the muscle
+excitations (lines 83-88). As explained in Sections
+\ref{ControlPanelGeneral:sec} and \ref{PropForMultComps:sec}, {\tt
+addWidget()} methods are used to create widgets that control each of
+these properties for both {\tt mus0} and {\tt mus1}.
+
+At line 92, a {\it controller} is added to the root model to move the
+right side particles {\tt p0r} and {\tt p1r} during the simulation,
+thus changing the muscles' lengths and hence their tension
+forces. Controllers are explained in Section
+\ref{ControllersAndMonitors:sec}, and the controller itself is defined
+by lines 101-127 of the code listing below. At the start of each
+simulation time step, the controller's {\tt apply()} method is called,
+with {\tt t0} and {\tt t1} denoting the step's start and end times.
+It increases the x positions of {\tt p0r} and {\tt p1r} uniformly with
+a speed of {\tt mySpeed} until time {\tt myRunTime/2}, and then
+reverses direction until time {\tt myRunTime}. Velocities are also
+updated since these are needed to determine $\dot l$ for the muscles'
+{\tt computeF()} methods.
+
+Each muscle's tension force is recorded by an {\it output probe}
+connected to its {\sf forceNorm} property. Probes are explained in
+Section \ref{Probes:sec}; in this example, they are created using the
+convenience method {\tt addForceProbe()}, defined by lines 130-140
+(below) and called at lines 93-94 in the {\tt build()} method, with
+probes for the muscle/tendon and equilibrium muscles named
+``muscle/tendon force'' and ``equilibrium force'', respectively.
+
+%
+\lstset{numbers=left} 
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-121}}
+\lstinputlisting[firstline=1,lastline=44]{../../src/artisynth/demos/tutorial/EquilibriumMuscleDemo.java}
+\lstset{firstnumber={1}}
+\else
+\lstset{firstnumber={97}}
+\lstinputlisting[firstline=123,lastline=166]{../../src/artisynth/demos/tutorial/EquilibriumMuscleDemo.java}
+\lstset{firstnumber={1}}
+\fi
+\lstset{numbers=none}
+%
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/EquilibriumMuscleForcesIFV}&
+ \includegraphics[]{images/EquilibriumMuscleForces}
+\else
+ \includegraphics[width=3in]{images/EquilibriumMuscleForcesIFV}&
+ \includegraphics[width=3in]{images/EquilibriumMuscleForces}
+\fi
+\end{tabular}
+\end{center}
+\caption{Tension forces produced by {\tt EquilibriumMuscleDemo},
+displayed by the output probes, as both muscles are extended and then
+contracted. Left and right images show results with the muscle
+material property {\sf ignoreForceVelocity} set to {\tt true} and {\tt
+false}, respectively.}
+\label{EquilibriumMuscleForces:fig}
+\end{figure}
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+EquilibriumMuscleDemo} from the {\sf Models} menu. The model should
+load and initially appear as in Figure
+\ref{EquilibriumMuscleDemo:fig}.  As explained above, running the
+model will cause the muscles to be extended and contracted by moving
+particles {\tt p0r} and {\tt p1r} right and back again. As this
+happens, the resulting tension forces can be examined by expanding the
+output probes in the timeline (see section ``The Timeline'' in the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}). The
+results are shown in Figure \ref{EquilibriumMuscleForces:fig}, with
+the left and right images showing results with the muscle material
+property {\sf ignoreForceVelocity} set to {\tt true} and {\tt false},
+respectively.
+
+As should be expected, the results for the two muscle implementations
+are very similar.  In both cases, the forces exhibit a local peak near
+time 0.25 when the muscle lengths are at the maximum of the active
+force length curve. As time increases, forces then decrease and then
+rise again as the passive force increases, peaking at time 0.75 when
+the muscle starts to contract. In the left image, the forces during
+contraction are symmetrical with those during extension, while in the
+right image the post-peak forces are more attenuated, because in the
+latter case the force velocity relationship is enabled as this reduces
+forces when a muscle is contracting.
 
 \section{Distance Grids and Components}
 \label{DistanceGrids:sec}
@@ -967,7 +2018,7 @@ visualization. For any object that implements
 \javaclass[\mech]{CollidableBody} (which includes
 \javaclass[\mech]{RigidBody}), its distance grid component can be
 obtained using the method
-%
+% method table
 \begin{lstlisting}
   DistanceGridComp getDistanceGridComp();
 \end{lstlisting}
@@ -1027,7 +2078,7 @@ choosing {\sf Edit properties ...} from the right-click context
 menu), or through their set/get accessor methods.  For example, {\sf
 resolution} and {\sf maxResolution} can be set and queried via the
 methods:
-%
+% method table
 \begin{lstlisting}[]
    void setResolution (Vector3i res)
    Vector3i getResolution()
@@ -1164,7 +2215,7 @@ interface \javaclass[artisynth.core.modelbase]{TransformableGeometry},
 which allows the geometric transformation of the component's
 attributes (such as meshes, points, frame locations, etc.), along with
 its descendant components. The interface provides the method
-%
+% method table
 \begin{lstlisting}[]
    public void transformGeometry (AffineTransform3dBase X);
 \end{lstlisting}
@@ -1274,7 +2325,7 @@ induced by a finite element model.
 \javaclass[artisynth.core.modelbase]{TransformGeometryContext} also
 supplies the following convenience methods to apply transformations to
 components or collections of components:
-%
+% method table
 \begin{lstlisting}[]
     void transform (Iterable<TransformableGeometry>, GeometryTransformer, int);
     void transform (TransformableGeometry[], GeometryTransformer, int);
@@ -1305,7 +2356,7 @@ class \javaclass[maspack.geometry]{DeformationTransformer}, which uses
 the single method
 \javaclass[maspack.geometry.DeformationTransformer]{getDeformation()} to
 obtain deformation field information at a specified reference position:
-%
+% method table
 \begin{lstlisting}[]
     void getDeformation (Vector3d p, Matrix3d F, Vector3d r)
 \end{lstlisting}
@@ -1506,7 +2557,7 @@ a \javaclass[artisynth.core.modelbase]{GeometryChangeEvent}.
 To support this, ArtiSynth components which implement
 \javaclass[artisynth.core.modelbase]{TransformableGeometry}
 must also supply the methods
-%
+% method table
 \begin{lstlisting}[]
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags);
@@ -2358,7 +3409,7 @@ The implementations of these methods are now described in detail.
 \subsubsection*{initializeConstraints()}
 
 This method has the signature
-%
+% method table
 \begin{lstlisting}[]
   public void initializeConstraints ()
 \end{lstlisting}
@@ -2369,7 +3420,7 @@ initializing the coupling's constraints and (if supported)
 coordinates. 
 
 Constraints are added using one of the two superclass methods:
-%
+% method table
 \begin{lstlisting}[]
   RigidBodyConstraint addConstraint (int flags)
 
@@ -2421,7 +3472,7 @@ and sets the {\tt CONSTANT} flag just described.
 
 Coordinates are added similarly using using one of the two superclass
 methods:
-%
+% method table
 \begin{lstlisting}[]
   CoordinateInfo addCoordinate ()
 
@@ -2476,7 +3527,7 @@ constraints if some defining setting is changed.
 \subsubsection*{coordinatesToTCD()}
 
 This method has the signature
-%
+% method table
 \begin{lstlisting}[]
   public void coordinatesToTCD (RigidTransform3d TCD, VectorNd coords)
 \end{lstlisting}
@@ -2489,7 +3540,7 @@ Otherwise, this method should do nothing.
 \subsubsection*{TCDToCoordinates()}
 
 This method has the signature
-%
+% method table
 \begin{lstlisting}[]
   public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD)
 \end{lstlisting}
@@ -2512,7 +3563,7 @@ subtract $2 \pi$ from it until the resulting value is as close as
 possible to the {\it current} value for the angular coordinate.  This
 allows the angle to wrap through its entire range. To implement this,
 one can use the method 
-%
+% method table
 \begin{lstlisting}[]
   double nearestAngle (double phi)
 \end{lstlisting}
@@ -2529,7 +3580,7 @@ to their ranges.
 \subsubsection*{projectToConstraints()}
 
 This method has the signature
-%
+% method table
 \begin{lstlisting}[]
   public void projectToConstraints (
     RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords)
@@ -2614,7 +3665,7 @@ $\dot\G_k$ and $\dot\N_l$, are described by the {\sf wrenchG} and {\sf
 dotWrenchG} attributes of each constraint's
 \javaclass[maspack.spatialmotion]{RigidBodyConstraint} object, and may
 be managed by a variety of methods:
-%
+% method table
 \begin{lstlisting}[]
   Wrench getWrenchG()    // return the reference to wrenchG
   void setWrenchG (
@@ -2662,7 +3713,7 @@ to $E_l$ and $d_l$ in Section \ref{JointConstraints:sec}, and are
 contained in the constraint's
 \javaclass[maspack.spatialmotion]{RigidBodyConstraint} object and may
 be queried using the methods
-%
+% method table
 \begin{lstlisting}[]
   double getDistance()
   void setDistance (double d)

@@ -15,6 +15,7 @@
 \date{}
 \fi
 
+\input mathdefs.tex
 %\renewcommand{\sectionname}{}
 
 % Listings settings
@@ -70,6 +71,383 @@
 
 % \subsection*{Query methods added directly to PolygonalMesh}
 
+% Apr 15, 2023: Refactoring and adding stiction compliance to implicit
+%  friction integration
+
+\section*{Mar 1, 2024}
+
+\subsection*{Muscle and tendon materials}
+
+Materials defined in {\tt artisynth.core.materials} for modeling
+line-based muscles and tendons have been updated or added, as
+described below.
+
+\subsubsection{Equilibrium-based muscles implemented}
+
+The materials 
+\javaclass[artisynth.core.materials]{Millard2012AxialMuscle} and
+\javaclass[artisynth.core.materials]{Thelen2003AxialMuscle}
+have been extended to implement
+equilibrium-based behavior, in which the lengths of the active {\it
+muscle} component and the passive {\it tendon} component are adjusted
+independently to ensure that the tension exerted by each is equal.
+This is now the default behavior for these materials, although the
+previous ``rigid tendon'' behavior can be enabled by setting their
+property {\sf rigidTendon} to {\tt true}.
+
+Full details are given in Section 4.4.4 (``Equilibrium muscle materials'') in
+the \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\subsubsection{New tendon materials}
+
+New line-based materials have been added to model tendons:
+
+\begin{description}
+
+\item[{\tt Millard2012AxialTendon}]\mbox{}
+
+Implements the tendon portion of {\tt Millard2012AxialMuscle}.
+
+\item[{\tt Thelen2003AxialTendon}]\mbox{}
+
+Implements the tendon portion of {\tt Thelen2003AxialMuscle}.
+
+\end{description}
+
+Details are given in Section 4.4.5 (``Tendons and ligaments) in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\subsubsection{forceScaling deprecated in AxialMuscleMaterial}
+
+The {\sf forceScaling} property found in the axial muscle materials
+\javaclass[artisynth.core.materials]{ConstantAxialMuscle},
+\javaclass[artisynth.core.materials]{LinearAxialMuscle}, and
+\javaclass[artisynth.core.materials]{PeckAxialMuscle} has been
+deprecated. This property scales the force tension produced by these
+materials. However, it has a default value of 1000 and this causes
+confusion regarding the values that should be assigned to other muscle
+properties, such as {\sf maxForce}, and so we recommend that {\sf
+forceScaling} should always be set to 1. Special constructors and {\tt
+create()} methods have been provided which do this; see the entries
+for these materials in Section 4.4.1 (``Simple muscle materials'') in
+the \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\subsection*{Enhancements to joints}
+
+\subsubsection{Ellipsoid Joint}	
+
+An \javaclass[artisynth.core.mechmodels]{EllipsoidJoint} (illustrated
+below) has been added that has similar functionality to the ellipsoid
+and scapulothoracic joints found in OpenSim. Details are given in
+Section 3.4.11 (``Ellipsoid joint'') in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/EllipsoidJointDemo}
+\else
+ \includegraphics[width=0.4\textwidth]{../modelguide/images/EllipsoidJointDemo}
+\fi
+\end{center}
+%
+
+\subsubsection{Joint locking}
+
+Individual joint coordinates within any joint derived from the
+\javaclass[artisynth.core.mechmodels]{JointBase} class can now be {\it
+locked}, such that the coordinate value will remain fixed and the
+corresponding degree of freedom is removed. Coordinate locking can be
+controlled using the following methods:
+
+\begin{lstlisting}[]
+  boolean isLocked (int idx)
+
+  void setLocked (int idx, boolean locked)
+\end{lstlisting}
+
+\subsection*{Inertial damping}	
+
+An {\it inertialDamping} property has been added to both the {\tt
+MechModel} and {\tt RigidBody} classes. If not explicitly set in a
+rigid body, its value is inherited from the containing {\tt
+MechModel}. If non-zero, inertial damping applies a spatial damping
+force $\hat\f_d$ to a rigid body that is equal to
+%
+\begin{equation}
+\hat\f_d = -d_I \, \M \, \hat\v
+\end{equation}
+%
+where $d_I$ is the {\sf inertialDamping}, $\M$ is the body's $6 \times
+6$ spatial inertia matrix, and $\hat\v$ is the body's spatial
+velocity. This offers two advantages over translational/rotational damping:
+
+\begin{enumerate}
+
+\item It is independent of the location of the body's coordinate
+frame with respect to its center of mass;
+
+\item 
+There is no need to adjust two different translational and rotational
+parameters or to consider their relative sizes, as these
+considerations are contained within the spatial inertia itself.
+
+\end{enumerate}
+
+Inertial damping can be get/set with the {\tt MechModel} or {\tt
+RigidBody} methods
+%
+\begin{lstlisting}[]
+  double getInertialDamping()
+
+  setInertialDamping (double di)
+\end{lstlisting}
+%
+
+\subsection*{Field and stress/strain visualization}
+
+\subsubsection{Visualization capabilities for fields}
+
+New functionality has been added for visualizing both the scalar and
+vectors fields that can be defined for FEM models, mesh components, or
+grids. Full details are given in Section 6.10.8 (``Visualizing
+fields'') of the \artisynthManual{modelguide}{ArtiSynth Modeling
+Guide}, and examples are given in Sections 6.10.9 and 6.10.10.
+Illustrations of some of these visualizations are given below:
+
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{../modelguide/images/ScalarElementFieldDemo}
+ \includegraphics[]{../modelguide/images/VectorSubElemFieldDemo}\\
+\else
+ \includegraphics[width=3.25in]{../modelguide/images/ScalarElementFieldDemo}
+ \includegraphics[width=3.25in]{../modelguide/images/VectorSubElemFieldDemo}\\
+\fi
+\iflatexml
+ \includegraphics[]{../modelguide/images/ScalarFaceFieldDemo}
+ \includegraphics[]{../modelguide/images/VectorFaceFieldDemo}
+\else
+ \includegraphics[width=3.25in]{../modelguide/images/ScalarFaceFieldDemo}
+ \includegraphics[width=3.25in]{../modelguide/images/VectorFaceFieldDemo}
+\fi
+\end{tabular}
+\end{center}
+
+\subsubsection{New FEM stress/strain rendering}
+
+New types have been added to the FEM {\sf surfaceRendering} property
+for controlling stress/strain rendering:
+
+\begin{description}
+
+\item[{\tt MaxShearStress}]\mbox{}
+
+renders the maximum shear stress
+
+\item[{\tt MaxShearStrain}]\mbox{}
+
+renders the maximum shear strain
+
+\end{description}
+
+Details are given in Section 6.11 (``Rendering and Visualizations'')
+of the \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
+\subsection*{New functionality for locating FEM nodes}
+
+New functionality has been added to make it easier for users to select
+node sets within an FEM model. This can be done either in the GUI or
+in code, and is useful for specifying nodes that need to be attached
+to other components or otherwise handled specially within the
+model.
+
+\subsubsection{Selecting nodes in the GUI}
+
+A {\it node selection} tool has been added to the GUI and can be
+invoked by first selecting a FEM model and then choosing {\sf ``Select
+nodes ...''} from the context menu.  This tool is described in detail
+in Section 4.7 (``Selecting FEM nodes'') of the
+\artisynthManual{uiguide}{User Interface Guide}, and includes features
+for selecting nodes based on
+
+\begin{itemize}
+
+\item distance from a mesh
+
+\item minimum path between nodes
+
+\item nodes covering a surface patch
+
+\item nodes lying along an edge, as illustrated below, both with
+branching (left) and without (right).
+
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+\includegraphics[]{../uiguide/images/nodeEdgeSelectBranching}
+\includegraphics[]{../uiguide/images/nodeEdgeSelect} &
+\else
+\includegraphics[width=3.2in]{../uiguide/images/nodeEdgeSelectBranching}
+\includegraphics[width=3.2in]{../uiguide/images/nodeEdgeSelect} &
+\fi
+\end{tabular}
+\end{center}
+
+In addition, the node selection tool allows the selected nodes to be
+saved to a {\it node file} which can then be read by the model's build
+code.
+
+\subsubsection{Locating nodes in code}
+
+New FEM methods have also been added for locating nodes in code, as
+described in Section 6.4.5 (``Finding which nodes to attach'') in the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}. These 
+include:
+%
+\begin{lstlisting}[]
+   ArrayList<FemNode3d> findPatchNodes(fem, node0, maxBendAng) 
+
+   ArrayList<FemNode3d> findPatchBoundaryNodes(fem, node0, maxBendAng)
+
+   ArrayList<FemNode3d> findEdgeLineNodes(
+      fem, node0, minBendAng, maxEdgeAng, allowBranching)
+\end{lstlisting}
+%
+
+Nodes can also be read from a {\it node file} that has been saved from
+the viewer's node selection tool.  Methods for doing this are defined
+in the \javaclass[artisynth.core.femmodels]{NodeNumberReader} class
+and include
+\begin{lstlisting}[]
+   static ArrayList<FemNode3d> read(File file, FemModel3d fem)
+
+   static ArrayList<FemNode3d> read(String filePath, FemModel3d fem)
+\end{lstlisting}
+%
+as described in Section 6.4.5 (``Selecting nodes in the viewer'').
+
+\subsection*{Enhancements to numeric probes and displays}
+
+\subsubsection{Smoothing operations}
+
+It is now possible to apply smoothing operations to the data in
+numeric probes. These operations include moving average and Savitzky
+Golay smoothing. Smoothing can be invoked either from the GUI, as
+described in the section ``Smoothing data'' of the
+\artisynthManual{uiguide}{User Interface Guide}, or in code, using the
+probe methods
+%
+\begin{lstlisting}[]
+  void smoothWithMovingAverage (double winSize)
+  
+  void smoothWithSavitzkyGolay (double winSize, int deg)
+\end{lstlisting}
+%
+as described in the section ``Smoothing probe data'' of the 
+\href{http://www.artisynth.org/doc/pdf/modelguide.pdf}
+{Modeling Guide}.
+
+\subsubsection{Improved trace control for numeric displays}
+
+The legend panel for numeric probe displays has been enhanced with
+additional controls for adjusting the ordering and visibility of
+traces:
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/newlegend}
+\else
+ \includegraphics[width=0.3\textwidth]{images/newlegend}
+\fi
+\end{center}
+%
+These include an {\it All visible} button for making all traces
+visible/invisible; a {\it Trace ordering} operation for ordering the
+traces according to various criteria; and a {\it Reset Colors}
+operation to reset the colors for any new ordering.  Details are given
+in the section ``Legends and visibility control'' of the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+\subsection*{Enhancements to viewer interaction}
+
+\subsubsection{Improved transformer usability}
+
+Enhancements have been made to improve the usability of the viewer
+transformer tools. These are detailed under various subsections of
+Section 5.2 (``Transformer Tools'') of the
+\artisynthManual{uiguide}{User Interface Guide}:
+
+\begin{itemize}
+
+\item Flipping axes forward, using the `{\tt f}' key, to help
+make them more accessible in the viewer (Section 5.2.4). This
+is show below: axes are initially obscured (left) and then brought
+forward after hitting the `f' key (right).
+
+\begin{center}
+\begin{tabular}{c c}
+\iflatexml
+\includegraphics[]{../uiguide/images/transformerUnflipped} &
+\includegraphics[]{../uiguide/images/transformerFlipped}
+\else
+\includegraphics[width=0.3\textwidth]{../uiguide/images/transformerUnflipped} &
+\includegraphics[width=0.3\textwidth]{../uiguide/images/transformerFlipped}
+\fi
+\end{tabular}
+\end{center}
+
+\item Increasing transformer size, using the {\tt CTRL u} or {\tt UP\_ARROW}
+keys (Section 5.2.5).
+
+\item Decreasing transformer size, using the {\tt CTRL d} or {\tt DOWN\_ARROW}
+keys (Section 5.2.5).
+
+\item When selecting a set of point-like objects that lie within a
+plane or along a straight line, the transformer axes will be aligned
+with these features if the {\sf alignDraggersToPoints} property is set
+to {\tt true} using the {\sf Settings} menu (Section 5.2, top).
+
+\end{itemize}
+
+In addition, where possible, the system now tries to remember changes
+to transformer positioning or sizing for particular components.
+
+\subsubsection{Constraining mouse motions for view control}
+
+A new viewer property, {\sf viewControlMask}, can be used to restrict
+mouse-based view control to motions along either the x or y screen
+directions.  See Section 3.9.1 (``Viewer-specific properties'') in the
+\artisynthManual{uiguide}{User Interface Guide}.
+
+\subsection*{ControlPanel property widgets with multiple hosts}
+
+Control panels can now contain property widgets that control the same
+property across {\it multiple} host components. As described in Sections 5.1
+(``Control Panels'') of the \artisynthManual{modelguide}{ArtiSynth
+Modeling Guide}, these can be created with methods of the form
+%
+\begin{lstlisting}[]
+ addWidget (String propPath, HasProperties... hosts)
+
+ addWidget (String propPath, double min, double max, HasProperties... hosts)
+
+ addWidget (
+    String label, String propPath, HasProperties... hosts)
+
+ addWidget (
+    String label, String propPath, double min, double max, HasProperties... hosts)
+\end{lstlisting}
+%
+
+\subsection*{General polygon intersection code}
+
+A new class \javaclass[maspack.geometry]{PolygonalIntersector} has
+been added for intersecting 2D and 3D planar polygons. It is
+implemented using GPCJ (General Polygon Clipper for Java).
+
 \section*{Aug 14, 2022}
 
 \subsubsection{Elastic foundation contact}
@@ -81,7 +459,7 @@ package {\tt artisynth.core.materials}. It builds on top of
 \javaclass[artisynth.core.materials]{ContactForceBehavior}, which has
 been modified slightly and also moved to the {\tt materials} package.
 
-EFC was originally implmented by Stavness and Sagl, based on a
+EFC was originally implemented by Stavness and Sagl, based on a
 formulation described by Bei and Fregly in ``Multibody dynamic
 simulation of knee contact mechanics'', {\it Medical Engineering and
 Physics}, 2004.
@@ -130,7 +508,7 @@ Guide}.
 The \href{http://www.artisynth.org/doc/pdf/modelguide.pdf}{Modeling
 Guide} has been revised to include a new ``Contact and Collision''
 chapter specifically dedicated to explaining collision handling in
-greater detail, with addtional code examples added to {\tt
+greater detail, with additional code examples added to {\tt
 artisynth.demos.tutorial}.
 
 \subsubsection{Collision rendering property ``colorMapCollidable''
@@ -179,7 +557,7 @@ Component & Previous package\\
 
 \subsubsection{API change for binding properties to fields}
 
-Some component properties, primarly those related to FEM materials,
+Some component properties, primarily those related to FEM materials,
 can be bound to a field such that their value varies over the field
 domain. The API method for binding some property XXX to a field 
 component of type {\tt T} has been changed from
@@ -269,7 +647,7 @@ contains all current updates.
 
 The Pardiso solver version has been updated to 2021.1.1, and contains
 support for solves with multiple right hand sides. This is in
-prepartion for the coming addition of implicit friction integration,
+preparation for the coming addition of implicit friction integration,
 which will allow large Coulomb friction forces to be incorporated into
 FEM models.
 
@@ -2363,7 +2741,7 @@ This change should allow ArtiSynth to run on versions of MATLAB from
 
 The viewer grid now provides numeric axis labels, which can be enabled
 by hitting the {\tt 'l'} key in the viewer. Label properties such as
-size and color and which axes are labelled can be controlled by right
+size and color and which axes are labeled can be controlled by right
 clicking in the viewer and choosing {\sf Set viewer grid properties}.
 
 More details can be found in the "Axis Labeling" section
@@ -2531,7 +2909,7 @@ and rendering signed distance grids'' of the
 
 \subsection*{Improved compatibility between Swing and JOGL}
 
-Certain compatiblity issues between Java Swing and Java OpenGL (JOGL)
+Certain compatibility issues between Java Swing and Java OpenGL (JOGL)
 have been fixed by switching the default JOGL rendering widget from
 {\tt GLCanvas} to {\tt GLJPanel}. This fixes problems including: jumps
 and widget blanking when dragging the viewer between screens in a

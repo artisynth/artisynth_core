@@ -31,7 +31,15 @@ resulting panels present the user with {\it all} properties common to
 the selection.  A control panel allows an application to provide a
 customized editing panel for selected properties.
 
+\begin{sideblock}
+If an application wishes to adjust an attribute that is not exported
+as a property of some ArtiSynth component, it is often possible to
+create a {\it custom property} for the attribute in question.
+Custom properties are described in Section \ref{CustomProperties:sec}.
+\end{sideblock}
+
 \subsection{General principles}
+\label{ControlPanelGeneral:sec}
 
 Control panels are implemented by the
 \javaclass[artisynth.core.gui]{ControlPanel} model component.  They
@@ -40,42 +48,95 @@ instance of {\tt ControlPanel}, populating it with widgets for editing
 the desired properties, and then adding it to the root model using the
 latter's
 \javamethod*[artisynth.core.workspace.RootModel]{addControlPanel()}
-method.
+method. A typical code sequence looks like this:
+%
+\begin{lstlisting}[]
+ ControlPanel panel = new ControlPanel ("controls");
+ ... add widgets ... 
+ addControlPanel (panel);
+\end{lstlisting}
+%
 
-One of the most commonly used means of adding widgets to a control
-panel is the method
-\javamethodAlt{artisynth.core.gui.ControlPanel.addWidget(HasProperties,String)}%
-{addWidget(comp,propertyPath)}, which creates a widget for a property
-specified by {\tt propertyPath} with respect to the component
-{\tt comp}.  Property paths are discussed in the Section
-\ref{PropertyHandlesAndPaths:sec}, and can consist solely of a
-property name, or, for properties located in descendant components, a
-component path followed by a colon `{\tt :}' and the property name.
+There are various {\tt addWidget()} methods available for adding
+widgets and components to a control panel. Two of the most commonly
+used are:
+% method table
+\begin{lstlisting}[]
+ addWidget (HasProperties host, String propPath)
+ addWidget (HasProperties host, String propPath, double min, double max)
+\end{lstlisting}
+%
+The first method creates a widget to control the property located by
+{\tt propPath} with respect to the property's {\tt host} (which is
+usually a model component or a composite property).  Property paths
+are discussed in Section
+\ref{PropertyHandlesAndPaths:sec}, and can consist of a
+simple property name, a composite property name, or, for properties
+located in descendant components, a component path followed by a colon
+`{\tt :}' and then a simple or compound property name.  
+
+The second method creates a slider widget to control a property whose
+value is a single number, with an initial numeric range given by {\tt
+max} and {\tt min}.
+
+\begin{sideblock}
+The first method will {\it also} create a slider widget for a property
+whose value is a number, if the property has a default range and
+slider widgets are not disabled in the property's
+declaration. However, the second method allows the slider range to be
+explicitly specified.
+\end{sideblock}
+
+Both methods also return the widget component itself,
+which is an instance of
+\javaclass[maspack.widgets]{LabeledComponentBase}, and
+assign the widget a text label that is the same as the property's
+name. In some situations, it is useful to assign a different text
+label (such as when creating two widgets to control the same property
+in two different components). For those cases, the methods
+% method table
+\begin{lstlisting}[]
+  addWidget (
+     String label, HasProperties host, String propPath)
+  addWidget (
+     String label, HasProperties host, String propPath, double min, double max)
+\end{lstlisting}
+%
+allow the widget's text label to be explicitly specified.
+
+Sometimes, it is desirable to create a widget that controls that same
+property across two or more host components (as illustrated in
+Section \ref{PropForMultComps:sec} below). For that, the methods
+% method table
+\begin{lstlisting}[]
+ addWidget (String propPath, HasProperties... hosts)
+ addWidget (String propPath, double min, double max, HasProperties... hosts)
+
+ addWidget (
+    String label, String propPath, HasProperties... hosts)
+ addWidget (
+    String label, String propPath, double min, double max, HasProperties... hosts)
+\end{lstlisting}
+allow multiple hosts to be specified using the variable length
+argument list {\tt hosts}.
 
 Other flavors of {\tt addWidget()} also exist, as described in the API
 documentation for \javaclass[artisynth.core.gui]{ControlPanel}.  In
-addition to property widgets, any type of {\tt Swing} or {\tt awt}
-component can be added using the method
-\javamethodAlt{artisynth.core.gui.ControlPanel.addWidget(Component)}%
-{addWidget(awtcomp)}.
+particular, any type of {\tt Swing} or {\tt awt} component can be
+added using the method
+% method table
+\begin{lstlisting}[]
+   addWidget (Component comp)
+\end{lstlisting}
+%
 
+\begin{sideblock}
 Control panels can also be created interactively using the GUI; see
 the section ``Control Panels'' in the\pdfbreak
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+\end{sideblock}
 
 \subsection{Example: Creating a simple control panel}
-
-\begin{figure}[t]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/controlPanel}
-\else
- \includegraphics[width=3in]{images/controlPanel}
-\fi
-\end{center}
-\caption{Control panel created by the model {\tt SimpleMuscleWithPanel}.}
-\label{controlPanel:fig}
-\end{figure}
 
 An application model showing a control panel is defined in
 %
@@ -157,10 +218,158 @@ in place of
 \end{sideblock}
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
-SimpleMuscleWithPanel} from the {\sf Models} menu. The properties 
-shown in the panel can be adjusted interactively by the user,
-while the model is either stationary or running.
+SimpleMuscleWithPanel} from the {\sf Models} menu. The demo will
+appear with the control panel shown in Figure \ref{controlPanel:fig},
+allowing the displayed properties to be adjusted interactively by the
+user while the model is either stationary or running.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/controlPanelAnnotated}
+\else
+ \includegraphics[width=4.5in]{images/controlPanelAnnotated}
+\fi
+\end{center}
+\caption{Control panel created by the model {\tt SimpleMuscleWithPanel}.
+Each of the property widgets consists of a text label followed by a
+field displaying the property's value. A and B identify the icons for
+the inheritable properties {\sf gravity} and {\sf faceColor},
+indicating whether their values have has been explicitly set (A) or
+inherited from an ancestor component (B).}
+\label{controlPanel:fig}
+\end{figure}
+
+As described in Section \ref{CompositeInheritableProperties:sec}, some
+properties are {\it inheritable}, meaning that their values can either
+be set explicitly within their host component, or inherited from the
+equivalent property in an ancestor component. Widgets for inheritable
+properties include an icon in the left margin indicating whether the
+value is explicitly set (square icon) or inherited from an ancestor
+(triangular icon) (Figure \ref{controlPanel:fig}). These settings can
+be toggled by clicking on the icon. Changing an {\it explicit} setting
+to {\it inherited} will cause the property's value to be changed to
+that of the nearest ancestor component, or to the property's default
+value if no ancestor component contains an equivalent property.
+
 % SimpleMuscleWithPanel
+
+\subsection{Example: Controlling properties in multiple components}
+\label{PropForMultComps:sec}
+
+\begin{figure}[th]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/ControlPanelDemo}
+\else
+ \includegraphics[width=6in]{images/ControlPanelDemo}
+\fi
+\end{center}
+\caption{Model and control panel created by {\tt
+ControlPanelDemo}.}
+\label{controlPanelDemo:fig}
+\end{figure}
+
+It is sometimes useful to create a property widget that adjusts the
+same property across several different components at the same time.
+This can be done using the {\tt addWidget()} methods that accept
+multiple hosts. An application model demonstrating this is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.ControlPanelDemo
+\end{verbatim}
+%
+and shown in Figure \ref{controlPanelDemo:fig}.  The model creates a
+simple arrangement of three spheres, connected by point-to-point
+muscles and with collisions enabled
+(Chapter \ref{ContactAndCollision:sec}), whose dynamic behavior can be
+adjusted using the control panel. Selected rendering properties can
+also be changed using the panel.  The class definition, excluding {\tt
+include} statements, is shown below:
+%
+\lstset{numbers=left} 
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-20}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/ControlPanelDemo.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=22]{../../src/artisynth/demos/tutorial/ControlPanelDemo.java}
+\fi
+\lstset{numbers=none}
+%
+First, a {\tt MechModel} is created with zero gravity and a default
+{\sf inertialDamping} of 0.1 (lines 18-21). Next, three spheres are
+created, each with a different color and a frame marker attached to
+the top. These are positioned around the world coordinate origin, and
+oriented with their tops pointing toward the origin (lines 26-47),
+allowing them to be connected, via their markers, with three simple
+muscles (lines 49-52) created using the support method {\tt
+attachMuscle()} (lines 8-14). Collisions
+(Chapter \ref{ContactAndCollision:sec}) are then enabled between all
+spheres (line 55).
+
+At lines 62-64, we explicitly set the render properties for each
+marker; this is done because marker render properties are {\tt null}
+by default and hence need to be explicitly set to enable widgets to be
+created for them, as discussed further below.
+
+Finally, a control panel is created for various dynamic and rendering
+properties. These include the {\sf excitation} and material {\sf
+stiffness} for all muscles (lines 71 and 75); the {\sf
+inertialDamping}, rendering {\sf visibility} and {\sf faceColor} for
+all spheres (lines 77, 79, and 81); and the rendering {\sf pointColor}
+for all markers (lines 85). The panel also allows muscle excitations
+and sphere face colors to be set individually (lines 72-74 and 82-84).
+Some of the {\tt addWidget()} calls explicitly set the label text for
+their widgets. For example, those controlling individual muscle
+excitations are labeled as ``{\tt excitation 0}'', ``{\tt excitation
+1}'', and ``{\tt excitation 2}'' to denote their associated muscle.
+
+Some widgets are created for subproperties of their components (e.g.,
+{\sf material.stiffness} and {\sf renderProps.faceColor}). The
+following caveats apply in these cases:
+
+\begin{enumerate}
+
+\item The parent property (e.g., {\sf renderProps} for 
+{\sf renderProps.faceColor}) must be present in the component.  While
+this will generally be true, in some instances the parent property may
+have a default value of {\tt null}, and must be explicitly set to a
+non-{\tt null} value before the widget is created (otherwise the
+subproperty will not be found and the widget creation will fail). This
+most commonly occurs for the {\tt renderProps} property of smaller
+components, like particles and markers; in the example, render
+properties are explicitly assigned to the markers at lines 62-64.
+
+\item If the parent property is {\it changed} for a particular
+host, then the widget will no longer be able to access the
+subproperty.  For instance, in the example, if the {\sf material}
+property for a muscle is changed (via either code or the GUI), then
+the widget controlling {\sf material.stiffness} will no longer be
+able to access the {\sf stiffness} subproperty for that muscle.
+
+\end{enumerate}
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+ControlPanelDemo} from the {\sf Models} menu. When the model is run,
+the spheres will start to be drawn together by the muscles' intrinsic
+stiffness.  Setting non-zero excitation values in the control panel
+will increase the attraction, while setting stiffness values will
+likewise affect the dynamics. The panel can also be used to make all
+the spheres invisible, or to change their colors, either separately or
+collectively.
+
+\begin{sideblock}
+When a single widget is used to control a property across multiple
+host components, the property's value may not be the same for those
+components. When this occurs, the widget's value field displays either
+blank space (for numeric, string and enum values), a ``?'' (for
+boolean values), or a checked pattern (for color values).  This is
+illustrated in Figure \ref{controlPanelDemo:fig} for the ``{\tt
+excitation}'' and ``{\tt spheres color}'' widgets, since their
+individual values differ.
+\end{sideblock}
 
 \section{Custom properties}
 \label{CustomProperties:sec}
@@ -220,7 +429,7 @@ Properties can then be added to the property list, by calling the {\tt
 PropertyList}'s
 \javamethod*[maspack.properties.PropertyList]{add(String,String,Object)}
 method:
-%
+% method table
 \begin{lstlisting}[]
    PropertyDesc add (String name, String description, Object defaultValue);
 \end{lstlisting}
@@ -389,7 +598,7 @@ the necessary methods.
 
 The primary methods associated with both controllers and
 monitors are:
-%
+% method table
 \begin{lstlisting}[]
   public void initialize (double t0);
 
@@ -427,7 +636,7 @@ context menu, and set the {\sf active} property as desired.
 Controllers and monitors may be associated with a particular model
 (among the list of models owned by the root model). This model may be
 set or queried using
-%
+% method table
 \begin{lstlisting}[]
   void setModel (Model m);
 
@@ -459,7 +668,7 @@ velocity}, since this allows the solver to properly interpolate the
 position and velocity during the time step. The methods to set or
 query target positions and velocities for
 \javaclass[artisynth.core.mechmodels]{Point}-based components are
-%
+% method table
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
   Point3d getTargetPosition ();       // read-only
@@ -470,7 +679,7 @@ query target positions and velocities for
 %
 while for
 \javaclass[artisynth.core.mechmodels]{Frame}-based components they are
-%
+% method table
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
   setTargetOrientation (AxisAngle axisAng);
@@ -544,7 +753,7 @@ recording output data;
 A probe is applied (by calling its {\tt apply()} method) only for time
 steps that fall within its time interval. This interval can be set and
 queried using the following methods:
-%
+% method table
 \begin{lstlisting}[]
    setStartTime (double t0);
    setStopTime (double t1);
@@ -555,7 +764,7 @@ queried using the following methods:
 \end{lstlisting}
 %
 The probe's attached file can be set and queried using:
-%
+% method table
 \begin{lstlisting}[]
    setAttachedFileName (String fileName);
    String getAttachedFileName ();
@@ -624,7 +833,7 @@ interpolation scheme provided by
 
 Some of the numeric probe methods associated with the interpolated
 data include:
-%
+% method table
 \begin{lstlisting}[]
    int getVsize();                      // returns the size of the data vector
    setInterpolationOrder (Order order); // sets the interpolation scheme
@@ -689,7 +898,7 @@ Numeric probes have a number of constructors and methods that make it
 relatively easy to create instances of them in code. For 
 \javaclass[artisynth.core.probes]{NumericInputProbe}, there
 is the constructor
-%
+% method table
 \begin{lstlisting}[]
    NumericInputProbe (ModelComponent c, String propPath, String filePath);
 \end{lstlisting}
@@ -704,7 +913,7 @@ the property.
 
 To create a probe attached to multiple properties, one may use the
 constructor
-%
+% method table
 \begin{lstlisting}[]
    NumericInputProbe (ModelComponent c, String propPaths[], String filePath);
 \end{lstlisting}
@@ -716,7 +925,7 @@ these properties.
 
 For \javaclass[artisynth.core.probes]{NumericOutputProbe}, one may use
 the constructor
-%
+% method table
 \begin{lstlisting}[]
    NumericOutputProbe (ModelComponent c, String propPath, String filePath, double sample);
 \end{lstlisting}
@@ -731,7 +940,7 @@ will default to the maximum step size associated with the root model.
 
 To create an output probe attached to multiple properties, one may use the
 constructor
-%
+% method table
 \begin{lstlisting}[]
    NumericOutputProbe (
       ModelComponent c, String propPaths[], String filePath, double sample);
@@ -922,7 +1131,7 @@ Linear 3 1.0
 It is also possible to specify input probe data directly in code,
 instead of reading it from a file. For this, one would use the
 constructor
-%
+% method table
 \begin{lstlisting}[]
    NumericInputProbe (ModelComponent c, String propPath, double t0, double t1);
 \end{lstlisting}
@@ -930,7 +1139,7 @@ constructor
 which creates a {\tt NumericInputProbe} with the specified property
 and with start and stop times indicated by {\tt t0} and {\tt t1}.
 Data can then be added to this probe using the method
-%
+% method table
 \begin{lstlisting}[]
    addData (double[] data, double timeStep);
 \end{lstlisting}
@@ -972,6 +1181,60 @@ Linear} unless explicitly specified using\pdfbreak
 \begin{lstlisting}[]
    probe.setInterpolationOrder (Order.Cubic);
 \end{lstlisting}
+%
+
+\subsection{Smoothing probe data}
+\label{SmoothingProbeData:sec}
+
+Numeric probe data can also be smoothed, which is convenient for
+removing noise from either input or output data. Different smoothing
+methods are available; at the time of this writing, they include:
+
+\begin{description}
+
+\item[Moving average] \mbox{}
+
+Applies a mean average filter across the knots, using a moving window
+whose size is specified by the {\sf window size} field. The window is
+centered on each knot, and is reduced in size near the end knots to
+ensure a symmetric fit. The end knot values are not changed.  The
+window size must be odd and the {\sf window size} field enforces this.
+
+\item[Savitzky Golay] \mbox{}
+
+Applies Savitzky-Golay smoothing across the knots, using a moving
+window of size $w$.  Savitzky-Golay smoothing works by fitting the
+data values in the window to a polynomial of a specified degree $d$, and
+using this to recompute the value in the middle of the window.  The
+polynomial is also used to interpolate the first and last $w/2$
+values, since it is not possible to center the window on these.
+
+The window size $w$ and the polynomial degree $d$ are specified by the
+{\sf window size} and {\sf polynomial degree} fields. $w$ must be odd,
+and must also be larger than $d$, and the fields enforce these
+constraints.
+
+\end{description}
+
+These operations may be applied with the following numeric probe
+methods:
+
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{artisynth.core.probes.NumericProbeBase.smoothWithMovingAverage()}%
+{void smoothWithMovingAverage (double winSize)}%
+{Moving average smoothing over a specified window.}%
+%
+\methodentry
+{artisynth.core.probes.NumericProbeBase.smoothWithSavitzkyGolay()}%
+{void smoothWithSavitzkyGolay (\brh double winSize, int deg)}%
+{Savitzky Golay smoothing with specified window and degree.}%
+%
+\midline
+\end{methodtable}
 %
 
 \subsection{Numeric monitor probes}
@@ -1043,7 +1306,7 @@ artisynth.core.probes.NumericMonitorProbe.generateData()}%
 {generateData()}
 method. Applications can declare an appropriate {\tt DataFunction} and
 set or query it within the probe using the methods
-%
+% method table
 \begin{lstlisting}[]
    void setDataFunction (DataFunction func);
 
@@ -1199,7 +1462,7 @@ artisynth.core.probes.NumericControlProbe.applyData()}%
 {applyData()}
 method. Applications can declare an appropriate {\tt DataFunction} and
 set or query it within the probe using the methods
-%
+% method table
 \begin{lstlisting}[]
    void setDataFunction (DataFunction func);
 
@@ -1214,7 +1477,7 @@ null}, the data is simply ignored and the probe does nothing.
 To create a {\tt NumericControlProbe} using a supplied {\tt DataFunction},
 an application will create a generic probe instance, using one
 of its constructors such as 
-%
+% method table
 \begin{lstlisting}[]
    NumericControlProbe (vsize, data, startTime, stopTime, timeStep);
 
@@ -1279,7 +1542,7 @@ This can be done by implementing the interface
 RootModel} or any of its top-level components (e.g., models,
 controllers, probes, etc.). The interface contains a single
 method
-%
+% method table
 \begin{lstlisting}[]
    public boolean getMenuItems(List<Object> items);
 \end{lstlisting}

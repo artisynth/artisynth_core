@@ -4376,7 +4376,7 @@ public class MeshFactory {
     * normals.
     *
     * @param mesh mesh to be extruded
-    * @param displacement to be applied along vertex normals
+    * @param dx displacement to be applied along vertex normals
     * @return new extruded mesh
     */
    public static PolygonalMesh extrudeAlongVertexNormals (

@@ -200,12 +200,62 @@ public class Polygon2dTest extends UnitTest {
       testNearestEdge (poly,  0,2,  0,1);
    }
 
+   public void testComputeAreaIntegrals (double... xycoords) {
+      if (xycoords.length%2 != 0) {
+         throw new InternalErrorException ("uneven number of xycoords specified");
+      }
+      
+      Polygon2d poly = new Polygon2d(xycoords);
+      Vector2d moa1 = new Vector2d();
+      Vector3d moa2 = new Vector3d();
+      double area = poly.computeAreaIntegrals (moa1, moa2);
+
+      PolygonalMesh prism = MeshFactory.createPrism (xycoords, 1.0);
+
+      Vector3d mov1 = new Vector3d();
+      Vector3d mov2 = new Vector3d();
+      Vector3d pov = new Vector3d();
+      double areaChk = prism.computeVolumeIntegrals (mov1, mov2, pov);
+
+      double TOL = 1e-10;
+      Vector2d moa1Chk = new Vector2d (mov1.x, mov1.y);
+      Vector3d moa2Chk = new Vector3d (mov2.x, mov2.y, pov.z);
+
+      checkEquals ("area", area, areaChk, TOL);
+      checkEquals ("moa1", moa1, moa1Chk, TOL);
+      checkEquals ("moa2", moa2, moa2Chk, TOL);
+
+      // System.out.printf (
+      //    "area=%g moa1=%g %g  moa2=%g %g %g\n",
+      //    area, moa1.x, moa1.y, moa2.x, moa2.y, moa2.z);
+
+      double[] revc = new double[xycoords.length];
+      for (int i=0; i<revc.length; i += 2) {
+         revc[i  ] = xycoords[revc.length-1-i-1];
+         revc[i+1] = xycoords[revc.length-1-i];
+      }
+      poly = new Polygon2d (revc);
+      area = poly.computeAreaIntegrals (moa1, moa2);
+
+      checkEquals ("reverse area", area, areaChk, TOL);
+      checkEquals ("reverse moa1", moa1, moa1Chk, TOL);
+      checkEquals ("reverse moa2", moa2, moa2Chk, TOL);
+   }
+
+   public void testComputeAreaIntegrals() {
+      testComputeAreaIntegrals (0,0, 1,0, 1,3, 0,3);
+      testComputeAreaIntegrals (-0.5,-1.5, 0.5,-1.5, 0.5,1.5, -0.5,1.5);
+      testComputeAreaIntegrals (-1,0, 0,-1, 1,0, 0,1, 0,2, -1,3);
+      testComputeAreaIntegrals (0,0, 2,0, 1,1, -1,1, -1,2, -2,2, -2,2);
+   }
+
    public void test() {
       RandomGenerator.setSeed (0x1234);
       //testSpecial();
       testSimpleConvexHull();
       testConvexHull();
       testNearestEdge();
+      testComputeAreaIntegrals();
    }
 
    public static void main (String[] args) {

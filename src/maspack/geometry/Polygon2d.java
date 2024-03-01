@@ -430,6 +430,92 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       return len;
    }
 
+   public double computeArea () {
+      return computeAreaIntegrals (null, null);
+   }
+
+   /**
+    * Computes the area integrals of this polygon. The code is based on the
+    * surface integral approach used in "Fast and Accurate Computation of
+    * Polyhedral Mass Properties," Brian Mirtich, journal of graphics tools,
+    * volume 1, number 2, 1996. For polygons, the computations are simpler and
+    * can be done by traversing the polygonal boundary.
+    *
+    * <p>The polygon can be ordered either clockwise or counter-clockwise.
+    * 
+    * @param moa1
+    * if non-null, returns the first moment of area
+    * @param moa2
+    * if non-null, returns the second moment of area (in x and y),
+    * and the product of area (in z)l
+    * @return area of the polygon
+    */  
+   public double computeAreaIntegrals (Vector2d moa1, Vector3d moa2) {
+      double area = 0;
+      Vertex2d vtx = firstVertex;
+
+
+      if (moa1 != null) {
+         moa1.setZero();
+      }
+      if (moa2 != null) {
+         moa2.setZero();
+      }
+
+      if (vtx != null) {
+         do {
+            // (x0,y0) and (x1,y1) give the end points of the edge
+            double x0 = vtx.getPosition().x;
+            double y0 = vtx.getPosition().y;
+            double x1 = vtx.next.getPosition().x;
+            double y1 = vtx.next.getPosition().y;
+
+            // (nx,ny) give the non-normalized outward-facing edge normal
+            double nx = (y1-y0);
+            double ny = -(x1-x0);
+
+            area += nx*(x0+x1)/2;
+
+            double x0sqr = x0*x0;
+            double x1sqr = x1*x1;
+            double x0x1 = x0*x1;
+
+            double y0sqr = y0*y0;
+            double y1sqr = y1*y1;
+            double y0y1 = y0*y1;
+
+            if (moa1 != null) {
+               moa1.x += nx*(x1sqr + x0x1 + x0sqr);
+               moa1.y += ny*(y1sqr + y0y1 + y0sqr);
+            }
+            if (moa2 != null) {
+               moa2.x += nx*(x1sqr*x1 + x0x1*(x1+x0) + x0sqr*x0);
+               moa2.y += ny*(y1sqr*y1 + y0y1*(y1+y0) + y0sqr*y0);
+               moa2.z +=
+                  nx*(x1sqr*(y0+3*y1) + x0sqr*(y1+3*y0) + 2*x0x1*(y0+y1))/2;
+            }
+
+            vtx = vtx.next;
+         }
+         while (vtx != firstVertex);
+
+         double scale = 1;
+         if (area < 0) {
+            // clockwise polygon - negate the results.
+            area = -area;
+            scale = -1;
+         }
+
+         if (moa1 != null) {
+            moa1.scale (scale/6.0);
+         }
+         if (moa2 != null) {
+            moa2.scale (scale/12.0);
+         }
+      }
+      return area;
+   }
+
    public void set (Polygon2d poly) {
       clear();
       Vertex2d vtx = poly.firstVertex;

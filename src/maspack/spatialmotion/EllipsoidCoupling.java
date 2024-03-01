@@ -540,9 +540,9 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       Vector3d zdir = new Vector3d();
       Vector3d xdir = new Vector3d();
       
-      double c1 = Math.cos (longitude);
-      double s1 = Math.sin (longitude);
-      double c2 = Math.cos (latitude);
+      double c1 = Math.cos (longitude); // psi
+      double s1 = Math.sin (longitude); 
+      double c2 = Math.cos (latitude); // gamma
       double s2 = Math.sin (latitude);
       
       p.x = myA*s2;
@@ -573,7 +573,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
          zdir.z = p.z/(myC*myC);
 
          // set x direction to the surface tangent direction imparted by the
-         // longitude angle
+         // latitude angle
          xdir.x = myA*c2;
          xdir.y = myB*s1*s2;
          xdir.z = -myC*c1*s2;

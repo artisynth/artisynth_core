@@ -1,0 +1,170 @@
+\documentclass{article}
+
+% Add search paths for input files
+\makeatletter
+\def\input@path{{../}{../../}{../texinputs/}}
+\makeatother
+
+\input{artisynthDoc}
+
+\usepackage{amsmath}
+\usepackage{amsmath}
+\usepackage{framed}
+\usepackage{booktabs}
+
+%
+% BOXIT
+%
+% Use \boxit{ text } to surround text / paragraphs / anything in a
+%         box. For example, typing \boxit{the} would produce
+%                            +---+
+%                            |the|
+%                            +---+
+%         (you may want to use \strut inside the argument if the
+%         boxit is on a line by itself).
+%
+\def\boxit#1{\leavevmode\hbox{\vrule\vtop{\vbox{\kern.33333pt\hrule
+    \kern1pt\hbox{\kern1pt\vbox{#1}\kern1pt}}\kern1pt\hrule}\vrule}}
+
+\def\boxitx#1{\leavevmode\hbox{\vrule\vtop{\vbox{\hrule
+    \hbox{\vbox{#1}}}\hrule}\vrule}}
+
+% Listings settings
+\definecolor{myblue}{rgb}{0,0,0.6}
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mylightgray}{rgb}{0.95,0.95,0.95}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+\definecolor{myblack}{rgb}{0,0,0}
+\lstset{
+   language=Java,                   % text highlighting for Java
+   breakatwhitespace=false,         % automatic breaks only at whitespace
+   breaklines=true,                 % automatic line breaking
+   commentstyle=\color{mygreen},    % comment style
+   keepspaces=true,                 % keeps spaces in text
+   keywordstyle=\color{myblue},     % keyword style
+   numbers=none,                    % line-numbers; values: (none, left, right)
+   numbersep=7pt,                   % how far the line-numbers are from code
+   numberstyle=\scriptsize\color{mygray}, % line-numbers style
+   showspaces=false,                % show spaces everywhere
+   showstringspaces=false,          % underline spaces within strings
+   showtabs=false,                  % show tabs
+   stepnumber=1,                    % the step between two line-numbers
+   stringstyle=\color{mymauve},     % string literal style
+   tabsize=3,                       % sets default tabsize to 3 spaces
+   backgroundcolor=\color{mylightgray}, % background color
+   frame=single, 	            % adds a frame around the code
+   rulesepcolor=\color{mygray},
+   rulecolor=\color{myblack},
+   framerule=0pt,
+   xleftmargin=3ex,               % numbers inside box
+   framexleftmargin=3ex,          % indentation of frame
+   escapeinside={(*@}{@*)},
+}
+
+\begin{document}
+
+\section{Vertex fields}
+
+%\renewcommand{\arraystretch}{1}
+\begin{lstlisting}[]
+  // scalar fields:
+  void setValue (Vertex3d vtx, double value)   // set value for vertex
+  double getValue (Vertex3d vtx)               // get value for vertex
+  double getValue (int vidx)                   // get value for vertex number
+\end{lstlisting}
+%
+test line
+%
+\begin{lstlisting}[]
+  // scalar fields:
+  void setValue (Vertex3d vtx, double value)   // set value for vertex
+  double getValue (Vertex3d vtx)               // get value for vertex
+  double getValue (int vidx)                   // get value for vertex number
+\end{lstlisting}
+%
+test line
+%
+%\renewcommand{\arraystretch}{1.2}
+\begin{methodtable}[\smallskipamount]{0.5}{0.5}
+\midline
+\multicolumn{2}{l}{Scalar fields:}\\
+\midline
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.setValue(Vertex3d,double)}%
+{void setValue(\brh Vertex3d vtx, double value, double foo, \brh double bar)}%
+{containing meshworld ringworldmesh component containing the quick 
+brown fox jumped over the big lazy dog}
+%
+%\noalign{\vspace{1em}}%
+\methodspace{0.5em}%
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.getValue(Vertex3d)}%
+{void setValue(Vertex3d vtx)}%
+{get value for vertex {\tt vtx}}
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.getValue(int)}%
+{double getValue(int vidx)}%
+{get value for vertex at index {\tt vidx}}
+%
+\midline
+\multicolumn{2}{l}{Vector fields with parameterized type T:}\\
+\midline
+%
+\methodentry
+{artisynth.core.fields.VectorVertexField.setValue(Vertex3d,VectorObject)}%
+{void setValue(Vertex3d vtx, T value)}%
+{set value for vertex {\tt vtx}}
+%
+\methodentry{artisynth.core.fields.VectorVertexField.getValue(Vertex3d)}%
+{T getValue(Vertex3d vtx)}%
+{get value for vertex {\tt vtx}}
+%
+\midline
+\end{methodtable}
+%
+Hello
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+\multicolumn{2}{l}{All fields:}\\
+\midline
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.isValueSet(Vertex3d)}%
+{boolean isValueSet(Vertex3d vtx)}%
+{query if value set for vertex and add components here there and everywhere}
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.clearValue(Vertex3d)}%
+{void clearValue(Vertex3d vtx)}%
+{unset value for vertex {\tt vtx}}
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.clearAllValues()}%
+{void clearAllValues()}%
+{unset values for all vertices}
+%
+\midline
+\end{methodtable}
+%
+Hello again
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+\multicolumn{2}{l}{All fields:}\\
+\midline
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.isValueSet(Vertex3d)}%
+{boolean isValueSet(Vertex3d vtx)}%
+{query if value set for vertex and add components here there and everywhere}
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.clearValue(Vertex3d)}%
+{void clearValue(Vertex3d vtx)}%
+{unset value for vertex {\tt vtx}}
+%
+\methodentry{artisynth.core.fields.ScalarVertexField.clearAllValues()}%
+{void clearAllValues()}%
+{unset values for all vertices}
+%
+\midline
+\end{methodtable}
+
+\end{document}

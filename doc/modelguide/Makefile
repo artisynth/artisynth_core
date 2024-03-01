@@ -39,6 +39,22 @@ pdf: $(PDF_TARG)
 $(PDF_TARG): modelguide.pdf
 	cp modelguide.pdf $(PDF_TARG)
 
+mth: $(HTML_DIR)/methodTable.html
+
+mtp: methodTable.pdf
+
+methodTable.pdf: methodTable.tex
+	latex $<
+	dvips -j0 methodTable
+	$(FIX_POSTSCRIPT_OUTPUT) --out _tmp_.ps methodTable.ps
+	mv _tmp_.ps methodTable.ps
+	ps2pdf methodTable.ps
+	rm -rf $(LATEX_JUNK_FILES) methodTable.ps
+
+$(HTML_DIR)/methodTable.html: methodTable.tex
+	$(BUILD_HTML)
+
+
 # individual chapters:
 %.pdf: %.tex $(EPS_FILES)
 	$(BUILD_PDF)

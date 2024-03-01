@@ -332,7 +332,7 @@ div.informaltable thead, div.informaltable tfoot
  Added this because LaTeXML often marks table entries as tbody, resulting
  in boldface, even when we don't expect it.
 */
-tbody th {
+th {
   font-weight: normal;
 }
 
@@ -542,4 +542,22 @@ dt.ltx_item  {
 
 .ltx_page_logo {
   visibility:hidden;
+}
+
+/**
+ * Underline all ref text
+ */
+th span.ltx_p {
+  text-decoration: underline;
+}
+
+/**
+ * remove margins from paragraphs inside table entries.
+ */
+th p {
+  margin: 0;
+}
+
+td p {
+  margin: 0;
 }

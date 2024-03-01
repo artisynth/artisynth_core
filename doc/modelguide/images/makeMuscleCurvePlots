@@ -1,0 +1,74 @@
+# script to generate plots of force length and force velocity curves
+# for various muscles. This script can be run with the command
+#
+# > gnuplot -c makeMuscleCurvePlots
+
+set term postscript eps color font 'Helvetica,24' size 5,3.5
+set style line 1 lt rgb "red" lw 3
+set style line 2 lt rgb "dark-green" lw 3
+set style line 3 lt rgb "blue" lw 3
+set style line 4 lt rgb "dark-magenta" lw 3
+set style line 5 lt rgb "magenta" lw 3
+set grid
+
+# Peck muscle
+
+set xrange [0:2.5]
+set yrange [0:1.2]
+set output "PeckAPFLC.eps"
+set xlabel "muscle length"
+plot x < 0.5 ? 0 : (x < 1.5 ? (1+cos(2*pi*x))/2 : 0) notitle with lines ls 1, x < 1 ? 0 : (x < 2 ? x-1 : 1) notitle with lines ls 2
+
+set output "PeckCFLC.eps"
+set xlabel "muscle length"
+plot "peckFLC.txt" notitle with lines ls 3
+
+# Blemker muscle
+
+set xrange [0:2]
+set yrange [0:1.5]
+set output "BlemkerAPFL.eps"
+set xlabel "normalized muscle length"
+plot "BlemkerAFL.txt" notitle with lines ls 1, "BlemkerPFL.txt" notitle with lines ls 2
+
+set output "BlemkerCFL.eps"
+set xlabel "normalized muscle length"
+plot "BlemkerCFL.txt" notitle with lines ls 3
+
+# Thelen muscle
+
+set xrange [0:2]
+set yrange [0:1.2]
+set output "ThelenAFLC.eps"
+plot "ThelenAFLC.txt" notitle with lines ls 1
+set output "ThelenPFLC.eps"
+plot "ThelenPFLC.txt" notitle with lines ls 2
+set output "ThelenTFLC.eps"
+set xrange [.9:1.1]
+plot "ThelenTFLC.txt" notitle with lines ls 2
+set xrange [-1:1]
+set yrange [0:1.5]
+set output "ThelenFVC.eps"
+plot "ThelenFVC_1.txt" notitle with lines ls 4, "ThelenFVC_h.txt" notitle with lines ls 5
+
+# Millard muscle
+
+set xrange [0:2]
+set yrange [0:1.2]
+set output "MillardAFLC.eps"
+plot "MillardAFLC.txt" notitle with lines ls 1
+set output "MillardPFLC.eps"
+plot "MillardPFLC.txt" notitle with lines ls 2
+set output "MillardTFLC.eps"
+set xrange [.9:1.1]
+plot "MillardTFLC.txt" notitle with lines ls 2
+set xrange [-1:1]
+set yrange [0:1.5]
+set output "MillardFVC.eps"
+plot "MillardFVC.txt" notitle with lines ls 4
+
+
+
+
+
+

@@ -21,7 +21,7 @@ JAVA_TEST_PROGRAMS = \
 	FemSkinDerivTest \
 	AnsysReaderWriterTest \
 	AbaqusReaderWriterTest \
-	FemModel3dTest
-
+	FemModel3dTest \
+	TetrahedralizerTest
 
 -include $(ROOT_DIR)/Makefile.base

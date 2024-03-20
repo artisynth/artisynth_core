@@ -257,19 +257,6 @@ public class FemNode3d extends FemNode implements Boundable {
                    + M.m01*M.m01 + M.m12*M.m12 + M.m20*M.m20);
       return J2;
    }
-   
-   /**
-    * Computes and returns the eigenvalue with the maximum absolute value for
-    * a symmetric 3x3 matrix.
-    *
-    * @param M matrix to compute maximum absolute eigenvalue for
-    * @return maximum absolute eigenvalue
-    */
-   private double computeMaxAbsEigenvalue (SymmetricMatrix3d M) {    
-      Vector3d eigs = new Vector3d();
-      M.getEigenValues (eigs);
-      return eigs.get(eigs.maxAbsIndex());
-   }
 
    /**
     * Compute the Von Mises Stress criterion
@@ -310,7 +297,7 @@ public class FemNode3d extends FemNode implements Boundable {
     * @return max abs principal stress, or 0 is stress is not being computed
     */   
    public double getMAPStress () {
-      return (myAvgStress == null) ? 0 : computeMaxAbsEigenvalue(myAvgStress);
+      return (myAvgStress == null) ? 0 : myAvgStress.computeMaxAbsEigenvalue();
    }
 
    /**
@@ -373,7 +360,7 @@ public class FemNode3d extends FemNode implements Boundable {
     * @return max abs strain, or 0 is strain is not being computed
     */
    public double getMAPStrain () {
-      return (myAvgStrain == null) ? 0 : computeMaxAbsEigenvalue(myAvgStrain);
+      return (myAvgStrain == null) ? 0 : myAvgStrain.computeMaxAbsEigenvalue();
    }
 
    /**

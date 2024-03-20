@@ -42,6 +42,57 @@ public class SurfaceMeshIntersector {
       OUTSIDE,
    }
 
+   /**
+    * Describes CSG and intersection operations between two meshes, {@code
+    * mesh0} and {@code mesh1}.
+    */
+   public enum CSG {
+      /**
+       * Intersection between the meshes.
+       */
+      INTERSECTION,
+
+      /**
+       * Union between the meshes.
+       */
+      UNION,
+
+      /**
+       * Difference operation defined by mesh0 - mesh1.
+       */
+      DIFFERENCE01,
+
+      /**
+       * Difference operation defined by mesh1 - mesh0.
+       */
+      DIFFERENCE10,
+
+      /**
+       * Portion of mesh0 that is inside the intersection.
+       */
+      MESH0_INSIDE,
+
+      /**
+       * Portion of mesh0 that is outside the intersection.
+       */
+      MESH0_OUTSIDE,
+
+      /**
+       * Portion of mesh1 that is inside the intersection.
+       */
+      MESH1_INSIDE,
+
+      /**
+       * Portion of mesh1 that is outside the intersection.
+       */
+      MESH1_OUTSIDE,
+
+      /**
+       * No operation
+       */
+      NONE
+   }
+
    private static boolean printContours = false;
    private static boolean useEmptySegmentProjection = true;
 
@@ -1350,6 +1401,22 @@ public class SurfaceMeshIntersector {
       return vertexMap;
    }
 
+   private void addCSGVerticesForMesh (
+      HashMap<Vertex3d,Vertex3d> vertexMap, int meshNum, ContactInfo cinfo) {
+
+      for (PenetrationRegion r : cinfo.getRegions(meshNum)) {
+         findEmptySegments (
+            r, getMesh(meshNum), cinfo.getRegionsType(meshNum));
+         for (Vertex3d vtx : r.myVertices) {
+            if (vertexMap.get (vtx) == null) {
+               //System.out.println ("adding inside vertex");
+               vertexMap.put (
+                  vtx, new Vertex3d(new Point3d(vtx.getWorldPoint())));
+            }
+         }
+      }
+   }
+
    /**
     * Starting with an intersection point mip, back up until we find a point
     * whose preceeding point is *not* coincident, or is null
@@ -1558,8 +1625,76 @@ public class SurfaceMeshIntersector {
          mesh0, RegionType.INSIDE, mesh1, RegionType.OUTSIDE);
       return createCSGMesh (cinfo);
    }
+   
+   /**
+    * Find the polyhedral portion of {@code mesh0} that is <i>inside</i>
+    * the intersection region between {@code mesh0} and {@code mesh1}.
+    * The resulting mesh will be empty if the intersection results
+    * in no closed intersection contours.
+    * 
+    * @param mesh0 first intersecting mesh
+    * @param mesh1 second intersecting mesh
+    * @return mesh describing the part of {@code mesh0} inside the intersection
+    */
+   public PolygonalMesh findMesh0Inside (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      ContactInfo cinfo = findContoursAndRegions (
+         mesh0, RegionType.INSIDE, mesh1, RegionType.NONE);
+      return createCSGMesh (cinfo);
+   }
 
    /**
+    * Find the polyhedral portion of {@code mesh0} that is <i>outside</i>
+    * the intersection region between {@code mesh0} and {@code mesh1}.
+    * The resulting mesh will be empty if the intersection results
+    * in no closed intersection contours.
+    * 
+    * @param mesh0 first intersecting mesh
+    * @param mesh1 second intersecting mesh
+    * @return mesh describing the part of {@code mesh0} outside the intersection
+    */
+   public PolygonalMesh findMesh0Outside (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      ContactInfo cinfo = findContoursAndRegions (
+         mesh0, RegionType.OUTSIDE, mesh1, RegionType.NONE);
+      return createCSGMesh (cinfo);
+   }
+
+   /**
+    * Find the polyhedral portion of {@code mesh1} that is <i>inside</i>
+    * the intersection region between {@code mesh0} and {@code mesh1}.
+    * The resulting mesh will be empty if the intersection results
+    * in no closed intersection contours.
+    * 
+    * @param mesh0 first intersecting mesh
+    * @param mesh1 second intersecting mesh
+    * @return mesh describing the part of {@code mesh1} inside the intersection
+    */
+   public PolygonalMesh findMesh1Inside (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      ContactInfo cinfo = findContoursAndRegions (
+         mesh0, RegionType.NONE, mesh1, RegionType.INSIDE);
+      return createCSGMesh (cinfo);
+   }
+
+   /**
+    * Find the polyhedral portion of {@code mesh1} that is <i>outside</i>
+    * the intersection region between {@code mesh0} and {@code mesh1}.
+    * The resulting mesh will be empty if the intersection results
+    * in no closed intersection contours.
+    * 
+    * @param mesh0 first intersecting mesh
+    * @param mesh1 second intersecting mesh
+    * @return mesh describing the part of {@code mesh1} outside the intersection
+    */
+   public PolygonalMesh findMesh1Outside (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      ContactInfo cinfo = findContoursAndRegions (
+         mesh0, RegionType.NONE, mesh1, RegionType.OUTSIDE);
+      return createCSGMesh (cinfo);
+   }
+
+  /**
     * Assuming that the boundaries of <code>mesh0</code> and <code>mesh1</code>
     * do not intersect, determines is <code>mesh0</code>
     * is inside <code>mesh1</code>.
@@ -1617,6 +1752,26 @@ public class SurfaceMeshIntersector {
     *     <td>outside</td>
     *     <td>difference (mesh1-mesh0)</td>
     *   </tr>
+    *   <tr>
+    *     <td>inside</td>
+    *     <td>none</td>
+    *     <td>portion of mesh0 inside intersection</td>
+    *   </tr>
+    *   <tr>
+    *     <td>outside</td>
+    *     <td>none</td>
+    *     <td>portion of mesh0 outside intersection</td>
+    *   </tr>
+    *   <tr>
+    *     <td>none</td>
+    *     <td>inside</td>
+    *     <td>portion of mesh1 inside intersection</td>
+    *   </tr>
+    *   <tr>
+    *     <td>none</td>
+    *     <td>outside</td>
+    *     <td>portion of mesh1 outside intersection</td>
+    *   </tr>
     * </table>
     * @param cinfo meshes, contours and penetration regions from
     * which the CSG boundary is to be constructed
@@ -1625,6 +1780,208 @@ public class SurfaceMeshIntersector {
     * do not match the contours most recently produced by this intersector
     */
    public PolygonalMesh createCSGMesh (ContactInfo cinfo) {
+
+      if (cinfo.myMesh0 != myMesh0 ||
+          cinfo.myMesh1 != myMesh1 ||
+          cinfo.myContours != myContours) {
+         throw new IllegalStateException (
+            "Meshes and/or contours contained in <code>cinfo</code> do not "+
+            "match the contours most recently produced by this intersector");
+      }
+      
+      PolygonalMesh csgMesh;      
+
+      RegionType regions0 = cinfo.getRegionsType(0);
+      RegionType regions1 = cinfo.getRegionsType(1);     
+      if (cinfo.myContours.size() == 0 && 
+          regions0 != RegionType.NONE && regions1 != RegionType.NONE) {
+         // what to do here depends on the operation
+         if (regions0 == RegionType.INSIDE && 
+             regions1 == RegionType.INSIDE) {
+            // intersection
+            if (isInside (myMesh0, myMesh1)) {
+               csgMesh = myMesh0.copy();
+            }
+            else if (isInside (myMesh1, myMesh0)) {
+               csgMesh = myMesh1.copy();
+            }
+            else {
+               csgMesh = new PolygonalMesh();
+            }
+         }
+         else if (regions0 == RegionType.OUTSIDE && 
+                  regions1 == RegionType.OUTSIDE) {
+            // union
+            csgMesh = myMesh0.copy();
+            csgMesh.addMesh (myMesh1, /*respectTransforms=*/true);
+         }
+         else if (regions0 == RegionType.OUTSIDE && 
+                  regions1 == RegionType.INSIDE) {
+            // difference mesh0 - mesh1
+            if (isInside (myMesh0, myMesh1)) {
+               csgMesh = new PolygonalMesh();
+            }
+            else {
+               csgMesh = new PolygonalMesh (myMesh0);
+               if (isInside (myMesh1, myMesh0)) {
+                  PolygonalMesh inside = myMesh1.copy();
+                  inside.flip();
+                  csgMesh.addMesh (inside, /*respectTransforms=*/true);
+               }              
+            }
+         }
+         else { // regions0 == INSIDE && regions1 == OUTSIDE
+            // difference mesh1 - mesh0
+            if (isInside (myMesh1, myMesh0)) {
+               csgMesh = new PolygonalMesh();
+            }
+            else {
+               csgMesh = new PolygonalMesh (myMesh1);
+               if (isInside (myMesh0, myMesh1)) {
+                  PolygonalMesh inside = myMesh0.copy();
+                  inside.flip();
+                  csgMesh.addMesh (inside, /*respectTransforms=*/true);
+               }
+            }            
+         }
+         return csgMesh;
+      }
+//      if (cinfo.myContours == null || cinfo.myContours.size() == 0) {
+//         return null;
+//      }
+      csgMesh = new PolygonalMesh();
+      
+      // create the xips
+      for (EdgeInfo einfo : myEdgeInfos.values()) {
+         einfo.initializeXips();
+      }
+
+      // create the vertices
+      ArrayList<Vertex3d> contourVtxs = new ArrayList<Vertex3d>();
+      HashMap<Vertex3d,Vertex3d> vertexMap =
+         createContourVertices (cinfo.myContours, contourVtxs);
+
+      if (regions0 != RegionType.NONE) {
+         addCSGVerticesForMesh (vertexMap, 0, cinfo);
+      }
+      if (regions1 != RegionType.NONE) {
+         addCSGVerticesForMesh (vertexMap, 1, cinfo);
+      }
+
+      for (Vertex3d vtx : vertexMap.values()) {
+         csgMesh.addVertex (vtx);
+      }
+      for (Vertex3d vtx : contourVtxs) {
+         csgMesh.addVertex (vtx);
+      }
+
+      if (printContours) {
+         for (IntersectionContour c : cinfo.myContours) {
+            System.out.println ("contour " + getContourIndex(c));
+            for (IntersectionPoint p : c) {
+               System.out.println (toString (p));
+            }
+         }
+      }
+
+      int estNumVtxs = csgMesh.numVertices()*6;
+
+      boolean clockwise0 = (regions0 == RegionType.OUTSIDE);
+      boolean clockwise1 = (regions1 == RegionType.INSIDE);
+      boolean flip0 = regions1 != RegionType.NONE && !clockwise0 && !clockwise1;
+      boolean flip1 = regions0 != RegionType.NONE && clockwise0 && clockwise1;
+
+      if (regions0 != RegionType.NONE) {
+         addFacesFromMesh (
+            csgMesh, cinfo, /*meshNum=*/0, clockwise0, flip0,
+            vertexMap, estNumVtxs);
+      }
+      if (regions1 != RegionType.NONE) {
+         addFacesFromMesh (
+            csgMesh, cinfo, /*meshNum=*/1, clockwise1, flip1,
+            vertexMap, estNumVtxs);
+      }
+
+      return csgMesh;
+   }
+
+   private void addFacesFromMesh (
+      PolygonalMesh result, ContactInfo cinfo, int meshNum,
+      boolean clockwise, boolean flipFaces,
+      HashMap<Vertex3d,Vertex3d> vertexMap, int estNumVtxs) {
+
+      // Allocate vertex space for faces based on the approximation that there
+      // are two triangles per vertex
+      ArrayList<Vertex3d> triVtxs = new ArrayList<Vertex3d>(estNumVtxs);
+
+      HashMap<Face,ArrayList<IntersectionContour>> faceContourMap =
+         new HashMap<Face,ArrayList<IntersectionContour>>();
+
+      ArrayList<Vertex3dList> innerHoles = new ArrayList<Vertex3dList>();
+      ArrayList<Vertex3dList> outerHoles = new ArrayList<Vertex3dList>();
+
+      for (PenetrationRegion r : cinfo.getRegions(meshNum)) {
+         faceContourMap.clear();
+         for (IntersectionContour c : r.myContours) {
+            Face face = c.containingFace;
+            if (face != null) {
+               ArrayList<IntersectionContour> contours =
+                  faceContourMap.get(face);
+               if (contours == null) {
+                  contours = new ArrayList<IntersectionContour>();
+                  faceContourMap.put (face, contours);
+               }
+               contours.add (c);
+            }
+         }
+         for (Face face : r.myFaces) {
+            ArrayList<IntersectionContour> contours =
+               faceContourMap.get(face);
+            if (contours != null) {
+               innerHoles.clear();
+               outerHoles.clear();
+               for (IntersectionContour c : contours) {
+                  Vertex3dList hole = createPolyFromContour (c);
+                  if (clockwise) {
+                     hole.reverse();
+                  }
+                  if (c.singleFaceArea < 0) {
+                     // if empty segments found, then assume hole has been
+                     // connected to the face, and so is no longer a hole
+                     if (!c.emptySegmentsMarked) {
+                        innerHoles.add (hole);
+                     }
+                  }
+                  else {
+                     if (!c.emptySegmentsMarked) {
+                        outerHoles.add (hole);
+                     }
+                  }
+               }
+               triangulateFace (
+                  triVtxs, face, r, clockwise,
+                  outerHoles, innerHoles, vertexMap);
+            }
+            else {
+               triangulateFace (
+                  triVtxs, face, r, clockwise,
+                  null, null, vertexMap);
+            }
+         }
+      }
+      for (int i=0; i<triVtxs.size(); i+=3) {
+         if (flipFaces) {
+            result.addFace (
+               triVtxs.get(i), triVtxs.get(i+2), triVtxs.get(i+1));
+         }
+         else {
+            result.addFace (
+               triVtxs.get(i), triVtxs.get(i+1), triVtxs.get(i+2));
+         }
+      }
+   }
+
+   public PolygonalMesh createCSGMeshOld (ContactInfo cinfo) {
 
       if (cinfo.myMesh0 != myMesh0 ||
           cinfo.myMesh1 != myMesh1 ||
@@ -3997,17 +4354,6 @@ public class SurfaceMeshIntersector {
             return 0;
          }
       }
-   }
-
-   /**
-    * Describes CSG operations.
-    */
-   public enum CSG {
-      INTERSECTION,
-      UNION,
-      DIFFERENCE01,
-      DIFFERENCE10,
-      NONE
    }
 
    /**

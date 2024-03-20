@@ -879,6 +879,9 @@ should also be drawn, using either the {\sf edgeColor} rendering
 property, or the {\sf lineColor} property if {\sf edgeColor} is not
 set. The default value is {\tt false}.
 
+\item {\sf edgeWidth}: An integer giving the width of the mesh
+edges in pixels.
+
 \end{itemize}
 
 These properties, and others, can be set either interactively in the
@@ -3221,7 +3224,7 @@ of D, using face rendering properties and with a size given by the
   RenderProps.setFaceColor (joint, Color.LIGHT_GRAY);
 \end{lstlisting}
 %
-will cause {\tt joint} to be drawn as a light grey square with size
+will cause {\tt joint} to be drawn as a light gray square with size
 5.0. The default value of {\sf planeSize} is 0, so drawing the plane
 is disabled by default. Also, the default {\sf faceStyle} rendering
 property for {\tt PlanarConnector} is set to {\tt FRONT\_AND\_BACK},
@@ -3654,7 +3657,7 @@ using point rendering properties. For example,
   RenderProps.setSphericalPoints (connector, 0.1, Color.BLUE);
 \end{lstlisting}
 %
-will cause {\tt connector} to be drawn as a light grey square with
+will cause {\tt connector} to be drawn as a light gray square with
 size 5, and for the point on body A to be drawn as a blue sphere with
 radius 0.1. The default value of {\sf planeSize} is 0, so drawing the
 plane is disabled by default. Also, the default {\sf faceStyle}
@@ -4529,14 +4532,14 @@ added to the {\tt MechModel} (lines 18-19).
 Another mesh, representing a square, is created with a factory method
 and used to instantiate a mesh body named {\tt "square"} (lines
 22-26). The factory method specifies both the size and triangle
-density of the mesh in the $x-y$ plane. Once created, the square's
+density of the mesh in the $x$-$y$ plane. Once created, the square's
 pose is set to a 90 degree rotation about the $x$ axis and a
 translation of 0.5 along $y$ (lines 28-29).
 
 Rendering properties are set at lines 33-41. The torus is made pale
 green by setting it face color; the coordinate frame for the square is
 made visible as solid arrows using the {\tt axisLength} and {\tt
-axisDrawStyle} properties; and the square is made blue grey, with its
+axisDrawStyle} properties; and the square is made blue gray, with its
 edges made visible and drawn using a darker color, and its face style
 set to {\tt FRONT\_AND\_BACK} so that it's visible from either side.
 

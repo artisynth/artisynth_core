@@ -83,7 +83,7 @@ public class FemMuscleDemo extends RootModel {
    protected Color getMuscleColor(int i) {
       switch (i) {
          case 0:
-            return new Color(0f, 1f, 1f);
+            return new Color(1f, 0f, 0f);
          case 1:
             return new Color(0f, .8f, 0f);
          default:
@@ -146,10 +146,7 @@ public class FemMuscleDemo extends RootModel {
       }
 
       RenderProps.setLineWidth(tissue, 2);
-      RenderProps.setLineColor(tissue, Color.PINK);
-      RenderProps.setPointStyle(tissue, Renderer.PointStyle.SPHERE);
-      RenderProps.setPointRadius(tissue, 0.03);
-      RenderProps.setPointColor(tissue, Color.PINK);
+      RenderProps.setLineColor(tissue, new Color (0.7f, 0.7f, 1f));
       RenderProps.setFaceColor(tissue, Color.PINK.darker());
 
       GenericMuscle mm = new GenericMuscle();
@@ -347,7 +344,7 @@ public class FemMuscleDemo extends RootModel {
       ControlPanel myControlPanel = new ControlPanel("options", "LiveUpdate");
       FemControlPanel.addMuscleControls(myControlPanel, tissue, myModel);
       
-      myControlPanel.addWidget(tissue, "profile");
+      myControlPanel.addWidget(tissue, "directionRenderLen");
       
       ComponentList<MuscleBundle> muscles =
          ((FemMuscleModel)tissue).getMuscleBundles();

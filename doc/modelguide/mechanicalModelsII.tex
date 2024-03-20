@@ -2087,6 +2087,47 @@ methods:
    int getMaxResolution()
 \end{lstlisting}
 
+\begin{figure}[ht]
+\begin{center}
+  \begin{tabular}{ccc}
+    \iflatexml
+       \includegraphics[]{images/dumbbellMesh}&
+       \includegraphics[]{images/dumbbellDistanceGrid}&
+       \includegraphics[]{images/dumbbellDistanceSurface}
+    \else
+       \includegraphics[width=1.75in]{images/dumbbellMesh}&
+       \includegraphics[width=2.5in]{images/dumbbellDistanceGrid}&
+       \includegraphics[width=1.75in]{images/dumbbellDistanceSurface}
+    \fi
+  \end{tabular}
+\end{center}
+\caption{A mesh used to generate a distance grid, (left), along with a
+visualization of the grid itself (middle) and the corresponding
+quadratic isosurface (right). Notice how in this case the quadratic
+isosurface is smoother than the coarser features of the
+original mesh.}
+\label{rigidBodySurfacesAndGrid:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+  \begin{tabular}{cc}
+    \iflatexml
+       \includegraphics[]{images/dumbbellDistanceGridSub}&
+       \includegraphics[]{images/dumbbellDistanceGridGrad}
+    \else
+       \includegraphics[width=2in]{images/dumbbellDistanceGridSub}&
+       \includegraphics[width=2in]{images/dumbbellDistanceGridGrad}
+    \fi
+  \end{tabular}
+\end{center}
+\caption{Rendering a subportion of a distance grid
+restricted along the x axis by setting {\sf renderRanges} 
+to {\tt "9:12 * *"}, with render properties set to show the grid cells
+(left), and the vertices and normals (right).}
+\label{rigidBodySubGrid:fig}
+\end{figure}
+
 When used for either collisions or wrapping, the distance values
 interpolated by a distance grid are used to determine whether a point
 is inside or outside some 3D object, with the inside/outside boundary
@@ -2156,47 +2197,6 @@ handling or muscle wrapping, this value should be 0.
 
 \end{description}
 
-\begin{figure}[ht]
-\begin{center}
-  \begin{tabular}{ccc}
-    \iflatexml
-       \includegraphics[]{images/dumbbellMesh}&
-       \includegraphics[]{images/dumbbellDistanceGrid}&
-       \includegraphics[]{images/dumbbellDistanceSurface}
-    \else
-       \includegraphics[width=1.75in]{images/dumbbellMesh}&
-       \includegraphics[width=2.5in]{images/dumbbellDistanceGrid}&
-       \includegraphics[width=1.75in]{images/dumbbellDistanceSurface}
-    \fi
-  \end{tabular}
-\end{center}
-\caption{A mesh used to generate a distance grid, (left), along with a
-visualization of the grid itself (middle) and the corresponding
-quadratic isosurface (right). Notice how in this case the quadratic
-isosurface is smoother than the coarser features of the
-original mesh.}
-\label{rigidBodySurfacesAndGrid:fig}
-\end{figure}
-
-\begin{figure}[ht]
-\begin{center}
-  \begin{tabular}{cc}
-    \iflatexml
-       \includegraphics[]{images/dumbbellDistanceGridSub}&
-       \includegraphics[]{images/dumbbellDistanceGridGrad}
-    \else
-       \includegraphics[width=2in]{images/dumbbellDistanceGridSub}&
-       \includegraphics[width=2in]{images/dumbbellDistanceGridGrad}
-    \fi
-  \end{tabular}
-\end{center}
-\caption{Rendering a subportion of a distance grid
-restricted along the x axis by setting {\sf renderRanges} 
-to {\tt "9:12 * *"}, with render properties set to show the grid cells
-(left), and the vertices and normals (right).}
-\label{rigidBodySubGrid:fig}
-\end{figure}
-
 When visualizing the isosurface for a distance grid, it is generally
 convenient to also turn {\it off} visualization for the meshes used to
 generate the grid. For {\tt RigidBody} objects, this can be
@@ -2225,20 +2225,6 @@ that may be either a \javaclass[maspack.matrix]{RigidTransform3d} or a
 more general \javaclass[maspack.matrix]{AffineTransform3d} (Section
 \ref{RigidTransform3d:sec}).
 
-\javamethodAlt{artisynth.core.modelbase.TransformableGeometry.transformGeometry()}%
-{transformGeometry(X)}
-can be used to translate, rotate, shear or scale components. It
-can be applied to an entire model or individual components. Unlike
-\javamethod*[artisynth.core.util.ScalableUnits]{scaleDistance()}, it
-actually changes the physical geometry and so may change the
-simulation behavior. For example, applying {\tt transformGeometry()}
-to a \javaclass[artisynth.core.mechmodels]{RigidBody} will cause the
-shape of its mesh to change, which will change its mass if its {\sf
-inertiaMethod} property is set to {\tt DENSITY}.
-Figure \ref{RigidAndAffineTransforms:fig} shows a simplified
-illustration of both rigid and affine transformations being applied to
-a model.
-
 \begin{figure}[ht]
 \begin{center}
    \begin{tabular}{ccc}
@@ -2258,6 +2244,20 @@ transformation (middle) and an affine transformation (right).}
 \label{RigidAndAffineTransforms:fig}
 \end{figure}
 
+\javamethodAlt{artisynth.core.modelbase.TransformableGeometry.transformGeometry()}%
+{transformGeometry(X)}
+can be used to translate, rotate, shear or scale components. It
+can be applied to an entire model or individual components. Unlike
+\javamethod*[artisynth.core.util.ScalableUnits]{scaleDistance()}, it
+actually changes the physical geometry and so may change the
+simulation behavior. For example, applying {\tt transformGeometry()}
+to a \javaclass[artisynth.core.mechmodels]{RigidBody} will cause the
+shape of its mesh to change, which will change its mass if its {\sf
+inertiaMethod} property is set to {\tt DENSITY}.
+Figure \ref{RigidAndAffineTransforms:fig} shows a simplified
+illustration of both rigid and affine transformations being applied to
+a model.
+
 The example below shows how to apply a transformation to a model in
 code. In it, a {\tt MechModel} is first scaled by the factors 1.5, 2,
 and 3 along the x, y, and z axes, and then flipped upside down using a
@@ -2276,6 +2276,45 @@ axis:
    RigidTransform3d T = 
       new RigidTransform3d (/*x,y,z=*/0, 0, 0, /*r,p,y=*/0, 0, Math.PI);
    mech.transformGeometry (T);
+\end{lstlisting}
+%
+
+\begin{sideblock}
+The transform specified to {\tt transformGeometry} is in {\it world}
+coordinates. If the component being transformed has its own
+local coordinate frame (such as a rigid body), and one wants to
+specify the transform in that local frame, then one needs to convert
+the transform from local to world coordinates. Let $\T_{CW}$ be the
+local coordinate frame, and let $\X_W$ and $\X_B$ be the transform in
+world and body coordinates, respectively. Then
+%
+\begin{equation*}
+\X_W \, \T_{CW} = \T_{CW} \, \X_B
+\end{equation*}
+%
+and so
+%
+\begin{equation*}
+\X_W  = \T_{CW} \, \X_B \, \T_{CW}^{-1}.
+\end{equation*}
+%
+(See Appendix \ref{RigidTransforms:sec}
+and \ref{AffineTransforms:sec}).  
+\end{sideblock}
+
+As an example of converting a transform to world coordinates, suppose
+we wish to scale a rigid body by $a$, $b$, and $c$ along its local
+axes. The transformation could then be done as follows:
+%
+\begin{lstlisting}[]
+  AffineTransform3d XB = new AffineTransform3d(); // transform in body coords
+  AffineTransform3d XW = new AffineTransform3d(); // transform in world coords
+  RigidTransform3d TBW = body.getPose(): // coordinate frame of the body
+
+  XB.setScaling (a, b, c);      // set scaling in body coords ...
+  XW.mul (TBW, XB);             // ... convert to world coords ...
+  XW.mulInverseRight (XW, TBW); 
+  body.transformGeometry (XW);  // ... and apply to the body
 \end{lstlisting}
 %
 

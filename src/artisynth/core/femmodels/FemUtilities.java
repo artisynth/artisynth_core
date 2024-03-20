@@ -866,4 +866,48 @@ public class FemUtilities {
       f.y += fu.y*dv;
       f.z += fu.z*dv;
    }
+
+   /**
+    * Compute the second deviatoric invariant J2
+    * https://en.wikipedia.org/wiki/Cauchy_stress_tensor#Stress_deviator_tensor
+    * @param M Tensor
+    * @return J2
+    */
+   static public double computeJ2 (SymmetricMatrix3d M) {    
+      double sig00_11 = M.m00 - M.m11; 
+      double sig11_22 = M.m11 - M.m22;
+      double sig22_00 = M.m22 - M.m00;
+      double J2 = ((sig00_11*sig00_11 + sig11_22*sig11_22 + sig22_00*sig22_00)/6
+                   + M.m01*M.m01 + M.m12*M.m12 + M.m20*M.m20);
+      return J2;
+   }
+   
+   /**
+    * Compute the Von Mises Stress criterion
+    * https://en.wikipedia.org/wiki/Von_Mises_yield_criterion
+    * The Von Mises Stress is equal to sqrt(3 J2), where J2 is
+    * the second invariant of the average deviatoric strain for the node.
+    * @param sig stress tensor
+    * @return Von Mises stress
+    */
+   static public double computeVonMisesStress (SymmetricMatrix3d sig) {
+      double J2 = computeJ2 (sig);
+      return Math.sqrt (3.0*J2);    
+   }
+   
+   /**
+    * Compute the Von Mises strain equivalent according to
+    * http://www.continuummechanics.org/vonmisesstress.html
+    * which is equivalent to 
+    * https://dianafea.com/manuals/d944/Analys/node405.html
+    * The Von Mises Strain Equivalent is equal to sqrt(4/3 J2), where J2 is
+    * the second invariant of the average deviatoric strain for the node.
+    * @param strain strain tensor
+    * @return von Mises strain Equivalent
+    */
+   static public double computeVonMisesStrain(SymmetricMatrix3d strain) {
+      double J2 = computeJ2 (strain);
+      return Math.sqrt (4.0/3.0*J2);    
+   }
+
 }

@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1849 
+personal_ws-1.1 en 1874 
 ABPointColor
 AJL
 ANSYS
@@ -128,6 +128,8 @@ FemBeamWithBlock
 FemBeamWithFemSphere
 FemBeamWithMuscle
 FemCollisions
+FemCutPlane
+FemCutPlaneDemo
 FemElement
 FemElementType
 FemElment
@@ -138,6 +140,7 @@ FemGeometryTransformer
 FemMarker
 FemMateral
 FemMaterial
+FemMesh
 FemMeshComp
 FemModelDeformer
 FemMuscleBeam
@@ -442,6 +445,7 @@ SurfaceRender
 SymplecticEuler
 TAW
 TBD
+TBW
 TCA
 TCB
 TCD
@@ -455,6 +459,7 @@ TG
 TGD
 TLW
 TMB
+TPW
 TRI
 TSE
 TalusBone
@@ -508,7 +513,9 @@ Wavefront
 WavefrontReader
 WavefrontWriter
 WedgeElement
+XB
 XFrameToWorld
+XW
 XXXJoint
 XXXJointDemo
 XXXX
@@ -531,6 +538,7 @@ addConstraint
 addControlPanel
 addController
 addCoordinate
+addCutPlane
 addData
 addElement
 addFace
@@ -634,6 +642,7 @@ clearCollisionBehaviors
 clearCollisionResponse
 clearCollisionResponses
 clearColors
+clearCutPlanes
 clearElements
 clearHardEdges
 clearMarkers
@@ -665,6 +674,8 @@ colorMap
 colorMapCollidable
 colorMapInterpolation
 colorMapRange
+colormap
+colormaps
 commentstyle
 complementarity
 computeAllVertexConnections
@@ -694,6 +705,8 @@ coords
 corotated
 corotational
 counterintuitive
+cp
+cplane
 cpnt
 createBall
 createBody
@@ -709,6 +722,7 @@ createFromMesh
 createGrid
 createHemiBody
 createHexGrid
+createHexTorus
 createHexTube
 createIcosahedralSphere
 createInertia
@@ -733,6 +747,7 @@ createTorus
 createVertexIndices
 createVolumetricSurface
 curPos
+cutPlanes
 dAttachment
 dAttachments
 dBase
@@ -934,6 +949,7 @@ getCoordinateInfo
 getCoordinateRange
 getCoordinateRangeDeg
 getCoordinates
+getCutPlanes
 getDamping
 getData
 getDataFunction
@@ -1057,6 +1073,7 @@ getStringValue
 getSubtraction
 getSurfaceMesh
 getSurfaceMeshComp
+getSurfaceRendering
 getTag
 getTargetOrientation
 getTargetPose
@@ -1258,6 +1275,7 @@ modelbase
 mul
 mulInverse
 mulInverseLeft
+mulInverseRight
 mulLeftInverse
 mulXyz
 multibody
@@ -1316,6 +1334,7 @@ numBilateralConstraints
 numColors
 numConstraints
 numCoordinates
+numCutPlanes
 numElements
 numEngagedUnilateralConstraints
 numFaces
@@ -1420,6 +1439,7 @@ reduceConstraints
 regionArea
 relpath
 remoteSourceName
+removeCutPlane
 removeElement
 removeFace
 removeMarker
@@ -1478,6 +1498,7 @@ scapulothoracic
 segIdx
 segmentations
 segs
+selectable
 setActive
 setAttachPointsToMesh
 setAttachedFileName
@@ -1515,6 +1536,7 @@ setDamping
 setDataFunction
 setDefaultCollisionBehavior
 setDensity
+setDirectionRenderLen
 setDirector
 setDistance
 setDotWrenchG
@@ -1525,6 +1547,7 @@ setDrawIntersectionContours
 setDynamic
 setEdgeColor
 setEdgeWidth
+setElementWidgetSize
 setEngaged
 setEuler
 setExcitation
@@ -1605,6 +1628,7 @@ setRestPosition
 setRotaryCompliance
 setRotaryDamping
 setRpy
+setScaling
 setSegmentWrappable
 setShading
 setShaftLength
@@ -1681,6 +1705,7 @@ spatialmotion
 specular
 spr
 springA
+squareSize
 src
 startTime
 startup

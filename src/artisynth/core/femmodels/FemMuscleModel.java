@@ -824,9 +824,9 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
          dir.normalize();
 
          F.mul(dir, dir);
+         dir.normalize();
          double size = elem.computeDirectedRenderSize (dir);      
-         dir.scale (0.5*size);
-         dir.scale(len);
+         dir.scale (size*len);
 
          coords0[0] -= (float)dir.x / 2;
          coords0[1] -= (float)dir.y / 2;
@@ -863,10 +863,10 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
             ipnt[i].computeGradientForRender(F, elem.getNodes(), idata[i].myInvJ0);
             ipnt[i].computeCoordsForRender(coords0, elem.getNodes());
             F.mul(dir,dir);
+            dir.normalize();
             
             double size = elem.computeDirectedRenderSize (dir);
-            dir.scale(0.5*size);
-            dir.scale(len);
+            dir.scale(size*len);
 
             coords0[0] -= (float)dir.x / 2;
             coords0[1] -= (float)dir.y / 2;

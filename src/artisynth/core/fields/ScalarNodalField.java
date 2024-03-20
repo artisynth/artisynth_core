@@ -5,33 +5,34 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.LinkedList;
 
-import artisynth.core.fields.ScalarFieldUtils.ScalarVertexFunction;
+import artisynth.core.femmodels.FemCutPlane;
 import artisynth.core.femmodels.FemElement3dBase;
-import artisynth.core.femmodels.FemModel3d;
-import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.FemMeshComp;
-import artisynth.core.femmodels.*;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemNode;
+import artisynth.core.femmodels.FemNode3d;
+import artisynth.core.femmodels.IntegrationPoint3d;
+import artisynth.core.femmodels.PointFem3dAttachment;
+import artisynth.core.fields.ScalarFieldUtils.ScalarVertexFunction;
+import artisynth.core.mechmodels.Particle;
+import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.PointParticleAttachment;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.FemFieldPoint;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.mechmodels.*;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.render.RenderObject;
+import maspack.util.DoubleInterval;
 import maspack.util.DynamicBooleanArray;
 import maspack.util.DynamicDoubleArray;
+import maspack.util.EnumRange;
 import maspack.util.NumberFormat;
+import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
-import maspack.util.DoubleInterval;
-import maspack.render.*;
-import maspack.util.DoubleInterval;
-import maspack.util.*;
-import maspack.geometry.*;
-import maspack.properties.*;
-import maspack.render.Renderer.*;
 
 /**
  * A scalar field defined over an FEM model, using values set at the
@@ -456,29 +457,44 @@ public class ScalarNodalField extends ScalarFemField {
       else if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
          double[] wgts = pfa.getCoordinates().getBuffer();
-         double value = 0;
-         int k = 0;
-         for (FemNode n : pfa.getNodes()) {
-            // XXX is this checking needed? Can we assume the node is a
-            // FemNode3d that it belongs to the right FEM?
-            if (n instanceof FemNode3d && n.getGrandParent() == myFem) {
-               value += wgts[k++]*getValue ((FemNode3d)n);
-            }
-            else {
-               value += wgts[k++]*myDefaultValue;
-            }
-         }
-         return value;
+         return getVertexValue (pfa.getNodes(), wgts);
       }
       else {
          return myDefaultValue;
       }
    }
+   
+   private double getVertexValue (FemNode[] nodes, double[] wgts) {
+      double value = 0;
+      int k = 0;
+      for (FemNode n : nodes) {
+         // XXX is this checking needed? Can we assume the node is a
+         // FemNode3d that it belongs to the right FEM?
+         if (n instanceof FemNode3d && n.getGrandParent() == myFem) {
+            value += wgts[k++]*getValue ((FemNode3d)n);
+         }
+         else {
+            value += wgts[k++]*myDefaultValue;
+         }
+      }
+      return value;     
+   }
 
    protected ScalarVertexFunction getVertexFunction () {
-      return ((mcomp, vtx) ->
-              getVertexValue (
-                 ((FemMeshComp)mcomp).getVertexAttachment(vtx)));
+      return (
+         (mcomp, vtx) -> {
+            if (mcomp instanceof FemCutPlane) {
+               return getValue (vtx.getWorldPoint());
+            }
+            else if (mcomp instanceof FemMeshComp) {
+               return getVertexValue (
+                  ((FemMeshComp)mcomp).getVertexAttachment(vtx));
+            }
+            else {
+               return 0;
+            }
+         });         
    }
+
  
 }

@@ -1,37 +1,18 @@
 package artisynth.core.fields;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
-import java.util.LinkedList;
 
-import artisynth.core.femmodels.FemElement3dBase;
-import artisynth.core.femmodels.FemModel3d;
-import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.FemMeshComp;
-import artisynth.core.femmodels.*;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.FemFieldPoint;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.mechmodels.*;
-import artisynth.core.util.ScanToken;
+import artisynth.core.femmodels.FemCutPlane;
+import artisynth.core.mechmodels.MeshComponent;
+import artisynth.core.modelbase.RenderableComponent;
+import maspack.geometry.Face;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
-import maspack.util.DynamicBooleanArray;
-import maspack.util.DynamicDoubleArray;
-import maspack.util.NumberFormat;
-import maspack.util.ReaderTokenizer;
-import maspack.util.DoubleInterval;
-import maspack.render.*;
-import maspack.util.DoubleInterval;
-import maspack.util.*;
-import maspack.geometry.*;
-import maspack.properties.*;
-import maspack.render.Renderer.*;
+import maspack.render.RenderObject;
 import maspack.render.color.ColorMapBase;
+import maspack.util.DoubleInterval;
 
 /**
  * Utility methods for implementing ScalarFields and rendering in particular.
@@ -39,7 +20,7 @@ import maspack.render.color.ColorMapBase;
 public class ScalarFieldUtils {
 
    interface ScalarVertexFunction {
-      double valueAt (MeshComponent mcomp, Vertex3d vtx);
+      double valueAt (RenderableComponent rcomp, Vertex3d vtx);
    }
 
    static int getColorIndex (double value, DoubleInterval range) {
@@ -63,23 +44,31 @@ public class ScalarFieldUtils {
    }
 
    static RenderObject buildMeshRenderObject (
-      List<? extends MeshComponent> mcomps, ColorMapBase colorMap,
+      List<? extends RenderableComponent> rcomps, ColorMapBase colorMap,
       DoubleInterval range, ScalarVertexFunction vfunc) {
 
       RenderObject rob = new RenderObject();
       // create a triangle group for each mesh
-      for (int mid=0; mid<mcomps.size(); mid++) {
+      for (int mid=0; mid<rcomps.size(); mid++) {
          rob.createTriangleGroup();
       }
       // add the colors 
       addColors (rob, colorMap);
 
       int mid = 0; // mesh id
-      for (MeshComponent mcomp : mcomps) {
+      for (RenderableComponent rcomp : rcomps) {
          int pbase = rob.numPositions();
-         if (mcomp.isMeshPolygonal()) {
-            // mesh should be polygonal; just being careful
-            PolygonalMesh mesh = (PolygonalMesh)mcomp.getMesh();
+         PolygonalMesh mesh = null;
+         if (rcomp instanceof MeshComponent) {
+            MeshComponent mcomp = (MeshComponent)rcomp;
+            if (mcomp.isMeshPolygonal()) {
+               mesh = (PolygonalMesh)mcomp.getMesh();
+            }
+         }
+         else if (rcomp instanceof FemCutPlane) {
+            mesh = ((FemCutPlane)rcomp).getMesh();
+         }
+         if (mesh != null) {
             // add the positions  and find the color index for each vertex
             Point3d wpnt = new Point3d();
             int[] cidxs = new int[mesh.numVertices()];
@@ -87,7 +76,7 @@ public class ScalarFieldUtils {
             for (Vertex3d vtx : mesh.getVertices()) {
                vtx.getWorldPoint (wpnt);
                rob.addPosition (wpnt);
-               double val = vfunc.valueAt (mcomp, vtx);
+               double val = vfunc.valueAt (rcomp, vtx);
                cidxs[i++] = getColorIndex (val, range);
             }
             // add faces to render object

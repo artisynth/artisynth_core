@@ -1,27 +1,47 @@
 package artisynth.core.fields;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
 
-import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemCutPlane;
+import artisynth.core.femmodels.FemMesh;
 import artisynth.core.femmodels.FemMeshComp;
+import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.fields.ScalarFieldUtils.ScalarVertexFunction;
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
-
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.geometry.*;
-import maspack.properties.PropertyDesc.TypeCode;
-import maspack.properties.PropertyDesc;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.MeshFieldPoint;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.ScalarFieldComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.util.ScalarRange;
+import artisynth.core.util.ScanToken;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
-import maspack.render.*;
-import maspack.render.Renderer.*;
+import maspack.render.RenderList;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
+import maspack.util.DoubleInterval;
+import maspack.util.DynamicBooleanArray;
+import maspack.util.DynamicDoubleArray;
+import maspack.util.EnumRange;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.Range;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Base class for scalar field defined over an FEM model.
@@ -41,7 +61,11 @@ public abstract class ScalarFemField
       OFF
    };
 
-   protected ArrayList<FemMeshComp> myRenderMeshComps = new ArrayList<>();
+   protected ArrayList<FemMesh> myRenderMeshComps = new ArrayList<>();
+
+   static final public ColorInterpolation 
+      DEFAULT_COLOR_INTERPOLATION = ColorInterpolation.HSV;
+   protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
 
    protected static ColorMapBase defaultColorMap =  new HueColorMap(2.0/3, 0);
    protected ColorMapBase myColorMap = defaultColorMap.copy();
@@ -62,6 +86,9 @@ public abstract class ScalarFemField
          "visualization", "how to visualize this field",
          DEFAULT_VISUALIZATION);
       myProps.add (
+         "colorInterpolation", "interpolation for vertex coloring", 
+         DEFAULT_COLOR_INTERPOLATION);
+      myProps.add (
          "renderRange", "range for drawing color maps", 
          defaultRenderRange);
       myProps.add (
@@ -72,6 +99,8 @@ public abstract class ScalarFemField
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }   
+
+   // property accessors
 
    public Visualization getVisualization() {
       return myVisualization;
@@ -84,6 +113,16 @@ public abstract class ScalarFemField
    public Range getVisualizationRange() {
       return new EnumRange<Visualization>(
          Visualization.class, Visualization.values());
+   }
+
+   public ColorInterpolation getColorInterpolation() {
+      return myColorInterp;
+   }
+   
+   public void setColorInterpolation (ColorInterpolation interp) {
+      if (interp != myColorInterp) {
+         myColorInterp = interp;
+      }
    }
 
    public ColorMapBase getColorMap() {
@@ -112,12 +151,17 @@ public abstract class ScalarFemField
       return myRenderRange;
    }
 
-   protected boolean isTriangular (FemMeshComp mcomp) {
+   protected boolean isTriangular (FemMesh mcomp) {
       return ((mcomp.getMesh() instanceof PolygonalMesh) &&
               ((PolygonalMesh)mcomp.getMesh()).isTriangular());
    }
 
-   public void addRenderMeshComp (FemMeshComp mcomp) {
+   public void addRenderMeshComp (FemMesh mcomp) {
+      if (!(mcomp instanceof FemMeshComp) &&
+          !(mcomp instanceof FemCutPlane)) {
+         throw new IllegalArgumentException (
+            "Render mesh must be FemMeshComp or a FemCutPlane");
+      }
       if (mcomp.getFem() != myFem) {
          throw new IllegalArgumentException (
             "Render mesh component not associated with field's FEM");
@@ -128,11 +172,11 @@ public abstract class ScalarFemField
       myRenderMeshComps.add (mcomp);
    }
 
-   public boolean removeRenderMeshComp (FemMeshComp mcomp) {
+   public boolean removeRenderMeshComp (FemMesh mcomp) {
       return myRenderMeshComps.remove (mcomp);
    }
    
-   public FemMeshComp getRenderMeshComp (int idx) {
+   public FemMesh getRenderMeshComp (int idx) {
       return myRenderMeshComps.get(idx);
    }
    
@@ -254,7 +298,7 @@ public abstract class ScalarFemField
       if (postscanAttributeName (tokens, "renderMeshes")) {
          myRenderMeshComps.clear();
          ScanWriteUtils.postscanReferences (
-            tokens, myRenderMeshComps, FemMeshComp.class, ancestor);
+            tokens, myRenderMeshComps, FemMesh.class, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -411,7 +455,7 @@ public abstract class ScalarFemField
             ScalarVertexFunction vfxn = getVertexFunction();
             if (vfxn != null) {
                DoubleInterval range = updateRenderRange();
-               ArrayList<FemMeshComp> rmeshComps = null;
+               ArrayList<FemMesh> rmeshComps = null;
                if (myRenderMeshComps.size() > 0) {
                   rmeshComps = myRenderMeshComps;
                }
@@ -456,6 +500,12 @@ public abstract class ScalarFemField
          switch (myVisualization) {
             case SURFACE: {
                boolean selecting = renderer.isSelecting();
+
+               ColorInterpolation savedColorInterp = null;
+               if (getColorInterpolation() == ColorInterpolation.HSV) {
+                  savedColorInterp =
+                     renderer.setColorInterpolation (ColorInterpolation.HSV);
+               }
                for (int mid=0; mid<robj.numTriangleGroups(); mid++) {
                   if (selecting) {
                      renderer.beginSelectionQuery (mid);
@@ -465,6 +515,9 @@ public abstract class ScalarFemField
                   if (selecting) {
                      renderer.endSelectionQuery ();
                   }
+               }
+               if (savedColorInterp != null) {
+                  renderer.setColorInterpolation (savedColorInterp);
                }
                break;
             }
@@ -517,7 +570,7 @@ public abstract class ScalarFemField
     * {@inheritDoc}
     */
    public void getSoftReferences (List<ModelComponent> refs) {
-      for (FemMeshComp mcomp : myRenderMeshComps) {
+      for (FemMesh mcomp : myRenderMeshComps) {
          refs.add (mcomp);
       }
    }

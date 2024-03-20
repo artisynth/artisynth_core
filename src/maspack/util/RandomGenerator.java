@@ -46,7 +46,7 @@ public class RandomGenerator {
     * @return next normal value
     */
    public static double nextGaussian() {
-      return randGen.nextGaussian();
+      return get().nextGaussian();
    }
    
    /**
@@ -57,7 +57,7 @@ public class RandomGenerator {
     * @return next normal value
     */
    public static double nextGaussian(double mu, double sigma) {
-      return randGen.nextGaussian()*sigma+mu;
+      return get().nextGaussian()*sigma+mu;
    }
 
    /**
@@ -100,7 +100,7 @@ public class RandomGenerator {
       int n = max - min + 1;
       ArrayList<Integer> list = new ArrayList<>();
       for (int i=0; i<n; i++) {
-         if (randGen.nextBoolean()) {
+         if (get().nextBoolean()) {
             list.add (min+i);
          }
       }
@@ -126,7 +126,7 @@ public class RandomGenerator {
       for (int k=min; k<=max; k++) {
          list.add (k);
       }
-      Collections.shuffle (list, randGen);
+      Collections.shuffle (list, get());
       return ArraySupport.toIntArray (list.subList (0, n));
    }
 
@@ -139,7 +139,7 @@ public class RandomGenerator {
       double[] sequence = new double[n];
       double sum = 0;
       for (int i=0; i<n; i++) {
-         sequence[i] = randGen.nextDouble();
+         sequence[i] = get().nextDouble();
          sum += sequence[i];
       }
       for (int i=0; i<n; i++) {

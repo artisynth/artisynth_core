@@ -746,6 +746,18 @@ public class SymmetricMatrix3d extends Matrix3dBase {
    }
 
    /**
+    * Computes and returns the eigenvalue with the maximum absolute value for
+    * the symmetric matrix.
+    *
+    * @return maximum absolute eigenvalue
+    */
+   public double computeMaxAbsEigenvalue () {    
+      Vector3d eigs = new Vector3d();
+      getEigenValues (eigs);
+      return eigs.get(eigs.maxAbsIndex());
+   }
+
+   /**
     * Quickly computes the eigenvalues of this symmetric matrix, as described
     * for {@link #getEigenValues(Vector3d,Matrix3dBase) getEigenValues}.
     * 

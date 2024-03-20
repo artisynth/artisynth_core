@@ -14,6 +14,7 @@ import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.HexElement;
 import artisynth.core.femmodels.MuscleBundle;
+import artisynth.core.femmodels.Tetrahedralizer;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.femmodels.FemMuscleModel;
 import artisynth.core.femmodels.TetElement;
@@ -86,7 +87,7 @@ public class SpongeModel extends FemMuscleModel {
    }
 
    Random r = new Random();
-
+   Tetrahedralizer tetzer = new Tetrahedralizer();
    int muscleCount = 0;
 
    protected void addMuscleGroup (String name, int origin) {
@@ -146,7 +147,7 @@ public class SpongeModel extends FemMuscleModel {
       props.setPointRadius (len / 20);
       props.setPointColor (Color.GREEN);
       setRenderProps (props);
-
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       setGravity (0, 0, 0);
       setDensity (100);
 //      setPoissonsRatio (0.499);
@@ -191,6 +192,7 @@ public class SpongeModel extends FemMuscleModel {
       int wk = (numX + 1) * (numY + 1);
       int wj = (numX + 1);
       FemNode3d n0, n1, n2, n3, n4, n5, n6, n7;
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       for (int i = 0; i < numX; i++) {
          for (int j = 0; j < numY; j++) {
             for (int k = 0; k < numZ; k++) {
@@ -203,9 +205,9 @@ public class SpongeModel extends FemMuscleModel {
                n6 = getNodes().get (k * wk + (j + 1) * wj + i + 1);
                n7 = getNodes().get (k * wk + (j + 1) * wj + i);
                TetElement[] elems =
-                  TetElement.createCubeTesselation (
+                  tetzer.subdivideHex (
                      n0, n1, n2, n3, n4, n5, n6, n7,
-                     /* even= */(i + j + k) % 2 == 0);
+                     /* !even= */(i + j + k) % 2 != 0);
                //HexElement he = new HexElement (n0, n1, n2, n3, n4, n5, n6, n7);
                for (FemElement3d e : elems) {
                   addElement (e);

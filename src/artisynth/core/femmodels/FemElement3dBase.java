@@ -1401,17 +1401,40 @@ public abstract class FemElement3dBase extends FemElement
    public double computeDirectedRenderSize (Vector3d dir) {
       double max = -Double.MAX_VALUE;
       double min = Double.MAX_VALUE;
+      // start by computing centroid
+      float[] center = new float[3];
       for (int i=0; i<numNodes(); i++) {
          float[] npos = myNodes[i].myRenderCoords;
-         double l = npos[0]*dir.x + npos[1]*dir.y + npos[2]*dir.z;
-         if (l > max) {
-            max = l;
-         }
-         if (l < min) {
-            min = l;
-         }
+         center[0] += npos[0];
+         center[1] += npos[1];
+         center[2] += npos[2];
       }
-      return max-min;
+      float s = 1f/numNodes();
+      center[0] *= s;
+      center[1] *= s;
+      center[2] *= s;
+      double size = 0;
+      for (int i=0; i<numNodes(); i++) {
+         float[] npos = myNodes[i].myRenderCoords;
+         double dx = npos[0]-center[0];
+         double dy = npos[1]-center[1];
+         double dz = npos[2]-center[2];
+         size += Math.abs(dx*dir.x + dy*dir.y + dz*dir.z);
+      }
+      return 2*size/numNodes();
+//      double max = -Double.MAX_VALUE;
+//      double min = Double.MAX_VALUE;     
+//      for (int i=0; i<numNodes(); i++) {
+//         float[] npos = myNodes[i].myRenderCoords;
+//         double l = npos[0]*dir.x + npos[1]*dir.y + npos[2]*dir.z;
+//         if (l > max) {
+//            max = l;
+//         }
+//         if (l < min) {
+//            min = l;
+//         }
+//      }
+//      return max-min;
    }
 
    /**

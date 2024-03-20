@@ -2,25 +2,25 @@ package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
 
 import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.MeshFieldPoint;
 import artisynth.core.util.ScanToken;
-import maspack.geometry.Vertex3d;
-import maspack.geometry.Face;
-import maspack.geometry.PolygonalMesh;
 import maspack.geometry.MeshBase;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
+import maspack.render.RenderObject;
+import maspack.util.DoubleInterval;
 import maspack.util.DynamicBooleanArray;
 import maspack.util.DynamicDoubleArray;
+import maspack.util.EnumRange;
 import maspack.util.NumberFormat;
+import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
-import maspack.render.*;
-import maspack.matrix.*;
-import maspack.properties.*;
-import maspack.util.*;
 
 /**
  * A scalar field defined over a triangular polygonal mesh, using values set at

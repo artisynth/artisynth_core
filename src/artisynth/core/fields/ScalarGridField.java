@@ -2,30 +2,45 @@ package artisynth.core.fields;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
 
-import artisynth.core.modelbase.FemFieldPoint;
 import artisynth.core.mechmodels.FixedMeshBody;
-import artisynth.core.modelbase.*;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.FemFieldPoint;
+import artisynth.core.modelbase.MeshFieldPoint;
+import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScalarFieldComponent;
-import artisynth.core.util.*;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.util.ScalarRange;
+import artisynth.core.util.ScanToken;
 import maspack.geometry.InterpolatingGridBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.ScalarGrid;
 import maspack.geometry.ScalarGridBase;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3i;
-import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.render.Renderer.*;
-import maspack.geometry.*;
-import maspack.util.IndentingPrintWriter;
-import maspack.util.NumberFormat;
-import maspack.util.*;
+import maspack.matrix.Vector3i;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
+import maspack.render.RenderList;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
+import maspack.util.DoubleInterval;
+import maspack.util.EnumRange;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.Range;
+import maspack.util.ReaderTokenizer;
 
 /**
  * A scalar field defined over a regular 3D grid, using values set at the
@@ -51,6 +66,10 @@ public class ScalarGridField
    };
 
    protected ArrayList<FixedMeshBody> myRenderMeshComps = new ArrayList<>();
+
+   static final public ColorInterpolation 
+      DEFAULT_COLOR_INTERPOLATION = ColorInterpolation.HSV;
+   protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
 
    protected static ColorMapBase defaultColorMap =  new HueColorMap(2.0/3, 0);
    protected ColorMapBase myColorMap = defaultColorMap.copy();
@@ -82,6 +101,9 @@ public class ScalarGridField
       myProps.add (
          "renderRange", "range for drawing color maps", 
          defaultRenderRange);
+      myProps.add (
+         "colorInterpolation", "interpolation for vertex coloring", 
+         DEFAULT_COLOR_INTERPOLATION);
       myProps.add (
          "colorMap", "color map for visualization", 
          defaultColorMap, "CE");
@@ -149,6 +171,16 @@ public class ScalarGridField
    public Range getVisualizationRange() {
       return new EnumRange<Visualization>(
          Visualization.class, Visualization.values());
+   }
+
+   public ColorInterpolation getColorInterpolation() {
+      return myColorInterp;
+   }
+   
+   public void setColorInterpolation (ColorInterpolation interp) {
+      if (interp != myColorInterp) {
+         myColorInterp = interp;
+      }
    }
 
    public ColorMapBase getColorMap() {
@@ -546,6 +578,11 @@ public class ScalarGridField
       if (robj != null) {
          switch (myVisualization) {
             case SURFACE: {
+               ColorInterpolation savedColorInterp = null;
+               if (getColorInterpolation() == ColorInterpolation.HSV) {
+                  savedColorInterp =
+                     renderer.setColorInterpolation (ColorInterpolation.HSV);
+               }
                for (int mid=0; mid<robj.numTriangleGroups(); mid++) {
                   if (selecting) {
                      renderer.beginSelectionQuery (mid);
@@ -555,6 +592,9 @@ public class ScalarGridField
                   if (selecting) {
                      renderer.endSelectionQuery ();
                   }
+               }
+               if (savedColorInterp != null) {
+                  renderer.setColorInterpolation (savedColorInterp);
                }
                break;
             }

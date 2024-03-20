@@ -1254,12 +1254,15 @@ public class FemElementRenderer {
       RenderObject r = myRob;      
       updateEdgePositions (r, myEdges, elem, 0);
 
-      Shading savedShading = renderer.setShading (Shading.NONE);
-      renderer.setLineWidth (props.getLineWidth());
-      renderer.setLineColoring (props, elem.isSelected());
-      renderer.drawLines (r);
-      renderer.setLineWidth (1);
-      renderer.setShading (savedShading);
+      int lwidth = props.getLineWidth();
+      if (lwidth > 0) {
+         Shading savedShading = renderer.setShading (Shading.NONE);
+         renderer.setLineWidth (lwidth);
+         renderer.setLineColoring (props, elem.isSelected());
+         renderer.drawLines (r);
+         renderer.setLineWidth (1);
+         renderer.setShading (savedShading);
+      }
 
       double wsize = elem.getElementWidgetSize();
       if (wsize > 0) {

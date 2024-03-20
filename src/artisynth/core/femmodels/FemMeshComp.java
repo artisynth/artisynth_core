@@ -83,7 +83,7 @@ import maspack.util.ReaderTokenizer;
  * positions are determined by weighted combinations of FEM node positions.
  **/
 public class FemMeshComp extends FemMeshBase
-implements CollidableBody, PointAttachable {
+   implements CollidableBody, PointAttachable, FemMesh {
 
    FemModel3d myFem;
    protected static double EPS = 1e-10;
@@ -537,7 +537,7 @@ implements CollidableBody, PointAttachable {
       else {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
          nodes.add ((FemNode3d)ppa.getParticle());
-      }      
+      }
    }
 
    private void addVertexNodes (HashSet<FemNode3d> nodes, Vertex3d vtx) {
@@ -1400,6 +1400,59 @@ implements CollidableBody, PointAttachable {
       ArrayList<PointAttachment> vtxAttachments = myVertexInfo.myAttachments;
       for (int i=0; i<vtxAttachments.size(); i++) {
          addVertexNodes (nodes, vtxAttachments.get(i));
+      }
+   }
+
+   /**
+    * Computes a stress or strain measure for a particular vertex in this
+    * mesh. The measure is indicated by a {@link SurfaceRender} value, with
+    * inapplicable values (such as {@code Shaded}) causing the method to return
+    * 0.
+    *
+    * <p> The underlying stress or strain value is interpolated from the nodes (if
+    * any) to which the vertex is attached, and it is assumed that stress
+    * values are being calculated for the nodes, either as a result of stress
+    * values being rendered for the mesh, or {@link FemNode3d#setComputeStress}
+    * being called for the nodes or {@link FemModel3d#setComputeNodalStress}
+    * being called for the entire FEM model.
+    *
+    * @param idx index of the vertex
+    * @param measure indicates the measure to be computed
+    * @return computed measure
+    */
+   public double getVertexStressStrainMeasure (int idx, SurfaceRender measure) {
+      SymmetricMatrix3d S = new SymmetricMatrix3d();
+      if (measure.usesStress()) {
+         getVertexStress (S, idx);
+      }
+      else if (measure.usesStrain()) {
+         getVertexStrain (S, idx);
+      }
+      else {
+         return 0;
+      }
+      switch (measure) {
+         case Stress: {
+            return FemUtilities.computeVonMisesStress (S);
+         }
+         case MAPStress: {
+            return S.computeMaxAbsEigenvalue();
+         }
+         case MaxShearStress: {
+            return S.computeMaxShear();
+         }
+         case Strain: {
+            return FemUtilities.computeVonMisesStrain (S);
+         }
+         case MAPStrain: {
+            return S.computeMaxAbsEigenvalue();
+         }
+         case MaxShearStrain: {
+            return S.computeMaxShear();
+         }
+         default: {
+            return 0;
+         }
       }
    }
 

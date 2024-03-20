@@ -14,7 +14,7 @@ import maspack.matrix.*;
  */
 public class TetElement extends FemElement3d {
 
-   //   private StiffnessWarper3d myWarper = null;
+   // private StiffnessWarper3d myWarper = null;
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static FemElementRenderer myRenderer;
@@ -146,97 +146,6 @@ public class TetElement extends FemElement3d {
       myNodes[2] = p2;
       myNodes[3] = p3;
       invalidateRestData();
-   }
-
-   /**
-    * Create a tesselation for a cubic configuration of nodes, using a
-    * Freudenthal cut. The first four particles should define a single
-    * counter-clockwise face, while the last four should give the corresponding
-    * (clockwise) nodes for the opposite face. If the tesselation is even, it
-    * means that vertices p1, p3, p4, and p6 form the internal tetrahedron of
-    * the Freudenthal cut. Otherwise, this tetrahedron is formed from vertices
-    * p0, p2, p5, and p7.
-    */
-   public static TetElement[] createCubeTesselation (
-      FemNode3d p0, FemNode3d p1, FemNode3d p2, FemNode3d p3, FemNode3d p4,
-      FemNode3d p5, FemNode3d p6, FemNode3d p7, boolean even) {
-      TetElement[] elems = new TetElement[5];
-      if (even) {
-         elems[0] = new TetElement (p0, p1, p4, p3);
-         elems[1] = new TetElement (p2, p3, p6, p1);
-         elems[2] = new TetElement (p5, p4, p1, p6);
-         elems[3] = new TetElement (p7, p6, p3, p4);
-         elems[4] = new TetElement (p1, p6, p4, p3);
-      }
-      else {
-         elems[0] = new TetElement (p1, p0, p2, p5);
-         elems[1] = new TetElement (p3, p0, p7, p2);
-         elems[2] = new TetElement (p4, p0, p5, p7);
-         elems[3] = new TetElement (p6, p2, p7, p5);
-         elems[4] = new TetElement (p0, p2, p5, p7);
-      }
-      return elems;
-   }
-
-   /**
-    * Create a tesselation for a wedge configuration of nodes. The first three
-    * particles should define a single counter-clockwise face, while the last
-    * three should give the corresponding (clockwise) nodes for the opposite
-    * face. The tesselation type is controlled by a code <code>type</code>,
-    * which is an integer in which bits 0, 1, and 2 describe whether the side
-    * edge of the tetrahedron directly beneath edges p0-p1, p1-p2, and p2-p0 is
-    * rising or falling as the edge is traversed in a counter-clockwise
-    * fashion. Not all edges can be rising or falling, and so bit patterns 0x0
-    * and 0x7 are illegal.
-    */
-   public static TetElement[] createWedgeTesselation (
-      FemNode3d p0, FemNode3d p1, FemNode3d p2,
-      FemNode3d p3, FemNode3d p4, FemNode3d p5, int type) {
-      TetElement[] elems = new TetElement[3];
-
-      switch (type) {
-         case 0x1: { /* R, F, F */ 
-            elems[0] = new TetElement (p0, p2, p1, p3);
-            elems[1] = new TetElement (p2, p5, p1, p3);
-            elems[2] = new TetElement (p1, p5, p4, p3);
-            break;
-         }
-         case 0x2: { /* F, R, F */ 
-            elems[0] = new TetElement (p0, p2, p1, p4);
-            elems[1] = new TetElement (p0, p3, p2, p4);
-            elems[2] = new TetElement (p2, p3, p5, p4);
-            break;
-         }
-         case 0x3: { /* R, R, F */ 
-            elems[0] = new TetElement (p0, p2, p1, p3);
-            elems[1] = new TetElement (p1, p2, p4, p3);
-            elems[2] = new TetElement (p2, p5, p4, p3);
-            break;
-         }
-         case 0x4: { /* F, F, R */ 
-            elems[0] = new TetElement (p0, p2, p1, p5);
-            elems[1] = new TetElement (p1, p4, p0, p5);
-            elems[2] = new TetElement (p0, p4, p3, p5);
-            break;
-         }
-         case 0x5: { /* R, F, R */ 
-            elems[0] = new TetElement (p0, p2, p1, p5);
-            elems[1] = new TetElement (p0, p1, p3, p5);
-            elems[2] = new TetElement (p1, p4, p3, p5);
-            break;
-         }
-         case 0x6: { /* F, R, R */ 
-            elems[0] = new TetElement (p0, p2, p1, p4);
-            elems[1] = new TetElement (p2, p0, p5, p4);
-            elems[2] = new TetElement (p0, p3, p5, p4);
-            break;
-         }
-         default: {
-            throw new IllegalArgumentException (
-               "Illegal or unknown configuration type: " + type);
-         }
-      }
-      return elems;
    }
 
    public boolean coordsAreInside (Vector3d coords) {

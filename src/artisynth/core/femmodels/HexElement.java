@@ -384,10 +384,11 @@ public class HexElement extends FemElement3d {
 
    public TetElement[] tesselate (int parity) {
       clearTetElements();
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       TetElement[] elems =
-         TetElement.createCubeTesselation (
+         tetzer.subdivideHex (
             myNodes[0], myNodes[1], myNodes[2], myNodes[3], myNodes[4],
-            myNodes[5], myNodes[6], myNodes[7], parity != 0);
+            myNodes[5], myNodes[6], myNodes[7], parity == 0);
       myParity = parity;
       for (int i = 0; i < elems.length; i++) {
          addTetElement (elems[i]);

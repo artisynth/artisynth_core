@@ -715,7 +715,7 @@ ControllerBase} and overriding the {\tt apply()} method. It stores the
 point to be moved in {\tt myPnt}, and the initial position in
 {\tt myPos0}. The {\tt apply()} method computes a target position for
 the point that starts at {\tt myPos0} and then moves in a circle in the
-$x-z$ plane with an angular velocity of $\pi/2$ rad/sec (lines 22-28).
+$z$-$x$ plane with an angular velocity of $\pi/2$ rad/sec (lines 22-28).
 
 The {\tt build()} method calls {\tt super.build()} to create the model
 used by {\tt SimpleMuscle}, and then creates an instance of {\tt
@@ -726,7 +726,7 @@ more visible (line 36).
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 SimpleMuscleWithController} from the {\sf Models} menu. When
 the model is run, the fixed particle {\tt p1} will trace
-out a circular path in the $x-z$ plane.
+out a circular path in the $z$-$x$ plane.
 
 \section{Probes}
 \label{Probes:sec}

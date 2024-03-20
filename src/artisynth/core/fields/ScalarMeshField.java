@@ -1,20 +1,33 @@
 package artisynth.core.fields;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Deque;
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.util.*;
 
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.properties.PropertyDesc.TypeCode;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.render.Renderer.*;
+import artisynth.core.mechmodels.MeshComponent;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.FemFieldPoint;
+import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.ScalarFieldComponent;
+import artisynth.core.util.ScalarRange;
+import artisynth.core.util.ScanToken;
+import maspack.matrix.Point3d;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
+import maspack.render.RenderList;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
+import maspack.util.DoubleInterval;
+import maspack.util.EnumRange;
+import maspack.util.NumberFormat;
+import maspack.util.Range;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Base class for scalar field defined over a mesh.
@@ -37,6 +50,10 @@ public abstract class ScalarMeshField
    public static Visualization DEFAULT_VISUALIZATION = Visualization.OFF;
    protected Visualization myVisualization = DEFAULT_VISUALIZATION;
 
+   static final public ColorInterpolation 
+      DEFAULT_COLOR_INTERPOLATION = ColorInterpolation.HSV;
+   protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
+
    protected static ColorMapBase defaultColorMap =  new HueColorMap(2.0/3, 0);
    protected ColorMapBase myColorMap = defaultColorMap.copy();
 
@@ -52,7 +69,10 @@ public abstract class ScalarMeshField
       myProps.add (
          "visualization", "how to visualize this field",
          DEFAULT_VISUALIZATION);
-      myProps.add (
+       myProps.add (
+         "colorInterpolation", "interpolation for vertex coloring", 
+         DEFAULT_COLOR_INTERPOLATION);
+     myProps.add (
          "renderRange", "range for drawing color maps", 
          defaultRenderRange);
       myProps.add (
@@ -91,6 +111,16 @@ public abstract class ScalarMeshField
    public Range getVisualizationRange() {
       return new EnumRange<Visualization>(
          Visualization.class, Visualization.values());
+   }
+
+   public ColorInterpolation getColorInterpolation() {
+      return myColorInterp;
+   }
+   
+   public void setColorInterpolation (ColorInterpolation interp) {
+      if (interp != myColorInterp) {
+         myColorInterp = interp;
+      }
    }
 
    public ColorMapBase getColorMap() {
@@ -281,8 +311,17 @@ public abstract class ScalarMeshField
       if (robj != null) {
          switch (myVisualization) {
             case SURFACE: {
+
+               ColorInterpolation savedColorInterp = null;
+               if (getColorInterpolation() == ColorInterpolation.HSV) {
+                  savedColorInterp =
+                     renderer.setColorInterpolation (ColorInterpolation.HSV);
+               }
                RenderableUtils.drawTriangles (
                   renderer, robj, 0, props, isSelected());
+               if (savedColorInterp != null) {
+                  renderer.setColorInterpolation (savedColorInterp);
+               }
                break;
             }
             case POINT: {

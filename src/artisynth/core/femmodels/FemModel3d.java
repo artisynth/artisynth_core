@@ -261,6 +261,7 @@ PointAttachable, ConnectableBody {
 
    // protected ArrayList<FemSurface> myEmbeddedSurfaces;
    protected MeshComponentList<FemMeshComp> myMeshList;
+   protected RenderableComponentList<FemCutPlane> myCutPlanes;
    protected ComponentList<FieldComponent> myFieldList;
 
    HashMap<FemElement3d,int[]> ansysElemProps = new HashMap<FemElement3d,int[]>();
@@ -636,13 +637,20 @@ PointAttachable, ConnectableBody {
 
    public void updateInternalNodalStressSettings() {
       HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
-      
-      for (FemMeshComp comp : myMeshList) {
-         if (comp.getSurfaceRendering().usesStress()) {
-            if (!mySurfaceMeshValid) {
-               getSurfaceMeshComp(); // auto generate mesh if necessary
+
+      for (FemCutPlane cutplane : myCutPlanes) {
+         if (cutplane.getSurfaceRendering().usesStress()) {
+            nodes.addAll (myNodes);
+         }
+      }
+      if (nodes.size() == 0) {
+         for (FemMeshComp comp : myMeshList) {
+            if (comp.getSurfaceRendering().usesStress()) {
+               if (!mySurfaceMeshValid) {
+                  getSurfaceMeshComp(); // auto generate mesh if necessary
+               }
+               comp.addAllVertexNodes (nodes);
             }
-            comp.addAllVertexNodes (nodes);
          }
       }
       if (nodes.size() > 0) {
@@ -671,12 +679,20 @@ PointAttachable, ConnectableBody {
 
    public void updateInternalNodalStrainSettings() {
       HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
-      for (FemMeshComp comp : myMeshList) {
-         if (comp.getSurfaceRendering().usesStrain()) {
-            if (!mySurfaceMeshValid) {
-               getSurfaceMeshComp(); // auto generate mesh if necessary
+
+      for (FemCutPlane cutplane : myCutPlanes) {
+         if (cutplane.getSurfaceRendering().usesStrain()) {
+            nodes.addAll (myNodes);
+         }
+      }
+      if (nodes.size() == 0) {
+         for (FemMeshComp comp : myMeshList) {
+            if (comp.getSurfaceRendering().usesStrain()) {
+               if (!mySurfaceMeshValid) {
+                  getSurfaceMeshComp(); // auto generate mesh if necessary
+               }
+               comp.addAllVertexNodes (nodes);
             }
-            comp.addAllVertexNodes (nodes);
          }
       }
       if (nodes.size() > 0) {
@@ -736,6 +752,8 @@ PointAttachable, ConnectableBody {
       myMaterialBundles = new MaterialBundleList("materials", "mat");
       myMeshList =  new MeshComponentList<FemMeshComp>(
          FemMeshComp.class, "meshes", "msh");
+      myCutPlanes =  new RenderableComponentList<FemCutPlane>(
+         FemCutPlane.class, "cutPlanes", "cpl");
       myFieldList =  new ComponentList<FieldComponent>(
          FieldComponent.class, "fields", "fld");
 
@@ -746,6 +764,7 @@ PointAttachable, ConnectableBody {
       addFixed(myAuxiliaryMaterialList);
       addFixed(myMaterialBundles);
       addFixed(myMeshList);
+      addFixed(myCutPlanes);
       addFixed(myFieldList);
       super.initializeChildComponents();
 
@@ -1510,6 +1529,38 @@ PointAttachable, ConnectableBody {
       myInternalSurfaceMeshComp = null;
    }
 
+   /* --- Cut Plane Methods --- */
+
+   public FemCutPlane getCutPlane(int idx) {
+      return myCutPlanes.get(idx);
+   }
+
+   public RenderableComponentList<FemCutPlane> getCutPlanes() {
+      return myCutPlanes;
+   }
+
+   public int numCutPlanes() {
+      return myCutPlanes.size();
+   }
+
+   public void addCutPlane (FemCutPlane cutPlane) {
+      if (cutPlane.getParent() == myCutPlanes) {
+         throw new IllegalArgumentException (
+            "FemModel3d already contains specified cut plane component");
+      }
+      myCutPlanes.add (cutPlane);
+   }
+
+   public boolean removeCutPlane (FemCutPlane cutPlane) {
+      return myCutPlanes.remove(cutPlane);
+   }
+
+   public void clearCutPlanes() {
+      for (int i=myCutPlanes.size()-1; i>0; i--) {
+         myCutPlanes.remove (i);
+      }
+   }
+
    /* --- Field Component Methods --- */
 
    public FieldComponent getField (String name) {
@@ -1829,6 +1880,7 @@ PointAttachable, ConnectableBody {
       context.addAll (myNodes);
       context.addAll (myMarkers);
       context.addAll (myMeshList);
+      context.addAll (myCutPlanes);
       context.addAll (myAuxiliaryMaterialList);
       context.addAll (myMaterialBundles);
    }
@@ -2139,6 +2191,13 @@ PointAttachable, ConnectableBody {
             }
          }
       }
+      // invalidate display meshes for any cut planes
+      for (FemCutPlane cutplane : myCutPlanes) {
+         if (cutplane.getSurfaceRendering().usesStressOrStrain()) {
+            updateForces = true;
+         }
+         cutplane.invalidateMesh();
+      }
       if (updateForces) {
          applyForces (t1);
       }
@@ -2171,6 +2230,13 @@ PointAttachable, ConnectableBody {
          invalidateStressAndStiffness();
          // not sure what we cleared the activeNodes ...
          // myActiveNodes = null;
+
+         // invalidate display meshes for any cut planes
+         for (FemCutPlane cutplane : myCutPlanes) {
+            cutplane.invalidateMesh();
+         }
+         updateInternalNodalStressSettings();
+         updateInternalNodalStrainSettings();
       }
       // myForcesNeedUpdating = true;
       // make sure we update values in div matrix, if needed
@@ -5111,6 +5177,7 @@ PointAttachable, ConnectableBody {
       updateStressPlotRange();
       // must add meshList *after* mesh and plot ranges have been updated
       list.addIfVisible(myMeshList);
+      list.addIfVisible(myCutPlanes);
 
       myAuxiliaryMaterialList.prerender(list);
       myMaterialBundles.prerender(list);
@@ -5144,6 +5211,7 @@ PointAttachable, ConnectableBody {
       super.updateBounds(pmin, pmax);
 
       myMeshList.updateBounds(pmin, pmax);
+      myCutPlanes.updateBounds(pmin, pmax);
    }
 
    /* --- I/O and Copy Methods --- */
@@ -5374,6 +5442,12 @@ PointAttachable, ConnectableBody {
          }
          // do this this since addMesh sets collidability by default
          newFmc.setCollidable (mc.getCollidable());        
+      }
+      for (int i=0; i<myCutPlanes.size(); i++) {
+         FemCutPlane cp = myCutPlanes.get(i);
+         FemCutPlane newcp = cp.copy(flags, copyMap);
+         newcp.setName (cp.getName());
+         fem.addCutPlane(newcp);
       }
 
       fem.myAutoGenerateSurface = myAutoGenerateSurface;

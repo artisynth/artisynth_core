@@ -313,7 +313,9 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       super.updateBounds (pmin, pmax);
-      RenderableUtils.updateFrameBounds (pmin, pmax, getPose(), myAxisLength);
+      if (myAxisLength > 0) {
+         RenderableUtils.updateFrameBounds (pmin, pmax, getPose(), myAxisLength);
+      }
    }
 
    public void render (Renderer renderer, int flags) {

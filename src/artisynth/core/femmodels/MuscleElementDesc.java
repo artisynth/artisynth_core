@@ -381,10 +381,9 @@ public class MuscleElementDesc
             ipnt[i].computeGradientForRender(F, myElement.getNodes(), idata[i].myInvJ0);
             ipnt[i].computeCoordsForRender(coords0, myElement.getNodes());
             F.mul(dir,dir);
-            
+            dir.normalize();
             double size = myElement.computeDirectedRenderSize (dir);
-            dir.scale(0.5*size);
-            dir.scale(len);
+            dir.scale(size*len);
             
             coords0[0] -= (float)dir.x / 2;
             coords0[1] -= (float)dir.y / 2;
@@ -419,10 +418,9 @@ public class MuscleElementDesc
       if (count > 0) {
          dir.normalize();
          F.mul (dir, dir);
-
+         dir.normalize();
          double size = myElement.computeDirectedRenderSize (dir);      
-         dir.scale (0.5*size);
-         dir.scale(len);
+         dir.scale (size*len);
             
          coords0[0] -= (float)dir.x/2;
          coords0[1] -= (float)dir.y/2;

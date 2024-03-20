@@ -96,6 +96,7 @@ public class FemFactory {
 
       createGridNodes(model, widthX, widthY, widthZ, numX, numY, numZ);
       // create all the elements
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       ComponentListView<FemNode3d> nodes = model.getNodes();
       int wk = (numX + 1) * (numY + 1);
       int wj = (numX + 1);
@@ -103,7 +104,7 @@ public class FemFactory {
          for (int j = 0; j < numY; j++) {
             for (int k = 0; k < numZ; k++) {
                TetElement[] elems =
-                  TetElement.createCubeTesselation(
+                  tetzer.subdivideHex (
                      nodes.get((k + 1) * wk + j * wj + i),
                      nodes.get((k + 1) * wk + j * wj + i + 1),
                      nodes.get((k + 1) * wk + (j + 1) * wj + i + 1),
@@ -112,7 +113,7 @@ public class FemFactory {
                      nodes.get(k * wk + j * wj + i + 1),
                      nodes.get(k * wk + (j + 1) * wj + i + 1),
                      nodes.get(k * wk + (j + 1) * wj + i),
-                     /* even= */(i + j + k) % 2 == 0);
+                     /* allOnX= */(i + j + k) % 2 != 0);
                for (FemElement3d e : elems) {
                   model.addElement(e);
                }
@@ -215,13 +216,14 @@ public class FemFactory {
                // TetElement[] elems = TetElement.createCubeTesselation(
                HexElement e =
                   new HexElement(
-                     nodes.get((k + 1) * wk + j * wj + i), nodes.get((k + 1)
-                        * wk + j * wj + i + 1), nodes.get((k + 1) * wk
-                        + (j + 1) * wj + i + 1), nodes.get((k + 1) * wk
-                        + (j + 1) * wj + i), nodes.get(k * wk + j * wj + i),
-                     nodes.get(k * wk + j * wj + i + 1), nodes.get(k * wk
-                        + (j + 1) * wj + i + 1), nodes.get(k * wk + (j + 1)
-                        * wj + i));
+                     nodes.get((k + 1) * wk + j * wj + i),
+                     nodes.get((k + 1) * wk + j * wj + i + 1),
+                     nodes.get((k + 1) * wk + (j + 1) * wj + i + 1),
+                     nodes.get((k + 1) * wk + (j + 1) * wj + i),
+                     nodes.get(k * wk + j * wj + i),
+                     nodes.get(k * wk + j * wj + i + 1),
+                     nodes.get(k * wk + (j + 1) * wj + i + 1),
+                     nodes.get(k * wk + (j + 1) * wj + i));
 
                // System.out.println ("node idxs");
                // for (int c = 0; c < e.getNodes().length; c++)
@@ -2587,7 +2589,8 @@ public class FemFactory {
     * @param rl longest radius (also the polar radius)
     * @param rs1 first radius perpendicular to the polar axis
     * @param rs2 second radius perpendicular to the polar axis
-    * @param nt number of nodes in each ring parallel to the equator
+    * @param nt number of nodes in each ring parallel to the equator (will
+    * be rounded up to an even number)
     * @param nl number of nodes in each quarter ring perpendicular to the
     * equator (including end nodes)
     * @param ns number of nodes in each radial line extending out from
@@ -2661,25 +2664,26 @@ public class FemFactory {
          new FemNode3d[8]; // storing 8 nodes, repeated or not
 
       // generate elements
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       for (int k = 0; k < ns - 1; k++) {
          for (int j = 0; j < 2 * nl - 2; j++) {
             for (int i = 0; i < nt; i++) {
-
+               int inext = (i + 1) % nt;
                boolean even = ((i+j+k) % 2) == 0;
                node8List[0] = nodes[i][j][k];
-               node8List[1] = nodes[(i + 1) % nt][j][k];
-               node8List[2] = nodes[(i + 1) % nt][j + 1][k];
+               node8List[1] = nodes[inext][j][k];
+               node8List[2] = nodes[inext][j + 1][k];
                node8List[3] = nodes[i][j + 1][k];
                node8List[4] = nodes[i][j][k + 1];
-               node8List[5] = nodes[(i + 1) % nt][j][k + 1];
-               node8List[6] = nodes[(i + 1) % nt][j + 1][k + 1];
+               node8List[5] = nodes[inext][j][k + 1];
+               node8List[6] = nodes[inext][j + 1][k + 1];
                node8List[7] = nodes[i][j + 1][k + 1];
                
                TetElement elems[] =
-                  TetElement.createCubeTesselation (
+                  tetzer.subdivideHex (
                      node8List[0], node8List[3], node8List[2], node8List[1], 
                      node8List[4], node8List[7], node8List[6], node8List[5],
-                     even);
+                     !even);
                
                // only add non-degenerate elements
                for (TetElement elem : elems) {
@@ -3217,7 +3221,8 @@ public class FemFactory {
     * @param fem model to populate
     * @param l length of cylinder (z-axis)
     * @param r radius of cylinder
-    * @param nt number of elements around the arc
+    * @param nt number of elements around the arc (will be rounded up
+    * to an even number)
     * @param nl number of elements along the length
     * @param nr number of elements radially
     * @return populated model
@@ -3262,7 +3267,7 @@ public class FemFactory {
       }
 
       TetElement elems[][][][] = new TetElement[nt][nl][nr][];
-
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       for (int j = 0; j < nl; j++) {
          
          // k = 0, wedges
@@ -3297,12 +3302,12 @@ public class FemFactory {
          for (int k = 1; k < nr; k++) {
             for (int i = 0; i < nt; i++) {
                elems[i][j][k] =
-                  TetElement.createCubeTesselation(
+                  tetzer.subdivideHex(
                      nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
                      nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k + 1],
                      nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
                         % nt][j + 1][k], nodes[i][j + 1][k],
-                     (i + j + k) % 2 == 0);
+                     (i + j + k) % 2 != 0);
                
                fem.addElement(elems[i][j][k][0]);
                fem.addElement(elems[i][j][k][1]);
@@ -3613,15 +3618,16 @@ public class FemFactory {
     * @param n3 wedge node 3
     * @param n4 wedge node 4
     * @param n5 wedge node 5
-    * @param code code to indicate splitting of wedge (1-6), @see {@link
-    * TetElement#createWedgeTesselation(FemNode3d,FemNode3d,FemNode3d,FemNode3d, FemNode3d,FemNode3d,int)}
+    * @param code code to indicate splitting of wedge, @see {@link
+    * Tetrahedralizer#subdivideWedge}
     */
    private static void addWedgeTessellation (
       FemModel3d model, FemNode3d n0, FemNode3d n1, FemNode3d n2, 
       FemNode3d n3, FemNode3d n4, FemNode3d n5, int code) {
       // wedge is ordered opposite orientation
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       TetElement[] elems =
-         TetElement.createWedgeTesselation (n0, n2, n1, n3, n5, n4, code);
+         tetzer.subdivideWedge (n0, n2, n1, n3, n5, n4, code);
       for (TetElement elem : elems) {
          model.addElement (elem);
       }
@@ -4687,23 +4693,25 @@ public class FemFactory {
       // n.setPosition(new Point3d(pos));
       // }
 
-      TetElement elems[][][][] = new TetElement[nt][nl][nr][5];
-
+      TetElement tets[];
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       for (int k = 0; k < nr; k++) {
          for (int j = 0; j < nl; j++) {
             for (int i = 0; i < nt; i++) {
-               elems[i][j][k] =
-                  TetElement.createCubeTesselation(
-                     nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
-                     nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k + 1],
-                     nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
-                        % nt][j + 1][k], nodes[i][j + 1][k], (i+j+k) % 2 == 0);
-
-               model.addElement(elems[i][j][k][0]);
-               model.addElement(elems[i][j][k][1]);
-               model.addElement(elems[i][j][k][2]);
-               model.addElement(elems[i][j][k][3]);
-               model.addElement(elems[i][j][k][4]);
+               int inext = (i+1)%nt;
+               tets =
+                  tetzer.subdivideHex(
+                     nodes[i][j][k+1],
+                     nodes[inext][j][k+1],
+                     nodes[inext][j+1][k+1],
+                     nodes[i][j+1][k+1],
+                     nodes[i][j][k],
+                     nodes[inext][j][k],
+                     nodes[inext][j+1][k],
+                     nodes[i][j+1][k], (i+j+k) % 2 != 0);
+               for (int t=0; t<tets.length; t++) {
+                  model.addElement(tets[t]);
+               }
             }
          }
       }
@@ -4822,16 +4830,16 @@ public class FemFactory {
       // }
 
       TetElement elems[][][][] = new TetElement[ntheta][nl - 1][nr - 1][5];
-
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       for (int k = 0; k < nr - 1; k++) {
          for (int j = 0; j < nl - 1; j++) {
             for (int i = 0; i < ntheta -1; i++) {
                elems[i][j][k] =
-                  TetElement.createCubeTesselation(
+                  tetzer.subdivideHex(
                      nodes[i][j][k + 1], nodes[i + 1][j][k + 1],
                      nodes[i + 1][j + 1][k + 1], nodes[i][j + 1][k + 1],
                      nodes[i][j][k], nodes[i + 1][j][k], nodes[i + 1][j + 1][k],
-                     nodes[i][j + 1][k], (i + j + k) % 2 == 0);
+                     nodes[i][j + 1][k], (i + j + k) % 2 != 0);
 
                model.addElement(elems[i][j][k][0]);
                model.addElement(elems[i][j][k][1]);
@@ -4857,6 +4865,13 @@ public class FemFactory {
       FemModel3d model,
       double R, double rin, double rout, int nt, int nl, int nr) {
 
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
+      }
+
       FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
 
       double dT = 2 * Math.PI / nl;
@@ -4867,41 +4882,53 @@ public class FemFactory {
       Vector3d pos = new Vector3d();
 
       for (int k = 0; k < nr; k++) {
+         double r = rin+dr*k;
          for (int j = 0; j < nl; j++) {
-            for (int i = 0; i < nt; i++) {
-               pos.set(
-                  R * Math.cos(dT * j) + (rin + dr * k) * Math.cos(dt * i)
-                     * Math.cos(dT * j), R * Math.sin(dT * j) + (rin + dr * k)
-                     * Math.cos(dt * i) * Math.sin(dT * j), (rin + dr * k)
-                     * Math.sin(dt * i));
+            double sT = Math.sin (dT*j);
+            double cT = Math.cos (dT*j);
+            if (k == 0 && rin == 0) {
+               pos.set(R*cT, R*sT, 0);
                RM.mul(pos);
-
-               nodes[i][j][k] = new FemNode3d(new Point3d(pos));
-               model.addNode(nodes[i][j][k]);
+               nodes[0][j][0] = new FemNode3d(new Point3d(pos));
+               model.addNode(nodes[0][j][k]);
+            }
+            else {
+               for (int i = 0; i < nt; i++) {
+                  double st = Math.sin (dt*i);
+                  double ct = Math.cos (dt*i);
+                  pos.set(R*cT + r*ct*cT, R*sT + r*ct*sT, r*st);
+                  RM.mul(pos);
+                  nodes[i][j][k] = new FemNode3d(new Point3d(pos));
+                  model.addNode(nodes[i][j][k]);
+               }
             }
          }
       }
-
-      HexElement elems[][][] = new HexElement[nt][nl][nr - 1];
 
       for (int k = 0; k < nr - 1; k++) {
          for (int j = 0; j < nl; j++) {
+            int jnext = (j+1)%nl;
             for (int i = 0; i < nt; i++) {
-               elems[i][j][k] =
-                  new HexElement(
-                     nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
-                        % nt][(j + 1) % nl][k], nodes[i][(j + 1) % nl][k],
-                     nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
-                     nodes[(i + 1) % nt][(j + 1) % nl][k + 1], nodes[i][(j + 1)
-                        % nl][k + 1]
-
-                  );
-
-               model.addElement(elems[i][j][k]);
+               int inext = (i+1)%nt;
+               FemElement3d elem;
+               if (k == 0 && rin == 0) {
+                  elem = new WedgeElement (
+                     nodes[0][j][0],  nodes[inext][j][1], 
+                     nodes[i][j][1], 
+                     nodes[0][jnext][0], nodes[inext][jnext][1],
+                     nodes[i][jnext][1]);
+               }
+               else {
+                  elem = new HexElement(
+                     nodes[i][j][k], nodes[inext][j][k],
+                     nodes[inext][jnext][k], nodes[i][jnext][k],
+                     nodes[i][j][k+1], nodes[inext][j][k+1],
+                     nodes[inext][jnext][k+1], nodes[i][jnext][k+1]);
+               }
+               model.addElement(elem);
             }
          }
       }
-
       return model;
    }
 
@@ -4924,6 +4951,13 @@ public class FemFactory {
       FemModel3d model,
       double R, double rin, double rout, int nt, int nl, int nr, double theta) {
 
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
+      }
+
       double dT = theta / nl;
       double dt = 2 * Math.PI / nt;
       double dr = (rout - rin) / (nr - 1);
@@ -4936,37 +4970,55 @@ public class FemFactory {
       Vector3d pos = new Vector3d();
 
       for (int k = 0; k < nr; k++) {
+         double r = rin+dr*k;
          for (int j = 0; j < nnl; j++) {
-            for (int i = 0; i < nt; i++) {
-               pos.set(
-                  R * Math.cos(dT * j) + (rin + dr * k) * Math.cos(dt * i)
-                     * Math.cos(dT * j), R * Math.sin(dT * j) + (rin + dr * k)
-                     * Math.cos(dt * i) * Math.sin(dT * j), (rin + dr * k)
-                     * Math.sin(dt * i));
+            double sT = Math.sin (dT*j);
+            double cT = Math.cos (dT*j);
+            if (k == 0 && rin == 0) {
+               pos.set(R*cT, R*sT, 0);
                RM.mul(pos);
-
-               nodes[i][j][k] = new FemNode3d(new Point3d(pos));
-               model.addNode(nodes[i][j][k]);
+               nodes[0][j][0] = new FemNode3d(new Point3d(pos));
+               model.addNode(nodes[0][j][k]);
+            }
+            else {
+               for (int i = 0; i < nt; i++) {
+                  double st = Math.sin (dt*i);
+                  double ct = Math.cos (dt*i);
+                  pos.set(
+                     R*cT + r*ct*cT, R*sT + r*ct*sT, r*st);
+                  RM.mul(pos);
+                  nodes[i][j][k] = new FemNode3d(new Point3d(pos));
+                  model.addNode(nodes[i][j][k]);
+               }
             }
          }
       }
 
-      HexElement elems[][][] = new HexElement[nt][nl][nr - 1];
 
       for (int k = 0; k < nr - 1; k++) {
          for (int j = 0; j < nl; j++) {
             int jnext = fullTorus ? ((j+1)%nl) : j+1;
             for (int i = 0; i < nt; i++) {
                int inext = ((i+1)%nt);
-               elems[i][j][k] =
-                  new HexElement(
-                     nodes[i][j][k], nodes[inext][j][k],
-                     nodes[inext][jnext][k], nodes[i][jnext][k],
-                     nodes[i][j][k + 1], nodes[inext][j][k + 1],
-                     nodes[inext][jnext][k + 1], nodes[i][jnext][k + 1]
-                  );
-
-               model.addElement(elems[i][j][k]);
+               FemElement3d elem;
+               if (k == 0 && rin == 0) {
+                  elem = new WedgeElement (
+                     nodes[0][j][0],
+                     nodes[inext][j][1], 
+                     nodes[i][j][1], 
+                     nodes[0][jnext][0],
+                     nodes[inext][jnext][1],
+                     nodes[i][jnext][1]);
+               }
+               else {
+                  elem =
+                     new HexElement(
+                        nodes[i][j][k], nodes[inext][j][k],
+                        nodes[inext][jnext][k], nodes[i][jnext][k],
+                        nodes[i][j][k+1], nodes[inext][j][k+1],
+                        nodes[inext][jnext][k+1], nodes[i][jnext][k+1]);
+               }
+               model.addElement(elem);
             }
          }
       }
@@ -4975,69 +5027,142 @@ public class FemFactory {
    }
 
    /**
-    * Creates a hollow torus made of tet elements. Identical to {@link
-    * #createTorus(FemModel3d,FemElementType,double,double,double,int,int,int)}
-    * with the element type set to {@link FemElementType#Tet}.
+    * Creates a partial torus made of tet elements. Specifying {@code theta} as
+    * {@code 2*Math.PI} will create a full torus.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param R major radius
+    * @param rin inner part of the minor radius
+    * @param rout outer part of the minor radius
+    * @param nt element resolution around the minor radius (will be rounded
+    * up to an even number)
+    * @param nl element resolution around the major radius (for a full
+    * torus, will be rounded up to an even number)
+    * @param nr element resolution (plus 1) along the inner thickness
+    * @param theta angular circumference around the major radius.  Specifying
+    * {@code 2*Math.PI} will result in a full torus.
+    * @return created FEM model
     */
-   public static FemModel3d createTetTorus(
+   public static FemModel3d createPartialTetTorus(
       FemModel3d model,
-      double R, double rin, double rout, int nt, int nl, int nr) {
+      double R, double rin, double rout, int nt, int nl, int nr, double theta) {
 
-      FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
-      
-      // round nt and nl up to even to allow proper tesselation
-      if ((nt % 2) == 1) {
-         nt++;
+      if (model == null) {
+         model = new FemModel3d();
       }
-      if ((nl % 2) == 1) {
-         nl++;
+      else {
+         model.clear();
       }
+      boolean fullTorus = (Math.abs(theta-2*Math.PI) <= 1e-15);
 
-      double dT = 2 * Math.PI / nl;
+      if (fullTorus) {
+         nl += (nl % 2);
+      }
+      nt += (nt % 2);
+
+      double dT = theta / nl;
       double dt = 2 * Math.PI / nt;
       double dr = (rout - rin) / (nr - 1);
+
+      int nnl = fullTorus ? nl : nl+1;
+      FemNode3d nodes[][][] = new FemNode3d[nt][nnl][nr];
 
       RotationMatrix3d RM = new RotationMatrix3d(1.0, 0, 0, Math.PI / 2.0);
       Vector3d pos = new Vector3d();
 
       for (int k = 0; k < nr; k++) {
-         for (int j = 0; j < nl; j++) {
-            for (int i = 0; i < nt; i++) {
-               pos.set(
-                  R * Math.cos(dT * j) + (rin + dr * k) * Math.cos(dt * i)
-                     * Math.cos(dT * j), R * Math.sin(dT * j) + (rin + dr * k)
-                     * Math.cos(dt * i) * Math.sin(dT * j), (rin + dr * k)
-                     * Math.sin(dt * i));
+         double r = rin+dr*k;
+         for (int j = 0; j < nnl; j++) {
+            double sT = Math.sin (dT*j);
+            double cT = Math.cos (dT*j);
+            if (k == 0 && rin == 0) {
+               pos.set(R*cT, R*sT, 0);
                RM.mul(pos);
-
-               nodes[i][j][k] = new FemNode3d(new Point3d(pos));
-               model.addNode(nodes[i][j][k]);
+               nodes[0][j][0] = new FemNode3d(new Point3d(pos));
+               model.addNode(nodes[0][j][k]);
+            }
+            else {
+               for (int i = 0; i < nt; i++) {
+                  double st = Math.sin (dt*i);
+                  double ct = Math.cos (dt*i);
+                  pos.set(
+                     R*cT + r*ct*cT, R*sT + r*ct*sT, r*st);
+                  RM.mul(pos);
+                  nodes[i][j][k] = new FemNode3d(new Point3d(pos));
+                  model.addNode(nodes[i][j][k]);
+               }
             }
          }
       }
 
-      TetElement elems[][][][] = new TetElement[nt][nl][nr - 1][5];
-
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       for (int k = 0; k < nr - 1; k++) {
          for (int j = 0; j < nl; j++) {
+            int jnext = fullTorus ? ((j+1)%nl) : j+1;
             for (int i = 0; i < nt; i++) {
-               elems[i][j][k] =
-                  TetElement.createCubeTesselation(
-                     nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
-                        % nt][(j + 1) % nl][k], nodes[i][(j + 1) % nl][k],
-                     nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
-                     nodes[(i + 1) % nt][(j + 1) % nl][k + 1], nodes[i][(j + 1)
-                        % nl][k + 1], (i + j + k) % 2 == 0);
-
-               model.addElement(elems[i][j][k][0]);
-               model.addElement(elems[i][j][k][1]);
-               model.addElement(elems[i][j][k][2]);
-               model.addElement(elems[i][j][k][3]);
-               model.addElement(elems[i][j][k][4]);
+               int inext = ((i+1)%nt);
+               FemElement3d[] elems;
+               if (k == 0 && rin == 0) {
+                  int diagCode;
+                  // set diagonal codes to ensure that the wedges tesselations
+                  // conform
+                  if ((j%2) == 0) {
+                     diagCode = Tetrahedralizer.DIAG_13;
+                  }
+                  else {
+                     diagCode = Tetrahedralizer.DIAG_05;
+                  }
+                  if ((i + j + k) % 2 != 0) {
+                     diagCode |= Tetrahedralizer.DIAG_24;
+                  }
+                  elems =
+                     tetzer.subdivideWedge(
+                        nodes[0][j][0],
+                        nodes[i][j][1], 
+                        nodes[inext][j][1], 
+                        nodes[0][jnext][0],
+                        nodes[i][jnext][1],
+                        nodes[inext][jnext][1],
+                        diagCode);
+               }
+               else {
+                  elems =
+                     tetzer.subdivideHex(
+                        nodes[i][j][k], nodes[inext][j][k],
+                        nodes[inext][jnext][k], nodes[i][jnext][k],
+                        nodes[i][j][k+1], nodes[inext][j][k+1],
+                        nodes[inext][jnext][k+1], nodes[i][jnext][k+1],
+                        (i + j + k) % 2 != 0);
+               }
+               for (int l=0; l<elems.length; l++) {
+                  model.addElement(elems[l]);
+               }
             }
          }
       }
+
       return model;
+   }
+
+   /**
+    * Creates a torus made of tet elements.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param R major radius
+    * @param rin inner part of the minor radius
+    * @param rout outer part of the minor radius
+    * @param nt element resolution around the minor radius
+    * @param nl element resolution around the major radius
+    * @param nr element resolution (plus 1) along the inner thickness
+    * @return created FEM model
+    */
+   public static FemModel3d createTetTorus(
+      FemModel3d model,
+      double R, double rin, double rout, int nt, int nl, int nr) {
+
+      return createPartialTetTorus (model, R, rin, rout, nt, nl, nr, 2*Math.PI);
    }
 
    private static int X_POS = 0x001;
@@ -6370,6 +6495,7 @@ public class FemFactory {
       int[] tesselationTypes = null;
       tesselationTypes = computeTesselationTypes(surface);
 
+      Tetrahedralizer tetzer = new Tetrahedralizer();
       for (int i = 0; i < n; i++) {
 
          for (Vertex3d v : surface.getVertices()) {
@@ -6412,15 +6538,28 @@ public class FemFactory {
             TetElement[] tets;
             if (surface.isQuad()) {
                tets =
-                  TetElement.createCubeTesselation(
+                  tetzer.subdivideHex(
                      nodes[4], nodes[5], nodes[6], nodes[7], nodes[0],
-                     nodes[1], nodes[2], nodes[3], true);
-            } else {
+                     nodes[1], nodes[2], nodes[3], false);
+            }
+            else {
                tets =
-                  TetElement.createWedgeTesselation(
+                  tetzer.subdivideWedge(
                      nodes[3], nodes[4], nodes[5], nodes[0], nodes[1],
                      nodes[2], tesselationTypes[f.getIndex()]);
             }
+            // if (surface.isQuad()) {
+            //    tets =
+            //       TetElement.createCubeTesselation(
+            //          nodes[4], nodes[5], nodes[6], nodes[7], nodes[0],
+            //          nodes[1], nodes[2], nodes[3], true);
+            // }
+            // else {
+            //    tets =
+            //       TetElement.createWedgeTesselation(
+            //          nodes[3], nodes[4], nodes[5], nodes[0], nodes[1],
+            //          nodes[2], tesselationTypes[f.getIndex()]);
+            // }
 
             for (TetElement tet : tets) {
                model.addElement(tet);

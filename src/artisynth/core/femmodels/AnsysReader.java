@@ -251,12 +251,13 @@ public class AnsysReader implements FemReader {
       HexElement.setParities (hexElems);
 
       if (tetrahedralize) { // replace all hex elements with tets
+         Tetrahedralizer tetzer = new Tetrahedralizer();
          for (HexElement hex : hexElems) {
             FemNode3d[] n = hex.getNodes ();
             TetElement[] tets =
-               TetElement.createCubeTesselation (
-                  n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7], hex
-                     .getParity () == 1);
+               tetzer.subdivideHex (
+                  n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7],
+                  hex.getParity () != 1);
             model.removeElement (hex);
             for (TetElement tet : tets) {
                model.addElement (tet);

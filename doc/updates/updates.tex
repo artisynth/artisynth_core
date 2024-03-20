@@ -74,6 +74,27 @@
 % Apr 15, 2023: Refactoring and adding stiction compliance to implicit
 %  friction integration
 
+\section*{Mar 19, 2024}
+
+\subsection*{FEM cut planes}
+
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/FemCutPlaneDemo}
+\else
+ \includegraphics[width=0.4\textwidth]{../modelguide/images/FemCutPlaneDemo}
+\fi
+\end{center}
+%
+
+A new FEM component,
+\javaclass[artisynth.core.femmodels]{FemCutPlane}, as been added that
+allows an application to visualize internal stresses or strains
+through a cross section of an FEM model. For details, see the section
+``Cut planes'' in the ``Finite Element Models'' chapter of the
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
+
 \section*{Mar 1, 2024}
 
 \subsection*{Muscle and tendon materials}

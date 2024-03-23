@@ -198,15 +198,22 @@ public class Vector3d extends VectorBase
    }
 
    /**
-    * Copies the elements of this vector into an array of floats.
+    * Copies the elements of this vector into an array of floats.  If {@code
+    * values} is {@code null}, it is allocated internally.
     * 
     * @param values
-    * array into which values are copied
+    * array into which values are copied, or {@code null} if array
+    * should be allocated
+    * @return the array of floats
     */
-   public void get (float[] values) {
+   public float[] get (float[] values) {
+      if (values == null) {
+         values = new float[3];
+      }
       values[0] = (float)x;
       values[1] = (float)y;
       values[2] = (float)z;
+      return values;
    }
 
    /**

@@ -3,6 +3,8 @@ package maspack.collision;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
@@ -61,9 +63,9 @@ public class SurfaceMeshCollider implements AbstractCollider {
       ArrayList<PenetrationRegion> regions1) {
       
       HashSet<PenetrationRegion> unmatched1 = 
-         new HashSet<PenetrationRegion>();
+         new LinkedHashSet<PenetrationRegion>();
       HashMap<PenetrationRegion,PenetrationRegion> opposingRegions = 
-         new HashMap<PenetrationRegion,PenetrationRegion>();
+         new LinkedHashMap<PenetrationRegion,PenetrationRegion>();
       unmatched1.addAll (regions1);
       for (PenetrationRegion r0 : regions0) {
          PenetrationRegion found = null;
@@ -176,7 +178,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
 
       /* First scan the contours for interlocking triangles, */
       HashMap<Vertex3d,PenetratingPoint> vertexCpps = 
-         new HashMap<Vertex3d,PenetratingPoint>();
+         new LinkedHashMap<Vertex3d,PenetratingPoint>();
       for (PenetratingPoint cpp : cinfo.getPenetratingPoints(0)) {
          vertexCpps.put (cpp.vertex, cpp);
       }

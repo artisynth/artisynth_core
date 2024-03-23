@@ -1162,6 +1162,13 @@ public class StlRenderer implements Renderer {
       drawArrow(toVector(pnt0), toVector(pnt1), rad, capped);
    }
 
+   public void drawArrow (
+      Vector3d pnt, Vector3d dir, double scale, double rad, boolean capped) {
+      Vector3d pnt1 = new Vector3d();
+      pnt1.scaledAdd (scale, dir, pnt);
+      drawArrow (pnt, pnt1, rad, capped);      
+   }
+
    @Override
    public void drawAxes(
       RigidTransform3d X, AxisDrawStyle style, double len,
@@ -1279,9 +1286,34 @@ public class StlRenderer implements Renderer {
    }
 
    @Override
+   public void drawPoint (RenderProps props, Vector3d pnt, boolean highlight) {
+      drawPoint (props, pnt.get((float[])null), highlight);
+   }   
+
+   @Override
    public void drawLine(
       RenderProps props, float[] pnt0, float[] pnt1, boolean highlight) {
       drawLine(props, pnt0, pnt1, null, true, highlight);
+   }
+
+   @Override
+   public void drawLine (
+      RenderProps props, Vector3d pnt0, Vector3d pnt1, boolean highlight) {
+      drawLine (
+         props, pnt0.get((float[])null), pnt1.get((float[])null), 
+         /*color=*/null, /*capped=*/true, highlight);
+   }
+
+   @Override
+   public void drawRay (
+      RenderProps props, Vector3d pnt, Vector3d dir,
+      double scale, boolean highlight) {
+      float[] p0 = pnt.get((float[])null);
+      float[] p1 = new float[3];
+      p1[0] = p0[0] + (float)(scale*dir.x);
+      p1[1] = p0[1] + (float)(scale*dir.y);
+      p1[2] = p0[2] + (float)(scale*dir.z);
+      drawLine (props, p0, p1, /*color=*/null, /*capped=*/true, highlight);
    }
 
    @Override
@@ -1305,7 +1337,6 @@ public class StlRenderer implements Renderer {
             break;
          
       }
-      
    }
 
    @Override
@@ -1319,10 +1350,10 @@ public class StlRenderer implements Renderer {
    public void drawArrow(
       RenderProps props, float[] pnt0, float[] pnt1, boolean capped,
       boolean highlight) {
-      
       drawArrow(pnt0, pnt1, props.getLineRadius(), capped);
-      
    }
+
+
 
    @Override
    public void drawLineStrip(

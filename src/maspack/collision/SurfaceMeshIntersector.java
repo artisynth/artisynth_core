@@ -466,7 +466,7 @@ public class SurfaceMeshIntersector {
     */
    protected HashMap<EdgeFacePair,IntersectionContour> 
       myEdgeFaceIntersections = 
-      new HashMap<EdgeFacePair,IntersectionContour>();
+      new LinkedHashMap<EdgeFacePair,IntersectionContour>();
    
    /**
     * Class to identity of unqiue edge-face pair and allow it to
@@ -1915,7 +1915,7 @@ public class SurfaceMeshIntersector {
       ArrayList<Vertex3d> triVtxs = new ArrayList<Vertex3d>(estNumVtxs);
 
       HashMap<Face,ArrayList<IntersectionContour>> faceContourMap =
-         new HashMap<Face,ArrayList<IntersectionContour>>();
+         new LinkedHashMap<Face,ArrayList<IntersectionContour>>();
 
       ArrayList<Vertex3dList> innerHoles = new ArrayList<Vertex3dList>();
       ArrayList<Vertex3dList> outerHoles = new ArrayList<Vertex3dList>();
@@ -2088,7 +2088,7 @@ public class SurfaceMeshIntersector {
          new ArrayList<Vertex3d>(csgMesh.numVertices()*6);
 
       HashMap<Face,ArrayList<IntersectionContour>> faceContourMap =
-         new HashMap<Face,ArrayList<IntersectionContour>>();
+         new LinkedHashMap<Face,ArrayList<IntersectionContour>>();
 
       ArrayList<Vertex3dList> innerHoles = new ArrayList<Vertex3dList>();
       ArrayList<Vertex3dList> outerHoles = new ArrayList<Vertex3dList>();
@@ -5195,7 +5195,8 @@ public class SurfaceMeshIntersector {
 
       }
 
-      HashSet<IntersectionPoint> visitedMips = new HashSet<IntersectionPoint>();
+      HashSet<IntersectionPoint> visitedMips =
+         new LinkedHashSet<IntersectionPoint>();
 
       ArrayList<Vertex3dList> outerPolys = null;
 
@@ -5285,7 +5286,7 @@ public class SurfaceMeshIntersector {
          // multiple outer polys, so need to find out which hole belongs to
          // which
          HashMap<Vertex3dList,ArrayList<Vertex3dList>> polyHoleMap =
-            new HashMap<Vertex3dList,ArrayList<Vertex3dList>>();
+            new LinkedHashMap<Vertex3dList,ArrayList<Vertex3dList>>();
          ArrayList<Vertex3dList> containedHoles = null;
 
          for (Vertex3dList hole : innerHoles) {

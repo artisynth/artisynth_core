@@ -814,16 +814,27 @@ public interface Renderer {
       Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
 
    /**
+    * Draws a solid arrow in model coordinates, starting at {@code pnt} and
+    * extending along {@code dir}, with a length given by the length of {@code
+    * dir} times {@code scale}, using the current shading and material. The
+    * arrow is rendered as described for {@link
+    * #drawArrow(Vector3d,Vector3d,double,boolean)}.
+    * 
+    * @param pnt starting point
+    * @param dir direction
+    * @param scale scale factor for {@code dir}
+    * @param rad radius of the cylinder
+    * @param capped if <code>true</code>, indicates that the arrow
+    * should have a solid cap on the bottom
+    */
+   public void drawArrow (
+      Vector3d pnt, Vector3d dir, double scale, double rad, boolean capped);
+
+   /**
     * Draws a solid arrow between two points in model coordinates, 
-    * using the current shading and material. The arrow is rendered as a
-    * cylinder with radius <code>rad</code>, topped with a conical arrow
-    * head pointing towards the second end point. The arrow head has
-    * a base radius of <code>3*rad</code> and length given by
-    * <p>
-    * min (6*rad, len/2)
-    * </p>
-    * where <code>len</code> is the distance between the two end points.
-    * The resolution is specified by {@link #getSurfaceResolution}.
+    * using the current shading and material. This method is functionally
+    * equivalent to {@link #drawArrow(Vector3d,Vector3d,double,boolean)}
+    * except that the points are specified using {@code float[]}.
     * 
     * @param pnt0 first end point
     * @param pnt1 second end point
@@ -983,6 +994,21 @@ public interface Renderer {
     * @param highlight if <code>true</code>, indicates that highlighting, if
     * enabled, should be applied to the point
     */
+   public void drawPoint (RenderProps props, Vector3d pnt, boolean highlight);
+
+   /**
+    * Draws a single point located at <code>pnt</code> in model coordinates,
+    * using the point style, size, point color, and shading specified by the
+    * render properties argument <code>props</code>. This method is
+    * functionally equivalent to {@link
+    * #drawPoint(RenderProps,Vector3d,boolean)} except that the point is
+    * specified using {@code float[]}.
+    * 
+    * @param props render properties used for drawing the point
+    * @param pnt location of the point
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the point
+    */
    public void drawPoint (RenderProps props, float[] pnt, boolean highlight);
 
    /**
@@ -1000,6 +1026,22 @@ public interface Renderer {
     * {@link HighlightStyle#COLOR}, then the line will
     * be drawn using the highlight color rather than the line color
     * specified in <code>props</code>.
+    * 
+    * @param props render properties used for drawing the line
+    * @param pnt0 first point
+    * @param pnt1 second point
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the line
+    */
+   public void drawLine (
+      RenderProps props, Vector3d pnt0, Vector3d pnt1, boolean highlight);
+
+   /**
+    * Draws a single line between two points in model coordinates, using the
+    * line style, radius, line color, and shading specified by the render
+    * properties argument <code>props</code>. This method is functionally
+    * equivalent to {@link #drawLine(RenderProps,Vector3d,Vector3d,boolean)}
+    * except that the points are specified using {@code float[]}.
     * 
     * @param props render properties used for drawing the line
     * @param pnt0 first point
@@ -1056,6 +1098,33 @@ public interface Renderer {
       boolean capped, boolean highlight);
 
    /**
+    * Draws a ray from an origin point along a specified direction, in model
+    * coordinates, using the line style, radius, line color, and shading
+    * specified by the render properties argument <code>props</code>.  The
+    * length of the ray is given by the length of {@code dir}, scaled by
+    * {@code scale}.
+    * 
+    * <p>If <code>props.getLineStyle()</code> specifies a line style of {@link
+    * LineStyle#LINE}, then the ray is drawn as a pixel-based line with a width
+    * given by <code>props.getLineWidth()</code>. For other line styles, the
+    * ray is drawn as a solid with a nominal radius given by
+    * <code>props.getLineRadius()</code>. If <code>highlight</code> is
+    * <code>true</code> and the highlight style is {@link
+    * HighlightStyle#COLOR}, then the ray will be drawn using the highlight
+    * color rather than the line color specified in <code>props</code>.
+    * 
+    * @param props render properties used for drawing the ray
+    * @param pnt0 origin of the ray
+    * @param dir direction of the ray
+    * @param scale second point
+    * @param highlight if <code>true</code>, indicates that highlighting, if
+    * enabled, should be applied to the ray
+    */
+   public void drawRay (
+      RenderProps props, Vector3d pnt, Vector3d dir,
+      double scale, boolean highlight);
+
+   /**
     * Draws an arrow between two points in model coordinates,
     * using the radius, line color, and shading specified by the
     * render properties argument <code>props</code>. The method
@@ -1101,6 +1170,24 @@ public interface Renderer {
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pnts, 
       LineStyle style, boolean highlight);   
+   
+   // /**
+   //  * Draws a line strip between a series of points in model coordinates, using
+   //  * the radius, line color, and shading specified by the render properties
+   //  * argument <code>props</code>, and the line style specified by
+   //  * <code>style</code>. This method is functionally equivalent to {@link
+   //  * #drawLineStrip(RenderProps,Iterable<Vector3d>,LineStyle,boolean)} except
+   //  * that the points are specified using {@code float[]}.
+   //  * 
+   //  * @param props render properties used for drawing the strip
+   //  * @param pnts list of points used for drawing the strip
+   //  * @param style line style to be used for the strip
+   //  * @param highlight if <code>true</code>, indicates that highlighting, if
+   //  * enabled, should be applied to the strip
+   //  */
+   // public void drawLineStrip (
+   //    RenderProps props, Iterable<float[]> pnts, 
+   //    LineStyle style, boolean highlight);   
    
    /**
     * Computes and returns the logical bounding box of the supplied

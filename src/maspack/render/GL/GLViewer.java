@@ -4087,9 +4087,37 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       drawArrow (toFloat(pnt0), toFloat(pnt1), rad, capped);      
    }
    
+   public void drawArrow (
+      Vector3d pnt, Vector3d dir, double scale, double rad, boolean capped) {
+      float[] p0 = toFloat(pnt);
+      float[] p1 = new float[3];
+      p1[0] = p0[0] + (float)(scale*dir.x);
+      p1[1] = p0[1] + (float)(scale*dir.y);
+      p1[2] = p0[2] + (float)(scale*dir.z);
+      drawArrow (p0, p1, rad, capped);      
+   }
+   
    public void drawLine (
       RenderProps props, float[] pnt0, float[] pnt1, boolean highlight) {
       drawLine (props, pnt0, pnt1, /*color=*/null, /*capped=*/true, highlight);
+   }
+
+   public void drawLine (
+      RenderProps props, Vector3d pnt0, Vector3d pnt1, boolean highlight) {
+      drawLine (
+         props, pnt0.get((float[])null), pnt1.get((float[])null), 
+         /*color=*/null, /*capped=*/true, highlight);
+   }
+
+   public void drawRay (
+      RenderProps props, Vector3d pnt, Vector3d dir,
+      double scale, boolean highlight) {
+      float[] p0 = toFloat(pnt);
+      float[] p1 = new float[3];
+      p1[0] = p0[0] + (float)(scale*dir.x);
+      p1[1] = p0[1] + (float)(scale*dir.y);
+      p1[2] = p0[2] + (float)(scale*dir.z);
+      drawLine (props, p0, p1, /*color=*/null, /*capped=*/true, highlight);
    }
 
    public void drawLine (
@@ -4118,6 +4146,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void drawPoint (double px, double py, double pz) {
       drawPoint (new float[] {(float)px, (float)py, (float)pz});
+   }
+
+   public void drawPoint (RenderProps props, Vector3d pnt, boolean highlight) {
+      drawPoint (props, pnt.get((float[])null), highlight);
    }
 
 //   public void drawPoint (float x, float y, float z) {

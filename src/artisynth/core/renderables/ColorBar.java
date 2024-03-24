@@ -15,6 +15,7 @@ import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Vector2d;
 import maspack.matrix.VectorNd;
+import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -76,6 +77,7 @@ public class ColorBar extends TextComponentBase {
    public static PropertyList myProps = new PropertyList(
       ColorBar.class, TextComponentBase.class);
    static {
+      myProps.get("renderProps").setDefaultValue (defaultRenderProps(null));
       myProps.add("location", "normalized if [0,1], pixel-based otherwise, negative offsets from right/top", defaultLoc);
       myProps.add("horizontal isHorizontal *", "horizontal or vertical bar", defaultHorizontal);
       myProps.addInheritable("colorMap", "color map", defaultColorMap, "CE");
@@ -100,21 +102,19 @@ public class ColorBar extends TextComponentBase {
       myColorMap = cmap;
    }
 
-   public static RenderProps createDefaultRenderProps() {
-      return new LineFaceRenderProps();
+   public static RenderProps defaultRenderProps(HasProperties host) {
+      return RenderProps.createLineFaceProps(host);
    }
 
    @Override
    public RenderProps createRenderProps() {
-      RenderProps rprops = createDefaultRenderProps();
-      PropertyUtils.updateInheritedProperties (rprops, this, "renderProps");
-      return rprops;
+      return defaultRenderProps(this);
    }
 
    @Override
    protected void setDefaults() {
       setFont( new Font(defaultFontName, 0, defaultFontSize));
-      myRenderProps = createDefaultRenderProps();
+      myRenderProps = createRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;

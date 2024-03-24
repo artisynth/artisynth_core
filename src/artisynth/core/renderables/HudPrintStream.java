@@ -73,7 +73,6 @@ public class HudPrintStream extends TextComponentBase {
    @Override
    protected void setDefaults() {
       myFont = new Font(defaultFontName, Font.PLAIN, defaultFontSize);
-      myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;

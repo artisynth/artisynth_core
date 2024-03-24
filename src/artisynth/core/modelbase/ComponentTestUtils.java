@@ -110,12 +110,20 @@ public class ComponentTestUtils {
       String saveFileName, String checkFileName, boolean showDifferingLines) 
       throws IOException {
 
+      return compareArtFiles (
+         new File(saveFileName), new File(checkFileName), showDifferingLines);
+   }
+
+   public static String compareArtFiles (
+      File saveFile, File checkFile, boolean showDifferingLines) 
+      throws IOException {
+
       LineNumberReader reader0 =
          new LineNumberReader (
-            new BufferedReader (new FileReader (saveFileName)));
+            new BufferedReader (new FileReader (saveFile)));
       LineNumberReader reader1 =
          new LineNumberReader (
-            new BufferedReader (new FileReader (checkFileName)));
+            new BufferedReader (new FileReader (checkFile)));
 
       String line0, line1;
       while ((line0 = reader0.readLine()) != null) {
@@ -124,14 +132,14 @@ public class ComponentTestUtils {
             reader0.close();
             reader1.close();
             return (
-               "check file '"+checkFileName+
+               "check file '"+checkFile+
                "' ends prematurely, line "+reader1.getLineNumber());
          }
          else if (!linesMatch(line0, line1)) {
             reader0.close();
             reader1.close();
             String msg =
-               "save and check files '"+saveFileName+"' and '"+checkFileName+
+               "save and check files '"+saveFile+"' and '"+checkFile+
                "' differ at line "+reader0.getLineNumber();
             if (showDifferingLines) {
                msg += ":\n"+line0+"\nvs.\n"+line1;

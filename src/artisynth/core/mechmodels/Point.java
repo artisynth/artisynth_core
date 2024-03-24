@@ -58,10 +58,10 @@ public class Point extends DynamicComponentBase
    private PropertyMode myPointDampingMode = PropertyMode.Inherited;
 
    public static PropertyList myProps =
-      new PropertyList (Point.class, ModelComponentBase.class);
+      new PropertyList (Point.class, DynamicComponentBase.class);
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(null);
       myProps.add ("position * *", "position state", Point3d.ZERO, "%.8g");
       myProps.add ("velocity * *", "velocity state", Vector3d.ZERO, "%.8g");
       myProps.add ("targetPosition", "position target", Point3d.ZERO, "%.8g NW");
@@ -500,6 +500,11 @@ public class Point extends DynamicComponentBase
    public String getTraceablePositionProperty (String traceableName) {
       return "+position";
    }
+   
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
 
    public void prerender (RenderList list) {
       Point3d pos = getPosition();
@@ -682,7 +687,7 @@ public class Point extends DynamicComponentBase
       return false;
    }
 
-   public ModelComponent copy (
+   public Point copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       Point comp = (Point)super.copy (flags, copyMap);
       comp.myState = new PointState();

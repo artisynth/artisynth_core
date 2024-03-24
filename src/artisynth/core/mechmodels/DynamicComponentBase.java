@@ -161,7 +161,7 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
       return removed;
    }
 
-   public ModelComponent copy (
+   public DynamicComponentBase copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       DynamicComponentBase comp =
          (DynamicComponentBase)super.copy (flags, copyMap);

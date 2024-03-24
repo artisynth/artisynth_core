@@ -50,10 +50,7 @@ public class EditableMeshComp extends RenderableComponentBase
       EditableMeshComp.class, RenderableComponentBase.class);
    
    static {
-      myProps.add(
-         "renderProps * *", "render properties for this component",
-         createDefaultRenderProps());
-      myProps.add (
+       myProps.add (
          "selectable isSelectable", 
          "true if this mesh is selectable", DEFAULT_SELECTABLE);
    }
@@ -385,22 +382,6 @@ public class EditableMeshComp extends RenderableComponentBase
       mySelectable = enable;
    }
 
-   public RenderProps createRenderProps() {
-      return RenderProps.createRenderProps(this);
-   }
-
-   private static RenderProps createDefaultRenderProps() {
-      RenderProps mr = new RenderProps();
-      return mr;
-   }
-
-   public void render (Renderer renderer, RenderProps props, int flags) {     
-      MeshBase renderMesh = myRenderMesh;
-      if (renderMesh != null) {
-         renderMesh.render (renderer, props, flags);
-      }
-   }
-
    protected boolean isAncestorSelected() {
       ModelComponent comp = this;
       while (comp != null) {
@@ -410,6 +391,15 @@ public class EditableMeshComp extends RenderableComponentBase
          comp = comp.getParent();
       }
       return false;
+   }
+
+   /* --- begin Renderable implementation --- */
+   
+   public void render (Renderer renderer, RenderProps props, int flags) {     
+      MeshBase renderMesh = myRenderMesh;
+      if (renderMesh != null) {
+         renderMesh.render (renderer, props, flags);
+      }
    }
 
    @Override

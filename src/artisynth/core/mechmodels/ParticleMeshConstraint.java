@@ -45,8 +45,7 @@ public class ParticleMeshConstraint extends ParticleConstraintBase
          ParticleMeshConstraint.class, ParticleConstraintBase.class);
 
    static {
-      //myProps.add (
-      // "damping", "damping for this constraint", 0);      
+      myProps.get("renderProps").setDefaultValue(null);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -66,7 +65,7 @@ public class ParticleMeshConstraint extends ParticleConstraintBase
       myNagataInterpolator = interp;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       // setRenderProps (defaultRenderProps (null));
    }
@@ -296,6 +295,8 @@ public class ParticleMeshConstraint extends ParticleConstraintBase
       return maxpen;
    }
 
+   /* --- begin Renderable implementation --- */
+   
    public void updateBounds (Vector3d min, Vector3d max) {
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
@@ -305,6 +306,11 @@ public class ParticleMeshConstraint extends ParticleConstraintBase
 
    // public void prerender (RenderList list) {
    // }
+   
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
 
    public void render (Renderer renderer, int flags) {
       //myMeshInfo.render (renderer, myRenderProps, isSelected());

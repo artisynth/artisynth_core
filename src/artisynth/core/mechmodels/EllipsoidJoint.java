@@ -162,10 +162,9 @@ public class EllipsoidJoint extends JointBase
       return myProps;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       myPlaneSize = DEFAULT_PLANE_SIZE;
-      setRenderProps (defaultRenderProps (null));
    }
 
    private void createEllipsoid (double A, double B, double C) {

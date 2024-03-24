@@ -36,6 +36,7 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.properties.HasProperties;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
@@ -90,15 +91,14 @@ public class Frame extends DynamicComponentBase
    protected PropertyMode myRotaryDampingMode = PropertyMode.Inherited;
 
    public static PropertyList myProps =
-      new PropertyList (Frame.class, ModelComponentBase.class);
+      new PropertyList (Frame.class, DynamicComponentBase.class);
 
    protected Wrench myBodyForce = new Wrench(); // preallocated temporary
 
    //protected MeshComponentList<RigidMeshComp> myMeshList;
 
    static {
-      myProps.add (
-         "renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add (
          "pose * *", "pose state", null, "NE NW");
       myProps.add (
@@ -149,7 +149,6 @@ public class Frame extends DynamicComponentBase
       myForce = new Wrench();
       myExternalForce = new Wrench();
       myRenderFrame = new RigidTransform3d();
-      setRenderProps (createRenderProps());
       mySolveBlockValidP = false;
       //initializeChildComponents();
    }
@@ -912,8 +911,12 @@ public class Frame extends DynamicComponentBase
 
    /* ======== Renderable implementation ======= */
 
+   static protected RenderProps defaultRenderProps(HasProperties host) {
+      return RenderProps.createLineProps (host);
+   }
+
    public RenderProps createRenderProps() {
-      return RenderProps.createLineProps (this);
+      return defaultRenderProps (this);
    }
 
    public void prerender (RenderList list) {

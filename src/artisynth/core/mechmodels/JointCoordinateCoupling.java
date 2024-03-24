@@ -181,21 +181,6 @@ public class JointCoordinateCoupling extends ConstrainerBase {
          ch.getJoint().getConstrainedComponents (list);
       }
    }
-   
-   /* --- begin (empty) renderable implementation --- */
-
-   public void updateBounds (Vector3d pmin, Vector3d pmax) {
-   }
-
-   public RenderProps createRenderProps() {
-      return new RenderProps();
-   }
-
-   public void prerender (RenderList list) {
-   }
-
-   public void render (Renderer renderer, int flags) {
-   }
 
    /* --- begin I/O methods --- */
 

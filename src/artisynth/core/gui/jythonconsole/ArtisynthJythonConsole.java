@@ -13,6 +13,7 @@ import javax.swing.SwingUtilities;
 public class ArtisynthJythonConsole {
 
    protected InteractiveConsole myConsole;
+   protected File myScriptFile = null;
 
    private ArtisynthJythonConsole (InteractiveConsole console) {
       myConsole = console;
@@ -66,7 +67,11 @@ public class ArtisynthJythonConsole {
 
    public void setMain (Main main) {
       myConsole.set ("main", main);
-      myConsole.set ("sel", main.getSelectionManager().getCurrentSelection()); 
+      myConsole.set ("sel", main.getSelectionManager().getCurrentSelection());
+   }
+   
+   public File getScriptFile() {
+      return myScriptFile;
    }
 
    public void execfile (InputStream s, String name) {
@@ -116,18 +121,28 @@ public class ArtisynthJythonConsole {
       PyList pylist = new PyList(pyargs);
       argClass.__call__(pylist);
       
-      if (myConsole instanceof JythonFrameConsole) {
-         ((JythonFrameConsole)myConsole).executeScript (fileName);
+      
+      myScriptFile = new File(fileName);
+      try {
+         if (myConsole instanceof JythonFrameConsole) {
+            ((JythonFrameConsole)myConsole).executeScript (fileName);
+         }
+         else if (myConsole instanceof JythonJLineConsole) {
+            ((JythonJLineConsole)myConsole).executeScript (fileName);
+         }
+         else if (myConsole instanceof JythonInteractiveConsole) {
+            ((JythonInteractiveConsole)myConsole).executeScript (fileName);
+         }
+         else {
+            throw new InternalErrorException (
+               "Unknown console type: "+myConsole.getClass());
+         }
       }
-      else if (myConsole instanceof JythonJLineConsole) {
-         ((JythonJLineConsole)myConsole).executeScript (fileName);
+      catch (Exception e) {
+         throw e;
       }
-      else if (myConsole instanceof JythonInteractiveConsole) {
-         ((JythonInteractiveConsole)myConsole).executeScript (fileName);
-      }
-      else {
-         throw new InternalErrorException (
-            "Unknown console type: "+myConsole.getClass());
+      finally {
+         myScriptFile = null;
       }
    }       
 

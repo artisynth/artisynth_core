@@ -67,20 +67,14 @@ public class PointPlaneForce extends RenderableComponentBase
    public static boolean DEFAULT_ENABLED = true;
    protected boolean myEnabledP = DEFAULT_ENABLED;
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createFaceProps (null);
-      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
-      return props;
-   }
-
    public static PropertyList myProps =
       new PropertyList (
          PointPlaneForce.class, RenderableComponentBase.class);
 
    static {
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add (
          "offset", "offset from center of the plane in normal direction", 0);
-      myProps.add ("renderProps", "render properties", defaultRenderProps(null));
       myProps.add ("planeSize", "plane size", defaultPlaneSize);
       myProps.add (
          "unilateral",
@@ -109,7 +103,7 @@ public class PointPlaneForce extends RenderableComponentBase
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i] = new Point3d();
       }
-      myRenderProps = createRenderProps();
+      //myRenderProps = createRenderProps();
    }
 
    public PointPlaneForce (Point p, Plane plane) {
@@ -398,6 +392,12 @@ public class PointPlaneForce extends RenderableComponentBase
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i].updateBounds (pmin, pmax);
       }
+   }
+
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createFaceProps (null);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
+      return props;
    }
 
    public RenderProps createRenderProps() {

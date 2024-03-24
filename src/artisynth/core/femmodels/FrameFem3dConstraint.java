@@ -342,7 +342,4 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       myFrame = frame;
       setFromElement (frame.getPose(), elem);
    }
-
-   public void render (Renderer renderer, int flags) {
-   }
 }

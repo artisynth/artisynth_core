@@ -85,13 +85,6 @@ implements ScalableUnits {
       setRenderProps (createRenderProps());
    }
 
-   // public PointList (Class type, String name, String shortName,
-   // CompositeComponent parent)
-   // {
-   // super (type, name, shortName, parent);
-   // setRenderProps(createRenderProps());
-   // }
-
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {

@@ -18,7 +18,7 @@ import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import maspack.spatialmotion.FrictionInfo;
 
 public abstract class ConstrainerBase
-   extends RenderableComponentBase implements Constrainer, HasNumericState {
+   extends ModelComponentBase implements Constrainer, HasNumericState {
 
    public abstract void getBilateralSizes (VectorNi sizes);
 

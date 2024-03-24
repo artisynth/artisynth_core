@@ -53,7 +53,6 @@ public class TextComponent2d extends TextComponentBase {
 
    protected void setDefaults() {
       setFont ( new Font(defaultFontName, 0, defaultFontSize));
-      myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;

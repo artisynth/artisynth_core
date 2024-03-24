@@ -108,7 +108,7 @@ public class SlottedHingeJoint extends JointBase
       return myProps;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       //setThetaRange (DEFAULT_THETA_RANGE);
       setSlotRange (new DoubleInterval(DEFAULT_SLOT_RANGE));
@@ -661,7 +661,7 @@ public class SlottedHingeJoint extends JointBase
    /* --- end Renderable implementation --- */
 
    @Override
-   public ModelComponent copy (
+   public SlottedHingeJoint copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       SlottedHingeJoint copy =
          (SlottedHingeJoint)super.copy (flags, copyMap);

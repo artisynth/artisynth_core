@@ -80,7 +80,7 @@ public class FemCutPlane extends Frame implements FemMesh {
    static {
       myProps.remove ("renderProps");
       myProps.add (
-         "renderProps", "render properties", createDefaultRenderProps());
+         "renderProps", "render properties", defaultRenderProps(null));
       myProps.remove ("velocity");
       myProps.remove ("targetPosition");
       myProps.remove ("targetOrientation");
@@ -123,7 +123,6 @@ public class FemCutPlane extends Frame implements FemMesh {
    }
 
    public FemCutPlane () {
-      setRenderProps (createRenderProps());
       setColorInterpolation (ColorInterpolation.HSV);
    }
 
@@ -406,16 +405,14 @@ public class FemCutPlane extends Frame implements FemMesh {
       }
    }
 
-   private static RenderProps createDefaultRenderProps() {
-      RenderProps props = new MeshRenderProps();
+   protected static RenderProps defaultRenderProps(HasProperties host) {
+      RenderProps props = RenderProps.createMeshProps(host);
       props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       return props;
    }
 
    public RenderProps createRenderProps() {
-      RenderProps props = RenderProps.createMeshProps (this);
-      props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
-      return props;
+      return defaultRenderProps(this);
    }
 
    public void prerender (RenderList list) {

@@ -2,6 +2,7 @@ package artisynth.demos.tutorial;
 
 import java.awt.Color;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 import maspack.matrix.RigidTransform3d;
 import maspack.render.RenderProps;
@@ -79,7 +80,7 @@ public class PointFemAttachment extends RootModel {
    // Collect and return all the nodes of a FEM model associated with a
    // set of elements specified by an array of element numbers
    private HashSet<FemNode3d> collectNodes (FemModel3d fem, int[] elemNums) {
-      HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
+      HashSet<FemNode3d> nodes = new LinkedHashSet<FemNode3d>();
       for (int i=0; i<elemNums.length; i++) {
          FemElement3d e = fem.getElements().getByNumber (elemNums[i]);
          for (FemNode3d n : e.getNodes()) {

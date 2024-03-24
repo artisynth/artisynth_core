@@ -60,7 +60,7 @@ import maspack.util.InternalErrorException;
  * pair of collidable bodies. CollisionHandlers are created on-demand
  * by the CollisionManager whenever two bodies are found to collide.
  */
-public class CollisionHandler extends ConstrainerBase 
+public class CollisionHandler extends RenderableConstrainerBase 
    implements HasRenderProps, Renderable {
 
    //public static boolean useSignedDistanceCollider = false;
@@ -115,20 +115,18 @@ public class CollisionHandler extends ConstrainerBase
 
    // misc
 
-   public static PropertyList myProps =
-      new PropertyList (CollisionHandler.class, ConstrainerBase.class);
-
-   static private RenderProps defaultRenderProps = new RenderProps();
-
-   static {
-      myProps.add (
-         "renderProps * *", "render properties for this collision handler",
-         defaultRenderProps);
-   }
-
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
+//   public static PropertyList myProps =
+//      new PropertyList (CollisionHandler.class, ConstrainerBase.class);
+//
+//   static {
+//      myProps.add (
+//         "renderProps * *", "render properties for this collision handler",
+//         defaultRenderProps(null));
+//   }
+//
+//   public PropertyList getAllPropertyInfo() {
+//      return myProps;
+//   }
    
    public RenderProps getRenderProps() {
       RenderProps props = null;
@@ -1897,10 +1895,6 @@ public class CollisionHandler extends ConstrainerBase
 
    public void prerender (RenderList list) {
       prerender (getRenderProps());
-   }
-
-   public RenderProps createRenderProps() {
-      return RenderProps.createRenderProps (this);
    }
 
    public void render (Renderer renderer, int flags) {

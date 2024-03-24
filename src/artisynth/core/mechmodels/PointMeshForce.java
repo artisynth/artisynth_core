@@ -153,16 +153,11 @@ public class PointMeshForce extends RenderableComponentBase
    public static boolean DEFAULT_ENABLED = true;
    protected boolean myEnabledP = DEFAULT_ENABLED;
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      return RenderProps.createRenderProps (host);
-   }
-
    public static PropertyList myProps =
       new PropertyList (
          PointMeshForce.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps", "render properties", defaultRenderProps(null));
       myProps.add (
          "unilateral",
          "if true, force is only applied on the negative side of the plane",
@@ -187,7 +182,7 @@ public class PointMeshForce extends RenderableComponentBase
     */
    public PointMeshForce () {
       myPointInfo = new ArrayList<>();
-      myRenderProps = createRenderProps();
+      //myRenderProps = createRenderProps();
    }
 
    /**
@@ -561,20 +556,13 @@ public class PointMeshForce extends RenderableComponentBase
       return Matrix.SYMMETRIC;
    }
 
-   // ----- rendering interface -----
+   /* --- begin Renderable implementation --- */
 
    /**
     * {@inheritDoc}
     */
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       // nothing to do at the moment
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public RenderProps createRenderProps() {
-      return defaultRenderProps (this);
    }
 
    /**

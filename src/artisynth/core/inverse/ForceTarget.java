@@ -40,15 +40,11 @@ public class ForceTarget extends RenderableComponentBase {
    public static final double DEFAULT_ARROW_SIZE = 1d;
    double arrowSize = DEFAULT_ARROW_SIZE;
 
-   static private RenderProps defaultRenderProps = new LineRenderProps ();
-
    public static PropertyList myProps =
       new PropertyList (ForceTarget.class, RenderableComponentBase.class);
 
    static {
-      myProps.add (
-         "renderProps * *", "render properties for this component",
-         defaultRenderProps);
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add ("targetLambda", "force targets", null);
       myProps.add ("arrowSize", "arrow size", DEFAULT_ARROW_SIZE);
       myProps.add(
@@ -68,7 +64,7 @@ public class ForceTarget extends RenderableComponentBase {
    }
 
    public ForceTarget () {
-      setRenderProps (createRenderProps ());
+      //setRenderProps (createRenderProps ());
    }
 
    public ForceTarget (BodyConnector con, VectorNd targetLambda) {
@@ -143,6 +139,16 @@ public class ForceTarget extends RenderableComponentBase {
       dest[2] = (float)src.get (2);
    }
    
+   /* --- begin Renderable implementation --- */
+   
+   protected static RenderProps defaultRenderProps(HasProperties host) {
+      return RenderProps.createLineProps(host);
+   }
+   
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
+   }
+
    @Override
    public void render (Renderer renderer, int flags) {
       renderer.drawArrow (getRenderProps (), start, end, true, isSelected ());

@@ -15,8 +15,30 @@ import java.util.*;
 
 public abstract class RenderableComponentBase extends ModelComponentBase
 implements RenderableComponent {
+
    protected RenderProps myRenderProps;
 
+   public static PropertyList myProps =
+      new PropertyList (RenderableComponentBase.class, ModelComponentBase.class);
+
+   //protected MeshComponentList<RigidMeshComp> myMeshList;
+
+   static {
+      myProps.add (
+         "renderProps", "render properties", defaultRenderProps(null));
+   }
+
+   public PropertyInfoList getAllPropertyInfo() {
+      return myProps;
+   }
+
+   protected void setDefaultValues() {
+      super.setDefaultValues();
+      if (!defaultRenderPropsAreNull()) {
+         setRenderProps (createRenderProps());
+      }
+   }
+   
    public RenderProps getRenderProps() {
       return myRenderProps;
    }
@@ -36,8 +58,46 @@ implements RenderableComponent {
    public void getSelection (LinkedList<Object> list, int qid) {
    }
    
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      return RenderProps.createRenderProps (host);
+   }
+   
    public RenderProps createRenderProps() {
-      return RenderProps.createRenderProps (this);
+      return defaultRenderProps(this);
+   }
+   
+   public boolean defaultRenderPropsAreNull() {
+      return false;
+   }
+
+   public int getRenderHints() {
+      int code = 0;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
+      }
+      return code;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isSelectable() {
+      return true;
+   }
+
+   public int numSelectionQueriesNeeded() {
+      return -1;
+   }
+
+   @Override
+   public RenderableComponentBase copy (
+      int flags, Map<ModelComponent,ModelComponent> copyMap) {
+      RenderableComponentBase comp =
+         (RenderableComponentBase)super.copy (flags, copyMap);
+      if (myRenderProps != null) {
+         comp.setRenderProps (myRenderProps);
+      }
+      return comp;
    }
 
    public static RenderProps updateRenderProps (
@@ -70,36 +130,6 @@ implements RenderableComponent {
          }
       }
       return props;
-   }
-
-   public int getRenderHints() {
-      int code = 0;
-      if (myRenderProps != null && myRenderProps.isTransparent()) {
-         code |= TRANSPARENT;
-      }
-      return code;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isSelectable() {
-      return true;
-   }
-
-   public int numSelectionQueriesNeeded() {
-      return -1;
-   }
-
-   @Override
-   public ModelComponent copy (
-      int flags, Map<ModelComponent,ModelComponent> copyMap) {
-      RenderableComponentBase comp =
-         (RenderableComponentBase)super.copy (flags, copyMap);
-      if (myRenderProps != null) {
-         comp.setRenderProps (myRenderProps);
-      }
-      return comp;
    }
 
    public static boolean isVisible (RenderableComponent rcomp) {

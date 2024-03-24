@@ -44,20 +44,14 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
    private double myPlaneSize = defaultPlaneSize;
    private static final double defaultPlaneSize = 1;
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createFaceProps (null);
-      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
-      return props;
-   }
-
    public static PropertyList myProps =
       new PropertyList (
          ParticlePlaneConstraint.class, ParticleConstraintBase.class);
 
    static {
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add (
          "offset", "offset from center of the plane in normal direction", 0);
-      myProps.add ("renderProps", "render properties", defaultRenderProps(null));
       myProps.add ("planeSize", "plane size", defaultPlaneSize);
    }
 
@@ -72,7 +66,6 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i] = new Point3d();
       }
-      myRenderProps = createRenderProps();
       myParticleInfo = new ArrayList<ParticleInfo>();
    }
 
@@ -179,11 +172,19 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
       }
    }
 
+   /* --- begin Renderable implementation --- */
+   
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       computeRenderVtxs ();
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i].updateBounds (pmin, pmax);
       }
+   }
+
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createFaceProps (null);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
+      return props;
    }
 
    public RenderProps createRenderProps() {

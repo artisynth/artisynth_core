@@ -222,7 +222,7 @@ public class Particle extends Point implements PointAttachable {
       return true;
    }
    
-  public ModelComponent copy (
+  public Particle copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       Particle comp = (Particle)super.copy (flags, copyMap);
       comp.myMass = myMass;

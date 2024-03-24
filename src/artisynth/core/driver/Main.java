@@ -1305,6 +1305,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myJythonConsole;
    }
 
+   /**
+    * Returns a file handle for any Jythin script file that is currently
+    * executing.
+    */
+   public File getScriptFile() {
+      return myJythonConsole.getScriptFile();
+   }
+
    public boolean isSimulating() {
       return getScheduler().isPlaying();
    }

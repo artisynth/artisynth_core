@@ -26,19 +26,8 @@ public class DrawModeTest extends RootModel {
 
    private static class MyRenderable extends RenderableComponentBase {
 
-      public static PropertyList myProps =
-         new PropertyList (MyRenderable.class, RenderableComponentBase.class);
-
-      static {
-         myProps.add ("renderProps", "render properties", null);
-      }
-
-      public PropertyList getAllPropertyInfo() {
-         return myProps;
-      }
-
       public MyRenderable() {
-         setRenderProps (createRenderProps());
+         //setRenderProps (createRenderProps());
       }
 
       public void updateBounds (Point3d min, Vector3d max) {

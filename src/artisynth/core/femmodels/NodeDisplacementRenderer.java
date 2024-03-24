@@ -19,14 +19,11 @@ public class NodeDisplacementRenderer extends RenderableComponentBase {
          NodeDisplacementRenderer.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
    }
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      return RenderProps.createLineProps (host);
-   }
    public NodeDisplacementRenderer () {
-      myRenderProps = createRenderProps();
+      //setRenderProps (createRenderProps());
    }
 
    public NodeDisplacementRenderer (Collection<FemNode3d> nodes) {
@@ -54,12 +51,18 @@ public class NodeDisplacementRenderer extends RenderableComponentBase {
       return myNodes.size();
    }
 
-   public RenderProps createRenderProps() {
-      return defaultRenderProps (this);
-   }
-
    public PropertyList getAllPropertyInfo() {
       return myProps;
+   }
+
+   /* --- begin Renderable implementation --- */
+   
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      return RenderProps.createLineProps (host);
+   }
+   
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
    }
 
    public void updateBounds (Point3d min, Point3d max) {

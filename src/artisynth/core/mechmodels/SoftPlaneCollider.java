@@ -42,25 +42,11 @@ ScalableUnits, ForceComponent, TransformableGeometry {
    protected double mySize = 50;
    protected ArrayList<MechModel> myModels;
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createMeshProps (host);
-      props.setFaceColor (new Color (0.5f, 0.5f, 0.5f));
-      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
-      props.setAlpha (0.8);
-      props.setShininess (32);
-      return props;
-   }
-
-   public RenderProps createRenderProps() {
-      return defaultRenderProps (this);
-   }
-
    public static PropertyList myProps =
       new PropertyList (SoftPlaneCollider.class, RenderableComponentBase.class);
 
    static {
-      myProps.add (
-         "renderProps * *", "renderer properties", defaultRenderProps (null));
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add ("stiffness", "spring stiffness", 0);
       myProps.add ("damping", "spring damping", 0);
       myProps.add ("size", "size of the plane for rendering", 1);
@@ -75,7 +61,6 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       myCenter = new Point3d();
       myNormal = new Vector3d();
       myModels = new ArrayList<MechModel>();
-      setRenderProps (defaultRenderProps (null));
    }
 
    public SoftPlaneCollider (String name, Vector3d normal, Point3d center,
@@ -212,6 +197,21 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       return super.postscanItem (tokens, ancestor);
    }
    
+   /* --- begin Renderable implementation --- */
+   
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createMeshProps (host);
+      props.setFaceColor (new Color (0.5f, 0.5f, 0.5f));
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
+      props.setAlpha (0.8);
+      props.setShininess (32);
+      return props;
+   }
+
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
+   }
+
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myCenter.updateBounds (pmin, pmax);
    }

@@ -29,10 +29,10 @@ public class VertexComponent extends RenderableComponentBase implements
    float[] myRenderCoords = new float[3];
    
    public static PropertyList myProps =
-      new PropertyList (VertexComponent.class, ModelComponentBase.class);
+      new PropertyList (VertexComponent.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(null);
       myProps.add (
          "position", "vertex position in mesh coordinates",
          Point3d.ZERO, "%.8g");
@@ -57,7 +57,14 @@ public class VertexComponent extends RenderableComponentBase implements
    public int getVertexIndex() {
       return myVertex.getIndex();
    }
+   
+   /* --- begin Renderable implementation --- */
 
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
+   
    @Override
    public void prerender(RenderList list) {
       Point3d rp = myVertex.getWorldPoint ();

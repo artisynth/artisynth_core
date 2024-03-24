@@ -1582,8 +1582,13 @@ point {\tt pnt}, using the current color and shading settings.  For
 drawing cylinders, arrows, or spindles, one can use
 %
 \begin{lstlisting}[]
+void drawCylinder (Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
 void drawCylinder (float[] pnt0, float[] pnt1, double rad, boolean capped);
+
+void drawArrow (Vector3d pnt0, Vector3d pnt1, double rad, boolean capped);
 void drawArrow (float[] pnt0, float[] pnt1, double rad, boolean capped);
+
+void drawSpindle (Vector3d pnt0, Vector3d pnt1, double rad);
 void drawSpindle (float[] pnt0, float[] pnt1, double rad);
 \end{lstlisting}
 %
@@ -1592,7 +1597,16 @@ each of which draws the indicated shape between points {\tt pnt0} and
 current color and shading. The argument {\tt capped} for cylinders and
 arrows indicates whether or not a solid cap should be drawn over any
 otherwise open ends. For arrows, the arrow head size is based on the
-radius and line segment length.
+radius and line segment length. Another method,
+%
+\begin{lstlisting}[]
+void drawArrow (
+   Vector3d pnt, Vector3d dir, double scale, double rad, boolean capped);
+\end{lstlisting}
+%
+draws an arrow starting at {\tt pnt} and extending in the direction
+{\tt dir}, with a length given by the length of {\tt dir} times {\tt
+scale}.
 
 A cone can be drawn similarly to a cylinder, using
 %
@@ -2218,7 +2232,12 @@ supplied by {\tt RenderProps}.
 For drawing points and lines, there are
 %
 \begin{lstlisting}[]
+void drawPoint (RenderProps props, Vector3d pnt, boolean highlight);
+
 void drawPoint (RenderProps props, float[] pnt, boolean highlight);
+
+void drawLine (
+   RenderProps props, Vector3d pnt0, Vector3d pnt1, boolean highlight);
 
 void drawLine (
    RenderProps props, float[] pnt0, float[] pnt1, boolean highlight);
@@ -2226,16 +2245,23 @@ void drawLine (
 void drawLine (
    RenderProps props, float[] pnt0, float[] pnt1, float[] color, 
    boolean capped, boolean highlight);
+
+void drawRay (
+   RenderProps props, Vector3d pnt, Vector3d dir, 
+   double scale, boolean highlight);
 \end{lstlisting}
 %
-{\tt drawPoint()} draws a point at location {\tt pnt} using the {\sf
+The {\tt drawPoint()} methods draw a point at location {\tt pnt} using the {\sf
 pointStyle}, {\sf pointColor}, {\sf pointSize}, {\sf pointRadius} and
 {\sf shading} properties of {\tt props}, while the {\tt drawLine}
 methods draw a line between {\tt pnt0} and {\tt pnt1} using the {\sf
 lineStyle}, {\sf lineColor}, {\sf lineSize}, {\sf lineRadius} and {\sf
 shading} properties. The second {\tt drawLine} method also allows an
 alternate {\tt color} to be specified, as well as whether or not the
-line shape should be {\tt capped} (if appropriate).  Another method,
+line shape should be {\tt capped} (if appropriate). The {\tt drawRay()}
+method draws a line starting at {\tt pnt} and extending along {\tt dir},
+with a length equal to the length of {\tt dir} times {\tt scale}.
+Another method,
 %
 \begin{lstlisting}[]
 void drawArrow (

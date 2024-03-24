@@ -158,9 +158,7 @@ public class RigidBody extends Frame
    DistanceGridComp myDistanceGridComp;
 
     static {
-      myProps.remove ("renderProps");
-      myProps.add (
-         "renderProps * *", "render properties", createDefaultRenderProps());
+      myProps.get("renderProps").setDefaultValue (createDefaultRenderProps());
       myProps.addInheritable (
          "inertialDamping:Inherited", "intrinsic inertial damping", 0.0);
       myProps.add (

@@ -41,7 +41,7 @@ public abstract class GridCompBase extends RenderableComponentBase
       new PropertyList (GridCompBase.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add (
          "renderGrid", 
          "render the grid in the viewer",
@@ -61,7 +61,6 @@ public abstract class GridCompBase extends RenderableComponentBase
    }
 
    public GridCompBase() {
-      setRenderProps (createRenderProps());
    }
 
    public GridCompBase (String name) {
@@ -253,17 +252,21 @@ public abstract class GridCompBase extends RenderableComponentBase
       myGridBase = gridBase;
    }
 
-   /* --- Renderable --- */
+   /* --- begin Renderable implementation --- */
 
-   public RenderProps createRenderProps() {
-      RenderProps props = RenderProps.createRenderProps (this);
+   public static RenderProps defaultRenderProps(GridCompBase comp) {
+      RenderProps props = RenderProps.createRenderProps (comp);
       props.setVisible (false);
       props.setDrawEdges (true);
       props.setPointRadius (0.0);
       props.setPointSize (0);
       props.setLineStyle (LineStyle.LINE);
       props.setLineColor (Color.BLUE);
-      return props;
+      return props;      
+   }
+   
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {

@@ -37,7 +37,6 @@ public class MappingDemo extends RootModel {
          new PropertyList (DrawMappings.class, RenderableComponentBase.class);
 
       static {
-         myProps.add ("renderProps", "render properties", null);
          myProps.add ("textureMap", "texture map enabled", true);
          myProps.add ("normalMap", "normal map enabled", true);
          myProps.add ("bumpMap", "bump map enabled", true);

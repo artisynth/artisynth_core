@@ -333,6 +333,26 @@ public class IntersectionTester extends ControllerBase {
                   myMesh0, RegionType.INSIDE, myMesh1, RegionType.OUTSIDE);
                csgMesh = myIntersector.createCSGMesh (myContactInfo);
             }
+            else if (myCSGOperation == SurfaceMeshIntersector.CSG.MESH0_INSIDE) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.INSIDE, myMesh1, RegionType.NONE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
+            else if (myCSGOperation == SurfaceMeshIntersector.CSG.MESH0_OUTSIDE) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.OUTSIDE, myMesh1, RegionType.NONE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
+            else if (myCSGOperation == SurfaceMeshIntersector.CSG.MESH1_INSIDE) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.NONE, myMesh1, RegionType.INSIDE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
+            else if (myCSGOperation == SurfaceMeshIntersector.CSG.MESH1_OUTSIDE) {
+               myContactInfo = myIntersector.findContoursAndRegions (
+                  myMesh0, RegionType.NONE, myMesh1, RegionType.OUTSIDE);
+               csgMesh = myIntersector.createCSGMesh (myContactInfo);
+            }
             else {
                myContactInfo = myIntersector.findContoursAndRegions (
                   myMesh0, RegionType.INSIDE, myMesh1, RegionType.INSIDE);

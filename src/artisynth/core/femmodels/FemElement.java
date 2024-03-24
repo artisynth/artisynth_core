@@ -107,7 +107,7 @@ public abstract class FemElement extends RenderableComponentBase
       new PropertyList (FemElement.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(null);
       myProps.addInheritable (
          "density:Inherited", "density", FemModel.DEFAULT_DENSITY);
       myProps.add (
@@ -745,6 +745,11 @@ public abstract class FemElement extends RenderableComponentBase
    }
 
    /* ======== Renderable implementation ======= */
+   
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
 
    public RenderProps createRenderProps() {
       return RenderProps.createLineFaceProps (this);

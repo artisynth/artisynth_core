@@ -93,10 +93,9 @@ public class PlanarTranslationJoint extends JointBase
       return myProps;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       myPlaneSize = DEFAULT_PLANE_SIZE;
-      setRenderProps (defaultRenderProps (null));
    }
 
    /**

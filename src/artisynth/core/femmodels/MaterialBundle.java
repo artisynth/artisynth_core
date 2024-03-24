@@ -71,15 +71,10 @@ public class MaterialBundle extends RenderableComponentBase
    private double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
    PropertyMode myElementWidgetSizeMode = PropertyMode.Inherited;
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createFaceProps (host);
-      return props;
-   }
-  
    private static double DEFAULT_ELEMENT_WIDGET_SIZE = 0.0;
 
    static {
-      myProps.add ("renderProps", "render properties", defaultRenderProps(null));
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add (
          "material", "aux material parameters", DEFAULT_MATERIAL, "CE");
       myProps.addInheritable (
@@ -88,11 +83,10 @@ public class MaterialBundle extends RenderableComponentBase
          DEFAULT_ELEMENT_WIDGET_SIZE, "[0,1]");
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
       myElementWidgetSizeMode = PropertyMode.Inherited;
-      setRenderProps (defaultRenderProps (null));
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -306,6 +300,14 @@ public class MaterialBundle extends RenderableComponentBase
 
    /* ======== Renderable implementation ======= */
 
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      return RenderProps.createFaceProps (host);
+   }
+   
+   public RenderProps createRenderProps() {
+      return defaultRenderProps(this);
+   }
+  
    protected void buildRenderObjectIfNecessary() {
       double wsize = getElementWidgetSize();
       if (!myWidgetRobValid || (wsize > 0) != (myWidgetRob != null)) {

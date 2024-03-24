@@ -61,9 +61,9 @@ public class OpenSimCustomJoint extends JointBase {
       return myLocalProps;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
-      setRenderProps(defaultRenderProps(null));
+      //setRenderProps(defaultRenderProps(null));
    }
    
    public OpenSimCustomJoint(CustomJoint cj) {

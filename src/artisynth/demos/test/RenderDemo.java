@@ -32,19 +32,7 @@ public class RenderDemo extends RootModel {
 
    public static abstract class DrawBase extends RenderableComponentBase {
 
-      public static PropertyList myProps =
-         new PropertyList (DrawBase.class, RenderableComponentBase.class);
-
-      static {
-         myProps.add ("renderProps", "render properties", null);
-      }
-
-      public PropertyList getAllPropertyInfo() {
-         return myProps;
-      }
-
       public DrawBase() {
-         setRenderProps (createRenderProps());
       }
 
       public void updateBounds (Point3d min, Vector3d max) {

@@ -68,10 +68,9 @@ public class PlanarConnector extends BodyConnector
       return ((PlanarCoupling)myCoupling).getNormal();
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       myPlaneSize = defaultPlaneSize;
-      setRenderProps (defaultRenderProps (null));
    }
 
    /**
@@ -336,7 +335,7 @@ public class PlanarConnector extends BodyConnector
    }
 
    @Override
-   public ModelComponent copy (
+   public PlanarConnector copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       PlanarConnector copy = (PlanarConnector)super.copy (flags, copyMap);
       copy.initializeCoupling();

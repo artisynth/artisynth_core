@@ -177,7 +177,7 @@ public class SkinMarker extends Marker {
    }
 
    @Override
-   public ModelComponent copy (
+   public SkinMarker copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       SkinMarker m = (SkinMarker)super.copy (flags, copyMap);
 

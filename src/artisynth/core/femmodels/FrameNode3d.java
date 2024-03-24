@@ -7,6 +7,7 @@ import maspack.spatialmotion.*;
 import maspack.geometry.*;
 import maspack.util.*;
 import maspack.render.*;
+import maspack.properties.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.modelbase.*;
 
@@ -19,6 +20,17 @@ public class FrameNode3d extends DynamicComponentBase {
    Vector3d myForce = new Vector3d();
    Frame myFrame;
    double myEffectiveMass = 0;
+   
+   public static PropertyList myProps =
+   new PropertyList (FrameNode3d.class, DynamicComponentBase.class);
+
+   static {
+      myProps.remove ("renderProps");
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }   
    
    FrameNode3d (FemNode3d node, Frame frame) {
       myNode = node;
@@ -332,8 +344,18 @@ public class FrameNode3d extends DynamicComponentBase {
       TransformGeometryContext context, int flags) {
       // no dependencoes
    }
-
+   
+   /* --- begin Renderable implementation --- */
+   
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
+   
    @Override
    public void render (Renderer renderer, int flags) {
-   }   
+   }
+   
+   /* --- end Renderable implementation --- */
+   
 }

@@ -67,7 +67,6 @@ public class TextComponent3d extends TextComponentBase implements
    
    protected void setDefaults() {
       myFont = new Font(defaultFontName, 0, defaultFontSize);
-      myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;

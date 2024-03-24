@@ -91,7 +91,7 @@ public class SphericalJointBase extends JointBase
    /* --- end Renderable implementation --- */
 
     @Override
-   public ModelComponent copy (
+   public SphericalJointBase copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       SphericalJointBase copy = (SphericalJointBase)super.copy (flags, copyMap);
       copy.setJointRadius (getJointRadius());

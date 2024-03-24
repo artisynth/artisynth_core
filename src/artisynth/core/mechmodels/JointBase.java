@@ -63,7 +63,7 @@ public abstract class JointBase extends BodyConnector  {
       return myProps;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       myShaftLength = DEFAULT_SHAFT_LENGTH;
       myShaftRadius = DEFAULT_SHAFT_RADIUS;

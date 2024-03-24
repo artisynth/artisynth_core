@@ -17,7 +17,6 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
-import maspack.render.PointLineRenderProps;
 import maspack.render.Renderer;
 import maspack.util.*;
 
@@ -50,7 +49,6 @@ public class LinearPointConstraint extends ConstrainerBase {
       new PropertyList (LinearPointConstraint.class, ConstrainerBase.class);
 
    static {
-      myProps.add ("renderProps", "render props", new PointLineRenderProps ());
       myProps.add ("compliance", "constraint compliance", DEFAULT_COMPLIANCE);
       myProps.add ("damping", "constraint damping", DEFAULT_DAMPING);
    }
@@ -282,29 +280,6 @@ public class LinearPointConstraint extends ConstrainerBase {
       for (int i=0; i<myPoints.size(); i++) {
          list.add (myPoints.get(i));
       }
-   }
-   
-   @Override
-   public void render(Renderer renderer, int flags) {
-
-      Point3d diff = new Point3d();
-      Point3d avgPos = new Point3d();
-      for (int i=0; i<myPoints.size(); i++) {
-         Point pnt = myPoints.get(i);
-         diff.scaledAdd(myWgts[i], pnt.getPosition());
-         if (myWgts[i] > 0) {
-            avgPos.scaledAdd (myWgts[i], pnt.getPosition ());
-         }
-      }
-      diff.sub (myTarget);
-      
-      float[] fpnt0 = new float[] {(float)avgPos.x, (float)avgPos.y, (float)avgPos.z};
-      float[] fpnt1 = new float[] {(float)(avgPos.x-diff.x), (float)(avgPos.y-diff.y), (float)(avgPos.z-diff.z)};
-      
-      renderer.drawLine (getRenderProps (), fpnt0, fpnt1, isSelected());
-      renderer.drawPoint (getRenderProps(), fpnt0, isSelected());
-      renderer.drawPoint (getRenderProps(), fpnt1, isSelected());
-      
    }
 
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException  {

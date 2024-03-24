@@ -40,17 +40,12 @@ public class ParticleLineConstraint extends ParticleConstraintBase
    private double myLineSize = defaultLineSize;
    private static final double defaultLineSize = 1;
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createLineProps (null);
-      return props;
-   }
-
    public static PropertyList myProps =
       new PropertyList (
          ParticleLineConstraint.class, ParticleConstraintBase.class);
 
    static {
-      myProps.add ("renderProps", "render properties", defaultRenderProps(null));
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -64,7 +59,6 @@ public class ParticleLineConstraint extends ParticleConstraintBase
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i] = new Point3d();
       }
-      myRenderProps = createRenderProps();
       myParticleInfo = new ArrayList<ParticleInfo>();
    }
 
@@ -146,12 +140,19 @@ public class ParticleLineConstraint extends ParticleConstraintBase
       myRenderVtxs[0].scaledAdd(-myLineSize/2, myDir, myOrigin);
       myRenderVtxs[1].scaledAdd( myLineSize/2, myDir, myOrigin);
    }
-
+   
+   /* --- begin Renderable implementation --- */
+   
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       computeRenderVtxs ();
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i].updateBounds (pmin, pmax);
       }
+   }
+
+   protected static RenderProps defaultRenderProps (HasProperties host) {
+      RenderProps props = RenderProps.createLineProps (null);
+      return props;
    }
 
    public RenderProps createRenderProps() {

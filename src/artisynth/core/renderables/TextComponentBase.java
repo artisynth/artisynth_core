@@ -10,6 +10,7 @@ import java.awt.Color;
 import java.awt.Font;
 
 import artisynth.core.modelbase.RenderableComponentBase;
+import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.render.FaceRenderProps;
@@ -46,10 +47,7 @@ public abstract class TextComponentBase extends RenderableComponentBase {
       TextComponentBase.class, RenderableComponentBase.class);
    
    static {
-      myProps.add(
-         "renderProps * *", "render properties for this component",
-         createDefaultRenderProps());
-      
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add("font", "font", defaultFont);
       myProps.add("textSize", "text size", defaultTextSize);
       myProps.add("horizontalAlignment", "horizontal alignment", defaultHAlignment);
@@ -62,17 +60,6 @@ public abstract class TextComponentBase extends RenderableComponentBase {
    }
    
    protected abstract void setDefaults();
-   
-   public static RenderProps createDefaultRenderProps() {
-      return new FaceRenderProps();
-   }
-   
-   @Override
-   public RenderProps createRenderProps() {
-      RenderProps rprops = createDefaultRenderProps();
-      PropertyUtils.updateInheritedProperties (rprops, this, "renderProps");
-      return rprops;
-   }
    
    public Font getFont() {
       return myFont;
@@ -127,6 +114,16 @@ public abstract class TextComponentBase extends RenderableComponentBase {
     */
    public void setVerticalAlignment(VerticalAlignment vAlignment) {
       this.vAlignment = vAlignment;
+   }
+      
+   /* --- begin Renderable implementation --- */
+   
+   protected static RenderProps defaultRenderProps(HasProperties host) {
+      return RenderProps.createFaceProps(host);
+   }
+   
+   public RenderProps createRenderProps() {
+      return defaultRenderProps (this);
    }
    
    @Override

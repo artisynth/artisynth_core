@@ -120,7 +120,7 @@ public class IsRenderableHolder extends RenderableComponentBase {
       }
       myRenderable = renderable;
       myProps = new PropertyList (IsRenderableHolder.class, RenderableComponentBase.class);
-      myProps.add ("renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(null);
       if (myRenderable instanceof HasProperties) {
          myProps.addReadOnly("renderable", "the held renderable object");
       }
@@ -218,6 +218,11 @@ public class IsRenderableHolder extends RenderableComponentBase {
       myRenderable.prerender(list);
    }
    
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
+
    @Override
    public void render(Renderer renderer, int flags) {
       myRenderable.render(renderer, flags);

@@ -30,10 +30,10 @@ public class FaceComponent extends RenderableComponentBase {
    boolean useVertexColouring = false;
    
    public static PropertyList myProps =
-      new PropertyList (FaceComponent.class, ModelComponentBase.class);
+      new PropertyList (FaceComponent.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(null);
       myProps.addReadOnly ("normal", "face normal in mesh coordinates");
       myProps.addReadOnly ("worldNormal", "face normal in world coordinates");
       myProps.addReadOnly ("faceIndex", "index of the face");
@@ -56,6 +56,8 @@ public class FaceComponent extends RenderableComponentBase {
       return myFace.getIndex();
    }
   
+   /* --- begin Renderable implementation --- */
+   
    @Override
    public void prerender(RenderList list) {
       HalfEdge he0 = myFace.firstHalfEdge();
@@ -65,6 +67,11 @@ public class FaceComponent extends RenderableComponentBase {
          he = he.getNext();
       } while (he != he0);
       myFace.computeRenderNormal ();
+   }
+   
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
    }
 
    @Override

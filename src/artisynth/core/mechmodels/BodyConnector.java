@@ -88,11 +88,6 @@ public abstract class BodyConnector extends RenderableComponentBase
    
    protected static VectorNd ZERO_VEC6 = new VectorNd(6);
 
-   protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createRenderProps (host);
-      return props;
-   }
-
    public static PropertyList myProps =
       new PropertyList (
          BodyConnector.class, RenderableComponentBase.class);
@@ -116,6 +111,7 @@ public abstract class BodyConnector extends RenderableComponentBase
    Twist myVelAB = new Twist(); // velocity of A wrt B as seen in G
 
    static {
+      myProps.remove ("renderProps");
       myProps.add ("enabled isEnabled *", "constraint is enabled", true);
       myProps.addReadOnly (
          "bilateralForceInA", "bilateral constraint force as seen in body A");
@@ -137,7 +133,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          "drawFrameC", "if true, draw the C coordinate frame", 
          DEFAULT_DRAW_FRAME_C);
       myProps.add (
-         "renderProps * *", "renderer properties", defaultRenderProps (null));
+         "renderProps", "renderer properties", defaultRenderProps (null));
       myProps.add (
          "linearCompliance",
          "compliance along linear directions", 0, "NS NW");
@@ -606,10 +602,9 @@ public abstract class BodyConnector extends RenderableComponentBase
       return myProps;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       myAxisLength = DEFAULT_AXIS_LENGTH;
-      setRenderProps (defaultRenderProps (null));
    }
 
    /** 
@@ -2490,7 +2485,7 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    @Override
-   public ModelComponent copy (
+   public BodyConnector copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       BodyConnector copy = (BodyConnector)super.copy (flags, copyMap);
 
@@ -2804,10 +2799,6 @@ public abstract class BodyConnector extends RenderableComponentBase
       else {
          TCW.p.updateBounds (pmin, pmax);
       }
-   }
-
-   public RenderProps createRenderProps() {
-      return defaultRenderProps (this);
    }
 
    public void prerender (RenderList list) {

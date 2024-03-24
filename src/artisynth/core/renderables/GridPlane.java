@@ -23,8 +23,9 @@ public class GridPlane extends RenderableComponentBase {
 
    public static PropertyList myProps =
       new PropertyList(GridPlane.class, RenderableComponentBase.class);
+
    static {
-      myProps.add("renderProps * *", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(defaultRenderProps(null));
       myProps.add("resolution", "plane resolution", myDefaultResolution);
       myProps.add("size", "plane size", myDefaultSize);
       myProps.add("position", "position of the grid coordinate frame", null);
@@ -40,10 +41,20 @@ public class GridPlane extends RenderableComponentBase {
    }
    
    public GridPlane(RigidTransform3d trans, Vector2d size, Vector2d resolution) {
-      myRenderProps = createRenderProps();
       setGridToWorld(trans);
       setSize(size);
       setResolution(resolution);
+   }
+
+   /* --- begin Renderable implementation --- */
+   
+   public static RenderProps defaultRenderProps(GridPlane comp) {
+      RenderProps props = RenderProps.createLineProps(comp);
+      return props;
+   }
+   
+   public RenderProps createRenderProps() {
+      return defaultRenderProps(this);
    }
 
    @Override
@@ -114,11 +125,6 @@ public class GridPlane extends RenderableComponentBase {
       if (!myResolution.equals(res)) {
          myResolution = new Vector2d((int)res.x, (int)res.y);
       }
-   }
-
-   public RenderProps createRenderProps() {
-      RenderProps props = RenderProps.createLineProps(this);
-      return props;
    }
 
    /**

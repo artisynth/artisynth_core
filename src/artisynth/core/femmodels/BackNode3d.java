@@ -5,6 +5,7 @@ import java.io.*;
 
 import maspack.matrix.*;
 import maspack.geometry.*;
+import maspack.properties.*;
 import maspack.util.*;
 import maspack.render.*;
 import artisynth.core.mechmodels.*;
@@ -30,6 +31,17 @@ public class BackNode3d extends DynamicComponentBase
    boolean myRestExplicitP = false;
    boolean myPosValidP = false;
 
+   public static PropertyList myProps =
+      new PropertyList (BackNode3d.class, DynamicComponentBase.class);
+
+   static {
+      myProps.remove ("renderProps");
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+   
    public BackNode3d (FemNode3d node) {
       myNode = node;
       myPosValidP = false;
@@ -456,11 +468,19 @@ public class BackNode3d extends DynamicComponentBase
       TransformGeometryContext context, int flags) {
       // no dependencoes
    }
-
+   
+   /* --- begin Renderable implementation --- */
+   
    @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
+
    public void render (Renderer renderer, int flags) {
    }
 
+   /* --- end Renderable implementation --- */
+   
    public void setDynamic (boolean enable) {
       super.setDynamic (enable);
    }

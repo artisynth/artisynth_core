@@ -328,7 +328,7 @@ public class PlanarPoint extends Point implements PlanarComponent {
       }
    }
 
-   public ModelComponent copy (
+   public PlanarPoint copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       PlanarPoint comp = (PlanarPoint)super.copy (flags, copyMap);
       comp.myPointBlock = null;

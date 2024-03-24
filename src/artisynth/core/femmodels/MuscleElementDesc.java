@@ -102,7 +102,7 @@ public class MuscleElementDesc
       new PropertyList (MuscleElementDesc.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(null);
       myProps.add ("direction", "fibre direction", Vector3d.ZERO);
       myProps.addReadOnly (
          "netExcitation", "total excitation including excitation sources");
@@ -289,32 +289,13 @@ public class MuscleElementDesc
   }
 
    // END ExcitationComponent implementation
-   
-   // public double getNetExcitation() {
-   //    return ExcitationUtils.getAncestorNetExcitation (
-   //       this, /*up to grandparent=*/2);
-   // }
 
-//   /**
-//    * {@inheritDoc}
-//    */
-//   @Override
-//   public void getSoftReferences (List<ModelComponent> refs) {
-//      super.getSoftReferences (refs);
-//      if (myExcitationSources != null) {
-//         myExcitationSources.getSoftReferences (refs);
-//      }
-//   }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//   @Override
-//   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
-//      super.updateReferences (undo, undoInfo);
-//      myExcitationSources = ExcitationUtils.updateReferences (
-//         this, myExcitationSources, undo, undoInfo);
-//   }
+   /* --- begin Renderable implementation --- */
+  
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
 
    public void updateBounds(Vector3d pmin, Vector3d pmax) {
       super.updateBounds(pmin, pmax);

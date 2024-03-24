@@ -89,10 +89,9 @@ public class SegmentedPlanarConnector extends BodyConnector
       return myProps;
    }
 
-   public void setDefaultValues() {
+   protected void setDefaultValues() {
       super.setDefaultValues();
       myPlaneSize = defaultPlaneSize;
-      setRenderProps (defaultRenderProps (null));
    }
 
    public double getPlaneSize() {
@@ -390,7 +389,7 @@ public class SegmentedPlanarConnector extends BodyConnector
    }
 
    @Override
-   public ModelComponent copy (
+   public SegmentedPlanarConnector copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       SegmentedPlanarConnector copy =
          (SegmentedPlanarConnector)super.copy (flags, copyMap);

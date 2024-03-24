@@ -8,6 +8,7 @@ import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.properties.HasProperties;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 
@@ -48,9 +49,8 @@ public class ExactWrappedSpring extends RenderableComponentBase {
    public PropertyList getAllPropertyInfo () {
       return myProps;
    }
-
+   
    static {
-      myProps.add ("renderProps * *", "renderer properties", null);
       myProps.addReadOnly ("length", "length of the spring");
       myProps.addReadOnly ("lengthDot", "derivative of the length of the spring");
    }
@@ -63,7 +63,7 @@ public class ExactWrappedSpring extends RenderableComponentBase {
     */
    public ExactWrappedSpring (String name) {
       setName (name);
-      myRenderProps = new RenderProps ();
+      //setRenderProps (createRenderProps());
    }
 
    public ArrayList<Point3d> getAllABPoints () {

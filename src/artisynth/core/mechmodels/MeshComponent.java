@@ -22,6 +22,7 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.PolarDecomposition3d;
 import maspack.matrix.Vector3d;
+import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.render.Renderer;
@@ -67,9 +68,6 @@ public class MeshComponent extends RenderableComponentBase
    protected ColorMixing myVertexColorMixing = DEFAULT_VERTEX_COLOR_MIXING;
 
    static {
-      myProps.add(
-         "renderProps * *", "render properties for this component",
-         createDefaultRenderProps());
       myProps.add (
          "colorInterpolation", "interpolation for vertex coloring", 
          DEFAULT_COLOR_INTERPOLATION);
@@ -292,28 +290,8 @@ public class MeshComponent extends RenderableComponentBase
       mySelectable = enable;
    }
 
-   public RenderProps createRenderProps() {
-      return RenderProps.createRenderProps(this);
-      // MeshBase mesh = getMesh();
-      // if (mesh != null) {
-      //    RenderProps props = mesh.createRenderProps(this);
-      //    return props;
-
-      // }
-      // else {
-      //    return RenderProps.createRenderProps(this);
-      // }
-   }
-
-   private static RenderProps createDefaultRenderProps() {
-      RenderProps mr = new RenderProps();
-      return mr;
-   }
-
-   public void setDefaultValues() {
-      setRenderProps(createDefaultRenderProps());
-   }
-
+   /* --- begin Renderable implementation --- */
+   
    public void prerenderMesh () {
       MeshBase renderMesh = getMesh();
       if (renderMesh != null) {

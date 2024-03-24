@@ -24,7 +24,7 @@ import artisynth.core.util.*;
  * NOTE: This class is still under construction. scaleDistance(),
  * transformGeometry(), and scan() and write() are unlikely to work properly.
  */
-public abstract class ParticleConstraintBase extends ConstrainerBase
+public abstract class ParticleConstraintBase extends RenderableConstrainerBase
    implements ScalableUnits {
 
    protected class ParticleInfo {
@@ -49,7 +49,8 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
    private double myCompliance = 0;
 
    public static PropertyList myProps =
-      new PropertyList (ParticleConstraintBase.class, ConstrainerBase.class);
+      new PropertyList (
+         ParticleConstraintBase.class, RenderableConstrainerBase.class);
 
    static {
       myProps.add (

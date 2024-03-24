@@ -336,7 +336,7 @@ public class FrameMarker extends Marker {
    }
 
    @Override
-   public ModelComponent copy (
+   public FrameMarker copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FrameMarker m = (FrameMarker)super.copy (flags, copyMap);
 

@@ -86,7 +86,7 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       new PropertyList (AuxMaterialElementDesc.class, RenderableComponentBase.class);
 
    static {
-      myProps.add ("renderProps", "render properties", null);
+      myProps.get("renderProps").setDefaultValue(null);
       myProps.add ("fraction", "material fraction", 1);
 //      myProps.add (
 //         "material", "fem material parameters", null);
@@ -364,7 +364,13 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       pw.println ("]");
    }
 
+   @Override
+   public boolean defaultRenderPropsAreNull() {
+      return true;
+   }
 
+   /* --- begin Renderable implementation --- */
+   
    @Override
    public void render(Renderer renderer, int flags) {
       render (renderer, myRenderProps, flags);
@@ -461,6 +467,8 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       }
       
    }
+   
+   /* --- begin state implementation --- */
 
    public boolean hasState() {
       FemMaterial mat = getEffectiveMaterial();

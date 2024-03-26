@@ -1562,6 +1562,8 @@ TransformableGeometry, ScalableUnits {
       myConstrainers.removeAll();
    }
 
+   /* ----- Renderables ------ */
+
    public ComponentListView<RenderableComponent> renderables() {
       return myRenderables;
    }

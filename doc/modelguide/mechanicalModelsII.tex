@@ -720,6 +720,425 @@ load and initially appear as in Figure
 legacy OpenGL 2 viewer (command line option {\tt -GLVersion 2}), bump
 mapping will not be supported and will not appear.
 
+\section{Custom rendering}
+
+It is often useful to add custom rendering to an application.  For
+example, one may wish to render forces acting on bodies, or marker
+positions that are not otherwise assigned to a component.  Custom
+rendering is relatively easy to do, as described in this section.
+
+\subsection{Component {\tt render()} methods}
+\label{RenderMethods:sec}
+
+ArtiSynth components that are visible in the viewer have a {\tt
+render()} method that is responsible for their rendering.  This method
+has the signature
+%
+\begin{lstlisting}[]
+  void render (Renderer renderer, int flags);
+\end{lstlisting}
+%
+where the
+\javaclass[maspack.render]{Renderer} 
+supplies a large set of methods for performing the actual rendering,
+and {\tt flags} provides a few flags as described in the
+\javamethodAlt{maspack.render.IsRenderable.render()}{API documentation}.
+The methods supplied by the renderer include ones for drawing simple
+primitives such as points, lines, and triangles; simple 3D shapes such
+as cubes, cones, cylinders and spheres; and text components.
+
+\begin{sideblock}
+A full description of the {\tt Renderer} can be obtained
+by checking its 
+\javaclassAlt{maspack.render.Renderer}{API documentation}
+and also by consulting the ``Rendering'' section of the
+\artisynthManual{maspack}{Maspack Reference Manual}.
+\end{sideblock}
+
+A small sampling of the methods supplied by a {\tt Renderer} include:
+%
+\begin{methodtable}{0.62}{0.38}
+\midline
+\multicolumn{2}{l}{Control render settings:}\\
+\midline
+%
+\methodentry
+{maspack.render.Renderer.setColor(Color)}%
+{void setColor(Color c)}%
+{set the current color.}%
+%
+\methodentry
+{maspack.render.Renderer.setPointSize(float)}%
+{void setPointSize(float size)}%
+{Set the point size, in pixels.}%
+%
+\methodentry
+{maspack.render.Renderer.setLineWidth(float)}%
+{void setLineWidth(float width)}%
+{Set the line width, in pixels.}%
+%
+\methodentry
+{maspack.render.Renderer.setShading(Shading)}%
+{void setShading(Shading shading)}%
+{Set the shading model.}%
+%
+\midline
+\multicolumn{2}{l}{Draw simple pixel-based primitives:}\\
+\midline
+%
+\methodentry
+{maspack.render.Renderer.drawPoint(Vector3d)}%
+{void drawPoint(Vector3d p)}%
+{Draw a point.}%
+%
+\methodentry
+{maspack.render.Renderer.drawLine(Vector3d,Vector3d)}%
+{void drawLine(Vector3d p0, Vector3d p1)}%
+{Draw a line between points.}%
+%
+\methodentry
+{maspack.render.Renderer.drawTriangle(Vector3d,Vector3d,Vector3d)}%
+{void drawLine(Vector3d p0, Vector3d p1, Vector3d p2)}%
+{Draw a triangle from three points.}%
+%
+\midline
+\multicolumn{2}{l}{Draw solid 3D shapes:}\\
+\midline
+%
+\methodentry
+{maspack.render.Renderer.drawSphere(Vector3d,double)}%
+{void drawSphere(Vector3d p, double radius)}%
+{Draw a sphere centered at {\tt p}.}%
+%
+\methodentry
+{maspack.render.Renderer.drawCylinder(Vector3d,Vector3d,double,boolean)}%
+{void drawCylinder(Vector3d p0, Vector3d p1, double radius, \brh boolean capped)}%
+{Draw a cylinder between {\tt p0} and {\tt p1}.}%
+%
+\methodentry
+{maspack.render.Renderer.drawArrow(Vector3d,Vector3d,double,double,boolean)}%
+{void drawArrow(Vector3d p, Vector3d dir, double scale,\brh double radius, boolean capped)}%
+{Draw an arrow starting at point {\tt p} and extending to point {\tt p + scale*dir}.}%
+%
+\methodentry
+{maspack.render.Renderer.drawBox(Vector3d,Vector3d)}%
+{void drawBox(Vector3d p, Vector3d widths)}%
+{Draw a box centered on {\tt p}.}%
+%
+\midline
+\multicolumn{2}{l}{Draw points and lines based on specified render properties:}\\
+\midline
+%
+\methodentry
+{maspack.render.Renderer.drawPoint(RenderProps,Vector3d,boolean)}%
+{void drawPoint(RenderProps props, Vector3d p, boolean highlight)}%
+{Draw a point.}%
+\methodentry
+{maspack.render.Renderer.drawLine(RenderProps,Vector3d,Vector3d,boolean)}%
+{void drawLine(RenderProps props, Vector3d p0, Vector3d p1,\brh boolean highlight)}%
+{Draw a line between points.}%
+%
+\midline
+\end{methodtable}
+%
+
+For example, the {\tt render()} implementation below renders three
+spheres connected by pixel-based lines, as show in
+Figure \ref{renderExamples:fig} (left):
+%
+\begin{lstlisting}[]
+public void render (Renderer renderer, int flags) {
+   // sphere centers
+   Vector3d p0 = new Vector3d (-0.5, 0, 0.5);
+   Vector3d p1 = new Vector3d (0.5, 0, 0.5);
+   Vector3d p2 = new Vector3d (0, 0, -0.5);
+
+   // draw the spheres using a golden-yellow color
+   renderer.setColor (new Color (1f, 0.8f, 0f));
+   double radius = 0.1;
+   renderer.drawSphere (p0, radius);
+   renderer.drawSphere (p1, radius);
+   renderer.drawSphere (p2, radius);
+
+   // connect spheres by pixel-based lines
+   renderer.setColor (Color.RED);
+   renderer.setLineWidth (3);
+   renderer.drawLine (p0, p1);
+   renderer.drawLine (p1, p2);
+   renderer.drawLine (p2, p0);
+}
+\end{lstlisting}
+%
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/RenderSpheresLines}
+ \includegraphics[]{images/RenderSquare}
+\else
+ \includegraphics[width=2.5in]{images/RenderSpheresLines}
+ \includegraphics[width=2.5in]{images/RenderSquare}
+\fi
+\end{tabular}
+\end{center}
+\caption{Rendered images produced with sample implementations of {\tt render()}.}
+\label{renderExamples:fig}
+\end{figure}
+
+A {\tt Renderer} also contains {\it draw mode} methods to implement the drawing of points,
+lines and triangles in a manner similar to the {\it immediate mode} of legacy OpenGL,
+%
+\begin{lstlisting}[]
+   renderer.beginDraw (drawModeType);
+
+      ... define vertices and normals ...
+
+   renderer.endDraw();
+\end{lstlisting}
+%
+where {\tt drawMode} is an instance
+of \javaclass[maspack.render]{Renderer\$DrawMode} and includes points,
+lines, line strips and loops, triangles, and triangle strips and
+fans. The draw mode methods include:
+%
+\begin{methodtable}{0.48}{0.52}
+\midline
+%
+\methodentry
+{maspack.render.Renderer.beginDraw(DrawMode)}%
+{void beginDraw(DrawMode mode)}%
+{Begin a draw mode sequence.}%
+%
+\methodentry
+{maspack.render.Renderer.addVertex(Vector3d)}%
+{void addVertex(Vector3d vtx)}%
+{Add a vertex to the object being drawn.}%
+%
+\methodentry
+{maspack.render.Renderer.setNormal(Vector3d)}%
+{void setNormal(Vector3d nrm)}%
+{Sets the current vertex normal for the object being drawn.}%
+%
+\methodentry
+{maspack.render.Renderer.endDraw()}%
+{void endDraw()}%
+{Finish a draw mode sequence.}%
+%
+\midline
+\end{methodtable}
+%
+The {\tt render()} implementation below uses draw mode to
+render the image shown in Figure \ref{renderExamples:fig}, right:
+%
+\begin{lstlisting}[]
+public void render (Renderer renderer, int flags) {
+   // the corners of the square
+   Vector3d p0 = new Vector3d (0, 0, 0);
+   Vector3d p1 = new Vector3d (1, 0, 0);
+   Vector3d p2 = new Vector3d (1, 0, 1);
+   Vector3d p3 = new Vector3d (0, 0, 1);
+   
+   renderer.setShading (Shading.NONE);  // turn off lighting
+
+   renderer.setPointSize (6);
+
+   renderer.beginDraw (DrawMode.POINTS);
+   renderer.setColor (Color.RED);
+   renderer.addVertex (p0);
+   renderer.addVertex (p1);
+   renderer.addVertex (p2);
+   renderer.addVertex (p3);
+   renderer.endDraw();
+
+   renderer.setLineWidth (3);
+   renderer.setColor (Color.BLUE);
+   renderer.beginDraw (DrawMode.LINE_LOOP);
+   renderer.addVertex (p0);
+   renderer.addVertex (p1);
+   renderer.addVertex (p2);
+   renderer.addVertex (p3);
+   renderer.endDraw();
+
+   renderer.setShading (Shading.FLAT);  // restore lighting  // sphere centers
+}
+\end{lstlisting}
+%
+Finally, a {\tt Renderer} contains methods for the rendering of {\it
+render objects}, which are collections of vertex, normal and color
+information that can be rendered quickly; it may be more efficient to
+use render objects for complex rendering involving large numbers of
+primitives. Full details on this, and other features of the rendering
+interface, are given in the ``Rendering'' section of the
+\artisynthManual{maspack}{Maspack Reference Manual}.
+
+\subsection{Implementing custom rendering}
+
+There are two easy ways to add custom rendering to a model:
+
+\begin{enumerate}
+
+\item Override the root model's {\tt render()} method;
+
+\item Define a custom rendering component, with its own {\tt render()} method, and add it to
+the model. This approach is more modular and makes it easier to reuse
+the rendering between models.
+
+\end{enumerate}
+
+To override the root model render method, one simply adds the
+following declaration to the model's definition:
+%
+\begin{lstlisting}[]
+   void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
+      
+      ... custom rendering code goes here ...
+
+   }
+\end{lstlisting}
+%
+A call to {\tt super.render()} is recommended to ensure that any
+rendering done by the model's base class will still occur. Subsequent
+statements should then use the {\tt renderer} object to perform
+whatever rendering is required, using methods such as described in
+Section \ref{RenderMethods:sec} or in the ``Rendering'' section of the
+\artisynthManual{maspack}{Maspack Reference Manual}.
+
+To create a custom rendering component, one can simply declare a subclass
+of \javaclass[artisynth.core.modelbase]{RenderableComponentBase}
+with a custom {\tt render()} method:
+%
+\begin{lstlisting}[]
+import artisynth.core.modelbase.*;
+import maspack.render.*;
+
+class MyRenderComp extends RenderableComponentBase {
+  
+   void render (Renderer renderer, int flags) {
+      
+      ... custom rendering code goes here ...
+
+   }
+}
+\end{lstlisting}
+%
+There is no need to call {\tt super.render()} since 
+\javaclass[artisynth.core.modelbase]{RenderableComponentBase} 
+does not provide an implementation of {\tt render()}.  It does,
+however, provide default implementations of everything else required
+by the \javaclass[maspack.render]{Renderable} interface. This includes
+exporting render properties via the composite property {\sf
+renderProps}, which the {\tt render()} method may use to control the
+rendering appearance in a manner consistent with
+Section \ref{SettingRenderProperties:sec}.
+
+Once a custom rendering component has been defined, it can be created
+and added to the model within the {\tt build()} method:
+%
+\begin{lstlisting}[]
+   MechModel mech; 
+   ...
+
+   MyRenderComp rcomp = new MyRenderComp();
+   mech.addRenderable (rcomp);
+\end{lstlisting}
+%
+In this example, the component is added to the {\tt MechModel}'s
+subcomponent list {\tt renderables}, which ensures that it will be
+found by the rendering code. Methods for managing this list include:
+%
+\begin{methodtable}{0.55}{0.45}
+\midline
+%
+\methodentry
+{\mech.MechModel.addRenderable()}
+{void addRenderable(Renderable r)}%
+{Adds a renderable to the model.}%
+%
+\methodentry
+{\mech.MechModel.removeRenderable()}
+{boolean removeRenderable(Renderable r)}%
+{Removes a renderable from the model.}%
+%
+\methodentry
+{\mech.MechModel.clearRenderables()}
+{void clearRenderables()}%
+{Removes all renderables from the model.}%
+%
+\methodentry
+{\mech.MechModel.renderables()}
+{ComponentListView<RenderableComponent> renderables()}%
+{Returns the list of all renderables.}%
+\midline
+\end{methodtable}
+%
+
+\subsection{Example: rendering body forces}
+\label{RenderingBodyForces:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/BodyForceRendering}
+\else
+ \includegraphics[width=3.75in]{images/BodyForceRendering}
+\fi
+\end{center}
+\caption{{\tt BodyForceRendering} being run in ArtiSynth.}
+\label{BodyForceRendering:fig}
+\end{figure}
+
+The application model
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.BodyForceRendering
+\end{verbatim}
+%
+gives an example of custom rendering to draw the force and moment
+vectors acting on a rigid body as cyan and green arrows,
+respectively. The model extends {\tt RigidBodySpring}
+(Section \ref{RigidBodySpringExample:sec}), defines a custom
+renderable class named {\tt ForceRenderer}, and then uses this to
+render the forces on the box in the original model. The code, with the
+include files omitted, is listed below:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-10}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/BodyForceRendering.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=12]{../../src/artisynth/demos/tutorial/BodyForceRendering.java}
+\fi
+\lstset{numbers=none}
+%
+The force renderer is defined at lines (4-34). For attributes, it
+contains a reference to the rigid body, plus scale factors for
+rendering the force and moment. Within the {\tt render()} method
+(lines 16-33), the force and moment vectors are draw as cyan and green
+arrows, starting at the current body position, and scaled by their
+respective factors. This scaling is needed to ensure the arrows have a
+size appropriate to the viewer, and separate scale factors are needed
+because the force and moment vectors have different units. The arrow
+radii are given by the renderer's {\sf lineRadius} render property
+(lines 22 and 30).
+
+The {\tt build()} method starts by calling the super class {\tt
+build()} method to create the original model (line 36), and then uses
+{\tt findComponent()} to retrieve its {\tt MechModel}, within which
+the ``{\tt box}'' rigid body is located (lines 40-41). A {\tt
+ForceRenderer} is then created for this body, with force and moment
+scale factors of 0.1 and 0.5, and added to the {\tt MechModel} (lines
+44-45). The renderer's {\sf lineRadius} render property is then set to
+0.01 (line 48).
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+BodyForceRenderer} from the {\sf Models} menu. When run, the model
+should appear as in Figure \ref{BodyForceRenderer:fig}, showing the
+force and moment vectors acting on the box.
+
 \section{Point-to-point muscles, tendons and ligaments}
 \label{PointToPointMuscles:sec}
 

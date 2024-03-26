@@ -471,6 +471,12 @@ public class Point extends DynamicComponentBase
 
    /* ======== Renderable implementation ======= */
 
+   /**
+    * Returns the cached copy of this point's position coordinates
+    * that should be used for rendering. Should not be modified.
+    * 
+    * @return rendering copy of the position coordinates
+    */
    public float[] getRenderCoords() {
       return myRenderCoords;
    }

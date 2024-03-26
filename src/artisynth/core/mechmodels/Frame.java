@@ -911,6 +911,16 @@ public class Frame extends DynamicComponentBase
 
    /* ======== Renderable implementation ======= */
 
+   /**
+    * Returns the cached copy of this frame's pose that should be
+    * used for rendering. Should not be modified.
+    * 
+    * @return rendering copy of the pose
+    */
+   public RigidTransform3d getRenderFrame() {
+      return myRenderFrame;
+   }
+   
    static protected RenderProps defaultRenderProps(HasProperties host) {
       return RenderProps.createLineProps (host);
    }

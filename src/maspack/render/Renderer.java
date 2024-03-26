@@ -618,6 +618,7 @@ public interface Renderer {
     */
    void drawTriangle (float[] pnt0, float[] pnt1, float[] pnt2);
    
+
    // Solid drawing primitives
    
    /**
@@ -1114,7 +1115,7 @@ public interface Renderer {
     * color rather than the line color specified in <code>props</code>.
     * 
     * @param props render properties used for drawing the ray
-    * @param pnt0 origin of the ray
+    * @param pnt origin of the ray
     * @param dir direction of the ray
     * @param scale second point
     * @param highlight if <code>true</code>, indicates that highlighting, if

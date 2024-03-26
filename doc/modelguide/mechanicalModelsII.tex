@@ -730,18 +730,24 @@ rendering is relatively easy to do, as described in this section.
 \subsection{Component {\tt render()} methods}
 \label{RenderMethods:sec}
 
-ArtiSynth components that are visible in the viewer have a {\tt
-render()} method that is responsible for their rendering.  This method
+All renderable ArtiSynth components implement
+the \javaclass[maspack.render]{IsRenderable} interface, which
+contains the methods
+\javamethod[maspack.render.IsRenderable]{prerender()} and
+\javamethod[maspack.render.IsRenderable]{render()}.
+As its name implies, {\tt prerender()} is called prior to rendering
+and is discussed in Section \ref{PrerenderMethod:sec}.  The {\tt
+render()} method, discussed here, performs the actual rendering. It
 has the signature
 %
 \begin{lstlisting}[]
-  void render (Renderer renderer, int flags);
+  void render (Renderer renderer, int flags)
 \end{lstlisting}
 %
 where the
 \javaclass[maspack.render]{Renderer} 
-supplies a large set of methods for performing the actual rendering,
-and {\tt flags} provides a few flags as described in the
+supplies a large set of methods for performing the rendering, and {\tt
+flags} is described in the
 \javamethodAlt{maspack.render.IsRenderable.render()}{API documentation}.
 The methods supplied by the renderer include ones for drawing simple
 primitives such as points, lines, and triangles; simple 3D shapes such
@@ -1031,7 +1037,19 @@ by the \javaclass[maspack.render]{Renderable} interface. This includes
 exporting render properties via the composite property {\sf
 renderProps}, which the {\tt render()} method may use to control the
 rendering appearance in a manner consistent with
-Section \ref{SettingRenderProperties:sec}.
+Section \ref{SettingRenderProperties:sec}. It also includes an
+implementation of {\tt prerender()} which by default does nothing.  As
+discussed more in Section \ref{PrerenderMethod:sec}, this is often
+acceptable {\it unless}:
+
+\begin{enumerate}
+
+\item rendering will be adversely affected by quantities
+being updated asynchronously within the simulation;
+
+\item the component contains subcomponents that also need to be rendered.
+
+\end{enumerate}
 
 Once a custom rendering component has been defined, it can be created
 and added to the model within the {\tt build()} method:
@@ -1138,6 +1156,108 @@ To run this example in ArtiSynth, select {\sf All demos > tutorial >
 BodyForceRenderer} from the {\sf Models} menu. When run, the model
 should appear as in Figure \ref{BodyForceRendering:fig}, showing the
 force and moment vectors acting on the box.
+
+\subsection{The {\tt prerender()} method}
+\label{PrerenderMethod:sec}
+
+Component {\tt render()} methods are called within ArtiSynth's
+graphics thread, and so are called asynchronously with respect to the
+simulation thread(s). This means that the simulation may be updating
+component attributes, such as positions or forces, at the same time
+they are being accessed within {\tt render()}, leading to inconsistent
+results in the viewer. While these inconsistencies may not be
+significant, particularly if the attributes are changing slowly
+between time steps, some applications may wish to avoid them.  For
+this, renderable components also implement a
+\javamethod[maspack.render.IsRenderable]{prerender()}
+method, with the signature
+%
+\begin{lstlisting}[]
+  void prerender (RenderList list);
+\end{lstlisting}
+%
+that is called in synchronization with the simulation prior to
+rendering. Its purpose is to:
+
+\begin{itemize}
+
+\item Make copies of simulation-varying attributes so that
+they can be used without conflict in the {\tt render()} method;
+
+\item Identify to the system any additional subcomponents that also need
+to be rendered.
+
+\end{itemize}
+
+The first task is usually accomplished by copying simulation-varying
+attributes into cache variables stored within the component itself.
+For example, if a component is responsible for rendering the forces of
+a rigid body (as per Section \ref{RenderingBodyForces:sec}), it may
+wish to make a local copy of these forces within prerender:
+%
+\begin{lstlisting}[]
+   
+   RigidBody myBody;                     // body whose forces are being rendered
+   Wrench myRenderForce = new Wrench();  // copy of forces used for rendering
+
+   void prerender (RenderList list) {
+      myRenderForce.set (myBody.getForce());
+   }
+
+   void render (Renderer renderer, int flags) {
+      // do rendering with myRenderForce
+      ...
+   }
+\end{lstlisting}
+%
+
+The second task, identifying renderable subcomponents,
+is accomplished using the
+\javamethod[maspack.render.RenderList]{addIfVisible()}
+and 
+\javamethod[maspack.render.RenderList]{addIfVisibleAll()}
+methods of the
+\javaclass[maspack.render]{RenderList} argument, as
+in the following examples:
+%
+\begin{lstlisting}[]
+  // additional sub components that need to be rendered
+  RenderableComponent mySubCompA;
+  RenderableComponent mySubCompB;
+ 
+  void prerender (RenderList list) {
+     list.addIfVisible (mySubCompA);
+     list.addIfVisible (mySubCompB);
+     ...
+
+   }
+\end{lstlisting}
+%
+\begin{lstlisting}[]
+  // list of child frame components that also need to be rendered
+  RenderableComponentList<Frame> myFrames;
+
+  void prerender (RenderList list) {
+     list.addIfVisibleAll (myFrames);
+     ...
+
+   }
+\end{lstlisting}
+%
+
+It should be noted that some ArtiSynth components already support
+cached copies of attributes that can be used for rendering.
+In particular,
+\javaclass[artisynth.core.mechmodels]{Point} (whose
+subclasses include {\tt Particle} and {\tt FemNode3d}) uses {\tt
+prerender()} to cache its position as an array of {\tt float[]}
+which can be obtained using
+\javamethod[artisynth.core.mechmodels.Point]{getRenderCoords()},
+and 
+\javaclass[artisynth.core.mechmodels]{Frame} (whose
+subclasses include {\tt RigidBody}) caches its pose as a {\tt
+RigidTransform3d} that can be obtained with
+\javamethod[artisynth.core.mechmodels.Frame]{getRenderFrame()}.
 
 \section{Point-to-point muscles, tendons and ligaments}
 \label{PointToPointMuscles:sec}

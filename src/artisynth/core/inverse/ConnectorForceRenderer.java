@@ -26,7 +26,6 @@ public class ConnectorForceRenderer extends MonitorBase {
    float[] end = new float[3];
    Vector3d startvec = new Vector3d ();
    Vector3d endvec = new Vector3d ();
-   Vector3d myNormal = new Vector3d ();
 
    public static final double DEFAULT_ARROW_SIZE = 1d;
    double arrowSize = DEFAULT_ARROW_SIZE;
@@ -35,10 +34,6 @@ public class ConnectorForceRenderer extends MonitorBase {
       super ();
       myConnector = con;
       setRenderProps (createRenderProps ());
-      RigidTransform3d tr = myConnector.getCurrentTDW ();
-
-      myNormal.transform (tr, Vector3d.Z_UNIT);
-      myNormal.normalize ();
    }
 
    protected RenderProps myRenderProps;
@@ -103,9 +98,11 @@ public class ConnectorForceRenderer extends MonitorBase {
    }
 
    public void prerender (PlanarConnector myConnector) {
-      startvec = myConnector.getCurrentTDW ().p;
-      endvec.set (myNormal);
-      endvec.scale (myConnector.getPlanarActivation () * arrowSize);
+      RigidTransform3d TDW = myConnector.getCurrentTDW ();
+      startvec = TDW.p;
+      Vector3d nrm = new Vector3d (Vector3d.Z_UNIT);
+      nrm.transform (TDW);
+      endvec.scale (myConnector.getPlanarActivation () * arrowSize, nrm);
       endvec.add (startvec);
       set (start, startvec);
       set (end, endvec);

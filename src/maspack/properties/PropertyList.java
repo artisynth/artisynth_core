@@ -217,9 +217,13 @@ public class PropertyList implements PropertyInfoList {
    public void add (PropertyDesc desc) {
       String name = desc.myName;
       if (myProps.get (name) != null) {
-         throw new IllegalStateException ("Property list for "
-         + myHostClass.getName() + ": property " + desc.myName
-         + " already exists");
+         System.out.println (
+            "WARNING: property '"+name+"' in "+myHostClass+
+            " already exists; removing previous declaration");
+         myProps.remove (name);
+         // throw new IllegalStateException ("Property list for "
+         // + myHostClass.getName() + ": property " + desc.myName
+         // + " already exists");
       }
       if (desc.isInheritable() ||
           CompositeProperty.class.isAssignableFrom (desc.getValueClass())) {

@@ -1,0 +1,122 @@
+plugins {
+   id 'java'
+   id 'eclipse'
+   id 'base'
+}
+
+java {
+   sourceCompatibility = "1.8"
+   targetCompatibility = "1.8"
+   jar.enabled = false
+}
+
+//===============================================
+// OS detection
+//===============================================
+enum SystemType {
+   Unknown,	// unknown system type
+   Linux32,
+   Linux64,
+   Windows32,
+   Windows64,
+   MacOS64
+}
+
+// detect system
+SystemType mySystem = SystemType.Unknown;
+String osname = System.getProperty ("os.name");
+String osarch = System.getProperty ("os.arch");
+if (osname.equals ("Linux")) {
+   if (osarch.endsWith ("64")) {
+      mySystem = SystemType.Linux64;
+   } else {
+      throw new GradleException ('ArtiSynth not supported on 32 bit systems')
+   }
+}
+else if (osname.startsWith ("Windows")) {
+   if (osarch.endsWith ("64")) {
+      mySystem = SystemType.Windows64;
+   } else {
+      throw new GradleException ('ArtiSynth not supported on 32 bit systems')
+   }
+}
+else if (osname.equals ("Darwin") || osname.startsWith ("Mac")) {
+   mySystem = SystemType.MacOS64;
+}
+else {
+   throw new GradleException ('Unknown operating system: ' + osname)
+}
+
+def jarFiles = fileTree(dir: "${projectDir}/lib", include: ['*.jar'])
+
+for (task in tasks.withType(JavaCompile)) {
+   task.classpath += jarFiles
+   task.options.encoding = 'UTF-8'
+}
+
+// where to download libraries from
+repositories {
+	// maven
+	mavenCentral()
+	// artisynth web
+	ivy {
+		url 'https://www.artisynth.org/files/lib/ivy'
+		patternLayout {
+			artifact '([organization]/)[module]-[revision](-[classifier])(.[ext])'
+		}
+	}
+
+} // repositories
+
+// dependencies
+dependencies {
+	// [organisation]:[module]:[revision]:[classifier]@[ext]
+	//implementation "org.jogamp.gluegen:gluegen-rt:2.3.2"
+	//implementation "org.jogamp.jogl:jogl-all:2.3.2"
+
+	//compile 'javax.media:jmf:2.1.1e'
+	//compile "org.python:jython-standalone:2.5.2"
+	//compile 'com.illposed.osc:javaosc-core:0.1'
+	//compile 'com.diffplug.matsim:matconsolectl:4.4.1'
+	//compile 'org.jsoup:jsoup:1.11.3'
+
+	//compile ':argparser:1.0'
+	//compile ':vfs2:1.0'
+	//compile ':quickhull3d:1.0'
+	//compile ':jipopt:1.0'
+	//compile ':jass:1.0'
+	//compile ':gdcm:2.8.4'
+}
+
+// specify main src and output directory
+sourceSets {
+   main {
+      java {
+         srcDirs = ['src']
+	 destinationDirectory = file('classes')
+      }
+   }
+}
+
+tasks.register("updateLibs", Exec) {
+    doFirst {
+        println "Updating artisynth libraries..."
+        workingDir = projectDir
+        if (mySystem == SystemType.Windows64) {
+            commandLine = ['cmd', '/C', 'start', '/b', 'bin\\updateArtisynthLibs.bat']
+        } else {
+            commandLine = ['./bin/updateArtisynthLibs']
+        }
+    }
+    onlyIf { !project.file("lib/argparser.jar").exists() }
+}
+
+compileJava.dependsOn(updateLibs)
+
+tasks.register('packageDist', Zip) {
+    archiveFileName = "artisynth_core-${mySystem}.zip"
+    destinationDirectory = layout.buildDirectory
+    exclude "build"
+    exclude ".git"
+    from(layout.projectDir)
+}

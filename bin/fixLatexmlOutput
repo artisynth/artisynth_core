@@ -44,6 +44,12 @@ while (<$INPUT>) {
     else {
        $line =~ s/(<td class="td"><span .*class="text lstline"><\/span>)<\/td>/\1\&nbsp;<\/td>/;  
     }
+    # replace @SPACE with an actual space. Used to help allow blank vertical
+    # spece in tables
+    $line =~ s/\@SPACE/\&nbsp;/g;
+    # replace '>@VERTSPACE[n]' with 'style="height:n;">; used to add
+    # vertical spece in tables
+    $line =~ s/>\@VERTSPACE\[(.*)\]/style="height:\1;">/g;
     # replace unicode ellipsis character with ...
     $line =~ s/\x{2026}/.../g;
     # replace unicode left quotes with ``

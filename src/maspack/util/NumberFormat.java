@@ -651,9 +651,7 @@ public class NumberFormat {
                   " sbuf=" + sbuf);
             }
          }
-         else if (type == 'e') {
-            sbuf.setCharAt (i, 'e');
-         }
+         sbuf.setCharAt (i, (char)type); // make sure we have e or E, as required
          char c = sbuf.charAt(i+1);
          if (c != '-' && c != '+') {
             sbuf.insert (i+1, '+');
@@ -804,9 +802,7 @@ public class NumberFormat {
                   " sbuf=" + sbuf);
             }
          }
-         else if (type == 'e') {
-            sbuf.setCharAt (i, 'e');
-         }
+         sbuf.setCharAt (i, (char)type); // make sure we have e or E, as required
          char c = sbuf.charAt(i+1);
          if (c != '-' && c != '+') {
             sbuf.insert (i+1, '+');

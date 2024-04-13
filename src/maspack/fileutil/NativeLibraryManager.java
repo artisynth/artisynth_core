@@ -552,8 +552,13 @@ public class NativeLibraryManager {
       // look for a default library directory in ../../../lib
       myLibDir = null;
       try {
-         String baseDir =
-            PathFinder.expand ("${srcdir NativeLibraryManager}/../../../lib");
+         // find sourceDir using the actual class instead of the name since the
+         // latter seems to leave some locked references in the lib folder.
+         File baseDir = new File(PathFinder.findSourceDir (NativeLibraryManager.class));
+         for (int i=0; i<3; i++) {
+            baseDir = baseDir.getParentFile();
+         }
+         baseDir = new File(baseDir, "lib");
          File libDir = new File (baseDir, getNativeDirectoryName());
          if (libDir.exists() && libDir.isDirectory()) {
             myLibDir = libDir;

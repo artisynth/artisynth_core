@@ -967,6 +967,14 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
       }
       return out;
    }
-   
 
+   public LinkLinkedList<T> reversed () {
+      LinkLinkedList<T> out = new LinkLinkedList<> ();
+      Link<T> b = end();
+      while (b != front) {
+         out.add (b.get());
+         b = b.previous();
+      }
+      return out;
+   }
 }

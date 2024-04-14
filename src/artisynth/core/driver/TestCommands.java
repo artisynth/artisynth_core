@@ -74,6 +74,7 @@ public class TestCommands {
                mech.writePrintStateHeader ("saveAndLoad");
                myMain.play (tsim);
                myMain.waitForStop();
+               mech.closePrintStateFile();
             }
          }
 
@@ -106,6 +107,7 @@ public class TestCommands {
                mech.writePrintStateHeader ("saveAndLoad");
                myMain.play (tsim);
                myMain.waitForStop();
+               mech.closePrintStateFile();
 
                CompareStateFiles comparator = new CompareStateFiles();
                System.out.println (

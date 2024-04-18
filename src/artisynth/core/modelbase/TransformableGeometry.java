@@ -121,4 +121,17 @@ public interface TransformableGeometry {
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags);
 
+
+   /**
+    * Returns an index used for ordering this component within a set of
+    * components to which {@code transformGeometry()} will be
+    * applied. Components with higher values will be transformed before those
+    * with lower values.
+    */
+   default public int transformPriority() {
+      return 0;
+   }
 }
+
+
+

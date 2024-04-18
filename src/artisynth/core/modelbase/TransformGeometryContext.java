@@ -8,6 +8,8 @@ package artisynth.core.modelbase;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -30,7 +32,17 @@ public class TransformGeometryContext {
    private LinkedHashMap<TransformableGeometry,Integer> myTransformables;
    private LinkedHashSet<TransformGeometryAction> myActions;
    private LinkedHashSet<CompositeComponent> myNotifyParents;
-
+   
+   private class TransformableCompare
+      implements Comparator<TransformableGeometry> {
+      public int compare (
+         TransformableGeometry comp0, TransformableGeometry comp1) {
+         int p0 = comp0.transformPriority();
+         int p1 = comp1.transformPriority();
+         // compare so that list is sorted in descending order
+         return (p0 < p1 ? 1 : (p0 > p1 ? -1 : 0));
+      }
+   }
    /**
     * Creates a new TransformGeometryContext.
     */
@@ -424,6 +436,7 @@ public class TransformGeometryContext {
       }
       tgens.clear();
       tgens.addAll (myTransformables.keySet());
+      Collections.sort (tgens, new TransformableCompare());
       for (TransformableGeometry tg : tgens) {
          int tgflags = getFlags(tg);
          if ((tgflags & IS_TRANSFORMED) == 0) {

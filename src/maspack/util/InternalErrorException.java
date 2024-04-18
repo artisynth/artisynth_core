@@ -12,4 +12,8 @@ public class InternalErrorException extends RuntimeException {
    public InternalErrorException (String msg) {
       super (msg);
    }
+
+   public InternalErrorException (String msg, Exception source) {
+      super (msg, source);
+   }
 }

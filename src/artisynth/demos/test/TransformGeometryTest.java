@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
+import java.io.*;
 
 import maspack.util.*;
 import maspack.matrix.*;
@@ -20,6 +21,7 @@ import artisynth.core.driver.*;
 
 import artisynth.demos.mech.*;
 import artisynth.demos.fem.*;
+import artisynth.demos.tutorial.*;
 
 public class TransformGeometryTest extends UnitTest {
 
@@ -343,6 +345,12 @@ public class TransformGeometryTest extends UnitTest {
          attrs.set (b, "TCW", b.getCurrentTCW());
          attrs.set (b, "TDW", b.getCurrentTDW());
       }
+      if (c instanceof FrameSpring) {
+         FrameSpring s = (FrameSpring)c;
+         attrs.set (s, "TCW", s.getCurrentTCW());
+         attrs.set (s, "TDW", s.getCurrentTDW());
+         attrs.set (s, "TDC0", new RigidTransform3d(s.getTDC0()));
+      }
       if (c instanceof PlanarConnector) {
          PlanarConnector p = (PlanarConnector)c;
          attrs.set (p, "normal", p.getNormal());
@@ -625,6 +633,34 @@ public class TransformGeometryTest extends UnitTest {
             check.set (joint, "normal", nrm);         
          }
       }
+   }
+
+   void setFrameSpringChecks (
+      AffineTransform3dBase X, AttributeSet check, FrameSpring fspring) {
+
+      RigidTransform3d TDW0 = new RigidTransform3d();
+
+      RigidTransform3d TCW = new RigidTransform3d();
+      fspring.getCurrentTCW (TCW);
+      TDW0.mul (TCW, fspring.getTDC0());
+      transformPose (TCW, X);
+      check.set (fspring, "TCW", TCW);
+
+      RigidTransform3d TBW = new RigidTransform3d();
+      TBW.set(fspring.getFrameB().getPose());
+
+      RigidTransform3d TDW = new RigidTransform3d();
+      fspring.getCurrentTDW (TDW);
+      transformPose (TDW, X);
+      RigidTransform3d Tchk = new RigidTransform3d();
+      transformPose (TBW, X);      
+      Tchk.mul (TBW, fspring.getAttachFrameB());
+      check.set (fspring, "TDW", TDW);
+
+      RigidTransform3d TDC0 = new RigidTransform3d();
+      transformPose (TDW0, X);
+      TDC0.mulInverseLeft (TCW, TDW0);
+      check.set (fspring, "TDC0", TDC0);
    }
 
    void setPoseCheck (
@@ -1706,6 +1742,60 @@ public class TransformGeometryTest extends UnitTest {
       }
    }
 
+   // create and add a rigid body from a mesh
+   public RigidBody addBone (MechModel mech, String name) {
+      String geometryDir = PathFinder.getSourceRelativePath (
+         LumbarFrameSpring.class, "../mech/geometry/");
+      PolygonalMesh mesh = null;
+      try {
+         mesh = new PolygonalMesh (new File (geometryDir+name+".obj"));
+      }
+      catch (Exception e) {
+         throw new InternalErrorException (
+            "Can't read mesh from '"+name+"'", e);
+      }
+      RigidBody rb = RigidBody.createFromMesh (
+         name, mesh, /*density=*/1500, /*scale=*/1);
+      mech.addRigidBody (rb);
+      return rb;
+   }
+
+   public void testLumbarFrameSpring() {
+      // create mech model and set it's properties
+      MechModel mech = new MechModel ("mech");
+
+      // create two rigid bodies and second one to be fixed
+      RigidBody lumbar1 = addBone (mech, "lumbar1");
+      RigidBody lumbar2 = addBone (mech, "lumbar2");
+      lumbar1.setPose (new RigidTransform3d (-0.016, 0.039, 0));
+      lumbar2.setDynamic (false);
+
+      // flip entire mech model around
+      mech.transformGeometry (
+         new RigidTransform3d (0, 0, 0, 0, 0, Math.toRadians (90)));
+
+      //create and add the frame spring
+      FrameSpring spring = new FrameSpring (null);
+      spring.setMaterial (
+         new OffsetLinearFrameMaterial (
+            /*ktrans=*/100, /*krot=*/0.01, /*dtrans=*/0, /*drot=*/0));
+      spring.setFrames (lumbar1, lumbar2, lumbar1.getPose());
+      spring.setInitialT21 (new RigidTransform3d (0.0, 0.01, 0.0));
+      mech.addFrameSpring (spring);
+
+      AttributeSet original = getCurrentAttributes (mech);
+      AttributeSet check = getCurrentAttributes (mech);
+
+      for (AffineTransform3dBase X : myRandomTransforms) {
+         // move the whole thing
+
+         setRigidBodyChecks (X, check, lumbar1);
+         setRigidBodyChecks (X, check, lumbar2);
+         setFrameSpringChecks (X, check, spring);
+         checkTransformAndUndo (X, check, mech, mech);
+      }
+   }
+
    public void testRigidCompositeBody() {
    }
 
@@ -1719,6 +1809,7 @@ public class TransformGeometryTest extends UnitTest {
       testRigidAndMeshBodies();
       testEmbeddedMesh();
       testSkinMeshBody();
+      testLumbarFrameSpring();
    }
 
    public static void main (String[] args) {

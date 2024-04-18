@@ -1404,7 +1404,7 @@ TransformableGeometry, ScalableUnits {
       return myFieldList;
    }
 
-   public ComponentListView<RigidBody> rigidBodies() {
+   public ComponentList<RigidBody> rigidBodies() {
       return myRigidBodies;
    }
 

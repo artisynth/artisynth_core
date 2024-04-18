@@ -27,6 +27,7 @@ import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformGeometryAction;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
@@ -187,20 +188,51 @@ public class FrameSpring extends Spring
    public boolean getDrawFrameC() {
       return myDrawFrameC;
    }
-   
+
+   /**
+    * @deprecated Use {@link setTDC0} instead.
+    */   
    public void setInitialT21 (RigidTransform3d X21) {
       myInitialX21.set (X21);
    }
 
+  /**
+    * @deprecated Use {@link initializeTDC0} instead.
+    */
+   public void setInitialT21 () {
+      initializeTDC0();
+   }
+ 
+   /**
+    * @deprecated Use {@link getTDC0} instead.
+    */   
    public RigidTransform3d getInitialT21 () {
       return myInitialX21;
    }
 
    /**
-    * Set the initialX21 to the current value of the transform from
-    * frame 2 to frame 1.
+    * Sets the value of the TDC transform "rest" position.
+    *
+    * @param TDC0 new transform value
     */
-   public void setInitialT21 () {
+   public void setTDC0 (RigidTransform3d TDC0) {
+      myInitialX21.set (TDC0);
+   }
+
+   /**
+    * Returns the TDC transform "rest" position.
+    *
+    * @return TDC rest position. Should not be modified.
+    */
+   public RigidTransform3d getTDC0 () {
+      return myInitialX21;
+   }
+
+   /**
+    * Initializes the TDC transform "rest" position to correspond to the
+    * current locations of the C and D frames.
+    */
+   public void initializeTDC0 () {
       myInitialX21.mulInverseBoth (myX1A, myFrameA.getPose());
       if (myFrameB != null) {
          myInitialX21.mul (myFrameB.getPose());
@@ -366,12 +398,57 @@ public class FrameSpring extends Spring
       return myX1A;
    }
 
-   public void setAttachFrameB (RigidTransform3d X2B) {
+   /**
+    * Returns the current pose of the C frame, in world coordinates.
+    * 
+    * @return current pose of C
+    */
+   public RigidTransform3d getCurrentTCW() {
+      RigidTransform3d TCW = new RigidTransform3d();
+      getCurrentTCW (TCW);
+      return TCW;
+   }
+ 
+   /**
+    * Returns the current pose of the C frame, in world coordinates.
+    * 
+    * @param TCW returns the current pose of C
+    */  
+   public void getCurrentTCW (RigidTransform3d TCW) {
+      TCW.mul (myFrameA.getPose(), myX1A);
+   }
+
+  public void setAttachFrameB (RigidTransform3d X2B) {
       myX2B = new RigidTransform3d (X2B);
    }
 
    public RigidTransform3d getAttachFrameB() {
       return myX2B;
+   }
+
+   /**
+    * Returns the current pose of the D frame, in world coordinates.
+    * 
+    * @return current pose of D
+    */
+   public RigidTransform3d getCurrentTDW() {
+      RigidTransform3d TDW = new RigidTransform3d();
+      getCurrentTDW (TDW);
+      return TDW;
+   }
+
+   /**
+    * Returns the current pose of the D frame, in world coordinates.
+    * 
+    * @param TDW returns the current pose of D
+    */  
+   public void getCurrentTDW (RigidTransform3d TDW) {
+      if (myFrameB != null) {
+         TDW.mul (myFrameB.getPose(), myX2B);
+      }
+      else {
+         TDW.set (TDW);
+      }
    }
 
    public void setFrames (Frame frameA, Frame frameB, RigidTransform3d TDW) {
@@ -1040,6 +1117,44 @@ public class FrameSpring extends Spring
 
    /* --- TransformableGeometry --- */
 
+   public int transformPriority() {
+      return 1;
+   }
+
+   /**
+    * Updates the TCA transform after frameA has been transformed.
+    */
+   private class UpdateTCA implements TransformGeometryAction {
+
+      RigidTransform3d myTCW;
+
+      UpdateTCA (RigidTransform3d TCW) {
+         myTCW = new RigidTransform3d (TCW);
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         myX1A.mulInverseLeft (myFrameA.getPose(), myTCW);
+      }
+   }
+
+   /**
+    * Updates the TDB transform after frameA has been transformed.
+    */
+   private class UpdateTDB implements TransformGeometryAction {
+
+      RigidTransform3d myTDW;
+
+      UpdateTDB (RigidTransform3d TDW) {
+         myTDW = new RigidTransform3d (TDW);
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         myX2B.mulInverseLeft (myFrameB.getPose(), myTDW);
+      }
+   }
+
    public void transformGeometry (AffineTransform3dBase X) {
       TransformGeometryContext.transform (this, X, 0);
    }
@@ -1049,47 +1164,79 @@ public class FrameSpring extends Spring
       // nothing to add
    }
 
+   private RigidTransform3d getTXW (Frame frame, RigidTransform3d TXF) {
+      RigidTransform3d TXW = new RigidTransform3d();
+      TXW.mul (frame.getPose(), TXF);
+      return TXW;
+   }
+
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
-      // Quantities that may need to be changed include: X1A, X2B
+      // Quantities that may need to be changed include: X1A, X2B and
+      // InitialX21.
       // 
       // Transforming a FrameSpring is similar to transforming a
       // BodyConnector. However, we do not currently handle cases where one or
       // both frames are transforming while the FrameSpring is not.  That's
       // because we don't have a quick way to tell what FrameSprings are
       // connected to a Frame.
-
+      //
+      // Because a FrameSpring has higher transforming priority than Frames, we
+      // know that this method will be called before any of the associated
+      // frames have been transformed.
       boolean frameATransforming = context.contains(myFrameA);
-      boolean frameBTransforming = (myFrameB!=null && context.contains(myFrameA));
+      boolean frameBTransforming = (myFrameB!=null && context.contains(myFrameB));
+
+      if (!gtr.isRigid() && !myInitialX21.isIdentity()) {
+         // need to transform InitialX21
+         if (gtr.isRestoring()) {
+            myInitialX21.set (gtr.restoreObject (myInitialX21));
+         }
+         else {
+            if (gtr.isSaving()) {
+               gtr.saveObject (new RigidTransform3d (myInitialX21));
+            }
+            RigidTransform3d TCW = getCurrentTCW();
+            RigidTransform3d TDW0 = new RigidTransform3d();
+            TDW0.mul (TCW, myInitialX21);
+            gtr.computeTransform (TCW);
+            gtr.computeTransform (TDW0);
+            myInitialX21.mulInverseLeft (TCW, TDW0);
+         }
+      }
 
       if (!frameATransforming || !gtr.isRigid()) {
          // need to update myX1A
-         if (!context.isTransformed(myFrameA)) {
-            RigidTransform3d T1W = new RigidTransform3d();
-            T1W.mul (myFrameA.getPose(), myX1A);
-            gtr.transform (T1W);
-            myX1A.mulInverseLeft (myFrameA.getPose(), T1W);
+         if (gtr.isRestoring()) {
+            myX1A.set (gtr.restoreObject (myX1A));
          }
          else {
-            System.out.println (
-               "WARNING: cannot apply non-rigid transforms to FrameSprings");
+            if (gtr.isSaving()) {
+               gtr.saveObject (new RigidTransform3d (myX1A));
+            }
+            RigidTransform3d TCW = getCurrentTCW();
+            gtr.computeTransform (TCW);
+            context.addAction (new UpdateTCA (TCW));
          }
       }
       if (!frameBTransforming || !gtr.isRigid()) {
          // need to update myX2B
          if (myFrameB == null) {
-            gtr.transform (myX2B);
-         }
-         else if (!context.isTransformed(myFrameB)) {
-            RigidTransform3d T2W = new RigidTransform3d();
-            T2W.mul (myFrameB.getPose(), myX2B);
-            gtr.transform (T2W);
-            myX2B.mulInverseLeft (myFrameB.getPose(), T2W);
+            gtr.computeTransform (myX2B);
          }
          else {
-            System.out.println (
-               "WARNING: cannot apply non-rigid transforms to FrameSprings");
+            if (gtr.isRestoring()) {
+               myX2B.set (gtr.restoreObject (myX2B));
+            }
+            else {
+               if (gtr.isSaving()) {
+                  gtr.saveObject (new RigidTransform3d (myX2B));
+               }
+               RigidTransform3d TDW = getCurrentTDW();
+               gtr.computeTransform (TDW);
+               context.addAction (new UpdateTDB (TDW));
+            }
          }
       }
    }

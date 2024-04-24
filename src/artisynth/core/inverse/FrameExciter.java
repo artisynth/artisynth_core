@@ -17,6 +17,7 @@ import maspack.util.DataBuffer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.Matrix;
 import maspack.properties.PropertyList;
 import maspack.spatialmotion.Wrench;
 import artisynth.core.util.ScanToken;
@@ -206,7 +207,7 @@ ExcitationComponent, ForceComponent, HasNumericState {
    @Override
    public int getJacobianType () {
       // constant force
-      return 0;
+      return Matrix.SPD;
    }
    
    /*

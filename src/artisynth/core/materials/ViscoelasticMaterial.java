@@ -217,7 +217,7 @@ public class ViscoelasticMaterial extends FemMaterial {
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state) {
 
-      if (!(state instanceof  ViscoMaterialState)) {
+      if (!(state instanceof ViscoMaterialState)) {
          throw new InternalErrorException (
             "state "+state+" is not an instance of ViscoMaterialState");          
       }
@@ -244,6 +244,22 @@ public class ViscoelasticMaterial extends FemMaterial {
       }
    }
    
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+
+      if (!(state instanceof ViscoMaterialState)) {
+         throw new InternalErrorException (
+            "state "+state+" is not an instance of ViscoMaterialState");          
+      }
+
+      // XXX Need to figure out what to do here. For now, just return result
+      // for base material.
+      double W = myBaseMaterial.computeStrainEnergyDensity (
+         def, Q, excitation, state);
+      return W;
+   }
+   
    public boolean isIncompressible() {
       return myBaseMaterial.isIncompressible();
    }
@@ -254,6 +270,3 @@ public class ViscoelasticMaterial extends FemMaterial {
    
    
 }
-   
-//   import artisynth.core.modelbase.ComponentChangeEvent.Code;
-// 

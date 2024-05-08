@@ -41,6 +41,7 @@ public class FemDeformedPoint extends DeformedPointBase {
       myElemSubIndex = ipnt.getNumber();
       myIpnt = ipnt;
       myP = 0; // assume 0 by default
+      myAvgDetF = 0; // assume 0 by default
 
       FemNode3d[] nodes = (FemNode3d[])elem.getNodes();
       if (nodes.length != myNodeNumbers.length) {
@@ -71,6 +72,7 @@ public class FemDeformedPoint extends DeformedPointBase {
       myElemSubIndex = ipnt.getNumber();
       myIpnt = ipnt;
       myP = 0; // assume 0 by default
+      myAvgDetF = 0; // assume 0 by default
 
       FemNode3d[] nodes = (FemNode3d[])elem.getNodes();
       if (nodes.length != myNodeNumbers.length) {
@@ -109,6 +111,7 @@ public class FemDeformedPoint extends DeformedPointBase {
       myElemSubIndex = ipnt.getNumber();
       myIpnt = ipnt;
       myP = 0; // assume 0 by default
+      myAvgDetF = 0; // assume 0 by default
 
       FemNode3d[] nodes = (FemNode3d[])elem.getNodes();
       if (nodes.length != myNodeNumbers.length) {

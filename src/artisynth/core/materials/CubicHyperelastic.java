@@ -268,6 +268,24 @@ public class CubicHyperelastic extends IncompressibleMaterialBase {
       }
    }
 
+   public double computeDevStrainEnergy (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+
+      double G10 = getG10(def);
+      double G20 = getG20(def);
+      double G30 = getG30(def);
+      
+      SymmetricMatrix3d Cdev = new SymmetricMatrix3d();
+      computeDevRightCauchyGreen (Cdev, def);
+      double I1 = Cdev.trace();
+      double I1_3 = I1-3;
+      double W = (G10*I1_3 +
+                  G20*I1_3*I1_3 + 
+                  G30*I1_3*I1_3*I1_3);
+      return W;
+   }
+
    public boolean equals (FemMaterial mat) {
       if (!(mat instanceof CubicHyperelastic)) {
          return false;

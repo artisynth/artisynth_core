@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1895 
+personal_ws-1.1 en 1938 
 ABPointColor
 AJL
 ANSYS
@@ -116,6 +116,7 @@ ElasticFoundationContact
 ElementFilter
 EllipsoidJoint
 EllipsoidJointDemo
+EnergyDensity
 EquilibriumMuscle
 EquilibriumMuscleDemo
 Euler's
@@ -210,6 +211,7 @@ IncompressibleMaterial
 InputProbe
 IntegrationPoint
 InverseSquareWeighting
+IsRenderable
 Iterable
 JMenu
 JMenuItem
@@ -239,6 +241,7 @@ LinearAxialMuscle
 LinearElasticContact
 LinearFrameMaterial
 LinearMaterial
+LinkedHashSet
 LinkedList
 LumbarFEMDisk
 LumbarFrameSpring
@@ -361,6 +364,7 @@ RGBA
 RGBRGB
 RadialMuscle
 RainbowColorMap
+RenderList
 RenderableComponent
 RenderableComponentBase
 RenderableComponentList
@@ -445,9 +449,11 @@ StepAdjusment
 StepAdjustment
 StlReader
 StlWriter
+StressStrainMeasure
 SubElemField
 SurfaceMeshIntersector
 SurfaceRender
+SymmetricMatrix
 SymplecticEuler
 TAW
 TBD
@@ -511,6 +517,8 @@ VectorSubElemField
 VectorSubElemFieldDemo
 VectorVertexField
 ViaPointMuscle
+VonMisesStrain
+VonMisesStress
 VtkAsciiReader
 VtkXmlReader
 WBMP
@@ -555,6 +563,8 @@ addForceProbe
 addFrame
 addFrameMarker
 addFrameMarkerWorld
+addIfVisible
+addIfVisibleAll
 addMarker
 addMasterBody
 addMaterialBundle
@@ -693,9 +703,13 @@ computeDFdl
 computeDFdldot
 computeF
 computeLmWithConstantVm
+computeNodalEnergyDensity
+computeNodalStrain
+computeNodalStress
 computePosition
 computeResponse
 computeRestPosition
+computeStrainEnergy
 computeStress
 computeStressAndTangent
 computeTangent
@@ -954,6 +968,10 @@ getColorIndices
 getColorMap
 getColors
 getCompliance
+getComputeNodalEnergyDensity
+getComputeNodalStrain
+getComputeNodalStress
+getComputeStrainEnergy
 getConstraint
 getConstraintFlags
 getConstraintForce
@@ -984,6 +1002,8 @@ getDrawFrameD
 getElement
 getElementValue
 getElements
+getEnergyDensity
+getEnergyStrain
 getEngaged
 getExcitation
 getFace
@@ -1016,12 +1036,16 @@ getLength
 getLinearCompliance
 getLocalToWorld
 getLocation
+getMAPStrain
+getMAPStress
 getMass
 getMasterBody
 getMaterial
 getMaxCoordinate
 getMaxCoordinateDeg
 getMaxResolution
+getMaxShearStrain
+getMaxShearStress
 getMaxStepSize
 getMenuItems
 getMesh
@@ -1068,6 +1092,8 @@ getPropX
 getPropXXX
 getProperty
 getReduceContraints
+getRenderCoords
+getRenderFrame
 getRenderMeshComp
 getRenderProps
 getRenderRange
@@ -1085,6 +1111,10 @@ getStartTime
 getState
 getStiffnessDamping
 getStopTime
+getStrain
+getStrainEnergy
+getStress
+getStressStrainMeasure
 getStringValue
 getSubtraction
 getSurfaceMesh
@@ -1120,6 +1150,8 @@ getVertexPosition
 getVertexValue
 getVertices
 getVisualization
+getVonMisesStrain
+getVonMisesStress
 getVsize
 getWeightingFunction
 getWeights
@@ -1299,16 +1331,21 @@ multipoint
 muscleMat
 muscleMaterial
 mx
+myBody
 myCoupling
 myDamping
+myFrames
 myJointColor
 myPnt
 myPos
 myProps
+myRenderForce
 myResp
 myRunTime
 mySpeed
 myStiffness
+mySubCompA
+mySubCompB
 myblack
 myblue
 mybundle
@@ -1544,6 +1581,11 @@ setColorMapEnabled
 setColorMapFileName
 setColors
 setCompliance
+setComputeNodalEnergyDensity
+setComputeNodalStrain
+setComputeNodalStress
+setComputeNodalStressStrain
+setComputeStrainEnergy
 setConsoleProgressPrinting
 setCoordinate
 setCoordinateRange
@@ -1736,6 +1778,7 @@ stiffnessDamping
 stiffnesses
 stl
 stopTime
+strainEnergy
 stressPlotRange
 stressPlotRanging
 stringstyle

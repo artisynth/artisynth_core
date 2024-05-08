@@ -173,20 +173,39 @@ public class ScaledFemMaterial extends FemMaterial {
          imat.computeDevStressAndTangent (
             sigma, D, def, Q, excitation, state);
          sigma.scale (scaling);
-        double p = def.getAveragePressure();
-        imat.addPressureStress (sigma, p);
-        if (D != null) {
-           D.scale (scaling);
-           imat.addPressureTangent (D, p);
-        }  
+         double p = def.getAveragePressure();
+         imat.addPressureStress (sigma, p);
+         if (D != null) {
+            D.scale (scaling);
+            imat.addPressureTangent (D, p);
+         }  
       }
       else {
          myBaseMaterial.computeStressAndTangent (
             sigma, D, def, Q, excitation, state);
          sigma.scale (scaling);
          if (D != null) {
-           D.scale (scaling);
-        }  
+            D.scale (scaling);
+         }  
+      }
+   }
+   
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+
+      double scaling = getScaling (def);
+      IncompressibleMaterialBase imat =
+         myBaseMaterial.getIncompressibleComponent();
+      if (imat != null) {
+         double W = scaling*imat.computeDevStrainEnergy (
+            def, Q, excitation, state);
+         W += imat.computeU (imat.getBulkModulus(def), def.getAverageDetF());
+         return W;
+      }
+      else {
+         return scaling*myBaseMaterial.computeStrainEnergyDensity (
+            def, Q, excitation, state);
       }
    }
    

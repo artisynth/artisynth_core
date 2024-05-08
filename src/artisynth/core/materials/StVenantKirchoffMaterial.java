@@ -140,6 +140,31 @@ public class StVenantKirchoffMaterial extends FemMaterial {
       }
    }
 
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+
+      double E = getYoungsModulus(def);
+
+      double G = E/(2*(1+myNu)); // bulk modulus
+      double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
+      double mu = G;
+
+      SymmetricMatrix3d C = new SymmetricMatrix3d();
+      SymmetricMatrix3d C2 = new SymmetricMatrix3d();
+
+      computeRightCauchyGreen (C, def);
+      C2.mul (C, C);
+
+      double trC = C.trace();
+      double trC2 = C2.trace();
+
+      double trE = (trC-3)/2;
+      double trE2 = (trC2 - 2*trC + 3)/4;
+
+      return lam*(trE*trE)/2 + mu*trE2;
+   }
+   
    public boolean equals (FemMaterial mat) {
       if (!(mat instanceof StVenantKirchoffMaterial)) {
          return false;

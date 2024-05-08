@@ -605,65 +605,99 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
       sigma.scale(eQ / (2.0 * J));
 
-      if (D != null) {
-         // save sigma before deviator is applied
-         sigtmp = new SymmetricMatrix3d (sigma);
-      }
-      sigma.deviator();
-
+      // do we need this?
       sigma.m10 = sigma.m01;
       sigma.m20 = sigma.m02;
       sigma.m21 = sigma.m12;
 
       if (D != null) {
+         // save sigma before deviator is applied
+         sigtmp = new SymmetricMatrix3d (sigma);
+      }
+
+      sigma.deviator();
+
+      if (D != null) {
 
          D.setZero();
-         Matrix6d tmpMatrix6d  = new Matrix6d();
       
          for (int i=0; i<3; i++) {
             addTensorProduct4(D, mu[i]*K[i], A[i], myB);
-         
-            // C += mu[i]*K[i]*dyad4s(A[i],b);
             for (int j=0; j<3; j++) {
-               TensorUtils.addSymmetricTensorProduct (D, lam[i][j]*K[i]*K[j]/2.0, 
-                                                      A[i], A[j]);
-               // C += lam[i][j]*K[i]*K[j]*dyad1s(A[i],A[j])/2.;
+               TensorUtils.addSymmetricTensorProduct (
+                  D, lam[i][j]*K[i]*K[j]/2.0, A[i], A[j]);
             }
          }
-
-         // This is the distortional part of the elasticity tensor
-         //      C = (eQ / J)*C + (2.0*J/myc/eQ)*dyad1s(sigtmp);
          D.scale(eQ / J);
-         TensorUtils.addSymmetricTensorProduct (D, J/CC/eQ, sigtmp, sigtmp);
-         // Factor of two diff between FEBio and Artisynth tensor utility Taken
-         // into account with scalefactor
+         TensorUtils.addTensorProduct (D, 2*J/CC/eQ, sigtmp);
 
-         // This is the final value of the elasticity tensor
-         //tens4ds IxI = dyad1s(I);
-         //tens4ds I4  = dyad4s(I);
+         double traceD = TensorUtils.symmetricTrace (D);
+         TensorUtils.addSymmetricIdentityDot (D, -1.0/3, D);
+         TensorUtils.addScaledIdentityProduct (D, traceD/9.0);
 
-         double cTrace = D.m00 + D.m11 + D.m22 + D.m33 + D.m44 + D.m55;
+         TensorUtils.addScaledIdentity (D, 2*sigtmp.trace()/3);
+         TensorUtils.addScaledIdentityProduct (D, -2.0*sigtmp.trace()/9);
+         TensorUtils.addSymmetricIdentityProduct (D, -2/3.0, sigma);
 
-         //      C += - 1./3.*(ddots(C,IxI) - IxI*(C.tr()/3.))
-         //        + 2./3.*((I4-IxI/3.)*sigtmp.tr()-dyad1s(sigtmp.dev(),I));
-
-         TensorUtils.addScaledIdentityProduct (tmpMatrix6d, -1.0 / 3.0);
-         D.add(ddots(D,tmpMatrix6d));
-
-         TensorUtils.addScaledIdentityProduct (D, 1.0/9.0*cTrace);
-
-         TensorUtils.addTensorProduct4 (D, 2.0/3.0*sigtmp.trace(), 
-                                        Matrix3d.IDENTITY); // check
-         TensorUtils.addScaledIdentityProduct (D, -2.0/9.0*sigtmp.trace());
-
-         tmpMatrix6d.setZero();
-         TensorUtils.addSymmetricIdentityProduct (tmpMatrix6d, sigma);
-         tmpMatrix6d.scale(-2.0 / 3.0);
-
-         D.add(tmpMatrix6d);
-      
          D.setLowerToUpper();
       }
+   }
+
+   public double computeDevStrainEnergy (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+
+      double[] K = new double[3];
+      double[] L = new double[3];
+
+      // break out Lame coefficients
+      mu[0] = getMU1(def);
+      mu[1] = getMU2(def);
+      mu[2] = getMU3(def);
+      
+      lam[0][0] = getL11(def);
+      lam[0][1] = getL12(def);
+      lam[0][2] = getL31(def);
+      lam[1][0] = lam[0][1];
+      lam[1][1] = getL22(def); 
+      lam[1][2] = getL23(def);
+      lam[2][0] = lam[0][2];
+      lam[2][1] = lam[1][2];
+      lam[2][2] = getL33(def);
+
+      double CC = getCC(def);
+      
+      // Calculate deviatoric right Cauchy-Green tensor
+      computeDevRightCauchyGreen(myC,def);
+
+      // calculate square of C
+      myC2.mulTransposeLeft (myC);
+
+      Vector3d a = new Vector3d();
+      Vector3d vtmp = new Vector3d();
+      for (int i=0; i<3; i++) {
+         // Copy the texture direction in the reference configuration to a0
+         a.x = Q.get(0,i);
+         a.y = Q.get(1,i);
+         a.z = Q.get(2,i);
+
+         vtmp.mul(myC,a);
+         K[i] = a.dot(vtmp);
+
+         vtmp.mul(myC2,a);
+         L[i] = a.dot(vtmp);
+      }
+
+      // Evaluate exp(Q)
+      double eQ = 0.0;
+      for (int i=0; i<3; i++) {
+         eQ += 2.0*mu[i]*(L[i]-2.0*K[i]+1.0);
+         for (int j=0; j<3; j++)
+            eQ += lam[i][j]*(K[i]-1.0)*(K[j]-1.0);
+      }
+      eQ = Math.exp(eQ/(4.*CC));
+
+      return CC*(eQ-1)/2;
    }
 
    public boolean equals (FemMaterial mat) {

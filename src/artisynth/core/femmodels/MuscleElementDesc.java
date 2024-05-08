@@ -543,8 +543,25 @@ public class MuscleElementDesc
             D.setZero ();
          }
       }      
-   }  
-
+   } 
+   
+   public double computeStrainEnergyDensity ( 
+      DeformedPoint def, IntegrationPoint3d pt, 
+      IntegrationData3d dt, MaterialStateObject state) {
+      
+      double sed = 0;
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      Vector3d dir = null;
+      if (mat != null) {
+         dir = getMuscleDirection(pt.getNumber());
+      }
+      if (dir != null) {
+         sed = mat.computeStrainEnergyDensity (
+            def, dir, getNetExcitation(), state);
+      }
+      return sed;
+   }
+   
    public boolean hasSymmetricTangent() {
       MuscleMaterial mat = getEffectiveMuscleMaterial();
       if (mat != null) {

@@ -231,6 +231,15 @@ public class SimpleMuscle extends MuscleMaterial {
       }
    }
 
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Vector3d dir0, double excitation, 
+      MaterialStateObject state) {
+
+      // return 0 because we currently only compute SED for passive forces,
+      // and there is no passive force for this material
+      return 0;
+   }
+    
    @Override
    public boolean hasSymmetricTangent() {
       return true;

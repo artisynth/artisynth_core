@@ -1605,20 +1605,6 @@ public abstract class FemElement3dBase extends FemElement
       return false;
    }
    
-   /**
-    * Returns flags indicating if stress or strain values should be
-    * computed for any of the nodes in this element
-    * 
-    * @return stress/strain compute flags
-    */
-   protected int needsStressStrain() {
-      int flags = 0;
-      for (FemNode3d n : myNodes) {
-         flags |= n.needsStressStrain();
-      }
-      return flags;      
-   }
-
    /* --- remaining implementation of HasNumericState --- */
 
    public void advanceState (double t0, double t1) {

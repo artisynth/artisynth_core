@@ -106,6 +106,17 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
       }
    }
 
+   public double computeDevStrainEnergy (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+      
+      SymmetricMatrix3d Cdev = new SymmetricMatrix3d();
+      computeDevRightCauchyGreen (Cdev, def);
+      double mu = getShearModulus (def);
+      double W = mu*(Cdev.trace()-3)/2;
+      return W;
+   }
+
    public boolean equals (FemMaterial mat) {
       if (!(mat instanceof IncompNeoHookeanMaterial)) {
          return false;

@@ -23,6 +23,7 @@ import java.util.Arrays;
 import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
+import artisynth.core.femmodels.FemModel.StressStrainMeasure;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.CollidableBody;
 import artisynth.core.mechmodels.CollidableDynamicComponent;
@@ -67,12 +68,14 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.util.ArraySupport;
 import maspack.util.DynamicIntArray;
+import maspack.util.DoubleInterval;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -87,7 +90,6 @@ public class FemMeshComp extends FemMeshBase
 
    FemModel3d myFem;
    protected static double EPS = 1e-10;
-
    protected static final Vertex3d NO_SINGLE_VERTEX = new Vertex3d();
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
@@ -298,45 +300,19 @@ public class FemMeshComp extends FemMeshBase
       setName(name);
    }
    
-   @Override
-   public void setSurfaceRendering(SurfaceRender mode) {
-      SurfaceRender oldMode = getSurfaceRendering();
-      super.setSurfaceRendering(mode);
+   // surface rendering
 
-      if (oldMode != mode) {
-         if (myFem != null) { // paranoid: myFem should always be non-null here
-            if (!isScanning()) {
-               myFem.updateInternalNodalStressSettings();
-               myFem.updateInternalNodalStrainSettings();
-               if (mode.usesStressOrStrain()) {
-                  myFem.updateStressAndStiffness();
-               }
-            }
-         }
-         // save/restore original vertex colors
-         MeshBase mesh = getMesh();   
-         if (mesh != null) {
-            boolean oldStressOrStrain = oldMode.usesStressOrStrain();
-            boolean newStressOrStrain = mode.usesStressOrStrain();
-
-            if (newStressOrStrain != oldStressOrStrain) {
-               if (newStressOrStrain) {
-                  saveShading();
-                  saveMeshColoring (mesh);
-                  mesh.setVertexColoringEnabled();
-                  mesh.setVertexColorMixing (ColorMixing.REPLACE);
-                  myRenderProps.setShading (Shading.NONE);
-                  // enable stress/strain rendering *after* vertex coloring set
-                  updateVertexColors(); // not sure we need this here
-               }
-               else {
-                  // disable stress/strain rendering *before* restoring colors
-                  restoreMeshColoring (mesh);
-                  restoreShading();
-               }
-            }
+   protected boolean maybeUpdateFixedRangeFromFEM() {
+      if (myFem != null) {
+         if (getStressPlotRanging() == Ranging.Fixed &&
+             myFem.getStressPlotRanging() == Ranging.Fixed &&
+             getStressPlotRangeMode() == PropertyMode.Inherited &&
+             myFem.getSurfaceRendering() == mySurfaceRendering) {
+            doSetStressPlotRange (myFem.getStressPlotRange());
+            return true;
          }
       }
+      return false;
    }
 
    @Override
@@ -435,7 +411,13 @@ public class FemMeshComp extends FemMeshBase
       return getNodeForVertex (he.getHead());
    }
 
-
+   /**
+    * Returns the set of nodes that are employed by this mesh.
+    */
+   public Set<FemNode3d> getNodes() {
+      return myVertexInfo.myNodeMap.keySet();
+   }
+   
    /**
     * Returns <code>true</code> if every vertex in this mesh is
     * directly attached to a single FEM node. If this is the case, then
@@ -842,10 +824,6 @@ public class FemMeshComp extends FemMeshBase
                   "element=" + ComponentUtils.getPathName(elem) +
                   ", point=" + vtx.pnt);
                c3.setZero ();
-               // elem.getNaturalCoordinatesGSS (coords, vtx.pnt, 1000);
-               // c3.setZero();
-               // XXX debugging:
-               //    elem.getNaturalCoordinates(c3,  vtx.pnt, 1000); // try again once more
             }
             for (int j=0; j<elem.numNodes(); j++) {
                coords.set (j, elem.getN (j, c3));
@@ -984,7 +962,6 @@ public class FemMeshComp extends FemMeshBase
       int numv = resolution+1; // num vertices along the edge of each sub face
       initializeSurfaceBuild();
 
-      //ArrayList<PointAttachment> baseAttachments = info.myAttachments;
       ArrayList<PointAttachment> baseAttachments = myVertexInfo.myAttachments;
       VertexInfo info = new VertexInfo();
 
@@ -999,7 +976,6 @@ public class FemMeshComp extends FemMeshBase
             getNodeForVertex (baseAttachments.get(vtx.getIndex()));
          createVertex (info.myAttachments, node, vtx);
       }
-      // System.out.println ("num base faces: " + baseFaces.size());
       for (int k=0; k<baseFaces.size(); k++) {
          Face face = baseFaces.get(k);
          // store sub vertices for the face in the upper triangular half of
@@ -1148,17 +1124,12 @@ public class FemMeshComp extends FemMeshBase
       if (myFem.numElements() > 0) {
          createVolumetricSurface (
             getFilteredElements (myFem.getElements(), efilter));
-         // createVolumetricShellSurface (
-         //    getFilteredElements (myFem.getElements(), efilter),
-         //    getFilteredElements (myFem.getShellElements(), efilter));
       }
       else {
          createShellSurface (
             getFilteredElements (myFem.getShellElements(), efilter));
       }
    }
-
-   //Throwable throwable = null;
 
    public void createVolumetricSurface (Collection<FemElement3d> elems) {
 
@@ -1404,59 +1375,6 @@ public class FemMeshComp extends FemMeshBase
    }
 
    /**
-    * Computes a stress or strain measure for a particular vertex in this
-    * mesh. The measure is indicated by a {@link SurfaceRender} value, with
-    * inapplicable values (such as {@code Shaded}) causing the method to return
-    * 0.
-    *
-    * <p> The underlying stress or strain value is interpolated from the nodes (if
-    * any) to which the vertex is attached, and it is assumed that stress
-    * values are being calculated for the nodes, either as a result of stress
-    * values being rendered for the mesh, or {@link FemNode3d#setComputeStress}
-    * being called for the nodes or {@link FemModel3d#setComputeNodalStress}
-    * being called for the entire FEM model.
-    *
-    * @param idx index of the vertex
-    * @param measure indicates the measure to be computed
-    * @return computed measure
-    */
-   public double getVertexStressStrainMeasure (int idx, SurfaceRender measure) {
-      SymmetricMatrix3d S = new SymmetricMatrix3d();
-      if (measure.usesStress()) {
-         getVertexStress (S, idx);
-      }
-      else if (measure.usesStrain()) {
-         getVertexStrain (S, idx);
-      }
-      else {
-         return 0;
-      }
-      switch (measure) {
-         case Stress: {
-            return FemUtilities.computeVonMisesStress (S);
-         }
-         case MAPStress: {
-            return S.computeMaxAbsEigenvalue();
-         }
-         case MaxShearStress: {
-            return S.computeMaxShear();
-         }
-         case Strain: {
-            return FemUtilities.computeVonMisesStrain (S);
-         }
-         case MAPStrain: {
-            return S.computeMaxAbsEigenvalue();
-         }
-         case MaxShearStrain: {
-            return S.computeMaxShear();
-         }
-         default: {
-            return 0;
-         }
-      }
-   }
-
-   /**
     * Computes the stress value for a particular vertex in this mesh. The value
     * is interpolated from the nodes (if any) to which the vertex is attached,
     * and it is assumed that stress values are being calculated for the nodes,
@@ -1532,15 +1450,66 @@ public class FemMeshComp extends FemMeshBase
       }
    }
 
+   /**
+    * Computes the energy density value for a particular vertex in this mesh.
+    * The value is interpolated from the nodes (if any) to which the vertex is 
+    * attached, and it is assumed that energy density values are being 
+    * calculated for the nodes, either as a result of energy density values 
+    * being rendered for the mesh, or {@link FemNode3d#setComputeEnergyDensity} 
+    * being called for the nodes or {@link 
+    * FemModel3d#setComputeNodalEnergyDensity} being called for the entire 
+    * FEM model.
+    *
+    * @param idx index of the vertex
+    * @return strain energy density at the vertex
+    */ 
+   public double getVertexEnergyDensity (int idx) {
+      double sed = 0;
+      if (idx < numVertexAttachments()) {
+         PointAttachment va = getVertexAttachment(idx);
+         if (va instanceof PointFem3dAttachment) {
+            PointFem3dAttachment pfa = (PointFem3dAttachment)va;
+            FemNode[] nodes = pfa.getNodes();
+            VectorNd weights = pfa.getCoordinates();
+            for (int j=0; j<nodes.length; j++) {
+               if (nodes[j] instanceof FemNode3d) { // paranoid!
+                  FemNode3d node = (FemNode3d)nodes[j];
+                  double w = weights.get(j);
+                  sed += w*node.getEnergyDensity();
+               }
+            }
+         }
+         else if (va instanceof PointParticleAttachment) {
+            PointParticleAttachment ppa = (PointParticleAttachment)va;
+            FemNode3d node = (FemNode3d)ppa.getParticle();
+            sed = node.getEnergyDensity();
+         }
+      }
+      return sed;
+   }
+   
+   protected void updatePlotRangeIfAuto() {
+      if (mySurfaceRendering.usesStressOrStrain()) {
+         if (myStressPlotRanging == Ranging.Auto) {
+            if (myFem.getSurfaceRendering() == mySurfaceRendering &&
+                myFem.getStressPlotRanging() == Ranging.Auto) {
+               doSetStressPlotRange (myFem.getStressPlotRange());
+            }
+            else {
+               DoubleInterval newrange = new DoubleInterval(myStressPlotRange);
+               newrange.merge (myFem.getNodalPlotRange(mySurfaceRendering));
+               doSetStressPlotRange (newrange);
+            }
+         }
+      }
+   }
+   
    protected void updateVertexColors() {
 
-      if (!mySurfaceRendering.usesStressOrStrain()) {
+      StressStrainMeasure m = mySurfaceRendering.getStressStrainMeasure();
+      if (m == null) {
          return;
       }
-
-      if (myStressPlotRanging == Ranging.Auto) {
-         myStressPlotRange.merge (myFem.getNodalPlotRange(mySurfaceRendering));
-      } 
 
       RenderProps rprops = getRenderProps();
       float alpha = (float)rprops.getAlpha();
@@ -1560,48 +1529,14 @@ public class FemMeshComp extends FemMeshBase
                if (nodes[j] instanceof FemNode3d) { // paranoid!
                   FemNode3d node = (FemNode3d)nodes[j];
                   double w = weights.get(j);
-                  if (mySurfaceRendering == SurfaceRender.Stress) {
-                     sval += w*node.getVonMisesStress();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.MAPStress) {
-                     sval += w*node.getMAPStress();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.MaxShearStress) {
-                     sval += w*node.getMaxShearStress();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.Strain) {
-                     sval += w*node.getVonMisesStrain();
-                  } 
-                  else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
-                     sval += w*node.getMAPStrain();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.MaxShearStrain) {
-                     sval += w*node.getMaxShearStrain();
-                  }
+                  sval += w*node.getStressStrainMeasure(m);
                }
             }
          }
          else if (attacher instanceof PointParticleAttachment) {
             PointParticleAttachment ppa = (PointParticleAttachment)attacher;
             FemNode3d node = (FemNode3d)ppa.getParticle();
-            if (mySurfaceRendering == SurfaceRender.Stress) {
-               sval = node.getVonMisesStress();
-            }
-            else if (mySurfaceRendering == SurfaceRender.MAPStress) {
-               sval = node.getMAPStress();
-            }
-            else if (mySurfaceRendering == SurfaceRender.MaxShearStress) {
-               sval = node.getMaxShearStress();
-            }
-            else if (mySurfaceRendering == SurfaceRender.Strain) {
-               sval = node.getVonMisesStrain();
-            } 
-            else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
-               sval = node.getMAPStrain();
-            }
-            else if (mySurfaceRendering == SurfaceRender.MaxShearStrain) {
-               sval = node.getMaxShearStrain();
-            }
+            sval = node.getStressStrainMeasure (m);
          }
          double smin = myStressPlotRange.getLowerBound();
          double srng = myStressPlotRange.getRange();
@@ -2520,7 +2455,6 @@ public class FemMeshComp extends FemMeshBase
                createEmbeddingAttachments();
             }
          });
-      //super.transformGeometry (gtr, context, flags);
    }   
 
 
@@ -2607,7 +2541,6 @@ public class FemMeshComp extends FemMeshBase
          updateSlavePos();
          myMeshScannedDirectly = false;
       }
-      //timer.stop();
-      //System.out.println ("FemMeshComp postscan: " + timer.result(1));
    }
+
 }

@@ -92,10 +92,21 @@ public abstract class MuscleMaterial extends FemMaterial {
       computeStressAndTangent (
          sigma, D, def, getRestDir(def), getExcitation(), state);
    }
+   
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+      return computeStrainEnergyDensity (
+         def, getRestDir(def), getExcitation(), state);
+   }
 
    public abstract void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Vector3d dir, double excitation, MaterialStateObject state);
+
+   public abstract double computeStrainEnergyDensity (
+      DeformedPoint def, Vector3d dir0, double excitation, 
+      MaterialStateObject state);   
     
    public boolean equals (MuscleMaterial mat) {
       return true;

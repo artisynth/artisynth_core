@@ -6,50 +6,20 @@
  */
 package artisynth.core.femmodels;
 
-import java.util.List;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Collection;
 import java.util.Deque;
-import java.io.PrintWriter;
-import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
-import maspack.matrix.Matrix;
-import maspack.matrix.Point3d;
-import maspack.matrix.SparseBlockMatrix;
-import maspack.matrix.SparseNumberedBlockMatrix;
-import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
-import maspack.matrix.VectorNi;
-import maspack.geometry.AABBTree;
-import maspack.geometry.BVTree;
-import maspack.geometry.Boundable;
-import maspack.properties.PropertyList;
-import maspack.properties.PropertyMode;
-import maspack.properties.PropertyUtils;
-import maspack.render.Renderer;
-import maspack.render.RenderableUtils;
-import maspack.solvers.IterativeSolver.ToleranceType;
-import maspack.util.DoubleInterval;
-import maspack.util.FunctionTimer;
-import maspack.util.StringHolder;
-import maspack.util.ReaderTokenizer;
-import maspack.util.NumberFormat;
-import maspack.spatialmotion.FrictionInfo;
-import artisynth.core.modelbase.ComponentChangeEvent.Code;
-import artisynth.core.modelbase.PropertyChangeListener;
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.modelbase.ModelBase;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.util.ScanToken;
-import artisynth.core.util.ScalableUnits;
-import artisynth.core.materials.*;
+import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
-import artisynth.core.mechmodels.Constrainer;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.Constrainer;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicAttachmentComp;
 import artisynth.core.mechmodels.DynamicAttachmentWorker;
@@ -57,21 +27,72 @@ import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.ForceEffector;
 import artisynth.core.mechmodels.HasSlaveObjects;
 import artisynth.core.mechmodels.MechSystemBase;
-import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.ComponentList;
-import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
+import maspack.geometry.AABBTree;
+import maspack.geometry.BVTree;
+import maspack.matrix.Matrix;
+import maspack.matrix.Point3d;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.matrix.VectorNi;
+import maspack.properties.PropertyInfo.Edit;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.properties.PropertyUtils;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.solvers.IterativeSolver.ToleranceType;
+import maspack.spatialmotion.FrictionInfo;
+import maspack.util.DataBuffer;
+import maspack.util.DoubleInterval;
+import maspack.util.FunctionTimer;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 public abstract class FemModel extends MechSystemBase
    implements TransformableGeometry, ScalableUnits, Constrainer, 
    ForceEffector, PropertyChangeListener, HasSlaveObjects {
+
+   protected static int NEEDS_STRESS = 0x01;
+   protected static int NEEDS_STRAIN = 0x02;
+   protected static int NEEDS_ENERGY = 0x04;
+
+   /* Flags to control computation of stress, strain and strain energy
+    * density */
+   protected static int COMPUTE_STRESS_EXPLICIT = 0x0001;
+   protected static int COMPUTE_STRESS_RENDER = 0x0002;
+   protected static int COMPUTE_STRESS_ANY =
+      (COMPUTE_STRESS_RENDER | COMPUTE_STRESS_EXPLICIT);
+
+   protected static int COMPUTE_STRAIN_EXPLICIT = 0x0004;
+   protected static int COMPUTE_STRAIN_RENDER = 0x0008;
+   protected static int COMPUTE_STRAIN_ANY =
+      (COMPUTE_STRAIN_RENDER | COMPUTE_STRAIN_EXPLICIT);
+
+   protected static int COMPUTE_ENERGY_EXPLICIT = 0x0010;
+   protected static int COMPUTE_ENERGY_RENDER = 0x0020;
+   protected static int COMPUTE_ENERGY_ANY =
+      (COMPUTE_ENERGY_RENDER | COMPUTE_ENERGY_EXPLICIT);
+
+   protected static int COMPUTE_ANY_RENDER = 
+      (COMPUTE_STRESS_RENDER | COMPUTE_STRAIN_RENDER | COMPUTE_ENERGY_RENDER);
 
    /**
     * Interface that determines if an element is valid
@@ -84,63 +105,143 @@ public abstract class FemModel extends MechSystemBase
    protected ComponentList<DynamicAttachmentComp> myAttachments;
 
    /**
+    * Specifies a scalar stress/strain measure.
+    */
+   public enum StressStrainMeasure {
+      /**
+       * von Mises stress, as defined in
+       * https://en.wikipedia.org/wiki/Von_Mises_yield_criterion.
+       * It is equal to sqrt(3 J2), where J2 is the second invariant of 
+       * the average deviatoric stress.
+       */
+      VonMisesStress,
+
+      /**
+       * von Mises strain, as defined in
+       * http://www.continuummechanics.org/vonmisesstress.html,
+       * which is equivalent to 
+       * https://dianafea.com/manuals/d944/Analys/node405.html.
+       * It is equal to sqrt(4/3 J2), where J2 is
+       * the second invariant of the average deviatoric strain.
+       */
+      VonMisesStrain,
+
+      /**
+       * Absolute value of the maximum principle stress.
+       */
+      MAPStress,
+
+      /**
+       * Absolute value of the maximum principle strain.
+       */
+      MAPStrain,
+
+      /**
+       * Maximum shear stress, given by
+       * <pre>
+       * max (|s0-s1|/2, |s1-s2|/2, |s2-s0|/2)
+       * </pre>
+       * where {@code s0}, {@code s1}, and {@code s2} are the eigenvalues of
+       * the stress tensor.
+       */
+      MaxShearStress,
+
+      /**
+       * Maximum shear strain, given by
+       * <pre>
+       * max (|s0-s1|/2, |s1-s2|/2, |s2-s0|/2)
+       * </pre>
+       * where {@code s0}, {@code s1}, and {@code s2} are the eigenvalues of
+       * the strain tensor.
+       */
+      MaxShearStrain,
+
+      /**
+       * Render as a color map showing the strain energy density.
+       */
+      EnergyDensity;
+
+      public boolean usesStress() {
+         return (
+            this==VonMisesStress || this==MAPStress || this==MaxShearStress);
+      }
+
+      public boolean usesStrain() {
+         return (
+            this==VonMisesStrain || this==MAPStrain || this==MaxShearStrain);
+      }
+      
+      public boolean usesEnergy() {
+         return this == EnergyDensity;
+      }
+   };
+
+   /**
     * Specifies how FEM surface meshes should be rendered.
     */
    public enum SurfaceRender {
+      
       /**
        * No surface rendering
        */
-      None,
+      None(null),
 
       /**
        * Rendered as a shaded surface, using the model's face rendering
        * proporties.
        */
-      Shaded,
+      Shaded(null),
       // Fine,
 
       /**
        * Render as a color map showing the von Mises stress.
        */
-      Stress,
+      Stress(StressStrainMeasure.VonMisesStress),
 
       /**
        * Render as a color map showing the von Mises strain.
        */
-      Strain,
+      Strain(StressStrainMeasure.VonMisesStrain),
 
       /**
        * Render as a color map showing the maximum absolute principal stress
        * component.
        */
-      MAPStress,
+      MAPStress(StressStrainMeasure.MAPStress),
 
       /**
        * Render as a color map showing the maximum absolute principal strain
        * component.
        */
-      MAPStrain,
+      MAPStrain(StressStrainMeasure.MAPStrain),
 
       /**
        * Render as a color map showing the maximum shear stress.
        */
-      MaxShearStress,
+      MaxShearStress(StressStrainMeasure.MaxShearStress),
 
       /**
        * Render as a color map showing the maximum shear strain.
        */
-      MaxShearStrain;
+      MaxShearStrain(StressStrainMeasure.MaxShearStrain),
 
-      public boolean usesStress() {
-         return this == Stress || this == MAPStress || this == MaxShearStress;
+      /**
+       * Render as a color map showing the strain energy density.
+       */
+      EnergyDensity(StressStrainMeasure.EnergyDensity);
+
+      StressStrainMeasure myStressStrain;
+
+      SurfaceRender (StressStrainMeasure stressStrain) {
+         myStressStrain = stressStrain;
       }
 
-      public boolean usesStrain() {
-         return this == Strain || this == MAPStrain || this == MaxShearStrain;
-      }
-      
       public boolean usesStressOrStrain() {
-         return this != None && this != Shaded;
+         return myStressStrain != null;
+      }
+
+      public StressStrainMeasure getStressStrainMeasure() {
+         return myStressStrain;
       }
    };
 
@@ -157,10 +258,12 @@ public abstract class FemModel extends MechSystemBase
       ELEMENT,
       FULL
    };
-
-   protected SurfaceRender mySurfaceRendering = SurfaceRender.None;
+   protected static SurfaceRender DEFAULT_SURFACE_RENDERING =
+      SurfaceRender.None;
+   protected SurfaceRender mySurfaceRendering = DEFAULT_SURFACE_RENDERING;
    protected Ranging myStressPlotRanging = Ranging.Auto;
-   protected DoubleInterval myStressPlotRange = DEFAULT_STRESS_PLOT_RANGE;
+   protected DoubleInterval myStressPlotRange = 
+       new DoubleInterval(DEFAULT_STRESS_PLOT_RANGE);
    protected PropertyMode mySurfaceRenderingMode = PropertyMode.Inherited;
    protected PropertyMode myStressPlotRangingMode = PropertyMode.Inherited;
    protected PropertyMode myStressPlotRangeMode = PropertyMode.Inherited;
@@ -172,7 +275,6 @@ public abstract class FemModel extends MechSystemBase
 
    protected SparseNumberedBlockMatrix mySolveMatrix = null;
    protected boolean mySolveMatrixSymmetricP = true;
-   //protected SparseBlockMatrix myMassMatrix = null;
 
    protected boolean myStressesValidP = false;
    protected boolean myStiffnessesValidP = false;
@@ -181,6 +283,7 @@ public abstract class FemModel extends MechSystemBase
    protected boolean myVolumeValid = false;
    protected double myRestVolume = 0;
    protected boolean myRestVolumeValid = false;
+   protected double myStrainEnergy;
 
    protected double myCharacteristicSize = -1;
 
@@ -193,22 +296,25 @@ public abstract class FemModel extends MechSystemBase
    protected boolean myForcesNeedUpdating = false;
 
    protected static Vector3d DEFAULT_GRAVITY = new Vector3d (0, 0, -9.8);;
-   //protected static double DEFAULT_NU = 0.33;
-   //protected static double DEFAULT_E = 500000;
    protected static double DEFAULT_DENSITY = 1000;
    protected static boolean DEFAULT_WARPING = true;
-   protected static SurfaceRender DEFAULT_SURFACE_RENDERING =
-      SurfaceRender.None;
+
    protected static double DEFAULT_STIFFNESS_DAMPING = 0;
    protected static double DEFAULT_MASS_DAMPING = 2;
    protected static Ranging DEFAULT_STRESS_PLOT_RANGING = Ranging.Auto;
-   protected static DoubleInterval DEFAULT_STRESS_PLOT_RANGE = new DoubleInterval(0,1);
+   protected static DoubleInterval DEFAULT_STRESS_PLOT_RANGE = 
+      new DoubleInterval(0,0);
 
-   //double myNu;
-   //double myE;
+   protected static boolean DEFAULT_COMPUTE_NODAL_STRAIN = false;
+   protected static boolean DEFAULT_COMPUTE_NODAL_STRESS = false;
+   protected static boolean DEFAULT_COMPUTE_NODAL_ENERGY = false;
+
+   protected int myComputeStressStrainFlags = 0;
+
+   protected static boolean DEFAULT_COMPUTE_STRAIN_ENERGY = false;
+   protected boolean myComputeStrainEnergy = DEFAULT_COMPUTE_STRAIN_ENERGY;
+
    protected double myDensity;
-   //   PropertyMode myNuMode = PropertyMode.Inherited;
-   //   PropertyMode myEMode = PropertyMode.Inherited;
    PropertyMode myDensityMode = PropertyMode.Inherited;
 
    protected Vector3d myGravity = new Vector3d(DEFAULT_GRAVITY);
@@ -224,12 +330,22 @@ public abstract class FemModel extends MechSystemBase
    protected AABBTree myAABBTree;
    protected boolean myBVTreeValid;
 
-   // protected boolean myTopLevel = false;
-
    public static PropertyList myProps =
       new PropertyList (FemModel.class, MechSystemBase.class);
 
    static {
+      // modify some MechSystemBase properties so they don't appear in property
+      // panels
+      myProps.get("navpanelVisibility").setEditing(Edit.Never);
+      myProps.get("navpanelDisplay").setEditing(Edit.Never);
+      myProps.get("dynamicsEnabled").setEditing(Edit.Never);
+      myProps.get("penetrationLimit").setEditing(Edit.Never);
+      myProps.get("updateForcesAtStepEnd").setEditing(Edit.Never);
+      myProps.get("profiling").setEditing(Edit.Never);
+      myProps.get("integrator").setEditing(Edit.Never);
+      myProps.get("matrixSolver").setEditing(Edit.Never);
+      myProps.get("useImplicitFriction").setEditing(Edit.Never);
+
       // surfaceRendering must be written out explicitly at the end,
       // so it is scanned at the end
       myProps.addInheritable (
@@ -238,16 +354,12 @@ public abstract class FemModel extends MechSystemBase
       myProps.addInheritable ("stressPlotRanging:Inherited", 
          "ranging mode for stress plots",
          DEFAULT_STRESS_PLOT_RANGING);         
-      myProps.addInheritable ("stressPlotRange:Inherited", 
+      myProps.addInheritable (
+         "stressPlotRange:Inherited", 
          "stress value range for color stress plots",
-         DEFAULT_STRESS_PLOT_RANGE);
+         DEFAULT_STRESS_PLOT_RANGE, "NW");
       myProps.addInheritable (
          "gravity:Inherited", "acceleration of gravity", DEFAULT_GRAVITY);
-      // myProps.add ("warping * *", "enable rotational warping", DEFAULT_WARPING);
-      // myProps.add (
-      //    "YoungsModulus", "Youngs modulus", DEFAULT_E);
-      // myProps.add (
-      //    "PoissonsRatio", "Poissons ratio", DEFAULT_NU);
       myProps.addInheritable ("density:Inherited", "density", DEFAULT_DENSITY);
       myProps.add (
          "particleDamping * *", "damping on each particle",
@@ -255,13 +367,31 @@ public abstract class FemModel extends MechSystemBase
       myProps.add (
          "stiffnessDamping * *", "damping on stiffness matrix",
          DEFAULT_STIFFNESS_DAMPING);
+      myProps.add (
+         "material", "model material parameters", createDefaultMaterial(), "CE");
+      myProps.add (
+         "computeNodalStress",
+         "controls whether nodal stresses are computed",
+         DEFAULT_COMPUTE_NODAL_STRESS);
+      myProps.add (
+         "computeNodalStrain",
+         "controls whether nodal strains are computed",
+         DEFAULT_COMPUTE_NODAL_STRAIN);
+      myProps.add (
+         "computeNodalEnergyDensity",
+         "controls whether nodal strain energy densities are computed",
+         DEFAULT_COMPUTE_NODAL_ENERGY);
+      myProps.add (
+         "computeStrainEnergy",
+         "controls whether strain energy is computed",
+         DEFAULT_COMPUTE_STRAIN_ENERGY);
+      myProps.addReadOnly (
+         "strainEnergy",
+         "strain energy, only computed if 'computeStrainEnergy' is true");
+      myProps.addReadOnly ("kineticEnergy", "kinetic energy of the model");
       myProps.addReadOnly ("volume *", "volume of the model");
       myProps.addReadOnly ("numInverted", "number of inverted elements");
       myProps.addReadOnly ("mass *", "mass of the model");
-//      myProps.addReadOnly ("nodeMass *", "mass of the model");
-      myProps.addReadOnly ("energy", "energy of the model");
-      myProps.add (
-         "material", "model material parameters", createDefaultMaterial(), "CE");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -272,15 +402,13 @@ public abstract class FemModel extends MechSystemBase
       super.setDefaultValues();
       myGravity = new Vector3d (DEFAULT_GRAVITY);
       myGravityMode = PropertyMode.Inherited;
-      //myNu = DEFAULT_NU;
-      //myE = DEFAULT_E;
       myDensity = DEFAULT_DENSITY;
       myDensityMode = PropertyMode.Inherited;
       mySurfaceRendering = DEFAULT_SURFACE_RENDERING;
       mySurfaceRenderingMode = PropertyMode.Inherited;
       myStressPlotRanging = DEFAULT_STRESS_PLOT_RANGING;
       myStressPlotRangingMode = PropertyMode.Inherited;
-      myStressPlotRange = DEFAULT_STRESS_PLOT_RANGE;
+      myStressPlotRange = new DoubleInterval(DEFAULT_STRESS_PLOT_RANGE);
       myStressPlotRangeMode = PropertyMode.Inherited;
       myWarpingP = DEFAULT_WARPING;
       myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
@@ -359,20 +487,22 @@ public abstract class FemModel extends MechSystemBase
       setMaterial (new LinearMaterial (E, nu, corotated));
    }
 
-   // public void setLinearMaterial (double E, double nu) {
-   //    setLinearMaterial (E, nu, /*corotated=*/true);
-   // }
+   // surface rendering
 
-   public synchronized void setSurfaceRendering (SurfaceRender mode) {
-      if (mySurfaceRendering != mode) {
-         if (myStressPlotRanging == Ranging.Auto) {
-            myStressPlotRange.set (0, 0);
-         }
-         mySurfaceRendering = mode;
+   public synchronized void setSurfaceRendering (SurfaceRender rendering) {
+       SurfaceRender prev = mySurfaceRendering;
+      if (mySurfaceRendering != rendering) {
+         mySurfaceRendering = rendering;
       }
       mySurfaceRenderingMode =
          PropertyUtils.propagateValue (
-            this, "surfaceRendering", mode, mySurfaceRenderingMode);
+            this, "surfaceRendering", rendering, mySurfaceRenderingMode);
+      
+      if (mySurfaceRendering != prev) {
+         if (myStressPlotRanging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+      }
    }
 
    public SurfaceRender getSurfaceRendering() {
@@ -389,61 +519,95 @@ public abstract class FemModel extends MechSystemBase
    public PropertyMode getSurfaceRenderingMode() {
       return mySurfaceRenderingMode;
    }
-   
-   public Ranging getStressPlotRanging (){
-      return myStressPlotRanging;
-   }
-   
-   public PropertyMode getStressPlotRangingMode() {
-      return myStressPlotRangingMode;
-   }
-   
-   public void setStressPlotRangingMode(PropertyMode mode) {
-      if (mode != myStressPlotRangingMode) {
-         myStressPlotRangingMode = PropertyUtils.setModeAndUpdate (
-            this, "stressPlotRanging", myStressPlotRangingMode, mode);
-      }
-   }
-   
-   
-   public PropertyMode getStressPlotRangeMode() {
-      return myStressPlotRangeMode;
-   }
-   
-   public void setStressPlotRangeMode(PropertyMode mode) {
-      if (mode != myStressPlotRangeMode) {
-         myStressPlotRangeMode = PropertyUtils.setModeAndUpdate (
-            this, "stressPlotRange", myStressPlotRangeMode, mode);
-      }
-   }
+
+   // stress plot ranging 
 
    public void setStressPlotRanging (Ranging ranging) {
       if (myStressPlotRanging != ranging) {
-         if (ranging == Ranging.Auto) {
-            resetStressPlotRange();
-         }
          myStressPlotRanging = ranging;
+         if (ranging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
       }
       myStressPlotRangingMode =
          PropertyUtils.propagateValue (
             this, "stressPlotRanging", ranging, myStressPlotRangingMode);
    }
 
+   public Ranging getStressPlotRanging (){
+      return myStressPlotRanging;
+   }
+   
+   public void setStressPlotRangingMode(PropertyMode mode) {
+      Ranging prevRanging = myStressPlotRanging;
+      if (mode != myStressPlotRangingMode) {
+         myStressPlotRangingMode = PropertyUtils.setModeAndUpdate (
+            this, "stressPlotRanging", myStressPlotRangingMode, mode);
+      }
+      if (myStressPlotRanging != prevRanging) {
+         if (myStressPlotRanging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+      }
+   }
+   
+   public PropertyMode getStressPlotRangingMode() {
+      return myStressPlotRangingMode;
+   }
+
+   // stress plot range
+
+   /**
+    * Updates stress and strain rendering flags, and returns a bit mask
+    * of any flags that were newly set.
+    */
+   protected abstract int updateStressStrainRenderFlags();
+
+   /**
+    * Special method to propogate stress plot range values only to meshes and
+    * cutplanes with the same surface rendering, stressPlotRanging == Fixed,
+    * and stressPlotRangeMode == Inherited.
+    */
+   protected abstract void propagateFixedStressPlotRange();
+   protected abstract void updatePlotRangeIfAuto();
+   
+   public void setStressPlotRange (DoubleInterval range) {
+      myStressPlotRange = new DoubleInterval (range);
+      if (myStressPlotRangeMode != PropertyMode.Inactive) {
+         myStressPlotRangeMode = PropertyMode.Explicit;
+         propagateFixedStressPlotRange();
+      }
+   }
+
+   public void resetAutoStressPlotRange () {
+      if (mySurfaceRendering.usesStressOrStrain() && !isScanning()) {
+         myStressPlotRange.set (0, 0);
+         updatePlotRangeIfAuto();
+      }
+   }
+
    public DoubleInterval getStressPlotRange (){
       return new DoubleInterval (myStressPlotRange);
    }
    
-   public void resetStressPlotRange () {
-      myStressPlotRange.set (0, 0);
+   public void setStressPlotRangeMode(PropertyMode mode) {
+      if (mode != myStressPlotRangeMode) {
+         if (mode == PropertyMode.Explicit) {
+            propagateFixedStressPlotRange();
+         }
+         else if (myStressPlotRangeMode == PropertyMode.Explicit) {
+            // do nothing
+         }
+         myStressPlotRangeMode = mode;
+      }
    }
 
-   public void setStressPlotRange (DoubleInterval range) {
-      myStressPlotRange = new DoubleInterval (range);
-      myStressPlotRangeMode =
-         PropertyUtils.propagateValue (
-            this, "stressPlotRange", range, myStressPlotRangeMode);
+   public PropertyMode getStressPlotRangeMode() {
+      return myStressPlotRangeMode;
    }
-
+   
+   // end stress plot range
+   
    public void invalidateStressAndStiffness() {
       myStressesValidP = false;
       myStiffnessesValidP = false;
@@ -464,22 +628,6 @@ public abstract class FemModel extends MechSystemBase
       myStressesValidP = false;
       myStiffnessesValidP = false;
    }
-
-//   public synchronized void setWarping (boolean enable) {
-//      myWarpingP = enable;
-//      if (myMaterial.hasProperty ("corotated")) {
-//         myMaterial.getProperty ("corotated").set (enable);
-//      }
-//   }
-
-//   public boolean getWarping() {
-//      if (myMaterial.hasProperty ("corotated")) {
-//         return (Boolean)myMaterial.getProperty ("corotated").get();
-//      }
-//      else {
-//         return myWarpingP;
-//      }
-//   }
 
    /* ------- gravity stuff ---------- */
 
@@ -564,6 +712,8 @@ public abstract class FemModel extends MechSystemBase
       }
       return myAABBTree;
    }
+   
+   protected abstract void updateStressAndStiffness();
 
    public synchronized void setDensity (double p) {
       myDensity = p;
@@ -739,12 +889,35 @@ public abstract class FemModel extends MechSystemBase
       notifyParentOfChange(e);
    }
 
+   /* ----- I/O methods ------ */
+
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
       if (ScanWriteUtils.scanAndStorePropertyValue (
-                  rtok, this, "surfaceRendering", tokens)) {
+             rtok, this, "surfaceRendering", tokens)) {
+         return true;
+      }
+      else if (scanAttributeName (rtok, "volume")) {
+         myVolume = rtok.scanNumber();
+         myVolumeValid = true;
+         return true;         
+      }
+      else if (scanAttributeName (rtok, "computeStressStrainFlags")) {
+         myComputeStressStrainFlags = rtok.scanInteger();
+         return true;
+      }
+      else if (scanAttributeName (rtok, "strainEnergy")) {
+         myStrainEnergy = rtok.scanNumber();
+         return true;
+      }
+      else if (scanAttributeName (rtok, "stressPlotRange")) {
+         myStressPlotRange.scan (rtok, null);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "stressPlotRangeMode")) {
+         myStressPlotRangeMode = rtok.scanEnum(PropertyMode.class);
          return true;
       }
       rtok.pushBack();
@@ -758,8 +931,35 @@ public abstract class FemModel extends MechSystemBase
       super.writeItems (pw, fmt, ancestor); 
       // surfaceRendering has to be written near the end because it has to be
       // scanned after the model and mesh structures.
+      pw.println ("volume=" + fmt.format(updateVolume()));
+      pw.println ("strainEnergy=" + myStrainEnergy);
+      pw.println (
+         "computeStressStrainFlags=0x" +
+         Integer.toHexString(myComputeStressStrainFlags));
       myProps.get("surfaceRendering").writeIfNonDefault (
          this, pw, fmt, ancestor);
+      // need to write stressPlotRange explicitly because Auto ranging will
+      // change its value regardless of stressPlotRangeMode.
+      if (!myStressPlotRange.equals(DEFAULT_STRESS_PLOT_RANGE)) {
+         pw.print ("stressPlotRange=");
+         myStressPlotRange.write (pw, fmt, null);
+      }
+      if (myStressPlotRangeMode != PropertyMode.Inherited) {
+         pw.println ("stressPlotRangeMode=" + myStressPlotRangeMode);
+      }
+   }
+
+   /* ----- Aux state methods ------ */
+
+   public void getState(DataBuffer data) {
+      data.dput (updateVolume());
+      data.dput (myStrainEnergy);
+   }
+   
+   public void setState(DataBuffer data) {
+      myVolume = data.dget();
+      myVolumeValid = true;
+      myStrainEnergy = data.dget();
    }
 
    public void setBounds (Point3d pmin, Point3d pmax) {
@@ -814,18 +1014,6 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
-//   protected void resetMarkerForces() {
-//      for (FemMarker mkr : myMarkers) {
-//         mkr.setForcesToExternal();
-//      }
-//   }
-
-//   protected void resetNodeForces() {
-//      for (FemNode n : getNodes()) {
-//         n.setForcesToExternal();
-//      }
-//   }
-
    public void getAttachments (List<DynamicAttachment> list, int level) {
       list.addAll (myAttachments);
       for (FemMarker mkr : myMarkers) {
@@ -862,7 +1050,6 @@ public abstract class FemModel extends MechSystemBase
 
    public void scaleDistance (double s) {
       getNodes().scaleDistance (s);
-      //myE /= s;
       myMaterial.scaleDistance(s);
       
       if (myGravityMode == PropertyMode.Explicit ||
@@ -912,12 +1099,223 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
+   /**
+    * @deprecated Use {@link #getKineticEnergy} instead.
+    */
    public double getEnergy() {
+      return getKineticEnergy();
+   }
+
+   /**
+    * Queries the current kinetic energy in this FEM model, assuming lumped
+    * nodal masses.
+    */
+   public double getKineticEnergy() {
       double e = 0;
       for (FemNode n : getNodes()) {
-         e += n.getVelocity().normSquared() / 2;
+         e += n.getMass()*n.getVelocity().normSquared() / 2;
       }
       return e;
+   }
+
+   /**
+    * Returns the strain energy for this model. Strain energy is computed
+    * only if {@link #getComputeStrainEnergy} returns {@code true}; otherwise,
+    * zero is returned.
+    * 
+    * @return strain energy for this model
+    */
+   public double getStrainEnergy() {
+      return myStrainEnergy;
+   }
+
+
+   /**
+    * Queries whether nodal stresses are computed for this model.
+    *
+    * @return {@code true} if nodal stresses are computed
+    */
+   public boolean getComputeNodalStress () {
+      return (myComputeStressStrainFlags & COMPUTE_STRESS_EXPLICIT) != 0;
+   }
+
+   /**
+    * Sets whether nodal stresses are computed for this model. The default
+    * value is {@code false} to avoid unnecessary computation.
+    *
+    * @param enable if {@code true}, enables nodal stress computation
+    */
+   public void setComputeNodalStress (boolean enable) {
+      boolean oldenable = getComputeNodalStress();
+      if (enable) {
+         myComputeStressStrainFlags |= COMPUTE_STRESS_EXPLICIT;
+      }
+      else {
+         myComputeStressStrainFlags &= ~COMPUTE_STRESS_EXPLICIT;
+      }
+      if (!needsNodalStress()) {
+         for (FemNode n : getNodes()) {
+            n.maybeClearStress ();
+         }
+      }
+      else if (enable && !oldenable) {
+         updateStressAndStiffness();
+      }      
+   }
+
+   /**
+    * Queries whether nodal strains are computed for this model.
+    *
+    * @return {@code true} if nodal strains are computed
+    */
+   public boolean getComputeNodalStrain () {
+      return (myComputeStressStrainFlags & COMPUTE_STRAIN_EXPLICIT) != 0;
+   }
+
+   /**
+    * Sets whether nodal strains are computed for this model. The default
+    * value is {@code false} to avoid unnecessary computation.
+    *
+    * @param enable if {@code true}, enables nodal strain computation
+    */
+   public void setComputeNodalStrain (boolean enable) {
+      boolean oldenable = getComputeNodalStrain();
+      if (enable) {
+         myComputeStressStrainFlags |= COMPUTE_STRAIN_EXPLICIT;
+      }
+      else {
+         myComputeStressStrainFlags &= ~COMPUTE_STRAIN_EXPLICIT;
+      }
+      if (!needsNodalStrain()) {
+         for (FemNode n : getNodes()) {
+            n.maybeClearStrain ();
+         }
+      }
+      else if (enable && !oldenable) {
+         updateStressAndStiffness();
+      }      
+   }
+
+   /**
+    * Queries whether nodal strain energy densities are computed for this
+    * model.
+    *
+    * @return {@code true} if nodal energy densities are computed
+    */
+   public boolean getComputeNodalEnergyDensity () {
+      return (myComputeStressStrainFlags & COMPUTE_ENERGY_EXPLICIT) != 0;
+   }
+
+   /**
+    * Sets whether nodal strain energy densities are computed for this
+    * model. The default value is {@code false} to avoid unnecessary
+    * computation.
+    *
+    * @param enable if {@code true}, enables nodal energy density computation
+    */
+   public void setComputeNodalEnergyDensity (boolean enable) {
+      boolean oldenable = getComputeNodalEnergyDensity();
+      if (enable) {
+         myComputeStressStrainFlags |= COMPUTE_ENERGY_EXPLICIT;
+      }
+      else {
+         myComputeStressStrainFlags &= ~COMPUTE_ENERGY_EXPLICIT;
+      }
+      if (!needsNodalEnergy()) {
+         for (FemNode n : getNodes()) {
+            n.maybeZeroEnergy ();
+         }
+      }
+      else if (enable && !oldenable) {
+         updateStressAndStiffness();
+      }
+   }
+
+   /**
+    * Internal method indicating whether nodal stresses need to be computed
+    * because of either an explicit application request or for mesh rendering.
+    */
+   public boolean needsNodalStress() {
+      return (myComputeStressStrainFlags & COMPUTE_STRESS_ANY) != 0;
+   }
+
+   /**
+    * Internal method indicating whether nodal strains need to be computed
+    * because of either an explicit application request or for mesh rendering.
+    */
+   protected boolean needsNodalStrain() {
+      return (myComputeStressStrainFlags & COMPUTE_STRAIN_ANY) != 0;
+   }
+
+   /**
+    * Internal method indicating whether nodal energies need to be computed
+    * because of either an explicit application request or for mesh rendering.
+    */
+   protected boolean needsNodalEnergy() {
+      return (myComputeStrainEnergy ||
+              (myComputeStressStrainFlags & COMPUTE_ENERGY_ANY) != 0);
+   }
+
+   /**
+    * Explicitly enables the collection of nodal stress, strain or energy
+    * density values for this model, as required for the specified
+    * stress/strain measure.
+    *
+    * @param m measure indicating whether stress, strain or energy density
+    * values are needed
+    */
+   public void setComputeNodalStressStrain (StressStrainMeasure m) {
+      if (m.usesStress()) {
+         setComputeNodalStress (true);
+      }
+      if (m.usesStrain()) {
+         setComputeNodalStress (true);
+      }
+      if (m.usesEnergy()) {
+         setComputeNodalEnergyDensity (true);
+      }
+   }
+   
+   /**
+    * Cancels the computation of nodal stress, strain and energy density values
+    * for this model. Values may still be computed on a per-node basis if
+    * required for colormap rendering.
+    */
+   public void clearComputeNodalStressStrain () {
+      setComputeNodalStress (false);
+      setComputeNodalStress (false);
+      setComputeNodalEnergyDensity (false);
+   }
+
+   /**
+    * Queries whether strain energy is computed for this model.
+    *
+    * @return {@code true} if strain energy is computed
+    */
+   public boolean getComputeStrainEnergy () {
+      return myComputeStrainEnergy;
+   }
+
+   /**
+    * Sets whether strain energy is computed for this model. The default value
+    * is {@code false} to avoid unnecessary computation.
+    *
+    * @param enable if {@code true}, enables strain energy computation
+    */
+   public void setComputeStrainEnergy (boolean enable) {
+      boolean oldenable = myComputeStrainEnergy;
+      myComputeStrainEnergy = enable;
+      if (!enable) {
+         myStrainEnergy = 0;
+      }
+      if (!needsNodalEnergy()) {
+         for (FemNode n : getNodes()) {
+            n.maybeZeroEnergy ();
+         }
+      }
+      else if (enable && !oldenable) {
+         updateStressAndStiffness();
+      }         
    }
 
    public void scaleMass (double s) {
@@ -926,7 +1324,6 @@ public abstract class FemModel extends MechSystemBase
          n.scaleMass (s);
       }
       myDensity *= s;
-      //myE *= s;
       myMaterial.scaleMass (s);
       for (FemElement e : getAllElements()) {
          e.scaleMass (s);
@@ -940,8 +1337,6 @@ public abstract class FemModel extends MechSystemBase
       }
       recursivelyGetLocalComponents (this, list, Collidable.class);
    }      
-
-   //protected abstract ArrayList<? extends FemNode> getActiveNodes();
 
    public void getDynamicComponents (
       List<DynamicComponent> active,
@@ -978,24 +1373,6 @@ public abstract class FemModel extends MechSystemBase
       forceEffectors.add (this);
    }
 
-//   public int getActivePosState (VectorNd x, int idx) {
-//      ArrayList<? extends FemNode> activeNodes = getActiveNodes();
-//      double[] buf = x.getBuffer();
-//      for (int i = 0; i < activeNodes.size(); i++) {
-//         idx = activeNodes.get (i).getPosState (buf, idx);
-//      }
-//      return idx;
-//   }
-//
-//   public int getActiveVelState (VectorNd x, int idx) {
-//      ArrayList<? extends FemNode> activeNodes = getActiveNodes();
-//      double[] buf = x.getBuffer();
-//      for (int i = 0; i < activeNodes.size(); i++) {
-//         idx = activeNodes.get (i).getVelState (buf, idx);
-//      }
-//      return idx;
-//   }
-
    /**
     * {@inheritDoc}
     */
@@ -1009,36 +1386,8 @@ public abstract class FemModel extends MechSystemBase
       invalidateStressAndMaybeStiffness();     
    }
    
-//   public void recursivelyUpdatePosState (int flags) {
-//      myVolumeValid = false;
-//      invalidateStressAndMaybeStiffness();
-//   }
-
-//   public int getActivePosDerivative (VectorNd dxdt, double t, int idx) {
-//      ArrayList<? extends FemNode> activeNodes = getActiveNodes();
-//      double[] buf = dxdt.getBuffer();
-//      for (int i = 0; i < activeNodes.size(); i++) {
-//         idx = activeNodes.get (i).getPosDerivative (buf, idx);
-//      }
-//      return idx;
-//   }
-
-//   public void recursivelyUpdateVelState (int flags) {
-//   }
-   
    public void updateSlaveVel() {
-      
    }
-
-//   protected void checkForInvertedElements() {
-//      int num = 0;
-//      for (int i = 0; i < numElements(); i++) {
-//         if (getElement (i).isInverted()) {
-//            num++;
-//         }
-//      }
-//      myNumInverted = num;
-//   }
 
    /**
     * Sets the maximum step size by which this model should be advanced within a
@@ -1052,14 +1401,20 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public double updateVolume() {
+      if (!myVolumeValid) {
+         myVolume = computeVolume();
+         myVolumeValid = true;
+      }
+      return myVolume;
+   }
+   
+   protected double computeVolume() {
       double volume = 0;
       for (FemElement e : getAllElements()) {
          e.computeVolumes();
          volume += e.getVolume();
       }
-      myVolume = volume;
-      myVolumeValid = true;
-      return volume;
+      return volume;     
    }
    
    public double getRestVolume() {
@@ -1267,6 +1622,7 @@ public abstract class FemModel extends MechSystemBase
       fem.myForcesNeedUpdating = true;
       fem.myMaxTranslationalVel = myMaxTranslationalVel;
 
+      fem.myComputeStressStrainFlags = myComputeStressStrainFlags;
       return fem;
    }
 

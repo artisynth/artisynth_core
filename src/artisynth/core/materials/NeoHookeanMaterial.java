@@ -127,6 +127,24 @@ public class NeoHookeanMaterial extends FemMaterial {
          D.setLowerToUpper();
       }
    }
+   
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+
+      // express constitutive law in terms of Lama parameters
+      double E = getYoungsModulus(def);
+      double G = E/(2*(1+myNu)); // bulk modulus
+      double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
+      double mu = G;
+
+      SymmetricMatrix3d C = new SymmetricMatrix3d();
+      computeRightCauchyGreen (C, def);
+      
+      double lnJ = Math.log(def.getDetF());
+
+      return mu*(C.trace()-3)/2 - mu*lnJ + lam*lnJ*lnJ/2;
+   }  
 
    public boolean equals (FemMaterial mat) {
       if (!(mat instanceof NeoHookeanMaterial)) {

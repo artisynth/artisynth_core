@@ -29,6 +29,10 @@ public interface AuxiliaryMaterial extends Clonable, HasMaterialState {
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def,
       IntegrationPoint3d pt, IntegrationData3d dt, MaterialStateObject state);
    
+   public double computeStrainEnergyDensity ( 
+      DeformedPoint def, IntegrationPoint3d pt, 
+      IntegrationData3d dt, MaterialStateObject state);
+   
    public abstract boolean hasSymmetricTangent();
 
    public abstract boolean isInvertible();

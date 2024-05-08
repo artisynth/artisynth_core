@@ -80,7 +80,7 @@ public class SingleHex extends RootModel {
       RenderProps.setPointStyle (mechMod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mechMod, 0.05);
 
-      mod.setGravity (0, 0, 0);
+      //mod.setGravity (0, 0, 0);
       mod.setIncompressible (FemModel.IncompMethod.OFF);
       //mod.setGravity (0, 0, -1);
 

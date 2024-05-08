@@ -151,6 +151,30 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
       }
    }
 
+   /**
+    * Computes the dilational strain energy density U given a bulk modulus K
+    * and Jacobian determinant J.
+    * 
+    * @param K bulk modulus
+    * @param J Jacobian determinant
+    * @return dilational strain energy
+    */
+   public double computeU (double K, double J) {
+      switch (myBulkPotential) {
+         case QUADRATIC: {
+            return K*(J-1)*(J-1)/2;
+         }
+         case LOGARITHMIC: {
+            double logJ = Math.log(J);
+            return K*logJ*logJ/2;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented potential " + myBulkPotential);
+         }
+      }
+   }
+
    public boolean isIncompressible() {
       return true;
    }
@@ -217,6 +241,10 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
    public abstract void computeDevStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state);
+   
+   public abstract double computeDevStrainEnergy (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state);
 
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
@@ -230,6 +258,14 @@ public abstract class IncompressibleMaterialBase extends FemMaterial {
          addPressureTangent (D, p);
       }
    }
+   
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+      double W = computeDevStrainEnergy (def, Q, excitation, state);
+      W += computeU (getBulkModulus(def), def.getAverageDetF());
+      return W;
+   }  
 
    @Override
    public void scaleDistance (double s) {

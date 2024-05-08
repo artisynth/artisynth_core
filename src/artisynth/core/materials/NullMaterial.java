@@ -19,6 +19,12 @@ public class NullMaterial extends FemMaterial {
       }
    }
    
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+      return 0;
+   }
+   
    @Override
    public boolean isInvertible() {
       return true;

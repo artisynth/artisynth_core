@@ -29,6 +29,8 @@ public abstract class FemMaterial extends MaterialBase
       CubicHyperelastic.class,
       OgdenMaterial.class,
       FungMaterial.class,
+      ArrudaBoyceMaterial.class,
+      VerondaWestmannMaterial.class,
       NeoHookeanMaterial.class,
       IncompNeoHookeanMaterial.class,
       IncompressibleMaterial.class,
@@ -110,6 +112,21 @@ public abstract class FemMaterial extends MaterialBase
    public abstract void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation, MaterialStateObject state);
+   
+   /**
+    * Computes the current strain energy density.
+    * 
+    * @param def deformation information, including deformation gradient and 
+    * pressure
+    * @param Q coordinate frame specifying directions of anisotropy
+    * @param excitation current excitation value
+    * @param state material state information, or {@code null} if the
+    * material does not have state.
+    * @return strain energy density
+    */
+   public abstract double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state);
    
    /**
     * Returns true if this material is defined for a deformation gradient

@@ -507,6 +507,23 @@ public abstract class NumericInterval extends RangeBase {
    }
 
    /**
+    * Returns true if a specified NumericRange is equal in value, within
+    * a prescribed absolute tolerance, to this one.
+    * 
+    * @param rng
+    * numeric range to compare with
+    * @param eps
+    * numeric tolerance for comparison
+    * @return true if <code>rng</code> is equivalent to this NumericRange
+    */
+   public boolean epsilonEquals (NumericInterval rng, double eps) {
+      return (Math.abs(myUpper-rng.myUpper) <= eps &&
+              Math.abs(myLower-rng.myLower) <= eps &&
+              myLowerClosed == rng.myLowerClosed &&
+              myUpperClosed == rng.myUpperClosed);
+   }
+
+   /**
     * Sets the value of this NumericRange from a string. The string format
     * should match that specified for {@link #scan scan}.
     * 

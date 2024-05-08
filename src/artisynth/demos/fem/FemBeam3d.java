@@ -126,6 +126,10 @@ public class FemBeam3d extends RootModel {
       myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);
       //myMechMod.getSolver().profileKKTSolveTime = true;
       //myMechMod.setProfiling (true);      
+      for (int i=1; i<=5; i++) {
+         addWayPoint (0.1*i);
+      }
+      
    }
 
    public void build (
@@ -422,24 +426,24 @@ public class FemBeam3d extends RootModel {
       }
    }
 
-   public void setNodeStresses (String fileName) {
-
-      try {
-         ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (fileName);
-         int cnt = 0;
-         while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
-            rtok.pushBack();
-            int nnum = rtok.scanInteger();
-            double vms = rtok.scanNumber();
-            myFemMod.getNodes().getByNumber (nnum).setStress (vms);
-            cnt++;
-         }
-         System.out.println ("read "+cnt+" values");
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-      }
-   }
+//   public void setNodeStresses (String fileName) {
+//
+//      try {
+//         ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (fileName);
+//         int cnt = 0;
+//         while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+//            rtok.pushBack();
+//            int nnum = rtok.scanInteger();
+//            double vms = rtok.scanNumber();
+//            myFemMod.getNodes().getByNumber (nnum).setStress (vms);
+//            cnt++;
+//         }
+//         System.out.println ("read "+cnt+" values");
+//      }
+//      catch (Exception e) {
+//         e.printStackTrace(); 
+//      }
+//   }
 
    public void writeDisplacementsToFile (String fileName) {
       Vector3d del = new Vector3d();
@@ -565,7 +569,6 @@ public class FemBeam3d extends RootModel {
 
       myControlPanel = new ControlPanel ("options", "LiveUpdate");
       FemControlPanel.addFem3dControls (myControlPanel, femMod, mechMod);
-      myControlPanel.addWidget (femMod, "surfaceRendering");
       myControlPanel.addWidget (femMod, "stressPlotRanging");
       myControlPanel.addWidget (femMod, "stressPlotRange");
       if (mechMod.axialSprings().size() > 0) {
@@ -579,7 +582,11 @@ public class FemBeam3d extends RootModel {
             myControlPanel.addWidget (femMod, "bundles/1:excitation");
          }
       }
-            
+      myControlPanel.addWidget (femMod, "computeNodalStress");            
+      myControlPanel.addWidget (femMod, "computeNodalStrain");           
+      myControlPanel.addWidget (femMod, "computeNodalEnergyDensity");            
+      myControlPanel.addWidget (femMod, "computeStrainEnergy");        
+      myControlPanel.addWidget (femMod, "strainEnergy");                
       addControlPanel (myControlPanel);
    }
 

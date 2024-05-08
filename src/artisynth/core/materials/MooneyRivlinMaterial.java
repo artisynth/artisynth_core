@@ -416,7 +416,30 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public boolean equals (FemMaterial mat) {
+   public double computeDevStrainEnergy (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+
+      double c10 = getC10(def);
+      double c01 = getC01(def);
+      double c11 = getC11(def);
+      double c20 = getC20(def);
+      double c02 = getC02(def);
+
+      SymmetricMatrix3d Cdev = new SymmetricMatrix3d();
+      SymmetricMatrix3d Cdev2 = new SymmetricMatrix3d();
+      computeDevRightCauchyGreen (Cdev, def);
+      double I1 = Cdev.trace();
+      Cdev2.mulTransposeLeft (Cdev);
+      double I2 = 0.5*(I1*I1 - Cdev2.trace());
+      double I1_3 = I1-3;
+      double I2_3 = I2-3;
+      double W = (c10*I1_3 + c01*I2_3 + c11*I1_3*I2_3 +
+                  c20*I1_3*I1_3 + c02*I2_3*I2_3);
+      return W;     
+   }
+
+  public boolean equals (FemMaterial mat) {
       if (!(mat instanceof MooneyRivlinMaterial)) {
          return false;
       }

@@ -17,7 +17,7 @@ import java.util.*;
 import java.io.*;
 
 public abstract class FemNode extends Particle {
-   
+
    protected boolean myMassValidP = false;
    protected boolean myMassExplicitP = false;
    
@@ -154,6 +154,12 @@ public abstract class FemNode extends Particle {
    }
 
    public abstract Point3d getRestPosition();
+   
+   protected abstract void maybeClearStress();
+   
+   protected abstract void maybeClearStrain();
+
+   protected abstract void maybeZeroEnergy();
 
    // public void setPosition (Point3d pos) {
    //    super.setPosition (pos);

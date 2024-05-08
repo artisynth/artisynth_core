@@ -379,8 +379,8 @@ public class RenderDemo extends RootModel {
       }
 
       public void render (Renderer renderer, int flags) {
-         renderSingle (renderer);
-         //renderDrawMode (renderer);
+         //renderSingle (renderer);
+         renderDrawMode (renderer);
       }
    }
 
@@ -1009,6 +1009,30 @@ public class RenderDemo extends RootModel {
       }
    }
 
+   private static class DrawSpheresAndLines extends DrawBase {
+
+      public void render (Renderer renderer, int flags) {
+         // sphere centers
+         Vector3d p0 = new Vector3d (-0.5, 0, 0.5);
+         Vector3d p1 = new Vector3d (0.5, 0, 0.5);
+         Vector3d p2 = new Vector3d (0, 0, -0.5);
+
+         // draw the spheres using a golden-yellow color
+         renderer.setColor (new Color (1f, 0.8f, 0f));
+         double radius = 0.1;
+         renderer.drawSphere (p0, radius);
+         renderer.drawSphere (p1, radius);
+         renderer.drawSphere (p2, radius);
+
+         // connect spheres by pixel-based lines
+         renderer.setColor (Color.RED);
+         renderer.setLineWidth (3);
+         renderer.drawLine (p0, p1);
+         renderer.drawLine (p1, p2);
+         renderer.drawLine (p2, p0);
+      }
+   }
+
    private static class DrawCylinder extends DrawBase {
 
       public void render (Renderer renderer, int flags) {
@@ -1356,6 +1380,7 @@ public class RenderDemo extends RootModel {
       //drawable = new DrawText();
       //drawable = new DrawSquares();
       //drawable = new DrawSquaresX();
+      drawable = new DrawSquare();
 
       addRenderable (drawable);
       setDefaultViewOrientation (drawable.getViewOrientation());

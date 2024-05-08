@@ -252,6 +252,25 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       }
    }  
    
+   public double computeStrainEnergyDensity ( 
+      DeformedPoint def, IntegrationPoint3d pt, 
+      IntegrationData3d dt, MaterialStateObject state) {
+      
+      FemMaterial mat = getEffectiveMaterial();
+      double sed = 0;
+      if (mat != null) {
+         double frac = myFrac;
+         if (myFracs != null) {
+            frac = myFracs[pt.getNumber()];
+         }
+         if (frac > 0) {
+            Matrix3d Q = (dt.myFrame != null ? dt.myFrame : Matrix3d.IDENTITY);
+            sed = frac*mat.computeStrainEnergyDensity (def, Q, 0.0, state);
+         } 
+      }     
+      return sed;
+   }
+   
    public boolean hasSymmetricTangent() {
       FemMaterial mat = getEffectiveMaterial();
       if (mat != null) {

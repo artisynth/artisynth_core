@@ -6,6 +6,7 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
@@ -147,7 +148,52 @@ public abstract class LinearMaterialBase extends FemMaterial {
          }
       }
    }
+   
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
 
+      RotationMatrix3d R = def.getR();
+      Matrix3d F = def.getF();
+
+      SymmetricMatrix3d eps = new SymmetricMatrix3d();
+
+      // cauchy strain, rotated if necessary
+      if (myCorotated) {
+         if (R == null) {
+            R = computeRotation(F, eps);
+         }
+         else {
+            // remove rotation from F
+            eps.mulTransposeLeftSymmetric(R, F);
+         }
+      }
+      else {
+         eps.setSymmetric (F);
+      }
+      eps.m00 -= 1;
+      eps.m11 -= 1;
+      eps.m22 -= 1;
+
+      // unroll into voigt vector to multiply by C
+      VectorNd evec = new VectorNd(6);
+      VectorNd svec = new VectorNd(6);
+      evec.set (0, eps.m00);
+      evec.set (1, eps.m11);
+      evec.set (2, eps.m22);
+      evec.set (3, 2*eps.m01);
+      evec.set (4, 2*eps.m12);
+      evec.set (5, 2*eps.m02);
+
+      Matrix6d C = new Matrix6d();
+      // get spatial stiffness tensor
+      getC(C, def);
+      C.mul(svec,evec);
+       // no need to rotate sigma since computation is being done in co-rotated
+      // frame
+      return svec.dot(evec)/2;
+   }
+   
    public boolean equals (FemMaterial mat) {
       if (!(mat instanceof LinearMaterialBase)) {
          return false;

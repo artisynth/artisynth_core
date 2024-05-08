@@ -10,6 +10,7 @@ public class DeformedPointBase implements DeformedPoint {
    protected Matrix3d myF;
    protected double myDetF;
    protected double myP;
+   protected double myAvgDetF;
    protected RotationMatrix3d myR;
 
    protected Point3d myRestPos;
@@ -26,6 +27,7 @@ public class DeformedPointBase implements DeformedPoint {
       myDetF = 0;
       myR = null;
       myP = 0;
+      myAvgDetF = 0;
 
       myNodeNumbers = null;
       myNodeWeights = null;
@@ -56,6 +58,14 @@ public class DeformedPointBase implements DeformedPoint {
 
    public void setAveragePressure (double p) {
       myP = p;
+   }
+   
+   public double getAverageDetF() {
+      return myAvgDetF;
+   }
+
+   public void setAverageDetF (double detF) {
+      myAvgDetF = detF;
    }
    
    public void setR(Matrix3dBase R) {

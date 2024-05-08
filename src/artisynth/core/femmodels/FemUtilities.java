@@ -7,8 +7,10 @@
 package artisynth.core.femmodels;
 
 import artisynth.core.materials.TensorUtils;
+import artisynth.core.femmodels.FemModel.StressStrainMeasure;
 
 import maspack.matrix.*;
+import maspack.util.InternalErrorException;
 
 /** 
  * Provides some general utilities for FEM computations. Some of these
@@ -909,5 +911,56 @@ public class FemUtilities {
       double J2 = computeJ2 (strain);
       return Math.sqrt (4.0/3.0*J2);    
    }
+   
+   /**
+    * Compute the linear (small deformation) strain energy density
+    * from the stress and strain tensors.
+    * 
+    * @param sig stress tensor
+    * @param eps strain tensor
+    * @return strain energy density
+    */  
+   static public double computeLinearStrainEnergyDensity(
+      SymmetricMatrix3d sig, SymmetricMatrix3d eps) {
+      return (
+         (sig.m00*eps.m00 + sig.m11*eps.m11 + sig.m22*eps.m22)/2 +
+         (sig.m01*eps.m01 + sig.m12*eps.m12 + sig.m02*eps.m02));
+   }
 
+   /**
+    * Computes a stress/strain measure for the specified stress/strain
+    * tensor.
+    * 
+    * @param m desired stress/strain measure
+    * @param S stress/strain tensor
+    * @return computed value
+    */  
+   static public double computeStressStrainMeasure (
+      StressStrainMeasure m, SymmetricMatrix3d S) {
+
+      switch (m ) {
+         case VonMisesStress: {
+            return FemUtilities.computeVonMisesStress (S);
+         }
+         case MAPStress: {
+            return S.computeMaxAbsEigenvalue();
+         }
+         case MaxShearStress: {
+            return S.computeMaxShear();
+         }
+         case VonMisesStrain: {
+            return FemUtilities.computeVonMisesStrain (S);
+         }
+         case MAPStrain: {
+            return S.computeMaxAbsEigenvalue();
+         }
+         case MaxShearStrain: {
+            return S.computeMaxShear();
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented stress/strain measure " + m);
+         }
+      }
+   }
 }

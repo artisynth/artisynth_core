@@ -5,6 +5,7 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
@@ -142,6 +143,44 @@ public class LinearMaterial extends LinearMaterialBase {
       C.m50 = 0;   C.m51 = 0;   C.m52 = 0;   C.m53 = 0;   C.m54 = 0;   C.m55 = mu;
    }
 
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+      
+      double E = getYoungsModulus(def);
+      // lam and mu are the first and second Lame parameters
+      double lam = E*myNu/((1+myNu)*(1-2*myNu));
+      double mu = E/(2*(1+myNu));
+
+      RotationMatrix3d R = def.getR();
+      Matrix3d F = def.getF();
+
+      SymmetricMatrix3d eps = new SymmetricMatrix3d();
+
+      // cauchy strain, rotated if necessary
+      if (isCorotated()) {
+         if (R == null) {
+            R = computeRotation(F, eps);
+         }
+         else {
+            // remove rotation from F
+            eps.mulTransposeLeftSymmetric(R, F);
+         }
+      }
+      else {
+         eps.setSymmetric (F);
+      }
+      eps.m00 -= 1;
+      eps.m11 -= 1;
+      eps.m22 -= 1;
+
+      double traceEps = eps.trace();
+      double normEps = eps.frobeniusNorm();
+
+      double W = lam*traceEps*traceEps/2 + mu*normEps*normEps;
+      return W;
+   }
+   
    public boolean equals (FemMaterial mat) {
       if (!(mat instanceof LinearMaterial)) {
          return false;

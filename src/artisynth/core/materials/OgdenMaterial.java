@@ -5,6 +5,7 @@ import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
@@ -514,7 +515,11 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       notifyHostOfPropertyChange();
    }
 
-  // See JC Simo and RL Taylor, Quasi-Incompressible Finite Elasticity in
+   public final double sqr (double x) {
+      return x*x;
+   }
+
+   // See JC Simo and RL Taylor, Quasi-Incompressible Finite Elasticity in
    // Principal Stretches.  Continuum Basis and Numerical Algorithms, Comp
    // Methods Appl Mech Eng, 85, 273-310, 1991
    public void computeDevStressAndTangent (
@@ -526,11 +531,10 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       sigma.setZero();
 
       // Calculate Deviatoric left Cauchy-Green tensor
-      computeLeftCauchyGreen(myB,def);
+      computeDevLeftCauchyGreen(myB,def);
 
-      Vector3d principalStretch   = new Vector3d();
-      Vector3d principalStretch2  = new Vector3d();
-      Vector3d principalStretchDev = new Vector3d();
+      Vector3d lam = new Vector3d();
+      Vector3d lamSqr  = new Vector3d();
       Matrix3d principalDirection = new Matrix3d();
 
       double mu[] = new double[NMAX];
@@ -550,292 +554,152 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       alpha[5] = getAlpha6(def);
       
       // Calculate principal stretches and principal directions
-      myB.getEigenValues(principalStretch2, principalDirection);
+      // Eigenvalues of B are squares of the principal stretches
+      myB.getEigenValues(lamSqr, principalDirection);
       for ( int i=0; i<3; i++) {
-         principalStretch.set(i, Math.sqrt(principalStretch2.get(i)) );
+         lam.set(i, Math.sqrt(lamSqr.get(i)) );
       }
-      principalStretchDev.scale (Math.pow(J, -1.0 / 3.0), principalStretch);
+
+      Vector3d dir = new Vector3d();
+      SymmetricMatrix3d douter0 = new SymmetricMatrix3d();
+      principalDirection.getColumn (0, dir);
+      douter0.dyad (dir);
+      SymmetricMatrix3d douter1 = new SymmetricMatrix3d();
+      principalDirection.getColumn (1, dir);
+      douter1.dyad (dir);
+      SymmetricMatrix3d douter2 = new SymmetricMatrix3d();
+      principalDirection.getColumn (2, dir);
+      douter2.dyad (dir);
+      SymmetricMatrix3d[] douter = new SymmetricMatrix3d[] {
+         douter0, douter1, douter2};
+
+      double[][] lampows = new double[3][NMAX];
+      for (int i=0; i<3; i++) {
+         for (int n=0; n<NMAX; n++) {
+            if (mu[n] != 0) {
+               lampows[i][n] = Math.pow(lam.get(i), alpha[n]);
+            }
+         }
+      }
+      double[] pstress = new double[3];
 
       // Calculate principal stresses
       for (int i=0; i<3; i++) {
          for (int n=0; n<NMAX; n++) {
             if (mu[n] != 0) {
-               sigma.set(
-                  i, i, sigma.get(i,i) + 
-                  mu[n] / alpha[n] / J * 
-                  (Math.pow(principalStretchDev.get(i), alpha[n])));
+               pstress[i] += mu[n]*(lampows[i][n]-1)/(J*alpha[n]);
             }
          }
+         sigma.scaledAdd (pstress[i], douter[i]);
       }
-
-      // Calculate stress tensor from principal stresses and directions
-      sigma.mulLeftAndTransposeRight(principalDirection);
-      
+      double traceSig = sigma.trace();
       sigma.deviator();
 
       if (D != null) {
 
-         double[][] principalStretchDevPow;
-         principalStretchDevPow = new double[3][6];
+         SymmetricMatrix3d dc = new SymmetricMatrix3d();
+         SymmetricMatrix3d ec = new SymmetricMatrix3d();
 
-         // Calculate square of B
-         myB2.mulTransposeLeft(myB);
-
-         // Calculate 1st and 3rd strain invariants
-         double I1 = (principalStretch2.get(0) +
-                      principalStretch2.get(1) +
-                      principalStretch2.get(2));
-         double I3 = (principalStretch2.get(0) *
-                      principalStretch2.get(1) *
-                      principalStretch2.get(2));
-
-         // Raise deviatoric stretches to power of alpha1, //   public double computeDeviatoricEnergy (Matrix3dBase Cdev) {
-//       double I1 = Cdev.trace();
-//       double I1_3 = I1-3;
-//       double W = (myG10*I1_3 +
-//                   myG20*I1_3*I1_3 + 
-//                   myG30*I1_3*I1_3*I1_3);
-//       return W;
-//    }alpha2, etc
-         for ( int i=0; i<3; i++ ) {
+         for (int j=0; j<3; j++) {
+            double sum = 0;
             for (int n=0; n<NMAX; n++) {
                if (mu[n] != 0) {
-                  principalStretchDevPow[i][n] =
-                     Math.pow(principalStretchDev.get(i), alpha[n]);
+                  sum += mu[n]/alpha[n]*((alpha[n]-2)*lampows[j][n]+2)/J;
+               }
+            }
+            dc.set (j, j, sum);
+            for (int i=j+1; i<3; i++) {
+               double lsqr_i = lamSqr.get(i);
+               double lsqr_j = lamSqr.get(j);
+               double denom = lsqr_i-lsqr_j;
+               if (Math.abs (denom) > 1e-8) {
+                  ec.set (i, j, 2*(lsqr_j*pstress[i]-lsqr_i*pstress[j])/denom);
+               }
+               else {
+                  sum = 0;
+                  for (int n=0; n<NMAX; ++n) {
+                     if (mu[n] != 0) {
+                        sum += mu[n]/alpha[n]*((alpha[n]-2)*lampows[j][n]+2)/J;
+                     }
+                  }
+                  ec.set (i, j, sum);
                }
             }
          }
 
-         SymmetricMatrix3d ma = new SymmetricMatrix3d();
-         SymmetricMatrix3d mb = new SymmetricMatrix3d();
-
-         // Constant for determining differences in principal stretches
-         double smallNum = 1e-8;
-      
-         // Initialise elasticity tensor
          D.setZero();
-
-         // Consider the three distinct cases
-         if ( (Math.abs(principalStretch2.get(0) - principalStretch2.get(1)) <
-               smallNum) && 
-              (Math.abs(principalStretch2.get(0) - principalStretch2.get(2)) <
-               smallNum) ) {
-            // All three principal stretches are the same
-    	  
-            // gamma_AB in Eq. 2.66 of Simo and Taylor (1991)    	  
-            double g = 0.0;
-            for (int n=0; n<NMAX; n++) {
-               if (mu[n] != 0) {
-                  g += mu[n] * principalStretchDevPow[0][n];
-               }
-            }
-         
-            // Eq. 2.71 of Simo and Taylor (1991)
-            TensorUtils.addScaledIdentity (D, g / J);
-            TensorUtils.addScaledIdentityProduct (D, - g / J / 3.0);
-         }
-         else if ((Math.abs(principalStretch2.get(0)-principalStretch2.get(1)) >=
-                   smallNum) && 
-                  (Math.abs(principalStretch2.get(0)-principalStretch2.get(2)) >=
-                   smallNum) && 
-                  (Math.abs(principalStretch2.get(1)-principalStretch2.get(2)) >=
-                   smallNum) ) {
-            // All three principal stretches are different
-            for ( int i=0; i<3; i++) {
-               int j = ( i + 1 ) % 3;
-               int k = ( j + 1 ) % 3; 
-
-               // D prime i - Eq. 2.46a of Simo and Taylor (1991)
-               double Dpi = 8.0 * Math.pow(principalStretch.get(i), 3.0) - 
-                  2.0 * I1 * principalStretch.get(i) - 
-                  2.0 * I3 * Math.pow(principalStretch.get(i), -3.0);
-            
-               // D i - Eq. 2.16a of Simo and Taylor (1991)
-               double Di = ( principalStretch2.get(i) - principalStretch2.get(j) ) *
-                  ( principalStretch2.get(i) - principalStretch2.get(k) );
-
-               // the matrix mi - Eq. 2.15 of Simo and Taylor (1991)
-               ma.set(myB2);
-               ma.scaledAdd (-principalStretch2.get(k), myB);
-               ma.scaledAdd (-principalStretch2.get(j), myB);
-               ma.scaledAdd ( principalStretch2.get(j) * principalStretch2.get(k), 
-                              SymmetricMatrix3d.IDENTITY);
-               ma.scale (1.0 / Di);
-
-               // beta_i in Eq. 2.65 of Simo and Taylor (1991)
-               double beta = 0.0;
-               for (int n=0; n<NMAX; n++) {
-                  if (mu[n] != 0) {
-                     beta += mu[n] / alpha[n] * 
-                        ( principalStretchDevPow[i][n]  - 
-                          ( principalStretchDevPow[0][n] +
-                            principalStretchDevPow[1][n] + 
-                            principalStretchDevPow[2][n] ) / 3.0 );
-                  }
-               }
-               // Calculate dgm term in Eq 2.68 of Simo and Taylor (1991)
-               TensorUtils.addTensorProduct4 (D, 2.0 * beta / J / Di, myB);
-               TensorUtils.addTensorProduct  (D, -2.0 * beta / J / Di, myB);
-               TensorUtils.addScaledIdentityProduct (D, I3 * 2.0 * beta / J / Di / 
-                                                     principalStretch2.get(i));
-               TensorUtils.addScaledIdentity (D, -I3 * 2.0 * beta / J / Di / 
-                                              principalStretch2.get(i));
-
-
+         for (int j=0; j<3; j++) {
+            TensorUtils.addTensorProduct (D, dc.get(j,j), douter[j]);
+            for (int i=j+1; i<3; i++) {
                TensorUtils.addSymmetricTensorProduct (
-                  D, 2.0 * beta / J / Di * principalStretch2.get(i), myB, ma);
-               TensorUtils.addTensorProduct  (D, -1.0 * beta / J / Di * Dpi * 
-                                              principalStretch.get(i), ma);
-               TensorUtils.addSymmetricTensorProduct (
-                  D, -2.0 * beta / J / Di * I3 / principalStretch2.get(i), 
-                  SymmetricMatrix3d.IDENTITY, ma);
+                  D, dc.get(i,j), douter[i], douter[j]);
+               TensorUtils.addSymmetricTensorProduct4 (
+                  D, ec.get(i,j), douter[i], douter[j]);
+            }
+         } 
 
-                        
-               for ( int n=0; n<3; n++) {
-                  j = ( n + 1 ) % 3;              
-                  k = ( j + 1 ) % 3; 
-                    
-                  Di = ( principalStretch2.get(n) - principalStretch2.get(j) ) * 
-                     ( principalStretch2.get(n) - principalStretch2.get(k) );
-                    
-                  // the matrix mi - Eq. 2.15 of Simo and Taylor (1991)
-                  mb.set(myB2);
-                  mb.scaledAdd (-principalStretch2.get(k), myB);
-                  mb.scaledAdd (-principalStretch2.get(j), myB);
-                  mb.scaledAdd ( principalStretch2.get(j)*principalStretch2.get(k), 
-                                 SymmetricMatrix3d.IDENTITY);
-                  mb.scale (1.0 / Di);
-                    
-                  // gamma_AB in Eq. 2.66 of Simo and Taylor (1991)    	  
-                  double gab = 0.0;
-                  if ( i == n ) {
-                     for (int m=0; m<NMAX; m++) {
-                        if (mu[m] != 0) {
-                           gab += mu[m]*(principalStretchDevPow[i][m] / 3.0 + 
-                                           (principalStretchDevPow[0][m] + 
-                                            principalStretchDevPow[1][m] + 
-                                            principalStretchDevPow[2][m] ) / 9.0 );
-                        }
-                     }
-                  }
-                  else {
-                     for (int m=0; m<NMAX; m++) {
-                        if (mu[m] != 0) {
-                           gab += mu[m]*(-principalStretchDevPow[i][m] / 3.0 - 
-                                           principalStretchDevPow[n][m] / 3.0 +
-                                           ( principalStretchDevPow[0][m] + 
-                                             principalStretchDevPow[1][m] + 
-                                             principalStretchDevPow[2][m] ) / 9.0 );
-                        }
-                     }
-                  }
-
-                  // 2nd term in Eq. 2.68 of Simo and Taylor (1991)
-                  TensorUtils.addSymmetricTensorProduct (D, gab / J / 2.0, ma, mb);
-               }
-
-            }
-         }
-         else {
-            // two are the same
-            int i;
-            if ( (Math.abs(principalStretch2.get(0)-principalStretch2.get(1)) <=
-                  smallNum) ) {
-               i = 2; 
-            }
-            else if (Math.abs(principalStretch2.get(0)-principalStretch2.get(2)) <=
-                     smallNum) {
-               i = 1;
-            }
-            else {
-               i = 0;
-            }
-            int j = (i+1)%3;
-            int k = (j+1)%3;
+         double traceD = TensorUtils.symmetricTrace(D);
+         TensorUtils.addSymmetricIdentityDot (D, -1.0/3, D);
+         TensorUtils.addScaledIdentityProduct (D, traceD/9.0);
+         TensorUtils.addScaledIdentity (D, 2*traceSig/3);
+         TensorUtils.addScaledIdentityProduct (D, -2*traceSig/9);
+         TensorUtils.addSymmetricIdentityProduct (D, -2/3.0, sigma);
          
-            // D prime i - Eq. 2.46a of Simo and Taylor (1991)
-            double Dpi = 8.0 * Math.pow(principalStretch.get(i), 3) - 
-               2.0 * I1 * principalStretch.get(i) - 
-               2.0 * I3*Math.pow(principalStretch.get(i), -3);
-            // D i - Eq. 2.16a of Simo and Taylor (1991)
-            double Di = ( principalStretch2.get(i) - principalStretch2.get(j) ) * 
-               ( principalStretch2.get(i) - principalStretch2.get(k) );
-         
-            double beta3 = 0.0;
-            double beta1 = 0.0;
-            double g33   = 0.0;
-            double g11   = 0.0;
-            double g13   = 0.0;
-            for (int n=0; n<NMAX; n++) {
-
-               if (mu[n] != 0) {
-                  // beta_i in Eq. 2.65 of Simo and Taylor (1991)
-                  beta3 += mu[n] / alpha[n] *  
-                     (principalStretchDevPow[i][n]  - 
-                      (principalStretchDevPow[0][n] +
-                       principalStretchDevPow[1][n] + 
-                       principalStretchDevPow[2][n] ) / 3.0 );
-                  beta1 += mu[n] / alpha[n] * 
-                     (principalStretchDevPow[j][n]  - 
-                      (principalStretchDevPow[0][n] +
-                       principalStretchDevPow[1][n] + 
-                       principalStretchDevPow[2][n] ) / 3.0 );
-
-                  // gamma_AB in Eq. 2.66 of Simo and Taylor (1991)    	  
-                  g33 += mu[n] * ( principalStretchDevPow[i][n] / 3.0 + 
-                                     ( principalStretchDevPow[0][n] + 
-                                       principalStretchDevPow[1][n] + 
-                                       principalStretchDevPow[2][n] ) / 9.0 );  
-             
-                  g11 += mu[n] * ( principalStretchDevPow[j][n] / 3.0 + 
-                                     ( principalStretchDevPow[0][n] + 
-                                       principalStretchDevPow[1][n] + 
-                                       principalStretchDevPow[2][n] ) / 9.0 );  
-             
-                  g13 += mu[n] * ( -principalStretchDevPow[i][n] / 3.0 - 
-                                     principalStretchDevPow[j][n] / 3.0 + 
-                                     ( principalStretchDevPow[0][n] + 
-                                       principalStretchDevPow[1][n] + 
-                                       principalStretchDevPow[2][n] ) / 9.0 );  
-               }
-            }
-              
-            // the matrix mi - Eq. 2.15 of Simo and Taylor (1991)
-            ma.set (myB2);
-            ma.scaledAdd (-principalStretch2.get(k), myB);
-            ma.scaledAdd (-principalStretch2.get(j), myB);
-            ma.scaledAdd ( principalStretch2.get(j) * principalStretch2.get(k),
-                           SymmetricMatrix3d.IDENTITY);
-            ma.scale (1.0 / Di);
-
-            // Calculate dgm term in Eq. 2.48b and Eq 2.70 of Simo and Taylor (1991)
-            TensorUtils.addTensorProduct4 (D, 2.0 * (beta3-beta1) / J / Di, myB);
-            TensorUtils.addTensorProduct  (D, -2.0 * (beta3-beta1) / J / Di, myB);
-            TensorUtils.addScaledIdentityProduct (
-               D, 2.0 * (beta3-beta1) / J * I3 / Di / principalStretch2.get(i));
-            TensorUtils.addScaledIdentity (
-               D, -2.0 * (beta3-beta1) / J * I3 / Di / principalStretch2.get(i));
-            TensorUtils.addSymmetricTensorProduct (
-               D, 2.0 * (beta3-beta1) / J / Di * principalStretch2.get(i),myB,ma);
-            TensorUtils.addTensorProduct  (
-               D, -1.0 * (beta3-beta1) / J / Di * Dpi * principalStretch.get(i), ma);
-            TensorUtils.addSymmetricTensorProduct (
-               D, -2.0 * (beta3-beta1) / J / Di * I3 / principalStretch2.get(i), 
-               SymmetricMatrix3d.IDENTITY, ma);
-
-            // Calculate other terms in Eq 2.70 of Simo and Taylor (1991)
-            TensorUtils.addScaledIdentity (D, -2.0 * beta1 / J);
-            myTmp.set (SymmetricMatrix3d.IDENTITY);
-            myTmp.scaledAdd (-1.0, ma);
-            TensorUtils.addTensorProduct  (D, g11 / J, myTmp);
-            TensorUtils.addTensorProduct  (D, g33 / J, ma);
-            TensorUtils.addSymmetricTensorProduct (D, g13 / J, ma, myTmp);
-         }
          D.setLowerToUpper();
       }
    }
 
-   public boolean equals (FemMaterial mat) {
+   public double computeDevStrainEnergy (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+      
+      // Calculate Deviatoric left Cauchy-Green tensor
+      computeLeftCauchyGreen(myB,def);
+
+      Vector3d principalStretch   = new Vector3d();
+      Vector3d principalStretch2  = new Vector3d();
+      Vector3d principalStretchDev = new Vector3d();
+
+      double mu[] = new double[NMAX];
+      mu[0] = getMu1(def);
+      mu[1] = getMu2(def);
+      mu[2] = getMu3(def);
+      mu[3] = getMu4(def);
+      mu[4] = getMu5(def);
+      mu[5] = getMu6(def);
+      
+      double alpha[] = new double[NMAX];
+      alpha[0] = getAlpha1(def);
+      alpha[1] = getAlpha2(def);
+      alpha[2] = getAlpha3(def);
+      alpha[3] = getAlpha4(def);
+      alpha[4] = getAlpha5(def);
+      alpha[5] = getAlpha6(def);
+      
+      // Calculate principal stretches and principal directions
+      // Eigenvalues of B are squares of the principal stretches
+      myB.getEigenValues(principalStretch2, null);
+      for ( int i=0; i<3; i++) {
+         principalStretch.set(i, Math.sqrt(principalStretch2.get(i)) );
+      }
+      double J = def.getDetF();
+      principalStretchDev.scale (Math.pow(J, -1.0 / 3.0), principalStretch);
+      
+      double W = 0;
+      for (int n=0; n<NMAX; n++) {
+         if (mu[n] != 0) {
+            double sum = 0;
+            sum += Math.pow(principalStretchDev.x, alpha[n]);
+            sum += Math.pow(principalStretchDev.y, alpha[n]);
+            sum += Math.pow(principalStretchDev.z, alpha[n]);
+            sum -= 3;
+            W += mu[n]/sqr(alpha[n])*sum;
+         }
+      }
+      return W;
+   }
+
+  public boolean equals (FemMaterial mat) {
       if (!(mat instanceof OgdenMaterial)) {
          return false;
       }

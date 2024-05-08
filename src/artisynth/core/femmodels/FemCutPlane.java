@@ -14,6 +14,7 @@ import maspack.render.Renderer.*;
 import maspack.util.*;
 
 import artisynth.core.femmodels.FemModel.Ranging;
+import artisynth.core.femmodels.FemModel.StressStrainMeasure;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 import artisynth.core.mechmodels.*;
@@ -34,6 +35,7 @@ public class FemCutPlane extends Frame implements FemMesh {
    protected static SurfaceRender DEFAULT_SURFACE_RENDERING =
       SurfaceRender.Shaded;
    protected SurfaceRender mySurfaceRendering = DEFAULT_SURFACE_RENDERING;
+   protected PropertyMode mySurfaceRenderingMode = PropertyMode.Inherited;
 
    protected static Ranging DEFAULT_STRESS_PLOT_RANGING = Ranging.Auto;
    protected Ranging myStressPlotRanging = DEFAULT_STRESS_PLOT_RANGING;
@@ -97,8 +99,8 @@ public class FemCutPlane extends Frame implements FemMesh {
          "size of the rendered square", DEFAULT_SQUARE_SIZE);
       myProps.add("resolution", "display grid resolution", DEFAULT_RESOLUTION);
 
-      myProps.add(
-         "surfaceRendering", 
+      myProps.addInheritable(
+         "surfaceRendering:Inherited", 
          "either shaded, stress or strain", DEFAULT_SURFACE_RENDERING);
       myProps.add (
          "colorInterpolation", "interpolation for vertex coloring", 
@@ -108,7 +110,8 @@ public class FemCutPlane extends Frame implements FemMesh {
          DEFAULT_STRESS_PLOT_RANGING);         
      myProps.addInheritable (
          "stressPlotRange:Inherited", 
-         "stress value range for color stress plots", DEFAULT_STRESS_PLOT_RANGE);
+         "stress value range for color stress plots",
+         DEFAULT_STRESS_PLOT_RANGE, "NW");
       myProps.addInheritable (
          "colorMap:Inherited", "color map for stress/strain", 
          DEFAULT_COLOR_MAP, "CE");
@@ -266,73 +269,194 @@ public class FemCutPlane extends Frame implements FemMesh {
       return avgr/2;
    }
 
-   public void setSurfaceRendering (SurfaceRender mode) {
-      SurfaceRender oldMode = getSurfaceRendering();
-      FemModel3d fem = getFem();
+   // surface rendering
 
-      if (oldMode != mode) {
-         if (myStressPlotRanging == Ranging.Auto) {
-            myStressPlotRange.set (0, 0);
+   // public void setSurfaceRendering (SurfaceRender rendering) {
+   //    SurfaceRender oldRendering = getSurfaceRendering();
+   //    FemModel3d fem = getFem();
+
+   //    if (oldRendering != rendering) {
+   //       if (myStressPlotRanging == Ranging.Auto) {
+   //          myStressPlotRange.set (0, 0);
+   //       }
+   //       mySurfaceRendering = rendering; // set now if not already set
+   //       if (fem != null) { // paranoid: myFem should always be non-null here
+   //          if (!isScanning()) {
+   //             fem.updateStressStrainRenderFlags();
+   //             if (rendering.usesStressOrStrain()) {
+   //                fem.updateStressAndStiffness();
+   //             }
+   //          }
+   //       }
+   //    }
+   //    // propagate to make mode explicit
+   //    mySurfaceRenderingMode =
+   //       PropertyUtils.propagateValue (
+   //          this, "surfaceRendering", rendering, mySurfaceRenderingMode);
+   // }
+
+   public void setSurfaceRendering (SurfaceRender rendering) {
+      SurfaceRender prev = mySurfaceRendering;
+      FemModel3d fem = getFem();
+      if (rendering != prev) {
+         mySurfaceRendering = rendering;
+         if (rendering.usesStressOrStrain() != prev.usesStressOrStrain()) {
+            invalidateMesh();
          }
-         mySurfaceRendering = mode; // set now if not already set
-         if (fem != null) { // paranoid: myFem should always be non-null here
-            if (!isScanning()) {
-               fem.updateInternalNodalStressSettings();
-               fem.updateInternalNodalStrainSettings();
-               if (mode.usesStressOrStrain()) {
+         if (!isScanning()) {
+            if (fem != null) { // paranoid: fem should always be non-null here
+               if (fem.updateStressStrainRenderFlags() != 0) {
                   fem.updateStressAndStiffness();
                }
             }
          }
+         if (myStressPlotRanging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+         else {
+            maybeUpdateFixedRangeFromFEM();
+         }       
       }
+      // propagate to make mode explicit
+      mySurfaceRenderingMode =
+         PropertyUtils.propagateValue (
+            this, "surfaceRendering", rendering, mySurfaceRenderingMode);
    }
 
    public SurfaceRender getSurfaceRendering() {
       return mySurfaceRendering;
    }
    
-   public Ranging getStressPlotRanging (){
-      return myStressPlotRanging;
+   public void setSurfaceRenderingMode(PropertyMode mode) {
+      if (mode != mySurfaceRenderingMode) {
+         mySurfaceRenderingMode = PropertyUtils.setModeAndUpdate (
+            this, "surfaceRendering", mySurfaceRenderingMode, mode);
+      }
    }
+
+   public PropertyMode getSurfaceRenderingMode() {
+      return mySurfaceRenderingMode;
+   }
+ 
+   // stress plot ranging
 
    public void setStressPlotRanging (Ranging ranging) {
       if (myStressPlotRanging != ranging) {
-         if (ranging == Ranging.Auto) {
-            resetStressPlotRange();
-         }
          myStressPlotRanging = ranging;
+         if (ranging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+         else {
+            maybeUpdateFixedRangeFromFEM();
+         }
       }
       myStressPlotRangingMode =
          PropertyUtils.propagateValue (
             this, "stressPlotRanging", ranging, myStressPlotRangingMode);
    }
    
-   public PropertyMode getStressPlotRangingMode() {
-      return myStressPlotRangingMode;
+   public Ranging getStressPlotRanging (){
+      return myStressPlotRanging;
    }
-   
+
    public void setStressPlotRangingMode(PropertyMode mode) {
+      Ranging prevRanging = myStressPlotRanging;
       if (mode != myStressPlotRangingMode) {
          myStressPlotRangingMode = PropertyUtils.setModeAndUpdate (
             this, "stressPlotRanging", myStressPlotRangingMode, mode);
       }
-   }
-   
-   public PropertyMode getStressPlotRangeMode() {
-      return myStressPlotRangeMode;
-   }
-   
-   public void setStressPlotRangeMode(PropertyMode mode) {
-      if (mode != myStressPlotRangeMode) {
-         myStressPlotRangeMode = PropertyUtils.setModeAndUpdate (
-            this, "stressPlotRange", myStressPlotRangeMode, mode);
+      if (myStressPlotRanging != prevRanging) {
+         if (myStressPlotRanging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+         else {
+            maybeUpdateFixedRangeFromFEM();
+         }
       }
+   }
+   
+   public PropertyMode getStressPlotRangingMode() {
+      return myStressPlotRangingMode;
+   }
+
+   // stress plot range
+
+   protected void doSetStressPlotRange (DoubleInterval range) {
+      if (!myStressPlotRange.equals(range)) {
+         myStressPlotRange.set (range);
+         updateVertexColors(getMesh());
+      }
+   }   
+
+   public void resetAutoStressPlotRange () {
+      if (mySurfaceRendering.usesStressOrStrain() && !isScanning()) {
+         myStressPlotRange.set (0, 0);
+         updatePlotRangeIfAuto();
+      }
+   }
+   
+   public void setStressPlotRange (DoubleInterval range) {
+      doSetStressPlotRange (range);
+      myStressPlotRangeMode =
+         PropertyUtils.propagateValue (
+            this, "stressPlotRange", range, myStressPlotRangeMode);
    }
 
    public DoubleInterval getStressPlotRange (){
       return new DoubleInterval (myStressPlotRange);
    }
 
+   public void setStressPlotRangeMode(PropertyMode mode) {
+      if (mode != myStressPlotRangeMode) {
+         PropertyMode prevMode = myStressPlotRangeMode;
+         myStressPlotRangeMode = mode;          
+         if (mode == PropertyMode.Explicit) {
+            // ignore propogation since there are no subcomponents
+         }
+         else if (prevMode == PropertyMode.Explicit) {
+            maybeUpdateFixedRangeFromFEM();
+            // ignore propogation since there are no subcomponents
+         }
+      }
+   }
+
+   public PropertyMode getStressPlotRangeMode() {
+      return myStressPlotRangeMode;
+   }
+
+   // end stress plot range
+
+   private boolean maybeUpdateFixedRangeFromFEM() {
+      FemModel3d fem = getFem();
+      if (fem != null) {
+         if (getStressPlotRanging() == Ranging.Fixed &&
+             fem.getStressPlotRanging() == Ranging.Fixed &&
+             getStressPlotRangeMode() == PropertyMode.Inherited &&
+             fem.getSurfaceRendering() == mySurfaceRendering) {
+            doSetStressPlotRange (fem.getStressPlotRange());
+            return true;
+         }
+      }
+      return false;
+   }
+
+   protected void updatePlotRangeIfAuto() {
+      if (mySurfaceRendering.usesStressOrStrain()) {
+         FemModel3d fem = getFem();
+         if (myStressPlotRanging == Ranging.Auto) {
+            if (fem.getSurfaceRendering() == mySurfaceRendering &&
+                fem.getStressPlotRanging() == Ranging.Auto) {
+               doSetStressPlotRange (fem.getStressPlotRange());
+            }
+            else {
+               DoubleInterval newrange = new DoubleInterval(myStressPlotRange);
+               newrange.merge (fem.getNodalPlotRange(mySurfaceRendering));
+               doSetStressPlotRange (newrange);
+            }
+         }
+      }
+   }
+   
    public boolean getHighlightColoredMesh() {
       return myHighlightColoredMesh;
    }
@@ -343,18 +467,6 @@ public class FemCutPlane extends Frame implements FemMesh {
 
    // end accessors
    
-   public void resetStressPlotRange () {
-      myStressPlotRange.set (0, 0);
-      invalidateMesh();
-   }
-
-   public void setStressPlotRange (DoubleInterval range) {
-      myStressPlotRange = new DoubleInterval (range);
-      myStressPlotRangeMode =
-         PropertyUtils.propagateValue (
-            this, "stressPlotRange", range, myStressPlotRangeMode);
-   }
-
    public void setColorMap(ColorMapBase map) {
       myColorMap = map;
       myColorMapMode =
@@ -422,9 +534,10 @@ public class FemCutPlane extends Frame implements FemMesh {
             "FemCutPlane has null RenderProps");
       }
       updateMesh();
-      // if (mySurfaceRendering.usesStressOrStrain()) {
-      //    updateVertexColors(myMesh);
-      // }  
+      if (mySurfaceRendering.usesStressOrStrain()) {
+         updatePlotRangeIfAuto();
+         updateVertexColors(myMesh);
+      }  
       
       MeshBase renderMesh = myMesh;
       if (renderMesh != null) {
@@ -544,19 +657,32 @@ public class FemCutPlane extends Frame implements FemMesh {
       }
    }
 
+   protected double computeEnergyDensity (
+      ArrayList<FemNode3d> nodes, VectorNd weights) {
+
+      double sed = 0;
+      for (int j=0; j<nodes.size(); j++) {
+         sed += weights.get(j)*nodes.get(j).getEnergyDensity();
+      }
+      return sed;
+   }
+
    protected void computeStressOrStrain (
       SymmetricMatrix3d S, ArrayList<FemNode3d> nodes, VectorNd weights,
       SurfaceRender rendering) {
 
       S.setZero();
-      if (rendering.usesStress()) {
-         for (int j=0; j<nodes.size(); j++) {
-            S.scaledAdd (weights.get(j), nodes.get(j).getStress());
+      StressStrainMeasure m = rendering.getStressStrainMeasure();
+      if (m != null) {
+         if (m.usesStress()) {
+            for (int j=0; j<nodes.size(); j++) {
+               S.scaledAdd (weights.get(j), nodes.get(j).getStress());
+            }
          }
-      }
-      else if (rendering.usesStrain()) {
-         for (int j=0; j<nodes.size(); j++) {
-            S.scaledAdd (weights.get(j), nodes.get(j).getStrain());
+         else if (m.usesStrain()) {
+            for (int j=0; j<nodes.size(); j++) {
+               S.scaledAdd (weights.get(j), nodes.get(j).getStrain());
+            }
          }
       }
    }
@@ -567,7 +693,6 @@ public class FemCutPlane extends Frame implements FemMesh {
          myMesh = createMesh();
          if (mySurfaceRendering.usesStressOrStrain()) {
             updateVertexColors (myMesh);
-
          }
          myMeshValid = true;
       }
@@ -624,7 +749,7 @@ public class FemCutPlane extends Frame implements FemMesh {
 
       if (myStressPlotRanging == Ranging.Auto) {
          myStressPlotRange.merge (fem.getNodalPlotRange(mySurfaceRendering));
-      } 
+      }
 
       RenderProps rprops = getRenderProps();
       float alpha = (float)rprops.getAlpha();
@@ -637,36 +762,15 @@ public class FemCutPlane extends Frame implements FemMesh {
       for (int i=0; i<mesh.numVertices(); i++) {
          Point3d wpos = mesh.getVertex(i).getWorldPoint();
          getNodesAndWeights (nodes, weights, fem, wpos);
-         computeStressOrStrain (S, nodes, weights, mySurfaceRendering);
-         double sval;
-         switch (mySurfaceRendering) {
-            case Stress: {
-               sval = FemUtilities.computeVonMisesStress (S);
-               break;
+         StressStrainMeasure m = mySurfaceRendering.getStressStrainMeasure();
+         double sval = 0;
+         if (m != null) {
+            if (m.usesStress() || m.usesStrain()) {
+               computeStressOrStrain (S, nodes, weights, mySurfaceRendering);
+               sval = FemUtilities.computeStressStrainMeasure (m, S); 
             }
-            case MAPStress: {
-               sval = S.computeMaxAbsEigenvalue();
-               break;
-            }
-            case MaxShearStress: {
-               sval = S.computeMaxShear();
-               break;
-            }
-            case Strain: {
-               sval = FemUtilities.computeVonMisesStrain (S);
-               break;
-            }
-            case MAPStrain: {
-               sval = S.computeMaxAbsEigenvalue();
-               break;
-            }
-            case MaxShearStrain: {
-               sval = S.computeMaxShear();
-               break;
-            }
-            default: {
-               sval = 0;
-               break;
+            else if (m.usesEnergy()) {
+               sval = computeEnergyDensity (nodes, weights);
             }
          }
          double smin = myStressPlotRange.getLowerBound();
@@ -696,6 +800,15 @@ public class FemCutPlane extends Frame implements FemMesh {
       pw.println ("position=[ " + myState.getPosition().toString (fmt) + "]");
       pw.println ("rotation=[ " + myState.getRotation().toString (fmt) + "]");
       super.writeItems (pw, fmt, ancestor);
+      // need to write stressPlotRange explicitly because Auto ranging will
+      // change its value regardless of stressPlotRangeMode.
+      if (!myStressPlotRange.equals(DEFAULT_STRESS_PLOT_RANGE)) {
+         pw.print ("stressPlotRange=");
+         myStressPlotRange.write (pw, fmt, null);
+      }
+      if (myStressPlotRangeMode != PropertyMode.Inherited) {
+         pw.println ("stressPlotRangeMode=" + myStressPlotRangeMode);
+      }
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -712,6 +825,14 @@ public class FemCutPlane extends Frame implements FemMesh {
          Quaternion q = new Quaternion();
          q.scan (rtok);
          setRotation (q);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "stressPlotRange")) {
+         myStressPlotRange.scan (rtok, null);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "stressPlotRangeMode")) {
+         myStressPlotRangeMode = rtok.scanEnum(PropertyMode.class);
          return true;
       }
       rtok.pushBack();

@@ -166,12 +166,14 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
 
    /**
-    * Sets the anisotropic direction. Default is the z axis.
+    * Sets the anisotropic direction. Default is the z axis. The specified
+    * direction will be normalized.
     * 
     * @param dir new anisotropic direction
     */
    public void setDirection (Vector3d dir) {
       myDirection.set (dir);
+      myDirection.normalize();
    }
    
    /**

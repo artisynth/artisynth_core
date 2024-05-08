@@ -18,6 +18,13 @@ public class InactiveMuscle extends MuscleMaterial {
       }
    }
 
+   @Override
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Vector3d dir0, double excitation, 
+      MaterialStateObject state) {
+      return 0;
+   }
+   
    public boolean equals (MuscleMaterial mat) {
       if (!(mat instanceof InactiveMuscle)) {
          return false;

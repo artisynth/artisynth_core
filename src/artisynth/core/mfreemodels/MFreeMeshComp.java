@@ -21,6 +21,7 @@ import artisynth.core.femmodels.FemMeshBase;
 import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
+import artisynth.core.femmodels.FemModel.StressStrainMeasure;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode;
 import artisynth.core.femmodels.FemNode3d;
@@ -131,9 +132,7 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
 
       if (oldMode != mode) {
          if (myModel != null) { // paranoid: myModel should always be non-null here
-            myModel.updateInternalNodalStressSettings();
-            myModel.updateInternalNodalStrainSettings();
-            if (mode.usesStressOrStrain()) {
+            if (myModel.updateStressStrainRenderFlags() != 0) {
                myModel.updateStressAndStiffness();
             }
          }
@@ -549,7 +548,8 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
 
    protected void updateVertexColors() {
 
-      if (!mySurfaceRendering.usesStressOrStrain()) {
+      StressStrainMeasure m = mySurfaceRendering.getStressStrainMeasure();
+      if (m == null) {
          return;
       }
 
@@ -574,48 +574,14 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
                if (nodes[j] instanceof MFreeNode3d) { // paranoid!
                   MFreeNode3d node = (MFreeNode3d)nodes[j];
                   double w = weights.get(j);
-                  if (mySurfaceRendering == SurfaceRender.Stress) {
-                     sval += w*node.getVonMisesStress();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.MAPStress) {
-                     sval += w*node.getMAPStress();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.MaxShearStress) {
-                     sval += w*node.getMaxShearStress();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.Strain) {
-                     sval += w*node.getVonMisesStrain();
-                  } 
-                  else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
-                     sval += w*node.getMAPStrain();
-                  }
-                  else if (mySurfaceRendering == SurfaceRender.MaxShearStrain) {
-                     sval += w*node.getMaxShearStrain();
-                  }
+                  sval += w*node.getStressStrainMeasure(m);
                }
             }
          }
          else if (attacher instanceof PointParticleAttachment) {
             PointParticleAttachment ppa = (PointParticleAttachment)attacher;
             MFreeNode3d node = (MFreeNode3d)ppa.getParticle();
-            if (mySurfaceRendering == SurfaceRender.Stress) {
-               sval = node.getVonMisesStress();
-            }
-            else if (mySurfaceRendering == SurfaceRender.MAPStress) {
-               sval = node.getMAPStress();
-            }
-            else if (mySurfaceRendering == SurfaceRender.MaxShearStress) {
-               sval = node.getMaxShearStress();
-            }
-            else if (mySurfaceRendering == SurfaceRender.Strain) {
-               sval = node.getVonMisesStrain();
-            } 
-            else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
-               sval = node.getMAPStrain();
-            }
-            else if (mySurfaceRendering == SurfaceRender.MaxShearStrain) {
-               sval = node.getMaxShearStrain();
-            }
+            sval = node.getStressStrainMeasure(m);
          }
          double smin = myStressPlotRange.getLowerBound();
          double srng = myStressPlotRange.getRange();

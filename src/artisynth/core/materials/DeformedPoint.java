@@ -11,6 +11,8 @@ public interface DeformedPoint extends FemFieldPoint {
    public Matrix3d getF();
    
    public double getDetF();
+      
+   public double getAverageDetF();
    
    public double getAveragePressure();
    

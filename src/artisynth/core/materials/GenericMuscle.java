@@ -47,6 +47,15 @@ public class GenericMuscle extends MuscleMaterial {
    protected ScalarFieldComponent myExpStressCoeffField = null;
    protected ScalarFieldComponent myUncrimpingFactorField = null;
 
+   // dependent coefficients
+   protected double myC5;
+   protected double myC6;
+   protected double myWpasOff; 
+   protected boolean myDepCoefsValid = false;
+   // if true, dependent coefficents depend one or more field values and so
+   // must always be evaluated.
+   protected boolean myDepCoefsTransient = false;
+
    protected Vector3d myTmp = new Vector3d();
    protected Matrix3d myMat = new Matrix3d();
 
@@ -96,8 +105,7 @@ public class GenericMuscle extends MuscleMaterial {
    // fibreModulus
 
    protected double computeFibreModulus (
-      double expStressCoeff, double uncrimpingFactor, 
-      double maxLambda) {
+      double expStressCoeff, double uncrimpingFactor, double maxLambda) {
       return (expStressCoeff*uncrimpingFactor*
               Math.exp (uncrimpingFactor*(maxLambda-1)));
    }
@@ -151,6 +159,7 @@ public class GenericMuscle extends MuscleMaterial {
       
    public void setMaxLambdaField (ScalarFieldComponent func) {
       myMaxLambdaField = func;
+      myDepCoefsTransient = updateDepCoefsTransient();
       notifyHostOfPropertyChange();
    }
 
@@ -236,6 +245,7 @@ public class GenericMuscle extends MuscleMaterial {
       
    public void setExpStressCoeffField (ScalarFieldComponent func) {
       myExpStressCoeffField = func;
+      myDepCoefsTransient = updateDepCoefsTransient();
       notifyHostOfPropertyChange();
    }
 
@@ -279,6 +289,7 @@ public class GenericMuscle extends MuscleMaterial {
       
    public void setUncrimpingFactorField (ScalarFieldComponent func) {
       myUncrimpingFactorField = func;
+      myDepCoefsTransient = updateDepCoefsTransient();
       notifyHostOfPropertyChange();
    }
 
@@ -360,6 +371,29 @@ public class GenericMuscle extends MuscleMaterial {
       sig.m21 = sig.m12;
    }
 
+   private boolean updateDepCoefsTransient() {
+      myDepCoefsValid = false;
+      return (myMaxLambdaField != null ||
+              myExpStressCoeffField != null ||
+              myUncrimpingFactorField != null);
+   }
+
+   private void updateDepCoefs(DeformedPoint def) {
+      double lamMax = getMaxLambda(def);
+      double P1 = getExpStressCoeff(def);
+      double P2 = getUncrimpingFactor(def);
+
+      myC5 = computeFibreModulus (P1, P2, lamMax);
+      double maxExpTerm = Math.exp(P2*(lamMax-1));
+      myC6 = P1*(maxExpTerm-1) - myC5*lamMax;
+      myWpasOff = 
+         computeExpWp (lamMax, def) -
+         (myC5*lamMax + myC6*Math.log(lamMax));
+      if (!myDepCoefsTransient) {
+         myDepCoefsValid = true;
+      }
+   }
+
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Vector3d dir0, double excitation, MaterialStateObject state) {
@@ -392,20 +426,7 @@ public class GenericMuscle extends MuscleMaterial {
 
       double P1 = getExpStressCoeff(def);
       double P2 = getUncrimpingFactor(def);
-      double c5;
-      if (myMaxLambdaField != null || 
-          myExpStressCoeffField != null ||
-          myUncrimpingFactorField != null) {
-         // need to compute fibre modulus directly, since it may vary from 
-         // point to point
-         c5 = computeFibreModulus (P1, P2, maxLambda);
-      }
-      else {
-         c5 = getFibreModulus();
-      }
-      
       double expTerm = 0;
-      double c6 = 0;
 
       if (myZeroForceBelowLamOptP && lamd < 1) {
          Fp = 0;
@@ -415,9 +436,10 @@ public class GenericMuscle extends MuscleMaterial {
          Fp = P1*(expTerm-1)/lamd;
       } 
       else {
-         double maxExpTerm = Math.exp(P2*(maxLambda-1));
-         c6 = P1*(maxExpTerm-1) - c5*maxLambda;
-         Fp = (c5*lamd + c6)/lamd;
+         if (!myDepCoefsValid) {
+            updateDepCoefs(def);
+         }
+         Fp = (myC5*lamd + myC6)/lamd;
       }
 
       W4 = 0.5*(Fp+excitation*maxStress)/lamd;
@@ -434,7 +456,7 @@ public class GenericMuscle extends MuscleMaterial {
             FpDl = P1/lamd*(P2*expTerm - (expTerm-1)/lamd);
          }
          else {
-            FpDl = -c6/(lamd*lamd);
+            FpDl = -myC6/(lamd*lamd);
          }
 
          double W44 = 0.5*(0.5*FpDl - W4)/(lamd*lamd);
@@ -453,11 +475,49 @@ public class GenericMuscle extends MuscleMaterial {
          TensorUtils.addSymmetricIdentityProduct (D, myMat);
          TensorUtils.addScaledIdentity (D, 4/3.0*w0/J);
          TensorUtils.addScaledIdentityProduct (D, 4/9.0*(wa-w0)/J);
-
          TensorUtils.addScaled4thPowerProduct (D, 4*wa/J, a);         
       }
    }
 
+   @Override
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Vector3d dir0, double excitation, 
+      MaterialStateObject state) {
+
+      // Methods and naming conventions follow the paper "Finite element
+      // implementation of incompressible, isotropic hyperelasticity", by
+      // Weiss, Makerc, and Govindjeed, Computer Methods in Applied Mechanical
+      // Engineering, 1996.
+
+      double maxLambda = getMaxLambda(def);
+      
+      Vector3d a = myTmp;
+      def.getF().mul (a, dir0);
+      double mag = a.norm();
+      if (mag == 0.0) {
+         return 0;
+      }
+      a.scale (1/mag);
+      double J = def.getDetF();
+      double lamd = mag*Math.pow(J, -1.0/3.0);
+
+      // strain energy density currently computed only for the passive force.
+      double Wpas;
+      if (myZeroForceBelowLamOptP && lamd < 1) {
+         Wpas = 0;
+      }
+      else if (lamd < maxLambda) {
+         Wpas = computeExpWp (lamd, def);
+      } 
+      else {
+         if (!myDepCoefsValid) {
+            updateDepCoefs(def);
+         }
+         Wpas = myC5*lamd + myC6*Math.log(lamd) + myWpasOff;
+      }
+      return Wpas;
+   }
+   
    @Override
    public boolean hasSymmetricTangent() {
       return true;
@@ -503,6 +563,80 @@ public class GenericMuscle extends MuscleMaterial {
          setMaxStress (myMaxStress*s);
          setExpStressCoeff (myExpStressCoeff*s);
          myFibreModulusValidP = false;
+      }
+   }
+
+   /**
+    * Computes the strain energy density within the exponential force segment
+    * (lam in [0, maxLambda]).  This integral requires the exponential integral
+    * function, which we don't have, so we compute it numerically. That is easy
+    * to do because the function is very well behaved over the interval, and so
+    * we just apply Simpson's rule over a few segments.
+    */
+   private double computeExpWp (double lamd, DeformedPoint def) {
+
+      double maxLambda = getMaxLambda(def);
+      double maxStress = getMaxStress(def);
+      double P1 = getExpStressCoeff(def);
+      double P2 = getUncrimpingFactor(def);
+
+      if (lamd == 1) {
+         return 0;
+      }
+
+      int nsegs = 6; // 6 segments gives us 3 Simpson segments
+      double dx = (lamd-1)/nsegs;
+      double x = 1;
+      double f0 = 0; // function value at l = 1
+      double Wp = 0;
+      for (int i=0; i<nsegs; i+=2) {
+         x += dx;
+         double f1 = (Math.exp(P2*(x-1))-1)/x;
+         x += dx;
+         double f2 = (Math.exp(P2*(x-1))-1)/x;
+         Wp += dx/3*(f0+4*f1+f2);
+         f0 = f2;
+      }
+      Wp *= P1;
+      return Wp;
+   }
+
+   private double computeFp (double lamd) {
+
+      double maxLambda = getMaxLambda();
+      double maxStress = getMaxStress();
+
+      double P1 = getExpStressCoeff();
+      double P2 = getUncrimpingFactor();
+      double c5 = getFibreModulus();
+
+      double Fp = 0;
+
+      if (myZeroForceBelowLamOptP && lamd < 1) {
+         Fp = 0;
+      }
+      else {
+         if (lamd <= maxLambda) {
+            double expTerm = Math.exp(P2*(lamd-1)); 
+            Fp = P1*(expTerm-1)/lamd;
+         } 
+         if (lamd >= maxLambda) {
+            double maxExpTerm = Math.exp(P2*(maxLambda-1));
+            double c6 = P1*(maxExpTerm-1) - c5*maxLambda;
+            Fp = (c5*lamd + c6)/lamd;
+         }
+      }
+      return Fp;
+   }
+   
+   public static void main(String[] args) {
+      GenericMuscle mus = new GenericMuscle();
+
+      for (int i=0; i<=10; i++) {
+         double lam = 1.0 + i*0.05;
+         System.out.printf (
+            "lam=%g Fp=%g Wp=%g\n",
+            lam, mus.computeFp(lam), mus.computeExpWp(lam,null));
       }
    }
    

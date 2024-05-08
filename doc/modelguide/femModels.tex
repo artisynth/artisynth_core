@@ -3080,6 +3080,293 @@ highly deformed.  Fibre-based muscles are, in general, more stable.  However,
 they can lead to bulging and other deformation artifacts due to their discrete
 nature.
 
+\section{Stress, strain and strain energy}
+
+An ArtiSynth FEM model has the capability to compute a variety of
+stress and strain measures at each of its nodes, as well as strain
+energy for each element and for the entire model.
+
+\subsection{Computing nodal values}
+
+Stress, strain, and strain energy density can be computed at each node
+of an FEM model. By default, these quantities are {\it not} computed,
+in order to conserve computing power. However, their computation can
+be enabled with the {\tt FemModel3d} properties {\sf
+computeNodalStress}, {\sf computeNodalStrain} and {\sf
+computeNodalEnergyDensity}, which can be set either in the GUI, or
+using the following accessor methods:
+%
+\begin{methodtable}{0.45}{0.55}
+\midline
+%
+\methodentry
+{\fem.FemModel.setComputeNodalStress()}%
+{void setComputeNodalStress(boolean)}%
+{Enable stress to be computed at each node.}%
+%
+\methodentry
+{\fem.FemModel.getComputeNodalStress()}%
+{boolean getComputeNodalStress()}%
+{Queries if nodal stress computation enabled.}%
+%
+\methodspace{0.5em}
+%
+\methodentry
+{\fem.FemModel.setComputeNodalStrain()}%
+{void setComputeNodalStrain(boolean)}%
+{Enable strain to be computed at each node.}%
+%
+\methodentry
+{\fem.FemModel.getComputeNodalStrain()}%
+{boolean getComputeNodalStrain()}%
+{Queries if nodal strain computation enabled.}%
+%
+\methodspace{0.5em}
+%
+\methodentry
+{\fem.FemModel.setComputeNodalEnergyDensity()}%
+{void setComputeNodalEnergyDensity(boolean)}%
+{Enable strain energy density to be computed at each node.}%
+%
+\methodentry
+{\fem.FemModel.getComputeNodalEnergyDensity()}%
+{boolean getComputeNodalEnergyDensity()}%
+{Queries if nodal strain energy density computation enabled.}%
+%
+\midline
+\end{methodtable}
+%
+Setting these properties to {\tt true} will cause their respective
+values to be computed at the nodes during each subsequent simulation
+step. This is done by computing values at the element integration
+points, extrapolating these values to the nodes, and then averaging
+them across the contributions from all surrounding elements.
+
+Once computed, the values may be obtained at each node using the
+following {\tt FemNode3d} methods:
+%
+\begin{methodtable}{0.45}{0.55}
+\midline
+%
+\methodentry
+{\fem.FemNode3d.getStress()}%
+{SymmetricMatrix3d getStress()}%
+{Returns the current Cauchy stress at the node.}%
+%
+\methodentry
+{\fem.FemNode3d.getStrain()}%
+{SymmetricMatrix3d getStrain()}%
+{Returns the current strain at the node.}%
+%
+\methodentry
+{\fem.FemNode3d.getEnergyDensity()}%
+{double getEnergyStrain()}%
+{Returns the current strain energy density at the node.}%
+%
+\midline
+\end{methodtable}
+%
+The stress value is the Cauchy stress. The strain values depend on the
+primary material within each element: if the material is linear,
+strain will be the small deformation Cauchy strain (co-rotated if the
+material's {\sf corotated} property is {\tt true}), while otherwise it
+will be Green strain $\E$:
+%
+\begin{equation}
+\E = \frac{1}{2}(\C - \I),
+\end{equation}
+%
+where $\C$ is the right Cauchy-Green deformation tensor.
+
+\subsection{Scalar stress/strain measures}
+\label{ScalarStressStrainMeasures:sec}
+
+Stress or strain values are tensor quantities represented by symmetric
+$3 \times 3$ matrices. If they are being computed at the nodes, a
+variety of scalar quantities can be extracted from them, using the
+{\tt FemNode3d} method
+%
+\begin{methodtable}{0.45}{0.55}
+%
+\methodentry
+{\fem.FemNode3d.getStressStrainMeasure()}%
+{double getStressStrainMeasure(StressStrainMeasure m)}%
+{}%
+%
+\end{methodtable}
+%
+where 
+\javaclassAlt{\fem.FemModel\$StressStrainMeasure}{StressStrainMeasure} is 
+an enumerated type with the following entries:
+
+\begin{description}
+
+\item[VonMisesStress]\mbox{}
+
+von Mises stress, equal to
+%
+\begin{equation*}
+\sqrt{3 \J_2},
+\end{equation*}
+%
+where $\J_2$ the second invariant of the average deviatoric stress.
+
+\item[MAPStress]\mbox{}
+
+Absolute value of the maximum principle Cauchy stress.
+
+\item[MaxShearStress]\mbox{}
+
+Maximum shear stress, given by
+%
+\begin{equation*}
+\max (|s_0-s_1|/2, |s_1-s_2|/2, |s_2-s_0|/2),
+\end{equation*}
+%
+where $s_0$, $s_1$ and $s_2$ are the eigenvalues of the stress tensor.
+
+\item[VonMisesStrain]\mbox{}
+
+von Mises strain, equal to
+%
+\begin{equation*}
+\sqrt{4/3 \J_2},
+\end{equation*}
+%
+where $\J_2$ the second invariant of the average deviatoric strain.
+
+\item[MAPStrain]\mbox{}
+
+Absolute value of the maximum principle strain.
+
+\item[MaxShearStrain]\mbox{}
+
+Maximum shear strain, given by
+%
+\begin{equation*}
+\max (|s_0-s_1|/2, |s_1-s_2|/2, |s_2-s_0|/2),
+\end{equation*}
+%
+where $s_0$, $s_1$ and $s_2$ are the eigenvalues of the strain tensor.
+
+\item[EnergyDensity]\mbox{}
+
+Strain energy density.
+
+\end{description}
+
+These quantities can also be queried with the following convenience
+methods:
+%
+\begin{methodtable}{0.45}{0.55}
+\midline
+%
+\methodentry
+{\fem.FemNode3d.getVonMisesStress()}%
+{double getVonMisesStress()}%
+{Return the von Mises stress.}%
+%
+\methodentry
+{\fem.FemNode3d.getMAPStress()}%
+{double getMAPStress()}%
+{Return the maximum absolute principle stress.}%
+%
+\methodentry
+{\fem.FemNode3d.getMaxShearStress()}%
+{double getMaxShearStress()}%
+{Return the maximum shear stress.}%
+%
+\methodentry
+{\fem.FemNode3d.getVonMisesStrain()}%
+{double getVonMisesStrain()}%
+{Return the von Mises strain.}%
+%
+\methodentry
+{\fem.FemNode3d.getMAPStrain()}%
+{double getMAPStrain()}%
+{Return the maximum absolute principle strain.}%
+%
+\methodentry
+{\fem.FemNode3d.getMaxShearStrain()}%
+{double getMaxShearStrain()}%
+{Return the maximum shear strain.}%
+%
+\methodentry
+{\fem.FemNode3d.getEnergyDensity()}%
+{double getEnergyDensity()}%
+{Return the strain energy density.}%
+%
+\midline
+\end{methodtable}
+%
+
+\begin{sideblock}
+For muscle-activated FEM materials, strain energy density is currently
+computed only for the {\it passive} portions of the material; no energy
+density is computed for the stress component that depends on muscle
+activation.
+\end{sideblock}
+
+As indicated above, extracting these measures requires that the
+appropriate underling quantity (stress, strain or strain energy
+density) is being computed at the nodes; otherwise, 0 will be
+returned. To ensure that the appropriate underlying quantity is being
+computed for a specific measure, one may use the {\tt
+FemModel3d} method
+%
+\begin{methodtable}{0.6}{0.4}
+%
+\methodentry
+{\fem.FemModel.setComputeNodalStressStrain()}%
+{void setComputeNodalStressStrain (StressStrainMeasure m)}%
+{}%
+%
+\end{methodtable}
+
+These measures can also be used to produce color maps on FEM mesh
+components or cut planes, as described in
+Sections \ref{FemMeshRendering:sec} or \ref{FemCutPlanes:sec}.  When
+color maps are being produced, the system automatically enables the
+computation of the required stress, strain or energy density.
+
+\subsection{Strain energy}
+
+Strain energy density can be integrated over an FEM model's volume to
+compute a total strain energy. Again, to save computational resources,
+this must be explicitly enabled using the {\tt FemModel3d} property
+{\sf computeStrainEnergy}, which can be set either in the GU or
+using the accessor methods:
+%
+\begin{methodtable}{0.45}{0.55}
+%
+\methodentry
+{\fem.FemModel.setComputeStrainEnergy()}%
+{void setComputeStrainEnergy(boolean)}%
+{Enable strain energy computation.}%
+%
+\methodentry
+{\fem.FemModel.getComputeStrainEnergy()}%
+{boolean getComputeStrainEnergy()}%
+{Queries strain energy computation.}%
+%
+\end{methodtable}
+%
+Once computation is enabled, strain energy is exported for the entire
+model using the read-only {\sf strainEnergy} property, which
+can be accessed using
+\begin{methodtable}{0.5}{0.5}
+%
+\methodentry
+{\fem.FemModel.getStrainEnergy()}%
+{double getStrainEnergy()}%
+{}%
+%
+\end{methodtable}
+%
+The {\tt FemElement}
+method \javamethod[\fem.FemElement]{getStrainEnergy()} returns the
+strain energy for individual elements.
+
 \section{Rendering and Visualizations}
 \label{sec:fem:rendering}
 
@@ -3287,7 +3574,7 @@ and so widget rendering can be controlled on a per-element basis.
 \end{center}
 \caption{Surface mesh of a torus rendered as a regular
 mesh (left, with {\sf surfaceRendering} set to {\tt Shaded}), and as a
-colormap of the von Mises stress (right, with {\sf surfaceRendering}
+color map of the von Mises stress (right, with {\sf surfaceRendering}
 set to {\tt Stress}).}
 \label{femSurfaceRender:fig} 
 \end{figure}
@@ -3326,7 +3613,9 @@ import artisynth.core.femmodels.FemModel.SurfaceRender;
 %
 \begin{table}[ht]
 \caption{Values of the {\sf surfaceRendering} property
-controlling how a polygonal FEM is displayed.}
+controlling how a polygonal FEM is displayed. Scalar stress/strain
+measures are described in
+Section \ref{ScalarStressStrainMeasures:sec}}
 \begin{center}
 \begin{tabular}{ll}
 \hline
@@ -3334,12 +3623,13 @@ Value & Description\\
 \hline
 {\tt None} & mesh is not rendered\\
 {\tt Shaded} & rendered as a mesh using the standard rendering properties\\
-{\tt Stress} & colormap of the von Mises stress\\
-{\tt Strain} & colormap the von Mises strain\\
-{\tt MAPStress} & colormap of the maximum absolute value principal stress\\
-{\tt MAPStrain} & colormap of the maximum absolute value principal strain\\
-{\tt MaxShearStress} & colormap of the maximum shear stress\\
-{\tt MaxStearStrain} & colormap of the maximum sheer strain\\
+{\tt Stress} & color map of the von Mises stress\\
+{\tt Strain} & color map the von Mises strain\\
+{\tt MAPStress} & color map of the maximum absolute value principal stress\\
+{\tt MAPStrain} & color map of the maximum absolute value principal strain\\
+{\tt MaxShearStress} & color map of the maximum shear stress\\
+{\tt MaxStearStrain} & color map of the maximum sheer strain\\
+{\tt EnergyDensity} & color map of the strain energy density\\
 \hline
 \end{tabular}
 \end{center}
@@ -3347,9 +3637,10 @@ Value & Description\\
 \end{table}
 %
 Other values of {\sf surfaceRendering} cause polygonal meshes to be
-displayed as a colormap showing the various stress or strain measures
-described in Table \ref{surfaceRendering:tab}.  The fragment below
-sets an FEM surface to be rendered to show the von Mises stress
+displayed as a color map showing the various stress or strain measures
+shown in Table \ref{surfaceRendering:tab} and described in greater
+detail in Section \ref{ScalarStressStrainMeasures:sec}.  The fragment
+below sets an FEM surface to be rendered to show the von Mises stress
 (Figure \ref{femSurfaceRender:fig}, right), while also rendering the
 edges as dark blue:
 %
@@ -3367,14 +3658,14 @@ import artisynth.core.femmodels.FemModel.SurfaceRender;
    RenderProps.setEdgeColor (fem, Color.BLUE);
 \end{lstlisting}
 %
-The colormaps used in stress/strain rendering are controlled using the
-following additional properties:
+The color maps used in stress/strain rendering are controlled using
+the following additional properties:
 
 \begin{description}
 
 \item[stressPlotRange]\mbox{}
 
-The range of numeric values associated with the colormap. These are
+The range of numeric values associated with the color map. These are
 either fixed or updated automatically, according to the property {\sf
 stressPlotRanging}.  Values outside the range are truncated.
 

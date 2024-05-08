@@ -29,6 +29,12 @@ public class IncompressibleMaterial extends IncompressibleMaterialBase {
       }
    }
 
+   public double computeDevStrainEnergy (
+      DeformedPoint def, Matrix3d Q, double excitation, 
+      MaterialStateObject state) {
+      return 0;
+   }
+
    @Override
    public boolean isInvertible() {
       // right now, true only with a quadratic bulk potential and for this raw

@@ -22,6 +22,7 @@ JAVA_TEST_PROGRAMS = \
 	AnsysReaderWriterTest \
 	AbaqusReaderWriterTest \
 	FemModel3dTest \
-	TetrahedralizerTest
+	TetrahedralizerTest \
+	StressStrainSettingsTest
 
 -include $(ROOT_DIR)/Makefile.base

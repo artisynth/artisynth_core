@@ -29,9 +29,14 @@ public class BlemkerMuscle extends MuscleMaterial {
    protected double myExpStressCoeff = DEFAULT_EXP_STRESS_COEFF;
    protected double myUncrimpingFactor = DEFAULT_UNCRIMPING_FACTOR;
 
+   // dependent coefficients
    protected double myP3;
    protected double myP4;
-   protected boolean myP3P4Valid = false;
+   protected double myWpasOff; 
+   protected boolean myDepCoefsValid = false;
+   // if true, dependent coefficents depend one or more field values and so
+   // must always be evaluated.
+   protected boolean myDepCoefsTransient = false;
 
    protected PropertyMode myMaxLambdaMode = PropertyMode.Inherited;
    protected PropertyMode myOptLambdaMode = PropertyMode.Inherited;
@@ -96,7 +101,7 @@ public class BlemkerMuscle extends MuscleMaterial {
    // maxLambda
 
    public synchronized void setMaxLambda (double maxLambda) {
-      myP3P4Valid = false;
+      myDepCoefsValid = false;
       myMaxLambda = maxLambda;
       myMaxLambdaMode =
          PropertyUtils.propagateValue (
@@ -133,13 +138,14 @@ public class BlemkerMuscle extends MuscleMaterial {
       
    public void setMaxLambdaField (ScalarFieldComponent func) {
       myMaxLambdaField = func;
+      myDepCoefsTransient = updateDepCoefsTransient();
       notifyHostOfPropertyChange();
    }
 
    // optLambda
 
    public synchronized void setOptLambda (double optLambda) {
-      myP3P4Valid = false;
+      myDepCoefsValid = false;
       myOptLambda = optLambda;
       myOptLambdaMode =
          PropertyUtils.propagateValue (
@@ -176,6 +182,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       
    public void setOptLambdaField (ScalarFieldComponent func) {
       myOptLambdaField = func;
+      myDepCoefsTransient = updateDepCoefsTransient();
       notifyHostOfPropertyChange();
    }
 
@@ -224,7 +231,7 @@ public class BlemkerMuscle extends MuscleMaterial {
    // expStressCoeff
 
    public synchronized void setExpStressCoeff (double coeff) {
-      myP3P4Valid = false;
+      myDepCoefsValid = false;
       myExpStressCoeff = coeff;
       myExpStressCoeffMode =
          PropertyUtils.propagateValue (
@@ -261,13 +268,14 @@ public class BlemkerMuscle extends MuscleMaterial {
       
    public void setExpStressCoeffField (ScalarFieldComponent func) {
       myExpStressCoeffField = func;
+      myDepCoefsTransient = updateDepCoefsTransient();
       notifyHostOfPropertyChange();
    }
 
    // uncrimpingFactor
 
    public synchronized void setUncrimpingFactor (double factor) {
-      myP3P4Valid = false;
+      myDepCoefsValid = false;
       myUncrimpingFactor = factor;
       myUncrimpingFactorMode =
          PropertyUtils.propagateValue (
@@ -304,6 +312,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       
    public void setUncrimpingFactorField (ScalarFieldComponent func) {
       myUncrimpingFactorField = func;
+      myDepCoefsTransient = updateDepCoefsTransient();
       notifyHostOfPropertyChange();
    }
 
@@ -369,12 +378,94 @@ public class BlemkerMuscle extends MuscleMaterial {
       return x*x;
    }
 
+   private boolean updateDepCoefsTransient() {
+      myDepCoefsValid = false;
+      return (myMaxLambdaField != null ||
+              myOptLambdaField != null ||
+              myExpStressCoeffField != null ||
+              myUncrimpingFactorField != null);
+   }
+
+   private void updateDepCoefs(DeformedPoint def) {
+      double lamMax = getMaxLambda(def);
+      double lamOpt = getOptLambda(def);
+      double P1 = getExpStressCoeff(def);
+      double P2 = getUncrimpingFactor(def);
+
+      double expTerm = Math.exp(P2*(lamMax/lamOpt-1));
+      myP3 = P1*P2*expTerm;
+      myP4 = P1*(expTerm-1) - myP3*lamMax/lamOpt;
+      myWpasOff =
+         P1*(lamOpt-lamMax + lamOpt*(expTerm-1)/P2) -
+         (myP3*lamMax*lamMax/(2*lamOpt) + myP4*lamMax);
+      if (!myDepCoefsTransient) {
+         myDepCoefsValid = true;
+      }
+   }
+
+   private double computeFp (double lamd) {
+
+      double lamMax = getMaxLambda();
+      double lamOpt = getOptLambda();
+      double maxStress = getMaxStress();
+
+      double lamRat = lamd/lamOpt;
+
+      double fpas = 0;
+
+      double P1 = getExpStressCoeff();
+      double P2 = getUncrimpingFactor();
+
+      if (myZeroForceBelowLamOptP && lamd <= lamOpt) {
+         fpas = 0;
+      }
+      else if (lamd <= lamMax) {
+         double expTerm = Math.exp(P2*(lamRat-1));
+         fpas = P1*(expTerm-1.0);
+      }
+      else {
+         if (!myDepCoefsValid) {
+            updateDepCoefs(null);
+         }
+         fpas = myP3*lamRat + myP4;
+      }
+      return fpas;
+   }
+
+   private double computeWp (double lamd, DeformedPoint def) {
+
+      double lamMax = getMaxLambda(def);
+      double lamOpt = getOptLambda(def);
+      double maxStress = getMaxStress(def);
+
+      double P1 = getExpStressCoeff(def);
+      double P2 = getUncrimpingFactor(def);
+
+      // strain energy density currently computed only for the passive force.
+      double Wpas;
+      if (myZeroForceBelowLamOptP && lamd <= lamOpt) {
+         Wpas = 0;
+      }
+      else if (lamd <= lamMax) {
+         // computes energy assuming Wpas = 0 at lamOpt
+         double expTerm = Math.exp(P2*(lamd/lamOpt-1));
+         Wpas = P1*(lamOpt-lamd + lamOpt*(expTerm-1)/P2);
+      }
+      else {
+         if (!myDepCoefsValid) {
+            updateDepCoefs(def);
+         }
+         Wpas = myP3*lamd*lamd/(2*lamOpt) + myP4*lamd + myWpasOff;
+      }
+      return Wpas;
+   }
+
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Vector3d dir0, double excitation, MaterialStateObject state) {
 
-      double maxLambda = getMaxLambda(def);
-      double optLambda = getOptLambda(def);
+      double lamMax = getMaxLambda(def);
+      double lamOpt = getOptLambda(def);
       double maxStress = getMaxStress(def);
       
       Vector3d a = myTmp;
@@ -390,13 +481,10 @@ public class BlemkerMuscle extends MuscleMaterial {
       a.scale (1/mag);
       double J = def.getDetF();
       // note that lam is the dilational component of lam 
-      double lam = mag*Math.pow(J, -1.0/3.0);
-      double I4 = lam*lam;
+      double lamd = mag*Math.pow(J, -1.0/3.0);
+      double I4 = lamd*lamd;
 
-      double lamOpt = optLambda;
-      double lamRat = lam/optLambda;
-      double lamMax = maxLambda; 
-
+      double lamRat = lamd/lamOpt;
       double lamUpperLim = 1.6*lamOpt;
       double lamLowerLim = 0.4*lamOpt;
 
@@ -407,27 +495,24 @@ public class BlemkerMuscle extends MuscleMaterial {
       double P1 = getExpStressCoeff(def);
       double P2 = getUncrimpingFactor(def);
 
-      if (!myP3P4Valid) {
-         myP3 = P1*P2*Math.exp(P2*(maxLambda/lamOpt-1));
-         myP4 = P1*(Math.exp(P2*(maxLambda/lamOpt-1))-1) - myP3*maxLambda/lamOpt;
-         myP3P4Valid = true;
-      }
-
-      if (myZeroForceBelowLamOptP && lam <= lamOpt) {
+      if (myZeroForceBelowLamOptP && lamd <= lamOpt) {
          fpas = 0;
       }
-      else if (lam <= lamMax) {
+      else if (lamd <= lamMax) {
          expTerm = Math.exp(P2*(lamRat-1));
          fpas = P1*(expTerm-1.0);
       }
       else {
+         if (!myDepCoefsValid) {
+            updateDepCoefs(def);
+         }
          fpas = myP3*lamRat + myP4;
       }
 
-      if (lam <= 0.6*lamOpt) {
+      if (lamd <= 0.6*lamOpt) {
          fact = 9*square(lamRat-0.4);
       }
-      else if (lam < 1.4*lamOpt) {
+      else if (lamd < 1.4*lamOpt) {
          fact = 1-4*square(1-lamRat);
       }
       else {
@@ -435,12 +520,12 @@ public class BlemkerMuscle extends MuscleMaterial {
       }
 
       // zero band, recommended by FEBio
-      if (lam < lamLowerLim || lam > lamUpperLim) {
+      if (lamd < lamLowerLim || lamd > lamUpperLim) {
          fact = 0;
       }
 
       double dfdl = maxStress*(fpas + excitation*fact)/lamOpt;
-      double W4 = 0.5*dfdl/lam;
+      double W4 = 0.5*dfdl/lamd;
 
       setStress (sigma, J, I4, W4, a);
 
@@ -448,20 +533,20 @@ public class BlemkerMuscle extends MuscleMaterial {
          double dfactDl = 0;
          double dfpasDl = 0;
 
-         if (myZeroForceBelowLamOptP && lam <= lamOpt) {
+         if (myZeroForceBelowLamOptP && lamd <= lamOpt) {
             dfpasDl = 0;
          }
-         else if (lam <= lamMax) {
+         else if (lamd <= lamMax) {
             dfpasDl = P1*P2/lamOpt*expTerm;
          }
          else {
             dfpasDl = myP3/lamOpt;
          }
 
-         if (lam <= 0.6*lamOpt) {
+         if (lamd <= 0.6*lamOpt) {
             dfactDl = 18*(lamRat-0.4)/lamOpt;
          }
-         else if (lam < 1.4*lamOpt) {
+         else if (lamd < 1.4*lamOpt) {
             dfactDl = 8*(1-lamRat)/lamOpt;
          }
          else {
@@ -469,12 +554,12 @@ public class BlemkerMuscle extends MuscleMaterial {
          }
 
          // zero band, recommended by FEBio
-         if (lam < lamLowerLim || lam > lamUpperLim) {
+         if (lamd < lamLowerLim || lamd > lamUpperLim) {
             dfactDl = 0;
          }
 
          double FfDll = maxStress*(dfpasDl + excitation*dfactDl)/lamOpt;
-         double W44 = 0.25*(FfDll - dfdl/lam)/I4;
+         double W44 = 0.25*(FfDll - dfdl/lamd)/I4;
 
          double w0 = W4*I4;
          double wa = W44*I4*I4;
@@ -497,6 +582,49 @@ public class BlemkerMuscle extends MuscleMaterial {
       }
    }
 
+   @Override
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Vector3d dir0, double excitation, 
+      MaterialStateObject state) {
+
+      double lamMax = getMaxLambda(def);
+      double lamOpt = getOptLambda(def);
+      double maxStress = getMaxStress(def);
+      
+      Vector3d a = myTmp;
+      def.getF().mul (a, dir0);
+      double mag = a.norm();
+      if (mag == 0.0) {
+         return 0;
+      }
+      a.scale (1/mag);
+      double J = def.getDetF();
+      // note that lamd is the dilational component of lamd 
+      double lamd = mag*Math.pow(J, -1.0/3.0);
+
+      double P1 = getExpStressCoeff(def);
+      double P2 = getUncrimpingFactor(def);
+
+      // strain energy density currently computed only for the passive force.
+      double Wpas;
+      if (myZeroForceBelowLamOptP && lamd <= lamOpt) {
+         Wpas = 0;
+      }
+      else if (lamd <= lamMax) {
+         // computes energy assuming Wpas = 0 at lamOpt
+         double expTerm = Math.exp(P2*(lamd/lamOpt-1));
+         Wpas = P1*(lamOpt-lamd + lamOpt*(expTerm-1)/P2);
+      }
+      else {
+         if (!myDepCoefsValid) {
+            updateDepCoefs(def);
+         }
+         Wpas = myP3*lamd*lamd/(2*lamOpt) + myP4*lamd + myWpasOff;
+      }
+
+      return maxStress*Wpas;
+   }
+   
    public double computeStretch (Vector3d dir0, DeformedPoint def) {
       Vector3d dir = myTmp;
       def.getF().mul(dir, dir0);
@@ -544,6 +672,14 @@ public class BlemkerMuscle extends MuscleMaterial {
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));
+
+      for (int i=0; i<=10; i++) {
+         double lam = 1.0 + i*0.05;
+         System.out.printf (
+            "lam=%g Fp=%g Wp=%g\n",
+            lam, mat.computeFp(lam), mat.computeWp(lam,null));
+      }
+
    }
 
    @Override

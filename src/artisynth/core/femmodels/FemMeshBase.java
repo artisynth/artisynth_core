@@ -48,13 +48,13 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
    protected static SurfaceRender defaultSurfaceRendering = SurfaceRender.Shaded;
    protected static Ranging defaultStressPlotRanging = Ranging.Auto;
-   protected static DoubleInterval defaultStressPlotRange =
-      new DoubleInterval(0,1);
+   protected static DoubleInterval DEFAULT_STRESS_PLOT_RANGE =
+      new DoubleInterval(0,0);
    protected static ColorMapBase defaultColorMap =  new HueColorMap(2.0/3, 0);
    
-   protected SurfaceRender mySurfaceRendering =  defaultSurfaceRendering;
+   protected SurfaceRender mySurfaceRendering = defaultSurfaceRendering;
    protected Ranging myStressPlotRanging = defaultStressPlotRanging;
-   protected DoubleInterval myStressPlotRange =  new DoubleInterval(defaultStressPlotRange);
+   protected DoubleInterval myStressPlotRange = new DoubleInterval(DEFAULT_STRESS_PLOT_RANGE);
 
    protected PropertyMode myStressPlotRangeMode = PropertyMode.Inherited;
    protected PropertyMode myStressPlotRangingMode = PropertyMode.Inherited;
@@ -89,7 +89,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
          defaultStressPlotRanging);         
       myProps.addInheritable (
          "stressPlotRange:Inherited", 
-         "stress value range for color stress plots", defaultStressPlotRange);
+         "stress value range for color stress plots",
+         DEFAULT_STRESS_PLOT_RANGE, "NW");
       myProps.addInheritable (
          "colorMap:Inherited", "color map for stress/strain", 
          defaultColorMap, "CE");
@@ -124,6 +125,27 @@ public abstract class FemMeshBase extends SkinMeshBase {
    protected void finalizeSurfaceBuild() {
    }
 
+   /**
+    * Configure (or disconfigure) a mesh to be rendered using a color map.
+    */
+   protected void setMeshVertexColoring (MeshBase mesh, boolean enable) {
+      if (mesh == null) {
+         // don't think this will happen
+      }
+      if (enable) {
+         saveShading();
+         saveMeshColoring (mesh);
+         mesh.setVertexColoringEnabled();
+         mesh.setVertexColorMixing (ColorMixing.REPLACE);
+         myRenderProps.setShading (Shading.NONE);
+      }
+      else {
+         // disable stress/strain rendering *before* restoring colors
+         restoreMeshColoring (mesh);
+         restoreShading();
+      }
+   }
+
    public void setMeshFromInfo () {
       // Overridden from super class. Is called by super.setMesh() and by scan
       // (whenever a mesh is scanned) to set mesh properties and auxiliary
@@ -144,9 +166,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
       }      
       super.doSetMesh (mesh, fileName, X);
       if (mySurfaceRendering.usesStressOrStrain()) {
-         saveMeshColoring (mesh);
+         setMeshVertexColoring (mesh, true);
          mesh.setVertexColoringEnabled();
-         updateVertexColors(); // not sure we need this here
       }
    }
    
@@ -186,25 +207,52 @@ public abstract class FemMeshBase extends SkinMeshBase {
       mySavedShading = myRenderProps.getShading();
    }
    
-   public void setSurfaceRendering (SurfaceRender mode) {
-      if (mySurfaceRendering != mode) {
-         if (myStressPlotRanging == Ranging.Auto) {
-            myStressPlotRange.set (0, 0);
+   // surface rendering
+
+   protected abstract boolean maybeUpdateFixedRangeFromFEM();
+
+   public abstract FemModel getFem();
+
+   public void setSurfaceRendering (SurfaceRender rendering) {
+      SurfaceRender prev = mySurfaceRendering;
+      FemModel fem = getFem();
+      // propagated value means this method is being called because
+      // surfaceRendering was changed in an ancestor:
+      boolean propagatedValue = (mySurfaceRenderingMode==PropertyMode.Inactive);
+      if (propagatedValue && fem != null && "surface".equals (getName())) {
+         // XXX Need to do this to keep surfaceRendering for the FEM and the
+         // surface mesh the same. Otherwise, they could differ when
+         // FEM.surfaceRenderMode is inherited, since FemModel and FemMeshBase
+         // have different default values for surfaceRender.
+         rendering = fem.getSurfaceRendering();
+      }
+      if (rendering != prev) {
+         mySurfaceRendering = rendering;
+         if (rendering.usesStressOrStrain() != prev.usesStressOrStrain()) {
+            setMeshVertexColoring (getMesh(), rendering.usesStressOrStrain());
          }
-         mySurfaceRendering = mode; // set now if not already set
+         if (!isScanning()) {
+            if (fem != null) { // paranoid: fem should always be non-null here
+               if (fem.updateStressStrainRenderFlags() != 0) {
+                  fem.updateStressAndStiffness();
+               }
+            }
+         }
+         if (myStressPlotRanging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+         else {
+            maybeUpdateFixedRangeFromFEM();
+         }       
       }
       // propagate to make mode explicit
       mySurfaceRenderingMode =
          PropertyUtils.propagateValue (
-            this, "surfaceRendering", mode, mySurfaceRenderingMode);
+            this, "surfaceRendering", rendering, mySurfaceRenderingMode);
    }
 
    public SurfaceRender getSurfaceRendering() {
       return mySurfaceRendering;
-   }
-   
-   public PropertyMode getSurfaceRenderingMode() {
-      return mySurfaceRenderingMode;
    }
    
    public void setSurfaceRenderingMode(PropertyMode mode) {
@@ -214,64 +262,105 @@ public abstract class FemMeshBase extends SkinMeshBase {
       }
    }
 
-   public Ranging getStressPlotRanging (){
-      return myStressPlotRanging;
+   public PropertyMode getSurfaceRenderingMode() {
+      return mySurfaceRenderingMode;
    }
+
+   // stress plot ranging
 
    public void setStressPlotRanging (Ranging ranging) {
       if (myStressPlotRanging != ranging) {
-         if (ranging == Ranging.Auto) {
-            resetStressPlotRange();
-         }
          myStressPlotRanging = ranging;
+         if (ranging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+         else {
+            maybeUpdateFixedRangeFromFEM();
+         }
       }
       myStressPlotRangingMode =
          PropertyUtils.propagateValue (
             this, "stressPlotRanging", ranging, myStressPlotRangingMode);
    }
    
-   public PropertyMode getStressPlotRangingMode() {
-      return myStressPlotRangingMode;
+   public Ranging getStressPlotRanging (){
+      return myStressPlotRanging;
    }
-   
+
    public void setStressPlotRangingMode(PropertyMode mode) {
+      Ranging prevRanging = myStressPlotRanging;
       if (mode != myStressPlotRangingMode) {
          myStressPlotRangingMode = PropertyUtils.setModeAndUpdate (
             this, "stressPlotRanging", myStressPlotRangingMode, mode);
       }
-   }
-   
-   public PropertyMode getStressPlotRangeMode() {
-      return myStressPlotRangeMode;
-   }
-   
-   public void setStressPlotRangeMode(PropertyMode mode) {
-      if (mode != myStressPlotRangeMode) {
-         myStressPlotRangeMode = PropertyUtils.setModeAndUpdate (
-            this, "stressPlotRange", myStressPlotRangeMode, mode);
+      if (myStressPlotRanging != prevRanging) {
+         if (myStressPlotRanging == Ranging.Auto) {
+            resetAutoStressPlotRange();
+         }
+         else {
+            maybeUpdateFixedRangeFromFEM();
+         }
       }
    }
-
-   public DoubleInterval getStressPlotRange (){
-      return new DoubleInterval (myStressPlotRange);
+   
+   public PropertyMode getStressPlotRangingMode() {
+      return myStressPlotRangingMode;
    }
 
-   public void resetStressPlotRange () {
-      myStressPlotRange.set (0, 0);
-   }
+   // stress plot range
 
+   protected void doSetStressPlotRange (DoubleInterval range) {
+      if (!myStressPlotRange.equals(range)) {
+         myStressPlotRange.set (range);
+         updateVertexColors();
+      }
+   }      
+
+   public void resetAutoStressPlotRange () {
+      if (mySurfaceRendering.usesStressOrStrain() && !isScanning()) {
+         myStressPlotRange.set (0, 0);
+         updatePlotRangeIfAuto();
+      }
+   }
+   
    public void setStressPlotRange (DoubleInterval range) {
-      myStressPlotRange = new DoubleInterval (range);
+      doSetStressPlotRange (range);
       myStressPlotRangeMode =
          PropertyUtils.propagateValue (
             this, "stressPlotRange", range, myStressPlotRangeMode);
    }
+ 
+   public DoubleInterval getStressPlotRange (){
+      return new DoubleInterval (myStressPlotRange);
+   }
 
+   public void setStressPlotRangeMode(PropertyMode mode) {
+       if (mode != myStressPlotRangeMode) {
+          PropertyMode prevMode = myStressPlotRangeMode;
+          myStressPlotRangeMode = mode;          
+          if (mode == PropertyMode.Explicit) {
+             // ignore propogation since there are no subcomponents
+          }
+          else if (prevMode == PropertyMode.Explicit) {
+             maybeUpdateFixedRangeFromFEM();
+             // ignore propogation since there are no subcomponents
+          }
+       }
+   }
+
+   public PropertyMode getStressPlotRangeMode() {
+      return myStressPlotRangeMode;
+   }
+
+   // end stress plot range
+
+   protected abstract void updatePlotRangeIfAuto();
    protected abstract void updateVertexColors();
    
    @Override
    public void prerender(RenderList list) {
       if (mySurfaceRendering.usesStressOrStrain()) {
+         updatePlotRangeIfAuto();
          updateVertexColors();
       }
       super.prerender(list);
@@ -331,6 +420,14 @@ public abstract class FemMeshBase extends SkinMeshBase {
                   rtok, this, "surfaceRendering", tokens)) {
          return true;
       }
+      else if (scanAttributeName (rtok, "stressPlotRange")) {
+         myStressPlotRange.scan (rtok, null);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "stressPlotRangeMode")) {
+         myStressPlotRangeMode = rtok.scanEnum(PropertyMode.class);
+         return true;
+      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
@@ -345,6 +442,15 @@ public abstract class FemMeshBase extends SkinMeshBase {
       // scanned after the model and mesh structures.
       myProps.get("surfaceRendering").writeIfNonDefault (
          this, pw, fmt, ancestor);      
+      // need to write stressPlotRange explicitly because Auto ranging will
+      // change its value regardless of stressPlotRangeMode.
+      if (!myStressPlotRange.equals(DEFAULT_STRESS_PLOT_RANGE)) {
+         pw.print ("stressPlotRange=");
+         myStressPlotRange.write (pw, fmt, null);
+      }
+      if (myStressPlotRangeMode != PropertyMode.Inherited) {
+         pw.println ("stressPlotRangeMode=" + myStressPlotRangeMode);
+      }
    }
 
    @Override
@@ -371,9 +477,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
       if (myStressPlotRangingMode == PropertyMode.Explicit) {
          fmb.setStressPlotRanging(myStressPlotRanging);
       }
-      if (myStressPlotRangeMode == PropertyMode.Explicit) {
-         fmb.setStressPlotRange(myStressPlotRange);
-      }
+      fmb.myStressPlotRange = new DoubleInterval(myStressPlotRange);
+      fmb.myStressPlotRangeMode = myStressPlotRangeMode;
 
       if (myColorMapMode == PropertyMode.Explicit) {
          fmb.setColorMap(myColorMap);

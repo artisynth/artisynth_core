@@ -8,20 +8,17 @@ package artisynth.core.femmodels;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 
-import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.PointTarget;
-import artisynth.core.mechmodels.SoftPlaneCollider;
-import artisynth.core.mechmodels.Point;
+import artisynth.core.femmodels.FemElement.ElementClass;
+import artisynth.core.femmodels.FemModel.StressStrainMeasure;
 import artisynth.core.mechmodels.DynamicAttachment;
-import artisynth.core.mechmodels.DynamicAttachmentBase;
 import artisynth.core.mechmodels.MechSystemBase;
+import artisynth.core.mechmodels.PointTarget;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.CompositeComponent;
@@ -29,14 +26,15 @@ import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
-import artisynth.core.femmodels.FemElement.ElementClass;
-import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.util.ScanToken;
-import maspack.geometry.GeometryTransformer;
 import maspack.geometry.Boundable;
-import maspack.matrix.*;
-import maspack.render.RenderList;
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.Point3d;
+import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
+import maspack.render.RenderList;
 import maspack.util.DataBuffer;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -45,43 +43,30 @@ import maspack.util.ReaderTokenizer;
 public class FemNode3d extends FemNode implements Boundable {
 
    /**
-    * Flag indicating if stress values should be computed for this node
-    */
-   public static int NEEDS_STRESS = 0x1;
-   
-   /**
-    * Flag indicating if strain values should be computed for this node
-    */
-   public static int NEEDS_STRAIN = 0x2;
-
-
-   /**
     * Flag indicating that the rest position was read during scan
     */
    public static int REST_POSITION_SCANNED = 0x8000;
    
    /**
-    * Flag indicating external (application) request to compute stress
+    * Flag indicating an explicit application request to compute stress
     * for this node.
     */
-   public static int COMPUTE_STRESS_EXTERNAL = 0x10000;
+   public static int COMPUTE_STRESS_EXPLICIT = 0x10000;
    
    /**
-    * Flag indicating internal request to compute stress for this node.
-    */
-   public static int COMPUTE_STRESS_INTERNAL = 0x20000;
-   
-   /**
-    * Flag indicating external (application) request to compute stress
+    * Flag indicating an explicit application request to compute strain
     * for this node.
     */
-   public static int COMPUTE_STRAIN_EXTERNAL = 0x40000;
-   
+   public static int COMPUTE_STRAIN_EXPLICIT = 0x20000;   
+
    /**
-    * Flag indicating internal request to compute stress for this node.
+    * Flag indicating an explicit application request to compute strain energy
+    * density for this node.
     */
-   public static int COMPUTE_STRAIN_INTERNAL = 0x80000;
+   public static int COMPUTE_ENERGY_EXPLICIT = 0x40000;
    
+   private static int COMPUTE_ANY_EXPLICIT = 
+      (COMPUTE_STRESS_EXPLICIT|COMPUTE_STRAIN_EXPLICIT|COMPUTE_ENERGY_EXPLICIT);
    
     /**
     * Specifies a nodal coordinate type
@@ -116,6 +101,7 @@ public class FemNode3d extends FemNode implements Boundable {
    protected float myRenderStress = 0;
    protected SymmetricMatrix3d myAvgStress = null;
    protected SymmetricMatrix3d myAvgStrain = null;
+   protected double myAvgEnergyDensity = 0;
 
    // used for computing nodal-based incompressibility
    protected double myVolume;
@@ -145,7 +131,7 @@ public class FemNode3d extends FemNode implements Boundable {
       myProps.addReadOnly (
          "displacement", "displacement from rest position");
       myProps.add (
-         "computeStress", "compute stress for this node", false);
+         "computeStress", "compute stress for this node", false); //, "NE");
       myProps.addReadOnly (
          "stress", "average stress in this node");
       myProps.addReadOnly (
@@ -154,7 +140,7 @@ public class FemNode3d extends FemNode implements Boundable {
          "MAPStress",
          "maximum absolute principal stress value");
       myProps.add (
-         "computeStrain", "compute strain for this node", false);
+         "computeStrain", "compute strain for this node", false); //, "NE");
       myProps.addReadOnly (
          "strain", "average strain in this node");
       myProps.addReadOnly (
@@ -162,6 +148,11 @@ public class FemNode3d extends FemNode implements Boundable {
       myProps.addReadOnly (
          "MAPStrain",
          "maximum absolute principal strain value");
+      myProps.add (
+         "computeEnergyDensity", 
+         "compute strain energy density for this node", false); // , "NE");
+      myProps.addReadOnly (
+         "energyDensity", "average strain energy density in this node");
       myProps.add("index", "Index of node (for external use)", -1);
    }
 
@@ -349,7 +340,7 @@ public class FemNode3d extends FemNode implements Boundable {
       return (myAvgStrain == null) ? 0 : computeVonMisesStrain (myAvgStrain);
    }
 
-   /** 
+   /**
     * Returns the principal strain with the maximum absolute value for this
     * node.
     * 
@@ -380,6 +371,47 @@ public class FemNode3d extends FemNode implements Boundable {
     */
    public double getMaxShearStrain () {
       return (myAvgStrain == null) ? 0 : myAvgStrain.computeMaxShear();
+   }
+
+   /**
+    * Returns the specified stress-strain measure.
+    *
+    * <p>This requested quantity will be available only when the required
+    * strain, stress or energy density values are being collected for this
+    * node. Otherwise, 0 will be returned. To ensure this is the case, one may
+    * use the {@code FemModel3d} method {@link
+    * FemModel#setComputeNodalStressStrain}.
+    *
+    * @return maximum shear strain, or 0 is strain is not being computed
+    */
+   public double getStressStrainMeasure (StressStrainMeasure m) {
+      switch (m) {
+         case VonMisesStress: {
+            return getVonMisesStress();
+         }
+         case MAPStress: {
+            return getMAPStress();
+         }
+         case MaxShearStress: {
+            return getMaxShearStress();
+         }
+         case VonMisesStrain: {
+            return getVonMisesStrain();
+         }
+         case MAPStrain: {
+            return getMAPStrain();
+         }
+         case MaxShearStrain: {
+            return getMaxShearStrain();
+         }
+         case EnergyDensity: {
+            return getEnergyDensity();
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented stress/strain measure " + m);
+         }
+      }
    }
 
    public Vector3d getDisplacement () {
@@ -415,23 +447,7 @@ public class FemNode3d extends FemNode implements Boundable {
       if (myAvgStrain != null) {
          myAvgStrain.setZero();
       }
-   }
-   
-   /**
-    * Returns flags indicating if stress or strain values should be
-    * computed for this node.
-    * 
-    * @return stress/strain compute flags
-    */
-   public int needsStressStrain() {
-      int flags = 0;
-      if (myAvgStress != null) {
-         flags |= NEEDS_STRESS;
-      }
-      if (myAvgStrain != null) {
-         flags |= NEEDS_STRAIN;
-      }
-      return flags;      
+      myAvgEnergyDensity = 0;
    }
 
    /** 
@@ -441,11 +457,12 @@ public class FemNode3d extends FemNode implements Boundable {
     * extrapolated values at each node. 
     * 
     * <p>Average nodal stress is computed for this node only when explicitly
-    * requested using {@link #setComputeStress} (or {@link
-    * FemModel3d#setComputeNodalStress} in its FEM model), or when needed
-    * internally, such as when an FEM mesh containing this node is rendered
-    * using stress information. If stress is not being computed for this node,
-    * then this method returns a zero-valued matrix.
+    * requested using the {@code FemModel3d} methods
+    * {@link FemModel#setComputeNodalStress} or 
+    * {@link FemModel#setComputeNodalStressStrain}, or when an FEM mesh
+    * or cut plane is being rendered with a color map that requires stress
+    * information. If stress is not being computed for this node, then this
+    * method returns a zero-valued matrix.
     *
     * @return average nodal stress (should not be modified)
     */   
@@ -458,15 +475,15 @@ public class FemNode3d extends FemNode implements Boundable {
       }
    }
 
-   public void setStress (double vms) {
-      if (myAvgStress == null) {
-         myAvgStress = new SymmetricMatrix3d();
-      }
-      myAvgStress.setZero ();
-      myAvgStress.m00 = vms;
-      myAvgStress.m11 = vms;
-      myAvgStress.m22 = vms; 
-   }
+//   public void setStress (double vms) {
+//      if (myAvgStress == null) {
+//         myAvgStress = new SymmetricMatrix3d();
+//      }
+//      myAvgStress.setZero ();
+//      myAvgStress.m00 = vms;
+//      myAvgStress.m11 = vms;
+//      myAvgStress.m22 = vms; 
+//   }
 
    public void zeroStress() {
       if (myAvgStress != null) {
@@ -475,6 +492,9 @@ public class FemNode3d extends FemNode implements Boundable {
    }      
 
    protected void addScaledStress (double s, SymmetricMatrix3d sig) {
+      if (myAvgStress == null) {
+         myAvgStress = new SymmetricMatrix3d();
+      }
       myAvgStress.scaledAdd (s, sig);
    }      
 
@@ -486,12 +506,15 @@ public class FemNode3d extends FemNode implements Boundable {
     */
    public void setComputeStress (boolean enable) {
       if (enable) {
-         setFlag (COMPUTE_STRESS_EXTERNAL);
+         setFlag (COMPUTE_STRESS_EXPLICIT);
       }
       else {
-         clearFlag (COMPUTE_STRESS_EXTERNAL);
+         clearFlag (COMPUTE_STRESS_EXPLICIT);
+         FemModel3d fem = findFem();
+         if (fem == null || !fem.needsNodalStress()) {
+            myAvgStress = null;         
+         }
       }
-      updateStressAllocation();
    }
    
    /**
@@ -501,34 +524,15 @@ public class FemNode3d extends FemNode implements Boundable {
     * @return {@code true} if explicit stress computation is enabled
     */
    public boolean getComputeStress() {
-      return (myFlags & COMPUTE_STRESS_EXTERNAL) != 0;
+      return (myFlags & COMPUTE_STRESS_EXPLICIT) != 0;
    }
    
-   protected void setComputeStressInternal (boolean enable) {
-      if (enable) {
-         setFlag (COMPUTE_STRESS_INTERNAL);
-      }
-      else {
-         clearFlag (COMPUTE_STRESS_INTERNAL);
-      }
-      updateStressAllocation();
-   }
-   
-   protected boolean getComputeStressInternal() {
-      return (myFlags & COMPUTE_STRESS_INTERNAL) != 0;
-   }
-   
-   protected void updateStressAllocation() {
-      if ((myFlags & (COMPUTE_STRESS_EXTERNAL|COMPUTE_STRESS_INTERNAL)) != 0) {
-         if (myAvgStress == null) {
-            myAvgStress = new SymmetricMatrix3d();
-         }
-      }
-      else {
+   protected void maybeClearStress () {
+      if (!getComputeStress()) {
          myAvgStress = null;
       }
    }
-   
+    
    /** 
     * Returns the average strain for this node. Average node strains are
     * computed by extrapolating the integration point strains back to the
@@ -536,11 +540,12 @@ public class FemNode3d extends FemNode implements Boundable {
     * extrapolated values at each node.
     *
     * <p>Average nodal strain is computed for this node only when explicitly
-    * requested using {@link #setComputeStrain} (or {@link
-    * FemModel3d#setComputeNodalStrain} in its FEM model), or when needed
-    * internally, such as when an FEM mesh containing this node is rendered
-    * using strain information. If strain is not being computed for this node,
-    * then this method returns a zero-valued matrix.
+    * requested using the {@code FemModel3d} methods
+    * {@link FemModel#setComputeNodalStrain} or 
+    * {@link FemModel#setComputeNodalStressStrain}, or when an FEM mesh
+    * or cut plane is being rendered with a color map that requires strain
+    * information. If strain is not being computed for this node, then this
+    * method returns a zero-valued matrix.
     *
     * @return average nodal strain (should not be modified)
     */   
@@ -553,15 +558,15 @@ public class FemNode3d extends FemNode implements Boundable {
       }
    }
 
-   public void setStrain (double vms) {
-      if (myAvgStrain == null) {
-         myAvgStrain = new SymmetricMatrix3d();
-      }
-      myAvgStrain.setZero ();
-      myAvgStrain.m00 = vms;
-      myAvgStrain.m11 = vms;
-      myAvgStrain.m22 = vms;
-   }
+//   public void setStrain (double vms) {
+//      if (myAvgStrain == null) {
+//         myAvgStrain = new SymmetricMatrix3d();
+//      }
+//      myAvgStrain.setZero ();
+//      myAvgStrain.m00 = vms;
+//      myAvgStrain.m11 = vms;
+//      myAvgStrain.m22 = vms;
+//   }
 
    public void zeroStrain() {
       if (myAvgStrain != null) {
@@ -570,6 +575,9 @@ public class FemNode3d extends FemNode implements Boundable {
    }      
 
    public void addScaledStrain (double s, SymmetricMatrix3d sig) {
+      if (myAvgStrain == null) {
+         myAvgStrain = new SymmetricMatrix3d();
+      }
       myAvgStrain.scaledAdd (s, sig);
    }
    
@@ -581,12 +589,15 @@ public class FemNode3d extends FemNode implements Boundable {
     */
    public void setComputeStrain (boolean enable) {
       if (enable) {
-         setFlag (COMPUTE_STRAIN_EXTERNAL);
+         setFlag (COMPUTE_STRAIN_EXPLICIT);
       }
       else {
-         clearFlag (COMPUTE_STRAIN_EXTERNAL);
+         clearFlag (COMPUTE_STRAIN_EXPLICIT);
+         FemModel3d fem = findFem();
+         if (fem == null || !fem.needsNodalStrain()) {
+            myAvgStrain = null;         
+         }
       }
-      updateStrainAllocation();
    }
    
    /**
@@ -596,31 +607,77 @@ public class FemNode3d extends FemNode implements Boundable {
     * @return {@code true} if explicit strain computation is enabled
     */
    public boolean getComputeStrain() {
-      return (myFlags & COMPUTE_STRAIN_EXTERNAL) != 0;
+      return (myFlags & COMPUTE_STRAIN_EXPLICIT) != 0;
+   }
+    
+   protected void maybeClearStrain () {
+      if (!getComputeStrain()) {
+         myAvgStrain = null;
+      }
    }
    
-   protected void setComputeStrainInternal (boolean enable) {
+  /** 
+    * Returns the average strain energy density for this node. Average energy
+    * densities are computed by extrapolating the integration point energy
+    * densities back to the nodes for each element, and then computing the
+    * average of these extrapolated values at each node.
+    *
+    * <p>Average energy density is computed for this node only when explicitly
+    * requested using the {@code FemModel3d} methods
+    * {@link FemModel#setComputeNodalEnergyDensity} or 
+    * {@link FemModel#setComputeNodalStressStrain}, or when an FEM mesh
+    * or cut plane is being rendered with a color map that requires strain
+    * energy density. If energy density is not being computed for
+    * this node, then this method returns 0.
+    *
+    * @return average nodal strain energy density
+    */   
+   public double getEnergyDensity () {
+      return myAvgEnergyDensity;
+   }
+
+   public void zeroEnergyDensity() {
+      myAvgEnergyDensity = 0;
+   }      
+
+   public void addEnergyDensity (double sed) {
+      myAvgEnergyDensity += sed;
+   }
+   
+   /**
+    * Explicitly enables or disables strain energy density computation for this
+    * node, regardless of whether it is needed for surface rendering.
+    *
+    * @param enable if {@code true}, enables explicit strain energy density
+    * computation
+    */
+   public void setComputeEnergyDensity (boolean enable) {
       if (enable) {
-         setFlag (COMPUTE_STRAIN_INTERNAL);
+         setFlag (COMPUTE_ENERGY_EXPLICIT);
       }
       else {
-         clearFlag (COMPUTE_STRAIN_INTERNAL);
-      }
-      updateStrainAllocation();
-   }
-   
-   protected boolean getComputeStrainInternal() {
-      return (myFlags & COMPUTE_STRAIN_INTERNAL) != 0;
-   }
-   
-   protected void updateStrainAllocation() {
-      if ((myFlags & (COMPUTE_STRAIN_EXTERNAL|COMPUTE_STRAIN_INTERNAL)) != 0) {
-         if (myAvgStrain == null) {
-            myAvgStrain = new SymmetricMatrix3d();
+         clearFlag (COMPUTE_ENERGY_EXPLICIT);
+         FemModel3d fem = findFem();
+         if (fem == null || !fem.needsNodalEnergy()) {
+            myAvgEnergyDensity = 0;
          }
       }
-      else {
-         myAvgStrain = null;
+   }
+   
+   /**
+    * Queries whether strain energy density computation has been explicitly
+    * enabled for this node.
+    *
+    * @return {@code true} if explicit strain energy density computation is
+    * enabled
+    */
+   public boolean getComputeEnergyDensity() {
+      return (myFlags & COMPUTE_ENERGY_EXPLICIT) != 0;
+   }
+   
+   protected void maybeZeroEnergy () {
+      if (!getComputeEnergyDensity()) {
+         myAvgEnergyDensity = 0;
       }
    }
    
@@ -773,9 +830,10 @@ public class FemNode3d extends FemNode implements Boundable {
          myDirectorActive = true;
          return true;
       }
-      else if (scanAttributeName (rtok, "stressStrainInternal")) {
-         int stressStrainInternal = rtok.scanInteger();
-         myFlags |= stressStrainInternal;
+      else if (scanAttributeName (rtok, "stressStrainExplicit")) {
+         int stressStrainExplicit = rtok.scanInteger();
+         myFlags |= stressStrainExplicit;
+         myFlags &= ~(stressStrainExplicit ^ COMPUTE_ANY_EXPLICIT);
          return true;
       }
       else if (scanAttributeName (rtok, "avgStress")) {
@@ -790,6 +848,10 @@ public class FemNode3d extends FemNode implements Boundable {
             myAvgStrain = new SymmetricMatrix3d();
          }
          myAvgStrain.scanAsVector (rtok);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "avgEnergyDensity")) {
+         myAvgEnergyDensity = rtok.scanNumber();
          return true;
       }
       rtok.pushBack();
@@ -824,10 +886,9 @@ public class FemNode3d extends FemNode implements Boundable {
          myRest.write (pw, fmt, /* withBrackets= */true);
          pw.println ("");
       }
-      int stressStrainInternal =
-         (myFlags & (COMPUTE_STRESS_INTERNAL|COMPUTE_STRAIN_INTERNAL));
-      if (stressStrainInternal != 0) {
-         pw.printf ("stressStrainInternal=0x%x\n", stressStrainInternal);
+      int stressStrainExplicit = (myFlags & COMPUTE_ANY_EXPLICIT);
+      if (stressStrainExplicit != 0) {
+         pw.printf ("stressStrainExplicit=0x%x\n", stressStrainExplicit);
       }
       if (myAvgStress != null) {
          pw.print ("avgStress=[ ");
@@ -839,7 +900,9 @@ public class FemNode3d extends FemNode implements Boundable {
          myAvgStrain.writeAsVector (pw, fmt);
          pw.println (" ]");
       }
-      
+      if (myAvgEnergyDensity != 0) {
+         pw.println ("avgEnergyDensity=" + fmt.format(myAvgEnergyDensity));
+      }
    }
 
    public void addTransformableDependencies (
@@ -1133,6 +1196,7 @@ public class FemNode3d extends FemNode implements Boundable {
       node.myRenderStress = 0;
       node.myAvgStress = null;
       node.myAvgStrain = null;
+      node.myAvgEnergyDensity = 0;
       node.setComputeStress (getComputeStress());
       node.setComputeStrain (getComputeStrain());
 
@@ -1361,8 +1425,9 @@ public class FemNode3d extends FemNode implements Boundable {
            data.dput (myAvgStrain);
            flags |= HAS_STRAIN;
         }
+        data.dput (myAvgEnergyDensity);
         data.zput (flags);
-     }
+      }
    }
 
    public void setState (DataBuffer data) {
@@ -1375,12 +1440,19 @@ public class FemNode3d extends FemNode implements Boundable {
            }
            data.dget (myAvgStress);
         }
+        else {
+           zeroStress();
+        }
         if ((flags & HAS_STRAIN) != 0) {
            if (myAvgStrain == null) {
               myAvgStrain = new SymmetricMatrix3d();
            }
            data.dget (myAvgStrain);
         }
+        else {
+           zeroStrain();
+        }
+        myAvgEnergyDensity = data.dget();
      }
    }
 

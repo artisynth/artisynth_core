@@ -213,7 +213,6 @@ public class SimpleForceMuscle extends MuscleMaterial {
       a.scale (1/lam);
       double lamd = lam*Math.pow(J, -1.0/3.0);
       double I4 = lamd*lamd;
-
       double W4 = 0.5*(excitation*maxStress)/lamd;
       
       setStress (sigma, J, I4, W4, a);
@@ -241,6 +240,16 @@ public class SimpleForceMuscle extends MuscleMaterial {
       }
    }
 
+   @Override
+   public double computeStrainEnergyDensity (
+      DeformedPoint def, Vector3d dir0, double excitation, 
+      MaterialStateObject state) {
+      
+      // return 0 because we currently only compute SED for passive forces,
+      // and there is no passive force for this material
+      return 0;
+   }
+   
    @Override
    public boolean hasSymmetricTangent() {
       return true;

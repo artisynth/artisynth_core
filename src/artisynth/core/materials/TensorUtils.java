@@ -6,7 +6,7 @@ import maspack.matrix.*;
 public class TensorUtils {
    
    /** 
-    * Adds the scaled tensor product
+    * Adds the symmetric tensor product
     * <pre>
     *  S (X) I + I (X) S
     * </pre>
@@ -15,6 +15,9 @@ public class TensorUtils {
     * 3 x 3 identity matrix, and <code>X</code>
     * denotes a tensor product.
     * 
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad1s(A, I).
+    *
     * @param D 6 x 6 matrix representation of the tensor to which
     * the product is added
     * @param S matrix for forming the product. This is assumed to be symmetric
@@ -64,6 +67,69 @@ public class TensorUtils {
    }
 
    /** 
+    * Adds the scale symmetric tensor product
+    * <pre>
+    *  s (S (X) I + I (X) S)
+    * </pre>
+    * to a symmetric 4th order constitutive tensor represented as a
+    * 6 x 6 matrix. Here, S is a symmetric 3 x 3 matrix, I is the
+    * 3 x 3 identity matrix, and <code>X</code>
+    * denotes a tensor product.
+    * 
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad1s(A, I) when s = 1.
+    *
+    * @param D 6 x 6 matrix representation of the tensor to which
+    * the product is added
+    * @param s scale factor
+    * @param S matrix for forming the product. This is assumed to be symmetric
+    * and only the upper triangular components are used.
+    */
+   public static void addSymmetricIdentityProduct (
+      Matrix6d D, double s, Matrix3dBase S) {
+
+      double s00 = s*S.m00;
+      double s11 = s*S.m11;
+      double s22 = s*S.m22;
+      double s01 = s*S.m01;
+      double s02 = s*S.m02;
+      double s12 = s*S.m12;
+
+      D.m00 += 2*s00;
+      D.m01 += (s00+s11); 
+      D.m02 += (s00+s22); 
+      D.m03 += s01;
+      D.m04 += s12;
+      D.m05 += s02;
+
+      D.m10 += (s11+s00);
+      D.m11 += 2*s11;
+      D.m12 += (s11+s22); 
+      D.m13 += s01;
+      D.m14 += s12;
+      D.m15 += s02;
+
+      D.m20 += (s22+s00);
+      D.m21 += (s22+s11);
+      D.m22 += 2*s22;
+      D.m23 += s01;
+      D.m24 += s12;
+      D.m25 += s02;
+
+      D.m30 += s01;
+      D.m31 += s01;
+      D.m32 += s01;
+
+      D.m40 += s12;
+      D.m41 += s12;
+      D.m42 += s12;
+
+      D.m50 += s02;
+      D.m51 += s02;
+      D.m52 += s02;
+   }
+
+   /** 
     * Adds the symmetric tensor product
     * <pre>
     *  A (X) B + B (X) A
@@ -72,6 +138,9 @@ public class TensorUtils {
     * 6 x 6 matrix. Here, A and B are 3 x 3 matrices (assumed to be symmetric),
     * and <code>(X)</code> denotes a tensor product.
     *
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad1s(A,B).
+    * 
     * <p>Note that this method sets only the upper triangular components of D.
     * 
     * @param D 6 x 6 matrix representation of the tensor to which
@@ -135,6 +204,9 @@ public class TensorUtils {
     * 6 x 6 matrix. Here, A and B are 3 x 3 matrices (assumed to be symmetric),
     * and <code>(X)</code> denotes a tensor product.
     * 
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad1s(A,B) when s = 1.
+    * 
     * <p>Note that this method sets only the upper triangular components of D.
     *
     * @param D 6 x 6 matrix representation of the tensor to which
@@ -193,14 +265,14 @@ public class TensorUtils {
    }
 
    /** 
-    * Adds the tensor product
-    * <pre>
-    *  A (X) A
-    * </pre>
-    * to a symmetric 4th order constitutive tensor represented as a
-    * 6 x 6 matrix. Here, A is a 3 x 3 matrix (assumed to be symmetric),
-    * and <code>(X)</code> denotes a tensor product.
+    * Adds the tensor product <pre> A (X) A </pre> to a symmetric 4th order
+    * constitutive tensor represented as a 6 x 6 matrix. Here, A is a 3 x 3
+    * matrix (assumed to be symmetric), and <code>(X)</code> denotes a tensor
+    * product.
     *
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad1s(A).
+    * 
     * <p>Note that this method sets only the upper triangular components of D.
     * 
     * @param D 6 x 6 matrix representation of the tensor to which
@@ -253,6 +325,9 @@ public class TensorUtils {
     * to a symmetric 4th order constitutive tensor represented as a
     * 6 x 6 matrix. Here, A is a 3 x 3 matrix (assumed to be symmetric),
     * and <code>(X)</code> denotes a tensor product.
+    *
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad1s(A) when s = 1.
     *
     * <p>Note that this method sets only the upper triangular components of D.
     * 
@@ -519,6 +594,9 @@ public class TensorUtils {
     * 6 x 6 matrix. Here, s is a scalar and A is a 3 x 3 matrix (assumed
     * to be symmetric).
     * 
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad4snv(A) if the scaling is 1.
+    * 
     * <p>Note that this method sets only the upper triangular components of D.
     * 
     * @param D 6 x 6 matrix representation of the tensor to which
@@ -579,6 +657,9 @@ public class TensorUtils {
     * to a symmetric 4th order constitutive tensor represented as a
     * 6 x 6 matrix. Here, s is a scalar and A is a 3 x 3 matrix (assumed
     * to be symmetric).
+    * 
+    * <p>With respect to FEBio, this corresponds to the operation
+    * tens4ds.dyad4s(A,B) if the scaling is 1.
     * 
     * <p>Note that this method sets only the upper triangular components of D.
     * 
@@ -1317,6 +1398,210 @@ public class TensorUtils {
                 a.y*(b.z*T.m24 + b.y*T.m44 + b.x*T.m45) + 
                 a.x*(b.z*T.m25 + b.y*T.m45 + b.x*T.m55);
    }
+
+   /**
+    * Adds the symmetric tensor product
+    * <pre>
+    * A_ijmn B_mnkl + B_ijmn A_mnkl
+    * </pre>
+    * to D. Equivalent to FEBio tens4ds.ddots (A,B)
+    */
+   public static void addSymmetricTensorDot (
+      Matrix6d D, Matrix6d A, Matrix6d B) {
+
+      double a00 = A.m00;
+      double a01 = A.m01;
+      double a02 = A.m02;
+      double a03 = A.m03;
+      double a04 = A.m04;
+      double a05 = A.m05;
+      double a11 = A.m11;
+      double a12 = A.m12;
+      double a13 = A.m13;
+      double a14 = A.m14;
+      double a15 = A.m15;
+      double a22 = A.m22;
+      double a23 = A.m23;
+      double a24 = A.m24;
+      double a25 = A.m25;
+      double a33 = A.m33;
+      double a34 = A.m34;
+      double a35 = A.m35;
+      double a44 = A.m44;
+      double a45 = A.m45;
+      double a55 = A.m55;
+
+      double b00 = B.m00;
+      double b01 = B.m01;
+      double b02 = B.m02;
+      double b03 = B.m03;
+      double b04 = B.m04;
+      double b05 = B.m05;
+      double b11 = B.m11;
+      double b12 = B.m12;
+      double b13 = B.m13;
+      double b14 = B.m14;
+      double b15 = B.m15;
+      double b22 = B.m22;
+      double b23 = B.m23;
+      double b24 = B.m24;
+      double b25 = B.m25;
+      double b33 = B.m33;
+      double b34 = B.m34;
+      double b35 = B.m35;
+      double b44 = B.m44;
+      double b45 = B.m45;
+      double b55 = B.m55;
+
+      D.m00 += 2*(a00*b00 + a01*b01 + a02*b02 +
+                 2*a03*b03 + 2*a04*b04 + 2*a05*b05);
+
+      D.m01 += (a00*b01 + a11*b01 + a01*(b00 + b11) + a12*b02
+                + a02*b12 + 2*a13*b03 + 2*a03*b13 + 2*a14*b04
+                + 2*a04*b14 + 2*a15*b05 + 2*a05*b15);
+
+      D.m02 += (a12*b01 + a00*b02 + a22*b02 + a01*b12
+                + a02*(b00 + b22) + 2*a23*b03 + 2*a03*b23 + 2*a24*b04
+                + 2*a04*b24 + 2*a25*b05 + 2*a05*b25);
+
+      D.m03 += (a13*b01 + a23*b02 + a00*b03 + 2*a33*b03 + a01*b13
+                + a02*b23 + a03*(b00 + 2*b33) + 2*a34*b04 + 2*a04*b34
+                + 2*a35*b05 + 2*a05*b35);
+
+      D.m04 += (a14*b01 + a24*b02 + 2*a34*b03 + a00*b04
+                + 2*a44*b04 + a01*b14 + a02*b24 + 2*a03*b34
+                + a04*(b00 + 2*b44) + 2*a45*b05 + 2*a05*b45);
+
+      D.m05 += (a15*b01 + a25*b02 + 2*a35*b03 + 2*a45*b04 
+                + a00*b05 + 2*a55*b05 + a01*b15 + a02*b25 
+                + 2*a03*b35 + 2*a04*b45 + a05*(b00 + 2*b55));
+	
+      D.m11 += 2*(a01*b01 + a11*b11 + a12*b12 +
+                 2*a13*b13 + 2*a14*b14 + 2*a15*b15);
+
+      D.m12 += (a02*b01 + a01*b02 + a11*b12 + a22*b12 
+                + a12*(b11 + b22) + 2*a23*b13 + 2*a13*b23 + 2*a24*b14 
+                + 2*a14*b24 + 2*a25*b15 + 2*a15*b25);
+
+      D.m13 += (a03*b01 + a23*b12 + a01*b03 + a11*b13 
+                + 2*a33*b13 + a12*b23 + a13*(b11 + 2*b33) + 2*a34*b14 
+                + 2*a14*b34 + 2*a35*b15 + 2*a15*b35);
+
+      D.m14 += (a04*b01 + a24*b12 + 2*a34*b13 + a01*b04 
+                + a11*b14 + 2*a44*b14 + a12*b24 + 2*a13*b34 
+                + a14*(b11 + 2*b44) + 2*a45*b15 + 2*a15*b45);
+
+      D.m15 += (a05*b01 + a25*b12 + 2*a35*b13 + 2*a45*b14 
+                + a01*b05 + a11*b15 + 2*a55*b15 + a12*b25 
+                + 2*a13*b35 + 2*a14*b45 + a15*(b11 + 2*b55));
+	
+      D.m22 += 2*(a02*b02 + a12*b12 + a22*b22 +
+                 2*a23*b23 + 2*a24*b24 + 2*a25*b25);
+
+      D.m23 += (a03*b02 + a13*b12 + a23*b22 + a02*b03 
+                + a12*b13 + a22*b23 + 2*a33*b23 + 2*a23*b33 + 2*a34*b24 
+                + 2*a24*b34 + 2*a35*b25 + 2*a25*b35);
+
+      D.m24 += (a04*b02 + a14*b12 + a24*b22 + 2*a34*b23 
+                + a02*b04 + a12*b14 + a22*b24 + 2*a44*b24 + 2*a23*b34 
+                + 2*a24*b44 + 2*a45*b25 + 2*a25*b45);
+
+      D.m25 += (a05*b02 + a15*b12 + a25*b22 + 2*a35*b23 
+                + 2*a45*b24 + a02*b05 + a12*b15 + a22*b25 
+                + 2*a55*b25 + 2*a23*b35 + 2*a24*b45 + 2*a25*b55);
+	
+      D.m33 += 2*(a03*b03 + a13*b13 + a23*b23 +
+                 2*a33*b33 + 2*a34*b34 + 2*a35*b35);
+
+      D.m34 += (a04*b03 + a14*b13 + a24*b23 + 2*a34*b33 
+                + a03*b04 + a13*b14 + a23*b24 + 2*a33*b34 
+                + 2*a44*b34 + 2*a34*b44 + 2*a45*b35 + 2*a35*b45);
+
+      D.m35 += (a05*b03 + a15*b13 + a25*b23 + 2*a35*b33 
+                + 2*a45*b34 + a03*b05 + a13*b15 + a23*b25 
+                + 2*a33*b35 + 2*a55*b35 + 2*a34*b45 + 2*a35*b55);
+	
+      D.m44 += 2*(a04*b04 + a14*b14 + a24*b24 +
+                   2*a34*b34 + 2*a44*b44 + 2*a45*b45);
+
+      D.m45 += (a05*b04 + a15*b14 + a25*b24 
+                + 2*a35*b34 + 2*a45*b44 + a04*b05 + a14*b15 
+                + a24*b25 + 2*a34*b35 + 2*a44*b45 + 2*a55*b45 + 2*a45*b55);
+	
+      D.m55 += 2*(a05*b05 + a15*b15 + a25*b25 +
+                 2*a35*b35 + 2*a45*b45 + 2*a55*b55);
+   }
    
+   /**
+    * Adds the scale symmetric tensor product
+    * <pre>
+    * s (A_ijmn IxI_mnkl + IxI_ijmn A_mnkl)
+    * </pre>
+    * to D, where IxI = I (X) I.
+    * Equivalent to FEBio tens4ds.ddots (A,IxI) when s = 1.
+    */
+   public static void addSymmetricIdentityDot (
+      Matrix6d D, double s, Matrix6d A) {
+
+      double a00 = A.m00;
+      double a01 = A.m01;
+      double a02 = A.m02;
+      double a03 = A.m03;
+      double a04 = A.m04;
+      double a05 = A.m05;
+      double a11 = A.m11;
+      double a12 = A.m12;
+      double a13 = A.m13;
+      double a14 = A.m14;
+      double a15 = A.m15;
+      double a22 = A.m22;
+      double a23 = A.m23;
+      double a24 = A.m24;
+      double a25 = A.m25;
+      double a33 = A.m33;
+      double a34 = A.m34;
+      double a35 = A.m35;
+      double a44 = A.m44;
+      double a45 = A.m45;
+      double a55 = A.m55;
+
+      D.m00 += 2*s*(a00 + a01 + a02);
+      D.m01 += s*(a00 + a11 + 2*a01 + a12 + a02);
+      D.m02 += s*(a12 + a00 + a22 + a01 + 2*a02);
+      D.m03 += s*(a13 + a23 + a03);
+      D.m04 += s*(a14 + a24 + a04);
+      D.m05 += s*(a15 + a25 + a05);
+	
+      D.m11 += 2*s*(a01 + a11 + a12);
+      D.m12 += s*(a02 + a01 + a11 + a22 + 2*a12);
+      D.m13 += s*(a03 + a23 + a13);
+      D.m14 += s*(a04 + a24 + a14);
+      D.m15 += s*(a05 + a25 + a15);
+	
+      D.m22 += 2*s*(a02 + a12 + a22);
+      D.m23 += s*(a03 + a13 + a23);
+      D.m24 += s*(a04 + a14 + a24);
+      D.m25 += s*(a05 + a15 + a25);
+   }
+
+   /**
+    * Compute the dot product of two matrics, given by
+    * <pre>
+    * A_ij B_ij
+    * </pre>
+    */
+   public static double dot (Matrix3dBase A, Matrix3dBase B) {
+      return (A.m00*B.m00 + A.m11*B.m11 + A.m22*B.m22 + 
+              A.m01*B.m01 + A.m02*B.m02 + A.m12*B.m12 +
+              A.m10*B.m10 + A.m20*B.m20 + A.m21*B.m21);
+   }
+   
+   /**
+    * Returns the trace of D interpretted as a symmetric 4d tensor.  Equilavent
+    * to FEBio tens4ds::tr().
+    */
+   public static double symmetricTrace (Matrix6d D) {
+      return D.m00 + D.m11 + D.m22 + 2*(D.m01 + D.m02 + D.m12);
+   }
 
 }

@@ -90,6 +90,7 @@ public abstract class FemElement extends RenderableComponentBase
    protected boolean myRestVolumeValidP = false;
    protected double myRestVolume = 0;
    protected double myVolume = 0;
+   protected double myEnergy = 0;
    protected boolean myInvertedP = false;
    protected Matrix3d myFg = null; // plastic deformation gradient component
    int myIndex;  // index number for associating with other info
@@ -403,6 +404,39 @@ public abstract class FemElement extends RenderableComponentBase
     */
    public double getVolume() {
       return myVolume;
+   }
+   
+   /**
+    * Returns the most recently computed strain energy for this element.
+    * Strain energy will only by computed if strain energy computation
+    * is enabled for the FEM model, via the property 
+    * {@code computeStrainEnergy}, which can be set using
+    * {@link FemModel#setComputeStrainEnergy}.
+    * 
+    * @return element strain energy
+    */
+   public double getStrainEnergy() {
+      return myEnergy;
+   }
+
+   /**
+    * Sets the strain energy for this element. Intended for internal use
+    * only.
+    * 
+    * @param e new element strain energy
+    */
+   protected void setStrainEnergy(double e) {
+      myEnergy = e;
+   }
+
+   /**
+    * Adds to the strain energy for this element. Intended for internal use
+    * only.
+    * 
+    * @param e additional element strain energy
+    */
+   protected void addStrainEnergy(double e) {
+      myEnergy += e;
    }
 
    /** 

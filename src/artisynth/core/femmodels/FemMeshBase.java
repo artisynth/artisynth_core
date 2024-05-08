@@ -129,9 +129,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
     * Configure (or disconfigure) a mesh to be rendered using a color map.
     */
    protected void setMeshVertexColoring (MeshBase mesh, boolean enable) {
-      if (mesh == null) {
-         // don't think this will happen
-      }
       if (enable) {
          saveShading();
          saveMeshColoring (mesh);
@@ -228,8 +225,11 @@ public abstract class FemMeshBase extends SkinMeshBase {
       }
       if (rendering != prev) {
          mySurfaceRendering = rendering;
-         if (rendering.usesStressOrStrain() != prev.usesStressOrStrain()) {
-            setMeshVertexColoring (getMesh(), rendering.usesStressOrStrain());
+         if ((rendering.usesStressOrStrain() != prev.usesStressOrStrain())) {
+            MeshBase mesh = getMesh();
+            if (mesh != null) {
+               setMeshVertexColoring (mesh, rendering.usesStressOrStrain());
+            }
          }
          if (!isScanning()) {
             if (fem != null) { // paranoid: fem should always be non-null here

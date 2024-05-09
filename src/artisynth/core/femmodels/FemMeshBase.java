@@ -227,6 +227,9 @@ public abstract class FemMeshBase extends SkinMeshBase {
          mySurfaceRendering = rendering;
          if ((rendering.usesStressOrStrain() != prev.usesStressOrStrain())) {
             MeshBase mesh = getMesh();
+            // mesh may be null if surfaceRendering is being called through
+            // inherited property propagation and the mesh itself is
+            // automatically generated and has not yet been created.
             if (mesh != null) {
                setMeshVertexColoring (mesh, rendering.usesStressOrStrain());
             }

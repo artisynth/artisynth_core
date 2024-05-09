@@ -290,7 +290,11 @@ public abstract class LabeledControl extends LabeledComponent {
       myAllEnabledP = enable;
       super.setEnabled (enable);
       for (Component comp : myComponents) {
-         comp.setEnabled (enable);
+         // May 2024: don't disable JTextField, so that can we still cut and
+         // paste from it and move the cursor.
+         if (!(comp instanceof JTextField)) {
+            comp.setEnabled (enable);
+         }
       }
    }
 

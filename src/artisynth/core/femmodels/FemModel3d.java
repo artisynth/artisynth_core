@@ -2959,7 +2959,6 @@ PointAttachable, ConnectableBody {
       FemElement3dBase e, ArrayList<FemMaterial> amats,
       StiffnessWarper3d warper, FemDeformedPoint dpnt, int needsStressStrain) {
       
-      SymmetricMatrix3d sigma = new SymmetricMatrix3d();
       FemNode3d[] nodes = e.getNodes();
       FemMaterial mat = getElementMaterial (e);
 
@@ -2980,6 +2979,7 @@ PointAttachable, ConnectableBody {
          ((needsStressStrain & NEEDS_ENERGY) != 0);
 
       if (needsStress || needsEnergy) {
+         SymmetricMatrix3d sigma = new SymmetricMatrix3d();
          double sed = 0;
          // compute linear stress
          if (mat.isLinear()) {
@@ -3054,23 +3054,27 @@ PointAttachable, ConnectableBody {
       }
 
       if ((needsStressStrain & NEEDS_STRAIN) != 0) {
-         
+         SymmetricMatrix3d eps = new SymmetricMatrix3d();
          // Cauchy strain at warping point
          if (mat.isCorotated()) {
             // remove rotation from F
-            sigma.mulTransposeLeftSymmetric(R, dpnt.getF());
+            eps.mulTransposeLeftSymmetric(R, dpnt.getF());
          } else {
-            sigma.setSymmetric(dpnt.getF());
+            eps.setSymmetric(dpnt.getF());
          }
-         sigma.m00 -= 1;
-         sigma.m11 -= 1;
-         sigma.m22 -= 1;
+         eps.m00 -= 1;
+         eps.m11 -= 1;
+         eps.m22 -= 1;
+         if (mat.isCorotated()) {
+            // rotate eps back to world
+            eps.mulLeftAndTransposeRight(R);
+         }
          
          // distribute strain to nodes that need it
          for (int i = 0; i < nodes.length; i++) {
             if (needsNodalStrain() || nodes[i].getComputeStrain()) {
                nodes[i].addScaledStrain (
-                  1.0 / nodes[i].numAdjacentElements(), sigma);
+                  1.0 / nodes[i].numAdjacentElements(), eps);
             }
          }
       }

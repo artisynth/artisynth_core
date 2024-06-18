@@ -1697,7 +1697,7 @@ public class RootModel extends RenderableModelBase
       return null;
    }
 
-   private boolean withinTimeRange (ModelAgent agent, double t) {
+   private boolean withinTimeRange (Probe agent, double t) {
       return (TimeBase.compare (agent.getStartTime(), t) <= 0 && 
               TimeBase.compare (agent.getStopTime(), t) >= 0);
    }

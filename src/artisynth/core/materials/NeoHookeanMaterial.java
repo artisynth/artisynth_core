@@ -132,7 +132,7 @@ public class NeoHookeanMaterial extends FemMaterial {
       DeformedPoint def, Matrix3d Q, double excitation, 
       MaterialStateObject state) {
 
-      // express constitutive law in terms of Lama parameters
+      // express constitutive law in terms of Lame parameters
       double E = getYoungsModulus(def);
       double G = E/(2*(1+myNu)); // bulk modulus
       double lam = (E*myNu)/((1-2*myNu)*(1+myNu));

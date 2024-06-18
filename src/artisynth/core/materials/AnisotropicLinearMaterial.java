@@ -82,7 +82,7 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
    }
 
    public Matrix6d getStiffnessTensor() {
-      return myC;
+      return new Matrix6d(myC);
    }
    
    public VectorNd getRasterizedStiffnessTensor() {

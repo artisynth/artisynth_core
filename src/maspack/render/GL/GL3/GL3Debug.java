@@ -7883,4 +7883,10 @@ public class GL3Debug implements GL3 {
       return false;
    }
 
+   // For JOGL 2.5
+   public int getDefaultDrawBuffer () {
+      // TODO Auto-generated method stub
+      return 0;
+   }
+
 }

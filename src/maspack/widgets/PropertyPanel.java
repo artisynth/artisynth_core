@@ -58,6 +58,11 @@ public class PropertyPanel extends LabeledComponentPanel {
       addWidgets (PropertyUtils.createProperties (host));
    }
 
+   public PropertyPanel (HasProperties host, String[] excludeProps) {
+      this();
+      addWidgets (PropertyUtils.createProperties (host, excludeProps));
+   }
+
    protected boolean isInheritableProperty (Object obj) {
       return (obj instanceof Property &&
               ((Property)obj).getInfo().isInheritable());

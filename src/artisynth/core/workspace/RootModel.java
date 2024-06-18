@@ -149,6 +149,9 @@ public class RootModel extends RenderableModelBase
    private static final boolean DEFAULT_ADAPTIVE_STEPPING = false;
    private File myWorkingFolder = null;
 
+   public static String DEFAULT_MODEL_TITLE = null;
+   private String myModelTitle = DEFAULT_MODEL_TITLE;
+
    AxisAngle myDefaultViewOrientation = 
       new AxisAngle (DEFAULT_VIEW_ORIENTATION);
    
@@ -552,7 +555,10 @@ public class RootModel extends RenderableModelBase
    public static PropertyList myProps =
       new PropertyList (RootModel.class, RenderableModelBase.class);
 
-   static {
+   static { 
+      myProps.add (
+         "modelTitle", "title for the model, for display and movie naming",
+         DEFAULT_MODEL_TITLE);
       myProps.add (
          "viewerCenter", "viewer center of attention",
          DEFAULT_VIEWER_CENTER, "NW");
@@ -604,6 +610,21 @@ public class RootModel extends RenderableModelBase
       }
       super.setMaxStepSize (step);
       componentChanged (new PropertyChangeEvent (this, "maxStepSize"));
+   }
+
+   public String getModelTitle() {
+      return myModelTitle;
+   }
+
+   /**
+    * Sets a title for this model. The title is displayed in the
+    * application panel and used for the default movie name.
+    */
+   public void setModelTitle(String title) {
+      if (myModelTitle != title) {
+         myModelTitle = title;
+         notifyParentOfChange (new PropertyChangeEvent (this, "modelTitle"));
+      }
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1676,11 +1697,14 @@ public class RootModel extends RenderableModelBase
       return null;
    }
 
+   private boolean withinTimeRange (ModelAgent agent, double t) {
+      return (TimeBase.compare (agent.getStartTime(), t) <= 0 && 
+              TimeBase.compare (agent.getStopTime(), t) >= 0);
+   }
+   
    public synchronized void applyInputProbes (List<Probe> list, double t) {
       for (Probe p : list) {
-         if (p.isActive() && 
-             TimeBase.compare (p.getStartTime(), t) <= 0 && 
-             TimeBase.compare (p.getStopTime(), t) >= 0) {
+         if (p.isActive() && withinTimeRange (p, t)) {
             p.apply (t);
          }
       }
@@ -1690,7 +1714,7 @@ public class RootModel extends RenderableModelBase
       List<Controller> list, double t0, double t1) {
 
       for (Controller c : list) {
-         if (c.isActive()) {
+         if (c.isActive()) { // && withinTimeRange (c, t1)) {
             c.apply (t0, t1);
          }
       }
@@ -1700,7 +1724,7 @@ public class RootModel extends RenderableModelBase
       List<Monitor> list, double t0, double t1) {
 
       for (Monitor m : list) {
-         if (m.isActive()) {
+         if (m.isActive()) { // && withinTimeRange (m, t1)) {
             m.apply (t0, t1);
          }
       }
@@ -1715,9 +1739,7 @@ public class RootModel extends RenderableModelBase
          (maxStep != -1 && TimeBase.modulo (t1, maxStep) == 0);  
 
       for (Probe p : list) {
-         if (!p.isActive() ||
-             TimeBase.compare (t1, p.getStartTime()) < 0 ||
-             TimeBase.compare (t1, p.getStopTime()) > 0) {
+         if (!p.isActive() || !withinTimeRange (p, t1)) {
             continue;
          }
          if (p.isEventTime(t1) || 

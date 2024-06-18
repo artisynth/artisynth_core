@@ -211,6 +211,18 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
          centroid.scale (1.0/nump);      
       }
    }
+
+   /**
+    * Computes the centroid of this contour, rejecting points that are
+    * very close together.
+    * 
+    * @return computed centroid
+    */
+   public Point3d computeCentroid() {
+      Point3d centroid = new Point3d();
+      computeCentroid (centroid);
+      return centroid;
+   }
    
    /**
     * Computes the length of this contour

@@ -37,8 +37,7 @@ import maspack.interpolation.CubicHermiteSpline1d;
  * which simplifies the computation in situations where this approximation is
  * acceptable.
  */
-public class Thelen2003AxialMuscle
-   extends EquilibriumAxialMuscle implements HasNumericState {
+public class Thelen2003AxialMuscle extends EquilibriumAxialMuscle {
    
    // from Thelan paper:
 

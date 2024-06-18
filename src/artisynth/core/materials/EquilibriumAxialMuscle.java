@@ -20,7 +20,8 @@ import maspack.matrix.*;
  * muscle and tendon in series, and which solve for the muscle length at each
  * time step to ensure that the muscle and tendon forces are equal.
  */
-public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
+public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase 
+   implements HasNumericState {
 
    // Useful constants:
 
@@ -95,6 +96,12 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
    double myMuscleLengthPrev;
    double myMuscleVel; // cached value of muscle velocity
    boolean myMuscleLengthValid = false;
+   
+   int myStateVersion; // changes when we switch to/from rigidTendoon 
+   
+   public int getStateVersion() {
+      return myStateVersion;
+   }
 
    public static PropertyList myProps =
       new PropertyList(EquilibriumAxialMuscle.class,
@@ -291,6 +298,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
    public void setRigidTendon (boolean enable) {
       if (enable != myRigidTendonP) {
          myRigidTendonP = enable;
+         myStateVersion++;
          notifyHostOfStateChange("rigidTendon");
       }
    }
@@ -938,21 +946,25 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase {
    }
 
    public void setState (DataBuffer data) {
-      myLength = data.dget();
-      myMuscleLength = data.dget();
-      myMuscleLengthPrev = data.dget();
-      myH = data.dget();
-      myMuscleLengthValid = data.zgetBool(); // XXX need this?
-      myLengthValid = data.zgetBool(); // XXX need this?
+      if (!myRigidTendonP) {
+         myLength = data.dget();
+         myMuscleLength = data.dget();
+         myMuscleLengthPrev = data.dget();
+         myH = data.dget();
+         myMuscleLengthValid = data.zgetBool(); // XXX need this?
+         myLengthValid = data.zgetBool(); // XXX need this?
+      }
    }
 
    public void getState (DataBuffer data) {
-      data.dput(myLength);
-      data.dput(myMuscleLength);
-      data.dput(myMuscleLengthPrev);
-      data.dput(myH);
-      data.zputBool (myMuscleLengthValid); // XXX need this?
-      data.zputBool (myLengthValid); // XXX need this?
+      if (!myRigidTendonP) {
+         data.dput(myLength);
+         data.dput(myMuscleLength);
+         data.dput(myMuscleLengthPrev);
+         data.dput(myH);
+         data.zputBool (myMuscleLengthValid); // XXX need this?
+         data.zputBool (myLengthValid); // XXX need this?
+      }
    }
 
    public void advanceState (double t0, double t1) {

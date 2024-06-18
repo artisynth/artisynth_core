@@ -474,9 +474,13 @@ public class FemMaterialTest extends UnitTest {
       OgdenMaterial ogden = new OgdenMaterial (
          new double[] {3e5, 1e4, 2e3, 3e3, 4e3, 1.5e2},
          new double[] {1, 2, 3, 4, 5, 6}, 1e5);
-      FungMaterial fung = new FungMaterial();
+      FungOrthotropicMaterial fung =
+         new FungOrthotropicMaterial(
+            1000, 2000, 3000, 200, 300, 400, 500, 600, 700, 1000, 10000);
       CubicHyperelastic cubicHyper =
          new CubicHyperelastic(1000.0, 2000.0, 3000.0, 1000.0);
+      YeohMaterial yeoh =
+         new YeohMaterial (1000.0, 500.0, 250.0, 125.0, 62.5, 1000.0);
       IncompressibleMaterial rawIncomp = new IncompressibleMaterial (1234.0);
       VerondaWestmannMaterial vwm =
          new VerondaWestmannMaterial (1000, 10, 100000);      
@@ -518,6 +522,7 @@ public class FemMaterialTest extends UnitTest {
       testLinear (linTransverse, tol);
 
       testIncompressible (cubicHyper, tol);
+      testIncompressible (yeoh, tol);
       testIncompressible (fung, 2e-6);
       testIncompressible (incompNeohook, tol);
       testIncompressible (rawIncomp, tol);

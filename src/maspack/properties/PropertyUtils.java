@@ -705,6 +705,21 @@ public class PropertyUtils {
       return propList;
    }
 
+   public static LinkedList<Property> createProperties (
+      HasProperties host, String[] excludeProps) {
+      LinkedList<Property> propList = new LinkedList<Property>();
+      HashSet<String> exclude = new HashSet<>();
+      for (String propName : excludeProps) {
+         exclude.add (propName);
+      }
+      for (PropertyInfo info : host.getAllPropertyInfo()) {
+         if (!exclude.contains(info.getName())) {
+            propList.add (info.createHandle (host));
+         }
+      }
+      return propList;
+   }
+
 //    public static LinkedList<Property> createProperties (Class cls) {
 //       LinkedList<Property> propList = new LinkedList<Property>();
 //       if (!HasProperties.class.isAssignableFrom (cls)) {

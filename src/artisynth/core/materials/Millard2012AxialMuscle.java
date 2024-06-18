@@ -41,8 +41,7 @@ import maspack.interpolation.CubicHermiteSpline1d.Knot;
  * rigidTendon} property), which simplifies the computation in situations where
  * this approximation is acceptable.
  */
-public class Millard2012AxialMuscle extends EquilibriumAxialMuscle
-   implements HasNumericState {
+public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
 
    // Force length curves and velocity curve
 

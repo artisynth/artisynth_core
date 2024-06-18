@@ -430,7 +430,13 @@ public class TransformGeometryContext {
 
       ArrayList<TransformableGeometry> tgens =
          new ArrayList<TransformableGeometry>();
+      ModelComponent tgenComp = null;
       tgens.addAll (myTransformables.keySet());
+      if (tgens.size() == 1 && tgens.get(0) instanceof ModelComponent) {
+         // if there is a single component being transformed, set that
+         // as the "component" in the parent notification
+         tgenComp = (ModelComponent)tgens.get(0);
+      }     
       for (TransformableGeometry tg : tgens) {
          tg.addTransformableDependencies (this, flags);
       }
@@ -443,12 +449,6 @@ public class TransformGeometryContext {
             tg.transformGeometry (gtr, this, flags);
             add (tg, tgflags | IS_TRANSFORMED);
          }
-      }
-      ModelComponent tgenComp = null;
-      if (tgens.size() == 1 && tgens.get(0) instanceof ModelComponent) {
-         // if there is a single component being transformed, set that
-         // as the "component" in the parent notification
-         tgenComp = (ModelComponent)tgens.get(0);
       }
       notifyParentsOfChange (gtr, tgenComp);
       clearParents();

@@ -32,7 +32,7 @@ public abstract class MuscleMaterial extends FemMaterial {
 
    public static double DEFAULT_EXCITATION = 0.0;
    private double myExcitation = DEFAULT_EXCITATION;
-   public static Vector3d DEFAULT_REST_DIR = new Vector3d();
+   public static Vector3d DEFAULT_REST_DIR = new Vector3d(1, 0, 0);
    private Vector3d myRestDir = new Vector3d(DEFAULT_REST_DIR);
    //private VectorFieldPointFunction<Vector3d> myRestDirFxn;
    private VectorFieldComponent<Vector3d> myRestDirField;

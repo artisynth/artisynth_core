@@ -3315,4 +3315,8 @@ public class GLJPanel extends JPanel
          }
       }
    }
+   
+   public boolean canSetSurfaceScale() {
+      return true;
+   }
 }

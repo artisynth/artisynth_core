@@ -53,7 +53,7 @@ import maspack.util.NumberFormat;
 public class DicomPlaneViewer extends TexturePlaneBase {
 
    DicomViewer myDicomViewer;
-   DicomPlaneTextureContent myTexture;
+   protected DicomPlaneTextureContent myTexture;
    MeshInfo myMeshInfo;
    RigidTransform3d myTVI; // optional transform from image to viewer
    
@@ -66,6 +66,17 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       DicomPlaneViewer.class, TexturePlaneBase.class);
    
    static {
+      myProps.remove ("velocity");
+      myProps.remove ("targetPosition");
+      myProps.remove ("targetOrientation");
+      myProps.remove ("targetVelocity");
+      myProps.remove ("targetActivity");
+      myProps.remove ("force");
+      myProps.remove ("transForce");
+      myProps.remove ("moment");
+      myProps.remove ("externalForce");
+      myProps.remove ("frameDamping");
+      myProps.remove ("rotaryDamping");
       myProps.add(
          "dicomVisible", "controls whether the dicom image is visible",
          DEFAULT_DICOM_VISIBLE);
@@ -73,7 +84,7 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       myProps.add("timeIndex", "time coordinate", 0);
       myProps.add(
          "spatialInterpolation", "trilinearly interpolate between voxels", false);
-      myProps.addReadOnly("pixelInterpolator", "pixel converter");
+      myProps.addReadOnly("pixelInterpolator", "pixel converter", "NV NE");
    }
    
    public PropertyList getAllPropertyInfo() {
@@ -154,7 +165,7 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       init(name, dviewer, templateMesh, TPW, null);
    }
 
-   private void get2DBounds (
+   protected void get2DBounds (
       Point2d origin, Vector2d widths, PolygonalMesh mesh) {
       Point3d pmin = new Point3d();
       Point3d pmax = new Point3d();
@@ -199,24 +210,6 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       PolygonalMesh mesh = getImageMesh();
       if (mesh != null) {
          mesh.scale (s);
-         // //widths.scale (s);
-         // if (myTexture != null) {
-         //    Point2d origin = new Point2d();
-         //    get2DBounds (origin, null, mesh);
-         //    int[] idxs = mesh.createVertexIndices ();
-         //    Vector2d tscale = myTexture.getTextureCoordinateScaling();
-         //    ArrayList<Vector3d> tcoords = new ArrayList<>();
-         //    for (Vertex3d v : mesh.getVertices()) {
-         //       Point3d p = v.getPosition();
-         //       Vector3d tcoord =
-         //          new Vector3d (
-         //             tscale.x*(p.x-origin.x)/widths.x, 
-         //             tscale.y*(p.y-origin.y)/widths.y, 0);
-         //       tcoords.add (tcoord);
-         //    }
-         //    System.out.println ("here " + tscale + "  " + widths);
-         //    mesh.setTextureCoords (tcoords, idxs);
-         // }
          widths.scale (s);
          if (myTexture != null) {
             myTexture.setWidths (widths);
@@ -224,7 +217,11 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       }
    }
 
-   private void setImageFromViewer (DicomViewer dviewer, RigidTransform3d TPW) {
+   /**
+    * Sets the texture image from a dicom viewer. Warning: don't call this
+    * unless you know what you're doing.
+    */
+   public void setImageFromViewer (DicomViewer dviewer, RigidTransform3d TPW) {
       myDicomViewer = dviewer;
       myTexture = new DicomPlaneTextureContent (
          dviewer.getImage(), computeTTW(TPW), this.widths);
@@ -500,7 +497,12 @@ public class DicomPlaneViewer extends TexturePlaneBase {
     * @return the number of time indices available in the DICOM image
     */
    public IntegerInterval getTimeIndexRange() {
-      return new IntegerInterval(0, getImage().getNumTimes()-1);
+      if (myTexture != null) {
+         return new IntegerInterval(0, getImage().getNumTimes()-1);
+      }
+      else {
+         return new IntegerInterval(0, 1);
+      }
    }
 
    @Override
@@ -516,6 +518,14 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       }
    }
 
+   @Override
+   protected void updatePosState () {
+      super.updatePosState ();
+      if (myTexture != null) {
+         myTexture.setLocation (computeTTW (getPose()));
+      }
+   }
+   
    // public RigidTransform3d getTextureLocation() {
    //    return myTexture.getLocation();
    // }

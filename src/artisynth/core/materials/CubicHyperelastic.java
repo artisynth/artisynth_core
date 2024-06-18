@@ -8,6 +8,10 @@ import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
+/**
+ * @deprecated This class has been replaced by the more general {@link
+ * YeohMaterial}, which should be used instead.
+ */
 public class CubicHyperelastic extends IncompressibleMaterialBase {
    protected static FieldPropertyList myProps =
       new FieldPropertyList (CubicHyperelastic.class,IncompressibleMaterialBase.class);

@@ -229,7 +229,15 @@ public class PropertyDialog extends JDialog implements ActionListener,
       }
       return widget;
    }
+   
+   public Component[] getWidgets() {
+      return myPanel.getWidgets ();
+   }
 
+   public Component getWidget (int idx) {
+      return myPanel.getWidget (idx);
+   }
+   
    public PropertyPanel getPropertyPanel() {
       return myPanel;
    }
@@ -441,6 +449,11 @@ public class PropertyDialog extends JDialog implements ActionListener,
 
    public PropertyDialog (String name, HasProperties host, String options) {
       this (name, new PropertyPanel (host), options);
+   }
+
+   public PropertyDialog (
+      String name, HasProperties host, String[] excludeProps, String options) {
+      this (name, new PropertyPanel (host, excludeProps), options);
    }
 
    public PropertyDialog (String name, HostList hostList, String options) {

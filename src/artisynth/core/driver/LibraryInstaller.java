@@ -9,6 +9,7 @@ package artisynth.core.driver;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.util.LinkedList;
 
 import artisynth.core.util.ArtisynthIO;
@@ -37,6 +38,8 @@ public class LibraryInstaller {
    private static String PSEP = File.pathSeparator;
 
    protected LinkedList<String> myJarnames = new LinkedList<String>();
+   // special jars are ones we don't update but also don't remove
+   protected LinkedList<String> mySpecialJarnames = new LinkedList<String>();
    protected LinkedList<String> myLibnames = new LinkedList<String>();
    protected File myLibDir;
 
@@ -90,6 +93,8 @@ public class LibraryInstaller {
             myLibDir+" does not exist or is not a directory");
       }
       setRemoteSource ("https://www.artisynth.org/files/lib/");
+      // ObjectSizeAgent.jar, if needed, is built internally
+      mySpecialJarnames.add ("ObjectSizeAgent.jar");
    }
    
    private static void printUsage () {
@@ -99,6 +104,7 @@ public class LibraryInstaller {
       System.out.println ("options:\n");
       System.out.println (
 "-updateLibs            try to update libraries to latest versions\n"+
+"-moveUnused            move unused jar files 'xxx.jar' to 'xxx.jar.save'\n"+
 "-file <fileName>       use fileName instead of $ARTISYNTH_HOME/lib/LIBRARIES;\n"+
 "                       (with - indicating <stdin> and NONE no file)\n"+
 "-lib <libName>         explicitly specify the name of a library\n" + 
@@ -114,9 +120,13 @@ public class LibraryInstaller {
       String libFileName = null;
 
       boolean updateLibs = false;
+      boolean moveUnused = false;
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-updateLibs")) {
             updateLibs = true;
+         }
+         else if (args[i].equals ("-moveUnused")) {
+            moveUnused = true;
          }
          else if (args[i].equals ("-help")) {
             printUsage();
@@ -205,6 +215,12 @@ public class LibraryInstaller {
          }
          else if (libFileName.equals ("-")) {
             installer.readLibs (null); // null indicates use standard input
+         }
+         if (moveUnused) {
+            // move unused jars before anything else, since subsequent
+            // operations seem to lead to jar files being openned/locked which
+            // on Windows then makes them unmoveable.
+            installer.moveUnusedJars ();
          }
          installer.verifyJars (updateLibs);
          installer.verifyNativeLibs (updateLibs);
@@ -326,6 +342,42 @@ public class LibraryInstaller {
          }
       }
       return allOK ? numDownloads : -1;
+   }
+
+   public int moveUnusedJars() {
+      int unused = 0;
+      for (String fname : myLibDir.list()) {
+         if (fname.endsWith (".jar") &&
+             !myJarnames.contains(fname) &&
+             !mySpecialJarnames.contains(fname)) {
+            String tname;
+            File target;
+            int cnt = 0;
+            do {
+               String suffix = ".save";
+               if (cnt > 0) {
+                  suffix += cnt;
+               }
+               tname = fname + suffix;
+               target = new File (myLibDir, tname);
+            }
+            while (target.exists());
+            File source = new File (myLibDir, fname);
+            try {
+               Files.move (source.toPath(), target.toPath());
+               System.out.println (
+                  "Notice: unused jar file 'lib/"+fname+
+                  "' being moved to 'lib/"+tname+"'");
+            }
+            catch (Exception e) {
+               System.out.println (
+                  "Warning: jar file 'lib/"+fname+
+                  "' is unused and cannot be moved:\n" + e);
+            }
+            unused++;               
+         }
+      }
+      return unused;
    }
 
    protected void maybeAddLibrary (String libName, SystemType sysType) {

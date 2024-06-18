@@ -34,9 +34,9 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
       myB = new SymmetricMatrix3d();
    }
 
-   public IncompNeoHookeanMaterial (double E, double kappa) {
+   public IncompNeoHookeanMaterial (double G, double kappa) {
       myB = new SymmetricMatrix3d();
-      setShearModulus (E);
+      setShearModulus (G);
       setBulkModulus (kappa);
    }
 
@@ -112,8 +112,8 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
       
       SymmetricMatrix3d Cdev = new SymmetricMatrix3d();
       computeDevRightCauchyGreen (Cdev, def);
-      double mu = getShearModulus (def);
-      double W = mu*(Cdev.trace()-3)/2;
+      double G = getShearModulus (def);
+      double W = G*(Cdev.trace()-3)/2;
       return W;
    }
 

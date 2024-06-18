@@ -137,6 +137,7 @@ public class ArrudaBoyceMaterial extends IncompressibleMaterialBase {
       // get coefficients
       double mu = getMu(def);
       double lmax = getLambdaMax(def);
+      double lmaxSqr = lmax*lmax;
       
       double J = def.getDetF();
 
@@ -144,7 +145,7 @@ public class ArrudaBoyceMaterial extends IncompressibleMaterialBase {
       computeDevLeftCauchyGreen (B,def);
 
       double I1 = B.trace();
-      double f = I1/lmax;
+      double f = I1/lmaxSqr;
       double sum = 5*myC[4];
       for (int i=3; i>=0; i--) {
          sum = sum*f + (i+1)*myC[i];
@@ -158,7 +159,7 @@ public class ArrudaBoyceMaterial extends IncompressibleMaterialBase {
          double Jinv = 1/J;
 
          sum = f*(f*(f*10*myC[4] + 6*myC[3]) + 3*myC[2]) + myC[1];
-         double W11 = 2*mu*sum/lmax;
+         double W11 = 2*mu*sum/lmaxSqr;
 
          double WC = W1*I1;
          double CWWC = W11*I1*I1;
@@ -195,7 +196,7 @@ public class ArrudaBoyceMaterial extends IncompressibleMaterialBase {
       computeDevRightCauchyGreen (Cdev, def);
       double I1 = Cdev.trace();
 
-      double invLmax = 1/lmax;
+      double invLmaxSqr = 1/(lmax*lmax);
       double lmaxFrac = 1;
       double powI1 = I1;
       double pow3 = 3;
@@ -204,7 +205,7 @@ public class ArrudaBoyceMaterial extends IncompressibleMaterialBase {
          sum += myC[i]*lmaxFrac*(powI1-pow3);
          powI1 *= I1;
          pow3 *= 3;
-         lmaxFrac *= invLmax;
+         lmaxFrac *= invLmaxSqr;
       }
       return mu*sum;
    }

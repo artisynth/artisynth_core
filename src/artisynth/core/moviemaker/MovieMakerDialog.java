@@ -508,8 +508,14 @@ public class MovieMakerDialog extends JDialog
       tabbedPane.addTab ("Advanced", extraBox);
       tabbedPane.addTab ("Messages", messagesBox);
 
-      if (myMain.getModelName() != null) {
-         setMovieName (myMain.getModelName());
+      RootModel root = myMain.getRootModel();
+      if (root != null) {
+         if (root.getModelTitle() != null) {
+            setMovieName (root.getModelTitle());
+         }
+         else if (root.getName() != null) {
+            setMovieName (root.getName());
+         }
       }
 
       add (tabbedPane, BorderLayout.NORTH);

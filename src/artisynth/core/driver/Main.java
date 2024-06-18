@@ -2063,6 +2063,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
          modelName = "Null model";
       }
       myModelName = modelName;
+      String title = newRoot.getModelTitle();
+      if (title == null) {
+         title = modelName;
+      }
       //CompositeUtils.testPaths (newRoot);
 
       double maxStepSize = newRoot.getMaxStepSize();
@@ -2117,13 +2121,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
          // text for that selected component remains when a new model is loaded
          myFrame.getSelectCompPanelHandler().clear();
          myFrame.getSelectCompPanelHandler().setComponentFilter (null);
-         myFrame.setBaseTitle ("ArtiSynth " + modelName);
+         myFrame.setBaseTitle ("ArtiSynth " + title);
       }
 
       // model scheduler initialization called within initialize
       getScheduler().initialize(newRoot.getStartTime());
       if (myMovieMaker != null) {
-         myMovieMaker.updateForNewRootModel (modelName, newRoot);
+         myMovieMaker.updateForNewRootModel (title, newRoot);
       }
 
       // reset the timeline.
@@ -3806,13 +3810,26 @@ public class Main implements DriverInterface, ComponentChangeListener {
          PropertyChangeEvent pe = (PropertyChangeEvent)e;
          ModelComponent c = e.getComponent();
          if (c == getRootModel()) {
-            if (pe.getPropertyName().equals ("maxStepSize")) {
+            String propName = pe.getPropertyName();
+            if (propName.equals ("maxStepSize")) {
                doSetMaxStep (getRootModel().getMaxStepSize());
             }
-            else if (pe.getPropertyName().equals ("defaultViewOrientation")) {
+            else if (propName.equals ("defaultViewOrientation")) {
                if (myViewerManager != null) {
                   myViewerManager.resetViewers (
                      getDefaultAxialView(getRootModel()));
+               }
+            }
+            else if (propName.equals ("modelTitle")) {
+               String title = getRootModel().getModelTitle();
+               if (title == null) {
+                  title = getRootModel().getName();
+               }
+               if (myFrame != null) {
+                  myFrame.setBaseTitle ("ArtiSynth " + title);
+               }
+               if (myMovieMaker != null) {
+                  myMovieMaker.updateForNewRootModel (title, getRootModel());
                }
             }
          }

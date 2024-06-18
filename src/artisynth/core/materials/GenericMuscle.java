@@ -48,8 +48,8 @@ public class GenericMuscle extends MuscleMaterial {
    protected ScalarFieldComponent myUncrimpingFactorField = null;
 
    // dependent coefficients
-   protected double myC5;
-   protected double myC6;
+   protected double myP3;
+   protected double myP4;
    protected double myWpasOff; 
    protected boolean myDepCoefsValid = false;
    // if true, dependent coefficents depend one or more field values and so
@@ -383,12 +383,12 @@ public class GenericMuscle extends MuscleMaterial {
       double P1 = getExpStressCoeff(def);
       double P2 = getUncrimpingFactor(def);
 
-      myC5 = computeFibreModulus (P1, P2, lamMax);
+      myP3 = computeFibreModulus (P1, P2, lamMax);
       double maxExpTerm = Math.exp(P2*(lamMax-1));
-      myC6 = P1*(maxExpTerm-1) - myC5*lamMax;
+      myP4 = P1*(maxExpTerm-1) - myP3*lamMax;
       myWpasOff = 
          computeExpWp (lamMax, def) -
-         (myC5*lamMax + myC6*Math.log(lamMax));
+         (myP3*lamMax + myP4*Math.log(lamMax));
       if (!myDepCoefsTransient) {
          myDepCoefsValid = true;
       }
@@ -439,7 +439,7 @@ public class GenericMuscle extends MuscleMaterial {
          if (!myDepCoefsValid) {
             updateDepCoefs(def);
          }
-         Fp = (myC5*lamd + myC6)/lamd;
+         Fp = (myP3*lamd + myP4)/lamd;
       }
 
       W4 = 0.5*(Fp+excitation*maxStress)/lamd;
@@ -456,7 +456,7 @@ public class GenericMuscle extends MuscleMaterial {
             FpDl = P1/lamd*(P2*expTerm - (expTerm-1)/lamd);
          }
          else {
-            FpDl = -myC6/(lamd*lamd);
+            FpDl = -myP4/(lamd*lamd);
          }
 
          double W44 = 0.5*(0.5*FpDl - W4)/(lamd*lamd);
@@ -513,7 +513,7 @@ public class GenericMuscle extends MuscleMaterial {
          if (!myDepCoefsValid) {
             updateDepCoefs(def);
          }
-         Wpas = myC5*lamd + myC6*Math.log(lamd) + myWpasOff;
+         Wpas = myP3*lamd + myP4*Math.log(lamd) + myWpasOff;
       }
       return Wpas;
    }

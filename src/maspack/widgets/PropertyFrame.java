@@ -178,6 +178,14 @@ public class PropertyFrame extends JFrame implements ActionListener,
       return widget;
    }
 
+   public Component[] getWidgets() {
+      return myPanel.getWidgets ();
+   }
+
+   public Component getWidget (int idx) {
+      return myPanel.getWidget (idx);
+   }
+   
    public PropertyPanel getPropertyPanel() {
       return myPanel;
    }

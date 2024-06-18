@@ -10,491 +10,481 @@ import maspack.matrix.Vector3d;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-/**
- * @deprecated This class has been replaced by the more descriptively named
- * {@link FungOrthotropicMaterial}, which should be used instead.
- */
-public class FungMaterial extends IncompressibleMaterialBase {
+public class FungOrthotropicMaterial extends IncompressibleMaterialBase {
 
    public static FieldPropertyList myProps =
-      new FieldPropertyList (FungMaterial.class, IncompressibleMaterialBase.class);
+      new FieldPropertyList (FungOrthotropicMaterial.class, IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_MU1 = 1000.0;
    protected static double DEFAULT_MU2 = 1000.0;
    protected static double DEFAULT_MU3 = 1000.0;
-   protected static double DEFAULT_L11 = 2000.0;
-   protected static double DEFAULT_L22 = 2000.0;
-   protected static double DEFAULT_L33 = 2000.0;
-   protected static double DEFAULT_L12 = 2000;
-   protected static double DEFAULT_L23 = 2000;
-   protected static double DEFAULT_L31 = 2000;
-   protected static double DEFAULT_CC  = 1500.0;
+   protected static double DEFAULT_LAM11 = 2000.0;
+   protected static double DEFAULT_LAM22 = 2000.0;
+   protected static double DEFAULT_LAM33 = 2000.0;
+   protected static double DEFAULT_LAM12 = 2000;
+   protected static double DEFAULT_LAM23 = 2000;
+   protected static double DEFAULT_LAM31 = 2000;
+   protected static double DEFAULT_C  = 1500.0;
 
-   private double myMU1 = DEFAULT_MU1; 
-   private double myMU2 = DEFAULT_MU2; 
-   private double myMU3 = DEFAULT_MU3; 
-   private double myL11 = DEFAULT_L11; 
-   private double myL22 = DEFAULT_L22; 
-   private double myL33 = DEFAULT_L33; 
-   private double myL12 = DEFAULT_L12; 
-   private double myL23 = DEFAULT_L23; 
-   private double myL31 = DEFAULT_L31; 
-   private double myCC  = DEFAULT_CC; 
+   private double myMu1 = DEFAULT_MU1; 
+   private double myMu2 = DEFAULT_MU2; 
+   private double myMu3 = DEFAULT_MU3; 
+   private double myLam11 = DEFAULT_LAM11; 
+   private double myLam22 = DEFAULT_LAM22; 
+   private double myLam33 = DEFAULT_LAM33; 
+   private double myLam12 = DEFAULT_LAM12; 
+   private double myLam23 = DEFAULT_LAM23; 
+   private double myLam31 = DEFAULT_LAM31; 
+   private double myC = DEFAULT_C; 
 
    private double[]   mu = new double[3]; 
    private double[][] lam = new double[3][3]; 
 
-   PropertyMode myMU1Mode = PropertyMode.Inherited;
-   PropertyMode myMU2Mode = PropertyMode.Inherited;
-   PropertyMode myMU3Mode = PropertyMode.Inherited;
-   PropertyMode myL11Mode = PropertyMode.Inherited;
-   PropertyMode myL22Mode = PropertyMode.Inherited;
-   PropertyMode myL33Mode = PropertyMode.Inherited;
-   PropertyMode myL12Mode = PropertyMode.Inherited;
-   PropertyMode myL23Mode = PropertyMode.Inherited;
-   PropertyMode myL31Mode = PropertyMode.Inherited;
-   PropertyMode myCCMode  = PropertyMode.Inherited;
+   PropertyMode myMu1Mode = PropertyMode.Inherited;
+   PropertyMode myMu2Mode = PropertyMode.Inherited;
+   PropertyMode myMu3Mode = PropertyMode.Inherited;
+   PropertyMode myLam11Mode = PropertyMode.Inherited;
+   PropertyMode myLam22Mode = PropertyMode.Inherited;
+   PropertyMode myLam33Mode = PropertyMode.Inherited;
+   PropertyMode myLam12Mode = PropertyMode.Inherited;
+   PropertyMode myLam23Mode = PropertyMode.Inherited;
+   PropertyMode myLam31Mode = PropertyMode.Inherited;
+   PropertyMode myCMode  = PropertyMode.Inherited;
 
-   ScalarFieldComponent myMU1Field = null;
-   ScalarFieldComponent myMU2Field = null;
-   ScalarFieldComponent myMU3Field = null;
-   ScalarFieldComponent myL11Field = null;
-   ScalarFieldComponent myL22Field = null;
-   ScalarFieldComponent myL33Field = null;
-   ScalarFieldComponent myL12Field = null;
-   ScalarFieldComponent myL23Field = null;
-   ScalarFieldComponent myL31Field = null;
-   ScalarFieldComponent myCCField  = null;
-
-   private SymmetricMatrix3d myB;
-   private SymmetricMatrix3d myC;
-   private SymmetricMatrix3d myC2;
+   ScalarFieldComponent myMu1Field = null;
+   ScalarFieldComponent myMu2Field = null;
+   ScalarFieldComponent myMu3Field = null;
+   ScalarFieldComponent myLam11Field = null;
+   ScalarFieldComponent myLam22Field = null;
+   ScalarFieldComponent myLam33Field = null;
+   ScalarFieldComponent myLam12Field = null;
+   ScalarFieldComponent myLam23Field = null;
+   ScalarFieldComponent myLam31Field = null;
+   ScalarFieldComponent myCField  = null;
 
    static {
       myProps.addInheritableWithField (
-         "MU1:Inherited", "MU1", DEFAULT_MU1, "[0,inf]");
+         "mu1:Inherited", "mu1", DEFAULT_MU1, "[0,inf]");
       myProps.addInheritableWithField (
-         "MU2:Inherited", "MU2", DEFAULT_MU2, "[0,inf]");
+         "mu2:Inherited", "mu2", DEFAULT_MU2, "[0,inf]");
       myProps.addInheritableWithField (
-         "MU3:Inherited", "MU3", DEFAULT_MU3, "[0,inf]");
+         "mu3:Inherited", "mu3", DEFAULT_MU3, "[0,inf]");
       myProps.addInheritableWithField (
-         "L11:Inherited", "L11", DEFAULT_L11, "[0,inf]");
+         "lam11:Inherited", "lam11", DEFAULT_LAM11, "[0,inf]");
       myProps.addInheritableWithField (
-         "L22:Inherited", "L22", DEFAULT_L22, "[0,inf]");
+         "lam22:Inherited", "lam22", DEFAULT_LAM22, "[0,inf]");
       myProps.addInheritableWithField (
-         "L33:Inherited", "L33", DEFAULT_L33, "[0,inf]");
+         "lam33:Inherited", "lam33", DEFAULT_LAM33, "[0,inf]");
       myProps.addInheritableWithField (
-         "L12:Inherited", "L12", DEFAULT_L12, "[0,1]");
+         "lam12:Inherited", "lam12", DEFAULT_LAM12, "[0,1]");
       myProps.addInheritableWithField (
-         "L23:Inherited", "L23", DEFAULT_L23, "[0,1]");
+         "lam23:Inherited", "lam23", DEFAULT_LAM23, "[0,1]");
       myProps.addInheritableWithField (
-         "L31:Inherited", "L31", DEFAULT_L31, "[0,1]");
+         "lam31:Inherited", "lam31", DEFAULT_LAM31, "[0,1]");
       myProps.addInheritableWithField (
-         "CC:Inherited", "CC", DEFAULT_CC, "[0,inf]");
+         "C:Inherited", "C", DEFAULT_C, "[0,inf]");
    }
 
    public FieldPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
-   public FungMaterial () {
-      myB   = new SymmetricMatrix3d();
-      myC   = new SymmetricMatrix3d();
-      myC2  = new SymmetricMatrix3d();
+   public FungOrthotropicMaterial () {
    }
 
-   public FungMaterial (double MU1, double MU2, double MU3, double L11, double L22, 
-      double L33, double L12, double L23, double L31, double CC, double kappa) {
+   public FungOrthotropicMaterial (
+      double mu1, double mu2, double mu3, double l11, double l22, 
+      double l33, double l12, double l23, double l31, double C, double kappa) {
       this();
-      setMU1 (MU1);
-      setMU2 (MU2);
-      setMU3 (MU3);
-      setL11 (L11);
-      setL22 (L22);
-      setL33 (L33);
-      setL12 (L12);
-      setL23 (L23);
-      setL31 (L31);
-      setCC (CC);
+      setMu1 (mu1);
+      setMu2 (mu2);
+      setMu3 (mu3);
+      setLam11 (l11);
+      setLam22 (l22);
+      setLam33 (l33);
+      setLam12 (l12);
+      setLam23 (l23);
+      setLam31 (l31);
+      setC (C);
       setBulkModulus (kappa);
    }
 
-   public synchronized void setMU1 (double MU1) {
-      myMU1 = MU1;
-      myMU1Mode =
-         PropertyUtils.propagateValue (this, "MU1", myMU1, myMU1Mode);
+   public synchronized void setMu1 (double mu1) {
+      myMu1 = mu1;
+      myMu1Mode =
+         PropertyUtils.propagateValue (this, "mu1", myMu1, myMu1Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setMU2 (double MU2) {
-      myMU2 = MU2;
-      myMU2Mode =
-         PropertyUtils.propagateValue (this, "MU2", myMU2, myMU2Mode);
+   public synchronized void setMu2 (double mu2) {
+      myMu2 = mu2;
+      myMu2Mode =
+         PropertyUtils.propagateValue (this, "mu2", myMu2, myMu2Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setMU3 (double MU3) {
-      myMU3 = MU3;
-      myMU3Mode =
-         PropertyUtils.propagateValue (this, "MU3", myMU3, myMU3Mode);
+   public synchronized void setMu3 (double mu3) {
+      myMu3 = mu3;
+      myMu3Mode =
+         PropertyUtils.propagateValue (this, "mu3", myMu3, myMu3Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setL11 (double L11) {
-      myL11 = L11;
-      myL11Mode =
-         PropertyUtils.propagateValue (this, "L11", myL11, myL11Mode);
+   public synchronized void setLam11 (double L11) {
+      myLam11 = L11;
+      myLam11Mode =
+         PropertyUtils.propagateValue (this, "lam11", myLam11, myLam11Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setL22 (double L22) {
-      myL22 = L22;
-      myL22Mode =
-         PropertyUtils.propagateValue (this, "L22", myL22, myL22Mode);
+   public synchronized void setLam22 (double L22) {
+      myLam22 = L22;
+      myLam22Mode =
+         PropertyUtils.propagateValue (this, "lam22", myLam22, myLam22Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setL33 (double L33) {
-      myL33 = L33;
-      myL33Mode =
-         PropertyUtils.propagateValue (this, "L33", myL33, myL33Mode);
+   public synchronized void setLam33 (double L33) {
+      myLam33 = L33;
+      myLam33Mode =
+         PropertyUtils.propagateValue (this, "lam33", myLam33, myLam33Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setL12 (double L12) {
-      myL12 = L12;
-      myL12Mode =
-         PropertyUtils.propagateValue (this, "L12", myL12, myL12Mode);
+   public synchronized void setLam12 (double L12) {
+      myLam12 = L12;
+      myLam12Mode =
+         PropertyUtils.propagateValue (this, "lam12", myLam12, myLam12Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setL23 (double L23) {
-      myL23 = L23;
-      myL23Mode =
-         PropertyUtils.propagateValue (this, "L23", myL23, myL23Mode);
+   public synchronized void setLam23 (double L23) {
+      myLam23 = L23;
+      myLam23Mode =
+         PropertyUtils.propagateValue (this, "lam23", myLam23, myLam23Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setL31 (double L31) {
-      myL31 = L31;
-      myL31Mode =
-         PropertyUtils.propagateValue (this, "L31", myL31, myL31Mode);
+   public synchronized void setLam31 (double L31) {
+      myLam31 = L31;
+      myLam31Mode =
+         PropertyUtils.propagateValue (this, "lam31", myLam31, myLam31Mode);
       notifyHostOfPropertyChange();
    }
 
-   public synchronized void setCC (double CC) {
-      myCC = CC;
-      myCCMode =
-         PropertyUtils.propagateValue (this, "CC", myCC, myCCMode);
+   public synchronized void setC (double C) {
+      myC = C;
+      myCMode =
+         PropertyUtils.propagateValue (this, "C", myC, myCMode);
       notifyHostOfPropertyChange();
    }
 
-   public double getMU1() {
-      return myMU1;
+   public double getMu1() {
+      return myMu1;
    }
 
-   public double getMU2() {
-      return myMU2;
+   public double getMu2() {
+      return myMu2;
    }
 
-   public double getMU3() {
-      return myMU3;
+   public double getMu3() {
+      return myMu3;
    }
 
-   public double getL11() {
-      return myL11;
+   public double getLam11() {
+      return myLam11;
    }
 
-   public double getL22() {
-      return myL22;
+   public double getLam22() {
+      return myLam22;
    }
 
-   public double getL33() {
-      return myL33;
+   public double getLam33() {
+      return myLam33;
    }
 
-   public double getL12() {
-      return myL12;
+   public double getLam12() {
+      return myLam12;
    }
 
-   public double getL23() {
-      return myL23;
+   public double getLam23() {
+      return myLam23;
    }
 
-   public double getL31() {
-      return myL31;
+   public double getLam31() {
+      return myLam31;
    }
 
-   public double getCC() {
-      return myCC;
+   public double getC() {
+      return myC;
    }
 
-   public void setMU1Mode (PropertyMode mode) {
-      myMU1Mode =
-         PropertyUtils.setModeAndUpdate (this, "MU1", myMU1Mode, mode);
+   public void setMu1Mode (PropertyMode mode) {
+      myMu1Mode =
+         PropertyUtils.setModeAndUpdate (this, "mu1", myMu1Mode, mode);
    }
 
-   public void setMU2Mode (PropertyMode mode) {
-      myMU2Mode =
-         PropertyUtils.setModeAndUpdate (this, "MU2", myMU2Mode, mode);
+   public void setMu2Mode (PropertyMode mode) {
+      myMu2Mode =
+         PropertyUtils.setModeAndUpdate (this, "mu2", myMu2Mode, mode);
    }
 
-   public void setMU3Mode (PropertyMode mode) {
-      myMU3Mode =
-         PropertyUtils.setModeAndUpdate (this, "MU3", myMU3Mode, mode);
+   public void setMu3Mode (PropertyMode mode) {
+      myMu3Mode =
+         PropertyUtils.setModeAndUpdate (this, "mu3", myMu3Mode, mode);
    }
 
-   public void setL11Mode (PropertyMode mode) {
-      myL11Mode =
-         PropertyUtils.setModeAndUpdate (this, "L11", myL11Mode, mode);
+   public void setLam11Mode (PropertyMode mode) {
+      myLam11Mode =
+         PropertyUtils.setModeAndUpdate (this, "lam11", myLam11Mode, mode);
    }
 
-   public void setL22Mode (PropertyMode mode) {
-      myL22Mode =
-         PropertyUtils.setModeAndUpdate (this, "L22", myL22Mode, mode);
+   public void setLam22Mode (PropertyMode mode) {
+      myLam22Mode =
+         PropertyUtils.setModeAndUpdate (this, "lam22", myLam22Mode, mode);
    }
 
-   public void setL33Mode (PropertyMode mode) {
-      myL33Mode =
-         PropertyUtils.setModeAndUpdate (this, "L33", myL33Mode, mode);
+   public void setLam33Mode (PropertyMode mode) {
+      myLam33Mode =
+         PropertyUtils.setModeAndUpdate (this, "lam33", myLam33Mode, mode);
    }
 
-   public void setL12Mode (PropertyMode mode) {
-      myL12Mode =
-         PropertyUtils.setModeAndUpdate (this, "L12", myL12Mode, mode);
+   public void setLam12Mode (PropertyMode mode) {
+      myLam12Mode =
+         PropertyUtils.setModeAndUpdate (this, "lam12", myLam12Mode, mode);
    }
 
-   public void setL23Mode (PropertyMode mode) {
-      myL23Mode =
-         PropertyUtils.setModeAndUpdate (this, "L23", myL23Mode, mode);
+   public void setLam23Mode (PropertyMode mode) {
+      myLam23Mode =
+         PropertyUtils.setModeAndUpdate (this, "lam23", myLam23Mode, mode);
    }
 
-   public void setL31Mode (PropertyMode mode) {
-      myL31Mode =
-         PropertyUtils.setModeAndUpdate (this, "L31", myL31Mode, mode);
+   public void setLam31Mode (PropertyMode mode) {
+      myLam31Mode =
+         PropertyUtils.setModeAndUpdate (this, "lam31", myLam31Mode, mode);
    }
-   public void setCCMode (PropertyMode mode) {
-      myCCMode =
-         PropertyUtils.setModeAndUpdate (this, "CC", myCCMode, mode);
-   }
-
-   public PropertyMode getMU1Mode() {
-      return myMU1Mode;
+   public void setCMode (PropertyMode mode) {
+      myCMode =
+         PropertyUtils.setModeAndUpdate (this, "C", myCMode, mode);
    }
 
-   public PropertyMode getMU2Mode() {
-      return myMU2Mode;
+   public PropertyMode getMu1Mode() {
+      return myMu1Mode;
    }
 
-   public PropertyMode getMU3Mode() {
-      return myMU3Mode;
+   public PropertyMode getMu2Mode() {
+      return myMu2Mode;
    }
 
-   public PropertyMode getL11Mode() {
-      return myL11Mode;
+   public PropertyMode getMu3Mode() {
+      return myMu3Mode;
    }
 
-   public PropertyMode getL22Mode() {
-      return myL22Mode;
+   public PropertyMode getLam11Mode() {
+      return myLam11Mode;
    }
 
-   public PropertyMode getL33Mode() {
-      return myL33Mode;
+   public PropertyMode getLam22Mode() {
+      return myLam22Mode;
    }
 
-   public PropertyMode getL12Mode() {
-      return myL12Mode;
+   public PropertyMode getLam33Mode() {
+      return myLam33Mode;
    }
 
-   public PropertyMode getL23Mode() {
-      return myL23Mode;
+   public PropertyMode getLam12Mode() {
+      return myLam12Mode;
    }
 
-   public PropertyMode getL31Mode() {
-      return myL31Mode;
+   public PropertyMode getLam23Mode() {
+      return myLam23Mode;
    }
 
-   public PropertyMode getCCMode() {
-      return myCCMode;
+   public PropertyMode getLam31Mode() {
+      return myLam31Mode;
    }
 
-   public double getMU1 (FemFieldPoint dp) {
-      if (myMU1Field == null) {
-         return getMU1();
+   public PropertyMode getCMode() {
+      return myCMode;
+   }
+
+   public double getMu1 (FemFieldPoint dp) {
+      if (myMu1Field == null) {
+         return getMu1();
       }
       else {
-         return myMU1Field.getValue (dp);
+         return myMu1Field.getValue (dp);
       }
    }
 
-   public double getMU2 (FemFieldPoint dp) {
-      if (myMU2Field == null) {
-         return getMU2();
+   public double getMu2 (FemFieldPoint dp) {
+      if (myMu2Field == null) {
+         return getMu2();
       }
       else {
-         return myMU2Field.getValue (dp);
+         return myMu2Field.getValue (dp);
       }
    }
 
-   public double getMU3 (FemFieldPoint dp) {
-      if (myMU3Field == null) {
-         return getMU3();
+   public double getMu3 (FemFieldPoint dp) {
+      if (myMu3Field == null) {
+         return getMu3();
       }
       else {
-         return myMU3Field.getValue (dp);
+         return myMu3Field.getValue (dp);
       }
    }
 
-   public double getL11 (FemFieldPoint dp) {
-      if (myL11Field == null) {
-         return getL11();
+   public double getLam11 (FemFieldPoint dp) {
+      if (myLam11Field == null) {
+         return getLam11();
       }
       else {
-         return myL11Field.getValue (dp);
+         return myLam11Field.getValue (dp);
       }
    }
 
-   public double getL22 (FemFieldPoint dp) {
-      if (myL22Field == null) {
-         return getL22();
+   public double getLam22 (FemFieldPoint dp) {
+      if (myLam22Field == null) {
+         return getLam22();
       }
       else {
-         return myL22Field.getValue (dp);
+         return myLam22Field.getValue (dp);
       }
    }
 
-   public double getL33 (FemFieldPoint dp) {
-      if (myL33Field == null) {
-         return getL33();
+   public double getLam33 (FemFieldPoint dp) {
+      if (myLam33Field == null) {
+         return getLam33();
       }
       else {
-         return myL33Field.getValue (dp);
+         return myLam33Field.getValue (dp);
       }
    }
 
-   public double getL12 (FemFieldPoint dp) {
-      if (myL12Field == null) {
-         return getL12();
+   public double getLam12 (FemFieldPoint dp) {
+      if (myLam12Field == null) {
+         return getLam12();
       }
       else {
-         return myL12Field.getValue (dp);
+         return myLam12Field.getValue (dp);
       }
    }
 
-   public double getL23 (FemFieldPoint dp) {
-      if (myL23Field == null) {
-         return getL23();
+   public double getLam23 (FemFieldPoint dp) {
+      if (myLam23Field == null) {
+         return getLam23();
       }
       else {
-         return myL23Field.getValue (dp);
+         return myLam23Field.getValue (dp);
       }
    }
 
-   public double getL31 (FemFieldPoint dp) {
-      if (myL31Field == null) {
-         return getL31();
+   public double getLam31 (FemFieldPoint dp) {
+      if (myLam31Field == null) {
+         return getLam31();
       }
       else {
-         return myL31Field.getValue (dp);
+         return myLam31Field.getValue (dp);
       }
    }
 
-   public double getCC (FemFieldPoint dp) {
-      if (myCCField == null) {
-         return getCC();
+   public double getC (FemFieldPoint dp) {
+      if (myCField == null) {
+         return getC();
       }
       else {
-         return myCCField.getValue (dp);
+         return myCField.getValue (dp);
       }
    }
 
-   public ScalarFieldComponent getMU1Field() {
-      return myMU1Field;
+   public ScalarFieldComponent getMu1Field() {
+      return myMu1Field;
    }
       
-   public ScalarFieldComponent getMU2Field() {
-      return myMU2Field;
+   public ScalarFieldComponent getMu2Field() {
+      return myMu2Field;
    }
       
-   public ScalarFieldComponent getMU3Field() {
-      return myMU3Field;
+   public ScalarFieldComponent getMu3Field() {
+      return myMu3Field;
    }
       
-   public ScalarFieldComponent getL11Field() {
-      return myL11Field;
+   public ScalarFieldComponent getLam11Field() {
+      return myLam11Field;
    }
       
-   public ScalarFieldComponent getL22Field() {
-      return myL22Field;
+   public ScalarFieldComponent getLam22Field() {
+      return myLam22Field;
    }
       
-   public ScalarFieldComponent getL33Field() {
-      return myL33Field;
+   public ScalarFieldComponent getLam33Field() {
+      return myLam33Field;
    }
       
-   public ScalarFieldComponent getL12Field() {
-      return myL12Field;
+   public ScalarFieldComponent getLam12Field() {
+      return myLam12Field;
    }
       
-   public ScalarFieldComponent getL23Field() {
-      return myL23Field;
+   public ScalarFieldComponent getLam23Field() {
+      return myLam23Field;
    }
       
-   public ScalarFieldComponent getL31Field() {
-      return myL31Field;
+   public ScalarFieldComponent getLam31Field() {
+      return myLam31Field;
    }
       
-   public ScalarFieldComponent getCCField() {
-      return myCCField;
+   public ScalarFieldComponent getCField() {
+      return myCField;
    }
       
-   public void setMU1Field (ScalarFieldComponent func) {
-      myMU1Field = func;
+   public void setMu1Field (ScalarFieldComponent func) {
+      myMu1Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMU2Field (ScalarFieldComponent func) {
-      myMU2Field = func;
+   public void setMu2Field (ScalarFieldComponent func) {
+      myMu2Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setMU3Field (ScalarFieldComponent func) {
-      myMU3Field = func;
+   public void setMu3Field (ScalarFieldComponent func) {
+      myMu3Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL11Field (ScalarFieldComponent func) {
-      myL11Field = func;
+   public void setLam11Field (ScalarFieldComponent func) {
+      myLam11Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL22Field (ScalarFieldComponent func) {
-      myL22Field = func;
+   public void setLam22Field (ScalarFieldComponent func) {
+      myLam22Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL33Field (ScalarFieldComponent func) {
-      myL33Field = func;
+   public void setLam33Field (ScalarFieldComponent func) {
+      myLam33Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL12Field (ScalarFieldComponent func) {
-      myL12Field = func;
+   public void setLam12Field (ScalarFieldComponent func) {
+      myLam12Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL23Field (ScalarFieldComponent func) {
-      myL23Field = func;
+   public void setLam23Field (ScalarFieldComponent func) {
+      myLam23Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setL31Field (ScalarFieldComponent func) {
-      myL31Field = func;
+   public void setLam31Field (ScalarFieldComponent func) {
+      myLam31Field = func;
       notifyHostOfPropertyChange();
    }
    
-   public void setCCField (ScalarFieldComponent func) {
-      myCCField = func;
+   public void setCField (ScalarFieldComponent func) {
+      myCField = func;
       notifyHostOfPropertyChange();
    }
 
@@ -529,32 +519,35 @@ public class FungMaterial extends IncompressibleMaterialBase {
       SymmetricMatrix3d sigtmp = null;
 
       // Evaluate Lame coefficients
-      mu[0] = getMU1(def);
-      mu[1] = getMU2(def);
-      mu[2] = getMU3(def);
+      mu[0] = getMu1(def);
+      mu[1] = getMu2(def);
+      mu[2] = getMu3(def);
       
-      lam[0][0] = getL11(def);
-      lam[0][1] = getL12(def);
-      lam[0][2] = getL31(def);
+      lam[0][0] = getLam11(def);
+      lam[0][1] = getLam12(def);
+      lam[0][2] = getLam31(def);
       lam[1][0] = lam[0][1];
-      lam[1][1] = getL22(def); 
-      lam[1][2] = getL23(def);
+      lam[1][1] = getLam22(def); 
+      lam[1][2] = getLam23(def);
       lam[2][0] = lam[0][2];
       lam[2][1] = lam[1][2];
-      lam[2][2] = getL33(def);
+      lam[2][2] = getLam33(def);
 
-      double CC = getCC(def);
+      double c = getC(def);
       
       double J = def.getDetF();
 
+      SymmetricMatrix3d C = new SymmetricMatrix3d();
+      SymmetricMatrix3d C2 = new SymmetricMatrix3d();
+      SymmetricMatrix3d B = new SymmetricMatrix3d();
       // Calculate deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);
+      computeDevLeftCauchyGreen(B,def);
 
       // Calculate deviatoric right Cauchy-Green tensor
-      computeDevRightCauchyGreen(myC,def);
+      computeDevRightCauchyGreen(C,def);
 
       // calculate square of C
-      myC2.mulTransposeLeft (myC);
+      C2.mulTransposeLeft (C);
 
       Matrix3d mydevF = new Matrix3d(def.getF());
       mydevF.scale(Math.pow(J,-1.0 / 3.0));
@@ -565,10 +558,10 @@ public class FungMaterial extends IncompressibleMaterialBase {
          a0[i].y = Q.get(1,i);
          a0[i].z = Q.get(2,i);
 
-         vtmp.mul(myC,a0[i]);
+         vtmp.mul(C,a0[i]);
          K[i] = a0[i].dot(vtmp);
 
-         vtmp.mul(myC2,a0[i]);
+         vtmp.mul(C2,a0[i]);
          L[i] = a0[i].dot(vtmp);
 
          a[i].mul(mydevF,a0[i]);
@@ -586,11 +579,11 @@ public class FungMaterial extends IncompressibleMaterialBase {
          for (int j=0; j<3; j++)
             eQ += lam[i][j]*(K[i]-1.0)*(K[j]-1.0);
       }
-      eQ = Math.exp(eQ/(4.*CC));
+      eQ = Math.exp(eQ/(4.*c));
 
       // Evaluate the stress
       SymmetricMatrix3d bmi = new SymmetricMatrix3d(); 
-      bmi.sub(myB,SymmetricMatrix3d.IDENTITY);
+      bmi.sub(B,SymmetricMatrix3d.IDENTITY);
       for (int i=0; i<3; i++) {
          //       s += mu[i]*K[i]*(A[i]*bmi + bmi*A[i]);
          tmpMatrix.mul(A[i], bmi);
@@ -626,14 +619,14 @@ public class FungMaterial extends IncompressibleMaterialBase {
          D.setZero();
       
          for (int i=0; i<3; i++) {
-            addTensorProduct4(D, mu[i]*K[i], A[i], myB);
+            addTensorProduct4(D, mu[i]*K[i], A[i], B);
             for (int j=0; j<3; j++) {
                TensorUtils.addSymmetricTensorProduct (
                   D, lam[i][j]*K[i]*K[j]/2.0, A[i], A[j]);
             }
          }
          D.scale(eQ / J);
-         TensorUtils.addTensorProduct (D, 2*J/CC/eQ, sigtmp);
+         TensorUtils.addTensorProduct (D, 2*J/c/eQ, sigtmp);
 
          double traceD = TensorUtils.symmetricTrace (D);
          TensorUtils.addSymmetricIdentityDot (D, -1.0/3, D);
@@ -655,27 +648,29 @@ public class FungMaterial extends IncompressibleMaterialBase {
       double[] L = new double[3];
 
       // break out Lame coefficients
-      mu[0] = getMU1(def);
-      mu[1] = getMU2(def);
-      mu[2] = getMU3(def);
+      mu[0] = getMu1(def);
+      mu[1] = getMu2(def);
+      mu[2] = getMu3(def);
       
-      lam[0][0] = getL11(def);
-      lam[0][1] = getL12(def);
-      lam[0][2] = getL31(def);
+      lam[0][0] = getLam11(def);
+      lam[0][1] = getLam12(def);
+      lam[0][2] = getLam31(def);
       lam[1][0] = lam[0][1];
-      lam[1][1] = getL22(def); 
-      lam[1][2] = getL23(def);
+      lam[1][1] = getLam22(def); 
+      lam[1][2] = getLam23(def);
       lam[2][0] = lam[0][2];
       lam[2][1] = lam[1][2];
-      lam[2][2] = getL33(def);
+      lam[2][2] = getLam33(def);
 
-      double CC = getCC(def);
-      
+      double c = getC(def);
+
+      SymmetricMatrix3d C = new SymmetricMatrix3d();
+      SymmetricMatrix3d C2 = new SymmetricMatrix3d();
       // Calculate deviatoric right Cauchy-Green tensor
-      computeDevRightCauchyGreen(myC,def);
+      computeDevRightCauchyGreen(C,def);
 
       // calculate square of C
-      myC2.mulTransposeLeft (myC);
+      C2.mulTransposeLeft (C);
 
       Vector3d a = new Vector3d();
       Vector3d vtmp = new Vector3d();
@@ -685,10 +680,10 @@ public class FungMaterial extends IncompressibleMaterialBase {
          a.y = Q.get(1,i);
          a.z = Q.get(2,i);
 
-         vtmp.mul(myC,a);
+         vtmp.mul(C,a);
          K[i] = a.dot(vtmp);
 
-         vtmp.mul(myC2,a);
+         vtmp.mul(C2,a);
          L[i] = a.dot(vtmp);
       }
 
@@ -699,26 +694,26 @@ public class FungMaterial extends IncompressibleMaterialBase {
          for (int j=0; j<3; j++)
             eQ += lam[i][j]*(K[i]-1.0)*(K[j]-1.0);
       }
-      eQ = Math.exp(eQ/(4.*CC));
+      eQ = Math.exp(eQ/(4.*c));
 
-      return CC*(eQ-1)/2;
+      return c*(eQ-1)/2;
    }
 
    public boolean equals (FemMaterial mat) {
-      if (!(mat instanceof FungMaterial)) {
+      if (!(mat instanceof FungOrthotropicMaterial)) {
          return false;
       }
-      FungMaterial fung = (FungMaterial)mat;
-      if (myMU1 != fung.myMU1 ||
-         myMU2  != fung.myMU2 ||
-         myMU3  != fung.myMU3 ||
-         myL11 != fung.myL11 ||
-         myL22 != fung.myL22 ||
-         myL33 != fung.myL33 ||
-         myL12 != fung.myL12 ||
-         myL23 != fung.myL23 ||
-         myL31 != fung.myL31 ||
-         myCC  != fung.myCC) {
+      FungOrthotropicMaterial fung = (FungOrthotropicMaterial)mat;
+      if (myMu1 != fung.myMu1 ||
+         myMu2  != fung.myMu2 ||
+         myMu3  != fung.myMu3 ||
+         myLam11 != fung.myLam11 ||
+         myLam22 != fung.myLam22 ||
+         myLam33 != fung.myLam33 ||
+         myLam12 != fung.myLam12 ||
+         myLam23 != fung.myLam23 ||
+         myLam31 != fung.myLam31 ||
+         myC != fung.myC) {
          return false;
       }
       else {
@@ -726,14 +721,13 @@ public class FungMaterial extends IncompressibleMaterialBase {
       }
    }
 
-   public FungMaterial clone() {
-      FungMaterial mat = (FungMaterial)super.clone();
-      mat.myB = new SymmetricMatrix3d();
+   public FungOrthotropicMaterial clone() {
+      FungOrthotropicMaterial mat = (FungOrthotropicMaterial)super.clone();
       return mat;
    }
 
    public static void main (String[] args) {
-      FungMaterial mat = new FungMaterial();
+      FungOrthotropicMaterial mat = new FungOrthotropicMaterial();
 
       RotationMatrix3d R = new RotationMatrix3d();
       R.setRpy (1, 2, 3);
@@ -759,31 +753,31 @@ public class FungMaterial extends IncompressibleMaterialBase {
    @Override
    public void scaleDistance (double s) {
       super.scaleDistance (s);
-      myMU1  /= s;
-      myMU2  /= s;
-      myMU3  /= s;
-      myL11 /= s;
-      myL22 /= s;
-      myL33 /= s;
-      myL12 /= s;
-      myL23 /= s;
-      myL31 /= s;
-      myCC  /= s;
+      myMu1  /= s;
+      myMu2  /= s;
+      myMu3  /= s;
+      myLam11 /= s;
+      myLam22 /= s;
+      myLam33 /= s;
+      myLam12 /= s;
+      myLam23 /= s;
+      myLam31 /= s;
+      myC  /= s;
    }
 
    @Override
    public void scaleMass (double s) {
       super.scaleMass (s);
-      myMU1  *= s;
-      myMU2  *= s;
-      myMU3  *= s;
-      myL11 *= s;
-      myL22 *= s;
-      myL33 *= s;
-      myL12 *= s;
-      myL23 *= s;
-      myL31 *= s;
-      myCC  *= s;
+      myMu1  *= s;
+      myMu2  *= s;
+      myMu3  *= s;
+      myLam11 *= s;
+      myLam22 *= s;
+      myLam33 *= s;
+      myLam12 *= s;
+      myLam23 *= s;
+      myLam31 *= s;
+      myC  *= s;
    }
 
    public static Matrix6d ddots (Matrix6d a, Matrix6d b) {

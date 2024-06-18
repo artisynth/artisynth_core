@@ -413,6 +413,10 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myRenderProps = createRenderProps();
       myRenderProps.set (props);
    }
+   
+   public void clearRenderProps() {
+      myRenderProps = null;
+   }
 
    /**
     * Returns the spatial transform this mesh. At present, the spatial transform
@@ -1573,7 +1577,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
    
    public void prerender (RenderProps props) {
-      saveRenderInfo (myRenderProps);      
+      saveRenderInfo (props);      
    }
 
    protected int[] copyWithOffset (int[] idxs, int off) {
@@ -1595,7 +1599,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public void setRenderBuffered (boolean enable) {
       if (enable) { // do a save render info right away to be ready for the
                      // next render
-         saveRenderInfo(myRenderProps);
+         if (myRenderProps != null) {
+            saveRenderInfo(myRenderProps);
+         }
       }
       // set myRenderBufferedP last because otherwise render might occur
       // before saveRenderInfo is complete

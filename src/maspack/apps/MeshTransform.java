@@ -33,10 +33,14 @@ import argparser.StringHolder;
  * Class to transform a mesh from one type to another
  */
 public class MeshTransform {
+   
+   private static double DTOR = Math.PI/180;
+
    static StringHolder formatStr = new StringHolder ("%15.10f");
    static StringHolder inFileName = new StringHolder (null);
    static StringHolder outFileName = new StringHolder (null);
    static double[] xyz = new double[3];
+   static double[] rpy = new double[3];
    static double[] scaleXyz = new double[] { 1, 1, 1 };
    static double[] laplacianSmoothing = new double[] { 0, 0.7, 0 };
    static BooleanHolder removeDisconnectedFaces = new BooleanHolder (false);
@@ -55,6 +59,8 @@ public class MeshTransform {
       //parser.addOption ("-inFile %s #input file name", inFileName);
       parser.addOption ("-out %s #output file name", outFileName);
       parser.addOption ("-xyz %fX3 #x,y,z translation values", xyz);
+      parser.addOption (
+         "-rpy %fX3 #roll,pitch,yaw rotations about z,y,x (degrees)", rpy);
       parser.addOption ("-scaleXyz %fX3 #x,y,z scale values", scaleXyz);
       parser.addOption (
          "-laplacianSmooth %fX3 #iter count, lambda, mu", laplacianSmoothing);
@@ -259,7 +265,10 @@ public class MeshTransform {
       if (axisAngle[3] != 0) {
          rotate = true;
       }
-      axisAngle[3] = Math.toRadians (axisAngle[3]);
+      if (rpy[0] != 0 || rpy[1] != 0 || rpy[2] != 0) {
+         rotate = true;
+      }
+      axisAngle[3] = DTOR*axisAngle[3];
 
       AffineTransform3dBase X = null;
       if (scaling.value != 1 || scaleXyz[0] != 1 || scaleXyz[1] != 1 ||
@@ -272,9 +281,15 @@ public class MeshTransform {
          * scaling.value, scaleXyz[2] * scaling.value);
       }
       else if (translate || rotate) {
-         X = new RigidTransform3d();
-         X.setTranslation (new Point3d (xyz));
-         X.setRotation (new AxisAngle (axisAngle));
+         RigidTransform3d T = new RigidTransform3d();
+         T.setTranslation (new Point3d (xyz));
+         if (axisAngle[3] != 0) {
+            T.R.setAxisAngle (new AxisAngle (axisAngle));
+         }
+         else {
+            T.R.setRpy (DTOR*rpy[0], DTOR*rpy[1], DTOR*rpy[2]);
+         }
+         X = T;
       }
 
       boolean facesClockwise = false;

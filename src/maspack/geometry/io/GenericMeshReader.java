@@ -134,6 +134,10 @@ public class GenericMeshReader implements MeshReader {
          myDataFormat = DataFormat.BINARY_LITTLE_ENDIAN;
          myFloatType = FloatType.FLOAT;
       }
+      else if (myReader instanceof StlReader) {
+         myDataFormat = ((StlReader)myReader).getDataFormat();
+         myFloatType = FloatType.FLOAT;
+      }
       else {
          myDataFormat = DataFormat.ASCII;
          myFloatType = FloatType.ASCII;

@@ -15,6 +15,7 @@ import maspack.geometry.AABBTree;
 import maspack.geometry.BVNode;
 import maspack.geometry.Boundable;
 import maspack.geometry.MeshBase;
+import maspack.geometry.io.MeshWriter.DataFormat;
 // import maspack.geometry.KDTree3d;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Matrix3d;
@@ -31,6 +32,7 @@ public class StlReader extends MeshReaderBase {
 
    public static double DEFAULT_TOLERANCE = 1e-15;
    double myTol = DEFAULT_TOLERANCE;
+   DataFormat myDataFormat = null; // will be filled in when the mesh is read
    
    public StlReader (InputStream is) throws IOException {
       super (is);
@@ -56,6 +58,14 @@ public class StlReader extends MeshReaderBase {
     */
    public double getTolerance() {
       return myTol;
+   }
+
+   /**
+    * Gets the data format that was determined for the file. Will be null until
+    * the file is read.
+    */
+   public DataFormat getDataFormat() {
+      return myDataFormat;
    }
 
    /**
@@ -96,12 +106,8 @@ public class StlReader extends MeshReaderBase {
 //   }
    
 //   public static PolygonalMesh read(PolygonalMesh mesh, Reader reader, double tol) throws IOException {
-   public static PolygonalMesh read(PolygonalMesh mesh, InputStream is, double tol) throws IOException {
-      // Determine if ASCII or Binary and call appropriate method
-      // is.mark (5);
-      // byte[] bbuf = new byte[5];
-      // is.read (bbuf, 0, 5);
-      // is.reset ();
+   public static PolygonalMesh read(
+      PolygonalMesh mesh, InputStream is, double tol) throws IOException {
 
       if (isAscii (is)) {
          BufferedReader iread = 
@@ -112,7 +118,8 @@ public class StlReader extends MeshReaderBase {
       }
    }
    
-   public static PolygonalMesh readBinary(PolygonalMesh mesh, InputStream is, double tol) throws IOException {
+   public static PolygonalMesh readBinary(
+      PolygonalMesh mesh, InputStream is, double tol) throws IOException {
       boolean _printDebug = false;
       // Byte ordering is assumed to be Little Endian (see wikipedia on STL format).
       // Format of binary STL is 
@@ -269,7 +276,8 @@ public class StlReader extends MeshReaderBase {
       
    }
    
-   public static PolygonalMesh readASCII(PolygonalMesh mesh, Reader reader, double tol) throws IOException {
+   public static PolygonalMesh readASCII(
+      PolygonalMesh mesh, Reader reader, double tol) throws IOException {
       ReaderTokenizer rtok = new ReaderTokenizer(reader);
       ArrayList<Point3d> nodeList = new ArrayList<Point3d>();
       ArrayList<ArrayList<Integer>> faceList = new ArrayList<ArrayList<Integer>>();
@@ -544,7 +552,18 @@ public class StlReader extends MeshReaderBase {
          mesh = new PolygonalMesh();
       }
       if (mesh instanceof PolygonalMesh) {
-         return read((PolygonalMesh)mesh, new BufferedInputStream(myIstream), myTol);
+         InputStream is = new BufferedInputStream(myIstream);
+         PolygonalMesh pmesh = (PolygonalMesh)mesh;
+         if (isAscii (is)) {
+            BufferedReader iread = 
+               new BufferedReader (new InputStreamReader(is));
+            myDataFormat = DataFormat.ASCII;
+            return readASCII(pmesh, iread, myTol);
+         } 
+         else {
+            myDataFormat = DataFormat.BINARY_LITTLE_ENDIAN;
+            return readBinary(pmesh, is, myTol);
+         }        
       }
       else {
          throw new UnsupportedOperationException (

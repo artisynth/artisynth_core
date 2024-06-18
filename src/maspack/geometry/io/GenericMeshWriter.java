@@ -115,6 +115,10 @@ public class GenericMeshWriter implements MeshWriter {
             plyWriter.setFloatType (DataType.DOUBLE);
          }
       }
+      else if (myWriter instanceof StlWriter) {
+         StlWriter stlWriter = (StlWriter)myWriter;
+         stlWriter.setBinary (reader.getDataFormat() != DataFormat.ASCII);
+      }
    }
 
    public void setFormat(String fmtStr) {

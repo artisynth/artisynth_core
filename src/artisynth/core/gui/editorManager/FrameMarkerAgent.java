@@ -189,12 +189,14 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
          }
       }
       else {
-         // search among all rigid bodies
+         // search among all visible rigid bodies
          for (RigidBody body : myModel.rigidBodies()) {
-            Point3d isectPoint = rayIntersectsBody (body, rayEvent, minDist);
-            if (isectPoint != null) {
-               nearestBody = body;
-               nearestIntersection = isectPoint;
+            if (RenderableComponentBase.isVisible (body)) {
+               Point3d isectPoint = rayIntersectsBody (body, rayEvent, minDist);
+               if (isectPoint != null) {
+                  nearestBody = body;
+                  nearestIntersection = isectPoint;
+               }
             }
          }
       }

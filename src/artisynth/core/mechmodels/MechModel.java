@@ -1564,7 +1564,7 @@ TransformableGeometry, ScalableUnits {
 
    /* ----- Renderables ------ */
 
-   public ComponentListView<RenderableComponent> renderables() {
+   public ComponentList<RenderableComponent> renderables() {
       return myRenderables;
    }
 

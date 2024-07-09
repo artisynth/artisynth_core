@@ -818,9 +818,39 @@ public class InverseManager {
                addWidget ((QPCostTermBase)term, propinfo.getName ());
          }
       }
-      
-      
 
    }
 
+   /**
+    * Create an output probe that records all of the excitations computed
+    * by a tracking controller.
+    *
+    * @param tcon tracking controller to create the probe for
+    * @param fileName file associated with the probe, or {@code null} if none
+    * @param startTime probe start time
+    * @param startTime probe stop time
+    * @param fileName file associated with the probe, or {@code null} if none
+    * @return created probe
+    */
+   public static NumericOutputProbe createComputedExcitationsProbe (
+      TrackingController tcon, String fileName,
+      double startTime, double stopTime) {
+
+      Property[] props = new Property[tcon.getExciters().size()];
+      for (int i = 0; i < tcon.getExciters().size(); i++) {
+         // XXX how to handle nested excitations?
+         props[i] = tcon.getExciters().get(i).getProperty("excitation"); 
+      }      
+      NumericOutputProbe probe = new NumericOutputProbe();
+      probe.setName("computed excitations");
+      probe.setStartTime (startTime);
+      probe.setStopTime (stopTime);
+      probe.setUpdateInterval (-1);
+      probe.setModel(tcon.getMech());
+      probe.setOutputProperties(props);
+      if (fileName != null) {
+         probe.setAttachedFileName(fileName);
+      }
+      return probe;
+   }
 }

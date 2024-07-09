@@ -1094,12 +1094,33 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Initialize the controller with the current excitations in the
-    * model, allows for non-zero starting excitations
+    * Initialize the controller excitations with values currently stored in the
+    * exciter components, to allow for non-zero starting excitations.
     */
    public void initializeExcitations() {
       for (int i=0; i<myExciters.size (); i++) {
          double val = myExciters.get(i).getReference().getExcitation ();
+         prevExcitations.set(i,val);
+         myExcitations.set(i,val);
+         initExcitations.set(i,val);
+      }
+   }
+   
+   /**
+    * Initialize the controller excitations with the values supplied by {@code
+    * values}, to allow for non-zero starting excitations.
+    * If the size of values does not equal {@link #numExciters}, missing
+    * or extra values are ignored.
+    *
+    * <p> this method does <i>not</i> set the excitation values in the exciter
+    * components themselves.
+    *
+    * @param values initial excitation values.
+    */
+   public void initializeExcitations (VectorNd values) {
+      int num = Math.min(numExciters(), values.size());
+      for (int i=0; i<num; i++) {
+         double val = values.get(i);
          prevExcitations.set(i,val);
          myExcitations.set(i,val);
          initExcitations.set(i,val);

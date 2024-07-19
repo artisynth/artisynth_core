@@ -2,13 +2,13 @@
 
 setlocal EnableDelayedExpansion
 
-set ARGS=-updateLibs -remoteSource https://www.artisynth.org/files/lib
+set ARGS=-updateLibs -moveUnused -remoteSource https://www.artisynth.org/files/lib/
 set BATCHFILE=%~f0
 
 if not defined ARTISYNTH_HOME set ARTISYNTH_HOME=%~dp0..
-set CLASSPATH=%ARTISYNTH_HOME%\lib\*;%ARTISYNTH_HOME%\bin\libraryInstaller.jar
+set CPATH=%ARTISYNTH_HOME%\lib\vfs2.jar;%ARTISYNTH_HOME%\bin\libraryInstaller.jar
 
-java artisynth.core.driver.LibraryInstaller %ARGS%
+java -cp %CPATH% artisynth.core.driver.LibraryInstaller %ARGS%
 
 set JAVAERROR=%ERRORLEVEL%
 if %JAVAERROR% EQU 9009 (

@@ -17,6 +17,7 @@ artisynth/core/util/ArtisynthPath.class
 artisynth/core/util/ArtisynthIO.class
 artisynth/core/util/ArtisynthPath.class
 artisynth/core/util/ArtisynthPath\$FileMatcher.class
+maspack/util/ClassFinder.class
 maspack/util/Clonable.class
 maspack/util/ReaderTokenizer.class
 maspack/util/IndentingPrintWriter.class

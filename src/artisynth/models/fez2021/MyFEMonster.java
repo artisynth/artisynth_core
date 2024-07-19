@@ -172,18 +172,18 @@ public class MyFEMonster extends RootModel {
              NumericInputProbe.EXPLICIT_TIME);
       addInputProbe (eprobe);
 
-      //Code to create and attach an FEM between top and tip
+      // Code to create and attach an FEM between top and tip
 
-      FemModel3d fem = createHexGridFem();
-      //FemModel3d fem = createFemFromSurface();
-      //FemModel3d fem = importFemFromAnsys();
-      fem.setSurfaceRendering (SurfaceRender.Shaded);
-      mech.addModel (fem);
-      attachFemToBody (mech, fem, top, 0.001);
-      attachFemToBody (mech, fem, tip, 0.001);
-      // Set rendering properties for the FEM
-      RenderProps.setLineColor (fem, Color.MAGENTA);
-      RenderProps.setFaceColor (fem, new Color (0.8f, 0.8f, 1f));
-      RenderProps.setSphericalPoints (fem, 0.005, new Color (0, 0.6f, 0));
+      // FemModel3d fem = createHexGridFem();
+      // //FemModel3d fem = createFemFromSurface();
+      // //FemModel3d fem = importFemFromAnsys();
+      // fem.setSurfaceRendering (SurfaceRender.Shaded);
+      // mech.addModel (fem);
+      // attachFemToBody (mech, fem, top, 0.001);
+      // attachFemToBody (mech, fem, tip, 0.001);
+      // // Set rendering properties for the FEM
+      // RenderProps.setLineColor (fem, Color.MAGENTA);
+      // RenderProps.setFaceColor (fem, new Color (0.8f, 0.8f, 1f));
+      // RenderProps.setSphericalPoints (fem, 0.005, new Color (0, 0.6f, 0));
    }
 }

@@ -8,36 +8,43 @@ import org.python.core.*;
  * A Jython console connected directly to console I/O and which provides
  * interactive emacs-style editing based on JLine.
  */
-public class JythonJLineConsole extends InteractiveConsole {
+public class JythonJLineConsole extends JLineConsole {
 
    JythonConsoleImpl myImpl;
 
    public JythonJLineConsole() {
-      try {
-         Py.installConsole (new JLineConsole(null));
-      }
-      catch (IOException e) {
-         System.out.println ("ERROR: cannot install JLineConsole: " + e);
-      }
-      InteractiveConsole iconsole = new InteractiveConsole();
-      PySystemState state = iconsole.getSystemState();
-      state.ps1 = new PyString(">>> ");
-      state.ps2 = new PyString("... ");    
-      myImpl = new JythonConsoleImpl (iconsole, /*usingJLine=*/true);
+      // In Jython 2.7, JLineConsole doesn't have a no-args constructor
+      super(null);
+      myImpl = new JythonConsoleImpl (this);
       myImpl.setupSymbols();
+   }
+
+   public void sleep (int msec) throws InterruptedException {
+      Thread.sleep (msec);
+   }
+
+   public void exit (int code) {
+      System.exit (code);
    }
 
    public void executeScript (String fileName) throws IOException {
       myImpl.executeScript (fileName);
    }
 
+   @Override
    public void interact(String banner, PyObject file) {
       myImpl.interact (banner, file);
    }
 
-   public void runcode(PyObject code) {
-      myImpl.runcode (code);
+   @Override
+   public String raw_input (PyObject prompt) {
+      prompt = myImpl.killRedundantPrompt (prompt);
+      return super.raw_input (prompt);
    }
+
+    public void runcode(PyObject code) {
+       myImpl.runcode (code);
+    }
 
    public static void main (String[] args) {
 

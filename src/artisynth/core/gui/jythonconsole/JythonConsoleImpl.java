@@ -16,11 +16,9 @@ public class JythonConsoleImpl {
    protected boolean myQuitReq = false;
 
    protected InteractiveConsole myConsole;
-   protected boolean myUsingJLine;
 
-   JythonConsoleImpl (InteractiveConsole console, boolean usingJLine) {
+   JythonConsoleImpl (InteractiveConsole console) {
       myConsole = console;
-      myUsingJLine = usingJLine;
    }
 
    synchronized void requestQuit () {
@@ -47,36 +45,18 @@ public class JythonConsoleImpl {
       return myExecLevel > 0;
    }
 
-   public void sleep (int msec) throws InterruptedException {
-      Thread.sleep (msec);
-   }
-
-   public void exit (int code) {
-      System.exit (code);
-   }
-
-   boolean isBlank(String str) {
-      for (int i=0; i<str.length(); i++) {
-         if (!Character.isWhitespace(str.charAt(i))) {
-            return false;
-         }
-      }
-      return true;
-   }
-
    void setupSymbols() {
       myConsole.set ("_interpreter_", myConsole);
       myConsole.set ("console", myConsole);
-      myConsole.set ("consoleImpl", this);
       myConsole.runsource (
-         "_interpreter_.set ('script', consoleImpl.executeScript)");
+         "_interpreter_.set ('script', console.executeScript)");
       myConsole.runsource (
-         "_interpreter_.set ('sleep', consoleImpl.sleep)");
+         "_interpreter_.set ('sleep', console.sleep)");
       myConsole.runsource (
-         "_interpreter_.set ('exit', consoleImpl.exit)");
+         "_interpreter_.set ('exit', console.exit)");
    }
 
-   public void executeScript (String fileName) {
+   void executeScript (String fileName) {
       boolean more = false;
       PyFile file = null;
       try {
@@ -88,12 +68,13 @@ public class JythonConsoleImpl {
       }
       // Use a try/catch block to make sure we catch any exceptions
       // and hence close the file and clear myInsideScript
-      boolean lastLineBlank = false;
       try {
          // reset input buffer to clear existing "script('xxx')" input
          myConsole.resetbuffer(); 
          while(!myQuitReq) {
             PySystemState state = myConsole.getSystemState();
+            // Jython 2.7 seemed to have empyty values in state.ps1,ps2
+            //PyObject prompt = more ? new PyString("... ") : new PyString(">>> ");
             PyObject prompt = more ? state.ps2 : state.ps1;
             if (myPromptSent) {
                prompt = new PyString("");
@@ -105,22 +86,11 @@ public class JythonConsoleImpl {
             } catch(PyException exc) {
                if(!exc.match(Py.EOFError))
                   throw exc;
-               if (myUsingJLine && lastLineBlank) {
-                  // XXX blank or commented lines at the end of the script seem
-                  // to generate redundant prompt outputs in
-                  // JLineConsole. Printing a newline and prompt seems to
-                  // suppress this, at the cost of a singke extra prompt line
-                  System.out.print ("\n" + state.ps1);
-               }
                myPromptSent = true;
                break;
             }
-            //System.out.print ("w"+cnt+" ");
             myConsole.write (line+"\n");
             more = myConsole.push(line);
-            if (isBlank(line)) {
-               lastLineBlank = true;
-            }
             if (myInterruptReq) {
                break;
             }
@@ -155,7 +125,7 @@ public class JythonConsoleImpl {
       boolean more = false;
       while(true) {
          PySystemState state = myConsole.getSystemState();
-         // Jython 2.7 seemed to have empty values in state.ps1,ps2
+         // Jython 2.7 seemed to have empyty values in state.ps1,ps2
          //PyObject prompt = more ? new PyString("... ") : new PyString(">>> ");
          PyObject prompt = more ? state.ps2 : state.ps1;
          String line;

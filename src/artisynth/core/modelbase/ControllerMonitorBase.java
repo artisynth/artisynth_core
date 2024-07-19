@@ -14,57 +14,10 @@ import maspack.render.IsRenderable;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.properties.*;
 
 public abstract class ControllerMonitorBase extends ModelAgentBase
 implements RenderableComponent {
    protected RenderProps myRenderProps;
-
-   public static final double DEFAULT_START_TIME = 0;
-   protected double myStartTime = DEFAULT_START_TIME;
-
-   public static final double DEFAULT_STOP_TIME = Double.POSITIVE_INFINITY;
-   protected double myStopTime = DEFAULT_STOP_TIME;
-
-   public static PropertyList myProps =
-      new PropertyList (ControllerMonitorBase.class, ModelAgentBase.class);
-
-   static {
-      myProps.add (
-         "startTime", 
-         "time at which this agent should start operating",
-         DEFAULT_START_TIME, "NS");
-      myProps.add (
-         "stopTime", 
-         "time after which this agent should stop operating",
-         DEFAULT_STOP_TIME, "NS");
-   }
-   
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
-   
-   /**
-    * {@inheritDoc}
-    */   
-   public double getStartTime() {
-      return myStartTime;
-   }
-
-   public void setStartTime(double t) {
-      myStartTime = t;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public double getStopTime() {
-      return myStopTime;
-   }
-   
-   public void setStopTime(double t) {
-      myStopTime = t;
-   }
 
    public RenderProps getRenderProps() {
       return myRenderProps;
@@ -108,7 +61,7 @@ implements RenderableComponent {
    public int numSelectionQueriesNeeded() {
       return -1;
    }
-   
+
    @Override
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

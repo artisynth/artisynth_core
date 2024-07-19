@@ -89,16 +89,7 @@ public class GLSLTextureRaster  {
         pmvMatrix.glLoadIdentity();
         pmvMatrix.glMatrixMode(GLMatrixFunc.GL_MODELVIEW);
         pmvMatrix.glLoadIdentity();
-        
-        // Use this for JOGL 2.4:
-        FloatBuffer fbuf = pmvMatrix.glGetPMvMatrixf(); // JOGL 2.4
-        // Use this for JOGL 2.5:
-//      FloatBuffer fbuf = FloatBuffer.allocate(32);
-//      pmvMatrix.getPMat().get(fbuf);
-//      pmvMatrix.getMvMat().get(fbuf);
-//      fbuf.rewind();
-        
-        pmvMatrixUniform = new GLUniformData("mgl_PMVMatrix", 4, 4, fbuf);
+        pmvMatrixUniform = new GLUniformData("mgl_PMVMatrix", 4, 4, pmvMatrix.glGetPMvMatrixf()); // P, Mv
         if( pmvMatrixUniform.setLocation(gl, sp.program()) < 0 ) {
             throw new GLException("Couldn't locate "+pmvMatrixUniform+" in shader: "+sp);
         }

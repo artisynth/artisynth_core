@@ -15,18 +15,13 @@ public class JythonInteractiveConsole extends InteractiveConsole {
 
    JythonConsoleImpl myImpl;
 
-   public JythonInteractiveConsole() {
+   public JythonInteractiveConsole(boolean usingJLine) {
       super();
-      myImpl = new JythonConsoleImpl (this);
+      // Jython 7.2: need to explicitly set ps1 and ps2
+      systemState.ps1 = new PyString(">>> ");
+      systemState.ps2 = new PyString("... ");
+      myImpl = new JythonConsoleImpl (this, usingJLine);
       myImpl.setupSymbols();
-   }
-
-   public void sleep (int msec) throws InterruptedException {
-      Thread.sleep (msec);
-   }
-
-   public void exit (int code) {
-      System.exit (code);
    }
 
    public void executeScript (String fileName) throws IOException {
@@ -55,7 +50,8 @@ public class JythonInteractiveConsole extends InteractiveConsole {
       System.out.println (
          "interactive=" + ((PyFile)Py.defaultSystemState.stdout).isatty());
 
-      JythonInteractiveConsole console = new JythonInteractiveConsole();
+      JythonInteractiveConsole console =
+         new JythonInteractiveConsole(/*usingJLine=*/false);
 
       try {
          console.executeScript ("test2.py");

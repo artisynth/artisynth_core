@@ -56,6 +56,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.util.ArrayListView;
+import maspack.util.ListView;
 import maspack.util.DoubleInterval;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -88,7 +89,7 @@ import maspack.util.ReaderTokenizer;
  * Biomedical Engineering, 13(4):483-491, 2010.
  * 
  * 
- * @author Ian Stavness, with modifications by Antonio Sanchez
+ * @author Ian Stavness, John E Lloyd, Antonio Sanchez
  *
  */
 public class TrackingController extends ControllerBase
@@ -1122,18 +1123,17 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Gets the list of the excitation components used by the inverse routine
+    * Returns a list of the excitation components used by the inverse routine
     *
     * @return list of excitation components
     */
-   public ArrayList<ExcitationComponent> getExciters() {
+   public ListView<ExcitationComponent> getExciters() {
       ArrayListView<ExcitationComponent> view = new ArrayListView<>();
       for (WeightedReferenceComp<ExcitationComponent> ecomp : myExciters) {
          view.add (ecomp.getReference());
       }
       return view;
    }
-   
 
    /** 
     * Sets the excitation bounds for a specific excitation component. By

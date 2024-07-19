@@ -71,7 +71,7 @@ public class FrameSpringPendulum extends RootModel {
          new StiffnessMatrixScaler (0.00001, 1.0));
       //myStabilizer.setIgnorePosition (true);
       myStabilizer.setDetTarget (0.001);
-      tcon.addL2RegularizationTerm (1.0);
+      tcon.setL2Regularization (1.0);
       tcon.addConstraintTerm (myStabilizer);      
       addController (tcon);
    }

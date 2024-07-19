@@ -116,18 +116,28 @@ Energy density can also be integrated to compute the
 total strain energy in elements or within an entire model.
 For details, see ``Stress, strain and strain energy'' in the FEM chapter of the
 \artisynthManual{modelguide}{Modeling Guide}.
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/strainEnergyPlot}
+\else
+ \includegraphics[width=0.4\textwidth]{images/strainEnergyPlot}
+\fi
+\end{center}
+%
 
 \subsection{New FEM materials}
 
 Four new FEM materials have been added, with the latter two intended to replace
 existing materials:
 %
-\begin{verbatim}
+%
+\begin{lstlisting}[]
   ArrudaBoyceMaterial
   VerondaWestmannMaterial
   YeohMaterial            // replaces CubicHyperelastic, now deprecated
   FungOrthotropicMaterial // replaces FungMaterial, now deprecated
-\end{verbatim}
+\end{lstlisting}
 %
 
 See the section ``Material types'' in the FEM chapter of the 
@@ -242,6 +252,8 @@ getDampingTerm() & getExcitationDampingTerm() \\
 removeDampingTerm() & removeExcitationDamping() \\
 {\tt TrackingController} &
 addRegularizationTerms(wgtl2,wgtd) & setRegularization(wgtl2,wgtd) \\
+\iflatexml\else
+% begin extra table if not making HTML
 \hline
 \end{tabular}
 \end{center}
@@ -250,6 +262,8 @@ addRegularizationTerms(wgtl2,wgtd) & setRegularization(wgtl2,wgtd) \\
 \begin{tabular}{lll}
 \hline
 Class & Deprecated method & Replacement method \\
+% end extra table if not making HTML
+\fi
 \hline
 {\tt ConstraintForceTerm} & 
 addForceTarget(bodyCon) & addTarget(bodyCon) \\

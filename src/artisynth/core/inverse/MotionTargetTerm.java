@@ -450,7 +450,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    /**
     * @deprecated Use {@link #addPointTarget(Point,double)} or 
-    * {@link #addFrameTarget(Point,double)} instead.
+    * {@link #addFrameTarget(Frame,double)} instead.
     */
    public MotionTargetComponent addTarget (
       MotionTargetComponent source, double weight) {
@@ -459,7 +459,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    /**
     * @deprecated Use {@link #addPointTarget(Point)} or 
-    * {@link #addFrameTarget(Point)} instead.
+    * {@link #addFrameTarget(Frame)} instead.
     */
    public MotionTargetComponent addTarget(MotionTargetComponent target) {
       return doAddTarget(target, 1d);

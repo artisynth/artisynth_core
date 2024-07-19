@@ -108,11 +108,11 @@ def saveWayPoints (filename) :
 def root () :
     return getMain().getRootModel ()
 
-def script (name, args=None) :
-    if args != None :
-       getMain().getJythonConsole().executeScript (name, array(args,String))
-    else:
-       getMain().getJythonConsole().executeScript (name)
+def script (name) :
+    getMain().getJythonConsole().executeScript (name)
+
+def script (name, args) :
+    getMain().getJythonConsole().executeScript (name, array(args,String))
 
 def find (name) :
     root = getMain().getRootModel()

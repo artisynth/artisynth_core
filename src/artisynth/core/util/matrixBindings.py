@@ -20,30 +20,8 @@ from artisynth.core.modelbase import *
 from artisynth.core.driver import *
 from artisynth.core.workspace import *
 from artisynth.core.inverse import *
-# under jdk 21, wildcard imports do not work for java.lang and java.io
-from java.lang import Boolean, Byte, Character, Class, ClassLoader, ClassValue
-from java.lang import Double, Enum, Float, InheritableThreadLocal
-from java.lang import Integer, Long, Math, Number, Object, Package, Process
-from java.lang import ProcessBuilder, ProcessBuilder, Runtime, RuntimePermission
-from java.lang import SecurityManager, Short, StackTraceElement, StrictMath
-from java.lang import String, StringBuffer, StringBuilder, System, Thread
-from java.lang import ThreadGroup, ThreadLocal, Throwable, Void
-from java.io import BufferedInputStream, BufferedOutputStream, BufferedReader
-from java.io import BufferedWriter, ByteArrayInputStream, ByteArrayOutputStream
-from java.io import CharArrayReader, CharArrayWriter, Console, DataInputStream
-from java.io import DataOutputStream, File, FileDescriptor, FileInputStream
-from java.io import FileOutputStream, FilePermission, FileReader, FileWriter
-from java.io import FilterInputStream, FilterOutputStream, FilterReader
-from java.io import FilterWriter, InputStream, InputStreamReader
-from java.io import LineNumberInputStream, LineNumberReader, ObjectInputStream
-from java.io import ObjectInputStream, ObjectOutputStream, ObjectOutputStream
-from java.io import ObjectStreamClass, ObjectStreamField, OutputStream
-from java.io import OutputStreamWriter, PipedInputStream, PipedOutputStream
-from java.io import PipedReader, PipedWriter, PrintStream, PrintWriter
-from java.io import PushbackInputStream, PushbackReader, RandomAccessFile
-from java.io import Reader, SequenceInputStream, SerializablePermission
-from java.io import StreamTokenizer, StringBufferInputStream, StringReader
-from java.io import StringWriter, Writer, IOException
+from java.lang import *
+from java.io import *
 
 def inv(m):
    try:

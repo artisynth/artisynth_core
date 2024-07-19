@@ -92,7 +92,7 @@ endef
 # Builds a PDF file. Assumes that first prerequisite is the primary .tex file
 #
 define BUILD_PDF
-	latex -interaction=batchmode $<
+	latex $< # -interaction=batchmode $<
 	latex $<
 	dvips -j0 $(basename $@)
 	$(FIX_POSTSCRIPT_OUTPUT) --out _tmp_.ps $(basename $@).ps
@@ -135,6 +135,9 @@ endef
 	convert $< eps2:$@
 
 %.eps: %.jpg
+	convert $< eps2:$@
+
+%.eps: %.svg
 	convert $< eps2:$@
 
 # For .idr files, simply copy the file, since .idr is already an eps file

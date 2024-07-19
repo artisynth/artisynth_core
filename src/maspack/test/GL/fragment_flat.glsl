@@ -52,12 +52,25 @@ void main() {
    vec4 fdiffuse = material.diffuse;
    vec3 fspecular = material.specular.rgb;
    vec3 femission = material.emission.rgb;
+   
+   // random number
+   float n = gl_FragCoord.x + gl_FragCoord.y + gl_FragCoord.z;
+   float r = fract(sin(n)*43758.5453);
 
    // apply lighting
-   ambient  = fdiffuse.rgb*ambient*material.power.x;
-   diffuse  = fdiffuse.rgb*diffuse*material.power.y;
+
+   if (r > 0.1) {
+      ambient  = fdiffuse.rgb*ambient*material.power.x;
+      diffuse  = fdiffuse.rgb*diffuse*material.power.y;
+   }
+   else {
+      ambient  = fdiffuse.rgb*ambient*vec3(material.power.x,0.0,0.0);
+      diffuse  = fdiffuse.rgb*diffuse*vec3(material.power.y,0.0,0.0);
+   }
+
    specular = fspecular*specular*material.power.z;
    emission = femission*material.power.w;  // emission only material-related
-   fragment_color = vec4(max(diffuse+specular+emission, ambient), fdiffuse.a);
+   //fragment_color = vec4(max(diffuse+specular+emission, ambient), fdiffuse.a);
+   fragment_color = vec4(fdiffuse.rgb*lightIn.front_ambient, 1);
 
 }

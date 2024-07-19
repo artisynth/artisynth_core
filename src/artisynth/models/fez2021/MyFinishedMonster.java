@@ -11,6 +11,7 @@ import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ControllerBase;
 import artisynth.core.probes.NumericInputProbe;
+import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.workspace.RootModel;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
@@ -102,7 +103,7 @@ public class MyFinishedMonster extends RootModel {
 
       // add an input probe to control the left excitation
       NumericInputProbe eprobe =
-         new NumericInputProbe (muscleL, "excitation", 0, 10.0);
+         new NumericInputProbe (muscleL, "excitation", 0, 20.0);
       eprobe.addData (
          new double[] { 0, 0,
                         1, 1,
@@ -112,14 +113,24 @@ public class MyFinishedMonster extends RootModel {
                         7, 1,
                         8, 0,
                         9, 1,
-                        10, 0},
-             NumericInputProbe.EXPLICIT_TIME);
+                        10, 0,
+                        10.01, 0,
+                        20, 0},
+         NumericInputProbe.EXPLICIT_TIME);
       addInputProbe (eprobe);
 
       // add a controller to control the excitation instead
       ControllerBase controller = new MuscleController (muscleR);
       controller.setActive (false);
       addController (controller);
+
+      // add a marker
+      FrameMarker l2 = mech.addFrameMarkerWorld (
+         link, new Point3d(0.0, -0.1, -0.62784547));
+      RenderProps.setPointColor (l2, Color.GREEN);
+      NumericOutputProbe oprobe =
+         new NumericOutputProbe (l2, "position", 0, 20.0, -1);
+      addOutputProbe (oprobe);
    }
 
    class MuscleController extends ControllerBase {

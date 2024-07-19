@@ -86,7 +86,7 @@ $(HTML_DIR)/femModels.html: femModels.tex
 	$(BUILD_HTML)
 	rm -f femModels.xml
 
-(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES)
+$(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES)
 	$(BUILD_SECTIONED_HTML)
 	rm -f modelguide.xml
 

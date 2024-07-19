@@ -25,8 +25,13 @@ public class ProportionalTerm extends QPCostTermBase {
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
       TrackingController controller = getController();
       if (controller != null) {
+         double s = 1.0;
+         if (controller.getNormalizeCostTerms()) {
+         // divide by race of I with size of Q
+            s = 1/(double)Q.rowSize();
+         }         
          for (int i=0; i<p.size(); i++) {
-            p.add (i,myWeight);
+            p.add (i,s*myWeight);
          }     
       }
    }

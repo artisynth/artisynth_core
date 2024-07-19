@@ -15,7 +15,7 @@
 \date{}
 \fi
 
-\input mathdefs.tex
+\input{mathdefs}
 %\renewcommand{\sectionname}{}
 
 % Listings settings
@@ -73,6 +73,259 @@
 
 % Apr 15, 2023: Refactoring and adding stiction compliance to implicit
 %  friction integration
+
+\section*{Jul 20, 2024}
+
+\subsection{Inverse simulation documtation}
+
+The \artisynthManual{modelguide}{Modeling Guide} now contains a new chapter,
+``Inverse Simulation'', describing the inverse simulation capabilities of the
+tracking controller.
+
+While preparing this documentation, the tracking controller was refactored,
+with some methods and classes deprecated in favour of new ones for greater
+clarity. This refactoring is described in the section ``TrackingController
+refactoring'' below.
+
+\subsection{Point forces for meshes and planes}
+
+The components \javaclass[artisynth.core.mechmodels]{PointMeshForce} and
+\javaclass[artisynth.core.mechmodels]{PointPlaneForce} are now officially
+supported. These generate forces on {\tt Point}s (e.g, point markers,
+particles, FEM nodes) based on their signed distance to either meshes or
+planes.  If used with their {\sf unilateral} property set to {\tt true}, these
+components can implement soft contact between meshes or planes, as shown below.
+Details are given in the section ``Other point-based forces'' in the
+\artisynthManual{modelguide}{Modeling Guide} 
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/PointMeshForces}
+\else
+ \includegraphics[width=0.4\textwidth]{../modelguide/images/PointMeshForces}
+\fi
+\end{center}
+%
+\subsection{Strain energy density added to FEM models}
+
+FEM models now support the computation of strain energy density.  Average
+values can be calculated at nodes, and/or plotted as a color map on FEM mesh
+components using the new {\tt EnergyDensity} value of
+\javaclass[artisynth.core.femmodels]{FemModel\$SurfaceRender}.
+Energy density can also be integrated to compute the
+total strain energy in elements or within an entire model.
+For details, see ``Stress, strain and strain energy'' in the FEM chapter of the
+\artisynthManual{modelguide}{Modeling Guide}.
+
+\subsection{New FEM materials}
+
+Four new FEM materials have been added, with the latter two intended to replace
+existing materials:
+%
+\begin{verbatim}
+  ArrudaBoyceMaterial
+  VerondaWestmannMaterial
+  YeohMaterial            // replaces CubicHyperelastic, now deprecated
+  FungOrthotropicMaterial // replaces FungMaterial, now deprecated
+\end{verbatim}
+%
+
+See the section ``Material types'' in the FEM chapter of the 
+\artisynthManual{modelguide}{Modeling Guide}.
+
+\subsection{TrackingController refactoring}
+
+The \javaclass[artisynth.core.inverse]{TrackingController} class been
+refactored both to improve the motion tracking and also to rationalize class
+and method names.
+
+\subsubsection{Controller behavior}
+
+The following changes have been made to the controller behavior:
+
+\begin{enumerate}
+
+\item The default {\it chase control} method for motion tracking has been
+modified so that the target velocity is now computed by dividing the position
+error by a fixed {\it chase time}, instead of by the time step size. This
+reduces overshoot and oscillation at smaller time steps. The chase time is
+specified by the {\tt MotionTargetTerm} property {\sf chaseTime} and has a
+default value of 0.01.
+
+\item Motion tracking PD control now uses $K_p$ and $K_d$ to determine target
+{\it accelerations} based on the position and velocity errors. This
+acceleration is then integrated to determine the target velocity.  As a result,
+the typical values for $K_p$ and $K_d$ are now much larger and their defaults
+have been changed from $1$ and $0$ to $10000$ and $100$.
+
+\item Cost term normalization (formerly {\sf normalizeH}) is now the default
+behavior. As a result of this, optimal L2 normalization values are more likely
+to be around $0.1$ or less.
+
+\end{enumerate}
+
+\subsubsection{Effect on existing applications}
+
+The main effects that existing inverse applications are likely to experience
+from these changes are (a) the optimal regularization and damping weights are
+likely to be around $0.1$ or less (probably lower for damping), and (b)
+applications using the old PD control will need different values for $K_p$ and
+$K_d$.
+
+For backward compatibility, one can revert to the previous behavior by setting
+the controller's {\sf normalizeCostTerms} property to {\tt false}, and the {\tt
+MotionTargetTerm} properties {\sf legacyControl}, {\sf Kp} and {\sf Kd} to {\tt
+true}, $1$ and $0$, respectively. This can be done all at once by calling the
+controller method {\tt setLegacyMotionControl()}.
+
+\subsubsection{Class deprecation}
+
+Several classes have been deprecated in favour of alternates for greater
+clarity.  These are:
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+Deprecated class & Replacement class\\
+\hline
+{\tt ForceTargetTerm} & {\tt ConstraintForceTerm} \\
+{\tt ForceTarget} & {\tt ConstraintForceTarget} \\
+{\tt PointExciter.ForceComponent} & {\tt PointExciter.ForceDof} \\
+{\tt FrameExciter.WrenchComponent} & {\tt PointExciter.WrenchDof} \\
+\hline
+\end{tabular}
+\end{center}
+
+Care has been taken to ensure that legacy code will still work. In particular,
+{\tt ForceTargetTerm} and {\tt ForceTarget} have been made subclasses of {\tt
+ConstraintForceTerm} and {\tt ConstraintForceTarget}.
+
+\subsubsection{Method deprecation}
+
+A number of methods have also been deprecated in favour of alternates:
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+Class & Deprecated method & Replacement method \\
+\hline
+{\tt TrackingController} & 
+getNormalizeH() & getNormalizeCostTerms() \\
+{\tt TrackingController} & 
+setNormalizeH(enable) & setNormalizeCostTerms(enable)\\
+{\tt TrackingController} & 
+addMotionTarget(source) & add\{Point,Frame\}Target(source)\\{\tt TrackingController} & 
+addMotionTarget(source,wgt) & add\{Point,Frame\}Target(source,wgt)\\
+{\tt TrackingController} &
+addForceEffectorTerm() & {\it not needed, term is created on demand} \\
+{\tt TrackingController} &
+removeForceEffectorTerm() & {\it does nothing; term remains in place} \\
+{\tt TrackingController} &
+addForceTargetTerm() & {\it not needed, term is created on demand} \\
+{\tt TrackingController} &
+removeForceTargetTerm() & {\it does nothing; term remains in place} \\
+{\tt TrackingController} &
+getForceTargetTerm() & getConstraintForceTerm() \\
+{\tt TrackingController} &
+addL2RegularizationTerm() & setL2Regularization() \\
+{\tt TrackingController} &
+addL2RegularizationTerm(wgt) & setL2Regularization(wgt) \\
+{\tt TrackingController} &
+removeL2RegularizationTerm() & removeL2Regularization() \\
+{\tt TrackingController} &
+addDampingTerm() & setExcitationDamping() \\
+{\tt TrackingController} &
+addDampingTerm(wgt) & setExcitationDamping(wgt) \\
+{\tt TrackingController} &
+getDampingTerm() & getExcitationDampingTerm() \\
+{\tt TrackingController} &
+removeDampingTerm() & removeExcitationDamping() \\
+{\tt TrackingController} &
+addRegularizationTerms(wgtl2,wgtd) & setRegularization(wgtl2,wgtd) \\
+\hline
+\end{tabular}
+\end{center}
+%
+\begin{center}
+\begin{tabular}{lll}
+\hline
+Class & Deprecated method & Replacement method \\
+\hline
+{\tt ConstraintForceTerm} & 
+addForceTarget(bodyCon) & addTarget(bodyCon) \\
+{\tt ConstraintForceTerm} & 
+addForceTarget(bodyCon,wgt) & addTarget(bodyCon,wgt) \\
+{\tt ConstraintForceTerm} & 
+addForceTarget(bodyCon,targetLam) & addTarget(bodyCon,targetLam) \\
+{\tt ConstraintForceTerm} & 
+addForceTarget(bodyCon,targetLam,wgt) & addTarget(bodyCon,targetLam,wgt) \\
+{\tt ConstraintForceTerm} &
+removeForceTarget(target) & removeTarget(bodyCon) \\
+\hline
+{\tt ForceEffectorTerm} &
+addForce(fcomp) & addTarget (fcomp) \\
+{\tt ForceEffectorTerm} &
+addForce(fcomp,wgt,staticOnly) & addTarget (fcomp,wgt,staticOnly) \\
+\hline
+{\tt MotionTargetTerm} &
+addTarget(source) & add\{Point,Frame\}Target(source) \\
+{\tt MotionTargetTerm} &
+addTarget(source,wgt) & add\{Point,Frame\}Target(source,wgt) \\
+\hline
+\end{tabular}
+\end{center}
+
+\section*{Mar 27, 2024}
+
+\subsection*{Changes to RenderableComponentBase}
+
+The class
+\javaclass[artisynth.core.modelbase]{RenderableComponentBase} has been
+refactored to export the standard rendering properties {\sf
+renderProps}. This was done to make it easier to create custom
+renderable components by subclassing {\tt RenderableComponentBase}.
+
+However, it also means that existing subclasses of {\tt
+RenderableComponentBase} should no longer export their own version of
+{\sf renderProps}. If you have defined such a subclass, and it exports
+{\sf renderProps}, such as through a static declaration like the
+followng,
+%
+\begin{lstlisting}[]
+  static {
+    ...
+    myProps.add ("renderProps", "render properties", null);
+    ... 
+  }
+\end{lstlisting}
+%
+you can either remove the declaration:
+%
+\begin{lstlisting}[]
+  static {
+    ...
+    //myProps.add ("renderProps", "render properties", null);
+    ... 
+  }
+\end{lstlisting}
+%
+or remove the previous declaration before declaring your own:
+%
+\begin{lstlisting}[]
+  static {
+    ...
+    myProps.remove ("renderProps");
+    myProps.add ("renderProps", "render properties", null);
+    ... 
+  }
+\end{lstlisting}
+%
+
+\subsection*{New documentation for custom renderables}
+
+A new section has been added to the Modeling Guide on creating
+components for custom rendering. Check out Section 4.4, ``Custom
+Rendering''.
 
 \section*{Mar 19, 2024}
 

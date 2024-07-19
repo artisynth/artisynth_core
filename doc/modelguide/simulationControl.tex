@@ -766,11 +766,28 @@ queried using the following methods:
 The probe's attached file can be set and queried using:
 % method table
 \begin{lstlisting}[]
-   setAttachedFileName (String fileName);
+   setAttachedFileName (String filePath);
    String getAttachedFileName ();
 \end{lstlisting}
 %
-where {\tt fileName} is a string giving the file's path name.
+where {\tt filePath} is a string giving the file's path name.  If {\tt
+filePath} is relative (i.e., it does not start at the file system root), then
+it is assumed to be relative to the {\it ArtiSynth working folder}, which
+can be queried and set using the methods
+%
+\begin{lstlisting}[]
+   File ArtisynthPath.getWorkingFolder();
+   ArtisynthPath.setWorkingFolder (File folder);
+\end{lstlisting}
+%
+of \javaclass[artisynth.core.util]{ArtisynthPath}.
+The working folder can also be set from the ArtiSynth GUI
+by choosing {\sf File > Set working folder ...}.
+\begin{sideblock}
+If not explicitly set within the application, the working folder will default
+to a system dependent setting, which may be the user's home folder, or the
+working folder of the process used to launch ArtiSyntn.
+\end{sideblock}
 
 Details about the timeline display can be found in
 the section ``The Timeline'' in the
@@ -1323,12 +1340,12 @@ an application will create a generic probe instance, using one
 of its constructors such as 
 %
 \begin{lstlisting}[]
-   NumericMonitorProbe (vsize, fileName, startTime, stopTime, interval);
+   NumericMonitorProbe (vsize, filePath, startTime, stopTime, interval);
 \end{lstlisting}
 %
 and then define and instantiate a {\tt DataFunction} and pass it to
 the probe using {\tt setDataFunction()}. It is not necessary to supply
-a file name (i.e., {\tt fileName} can be {\tt null}), but if one is
+a file name (i.e., {\tt filePath} can be {\tt null}), but if one is
 provided, then the probe's data can be saved to that file.
 
 A complete example
@@ -1383,8 +1400,8 @@ follows:
   class SinCosProbe extends NumericMonitorProbe {
      
      public SinCosProbe (
-        String fileName, double startTime, double stopTime, double interval) {
-        super (2, fileName, startTime, stopTime, interval);
+        String filePath, double startTime, double stopTime, double interval) {
+        super (2, filePath, startTime, stopTime, interval);
      }
 
      public void generateData (VectorNd vec, double t, double trel) {
@@ -1481,7 +1498,7 @@ of its constructors such as
 \begin{lstlisting}[]
    NumericControlProbe (vsize, data, startTime, stopTime, timeStep);
 
-   NumericControlProbe (fileName);
+   NumericControlProbe (filePath);
 \end{lstlisting}
 %
 and then define and instantiate a {\tt DataFunction} and pass it to

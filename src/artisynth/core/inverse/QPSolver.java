@@ -40,7 +40,7 @@ public class QPSolver {
     * @param constraintTerms terms used to assemble A, b, Aeq and beq.
     * @param size size of the program
     * @param t0 time step start time
-    * @param t0 time step end time
+    * @param t1 time step end time
     * 
     * @return solution to the program
     */
@@ -101,8 +101,8 @@ public class QPSolver {
       // solve the problem
       try {
          if (Aeq.rowSize() == 0) {
-            // System.out.println ("Q=\n" + Q.toString ("%12.5f"));
-            // System.out.println ("P=\n" + P.toString ("%12.5f"));
+            // System.out.println ("Q=\n" + Q.toString ("%16.12f"));
+            // System.out.println ("P=\n" + P.toString ("%16.12f"));
             // System.out.println ("A=\n" + A.toString ("%12.5f"));
             // System.out.println ("b=\n" + b.toString ("%12.5f"));
             FunctionTimer timer = null;

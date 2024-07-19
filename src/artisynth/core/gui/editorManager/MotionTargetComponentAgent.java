@@ -26,6 +26,8 @@ import artisynth.core.gui.selectionManager.SelectionFilter;
 import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.inverse.TrackingController;
 import artisynth.core.mechmodels.MotionTargetComponent;
+import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.Frame;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
@@ -226,7 +228,12 @@ SelectionListener {
          if (myState == State.SelectingTargets && 
              !myController.getMotionSources ().contains (comp) &&
              !myController.getMotionTargets ().contains (comp)) {
-            myController.addMotionTarget (comp, 1.0);
+            if (comp instanceof Point) {
+               myController.addPointTarget ((Point)comp, 1.0);
+            }
+            else if (comp instanceof Frame) {
+               myController.addFrameTarget ((Frame)comp, 1.0);
+            }
             DoubleField widget = createTargetWidget (comp, 1.0);
             myTargetPanel.addWidget (widget);
             myTargetPanel.mapWidgetToComponent (widget, comp);

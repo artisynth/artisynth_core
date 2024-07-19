@@ -54,6 +54,11 @@ public interface Displayable {
    // myProbe is needed by large probe display to refresh the small display
    public JPanel getDisplay (
       int width, int height, boolean isLargeDisplay);
+   
+   /**
+    * Queries whether this component is currently displayable.
+    */
+   public boolean isDisplayable();
 
    public boolean removeDisplay (JPanel display);
 

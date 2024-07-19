@@ -3,11 +3,14 @@ package artisynth.demos.test;
 import java.awt.Color;
 import java.io.*;
 import java.util.*;
+import java.awt.event.*;
+import javax.swing.*;
 
 import artisynth.core.mechmodels.*;
 import artisynth.core.renderables.*;
 import artisynth.core.workspace.*;
 import artisynth.core.gui.*;
+import artisynth.core.gui.widgets.MeshFileChooser;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.collision.*;
@@ -16,11 +19,12 @@ import maspack.collision.SurfaceMeshIntersectorTest.TestInfo;
 import maspack.render.*;
 import maspack.render.Renderer.*;
 import maspack.geometry.*;
+import maspack.widgets.*;
 import maspack.geometry.MeshFactory.FaceType;
 import maspack.geometry.io.*;
 import maspack.properties.*;
 
-public class AjlCollisionTest extends RootModel {
+public class AjlCollisionTest extends RootModel implements ActionListener {
 
    MechModel myMech;
    RigidBody myBody0;
@@ -850,6 +854,23 @@ public class AjlCollisionTest extends RootModel {
                "1111111111111");
             setupBodies (myMech, mesh0, mesh1);
          }
+      
+         if (false) {
+            String dataDir = 
+               PathFinder.expand (
+                  "${srcdir ToyMuscleArm}/data/");
+         
+            try {
+               mesh0 = new PolygonalMesh (dataDir+"flange.obj");
+               mesh0.transform (new RigidTransform3d (0, 0, 0,  0, 0, Math.PI));
+               mesh1 = MeshFactory.createBox (
+                  1.0, 1.0, 0.1, new Point3d(0,0,-0.1999), 10, 10, 1);
+            }
+            catch (Exception e) {
+               e.printStackTrace(); 
+            }
+            setupBodies (myMech, mesh0, mesh1);
+         }
       }
 
       if (perturb0 != 0) {
@@ -880,7 +901,38 @@ public class AjlCollisionTest extends RootModel {
       setDefaultViewOrientation (new AxisAngle (1, 0, 0, 0));
       RenderProps.setShading (myMech, Shading.NONE);
    }  
-      
-}    
+
+   public boolean getMenuItems(List<Object> items) {
+      JMenuItem item = GuiUtils.createMenuItem (this, "writeCSGMesh", "");
+      item.setEnabled (myTester.getCSGMesh() != null);
+      items.add (item);
+      return true;
+   } 
+
+   public void actionPerformed (ActionEvent event) {
+      String cmd = event.getActionCommand();
+      if (cmd.equals ("writeCSGMesh")) {
+         PolygonalMesh mesh = myTester.getCSGMesh();
+         if (mesh == null) {
+            GuiUtils.showError (getMainFrame(), "CSGMesh is null");
+         }
+         else {
+            MeshFileChooser chooser =
+               new MeshFileChooser (null, /*forReading=*/false);
+            int retval = chooser.showDialog (getMainFrame(), "Save");
+            if (retval == JFileChooser.APPROVE_OPTION) {
+               try {
+                  mesh.write (chooser.getSelectedFileWithExtension());
+               }
+               catch (IOException e) {
+                  GuiUtils.showError (
+                     getMainFrame(), "Error writing file: " + e);
+               }
+            }
+         }
+      }
+   } 
+}
+
 
 

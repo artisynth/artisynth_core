@@ -19,7 +19,7 @@ import maspack.properties.*;
  * A specialized Point class used to store and render the target position for
  * points being tracked by the tracking controller.
  */
-public class TargetPoint extends Point {
+public class TargetPoint extends Point implements TrackingTarget {
 
    public static final double DEFAULT_WEIGHT = 1.0;
    protected double myWeight = DEFAULT_WEIGHT;
@@ -61,6 +61,14 @@ public class TargetPoint extends Point {
       mySubWeights.set (w);
    }
 
+   public void setSubWeights (VectorNd w) {
+      mySubWeights.set (new Vector3d(w));
+   }
+
+   public int getTargetSize() {
+      return 3;
+   }
+
    public TargetPoint () {
       super.setDynamic (false);
    }
@@ -84,6 +92,10 @@ public class TargetPoint extends Point {
          myTarget.setTargetPos (getPosition());
       }
    }
+
+   public Point getSourceComp() {
+      return getSourcePoint();
+   }         
 
    private Point getSourcePoint() {
       CompositeComponent ccomp = getGrandParent();

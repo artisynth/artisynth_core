@@ -17,8 +17,7 @@ import maspack.render.Renderer.Shading;
 import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.inverse.ConnectorForceRenderer;
-import artisynth.core.inverse.ForceTarget;
-import artisynth.core.inverse.ForceTargetTerm;
+import artisynth.core.inverse.*;
 import artisynth.core.inverse.TrackingController;
 import artisynth.core.materials.LinearAxialMuscle;
 import artisynth.core.mechmodels.AxialSpring;
@@ -507,16 +506,17 @@ public class PointModel extends RootModel
 //      cterm.setComplianceTargetType(StiffnessTargetType.DIAG);
 //      TrackingController.addTerm(cterm);
       
-      myTrackingController.addL2RegularizationTerm();
+      myTrackingController.setL2Regularization();
 //      myTrackingController.addTerm(new DampingTerm(TrackingController));
 
 //      myTrackingController.addTerm(new StaticMotionTargetTerm(TrackingController));
-      MotionTargetComponent target = myTrackingController.addMotionTarget(center);
+      MotionTargetComponent target = myTrackingController.addPointTarget(center);
       RenderProps.setPointRadius ((Renderable)target, 0.525);
 
       if (useReactionForceTargetP) { 
-         ForceTargetTerm forceTerm = myTrackingController.addForceTargetTerm();
-         ForceTarget ft = forceTerm.addForceTarget (
+         ConstraintForceTerm forceTerm = 
+            myTrackingController.getConstraintForceTerm();
+         ConstraintForceTarget ft = forceTerm.addTarget (
             model.bodyConnectors ().get ("center_constraint"));
          ft.setArrowSize (2);
          RenderProps.setLineStyle (ft, LineStyle.CYLINDER);

@@ -549,7 +549,7 @@ public class ProbeInfo implements Clonable, ActionListener {
       int width = myDisplayArea.getWidth();
       int height = GuiStorage.PROBE_DETAIL_HEIGHT;
 
-      if (getProbe() instanceof Displayable) {
+      if (probeIsDisplayable()) {
          Displayable dispProbe = (Displayable)getProbe();
          JPanel display = dispProbe.getDisplay (width, height, false);
          if (display instanceof NumericProbePanel &&
@@ -628,9 +628,15 @@ public class ProbeInfo implements Clonable, ActionListener {
       myController.addProbeEditor (dialog);
    }
 
+   private boolean probeIsDisplayable() {
+      Probe probe = getProbe();
+      return (probe instanceof Displayable && 
+              ((Displayable)probe).isDisplayable());
+   }
+   
    // update the probe changes
    public void updateProbeDisplays() {
-      if (getProbe() instanceof Displayable) {
+      if (probeIsDisplayable()) {
          if (myTrack.isExpanded && myDisplayArea.getComponentCount() == 1) {
             expandProbe();
          }

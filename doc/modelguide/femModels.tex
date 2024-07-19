@@ -5,16 +5,6 @@
 \mainmatter
 \fi
 
-% Scale latexml image sizes 2x
-\newlength{\imglength}
-\newcommand{\setlengthLaTeXML}[3]{ %
- \iflatexml %
- \setlength{#1}{#2} %
- \else %
- \setlength{#1}{#3} %
- \fi %
-}
-
 \chapter{Finite Element Models}
 \label{FEMModels:sec}
 
@@ -153,7 +143,8 @@ nodes.
 The FEM's {\sf material} property is a delegate object used to compute
 stress and stiffness within individual elements.  It handles
 the \emph{constitutive} component of the model, as described in more
-detail in Section \ref{sec:fem:materials}.
+detail in Sections \ref{sec:fem:materials}
+and \ref{MaterialTypes:sec}.
 In addition to the main material defined
 for the model, it is also possible set a material on a per-element
 basis, and to define additional materials which augment the behavior
@@ -314,24 +305,37 @@ where $\u_i$ is the displacement of the $i$th node that is adjacent to the
 element, and $\phi_i(\cdot)$ is referred to as the \emph{shape function} (or 
 \emph{basis function}) associated with that node.  Elements are classified by 
 their shape, number of nodes, and shape function order (Table 
-\ref{tbl:fem:elements}).  ArtiSynth supports the following element types:
+\ref{tbl:fem:elements}).  ArtiSynth supports the following element types,
+shown below with their node numberings:
+%
 \begin{center}
-\setlengthLaTeXML{\imglength}{1.5in}{1in}
-\begin{tabular}{c@{\hspace{5ex}}c@{\hspace{5ex}}c@{\hspace{5ex}}c}
-  \includegraphics[height=\imglength]{images/fem_element_tet} &
-  \includegraphics[height=\imglength]{images/fem_element_pyramid} &
-  \includegraphics[height=\imglength]{images/fem_element_wedge} &
-  \includegraphics[height=\imglength]{images/fem_element_hex} \\
-  \javaclass[artisynth.core.femmodels]{TetElement}, &
-  \javaclass[artisynth.core.femmodels]{PyramidElement}, & 
-  \javaclass[artisynth.core.femmodels]{WedgeElement}, &
-  \javaclass[artisynth.core.femmodels]{HexElement},\\
+\setlengthLaTeXML{\imglength}{1.5in}{1.4in}
+\begin{tabular}{c@{\hspace{3ex}}c@{\hspace{3ex}}c@{\hspace{3ex}}c}
+  \includegraphics[height=\imglength]{images/element_tet} &
+  \includegraphics[height=\imglength]{images/element_pyramid} &
+  \includegraphics[height=\imglength]{images/element_wedge} &
+  \includegraphics[height=\imglength]{images/element_hex} \\
+  \javaclass[artisynth.core.femmodels]{TetElement} &
+  \javaclass[artisynth.core.femmodels]{PyramidElement} & 
+  \javaclass[artisynth.core.femmodels]{WedgeElement} &
+  \javaclass[artisynth.core.femmodels]{HexElement}
+\end{tabular}
+\end{center}
+%
+\begin{center}
+\setlengthLaTeXML{\imglength}{1.5in}{1.4in}
+\begin{tabular}{c@{\hspace{3ex}}c@{\hspace{3ex}}c@{\hspace{3ex}}c}
+  \includegraphics[height=\imglength]{images/element_quadtet} &
+  \includegraphics[height=\imglength]{images/element_quadpyramid} &
+  \includegraphics[height=\imglength]{images/element_quadwedge} &
+  \includegraphics[height=\imglength]{images/element_quadhex} \\
   \javaclass[artisynth.core.femmodels]{QuadtetElement} &
   \javaclass[artisynth.core.femmodels]{QuadpyramidElement} & 
   \javaclass[artisynth.core.femmodels]{QuadwedgeElement} &
   \javaclass[artisynth.core.femmodels]{QuadhexElement}
 \end{tabular}
 \end{center}
+%
 \begin{table}[ht]
 \centering
 \caption{Supported element types \label{tbl:fem:elements}}
@@ -390,8 +394,8 @@ matrix.
 
 Each element's {\tt material} property is also inherited by default from the 
 containing {\tt FemModel3d}. Specifying a material here allows for spatially-%
-varying material properties across the model.  Materials will be discussed
-further in Section \ref{sec:fem:materials}.
+varying material properties across the model.  Materials are discussed
+further in Sections \ref{sec:fem:materials} and \ref{MaterialTypes:sec}.
 
 \subsubsection{Shell elements}
 
@@ -406,10 +410,10 @@ the number of nodes, shape function order, and integration point count
 described in Table \ref{tbl:fem:shellElements}:
 
 \begin{center}
-\setlengthLaTeXML{\imglength}{1.5in}{1in}
-\begin{tabular}{c@{\hspace{5ex}}c@{\hspace{5ex}}c@{\hspace{5ex}}c}
-  \includegraphics[height=\imglength]{images/fem_shellElement_tri} &
-  \includegraphics[height=\imglength]{images/fem_shellElement_quad}\\
+\setlengthLaTeXML{\imglength}{1.5in}{1.4in}
+\begin{tabular}{c@{\hspace{6ex}}c}
+  \includegraphics[height=\imglength]{images/shellElement_tri} &
+  \includegraphics[height=\imglength]{images/shellElement_quad}\\
   \javaclass[artisynth.core.femmodels]{ShellTriElement} &
   \javaclass[artisynth.core.femmodels]{ShellQuadElement}
 \end{tabular}
@@ -622,72 +626,32 @@ which computes the stress tensor and (optionally) the tangent stiffness
 matrix at each integration point, based on the current local
 deformation at that point.
 
-The default material type is
-\javaclass[artisynth.core.materials]{LinearMaterial}, where stress is
-related to strain through:
-\begin{gather}
-  \sigma(\x) = D\,\epsilon(\x), \label{eqn:fem:mat:linear}\\
-  \text{where }\quad D = \begin{bmatrix}
-	  \lambda +2\mu & \lambda & \lambda  & 0 & 0 & 0\\
-	  \lambda &  \lambda +2\mu & \lambda & 0 & 0 & 0\\
-	  \lambda & \lambda & \lambda +2\mu & 0 & 0 & 0\\
-	  0 & 0 & 0 & \mu & 0 & 0\\
-	  0 & 0 & 0 & 0 & \mu & 0\\
-	  0 & 0 & 0 & 0 & 0 & \mu
-        \end{bmatrix}, \quad \lambda = \dfrac{E\nu}{(1+\nu)(1-2\nu)},  \quad
-      \mu = \dfrac{E}{2(1+\nu)},\notag
-\end{gather}
-$\sigma$ is the standard $6\times 1$ stress vector, $\epsilon$ is the 
-strain vector, $E$ is the Young's Modulus, and $\nu$ is Poisson's ratio. This
-linear material uses a corotational formulation, so rotations are removed
-per element before computing the strain \cite{ngan:fem:2008}.  To enable or
-disable this corotational formulation, use 
-\javamethodAlt{%
-artisynth.core.materials.LinearMaterialBase.setCorotated(boolean)}%
-{LinearMaterial.setCorotated(boolean)}.
-
-All material models, including linear and nonlinear, are available in the package  
-{\tt artisynth.core.materials}.  A list of common materials is provided in 
-Table \ref{tbl:fem:materials}.  Those that are subclasses of 
-\javaclass[artisynth.core.materials]{IncompressibleMaterial} allow for 
-incompressibility.
-
-\begin{table}[ht]
-\centering
-\caption{Commonly used FEM materials \label{tbl:fem:materials}}
-\begin{tabular}{|lll|}
-   \hline
-   \hline
-   Material & Parameters & \\
-   \hline
-   \javaclass[artisynth.core.materials]{LinearMaterial} & 
-   $E$ & Young's modulus \\
-   & $\nu$ & Poisson's ratio\\
-   & corotated & corotational formulation\\
-   \hline
-   \javaclass[artisynth.core.materials]{StVenantKirchoffMaterial} & 
-   $E$ & Young's modulus\\
-   & $\nu$ & Poisson's ratio\\
-   \hline
-   \javaclass[artisynth.core.materials]{NeoHookeanMaterial} & 
-   $E$ & Young's modulus\\
-   & $\nu$ & Poisson's ratio\\
-   \hline
-   \javaclass[artisynth.core.materials]{IncompNeoHookeanMaterial} & 
-   $G$ & shear modulus\\
-   & $\kappa$ & bulk modulus\\
-   \hline
-   \javaclass[artisynth.core.materials]{MooneyRivlinMaterial} & 
-   $C_{10},C_{01},C_{20},C_{02}$ & distortional parameters\\
-   & $\kappa$ & bulk modulus\\
-   \hline
-   \javaclass[artisynth.core.materials]{OgdenMaterial} & 
-   $\mu_1,\ldots,\mu_6$ & material parameters\\
-   & $\alpha_1,\ldots,\alpha_6$ &\\
-   & $\kappa$ & bulk modulus\\
-  \hline
-\end{tabular}
-\end{table}
+All supported materials are presented in detail in Section
+\ref{MaterialTypes:sec}. The default material type is
+\javaclass[artisynth.core.materials]{LinearMaterial}, which
+linearly maps Cauchy strain $\Beps$ onto Cauchy stress $\Bsig$ via
+%
+\begin{equation*}
+\Bsig = \mathcal{D} : \Beps,
+\end{equation*}
+%
+where $\mathcal{D}$ is the {\it elasticity tensor} determined
+from Young's modulus and Poisson's ratio. Anisotropic
+linear materials are provided by
+\javaclass[artisynth.core.materials]{TransverseLinearMaterial}
+and
+\javaclass[artisynth.core.materials]{AnisotropicLinearMaterial}.
+Linear materials in ArtiSynth implement corotation, which removes the
+rotation from the deformation gradient and allows Cauchy strain to be
+applied to large
+deformations \cite{ngan:fem:2008,muller2004interactive}.  Nonlinear
+hyperelastic materials are also supported, including
+\javaclass[artisynth.core.materials]{MooneyRivlinMaterial},
+\javaclass[artisynth.core.materials]{OgdenMaterial},
+\javaclass[artisynth.core.materials]{YeohMaterial},
+\javaclass[artisynth.core.materials]{ArrudaBoyceMaterial},
+and
+\javaclass[artisynth.core.materials]{VerondaWestmannMaterial}.
 
 \subsection{Boundary conditions}
 \label{sec:fem:boundary}
@@ -2626,8 +2590,7 @@ specific elements, it may be more convenient to bind the varying
 properties to a {\it field}, which can specify varying values over a
 domain composed of either a regular grid or an FEM mesh.  Only one
 material needs to be used, and any properties which are not bound can
-be adjusted interactively or online. Fields and their bindings are
-described in detail in Chapter \ref{sec:fields}.
+be adjusted interactively or online. Fields and their bindings are described in detail in Chapter \ref{sec:fields}.
 
 \item {\bf Adding augmenting material behaviors using 
 \javaclass[artisynth.core.femmodels]{MaterialBundle}s}.  A material
@@ -2849,6 +2812,7 @@ activated.  There are two types of muscles supported:
 In this section, both types will be described.
 
 \subsection{FemMuscleModel}
+\label{FemMuscleModel:sec}
 
 The main class for FEM-based muscles is 
 \javaclass[artisynth.core.femmodels]{FemMuscleModel}, a subclass 
@@ -2865,8 +2829,10 @@ FEM model in that it has the new property
 	\end{tabular}
 \end{center}
 This is a delegate object of type 
-\javaclass[artisynth.core.materials]{MuscleMaterial} that computes activation-%
-dependent stress and stiffness in the muscle. In addition to this property, 
+\javaclass[artisynth.core.materials]{MuscleMaterial}, described
+in detail in Section \ref{MuscleMaterials:sec}, that computes activation-%
+dependent stress and stiffness in the muscle. 
+In addition to this property, 
 {\tt FemMuscleModel} adds two new lists of subcomponents:
 \begin{description}
    \item[{\tt bundles}]\mbox{}\\
@@ -2877,6 +2843,7 @@ dependent stress and stiffness in the muscle. In addition to this property,
 \end{description}
 
 \subsubsection{Bundles}
+\label{MuscleBundles:sec}
 \ifLaTeXML{\newline}
 
 Muscle bundles allow for a muscle to be partitioned into separate groupings
@@ -2891,7 +2858,7 @@ Bundles have three key properties:
 		{\tt excitation} & Activation level of the muscle,  $a\in[0, 1]$.\\
 		{\tt fibresActive} & Enable/disable ``fibre-based'' muscle components.\\
 		{\tt muscleMaterial} & An object that adds an activation-dependent
-		                       `muscle' term to the \emph{constitutive law}.\\
+		                       `muscle' term to the \emph{constitutive law} (Section \ref{MuscleMaterials:sec}).\\
 		\hline
 	\end{tabular}
 \end{center}
@@ -2909,12 +2876,13 @@ The two types will be covered in Sections \ref{sec:fem:fibremuscle} and
 \ref{sec:fem:materialmuscle}, respectively.
 
 \subsubsection{Exciters}
+\label{MuscleExciters:sec}
 \ifLaTeXML{\newline}
 
-Muscle exciters enable you to simultaneously activate a group of ``excitation 
-components''.  This includes: point-to-point muscles, muscle bundles, muscle
-fibres, material-based muscle elements, and other muscle exciters.  Components 
-that can be excited all implement the 
+A \javaclass[\mech]{MuscleExciter} component enables you to simultaneously
+activate a group of ``excitation components''.  This includes: point-to-point
+muscles, muscle bundles, muscle fibres, material-based muscle elements, and
+other muscle exciters.  Components that can be excited all implement the
 \javaclass[artisynth.core.mechmodels]{ExcitationComponent}
 interface.  To add or remove a component to the exciter, use
 \begin{lstlisting}[]
@@ -3006,14 +2974,13 @@ for ( IntegrationPoint3d ipnt : elem.getIntegrationPoints() ) {
 }
 \end{lstlisting} 
 By default, the {\tt MuscleMaterial} is inherited from the bundle's 
-{\tt material} property.  Supported muscle materials include:
+{\tt material} property.  Muscle materials are described
+in detail in Section \ref{MuscleMaterials:sec} and
+include 
 \javaclass[artisynth.core.materials]{GenericMuscle}, 
 \javaclass[artisynth.core.materials]{BlemkerMuscle}, and 
 \javaclass[artisynth.core.materials]{FullBlemkerMuscle}.  The Blemker-type
-materials are based on \cite{blemker:2005:muscle}.  {\tt BlemkerMuscle} only
-uses the muscle-specific terms (since a base material is provided the 
-underlying FEM model), whereas {\tt FullBlemkerMuscle} adds all terms described in 
-the aforementioned paper.
+materials are based on \cite{blemker:2005:muscle}.
 
 Elements can be added to a muscle bundle using one of the methods:
 \begin{lstlisting}[]
@@ -3050,6 +3017,81 @@ beam.addMuscleBundle(bundle);
 \end{lstlisting}
 \lstset{numbers=none}
 
+\subsection{Example: toy FEM muscle model}
+\label{ToyMuscleFem:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/ToyMuscleFem}
+\else
+   \includegraphics[width=6in]{images/ToyMuscleFem}
+\fi
+\end{center}
+\caption{{\tt ToyMuscleFem}, showing the deformation from setting
+the muscle excitations in the control panel.}
+\label{ToyMuscleFem:fig}
+\end{figure}
+
+A simple example showing an FEM with material-based muscles is given by {\tt
+artisynth.demos.tutorial.ToyMuscleFem}. It consists of a hex-element beam, with
+12 muscles added in groups along its length, allowing it to flex in the x-z
+plane. A frame object is also attached to the right end. The code for the
+model, without the package and include directives, is listed below:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-28}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/ToyMuscleFem.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=30]{../../src/artisynth/demos/tutorial/ToyMuscleFem.java}
+\fi
+\lstset{numbers=none}
+%
+
+Within the {\tt build()} method, the mech model is created in the usual way
+(lines 8-10). Gravity is turned off to give the muscles greater control over
+the FEM model's configuration. The {\tt MechModel} reference is stored in the
+class field {\tt myMech} to enable any subclasses to have easy access to it;
+the same will be done for the FEM model and the attached frame.
+
+The FEM model itself is created at lines (12-24). An instance of {\tt
+FemMuscleModel} is created and then passed to {\tt FemFactory.createHexGrid()};
+this allows the model to be an instance of {\tt FemMuscleModel} instead of {\tt
+FemModel3d}.  The model is assigned a linear material with Poisson's ratio of 0
+to allow it to be easily compressed. Muscle bundles will be material-based and
+will all use the same {\tt SimpleForceMuscle} material that is assigned to the
+model's {\tt muscleMaterial} property. Density and damping parameters are
+defined so as to improve model stability when muscles are excited.  Once the
+model is created, its left-hand nodes are fixed to provide anchoring (lines
+27-32).
+
+Muscle bundles are created at lines 36-58. There are 12 of them, arranged in
+three vertical layers and four horizontal sections. Each bundle is populated
+with 9 adjacent elements in the x-y plane. To find these elements, their center
+positions are calculated and then passed to the FEM method {\tt
+findNearestVolumetricElement()}. The element is then added to the bundle with a
+resting activation direction parallel to the x axis. For visualization, each
+bundle's line color is set to a distinct color from the numeric probe display
+palette, based on the bundle's number (lines 53-54).
+
+After the bundles have been added to the FEM model, a control is created to
+allow interactive control of their excitations (lines 88-95). Each widget is
+labeled {\tt excitation N}, where {\tt N} is the bundle number, and the label
+is colored to match the bundle's line color.  Finally, a frame is created and
+attached to the FEM model (lines 59-62), and render properties are set at lines
+106-115: Muscle bundles are drawn by showing the activation direction in each
+element; the frame is displayed as a solid arrow with axis lengths of 0.3; the
+FEM line and face colors are set to blue-gray, and the surface is rendered and
+made transparent.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+ToyMuscleFem} from the {\sf Models} menu. Running the model and adjusting the
+exciters in the control panel will cause the FEM model to deform in various
+ways (Figure \ref{ToyMuscleFem:fig}).
+
 \subsection{Example: comparison with two beam examples}
 \label{FemMuscleBeams:sec}
 
@@ -3079,6 +3121,1367 @@ which may cause numerical issues as elements become highly contracted or
 highly deformed.  Fibre-based muscles are, in general, more stable.  However,
 they can lead to bulging and other deformation artifacts due to their discrete
 nature.
+
+\section{Material types}
+\label{MaterialTypes:sec}
+
+ArtiSynth FEM models support a variety of material types, including
+linear, hyperelastic, and activated muscle materials, described in the
+sections below. These can be used to supply the primary material for
+either an entire FEM model or for specific elements (using the {\tt
+setMaterial()} methods for either). They can also be used to supply
+auxiliary materials, whose behavior is superimposed on the underlying
+material, via either material bundles
+(Section \ref{sec:augmentingMaterials}) or,
+for \javaclass[\fem]{FemMuscleModel}s, muscle bundles
+(Section \ref{sec:fem:muscle}). Many of the properties for a given
+material can be bound to a scalar or vector field
+(Section \ref{sec:femFields}) to allow their values to vary across an
+FEM model. In the descriptions below, properties for which this is
+true will have a $\check$ indicated under the ``Field'' entry in the
+material's property table.
+
+All materials are defined in the package {\tt
+artisynth.core.materials}.
+
+\subsection{Linear}
+\label{LinearMaterials:sec}
+
+Linear materials determine Cauchy stress $\Bsig$ as a linear mapping
+from the small deformation Cauchy strain $\Beps$,
+%
+\begin{equation}
+\Bsig = \mathcal{D} : \Beps,
+\end{equation}
+%
+where $\mathcal{D}$ is the {\it elasticity tensor}.
+Both the stress and
+strain are symmetric $3 \time 3$ matrices,
+%
+\begin{equation}
+\Bsig = \matl 
+\sigma_{xx} & \sigma_{xy} & \sigma_{xz} \\
+\sigma_{xy} & \sigma_{yy} & \sigma_{yz} \\
+\sigma_{xz} & \sigma_{yz} & \sigma_{zz}
+\matr,
+\quad
+\Beps = \matl 
+\epsilon_{xx} & \epsilon_{xy} & \epsilon_{xz} \\
+\epsilon_{xy} & \epsilon_{yy} & \epsilon_{yz} \\
+\epsilon_{xz} & \epsilon_{yz} & \epsilon_{zz}
+\matr,
+\end{equation}
+%
+and can be expressed as 6-vectors using Voigt notation:
+%
+\begin{equation}
+\hat\Bsig \equiv \matl 
+\sigma_{xx} \\ \sigma_{yy} \\ \sigma_{zz} \\ 
+\sigma_{xy} \\ \sigma_{yz} \\ \sigma_{xz} 
+\matr,
+\quad
+\hat\Beps \equiv \matl 
+\epsilon_{xx} \\ \epsilon_{yy} \\ \epsilon_{zz} \\ 
+2 \epsilon_{xy} \\ 2 \epsilon_{yz} \\ 2 \epsilon_{xz} 
+\matr.
+\end{equation}
+%
+This allows the constitutive mapping to be expressed in
+matrix form as
+%
+\begin{equation}
+\hat\Bsig = \D \, \hat\Beps,
+\end{equation}
+%
+where $\D$ is the $6 \times 6$ {\it elasticity matrix}.
+
+\begin{sideblock}
+Different Voigt notation mappings appear in the literature with regard
+to off-diagonal matrix entries. We use the one employed by
+FEBio \cite{FEBioTheory2018}. Another common mapping is
+%
+\begin{equation*}
+\hat\Bsig \equiv \matl 
+\sigma_{xx} & \sigma_{yy} & \sigma_{zz} & 
+\sigma_{yz} & \sigma_{xz} & \sigma_{xy} 
+\matr^T.
+\end{equation*}
+%
+\end{sideblock}
+
+Traditionally, Cauchy strain is computed from the symmetric part of
+the deformation gradient $\F$ using the formula
+%
+\begin{equation}
+\Beps = \frac{\F^T + \F}{2} - \I,
+\end{equation}
+%
+where $\I$ is the $3 \times 3$ identity matrix. However, ArtiSynth
+materials support {\it corotation}, in which rotations are first
+removed from $\F$ using a polar decomposition
+%
+\begin{equation}
+\F = \R \P,
+\label{polardF:eqn}
+\end{equation}
+%
+where $\R$ is a (right-handed) rotation matrix and $\P$ is symmetric
+matrix. $\P$ is then used to compute the Cauchy strain:
+%
+\begin{equation}
+\Beps = \P - \I.
+\end{equation}
+Corotation is the default behavior for linear materials in ArtiSynth
+and allows models to handle large scale rotational deformations
+\cite{ngan:fem:2008,muller2004interactive}.
+
+For linear materials, the stress/strain response is computed at a {\it
+single} integration point in the center of each element. This is done
+to improve computational efficiency, as it allows the precomputation
+of stiffness matrices that map nodal displacements onto nodal forces
+for each element. This precomputed matrix can then be adjusted during
+each simulation step to account for the rotation $\R$ computed at each
+element's integration
+point \cite{ngan:fem:2008,muller2004interactive}.
+
+Specific linear material types are listed in the subsections
+below. All are subclasses of
+\javaclass[artisynth.core.materials]{LinearMaterialBase},
+and in addition to their individual properties, all export a {\sf
+corotation} property (default value {\tt true}) that controls whether
+corotation is applied.
+
+\subsubsection{LinearMaterial}
+
+\javaclass[artisynth.core.materials]{LinearMaterial}
+is a standard isotropic linear material, which is also the default
+material for FEM models. Its elasticity matrix is given by
+%
+\begin{equation}
+\D = 
+\begin{bmatrix}
+  \lambda +2\mu & \lambda & \lambda  & 0 & 0 & 0\\
+  \lambda &  \lambda +2\mu & \lambda & 0 & 0 & 0\\
+  \lambda & \lambda & \lambda +2\mu & 0 & 0 & 0\\
+  0 & 0 & 0 & \mu & 0 & 0\\
+  0 & 0 & 0 & 0 & \mu & 0\\
+  0 & 0 & 0 & 0 & 0 & \mu
+\end{bmatrix},
+\end{equation}
+where the Lam\'e parameters $\lambda$ and $\mu$ are
+derived from Young's modulus $E$ and Poisson's ratio $\nu$
+via
+%
+\begin{equation}
+\lambda = \dfrac{E\nu}{(1+\nu)(1-2\nu)},  \quad
+\mu = \dfrac{E}{2(1+\nu)}.
+\label{LameParameters:eqn}
+\end{equation}
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$E$ & {\sf YoungsModulus} & Young's modulus & 500000 & \check \\
+$\nu$ & {\sf PoissonsRatio} & Poisson's ratio & 0.33 & \\
+    & {\sf corotated} & applies corotation if {\tt true} & {\tt true} & \\ 
+\hline
+\end{tabular}
+\end{center}
+
+{\tt LinearMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.LinearMaterial.LinearMaterial()}%
+{LinearMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.LinearMaterial.LinearMaterial(double,double)}%
+{LinearMaterial (double E, double nu)}%
+{Create with specified $E$ and $\nu$.}%
+%
+\methodentry
+{\mats.LinearMaterial.LinearMaterial(double,double,boolean)}%
+{LinearMaterial (double E, double nu, boolean corotated)}%
+{Create with specified $E$, $\nu$ and corotation.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{TransverseLinearMaterial}
+
+\javaclass[artisynth.core.materials]{TransverseLinearMaterial}
+is a transversely isotropic linear material whose behavior is
+symmetric about a prescribed {\it polar axis}. If the polar axis is
+parallel to the $z$ axis, then the elasticity matrix is specified most
+easily in terms of its inverse, or {\it compliance} matrix, according
+to
+%
+\begin{equation*}
+\D^{-1} = 
+\begin{bmatrix}
+\dfrac{1}{E_{xy}} & -\dfrac{\nu_{yx}}{E_{xy}} & -\dfrac{\nu_z}{E_z}& 0 & 0 & 0 \\
+-\dfrac{\nu_{yx}}{E_{xy}} & \dfrac{1}{E_{xy}} & -\dfrac{\nu_z}{E_z}& 0 & 0 & 0 \\
+-\dfrac{\nu_z}{E_z} & -\dfrac{\nu_z}{E_z} & \dfrac{1}{E_z} & 0 & 0 & 0 \\
+0 & 0 & 0 & \dfrac{2 (1+\nu_{yx})}{E_{xy}} & 0 & 0 \\
+0 & 0 & 0 & 0 & \dfrac{1}{G} & 0 \\
+0 & 0 & 0 & 0 & 0 & \dfrac{1}{G}
+\end{bmatrix},
+\end{equation*}
+%
+where $E_{xy}$ and $E_z$ are Young's moduli transverse 
+and parallel to the axis, respectively, $\nu_{xy}$ and $\nu_z$ are
+Poisson's ratios transverse and parallel to the axis, and $G$ is the
+shear modulus.
+
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$(E_{xy}, E_z)^T$ & {\sf youngsModulus} & 
+Young's moduli transverse and parallel to the axis 
+& $(500000,500000)^T$ & \check \\
+$(\nu_{xy}, \nu_z)^T$ & {\sf poissonsRatio} & 
+Poisson's ratios transverse and parallel to the axis & $(0.33,0.33)^T$ & \\
+$G$ & {\sf shearModulus} & shear modulus & 187970 & \check \\
+ & {\sf direction} & direction of the polar axis & $(0,0,1)^T$ & \check \\
+ & {\sf corotated} & applies corotation if {\tt true} & {\tt true} & \\ 
+\hline
+\end{tabular}
+\end{center}
+%
+The {\sf youngsModulus} and {\sf poissonsRatio} properties
+are both described by
+\javaclass[maspack.matrix]{Vector2d} objects, while
+{\sf direction} is described by a 
+\javaclass[maspack.matrix]{Vector3d}. The {\sf direction} property (as well as
+{\sf youngsModulus} and {\sf shearModulus}) can be bound to a field to
+allow its value to vary over an FEM model
+(Section \ref{sec:femFields}).
+
+{\tt TransverseLinearMaterial}s can be created with the following
+constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.TransverseLinearMaterial.TransverseLinearMaterial()}%
+{TransverseLinearMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.TransverseLinearMaterial.TransverseLinearMaterial(,,,)}%
+{TransverseLinearMaterial (Vector2d E, double G, \brh
+Vector2d nu, boolean corotated)}%
+{Create with specified $E$, $G$, $\nu$ and corotation.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{AnisotropicLinearMaterial}
+
+\javaclass[artisynth.core.materials]{AnisotropicLinearMaterial}
+is a general anisotropic linear material whose behavior is specified
+by an arbitrary (symmetric) elasticity matrix $\D$.
+%
+The material behavior is controlled by the following properties:
+%
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\D$ & {\sf stiffnessTensor} & 
+symmetric $6 \times 6$ elasticity matrix &  & \\
+ & {\sf corotated} & applies corotation if {\tt true} & {\tt true} & \\ 
+\hline
+\end{tabular}
+\end{center}
+%
+The default value for {\sf stiffnessTensor} is an isotropic elasticity
+matrix corresponding to $E = 500000$ and $\nu = 0.33$.
+
+{\tt AnisotropicLinearMaterial}s can be created with the following
+constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.AnisotropicLinearMaterial.AnisotropicLinearMaterial()}%
+{AnisotropicLinearMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.AnisotropicLinearMaterial.AnisotropicLinearMaterial(Matrix6dBase)}%
+{AnisotropicLinearMaterial (Matrix6dBase D)}%
+{Create with specified elasticity $\D$.}%
+%
+%
+\methodentry
+{\mats.AnisotropicLinearMaterial.AnisotropicLinearMaterial(Matrix6dBase,)}%
+{AnisotropicLinearMaterial (Matrix6dBase D, boolean corotated)}%
+{Create with specified $\D$ and corotation.}%
+%\midline
+\end{methodtable}
+%
+
+\subsection{Hyperelastic materials}
+
+A {\it hyperelastic} material is defined by a strain energy density
+function $W()$ that is in general a function of the deformation gradient
+$\F$, and more specifically a quantity derived from $\F$ that is
+rotationally invariant, such as the right Cauchy Green 
+tensor $\C \equiv \F^T \F$, the left Cauchy Green 
+tensor $\B \equiv \F \F^T$, or Green strain
+%
+\begin{equation}
+\E = \frac{1}{2}\left( \F^T \F - \I \right).
+\end{equation}
+%
+$W()$ is often described with respect to the first or second invariants
+of these quantities, denoted by $I_1$ and $I_2$ and defined with
+respect to a given matrix $\A$ by
+%
+\begin{equation}
+I_1 \equiv \tr (\A), \quad
+I_2 \equiv \frac{1}{2}\left( \tr(\A)^2 - \tr(\A^2) \right).
+\end{equation}
+%
+Alternatively, $W()$ is sometimes defined with respect to the three
+{\it principal stretches} of the deformation, $\lambda_i, i \in {1, 2,
+3}$, which are the eigenvalues of the symmetric component $\P$ of the
+polar decomposition of $\F$ in (\ref{polardF:eqn}).
+
+If $W()$ is expressed with respect to $\E$, then the second
+Piola-Kirchhoff stress $\S$ is given by
+%
+\begin{equation}
+\S = \frac{\partial W}{\partial \E}
+\end{equation}
+%
+from which the Cauchy stress can be obtained via
+%
+\begin{equation}
+\Bsig = \frac{1}{J} \F \S \F^T, \quad J \equiv \det \F.
+\end{equation}
+%
+
+Many of the hyperelastic materials described below are {\it
+incompressible}, in the sense that $W$ is partitioned into a {\it
+deviatoric} component that is volume invariant and a {\it dilational}
+component that depends solely on volume changes. 
+Volume change is
+characterized by $J = \det \F$, with the change in volume given by $d
+V = J^{1/3}$ and $J = 1$ indicating no volume change. Deviatoric
+changes are characterized by $\bar\F$, with
+%
+\begin{equation}
+\bar\F = J^{-1/3} \F,
+\end{equation}
+%
+and so the partitioned strain energy density function assumes the
+form
+%
+\begin{equation}
+W(\F) = \bar W (\bar\F) + U(J),
+\end{equation}
+%
+where the $\bar W()$ term is the deviatoric contribution and
+$U(J)$ is the volumetric potential that enforces incompressibility.
+$\bar W()$ may also be expressed with respect to the right deviatoric
+Cauchy Green tensor $\bar\C$ or the left deviatoric Cauchy Green
+tensor $\bar\B$, respectively defined by
+%
+\begin{equation}
+\bar\C = J^{-2/3} \C, \quad 
+\bar\B = J^{-2/3} \B.
+\end{equation}
+%
+ArtiSynth supplies different forms of $U(J)$, as specified by a
+material's {\sf bulkPotential} property and detailed in
+Section \ref{SoftIncomp:sec}. All of the available potentials depend
+on a {\sf bulkModulus} property $\kappa$, and so $U(J)$ is often
+expressed as $U(\kappa,J)$. A larger bulk modulus will make the
+material more incompressible, with effective incompressibility
+typically achieved by setting $\kappa$ to a value that exceeds the
+other elastic moduli in the material by a factor of 100 or more.
+All incompressible materials are subclasses of
+\javaclass[artisynth.core.materials]{IncompressibleMaterialBase}.
+
+\subsubsection{St Venant-Kirchoff material}
+
+\javaclass[artisynth.core.materials]{StVenantKirchoffMaterial}
+is a compressible isotropic material that extends isotropic linear
+elasticity to large deformations.
+The strain energy density is most easily expressed as a function
+of the Green strain $\E$:
+%
+\begin{equation}
+W(\E) = \frac{\lambda}{2} \tr(\E)^2 + \mu \tr(\E^2),
+\end{equation}
+%
+where the Lam\'e parameters $\lambda$ and $\mu$ are
+derived from Young's modulus $E$ and Poisson's ratio $\nu$
+according to (\ref{LameParameters:eqn}).
+From this definition it follows that the second Piola-Kirchoff stress
+tensor is given by
+%
+\begin{equation}
+\S = \lambda \tr(\E) \I + 2 \mu \E.
+\end{equation}
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$E$ & {\sf YoungsModulus} & Young's modulus & 500000 & \check \\
+$\nu$ & {\sf PoissonsRatio} & Poisson's ratio & 0.33 & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt StVenantKirchoffMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.StVenantKirchoffMaterial.StVenantKirchoffMaterial()}%
+{StVenantKirchoffMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.StVenantKirchoffMaterial.StVenantKirchoffMaterial(double,double)}%
+{StVenantKirchoffMaterial (double E, double nu)}%
+{Create with specified elasticity $E$ and $\nu$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Neo-Hookean material}
+
+\javaclass[artisynth.core.materials]{NeoHookeanMaterial}
+is a compressible isotropic material with a strain energy density
+expressed as a function of the first invariant $I_1$ of the right
+Cauchy-Green tensor $\C$ and $J = \det \F$:
+%
+\begin{equation}
+W(\C,J) = 
+\frac{\mu}{2} \left( I_1-3 \right) - \mu \ln(J) + \frac{\lambda}{2} \ln(J)^2,
+\end{equation}
+%
+where the Lam\'e parameters $\lambda$ and $\mu$ are derived from
+Young's modulus $E$ and Poisson's ratio $\nu$ via
+(\ref{LameParameters:eqn}). The Cauchy stress can be expressed in terms of
+the left Cauchy-Green tensor $\B$ as
+%
+\begin{equation}
+\Bsig = \frac{\mu}{J} \B + \frac{\lambda \ln(J)-\mu}{J} \I.
+\end{equation}
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$E$ & {\sf YoungsModulus} & Young's modulus & 500000 & \check \\
+$\nu$ & {\sf PoissonsRatio} & Poisson's ratio & 0.33 & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt NeoHookeanMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.NeoHookeanMaterial.NeoHookeanMaterial()}%
+{NeoHookeanMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.NeoHookeanMaterial.NeoHookeanMaterial(double,double)}%
+{NeoHookeanMaterial (double E, double nu)}%
+{Create with specified elasticity $E$ and $\nu$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Incompressible neo-Hookean material}
+
+\javaclass[artisynth.core.materials]{IncompNeoHookeanMaterial}
+is an incompressible version of the neo-Hookean material,
+with a strain energy density expressed in terms of the
+first invariant $\bar I_1$ of the {\it deviatoric} 
+right Cauchy-Green tensor $\bar\C$, plus a potential
+function $U(\kappa,J)$ to enforce incompressibility:
+%
+\begin{equation}
+W(\bar\C,J) = 
+\frac{G}{2} \left( \bar I_1-3 \right) + U(\kappa,J).
+\end{equation}
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$G$ & {\sf shearModulus} & shear modulus & 150000 & \check \\
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt IncompNeoHookeanMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.IncompNeoHookeanMaterial.IncompNeoHookeanMaterial()}%
+{IncompNeoHookeanMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.IncompNeoHookeanMaterial.IncompNeoHookeanMaterial(double,double)}%
+{IncompNeoHookeanMaterial (double G, double kappa)}%
+{Create with specified elasticity $G$ and $\kappa$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Mooney-Rivlin material}
+
+\javaclass[artisynth.core.materials]{MooneyRivlinMaterial}
+is an incompressible isotropic material with a strain energy density
+expressed as a polynomial of the first and second invariants $\bar
+I_1$ and $\bar I_2$ of the right deviatoric Cauchy-Green 
+tensor $\bar \C$. ArtiSynth supplies a five parameter version of this
+model, with a strain energy density given by
+%
+\begin{equation}
+W(\bar\C,J) = C_{10} (\bar I_1-3) + C_{01}(\bar I_2-3) + 
+C_{11} (\bar I_1-3)(\bar I_2-3) + C_{20} (\bar I_1-3)^2 +  C_{02} (\bar I_2-3)^2
++ U(\kappa, J).
+\end{equation}
+%
+A two-parameter version ($C_1$, $C_2$) is often found in the
+literature, consisting of only the first two terms:
+%
+\begin{equation}
+W(\bar\C,J) = C_1 (\bar I_1-3) + C_2(\bar I_2-3) + U(\kappa, J),
+\qquad C_1 \equiv C_{10}, \quad C_2 \equiv C_{01}.
+\end{equation}
+%
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$C_{10}$ & {\sf C10} & first coefficient & 150000 & \check \\
+$C_{01}$ & {\sf C01} & second coefficient & 0 & \check \\
+$C_{11}$ & {\sf C11} & third coefficient & 0 & \check \\
+$C_{20}$ & {\sf C20} & fourth coefficient & 0 & \check \\
+$C_{02}$ & {\sf C02} & fifth coefficient & 0 & \check \\
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt MooneyRivlinMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.MooneyRivlinMaterial.MooneyRivlinMaterial()}%
+{MooneyRivlinMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.MooneyRivlinMaterial.MooneyRivlinMaterial(,,,,,)}%
+{MooneyRivlinMaterial (double C10, double C01, double C11, \brh double C20,
+double C02, double kappa)}%
+{Create with specified coefficients.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Ogden material}
+
+\javaclass[artisynth.core.materials]{OgdenMaterial}
+is an incompressible material with a strain energy density
+expressed as a function of the deviatoric principal stretches $\bar\lambda_i, 
+i \in {1, 2, 3}$:
+%
+\begin{equation}
+W(\bar\lambda_1,\bar\lambda_2,\bar\lambda_3,J) = 
+\sum_{k=1}^N \frac{\mu_k}{\alpha_k^2} \left(
+\bar\lambda_1^{\alpha_k} + \bar\lambda_2^{\alpha_k} + \bar\lambda_3^{\alpha_k} - 3
+\right) + U(\kappa, J).
+\end{equation}
+%
+ArtiSynth allows a maximum of six terms, corresponding to $N = 6$, and
+the material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\mu_1$ & {\sf Mu1} & first multiplier & 300000 & \check \\
+$\mu_2$ & {\sf Mu2} & second multiplier & 0 & \check \\
+...        & ... & ... & 0 & \check \\
+$\mu_6$ & {\sf Mu6} & final multiplier & 0 & \check \\
+$\alpha_1$ & {\sf Alpha1} & first multiplier & 2 & \check \\
+$\alpha_2$ & {\sf Alpha2} & second multiplier & 2 & \check \\
+...        & ... & ... & 2 & \check \\
+$\alpha_6$ & {\sf Alpha6} & final multiplier & 2 & \check \\
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt OgdenMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.OgdenMaterial.OgdenMaterial()}%
+{OgdenMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.OgdenMaterial.OgdenMaterial(,,)}%
+{OgdenMaterial (double[] mu, double[] alpha, double kappa)}%
+{Create with specified $\mu$, $\alpha$ and $\kappa$ values.}%
+%
+%\midline
+\end{methodtable}
+%
+
+ \subsubsection{Fung orthotropic material}
+
+\javaclass[artisynth.core.materials]{FungOrthotropicMaterial}
+is an incompressible orthotropic material defined with respect to an
+$x$-$y$-$z$ coordinate system expressed by a $3 \times 3$ rotation
+matrix $\R$. The strain energy density is expressed as a function of
+the deviatoric Green strain
+%
+\begin{equation}
+\bar\E \equiv \frac{1}{2}\left(\bar\C - \I \right)
+\end{equation}
+%
+and the three unit direction vectors $\a_1,\, \a_2,\, \a_3$
+representing the columns of $\R$. Letting $\A_i \equiv \a_i \a_i^T$
+and defining
+%
+\begin{equation}
+\alpha_i \equiv \A_i : \bar\E = \tr(\a_i^T \bar\E \,\a_i), \quad
+\beta_i \equiv \A_i : \bar\E^2 = \tr(\a_i^T \bar\E^2 \,\a_i), \quad
+\end{equation}
+%
+the energy density is given by
+%
+\begin{equation}
+W(\bar\E,J) = \frac{C}{2}\left(e^q - 1\right) + U(\kappa,J),
+\quad 
+q = \sum_{i=1}^3 \left(
+2 \mu_i \beta_i + \sum_{j=1}^3 \lambda_{ij} \alpha_i \alpha_j 
+\right),
+\end{equation}
+%
+where $C$ is a material coefficient and $\mu_i$ and $\lambda_{ij}$ are
+the orthotropic Lam\'e parameters.
+
+At present, the coordinate frame $\R$ is not defined in the material,
+but can be specified on a per-element basis using the element method
+\javamethod[\fem.FemElement3dBase]{setFrame(Matrix3dBase)}. For example:
+%
+\begin{lstlisting}[]
+   RotationMatrix3d R;
+   FemModel3d fem;
+   ...
+   for (FemElement3d elem : fem.getElements()) {
+      ... computer R as required for the element ...
+      elem.setFrame (R);
+   }
+\end{lstlisting}
+%
+\begin{sideblock}
+One should be careful to ensure that the argument to {\tt setFrame()}
+is in fact an orthogonal rotation matrix as this will not be otherwise
+enforced.
+\end{sideblock}
+%
+The material behavior is controlled by the following properties:
+%
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\mu_1$ & {\sf mu1} & second Lam\'e parameter along $x$ & 1000 & \check \\
+$\mu_2$ & {\sf mu2} & second Lam\'e parameter along $y$ & 1000 & \check \\
+$\mu_3$ & {\sf mu3} & second Lam\'e parameter along $z$ & 1000 & \check \\
+$\lambda_{11}$ & {\sf lam11} & first Lam\'e parameter along $x$ & 2000 & \check \\
+$\lambda_{22}$ & {\sf lam22} & first Lam\'e parameter along $y$ & 2000 & \check \\
+$\lambda_{33}$ & {\sf lam33} & first Lam\'e parameter along $z$ & 2000 & \check \\
+$\lambda_{12}$ & {\sf lam12} & first Lam\'e parameter for $x,y$ & 2000 & \check \\
+$\lambda_{23}$ & {\sf lam23} & first Lam\'e parameter for $y,z$ & 2000 & \check \\
+$\lambda_{31}$ & {\sf lam31} & first Lam\'e parameter for $z,x$ & 2000 & \check \\
+$C$ & {\sf C} & C coefficient & 1500 & \check \\
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt FungOrthotropicMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.FungOrthotropicMaterial.FungOrthotropicMaterial()}%
+{FungOrthotropicMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.FungOrthotropicMaterial.FungOrthotropicMaterial(,,)}%
+{FungOrthotropicMaterial (double mu1, double mu2, double mu3, \brh
+double lam11, double lam22, double lam33, double lam12, \brh
+double lam23, double lam31, double C, double kappa)}
+{Create with specified properties.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Yeoh material}
+
+\javaclass[artisynth.core.materials]{YeohMaterial}
+is an incompressible isotropic material that implements a Yeoh model
+with a strain energy density containing up to five terms:
+%
+\begin{equation}
+W(\bar\C, J) = 
+\sum_{i=1}^5 C_i (\bar I_1 -3)^i,
+\end{equation}
+%
+where $\bar I_1$ is the first invariant of the right deviatoric Cauchy Green
+tensor and $C_i$ are the material coefficients.
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$C_1$ & {\sf C1} & first coefficient (shear modulus) & 150000 & \check \\
+$C_2$ & {\sf C2} & second coefficient & 0 & \check \\
+$C_3$ & {\sf C3} & third coefficient & 0 & \check \\
+$C_4$ & {\sf C4} & fourth coefficient & 0 & \check \\
+$C_5$ & {\sf C5} & fifth coefficient & 0 & \check \\
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt YeohMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.YeohMaterial.YeohMaterial()}%
+{YeohMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.YeohMaterial.YeohMaterial(,,)}%
+{YeohMaterial (double C1, double C2, double C3, double kappa)}%
+{Create three term material with $C_1$, $C_2$, $C_3$, $\kappa$.}%
+%
+\methodentry
+{\mats.YeohMaterial.YeohMaterial(,,,,)}%
+{YeohMaterial (double C1, double C2, double C3, double C4, \brh 
+double C5, double kappa)}%
+{Create five term material with $C_1$, ..., $C_5$, $\kappa$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Arruda-Boyce material}
+
+\javaclass[artisynth.core.materials]{ArrudaBoyceMaterial}
+is an incompressible isotropic material that implements the
+Arruda-Boyce model \cite{arruda1993three}.
+Its strain energy density is given by
+%
+\begin{equation}
+W(\bar\C, J) = 
+\mu \sum_{i=1}^5 \frac{C_i}{\lambda_L^{2(i-1)}}(\bar I_1^i-3^i) + U(\kappa, J),
+\end{equation}
+%
+where $\mu$ is the {\it initial modulus}, $\lambda_L$ the
+{\it locking stretch}, $\bar I_1$ the first invariant of the
+right deviatoric Cauchy Green tensor, and
+%
+\begin{equation*}
+C = \left\{ \frac{1}{2}, \; \frac{1}{20}, \; \frac{11}{1050}, \;
+\frac{19}{7000}, \; \frac{519}{673750} \right\}.
+\end{equation*}
+%
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\mu$ & {\sf mu} & initial modulus & 1000 & \check \\
+$\lambda_L$ & {\sf lambdaMax} & locking stretch & 2.0 & \check \\
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt ArrudaBoyceMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.ArrudaBoyceMaterial.ArrudaBoyceMaterial()}%
+{ArrudaBoyceMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.ArrudaBoyceMaterial.ArrudaBoyceMaterial(double,double,double)}%
+{ArrudaBoyceMaterial (double mu, double lmax, double kappa)}%
+{Create with specified $\mu$, $\lambda_L$, $\kappa$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Veronda-Westmann material}
+
+\javaclass[artisynth.core.materials]{VerondaWestmannMaterial}
+is an incompressible isotropic material that implements the
+Veronda-Westmann model \cite{veronda1970mechanical}. 
+Its strain energy density is given by
+%
+\begin{equation}\W(\bar\C, J) = 
+C_1 \left( e^{C_2 (\bar I_1-3)}-1 \right) - \frac{C_1 C_2}{2} (\bar I_2-3) + U(\kappa, J),
+\end{equation}
+%
+where $C_1$ and $C_2$ are material coefficients and $\bar I_1$ and
+$\bar I_2$ the first and second invariants of the right deviatoric
+Cauchy Green tensor.
+
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$C_1$ & {\sf C1} & first coefficient & 1000 & \check \\
+$C_2$ & {\sf C2} & second coefficient & 10 & \check \\
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt VerondaWestmannMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.VerondaWestmannMaterial.VerondaWestmannMaterial()}%
+{VerondaWestmannMaterial()}%
+{Create with default properties.}%
+%
+\methodentry
+{\mats.VerondaWestmannMaterial.VerondaWestmannMaterial(double,double,double)}%
+{VerondaWestmannMaterial (double C1, double C2, double kappa)}%
+{Create with specified $\C_1$, $C_2$, and $\kappa$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsubsection{Incompressible material}
+\label{IncompressibleMaterial:sec}
+
+\javaclass[artisynth.core.materials]{IncompressibleMaterial}
+is an incompressible isotropic material that implements pure
+incompressibility, with an energy density function given by
+%
+\begin{equation}
+W(J) = U(\kappa, J).
+\end{equation}
+%
+Because it responds only to dilational strains, it must be used in
+conjunction with another material to resist deviatoric strains.  In
+this context, it can be used to provide dilational support to
+deviatoric-only materials such as the 
+\javaclass[\mats]{FullBlemkerMuscle} (Section \ref{FullBlemkerMuscle:sec}).
+
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility & 
+100000 & \check \\
+& {\sf bulkPotential} & incompressibility potential function $U(\kappa, J)$ & 
+{\tt QUADRATIC} & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt IncompressibleMaterial}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.IncompressibleMaterial.IncompressibleMaterial()}%
+{IncompressibleMaterial()}%
+{Create with default values.}%
+%
+\methodentry
+{\mats.IncompressibleMaterial.IncompressibleMaterial(double)}%
+{IncompressibleMaterial (double kappa)}%
+{Create with specified $\kappa$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+\subsection{Muscle materials}
+\label{MuscleMaterials:sec}
+
+Muscle materials are used to exert stress along a particular direction
+within a material. This stress may contain both an active component,
+which depends on the muscle excitation, and a passive component, which
+depends solely on the stretch along the prescribed direction.  Because
+most muscle materials act only along one direction, they are typically
+deployed within an FEM as {\it additional} materials that act in
+addition to an underlying material. This can be done using either {\it
+muscle bundles} within a \javaclass[\fem]{FemMuscleModel}
+(Section \ref{MuscleBundles:sec}) or material bundles within any FEM
+model (Sections \ref{sec:augmentingMaterials}
+and \ref{RadialMuscle:sec}).
+
+All of the muscle materials described below assume (near)
+incompressibility, and so the directional stress is a function of the
+deviatoric stretch $\barlam$ along the muscle direction instead of the
+overall stretch $\lambda$.  The former can be determined from the
+latter via
+%
+\begin{equation}
+\barlam = \lambda J^{-1/3},
+\end{equation}
+%
+where $J$ is the determinant of the deformation gradient.  The
+directional Cauchy stress $\Bsig_d$ resulting from the material is
+computed from
+%
+\begin{equation}
+\Bsig_d = \frac{\barlam  f_d(\barlam)}{J} 
+\left( \a \a^T - \frac{1}{3}\I \right),
+\end{equation}
+%
+where $f_d(\barlam)$ is a force term, $\a$ is a unit vector indicating
+the current muscle direction in spatial coordinates, and $\I$ is the $3 \times
+3$ identity matrix. In a purely passive case when the force arises
+from a stress energy density function $W(\barlam)$, we have
+%
+\begin{equation}
+f_d(\barlam) = \frac{\partial W(\barlam)}{\partial \barlam}.
+\end{equation}
+%
+
+The muscle direction is specified in one of two ways, depending on how
+the muscle material is deployed. All muscle materials export a
+property {\sf restDir} which specifies the direction in material
+(rest) coordinates. It has a default value of $(1, 0, 0)^T$, and can
+be either set explicitly or bound to a field to allow it to vary over the
+entire model (Section \ref{RadialMuscle:sec}).  However, if a muscle
+material is deployed within a muscle bundle
+(Section \ref{FemMuscleModel:sec}), then the {\sf restDir} property is
+ignored and the direction is instead specified by the
+\javaclass[\fem]{MuscleElementDesc} components contained
+within the bundle (Section \ref{sec:fem:materialmuscle}).
+
+Likewise, muscle excitation is specified using the material's {\sf
+excitation} property, unless the material is deployed within a muscle
+bundle, in which case it is controlled by the {\sf excitation}
+property of the bundle.
+
+\subsubsection{Generic muscle}
+
+\javaclass[artisynth.core.materials]{GenericMuscle}
+is a muscle material whose force term $f_d(\barlam)$
+is given by
+%
+\begin{equation}
+f_d(\barlam) = a \sigma_{max} + f_p(\barlam),
+\end{equation}
+%
+where $a$ is the excitation signal, $\sigma_{max}$ is a maximum stress
+term, and $f_p(\barlam)$ is a passive force given by
+%
+\begin{equation}
+f_p(\barlam) =
+\begin{cases}
+0, & \barlam < 1 \\
+P_1 (e^{P_2(\barlam-1)}-1)/\barlam, & \barlam < \barlam_{max} \\
+(P_3 \barlam + P_4) / \barlam, & \mathrm{otherwise}.
+\end{cases}
+\end{equation}
+%
+In the equation above, $P_1$ is the exponential stress coefficient,
+$P_2$ is the uncrimping factor, and $P_3$ and $P_4$ are computed to
+provide $C(1)$ continuity at $\barlam = \barlam_{max}$.
+
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\sigma_{max}$ & {\sf maxStress} & maximum stress & 30000 & \check \\
+$\barlam_{max}$ & {\sf maxLambda} & $\barlam$ at upper limit of exponential
+section of $f_p(\barlam)$ & 1.4 & \check \\
+$P_1$ & {\sf expStressCoeff} & exponential stress coefficient & 0.05 & \check \\
+$P_2$ & {\sf uncrimpingFactor} & uncrimping factor & 6.6 & \check \\
+$\a_0$ & {\sf restDir} & direction in material coordinates &
+$(1, 0, 0)^T$ & \check \\
+$a$ & {\sf excitation} & activation signal & 0 & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt GenericMuscle}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.GenericMuscle.GenericMuscle()}%
+{GenericMuscle()}%
+{Create with default values.}%
+%
+\methodentry
+{\mats.GenericMuscle.GenericMuscle(,,,)}%
+{GenericMuscle (double maxLambda, double maxStress, \brh double expStressCoef,
+double uncrimpFactor)}%
+{Create with specified $\barlam_{max}$, $\sigma_{max}$, $P_1$, $P_2$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+The constructors do not specify {\sf restDir}. If the material is not
+being deployed within a muscle bundle, then {\sf restDir} should also
+be set appropriately, either directly or via a field
+(Section \ref{RadialMuscle:sec}).
+
+\subsubsection{Blemker muscle}
+\label{BlemkerMuscle:sec}
+
+\javaclass[artisynth.core.materials]{BlemkerMuscle}
+is a muscle material implementing the directional component of the
+model proposed by Sylvia Blemker \cite{blemker:2005:muscle}. Its force
+term $f_d(\barlam)$ is given by
+%
+\begin{equation}
+f_d(\barlam) = \sigma_{max} (a f_a(\barlam) + f_p(\barlam))/\barlam_{opt},
+\end{equation}
+%
+where $\sigma_{max}$ is a maximum stress term, $a$ is the excitation
+signal, $f_a(\barlam)$ is an active force-length curve, and $f_p(\barlam)$ is
+the passive force. $f_a(\barlam)$ and $f_p(\barlam)$ are described in
+terms of $\lamrat \equiv \barlam/\barlam_{opt}$:
+%
+\begin{equation}
+f_a(\lamrat) =
+\begin{cases}
+9 (\lamrat-0.4)^2, & \lamrat \le 0.6 \\
+1 - 4 (\lamrat-1)^2, & 0.6 < \lamrat < 1.4\\
+9 (\lamrat-1.6)^2, & \mathrm{otherwise},
+\end{cases}
+\end{equation}
+%
+and
+%
+\begin{equation}
+f_p(\lamrat) =
+\begin{cases}
+0, & \lamrat \le 1 \\
+P_1 (e^{P_2(\lamrat-1)}-1), & 1 < \lamrat < \barlam_{max}/\barlam_{opt} \\
+(P_3 \lamrat + P_4), & \mathrm{otherwise}.
+\end{cases}
+\end{equation}
+%
+In the equation for $f_p(\barlam)$, $P_1$ is the exponential stress
+coefficient, $P_2$ is the uncrimping factor, and $P_3$ and $P_4$ are
+computed to provide $C(1)$ continuity at $\lamrat = \barlam_{max}/\barlam_{opt}$.
+
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\sigma_{max}$ & {\sf maxStress} & maximum stress & 300000 & \check \\
+$\barlam_{opt}$ & {\sf optLambda} & $\barlam$ at peak of $f_a(\barlam)$ 
+& 1 & \check \\
+$\barlam_{max}$ & {\sf maxLambda} & $\barlam$ at upper limit of exponential
+section of $f_p(\barlam)$ & 1.4 & \check \\
+$P_1$ & {\sf expStressCoeff} & exponential stress coefficient & 0.05 & \check \\
+$P_2$ & {\sf uncrimpingFactor} & uncrimping factor & 6.6 & \check \\
+$\a_0$ & {\sf restDir} & direction in material coordinates &
+$(1, 0, 0)^T$ & \check \\
+$a$ & {\sf excitation} & activation signal & 0 & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt BlemkerMuscle}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.BlemkerMuscle.BlemkerMuscle()}%
+{BlemkerMuscle()}%
+{Create with default values.}%
+%
+\methodentry
+{\mats.BlemkerMuscle.BlemkerMuscle(,,,,)}%
+{BlemkerMuscle (double maxLam, double optLam, \brh
+double maxStress, double expStressCoef, double uncrimpFactor)}%
+{Create with specified $\barlam_{max}$, $\barlam_{opt}$, 
+$\sigma_{max}$, $P_1$, $P_2$.}%
+%
+%\midline
+\end{methodtable}
+%
+The constructors do not specify {\sf restDir}. If the material is not
+being deployed within a muscle bundle, then {\sf restDir} should also
+be set appropriately, either directly or via a field
+(Section \ref{RadialMuscle:sec}).
+
+\subsubsection{Full Blemker muscle}
+\label{FullBlemkerMuscle:sec}
+
+\javaclass[artisynth.core.materials]{FullBlemkerMuscle}
+is a muscle material implementing the entire model proposed by Sylvia
+Blemker \cite{blemker:2005:muscle}. This includes the directional
+stress described in Section \ref{BlemkerMuscle:sec}, plus additional
+passive terms to model the tissue material matrix. The latter is based
+on a strain energy density function $W_m$ given by
+%
+\begin{equation}
+W_m(\bar\B,\lambda) = G_1 \bar B_1^2 + G_2 \bar B_2^2
+\end{equation}
+%
+where $G_1$ and $G_2$ are the {\it along-fibre} and {\it cross-fibre}
+shear moduli, respectively, and $\bar B_1$ and $\bar B_2$ are
+Criscione invariants. The latter are defined as follows: Let $\bar
+I_1$ and $\bar I_2$ be the invariants of the deviatoric left Cauchy
+Green tensor $\bar\B$, $\a$ the unit vector giving the current muscle
+direction in spatial coordinates, and $\bar I_4$ and $\bar I_5$
+additional invariants defined by
+%
+\begin{equation}
+\bar I_4 \equiv \barlam^2, \quad \bar I_5 \equiv \bar I_4 \, \a^T \bar\B \a.
+\end{equation}
+%
+Then, defining
+%
+\begin{equation*}
+g \equiv \frac{\bar I_5}{\bar I_4^2} - 1, \quad
+y \equiv \frac{\bar I_1 \bar I_4 - \bar I_5}{2 \barlam},
+\end{equation*}
+%
+$\bar B_1$ and $\bar B_2$ are given by
+%
+\begin{align}
+\bar B_1 & =
+\begin{cases}
+\sqrt{g}, & g > 0 \\
+0, & \mathrm{otherwise}, \\
+\end{cases} \\
+\bar B_2 & =
+\begin{cases}
+\mathrm{acosh}(y), & y > 1 \\
+0, & \mathrm{otherwise}. \\
+\end{cases}
+\end{align}
+%
+
+\begin{sideblock}
+At present, {\tt FullBlemkerMuscle} does not implement a volumetric
+potential function $U(J)$. That means it responds solely to deviatoric
+strains, and so if it is being used as a model's primary material, it
+should be augmented with an additional material to provide resistance
+to compression. A simple choice for this is the purely incompressible
+material
+\javaclass[\mats]{IncompressibleMaterial}, described in Section
+\ref{IncompressibleMaterial:sec}.
+\end{sideblock}
+
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|} 
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\sigma_{max}$ & {\sf maxStress} & maximum stress & 300000 & \check \\
+$\barlam_{opt}$ & {\sf optLambda} & $\barlam$ at peak of $f_a(\barlam)$ & 
+1 & \check \\
+$\barlam_{max}$ & {\sf maxLambda} & $\barlam$ at upper limit of exponential
+section of $f_p(\barlam)$ & 1.4 & \check \\
+$P_1$ & {\sf expStressCoeff} & exponential stress coefficient & 0.05 & \check \\
+$P_2$ & {\sf uncrimpingFactor} & uncrimping factor & 6.6 & \check \\
+$G_1$ & {\sf G1} & along-fibre shear modulus & 0 & \check \\
+$G_2$ & {\sf G2} & cross-fibre shear modulus & 0 & \check \\
+$\a_0$ & {\sf restDir} & direction in material coordinates &
+$(1, 0, 0)^T$ & \check \\
+$a$ & {\sf excitation} & activation signal & 0 & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt FullBlemkerMuscle}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.FullBlemkerMuscle.FullBlemkerMuscle()}%
+{FullBlemkerMuscle()}%
+{Create with default values.}%
+%
+\methodentry
+{\mats.FullBlemkerMuscle.FullBlemkerMuscle(,,,,,,)}%
+{BlemkerMuscle (double maxLam, double optLam, \brh
+double maxStress, double expStressCoef, \brh 
+double uncrimpFactor, double G1, double G2)}%
+{Create with $\barlam_{max}$, $\barlam_{opt}$, 
+$\sigma_{max}$, $P_1$, $P_2$, $G_1$, $G_2$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+The constructors do not specify {\sf restDir}. If the material is not
+being deployed within a muscle bundle, then {\sf restDir} should also
+be set appropriately, either directly or via a field
+(Section \ref{RadialMuscle:sec}).
+
+\subsubsection{Simple force muscle}
+
+\javaclass[artisynth.core.materials]{SimpleForceMuscle}
+is a very simple muscle material whose force term $f_d(\barlam)$ is
+given by
+%
+\begin{equation}
+f_d(\barlam) = a \sigma_{max},
+\end{equation}
+%
+where $a$ is the excitation signal and $\sigma_{max}$ is a maximum
+stress term. It can be useful as a debugging tool.
+
+The material behavior is controlled by the following properties:
+\begin{center}
+\begin{tabular}{|l|l|l|c|c|}
+\hline
+ & Property & Description & Default & Field \\
+\hline
+$\sigma_{max}$ & {\sf maxStress} & maximum stress & 30000 & \check \\
+$\a_0$ & {\sf restDir} & direction in material coordinates &
+$(1, 0, 0)^T$ & \check \\
+$a$ & {\sf excitation} & activation signal & 0 & \\
+\hline
+\end{tabular}
+\end{center}
+
+{\tt SimpleForceMuscle}s can be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+%\midline
+%
+\methodentry
+{\mats.SimpleForceMuscle.SimpleForceMuscle()}%
+{SimpleForceMuscle()}%
+{Create with default values.}%
+%
+\methodentry
+{\mats.SimpleForceMuscle.SimpleForceMuscle(double)}%
+{SimpleForceMuscle (double maxStress)}%
+{Create with specified $\sigma_{max}$.}%
+%
+%\midline
+\end{methodtable}
+%
+
+The constructors do not specify {\sf restDir}. If the material is not
+being deployed within a muscle bundle, then {\sf restDir} should also
+be set appropriately, either directly or via a field
+(Section \ref{RadialMuscle:sec}).
 
 \section{Stress, strain and strain energy}
 
@@ -3176,7 +4579,7 @@ will be Green strain $\E$:
 \E = \frac{1}{2}(\C - \I),
 \end{equation}
 %
-where $\C$ is the right Cauchy-Green deformation tensor.
+where $\C$ is the right Cauchy-Green tensor.
 
 \subsection{Scalar stress/strain measures}
 \label{ScalarStressStrainMeasures:sec}

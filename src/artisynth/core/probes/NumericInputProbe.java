@@ -305,21 +305,51 @@ public class NumericInputProbe extends NumericProbeBase
    }
 
    /**
-    * Adds one or more data samples to internal data list.<br>
-    * <br>
-    * Samples can be evenly distributed with given time step or time of each
-    * sample can be explicitly set. In this case, timeStep must have value of
-    * {@link #EXPLICIT_TIME} and before every data sample must be its temporal
-    * information.<br>
-    * 
-    * Internal data sample size of this input probe can be determined by
-    * {@link #getVsize()} method.
+    * Sets the data points in this probe's numeric data.<br>
+    *
+    * <p>The times for the data points can be evenly distributed, starting at 0
+    * with a time step specified by {@code timeStep}, or their times can be
+    * explicitly set; for the latter case, {@code timeStep} must be set to
+    * {@link #EXPLICIT_TIME}.
+    *
+    * <p>Each data point is specified by a contiguous set of M values in {@code
+    * data}, where M is the probe data vector size as returned by {@link
+    * #getVsize()}. If the point times are explicitly specified, then these
+    * values must be preceeded by the point's time. The number of data points N
+    * is inferred from the length of {@code data}, which will be N*(1+M) if
+    * point times are explicity specified, and N*M otherwise.
     * 
     * @param data
-    * data array, which can contain multiple data samples
+    * contains the data values for all the points.
     * @param timeStep
-    * time step in seconds or {@link #EXPLICIT_TIME} if data contains explicitly
-    * set timestamps
+    * time step in seconds, or {@link #EXPLICIT_TIME} if {@code data} contains
+    * the point times
+    */
+   public void setData (double[] data, double timeStep) {
+      clearData();
+      addData (data, timeStep);
+   }
+
+   /**
+    * Adds one or more data points to this probe's numeric data.<br>
+    *
+    * <p>The times for the data points can be evenly distributed, starting at 0
+    * with a time step specified by {@code timeStep}, or their times can be
+    * explicitly set; for the latter case, {@code timeStep} must be set to
+    * {@link #EXPLICIT_TIME}.
+    *
+    * <p>Each data point is specified by a contiguous set of M values in {@code
+    * data}, where M is the probe data vector size as returned by {@link
+    * #getVsize()}. If the point times are explicitly specified, then these
+    * values must be preceeded by the point's time. The number of data points N
+    * is inferred from the length of {@code data}, which will be N*(1+M) if
+    * point times are explicity specified, and N*M otherwise.
+    * 
+    * @param data
+    * contains the data values for all the points.
+    * @param timeStep
+    * time step in seconds, or {@link #EXPLICIT_TIME} if {@code data} contains
+    * the point times
     */
    public void addData (double[] data, double timeStep) {
       int recSize = (timeStep == EXPLICIT_TIME ? myVsize + 1 : myVsize);

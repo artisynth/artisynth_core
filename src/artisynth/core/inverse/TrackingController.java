@@ -10,12 +10,16 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 
-import artisynth.core.driver.Main;
 import artisynth.core.femmodels.FemModel;
+import artisynth.core.inverse.FrameExciter.WrenchDof;
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.ExcitationComponent;
+import artisynth.core.mechmodels.ForceTargetComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystem;
@@ -39,10 +43,12 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.NumericState;
 import artisynth.core.modelbase.ReferenceListBase;
 import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.WeightedReferenceComp;
 import artisynth.core.util.ScanToken;
 import artisynth.core.workspace.RootModel;
 import maspack.matrix.VectorNd;
+import maspack.properties.HierarchyNode;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -51,13 +57,12 @@ import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.util.ArrayListView;
 import maspack.util.DoubleInterval;
-import maspack.util.ListView;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
 /**
  * Inverse controller for computing muscle activations based on
- * a set of motion and force trajectories, along with with other constraints.
+ * a set of motion and force trajectories, along with other constraints.
  * <p>
  * 
  * Terminology: <br>
@@ -125,9 +130,10 @@ public class TrackingController extends ControllerBase
    public static boolean DEFAULT_USE_KKT_FACTORIZATION = false;
    protected boolean myUseKKTFactorization = DEFAULT_USE_KKT_FACTORIZATION;
 
-   // normalize H and b terms of motion and force target terms
-   public static boolean DEFAULT_NORMALIZE_H = false;
-   protected boolean myNormalizeH = DEFAULT_NORMALIZE_H;
+   // normalize the optimization cost terms, so that their weights better
+   // reflect the tradeoffs between them
+   public static boolean DEFAULT_NORMALIZE_COST_TERMS = true;
+   protected boolean myNormalizeCostTerms = DEFAULT_NORMALIZE_COST_TERMS;
 
    // default bounds for the excitation values
    public static DoubleInterval DEFAULT_EXCITATION_BOUNDS =
@@ -138,6 +144,10 @@ public class TrackingController extends ControllerBase
 
    private static boolean DEFAULT_COMPUTE_INCREMENTALLY = false;
    private boolean myComputeIncrementally = DEFAULT_COMPUTE_INCREMENTALLY;
+   
+   private static boolean DEFAULT_CONFIG_EXCITATION_COLORING = true;
+   private boolean myConfigExcitationColoring = 
+      DEFAULT_CONFIG_EXCITATION_COLORING;
 
    // ========= other parameter attributes =========
 
@@ -154,12 +164,12 @@ public class TrackingController extends ControllerBase
    protected ExcitationResponse myExcitationResponse;
 
    protected MotionTargetTerm myMotionTerm = null;  // contains target information
-   protected ForceTargetTerm myForceTerm = null;  // contains target information
+   protected ConstraintForceTerm myConstraintForceTerm = null;  // contains target information
    // contains target information
    protected ForceEffectorTerm myForceEffectorTerm = null;  
-   protected DampingTerm myDampingTerm = null;
+   protected DampingTerm myExcitationDampingTerm = null;
 
-   protected L2RegularizationTerm myRegularizationTerm = null;
+   protected L2RegularizationTerm myL2RegularizationTerm = null;
    protected BoundsTerm myBoundsTerm = null;
    //protected NonuniformBoundsTerm myOffsetBoundsTerm = null;
    
@@ -219,8 +229,9 @@ public class TrackingController extends ControllerBase
          "flag for re-factoring at each internal KKT solve",
          DEFAULT_USE_KKT_FACTORIZATION);
       myProps.add(
-         "normalizeH", "normalize contribution by frobenius norm",
-         DEFAULT_NORMALIZE_H);
+         "normalizeCostTerms",
+         "normalize contribution of each cost terms using a frobenius norm",
+         DEFAULT_NORMALIZE_COST_TERMS);
       myProps.addInheritable (
          "excitationBounds", "bounds for the computed excitations",
          DEFAULT_EXCITATION_BOUNDS);
@@ -228,6 +239,10 @@ public class TrackingController extends ControllerBase
          "computeIncrementally",
          "compute excitations incrementally at each time step",
          DEFAULT_COMPUTE_INCREMENTALLY);
+      myProps.add(
+         "configExcitationColoring",
+         "configure white-to-red excitation coloring where applicable",
+         DEFAULT_CONFIG_EXCITATION_COLORING);
    }
 
    /**
@@ -295,7 +310,7 @@ public class TrackingController extends ControllerBase
          myMotionTerm.getTargets();
       for (MotionTargetComponent p : moTargetParticles) {
          if (p instanceof RenderableComponent) {
-            RenderProps.setVisible((RenderableComponent)p, show);
+            RenderableComponentBase.setVisible((RenderableComponent)p, show);
          }
       }
       targetsVisible = show;
@@ -319,7 +334,7 @@ public class TrackingController extends ControllerBase
    public void setSourcesVisible(boolean show) {
       for (MotionTargetComponent p : myMotionTerm.getSources()) {
          if (p instanceof RenderableComponent) {
-            RenderProps.setVisible((RenderableComponent)p, show);
+            RenderableComponentBase.setVisible((RenderableComponent)p, show);
          }
       }
       sourcesVisible = show;
@@ -421,6 +436,33 @@ public class TrackingController extends ControllerBase
    }
 
    /**
+    * Enables the automatic configuration of excitation coloring for exciters
+    * that support this capability. If enabled, then as these exciters are
+    * added to the controller, their {@code excitationColor} is inspected.  If
+    * it is {@code null}, then it is set to red and the nominal exciter color
+    * is set to white, enabling a white-to-red color transition for the exciter
+    * as it is activated.
+    * 
+    * @param enable if {@code true}, enables incremental computation
+    */
+   public void setConfigExcitationColoring (boolean enable) {
+      if (myConfigExcitationColoring != enable) {
+         myConfigExcitationColoring = enable;
+      }
+   }
+
+   /**
+    * Queries whether or not the automatic configuration of excitation coloring
+    * for exciters is enabled, as described in {@link
+    * #setConfigExcitationColoring(boolean)}.
+    * 
+    * @return {@code true} if configuring excitation coloring is enabled
+    */
+   public boolean getConfigExcitationColoring () {
+      return myConfigExcitationColoring;
+   }
+
+   /**
     * Enables incremental computation. If enabled, then excitations are
     * computed incrementatlly (as opposed to holistically) at each time step.
     * The various QPTerms used by the controller should adjust their
@@ -461,26 +503,42 @@ public class TrackingController extends ControllerBase
    }
    
    /**
-    * Queries whether or not H normalization is enabled, as described in {@link
-    * #setNormalizeH(boolean)}.
-    *
-    * @return {@code true} if H normalization is enabled
+    * @deprecated Use {@link #getNormalizeCostTerms} intead.
     */
    public boolean getNormalizeH() {
-      return myNormalizeH;
+      return getNormalizeCostTerms();
    }
 
    /**
-    * Enabled H normalization for any motion and force target terms.  This
-    * involves normalizing the {@code H} matrix and {@code b} vector for these
-    * terms by the Frobenius norm of the {@code H} matrix.
-    * <p>
-    * H normalization is disabled by default.
+    * @deprecated Use {@link #setNormalizeCostTerms} intead.
+    */
+   public void setNormalizeH (boolean enable) {
+      setNormalizeCostTerms (enable);
+   }
+   
+   /**
+    * Queries whether or not cost terms normalization is enabled, as described
+    * in {@link #setNormalizeCostTerms(boolean)}.
+    *
+    * @return {@code true} if cost term normalization is enabled
+    */
+   public boolean getNormalizeCostTerms() {
+      return myNormalizeCostTerms;
+   }
+
+   /**
+    * Enables or disbles normalization of the cost terms in the quadratic
+    * program. Normalization is done by dividing each term's {@code Q} matrix
+    * and {@code b} vector by the Frobenius norm of {@code Q}, <i>before</i>
+    * the term's weight is applied. This helps ensure that the cost term
+    * weights more inititively described the tradeoffs between terms.
+    *
+    * <p>Cost term normalization is enabled by default.
     * 
     * @param enable if <code>true</code>, enables normalization
     */
-   public void setNormalizeH (boolean enable) {
-      myNormalizeH = enable;
+   public void setNormalizeCostTerms (boolean enable) {
+      myNormalizeCostTerms = enable;
    }
    
    /**
@@ -692,6 +750,7 @@ public class TrackingController extends ControllerBase
       myExciters.setFixed (true);
       add (myExciters);
 
+      // add motion target term
       myMotionTerm = new MotionTargetTerm (this);
       myMotionTerm.setName ("motionTerm");
       myMotionTerm.setFixed (true);
@@ -701,8 +760,9 @@ public class TrackingController extends ControllerBase
          myMotionTerm.setType (QPTerm.Type.EQUALITY);
          // must have a regularization term in the cost function if the 
          // motion term is constraint
-         addL2RegularizationTerm();
+         setL2Regularization();
       }
+
       excitationRegularizationWeights = new VectorNd();
       
       //myMotionForceData = new MotionForceInverseData (this);
@@ -821,7 +881,11 @@ public class TrackingController extends ControllerBase
    protected void updateCostTerms(double t0, double t1) {
       if (t0 == 0) { // XXX need better way to zero excitations on reset
          //myCostFunction.setSize (numExciters());
-         myExcitations = new VectorNd (numExciters());
+         myExcitations.setSize (numExciters());
+         int numinit = Math.min (initExcitations.size(), numExciters());
+         for (int i=0; i<numinit; i++) {
+            myExcitations.set (i, initExcitations.get(i));
+         }
       }
       double h = t1-t0;
       
@@ -856,9 +920,9 @@ public class TrackingController extends ControllerBase
       constraints.addAll (getInequalityConstraints());
       constraints.addAll (getEqualityConstraints());
 
+
       // solve for the excitations, given the cost and constraint terms
       VectorNd x = myQPSolver.solve (costs, constraints, numExciters(), t0, t1);
-
       if (myComputeIncrementally) {
 
          // VectorNd deltaActivations = myCostFunction.solve (t0, t1);
@@ -873,6 +937,8 @@ public class TrackingController extends ControllerBase
          // myExcitations.set (myCostFunction.solve (t0, t1));
          myExcitations.set (x);
       }
+      // System.out.println (
+      //    "t1=" + t1 + " excitations=" + myExcitations.toString("%8.5f"));
 
       setExcitations(myExcitations, 0);
       myMech.setForces (savedForces);
@@ -884,7 +950,7 @@ public class TrackingController extends ControllerBase
    public void dispose() {
 //      System.out.println("tracking controller dispose()");
       myMotionTerm = null;
-      myRegularizationTerm = null;
+      myL2RegularizationTerm = null;
       myBoundsTerm = null;
       //myCostFunction.dispose();
 //      targetPoints.clear ();
@@ -919,6 +985,50 @@ public class TrackingController extends ControllerBase
       }
    }
 
+   void checkExcitationLinearity (double t, int numEx) {
+      VectorNd ex = new VectorNd (numEx);
+      int nsamps = 4;
+      VectorNd fp = new VectorNd();
+      double maxErr = -1;
+      int maxErrI = 0;
+      double maxErrA = 0;
+
+      setExcitations(ex, /* idx= */0);
+      myMech.updateForces (t);
+      myMech.getActiveForces(fp);
+
+      VectorNd res = new VectorNd(fp.size());
+      VectorNd[] fa = new VectorNd[nsamps];
+      for (int k=0; k<nsamps; k++) {
+         fa[k] = new VectorNd(fp.size());
+      }
+
+      for (int i=0; i<numEx; i++) {
+         ex.setZero();
+         for (int k=0; k<nsamps; k++) {
+            double a = (k+1)/(double)nsamps;
+            ex.set (i, a);
+            setExcitations(ex, /* idx= */0);
+            myMech.updateForces (t);
+            myMech.getActiveForces(fa[k]);
+            fa[k].sub (fp);
+         }
+         double mag = fa[nsamps-1].norm();
+         for (int k=0; k<nsamps; k++) {
+            double a = (k+1)/(double)nsamps;
+            res.scaledAdd (-a, fa[nsamps-1], fa[k]);
+            double err = res.norm()/(a*mag);
+            if (err > maxErr) {
+               maxErr = err;
+               maxErrI = i;
+               maxErrA = a;
+            }
+         }
+      }
+      System.out.printf (
+         "max linear error=%g ex=%d a=%g\n", maxErr, maxErrI, maxErrA);
+   }
+
    /**
     * Updates constraints in the mech system at time t, including
     * contacts
@@ -940,6 +1050,18 @@ public class TrackingController extends ControllerBase
    }
    
    /**
+    * Adds a collection of excitation component to the set of exciters that 
+    * can be used by the controller.
+    * @param exciters exciter components to add
+    */
+   public void addExciters (
+      Collection<? extends ExcitationComponent> exciters) {
+      for (ExcitationComponent ex : exciters) {
+         addExciter (ex);
+      }
+   }
+   
+   /**
     * Adds an excitation component to the set of exciters that can be used by
     * the controller.
     * 
@@ -954,14 +1076,14 @@ public class TrackingController extends ControllerBase
       
       if (ex instanceof MultiPointMuscle) {
          MultiPointMuscle m = (MultiPointMuscle)ex;
-         if (m.getExcitationColor() == null) {
+         if (myConfigExcitationColoring && m.getExcitationColor() == null) {
             RenderProps.setLineColor(m, Color.WHITE);
             m.setExcitationColor(Color.RED);
          }
       }
       else if (ex instanceof Muscle) {
          Muscle m = (Muscle)ex;
-         if (m.getExcitationColor() == null) {
+         if (myConfigExcitationColoring && m.getExcitationColor() == null) {
             RenderProps.setLineColor(m, Color.WHITE);
             m.setExcitationColor(Color.RED);
          }
@@ -1004,7 +1126,7 @@ public class TrackingController extends ControllerBase
     *
     * @return list of excitation components
     */
-   public ListView<ExcitationComponent> getExciters() {
+   public ArrayList<ExcitationComponent> getExciters() {
       ArrayListView<ExcitationComponent> view = new ArrayListView<>();
       for (WeightedReferenceComp<ExcitationComponent> ecomp : myExciters) {
          view.add (ecomp.getReference());
@@ -1029,21 +1151,39 @@ public class TrackingController extends ControllerBase
             new DoubleInterval (lower, upper));
       }
    }
+   
+   /** 
+    * Queries the excitation bounds for a specific excitation component.
+    *
+    * @param ex excitation component to request bounds for
+    * @return excitation bounds
+    */   
+   public DoubleInterval getExcitationBounds (ExcitationComponent ex) {
+      int idx = myExciters.indexOfReference (ex);
+      if (idx != -1) {
+         return myExciters.get(idx).getExcitationBounds();
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Excitation component not known to the controller");
+      }
+   }
 
    /**
     * Sets excitations provided in the <code>ex</code> vector starting at index
-    * <code>idx</code>.
+    * <code>idx</code>. Both the controller's interval excitation
+    * values and the values in the exciter components are set.
     *
-    * @param ex vector of excitations to use
+    * @param values vector of excitations to use
     * @param idx start index
     * @return current
     * index in the <code>ex</code> buffer <code>idx+numExciters()</code>
     */
-   public int setExcitations(VectorNd ex, int idx) {
+   public int setExcitations(VectorNd values, int idx) {
       if (myExcitations.size() < numExciters())  {
          myExcitations.setSize (numExciters());
       }
-      double[] buf = ex.getBuffer();
+      double[] buf = values.getBuffer();
       for (WeightedReferenceComp<ExcitationComponent> ecomp : myExciters) {
          ecomp.getReference().setExcitation(buf[idx++]);
       }
@@ -1053,14 +1193,27 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Fills the supplied <code>ex</code> vector with current excitation
-    * values starting at index <code>idx</code>
-    * @param ex vector of excitations to fill
+    * Sets excitations to the values provided in the vector
+    * <code>values</code>.  Both the controller's interval excitation values
+    * and the values in the exciter components are set.
+    *
+    * @param values vector of excitations to use
+    */
+   public void setExcitations(VectorNd values) {
+      setExcitations (values, 0);
+   }
+
+   /**
+    * Fills the supplied <code>values</code> vector with current excitation
+    * values starting at index <code>idx</code>. These excitation
+    * values are reading directly from the exciter components.
+    *
+    * @param values vector of excitations to fill
     * @param idx starting index
     * @return next index to use <code>idx+numExciters()</code>
     */
-   public int getExcitations (VectorNd ex, int idx) {
-      double[] buf = ex.getBuffer();
+   public int getExcitations (VectorNd values, int idx) {
+      double[] buf = values.getBuffer();
       for (int i = 0; i < numExciters(); i++) {
          buf[idx++] = getExciter(i).getNetExcitation ();
       } 
@@ -1068,8 +1221,20 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Returns a vector containing all the current excitation values.  The
-    * vector has size {@code numExciters()} and must not be modified.
+    * Returns the current excitation values in the vector <code>values</code>.
+    * These excitation values are reading directly from the exciter components.
+    *
+    * @param values vector in which to return excitations
+    */
+   public void getExcitations(VectorNd values) {
+      getExcitations (values, 0);
+   }
+
+   /**
+    * Returns a vector containing all the current excitation values.  The are
+    * values stored <i>within</i> the controller and are not the values within
+    * the exciters themselves. The vector has size {@code numExciters()} and
+    * must not be modified.
     *
     * @return vector of current excitation values
     */
@@ -1098,34 +1263,35 @@ public class TrackingController extends ControllerBase
     * exciter components, to allow for non-zero starting excitations.
     */
    public void initializeExcitations() {
+      initExcitations.setSize (numExciters());
       for (int i=0; i<myExciters.size (); i++) {
          double val = myExciters.get(i).getReference().getExcitation ();
-         prevExcitations.set(i,val);
-         myExcitations.set(i,val);
+         //prevExcitations.set(i,val);
+         //myExcitations.set(i,val);
          initExcitations.set(i,val);
       }
    }
    
-   /**
-    * Initialize the controller excitations with the values supplied by {@code
-    * values}, to allow for non-zero starting excitations.
-    * If the size of values does not equal {@link #numExciters}, missing
-    * or extra values are ignored.
-    *
-    * <p> this method does <i>not</i> set the excitation values in the exciter
-    * components themselves.
-    *
-    * @param values initial excitation values.
-    */
-   public void initializeExcitations (VectorNd values) {
-      int num = Math.min(numExciters(), values.size());
-      for (int i=0; i<num; i++) {
-         double val = values.get(i);
-         prevExcitations.set(i,val);
-         myExcitations.set(i,val);
-         initExcitations.set(i,val);
-      }
-   }
+   // /**
+   //  * Initialize the controller excitations with the values supplied by {@code
+   //  * values}, to allow for non-zero starting excitations.
+   //  * If the size of values does not equal {@link #numExciters}, missing
+   //  * or extra values are ignored.
+   //  *
+   //  * <p> this method does <i>not</i> set the excitation values in the exciter
+   //  * components themselves.
+   //  *
+   //  * @param values initial excitation values.
+   //  */
+   // public void initializeExcitations (VectorNd values) {
+   //    int num = Math.min(numExciters(), values.size());
+   //    for (int i=0; i<num; i++) {
+   //       double val = values.get(i);
+   //       //prevExcitations.set(i,val);
+   //       myExcitations.set(i,val);
+   //       initExcitations.set(i,val);
+   //    }
+   // }
    
    /**
     * Sets initial excitations to the supplied values.
@@ -1133,9 +1299,20 @@ public class TrackingController extends ControllerBase
     * @param init initial excitation values
     */
    public void setInitialExcitations(VectorNd init) {
-      if (init.size() != myExcitations.size()) {
-         throw new IllegalArgumentException("Wrong number of excitations");
-      }
+      int num = Math.min (numExciters(), init.size());
+      for (int i=0; i<num; i++) {
+         double val = init.get(i);
+         myExciters.get(i).getReference().setExcitation(val);
+         myExcitations.set (i, val);
+         //prevExcitations.set(i,val);
+         //myExcitations.set(i,val);
+         //initExcitations.set(i,val);
+      }      
+      // myExcitations.setSize (numExciters());
+      
+      // if (init.size() != myExcitations.size()) {
+      //    throw new IllegalArgumentException("Wrong number of excitations");
+      // }
       initExcitations.set(init);
    }
    
@@ -1150,43 +1327,151 @@ public class TrackingController extends ControllerBase
    public MotionTargetTerm getMotionTargetTerm() {
       return myMotionTerm;
    }
+
+   /**
+    * Queries the weight of the motion term.
+    * 
+    * @return motion term weight
+    */
+   public double getMotionTargetTermWeight() {
+      return myMotionTerm.getWeight();
+   }
   
    /**
-    * Adds a source for the tracking and creates a corresponding target point
-    * or frame object
-    * @param source point or frame to track
-    * @return the created target point/frame
+    * Sets the weight of the motion term. A larger weight increases the
+    * accuracy of the term relative to the other cost terms.  The default value
+    * is 1.0.
+    * 
+    * @param w motion term weight
+    */
+   public void setMotionTargetTermWeight (double w) {
+      myMotionTerm.setWeight(w);
+   }
+  
+   /**
+    * @deprecated Use {@link #addPointTarget(Point)} or {@link
+    * #addFrameTarget(Frame)} instead.
     */
    public MotionTargetComponent addMotionTarget(MotionTargetComponent source) {
       if (sourcesVisible) {
          if (source instanceof RenderableComponent) {
-            RenderProps.setVisible((RenderableComponent)source, true);
+            RenderableComponentBase.setVisible((RenderableComponent)source, true);
          }
       }
       return myMotionTerm.addTarget(source);
    }
    
-   public void removeMotionTarget(MotionTargetComponent source) {
-      myMotionTerm.removeTarget(source);
-   }
-
    /**
-    * Adds a source for the tracking and creates a corresponding target point
-    * or frame object
-    * @param source point or frame to track
-    * @param weight the weight by which to scale this target's contribution
-    * @return the created target point/frame
+    * @deprecated Use {@link #addPointTarget(Point,double)} or {@link
+    * #addFrameTarget(Frame,double)} instead.
     */
    public MotionTargetComponent addMotionTarget (
       MotionTargetComponent source, double weight) {
       if (sourcesVisible) {
          if (source instanceof RenderableComponent) {
-            RenderProps.setVisible((RenderableComponent)source, true);
+            RenderableComponentBase.setVisible((RenderableComponent)source, true);
          }
       }
       return myMotionTerm.addTarget(source, weight);
    }
 
+   /**
+    * Adds a point source for motion tracking and creates a corresponding
+    * target component for specifying the target force and weights. This method
+    * is equivalent to calling {@link
+    * #addPointTarget(Point,double)} with {@code weight} set
+    * to 1.0.
+    *
+    * @param source point to track
+    * @return the created target point
+    */
+   public TargetPoint addPointTarget(Point source) {
+      if (sourcesVisible) {
+         if (source instanceof RenderableComponent) {
+            RenderableComponentBase.setVisible((RenderableComponent)source, true);
+         }
+      }
+      return myMotionTerm.addPointTarget(source);
+   }
+   
+   /**
+    * Adds a point source for motion tracking and creates a corresponding
+    * target component for specifying the target force and weights.
+    * 
+    * @param source point to track
+    * @param weight weight to scale this target's contribution
+    * @return the created target point
+    */
+   public TargetPoint addPointTarget (Point source, double weight) {
+      if (sourcesVisible) {
+         if (source instanceof RenderableComponent) {
+            RenderableComponentBase.setVisible((RenderableComponent)source, true);
+         }
+      }
+      return myMotionTerm.addPointTarget(source, weight);
+   }
+
+   /**
+    * Adds a frame source for motion tracking and creates a corresponding
+    * target component for specifying the target force and weights. This method
+    * is equivalent to calling {@link #addFrameTarget(Frame,double)} with
+    * {@code weight} set to 1.0.
+    *
+    * @param source body to track
+    * @return the created target frame
+    */
+   public TargetFrame addFrameTarget(Frame source) {
+      if (sourcesVisible) {
+         if (source instanceof RenderableComponent) {
+            RenderableComponentBase.setVisible((RenderableComponent)source, true);
+         }
+      }
+      return myMotionTerm.addFrameTarget(source);
+   }
+   
+   /**
+    * Adds a frame source for motion tracking and creates a corresponding
+    * target component for specifying the target force and weights.
+    * 
+    * @param source body to track
+    * @param weight weight to scale this target's contribution
+    * @return the created target frame
+    */
+   public TargetFrame addFrameTarget (Frame source, double weight) {
+      if (sourcesVisible) {
+         if (source instanceof RenderableComponent) {
+            RenderableComponentBase.setVisible((RenderableComponent)source, true);
+         }
+      }
+      return myMotionTerm.addFrameTarget(source, weight);
+   }
+
+   /**
+    * Removes a source component from motion tracking.
+    *
+    * @param source component to remove
+    * @return {@code true} if the component was present and removed
+    */
+   public boolean removeMotionTarget(MotionTargetComponent source) {
+      return myMotionTerm.removeTarget(source);
+   }
+
+   /**
+    * Returns the number of motion targets.
+    *
+    * @return number of motion targets
+    */
+   public int numMotionTargets() {
+      if (myMotionTerm == null) {
+         return 0;
+      }
+      return myMotionTerm.getTargets().size();
+   }
+
+   public double getTargetPointsRadius() {
+      return targetsPointRadius;
+   }
+   
    /**
     * Sets the sphere radius used for rendering target points.
     *
@@ -1200,11 +1485,11 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Returns the motion target components. These are created internally by the
-    * controller, and are used to store the target positions that their
-    * corresponding source components should follow.
+    * Returns a list of all the motion target components. These are created
+    * internally by the controller, and are used to store the target positions
+    * that their corresponding source components should follow.
     * 
-    * @return list of motion target components. Should not be modified.
+    * @return list of all motion target components
     */
    public ArrayList<MotionTargetComponent> getMotionTargets() {
       if (myMotionTerm == null) {
@@ -1214,11 +1499,11 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Returns the motion source components. These are the model components that
-    * should follow the target positions contained in their corresponding
-    * target components.
+    * Returns a list of all motion source components. These are the model
+    * components that should follow the target positions contained in their
+    * corresponding target components.
     * 
-    * @return list of motion source components. Should not be modified.
+    * @return list of all motion source components
     */
    public ArrayList<MotionTargetComponent> getMotionSources() {
       if (myMotionTerm == null) {
@@ -1254,10 +1539,11 @@ public class TrackingController extends ControllerBase
    }
    
    /**
-    * Sets the weight for a specific motion target.
+    * Sets the weight for a specific motion target. The target may be specified
+    * either by its source or target component.
     * 
-    * @param comp motion target whose weight is to be set
-    * @param w weight
+    * @param comp source or target component for the motion target
+    * @param w weight to be set
     */
    public void setMotionTargetWeight (MotionTargetComponent comp, double w) {
       if (myMotionTerm == null) {
@@ -1268,12 +1554,44 @@ public class TrackingController extends ControllerBase
       if (idx == -1) {
          idx = myMotionTerm.getSources ().indexOf (comp);
       }
-      if (idx != -1 && idx < wvec.size ()) {
+      if (idx == -1) {
+         throw new IllegalArgumentException (
+            "source or target component not found");
+      }
+      if (idx < wvec.size ()) {
          wvec.set (idx, w);
          myMotionTerm.setTargetWeights (wvec);
       }
    }
    
+   /**
+    * Queries the weight for a specific motion target. The target may be specified
+    * either by its source or target component.
+    * 
+    * @param comp source or target component for the motion target
+    * @return weight of the target
+    */
+   public double getMotionTargetWeight (MotionTargetComponent comp) {
+      if (myMotionTerm == null) {
+         return 0;
+      }
+      VectorNd wvec = myMotionTerm.collectTargetWeights ();
+      int idx = myMotionTerm.getTargets ().indexOf (comp);
+      if (idx == -1) {
+         idx = myMotionTerm.getSources ().indexOf (comp);
+      }
+      if (idx == -1) {
+         throw new IllegalArgumentException (
+            "source or target component not found");
+      }
+      if (idx < wvec.size ()) {
+         return wvec.get (idx);
+      }
+      else {
+         return 0;
+      }
+   }
+
    /**
     * Returns a list of all points which are being used as motion targets.
     *
@@ -1283,9 +1601,566 @@ public class TrackingController extends ControllerBase
       return myMotionTerm.getTargetPoints();
    }
 
-   // ========== Begin other standard term methods ==========
+   // ========== Begin force effector term methods ==========
 
-  /**
+   private void addForceEffectorTermIfNecessary() {
+      if (myForceEffectorTerm == null) {
+         ForceEffectorTerm fterm = new ForceEffectorTerm("forceEffectorTerm");
+         fterm.setInternal (true);
+         myForceEffectorTerm = fterm;
+         add (fterm);
+      }
+   }
+
+   /**
+    * @deprecated The force effector term is now allocated on demand by
+    * {@link #getForceEffectorTerm} and other methods.
+    * 
+    * @return standard force effector target term
+    */
+   public ForceEffectorTerm addForceEffectorTerm () {
+      addForceEffectorTermIfNecessary();
+      return myForceEffectorTerm;
+   }
+   
+   /**
+    * Returns the force effector target term, allocating it if necessary.
+    * 
+    * @return force effector target term
+    */
+   public ForceEffectorTerm getForceEffectorTerm() {
+      addForceEffectorTermIfNecessary();
+      return myForceEffectorTerm;
+   }
+   
+   /**
+    * @deprecated The force effector term now remains in place once
+    * allocated. This method does nothing and returns {@code false}.
+    */ 
+   public boolean removeForceEffectorTerm () {
+      return false;
+   }
+
+   /**
+    * Queries the weight of the force effector term.
+    * 
+    * @return force effector term weight
+    */
+   public double getForceEffectorTermWeight() {
+      if (myForceEffectorTerm == null) {
+         return 1.0;
+      }
+      else {
+         return myForceEffectorTerm.getWeight();
+      }
+   }
+  
+   /**
+    * Sets the weight of the force effector term. A larger weight increases the
+    * accuracy of the term relative to the other cost terms.  The default value
+    * is 1.0.
+    * 
+    * @param w force effector term weight
+    */
+   public void setForceEffectorTermWeight (double w) {
+      addForceEffectorTermIfNecessary();
+      myForceEffectorTerm.setWeight(w);
+   }
+  
+   /**
+    * Adds a force effector component for force tracking and creates a
+    * corresponding {@code ForceEffectorTarget} for specifying the target force
+    * and weights. This method is equivalent to calling {@link
+    * #addForceEffectorTarget(ForceTargetComponent,double,boolean)} with {@code
+    * weight} set to 1.0 and {@code staticOnly} set to {@code true}.
+    *
+    * @param source force effector component
+    * @return ForceEffectorTarget for managing the target forces
+    */
+   public ForceEffectorTarget addForceEffectorTarget (
+      ForceTargetComponent source) {
+      addForceEffectorTermIfNecessary();
+      return myForceEffectorTerm.addTarget(source);
+   }
+
+   /**
+    * Adds a force effector component for force tracking and creates a
+    * corresponding {@code ForceEffectorTarget} for specifying the target force
+    * and weights.  This method is equivalent to calling {@link
+    * #addForceEffectorTarget(ForceTargetComponent,double,boolean)} with {@code
+    * staticOnly} set to {@code true}.
+    * 
+    * @param source force effector component
+    * @param weight weight to scale this target's contribution
+    * @return ForceEffectorTarget for managing the target forces
+    */
+   public ForceEffectorTarget addForceEffectorTarget (
+      ForceTargetComponent source, double weight) {
+      addForceEffectorTermIfNecessary();
+      return myForceEffectorTerm.addTarget(source,weight);
+   }
+
+   /**
+    * Adds a force effector icomponent for force tracking and creates a
+    * corresponding {@code ForceEffectorTarget} for specifying the target force
+    * and weights.
+    * 
+    * @param source force effector component
+    * @param weight weight to scale this target's contribution
+    * @param staticOnly {@code true} if only static forces (i.e., those which
+    * are not velocity dependent) should be controlled
+    * @return ForceEffectorTarget for managing the target forces
+    */
+   public ForceEffectorTarget addForceEffectorTarget (
+      ForceTargetComponent source, double weight, boolean staticOnly) {
+      addForceEffectorTermIfNecessary();
+      return myForceEffectorTerm.addTarget(source,weight,staticOnly);
+   }
+
+   /**
+    * Removes a force effector component from force tracking.
+    * 
+    * @param source force component to remove
+    * @return {@code true} if the component was present and removed
+    */
+   public boolean removeForceEffectorTarget (ForceTargetComponent source) {
+      if (myForceEffectorTerm != null) {
+         return myForceEffectorTerm.removeTarget(source);
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * Returns the number of force effector targets.
+    *
+    * @return number of force effector targets
+    */
+   public int numForceEffectorTargets() {
+      if (myForceEffectorTerm == null) {
+         return 0;
+      }
+      return myForceEffectorTerm.getTargets().size();
+   }
+
+   /**
+    * Returns a list of the ForceEffectorTargets for all the force effector
+    * components being controlled. These are created internally by the
+    * controller, and are used to store the target forces that their
+    * corresponding source components should follow.
+    * 
+    * @return list of all ForceEffector target components.
+    */
+   public ArrayList<ForceEffectorTarget> getForceEffectorTargets() {
+      if (myForceEffectorTerm != null) {
+         return myForceEffectorTerm.getTargets();
+      }
+      else {
+         return new ArrayList<>();
+      }
+   }
+
+   /**
+    * Returns a list of all the force effector components being controlled.
+    * These are the model components that should follow the target forces
+    * contained in their corresponding target components.
+    * 
+    * @return list of all force effector source components.
+    */
+   public ArrayList<ForceTargetComponent> getForceEffectorSources() {
+      if (myForceEffectorTerm != null) {
+         return myForceEffectorTerm.getSources();
+      }
+      else {
+         return new ArrayList<>();
+      }
+   }
+
+   // ========== Begin constraint force term methods ==========
+
+   private void addConstraintForceTermIfNecessary() {
+      if (myConstraintForceTerm == null) {
+         ForceTargetTerm fterm = new ForceTargetTerm("constraintForceTerm");
+         fterm.setInternal (true);
+         myConstraintForceTerm = fterm;
+         add (fterm);
+      }
+   }
+
+   /**
+    * @deprecated Replaced by {@link #getConstraintForceTerm}
+    */
+   public ForceTargetTerm addForceTargetTerm () {
+      return (ForceTargetTerm)getConstraintForceTerm();
+   }
+   
+   /**
+    * @deprecated Replaced by {@link #getConstraintForceTerm}
+    */
+   public ForceTargetTerm getForceTargetTerm () {
+      return (ForceTargetTerm)getConstraintForceTerm();
+   }
+   
+   /**
+    * @deprecated The constraint force term now remains in place once
+    * allocated. This method therefore does nothing.
+    */
+   public void removeForceTargetTerm () {
+   }
+   
+   /**
+    * Returns the constraint force target term, allocating it if necessary.
+    * 
+    * @return constraint force target term
+    */
+   public ConstraintForceTerm getConstraintForceTerm() {
+      addConstraintForceTermIfNecessary();
+      return myConstraintForceTerm;
+   }
+
+   /**
+    * Queries the weight of the constraint force term.
+    * 
+    * @return constraint force term weight
+    */
+   public double getConstraintForceTermWeight() {
+      if (myConstraintForceTerm == null) {
+         return 1.0;
+      }
+      else {
+         return myConstraintForceTerm.getWeight();
+      }
+   }
+  
+   /**
+    * Sets the weight of the constraint force term. A larger weight increases the
+    * accuracy of the term relative to the other cost terms.  The default value
+    * is 1.0.
+    * 
+    * @param w constraint force term weight
+    */
+   public void setConstraintForceTermWeight (double w) {
+      addConstraintForceTermIfNecessary();
+      myConstraintForceTerm.setWeight(w);
+   }
+  
+   /**
+    * Adds a body connector for constraint force tracking and creates a
+    * corresponding {@code ConstraintForceTarget} for specifying the target
+    * force and weights. This method is equivalent to calling {@link
+    * #addConstraintForceTarget(BodyConnector,double)} with {@code weight} set
+    * to 1.0.
+    * 
+    * @param bodyCon body connector
+    * @return ConstraintForceTarget for managing the target forces
+    */
+   public ConstraintForceTarget addConstraintForceTarget (BodyConnector bodyCon) {
+      addConstraintForceTermIfNecessary();
+      return myConstraintForceTerm.addTarget(bodyCon);
+   }
+
+   /**
+    * Adds a body connector for constraint force tracking and creates a
+    * corresponding {@code ConstraintForceTarget} for specifying the target
+    * force and weights.
+    * 
+    * @param bodyCon body connector
+    * @param weight weight to scale this target's contribution
+    * @return ConstraintForceTarget for managing the target forces
+    */
+   public ConstraintForceTarget addConstraintForceTarget (
+      BodyConnector bodyCon, double weight) {
+      addConstraintForceTermIfNecessary();
+      return myConstraintForceTerm.addTarget(bodyCon,weight);
+   }
+
+   /**
+    * Removes a body connector from constraint force tracking.
+    * 
+    * @param bodyCon body connector to remove
+    * @return {@code true} if the connector was present and removed
+    */   
+   public boolean removeConstraintForceTarget (BodyConnector bodyCon) {
+      if (myConstraintForceTerm != null) {
+         return myConstraintForceTerm.removeTarget(bodyCon);
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * Returns the number of constraint force targets.
+    *
+    * @return number of constraint force targets
+    */
+   public int numConstraintForceTargets() {
+      if (myConstraintForceTerm == null) {
+         return 0;
+      }
+      return myConstraintForceTerm.getTargets().size();
+   }
+
+   /**
+    * Returns the ConstraintForceTargets for all the body connectors being
+    * controlled. These are created internally by the controller, and are used
+    * to store the target constraint forces that the body connectors should
+    * follow.
+    * 
+    * @return list of ConstraintForceTargets components.
+    */
+   public ArrayList<ConstraintForceTarget> getConstraintForceTargets() {
+      if (myConstraintForceTerm != null) {
+         return myConstraintForceTerm.getTargets();
+      }
+      else {
+         return new ArrayList<>();
+      }
+   }
+
+   /**
+    * Returns all the BodyConnectors whose constraint forces are being
+    * controlled.
+    * 
+    * @return list of BodyConnector source components.
+    */
+   public ArrayList<BodyConnector> getConstraintForceSources() {
+      if (myConstraintForceTerm != null) {
+         return myConstraintForceTerm.getSources();
+      }
+      else {
+         return new ArrayList<>();
+      }
+   }
+
+   // ========== Begin L2 regularization term methods ==========
+
+   private void addL2RegularizationTermIfNecessary() {
+      if (myL2RegularizationTerm == null) {
+         L2RegularizationTerm rterm =
+            new L2RegularizationTerm("L2RegularizationTerm");
+         rterm.setInternal (true);
+         add (rterm);
+      }
+   }
+
+   /**
+    * @deprecated Use {@link #setL2Regularization()} instead.
+    */
+   public L2RegularizationTerm addL2RegularizationTerm() {
+      addL2RegularizationTermIfNecessary();
+      myL2RegularizationTerm.setWeight (L2RegularizationTerm.defaultWeight);
+      return myL2RegularizationTerm;
+   }
+   
+   /**
+    * @deprecated Use {@link #setL2Regularization(double)} instead.
+    */
+   public L2RegularizationTerm addL2RegularizationTerm(double w) {
+      addL2RegularizationTermIfNecessary();
+      myL2RegularizationTerm.setWeight (w);
+      return myL2RegularizationTerm;
+   }
+
+   /**
+    * @deprecated Use {@link #removeL2Regularization()} instead.
+    */
+   public boolean removeL2RegularizationTerm() {
+      return removeL2Regularization();
+   }   
+
+   /**
+    * Enables L2 regularization with a specified weight.
+    * 
+    * @param w regularization term weight
+    */
+   public void setL2Regularization (double w) {
+      if (w < 0) {
+         throw new IllegalArgumentException ("weight must not be negative");
+      }
+      addL2RegularizationTermIfNecessary();
+      myL2RegularizationTerm.setWeight(w);
+   }
+
+   /**
+    * Enables L2 regularization with a default weight of 0.0001.
+    */
+   public void setL2Regularization () {
+      addL2RegularizationTermIfNecessary();
+      myL2RegularizationTerm.setWeight (L2RegularizationTerm.defaultWeight);
+   }
+
+   /**
+    * Return the weight assocation with L2 regularization, or 0 if
+    * regularization is not present.
+    */
+   public double getL2RegularizationWeight () {
+      if (myL2RegularizationTerm == null) {
+         return 0;
+      }
+      else {
+         return myL2RegularizationTerm.getWeight();
+      }
+   }
+
+   /**
+    * Removes L2 regularization.
+    *
+    * @return {@code true} if L2 regularization was active
+    */
+   public boolean removeL2Regularization () {
+      if (myL2RegularizationTerm != null) {
+         remove (myL2RegularizationTerm);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * Returns the L2 regularization term, or {@code null} if it is not
+    * present.
+    * 
+    * @return standard L2 regularization term or {@code null}
+    */
+   public L2RegularizationTerm getL2RegularizationTerm() {
+      return myL2RegularizationTerm;
+   }
+
+   // ========== Begin damping term methods ==========
+  
+   private void addDampingTermIfNecessary() {
+      if (myExcitationDampingTerm == null) {
+         DampingTerm dterm = new DampingTerm ("dampingTerm");
+         dterm.setInternal (true);
+         add (dterm);
+      }
+   }
+
+   /**
+    * @deprecated Use {@link #setExcitationDamping()} instead.
+    */
+   public DampingTerm addDampingTerm() {
+      addDampingTermIfNecessary();
+      myExcitationDampingTerm.setWeight (DampingTerm.defaultWeight);
+      return myExcitationDampingTerm;
+   }
+
+   /**
+    * @deprecated Use {@link #setExcitationDamping(double)} instead.
+    */
+   public DampingTerm addDampingTerm(double w) {
+      addDampingTermIfNecessary();
+      myExcitationDampingTerm.setWeight (w);
+      return myExcitationDampingTerm;
+   }
+
+   /**
+    * @deprecated Use {@link #getExcitationDampingTerm()} instead.
+    */
+   public DampingTerm getDampingTerm () {
+      return myExcitationDampingTerm;
+   }
+
+   /**
+    * @deprecated Use {@link #removeExcitationDamping} instead.
+    */
+   public boolean removeDampingTerm() {
+      return removeExcitationDamping();
+   }   
+
+   /**
+    * Enables excitation damping with a specified weight.
+    * 
+    * @param w excitation damping weight
+    */
+   public void setExcitationDamping (double w) {
+      if (w < 0) {
+         throw new IllegalArgumentException ("weight must not be negative");
+      }
+      addDampingTermIfNecessary();
+      myExcitationDampingTerm.setWeight(w);
+   }
+
+   /**
+    * Enables excitation damping with a default weight of 1e-5.
+    */
+   public void setExcitationDamping () {
+      addDampingTermIfNecessary();
+      myExcitationDampingTerm.setWeight (DampingTerm.defaultWeight);
+   }
+
+   /**
+    * Return the weight assocation with excitation damping, or 0 if
+    * damping is not present.
+    */
+   public double getExcitationDampingWeight () {
+      if (myExcitationDampingTerm == null) {
+         return 0;
+      }
+      else {
+         return myExcitationDampingTerm.getWeight();
+      }
+   }
+
+   /**
+    * Removes excitation damping.
+    *
+    * @return {@code true} if damping was active
+    */
+   public boolean removeExcitationDamping () {
+      if (myExcitationDampingTerm != null) {
+         remove (myExcitationDampingTerm);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * Returns the excitation damping term, or {@code null} if it is not present.
+    * 
+    * @return excitation damping term
+    */
+   public DampingTerm getExcitationDampingTerm () {
+      return myExcitationDampingTerm;
+   }
+
+   /**
+    * @deprecated Use {@link #setRegularization(double,double)} instead.
+    */
+   public void addRegularizationTerms(Double w_l2norm, Double w_damping) {
+      if (w_l2norm != null) {
+         setL2Regularization(w_l2norm);
+      }
+
+      if (w_damping != null) {
+         setExcitationDamping(w_damping);
+      }
+   }
+
+   /**
+    * Sets both L2 regularization and excitation damping with supplied weights.
+    * Either argument is ignored if it is negative.
+    *
+    * @param wL2 L2 regularization weight
+    * @param wdamping excitation damping weight
+    */
+   public void setRegularization (double wL2, double wdamping) {
+      if (wL2 >= 0) {
+         setL2Regularization (wL2);
+      }
+      if (wdamping >= 0) {
+         setExcitationDamping (wdamping);
+      }
+   }
+
+   // ========== Begin general cost and constraint term methods ==========
+
+   /**
     * Returns the standard excitation bounds term for this controller.
     * 
     * @return standard excitation bounds term
@@ -1294,207 +2169,6 @@ public class TrackingController extends ControllerBase
       return myBoundsTerm;
    }
    
-   /**
-    * Adds a standard L2 regularization term to this controller, if it is not
-    * already present. Returns a reference to the term regardless.
-    * 
-    * @return standard L2 regularization term
-    */
-   public L2RegularizationTerm addL2RegularizationTerm() {
-      if (myRegularizationTerm == null) {
-         L2RegularizationTerm rterm =
-            new L2RegularizationTerm("L2RegularizationTerm");
-         rterm.setInternal (true);
-         add (rterm);
-      }
-      return myRegularizationTerm;
-   }
-   
-   /**
-    * Adds a standard L2 regularization term to this controller, if it is not
-    * already present. Sets the weight of the term and returns a reference to
-    * it regardless.
-    *
-    * @param w weight for the L2 regularization term
-    */
-   public L2RegularizationTerm addL2RegularizationTerm(double w) {
-      L2RegularizationTerm l2reg = addL2RegularizationTerm ();
-      l2reg.setWeight (w);
-      return l2reg;
-   }
-
-   /**
-    * Returns the standard L2 regularization term, or {@code null} if it is not
-    * present.
-    * 
-    * @return standard L2 regularization term or {@code null}
-    */
-   public L2RegularizationTerm getL2RegularizationTerm() {
-      return myRegularizationTerm;
-   }
-
-   /**
-    * Removes the standard L2 regularization term if it is present.
-    * 
-    * @return {@code true} if the standard L2 regularization term was removed
-    */
-   public boolean removeL2RegularizationTerm() {
-      if (myRegularizationTerm != null) {
-         remove (myRegularizationTerm);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }   
-
-   /**
-    * Adds a standard force target term to this controller, if it is not
-    * already present. Returns a reference to the term regardless.
-    * 
-    * @return standard force target term
-    */
-   public ForceTargetTerm addForceTargetTerm () {
-      if (myForceTerm == null) {
-         ForceTargetTerm fterm = new ForceTargetTerm("forceTerm");
-         fterm.setInternal (true);
-         add (fterm);
-      }
-      return myForceTerm;
-   }
-   
-   /**
-    * Returns the standard force target term, or {@code null} if it is not
-    * present.
-    * 
-    * @return standard force target term or {@code null}
-    */
-   public ForceTargetTerm getForceTargetTerm() {
-      return myForceTerm;
-   }
-   
-   /**
-    * Removes the standard force target term if it is present.
-    * 
-    * @return {@code true} if the standard force target term was removed
-    */   
-   public boolean removeForceTargetTerm () {
-      if (myForceTerm != null) {
-         remove (myForceTerm);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-
-   /**
-    * Adds a standard force effector term to this controller, if it is not
-    * already present. Returns a reference to the term regardless.
-    * 
-    * @return standard force effector term
-    */
-   public ForceEffectorTerm addForceEffectorTerm () {
-      if (myForceEffectorTerm == null) {
-         ForceEffectorTerm fterm = new ForceEffectorTerm("forceMinTerm");
-         fterm.setInternal (true);
-         add (fterm);
-      }
-      return myForceEffectorTerm;
-   }
-   
-   /**
-    * Returns the standard force effector term, or {@code null} if it is not
-    * present.
-    * 
-    * @return standard force effector term or {@code null}
-    */
-   public ForceEffectorTerm getForceEffectorTerm() {
-      return myForceEffectorTerm;
-   }
-   
-   /**
-    * Removes the standard force effector term if it is present.
-    * 
-    * @return {@code true} if the standard force effector term was removed
-    */ 
-   public boolean removeForceEffectorTerm () {
-      if (myForceEffectorTerm != null) {
-         remove (myForceEffectorTerm);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-   
-   /**
-    * Adds a standard damping term to this controller, if it is not already
-    * present. Returns a reference to the term regardless.
-    * 
-    * @return standard damping term
-    */
-   public DampingTerm addDampingTerm() {
-      if (myDampingTerm == null) {
-         DampingTerm dterm = new DampingTerm ("dampingTerm");
-         dterm.setInternal (true);
-         add (dterm);
-      }
-      return myDampingTerm;
-   }
-
-   /**
-    * Adds a standard damping term to this controller, if it is not already
-    * present. Sets the weight of the term and returns a reference to it
-    * regardless.
-    *
-    * @param w weight for the damping term
-    */
-   public DampingTerm addDampingTerm(double w) {
-      addDampingTerm();
-      myDampingTerm.setWeight (w);
-      return myDampingTerm;
-   }
-
-   /**
-    * Returns the standard damping term, or {@code null} if it is not present.
-    * 
-    * @return standard damping term or {@code null}
-    */
-   public DampingTerm getDampingTerm () {
-      return myDampingTerm;
-   }
-
-   /**
-    * Removes the standard damping term if it is present.
-    * 
-    * @return {@code true} if the standard damping term was removed
-    */
-   public boolean removeDampingTerm() {
-      if (myDampingTerm != null) {
-         remove (myDampingTerm);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }   
-
-   /**
-    * Adds both L2 and damping regularization terms with supplied weights
-    */
-   public void addRegularizationTerms(Double w_l2norm, Double w_damping) {
-      if (w_l2norm != null) {
-         addL2RegularizationTerm(w_l2norm);
-      }
-
-      if (w_damping != null) {
-         addDampingTerm(w_damping);
-      }
-   }
-
-   // ========== Begin general cost and constraint term methods ==========
-
    private boolean termIsInternal (QPTerm term) {
       if (term instanceof QPTermBase) {
          return ((QPTermBase)term).isInternal();
@@ -2019,5 +2693,59 @@ public class TrackingController extends ControllerBase
     */
    public VectorNd getHlamCol (int j) {
       return myExcitationResponse.getHlamCol (j);
+   }
+
+   /**
+    * Creates a complete set of FrameExciters for a given frame and adds them
+    * to a MechModel and to a controller.
+    *
+    * @param ctrl Tracking controller to add the exciters to
+    * @param mech MechModel to add the exciters to
+    * @param frame frame for which the exciters should be created
+    * @param maxForce maximum translational force along any axis
+    * @param maxMoment maximum moment about any axis
+    */
+   public FrameExciter[] createAndAddFrameExciters (
+      TrackingController ctrl, MechModel mech, Frame frame,
+      double maxForce, double maxMoment) {
+      
+      FrameExciter[] exs = new FrameExciter[6];
+      exs[0] = new FrameExciter (null, frame, WrenchDof.FX, maxForce);
+      exs[1] = new FrameExciter (null, frame, WrenchDof.FY, maxForce);
+      exs[2] = new FrameExciter (null, frame, WrenchDof.FZ, maxForce);
+      exs[3] = new FrameExciter (null, frame, WrenchDof.MX, maxMoment);
+      exs[4] = new FrameExciter (null, frame, WrenchDof.MY, maxMoment);
+      exs[5] = new FrameExciter (null, frame, WrenchDof.MZ, maxMoment);
+      // if the frame has a name, use this to create names for the exciters
+      if (frame.getName() != null) {
+         WrenchDof[] wcs = WrenchDof.values();
+         for (int i=0; i<6; i++) {
+            exs[i].setName (frame.getName()+"_"+wcs[i].toString().toLowerCase());
+         }
+      }
+      for (int i=0; i<6; i++) {
+         mech.addForceEffector (exs[i]);
+         ctrl.addExciter (exs[i]);
+      }
+      return exs;      
+   }
+   
+   public Iterator<? extends HierarchyNode> getChildren() {
+      return myComponents.iterator();
+   }
+
+   public boolean hasChildren() {
+      return myComponents != null && myComponents.size() > 0;
+   }
+
+   /**
+    * Sets property settings in the controller and motion control to those used
+    * before PD and chase control were redesigned.
+    */
+   public void setLegacyMotionControl() {
+      setNormalizeCostTerms (false);
+      myMotionTerm.setLegacyControl (true);
+      myMotionTerm.setKp (1.0);
+      myMotionTerm.setKd (0.0);
    }
 }

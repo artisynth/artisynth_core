@@ -26,9 +26,14 @@ public class L2RegularizationTermForDeltas extends QPCostTermBase {
       if (controller != null) {
          VectorNd act = new VectorNd (controller.numExciters());
          controller.getExcitations (act, 0);
+         double s = 1.0;
+         if (controller.getNormalizeCostTerms()) {
+            // divide by trace of I with size of Q
+            s = 1/Math.sqrt(Q.rowSize());
+         }         
          for (int i=0; i<Q.rowSize(); i++) {
-            Q.add (i, i, myWeight);
-            p.add (i, myWeight*act.get (i));
+            Q.add (i, i, s*myWeight);
+            p.add (i, s*myWeight*act.get (i));
          }
       }
    }

@@ -98,7 +98,7 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
     * @param fcomp
     * @param staticOnly
     */
-   private ForceEffectorTarget doAddForce (
+   private ForceEffectorTarget doAddTarget (
       ForceTargetComponent fcomp, boolean staticOnly) {
 
       ForceEffectorTarget mtarg =
@@ -118,7 +118,7 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
     * Removes a target to the term for trajectory error
     * @param source
     */
-   protected void removeForce (ForceTargetComponent fcomp) {
+   protected boolean removeTarget (ForceTargetComponent fcomp) {
 
       int idx = -1;
       for (int k=0; k<myForceTargets.size(); k++) {
@@ -128,7 +128,7 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
          }
       }
       if (idx == -1) {
-         return;
+         return false;
       }
       
       myForceTargets.remove (idx);
@@ -136,6 +136,7 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
       // set target matrix null, so that it is recreated on demand
       // XXX should be updated on a change event...
       myJacobian = null;
+      return true;
    }
 
    VectorNd collectAllWeights() {
@@ -152,15 +153,31 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
    }
    
    /**
+    * @deprecated Use {@link #addTarget(ForceTargetComponent,double,boolean)}
+    * instead.
+    */
+   public ForceEffectorTarget addForce (
+      ForceTargetComponent fcomp, double weight, boolean staticOnly) {
+      return (ForceEffectorTarget)addTarget (fcomp, weight, staticOnly);
+   }
+   
+   /**
+    * @deprecated Use {@link #addTarget(ForceTargetComponent)} instead.
+    */
+   public ForceEffectorTarget addForce (ForceTargetComponent fcomp) {
+      return (ForceEffectorTarget)addTarget (fcomp);
+   }
+   
+   /**
     * Adds a force component whose force should be controlled
     * @param fcomp force component 
     * @param weight used for the component
     * @param staticOnly {@code true} if only static forces should be controlled
     * @return ForceEffectorTarget for managing the target forces
     */
-   public ForceEffectorTarget addForce (
+   public ForceEffectorTarget addTarget (
       ForceTargetComponent fcomp, double weight, boolean staticOnly) {
-      ForceEffectorTarget mtarg = doAddForce (fcomp, staticOnly);
+      ForceEffectorTarget mtarg = doAddTarget (fcomp, staticOnly);
       mtarg.setWeight (weight);
       return mtarg;
    }
@@ -171,9 +188,9 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
     * @param weight used for the component
     * @return ForceEffectorTarget for managing the target forces
     */
-   public ForceEffectorTarget addForce (
+   public ForceEffectorTarget addTarget (
       ForceTargetComponent fcomp, double weight) {
-      return addForce (fcomp, weight, /*staticOnly=*/true);
+      return addTarget (fcomp, weight, /*staticOnly=*/true);
    }
    
    /**
@@ -181,27 +198,8 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
     * @param fcomp force component
     * @return ForceEffectorTarget for managing the target forces
     */
-   public ForceEffectorTarget addForce (ForceTargetComponent fcomp) {
-      return addForce (fcomp, /*weight=*/1.0, /*staticOnly=*/true);
-   }
-   
-   /**
-    * Adds a force component whose force should be controlled
-    * @param fcomp force component 
-    * @param weights used for the component
-    * @param staticOnly {@code true} if only static forces should be controlled
-    * @return ForceEffectorTarget for managing the target forces
-    */
-   public ForceEffectorTarget addForce (
-      ForceTargetComponent fcomp, VectorNd weights, boolean staticOnly) {
-      if (weights.size() < fcomp.getForceSize()) {
-         throw new IllegalArgumentException (
-            "size of weights less than "+fcomp.getForceSize()+
-            " required for force component");
-      }
-      ForceEffectorTarget mtarg = doAddForce (fcomp, staticOnly);
-      mtarg.setSubWeights (weights);
-      return mtarg;
+   public ForceEffectorTarget addTarget (ForceTargetComponent fcomp) {
+      return addTarget (fcomp, /*weight=*/1.0, /*staticOnly=*/true);
    }
 
    /**
@@ -212,15 +210,26 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Returns list of target points/frames
+    * Returns a list of the ForceTargetComponents being controlled. 
     */
-   public ArrayList<ForceTargetComponent> getForces() {
+   public ArrayList<ForceTargetComponent> getSources() {
       ArrayList<ForceTargetComponent> fcomps =
          new ArrayList<ForceTargetComponent>(myForceTargets.size());
       for (ForceEffectorTarget mtarg : myForceTargets) {
          fcomps.add (mtarg.getForceComp());
       }
       return fcomps;
+   }
+
+   /**
+    * Returns a list of the ForceEffectorTargets for all the
+    * ForceTargetComponents being controlled.
+    */
+   public ArrayList<ForceEffectorTarget> getTargets() {
+      ArrayList<ForceEffectorTarget> ftargs =
+         new ArrayList<ForceEffectorTarget>(myForceTargets.size());
+      ftargs.addAll (myForceTargets);
+      return ftargs;
    }
 
    Vector3d vtmp = new Vector3d();
@@ -342,7 +351,7 @@ public class ForceEffectorTerm extends LeastSquaresTermBase {
          System.out.println ("\tf: " + myFbar.toString ("%.3f"));
       }
 
-      if (controller.getNormalizeH()) {
+      if (controller.getNormalizeCostTerms()) {
          double fn = 1.0 / myHf.frobeniusNorm ();
          myHf.scale (fn);
          myFbar.scale (fn);

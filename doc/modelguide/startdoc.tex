@@ -3,7 +3,9 @@
 
 \def\mech{artisynth.core.mechmodels}
 \def\fem{artisynth.core.femmodels}
+\def\mats{artisynth.core.materials}
 \def\fields{artisynth.core.fields}
+\def\inverse{artisynth.core.inverse}
 \def\mgeo{maspack.geometry}
 
 % Add search paths for input files
@@ -12,9 +14,24 @@
 \makeatother
 
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[cal=zapfc]{mathalfa}
 \usepackage{framed}
 \input{artisynthDoc}
 \input{mathdefs}
+\DeclareMathOperator{\tr}{tr}
+\def\check{\checkmark}
+
+% Scale latexml image sizes 2x
+\newlength{\imglength}
+\newcommand{\setlengthLaTeXML}[3]{ %
+ \iflatexml %
+ \setlength{#1}{#2} %
+ \else %
+ \setlength{#1}{#3} %
+ \fi %
+}
+
 %\usepackage{xcolor}
 
 \iflatexml
@@ -29,7 +46,7 @@
 \title{\doctitle}
 \ifdefined\maindoc
 \author{John Lloyd and Antonio S\'anchez}
-\setpubdate{Last update: August, 2022}
+\setpubdate{Last update: July, 2024}
 
 \iflatexml
 \date{}

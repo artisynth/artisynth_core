@@ -2504,6 +2504,7 @@ source code for each demo in its {\tt .java} file located in the
 folder {\tt <ARTISYNTH\_HOME>/src/artisynth/demos/mech}.
 
 \subsection{Hinge joint}
+\label{HingeJoint:sec}
 
 \begin{figure}[h]
 \begin{center}
@@ -4049,14 +4050,330 @@ interactively apply forces to {\tt lumbar1} using the pull tool
 (see the section ``Pull Manipulation'' in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
 
+\section{Other point-based forces}
+\label{OtherPointForces:sec}
+
+All ArtiSynth components which are capable of exerting forces, including the
+axial springs of Section \ref{ParticlesAndSprings:sec} and the frame springs of
+Section \ref{FrameSprings:sec}, are subclasses of
+\javaclass[\mech]{ForceComponent}. Other force effector
+types include
+\javaclass[\mech]{PointPlaneForce} and
+\javaclass[\mech]{PointMeshForce}, described in this section.
+
+\subsection{Forces between points and planes or meshes}
+
+A \javaclass[\mech]{PointPlaneForce} component produces forces between a point
+and a plane, based on the point's signed distance $d$ from the plane.
+Similarly, a \javaclass[\mech]{PointMeshForce} component produces forces
+between one or more points and a closed polygonal mesh, based on the signed
+distance $d$ to the mesh. These components thus implement ``soft'' constraint
+forces that bind points to either a plane or a mesh. If the component's {\sf
+unilateral} property is set to {\tt true}, as described below, forces are
+applied only when $d < 0$. This allows the simulation of force-based contact
+between points and planes or meshes.
+
+\begin{sideblock}
+{\tt PointPlaneForce} and {\tt PointMeshForce} can be used for particles, FEM
+nodes and point-based markers, all of which are subclasses of {\tt Point}.
+\end{sideblock}
+
+These force components result in a force $\f$ acting on the point given by
+%
+\begin{equation*}
+\f = f(d, \dot d) \; \n, \qquad
+f(d, \dot d) = - \text{sgn}(d) f_K (|d|) - D \dot d,
+\end{equation*}
+%
+where $d$ is the signed distance to the plane (or mesh), $\n$ is the plane
+normal (or surface normal at the nearest mesh point), $f_K(d)$ is a stiffness
+force and $D$ is a damping constant. The stiffness force may be either linear
+or quadratic, according to
+%
+\begin{equation*}
+f_K (d) =
+\begin{cases}
+K d & \text{(linear)} \\
+K d^2 & \text{(quadratic)}
+\end{cases}
+\end{equation*}
+%
+where $K$ is a stiffness constant and the choice of linear or quadratic is
+controlled by the component's {\sf forceType} property.
+
+If the component's {\sf unilateral} property is set to {\tt true}, then the
+computed force will be 0 whenever $d > 0$:
+%
+\begin{equation*}
+\f = 
+\begin{cases}
+f (d, \dot d) d & d \le 0 \\
+0 & d > 0
+\end{cases}
+\end{equation*}
+%
+This allows plane and mesh force objects to implement ``soft'' collisions.
+
+\begin{sideblock}
+In the unilateral case, a quadratic force function provides smoother force
+transitions at $d = 0$.
+\end{sideblock}
+
+{\tt PointPlaneForce} may be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.PointPlaneForce.PointPlaneForce(Point,Plane)}%
+{PointPlaneForce (Point p, Plane plane)}%
+{Plane force component for point {\tt p}}%
+%
+\methodentry
+{\mech.PointPlaneForce.PointPlaneForce(Point,Vector3d,Point3d)}%
+{PointPlaneForce (Point p, Vector3d nrml, Point3d center)}%
+{Plane is specified by its normal and center.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+Each of these creates a force component for a single point {\tt p}, with the
+plane specified by either a {\tt Plane} object or by its normal and center.
+
+{\tt PointMeshForce} may be created with the following constructors:
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.PointMeshForce.PointMeshForce(MeshComponent)}%
+{PointMeshForce (MeshComponent mcomp)}%
+{Mesh force for the mesh component {\tt mcomp}.}%
+%
+\methodentry
+{\mech.PointMeshForce.PointMeshForce(String,MeshComponent)}%
+{PointMeshForce (String name, MeshComponent mcomp)}%
+{Named mesh force for mesh {\tt mcomp}.}%
+%
+\methodentry
+{\mech.PointMeshForce.PointMeshForce(String,MeshComponent,double,double)}%
+{PointMeshForce (String name, MeshComponent mcomp,\brh double K, double D)}%
+{Named mesh force with specified stiffness and damping.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+These create {\tt PointMeshForce} for a mesh contained within a
+\javaclass[\mech]{MeshComponent} (Section \ref{MeshComponents:sec}).
+The mesh must a polygonal mesh composed of triangles.
+
+The points associated with a {\tt PointMeshForce} are added to after
+creation. The following methods are used to manage the point set:
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.PointMeshForce.addPoint()}%
+{void addPoint (Point p)}%
+{Adds point {\tt p}.}%
+%
+\methodentry
+{\mech.PointMeshForce.removePoint()}%
+{boolean removePoint (Point p)}%
+{Removes point {\tt p}.}%
+%
+\methodentry
+{\mech.PointMeshForce.numPoints()}%
+{int numPoints()}%
+{Returns the number of points.}%
+%
+\methodentry
+{\mech.PointMeshForce.getPoint(int)}%
+{Point getPoint (int idx)}%
+{Returns the idx-th point.}%
+%
+\methodentry
+{\mech.PointMeshForce.clearAllPoints()}%
+{void clearAllPoints()}%
+{Removes all points.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+
+{\tt PointPlaneForce} and {\tt PointMeshForce} export a variety of properties
+that control their force behavior and appearance:
+
+\begin{itemize}
+
+\item {\sf stiffness}: A double value giving the stiffness constant $K$.
+Default value 1.0.
+
+\item {\sf damping}: A double value giving the damping constant $D$.
+Default value 0.0.
+
+\item {\sf forceType}: A value of type
+\javaclass[\mech]{PointPlaneForce\$ForceType} or
+\javaclass[\mech]{PointMeshForce\$ForceType} 
+which describes the
+stiffness force, with the options being {\tt LINEAR} and {\tt QUADRATIC}.
+Default value {\tt LINEAR}.
+
+\item {\sf unilateral}: A boolean value, which if {\tt true} means
+that no force will be generated for $d > 0$.  Default value {\tt false} for
+{\tt PointPlaneForce} and {\tt true} for {\tt PointMeshForce}.
+
+\item {\sf enabled}: A boolean value, which if {\tt false} disables
+the component so that it will generate no force. Default value {\tt true}.
+
+\item {\sf planeSize}: For {\tt PointPlaneForce} only, a double value 
+that gives the size of the plane for rendering purposes only.
+Default value 1.0.
+
+\end{itemize}
+
+These properties can be set either interactively in the GUI, or in code using
+their accessor methods.
+
+\subsection{Example: point plane forces}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/PointPlaneForces}
+\else
+ \includegraphics[width=3.75in]{images/PointPlaneForces}
+\fi
+\end{center}
+\caption{PointPlaneForces model running in ArtiSynth.}
+\label{PointPlaneForces:fig}
+\end{figure}
+
+An example using {\tt PointPlaneForce} is given by
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.PointPlaneForces
+\end{verbatim}
+%
+which implements soft collision between a particle and two planes.  The {\tt
+build()} method is shown below:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-18}}
+\lstinputlisting[firstline=1,lastline=31]{../../src/artisynth/demos/tutorial/PointPlaneForces.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=20,lastline=50]{../../src/artisynth/demos/tutorial/PointPlaneForces.java}
+\fi
+\lstset{numbers=none}
+%
+A {\tt MechModel} is created in the usual way (lines 2-3), followed by a
+particle (lines 6-7). Then two {\tt PointPlaneForce}s are created to act on
+this particle (lines 10-24), each centered on the origin, with plane normals of
+$(1, 0, 1)$ and $(-1, 0, 1)$, respectively. The forces are unilateral and
+linear (the default), with a stiffness of 1000. Each plane's size is set to 5;
+this is for rendering purposes only, as the planes have infinite extent for
+purposes of force calculation. Lastly, rendering properties are set (lines
+27-28) to make the particle appear as a red sphere and the planes blue-gray.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+PointPlaneForces} from the {\sf Models} menu. When run, the particle will drop
+and bounce off the planes (Figure \ref{PointPlaneForces:fig}), finally coming
+to rest along the line where they intersect.
+
+This model does not include damping, and so damping effects are due entirely to
+the default implicit integrator {\tt ConstrainedBackwardEuler}. If the
+integrator is changed to an explicit one, using a directive such as
+%
+\begin{lstlisting}[]
+  mech.setIntegrator (Integrator.RungeKutta4);
+\end{lstlisting}
+%
+then the ball will continue to bounce during the simulation.
+
+\subsection{Example: point mesh forces}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/PointMeshForces}
+\else
+ \includegraphics[width=3.75in]{images/PointMeshForces}
+\fi
+\end{center}
+\caption{PointMeshForces model running in ArtiSynth.}
+\label{PointMeshForces:fig}
+\end{figure}
+
+An example using {\tt PointMeshForce} is given by
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.PointMeshForces
+\end{verbatim}
+%
+which implements soft collision between a rigid cube and a bowl-shaped mesh,
+using a {\tt PointMeshForce} to create force between the mesh and markers at
+the cube corners. The {\tt build()} method is shown below:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-23}}
+\lstinputlisting[firstline=1,lastline=44]{../../src/artisynth/demos/tutorial/PointMeshForces.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=25,lastline=68]{../../src/artisynth/demos/tutorial/PointMeshForces.java}
+\fi
+\lstset{numbers=none}
+%
+
+A {\tt MechModel} is created (lines 3-5), with {\sf inertialDamping} set to 1.0
+to help reduce oscillations as the cube bounces off the bowl. The cube itself
+is created as a {\tt RigidBody} and positioned so as to fall into the bowl
+under gravity (lines 8-12). A frame marker is placed at each of the cube's
+corners, using the (local) positions of its surface mesh vertices to determine
+the marker locations (lines 13-18); these markers will act as the collision
+points.
+
+The bowl is constructed as a \javaclass[\mech]{FixedMeshBody} containing a mesh
+read from the folder {\tt "data/"} located beneath the source folder of the
+model (lines 8-12). A {\tt PointMeshForce} is then allocated for the bowl
+(lines 28-34), with unilateral behavior (the default) and a quadratic stiffness
+force with $K = 200000$ and $D = 1000$. Each marker point is added to it to
+enforce the collision. Lastly, rendering properties are set (lines 38-40) to
+set the colors for the cube and bowl and make the markers appear as a red
+spheres.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+PointMeshForces} from the {\sf Models} menu. When run, the cube will drop into
+the bowl and bounce around (Figure \ref{PointMeshForces:fig}).
+
+\begin{sideblock}
+Because of the discrete nature of the simulation, force-based collision
+handling is subject to the same time step limitations as constraint-based
+collisions (Section \ref{ContactLimitations:sec}). In particular,
+insufficiently small time steps, or too small a stiffness, may cause objects to
+pass through each other. Insufficient damping may also result
+in excessive bouncing.
+\end{sideblock}
+
 \section{Attachments}
 \label{Attachments:sec}
 
-ArtiSynth provides the ability to rigidly attach dynamic components to
-other dynamic components, allowing different parts of a model to be
-connected together.  Attachments are made by adding to a {\tt
-MechModel} special {\it attachment} components that manage the
-attachment physics as described briefly in Section
+ArtiSynth provides the ability to rigidly attach dynamic components to other
+dynamic components, allowing different parts of a model to be connected
+together.  Attachments are made by adding to a {\tt MechModel} special {\it
+attachment} components that manage the attachment physics as described briefly
+in Section
 \ref{PhysicsSimulation:sec}.
 
 \subsection{Point attachments}

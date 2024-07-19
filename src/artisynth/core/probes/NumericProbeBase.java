@@ -130,6 +130,10 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
 
    public abstract void apply (double t);
 
+   public boolean isDisplayable() {
+      return myNumericList != null;
+   }
+   
    public JPanel getDisplay (int w, int h, boolean isLargeDisplay) {
    // track is only needed for large display
       NumericProbePanel display;

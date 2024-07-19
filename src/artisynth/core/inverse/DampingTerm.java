@@ -32,18 +32,46 @@ public class DampingTerm extends QPCostTermBase {
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
       TrackingController controller = getController();
       if (controller != null) {
+         int nume = controller.numExciters();
          double h = t1 - t0;
-         if (h > 0) {
-            double s = myWeight/h;
-            for (int i=0; i<Q.rowSize(); i++) {
-               Q.add (i, i, s);
+         if (h > 0) { // paranoid - h should be > 0
+            double s = myWeight/(h*h);
+            if (controller.getNormalizeCostTerms()) {
+               //  divide by trace of the weight matrix
+               double trace = 0;
+               for (int i=0; i<nume; i++) {
+                  trace += controller.myExciters.get(i).getWeight();
+               }
+               if (trace != 0) {
+                  s = myWeight/trace;
+               }              
             }
             if (!controller.getComputeIncrementally()) {
                VectorNd prevEx = controller.getExcitations();
-               for (int i=0; i<Q.rowSize(); i++) {
-                  p.add (i, -s*prevEx.get(i));
+               for (int i=0; i<nume; i++) {
+                  double sw = s*controller.myExciters.get(i).getWeight();
+                  Q.add (i, i, sw);
+                  p.add (i, -sw*prevEx.get(i));
                }
             }
+            else {
+               for (int i=0; i<nume; i++) {
+                  double sw = s*controller.myExciters.get(i).getWeight();
+                  Q.add (i, i, sw);
+
+               }
+            }
+            // Previous code, removed July 2024. Did not account for exciter
+            // weights.
+            // for (int i=0; i<Q.rowSize(); i++) {
+            //    Q.add (i, i, s);
+            // }
+            // if (!controller.getComputeIncrementally()) {
+            //    VectorNd prevEx = controller.getExcitations();
+            //    for (int i=0; i<Q.rowSize(); i++) {
+            //       p.add (i, -s*prevEx.get(i));
+            //    }
+            // }
          }
       }
    }
@@ -55,7 +83,7 @@ public class DampingTerm extends QPCostTermBase {
    public void connectToHierarchy (CompositeComponent hcomp) {
       if (getParent() == hcomp && getParent() instanceof TrackingController) {
          TrackingController tcon = (TrackingController)getParent();
-         tcon.myDampingTerm = this;
+         tcon.myExcitationDampingTerm = this;
       }
    }
 
@@ -66,7 +94,7 @@ public class DampingTerm extends QPCostTermBase {
    public void disconnectFromHierarchy(CompositeComponent hcomp) {
       if (getParent() == hcomp && getParent() instanceof TrackingController) {
          TrackingController tcon = (TrackingController)getParent();
-         tcon.myDampingTerm = null;
+         tcon.myExcitationDampingTerm = null;
       }
    }
 

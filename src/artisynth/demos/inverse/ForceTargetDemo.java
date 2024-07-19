@@ -6,8 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import artisynth.core.inverse.ConnectorForceRenderer;
-import artisynth.core.inverse.ForceTarget;
-import artisynth.core.inverse.ForceTargetTerm;
+import artisynth.core.inverse.*;
 import artisynth.core.inverse.TargetPoint;
 import artisynth.core.inverse.TrackingController;
 import artisynth.core.materials.SimpleAxialMuscle;
@@ -258,11 +257,11 @@ public class ForceTargetDemo extends RootModel{
 //      cterm.setComplianceTargetType(StiffnessTargetType.DIAG);
 //      TrackingController.addTerm(cterm);
       
-      myTrackingController.addL2RegularizationTerm();
+      myTrackingController.setL2Regularization();
 //      myTrackingController.addTerm(new DampingTerm(TrackingController));
 
 //      myTrackingController.addTerm(new StaticMotionTargetTerm(TrackingController));
-      myTrackingController.addMotionTarget(mkr);
+      myTrackingController.addPointTarget(mkr);
       setPointRenderProps((TargetPoint) myTrackingController.getMotionTargets ().get (0));
      
 //      ForceTargetTerm mft=new ForceTargetTerm(myTrackingController);
@@ -272,13 +271,13 @@ public class ForceTargetDemo extends RootModel{
       double[] lam={-3.5};
       VectorNd tarlam= new VectorNd (lam);
       if (force) {
-         ForceTargetTerm mft = myTrackingController.addForceTargetTerm();
+         ConstraintForceTerm mft = myTrackingController.getConstraintForceTerm();
          if(cons==true) {
-            ForceTarget ft = mft.addForceTarget (con);
+            ConstraintForceTarget ft = mft.addTarget (con);
             ft.setTargetLambda (tarlam);
          }
          if(two_cons==true) {
-            ForceTarget ft = mft.addForceTarget (con2);
+            ConstraintForceTarget ft = mft.addTarget (con2);
             ft.setTargetLambda (tarlam);
          }
       }
@@ -309,16 +308,16 @@ public class ForceTargetDemo extends RootModel{
       motionTargetProbe.setActive (true);
    }
    
-   public void loadForceInputProbe(ForceTargetTerm mft) throws IOException
+   public void loadForceInputProbe(ConstraintForceTerm cft) throws IOException
    {
       ArtisynthPath.setWorkingDir (new File(
          ArtisynthPath.getSrcRelativePath (this, "data/")));
 
-      Property proparr[]=new Property[mft.getForceTargets ().size()];
-      for(int i=0;i<mft.getForceTargets ().size();i++)
+      Property proparr[]=new Property[cft.getTargets ().size()];
+      for(int i=0;i<cft.getTargets ().size();i++)
       {
-      System.out.println(mft.getForceTargets ().get(i).getConnector().getName());
-       proparr[i]=mft.getForceTargets().get(i).getProperty ("targetLambda");
+      System.out.println(cft.getTargets ().get(i).getConnector().getName());
+       proparr[i]=cft.getTargets().get(i).getProperty ("targetLambda");
       }
       NumericInputProbe forprobe = new NumericInputProbe();
       forprobe.setModel(mech);

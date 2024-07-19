@@ -34,6 +34,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
+import artisynth.core.probes.NumericDifferenceProbe;
 import artisynth.core.probes.NumericProbeBase;
 import artisynth.core.probes.Probe;
 import artisynth.core.probes.WayPoint;
@@ -137,6 +138,7 @@ public class InverseManager {
       
       TRACKED_POSITIONS,
       SOURCE_POSITIONS,
+      POSITION_ERROR,
       COMPUTED_EXCITATIONS;
 
       public String getName() {
@@ -152,6 +154,8 @@ public class InverseManager {
                   return "target positions";
                case SOURCE_POSITIONS:
                   return "model positions";
+               case POSITION_ERROR:
+                  return "position error";
                case COMPUTED_EXCITATIONS: {
                   return "computed excitations";
                }
@@ -179,6 +183,8 @@ public class InverseManager {
                   return "ref_target_position.txt";
                case SOURCE_POSITIONS:
                   return "model_target_position.txt";
+               case POSITION_ERROR:
+                  return "position_error.txt";
                case COMPUTED_EXCITATIONS: {
                   return "excitations.txt";
                }
@@ -260,6 +266,11 @@ public class InverseManager {
    }
 
    /**
+    * Creates an input probe of the type specified by {@code pid}.
+    *
+    * 
+
+   /**
     * Adds a set of input and output probes to a root model, for use in
     * controlling inverse simulation. A description of the created probes is
     * given in the documentation header for this class.  The probes start at
@@ -278,18 +289,18 @@ public class InverseManager {
       RootModel root, TrackingController controller, 
       double duration, double interval) {
 
-      ForceTargetTerm foterm = findForceTargetTerm (controller);      
+      ConstraintForceTerm foterm = findForceTargetTerm (controller);      
 
       if (foterm != null) {
          ProbeID pid = ProbeID.TARGET_FORCES;
          NumericInputProbe refTargetForceInProbe =
             findOrCreateInputProbe (root, pid, duration, interval);
          configureTargetForceProbe (
-            refTargetForceInProbe, foterm.getForceTargets(), pid);
+            refTargetForceInProbe, foterm.getTargets(), pid);
       }
       
       MotionTargetTerm moterm = findMotionTargetTerm (controller);      
-      if (moterm != null) {
+      if (moterm != null && moterm.getTargets().size() > 0) {
          ProbeID pid = ProbeID.TARGET_POSITIONS;
          NumericInputProbe refTargetMotionInProbe =
             findOrCreateInputProbe (root, pid, duration, interval);
@@ -307,6 +318,11 @@ public class InverseManager {
             findOrCreateOutputProbe (root, pid, duration, interval);
          configureTargetMotionProbe (
             modelTargetMotionOutProbe, moterm.getSources(), pid);
+         
+//         pid = ProbeID.POSITION_ERROR;
+//         findOrCreatePositionErrorProbe (
+//            root, pid,  duration, interval,
+//            refTargetMotionOutProbe, modelTargetMotionOutProbe);
       }
       
       Property[] props = new Property[controller.getExciters().size()];
@@ -318,21 +334,22 @@ public class InverseManager {
       ProbeID pid = ProbeID.COMPUTED_EXCITATIONS;
       NumericOutputProbe excitationOutProbe =
          findOrCreateOutputProbe (root, pid, duration, interval);
-      excitationOutProbe.setModel(controller.getMech());
+      //excitationOutProbe.setModel(controller.getMech());
       excitationOutProbe.setOutputProperties(props);
       excitationOutProbe.setAttachedFileName(pid.getFileName());
 
       pid = ProbeID.INPUT_EXCITATIONS;
       NumericInputProbe excitationInput =
          findOrCreateInputProbe (root, pid, duration, interval);
-      excitationInput.setModel(controller.getMech());
+      //excitationInput.setModel(controller.getMech());
       excitationInput.setInputProperties(props);
       excitationInput.setAttachedFileName(pid.getFileName());
+      maybeLoadDataFromFile (excitationInput);
       excitationInput.setActive(false);
 
       setLoneBreakPoint(root, duration);
    }
-   
+
    private static NumericOutputProbe findOutputProbe (
       RootModel root, String name) {
       Probe p = root.getOutputProbes().get(name);
@@ -378,6 +395,27 @@ public class InverseManager {
          root.addOutputProbe(outProbe);
       }
       return outProbe;
+   }
+
+   private static NumericDifferenceProbe findOrCreatePositionErrorProbe (
+      RootModel root, ProbeID pid, double duration, double interval,
+      NumericOutputProbe targetMotion, NumericOutputProbe sourceMotion) {
+
+      NumericDifferenceProbe diffProbe;
+      Probe p = findOutputProbe (root, pid);
+      if (p != null && p instanceof NumericDifferenceProbe) {
+         diffProbe = (NumericDifferenceProbe)p;
+         diffProbe.setProbes (targetMotion, sourceMotion);
+      }
+      else {
+         diffProbe = new NumericDifferenceProbe();
+         diffProbe.setName(pid.getName());
+         diffProbe.setStopTime (duration);
+         diffProbe.setUpdateInterval (interval);
+         diffProbe.setProbes (targetMotion, sourceMotion);
+         root.addOutputProbe(diffProbe);
+      }
+      return diffProbe;
    }
 
    /**
@@ -426,18 +464,19 @@ public class InverseManager {
     *
     * @param root root model in which to search for the probe
     * @param pid probe identifier
+    * @param filePath file name to be set
     * @return {@code true} if the probe was found and the file was renamed
     */
    public static boolean setProbeFileName (
-      RootModel root, ProbeID pid, String name) {
+      RootModel root, ProbeID pid, String filePath) {
       NumericProbeBase probe = findInputProbe (root, pid);
       if (probe != null) {
-         probe.setAttachedFileName (name);
+         probe.setAttachedFileName (filePath);
          return true;
       }
       probe = findOutputProbe (root, pid);
       if (probe != null) {
-         probe.setAttachedFileName (name);
+         probe.setAttachedFileName (filePath);
          return true;
       }
       else{
@@ -451,9 +490,8 @@ public class InverseManager {
    /**
     * Sets the data for a specified input probe within a root model, using the
     * {@code NumericInputProbe} method {@link NumericInputProbe#addData}.  The
-    * probe is also set be ``active'', and its interpolation order is set to
-    * {@code CubicStep}. The method searches for the probe, and if it
-    * doesn't find it, returns {@code false}.
+    * probe is also set be ``active''. The method searches for the probe, and
+    * if it doesn't find it, returns {@code false}.
     *
     * @param root root model in which to search for the probe
     * @param pid probe identifier
@@ -473,8 +511,7 @@ public class InverseManager {
          return false;
       }
       else {
-         p.addData (data, timeStep);
-         p.setInterpolationOrder (Interpolation.Order.CubicStep);
+         p.setData (data, timeStep);
          p.setActive (true);
          return true;
       }
@@ -524,16 +561,16 @@ public class InverseManager {
       return null;
    }
    
-   private static ForceTargetTerm findForceTargetTerm (
+   private static ConstraintForceTerm findForceTargetTerm (
       TrackingController controller) {
       for (QPCostTerm term : controller.getCostTerms()) {
-         if (term instanceof ForceTargetTerm) {
-            return (ForceTargetTerm)term;
+         if (term instanceof ConstraintForceTerm) {
+            return (ConstraintForceTerm)term;
          }
       }
       for (QPConstraintTerm term : controller.getEqualityConstraints()) {
-         if (term instanceof ForceTargetTerm) {
-            return (ForceTargetTerm)term;
+         if (term instanceof ConstraintForceTerm) {
+            return (ConstraintForceTerm)term;
          }
       }
       return null;
@@ -569,29 +606,16 @@ public class InverseManager {
       }
 
       if (probe instanceof NumericInputProbe) {
-         File file = probe.getAttachedFile ();
-         if (file == null || !file.exists ()) {
-            ((NumericInputProbe)probe).loadEmpty ();
-            probe.setActive (false);
-         }
-         else {
-            try {
-               probe.load ();
-               probe.setActive (true);
-            }
-            catch (IOException e) {
-               e.printStackTrace ();
-            }
-         }
+         probe.setActive (maybeLoadDataFromFile ((NumericInputProbe)probe));
       }
    }
 
    private static void configureTargetForceProbe(
       NumericProbeBase probe,
-      ComponentList<ForceTarget> targets, ProbeID pid) {
+      ArrayList<ConstraintForceTarget> targets, ProbeID pid) {
 //      System.out.println ("configuring force probe");
       ArrayList<Property> props = new ArrayList<Property>();
-      for (ForceTarget target : targets) {
+      for (ConstraintForceTarget target : targets) {
          props.add(target.getProperty("targetLambda"));
       }
 
@@ -608,21 +632,26 @@ public class InverseManager {
       }
 
       if (probe instanceof NumericInputProbe) {
-         File file = probe.getAttachedFile ();
-         if (file == null || !file.exists ()) {
-            ((NumericInputProbe)probe).loadEmpty ();
-            probe.setActive (false);
-         }
-         else {
-            try {
-               probe.load ();
-               probe.setActive (true);
-            }
-            catch (IOException e) {
-               e.printStackTrace ();
-            }
-         }
+         probe.setActive (maybeLoadDataFromFile ((NumericInputProbe)probe));
       }
+   }
+   
+   private static boolean maybeLoadDataFromFile (NumericInputProbe probe) {
+      File file = probe.getAttachedFile ();
+      if (file == null || !file.canRead ()) {
+         ((NumericInputProbe)probe).loadEmpty ();
+         return false;
+      }
+      else {
+         try {
+            probe.load ();
+            return true;
+         }
+         catch (IOException e) {
+            e.printStackTrace ();
+            return false;
+         }
+      }      
    }
    
    /**
@@ -696,6 +725,15 @@ public class InverseManager {
             wp.setBreakPoint (false);
       }
       root.addBreakPoint (t);
+   }
+
+   private static boolean containsString (String[] strs, String str) {
+      for (String s : strs) {
+         if (s.equals (str)) {
+            return true;
+         }
+      }
+      return false;
    }
    
    /**
@@ -781,22 +819,29 @@ public class InverseManager {
          });
          buttons.add (st);
          
-
-         
          addWidget (buttons);
          addWidget (new JSeparator ());
       }
 
+      String[] excludeProps = new String[] {
+         "name", "navpanelVisibility", "startTime"
+      };
+
       private void addDefaultWidgets(TrackingController tc) {
          
-         for (PropertyInfo propinfo : tc.getAllPropertyInfo())
-            addWidget(tc, propinfo.getName());
+         for (PropertyInfo propinfo : tc.getAllPropertyInfo()) {
+            if (!containsString (excludeProps, propinfo.getName())) {
+               addWidget(tc, propinfo.getName());
+            }
+         }
 
          for (QPTerm term : tc.getCostTerms()) {
             addWidget(new JSeparator());
             addWidget(new JLabel(term.getClass().getSimpleName()));
             for (PropertyInfo propinfo : term.getAllPropertyInfo ()) {
-               addWidget(term,propinfo.getName ());
+               if (!containsString (excludeProps, propinfo.getName())) {
+                  addWidget(term,propinfo.getName ());
+               }
             }
          }
          
@@ -815,10 +860,113 @@ public class InverseManager {
             addWidget (new JLabel (term.getClass ().getSimpleName ()));
             for (PropertyInfo propinfo : ((QPCostTermBase)term)
                .getAllPropertyInfo ())
-               addWidget ((QPCostTermBase)term, propinfo.getName ());
+               if (!containsString (excludeProps, propinfo.getName())) {
+                  addWidget ((QPCostTermBase)term, propinfo.getName ());
+               }
          }
       }
+   }
 
+   /**
+    * Create an input probe of the type specified by {@code pid}.
+    *
+    * @param tcon tracking controller to create the probe for
+    * @param pid specifies the type of input probe
+    * @param filePath file associated with the probe, or {@code null} if none
+    * @param startTime probe start time
+    * @param stopTime probe stop time
+    * @return created probe
+    */
+   public static NumericInputProbe createInputProbe (
+      TrackingController tcon, ProbeID pid, String filePath,
+      double startTime, double stopTime) {
+
+      NumericInputProbe inProbe = new NumericInputProbe();
+      inProbe.setName (pid.getName());
+      inProbe.setStopTime (stopTime);
+      inProbe.setStartTime (startTime);
+
+      switch (pid) {
+         case TARGET_FORCES: {
+            ConstraintForceTerm foterm = tcon.getConstraintForceTerm();
+            configureTargetForceProbe (inProbe, foterm.getTargets(), pid);
+            break;
+         }
+         case TARGET_POSITIONS: {
+            MotionTargetTerm moterm = tcon.getMotionTargetTerm(); 
+            configureTargetMotionProbe (inProbe, moterm.getTargets(), pid);
+            break;
+         }
+         case INPUT_EXCITATIONS: {
+            Property[] props = new Property[tcon.getExciters().size()];
+            for (int i = 0; i < tcon.getExciters().size(); i++) {
+               // XXX how to handle nested excitations?
+               props[i] = tcon.getExciters().get(i).getProperty("excitation"); 
+            }      
+            inProbe.setInputProperties(props);
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Probe type " + pid + " not supported");
+         }
+      }
+      //inProbe.setModel (null);
+      inProbe.setAttachedFileName(filePath);
+      inProbe.setActive (true);
+      return inProbe;
+   }
+
+   /**
+    * Create an output probe of the type specified by {@code pid}.
+    *
+    * @param tcon tracking controller to create the probe for
+    * @param pid specifies the type of output probe
+    * @param filePath file associated with the probe, or {@code null} if none
+    * @param startTime probe start time
+    * @param stopTime probe stop time
+    * @param interval probe update interval. or -1 to request updating
+    * with the simulation time step
+    * @return created probe
+    */
+   public static NumericOutputProbe createOutputProbe (
+      TrackingController tcon, ProbeID pid, String filePath,
+      double startTime, double stopTime, double interval) {
+
+      NumericOutputProbe outProbe = new NumericOutputProbe();
+      outProbe.setName(pid.getName());
+      outProbe.setStopTime (stopTime);
+      outProbe.setStartTime (startTime);
+      outProbe.setUpdateInterval (interval);
+
+      switch (pid) {
+         case TRACKED_POSITIONS: {
+            MotionTargetTerm moterm = tcon.getMotionTargetTerm(); 
+            configureTargetMotionProbe (outProbe, moterm.getTargets(), pid);
+            break;
+         }
+         case SOURCE_POSITIONS: {
+            MotionTargetTerm moterm = tcon.getMotionTargetTerm(); 
+            configureTargetMotionProbe (outProbe, moterm.getSources(), pid);
+            break;
+         }
+         case COMPUTED_EXCITATIONS: {
+            Property[] props = new Property[tcon.getExciters().size()];
+            for (int i = 0; i < tcon.getExciters().size(); i++) {
+               // XXX how to handle nested excitations?
+               props[i] = tcon.getExciters().get(i).getProperty("excitation"); 
+            }      
+            outProbe.setOutputProperties(props);
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Probe type " + pid + " not supported");
+         }
+      }
+      outProbe.setModel (null);
+      outProbe.setAttachedFileName(filePath);
+      return outProbe;
    }
 
    /**
@@ -826,14 +974,13 @@ public class InverseManager {
     * by a tracking controller.
     *
     * @param tcon tracking controller to create the probe for
-    * @param fileName file associated with the probe, or {@code null} if none
+    * @param filePath file associated with the probe, or {@code null} if none
     * @param startTime probe start time
-    * @param startTime probe stop time
-    * @param fileName file associated with the probe, or {@code null} if none
+    * @param stopTime probe stop time
     * @return created probe
     */
    public static NumericOutputProbe createComputedExcitationsProbe (
-      TrackingController tcon, String fileName,
+      TrackingController tcon, String filePath,
       double startTime, double stopTime) {
 
       Property[] props = new Property[tcon.getExciters().size()];
@@ -846,11 +993,12 @@ public class InverseManager {
       probe.setStartTime (startTime);
       probe.setStopTime (stopTime);
       probe.setUpdateInterval (-1);
-      probe.setModel(tcon.getMech());
+      probe.setModel(null);
       probe.setOutputProperties(props);
-      if (fileName != null) {
-         probe.setAttachedFileName(fileName);
+      if (filePath != null) {
+         probe.setAttachedFileName(filePath);
       }
       return probe;
    }
+
 }

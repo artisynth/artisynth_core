@@ -175,19 +175,39 @@ public class DynamicRegularizationTerm extends QPCostTermBase {
       return mapping;
    }
 
+   private double sumWeights (VectorNd w) {
+      double sum = 0;
+      for (int i=0; i<w.size(); i++) {
+         sum += w.get(i);
+      }
+      return sum;
+   }
+
    @Override
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
       TrackingController controller = getController();
       if (controller != null) {
+         double s = 1.0;
          if (isDynamicP) {
             VectorNd w = computeWeights (controller, t1-t0);
+            if (controller.getNormalizeCostTerms()) {
+               double trace = sumWeights(w);
+               // divide by trace of weight matrix
+               if (trace != 0) {
+                  s = 1/trace;
+               }
+            }  
             for (int i=0; i<Q.rowSize(); i++) {
-               Q.add (i, i, myWeight*w.get(i));
+               Q.add (i, i, s*myWeight*w.get(i));
             }
          }
          else {
+            if (controller.getNormalizeCostTerms()) {
+               // divide by trace of I with size of Q
+               s = 1/(double)Q.rowSize();
+            }          
             for (int i=0; i<Q.rowSize(); i++) {
-               Q.add (i, i, myWeight);
+               Q.add (i, i, s*myWeight);
             }
          }
          if (controller.getComputeIncrementally()) {

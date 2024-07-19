@@ -29,6 +29,7 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.ExcitationUtils;
+import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.ModelComponent;
@@ -37,29 +38,101 @@ import artisynth.core.modelbase.CompositeComponent;
 public class FrameExciter extends ModelComponentBase implements
 ExcitationComponent, ForceComponent, HasNumericState {
 
-   public enum WrenchComponent {
+   /**
+    * Specifies the degree-of-freedom along (or about) which the force (or
+    * moment) of this exciter will be applied to the frame.
+    */
+   public enum WrenchDof {
+      /**
+       * Force along x (in world coordinates)
+       */
       FX,
+      /**
+       * Force along y (in world coordinates)
+       */
       FY,
+      /**
+       * Force along z (in world coordinates)
+       */
       FZ,
+      /**
+       * Moment about x (in world coordinates)
+       */
       MX,
+      /**
+       * Moment about y (in world coordinates)
+       */
       MY,
+      /**
+       * Moment about z (in world coordinates)
+       */
       MZ
    };
+
+   /**
+    * @deprecated Use {@link WrenchDof} instead.
+    */
+   public enum WrenchComponent {
+      FX(WrenchDof.FX),
+      FY(WrenchDof.FY),
+      FZ(WrenchDof.FZ),
+      MX(WrenchDof.MX),
+      MY(WrenchDof.MY),
+      MZ(WrenchDof.MZ);
+
+      WrenchDof myDof;
+      WrenchComponent (WrenchDof dof) {
+         myDof = dof;
+      }
+   };
+
    
    protected Frame myFrame;
-   protected WrenchComponent myComponent = WrenchComponent.FX;
+   protected WrenchDof myDOF = WrenchDof.FX;
    protected double myMaxForce;
    protected double myExcitation;
    protected Wrench myTmp = new Wrench();
 
    protected CombinationRule myComboRule = CombinationRule.Sum;
    protected ExcitationSourceList myExcitationSources;
-   
-   public FrameExciter (String name, Frame body, WrenchComponent comp, double maxForce) {
+
+   /**
+    * Creates a FrameExciter.
+    * 
+    * @param name name of the exciter, or {@code null}
+    * @param frame frame being activated
+    * @param dof degree of freedom being controlled (world coordinates)
+    * @param maxForce maximum force along the dof
+    */
+   public FrameExciter (
+      String name, Frame frame, WrenchDof dof, double maxForce) {
       super (name);
-      myFrame = body;
-      myComponent = comp;
+      myFrame = frame;
+      myDOF = dof;
       myMaxForce = maxForce;
+   }
+   
+   /**
+    * @deprecated Use {@link #FrameExciter(String,Frame,WrenchDof,double)}
+    * instead.
+    */
+   public FrameExciter (
+      Frame frame, WrenchComponent comp, double maxForce) {
+      this (null, frame, comp.myDof, maxForce);
+   }
+
+   /**
+    * @deprecated Use {@link #FrameExciter(String,Frame,WrenchDof,double)}
+    * instead.
+    */
+   public FrameExciter (
+      String name, Frame frame, WrenchComponent comp, double maxForce) {
+      this (null, frame, comp.myDof, maxForce);
+   }
+   
+   public FrameExciter (
+      Frame frame, WrenchDof dof, double maxForce) {
+      this (null, frame, dof, maxForce);
    }
    
    public FrameExciter (String name) {
@@ -185,7 +258,7 @@ ExcitationComponent, ForceComponent, HasNumericState {
 
    @Override
    public void applyForces (double t) {
-      myTmp.set (myComponent.ordinal (), myExcitation*myMaxForce);
+      myTmp.set (myDOF.ordinal (), myExcitation*myMaxForce);
       myFrame.addForce (myTmp);
    }
 
@@ -210,12 +283,99 @@ ExcitationComponent, ForceComponent, HasNumericState {
       return Matrix.SPD;
    }
    
+   /**
+    * Creates a set of three FrameExciters to control the translational force
+    * on a given frame. If {@code mech} is non-null, the exciters are added to
+    * its list of force effectors. If {@code createName} is {@code true} and
+    * the frame has a name, each exciter is given a name based on the frame
+    * name.
+    *
+    * @param mech optional MechModel to add the exciters to
+    * @param frame frame for which the exciters should be created
+    * @param maxForce maximum translational force along any axis
+    * @param createNames if {@code true}, creates names for the exciters.
+    * @return list of the created exciters.
+    */   
+   public static ArrayList<FrameExciter> createForceExciters (
+      MechModel mech, Frame frame, double maxForce, boolean createNames) {
+      ArrayList<FrameExciter> exs = new ArrayList<>();
+      exs.add (new FrameExciter (null, frame, WrenchDof.FX, maxForce));
+      exs.add (new FrameExciter (null, frame, WrenchDof.FY, maxForce));
+      exs.add (new FrameExciter (null, frame, WrenchDof.FZ, maxForce));
+      // if the frame has a name, use this to create names for the exciters
+      if (createNames && frame.getName() != null) {
+         exs.get(0).setName (frame.getName()+"_fx");
+         exs.get(1).setName (frame.getName()+"_fy");
+         exs.get(2).setName (frame.getName()+"_fz");
+      }
+      if (mech != null) {
+         for (FrameExciter ex : exs) {
+            mech.addForceEffector (ex);
+         }
+      }
+      return exs;        
+   }
+   
+   /**
+    * Creates a set of three FrameExciters to control the moment force on a
+    * given frame. If {@code mech} is non-null, the exciters are added to its
+    * list of force effectors. If {@code createName} is {@code true} and the
+    * frame has a name, each exciter is given a name based on the frame name.
+    *
+    * @param mech optional MechModel to add the exciters to
+    * @param frame frame for which the exciters should be created
+    * @param maxMoment maximum moment force about any axis
+    * @param createNames if {@code true}, creates names for the exciters.
+    * @return list of the created exciters.
+    */   
+   public static ArrayList<FrameExciter> createMomentExciters (
+      MechModel mech, Frame frame, double maxMoment, boolean createNames) {
+      ArrayList<FrameExciter> exs = new ArrayList<>();
+      exs.add (new FrameExciter (null, frame, WrenchDof.MX, maxMoment));
+      exs.add (new FrameExciter (null, frame, WrenchDof.MY, maxMoment));
+      exs.add (new FrameExciter (null, frame, WrenchDof.MZ, maxMoment));
+      // if the frame has a name, use this to create names for the exciters
+      if (createNames && frame.getName() != null) {
+         exs.get(0).setName (frame.getName()+"_mx");
+         exs.get(1).setName (frame.getName()+"_my");
+         exs.get(2).setName (frame.getName()+"_mz");
+      }
+      if (mech != null) {
+         for (FrameExciter ex : exs) {
+            mech.addForceEffector (ex);
+         }
+      }
+      return exs;        
+   }
+   
+   /**
+    * Creates a complete set of FrameExciters for a given frame. If {@code
+    * mech} is non-null, the exciters are added to its list of force
+    * effectors. If {@code createName} is {@code true} and the frame has a
+    * name, each exciter is given a name based on the frame name.
+    *
+    * @param mech optional MechModel to add the exciters to
+    * @param frame frame for which the exciters should be created
+    * @param maxForce maximum translational force along any axis
+    * @param maxMoment maximum moment about any axis
+    * @param createNames if {@code true}, creates names for the exciters.
+    * @return list of the created exciters.
+    */   
+   public static ArrayList<FrameExciter> createFrameExciters (
+      MechModel mech, Frame frame, 
+      double maxForce, double maxMoment, boolean createNames) {
+      ArrayList<FrameExciter> exs = new ArrayList<>();
+      exs.addAll (createForceExciters (mech, frame, maxForce, createNames));
+      exs.addAll (createMomentExciters (mech, frame, maxMoment, createNames));
+      return exs;        
+   }
+   
    /*
     * helper method to add frame exciters for all 6 components of a wrench on the given frame
     */
    public static FrameExciter[] addFrameExciters(MechModel mech, Frame frame, double maxForce) {
       FrameExciter[] fes = new FrameExciter[6];
-      for (WrenchComponent comp : WrenchComponent.values ()) {
+      for (WrenchDof comp : WrenchDof.values ()) {
          FrameExciter fe = new FrameExciter (frame.getName()+"_"+comp.name(), frame, comp, maxForce);
          mech.addForceEffector (fe);
          fes[comp.ordinal()]=fe;
@@ -251,7 +411,7 @@ ExcitationComponent, ForceComponent, HasNumericState {
       
       int i = 0;
       int j = 0;
-      for (WrenchComponent comp : WrenchComponent.values()) {
+      for (WrenchDof comp : WrenchDof.values()) {
          if (enabled[i]) {
             FrameExciter fe = new FrameExciter(frame.getName()+"_"+comp.name (), frame, comp, maxForces[i]);
             mech.addForceEffector(fe);
@@ -268,7 +428,7 @@ ExcitationComponent, ForceComponent, HasNumericState {
     */
    public static FrameExciter[] addLinearFrameExciters(MechModel mech, Frame frame, double maxForce) {
       FrameExciter[] fes = new FrameExciter[3];
-      for (WrenchComponent comp : WrenchComponent.values ()) {
+      for (WrenchDof comp : WrenchDof.values ()) {
          FrameExciter fe = new FrameExciter (frame.getName()+"_"+comp.name(), frame, comp, maxForce);
          mech.addForceEffector (fe);
          fes[comp.ordinal()]=fe;
@@ -288,8 +448,13 @@ ExcitationComponent, ForceComponent, HasNumericState {
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
+      pw.println ("dof=" + myDOF);
       if (myExcitationSources != null) {
          myExcitationSources.write (pw, "excitationSources", fmt, ancestor);
+      }
+      if (myFrame != null) {
+         pw.println (
+            "frame="+ComponentUtils.getWritePathName (ancestor,myFrame));
       }
    }
 
@@ -303,6 +468,13 @@ ExcitationComponent, ForceComponent, HasNumericState {
       if (scanAttributeName (rtok, "excitationSources")) {
          myExcitationSources =
             ExcitationUtils.scan (rtok, "excitationSources", tokens);
+         return true;
+      }
+      else if (scanAndStoreReference (rtok, "frame", tokens)) {
+         return true;
+      }
+      else if (scanAttributeName (rtok, "dof")) {
+         myDOF = rtok.scanEnum (WrenchDof.class);
          return true;
       }
       rtok.pushBack();
@@ -320,6 +492,10 @@ ExcitationComponent, ForceComponent, HasNumericState {
          myExcitationSources.postscan (tokens, ancestor);
          return true;
       }   
+      else if (postscanAttributeName (tokens, "frame")) {
+         myFrame = postscanReference (tokens, Frame.class, ancestor);
+         return true;
+      }
       return super.postscanItem (tokens, ancestor);
    }
    

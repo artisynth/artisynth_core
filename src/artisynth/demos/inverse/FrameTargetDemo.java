@@ -123,11 +123,12 @@ public class FrameTargetDemo extends RootModel {
             controller.addExciter((Muscle)s);
          }
       }
-      controller.addL2RegularizationTerm();
-      MotionTargetComponent target = controller.addMotionTarget(box);
+      controller.setL2Regularization();
+      MotionTargetComponent target = controller.addFrameTarget(box);
       addController (controller);
       
       addController (new FrameController ((Frame)target));
+      controller.createProbes (this, 4, -1);
 
    }
 }

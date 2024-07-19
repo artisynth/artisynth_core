@@ -2,11 +2,14 @@ package artisynth.core.gui.jythonconsole;
 
 import org.python.util.*;
 import org.python.core.*;
+import org.python.jline.console.UserInterruptException;
 
 import maspack.util.InternalErrorException;
 import artisynth.core.driver.Main;
 import artisynth.core.util.JythonInit;
+import artisynth.core.util.ArtisynthPath;
 import java.io.*;
+import java.util.Properties;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
@@ -46,21 +49,40 @@ public class ArtisynthJythonConsole {
       return System.console() == null;
    }
 
+   private static Properties createDefaultProperties () {
+      Options.importSite = false;
+      Properties props = new Properties();
+      File jythonCacheDir = new File(ArtisynthPath.getCacheDir(), "jython");
+      props.setProperty (
+         RegistryKey.PYTHON_CACHEDIR, jythonCacheDir.toString());
+      props.setProperty (RegistryKey.PYTHON_IO_ENCODING, "utf-8");
+      return props;
+   }
+   
    public static ArtisynthJythonConsole createTerminalConsole() {
-      // If stdout has been routed to a file, create a ythonInteractiveConsole
-      // instead of a JythonJLineConsole, since the latter will hang (trying to
-      // set up non-buffered terminal input) if run as a background task.
-      InteractiveConsole console;
-      if (outputDirectedToFile()) {
-         console = new JythonInteractiveConsole();
+      // Jython 2.7: turn off site import since required files unavailable
+
+      Properties props = createDefaultProperties();
+      boolean usingJLine = false;
+      if (!outputDirectedToFile()) {
+         // If stdout is not routed to a file, then we can instruct Jython to
+         // initialize with a JLineConsole, which allows editing. Otherwise, we
+         // use a PlainConsole, since JLineConsole may hang (trying to set up
+         // non-buffered terminal input) if run as a background task.
+         props.setProperty (
+            RegistryKey.PYTHON_CONSOLE, "org.python.util.JLineConsole");
+         usingJLine = true;
       }
-      else {
-         console = new JythonJLineConsole();
-      }
+      PySystemState.initialize(null, props);         
+      InteractiveConsole console = new JythonInteractiveConsole(usingJLine);
+      PySystemState state = Py.getSystemState();
       return new ArtisynthJythonConsole (console);
    }
 
    public static ArtisynthJythonConsole createFrameConsole() {
+      // Jython 2.7: turn off site import since required files unavailable
+      Properties props = createDefaultProperties();
+      PySystemState.initialize(null, props);         
       InteractiveConsole console = new JythonFrameConsole();
       return new ArtisynthJythonConsole (console);
    }
@@ -127,9 +149,6 @@ public class ArtisynthJythonConsole {
          if (myConsole instanceof JythonFrameConsole) {
             ((JythonFrameConsole)myConsole).executeScript (fileName);
          }
-         else if (myConsole instanceof JythonJLineConsole) {
-            ((JythonJLineConsole)myConsole).executeScript (fileName);
-         }
          else if (myConsole instanceof JythonInteractiveConsole) {
             ((JythonInteractiveConsole)myConsole).executeScript (fileName);
          }
@@ -147,7 +166,13 @@ public class ArtisynthJythonConsole {
    }       
 
    public void interact () {
-      myConsole.interact (null, null);
+      try {
+         myConsole.interact (null, null);
+      }
+      catch (UserInterruptException e) {
+         // If JLineConsole is used, a UserInterruptException may get thrown.
+         // Just ignore and return.
+      }
    }
 
    public InteractiveConsole getConsole() {

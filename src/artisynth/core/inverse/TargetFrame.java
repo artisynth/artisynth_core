@@ -19,7 +19,7 @@ import maspack.properties.*;
  * frames being tracked by the tracking controller. At present, this
  * is subclassed from RigidBody so that it can be given a mesh to render.
  */
-public class TargetFrame extends RigidBody {
+public class TargetFrame extends RigidBody implements TrackingTarget {
 
    public static final double DEFAULT_WEIGHT = 1.0;
    protected double myWeight = DEFAULT_WEIGHT;
@@ -79,6 +79,10 @@ public class TargetFrame extends RigidBody {
       mySubWeights.set (w);
    }
 
+   public int getTargetSize() {
+      return 6;
+   }
+
    public TargetFrame () {
       super.setDynamic (false);
    }
@@ -104,6 +108,10 @@ public class TargetFrame extends RigidBody {
          myTarget.setTargetRot (getOrientation ());
       }
    }   
+
+   public Frame getSourceComp() {
+      return getSourceFrame();
+   }         
 
    private Frame getSourceFrame() {
       CompositeComponent ccomp = getGrandParent();

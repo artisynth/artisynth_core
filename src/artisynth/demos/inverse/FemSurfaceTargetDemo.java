@@ -99,7 +99,7 @@ public class FemSurfaceTargetDemo extends RootModel {
 
       for (FemNode n : fem.getNodes ()) {
          if (n.getPosition ().x < -l / 2 + eps) {
-            tcon.addMotionTarget (n);
+            tcon.addPointTarget (n);
             RenderProps.setAlpha (n, 0.5);
          }
       }
@@ -117,7 +117,7 @@ public class FemSurfaceTargetDemo extends RootModel {
          RenderProps.setPointRadius (p, l / 100);
       }
 
-      tcon.addL2RegularizationTerm (0.1);
+      tcon.setL2Regularization (0.1);
 
       tcon.setProbeDuration (10);
       tcon.createProbesAndPanel (this);

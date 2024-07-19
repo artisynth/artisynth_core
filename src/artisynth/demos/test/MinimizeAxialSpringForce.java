@@ -57,8 +57,8 @@ public class MinimizeAxialSpringForce extends PointModel {
       addWayPoint (0.2);
       TrackingController controller =
          (TrackingController)getControllers().get(0);
-      myForceTerm = controller.addForceEffectorTerm();
-      myForceTerm.addForce (
+      myForceTerm = controller.getForceEffectorTerm();
+      myForceTerm.addTarget (
          model.axialSprings().get("e"), 0.1, /*staticOnly=*/false);
       myForceTerm.debugHf = false;
 

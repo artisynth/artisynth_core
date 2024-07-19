@@ -26,4 +26,8 @@ public interface ModelAgent extends ModelComponent, HasState {
     */
    public boolean isActive();
    
+   public double getStartTime();
+   
+   public double getStopTime();
+   
 }

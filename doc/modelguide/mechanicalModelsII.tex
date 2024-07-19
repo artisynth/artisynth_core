@@ -1329,6 +1329,7 @@ that the maximum force and damping values be correspondingly reduced.
 \end{sideblock}
 
 \subsubsection{SimpleAxialMuscle}
+\label{SimpleAxialMuscle:sec}
 
 \javaclass[artisynth.core.materials]{SimpleAxialMuscle} is the default
 {\tt AxialMaterial} for {\tt Muscle}, and is essentially an activated
@@ -1620,10 +1621,10 @@ force length curves, given by
 \begin{equation}
 f_L (\hat l) = 
 \begin{cases}
-9 \, (\hat l - 0.4); & \hat l \in [0.4, 0.6] \\
-1 - 4 (1 - \hat l); & \hat l \in [0.6, 1.4] \\
-9 \, (\hat l - 1.6); & \hat l \in [1.4, 1.6] \\
-0 & \mathrm{otherwise} \\
+9 \, (\hat l - 0.4), & \hat l \in [0.4, 0.6] \\
+1 - 4 (1 - \hat l), & \hat l \in [0.6, 1.4] \\
+9 \, (\hat l - 1.6), & \hat l \in [1.4, 1.6] \\
+0, & \mathrm{otherwise}, \\
 \end{cases}
 \end{equation}
 %
@@ -1632,9 +1633,9 @@ and
 \begin{equation}
 f_P (\hat l) = 
 \begin{cases}
-0 & \hat l < 1 \\
-P_1 (e^{P_2 (\hat l-1)}-1); & \hat l \in [l_{opt}, l_{max}/l_{opt}]\\
-P_3 \hat l + P_4; & \hat l > l_{max}/l_{opt}. \\
+0, & \hat l < 1 \\
+P_1 (e^{P_2 (\hat l-1)}-1), & \hat l \in [l_{opt}, l_{max}/l_{opt}]\\
+P_3 \hat l + P_4, & \hat l > l_{max}/l_{opt}. \\
 \end{cases}
 \label{BlemkerPassive:eqn}
 \end{equation}
@@ -2004,10 +2005,10 @@ The tendon force length curve is described by
 \begin{equation}
 f_T(\ltn) = 
 \begin{cases}
-0 & \ltn < 1 \\
-\dfrac{F_{toe}}{e^{k_{toe}}-1}(e^{k_{toe} (\ltn-1)/\eps^T_{toe}}-1); &
+0, & \ltn < 1 \\
+\dfrac{F_{toe}}{e^{k_{toe}}-1}(e^{k_{toe} (\ltn-1)/\eps^T_{toe}}-1), &
 \ltn \le 1+\eps^T_{toe}\\
-k_{lin} (\ltn - 1 - \eps^T_{toe}) + F_{toe}; &
+k_{lin} (\ltn - 1 - \eps^T_{toe}) + F_{toe}, &
 \ltn  > 1+\eps^T_{toe},
 \end{cases}
 \label{Thelen2003TFLC:eqn}
@@ -2065,8 +2066,8 @@ f_L(\lfn)$, and $\bar F^M = a f_L(\lfn) f_V(\vfn)$. Inverting equation
 \begin{equation*}
 f_v = 
 \begin{cases}
-\dfrac {\alpha + \bar{v}^M}{\alpha -\bar{v}^M/A_f}; & \bar{v}^M \le 0 \\[1.5em]
-\dfrac {\beta + \bar{v}^M \Flen}{\beta + \bar{v}^M}; 
+\dfrac {\alpha + \bar{v}^M}{\alpha -\bar{v}^M/A_f}, & \bar{v}^M \le 0 \\[1.5em]
+\dfrac {\beta + \bar{v}^M \Flen}{\beta + \bar{v}^M},
 & \bar{v}^M > 0,
 \end{cases}
 \label{fv:eqn}
@@ -2265,9 +2266,9 @@ where
 \begin{equation*}
 f_e(\eps) = 
 \begin{cases}
-0 & \eps < 0 \\
-\dfrac{1}{2 \eps_t} k \eps^2 & 0 \le \eps \le \eps_t\\
-k(\eps - \dfrac{\eps_t}{2}) & \eps > \eps_t,
+0, & \eps < 0 \\
+\dfrac{1}{2 \eps_t} k \eps^2, & 0 \le \eps \le \eps_t\\
+k(\eps - \dfrac{\eps_t}{2}), & \eps > \eps_t,
 \end{cases}
 \end{equation*}
 %
@@ -2276,8 +2277,8 @@ and
 \begin{equation*}
 f_d(\dot\eps) = 
 \begin{cases}
-d \dot\eps  & \eps > 0 \; \mathrm{and} \; \dot\eps > 0 \\
-0 & \mathrm{otherwise}.
+d \dot\eps,  & \eps > 0 \; \mathrm{and} \; \dot\eps > 0 \\
+0, & \mathrm{otherwise}.
 \end{cases}
 \end{equation*}
 %

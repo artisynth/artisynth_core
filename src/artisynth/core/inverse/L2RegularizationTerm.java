@@ -36,18 +36,29 @@ public class L2RegularizationTerm extends QPCostTermBase {
       TrackingController controller = getController();
       if (controller != null) { 
          int nume = controller.numExciters();
+         double s = myWeight;
+         if (controller.getNormalizeCostTerms()) {
+            //  divide by trace of the weight matrix
+            double trace = 0;
+            for (int i=0; i<nume; i++) {
+               trace += controller.myExciters.get(i).getWeight();
+            }
+            if (trace != 0) {
+               s = myWeight/trace;
+            }            
+         }
          if (!controller.getComputeIncrementally()) {
             for (int i=0; i<nume; i++) {
-               double w = myWeight*controller.myExciters.get(i).getWeight();
-               Q.add (i, i, w);
+               double sw = s*controller.myExciters.get(i).getWeight();
+               Q.add (i, i, sw);
             }
          }
          else {
-            VectorNd curex = controller.getExcitations();
+            VectorNd prevEx = controller.getExcitations();
             for (int i=0; i<nume; i++) {
-               double w = myWeight*controller.myExciters.get(i).getWeight();
-               Q.add (i, i, w);
-               p.add (i, w*curex.get(i));
+               double sw = s*controller.myExciters.get(i).getWeight();
+               Q.add (i, i, sw);
+               p.add (i, sw*prevEx.get(i));
             }
          }
       }
@@ -59,7 +70,7 @@ public class L2RegularizationTerm extends QPCostTermBase {
    public void connectToHierarchy (CompositeComponent hcomp) {
       if (getParent() == hcomp && getParent() instanceof TrackingController) {
          TrackingController tcon = (TrackingController)getParent();
-         tcon.myRegularizationTerm = this;
+         tcon.myL2RegularizationTerm = this;
       }
    }
 
@@ -69,7 +80,7 @@ public class L2RegularizationTerm extends QPCostTermBase {
    public void disconnectFromHierarchy(CompositeComponent hcomp) {
       if (getParent() == hcomp && getParent() instanceof TrackingController) {
          TrackingController tcon = (TrackingController)getParent();
-         tcon.myRegularizationTerm = null;
+         tcon.myL2RegularizationTerm = null;
       }
    }
 

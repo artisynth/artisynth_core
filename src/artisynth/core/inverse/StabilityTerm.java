@@ -348,6 +348,11 @@ public class StabilityTerm extends LeastSquaresTermBase {
             myBs.set (0, myDetTarget - det0);
          }
 
+         if (controller.getNormalizeCostTerms()) {
+            double fnorm = myHs.frobeniusNorm();
+            myHs.scale(1/fnorm);
+            myBs.scale(1/fnorm);
+         }
          //System.out.println ("Hs=\n" + myHs.toString ("%16.8f"));
          if (myWeight >= 0 && myWeight != 1.0) {
             myHs.scale(myWeight);

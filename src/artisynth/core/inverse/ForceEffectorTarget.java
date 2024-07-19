@@ -27,7 +27,8 @@ import maspack.util.*;
  * 
  * @author John E Lloyd
  */
-public class ForceEffectorTarget extends ModelComponentBase {
+public class ForceEffectorTarget extends ModelComponentBase
+   implements TrackingTarget {
    
    public static final boolean DEFAULT_STATIC_ONLY = true;
    protected boolean myStaticOnly = DEFAULT_STATIC_ONLY;
@@ -76,9 +77,16 @@ public class ForceEffectorTarget extends ModelComponentBase {
       myStaticOnly = enable;
    }
 
-   private void initializeSubWeights (ForceTargetComponent comp) {
-      mySubWeights = new VectorNd (comp.getForceSize());
-      for (int i=0; i<mySubWeights.size(); i++) {
+   private void initializeSubWeights (int newSize) {
+      int oldSize = 0;
+      if (mySubWeights != null) {
+         oldSize = mySubWeights.size();
+         mySubWeights.setSize (newSize);
+      }
+      else {
+         mySubWeights = new VectorNd (newSize);
+      }
+      for (int i=oldSize; i<newSize; i++) {
          mySubWeights.set (i, 1.0);
       }
    }
@@ -114,14 +122,18 @@ public class ForceEffectorTarget extends ModelComponentBase {
       ForceTargetComponent comp, boolean staticOnly) {
       setForceComp (comp);
       setStaticOnly (staticOnly);
-      initializeSubWeights (comp);
       myTargetForce = new VectorNd (comp.getForceSize());
    }
 
    public void setForceComp (ForceTargetComponent comp) {
       myForceComp = comp;
+      initializeSubWeights (comp.getForceSize());
    }
-   
+
+   public ForceTargetComponent getSourceComp() {
+      return getForceComp();
+   }
+
    public ForceTargetComponent getForceComp () {
       return myForceComp;
    }
@@ -132,6 +144,10 @@ public class ForceEffectorTarget extends ModelComponentBase {
 
    public void setTargetForce (VectorNd force) {
       myTargetForce = force;
+   }
+
+   public int getTargetSize() {
+      return myForceComp.getForceSize();
    }
 
    protected void writeItems (

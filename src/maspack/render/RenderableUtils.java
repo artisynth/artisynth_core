@@ -47,7 +47,7 @@ public class RenderableUtils {
 
    /**
     * Returns a "radius" for a Renderable. This is done by computing the
-    * distance from the center to the vertices of the bpunding box.
+    * distance from the center to the vertices of the bounding box.
     */
    public static double getRadius (IsRenderable r) {
       Point3d min = new Point3d (inf, inf, inf);

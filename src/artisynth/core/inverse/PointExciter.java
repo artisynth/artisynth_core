@@ -25,21 +25,49 @@ import artisynth.core.mechmodels.ExcitationUtils;
 import artisynth.core.mechmodels.ForceComponent;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.Point;
+import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.CompositeComponent;
 
 public class PointExciter extends ModelComponentBase implements
 ExcitationComponent, ForceComponent {
-   
-   public enum PointForceComponent {
+
+   /**
+    * Specifies the degree-of-freedom along which the force of this exciter
+    * will be applied to the point.
+    */
+   public enum ForceDof {
+      /**
+       * Force along x
+       */
       FX,
+      /**
+       * Force along y
+       */
       FY,
+      /**
+       * Force along z
+       */
       FZ
    };
+   
+   /**
+    * @deprecated Use {@link ForceDof} instead.
+    */
+   public enum PointForceComponent {
+      FX(ForceDof.FX),
+      FY(ForceDof.FY),
+      FZ(ForceDof.FZ);
 
+      ForceDof myDof;
+      PointForceComponent (ForceDof dof) {
+         myDof = dof;
+      }
+   };
+   
    protected Point myPoint;
-   protected PointForceComponent myComponent = PointForceComponent.FX;
+   protected ForceDof myDof = ForceDof.FX;
    protected double myMaxForce;
    protected double myExcitation;
    protected Vector3d myTmp = new Vector3d();
@@ -47,11 +75,50 @@ ExcitationComponent, ForceComponent {
    protected CombinationRule myComboRule = CombinationRule.Sum;
    protected ExcitationSourceList myExcitationSources;
 
-   public PointExciter (String name, Point point, PointForceComponent comp, double maxForce) {
+   /**
+    * Creates a PointExciter.
+    *
+    * @param name name of the exciter, or {@code null}
+    * @param point point being activated
+    * @param dof degree of freedom being controlled 
+    * @param maxForce maximum force along the dof
+    */
+   public PointExciter (
+      String name, Point point, ForceDof dof, double maxForce) {
       super (name);
       myPoint = point;
-      myComponent = comp;
+      myDof = dof;
       myMaxForce = maxForce;
+   }
+   
+   /**
+    * Creates a PointExciter.
+    *
+    * @param point point being activated
+    * @param dof degree of freedom being controlled 
+    * @param maxForce maximum force along the dof
+    */
+   public PointExciter (
+      Point point, ForceDof dof, double maxForce) {
+      this (null, point, dof, maxForce);
+   }
+   
+   /**
+    * @deprecated Use {@link #PointExciter(String,Point,ForceDof,double)}
+    * instead.
+    */
+   public PointExciter (
+      String name, Point point, PointForceComponent comp, double maxForce) {
+      this (name, point, comp.myDof, maxForce);
+   }
+   
+   /**
+    * @deprecated Use {@link #PointExciter(Point,ForceDof,double)}
+    * instead.
+    */
+   public PointExciter (
+      Point point, PointForceComponent comp, double maxForce) {
+      this (null, point, comp.myDof, maxForce);
    }
    
    public PointExciter (String name) {
@@ -179,7 +246,7 @@ ExcitationComponent, ForceComponent {
 
    @Override
    public void applyForces (double t) {
-      myTmp.set (myComponent.ordinal (), myExcitation*myMaxForce);
+      myTmp.set (myDof.ordinal (), myExcitation*myMaxForce);
       myPoint.addForce (myTmp);
    }
 
@@ -203,16 +270,50 @@ ExcitationComponent, ForceComponent {
       // constant force
       return Matrix.SPD;
    }
+
+   /**
+    * Creates a set of three PointExciters to control the translational force
+    * on a given point. If {@code mech} is non-null, the exciters are added to
+    * its list of force effectors. If {@code createName} is {@code true} and
+    * the point has a name, each exciter is given a name based on the frame
+    * name.
+    *
+    * @param mech optional MechModel to add the exciters to
+    * @param point point for which the exciters should be created
+    * @param maxForce maximum translational force along any axis
+    * @param createNames if {@code true}, creates names for the exciters.
+    * @return list of the created exciters.
+    */   
+   public static ArrayList<PointExciter> createPointExciters (
+      MechModel mech, Point point, double maxForce, boolean createNames) {
+      ArrayList<PointExciter> exs = new ArrayList<>();
+      exs.add (new PointExciter (null, point, ForceDof.FX, maxForce));
+      exs.add (new PointExciter (null, point, ForceDof.FY, maxForce));
+      exs.add (new PointExciter (null, point, ForceDof.FZ, maxForce));
+      // if the point has a name, use this to create names for the exciters
+      if (createNames && point.getName() != null) {
+         exs.get(0).setName (point.getName()+"_fx");
+         exs.get(1).setName (point.getName()+"_fy");
+         exs.get(2).setName (point.getName()+"_fz");
+      }
+      if (mech != null) {
+         for (PointExciter ex : exs) {
+            mech.addForceEffector (ex);
+         }
+      }
+      return exs;        
+   }
    
    /*
     * helper method to add point exciters for all 3 components of the force on the given point
     */
    public static PointExciter[] addPointExciters(MechModel mech, Point point, double maxForce) {
       PointExciter[] pes = new PointExciter[3];
-      for (PointForceComponent comp : PointForceComponent.values ()) {
-         PointExciter pe = new PointExciter (point.getName()+"_"+comp.name(), point, comp, maxForce);
+      for (ForceDof dof : ForceDof.values ()) {
+         PointExciter pe = new PointExciter (
+            point.getName()+"_"+dof.name(), point, dof, maxForce);
          mech.addForceEffector (pe);
-         pes[comp.ordinal()] = pe;
+         pes[dof.ordinal()] = pe;
       }
       return pes;
    }
@@ -225,8 +326,13 @@ ExcitationComponent, ForceComponent {
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
+      pw.println ("dof=" + myDof);
       if (myExcitationSources != null) {
          myExcitationSources.write (pw, "excitationSources", fmt, ancestor);
+      }
+      if (myPoint != null) {
+         pw.println (
+            "point="+ComponentUtils.getWritePathName (ancestor,myPoint));
       }
    }
 
@@ -240,6 +346,13 @@ ExcitationComponent, ForceComponent {
       if (scanAttributeName (rtok, "excitationSources")) {
          myExcitationSources =
             ExcitationUtils.scan (rtok, "excitationSources", tokens);
+         return true;
+      }
+      else if (scanAndStoreReference (rtok, "point", tokens)) {
+         return true;
+      }
+      else if (scanAttributeName (rtok, "dof")) {
+         myDof = rtok.scanEnum (ForceDof.class);
          return true;
       }
       rtok.pushBack();
@@ -257,6 +370,10 @@ ExcitationComponent, ForceComponent {
          myExcitationSources.postscan (tokens, ancestor);
          return true;
       }   
+      else if (postscanAttributeName (tokens, "point")) {
+         myPoint = postscanReference (tokens, Point.class, ancestor);
+         return true;
+      }
       return super.postscanItem (tokens, ancestor);
    }
 

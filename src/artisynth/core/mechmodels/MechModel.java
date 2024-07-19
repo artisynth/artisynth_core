@@ -1335,6 +1335,18 @@ TransformableGeometry, ScalableUnits {
       myMultiPointSprings.removeAll();
    }
 
+   /**
+    * Updates the wrapping segments for all MultiPointSprings in this model.
+    */
+   public void updateWrapSegments() {
+      updateForceComponentList();
+      for (ForceEffector fe : super.myForceEffectors) {
+         if (fe instanceof MultiPointSpring) {
+            ((MultiPointSpring)fe).updateWrapSegments();
+         }
+      }
+   }
+
    public void addFrameSpring (FrameSpring s) {
       myFrameSprings.add (s);
    }

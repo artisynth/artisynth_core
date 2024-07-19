@@ -704,6 +704,12 @@ verify that they are in the correct locations.
 \end{sideblock}
 
 \begin{sideblock}
+{\tt MechModel} also supplies a convenience method, \javamethod*[\mech
+.MechModel]{updateWrapSegments()}), which calls {\tt updateWrapSegments()}
+for every multipoint spring contained within it.
+\end{sideblock}
+
+\begin{sideblock}
 In some cases, initial points may also be necessary to help ensure
 that the initial path does not penetrate obstacles. While obstacle
 penetration will normally be resolved by the artificial forces
@@ -867,6 +873,84 @@ Manipulation'' in the
 or selecting the muscle in the GUI, invoking a property dialog by
 choosing {\sf Edit properties ...} from the right-click context menu,
 and adjusting the {\sf excitation} property.
+
+\subsection{Example: toy muscle arm with wrapping}
+\label{ToyMuscleArm:sec}
+
+\begin{figure}[h]
+\begin{center}
+  \begin{tabular}{cc}
+     \iflatexml
+       \includegraphics[]{images/ToyMuscleArmA}
+       \includegraphics[]{images/ToyMuscleArmB}
+     \else
+       \includegraphics[width=3in]{images/ToyMuscleArmA}
+       \includegraphics[width=3in]{images/ToyMuscleArmB}
+     \fi
+  \end{tabular}
+\end{center}
+\caption{Left: ToyMuscleArm loaded into ArtiSynth. Right:
+demo running with exciter values set from the control panel.}
+\label{ToyMuscleArm:fig}
+\end{figure}
+
+A more complex example of wrapping, combined with multiple joints and
+point-to-point muscles, is given by \pdfbreak {\tt
+artisynth.demos.tutorial.ToyMuscleArm}, which depicts a two-link ``arm'',
+connected by hinge joints, with opposing muscles controlling the poses of
+each link. The code, with include directives excluded, is given below:
+\lstset{numbers=left} 
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-26}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/ToyMuscleArm.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=28]{../../src/artisynth/demos/tutorial/ToyMuscleArm.java}
+\fi
+\lstset{numbers=none}
+
+Within the {\tt build()} method, the mech model is created in the usual way and
+inertial damping is set to 1.0 (lines 75-77). Next, the rigid bodies depicting
+the base and links are created (lines 80-95). All bodies are created from
+meshes, with the base being made non-dynamic and the poses of the links set so
+that they line up vertically in their start position
+(Figure \ref{ToyMuscleArm:fig}, left). A massless cylinder is created to
+provide a wrapping surface around the second hinge joint and attached to link1
+(lines 98-102). 
+
+Hinge joints (Section \ref{HingeJoint:sec}) are then added between the base and
+link0 and link0 and link1 (lines 105-106), using the convenience method {\tt
+addHingeJoint()} (lines 60-72). This method creates a hinge joint at a prescribed
+position in the x-z plane, uses it to connect two bodies, sets the range for
+the joint angle {\sf theta}, and sets properties to render the shaft in blue.
+
+Next, point-to-point muscles are placed on opposite sides of each link (lines
+108-113). For link0, two {\tt Muscle} components are used, added with the
+method {\tt addMuscle()} (lines 18-30); this method creates a muscle connecting
+two bodies, using frame markers whose positions are specified in world
+coordinates in the x-z plane, and a {\tt SimpleMuscleMaterial}
+(Section \ref{SimpleAxialMuscle:sec}) with prescribed stiffness and maximum
+active force. For link1, {\tt MultiPointMuscle} components are used instead so
+that they can be wrapped around the wrapping cylinder. These muscles are created
+with the method {\tt addWrappedMuscle()} (lines 36-53), which creates a
+multipoint muscle connecting two bodies, using a single wrappable segment
+between two frame markers (also specified in the x-z plane). After the muscle
+is placed, its {\tt updateWrapSegments()} method is called to ``shrink wrap''
+it around the cylinder. Both the methods {\tt addMuscle()} and {\tt
+addWrappedMuscle()} set the rest length of each configured muscle to its
+current length (lines 28 and 50) to ensure that it will not exert passive
+tension in its initial configuration.
+
+A marker is attached to the tip on link1 at lines 140-141, and then a control
+panel is created to allow runtime adjustment of the four muscle excitation
+values (lines 144-149). Finally, render properties are set at lines 153-157.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+ToyMuscleArm} from the {\sf Models} menu. The loaded model will appear as in
+Figure \ref{ToyMuscleArm:fig}, left. When the model is run, the links can be
+moved by adjusting the muscle excitation values in the control panel
+(Figure \ref{ToyMuscleArm:fig}, right).
 
 \section{Tuning the Wrapping Behavior}
 \label{wrapTuning:sec}

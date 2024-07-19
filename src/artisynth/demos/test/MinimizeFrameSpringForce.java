@@ -281,12 +281,12 @@ public class MinimizeFrameSpringForce extends RootModel {
             myController.addExciter((Muscle)s);
          }
       }
-      myController.addL2RegularizationTerm();
-      MotionTargetComponent target = myController.addMotionTarget(mkr);
+      myController.setL2Regularization();
+      MotionTargetComponent target = myController.addPointTarget(mkr);
       RenderProps.setSphericalPoints ((Renderable)target, r/20, Color.GREEN);
-      myForceTerm = myController.addForceEffectorTerm ();
+      myForceTerm = myController.getForceEffectorTerm ();
       myForceTerm.setWeight (myForceTermWeight);
-      myForceTerm.addForce (mySpring, 0.0002, false);
+      myForceTerm.addTarget (mySpring, 0.0002, false);
       myForceTerm.debugHf = false;
       addController (myController);
 

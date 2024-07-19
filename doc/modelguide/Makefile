@@ -17,13 +17,14 @@ SOURCES = \
 	femModels.tex \
 	collisions.tex \
 	muscleWrapping.tex \
+	inverse.tex \
 	skinning.tex \
         dicom.tex \
 	appendix.tex \
 	../texinputs/artisynthDoc.tex
 
 IDR_EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.idr)))
-IMG_FILES = $(wildcard images/*.png images/*.jpg) $(IDR_EPS_FILES)
+IMG_FILES = $(wildcard images/*.png images/*.jpg images/*.svg) $(IDR_EPS_FILES)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
 default: pdf html
@@ -54,7 +55,6 @@ methodTable.pdf: methodTable.tex
 $(HTML_DIR)/methodTable.html: methodTable.tex
 	$(BUILD_HTML)
 
-
 # individual chapters:
 %.pdf: %.tex $(EPS_FILES)
 	$(BUILD_PDF)
@@ -69,11 +69,24 @@ modelguide.pdf: $(SOURCES) $(EPS_FILES)
 modelguide.xml: $(SOURCES) $(IMG_FILES)
 	latexml $< > modelguide.xml
 
+modelguide_html: $(HTML_DIR)/modelguide.html
+
+inverse_html: $(HTML_DIR)/inverse.html
+
+$(HTML_DIR)/inverse.html: inverse.tex
+	$(BUILD_HTML)
+
 $(HTML_DIR)/modelguide.html: $(SOURCES) $(IMG_FILES)
 	$(BUILD_HTML)
 	rm -f modelguide.xml
 
-$(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES)
+femModels_html: $(HTML_DIR)/femModels.html
+
+$(HTML_DIR)/femModels.html: femModels.tex
+	$(BUILD_HTML)
+	rm -f femModels.xml
+
+(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES)
 	$(BUILD_SECTIONED_HTML)
 	rm -f modelguide.xml
 
@@ -89,9 +102,6 @@ install_html: html infocenter
 install_pdf: $(PDF_TARG)
 	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
-
-test:
-	latexml test.tex >test.xml	
 
 clean:
 	$(DO_CLEAN)

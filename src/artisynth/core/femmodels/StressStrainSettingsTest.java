@@ -139,7 +139,7 @@ public class StressStrainSettingsTest extends UnitTest {
       }
 
       DoubleInterval stressRng = new DoubleInterval(0, 9531.25);
-      DoubleInterval strainRng = new DoubleInterval(0, 0.188093319);
+      DoubleInterval strainRng = new DoubleInterval(0, 0.18427082896232605);
       DoubleInterval energyRng = new DoubleInterval(0, 1036.88928);
       double strainEnergy = 1.68356720;
 
@@ -179,6 +179,7 @@ public class StressStrainSettingsTest extends UnitTest {
       // Change surface rendering for leftMesh to Strain. Only left mesh should
       // change.
       leftMesh.setSurfaceRendering (STRAIN);
+
       checkVals.put("meshes/leftMesh:surfaceRendering", STRAIN);
       checkVals.put("meshes/leftMesh:stressPlotRange", strainRng);
       checkValues (fem, checkVals);

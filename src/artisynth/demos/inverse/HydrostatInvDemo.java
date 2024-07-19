@@ -18,6 +18,7 @@ import artisynth.core.mechmodels.ExcitationComponent;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.mechmodels.MotionTargetComponent;
 import artisynth.core.mechmodels.Muscle;
+import artisynth.core.mechmodels.Point;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.probes.OutputProbe;
 import artisynth.core.probes.Probe;
@@ -98,7 +99,7 @@ public class HydrostatInvDemo extends HydrostatDemo
    protected void addInverseController() {
       trackingController = new TrackingController(mech, "tcon");
       for (ModelComponent comp : hydro.createTargetList()) {
-	 trackingController.addMotionTarget((MotionTargetComponent)comp);
+	 trackingController.addPointTarget((Point)comp);
       }
       
       if (useBundlesForInverse) {
@@ -114,7 +115,8 @@ public class HydrostatInvDemo extends HydrostatDemo
 	 }
       }
       
-      trackingController.addL2RegularizationTerm(100*100);
+      trackingController.setNormalizeCostTerms (true);
+      trackingController.setL2Regularization(0.01);
       trackingController.setProbeDuration (5.0);
       trackingController.setProbeUpdateInterval (stepsize);
       trackingController.createProbesAndPanel (this);

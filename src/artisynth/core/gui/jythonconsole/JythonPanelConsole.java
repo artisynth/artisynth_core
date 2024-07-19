@@ -64,16 +64,8 @@ public class JythonPanelConsole extends InteractiveConsole {
       myReader = myConsole.createReader();
       setErr (myWriter);
       setOut (myWriter);
-      myImpl = new JythonConsoleImpl (this);
+      myImpl = new JythonConsoleImpl (this, /*usingJLine=*/false);
       myImpl.setupSymbols();
-   }
-
-   public void sleep (int msec) throws InterruptedException {
-      Thread.sleep (msec);
-   }
-
-   public void exit (int code) {
-      System.exit (code);
    }
 
    private static String protectWindowsSlashes(String filename) {

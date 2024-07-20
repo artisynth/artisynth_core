@@ -3,7 +3,6 @@ package artisynth.core.gui.jythonconsole;
 import javax.swing.*;
 import java.io.*;
 import org.python.util.InteractiveInterpreter;
-import org.python.core.PyString;
 
 public class JythonFrameConsole extends JythonPanelConsole {
 
@@ -17,9 +16,7 @@ public class JythonFrameConsole extends JythonPanelConsole {
 
    public JythonFrameConsole (String name) {
       super ();
-      // Jython 7.2: need to explicitly set ps1 and ps2      
-      systemState.ps1 = new PyString(">>> ");
-      systemState.ps2 = new PyString("... ");
+      
       myFrame = new JFrame(name);
       JScrollPane pane = new JScrollPane(myConsole);
       pane.setVerticalScrollBarPolicy (

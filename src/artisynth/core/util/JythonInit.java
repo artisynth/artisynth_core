@@ -21,8 +21,6 @@ public class JythonInit {
    // this class
    private JythonInit() {
       String initFileName = "matrixBindings.py";
-      // Jython 2.7: turn off site import since required files unavailable
-      Options.importSite = false;
       InputStream bindings = null;
       try {
          URL url = ArtisynthPath.getRelativeResource (this, initFileName);
@@ -36,10 +34,6 @@ public class JythonInit {
       catch (IOException e) {
          throw new InternalErrorException (
             "Cannot find Jython initialization file " + initFileName);
-      }
-      catch (Exception e) {
-         throw new InternalErrorException (
-            "Cannot initialize Jython bindings:\n" + e.getMessage());
       }
       finally {
          try {

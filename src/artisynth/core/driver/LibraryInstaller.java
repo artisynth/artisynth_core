@@ -9,7 +9,11 @@ package artisynth.core.driver;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import artisynth.core.util.ArtisynthIO;
@@ -352,33 +356,53 @@ public class LibraryInstaller {
              !mySpecialJarnames.contains(fname)) {
             String tname;
             File target;
-            int cnt = 0;
+            int cnt = 1;
+            boolean targetEqualsSource;
+            File source = new File (myLibDir, fname);
             do {
                String suffix = ".save";
-               if (cnt > 0) {
-                  suffix += cnt;
+               if (cnt > 1) {
+                  suffix += "." + cnt;
                }
                tname = fname + suffix;
                target = new File (myLibDir, tname);
+               if (target.exists()) {
+                  targetEqualsSource = fileContentsEqual (source,target);
+               }
+               else {
+                  targetEqualsSource = false;
+               }
+               cnt++;
             }
-            while (target.exists());
-            File source = new File (myLibDir, fname);
+            while (target.exists() && !targetEqualsSource);
             try {
-               Files.move (source.toPath(), target.toPath());
-               System.out.println (
-                  "Notice: unused jar file 'lib/"+fname+
-                  "' being moved to 'lib/"+tname+"'");
+               if (targetEqualsSource) {
+                  Files.delete (source.toPath());
+                  System.out.println (
+                     "Notice: unused jar file 'lib/"+fname+
+                     "' deleted; a copy exists in 'lib/"+tname+"'");
+               }
+               else {
+                  Files.move (source.toPath(), target.toPath());
+                  System.out.println (
+                     "Notice: unused jar file 'lib/"+fname+
+                     "' being moved to 'lib/"+tname+"'");
+               }
             }
             catch (Exception e) {
                System.out.println (
-                  "Warning: jar file 'lib/"+fname+
-                  "' is unused and cannot be moved:\n" + e);
+                  "WARNING: jar file 'lib/"+fname+
+                  "' is unused and cannot be moved or deleted:\n" + e);
+               System.out.println (
+                  "The file 'lib/"+fname+"' should be removed manually");
             }
             unused++;               
          }
       }
       return unused;
    }
+
+
 
    protected void maybeAddLibrary (String libName, SystemType sysType) {
 
@@ -467,5 +491,67 @@ public class LibraryInstaller {
          }
       }
    }      
+
+   private void closeQuietly (InputStream is) {
+      try {
+         if (is != null) {
+            is.close();
+         }
+      }
+      catch (IOException e) {
+         // ignore
+      }
+   }
+
+   /**
+    * Checks to see if two files are identical.
+    */
+   public boolean fileContentsEqual (File file0, File file1) {
+      String fname0 = file0.getName();
+      String fname1 = file1.getName();
+      if (!file0.canRead()) {
+         System.out.println (
+            "Warning: file '"+fname0+"' in library folder is unreadable");
+         return false;
+      }
+      if (!file1.canRead()) {
+         System.out.println (
+            "Warning: file '"+fname1+"' in library folder is unreadable");
+         return false;
+      }
+      Path path0 = file0.toPath();
+      Path path1 = file1.toPath();
+      BufferedInputStream is0 = null;
+      BufferedInputStream is1 = null;
+      try {
+         long size = Files.size(path0);
+         if (size != Files.size(path1)) {
+            return false;
+         }
+         if (size < 5000000) {
+            return Arrays.equals (
+               Files.readAllBytes(path0), Files.readAllBytes(path1));
+         }
+         is0 = new BufferedInputStream (Files.newInputStream(path0));
+         is1 = new BufferedInputStream (Files.newInputStream(path1));
+         int data;
+         while ((data = is0.read()) != -1) {
+            if (data != is1.read()) {
+               return false;
+            }
+         }
+      }
+      catch (IOException e) {
+         System.out.println (
+            "Warning: error comparing files '"+fname1+
+            "' and '"+fname1+"' in library folder: "+e.getMessage());
+         return false;
+      }
+      finally {
+         closeQuietly (is0);
+         closeQuietly (is1);
+      }
+      return true;
+   }
 }
 

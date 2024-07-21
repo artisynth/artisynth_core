@@ -27,6 +27,40 @@ IDR_EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.idr)))
 IMG_FILES = $(wildcard images/*.png images/*.jpg images/*.svg) $(IDR_EPS_FILES)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
+# source files for force length curves created using GNU plot
+FLC_SOURCES = \
+	images/peckFLC.txt \
+	images/BlemkerAFL.txt \
+	images/BlemkerPFL.txt \
+	images/BlemkerCFL.txt \
+	images/ThelenAFLC.txt \
+	images/ThelenPFLC.txt \
+	images/ThelenTFLC.txt \
+	images/ThelenFVC_1.txt \
+	images/ThelenFVC_h.txt \
+	images/MillardAFLC.txt \
+	images/MillardPFLC.txt \
+	images/MillardTFLC.txt \
+	images/MillardFVC.txt
+
+# target files for force length curves created using GNU plot
+FLC_TARGETS = \
+	images/PeckAPFLC.eps \
+	images/PeckCFLC.eps \
+	images/BlemkerAPFL.eps \
+	images/BlemkerCFL.eps \
+	images/ThelenAFLC.eps \
+	images/ThelenPFLC.eps \
+	images/ThelenTFLC.eps \
+	images/ThelenFVC.eps \
+	images/MillardAFLC.eps \
+	images/MillardPFLC.eps \
+	images/MillardTFLC.eps \
+	images/MillardFVC.eps
+
+$(FLC_TARGETS) &: $(FLC_SOURCES)
+	cd images; gnuplot -c makeMuscleCurvePlots
+
 default: pdf html
 
 html: $(HTML_DIR)/modelguide.html
@@ -56,11 +90,11 @@ $(HTML_DIR)/methodTable.html: methodTable.tex
 	$(BUILD_HTML)
 
 # individual chapters:
-%.pdf: %.tex $(EPS_FILES)
+%.pdf: %.tex $(EPS_FILES) $(FLC_TARGETS)
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) $*.ps
 
-modelguide.pdf: $(SOURCES) $(EPS_FILES)
+modelguide.pdf: $(SOURCES) $(EPS_FILES) $(FLC_TARGETS)
 	latex -interaction=batchmode modelguide.tex #extra call because of biber
 	biber modelguide
 	$(BUILD_PDF)

@@ -76,14 +76,39 @@
 
 \section*{Jul 20, 2024}
 
-\subsection{Inverse simulation documtation}
+\subsection{Jython and JOGL libraries updated}
+
+The Jython support libraries have been updated to version 2.7.3, and the Java
+OpenGL (JOGL) libraries have been updated to version 2.5.0. This should lift
+most of the restrictions on what version of the Java JDK you can use. If you
+are running MATLAB, you {\it may} still find it necessary to use Java 8.
+
+Users updating from github will need to run the command {\tt
+updateArtisynthLibs} after the update, in order to load the libraries from the
+server and enable compilation. Windows users can do this by executing {\tt
+updateArtisynthLibs.bat} located in
+%
+\begin{verbatim}
+  artisynth_core\bin\updateArtisynthLibs.bat
+\end{verbatim}
+%
+MacOS and Linux users can run {\tt updateArtisynthLibs} from
+a terminal window:
+%
+\begin{lstlisting}[]
+  > cd /path/to/artisynth_core
+  > bin/updateArtisynthLibs
+\end{lstlisting}
+%
+
+\subsection{Inverse simulation documentation}
 
 The \artisynthManual{modelguide}{Modeling Guide} now contains a new chapter,
 ``Inverse Simulation'', describing the inverse simulation capabilities of the
 tracking controller.
 
 While preparing this documentation, the tracking controller was refactored,
-with some methods and classes deprecated in favour of new ones for greater
+with some methods and classes deprecated in favor of new ones for greater
 clarity. This refactoring is described in the section ``TrackingController
 refactoring'' below.
 
@@ -190,7 +215,7 @@ controller method {\tt setLegacyMotionControl()}.
 
 \subsubsection{Class deprecation}
 
-Several classes have been deprecated in favour of alternates for greater
+Several classes have been deprecated in favor of alternates for greater
 clarity.  These are:
 
 \begin{center}
@@ -212,7 +237,7 @@ ConstraintForceTerm} and {\tt ConstraintForceTarget}.
 
 \subsubsection{Method deprecation}
 
-A number of methods have also been deprecated in favour of alternates:
+A number of methods have also been deprecated in favor of alternates:
 
 \begin{center}
 \begin{tabular}{lll}

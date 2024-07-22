@@ -64,6 +64,14 @@ public class JointBasedMovingMarker extends FrameMarker
       this (xfxn, xcoord, yfxn, ycoord, zfxn, zcoord);
       setName (name);
    }
+   
+   public JointCoordinateHandle[] getCoordinateHandles() {
+      return myCoords;
+   }
+
+   public Diff1Function1x1[] getCoordinateFunctions() {
+      return myFxns;
+   }
 
    /* --- begin I/O methods --- */
    

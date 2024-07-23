@@ -74,6 +74,15 @@
 % Apr 15, 2023: Refactoring and adding stiction compliance to implicit
 %  friction integration
 
+\section*{Jul 22, 2024}
+
+\subsection{JOGL libraries reverted to 2.4.0}
+
+Because of MATLAB compatibility issues, the JOGL libraries have been reverted
+to version 2.4.0. If you updated since the last update (July 20), you will again
+need to run {\tt updateArtisynthLibs} after updating, as described in the July
+20 entry.
+
 \section*{Jul 20, 2024}
 
 \subsection{Jython and JOGL libraries updated}
@@ -197,6 +206,11 @@ have been changed from $1$ and $0$ to $10000$ and $100$.
 behavior. As a result of this, optimal L2 normalization values are more likely
 to be around $0.1$ or less.
 
+\item The {\it excitation damping} term (formerly just the {\it damping} term)
+has been corrected to properly compute excitation velocities. However, this
+means that any previous damping term weights $w_d$ now need to be changed to $h
+w_d$, where $h$ is the time step size.
+
 \end{enumerate}
 
 \subsubsection{Effect on existing applications}
@@ -211,7 +225,9 @@ For backward compatibility, one can revert to the previous behavior by setting
 the controller's {\sf normalizeCostTerms} property to {\tt false}, and the {\tt
 MotionTargetTerm} properties {\sf legacyControl}, {\sf Kp} and {\sf Kd} to {\tt
 true}, $1$ and $0$, respectively. This can be done all at once by calling the
-controller method {\tt setLegacyMotionControl()}.
+controller method {\tt setLegacyMotionControl()}. In addition, any previous
+damping term weights $w_d$ should be changed to $h w_d$, where $h$ is the time
+step size.
 
 \subsubsection{Class deprecation}
 

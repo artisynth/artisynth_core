@@ -40,16 +40,15 @@
 \bigskip
 \fi
 
-This describes how to quickly install one of the precompiled versions
-of ArtiSynth, which can be useful for users wanting to test the system
-and run the demonstration programs. More complete instructions,
-including how to obtain the latest development version from Github,
-compile and run using the Eclipse IDE, and install external model
-packages, are provided in the general installation guides for
-\artisynthManual[installation/windowsInstallation]{windowsInstallation}{Windows}, 
-\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS},
-and 
-\artisynthManual[installation/linuxInstallation]{linuxInstallation}{Linux}.
+This describes how to quickly install one of the precompiled versions of
+ArtiSynth, which can be useful for users wanting to test the system and run the
+demonstration programs. Once you decide to use ArtiSynth to build models, we
+instead recommend installing the latest version from Github into the Eclipse
+IDE, as described here for
+\artisynthManual[installation/windowsInstallation]{windowsGitEclipseInstall}{Windows},
+\artisynthManual[installation/macosInstallation]{macosGitEclipseInstall}{MacOS},
+and
+\artisynthManual[installation/linuxInstallation]{linuxGitEclipseInstall}{Linux}.
 
 \section{Instructions}
 
@@ -57,27 +56,20 @@ and
 
 \begin{enumerate}
 
-\item You need a 64 bit Windows, MacOS, or Linux system based on an
-Intel processor. You can also use systems based on the ARM processor
-if they implement an Intel compatibility layer. MacOS systems based on
-the new Apple ARM processor (the M1 or M2 chips) implement a
-compatibility layer (called Rosetta) that appears to allow ArtiSynth
-to run as is, provided that you install a 64-bit {\it Intel-based}
-Java development kit (JDK).
+\item You need a 64 bit Windows, MacOS, or Linux system based on an Intel
+processor. MacOS systems based on the new Apple ARM processor (the M
+chips) implement a compatibility layer (called Rosetta) that should allow
+ArtiSynth to run as is, provided that you use a 64-bit {\it Intel-based} Java
+development kit (JDK).
 
-\item A 64-bit Java development kit (JDK) should be installed. This
-should be an Intel-based JDK (containing {\tt x64} in its download
-name); on ARM-based machines, this should run using the Intel
-compatibility layer. ArtiSynth will work with the most recent Java
-versions, but we recommend using the older Java 8 since that will also
-provide compatibility with MATLAB and the Jython console. You need a
-full Java Development Kit (JDK), not simply a runtime environment
-(JRE). We recommend the Java SE Development Kit 8u{\it XXX} ({\it XXX}
-being the latest update) which can be obtained from Oracle
-(registration
-required) at\\
-\href{https://www.oracle.com/technetwork/java/javase/downloads/index.html}%
-{www.oracle.com/technetwork/java/javase/downloads/index.htm}.
+\item A 64-bit Java development kit (JDK) should be installed. This should be
+an Intel-based JDK (containing {\tt x64} in its download name); on ARM-based
+MacOS machines, this should run using the Intel compatibility layer.
+You will need a full Java Development Kit (JDK), not simply a runtime
+environment (JRE), and it must have version 8 or higher. If you need
+a JDK, we recommend obtaining one from Oracle at
+\href{https://www.oracle.com/java/technologies/downloads/}%
+{www.oracle.com/java/technologies/downloads}.
  
 \item To verify that the Java JDK is visible to your system, open a
 terminal window (e.g., {\tt CMD} on Windows), run the command {\tt
@@ -86,7 +78,7 @@ does not, follow the instructions in Section
 \ref{MakingJDKVisible}.
 
 \item Download the latest precompiled ArtiSynth release 
-(e.g., {\tt artisynth\_core\_3.6.zip}) from
+(e.g., {\tt artisynth\_core\_3.8.zip}) from
 \iflatexml\else\\\fi % need a newline in PDF version
 \href{https://www.artisynth.org/downloads}{www.artisynth.org/downloads}.
  
@@ -135,7 +127,7 @@ demo folder and enter the command {\tt compile}.
 It is important to ensure that the JDK is visible to your system and
 supersedes any other Java installations.
 
-\subsection*{Windows and Linux}
+\subsection{Windows and Linux}
 
 If {\tt <JDK>} denotes the top-level folder of your installed JDK,
 then add the folder {\tt <JDK>\BKS bin} (Windows) or {\tt <JDK>/bin}
@@ -143,29 +135,45 @@ then add the folder {\tt <JDK>\BKS bin} (Windows) or {\tt <JDK>/bin}
 \ref{SettingPath}. The folder should be added {\it ahead} of any other
 Java installations that might be specified on the Path.
 
-On Windows, {\tt <JDK\_DIR>} is likely to be located under {\tt
-C:\BKS Program Files\BKS Java}.
+On Windows, {\tt <JDK\_DIR>} is likely to be located under {\tt C:\BKS Program
+Files\BKS Java}. For example, JDK 21 should be at
+\begin{verbatim}
+   C:\Program Files\Java\jdk-21
+\end{verbatim}
 
-\subsection*{Mac OS X}
+\subsection{MacOS}
 
-On Mac OS X, you can set the ``default'' JDK by setting the {\tt
-JAVA\_HOME} environment variable.  This can be done inside the
-initialization file for whichever command line shell you are using.
+On MacOS, you can set the ``default'' JDK by setting the {\tt JAVA\_HOME}
+environment variable.  This can be done inside the initialization file for your
+command line shell.  Assume that the desired JDK has version number {\tt 21}
+and that your home directory is {\tt <HOMEDIR>}.
 
-Assume that the desired JDK has version number {\tt 1.8.0\_281} and
-that your home folder is {\tt <HOMEDIR>}.  Then for the {\tt bash}
-shell, one can use a plain text editor to edit {\tt <HOMEDIR>/.bashrc}
-(or create the file if it does not already exist) 
-and insert a line of the form
-\begin{quote}
-  {\tt export JAVA\_HOME=\`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
-\end{quote}
-where the left quote character {\tt \`{}} is used instead of the more
-common right quote {\tt '}. For the {\tt csh} or {\tt tcsh} shells,
-one can edit {\tt <HOMEDIR>/.cshrc} and insert a line of the form
-\begin{quote}
-  {\tt setenv JAVA\_HOME \`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
-\end{quote}
+\begin{itemize}
+
+\item If your command line shell is {\tt bash} (which
+it will be by default), then the initialization file is {\tt
+<HOMEDIR>/.bashrc}. Use a plain text editor to edit (or create) this file and
+insert a line of the form
+%
+\begin{lstlisting}[]
+  export JAVA_HOME=`/usr/libexec/java_home -v 21`
+\end{lstlisting}
+%
+
+\item If you have changed your shell to {\tt csh} or {\tt tcsh},
+then the initialization file is {\tt <HOMEDIR>/.cshrc}. Use a plain text editor
+to edit or create this file and insert a line of the form
+%
+\begin{lstlisting}[]
+  setenv JAVA_HOME `/usr/libexec/java_home -v 21`
+\end{lstlisting}
+%
+
+\end{itemize}
+
+Note that in both examples above, the left quote character "{\tt \`{}}" is used
+instead of the more common right quote "{\tt '}".  Also, for JDK 8, it may be
+necessary to specify the argument {\tt -v 1.8.0} to {\tt java\_home}.
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -179,7 +187,7 @@ in order to find executables. Adding a directory to the path allows
 executables contained in that directory to be called directly from a
 command window (such as {\tt CMD} on Windows).
 
-\subsection*{Windows 10}
+\subsection{Windows 10}
 
 \begin{enumerate}
 
@@ -199,7 +207,7 @@ your command window.
 
 \end{enumerate}
 
-\subsection*{Windows 8 and earlier}
+\subsection{Windows 8 and earlier}
 
 \begin{enumerate}
 
@@ -222,20 +230,21 @@ your command window.
 
 For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
 artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
-Files\BKS Java\BKS jdk1.8.0\_281}, then we can add the {\tt bin}
+Files\BKS Java\BKS jdk-21}, then we can add the {\tt bin}
 directories for both by setting the User path to
 \begin{verbatim}
-  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_281\bin
+  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk-21\bin
 \end{verbatim}
 
-\subsection*{Mac OS X}
+\subsection{MacOS}
 
-Since Mac OS X is a Unix-based system, directories can be added to the
+Since MacOS is a Unix-based system, directories can be added to the
 path by editing the {\tt PATH} environment variable directly in the
 initialization files for whichever command line shell you are using,
-as described in Section \ref{Linux}.
+in the same manner as described for Linux (Section \ref{Linux}).
+The default command line shell for MacOS is {\tt bash}.
 
-On Mac OS X 10.8 and greater, directories can also be added to the
+On MacOS 10.8 and greater, directories can also be added to the
 path by adding a text file containing the directories to {\tt
 /etc/paths.d}.  In particular, we can create a file called {\tt
 ArtiSynth} in {\tt /etc/paths.d} that contains the full path names of
@@ -259,7 +268,7 @@ window and enter the command: {\tt echo \$PATH}.
 
 \end{enumerate}
 
-\subsection*{Linux}
+\subsection{Linux}
 \label{Linux}
 
 On Linux, directories can be added to the path by appending them to

@@ -101,6 +101,7 @@ public class TorusWrapTest extends RootModel {
       RenderProps.setLineStyle (mechMod, Renderer.LineStyle.CYLINDER);
       RenderProps.setLineRadius (mechMod, size / 30);
       RenderProps.setLineColor (mechMod, Color.red);
+      RenderProps.setFaceColor (mechMod, new Color (238, 232, 170));
 
       createControlPanel (mechMod);
    }

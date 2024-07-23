@@ -2,7 +2,7 @@
 
 \title{ArtiSynth Installation Guide for \SYSTEM{}}
 \author{John Lloyd, Sebastian Kazenbroot-Guppy, and Antonio S{\'a}nchez}
-\setpubdate{Last updated: September, 2022}
+\setpubdate{Last updated: July, 2024}
 \iflatexml
 \date{}
 \fi
@@ -120,22 +120,27 @@ compatibility layer.
 
 \ifMacOS
 \begin{sideblock}
-Apple ARM-based machines include those based on the M1 or M2 chip
+Apple ARM-based machines include those based on the M chip
 designs, and currently implement a compatibility layer (called
 Rosetta) that allows ArtiSynth to run as is, provided that you use an
 Intel-based JDK (see Section \ref{InstallingJava}).
 \end{sideblock}
 \fi
 
-\item A Java development kit (JDK) for 64 bit machines. We recommend
-the JDK for the older Java 8. If your machine is based on the ARM
-processor, you must still use an Intel-based JDK.  See Section
+\item A Java development kit (JDK) for 64 bit machines. 
+If your machine is based on the ARM processor, you must still use an
+Intel-based JDK.  See Section
 \ref{InstallingJava} for details.
 
 \begin{sideblock}
-ArtiSynth will generally work with later versions of Java, but Java 8
-provides maximum compatibility with MATLAB (which still uses Java 8)
-and the Jython interface.
+You will need a Java development kit (JDK) that lets you actually compile Java
+code. A Java runtime environment (JRE) will not be sufficient.
+\end{sideblock}
+
+\begin{sideblock}
+If you are planning to use ArtiSynth with MATLAB, there are restrictions on
+which JDK you can use, as described in the guide
+\artisynthManual{matlab}{Interfacing ArtiSynth to MATLAB}.
 \end{sideblock}
 
 \ifLinux
@@ -186,13 +191,12 @@ utilities function correctly.
 \end{sideblock}
 \fi % end not Linux
 
-\section{Installing Java}
+\section{Java JDK Requirements}
 \label{InstallingJava}
 
 ArtiSynth requires that you have a full 64-bit Java development kit
 (JDK) installed. A JDK comes with a Java compiler, whereas the simpler
-Java run time environment (JRE) does not. Note, however, that a JDK
-usually {\it includes} a JRE.
+Java run time environment (JRE) does not.
 
 \begin{sideblock}
 Important: on ARM-based machines, you must still install a 64-bit {\it
@@ -203,39 +207,31 @@ contain the string {\tt x64} in their download names, whereas
 ARM-based JDKs contain {\tt aarch64} or {\tt arm32}.
 \end{sideblock}
 
-By default, ArtiSynth is compiled to be compliant with Java 8. While
-ArtiSynth will work under later Java versions, Java 8 provides
-compatibility with MATLAB (which still uses Java 8), as well as the
-Jython console.  Therefore we currently recommend using Java 8; this
-also provides maximum compatibility with MATLAB and Jython, as
-indicated above. We specifically recommend the Java SE Development Kit
-8u{\it XXX} (where {\it XXX} is the latest revision number), which can
-be obtained from Oracle (registration required).  At the time of this
-writing, the download page is located at
+You will require JDK version 8 or higher. The most recent JDK with long term
+support is version 21. If you are planning to use
+ArtiSynth with MATLAB, there are restrictions on which JDK you can use, as
+described in the guide
+\artisynthManual{matlab}{Interfacing ArtiSynth to MATLAB}.
 
-\href{https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}%
-{www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}
+If you need a JDK, we recommend installing one from Oracle.  At the time of
+this writing, the download page is at:
 
-and the latest release is {\tt 8u281}. This page provides downloads
-for all systems; be sure to choose the download link appropriate to
-yours. 
+\href{https://www.oracle.com/java/technologies/downloads/}%
+{www.oracle.com/java/technologies/downloads}.
+
+Download tabs for JDK 22, 21 and 17 are located near the top.  Tabs for
+downloading JDK 8 and 11 are located further down the page.
+Downloads are available for all systems ({\sf Linux}, {\sf macOS} and
+{\sf Windows}); be sure to choose the link appropriate to yours.
 \ifWindows
-For \SYSTEM{}, this will be {\tt jdk-8u281-windows-x64.exe}.  After
-the file downloads, open it, and follow the installation wizard, using
-the default values provided. The installer will probably install {\it
-both} a JRE and a JDK, and place them in the \directories{}
-\begin{verbatim}
-C:\Program Files\Java\jre1.8.0_281
-C:\Program Files\Java\jdk1.8.0_281
-\end{verbatim}
-The second contains the JDK, and is your {\it JDK installation} \directory{}.
+For \SYSTEM{}, the easiest option may be to choose ``{\sf x64 Installer}''.
 \fi
 \ifMacOS
-For \SYSTEM{}, this will be {\tt jdk-8u281-macosx-x64.dmg}.
+For \SYSTEM{}, you must choose one of the {\sf x64} options,
+{\it even if your system uses an Apple M chip}, to ensure
+that Java runs in Intel compatibility mode. The
+easiest install option may be ``{\sf x64 DMG Installer}''.
 \fi
-
-If the above Oracle link is no longer current, the search terms
-{\tt ``java 8 jdk download''} should get you to the right place.
 
 \subsection{Ensuring the JDK is visible to your system}
 \label{MakingJDKVisible}
@@ -257,22 +253,36 @@ not, or if the command {\tt javac} is not found,
 \ifMacOS % IF MacOS
 then you can set the ``default'' JDK by setting the {\tt JAVA\_HOME}
 environment variable.  This can be done inside the
-initialization file for whichever command line shell you are using.
+initialization file for your command line shell.
+Assume that the desired JDK has version number {\tt 21} and
+that your home \directory{} is {\tt <HOMEDIR>}. 
 
-Assume that the desired JDK has version number {\tt 1.8.0\_281} and
-that your home \directory{} is {\tt <HOMEDIR>}.  Then for the {\tt
-bash} shell, one can use a plain text editor to edit {\tt
-<HOMEDIR>/.bashrc} (or create the file if it does not already exist)
-and insert a line of the form
-\begin{quote}
-  {\tt export JAVA\_HOME=\`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
-\end{quote}
-where the left quote character {\tt \`{}} is used instead of the more
-common right quote {\tt '}. For the {\tt csh} or {\tt tcsh} shells,
-one can edit {\tt <HOMEDIR>/.cshrc} and insert a line of the form
-\begin{quote}
-  {\tt setenv JAVA\_HOME \`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
-\end{quote}
+\begin{itemize}
+
+\item If your command line shell is {\tt bash} (which
+it will be by default), then the initialization file is {\tt
+<HOMEDIR>/.bashrc}. Use a plain text editor to edit (or create) this file and
+insert a line of the form
+%
+\begin{lstlisting}[]
+  export JAVA_HOME=`/usr/libexec/java_home -v 21`
+\end{lstlisting}
+%
+
+\item If you have changed your shell to {\tt csh} or {\tt tcsh},
+then the initialization file is {\tt <HOMEDIR>/.cshrc}. Use a plain text editor
+to edit or create this file and insert a line of the form
+%
+\begin{lstlisting}[]
+  setenv JAVA_HOME `/usr/libexec/java_home -v 21`
+\end{lstlisting}
+%
+
+\end{itemize}
+
+Note that in both examples above, the left quote character "{\tt \`{}}" is used
+instead of the more common right quote "{\tt '}".  Also, for JDK 8, it may be
+necessary to specify the argument {\tt -v 1.8.0} to {\tt java\_home}.
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -283,14 +293,18 @@ your system Path, as described in Section \ref{SettingPath},
 where {\tt <JDK\_HOME>} is the JDK installation directory.
 \ifWindows
 On \SYSTEM{}, your JDK is likely to be installed under {\tt
-Program Files\SEP Java}. For example, if your JDK is {\tt 1.8.0\_281}, 
-then <JDK\_HOME> will likely be
+Program Files\SEP Java}. For example, if your JDK is 21, 
+then {\tt <JDK\_HOME>} will likely be
 \begin{verbatim}
-  C:\Program Files\Java\jdk1.8.0_281
+  C:\Program Files\Java\jdk-21
+\end{verbatim}
+JDK 8 is named a little differently, and is likely to be located in
+\begin{verbatim}
+  C:\Program Files\Java\jdk-1.8
 \end{verbatim}
 \fi
-In particular, {\tt <JDK\_HOME>\SEP bin} should be added {\it ahead} of
-any other Java installations that might be specified on the Path. To
+When adding {\tt <JDK\_HOME>\SEP bin} to your Path, it should be added {\it
+ahead} of any other Java installations that might be specified. To
 see the current contents of the Path, open a
 \ifWindows
 {\tt CMD} window
@@ -590,6 +604,12 @@ key. Eclipse should now find the libraries and compile ArtiSynth; a
 green progress bar will appear at the lower right while compilation is
 in progress.
 
+\begin{sideblock}
+Regardless of the JDK version, ArtiSynth is compiled to be compliant with Java
+8, to ensure compatibility with MATLAB.  The Eclipse settings supplied in {\tt
+artisynth\_core\SEP .settings} will ensure Java 8 compliance.
+\end{sideblock}
+
 After compilation is complete, ArtiSynth can be run by simply choosing
 {\sf Run > Run} from the main menu. This works by invoking a
 predefined {\it launch configuration} named ArtiSynth.  In some cases,
@@ -637,31 +657,48 @@ and should not be entered):
  $ git clone https://github.com/artisynth/artisynth_core
  $ cd artisynth_core
  $ bin/updateArtisynthLibs
+ $ bin/compile
+\end{lstlisting}
+%
+The first line simply sets the current folder to the one under which you wish
+to install ArtiSynth, as indicated by {\tt /path/to/install}.  (Note that {\tt
+GitBash} follows the Unix convention of using forward slash ('/') instead of
+backslash ('\BKS ') to separate files.)  The {\tt git clone} command then
+downloads ArtiSynth and extracts it to a folder named {\tt artisynth\_core}, so
+that the ArtiSynth installation directory (or {\tt <ARTISYNTH\_HOME>})
+is\pdfbreak {\tt /path/to/install/artisynth\_core}. The {\tt
+updateArtisynthLibs} command fetches additional libraries that are not included
+in the GitHub repository for space reasons, and the {\tt bin/compile} command
+on the last line is an ArtiSynth-supplied utility that compiles all {\tt .java}
+files located under the current folder.
+
+If you have {\tt GNU make} installed on your system, then you can use that
+instead of the {\tt compile} command, replacing
+%
+\begin{lstlisting}[]
+ $ bin/compile
+\end{lstlisting}
+%
+with
+%
+\begin{lstlisting}[]
  $ make
 \end{lstlisting}
 %
-The first line simply sets the current folder to the one under which
-you wish to install ArtiSynth, as indicated by {\tt /path/to/install}.
-(Note that {\tt GitBash} follows the Unix convention of using forward
-slash ('/') instead of backslash ('\BKS ') to separate files.)  The
-{\tt git clone} command then downloads ArtiSynth and extracts it to a
-folder named {\tt artisynth\_core}, so that the ArtiSynth installation
-directory (or {\tt <ARTISYNTH\_HOME>}) is\pdfbreak 
-{\tt /path/to/install/artisynth\_core}. The {\tt updateArtisynthLibs}
-command fetches additional libraries that are not included in the
-GitHub repository for space reasons, and the {\tt make} command on the
-last line is a Unix build utility provided by {\tt GitBash}; in this
-situation, it compiles all the {\tt .java} files under {\tt
-artisynth\_core}.
 
 \begin{sideblock}
-The {\tt make} command and the associated {\tt Makefile} automatically
-determine the Java classpath needed to compile ArtiSynth.  However, if
-you have explicitly set the {\tt CLASSPATH} environment variable, then
-that will be used to define the classpath instead, in which case it
-must contain the {\tt classes} folder (located under the {\tt
-artisynth\_core} folder), as well as the {\tt .jar} files in the {\tt
-lib} folder. See Sections \ref{CommandLineDevel}
+Regardless of the JDK version, ArtiSynth is compiled to be compliant with Java
+8, to ensure compatibility with MATLAB.  The {\tt make} or {\tt compile}
+commands described above are configured to ensure Java 8 compliance.
+\end{sideblock}
+
+\begin{sideblock}
+The {\tt compile} (or {\tt make}) command automatically determines the Java
+classpath needed to compile ArtiSynth.  However, if you have explicitly set the
+{\tt CLASSPATH} environment variable, then that will be used to define the
+classpath instead, in which case it must contain both the ArtiSynth {\tt classes}
+folder and {\tt
+.jar} files in the {\tt lib} folder. See Sections \ref{CommandLineDevel}
 and \ref{EnvironmentVariables}.
 \end{sideblock}
 
@@ -694,10 +731,7 @@ with an analogous command sequence:
 \end{lstlisting}
 %
 The only real difference is using backslash ('\BKS ') instead of
-forward slash ('/') as a file separator, and the use of {\tt bin\BKS
-compile} instead of {\tt make} (which is not supported in {\tt Git
-CMD}). {\tt compile} is a command supplied by ArtiSynth that compiles
-all {\tt .java} files located under the current folder.
+forward slash ('/') as a file separator.
 \else % not Windows
 \subsection{Installation using the command line}
 
@@ -786,6 +820,12 @@ As an alternative to {\tt make}, one can also compile ArtiSynth using the
 {\tt compile} is an ArtiSynth command line utility that compiles all
 {\tt .java} files located under the current directory.
 \fi % end Linux
+
+\begin{sideblock}
+Regardless of the JDK version, ArtiSynth is compiled to be compliant with Java
+8, to ensure compatibility with MATLAB.  The {\tt make} or {\tt compile}
+commands described above are configured to ensure Java 8 compliance.
+\end{sideblock}
 
 Once compiled, ArtiSynth can be run from the command line as described
 in Section \ref{artisynthCommandLine}.
@@ -1682,15 +1722,14 @@ to make it easier to restart.
 \subsubsection{Setting Eclipse to use the correct Java JDK}
 \label{EclipseJDK:sec}
 
-Newer versions of Eclipse come with their own version of
-Java. However, since we generally want to use our own Java JDK (such
-as Java 8, as described in Section \ref{InstallingJava}), we need to
-configure Eclipse to use that instead. 
+Newer versions of Eclipse come with their own version of Java. However, if we
+are using our own JDK (as described in Section \ref{InstallingJava}), we need
+to configure Eclipse to use that instead.
 
 \ifMacOS
 \begin{sideblock}
-If you are running newer ARM-based hardware (M1 or M2 chip sets), then
-even if you're not using Java 8, you {\it will} need to use an
+If you are running newer ARM-based hardware (Apple M chip sets), then
+you {\it will} need to use an
 Intel-based JDK (as mentioned above) and will need to set Eclipse to
 use it, as described here.
 \end{sideblock}
@@ -1726,7 +1765,7 @@ selected in the dialog and click {\sf Next}.
 field at the top, enter the installation \directory{} for your JDK.
 \ifWindows % begin Windows
 On Windows, this is likely to be a location like {\tt C:\BKS Program
-Files\BKS Java\BKS jdk1.8.0\_281}. Specifying the java
+Files\BKS Java\BKS jdk-21}. Specifying the java
 home \directory{} will cause some other fields to fill in
 automatically, as seen in Figure \ref{JREDefinition:fig}.
 %
@@ -2307,10 +2346,10 @@ separated by semi-colons `{\tt ;}'.
 
 For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
 artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
-Files\BKS Java\BKS jdk1.8.0\_281}, then we can add the {\tt bin}
+Files\BKS Java\BKS jdk-21}, then we can add the {\tt bin}
 directories for both by setting the User path to
 \begin{verbatim}
-  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_281\bin
+  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk-21\bin
 \end{verbatim}
 
 \fi % end Windows
@@ -2342,7 +2381,7 @@ while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
 \end{verbatim}
 
 \ifMacOS
-On Mac OS X 10.8 and greater, directories can also be added to the
+On MacOS 10.8 and greater, directories can also be added to the
 path by adding a text file containing the directories to {\tt
 /etc/paths.d}.  In particular, we can create a file called {\tt
 ArtiSynth} in {\tt /etc/paths.d} that contains the full path names of

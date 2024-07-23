@@ -14,7 +14,7 @@
 
 \title{Installing ArtiSynth from GitHub into Eclipse (\SYSTEM{})}
 \author{John Lloyd}
-\setpubdate{Last updated: September, 2022}
+\setpubdate{Last updated: July, 2024}
 \iflatexml
 \date{}
 \fi
@@ -53,7 +53,7 @@ There are three parts to the installation process:
 
 \begin{enumerate}
 
-\item Installing the Java development kit (JDK)
+\item Ensuring you have a Java development kit (JDK)
 
 \item Installing Eclipse
 
@@ -67,7 +67,7 @@ Intel compatibility layer.
 %
 \ifMacOS
 \begin{sideblock}
-The new Mac ARM-based systems (using the M1 or M2 chips) provide an
+The new Mac ARM-based systems (using the Apple M chips) provide an
 Intel compatibility layer, named Rosetta, that allows ArtiSynth to run
 as is, provided that you install an 64-bit Intel-based JDK.
 \end{sideblock}
@@ -112,7 +112,7 @@ and simulating models are given in the
 Instructions on how to {\it build} a model using Java are given in
 the \artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
 
-\section{Installing the JDK}
+\section{Java JDK Requirements}
 \label{InstallingJava:sec}
 
 ArtiSynth requires that you have a full 64-bit Java development kit
@@ -120,12 +120,14 @@ ArtiSynth requires that you have a full 64-bit Java development kit
 environment (JRE) will not be sufficient.  
 
 \begin{sideblock}
+\ifMacOS
+Important: on ARM-based machines (i.e., those with the Apple M chips), you must
+still install a 64-bit {\it Intel-based} JDK which must then execute through
+the Rosetta Intel compatibility layer. Invocation of Rosetta will generally be
+invisible to the user.
+\else
 Important: on ARM-based machines, you must still install a 64-bit {\it
 Intel-based} JDK which must then execute through 
-\ifMacOS
-the Rosetta Intel compatibility layer. Invocation of Rosetta
-will generally be invisible to the user.
-\else
 an Intel compatibility layer. Invocation of the compatibility layer
 should generally be invisible to the user.
 \fi
@@ -134,38 +136,33 @@ contain the string {\tt x64} in their download names, whereas
 ARM-based JDKs contain {\tt aarch64} or {\tt arm32}.
 \end{sideblock}
 
-By default, ArtiSynth is compiled to be compliant with Java 8. While
-ArtiSynth will generally work under later Java versions, use of both
-the MATLAB and Jython interfaces generally requires Java 8.  Therefore
-we currently recommend using Java 8; this also provides maximum
-compatibility with MATLAB.  We specifically recommend the Java SE
-Development Kit 8u{\it XXX} (where {\it XXX} is the latest revision
-number), which can be obtained from Oracle (registration required).
-At the time of this writing, the download page is located at
+You will require a JDK version 8 or higher. The most recent JDK with
+long term support is version 21.  If you are planning to use
+ArtiSynth with MATLAB, there are restrictions on which JDK you can use, as
+described in the guide
+\artisynthManual{matlab}{Interfacing ArtiSynth to MATLAB}.
 
-\href{https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}%
-{www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html}
+If you need a JDK, we recommend installing one from Oracle.  At the time of
+this writing, the download page is at:
 
-and the latest release is {\tt 8u281}. This page provides downloads
-for all systems; be sure to choose the download link appropriate to
-yours.
+\href{https://www.oracle.com/java/technologies/downloads/}%
+{www.oracle.com/java/technologies/downloads}.
+
+Download tabs for JDK 22, 21 and 17 are located near the top.  Tabs for
+downloading JDK 8 and 11 are located further down the page.
+Downloads are available for all systems ({\sf Linux}, {\sf macOS} and
+{\sf Windows}); be sure to choose the link appropriate to yours.
 \ifWindows
-For \SYSTEM{}, this will be {\tt jdk-8u281-windows-x64.exe}.  After
-the file downloads, open it, and follow the installation wizard, using
-the default values provided. The installer will probably install {\it
-both} a JRE and a JDK, and place them in the \directories{}
-\begin{verbatim}
-C:\Program Files\Java\jre1.8.0_281
-C:\Program Files\Java\jdk1.8.0_281
-\end{verbatim}
-The second contains the JDK, and is your {\it JDK installation} \directory{}.
+For \SYSTEM{}, the easiest option may be to choose ``{\sf x64 Installer}''.
 \fi
 \ifMacOS
-For \SYSTEM{}, this will be {\tt jdk-8u281-macosx-x64.dmg}
-After the file downloads, open it, and follow the installation instructions.
+For \SYSTEM{}, you must choose one of the {\sf x64} options,
+{\it even if your system uses an Apple M chip}, to ensure
+that Java runs in Intel compatibility mode. The
+easiest install option may be ``{\sf x64 DMG Installer}''.
 \fi
 
-The {\tt java} and {\tt javac} commands associated with your Java 8
+The {\tt java} and {\tt javac} commands associated with your Java
 JDK must be visible from a terminal window. To verify this, open a
 terminal window, run the command {\tt javac
 -version}, and check that the command is found and that the version
@@ -271,14 +268,16 @@ to make it easier to restart.
 \end{sideblock}
 \fi
 
-Newer versions of Eclipse come with their own version of
-Java. However, since we want to use the Java 8 JDK, as discussed
-above, we need to configure Eclipse to use that instead. 
+\subsection{Configuring Eclipse with the JDK}
+
+Newer versions of Eclipse come with their own version of Java. However, since
+we typically want to use our own JDK, as discussed above, we need to configure
+Eclipse to use that instead.
 
 \ifMacOS
 \begin{sideblock}
-If you are running newer ARM-based hardware (M1 or M2 chip sets), then
-even if you're not using Java 8, you {\it will} need to use an
+If you are running newer ARM-based hardware (Apple M chip sets), then
+you {\it will} need to use an
 Intel-based JDK (as mentioned above) and will need to set Eclipse to
 use it, as described here.
 \end{sideblock}
@@ -299,10 +298,9 @@ Eclipse can be configured to use your JDK as follows:
 ``{\sf Java > Installed JREs}'', which will open an {\sf Installed JREs}
 panel.
 \ifMacOS % begin macOS
-On MacOS, all installed JDKs {\it should} appear in the panel
-including the Eclipse default and the JDK 8 which was just installed.
-Click on the box to the left of the JDK 8 entry to select it;
-ignore warnings about Java 15 compatibility. 
+On MacOS, all installed JDKs {\it should} appear in the panel,
+including the Eclipse default and any other JDKs that have been installed.
+Click on the box to the left of the desired JDK entry to select it.
 \else % begin Not macOS
 Click the {\sf Add...} button at the right.
 
@@ -310,11 +308,11 @@ Click the {\sf Add...} button at the right.
 selected in the dialog and click {\sf Next}.
 
 \item A {\sf JRE Definition} dialog will appear. In the ``{\sf JRE home}''
-field at the top, enter the Java home \directory{} where Java 8 was
+field at the top, enter the Java home \directory{} where your JDK was
 installed.
 \ifWindows % begin Windows
 On Windows, this is likely to be a location like {\tt C:\BKS Program
-Files\BKS Java\BKS jdk1.8.0\_281}. Specifying the java
+Files\BKS Java\BKS jdk-21}. Specifying the java
 home \directory{} will cause some other fields to fill in
 automatically, as seen here:
 \begin{center}
@@ -326,11 +324,10 @@ automatically, as seen here:
 \end{center}
 \fi % end Windows
 
-\item Click {\sf Finish}. Java 8 will now show up in the list of
+\item Click {\sf Finish}. The desired JDK will now show up in the list of
 installed JREs. 
 \ifWindows % begin Windows
-Click on the left box to select it, as shown
-below (ignore any warnings about Java 15 compatibility).
+Click on the left box to select it, as shown below.
 \fi % end Windows 
 \fi % end Not MacOS
 \ifLinux % begin Linux
@@ -592,14 +589,24 @@ If the {\tt java} and {\tt javac} commands of your Java JDK are not
 visible from a terminal command window, 
 \ifWindows
 you can fix this by adding
-{\tt <JDK\_HOME>\BKS bin} to your system {\tt Path} variable, where
-{\tt <JDK\_HOME>} is the installation \directory{} for your JDK. For example, if
-your JDK is installed in {\tt C:\BKS Program Files\BKS Java\BKS
-jdk1.8.0\_281}, you want to add {\tt C:\BKS Program Files\BKS
-Java\BKS jdk1.8.0\_281\BKS bin} to the {\tt Path}, ahead of other
-entries.
+{\tt <JDK\_HOME>\BKS bin} to your system Path, where
+{\tt <JDK\_HOME>} is the installation \directory{} for your JDK. 
+On Windows, your JDK is likely to be installed under {\tt
+Program Files\SEP Java}. For example, if your JDK is 21, 
+then {\tt <JDK\_HOME>} will likely be
+\begin{verbatim}
+  C:\Program Files\Java\jdk-21
+\end{verbatim}
+JDK 8 is named a little differently, and is likely to be located in
+\begin{verbatim}
+  C:\Program Files\Java\jdk-1.8
+\end{verbatim}
 
-The {\tt Path} is a list of directories which the system searches in
+You want to add {\tt <JDK\_HOME>\SEP bin} to your Path, making
+sure it is {\it ahead} of any other Java installations that might be specified
+on the Path. 
+
+The Path is a list of directories which the system searches in
 order to find executables. You can add {\tt <JDK\_HOME>\BKS bin} 
 to it as follows:
 
@@ -645,24 +652,38 @@ any terminal windows.
 \end{enumerate}
 \fi
 \ifMacOS
-you can set the ``default'' JDK by setting the {\tt
-JAVA\_HOME} environment variable.  This can be done inside the
-initialization file for whichever command line shell you are using.
+you can set the ``default'' JDK by setting the {\tt JAVA\_HOME}
+environment variable.  This can be done inside the
+initialization file for your command line shell.
+Assume that the desired JDK has version number {\tt 21} and
+that your home \directory{} is {\tt <HOMEDIR>}. 
 
-Assume that the desired JDK has version number {\tt 1.8.0\_281} and
-that your home folder is {\tt <HOMEDIR>}.  Then for the {\tt bash}
-shell, one can use a plain text editor to edit {\tt <HOMEDIR>/.bashrc}
-(or create the file if it does not already exist) and insert a line of
-the form
-\begin{quote}
-  {\tt export JAVA\_HOME=\`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
-\end{quote}
-where the left quote character {\tt \`{}} is used instead of the more
-common right quote {\tt '}. For the {\tt csh} or {\tt tcsh} shells,
-one can edit {\tt <HOMEDIR>/.cshrc} and insert a line of the form
-\begin{quote}
-  {\tt setenv JAVA\_HOME \`{}/usr/libexec/java\_home -v 1.8.0\_281\`{}}
-\end{quote}
+\begin{itemize}
+
+\item If your command line shell is {\tt bash} (which
+it will be by default), then the initialization file is {\tt
+<HOMEDIR>/.bashrc}. Use a plain text editor to edit (or create) this file and
+insert a line of the form
+%
+\begin{lstlisting}[]
+  export JAVA_HOME=`/usr/libexec/java_home -v 21`
+\end{lstlisting}
+%
+
+\item If you have changed your shell to {\tt csh} or {\tt tcsh},
+then the initialization file is {\tt <HOMEDIR>/.cshrc}. Use a plain text editor
+to edit or create this file and insert a line of the form
+%
+\begin{lstlisting}[]
+  setenv JAVA_HOME `/usr/libexec/java_home -v 21`
+\end{lstlisting}
+%
+
+\end{itemize}
+
+Note that in both examples above, the left quote character "{\tt \`{}}" is used
+instead of the more common right quote "{\tt '}".  Also, for JDK 8, it may be
+necessary to specify the argument {\tt -v 1.8.0} to {\tt java\_home}.
 
 Setting {\tt JAVA\_HOME} can also be done directly within the shell;
 doing it within the initialization file simply avoids the need to do
@@ -676,10 +697,10 @@ installation \directory{} for your JDK.  In particular, {\tt
 installations that might be specified on the {\tt PATH}.  If you are
 using the {\tt bash} shell, then modifications to {\tt PATH} can be
 made inside a {\tt .bashrc} file located in your home directory.
-For example, if {\tt <JDK\_HOME>} is {\tt /opt/java/jdk1.8.0\_281},
+For example, if {\tt <JDK\_HOME>} is {\tt /opt/java/jdk-21.0.2},
 then you can add the line
 \begin{verbatim}
-export PATH="/opt/java/jdk1.8.0_281/bin:$PATH"
+export PATH="/opt/java/jdk-21.0.2/bin:$PATH"
 \end{verbatim}
 to your {\tt .bashrc}. To see the current contents of the {\tt PATH},
 open a terminal window and run the command

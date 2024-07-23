@@ -18,7 +18,7 @@
 
 \title{Interfacing ArtiSynth to MATLAB}
 \author{John Lloyd}
-\setpubdate{Last update: September, 2021}
+\setpubdate{Last update: July 2024}
 \iflatexml
 \date{}
 \fi
@@ -51,19 +51,37 @@ used for preparing simulation input or analyzing output.
 \section{Requirements and configuration}
 \label{Requirements:sec}
 
-The current version of ArtiSynth has been tested to run with MATLAB
-2021a.
+As of July 2024, ArtiSynth has been tested to run with MATLAB 2024a.
 
-To interface with MATLAB, you should run ArtiSynth under Java 8,
-because that is the Java version currently used by MATLAB.  Verify
-that you do in fact have Java 8 installed, and, if you are using an
-integrated development environment (IDE), that the IDE is also using
-Java 8.  Details on installing Java 8 can be found in the installation
-guides for
+\subsection{Java restrictions}
+
+In order to interface ArtiSynth with MATLAB, the Java versions used by
+ArtiSynth and MATLAB must match. Since the Java versions available for MATLAB
+are limited, this also restricts which versions of the Java development kit
+(JDK) you can use to compile and run ArtiSynth.
+
+\begin{itemize}
+
+\item MATLAB (through 2024) comes bundled with Java 8. To use ArtiSynth with
+this default MATLAB configuration, you must use ArtiSynth with JDK 8.
+
+\item MATLAB 2023 (or later) can also be configured to run with JDK 11, and
+MATLAB 2024 can be configured to run with JDK 17. If you configure MATLAB to
+run with one of these JDKs (via the MATLAB
+\href{https://www.mathworks.com/help/matlab/ref/jenv.html}{jenv} command), then
+you can also use that JDK for ArtiSynth.
+
+\end{itemize}
+
+Verify that you do in fact have the correct JDK installed, and, if you are
+using an integrated development environment (IDE) to develop ArtiSynth code,
+check that the IDE is also using that JDK.  Details on installing Java JDKs can
+be found in the installation guides for
 \artisynthManual[installation/windowsInstallation]{windowsInstallation}{Windows},
-\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS},
-and
+\artisynthManual[installation/macosInstallation]{macosInstallation}{MacOS}, and
 \artisynthManual[installation/linuxInstallation]{linuxInstallation}{Linux}.
+
+\subsection{Configuring MATLAB for ArtiSynth}
 
 In the following, assume that {\tt <ARTISYNTH\_HOME>} denotes the path
 to the ArtiSynth installation folder.

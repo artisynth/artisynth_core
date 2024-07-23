@@ -1,38 +1,45 @@
 "Hex 3d Block" artisynth.demos.fem.Hex3dBlock
-"Spring Mesh" artisynth.demos.mech.SpringMeshDemo
-"RigidBody Spring" artisynth.demos.mech.RigidBodyDemo
 "Spring Net" artisynth.demos.tutorial.NetDemo
-"MechModel Demo" artisynth.demos.mech.MechModelDemo
-"Multi-Point Muscle" artisynth.demos.mech.MultiMuscleDemo
-"Hex FEM Cube" artisynth.demos.fem.HexCube
+"Newtons Cradle" artisynth.demos.mech.NewtonsCradle
+"Puppet Demo" artisynth.demos.mech.PuppetDemo
+"Elastic Contact" artisynth.demos.tutorial.ElasticFoundationContact
+"Hex Frame" artisynth.demos.fem.HexFrame
 "FEM Locking" artisynth.demos.fem.LockingDemo
+"Articulated FEM" artisynth.demos.fem.ArticulatedFem
 "Robust FEM Cube" artisynth.demos.fem.RobustCube
+"Leaf Demo" artisynth.demos.fem.LeafDemo
+"Torus Sheet Collide" artisynth.demos.test.Trampoline
+"Shell Block" artisynth.demos.fem.ShellBlock
 "Incompressible FEM" artisynth.demos.fem.IncompressDemo
 "Point FEM Attachment" artisynth.demos.tutorial.PointFemAttachment
+"Inverse Muscle Arm" artisynth.demos.tutorial.InverseMuscleArm
+"Inverse Muscle Fem" artisynth.demos.tutorial.InverseMuscleFem
+"Inverse Hydrostat" artisynth.demos.inverse.HydrostatInvDemo
+"Torus Wrapping" artisynth.demos.wrapping.TorusWrapTest
+"Phalanx Wrapping" artisynth.demos.tutorial.PhalanxWrapping
 "Embedded Surface" artisynth.demos.fem.EmbeddedSurface
 "Embedded Surface Collide" artisynth.demos.fem.EmbeddedSurfaceCollide
-"Simple Collide" artisynth.demos.fem.SimpleCollide
-"Puppet Demo" artisynth.demos.mech.PuppetDemo
-"Contact Pressure Render" artisynth.demos.tutorial.ContactPressureRender
 "Lumbar FEM Disk" artisynth.demos.tutorial.LumbarFEMDisk
 "Lumbar FrameSpring" artisynth.demos.tutorial.LumbarFrameSpring
 "Material Bundle" artisynth.demos.tutorial.MaterialBundleDemo
-"Hex Frame" artisynth.demos.fem.HexFrame
-"Spring/FEM Attachment" artisynth.demos.fem.AttachedBeamDemo
-"Articulated FEM" artisynth.demos.fem.ArticulatedFem
-"Leaf Demo" artisynth.demos.fem.LeafDemo
-"Combined Shell-FEM" artisynth.demos.fem.CombinedShellFem
-"Shell Block" artisynth.demos.fem.ShellBlock
 "RigidBodyCollision" artisynth.demos.mech.RigidBodyCollision
-"FEM Plane Collide" artisynth.demos.fem.FemPlaneCollide
-"FEM Collision" artisynth.demos.fem.FemCollision
-"FEM Muscle Arm" artisynth.demos.fem.FemMuscleArm
-"Simple FEM Muscle" artisynth.demos.fem.SpongeDemo
-"FEM Self Collision" artisynth.demos.fem.SelfCollision
+"Multi-Point Muscle" artisynth.demos.mech.MultiMuscleDemo
 "RigidBody Skinning" artisynth.demos.mech.SkinDemo
+"FEM Plane Collide" artisynth.demos.fem.FemPlaneCollide
 "FEM Skinning" artisynth.demos.fem.FemSkinDemo
-"Phalanx Wrapping" artisynth.demos.tutorial.PhalanxWrapping
-"Talus Wrapping" artisynth.demos.wrapping.TalusWrapTest
-"Torus Wrapping" artisynth.demos.wrapping.TorusWrapTest
-"Inverse Point2d" artisynth.demos.inverse.PointModel2d
-"Inverse Hydrostat" artisynth.demos.inverse.HydrostatInvDemo
+#"Contact Pressure Render" artisynth.demos.tutorial.ContactPressureRender
+#"Toy Muscle Arm" artisynth.demos.tutorial.ToyMuscleArm
+#"Toy Muscle Fem" artisynth.demos.tutorial.ToyMuscleFem
+#"Simple Collide" artisynth.demos.fem.SimpleCollide
+#"Spring/FEM Attachment" artisynth.demos.fem.AttachedBeamDemo
+#"Simple FEM Muscle" artisynth.demos.fem.SpongeDemo
+#"Talus Wrapping" artisynth.demos.wrapping.TalusWrapTest
+#"Spring Mesh" artisynth.demos.mech.SpringMeshDemo
+#"RigidBody Spring" artisynth.demos.mech.RigidBodyDemo
+#"MechModel Demo" artisynth.demos.mech.MechModelDemo
+#"Hex FEM Cube" artisynth.demos.fem.HexCube
+#"Combined Shell-FEM" artisynth.demos.fem.CombinedShellFem
+#"FEM Self Collision" artisynth.demos.fem.SelfCollision
+#"FEM Collision" artisynth.demos.fem.FemCollision
+#"FEM Muscle Arm" artisynth.demos.fem.FemMuscleArm
+#"Inverse Point2d" artisynth.demos.inverse.PointModel2d

@@ -11,6 +11,7 @@ import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
 import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.Shading;
 import maspack.util.*;
 
 import java.io.*;
@@ -62,6 +63,10 @@ public class PuppetDemo extends LaymanDemo {
          new double[] { 0, 0, 0, 1, 1, 0, 0, 1, 2.5, 0, 2.5, 1.65, 4, 0, 0,
                        1.2, 5.5, -0.5, -2.5, 1.2, 7, 0, 1, 1, 9, 0, 0, 1 },
          NumericInputProbe.EXPLICIT_TIME);
+
+      // make things shiny
+      RenderProps.setSpecular (myMechMod, new Color (0.8f, 0.8f, 1f));
+      RenderProps.setShading (myLayman, Shading.SMOOTH);
 
       iprobe.setActive (true);
       addInputProbe (iprobe);

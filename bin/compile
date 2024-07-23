@@ -36,7 +36,7 @@ else
     CP="$AT/classes:$AT/lib/*:$CLASSPATH"
   fi
 fi
-JAVACFLAGS="-J-Xms500m -J-Xmx500m -source 1.8 -target 1.8 -encoding UTF-8"
+JAVACFLAGS="-J-Xms500m -J-Xmx500m -source 1.8 -target 1.8 -encoding UTF-8 -Xlint:-options -Xlint:-removal"
 find . -name '*.java' > _sources_.txt
 javac -cp $CP -d $top/classes -sourcepath $top/src $JAVACFLAGS @_sources_.txt
 rm -rf _sources_.txt

@@ -56,7 +56,7 @@ set cwd=%cd%
 rem call javac with ArtiSynth arguments, classpath, and the the java
 rem files listed in _sources_.txt
 echo on
-%JAVAC% -J-Xms500m -J-Xmx500m -d %TOP%\classes -cp %CP% -sourcepath %TOP%\src -source 1.8 -target 1.8 -encoding UTF-8 @_sources_.txt
+%JAVAC% -J-Xms500m -J-Xmx500m -d %TOP%\classes -cp %CP% -sourcepath %TOP%\src -source 1.8 -target 1.8 -encoding UTF-8 -Xlint:-options -Xlint:-removal @_sources_.txt
 @echo off
 rem remove the sources file
 del /f _sources_.txt

@@ -847,6 +847,44 @@ project}, as described in Section \ref{importingExternalProjects}.
 \section{Loading and Running Models}
 \label{Running}
 
+\ifMacOS
+\subsection{Getting past MacOS security}
+
+\begin{sideblock}
+On recent versions of {\tt MacOS}, a problem that may occur when trying to run
+ArtiSynth models is that MacOS may complain about using a nonvalidated external
+library. This may take the form of a console error that looks like this:
+\begin{verbatim}
+ ...
+ /Users/lloyd/git/artisynth_core/lib/MacOS64/libPardisoJNI.11.1.2.1.dylib)
+ not valid for use in process using Library Validation: library load disallowed
+ by system policy 
+ ...
+\end{verbatim}
+and/or a popup notice like this:
+\begin{center}
+\iflatexml
+  \includegraphics[]{images/MacSecurityNotice}
+\else
+  \includegraphics[width=2.5in]{images/MacSecurityNotice}
+\fi
+\end{center}
+The problem here is that one or more of the native libraries are not ``known''
+to Apple and are therefore not trusted. Clicking the "?" on the popup will
+open a window containing more information about what to do.
+
+The short version is to immediately open your Security and Privacy
+settings after the error occurs, and then, near the bottom of the {\sf
+General} tab, you should see a notification about the blocked
+application with a button to the right labeled {\sf Open
+Anyway}. Clicking that button will grant the application a security
+exception. You will then need to exit and restart ArtiSynth.
+\end{sideblock}
+
+\fi
+
+\subsection{Using the Models menu}
+
 After ArtiSynth starts up, you can load and run demonstration
 models. Do this by selecting {\sf Models > Demos} from the main menu
 and choosing a demo model (Figure \ref{ModelSelectionMenu:fig}).
@@ -863,24 +901,36 @@ and choosing a demo model (Figure \ref{ModelSelectionMenu:fig}).
 \label{ModelSelectionMenu:fig}
 \end{figure}
 
-\iflatexml\else\pagebreak\fi
-
-\ifMacOS
-\begin{sideblock}
-On older versions of {\tt MacOS}, errors similar to the following
-may appear on the Eclipse Console output:
-\begin{verbatim}
- 2021-03-12 11:01:16.949 java[585:230b] invalid drawable 
-\end{verbatim}
-This is due to a problem in the default version of the Java-OpenGL
-(JOGL) interface. To fix it, go back to the terminal window, and
-from the ArtiSynth home directory run the command
-\begin{verbatim}
- > bin/installJOGL2.3.2
-\end{verbatim}
-Then recompile ArtiSynth.
-\end{sideblock}
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+   \includegraphics[]{images/SpringNetDemo}
+\else
+   \includegraphics[width=0.60\textwidth]{images/SpringNetDemo}
 \fi
+\end{center}
+\caption{ArtiSynth with the Spring Net demo loaded.}
+\label{SpringNetDemo:fig}
+\end{figure}
+
+%\iflatexml\else\pagebreak\fi
+
+%\ifMacOS
+%\begin{sideblock}
+%On older versions of {\tt MacOS}, errors similar to the following
+%may appear on the Eclipse Console output:
+%\begin{verbatim}
+% 2021-03-12 11:01:16.949 java[585:230b] invalid drawable 
+%\end{verbatim}
+%This is due to a problem in the default version of the Java-OpenGL
+%(JOGL) interface. To fix it, go back to the terminal window, and
+%from the ArtiSynth home directory run the command
+%\begin{verbatim}
+% > bin/installJOGL2.3.2
+%\end{verbatim}
+%Then recompile ArtiSynth.
+%\end{sideblock}
+%\fi
 
 Once a model is loaded, it will appear in the viewer, and simulation
 can be controlled using the ``play'' controls located at the upper right
@@ -904,54 +954,12 @@ button advances the simulation by one time step. The {\sf stop-all}
 button will also stop the simulation, as well as any Jython commands
 or scripts that are running.
 
-\ifMacOS
-
-\begin{sideblock}
-On newer versions of {\tt MacOS}, another problem that may occur when
-trying to run ArtiSynth models is that MacOS may complain about using
-a nonvalidated external library. This will take the form of a console
-error that looks like this:
-\begin{verbatim}
- ...
- /Users/lloyd/git/artisynth_core/lib/MacOS64/libPardisoJNI.11.1.2.1.dylib)
- not valid for use in process using Library Validation: library load disallowed
- by system policy 
- ...
-\end{verbatim}
-The problem here is that one or more of the native libraries are not
-``known'' to Apple and are therefore not trusted. General information
-on working around this problem is described here:
-
-\href{https://support.apple.com/en-ca/HT202491}{support.apple.com/en-ca/HT202491}
-
-The short version is to immediately open your Security and Privacy
-settings after the error occurs, and then, near the bottom of the {\sf
-General} tab, you should see a notification about the blocked
-application with a button to the right labeled {\sf Open
-Anyway}. Clicking that button will grant the application a security
-exception.
-\end{sideblock}
-
-\fi
-
 Detailed information on how to use the ArtiSynth GUI for model
 visualization, navigation and simulation control is given in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
 
 Figure \ref{SpringNetDemo:fig} shows ArtiSynth with the {\sf Spring
 Net} demo loaded.
-
-\begin{figure}[ht]
-\begin{center}
-\iflatexml
-   \includegraphics[]{images/SpringNetDemo}
-\else
-   \includegraphics[width=0.60\textwidth]{images/SpringNetDemo}
-\fi
-\end{center}
-\caption{ArtiSynth with the Spring Net demo loaded.}
-\label{SpringNetDemo:fig}
-\end{figure}
 
 \subsection{Other ways to load models}
 

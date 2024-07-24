@@ -101,6 +101,12 @@ choose the model you would like. It will be loaded and displayed in
 the viewer. To start/stop simulation, use the play button
 \includegraphics[width=0.15in]{images/playButton} at the top right.
 
+\begin{sideblock}
+On MacOS, running a model may initially produce a security error because of
+untrusted ArtiSynth native libraries.  See Section \ref{MacOSSecurity} for
+details on handling this.
+\end{sideblock}
+
 \end{itemize}
 
 \subsection{To make changes to a demo:}
@@ -108,9 +114,8 @@ the viewer. To start/stop simulation, use the play button
 \begin{enumerate}
 
 \item If {\tt <AT>} denotes the top-level folder of your ArtiSynth
-installation, then add {\tt <AT>\BKS bin} (Windows) or {\tt <AT>/bin}
-(MacOS and Linux) to your system Path
-as described in Section \ref{SettingPath}.
+installation, then add {\tt <AT>\BKS bin} (Windows) or {\tt <AT>/bin} (MacOS
+and Linux) to your system Path as described in Section \ref{SettingPath}.
 
 \item Edit the {\tt .java} file for the demo, which will be located
 in a folder under {\tt <AT>\BKS src\BKS artisynth\BKS demos},
@@ -288,5 +293,39 @@ while for the {\tt csh} out {\tt tcsh} shells, one can edit {\tt
 \begin{verbatim}
    setenv PATH <DIR>":"$PATH
 \end{verbatim}
+
+\section{Getting past MacOS security}
+\label{MacOSSecurity}
+
+On recent versions of {\tt MacOS}, a problem that may occur when trying to run
+ArtiSynth models is that MacOS may complain about using a nonvalidated external
+library. This may take the form of a console error that looks like this:
+%
+\begin{lstlisting}[]
+ ...
+ /Users/lloyd/git/artisynth_core/lib/MacOS64/libPardisoJNI.11.1.2.1.dylib)
+ not valid for use in process using Library Validation: library load disallowed
+ by system policy 
+ ...
+\end{lstlisting}
+%
+and/or a popup notice like this:
+\begin{center}
+\iflatexml
+  \includegraphics[]{images/MacSecurityNotice}
+\else
+  \includegraphics[width=2.5in]{images/MacSecurityNotice}
+\fi
+\end{center}
+The problem here is that one or more of the native libraries are not ``known''
+to Apple and are therefore not trusted. Clicking the "?" on the popup will
+open a window containing more information about what to do.
+
+The short version is to immediately open your Security and Privacy
+settings after the error occurs, and then, near the bottom of the {\sf
+General} tab, you should see a notification about the blocked
+application with a button to the right labeled {\sf Open
+Anyway}. Clicking that button will grant the application a security
+exception. You will then need to exit and restart ArtiSynth.
 
 \end{document}

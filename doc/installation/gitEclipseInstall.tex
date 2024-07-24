@@ -484,26 +484,26 @@ You should now be able to run ArtiSynth. From the main menu, select
 {\tt artisynth\_core} by clicking on it in the Package Explorer, and
 then from the main menu select {\sf Run > Run}, and the ArtiSynth
 application will start up (perhaps a little slowly the first time).
-\ifMacOS
 
-\begin{sideblock}
-On older versions of {\tt MacOS}, errors similar to the following
-may appear on the Eclipse Console output:
-\begin{verbatim}
- 2021-03-12 11:01:16.949 java[585:230b] invalid drawable 
-\end{verbatim}
-This is due to a problem in the default version of the Java-OpenGL
-(JOGL) interface. To fix it, go back to the terminal window, and
-from the ArtiSynth installation folder run the command
-\begin{verbatim}
- > bin/installJOGL2.3.2
-\end{verbatim}
-Then return to Eclipse, select {\tt artisynth\_core} in the Package
-Explorer, refresh it (right-click > {\sf Refresh} or {\sf F5}), and
-wait for it to recompile.
-\end{sideblock}
+%\ifMacOS
+%\begin{sideblock}
+%On older versions of {\tt MacOS}, errors similar to the following
+%may appear on the Eclipse Console output:
+%\begin{verbatim}
+% 2021-03-12 11:01:16.949 java[585:230b] invalid drawable 
+%\end{verbatim}
+%This is due to a problem in the default version of the Java-OpenGL
+%(JOGL) interface. To fix it, go back to the terminal window, and
+%from the ArtiSynth installation folder run the command
+%\begin{verbatim}
+% > bin/installJOGL2.3.2
+%\end{verbatim}
+%Then return to Eclipse, select {\tt artisynth\_core} in the Package
+%Explorer, refresh it (right-click > {\sf Refresh} or {\sf F5}), and
+%wait for it to recompile.
+%\end{sideblock}
+%\fi
 
-\fi
 Within ArtiSynth, you can load a demonstration model by selecting
 {\sf Models > Demos} from the main menu and choosing a demo model:
 
@@ -536,12 +536,10 @@ time 0 is done by clicking {\sf reset}.  The {\sf single-step} button
 advances the simulation by one time step.
 
 \ifMacOS
-
 \begin{sideblock}
-On newer versions of {\tt MacOS}, another problem that may occur when
-trying to run ArtiSynth models is that MacOS may complain about using
-a nonvalidated external library. This will take the form of a console
-error that looks like this:
+On recent versions of {\tt MacOS}, a problem that may occur when trying to run
+ArtiSynth models is that MacOS may complain about using a nonvalidated external
+library. This may take the form of a console error that looks like this:
 \begin{verbatim}
  ...
  /Users/lloyd/git/artisynth_core/lib/MacOS64/libPardisoJNI.11.1.2.1.dylib)
@@ -549,20 +547,25 @@ error that looks like this:
  by system policy 
  ...
 \end{verbatim}
-The problem here is that one or more of the native libraries are not
-``known'' to Apple and are therefore not trusted. General information
-on working around this problem is described here:
-
-\href{https://support.apple.com/en-ca/HT202491}{support.apple.com/en-ca/HT202491}
+and/or a popup notice like this:
+\begin{center}
+\iflatexml
+  \includegraphics[]{images/MacSecurityNotice}
+\else
+  \includegraphics[width=2.5in]{images/MacSecurityNotice}
+\fi
+\end{center}
+The problem here is that one or more of the native libraries are not ``known''
+to Apple and are therefore not trusted. Clicking the "?" on the popup will
+open a window containing more information about what to do.
 
 The short version is to immediately open your Security and Privacy
 settings after the error occurs, and then, near the bottom of the {\sf
 General} tab, you should see a notification about the blocked
 application with a button to the right labeled {\sf Open
 Anyway}. Clicking that button will grant the application a security
-exception.
+exception. You will then need to exit and restart ArtiSynth.
 \end{sideblock}
-
 \fi
 
 A model can also be loaded by specifying either its defining class or

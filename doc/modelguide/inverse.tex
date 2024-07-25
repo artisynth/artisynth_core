@@ -29,12 +29,40 @@ the exciter components) that allow the trajectories to be followed as closely
 as possible, in a manner conceptually similar to computed muscle control in
 OpenSim \cite{delp2007opensim}.
 
+\begin{sideblock}
+It is currently recommended to run inverse simulation with {\it hybrid solving}
+disabled. Hybrid solving combines direct and iterative solution techniques to
+speed up sparse matrix solves within ArtiSynth's integrators. However, it can
+occasionally cause stability issues when used with inverse control.  Hybrid
+solves can be disabled in several ways:
+
+\begin{enumerate}
+
+\item By setting {\sf hybridSolvesEnabled} to {\tt false} 
+under ``{\sf Settings > Simulation ...}'' in the GUI;
+see ``Simulation'' under ``Settings and Preferences'' in the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}. This change
+can be made to persist across ArtiSynth restarts.
+
+\item By calling the static method 
+{\tt setHybridSolvesEnabled()} of 
+\javaclass[\mech]{MechSystemSolver} in the model's {\tt build()}
+method:
+%
+\begin{verbatim}
+   MechSystemSolver.setHybridSolvesEnabled(false);
+\end{verbatim}
+%
+\end{enumerate}
+
+\end{sideblock}
+
 \subsection{Tracking controller operation}
 
 Let $\q$, $\u$ and $\f$ be composite vectors describing the positions,
-velocities and forces of all the components in the application model,
-and let $\a$ be a vector of excitation signals for all the excitation
-components available to the controller. $\f$ can be decomposed into
+velocities and forces of all the components in the application model, and let
+$\a$ be a vector of excitation signals for all the excitation components
+available to the controller. $\f$ can be decomposed into
 %
 \begin{equation}
 \f = \f_p (\q, \u) + \f_a (\q, \u, \a)

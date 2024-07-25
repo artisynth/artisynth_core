@@ -102,6 +102,7 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.RenderList;
+import maspack.render.Renderable;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.color.ColorMapBase;
@@ -5146,6 +5147,11 @@ PointAttachable, ConnectableBody {
       // must add meshList *after* mesh and plot ranges have been updated
       list.addIfVisible(myMeshList);
       list.addIfVisible(myCutPlanes);
+      for (FieldComponent f : myFieldList) {
+         if (f instanceof Renderable) {
+            list.addIfVisible((Renderable)f);
+         }
+      }
 
       myAuxiliaryMaterialList.prerender(list);
       myMaterialBundles.prerender(list);

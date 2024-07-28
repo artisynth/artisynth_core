@@ -19,8 +19,7 @@ public class PinJoint extends JointBase {
       RigidBody parent, RigidTransform3d TJP, 
       RigidBody child, RigidTransform3d TJC) {
 
-      HingeJoint rj = new HingeJoint (
-         child, getJointTransformInChild(), parent, getJointTransformInParent());
+      HingeJoint rj = new HingeJoint (child, TJC, parent, TJP);
       
       // get coordinate and set values
       ArrayList<Coordinate> cs = getCoordinateArray ();

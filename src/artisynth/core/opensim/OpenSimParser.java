@@ -34,6 +34,7 @@ public class OpenSimParser {
    OpenSimDocument myDocument;
    File myGeometryPath;
    ModelComponentMap myComponentMap;
+   public static boolean myFrameGeometryVisible = false;
 
    /**
     * Creates a new parser
@@ -95,6 +96,14 @@ public class OpenSimParser {
    
    public File getGeometryPath() {
       return myGeometryPath;
+   }
+
+   public boolean getFrameGeometryVisible() {
+      return myFrameGeometryVisible;
+   }
+
+   public void setFrameGeometryVisible (boolean enable) {
+      myFrameGeometryVisible = enable;
    }
 
    /**

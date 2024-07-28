@@ -21,9 +21,7 @@ public class UniversalJoint extends JointBase {
 
       artisynth.core.mechmodels.UniversalJoint joint =
          new artisynth.core.mechmodels.UniversalJoint (AxisSet.XY);
-      joint.setBodies (
-         child, getJointTransformInChild(),
-         parent, getJointTransformInParent());
+      joint.setBodies (child, TJC, parent, TJP);
       
       setCoordinateRangesAndValues (joint);
       joint.setName (getName());

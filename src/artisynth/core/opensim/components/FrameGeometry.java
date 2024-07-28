@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.io.File;
 
 import artisynth.core.mechmodels.RigidMeshComp;
+import artisynth.core.opensim.OpenSimParser;
 import maspack.geometry.PolylineMesh;
 import maspack.render.RenderProps;
 
@@ -56,6 +57,9 @@ public class FrameGeometry extends Geometry {
       componentMap.put(this, axes);
       
       RenderProps rprops = new RenderProps();
+      if (!OpenSimParser.myFrameGeometryVisible) {
+         rprops.setVisible (false);
+      }
       updateRenderProps (rprops);
       axes.setRenderProps (rprops);
       

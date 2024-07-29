@@ -1,4 +1,4 @@
-package artisynth.models.testspace.template;
+package artisynth.models.testspace;
 
 import java.awt.Color;
 import java.io.*;

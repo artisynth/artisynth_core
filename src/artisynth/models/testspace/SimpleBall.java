@@ -1,4 +1,4 @@
-package artisynth.models.testspace.template;
+package artisynth.models.testspace;
 
 import artisynth.core.workspace.RootModel;
 import artisynth.core.mechmodels.RigidBody;

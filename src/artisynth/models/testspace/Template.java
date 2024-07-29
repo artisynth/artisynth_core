@@ -19,6 +19,12 @@ import maspack.render.*;
 import maspack.render.Renderer.*;
 import maspack.properties.*;
 
+/**
+ * Template class for creating ArtiSymth models.
+ *
+ * <p>Caution: do not modify this class, as the ArtiSynth team may change it
+ * from time to time. Instead, copy it.
+ */
 public class Template extends RootModel {
 
    public void build (String[] args) {

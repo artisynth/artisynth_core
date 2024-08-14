@@ -37,7 +37,7 @@ public class MeshBodyEditor extends EditorBase {
             actions.add (this, "Save local mesh as ...");
             actions.add (this, "Save world mesh as ...");
             if (body.getMesh() instanceof PolygonalMesh &&
-                body.getGrandParent() instanceof MechModel) {           
+                MechModel.nearestMechModel(body) != null) {
                actions.add (this, "Add mesh inspector");
             }
          }
@@ -68,7 +68,7 @@ public class MeshBodyEditor extends EditorBase {
                MeshBase mesh = body.getMesh();
                if (mesh instanceof PolygonalMesh) {
                   PolygonalMesh pmesh = (PolygonalMesh)mesh;
-                  MechModel mech = (MechModel)body.getGrandParent();
+                  MechModel mech = MechModel.nearestMechModel(body);
                   EditablePolygonalMeshComp editMesh =
                      new EditablePolygonalMeshComp (body);
                   double size = RenderableUtils.getRadius (editMesh);

@@ -43,7 +43,8 @@ public class RigidBodyEditor extends EditorBase {
             if (body.getGrandParent() instanceof MechModel) {
                actions.add (this, "Attach particles ...", EXCLUSIVE);
             }
-            if (body.getSurfaceMesh() != null) {
+            if (body.getSurfaceMesh() != null &&
+                MechModel.nearestMechModel(body) != null) {
                actions.add (this, "Add mesh inspector");
             }
          }
@@ -180,7 +181,7 @@ public class RigidBodyEditor extends EditorBase {
             }
             else if (actionCommand == "Add mesh inspector") {
                RigidBody body = (RigidBody)selection.get (0);
-               MechModel mech = (MechModel)body.getGrandParent();
+               MechModel mech = MechModel.nearestMechModel (body);
                PolygonalMesh mesh = body.getSurfaceMesh();
                EditablePolygonalMeshComp editMesh =
                   new EditablePolygonalMeshComp (mesh);

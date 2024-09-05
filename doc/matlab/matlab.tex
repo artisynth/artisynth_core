@@ -447,14 +447,22 @@ under the ArtiSynth {\sf Models} menu, and {\tt args...} is an
 optional variable-length list of string arguments that are used to
 form the {\tt args} argument of the model's {\tt build()} method.
 
-Once loaded, simulation may be controlled using methods such as {\tt
-play()}, {\tt pause()}, {\tt step()}, or {\tt reset()}. The following
-example shows loading a model called {\tt RigidBodyDemo} and
-then having it simulate for 2.5 seconds:
+Once loaded, simulation may be controlled using methods such as {\tt play()},
+{\tt pause()}, {\tt step()}, {\tt stepAndWait()}, or {\tt reset()}. The
+following example shows loading a model called {\tt RigidBodyDemo} and then
+having it simulate for 2.5 seconds:
 %
 \begin{lstlisting}[]
    >> ah.loadModel ('RigidBodyDemo');
    >> ah.play (2.5);
+\end{lstlisting}
+%
+The {\tt play()} method initiates simulation for a specified length of time but
+does not wait for it to complete. To do that, one may use {\tt waitForStop()}:
+%
+\begin{lstlisting}[]
+   >> ah.play (2.5);
+   >> ah.waitForStop();
 \end{lstlisting}
 %
 A particularly powerful feature is the ability to single step
@@ -465,7 +473,7 @@ the simulation while it is in progress:
    >> % single step the simulation for 100 steps
    >> for i=1:100
    >>    ... adjust inputs if desired ...
-   >>    ah.step();
+   >>    ah.stepAndWait();
    >>    ... monitor outputs if desired ...
    >> end
 \end{lstlisting}
@@ -490,13 +498,19 @@ target position of point {\tt p1} directly in MATLAB:
    >>    ang = ah.getTime()*pi/2;
    >>    targ = 0.5*[sin(ang), 0, 1-cos(ang)];
    >>    p1.setTargetPosition (Point3d (avec (targ)));
-   >>    ah.step();
+   >>    ah.stepAndWait();
    >>    pause (0.01); % slow down simulation if desired
    >> end
 \end{lstlisting}
 %
 The call to {\tt pause()} in the above code simply slows down the
 simulation so that it appears to run in real time.
+
+\begin{sideblock}
+The method {\tt stepAndWait()} in the above examples runs a single simulation
+step and waits for it to complete. By contrast, the method {\tt step()}
+initiates a simulation step but does not wait for it to complete.
+\end{sideblock}
 
 \section{Java memory limits}
 \label{memoryLimits:sec}
@@ -882,7 +896,11 @@ Pauses the simulation.
 
 \item[{\tt step()}] \mbox{}
 
-Single steps the simulation.
+Starts a single simulation step.
+
+\item[{\tt stepAndWait()}] \mbox{}
+
+Starts a single simulation step and waits for it to complete.
 
 \item[{\tt reset()}] \mbox{}
 

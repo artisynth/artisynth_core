@@ -2334,7 +2334,7 @@ are directed toward the viewer window (Figure
 \end{tabular}
 \end{center}
 \caption{Translational transformer applied to a frame marker,
-with axes initialy obscured (left) and then brought
+with axes initially obscured (left) and then brought
 forward after hitting the 'f' key (right).}%
 \label{transformerFlip:fig}
 \end{figure}
@@ -4842,6 +4842,16 @@ one may use the {\tt waitForStop()} function:
    >> waitForStop()
 \end{lstlisting}
 %
+One can also execute a single simulation step using {\tt step()}:
+%
+\begin{lstlisting}[]
+   >> step ()
+   >> waitForStop()
+\end{lstlisting}
+%
+As with {\tt play()}, {\tt step()} does not wait for the simulation to
+complete. To do that without calling {\tt waitForStop()}, one may use {\tt
+stepAndWait()}.
 
 When controlling simulations, it is often easiest to create a script
 of Jython commands in a Python-style {\tt .py} file and then "source"
@@ -5046,7 +5056,11 @@ Pauses the simulation.
 
 \item[{\tt step()}] \mbox{}
 
-Single steps the simulation.
+Starts a single simulation step.
+
+\item[{\tt stepAndWait()}] \mbox{}
+
+Starts a single simulation step and waits for it to complete.
 
 \item[{\tt reset()}] \mbox{}
 

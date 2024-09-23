@@ -198,6 +198,22 @@ public class Vector3d extends VectorBase
    }
 
    /**
+    * Copies the elements of this vector into an array of doubles,
+    * starting at a particular location.
+    * 
+    * @param values
+    * array into which values are copied
+    * @param idx starting point within values where copying should begin
+    * @return updated idx value
+    */
+   public int get (double[] values, int idx) {
+      values[idx++] = x;
+      values[idx++] = y;
+      values[idx++] = z;
+      return idx;
+   }
+
+   /**
     * Copies the elements of this vector into an array of floats.  If {@code
     * values} is {@code null}, it is allocated internally.
     * 

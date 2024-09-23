@@ -40,6 +40,7 @@ public class NumberFormat {
    private int width = -1;
    private int precision = -1;
    private int type = 'g';
+   private int numExpDigits = 2;
 
    private static String validTypes = new String ("diouxXeEfgaA");
 
@@ -259,6 +260,39 @@ public class NumberFormat {
    }
 
    /**
+    * Sets the number of exponent digits to be used with exponential notation
+    * with the format types 'e', 'E', 'g' and 'G'.  Values must be in the range
+    * 1-4. The default is 2.
+    *
+    * @param num number of exponent digits
+    */
+   public void setNumExpDigits (int num) {
+      if (num < 1 || num > 4) {
+         throw new IllegalArgumentException (
+            "Exponent size "+num+" is not in the range [1,4]");
+      }
+      if (num != numExpDigits) {
+         numExpDigits = num;
+         if (type == 'E' || type == 'e') {
+            createExpFormat (precision);
+         }
+         else if ((type == 'G' || type == 'g') && precision > 0) {
+            createExpFormat (precision-1);            
+         }
+      }
+   }
+
+   /**
+    * Returns the number of exponent digits to be used with exponential
+    * notation.
+    *
+    * @return number of exponent digits
+    */
+   public int getNumExpDigits() {
+      return numExpDigits;
+   }
+
+   /**
     * Returns the conversion character for this format.
     * 
     * @return conversion character
@@ -307,14 +341,17 @@ public class NumberFormat {
    private void createExpFormat (int numFracDigits) {
       xbuf.setLength (0);
       if (numFracDigits == 0) {
-         xbuf.append ("0E00");
+         xbuf.append ("0E");
       }
       else {
          xbuf.append ("0.");
          for (int i = 0; i < numFracDigits; i++) {
             xbuf.append ('0');
          }
-         xbuf.append ("E00");
+         xbuf.append ("E");
+      }
+      for (int i=0; i<numExpDigits; i++) {
+         xbuf.append ("0");
       }
       expFmt = new java.text.DecimalFormat();
       expFmt.setGroupingUsed (false);
@@ -390,8 +427,9 @@ public class NumberFormat {
     * <code>[-]d.ddde+dd</code>, with the number of digits after the decimal
     * point given by the precision. The default precision value is 6. No decimal
     * point is output if the precision is 0. Conversion 'E' causes 'E' to be
-    * used as an exponent instead of 'e'. The exponent is always at least two
-    * characters.
+    * used as an exponent instead of 'e'. The number of digits in the exponent
+    * can be controlled by {@link #setNumExpDigits}, and has a default
+    * value of 2, with more digits added if required.
     * <dt> f
     * <dd> The floating point argument is output in the form
     * <code>[-]ddd.ddd</code>, with the number of digits after the decimal
@@ -413,7 +451,7 @@ public class NumberFormat {
     * to 1.
     * <dt> a,A
     * <dd> The floating point argument is output in the hexadecimal floating
-    * point form <code>[-]0xh.hhhp+dd</code>. The exponent is a decimal
+    * point form <code>[-]0xh.hhhp+ddd</code>. The exponent is a decimal
     * number and describes a power of 2. The 'A' style uses the prefix "0X", the
     * hex digits "ABCDEF", and the exponent character 'P'. The number of digits
     * after the decimal point is given by the precision. The default precision

@@ -16,4 +16,8 @@ public class TestException extends RuntimeException {
    public TestException (String msg) {
       super (msg);
    }
+
+   public TestException (String msg, Exception source) {
+      super (msg, source);
+   }
 }

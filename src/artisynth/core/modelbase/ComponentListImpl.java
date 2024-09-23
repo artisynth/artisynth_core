@@ -92,6 +92,11 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       return myComponentMap.getNumberLimit();
    }
 
+   public int getMinNumber() {
+      validateIndices ();
+      return myComponentMap.getMinNumber();
+   }
+
    public void componentChanged (ComponentChangeEvent e) {
       if (e.getCode() == ComponentChangeEvent.Code.NAME_CHANGED) {
          ModelComponent c = e.getComponent();
@@ -471,6 +476,13 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
 
    // ========== End MutableCompositeComponent implementation ===== 
 
+   public void incrementNumbering (int inc) {
+      myComponentMap.incrementNumbering (inc);
+      for (ModelComponent mc : this) {
+         mc.setNumber (mc.getNumber()+inc);
+      }
+   }
+   
    public void setOneBasedNumbering (boolean enable) {
       if (getOneBasedNumbering() != enable) {
          myComponentMap.setOneBasedNumbering (enable);

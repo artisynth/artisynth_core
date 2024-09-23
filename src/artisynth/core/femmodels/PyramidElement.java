@@ -103,6 +103,14 @@ public class PyramidElement extends FemElement3d {
       return myNodeMassWeights;
    }
 
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 3, 2, 1, 4
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
    private static MatrixNd myNodalAveragingMatrix = null;
 
@@ -328,9 +336,9 @@ public class PyramidElement extends FemElement3d {
    /** 
     * Cpmputes the exact volume of the pyramid
     *
-    * @return element volume
+    * @return pyramid volume
     */
-   private double computeVolume (
+   private static double computeVolume (
       Point3d p0, Point3d p1, Point3d p2,
       Point3d p3, Point3d p4) {
 
@@ -344,6 +352,32 @@ public class PyramidElement extends FemElement3d {
       vol += TetElement.computeVolume (p0, p1, p3, p4);
 
       return vol /= 2;
+   }
+
+   /** 
+    * Computes the exact volume of the pyramid defined by five nodes.
+    *
+    * @return pyramid volume
+    */
+   static double computeVolume (
+      FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4) {
+
+      return computeVolume (
+         n0.getPosition(), n1.getPosition(), n2.getPosition(), 
+         n3.getPosition(), n4.getPosition());
+   }
+
+   /** 
+    * Computes the exact volume of the pyramid defined by the first five nodes
+    * of {@code nodes}.
+    *
+    * @return pyramid volume
+    */
+   static double computeVolume (FemNode3d[] nodes) {
+
+      return computeVolume (
+         nodes[0].getPosition(), nodes[1].getPosition(), nodes[2].getPosition(),
+         nodes[3].getPosition(), nodes[4].getPosition());
    }
 
    public boolean isInside (Point3d pnt) {

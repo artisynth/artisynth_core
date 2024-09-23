@@ -204,6 +204,14 @@ public class QuadwedgeElement extends FemElement3d {
       return myNodeMassWeights;
    }
 
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 2, 1, 3, 5, 4, 8, 7, 6, 11, 10, 9, 12, 14, 13
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
 
    public MatrixNd getNodalExtrapolationMatrix() {

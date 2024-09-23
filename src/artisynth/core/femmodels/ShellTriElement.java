@@ -35,7 +35,7 @@ public class ShellTriElement extends ShellElement3d {
       myNodeCoords = new double[] {
         0, 0, 0,
         1, 0, 0,
-        1, 1, 0,
+        0, 1, 0,
      };
       
       /*
@@ -127,6 +127,15 @@ public class ShellTriElement extends ShellElement3d {
       myElementClass = (membrane ? ElementClass.MEMBRANE : ElementClass.SHELL);
    }
 
+   /**
+    * Creates a new triangle element from three nodes, arranged
+    * counter-clockwise around the elements outer facing normal.
+    */
+   public ShellTriElement (
+      FemNode3d[] nodes, double thickness, boolean membrane) {
+      this (nodes[0], nodes[1], nodes[2], thickness, membrane);
+   }
+
    public void setNodes (FemNode3d p0, FemNode3d p1, FemNode3d p2) {
       myNodes[0] = p0;
       myNodes[1] = p1;
@@ -204,6 +213,14 @@ public class ShellTriElement extends ShellElement3d {
 
    public double[] getNodeMassWeights () {
       return myNodeMassWeights;
+   }
+
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 2, 1
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
    }
 
    public int[] getEdgeIndices () {

@@ -199,6 +199,14 @@ public class QuadpyramidElement extends FemElement3d {
       return myNodeMassWeights;
    }
 
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 3, 2, 1, 4,  8, 7, 6, 5,  9, 12, 11, 10
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
 
    public MatrixNd getNodalExtrapolationMatrix() {

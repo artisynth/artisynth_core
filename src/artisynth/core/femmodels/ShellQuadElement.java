@@ -33,10 +33,10 @@ public class ShellQuadElement extends ShellElement3d {
    static {
       /* Expected arrangement of the initial node positions */
       myNodeCoords = new double[] {
-         0, 0, 0,
-         1, 0, 0,
+        -1, -1, 0,
+         1, -1, 0,
          1, 1, 0,
-         0, 1, 0 
+        -1, 1, 0 
       };
       
       /*
@@ -122,6 +122,15 @@ public class ShellQuadElement extends ShellElement3d {
       setNodes (p0, p1, p2, p3);
       myDefaultThickness = thickness;
       myElementClass = (membrane ? ElementClass.MEMBRANE : ElementClass.SHELL);
+   }
+
+   /**
+    * Creates a new square shell element with four nodes, arranged
+    * counter-clockwise around the elements outer facing normal.
+    */
+   public ShellQuadElement (
+      FemNode3d[] nodes, double thickness, boolean membrane) {
+      this (nodes[0], nodes[1], nodes[2], nodes[3], thickness, membrane);
    }
 
    public void setNodes (
@@ -221,6 +230,14 @@ public class ShellQuadElement extends ShellElement3d {
 
    public double[] getNodeMassWeights () {
       return myNodeMassWeights;
+   }
+
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 3, 2, 1
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
    }
 
    public int[] getEdgeIndices () {

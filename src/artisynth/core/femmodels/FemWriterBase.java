@@ -5,18 +5,26 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.*;
+import java.util.*;
 
 import maspack.geometry.MeshBase;
 import maspack.util.NumberFormat;
 
-public abstract class FemWriterBase implements FemWriter {
+/**
+ * Base class that can be used to implement FEM geometry writers.
+ * 
+ * @author John E Lloyd
+ */
+public abstract class FemWriterBase extends FemReaderWriterBase
+   implements FemWriter {
    
    public static final String DEFAULT_FORMAT = "%g";
    protected NumberFormat myFmt = new NumberFormat(DEFAULT_FORMAT);
 
-   OutputStream myOstream;
-   PrintWriter myPrintWriter;
-   File myFile;
+   File myFile;                 // file associated with the FEM writer, if any
+   OutputStream myOstream;      // OutpytStream associated with the FEM writer, if any
+   PrintWriter myPrintWriter;   // PrintWriter associated with the FEM writer, if any
 
    // XXX stub - get rid of this when refactoring done
    protected FemWriterBase() {
@@ -30,16 +38,22 @@ public abstract class FemWriterBase implements FemWriter {
       myPrintWriter = pw;
    }
 
-   //
-//   public void write (MeshBase mesh) throws IOException {
-//      write (myOstream, mesh);
-//   }
+   protected FemWriterBase (File file) throws IOException {
+      myPrintWriter =
+         new PrintWriter (new BufferedWriter (new FileWriter (file)));
+      myFile = file;
+   }
 
-//   public abstract void write (OutputStream os, MeshBase mesh)
-//      throws IOException;      
-   
    public abstract void writeFem (FemModel3d mesh) throws IOException;
-   
+ 
+   /**
+    * Sets the format used for writing floating point numbers, using a string
+    * specification as described in the documentation for {@link NumberFormat}.
+    * A null string sets the format to the default, which corresponds to '"%g"'
+    * and causes floats to be written out in full precision.
+    *
+    * @param fmtStr format specification for writing floating point numbers
+    */
    public void setFormat(String fmtStr) {
       if (fmtStr == null) {
          fmtStr = DEFAULT_FORMAT;
@@ -47,22 +61,38 @@ public abstract class FemWriterBase implements FemWriter {
       myFmt = new NumberFormat(fmtStr);
    }
    
+   /**
+    * Sets the format used for writing floating point numbers, as described by
+    * {@link NumberFormat}. A null value sets the format to the default, which
+    * corresponds to '"%g"' and causes floats to be written out in full
+    * precision.
+    *
+    * @param fmt format for writing floating point numbers
+    */
    public void setFormat(NumberFormat fmt) {
       myFmt.set(fmt);
    }
-   
+
+   /**
+    * Queries the format used for writing floating point numbers.
+    *
+    * @return format for writing floating point numbers
+    */   
    public NumberFormat getFormat() {
       return myFmt;
    }
    
-   private void closeQuietly(OutputStream out) {
+   protected void closeQuietly(OutputStream out) {
       if (out != null) {
          try {
             out.close();
          } catch (IOException e) {}
       }
    }
-   
+
+   /**
+    * Flushes the outputs for this writer.
+    */
    public void flush() {
       if (myOstream != null) {
          flushQuietly(myOstream);
@@ -72,7 +102,7 @@ public abstract class FemWriterBase implements FemWriter {
       }
    }
    
-   private void flushQuietly(OutputStream out) {
+   protected void flushQuietly(OutputStream out) {
       if (out != null) {
          try {
             out.flush();
@@ -80,6 +110,9 @@ public abstract class FemWriterBase implements FemWriter {
       }
    }
    
+   /**
+    * Closes the outputs for this writer.
+    */
    public void close() {
       flush();
       if (myOstream != null) {

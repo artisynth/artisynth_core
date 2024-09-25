@@ -17,6 +17,8 @@ import maspack.matrix.Vector4d;
 import maspack.matrix.Vectori;
 import maspack.matrix.Vector2i;
 import maspack.matrix.Vector3i;
+import maspack.spatialmotion.Twist;
+import maspack.spatialmotion.Wrench;
 import maspack.util.InternalErrorException;
 
 public class NumericConverter {
@@ -89,6 +91,10 @@ public class NumericConverter {
          case DOUBLE_ARRAY: {
             return ((double[])value).length;
          }
+         case TWIST:
+         case WRENCH: {
+            return 6;
+         }
          case VECTOR: {
             return ((Vector)value).size();
          }
@@ -126,6 +132,8 @@ public class NumericConverter {
          case LONG_ARRAY:
          case FLOAT_ARRAY:
          case DOUBLE_ARRAY:
+         case TWIST:
+         case WRENCH:
          case VECTOR:
          case VECTORI:
          case MATRIX:
@@ -176,6 +184,12 @@ public class NumericConverter {
       else if (Color.class.isAssignableFrom (cls)) {
          return new String [] { "r", "g", "b", "a" };
       }
+      else if (Twist.class.isAssignableFrom (cls)) {
+         return new String [] { "vx", "vy", "vz", "wx", "wy", "wz"};
+      }
+      else if (Wrench.class.isAssignableFrom (cls)) {
+         return new String [] { "fx", "fy", "fz", "mx", "my", "mz"};
+      }
       else if (AxisAngle.class.isAssignableFrom (cls)) {
          return new String [] { "ux", "uy", "uz", "ang" };
       }
@@ -219,6 +233,16 @@ public class NumericConverter {
             double[] ar = (double[])propObj;
             myDimension = ar.length;
             myObj = new double[myDimension];
+            break;
+         }
+         case TWIST: {
+            myDimension = 6;
+            myObj = new Twist();
+            break;
+         }        
+         case WRENCH: {
+            myDimension = 6;
+            myObj = new Wrench();
             break;
          }
          case VECTOR: {
@@ -315,6 +339,16 @@ public class NumericConverter {
             double[] doubleAr = (double[])myObj;
             for (i = 0; i < myDimension; i++)
                doubleAr[i] = (double)vals[i];
+            break;
+         }
+         case TWIST: {
+            Twist tw = (Twist)myObj;
+            tw.set (vals);
+            break;
+         }
+         case WRENCH: {
+            Wrench wr = (Wrench)myObj;
+            wr.set (vals);
             break;
          }
          case VECTOR: {
@@ -424,6 +458,16 @@ public class NumericConverter {
             double[] doubleAr = (double[])obj;
             for (i = 0; i < myDimension; i++)
                array[i] = doubleAr[i];
+            break;
+         }
+         case TWIST: {
+            Twist tw = (Twist)myObj;
+            tw.get (array);
+            break;
+         }
+         case WRENCH: {
+            Wrench wr = (Wrench)myObj;
+            wr.get (array);
             break;
          }
          case VECTOR: {

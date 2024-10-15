@@ -6,7 +6,7 @@ set ARGS=-updateLibs -moveUnused -remoteSource https://www.artisynth.org/files/l
 set BATCHFILE=%~f0
 
 if not defined ARTISYNTH_HOME set ARTISYNTH_HOME=%~dp0..
-set CPATH=%ARTISYNTH_HOME%\lib\vfs2.jar;%ARTISYNTH_HOME%\bin\libraryInstaller.jar
+set CPATH="%ARTISYNTH_HOME%\lib\vfs2.jar;%ARTISYNTH_HOME%\bin\libraryInstaller.jar"
 
 java -cp %CPATH% artisynth.core.driver.LibraryInstaller %ARGS%
 

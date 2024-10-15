@@ -1,4 +1,4 @@
-personal_ws-1.1 en 118 
+personal_ws-1.1 en 119 
 AWT
 ArtiSynth
 ArtiSynth's
@@ -106,6 +106,7 @@ setPosition
 setTargetPosition
 setenv
 startup
+stepAndWait
 targ
 th
 txt

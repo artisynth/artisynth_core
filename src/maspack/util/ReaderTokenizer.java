@@ -1301,7 +1301,7 @@ public class ReaderTokenizer {
             break;
          }
          else if (c == '\n') {
-            myLineNum++;
+            //myLineNum++;
             ttype = ReaderTokenizer.TT_EOL;
             break;
          }
@@ -1312,6 +1312,31 @@ public class ReaderTokenizer {
       }
       myTokenPushedBack = false;
       return sb.toString();
+   }
+
+   /**
+    * Skips the input to the end of the current line.  All unread tokens are
+    * discarded and {@code ttype} is set to either {@link #TT_EOL} or {@link
+    * #TT_EOF}, as appropriate.  Use this method only if you really know what
+    * you're doing!
+    */
+   public void skipLine() throws IOException {
+      while (true) {
+         int c = getc();
+         if (c < 0) {
+            ttype = ReaderTokenizer.TT_EOF;
+            break;
+         }
+         else if (c == '\n') {
+            //myLineNum++;
+            ttype = ReaderTokenizer.TT_EOL;
+            break;
+         }
+         else if (c == '\r') {
+            continue; // ignore CR
+         }
+      }
+      myTokenPushedBack = false;
    }
 
    private boolean infinityParsed() throws IOException {

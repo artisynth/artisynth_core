@@ -21,9 +21,7 @@ public class BallJoint extends JointBase {
 
       artisynth.core.mechmodels.GimbalJoint joint =
          new artisynth.core.mechmodels.GimbalJoint (AxisSet.XYZ);
-      joint.setBodies (
-         child, getJointTransformInChild(),
-         parent, getJointTransformInParent());
+      joint.setBodies (child, TJC, parent, TJP);
       
       setCoordinateRangesAndValues (joint);
       joint.setName (getName());

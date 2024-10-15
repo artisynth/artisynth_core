@@ -20,9 +20,7 @@ public class FreeJoint extends JointBase {
 
       artisynth.core.mechmodels.FreeJoint joint =
          new artisynth.core.mechmodels.FreeJoint (AxisSet.XYZ);
-      joint.setBodies (
-            child, getJointTransformInChild(),
-            parent, getJointTransformInParent());
+      joint.setBodies (child, TJC, parent, TJP);
       
       setCoordinateRangesAndValues (joint);
       joint.setName (getName());

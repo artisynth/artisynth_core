@@ -247,17 +247,17 @@ public class PropertyWidget {
          type == Boolean.class ||
          (VectorBase.class.isAssignableFrom (type) &&
             info.getDimension() != -1) ||
-            SymmetricMatrix3d.class.isAssignableFrom (type) ||
-            AxisAngle.class.isAssignableFrom (type) ||
-            RigidTransform3d.class.isAssignableFrom (type) ||
-            Rectangle2d.class.isAssignableFrom(type) ||
-            // Material.class.isAssignableFrom (type) ||
-            // MuscleMaterial.class.isAssignableFrom (type) ||
-            Enum.class.isAssignableFrom (type) ||
-            Color.class.isAssignableFrom (type) ||
-            NumericInterval.class.isAssignableFrom (type) ||
-            GridResolution.class.isAssignableFrom (type) ||
-            CompositeProperty.class.isAssignableFrom (type)) {
+          SymmetricMatrix3d.class.isAssignableFrom (type) ||
+          AxisAngle.class.isAssignableFrom (type) ||
+          RigidTransform3d.class.isAssignableFrom (type) ||
+          Rectangle2d.class.isAssignableFrom(type) ||
+          // Material.class.isAssignableFrom (type) ||
+          // MuscleMaterial.class.isAssignableFrom (type) ||
+          Enum.class.isAssignableFrom (type) ||
+          Color.class.isAssignableFrom (type) ||
+          NumericInterval.class.isAssignableFrom (type) ||
+          GridResolution.class.isAssignableFrom (type) ||
+          CompositeProperty.class.isAssignableFrom (type)) {
          return true;
       }
       else {

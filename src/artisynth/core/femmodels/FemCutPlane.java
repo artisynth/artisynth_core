@@ -690,11 +690,15 @@ public class FemCutPlane extends Frame implements FemMesh {
 
    protected void updateMesh() {
       if (!myMeshValid || myMesh == null) {
-         myMesh = createMesh();
-         if (mySurfaceRendering.usesStressOrStrain()) {
-            updateVertexColors (myMesh);
+         PolygonalMesh mesh = createMesh();
+         if (mesh != null) {
+            // mesh will be null if there was an error creating it
+            myMesh = mesh;
+            if (mySurfaceRendering.usesStressOrStrain()) {
+               updateVertexColors (myMesh);
+            }
+            myMeshValid = true;
          }
-         myMeshValid = true;
       }
    }
 
@@ -728,14 +732,24 @@ public class FemCutPlane extends Frame implements FemMesh {
       
       cutmesh.setMeshToWorld (TCW);
       SurfaceMeshIntersector smi = new SurfaceMeshIntersector();
-      PolygonalMesh mesh = smi.findMesh1Inside (
+      smi.setWriteErrorFiles (false);
+      PolygonalMesh mesh = null;
+      try {
+         mesh = smi.findMesh1Inside (
          fem.getSurfaceMesh(), cutmesh);
-
-      if (mySurfaceRendering.usesStressOrStrain()) {
-         mesh.setVertexColoringEnabled();
-         mesh.setVertexColorMixing (ColorMixing.REPLACE);
       }
-      mesh.setColorInterpolation (getColorInterpolation());
+      catch (Exception e) {
+         System.out.println (
+            "WARNING: can't create cut plane mesh: " +e.getMessage());
+         mesh = null;
+      }
+      if (mesh != null) {
+         if (mySurfaceRendering.usesStressOrStrain()) {
+            mesh.setVertexColoringEnabled();
+            mesh.setVertexColorMixing (ColorMixing.REPLACE);
+         }
+         mesh.setColorInterpolation (getColorInterpolation());
+      }
       return mesh;
    }
 

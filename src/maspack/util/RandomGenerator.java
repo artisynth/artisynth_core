@@ -40,6 +40,10 @@ public class RandomGenerator {
       return get().nextDouble();
    }
    
+   public static boolean nextBoolean () {
+      return get().nextBoolean();
+   }
+   
    /**
     * Next random number from a normal (Gaussian) distribution
     * with mean zero and unit standard deviation.

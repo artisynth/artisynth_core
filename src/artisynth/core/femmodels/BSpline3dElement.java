@@ -578,4 +578,8 @@ public class BSpline3dElement extends FemElement3d {
       // TODO Auto-generated method stub
       return null;
    }
+
+   public int[] getInverseNodeOrdering() {
+      return null;
+   }
 }

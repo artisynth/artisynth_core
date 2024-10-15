@@ -233,6 +233,22 @@ public class MechSystemSolver {
       myAlwaysAnalyze = enable;
    }
 
+   /**
+    * Queries whether hybrid sparse matrix solves are enabled by default.
+    * @return {@code true} if hybrid solves are enabled
+    */
+   public static boolean getHybridSolvesEnabled() {
+      return myDefaultHybridSolveP;
+   }
+
+   /**
+    * Set hybrid sparse matrix solves to be enabled or disabled by default.
+    * @param enable if {@code true}, enables hybrid solves
+    */
+   public static void setHybridSolvesEnabled (boolean enable) {
+      myDefaultHybridSolveP = enable;
+   }
+
    public static enum Integrator {
       ForwardEuler,
       BackwardEuler,

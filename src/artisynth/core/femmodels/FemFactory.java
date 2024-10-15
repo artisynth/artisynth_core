@@ -50,7 +50,7 @@ public class FemFactory {
    /**
     * Create the grid nodes for a volumetric grid.
     */
-   private static void createGridNodes(
+   static void createGridNodes(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
 
@@ -125,8 +125,8 @@ public class FemFactory {
       return model;
    }
 
-   private static final int[] apexNodeTable = new int[] { 2, 3, 1, 0, 6, 7, 5,
-                                                         4 };
+   private static final int[] apexNodeTable =
+      new int[] { 2, 3, 1, 0, 6, 7, 5, 4 };
 
    /**
     * Creates a regular grid composed of pyramid elements. Identical to
@@ -163,17 +163,17 @@ public class FemFactory {
                if ((k % 2) == 0) {
                   evenCode |= 0x4;
                }
+               FemNode3d n0 = nodes.get((k + 1) * wk + j * wj + i);
+               FemNode3d n1 = nodes.get((k + 1) * wk + j * wj + i + 1);
+               FemNode3d n2 = nodes.get((k + 1) * wk + (j + 1) * wj + i + 1);
+               FemNode3d n3 = nodes.get((k + 1) * wk + (j + 1) * wj + i);
+               FemNode3d n4 = nodes.get(k * wk + j * wj + i);
+               FemNode3d n5 = nodes.get(k * wk + j * wj + i + 1);
+               FemNode3d n6 = nodes.get(k * wk + (j + 1) * wj + i + 1);
+               FemNode3d n7 = nodes.get(k * wk + (j + 1) * wj + i);
                PyramidElement[] elems =
-                  PyramidElement.createCubeTesselation(
-                     nodes.get((k + 1) * wk + j * wj + i),
-                     nodes.get((k + 1) * wk + j * wj + i + 1),
-                     nodes.get((k + 1) * wk + (j + 1) * wj + i + 1),
-                     nodes.get((k + 1) * wk + (j + 1) * wj + i),
-                     nodes.get(k * wk + j * wj + i),
-                     nodes.get(k * wk + j * wj + i + 1),
-                     nodes.get(k * wk + (j + 1) * wj + i + 1),
-                     nodes.get(k * wk + (j + 1) * wj + i),
-                     apexNodeTable[evenCode]);
+                  divideCubeIntoPyramids (
+                     n0, n1, n2, n3, n4, n5, n6, n7, evenCode);
                for (FemElement3d e : elems) {
                   model.addElement(e);
                }
@@ -183,6 +183,15 @@ public class FemFactory {
       setGridEdgesHard(model, widthX, widthY, widthZ);
       model.invalidateStressAndStiffness();
       return model;
+   }
+
+   static PyramidElement[] divideCubeIntoPyramids (
+      FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, 
+      FemNode3d n4, FemNode3d n5, FemNode3d n6, FemNode3d n7,
+      int evenCode) {
+      
+      return PyramidElement.createCubeTesselation(
+         n0, n1, n2, n3, n4, n5, n6, n7, apexNodeTable[evenCode]);
    }
 
    /**
@@ -5831,7 +5840,7 @@ public class FemFactory {
       return model;
    }
 
-   private static void setGridEdgesHard(
+   static void setGridEdgesHard(
       FemModel3d model, double widthX, double widthY, double widthZ) {
 
       // and now set the surface edges hard ...

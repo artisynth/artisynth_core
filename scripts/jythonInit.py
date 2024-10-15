@@ -77,6 +77,10 @@ def forward () :
 def step () :
     getMain().step()
 
+def stepAndWait () :
+    getMain().step()
+    getMain().waitForStop()
+
 def reload () :
     getMain().reloadModel()
 

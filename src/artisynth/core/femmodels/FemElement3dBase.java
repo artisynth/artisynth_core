@@ -102,6 +102,13 @@ public abstract class FemElement3dBase extends FemElement
 
    public abstract double[] getNodeMassWeights ();
 
+   /**
+    * Returns a node index reordering that inverts the element volume ( or
+    * flips its orientation for shell elements). If for some reason such an
+    * ordering is unavailable, the method should return null.
+    */
+   public abstract int[] getInverseNodeOrdering();
+
    public void getNodeCoords (Vector3d coords, int nodeIdx) {
       if (nodeIdx < 0 || nodeIdx >= numNodes()) {
          throw new IllegalArgumentException (

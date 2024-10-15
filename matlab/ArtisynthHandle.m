@@ -105,6 +105,11 @@ classdef ArtisynthHandle
          obj.getMain().step();
       end   
       
+      function stepAndWait (obj)
+         obj.getMain().step();
+         obj.getMain().waitForStop();
+      end   
+      
       function reload (obj)
          obj.getMain().reloadModel();
       end         

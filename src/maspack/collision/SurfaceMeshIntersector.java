@@ -419,6 +419,14 @@ public class SurfaceMeshIntersector {
       mySilentP = silent;
    }
 
+   public boolean getWriteErrorFiles() {
+      return writeErrorFiles;
+   }
+
+   public void setWriteErrorFiles (boolean enable) {
+      writeErrorFiles = enable;
+   }
+
    /**
     * Queries whether zero area faces should be removed when constructing CSG
     * primitives. See {@link #setRemoveZeroAreaFaces}.

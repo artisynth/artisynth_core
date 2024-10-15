@@ -12,6 +12,7 @@ class NumberFormatTest {
 
    String preContents;
    int preLen;
+   static int numExpDigits = 2;
 
    public NumberFormatTest() {
       preContents = "this came before";
@@ -99,6 +100,7 @@ class NumberFormatTest {
       String errorMsg = null;
       try {
          fmt.set (fmtStr);
+         fmt.setNumExpDigits (numExpDigits);
       }
       catch (Exception e) {
          errorMsg = e.getMessage();
@@ -245,10 +247,14 @@ class NumberFormatTest {
 
          // %e tests
 
+         double small = -4.23451198e-300;
+         double max = Double.MAX_VALUE;
          tester.format (0.0, "%e", "0.000000e+00");
          tester.format (0.0, "%E", "0.000000E+00");
          tester.format (-0.0, "%e", "-0.000000e+00");
          tester.format (-0.0, "%E", "-0.000000E+00");
+         tester.format (small, "%e", "-4.234512e-300");
+         tester.format (max, "%e", "1.797693e+308");
          tester.format (x, "x=|%e|", "x=|1.234568e+00|");
          tester.format (9.999, "|%5.3e|", "|9.999e+00|");
          tester.format (9.999, "|%4.2e|", "|1.00e+01|");
@@ -261,6 +267,43 @@ class NumberFormatTest {
          tester.format (x, "x=|% 020.5e|", "x=| 000000001.23457e+00|");
          tester.format (y, "y=|%#+20.5e|", "y=|        +1.23000e+02|");
          tester.format (y, "y=|%-+20.5e|", "y=|+1.23000e+02        |");
+         tester.format (y, "y=|%-+20.5e|", "y=|+1.23000e+02        |");
+         tester.format (small, "|%20.7e|", "|     -4.2345120e-300|");
+         tester.format (1.455, "|%20.7e|", "|       1.4550000e+00|");
+         tester.format (small, "|%-20.7e|", "|-4.2345120e-300     |");
+         tester.format (1.455, "|%-20.7e|", "|1.4550000e+00       |");
+         tester.format (small, "|%- 20.7e|", "|-4.2345120e-300     |");
+         tester.format (1.455, "|%- 20.7e|", "| 1.4550000e+00      |");
+
+         numExpDigits = 3;
+
+         tester.format (0.0, "%e", "0.000000e+000");
+         tester.format (0.0, "%E", "0.000000E+000");
+         tester.format (-0.0, "%e", "-0.000000e+000");
+         tester.format (-0.0, "%E", "-0.000000E+000");
+         tester.format (small, "%e", "-4.234512e-300");
+         tester.format (max, "%e", "1.797693e+308");
+         tester.format (x, "x=|%e|", "x=|1.234568e+000|");
+         tester.format (9.999, "|%5.3e|", "|9.999e+000|");
+         tester.format (9.999, "|%4.2e|", "|1.00e+001|");
+         tester.format (u, "u=|%20e|", "u=|       1.234000e-005|");
+         tester.format (x, "x=|% .5e|", "x=| 1.23457e+000|");
+         tester.format (w, "w=|%20.5e|", "w=|        1.02000e+000|");
+         tester.format (x, "x=|%020.5e|", "x=|000000001.23457e+000|");
+         tester.format (x, "x=|%+20.5e|", "x=|       +1.23457e+000|");
+         tester.format (x, "x=|%+020.5e|", "x=|+00000001.23457e+000|");
+         tester.format (x, "x=|% 020.5e|", "x=| 00000001.23457e+000|");
+         tester.format (y, "y=|%#+20.5e|", "y=|       +1.23000e+002|");
+         tester.format (y, "y=|%-+20.5e|", "y=|+1.23000e+002       |");
+         tester.format (y, "y=|%-+20.5e|", "y=|+1.23000e+002       |");
+         tester.format (small, "|%20.7e|", "|     -4.2345120e-300|");
+         tester.format (1.455, "|%20.7e|", "|      1.4550000e+000|");
+         tester.format (small, "|%-20.7e|", "|-4.2345120e-300     |");
+         tester.format (1.455, "|%-20.7e|", "|1.4550000e+000      |");
+         tester.format (small, "|%- 20.7e|", "|-4.2345120e-300     |");
+         tester.format (1.455, "|%- 20.7e|", "| 1.4550000e+000     |");
+
+         numExpDigits = 2;
 
          // old %g tests
 

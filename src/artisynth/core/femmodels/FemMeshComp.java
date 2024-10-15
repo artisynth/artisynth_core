@@ -40,6 +40,7 @@ import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointParticleAttachment;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
+import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ContactPoint;
@@ -613,7 +614,9 @@ public class FemMeshComp extends FemMeshBase
 
       Vector3d coordsv = new Vector3d();
       int lidx = elem.getLocalNodeIndex (n0);
-      if (elem instanceof QuadpyramidElement && lidx == 4) {
+      if ((elem instanceof QuadpyramidElement ||
+           elem instanceof PyramidElement) &&
+          lidx == 4) {
          // special handling required for the apex of a QuadtetPyramid, since
          // the apex is formed by condensing the corner nodes of a brick. That
          // means natural coordinates are actually in a rectangular brick
@@ -1119,11 +1122,64 @@ public class FemMeshComp extends FemMeshBase
       return filtered;
    }
 
+   /**
+    * Return boolean array identifying which nodes are associated with volume
+    * elements.
+    */
+   private static boolean[] findVolumeNodes (FemModel3d fem) {
+      boolean[] isVolumeNode = new boolean[fem.numNodes()];
+      ComponentList<FemNode3d> nodes = fem.getNodes();
+      for (FemElement3d elem : fem.getElements()) {
+            for (FemNode3d n : elem.getNodes()) {
+               isVolumeNode[nodes.indexOf(n)] = true;
+            }
+      }
+      return isVolumeNode;
+   }
+
+   /**
+    * Returns list of shell elements that are not connected to any volume
+    * elements.
+    */
+   private static List<ShellElement3d> findNonVolumeShellElems (
+      FemModel3d fem, ElementFilter efilter) {
+
+      LinkedList<ShellElement3d> nonVolumeShellElems = new LinkedList<>();
+      boolean[] isVolumeNode = findVolumeNodes (fem);
+      ComponentList<FemNode3d> nodes = fem.getNodes();
+      for (ShellElement3d elem : fem.getShellElements()) {
+         boolean isNonVolume = true;
+         for (FemNode3d n : elem.getNodes()) {
+            if (isVolumeNode[nodes.indexOf(n)]) {
+               isNonVolume = false;
+               break;
+            }
+         }
+         if (isNonVolume) {
+            if (efilter == null || efilter.elementIsValid(elem)) {
+               nonVolumeShellElems.add (elem);
+            }
+         }
+      }
+      return nonVolumeShellElems;
+   }
+
    public void createSurface (ElementFilter efilter) {
 
       if (myFem.numElements() > 0) {
-         createVolumetricSurface (
-            getFilteredElements (myFem.getElements(), efilter));
+         List<ShellElement3d> nonVolumeShellElems = null;
+         if (myFem.numShellElements() > 0) {
+            nonVolumeShellElems = findNonVolumeShellElems (myFem, efilter);
+         }
+         if (nonVolumeShellElems != null && nonVolumeShellElems.size() > 0) {
+            createVolumetricShellSurface (
+               getFilteredElements (myFem.getElements(), efilter),
+               nonVolumeShellElems);
+         }
+         else {
+            createVolumetricSurface (
+               getFilteredElements (myFem.getElements(), efilter));
+         }
       }
       else {
          createShellSurface (

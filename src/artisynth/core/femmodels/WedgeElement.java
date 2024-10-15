@@ -57,6 +57,18 @@ public class WedgeElement extends FemElement3d {
       1.0/6,
    };
 
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 2, 1, 3, 5, 4
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
    private static MatrixNd myNodalAveragingMatrix = null;
 
@@ -136,10 +148,6 @@ public class WedgeElement extends FemElement3d {
 
    public double[] getNodeCoords() {
       return myNodeCoords;
-   }
-
-   public double[] getNodeMassWeights () {
-      return myNodeMassWeights;
    }
 
    public MatrixNd getNodalAveragingMatrix() {
@@ -259,11 +267,11 @@ public class WedgeElement extends FemElement3d {
    }
 
    /** 
-    * Computes the exact volume of the wedge
+    * Computes the exact volume of the wedge defined by six points.
     *
-    * @return element volume
+    * @return wedge volume
     */
-   private double computeVolume (
+   static double computeVolume (
       Point3d p0, Point3d p1, Point3d p2,
       Point3d p3, Point3d p4, Point3d p5) {
 
@@ -279,6 +287,33 @@ public class WedgeElement extends FemElement3d {
       vol += TetElement.computeVolume (p1, p5, p2, p3);
 
       return vol/2;
+   }
+
+   /** 
+    * Computes the exact volume of the wedge defined by six nodes.
+    *
+    * @return wedge volume
+    */
+   static double computeVolume (
+      FemNode3d n0, FemNode3d n1, FemNode3d n2,
+      FemNode3d n3, FemNode3d n4, FemNode3d n5) {
+
+      return computeVolume (
+         n0.getPosition(), n1.getPosition(), n2.getPosition(), 
+         n3.getPosition(), n4.getPosition(), n5.getPosition());
+   }
+
+   /** 
+    * Computes the exact volume of the wedge defined by the first six nodes of
+    * {@code nodes}.
+    *
+    * @return wedge volume
+    */
+   static double computeVolume (FemNode3d[] nodes) {
+
+      return computeVolume (
+         nodes[0].getPosition(), nodes[1].getPosition(), nodes[2].getPosition(),
+         nodes[3].getPosition(), nodes[4].getPosition(), nodes[5].getPosition());
    }
 
    public boolean isInside (Point3d pnt) {

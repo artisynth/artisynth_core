@@ -228,6 +228,7 @@ public class ComponentMap {
          return myNumberMap[num];
       }
       else {
+         System.out.println ("num=" + num + " myNumberMap.length=" + myNumberMap.length);
          return -1;
       }
    }
@@ -281,6 +282,20 @@ public class ComponentMap {
          rebuildNumberCache();
       }
       return myNumberLimit;
+   }
+
+   public int getMinNumber() {
+      if (!myNumberCacheValid) {
+         rebuildNumberCache();
+      }
+      // if it turns out we need this a lot, then we should keep track of the
+      // minimum number
+      for (int i=0; i<myNumberMap.length; i++) {
+         if (myNumberMap[i] != -1) {
+            return i;
+         }
+      }
+      return -1;
    }
 
    /**
@@ -358,10 +373,10 @@ public class ComponentMap {
    void setOneBasedNumbering (boolean oneBased) {
       if (oneBased != myOneBasedNumbering) {
          if (oneBased) {
-            incrementNumbering();
+            incrementNumbering(1);
          }
          else {
-            decrementNumbering();
+            decrementNumbering(1);
          }
          myOneBasedNumbering = oneBased;
       }
@@ -370,14 +385,17 @@ public class ComponentMap {
    /**
     * Increment all number values by one
     */
-   void incrementNumbering () {
-      ensureNumberCapacity (myNumberLimit+1);
-      // shift all entries up by 1
-      for (int i=myNumberMap.length-1; i>=1; i--) {
-         myNumberMap[i] = myNumberMap[i-1];
+   void incrementNumbering (int inc) {
+      ensureNumberCapacity (myNumberLimit+inc);
+      // shift all entries up by inc
+      for (int i=myNumberMap.length-1; i>=inc; i--) {
+         myNumberMap[i] = myNumberMap[i-inc];
       }
       // fill first entry with -1
-      myNumberMap[0] = -1;
+      for (int i=0; i<inc; i++) {
+         myNumberMap[i] = -1;
+      }
+      myNumberLimit += inc;
       // invalidate number cache
       myNumberCacheValid = false; 
    }
@@ -385,17 +403,22 @@ public class ComponentMap {
    /**
     * Decrement all number values by one
     */
-   void decrementNumbering () {
-      if (myNumberMap[0] != -1) {
-         throw new InternalErrorException (
-            "decrement numbering: number 0 is in use");
+   void decrementNumbering (int dec) {
+      for (int i=0; i<dec; i++) {
+         if (myNumberMap[i] != -1) {
+            throw new InternalErrorException (
+            "decrement numbering: number "+i+" is in use");
+         }
       }
-      // shift all entries down by 1      
-      for (int i=0; i<myNumberMap.length-1; i++) {
-         myNumberMap[i] = myNumberMap[i+1];
+      // shift all entries down by dec
+      for (int i=0; i<myNumberMap.length-dec; i++) {
+         myNumberMap[i] = myNumberMap[i+dec];
       }
-      // fill last entry with -1
-      myNumberMap[myNumberMap.length-1] = -1;
+      // fill last entries with -1
+      for (int i=myNumberMap.length-dec; i<myNumberMap.length; i++) {
+         myNumberMap[i] = -1;
+      }
+      myNumberLimit -= dec;
       // invalidate number cache
       myNumberCacheValid = false; 
    }

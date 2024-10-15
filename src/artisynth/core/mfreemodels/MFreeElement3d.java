@@ -1011,4 +1011,9 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       
    }
    
+   @Override
+   public int[] getInverseNodeOrdering() {
+      return null;      
+   }
+   
 }

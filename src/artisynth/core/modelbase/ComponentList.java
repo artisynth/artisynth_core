@@ -13,6 +13,7 @@ import artisynth.core.modelbase.CompositeComponent.NavpanelDisplay;
 import artisynth.core.util.*;
 import maspack.properties.*;
 import maspack.util.*;
+
 import maspack.util.ParameterizedClass;
 
 public class ComponentList<C extends ModelComponent> extends ModelComponentBase
@@ -107,6 +108,10 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
     */
    public int getNumberLimit() {
       return myComponents.getNumberLimit();
+   }
+
+   public int getMinNumber() {
+      return myComponents.getMinNumber();
    }
 
    /**
@@ -359,6 +364,18 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    public boolean getOneBasedNumbering() {
       return myComponents.getOneBasedNumbering();
    }
+
+   /**
+    * Increments the component numbers for all components in this
+    * list by {@code inc}. Note that this is independent of whether
+    * of not one-based numbering is selected.
+    * 
+    * @param inc amount to increment numbers by
+    */   
+   public void incrementNumbering (int inc) {
+      myComponents.incrementNumbering(inc);
+   }
+   
 
    public void setShortName (String name) {
       if (name != null && name.length() == 0) {

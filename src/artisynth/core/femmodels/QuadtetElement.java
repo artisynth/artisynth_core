@@ -376,6 +376,14 @@ public class QuadtetElement extends FemElement3d {
       return myNodeMassWeights;
    }
 
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 2, 1, 3,  6, 5, 4,  7, 9, 8,
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    static int[] myEdgeIdxs = new int[] 
       {
          3,   0, 4, 1,

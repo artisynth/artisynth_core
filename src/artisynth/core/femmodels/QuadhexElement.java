@@ -629,6 +629,14 @@ public class QuadhexElement extends FemElement3d {
       return myNodeMassWeights;
    }
 
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 3, 2, 1, 4, 7, 6, 5,  11, 10, 9, 8,  15, 14, 13, 12,  16, 19, 18, 17
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    static int[] myEdgeIdxs = new int[] 
       {
          3,   0,  8,  1,

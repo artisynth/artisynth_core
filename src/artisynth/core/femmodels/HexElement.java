@@ -139,6 +139,18 @@ public class HexElement extends FemElement3d {
       0.125
    };
 
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 3, 2, 1, 4, 7, 6, 5
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    static {
       double q = 1/Math.sqrt(3); // quadrature point
       INTEGRATION_COORDS_GAUSS_8 = new double[]
@@ -213,10 +225,6 @@ public class HexElement extends FemElement3d {
 
    public double[] getNodeCoords () {
       return myNodeCoords;
-   }
-
-   public double[] getNodeMassWeights () {
-      return myNodeMassWeights;
    }
 
    private static MatrixNd myNodalExtrapolationMatrix = null;
@@ -561,12 +569,34 @@ public class HexElement extends FemElement3d {
       return -(x1*b0+x2*b1+x3*b2+x4*b3+x5*b4+x6*b5+x7*b6+x8*b7);
    }
 
+   /** 
+    * Computes the volume of the hexahedron formed by the first eight nodes of
+    * {@code nodes}. An inverted hexahedron will give an negative volume.
+    * 
+    * @param nodes nodes defining the hexahedron
+    * @return volume of the hexahedron
+    */
+   public static double computeVolume (FemNode3d[] nodes) {
+      return computeVolume (
+         nodes[0].getPosition(), nodes[1].getPosition(), nodes[2].getPosition(),
+         nodes[3].getPosition(), nodes[4].getPosition(), nodes[5].getPosition(),
+         nodes[6].getPosition(), nodes[7].getPosition());
+   }   
+
+   /** 
+    * Computes the volume of a hexahedron formed by eight nodes.  An inverted
+    * hexahedron will give an negative volume.
+    * 
+    * @param nodes nodes defining the hexahedron
+    * @return volume of the hexahedron
+    */
    public static double computeVolume (
-      FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4, FemNode3d n5,
-      FemNode3d n6, FemNode3d n7, FemNode3d n8) {
-      return computeVolume (n1.getPosition (), n2.getPosition (), n3
-         .getPosition (), n4.getPosition (), n5.getPosition (), n6
-         .getPosition (), n7.getPosition (), n8.getPosition ());
+      FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4,
+      FemNode3d n5, FemNode3d n6, FemNode3d n7) {
+      return computeVolume (
+         n0.getPosition(), n1.getPosition(), n2.getPosition(),
+         n3.getPosition(), n4.getPosition(), n5.getPosition(),
+         n6.getPosition(), n7.getPosition());
    }
    
   // public double computeVolumes () {

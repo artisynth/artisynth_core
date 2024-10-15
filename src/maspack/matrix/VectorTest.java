@@ -658,4 +658,20 @@ class VectorTest {
       vr.set (buf);
       return null;
    }
+
+   public void checkEquals (String msg, Vector result, Vector check, double eps) {
+      if (!result.epsilonEquals(check, eps)) {
+         throw new TestException (
+            msg + " =\n" + result.toString() +
+            ", expected\n" + check.toString() + ", eps=" + eps);
+      }
+   }
+
+   public void checkEquals (String msg, Vector result, Vector check) {
+      if (!result.equals(check)) {
+         throw new TestException (
+            msg + " =\n" + result.toString() +
+            ", expected\n" + check.toString());
+      }
+   }
 }

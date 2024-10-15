@@ -20,6 +20,8 @@ import maspack.matrix.DenseMatrix;
 import maspack.matrix.Matrix;
 import maspack.matrix.Vector;
 import maspack.matrix.Vectori;
+import maspack.spatialmotion.Wrench;
+import maspack.spatialmotion.Twist;
 import maspack.util.ClassAliases;
 import maspack.util.ClassFinder;
 import maspack.util.DoubleInterval;
@@ -94,6 +96,8 @@ public class PropertyDesc implements PropertyInfo {
       COLOR,
       AXIS_ANGLE,
       ENUM,
+      TWIST,
+      WRENCH,
       VECTOR,
       VECTORI,
       MATRIX,
@@ -213,6 +217,10 @@ public class PropertyDesc implements PropertyInfo {
          case AXIS_ANGLE: {
             return 4;
          }
+         case TWIST:         
+         case WRENCH: {
+            return 6;
+         }
          case VECTOR: {
             try {
                Vector v = (Vector)myValueClass.newInstance();
@@ -293,6 +301,8 @@ public class PropertyDesc implements PropertyInfo {
          case LONG_ARRAY:
          case FLOAT_ARRAY:
          case DOUBLE_ARRAY:
+         case TWIST:
+         case WRENCH:
          case VECTOR:
          case VECTORI:
          case MATRIX:
@@ -316,7 +326,10 @@ public class PropertyDesc implements PropertyInfo {
    protected void setPropertyType (Class<?> cls) {
       myValueClass = cls;
       myValueType = getTypeCode (cls);
-      if (myValueType == TypeCode.MATRIX || myValueType == TypeCode.VECTOR) {
+      if (myValueType == TypeCode.MATRIX || 
+          myValueType == TypeCode.TWIST ||
+          myValueType == TypeCode.WRENCH ||
+          myValueType == TypeCode.VECTOR) {
          setFormatIfNecessary ("%.6g");
       }
       else if (myValueType == TypeCode.VECTORI) {
@@ -382,6 +395,12 @@ public class PropertyDesc implements PropertyInfo {
       }
       else if (cls.isEnum()) {
          code = TypeCode.ENUM;
+      }
+      else if (Twist.class.isAssignableFrom (cls)) {
+         code = TypeCode.TWIST;
+      }
+      else if (Wrench.class.isAssignableFrom (cls)) {
+         code = TypeCode.WRENCH;
       }
       else if (Vector.class.isAssignableFrom (cls)) {
          code = TypeCode.VECTOR;
@@ -1638,6 +1657,8 @@ public class PropertyDesc implements PropertyInfo {
             pw.println ((Enum<?>)value);
             break;
          }
+         case TWIST:
+         case WRENCH:
          case VECTOR: {
             writeVector (pw, (Vector)value, floatFmt);
             break;
@@ -1803,6 +1824,8 @@ public class PropertyDesc implements PropertyInfo {
             throw new IOException ("Enum '" + rtok.sval
             + "' not recognized, line " + rtok.lineno());
          }
+         case TWIST:
+         case WRENCH:
          case VECTOR: {
             Vector vobj;
             try {

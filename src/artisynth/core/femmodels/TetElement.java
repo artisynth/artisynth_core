@@ -38,6 +38,18 @@ public class TetElement extends FemElement3d {
       0.250
    };
 
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
+   protected static int[] myInverseNodeOrdering = new int[] {
+      0, 2, 1, 3
+   };
+
+   public int[] getInverseNodeOrdering() {
+      return myInverseNodeOrdering;
+   }
+
    /**
     * Shape functions for the tet are
     *
@@ -206,10 +218,6 @@ public class TetElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   public double[] getNodeMassWeights () {
-      return myNodeMassWeights;
-   }
-
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
    }
@@ -250,12 +258,9 @@ public class TetElement extends FemElement3d {
    }
 
    /** 
-    * Computes the volume of the tetrahedron formed by four FemNodes, where the
-    * first three nodes are arranged clockwise about a single face, and
-    * clockwise is with respect to the face's outward normal.  This method can
-    * be used when creating TetElements to make sure that the defining nodes
-    * are specified in the proper order. If they are not specified in the
-    * correct order the volume will be negative.
+    * Computes the volume of the tetrahedron formed by four nodes.  Same as
+    * {@link #computeVolume(FemNode3d[])} with the nodes broken out as
+    * separate arguments.
     * 
     * @param n0 1st FEM node
     * @param n1 2nd FEM node
@@ -268,7 +273,24 @@ public class TetElement extends FemElement3d {
 
       return computeVolume (n0.getPosition(), n1.getPosition(), 
                             n2.getPosition(), n3.getPosition());
+   }
 
+   /** 
+    * Computes the volume of the tetrahedron formed by the first four nodes of
+    * {@code nodes}, where the first three nodes are arranged clockwise about a
+    * single face, and clockwise is with respect to the face's outward normal.
+    * This method can be used when creating TetElements to make sure that the
+    * defining nodes are specified in the proper order. If they are not
+    * specified in the correct order the volume will be negative.
+    * 
+    * @param nodes nodes defining the tetrahedron
+    * @return volume of the tetrahedron
+    */
+   public static double computeVolume (FemNode3d[] nodes) {
+
+      return computeVolume (
+         nodes[0].getPosition(), nodes[1].getPosition(), 
+         nodes[2].getPosition(), nodes[3].getPosition());
    }
 
    public static double computeVolume (

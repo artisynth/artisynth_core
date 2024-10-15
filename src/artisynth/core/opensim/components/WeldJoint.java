@@ -16,7 +16,7 @@ public class WeldJoint extends JointBase {
       RigidBody parent, RigidTransform3d TJP, 
       RigidBody child, RigidTransform3d TJC) {
       
-      SolidJoint sj = new SolidJoint (parent, TJP, child, TJC);
+      SolidJoint sj = new SolidJoint (child, TJC, parent, TJP);
       sj.setName (getName());
       return sj;
    }

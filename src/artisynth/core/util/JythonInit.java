@@ -10,19 +10,31 @@ import org.python.util.*;
 import org.python.core.*;
 import org.python.core.packagecache.*;
 import java.io.*;
+import java.util.Properties;
 import java.net.URL;
 
 import maspack.util.*;
 
 public class JythonInit {
    PyStringMap myBaseLocals = null;
-
+   
+   public static Properties createDefaultProperties () {
+      // Jython 2.7: turn off site import since required files unavailable
+      Options.importSite = false;
+      Properties props = new Properties();
+      File jythonCacheDir = new File(ArtisynthPath.getCacheDir(), "jython");
+      props.setProperty (
+         RegistryKey.PYTHON_CACHEDIR, jythonCacheDir.toString());
+      props.setProperty (RegistryKey.PYTHON_IO_ENCODING, "utf-8");
+      return props;
+   }
+   
    // private constructor ensures that we can't create an external instance of
    // this class
    private JythonInit() {
       String initFileName = "matrixBindings.py";
-      // Jython 2.7: turn off site import since required files unavailable
-      Options.importSite = false;
+      Properties props = createDefaultProperties();
+      PySystemState.initialize(null, props);
       InputStream bindings = null;
       try {
          URL url = ArtisynthPath.getRelativeResource (this, initFileName);

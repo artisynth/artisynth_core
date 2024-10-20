@@ -212,6 +212,9 @@ PointAttachable, ConnectableBody {
    protected FemElement3dBase myMinDetJElement = null; // elem with "worst" DetJ
    protected int myNumInverted = 0; // used to tally number of inverted elements
 
+   static public boolean DEFAULT_GROUNDED = false;
+   boolean myGroundedP = DEFAULT_GROUNDED;
+
    private static double DEFAULT_ELEMENT_WIDGET_SIZE = 0.0;
    private double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
    PropertyMode myElementWidgetSizeMode = PropertyMode.Inherited;
@@ -265,6 +268,10 @@ PointAttachable, ConnectableBody {
          "frameRelative isFrameRelative",
          "compute displacements with respect to the coordinate frame",
          false);
+      myProps.add (
+         "grounded isGrounded", 
+         "true if body is classified as attached to ground",
+         DEFAULT_GROUNDED);
       myProps.add(
          "incompressible",
          "Enforce incompressibility using constraints", DEFAULT_HARD_INCOMP);
@@ -1888,6 +1895,15 @@ PointAttachable, ConnectableBody {
    public boolean isFreeBody() {
       // XXX TODO need to finish
       return true;
+   }
+   
+   @Override
+   public boolean isGrounded() {
+      return myGroundedP;
+   }
+   
+   public void setGrounded (boolean grounded) {
+      myGroundedP = grounded;
    }
 
    /* --- Structure Change Methods --- */

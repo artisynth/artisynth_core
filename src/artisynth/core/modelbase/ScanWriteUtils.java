@@ -1224,7 +1224,7 @@ public class ScanWriteUtils {
       return list.toArray (new Vector3d[0]);
    }
 
-   public static void scanComponentsAndWeights (
+   public static int scanComponentsAndWeights (
       ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
@@ -1239,6 +1239,7 @@ public class ScanWriteUtils {
       }
       tokens.offer (ScanToken.END); // terminator token
       tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
+      return weights.size();
    }
 
    public static void writeComponentsAndWeights (

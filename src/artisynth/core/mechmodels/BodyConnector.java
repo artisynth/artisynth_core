@@ -968,6 +968,11 @@ public abstract class BodyConnector extends RenderableComponentBase
     */
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
+      return addBilateralConstraints (GT, dg, numb, /*solveIndexMap*/null);
+   }
+   
+   public int addBilateralConstraints (
+      SparseBlockMatrix GT, VectorNd dg, int numb, int[] solveIndexMap) {
 
       int nc = numBilateralConstraints();
       if (nc > 0) {
@@ -975,9 +980,9 @@ public abstract class BodyConnector extends RenderableComponentBase
          int bj = GT.numBlockCols();
          setSolveIndices (myBilaterals, GT.colSize());
          GC = getConstraintMatrix (myBilaterals, myTCwG, 1);
-         addMasterBlocks (GT, bj, GC, myAttachmentA);
+         addMasterBlocks (GT, bj, GC, myAttachmentA, solveIndexMap);
          GC = getConstraintMatrix (myBilaterals, myTDwG, -1);
-         addMasterBlocks (GT, bj, GC, myAttachmentB);
+         addMasterBlocks (GT, bj, GC, myAttachmentB, solveIndexMap);
          if (dg != null) {
             setDerivativeTerm (dg, myBilaterals, numb, nc);
          }
@@ -1059,6 +1064,11 @@ public abstract class BodyConnector extends RenderableComponentBase
     */
    public int addUnilateralConstraints (
       SparseBlockMatrix NT, VectorNd dn, int numu) {
+      return addUnilateralConstraints (NT, dn, numu, /*solveIndexMap*/null);
+   }
+
+   public int addUnilateralConstraints (
+      SparseBlockMatrix NT, VectorNd dn, int numu, int[] solveIndexMap) {
 
       int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);      
 
@@ -1067,9 +1077,9 @@ public abstract class BodyConnector extends RenderableComponentBase
          int bj = NT.numBlockCols();
          setSolveIndices (myUnilaterals, NT.colSize());
          GC = getConstraintMatrix (myUnilaterals, myTCwG, 1);
-         addMasterBlocks (NT, bj, GC, myAttachmentA);
+         addMasterBlocks (NT, bj, GC, myAttachmentA, solveIndexMap);
          GC = getConstraintMatrix (myUnilaterals, myTDwG, -1);
-         addMasterBlocks (NT, bj, GC, myAttachmentB);
+         addMasterBlocks (NT, bj, GC, myAttachmentB, solveIndexMap);
          if (dn != null) {
             setDerivativeTerm (dn, myUnilaterals, numu, nc);
          }
@@ -1432,13 +1442,16 @@ public abstract class BodyConnector extends RenderableComponentBase
    // used by Constrainer implementation
    public void addMasterBlocks (
       SparseBlockMatrix GT, int bj,
-      Matrix GC, FrameAttachment attachment) {
+      Matrix GC, FrameAttachment attachment, int[] solveIndexMap) {
 
       DynamicComponent[] masters = attachment.getMasters();
       if (masters.length > 0) {
          MatrixBlock[] masterBlks = attachment.getMasterBlocks();
          for (int k=0; k<masters.length; k++) {
             int idx = masters[k].getSolveIndex();
+            if (solveIndexMap != null) {
+               idx = solveIndexMap[idx];
+            }
             if (idx >= 0) {
                MatrixBlock mblk = masterBlks[k];
                MatrixBlock blk = GT.getBlock (idx, bj);
@@ -1708,9 +1721,9 @@ public abstract class BodyConnector extends RenderableComponentBase
             MatrixNdBlock GC;
             int bj = DT.numBlockCols();
             GC = getFrictionConstraintMatrix (wr0, wr1, myTCwG, 1);
-            addMasterBlocks (DT, bj, GC, myAttachmentA);
+            addMasterBlocks (DT, bj, GC, myAttachmentA, /*solveIndexMap*/null);
             GC = getFrictionConstraintMatrix (wr0, wr1, myTDwG, -1);
-            addMasterBlocks (DT, bj, GC, myAttachmentB); 
+            addMasterBlocks (DT, bj, GC, myAttachmentB, /*solveIndexMap*/null); 
          }
       }
       return numf;
@@ -2603,6 +2616,15 @@ public abstract class BodyConnector extends RenderableComponentBase
       myAdjustBodyAExplicitP = set;
    }
 
+   protected boolean containsGround (ArrayList<ConnectableBody> bodies) {
+      for (ConnectableBody body : bodies) {
+         if (body.isGrounded()) {
+            return true;
+         }
+      }
+      return false;
+   }
+
    protected void adjustPoses (RigidTransform3d TGD) {
 
       RigidTransform3d TCW = new RigidTransform3d();
@@ -2619,11 +2641,19 @@ public abstract class BodyConnector extends RenderableComponentBase
 
       if (!myAdjustBodyAExplicitP && myBodyB != null) {
          BIsFree = findAttachedBodies (myBodyB, myBodyA, bodiesB);
-         if (AIsFree != BIsFree) {
+
+         boolean AGrounded = containsGround (bodiesA);
+         boolean BGrounded = containsGround (bodiesB);
+
+         if (AGrounded != BGrounded) {
+            moveBodyA = BGrounded;
+         }
+         else if (AIsFree != BIsFree) {
             moveBodyA = AIsFree;
          }
          else {
-            // if either or neither are free, move the one with fewer attached bodies
+            // if either or neither are free/grounded, move the one with fewer
+            // attached bodies
             moveBodyA = bodiesA.size() <= bodiesB.size();
          }
       }

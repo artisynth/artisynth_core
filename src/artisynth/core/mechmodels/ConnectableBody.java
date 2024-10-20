@@ -32,5 +32,7 @@ public interface ConnectableBody extends ModelComponent, FrameAttachable {
    
    public boolean isDeformable();
    
+   public boolean isGrounded();
+   
 }
 

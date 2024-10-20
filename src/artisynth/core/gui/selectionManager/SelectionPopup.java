@@ -19,6 +19,7 @@ import java.util.ArrayList;
 
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
@@ -261,18 +262,34 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       if (myEditActionMap.size() > 0) {
          addSeparatorIfNecessary();
          for (String name : myEditActionMap.getActionNames()) {
-            menuItem = new JMenuItem (name);
-            menuItem.addActionListener (this);
+            boolean enabled = true;
             int flags = myEditActionMap.getFlags (name);
             if ((flags & EditorBase.EXCLUSIVE) != 0) {
                if (editManager.isEditLocked()) {
-                  menuItem.setEnabled (false);
+                  enabled = false;
                }
             }
             if ((flags & EditorBase.DISABLED) != 0) {
-               menuItem.setEnabled (false);
+               enabled = false;
             }
-            add (menuItem);
+            String[] subactions = myEditActionMap.getSubActions (name);
+            if (subactions == null) {
+               menuItem = new JMenuItem (name);
+               menuItem.addActionListener (this);
+               menuItem.setEnabled (enabled);
+               add (menuItem);
+            }
+            else {
+               JMenu subMenu = new JMenu (name);
+               subMenu.setEnabled (enabled);
+               for (String subact : subactions) {
+                  menuItem = new JMenuItem (subact);
+                  menuItem.setActionCommand (name + ">" + subact);
+                  menuItem.addActionListener (this);
+                  subMenu.add (menuItem);
+               }
+               add (subMenu);
+            }
          }
       }
 
@@ -617,7 +634,14 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          EditorUtils.saveComponentNames (selectedItems);
       }
       else {
-         EditorBase editor = myEditActionMap.getEditor (command);
+         // look for subactions ...
+
+         String editLookup = command;
+         int arrowIndex = command.indexOf ('>');
+         if (arrowIndex != -1) {
+            editLookup = command.substring (0, arrowIndex);
+         }
+         EditorBase editor = myEditActionMap.getEditor (editLookup);
          if (editor != null) {
             editor.applyAction (command, selectedItems, myLastBounds);
          }

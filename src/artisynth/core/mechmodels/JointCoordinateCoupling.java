@@ -123,9 +123,11 @@ public class JointCoordinateCoupling extends ConstrainerBase {
       wr = myCoords.get(0).getWrench();
       artisynth.core.mechmodels.JointBase joint = myCoords.get(0).getJoint();
       joint.computeConstraintMatrixA (GC, wr, 1);
-      joint.addMasterBlocks (GT, bj, GC, joint.getFrameAttachmentA());
+      joint.addMasterBlocks (
+         GT, bj, GC, joint.getFrameAttachmentA(), /*solveIndexMap*/null);
       joint.computeConstraintMatrixB (GC, wr, -1);
-      joint.addMasterBlocks (GT, bj, GC, joint.getFrameAttachmentB());
+      joint.addMasterBlocks (
+         GT, bj, GC, joint.getFrameAttachmentB(), /*solveIndexMap*/null);
 
       for (int i=1; i<myCoords.size(); i++) {
          JointCoordinateHandle ch = myCoords.get(i);
@@ -133,9 +135,11 @@ public class JointCoordinateCoupling extends ConstrainerBase {
          joint = ch.getJoint();
          double s = myScaleFactor*myFxnDeriv.get(i-1);
          joint.computeConstraintMatrixA (GC, wr, -s);
-         joint.addMasterBlocks (GT, bj, GC, joint.getFrameAttachmentA());
+         joint.addMasterBlocks (
+            GT, bj, GC, joint.getFrameAttachmentA(), /*solveIndexMap*/null);
          joint.computeConstraintMatrixB (GC, wr, s);
-         joint.addMasterBlocks (GT, bj, GC, joint.getFrameAttachmentB());
+         joint.addMasterBlocks (
+            GT, bj, GC, joint.getFrameAttachmentB(), /*solveIndexMap*/null);
       }
       if (dg != null) {
          dg.set (numb, 0);

@@ -104,7 +104,8 @@ public class Frame extends DynamicComponentBase
       myProps.add (
          "position", "position of the body coordinate frame",null,"NW");
       myProps.add (
-         "orientation", "orientation of the body coordinate frame", null, "NW");
+         "orientation",
+         "body orientation in axis-angle (degrees) format", null, "NW");
       myProps.add ("velocity * *", "velocity state", null, "NW");
       
       myProps.add (

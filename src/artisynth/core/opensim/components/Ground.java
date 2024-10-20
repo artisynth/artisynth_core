@@ -47,7 +47,8 @@ public class Ground extends PhysicalFrame {
       }
      
       rb.setDynamic (false);  // fixed in space
-            
+      rb.setGrounded (true);  // set grounded property too (used by IKSolvers)
+
       return rb;
    }
    

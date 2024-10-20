@@ -172,6 +172,9 @@ public class RigidBodySolver {
          
          mySolver.analyze (myMass, mySizeM, myGT, myRg, Matrix.SPD);
       }
+      else {
+         mySizeM = 0;
+      }
    }
 
    private void updateGT (SparseBlockMatrix GT) {

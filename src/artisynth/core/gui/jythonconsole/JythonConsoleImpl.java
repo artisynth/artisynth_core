@@ -109,13 +109,22 @@ public class JythonConsoleImpl {
                   // XXX blank or commented lines at the end of the script seem
                   // to generate redundant prompt outputs in
                   // JLineConsole. Printing a newline and prompt seems to
-                  // suppress this, at the cost of a singke extra prompt line
+                  // suppress this, at the cost of a single extra prompt line
                   System.out.print ("\n" + state.ps1);
                }
                myPromptSent = true;
                break;
             }
             //System.out.print ("w"+cnt+" ");
+            if (more && line.length() > 0 && 
+                !Character.isWhitespace(line.charAt(0))) {
+               // Because we are executing a script, we want a non-indented
+               // line to be able to close off a code block. To make that
+               // work, we need to insert the blank line that the interactive
+               // interpreter requires.
+               myConsole.write ("\n");
+               more = myConsole.push(""); // 'more' should presumably be false
+            }
             myConsole.write (line+"\n");
             more = myConsole.push(line);
             if (isBlank(line)) {

@@ -388,7 +388,6 @@ public class MechSystemSolver {
          myMass = new SparseNumberedBlockMatrix();
          myMassForces = new VectorNd (myMass.rowSize());
          myMassConstantP = mySys.buildMassMatrix (myMass);
-         //System.out.println ("mass constant = " + myMassConstantP);
          mySys.getMassMatrix (myMass, myMassForces, t);
          myMassVersion = version;
          myMassTime = t;

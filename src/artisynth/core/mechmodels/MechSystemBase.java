@@ -684,7 +684,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       return myDynamicComponents;
    }
 
-   protected void updateDynamicComponentLists() {
+   public void updateDynamicComponentLists() {
 
       if (myDynamicComponents == null) {
          myDynamicComponents = new ArrayList<DynamicComponent>();
@@ -768,7 +768,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   protected void updateForceComponentList() {
+   public void updateForceComponentList() {
       // Build new constrainer and force effector lists if necessary.
       // Create using temporary lists just in case clearCachedData() gets
       // called while the lists are being built.

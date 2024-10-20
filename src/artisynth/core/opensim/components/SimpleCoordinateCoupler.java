@@ -54,15 +54,19 @@ public class SimpleCoordinateCoupler extends ConstrainerBase {
       Wrench wr;
       wr = myJoint0.getCoordinateWrenchG (myCoordNum0);
       myJoint0.computeConstraintMatrixA (GC, wr, 1);
-      myJoint0.addMasterBlocks (GT, bj, GC, myJoint0.getFrameAttachmentA());
+      myJoint0.addMasterBlocks (
+         GT, bj, GC, myJoint0.getFrameAttachmentA(), /*solveIndexMap*/null);
       myJoint0.computeConstraintMatrixB (GC, wr, -1);
-      myJoint0.addMasterBlocks (GT, bj, GC, myJoint0.getFrameAttachmentB());
+      myJoint0.addMasterBlocks (
+         GT, bj, GC, myJoint0.getFrameAttachmentB(), /*solveIndexMap*/null);
 
       wr = myJoint1.getCoordinateWrenchG (myCoordNum1);
       myJoint1.computeConstraintMatrixA (GC, wr, -1);
-      myJoint1.addMasterBlocks (GT, bj, GC, myJoint1.getFrameAttachmentA());
+      myJoint1.addMasterBlocks (
+         GT, bj, GC, myJoint1.getFrameAttachmentA(), /*solveIndexMap*/null);
       myJoint1.computeConstraintMatrixB (GC, wr, 1);
-      myJoint1.addMasterBlocks (GT, bj, GC, myJoint1.getFrameAttachmentB());
+      myJoint1.addMasterBlocks (
+         GT, bj, GC, myJoint1.getFrameAttachmentB(), /*solveIndexMap*/null);
 
       if (dg != null) {
          dg.set (numb, 0);

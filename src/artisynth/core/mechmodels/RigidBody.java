@@ -138,6 +138,9 @@ public class RigidBody extends Frame
 
    static public boolean DEFAULT_SUBMESHES_SELECTABLE = true;
    boolean mySubmeshesSelectable = DEFAULT_SUBMESHES_SELECTABLE;
+   
+   static public boolean DEFAULT_GROUNDED = false;
+   boolean myGroundedP = DEFAULT_GROUNDED;
 
    protected double myInertialDamping = 0;
    protected PropertyMode myInertialDampingMode = PropertyMode.Inherited;
@@ -174,8 +177,12 @@ public class RigidBody extends Frame
          "centerOfMass", "center of mass of this body", DEFAULT_CENTER_OF_MASS,
          "1E NW");
       myProps.add (
-         "dynamic isDynamic", "true if component is dynamic (non-parametric)",
+         "dynamic isDynamic", "true if body is dynamic (non-parametric)",
          true);
+      myProps.add (
+         "grounded isGrounded", 
+         "true if body is classified as attached to ground",
+         DEFAULT_GROUNDED);
       myProps.add (
          "collidable", 
          "sets the collidability of this body", DEFAULT_COLLIDABILITY);
@@ -433,10 +440,10 @@ public class RigidBody extends Frame
    
    /**
     * Shifts the coordinate frame by a specified offset. The offset
-    * is added to the pose, and subtracted from the mesh vertex
-    * positions and inertia.
+    * is given in world coordinates and is added to the pose, and 
+    * subtracted from the mesh vertex positions and inertia.
     */
-   public void translateCoordinateFrame (Point3d off) {
+   public void translateCoordinateFrame (Vector3d off) {
       Point3d newPos = new Point3d(getPosition());
       Point3d newCom = new Point3d(getCenterOfMass());
       newPos.add (off);
@@ -446,6 +453,7 @@ public class RigidBody extends Frame
       if (myInertiaMethod == InertiaMethod.EXPLICIT) {
          mySpatialInertia.setCenterOfMass (newCom);
       }
+      del.inverseTransform (getPose().R);
       for (RigidMeshComp mcomp : myMeshList) {
          mcomp.transformMesh (new RigidTransform3d (del.x, del.y, del.z));
       }
@@ -1659,6 +1667,15 @@ public class RigidBody extends Frame
    
    public boolean isFreeBody() {
       return !isParametric();
+   }
+   
+   @Override
+   public boolean isGrounded() {
+      return myGroundedP;
+   }
+   
+   public void setGrounded (boolean grounded) {
+      myGroundedP = grounded;
    }
 
    /** 

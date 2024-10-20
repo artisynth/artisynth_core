@@ -1540,7 +1540,7 @@ TransformableGeometry, ScalableUnits {
 
    /* ----- Rigid Body Constraints ------ */
 
-   public ComponentListView<BodyConnector> bodyConnectors() {
+   public ComponentList<BodyConnector> bodyConnectors() {
       return myConnectors;
    }
 

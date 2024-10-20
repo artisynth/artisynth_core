@@ -14,10 +14,14 @@ public class EditActionMap {
    private class ActionDesc {
       int flags;
       EditorBase editor;
+      String[] subactions;
 
-      ActionDesc (EditorBase editor, int flags) {
+      ActionDesc (EditorBase editor, int flags, Collection<String> subactions) {
          this.flags = flags;
          this.editor = editor;
+         if (subactions != null) {
+            this.subactions = subactions.toArray(new String[0]);
+         }
       }
    };
 
@@ -29,22 +33,23 @@ public class EditActionMap {
       myMap.clear();
    }
 
-   public void add (EditorBase editor, String name, int flags) {
+   public void add (
+      EditorBase editor, String name, int flags, 
+      Collection<String> subactions) {
       if (myMap.get (name) != null) {
          System.out.printf (
             "Warning: editing action '%s' multiply defined\n", name);
       }
-      ActionDesc desc = new ActionDesc (editor, flags);
+      ActionDesc desc = new ActionDesc (editor, flags, subactions);
       myMap.put (name, desc);
    }
 
+   public void add (EditorBase editor, String name, int flags) {
+      add (editor, name, flags, /*subactions*/null);
+   }
+
    public void add (EditorBase editor, String name) {
-      if (myMap.get (name) != null) {
-         System.out.printf (
-            "Warning: editing action '%s' multiply defined\n", name);
-      }
-      ActionDesc desc = new ActionDesc (editor, 0);
-      myMap.put (name, desc);
+      add (editor, name, /*flags*/0, /*subactions*/null);
    }
 
    public int size() {
@@ -72,6 +77,16 @@ public class EditActionMap {
       }
       else {
          return 0;
+      }
+   }
+   
+   public String[] getSubActions (String name) {
+      ActionDesc desc = myMap.get (name);
+      if (desc != null) {
+         return desc.subactions;
+      }
+      else {
+         return null;
       }
    }
 }

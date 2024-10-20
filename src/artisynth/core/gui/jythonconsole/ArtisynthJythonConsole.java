@@ -42,27 +42,11 @@ public class ArtisynthJythonConsole {
     * Return true if it appears that stdout has been routed to a file.
     */
    private static boolean outputDirectedToFile() {
-//      if (Py.defaultSystemState == null) {
-//         PySystemState.initialize();
-//      }
-//      return !((PyFile)Py.defaultSystemState.stdout).isatty();
       return System.console() == null;
    }
 
-   private static Properties createDefaultProperties () {
-      Options.importSite = false;
-      Properties props = new Properties();
-      File jythonCacheDir = new File(ArtisynthPath.getCacheDir(), "jython");
-      props.setProperty (
-         RegistryKey.PYTHON_CACHEDIR, jythonCacheDir.toString());
-      props.setProperty (RegistryKey.PYTHON_IO_ENCODING, "utf-8");
-      return props;
-   }
-   
    public static ArtisynthJythonConsole createTerminalConsole() {
-      // Jython 2.7: turn off site import since required files unavailable
-
-      Properties props = createDefaultProperties();
+      Properties props = JythonInit.createDefaultProperties();
       boolean usingJLine = false;
       if (!outputDirectedToFile()) {
          // If stdout is not routed to a file, then we can instruct Jython to
@@ -80,8 +64,7 @@ public class ArtisynthJythonConsole {
    }
 
    public static ArtisynthJythonConsole createFrameConsole() {
-      // Jython 2.7: turn off site import since required files unavailable
-      Properties props = createDefaultProperties();
+      Properties props = JythonInit.createDefaultProperties();
       PySystemState.initialize(null, props);         
       InteractiveConsole console = new JythonFrameConsole();
       return new ArtisynthJythonConsole (console);
@@ -146,6 +129,7 @@ public class ArtisynthJythonConsole {
       
       myScriptFile = new File(fileName);
       try {
+         //myConsole.execfile(fileName);
          if (myConsole instanceof JythonFrameConsole) {
             ((JythonFrameConsole)myConsole).executeScript (fileName);
          }

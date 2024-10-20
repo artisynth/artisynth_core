@@ -228,7 +228,6 @@ public class ComponentMap {
          return myNumberMap[num];
       }
       else {
-         System.out.println ("num=" + num + " myNumberMap.length=" + myNumberMap.length);
          return -1;
       }
    }

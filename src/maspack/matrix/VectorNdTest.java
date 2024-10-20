@@ -184,6 +184,41 @@ class VectorNdTest extends VectorTest {
 //       return null;
 //    }
 
+   private void testHermiteInterpolation (
+      VectorNd pos0, VectorNd vel0, VectorNd pos1, VectorNd vel1) {
+      
+      int vsize = pos0.size();
+
+      VectorNd pos = new VectorNd(vsize);
+      VectorNd vel = new VectorNd(vsize);
+      VectorNd pchk = new VectorNd(vsize);
+      VectorNd vchk = new VectorNd(vsize);
+
+      for (double h=0.5; h<2; h+=0.5) {
+         for (double s=0; s<=1.0; s+=0.2) {
+            VectorNd.hermiteInterpolate (pos, pos0, vel0, pos1, vel1, s, h);
+            VectorNd.hermiteVelocity (vel, pos0, vel0, pos1, vel1, s, h);
+
+            for (int k=0; k<vsize; k++) {
+               double p0 = pos0.get(k);
+               double v0 = vel0.get(k);
+               double p1 = pos1.get(k);
+               double v1 = vel1.get(k);
+
+               double a0 = p0;
+               double a1 = v0;
+               double a2 = (3*(p1-p0)/h - (2*v0 + v1))/h;
+               double a3 = (2*(p0-p1)/h + v0 + v1)/(h*h);
+               double t = s*h;
+               pchk.set (k, ((a3*t + a2)*t + a1)*t + a0);
+               vchk.set (k, (3*a3*t + 2*a2)*t + a1);
+            }
+            checkEquals ("hermiteInterpolate", pos, pchk, 50*DOUBLE_PREC);
+            checkEquals ("hermiteVelocity", vel, vchk, 50*DOUBLE_PREC);
+         }
+      }
+   }
+
    public void execute() {
       VectorNd vr_0 = new VectorNd (0);
       VectorNd vr_2 = new VectorNd (2);
@@ -281,6 +316,16 @@ class VectorNdTest extends VectorTest {
          testSparseMul (vr_11, S11x9, vr_9);
          testSparseMul (vr_9, S11x9, v1_11);
          testSparseMul (vr_9, S11x9, vr_11);
+
+         VectorNd p0 = new VectorNd(3);
+         VectorNd v0 = new VectorNd(3);
+         VectorNd p1 = new VectorNd(3);
+         VectorNd v1 = new VectorNd(3);
+         p0.setRandom();
+         v0.setRandom();
+         p1.setRandom();
+         v1.setRandom();
+         testHermiteInterpolation (p0, v0, p1, v1);
 
          testNorms (v1_9);
          testDotAndAngle (v1_9, v2_9);

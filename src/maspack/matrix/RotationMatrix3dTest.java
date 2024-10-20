@@ -10,8 +10,13 @@ import java.util.ArrayList;
 
 import maspack.util.RandomGenerator;
 import maspack.util.FunctionTimer;
+import maspack.util.TestException;
 
 class RotationMatrix3dTest extends MatrixTest {
+
+   private static final double RTOD = 180/Math.PI;
+   private static final double DTOR = Math.PI/180;
+
    void mul (Matrix MR, Matrix M1) {
       ((RotationMatrix3d)MR).mul ((RotationMatrix3d)M1);
    }
@@ -442,25 +447,168 @@ class RotationMatrix3dTest extends MatrixTest {
       checkResult (R, RX, "setAxisAnglePrecise");
    }
 
+   static ArrayList<double[]> specialAngles = new ArrayList<>();
+   static {
+      specialAngles.add (new double[] {0, 0, 0});
+      specialAngles.add (new double[] {0, Math.PI/2, 0});
+      specialAngles.add (new double[] {0, -Math.PI/2, 0});
+   }
+   
    void testRpySolutions() {
       int ntests = 100;
 
       RotationMatrix3d R = new RotationMatrix3d();
       RotationMatrix3d RX = new RotationMatrix3d();
+      VectorNd rpy = new VectorNd(3);
+      VectorNd alt = new VectorNd(3);
+      VectorNd out = new VectorNd(3);
+
       for (int i=0; i<ntests; i++) {
-         double[] rpy = new double[3];
+         // tests within canonical range
+         rpy.set(0, RandomGenerator.nextDouble(-Math.PI, Math.PI));
+         rpy.set(1, RandomGenerator.nextDouble(-Math.PI/2, Math.PI/2));
+         rpy.set(2, RandomGenerator.nextDouble(-Math.PI, Math.PI));
+         R.setRpy (rpy.getBuffer());
 
-         rpy[0] = RandomGenerator.nextDouble(-Math.PI, Math.PI);
-         rpy[1] = RandomGenerator.nextDouble(-Math.PI/2, Math.PI/2);
-         rpy[2] = RandomGenerator.nextDouble(-Math.PI, Math.PI);
-         R.setRpy (rpy);
-
-         rpy[0] += Math.PI;
-         rpy[1] = Math.PI - rpy[1];
-         rpy[2] += Math.PI;
-         RX.setRpy (rpy);
-
+         // check alternate solution
+         alt.set(0, rpy.get(0) + Math.PI);
+         alt.set(1, Math.PI - rpy.get(1));
+         alt.set(2, rpy.get(2) + Math.PI);
+         RX.setRpy (alt.getBuffer());
          checkEquals ("testRpySolutions", R, RX, 1e-13);
+
+         R.getRpy (out.getBuffer());
+         if (!out.epsilonEquals (rpy, 1e-14)) {
+            throw new TestException (
+               "set/getRpy, canonical range: got "+out+", expected\n" + rpy);
+         }
+      }
+      for (double[] angs : specialAngles) {
+         rpy.set(angs);
+         R.setRpy (angs);
+         R.getRpy (out.getBuffer());
+         if (!out.epsilonEquals (rpy, 1e-14)) {
+            throw new TestException (
+               "set/getRpy, specials: got "+out+", expected\n" + rpy);
+         }        
+      }
+      for (int i=0; i<ntests; i++) {
+         // tests outside canonical range
+         rpy.set(0, RandomGenerator.nextDouble(-4*Math.PI, 4*Math.PI));
+         rpy.set(1, RandomGenerator.nextDouble(-4*Math.PI, 4*Math.PI));
+         rpy.set(2, RandomGenerator.nextDouble(-4*Math.PI, 4*Math.PI));
+         R.setRpy (rpy.getBuffer());      
+
+         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, 1.0);
+         if (!out.epsilonEquals (rpy, 1e-14)) {
+            throw new TestException (
+               "set/getRpy, extended range: got "+out+", expected\n" + rpy);
+         }
+         rpy.scale (RTOD);
+         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, RTOD);
+         if (!out.epsilonEquals (rpy, RTOD*1e-14)) {
+            throw new TestException (
+               "set/getRpy, scale ext. range: got "+out+", expected\n" + rpy);
+         }
+      }
+      for (int i=0; i<ntests; i++) {
+         // singularity tests
+         rpy.set(0, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
+         int n = RandomGenerator.nextInt (-3, 2);
+         rpy.set(1, Math.PI/2 + n*Math.PI);
+         rpy.set(2, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
+         R.setRpy (rpy.getBuffer());      
+
+         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, 1.0);
+         if (!out.epsilonEquals (rpy, 1e-14)) {
+            throw new TestException (
+               "set/getRpy, singularites: got "+out+", expected\n" + rpy);
+         }
+         rpy.scale (RTOD);
+         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, RTOD);
+         if (!out.epsilonEquals (rpy, RTOD*1e-14)) {
+            throw new TestException (
+               "set/getRpy, scale singularities: got "+out+", expected\n" + rpy);
+         }
+      }
+   }
+
+   void testXyzSolutions() {
+      int ntests = 100;
+
+      RotationMatrix3d R = new RotationMatrix3d();
+      RotationMatrix3d RX = new RotationMatrix3d();
+      VectorNd xyz = new VectorNd(3);
+      VectorNd alt = new VectorNd(3);
+      VectorNd out = new VectorNd(3);
+
+      for (int i=0; i<ntests; i++) {
+         // tests within canonical range
+         xyz.set(0, RandomGenerator.nextDouble(-Math.PI, Math.PI));
+         xyz.set(1, RandomGenerator.nextDouble(-Math.PI/2, Math.PI/2));
+         xyz.set(2, RandomGenerator.nextDouble(-Math.PI, Math.PI));
+         R.setXyz (xyz.getBuffer());
+
+         // check alternate solution
+         alt.set(0, xyz.get(0) + Math.PI);
+         alt.set(1, Math.PI - xyz.get(1));
+         alt.set(2, xyz.get(2) + Math.PI);
+         RX.setXyz (alt.getBuffer());
+         checkEquals ("testRpySolutions", R, RX, 1e-13);
+
+         R.getXyz (out.getBuffer());
+         if (!out.epsilonEquals (xyz, 1e-14)) {
+            throw new TestException (
+               "set/getRpy, canonical range: got "+out+", expected\n" + xyz);
+         }
+      }
+      for (double[] angs : specialAngles) {
+         xyz.set(angs);
+         R.setXyz (angs);
+         R.getXyz (out.getBuffer());
+         if (!out.epsilonEquals (xyz, 1e-14)) {
+            throw new TestException (
+               "set/getRpy, specials: got "+out+", expected\n" + xyz);
+         }        
+      }      
+      for (int i=0; i<ntests; i++) {
+         // tests outside canonical range
+         xyz.set(0, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
+         xyz.set(1, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
+         xyz.set(2, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
+         R.setXyz (xyz.getBuffer());      
+
+         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, 1.0);
+         if (!out.epsilonEquals (xyz, 1e-14)) {
+            throw new TestException (
+               "set/getXyz, extended range: got "+out+", expected\n" + xyz);
+         }
+         xyz.scale (RTOD);
+         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, RTOD);
+         if (!out.epsilonEquals (xyz, RTOD*1e-14)) {
+            throw new TestException (
+               "set/getXyz, scaled ext. range: got "+out+", expected\n" + xyz);
+         }
+      }
+      for (int i=0; i<ntests; i++) {
+         // singularity tests
+         xyz.set(0, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
+         int n = RandomGenerator.nextInt (-3, 2);
+         xyz.set(1, Math.PI/2 + n*Math.PI);
+         xyz.set(2, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
+         R.setXyz (xyz.getBuffer());      
+
+         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, 1.0);
+         if (!out.epsilonEquals (xyz, 1e-14)) {
+            throw new TestException (
+               "set/getXyz, singularites: got "+out+", expected\n" + xyz);
+         }
+         xyz.scale (RTOD);
+         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, RTOD);
+         if (!out.epsilonEquals (xyz, RTOD*1e-14)) {
+            throw new TestException (
+               "set/getXyz, scaled singularities: got "+out+", expected\n" + xyz);
+         }
       }
    }
 
@@ -571,6 +719,7 @@ class RotationMatrix3dTest extends MatrixTest {
       testPreciseAxisAngleSet ();
 
       testRpySolutions();
+      testXyzSolutions();
    }
 
 //   private void RPYtest() {

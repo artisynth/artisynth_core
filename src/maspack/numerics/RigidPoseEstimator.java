@@ -110,7 +110,7 @@ public class RigidPoseEstimator {
          vec.sub (wpoints.get(i), worldCenter);
          F.addOuterProduct (vec, myLocalPoints.get(i));
       }
-      // Use polar decomposition to extra R
+      // Use polar decomposition to extract R
       PolarDecomposition3d polard = new PolarDecomposition3d();
       polard.factor (F);
       RotationMatrix3d R = polard.getR();

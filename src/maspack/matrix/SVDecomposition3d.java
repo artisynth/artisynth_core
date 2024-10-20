@@ -557,8 +557,12 @@ public class SVDecomposition3d {
          sig0 = 0;
          sig1 = 0;
          sig2 = 0;
-         U_.setIdentity();
-         V_.setIdentity();
+         if (U_ != null) {
+            U_.setIdentity();
+         }
+         if (V_ != null) {
+            V_.setIdentity();
+         }
          return;
       }
 
@@ -1534,6 +1538,36 @@ public class SVDecomposition3d {
          R.mulTransposeRight (U, V);
       }
       return true;
+   }
+
+   /**
+    * Estimates the rank of the original matrix used to form this
+    * decomposition, based on a supplied absolute tolerance {@code eps}. The
+    * rank is estimated by counting all singular values whose value is greater
+    * than {@code eps}.
+    *
+    * @param eps absolute tolerance for estimating the rank
+    * @return estimated rank of the orginal matrix
+    * @throws ImproperStateException
+    * if this SVDecomposition is uninitialized
+    */
+   public int rank (double eps) {
+      if (B == null) {
+         throw new ImproperStateException ("SVD not initialized");
+      }
+      // start at the end of sig since that may be faster
+      if (sig0 < eps) {
+         return 0;
+      }
+      else if (sig1 < eps) {
+         return 1;
+      }
+      else if (sig2 < eps) {
+         return 2;
+      }
+      else {
+         return 3;
+      }
    }
 
 }

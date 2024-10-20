@@ -10,6 +10,7 @@ import java.awt.Color;
 
 import maspack.matrix.AxisAngle;
 import maspack.matrix.DenseMatrix;
+import maspack.matrix.RotationRep;
 import maspack.matrix.Vector;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
@@ -26,9 +27,18 @@ public class NumericConverter {
    protected double[] myArray;
    protected PropertyDesc.TypeCode myType;
    protected int myDimension;
-
+   protected RotationRep myRotationRep;
+   
    public NumericConverter (Object valueObject) {
+      this (valueObject, RotationRep.AXIS_ANGLE_DEG);
+   }
+
+   public NumericConverter (Object valueObject, RotationRep rotRep) {
       myType = PropertyDesc.getTypeCode (valueObject.getClass());
+      // set a rotation rep for AXIS_ANGLE types
+      if (myType == PropertyDesc.TypeCode.AXIS_ANGLE) {
+         myRotationRep = (rotRep != null ? rotRep : RotationRep.AXIS_ANGLE_DEG); 
+      }
       if (!typeIsNumeric (myType)) {
          throw new IllegalArgumentException ("object of type "
          + valueObject.getClass() + " is not numeric");
@@ -45,6 +55,7 @@ public class NumericConverter {
 
    public NumericConverter (NumericConverter conv) {
       myType = conv.myType;
+      myRotationRep = conv.myRotationRep;
       try {
          myDimension = allocateCacheObjects (conv.myObj, myType);
       }
@@ -72,8 +83,12 @@ public class NumericConverter {
       }
       return typeIsNumeric (PropertyDesc.getTypeCode (cls));
    }
-
+   
    public static int getDimension (Object value) {
+      return getDimension (value, RotationRep.AXIS_ANGLE_DEG);
+   }
+
+   public static int getDimension (Object value, RotationRep rotRep) {
       
       switch (PropertyDesc.getTypeCode(value.getClass())) {
          case SHORT_ARRAY: {
@@ -108,7 +123,7 @@ public class NumericConverter {
             return 3;
          }
          case AXIS_ANGLE: {
-            return 4;
+            return (rotRep != null ? rotRep.size() : 4);
          }
          case BYTE:
          case SHORT:
@@ -154,6 +169,10 @@ public class NumericConverter {
       }
    }
 
+   public static String[] getFieldNames (Object objOrClass) {
+      return getFieldNames (objOrClass, RotationRep.AXIS_ANGLE_DEG);
+   }
+
    /**
     * Returns labels for the individual fields of a numeric type,
     * if any. If no field names are known, then null is returned.
@@ -161,7 +180,8 @@ public class NumericConverter {
     * @param objOrClass
     * object or class to test
     */
-   public static String[] getFieldNames (Object objOrClass) {
+   public static String[] getFieldNames (
+      Object objOrClass, RotationRep rotRep) {
       Class<?> cls;
       if (objOrClass instanceof Class) {
          cls = (Class<?>)objOrClass;
@@ -191,7 +211,12 @@ public class NumericConverter {
          return new String [] { "fx", "fy", "fz", "mx", "my", "mz"};
       }
       else if (AxisAngle.class.isAssignableFrom (cls)) {
-         return new String [] { "ux", "uy", "uz", "ang" };
+         if (rotRep != null) {
+            return rotRep.getFieldNames();
+         }
+         else {
+            return new String [] { "ux", "uy", "uz", "ang" };
+         }
       }
       else {
          return null;
@@ -281,7 +306,7 @@ public class NumericConverter {
             break;
          }
          case AXIS_ANGLE: {
-            myDimension = 4;
+            myDimension = myRotationRep.size();
             break;
          }
          case BYTE:
@@ -380,9 +405,9 @@ public class NumericConverter {
             break;
          }
          case AXIS_ANGLE: {
-            myObj =
-               new AxisAngle (vals[0], vals[1], vals[2],
-                              Math.toRadians (vals[3]));
+            AxisAngle axisAng = new AxisAngle();
+            axisAng.set (vals, 0, myRotationRep, /*scale*/1.0);
+            myObj = axisAng;
             break;
          }
          case BYTE: {
@@ -461,12 +486,12 @@ public class NumericConverter {
             break;
          }
          case TWIST: {
-            Twist tw = (Twist)myObj;
+            Twist tw = (Twist)obj;
             tw.get (array);
             break;
          }
          case WRENCH: {
-            Wrench wr = (Wrench)myObj;
+            Wrench wr = (Wrench)obj;
             wr.get (array);
             break;
          }
@@ -502,10 +527,7 @@ public class NumericConverter {
          }
          case AXIS_ANGLE: {
             AxisAngle axisAng = (AxisAngle)obj;
-            array[0] = axisAng.axis.x;
-            array[1] = axisAng.axis.y;
-            array[2] = axisAng.axis.z;
-            array[3] = Math.toDegrees (axisAng.angle);
+            axisAng.get (array, null, 0, myRotationRep, /*scale*/1.0);
             break;
          }
          case BYTE: {

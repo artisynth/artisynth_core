@@ -665,7 +665,18 @@ public class SpatialInertia extends Matrix6dBlock
       setJ (J00, J11, J22, J01, J02, J12);
       addScaledComCom (this.J, -mass, com);
    }
-
+   
+   /**
+    * Returns a characteristic length associated with this inertia,
+    * determined from the rotation inertia and the center of mass.
+    */
+   public double getCharacteristicLength() {
+      if (componentUpdateNeeded) {
+         updateComponents();
+      }      
+      return Math.sqrt(J.trace()/(3*mass)) + com.norm();
+   }
+   
    /**
     * Gets the center of mass for this spatial inertia.
     * 

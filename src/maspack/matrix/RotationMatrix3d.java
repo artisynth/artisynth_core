@@ -75,6 +75,10 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 10 * DOUBLE_PREC;
+
+   private final double sqr(double x) {
+      return x*x;
+   }
    
    /**
     * Creates a new rotation initialized to the specified entries.
@@ -613,6 +617,12 @@ public class RotationMatrix3d extends Matrix3dBase {
    public void set (Quaternion q) {
       double d = (q.s * q.s + q.u.dot (q.u)) / 2;
 
+      if (d == 0) {
+         // rotation is unspecified
+         setIdentity();
+         return;
+      }
+
       double s_d = q.s / d;
       double ux_d = q.u.x / d;
       double uy_d = q.u.y / d;
@@ -1033,7 +1043,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Post-multiplies this rotation by an implicit second rotation consisting
-    * of a rotation of 90 degrees about the x axis, and places the result in
+    * of a rotation of 90 degrees about the y axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
     * numerical answer for this special case.
     */
@@ -1053,7 +1063,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Post-multiplies this rotation by an implicit second rotation consisting
-    * of a rotation of 180 degrees about the x axis, and places the result in
+    * of a rotation of 180 degrees about the y axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
     * numerical answer for this special case.
     */
@@ -1069,7 +1079,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Post-multiplies this rotation by an implicit second rotation consisting
-    * of a rotation of 270 degrees about the x axis, and places the result in
+    * of a rotation of 270 degrees about the y axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
     * numerical answer for this special case.
     */
@@ -1147,7 +1157,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Post-multiplies this rotation by an implicit second rotation consisting
-    * of a rotation of 90 degrees about the x axis, and places the result in
+    * of a rotation of 90 degrees about the z axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
     * numerical answer for this special case.
     */
@@ -1167,7 +1177,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Post-multiplies this rotation by an implicit second rotation consisting
-    * of a rotation of 180 degrees about the x axis, and places the result in
+    * of a rotation of 180 degrees about the z axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
     * numerical answer for this special case.
     */
@@ -1183,7 +1193,7 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Post-multiplies this rotation by an implicit second rotation consisting
-    * of a rotation of 270 degrees about the x axis, and places the result in
+    * of a rotation of 270 degrees about the z axis, and places the result in
     * this rotation. This method is supplied in order to provide an exact
     * numerical answer for this special case.
     */
@@ -1335,29 +1345,153 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Gets the roll-pitch-yaw angles corresponding to this rotation.
+    * Gets the roll-pitch-yaw angles corresponding to this rotation. Solution
+    * uniqueness is guaranteed by constraining roll and yaw to the range {@code
+    * [-pi, pi]} and pitch to the range {@code [-pi/2, pi/2]}.
     * 
     * @param angs
     * returns the angles (roll, pitch, and yaw, in that order) in radians.
     * @see #setRpy(double,double,double)
     */
    public void getRpy (double[] angs) {
-      double sroll, croll, nx, ny, p;
+      getRpy (angs, /*refs=*/null, 0, 1.0);
+
+   }
+
+   private void setNearestAngSolution (
+      double[] angs, double ang0, double ang1, double ang2,
+      double[] refs, int off, double angScale) {
+
+      if (refs != null) {
+         double ref0 = refs[off+0];
+         double ref1 = refs[off+1];
+         double ref2 = refs[off+2];
+         if (angScale != 1.0) {
+            ref0 /= angScale;
+            ref1 /= angScale;
+            ref2 /= angScale;
+         }
+
+         double alt0 = ang0 + Math.PI;
+         double alt1 = Math.PI - ang1;
+         double alt2 = ang2 + Math.PI;
+         double dang = 0;
+         double dalt = 0;
          
-      nx = m00;
-      ny = m10;
-      if (Math.abs (nx) < EPSILON && Math.abs (ny) < EPSILON) {
-         angs[0] = 0.;
-         angs[1] = Math.atan2 (-m20, nx);
-         angs[2] = Math.atan2 (-m12, m11);
+         alt0 = RotationRep.nearestAngle (alt0, ref0);
+         dalt += sqr(alt0-ref0);
+         ang0 = RotationRep.nearestAngle (ang0, ref0);
+         dang += sqr(ang0-ref0);
+         alt1 = RotationRep.nearestAngle (alt1, ref1);
+         dalt += sqr(alt1-ref1);
+         ang1 = RotationRep.nearestAngle (ang1, ref1);
+         dang += sqr(ang1-ref1);
+         alt2 = RotationRep.nearestAngle (alt2, ref2);
+         dalt += sqr(alt2-ref2);
+         ang2 = RotationRep.nearestAngle (ang2, ref2);
+         dang += sqr(ang2-ref2);
+         
+         if (dang > dalt) {
+            ang0 = alt0;
+            ang1 = alt1;
+            ang2 = alt2;
+         }
+      }
+      if (angScale == 1.0) {
+         angs[off+0] = ang0;
+         angs[off+1] = ang1;
+         angs[off+2] = ang2;
       }
       else {
-         angs[0] = (p = Math.atan2 (ny, nx));
-         sroll = Math.sin (p);
-         croll = Math.cos (p);
-         angs[1] = Math.atan2 (-m20, croll * nx + sroll * ny);
-         angs[2] =
-            Math.atan2 (sroll * m02 - croll * m12, croll * m11 - sroll * m01);
+         angs[off+0] = angScale*ang0;
+         angs[off+1] = angScale*ang1;
+         angs[off+2] = angScale*ang2;
+      }
+   }
+
+   private void setAngSolution (
+      double[] angs, double ang0, double ang1, double ang2,
+      int off, double angScale) {
+
+      if (angScale == 1.0) {
+         angs[off+0] = ang0;
+         angs[off+1] = ang1;
+         angs[off+2] = ang2;
+      }
+      else {
+         angs[off+0] = angScale*ang0;
+         angs[off+1] = angScale*ang1;
+         angs[off+2] = angScale*ang2;
+      }
+   }
+
+   /**
+    * Gets the roll-pitch-yaw angles corresponding to this rotation. If {@code
+    * refs} is non-null, it contains reference angles which are used to resolve
+    * redundancies by finding the solution nearest to the reference angles.
+    * Solution redundancies include the two primary solutions with {@code
+    * cos(pitch) > 0} and {@code cos(pitch) < 0}, plus the angular redundancies
+    * formed by adding {@code 2 n pi} to any angle. If {@code refs} is null,
+    * a unique solution is found by constraining roll and yaw to the range {@code
+    * [-pi, pi]} and pitch to the range {@code [-pi/2, pi/2]}.
+    * 
+    * @param angs
+    * returns the angles (roll, pitch, and yaw, in that order) in radians.
+    * @param refs
+    * if non-null, specifies the reference angles
+    * @param off offset within {@code angs} and {@code refs} where the angles
+    * are be stored
+    * @param angScale if not 1.0, indicates a scale factor for the output
+    * and reference angles. In particular, this can be used to convert
+    * output angles into degrees.
+    * @see #setRpy(double,double,double)
+    */
+   public void getRpy (
+      double[] angs, double[] refs, int off, double angScale) {
+      if (Math.abs (m00) < EPSILON && Math.abs (m10) < EPSILON) {
+         double rz, ry, rx;
+         // near the singularity at pitch = -pi/2 or pi/2.  Roll and yaw can
+         // move relative to each other
+         if (refs == null) {
+            rz = 0.;
+            ry = Math.atan2 (-m20, m00);
+            rx = Math.atan2 (-m12, m11);
+         }
+         else {
+            // could do this in a more elaborate way, but for now, just set
+            // roll to the corresponding reference angle
+            double ref0 = refs[off+0];
+            double ref1 = refs[off+1];
+            double ref2 = refs[off+2];
+            if (angScale != 1.0) {
+               ref0 /= angScale;
+               ref1 /= angScale;
+               ref2 /= angScale;
+            }
+            rz = ref0;
+            ry = Math.atan2 (-m20, m00);
+            if (ry > 0) {
+               // pitch near pi/2
+               double yawMinusRoll = Math.atan2 (-m12, m11);    
+               rx = RotationRep.nearestAngle (yawMinusRoll + rz, ref2);
+            }
+            else {
+               // pitch near -pi/2
+               double yawPlusRoll = Math.atan2 (-m12, m11);
+               rx = RotationRep.nearestAngle (yawPlusRoll - rz, ref2);
+            }
+            ry = RotationRep.nearestAngle (ry, ref1);
+         }
+         setAngSolution (angs, rz, ry, rx, off, angScale);
+      }
+      else {
+         double rz = Math.atan2 (m10, m00);
+         double s = Math.sin (rz);
+         double c = Math.cos (rz);
+         double ry = Math.atan2 (-m20, c * m00 + s * m10);
+         double rx = Math.atan2 (s * m02 - c * m12, c * m11 - s * m01);
+
+         setNearestAngSolution (angs, rz, ry, rx, refs, off, angScale);
       }
    }
 
@@ -1429,26 +1563,84 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Gets the x-y-z rotation angles corresponding to this rotation.  This is
-    * the inverse of {@link #setXyz(double,double,double)}.
+    * Gets the x-y-z rotation angles (rx, ry, rz) corresponding to this
+    * rotation.  This is the inverse of {@link
+    * #setXyz(double,double,double)}. Solution uniqueness is guaranteed by
+    * constraining rx and rz to the range {@code [-pi, pi]} and the ry to
+    * {@code [-pi/2, pi/2]}.
     * 
-    * @param angs
-    * returns the x-y-z angles (rx, ry, and rz, in that order) in radians.
+    * @param angs returns rx, ry and rz in radians.
     */
    public void getXyz (double[] angs) {
-         
+      getXyz (angs, /*ref*/null, 0, 1.0);
+   }
+
+   /**
+    * Gets the x-y-z rotation angles (rx, ry, rz) corresponding to this
+    * rotation. If {@code refs} is non-null, it contains reference angles which
+    * are used to resolve redundancies by finding the solution nearest to the
+    * reference angles.  Solution redundancies include the two primary
+    * solutions with {@code cos(ry) > 0} and {@code cos(ry) < 0}, plus the
+    * angular redundancies formed by adding {@code 2 n pi} to any angle. If
+    * {@code refs} is null, a unique solution is found by constraining rx and
+    * rz to the range {@code [-pi, pi]} and the ry to {@code [-pi/2, pi/2]}.
+    * 
+    * @param angs
+    * returns rx, ry, and rz in radians.
+    * @param off offset within {@code angs} and {@code refs} where the angles
+    * are be stored
+    * @param angScale if not 1, indicates a scale factor for the output
+    * and reference angles. In particular, this can be used to convert output
+    * angles into degrees.
+    * @see #setXyz(double,double,double)
+    */
+   public void getXyz (
+      double[] angs, double[] refs, int off, double angScale) {
+
       if (Math.abs(m12) < EPSILON && Math.abs(m22) < EPSILON) {
-         angs[0] = 0;
-         angs[1] = Math.atan2 (m02, m22);
-         angs[2] = Math.atan2 (m10, m11);
+         // near the singularity at ry = -pi/2 or pi/2.  Rx and rz can move
+         // relative to each other
+         double rx, ry, rz;
+         if (refs == null) {
+            rx = 0;
+            ry = Math.atan2 (m02, m22);
+            rz = Math.atan2 (m10, m11);
+         }
+         else {
+            // could do this in a more elaborate way, but for now, just set
+            // rx to the corresponding reference angle
+            double ref0 = refs[off+0];
+            double ref1 = refs[off+1];
+            double ref2 = refs[off+2];
+            if (angScale != 1.0) {
+               ref0 /= angScale;
+               ref1 /= angScale;
+               ref2 /= angScale;
+            }
+            rx = ref0;
+            ry = Math.atan2 (m02, m22);
+            if (ry > 0) {
+               // ry near pi/2
+               double rzPlusRx = Math.atan2 (m10, m11);
+               rz = RotationRep.nearestAngle (rzPlusRx - rx, ref2);
+            }
+            else {
+               // ry near -pi/2
+               double rzMinusRx = Math.atan2 (m10, m11);
+               rz = RotationRep.nearestAngle (rzMinusRx + rx, ref2);
+            }
+            ry = RotationRep.nearestAngle (ry, ref1);
+         }
+         setAngSolution (angs, rx, ry, rz, off, angScale);
       }
       else {
-         double r, sr, cr;
-         angs[0] = (r = Math.atan2 (-m12, m22));
-         sr = Math.sin (r);
-         cr = Math.cos (r);
-         angs[1] = Math.atan2 (m02, -sr*m12 + cr*m22);
-         angs[2] = Math.atan2 (cr*m10 + sr*m20, cr*m11 + sr*m21);
+         double rx = Math.atan2 (-m12, m22);
+         double s = Math.sin (rx);
+         double c = Math.cos (rx);
+         double ry = Math.atan2 (m02, -s*m12 + c*m22);
+         double rz = Math.atan2 (c*m10 + s*m20, c*m11 + s*m21);
+
+         setNearestAngSolution (angs, rx, ry, rz, refs, off, angScale);
       }
    }
 

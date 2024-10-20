@@ -215,5 +215,21 @@ public enum AxisAlignedRotation {
       vr.inverseTransform (R, v0);
    }
 
+   /**
+    * Print out nearest AxisAlignedRotation for all rpy angles than are n*PI/2.
+    */
+   public static void main (String[] args) {
+      for (int i=0; i<3; i++) {
+         for (int j=0; j<4; j++) {
+            for (int k=0; k<4; k++) {
+               RotationMatrix3d R = new RotationMatrix3d();
+               R.setRpy (i*Math.PI/2, j*Math.PI/2, k*Math.PI/2);
+               System.out.println (" "+i+" "+j+" "+k+" "+getNearest(R));
+            }
+         }
+         System.out.println ("--");
+      }
+   }
+
 }
 

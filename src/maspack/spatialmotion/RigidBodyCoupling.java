@@ -418,7 +418,6 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected void updateEngaged (
       RigidBodyConstraint cons, double val, 
       double min, double max, Twist velCD) {
-
       if (val <= min) {
          if (cons.engaged != 1) {
             cons.engaged = 1;
@@ -435,7 +434,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          double dist = getDistance (val, min, max);
          if (dist > 0 && 
              (cons.resetEngaged ||
-              (cons.computeContactSpeed(velCD) > myBreakSpeed && 
+              (cons.computeContactSpeed(velCD) >= myBreakSpeed && 
                cons.engagedCnt > 1))) {
             cons.engaged = 0;
             cons.engagedCnt = 0;

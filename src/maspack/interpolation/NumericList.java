@@ -9,6 +9,7 @@ package maspack.interpolation;
 import java.util.Iterator;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.io.*;
 
@@ -20,10 +21,31 @@ import maspack.util.*;
 /**
  * A linked list of vector values arranged in order with respect to a parameter
  * t. Can be interpolated to produce a continuous vector function.
+ *
+ * <p>A numeric list can be constructed to contain a set of subvectors
+ * representing rotations, using a representation specified by a RotationRep.
+ * For Linear, Cubic and CubicStep interpolation, rotation subvectors are
+ * interpolated as curves on the surface of SO(3), as originally described by
+ * Ken Shoemake in his SIGGRAPH 1985 paper "Animating Rotation with Quaternion
+ * Curves".
  */
 public class NumericList
    implements Cloneable, Iterable<NumericListKnot>, Scannable {
-                                    
+   
+   public boolean debug = false;
+
+   private static final double RTOD = 180.0/Math.PI;
+   private static final double DTOR = Math.PI/180.0;
+   private static final double INF = Double.POSITIVE_INFINITY;
+
+   // Can be used to identify subvectors within this list's numeric vector that
+   // represent rotations, according to the representation described by
+   // myRotationRep. The length of each subvector will be given by
+   // myRotationRep.size(), and the starting offsets of the subvectors
+   // are given by myRotationSubvecOffsets.
+   private int[] myRotationSubvecOffsets = new int[0];
+   private RotationRep myRotationRep = null;
+
    private int myVsize;
    protected NumericListKnot myHead;
    protected NumericListKnot myTail;
@@ -41,8 +63,10 @@ public class NumericList
    protected VectorNd a3 = new VectorNd (0);
 
    private boolean myMinMaxValid = false;
-   private double myMaxValue;
-   private double myMinValue;
+   private double myMaxValue; // max value across all vectors and elements
+   private VectorNd myMaxValues = new VectorNd(); // max for each vector element
+   private double myMinValue; // min value across all vectors and elements
+   private VectorNd myMinValues = new VectorNd(); // min for each vector element
 
    private VectorNd myTmp0;
    private VectorNd myTmp1;
@@ -95,6 +119,16 @@ public class NumericList
    }
 
    /**
+    * Returns the interpolation order for this list.
+    * 
+    * @return interpolation order
+    * @see #setInterpolationOrder
+    */
+   public Interpolation.Order getInterpolationOrder() {
+       return myInterpolation.getOrder();
+   }
+
+   /**
     * Creates an empty numeric list for holding vectors of a prescribed size.
     * 
     * @param vsize
@@ -106,10 +140,115 @@ public class NumericList
    }
 
    /**
+    * Creates an empty numeric list containing rotation subvectors with
+    * specified representation and offsets.
+    * 
+    * @param vsize
+    * size of the vectors that will form this list
+    * @param rotRep
+    * how rotations are represented with the subvectors
+    * @param offsets
+    * offsets for the rotation subvectors
+    */
+   public NumericList (int vsize, RotationRep rotRep, int[] offsets) {
+      setInterpolation (defaultInterpolation);
+      myVsize = vsize;
+      myRotationRep = rotRep;
+      setRotationSubvecOffsets (offsets);
+   }
+
+   /**
     * Returns the size of the vectors associated with this list.
     */
    public int getVectorSize() {
       return myVsize;
+   }
+
+   /**
+    * Returns the size of the derivative vector associated with this list.
+    * This will be different from the list's vector size if the list contains
+    * rotation subvectors using a representation whose numeric size is not
+    * equal to three.
+    *
+    * @return derivative vector size
+    */
+   public int getDerivSize() {
+      if (numRotationSubvecs() > 0) {
+         return myVsize - (numRotationSubvecs()*(myRotationRep.size()-3));
+      }
+      else {
+         Order order = myInterpolation.getOrder();
+         if ((order == Order.SphericalLinear || order == Order.SphericalCubic) &&
+             (myVsize == 4 || myVsize == 7 || myVsize == 16)) {
+            return myVsize == 4 ? 3 : 6;
+         }
+         else {
+            return myVsize;
+         }
+      }
+   }
+
+   /**
+    * Returns the representation associated with rotation subvectors of this
+    * list, or null if there are no rotation subvectors.
+    *
+    * @return rotation subvector representation
+    */
+   public RotationRep getRotationRep() {
+      return myRotationRep;
+   }
+
+   /**
+    * Returns an array giving the offsets of any rotation subvectors associated
+    * with this list. The array will have length 0 if there are no rotation
+    * subvectors.
+    *
+    * @return offsets for the rotation subvectors
+    */
+   public int[] getRotationSubvecOffsets() {
+      return Arrays.copyOf (
+         myRotationSubvecOffsets, myRotationSubvecOffsets.length);
+   }
+
+   /**
+    * Checks a set of specified rotation subvector offsets to ensure that
+    * they do not overlap and all fit within the overall vector.
+    *
+    * @param offsets offset values to be checked
+    * @param rotRep rotation representation associated with the subvectors
+    * @param vsize overall vector size
+    */
+   public static void checkRotationSubvecOffsets (
+      int[] offsets, RotationRep rotRep, int vsize) {
+      int rsize = rotRep.size();
+      for (int i=0; i<offsets.length; i++) {
+         int off = offsets[i];
+         if (i > 0 && off < offsets[i-1]+rsize) {
+            throw new IllegalArgumentException (
+               "Rotational subvector "+i+" overlaps with previous subvector");
+         }
+         if (off+rsize > vsize) { 
+            throw new IllegalArgumentException (
+               "Rotational subvector "+i+" extends beyond end of vector");
+         }
+      }
+   }
+
+   /**
+    * Used internal to set rotation subvector offsets for this list.
+    */
+   void setRotationSubvecOffsets (int[] offsets) {
+      checkRotationSubvecOffsets (offsets, myRotationRep, myVsize);
+      myRotationSubvecOffsets = Arrays.copyOf (offsets, offsets.length);
+   }
+
+   /**
+    * Queries the number of rotation subvectors.
+    *
+    * @return number of rotation subvectors
+    */
+   public int numRotationSubvecs() {
+      return myRotationSubvecOffsets.length;
    }
 
    /**
@@ -133,6 +272,29 @@ public class NumericList
    }
 
    /**
+    * Adds a knot into this numeric list, and adjust the value of any rotation
+    * subvector to the (redundant) representation "closest" to that in
+    * the nearest existing knot.  The knot will be added at the proper location
+    * so that all t values are monotonically increasing. Any existing knot
+    * which has the same t value as the new knot will be removed and returned.
+    * 
+    * @param knot
+    * knot to add to the list
+    * @return existing knot with the same t value, if any
+    * @throws IllegalArgumentException
+    * if the knot's vector has a size not equal to the vector size for this
+    * list.
+    * @see #getVectorSize
+    */
+   public synchronized NumericListKnot addAndAdjustRotations (
+      NumericListKnot knot) {
+      adjustRotationValues (knot.v, knot.v, knot.t);
+      NumericListKnot existing = add (knot, myLast);
+      myLast = knot;
+      return existing;
+   }
+
+   /**
     * Creates a knot with the specified values and time and adds it into this
     * numeric list. The knot will be added at the proper location so that all t
     * values are monotonically increasing. Any existing knot which has the same
@@ -142,7 +304,7 @@ public class NumericList
     * values for the knot
     * @param t
     * time at which the knot should be added
-    * @return existing knot with the same t value, if any
+    * @return knot that was added
     * @throws IllegalArgumentException
     * if <code>values</code> has a size less than the vector size for this
     * list.
@@ -156,6 +318,37 @@ public class NumericList
       NumericListKnot knot = new NumericListKnot (getVectorSize());
       for (int i = 0; i < getVectorSize(); i++) {
          knot.v.set (i, vals.get (i));
+      }
+      knot.t = t;
+      add (knot);
+      return knot;
+   }
+
+   /**
+    * Creates a knot with the specified values and time and adds it into this
+    * numeric list. The knot will be added at the proper location so that all t
+    * values are monotonically increasing. Any existing knot which has the same
+    * t value as the new knot will be removed and returned.
+    * 
+    * @param t
+    * time at which the knot should be added
+    * @param vals
+    * values for the knot; the number must be {@code >=} the list's vector
+    * size
+    * @return knot that was added
+    * @throws IllegalArgumentException
+    * if <code>values</code> has a size less than the vector size for this
+    * list.
+    * @see #getVectorSize
+    */
+   public synchronized NumericListKnot add (double t, double... vals) {
+      if (vals.length < getVectorSize()) {
+         throw new IllegalArgumentException (
+            "Insufficinet number of values specified for knot point");
+      }
+      NumericListKnot knot = new NumericListKnot (getVectorSize());
+      for (int i = 0; i < getVectorSize(); i++) {
+         knot.v.set (i, vals[i]);
       }
       knot.t = t;
       add (knot);
@@ -215,7 +408,7 @@ public class NumericList
             existing = anchor;
          }
       }
-      updateMinMaxValues (knot);
+      myMinMaxValid = false;
       knot.myList = this;
       return existing;
    }
@@ -229,6 +422,28 @@ public class NumericList
       nlk.t += t;
    }
 
+   /**
+    * Returns a vector giving the minimum values across all knots in this list.
+    * Should not be modified.
+    */
+   public VectorNd getMinValues() {
+      if (!myMinMaxValid) {
+         updateMinMaxValues();
+      }      
+      return myMinValues;
+   }
+
+   /**
+    * Returns a vector giving the maximum values across all knots in this list.
+    * Should not be modified.
+    */
+   public VectorNd getMaxValues() {
+      if (!myMinMaxValid) {
+         updateMinMaxValues();
+      }
+      return myMaxValues;
+   }
+
    public void getMinMaxValues (double[] minMax) {
       if (!myMinMaxValid) {
          updateMinMaxValues();
@@ -237,28 +452,44 @@ public class NumericList
       minMax[1] = myMaxValue;
    }
 
+   public void getMinMaxValues (VectorNd min, VectorNd max) {
+      if (!myMinMaxValid) {
+         updateMinMaxValues();
+      }
+      min.set (myMinValues);
+      max.set (myMaxValues);
+   }
+
    private void updateMinMaxValues (NumericListKnot knot) {
       double[] vbuf = knot.v.getBuffer();
+      double[] vmin = myMinValues.getBuffer();
+      double[] vmax = myMaxValues.getBuffer();
       for (int i = 0; i < myVsize; i++) {
          double x = vbuf[i];
-         if (x > myMaxValue) {
-            myMaxValue = x;
+         if (x > vmax[i]) {
+            vmax[i] = x;
          }
-         if (x < myMinValue) {
-            myMinValue = x;
+         if (x < vmin[i]) {
+            vmin[i] = x;
          }
       }
    }
 
    private void updateMinMaxValues() {
+      myMinValues.setSize (myVsize);
+      myMaxValues.setSize (myVsize);
       if (myHead != null) {
-         myMinValue = Double.POSITIVE_INFINITY;
-         myMaxValue = Double.NEGATIVE_INFINITY;
+         myMinValues.setAll (INF);
+         myMaxValues.setAll (-INF);
          for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
             updateMinMaxValues (knot);
          }
+         myMinValue = myMinValues.minElement();
+         myMaxValue = myMaxValues.maxElement();
       }
       else {
+         myMinValues.setZero();
+         myMaxValues.setZero();
          myMinValue = 0;
          myMaxValue = 0;
       }
@@ -281,35 +512,35 @@ public class NumericList
       }
    }
 
-   /**
-    * Queries the minimum and maximun values of each vector
-    * element over all the knots.
-    *
-    * @param min returns the minimum values
-    * @param max returns the maximum values
-    */
-   public void getMinMaxValues (VectorNd min, VectorNd max) {
-      min.setSize (getVectorSize());
-      max.setSize (getVectorSize());
-      for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
-         if (knot == myHead) {
-            min.set (knot.v);
-            max.set (knot.v);
-         }
-         else {
-            for (int i=0; i<getVectorSize(); i++) {
-               double x = knot.v.get(i);
-               if (x > max.get(i)) {
-                  max.set (i, x);
-               }
-               else if (x < min.get(i)) {
-                  min.set (i, x);
-               }
-            }
-         }
-      }
-   }
-
+//   /**
+//    * Queries the minimum and maximum values of each vector
+//    * element over all the knots.
+//    *
+//    * @param min returns the minimum values
+//    * @param max returns the maximum values
+//    */
+//   public void getMinMaxValues (VectorNd min, VectorNd max) {
+//      min.setSize (getVectorSize());
+//      max.setSize (getVectorSize());
+//      for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
+//         if (knot == myHead) {
+//            min.set (knot.v);
+//            max.set (knot.v);
+//         }
+//         else {
+//            for (int i=0; i<getVectorSize(); i++) {
+//               double x = knot.v.get(i);
+//               if (x > max.get(i)) {
+//                  max.set (i, x);
+//               }
+//               else if (x < min.get(i)) {
+//                  min.set (i, x);
+//               }
+//            }
+//         }
+//      }
+//   }
+//
    /**
     * Removes and return the knot at time t, if any.
     * 
@@ -326,12 +557,12 @@ public class NumericList
          double[] vbuf = knot.v.getBuffer();
          for (int i = 0; i < myVsize; i++) {
             double x = vbuf[i];
-            if (x >= myMaxValue) // using >= for paranoid reasons
+            if (x >= myMaxValues.get(i)) // using >= for paranoid reasons
             {
                minMaxUpdateNeeded = true;
                break;
             }
-            if (x <= myMinValue) {
+            if (x <= myMinValues.get(i)) {
                minMaxUpdateNeeded = true;
                break;
             }
@@ -459,19 +690,130 @@ public class NumericList
 
    /**
     * Interpolates the value associated with a particular value of t, based on
-    * the current contents of this list. If t lies before the start or after the
-    * end of the list, the interpolation value is set to the first or last knot
-    * value.
+    * the current contents of this list. The interpolation is done using the
+    * list's interpolation method, as returned by {@link #getInterpolation}.
+    * If t lies before the start or after the end of the list, the
+    * interpolation value is set to the first or last knot value.
     * 
     * @param v
     * stores the interpolation result
     * @param t
     * value to interpolate for
-    * @throws ImproperStateException
-    * if the list is empty
     */
    public void interpolate (VectorNd v, double t) {
       myLast = interpolate (v, t, myInterpolation, myLast);
+   }
+
+   /**
+    * Finds the derivative associated with a particular value of t, by
+    * differentiating the function implied by the knot points and the list's
+    * interpolation method, as returned by {@link #getInterpolation}. If t lies
+    * before the start or after the end of the list, the derivative will be
+    * zero.
+    * 
+    * @param v
+    * stores the derivative result
+    * @param t value to find the derivative at
+    */
+   public void interpolateDeriv (VectorNd v, double t) {
+      myLast = interpolateDeriv (v, t, myInterpolation, myLast);
+   }
+
+   /**
+    * Finds the derivative associated with a particular value of t, based on
+    * numerical differentation of the current knot points. This is done by
+    * linearly interpolating numerical derivatives computed at the mid-points
+    * between knots. If t lies before the start or after the end of the list,
+    * the derivative will be zero.
+    * 
+    * @param v
+    * stores the derivative result
+    * @param t
+    * value to find the derivative for
+    */
+   public void numericalDeriv (VectorNd v, double t) {
+      myLast = numericalDeriv (v, t, myLast);
+   }
+
+   /**
+    * Copies the values {@code v} into {@code vr}, while adjusting the value of
+    * any rotation subvector to the (redundant) representation "closest" to
+    * that in the knot nearest to {@code t}.
+    * 
+    * @param vr
+    * stores the result
+    * @param v
+    * values to copy and adjust if needed
+    * @param t
+    * time associated with the values
+    */
+   public void adjustRotationValues (VectorNd vr, VectorNd v, double t) {
+      myLast = adjustRotationValues (vr, v, t, myLast);
+   }
+
+   /**
+    * Copies the values {@code v} into {@code vr}, while adjusting the value of
+    * any rotation subvector to the (redundant) representation "closest" to
+    * that in the knot nearest to {@code t}.
+    *
+    * <p>The method returns the knot that is nearest to {@code t}.  By using
+    * this returned value as the {@code last} argument in subsequent method
+    * calls, one can traverse forward or backward (in time) along the list with
+    * O(1) complexity.
+    * 
+    * @param vr
+    * stores the result
+    * @param v
+    * values to copy and adjust if needed
+    * @param t
+    * time associated with the values
+    * @param last
+    * knot point used to start the search for the knot containing {@code t}
+    * @return nearest knot to {@code t}
+    */
+   public NumericListKnot adjustRotationValues (
+      VectorNd vr, VectorNd v, double t, NumericListKnot last) {
+      if (v.size() != myVsize) {
+         throw new IllegalArgumentException (
+            "v has size "+v.size()+"; list has vector size "+myVsize);
+      }
+      NumericListKnot near = null;
+      if (numRotationSubvecs() > 0) {
+         near = findKnotClosest (t, last);
+      }
+      if (near == null) {
+         if (vr != v) {
+            vr.set (v);
+         }
+      }
+      else {
+         double[] rbuf = near.v.getBuffer();
+         double[] obuf = vr.getBuffer();
+         double[] vbuf = v.getBuffer();
+
+         Quaternion qv = new Quaternion();
+         int i=0;
+         int k = 0;
+         int off = myRotationSubvecOffsets[0];
+         while (i<myVsize) {
+            if (off == i) {
+               qv.set (vbuf, off, myRotationRep, /*scale*/1);
+               qv.get (obuf, rbuf, off, myRotationRep, /*scale*/1);
+               i += myRotationRep.size();
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               obuf[i] = vbuf[i];
+               i++;
+            }
+         }         
+      }
+      return near;
    }
 
    public void interpolateCubic (VectorNd v, NumericListKnot prev, double t) {
@@ -494,6 +836,181 @@ public class NumericList
    public synchronized NumericListKnot interpolate (
       VectorNd v, double t, Interpolation method, NumericListKnot last) {
       return interpolate (v, t, method.myOrder, method.myDataExtendedP, last);
+   }
+
+   public synchronized NumericListKnot interpolateDeriv (
+      VectorNd v, double t, Interpolation method, NumericListKnot last) {
+      return interpolateDeriv (v, t, method.myOrder, last);
+   }
+
+   private void interpLinear (NumericListKnot prev, VectorNd v, double t) {
+      NumericListKnot next = prev.next; // next is not null by assumption
+      double s = (t-prev.t)/(next.t-prev.t);
+
+      double[] pbuf = prev.v.getBuffer();
+      double[] nbuf = next.v.getBuffer();
+      double[] vbuf = v.getBuffer();
+      // rbuf gives reference values for resolving rotation representation
+      double[] rbuf = (s < 0.5 ? pbuf : nbuf);     
+      if (numRotationSubvecs() == 0) {
+         for (int i=0; i<myVsize; i++) {
+            vbuf[i] = (1-s)*pbuf[i] + s*nbuf[i];
+         }
+      }
+      else {
+         Quaternion qp = new Quaternion();
+         Quaternion qn = new Quaternion();
+         Quaternion qv = new Quaternion();
+         int i=0;
+         int k = 0;
+         int off = myRotationSubvecOffsets[0];
+         while (i<myVsize) {
+            if (off == i) {
+               qp.set (pbuf, off, myRotationRep, /*scale*/1);
+               qn.set (nbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (qp, pbuf);
+               //rvec.getQuaternion (qn, nbuf);
+               qv.sphericalInterpolate (qp, s, qn);
+               qv.get (vbuf, rbuf, off, myRotationRep, /*scale*/1);
+               if (debug) {
+                  double pang = pbuf[off+3];
+                  double nang = nbuf[off+3];
+                  AxisAngle axisAng = new AxisAngle();
+                  Quaternion qd = new Quaternion();
+                  qd.mulInverseLeft (qp, qn);
+                  qd.getAxisAngle (axisAng);
+                  System.out.printf (
+                     "t=%g s=%g ang=%g del=%g chk2=%g\n", 
+                     t, s, vbuf[off+3], RTOD*axisAng.angle,
+                     (1-s)*pang+s*nang);
+                  // System.out.println ("    nv=" + next.v);
+                  // System.out.println ("    qp=" + qp);
+                  // System.out.println ("    qn=" + qn);
+                  // System.out.println ("    qd=" + qd);
+               }
+               //rvec.setRotation (vbuf, rbuf, qv);
+               i += myRotationRep.size();
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               vbuf[i] = (1-s)*pbuf[i] + s*nbuf[i];
+               i++;
+            }
+         }
+      }
+   }
+
+   private void interpLinearDeriv (NumericListKnot prev, VectorNd v, double t) {
+      NumericListKnot next = prev.next; // next is not null by assumption
+
+      double h = next.t-prev.t; // time difference
+
+      double[] pbuf = prev.v.getBuffer();
+      double[] nbuf = next.v.getBuffer();
+      double[] vbuf = v.getBuffer();
+
+      if (numRotationSubvecs() == 0) {
+         for (int i=0; i<v.size(); i++) {
+            vbuf[i] = (nbuf[i]-pbuf[i])/h;
+         }
+      }
+      else {
+         Quaternion qp = new Quaternion();
+         Quaternion qn = new Quaternion();
+         Vector3d w = new Vector3d();
+         int i=0; // index into knot buffers
+         int j=0; // index into vbuf, which will be <= i
+         int k = 0;
+         int off = myRotationSubvecOffsets[k];
+         while (i<myVsize) {
+            if (off == i) {
+               qp.set (pbuf, off, myRotationRep, /*scale*/1);
+               qn.set (nbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (qp, pbuf);
+               //rvec.getQuaternion (qn, nbuf);
+               qp.sphericalVelocity (w, qn, h);
+               w.get (vbuf, j);
+               i += myRotationRep.size();
+               j += 3;
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               vbuf[j] = (nbuf[i]-pbuf[i])/h;
+               j++;
+               i++;
+            }
+         }
+      }
+   }
+
+   private void numericalDeriv (
+      VectorNd v, double t,
+      NumericListKnot knot0, NumericListKnot knot1, NumericListKnot knot2) {
+
+      double[] buf0 = knot0.v.getBuffer();
+      double[] buf1 = knot1.v.getBuffer();
+      double[] buf2 = knot2.v.getBuffer();
+      double[] vbuf = v.getBuffer();
+
+      double h0 = knot1.t-knot0.t; // time difference between knot 1 and 0
+      double h1 = knot2.t-knot1.t; // time difference between knot 2 and 1
+
+      double s = (2*t - (knot0.t+knot1.t))/(h0 + h1);
+      double a0 = (s-1)/h0;
+      double a1 = (1-s)/h0 - s/h1;
+      double a2 = s/h1;
+
+      if (numRotationSubvecs() == 0) {
+         for (int i=0; i<v.size(); i++) {
+            vbuf[i] = a0*buf0[i] + a1*buf1[i] + a2*buf2[i];
+         }
+      }
+      else {
+         Quaternion q0 = new Quaternion();
+         Quaternion q1 = new Quaternion();
+         Quaternion q2 = new Quaternion();
+         Vector3d w0 = new Vector3d();
+         Vector3d w1 = new Vector3d();
+         Vector3d wr = new Vector3d();
+         int i=0; // index into knot buffers
+         int j=0; // index into vbuf, which will be <= i
+         int k = 0;
+         int off = myRotationSubvecOffsets[k];
+         while (i<myVsize) {
+            if (off == i) {
+               q0.set (buf0, off, myRotationRep, /*scale*/1);
+               q1.set (buf1, off, myRotationRep, /*scale*/1);
+               q2.set (buf2, off, myRotationRep, /*scale*/1);
+               q0.sphericalVelocity (w0, q1, h0);
+               q1.sphericalVelocity (w1, q2, h1);
+               wr.combine (1-s, w0, s, w1);
+               wr.get (vbuf, j);
+               i += myRotationRep.size();
+               j += 3;
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               vbuf[j] = a0*buf0[i] + a1*buf1[i] + a2*buf2[i];
+               j++;
+               i++;
+            }
+         }
+      }      
    }
 
    private void interpParabolic (NumericListKnot prev, VectorNd v, double t) {
@@ -586,6 +1103,19 @@ public class NumericList
          buf[0] = R.m00; buf[1] = R.m01; buf[2]  = R.m02;
          buf[4] = R.m10; buf[5] = R.m11; buf[6]  = R.m12;
          buf[8] = R.m20; buf[9] = R.m21; buf[10] = R.m22;
+         buf[12] = 0; buf[13] = 0; buf[14] = 0; buf[15] = 1;
+      }
+   }
+
+   private void setAngularVelocity (VectorNd v, Vector3d w) {
+      if (v.size() == 3) {
+         v.set (w);
+      }
+      else {
+         if (v.size() < 6) {
+            System.out.println ("vsize=" + v.size());
+         }
+         v.setSubVector (3, w);
       }
    }
 
@@ -626,6 +1156,42 @@ public class NumericList
       setRotation (v, q0);
    }
 
+   private void interpLinearRotationDeriv (
+      NumericListKnot prev, VectorNd v, double t) {
+
+      NumericListKnot next = prev.next;
+      double h = (next.t-prev.t);
+      Quaternion q0 = new Quaternion();
+      Quaternion q1 = new Quaternion();
+      Vector3d wr = new Vector3d();
+      getRotation (q0, prev.v);
+      getRotation (q1, next.v);
+      q0.sphericalVelocity (wr, q1, h);
+      setAngularVelocity (v, wr);
+   }
+
+   private void numericalRotationDeriv (
+      VectorNd v, double t,
+      NumericListKnot knot0, NumericListKnot knot1, NumericListKnot knot2) {
+      
+      double h0 = (knot1.t-knot0.t);
+      double h1 = (knot2.t-knot1.t);
+      double s = (2*t - (knot0.t+knot1.t))/(h0 + h1);
+      Quaternion q0 = new Quaternion();
+      Quaternion q1 = new Quaternion();
+      Quaternion q2 = new Quaternion();
+      Vector3d w0 = new Vector3d();
+      Vector3d w1 = new Vector3d();
+      Vector3d wr = new Vector3d();
+      getRotation (q0, knot0.v);
+      getRotation (q1, knot1.v);
+      getRotation (q2, knot2.v);
+      q0.sphericalVelocity (w0, q1, h0);
+      q1.sphericalVelocity (w1, q2, h1);
+      wr.combine (1-s, w0, s, w1);
+      setAngularVelocity (v, wr);
+   }
+
    private void interpLinearPosition (
       NumericListKnot prev, VectorNd v, double t) {
 
@@ -637,6 +1203,45 @@ public class NumericList
       getPosition (next.v, p1);
       p1.combine (1-s, p0, s, p1);
       setPosition (v, p1);
+   }
+
+   private void interpLinearPositionDeriv (
+      NumericListKnot prev, VectorNd v, double t) {
+
+      NumericListKnot next = prev.next;
+      double h = (next.t-prev.t);
+      Vector3d p0 = new Vector3d();
+      Vector3d p1 = new Vector3d();
+      getPosition (prev.v, p0);
+      getPosition (next.v, p1);
+      Vector3d vel = new Vector3d();
+      vel.sub (p1, p0);
+      vel.scale (1/h);
+      v.setSubVector (0, vel);
+   }
+
+   private void numericalPositionDeriv (
+      VectorNd v, double t,
+      NumericListKnot knot0, NumericListKnot knot1, NumericListKnot knot2) {
+
+      double h0 = (knot1.t-knot0.t);
+      double h1 = (knot2.t-knot1.t);
+      double s = (2*t - (knot0.t+knot1.t))/(h0 + h1);
+      double a0 = (s-1)/h0;
+      double a1 = (1-s)/h0 - s/h1;
+      double a2 = s/h1;
+
+      Vector3d p0 = new Vector3d();
+      Vector3d p1 = new Vector3d();
+      Vector3d p2 = new Vector3d();
+      getPosition (knot0.v, p0);
+      getPosition (knot1.v, p1);
+      getPosition (knot2.v, p2);
+      Vector3d vr = new Vector3d();
+      vr.scaledAdd (a0, p0);
+      vr.scaledAdd (a1, p1);
+      vr.scaledAdd (a2, p2);
+      v.setSubVector (0, vr);
    }
 
    private void interpCubicRotation (
@@ -673,6 +1278,41 @@ public class NumericList
       setRotation (v, qr);
    }
 
+   private void interpCubicRotationDeriv (
+      NumericListKnot prev, VectorNd v, double t) {
+
+      NumericListKnot next = prev.next;
+      double s = (t-prev.t)/(next.t-prev.t);
+      NumericListKnot prevprev = prev.prev;
+      NumericListKnot nextnext = next.next;
+
+      Quaternion q0 = new Quaternion();
+      Quaternion q1 = new Quaternion();
+      Quaternion qr = new Quaternion();
+      Vector3d w0 = new Vector3d();
+      Vector3d w1 = new Vector3d();
+      Vector3d wr = new Vector3d();
+      getRotation (q0, prev.v);
+      getRotation (q1, next.v);
+      if (prevprev != null) {
+         getRotation (qr, prevprev.v);
+         getAngularVelocity (w0, qr, q1, next.t-prevprev.t);
+      }
+      else {
+         getAngularVelocity (w0, q0, q1, next.t-prev.t);
+      }
+      if (nextnext != null) {
+         getRotation (qr, nextnext.v);
+         getAngularVelocity (w1, q0, qr, nextnext.t-prev.t);
+      }
+      else {
+         getAngularVelocity (w1, q0, q1, next.t-prev.t);
+      }
+      Quaternion.sphericalHermiteGlobal (
+         qr, wr, q0, w0, q1, w1, s, next.t-prev.t);
+      setAngularVelocity (v, wr);
+   }
+
    private void interpCubicPosition (
       NumericListKnot prev, VectorNd v, double t) {
 
@@ -706,31 +1346,341 @@ public class NumericList
       setPosition (v, pr);
    }
 
-   private void interpCubicPose (
+   private void interpCubicPositionDeriv (
       NumericListKnot prev, VectorNd v, double t) {
 
       NumericListKnot next = prev.next;
-      Quaternion q0 = new Quaternion();
-      Quaternion q1 = new Quaternion();
+      double s = (t-prev.t)/(next.t-prev.t);
+      NumericListKnot prevprev = prev.prev;
+      NumericListKnot nextnext = next.next;
 
+      Vector3d p0 = new Vector3d();
+      Vector3d p1 = new Vector3d();
+      Vector3d pr = new Vector3d();
+      Vector3d v0 = new Vector3d();
+      Vector3d v1 = new Vector3d();
+      Vector3d vr = new Vector3d();
+      getPosition (prev.v, p0);
+      getPosition (next.v, p1);
+      if (prevprev != null) {
+         getPosition (prevprev.v, pr);
+         getPositionVelocity (v0, pr, p1, next.t-prevprev.t);
+      }
+      else {
+         getPositionVelocity (v0, p0, p1, next.t-prev.t);
+      }
+      if (nextnext != null) {
+         getPosition (nextnext.v, pr);
+         getPositionVelocity (v1, p0, pr, nextnext.t-prev.t);
+      }
+      else {
+         getPositionVelocity (v1, p0, p1, next.t-prev.t);
+      }
+      Vector3d.hermiteVelocity (vr, p0, v0, p1, v1, s, next.t-prev.t);
+      v.setSubVector (0, vr);
    }
 
    private void interpCubicStep (
       NumericListKnot prev, VectorNd v, double t) {
 
       NumericListKnot next = prev.next;
+      double h = (next.t-prev.t);
       double s = (t-prev.t)/(next.t-prev.t);
-      
-      allocateTmps (v.size());
-      VectorNd v0 = myTmp0;
-      VectorNd v1 = myTmp1;
-      v0.setZero ();
-      v1.setZero ();
 
-      VectorNd.hermiteInterpolate (v, prev.v, v0, next.v, v1, s, next.t-prev.t);
+      double[] pbuf = prev.v.getBuffer();
+      double[] nbuf = next.v.getBuffer();
+      double[] vbuf = v.getBuffer();
+      // rbuf gives reference values for resolving rotation representation
+      double[] rbuf = (s < 0.5 ? pbuf : nbuf);      
+      
+      double b1 = (2*s-3)*s*s;
+
+      if (numRotationSubvecs() == 0) { 
+         for (int i=0; i<myVsize; i++) {
+            vbuf[i] = b1*(pbuf[i]-nbuf[i]) + pbuf[i];
+         }
+      }
+      else {
+         Quaternion q0 = new Quaternion();
+         Quaternion q1 = new Quaternion();
+         Quaternion qr = new Quaternion();
+         Vector3d w0 = new Vector3d(); // leave at zero
+         Vector3d w1 = new Vector3d(); // leave at zero
+         int i=0;
+         int k = 0;
+         int off = myRotationSubvecOffsets[k];
+         while (i<myVsize) {
+            if (off == i) {
+               q0.set (pbuf, off, myRotationRep, /*scale*/1);
+               q1.set (nbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (q0, pbuf); 
+               //rvec.getQuaternion (q1, nbuf);
+               Quaternion.sphericalHermiteGlobal (
+                  qr, null, q0, w0, q1, w1, s, h);
+               qr.get (vbuf, rbuf, off, myRotationRep, /*scale*/1);
+               //rvec.setRotation (vbuf, rbuf, qr);
+               i += myRotationRep.size();
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               vbuf[i] = b1*(pbuf[i]-nbuf[i]) + pbuf[i];
+               i++;
+            }
+         }         
+      }
+   }
+   
+   private void interpCubicStepDeriv (
+      NumericListKnot prev, VectorNd v, double t) {
+
+      NumericListKnot next = prev.next;
+      double h = (next.t-prev.t);
+      double s = (t-prev.t)/(next.t-prev.t);
+
+      double[] pbuf = prev.v.getBuffer();
+      double[] nbuf = next.v.getBuffer();
+      double[] vbuf = v.getBuffer();
+      
+      double c1 = 6*s*(s-1)/h;
+
+      if (numRotationSubvecs() == 0) { 
+         for (int i=0; i<myVsize; i++) {
+            vbuf[i] = c1*(pbuf[i]-nbuf[i]);
+         }
+      }
+      else {
+         Quaternion q0 = new Quaternion();
+         Quaternion q1 = new Quaternion();
+         Quaternion qr = new Quaternion();
+         Vector3d w0 = new Vector3d(); // leave at zero
+         Vector3d w1 = new Vector3d(); // leave at zero
+         Vector3d wr = new Vector3d();
+         int i=0; // index into knot buffers
+         int j=0; // index into vbuf, which will be <= i
+         int k = 0;
+         int off = myRotationSubvecOffsets[k];
+         while (i<myVsize) {
+            if (off == i) {
+               q0.set (pbuf, off, myRotationRep, /*scale*/1);
+               q1.set (nbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (q0, pbuf); 
+               //rvec.getQuaternion (q1, nbuf);
+               Quaternion.sphericalHermiteGlobal (
+                  qr, wr, q0, w0, q1, w1, s, h);
+               wr.get (vbuf, j);
+               i += myRotationRep.size();
+               j += 3;
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               vbuf[j] = c1*(pbuf[i]-nbuf[i]);
+               j++;
+               i++;
+            }
+         }         
+      }
    }
    
    private void interpCubic (
+      NumericListKnot prev, VectorNd v, double t) {
+
+      if (numRotationSubvecs() == 0) {
+         interpCubicOld (prev, v, t);
+         return;
+      }
+      
+      // next is not null by assumption
+      NumericListKnot next = prev.next;
+      double s = (t-prev.t)/(next.t-prev.t);
+      double h = (next.t-prev.t);
+      NumericListKnot prevprev = prev.prev;
+      NumericListKnot nextnext = next.next;
+      
+      double[] pbuf = prev.v.getBuffer();
+      double[] ppbuf = null;
+      double[] nbuf = next.v.getBuffer();
+      double[] nnbuf = null;
+      double[] vbuf = v.getBuffer();
+      // rbuf gives reference values for resolving rotation representation
+      double[] rbuf = (s < 0.5 ? pbuf : nbuf);
+
+      double hp;
+      double hn;
+      if (prevprev != null) {
+         ppbuf = prevprev.v.getBuffer();
+         hp = next.t-prevprev.t;
+      }
+      else {
+         ppbuf = pbuf;
+         hp = h;
+      }
+      if (nextnext != null) {
+         nnbuf = nextnext.v.getBuffer();
+         hn = nextnext.t-prev.t;
+      }
+      else {
+         nnbuf = nbuf;
+         hn = h;
+      }
+
+      double b1 = (2*s-3)*s*s;
+      double b2 = ((s-2)*s+1)*s*h;
+      double b3 = (s-1)*s*s*h;
+      
+      if (numRotationSubvecs() == 0) {
+         for (int i=0; i<myVsize; i++) {
+            double vp = (nbuf[i]-ppbuf[i])/hp;
+            double vn = (nnbuf[i]-pbuf[i])/hn;
+            vbuf[i] = b1*(pbuf[i]-nbuf[i]) + b2*vp + b3*vn + pbuf[i];
+         }
+      }
+      else {
+         Quaternion q0 = new Quaternion();
+         Quaternion q1 = new Quaternion();
+         Quaternion qr = new Quaternion();
+         Vector3d w0 = new Vector3d();
+         Vector3d w1 = new Vector3d();
+         int i=0;
+         int k = 0;
+         int off = myRotationSubvecOffsets[k];
+         while (i<myVsize) {
+            if (off == i) {
+               q0.set (pbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (q0, pbuf); 
+               q1.set (nbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (q1, nbuf);
+               qr.set (ppbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (qr, ppbuf);
+               getAngularVelocity (w0, qr, q1, hp);
+               qr.set (nnbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (qr, nnbuf);
+               getAngularVelocity (w1, q0, qr, hn);
+
+               Quaternion.sphericalHermiteGlobal (
+                  qr, null, q0, w0, q1, w1, s, h);
+               qr.get (vbuf, rbuf, off, myRotationRep, /*scale*/1);
+               //rvec.setRotation (vbuf, rbuf, qr);
+               i += myRotationRep.size();
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               double vp = (nbuf[i]-ppbuf[i])/hp;
+               double vn = (nnbuf[i]-pbuf[i])/hn;
+               vbuf[i] = b1*(pbuf[i]-nbuf[i]) + b2*vp + b3*vn + pbuf[i];
+               i++;
+            }
+         }         
+      }
+   }
+
+   private void interpCubicDeriv (
+      NumericListKnot prev, VectorNd v, double t) {
+      // next is not null by assumption
+      NumericListKnot next = prev.next;
+      double s = (t-prev.t)/(next.t-prev.t);
+      double h = (next.t-prev.t);
+      NumericListKnot prevprev = prev.prev;
+      NumericListKnot nextnext = next.next;
+      
+      double[] pbuf = prev.v.getBuffer();
+      double[] ppbuf = null;
+      double[] nbuf = next.v.getBuffer();
+      double[] nnbuf = null;
+      double[] vbuf = v.getBuffer();
+
+      double hp;
+      double hn;
+      if (prevprev != null) {
+         ppbuf = prevprev.v.getBuffer();
+         hp = next.t-prevprev.t;
+      }
+      else {
+         ppbuf = pbuf;
+         hp = h;
+      }
+      if (nextnext != null) {
+         nnbuf = nextnext.v.getBuffer();
+         hn = nextnext.t-prev.t;
+      }
+      else {
+         nnbuf = nbuf;
+         hn = h;
+      }
+
+      double c1 = 6*s*(s-1)/h;
+      double c2 = (3*s-4)*s + 1;
+      double c3 = s*(3*s-2);
+      
+      if (numRotationSubvecs() == 0) {
+         for (int i=0; i<v.size(); i++) {
+            double vp = (nbuf[i]-ppbuf[i])/hp;
+            double vn = (nnbuf[i]-pbuf[i])/hn;
+            vbuf[i] = c1*(pbuf[i]-nbuf[i]) + c2*vp + c3*vn;
+         }
+      }
+      else {
+         Quaternion q0 = new Quaternion();
+         Quaternion q1 = new Quaternion();
+         Quaternion qr = new Quaternion();
+         Vector3d w0 = new Vector3d();
+         Vector3d w1 = new Vector3d();
+         Vector3d wr = new Vector3d();
+         int i=0; // index into knot buffers
+         int j=0; // index into vbuf, which will be <= i
+         int k = 0;
+         int off = myRotationSubvecOffsets[k];
+         while (i<myVsize) {
+            if (off == i) {
+               q0.set (pbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (q0, pbuf); 
+               q1.set (nbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (q1, nbuf);
+               qr.set (ppbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (qr, ppbuf);
+               getAngularVelocity (w0, qr, q1, hp);
+               qr.set (nnbuf, off, myRotationRep, /*scale*/1);
+               //rvec.getQuaternion (qr, nnbuf);
+               getAngularVelocity (w1, q0, qr, hn);
+
+               Quaternion.sphericalHermiteGlobal (
+                  qr, wr, q0, w0, q1, w1, s, h);
+               wr.get (vbuf, j);
+               i += myRotationRep.size();
+               j += 3;
+               if (++k < numRotationSubvecs()) {
+                  off = myRotationSubvecOffsets[k];
+               }
+               else {
+                  off = -1;
+               }
+            }
+            else {
+               double vp = (nbuf[i]-ppbuf[i])/hp;
+               double vn = (nnbuf[i]-pbuf[i])/hn;
+               vbuf[j] = c1*(pbuf[i]-nbuf[i]) + c2*vp + c3*vn;
+               j++;
+               i++;
+            }
+         }         
+      }
+   }
+
+   private void interpCubicOld (
       NumericListKnot prev, VectorNd v, double t) {
 
       NumericListKnot next = prev.next;
@@ -761,57 +1711,37 @@ public class NumericList
       VectorNd.hermiteInterpolate (v, prev.v, v0, next.v, v1, s, next.t-prev.t);
    }
 
-   private void interpCubicOld (NumericListKnot prev, VectorNd v, double t) {
-
-      int VectorSize = prev.v.size();
-      boolean zeroDerivative = false;
-
-      NumericListKnot prevprev = prev.prev;
-      NumericListKnot next = prev.next;
-
-      NumericListKnot nextnext = next.next;
-
-      if (prevprev == null) {
-         zeroDerivative = true;
-         prevprev = new NumericListKnot (VectorSize);
-         prevprev.v.setZero();
-         prevprev.t = 0;
-      }
-      if (nextnext == null) {
-         nextnext = new NumericListKnot (VectorSize);
-         nextnext.v.setZero();
-         nextnext.t = Math.max (0, (2 * next.t) - prev.t);
-      }
-      double times[] = new double[4];
-      times[0] = prevprev.t;
-      times[1] = prev.t;
-      times[2] = next.t;
-      times[3] = nextnext.t;
-
-      v.setSize (VectorSize);
-      double holder;
-      double vValues[] = new double[4];
-      for (int i = 0; i < VectorSize; i++) {
-         vValues[0] = prevprev.v.get (i);
-         vValues[1] = prev.v.get (i);
-         vValues[2] = next.v.get (i);
-         vValues[3] = nextnext.v.get (i);
-
-         if (zeroDerivative)
-            holder = CubicSpline.interpolate (0, vValues, times, t);
-         else
-            holder = CubicSpline.interpolate (vValues, times, t);
-
-         if (Double.isNaN (holder))
-            holder = 0;
-         v.set (i, holder);
-      }
-   }
-
-   
+   /**
+    * Interpolates the value associated with a particular value of t, based on
+    * the current contents of this list. The interpolation order is specified
+    * by {@code order}. If t lies before the start or after the end of the
+    * list, the interpolation value is set to either the first or last knot
+    * value, or zero, depending on whether {@code extendData} is {@code true}
+    * or {@code false}.
+    *
+    * <p>The method returns the nearest knot that is at or before {@code t}.
+    * By using this returned value as the {@code last} argument in subsequent
+    * method calls, one can traverse forward or backward (in time) along the
+    * list with O(1) complexity.
+    * 
+    * @param v
+    * stores the interpolation result
+    * @param t
+    * value to interpolate for
+    * @param order
+    * interpolation order
+    * @param extendData
+    * if {@code true}, data is extended beyond the start and end of the list
+    * based on the first and last knot values
+    * @param last
+    * knot point used to start the search for the knot containing {@code t}
+    * @return nearest knot at or before {@code t}
+    */
    public synchronized NumericListKnot interpolate (
       VectorNd v, double t, Order order, boolean extendData,
       NumericListKnot last) {
+
+      v.setSize (myVsize);
       if (myHead == null) {
          v.setZero();
          return null;
@@ -821,9 +1751,8 @@ public class NumericList
       NumericListKnot prev = findKnotAtOrBefore (t, last);
       NumericListKnot next = prev.next;
 
-      if (prev.t > t) // before the start of list
-      {
-         if (extendData) {
+      if (t <= prev.t) { // before start of list
+         if (extendData || prev.t == t) {
             v.set (prev.v);
          }
          else {
@@ -831,8 +1760,7 @@ public class NumericList
          }
          return prev;
       }
-      else if (next == null) // after end of list
-      {
+      else if (next == null) { // after end of list
          if (extendData || prev.t == t) {
             v.set (prev.v);
          }
@@ -843,11 +1771,12 @@ public class NumericList
       }
 
       int size = v.size();
+      boolean hasRotSubvecs = (numRotationSubvecs() > 0);
 
       // change interpolation if necessary to make it compatible with the data
       switch (order) {
          case SphericalLinear: {
-            if (size != 4 && size != 7 && size != 16) {
+            if (hasRotSubvecs || (size != 4 && size != 7 && size != 16)) {
                order = Order.Linear; 
             }
             break;
@@ -860,7 +1789,7 @@ public class NumericList
          }
          case SphericalCubic: {
             if (prev.prev == null && next.next == null) {
-               if (size != 4 && size != 7 && size != 16) {
+               if (hasRotSubvecs || (size != 4 && size != 7 && size != 16)) {
                   order = Order.Linear; 
                }
                else {
@@ -868,7 +1797,7 @@ public class NumericList
                }
             }
             else {
-               if (size != 4 && size != 7 && size != 16) {
+               if (hasRotSubvecs || (size != 4 && size != 7 && size != 16)) {
                   order = Order.Cubic;
                }
             }          
@@ -882,8 +1811,7 @@ public class NumericList
             break;
          }
          case Linear: {
-            v.interpolate (prev.v, (t - prev.t) / (next.t - prev.t), next.v);
-            int VectorSize = prev.v.size();
+            interpLinear (prev, v, t);
             break;
          }
          case SphericalLinear: {
@@ -915,6 +1843,231 @@ public class NumericList
          default: {
             throw new InternalErrorException (
                "interpolation method " + order + " not implemented");
+         }
+      }
+      return prev;
+   }
+
+   /**
+    * Finds the derivative associated with a particular value of t, by
+    * differentiating the function implied by the knot points and the
+    * interpolation order specified by {@code order}. If t lies before the
+    * start or after the end of the list, the derivative will be zero.
+    * 
+    * <p>The method returns the nearest knot that is at or before {@code t}.
+    * By using this returned value as the {@code last} argument in subsequent
+    * method calls, one can traverse forward or backward (in time) along the
+    * list with O(1) complexity.
+    *
+    * @param v
+    * stores the derivative result
+    * @param t value to find the derivative at
+    * @param order
+    * interpolation order
+    * @param last
+    * knot point used to start the search for the knot containing {@code t}
+    * @return nearest knot at or before {@code t}
+    */
+   public synchronized NumericListKnot interpolateDeriv (
+      VectorNd v, double t, Order order, NumericListKnot last) {
+
+      v.setSize (getDerivSize());
+      if (myHead == null) {
+         v.setZero();
+         return null;
+      }
+      // try to find knots that bracket the t value
+
+      NumericListKnot prev = findKnotAtOrBefore (t, last);
+      NumericListKnot next = prev.next;
+
+      if (prev.t > t) { // before the start of list
+         v.setZero();
+         return prev;
+      }
+      else if (next == null) { // at or beyond end of list
+         if (prev.t == t && prev.prev != null) {
+            next = prev;
+            prev = prev.prev;
+         }
+         else {
+            v.setZero();
+            return prev;
+         }
+      }
+
+      int size = getVectorSize();
+      boolean hasRotSubvecs = (numRotationSubvecs() > 0);
+
+      // change interpolation if necessary to make it compatible with the data
+      switch (order) {
+         case SphericalLinear: {
+            if (hasRotSubvecs || (size != 4 && size != 7 && size != 16)) {
+               order = Order.Linear; 
+            }
+            break;
+         }
+         case Cubic: {
+            if (prev.prev == null && next.next == null) {
+               order = Order.Linear;
+            }
+            break;
+         }
+         case SphericalCubic: {
+            if (prev.prev == null && next.next == null) {
+               if (hasRotSubvecs || (size != 4 && size != 7 && size != 16)) {
+                  order = Order.Linear; 
+               }
+               else {
+                  order = Order.SphericalLinear;
+               }
+            }
+            else {
+               if (hasRotSubvecs || (size != 4 && size != 7 && size != 16)) {
+                  order = Order.Cubic;
+               }
+            }          
+            break;
+         }
+      }
+
+      switch (order) {
+         case Step: {
+            v.setZero();
+            break;
+         }
+         case Linear: {
+            interpLinearDeriv (prev, v, t);
+            break;
+         }
+         case SphericalLinear: {
+            interpLinearRotationDeriv (prev, v, t);
+            if (size == 7 || size == 16) {
+               interpLinearPositionDeriv (prev, v, t);
+            }
+            break;
+         }
+         case Parabolic: {
+            throw new UnsupportedOperationException (
+               "Parabolic interpolation not supported for interpDeriv()");
+         }
+         case Cubic: {
+            interpCubicDeriv (prev, v, t);
+            break;
+         }
+         case SphericalCubic: {
+            interpCubicRotationDeriv (prev, v, t);
+            if (size == 7 || size == 16) {
+               interpCubicPositionDeriv (prev, v, t);
+            }
+            break;
+         }
+         case CubicStep: {
+            interpCubicStepDeriv (prev, v, t);
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "interpolation method " + order + " not implemented");
+         }
+      }
+      return prev;
+   }
+
+   /**
+    * Finds the derivative associated with a particular value of t, based on
+    * numerical differentation of the current knot points. This is done by
+    * linearly interpolating numerical derivatives computed at the mid-points
+    * between knots. If t lies before the start or after the end of the list,
+    * the derivative will be zero.
+    * 
+    * <p>The method returns the nearest knot that is at or before {@code t}.
+    * By using this returned value as the {@code last} argument in subsequent
+    * method calls, one can traverse forward or backward (in time) along the
+    * list with O(1) complexity.
+    * 
+    * @param v
+    * stores the derivative result
+    * @param t
+    * value to find the derivative for
+    * @param last
+    * knot point used to start the search for the knot containing {@code t}
+    * @return nearest knot at or before {@code t}
+    */
+   public synchronized NumericListKnot numericalDeriv (
+      VectorNd v, double t, NumericListKnot last) {
+
+      v.setSize (getDerivSize());
+      if (myHead == null) {
+         v.setZero();
+         return null;
+      }
+      // try to find knots that bracket the t value
+
+      NumericListKnot prev = findKnotAtOrBefore (t, last);
+      NumericListKnot next = prev.next;
+
+      if (prev.t > t) { // before the start of list
+         v.setZero();
+         return prev;
+      }
+      else if (next == null) { // at or beyond end of list
+         if (prev.t == t && prev.prev != null) {
+            next = prev;
+            prev = prev.prev;
+         }
+         else {
+            v.setZero();
+            return prev;
+         }
+      }
+
+      int size = getVectorSize();
+      double h = next.t-prev.t;
+      
+      NumericListKnot knot0 = prev;
+      NumericListKnot knot1 = next;      
+      NumericListKnot knot2 = null;
+      if (t - prev.t > h/2) {
+         // look forward
+         if (next.next != null) {
+            knot2 = next.next;
+         }
+      }
+      else {
+         // look backward
+         if (prev.prev != null) {
+            knot0 = prev.prev;
+            knot1 = prev;
+            knot2 = next;
+         }
+      }
+
+      // see if this is a SphericalLinear case involving axisAngles or rigid
+      // transforms
+      Order order = myInterpolation.getOrder();
+      if (numRotationSubvecs() == 0 &&
+          (order == Order.SphericalLinear || order == Order.SphericalCubic) &&
+          (size == 4 || size == 7 || size == 16)) {
+         if (knot2 != null) {
+            numericalRotationDeriv (v, t, knot0, knot1, knot2);
+            if (size == 7 || size == 16) {
+               numericalPositionDeriv (v, t, knot0, knot1, knot2);
+            }
+         }
+         else {
+            interpLinearRotationDeriv (prev, v, t);
+            if (size == 7 || size == 16) {
+               interpLinearPositionDeriv (prev, v, t);
+            }
+         }
+      }
+      else {
+         if (knot2 != null) {
+            numericalDeriv (v, t, knot0, knot1, knot2);
+         }
+         else {
+            interpLinearDeriv (prev, v, t);
          }
       }
       return prev;
@@ -1228,6 +2381,40 @@ public class NumericList
       }
    }
 
+   /** 
+    * Sets the values of this numeric list from those of another numeric list.
+    * The vector size of the source list must be greater than or equal to that
+    * of this list; extra values are ignored.
+    *
+    * <p>The time values {@code t} in this list are set from the time values
+    * {@code ts} in the source list according to
+    * <pre>
+    * t = tscale ts + toffset
+    * </pre>
+    * 
+    * @param src numeric list to copy values from
+    * @param tscale scale factor for source time values
+    * @param toffset offset for source time values
+    */   
+   public void setValues (NumericList src, double tscale, double toffset) {
+      if (src.getVectorSize() < getVectorSize()) {
+         throw new IllegalArgumentException (
+            "source list vector size " + src.getVectorSize() +
+            " less then destination size " + getVectorSize());
+      }
+      clear();
+      NumericListKnot last = null;
+      for (NumericListKnot knot=src.myHead; knot!=null; knot=knot.getNext()) {
+         NumericListKnot newKnot = new NumericListKnot (myVsize);
+         newKnot.t = tscale*knot.t + toffset;
+         for (int j=0; j<myVsize; j++) {
+            newKnot.v.set (j, knot.v.get(j));
+         }
+         add (newKnot, last);
+         last = newKnot;
+      }
+   }
+
    /**
     * Returns true if the contents of this numeric list equal the contents of
     * another numeric list.
@@ -1316,6 +2503,8 @@ public class NumericList
       catch (CloneNotSupportedException e) {
          throw new InternalErrorException ("NumericList not clonable");
       }
+      l.myRotationSubvecOffsets =
+         Arrays.copyOf (myRotationSubvecOffsets, myRotationSubvecOffsets.length);
       l.myLast = l.myHead = l.myTail = null;
       l.myMinMaxValid = false;
       l.a1 = new VectorNd (0);
@@ -1349,6 +2538,11 @@ public class NumericList
       IndentingPrintWriter.printOpening (pw, "[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
       pw.println ("vsize=" + myVsize);
+      if (myRotationRep != null) {
+         pw.println ("rotationRep=" + myRotationRep);
+         pw.print ("rotationSubvecOffsets=");
+         Write.writeInts (pw, getRotationSubvecOffsets(), null);
+      }
       pw.println ("interpolation=" + myInterpolation);
       pw.println ("knots=[");
       IndentingPrintWriter.addIndentation (pw, 2);      
@@ -1370,6 +2564,22 @@ public class NumericList
          if (fieldName.equals ("vsize")) {
             rtok.scanToken ('=');
             myVsize = rtok.scanInteger();
+            return true;
+         }
+         else if (fieldName.equals ("rotationRep")) {
+            rtok.scanToken ('=');
+            myRotationRep = rtok.scanEnum(RotationRep.class);
+            return true;
+         }
+         else if (fieldName.equals ("rotationSubvecOffsets")) {
+            rtok.scanToken ('=');
+            int[] offs = Scan.scanInts (rtok);
+            try {
+               setRotationSubvecOffsets (offs);
+            }
+            catch (Exception e) {
+               throw new IOException (e);
+            }
             return true;
          }
          else if (fieldName.equals ("interpolation")) {

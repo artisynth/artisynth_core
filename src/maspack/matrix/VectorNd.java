@@ -1601,6 +1601,47 @@ public class VectorNd extends VectorBase
    }
 
    /** 
+    * Interpolates the velocity at a location along a cubic Hermite spline.
+    * The spline itself is defined by position and velocities at interval
+    * end-points. The location is defined by the parameter <code>s</code> in
+    * the range [0,1], and the actual time duration of the interval is given by
+    * <code>h</code>.
+    * 
+    * @param vr returns interpolated velocity
+    * @param p0 position at the interval beginning
+    * @param v0 velocity at the interval beginning
+    * @param p1 position at the interval end
+    * @param v1 velocity at the interval end
+    * @param s interpolation location on the interval (in the range [0,1])
+    * @param h interval time duration
+    */
+   public static void hermiteVelocity (
+      VectorNd vr, VectorNd p0, VectorNd v0, VectorNd p1, VectorNd v1,
+      double s, double h) {
+
+      double c1 = 6*s*(s-1)/h;
+      double c2 = (3*s-4)*s + 1;
+      double c3 = s*(3*s-2);
+
+      int size = vr.size();
+      if (size != p0.size() || size != v0.size() ||
+          size != p1.size() || size != v1.size() ) {
+         throw new ImproperSizeException (
+            "arguments have inconsistent sizes, expecting "+size);
+      }
+
+      double[] vrb = vr.getBuffer();
+      double[] p0b = p0.getBuffer();
+      double[] v0b = v0.getBuffer();
+      double[] p1b = p1.getBuffer();
+      double[] v1b = v1.getBuffer();
+
+      for (int i=0; i<size; i++) {
+         vrb[i] = c1*(p0b[i]-p1b[i]) + c2*v0b[i] + c3*v1b[i];
+      }
+   }
+
+   /** 
     * Interpolates the value at a location along a cubic Hermite spline.
     * The spline itself is defined by position and velocities at interval
     * end-points. The location is defined by the parameter <code>s</code>

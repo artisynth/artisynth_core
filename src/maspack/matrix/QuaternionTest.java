@@ -125,6 +125,9 @@ class QuaternionTest extends VectorTest {
       invertCheck (q1inv, q1unit);
       mulCheck (qd, q1inv, q2unit);
       axisAng.set (qd);
+      if (axisAng.angle > Math.PI) {
+         axisAng.angle -= 2*Math.PI;
+      }
       axisAng.angle *= a;
       qd.setAxisAngle (axisAng);
       mulCheck (qr, q1unit, qd);
@@ -249,6 +252,11 @@ class QuaternionTest extends VectorTest {
       slerpCheck (qcheck, q1, a, q2);
       qcheckNeg.negate (qcheck);
       qr.sphericalInterpolate (q1, a, q2);
+      Quaternion qd = new Quaternion();
+      qd.mulInverseLeft (q1, q2);
+      AxisAngle axisAng = new AxisAngle();
+      qd.getAxisAngle (axisAng);
+
       checkUnitQuaternion ("sphericalInterpolation:", qr, qcheck);
       // qr.sphericalInterpolate (q1scaled, a, q2scaled);
       // checkUnitQuaternion ("sphericalInterpolation:", qr, qcheck);
@@ -568,6 +576,26 @@ class QuaternionTest extends VectorTest {
       restoreResult (vr);
    }
 
+   public void testSphericalVelocity (
+      Quaternion q0, Quaternion q1, double h) {
+      Vector3d w = new Vector3d();
+      
+      q0.sphericalVelocity (w, q1, h);
+      RotationMatrix3d R0 = new RotationMatrix3d (q0);
+      RotationMatrix3d R1 = new RotationMatrix3d (q1);
+      RotationMatrix3d R = new RotationMatrix3d ();
+      R.mulInverseLeft (R0, R1);
+      AxisAngle axisAng = new AxisAngle();
+      R.getAxisAngle (axisAng);
+      Vector3d chk = new Vector3d();
+      chk.scale (axisAng.angle/h, axisAng.axis);
+      chk.transform (R0);
+      if (!chk.epsilonEquals (w, w.norm()*1e-14)) {
+         throw new TestException (
+            "SphericalInterpolateDeriv: expected "+chk+", got "+w);
+      }
+   }
+
    public void execute() {
       Quaternion vr = new Quaternion();
       Quaternion v1 = new Quaternion();
@@ -575,7 +603,10 @@ class QuaternionTest extends VectorTest {
       Vector3d w = new Vector3d();
       Vector3d ur = new Vector3d();
 
+
       RandomGenerator.setSeed (0x1234);
+
+      testAxisAngleConversion();
 
       testGeneric (v1);
       testSetZero (vr);
@@ -668,6 +699,260 @@ class QuaternionTest extends VectorTest {
          testSphericalBezier (cnt, new Vector3d(1, 0, 0), 0.1, 1);
       }
 
+      for (int cnt = 0; cnt < 100; cnt++) {
+         Quaternion q0 = new Quaternion();
+         Quaternion q1 = new Quaternion();
+         q0.setRandom();
+         q0.normalize();
+         q1.setRandom();
+         q1.normalize();
+         double h = RandomGenerator.nextDouble (0.1, 10);
+         testSphericalVelocity (q0, q1, h);
+         // test for zero velocity:
+         testSphericalVelocity (q0, q0, h);
+      }
+
+      testGetSet();
+      testSetGet();
+   }
+
+   static ArrayList<VectorNd> specialRotValues (RotationRep rotRep) {
+      ArrayList<VectorNd> specials = new ArrayList<>();
+      switch (rotRep) {
+         case ZYX:
+         case XYZ: {
+            specials.add (new VectorNd (0, 0, 0));
+            specials.add (new VectorNd (0, Math.PI/2, 0));
+            specials.add (new VectorNd (0, -Math.PI/2, 0));
+            specials.add (new VectorNd (0.567, Math.PI/2, 1.345));
+            specials.add (new VectorNd (0.567, -Math.PI/2, 1.345));
+            specials.add (new VectorNd (1.45, 4*Math.PI/2, 5.56));
+            specials.add (new VectorNd (10.5, -3*Math.PI/2, 1.345));
+            break;
+         }
+         case ZYX_DEG:
+         case XYZ_DEG: {
+            specials.add (new VectorNd (0, 0, 0));
+            specials.add (new VectorNd (0, Math.PI/2, 0));
+            specials.add (new VectorNd (0, -Math.PI/2, 0));
+            specials.add (new VectorNd (0.567, Math.PI/2, 1.345));
+            specials.add (new VectorNd (0.567, -Math.PI/2, 1.345));
+            specials.add (new VectorNd (1.45, 4*Math.PI/2, 5.56));
+            specials.add (new VectorNd (10.5, -3*Math.PI/2, 1.345));
+            break;
+         }
+         case AXIS_ANGLE:
+         case AXIS_ANGLE_DEG: {
+            specials.add (new VectorNd (1, 0, 0, 0));
+            specials.add (new VectorNd (1, 0, 0, Math.PI));
+            break;
+         }
+         case QUATERNION: {
+            specials.add (new VectorNd (1, 0, 0, 0));
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented rotation representation " + rotRep);
+         }
+      }
+      if (rotRep == RotationRep.AXIS_ANGLE_DEG) {
+         for (VectorNd v : specials) {
+            v.set (3, Math.toDegrees (v.get(3)));
+         }
+      }
+      return specials;
+   }
+
+   static VectorNd randomRotValues (RotationRep rotRep) {
+      double[] vals;
+      switch (rotRep) {
+         case ZYX:
+         case XYZ: {
+            vals = new double[3];
+            vals[0] = RandomGenerator.nextDouble (-6*Math.PI, 6*Math.PI);
+            vals[1] = RandomGenerator.nextDouble (-6*Math.PI, 6*Math.PI);
+            vals[2] = RandomGenerator.nextDouble (-6*Math.PI, 6*Math.PI);
+            break;
+         }
+         case ZYX_DEG:
+         case XYZ_DEG: {
+            vals = new double[3];
+            vals[0] = RandomGenerator.nextDouble (-1080, 1080);
+            vals[1] = RandomGenerator.nextDouble (-1080, 1080);
+            vals[2] = RandomGenerator.nextDouble (-1080, 1080);
+            break;
+         }
+         case AXIS_ANGLE:
+         case AXIS_ANGLE_DEG: {
+            vals = new double[4];
+            Vector3d u = new Vector3d();
+            u.setRandom();
+            u.normalize();
+            vals[0] = u.x;
+            vals[1] = u.y;
+            vals[2] = u.z;
+            vals[3] = RandomGenerator.nextDouble (-3*Math.PI, 3*Math.PI);
+            break;
+         }
+         case QUATERNION: {
+            vals = new double[4];
+            Quaternion q = new Quaternion();
+            q.setRandom();
+            q.normalize();
+            vals[0] = q.s;
+            vals[1] = q.u.x;
+            vals[2] = q.u.y;
+            vals[3] = q.u.z;
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented rotation representation " + rotRep);
+         }
+      }
+      if (rotRep == RotationRep.AXIS_ANGLE_DEG) {
+         vals[3] = Math.toDegrees (vals[3]);
+      }
+      return new VectorNd(vals);
+   }
+
+   void testGetSet (RotationMatrix3d R, int off) {
+      Quaternion quat = new Quaternion ();
+      quat.set (R);
+      Quaternion quatChk = new Quaternion();
+      double[] vals = new double[4+off];
+      double tol = 100*DOUBLE_PREC;
+      for (RotationRep rotRep : RotationRep.values()) {      
+         double s = 1;
+         quat.get (vals, null, off, rotRep, s);
+         quatChk.set (vals, off, rotRep, s);
+         if (!quat.epsilonEquals (quatChk, tol)) {
+            System.out.println ("original quat=" + quat);
+            System.out.println ("recreated quat=" + quatChk);
+            throw new TestException (
+               "get/set does not preserve value for "+rotRep);
+         }
+         s = 4.567;
+         quat.get (vals, null, off, rotRep, s);
+         quatChk.set (vals, off, rotRep, s);
+         if (!quat.epsilonEquals (quatChk, tol)) {
+            System.out.println ("original quat=" + quat);
+            System.out.println ("recreated quat=" + quatChk);
+            throw new TestException (
+               "get/set does not preserve value with s != 1 for "+rotRep);
+         }
+      }
+   }
+
+   public void testGetSet() {
+      int ntests = 100;
+      for (int i=0; i<ntests; i++) {
+         RotationMatrix3d R = new RotationMatrix3d();
+         R.setRandom();
+         testGetSet (R, 0);
+         testGetSet (R, 3);
+      }
+   }
+
+   void testSetGet (int off) {
+      for (RotationRep rotRep : RotationRep.values()) {   
+         int ntests = 100;
+         for (int i=0; i<ntests; i++) {
+            VectorNd valsIn = randomRotValues(rotRep);
+            testSetGet (valsIn, rotRep, off);
+         }
+         for (VectorNd valsIn : specialRotValues(rotRep)) {
+            testSetGet (valsIn, rotRep, off);
+         }
+      }
+   }
+
+   void testSetGet (VectorNd valsIn, RotationRep rotRep, int off) {
+      Quaternion quat = new Quaternion ();
+      double tol = 100*DOUBLE_PREC*valsIn.norm();
+      double[] vals = new double[valsIn.size()+off];
+      double[] refs = new double[valsIn.size()+off];
+      for (int i=0; i<valsIn.size(); i++) {
+         vals[i+off] = valsIn.get(i);
+         refs[i+off] = valsIn.get(i);
+      }
+      double s = 1;
+      quat.set (vals, off, rotRep, s);
+      quat.get (vals, refs, off, rotRep, s);
+      VectorNd valsOut = new VectorNd(valsIn.size());
+      for (int i=0; i<valsIn.size(); i++) {
+         valsOut.set(i, vals[i+off]);
+      }
+      checkEquals ("set/get, s=1, valsOut", valsOut, valsIn, tol);
+      s = 4.567;
+      if (rotRep != RotationRep.AXIS_ANGLE &&
+          rotRep != RotationRep.AXIS_ANGLE_DEG) {
+         for (int i=0; i<valsIn.size(); i++) {
+            vals[i+off] *= s;
+            refs[i+off] *= s;
+         }
+      }
+      else {
+         vals[3+off] *= s;
+         refs[3+off] *= s;
+      }
+      quat.set (vals, off, rotRep, s);
+      quat.get (vals, refs, off, rotRep, s);
+      if (rotRep != RotationRep.AXIS_ANGLE &&
+          rotRep != RotationRep.AXIS_ANGLE_DEG) {
+         for (int i=0; i<valsIn.size(); i++) {
+            valsOut.set(i, vals[i+off]/s);
+         }
+      }
+      else {
+         valsOut.set(3, vals[3+off]/s);
+      }
+      checkEquals ("set/get, s=4.567 valsOut", valsOut, valsIn, tol);
+      if (rotRep == RotationRep.QUATERNION) {
+         // negate the refs to see if we get a negative valsOut
+         for (int i=0; i<valsIn.size(); i++) {
+            refs[i+off] *= -1;
+         }
+         quat.get (vals, refs, off, rotRep, s);
+         for (int i=0; i<valsIn.size(); i++) {
+            valsOut.set(i, vals[i+off]/s);
+         }
+         valsIn.negate();
+         checkEquals ("set/get, quaternion negate valsOut", valsOut, valsIn, tol);
+      }
+   }
+
+   public void testSetGet() {
+      testSetGet (0);
+      testSetGet (3);
+   }
+
+   public void testAxisAngleConversion() {
+      int ntests = 100;
+      double tol = 100*DOUBLE_PREC;      
+      Quaternion q = new Quaternion();
+      Quaternion qnew = new Quaternion();
+      AxisAngle axisAng = new AxisAngle();
+      AxisAngle axisAngNew = new AxisAngle();
+      for (int i=0; i<ntests; i++) {
+         q.setRandom();
+         q.normalize();
+         q.getAxisAngle (axisAng);    // set axisAng from q
+         qnew.setAxisAngle (axisAng); // set qnew from axisAng
+         if (!qnew.epsilonEquals (q, tol)) {
+            throw new TestException (
+               "Quaterion to AxisAngle and back: got " + qnew + "\nexpected "+q);
+         }
+         axisAng.setRandom();
+         q.setAxisAngle (axisAng);    // set q from axisAng
+         q.getAxisAngle (axisAngNew); // set axisAngNew from q
+         if (!axisAngNew.epsilonEquals (axisAng, tol)) {
+            throw new TestException (
+               "AxisAngle to Quaterion and back: got" +
+               axisAngNew + "\nexpected "+ axisAng);
+         }
+      }
    }
 
    public static void main (String[] args) {

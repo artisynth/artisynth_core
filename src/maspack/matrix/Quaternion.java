@@ -16,9 +16,17 @@ import maspack.util.*;
  */
 public class Quaternion extends VectorBase {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
+   private static double ANGLE_EPSILON = 10 * DOUBLE_PREC;
 
    public static final Quaternion IDENTITY = new Quaternion(1, 0, 0, 0);
    public static final Quaternion ZERO = new Quaternion();
+
+   private static final double RTOD = 180/Math.PI;
+   private static final double DTOR = Math.PI/180;
+
+   private static final double sqr (double x) {
+      return x*x;
+   }
 
    /**
     * Scalar element
@@ -134,18 +142,60 @@ public class Quaternion extends VectorBase {
     * Copies the elements of this quaternion into an array of doubles. The
     * array must have a length {@code >=} 4.
     * 
-    * @param values
+    * @param vals
     * array into which values are copied
     */
-   public void get (double[] values) {
-      if (values.length < 4) {
+   public void get (double[] vals) {
+      get (vals, null, 0, 1.0);
+   }
+
+//   private double distSquared (double s, double ux, double uy, double uz) {
+//      
+//   }
+   
+   /**
+    * Copies the elements of this quaternion into an array of doubles. The
+    * array must have a length {@code >= 4 + off}. The method accepts
+    * an optional argument {@code refs} which specifies a reference
+    * quaternion. If the negative of this quaternion is closer distance-wise
+    * to the reference, then the negative values are copied instead.
+    * 
+    * @param vals array into which values are copied
+    * @param refs if non-null, specifies values of a reference quaternion
+    * @param off offset within {@code vals} and {@code refs} where values
+    * are stored
+    * @param scale factor by which output and reference values are scaled
+    */
+   public void get (double[] vals, double[] refs, int off, double scale) {
+      if (vals.length < 4+off) {
          throw new IllegalArgumentException (
-            "argument 'values' must have length >= 4");
+            "argument 'values' must have length >= 4+off");
       }
-      values[0] = s;
-      values[1] = u.x;
-      values[2] = u.y;
-      values[3] = u.z;
+      if (refs != null) {
+         Quaternion ref =
+            new Quaternion (refs[off+0], refs[off+1], refs[off+2], refs[off+3]);
+         if (scale != 1.0) {
+            ref.scale (1/scale);
+         }
+         double dpos = ref.distanceSquared (this);
+         ref.negate();
+         double dneg = ref.distanceSquared (this);
+         if (dpos > dneg) {
+            scale = -scale;
+         }
+      }
+      if (scale != 1.0) {
+         vals[off+0] = scale*s;
+         vals[off+1] = scale*u.x;
+         vals[off+2] = scale*u.y;
+         vals[off+3] = scale*u.z;
+      }
+      else {
+         vals[off+0] = s;
+         vals[off+1] = u.x;
+         vals[off+2] = u.y;
+         vals[off+3] = u.z;
+      }
    }
 
    /**
@@ -407,7 +457,7 @@ public class Quaternion extends VectorBase {
     * 
     * <p>
     * In the literature, this operation is sometimes known as "Slerp", a name
-    * that was coined by Ken Showmake when he described the process in SIGGRAPH
+    * that was coined by Ken Shoemake when he described the process in SIGGRAPH
     * 1985.
     * 
     * @param q1
@@ -474,6 +524,53 @@ public class Quaternion extends VectorBase {
    }
 
    /**
+    * Computes the angular velocity, in world coordinates, associated a
+    * spherical (great circle) interpolation between this quaternion and and
+    * quaternion q1 over a time h. Non-unit quaternions can be used for input.
+    * 
+    * @param w
+    * returns the angular velocity
+    * @param q1
+    * right-hand quaternion
+    * @param h
+    * interpolation time
+    */
+   public void sphericalVelocity (
+      Vector3d w, Quaternion q1, double h) {
+
+      double stmp = s*q1.s + u.dot(q1.u);
+      quaternionVectorProduct (utmp, -q1.s, q1.u, s, u);
+      double usqr = utmp.dot(utmp);
+      double len = Math.sqrt (stmp*stmp + usqr);
+      double umag = Math.sqrt (usqr);
+      if (umag < len*DOUBLE_PREC) {
+         w.setZero();
+         return;
+      }
+      double ang = 2*Math.atan2 (umag, stmp);
+      if (ang > Math.PI) {
+         ang -= 2*Math.PI;
+      }
+      Vector3d axis = new Vector3d();
+      axis.scale (1/umag, utmp);
+      utmp.scale (ang/(h*umag));
+      // Let q0 denote this quaternion.  utmp contains w in q0
+      // coords. Transform to world using:
+      //
+      // w' = vector_part_of (q0 * (0, w) * inv(q0)) 
+      //    = (u1 . w) u1 + s1^2 w + 2 s1 (u1 X w) + u1 X (u1 X w)
+      //
+      Vector3d u1xw = new Vector3d();
+      u1xw.cross (u, utmp);
+      w.cross (u, u1xw);
+      w.scaledAdd (u.dot(utmp), u);
+      w.scaledAdd (s*s, utmp);
+      w.scaledAdd (2*s, u1xw);
+      // divide by norm^2 of q0 in case q0 is not normalized
+      w.scale (1/lengthSquared());
+   }
+
+   /**
     * Computes a normalized rotational interpolation between quaternions q1 and
     * q2 and places the result in this quaternion. The result is a unit
     * quaternion.
@@ -523,22 +620,84 @@ public class Quaternion extends VectorBase {
       normalize();
    }
 
+   /**
+    * Returns the AxisAngle associated with this quaternion.
+    *
+    * @param returns the AxisAngle
+    */
    public void getAxisAngle (AxisAngle axisAng) {
-      double mag = u.norm();
-      double ang = Math.atan2 (mag, s);
-      if (ang > Math.PI/2) {
-         ang = ang - Math.PI;
-         mag = -mag;
-      }
-      axisAng.angle = 2*ang;
-      if (mag < DOUBLE_PREC) {
+      double usqr = u.dot(u);
+      double len = Math.sqrt (s*s + usqr);
+      double umag = Math.sqrt (usqr);
+      if (umag <= len*ANGLE_EPSILON) {
+         axisAng.angle = 0;
          axisAng.axis.set (1, 0, 0);
       }
       else {
-         axisAng.axis.scale (1/mag, u);      
+         axisAng.angle = 2*Math.atan2 (umag, s);
+         if (AxisAngle.maxQuaternionAnglePi && axisAng.angle > Math.PI) {
+            axisAng.angle -= 2*Math.PI;
+         }
+         axisAng.axis.scale (1/umag, u);
       }
    }
    
+   /**
+    * Returns an AxisAngle associated with this quaternion. If {@code ref} is
+    * non-null, the result is adjusted, by negating it and/or adding 2*PI to
+    * the angle, in order to be as close as possible, in a numeric sense, to
+    * {@code ref}.
+    *
+    * @param axisAng returns the AxisAngle
+    * @param ref if non-null, provides a reference AxisAngle to resolve
+    * redundancy
+    * @param angScale factor by which to scale the AxisAngle angle value
+    */
+   public void getAxisAngle (
+      AxisAngle axisAng, AxisAngle ref, double angScale) {
+      double usqr = u.dot(u);
+      double len = Math.sqrt (s*s + usqr);
+      double umag = Math.sqrt (usqr);
+      if (umag <= len*ANGLE_EPSILON) {
+         axisAng.angle = 0;
+         if (ref != null) {
+            axisAng.axis.set (ref.axis);
+         }
+         else {
+            axisAng.axis.set (1, 0, 0);
+         }
+      }
+      else {
+         axisAng.angle = 2*Math.atan2 (umag, s);
+         if (AxisAngle.maxQuaternionAnglePi && axisAng.angle > Math.PI) {
+            axisAng.angle -= 2*Math.PI;
+         }
+         axisAng.axis.scale (1/umag, u);
+         if (ref != null) {
+            double refAng = ref.angle;
+            if (angScale != 1.0) {
+               refAng /= angScale;
+            }
+            double dsqrReg = axisAng.numericDistanceSquared (ref.axis, refAng);
+            axisAng.negate();
+            double dsqrNeg = axisAng.numericDistanceSquared (ref.axis, refAng);
+            if (dsqrReg <= dsqrNeg) {
+               // restore original axisAngle
+               axisAng.negate ();
+            }
+            axisAng.angle = RotationRep.nearestAngle (axisAng.angle, refAng);
+         }
+      }
+      if (angScale != 1.0) {
+         axisAng.angle *= angScale;
+      }
+   }
+
+   /**
+    * Gets the rotation matrix associated with this quaternion.
+    *
+    * @oaram R returns the rotation matrix
+    */
    public void getRotationMatrix(RotationMatrix3d R) {
       double n2 = 1.0/normSquared ();
       double qr = this.s;
@@ -1451,23 +1610,106 @@ public class Quaternion extends VectorBase {
     * gives the rotation axis and corresponding angle
     */
    public void setAxisAngle (AxisAngle axisAng) {
-      double cos = Math.cos (axisAng.angle / 2);
-      double sin = Math.sin (axisAng.angle / 2);
-
-      s = cos;
-      u.normalize (axisAng.axis);
-      u.scale (sin);
+      setAxisAngle (axisAng.axis, axisAng.angle);
    }
    
+   /**
+    * Sets this quaternion to a unit quaternion corresponding to a specified
+    * axis-angle rotation.
+    * 
+    * @param axis rotation axis
+    * @param ang rotation angle (radians)
+    */
    public void setAxisAngle(Vector3d axis, double angle) {
-      double cos = Math.cos (angle / 2);
-      double sin = Math.sin (angle / 2);
+      double cos = Math.cos (angle/2);
+      double sin = Math.sin (angle/2);
 
-      s = cos;
       u.normalize (axis);
+      s = cos;
       u.scale (sin);
+      if (AxisAngle.maxQuaternionAnglePi && angle < 0) {
+         negate();
+      }
    }
    
+   /**
+    * Sets this quaternion to a unit quaternion corresponding to a specified
+    * axis-angle rotation.
+    * 
+    * @param ux x component of the rotation axis
+    * @param uy y component of the rotation axis
+    * @param uz z component of the rotation axis
+    * @param ang rotation angle (radians)
+    */
+   public void setAxisAngle(double ux, double uy, double uz, double angle) {
+      double cos = Math.cos (angle/2);
+      double sin = Math.sin (angle/2);
+
+      u.set (ux, uy, uz);
+      u.normalize ();
+      s = cos;
+      u.scale (sin);
+      if (AxisAngle.maxQuaternionAnglePi && angle < 0) {
+         negate();
+      }
+   }
+   
+   /**
+    * Set this quaternion to a unit quaternion corresponding to successive
+    * rotations about the x-y-z axes.
+    *
+    * @param rx rotation about x (radians)
+    * @param ry rotation about y (radians)
+    * @param rz rotation about z (radians)
+    */
+   public void setRotXyz (double rx, double ry, double rz) {
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.setXyz (rx, ry, rz);
+      set (R);
+   }
+
+   /**
+    * Returns the successive x-y-z rotations that correspond to this
+    * quaternion.
+    *
+    * @param angs returns the three rotation angles (radians)
+    * @param off offset within {@code angs} where the rotations should be
+    * placed.
+    */
+   public void getRotXyz (double[] angs, int off) {
+      RotationMatrix3d R = new RotationMatrix3d(this);
+      R.getXyz (angs, /*ref*/null, off, 1.0);
+   }
+
+   /**
+    * Set this quaternion to a unit quaternion corresponding to successive
+    * rotations about the z-y-x axes. This corresponds to the roll-pitch-yaw
+    * formulation in {@link RotationMatrix3d}.
+    *
+    * @param rz rotation about z (radians)
+    * @param ry rotation about y (radians)
+    * @param rx rotation about x (radians)
+    */
+   public void setRotZyx (double rz, double ry, double rx) {
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.setRpy (rz, ry, rx);
+      set (R);
+   }
+
+   /**
+    * Returns the successive z-y-x rotations that correspond to this
+    * quaternion. These correspond to the roll-pitch-yaw formulation in {@link
+    * RotationMatrix3d}.
+    *
+    * @param angs returns the three rotation angles (radians)
+    * @param off offset within {@code angs} where the rotations should be
+    * placed.
+    */
+   public void getRotZyx (double[] angs, int off) {
+      RotationMatrix3d R = new RotationMatrix3d(this);
+      R.getRpy (angs, /*ref=*/null, off, 1.0);
+   }
+
    public void set(AxisAngle axisAng) {
       setAxisAngle(axisAng);
    }
@@ -1627,6 +1869,9 @@ public class Quaternion extends VectorBase {
    public void setRandomUnit() {
       setRandom();
       normalize();
+      if (s < 0) {
+         negate();
+      }
    }
 
    /** 
@@ -1721,20 +1966,123 @@ public class Quaternion extends VectorBase {
 
    public String axisAngleString() {
       NumberFormat afmt = new NumberFormat ("%8.3f");
-      double mag = u.norm();
-      double ang = Math.atan2 (mag, s);
-      if (ang > Math.PI/2) {
-         ang = ang - Math.PI;
-         mag = -mag;
+      AxisAngle axisAng = new AxisAngle();
+      getAxisAngle (axisAng);
+      return afmt.format (
+         2*Math.toDegrees(axisAng.angle))+" "+axisAng.axis.toString ("%8.5f");
+   }
+
+   /**
+    * Sets this Quaternion from a set of doubles implementing a given rotation
+    * representation.
+    *
+    * @param vals values specifying the rotation
+    * @param off offset within vals where rotation info starts
+    * @param rotRep rotation representation
+    * @param s factor by which values are scaled
+    */
+   public void set (double[] vals, int off, RotationRep rotRep, double s) {
+      double si = 1/s;
+      switch (rotRep) {
+         case ZYX_DEG: {
+            si *= DTOR;
+            // no break
+         }
+         case ZYX: {
+            RotationMatrix3d R = new RotationMatrix3d();
+            R.setRpy (si*vals[off+0], si*vals[off+1], si*vals[off+2]);
+            set (R);
+            break;
+         }
+         case XYZ_DEG: {
+            si *= DTOR;
+            // no break
+         }
+         case XYZ: {
+            RotationMatrix3d R = new RotationMatrix3d();
+            R.setXyz (si*vals[off+0], si*vals[off+1], si*vals[off+2]);
+            set (R);
+            break;
+         }
+         case AXIS_ANGLE: {
+            AxisAngle axisAng = new AxisAngle();
+            axisAng.set (
+               si*vals[off], si*vals[off+1], si*vals[off+2], si*vals[off+3]);
+            set (axisAng);
+            break;
+         }
+         case AXIS_ANGLE_DEG: {
+            AxisAngle axisAng = new AxisAngle();
+            axisAng.set (
+               si*vals[off], si*vals[off+1], si*vals[off+2], DTOR*si*vals[off+3]);
+            set (axisAng);
+            break;
+         }
+         case QUATERNION: {
+            set (si*vals[off], si*vals[off+1], si*vals[off+2], si*vals[off+3]);
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented rotation represention " + this);
+         }
       }
-      Vector3d axis = new Vector3d();
-      if (Math.abs (ang) < DOUBLE_PREC) {
-         ang = 0;
+   }
+
+   /**
+    * Get a specified rotation representation from this Quaternion.
+    *
+    * @param vals returns the values specifying the rotation
+    * @param refs if non-null, specifies a reference set of values to
+    * be used to resolve non-unique solutions
+    * @param off offset within vals where rotation info starts
+    * @param rotRep rotation representation
+    * @param s factor by which values are scaled
+    */
+   public void get (double[] vals, double[] refs, int off, 
+      RotationRep rotRep, double s) {
+
+      switch (rotRep) {
+         case ZYX_DEG:
+            s *= RTOD;
+            // no break
+         case ZYX: {
+            RotationMatrix3d R = new RotationMatrix3d(this);
+            R.getRpy (vals, refs, off, s);
+            break;
+         }
+         case XYZ_DEG:
+            s *= RTOD;
+            // no break
+         case XYZ: {
+            RotationMatrix3d R = new RotationMatrix3d(this);
+            R.getXyz (vals, refs, off, s);
+            break;
+         }
+         case AXIS_ANGLE_DEG: {
+            s *= RTOD;
+            // no break
+         }
+         case AXIS_ANGLE: {
+            AxisAngle axisAng = new AxisAngle();
+            AxisAngle ref = null;
+            if (refs != null) {
+               ref = new AxisAngle();
+               ref.set (refs, off);               
+            }
+            getAxisAngle (axisAng, ref, s);
+            axisAng.get (vals, off);
+            break;
+         }
+         case QUATERNION: {
+            get (vals, refs, off, s);
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented rotation representation " + this);
+         }
       }
-      else {
-         axis.scale (1/mag, u);
-      }
-      return afmt.format (2*Math.toDegrees(ang))+" "+axis.toString ("%8.5f");
    }
 
    public Quaternion clone() {

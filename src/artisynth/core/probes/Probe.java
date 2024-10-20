@@ -552,6 +552,16 @@ public abstract class Probe extends ModelAgentBase {
    public boolean isSettable() {
       return false;
    }
+   
+   /**
+    * Returns {@code true} if this probe can be edited using the ProbeEditor
+    * widget.
+    * 
+    * @return {@code true} if this probe can be edited
+    */
+   public boolean isEditable() {
+      return false;
+   }
 
    public void setData (double sec) {
    }

@@ -28,8 +28,6 @@ public class AffineNumericInputProbe extends NumericInputProbe {
    VectorNd t = null; // translation vector
    protected double timeOffset = 0;
 
-   protected VectorNd myTmpVec; // private temporary vector
-
    /**
     * Interpolate data to specified time and set related properties values.
     * 
@@ -147,14 +145,11 @@ public class AffineNumericInputProbe extends NumericInputProbe {
       super.set(
          props, driverExpressions, variableNames, variableDimensions,
          traceInfos);
-      myTmpVec = new VectorNd(myVsize);
       initTransform(myVsize);
    }
 
-   @Override
-   public void createNumericList(int vsize) {
-      super.createNumericList(vsize);
-      myTmpVec = new VectorNd(vsize);
+   public void setVsize (int vsize) {
+      super.initVsize (vsize);
       initTransform(vsize);
    }
    

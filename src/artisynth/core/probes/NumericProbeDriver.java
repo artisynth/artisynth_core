@@ -100,7 +100,8 @@ public class NumericProbeDriver {
    }
 
    public void compileJythonExpression (
-      String expr, HashMap<String,NumericProbeVariable> variables) {
+      String expr, HashMap<String,NumericProbeVariable> variables,
+      RotationRep rotRep) {
       PyCode code = null;
       CompileMode myCmode = CompileMode.getMode ("eval");
       CompilerFlags myCflags = new CompilerFlags();
@@ -130,7 +131,7 @@ public class NumericProbeDriver {
       }
       NumericConverter conv = null;
       try {
-         conv = new NumericConverter (res);
+         conv = new NumericConverter (res, rotRep);
       }
       catch (Exception e) {
          throw new IllegalArgumentException (
@@ -144,7 +145,7 @@ public class NumericProbeDriver {
    }
 
    public void setExpression (
-      String expr, HashMap<String,NumericProbeVariable> variables) {
+      String expr, HashMap<String,NumericProbeVariable> variables, RotationRep rotRep) {
       String varname = extractSingleVariable (expr);
       if (varname != null) {
          NumericProbeVariable var = variables.get (varname);
@@ -163,7 +164,7 @@ public class NumericProbeDriver {
             throw new IllegalArgumentException (
                "jython expressions not available on this host");
          }
-         compileJythonExpression (expr, variables);
+         compileJythonExpression (expr, variables, rotRep);
       }
    }
 

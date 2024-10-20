@@ -102,7 +102,8 @@ public class VectorTracingProbe extends TracingProbe {
 
    public VectorTracingProbe() {
       super();
-      createNumericList (3);
+      initVsize (3);
+      createNumericList ();
    }
 
    public VectorTracingProbe (ModelComponent comp, Property vectorProp,

@@ -18,16 +18,13 @@ import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.util.*;
+import maspack.matrix.RotationRep;
 import artisynth.core.modelbase.*;
 
 import artisynth.core.util.*;
 
 public class NumericInputProbe extends NumericProbeBase 
    implements CopyableComponent {
-
-   // private double[][] myPropValues;
-
-   private VectorNd myTmpVec;
 
    protected static boolean defaultExtendData = true;
 
@@ -71,15 +68,7 @@ public class NumericInputProbe extends NumericProbeBase
          + propName + "'");
       }
       setInputProperties (new Property[] { prop });
-      if (fileName != null) {
-         setAttachedFileName (fileName);
-         load(/*setTimes=*/true);
-      }
-      else // probe should be settable
-      {
-         setData (getStartTime());
-         setData (getStopTime());
-      }
+      initFromFile (null, fileName);
    }
 
    public NumericInputProbe (
@@ -95,15 +84,33 @@ public class NumericInputProbe extends NumericProbeBase
          }    
       }
       setInputProperties (props);
+      initFromFile (null, fileName);
+   }
+   
+   protected void initFromFile (
+      String name, String fileName) throws IOException {
+      if (name != null) {
+         setName (name);
+      }
       if (fileName != null) {
          setAttachedFileName (fileName);
          load(/*setTimes=*/true);
       }
-      else // probe should be settable
-      {
+      else { // probe should be settable
          setData (getStartTime());
          setData (getStopTime());
+      }      
+   }
+   
+   protected void initFromStartStopTime (
+      String name, double startTime, double stopTime) {
+      if (name != null) {
+         setName (name);
       }
+      setStartTime (startTime);
+      setStopTime (stopTime);
+      setData (getStartTime());
+      setData (getStopTime());     
    }
 
    public NumericInputProbe (
@@ -116,10 +123,7 @@ public class NumericInputProbe extends NumericProbeBase
          + propName + "'");
       }
       setInputProperties (new Property[] { prop });
-      setStartTime (startTime);
-      setStopTime (stopTime);
-      setData (getStartTime());
-      setData (getStopTime());
+      initFromStartStopTime (null, startTime, stopTime);
    }
 
    public NumericInputProbe (
@@ -135,10 +139,7 @@ public class NumericInputProbe extends NumericProbeBase
          }
       }
       setInputProperties (props);
-      setStartTime (startTime);
-      setStopTime (stopTime);
-      setData (getStartTime());
-      setData (getStopTime());
+      initFromStartStopTime (null, startTime, stopTime);
    }
 
    public NumericInputProbe (Property prop, ModelComponent e) {
@@ -179,15 +180,11 @@ public class NumericInputProbe extends NumericProbeBase
          if (props[i] == null) {
             throw new IllegalArgumentException ("prop["+i+"] is null");
          }
-         NumericConverter numInfo = null;
-         try {
-            numInfo = new NumericConverter (props[i].get());
-         }
-         catch (Exception e) {
-         }
+         int dimen = NumericConverter.getDimension (
+            props[i].get(), myRotationRep);
          driverExpressions[i] = "V" + i;
          variableNames[i] = "V" + i;
-         variableDimensions[i] = numInfo.getDimension();
+         variableDimensions[i] = dimen;
       }
       set (props, driverExpressions, variableNames, variableDimensions);
    }
@@ -380,11 +377,13 @@ public class NumericInputProbe extends NumericProbeBase
     * time in seconds
     * @param v
     * vector of values
+    * @return
+    * created knot
     * 
     * @throws IllegalArgumentException
     * if size of vector is not equal to {@link #getVsize()}
     */
-   public void addData (double t, VectorNd v) {
+   public NumericListKnot addData (double t, VectorNd v) {
       if (v.size() != myVsize) {
          throw new IllegalArgumentException ("input vector has size "
          + v.size() + " vs. " + myVsize);
@@ -393,7 +392,7 @@ public class NumericInputProbe extends NumericProbeBase
       knot.t = t;
       knot.v.set (v);
       myNumericList.add (knot);
-      // extendStopTimeIfNecessary();
+      return knot;
    }
    
    public void addData(double t, double[] v) {
@@ -522,6 +521,13 @@ public class NumericInputProbe extends NumericProbeBase
       }
       return true;
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isEditable() {
+      return true;
+   }
 
    public void setData (double sec) {
       myTmpVec.setZero();
@@ -534,7 +540,6 @@ public class NumericInputProbe extends NumericProbeBase
             NumericProbeDriver driver = myDrivers.get (i);
             if (driver.usesVariable (entry.getKey())) {
                // set variable at buf[k];
-               Object val = myPropList.get (i).get();
                double[] array =
                   myConverters[i].objectToArray (myPropList.get (i).get());
                for (int j = 0; j < array.length; j++) {
@@ -548,7 +553,7 @@ public class NumericInputProbe extends NumericProbeBase
       NumericListKnot knot = new NumericListKnot (myTmpVec.size());
       knot.v.set (myTmpVec);
       knot.t = getClippedVirtualTime (sec);
-      myNumericList.add (knot);
+      myNumericList.addAndAdjustRotations (knot);
    }
 
    public Object clone() throws CloneNotSupportedException {
@@ -631,7 +636,7 @@ public class NumericInputProbe extends NumericProbeBase
          return true;
       }
       else if (scanAttributeName (rtok, "data")) {
-         createNumericList (getVsize());
+         createNumericList ();
          rtok.scanToken ('[');
          while (rtok.nextToken() != ']') {
             rtok.pushBack();
@@ -645,7 +650,21 @@ public class NumericInputProbe extends NumericProbeBase
          return true;
       }
       else if (scanAttributeName (rtok, "vsize")) {
-         myVsize = rtok.scanInteger();
+         initVsize (rtok.scanInteger());
+         return true;
+      }
+      else if (scanAttributeName (rtok, "rotationRep")) {
+         myRotationRep = rtok.scanEnum(RotationRep.class);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "rotationSubvecOffsets")) {
+         int[] offs = Scan.scanInts (rtok);
+         try {
+            setRotationSubvecOffsets (offs);
+         }
+         catch (Exception e) {
+            throw new IOException (e);
+         }
          return true;
       }
       rtok.pushBack();
@@ -713,6 +732,13 @@ public class NumericInputProbe extends NumericProbeBase
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
       pw.println ("vsize=" + getVsize());
+      if (myRotationRep != null) {
+         pw.println ("rotationRep=" + myRotationRep);
+      }
+      if (myRotationSubvecOffsets != null) {
+         pw.print ("rotationSubvecOffsets=");
+         Write.writeInts (pw, myNumericList.getRotationSubvecOffsets(), null);
+      }
       if (myPropList != null && myPropList.size() > 0) {
          pw.println ("props=[");
          IndentingPrintWriter.addIndentation (pw, 2);
@@ -811,28 +837,25 @@ public class NumericInputProbe extends NumericProbeBase
       // myPropValues = new double[props.length][];
       myVariables = newVariables;
       myDrivers = newDrivers;
+      
+      if (myVsize != newVsize) {
+         initVsize (newVsize);
+      }
 
-      if (myNumericList == null || myVsize != newVsize) {
-         myVsize = newVsize;
-         myNumericList = new NumericList (myVsize);
-         myNumericList.setInterpolation (myInterpolation);
-         myTmpVec = new VectorNd (myVsize);
+      if (myNumericList == null) {
+         createNumericList();
       }
 
       if (traceInfos != null) {
-         myPlotTraceManager.rebuild (getPropsOrDimens(), traceInfos);
+         myPlotTraceManager.rebuild (
+            getPropsOrDimens(), traceInfos, myRotationRep);
       }
       else {
-         myPlotTraceManager.rebuild (getPropsOrDimens());
+         myPlotTraceManager.rebuild (getPropsOrDimens(), myRotationRep);
       }
       if (myLegend != null) {
          myLegend.rebuild();
       }
-   }
-
-   public void createNumericList (int vsize) {
-      super.createNumericList (vsize);
-      myTmpVec = new VectorNd (vsize);
    }
 
    /**

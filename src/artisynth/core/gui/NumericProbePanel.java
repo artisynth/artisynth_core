@@ -767,7 +767,8 @@ public class NumericProbePanel extends JPanel
          range = myProbe.getDefaultDisplayRange();
       }
       else {
-         range = NumericProbeBase.getRange (myNumericList);
+         range = NumericProbeBase.getVisibleRange (
+            myTraceManager, myNumericList);
       }     
       return new DoubleInterval (range[0], range[1]);
    }
@@ -886,7 +887,8 @@ public class NumericProbePanel extends JPanel
    }
 
    protected void fitDisplayRange() {
-      double[] range = NumericProbeBase.getRange(getNumericList());
+      double[] range = 
+         NumericProbeBase.getVisibleRange(myTraceManager, getNumericList());
       setYRange (range[0], range[1]);
       // setDataBuffer(true);
       repaint();
@@ -915,8 +917,7 @@ public class NumericProbePanel extends JPanel
    }
 
    public void adjustRangeIfNecessary() {
-      double[] minMax = new double[2];
-      myNumericList.getMinMaxValues(minMax);
+      double[] minMax = myTraceManager.getVisibleYRange (myNumericList);
       double range = minMax[1] - minMax[0];
 
       if (myNumericList.isEmpty() || range < 1e-13) {
@@ -1105,7 +1106,7 @@ public class NumericProbePanel extends JPanel
             }
             else {
                segNums[i] = i;
-            }
+            } 
             prevKnot = list.interpolate (yvec, x, getInterpolation(), prevKnot);
             for (int k = 0; k < yvec.size(); k++) {
                yBuffer[k][i] = xform.yvalueToPixel (yvec.get(k));
@@ -1871,10 +1872,9 @@ public class NumericProbePanel extends JPanel
             return reverse (idxs);
          }
          case RANGE: {
-            VectorNd min = new VectorNd(vsize);
-            VectorNd max = new VectorNd(vsize);
+            VectorNd min = myNumericList.getMinValues();
+            VectorNd max = myNumericList.getMaxValues();
             VectorNd rng = new VectorNd(vsize);
-            myNumericList.getMinMaxValues (min, max);
             rng.sub (max, min);
             ArraySort.quickSort (rng.getBuffer(), idxs);
             // reverse indices since sort is in ascending order
@@ -2375,6 +2375,9 @@ public class NumericProbePanel extends JPanel
          else if (nameOfAction == "Smooth data ...") {
             showSmoothingDialog(true);
          }
+         else if (nameOfAction == "Fit ranges to data") {
+            resetDisplay();
+         }
          else if (nameOfAction == "Show knot points") {
             setKnotsVisible (true);
          }
@@ -2603,7 +2606,8 @@ public class NumericProbePanel extends JPanel
       myNumericList = nlist;
       myTraceManager =
          new PlotTraceManager (inputData ? "input" : "output");
-      myTraceManager.rebuild (new Object[] { nlist.getVectorSize() });
+      myTraceManager.rebuild (
+         new Object[] { nlist.getVectorSize() }, nlist.getRotationRep());
 
       myStartTime = xstart;
       myStopTime = xlast;

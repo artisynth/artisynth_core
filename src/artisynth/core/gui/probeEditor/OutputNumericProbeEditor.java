@@ -26,6 +26,7 @@ import maspack.widgets.GuiUtils;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
 import maspack.widgets.ValueCheckListener;
+import maspack.matrix.RotationRep;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.Timeline;
 import artisynth.core.gui.editorManager.AddComponentsCommand;
@@ -545,7 +546,8 @@ ValueChangeListener {
                try {
                   System.out.println ("size used to be: "
                   + driver.getOutputSize());
-                  driver.setExpression (driver.getExpression(), myVariables);
+                  driver.setExpression (
+                     driver.getExpression(), myVariables, getRotationRep());
                   // vecPane = probeChannels.get(index);
                   System.out.println ("size is now: " + driver.getOutputSize());
                   eqPane.setDimensionLabel (driver.getOutputSize());
@@ -563,16 +565,23 @@ ValueChangeListener {
          }
       }
    }
-
+   
+   protected RotationRep getRotationRep() {
+      if (oldProbe != null) {
+         return oldProbe.getRotationRep();
+      }
+      else {
+         return null;
+      }
+   }
+   
    public boolean addProperty (int index, Property prop) {
       myProperties.set (index, prop);
       AddPropertyPane propPane = propList.get (index);
       String varname = propPane.getPropNameFieldText();
 
-      NumericConverter conv = new NumericConverter (prop.get());
-
-      NumericProbeVariable var =
-         new NumericProbeVariable (conv.getDimension());
+      int dimen = NumericConverter.getDimension (prop.get(), getRotationRep());
+      NumericProbeVariable var = new NumericProbeVariable (dimen);
       myVariables.put (varname, var);
 
       // see if there is an invalid driver at the end of the
@@ -589,7 +598,7 @@ ValueChangeListener {
       else { // otherwise, add a new driver
          NumericProbeDriver driver = new NumericProbeDriver();
          // System.out.println("addProperty; var name= "+varname);
-         driver.setExpression (varname, myVariables);
+         driver.setExpression (varname, myVariables, getRotationRep());
 
          // add it at the end of list
          myDrivers.add (myDrivers.size(), driver);
@@ -646,7 +655,7 @@ ValueChangeListener {
       }
       AddEquationPane eqPane = eqList.get (id);
       try {
-         driver.setExpression (expr, myVariables);
+         driver.setExpression (expr, myVariables, getRotationRep());
          // vecPane = probeChannels.get(id);
          System.out.println ("setting size display to: "
          + driver.getOutputSize());

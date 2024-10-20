@@ -34,6 +34,60 @@ public class ProbeEditor extends EditorBase {
       super (main, editManager);
    }
 
+   public static ArrayList<String> getCopyActions (
+      LinkedList<ModelComponent> selection) {
+      ArrayList<String> copyActions = new ArrayList<>();
+      if (selection.size() == 2) {
+         NumericProbeBase probe0 = null, probe1 = null;
+         if (selection.get(0) instanceof NumericProbeBase) {
+            probe0 = (NumericProbeBase)selection.get(0);
+         }
+         if (selection.get(1) instanceof NumericProbeBase) {
+            probe1 = (NumericProbeBase)selection.get(1);
+         }
+         if (probe0 != null && probe1 != null) {
+            if (probe0.getVsize() >= probe1.getVsize()) {
+               copyActions.add (getName(probe0)+" to "+getName(probe1));
+            }
+            if (probe1.getVsize() >= probe0.getVsize()) {
+               copyActions.add (getName(probe1)+" to "+getName(probe0));
+            }            
+         }
+      }
+      return copyActions;      
+   }
+   
+   public static boolean executeCopyAction (
+      String actionCommand, LinkedList<ModelComponent> selection) {
+      if (selection.size() == 2) {
+         NumericProbeBase probe0=null, probe1=null;
+         if (selection.get(0) instanceof NumericProbeBase) {
+            probe0 = (NumericProbeBase)selection.get(0);
+         }
+         if (selection.get(1) instanceof NumericProbeBase) {
+            probe1 = (NumericProbeBase)selection.get(1);
+         }
+         int arrowIndex = actionCommand.indexOf ('>');
+         if (arrowIndex != -1) {
+            String copyAction = actionCommand.substring (
+               arrowIndex+1, actionCommand.length());
+            if (copyAction.startsWith (getName (probe0))) {
+               if (probe0.getVsize() >= probe1.getVsize()) {                  
+                  probe1.setValues (probe0, /*useAbsoluteTime*/true);
+                  return true;
+               }
+            }
+            else if (copyAction.startsWith (getName (probe1))) {
+               if (probe1.getVsize() >= probe0.getVsize()) {                  
+                  probe0.setValues (probe1, /*useAbsoluteTime*/true);
+                  return true;
+               }
+            }
+         }
+      }
+      return false;
+   }  
+   
    public void addActions (EditActionMap actions, SelectionManager selManager) {
       LinkedList<ModelComponent> selection = selManager.getCurrentSelection();
 
@@ -54,6 +108,10 @@ public class ProbeEditor extends EditorBase {
             if (!(p instanceof NumericProbeBase)) {
                allNumeric = false;
             }
+         }
+         ArrayList<String> copyActions = getCopyActions (selection);
+         if (copyActions.size() > 0) {
+            actions.add (this, "Copy probe data", 0, copyActions);
          }
          if (allHaveFiles) {
             actions.add (this, "Save data");
@@ -80,6 +138,18 @@ public class ProbeEditor extends EditorBase {
             actions.add (this, "Save to MATLAB");
             actions.add (this, "Load from MATLAB");
          }
+      }
+   }
+
+   private static String getName (Probe probe) {
+      if (probe.getName() != null) {
+         return "'"+probe.getName()+"'";
+      }
+      else if (probe instanceof OutputProbe) {
+         return "'output probe "+probe.getNumber()+"'";
+      }
+      else {
+         return "'input probe "+probe.getNumber()+"'";
       }
    }
 
@@ -158,6 +228,10 @@ public class ProbeEditor extends EditorBase {
                   }
                }
             }
+            myMain.rerender();
+         }
+         else if (actionCommand.startsWith ("Copy probe data")) {
+            executeCopyAction (actionCommand, selection);
             myMain.rerender();
          }
       }

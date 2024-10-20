@@ -38,6 +38,7 @@ import maspack.widgets.GuiUtils;
 import maspack.widgets.LabeledComponentPanel;
 import maspack.widgets.StringField;
 import maspack.util.StringHolder;
+import maspack.matrix.RotationRep;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.timeline.GuiStorage;
 import artisynth.core.modelbase.ComponentUtils;
@@ -561,6 +562,10 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
       // Property prop = comp.getProperty(propPath);
       // return prop;
    }
+   
+   protected RotationRep getRotationRep() {
+      return null;
+   }
 
    // public ModelComponent getTopComponent()
    // {
@@ -594,36 +599,23 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
     * 
     * @return 0 if invalid
     */
-   public static int GetPropDim (String fullPropPath) {
+   public int GetPropDim (String fullPropPath) {
       Property prop = getProp (fullPropPath);
       if (prop != null) {
-         if (NumericConverter.isNumeric (prop.get())) {
-            try { // create a NumericPropertyInfo structure from the property in
-               // order to find out its dimensions
-               NumericConverter testNum = new NumericConverter (prop.get()); // test
-               // to
-               // see
-               // if
-               // property
-               // is
-               // numeric
-               if (testNum != null) {
-                  return testNum.getDimension();
-               }
-            }
-            catch (Exception e) {
-               System.out.println ("Caught exception:" + e.getMessage());
-            }
-         }
+         return NumericConverter.getDimension (prop.get(), getRotationRep());
       }
-      return 0;
+      else {
+         return 0;
+      }
    }
 
-   public static int getPropDim (Property prop) {
-      if (prop == null)
+   public int getPropDim (Property prop) {
+      if (prop != null) {
+         return NumericConverter.getDimension (prop.get(), getRotationRep());
+      }
+      else {
          return 0;
-      NumericConverter conv = new NumericConverter (prop.get());
-      return conv.getDimension();
+      }
    }
 
    // public static String splitPath(String fullPath, boolean isComp)
@@ -728,7 +720,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
    public void changeExpression (String newexpr, int idx) {
       NumericProbeDriver driver = myDrivers.get (idx);
       try {
-         driver.setExpression (newexpr, myVariables);
+         driver.setExpression (newexpr, myVariables, getRotationRep());
       }
       catch (Exception e) { // handle error
       }

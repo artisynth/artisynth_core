@@ -310,7 +310,7 @@ MouseListener, ValueChangeListener {
 
          if (!HasProperties.class.isAssignableFrom (prop.get().getClass())) {
             isComplete = true;
-            int dim = NumericProbeEditor.GetPropDim (propertyPath);
+            int dim = myParent.GetPropDim (propertyPath);
             setDimensionLabel (dim);
             myParent.actionPerformed (
                new ActionEvent (this, 0, "PropSelected"));
@@ -349,7 +349,7 @@ MouseListener, ValueChangeListener {
          if (prop != null) {
             if (HasProperties.class.isAssignableFrom (prop.get().getClass()) == false) {
                isComplete = true;
-               int dim = NumericProbeEditor.GetPropDim (propertyPath);
+               int dim = myParent.GetPropDim (propertyPath);
                setDimensionLabel (dim);
                myParent.actionPerformed (new ActionEvent (
                   this, 0, "PropSelected")); // the parent can call

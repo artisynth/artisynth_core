@@ -12,6 +12,8 @@ import java.awt.Color;
 import java.util.*;
 import artisynth.core.modelbase.*;
 import maspack.util.*;
+import maspack.matrix.RotationRep;
+import maspack.interpolation.NumericList;
 import maspack.properties.*;
 
 /**
@@ -22,6 +24,7 @@ import maspack.properties.*;
 public class PlotTraceManager {
 
    LinkedHashMap<Object,PlotTraceInfo[]> myPlotTraceMap;
+   private static final double INF = Double.POSITIVE_INFINITY;
 
    ArrayList<PlotTraceInfo> myPlotTraceList;
    int[] myPlotTraceOrdering;
@@ -150,7 +153,8 @@ public class PlotTraceManager {
       }
    }
 
-   private String[] createLabels (String labelName, Object propOrDimen) {
+   private String[] createLabels (
+      String labelName, Object propOrDimen, RotationRep rotRep) {
       int dimen = 0;
       String[] sublabels = null;
            
@@ -160,8 +164,8 @@ public class PlotTraceManager {
       else if (propOrDimen instanceof Property) {
          Property prop = (Property)propOrDimen;
          Class propValueClass = prop.getInfo().getValueClass();
-         sublabels = NumericConverter.getFieldNames (propValueClass);
-         dimen = NumericConverter.getDimension(prop.get());
+         sublabels = NumericConverter.getFieldNames (propValueClass, rotRep);
+         dimen = NumericConverter.getDimension(prop.get(), rotRep);
       }
       else {
          throw new InternalErrorException (
@@ -183,13 +187,13 @@ public class PlotTraceManager {
       return labels;
    }
 
-   private int getDimension (Object propOrDimen) {
+   private int getDimension (Object propOrDimen, RotationRep rotRep) {
       if (propOrDimen instanceof Integer) {
          return ((Integer)propOrDimen).intValue();
       }
       else if (propOrDimen instanceof Property) {
          Property prop = (Property)propOrDimen;
-         return NumericConverter.getDimension(prop.get());
+         return NumericConverter.getDimension(prop.get(), rotRep);
       }
       else {
          throw new InternalErrorException (
@@ -198,10 +202,11 @@ public class PlotTraceManager {
    }
 
    private PlotTraceInfo[] createPlotTraces (
-      String fullname, Object propOrDimen) {
+      String fullname, Object propOrDimen, RotationRep rotRep) {
 
-      int dimen = getDimension (propOrDimen);
-      String[] labels = createLabels (getLabelName(fullname), propOrDimen);
+      int dimen = getDimension (propOrDimen, rotRep);
+      String[] labels = createLabels (
+         getLabelName(fullname), propOrDimen, rotRep);
       PlotTraceInfo[] infos = new PlotTraceInfo[dimen];
       for (int i=0; i<dimen; i++) {
          PlotTraceInfo pti = new PlotTraceInfo();
@@ -212,15 +217,16 @@ public class PlotTraceManager {
       return infos;
    }
 
-   int getNumTraces (Object[] propsOrDimens) {
+   int getNumTraces (Object[] propsOrDimens, RotationRep rotRep) {
       int num = 0;
       for (int i=0; i<propsOrDimens.length; i++){
-         num += getDimension (propsOrDimens[i]);
+         num += getDimension (propsOrDimens[i], rotRep);
       }
       return num;
    }
 
-   public boolean hasDefaultSettings (Object[] propsOrDimens) {
+   public boolean hasDefaultSettings (
+      Object[] propsOrDimens, RotationRep rotRep) {
       int k = 0;
       TraceColor[] palette = PlotTraceInfo.getPaletteColors();
       for (int i=0; i<propsOrDimens.length; i++){
@@ -233,7 +239,7 @@ public class PlotTraceManager {
                "No plot traces for " + fullname);
          }
          String[] labels = createLabels (
-            getLabelName(fullname), propsOrDimens[i]);
+            getLabelName(fullname), propsOrDimens[i], rotRep);
          for (int j=0; j<infos.length; j++) {
             PlotTraceInfo pti = infos[j];
             if (pti.getOrder() != k ||
@@ -354,14 +360,16 @@ public class PlotTraceManager {
       return myPlotTraceList.get(idx).getLabel();
    }
 
-   public void rebuild (Object[] propsOrDimens, PlotTraceInfo[] allInfos) {
+   public void rebuild (
+      Object[] propsOrDimens, PlotTraceInfo[] allInfos, RotationRep rotRep) {
       
       myPlotTraceMap.clear();
       myPlotTraceList.clear();
-      if (getNumTraces (propsOrDimens) != allInfos.length) {
+      if (getNumTraces (propsOrDimens, rotRep) != allInfos.length) {
          throw new IllegalArgumentException (
             "Number of traces "+allInfos.length+
-            " inconsistent with total dimension "+getNumTraces (propsOrDimens));
+            " inconsistent with total dimension "+
+            getNumTraces (propsOrDimens, rotRep));
       }
       myFreeColors.clear();
       growOrderingListIfNecessary (allInfos.length);
@@ -376,7 +384,7 @@ public class PlotTraceManager {
       int k = 0;
       TraceColor[] palette = PlotTraceInfo.getPaletteColors();
       for (int i=0; i<propsOrDimens.length; i++){
-         int dimen = getDimension (propsOrDimens[i]);
+         int dimen = getDimension (propsOrDimens[i], rotRep);
          PlotTraceInfo[] infos = new PlotTraceInfo[dimen];
          for (int j=0; j<dimen; j++) {
             infos[j] = allInfos[k++];
@@ -385,7 +393,7 @@ public class PlotTraceManager {
       }
    }
 
-   public void rebuild (Object[] propsOrDimens) {
+   public void rebuild (Object[] propsOrDimens, RotationRep rotRep) {
 
       HashMap<Object,Object> newSet = new HashMap<>();
       for (int i=0; i<propsOrDimens.length; i++){
@@ -409,9 +417,32 @@ public class PlotTraceManager {
          if (infos == null) {
             String fullname = getFullName (
                propsOrDimens[i], i, propsOrDimens.length);
-            infos = createPlotTraces (fullname, propsOrDimens[i]);
+            infos = createPlotTraces (fullname, propsOrDimens[i], rotRep);
             add (propsOrDimens[i], infos);
          }
+      }
+   }
+
+   public double[] getVisibleYRange (NumericList nlist) {
+      double min = INF;
+      double max = -INF;
+      double[] minvals = nlist.getMinValues().getBuffer();
+      double[] maxvals = nlist.getMaxValues().getBuffer();
+      for (int i=0; i<nlist.getVectorSize(); i++) {
+         if (isTraceVisible(i)) {
+            if (minvals[i] < min) {
+               min = minvals[i];
+            }
+            if (maxvals[i] > max) {
+               max = maxvals[i];
+            }
+         }
+      }
+      if (min == INF) {
+         return new double[] { 0, 1 };
+      }
+      else {
+         return new double[] { min, max };             
       }
    }
 

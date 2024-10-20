@@ -31,6 +31,7 @@ import artisynth.core.probes.Probe;
 import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.util.StringHolder;
+import maspack.matrix.RotationRep;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueCheckListener;
@@ -338,7 +339,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
          return;
       }
       try {
-         driver.setExpression (newExpr, myVariables);
+         driver.setExpression (newExpr, myVariables, getRotationRep());
       }
       catch (Exception exception) {
          System.out.println (exception.getMessage());
@@ -598,6 +599,15 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
       refreshAddBtn();
    }
 
+   protected RotationRep getRotationRep() {
+      if (oldProbe != null) {
+         return oldProbe.getRotationRep();
+      }
+      else {
+         return null;
+      }
+   }
+   
    /**
     * Called when a valid property has been selected for the first time. A
     * property is null before this point. so we set the property at the
@@ -614,10 +624,10 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
    public void addProperty (int index, Property prop) {
       myProperties.set (index, prop);
 
-      NumericConverter conv = new NumericConverter (prop.get());
+      // we are assuming here that the property is numeric
+      int dimen = NumericConverter.getDimension (prop.get(), getRotationRep());
       String varname = getUniqueVariableName (INPUT_PREFIX);
-      NumericProbeVariable var =
-         new NumericProbeVariable (conv.getDimension());
+      NumericProbeVariable var = new NumericProbeVariable (dimen);
       myVariables.put (varname, var);
 
       AddVectorPane newVec = new AddVectorPane (this, varname);
@@ -625,7 +635,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
       addVectorGUI (newVec);
 
       NumericProbeDriver driver = new NumericProbeDriver();
-      driver.setExpression (varname, myVariables);
+      driver.setExpression (varname, myVariables, getRotationRep());
       myDrivers.set (index, driver);
 
       updateGUI();

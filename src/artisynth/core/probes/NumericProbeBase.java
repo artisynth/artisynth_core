@@ -17,6 +17,7 @@ import maspack.interpolation.Interpolation.Order;
 import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
 import maspack.matrix.VectorNd;
+import maspack.matrix.RotationRep;
 import maspack.properties.GenericPropertyHandle;
 import maspack.properties.NumericConverter;
 import maspack.properties.Property;
@@ -31,6 +32,7 @@ import artisynth.core.gui.Displayable;
 import artisynth.core.gui.LegendDisplay;
 import artisynth.core.gui.NumericProbePanel;
 import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.*;
 import artisynth.core.util.*;
 import artisynth.core.workspace.RootModel;
 
@@ -63,6 +65,11 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    protected static double[] defaultDefaultDisplayRange = new double[] { 0, 0 };
 
    protected int myVsize;
+   protected VectorNd myTmpVec;
+   // rotationRep and rotationSubvecOffsets are null unless the probe contains
+   // explict subvectors with rotation information
+   protected RotationRep myRotationRep;
+   protected int[] myRotationSubvecOffsets;
    protected PlotTraceManager myPlotTraceManager;
 
    protected static ImportExportFileInfo[] myExportFileInfo =
@@ -128,6 +135,32 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       updateDisplays();
    }
 
+   /** 
+    * Sets the values of this numeric probe from the values of another numeric
+    * probe {@code src}. The vector size of the source probe must be greater
+    * than or equal to that of this probe; extra values in the source probe are
+    * ignored.
+    *
+    * @param src source probe to copy data from
+    * @param useAbsoluteTime if {@code true}, time values are mapped between
+    * the probes using absolute time; otherwise, probe relative time is used
+    */  
+   public void setValues (NumericProbeBase src, boolean useAbsoluteTime) {
+      if (src.getVsize() < getVsize()) {
+         throw new IllegalArgumentException (
+            "source probe vector size " + src.getVsize() +
+            " less then destination size " + getVsize());
+      }
+      double tscale = 1.0;
+      double toffset = 0.0;
+      if (useAbsoluteTime) {
+         tscale = src.getScale()/getScale();
+         toffset = (src.getStartTime()-getStartTime())/getScale();
+      }
+      myNumericList.setValues (src.myNumericList, tscale, toffset);
+      updateDisplays();
+   }
+
    public abstract void apply (double t);
 
    public boolean isDisplayable() {
@@ -158,9 +191,11 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
 
    public boolean removeDisplay (JPanel display) {
       if (display instanceof NumericProbePanel) {
-         if (display == mySmallDisplay) {
-            mySmallDisplay = null;
-         }
+         // Oct 2024: keep small display around to preserve setting like
+         // knot point visibility
+         // if (display == mySmallDisplay) {
+         //   mySmallDisplay = null;
+         //}
          return myDisplays.remove ((NumericProbePanel)display);
       }
       else {
@@ -172,9 +207,32 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       return myVsize;
    }
 
-   public void createNumericList (int vsize) {
+   protected void initVsize (int vsize) {
       myVsize = vsize;
-      myNumericList = new NumericList (myVsize);
+      myTmpVec = new VectorNd(vsize);      
+   }
+   
+   public RotationRep getRotationRep() {
+      return myRotationRep;
+   }
+
+   public int[] getRotationSubvecOffsets() {
+      return myRotationSubvecOffsets;
+   }
+
+   void setRotationSubvecOffsets (int[] offs) {
+      NumericList.checkRotationSubvecOffsets (offs, myRotationRep, myVsize);
+      myRotationSubvecOffsets = Arrays.copyOf (offs, offs.length);
+   }
+
+   protected void createNumericList () {
+      if (myRotationRep != null && myRotationSubvecOffsets != null) {
+         myNumericList = 
+            new NumericList (myVsize, myRotationRep, myRotationSubvecOffsets); 
+      }
+      else {
+         myNumericList = new NumericList (myVsize);
+      }
       myNumericList.setInterpolation (myInterpolation);
    }
 
@@ -230,11 +288,6 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       }
    }
 
-   // public void removeDisplay (NumericProbePanel display) {
-   //    if (myDisplays.contains (display))
-   //       myDisplays.remove (display);
-   // }
-   
    /**
     * Sets the interpolation method for this numeric input probe.
     * 
@@ -333,21 +386,13 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       }
    }
 
-   //
-   // public double[] getDefaultDisplayRange()
-   // {
-   // return new double[] {
-   // myDefaultDisplayMin,
-   // myDefaultDisplayMax};
-   // }
-
    public double[] getDefaultDisplayRange() {
       if (myDefaultDisplayMin != defaultDefaultDisplayRange[0] ||
           myDefaultDisplayMax != defaultDefaultDisplayRange[1]) {
          return new double[] { myDefaultDisplayMin, myDefaultDisplayMax };
       }
       else {
-         return getRange();
+         return getVisibleRange();
       }
    }
 
@@ -356,16 +401,24 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       myNumericList.getMinMaxValues (minMax);
       return minMax;
    }
+   
+   public double[] getVisibleMinMaxValues() {
+      return myPlotTraceManager.getVisibleYRange (myNumericList);
+   }
 
    public boolean isEmpty() {
       return myNumericList.isEmpty();
    }
 
-   public static double[] getRange (NumericList list) {
-      double[] range = new double[2];
+   public static double[] getVisibleRange (
+      PlotTraceManager traceManager, NumericList list) {
+      double[] range;
 
       if (list != null) {
-         list.getMinMaxValues (range);
+         range = traceManager.getVisibleYRange(list);
+      }
+      else {
+         range = new double[2];
       }
 
       if (Math.abs (range[0] - range[1]) < (Double.MIN_VALUE * 1e3)) {
@@ -380,22 +433,10 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       return range;
    }
    
-   public double[] getRange() {
-      return getRange (myNumericList);
+   public double[] getVisibleRange() {
+      return getVisibleRange (myPlotTraceManager, myNumericList);      
    }
-
-//   public void setRangeHints (double[] ranges) {
-//      myDefaultDisplayMin = ranges[2];
-//      myDefaultDisplayMax = ranges[3];
-//   }
-//
-//   public void getRangeHints (double[] ranges) {
-//      ranges[0] = 0;
-//      ranges[1] = 0;
-//      ranges[2] = myDefaultDisplayMin;
-//      ranges[3] = myDefaultDisplayMax;
-//   }
-
+   
    /**
     * Scales the values of a numberic probe. Method added by Chad. author: Chad
     * Scales the values of a numberic probe.
@@ -465,28 +506,12 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       myNumericList.applySavitzkyGolaySmoothing (winSize, deg);
    }
 
-   // public abstract void set (
-   // Property[] props,
-   // NumericProbeDriver[] drivers,
-   // HashMap<String,NumericProbeVariable> variables);
-
-   // protected LinkedHashMap<String,NumericProbeVariable> copyVariables (
-   // Map<String,NumericProbeVariable> variables)
-   // {
-   // LinkedHashMap<String,NumericProbeVariable> map =
-   // new LinkedHashMap<String,NumericProbeVariable>();
-   // for (Map.Entry<String,NumericProbeVariable> entry :
-   // variables.entrySet())
-   // { map.put (entry.getKey(), new NumericProbeVariable(entry.getValue()));
-   // }
-
-   // }
-
    protected NumericConverter[] createConverters (Property[] props) {
       NumericConverter[] converters = new NumericConverter[props.length];
       for (int i = 0; i < props.length; i++) {
          try {
-            converters[i] = new NumericConverter (props[i].get());
+            converters[i] = 
+               new NumericConverter (props[i].get(), getRotationRep());
          }
          catch (Exception e) {
             System.out.println (e);
@@ -508,32 +533,33 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    protected ArrayList<NumericProbeDriver> createDrivers (
       String[] driverExpressions, HashMap<String,NumericProbeVariable> variables) {
       myJythonLocals = null;
-      boolean usesJython = false;
       ArrayList<NumericProbeDriver> newDrivers =
          new ArrayList<NumericProbeDriver>();
       for (int i = 0; i < driverExpressions.length; i++) {
          NumericProbeDriver driver = new NumericProbeDriver();
          String expr = driverExpressions[i];
          try {
-            driver.setExpression (expr, variables);
+            driver.setExpression (expr, variables, getRotationRep());
          }
          catch (Exception e) {
             throw new IllegalArgumentException ("Illegal driver expression '"
             + expr + "': " + e.getMessage());
          }
-         if (driver.usesJythonExpression()) {
-            usesJython = true;
-         }
          newDrivers.add (driver);
-      }
-      if (usesJython) {
-         myJythonLocals = JythonInit.getArtisynthLocals().copy();
       }
       return newDrivers;
    }
 
    protected void updateJythonVariables (
       HashMap<String,NumericProbeVariable> variables, double time) {
+      if (myJythonLocals == null) {
+         for (NumericProbeDriver driver : myDrivers) {
+            if (driver.usesJythonExpression()) {
+               myJythonLocals = JythonInit.getArtisynthLocals().copy();
+               break;
+            }
+         }
+      }
       if (myJythonLocals != null) {
          PyStringMap map = myJythonLocals;
          for (Map.Entry<String,NumericProbeVariable> entry :
@@ -576,7 +602,8 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
 
    protected void maybeWritePlotTraceInfo (PrintWriter pw) {
       Object[] propsOrDimens = getPropsOrDimens();
-      if (!myPlotTraceManager.hasDefaultSettings (propsOrDimens)) {
+      if (!myPlotTraceManager.hasDefaultSettings (
+            propsOrDimens, myRotationRep)) {
          pw.println ("plotTraceInfo=[");
          IndentingPrintWriter.addIndentation (pw, 2);
          PlotTraceInfo[] allTraces =
@@ -632,6 +659,12 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       probe.myNumericList = (NumericList)myNumericList.clone();
       probe.myInterpolation = new Interpolation (myInterpolation);
 
+      if (myRotationSubvecOffsets != null) {
+         probe.myRotationSubvecOffsets =
+            Arrays.copyOf (
+               myRotationSubvecOffsets, myRotationSubvecOffsets.length);
+      }
+
       if (myVariables != null) {
          // make a deep copy of the variable list
          probe.myVariables = new LinkedHashMap<String,NumericProbeVariable>();
@@ -647,7 +680,8 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
             NumericProbeDriver driver = new NumericProbeDriver();
             try {
                driver.setExpression (
-                  oldDriver.getExpression(), probe.myVariables);
+                  oldDriver.getExpression(), 
+                  probe.myVariables, getRotationRep());
             }
             catch (Exception e) {
                throw new InternalErrorException (
@@ -1059,10 +1093,8 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
             "expecting either a time step or the keyword 'explicit', line "
             + rtok.lineno());
       }
-      // myNumericList = new NumericList (numValues);
-      myNumericList = new NumericList (myVsize);
       myInterpolation.setOrder (interpolationOrder);
-      myNumericList.setInterpolation (myInterpolation);
+      createNumericList();
       addData (rtok, timeStep);
    }
 
@@ -1212,6 +1244,78 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       else {
          throw new IOException ("Unrecognized type for file "+name);
       }
+   }
+
+   /**
+    * Find the position properties and rotation subvector offsets needed to
+    * build a PositionInputProbe and PositionOutputProbe.
+    */
+   protected Property[] findPositionPropsAndOffsets (
+      ModelComponent[] carray, RotationRep rotRep) {
+      ArrayList<Property> props = new ArrayList<>();
+      DynamicIntArray offsets = new DynamicIntArray();
+      int off = 0;
+      for (ModelComponent comp : carray) {
+         if (comp instanceof Point) {
+            props.add (((Point)comp).getProperty ("position"));
+            off += 3;
+         }
+         else if (comp instanceof Frame) {
+            props.add (((Frame)comp).getProperty ("position"));
+            off += 3;
+            props.add (((Frame)comp).getProperty ("orientation"));
+            offsets.add (off);
+            if (rotRep == null) {
+               throw new IllegalArgumentException (
+                  "rotRep must not be null if any components contain poses");
+            }
+            off += rotRep.size();
+         }
+         else if (comp instanceof FixedMeshBody) {
+            props.add (((FixedMeshBody)comp).getProperty ("position"));
+            off += 3;
+            props.add (((FixedMeshBody)comp).getProperty ("orientation"));
+            offsets.add (off);
+            if (rotRep == null) {
+               throw new IllegalArgumentException (
+                  "rotRep must not be null if any components contain poses");
+            }
+            off += rotRep.size();
+         }
+         else {
+            throw new IllegalArgumentException (
+               "ModelComponent is " + comp.getClass() +
+               "; must be a Point, Frame or FixedMeshBody");
+         }
+
+      }
+      if (offsets.size() > 0) {
+         myRotationSubvecOffsets = offsets.getArray();
+      }
+      myRotationRep = rotRep;
+      return props.toArray(new Property[0]);
+   }
+
+   /**
+    * Find the velocity properties needed to build a VelocityInputProbe and
+    * VelocityOutputProbe.
+    */
+   protected Property[] findVelocityProps (ModelComponent[] carray) {
+      ArrayList<Property> props = new ArrayList<>();
+      for (ModelComponent comp : carray) {
+         if (comp instanceof Point) {
+            props.add (((Point)comp).getProperty ("velocity"));
+         }
+         else if (comp instanceof Frame) {
+            props.add (((Frame)comp).getProperty ("velocity"));
+         }
+         else {
+            throw new IllegalArgumentException (
+               "ModelComponent is " + comp.getClass() +
+               "; must be a Point or Frame");
+         }
+      }
+      return props.toArray(new Property[0]);
    }
 
    /**

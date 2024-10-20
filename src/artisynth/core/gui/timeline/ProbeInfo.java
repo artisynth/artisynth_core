@@ -874,8 +874,9 @@ public class ProbeInfo implements Clonable, ActionListener {
       myLargeProbeDisplayItem.setActionCommand ("Large Display");
 
       JMenuItem myEditProbeItem = null;
-      if (getProbe() instanceof NumericOutputProbe ||
-          getProbe() instanceof NumericInputProbe) {
+      if (getProbe().isEditable() &&
+          (getProbe() instanceof NumericOutputProbe ||
+           getProbe() instanceof NumericInputProbe)) {
          myEditProbeItem = new JMenuItem ("Edit");
          myEditProbeItem.addActionListener (this);
          myEditProbeItem.setActionCommand ("Edit");
@@ -974,6 +975,20 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
 
       popupMenu.addSeparator();
+
+      ArrayList<String> copyActions = ProbeEditor.getCopyActions (
+         Main.getMain().getSelectionManager().getCurrentSelection());
+      if (copyActions.size() > 0) {
+         JMenu copyMenu = new JMenu ("Copy probe data");
+         for (String copyact : copyActions) {
+            JMenuItem menuItem = new JMenuItem (copyact);
+            menuItem.addActionListener (this);
+            menuItem.setActionCommand ("Copy probe data>"+copyact);
+            copyMenu.add (menuItem);
+         }
+         popupMenu.add (copyMenu);
+         popupMenu.addSeparator();
+      }
 
       if (getProbe().getExportFileInfo().length > 0) {
          popupMenu.add (myExportItem);
@@ -1216,6 +1231,11 @@ public class ProbeInfo implements Clonable, ActionListener {
          if (setLargeDisplayVisible (true) == null) {
             System.out.println ("Error: probe is not numeric");
          }
+      }
+      else if (nameOfAction.startsWith ("Copy probe data")) {
+         ProbeEditor.executeCopyAction (
+            nameOfAction, 
+            Main.getMain().getSelectionManager().getCurrentSelection());
       }
 
       // refresh the track changes after the popup command has been executed

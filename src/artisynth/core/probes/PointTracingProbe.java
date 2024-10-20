@@ -123,7 +123,8 @@ public class PointTracingProbe extends TracingProbe {
 
    public PointTracingProbe() {
       super();
-      createNumericList (3);
+      initVsize (3);
+      createNumericList ();
    }
 
    public PointTracingProbe (

@@ -18,6 +18,7 @@ import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.util.*;
+import maspack.matrix.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
@@ -26,8 +27,6 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
    public static final double EXPLICIT_TIME = -1;
 
    // private double[][] myPropValues;
-
-   private VectorNd myTmpVec;
 
    protected static boolean defaultExtendData = true;
 
@@ -57,10 +56,15 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
    }
 
    public NumericControlProbe (String fileName) throws IOException {
+      this (0, fileName);
+   }
+
+   public NumericControlProbe (int vsize, String fileName) throws IOException {
       this();
       if (fileName == null) {
          throw new IllegalArgumentException ("null fileName");
       }
+      setVsize (vsize);
       setAttachedFileName (fileName);
       load(/*setTimes=*/true);
    }
@@ -242,9 +246,8 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
             + rtok.lineno());
       }
       // myNumericList = new NumericList (numValues);
-      myNumericList = new NumericList (myVsize);
       myInterpolation.setOrder (interpolationOrder);
-      myNumericList.setInterpolation (myInterpolation);
+      createNumericList ();
       addData (rtok, timeStep);
    }
 
@@ -558,7 +561,7 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
          return true;
       }
       else if (scanAttributeName (rtok, "data")) {
-         createNumericList (getVsize());
+         createNumericList ();
          rtok.scanToken ('[');
          while (rtok.nextToken() != ']') {
             rtok.pushBack();
@@ -572,7 +575,7 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
          return true;
       }
       else if (scanAttributeName (rtok, "vsize")) {
-         myVsize = rtok.scanInteger();
+         setVsize (rtok.scanInteger());
          return true;
       }
       rtok.pushBack();
@@ -582,13 +585,27 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       tmpTraceInfos = null;
       super.scan (rtok, ref);
+//      if (tmpTraceInfos != null) {
+//         myPlotTraceManager.rebuild (
+//            getPropsOrDimens(), tmpTraceInfos, myRotationRep);
+//      }
+//      else {
+//         myPlotTraceManager.rebuild (getPropsOrDimens(), myRotationRep);
+//      }
+   }
+   
+   public void postscan (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      super.postscan (tokens, ancestor);
       if (tmpTraceInfos != null) {
-         myPlotTraceManager.rebuild (getPropsOrDimens(), tmpTraceInfos);
+         myPlotTraceManager.rebuild (
+            getPropsOrDimens(), tmpTraceInfos, myRotationRep);
       }
       else {
-         myPlotTraceManager.rebuild (getPropsOrDimens());
+         myPlotTraceManager.rebuild (getPropsOrDimens(), myRotationRep);
       }
-   }
+      tmpTraceInfos = null;
+   }   
 
    public void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
@@ -610,28 +627,32 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
       return true;
    }
 
-   public void createNumericList (int vsize) {
-      super.createNumericList (vsize);
-      myTmpVec = new VectorNd (vsize);
-   }
-
    public void setVsize (int vsize) {
-      setVsize (vsize, null);
+      initVsize (vsize);
+      createNumericList ();
+      if (!isScanning()) {
+         myPlotTraceManager.rebuild (getPropsOrDimens(), myRotationRep);
+         if (myLegend != null) {
+            myLegend.rebuild();
+         }     
+      }
    }
 
-   public void setVsize (int vsize, PlotTraceInfo[] traceInfos) {
-
-      createNumericList (vsize);
-      if (traceInfos != null) {
-         myPlotTraceManager.rebuild (getPropsOrDimens(), traceInfos);
-      }
-      else {
-         myPlotTraceManager.rebuild (getPropsOrDimens());
-      }
-      if (myLegend != null) {
-         myLegend.rebuild();
-      }
-   }      
+//   public void setVsize (int vsize, PlotTraceInfo[] traceInfos) {
+//
+//      initVsize (vsize);
+//      createNumericList ();
+//      if (traceInfos != null) {
+//         myPlotTraceManager.rebuild (
+//            getPropsOrDimens(), traceInfos, myRotationRep);
+//      }
+//      else {
+//         myPlotTraceManager.rebuild (getPropsOrDimens(), myRotationRep);
+//      }
+//      if (myLegend != null) {
+//         myLegend.rebuild();
+//      }
+//   }      
 
    /**
     * {@inheritDoc}

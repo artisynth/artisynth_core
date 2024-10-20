@@ -20,6 +20,8 @@ import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.util.*;
+import maspack.matrix.RotationRep;
+import maspack.matrix.VectorNd;
 import artisynth.core.modelbase.*;
 
 import artisynth.core.util.*;
@@ -271,7 +273,7 @@ public class NumericOutputProbe extends NumericProbeBase
          }
       }
       knot.t = tloc;
-      myNumericList.add (knot);
+      myNumericList.addAndAdjustRotations (knot);
       myNumericList.clearAfter (knot);
    }
 
@@ -344,7 +346,7 @@ public class NumericOutputProbe extends NumericProbeBase
          return true;
       } 
       else if (scanAttributeName (rtok, "data")) {
-         createNumericList (getVsize());
+         createNumericList ();
          rtok.scanToken ('[');
          while (rtok.nextToken() != ']') {
             rtok.pushBack();
@@ -358,7 +360,21 @@ public class NumericOutputProbe extends NumericProbeBase
          return true;
       }
       else if (scanAttributeName (rtok, "vsize")) {
-         myVsize = rtok.scanInteger();
+         initVsize (rtok.scanInteger());
+         return true;
+      }
+      else if (scanAttributeName (rtok, "rotationRep")) {
+         myRotationRep = rtok.scanEnum(RotationRep.class);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "rotationSubvecOffsets")) {
+         int[] offs = Scan.scanInts (rtok);
+         try {
+            setRotationSubvecOffsets (offs);
+         }
+         catch (Exception e) {
+            throw new IOException (e);
+         }
          return true;
       }
       rtok.pushBack();
@@ -411,6 +427,13 @@ public class NumericOutputProbe extends NumericProbeBase
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
       pw.println ("vsize=" + getVsize());
+      if (myRotationRep != null) {
+         pw.println ("rotationRep=" + myRotationRep);
+      }
+      if (myRotationSubvecOffsets != null) {
+         pw.print ("rotationSubvecOffsets=");
+         Write.writeInts (pw, myNumericList.getRotationSubvecOffsets(), null);
+      }
       if (myPropList != null && myPropList.size() > 0) {
          pw.println ("props=[");
          IndentingPrintWriter.addIndentation (pw, 2);
@@ -489,28 +512,26 @@ public class NumericOutputProbe extends NumericProbeBase
       ArrayList<NumericProbeDriver> newDrivers =
          createDrivers (driverExpressions, newVariables);
 
-      myVsize = 0;
+      int vsize = 0;
       for (int i = 0; i < newDrivers.size(); i++) {
-         myVsize += newDrivers.get (i).getOutputSize();
+         vsize += newDrivers.get (i).getOutputSize();
       }
+      initVsize (vsize);
       myDrivers = newDrivers;
       myPropList = createPropertyList (props);
       myVariables = newVariables;
       myConverters = newConverters;
 
       if (initData) {
-         myVsize = 0;
-         for (int i = 0; i < newDrivers.size(); i++) {
-            myVsize += newDrivers.get (i).getOutputSize();
-         }
-         myNumericList = new NumericList (myVsize);
+         createNumericList();
       }
 
       if (traceInfos != null) {
-         myPlotTraceManager.rebuild (getPropsOrDimens(), traceInfos);
+         myPlotTraceManager.rebuild (
+            getPropsOrDimens(), traceInfos, myRotationRep);
       }
       else {
-         myPlotTraceManager.rebuild (getPropsOrDimens());
+         myPlotTraceManager.rebuild (getPropsOrDimens(), myRotationRep);
       }
       if (myLegend != null) {
          myLegend.rebuild();
@@ -524,6 +545,13 @@ public class NumericOutputProbe extends NumericProbeBase
       return true;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isEditable() {
+      return true;
+   }
+   
    /**
     * {@inheritDoc}
     */

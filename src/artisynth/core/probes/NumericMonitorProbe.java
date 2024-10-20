@@ -21,7 +21,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.ScanToken;
 import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
-import maspack.matrix.VectorNd;
+import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -240,7 +240,7 @@ public class NumericMonitorProbe extends NumericDataFunctionProbe {
       NumericListKnot knot = new NumericListKnot (myVsize);
       generateData (knot.v, t, trel);
       knot.t = trel;
-      myNumericList.add (knot);
+      myNumericList.addAndAdjustRotations (knot);
       myNumericList.clearAfter (knot);
    }
 
@@ -287,14 +287,15 @@ public class NumericMonitorProbe extends NumericDataFunctionProbe {
 
    public void setVsize (int vsize, PlotTraceInfo[] traceInfos) {
 
-      myVsize = vsize;
-      myNumericList = new NumericList (myVsize);
+      initVsize (vsize);
+      createNumericList();
 
       if (traceInfos != null) {
-         myPlotTraceManager.rebuild (getPropsOrDimens(), traceInfos);
+         myPlotTraceManager.rebuild (
+            getPropsOrDimens(), traceInfos, myRotationRep);
       }
       else {
-         myPlotTraceManager.rebuild (getPropsOrDimens());
+         myPlotTraceManager.rebuild (getPropsOrDimens(), myRotationRep);
       }
       if (myLegend != null) {
          myLegend.rebuild();

@@ -116,7 +116,7 @@ public class MainFrame extends JFrame {
       updateWorkingDirDisplay();
    }
 
-   private static int maxDirDisplayChars = 48;
+   private static final int maxDirDisplayChars = 48;
 
    public void updateWorkingDirDisplay() {
       String path = ArtisynthPath.getWorkingDirPath();

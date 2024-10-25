@@ -29,10 +29,10 @@ import maspack.fileutil.*;
 public class Launcher {
 
    public static String DEFAULT_MAIN_CLASS_NAME = "artisynth.core.driver.Main";
-   private static String myRemoteHost = // where to try and get missing files
+   private static final String myRemoteHost = // where to get missing files
       "https://www.artisynth.org/files/lib/";
 
-   public static boolean useJOGL2 = true;
+   public static final boolean useJOGL2 = true;
    private String myMainClassName;
 
    public Launcher (String mainClassName) {
@@ -219,9 +219,8 @@ public class Launcher {
       }
    }
 
-   private static String SEP = File.separator;
-   private static String PSEP = File.pathSeparator;
-
+   private static final String SEP = File.separator;
+   private static final String PSEP = File.pathSeparator;
 
    private static String[] readAuxFilesFromLine (BufferedReader reader)
       throws IOException {
@@ -437,7 +436,7 @@ public class Launcher {
       return urls.toArray (new URL[0]);
    }
 
-   private static String libPathName = "java.library.path";
+   private static final String libPathName = "java.library.path";
 
    /**
     * Try adding a load library directory to the java.library.path property if

@@ -309,10 +309,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       LOCAL,
       WORLD;
 
-      private static ManipulatorFrameSpec[] vals = values();
-      public ManipulatorFrameSpec next() {
-        return vals[(this.ordinal()+1) % vals.length];
-      }      
+//      private static ManipulatorFrameSpec[] vals = values();
+//      public ManipulatorFrameSpec next() {
+//        return vals[(this.ordinal()+1) % vals.length];
+//      }      
    };
 
    /**
@@ -2769,6 +2769,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (args == null) {
          args = new String[0];
       }
+
+      initStatics();
       
       ArgParser parser = new ArgParser ("java artisynth.core.driver.Main", false);
       parser.addOption ("-help %v #prints help message", printHelp);
@@ -4826,5 +4828,79 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public String getHomeDir() {
       return ArtisynthPath.getHomeDir();
    }
-   
+
+   /**
+    * Reinitializes static variables. Is needed in contexts, such as running
+    * from MATLAB, where ArtiSynth is restarted but the classes themselves are
+    * not reloaded.
+    */
+   public static void initStatics() {
+      myMain = null;
+
+      // reset argument variables
+      viewerWidth = new IntHolder(-1);
+      viewerHeight = new IntHolder(-1);
+      screenLocX = new IntHolder(-1);
+      screenLocY = new IntHolder(-1);
+      printHelp = new BooleanHolder (false);
+      yup = new BooleanHolder (false);
+      drawAxes = new BooleanHolder (false);
+      drawGrid = new BooleanHolder (false);
+      axialView = new StringHolder();
+      orthographic = new BooleanHolder (false);
+      timelineHidden = new BooleanHolder (false);
+      timelineVisible = new BooleanHolder (false);
+      startWithJython = new BooleanHolder (false);
+      jythonLocation = new StringHolder();
+      timelineLocation = new StringHolder();
+      timelineWidth = new IntHolder (-1);
+      timelineHeight = new IntHolder (-1);
+      printOptions = new BooleanHolder (false);
+      zoom = new IntHolder (-1);
+      timelineRange = new DoubleHolder (-2);
+      axisLength = new DoubleHolder (-1);
+      framesPerSecond = new DoubleHolder (-1);
+      maxStep = new DoubleHolder (-1);
+      modelName = new StringHolder();
+      play = new BooleanHolder();
+      playFor = new DoubleHolder();
+      exitOnBreak = new BooleanHolder();
+      updateLibs = new BooleanHolder();
+      demoFilename = new StringHolder();
+      modelMenuFilename = new StringHolder();
+      scriptMenuFilename = new StringHolder();
+      historyFilename = new StringHolder();
+      configFolder = new StringHolder();
+      scriptsFilename = new StringHolder (".artisynthScripts");
+      scriptFile = new StringHolder(); 
+      wayPointsFile = new StringHolder(); 
+      taskManagerClassName = new StringHolder(); 
+      abortOnInvertedElems = new BooleanHolder (false);
+      disableHybridSolves = new BooleanHolder (false);
+      numSolverThreads = new IntHolder (-1);
+      posCorrection = new StringHolder ();
+      noIncompressDamping = new BooleanHolder (false);
+      useAjlCollision = new BooleanHolder (false);
+      useImplicitFriction = new BooleanHolder (false);
+      useArticulatedTransforms = new BooleanHolder (false);
+      noGui = new BooleanHolder (false);
+      glVersion = new IntHolder (-1);
+      graphicsInterface = new StringHolder("");
+      lookAndFeel = new StringHolder("");
+      useGLJPanel = new BooleanHolder (true);
+      logLevel = new StringHolder(null);
+      testSaveRestoreState = new BooleanHolder (false);
+      movieFrameRate = new DoubleHolder (-1);
+      movieMethod = new StringHolder ();
+      flags = new IntHolder();
+      mousePrefs = new StringHolder(); // "kees"
+      bgColor = new float[] { -1f, -1f, -1f};       
+      openMatlab = new BooleanHolder(false);
+      matrixSolver = new StringHolder();
+      testModelLoading = new StringHolder();
+
+      // statics in other classes
+      ArtiSynthThreadManager.setMainManager (null);
+      LibraryInstaller.setRemoteSource (null);
+   }
 }

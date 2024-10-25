@@ -52,11 +52,13 @@ public class LibraryInstaller {
    }
 
    public void setRemoteSource (String source) {
-      try {
-         URIx uri = new URIx (source);
-      }
-      catch (URIxSyntaxException e) {
-         throw new IllegalArgumentException ("Malformed URI: " + source);
+      if (source != null) {
+         try {
+            URIx uri = new URIx (source);
+         }
+         catch (URIxSyntaxException e) {
+            throw new IllegalArgumentException ("Malformed URI: " + source);
+         }
       }
       myRemoteSource = source;
    }

@@ -82,7 +82,7 @@ public class ViewerGridPrefs extends Preferences {
    public static PropertyList myProps =
       new PropertyList (ViewerGridPrefs.class);
 
-   static AxisAngle myDefaultAxisAngle = new AxisAngle();
+   static final AxisAngle myDefaultAxisAngle = new AxisAngle();
 
    static {
       myProps.add ("minCellPixels", "minimum number of pixels in a cell", 10);

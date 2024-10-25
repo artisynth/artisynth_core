@@ -26,8 +26,6 @@ import artisynth.core.driver.Main.SelectionMode;
 
 
 public class SelectionToolbar extends JToolBar implements ActionListener {
-   static String iconPath = "/artisynth/core/gui/icon/";
-
    private JButton selectButton;
    private JButton ellipticSelectButton;
    private JButton scaleButton;

@@ -54,4 +54,4 @@ if [ $? != "0" ] ; then
     exit 1
 fi
 ARGS="$ARGS -remoteSource https://www.artisynth.org/files/lib/"
-java -cp $cpath artisynth.core.driver.LibraryInstaller $ARGS 
+java -cp "$cpath" artisynth.core.driver.LibraryInstaller $ARGS

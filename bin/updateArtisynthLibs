@@ -42,7 +42,7 @@ fi
 OSNAME=`uname -s`
 if echo "$OSNAME" | egrep '(CYGWIN|MINGW)' 1>/dev/null 2>&1 ; then
     # Classpath has different format on Windows
-    AH=`cygpath -w $ARTISYNTH_HOME`
+    AH=`cygpath -w "$ARTISYNTH_HOME"`
     cpath="$AH\lib\vfs2.jar;$AH\bin\libraryInstaller.jar"
 else
     AH=$ARTISYNTH_HOME

@@ -92,9 +92,10 @@ OSNAME=`uname -s`
 # in $ARTISYNTH_HOME/lib
 if [[ "$OSNAME" == *"CYGWIN"* || "$OSNAME" == *"MINGW"* ]]; then
    # Windows based system
-   ATW=`cygpath -w $AT`
+   ATW=`cygpath -w "$AT"`
    export ARTISYNTH_HOME=$ATW
-   export ARTISYNTH_PATH=".;`cygpath -w $HOME`;$ATW"
+   HOMEW=`cygpath -w "$HOME"`
+   export ARTISYNTH_PATH=".;$HOMEW;$ATW"
    if [ -z $CLASSPATH ]; then
       CLASSPATH="$ATW\classes;$ATW\lib\*"
    else 

@@ -51,7 +51,7 @@ public class LibraryInstaller {
       return myRemoteSource;
    }
 
-   public void setRemoteSource (String source) {
+   public static void setRemoteSource (String source) {
       if (source != null) {
          try {
             URIx uri = new URIx (source);

@@ -287,9 +287,9 @@ public class IKSolverTest extends UnitTest {
          joint0.setTheta (theta0);
          joint1.setTheta (theta1);
          int niter = solver.solve (mtargs);
-         //System.out.println ("niter=" + niter);
+         System.out.println ("niter=" + niter);
          if (niter == -1) {
-            System.out.println ("niter=" + niter);
+            //System.out.println ("niter=" + niter);
             // throw new TestException (
             //    "Solver did not converge with noise added, t=" + t);
          }
@@ -415,35 +415,35 @@ public class IKSolverTest extends UnitTest {
    }
 
    public void test() {
-      // testOneBody (createOneBodyMech(3));
-      // testOneBody (createOneBodyMech(2));
-      // testOneBody (createOneBodyMech(1));
+      testOneBody (createOneBodyMech(3));
+      testOneBody (createOneBodyMech(2));
+      testOneBody (createOneBodyMech(1));
 
-      // testOneLink();
+      testOneLink();
 
       boolean offset = false;
-      // clearSolveCounts();
-      // testTwoLink (2, offset);
-      // testTwoLink (5, offset);
-      // testTwoLink (9, offset);
-      // System.out.printf ("iters: %g\n", avgNumIters());
+      clearSolveCounts();
+      testTwoLink (2, offset);
+      testTwoLink (5, offset);
+      testTwoLink (9, offset);
+      System.out.printf ("iters: %g\n", avgNumIters());
 
-      // offset = true;
+      offset = true;
 
-      // clearSolveCounts();
-      // testTwoLink (2, offset);
-      // testTwoLink (5, offset);
-      // testTwoLink (9, offset);
-      // System.out.printf ("iters with offset: %g\n", avgNumIters());
+      clearSolveCounts();
+      testTwoLink (2, offset);
+      testTwoLink (5, offset);
+      testTwoLink (9, offset);
+      System.out.printf ("iters with offset: %g\n", avgNumIters());
 
-      // clearSolveCounts();
-      // testTwoLinkWithZeroLink0Inertia();
-      // System.out.printf ("iters with link0 inertia 0: %g\n", avgNumIters());
+      clearSolveCounts();
+      testTwoLinkWithZeroLink0Inertia();
+      System.out.printf ("iters with link0 inertia 0: %g\n", avgNumIters());
 
       clearSolveCounts();
       testTwoLinkWithNoise (2, offset);
-      // testTwoLinkWithNoise (5, offset);
-      // testTwoLinkWithNoise (9, offset);
+      testTwoLinkWithNoise (5, offset);
+      testTwoLinkWithNoise (9, offset);
       System.out.printf ("iters with offset, noise: %g\n", avgNumIters());
 
       testBuildJTJMatrix();

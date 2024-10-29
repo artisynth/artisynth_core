@@ -1287,7 +1287,6 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
                "ModelComponent is " + comp.getClass() +
                "; must be a Point, Frame or FixedMeshBody");
          }
-
       }
       if (offsets.size() > 0) {
          myRotationSubvecOffsets = offsets.getArray();

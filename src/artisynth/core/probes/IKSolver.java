@@ -59,6 +59,10 @@ import maspack.util.ReaderTokenizer;
 public class IKSolver implements PostScannable {
 
    private static final double INF = Double.POSITIVE_INFINITY;
+   // If true, use the derivative of J in constructing the main mass block.
+   // Results in a non-symmetric solve matrix. Set to false by default since we
+   // have not yet seen that this improves convergence.
+   private static final boolean myUseJDerivative = false;
 
    /**
     * Information about the rigid bodies associated with this solve
@@ -499,6 +503,27 @@ public class IKSolver implements PostScannable {
    }
 
    /**
+    * Adds the second derivative term related to the time derivative of locw to
+    * a body's JTJ matrix.
+    *
+    * @param r marker position relative to body, rotated to world coordinated
+    * @param y weighted displacement to the marker target position
+    */
+   private void addHj (SpatialInertia blk, Vector3d r, Vector3d y) {
+      blk.m33 += (r.y*y.y + r.z*y.z);
+      blk.m44 += (r.x*y.x + r.z*y.z);
+      blk.m55 += (r.x*y.x + r.y*y.y);
+
+      blk.m34 -= r.y*y.x;
+      blk.m35 -= r.z*y.x;
+      blk.m45 -= r.z*y.y;
+
+      blk.m43 -= r.x*y.y;
+      blk.m53 -= r.x*y.z;
+      blk.m54 -= r.y*y.z;
+   }
+
+   /**
     * Updates the system solve matrix {@code S} and its right hand side {@code
     * b} prior to the next iteration step.
     */
@@ -523,6 +548,9 @@ public class IKSolver implements PostScannable {
             cb.v.add (disp);
             disp.cross (locw, disp);
             cb.w.add (disp);
+            if (myUseJDerivative) {
+               addHj (blk, locw, disp);
+            }
             j++;
          }
          b.setSubVector (6*k, cb);         
@@ -930,8 +958,10 @@ public class IKSolver implements PostScannable {
          updateSolveMatrix (mySolveMatrix, myBd, mtargs, disps);
          updateConstraints ();
          if (myAnalyze) {
+            int matrixType =
+               myUseJDerivative ? Matrix.INDEFINITE : Matrix.SYMMETRIC;
             myKKTSolver.analyze (
-               mySolveMatrix, velSize, myGT, myRg, Matrix.SPD); 
+               mySolveMatrix, velSize, myGT, myRg, matrixType);
             myAnalyze = false;
          }
          myKKTSolver.factor (mySolveMatrix, velSize, myGT, myRg, myNT, myRn);

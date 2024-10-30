@@ -230,7 +230,6 @@ public class IKSolver implements PostScannable {
          weights = new VectorNd (mkrs.size());
          weights.setAll (1.0);
       }
-
       if (weights.size() < mkrs.size()) {
          throw new IllegalArgumentException (
             "weights size "+weights.size()+
@@ -388,7 +387,10 @@ public class IKSolver implements PostScannable {
          RigidBody body = bodyQueue.remove();
          if (body.getConnectors() != null) {
             for (BodyConnector bcon : body.getConnectors()) {
-               if (!connectors.contains (bcon)) {
+               if (!connectors.contains(bcon) &&
+                   // ensure connector is part of the component hierarchy -
+                   // won't be if connector was created but not added to model:
+                   ComponentUtils.isAncestorOf (myMech, bcon)) {
                   RigidBody cbody;
                   connectors.add (bcon);
                   if (!(bcon.getBodyA() instanceof RigidBody)) {

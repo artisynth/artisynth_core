@@ -1,6 +1,5 @@
 /**
  * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
- *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
@@ -19,6 +18,7 @@ import artisynth.core.modelbase.ComponentListView;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import maspack.geometry.Face;
+import maspack.geometry.Face.FaceFilter;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
@@ -6289,6 +6289,38 @@ public class FemFactory {
    public static FemModel3d createExtrusion(
       FemModel3d model, int n, double d, double zOffset, 
       PolygonalMesh surface) {
+
+      double[] depths = new double[n];
+      for (int i=0; i<n; i++) {
+         depths[i] = d;
+      }
+      return createExtrusion (
+         model, depths, zOffset, surface, /*facefilter*/null);
+   }
+
+   /**
+    * Creates a shell-type FEM model by extruding a surface mesh along the
+    * normal direction of its faces. A subset of the mesh faces can be selected
+    * using the {@link FaceFilter} {@code faceFilter}. The element types used
+    * depend on the underlying faces: triangular faces generate wedge elements,
+    * while quad faces generate hex elements. The shell can have multiple
+    * layers; the number of layers is <code>n</code>.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param depths layer thicknesses; length specifies the number of layers
+    * @param zOffset offset from the surface
+    * @param surface surface mesh to extrude
+    * @param faceFilter if non-{@code null}, specifies which mesh faces should
+    * be used for generated the model
+    * @return extruded FEM model, which will be <code>model</code> if that
+    * argument is not <code>null</code>
+    * @throws IllegalArgumentException if the specified element type is not
+    * supported, or if the surface faces are not triangles or quads.
+    */
+   public static FemModel3d createExtrusion(
+      FemModel3d model, double[] depths, double zOffset, 
+      PolygonalMesh surface, FaceFilter faceFilter) {
       
       // create model
       if (model == null) {
@@ -6296,71 +6328,97 @@ public class FemFactory {
       } else {
          model.clear();
       }
-      if (n < 1) {
-         throw new IllegalArgumentException ("n must be >= 1");
+      if (depths.length < 1) {
+         throw new IllegalArgumentException (
+            "'depths' has length 0");
       }
 
-      // compute normals and add base nodes
-      Vector3d[] normals = new Vector3d[surface.numVertices()];
-      Point3d newpnt = new Point3d();
-      for (int i=0; i<surface.numVertices(); i++) {
-         normals[i] = new Vector3d();
-         Vertex3d vtx = surface.getVertex(i);
-         vtx.computeNormal(normals[i]);
-         newpnt.scaledAdd (zOffset, normals[i], vtx.pnt);
-         FemNode3d newnode = new FemNode3d(newpnt);
-         model.addNode(newnode);
-      }
-      
-      // // add vertices as nodes
-      // Point3d newpnt = new Point3d();
-      // for (int i=0; i<surface.numVertices(); i++) {
-      //    Vertex3d v = surface.getVertex(i);
-      //    FemNode3d newnode = new FemNode3d(v.pnt);
-      //    model.addNode(newnode);
-      // }
-      
-      for (int i = 0; i < n; i++) {
-         for (int j=0; j < surface.numVertices(); j++) {
-            Vertex3d v = surface.getVertex(j);
-            newpnt.scaledAdd((i + 1) * d + zOffset, normals[j], v.pnt);
-            FemNode3d newnode = new FemNode3d(newpnt);
-            model.addNode(newnode);
-         }
-
+      // if there is a faceFilter, find out which mesh vertices are used.
+      boolean[] usesVertex = null;
+      if (faceFilter != null) {
+         usesVertex = new boolean[surface.numVertices()];
          for (Face f : surface.getFaces()) {
-            int numv = f.numVertices();
-            if (numv != 3 && numv != 4) {
-               throw new IllegalArgumentException (
-                  "Surfaces face "+f.getIndex()+" has "+numv+
-                  " vertices. Only triangles and quads are supported");
-            }
-            FemNode3d[] nodes = new FemNode3d[2 * numv];
-            int cnt = 0;
-
-            for (Integer idx : f.getVertexIndices()) {
-               nodes[cnt++] =
-                  model.getNode(idx + (i + 1) * surface.numVertices());
-            }
-            for (Integer idx : f.getVertexIndices()) {
-               nodes[cnt++] = model.getNode(idx + i * surface.numVertices());
-            }
-            // hex and wedge have different winding order, swap around
-            boolean flipNodeOrder = (numv != 4);
-            // also need to flip if d < 0
-            if (d < 0) {
-               flipNodeOrder = !flipNodeOrder;
-            }
-            if (flipNodeOrder) {
-               FemNode3d tmp;
-               for (int k=0; k<numv; ++k) {
-                  tmp = nodes[k];
-                  nodes[k] = nodes[k+numv];
-                  nodes[k+numv] = tmp;
+            if (faceFilter.faceIsValid (f)) {
+               for (int vidx : f.getVertexIndices()) {
+                  usesVertex[vidx] = true;
                }
             }
-            FemElement3d e = FemElement3d.createElement(nodes);
-            model.addElement(e);
+         }
+      }
+
+      // for each used vertex, compute normal and add a base node
+      ArrayList<Vector3d> normals = new ArrayList<>(surface.numVertices());
+      int[] verticesToBaseNodes = new int[surface.numVertices()];
+      Point3d newpnt = new Point3d();
+      int numUsedVerts = 0;      
+      for (int i=0; i<surface.numVertices(); i++) {
+         if (usesVertex == null || usesVertex[i]) {
+            Vector3d normal = new Vector3d();
+            Vertex3d vtx = surface.getVertex(i);
+            vtx.computeNormal(normal);
+            newpnt.scaledAdd (zOffset, normal, vtx.pnt);
+            FemNode3d newnode = new FemNode3d(newpnt);
+            model.addNode(newnode);
+            verticesToBaseNodes[i] = numUsedVerts++;
+            normals.add (normal);
+         }
+         else {
+            verticesToBaseNodes[i] = -1;
+         }
+      }
+
+      // create the elements layer by layer
+      double nodeOffset = zOffset;
+      for (int i = 0; i < depths.length; i++) {
+         // add the next set of veritices for this later
+         nodeOffset += depths[i];
+         for (int j=0; j < surface.numVertices(); j++) {
+            if (usesVertex == null || usesVertex[j]) {
+               Vertex3d vtx = surface.getVertex(j);
+               Vector3d normal = normals.get(verticesToBaseNodes[j]);
+               newpnt.scaledAdd(nodeOffset, normal, vtx.pnt);
+               FemNode3d newnode = new FemNode3d(newpnt);
+               model.addNode(newnode);
+            }
+         }
+
+         // add an element for each valid face
+         for (Face f : surface.getFaces()) {
+            if (faceFilter == null || faceFilter.faceIsValid(f)) {
+               int numv = f.numVertices();
+               if (numv != 3 && numv != 4) {
+                  throw new IllegalArgumentException (
+                     "Surfaces face "+f.getIndex()+" has "+numv+
+                     " vertices. Only triangles and quads are supported");
+               }
+               FemNode3d[] nodes = new FemNode3d[2 * numv];
+               int cnt = 0;
+               
+               for (int idx : f.getVertexIndices()) {
+                  int baseNodeIdx = verticesToBaseNodes[idx];
+                  nodes[cnt++] = model.getNode(baseNodeIdx + (i+1)*numUsedVerts);
+               }
+               for (int idx : f.getVertexIndices()) {
+                  int baseNodeIdx = verticesToBaseNodes[idx];
+                  nodes[cnt++] = model.getNode(baseNodeIdx + i*numUsedVerts);
+               }
+               // hex and wedge have different winding order, swap around
+               boolean flipNodeOrder = (numv != 4);
+               // also need to flip if d < 0
+               if (depths[i] < 0) {
+                  flipNodeOrder = !flipNodeOrder;
+               }
+               if (flipNodeOrder) {
+                  FemNode3d tmp;
+                  for (int k=0; k<numv; ++k) {
+                     tmp = nodes[k];
+                     nodes[k] = nodes[k+numv];
+                     nodes[k+numv] = tmp;
+                  }
+               }
+               FemElement3d e = FemElement3d.createElement(nodes);
+               model.addElement(e);
+            }
          }
       }
       return model;
@@ -6377,7 +6435,7 @@ public class FemFactory {
     * @param model model to which the elements should be added, or
     * <code>null</code> if the model is to be created from scratch.
     * @param n number of layers
-    * @param d layer thickness
+    * @param d layer thicknesses
     * @param zOffset offset from the surface
     * @param shellFem FEM model suppling the shell elements
     * @return extruded FEM model, which will be <code>model</code> if that

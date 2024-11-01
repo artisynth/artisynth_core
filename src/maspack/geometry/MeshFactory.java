@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.PriorityQueue;
@@ -20,6 +21,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.util.InternalErrorException;
+import maspack.util.DynamicIntArray;
+import maspack.geometry.Face.FaceFilter;
 import quickhull3d.QuickHull3D;
 
 /**
@@ -2257,6 +2260,7 @@ public class MeshFactory {
       return mesh;
    }
 
+
    public static PolygonalMesh createOctahedralSphere(double r, Point3d c,
       int divisions) {
       PolygonalMesh mesh = createOctahedralSphere(r, divisions);
@@ -2264,6 +2268,14 @@ public class MeshFactory {
       return mesh;
    }
 
+   /**
+    * Creates an icosahedral sphere, centered on the origin, with a specified
+    * radius and number of divisions.
+    *
+    * @param r radius of the sphere
+    * @param divisions number of divisions used to create the sphere
+    * @return created spherical mesh
+    */
    public static PolygonalMesh createIcosahedralSphere(double r, int divisions) {
       PolygonalMesh mesh = createIcosahedron(r);
       for (int i = 0; i < divisions; i++) {
@@ -2273,8 +2285,125 @@ public class MeshFactory {
       return mesh;
    }
    
-   public static PolygonalMesh createIcosahedralSphere(double r, Point3d c,
-      int divisions) {
+   /**
+    * Creates an icosahedral hemisphere with a specified radius and number of
+    * divisions. The hemisphere is formed by taking a sphere centered on the
+    * origin and discarding vertices and faces above the z = 0 plane.
+    *
+    * @param r radius of the sphere
+    * @param divisions number of icosahedeal divisions
+    * @return created hemispherical mesh
+    */
+   public static PolygonalMesh createIcosahedralHemisphere (
+      double r, int divisions) {
+
+      PolygonalMesh sphere = createIcosahedralSphere (r, divisions);
+      // rotate so that edges align with the equator
+      double ang = Math.toRadians(58.282525588539); // 0.32379180882522*PI
+      sphere.transform (new RigidTransform3d (0, 0, 0,  0, 0, ang));
+
+      // build a new mesh with faces and vertices above the equator removed
+      PolygonalMesh mesh = new PolygonalMesh();
+      int[] oldToNewVertexIndices = new int[sphere.numVertices()];
+      double ztol = r*10*EPS;
+      int numVerts = 0;
+      // add vertices on or below the equator
+      for (int i=0; i<sphere.numVertices(); i++) {
+         Vertex3d vtx = sphere.getVertex (i);
+         if (vtx.pnt.z <= ztol) {
+            // keep the vertex
+            mesh.addVertex (vtx.pnt);
+            oldToNewVertexIndices[i] = numVerts++;
+         }
+         else {
+            oldToNewVertexIndices[i] = -1;
+         }
+      }
+      // add faces on or below the equator
+      int[] newIdxs = new int[3];
+      for (int i=0; i<sphere.numFaces(); i++) {
+         int k = 0;
+         for (int oldIdx : sphere.getFace(i).getVertexIndices()) {
+            int newIdx = oldToNewVertexIndices[oldIdx];
+            if (newIdx == -1) {
+               break;
+            }
+            else {
+               newIdxs[k++] = newIdx;
+            }
+         }
+         if (k == 3) {
+            mesh.addFace (newIdxs);
+         }
+      }
+      return mesh;
+   }
+   
+   /**
+    * Return an array of the indices of the top rim vertices of a hemisphere,
+    * sorted by angle about the z axis.
+    */
+   private static int[] getRimVertexIndices (
+      PolygonalMesh hemisphere, double tol) {
+      ArrayList<Vertex3d> verts = new ArrayList<>();
+      for (Vertex3d v : hemisphere.getVertices()) {
+         if (Math.abs(v.pnt.z) <= tol) {
+            verts.add (v);
+         }
+      }
+      Collections.sort (
+         verts, (v0,v1) -> {
+            double a0=Math.atan2(v0.pnt.y,v0.pnt.x); 
+            double a1=Math.atan2(v1.pnt.y,v1.pnt.x);
+            return a0 < a1 ? -1 : (a1 == a0 ? 0 : 1);
+         });
+      int[] idxs = new int[verts.size()];
+      int k = 0;
+      for (Vertex3d v : verts) {
+         idxs[k++] = v.getIndex();
+      }
+      return idxs;
+   }
+
+   /**
+    * Creates an icosahedral hemispherical bowl, with a specified radius and
+    * number of divisions. The bowl is symmetric about the z axis, with the top
+    * plane centered on the origin.
+    *
+    * @param rin inner radius of the bowl
+    * @param rout outer radius of the bowl
+    * @param number of icosahedral divisions
+    * @return created hemispherical mesh
+    */
+   public static PolygonalMesh createIcosahedralBowl (
+      double rin, double rout, int divisions) {
+
+      PolygonalMesh inner = createIcosahedralHemisphere (rin, divisions);
+      inner.flip(); // flip direction of inner faces
+      PolygonalMesh outer = createIcosahedralHemisphere (rout, divisions);
+
+      // create a mesh and add both the inner and outer faces to it
+      PolygonalMesh mesh = new PolygonalMesh();
+      mesh.addMesh (inner);
+      mesh.addMesh (outer);
+      // add connecting faces between  along the rim
+      double tol = 10*EPS*rout;
+      int[] rimIdxs = getRimVertexIndices (inner, tol);
+      for (int i=0; i<rimIdxs.length; i++) {
+         int idx0 = rimIdxs[i];
+         int idx1 = rimIdxs[(i+1)%rimIdxs.length];
+         Vertex3d vi0 = mesh.getVertex(idx0);
+         Vertex3d vi1 = mesh.getVertex(idx1);
+         Vertex3d vo0 = mesh.getVertex(idx0+inner.numVertices());
+         Vertex3d vo1 = mesh.getVertex(idx1+inner.numVertices());
+         mesh.addFace (vo0, vi1, vi0);
+         mesh.addFace (vo0, vo1, vi1);
+      }
+      return mesh;
+   }
+   
+   public static PolygonalMesh createIcosahedralSphere(
+      double r, Point3d c, int divisions) {
       PolygonalMesh mesh = createIcosahedralSphere (r, divisions);
       mesh.transform(new RigidTransform3d(c.x, c.y, c.z));
       return mesh;
@@ -4223,6 +4352,175 @@ public class MeshFactory {
       }
       
       return out;
+   }
+   
+   /**
+    * Create a new PolygonalMesh as a submesh of an original mesh.  The submesh
+    * is determined using a {@link FaceFilter} to select meshes from the
+    * original mesh.
+    *
+    * @param mesh original mesh
+    * @param faceFilter selects which faces belong in the submesh
+    * @return created submesh
+    */
+   public static PolygonalMesh createSubmesh (
+      PolygonalMesh mesh, FaceFilter faceFilter) {
+      
+
+
+      // find out which mesh vertices are used.
+      boolean[] usesVertex = new boolean[mesh.numVertices()];
+      for (Face f : mesh.getFaces()) {
+         if (faceFilter.faceIsValid (f)) {
+            for (int vidx : f.getVertexIndices()) {
+               usesVertex[vidx] = true;
+            }
+         }
+      }
+
+      // Add retained vertices to the new mesh and create a map from the old to
+      // new vertex indices
+      PolygonalMesh submesh = new PolygonalMesh();      
+      int[] oldToNewVertexIndices = new int[mesh.numVertices()];
+      for (int i=0; i<mesh.numVertices(); i++) {
+         if (usesVertex[i]) {
+            oldToNewVertexIndices[i] = submesh.numVertices();
+            submesh.addVertex (mesh.getVertex(i).pnt);
+         }
+         else {
+            oldToNewVertexIndices[i] = -1;
+         }
+      }
+      System.out.println ("submesh.numVerts=" + submesh.numVertices());
+      // Add retained faces and create a map from old to new face indices
+      int[] oldToNewFaceIndices = new int[mesh.numFaces()];
+      for (int i=0; i<mesh.numFaces(); i++) {
+         Face face = mesh.getFace(i);
+         if (faceFilter.faceIsValid(face)) {
+            oldToNewFaceIndices[i] = submesh.numFaces();
+            int[] newIdxs = new int[face.numVertices()];
+            int k = 0;
+            for (int oldIdx : mesh.getFace(i).getVertexIndices()) {
+               newIdxs[k++] = oldToNewVertexIndices[oldIdx];
+            }
+            submesh.addFace (newIdxs);
+         }
+         else {
+            oldToNewFaceIndices[i] = -1;
+         }
+      }
+      
+      submesh.setMeshToWorld (mesh.getMeshToWorld());
+      if (mesh.hasExplicitNormals()) {
+         if (mesh.hasNormals()) {
+            boolean[] hasNormal = new boolean[mesh.numNormals()];
+            int[] normalIndices = findSubmeshItemIndices (
+               hasNormal, mesh.getNormalIndices(), oldToNewFaceIndices, mesh);
+            ArrayList<Vector3d> normals = new ArrayList<>();
+            for (int i=0; i<mesh.numNormals(); i++) {
+               if (hasNormal[i]) {
+                  normals.add (mesh.getNormal(i));
+               }
+            }
+            submesh.setNormals (normals, normalIndices);
+         }
+         else {
+            submesh.setNormals (null, null);
+         }
+      }
+      if (mesh.hasTextureCoords()) {
+         boolean[] hasCoords = new boolean[mesh.numTextureCoords()];
+         int[] indices = findSubmeshItemIndices (
+            hasCoords, mesh.getTextureIndices(), oldToNewFaceIndices, mesh);
+         ArrayList<Vector3d> coords = new ArrayList<>();
+         for (int i=0; i<mesh.numTextureCoords(); i++) {
+            if (hasCoords[i]) {
+               coords.add (mesh.getTextureCoords(i));
+            }
+         }
+         submesh.setTextureCoords (coords, indices);
+      }
+      if (mesh.isVertexColored()) {
+         submesh.setVertexColoringEnabled();
+         int k = 0;
+         for (int i=0; i<mesh.numVertices(); i++) {
+            if (usesVertex[i]) {
+               submesh.setColor (k++, mesh.getColor(i));
+            }
+         }
+      }
+      else if (mesh.getFeatureColoringEnabled()) {
+         submesh.setFeatureColoringEnabled();
+         int k = 0;
+         for (int i=0; i<mesh.numFaces(); i++) {
+            if (oldToNewFaceIndices[i] != -1) {
+               submesh.setColor (k++, mesh.getColor(i));
+            }
+         }
+      }
+      else if (mesh.hasColors()) {
+         boolean[] hasColor = new boolean[mesh.numColors()];
+         int[] indices = findSubmeshItemIndices (
+            hasColor, mesh.getColorIndices(), oldToNewFaceIndices, mesh);
+         ArrayList<float[]> colors = new ArrayList<>();
+         for (int i=0; i<mesh.numColors(); i++) {
+            if (hasColor[i]) {
+               colors.add (mesh.getColor(i));
+            }
+         }
+         submesh.setColors (colors, indices);
+      }
+      //submesh.setVertexColoring (mesh.getVertexColoring());
+      //submesh.setFeatureColoring (mesh.getFeatureColoring());
+
+      if (mesh.getRenderProps() != null) {
+         submesh.setRenderProps (mesh.getRenderProps());
+      }
+      else {
+         submesh.clearRenderProps();
+      }
+      submesh.setFixed (mesh.isFixed());
+      submesh.setColorsFixed (mesh.isColorsFixed());
+      submesh.setTextureCoordsFixed (mesh.isTextureCoordsFixed ());
+      submesh.setColorInterpolation (mesh.getColorInterpolation());
+      submesh.setRenderBuffered (mesh.isRenderBuffered());
+
+      return submesh;
+   }
+
+      
+   private static int[] findSubmeshItemIndices (
+      boolean[] hasItem, int[] itemIndices,
+      int[] oldToNewFaceIndexMap, PolygonalMesh mesh) {
+
+      int numItems = hasItem.length;
+      int[] indexOffs = mesh.getFeatureIndexOffsets();
+      for (int fi=0; fi<indexOffs.length-1; fi++) {
+         if (oldToNewFaceIndexMap[fi] != -1) {
+            for (int idx=indexOffs[fi]; idx<indexOffs[fi+1]; idx++) {
+               hasItem[itemIndices[idx]] = true;
+            }
+         }
+      }
+      int[] oldToNewIndexMap = new int[numItems];
+      int k=0;
+      for (int i=0; i<numItems; i++) {
+         if (hasItem[i]) {
+            oldToNewIndexMap[i] = k++;
+         }
+         else {
+            oldToNewIndexMap[i] = -1;
+         }
+      }
+      DynamicIntArray indices = new DynamicIntArray();
+      for (int fi=0; fi<indexOffs.length-1; fi++) {
+         if (oldToNewFaceIndexMap[fi] != -1) {
+            for (int idx=indexOffs[fi]; idx<indexOffs[fi+1]; idx++) {
+               indices.add (oldToNewIndexMap[itemIndices[idx]]);
+            }
+         }
+      }
+      return indices.getArray();
    }
    
    /**

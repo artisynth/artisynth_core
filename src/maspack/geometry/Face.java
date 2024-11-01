@@ -26,6 +26,20 @@ public class Face extends Feature implements Boundable {
    //private Point3d myCentroid; // face centroid, allocated on demand
    private Vector3d myRenderNormal;
 
+   /**
+    * Used to select mesh faces in an application.
+    */
+   public interface FaceFilter {
+      /**
+       * Returns {@code true} if a particular face is suitable for an
+       * application.
+       *
+       * @param face face to check
+       * @return true if the face is suitable
+       */
+      public boolean faceIsValid (Face face);
+   }
+
    // Flag to indicate that this face is the first triangle of a triangulated
    // quad. This enables rendering software to combine the rendering of
    // this face and the one following it to create a smoothly rendered quad.

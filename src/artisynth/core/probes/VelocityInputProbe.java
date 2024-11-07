@@ -21,6 +21,8 @@ import maspack.interpolation.*;
  */
 public class VelocityInputProbe extends NumericInputProbe {
 
+   private static final double DOUBLE_PREC = 1e-16;
+
    /**
     * No-args constructor needed for scanning.
     */
@@ -296,6 +298,7 @@ public class VelocityInputProbe extends NumericInputProbe {
       else {
          double tend = (stopTime-startTime)/scale;
          double tinc = interval/scale;
+         double ttol = 100*DOUBLE_PREC*(stopTime-startTime);
 
          double tloc = 0;
          while (tloc <= tend) {
@@ -305,9 +308,10 @@ public class VelocityInputProbe extends NumericInputProbe {
             else {
                nlist.numericalDeriv (vel, tloc);
             }
-            vprobe.addData (tloc, vel);         
-            // make sure we include the end point 
-            if (tloc < tend && tloc+tinc > tend) {
+            vprobe.addData (tloc, vel);
+            // make sure we include the end point while avoiding very small
+            // knot spacings
+            if (tloc < tend && tloc+tinc > tend-ttol) {
                tloc = tend;
             }
             else {

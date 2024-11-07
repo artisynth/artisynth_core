@@ -197,15 +197,19 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          //System.out.println (" perr=  " + myPosError.toString("%12.8f"));         
          if (usePDControl) { 
             updateVelocityError (myVelError);
-            myTrackingVel.scale (1.0, mySourceVel);
+            //myTrackingVel.scale (1.0, mySourceVel);
+            updateTargetVelocity (myTrackingVel);
             myTrackingVel.scaledAdd (h*Kp, myPosError);
             myTrackingVel.scaledAdd (h*Kd, myVelError);
          }
          else {
-            myTrackingVel.scale (1/myChaseTime, myPosError);
+            //myTrackingVel.scale (1/myChaseTime, myPosError);
+            updateTargetVelocity (myTrackingVel);
+            myTrackingVel.scaledAdd (1/myChaseTime, myPosError);
          }
          //System.out.println (" tvel=  " + myTrackingVel.toString("%12.8f"));         
       }
+      storeTargetVelocity (myTrackingVel);
       
    }
    
@@ -296,6 +300,44 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       }
       for (int i=0; i<myTargetFrames.size(); i++) {
          idx = getSourceFrame(i).getVelState (vbuf, idx);
+      }
+   }
+
+   public void updateTargetVelocity (VectorNd vel) {
+      assert sourceAndTargetSizesConsistent(); // paranoid
+
+      vel.setSize (getTargetVelSize());
+      double[] vbuf = vel.getBuffer ();
+      int idx = 0;
+      for (int i=0; i<myTargetPoints.size(); i++) {
+         idx = myTargetPoints.get(i).getVelState (vbuf, idx);
+      }
+      for (int i=0; i<myTargetFrames.size(); i++) {
+         idx = myTargetFrames.get(i).getVelState (vbuf, idx);
+      }
+   }
+
+   public void storeTargetVelocity (VectorNd vel) {
+      assert sourceAndTargetSizesConsistent(); // paranoid
+
+      double[] vbuf = vel.getBuffer ();
+      int idx = 0;
+      for (int i=0; i<myTargetPoints.size(); i++) {
+         Vector3d tvel = new Vector3d();
+         tvel.x = vbuf[idx++];
+         tvel.y = vbuf[idx++];
+         tvel.z = vbuf[idx++];
+         myTargetPoints.get(i).setTargetVelocity (tvel);
+      }
+      for (int i=0; i<myTargetFrames.size(); i++) {
+         Twist tvel = new Twist();
+         tvel.v.x = vbuf[idx++];
+         tvel.v.y = vbuf[idx++];
+         tvel.v.z = vbuf[idx++];
+         tvel.w.x = vbuf[idx++];
+         tvel.w.y = vbuf[idx++];
+         tvel.w.z = vbuf[idx++];
+         myTargetFrames.get(i).setTargetVelocity (tvel);
       }
    }
 

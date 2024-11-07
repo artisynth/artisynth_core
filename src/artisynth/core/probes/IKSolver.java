@@ -58,6 +58,7 @@ import maspack.util.ReaderTokenizer;
  */
 public class IKSolver implements PostScannable {
 
+   private static final double DOUBLE_PREC = 1e-16;
    private static final double INF = Double.POSITIVE_INFINITY;
    // If true, use the derivative of J in constructing the main mass block.
    // Results in a non-symmetric solve matrix. Set to false by default since we
@@ -76,14 +77,13 @@ public class IKSolver implements PostScannable {
       BodyInfo (RigidBody body, ArrayList<MarkerInfo> minfos) {
          myBody = body;
          myMarkerInfo = minfos;
-         // precompute the JTJ matrix in body coordinates
-         updateJTJMatrix();
       }
 
-      void updateJTJMatrix() {
+      void updateJTJMatrix (double avgWeight) {
+         double massRegularization = avgWeight*myMassRegularization;
          if (myMarkerInfo.size() == 0) {
             myJTJ = new SpatialInertia();
-            double s = myMassRegularization;
+            double s = massRegularization;
             myBody.getInertia (myJTJ);
             if (myJTJ.getMass() == 0) {
                myJTJ.setDiagonal (s, s, s, s, s, s);
@@ -101,7 +101,7 @@ public class IKSolver implements PostScannable {
                wgts.set (i++, minfo.myWeight);
             }
             myJTJ = IKSolver.buildJTJMatrix (
-               pnts, wgts, myMassRegularization, /*rank*/null);
+               pnts, wgts, massRegularization, /*rank*/null);
          }
       }
    }
@@ -225,6 +225,10 @@ public class IKSolver implements PostScannable {
    public IKSolver (
       MechModel mech, Collection<FrameMarker> mkrs, VectorNd weights) {
       this();
+      if (mkrs.size() == 0) {
+         throw new IllegalArgumentException (
+            "marker set 'mkrs' is empty");
+      }
       myMech = mech;
       if (weights == null) {
          weights = new VectorNd (mkrs.size());
@@ -350,6 +354,7 @@ public class IKSolver implements PostScannable {
             "Solver does not reference a MechModel");
       }
       int i = 0; // marker index
+      double avgWeight = 0;
       for (MarkerInfo minfo : myMarkerInfo) {
          FrameMarker mkr = minfo.myMarker;
          String name = mkr.getName();
@@ -374,9 +379,11 @@ public class IKSolver implements PostScannable {
             mlist = new ArrayList<>();
             bodyMarkerMap.put (body, mlist);
          }
+         avgWeight += minfo.myWeight;
          mlist.add (minfo);
          i++;
       }
+      avgWeight /= myMarkerInfo.size();
       // find all connectors attached to the frames. Find additional bodies
       // that are attached via connectors. Stop the search at bodies whose
       // {@code grounded} property is {@code true}.
@@ -390,7 +397,8 @@ public class IKSolver implements PostScannable {
                if (!connectors.contains(bcon) &&
                    // ensure connector is part of the component hierarchy -
                    // won't be if connector was created but not added to model:
-                   ComponentUtils.isAncestorOf (myMech, bcon)) {
+                   ComponentUtils.isAncestorOf (myMech, bcon) &&
+                   bcon.isEnabled()) {
                   RigidBody cbody;
                   connectors.add (bcon);
                   if (!(bcon.getBodyA() instanceof RigidBody)) {
@@ -438,6 +446,8 @@ public class IKSolver implements PostScannable {
          myBodyVelSizes[bi] = vsize;
          myTotalVelSize += vsize;
          BodyInfo binfo = new BodyInfo (body, bodyMarkerMap.get(body));
+         // precompute the JTJ matrix in body coordinates
+         binfo.updateJTJMatrix (avgWeight);
          myBodyInfo.add (binfo);
          bi++;
       }
@@ -901,9 +911,10 @@ public class IKSolver implements PostScannable {
       for (MarkerInfo minfo : myMarkerInfo) {
          minfo.myWeight = weights.get (i++);
       }
+      double avgWeight = weights.sum()/weights.size();
       if (myBodyInfo != null) {
          for (BodyInfo binfo : myBodyInfo) {
-            binfo.updateJTJMatrix();
+            binfo.updateJTJMatrix(avgWeight);
          }
       }
    }
@@ -959,6 +970,7 @@ public class IKSolver implements PostScannable {
       do {
          updateSolveMatrix (mySolveMatrix, myBd, mtargs, disps);
          updateConstraints ();
+
          if (myAnalyze) {
             int matrixType =
                myUseJDerivative ? Matrix.INDEFINITE : Matrix.SYMMETRIC;
@@ -1478,15 +1490,19 @@ public class IKSolver implements PostScannable {
          double stopTime = targProbe.getStopTime();
          double scale = targProbe.getScale();
 
+
          double tend = (stopTime-startTime)/scale;
          double tinc = interval/scale;
+         double ttol = 100*DOUBLE_PREC*(stopTime-startTime);
+
          double tloc = 0;
          while (tloc <= tend) {
             nlist.interpolate (mpos, tloc);
             solve (mpos);
             last = collector.addData (newProbe, tloc, last);
-            // make sure we include the end point 
-            if (tloc < tend && tloc+tinc > tend) {
+            // make sure we include the end point while avoiding very small
+            // knot spacings
+            if (tloc < tend && tloc+tinc > tend-ttol) {
                tloc = tend;
             }
             else {

@@ -420,10 +420,12 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       doGetCoords (coords);
       coordinatesToTCD (TGD, coords);
 
-      if (numc == 6) {
-         // nothing more to do; there are no independent constraints
-         return;
-      }
+      // we used to return when numc == 6, since there are no independant
+      // constraints, but this doesn't account for joint limits and also
+      // doesn't allow coordinate values to be updated.
+      // if (numc == 6) {
+      //    return;
+      // }
 
       // find differential displacement del from TGD to TCD:
       Twist del = new Twist();

@@ -37,7 +37,8 @@ import artisynth.core.materials.PeckAxialMuscle;
 import artisynth.core.mechmodels.PointSpringBase.SegmentData;
 import artisynth.core.modelbase.*;
 
-public class MultiPointMuscle extends MultiPointSpring implements ExcitationComponent {
+public class MultiPointMuscle extends MultiPointSpring 
+   implements MuscleComponent {
 
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;

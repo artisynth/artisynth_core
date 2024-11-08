@@ -45,7 +45,7 @@ import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScanToken;
 
 public class Muscle extends AxialSpring
-   implements ExcitationComponent, RequiresInitialize, PropertyChangeListener {
+   implements MuscleComponent, RequiresInitialize, PropertyChangeListener {
 
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;

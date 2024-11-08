@@ -96,6 +96,21 @@ public class AxialSpring extends PointSpringBase
       mySeg.pnt1 = pnt;
    }
    
+   public int numPoints() {
+      return 2;
+   }
+   
+   public Point getPoint (int idx) {
+      switch (idx) {
+         case 0:
+            return myPnt0;
+         case 1:
+            return myPnt1;
+         default:
+            throw new IndexOutOfBoundsException (
+               "index is "+idx+"; must be 0 or 1");
+      }
+   }
    @Override
    public double setRestLengthFromPoints() {
       double l = 0;

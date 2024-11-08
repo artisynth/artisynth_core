@@ -144,6 +144,8 @@ public class NumericProbePanel extends JPanel
 
    protected static final boolean DEFAULT_KNOTS_VISIBLE = false;
    protected boolean myKnotsVisible = DEFAULT_KNOTS_VISIBLE;
+   // if false, automatically set knot visibility 
+   protected boolean myKnotsVisibleValid = false;
 
    protected static DoubleInterval DEFAULT_X_RANGE = new DoubleInterval(0,1);
    protected DoubleInterval myXRange = new DoubleInterval(DEFAULT_X_RANGE);
@@ -622,6 +624,7 @@ public class NumericProbePanel extends JPanel
          myKnotsVisible = enable;
          firePropertyChangeListeners ("knotsVisible");
       }
+      myKnotsVisibleValid = true;
    }
 
    public boolean isAutoRanging() {
@@ -1048,6 +1051,12 @@ public class NumericProbePanel extends JPanel
       if (myNumericList != null) {
          // Draw plot lines
          drawPlotLines (r, xform);
+         if (!myKnotsVisibleValid) {
+            if (myNumericList.getNumKnots() > getWidth()/getKnotSize()) {
+               myKnotsVisible = false;
+            }
+            myKnotsVisibleValid = true;
+         }
          if (myKnotsVisible) {
             // Draw Knot Points
             drawKnots (r, xform);
@@ -2586,6 +2595,7 @@ public class NumericProbePanel extends JPanel
       myLineWidth = panel.myLineWidth;
       myKnotSize = panel.myKnotSize;
       myKnotsVisible = panel.myKnotsVisible;
+      myKnotsVisibleValid = panel.myKnotsVisibleValid;
       build();
       if (panel.isLargeDisplay()) {
          setLargeDisplay (true);

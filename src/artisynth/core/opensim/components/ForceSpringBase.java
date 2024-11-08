@@ -18,6 +18,8 @@ import maspack.render.RenderProps;
 
 public abstract class ForceSpringBase extends ForceBase {
 
+   public boolean useMuscleComponents = false;
+   
    // Stores points through which actuator passes
    private GeometryPath geometryPath; 
    
@@ -141,6 +143,10 @@ public abstract class ForceSpringBase extends ForceBase {
 
       // get wrap path, if any
       PathWrapSet wrapPath = path.getPathWrapSet ();
+      if (useMuscleComponents && wrapPath != null && wrapPath.size() == 0) {
+         // will force using Muscle if no wrap path and only two markers
+         wrapPath = null;
+      }
 
       // create the muscle or spring
       PointSpringBase spr;

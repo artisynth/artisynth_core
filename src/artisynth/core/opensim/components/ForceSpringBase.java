@@ -18,7 +18,7 @@ import maspack.render.RenderProps;
 
 public abstract class ForceSpringBase extends ForceBase {
 
-   public boolean useMuscleComponents = false;
+   public static boolean useMuscleComponents = false;
    
    // Stores points through which actuator passes
    private GeometryPath geometryPath; 

@@ -74,6 +74,9 @@ public class PlotTraceManager {
    }
 
    private void remove (PlotTraceInfo[] infos) {
+      if (infos.length == 0) {
+         return; // nothing to do
+      }
       int startIdx = myPlotTraceList.indexOf (infos[0]);
       if (startIdx == -1) {
          throw new InternalErrorException ("info block not found");

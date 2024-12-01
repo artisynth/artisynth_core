@@ -4252,11 +4252,15 @@ public class MeshFactory {
 
    }
 
-   public static void mergeVertices(PolygonalMesh mesh, Vertex3d vtx1,
-      Vertex3d vtx2) {
+   /**
+    * Merge vertex vtx0 and vtx1, keeping vtx1. Vtx0 will remain as an isolated
+    * vertex.
+    */
+   public static void mergeVertices(
+      PolygonalMesh mesh, Vertex3d vtx0, Vertex3d vtx1) {
 
       ArrayList<HalfEdge> hes = new ArrayList<>();
-      Iterator<HalfEdge> it = vtx1.getIncidentHalfEdges();
+      Iterator<HalfEdge> it = vtx0.getIncidentHalfEdges();
       while (it.hasNext()) {
          hes.add(it.next());
       }
@@ -4265,8 +4269,8 @@ public class MeshFactory {
          mesh.removeFace(he.face);
          Vertex3d[] vtxs = he.face.getVertices();
          for (int i = 0; i < vtxs.length; i++) {
-            if (vtxs[i] == vtx1) {
-               vtxs[i] = vtx2;
+            if (vtxs[i] == vtx0) {
+               vtxs[i] = vtx1;
             }
          }
          mesh.addFace(vtxs);

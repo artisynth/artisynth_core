@@ -9,7 +9,8 @@ JAVA_TEST_PROGRAMS = \
 	NumericListTest \
 	CubicHermiteSpline1dTest \
 	CubicHermiteSpline3dTest \
-	LinearSpline3dTest
+	LinearSpline3dTest \
+	LinearSpline1dTest
 
 default: build
 

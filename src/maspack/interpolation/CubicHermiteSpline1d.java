@@ -489,8 +489,6 @@ public class CubicHermiteSpline1d extends Diff1Function1x1Base
       else if (numk == 2) {
          // linear function
          if (x[1] == x[0]) {
-            System.out.println ("x: " + new VectorNd(x));
-            System.out.println ("y: " + new VectorNd(y));
             throw new IllegalArgumentException (
                "x inputs at 0 and 1 are the same");
          }
@@ -505,8 +503,6 @@ public class CubicHermiteSpline1d extends Diff1Function1x1Base
             dx[i] = x[i+1] - x[i];
             dy[i] = y[i+1] - y[i];
             if (dx[i] == 0) {
-            System.out.println ("x: " + new VectorNd(x));
-            System.out.println ("y: " + new VectorNd(y));
                throw new IllegalArgumentException (
                   "x inputs at "+i+" and "+(i+1)+" are the same");
             }

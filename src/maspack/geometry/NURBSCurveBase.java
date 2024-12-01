@@ -11,12 +11,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.Vector4d;
+import maspack.matrix.VectorNd;
 import maspack.render.PointEdgeRenderProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -164,8 +166,8 @@ public abstract class NURBSCurveBase extends NURBSObject {
     * active knot intervals.  Knot values will increase in unit increments from
     * 0 to numi over the active knot interval from knots[d-1] to
     * knots[d-1+numi]. The values of the remaining knots depend on whether the
-    * curve is open or closed. For open curves, the remaining knot values are
-    * extrapolated so that knots[i+1] - knots[i] = 1. Otherwise, for closed
+    * curve is open or closed. For closed curves, the remaining knot values are
+    * extrapolated so that knots[i+1] - knots[i] = 1. Otherwise, for open
     * curves, the d knots at the beginning and end are clamped to 0 and numi,
     * respectively.
     * 
@@ -361,7 +363,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
       }
       myKnots[k+1] = uval;
       if (myClosedP) {
-         // For periodic splines, only nc+1 knots are indepentant. Ensure that
+         // For periodic splines, only nc+1 knots are independent. Ensure that
          // the intervals of the end knots match those at the beginning.
          for (int i=0; i<2*d-2; i++) {
             myKnots[numc+1+i] = myKnots[numc+i] + (myKnots[i+1]-myKnots[i]);
@@ -491,7 +493,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
          if (d < 1) {
             throw new IllegalArgumentException ("degree is less than one");
          }
-         int numi = (type == CLOSED ? ctrlPnts.length : ctrlPnts.length - d);
+         int numi = (type == CLOSED ? ctrlPnts.length : ctrlPnts.length - 1);
          if (numi < 1) {
             throw new IllegalArgumentException ("not enough control points");
          }
@@ -505,7 +507,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
          numCtrlPnts = knots.length - 2 * d + 1;
       }
       else {
-         numCtrlPnts = knots.length - d + 1;
+         numCtrlPnts = knots.length - 2 * d + 2;
       }
       if (ctrlPnts.length < numCtrlPnts) {
          throw new IllegalArgumentException ("insufficient control points");
@@ -679,11 +681,18 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       if (myClosedP) {
          // first idx for first knot (degree-1) should be -degree/2.
-         idx = k - myDegree + 1 + i - myDegree / 2;
+         idx = k - myDegree + 1 + i - myDegree/2;
          idx = (numCtrlPnts + idx) % numCtrlPnts;
       }
       else {
-         idx = k - myDegree + 1 + i;
+         idx = k - myDegree + 1 + i - myDegree/2;
+         if (idx < 0) {
+            idx = 0;
+         }
+         else if (idx > numCtrlPnts-1) {
+            idx = numCtrlPnts-1;
+         }
+         //idx = Math.min (k - myDegree + 1 + i, numCtrlPnts-1);
       }
       return idx;
    }
@@ -921,7 +930,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
     * @return knot values
     */
    public double[] getKnots() {
-      return myKnots;
+      return Arrays.copyOf (myKnots, myNumKnots);
    }
 
    /**

@@ -11,7 +11,8 @@ JAVA_TEST_PROGRAMS = \
 	DantzigQPSolverTest \
 	PardisoSolverTest \
 	MurtyLCPSolverTest \
-	CGSolverTest
+	CGSolverTest \
+	TriDiagonalSolverTest
         # MurtySparseContactSolverTest \
         # CRSolverTest    CRSolver seems to not work
         # DantzigQPSolverTest

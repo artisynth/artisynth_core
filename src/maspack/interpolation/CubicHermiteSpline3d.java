@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import maspack.util.*;
 import maspack.matrix.*;
+import maspack.solvers.*;
 
 /**
  * Implements a three dimensional cubic Hermite spline interpolated by an
@@ -17,6 +18,7 @@ public class CubicHermiteSpline3d
    implements Scannable, Iterable<CubicHermiteSpline3d.Knot> {
 
    private static double DOUBLE_PREC = 1e-16;
+   private double myClosingLength = 0;
 
    public static class Knot {
       double myS0;   // initial s value
@@ -103,7 +105,7 @@ public class CubicHermiteSpline3d
        * Computes coefficents for interpolating within the interval
        * between this knot and the one following it.
        */
-      public void computeCoefficients (Knot next) {
+      public void computeCoefficients (Knot next, double h) {
          //
          // Let (x0, dx0, x1, dx1) give x and its derivative dxds at the end
          // points on the interval, and assume s is translated to 0 at the
@@ -122,7 +124,6 @@ public class CubicHermiteSpline3d
          // [ -3/h^2,  -2/h,  3/h^2,  -1/h]
          // [  2/h^3, 1/h^2, -2/h^3, 1/h^2]
 
-         double h = next.myS0 - myS0;  // interval size
          Vector3d x0s = new Vector3d();
          x0s.scale (1/h, myA0);
          Vector3d x1s = new Vector3d();
@@ -241,6 +242,75 @@ public class CubicHermiteSpline3d
    }
 
    /**
+    * Queries whether or not this spline is closed.
+    *
+    * @return {@code true} if the spline is closed
+    */
+   public boolean isClosed() {
+      return myClosingLength > 0;
+   }
+
+   /**
+    * For closed splines, queries the parameter length of the closing segment
+    * between the last and first knots. If the spline is open, returns 0.
+    *
+    * @return closing segment length, or 0 if the spline is not closed.
+    */
+   public double getClosingLength() {
+      return myClosingLength;
+   }
+
+   /**
+    * Sets whether or not this spline is closed. If {@code h > 0}, there
+    * spline will be closed with {@code h} giving the parameter length
+    * between the last knot and the first knot. Otherwise, the spline will be
+    * set to open.
+    *
+    * @param h if {@code > 0}, closes the spline and specifies the length of
+    * the closing segment between the last and first knots.
+    */
+   public void setClosed (double h) {
+      if (h < 0) {
+         h = 0;
+      }
+      if (myClosingLength != h) {
+         if (numKnots() > 1) {
+            Knot prev = getLastKnot();
+            if (h != 0) {
+               // closing
+               prev.computeCoefficients (getFirstKnot(), h);
+            }
+            else {
+               // openning
+               prev.clearCoefficients ();
+            }
+         }
+         myClosingLength = h;
+      }
+   }
+
+   /**
+    * For closed splines, adds or subtracts {@link #getSLength()} to {@code s}
+    * to ensure that it lies in the parameter range defined by {@link #getS0()}
+    * and {@link #getSLast()}. For open splines, {@code s} is not modified.
+    *
+    * @param s curve parameter to be reduced
+    * @return reduced value of {@code s}, or {@code s} for open splines
+    */
+   public double normalizeS (double s) {
+      if (isClosed()) {
+         double slen = getSLength();
+         while (s < getS0()) {
+            s += slen;
+         }
+         while (s > getSLast()) {
+            s -= slen;
+         }
+      }
+      return s;         
+   }
+
+   /**
     * Sets this spline from specified values of s, x and dxds at each knot
     * point. The values of s should be in strictly ascending order.
     *
@@ -321,6 +391,7 @@ public class CubicHermiteSpline3d
 
       // build the spline from the two knots
       clearKnots();
+      setClosed (0);
       addKnot (s0, a0, a1);
       addKnot (s1, x1, dx1);      
    }
@@ -449,6 +520,7 @@ public class CubicHermiteSpline3d
       }
 
       clearKnots();
+      setClosed (0);
       Vector3d a0 = new Vector3d();
       Vector3d a1 = new Vector3d();
       for (int i=0; i<nsegs; i++) {
@@ -474,6 +546,127 @@ public class CubicHermiteSpline3d
       dxl.combine (3*s, a3, 2, a2);
       dxl.scaledAdd (s, dxl, a1);
       addKnot (svals[nsegs], xl, dxl);      
+   }
+
+   /**
+    * Sets this spline to a natural cubic spline for a set of knot points.
+    *
+    * @param xvals coordinate value of each knot point
+    * @param svals s value of each knot point
+    */
+   public void setNatural (
+      ArrayList<? extends Vector3d> xvals, double[] svals) {
+
+      myKnots.clear();
+      int numk = xvals.size();
+      if (numk != svals.length) {
+         throw new IllegalArgumentException (
+            "kvals and svals have differing lengths of " + numk +
+            " and " + svals.length);
+      }
+      double[] h;
+      Vector3d[] r;
+      Vector3d[] cvals = null;
+      Vector3d xdiff = new Vector3d();
+      Vector3d dxds = new Vector3d();
+      Vector3d d = new Vector3d();
+      Vector3d a2next = new Vector3d();
+      if (isClosed()) {
+         h = new double[numk];
+         r = new Vector3d[numk];
+      }
+      else {
+         h = new double[numk-1];
+         r = new Vector3d[numk-2];
+      }
+      for (int i=0; i<r.length; i++) {
+         r[i] = new Vector3d();
+      }
+      for (int i=0; i<numk-1; i++) {
+         h[i] = svals[i+1] - svals[i];
+      }
+      if (isClosed()) {
+         h[numk-1] = getClosingLength();
+         if (numk > 2) {
+            VectorNd c = new VectorNd(h);
+            VectorNd b = new VectorNd(numk);           
+            int iprev = numk-1;
+            for (int i=0; i<numk; i++) {
+               int inext = (i+1)%numk;
+               xdiff.sub (xvals.get(inext), xvals.get(i));
+               r[i].scale (3/h[i], xdiff);
+               xdiff.sub (xvals.get(i), xvals.get(iprev));
+               r[i].scaledAdd (-3/h[iprev], xdiff);
+               b.set (i, 2*(h[iprev]+h[i]));
+               iprev = i;
+            }
+            cvals = TriDiagonalSolver.solveCyclical (c, b, c, r);
+            for (int i=0; i<numk; i++) {
+               int inext = (i+1)%numk;
+               xdiff.sub (xvals.get(inext), xvals.get(i));
+               dxds.scaledAdd (2, cvals[i], cvals[inext]);
+               dxds.scale (-h[i]/3);
+               dxds.scaledAdd (1/h[i], xdiff);
+               addKnot (svals[i], xvals.get(i), dxds);
+            }
+         }
+         else {
+            addKnot (svals[0], xvals.get(0), Vector3d.ZERO);
+            addKnot (svals[1], xvals.get(1), Vector3d.ZERO);
+         }
+      }
+      else {
+//         for (int i=0; i<numk-2; i++) {
+//            xdiff.sub (xvals.get(i+2), xvals.get(i+1));
+//            r[i].scale (3/h[i+1], xdiff);
+//            xdiff.sub (xvals.get(i+1), xvals.get(i));
+//            r[i].scaledAdd (-3/h[i], xdiff);
+//         }
+         if (numk > 2) {
+            VectorNd c = new VectorNd(numk-2);
+            VectorNd b = new VectorNd(numk-2);           
+            for (int i=0; i<numk-2; i++) {
+               xdiff.sub (xvals.get(i+2), xvals.get(i+1));
+               r[i].scale (3/h[i+1], xdiff);
+               xdiff.sub (xvals.get(i+1), xvals.get(i));
+               r[i].scaledAdd (-3/h[i], xdiff);
+               c.set (i, h[i+1]);
+               b.set (i, 2*(h[i]+h[i+1]));             
+            }
+            cvals = TriDiagonalSolver.solve (c, b, c, r);
+            xdiff.sub (xvals.get(1), xvals.get(0));
+            dxds.scale (-h[0]/3, cvals[0]);
+            dxds.scaledAdd (1/h[0], xdiff);
+            addKnot (svals[0], xvals.get(0), dxds);
+            for (int i=0; i<numk-2; i++) {
+               xdiff.sub (xvals.get(i+2), xvals.get(i+1));
+               if (i==numk-3) {
+                  a2next.setZero();
+               }
+               else {
+                  a2next.set (cvals[i+1]);
+               }
+               dxds.scaledAdd (2, cvals[i], a2next);
+               dxds.scale (-h[i+1]/3);
+               dxds.scaledAdd (1/h[i+1], xdiff);
+               addKnot (svals[i+1], xvals.get(i+1), dxds);
+            }
+            Knot prev = myKnots.get(numk-2);
+            double hp = h[numk-2];
+            Vector3d a2prev = (numk-3 >= 0 ? cvals[numk-3] : Vector3d.ZERO);
+            d.scale (-1/(3*hp), a2prev);
+            dxds.combine (3*hp, d, 2, a2prev);
+            dxds.scale (hp);
+            dxds.add (prev.myA1);
+            addKnot (svals[numk-1], xvals.get(numk-1), dxds);
+         }
+         else {
+            dxds.sub (xvals.get(1), xvals.get(0));
+            dxds.scale (1/h[0]);
+            addKnot (svals[0], xvals.get(0), dxds);
+            addKnot (svals[1], xvals.get(1), dxds);
+         }
+      }
    }
 
    /**
@@ -530,15 +723,32 @@ public class CubicHermiteSpline3d
       int idx = myKnots.indexOf (knot);
       if (idx != -1) {
          if (idx == 0) {
-            // knot is at the beginning; no need to update coefficients
+            // knot is at the beginning
+            if (isClosed()) {
+               Knot last = getLastKnot();
+               if (numKnots() > 2) {
+                  last.computeCoefficients (getKnot(1), myClosingLength);
+               }
+               else {
+                  last.clearCoefficients ();
+               }
+            }
          }
          else if (idx < myKnots.size()-1) {
             // knot is before the end
-            myKnots.get(idx-1).computeCoefficients (myKnots.get(idx+1));
+            Knot prev = myKnots.get(idx-1);
+            Knot next = myKnots.get(idx+1);
+            prev.computeCoefficients (next, next.myS0-prev.myS0);
          }
          else {
-            // knot is at the end; no need to update coefficients
-            myKnots.get(idx-1).clearCoefficients();
+            // knot is at the end
+            Knot prev = myKnots.get(idx-1);
+            if (isClosed() && numKnots() > 2) {
+               prev.computeCoefficients (getFirstKnot(), myClosingLength);
+            }
+            else {
+               prev.clearCoefficients();
+            }
          }
          myKnots.remove (idx);
          reindexFrom (idx);
@@ -606,27 +816,6 @@ public class CubicHermiteSpline3d
       return prev;
    }
 
-   // /**
-   //  * Find the knot immediately preceeding s. Specifically, find the nearest
-   //  * knot for which {@code knot.x0 <= s}. If no such knot exists, {@code null}
-   //  * is returned.
-   //  *
-   //  * @param s value for which preceeding knot is sought
-   //  */
-   // public Knot getPreceedingKnot (double s) {
-   //    if (myKnots.size() == 0) {
-   //       return null;
-   //    }
-   //    Knot prev = null;
-   //    for (int k=0; k<myKnots.size(); k++) {
-   //       if (s < myKnots.get(k).myS0) {
-   //          break;
-   //       }
-   //       prev = myKnots.get(k);
-   //    }
-   //    return prev;
-   // }
-
    /**
     * Find the knot immediately following s. Specifically, find the nearest
     * knot for which {@code knot.x0 > s}. If no such knot exists, {@code null}
@@ -678,6 +867,9 @@ public class CubicHermiteSpline3d
     */
    public Vector3d eval (double s, IntHolder lastIdx) {
       Vector3d x = new Vector3d();
+      if (isClosed()) {
+         s = normalizeS (s);
+      }
       if (numKnots() > 0) {
          Knot prev = getPreceedingKnot (s, lastIdx);
          if (prev == null) {
@@ -718,6 +910,9 @@ public class CubicHermiteSpline3d
     */
    public Vector3d evalDx (double s, IntHolder lastIdx) {
       Vector3d dx = new Vector3d();
+      if (isClosed()) {
+         s = normalizeS (s);
+      }
       if (numKnots() > 0) {
          Knot prev = getPreceedingKnot (s, lastIdx);
          if (prev == null) {
@@ -756,12 +951,15 @@ public class CubicHermiteSpline3d
     */
    public Vector3d evalDx2 (double s, IntHolder lastIdx) {
       Vector3d ddx = new Vector3d();      
+      if (isClosed()) {
+         s = normalizeS (s);
+      }
       if (numKnots() > 0) {
          Knot prev = getPreceedingKnot (s, lastIdx);
          if (prev == null) {
             prev = myKnots.get(0);
          }
-         else if (prev == myKnots.get(numKnots()-1)) {
+         else if (!isClosed() && prev == myKnots.get(numKnots()-1)) {
             // need preceeding knot because last one doesn't define dy2
             prev = myKnots.get(numKnots()-2);
          }
@@ -788,6 +986,22 @@ public class CubicHermiteSpline3d
     * describes a spline with two knots, with s, x and dxds equal to {@code 0},
     * {@code (0, 4, 1)} and {@code (2, 5, -1)} for the first knot and {@code
     * 1}, {@code (0, 5, 1.2)} and {@code (-2, 1, 0)} for the second knot.
+    *
+    * If the spline is closed, the coordinate list is terminated with the
+    * keyword {@code CLOSED}, followed by the length of the closing segment:
+    * <pre>
+    *  [  0.0
+    *     0.0 4.0 1.0
+    *     2.0 5.0 -1.0
+    *     1.0
+    *     0.0 5.0 1.2
+    *     -2.0 1.0 0.0
+    *     2.0
+    *     0.3 3.0 2.0
+    *     -1.0 5.0 0.0
+    *     CLOSED 1.0
+    *  ]
+    * </pre>
     * 
     * @param rtok
     * Tokenizer from which to scan the spline
@@ -798,12 +1012,22 @@ public class CubicHermiteSpline3d
     */
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       clearKnots();
+      setClosed (0);
       rtok.scanToken ('[');
       Vector3d a0 = new Vector3d();
       Vector3d a1 = new Vector3d();
       while (rtok.nextToken() != ']') {
          if (!rtok.tokenIsNumber()) {
-            throw new IOException ("knot s0 value expected, "+rtok);
+            // check for closing
+            if (rtok.tokenIsWord() && rtok.sval.equalsIgnoreCase("closed")) {
+               double clen = rtok.scanNumber();
+               setClosed (clen);
+               rtok.scanToken (']');
+               return;
+            }
+            else {
+               throw new IOException ("knot s0 value expected, "+rtok);
+            }
          }
          double s0 = rtok.nval;
          try {
@@ -847,6 +1071,9 @@ public class CubicHermiteSpline3d
             pw.println (fmt.format(knot.myS0));
             pw.println (knot.myA0.toString(fmt));
             pw.println (knot.myA1.toString(fmt));
+         }
+         if (myClosingLength > 0) {
+            pw.println ("CLOSED " + fmt.format(myClosingLength));
          }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
@@ -924,13 +1151,16 @@ public class CubicHermiteSpline3d
    }
 
    /**
-    * Returns the last value of the parameter controlling this spline.
+    * Returns the last value of the parameter controlling this spline.  If the
+    * spline is open, this is the {@code s} value of the last knot. If the
+    * spline is closed, this is the {@code s} value of the last knot, plus the
+    * closing length (as returned by {@link #getClosingLength}).
     *
     * @return last parameter value
     */
    public double getSLast() { 
       if (myKnots.size() > 0) {
-         return myKnots.get(numKnots()-1).getS0();
+         return myKnots.get(numKnots()-1).getS0() + getClosingLength();
       }
       else {
          return 0;
@@ -939,6 +1169,7 @@ public class CubicHermiteSpline3d
 
    /**
     * Returns the length of the parameter interval controlling this spline.
+    * This is the difference between {@link #getSLast()} and {@link #getS0()}.
     *
     * @return parameter interval length
     */
@@ -958,11 +1189,23 @@ public class CubicHermiteSpline3d
    private void updateCoefficients (Knot knot) {
       int idx = knot.getIndex();
       if (idx > 0) {
-         Knot k = myKnots.get(idx-1);
-         myKnots.get (idx-1).computeCoefficients (knot);
+         Knot prev = myKnots.get(idx-1);
+         prev.computeCoefficients (knot, knot.myS0-prev.myS0);
       }
-      if (idx >= 0 && idx < numKnots()-1) {
-         knot.computeCoefficients (myKnots.get (idx+1));
+      else if (isClosed()) {
+         Knot prev = myKnots.get(numKnots()-1);
+         prev.computeCoefficients (knot, myClosingLength);
+      }
+      if (idx < numKnots()-1) {
+         Knot next = myKnots.get(idx+1);
+         knot.computeCoefficients (next, next.myS0-knot.myS0);
+      }
+      else if (isClosed()) {
+         Knot next = myKnots.get(0);
+         knot.computeCoefficients (next, myClosingLength);
+      }
+      else {
+         knot.clearCoefficients();
       }
    }
 
@@ -973,11 +1216,12 @@ public class CubicHermiteSpline3d
     */
    public void set (CubicHermiteSpline3d spline) {
       clearKnots();
+      setClosed (0);
       for (Knot knot : spline) {
          doAddKnot (myKnots.size(), knot.copy());
       }
+      setClosed (spline.getClosingLength());
    }
-
 
    /**
     * Creates and returns a list of values sampled uniformly along this spline.
@@ -1022,6 +1266,9 @@ public class CubicHermiteSpline3d
             return false;
          }
       }
+      if (myClosingLength != spline.myClosingLength) {
+         return false;
+      }
       return true;
    }
 
@@ -1045,53 +1292,9 @@ public class CubicHermiteSpline3d
             return false;
          }
       }
+      if (Math.abs(myClosingLength-spline.myClosingLength) > tol) {
+         return false;
+      }
       return true;
    }
-
-   // /**
-   //  * Queries whether this spline is equal to another spline within a specified
-   //  * relative tolerance.
-   //  *
-   //  * @param spline spline to compare to this one
-   //  * @param rtol relative tolerance with which to compare the splines
-   //  * @return {@code true} if the splines are equal within tolerance
-   //  */
-   // public boolean epsilonEquals (CubicHermiteSpline3d spline, double rtol) {
-   //    if (numKnots() != spline.numKnots()) {
-   //       return false;
-   //    }
-   //    double stol = Math.abs(getS0()-getSLast())*rtol;
-   //    // travere both splines to obtain magnitudes with which
-   //    // to determine relative tolerances
-   //    double a0mag = 0;
-   //    double a1mag = 0;
-   //    for (int i=0; i<numKnots(); i++) {
-   //       Knot knot0 = getKnot(i);
-   //       Knot knot1 = spline.getKnot(i);
-   //       if (knot0.myA0.norm() > a0mag) {
-   //          a0mag = knot0.myA0.norm();
-   //       }
-   //       if (knot1.myA0.norm() > a0mag) {
-   //          a0mag = knot1.myA0.norm();
-   //       }
-   //       if (knot0.myA1.norm() > a0mag) {
-   //          a0mag = knot0.myA1.norm();
-   //       }
-   //       if (knot1.myA1.norm() > a0mag) {
-   //          a0mag = knot1.myA1.norm();
-   //       }
-   //    }
-   //    // estimate of the minumin reasonable resolvable value:
-   //    double minres = Double.MIN_VALUE/(100*DOUBLE_PREC);
-   //    double a0tol = Math.max(minres, rtol*a0mag);
-   //    double a1tol = Math.max(minres, rtol*a1mag);
-   //    for (int i=0; i<numKnots(); i++) {
-   //       if (!getKnot(i).epsilonEquals (
-   //              spline.getKnot(i), stol, a0tol, a1tol)) {
-   //          return false;
-   //       }
-   //    }
-   //    return true;
-   // }
-
 }

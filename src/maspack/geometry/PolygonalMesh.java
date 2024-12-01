@@ -15,6 +15,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +33,7 @@ import maspack.geometry.io.WavefrontWriter;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.NumericalException;
+import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
@@ -2386,7 +2388,6 @@ public class PolygonalMesh extends MeshBase {
                found = true;
                break;
             }
-
             he0 = he0.next;
          }
          while (he0 != f.he0);
@@ -4569,5 +4570,64 @@ public class PolygonalMesh extends MeshBase {
       return 84*numFaces() + 92*numVertices() + 64*numHalfEdges;      
    }
 
+   /**
+    * Estimate the surface normal of this mesh at the location nearest to a
+    * prescribed postion. This is done by computing a weighted average of the
+    * normals of all neighbouring mesh vertices within a prescribed distance,
+    * plus the normal of the nearest face. The weighting is Gaussian, based on
+    * the distance of the vertex from the nearest point.
+    *
+    * @param pos prescribed position, in world coordinates
+    * @param face if non-null, specifies the nearest face to the point.
+    * Used for computational efficiency if the face is known a-priori.
+    * @param vertexDist distance tolerance for finding vertices to support
+    * the normal computation
+    * @return estimated normal, in world coordinates
+    */
+   public Vector3d estimateSurfaceNormal (
+      Point3d pos, Face face, double vertexDist) {
+      // find the face and uv coordinates of the mesh point nearest to pos:
+      Point3d near = new Point3d();
+      if (face == null) {
+         face = nearestFaceToPoint (near, null, pos);
+      }
+      else {
+         near.set (pos);
+      }
+      if (vertexDist <= 0) {
+         return face.getWorldNormal();
+      }
+      HashSet<Vertex3d> nearVtxs = new LinkedHashSet<>();
+      ArrayDeque<Vertex3d> queue = new ArrayDeque<>();
+      for (Vertex3d vtx : face.getVertices()) {
+         if (vtx.distance (near) < vertexDist) {
+            nearVtxs.add (vtx);
+         }
+         queue.add (vtx);
+      }
+      while (queue.size() > 0) {
+         Vertex3d vtx = queue.remove();
+         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+         while (it.hasNext()) {
+            Vertex3d v = it.next().getTail();
+            if (v.distance (near) < vertexDist) {
+               if (nearVtxs.add (v)) {
+                  queue.add (v);
+               }
+            }
+         }
+      }
+      Vector3d sum = new Vector3d (face.getWorldNormal());
+      double var = vertexDist*vertexDist/4;
+      Vector3d nrm = new Vector3d();
+      for (Vertex3d vtx : nearVtxs) {
+         double d = vtx.distance (near);
+         double weight = Math.exp (-d*d/(2*var));
+         vtx.computeWorldNormal (nrm);
+         sum.scaledAdd (weight, nrm);
+      }
+      sum.normalize();
+      return sum;
+   }
    
 }

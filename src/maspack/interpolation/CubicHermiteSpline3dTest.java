@@ -7,8 +7,11 @@ import maspack.interpolation. CubicHermiteSpline3d.Knot;
 
 public class CubicHermiteSpline3dTest extends UnitTest {
 
-   void computeA2A3Check (Vector3d a2, Vector3d a3, Knot knot, Knot next) {
-      double h = next.myS0-knot.myS0;
+   double EPS = 1e-13;
+
+   void computeA2A3Check (
+      Vector3d a2, Vector3d a3, double h, Knot knot, Knot next) {
+
       a2.scale (-3/h, knot.myA0);
       a2.scaledAdd (-2, knot.myA1);
       a2.scaledAdd (3/h, next.myA0);
@@ -24,6 +27,7 @@ public class CubicHermiteSpline3dTest extends UnitTest {
 
    Vector3d checkX (CubicHermiteSpline3d curve, double s) { 
       Vector3d xval = new Vector3d();
+      s = curve.normalizeS(s);
       Knot knot = curve.getPreceedingKnot (s);
       if (knot == null) {
          knot = curve.getFirstKnot();
@@ -33,16 +37,25 @@ public class CubicHermiteSpline3dTest extends UnitTest {
       }
       else {
          int idx = knot.getIndex();
-         if (idx+1 >= curve.numKnots()) {
+         if (!curve.isClosed() && idx+1 >= curve.numKnots()) {
             xval.scaledAdd (s-knot.myS0, knot.myA1, knot.myA0);
          }
          else {
-            Knot next = curve.getKnot (idx+1);
+            Knot next;
+            double h;
+            if (curve.isClosed() && idx == curve.numKnots()-1) {
+               next = curve.getKnot (0);
+               h = curve.getClosingLength();
+            }
+            else {
+               next = curve.getKnot (idx+1);
+               h = next.myS0-knot.myS0;
+            }
             Vector3d a0 = knot.myA0;
             Vector3d a1 = knot.myA1;
             Vector3d a2 = new Vector3d();
             Vector3d a3 = new Vector3d();
-            computeA2A3Check (a2, a3, knot, next);
+            computeA2A3Check (a2, a3, h, knot, next);
             double ds = s-knot.myS0;
             xval.scaledAdd (ds, a3, a2);
             xval.scaledAdd (ds, xval, a1);
@@ -54,6 +67,7 @@ public class CubicHermiteSpline3dTest extends UnitTest {
 
    Vector3d checkDx (CubicHermiteSpline3d curve, double s) {
       Vector3d dxval = new Vector3d();
+      s = curve.normalizeS(s);
       Knot knot = curve.getPreceedingKnot (s);
       if (knot == null) {
          knot = curve.getFirstKnot();
@@ -63,15 +77,24 @@ public class CubicHermiteSpline3dTest extends UnitTest {
       }
       else {
          int idx = knot.getIndex();
-         if (idx+1 >= curve.numKnots()) {
+         if (!curve.isClosed() && idx+1 >= curve.numKnots()) {
             dxval.set (knot.myA1);
          }
          else {
-            Knot next = curve.getKnot (idx+1);
+            Knot next;
+            double h;
+            if (curve.isClosed() && idx == curve.numKnots()-1) {
+               next = curve.getKnot (0);
+               h = curve.getClosingLength();
+            }
+            else {
+               next = curve.getKnot (idx+1);
+               h = next.myS0-knot.myS0;
+            }
             Vector3d a1 = knot.myA1;
             Vector3d a2 = new Vector3d();
             Vector3d a3 = new Vector3d();
-            computeA2A3Check (a2, a3, knot, next);
+            computeA2A3Check (a2, a3, h, knot, next);
             double ds = s-knot.myS0;
             dxval.scale (3*ds, a3);
             dxval.scaledAdd (2, a2);
@@ -104,57 +127,117 @@ public class CubicHermiteSpline3dTest extends UnitTest {
       ArrayList<Vector3d> dxdsVals = createVec3dList (-0.1, 2.0, 2.0, -0.1);
 
       CubicHermiteSpline3d curve = new CubicHermiteSpline3d();
-      curve.set (
-         new double[] {0, 1, 3, 6}, xVals, dxdsVals);
+      curve.set (new double[] {0, 1, 3, 6}, xVals, dxdsVals);
 
       double tol = 1e-14;
 
-      // check x values
-      checkEquals ("x at s=-1", curve.eval(-1), vec3d(-0.4), tol);
-      checkEquals ("x at s=0", curve.eval(0), vec3d(-0.5), tol);
-      checkEquals ("x at s=1", curve.eval(1), vec3d(0.5), tol);
-      checkEquals ("x at s=2", curve.eval(2), vec3d(0.5), tol);
-      checkEquals ("x at s=3", curve.eval(3), vec3d(0.5), tol);
-      checkEquals ("x at s=6", curve.eval(6), vec3d(-0.5), tol);
-      checkEquals ("x at s=8", curve.eval(7), vec3d(-0.6), tol);
+      for (int iter=0; iter<4; iter++) {
 
-      // check dxds values
-      checkEquals ("dxds at s=-1", curve.evalDx(-1), vec3d(-0.1), tol);
-      checkEquals ("dxds at s=0", curve.evalDx(0), vec3d(-0.1), tol);
-      checkEquals ("dxds at s=1", curve.evalDx(1), vec3d(2.0), tol);
-      checkEquals ("dxds at s=2", curve.evalDx(2), vec3d(-1.0), tol);
-      checkEquals ("dxds at s=3", curve.evalDx(3), vec3d(2.0), tol);
-      checkEquals ("dxds at s=6", curve.evalDx(6), vec3d(-0.1), tol);
-      checkEquals ("dxds at s=8", curve.evalDx(7), vec3d(-0.1), tol);
+         switch (iter) {
+            case 1: {
+               curve.setClosed (2.0); // close curve
+               break;
+            }
+            case 2: {
+               curve.setClosed (0); // unclose curve
+               break;
+            }
+            case 3: {
+               // create closed curve
+               curve = new CubicHermiteSpline3d();
+               curve.setClosed (2.0);
+               curve.set (new double[] {0, 1, 3, 6}, xVals, dxdsVals);
+               break;
+            }
+         }
+         
+         // check x values
+         if (curve.isClosed()) {
+            checkEquals (
+               "x at s=-1 (closed)", curve.eval(-1), vec3d(-0.5), tol);
+            checkEquals (
+               "x at s=-0.5 (closed)", curve.eval(-0.5), vec3d(-0.48125), tol);
+         }
+         else {
+            checkEquals ("x at s=-1", curve.eval(-1), vec3d(-0.4), tol);
+         }
+         checkEquals ("x at s=0", curve.eval(0), vec3d(-0.5), tol);      
+         checkEquals ("x at s=1", curve.eval(1), vec3d(0.5), tol);
+         checkEquals ("x at s=2", curve.eval(2), vec3d(0.5), tol);
+         checkEquals ("x at s=3", curve.eval(3), vec3d(0.5), tol);
+         checkEquals ("x at s=6", curve.eval(6), vec3d(-0.5), tol);
+         if (curve.isClosed()) {
+            checkEquals (
+               "x at s=6.5 (closed)", curve.eval(6.5), vec3d(-0.51875), tol);
+            checkEquals (
+               "x at s=8 (closed)", curve.eval(8), vec3d(-0.5), tol);
+            checkEquals (
+               "x at s=9.5 (closed)", curve.eval(9.5), vec3d(0.875), tol);
+         }
+         else {
+            checkEquals ("x at s=8", curve.eval(8), vec3d(-0.7), tol);
+            checkEquals ("x at s=9", curve.eval(9), vec3d(-0.8), tol);
+         }
 
-      // general value check
-      int npts = 200;
-      IntHolder lastIdx = new IntHolder();
-      for (int i=0; i<=npts; i++) {
-         double s = -0.5 + (i*7.0/npts);
-         checkEquals (
-            "x at s=" + s, curve.eval(s), checkX (curve, s), tol);
-         checkEquals (
-            "dxdx at s=" + s, curve.evalDx(s), checkDx (curve, s), tol);
-         checkEquals (
-            "x at s=" + s, curve.eval(s,lastIdx), checkX (curve, s), tol);
-         checkEquals (
-            "dxdx at s=" + s, curve.evalDx(s,lastIdx), checkDx (curve, s), tol);
-      }
-
-      // test copy
-      CubicHermiteSpline3d check = new CubicHermiteSpline3d(curve);
-      if (!curve.equals (check)) {
-         throw new TestException ("copy failed");
-      }
-
-      // test save and load
+         // check dxds values
+         if (curve.isClosed()) {
+            checkEquals (
+               "dxds at s=-1 (closed)", curve.evalDx(-1), vec3d(0.05), tol);
+            checkEquals (
+               "dxds at s=-0.5 (closed)", curve.evalDx(-0.5), vec3d(0.0125), tol);
+         }
+         else {
+            checkEquals (
+               "dxds at s=-1", curve.evalDx(-1), vec3d(-0.1), tol);
+         }
+         checkEquals ("dxds at s=0", curve.evalDx(0), vec3d(-0.1), tol);
+         checkEquals ("dxds at s=1", curve.evalDx(1), vec3d(2.0), tol);
+         checkEquals ("dxds at s=2", curve.evalDx(2), vec3d(-1.0), tol);
+         checkEquals ("dxds at s=3", curve.evalDx(3), vec3d(2.0), tol);
+         checkEquals ("dxds at s=6", curve.evalDx(6), vec3d(-0.1), tol);
+         if (curve.isClosed()) {
+            checkEquals (
+               "dxds at s=6.5 (closed)", curve.evalDx(6.5), vec3d(0.0125), tol);
+            checkEquals (
+               "dxds at s=8 (closed)", curve.evalDx(8), vec3d(-0.1), tol);
+            checkEquals (
+               "dxds at s=9.5 (closed)", curve.evalDx(9.5), vec3d(-0.25), tol);
+         }
+         else {
+            checkEquals ("dxds at s=8", curve.evalDx(8), vec3d(-0.1), tol);
+            checkEquals ("dxds at s=9", curve.evalDx(9), vec3d(-0.1), tol);
+         }
       
-      String str = ScanTest.writeToString (curve, "%g", null);
-      check = new CubicHermiteSpline3d();
-      ScanTest.scanFromString (check, null, str);
-      if (!curve.equals (check)) {
-         throw new TestException ("write/scan failed");
+
+         // general value check
+         int npts = 200;
+         IntHolder lastIdx = new IntHolder();
+         for (int i=0; i<=npts; i++) {
+            double s = -0.5 + (i*7.0/npts);
+            checkEquals (
+               "x at s=" + s, curve.eval(s), checkX (curve, s), tol);
+            checkEquals (
+               "dxdx at s=" + s, curve.evalDx(s), checkDx (curve, s), tol);
+            checkEquals (
+               "x at s=" + s, curve.eval(s,lastIdx), checkX (curve, s), tol);
+            checkEquals (
+               "dxdx at s=" +s, curve.evalDx(s,lastIdx), checkDx (curve, s), tol);
+         }
+
+         // test copy
+         CubicHermiteSpline3d check = new CubicHermiteSpline3d(curve);
+         if (!curve.equals (check)) {
+            throw new TestException ("copy failed");
+         }
+
+         // test save and load
+      
+         String str = ScanTest.writeToString (curve, "%g", null);
+         check = new CubicHermiteSpline3d();
+         ScanTest.scanFromString (check, null, str);
+         if (!curve.equals (check)) {
+            throw new TestException ("write/scan failed");
+         }
       }
    }
 
@@ -294,10 +377,144 @@ public class CubicHermiteSpline3dTest extends UnitTest {
       }
    }
 
+    /**
+    * Checks that a spline is in fact a natural spline corresponding to the
+    * specified x and y inputs.
+    */
+   private void validateNatural (
+      CubicHermiteSpline3d spline,
+      ArrayList<Vector3d> xvals, double[] svals) {
+
+      int numk = spline.numKnots();
+      if (numk != xvals.size()) {
+         throw new TestException (
+            "incorrect number of knots: "+spline.numKnots()+
+            ", expected "+xvals.size());
+      }
+      for (int k=0; k<numk; k++) {
+         Knot knot = spline.getKnot(k);
+         if (!knot.myA0.equals (xvals.get(k))) {
+            throw new TestException (
+               "incorrect x value at k="+k+": "+knot.myA0+
+               ", expected "+xvals.get(k));
+         }
+         if (knot.myS0 != svals[k]) {
+            throw new TestException (
+               "incorrect s value at k="+k+": "+knot.myS0+", expected "+svals[k]);
+         }
+      }
+      if (!spline.isClosed() && numk == 2) {
+         Vector3d dxds = new Vector3d();
+         Knot knot0 = spline.getKnot(0);
+         Knot knot1 = spline.getKnot(1);
+         double ds = knot1.myS0 - knot0.myS0;
+         
+         dxds.sub (knot1.myA0, knot0.myA0);
+         dxds.scale (1/ds);         
+         checkEquals ("knot0.a1", knot0.myA1, dxds, EPS);
+         dxds.sub (knot1.myA0, knot0.myA0);
+         dxds.scale (1/ds);         
+         checkEquals ("knot1.a1", knot1.myA1, dxds, EPS);
+
+         checkEquals ("knot0.a2", knot0.myA2, Vector3d.ZERO);
+         checkEquals ("knot0.a3", knot0.myA3, Vector3d.ZERO);
+         checkEquals ("knot1.a2", knot1.myA2, Vector3d.ZERO);
+         checkEquals ("knot1.a3", knot1.myA3, Vector3d.ZERO);
+      }
+      else {
+         if (!spline.isClosed()) {
+            Knot knot = spline.getKnot(0);
+            checkEquals ("c0", knot.myA2, Vector3d.ZERO, EPS);
+            knot = spline.getLastKnot();
+            checkEquals ("cL", knot.myA2, Vector3d.ZERO, EPS);
+         }
+
+         int numi = spline.isClosed() ? numk : numk-1;
+         for (int k=0; k<numi; k++) {
+            int knext = (k+1)%numk;
+            Knot knot = spline.getKnot(k);
+            Knot next = spline.getKnot(knext);
+            double h;
+            if (spline.isClosed() && k==numi-1) {
+               h = spline.getClosingLength();
+            }
+            else {
+               h = next.myS0 - knot.myS0;
+            }
+            
+            Vector3d dy = new Vector3d();
+            dy.combine (3*h, knot.myA3, 2, knot.myA2);
+            dy.scale (h);
+            dy.add (knot.myA1);
+            if (!dy.epsilonEquals (next.myA1, EPS)) {
+               throw new TestException (
+                  "discontinous dy at k="+(k+1)+
+                  ": "+next.myA1+" vs. "+dy+" computed from previous");
+            }
+            Vector3d ddy = new Vector3d();
+            ddy.combine (2, knot.myA2, 6*h, knot.myA3);
+            Vector3d ddyChk = new Vector3d();
+            ddyChk.scale (2, next.myA2);
+            if (!ddy.epsilonEquals (ddyChk, EPS)) {
+               throw new TestException (
+                  "discontinous ddy at k="+(k+1)+
+                  ": "+ddyChk+" vs. "+ddy+" computed from previous");
+            }
+         }
+      }
+   }  
+
+   void testWriteAndScan (CubicHermiteSpline3d spline) {
+      CubicHermiteSpline3d newspline =
+         (CubicHermiteSpline3d)ScanTest.testWriteAndScanWithClass (
+            spline, null, "%g");
+      if (!spline.equals (newspline)) {
+         throw new TestException (
+            "written-scanned spline not equal to original");
+      }
+   }
+
+   void testNatural (double[] x, double[] svals, boolean closed) {
+      ArrayList<Vector3d> xvals = new ArrayList<>();
+      for (int i=0; i<x.length; i++) {
+         xvals.add (new Vector3d(x[i], x[i], x[i]));
+      }
+      CubicHermiteSpline3d spline = new CubicHermiteSpline3d();
+      spline.setClosed (closed ? 1.0 : 0);
+      spline.setNatural (xvals, svals);
+      validateNatural (spline, xvals, svals);
+      testWriteAndScan (spline);
+   }
+
+   void testNatural() {
+      double[] s = null;
+      double[] x = null;
+      for (int iter=0; iter<2; iter++) {
+         boolean closed = (iter==0);
+
+         s = new double[] { -1, 0 };
+         x = new double[] { 2.3, 7.3 };
+         testNatural (x, s, closed);
+
+         s = new double[] { -1, 1, 3 };
+         x = new double[] {  4, 0, 4 };
+         testNatural (x, s, closed);
+
+         s = new double[] { 0.9, 1.3, 1.9, 2.1 };
+         x = new double[] { 1.3, 1.5, 1.85, 2.1 };
+         testNatural (x, s, closed);
+
+         s = new double[] { -1, 0, 1.2, 3.4, 4 };
+         x = new double[] { 2.3, -1.2, 3.4, 4.5, 2 };
+         testNatural (x, s, closed);
+      }
+   }
+
    public void test() {
       testSpecial();
       testRegular();
       testMultiSegment();
+      testNatural();
    }
 
    public static void main (String[] args) {

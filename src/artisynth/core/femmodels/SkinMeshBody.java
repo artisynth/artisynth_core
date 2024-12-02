@@ -879,14 +879,14 @@ public class SkinMeshBody extends SkinMeshBase
    
    /**
     * Creates and adds a marker to the nearest mesh feature of this skin body.
-    * functions identically to {@link #addMeshMarker(String,Point3d)}, with
+    * functions identically to {@link #addMarkerToMesh(String,Point3d)}, with
     * {@code name} equal to {@code null}.
     *
     * @param pos requested initial marker position
     * @return the created marker
     */
-   public SkinMarker addMeshMarker (Point3d pos) {
-      return addMeshMarker (null, pos);
+   public SkinMarker addMarkerToMesh (Point3d pos) {
+      return addMarkerToMesh (null, pos);
    }
    
    /**
@@ -909,7 +909,7 @@ public class SkinMeshBody extends SkinMeshBase
     * @param pos requested initial marker position
     * @return the created marker
     */
-   public SkinMarker addMeshMarker (String name, Point3d pos) {
+   public SkinMarker addMarkerToMesh (String name, Point3d pos) {
       SkinMarker mkr = new SkinMarker (pos);
       mkr.setName (name);
       PointSkinAttachment a = mkr.getAttachment();

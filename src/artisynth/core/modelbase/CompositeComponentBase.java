@@ -23,7 +23,7 @@ public class CompositeComponentBase extends ModelComponentBase
    protected ComponentListImpl<ModelComponent> myComponents =
       new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
 
-   private NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
+   protected NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
 
    public CompositeComponentBase (String name) {
       super (name);

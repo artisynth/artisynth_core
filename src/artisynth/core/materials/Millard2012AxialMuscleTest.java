@@ -440,9 +440,7 @@ public class Millard2012AxialMuscleTest extends UnitTest {
             System.out.printf (
                "  maxKt=%g maxKp=%g\n", mat.getMaxTendonStiffness(),
                mat.getMaxPassiveStiffness());
-            mat.debug = true;
             mat.computeDerivs (l, lm, vm, a);
-            mat.debug = false;
             myMaxDFRatio = r;
             return true;
          }

@@ -1213,12 +1213,13 @@ ModelScriptActionListener {
    private ModelScriptInfo selectClass (ModelScriptInfo lastSelectedModel) {
 
       RootModelManager rmm = myMain.myRootModelManager;
+      
+      // Dec, 2024, Lloyd: always recreate LoadModelDialog so that
+      // it will start with the most recently loaded model
+      myLoadModelDialog =
+         new LoadModelDialog (
+            myFrame, lastSelectedModel, "Select root model", rmm);
 
-      if (myLoadModelDialog == null) {
-         myLoadModelDialog =
-            new LoadModelDialog (
-               myFrame, lastSelectedModel, "Select root model", rmm);
-      }
       LoadModelDialog dialog = myLoadModelDialog;
       GuiUtils.locateCenter (dialog, myFrame);
       dialog.setVisible (true);

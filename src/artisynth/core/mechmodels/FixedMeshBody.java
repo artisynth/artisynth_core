@@ -237,6 +237,7 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
       }         
+      updateMarkerAndCurvePositions();
    }
    
    public void scaleMesh (double sx, double sy, double sz) {
@@ -250,6 +251,8 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
    public void transformMesh (AffineTransform3dBase X) {
       getMesh().transform (X);
    }
+
+   /* --- transform geometry --- */
 
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {

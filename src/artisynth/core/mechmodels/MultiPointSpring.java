@@ -2884,11 +2884,15 @@ public class MultiPointSpring extends PointSpringBase
          Segment seg = segs.get(i);
          
          if (seg.hasSubSegments()) {
+            // Segment is a WrapSegment in contact. myLength has already
+            // been computed and will not be changed.
             for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
                ss.updateU();
             }
          }
          else {
+            // Segment is not a WrapSegment or is not in contact. myLength
+            // will be computed inside update().
             seg.updateU();
          }
          if (activeOnly && seg.isPassive()) {

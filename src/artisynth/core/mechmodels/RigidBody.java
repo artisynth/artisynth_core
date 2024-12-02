@@ -1437,6 +1437,10 @@ public class RigidBody extends Frame
             else {
                renderMesh = null;
             }
+            // Need to explicitly add mesh points and curves since we are not
+            // calling mcomp.prerender().
+            list.addIfVisible (mcomp.getMeshMarkers());
+            list.addIfVisible (mcomp.getCurves());
          }
       }
       mySDRenderSurface = surf;

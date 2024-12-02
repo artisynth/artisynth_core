@@ -80,7 +80,7 @@ public class ActuatedSkinning extends AllBodySkinning {
 
       // add markers
       mkr0 = mySkin.addMarker ("mkr0", new Point3d(-0.5369, -0.1, 0.7064));
-      mkr1 = mySkin.addMeshMarker ("mkr1", new Point3d( 0.5369, -0.1, 0.7064));
+      mkr1 = mySkin.addMarkerToMesh ("mkr1", new Point3d( 0.5369, -0.1, 0.7064));
 
       // add particles and attachments
       double pointMass = 0.1;

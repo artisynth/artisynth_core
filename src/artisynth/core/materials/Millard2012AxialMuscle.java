@@ -74,9 +74,6 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       myProps.add (
          "maxPennationAngle",
          "maximum pennation angle", DEFAULT_MAX_PENNATION_ANGLE);
-      myProps.add (
-         "muscleLength",
-         "length of the muscle section", DEFAULT_MUSCLE_LENGTH);      
    }
 
    public PropertyList getAllPropertyInfo() {

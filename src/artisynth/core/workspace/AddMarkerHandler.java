@@ -133,7 +133,7 @@ public class AddMarkerHandler {
             }
             else if (comp instanceof SkinMeshBody) {
                SkinMeshBody skin = (SkinMeshBody)comp;
-               skin.addMeshMarker (null, isect);
+               skin.addMarkerToMesh (null, isect);
             } else if (comp instanceof PointAttachable) {
                PointAttachable pa = (PointAttachable)comp;
                

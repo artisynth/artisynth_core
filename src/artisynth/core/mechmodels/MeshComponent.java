@@ -15,6 +15,7 @@ import java.util.List;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.matrix.Point3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
@@ -34,10 +35,12 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.renderables.MeshCurve;
+import artisynth.core.renderables.MeshMarker;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
 
@@ -46,12 +49,15 @@ import artisynth.core.util.ScanToken;
  * possible file name and transformation with respect to the original file
  * definition.
  */
-public class MeshComponent extends RenderableComponentBase
+public class MeshComponent extends RenderableCompositeBase
    implements TransformableGeometry, ScalableUnits {
 
    protected MeshInfo myMeshInfo;
    // reference to mesh for rendering - used in case mesh changes
    protected MeshBase myRenderMesh;
+
+   protected PointList<MeshMarker> myMarkers = null;
+   protected RenderableComponentList<MeshCurve> myCurves = null;
 
    public static boolean DEFAULT_SELECTABLE = true;
    protected boolean mySelectable = DEFAULT_SELECTABLE;
@@ -90,6 +96,8 @@ public class MeshComponent extends RenderableComponentBase
 
    public MeshComponent () {
       myMeshInfo = new MeshInfo();
+      setRenderProps (createRenderProps());
+      initializeChildComponents();
    }
 
    public MeshComponent (
@@ -97,6 +105,15 @@ public class MeshComponent extends RenderableComponentBase
       this();
       setMesh (mesh, fileName, X);
    }
+
+   protected void initializeChildComponents() {
+      myMarkers =
+         new PointList<MeshMarker>(MeshMarker.class, "meshMarkers");
+      add (myMarkers);
+      myCurves =
+         new RenderableComponentList<MeshCurve>(MeshCurve.class, "curves");
+      add (myCurves);
+   }    
 
    protected void setMeshFromInfo () {
       MeshBase mesh = getMesh();
@@ -306,6 +323,8 @@ public class MeshComponent extends RenderableComponentBase
    @Override
    public void prerender(RenderList list) {
       prerenderMesh();
+      list.addIfVisible (myMarkers);
+      list.addIfVisible (myCurves);
    }
 
    public void render (Renderer renderer, RenderProps props, int flags) {     
@@ -381,6 +400,7 @@ public class MeshComponent extends RenderableComponentBase
       // should be instantiated
       writeMeshInfo (pw, fmt);
       getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
+      myComponents.writeComponentsByName (pw, fmt, ancestor);
    }
    
    protected void scanMeshInfo (ReaderTokenizer rtok) throws IOException {
@@ -388,11 +408,19 @@ public class MeshComponent extends RenderableComponentBase
       setMeshFromInfo();
    }   
 
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      myComponents.scanBegin();
+      super.scan (rtok, ref);
+   }
+
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
-      if (scanAttributeName (rtok, "mesh")) {
+      if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
+         return true;
+      }      
+      else if (scanAttributeName (rtok, "mesh")) {
          scanMeshInfo (rtok);
          return true;
       }
@@ -401,12 +429,83 @@ public class MeshComponent extends RenderableComponentBase
       return super.scanItem (rtok, tokens);
    }
 
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) 
+         throws IOException {
+
+      if (myComponents.postscanComponent (tokens, ancestor)) {
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+
+   @Override
+   public void postscan (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      super.postscan (tokens, ancestor);
+      myComponents.scanEnd();
+   }
+
    public void scaleDistance (double s) {
       myMeshInfo.myMesh.scale (s);      
    }
 
    public void scaleMass (double s) {
    }
+
+   /* --- mesh markers --- */
+
+   public void addMeshMarker (MeshMarker mkr) {
+      myMarkers.add (mkr);
+   }
+
+   public MeshMarker addMeshMarker (Point3d pos) {
+      MeshMarker mkr = new MeshMarker (this, pos);
+      myMarkers.add (mkr);
+      return mkr;
+   }
+   
+   public PointList<MeshMarker> getMeshMarkers() {
+      return myMarkers;
+   }
+
+   public boolean removeMeshMarker (MeshMarker mkr) {
+      return myMarkers.remove (mkr);
+   }
+
+   public void clearMeshMarkers() {
+      myMarkers.removeAll();
+   }
+   
+   /* --- mesh curves --- */
+
+   public MeshCurve addCurve () {
+      MeshCurve curve = new MeshCurve (this);
+      myCurves.add (curve);
+      return curve;
+   }
+   
+   public void addCurve (MeshCurve curve) {
+      if (curve.getMeshComp() != this) {
+         throw new IllegalArgumentException (
+            "Mesh curve not associated with body");
+      }
+      myCurves.add (curve);
+   }
+   
+   public RenderableComponentList<MeshCurve> getCurves() {
+      return myCurves;
+   }
+
+   public boolean removeCurve (MeshCurve curve) {
+      return myCurves.remove (curve);
+   }
+
+   public void clearCurves() {
+      myCurves.removeAll();
+   }
+
+   /* --- transform geometry --- */
 
    public void transformGeometry (AffineTransform3dBase X) {
       TransformGeometryContext.transform (this, X, 0);
@@ -426,6 +525,18 @@ public class MeshComponent extends RenderableComponentBase
       // no dependencies
    }
 
+   protected void updateMarkerAndCurvePositions() {
+      if (!isScanning()) {
+         // if scanning, markers and curves may not exist yet
+         for (MeshMarker mm : myMarkers) {
+            mm.updatePosition();
+         }
+         for (MeshCurve mc : myCurves) {
+            mc.updatePosition();
+         }
+      }
+   }
+   
    public void updateSlavePos () {
       // potentially notify of vertex modification
       // TODO: potentially remove this once MFreeModel3d transitions to FemMeshComp

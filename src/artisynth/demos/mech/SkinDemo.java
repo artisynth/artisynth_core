@@ -379,7 +379,7 @@ public class SkinDemo extends RootModel {
       model.addMeshBody (fiberMesh);
       RenderProps.setLineColor (fiberMesh, Color.CYAN);
       myFiberMesh = fiberMesh;
-      myFiberMesh.addMeshMarker (null, new Point3d (-14.5, 0, 0));
+      myFiberMesh.addMarkerToMesh (null, new Point3d (-14.5, 0, 0));
       RenderProps.setSphericalPoints (myFiberMesh, 0.5, Color.WHITE);
    }
     

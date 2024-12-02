@@ -138,6 +138,12 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          "computeLmDotFromLDot",
          "if true, use ldot to compute lmdot",
          DEFAULT_IGNORE_FORCE_VELOCITY);
+      myProps.addReadOnly (
+         "length",
+         "length of the combined tendon/muscle");
+      myProps.addReadOnly (
+         "muscleLength",
+         "length of the muscle portion of the tendon/muscle");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -447,6 +453,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          double Vmax = myMaxContractionVelocity;
          double lo = myOptFibreLength;
 
+
          double lf; // fibre length
          double ca; // cos(alpha)
          if (H == 0) {
@@ -622,8 +629,6 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       return 0;
    }
 
-   public boolean debug;
-   
    private double computeVmFromLm (double l, double ldot, double lm) {
       if (vmFromTendon) {
          double ltprev = myLengthPrev-myMuscleLengthPrev;

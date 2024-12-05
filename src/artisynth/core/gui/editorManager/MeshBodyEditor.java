@@ -10,11 +10,13 @@ import java.awt.Rectangle;
 
 import artisynth.core.driver.Main;
 import artisynth.core.mechmodels.MeshComponent;
-import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.*;
 import artisynth.core.renderables.EditablePolygonalMeshComp;
+import artisynth.core.renderables.MeshCurve;
 import artisynth.core.modelbase.*;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.MeshBase;
+import maspack.properties.*;
 import maspack.render.*;
 import artisynth.core.gui.selectionManager.SelectionManager;
 
@@ -40,11 +42,18 @@ public class MeshBodyEditor extends EditorBase {
                 MechModel.nearestMechModel(body) != null) {
                actions.add (this, "Add mesh inspector");
             }
+            if (body.getMesh() instanceof PolygonalMesh) {
+               actions.add (this, "Add mesh curve");
+            }
          }
          if (selection.size() == 2) {
             actions.add (this, "Register meshes ...");
          }
       }
+      else if (containsSingleSelection (selection, MeshCurve.class)) {
+         actions.add (this, "Edit mesh curve");
+      }
+
    }
 
    public void applyAction (
@@ -81,6 +90,17 @@ public class MeshBodyEditor extends EditorBase {
                   mech.addRenderable (editMesh);
                }
             }
+            else if (actionCommand == "Add mesh curve") {
+               MeshComponent mcomp = (MeshComponent)selection.get (0);
+               MeshBase mesh = mcomp.getMesh();
+               if (mesh instanceof PolygonalMesh &&
+                   myEditManager.acquireEditLock()) {
+                  MeshCurve curve = new MeshCurve (mcomp);
+                  MeshCurveAgent agent = new MeshCurveAgent (
+                     myMain, curve, mcomp);
+                  agent.show (popupBounds);
+               }
+            }
          }
          if (selection.size() == 2) {
             if (actionCommand == "Register meshes ...") {
@@ -93,6 +113,16 @@ public class MeshBodyEditor extends EditorBase {
                }
             }
          }
+      }
+      else if (containsSingleSelection (selection, MeshCurve.class)) {
+         if (actionCommand == "Edit mesh curve") {
+            if (myEditManager.acquireEditLock()) {
+               MeshCurve curve = (MeshCurve)selection.get (0);
+               MeshCurveAgent agent =
+                     new MeshCurveAgent (myMain, curve, curve.getMeshComp());
+               agent.show (popupBounds);            
+            }
+          }
       }
    }
 }

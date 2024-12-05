@@ -26,6 +26,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolylineMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.RigidTransform3d;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -560,6 +561,7 @@ public class RigidMeshComp extends DynamicMeshComponent
 
       if (body == null) {
          myMeshInfo.transformGeometry (gtr);
+         updateMarkerAndCurvePositions();
          updateMeshVolume();
       }
       else if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
@@ -574,21 +576,21 @@ public class RigidMeshComp extends DynamicMeshComponent
          else {
             myMeshInfo.transformGeometry (gtr, constrainer);
          }
+         updateMarkerAndCurvePositions();
          updateMeshVolume();
          if (body != null && !context.contains (body)) {
             context.addAction (new RigidBody.UpdateInertiaAction(body));
          }
       }
       else {
-         MeshBase mesh = myMeshInfo.getMesh();
          if (context.contains (body)) {
-            mesh.setMeshToWorld (body.getPose());
+            setMeshToWorld (body.getPose());
          }
          else {
             // do nothing - shouldn't transform
          }
       }
-   }   
+   }
 
    public void connectToHierarchy(CompositeComponent hcomp) {
       // no need to do anything here at the moment. RigidBody will notice

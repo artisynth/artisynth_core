@@ -36,6 +36,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
    protected PropertyMode myNormalComputeRadiusMode = PropertyMode.Inherited;
 
    static {
+      myProps.get ("position").setAutoWrite (false);
       myProps.remove ("velocity");
       myProps.remove ("targetPosition");
       myProps.remove ("targetVelocity");
@@ -76,6 +77,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       myMeshComp = mcomp;
       myFaceIdx = faceIdx;
       myCoords.set (s1, s2);
+      updatePosition();
    }
 
    public MeshMarker (MeshComponent mcomp, Point3d pos) {
@@ -147,6 +149,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
 
    public void setCoords (Vector2d coords) {
       myCoords.set (coords);
+      updatePosition();
    }
 
    public int getFaceIndex() {
@@ -174,7 +177,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
    protected void projectToMesh (Point3d pos) {
       Point3d surfacePos = new Point3d();
       Face face = BVFeatureQuery.getNearestFaceToPoint (
-         surfacePos, myCoords, getMesh(), pos);
+         null, myCoords, getMesh(), pos);
       if (face == null) {
          // couldn't compute for some reason
          myFaceIdx = 0;
@@ -183,27 +186,29 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       else {
          myFaceIdx = face.getIndex();
       }
-      setPosition (surfacePos);
+      updatePosition();
    }
 
    public void updatePosition() {
       PolygonalMesh mesh = getMesh();
-      if (myFaceIdx >= mesh.numFaces()) {
-         setPosition (0, 0, 0);
-      }
-      else {
-         double s1 = myCoords.x;
-         double s2 = myCoords.y;
-         double s0 = 1 - s1 - s2;
-         Face face = mesh.getFace (myFaceIdx);
-         Point3d pos = new Point3d();
-         HalfEdge he = face.firstHalfEdge();
-         pos.scaledAdd (s0, he.getHead().getWorldPoint());
-         he = he.getNext();
-         pos.scaledAdd (s1, he.getHead().getWorldPoint());
-         he = he.getNext();
-         pos.scaledAdd (s2, he.getHead().getWorldPoint());
-         setPosition (pos);
+      if (mesh != null) {
+         if (myFaceIdx >= mesh.numFaces()) {
+            setPosition (0, 0, 0);
+         }
+         else {
+            double s1 = myCoords.x;
+            double s2 = myCoords.y;
+            double s0 = 1 - s1 - s2;
+            Face face = mesh.getFace (myFaceIdx);
+            Point3d pos = new Point3d();
+            HalfEdge he = face.firstHalfEdge();
+            pos.scaledAdd (s0, he.getHead().getWorldPoint());
+            he = he.getNext();
+            pos.scaledAdd (s1, he.getHead().getWorldPoint());
+            he = he.getNext();
+            pos.scaledAdd (s2, he.getHead().getWorldPoint());
+            setPosition (pos);
+         }
       }
    }
 
@@ -243,6 +248,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       if (postscanAttributeName (tokens, "meshComp")) {
          myMeshComp = 
             postscanReference (tokens, MeshComponent.class, ancestor);
+         updatePosition();
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -255,7 +261,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       super.writeItems (pw, fmt, ancestor);
       pw.println (
          "meshComp="+ComponentUtils.getWritePathName (ancestor,myMeshComp));
-      pw.print ("faceIdx=" + myFaceIdx);
+      pw.println ("faceIdx=" + myFaceIdx);
       pw.print ("coords=");
       myCoords.write (pw, fmt, /*withBrackets=*/true);
       pw.println ("");
@@ -291,7 +297,12 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       MeshMarker m = (MeshMarker)super.copy (flags, copyMap);
 
-      m.myMeshComp = myMeshComp;
+      if (copyMap != null) {
+         m.myMeshComp = (MeshComponent)copyMap.get(myMeshComp);
+      }
+      if (m.myMeshComp == null) {
+         m.myMeshComp = myMeshComp;
+      }
       m.myFaceIdx = myFaceIdx;
       m.myCoords = new Vector2d (myCoords);
       m.updatePosition();

@@ -15,6 +15,7 @@ import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.*;
 import artisynth.core.renderables.EditablePolygonalMeshComp;
+import artisynth.core.renderables.MeshCurve;
 import artisynth.core.modelbase.*;
 import maspack.geometry.PolygonalMesh;
 import maspack.render.*;
@@ -46,6 +47,9 @@ public class RigidBodyEditor extends EditorBase {
             if (body.getSurfaceMesh() != null &&
                 MechModel.nearestMechModel(body) != null) {
                actions.add (this, "Add mesh inspector");
+            }
+            if (body.getSurfaceMesh() != null) {
+               actions.add (this, "Add mesh curve");
             }
          }
          // actions for controlling distance grid visibility 
@@ -191,6 +195,16 @@ public class RigidBodyEditor extends EditorBase {
                RenderProps.setPointStyle (editMesh, Renderer.PointStyle.SPHERE);
                RenderProps.setPointRadius (editMesh, Math.min(0.05*size,maxRad));
                mech.addRenderable (editMesh);
+            }
+            else if (actionCommand == "Add mesh curve") {
+               RigidBody body = (RigidBody)selection.get (0);
+               if (myEditManager.acquireEditLock()) {
+                  RigidMeshComp mcomp = body.getSurfaceMeshComp();
+                  MeshCurve curve = new MeshCurve (mcomp);
+                  MeshCurveAgent agent = new MeshCurveAgent (
+                     myMain, curve, mcomp);
+                  agent.show (popupBounds);
+               }
             }
          }
          if (selection.size() == 2) {

@@ -1,3 +1,4 @@
+
 /**
  * Copyright (c) 2014, by the Authors: John Lloyd (UBC), Tracy Wilkinson (UBC) and
  * ArtiSynth Team Members
@@ -32,6 +33,7 @@ import maspack.properties.HasProperties;
 import maspack.properties.HostList;
 import maspack.properties.PropTreeCell;
 import maspack.properties.Property;
+import maspack.properties.*;
 import maspack.render.MouseRayEvent;
 import maspack.render.Renderable;
 import maspack.render.Renderer.*;
@@ -113,6 +115,20 @@ ValueChangeListener {
       return false;
    }
 
+   protected boolean hasCylindricalLineRendering (ComponentList<?> container) {
+      CompositeComponent ccomp = (CompositeComponent)container;
+      while (ccomp != null) {
+         if (ccomp instanceof Renderable) {
+            RenderProps props = ((Renderable)ccomp).getRenderProps ();
+            if (props != null) {
+               return props.getLineStyle() == LineStyle.CYLINDER;
+            }
+         }
+         ccomp = ccomp.getParent();
+      }
+      return false;
+   }
+
    private LinkedHashMap<Class,ArrayList<PropName>> myTypePropertyMap;
 
    protected ModelComponent getPrototypeComponent (Class type) {
@@ -148,6 +164,51 @@ ValueChangeListener {
       }
       else {
          return null;
+      }
+   }
+
+   /**
+    * Copy the values of any inheritable and explicit set properties from
+    * {@code dst} to {@code src}.
+    */
+   protected void copyExplicitPropertyValues (
+      HasProperties dst, HasProperties src) {
+      for (PropertyInfo sinfo : src.getAllPropertyInfo()) {
+         if (sinfo.isInheritable()) {
+            InheritableProperty sprop =
+               (InheritableProperty)sinfo.createHandle (src);
+            if (sprop.getMode() == PropertyMode.Explicit) {
+               // try copying
+               PropertyInfo dinfo = dst.getAllPropertyInfo().get(sinfo.getName());
+               if (dinfo != null && dinfo.isInheritable() &&
+                   dinfo.getValueClass() == sinfo.getValueClass()) {
+                  InheritableProperty dprop =
+                     (InheritableProperty)dinfo.createHandle (dst);
+                  dprop.set (sprop.get());
+               }
+            }
+         }
+      }
+   }
+
+   /**
+    * Copy the values of a set of named properties {@code dst} to {@code src}.
+    */
+   protected void copyPropertyValues (
+      HasProperties dst, HasProperties src, String[] propNames) {
+      
+      for (String name : propNames) {
+         PropertyInfo sinfo = src.getAllPropertyInfo().get(name);
+         if (sinfo != null) {
+            // try copying
+            PropertyInfo dinfo = dst.getAllPropertyInfo().get(name);
+            if (dinfo != null && 
+                dinfo.getValueClass() == sinfo.getValueClass()) {
+               Property sprop = sinfo.createHandle (src);
+               Property dprop = dinfo.createHandle (dst);
+               dprop.set (sprop.get());
+            }
+         }
       }
    }
 

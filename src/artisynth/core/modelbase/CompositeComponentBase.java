@@ -236,10 +236,11 @@ public class CompositeComponentBase extends ModelComponentBase
          (CompositeComponentBase)super.copy (flags, copyMap);
 
       ccomp.myComponents =
-         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+         new ComponentListImpl<ModelComponent>(ModelComponent.class, ccomp);
       ccomp.myDisplayMode = myDisplayMode;
       
       return ccomp;
    }
 
 }
+

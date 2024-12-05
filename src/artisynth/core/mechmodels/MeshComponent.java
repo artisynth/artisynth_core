@@ -132,6 +132,8 @@ public class MeshComponent extends RenderableCompositeBase
       myMeshInfo.set (mesh, fileName, X);
       setMeshFromInfo ();
       // notify parent, to get a rerender and since collisions might change
+      clearMeshMarkers();
+      clearCurves();
       notifyParentOfChange (new StructureChangeEvent (this));
    }
    
@@ -218,6 +220,7 @@ public class MeshComponent extends RenderableCompositeBase
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setMeshToWorld(TMW);
+         updateMarkerAndCurvePositions();
       }
    }      
    
@@ -584,7 +587,21 @@ public class MeshComponent extends RenderableCompositeBase
       MeshComponent comp = (MeshComponent)super.copy (flags, copyMap);
 
       comp.myMeshInfo = myMeshInfo.copy();
+      
+      comp.initializeChildComponents();
+      comp.setName(null);
+      comp.setNavpanelVisibility(getNavpanelVisibility());
 
+      if (copyMap != null) {
+         copyMap.put (this, comp);
+      }
+      for (int i=0; i<myMarkers.size(); i++) {
+         comp.myMarkers.add (myMarkers.get(i).copy (flags, copyMap));
+      }     
+      for (int i=0; i<myCurves.size(); i++) {
+         comp.myCurves.add (myCurves.get(i).copy (flags, copyMap));
+      }
+      
       return comp;
    }
    

@@ -664,6 +664,25 @@ public class MeshCurve extends RenderableCompositeBase {
          "meshComp="+ComponentUtils.getWritePathName (ancestor,myMeshComp));
    }
    
+   @Override
+   public MeshCurve copy (
+      int flags, Map<ModelComponent,ModelComponent> copyMap) {
+      MeshCurve curve = (MeshCurve)super.copy (flags, copyMap);
+
+      curve.initializeChildComponents();
+      if (copyMap != null) {
+         curve.myMeshComp = (MeshComponent)copyMap.get(myMeshComp);
+         copyMap.put (this, curve);
+      }
+      if (curve.myMeshComp == null) {
+         curve.myMeshComp = myMeshComp;
+      }
+      for (int i=0; i<myMarkers.size(); i++) {
+         curve.myMarkers.add (myMarkers.get(i).copy (flags, copyMap));
+      }     
+      curve.myCurveValid = false;
+      return curve;
+   }
 
 }
       

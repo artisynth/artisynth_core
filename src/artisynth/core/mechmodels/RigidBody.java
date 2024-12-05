@@ -1084,7 +1084,7 @@ public class RigidBody extends Frame
 
    protected void addMeshComp (RigidMeshComp mc, int idx) {
       mc.getMesh().setFixed(true);
-      mc.getMesh().setMeshToWorld (myState.XFrameToWorld);
+      mc.setMeshToWorld (myState.XFrameToWorld);
       myMeshList.add(mc, idx);
    }
 
@@ -1133,8 +1133,7 @@ public class RigidBody extends Frame
          mesh.setMeshToWorld (myState.XFrameToWorld);
       }
       for (RigidMeshComp mc : myMeshList) {
-         MeshBase mbase = mc.getMesh();
-         mbase.setMeshToWorld(myState.XFrameToWorld);
+         mc.setMeshToWorld(myState.XFrameToWorld);
       }
       myDistanceGridComp.setLocalToWorld (myState.XFrameToWorld);
       if (myCompoundCollisionMesh != null) {
@@ -1519,7 +1518,7 @@ public class RigidBody extends Frame
 
       for (RigidMeshComp mc : myMeshList) {
          mc.scaleDistance(s);
-         mc.getMesh().setMeshToWorld(myState.XFrameToWorld);
+         mc.setMeshToWorld(myState.XFrameToWorld);
       }
       myDensity /= (s * s * s);
       if (myInertiaMethod == InertiaMethod.EXPLICIT) {

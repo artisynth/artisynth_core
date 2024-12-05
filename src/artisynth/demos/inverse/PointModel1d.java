@@ -40,7 +40,6 @@ public class PointModel1d extends PointModel {
 	 }
 	 if (s instanceof Muscle) {
 	    Muscle m = (Muscle)s;
-            System.out.println ("here");
             m.setMaterial (new SimpleAxialMuscle (1000, 0, 100));
 	    // if (m.getMaterial() instanceof AxialMuscleMaterial) {
 	    //    AxialMuscleMaterial mat = 

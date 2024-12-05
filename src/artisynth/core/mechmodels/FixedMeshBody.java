@@ -218,6 +218,7 @@ public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
       }
+      updateMarkerAndCurvePositions();
    }
 
    /**

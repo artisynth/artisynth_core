@@ -153,7 +153,7 @@ public class GLFrameCapture {
             }
             
             // ensure output directory exists
-            File parent = file.getParentFile ();
+            File parent = file.getAbsoluteFile().getParentFile ();
             if (!parent.exists ()) {
                parent.mkdirs ();
             }

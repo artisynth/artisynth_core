@@ -20,6 +20,31 @@ public class ImageFileChooser extends JFileChooser {
    ArrayList<ExtensionFileFilter> myImageFilters;
    ArrayList<ExtensionFileFilter> myAllFilters;
 
+   public static String[] getValidExtensions() {
+      return new String[] {
+         "png", "jpg", "jpeg", "gif", "bmp" };
+   }
+   
+   public static boolean isValidExtension (String fmt) {
+      for (String s : getValidExtensions()) {
+         if (s.equalsIgnoreCase(fmt)) {
+            return true;
+         }
+      }
+      return false;
+   }
+   
+   public static String getValidExtensionsString() {
+      StringBuilder sb = new StringBuilder();
+      for (String s : getValidExtensions()) {
+         if (sb.length() > 0) {
+            sb.append (", ");
+         }
+         sb.append ("'"+s+"'");
+      }
+      return sb.toString();
+   }
+   
    private ArrayList<ExtensionFileFilter> createImageFilters() {
       ArrayList<ExtensionFileFilter> filters = new ArrayList<>();
       filters.add (

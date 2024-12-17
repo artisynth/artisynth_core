@@ -64,6 +64,7 @@ import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.timeline.TimelineController;
+import artisynth.core.gui.widgets.ImageFileChooser;
 import artisynth.core.inverse.InverseManager;
 import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.CollisionManager.ColliderType;
@@ -139,6 +140,7 @@ import maspack.render.GL.GLViewerFrame;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.SparseSolverId;
 import maspack.util.ClassFinder;
+import maspack.util.GenericFileFilter;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.Logger;
@@ -649,6 +651,67 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       else {
          myFrame.setViewerSize (w, h);
+      }
+   }
+
+   private static class ViewerImageSaver implements Runnable {
+      GLViewer myViewer;
+      File myFile;
+      String myFormat;
+
+      boolean canWrite (File file) {
+         if (file.exists()) {
+            return file.canWrite();
+         }
+         else {
+            return file.getAbsoluteFile().getParentFile().canWrite();
+         }
+      }
+
+      public ViewerImageSaver (GLViewer viewer, File file) {
+         myViewer = viewer;
+         if (!canWrite (file)) {
+            throw new IllegalArgumentException (
+               "Unable to write file '"+file+"'");
+         }
+         String ext = GenericFileFilter.getExtension (file);
+         if (ext == null) {
+            throw new IllegalArgumentException (
+               "No file extension specified");
+         }
+         if (!ImageFileChooser.isValidExtension (ext)) {
+            throw new IllegalArgumentException (
+               "Invalid file extension '" + ext + "'; should be one of " +
+               ImageFileChooser.getValidExtensionsString());
+         }
+         myFile = file;
+         myFormat = ext;
+      }
+
+      public void run() {
+         myViewer.setupScreenShot(
+            myViewer.getScreenWidth(), myViewer.getScreenHeight(),
+            myFile, myFormat);
+         myViewer.repaint();
+      };
+   }
+
+   public void saveViewerImage (File file) {
+      GLViewer viewer = getViewer();
+      if (viewer == null) {
+         throw new IllegalStateException (
+            "Viewer image cannot be saved if the GUI is not present");
+      }
+      ViewerImageSaver saver = new ViewerImageSaver (viewer, file);
+      if (!SwingUtilities.isEventDispatchThread()) {
+         try {
+            SwingUtilities.invokeAndWait(saver);
+         } catch (InvocationTargetException | InterruptedException e) {
+            e.printStackTrace();
+         }
+      }
+      else {
+         saver.run();
       }
    }
    

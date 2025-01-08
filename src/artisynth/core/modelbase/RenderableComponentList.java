@@ -44,6 +44,9 @@ ComponentList<C> implements RenderableComponentListView<C>, RenderableComponent 
       setRenderProps (createRenderProps());
    }
 
+   public boolean add (C rcomp) {
+      return super.add (rcomp);
+   }
    // public RenderableComponentList (
    // Class type, String name, String shortName,
    // CompositeComponent parent)

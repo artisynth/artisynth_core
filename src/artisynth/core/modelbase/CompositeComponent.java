@@ -30,7 +30,7 @@ public interface CompositeComponent
 
       /**
        * Component should be visible in the panel, with named
-       * children ordered alphebetically.
+       * children ordered alphabetically.
        */
       ALPHABETIC
     };   

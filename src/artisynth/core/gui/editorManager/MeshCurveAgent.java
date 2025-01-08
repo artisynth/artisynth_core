@@ -40,8 +40,9 @@ import artisynth.core.workspace.RootModel;
 public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
    protected MeshCurve myCurve;
    protected RenderableComponentList<MeshMarker> myMarkerList; // marker dest
+   protected RenderableComponentList<? extends RenderableComponent> myCurveParent; 
    protected MeshComponent myMeshComp; // mesh component containing the curve
-   private boolean myCurveAddedToBody; // true if agent added the curve to the body
+   private boolean myRemoveCurveIfEmpty; // remove curve on dispose if no markers
 
    private static HashMap<Class,ModelComponent> myPrototypeMap;
    private static RootModel myLastRootModel = null;
@@ -61,7 +62,7 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
       ModelComponent comp, ComponentList<?> container, Class type) {
    }
 
-   protected void initializeProperties (MeshCurve curve) {
+   public void initializeProperties (MeshCurve curve) {
       ComponentList<MeshCurve> curves = myMeshComp.getCurves();
       if (curves.size() > 1) {
          MeshCurve prev = curves.get (curves.size()-2);
@@ -135,36 +136,39 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
    }
 
    public MeshCurveAgent (
-      Main main, MeshCurve curve, MeshComponent meshComp) {
-      this (main, curve, curve.getMarkers(), meshComp);
+      Main main, MeshCurve curve, MeshComponent meshComp, 
+      boolean removeIfEmpty) {
+      this (main, curve, curve.getMarkers(), meshComp, removeIfEmpty);
    }
 
    public MeshCurveAgent (
-      Main main, MeshCurve curve, RenderableComponentList<MeshMarker> markers,
-      MeshComponent meshComp) {
+      Main main, MeshCurve curve, 
+      RenderableComponentList<MeshMarker> markers,
+      MeshComponent meshComp, boolean removeIfEmpty) {
       super (main, (ComponentList<MeshMarker>)markers, curve);
+      if (curve.getMeshComp() != meshComp) {
+         throw new IllegalArgumentException (
+            "Mesh curve not associated with body");
+      }     
       myCurve = curve;
       myMarkerList = markers;
       myMeshComp = meshComp;
+      myRemoveCurveIfEmpty = removeIfEmpty;
    }
 
    public void dispose() {
       // if we added the curve to the body, remove it if no markers were added
-      if (myCurveAddedToBody && myCurve.numMarkers() == 0) {
-         myMeshComp.removeCurve (myCurve);
+      if (myRemoveCurveIfEmpty && myCurve.numMarkers() == 0) {
+         CompositeComponent parent = myCurve.getParent();
+         if (parent instanceof ComponentList) { // paranoid
+            ((ComponentList)parent).remove (myCurve);
+         }
       }
       super.dispose();
    }
 
    protected void createDisplay() {
       createDisplayFrame ("Add Markers");
-
-      // add the curve to the body if it is not already present
-      if (!myMeshComp.getCurves().contains (myCurve)) {
-         myMeshComp.addCurve (myCurve);
-         initializeProperties (myCurve);
-         myCurveAddedToBody = true;
-      }     
 
       addComponentType (MeshCurve.class, new String[] { 
             "navpanelVisibility" });
@@ -233,6 +237,7 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
       myPropertyPanel.addWidget (myCurve, "normalComputeRadius");
       myPropertyPanel.addWidget (myCurve, "closed");
       myPropertyPanel.addWidget (myCurve, "normalLength");
+      myPropertyPanel.addWidget (myCurve, "projectToMesh");
 
       RenderProps props = myCurve.getRenderProps();
       myPropertyPanel.addWidget (new JSeparator());

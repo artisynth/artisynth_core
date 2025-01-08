@@ -725,7 +725,7 @@ public class RigidTransform3d extends AffineTransform3dBase {
    String toString (StringBuffer sbuf, NumberFormat numberFmt, int outputCode) {
       sbuf.setLength (0);
       if (outputCode == MATRIX_3X4_STRING || outputCode == MATRIX_4X4_STRING) {
-         sbuf.append ("[ ");
+         sbuf.append ("[\n  ");
          for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                numberFmt.format (R.get (i, j), sbuf);

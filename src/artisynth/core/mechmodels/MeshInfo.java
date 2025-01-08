@@ -386,9 +386,14 @@ public class MeshInfo {
       AffineTransform3dBase X = getFileTransform();
       if (X != null && !X.isIdentity()) {
          if (X instanceof RigidTransform3d) {
-            pw.println ("transform=RigidTransform3d"
-                        + ((RigidTransform3d)X).toString (
-                           fmt, RigidTransform3d.AXIS_ANGLE_STRING));
+            int writeFormat = RigidTransform3d.AXIS_ANGLE_STRING;
+            if (fmt.isFullPrecisionDouble()) {
+               // need to do MATRIX_3X4_STRING since that's the only thing
+               // that gives us full precision save/restore
+               writeFormat = RigidTransform3d.MATRIX_3X4_STRING;
+            }
+            pw.println ("transform=RigidTransform3d "
+                        + ((RigidTransform3d)X).toString (fmt, writeFormat));
          }
          else {
             pw.println ("transform=AffineTransform3d");

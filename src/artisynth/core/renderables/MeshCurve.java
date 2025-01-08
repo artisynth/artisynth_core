@@ -25,7 +25,7 @@ import artisynth.core.util.*;
 public class MeshCurve extends RenderableCompositeBase {
 
    public static final double INF = Double.POSITIVE_INFINITY;
-
+   
    protected MeshComponent myMeshComp = null;
    protected PointList<MeshMarker> myMarkers;
    protected boolean myCurveValid = false;
@@ -59,6 +59,9 @@ public class MeshCurve extends RenderableCompositeBase {
    public static double DEFAULT_NORMAL_LENGTH = 0;
    protected double myNormalLength = DEFAULT_NORMAL_LENGTH;
 
+   public static boolean DEFAULT_PROJECT_TO_MESH = true;
+   protected boolean myProjectToMesh = DEFAULT_PROJECT_TO_MESH;
+
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createRenderProps (host);
       return props;
@@ -87,6 +90,10 @@ public class MeshCurve extends RenderableCompositeBase {
          "normalLength", 
          "length of surface normals to draw along the curve points",
          DEFAULT_NORMAL_LENGTH);
+      myProps.add (
+         "projectToMesh", 
+         "if true, curve points between knots are projected onto the mesh",
+         DEFAULT_PROJECT_TO_MESH);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -226,6 +233,17 @@ public class MeshCurve extends RenderableCompositeBase {
       return RenderableUtils.getRadius (myMeshComp)/50;
    }
 
+   public boolean getProjectToMesh() {
+      return myProjectToMesh;
+   }
+
+   public void setProjectToMesh (boolean enable) {
+      if (myProjectToMesh != enable) {
+         myProjectToMesh = enable;
+         myCurveValid = false;
+      }
+   }
+
    // other accessors
 
    public PolygonalMesh getMesh() {
@@ -277,19 +295,107 @@ public class MeshCurve extends RenderableCompositeBase {
 
    /* --- curve and curve points --- */
 
+   /**
+    * Returns the number of points (and normals) associated with this
+    * MeshCurve. This number {@code n} is determined by the curve's {@code
+    * resolution} property, and is computed so that in the case of linear
+    * interpolation between the knot points, the distance between each point
+    * will be {@code <=} resolution.
+    *
+    * @return number of curve points and normals
+    */
    public int numPoints() {
       updateCurveIfNecessary();
       return myPoints.size();
    }
 
+   /**
+    * Returns a list of all the points on this curve. The list will have size
+    * {@link numPoints}.
+    *
+    * @return list of all the points
+    */
    public List<Point3d> getPoints() {
       updateCurveIfNecessary();
       return myPoints;
    }
 
+   /**
+    * Returns the {@code idx}-th point on this curve, where {@code idx}
+    * should be in the range 0 to {@link numPoints()}-1;
+    *
+    * @param idx index of the desired point
+    * @return {@code idx}-th point
+    */
+   public Vector3d getPoint (int idx) {
+      return myPoints.get(idx);
+   }
+
+   /**
+    * Returns a list of all the normals on this curve. The list will have size
+    * {@link numPoints}.
+    *
+    * @return list of all the normals
+    */
    public List<Vector3d> getNormals() {
       updateCurveIfNecessary();
       return myNormals;
+   }
+
+   /**
+    * Returns the {@code idx}-th normal on this curve, where {@code idx}
+    * should be in the range 0 to {@link numPoints()}-1;
+    *
+    * @param idx index of the desired normal
+    * @return {@code idx}-th normal
+    */
+   public Vector3d getNormal (int idx) {
+      return myNormals.get(idx);
+   }
+
+   /**
+    * Returns the curve tangent for the {@code idx}-th point on this curve,
+    * where {@code idx} should be in the range 0 to {@link numPoints()}-1; The
+    * tangent is computed by numerically differencing adjacent points.  If the
+    * number of curve points is less than 1, the tangent is set to 0.
+    *
+    * @param idx index of the point for which the tangent is desired
+    * @return tangent for the {@code idx}-th point
+    */
+   public Vector3d getTangent (int idx) {
+      Vector3d tan = new Vector3d();
+      Point3d p0;
+      Point3d p1;
+      int nump = numPoints();
+      if (nump > 1) {
+         if (idx == 0) {
+            if (isClosed() && nump > 2) {
+               p1 = myPoints.get(1);
+               p0 = myPoints.get(nump-1);
+            }
+            else {
+               p1 = myPoints.get(1);
+               p0 = myPoints.get(0);
+            }       
+         }
+         else if (idx == nump-1) {
+            if (isClosed() && nump > 2) {
+               p1 = myPoints.get(0);
+               p0 = myPoints.get(nump-2);
+            }
+            else {
+               p1 = myPoints.get(nump-1);
+               p0 = myPoints.get(nump-2);
+            }
+         }
+         else {
+            p1 = myPoints.get(idx+1);
+            p0 = myPoints.get(idx-1);
+         }
+         tan.sub (p1, p0);
+         tan.normalize();
+      }
+      return tan;      
    }
 
    /**
@@ -373,29 +479,35 @@ public class MeshCurve extends RenderableCompositeBase {
       int numIntervals = isClosed() ? numMarkers() : numMarkers()-1;
       PolygonalMesh mesh = getMesh();
       for (int i=0; i<numIntervals; i++) {
-         int inext = ((i+1) % numMarkers());
-         Point3d pos0 = myMarkers.get(i).getPosition();
-         Point3d pos1 = myMarkers.get(inext).getPosition();
-         Vector3d nrm0 = myMarkers.get(i).getNormal();
-         Vector3d nrm1 = myMarkers.get(inext).getNormal();
+         MeshMarker mkr0 = myMarkers.get(i);
+         MeshMarker mkr1 = myMarkers.get((i+1) % numMarkers());
+         Point3d pos0 = mkr0.getPosition();
+         Point3d pos1 = mkr1.getPosition();
+         Vector3d nrm0 = mkr0.getNormal();
+         Vector3d nrm1 = mkr1.getNormal();
          int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
          Point3d pos = new Point3d();
          Vector3d nrm = new Vector3d();
+         mkr0.myPntIdx = myPoints.size();
          myPoints.add (new Point3d(pos0));
-         myNormals.add (myMarkers.get(i).getNormal());
+         myNormals.add (mkr0.getNormal());
          for (int k=1; k<nsegs; k++) {
             double s = k/(double)nsegs;
             pos.combine (1-s, pos0, s, pos1);
             nrm.combine (1-s, nrm0, s, nrm1);
-            Face face = bvq.nearestFaceAlongLine (
-               pos, null, mesh, pos, nrm, -INF, INF);
+            if (myProjectToMesh) {
+               Face face = bvq.nearestFaceAlongLine (
+                  pos, null, mesh, pos, nrm, -INF, INF);
+               nrm.set (
+                  mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            }
             myPoints.add (new Point3d(pos));
-            myNormals.add (
-               mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            myNormals.add (new Vector3d (nrm));
          }
          if (!isClosed() && i == numIntervals-1) {
             myPoints.add (new Point3d(pos1));
-            myNormals.add (myMarkers.get(inext).getNormal());
+            myNormals.add (mkr1.getNormal());
+            mkr1.myPntIdx = myPoints.size()-1;
          }
       }
    }
@@ -416,9 +528,10 @@ public class MeshCurve extends RenderableCompositeBase {
       BVFeatureQuery bvq = new BVFeatureQuery();
       PolygonalMesh mesh = getMesh();
       for (int i=0; i<numIntervals; i++) {
-         int inext = ((i+1) % numMarkers());
-         Point3d pos0 = myMarkers.get(i).getPosition();
-         Point3d pos1 = myMarkers.get(inext).getPosition();
+         MeshMarker mkr0 = myMarkers.get(i);
+         MeshMarker mkr1 = myMarkers.get((i+1) % numMarkers());
+         Point3d pos0 = mkr0.getPosition();
+         Point3d pos1 = mkr1.getPosition();
          int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
          Point3d pos = new Point3d();
          Point3d tmp = new Point3d();
@@ -427,17 +540,24 @@ public class MeshCurve extends RenderableCompositeBase {
          if (!isClosed() && i == myMarkers.size()-1) {
             npnts++;
          }
+         mkr0.myPntIdx = myPoints.size();
          for (int k=0; k<npnts; k++) {
             double s = k/(double)nsegs;
             pcurve.eval (pos, i + s);
             ncurve.eval (tmp, i + s);
             nrm.set (tmp);
             nrm.normalize();
-            Face face = bvq.nearestFaceAlongLine (
-               pos, null, mesh, pos, nrm, -INF, INF);
+            if (myProjectToMesh) {
+               Face face = bvq.nearestFaceAlongLine (
+                  pos, null, mesh, pos, nrm, -INF, INF);
+               nrm.set (
+                  mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            }
             myPoints.add (new Point3d(pos));
-            myNormals.add (
-               mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            myNormals.add (new Vector3d(nrm));
+         }
+         if (!isClosed() && i == numIntervals-1) {
+            mkr1.myPntIdx = myPoints.size()-1;
          }
       }
    }
@@ -465,24 +585,32 @@ public class MeshCurve extends RenderableCompositeBase {
       BVFeatureQuery bvq = new BVFeatureQuery();
       PolygonalMesh mesh = getMesh();
       for (int i=0; i<numIntervals; i++) {
-         int inext = ((i+1) % numMarkers());
-         Point3d pos0 = myMarkers.get(i).getPosition();
-         Point3d pos1 = myMarkers.get(inext).getPosition();
+         MeshMarker mkr0 = myMarkers.get(i);
+         MeshMarker mkr1 = myMarkers.get((i+1) % numMarkers());
+         Point3d pos0 = mkr0.getPosition();
+         Point3d pos1 = mkr1.getPosition();
          int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
          int npnts = nsegs;
          if (!isClosed() && i == myMarkers.size()-1) {
             npnts++;
          }
+         mkr0.myPntIdx = myPoints.size();
          for (int k=0; k<npnts; k++) {
             double s = k/(double)nsegs;
             Point3d pos = new Point3d(pcurve.eval (i + s, new IntHolder(i)));
             Vector3d nrm = ncurve.eval (i + s, new IntHolder(i));
             nrm.normalize();
-            Face face = bvq.nearestFaceAlongLine (
-               pos, null, mesh, pos, nrm, -INF, INF);
+            if (myProjectToMesh) {
+               Face face = bvq.nearestFaceAlongLine (
+                  pos, null, mesh, pos, nrm, -INF, INF);
+               nrm.set (
+                  mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            }
             myPoints.add (new Point3d(pos));
-            myNormals.add (
-               mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            myNormals.add (new Vector3d(nrm));
+         }
+         if (!isClosed() && i == numIntervals-1) {
+            mkr1.myPntIdx = myPoints.size()-1;
          }
       }
    }
@@ -491,27 +619,29 @@ public class MeshCurve extends RenderableCompositeBase {
       if (!myCurveValid) {
          myPoints.clear();
          myNormals.clear();
-         switch (myInterpolation) {
-            case LINEAR: {
-               computeLinearCurve();
-               break;
+         if (numMarkers() > 1) {
+            switch (myInterpolation) {
+               case LINEAR: {
+                  computeLinearCurve();
+                  break;
+               }
+               case B_SPLINE: {
+                  computeBSplineCurve();
+                  break;
+               }
+               case NATURAL_SPLINE: {
+                  computeNaturalSplineCurve();
+                  break;
+               }
+               default: {
+                  throw new UnsupportedOperationException (
+                     "Unimplement interpolation mode "+myInterpolation);
+               }
             }
-            case B_SPLINE: {
-               computeBSplineCurve();
-               break;
+            RigidTransform3d TMW = getMesh().getMeshToWorld();
+            for (Point3d p : myPoints) {
+               p.inverseTransform (TMW);
             }
-            case NATURAL_SPLINE: {
-               computeNaturalSplineCurve();
-               break;
-            }
-            default: {
-               throw new UnsupportedOperationException (
-                  "Unimplement interpolation mode "+myInterpolation);
-            }
-         }
-         RigidTransform3d TMW = getMesh().getMeshToWorld();
-         for (Point3d p : myPoints) {
-            p.inverseTransform (TMW);
          }
          myCurveValid = true;
       }

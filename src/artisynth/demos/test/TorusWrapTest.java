@@ -1,6 +1,7 @@
 package artisynth.demos.test;
 
 import java.awt.Color;
+import java.io.File;
 
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
@@ -14,6 +15,7 @@ import artisynth.core.mechmodels.MultiPointSpring;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.RigidTorus;
+import artisynth.core.modelbase.MonitorBase;
 import artisynth.core.workspace.RootModel;
 
 //import artisynth.core.mechmodels.DynamicMechComponent.Activity;
@@ -28,6 +30,14 @@ public class TorusWrapTest extends RootModel {
    private double myDensity = 10;
 
    protected static double size = 1.0;
+
+   private class ImageSaver extends MonitorBase {
+      public void apply (double t0, double t1) {
+         if (t1 == 2.0) {
+            Main.getMain().saveViewerImage (new File ("torusWrapTest.jpg"));
+         }
+      }
+   }
 
    public void build (String[] args) {
       MechModel mechMod = new MechModel ("mechMod");
@@ -104,6 +114,7 @@ public class TorusWrapTest extends RootModel {
       RenderProps.setFaceColor (mechMod, new Color (238, 232, 170));
 
       createControlPanel (mechMod);
+      //addMonitor (new ImageSaver());
 
       if (mechMod.getUseImplicitFriction()) {
          // need compliant contact if implicit friction is set

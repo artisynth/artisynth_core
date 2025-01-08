@@ -27,6 +27,8 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
    protected int myFaceIdx;
    protected Vector2d myCoords;
    protected Vector3d myNormal;
+   // if belongs to a MeshCurve, pnt index of the marker along that curve:
+   protected int myPntIdx;
 
    public static PropertyList myProps =
       new PropertyList (MeshMarker.class, Marker.class);
@@ -59,6 +61,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
    public MeshMarker() {
       super();
       myCoords = new Vector2d();
+      myPntIdx = -1;
    }
 
    private void validateMesh (MeshComponent mcomp) {
@@ -218,8 +221,17 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
    }
 
    public void getPose (RigidTransform3d TMW) {
-      //TMW.R.setZDirection (getFace().getWorldNormal());
-      TMW.R.setIdentity();
+      CompositeComponent gparent = getGrandParent();
+      Vector3d zdir = getNormal();
+      if (gparent instanceof MeshCurve && myPntIdx != -1) {
+         MeshCurve curve = (MeshCurve)gparent;
+         curve.updateCurveIfNecessary();
+         Vector3d xdir = curve.getTangent (myPntIdx);
+         TMW.R.setZXDirections (zdir, xdir);
+      }
+      else {
+         TMW.R.setZDirection (zdir);
+      }
       TMW.p.set (getPosition());
    }
 
@@ -306,6 +318,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       m.myFaceIdx = myFaceIdx;
       m.myCoords = new Vector2d (myCoords);
       m.updatePosition();
+      m.myPntIdx = -1;
       return m;
    }
 }

@@ -96,8 +96,10 @@ public class MeshBodyEditor extends EditorBase {
                if (mesh instanceof PolygonalMesh &&
                    myEditManager.acquireEditLock()) {
                   MeshCurve curve = new MeshCurve (mcomp);
+                  mcomp.addCurve (curve);
                   MeshCurveAgent agent = new MeshCurveAgent (
-                     myMain, curve, mcomp);
+                     myMain, curve, mcomp, /*removeIfEmpty*/true);
+                  agent.initializeProperties (curve);
                   agent.show (popupBounds);
                }
             }
@@ -119,7 +121,7 @@ public class MeshBodyEditor extends EditorBase {
             if (myEditManager.acquireEditLock()) {
                MeshCurve curve = (MeshCurve)selection.get (0);
                MeshCurveAgent agent =
-                     new MeshCurveAgent (myMain, curve, curve.getMeshComp());
+                  new MeshCurveAgent (myMain, curve, curve.getMeshComp(), /*removeIfEmpty*/false);
                agent.show (popupBounds);            
             }
           }

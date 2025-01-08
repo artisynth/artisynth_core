@@ -201,8 +201,10 @@ public class RigidBodyEditor extends EditorBase {
                if (myEditManager.acquireEditLock()) {
                   RigidMeshComp mcomp = body.getSurfaceMeshComp();
                   MeshCurve curve = new MeshCurve (mcomp);
+                  mcomp.addCurve (curve);
                   MeshCurveAgent agent = new MeshCurveAgent (
-                     myMain, curve, mcomp);
+                     myMain, curve, mcomp, /*removeIfEmpty*/true);
+                  agent.initializeProperties (curve);
                   agent.show (popupBounds);
                }
             }

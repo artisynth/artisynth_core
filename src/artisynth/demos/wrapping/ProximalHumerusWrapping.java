@@ -116,9 +116,8 @@ public class ProximalHumerusWrapping extends RootModel {
       // set rendering properties
       RenderProps.setSphericalPoints (mech, 0.003, new Color (102,102,255));
       RenderProps.setCylindricalLines (mech, 0.002, Color.RED);
-      RenderProps.setFaceColor (mech, new Color (204, 204, 255));
+      RenderProps.setFaceColor (mech, new Color (1f, 1f, 0.8f));
       System.out.println ("build done");
-
    }
 
 }

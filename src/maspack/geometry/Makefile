@@ -21,7 +21,7 @@ JAVA_TEST_PROGRAMS = \
 	DelaunayInterpolatorTest \
 	DistanceGridTest \
 	FaceTest \
-	GeometryUtils \
+	GeometryUtilsTest \
 	HalfEdgeTest \
 	MeshFactoryTest \
 	MeshRayIntersectionTest \

@@ -3,6 +3,7 @@ package maspack.interpolation;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Iterator;
 
 import maspack.matrix.Vector3d;
@@ -114,7 +115,7 @@ public class LinearSpline3d
     * @param dxdsVals dxds values for each knot point
     */
    public LinearSpline3d (
-      ArrayList<? extends Vector3d> xVals, ArrayList<Vector3d> dxdsVals) {
+      List<? extends Vector3d> xVals, List<Vector3d> dxdsVals) {
       this();
       double[] sVals = new double[xVals.size()];
       for (int i=0; i<sVals.length; i++) {
@@ -131,7 +132,7 @@ public class LinearSpline3d
     * @param xVals x values for each knot point
     */
    public LinearSpline3d (
-      double[] sVals, ArrayList<? extends Vector3d> xVals) {
+      double[] sVals, List<? extends Vector3d> xVals) {
       this();
       set (sVals, xVals);
    }
@@ -154,7 +155,7 @@ public class LinearSpline3d
     * @param xVals x values for each knot point
     */
    public void set (
-      double[] sVals, ArrayList<? extends Vector3d> xVals) {
+      double[] sVals, List<? extends Vector3d> xVals) {
       if (sVals.length != xVals.size()) {
          throw new IllegalArgumentException (
             "sVals and xVals have different lengths");
@@ -178,7 +179,7 @@ public class LinearSpline3d
     *
     * @param xVals x values for each knot point
     */
-   public <T extends Vector3d> void setUsingDistance (ArrayList<T> xVals) {
+   public <T extends Vector3d> void setUsingDistance (List<T> xVals) {
       clearKnots();
       if (xVals.size() > 0) {
          DynamicDoubleArray distances = new DynamicDoubleArray();

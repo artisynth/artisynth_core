@@ -1334,11 +1334,13 @@ public class RigidBody extends Frame
    public void postscan (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       super.postscan (tokens, ancestor);
+      setScanning (true); // set true again after super.postscan() set to false
       myComponents.scanEnd();
       updatePosState();
       if (myInertiaMethod != InertiaMethod.EXPLICIT) {
          updateInertiaFromMeshes();
       }
+      setScanning (false);
    }
 
    protected void writeItems (

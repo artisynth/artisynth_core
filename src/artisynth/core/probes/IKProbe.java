@@ -205,7 +205,7 @@ public class IKProbe extends NumericControlProbe {
     * Sets the {@code dynamic} property of all the bodies associated
     * with this probe.
     *
-    * @param dyamic setting for each body's {@code dynamic} property
+    * @param dynamic setting for each body's {@code dynamic} property
     */
    public void setBodiesDynamic (boolean dynamic) {
       mySolver.setBodiesDynamic (dynamic);

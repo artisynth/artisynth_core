@@ -47,7 +47,7 @@ public class GmshReader extends FemReaderBase {
     * the FEM geometry is done using {@link #readFem}.
     * 
     * @param file file to read from
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public GmshReader (File file) throws IOException {
       super (file);
@@ -58,7 +58,7 @@ public class GmshReader extends FemReaderBase {
     * the FEM geometry is done using {@link #readFem}.
     * 
     * @param filePath path name of the file to read from
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public GmshReader (String filePath) throws IOException {
       super (new File(filePath));
@@ -69,7 +69,7 @@ public class GmshReader extends FemReaderBase {
     * of the FEM geometry is done using {@link #readFem}.
     * 
     * @param reader reader to read from
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public GmshReader (Reader reader) throws IOException {
       super (reader);
@@ -80,7 +80,7 @@ public class GmshReader extends FemReaderBase {
     *
     * @param filePath path name of the file to read from
     * @return created FEM model
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static FemModel3d read (String filePath) throws IOException {
       return read (new File(filePath));
@@ -91,7 +91,7 @@ public class GmshReader extends FemReaderBase {
     * 
     * @param file file to read from
     * @return created FEM model
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static FemModel3d read (File file) throws IOException {
       return read (null, file, 0);
@@ -104,11 +104,11 @@ public class GmshReader extends FemReaderBase {
     * <code>null</code>, a new model is created
     * @param file file to read from
     * @param options flags controlling how the input is read.
-    * Current flags include {@link #PRSERVE_NUMBERING},
-    * {@link #PRSERVE_NUMBERING_BASE0}, and
+    * Current flags include {@link #PRESERVE_NUMBERING},
+    * {@link #PRESERVE_NUMBERING_BASE0}, and
     * {@link #SUPPRESS_WARNINGS}.
     * @return created FEM model
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static FemModel3d read (FemModel3d fem, File file, int options)
       throws IOException {
@@ -141,7 +141,7 @@ public class GmshReader extends FemReaderBase {
     * @param options option flags. Flags include {@link #PRESERVE_NUMBERING}
     * and {@link #PRESERVE_NUMBERING_BASE0}.
     * @return FEM that was read
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static FemModel3d read (
       FemModel3d fem, File file,
@@ -172,7 +172,7 @@ public class GmshReader extends FemReaderBase {
     * @param fem FEM whose geometry should be read. If {@code
     * null}, then an FEM is created.
     * @return FEM that was read
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public FemModel3d readFem (FemModel3d fem)
       throws IOException {

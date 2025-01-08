@@ -851,7 +851,7 @@ public class IKSolver implements PostScannable {
     * Sets the {@code dynamic} property of all the bodies associated
     * with this solver.
     *
-    * @param dyamic setting for each body's {@code dynamic} property
+    * @param dynamic setting for each body's {@code dynamic} property
     */
    public void setBodiesDynamic (boolean dynamic) {
       updateBodiesAndConnectors();
@@ -1361,7 +1361,7 @@ public class IKSolver implements PostScannable {
     * the solve and restored afterward.
     *
     * @param name if non-{@code null}, specifies the probe's name
-    * @param mkrdata probe containing target position data for the markers
+    * @param targProbe probe containing target position data for the markers
     * @param rotRep rotation representation for the body orientations
     * @param interval knot time spacing interval, or {@code -1} if knot
     * times should be determined from {@code mrkdata}
@@ -1441,7 +1441,7 @@ public class IKSolver implements PostScannable {
     * the solve and restored afterward.
     *
     * @param name if non-{@code null}, specifies the probe's name
-    * @param mkrdata probe containing target position data for the markers
+    * @param targProbe probe containing target position data for the markers
     * @param interval knot time spacing interval, or {@code -1} if knot
     * times should be determined from {@code mrkdata}
     * @return the created input probe

@@ -246,7 +246,7 @@ public class AxisAngle implements Clonable {
 
    /**
     * Gets the values associated with this AxisAngle. See {@link
-    * set(double[])} for a description of the values.
+    * #set(double[])} for a description of the values.
     * 
     * @param vals
     * returns the AxisAngle values
@@ -308,7 +308,7 @@ public class AxisAngle implements Clonable {
    
    /**
     * Gets the values associated with this AxisAngle. See {@link
-    * set(double[])} for a description of the values.
+    * #set(double[])} for a description of the values.
     * 
     * @param vals
     * returns the AxisAngle values
@@ -598,7 +598,7 @@ public class AxisAngle implements Clonable {
    /**
     * Returns the square of the distance between this AxisAngle and a second
     * specified by {@code axis} and {@code ang}, where <i>distance</i> is
-    * described in the docs for {@link #distance}.
+    * described in the docs for {@link #numericDistance}.
     *
     * @param axis axis of the AxisAngle to obtain distance squared to
     * @param ang angle of AxisAngle to obtain distance squared to

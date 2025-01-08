@@ -587,7 +587,14 @@ public class HexElement extends FemElement3d {
     * Computes the volume of a hexahedron formed by eight nodes.  An inverted
     * hexahedron will give an negative volume.
     * 
-    * @param nodes nodes defining the hexahedron
+    * @param n0 first hex node
+    * @param n1 second hex node
+    * @param n2 third hex node
+    * @param n3 fourth hex node
+    * @param n4 fifth hex node
+    * @param n5 sixth hex node
+    * @param n6 seventh hex node
+    * @param n7 eighth hex node
     * @return volume of the hexahedron
     */
    public static double computeVolume (

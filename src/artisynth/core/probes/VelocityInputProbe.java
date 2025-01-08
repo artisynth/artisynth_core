@@ -77,13 +77,13 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param filePath path name of the probe data file
     * @throws IOException if a file I/O error occurs
     */
-   public VelocityInputProbe (String name, ModelComponent comp, String fileName)
+   public VelocityInputProbe (String name, ModelComponent comp, String filePath)
       throws IOException {
       setModelFromComponent (comp);
       setInputProperties (
          findVelocityProps(
             new ModelComponent[] { comp }));
-      initFromFile (name, fileName);
+      initFromFile (name, filePath);
    }
 
    /**
@@ -97,13 +97,13 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @throws IOException if a file I/O error occurs
     */
    public VelocityInputProbe (
-      String name, Collection<? extends ModelComponent> comps, String fileName)
+      String name, Collection<? extends ModelComponent> comps, String filePath)
       throws IOException {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
       setModelFromComponent (carray[0]);
       setInputProperties (findVelocityProps (carray));
-      initFromFile (name, fileName);
+      initFromFile (name, filePath);
    }
 
    /**
@@ -178,7 +178,7 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param name if non-null, gives the name of the probe
     * @param source PositionInputProbe or PositionOutputProbe containing
     * the position data to differentiate
-    * @param iinterval knot time spacing interval, or {@code -1} if knot
+    * @param interval knot time spacing interval, or {@code -1} if knot
     * times should be determined from the source probe
     * @return created velocity probe
     */

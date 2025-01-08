@@ -623,7 +623,7 @@ public class Quaternion extends VectorBase {
    /**
     * Returns the AxisAngle associated with this quaternion.
     *
-    * @param returns the AxisAngle
+    * @param axisAng returns the AxisAngle
     */
    public void getAxisAngle (AxisAngle axisAng) {
       double usqr = u.dot(u);
@@ -696,7 +696,7 @@ public class Quaternion extends VectorBase {
    /**
     * Gets the rotation matrix associated with this quaternion.
     *
-    * @oaram R returns the rotation matrix
+    * @param R returns the rotation matrix
     */
    public void getRotationMatrix(RotationMatrix3d R) {
       double n2 = 1.0/normSquared ();
@@ -1618,7 +1618,7 @@ public class Quaternion extends VectorBase {
     * axis-angle rotation.
     * 
     * @param axis rotation axis
-    * @param ang rotation angle (radians)
+    * @param angle rotation angle (radians)
     */
    public void setAxisAngle(Vector3d axis, double angle) {
       double cos = Math.cos (angle/2);
@@ -1639,7 +1639,7 @@ public class Quaternion extends VectorBase {
     * @param ux x component of the rotation axis
     * @param uy y component of the rotation axis
     * @param uz z component of the rotation axis
-    * @param ang rotation angle (radians)
+    * @param angle rotation angle (radians)
     */
    public void setAxisAngle(double ux, double uy, double uz, double angle) {
       double cos = Math.cos (angle/2);

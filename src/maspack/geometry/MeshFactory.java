@@ -2372,7 +2372,7 @@ public class MeshFactory {
     *
     * @param rin inner radius of the bowl
     * @param rout outer radius of the bowl
-    * @param number of icosahedral divisions
+    * @param divisions number of icosahedral divisions
     * @return created hemispherical mesh
     */
    public static PolygonalMesh createIcosahedralBowl (

@@ -127,7 +127,7 @@ public class AnsysCdbWriter extends FemWriterBase {
     * writing of the FEM geometry is done by {@link #writeFem}.
     * 
     * @param pw writer to write to
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public AnsysCdbWriter (PrintWriter pw) throws IOException {
       super (pw);
@@ -138,7 +138,7 @@ public class AnsysCdbWriter extends FemWriterBase {
     * writing of the FEM geometry is done by {@link #writeFem}.
     * 
     * @param file file to write to
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public AnsysCdbWriter (File file) throws IOException {
       super (file);
@@ -149,7 +149,7 @@ public class AnsysCdbWriter extends FemWriterBase {
     * writing of the FEM geometry is done by {@link #writeFem}.
     * 
     * @param filePath path name of the file to write to
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public AnsysCdbWriter (String filePath) throws IOException {
       super (new File(filePath));
@@ -169,7 +169,7 @@ public class AnsysCdbWriter extends FemWriterBase {
     * Sets whether the ETBLOCK command is used for defining element types.
     * The default value if {@code false}.
     *
-    * @return if {@code true}, the ETBLOCK command will be used
+    * @param enable if {@code true}, the ETBLOCK command will be used
     */
    public void setUseEtBlock (boolean enable) {
       myUseEtBlock = enable;
@@ -202,7 +202,7 @@ public class AnsysCdbWriter extends FemWriterBase {
     *
     * @param filePath path name of the file to write to
     * @param fem FEM model to be written
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static void write (String filePath, FemModel3d fem)
       throws IOException {
@@ -214,7 +214,7 @@ public class AnsysCdbWriter extends FemWriterBase {
     *
     * @param file file to write to
     * @param fem FEM model to be written
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static void write (File file, FemModel3d fem)
       throws IOException {
@@ -312,7 +312,7 @@ public class AnsysCdbWriter extends FemWriterBase {
     * AnsysCdbWriter.
     *
     * @param fem FEM model to be written
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public void writeFem (FemModel3d fem) throws IOException {
       

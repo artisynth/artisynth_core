@@ -322,7 +322,7 @@ public class MeshCurve extends RenderableCompositeBase {
 
    /**
     * Returns the {@code idx}-th point on this curve, where {@code idx}
-    * should be in the range 0 to {@link numPoints()}-1;
+    * should be in the range 0 to {@link #numPoints()}-1;
     *
     * @param idx index of the desired point
     * @return {@code idx}-th point
@@ -344,7 +344,7 @@ public class MeshCurve extends RenderableCompositeBase {
 
    /**
     * Returns the {@code idx}-th normal on this curve, where {@code idx}
-    * should be in the range 0 to {@link numPoints()}-1;
+    * should be in the range 0 to {@link #numPoints()}-1;
     *
     * @param idx index of the desired normal
     * @return {@code idx}-th normal
@@ -355,7 +355,7 @@ public class MeshCurve extends RenderableCompositeBase {
 
    /**
     * Returns the curve tangent for the {@code idx}-th point on this curve,
-    * where {@code idx} should be in the range 0 to {@link numPoints()}-1; The
+    * where {@code idx} should be in the range 0 to {@link #numPoints()}-1; The
     * tangent is computed by numerically differencing adjacent points.  If the
     * number of curve points is less than 1, the tangent is set to 0.
     *

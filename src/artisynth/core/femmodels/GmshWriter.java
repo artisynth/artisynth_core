@@ -42,7 +42,7 @@ public class GmshWriter extends FemWriterBase {
     * writing of the FEM geometry is done by {@link #writeFem}.
     * 
     * @param pw writer to write to
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public GmshWriter (PrintWriter pw) throws IOException {
       super (pw);
@@ -53,7 +53,7 @@ public class GmshWriter extends FemWriterBase {
     * writing of the FEM geometry is done by {@link #writeFem}.
     * 
     * @param file file to write to
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public GmshWriter (File file) throws IOException {
       super (file);
@@ -64,7 +64,7 @@ public class GmshWriter extends FemWriterBase {
     * writing of the FEM geometry is done by {@link #writeFem}.
     * 
     * @param filePath path name of the file to write to
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public GmshWriter (String filePath) throws IOException {
       super (new File(filePath));
@@ -75,7 +75,7 @@ public class GmshWriter extends FemWriterBase {
     *
     * @param filePath path name of the file to write to
     * @param fem FEM model to be written
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static void write (String filePath, FemModel3d fem)
       throws IOException {
@@ -87,7 +87,7 @@ public class GmshWriter extends FemWriterBase {
     *
     * @param file file to write to
     * @param fem FEM model to be written
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public static void write (File file, FemModel3d fem)
       throws IOException {
@@ -129,7 +129,7 @@ public class GmshWriter extends FemWriterBase {
     * GmshWriter.
     *
     * @param fem FEM model to be written
-    * @throws IOException
+    * @throws IOException if an I/O error occurred
     */
    public void writeFem (FemModel3d fem) throws IOException {
       

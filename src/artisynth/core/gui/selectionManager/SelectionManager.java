@@ -750,4 +750,13 @@ public class SelectionManager {
       }
    }
 
+   public void displayMinimalPopup (MouseEvent evt) {
+      if (myPopupMenuEnabledP && mySelectedItems.size() > 0) {
+         SelectionPopup popup =
+            new SelectionPopup (this, evt.getComponent(), /*mininal=*/true);
+         popup.setLightWeightPopupEnabled (false);
+         popup.show (evt.getComponent(), evt.getX(), evt.getY());
+      }
+   }
+
 }

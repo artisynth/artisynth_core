@@ -91,6 +91,7 @@ ValueChangeListener {
    private final int EXCLUDE_PROP = 1;
    private final int BASIC_PROP = 2;
 
+
    private class PropName {
       String myName;
       int myDesc;

@@ -627,62 +627,77 @@ Mouse bindings can also be set explicitly by the user and alternative
 bindings are available; see Section \ref{MouseBindingsSec}.
 \end{sideblock}
 
+\iflatexml\else\clearpage\fi
+\subsection{Setting aligned axis viewpoints}
 \label{axisAlignedViewpointsSec}
-Predetermined viewpoints can also be selected using the {\it align
-axis} button located on the viewer control bar.  Clicking on this
-button produces a popup icon menu showing six different axis-aligned
-views.  Each view is indicated by the two axes perpendicular to the
-line of sight, with the X, Y, and Z axes illustrated by red, green,
-and blue lines respectively. Some examples are:
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/alignAxes}
+\else
+\includegraphics[width=2.5in]{images/alignAxes}
+\fi
+\end{center}
+\caption{A popup menu of aligned axis viewpoints displayed by clicking on the
+{\it align axis} button at the lower left of the main ArtiSynth viewer.}
+\label{AlignAxes:fig}
+\end{figure}
+
+Predetermined viewpoints can also be selected using the {\it align axis} button
+located on the viewer control bar.  Clicking on this button produces a popup
+menu with icons for different axis-aligned views (Figure \ref{AlignAxes:fig}).
+Each view is indicated by the two axes perpendicular to the line of sight, with
+the X, Y, and Z axes illustrated by red, green, and blue lines
+respectively. Some examples are:
 
 %\begin{description}
 
-\begin{tabular}{l l l}
+\begin{tabular}{l l}
 \iflatexml
 \includegraphics[]{images/alignFront}
 \else
 \includegraphics[width=.33in]{images/alignFront}
 \fi
-& Front: & Z axis up, X axis to the right.\\
+& Z axis up, X axis to the right.\\
 \iflatexml
 \includegraphics[]{images/alignBack} 
 \else
 \includegraphics[width=.33in]{images/alignBack} 
 \fi
-& Back: & Z axis up, X axis to the left.\\
+& Z axis up, X axis to the left.\\
 \iflatexml
 \includegraphics[]{images/alignTop} 
 \else
 \includegraphics[width=.33in]{images/alignTop} 
 \fi
-& Top: & Y axis up, X axis to the right.\\
+& Y axis up, X axis to the right.\\
 \iflatexml
 \includegraphics[]{images/alignBottom} 
 \else
 \includegraphics[width=.33in]{images/alignBottom} 
 \fi
-& Bottom: & Y axis down, X axis to the right.\\
+& Y axis down, X axis to the right.\\
 \iflatexml
 \includegraphics[]{images/alignLeft} 
 \else
 \includegraphics[width=.33in]{images/alignLeft} 
 \fi
-& Left: & Z axis up, y axis to the right.\\
+& Z axis up, y axis to the right.\\
 \iflatexml
 \includegraphics[]{images/alignRight} 
 \else
 \includegraphics[width=.33in]{images/alignRight} 
 \fi
-& Right: & Z axis up, y axis to the left.
+& Z axis up, y axis to the left.
 \end{tabular}
 %\end{description}
 
-The align axis button itself displays the most recently selected
-axis-aligned view, and the popup menu shows this view together with
-five alternates which are chosen based on the current view.
-Reselecting the current view will realign the viewer's viewpoint to
-the current view; hitting the `{\tt v}' key from within the viewer
-(Section \ref{keyShortcutsSec}) will do the same.
+The align axis button itself displays the most recently selected axis-aligned
+view, and the popup menu shows this view in the upper left corner.  Reselecting
+the current view will simply realign the viewer's viewpoint to the current
+view; hitting the `{\tt v}' key from within the viewer (Section
+\ref{keyShortcutsSec}) will do the same.
 
 \subsection{Adding additional viewers}
 

@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -25,19 +24,17 @@ import javax.swing.JButton;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JToolBar;
-import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.RigidTransform3d;
-import maspack.matrix.RotationMatrix3d;
 import maspack.render.Dragger3d.DraggerType;
-import maspack.render.GL.GLClipPlane;
-import maspack.render.Viewer;
 import maspack.render.GridPlane;
 import maspack.render.RenderListener;
 import maspack.render.RendererEvent;
+import maspack.render.Viewer;
+import maspack.render.GL.GLClipPlane;
 import maspack.util.InternalErrorException;
 
 public class ViewerToolBar extends JToolBar 
@@ -64,37 +61,50 @@ public class ViewerToolBar extends JToolBar
       new LinkedList<ClipPlaneControl>();
 
    protected Viewer myViewer;
-
    JButton myAxialViewButton;
-
-   ArrayList<AxialViewMenuItem> myAxialViewMenuItems;
-   AxialViewMenuItem myCurrentViewMenuItem;
-
    JButton myClipPlaneAddButton;
 
-   private enum Viewpoint {
-      FRONT,
-      LEFT,
-      RIGHT,
-      BACK,
-      TOP,
-      BOTTOM,
-      CURRENT
-   };
+   static AxisAlignedRotation myDefaultAxialViews[] = new AxisAlignedRotation[] {
+      AxisAlignedRotation.X_Z,
+      AxisAlignedRotation.X_Y,
+      AxisAlignedRotation.Y_Z,
+      AxisAlignedRotation.Y_X,
+      AxisAlignedRotation.Z_X,
+      AxisAlignedRotation.Z_Y,
 
-   private class AxialViewMenuItem extends JMenuItem {
+      AxisAlignedRotation.NX_Z,
+      AxisAlignedRotation.NX_Y,
+      AxisAlignedRotation.NY_Z,
+      AxisAlignedRotation.NY_X,
+      AxisAlignedRotation.NZ_X,
+      AxisAlignedRotation.NZ_Y,
+
+      AxisAlignedRotation.X_NZ,
+      AxisAlignedRotation.X_NY,
+      AxisAlignedRotation.Y_NZ,
+      AxisAlignedRotation.Y_NX,
+      AxisAlignedRotation.Z_NX,
+      AxisAlignedRotation.Z_NY,
+
+      AxisAlignedRotation.NX_NZ,
+      AxisAlignedRotation.NX_NY,
+      AxisAlignedRotation.NY_NZ,
+      AxisAlignedRotation.NY_NX,
+      AxisAlignedRotation.NZ_NX,
+      AxisAlignedRotation.NZ_NY,
+   };
+   
+   ArrayList<AxialViewMenuItem> myAxialViewMenuItems;
+
+   private static class AxialViewMenuItem extends JMenuItem {
       private static final long serialVersionUID = -7023461128958734796L;
       private AxisAlignedRotation myAxialView;
-      private Viewpoint myViewpoint;
 
-      AxialViewMenuItem (Viewpoint viewpoint) {
+      AxialViewMenuItem (AxisAlignedRotation view) {
          super();
-         myViewpoint = viewpoint;
-         myAxialView = null;
-         //setHorizontalAlignment (SwingConstants.CENTER);
-         //setBorder (BorderFactory.createLineBorder (Color.BLUE));
-         setIconTextGap (0); // seems we have to set this even with no text
-      }
+         setAxialView (view);
+         setIconTextGap (0);
+      }      
 
       // public void setIcon (Icon icon) {
       //    super.setIcon (icon);
@@ -105,45 +115,6 @@ public class ViewerToolBar extends JToolBar
          return myAxialView;
       }
 
-      String getViewName() {
-         return myAxialView.toString();
-      }
-
-      void setRelativeAxialView (RotationMatrix3d RFront) {
-         RotationMatrix3d R = new RotationMatrix3d (RFront);
-         switch (myViewpoint) {
-            case FRONT: {
-               // nothing to do
-               break;
-            }
-            case LEFT: {
-               R.mulRotY90();
-               break;
-            }
-            case RIGHT: {
-               R.mulRotY270();
-               break;
-            }
-            case BACK: {
-               R.mulRotY180();
-               break;
-            }
-            case TOP: {
-               R.mulRotX270();
-               break;
-            }
-            case BOTTOM: {
-               R.mulRotX90();
-               break;
-            }
-            default: {
-               throw new InternalErrorException (
-                  "Unimplemented view " + myViewpoint);
-            }
-         }
-         setAxialView (AxisAlignedRotation.getNearest (R));
-      }
-
       void setAxialView (AxisAlignedRotation view) {
          setIcon (getIconFromFile (getOrientationIconName(view)));
          setToolTipText (
@@ -152,46 +123,12 @@ public class ViewerToolBar extends JToolBar
       }      
 
    }
-//   private String getOrientationIconName (RotationMatrix3d REW) {
-//      
-//      String xstr = null;
-//      String ystr = null;
-//
-//      Vector3d xeye = new Vector3d();
-//      Vector3d yeye = new Vector3d();
-//
-//      REW.getColumn (0, xeye);
-//      REW.getColumn (1, yeye);
-//      
-//      // adjust X.R to the nearest axis-aligned orientation
-//      int xmaxIdx = xeye.maxAbsIndex();
-//      switch (xmaxIdx) {
-//         case 0: xstr = "x"; break;
-//         case 1: xstr = "y"; break;
-//         case 2: xstr = "z"; break;
-//      }
-//      if (xeye.get(xmaxIdx) < 0) {
-//         xstr = "n" + xstr;
-//      }
-//
-//      yeye.set (xmaxIdx, 0);
-//      int ymaxIdx = yeye.maxAbsIndex();
-//      switch (ymaxIdx) {
-//         case 0: ystr = "x"; break;
-//         case 1: ystr = "y"; break;
-//         case 2: ystr = "z"; break;
-//      }
-//      if (yeye.get(ymaxIdx) < 0) {
-//         ystr = "n" + ystr;
-//      }
-//      return "axes_" + xstr + "_" + ystr;
-//   }
 
-   private String getOrientationIconName (AxisAlignedRotation rot) {
+   private static String getOrientationIconName (AxisAlignedRotation rot) {
       return "axes_" + rot.toString().toLowerCase();
    }
 
-   private ImageIcon getIconFromFile (String name) {
+   private static ImageIcon getIconFromFile (String name) {
       ImageIcon icon = myIcons.get(name);
       if (icon == null) {
          // need to load the icon
@@ -199,27 +136,6 @@ public class ViewerToolBar extends JToolBar
          myIcons.put (name, icon);
       }
       return icon;
-   }
-
-   public void updateIcons () {
-      if (myAxialViewMenuItems == null) {
-         // do nothing - render has been called before ViewerToolBar
-         // has finished constructing
-         return;
-      }
-      // now look for the current view in the list.
-      AxisAlignedRotation currentView = myViewer.getAxialView();
-      if (myCurrentViewMenuItem.getAxialView() != currentView) {
-         // rebuild icons
-         RotationMatrix3d RDefault = currentView.getMatrix();
-         for (AxialViewMenuItem item : myAxialViewMenuItems) {
-            if (item != myCurrentViewMenuItem) {
-               item.setRelativeAxialView (RDefault);            
-            }
-         }        
-         myCurrentViewMenuItem.setAxialView (currentView);
-         setAxialViewIcon (myCurrentViewMenuItem.getIcon());
-      }
    }
 
    private JButton createAndAddButton (
@@ -236,15 +152,11 @@ public class ViewerToolBar extends JToolBar
    private ArrayList<AxialViewMenuItem> createAxialViewMenuItems (
       ActionListener l) {
 
-      ArrayList<AxialViewMenuItem> itemList =
-         new ArrayList<AxialViewMenuItem> (Viewpoint.values().length);
-      for (Viewpoint vpnt : Viewpoint.values()) {
-         AxialViewMenuItem item = new AxialViewMenuItem (vpnt);
+      ArrayList<AxialViewMenuItem> itemList = new ArrayList<>();
+      for (AxisAlignedRotation rot : myDefaultAxialViews) {
+         AxialViewMenuItem item = new AxialViewMenuItem (rot);
          item.addActionListener (l);
          itemList.add (item);
-         if (vpnt == Viewpoint.CURRENT) {
-            myCurrentViewMenuItem = item;
-         }
       }
       return itemList;
    }
@@ -280,7 +192,6 @@ public class ViewerToolBar extends JToolBar
       }
 
       myAxialViewMenuItems = createAxialViewMenuItems (this);
-      updateIcons();
    }
 
    public void actionPerformed (ActionEvent e) {
@@ -297,7 +208,7 @@ public class ViewerToolBar extends JToolBar
          }
       }
       if (command == "selectAxialView") {
-         JPopupMenu menu = createViewPopup (myAxialViewMenuItems);
+         JPopupMenu menu = createViewPopup();
          menu.show (myAxialViewButton, 0, myAxialViewButton.getHeight());
       }
       else if (command == "addClipPlane") {
@@ -335,14 +246,70 @@ public class ViewerToolBar extends JToolBar
       }
    }
 
-   private JPopupMenu createViewPopup (ArrayList<AxialViewMenuItem> itemList) {
+   /**
+    * Create the icon array used to select a new axial view.
+    */
+   private JPopupMenu createViewPopup () {
       JPopupMenu menu = new JPopupMenu();
 
-      menu.add (myCurrentViewMenuItem);
-      AxisAlignedRotation currentView = myCurrentViewMenuItem.getAxialView();
-      for (AxialViewMenuItem item : itemList) {
-         if (item.getAxialView() != currentView) {
-            menu.add (item);
+      VerticalGridLayout menuGrid = new VerticalGridLayout (6, 0);
+      menu.setLayout (menuGrid);
+
+      // find the current view and the associated index in itemList
+      AxisAlignedRotation curView = myViewer.getAxialView();
+      int curIdx = -1;
+      for (int idx=0; idx<myAxialViewMenuItems.size(); idx++) {
+         if (myAxialViewMenuItems.get(idx).myAxialView == curView) {
+            curIdx = idx;
+            break;
+         }
+      }
+      if (curIdx == -1) {
+         // this really can't happen ...
+         throw new InternalErrorException (
+            "Current view not present in menu item list");
+      }
+      // The menu items are arranged in a 6 x 4 grid, with items added in
+      // column-major order, so that if idx is the idx-th item added, we have
+      //
+      // idx = col*6 + row
+      // col = idx/6
+      // row = idx%6
+      // 
+      // The default ordering is for items to be added in the order supplied by
+      // myAxialViewMenuItems. However, if the current view does not correspond
+      // to the first item in this list, we shift the rows, as well as the
+      // columns for the first row, so that the current item appears in
+      // location (0, 0).
+
+      // Find the row and column associated with the current view
+      int curRow = curIdx%6;
+      int curCol = curIdx/6;
+      // Create shifted row and column indices that allow the current index to
+      // assume location (0, 0)
+      int[] shiftedRows = new int[6];
+      int row = 0;
+      shiftedRows[row++] = curRow;
+      for (int i=0; i<shiftedRows.length; i++) {
+         if (i != curRow) {
+            shiftedRows[row++] = i;
+         }
+      }
+      int[] shiftedCols = new int[4];
+      int col = 0;
+      shiftedCols[col++] = curCol;
+      for (int i=0; i<shiftedCols.length; i++) {
+         if (i != curCol) {
+            shiftedCols[col++] = i;
+         }
+      }
+      // Add the menu items in an order that accounts for the row/column
+      // shifting
+      for (int j=0; j<4; j++) {
+         for (int i=0; i<6; i++) {
+            row = shiftedRows[i];
+            col = (i==0 ? shiftedCols[j] : j);
+            menu.add (myAxialViewMenuItems.get(col*6+row));
          }
       }
       return menu;
@@ -490,65 +457,54 @@ public class ViewerToolBar extends JToolBar
             createMenuItem ("Hide grid", "hide the plane grid");
          myDeleteItem =
             createMenuItem ("Delete", "delete this clip plane");
-         // myChangeColorItem = createMenuItem (
-         // "Change color ...", "changeColor",
-         // "change the color of this clip plane");
       }
 
       private JPopupMenu createPopup() {
          JPopupMenu menu = new JPopupMenu();
 
-         // if (myButton.isSelected())
-         {
-
-            if (myPropDialog == null) {
-               menu.add (myPropertyItem);
-            }
-            if (!myClipPlane.isAutoSized()) {
-               menu.add (
-                  createMenuItem (
-                     "Turn auto-sizing on",
-                     "enable grid to size itself with viewer zoom level"));
-            }
-            else {
-               menu.add (
-                  createMenuItem (
-                     "Turn auto-sizing off",
-                     "disable grid from sizing itself with viewer zoom level"));
-            }
-            
-            if (myClipPlane.isSlicingEnabled()) {
-               menu.add(myDisableSlicingItem);
-            }
-            else {
-               menu.add(myEnableSlicingItem);
-               myEnableSlicingItem.setEnabled (
-                  myViewer.numFreeClipSurfaces() > 0);
-            }
-            if (myClipPlane.isGridVisible()) {
-               menu.add (myHideGridItem);
-            }
-            else {
-               menu.add (myShowGridItem);
-            }
-            if (myClipPlane.getDragger() == DraggerType.None) {
-               menu.add (myShowTransformerItem);
-            }
-            else {
-               menu.add (myHideTransformerItem);
-            }
-            menu.add (myResetItem);
-            menu.add (myCenterItem);
-            for (JMenuItem item : myAlignAxisMenuItems) {
-               menu.add (item);
-            }
-            // menu.add (myChangeColorItem);
-            menu.add (myDeleteItem);
+         if (myPropDialog == null) {
+            menu.add (myPropertyItem);
          }
-         // else
-         // { menu.add (myChangeColorItem);
-         // menu.add (myDeleteItem);
-         // }
+         if (!myClipPlane.isAutoSized()) {
+            menu.add (
+               createMenuItem (
+                  "Turn auto-sizing on",
+               "enable grid to size itself with viewer zoom level"));
+         }
+         else {
+            menu.add (
+               createMenuItem (
+                  "Turn auto-sizing off",
+               "disable grid from sizing itself with viewer zoom level"));
+         }
+
+         if (myClipPlane.isSlicingEnabled()) {
+            menu.add(myDisableSlicingItem);
+         }
+         else {
+            menu.add(myEnableSlicingItem);
+            myEnableSlicingItem.setEnabled (
+               myViewer.numFreeClipSurfaces() > 0);
+         }
+         if (myClipPlane.isGridVisible()) {
+            menu.add (myHideGridItem);
+         }
+         else {
+            menu.add (myShowGridItem);
+         }
+         if (myClipPlane.getDragger() == DraggerType.None) {
+            menu.add (myShowTransformerItem);
+         }
+         else {
+            menu.add (myHideTransformerItem);
+         }
+         menu.add (myResetItem);
+         menu.add (myCenterItem);
+         for (JMenuItem item : myAlignAxisMenuItems) {
+            menu.add (item);
+         }
+         menu.add (myDeleteItem);
+
          return menu;
       }
 
@@ -595,8 +551,6 @@ public class ViewerToolBar extends JToolBar
                   myViewer.rerender();
                }
             });
-      //Main.getWorkspace().registerWindow (myPropDialog);
-         // myViewer.addViewerListener (this);
          myPropDialog.setVisible (true);
       }
 
@@ -608,13 +562,6 @@ public class ViewerToolBar extends JToolBar
             myPropDialog = null;
          }
       }
-
-      // public void renderOccurred (GLViewerEvent e)
-      // {
-      // if (myPropDialog != null)
-      // { myPropDialog.updateWidgetValues();
-      // }
-      // }
 
       private void alignToAxis (String cmd) {
          RigidTransform3d X =
@@ -729,7 +676,6 @@ public class ViewerToolBar extends JToolBar
     * update the appearance of the widgets and icons.
     */
    public void updateWidgets() {
-      updateIcons();
       if (myGridDisplayEnabled) {
          boolean gridOn = myViewer.getGridVisible();
          GridPlane grid = myViewer.getGrid();

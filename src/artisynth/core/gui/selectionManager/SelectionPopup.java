@@ -101,7 +101,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
    }
 
    public void addPropertyEditMenuItems (
-      LinkedList<ModelComponent> selection) {
+      LinkedList<ModelComponent> selection, boolean minimal) {
       
       // parse the selection list.
       boolean allSelectedHaveProperties = false;
@@ -179,38 +179,48 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          }
       }
       
-      if (oneSelectedIsInvisible) {
-         addMenuItem ("Set visible");
-      }
-
-      if (oneSelectedIsVisible) {
-         addMenuItem ("Set invisible");
-      }
-
-      if (allSelectedAreTraceable) {
-         if (selection.size() - tracingCnt > 0) {
-            addMenuItem ("Enable tracing");
+      if (!minimal) {
+         
+         if (oneSelectedIsInvisible) {
+            addMenuItem ("Set visible");
          }
-         if (tracingCnt > 0) {
-            addMenuItem ("Disable tracing");
-            if (tracingCnt == 1) {
-               addMenuItem ("Clear trace");
+
+         if (oneSelectedIsVisible) {
+            addMenuItem ("Set invisible");
+         }
+
+         if (allSelectedAreTraceable) {
+            if (selection.size() - tracingCnt > 0) {
+               addMenuItem ("Enable tracing");
             }
-            else {
-               addMenuItem ("Clear traces");
+            if (tracingCnt > 0) {
+               addMenuItem ("Disable tracing");
+               if (tracingCnt == 1) {
+                  addMenuItem ("Clear trace");
+               }
+               else {
+                  addMenuItem ("Clear traces");
+               }
+            }
+            String[] commonTraceables = getCommonTraceables (selection);
+            if (commonTraceables.length > 0) {
+               myTraceItem = addMenuItem ("Add tracing probe");
             }
          }
-         String[] commonTraceables = getCommonTraceables (selection);
-         if (commonTraceables.length > 0) {
-            myTraceItem = addMenuItem ("Add tracing probe");
-         }
-      }
 
-      addMenuItem ("Save component names ...");
+         addMenuItem ("Save component names ...");
+      }
+      
    }
 
    public SelectionPopup (
       SelectionManager selManager, Component parentGUIComponent) {
+      this (selManager, parentGUIComponent, /*minimal=*/false);
+   }
+
+   public SelectionPopup (
+      SelectionManager selManager,
+      Component parentGUIComponent, boolean minimal) {
       super();
       
       // create an empty menu item
@@ -254,45 +264,47 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             }
             myPropertyEditSelection = selection;
          }
-         addPropertyEditMenuItems (myPropertyEditSelection);
+         addPropertyEditMenuItems (myPropertyEditSelection, minimal);
       }
 
-      EditorManager editManager = myMain.getEditorManager();
-      myEditActionMap = editManager.getActionMap (selManager);
-      if (myEditActionMap.size() > 0) {
-         addSeparatorIfNecessary();
-         for (String name : myEditActionMap.getActionNames()) {
-            boolean enabled = true;
-            int flags = myEditActionMap.getFlags (name);
-            if ((flags & EditorBase.EXCLUSIVE) != 0) {
-               if (editManager.isEditLocked()) {
+      if (!minimal) {
+         EditorManager editManager = myMain.getEditorManager();
+         myEditActionMap = editManager.getActionMap (selManager);
+         if (myEditActionMap.size() > 0) {
+            addSeparatorIfNecessary();
+            for (String name : myEditActionMap.getActionNames()) {
+               boolean enabled = true;
+               int flags = myEditActionMap.getFlags (name);
+               if ((flags & EditorBase.EXCLUSIVE) != 0) {
+                  if (editManager.isEditLocked()) {
+                     enabled = false;
+                  }
+               }
+               if ((flags & EditorBase.DISABLED) != 0) {
                   enabled = false;
                }
-            }
-            if ((flags & EditorBase.DISABLED) != 0) {
-               enabled = false;
-            }
-            String[] subactions = myEditActionMap.getSubActions (name);
-            if (subactions == null) {
-               menuItem = new JMenuItem (name);
-               menuItem.addActionListener (this);
-               menuItem.setEnabled (enabled);
-               add (menuItem);
-            }
-            else {
-               JMenu subMenu = new JMenu (name);
-               subMenu.setEnabled (enabled);
-               for (String subact : subactions) {
-                  menuItem = new JMenuItem (subact);
-                  menuItem.setActionCommand (name + ">" + subact);
+               String[] subactions = myEditActionMap.getSubActions (name);
+               if (subactions == null) {
+                  menuItem = new JMenuItem (name);
                   menuItem.addActionListener (this);
-                  subMenu.add (menuItem);
+                  menuItem.setEnabled (enabled);
+                  add (menuItem);
                }
-               add (subMenu);
+               else {
+                  JMenu subMenu = new JMenu (name);
+                  subMenu.setEnabled (enabled);
+                  for (String subact : subactions) {
+                     menuItem = new JMenuItem (subact);
+                     menuItem.setActionCommand (name + ">" + subact);
+                     menuItem.addActionListener (this);
+                     subMenu.add (menuItem);
+                  }
+                  add (subMenu);
+               }
             }
          }
       }
-
+      
       // LinkedList<ModelComponent> dependentSelection =
       //    selManager.getDependencyExpandedSelection ();
 
@@ -334,7 +346,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       if (selection.size() == 1) {
          addMenuItem ("Save as ...");
       }
-      if (duplicateOK) {
+      if (!minimal && duplicateOK) {
          addMenuItem ("Duplicate");
       }
       if (deleteRefsOK) {

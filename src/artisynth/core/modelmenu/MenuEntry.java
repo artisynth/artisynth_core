@@ -13,10 +13,10 @@ import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import artisynth.core.driver.VerticalGridLayout;
 import artisynth.core.modelmenu.ModelScriptMenuParser.MenuType;
 import maspack.properties.*;
 import maspack.util.*;
+import maspack.widgets.VerticalGridLayout;
 
 public class MenuEntry extends MenuNode {
 

@@ -7,6 +7,7 @@
  */package artisynth.core.gui.editorManager;
 
 import java.awt.*;
+import java.awt.event.*;
 
 import javax.swing.*;
 import javax.swing.event.*;
@@ -20,6 +21,7 @@ import artisynth.core.driver.*;
 import artisynth.core.gui.selectionManager.*;
 
 import maspack.util.ListView;
+import maspack.widgets.ButtonMasks;
 
 public class ComponentListWidget<E extends ModelComponent> extends
 AbstractListModel implements SelectionListener, ListSelectionListener {
@@ -31,6 +33,15 @@ AbstractListModel implements SelectionListener, ListSelectionListener {
    private SelectionManager mySelectionManager;
    private JList myJList;
 
+
+   private class ListMouseAdapter extends MouseInputAdapter {
+
+      public void mousePressed(MouseEvent e) {
+         if (e.getModifiersEx() == ButtonMasks.getContextMenuMask()) {
+            mySelectionManager.displayMinimalPopup(e);
+         }
+      }
+   }
    // private Color myDefaultSelectionColor;
 
    public ComponentListWidget (ListView<E> list, CompositeComponent ancestor) {
@@ -40,6 +51,7 @@ AbstractListModel implements SelectionListener, ListSelectionListener {
       myAncestor = ancestor;
       myLocalList = new ArrayList<E>();
       myJList.setModel (this);
+      myJList.addMouseListener (new ListMouseAdapter());
       // Not entirely sure what lead anchor notification is, but it
       // seems to have the effect of generating valueChange events
       // from the selection model that have indices which are out

@@ -1388,6 +1388,50 @@ an error.
 \subsubsection{Vertex penetration}
 \label{VertexPenetration:sec}
 
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{ccc}
+\iflatexml
+ \includegraphics[]{images/vertexPenetration}& \includegraphics[]{images/vertexPenetrationContact}\\
+\else
+ \includegraphics[width=3in]{images/vertexPenetration}&
+ \includegraphics[width=2.5in]{images/vertexPenetrationContact}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{Vertex penetration contact creates a contact point for each
+penetrating vertex within a penetration region, with the contact
+normal directed toward to the nearest point on the opposite mesh.}
+\label{VertexPenetrationContact:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/twoWayContact}
+\else
+ \includegraphics[width=3in]{images/twoWayContact}
+\fi
+\end{center}
+\caption{Two-way vertex penetration contact involves creating
+contact points from the penetrating vertices of {\it both}
+meshes.}
+\label{TwoWayContact:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/vertexPenetrationForces}
+\else
+ \includegraphics[width=3in]{images/vertexPenetrationForces}
+\fi
+\end{center}
+\caption{Vertex penetration contact generates contact reaction forces
+(red-brown arrows) on vertices of both intersecting meshes.}
+\label{VertexPenetrationForces:fig}
+\end{figure}
+
 Contacts are created for each mesh vertex that penetrates the other
 mesh, with a contact normal directed toward the nearest point on the
 opposing mesh (Figure \ref{VertexPenetrationContact:fig}).  Contact
@@ -1401,7 +1445,14 @@ collidables is an FEM model, vertex penetrations are computed {\it
 only} for the FEM collidable; penetrations of the rigid body into the
 FEM are not considered. Otherwise, if both collidables are FEM models,
 then vertex penetrations are computed for {\it both} bodies, resulting
-in {\it two-way} contact (Figure \ref{TwoWayContact:fig}).  
+in {\it two-way} contact (Figure \ref{TwoWayContact:fig}).
+
+Vertex penetration contact results in contact reaction forces being generated
+on the mesh vertices that are within or next to the intersection region
+(Figure \ref{VertexPenetrationContact:fig}).  These appear on vertices of {\it
+both} intersecting meshes, regardless of whether contact points are generated
+for one or both meshes, since each vertex associated with a contact imparts a
+reaction force on the vertices of the nearest face on the opposite mesh.
 
 Because FEM models tend to have a large number of DOFs, the default
 behavior is to supply vertex penetration constraints to the physics
@@ -1458,37 +1509,6 @@ No constraints are generated. This will result in no collision
 response.
 
 \end{description}
-
-\begin{figure}[ht]
-\begin{center}
-\begin{tabular}{ccc}
-\iflatexml
- \includegraphics[]{images/vertexPenetration}& \includegraphics[]{images/vertexPenetrationContact}\\
-\else
- \includegraphics[width=3in]{images/vertexPenetration}&
- \includegraphics[width=2.5in]{images/vertexPenetrationContact}\\
-\fi
-\end{tabular}
-\end{center}
-\caption{Vertex penetration contact creates a contact point for each
-penetrating vertex within a penetration region, with the contact
-normal directed toward to the nearest point on the opposite mesh.}
-\label{VertexPenetrationContact:fig}
-\end{figure}
-
-\begin{figure}[ht]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/twoWayContact}
-\else
- \includegraphics[width=3in]{images/twoWayContact}
-\fi
-\end{center}
-\caption{Two-way vertex penetration contact involves creating
-contact points from the penetrating vertices of {\it both}
-meshes.}
-\label{TwoWayContact:fig}
-\end{figure}
 
 When vertex penetration contact is employed, the collidables for which
 penetrations are generated can also be controlled using the {\sf
@@ -3229,23 +3249,29 @@ producing output like this:
 \end{lstlisting}
 %
 
-\subsection{Example: forces and pressures on specific collidables}
+\subsection{Example: forces and pressures on mesh vertices}
 
-The {\tt ContactForceMonitor} in the example of
-Section \ref{contactForceMonitor:sec} can be modified to find the individual
-contact forces or pressures acting on either the first or second collidable
-(corresponding to {\tt collidable0} or {\tt collidable1} in the {\tt
-setCollisionResponse()} methods). This information is 
-returned by the methods
+In the case of vertex penetration contact, contact forces are generated on the
+mesh vertices of both collidables in the vicinity of the intersection (Section
+\ref{VertexPenetration:sec} and Figure \ref{VertexPenetrationForces:fig}).
+The {\tt CollisionResponse} methods
 \javamethod[artisynth.core.mechmodels.CollisionResponse]{getContactForces()}
 and
-\javamethod[artisynth.core.mechmodels.CollisionResponse]{getContactPressures()},
-and is most accurate and useful when using vertex penetration contact
-(Section \ref{VertexPenetration:sec}).
+\javamethod[artisynth.core.mechmodels.CollisionResponse]{getContactPressures()}
+can be used to obtain these forces, and their associated pressures, for the
+meshes of either the first or second collidable (corresponding to {\tt
+collidable0} or {\tt collidable1} in the {\tt setCollisionResponse()} methods).
 
-For example, to find the maximum contact force on a specific collidable, one
-can add a code fragment like the following to the the monitor's {\tt apply()}
-method:
+\begin{sideblock}
+{\tt getContactForces()} and {\tt getContactPressures()} will also work for
+contour region contact (Section \ref{ContourRegion:sec}), but the results may
+be somewhat approximated and less meaningful.
+\end{sideblock}
+
+As an example, the {\tt ContactForceMonitor} in the example of
+Section \ref{contactForceMonitor:sec} can be modified to find the maximum
+vertex contact force for a specific collidable by adding the following to the
+{\tt apply()} method:
 %
 \begin{lstlisting}[]
    int collidableIdx = 0;
@@ -3260,10 +3286,11 @@ method:
       }
    }
 \end{lstlisting}
-The {\tt collidableIdx} should be either 0 or 1 to request contact forces for
-either the first or second collidable.
-
-Similarly, maximum contact pressure can be determined like this:
+{\tt getContactForces()} returns a map of the contact forces on each mesh
+vertex of the collidable indicated by {\tt collidableIdx} (with 0 and 1
+denoting the first and second collidables). To find the maximum force, one can
+simply iterate over the map.  Similarly, maximum contact pressure can be
+determined using a code fragment like this:
 \begin{lstlisting}[]
    int collidableIdx = 0;
    Map<Vertex3d,Double> pressures = myResp.getContactPressures (collidableIdx);
@@ -3276,11 +3303,16 @@ Similarly, maximum contact pressure can be determined like this:
    }
 \end{lstlisting}
 
-\begin{sideblock}
-Note that while forces and pressures on each collidable will be equal and
-opposite in aggregate, they will vary locally due to differences in the
-geometry and resolution of each collidable's mesh.
-\end{sideblock}
+Which collidable one chooses for evaluating contact forces or pressures will
+depend on the questions being asked by the modeling study. In the case of a FEM
+model colliding with a rigid body, one will almost certainly want to choose the
+FEM model as the collidable. In the case of two colliding FEMs (or two rigid
+bodies using vertex penetration contact), one may wish to use the collidable
+whose mesh has a higher resolution.  While the forces and pressures on each
+collidable will be equal and opposite in aggregate, they will vary locally due
+to differences in the geometry and resolution of each collidable's mesh. For
+instance, a collidable with a finer mesh will typically have a greater number
+of vertex forces of lesser magnitude.
          
 \section{Tips and limitations}
 \label{ContactLimitations:sec}

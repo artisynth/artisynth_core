@@ -3141,6 +3141,7 @@ step.
 \end{sideblock}
 
 \subsection{Example: monitoring contact forces}
+\label{contactForceMonitor:sec}
 
 \begin{figure}[ht]
 \begin{center}
@@ -3158,7 +3159,7 @@ the ball collides with the plane.}
 A simple example of using a {\tt CollisionResponse} is given by
 %
 \begin{verbatim}
-  artisynth.demos.tutorial.ContactForceDemo
+  artisynth.demos.tutorial.ContactForceMonitor
 \end{verbatim}
 %
 This shows an FEM model of a ball rolling down an inclined plane,
@@ -3228,7 +3229,59 @@ producing output like this:
 \end{lstlisting}
 %
 
+\subsection{Example: forces and pressures on specific collidables}
 
+The {\tt ContactForceMonitor} in the example of
+Section \ref{contactForceMonitor:sec} can be modified to find the individual
+contact forces or pressures acting on either the first or second collidable
+(corresponding to {\tt collidable0} or {\tt collidable1} in the {\tt
+setCollisionResponse()} methods). This information is 
+returned by the methods
+\javamethod[artisynth.core.mechmodels.CollisionResponse]{getContactForces()}
+and
+\javamethod[artisynth.core.mechmodels.CollisionResponse]{getContactPressures()},
+and is most accurate and useful when using vertex penetration contact
+(Section \ref{VertexPenetration:sec}).
+
+For example, to find the maximum contact force on a specific collidable, one
+can add a code fragment like the following to the the monitor's {\tt apply()}
+method:
+%
+\begin{lstlisting}[]
+   int collidableIdx = 0;
+   Map<Vertex3d,Vector3d> map= myResp.getContactForces (collidableIdx);
+   double maxF = 0;
+   for (Map.Entry<Vertex3d,Vector3d> entry : map.entrySet()) {
+      Vertex3d v = entry.getKey();
+      Vector3d f = entry.getValue();
+      double normF = f.norm();
+      if (normF> maxF) {
+         maxF=normF;
+      }
+   }
+\end{lstlisting}
+The {\tt collidableIdx} should be either 0 or 1 to request contact forces for
+either the first or second collidable.
+
+Similarly, maximum contact pressure can be determined like this:
+\begin{lstlisting}[]
+   int collidableIdx = 0;
+   Map<Vertex3d,Double> pressures = myResp.getContactPressures (collidableIdx);
+   double maxP = 0;
+   for (Map.Entry<Vertex3d,Double> entry : pressures.entrySet()) {
+      double pressure = entry.getValue();
+      if (pressure > maxP) {
+         maxP = pressure;
+      }
+   }
+\end{lstlisting}
+
+\begin{sideblock}
+Note that while forces and pressures on each collidable will be equal and
+opposite in aggregate, they will vary locally due to differences in the
+geometry and resolution of each collidable's mesh.
+\end{sideblock}
+         
 \section{Tips and limitations}
 \label{ContactLimitations:sec}
 

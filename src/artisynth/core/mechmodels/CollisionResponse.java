@@ -103,8 +103,8 @@ public class CollisionResponse extends CollisionComponent {
     * <i>not</i> include forces that are computed to separate
     * <code>colA</code> and <code>colB</code> when they initially come into
     * contact.
+    * 
     * @param cidx collidable index - 0 for first, 1 for second
-    *
     * @return map giving the contact forces acting on the deformable bodies in
     * this response.
     */
@@ -119,7 +119,7 @@ public class CollisionResponse extends CollisionComponent {
    }
 
    /**
-    * Returns a map of the most recenty computed contact pressures acting on
+    * Returns a map of the most recently computed contact pressures acting on
     * the vertices of the collision meshes associated with either the first or
     * second collidable (as indicated by <code> cidx</code>). Vertices for
     * which no pressures were computed do not appear in the map. The information
@@ -136,6 +136,7 @@ public class CollisionResponse extends CollisionComponent {
     * dividing the force magnitude at each vertex by 1/3 of the area of all the
     * faces surrounding that vertex.
     *
+    * @param cidx collidable index - 0 for first, 1 for second
     * @return map giving the contact pressures acting on the deformable bodies
     * in this response.
     */
@@ -153,8 +154,7 @@ public class CollisionResponse extends CollisionComponent {
     * ColliderType.AJL_CONTOUR}. If penetrations regions are not available,
     * <code>null</code> is returned.
     *
-    * @param cidx
-    * collidable index - 0 for first, 1 for second
+    * @param cidx collidable index - 0 for first, 1 for second
     * @return penetration regions for the indicated collidable
     */
    public ArrayList<PenetrationRegion> getPenetrationRegions (int cidx) {
@@ -190,8 +190,7 @@ public class CollisionResponse extends CollisionComponent {
     * set to {@link CollisionManager.ColliderType#AJL_CONTOUR
     * ColliderType.AJL_CONTOUR} . If this is not the case, -1 is returned.
     * 
-    * @param cidx
-    * collidable index - 0 for first, 1 for second
+    * @param cidx collidable index - 0 for first, 1 for second
     */
    public double getContactArea (int cidx) {
 

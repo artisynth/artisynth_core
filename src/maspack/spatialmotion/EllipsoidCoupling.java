@@ -174,7 +174,7 @@ public class EllipsoidCoupling extends RigidBodyCoupling {
       TGD.R.mul (R2D, RC2);
       if (coords != null) {
          TCDToCoordinates (coords, TGD);
-      }     
+      }
    }
 
    @Override

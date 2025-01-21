@@ -15,8 +15,10 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import artisynth.core.probes.*;
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.RigidTransform3d;
+import maspack.interpolation.*;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.AxisDrawStyle;
 
@@ -130,6 +132,9 @@ public class EllipsoidJointDemo extends RootModel {
       panel.addWidget (joint, "compliance");
       panel.addWidget (joint, "damping");
       addControlPanel (panel);
+
+      box.setDynamic (false);
+      addCoordinateProbes(joint);
    }
 
    public void attach (DriverInterface driver) {
@@ -139,6 +144,29 @@ public class EllipsoidJointDemo extends RootModel {
          getMainViewer().setAxialView (AxisAlignedRotation.NX_Z);
       }
    }
-   
+
+   public void addCoordinateProbes(EllipsoidJoint jnt) {
+      double startTime = 0;
+      double stopTime = 4;
+      NumericInputProbe iprobe = new NumericInputProbe (
+         jnt, new String[] { "longitude", "latitude", "theta", "phi"},
+         startTime, stopTime);
+      iprobe.addData (new double[] {
+            0,      0,0,0,0,
+            0.3,    0,30,0,0,
+            1.0, -135,30,0,0,
+            1.6, -135,-30,0,0,
+            2.3,    0,-30,0,0,
+            2.6,    0,0,0,0,
+            3.3,    0,0,180,0,
+            3.45,   0,0,180,30,
+            3.75,   0,0,180,-30,
+            3.9,    0,0,180,0, 
+            4,      0,0,180,0 
+         },
+         NumericProbeBase.EXPLICIT_TIME);
+      addInputProbe (iprobe);
+
+   }
    
 }

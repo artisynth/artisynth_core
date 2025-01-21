@@ -313,6 +313,14 @@ public class RootModelManagerTest extends UnitTest {
       System.out.println ("search time artisynth.models.*=" + timer.result(1));
    }
 
+   public void testSpecial() {
+      List<String> names = ClassFinder.findClassNames (
+         "artisynth.models.eth_shoulder", RootModel.class, /*recursive=*/true);
+      for (String s : names) {
+         System.out.println (s);
+      }
+   }
+
    public void test() {
       testIndexing ();
       testCacheFile ();
@@ -323,6 +331,7 @@ public class RootModelManagerTest extends UnitTest {
       RandomGenerator.setSeed (0x1234);
       RootModelManagerTest tester = new RootModelManagerTest();
       //tester.timing();
+      //tester.testSpecial();
       tester.runtest();
    }
 

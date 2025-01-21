@@ -14,7 +14,7 @@ import maspack.geometry.io.*;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.render.*;
-import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.*;
 import maspack.properties.*;
 
 public class MeshViewer extends RootModel {
@@ -68,8 +68,36 @@ public class MeshViewer extends RootModel {
          }
       }
       else {
-         PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (1.0, 1);
+         PolygonalMesh mesh = MeshFactory.createIcosahedralBowl (1.0, 1.1, 4);
          FixedMeshBody mbody = new FixedMeshBody ("mesh", mesh);
+
+         // PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (1.0, 3);
+         // double ang = Math.toRadians (58.3 - 0.017474411461004962);
+         // mesh.transform (
+         //    new RigidTransform3d(0, 0, 0, 0, 0, ang));
+         // ArrayList<Point3d> equator = new ArrayList<>();
+         // for (Vertex3d v : mesh.getVertices()) {
+         //    if (Math.abs(v.pnt.z) < 0.05) {
+         //       equator.add (new Point3d(v.pnt));
+         //    }
+         // }
+         // Plane plane = new Plane();
+         // plane.fit (equator);
+         // System.out.println ("plane.normal=" + plane.normal);
+         // System.out.println ("plane.offset=" + plane.offset);
+         // System.out.println (
+         //    "angle=" + Math.toDegrees(
+         //       Math.atan2 (plane.normal.y, plane.normal.z)));
+         // FixedMeshBody mbody = new FixedMeshBody ("mesh", mesh);
+
+
+         RenderProps.setFaceStyle (mbody, FaceStyle.FRONT_AND_BACK);
+         // RenderProps.setDrawEdges (mbody, true);
+         // RenderProps.setShading (mbody, Shading.NONE);
+
+         // PolygonalMesh mesh = MeshFactory.createIcosahedron(1.0);
+         // mesh = MeshFactory.subdivide(mesh);
+         // FixedMeshBody mbody = new FixedMeshBody ("mesh", mesh);
          mech.addMeshBody (mbody);
       }
       double rad = RenderableUtils.getRadius (this);

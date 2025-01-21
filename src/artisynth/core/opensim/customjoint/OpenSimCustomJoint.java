@@ -302,9 +302,4 @@ public class OpenSimCustomJoint extends JointBase {
       return super.updateConstraints (t, flags);
    }   
    
-   public int getCoordIndex (String name) {
-      return ((OpenSimCustomCoupling)myCoupling).getCoordIndex (name);
-   }
-   
-   
 }

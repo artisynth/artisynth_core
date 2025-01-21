@@ -137,6 +137,17 @@ public class ViewerToolBar extends JToolBar
       }
       return icon;
    }
+   
+   public void updateIcons () {
+      if (myAxialViewMenuItems == null) {
+         // do nothing - render has been called before ViewerToolBarOld
+         // has finished constructing
+         return;
+      }
+      // now look for the current view in the list.
+      int curIdx = getAxialViewIndex (myViewer.getAxialView());
+      setAxialViewIcon (myAxialViewMenuItems.get(curIdx).getIcon());
+   }  
 
    private JButton createAndAddButton (
       String actionCmd, String toolTipText, Icon icon, 
@@ -162,7 +173,9 @@ public class ViewerToolBar extends JToolBar
    }
 
    private void setAxialViewIcon (Icon icon) {
-      myAxialViewButton.setIcon (icon);
+      if (icon != myAxialViewButton.getIcon()) {
+         myAxialViewButton.setIcon (icon);
+      }
    }
 
    public ViewerToolBar (Viewer viewer, boolean allowGridDisplay) {
@@ -192,6 +205,7 @@ public class ViewerToolBar extends JToolBar
       }
 
       myAxialViewMenuItems = createAxialViewMenuItems (this);
+      updateIcons();
    }
 
    public void actionPerformed (ActionEvent e) {
@@ -247,6 +261,26 @@ public class ViewerToolBar extends JToolBar
    }
 
    /**
+    * Returns the index into myAxialViewMenuItems corresponding
+    * to a specified axual view.
+    */
+   private int getAxialViewIndex (AxisAlignedRotation axialView) {
+      int idx = -1;
+      for (int i=0; i<myAxialViewMenuItems.size(); i++) {
+         if (myAxialViewMenuItems.get(i).myAxialView == axialView) {
+            idx = i;
+            break;
+         }
+      }
+      if (idx == -1) {
+         // this really can't happen ...
+         throw new InternalErrorException (
+            "Specied axial view not present in menu item list");
+      } 
+      return idx;
+   }
+   
+   /**
     * Create the icon array used to select a new axial view.
     */
    private JPopupMenu createViewPopup () {
@@ -257,18 +291,8 @@ public class ViewerToolBar extends JToolBar
 
       // find the current view and the associated index in itemList
       AxisAlignedRotation curView = myViewer.getAxialView();
-      int curIdx = -1;
-      for (int idx=0; idx<myAxialViewMenuItems.size(); idx++) {
-         if (myAxialViewMenuItems.get(idx).myAxialView == curView) {
-            curIdx = idx;
-            break;
-         }
-      }
-      if (curIdx == -1) {
-         // this really can't happen ...
-         throw new InternalErrorException (
-            "Current view not present in menu item list");
-      }
+      
+      int curIdx = getAxialViewIndex (curView);
       // The menu items are arranged in a 6 x 4 grid, with items added in
       // column-major order, so that if idx is the idx-th item added, we have
       //
@@ -676,6 +700,7 @@ public class ViewerToolBar extends JToolBar
     * update the appearance of the widgets and icons.
     */
    public void updateWidgets() {
+      updateIcons();
       if (myGridDisplayEnabled) {
          boolean gridOn = myViewer.getGridVisible();
          GridPlane grid = myViewer.getGrid();

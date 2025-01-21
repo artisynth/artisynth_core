@@ -1199,8 +1199,8 @@ public abstract class RigidBodyCoupling implements Cloneable {
       int numc = numCoordinates();
       if (numc > 0) {
          if (TGD != null) {
-            // on entry, TGD is set to TCD. It is then projected to TGD
-            projectAndUpdateCoordinates (TGD, TGD);
+            // TGD contains the initial TCD
+            projectAndUpdateCoordinates (TGD, /*TCD=*/TGD);
          }
          coords.setSize(numc);
          doGetCoords (coords);         
@@ -1315,8 +1315,8 @@ public abstract class RigidBodyCoupling implements Cloneable {
    public void setCoordinateValue (
       int idx, double value, RigidTransform3d TGD) {
       if (TGD != null) {
-         // on entry, TGD is set to TCD. It is then projected to TGD
-         projectAndUpdateCoordinates (TGD, TGD);
+         // TGD contains the initial TCD
+         projectAndUpdateCoordinates (TGD, /*TCD=*/TGD);
       }    
       myCoordinates.get(idx).value = value; //setValue (value);
       myCoordValueCnt++;
@@ -1345,8 +1345,8 @@ public abstract class RigidBodyCoupling implements Cloneable {
     */
    public double getCoordinate (int idx, RigidTransform3d TGD) {
       if (TGD != null) {
-         // on entry, TGD is set to TCD. It is then projected to TGD
-         projectAndUpdateCoordinates (TGD, TGD);
+         // TGD contains the initial TCD
+         projectAndUpdateCoordinates (TGD, /*TCD=*/TGD);         
       }
       return myCoordinates.get(idx).value;
    }

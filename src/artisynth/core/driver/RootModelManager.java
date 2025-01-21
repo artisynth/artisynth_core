@@ -1,13 +1,21 @@
 package artisynth.core.driver;
 
-import java.io.*;
-import java.util.*;
-import java.lang.reflect.Modifier;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 
+import artisynth.core.util.ArtisynthIO;
 import artisynth.core.workspace.RootModel;
-import artisynth.core.util.*;
-import maspack.util.*;
+import maspack.util.ClassFinder;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Manages the set of known root models. This class exists to address the
@@ -49,6 +57,25 @@ public class RootModelManager {
    int myKnownPackageCnt = -1;
 
    boolean debug = false;
+
+   /**
+    * Checks if a string satisfies the character rules for a Java identifier
+    * (but does not check if it is a keyword).
+    */
+   private static boolean isIdentifier (String str) {
+      if (str.length() == 0) {
+         return false;
+      }
+      if (!Character.isJavaIdentifierStart (str.charAt(0))) {
+         return false;
+      }
+      for (int i=1; i<str.length(); i++) {
+         if (!Character.isJavaIdentifierPart (str.charAt(i))) {
+            return false;
+         }
+      }
+      return true;
+   }
 
    /**
     * Returns the trailing part of a full package or class name that follows the
@@ -429,10 +456,17 @@ public class RootModelManager {
          }
          IndentingPrintWriter.addIndentation (pw, 2);
          for (PackageNode pnode : myPackages) {
-            pnode.write (pw);
+            // Added isIdentifier checks because we have seen cases where
+            // non-standard package name got through - i.e., names with spaces
+            // in them. Not sure how that occurred.
+            if (isIdentifier (pnode.getName())) {
+               pnode.write (pw);
+            }
          }
          for (ModelNode mnode : myModels) {
-            mnode.write (pw);
+            if (isIdentifier (mnode.getName())) {
+               mnode.write (pw);
+            }
          }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
@@ -884,6 +918,7 @@ public class RootModelManager {
          ReaderTokenizer rtok = null;
          try {
             rtok = ArtisynthIO.newReaderTokenizer (myCacheFile);
+            rtok.wordChar ('$');
             myCacheRoot = new PackageNode ("");
             myCacheRoot.scan (rtok);
          }

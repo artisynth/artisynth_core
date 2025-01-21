@@ -192,7 +192,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
 
       if (myCoords == null) {
          // XXX called in the RigidBodyCoupling constructor. Nothing to do
-         // yet. Will be callled again in OpenSimCustomCoupling constructor
+         // yet. Will be called again in OpenSimCustomCoupling constructor
          return;
       }
       int numc = myCoords.length;
@@ -407,8 +407,8 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    public void projectToConstraints(
       RigidTransform3d TGD, RigidTransform3d TCD, VectorNd coords) {
 
-      if (TCD.containsNaN()) {
-         System.out.println ("BAD TCD=\n" + TCD.toString("%10.5f"));
+      if (TCD == TGD) {
+         TCD = new RigidTransform3d (TGD);
       }
       
       int numc = numCoordinates();
@@ -440,7 +440,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       VectorNd delq = new VectorNd(numc);
       boolean changed = false;
       for (int j=0; j<numc; j++) {
-         if (myCoords[j].getLocked()) {
+         if (isCoordinateLocked(j)) {
             delq.set (j, 0);
          }
          else {
@@ -487,15 +487,6 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
 
    public Wrench getCoordinateWrenchG (int idx) {
       return myG[idx];
-   }
-   
-   public int getCoordIndex (String name) {
-      for (int i=0; i<myCoords.length; i++) {
-         if (myCoords[i].getName().equals(name)) {
-            return i;
-         }
-      }
-      return -1;
    }
 
 }

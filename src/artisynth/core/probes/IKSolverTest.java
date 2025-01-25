@@ -33,7 +33,7 @@ public class IKSolverTest extends UnitTest {
       myNumSolves = 0;
    }
 
-   private MechModel createOneLinkBase (boolean offset) {
+   private MechModel createOneLinkBase (boolean bodyCoordsAtCom) {
       MechModel mech = new MechModel();
 
       // add dummy body to make sure reindexing works inside IKSolver
@@ -44,7 +44,7 @@ public class IKSolverTest extends UnitTest {
       RigidBody link0 = RigidBody.createBox (
          "link0", 1, 0.25, 0.25, /*density*/1000);
       link0.setPose (new RigidTransform3d (0, 0, 0.5,  0, -90*DTOR, 0));
-      if (offset) {
+      if (!bodyCoordsAtCom) {
          link0.translateCoordinateFrame (new Vector3d(0.0, 0.0, -0.5));
       }
       mech.addRigidBody (link0);
@@ -73,8 +73,8 @@ public class IKSolverTest extends UnitTest {
       return mech;
    }
 
-   private MechModel createOneLinkMech (boolean offset) {
-      MechModel mech = createOneLinkBase(offset);
+   private MechModel createOneLinkMech (boolean bodyCoordsAtCom) {
+      MechModel mech = createOneLinkBase(bodyCoordsAtCom);
 
       HingeJoint joint = (HingeJoint)mech.bodyConnectors().get(0);
       // set the range for theta (in degrees)
@@ -86,14 +86,14 @@ public class IKSolverTest extends UnitTest {
       return mech;
    }
 
-   private MechModel createTwoLinkMech (boolean offset) {
-      MechModel mech = createOneLinkBase(offset);
+   private MechModel createTwoLinkMech (boolean bodyCoordsAtCom) {
+      MechModel mech = createOneLinkBase(bodyCoordsAtCom);
       RigidBody link0 = mech.rigidBodies().get("link0");
 
       RigidBody link1 = RigidBody.createBox (
          "link1", 0.6, 0.15, 0.15, /*density*/1000);
       link1.setPose (new RigidTransform3d (0, 0, 1.3,  0, -90*DTOR, 0));
-      if (offset) {
+      if (!bodyCoordsAtCom) {
          link1.translateCoordinateFrame (new Vector3d(0, 0, -0.3));
       }
       mech.addRigidBody (link1);
@@ -162,7 +162,7 @@ public class IKSolverTest extends UnitTest {
    }      
 
    public void testOneLink () {
-      MechModel mech = createOneLinkMech(/*offset*/false);
+      MechModel mech = createOneLinkMech(/*bodyCoordsAtCom*/true);
       IKSolver solver = new IKSolver (mech, mech.frameMarkers());
 
       ArrayList<Point3d> mtargs = new ArrayList<>();
@@ -176,13 +176,17 @@ public class IKSolverTest extends UnitTest {
          "Marker 0", mech.frameMarkers().get(0).getPosition(), chk, 1e-10);
    }      
 
-   public void testTwoLink (int numMkrs, boolean offset) {
-      testTwoLink (numMkrs, offset, /*zeroLink0Inertia*/false);
+   public void testTwoLink (int numMkrs, boolean bodyCoordsAtCom) {
+      testTwoLink (
+         numMkrs, bodyCoordsAtCom,
+         /*zeroLink0Inertia*/false, /*shuffleMarkers*/false);
    }         
 
    public void testTwoLink (
-      int numMkrs, boolean offset, boolean zeroLink0Inertia) {
-      MechModel mech = createTwoLinkMech(offset);
+      int numMkrs, boolean bodyCoordsAtCom, boolean zeroLink0Inertia,
+      boolean reorderMarkers) {
+      
+      MechModel mech = createTwoLinkMech(bodyCoordsAtCom);
 
       if (zeroLink0Inertia) {
          mech.rigidBodies().get("link0").setInertia (new SpatialInertia());
@@ -194,6 +198,9 @@ public class IKSolverTest extends UnitTest {
       for (int i=0; i<numMkrs; i++) {
          mkrs.add (mech.frameMarkers().get(i));
          wgts.set (i, (i%2)==0 ? 1.0 : 2.0);
+      }
+      if (reorderMarkers) {
+         Collections.shuffle (mkrs);
       }
       IKSolver solver = new IKSolver (mech, mkrs, wgts);
       double[] testAngs = new double[] {
@@ -230,7 +237,15 @@ public class IKSolverTest extends UnitTest {
    }
 
    public void testTwoLinkWithZeroLink0Inertia () {
-      testTwoLink (2, /*offset*/false, /*zeroLink0Inertia*/true);
+      testTwoLink (
+         2, /*bodyCoordsAtCom*/true, /*zeroLink0Inertia*/true,
+         /*shuffleMarkers*/false);
+   }
+
+   public void testTwoLinkWithShuffledMarkers () {
+      testTwoLink (
+         2, /*bodyCoordsAtCom*/true, /*zeroLink0Inertia*/false,
+         /*shuffleMarkers*/true);
    }
 
    VectorNd collectMarkerPositions (
@@ -251,8 +266,8 @@ public class IKSolverTest extends UnitTest {
       return mpos;
    }
 
-   public void testTwoLinkWithNoise (int numMkrs, boolean offset) {
-      MechModel mech = createTwoLinkMech(offset);
+   public void testTwoLinkWithNoise (int numMkrs, boolean bodyCoordsAtCom) {
+      MechModel mech = createTwoLinkMech(bodyCoordsAtCom);
 
       ArrayList<FrameMarker> mkrs = new ArrayList<>();
       for (int i=0; i<numMkrs; i++) {
@@ -287,11 +302,11 @@ public class IKSolverTest extends UnitTest {
          joint0.setTheta (theta0);
          joint1.setTheta (theta1);
          int niter = solver.solve (mtargs);
-         System.out.println ("niter=" + niter);
+         //System.out.println ("niter=" + niter);
          if (niter == -1) {
-            //System.out.println ("niter=" + niter);
-            // throw new TestException (
-            //    "Solver did not converge with noise added, t=" + t);
+            System.out.println ("niter=" + niter);
+            throw new TestException (
+               "Solver did not converge with noise added, t=" + t);
          }
          VectorNd msolve = collectMarkerPositions (mkrs, /*noise*/0);
          //checkEquals ("solved markers", msolve, mtargs, 1e-8);
@@ -421,30 +436,33 @@ public class IKSolverTest extends UnitTest {
 
       testOneLink();
 
-      boolean offset = false;
+      boolean bodyCoordsAtCom = true;
       clearSolveCounts();
-      testTwoLink (2, offset);
-      testTwoLink (5, offset);
-      testTwoLink (9, offset);
+      testTwoLink (2, bodyCoordsAtCom);
+      testTwoLink (5, bodyCoordsAtCom);
+      testTwoLink (9, bodyCoordsAtCom);
       System.out.printf ("iters: %g\n", avgNumIters());
 
-      offset = true;
+      bodyCoordsAtCom = false;
 
       clearSolveCounts();
-      testTwoLink (2, offset);
-      testTwoLink (5, offset);
-      testTwoLink (9, offset);
-      System.out.printf ("iters with offset: %g\n", avgNumIters());
+      testTwoLink (2, bodyCoordsAtCom);
+      testTwoLink (5, bodyCoordsAtCom);
+      testTwoLink (9, bodyCoordsAtCom);
+      System.out.printf ("iters with offset body coords: %g\n", avgNumIters());
+
+      testTwoLinkWithShuffledMarkers();
 
       clearSolveCounts();
       testTwoLinkWithZeroLink0Inertia();
       System.out.printf ("iters with link0 inertia 0: %g\n", avgNumIters());
 
       clearSolveCounts();
-      testTwoLinkWithNoise (2, offset);
-      testTwoLinkWithNoise (5, offset);
-      testTwoLinkWithNoise (9, offset);
-      System.out.printf ("iters with offset, noise: %g\n", avgNumIters());
+      testTwoLinkWithNoise (2, bodyCoordsAtCom);
+      testTwoLinkWithNoise (5, bodyCoordsAtCom);
+      testTwoLinkWithNoise (9, bodyCoordsAtCom);
+      System.out.printf (
+         "iters with offset body coords, noise: %g\n", avgNumIters());
 
       testBuildJTJMatrix();
    }

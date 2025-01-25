@@ -194,7 +194,6 @@ public class IKProbe extends NumericControlProbe {
 
    public void applyData (VectorNd vec, double t, double trel) {
       int niters = mySolver.solve (vec);
-      System.out.println ("niters=" + niters);
    }
 
    public void setData (double t) {

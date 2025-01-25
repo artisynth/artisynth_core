@@ -112,14 +112,12 @@ public class IKSolver implements PostScannable {
    protected class MarkerInfo {
       FrameMarker myMarker;
       double myWeight;
+      int myIdx; // index within the original list of markers
 
-      MarkerInfo (FrameMarker mkr, double w) {
+      MarkerInfo (FrameMarker mkr, double w, int idx) {
          myMarker = mkr;
          myWeight = w;
-      }
-
-      MarkerInfo (FrameMarker mkr) {
-         this (mkr, 1.0);
+         myIdx = idx;
       }
    }
 
@@ -239,9 +237,10 @@ public class IKSolver implements PostScannable {
             "weights size "+weights.size()+
             " incompatible with number of markers "+mkrs.size());
       }
-      int i = 0;
+      int idx = 0;
       for (FrameMarker mkr : mkrs) {
-         myMarkerInfo.add (new MarkerInfo (mkr, weights.get(i++)));
+         myMarkerInfo.add (new MarkerInfo (mkr, weights.get(idx), idx));
+         idx++;
       }
       myNumMarkers = myMarkerInfo.size();
       findBodiesAndConnectors ();
@@ -353,13 +352,12 @@ public class IKSolver implements PostScannable {
          throw new IllegalStateException (
             "Solver does not reference a MechModel");
       }
-      int i = 0; // marker index
       double avgWeight = 0;
       for (MarkerInfo minfo : myMarkerInfo) {
          FrameMarker mkr = minfo.myMarker;
          String name = mkr.getName();
          if (name == null) {
-            name = Integer.toString(i);
+            name = Integer.toString(minfo.myIdx);
          }
          if (!ComponentUtils.isAncestorOf (myMech, mkr)) {
             throw new IllegalStateException (
@@ -381,7 +379,6 @@ public class IKSolver implements PostScannable {
          }
          avgWeight += minfo.myWeight;
          mlist.add (minfo);
-         i++;
       }
       avgWeight /= myMarkerInfo.size();
       // find all connectors attached to the frames. Find additional bodies
@@ -501,14 +498,12 @@ public class IKSolver implements PostScannable {
       Vector3d targ = new Vector3d();
       Vector3d disp = new Vector3d(); // required marker displacements
       double chiSqr = 0;
-      int j = 0; // marker index
       for (BodyInfo binfo : myBodyInfo) {
          for (MarkerInfo minfo : binfo.myMarkerInfo) {
-            mtargs.getSubVector (3*j, targ);
+            mtargs.getSubVector (3*minfo.myIdx, targ);
             disp.sub (targ, minfo.myMarker.getPosition());
-            disps.setSubVector (3*j, disp);
+            disps.setSubVector (3*minfo.myIdx, disp);
             chiSqr += disp.dot(disp)*minfo.myWeight;
-            j++;
          }
       }
       return chiSqr;
@@ -540,13 +535,13 @@ public class IKSolver implements PostScannable {
     * b} prior to the next iteration step.
     */
    private void updateSolveMatrix (
-      SparseNumberedBlockMatrix S, VectorNd b, VectorNd mtargs, VectorNd disps) {
+      SparseNumberedBlockMatrix S, VectorNd b, VectorNd disps) {
 
       Vector3d locw = new Vector3d();
       Vector3d disp = new Vector3d(); // required marker displacements
       Twist cb = new Twist();
       int k = 0; // body index
-      int j = 0; // marker index
+      int j = 0; // internal marker index
       for (BodyInfo binfo : myBodyInfo) {
          RigidBody body = binfo.myBody;
          SpatialInertia blk = (SpatialInertia)S.getBlock (k, k);
@@ -889,9 +884,8 @@ public class IKSolver implements PostScannable {
     */
    public VectorNd getMarkerWeights() {
       VectorNd weights = new VectorNd(numMarkers());
-      int i = 0;
       for (MarkerInfo minfo : myMarkerInfo) {
-         weights.set (i++, minfo.myWeight);
+         weights.set (minfo.myIdx, minfo.myWeight);
       }
       return weights;
    }
@@ -907,9 +901,8 @@ public class IKSolver implements PostScannable {
             "weights size "+weights.size()+
             " incompatible with number of markers "+numMarkers());
       }
-      int i = 0;
       for (MarkerInfo minfo : myMarkerInfo) {
-         minfo.myWeight = weights.get (i++);
+         minfo.myWeight = weights.get (minfo.myIdx);
       }
       double avgWeight = weights.sum()/weights.size();
       if (myBodyInfo != null) {
@@ -966,9 +959,8 @@ public class IKSolver implements PostScannable {
       int icnt = 0;
       boolean converged = false;
       double prevChiSqr = computeDisplacements (disps, mtargs);
-      //System.out.println ("solve");
       do {
-         updateSolveMatrix (mySolveMatrix, myBd, mtargs, disps);
+         updateSolveMatrix (mySolveMatrix, myBd, disps);
          updateConstraints ();
 
          if (myAnalyze) {
@@ -1163,7 +1155,7 @@ public class IKSolver implements PostScannable {
             double[] weights = (double[])tokens.poll().value();
             myMarkerInfo.clear();
             for (int i=0; i<mkrs.length; i++) {
-               myMarkerInfo.add (new MarkerInfo (mkrs[i], weights[i]));
+               myMarkerInfo.add (new MarkerInfo (mkrs[i], weights[i], i));
             }
          }
          else {

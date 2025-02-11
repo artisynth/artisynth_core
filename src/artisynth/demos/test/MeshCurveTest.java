@@ -77,8 +77,6 @@ public class MeshCurveTest extends RootModel {
       curve.setInterpolation (MeshCurve.Interpolation.B_SPLINE);
       RenderProps.setSphericalPoints (mcomp.getCurves(), 0.05, Color.GREEN);
       RenderProps.setCylindricalLines (mcomp.getCurves(), 0.02, Color.BLUE);
-      
-
    }
 
 }

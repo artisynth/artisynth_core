@@ -14,6 +14,8 @@ public class AddComponentsCommand implements Command {
    private String myName;
    private LinkedList<ModelComponent> myComponents;
    private LinkedList<MutableCompositeComponent<?>> myParents;
+   // indices where components should be added (null means append)
+   private int[] myIndices;
 
    public AddComponentsCommand (
       String name, LinkedList<ModelComponent> comps, 
@@ -44,12 +46,28 @@ public class AddComponentsCommand implements Command {
       myParents.add (parent);
    }
 
+   public AddComponentsCommand (
+      String name, ModelComponent comp, int idx,
+      MutableCompositeComponent<?> parent) {
+      if (idx > parent.numComponents()) {
+         throw new IllegalArgumentException (
+            "Index "+idx+" where component should be added is out of range; "+
+            "should be <= "+parent.numComponents());
+      }
+      myName = name;
+      myComponents = new LinkedList<ModelComponent>();
+      myComponents.add (comp);
+      myIndices = new int[] { idx };
+      myParents = new LinkedList<MutableCompositeComponent<?>>();
+      myParents.add (parent);
+   }
+
    public void execute() {
-      ComponentUtils.addComponents (myComponents, null, myParents);
+      ComponentUtils.addComponents (myComponents, myIndices, myParents);
    }
 
    public void undo() {
-      ComponentUtils.removeComponents (myComponents, null);
+      ComponentUtils.removeComponents (myComponents, myIndices);
    }
 
    public String getName() {

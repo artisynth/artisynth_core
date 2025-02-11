@@ -400,7 +400,7 @@ public class EigenDecomposition {
     */
    public VectorNd getEigReal() {
       if (state == State.UNSET) {
-         throw new ImproperStateException ("Decompostion not initialized");
+         throw new ImproperStateException ("Decomposition not initialized");
       }
       return eigr;
    }
@@ -418,7 +418,7 @@ public class EigenDecomposition {
     */
    public VectorNd getEigImag() {
       if (state == State.UNSET) {
-         throw new ImproperStateException ("Decompostion not initialized");
+         throw new ImproperStateException ("Decomposition not initialized");
       }
       return eigi;
    }
@@ -448,7 +448,7 @@ public class EigenDecomposition {
     */
    public void getD (MatrixNd D) {
       if (state == State.UNSET) {
-         throw new ImproperStateException ("Decompostion not initialized");
+         throw new ImproperStateException ("Decomposition not initialized");
       }
       int n = mySize; 
       if (D != null && (D.rowSize() != n || D.colSize() != n)) {
@@ -534,7 +534,7 @@ public class EigenDecomposition {
     */
    public double getMinAbsEig() {
       if (state == State.UNSET) {
-         throw new ImproperStateException ("Decompostion not initialized");
+         throw new ImproperStateException ("Decomposition not initialized");
       }
       return minabs;
    }
@@ -548,7 +548,7 @@ public class EigenDecomposition {
     */
    public double getMaxAbsEig() {
       if (state == State.UNSET) {
-         throw new ImproperStateException ("Decompostion not initialized");
+         throw new ImproperStateException ("Decomposition not initialized");
       }
       return maxabs;
    }

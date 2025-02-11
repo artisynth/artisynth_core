@@ -47,6 +47,23 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
    private static HashMap<Class,ModelComponent> myPrototypeMap;
    private static RootModel myLastRootModel = null;
 
+   /**
+    * Controls how points are added to the curve.
+    */
+   private enum AddMode {
+      /**
+       * Appends each point to the end of the list.
+       */
+      APPEND, 
+
+      /**
+       * Inserts each point at the end of the list.
+       */
+      INSERT
+   };
+
+   private static AddMode myDefaultAddMode = AddMode.APPEND;
+
    private double getDefaultMarkerRadius() {
       return getDefaultPointRadius()/2;
    }
@@ -55,11 +72,20 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
       return getDefaultMarkerRadius()/2;
    }
 
+   EnumSelector myAddModeSelector;
+
    /**
     * Not used because we don't use the default property panel here.
     */
    protected void initializePrototype (
       ModelComponent comp, ComponentList<?> container, Class type) {
+   }
+
+   protected void createAddModeSelector() {
+      myAddModeSelector =
+         new EnumSelector ("add markers using:", myDefaultAddMode, AddMode.values());
+      myAddModeSelector.addValueChangeListener (this);
+      addWidget (myAddModeSelector);
    }
 
    public void initializeProperties (MeshCurve curve) {
@@ -176,12 +202,8 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
       createComponentList (
          "Existing markers:", new ComponentListWidget<MeshMarker> (
             myMarkerList, myCurve));
-      // createSeparator();
-      // createTypeSelector();
-      // createNameField();
-      // createPropertyFrame("Default curve properties:");
-      // createSeparator();
-      // createProgressBox();
+
+      createAddModeSelector();
       addCurvePropertyPanel();
       createInstructionBox();
       createOptionPanel ("Done");
@@ -262,19 +284,24 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
    public void valueChange (ValueChangeEvent e) {
       myMain.rerender();
       myPropertyPanel.updateWidgetValues();
+      if (e.getSource() == myAddModeSelector) {
+         myDefaultAddMode = (AddMode)myAddModeSelector.getValue();
+      }
    }
 
    protected void createAndAddMarker (Point3d pnt, MeshComponent mcomp) {
       MeshMarker marker = new MeshMarker (mcomp, pnt);
 
-      //marker.setName (getNameFieldValue());
-      //setProperties (marker, getPrototypeComponent (myComponentType));
-      // update properties in the prototype as well ...
-      //setProperties (myPrototype, myPrototype);
-
-      addComponent (new AddComponentsCommand (
-         "add MeshMarker", marker, myMarkerList));
-
+      if ((AddMode)myAddModeSelector.getValue() == AddMode.INSERT) {
+         // pick the insertion index based on the nearest segment to the point
+         int idx = (myCurve.findNearestInterval(pnt) + 1);
+         addComponent (new AddComponentsCommand (
+                          "add MeshMarker", marker, idx, myMarkerList));
+      }
+      else {
+         addComponent (new AddComponentsCommand (
+                          "add MeshMarker", marker, myMarkerList));
+      }
       setState (State.SelectingLocation);
    }
 

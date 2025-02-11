@@ -30,6 +30,8 @@ public class MeshCurve extends RenderableCompositeBase {
    protected PointList<MeshMarker> myMarkers;
    protected boolean myCurveValid = false;
    protected ArrayList<Point3d> myPoints;
+   // indices of the first point for each interval
+   protected int[] myIntervalPointIndices; 
    protected ArrayList<Vector3d> myNormals;
    private RigidTransform3d myRenderFrame = new RigidTransform3d();
 
@@ -474,6 +476,49 @@ public class MeshCurve extends RenderableCompositeBase {
       return GeometryUtils.findNearestPoint (pr, myPoints, isClosed(), p0, r0);
    }
 
+   /**
+    * Finds the index of the nearest interval on this curve to a prescribed
+    * point {@code p0}. This is defined as the interval containing the nearest
+    * point to {@code p0}.
+    *
+    * <p>If the curve is open, then there are {@code numi = numMarkers()-1}
+    * intervals. If the nearest point is either the first point or last point,
+    * then {@code p0} is considered to lie <i>before</i> or <i>after</i> the
+    * intervals and the method returns {@code -1} or {@code numi},
+    * respectively.  Otherwise, the nearest interval index in the range {@code
+    * 0} to {@code numi-1} is returned.
+    *
+    * <p>If the curve is closed, then the number of intervals is {@code numi =
+    * numMarkers()-1}, and the method returns the nearest interval index in the
+    * range {@code 0} to {@code numi-1}.
+    *
+    * <p>In all cases, the nearest interval may not be unique, in which
+    * case the interval with lowest index will be returned.
+    *
+    * @param p0 point for which the nearest point should be determined
+    * @return index of the nearest interval
+    */
+   public int findNearestInterval (Point3d p0) {
+      double r = findNearestPoint (null, p0, 0);
+      int iidx = -1; // interval index
+      for (int k=0; k<myIntervalPointIndices.length; k++) {
+         if (r > myIntervalPointIndices[k]) {
+            iidx++;
+         }
+      }
+      if (isClosed()) {
+         if (iidx == -1) {
+            iidx = numMarkers()-1;
+         }
+      }
+      else {
+         if (r == numPoints()-1) {
+            iidx++;
+         }
+      }
+      return iidx;
+   }
+
    private void computeLinearCurve() {
       BVFeatureQuery bvq = new BVFeatureQuery();
       int numIntervals = isClosed() ? numMarkers() : numMarkers()-1;
@@ -489,6 +534,7 @@ public class MeshCurve extends RenderableCompositeBase {
          Point3d pos = new Point3d();
          Vector3d nrm = new Vector3d();
          mkr0.myPntIdx = myPoints.size();
+         myIntervalPointIndices[i] = myPoints.size();
          myPoints.add (new Point3d(pos0));
          myNormals.add (mkr0.getNormal());
          for (int k=1; k<nsegs; k++) {
@@ -537,7 +583,7 @@ public class MeshCurve extends RenderableCompositeBase {
          Point3d tmp = new Point3d();
          Vector3d nrm = new Vector3d();
          int npnts = nsegs;
-         if (!isClosed() && i == myMarkers.size()-1) {
+         if (!isClosed() && i == myMarkers.size()-2) {
             npnts++;
          }
          mkr0.myPntIdx = myPoints.size();
@@ -552,6 +598,9 @@ public class MeshCurve extends RenderableCompositeBase {
                   pos, null, mesh, pos, nrm, -INF, INF);
                nrm.set (
                   mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            }
+            if (k == 0) {
+               myIntervalPointIndices[i] = myPoints.size();
             }
             myPoints.add (new Point3d(pos));
             myNormals.add (new Vector3d(nrm));
@@ -591,7 +640,7 @@ public class MeshCurve extends RenderableCompositeBase {
          Point3d pos1 = mkr1.getPosition();
          int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
          int npnts = nsegs;
-         if (!isClosed() && i == myMarkers.size()-1) {
+         if (!isClosed() && i == myMarkers.size()-2) {
             npnts++;
          }
          mkr0.myPntIdx = myPoints.size();
@@ -605,6 +654,9 @@ public class MeshCurve extends RenderableCompositeBase {
                   pos, null, mesh, pos, nrm, -INF, INF);
                nrm.set (
                   mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
+            }
+            if (k == 0) {
+               myIntervalPointIndices[i] = myPoints.size();
             }
             myPoints.add (new Point3d(pos));
             myNormals.add (new Vector3d(nrm));
@@ -620,6 +672,8 @@ public class MeshCurve extends RenderableCompositeBase {
          myPoints.clear();
          myNormals.clear();
          if (numMarkers() > 1) {
+            int numi = isClosed() ? numMarkers() : numMarkers()-1;
+            myIntervalPointIndices = new int[numi];
             switch (myInterpolation) {
                case LINEAR: {
                   computeLinearCurve();
@@ -642,6 +696,9 @@ public class MeshCurve extends RenderableCompositeBase {
             for (Point3d p : myPoints) {
                p.inverseTransform (TMW);
             }
+         }
+         else {
+            myIntervalPointIndices = new int[0];
          }
          myCurveValid = true;
       }

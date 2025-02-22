@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Collection;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -24,6 +25,7 @@ import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
 import maspack.properties.Property;
 import maspack.properties.PropertyInfo;
+import maspack.matrix.RotationRep;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MotionTargetComponent;
@@ -34,6 +36,8 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
+import artisynth.core.probes.PositionInputProbe;
+import artisynth.core.probes.PositionOutputProbe;
 import artisynth.core.probes.NumericDifferenceProbe;
 import artisynth.core.probes.NumericProbeBase;
 import artisynth.core.probes.Probe;
@@ -125,8 +129,11 @@ import artisynth.core.workspace.RootModel;
  */
 public class InverseManager {
 
-   // set to true to use older legacy names for probes and their files
+   // set to true to use older legacy names for probes and their file
    public static boolean useLegacyNames = false;
+
+   // set false to NOT use Position and Velocity probes.
+   public static boolean usePositionProbes = true;
 
    /**
     * Identifiers for the probes created by this InverseManager
@@ -136,7 +143,7 @@ public class InverseManager {
       TARGET_FORCES,
       INPUT_EXCITATIONS,
       
-      TRACKED_POSITIONS,
+     TRACKED_POSITIONS,
       SOURCE_POSITIONS,
       POSITION_ERROR,
       COMPUTED_EXCITATIONS;
@@ -294,7 +301,7 @@ public class InverseManager {
       if (foterm != null) {
          ProbeID pid = ProbeID.TARGET_FORCES;
          NumericInputProbe refTargetForceInProbe =
-            findOrCreateInputProbe (root, pid, duration, interval);
+            findOrCreateInputProbe (root, controller, pid, duration, interval);
          configureTargetForceProbe (
             refTargetForceInProbe, foterm.getTargets(), pid);
       }
@@ -303,19 +310,22 @@ public class InverseManager {
       if (moterm != null && moterm.getTargets().size() > 0) {
          ProbeID pid = ProbeID.TARGET_POSITIONS;
          NumericInputProbe refTargetMotionInProbe =
-            findOrCreateInputProbe (root, pid, duration, interval);
+            findOrCreateInputProbe (
+               root, controller, pid, duration, interval);
          configureTargetMotionProbe (
             refTargetMotionInProbe, moterm.getTargets(), pid);
 
          pid = ProbeID.TRACKED_POSITIONS;
          NumericOutputProbe refTargetMotionOutProbe =
-            findOrCreateOutputProbe (root, pid, duration, interval);
+            findOrCreateOutputProbe (
+               root, controller, pid, duration, interval);
          configureTargetMotionProbe (
             refTargetMotionOutProbe, moterm.getTargets(), pid);
          
          pid = ProbeID.SOURCE_POSITIONS;
          NumericOutputProbe modelTargetMotionOutProbe =
-            findOrCreateOutputProbe (root, pid, duration, interval);
+            findOrCreateOutputProbe (
+               root, controller, pid, duration, interval);
          configureTargetMotionProbe (
             modelTargetMotionOutProbe, moterm.getSources(), pid);
          
@@ -333,14 +343,14 @@ public class InverseManager {
 
       ProbeID pid = ProbeID.COMPUTED_EXCITATIONS;
       NumericOutputProbe excitationOutProbe =
-         findOrCreateOutputProbe (root, pid, duration, interval);
+         findOrCreateOutputProbe (root, controller, pid, duration, interval);
       //excitationOutProbe.setModel(controller.getMech());
       excitationOutProbe.setOutputProperties(props);
       excitationOutProbe.setAttachedFileName(pid.getFileName());
 
       pid = ProbeID.INPUT_EXCITATIONS;
       NumericInputProbe excitationInput =
-         findOrCreateInputProbe (root, pid, duration, interval);
+         findOrCreateInputProbe (root, controller, pid, duration, interval);
       //excitationInput.setModel(controller.getMech());
       excitationInput.setInputProperties(props);
       excitationInput.setAttachedFileName(pid.getFileName());
@@ -381,17 +391,25 @@ public class InverseManager {
    }
 
    private static NumericOutputProbe findOrCreateOutputProbe (
-      RootModel root, ProbeID pid, double duration, double interval) {
+      RootModel root, TrackingController tcon, ProbeID pid, 
+      double duration, double interval) { 
       NumericOutputProbe outProbe;
       Probe p = findOutputProbe (root, pid);
       if (p != null && p instanceof NumericOutputProbe) {
          outProbe = (NumericOutputProbe)p;
       }
       else {
-         outProbe = new NumericOutputProbe();
-         outProbe.setName(pid.getName());
-         outProbe.setStopTime (duration);
-         outProbe.setUpdateInterval (interval);
+         if (usePositionProbes &&
+             (pid==ProbeID.TRACKED_POSITIONS || pid==ProbeID.SOURCE_POSITIONS)) {
+            outProbe = createOutputProbe (
+               tcon, pid, pid.getFileName(), /*start*/0, duration, interval);
+         }
+         else {
+            outProbe = new NumericOutputProbe();
+            outProbe.setName(pid.getName());
+            outProbe.setStopTime (duration);
+            outProbe.setUpdateInterval (interval);
+         }
          root.addOutputProbe(outProbe);
       }
       return outProbe;
@@ -530,17 +548,24 @@ public class InverseManager {
    }
 
    private static NumericInputProbe findOrCreateInputProbe (
-      RootModel root, ProbeID pid, double duration, double interval) {
+      RootModel root, TrackingController tcon, ProbeID pid,
+      double duration, double interval) {
       NumericInputProbe inProbe;
       Probe p = findInputProbe (root, pid);
       if (p != null && p instanceof NumericInputProbe) {
          inProbe = (NumericInputProbe)p;
       }
       else {
-         inProbe = new NumericInputProbe();
-         inProbe.setName (pid.getName());
-         inProbe.setStopTime (duration);
-         inProbe.setUpdateInterval (interval);
+         if (usePositionProbes && pid == ProbeID.TARGET_POSITIONS) {
+            inProbe = createInputProbe (
+               tcon, pid, pid.getFileName(), /*start*/0, /*stop*/duration);
+         }
+         else {
+            inProbe = new NumericInputProbe();
+            inProbe.setName (pid.getName());
+            inProbe.setStopTime (duration);
+            inProbe.setUpdateInterval (interval);
+         }
          root.addInputProbe(inProbe);
       }
       return inProbe;
@@ -578,33 +603,35 @@ public class InverseManager {
 
    private static void configureTargetMotionProbe (NumericProbeBase probe,
       ArrayList<MotionTargetComponent> targets, ProbeID pid) {
-//      System.out.println ("configuring motion probe");
-      ArrayList<Property> props = new ArrayList<Property>();
-      for (ModelComponent target : targets) {
-         if (target instanceof Point) {
-            props.add(target.getProperty("position"));
+
+      if (!(probe instanceof PositionInputProbe) && 
+          !(probe instanceof PositionOutputProbe)) {
+         ArrayList<Property> props = new ArrayList<Property>();
+         for (ModelComponent target : targets) {
+            if (target instanceof Point) {
+               props.add(target.getProperty("position"));
+            }
+            else if (target instanceof Frame) {
+               props.add(target.getProperty("position"));
+               props.add(target.getProperty("orientation"));
+            }
+            else {
+               System.err.println("Unknown target component type: "
+                                  + target.getClass().toString());
+            }
          }
-         else if (target instanceof Frame) {
-            props.add(target.getProperty("position"));
-            props.add(target.getProperty("orientation"));
+         
+         if (probe instanceof NumericInputProbe) {
+            ((NumericInputProbe)probe).setInputProperties(
+               props.toArray(new Property[props.size()]));
          }
-         else {
-            System.err.println("Unknown target component type: "
-               + target.getClass().toString());
+         else if (probe instanceof NumericOutputProbe) {
+            ((NumericOutputProbe)probe).setOutputProperties(
+               props.toArray(new Property[props.size()]));
          }
       }
-//      probe.setModel(myController.getMech());
+
       probe.setAttachedFileName(pid.getFileName());
-
-      if (probe instanceof NumericInputProbe) {
-         ((NumericInputProbe)probe).setInputProperties(props
-            .toArray(new Property[props.size()]));
-      }
-      else if (probe instanceof NumericOutputProbe) {
-         ((NumericOutputProbe)probe).setOutputProperties(props
-            .toArray(new Property[props.size()]));
-      }
-
       if (probe instanceof NumericInputProbe) {
          probe.setActive (maybeLoadDataFromFile ((NumericInputProbe)probe));
       }
@@ -881,6 +908,17 @@ public class InverseManager {
       TrackingController tcon, ProbeID pid, String filePath,
       double startTime, double stopTime) {
 
+      if (usePositionProbes && pid == ProbeID.TARGET_POSITIONS) {
+         RotationRep rotRep = tcon.getPositionProbeRotRep();
+         PositionInputProbe probe = new PositionInputProbe (
+            pid.getName(), tcon.getMotionTargets(), rotRep, startTime, stopTime);
+         if (filePath != null) {
+            probe.setAttachedFileName(filePath);
+            maybeLoadDataFromFile (probe);
+         }
+         return probe;         
+      }
+      
       NumericInputProbe inProbe = new NumericInputProbe();
       inProbe.setName (pid.getName());
       inProbe.setStopTime (stopTime);
@@ -932,6 +970,21 @@ public class InverseManager {
    public static NumericOutputProbe createOutputProbe (
       TrackingController tcon, ProbeID pid, String filePath,
       double startTime, double stopTime, double interval) {
+
+      if (usePositionProbes &&
+          (pid == ProbeID.TRACKED_POSITIONS || pid == ProbeID.SOURCE_POSITIONS)) {
+         RotationRep rotRep = tcon.getPositionProbeRotRep();
+         Collection<? extends ModelComponent> comps;
+         if (pid == ProbeID.TRACKED_POSITIONS) {
+            comps = tcon.getMotionTargets();
+         }
+         else {
+            comps = tcon.getMotionSources();
+         }
+         return new PositionOutputProbe (
+            pid.getName(), comps, rotRep,
+            filePath, startTime, stopTime, interval);
+      }
 
       NumericOutputProbe outProbe = new NumericOutputProbe();
       outProbe.setName(pid.getName());

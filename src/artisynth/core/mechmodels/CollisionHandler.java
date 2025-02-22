@@ -51,6 +51,7 @@ import maspack.render.Renderable;
 import maspack.render.Renderer;
 import maspack.solvers.LCPSolver;
 import maspack.spatialmotion.FrictionInfo;
+import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.util.DataBuffer;
 import maspack.util.DoubleInterval;
 import maspack.util.InternalErrorException;
@@ -1179,6 +1180,7 @@ public class CollisionHandler extends RenderableConstrainerBase
          gi.force =      fres[0];
          gi.compliance = fres[1];
          gi.damping =    fres[2];
+         gi.motionType = MotionType.LINEAR;
          idx++;
       }
       return idx;
@@ -1263,6 +1265,7 @@ public class CollisionHandler extends RenderableConstrainerBase
          ni.force =      fres[0];
          ni.compliance = fres[1];
          ni.damping =    fres[2];
+         ni.motionType = MotionType.LINEAR;
          idx++;
       }
       return idx;

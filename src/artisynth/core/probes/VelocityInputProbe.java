@@ -321,4 +321,14 @@ public class VelocityInputProbe extends NumericInputProbe {
       }
       return vprobe;
    }
+
+   /**
+    * Apply a rigid or affine transform to all the vector data in this list.
+    *
+    * @param X transform to apply
+    */
+   public void transformData (AffineTransform3dBase X) {
+      getNumericList().transformVectorData (X);
+   }
+
 }

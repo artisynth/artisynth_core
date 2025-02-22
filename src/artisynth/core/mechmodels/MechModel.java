@@ -1534,7 +1534,7 @@ TransformableGeometry, ScalableUnits {
       myFrameMarkers.removeAll();
    }
 
-   public RenderableComponentList<FrameMarker> frameMarkers() {
+   public PointList<FrameMarker> frameMarkers() {
       return myFrameMarkers;
    }
 

@@ -117,5 +117,15 @@ public class VelocityOutputProbe extends NumericOutputProbe {
          setName (name);
       }
    }
+
+   /**
+    * Apply a rigid or affine transform to all the vector data in this list.
+    *
+    * @param X transform to apply
+    */
+   public void transformData (AffineTransform3dBase X) {
+      getNumericList().transformVectorData (X);
+   }
+
 }
 

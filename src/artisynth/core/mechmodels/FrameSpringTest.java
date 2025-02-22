@@ -415,6 +415,28 @@ public class FrameSpringTest {
       test (deriv, linMat, velA, velB, false, 1e-6);
       test (deriv, linMatAniso, velA, velB, false, 1e-6);
 
+      PowerFrameMaterial powMat;
+      int cnt = 20;
+      for (int i=0; i<cnt; i++) {
+         X21.setRandom();
+         deriv = new FrameSpringTest (X21, X1A, X2B);
+
+         powMat = new PowerFrameMaterial (10.0, /*n*/1, 0.5, /*rn*/1, 2.0, 0.2);
+         test (deriv, powMat, velA, velB, false, 1e-6);
+         powMat.setDeadband (0.2);
+         test (deriv, powMat, velA, velB, false, 1e-6);
+
+         powMat = new PowerFrameMaterial (10.0, /*n*/2, 0.5, /*rn*/2, 2.0, 0.2);
+         test (deriv, powMat, velA, velB, false, 1e-6);
+         powMat.setDeadband (0.2);
+         test (deriv, powMat, velA, velB, false, 1e-6);
+
+         powMat = new PowerFrameMaterial (10.0, /*n*/3, 0.5, /*rn*/3, 2.0, 0.2);
+         test (deriv, powMat, velA, velB, false, 1e-6);
+         powMat.setDeadband (0.2);
+         test (deriv, powMat, velA, velB, false, 1e-6);
+      }
+
       System.out.println ("\nPASSED\n");
    }
 

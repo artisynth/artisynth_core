@@ -46,6 +46,7 @@ import maspack.solvers.LCPSolver;
 import maspack.solvers.SparseSolverId;
 import maspack.solvers.MurtyMechSolver;
 import maspack.numerics.BrentRootSolver;
+import maspack.numerics.GoldenSectionSearch;
 import maspack.spatialmotion.FrictionInfo;
 import maspack.util.FunctionTimer;
 import maspack.util.DataBuffer;
@@ -3823,8 +3824,8 @@ public class MechSystemSolver {
          
          // use modified Golden section search to find optimal alpha
          // guaranteed to call R(alpha) last, which will populate myF and myQ
-         double alpha = modifiedGoldenSection (
-            0, R0, 1, R1, 1e-5, 0.75*Math.abs(R0), Ra);
+         double alpha = GoldenSectionSearch.minimize (
+            Ra, 0, R0, 1, R1, 1e-5, 0.75*Math.abs(R0));
          
          if (alpha == 0) {
             break;

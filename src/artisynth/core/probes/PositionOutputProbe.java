@@ -128,4 +128,15 @@ public class PositionOutputProbe extends NumericOutputProbe {
       setStartTime (startTime);
       setStopTime (stopTime);
    }
+
+   /**
+    * Apply a rigid or affine transform to all the point and rotation data in
+    * this list.
+    *
+    * @param X transform to apply
+    */
+   public void transformData (AffineTransform3dBase X) {
+      getNumericList().transformPositionData (X);
+   }
+      
 }

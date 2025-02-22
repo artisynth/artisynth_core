@@ -48,6 +48,7 @@ import artisynth.core.modelbase.WeightedReferenceComp;
 import artisynth.core.util.ScanToken;
 import artisynth.core.workspace.RootModel;
 import maspack.matrix.VectorNd;
+import maspack.matrix.RotationRep;
 import maspack.properties.HierarchyNode;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
@@ -95,9 +96,6 @@ import maspack.util.ReaderTokenizer;
 public class TrackingController extends ControllerBase
    implements CompositeComponent, RenderableComponent {
 
-   // set to handle the motion term as a hard constraint
-   boolean handleMotionTargetAsConstraint = false;
-
    // ========= property attributes =========
 
    public static boolean DEFAULT_ENABLED = true;
@@ -118,6 +116,10 @@ public class TrackingController extends ControllerBase
 
    public static final double DEFAULT_PROBE_INTERVAL = -1;
    double myProbeUpdateInterval = DEFAULT_PROBE_INTERVAL;
+
+   public static final RotationRep DEFAULT_POSITION_PROBE_ROT_REP =
+      RotationRep.AXIS_ANGLE_DEG;
+   RotationRep myPositionProbeRotRep = DEFAULT_POSITION_PROBE_ROT_REP;
 
    // enable debug messages
    public static final boolean DEFAULT_DEBUG = false;
@@ -158,6 +160,10 @@ public class TrackingController extends ControllerBase
 
    private static double DEFAULT_TARGETS_POINT_RADIUS = 1d;
    protected double targetsPointRadius = DEFAULT_TARGETS_POINT_RADIUS;
+
+   private static boolean DEFAULT_MOTION_TARGET_AS_CONSTRAINT = false;
+   protected boolean myMotionTargetAsConstraint = 
+      DEFAULT_MOTION_TARGET_AS_CONSTRAINT;
 
    protected MechSystemBase myMech;
    protected QPSolver myQPSolver;
@@ -240,6 +246,10 @@ public class TrackingController extends ControllerBase
          "computeIncrementally",
          "compute excitations incrementally at each time step",
          DEFAULT_COMPUTE_INCREMENTALLY);
+      myProps.add(
+         "motionTargetAsConstraint",
+         "handles the motion target as a constraint",
+         DEFAULT_MOTION_TARGET_AS_CONSTRAINT);      
       myProps.add(
          "configExcitationColoring",
          "configure white-to-red excitation coloring where applicable",
@@ -383,7 +393,29 @@ public class TrackingController extends ControllerBase
       myProbeUpdateInterval = h;
    }
    
+   /**
+    * Queries the rotation representation used for creating position input or
+    * output probes within {@link #createProbes(RootModel)} and {@link
+    * #createProbesAndPanel(RootModel)}.
+    *
+    * @return position probe rotation representation
+    */
+   public RotationRep getPositionProbeRotRep() {
+      return myPositionProbeRotRep;
+   }
 
+   /**
+    * Sets the rotation representation used by {@link #createProbes(RootModel)}
+    * and {@link #createProbesAndPanel(RootModel)} for creating position input
+    * or output probes. The default value is {@link
+    * RotationRep.AXIS_ANGLE_DEG}.
+    *
+    * @param h new output probe update interval
+    */
+   public void setPositionProbeRotRep (RotationRep rep) {
+      myPositionProbeRotRep = rep;
+   }
+   
    /**
     * Queries whether or not debug messages are enabled.
     *
@@ -437,6 +469,43 @@ public class TrackingController extends ControllerBase
    }
 
    /**
+    * Enables incremental computation. If enabled, then excitations are
+    * computed incrementatlly (as opposed to holistically) at each time step.
+    * The various QPTerms used by the controller should adjust their
+    * contributions to the quadratic program to reflect an incemental
+    * computation instead of a holistic one.  Incremental computation is
+    * disabled by default.
+    * 
+    * @param enable if {@code true}, enables incremental computation
+    */
+   public void setComputeIncrementally (boolean enable) {
+      if (myComputeIncrementally != enable) {
+         myComputeIncrementally = enable;
+      }
+   }
+
+   public boolean getMotionTargetAsConstraint () {
+      return myMotionTargetAsConstraint;
+   }
+
+   public void setMotionTargetAsConstraint (boolean enable) {
+      if (myMotionTargetAsConstraint != enable) {
+         myMotionTargetAsConstraint = enable;
+         if (enable) {
+            myMotionTerm.setType (QPTerm.Type.EQUALITY);
+            if (myL2RegularizationTerm == null) {
+               // must have a regularization term in the cost function if the
+               // motion term is constraint
+               setL2Regularization();
+            }
+         }
+         else {
+            myMotionTerm.setType (QPTerm.Type.COST);
+         }
+      }
+   }
+
+   /**
     * Enables the automatic configuration of excitation coloring for exciters
     * that support this capability. If enabled, then as these exciters are
     * added to the controller, their {@code excitationColor} is inspected.  If
@@ -461,22 +530,6 @@ public class TrackingController extends ControllerBase
     */
    public boolean getConfigExcitationColoring () {
       return myConfigExcitationColoring;
-   }
-
-   /**
-    * Enables incremental computation. If enabled, then excitations are
-    * computed incrementatlly (as opposed to holistically) at each time step.
-    * The various QPTerms used by the controller should adjust their
-    * contributions to the quadratic program to reflect an incemental
-    * computation instead of a holistic one.  Incremental computation is
-    * disabled by default.
-    * 
-    * @param enable if {@code true}, enables incremental computation
-    */
-   public void setComputeIncrementally (boolean enable) {
-      if (myComputeIncrementally != enable) {
-         myComputeIncrementally = enable;
-      }
    }
 
    /**
@@ -757,7 +810,7 @@ public class TrackingController extends ControllerBase
       myMotionTerm.setFixed (true);
       myMotionTerm.setInternal (true);
       add (myMotionTerm);
-      if (handleMotionTargetAsConstraint) {
+      if (myMotionTargetAsConstraint) {
          myMotionTerm.setType (QPTerm.Type.EQUALITY);
          // must have a regularization term in the cost function if the 
          // motion term is constraint
@@ -921,6 +974,9 @@ public class TrackingController extends ControllerBase
       constraints.addAll (getInequalityConstraints());
       constraints.addAll (getEqualityConstraints());
 
+      if (myMotionTerm.isEnabled()) {
+         myMotionTerm.updateHb (this, t0, t1);
+      }
 
       // solve for the excitations, given the cost and constraint terms
       VectorNd x = myQPSolver.solve (costs, constraints, numExciters(), t0, t1);

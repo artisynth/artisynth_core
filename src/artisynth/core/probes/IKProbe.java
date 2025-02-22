@@ -10,6 +10,7 @@ import maspack.properties.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
+import artisynth.core.probes.IKSolver.SearchStrategy;
 
 public class IKProbe extends NumericControlProbe {
 
@@ -35,6 +36,10 @@ public class IKProbe extends NumericControlProbe {
          "convergenceTol",
          "converage tolerance for each IK solve step",
          IKSolver.DEFAULT_CONVERGENCE_TOL);
+      myProps.add (
+         "searchStrategy",
+         "least-squares search strategy for the IK solve steps",
+         IKSolver.DEFAULT_SEARCH_STRATEGY);
       myProps.add (
          "bodiesNonDynamicIfActive",
          "set all bodies to be non-dynamic when the probe is active",
@@ -144,6 +149,26 @@ public class IKProbe extends NumericControlProbe {
     */
    public void setConvergenceTol (double tol) {
       mySolver.setConvergenceTol (tol);
+   }
+
+   /**
+    * Queries the least-squares search strategy for the IK solve steps.
+    * 
+    * #see #setSearchStrategy
+    * @return IK search strategy
+    */
+   public SearchStrategy getSearchStrategy() {
+      return mySolver.getSearchStrategy();
+   }
+
+   /**
+    * Sets the least-squares search strategy for the IK solve steps.
+    * 
+    * #see #getSearchStrategy
+    * @param IK search strategy
+    */
+   public void setSearchStrategy (SearchStrategy strat) {
+      mySolver.setSearchStrategy(strat);
    }
 
    /**

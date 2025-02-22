@@ -1009,6 +1009,7 @@ public abstract class BodyConnector extends RenderableComponentBase
             gi.compliance = bc.getCompliance();
             gi.damping = bc.getDamping();
             gi.force = 0;
+            gi.motionType = bc.getMotionType();
             idx++;
          }
       }
@@ -1110,6 +1111,7 @@ public abstract class BodyConnector extends RenderableComponentBase
             ni.compliance = uc.getCompliance();
             ni.damping = uc.getDamping();
             ni.force = 0;
+            ni.motionType = uc.getMotionType();
             idx++;
          }
       }

@@ -25,6 +25,7 @@ import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SVDecomposition;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
@@ -45,6 +46,7 @@ import maspack.spatialmotion.Twist;
  */
 public class MotionTargetTerm extends LeastSquaresTermBase {
 
+   boolean reportHvRank = false;
    boolean debug = false;
    // Avoids recomputation of the velocity Jacobian. This actually gives
    // incorrect results and is provided for comparison with legacy code only.
@@ -91,6 +93,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    protected VectorNd myVbar = new VectorNd();
    protected MatrixNd myHv = new MatrixNd();
+
+   protected VectorNd myEffectiveVbar = new VectorNd();
+   protected MatrixNd myEffectiveHv = new MatrixNd();
 
    public static PropertyList myProps =
       new PropertyList(MotionTargetTerm.class, LeastSquaresTermBase.class);
@@ -727,10 +732,11 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
       TrackingController controller = getController();
       if (controller != null) {
-         updateHb (controller, t0, t1);
-         A.setSubMatrix(rowoff, 0, myHv);
-         b.setSubVector(rowoff, myVbar);
-         rowoff += myHv.rowSize();
+         // updateHb now called in QPSolver
+         //updateHb (controller, t0, t1);
+         A.setSubMatrix(rowoff, 0, myEffectiveHv);
+         b.setSubVector(rowoff, myEffectiveVbar);
+         rowoff += myEffectiveHv.rowSize();
       }
       return rowoff;
    }      
@@ -795,6 +801,42 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       }
       //System.out.println (" Hv=\n" + myHv.toString ("%12.8f"));
       //System.out.println (" vbar=  " + myVbar.toString ("%12.8f"));
+      if (myHv.rowSize() > 0) {
+         
+         SVDecomposition svd = null;
+         if (reportHvRank || getType() == QPConstraintTerm.Type.EQUALITY) {
+            svd = new SVDecomposition();
+            svd.factor (myHv, SVDecomposition.FULL_UV);
+         }
+         if (reportHvRank) {
+            System.out.println (
+               "Hv size=" + myHv.getSize() + " rank=" + svd.rank(1e-10));
+         }
+         if (getType() == QPConstraintTerm.Type.EQUALITY) {
+            int rank = svd.rank(1e-10);
+            if (rank < myTargetVelSize) {
+               // need to reduce the number of equations
+               System.out.println ("rank=" + rank + "; reducing");
+               myEffectiveVbar = new VectorNd(myTargetVelSize);
+               myEffectiveHv.setSize (rank, numex);
+               VectorNd sig = svd.getS();
+               MatrixNd V = svd.getV();
+               MatrixNd U = svd.getU();
+               VectorNd Vcol = new VectorNd (numex);
+               for (int i=0; i<rank; i++) {
+                  V.getColumn (i, Vcol);
+                  Vcol.scale (sig.get(i));
+                  myEffectiveHv.setRow (i, Vcol);
+               }
+               U.mulTranspose (myEffectiveVbar, myVbar);
+               myEffectiveVbar.setSize (rank);
+            }
+            else {
+               myEffectiveVbar = myVbar;
+               myEffectiveHv = myHv;
+            }
+         }
+      }
    }
    
    public MatrixNd getH() {
@@ -805,15 +847,15 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return myVbar;
    }
 
-   /**
-    * Fills <code>H</code> and <code>b</code> with this motion term
-    * In contrast to <code>getTerm</code>, this method does not
-    * recompute the values.
-    */
-   public void reGetTerm(MatrixNd H, VectorNd b) {
-      b.set (myVbar);
-      H.set (myHv);
-   }
+//   /**
+//    * Fills <code>H</code> and <code>b</code> with this motion term
+//    * In contrast to <code>getTerm</code>, this method does not
+//    * recompute the values.
+//    */
+//   public void reGetTerm(MatrixNd H, VectorNd b) {
+//      b.set (myVbar);
+//      H.set (myHv);
+//   }
 
    /**
     * Weight used to scale the contribution of this term in the quadratic
@@ -990,14 +1032,20 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
       TrackingController controller = getController();
       if (controller != null) {  
-         updateHb (controller, t0, t1);
+         // updateHb now called in QPSolver
+         //updateHb (controller, t0, t1);
          computeAndAddQP (Q, p, myHv, myVbar);
       }
    }
 
    @Override
    public int numConstraints(int qpsize) {
-      return getTargetVelSize();
+      if (getType() == QPConstraintTerm.Type.EQUALITY) {
+         return myEffectiveHv.rowSize();
+      }
+      else {
+         return getTargetVelSize();
+      }
    }
    
    public void setUsePDControl(boolean usePD) {

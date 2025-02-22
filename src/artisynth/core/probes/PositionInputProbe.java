@@ -7,6 +7,7 @@ import artisynth.core.mechmodels.*;
 import artisynth.core.modelbase.*;
 
 import maspack.matrix.*;
+import maspack.geometry.*;
 import maspack.util.*;
 import maspack.properties.*;
 import maspack.interpolation.*;
@@ -112,6 +113,16 @@ public class PositionInputProbe extends NumericInputProbe {
       setModelFromComponent (carray[0]);
       setInputProperties (findPositionPropsAndOffsets (carray, rotRep));
       initFromFile (name, filePath);
+   }
+
+   /**
+    * Apply a rigid or affine transform to all the point and rotation data in
+    * this list.
+    *
+    * @param X transform to apply
+    */
+   public void transformData (AffineTransform3dBase X) {
+      getNumericList().transformPositionData (X);
    }
       
 }

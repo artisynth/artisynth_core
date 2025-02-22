@@ -12,6 +12,7 @@ public abstract class FrameMaterial extends MaterialBase {
 
    static Class<?>[] mySubClasses = new Class[] {
       LinearFrameMaterial.class,
+      PowerFrameMaterial.class,
       RotAxisFrameMaterial.class,                                              
       HeuerOffLinFM.class, 
       NonlinearlyStiffFrameMaterial.class,

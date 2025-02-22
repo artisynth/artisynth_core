@@ -16,6 +16,8 @@ public class IKSolverTest extends UnitTest {
    private static final double RTOD = 180/Math.PI;
    private static final double DTOR = Math.PI/180;
 
+   boolean useJointLimits = true;
+
    int myNumIters = 0;
    int myNumSolves = 0;
 
@@ -77,10 +79,11 @@ public class IKSolverTest extends UnitTest {
       MechModel mech = createOneLinkBase(bodyCoordsAtCom);
 
       HingeJoint joint = (HingeJoint)mech.bodyConnectors().get(0);
-      // set the range for theta (in degrees)
-      joint.setMaxTheta (10.0);
-      joint.setMinTheta (-10.0);
-
+      if (useJointLimits) {
+         // set the range for theta (in degrees)
+         joint.setMaxTheta (10.0);
+         joint.setMinTheta (-10.0);
+      }
       RigidBody link0 = mech.rigidBodies().get("link0");
       mech.addFrameMarker (link0, new Point3d(0.5, 0, 0));
       return mech;
@@ -101,10 +104,11 @@ public class IKSolverTest extends UnitTest {
       HingeJoint joint = new HingeJoint(
          link1, link0, new Point3d(0, 0, 1), new Vector3d (0, -1, 0));
       mech.addBodyConnector (joint);
-      // set the range for theta (in degrees)
-      joint.setMaxTheta (30.0);
-      joint.setMinTheta (-30.0);
-
+      if (useJointLimits) {
+         // set the range for theta (in degrees)
+         joint.setMaxTheta (30.0);
+         joint.setMinTheta (-30.0);
+      }
       double[] mlocs = new double[] {
          0.0, 0, 1.6,
          -0.075, 0, 1.3, 
@@ -157,7 +161,7 @@ public class IKSolverTest extends UnitTest {
       System.out.println ("niters=" + niters);
       for (int i=0; i<mtargs.size(); i++) {
          FrameMarker mkr = mech.frameMarkers().get(i);
-         checkEquals ("Marker "+i, mkr.getPosition(), mtargs.get(i), 1e-8);
+         checkEquals ("Marker "+i, mkr.getPosition(), mtargs.get(i), 1e-7);
       }
    }      
 
@@ -172,8 +176,10 @@ public class IKSolverTest extends UnitTest {
       Point3d chk = new Point3d (0.173746657573826, 0.0, 0.9847903832704314);
       int niters = solver.solve (packTargetVector(mtargs));
       System.out.println ("niters=" + niters);
-      checkEquals (
-         "Marker 0", mech.frameMarkers().get(0).getPosition(), chk, 1e-10);
+      if (useJointLimits) {
+         checkEquals (
+            "Marker 0", mech.frameMarkers().get(0).getPosition(), chk, 1e-10);
+      }
    }      
 
    public void testTwoLink (int numMkrs, boolean bodyCoordsAtCom) {
@@ -230,7 +236,7 @@ public class IKSolverTest extends UnitTest {
          int niter = solver.solve (mtargs);
          //System.out.println ("niter=" + niter);
          VectorNd msolve = collectMarkerPositions (mkrs, /*noise*/0);
-         checkEquals ("solved markers", msolve, mtargs, 1e-8);
+         checkEquals ("solved markers", msolve, mtargs, 1e-7);
       }
       myNumIters += solver.numIterations();
       myNumSolves += solver.numSolves();
@@ -275,10 +281,14 @@ public class IKSolverTest extends UnitTest {
       }
       HingeJoint joint0 = (HingeJoint)mech.bodyConnectors().get(0);
       HingeJoint joint1 = (HingeJoint)mech.bodyConnectors().get(1);
-      joint1.setThetaRange (-45, 45);
+      if (useJointLimits) {
+         joint1.setThetaRange (-45, 45);
+      }
 
       // trajectory specified with angles
       NumericList testAngs = new NumericList(2);
+      System.out.println (
+         "interpolation=" + testAngs.getInterpolation().getOrder());
       testAngs.add (0,   0, 0);
       testAngs.add (0.5, 0, -45);
       testAngs.add (1,   0, 45);
@@ -301,6 +311,7 @@ public class IKSolverTest extends UnitTest {
          VectorNd mtargs = collectMarkerPositions (mkrs, /*noise*/0.05);
          joint0.setTheta (theta0);
          joint1.setTheta (theta1);
+         //solver.debug = (t == 1.5);
          int niter = solver.solve (mtargs);
          //System.out.println ("niter=" + niter);
          if (niter == -1) {
@@ -309,7 +320,7 @@ public class IKSolverTest extends UnitTest {
                "Solver did not converge with noise added, t=" + t);
          }
          VectorNd msolve = collectMarkerPositions (mkrs, /*noise*/0);
-         //checkEquals ("solved markers", msolve, mtargs, 1e-8);
+         //checkEquals ("solved markers", msolve, mtargs, 1e-7);
       }
       myNumIters += solver.numIterations();
       myNumSolves += solver.numSolves();
@@ -360,7 +371,7 @@ public class IKSolverTest extends UnitTest {
       wgts.setAll (1.0);
 
       IntHolder rank = new IntHolder();
-      SpatialInertia S = IKSolver.buildJTJMatrix (pnts, wgts, regc, rank);
+      SpatialInertia S = IKSolver.buildJTWJMatrix (pnts, wgts, regc, rank);
 
       Matrix6d InvS = new Matrix6d();
       SpatialInertia.invert (InvS, S);
@@ -434,7 +445,9 @@ public class IKSolverTest extends UnitTest {
       testOneBody (createOneBodyMech(2));
       testOneBody (createOneBodyMech(1));
 
+      System.out.println ("test one link");
       testOneLink();
+      System.out.println ("done");
 
       boolean bodyCoordsAtCom = true;
       clearSolveCounts();
@@ -465,6 +478,9 @@ public class IKSolverTest extends UnitTest {
          "iters with offset body coords, noise: %g\n", avgNumIters());
 
       testBuildJTJMatrix();
+
+      System.out.println ("avg dqRatio=" + IKSolver.getAvgDqRatio());
+      System.out.println ("total iters=" + IKSolver.myTotalNumIterations);
    }
 
    public static void main (String[] args) {

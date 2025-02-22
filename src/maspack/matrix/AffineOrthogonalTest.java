@@ -9,11 +9,13 @@ package maspack.matrix;
 import java.util.ArrayList;
 
 import maspack.util.NumberFormat;
+import maspack.util.UnitTest;
 
-public class AffineOrthogonalTest {
+public class AffineOrthogonalTest extends UnitTest {
 
+   boolean silent = true;
    
-   public static void doSkewTest() {
+   public void doSkewTest() {
       
       double [][] pnts = {{-1,-1,-1}, {-1,1,-1}, {-1,1,1}, {-1,-1,1}, {1,-1,-1}, {1,1,-1}, {1,1,1}, {1,-1,1} };
       
@@ -54,15 +56,22 @@ public class AffineOrthogonalTest {
 
       }
       
-      System.out.println("Original: \n" + trans);
+      if (!silent) {
+         System.out.println("Original: \n" + trans);
+      }
       
       AffineTransform3d transb = new AffineTransform3d();
       transb.fitOrthogonal(p, q);
-      System.out.println("Computed: \n"+transb);
+      if (!silent) {
+         System.out.println("Computed: \n"+transb);
+      }
+      checkEquals ("Computed transform", transb, trans, 1e-14);
       
       AffineTransform3d transc = new AffineTransform3d();
       transc.fitOrthogonal(p, q, 1e-15);
-      System.out.println("Iterated: \n"+transc);
+      if (!silent) {
+         System.out.println("Iterated: \n"+transc);
+      }
       
       // decompose:
       Vector3d translationb = transb.p;
@@ -84,10 +93,13 @@ public class AffineOrthogonalTest {
       RotationMatrix3d Rb2 = new RotationMatrix3d();
       Rb2.setSubMatrix(0, 0, Rb);
       AxisAngle aab = new AxisAngle(Rb2);
-      
-      System.out.println("Translation: " + translationb);
-      System.out.println("Rotation: " + aab.axis + ", " + fmt.format(aab.angle));
-      System.out.println("Scaling: " + scaleb);
+
+      if (!silent) {
+         System.out.println("Translation: " + translationb);
+         System.out.println(
+            "Rotation: " + aab.axis + ", " + fmt.format(aab.angle));
+         System.out.println("Scaling: " + scaleb);
+      }
       
       double err = 0;
       double errOrig = 0;
@@ -110,28 +122,29 @@ public class AffineOrthogonalTest {
          errIter += diff.normSquared();
       }
       
-      System.out.println("P = [");
-      for (int i=0; i<q.size(); i++) {
-         System.out.println(p.get(i));
+      if (!silent) {
+         System.out.println("P = [");
+         for (int i=0; i<q.size(); i++) {
+            System.out.println(p.get(i));
+         }
+         System.out.println("];");
+
+         System.out.println("Q = [");
+         for (int i=0; i<q.size(); i++) {
+            Point3d pnt = new Point3d(q.get(i));
+            pnt.transform(transb);
+            System.out.println(pnt);
+         }
+         System.out.println("];");
+      
+         System.out.println();
+         System.out.println("Original error = " + errOrig);
+         System.out.println("Error = " + err);
+         System.out.println("Iterated Error = " + errIter);
       }
-      System.out.println("];");
-      
-      System.out.println("Q = [");
-      for (int i=0; i<q.size(); i++) {
-         Point3d pnt = new Point3d(q.get(i));
-         pnt.transform(transb);
-         System.out.println(pnt);
-      }
-      System.out.println("];");
-      
-      System.out.println();
-      System.out.println("Original error = " + errOrig);
-      System.out.println("Error = " + err);
-      System.out.println("Iterated Error = " + errIter);
-      
    }
    
-   public static void doTest() {
+   public void doTest() {
       
       double [][] pnts = {{-1,-1,-1}, {-1,1,-1}, {-1,1,1}, {-1,-1,1}, {1,-1,-1}, {1,1,-1}, {1,1,1}, {1,-1,1} };
       
@@ -165,7 +178,9 @@ public class AffineOrthogonalTest {
       
       AffineTransform3d transb = new AffineTransform3d();
       transb.fitOrthogonal(p, q);
-      
+
+      checkEquals ("Computed transform", transb, transf, 1e-14);
+     
       // decompose:
       Vector3d translationb = transb.p;
       Matrix3d Rb = new Matrix3d(transb.A);
@@ -192,10 +207,16 @@ public class AffineOrthogonalTest {
       RotationMatrix3d Rb2 = new RotationMatrix3d();
       Rb2.setSubMatrix(0, 0, Rb);
       AxisAngle aab = new AxisAngle(Rb2);
-      
-      System.out.println("Translation: \t" + translationb + " \t/ " + translation);
-      System.out.println("Rotation: \t" + aab.axis + ", " + fmt.format(aab.angle) + " \t/ " + axis + ", " + angle);
-      System.out.println("Scaling: \t" + scaleb + " \t/ " + scaling);
+
+      if (!silent) {
+         System.out.println(
+            "Translation: \t" + translationb + " \t/ " + translation);
+         System.out.println(
+            "Rotation: \t" + aab.axis + ", " + fmt.format(aab.angle) +
+            " \t/ " + axis + ", " + angle);
+         System.out.println(
+            "Scaling: \t" + scaleb + " \t/ " + scaling);
+      }
       
       // re-check based on new info
       AffineTransform3d transc = new AffineTransform3d();
@@ -205,18 +226,24 @@ public class AffineOrthogonalTest {
       
       AffineTransform3d transd = new AffineTransform3d();
       transd.fitOrthogonal(p, q, 1e-15);
-      
-      System.out.println("Original: \n"+transf);
-      System.out.println("Computed: \n"+transb);
-      System.out.println("Recomputed transform:\n" + transc);
-      System.out.println("Iterated transform:\n" + transd);      
 
+      checkEquals ("Recomputed transform", transd, transf, 1e-14);
+      
+      if (!silent) {
+         System.out.println("Original: \n"+transf);
+         System.out.println("Computed: \n"+transb);
+         System.out.println("Recomputed transform:\n" + transc);
+         System.out.println("Iterated transform:\n" + transd);      
+      }
+   }
+
+   public void test() {
+      doTest();
+      doSkewTest();
    }
    
    public static void main(String[] args) {
-      
-      //doTest();
-      doSkewTest();
-      
+      AffineOrthogonalTest tester = new AffineOrthogonalTest();
+      tester.runtest();      
    }
 }

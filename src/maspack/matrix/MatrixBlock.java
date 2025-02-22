@@ -151,7 +151,7 @@ public interface MatrixBlock extends DenseMatrix, Clonable {
    public void setBlockNumber (int num);
 
    /**
-    * Multiplies M1 by M2 and places the result in this matrix.
+    * Multiplies M1 by M2 and add the result to this matrix.
     *
     * @param M1 left matrix term
     * @param M2 right matrix term
@@ -159,7 +159,7 @@ public interface MatrixBlock extends DenseMatrix, Clonable {
    public void mulAdd (Matrix M1, Matrix M2);
 
    /**
-    * Multiplies M1 by M2^T and places the result in this matrix.
+    * Multiplies M1 by M2^T and add the result to this matrix.
     *
     * @param M1 left matrix term
     * @param M2 right matrix term
@@ -168,7 +168,7 @@ public interface MatrixBlock extends DenseMatrix, Clonable {
 
 
    /**
-    * Multiplies M1^T by M2 and places the result in this matrix.
+    * Multiplies M1^T by M2 and add the result to this matrix.
     *
     * @param M1 left matrix term
     * @param M2 right matrix term

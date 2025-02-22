@@ -301,6 +301,29 @@ public abstract class NumericInterval extends RangeBase {
          }
          return vec;
       }
+      else if (obj instanceof Vectori) {
+         Vectori vec = (Vectori)obj;
+         for (int i=0; i<vec.size(); i++) {
+            double n = vec.get(i);
+            if (!withinRange (n)) {
+               if (!canClipToRange (n)) {
+                  return Range.IllegalValue;
+               }
+               int m = (int)clipToRange (n);
+               if (vec == obj) {
+                  try {
+                     vec = (Vectori)vec.clone();
+                  }
+                  catch (Exception e) {
+                     throw new InternalErrorException (
+                        "Can't clone "+vec.getClass());
+                  }
+               }
+               vec.set (i, m);
+            }
+         }
+         return vec;
+      }
       else if (obj instanceof int[]) {
          int[] array = (int[])obj;
          for (int i=0; i<array.length; i++) {

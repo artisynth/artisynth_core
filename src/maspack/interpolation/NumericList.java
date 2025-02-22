@@ -16,6 +16,7 @@ import java.io.*;
 import maspack.interpolation.Interpolation.Order;
 import maspack.numerics.PolynomialFit;
 import maspack.matrix.*;
+import maspack.geometry.*;
 import maspack.util.*;
 
 /**
@@ -2495,7 +2496,7 @@ public class NumericList
    /**
     * Returns a deep copy of this numeric list.
     */
-   public Object clone() {
+   public NumericList clone() {
       NumericList l = null;
       try {
          l = (NumericList)super.clone();
@@ -2621,4 +2622,109 @@ public class NumericList
          }
       }
    }
+
+   /**
+    * Checks to see if this list has a position structure, such that the
+    * subvectors between any rotation subvectors can contain 3D point data (and
+    * hence have a size that is a multiple of 3).
+    */
+   public boolean hasPositionStructure() {
+      int vsize = getVectorSize();
+      int numRots = numRotationSubvecs();
+      int off = 0; // current vector offset
+      int[] rotSubvecOffs = getRotationSubvecOffsets();
+      for (int kr=0; kr<=numRots; kr++) {
+         // roff is the offset of the next rotation subvector, or vector size
+         int roff = (kr < numRots ? rotSubvecOffs[kr] : vsize);
+         if ((roff-off)%3 != 0) {
+            return false;
+         }
+         if (kr < numRots) {
+            off = roff + myRotationRep.size();
+         }
+      }
+      return true;
+   }
+
+   /**
+    * If the list data has a position structure (i.e., contains rotation and/or
+    * 3D point data), then apply the specified transform to this data.
+    */
+   public void transformPositionData (AffineTransform3dBase X) {
+      GeometryTransformer gtrans = GeometryTransformer.create(X);
+      NumericListKnot knot;
+      RotationRep rotRep = getRotationRep();
+      Quaternion q = new Quaternion();
+      RotationMatrix3d R = new RotationMatrix3d();
+      Point3d p = new Point3d();
+      int[] rotSubvecOffs = getRotationSubvecOffsets();
+      int numRots = numRotationSubvecs();
+      int vsize = getVectorSize();
+      
+      if (!hasPositionStructure()) {
+          throw new IllegalStateException (
+             "List data does not have a position structure");
+      }
+
+      double[] pbuf = null; // buffer for previous knot vector
+
+      // apply the transform to each knot
+      for (knot = getFirst(); knot != null; knot = knot.getNext()) {
+         double[] vbuf = knot.v.getBuffer(); // access vector buffer directly
+         int off = 0; // current vector offset
+         for (int kr=0; kr<=numRots; kr++) {
+            // roff is the offset of the next rotation subvector, or vector size
+            int roff = (kr < numRots ? rotSubvecOffs[kr] : vsize);
+            // transform any point data between off and roff:
+            while (off < roff-2) {
+               p.set (vbuf, off);
+               gtrans.computeTransformPnt (p, p);
+               p.get (vbuf, off);
+               off += 3;
+            }
+            if (kr < numRots) {
+               // transform rotation subvector pointed to by off
+               // load subvector into quaternion
+               q.set (vbuf, roff, rotRep, /*scale*/1);
+               // turn into rotation matrix, transform, and reset quaternion
+               R.set (q);
+               gtrans.computeTransform (R, /*Ndiag*/null, R, /*ref*/null);
+               q.set (R);
+               // reload subvector with transformed rotatation
+               q.get (vbuf, pbuf, roff, rotRep, /*scale*/1);
+               off += myRotationRep.size();
+            }
+         }           
+         pbuf = vbuf;
+      }
+   }
+
+   /**
+    * If the list data contains a collection of 3D vectors (i.e., the list
+    * vector size is multiple of 3), then apply the specified transform to this
+    * data.
+    */
+   public void transformVectorData (AffineTransform3dBase X) {
+      GeometryTransformer gtrans = GeometryTransformer.create(X);
+      NumericListKnot knot;
+      Vector3d v = new Vector3d();
+      int vsize = getVectorSize();
+      
+      if ((getVectorSize()%3) != 0) {
+          throw new IllegalStateException (
+             "Numeric list does not contain 3-vector data");
+      }
+
+      // apply the transform to each knot
+      for (knot = getFirst(); knot != null; knot = knot.getNext()) {
+         double[] vbuf = knot.v.getBuffer(); // access vector buffer directly
+         int off = 0; // current vector offset
+         for (off=0; off<vsize; off += 3) {
+            v.set (vbuf, off);
+            gtrans.computeTransformVec (v, v, /*ref*/null);
+            v.get (vbuf, off);
+         }
+      }
+   }
+
 }

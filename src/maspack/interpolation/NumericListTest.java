@@ -10,6 +10,7 @@ import java.util.*;
 
 import maspack.interpolation.Interpolation.Order;
 import maspack.matrix.*;
+import maspack.geometry.*;
 import maspack.util.*;
 import maspack.util.UnitTest;
 
@@ -235,8 +236,8 @@ class NumericListTest extends UnitTest {
    }
 
    public void test() {
-      //simpleTests();
-      testInterpolation();
+      simpleTests();
+      testPositionLists();
    }
 
    public void testInterpolation (NumericList list) {
@@ -412,6 +413,62 @@ class NumericListTest extends UnitTest {
          checkEquals ("value at "+info, v, vchk, tol);
          checkEquals ("deriv at "+info, d, dchk, tol);
          checkEquals ("numderiv at "+info, n, nchk, tol);
+      }
+   }
+
+   public void testTransform (NumericList list, AffineTransform3dBase X) {
+      NumericList listx = list.clone();
+      listx.transformPositionData (X);
+      GeometryTransformer gtrans = GeometryTransformer.create(X);
+
+      int transSize = getTransSize (list);
+      int numRots = numRotationTerms(list);
+
+      VectorNd ptransx = new VectorNd(transSize);
+      Quaternion[] quatsx = allocQuats(numRots);
+      VectorNd ptrans= new VectorNd(transSize);
+      Quaternion[] quats = allocQuats(numRots);
+
+      Point3d pchk = new Point3d();
+      Point3d px = new Point3d();
+
+      RotationMatrix3d R = new RotationMatrix3d();
+      RotationMatrix3d RX = new RotationMatrix3d();
+      Quaternion qx = new Quaternion();
+      Quaternion qxneg = new Quaternion();
+      double[] qbufx = new double[4];
+      double[] qbuf = new double[4];
+
+      for (int k=0; k<list.getNumKnots(); k++) {
+         NumericListKnot knot = list.getKnot(k);
+         NumericListKnot xknot = listx.getKnot(k);
+
+         unpackRotationAndTransTerms (ptrans, quats, knot.v, list);
+         unpackRotationAndTransTerms (ptransx, quatsx, xknot.v, listx);
+         
+         for (int i=0; i<transSize/3; i++) {
+            ptransx.getSubVector (3*i, px);
+            ptrans.getSubVector (3*i, pchk);
+            if (X instanceof AffineTransform3d) {
+               pchk.transform ((AffineTransform3d)X);
+            }
+            else {
+               pchk.transform ((RigidTransform3d)X);
+            }
+            checkEquals ("knot "+k+", position "+i+":", px, pchk);
+         }
+         for (int i=0; i<numRots; i+=3) {
+            R.set (quats[i]);
+            gtrans.computeTransform (RX, null, R, null);
+            qx.set (RX);
+            qxneg.negate (qx);
+            if (!quatsx[i].epsilonEquals (qx, 1e-13) &&
+                !quatsx[i].epsilonEquals (qxneg, 1e-13)) {
+               throw new TestException (
+                  "knot "+k+", rotation "+i+"\n" + quatsx[i] + ", expected\n" +
+                  qx + " or its negative, eps=" + 1e-13);
+            }
+         }
       }
    }
 
@@ -669,7 +726,7 @@ class NumericListTest extends UnitTest {
       }
    }
 
-   public void testInterpolation() {
+   public void testPositionLists() {
       double[] times0 = new double[] { 0, 1, 2 };
       double[] times1 = new double[] { 1, 1.5, 3.45, 4.2, 10 };
       double[] times2 = new double[] { 0, 0.5, 2.3, 3.0, 5.3 };
@@ -699,6 +756,18 @@ class NumericListTest extends UnitTest {
                list.setInterpolation (new Interpolation (order, /*extend*/true));
                testInterpolation (list);
             }
+         }
+      }
+      for (NumericList list : lists) {
+         // do not look at AxisAngle, PosAxisAngle, or RigidTransform lists,
+         // since transform is not implemented for these.
+         if (numRotationTerms(list) == list.numRotationSubvecs()) {
+            AffineTransform3d X = new AffineTransform3d();
+            X.setRandom();
+            testTransform (list, X);
+            RigidTransform3d T = new RigidTransform3d();
+            T.setRandom();
+            testTransform (list, T);
          }
       }
    }

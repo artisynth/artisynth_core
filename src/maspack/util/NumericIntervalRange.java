@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 /**
- * A base class for creating Range objects.
+ * Specifies the interval that a numeric value must lie within.
  */
 public class NumericIntervalRange extends RangeBase {
 

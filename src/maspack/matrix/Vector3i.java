@@ -28,6 +28,11 @@ public class Vector3i extends VectoriBase {
    public static final Vector3i ZERO = new Vector3i();
 
    /**
+    * Global ones vector. Should not be modified.
+    */
+   public static final Vector3i ONES = new Vector3i(1, 1, 1);
+
+   /**
     * First element
     */
    public int x;

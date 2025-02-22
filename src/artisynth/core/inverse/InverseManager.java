@@ -390,6 +390,25 @@ public class InverseManager {
       }
    }
 
+   /**
+    * Searches for a specified position output probe within a root model.  If
+    * it is not found, returns {@code null}.
+    *
+    * @param root root model in which to search for the probe
+    * @param pid probe identifier
+    * @return located probe, or {@code null}
+    */
+   public static PositionOutputProbe findPositionOutputProbe (
+      RootModel root, ProbeID pid) {
+      Probe p = root.getOutputProbes().get(pid.getName());
+      if (p instanceof PositionOutputProbe) {
+         return (PositionOutputProbe)p;
+      }
+      else {
+         return null;
+      }
+   }
+
    private static NumericOutputProbe findOrCreateOutputProbe (
       RootModel root, TrackingController tcon, ProbeID pid, 
       double duration, double interval) { 
@@ -469,6 +488,25 @@ public class InverseManager {
       Probe p = root.getInputProbes().get(pid.getName());
       if (p instanceof NumericInputProbe) {
          return (NumericInputProbe)p;
+      }
+      else {
+         return null;
+      }
+   }
+
+   /**
+    * Searches for a specified position input probe within a root model.  If it
+    * is not found, returns {@code null}.
+    *
+    * @param root root model in which to search for the probe
+    * @param pid probe identifier
+    * @return located probe, or {@code null}
+    */
+   public static PositionInputProbe findPositionInputProbe (
+      RootModel root, ProbeID pid) {
+      Probe p = root.getInputProbes().get(pid.getName());
+      if (p instanceof NumericInputProbe) {
+         return (PositionInputProbe)p;
       }
       else {
          return null;

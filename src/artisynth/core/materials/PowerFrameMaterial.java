@@ -11,8 +11,22 @@ import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 
 /**
- * A FrameMaterial that is linear under small rotation assumptions and allows
- * separate stiffness and damping along each of the the six degrees of freedom.
+ * A FrameMaterial that computes restoring forces along the translational and
+ * rotational directions according to a power law of the form
+ * <pre>
+ * f = K sgn(d) |d|^n
+ * </pre>
+ * where K is a stiffness, d is a displacement, and n is an exponent.  A value
+ * of n = 1 results in a standard linear relationship {@code f = K d}.
+ *
+ * <p> Stiffnesses and exponents can be specified for each of the six
+ * translational and rotational directions. For translational motions, one can
+ * also specify a deadband {@code b}, such that the displacement {@code d}
+ * applied to the force law is determined from the true displacement {@code dt}
+ * by
+ * <pre>
+ * d = sgn(dt) max(0, |dt|-b)
+ * </pre>
  */
 public class PowerFrameMaterial extends FrameMaterial {
 

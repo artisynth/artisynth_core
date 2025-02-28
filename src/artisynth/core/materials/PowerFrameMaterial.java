@@ -33,7 +33,8 @@ public class PowerFrameMaterial extends FrameMaterial {
    protected Vector3d myK = new Vector3d();
    protected Vector3i myExps = new Vector3i(1,1,1);
    protected Vector3d myD = new Vector3d();
-   protected Vector3d myDeadband = new Vector3d();
+   protected Vector3d myUpperDeadband = new Vector3d();
+   protected Vector3d myLowerDeadband = new Vector3d();
    protected Vector3d myRotK = new Vector3d();
    protected Vector3i myRotExps = new Vector3i(1,1,1);
    protected Vector3d myRotD = new Vector3d();
@@ -48,7 +49,13 @@ public class PowerFrameMaterial extends FrameMaterial {
          "exponents",
          "exponents for translational forces", Vector3i.ONES, "[1,3]");
       myProps.add (
-         "deadband", "translational deadband", Vector3d.ZERO, "[0,inf]");
+         "upperDeadband",
+         "upper positive limits to the translational force deadband",
+         Vector3d.ZERO, "[0,inf]");
+      myProps.add (
+         "lowerDeadband",
+         "lower negative limits to the translational force deadband",
+         Vector3d.ZERO, "[-inf,0]");
       myProps.add (
          "damping", "translational damping", Vector3d.ZERO);
       myProps.add (
@@ -124,20 +131,52 @@ public class PowerFrameMaterial extends FrameMaterial {
       myD.set (dvec);
    }
 
-   public Vector3d getDeadband () {
-      return myDeadband;
+   public Vector3d getUpperDeadband () {
+      return myUpperDeadband;
+   }
+
+   public void setUpperDeadband (double db) {
+      setUpperDeadband (db, db, db);
+   }
+
+   public void setUpperDeadband (double dbx, double dby, double dbz) {
+      dbx = Math.max (dbx, 0);
+      dby = Math.max (dby, 0);
+      dbz = Math.max (dbz, 0);
+      myUpperDeadband.set (dbx, dby, dbz);
+   }
+
+   public void setUpperDeadband (Vector3d dbvec) {
+      setUpperDeadband (dbvec.x, dbvec.y, dbvec.z);
+   }
+
+   public Vector3d getLowerDeadband () {
+      return myLowerDeadband;
+   }
+
+   public void setLowerDeadband (double db) {
+      setLowerDeadband (db, db, db);
+   }
+
+   public void setLowerDeadband (double dbx, double dby, double dbz) {
+      dbx = Math.min (dbx, 0);
+      dby = Math.min (dby, 0);
+      dbz = Math.min (dbz, 0);
+      myLowerDeadband.set (dbx, dby, dbz);
+   }
+
+   public void setLowerDeadband (Vector3d dbvec) {
+      setLowerDeadband (dbvec.x, dbvec.y, dbvec.z);
    }
 
    public void setDeadband (double db) {
-      myDeadband.set (db, db, db);
+      setUpperDeadband (db);
+      setLowerDeadband (-db);
    }
 
    public void setDeadband (double dbx, double dby, double dbz) {
-      myDeadband.set (dbx, dby, dbz);
-   }
-
-   public void setDeadband (Vector3d dbvec) {
-      myDeadband.set (dbvec);
+      setUpperDeadband (dbx, dby, dbz);
+      setLowerDeadband (-dbx, -dby, -dbz);
    }
 
    public Vector3d getRotaryStiffness() {
@@ -214,20 +253,25 @@ public class PowerFrameMaterial extends FrameMaterial {
       setRotaryDamping (dr);
    }
 
-   private double applyDeadband (double dx, double deadband) {
-      if (dx > deadband) {
-         return dx-deadband;
+   private double applyDeadband (double dx, double lower, double upper) {
+      if (dx > upper) {
+         return dx-upper;
       }
-      else if (dx < -deadband) {
-         return dx+deadband;
+      else if (dx < lower) {
+         return dx-lower;
       }
       else {
          return 0;
       }
    }
 
-   private double evalPower (double dx, double deadband, int exp) {
-      dx = applyDeadband (dx, deadband);
+   private void applyDeadband (Vector3d del, Vector3d p) {
+      del.x = applyDeadband (p.x, myLowerDeadband.x, myUpperDeadband.x);
+      del.y = applyDeadband (p.y, myLowerDeadband.y, myUpperDeadband.y);
+      del.z = applyDeadband (p.z, myLowerDeadband.z, myUpperDeadband.z);
+   }
+
+   private double evalPower (double dx, int exp) {
       if (dx == 0) {
          return 0;
       }
@@ -243,8 +287,7 @@ public class PowerFrameMaterial extends FrameMaterial {
       }
    }
 
-   private double evalDeriv (double dx, double deadband, int exp) {
-      dx = applyDeadband (dx, deadband);
+   private double evalDeriv (double dx, int exp) {
       if (dx == 0) {
          return 0;
       }
@@ -265,7 +308,8 @@ public class PowerFrameMaterial extends FrameMaterial {
       Wrench wr, RigidTransform3d X21, Twist vel21, 
       RigidTransform3d initialX21) {
 
-      Vector3d p = X21.p;
+      Vector3d del = new Vector3d();
+      applyDeadband (del, X21.p);
 
       // use these matrix entries as small angle approximations to 
       // the rotations about x, y, and z
@@ -273,13 +317,13 @@ public class PowerFrameMaterial extends FrameMaterial {
       double sy = -X21.R.m20;
       double sz =  X21.R.m10;
 
-      wr.f.x = myK.x*evalPower (p.x, myDeadband.x, myExps.x);
-      wr.f.y = myK.y*evalPower (p.y, myDeadband.y, myExps.y);
-      wr.f.z = myK.z*evalPower (p.z, myDeadband.z, myExps.z);
+      wr.f.x = myK.x*evalPower (del.x, myExps.x);
+      wr.f.y = myK.y*evalPower (del.y, myExps.y);
+      wr.f.z = myK.z*evalPower (del.z, myExps.z);
 
-      wr.m.x = myRotK.x*evalPower (sx, 0, myRotExps.x);
-      wr.m.y = myRotK.y*evalPower (sy, 0, myRotExps.y);
-      wr.m.z = myRotK.z*evalPower (sz, 0, myRotExps.z);
+      wr.m.x = myRotK.x*evalPower (sx, myRotExps.x);
+      wr.m.y = myRotK.y*evalPower (sy, myRotExps.y);
+      wr.m.z = myRotK.z*evalPower (sz, myRotExps.z);
 
       Vector3d v = vel21.v;
       Vector3d w = vel21.w;
@@ -300,7 +344,8 @@ public class PowerFrameMaterial extends FrameMaterial {
       Jq.setZero();
 
       RotationMatrix3d R = X21.R;
-      Vector3d p = X21.p;
+      Vector3d del = new Vector3d();
+      applyDeadband (del, X21.p);
 
       // use these matrix entries as small angle approximations to 
       // the rotations about x, y, and z
@@ -308,13 +353,13 @@ public class PowerFrameMaterial extends FrameMaterial {
       double sy = -R.m20;
       double sz =  R.m10;
 
-      Jq.m00 = myK.x*evalDeriv (p.x, myDeadband.x, myExps.x);
-      Jq.m11 = myK.y*evalDeriv (p.y, myDeadband.y, myExps.y);
-      Jq.m22 = myK.z*evalDeriv (p.z, myDeadband.z, myExps.z);
+      Jq.m00 = myK.x*evalDeriv (del.x, myExps.x);
+      Jq.m11 = myK.y*evalDeriv (del.y, myExps.y);
+      Jq.m22 = myK.z*evalDeriv (del.z, myExps.z);
 
-      double rkx = myRotK.x*evalDeriv (sx, 0, myRotExps.x);
-      double rky = myRotK.y*evalDeriv (sy, 0, myRotExps.y);
-      double rkz = myRotK.z*evalDeriv (sz, 0, myRotExps.z);
+      double rkx = myRotK.x*evalDeriv (sx, myRotExps.x);
+      double rky = myRotK.y*evalDeriv (sy, myRotExps.y);
+      double rkz = myRotK.z*evalDeriv (sz, myRotExps.z);
 
       Jq.m33 = rkx*R.m11;
       Jq.m44 = rky*R.m00;
@@ -349,7 +394,8 @@ public class PowerFrameMaterial extends FrameMaterial {
       PowerFrameMaterial lm = (PowerFrameMaterial)mat;
       if (!myK.equals (lm.myK) ||
           !myExps.equals (lm.myExps) ||
-          !myDeadband.equals (lm.myDeadband) ||
+          !myUpperDeadband.equals (lm.myUpperDeadband) ||
+          !myLowerDeadband.equals (lm.myLowerDeadband) ||
           !myD.equals (lm.myD) ||
           !myRotK.equals (lm.myRotK) ||
           !myRotExps.equals (lm.myRotExps) ||
@@ -365,7 +411,8 @@ public class PowerFrameMaterial extends FrameMaterial {
       PowerFrameMaterial mat = (PowerFrameMaterial)super.clone();
       mat.myK = new Vector3d (myK);
       mat.myExps = new Vector3i (myExps);
-      mat.myDeadband = new Vector3d (myDeadband);
+      mat.myUpperDeadband = new Vector3d (myUpperDeadband);
+      mat.myLowerDeadband = new Vector3d (myLowerDeadband);
       mat.myRotK = new Vector3d (myRotK);
       mat.myRotExps = new Vector3i (myRotExps);
       mat.myD = new Vector3d (myD);

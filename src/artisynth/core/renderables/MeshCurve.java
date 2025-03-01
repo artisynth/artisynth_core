@@ -29,10 +29,10 @@ public class MeshCurve extends RenderableCompositeBase {
    protected MeshComponent myMeshComp = null;
    protected PointList<MeshMarker> myMarkers;
    protected boolean myCurveValid = false;
-   protected ArrayList<Point3d> myPoints;
+   protected ArrayList<Point3d> myLocalPoints;
    // indices of the first point for each interval
    protected int[] myIntervalPointIndices; 
-   protected ArrayList<Vector3d> myNormals;
+   protected ArrayList<Vector3d> myLocalNormals;
    private RigidTransform3d myRenderFrame = new RigidTransform3d();
 
    private static final int CURVE_GRP = 0;
@@ -124,9 +124,46 @@ public class MeshCurve extends RenderableCompositeBase {
       }
    }
 
+   /**
+    * Returns the mesh-to-world transform, or null if this transform is the
+    * identity.
+    */
+   private RigidTransform3d getTMW() {
+      if (!getMesh().meshToWorldIsIdentity()) {
+         return getMesh().getMeshToWorld();
+      }
+      else {
+         return null;
+      }
+   }
+
+   private void transformToWorld (Point3d p) {
+      if (!getMesh().meshToWorldIsIdentity()) {
+         p.transform (getMesh().getMeshToWorld());
+      }
+   }
+
+   private void transformToMesh (Point3d p) {
+      if (!getMesh().meshToWorldIsIdentity()) {
+         p.inverseTransform (getMesh().getMeshToWorld());
+      }
+   }
+
+   private void transformToWorld (Vector3d v) {
+      if (!getMesh().meshToWorldIsIdentity()) {
+         v.transform (getMesh().getMeshToWorld());
+      }
+   }
+
+   private void transformToMesh (Vector3d v) {
+      if (!getMesh().meshToWorldIsIdentity()) {
+         v.inverseTransform (getMesh().getMeshToWorld());
+      }
+   }
+
    protected void initializeChildComponents() {
-      myPoints = new ArrayList<>();
-      myNormals = new ArrayList<>();
+      myLocalPoints = new ArrayList<>();
+      myLocalNormals = new ArrayList<>();
       myMarkers = new PointList (MeshMarker.class, "markers");
       add (myMarkers);
    }
@@ -308,51 +345,97 @@ public class MeshCurve extends RenderableCompositeBase {
     */
    public int numPoints() {
       updateCurveIfNecessary();
-      return myPoints.size();
+      return myLocalPoints.size();
    }
 
    /**
-    * Returns a list of all the points on this curve. The list will have size
-    * {@link numPoints}.
+    * Returns a list of all the points on this curve, in local mesh
+    * coordinate. The list will have size {@link numPoints}, and should not be
+    * modified.
+    *
+    * @return list of all the points
+    */
+   public List<Point3d> getLocalPoints() {
+      updateCurveIfNecessary();
+      return myLocalPoints;
+   }
+
+   /**
+    * Returns a list of all the points on this curve, in world coordinates. The
+    * list will have size {@link numPoints}.
     *
     * @return list of all the points
     */
    public List<Point3d> getPoints() {
       updateCurveIfNecessary();
-      return myPoints;
+      ArrayList<Point3d> list = new ArrayList<Point3d>();
+      RigidTransform3d TMW = getTMW();
+      for (Point3d p : myLocalPoints) {
+         Point3d pw = new Point3d(p);
+         if (TMW != null) {
+            pw.transform (TMW);
+         }
+         list.add (pw);
+      }
+      return list;
    }
 
    /**
-    * Returns the {@code idx}-th point on this curve, where {@code idx}
-    * should be in the range 0 to {@link #numPoints()}-1;
+    * Returns the {@code idx}-th point on this curve, in world coordinates,
+    * where {@code idx} should be in the range 0 to {@link #numPoints()}-1;
     *
     * @param idx index of the desired point
     * @return {@code idx}-th point
     */
-   public Vector3d getPoint (int idx) {
-      return myPoints.get(idx);
+   public Point3d getPoint (int idx) {
+      Point3d pnt = new Point3d(myLocalPoints.get(idx));
+      transformToWorld (pnt);
+      return pnt;
    }
 
    /**
-    * Returns a list of all the normals on this curve. The list will have size
-    * {@link numPoints}.
+    * Returns a list of all the normals on this curve, in local mesh
+    * coordinates. The list will have size {@link numPoints}, and should not be
+    * modified.
+    *
+    * @return list of all the normals
+    */
+   public List<Vector3d> getLocalNormals() {
+      updateCurveIfNecessary();
+      return myLocalNormals;
+   }
+
+   /**
+    * Returns a list of all the normals on this curve, in world
+    * coordinates. The list will have size {@link numPoints}.
     *
     * @return list of all the normals
     */
    public List<Vector3d> getNormals() {
       updateCurveIfNecessary();
-      return myNormals;
+      ArrayList<Vector3d> list = new ArrayList<Vector3d>();
+      RigidTransform3d TMW = getTMW();
+      for (Vector3d n : myLocalNormals) {
+         Vector3d nw = new Vector3d(n);
+         if (TMW != null) {
+            nw.transform (TMW);
+         }
+         list.add (nw);
+      }
+      return list;
    }
 
    /**
-    * Returns the {@code idx}-th normal on this curve, where {@code idx}
-    * should be in the range 0 to {@link #numPoints()}-1;
+    * Returns the {@code idx}-th normal on this curve, in world coordinates,
+    * where {@code idx} should be in the range 0 to {@link #numPoints()}-1;
     *
     * @param idx index of the desired normal
     * @return {@code idx}-th normal
     */
    public Vector3d getNormal (int idx) {
-      return myNormals.get(idx);
+      Vector3d nrm = new Vector3d(myLocalNormals.get(idx));
+      transformToWorld (nrm);
+      return nrm;
    }
 
    /**
@@ -372,30 +455,33 @@ public class MeshCurve extends RenderableCompositeBase {
       if (nump > 1) {
          if (idx == 0) {
             if (isClosed() && nump > 2) {
-               p1 = myPoints.get(1);
-               p0 = myPoints.get(nump-1);
+               p1 = myLocalPoints.get(1);
+               p0 = myLocalPoints.get(nump-1);
             }
             else {
-               p1 = myPoints.get(1);
-               p0 = myPoints.get(0);
+               p1 = myLocalPoints.get(1);
+               p0 = myLocalPoints.get(0);
             }       
          }
          else if (idx == nump-1) {
             if (isClosed() && nump > 2) {
-               p1 = myPoints.get(0);
-               p0 = myPoints.get(nump-2);
+               p1 = myLocalPoints.get(0);
+               p0 = myLocalPoints.get(nump-2);
             }
             else {
-               p1 = myPoints.get(nump-1);
-               p0 = myPoints.get(nump-2);
+               p1 = myLocalPoints.get(nump-1);
+               p0 = myLocalPoints.get(nump-2);
             }
          }
          else {
-            p1 = myPoints.get(idx+1);
-            p0 = myPoints.get(idx-1);
+            p1 = myLocalPoints.get(idx+1);
+            p0 = myLocalPoints.get(idx-1);
          }
          tan.sub (p1, p0);
          tan.normalize();
+      }
+      if (!getMesh().meshToWorldIsIdentity()) {
+         tan.transform (getMesh().getMeshToWorld());
       }
       return tan;      
    }
@@ -435,10 +521,15 @@ public class MeshCurve extends RenderableCompositeBase {
       Point3d pr, Point3d p0, double dist, double r0) {
 
       updateCurveIfNecessary();      
-      return GeometryUtils.findPointAtDistance (
-         pr, myPoints, isClosed(), p0, dist, r0);
+      Point3d p0loc = new Point3d(p0);
+      transformToMesh (p0loc);
+      double r = GeometryUtils.findPointAtDistance (
+         pr, myLocalPoints, isClosed(), p0loc, dist, r0);
+      if (pr != null) {
+         transformToWorld (pr);
+      }
+      return r;
    }
-
 
    /**
     * Finds the nearest point on this curve to a prescribed point {@code
@@ -473,7 +564,14 @@ public class MeshCurve extends RenderableCompositeBase {
       Point3d pr, Point3d p0, double r0) {
 
       updateCurveIfNecessary();      
-      return GeometryUtils.findNearestPoint (pr, myPoints, isClosed(), p0, r0);
+      Point3d p0loc = new Point3d(p0);
+      transformToMesh (p0loc);
+      double r = GeometryUtils.findNearestPoint (
+         pr, myLocalPoints, isClosed(), p0loc, r0);
+      if (pr != null) {
+         transformToWorld (pr);
+      }
+      return r;
    }
 
    /**
@@ -533,10 +631,10 @@ public class MeshCurve extends RenderableCompositeBase {
          int nsegs = (int)Math.ceil(pos0.distance(pos1)/getResolution());
          Point3d pos = new Point3d();
          Vector3d nrm = new Vector3d();
-         mkr0.myPntIdx = myPoints.size();
-         myIntervalPointIndices[i] = myPoints.size();
-         myPoints.add (new Point3d(pos0));
-         myNormals.add (mkr0.getNormal());
+         mkr0.myPntIdx = myLocalPoints.size();
+         myIntervalPointIndices[i] = myLocalPoints.size();
+         myLocalPoints.add (new Point3d(pos0));
+         myLocalNormals.add (nrm0);
          for (int k=1; k<nsegs; k++) {
             double s = k/(double)nsegs;
             pos.combine (1-s, pos0, s, pos1);
@@ -547,13 +645,13 @@ public class MeshCurve extends RenderableCompositeBase {
                nrm.set (
                   mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
             }
-            myPoints.add (new Point3d(pos));
-            myNormals.add (new Vector3d (nrm));
+            myLocalPoints.add (new Point3d(pos));
+            myLocalNormals.add (new Vector3d (nrm));
          }
          if (!isClosed() && i == numIntervals-1) {
-            myPoints.add (new Point3d(pos1));
-            myNormals.add (mkr1.getNormal());
-            mkr1.myPntIdx = myPoints.size()-1;
+            myLocalPoints.add (new Point3d(pos1));
+            myLocalNormals.add (mkr1.getNormal());
+            mkr1.myPntIdx = myLocalPoints.size()-1;
          }
       }
    }
@@ -586,7 +684,7 @@ public class MeshCurve extends RenderableCompositeBase {
          if (!isClosed() && i == myMarkers.size()-2) {
             npnts++;
          }
-         mkr0.myPntIdx = myPoints.size();
+         mkr0.myPntIdx = myLocalPoints.size();
          for (int k=0; k<npnts; k++) {
             double s = k/(double)nsegs;
             pcurve.eval (pos, i + s);
@@ -600,13 +698,13 @@ public class MeshCurve extends RenderableCompositeBase {
                   mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
             }
             if (k == 0) {
-               myIntervalPointIndices[i] = myPoints.size();
+               myIntervalPointIndices[i] = myLocalPoints.size();
             }
-            myPoints.add (new Point3d(pos));
-            myNormals.add (new Vector3d(nrm));
+            myLocalPoints.add (new Point3d(pos));
+            myLocalNormals.add (new Vector3d(nrm));
          }
          if (!isClosed() && i == numIntervals-1) {
-            mkr1.myPntIdx = myPoints.size()-1;
+            mkr1.myPntIdx = myLocalPoints.size()-1;
          }
       }
    }
@@ -643,7 +741,7 @@ public class MeshCurve extends RenderableCompositeBase {
          if (!isClosed() && i == myMarkers.size()-2) {
             npnts++;
          }
-         mkr0.myPntIdx = myPoints.size();
+         mkr0.myPntIdx = myLocalPoints.size();
          for (int k=0; k<npnts; k++) {
             double s = k/(double)nsegs;
             Point3d pos = new Point3d(pcurve.eval (i + s, new IntHolder(i)));
@@ -656,21 +754,21 @@ public class MeshCurve extends RenderableCompositeBase {
                   mesh.estimateSurfaceNormal (pos, face, myNormalComputeRadius));
             }
             if (k == 0) {
-               myIntervalPointIndices[i] = myPoints.size();
+               myIntervalPointIndices[i] = myLocalPoints.size();
             }
-            myPoints.add (new Point3d(pos));
-            myNormals.add (new Vector3d(nrm));
+            myLocalPoints.add (new Point3d(pos));
+            myLocalNormals.add (new Vector3d(nrm));
          }
          if (!isClosed() && i == numIntervals-1) {
-            mkr1.myPntIdx = myPoints.size()-1;
+            mkr1.myPntIdx = myLocalPoints.size()-1;
          }
       }
    }
 
    public void updateCurveIfNecessary() {
       if (!myCurveValid) {
-         myPoints.clear();
-         myNormals.clear();
+         myLocalPoints.clear();
+         myLocalNormals.clear();
          if (numMarkers() > 1) {
             int numi = isClosed() ? numMarkers() : numMarkers()-1;
             myIntervalPointIndices = new int[numi];
@@ -692,9 +790,14 @@ public class MeshCurve extends RenderableCompositeBase {
                      "Unimplement interpolation mode "+myInterpolation);
                }
             }
-            RigidTransform3d TMW = getMesh().getMeshToWorld();
-            for (Point3d p : myPoints) {
-               p.inverseTransform (TMW);
+            RigidTransform3d TMW = getTMW();
+            if (TMW != null) {
+               for (Point3d p : myLocalPoints) {
+                  p.inverseTransform (TMW);
+               }
+               for (Vector3d n : myLocalNormals) {
+                  n.inverseTransform (TMW);
+               }
             }
          }
          else {
@@ -731,8 +834,8 @@ public class MeshCurve extends RenderableCompositeBase {
 
       RenderObject r = new RenderObject();
       r.createLineGroup();
-      for (int i=0; i<myPoints.size(); i++) {
-         Point3d pos = myPoints.get(i);
+      for (int i=0; i<myLocalPoints.size(); i++) {
+         Point3d pos = myLocalPoints.get(i);
          r.addPosition((float)pos.x, (float)pos.y, (float)pos.z);
          r.addVertex (i);
          if (i > 0) {
@@ -740,18 +843,18 @@ public class MeshCurve extends RenderableCompositeBase {
          }
       }
       if (isClosed()) {
-         r.addLine (myPoints.size()-1, 0);
+         r.addLine (myLocalPoints.size()-1, 0);
       }
 
       if (myNormalLength > 0) {
-         int vbase = myPoints.size();
+         int vbase = myLocalPoints.size();
          r.createLineGroup();
          r.lineGroup (NORMAL_GRP);
          PolygonalMesh mesh = getMesh();
          Point3d pos1 = new Point3d();
-         for (int i=0; i<myPoints.size(); i++) {
-            Point3d pos0 = myPoints.get(i);
-            Vector3d nrm = myNormals.get(i);
+         for (int i=0; i<myLocalPoints.size(); i++) {
+            Point3d pos0 = myLocalPoints.get(i);
+            Vector3d nrm = myLocalNormals.get(i);
             pos1.scaledAdd (myNormalLength, nrm, pos0);
             r.addPosition((float)pos0.x, (float)pos0.y, (float)pos0.z);
             r.addVertex (vbase+2*i);
@@ -800,15 +903,15 @@ public class MeshCurve extends RenderableCompositeBase {
                break;
             }
          }
+         if (rob.numLineGroups() > 1) {
+            renderer.setColor (Color.BLUE);
+            renderer.drawLines (
+               rob, NORMAL_GRP, LineStyle.SOLID_ARROW, myNormalLength/40);
+         }
          renderer.setShading (savedShading);
          renderer.setLineWidth (savedLineWidth);
          renderer.setShading (savedShadeModel);
          renderer.popModelMatrix();         
-      }
-      if (rob.numLineGroups() > 1) {
-         renderer.setColor (Color.BLUE);
-         renderer.drawLines (
-            rob, NORMAL_GRP, LineStyle.SOLID_ARROW, myNormalLength/40);
       }
    }
 

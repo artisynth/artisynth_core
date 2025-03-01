@@ -26,7 +26,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
    protected MeshComponent myMeshComp = null;
    protected int myFaceIdx;
    protected Vector2d myCoords;
-   protected Vector3d myNormal;
+   protected Vector3d myLocalNormal;
    // if belongs to a MeshCurve, pnt index of the marker along that curve:
    protected int myPntIdx;
 
@@ -110,7 +110,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       }
       if (myNormalComputeRadius != rad) {
          myNormalComputeRadius = rad;
-         myNormal = null;
+         myLocalNormal = null;
       }
       myNormalComputeRadiusMode =
          PropertyUtils.propagateValue (
@@ -169,12 +169,19 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       }
    }
 
+   /**
+    * Returns an estimated surface normal for this marker, in world coordinates.
+    */
    public Vector3d getNormal() {
-      if (myNormal == null) {
-         myNormal = getMesh().estimateSurfaceNormal (
+      RigidTransform3d TMW = getMesh().getMeshToWorld();
+      if (myLocalNormal == null) {
+         myLocalNormal = getMesh().estimateSurfaceNormal (
             getPosition(), getFace(), myNormalComputeRadius);
+         myLocalNormal.inverseTransform (TMW);
       }
-      return new Vector3d(myNormal);
+      Vector3d nrm = new Vector3d(myLocalNormal);
+      nrm.transform (TMW);
+      return nrm;
    }
 
    protected void projectToMesh (Point3d pos) {
@@ -217,7 +224,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
 
    public void setWorldPosition (Point3d pos) {
       projectToMesh (pos);
-      myNormal = null;
+      myLocalNormal = null;
    }
 
    public void getPose (RigidTransform3d TMW) {
@@ -284,7 +291,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       if (!context.contains(myMeshComp)) {
          super.transformGeometry (gtr, context, flags);
          projectToMesh (getPosition());
-         myNormal = null;
+         myLocalNormal = null;
       }
    }
 

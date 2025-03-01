@@ -48,21 +48,26 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
    private static RootModel myLastRootModel = null;
 
    /**
-    * Controls how points are added to the curve.
+    * Controls marker editing actions in the GUI.
     */
-   private enum AddMode {
+   private enum MarkerAction {
       /**
-       * Appends each point to the end of the list.
+       * Appends a new marker at the end of the curve
        */
       APPEND, 
 
       /**
-       * Inserts each point at the end of the list.
+       * Inserts a new marker between the nearest two existing markers
        */
-      INSERT
+      INSERT,
+      
+      /**
+       * Select markers
+       */
+      SELECT
    };
 
-   private static AddMode myDefaultAddMode = AddMode.APPEND;
+   private static MarkerAction myDefaultMarkerAction = MarkerAction.APPEND;
 
    private double getDefaultMarkerRadius() {
       return getDefaultPointRadius()/2;
@@ -72,7 +77,7 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
       return getDefaultMarkerRadius()/2;
    }
 
-   EnumSelector myAddModeSelector;
+   EnumSelector myMarkerActionSelector;
 
    /**
     * Not used because we don't use the default property panel here.
@@ -81,11 +86,13 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
       ModelComponent comp, ComponentList<?> container, Class type) {
    }
 
-   protected void createAddModeSelector() {
-      myAddModeSelector =
-         new EnumSelector ("add markers using:", myDefaultAddMode, AddMode.values());
-      myAddModeSelector.addValueChangeListener (this);
-      addWidget (myAddModeSelector);
+   protected void createMarkerActionSelector() {
+      myMarkerActionSelector =
+         new EnumSelector (
+            "marker viewer action:", 
+            myDefaultMarkerAction, MarkerAction.values());
+      myMarkerActionSelector.addValueChangeListener (this);
+      addWidget (myMarkerActionSelector);
    }
 
    public void initializeProperties (MeshCurve curve) {
@@ -125,22 +132,17 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
    }
 
    protected void setInitialState() {
-      setState (State.SelectingLocation);
+      setStateForMarkerAction (myDefaultMarkerAction);
    }
 
    protected void resetState() {
-      setState (State.SelectingLocation);
+      setStateForMarkerAction (myDefaultMarkerAction);
    }
 
-   private enum State {
-      SelectingLocation,
-   };
-
-   private State myState = State.SelectingLocation;
-
-   private void setState (State state) {
-      switch (state) {
-         case SelectingLocation: {
+   private void setStateForMarkerAction (MarkerAction action) {
+      switch (action) {
+         case INSERT:
+         case APPEND: {
             String targetName;
             targetName = myMeshComp.getName();
             if (targetName == null) {
@@ -150,11 +152,16 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
             installLocationListener();
             break;
          }
+         case SELECT: {
+            myInstructionBox.setText ("Select markers in the viewer");
+            uninstallLocationListener();
+            break;
+         }
          default: {
-            throw new InternalErrorException ("Unhandled state " + state);
+            throw new InternalErrorException (
+               "Unimplemented marker action " + action);
          }
       }
-      myState = state;
    }
 
    protected void resetDefaultProperties() {
@@ -203,7 +210,7 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
          "Existing markers:", new ComponentListWidget<MeshMarker> (
             myMarkerList, myCurve));
 
-      createAddModeSelector();
+      createMarkerActionSelector();
       addCurvePropertyPanel();
       createInstructionBox();
       createOptionPanel ("Done");
@@ -284,17 +291,23 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
    public void valueChange (ValueChangeEvent e) {
       myMain.rerender();
       myPropertyPanel.updateWidgetValues();
-      if (e.getSource() == myAddModeSelector) {
-         myDefaultAddMode = (AddMode)myAddModeSelector.getValue();
+      if (e.getSource() == myMarkerActionSelector) {
+         MarkerAction action = (MarkerAction)myMarkerActionSelector.getValue();
+         if (action != myDefaultMarkerAction) {
+            setStateForMarkerAction (action);
+            myDefaultMarkerAction = action;
+         }
       }
    }
 
    protected void createAndAddMarker (Point3d pnt, MeshComponent mcomp) {
       MeshMarker marker = new MeshMarker (mcomp, pnt);
 
-      if ((AddMode)myAddModeSelector.getValue() == AddMode.INSERT) {
+      MarkerAction action = (MarkerAction)myMarkerActionSelector.getValue();
+      if (action == MarkerAction.INSERT) {
          // pick the insertion index based on the nearest segment to the point
          int idx = (myCurve.findNearestInterval(pnt) + 1);
+         System.out.println ("idx=" + idx);
          addComponent (new AddComponentsCommand (
                           "add MeshMarker", marker, idx, myMarkerList));
       }
@@ -302,7 +315,7 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
          addComponent (new AddComponentsCommand (
                           "add MeshMarker", marker, myMarkerList));
       }
-      setState (State.SelectingLocation);
+      //setState (State.SelectingLocation);
    }
 
    protected boolean isContextValid() {

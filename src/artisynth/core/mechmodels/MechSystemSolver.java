@@ -348,7 +348,7 @@ public class MechSystemSolver {
 
    private SparseSolverId myMatrixSolver = SparseSolverId.Pardiso;
    Integrator myIntegrator = Integrator.SymplecticEuler;
-   boolean myComplianceSupported = false;
+   boolean myComplianceSupported = true; // true for default integrator
    double myTol = 0.01;
    ToleranceType myTolType = ToleranceType.RelativeResidual;
    int myMaxIterations = 20;
@@ -523,7 +523,7 @@ public class MechSystemSolver {
          }
       }
    }
-
+   
    public void setIntegrator (Integrator integrator) {
       if (myIntegrator != integrator) {
          switch (integrator) {
@@ -1384,7 +1384,6 @@ public class MechSystemSolver {
    private boolean crsOmitDiag = false;
 
    private void setBilateralOffsets (double h, double dotscale) {
-
       if (myGsize > 0) {
          mySys.getBilateralInfo (myGInfo);
          double[] gdot = myGdot.getBuffer();

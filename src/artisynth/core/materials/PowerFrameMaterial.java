@@ -102,7 +102,7 @@ public class PowerFrameMaterial extends FrameMaterial {
    public void setExponents (Vector3i nvec) {
       for (int i=0; i<3; i++) {
          int n = nvec.get(i);
-         if (n < 0 || n > 3) {
+         if (n <= 0 || n > 3) {
             throw new IllegalArgumentException (
                "exponent has value "+n+"; must be in the range [1,3]");
          }
@@ -240,7 +240,7 @@ public class PowerFrameMaterial extends FrameMaterial {
    }
 
    public PowerFrameMaterial () {
-      this (0, 0, 0, 0, 0, 0);
+      this (0, 1, 0, 1, 0, 0);
    }
 
    public PowerFrameMaterial (

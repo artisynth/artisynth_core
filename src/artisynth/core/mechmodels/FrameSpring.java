@@ -59,6 +59,9 @@ public class FrameSpring extends Spring
    implements RenderableComponent, ScalableUnits, TransformableGeometry,
               CopyableComponent, ForceTargetComponent, HasNumericState {
 
+   public static boolean mySymmetricJacobian = true;
+   public boolean myApplyRestFrame = false;
+
    protected Frame myFrameA;
    protected Frame myFrameB;
    protected boolean debug = false;
@@ -66,8 +69,8 @@ public class FrameSpring extends Spring
    /**
     * 1 is the attachment frame for A, and 2 is the attachment frame for B
     */
-   protected RigidTransform3d myX1A = new RigidTransform3d();
-   protected RigidTransform3d myX2B = new RigidTransform3d();
+   protected RigidTransform3d myTCA = new RigidTransform3d();
+   protected RigidTransform3d myTDB = new RigidTransform3d();
 
    protected double myStiffness;
    protected double myDamping;
@@ -77,9 +80,7 @@ public class FrameSpring extends Spring
    protected Wrench myF = new Wrench();
    protected Wrench myFTmp = new Wrench();
 
-   private Twist myVel1 = new Twist();
-   private Twist myVel2 = new Twist();
-   private Twist myVel21 = new Twist();
+   private Twist myVel20 = new Twist();
 
    protected int myBlk00Num;
    protected int myBlk01Num;
@@ -96,14 +97,17 @@ public class FrameSpring extends Spring
    protected boolean myDrawFrameD = DEFAULT_DRAW_FRAME_D;
    protected static final boolean DEFAULT_DRAW_FRAME_C = true;
    protected boolean myDrawFrameC = DEFAULT_DRAW_FRAME_C;
+
+   protected static final boolean DEFAULT_USE_TRANSFORM_DC = true;
+   protected boolean myUseTransformDC = DEFAULT_USE_TRANSFORM_DC;
    
    private Matrix3d myTmpM = new Matrix3d();
    // private RotationMatrix3d myRBA = new RotationMatrix3d();
 
-   public static boolean mySymmetricJacobian = true;
-
-   protected RigidTransform3d myX21 = new RigidTransform3d();
+   protected RigidTransform3d myT21 = new RigidTransform3d();
+   protected RigidTransform3d myT20 = new RigidTransform3d();
    protected RigidTransform3d myInitialX21 = new RigidTransform3d();
+   protected boolean myHasInitialX21 = false;
 
    public static PropertyList myProps =
       new PropertyList (FrameSpring.class, ModelComponentBase.class);
@@ -131,6 +135,10 @@ public class FrameSpring extends Spring
       myProps.add (
          "drawFrameC", "if true, draw the C coordinate frame", 
          DEFAULT_DRAW_FRAME_C);
+      myProps.add (
+         "useTransformDC",
+         "compute forces use the transform D-to-C instead of C-to-D",
+         DEFAULT_USE_TRANSFORM_DC);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -189,11 +197,20 @@ public class FrameSpring extends Spring
       return myDrawFrameC;
    }
 
+   public void setUseTransformDC (boolean enable) {
+      myUseTransformDC = enable;
+   }
+   
+   public boolean getUseTransformDC() {
+      return myUseTransformDC;
+   }
+
    /**
     * @deprecated Use {@link setTDC0} instead.
     */   
    public void setInitialT21 (RigidTransform3d X21) {
       myInitialX21.set (X21);
+      myHasInitialX21 = !myInitialX21.isIdentity();
    }
 
   /**
@@ -217,6 +234,7 @@ public class FrameSpring extends Spring
     */
    public void setTDC0 (RigidTransform3d TDC0) {
       myInitialX21.set (TDC0);
+      myHasInitialX21 = !myInitialX21.isIdentity();
    }
 
    /**
@@ -228,16 +246,31 @@ public class FrameSpring extends Spring
       return myInitialX21;
    }
 
+   private void computeT21 (RigidTransform3d T21) {
+      if (myUseTransformDC) {
+         T21.mulInverseBoth (myTCA, myFrameA.getPose());
+         if (myFrameB != null) {
+            T21.mul (myFrameB.getPose());
+         }
+         T21.mul (myTDB);
+      }
+      else {
+         T21.invert (myTDB);
+         if (myFrameB != null) {
+            T21.mulInverseRight (T21, myFrameB.getPose());
+         }
+         T21.mul (myFrameA.getPose());
+         T21.mul (myTCA);
+      }
+   }      
+
    /**
     * Initializes the TDC transform "rest" position to correspond to the
     * current locations of the C and D frames.
     */
    public void initializeTDC0 () {
-      myInitialX21.mulInverseBoth (myX1A, myFrameA.getPose());
-      if (myFrameB != null) {
-         myInitialX21.mul (myFrameB.getPose());
-      }
-      myInitialX21.mul (myX2B);
+      computeT21 (myInitialX21);
+      myHasInitialX21 = !myInitialX21.isIdentity();
    }
 
    /* ======== Renderable implementation ======= */
@@ -287,7 +320,7 @@ public class FrameSpring extends Spring
    public void render (Renderer renderer, int flags) {
 
       myRenderFrame.set (myFrameA.myRenderFrame);
-      myRenderFrame.mul (myX1A);
+      myRenderFrame.mul (myTCA);
       myRenderFrame.p.get (myRenderPnt1);
 
       int lineWidth = myRenderProps.getLineWidth();
@@ -324,7 +357,7 @@ public class FrameSpring extends Spring
       else {
          myRenderFrame.setIdentity();
       }
-      myRenderFrame.mul (myX2B);
+      myRenderFrame.mul (myTDB);
       myRenderFrame.p.get (myRenderPnt2);
          
       if (myDrawFrameD && myAxisLength > 0) {
@@ -391,11 +424,11 @@ public class FrameSpring extends Spring
    }
 
    public void setAttachFrameA (RigidTransform3d X1A) {
-      myX1A = new RigidTransform3d (X1A);
+      myTCA = new RigidTransform3d (X1A);
    }
 
    public RigidTransform3d getAttachFrameA() {
-      return myX1A;
+      return myTCA;
    }
 
    /**
@@ -415,15 +448,15 @@ public class FrameSpring extends Spring
     * @param TCW returns the current pose of C
     */  
    public void getCurrentTCW (RigidTransform3d TCW) {
-      TCW.mul (myFrameA.getPose(), myX1A);
+      TCW.mul (myFrameA.getPose(), myTCA);
    }
 
   public void setAttachFrameB (RigidTransform3d X2B) {
-      myX2B = new RigidTransform3d (X2B);
+      myTDB = new RigidTransform3d (X2B);
    }
 
    public RigidTransform3d getAttachFrameB() {
-      return myX2B;
+      return myTDB;
    }
 
    /**
@@ -444,7 +477,7 @@ public class FrameSpring extends Spring
     */  
    public void getCurrentTDW (RigidTransform3d TDW) {
       if (myFrameB != null) {
-         TDW.mul (myFrameB.getPose(), myX2B);
+         TDW.mul (myFrameB.getPose(), myTDB);
       }
       else {
          TDW.set (TDW);
@@ -468,9 +501,9 @@ public class FrameSpring extends Spring
    public void setFrames (Frame frameA, RigidTransform3d T1A,
                           Frame frameB, RigidTransform3d T2B) {
       myFrameA = frameA;
-      myX1A = new RigidTransform3d (T1A);
+      myTCA = new RigidTransform3d (T1A);
       myFrameB = frameB;
-      myX2B = new RigidTransform3d (T2B);
+      myTDB = new RigidTransform3d (T2B);
    }
    
    public Wrench getSpringForce() {
@@ -478,54 +511,85 @@ public class FrameSpring extends Spring
    }
 
    private void computeRelativeDisplacements () {
-      myX21.mulInverseBoth (myX1A, myFrameA.getPose());
-      if (myFrameB != null) {
-         myX21.mul (myFrameB.getPose());
-      }
-      myX21.mul (myX2B);
-
-      myFrameA.getBodyVelocity (myVel1);
-      myVel1.inverseTransform (myX1A);
-      if (myFrameB != null) {
-         myFrameB.getBodyVelocity (myVel2);
-         myVel2.inverseTransform (myX2B);
-         myVel2.transform (myX21.R);
-         myVel21.sub (myVel2, myVel1);
+      // positions 
+      computeT21 (myT21);
+      if (myApplyRestFrame && myHasInitialX21) {
+         myT20.mulInverseLeft (myInitialX21, myT21);
       }
       else {
-         myVel21.negate (myVel1);
+         myT20.set (myT21);
+      }
+      // velocities
+      Twist velA = new Twist();
+      Twist velB = new Twist();
+      myFrameA.getBodyVelocity (velA);
+      velA.inverseTransform (myTCA);
+      if (myFrameB != null) {
+         myFrameB.getBodyVelocity (velB);
+         velB.inverseTransform (myTDB);
+      }
+      if (myUseTransformDC) {
+         if (myApplyRestFrame && myHasInitialX21) {
+            velA.inverseTransform (myInitialX21);
+         }
+         velB.transform (myT20.R);
+         myVel20.sub (velB, velA);
+      }
+      else {
+         if (myFrameB != null && myApplyRestFrame && myHasInitialX21) {
+            velB.inverseTransform (myInitialX21);
+         }
+         velA.transform (myT20.R);
+         myVel20.sub (velA, velB);
       }
    }
 
-   // Computes the force as seen in frame 1 and places the resukt in myF.
+   // Computes the force as seen in frame 1 and places the result in myF.
    protected void computeForces () {
 
       FrameMaterial mat = myMaterial;
 
       if (mat != null) { // just in case implementation allows null material ...
          computeRelativeDisplacements();
-         mat.computeF (myF, myX21, myVel21, myInitialX21);
+         mat.computeF (myF, myT20, myVel20, myInitialX21);
       }
    }
     
    public void applyForces (double t) {
-
       computeForces();
 
-      myFTmp.transform (myX1A, myF);
-      myFTmp.transform (myFrameA.getPose().R); // put into rotated world coords
-      myFrameA.addForce (myFTmp);
+      Wrench fA = new Wrench();
+      Wrench fB = new Wrench();
+
+      if (myUseTransformDC) {
+         fA.set (myF);
+         if (myApplyRestFrame && myHasInitialX21) {
+            fA.transform (myInitialX21);
+         }
+         if (myFrameB != null) {
+            fB.inverseTransform (myT20.R, myF);
+            fB.negate();
+         }
+      }
+      else {
+         fA.inverseTransform (myT20.R, myF);
+         fA.negate();
+         if (myFrameB != null) {
+            fB.set (myF);
+            if (myApplyRestFrame && myHasInitialX21) {
+               fB.transform (myInitialX21);
+            }
+         }
+      }
+
+      fA.transform (myTCA);
+      fA.transform (myFrameA.getPose().R); // rotate to world coords
+      myFrameA.addForce (fA);
 
       if (myFrameB != null) {
-         // Sanchez, July 9 2013
-         // Prevent changing myF in this function
-         myFTmp.set(myF);
-         myFTmp.inverseTransform (myX21.R);
-         
-         myFTmp.transform (myX2B, myFTmp);
-         myFTmp.transform (myFrameB.getPose().R); // put into rotated world coords
-         myFTmp.negate();
-         myFrameB.addForce (myFTmp);
+         fB.transform (myTDB);
+         fB.transform (myFrameB.getPose().R); // rotate to world coords
+         myFrameB.addForce (fB);
       }
    }
 
@@ -756,8 +820,14 @@ public class FrameSpring extends Spring
       Matrix6dBlock blk01 = getBlock (M, myBlk01Num);
       Matrix6dBlock blk10 = getBlock (M, myBlk10Num);
       
-      computePosJacobianWorld (
-         mat, s, s, blk00, blk01, blk10, blk11, mySymmetricJacobian);
+      if (myUseTransformDC) {
+         computePosJacobianWorld (
+            mat, s, s, blk00, blk01, blk10, blk11, mySymmetricJacobian);
+      }
+      else {
+         computePosJacobianWorld (
+            mat, s, s, blk11, blk10, blk01, blk00, mySymmetricJacobian);
+      }
    }
 
    private void computePosJacobianWorld (
@@ -772,7 +842,7 @@ public class FrameSpring extends Spring
 
       Matrix6d JK = new Matrix6d();
       Matrix6d JD = null;
-      RotationMatrix3d R1W = new RotationMatrix3d();
+      RotationMatrix3d R0W = new RotationMatrix3d();
 
       RigidTransform3d XAW = myFrameA.getPose();
       RigidTransform3d XBW;
@@ -783,47 +853,80 @@ public class FrameSpring extends Spring
          XBW = RigidTransform3d.IDENTITY;
       }
 
-      R1W.mul (XAW.R, myX1A.R);
+      Point3d p0 = new Point3d();      
+      Point3d p2 = new Point3d();
+      Vector3d x20 = new Vector3d();
+      Vector3d angVel1 = new Vector3d();
+      Vector3d angVel2 = new Vector3d();
 
-      Vector3d p1 = new Vector3d();      
-      Vector3d p2 = new Vector3d();
-      Vector3d x21 = new Vector3d();
-      p1.transform (XAW.R, myX1A.p);
-      p2.transform (XBW.R, myX2B.p);
+      if (myApplyRestFrame && myHasInitialX21) {
+         p0.set (myInitialX21.p);
+      }
+      if (myUseTransformDC) {
+         R0W.mul (XAW.R, myTCA.R);
+         p0.transform (myTCA);
+         p0.transform (XAW.R);
+         p2.transform (XBW.R, myTDB.p);
+         angVel1.set (myFrameA.getVelocity().w);
+         if (myFrameB != null) {
+            angVel2.set (myFrameB.getVelocity().w);
+         }        
+      }
+      else {
+         R0W.mul (XBW.R, myTDB.R);
+         p0.transform (myTDB);
+         p0.transform (XBW.R);
+         p2.transform (XAW.R, myTCA.p);
+         angVel2.set (myFrameA.getVelocity().w);
+         if (myFrameB != null) {
+            angVel1.set (myFrameB.getVelocity().w);
+         }
+      }
+      if (myApplyRestFrame && myHasInitialX21) {
+         R0W.mul (myInitialX21.R);
+      }
 
       Matrix3d T = myTmpM;
       
       computeRelativeDisplacements();
 
-      Twist vel21 = (sd != 0.0 ? myVel21 : Twist.ZERO);
+      Twist vel20 = (sd != 0.0 ? myVel20 : Twist.ZERO);
 
-      x21.set (myX21.p);
-      x21.transform (R1W);
+      x20.set (myT20.p);
+      x20.transform (R0W);
 
-      myFrameA.getVelocity (myVel1);
-      if (myFrameB != null) {
-         myFrameB.getVelocity (myVel2);
-      }
-      else {
-         myVel2.setZero();
-      }
       if (!symmetric) {
          // compute forces for assymetric force component
-         mat.computeF (myF, myX21, vel21, myInitialX21);
+         mat.computeF (myF, myT20, vel20, myInitialX21);
+         if (myApplyRestFrame && myHasInitialX21) {
+            //myF.transform (myInitialX21);
+         }
          // map forces back to World coords
-         myF.transform (R1W);
-
+         myF.transform (R0W);
          if (sd != 0) {
             JD = new Matrix6d();
             mat.computeDFdu (
-               JD, myX21, vel21, myInitialX21, /*symmetric=*/false);
-            JD.transform (R1W);
+               JD, myT20, vel20, myInitialX21, /*symmetric=*/false);
+            if (myApplyRestFrame && myHasInitialX21) {
+               // Vector3d p0 = new Vector3d(myInitialX21.p);
+               // p0.inverseTransform (myInitialX21.R);
+               // JD.crossProductTransform (p0, JD);
+            }
+            JD.transform (R0W);
          }
       }
-      mat.computeDFdq (JK, myX21, vel21, myInitialX21, symmetric);
-      JK.transform (R1W);
+      mat.computeDFdq (JK, myT20, vel20, myInitialX21, symmetric);
+      if (myApplyRestFrame && myHasInitialX21) {
+         // Vector3d p0 = new Vector3d(myInitialX21.p);
+         // p0.inverseTransform (myInitialX21.R);
+         // //p0.negate();
+         // JK.crossProductTransform (p0, JK);
+         // System.out.println ("JK xprod=\n"+JK.toString ("%10.6f"));
+         // System.out.println ("JK xprod symmetric=" + JK.isSymmetric (1e-10));
+      }
+      JK.transform (R0W);
       JK.scale (-sk);
-      vel21.transform (R1W);
+      vel20.transform (R0W);
 
       Matrix6d tmp00 = new Matrix6d();
       Matrix6d tmp11 = new Matrix6d();
@@ -832,7 +935,7 @@ public class FrameSpring extends Spring
       
       if (blk00 != null) {
          tmp00.set (JK);
-         postMulMoment (tmp00, p1);
+         postMulMoment (tmp00, p0);
       }
       if (blk11 != null) {
          tmp11.set (JK);
@@ -843,33 +946,33 @@ public class FrameSpring extends Spring
          tmp01.set (JK);
          postMulMoment (tmp01, p2);
          tmp10.set (JK);
-         postMulMoment (tmp10, p1);
+         postMulMoment (tmp10, p0);
       }
     
       if (blk00 != null) {
          if (!symmetric) {
             
             // QK term
-            postMulMoment (tmp00, x21);          
+            postMulMoment (tmp00, x20);          
 
             // QF(0,0) term
             setScaledCrossProd (T, -sk, myF.f);
             tmp00.addSubMatrix03 (T);
             setScaledCrossProd (T, -sk, myF.m);
             tmp00.addSubMatrix33 (T);
-            setScaledCrossProd (T, sk, p1);
+            setScaledCrossProd (T, sk, p0);
             T.crossProduct (myF.f, T);
             tmp00.addSubMatrix33 (T);
 
             // QD term
             if (sd != 0) {
-               postMulWrenchCross (tmp00, JD, sd, vel21);
-               setScaledCrossProd (T, sd, p1);
-               T.crossProduct (myVel1.w, T);
+               postMulWrenchCross (tmp00, JD, sd, vel20);
+               setScaledCrossProd (T, sd, p0);
+               T.crossProduct (angVel1, T);
                postMul03Block (tmp00, JD, T);
             }
          }
-         preMulMoment (tmp00, p1);
+         preMulMoment (tmp00, p0);
          blk00.add (tmp00);
       }
       if (blk11 != null) {
@@ -882,7 +985,7 @@ public class FrameSpring extends Spring
             // QD term
             if (sd != 0) {
                setScaledCrossProd (T, sd, p2);
-               T.crossProduct (myVel2.w, T);
+               T.crossProduct (angVel2, T);
                postMul03Block (tmp11, JD, T);
             }
             
@@ -895,18 +998,18 @@ public class FrameSpring extends Spring
             // QD term
             if (sd != 0) {
                setScaledCrossProd (T, -sd, p2);
-               T.crossProduct (myVel2.w, T);
+               T.crossProduct (angVel2, T);
                postMul03Block (tmp01, JD, T);
             }
             
          }
-         preMulMoment (tmp01, p1);
+         preMulMoment (tmp01, p0);
          blk01.add (tmp01);
       }
       if (blk10 != null) {
          if (!symmetric) {
             // QK term
-            postMulMoment (tmp10, x21);
+            postMulMoment (tmp10, x20);
 
             // QF(1,0) term
             setScaledCrossProd (T, sk, myF.f);
@@ -916,9 +1019,9 @@ public class FrameSpring extends Spring
 
             // QD term
             if (sd != 0) {
-               postMulWrenchCross (tmp10, JD, -sd, vel21);
-               setScaledCrossProd (T, -sd, p1);
-               T.crossProduct (myVel1.w, T);
+               postMulWrenchCross (tmp10, JD, -sd, vel20);
+               setScaledCrossProd (T, -sd, p0);
+               T.crossProduct (angVel1, T);
                postMul03Block (tmp10, JD, T);
             }
          }
@@ -944,16 +1047,20 @@ public class FrameSpring extends Spring
       Matrix6dBlock blk01 = getBlock (M, myBlk01Num);
       Matrix6dBlock blk10 = getBlock (M, myBlk10Num);
 
-      computeVelJacobianWorld (mat, s, blk00, blk01, blk10, blk11);
+      if (myUseTransformDC) {
+         computeVelJacobianWorld (mat, s, blk00, blk01, blk10, blk11);
+      }
+      else {
+         computeVelJacobianWorld (mat, s, blk11, blk10, blk01, blk00);
+      }
    }
 
    public void computeVelJacobianWorld (
       FrameMaterial mat, double sd,
       Matrix6d blk00, Matrix6d blk01, 
       Matrix6d blk10, Matrix6d blk11) {
-
       Matrix6d D = new Matrix6d();
-      RotationMatrix3d R1W = new RotationMatrix3d();
+      RotationMatrix3d R0W = new RotationMatrix3d();
 
       RigidTransform3d XAW = myFrameA.getPose();
       RigidTransform3d XBW;
@@ -964,16 +1071,26 @@ public class FrameSpring extends Spring
          XBW = RigidTransform3d.IDENTITY;
       }
 
-
-      R1W.mul (XAW.R, myX1A.R);
-
-      Vector3d p1 = new Vector3d();      
+      Vector3d p0 = new Vector3d();      
       Vector3d p2 = new Vector3d();
-
-      p1.transform (XAW.R, myX1A.p);
-      p2.transform (XBW.R, myX2B.p);
-
-      // Matrix3d T = myTmpM;
+      if (myApplyRestFrame && myHasInitialX21) {
+         p0.set (myInitialX21.p);
+      }     
+      if (myUseTransformDC) {
+         R0W.mul (XAW.R, myTCA.R);
+         p0.transform (myTCA);
+         p0.transform (XAW.R);
+         p2.transform (XBW.R, myTDB.p);
+      }
+      else {
+         R0W.mul (XBW.R, myTDB.R);
+         p0.transform (myTDB);
+         p0.transform (XBW.R);
+         p2.transform (XAW.R, myTCA.p);
+      }
+      if (myApplyRestFrame && myHasInitialX21) {
+         R0W.mul (myInitialX21.R);
+      }
 
       Matrix6d tmp00 = new Matrix6d();
       Matrix6d tmp11 = new Matrix6d();
@@ -981,13 +1098,18 @@ public class FrameSpring extends Spring
       Matrix6d tmp10 = new Matrix6d();     
       
       computeRelativeDisplacements();
-      mat.computeDFdu (D, myX21, myVel21, myInitialX21, mySymmetricJacobian);
-      D.transform (R1W);
+      mat.computeDFdu (D, myT20, myVel20, myInitialX21, mySymmetricJacobian);
+      if (myApplyRestFrame && myHasInitialX21) {
+         // Vector3d p0 = new Vector3d(myInitialX21.p);
+         // p0.inverseTransform (myInitialX21.R);
+         // D.crossProductTransform (p0, D);
+      }
+      D.transform (R0W);
       D.scale (-sd);
       if (blk00 != null) {
          tmp00.set (D);
-         postMulMoment (tmp00, p1);
-         preMulMoment (tmp00, p1);
+         postMulMoment (tmp00, p0);
+         preMulMoment (tmp00, p0);
          blk00.add (tmp00);
       }
       if (blk11 != null) {
@@ -1002,12 +1124,12 @@ public class FrameSpring extends Spring
          if (blk01 != null) {
             tmp01.set (D);
             postMulMoment (tmp01, p2);
-            preMulMoment (tmp01, p1);
+            preMulMoment (tmp01, p0);
             blk01.add (tmp01);
          }
          if (blk10 != null) {
             tmp10.set (D);
-            postMulMoment (tmp10, p1);
+            postMulMoment (tmp10, p0);
             preMulMoment (tmp10, p2);
             blk10.add (tmp10);
          }
@@ -1054,18 +1176,31 @@ public class FrameSpring extends Spring
 
    public void getForce (VectorNd minf, boolean staticOnly) {
       minf.setSize (6);
-
       FrameMaterial mat = myMaterial;
       if (mat != null) { // just in case implementation allows null material ...
          computeRelativeDisplacements();
          if (!staticOnly) {
-            mat.computeF (myF, myX21, myVel21, myInitialX21);
+            mat.computeF (myF, myT20, myVel20, myInitialX21);
+            if (myApplyRestFrame && myHasInitialX21) {
+               myF.transform (myInitialX21);
+            }
          }
          else {
-            mat.computeF (myF, myX21, Twist.ZERO, myInitialX21);
+            mat.computeF (myF, myT20, Twist.ZERO, myInitialX21);
+            if (myApplyRestFrame && myHasInitialX21) {
+               myF.transform (myInitialX21);
+            }
          }
-         myFTmp.transform (myX1A, myF);
-         myFTmp.transform (myFrameA.getPose().R); // put into rotated world coords
+         if (myUseTransformDC) {
+            myFTmp.transform (myTCA, myF);
+            myFTmp.transform (myFrameA.getPose().R); // rotate to world coords
+         }
+         else {
+            myFTmp.transform (myTDB, myF);
+            if (myFrameB != null) {
+               myFTmp.transform (myFrameB.getPose().R); // rotate to world coords
+            }
+         }
          minf.set (myFTmp);
       }
       else {
@@ -1134,7 +1269,7 @@ public class FrameSpring extends Spring
 
       public void transformGeometry (
          GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-         myX1A.mulInverseLeft (myFrameA.getPose(), myTCW);
+         myTCA.mulInverseLeft (myFrameA.getPose(), myTCW);
       }
    }
 
@@ -1151,7 +1286,7 @@ public class FrameSpring extends Spring
 
       public void transformGeometry (
          GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-         myX2B.mulInverseLeft (myFrameB.getPose(), myTDW);
+         myTDB.mulInverseLeft (myFrameB.getPose(), myTDW);
       }
    }
 
@@ -1172,7 +1307,6 @@ public class FrameSpring extends Spring
 
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-
       // Quantities that may need to be changed include: X1A, X2B and
       // InitialX21.
       // 
@@ -1188,7 +1322,7 @@ public class FrameSpring extends Spring
       boolean frameATransforming = context.contains(myFrameA);
       boolean frameBTransforming = (myFrameB!=null && context.contains(myFrameB));
 
-      if (!gtr.isRigid() && !myInitialX21.isIdentity()) {
+      if (!gtr.isRigid() && myHasInitialX21) {
          // need to transform InitialX21
          if (gtr.isRestoring()) {
             myInitialX21.set (gtr.restoreObject (myInitialX21));
@@ -1197,23 +1331,30 @@ public class FrameSpring extends Spring
             if (gtr.isSaving()) {
                gtr.saveObject (new RigidTransform3d (myInitialX21));
             }
-            RigidTransform3d TCW = getCurrentTCW();
-            RigidTransform3d TDW0 = new RigidTransform3d();
-            TDW0.mul (TCW, myInitialX21);
-            gtr.computeTransform (TCW);
-            gtr.computeTransform (TDW0);
-            myInitialX21.mulInverseLeft (TCW, TDW0);
+            RigidTransform3d T1W;
+            if (myUseTransformDC) {
+               T1W = getCurrentTCW();
+            }
+            else {
+               T1W = getCurrentTDW();
+            }
+            RigidTransform3d T0W = new RigidTransform3d();
+            T0W.mul (T1W, myInitialX21);
+            gtr.computeTransform (T1W);
+            gtr.computeTransform (T0W);
+            myInitialX21.mulInverseLeft (T1W, T0W);
          }
+         myHasInitialX21 = !myInitialX21.isIdentity();
       }
 
       if (!frameATransforming || !gtr.isRigid()) {
-         // need to update myX1A
+         // need to update myTCA
          if (gtr.isRestoring()) {
-            myX1A.set (gtr.restoreObject (myX1A));
+            myTCA.set (gtr.restoreObject (myTCA));
          }
          else {
             if (gtr.isSaving()) {
-               gtr.saveObject (new RigidTransform3d (myX1A));
+               gtr.saveObject (new RigidTransform3d (myTCA));
             }
             RigidTransform3d TCW = getCurrentTCW();
             gtr.computeTransform (TCW);
@@ -1221,17 +1362,17 @@ public class FrameSpring extends Spring
          }
       }
       if (!frameBTransforming || !gtr.isRigid()) {
-         // need to update myX2B
+         // need to update myTDB
          if (myFrameB == null) {
-            gtr.computeTransform (myX2B);
+            gtr.computeTransform (myTDB);
          }
          else {
             if (gtr.isRestoring()) {
-               myX2B.set (gtr.restoreObject (myX2B));
+               myTDB.set (gtr.restoreObject (myTDB));
             }
             else {
                if (gtr.isSaving()) {
-                  gtr.saveObject (new RigidTransform3d (myX2B));
+                  gtr.saveObject (new RigidTransform3d (myTDB));
                }
                RigidTransform3d TDW = getCurrentTDW();
                gtr.computeTransform (TDW);
@@ -1249,11 +1390,11 @@ public class FrameSpring extends Spring
       }
       myRotaryStiffness *= (s * s);
       myRotaryDamping *= (s * s);
-      if (myX1A != RigidTransform3d.IDENTITY) {
-         myX1A.p.scale (s);
+      if (myTCA != RigidTransform3d.IDENTITY) {
+         myTCA.p.scale (s);
       }
-      if (myX2B != RigidTransform3d.IDENTITY) {
-         myX2B.p.scale (s);
+      if (myTDB != RigidTransform3d.IDENTITY) {
+         myTDB.p.scale (s);
       }
    }
 
@@ -1471,7 +1612,7 @@ public class FrameSpring extends Spring
       return true;
    }
 
-     @Override
+   @Override
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FrameSpring comp =
@@ -1480,18 +1621,21 @@ public class FrameSpring extends Spring
          comp.setRenderProps (myRenderProps);
       }
 
-      if (myX1A != RigidTransform3d.IDENTITY) {
-         comp.myX1A = new RigidTransform3d (myX1A);
+      Frame frameA = (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrameA);  
+      comp.setFrameA (frameA);
+
+      Frame frameB = (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrameB);  
+      comp.setFrameA (frameB);
+
+      if (myTCA != RigidTransform3d.IDENTITY) {
+         comp.myTCA = new RigidTransform3d (myTCA);
       }
-      if (myX2B != RigidTransform3d.IDENTITY) {
-         comp.myX2B = new RigidTransform3d (myX2B);
+      if (myTDB != RigidTransform3d.IDENTITY) {
+         comp.myTDB = new RigidTransform3d (myTDB);
       }
       comp.myF = new Wrench();
       comp.myFTmp = new Wrench();
-
-      comp.myVel1 = new Twist();
-      comp.myVel2 = new Twist();
-      comp.myVel21 = new Twist();
+      comp.myVel20 = new Twist();
 
       comp.myRenderFrame = new RigidTransform3d();
       comp.myRenderPnt1 = new float[3];
@@ -1500,7 +1644,10 @@ public class FrameSpring extends Spring
       comp.myTmpM = new Matrix3d();
       // comp.myRBA = new RotationMatrix3d();
 
-      comp.myX21 = new RigidTransform3d();
+      comp.myT21 = new RigidTransform3d();
+      comp.myT20 = new RigidTransform3d();
+      comp.myInitialX21 = new RigidTransform3d(myInitialX21);
+      comp.myHasInitialX21 = !comp.myInitialX21.isIdentity();
 
       comp.myMaterial = (FrameMaterial)myMaterial.clone();
       return comp;

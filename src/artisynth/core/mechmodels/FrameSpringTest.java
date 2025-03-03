@@ -10,9 +10,10 @@ import maspack.matrix.*;
 import maspack.spatialmotion.*;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
+import maspack.util.UnitTest;
 import artisynth.core.materials.*;
 
-public class FrameSpringTest {
+public class FrameSpringTest extends UnitTest {
 
    RigidBody myFrameA;
    RigidBody myFrameB;
@@ -29,13 +30,14 @@ public class FrameSpringTest {
 
    Twist dx[] = new Twist[6];
 
-   FrameSpringTest (
-      RigidTransform3d X21, RigidTransform3d X1A, RigidTransform3d X2B) {
+   void setSpringAndFrames (
+      RigidTransform3d TAW, RigidTransform3d T21, 
+      RigidTransform3d T1A, RigidTransform3d T2B) {
 
       mySpring = new FrameSpring ("");
       mySpring.setJacobianSymmetric (false);
-      mySpring.setAttachFrameA (X1A);
-      mySpring.setAttachFrameB (X2B);
+      mySpring.setAttachFrameA (T1A);
+      mySpring.setAttachFrameB (T2B);
       myFrameA = new RigidBody ("");
       myFrameA.setInertia (new SpatialInertia());
       myFrameB = new RigidBody ("");
@@ -44,16 +46,16 @@ public class FrameSpringTest {
       mySpring.setFrameA (myFrameA);
       mySpring.setFrameB (myFrameB);
 
-      myXAW.setRandom();
+      myXAW.set (TAW);
       myFrameA.setPose (myXAW);
-      myXBW.mul (myXAW, X1A);
-      myXBW.mul (X21);
-      myXBW.mulInverseRight (myXBW, X2B);
+      myXBW.mul (myXAW, T1A);
+      myXBW.mul (T21);
+      myXBW.mulInverseRight (myXBW, T2B);
       myFrameB.setPose (myXBW);
 
-      myX21.set (X21);
-      myX1A.set (X1A);
-      myX2B.set (X2B);
+      myX21.set (T21);
+      myX1A.set (T1A);
+      myX2B.set (T2B);
 
       dx[0] = new Twist (dpos, 0, 0, 0, 0, 0);
       dx[1] = new Twist (0, dpos, 0, 0, 0, 0);
@@ -154,8 +156,6 @@ public class FrameSpringTest {
       fB.scale (1/dthe);
       System.out.println ("dA=" + fA.toString ("%9.5f"));
       System.out.println ("dB=" + fB.toString ("%9.5f"));
-
-
    }
 
    public MatrixNd numericPosJacobian (Twist velA, Twist velB) {
@@ -324,16 +324,16 @@ public class FrameSpringTest {
       return rq;
    }
 
-   public static void test (
-      FrameSpringTest deriv, FrameMaterial mat, Twist velA, Twist velB,
+   public void test (
+      FrameMaterial mat, Twist velA, Twist velB,
       boolean printData, double errLim) {
       
-      deriv.mySpring.setMaterial (mat);
-      MatrixNd JC = deriv.computePosJacobian (velA, velB);
+      mySpring.setMaterial (mat);
+      MatrixNd JC = computePosJacobian (velA, velB);
       if (printData) {
          System.out.println ("ComputedPosJ=\n" + JC.toString ("%9.5f"));
       }
-      MatrixNd JN = deriv.numericPosJacobian (velA, velB);
+      MatrixNd JN = numericPosJacobian (velA, velB);
       if (printData) {
          System.out.println ("NumericPosJ=\n" + JN.toString ("%9.5f"));
       }
@@ -351,12 +351,12 @@ public class FrameSpringTest {
          throw new TestException ("Position Jacobian error=" + err);
       }
       
-      JC = deriv.computeVelJacobian (velA, velB);
+      JC = computeVelJacobian (velA, velB);
       if (printData) {
          System.out.println ("ComputedVelJ=\n" + JC.toString ("%9.5f"));
       }
 
-      JN = deriv.numericVelJacobian (velA, velB);
+      JN = numericVelJacobian (velA, velB);
       if (printData) {
          System.out.println ("NumericVelJ=\n" + JN.toString ("%9.5f"));
       }
@@ -370,19 +370,60 @@ public class FrameSpringTest {
       if (err > errLim) {
          throw new TestException ("Velocity Jacobian error=" + err);
       }
-   
    }
 
-   public static void main (String[] args) {
+   public void testInitialTDC () {
+      LinearFrameMaterial linMat = 
+         //new LinearFrameMaterial (10, 0.5, 0.0, 0.2); // kt, kr, dt, dr
+         //new LinearFrameMaterial (10.0, 0.5, 2.0, 0.2);
+         new LinearFrameMaterial (10.0, 0.5, 2, 0.2);
+
+      boolean modT1A = false;
+
+      RigidTransform3d TAW = new RigidTransform3d();
+      RigidTransform3d T21 = new RigidTransform3d();
+      RigidTransform3d T1A = new RigidTransform3d();
+      RigidTransform3d T2B = new RigidTransform3d();
+      RigidTransform3d TDC0 = new RigidTransform3d();
+
+      T21.setRandom();
+      TDC0.setRandom();
+
+      Twist velA = new Twist();
+      Twist velB = new Twist();
+      velA.set (0.1, 0.2, 0.3, 0.4, 0.3, 0.2);
+      velB.set (0.3,-0.2, 0.5, -0.1, 0.4, 0);
+
+      if (modT1A) {
+         RigidTransform3d T1AX = new RigidTransform3d();
+         RigidTransform3d T21X = new RigidTransform3d();
+
+         T1AX.mul (T1A, TDC0);
+         T21X.mulInverseLeft (TDC0, T21);
+         setSpringAndFrames (TAW, T21X, T1AX, T2B);
+         mySpring.setTDC0 (new RigidTransform3d());
+         mySpring.myApplyRestFrame = false;
+      }
+      else {
+         setSpringAndFrames (TAW, T21, T1A, T2B);
+         mySpring.setTDC0 (TDC0);
+         mySpring.myApplyRestFrame = true;
+      }
+
+      System.out.println ("modT1A=" + modT1A);
+
+      test (linMat, velA, velB, true, 1e-6);
+
+      System.out.println ("modT1A=" + modT1A);
+   }
+
+   public void test() {
+      RigidTransform3d XAW = new RigidTransform3d ();
       RigidTransform3d X1A = new RigidTransform3d ();
       RigidTransform3d X2B = new RigidTransform3d ();
       RigidTransform3d X21 = new RigidTransform3d ();
 
-      RandomGenerator.setSeed (0x1234);
       Frame.dynamicVelInWorldCoords = true;
-
-      X1A.setRandom();
-      X2B.setRandom();
 
       X21.R.setAxisAngle (2, 3, 1, Math.toRadians (88));
       X21.p.set (1, 2, 3);
@@ -404,40 +445,48 @@ public class FrameSpringTest {
       linMatAniso.setDamping (2.0, 3.0, 4.0);
       linMatAniso.setRotaryDamping (0.2, 0.4, 0.6);
 
-      FrameSpringTest deriv = new FrameSpringTest (X21, X1A, X2B);
+      XAW.setRandom();
+      setSpringAndFrames (XAW, X21, X1A, X2B);
 
       Twist velA = new Twist();
       Twist velB = new Twist();
       velA.set (0.1, 0.2, 0.3, 0.4, 0.3, 0.2);
       velB.set (0.3,-0.2, 0.5, -0.1, 0.4, 0);
 
-      test (deriv, rotAxisMat, velA, velB, false, 1e-6);
-      test (deriv, linMat, velA, velB, false, 1e-6);
-      test (deriv, linMatAniso, velA, velB, false, 1e-6);
+      test (rotAxisMat, velA, velB, false, 1e-6);
+      test (linMat, velA, velB, false, 1e-6);
+      test (linMatAniso, velA, velB, false, 1e-6);
 
       PowerFrameMaterial powMat;
       int cnt = 20;
       for (int i=0; i<cnt; i++) {
          X21.setRandom();
-         deriv = new FrameSpringTest (X21, X1A, X2B);
+         XAW.setRandom();
+         setSpringAndFrames (XAW, X21, X1A, X2B);
 
          powMat = new PowerFrameMaterial (10.0, /*n*/1, 0.5, /*rn*/1, 2.0, 0.2);
-         test (deriv, powMat, velA, velB, false, 1e-6);
+         test (powMat, velA, velB, false, 1e-6);
          powMat.setDeadband (0.2);
-         test (deriv, powMat, velA, velB, false, 1e-6);
+         test (powMat, velA, velB, false, 1e-6);
 
          powMat = new PowerFrameMaterial (10.0, /*n*/2, 0.5, /*rn*/2, 2.0, 0.2);
-         test (deriv, powMat, velA, velB, false, 1e-6);
-         powMat.setDeadband (0.2);
-         test (deriv, powMat, velA, velB, false, 1e-6);
+         test (powMat, velA, velB, false, 1e-6);
+         powMat.setDeadband (0.2, 0.1, 0.3);
+         test (powMat, velA, velB, false, 1e-6);
 
          powMat = new PowerFrameMaterial (10.0, /*n*/3, 0.5, /*rn*/3, 2.0, 0.2);
-         test (deriv, powMat, velA, velB, false, 1e-6);
-         powMat.setDeadband (0.2);
-         test (deriv, powMat, velA, velB, false, 1e-6);
+         test (powMat, velA, velB, false, 1e-6);
+         powMat.setUpperDeadband (0.2, 0.1, 0.3);
+         powMat.setLowerDeadband (-0.3, 0, -0.2);
+         test (powMat, velA, velB, false, 1e-6);
       }
+   }
 
-      System.out.println ("\nPASSED\n");
+   public static void main (String[] args) {
+      RandomGenerator.setSeed (0x1234);
+      FrameSpringTest tester = new FrameSpringTest();
+      //tester.testInitialTDC();
+      tester.runtest();
    }
 
 

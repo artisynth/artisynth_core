@@ -28,7 +28,7 @@ public abstract class FemMaterial extends MaterialBase
       MooneyRivlinMaterial.class,
       CubicHyperelastic.class,
       OgdenMaterial.class,
-      FungMaterial.class,
+      FungOrthotropicMaterial.class,
       ArrudaBoyceMaterial.class,
       VerondaWestmannMaterial.class,
       NeoHookeanMaterial.class,
@@ -38,6 +38,7 @@ public abstract class FemMaterial extends MaterialBase
       ScaledFemMaterial.class,
       FullBlemkerMuscle.class,
       TransverseLinearMaterial.class,
+      YeohMaterial.class,
       NullMaterial.class,
    });
 

@@ -46,7 +46,7 @@ public class FrameSpringTest extends UnitTest {
 
       mySpring.setFrameA (myFrameA);
       mySpring.setFrameB (myFrameB);
-      mySpring.myApplyRestFrame = true;
+      mySpring.myApplyRestPose = true;
 
       myTAW.set (TAW);
       myFrameA.setPose (myTAW);
@@ -404,12 +404,12 @@ public class FrameSpringTest extends UnitTest {
          T21X.mulInverseLeft (TDC0, T21);
          setSpringAndFrames (TAW, T21X, T1AX, T2B);
          mySpring.setTDC0 (new RigidTransform3d());
-         mySpring.myApplyRestFrame = false;
+         mySpring.myApplyRestPose = false;
       }
       else {
          setSpringAndFrames (TAW, T21, T1A, T2B);
          mySpring.setTDC0 (TDC0);
-         mySpring.myApplyRestFrame = true;
+         mySpring.myApplyRestPose = true;
       }
 
       System.out.println ("modT1A=" + modT1A);

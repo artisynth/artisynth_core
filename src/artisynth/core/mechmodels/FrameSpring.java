@@ -60,7 +60,6 @@ public class FrameSpring extends Spring
               CopyableComponent, ForceTargetComponent, HasNumericState {
 
    public static boolean mySymmetricJacobian = true;
-   public boolean myApplyRestFrame = false;
 
    protected Frame myFrameA;
    protected Frame myFrameB;
@@ -100,6 +99,9 @@ public class FrameSpring extends Spring
 
    protected static final boolean DEFAULT_USE_TRANSFORM_DC = true;
    protected boolean myUseTransformDC = DEFAULT_USE_TRANSFORM_DC;
+   
+   protected static final boolean DEFAULT_APPLY_REST_POSE = false;
+   protected boolean myApplyRestPose = DEFAULT_APPLY_REST_POSE;
    
    private Matrix3d myTmpM = new Matrix3d();
    // private RotationMatrix3d myRBA = new RotationMatrix3d();
@@ -203,6 +205,32 @@ public class FrameSpring extends Spring
    
    public boolean getUseTransformDC() {
       return myUseTransformDC;
+   }
+
+   /**
+    * Sets whether or not this spring automatically applies the rest pose. If
+    * {@code true}, then any specified rest pose will be automaticallu removed
+    * from the displacement frame passed to the spring's {@link
+    * FrameMaterial}. If {@code false}, then no modification will be made to
+    * rhe displacement frame and the handling of the rest pose will be left to
+    * the material. The value is currently {@code false}, but this will likely
+    * be changed to {@code true} in the future.
+    *
+    * @param if {@code true}, any rest pose will be automatically
+    * applied
+    */
+   public void setApplyRestPose (boolean enable) {
+      myApplyRestPose = enable;
+   }
+   
+   /**
+    * Queries whether or not this spring automatically applies the
+    * rest pose. See {@link #applyRestPose}.
+    *
+    * @return {@code true} if this spring applies the rest pose
+    */
+   public boolean getApplyRestPose() {
+      return myApplyRestPose;
    }
 
    /**
@@ -551,7 +579,7 @@ public class FrameSpring extends Spring
    private void computeRelativeDisplacements () {
       // positions 
       computeT21 (myT21);
-      if (myApplyRestFrame && myHasRestPose) {
+      if (myApplyRestPose && myHasRestPose) {
          myT20.mulInverseLeft (myRestPose, myT21);
       }
       else {
@@ -567,14 +595,14 @@ public class FrameSpring extends Spring
          velB.inverseTransform (myTDB);
       }
       if (myUseTransformDC) {
-         if (myApplyRestFrame && myHasRestPose) {
+         if (myApplyRestPose && myHasRestPose) {
             velA.inverseTransform (myRestPose);
          }
          velB.transform (myT20.R);
          myVel20.sub (velB, velA);
       }
       else {
-         if (myFrameB != null && myApplyRestFrame && myHasRestPose) {
+         if (myFrameB != null && myApplyRestPose && myHasRestPose) {
             velB.inverseTransform (myRestPose);
          }
          velA.transform (myT20.R);
@@ -601,7 +629,7 @@ public class FrameSpring extends Spring
 
       if (myUseTransformDC) {
          fA.set (myF);
-         if (myApplyRestFrame && myHasRestPose) {
+         if (myApplyRestPose && myHasRestPose) {
             fA.transform (myRestPose);
          }
          if (myFrameB != null) {
@@ -614,7 +642,7 @@ public class FrameSpring extends Spring
          fA.negate();
          if (myFrameB != null) {
             fB.set (myF);
-            if (myApplyRestFrame && myHasRestPose) {
+            if (myApplyRestPose && myHasRestPose) {
                fB.transform (myRestPose);
             }
          }
@@ -897,7 +925,7 @@ public class FrameSpring extends Spring
       Vector3d angVel1 = new Vector3d();
       Vector3d angVel2 = new Vector3d();
 
-      if (myApplyRestFrame && myHasRestPose) {
+      if (myApplyRestPose && myHasRestPose) {
          p0.set (myRestPose.p);
       }
       if (myUseTransformDC) {
@@ -920,7 +948,7 @@ public class FrameSpring extends Spring
             angVel1.set (myFrameB.getVelocity().w);
          }
       }
-      if (myApplyRestFrame && myHasRestPose) {
+      if (myApplyRestPose && myHasRestPose) {
          R0W.mul (myRestPose.R);
       }
 
@@ -936,7 +964,7 @@ public class FrameSpring extends Spring
       if (!symmetric) {
          // compute forces for assymetric force component
          mat.computeF (myF, myT20, vel20, myRestPose);
-         if (myApplyRestFrame && myHasRestPose) {
+         if (myApplyRestPose && myHasRestPose) {
             //myF.transform (myRestPose);
          }
          // map forces back to World coords
@@ -945,7 +973,7 @@ public class FrameSpring extends Spring
             JD = new Matrix6d();
             mat.computeDFdu (
                JD, myT20, vel20, myRestPose, /*symmetric=*/false);
-            if (myApplyRestFrame && myHasRestPose) {
+            if (myApplyRestPose && myHasRestPose) {
                // Vector3d p0 = new Vector3d(myRestPose.p);
                // p0.inverseTransform (myRestPose.R);
                // JD.crossProductTransform (p0, JD);
@@ -954,7 +982,7 @@ public class FrameSpring extends Spring
          }
       }
       mat.computeDFdq (JK, myT20, vel20, myRestPose, symmetric);
-      if (myApplyRestFrame && myHasRestPose) {
+      if (myApplyRestPose && myHasRestPose) {
          // Vector3d p0 = new Vector3d(myRestPose.p);
          // p0.inverseTransform (myRestPose.R);
          // //p0.negate();
@@ -1111,7 +1139,7 @@ public class FrameSpring extends Spring
 
       Point3d p0 = new Point3d();      
       Point3d p2 = new Point3d();
-      if (myApplyRestFrame && myHasRestPose) {
+      if (myApplyRestPose && myHasRestPose) {
          p0.set (myRestPose.p);
       }     
       if (myUseTransformDC) {
@@ -1126,7 +1154,7 @@ public class FrameSpring extends Spring
          p0.transform (TBW.R);
          p2.transform (TAW.R, myTCA.p);
       }
-      if (myApplyRestFrame && myHasRestPose) {
+      if (myApplyRestPose && myHasRestPose) {
          R0W.mul (myRestPose.R);
       }
 
@@ -1137,7 +1165,7 @@ public class FrameSpring extends Spring
       
       computeRelativeDisplacements();
       mat.computeDFdu (D, myT20, myVel20, myRestPose, mySymmetricJacobian);
-      if (myApplyRestFrame && myHasRestPose) {
+      if (myApplyRestPose && myHasRestPose) {
          // Vector3d p0 = new Vector3d(myRestPose.p);
          // p0.inverseTransform (myRestPose.R);
          // D.crossProductTransform (p0, D);
@@ -1219,13 +1247,13 @@ public class FrameSpring extends Spring
          computeRelativeDisplacements();
          if (!staticOnly) {
             mat.computeF (myF, myT20, myVel20, myRestPose);
-            if (myApplyRestFrame && myHasRestPose) {
+            if (myApplyRestPose && myHasRestPose) {
                myF.transform (myRestPose);
             }
          }
          else {
             mat.computeF (myF, myT20, Twist.ZERO, myRestPose);
-            if (myApplyRestFrame && myHasRestPose) {
+            if (myApplyRestPose && myHasRestPose) {
                myF.transform (myRestPose);
             }
          }

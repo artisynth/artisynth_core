@@ -17,11 +17,11 @@ public class FrameSpringTest extends UnitTest {
 
    RigidBody myFrameA;
    RigidBody myFrameB;
-   RigidTransform3d myXAW = new RigidTransform3d();
-   RigidTransform3d myXBW = new RigidTransform3d();
-   RigidTransform3d myX21 = new RigidTransform3d();
-   RigidTransform3d myX1A = new RigidTransform3d();
-   RigidTransform3d myX2B = new RigidTransform3d();
+   RigidTransform3d myTAW = new RigidTransform3d();
+   RigidTransform3d myTBW = new RigidTransform3d();
+   RigidTransform3d myT21 = new RigidTransform3d();
+   RigidTransform3d myT1A = new RigidTransform3d();
+   RigidTransform3d myT2B = new RigidTransform3d();
 
    FrameSpring mySpring;
 
@@ -42,20 +42,22 @@ public class FrameSpringTest extends UnitTest {
       myFrameA.setInertia (new SpatialInertia());
       myFrameB = new RigidBody ("");
       myFrameB.setInertia (new SpatialInertia());
+      
 
       mySpring.setFrameA (myFrameA);
       mySpring.setFrameB (myFrameB);
+      mySpring.myApplyRestFrame = true;
 
-      myXAW.set (TAW);
-      myFrameA.setPose (myXAW);
-      myXBW.mul (myXAW, T1A);
-      myXBW.mul (T21);
-      myXBW.mulInverseRight (myXBW, T2B);
-      myFrameB.setPose (myXBW);
+      myTAW.set (TAW);
+      myFrameA.setPose (myTAW);
+      myTBW.mul (myTAW, T1A);
+      myTBW.mul (T21);
+      myTBW.mulInverseRight (myTBW, T2B);
+      myFrameB.setPose (myTBW);
 
-      myX21.set (T21);
-      myX1A.set (T1A);
-      myX2B.set (T2B);
+      myT21.set (T21);
+      myT1A.set (T1A);
+      myT2B.set (T2B);
 
       dx[0] = new Twist (dpos, 0, 0, 0, 0, 0);
       dx[1] = new Twist (0, dpos, 0, 0, 0, 0);
@@ -66,15 +68,15 @@ public class FrameSpringTest extends UnitTest {
    }
 
    private Matrix3d scaledCrossProd (double s, Vector3d u) {
-      Matrix3d X = new Matrix3d();
-      X.m01 = -u.z;
-      X.m02 =  u.y;
-      X.m12 = -u.x;
-      X.m10 =  u.z;
-      X.m20 = -u.y;
-      X.m21 =  u.x;
-      X.scale (s);
-      return X;
+      Matrix3d T = new Matrix3d();
+      T.m01 = -u.z;
+      T.m02 =  u.y;
+      T.m12 = -u.x;
+      T.m10 =  u.z;
+      T.m20 = -u.y;
+      T.m21 =  u.x;
+      T.scale (s);
+      return T;
    }
 
    private Matrix3d computeU (RotationMatrix3d R21) {
@@ -180,14 +182,14 @@ public class FrameSpringTest extends UnitTest {
          if (j < 6) {
             dv.set (dx[j]);
             if (Frame.dynamicVelInWorldCoords) {
-               dv.inverseTransform (myXAW.R, dv);
+               dv.inverseTransform (myTAW.R, dv);
             }
             myFrameA.extrapolatePose (dv, 1);
          }
          else {
             dv.set (dx[j-6]);
             if (Frame.dynamicVelInWorldCoords) {
-               dv.inverseTransform (myXBW.R, dv);
+               dv.inverseTransform (myTBW.R, dv);
             }
             myFrameB.extrapolatePose (dv, 1);
          }
@@ -209,8 +211,8 @@ public class FrameSpringTest extends UnitTest {
             J.set (i,   j, fA.get(i));
             J.set (i+6, j, fB.get(i));
          }
-         myFrameA.setPose (myXAW);
-         myFrameB.setPose (myXBW);
+         myFrameA.setPose (myTAW);
+         myFrameB.setPose (myTBW);
       }
       return J;
    }
@@ -418,18 +420,14 @@ public class FrameSpringTest extends UnitTest {
    }
 
    public void test() {
-      RigidTransform3d XAW = new RigidTransform3d ();
-      RigidTransform3d X1A = new RigidTransform3d ();
-      RigidTransform3d X2B = new RigidTransform3d ();
-      RigidTransform3d X21 = new RigidTransform3d ();
+      RigidTransform3d TAW = new RigidTransform3d ();
+      RigidTransform3d T1A = new RigidTransform3d ();
+      RigidTransform3d T2B = new RigidTransform3d ();
+      RigidTransform3d T21 = new RigidTransform3d ();
+      Twist velA = new Twist();
+      Twist velB = new Twist();
 
       Frame.dynamicVelInWorldCoords = true;
-
-      X21.R.setAxisAngle (2, 3, 1, Math.toRadians (88));
-      X21.p.set (1, 2, 3);
-
-      //X1A.p.set (1, 0, 0);
-      //X21.p.set (1, 0, 0);
 
       RotAxisFrameMaterial rotAxisMat =
          // new RotAxisFrameMaterial (10, 0.5, 2.0, 0.2); // kt, kr, dt, dr
@@ -445,24 +443,30 @@ public class FrameSpringTest extends UnitTest {
       linMatAniso.setDamping (2.0, 3.0, 4.0);
       linMatAniso.setRotaryDamping (0.2, 0.4, 0.6);
 
-      XAW.setRandom();
-      setSpringAndFrames (XAW, X21, X1A, X2B);
-
-      Twist velA = new Twist();
-      Twist velB = new Twist();
-      velA.set (0.1, 0.2, 0.3, 0.4, 0.3, 0.2);
-      velB.set (0.3,-0.2, 0.5, -0.1, 0.4, 0);
-
-      test (rotAxisMat, velA, velB, false, 1e-6);
-      test (linMat, velA, velB, false, 1e-6);
-      test (linMatAniso, velA, velB, false, 1e-6);
-
       PowerFrameMaterial powMat;
-      int cnt = 20;
+      int cnt = 40;
       for (int i=0; i<cnt; i++) {
-         X21.setRandom();
-         XAW.setRandom();
-         setSpringAndFrames (XAW, X21, X1A, X2B);
+         T21.setRandom();
+         TAW.setRandom();
+         T1A.setRandom();
+         T2B.setRandom();
+         velA.setRandom();
+         velB.setRandom();
+
+         setSpringAndFrames (TAW, T21, T1A, T2B);
+
+         if ((i%2) != 0) {
+            mySpring.setUseTransformDC (false);
+         }
+         if (((i/2)%2) != 0) {
+            RigidTransform3d TRest = new RigidTransform3d();
+            TRest.setRandom();
+            mySpring.setTDC0 (TRest);
+         }
+
+         test (rotAxisMat, velA, velB, false, 1e-6);
+         test (linMat, velA, velB, false, 1e-6);
+         test (linMatAniso, velA, velB, false, 1e-6);
 
          powMat = new PowerFrameMaterial (10.0, /*n*/1, 0.5, /*rn*/1, 2.0, 0.2);
          test (powMat, velA, velB, false, 1e-6);

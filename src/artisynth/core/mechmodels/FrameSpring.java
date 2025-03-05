@@ -141,6 +141,10 @@ public class FrameSpring extends Spring
          "useTransformDC",
          "compute forces use the transform D-to-C instead of C-to-D",
          DEFAULT_USE_TRANSFORM_DC);
+      myProps.add (
+         "applyRestPose",
+         "automatically account for the rest pose in force calculations",
+         DEFAULT_APPLY_REST_POSE);
    }
 
    public PropertyList getAllPropertyInfo() {

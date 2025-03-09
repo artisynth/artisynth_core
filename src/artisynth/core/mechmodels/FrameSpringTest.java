@@ -42,7 +42,6 @@ public class FrameSpringTest extends UnitTest {
       myFrameA.setInertia (new SpatialInertia());
       myFrameB = new RigidBody ("");
       myFrameB.setInertia (new SpatialInertia());
-      
 
       mySpring.setFrameA (myFrameA);
       mySpring.setFrameB (myFrameB);

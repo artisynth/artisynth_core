@@ -106,8 +106,7 @@ public class FrameSpring extends Spring
    private Matrix3d myTmpM = new Matrix3d();
    // private RotationMatrix3d myRBA = new RotationMatrix3d();
 
-   protected RigidTransform3d myT21 = new RigidTransform3d();
-   protected RigidTransform3d myT20 = new RigidTransform3d();
+   protected RigidTransform3d myTD = new RigidTransform3d(); //net displacement
    protected RigidTransform3d myRestPose = new RigidTransform3d();
    protected boolean myHasRestPose = false;
 
@@ -321,25 +320,25 @@ public class FrameSpring extends Spring
     * false}). See {@link #setRestPose}.
     */
    public void initializeRestPose () {
-      computeT21 (myRestPose);
+      computeNetDisplacement (myRestPose);
       myHasRestPose = !myRestPose.isIdentity();
    }
 
-   private void computeT21 (RigidTransform3d T21) {
+   private void computeNetDisplacement (RigidTransform3d TD) {
       if (myUseTransformDC) {
-         T21.mulInverseBoth (myTCA, myFrameA.getPose());
+         TD.mulInverseBoth (myTCA, myFrameA.getPose());
          if (myFrameB != null) {
-            T21.mul (myFrameB.getPose());
+            TD.mul (myFrameB.getPose());
          }
-         T21.mul (myTDB);
+         TD.mul (myTDB);
       }
       else {
-         T21.invert (myTDB);
+         TD.invert (myTDB);
          if (myFrameB != null) {
-            T21.mulInverseRight (T21, myFrameB.getPose());
+            TD.mulInverseRight (TD, myFrameB.getPose());
          }
-         T21.mul (myFrameA.getPose());
-         T21.mul (myTCA);
+         TD.mul (myFrameA.getPose());
+         TD.mul (myTCA);
       }
    }      
 
@@ -582,13 +581,11 @@ public class FrameSpring extends Spring
 
    private void computeRelativeDisplacements () {
       // positions 
-      computeT21 (myT21);
+      computeNetDisplacement (myTD);
       if (myApplyRestPose && myHasRestPose) {
-         myT20.mulInverseLeft (myRestPose, myT21);
+         myTD.mulInverseLeft (myRestPose, myTD);
       }
-      else {
-         myT20.set (myT21);
-      }
+
       // velocities
       Twist velA = new Twist();
       Twist velB = new Twist();
@@ -602,14 +599,14 @@ public class FrameSpring extends Spring
          if (myApplyRestPose && myHasRestPose) {
             velA.inverseTransform (myRestPose);
          }
-         velB.transform (myT20.R);
+         velB.transform (myTD.R);
          myVel20.sub (velB, velA);
       }
       else {
          if (myFrameB != null && myApplyRestPose && myHasRestPose) {
             velB.inverseTransform (myRestPose);
          }
-         velA.transform (myT20.R);
+         velA.transform (myTD.R);
          myVel20.sub (velA, velB);
       }
    }
@@ -621,7 +618,7 @@ public class FrameSpring extends Spring
 
       if (mat != null) { // just in case implementation allows null material ...
          computeRelativeDisplacements();
-         mat.computeF (myF, myT20, myVel20, myRestPose);
+         mat.computeF (myF, myTD, myVel20, myRestPose);
       }
    }
     
@@ -637,12 +634,12 @@ public class FrameSpring extends Spring
             fA.transform (myRestPose);
          }
          if (myFrameB != null) {
-            fB.inverseTransform (myT20.R, myF);
+            fB.inverseTransform (myTD.R, myF);
             fB.negate();
          }
       }
       else {
-         fA.inverseTransform (myT20.R, myF);
+         fA.inverseTransform (myTD.R, myF);
          fA.negate();
          if (myFrameB != null) {
             fB.set (myF);
@@ -962,12 +959,12 @@ public class FrameSpring extends Spring
 
       Twist vel20 = (sd != 0.0 ? myVel20 : Twist.ZERO);
 
-      x20.set (myT20.p);
+      x20.set (myTD.p);
       x20.transform (R0W);
 
       if (!symmetric) {
          // compute forces for assymetric force component
-         mat.computeF (myF, myT20, vel20, myRestPose);
+         mat.computeF (myF, myTD, vel20, myRestPose);
          if (myApplyRestPose && myHasRestPose) {
             //myF.transform (myRestPose);
          }
@@ -976,7 +973,7 @@ public class FrameSpring extends Spring
          if (sd != 0) {
             JD = new Matrix6d();
             mat.computeDFdu (
-               JD, myT20, vel20, myRestPose, /*symmetric=*/false);
+               JD, myTD, vel20, myRestPose, /*symmetric=*/false);
             if (myApplyRestPose && myHasRestPose) {
                // Vector3d p0 = new Vector3d(myRestPose.p);
                // p0.inverseTransform (myRestPose.R);
@@ -985,7 +982,7 @@ public class FrameSpring extends Spring
             JD.transform (R0W);
          }
       }
-      mat.computeDFdq (JK, myT20, vel20, myRestPose, symmetric);
+      mat.computeDFdq (JK, myTD, vel20, myRestPose, symmetric);
       if (myApplyRestPose && myHasRestPose) {
          // Vector3d p0 = new Vector3d(myRestPose.p);
          // p0.inverseTransform (myRestPose.R);
@@ -1168,7 +1165,7 @@ public class FrameSpring extends Spring
       Matrix6d tmp10 = new Matrix6d();     
       
       computeRelativeDisplacements();
-      mat.computeDFdu (D, myT20, myVel20, myRestPose, mySymmetricJacobian);
+      mat.computeDFdu (D, myTD, myVel20, myRestPose, mySymmetricJacobian);
       if (myApplyRestPose && myHasRestPose) {
          // Vector3d p0 = new Vector3d(myRestPose.p);
          // p0.inverseTransform (myRestPose.R);
@@ -1250,13 +1247,13 @@ public class FrameSpring extends Spring
       if (mat != null) { // just in case implementation allows null material ...
          computeRelativeDisplacements();
          if (!staticOnly) {
-            mat.computeF (myF, myT20, myVel20, myRestPose);
+            mat.computeF (myF, myTD, myVel20, myRestPose);
             if (myApplyRestPose && myHasRestPose) {
                myF.transform (myRestPose);
             }
          }
          else {
-            mat.computeF (myF, myT20, Twist.ZERO, myRestPose);
+            mat.computeF (myF, myTD, Twist.ZERO, myRestPose);
             if (myApplyRestPose && myHasRestPose) {
                myF.transform (myRestPose);
             }
@@ -1714,8 +1711,7 @@ public class FrameSpring extends Spring
       comp.myTmpM = new Matrix3d();
       // comp.myRBA = new RotationMatrix3d();
 
-      comp.myT21 = new RigidTransform3d();
-      comp.myT20 = new RigidTransform3d();
+      comp.myTD = new RigidTransform3d();
       comp.myRestPose = new RigidTransform3d(myRestPose);
       comp.myHasRestPose = !comp.myRestPose.isIdentity();
 

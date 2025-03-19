@@ -178,6 +178,34 @@ class Matrix6dTest extends MatrixTest {
       }
    }
 
+   public void testCrossProductTransform (Matrix6d M1) {
+      Vector3d p = new Vector3d();
+      p.setRandom();
+
+      Matrix6d MR = new Matrix6d();
+      Matrix6d MRCheck = new Matrix6d();
+
+      Matrix6d P = new Matrix6d();
+      P.setIdentity();
+      Matrix3d X = new Matrix3d();
+      X.setSkewSymmetric (p);
+      P.setSubMatrix30 (X);
+      MRCheck.mul (P, M1);
+      MRCheck.mulTransposeRight (MRCheck, P);
+
+      MR.crossProductTransform (p, M1);
+      if (!MRCheck.epsilonEquals (MR, 10 * EPSILON)) {
+         System.out.println ("MR=\n" + MR.toString ("%12.6f"));
+         System.out.println ("MRCheck=\n" + MRCheck.toString ("%12.6f"));
+         throw new TestException ("transform failed");
+      }
+      MR.set (M1);
+      MR.crossProductTransform (p, MR);
+      if (!MRCheck.epsilonEquals (MR, 10 * EPSILON)) {
+         throw new TestException ("self transform failed");
+      }
+   }
+
    public void execute() {
       Matrix6d MR = new Matrix6d();
       Matrix6d M1 = new Matrix6d();
@@ -235,6 +263,7 @@ class Matrix6dTest extends MatrixTest {
          testMulAdd (MR);
 
          testTransform (M1);
+         testCrossProductTransform (M1);
       }
    }
 

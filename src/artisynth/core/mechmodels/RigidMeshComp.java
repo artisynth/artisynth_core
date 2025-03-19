@@ -26,7 +26,9 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolylineMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Quaternion;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -657,6 +659,25 @@ public class RigidMeshComp extends DynamicMeshComponent
          setDensity (density);
          return true;
       }
+      else if (scanAttributeName (rtok, "rotation")) {
+         if (getMesh() != null) { // paranoid
+            RigidTransform3d TMW = new RigidTransform3d (getMeshToWorld());
+            Quaternion q = new Quaternion();
+            q.scan (rtok);
+            q.normalize();
+            TMW.R.set (q);
+            setMeshToWorld (TMW);
+         }
+         return true;
+      }
+      else if (scanAttributeName (rtok, "position")) {
+         if (getMesh() != null) { // paranoid
+            RigidTransform3d TMW = new RigidTransform3d (getMeshToWorld());
+            TMW.p.scan (rtok);
+            setMeshToWorld (TMW);
+         }
+         return true;
+      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }     
@@ -674,6 +695,16 @@ public class RigidMeshComp extends DynamicMeshComponent
          pw.println ("volume=" + fmt.format (getVolume()));
       }
       super.writeItems (pw, fmt, ancestor);
+      // XXX: the mesh's meshToWorld() transform is set by its associated rigid
+      // body. However, we also write it out here, in the same form, since it
+      // may be needed to initialize MeshCurves and MeshMarkers during a scan,
+      // before the body has been able to set transform itself.
+      MeshBase mesh = getMesh();
+      RigidBody body = getRigidBody();
+      if (body != null && mesh != null && !mesh.meshToWorldIsIdentity()) {
+         pw.println ("position=[ " + body.getPosition().toString (fmt) + "]");
+         pw.println ("rotation=[ " + body.getRotation().toString (fmt) + "]");
+      }
    }
 
    public PolygonalMesh getSurfaceMesh() {

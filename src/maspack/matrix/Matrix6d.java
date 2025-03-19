@@ -461,6 +461,56 @@ public class Matrix6d extends Matrix6dBase implements VectorObject<Matrix6d> {
       super.inverseTransform(R, M1);
    }
 
+   /**
+    * Applies an cross product transformation to a matrix M1 and places
+    * the result in this matrix. This transform is defined by
+    * <pre>
+    *    [  I   0 ]      [ I -[p] ]
+    *    [        ]  M1  [        ]
+    *    [ [p]  I ]      [ 0   I  ]
+    * </pre>
+    * where {@code [p]} is the 3 x 3 skew-symmetric matrix that
+    * implements the cross product for a vector {@code p}.
+    *
+    * @param p
+    * vector defining the cross product
+    * @param M1
+    * matrix to transform
+    */
+   public void crossProductTransform (Vector3d p, Matrix6d M1) {
+      // Assume M1 is partitioned into
+      //
+      // [ A  B ]
+      // [ C  D ]
+      //
+      // Then the transformed value of M1 is given by
+      //
+      // [     A              - A [p] + B               ]
+      // [                                              ]
+      // [ [p] A + C ]  -[p] A [p] - C [p] + [p] B + D  ]
+      Matrix3d A = new Matrix3d();
+      Matrix3d B = new Matrix3d();
+      Matrix3d C = new Matrix3d();
+      Matrix3d X = new Matrix3d();
+      set (M1);
+      M1.getSubMatrix00 (A);
+      M1.getSubMatrix03 (B);
+      M1.getSubMatrix30 (C);
+
+      X.crossProduct (A, p); 
+      X.negate();
+      addSubMatrix03 (X);     // B' = B - A [p]
+      X.crossProduct (p, X);
+      addSubMatrix33 (X);     // D' = D - [p] A [p]
+      X.crossProduct (p, A);
+      addSubMatrix30 (X);     // C' = C + [p] A
+      X.crossProduct (C, p);
+      X.negate();
+      addSubMatrix33 (X);     // D' -= C [p]
+      X.crossProduct (p, B);
+      addSubMatrix33 (X);     // D' += [p] B
+   }
+
    /** 
     * Makes this matrix symmetric by setting its lower triangular elements
     * equal to the corresponding upper triangular elements.

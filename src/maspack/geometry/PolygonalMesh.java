@@ -4572,7 +4572,7 @@ public class PolygonalMesh extends MeshBase {
 
    /**
     * Estimate the surface normal of this mesh at the location nearest to a
-    * prescribed postion. This is done by computing a weighted average of the
+    * prescribed position. This is done by computing a weighted average of the
     * normals of all neighbouring mesh vertices within a prescribed distance,
     * plus the normal of the nearest face. The weighting is Gaussian, based on
     * the distance of the vertex from the nearest point.

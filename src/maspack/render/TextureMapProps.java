@@ -121,19 +121,26 @@ public abstract class TextureMapProps implements CompositeProperty, Scannable, C
 
    static {
       myProps.addInheritable (
-         "enabled:Inherited isEnabled *", "texturing is enabled", defaultEnabledP);
+         "enabled:Inherited isEnabled",
+         "texturing is enabled", defaultEnabledP);
       myProps.addInheritable (
-         "fileName * *", "name of the texture file", defaultFileName);
+         "fileName:Inherited",
+         "name of the texture file", defaultFileName);
       myProps.addInheritable (
-         "sWrapping * *", "wrapping of s texture coordinate", defaultSWrapping);
+         "sWrapping:Inherited",
+         "wrapping of s texture coordinate", defaultSWrapping);
       myProps.addInheritable (
-         "tWrapping * *", "wrapping of t texture coordinate", defaultTWrapping);
+         "tWrapping:Inherited",
+         "wrapping of t texture coordinate", defaultTWrapping);
       myProps.addInheritable (
-         "minFilter * *", "minifying filter", defaultMinFilter);
+         "minFilter:Inherited",
+         "minifying filter", defaultMinFilter);
       myProps.addInheritable (
-         "magFilter * *", "magnifying filter", defaultMagFilter);
+         "magFilter:Inherited",
+         "magnifying filter", defaultMagFilter);
       myProps.addInheritable (
-         "borderColor * *", "border color for clamping", defaultBorderColor);
+         "borderColor",
+         "border color for clamping", defaultBorderColor);
    }
 
    public Property getProperty (String name) {
@@ -224,7 +231,8 @@ public abstract class TextureMapProps implements CompositeProperty, Scannable, C
          }
          
       }
-      myFileNameMode = PropertyUtils.propagateValue (this, "fileName", name, myFileNameMode);
+      myFileNameMode = PropertyUtils.propagateValue (
+         this, "fileName", name, myFileNameMode);
    }
 
    public boolean textureFileExists() {

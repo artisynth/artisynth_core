@@ -535,7 +535,7 @@ public class MeshComponent extends RenderableCompositeBase
             mm.updatePosition();
          }
          for (MeshCurve mc : myCurves) {
-            mc.updatePosition();
+            mc.updateMarkerPositions();
          }
       }
    }

@@ -306,7 +306,7 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
       MarkerAction action = (MarkerAction)myMarkerActionSelector.getValue();
       if (action == MarkerAction.INSERT) {
          // pick the insertion index based on the nearest segment to the point
-         int idx = (myCurve.findNearestInterval(pnt) + 1);
+         int idx = (myCurve.findNearestMarkerInterval(pnt) + 1);
          System.out.println ("idx=" + idx);
          addComponent (new AddComponentsCommand (
                           "add MeshMarker", marker, idx, myMarkerList));

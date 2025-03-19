@@ -1880,16 +1880,40 @@ public class RotationMatrix3d extends Matrix3dBase {
       double sin = axis.norm();
       double ang = Math.atan2 (sin, cos);
 
-      if (ang != 0 && sin == 0) // just rotate about x
-      {
+      if (ang != 0 && sin == 0) { // just rotate about x
          axis.set (1, 0, 0);
       }
       if (ang != 0) {
          RotationMatrix3d Tmp = new RotationMatrix3d();
-         // System.out.println ("axis=" + axis.toString("%14.9f"));
-         // System.out.println ("ang=" + Math.toDegrees (ang));
-         // System.out.println ("cos=" + cos);
-         // System.out.println ("sin=" + sin);
+         Tmp.setAxisAngle (axis, ang);
+         mul (Tmp, this);
+      }
+   }
+
+   /**
+    * Rotates this rotation so that the y axis points in a specified direction.
+    * This is done by rotating about an axis perpendicular to the orginal and
+    * new y axes.
+    * 
+    * @param diry
+    * direction for the new y axis
+    */
+   public void rotateYDirection (Vector3d diry) {
+      Vector3d newY = new Vector3d (diry);
+      newY.normalize();
+      Vector3d oldY = new Vector3d (m01, m11, m21); // original y axis
+      Vector3d axis = new Vector3d();
+
+      axis.cross (oldY, newY);
+      double cos = newY.dot (oldY);
+      double sin = axis.norm();
+      double ang = Math.atan2 (sin, cos);
+
+      if (ang != 0 && sin == 0) { // just rotate about x
+         axis.set (1, 0, 0);
+      }
+      if (ang != 0) {
+         RotationMatrix3d Tmp = new RotationMatrix3d();
          Tmp.setAxisAngle (axis, ang);
          mul (Tmp, this);
       }

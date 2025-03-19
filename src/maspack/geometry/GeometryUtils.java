@@ -307,4 +307,53 @@ public class GeometryUtils {
          return rn;
       }
    }
+
+   /**
+    * Gets a point at a specific location on a polyline. The polyline is
+    * specified by a list of vertices {@code vtxs}, and the point location is
+    * described by a non-negative parameter {@code r}, which takes the form
+    * <pre>
+    * r = k + s
+    * </pre>
+    * where {@code k} is the index of a polyline vertex, and {@code s} is a
+    * scalar parameter in the range [0,1] that specifies the location along the
+    * interval between vertices {@code k} and {@code k+1}. If the polyline is
+    * open, {@code r} must lie in the range {@code [0, numv-1]}, where {@code
+    * numv} is the number of vertices. If the polyline is closed, then {@code
+    * r} is reduced, using the modulo function, to the range {@code [0, numv)}.
+    *
+    * @param r specifies the location on the polyline
+    * @param vtxs list of vertices defining the polyline 
+    * @param closed {@code true} if the polyline is closed
+    * @return located point
+    */
+   static public Point3d getPointAt (
+      double r, List<Point3d> vtxs, boolean closed) {
+
+      int numv = vtxs.size();
+      if (r < 0) {
+         throw new IllegalArgumentException ("r must not be negative");
+      }
+      if (!closed) {
+         if (r > numv-1) {
+            throw new IllegalArgumentException (
+               "r must be in the range [0, "+(numv-1)+"]");
+         }
+      }
+      else {
+         r = (r%numv);
+      }
+      int k = (int)r;
+      double s = r - k;
+      Point3d pr = new Point3d();
+      if (s == 0) {
+         pr.set (vtxs.get(k));
+      }
+      else {
+         Point3d vtx0 = vtxs.get(k);
+         Point3d vtx1 = vtxs.get((k+1)%numv);
+         pr.combine (1-s, vtx0, s, vtx1);
+      }
+      return pr;
+   }
 }

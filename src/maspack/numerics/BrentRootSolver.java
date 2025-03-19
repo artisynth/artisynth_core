@@ -26,6 +26,7 @@ import maspack.util.*;
 public class BrentRootSolver {
 
    private static int myIterCnt;
+   private static int mySolveCnt;
 
    /**
     * Maximum number of iterations. This should be sufficient since the
@@ -41,6 +42,14 @@ public class BrentRootSolver {
 
    public static int getIterationCount() {
       return myIterCnt;
+   }
+   
+   public static void clearSolveCount() {
+      mySolveCnt = 0;
+   }
+
+   public static int getSolveCount() {
+      return mySolveCnt;
    }
    
    /** Mask used to clear the non-sign part of a long. */
@@ -95,7 +104,7 @@ public class BrentRootSolver {
       Function1x1 fxn, double a, double fa, double b, double fb,
       double eps, double feps) {
 
-
+      mySolveCnt++;
       if (fastAbs(fa) <= feps) {
          return a;
       }

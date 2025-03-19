@@ -89,6 +89,12 @@ public class GeometryUtilsTest extends UnitTest {
          checkEquals ("findNearestPoint pr", pr, pchk, EPS);
       }
    }
+   void testGetPointAt (
+      double r, ArrayList<Point3d> vtxs, boolean closed, Point3d pchk) {
+
+      Point3d pr = GeometryUtils.getPointAt (r, vtxs, closed);
+      checkEquals ("getPointAt pr", pr, pchk, EPS);
+   }
 
    private double sqrt (double x) {
       return Math.sqrt(x);
@@ -149,6 +155,9 @@ public class GeometryUtilsTest extends UnitTest {
    }
 
    void testNearestPoint() {
+      boolean open = false;
+      boolean closed = true;
+
       ArrayList<Point3d> vtxs = new ArrayList<>();
       vtxs.add (new Point3d (1, 0, 0));
       vtxs.add (new Point3d (1, 0, 2));
@@ -157,41 +166,62 @@ public class GeometryUtilsTest extends UnitTest {
 
       // test open polyline
       double x0 = -1;
-      testNearestPoint (vtxs, false, x0, /*z0*/0,     0, 0.0);
-      testNearestPoint (vtxs, false, x0, /*z0*/-1,    0, 0.0);
-      testNearestPoint (vtxs, false, x0, /*z0*/1,     0, 0.5);
-      testNearestPoint (vtxs, false, x0, /*z0*/2,     0, 1.0);
-      testNearestPoint (vtxs, false, x0, /*z0*/2.33,  0, 1.33);
-      testNearestPoint (vtxs, false, x0, /*z0*/3.25,  0, 2.25);
-      testNearestPoint (vtxs, false, x0, /*z0*/4,     0, 3.00);
-      testNearestPoint (vtxs, false, x0, /*z0*/4.5,   0, 3.00);
+      testNearestPoint (vtxs, open, x0, /*z0*/0,     0, 0.0);
+      testNearestPoint (vtxs, open, x0, /*z0*/-1,    0, 0.0);
+      testNearestPoint (vtxs, open, x0, /*z0*/1,     0, 0.5);
+      testNearestPoint (vtxs, open, x0, /*z0*/2,     0, 1.0);
+      testNearestPoint (vtxs, open, x0, /*z0*/2.33,  0, 1.33);
+      testNearestPoint (vtxs, open, x0, /*z0*/3.25,  0, 2.25);
+      testNearestPoint (vtxs, open, x0, /*z0*/4,     0, 3.00);
+      testNearestPoint (vtxs, open, x0, /*z0*/4.5,   0, 3.00);
 
       // test with non-zero starting point
-      testNearestPoint (vtxs, false, x0, /*z0*/0,     0.33, 0.33);
-      testNearestPoint (vtxs, false, x0, /*z0*/-1,    0.33, 0.33);
-      testNearestPoint (vtxs, false, x0, /*z0*/0.66,  0.33, 0.33);
-      testNearestPoint (vtxs, false, x0, /*z0*/0.68,  0.33, 0.34);
-      testNearestPoint (vtxs, false, x0, /*z0*/2.5,   2.0,  2.0);
-      testNearestPoint (vtxs, false, x0, /*z0*/3.0,   2.0,  2.0);
-      testNearestPoint (vtxs, false, x0, /*z0*/3.1,   2.0,  2.1);
+      testNearestPoint (vtxs, open, x0, /*z0*/0,     0.33, 0.33);
+      testNearestPoint (vtxs, open, x0, /*z0*/-1,    0.33, 0.33);
+      testNearestPoint (vtxs, open, x0, /*z0*/0.66,  0.33, 0.33);
+      testNearestPoint (vtxs, open, x0, /*z0*/0.68,  0.33, 0.34);
+      testNearestPoint (vtxs, open, x0, /*z0*/2.5,   2.0,  2.0);
+      testNearestPoint (vtxs, open, x0, /*z0*/3.0,   2.0,  2.0);
+      testNearestPoint (vtxs, open, x0, /*z0*/3.1,   2.0,  2.1);
 
       // test with a closed loop
+      Point3d p0 = new Point3d (-1, 0, 0);
+      Point3d p1 = new Point3d ( 1, 0, 0);
+      Point3d p2 = new Point3d ( 0, 0, 1);
+
       vtxs.clear();
-      vtxs.add (new Point3d (-1, 0, 0));
-      vtxs.add (new Point3d ( 1, 0, 0));
-      vtxs.add (new Point3d ( 0, 0, 1));
-      testNearestPoint (vtxs, true, /*x0*/-1,  /*z0*/-0.5,  0, 0.0);
-      testNearestPoint (vtxs, true, /*x0*/0,   /*z0*/-0.5,  0, 0.5);
-      testNearestPoint (vtxs, true, /*x0*/1,   /*z0*/-0.5,  0, 1.0);
-      testNearestPoint (vtxs, true, /*x0*/1.5, /*z0*/-0.5,  0, 1.0);
-      testNearestPoint (vtxs, true, /*x0*/1,   /*z0*/ 0.5,  0, 1.25);
-      testNearestPoint (vtxs, true, /*x0*/0.5, /*z0*/ 1.5,  0, 2.0);
-      testNearestPoint (vtxs, true, /*x0*/0,   /*z0*/ 1.2,  0, 2.0);
-      testNearestPoint (vtxs, true, /*x0*/-0.5,/*z0*/ 1.5,  0, 2.0);
-      testNearestPoint (vtxs, true, /*x0*/-1,  /*z0*/ 0.5,  0, 2.75);
-      testNearestPoint (vtxs, true, /*x0*/-1.5,/*z0*/ 0.5,  0, 0.00);
-      testNearestPoint (vtxs, true, /*x0*/-1.5,/*z0*/ 0.0,  0, 0.00);
+      vtxs.add (p0);
+      vtxs.add (p1);
+      vtxs.add (p2);
+      testNearestPoint (vtxs, closed, /*x0*/-1,  /*z0*/-0.5,  0, 0.0);
+      testNearestPoint (vtxs, closed, /*x0*/0,   /*z0*/-0.5,  0, 0.5);
+      testNearestPoint (vtxs, closed, /*x0*/1,   /*z0*/-0.5,  0, 1.0);
+      testNearestPoint (vtxs, closed, /*x0*/1.5, /*z0*/-0.5,  0, 1.0);
+      testNearestPoint (vtxs, closed, /*x0*/1,   /*z0*/ 0.5,  0, 1.25);
+      testNearestPoint (vtxs, closed, /*x0*/0.5, /*z0*/ 1.5,  0, 2.0);
+      testNearestPoint (vtxs, closed, /*x0*/0,   /*z0*/ 1.2,  0, 2.0);
+      testNearestPoint (vtxs, closed, /*x0*/-0.5,/*z0*/ 1.5,  0, 2.0);
+      testNearestPoint (vtxs, closed, /*x0*/-1,  /*z0*/ 0.5,  0, 2.75);
+      testNearestPoint (vtxs, closed, /*x0*/-1.5,/*z0*/ 0.5,  0, 0.00);
+      testNearestPoint (vtxs, closed, /*x0*/-1.5,/*z0*/ 0.0,  0, 0.00);
+
+      Point3d pchk = new Point3d();
+      testGetPointAt (0, vtxs, open, p0);
+      pchk.combine (0.7, p0, 0.3, p1);
+      testGetPointAt (0.3, vtxs, open, pchk);
+      testGetPointAt (0.3, vtxs, closed, pchk);
+      testGetPointAt (3.3, vtxs, closed, pchk);
+      testGetPointAt (1, vtxs, open, p1);
+      pchk.combine (0.4, p1, 0.6, p2);
+      testGetPointAt (1.6, vtxs, open, pchk);
+      testGetPointAt (1.6, vtxs, closed, pchk);
+      testGetPointAt (4.6, vtxs, closed, pchk);
+      testGetPointAt (2, vtxs, open, p2);
+      testGetPointAt (6, vtxs, closed, p2);
+      pchk.combine (0.4, p2, 0.6, p0);
+      testGetPointAt (2.6, vtxs, closed, pchk);
    }
+
 
    public void test() {
       testFindPointAtDistance();

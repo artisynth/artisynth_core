@@ -30,10 +30,12 @@ public class MeshCurve extends RenderableCompositeBase {
    protected PointList<MeshMarker> myMarkers;
    protected boolean myCurveValid = false;
    protected ArrayList<Point3d> myLocalPoints;
+   protected DynamicDoubleArray myArcLengths;
+   protected double myLength; // arc-length estimate based on points
    // indices of the first point for each interval
    protected int[] myIntervalPointIndices; 
    protected ArrayList<Vector3d> myLocalNormals;
-   private RigidTransform3d myRenderFrame = new RigidTransform3d();
+   private RigidTransform3d myRenderFrame;
 
    private static final int CURVE_GRP = 0;
    private static final int NORMAL_GRP = 1;
@@ -163,8 +165,12 @@ public class MeshCurve extends RenderableCompositeBase {
 
    protected void initializeChildComponents() {
       myLocalPoints = new ArrayList<>();
+      myArcLengths = new DynamicDoubleArray();
       myLocalNormals = new ArrayList<>();
       myMarkers = new PointList (MeshMarker.class, "markers");
+      myRenderFrame = new RigidTransform3d();
+      myRob = null;
+      myIntervalPointIndices = null;
       add (myMarkers);
    }
 
@@ -325,7 +331,7 @@ public class MeshCurve extends RenderableCompositeBase {
       myCurveValid = false;
    }
 
-   public void updatePosition() {
+   public void updateMarkerPositions() {
       for (MeshMarker mm : myMarkers) {
          mm.updatePosition();
       }
@@ -361,6 +367,17 @@ public class MeshCurve extends RenderableCompositeBase {
    }
 
    /**
+    * Returns the total length of this curve, as approximated by the sum of the
+    * distances between all points.
+    * 
+    * @return length of the curve
+    */
+   public double getLength() {
+      updateCurveIfNecessary();
+      return myLength;
+   }
+   
+   /**
     * Returns a list of all the points on this curve, in world coordinates. The
     * list will have size {@link numPoints}.
     *
@@ -388,9 +405,29 @@ public class MeshCurve extends RenderableCompositeBase {
     * @return {@code idx}-th point
     */
    public Point3d getPoint (int idx) {
+      updateCurveIfNecessary();
       Point3d pnt = new Point3d(myLocalPoints.get(idx));
       transformToWorld (pnt);
       return pnt;
+   }
+
+   /**
+    * Returns the arc-length at the {@code idx}-th point on this curve, where
+    * {@code idx} should be in the range {@code [0, maxIdx]}, where {@code
+    * maxIdx} is {@link #numPoints()}-1 if the curve is open {@link
+    * #numPoints()} if it is closed.
+    *
+    * @param idx index of the point for which arc-length is desired.
+    * @return arc-length at the {@code idx}-th point
+    */
+   public double getArcLength (int idx) {
+      updateCurveIfNecessary();
+      int maxIdx = isClosed() ? numPoints() : numPoints()-1;
+      if (idx < 0 || idx > maxIdx) {
+         throw new IllegalArgumentException (
+            "idx must be in the range [0, "+maxIdx+"]");
+      }
+      return myArcLengths.get(idx);
    }
 
    /**
@@ -488,9 +525,9 @@ public class MeshCurve extends RenderableCompositeBase {
 
    /**
     * Finds the point on this curve that is a specified distance {@code dist}
-    * from a prescribed point {@code p0}, within machine precision.  Point
-    * locations on the curve are described by a non-negative parameter {@code
-    * r}, which takes the form
+    * from a prescribed point {@code p0}, within machine precision.  The method
+    * also returns the location of the point. Point locations on the curve are
+    * described by a non-negative parameter {@code r}, which takes the form
     * <pre>
     * r = k + s
     * </pre>
@@ -533,12 +570,11 @@ public class MeshCurve extends RenderableCompositeBase {
 
    /**
     * Finds the nearest point on this curve to a prescribed point {@code
-    * p0}. Locations on the curve are described by a non-negative
-    * parameter {@code r}, which takes the form
+    * p0}.The method also returns the point's location. Locations on the curve
+    * are described by a non-negative parameter {@code r}, which takes the form
     * <pre>
     * r = k + s
     * </pre>
-    * 
     * where {@code k} is the index of a curve point (as returned by {@link
     * #getPoints()}), and {@code s} is a scalar parameter in the range [0,1]
     * that specifies the location along the interval between curve points
@@ -562,7 +598,6 @@ public class MeshCurve extends RenderableCompositeBase {
     */
    public double findNearestPoint (
       Point3d pr, Point3d p0, double r0) {
-
       updateCurveIfNecessary();      
       Point3d p0loc = new Point3d(p0);
       transformToMesh (p0loc);
@@ -575,9 +610,9 @@ public class MeshCurve extends RenderableCompositeBase {
    }
 
    /**
-    * Finds the index of the nearest interval on this curve to a prescribed
-    * point {@code p0}. This is defined as the interval containing the nearest
-    * point to {@code p0}.
+    * Finds the index of the nearest marker interval on this curve to a
+    * prescribed point {@code p0}. This is defined as the interval containing
+    * the nearest point to {@code p0}.
     *
     * <p>If the curve is open, then there are {@code numi = numMarkers()-1}
     * intervals. If the nearest point is either the first point or last point,
@@ -587,7 +622,7 @@ public class MeshCurve extends RenderableCompositeBase {
     * 0} to {@code numi-1} is returned.
     *
     * <p>If the curve is closed, then the number of intervals is {@code numi =
-    * numMarkers()-1}, and the method returns the nearest interval index in the
+    * numMarkers()}, and the method returns the nearest interval index in the
     * range {@code 0} to {@code numi-1}.
     *
     * <p>In all cases, the nearest interval may not be unique, in which
@@ -596,7 +631,7 @@ public class MeshCurve extends RenderableCompositeBase {
     * @param p0 point for which the nearest point should be determined
     * @return index of the nearest interval
     */
-   public int findNearestInterval (Point3d p0) {
+   public int findNearestMarkerInterval (Point3d p0) {
       double r = findNearestPoint (null, p0, 0);
       int iidx = -1; // interval index
       for (int k=0; k<myIntervalPointIndices.length; k++) {
@@ -615,6 +650,31 @@ public class MeshCurve extends RenderableCompositeBase {
          }
       }
       return iidx;
+   }
+
+   /**
+    * Finds a point at a specific location on this curve, in world coordinates.
+    * The location is described by a non-negative parameter {@code r}, which
+    * takes the form
+    * <pre>
+    * r = k + s
+    * </pre>
+    * where {@code k} is the index of a curve point (as returned by {@link
+    * #getPoints()}), and {@code s} is a scalar parameter that specifies the
+    * location along the interval between curve points {@code k} and {@code
+    * k+1}. If the curve is open, {@code r} must lie in the range {@code [0,
+    * npnts-1]}, where {@code numpts} is the number of curve points. If the
+    * polyline is closed, then {@code r} is reduced, using the modulo function,
+    * to the range {@code [0, numpts)}.
+    *
+    * @param pr returns the located point, in world coordinates
+    * @param r specifies the location on the curve
+    */
+   public void findPointAtLocation (Point3d pr, double r) {
+      updateCurveIfNecessary();      
+      Point3d ploc = GeometryUtils.getPointAt (r, myLocalPoints, isClosed());
+      pr.set (ploc);
+      transformToWorld (pr);
    }
 
    private void computeLinearCurve() {
@@ -768,7 +828,9 @@ public class MeshCurve extends RenderableCompositeBase {
    public void updateCurveIfNecessary() {
       if (!myCurveValid) {
          myLocalPoints.clear();
+         myArcLengths.clear();
          myLocalNormals.clear();
+         myLength = 0;
          if (numMarkers() > 1) {
             int numi = isClosed() ? numMarkers() : numMarkers()-1;
             myIntervalPointIndices = new int[numi];
@@ -792,9 +854,21 @@ public class MeshCurve extends RenderableCompositeBase {
             }
             RigidTransform3d TMW = getTMW();
             if (TMW != null) {
+               double len = 0;
+               Point3d prev = null;
                for (Point3d p : myLocalPoints) {
                   p.inverseTransform (TMW);
+                  if (prev != null) {
+                     len += p.distance(prev);
+                  }
+                  myArcLengths.add (len);
+                  prev = p;
                }
+               if (isClosed()) {
+                  len += prev.distance(myLocalPoints.get(0));
+                  myArcLengths.add (len);
+               }
+               myLength = len;
                for (Vector3d n : myLocalNormals) {
                   n.inverseTransform (TMW);
                }

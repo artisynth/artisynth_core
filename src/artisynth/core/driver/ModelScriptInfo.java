@@ -28,7 +28,7 @@ public class ModelScriptInfo {
 
    public ModelScriptInfo (
       InfoType type, String classNameOrFile, String shortName, String[] args) {
-      
+
       this.classNameOrFile = classNameOrFile;
       this.shortName = shortName;
       if (args != null) {
@@ -163,15 +163,18 @@ public class ModelScriptInfo {
          argBuilder.append (' ');
          if (!arg.contains (" ")) {
             argBuilder.append (arg);
-         } else if (!arg.contains ("\"")) {
+         } 
+         else if (!arg.contains ("\"")) {
             argBuilder.append ('"');
             argBuilder.append (arg);
             argBuilder.append ('"');
-         } else if (!arg.contains ("\'")) {
+         } 
+         else if (!arg.contains ("\'")) {
             argBuilder.append ('\'');
             argBuilder.append (arg);
             argBuilder.append ('\'');
-         } else {
+         } 
+         else {
             System.err.println (
                "Error: cannot append argument: " + arg +
                " because it has spaces and both types of quotes");
@@ -183,7 +186,7 @@ public class ModelScriptInfo {
    
    public static String[] splitArgs (String argsStr) {
       List<String> matchList = new ArrayList<String>();
-      Pattern regex = Pattern.compile ("[^\\s\"']+|\" ([^\"]*)\"|' ([^']*)'");
+      Pattern regex = Pattern.compile ("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'");
       Matcher regexMatcher = regex.matcher (argsStr);
       while (regexMatcher.find()) {
           if (regexMatcher.group (1) != null) {
@@ -200,6 +203,15 @@ public class ModelScriptInfo {
           }
       } 
       return matchList.toArray (new String[matchList.size()]);
+   }
+   
+   public static void main (String[] args) {
+      for (String arg : args) {
+         System.out.println ("splitting |"+arg+"|");
+         for (String s : splitArgs(arg)) {
+            System.out.println (" |"+s+"|");
+         }
+      }
    }
    
 }

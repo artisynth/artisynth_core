@@ -141,7 +141,8 @@ public class StartupModel implements Scannable {
          else {
             pw.println ("model=" + myModelInfo.getClassNameOrFile());
          }
-         pw.println ("buildArgs=\"" + myModelInfo.getArgsString()+"\"");
+         pw.println ("buildArgs=" + ReaderTokenizer.getQuotedString (
+            myModelInfo.getArgsString(), '"'));
       }
       if (myWaypointsFile != null) {
          String fileStr = ReaderTokenizer.getQuotedString (

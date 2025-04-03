@@ -1,6 +1,7 @@
 package artisynth.core.probes;
 
 import maspack.matrix.*;
+import artisynth.core.util.TimeBase;
 
 public class NumericDifferenceProbe extends NumericMonitorProbe {
 
@@ -14,6 +15,14 @@ public class NumericDifferenceProbe extends NumericMonitorProbe {
    public NumericDifferenceProbe (
       NumericProbeBase probe0, NumericProbeBase probe1, double interval) {
       super (probe0.getVsize(), interval);
+      double startTime = probe0.getStartTime();
+      setStartTime (startTime);
+      if (probe0.getDuration() <= probe1.getDuration()) {
+         setStopTime (probe0.getStopTime());
+      }
+      else {
+         setStopTime (startTime + probe1.getDuration());
+      }
       setProbes (probe0, probe1);
    }
 
@@ -33,6 +42,18 @@ public class NumericDifferenceProbe extends NumericMonitorProbe {
       setVsize (probe0.getVsize());
       myProbe0 = probe0;
       myProbe1 = probe1;
+   }
+
+   public void updateData (double interval) {
+      double t = TimeBase.round(getStartTime());
+      double stopTime = TimeBase.round(getStopTime());
+      while (t <= stopTime) {
+         apply (t);
+         t = TimeBase.round (t + interval);
+      }
+      if (t > stopTime) {
+         apply (stopTime);
+      }
    }
 
    public void generateData (VectorNd vec, double t, double trel) {

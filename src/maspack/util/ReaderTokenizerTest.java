@@ -203,6 +203,10 @@ public class ReaderTokenizerTest {
             + results[i].toString() + "\n" + "Got " + rtok.toString());
          }
       }
+      if (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+         throw new TestException ("ReaderTokenizer failed:\n" + "Expecting "
+            + "EOF, got " + rtok.toString());
+      }
    }
 
    public void test() throws IOException {

@@ -837,32 +837,6 @@ public class AbaqusReader implements FemReader {
       }
    }
    
-   private String readLine(ReaderTokenizer rtok) throws IOException {
-
-      Reader rtokReader = rtok.getReader();
-      String line = "";
-      int c;
-      StringBuilder sb = new StringBuilder();
-      while (true) {
-         c = rtokReader.read();
-         if (c < 0) {
-            rtok.ttype = ReaderTokenizer.TT_EOF;
-            return line;
-         }
-         else if (c == '\n') {
-            rtok.setLineno(rtok.lineno() + 1); // increase line number
-            rtok.ttype = ReaderTokenizer.TT_EOL;
-            break;
-         }
-         else if (c != '\r') {
-            line += (char)c;
-         }
-      }
-      System.out.println ("readLine '"+line+"'");
-      return line;
-   }
-   
-   
    private String parseKey(String keyName, String line) {
       
       String linesmall = line.toLowerCase();

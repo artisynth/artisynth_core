@@ -1010,6 +1010,22 @@ public class Vector2d extends VectorBase
       return (Vector2d)super.clone();
    }
 
+   /**
+    * Provided to support spatial hashing. This will require a wrapper object
+    * that contains the hash code.
+    */
+   public int computeHashCode() {
+      //final int PRIME = 31;
+      final int PRIME = 1009;
+      int result;
+      long temp;
+      temp = Double.doubleToLongBits(this.x);
+      result = (int) (temp ^ (temp >>> 32));
+      temp = Double.doubleToLongBits(this.y);
+      result = PRIME * result + (int) (temp ^ (temp >>> 32));
+      return result;  
+   }
+
    /* VectorObject implementation. It is currently necessary to define the
     * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
     * the corresponding scale(), add() and scaledAdd() methods have

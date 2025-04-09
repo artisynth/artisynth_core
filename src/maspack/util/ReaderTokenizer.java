@@ -281,6 +281,15 @@ import java.io.*;
  * 
  */
 public class ReaderTokenizer {
+
+   private static final int MAX_UNGET = 16;
+   private static final int BUFFER_SIZE = 65536;
+   private char[] myBuffer = new char[BUFFER_SIZE + MAX_UNGET];
+   private int myBufNext = 0;
+   private int myBufMax = 0;
+
+   private static final long MIN_19_DIGIT_INTEGER =
+      FastDoubleParser.MINIMAL_NINETEEN_DIGIT_INTEGER;
    private Reader myReader;
    private String myResourceName;
    private byte ctype[] = new byte[256];
@@ -347,21 +356,16 @@ public class ReaderTokenizer {
       return new String (cbuf, 0, cbufIdx);
    }
 
+   private int numStoredCharacters() {
+      return cbufIdx;
+   }
+
    private int storeCharacterAndGetc (int c) throws IOException {
       if (cbufIdx == cbuf.length) {
          growCharacterStorage();
       }
       cbuf[cbufIdx++] = (char)c;
-      if (ungetIdx > 0) {
-         c = ungetBuf[--ungetIdx];
-      }
-      else {
-         c = myReader.read();
-      }
-      if (c == '\n') {
-         myLineNum++;
-      }
-      return c;
+      return getc();
    }
 
    /**
@@ -1258,20 +1262,20 @@ public class ReaderTokenizer {
    private int[] ungetBuf = new int[16];
    private int ungetIdx = 0;
 
-   protected final void ungetc (int c) {
-      ungetBuf[ungetIdx++] = c;
-      if (c == '\n') {
-         myLineNum--;
-      }
-   }
-
    protected void ungetStr (String str) {
       for (int i = str.length() - 1; i >= 0; i--) {
          ungetc (str.charAt(i));
       }
    }
 
-   protected final int getc() throws IOException {
+   protected final void ungetc_old(int c) {
+      ungetBuf[ungetIdx++] = c;
+      if (c == '\n') {
+         myLineNum--;
+      }
+   }
+
+   protected final int getc_old() throws IOException {
       int c;
       if (ungetIdx > 0) {
          c = ungetBuf[--ungetIdx];
@@ -1283,6 +1287,33 @@ public class ReaderTokenizer {
          myLineNum++;
       }
       return c;
+   }
+
+   protected final int getc/*_fast*/() throws IOException {
+      if (myBufNext == myBufMax) {
+         int nr = myReader.read (myBuffer, MAX_UNGET, BUFFER_SIZE);
+         if (nr == -1) {
+            return -1;
+         }
+         else {
+            myBufNext = MAX_UNGET;
+            myBufMax = myBufNext + nr;
+         }
+      }
+      int c = myBuffer[myBufNext++];
+      if (c == '\n') {
+         myLineNum++;
+      }
+      return c;
+   }
+
+   protected final void ungetc/*_fast*/(int c) {
+      if (c >= 0) {
+         myBuffer[--myBufNext] = (char)c;
+         if (c == '\n') {
+            myLineNum--;
+         }
+      }
    }
 
    /**
@@ -1476,7 +1507,7 @@ public class ReaderTokenizer {
       ungetc (c);
    }
 
-   private boolean parseNumber (int c) throws IOException {
+   private boolean parseNumber_old(int c) throws IOException {
       boolean negate = false;
 
       int signChar = 0;
@@ -1610,6 +1641,202 @@ public class ReaderTokenizer {
                return true;
             }
             nval = Double.parseDouble (getStoredCharacters());
+            if (negate) {
+               nval = -nval;
+            }
+            if (myNumNumericExtensions > 0) {
+               parseNumericExtension();
+            }
+            else {
+               sval = null;
+            }
+            return true;
+         }
+      }
+   }
+
+   private boolean parseNumber/*_fast*/(int c) throws IOException {
+      boolean negate = false;
+
+      int signChar = 0;
+      if (c == '-') {
+         negate = true;
+         signChar = '-';
+         c = getc();
+      }
+      else if (c == '+') {
+         signChar = '+';
+         c = getc();
+      }
+      if ((c | 0x20) == 'i') { // equals ignore case
+         int startc = c;
+         if (infinityParsed()) {
+            nval =
+               (negate ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY);
+            sval = null;
+            return true;
+         }
+         if (signChar != 0) {
+            ungetc (startc);
+            c = signChar;
+         }
+         return false;
+      }
+      else {
+         long l = 0;
+         int digitCnt = 0;
+         int integerDigitCnt = 0;
+         int exponent = 0;
+         boolean hasDot = false;
+
+         clearCharacterStorage();
+
+         if (c == '0') {
+            c = storeCharacterAndGetc (c);
+            if (c == 'x' || c == 'X') {
+               int d = hexDigitValue (c = getc());
+               if (d >= 0) {
+                  l = d;
+                  while ((d = hexDigitValue (c = getc())) >= 0) {
+                     l = l * 16 + d;
+                  }
+                  // XXX check terminating character?
+                  ungetc (c);
+                  myTokenIsInteger = true;
+                  myTokenIsHex = true;
+                  lval = l;
+                  nval = (double)lval;
+                  if (myNumNumericExtensions > 0) {
+                     parseNumericExtension();
+                  }
+                  else {
+                     sval = null;
+                  }
+                  return true;
+               }
+               else {
+                  throw new IOException ("expecting hex digit, got " + this);
+               }
+            }
+            digitCnt = 1;
+         }
+         int digit;
+         while ((digit = (c-'0')) < 10 && digit >= 0) {
+            l = l * 10 + digit;
+            c = storeCharacterAndGetc (c);
+         }
+         integerDigitCnt = numStoredCharacters();
+         if (c == '.') {
+            hasDot = true;
+            c = storeCharacterAndGetc (c);
+         }
+         while ((digit = (c-'0')) < 10 && digit >= 0) {
+            l = l * 10 + digit;
+            c = storeCharacterAndGetc (c);
+         }
+         if (hasDot) {
+            digitCnt = numStoredCharacters() - 1;
+            exponent = integerDigitCnt - digitCnt;
+         }
+         else {
+            digitCnt = integerDigitCnt;
+            exponent = 0;
+         }
+         if (digitCnt == 0) { // then no number; push the characters back
+            ungetc (c);
+            if (hasDot) {
+               ungetc ('.');
+            }
+            if (signChar != 0) {
+               ungetc (signChar);
+            }
+            c = getc();
+            return false;
+         }
+         else {
+            boolean hasExplicitExponent = false;
+            int expNumber = 0;
+            if ((c | 0x20) == 'e') { // equals ignore case
+               int expSignChar = 0;
+               int echar = c;
+
+               c = storeCharacterAndGetc (c);
+               if (c == '+' || c == '-') {
+                  expSignChar = c;
+                  c = storeCharacterAndGetc (c);
+               }
+               if ((digit = (c-'0')) < 10 && digit >= 0) {
+                  hasExplicitExponent = true;
+                  do {
+                     expNumber = expNumber*10 + digit;
+                     c = storeCharacterAndGetc (c);
+                  }
+                  while ((digit = (c-'0')) < 10 && digit >= 0);
+               }
+               ungetc (c);
+               if (!hasExplicitExponent) {
+                  if (expSignChar != 0) {
+                     ungetc (expSignChar);
+                     trimCharacterStorage();
+                  }
+                  ungetc (echar);
+                  trimCharacterStorage();
+               }
+               else if (expSignChar == '-') {
+                  expNumber = -expNumber;
+               }
+               exponent += expNumber;
+            }
+            else {
+               ungetc (c);
+            }
+            if (!hasDot && !hasExplicitExponent) { // number is an integer
+               lval = negate ? -l : l;
+               nval = (double)lval;
+               myTokenIsInteger = true;
+               if (myNumNumericExtensions > 0) {
+                  parseNumericExtension();
+               }
+               else {
+                  sval = null;
+               }
+               return true;
+            }
+            final boolean isSignificandTruncated;
+            int exponentOfTruncatedSignificand;
+            if (digitCnt > 19) {
+               int truncatedDigitCnt = 0;
+               int maxIdx = (hasDot ? digitCnt + 1 : digitCnt);
+               l = 0;
+               int idx;
+               for (idx=0; idx<maxIdx; idx++) {
+                  c = cbuf[idx];
+                  digit = (char)(c - '0');
+                  if (digit < 10) {
+                     if (Long.compareUnsigned (l, MIN_19_DIGIT_INTEGER) < 0) {
+                        l = 10 * l + digit;
+                        truncatedDigitCnt++;
+                     } 
+                     else {
+                        break;
+                     }
+                  }
+               }
+               isSignificandTruncated = (idx < maxIdx);
+               exponentOfTruncatedSignificand =
+                  integerDigitCnt - truncatedDigitCnt + expNumber;
+            }
+            else {
+               isSignificandTruncated = false;
+               exponentOfTruncatedSignificand = 0;
+            }
+            nval = FastDoubleParser.tryDecFloatToDoubleTruncated (
+               /*isNegative*/false, l, exponent,
+               isSignificandTruncated, exponentOfTruncatedSignificand);
+            if (Double.isNaN (nval)) {
+               nval = Double.parseDouble (getStoredCharacters());
+            }
+            //nval = JavaDoubleParser.parseDouble (getStoredCharacters());
             if (negate) {
                nval = -nval;
             }
@@ -1763,10 +1990,16 @@ public class ReaderTokenizer {
       myReader = reader;
       ungetIdx = 0;
       myLineNum = 1;
+      myBufNext = 0;
+      myBufMax = 0;
    }
 
    /**
     * Returns the Reader which supplies the input for this tokenizer.
+    * <p>
+    * Warning: the returned reader is supplied for information only.
+    * Reading from it will be bypass the tokenizer's internal buffering
+    * and cause inconsistent parsing results.
     * 
     * @return this tokenizer's reader
     */
@@ -2349,6 +2582,20 @@ public class ReaderTokenizer {
       sb.append (quoteChar);
       return sb.toString();
    }
-}
 
+   public static void main (String[] args) {
+      ReaderTokenizer rtok = new ReaderTokenizer (new StringReader ("AX_fx"));
+      int chr = (char)(-1);
+      System.out.println ("chr=" + chr);
+      int cnt = 0;
+      try {
+         while (rtok.nextToken () == ReaderTokenizer.TT_WORD && cnt++ < 6) {
+            System.out.println (rtok.sval);
+         }
+      }
+      catch (IOException e) { }
+      rtok.close ();
+   }
+
+}
 

@@ -15,10 +15,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
+import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolylineMesh;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
@@ -30,6 +32,7 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.util.ArraySupport;
+import maspack.util.FunctionTimer;
 import maspack.util.ReaderTokenizer;
 import maspack.util.TestSupport;
 
@@ -1808,6 +1811,7 @@ public class WavefrontReader extends MeshReaderBase {
    public void setMesh (PolygonalMesh mesh, String groupName)
       throws IOException {      
 
+      //FunctionTimer timer = new FunctionTimer();
       mesh.clear();
             
       groupName = setGroupName (groupName);
@@ -1820,15 +1824,23 @@ public class WavefrontReader extends MeshReaderBase {
          indices = getGlobalFaceIndicesAndVertices(vtxList);
       }
 
+      //timer.start();
       for (int i=0; i<vtxList.size(); i++) {
          // add by reference since points have already been copied 
          mesh.addVertex (vtxList.get(i), /* byReference= */true);
       }
+      //timer.stop();
+      //System.out.println ("verts added in " + timer.result(1));
+      //timer.start();
       if (indices != null) {
          for (int k=0; k<indices.length; k++) {
             mesh.addFace (indices[k]);
          }
       }
+      //timer.stop();
+      //System.out.println ("faces added in " + timer.result(1));
+      //timer.start();
+
       ArrayList<Vector3d> textureCoords = new ArrayList<Vector3d>();
       int[] tindices;
       if (groupName != null) {
@@ -1865,10 +1877,14 @@ public class WavefrontReader extends MeshReaderBase {
 
    public MeshBase readMesh (MeshBase mesh) 
       throws IOException {
-      
+
+      // FunctionTimer timer = new FunctionTimer();
+      // timer.start();
       if (!myInputHasBeenParsed) {
          parse ();
       }
+      // timer.stop();
+      // System.out.println (".obj file read in " + timer.result(1));
 
       if (mesh == null) {
          if (myCurrentGroup.faceList.size() == 0) {

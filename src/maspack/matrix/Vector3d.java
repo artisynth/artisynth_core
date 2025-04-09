@@ -1687,6 +1687,24 @@ public class Vector3d extends VectorBase
    // return result;
    // }
 
+   /**
+    * Provided to support spatial hashing. This will require a wrapper object
+    * that contains the hash code.
+    */
+   public int computeHashCode() {
+      //final int PRIME = 31;
+      final int PRIME = 1009;
+      int result;
+      long temp;
+      temp = Double.doubleToLongBits(this.x);
+      result = (int) (temp ^ (temp >>> 32));
+      temp = Double.doubleToLongBits(this.y);
+      result = PRIME * result + (int) (temp ^ (temp >>> 32));
+      temp = Double.doubleToLongBits(this.z);
+      result = PRIME * result + (int) (temp ^ (temp >>> 32));
+      return result;  
+   }
+
    // /**
    // * Two Vector3d are equal, if their spatial coordinates are equal.
    // */

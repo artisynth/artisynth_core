@@ -76,7 +76,7 @@ public class MayaToWavefront {
 
          while (rtok.ttype != ReaderTokenizer.TT_EOF) {
 
-            String line = readLine(rtok);
+            String line = rtok.readLine();
 
             // find nurbsCurve
             if (line.contains("createNode nurbsCurve")) {
@@ -205,29 +205,6 @@ public class MayaToWavefront {
          && (rtok.ttype != ReaderTokenizer.TT_EOF)) {
          nextToken(rtok);
       }
-   }
-
-   protected static String readLine(ReaderTokenizer rtok) throws IOException {
-
-      Reader rtokReader = rtok.getReader();
-      String line = "";
-      int c;
-      while (true) {
-         c = rtokReader.read();
-
-         if (c < 0) {
-            rtok.ttype = ReaderTokenizer.TT_EOF;
-            return line;
-         }
-         else if (c == '\n') {
-            rtok.setLineno(rtok.lineno() + 1); // increase line number
-            rtok.ttype = ReaderTokenizer.TT_EOL;
-            break;
-         }
-         line += (char)c;
-      }
-
-      return line;
    }
 
    public static void main(String[] args) {

@@ -10,6 +10,9 @@ import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.HashSet;
+import java.util.HashMap;
 
 import maspack.geometry.AABBTree;
 import maspack.geometry.BVNode;
@@ -33,14 +36,41 @@ public class StlReader extends MeshReaderBase {
    public static double DEFAULT_TOLERANCE = 1e-15;
    double myTol = DEFAULT_TOLERANCE;
    DataFormat myDataFormat = null; // will be filled in when the mesh is read
-   
+
+   static class HashedPoint3d extends Point3d {
+
+      int myHashCode;
+
+      HashedPoint3d (double x, double y, double z) {
+         super (x, y, z);
+         myHashCode = computeHashCode();
+      }
+
+      @Override 
+      public boolean equals (Object obj) {
+         if (obj instanceof HashedPoint3d) {
+            HashedPoint3d hpnt = (HashedPoint3d)obj;
+            return equals (hpnt);
+         }
+         else {
+            return false;
+         }
+      }
+
+      @Override 
+      public int hashCode() {
+         return myHashCode;
+      }
+
+   }
+
    public StlReader (InputStream is) throws IOException {
       super (is);
    }
 
    public StlReader (File file) throws IOException {
       super (file);
-   }
+  }
 
    public StlReader (String fileName) throws IOException {
       this (new File(fileName));
@@ -254,7 +284,7 @@ public class StlReader extends MeshReaderBase {
       //      
       if (_printDebug) {
          System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
-         System.out.print ("building mesh... ");
+         System.out.print ("merging nodes binary... ");
          start = System.nanoTime ();
       }
       
@@ -262,6 +292,11 @@ public class StlReader extends MeshReaderBase {
       nodeList.addAll (allPoints);
       faceList.addAll (allFaces);
       mergeNearbyNodes (nodeList, faceList, tol);
+      if (_printDebug) {
+         System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
+         System.out.print ("building mesh... ");
+         start = System.nanoTime ();
+      }
       mesh = buildMesh(mesh, nodeList, faceList);
       
       if (_printDebug) {
@@ -281,42 +316,67 @@ public class StlReader extends MeshReaderBase {
       ReaderTokenizer rtok = new ReaderTokenizer(reader);
       ArrayList<Point3d> nodeList = new ArrayList<Point3d>();
       ArrayList<ArrayList<Integer>> faceList = new ArrayList<ArrayList<Integer>>();
-      
+      boolean _printDebug = false;
       rtok.eolIsSignificant(true);
       
       String solidName = "";
-      
+
+      if (_printDebug) {
+         System.out.print("Reading file... ");
+      }
+      long start = System.nanoTime ();
+
       // read until we find "solid"
       while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
          if (rtok.ttype == ReaderTokenizer.TT_WORD) {
             String word = rtok.sval.toLowerCase();
-            if (word.equals("solid")) {
-               rtok.nextToken();
-               
-               if (rtok.ttype == ReaderTokenizer.TT_WORD) {
-                  solidName = rtok.sval;
+            switch(word) {
+               case "solid": {
+                  rtok.nextToken();
+                  if (rtok.ttype == ReaderTokenizer.TT_WORD) {
+                     solidName = rtok.sval;
+                  }
+                  toEOL(rtok);
+                  break;
                }
-               toEOL(rtok);
-            } else if (word.equals("facet")) {
-               ArrayList<Integer> face = readFace(rtok, nodeList, tol);
-               if (face != null) {
-                  faceList.add(face);
+               case "facet": {
+                  ArrayList<Integer> face = readFace(rtok, nodeList, tol);
+                  if (face != null) {
+                     faceList.add(face);
+                  }
+                  break;
                }
-            } else if (word.equals("endsolid") || word.equals("end")) {
+               case "endsolid":
+               case "end": {
+                  boolean setMeshName = true;
+                  if (mesh != null) {
+                     setMeshName = false;
+                  }
                
-               boolean setMeshName = true;
-               if (mesh != null) {
-                  setMeshName = false;
+                  if (_printDebug) {
+                     System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
+                     System.out.print ("merging nodes... ");
+                     start = System.nanoTime ();
+                  }
+                  mergeNearbyNodes (nodeList, faceList, tol);
+                  if (_printDebug) {
+                     System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
+                     System.out.print ("building mesh... ");
+                     start = System.nanoTime ();
+                  }
+                  mesh = buildMesh(mesh, nodeList, faceList);
+                  if (_printDebug) {
+                     System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
+                     System.out.println("Done!");
+                     System.out.println("Unique verts: " + nodeList.size ());
+                     System.out.println("Unique faces: " + faceList.size ());
+                  }
+               
+                  if (setMeshName) {
+                     mesh.setName(solidName);
+                  }
+                  return mesh;
                }
-               
-               mergeNearbyNodes (nodeList, faceList, tol);
-               mesh = buildMesh(mesh, nodeList, faceList);
-               
-               if (setMeshName) {
-                  mesh.setName(solidName);
-               }
-                  
-               return mesh;
             } 
          }
       }
@@ -357,7 +417,7 @@ public class StlReader extends MeshReaderBase {
       ArrayList<Integer> faceNodes = new ArrayList<Integer>(3); 
       
       String word = rtok.scanWord();
-      if (!word.toLowerCase().equals("normal")) {
+      if (!word.equalsIgnoreCase("normal")) {
          throw new IOException("Expecting a normal on line " + rtok.lineno());
       }
       
@@ -367,20 +427,20 @@ public class StlReader extends MeshReaderBase {
       toEOL(rtok);
       
       // expecting "outer loop"
-      String line = readLine(rtok);
-      if (!line.toLowerCase().trim().equals("outer loop")) {
+      String line = rtok.readLine();
+      if (!line.trim().equalsIgnoreCase("outer loop")) {
          throw new IOException("Expecting 'outer loop' on line " + rtok.lineno());
       }
       
       word = rtok.scanWord();
-      while (word.toLowerCase().equals("vertex") && rtok.ttype != ReaderTokenizer.TT_EOF) {
+      while (word.equalsIgnoreCase("vertex") && rtok.ttype != ReaderTokenizer.TT_EOF) {
     
          n = rtok.scanNumbers(vals, 3);
          if (n != 3) {
             throw new IOException("Invalid vertex on line " + rtok.lineno());
          }
          
-         int idx = nodes.size ();  // findOrAddNode(new Point3d(vals), nodes, tol);
+         int idx = nodes.size ();
          nodes.add (new Point3d(vals));
          faceNodes.add(idx);
          
@@ -389,14 +449,14 @@ public class StlReader extends MeshReaderBase {
       }
       
       //endloop
-      if (!word.toLowerCase().equals("endloop")) {
+      if (!word.equalsIgnoreCase("endloop")) {
          throw new IOException("Expected 'endloop' on line " + rtok.lineno());
       }
       toEOL(rtok);
       
       // endfacet
       word = rtok.scanWord();
-      if (!word.toLowerCase().equals("endfacet")) {
+      if (!word.equalsIgnoreCase("endfacet")) {
          throw new IOException("Expected 'endfacet' on line " + rtok.lineno());
       }
       toEOL(rtok);
@@ -440,7 +500,8 @@ public class StlReader extends MeshReaderBase {
       }
    }
    
-   private static void mergeNearbyNodes(ArrayList<Point3d> nodes, ArrayList<ArrayList<Integer>> faces, double tol) {
+   private static void mergeNearbyNodesOld (
+      ArrayList<Point3d> nodes, ArrayList<ArrayList<Integer>> faces, double tol) {
       
       // build bounding volume tree if points
       AABBTree tree = new AABBTree ();
@@ -498,6 +559,39 @@ public class StlReader extends MeshReaderBase {
       
    }
    
+   private static void mergeNearbyNodes (
+      ArrayList<Point3d> nodes, ArrayList<ArrayList<Integer>> faces, double tol) {
+      
+      float loadFactor = 0.75f;
+      int initialCapacity = (int)(nodes.size()/loadFactor);
+      LinkedHashMap<HashedPoint3d,Integer> unodes =
+         new LinkedHashMap<>(initialCapacity, loadFactor);
+
+      // map each point to nearest
+      int[] idxmap = new int[nodes.size ()];
+      int idx = 0;
+      for (int i=0; i<nodes.size(); i++) {
+         Point3d n = nodes.get(i);
+         HashedPoint3d p = new HashedPoint3d (n.x, n.y, n.z);
+         Integer ival = unodes.get (p);
+         if (ival == null) {
+            ival = idx;
+            unodes.put (p, idx++);
+         }
+         idxmap[i] = ival;
+      }
+      nodes.clear ();
+      for (Point3d p : unodes.keySet()) {
+         nodes.add (p);
+      }
+      for (ArrayList<Integer> face : faces) {
+         for (int j=0; j<face.size (); ++j) {
+            face.set (j, idxmap[face.get (j)]);
+         }
+      }
+      
+   }
+   
    //   private static int findOrAddNode(Point3d pos, ArrayList<Point3d> nodes, double tol) {
    //      
    //      for (int i=0; i<nodes.size(); i++){
@@ -519,29 +613,6 @@ public class StlReader extends MeshReaderBase {
       }
    }
    
-   private static String readLine(ReaderTokenizer rtok) throws IOException {
-
-      Reader rtokReader = rtok.getReader();
-      String line = "";
-      int c;
-      while (true) {
-         c = rtokReader.read();
-
-         if (c < 0) {
-            rtok.ttype = ReaderTokenizer.TT_EOF;
-            return line;
-         }
-         else if (c == '\n') {
-            rtok.setLineno(rtok.lineno() + 1); // increase line number
-            rtok.ttype = ReaderTokenizer.TT_EOL;
-            break;
-         }
-         line += (char)c;
-      }
-
-      return line;
-   }
-
    @Override
    public PolygonalMesh readMesh() throws IOException {
       return (PolygonalMesh)readMesh (new PolygonalMesh());

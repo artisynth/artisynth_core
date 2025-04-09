@@ -140,7 +140,7 @@ public class MayaJointToMatlab {
       
       try {
 
-         String line = readLine(rtok);
+         String line = rtok.readLine();
          
          while (rtok.ttype != ReaderTokenizer.TT_EOF) {
 
@@ -152,7 +152,7 @@ public class MayaJointToMatlab {
                out.println();
                out.println(jointName + ".parent = " + jointParent + ";");
                
-               line = readLine(rtok);
+               line = rtok.readLine();
                while (!line.contains("createNode") && rtok.ttype != ReaderTokenizer.TT_EOF) {
         	  if (line.contains("setAttr")) {
         	     MayaAttribute attr = new MayaAttribute(); 
@@ -162,7 +162,7 @@ public class MayaJointToMatlab {
         		out.println(jointName + "." + attr.name + "= " + attr.attr + ";");
         	     }
         	  }
-        	  line = readLine(rtok);
+        	  line = rtok.readLine();
                }
                
                iJoint++;
@@ -170,7 +170,7 @@ public class MayaJointToMatlab {
                out.println("JointArray("+ iJoint + ").name=\'"+jointName+"\';");
                
             } else {
-               line = readLine(rtok);
+               line = rtok.readLine();
             }
             
             
@@ -234,29 +234,6 @@ public class MayaJointToMatlab {
          && (rtok.ttype != ReaderTokenizer.TT_EOF)) {
          nextToken(rtok);
       }
-   }
-
-   protected static String readLine(ReaderTokenizer rtok) throws IOException {
-
-      Reader rtokReader = rtok.getReader();
-      String line = "";
-      int c;
-      while (true) {
-         c = rtokReader.read();
-
-         if (c < 0) {
-            rtok.ttype = ReaderTokenizer.TT_EOF;
-            return line;
-         }
-         else if (c == '\n') {
-            rtok.setLineno(rtok.lineno() + 1); // increase line number
-            rtok.ttype = ReaderTokenizer.TT_EOL;
-            break;
-         }
-         line += (char)c;
-      }
-
-      return line;
    }
 
    public static void main(String[] args) {

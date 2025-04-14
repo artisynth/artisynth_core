@@ -24,6 +24,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.util.FunctionTimer;
 import maspack.util.ReaderTokenizer;
 
 /**
@@ -138,12 +139,13 @@ public class StlReader extends MeshReaderBase {
 //   public static PolygonalMesh read(PolygonalMesh mesh, Reader reader, double tol) throws IOException {
    public static PolygonalMesh read(
       PolygonalMesh mesh, InputStream is, double tol) throws IOException {
-
+      
       if (isAscii (is)) {
          BufferedReader iread = 
             new BufferedReader (new InputStreamReader(is));         
          return readASCII(mesh, iread, tol);
-      } else {
+      }
+      else {
          return readBinary(mesh, is, tol);
       }
    }
@@ -623,18 +625,27 @@ public class StlReader extends MeshReaderBase {
          mesh = new PolygonalMesh();
       }
       if (mesh instanceof PolygonalMesh) {
+         FunctionTimer timer = null; // new FunctionTimer();
+         if (timer != null) {
+            timer.start();
+         }
          InputStream is = new BufferedInputStream(myIstream);
          PolygonalMesh pmesh = (PolygonalMesh)mesh;
          if (isAscii (is)) {
             BufferedReader iread = 
                new BufferedReader (new InputStreamReader(is));
             myDataFormat = DataFormat.ASCII;
-            return readASCII(pmesh, iread, myTol);
+            pmesh = readASCII(pmesh, iread, myTol);
          } 
          else {
             myDataFormat = DataFormat.BINARY_LITTLE_ENDIAN;
-            return readBinary(pmesh, is, myTol);
+            pmesh = readBinary(pmesh, is, myTol);
          }        
+         if (timer != null) {
+            timer.stop();
+            System.out.println ("Stl read in " + timer.result(1));
+         }
+         return pmesh;
       }
       else {
          throw new UnsupportedOperationException (

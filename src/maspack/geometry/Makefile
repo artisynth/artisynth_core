@@ -25,6 +25,7 @@ JAVA_TEST_PROGRAMS = \
 	HalfEdgeTest \
 	MeshFactoryTest \
 	MeshRayIntersectionTest \
+	MeshUtilitiesTest \
 	NagataInterpolatorTest \
 	Polygon2dTest \
 	Polygon3dTest \
@@ -41,6 +42,7 @@ JAVA_TEST_PROGRAMS = \
 	TetgenTessellatorTest \
 	VectorGridTest \
 	Vertex3dListTest \
+	Vertex3dTest \
 	WindingCalculatorTest
 
 OTHER_CLASSES = 

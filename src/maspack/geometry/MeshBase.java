@@ -792,7 +792,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
             myColorIndices = null; // will be rebuilt on demand
          }
 
-         vtx.setMesh (null);
+         vtx.disconnectFromMesh();
          vtx.setIndex(-1);
          notifyStructureChanged();
          return true;
@@ -820,7 +820,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          for (int i=vtx.getIndex(); i<myVertices.size(); i++) {
             myVertices.get(i).setIndex (i);
          }
-         vtx.setMesh (null);
+         vtx.disconnectFromMesh();
          notifyStructureChanged();
          return true;
       }
@@ -859,7 +859,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
             Vertex3d v = myVertices.get(i);
             if (k < deleteIdxs.size() && i == deleteIdxs.get(k)) {
                // delete v
-               v.setMesh (null);
+               v.disconnectFromMesh();
                k++;
             }
             else {

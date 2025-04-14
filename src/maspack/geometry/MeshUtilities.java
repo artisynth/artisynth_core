@@ -243,40 +243,82 @@ public class MeshUtilities {
          // check if new position would flip a normal attached to the edge
          Vector3d dir0 = new Vector3d();
          Vector3d nrm = new Vector3d();
-         HalfEdgeNode hen = edge.tail.incidentHedges;
-         while (hen != null) {
-            if (hen.he != edge.opposite) {
-               dir0.set (hen.he.tail.getPosition ());
-               dir0.add (-p.x, -p.y, -p.z);
-               nrm.set (hen.he.next.getHead ().getPosition ());
-               nrm.add (-p.x, -p.y, -p.z);
-               nrm.cross (dir0);
-               nrm.normalize ();
-               double dotp = nrm.dot (hen.he.face.getNormal ());
-               if (dotp <= 0) {
-                  w = Double.POSITIVE_INFINITY;
-                  return;
+         if (HalfEdge.useHlinks) {
+            HalfEdge he = edge.tail.incidentHalfEdges;
+            while (he != null) {
+               if (he != edge.opposite) {
+                  dir0.set (he.tail.getPosition ());
+                  dir0.add (-p.x, -p.y, -p.z);
+                  nrm.set (he.next.getHead ().getPosition ());
+                  nrm.add (-p.x, -p.y, -p.z);
+                  nrm.cross (dir0);
+                  nrm.normalize ();
+                  double dotp = nrm.dot (he.face.getNormal ());
+                  if (dotp <= 0) {
+                     w = Double.POSITIVE_INFINITY;
+                     return;
+                  }
                }
+               he = he.hlink;
             }
-            hen = hen.next;
          }
-         
-         hen = edge.head.incidentHedges;
-         while (hen != null) {
-            if (hen.he != edge) {
-               dir0.set (hen.he.tail.getPosition ());
-               dir0.add (-p.x, -p.y, -p.z);
-               nrm.set (hen.he.next.getHead ().getPosition ());
-               nrm.add (-p.x, -p.y, -p.z);
-               nrm.cross (dir0);
-               nrm.normalize ();
-               double dotp = nrm.dot (hen.he.face.getNormal ());
-               if (dotp <= 0) {
-                  w = Double.POSITIVE_INFINITY;
-                  return;
+         else {
+            HalfEdgeNode hen = edge.tail.incidentHedges;
+            while (hen != null) {
+               if (hen.he != edge.opposite) {
+                  dir0.set (hen.he.tail.getPosition ());
+                  dir0.add (-p.x, -p.y, -p.z);
+                  nrm.set (hen.he.next.getHead ().getPosition ());
+                  nrm.add (-p.x, -p.y, -p.z);
+                  nrm.cross (dir0);
+                  nrm.normalize ();
+                  double dotp = nrm.dot (hen.he.face.getNormal ());
+                  if (dotp <= 0) {
+                     w = Double.POSITIVE_INFINITY;
+                     return;
+                  }
                }
+               hen = hen.next;
             }
-            hen = hen.next;
+         }
+
+         if (HalfEdge.useHlinks) {
+            HalfEdge he = edge.head.incidentHalfEdges;
+            while (he != null) {
+               if (he != edge) {
+                  dir0.set (he.tail.getPosition ());
+                  dir0.add (-p.x, -p.y, -p.z);
+                  nrm.set (he.next.getHead ().getPosition ());
+                  nrm.add (-p.x, -p.y, -p.z);
+                  nrm.cross (dir0);
+                  nrm.normalize ();
+                  double dotp = nrm.dot (he.face.getNormal ());
+                  if (dotp <= 0) {
+                     w = Double.POSITIVE_INFINITY;
+                     return;
+                  }
+               }
+               he = he.hlink;
+            }
+         }
+         else {
+            HalfEdgeNode hen = edge.head.incidentHedges;
+            while (hen != null) {
+               if (hen.he != edge) {
+                  dir0.set (hen.he.tail.getPosition ());
+                  dir0.add (-p.x, -p.y, -p.z);
+                  nrm.set (hen.he.next.getHead ().getPosition ());
+                  nrm.add (-p.x, -p.y, -p.z);
+                  nrm.cross (dir0);
+                  nrm.normalize ();
+                  double dotp = nrm.dot (hen.he.face.getNormal ());
+                  if (dotp <= 0) {
+                     w = Double.POSITIVE_INFINITY;
+                     return;
+                  }
+               }
+               hen = hen.next;
+            }
          }
          
          // root of umbrella area (so that is units of distance, like plane distances)
@@ -549,7 +591,6 @@ public class MeshUtilities {
    private static HalfEdge edgeSplit3(HalfEdge edge) {
       Face f = edge.face;
       f.he0 = edge;
-      
       Vertex3d head = edge.head;
       Vertex3d tail = edge.tail;
       Vertex3d vtp = edge.next.head;
@@ -674,18 +715,34 @@ public class MeshUtilities {
       }
       
       // check if collapsing would change topology 
-      HalfEdgeNode node = tail.incidentHedges;
-      while (node != null) {
-         HalfEdge ee = node.he;
-         if (ee != he.opposite) {
-            if (ee.tail == head) {
-               return false;
+      if (HalfEdge.useHlinks) {
+         HalfEdge ee = tail.incidentHalfEdges;
+         while (ee != null) {
+            if (ee != he.opposite) {
+               if (ee.tail == head) {
+                  return false;
+               }
+               if (ee.next != he && ee.next.head == head) {
+                  return false;
+               }
             }
-            if (ee.next != he && ee.next.head == head) {
-               return false;
-            }
+            ee = ee.hlink;
          }
-         node = node.next;
+      }
+      else {
+         HalfEdgeNode node = tail.incidentHedges;
+         while (node != null) {
+            HalfEdge ee = node.he;
+            if (ee != he.opposite) {
+               if (ee.tail == head) {
+                  return false;
+               }
+               if (ee.next != he && ee.next.head == head) {
+                  return false;
+               }
+            }
+            node = node.next;
+         }
       }
       return true;
    }
@@ -700,9 +757,9 @@ public class MeshUtilities {
       HalfEdge hprev = he.face.getPreviousEdge (he);
       HalfEdge hnext = he.next;
 
+      // remove he and use hprev to take its place
       head.removeIncidentHalfEdge (he);
       tail.removeIncidentHalfEdge (hprev);
-
       head.addIncidentHalfEdge (hprev);
       hprev.next = hnext;
       hprev.head = head;
@@ -714,9 +771,9 @@ public class MeshUtilities {
          HalfEdge tprev = te.face.getPreviousEdge(te);
          HalfEdge tnext = te.next;
 
+         // remove te and use tprev to take its place
          tail.removeIncidentHalfEdge (te);
          tprev.next = tnext;
-
          tnext.tail = head;
          if (te.face.he0 == te) {
             te.face.he0 = tprev;
@@ -724,15 +781,28 @@ public class MeshUtilities {
       }
 
       // move other faces connected to tail 
-      HalfEdgeNode node = tail.incidentHedges;
-      while (node != null) {
-         HalfEdge ee = node.he;
-         head.addIncidentHalfEdge (ee);
-         ee.head = head;
-         ee.next.tail = head;
-         node = node.next;
+      if (HalfEdge.useHlinks) {
+         HalfEdge ee = tail.incidentHalfEdges;
+         while (ee != null) {
+            HalfEdge hlink = ee.hlink;
+            head.addIncidentHalfEdge (ee);
+            ee.head = head;
+            ee.next.tail = head;
+            ee = hlink;
+         }
+         tail.incidentHalfEdges = null;
       }
-      tail.incidentHedges = null;
+      else {
+         HalfEdgeNode node = tail.incidentHedges;
+         while (node != null) {
+            HalfEdge ee = node.he;
+            head.addIncidentHalfEdge (ee);
+            ee.head = head;
+            ee.next.tail = head;
+            node = node.next;
+         }
+         tail.incidentHedges = null;
+      }
       
       PolygonalMesh mesh = he.face.getMesh ();
       mesh.removeVertexFast(tail);
@@ -803,7 +873,7 @@ public class MeshUtilities {
       for (int i=0; i<edgeQuadrics.size (); ++i) {
          minHeap.add (i);
       }
-      
+
       // remove half-edges
       for (int i=0; i<n && !minHeap.isEmpty (); ++i) {
          
@@ -815,7 +885,8 @@ public class MeshUtilities {
          if (!canCollapseEdge (he)) {
             // collapsing edge would change topology
             --i;
-         } else {
+         }
+         else {
             edgeQuadrics.set (removeIdx, null);
             edgeQuadricMap.remove (heq.edge);
             
@@ -921,7 +992,6 @@ public class MeshUtilities {
                   }
                }
             }
-            
             collapseEdge (he);
             
             // update adjacent edges
@@ -1076,14 +1146,24 @@ public class MeshUtilities {
          
          pinf = new Point3d();
          int n = 0;
-         HalfEdgeNode hen = vtx.incidentHedges;
-         while (hen != null) {
-            HalfEdge he = hen.he;
-            ++n;
-            pinf.add (he.tail.getPosition ());
-            hen = hen.next;
+         if (HalfEdge.useHlinks) {
+            HalfEdge he = vtx.incidentHalfEdges;
+            while (he != null) {
+               ++n;
+               pinf.add (he.tail.getPosition ());
+               he = he.hlink;
+            }
          }
-         
+         else {
+            HalfEdgeNode hen = vtx.incidentHedges;
+            while (hen != null) {
+               HalfEdge he = hen.he;
+               ++n;
+               pinf.add (he.tail.getPosition ());
+               hen = hen.next;
+            }
+         }
+
          double alpha = (4 - 2*Math.cos (2*Math.PI/n))/9;
          double beta = 3*alpha/(1+3*alpha);
          pinf.scale (beta/n);
@@ -1252,51 +1332,100 @@ public class MeshUtilities {
          HashSet<Vertex3d> opposites = new HashSet<>();
          
          // collect neighboring borders
-         HalfEdgeNode hen = vtx.incidentHedges;
-         while (hen != null) {
-            HalfEdge he = hen.he;
-            if (opposites.contains (he.tail)) {
-               nborders = -1;  // non-manifold
-               break;
-            } else {
-               opposites.add (he.tail);
-            }
-            if (isBorderEdge (he)) {
-               if (nborders == 0) {
-                  nbrs[0] = he.tail;
-                  ++nborders;
-               } else if (nborders == 1) {
-                  if (he.tail != nbrs[0]) {
-                     nbrs[1] = he.tail;
-                     ++nborders;
-                  }
-               } else {
-                  ++nborders;
-                  break;
-               }
-            }
-            // non-incident border edge
-            if (he.next.opposite == null) {
-               if (opposites.contains (he.next.head)) {
+         if (HalfEdge.useHlinks) {
+            HalfEdge he = vtx.incidentHalfEdges;
+            while (he != null) {
+               if (opposites.contains (he.tail)) {
                   nborders = -1;  // non-manifold
                   break;
                } else {
-                  opposites.add(he.next.head);
+                  opposites.add (he.tail);
                }
-               if (nborders == 0) {
-                  nbrs[0] = he.next.head;
-                  ++nborders;
-               } else if (nborders == 1) {
-                  if (he.next.head != nbrs[0]) {
-                     nbrs[1] = he.next.head;
+               if (isBorderEdge (he)) {
+                  if (nborders == 0) {
+                     nbrs[0] = he.tail;
                      ++nborders;
+                  } else if (nborders == 1) {
+                     if (he.tail != nbrs[0]) {
+                        nbrs[1] = he.tail;
+                        ++nborders;
+                     }
+                  } else {
+                     ++nborders;
+                     break;
                   }
-               } else {
-                  ++nborders;
-                  break;
                }
+               // non-incident border edge
+               if (he.next.opposite == null) {
+                  if (opposites.contains (he.next.head)) {
+                     nborders = -1;  // non-manifold
+                     break;
+                  } else {
+                     opposites.add(he.next.head);
+                  }
+                  if (nborders == 0) {
+                     nbrs[0] = he.next.head;
+                     ++nborders;
+                  } else if (nborders == 1) {
+                     if (he.next.head != nbrs[0]) {
+                        nbrs[1] = he.next.head;
+                        ++nborders;
+                     }
+                  } else {
+                     ++nborders;
+                     break;
+                  }
+               }
+               he = he.hlink;
             }
-            hen = hen.next;
+         }
+         else {
+            HalfEdgeNode hen = vtx.incidentHedges;
+            while (hen != null) {
+               HalfEdge he = hen.he;
+               if (opposites.contains (he.tail)) {
+                  nborders = -1;  // non-manifold
+                  break;
+               } else {
+                  opposites.add (he.tail);
+               }
+               if (isBorderEdge (he)) {
+                  if (nborders == 0) {
+                     nbrs[0] = he.tail;
+                     ++nborders;
+                  } else if (nborders == 1) {
+                     if (he.tail != nbrs[0]) {
+                        nbrs[1] = he.tail;
+                        ++nborders;
+                     }
+                  } else {
+                     ++nborders;
+                     break;
+                  }
+               }
+               // non-incident border edge
+               if (he.next.opposite == null) {
+                  if (opposites.contains (he.next.head)) {
+                     nborders = -1;  // non-manifold
+                     break;
+                  } else {
+                     opposites.add(he.next.head);
+                  }
+                  if (nborders == 0) {
+                     nbrs[0] = he.next.head;
+                     ++nborders;
+                  } else if (nborders == 1) {
+                     if (he.next.head != nbrs[0]) {
+                        nbrs[1] = he.next.head;
+                        ++nborders;
+                     }
+                  } else {
+                     ++nborders;
+                     break;
+                  }
+               }
+               hen = hen.next;
+            }
          }
          
          if (nborders == 0) {

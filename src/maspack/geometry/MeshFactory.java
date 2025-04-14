@@ -1871,7 +1871,6 @@ public class MeshFactory {
             addFaces (mesh, faceVtxs, hardEdges, 0, nrmlIdxs, j+k, faceType);
          }
       }
-      
       if (addNormals) {
          mesh.setNormals(nrmls, nrmlIdxs);
       }
@@ -2223,10 +2222,9 @@ public class MeshFactory {
          
          // get all neighbours
          int nbs = 0;
-         HalfEdgeNode hen = vtx.getIncidentHedges();
-         while (hen != null) {
-            pnts[i].add (hen.he.tail.getPosition ());
-            hen = hen.next;
+         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+         while (it.hasNext()) {
+            pnts[i].add (it.next().tail.getPosition ());
             nbs++;
          }
          pnts[i].scale (1.0/nbs);

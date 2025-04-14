@@ -214,6 +214,24 @@ public class PolygonalMeshTest extends MeshTestBase {
 
       mesh.checkConsistency();
    }
+
+   String mergeTest0 = new String (
+      "v 0 0 0\n" +
+      "v 1 0 0\n" + 
+      "v 0.01 1 0\n" +
+      "v -0.01 1 0\n" + 
+      "v -1 0 0\n" + 
+      "f 1 2 3\n" +
+      "f 1 3 4\n" +
+      "f 1 4 5\n");
+
+   String mergeCheck0 = new String (
+      "v 0 0 0\n" +
+      "v 1 0 0\n" + 
+      "v 0 1 0\n" +
+      "v -1 0 0\n" + 
+      "f 1 2 3\n" +
+      "f 1 3 4\n");
    
    String mergeTest1 = new String (
       "v 0 0.99 -0.02\n" +
@@ -366,6 +384,7 @@ public class PolygonalMeshTest extends MeshTestBase {
    public void mergeTest() {
 
       try {
+         checkMerge (mergeTest0, mergeCheck0);
          checkMerge (mergeTest1, mergeCheck1);
          checkMerge (mergeTest2, mergeCheck2);
          checkMerge (mergeTest3, mergeCheck3);
@@ -491,6 +510,22 @@ public class PolygonalMeshTest extends MeshTestBase {
       "f 2 6 7 3\n" +
       "f 1 5 6 2\n" +
       "f 0 3 7 4\n");
+
+   String mergedBox = new String (
+      "v -0.5 -0.25 -0.25\n" +
+      "v -0.5 -0.25 0.25\n" +
+      "v -0.5 0.25 -0.25\n" +
+      "v -0.5 0.25 0.25\n" +
+      "v 0.5 -0.25 -0.25\n" +
+      "v 0.5 -0.25 0.25\n" +
+      "v 0.5 0.25 -0.25\n" +
+      "v 0.5 0.25 0.25\n" +
+      "f 3 7 5 1\n" +
+      "f 6 8 4 2\n" +
+      "f 4 8 7 3\n" +
+      "f 5 6 2 1\n" +
+      "f 2 4 3 1\n" +
+      "f 7 8 6 5\n");
 
    double[] cubeNormals = new double[] {
       1, -1, 1, 
@@ -780,9 +815,9 @@ public class PolygonalMeshTest extends MeshTestBase {
    private void checkHedges (Vertex3d vtx, int[] idxs) {
       VectorNi check = new VectorNi (idxs);
       VectorNi taili = new VectorNi ();
-      HalfEdgeNode node;
-      for (node=vtx.getIncidentHedges(); node!=null; node=node.next) {
-         taili.append (node.he.tail.idx);
+      Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+      while (it.hasNext()) {
+         taili.append (it.next().tail.idx);
       }
       if (check.size() != taili.size() || !check.equals (taili)) {
          throw new TestException (
@@ -911,6 +946,18 @@ public class PolygonalMeshTest extends MeshTestBase {
       //testWriteRead (mesh, ".stl");
    }
 
+   void testMergeCoplanarFaces() {
+      double EPS = 1e-12;
+      PolygonalMesh mesh = MeshFactory.createBox (
+         1.0, 0.5, 0.5, new Point3d(), 2, 2, 2, /*addNormals*/false);
+      mesh.mergeCoplanarFaces (0.99);
+      PolygonalMesh check = createMesh (mergedBox, /*zeroIndexed*/false);
+      if (!mesh.epsilonEquals (check, EPS)) {
+         throw new TestException (
+            "mergeCoplanarFaces - mesh does not equal check");
+      }
+   }
+
    public void test() throws TestException, IOException {
       squareTest();
       mergeTest();      
@@ -924,6 +971,7 @@ public class PolygonalMeshTest extends MeshTestBase {
       Vertex3d.groupHalfEdgesByHardEdge = true;
       hardEdgeNormalTest();
       testIncidentHedgeSorting();
+      testMergeCoplanarFaces();
    }
 
    public static void main (String[] args) {

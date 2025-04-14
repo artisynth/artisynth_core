@@ -9,6 +9,7 @@ package maspack.geometry;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 
 import maspack.matrix.*;
@@ -623,15 +624,16 @@ public class NagataInterpolator {
       LinkedList<FaceRequest> requests, Vertex3d vtx, Vector2d svec,
       HashSet<Face> faceSet) {
 
-      HalfEdgeNode node;
-      for (node=vtx.getIncidentHedges(); node!=null; node=node.next) {
-         Face reqFace = node.he.face;
+      Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+      while (it.hasNext()) {
+         HalfEdge he = it.next();
+         Face reqFace = he.face;
          if (reqFace != null && !faceSet.contains (reqFace)) {
             FaceRequest req = new FaceRequest (reqFace);
-            int idx = reqFace.indexOfVertex (node.he.head);
+            int idx = reqFace.indexOfVertex (he.head);
             if (idx == -1) {
                throw new InternalErrorException (
-                  "Vertex "+node.he.head.idx+" not found in face "+reqFace.idx);
+                  "Vertex "+he.head.idx+" not found in face "+reqFace.idx);
             }
             switch (idx) {
                case 0: req.svec.set (0.0, 0.0); break;

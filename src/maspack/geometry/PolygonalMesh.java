@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -870,7 +871,7 @@ public class PolygonalMesh extends MeshBase {
    public Face addFace (int idx0, int idx1, int idx2, int idx3) {
       return addFace (new int[] { idx0, idx1, idx2, idx3 });
    }
-
+   
    /**
     * Removes a face from this mesh.
     * 
@@ -1029,7 +1030,6 @@ public class PolygonalMesh extends MeshBase {
    }
 
    private boolean disconnectFaceIfDegenerate (Face face) {
-
       HalfEdge he = face.firstHalfEdge();
       HalfEdge hn = he.next;
       if (hn.next == he) {
@@ -1095,20 +1095,20 @@ public class PolygonalMesh extends MeshBase {
       HalfEdge hprev = he.face.getPreviousEdge (he);
       HalfEdge hnext = he.next;
 
+      // remove he and use hprev to take its place
       head.removeIncidentHalfEdge (he);
       tail.removeIncidentHalfEdge (hprev);
       head.addIncidentHalfEdge (hprev);
       hprev.next = hnext;
-      
       hprev.head = head;
       if (he.face.he0 == he) {
          he.face.he0 = hprev;
       }
-
       if (te != null) {
          HalfEdge tprev = te.face.getPreviousEdge(te);
          HalfEdge tnext = te.next;
 
+         // remove te and use tprev to take its place
          tail.removeIncidentHalfEdge (te);
          tprev.next = tnext;
          tnext.tail = head;
@@ -1117,35 +1117,55 @@ public class PolygonalMesh extends MeshBase {
          }
       }
 
-      // Process remaining edges connected to tail. Note that we have to access
-      // these using tail.incidentHedges. If we call tail.getIncidentHedges()
-      // instead, it will attempt to sort the incident half-edges, which will
-      // fail because the half-edge linkage structure is in transition.
-      HalfEdgeNode node = tail.incidentHedges;
-      while (node != null) {
-         HalfEdge ee = node.he;
-         head.addIncidentHalfEdge (ee);
-         ee.head = head;
-         if (ee.tail == head) {
-            throw new InternalErrorException (
-               "reassigned tail edge (ee) has head == tail");
+      // Make remaining edges incident on tail incident to head.  Note that we
+      // have to access these using tail.incidentHalfEdges. If we call
+      // tail.getIncidentHalfEdges() instead, it will attempt to sort the
+      // incident half-edges, which will fail because the half-edge linkage
+      // structure is in transition.
+      if (HalfEdge.useHlinks) {
+         HalfEdge ee = tail.incidentHalfEdges;
+         while (ee != null) {
+            HalfEdge hlink = ee.hlink;
+            head.addIncidentHalfEdge (ee);
+            ee.head = head;
+            if (ee.tail == head) {
+               throw new InternalErrorException (
+                  "reassigned tail edge (ee) has head == tail");
+            }
+            ee.next.tail = head;
+            if (ee.next.head == head) {
+               throw new InternalErrorException (
+                  "reassigned tail edge (ee.next) has head == tail");
+            }
+            ee = hlink;
          }
-         ee.next.tail = head;
-         if (ee.next.head == head) {
-            throw new InternalErrorException (
-               "reassigned tail edge (ee.next) has head == tail");
-         }
-         node = node.next;
+         tail.incidentHalfEdges = null;
       }
-
+      else {
+         HalfEdgeNode node = tail.incidentHedges;
+         while (node != null) {
+            HalfEdge ee = node.he;
+            head.addIncidentHalfEdge (ee);
+            ee.head = head;
+            if (ee.tail == head) {
+               throw new InternalErrorException (
+                  "reassigned tail edge (ee) has head == tail");
+            }
+            ee.next.tail = head;
+            if (ee.next.head == head) {
+               throw new InternalErrorException (
+                  "reassigned tail edge (ee.next) has head == tail");
+            }
+            node = node.next;
+         }
+         tail.incidentHedges = null;
+      }
       if (disconnectFaceIfDegenerate (he.face)) {
          deadFaces.add (he.face);
       }
-
       if (te != null && disconnectFaceIfDegenerate (te.face)) {
          deadFaces.add (te.face);
       }
-
    }
 
    /**
@@ -1239,7 +1259,6 @@ public class PolygonalMesh extends MeshBase {
             }
          }
       }
-
       removeVertices (deadVerts);
       removeFaces (deadFaces);
       return deadVerts.size();
@@ -1281,7 +1300,7 @@ public class PolygonalMesh extends MeshBase {
     * @return true if modified, false otherwise
     */
    public boolean mergeCoplanarFaces(double cosLimit) {
-      HashSet<HalfEdge> toMerge = new HashSet<>();
+      HashSet<HalfEdge> toMerge = new LinkedHashSet<>();
       for (Face f : myFaces) {
          HalfEdge he0 = f.he0;
          HalfEdge he = he0;
@@ -1297,9 +1316,9 @@ public class PolygonalMesh extends MeshBase {
       
       // go through and merge faces
       boolean modified = false;
-      HashSet<Face> toUpdateFace = new HashSet<>();
-      HashSet<Face> toRemoveFace = new HashSet<>();
-      HashSet<Vertex3d> toRemoveVertex = new HashSet<>();
+      HashSet<Face> toUpdateFace = new LinkedHashSet<>();
+      HashSet<Face> toRemoveFace = new LinkedHashSet<>();
+      HashSet<Vertex3d> toRemoveVertex = new LinkedHashSet<>();
       
       if (toMerge.size() > 0) {
          
@@ -2354,97 +2373,137 @@ public class PolygonalMesh extends MeshBase {
       this.subdivisions = subdivisions;
    }
 
-   private boolean isOpen (HalfEdge he) {
-      HalfEdgeNode hen = he.tail.getIncidentHedges();
+//   private boolean isOpen (HalfEdge he) {
+//      if (HalfEdge.useHlinks) {
+//         HalfEdge ee = he.tail.firstIncidentHalfEdge();
+//         while (ee != null) {
+//            if (ee.head == he.tail && ee.tail == he.head) {
+//               return false;
+//            }
+//            ee = ee.hlink;
+//         }
+//      }
+//      else {
+//         HalfEdgeNode hen = he.tail.getIncidentHedgeNodes();
+//         while (hen != null) {
+//            if (hen.he.head == he.tail && hen.he.tail == he.head) {
+//               return false;
+//            }
+//            hen = hen.next;
+//         }
+//      }
+//      return true;
+//   }
 
-      while (hen != null) {
-         if (hen.he.head == he.tail && hen.he.tail == he.head)
-            return false;
-         hen = hen.next;
-      }
 
-      return true;
-   }
+   // /**
+   //  * Extends the first open edge loop found.
+   //  * 
+   //  * @param amount
+   //  * The amount to extend it by.
+   //  */
+   // public void extendOpenEdges (double amount) {
+   //    // Vertex3d v0;
 
+   //    HalfEdge he0 = null;
+   //    boolean found = false;
 
-   /**
-    * Extends the first open edge loop found.
-    * 
-    * @param amount
-    * The amount to extend it by.
-    */
-   public void extendOpenEdges (double amount) {
-      // Vertex3d v0;
+   //    for (Object fo : myFaces) {
+   //       Face f = (Face)fo;
 
-      HalfEdge he0 = null;
-      boolean found = false;
+   //       he0 = f.he0;
+   //       do {
+   //          if (isOpen (he0)) {
+   //             found = true;
+   //             break;
+   //          }
+   //          he0 = he0.next;
+   //       }
+   //       while (he0 != f.he0);
 
-      for (Object fo : myFaces) {
-         Face f = (Face)fo;
+   //       if (found)
+   //          break;
+   //    }
 
-         he0 = f.he0;
-         do {
-            if (isOpen (he0)) {
-               found = true;
-               break;
-            }
-            he0 = he0.next;
-         }
-         while (he0 != f.he0);
+   //    Vector3d i = new Vector3d(), j = new Vector3d();
 
-         if (found)
-            break;
-      }
+   //    HalfEdge he = he0;
 
-      Vector3d i = new Vector3d(), j = new Vector3d();
+   //    ArrayList<Vertex3d> iverts = new ArrayList<Vertex3d>(), overts =
+   //       new ArrayList<Vertex3d>();
 
-      HalfEdge he = he0;
+   //    do {
+   //       if (HalfEdge.useHlinks) {
+   //          HalfEdge ee = he.tail.firstIncidentHalfEdge();
 
-      ArrayList<Vertex3d> iverts = new ArrayList<Vertex3d>(), overts =
-         new ArrayList<Vertex3d>();
+   //          while (ee != null) {
+   //             if (isOpen (ee)) {
+   //                break;
+   //             }
 
-      do {
-         HalfEdgeNode hen = he.tail.getIncidentHedges();
+   //             ee = ee.hlink;
+   //          }
 
-         while (hen != null) {
-            if (isOpen (hen.he)) {
-               break;
-            }
+   //          he.computeUnitVec (i);
+   //          ee.computeUnitVec (j);
 
-            hen = hen.next;
-         }
+   //          double angleFactor = 1.0 - i.angle (j) / Math.PI;
 
-         he.computeUnitVec (i);
-         hen.he.computeUnitVec (j);
+   //          i.add (j);
+   //          i.cross (he.face.getNormal());
+   //          i.normalize();
 
-         double angleFactor = 1.0 - i.angle (j) / Math.PI;
+   //          Point3d p = new Point3d();
+   //          p.scaledAdd (amount * angleFactor, i, he.tail.pnt);
+   //          iverts.add (he.tail);
+   //          overts.add (addVertex (p));
 
-         i.add (j);
-         i.cross (he.face.getNormal());
-         i.normalize();
+   //          he = ee; // XXX is this right? What if ee is null?
+   //       }
+   //       else {
+   //          HalfEdgeNode hen = he.tail.getIncidentHedgeNodes();
 
-         Point3d p = new Point3d();
-         p.scaledAdd (amount * angleFactor, i, he.tail.pnt);
-         iverts.add (he.tail);
-         overts.add (addVertex (p));
+   //          while (hen != null) {
+   //             if (isOpen (hen.he)) {
+   //                break;
+   //             }
 
-         he = hen.he;
-      }
-      while (he != he0);
+   //             hen = hen.next;
+   //          }
 
-      Vertex3d lastiv = iverts.get (iverts.size() - 1), lastov =
-         overts.get (overts.size() - 1);
+   //          he.computeUnitVec (i);
+   //          hen.he.computeUnitVec (j);
 
-      for (int v = 0; v < iverts.size(); v++) {
-         Vertex3d iv = iverts.get (v), ov = overts.get (v);
+   //          double angleFactor = 1.0 - i.angle (j) / Math.PI;
 
-         addFace (new int[] { lastiv.idx, iv.idx, ov.idx });
-         addFace (new int[] { ov.idx, lastov.idx, lastiv.idx });
+   //          i.add (j);
+   //          i.cross (he.face.getNormal());
+   //          i.normalize();
 
-         lastiv = iv;
-         lastov = ov;
-      }
-   }
+   //          Point3d p = new Point3d();
+   //          p.scaledAdd (amount * angleFactor, i, he.tail.pnt);
+   //          iverts.add (he.tail);
+   //          overts.add (addVertex (p));
+
+   //          he = hen.he;
+   //       }
+         
+   //    }
+   //    while (he != he0);
+
+   //    Vertex3d lastiv = iverts.get (iverts.size() - 1), lastov =
+   //       overts.get (overts.size() - 1);
+
+   //    for (int v = 0; v < iverts.size(); v++) {
+   //       Vertex3d iv = iverts.get (v), ov = overts.get (v);
+
+   //       addFace (new int[] { lastiv.idx, iv.idx, ov.idx });
+   //       addFace (new int[] { ov.idx, lastov.idx, lastiv.idx });
+
+   //       lastiv = iv;
+   //       lastov = ov;
+   //    }
+   // }
 
    /**
     * Returns the maximum cosine of the triangle formed from a set of three
@@ -2848,20 +2907,37 @@ public class PolygonalMesh extends MeshBase {
    protected HalfEdge getEdge (Vertex3d v0, Vertex3d v1) {
       // check all edges attached to v0
       HalfEdge he = null;
-      HalfEdgeNode node;
-      // OK to access incidentHedges without sorting them first;
-      // i.e., we don't need to call getIncidentHedges().
-      for (node=v0.incidentHedges; node != null; node=node.next) {
-         he = node.he;
-         if (he.getTail() == v1) {
-            break;
+
+      // OK to access incidentHalfEdges without sorting them first;
+      // i.e., we don't need to call firstIncidentHalfEdge().
+      if (HalfEdge.useHlinks) {
+         for (he=v0.incidentHalfEdges; he != null; he=he.hlink) {
+            if (he.getTail() == v1) {
+               break;
+            }
+         }
+         if (he == null) {
+            for (he=v1.incidentHalfEdges; he != null; he=he.hlink) {
+               if (he.getTail() == v0) {
+                  break;
+               }
+            }
          }
       }
-      if (he == null) {
-         for (node=v1.incidentHedges; node != null; node=node.next) {
+      else {
+         HalfEdgeNode node;
+         for (node=v0.incidentHedges; node != null; node=node.next) {
             he = node.he;
-            if (he.getTail() == v0) {
+            if (he.getTail() == v1) {
                break;
+            }
+         }
+         if (he == null) {
+            for (node=v1.incidentHedges; node != null; node=node.next) {
+               he = node.he;
+               if (he.getTail() == v0) {
+                  break;
+               }
             }
          }
       }
@@ -4365,47 +4441,89 @@ public class PolygonalMesh extends MeshBase {
       // associated with each half-face
       int idx = 0;
       for (Vertex3d vtx : myVertices) {
-
-         HalfEdgeNode node = vtx.getIncidentHedges();
-         Vector3d nrm;
-         while (node != null) {
-            if (creatingNormals) {
-               // create a new vector to store the normal
-               nrm = new Vector3d();
-               normals.add (nrm);
-            }
-            else {
-               // use the existing normal vector
-               nrm = normals.get(idx);
-               nrm.setZero();
-            }
-            // Add the normal contributions for each vertex half edge. If we
-            // are allows to compute multiple normals per vertex, stop if we
-            // reach a normal boundary.
-            do {
-               HalfEdge he = node.he;
-               nrm.angleWeightedCrossAdd (
-                  he.tail.pnt, he.head.pnt, he.next.head.pnt);
+         if (HalfEdge.useHlinks) {
+            HalfEdge he = vtx.firstIncidentHalfEdge();
+            Vector3d nrm;
+            while (he != null) {
                if (creatingNormals) {
-                  normalIndexMap.put (node.he, idx);
+                  // create a new vector to store the normal
+                  nrm = new Vector3d();
+                  normals.add (nrm);
                }
-               node = node.next;
+               else {
+                  // use the existing normal vector
+                  nrm = normals.get(idx);
+                  nrm.setZero();
+               }
+               // Add the normal contributions for each vertex half edge. If we
+               // are allowed to compute multiple normals per vertex, stop if we
+               // reach a normal boundary.
+               do {
+                  nrm.angleWeightedCrossAdd (
+                     he.tail.pnt, he.head.pnt, he.next.head.pnt);
+                  if (creatingNormals) {
+                     normalIndexMap.put (he, idx);
+                  }
+                  he = he.hlink;
+               }
+               while (he != null && (!multiNormals || !vtx.isNormalBoundary(he)));
+
+               double n2 = nrm.normSquared();
+               if (n2 == 0) {
+                  // backup, just in case angle weighted normals fails
+                  vtx.computeAreaWeightedNormal(nrm);
+                  //nmag = nrm.norm();
+               }
+               nrm.normalize();
+               //if (nmag > 0) {
+               //   nrm.scale(1.0/nmag);
+               //}
+               idx++;
             }
-            while (node != null &&
-                   (!multiNormals || !vtx.isNormalBoundary(node.he)));
-               
-            double n2 = nrm.normSquared();
-            if (n2 == 0) {
-               // backup, just in case angle weighted normals fails
-               vtx.computeAreaWeightedNormal(nrm);
-               //nmag = nrm.norm();
-            }
-            nrm.normalize();
-            //if (nmag > 0) {
-            //   nrm.scale(1.0/nmag);
-            //}
-            idx++;
          }
+         else {
+            HalfEdgeNode node = vtx.getIncidentHedgeNodes();
+            Vector3d nrm;
+            while (node != null) {
+               if (creatingNormals) {
+                  // create a new vector to store the normal
+                  nrm = new Vector3d();
+                  normals.add (nrm);
+               }
+               else {
+                  // use the existing normal vector
+                  nrm = normals.get(idx);
+                  nrm.setZero();
+               }
+               // Add the normal contributions for each vertex half edge. If we
+               // are allows to compute multiple normals per vertex, stop if we
+               // reach a normal boundary.
+               do {
+                  HalfEdge he = node.he;
+                  nrm.angleWeightedCrossAdd (
+                     he.tail.pnt, he.head.pnt, he.next.head.pnt);
+                  if (creatingNormals) {
+                     normalIndexMap.put (node.he, idx);
+                  }
+                  node = node.next;
+               }
+               while (node != null &&
+                      (!multiNormals || !vtx.isNormalBoundary(node.he)));
+
+               double n2 = nrm.normSquared();
+               if (n2 == 0) {
+                  // backup, just in case angle weighted normals fails
+                  vtx.computeAreaWeightedNormal(nrm);
+                  //nmag = nrm.norm();
+               }
+               nrm.normalize();
+               //if (nmag > 0) {
+               //   nrm.scale(1.0/nmag);
+               //}
+               idx++;
+            }
+         }
+         
       }
       
       if (creatingNormals) {

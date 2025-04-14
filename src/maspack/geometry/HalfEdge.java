@@ -18,6 +18,8 @@ import maspack.util.InternalErrorException;
  */
 public class HalfEdge extends Feature implements Boundable {
 
+   static final boolean useHlinks = true;
+   
    // private static final double DOUBLE_PREC = 2.220446049250313e-16;
 
    /**
@@ -29,7 +31,8 @@ public class HalfEdge extends Feature implements Boundable {
    public Vertex3d head;
    public Vertex3d tail;
    public HalfEdge opposite;
-   HalfEdge next;
+   HalfEdge hlink; // link to next half edge in head's incident half-edges
+   HalfEdge next;  // link to next half edge around the face
    Face face;
    //Vector3d u;
    //double uLength;

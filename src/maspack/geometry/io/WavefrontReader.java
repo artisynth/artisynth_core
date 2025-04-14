@@ -1811,7 +1811,11 @@ public class WavefrontReader extends MeshReaderBase {
    public void setMesh (PolygonalMesh mesh, String groupName)
       throws IOException {      
 
-      //FunctionTimer timer = new FunctionTimer();
+      boolean dotiming = false;
+      FunctionTimer timer = null;
+      if (dotiming) {
+         timer = new FunctionTimer();
+      }
       mesh.clear();
             
       groupName = setGroupName (groupName);
@@ -1824,22 +1828,26 @@ public class WavefrontReader extends MeshReaderBase {
          indices = getGlobalFaceIndicesAndVertices(vtxList);
       }
 
-      //timer.start();
+      if (dotiming) timer.start();
       for (int i=0; i<vtxList.size(); i++) {
          // add by reference since points have already been copied 
          mesh.addVertex (vtxList.get(i), /* byReference= */true);
       }
-      //timer.stop();
-      //System.out.println ("verts added in " + timer.result(1));
-      //timer.start();
+      if (dotiming) {
+         timer.stop();
+         System.out.println ("verts added in " + timer.result(1));
+         timer.start();
+      }
       if (indices != null) {
          for (int k=0; k<indices.length; k++) {
             mesh.addFace (indices[k]);
          }
       }
-      //timer.stop();
-      //System.out.println ("faces added in " + timer.result(1));
-      //timer.start();
+      if (dotiming) {
+         timer.stop();
+         System.out.println ("faces added in " + timer.result(1));
+         timer.start();
+      }
 
       ArrayList<Vector3d> textureCoords = new ArrayList<Vector3d>();
       int[] tindices;

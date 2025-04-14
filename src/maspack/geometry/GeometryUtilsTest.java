@@ -217,7 +217,7 @@ public class GeometryUtilsTest extends UnitTest {
       testGetPointAt (1.6, vtxs, closed, pchk);
       testGetPointAt (4.6, vtxs, closed, pchk);
       testGetPointAt (2, vtxs, open, p2);
-      testGetPointAt (6, vtxs, closed, p2);
+      testGetPointAt (6, vtxs, closed, p0);
       pchk.combine (0.4, p2, 0.6, p0);
       testGetPointAt (2.6, vtxs, closed, pchk);
    }

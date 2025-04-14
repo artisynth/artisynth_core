@@ -48,6 +48,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    //static int nextUniqueIndex = 0;
 
    protected HalfEdgeNode incidentHedges;
+   protected HalfEdge incidentHalfEdges; 
    protected boolean hedgesSorted = false; 
    int hedgesModCount = 0;
    int idx;
@@ -86,6 +87,40 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       }
    }
 
+   private class EdgeHlinkIterator implements Iterator<HalfEdge> {
+      HalfEdge myNext;
+      int expectedModCount;
+
+      EdgeHlinkIterator (HalfEdge he) {
+         myNext = he;
+         expectedModCount = hedgesModCount;
+      }
+
+      public boolean hasNext() {
+         return myNext != null;
+      }
+
+      public HalfEdge next() throws NoSuchElementException {
+         if (myNext == null) {
+            throw new NoSuchElementException();
+         }
+         else {
+            HalfEdge he = myNext;
+            myNext = he.hlink;
+            if (expectedModCount != hedgesModCount) {
+               throw new ConcurrentModificationException(
+                  expectedModCount + " " + hedgesModCount);
+            }
+            return he;
+         }
+      }
+
+      public void remove()
+         throws UnsupportedOperationException, IllegalStateException {
+         throw new UnsupportedOperationException();
+      }
+   }
+
    /**
     * Returns an iterator for all the half-edges which are incident onto this
     * vertex. The iterator will return objects of type {@link HalfEdge HalfEdge}.
@@ -94,7 +129,12 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     */
    public Iterator<HalfEdge> getIncidentHalfEdges() {
       sortHedgesIfNecessary();
-      return new EdgeIterator (incidentHedges);
+      if (HalfEdge.useHlinks) {
+         return new EdgeHlinkIterator (incidentHalfEdges);
+      }
+      else {
+         return new EdgeIterator (incidentHedges);
+      }
    }
 
    /**
@@ -105,8 +145,15 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     */
    public int numIncidentHalfEdges() {
       int cnt = 0;
-      for (HalfEdgeNode n = incidentHedges; n != null; n = n.next) {
-         cnt++;
+      if (HalfEdge.useHlinks) {
+         for (HalfEdge he = incidentHalfEdges; he != null; he = he.hlink) {
+            cnt++;
+         }
+      }
+      else {
+         for (HalfEdgeNode n = incidentHedges; n != null; n = n.next) {
+            cnt++;
+         }
       }
       return cnt;
    }
@@ -210,11 +257,22 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       boolean faceNormalsFound = false;
       sortHedgesIfNecessary();
       nrm.set (0, 0, 0);
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         Face face = node.he.face;
-         if (face != null) {
-            nrm.add (face.getNormal());
-            faceNormalsFound = true;
+      if (HalfEdge.useHlinks) {
+         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+            Face face = he.face;
+            if (face != null) {
+               nrm.add (face.getNormal());
+               faceNormalsFound = true;
+            }
+         }
+      }
+      else {
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            Face face = node.he.face;
+            if (face != null) {
+               nrm.add (face.getNormal());
+               faceNormalsFound = true;
+            }
          }
       }
       if (faceNormalsFound) {
@@ -235,11 +293,22 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       boolean faceNormalsFound = false;
       sortHedgesIfNecessary();
       nrm.set (0, 0, 0);
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         Face face = node.he.face;
-         if (face != null) {
-            nrm.add (face.getWorldNormal());
-            faceNormalsFound = true;
+      if (HalfEdge.useHlinks) {
+         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+            Face face = he.face;
+            if (face != null) {
+               nrm.add (face.getWorldNormal());
+               faceNormalsFound = true;
+            }
+         }
+      }
+      else {
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            Face face = node.he.face;
+            if (face != null) {
+               nrm.add (face.getWorldNormal());
+               faceNormalsFound = true;
+            }
          }
       }
       if (faceNormalsFound) {
@@ -257,12 +326,24 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * @return false if no incident halt edges are present
     */
    public boolean computeAngleWeightedNormal (Vector3d nrm) {
-      sortHedgesIfNecessary();      
-      boolean hasNormal = (incidentHedges != null);
-      nrm.set (0, 0, 0);
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         HalfEdge he = node.he;
-         nrm.angleWeightedCrossAdd (he.tail.pnt, he.head.pnt, he.next.head.pnt);
+      sortHedgesIfNecessary();
+      boolean hasNormal;
+      if (HalfEdge.useHlinks) {
+         hasNormal = (incidentHalfEdges != null);
+         nrm.set (0, 0, 0);
+         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+            nrm.angleWeightedCrossAdd (
+               he.tail.pnt, he.head.pnt, he.next.head.pnt);
+         }
+      }
+      else {
+         hasNormal = (incidentHedges != null);
+         nrm.set (0, 0, 0);
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            HalfEdge he = node.he;
+            nrm.angleWeightedCrossAdd (
+               he.tail.pnt, he.head.pnt, he.next.head.pnt);
+         }
       }
       if (hasNormal) {
          nrm.normalize();
@@ -279,15 +360,29 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * @return false if no adjacent faces present
     */
    public boolean computeAreaWeightedNormal (Vector3d nrm) {
-      sortHedgesIfNecessary();      
-      boolean hasNormal = (incidentHedges != null);
-      nrm.set (0, 0, 0);
-      Vector3d fnrm = new Vector3d();
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         Face f = node.he.getFace();
-         double a = f.computeArea();
-         f.computeNormal(fnrm);
-         nrm.scaledAdd(a, fnrm);
+      sortHedgesIfNecessary();
+      boolean hasNormal;
+      if (HalfEdge.useHlinks) {
+         hasNormal = (incidentHalfEdges != null);
+         nrm.set (0, 0, 0);
+         Vector3d fnrm = new Vector3d();
+         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+            Face f = he.getFace();
+            double a = f.computeArea();
+            f.computeNormal(fnrm);
+            nrm.scaledAdd(a, fnrm);
+         }
+      }
+      else {
+         hasNormal = (incidentHedges != null);
+         nrm.set (0, 0, 0);
+         Vector3d fnrm = new Vector3d();
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            Face f = node.he.getFace();
+            double a = f.computeArea();
+            f.computeNormal(fnrm);
+            nrm.scaledAdd(a, fnrm);
+         }
       }
       if (hasNormal) {
          nrm.normalize();
@@ -316,10 +411,19 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    public void sumEdgeCrossProducts (Vector3d sum) {
       sortHedgesIfNecessary();      
       sum.setZero();
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         HalfEdge he = node.he;
-         if (he.getNext() != null) {
-            addEdgeCrossProduct (sum, he, he.getNext());
+      if (HalfEdge.useHlinks) {
+         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+            if (he.getNext() != null) {
+               addEdgeCrossProduct (sum, he, he.getNext());
+            }
+         }
+      }
+      else {
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            HalfEdge he = node.he;
+            if (he.getNext() != null) {
+               addEdgeCrossProduct (sum, he, he.getNext());
+            }
          }
       }
    }
@@ -378,22 +482,33 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
 //      return idx;
 //   }
 
-   public boolean computeRenderNormal (Vector3d nrm) {
-      boolean faceNormalsFound = false;
-      sortHedgesIfNecessary();
-      nrm.set (0, 0, 0);
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         Face face = node.he.face;
-         if (face != null) {
-            nrm.add (face.getRenderNormal());
-            faceNormalsFound = true;
-         }
-      }
-      if (faceNormalsFound) {
-         nrm.normalize();
-      }
-      return faceNormalsFound;
-   }
+//   public boolean computeRenderNormal (Vector3d nrm) {
+//      boolean faceNormalsFound = false;
+//      sortHedgesIfNecessary();
+//      nrm.set (0, 0, 0);
+//      if (HalfEdge.useHlinks) {
+//         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+//            Face face = he.face;
+//            if (face != null) {
+//               nrm.add (face.getRenderNormal());
+//               faceNormalsFound = true;
+//            }
+//         }
+//      }
+//      else {
+//         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+//            Face face = node.he.face;
+//            if (face != null) {
+//               nrm.add (face.getRenderNormal());
+//               faceNormalsFound = true;
+//            }
+//         }
+//      }
+//      if (faceNormalsFound) {
+//         nrm.normalize();
+//      }
+//      return faceNormalsFound;
+//   }
 
    /**
     * Adds a half-edge to the list of half-edges incident onto this vertex.
@@ -404,10 +519,16 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * HalfEdgeNode containing the half edge in question
     */
    public void addIncidentHalfEdge (HalfEdge he) {
-      HalfEdgeNode node = new HalfEdgeNode (he);
       hedgesModCount++;
-      node.next = incidentHedges;
-      incidentHedges = node;
+      if (HalfEdge.useHlinks) {
+         he.hlink = incidentHalfEdges;
+         incidentHalfEdges = he;
+      }
+      else {
+         HalfEdgeNode node = new HalfEdgeNode (he);         
+         node.next = incidentHedges;
+         incidentHedges = node;
+      }
       hedgesSorted = false;
    }
    
@@ -471,10 +592,19 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    // simulation or rendering thread.
    protected synchronized void sortHedgesIfNecessary() {
       if (!hedgesSorted) {
-         if (incidentHedges == null) {
-            // no incident edges, so we are sorted by default
-            hedgesSorted = true;
-            return;
+         if (HalfEdge.useHlinks) {
+            if (incidentHalfEdges == null) {
+               // no incident edges, so we are sorted by default
+               hedgesSorted = true;
+               return;
+            }
+         }
+         else {
+            if (incidentHedges == null) {
+               // no incident edges, so we are sorted by default
+               hedgesSorted = true;
+               return;
+            }           
          }
          // go through all incident edges, and find the ones that start a
          // contiguous group (either open edges or those which are marked
@@ -483,45 +613,88 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
          HashSet<HalfEdge> marked = new HashSet<HalfEdge>();
          ArrayList<HalfEdge> startingHedges = new ArrayList<HalfEdge>();
          int cnt = 0;
-         for (HalfEdgeNode node=incidentHedges; node!=null; node=node.next) {
-            HalfEdge he = node.he;
-            if (!marked.contains(he)) {
-               if (isGroupStart (he)) {
-                  startingHedges.add (he);
-                  // Traverse through the half-edges contiguous to he, marking
-                  // them. They can be discarded since none of them can be a
-                  // boundary edge.
-                  do {
-                     marked.add (he);
-                     he = he.next.opposite;
-                  }                     
-                  while (!isGroupEnd(he));
-               }
-               else {
-                  // Traverse through the half-edges contiguous to he, marking
-                  // them. They also can be discarded since none of them can be
-                  // a boundary edge. However, they may form a loop, in which
-                  // case we choose the choose the half-edge with the lowest
-                  // face index as a starting edge
-                  HalfEdge he0 = he;
-                  HalfEdge minFaceHe = he;
-                  int minFaceIdx = he0.face.idx;
-                  do {
-                     if (he.face.idx < minFaceIdx) {
-                        minFaceIdx = he.face.idx;
-                        minFaceHe = he;
+         if (HalfEdge.useHlinks) {
+            for (HalfEdge ee=incidentHalfEdges; ee!=null; ee=ee.hlink) {
+               HalfEdge he = ee;
+               if (!marked.contains(he)) {
+                  if (isGroupStart (he)) {
+                     startingHedges.add (he);
+                     // Traverse through the half-edges contiguous to he, marking
+                     // them. They can be discarded since none of them can be a
+                     // boundary edge.
+                     do {
+                        marked.add (he);
+                        he = he.next.opposite;
+                     }                     
+                     while (!isGroupEnd(he));
+                  }
+                  else {
+                     // Traverse through the half-edges contiguous to he, marking
+                     // them. They also can be discarded since none of them can be
+                     // a boundary edge. However, they may form a loop, in which
+                     // case we choose the choose the half-edge with the lowest
+                     // face index as a starting edge
+                     HalfEdge he0 = he;
+                     HalfEdge minFaceHe = he;
+                     int minFaceIdx = he0.face.idx;
+                     do {
+                        if (he.face.idx < minFaceIdx) {
+                           minFaceIdx = he.face.idx;
+                           minFaceHe = he;
+                        }
+                        marked.add (he);
+                        he = he.next.opposite;
+                     }                     
+                     while (!isGroupEnd(he) && he != he0);
+                     if (he == he0) {
+                        startingHedges.add (minFaceHe);
                      }
-                     marked.add (he);
-                     he = he.next.opposite;
-                  }                     
-                  while (!isGroupEnd(he) && he != he0);
-                  if (he == he0) {
-                     startingHedges.add (minFaceHe);
                   }
                }
+               cnt++;
             }
-            cnt++;
          }
+         else {
+            for (HalfEdgeNode node=incidentHedges; node!=null; node=node.next) {
+               HalfEdge he = node.he;
+               if (!marked.contains(he)) {
+                  if (isGroupStart (he)) {
+                     startingHedges.add (he);
+                     // Traverse through the half-edges contiguous to he, marking
+                     // them. They can be discarded since none of them can be a
+                     // boundary edge.
+                     do {
+                        marked.add (he);
+                        he = he.next.opposite;
+                     }                     
+                     while (!isGroupEnd(he));
+                  }
+                  else {
+                     // Traverse through the half-edges contiguous to he, marking
+                     // them. They also can be discarded since none of them can be
+                     // a boundary edge. However, they may form a loop, in which
+                     // case we choose the choose the half-edge with the lowest
+                     // face index as a starting edge
+                     HalfEdge he0 = he;
+                     HalfEdge minFaceHe = he;
+                     int minFaceIdx = he0.face.idx;
+                     do {
+                        if (he.face.idx < minFaceIdx) {
+                           minFaceIdx = he.face.idx;
+                           minFaceHe = he;
+                        }
+                        marked.add (he);
+                        he = he.next.opposite;
+                     }                     
+                     while (!isGroupEnd(he) && he != he0);
+                     if (he == he0) {
+                        startingHedges.add (minFaceHe);
+                     }
+                  }
+               }
+               cnt++;
+            }
+         }        
          if (startingHedges.size() == 0) {
             throw new InternalErrorException (
                "No starting edges found for half-edges incident to vertex "+idx);
@@ -532,23 +705,45 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
          }
          
          // Now rebuild the list of incident half edges in the prescribed order
-         HalfEdgeNode prev = null;
-         incidentHedges = null;
-         for (HalfEdge start : startingHedges) {
-            HalfEdge he = start;
-            do {
-               HalfEdgeNode node = new HalfEdgeNode (he);
-               if (prev == null) {
-                  incidentHedges = node;
+         hedgesModCount++;
+         if (HalfEdge.useHlinks) {
+            HalfEdge prev = null;
+            incidentHalfEdges = null;
+            for (HalfEdge start : startingHedges) {
+               HalfEdge he = start;
+               do {
+                  if (prev == null) {
+                     incidentHalfEdges = he;
+                  }
+                  else {
+                     prev.hlink = he;
+                  }
+                  he.hlink = null;
+                  prev = he;
+                  he = he.next.opposite;
                }
-               else {
-                  prev.next = node;
-               }
-               prev = node;
-               node.next = null;
-               he = he.next.opposite;
+               while (!isGroupEnd(he) && he != start);
             }
-            while (!isGroupEnd(he) && he != start);
+         }
+         else {
+            HalfEdgeNode prev = null;
+            incidentHedges = null;
+            for (HalfEdge start : startingHedges) {
+               HalfEdge he = start;
+               do {
+                  HalfEdgeNode node = new HalfEdgeNode (he);
+                  if (prev == null) {
+                     incidentHedges = node;
+                  }
+                  else {
+                     prev.next = node;
+                  }
+                  prev = node;
+                  node.next = null;
+                  he = he.next.opposite;
+               }
+               while (!isGroupEnd(he) && he != start);
+            }
          }
          if (numIncidentHalfEdges() != cnt) {
             throw new InternalErrorException (
@@ -556,6 +751,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
                ", ended with " + numIncidentHalfEdges());
          }
          hedgesSorted = true;
+         //printIncidentHedges ("sorted for "+getIndex()+":");
       }
    }
 
@@ -567,24 +763,58 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * @return true if the half-edge was present; false otherwise
     */
    public boolean removeIncidentHalfEdge (HalfEdge hedge) {
-      HalfEdgeNode prevNode = null;
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         if (node.he == hedge) { // remove the node and return the node
-            hedgesModCount++;
-            if (prevNode == null) {
-               incidentHedges = node.next;
+      if (HalfEdge.useHlinks) {
+         HalfEdge prev = null;
+         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+            if (he == hedge) { // remove the half edge
+               hedgesModCount++;
+               if (prev == null) {
+                  incidentHalfEdges = he.hlink;
+               }
+               else {
+                  prev.hlink = he.hlink;
+               }
+               hedge.hlink = null;
+               hedgesSorted = false;
+               return true;
             }
-            else {
-               prevNode.next = node.next;
-            }
-            hedgesSorted = false;
-            return true;
+            prev = he;
          }
-         prevNode = node;
+      }
+      else {
+         HalfEdgeNode prevNode = null;
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            if (node.he == hedge) { // remove the node and return the node
+               hedgesModCount++;
+               if (prevNode == null) {
+                  incidentHedges = node.next;
+               }
+               else {
+                  prevNode.next = node.next;
+               }
+               hedgesSorted = false;
+               return true;
+            }
+            prevNode = node;
+         }
       }
       return false;
    }
 
+   void removeAllIncidentHalfEdges() {
+      HalfEdge ihe = incidentHalfEdges;
+      while (ihe != null) {
+         HalfEdge next = ihe.hlink;
+         ihe.hlink = null;
+         ihe = next;
+      }
+   }
+   
+   void disconnectFromMesh() {
+      setMesh(null);
+      removeAllIncidentHalfEdges(); 
+   }
+   
    /**
     * Returns the first incident half-edge listed for this vertex, or null if
     * there are no incident half-edges.
@@ -593,15 +823,20 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     */
    public HalfEdge firstIncidentHalfEdge() {
       sortHedgesIfNecessary();
-      if (incidentHedges != null) {
-         return incidentHedges.he;
+      if (HalfEdge.useHlinks) {
+         return incidentHalfEdges;
       }
       else {
-         return null;
+         if (incidentHedges != null) {
+            return incidentHedges.he;
+         }
+         else {
+            return null;
+         }
       }
    }
    
-   HalfEdgeNode getIncidentHedges() {
+   HalfEdgeNode getIncidentHedgeNodes() {
       sortHedgesIfNecessary();
       return incidentHedges;
    }
@@ -610,9 +845,18 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * Looks for an incident half-edge with a given tail.
     */
    public HalfEdge findIncidentHalfEdge (Vertex3d tail) {
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         if (node.he.tail == tail) {
-            return node.he;
+      if (HalfEdge.useHlinks) {
+         for (HalfEdge he=incidentHalfEdges; he != null; he = he.hlink) {
+            if (he.tail == tail) {
+               return he;
+            }
+         }
+      }
+      else {
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            if (node.he.tail == tail) {
+               return node.he;
+            }
          }
       }
       return null;
@@ -622,9 +866,18 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * Check if a particular half-edge is incident to this vertex.
     */
    boolean hasIncidentHalfEdge (HalfEdge he) {
-      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
-         if (node.he == he) {
-            return true;
+      if (HalfEdge.useHlinks) {
+         for (HalfEdge ee=incidentHalfEdges; ee != null; ee = ee.hlink) {
+            if (ee == he) {
+               return true;
+            }
+         }
+      }
+      else {
+         for (HalfEdgeNode node=incidentHedges; node != null; node = node.next) {
+            if (node.he == he) {
+               return true;
+            }
          }
       }
       return false;
@@ -935,6 +1188,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
           //vtx.myWorldCoordCnt = -1;
           //vtx.uniqueIndex = -1;
           vtx.incidentHedges = null;
+          vtx.incidentHalfEdges = null;
           vtx.hedgesSorted = false;
           vtx.hedgesModCount = 0;
           vtx.idx = idx;
@@ -991,5 +1245,26 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    public void nearestPoint(Point3d nearest, Point3d pnt) {
       nearest.set(getPosition ());
    }
+
+   private void printIncidentHedges (String msg) {
+      System.out.println (msg);
+      int cnt = 0;
+      if (HalfEdge.useHlinks) {
+         for (HalfEdge he = incidentHalfEdges; he != null; he = he.hlink) {
+            System.out.println ("  " + he.vertexStr());            
+            cnt++;
+         }
+      }
+      else {
+         for (HalfEdgeNode hen = incidentHedges; hen != null; hen=hen.next) {
+            System.out.println ("  " + hen.he.vertexStr());            
+            cnt++;
+         }
+      }
+      if (cnt == 0) {
+         System.out.println ("  [ ]");
+      }
+   }
+
 
 }

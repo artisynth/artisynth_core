@@ -1,5 +1,6 @@
 package artisynth.core.materials;
 
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
@@ -19,14 +20,21 @@ public class LinearFrameMaterial extends FrameMaterial {
    protected Vector3d myRotK = new Vector3d();
    protected Vector3d myRotD = new Vector3d();
 
+   public static final boolean DEFAULT_USE_XYZ_ANGLES = false;
+   protected boolean myUseXyzAngles = DEFAULT_USE_XYZ_ANGLES;
+
    public static PropertyList myProps =
       new PropertyList (LinearFrameMaterial.class, FrameMaterial.class);
 
    static {
-      myProps.add ("stiffness * *", "linear spring stiffness", Vector3d.ZERO);
-      myProps.add ("damping * *", "linear spring damping", Vector3d.ZERO);
-      myProps.add ("rotaryStiffness * *", "linear spring stiffness", Vector3d.ZERO);
-      myProps.add ("rotaryDamping * *", "linear spring damping", Vector3d.ZERO);
+      myProps.add ("stiffness", "linear spring stiffness", Vector3d.ZERO);
+      myProps.add ("damping", "linear spring damping", Vector3d.ZERO);
+      myProps.add ("rotaryStiffness", "linear spring stiffness", Vector3d.ZERO);
+      myProps.add ("rotaryDamping", "linear spring damping", Vector3d.ZERO);
+      myProps.add (
+         "useXyzAngles",
+         "if true, finite xyz rotation angles are used to compute the moment",
+         DEFAULT_USE_XYZ_ANGLES);
    }   
 
    public PropertyList getAllPropertyInfo() {
@@ -97,6 +105,14 @@ public class LinearFrameMaterial extends FrameMaterial {
       myRotD.set (dvec);
    }
 
+   public boolean getUseXyzAngles () {
+      return myUseXyzAngles;
+   }
+
+   public void setUseXyzAngles (boolean enable) {
+      myUseXyzAngles = enable;
+   }
+
    public LinearFrameMaterial () {
       this (0, 0, 0, 0);
    }
@@ -112,22 +128,55 @@ public class LinearFrameMaterial extends FrameMaterial {
       Wrench wr, RigidTransform3d X21, Twist vel21, 
       RigidTransform3d initialX21) {
 
+      // translational forces
       Vector3d p = X21.p;
-
-      // use these matrix entries as small angle approximations to 
-      // the rotations about x, y, and z
-      double sx =  X21.R.m21;
-      double sy = -X21.R.m20;
-      double sz =  X21.R.m10;
 
       wr.f.x = myK.x*p.x;
       wr.f.y = myK.y*p.y;
       wr.f.z = myK.z*p.z;
 
-      wr.m.x = myRotK.x*sx;
-      wr.m.y = myRotK.y*sy;
-      wr.m.z = myRotK.z*sz;
+      if (myUseXyzAngles) {
+         // get the x-y-z angles for computing the rotational forces
+         RotationMatrix3d R = X21.R;
+         double[] angs = new double[3];
+         R.getXyz (angs);
+         double cx = Math.cos(angs[0]);
+         double sx = Math.sin(angs[0]);
+         double cy = Math.cos(angs[1]);
+         double sy = Math.sin(angs[1]);
+         if (Math.abs(cy) < 1e-6) {
+            // handle singularity
+            cy = (cy > 0 ? 1e-6 : -1e-6);
+         }
 
+         // matrix Hinv maps angular velocity to x-y-z angle speeds
+         double hi21 = -sx/cy;
+         double hi22 = cx/cy;
+         Matrix3d Hinv = new Matrix3d();
+         Hinv.set (1, -sy*hi21, -sy*hi22, 0, cx, sx, 0, hi21, hi22);
+
+         // compute generalized force f in angle space
+         Vector3d f = new Vector3d();
+         f.x = myRotK.x*angs[0];
+         f.y = myRotK.y*angs[1];
+         f.z = myRotK.z*angs[2];
+         // map f to frame moment using transpose of Hinv
+         Hinv.mulTranspose (wr.m, f);
+      }
+      else {
+         // use these matrix entries as small angle approximations to 
+         // the rotations about x, y, and z
+         double sx =  X21.R.m21;
+         double sy = -X21.R.m20;
+         double sz =  X21.R.m10;
+
+         wr.m.x = myRotK.x*sx;
+         wr.m.y = myRotK.y*sy;
+         wr.m.z = myRotK.z*sz;
+      }
+
+      // damping forces - currently computed using angular velocity instead of
+      // angle speeds
       Vector3d v = vel21.v;
       Vector3d w = vel21.w;
 
@@ -146,25 +195,65 @@ public class LinearFrameMaterial extends FrameMaterial {
 
       Jq.setZero();
 
-      RotationMatrix3d R = X21.R;
-      // use these matrix entries as small angle approximations to 
-      // the rotations about x, y, and z
-      //      double sx =  R.m21;
-      //      double sy = -R.m20;
-      //      double sz =  R.m10;
-
+      // translational stiffness
       Jq.m00 = myK.x;
       Jq.m11 = myK.y;
       Jq.m22 = myK.z;
 
-      Jq.m33 =  myRotK.x*R.m11;
-      Jq.m44 =  myRotK.y*R.m00;
-      Jq.m55 =  myRotK.z*R.m00;
+      // rotational stiffness
+      RotationMatrix3d R = X21.R;
 
-      if (!symmetric) {
-         Jq.m34 = -myRotK.x*R.m01;
-         Jq.m43 = -myRotK.y*R.m10;
-         Jq.m53 = -myRotK.z*R.m20;
+      if (myUseXyzAngles) {
+         // get the x-y-z angles for computing the rotational forces
+         double[] angs = new double[3];
+         R.getXyz (angs);
+         double cx = Math.cos(angs[0]);
+         double sx = Math.sin(angs[0]);
+         double cy = Math.cos(angs[1]);
+         double sy = Math.sin(angs[1]);
+         double ty;
+         if (Math.abs(cy) < 1e-6) {
+            // handle singularity
+            cy = (cy > 0 ? 1e-6 : -1e-6);
+         }
+         ty = sy/cy;
+
+         // matrix Hinv maps angular velocity to x-y-z angle speeds
+         double hi21 = -sx/cy;
+         double hi22 = cx/cy;
+         Matrix3d Hinv = new Matrix3d();
+         Hinv.set (1, -sy*hi21, -sy*hi22, 0, cx, sx, 0, hi21, hi22);
+
+         // compute generalized force f in angle space
+         Vector3d f = new Vector3d();
+         f.x = myRotK.x*angs[0];
+         f.y = myRotK.y*angs[1];
+         f.z = myRotK.z*angs[2];
+
+         // compute rotary stiffness from f, dot f, and Hinv:
+         Matrix3d Jr = new Matrix3d();
+         Jr.transpose (Hinv);
+         Jr.mulCols (myRotK);
+         if (!symmetric) {
+            // add force dependent terms
+            Jr.m10 += cx*ty*f.x - sx*f.y - cx*f.z/cy;
+            Jr.m11 += (1+ty*ty)*sx*f.x - sx*ty*f.z/cy;
+            Jr.m20 += sx*ty*f.x + cx*f.y - sx*f.z/cy;
+            Jr.m21 += -(1+ty*ty)*cx*f.x + cx*ty*f.z/cy;
+         }
+         Jr.mul (Hinv);
+         Jq.setSubMatrix (3, 3, Jr);
+      }
+      else {
+         Jq.m33 = myRotK.x*R.m11;
+         Jq.m44 = myRotK.y*R.m00;
+         Jq.m55 = myRotK.z*R.m00;
+
+         if (!symmetric) {
+            Jq.m34 = -myRotK.x*R.m01;
+            Jq.m43 = -myRotK.y*R.m10;
+            Jq.m53 = -myRotK.z*R.m20;
+         }
       }
    }
 

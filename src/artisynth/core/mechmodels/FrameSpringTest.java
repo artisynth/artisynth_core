@@ -473,6 +473,9 @@ public class FrameSpringTest extends UnitTest {
          test (linMat, velA, velB, false, 1e-6);
          linMat.setUseXyzAngles(true);
          test (linMat, velA, velB, false, 1e-6);
+         linMatAniso.setUseXyzAngles(false);
+         test (linMatAniso, velA, velB, false, 1e-6);
+         linMatAniso.setUseXyzAngles(true);
          test (linMatAniso, velA, velB, false, 1e-6);
 
          powMat = new PowerFrameMaterial (10.0, /*n*/1, 0.5, /*rn*/1, 2.0, 0.2);
@@ -493,12 +496,6 @@ public class FrameSpringTest extends UnitTest {
          powMat.setUpperRotaryDeadband (0.2, 0.1, 0.3);
          powMat.setLowerRotaryDeadband (-0.3, 0, -0.2);
          test (powMat, velA, velB, false, 1e-6);
-
-         RPYFrameMaterial rpyMat = new RPYFrameMaterial (10.0, 20.0, 1.0, 2.0);
-         test (rpyMat, velA, velB, false, 1e-6);
-         rpyMat.setStiffness (new Vector3d (10, 12, 14));
-         rpyMat.setRotaryStiffness (new Vector3d (20, 32, 44));
-         test (rpyMat, velA, velB, false, 1e-6);
 
          CubicFunction1x1 transFxn = new CubicFunction1x1 (0, 5, 1, 0);
          CubicFunction1x1 rotFxn = new CubicFunction1x1 (0, 10, -1, 0);

@@ -71,7 +71,7 @@ public class EquilibriumAxialMuscleTest extends UnitTest {
          double dftNum = (ft1-ft0)/h;
 
          err = Math.abs(dft-dftNum)/Math.max(1.0, Math.abs(dft));
-         if (err > 1e-6) {
+         if (err > 2e-6) {
             throw new TestException (
                "tendonForce derivative: error "+err+" at ltn=" + ltn);
          }

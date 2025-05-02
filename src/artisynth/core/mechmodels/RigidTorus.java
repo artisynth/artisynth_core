@@ -10,6 +10,8 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 public class RigidTorus extends RigidBody implements Wrappable {
+
+   public boolean myDebug = false;
    
    double myOuterRadius = 1.0;
    double myInnerRadius = 0.25;
@@ -242,17 +244,17 @@ public class RigidTorus extends RigidBody implements Wrappable {
       Point3d p = new Point3d();
 
       // compute dlam to be the approximate variation in lam corresponding to
-      // moving 30 degrees with respect to the inner radius
-      double dlam = Math.tan(DTOR*30)*myInnerRadius/del.norm();
+      // moving 10 degrees with respect to the inner radius
+      double dlam = Math.tan(DTOR*10)*myInnerRadius/del.norm();
       // now try to find an initial root bracket starting at lam=1.0
       double f1 = computeF (nrm, null, paLoc, del, 1.0);      
-      double hi = 1.0+dlam;
-      double lo = 1.0-dlam;
+      double hi = 1.0+dlam/2;
+      double lo = 1.0-dlam/2;
       double fhi = computeF (nrm, null, paLoc, del, hi);
       double flo = computeF (nrm, null, paLoc, del, lo);
 
       int iter = 0;
-      int maxIter = 3;
+      int maxIter = 5;
       if (f1*fhi <= 0) {
          flo = f1;
          lo = 1.0;

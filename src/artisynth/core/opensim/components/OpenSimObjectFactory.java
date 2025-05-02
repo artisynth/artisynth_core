@@ -287,6 +287,20 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
    }
 
    /**
+    * Parses a double value from an element if the text is prsent
+    * @param elem DOM element
+    * @return double value, or null if text is not present
+    */
+   protected static Double parseDoubleValueIfPresent(Element elem) {
+      String text = parseTextValue (elem);
+      Double value = null;
+      if (text != null) {
+         value = Double.parseDouble(text);
+      }
+      return value;
+   }
+
+   /**
     * Parses an integer value from an element
     * @param elem DOM element
     * @return integer value (Default 0)
@@ -294,6 +308,20 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
    protected static int parseIntegerValue(Element elem) {
       String text = parseTextValue (elem);
       int value = 0;
+      if (text != null) {
+         value = Integer.parseInt(text);
+      }
+      return value;
+   }
+
+   /**
+    * Parses an integer value from an element if the text is present
+    * @param elem DOM element
+    * @return integer value, or null if text is not present
+    */
+   protected static Integer parseIntegerValueIfPresent(Element elem) {
+      String text = parseTextValue (elem);
+      Integer value = null;
       if (text != null) {
          value = Integer.parseInt(text);
       }

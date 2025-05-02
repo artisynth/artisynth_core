@@ -11,7 +11,10 @@ import maspack.spatialmotion.*;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
 import maspack.util.UnitTest;
+import maspack.function.Diff1Function1x1Base;
+import maspack.function.CubicFunction1x1;
 import artisynth.core.materials.*;
+import artisynth.core.modelbase.*;
 
 public class FrameSpringTest extends UnitTest {
 
@@ -371,6 +374,8 @@ public class FrameSpringTest extends UnitTest {
       if (err > errLim) {
          throw new TestException ("Velocity Jacobian error=" + err);
       }
+
+      ScanTest.testScanAndWrite (mat, null, "%g");
    }
 
    public void testInitialTDC () {
@@ -464,6 +469,9 @@ public class FrameSpringTest extends UnitTest {
          }
 
          test (rotAxisMat, velA, velB, false, 1e-6);
+         linMat.setUseXyzAngles(false);
+         test (linMat, velA, velB, false, 1e-6);
+         linMat.setUseXyzAngles(true);
          test (linMat, velA, velB, false, 1e-6);
          test (linMatAniso, velA, velB, false, 1e-6);
 
@@ -482,6 +490,21 @@ public class FrameSpringTest extends UnitTest {
          powMat.setUpperDeadband (0.2, 0.1, 0.3);
          powMat.setLowerDeadband (-0.3, 0, -0.2);
          test (powMat, velA, velB, false, 1e-6);
+         powMat.setUpperRotaryDeadband (0.2, 0.1, 0.3);
+         powMat.setLowerRotaryDeadband (-0.3, 0, -0.2);
+         test (powMat, velA, velB, false, 1e-6);
+
+         RPYFrameMaterial rpyMat = new RPYFrameMaterial (10.0, 20.0, 1.0, 2.0);
+         test (rpyMat, velA, velB, false, 1e-6);
+         rpyMat.setStiffness (new Vector3d (10, 12, 14));
+         rpyMat.setRotaryStiffness (new Vector3d (20, 32, 44));
+         test (rpyMat, velA, velB, false, 1e-6);
+
+         CubicFunction1x1 transFxn = new CubicFunction1x1 (0, 5, 1, 0);
+         CubicFunction1x1 rotFxn = new CubicFunction1x1 (0, 10, -1, 0);
+         FunctionFrameMaterial fxnMat =
+            new FunctionFrameMaterial (transFxn, rotFxn, 1.0, 2.0);
+         test (fxnMat, velA, velB, false, 1e-6);
       }
    }
 

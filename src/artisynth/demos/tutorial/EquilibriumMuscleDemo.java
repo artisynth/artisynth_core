@@ -137,7 +137,7 @@ public class EquilibriumMuscleDemo extends RootModel {
          double xlen = len0; // x position of the end points
          double xvel = 0; // x velocity of the end points
          if (t1 <= myRunTime/2) { // extend
-            xlen += mySpeed*t0; 
+            xlen += mySpeed*t1; 
             xvel = mySpeed;
          }
          else if (t1 <= myRunTime) { // contract

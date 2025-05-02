@@ -8,7 +8,6 @@ package artisynth.core.mechmodels;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.*;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
@@ -2729,6 +2728,7 @@ public class MechSystemSolver {
 
       // need to force an update of the mass matrix, since a subsequent
       // call to updateMassMatrix(t) wouldn't work.
+
       updateMassMatrix (-1);
    }
 
@@ -2781,7 +2781,7 @@ public class MechSystemSolver {
       return false;
    }
 
-   protected void computeMassPosCorrection (VectorNd vel, int velSize) {
+   protected void computeMassPosCorrection (VectorNd vel, int velSize, double t) {
       boolean analyze = myAlwaysAnalyze;
       if (myConMassVersion != myMassVersion || myConGTVersion != getGTVersion()) {
          analyze = true;
@@ -2871,9 +2871,11 @@ public class MechSystemSolver {
          myKKTSolveMatrixVersion = mySolveMatrixVersion;
          analyze = true;
       }
-      SparseNumberedBlockMatrix S =  mySolveMatrix;
+      SparseNumberedBlockMatrix S = mySolveMatrix;
       S.setZero();
-      mySys.addVelJacobian (S, null, -1);
+      // John Lloyd: removed Apr 2025. Probably not needed since this this is
+      // essentially a static correction.
+      //mySys.addVelJacobian (S, null, -1);
       mySys.addPosJacobian (S, null, -1);
       addActiveMassMatrix (mySys, S);
       if (myKKTSolver == null) {
@@ -3010,7 +3012,7 @@ public class MechSystemSolver {
                computeStiffnessPosCorrection (vel, velSize, t);
             }
             else {
-               computeMassPosCorrection (vel, velSize);
+               computeMassPosCorrection (vel, velSize, t);
             }
          }
       }
@@ -3189,6 +3191,8 @@ public class MechSystemSolver {
          timer.stop();
          System.out.println ("  posCorrection=" + timer.result(1));
       }
+
+      //checkStiffnessMatrix();
    }
 
    private double computeForceResidual (
@@ -3870,6 +3874,31 @@ public class MechSystemSolver {
       maybeAccumulateConstraintForces();
       
       // System.out.println("exiting static solve");
+   }
+
+   public void checkStiffnessMatrix() {
+      SparseBlockMatrix M = createActiveStiffnessMatrix(-1);
+      EigenDecomposition eig = new EigenDecomposition (
+         M, EigenDecomposition.SYMMETRIC);
+
+      double minEig = eig.getEigReal().minElement();
+      double maxEig = eig.getEigReal().maxElement();
+      if (minEig < -1e-8*M.frobeniusNorm()) {
+         int num = 0;
+         for (int i=0; i<M.rowSize(); i++) {
+            if (eig.getEigReal().get(i) < -1e-8) {
+               num++;
+            }
+         }
+         System.out.printf (
+            " stiffnessMatrix not SPD: minEig %g, maxEig=%g\n",
+            minEig, maxEig);
+      }
+      else {
+         System.out.println ("S=\n" + (new MatrixNd(M)).toString("%10.5f"));
+         System.out.printf (
+            " stiffnessMatrix OK\n");
+      }
    }
 
    public SparseBlockMatrix createActiveStiffnessMatrix (double h) {

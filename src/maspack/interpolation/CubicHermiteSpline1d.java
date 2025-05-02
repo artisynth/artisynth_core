@@ -565,8 +565,7 @@ public class CubicHermiteSpline1d extends Diff1Function1x1Base
 
    /**
     * Adds another knot point to this cubic hermite spline, consisting of an x
-    * coordinate, along with y and y derivative values. The value of x must be
-    * greater than the x value of any previous knot point.
+    * coordinate, along with y and y derivative values.
     */
    public Knot addKnot (double x, double y, double dy) {
       Knot knot = new Knot (x, y, dy);
@@ -644,6 +643,28 @@ public class CubicHermiteSpline1d extends Diff1Function1x1Base
       }
       myKnots.clear();
       myInvertible = -1;
+   }
+
+   /**
+    * Returns true if the segment between the specified knot and the next knot
+    * contains an inflexion point. If the knot is the last knot, this method
+    * returns false.
+    */
+   public boolean segmentContainsInflexion (Knot knot) {
+      int idx = knot.getIndex();
+      if (idx < 0 || idx >= numKnots() || getKnot(idx) != knot) {
+         throw new IllegalArgumentException (
+            "knot is not contained within this curve");
+      }
+      if (idx == numKnots()-1) {
+         return false;
+      }
+      else {
+         Knot next = getKnot(idx+1);
+         double h = next.x0 - knot.x0;
+         double x = -knot.a2/(3*knot.a3);
+         return (x > 0 && x < h);
+      }
    }
 
    /**

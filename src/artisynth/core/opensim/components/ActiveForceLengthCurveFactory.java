@@ -22,19 +22,34 @@ public class ActiveForceLengthCurveFactory
       String name = getNodeName (child);
 
       if ("min_norm_active_fiber_length".equals(name)) {
-         comp.minActiveNormFiberLength = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.minActiveNormFiberLength = value;
+         }
       }
       else if ("transition_norm_fiber_length".equals(name)) {
-         comp.transitionNormFiberLength  = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.transitionNormFiberLength  = value;
+         }
       }
       else if ("max_norm_active_fiber_length".equals(name)) {
-         comp.maxActiveNormFiberLength = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.maxActiveNormFiberLength = value;
+         }
       }
       else if ("shallow_ascending_slope".equals(name)) {
-         comp.shallowAscendingSlope = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.shallowAscendingSlope = value;
+         }
       }
       else if ("minimum_value".equals(name)) {
-         comp.minimumValue = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.minimumValue = value;
+         }
       }
       else {
          success = super.parseChild (comp, child);

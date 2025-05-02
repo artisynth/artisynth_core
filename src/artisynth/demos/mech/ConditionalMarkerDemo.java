@@ -28,9 +28,13 @@ public class ConditionalMarkerDemo extends RootModel {
       addModel (mech);
 
       boolean wrapping = false;
+      boolean millard = false;
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-wrapping")) {
             wrapping = true;
+         }
+         else if (args[i].equals ("-millard")) {
+            millard = true;
          }
          else {
             System.out.println (
@@ -106,7 +110,7 @@ public class ConditionalMarkerDemo extends RootModel {
 
       // create spring
 
-      MultiPointSpring spr = new MultiPointSpring ("spr", 20, 2, 0);
+      MultiPointMuscle spr = new MultiPointMuscle ("spr", 20, 2, 10, /*l0*/0);
       spr.setWrapKnotDensity (100);
       spr.addPoint (mkr0);
       spr.addPoint (cmkrs[0]);
@@ -116,11 +120,21 @@ public class ConditionalMarkerDemo extends RootModel {
       if (wrapping) {
          spr.setAllSegmentsWrappable(0);
          spr.addWrappable (cylinder);
+         spr.updateWrapSegments ();
       }
 
       //spr.addWrappable (link0);
       //spr.addWrappable (link1);
       mech.addMultiPointSpring (spr);
+      if (millard) {
+         double Tslack = 0.2;
+         double lopt = 0.7;
+         double optPenAng = Math.toRadians(20);
+         double fmax = 100;
+         Millard2012AxialMuscle mat =
+            new Millard2012AxialMuscle(fmax, lopt, Tslack, optPenAng);
+         spr.setMaterial (mat);
+      }
 
       // set rendering properties
       joint0.setShaftLength (0.5*size); // draw shaft
@@ -135,5 +149,18 @@ public class ConditionalMarkerDemo extends RootModel {
       RenderProps.setSphericalPoints (mech, 0.02, Color.WHITE);
       RenderProps.setCylindricalLines (mech, 0.01, Color.RED);
    }
+
+   public StepAdjustment advance (double t0, double t1, int flags) {
+      StepAdjustment adj = super.advance (t0, t1, flags);
+      if (false) {
+         SolveMatrixTest tester = new SolveMatrixTest();
+         MechModel mech = (MechModel)findComponent ("models/mech");
+         System.out.println (
+            "Kerror=" + tester.testStiffness (mech, 1e-8, false)); //"%12.3f"));
+         System.out.println (
+            "Derror=" + tester.testDamping (mech, 1e-8, null)); //"%12.3f"));
+      }
+      return adj;
+   } 
 
 }

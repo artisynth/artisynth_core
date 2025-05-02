@@ -547,8 +547,10 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
          }
          way.setState (myRootModel);
          if (myCheckStateP && checkState != null) {
-            if (!checkState.equals (way.getState(), null)) {
+            StringBuilder msg = new StringBuilder();
+            if (!checkState.equals (way.getState(), msg)) {
                System.out.println ("States unequal at time "+tround);
+               System.out.println (msg);
             }
          }
       }

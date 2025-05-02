@@ -6,6 +6,7 @@ public class Thelen2003MuscleFactory extends MuscleBaseFactory<Thelen2003Muscle>
 
    public Thelen2003MuscleFactory() {
       super(Thelen2003Muscle.class);
+
    }
    
    protected Thelen2003MuscleFactory (Class<? extends Thelen2003Muscle> instanceClass) {
@@ -36,54 +37,102 @@ public class Thelen2003MuscleFactory extends MuscleBaseFactory<Thelen2003Muscle>
       
       //  In ActivationFiberLengthMuscle
       if ("default_activation".equals (name)) {
-         comp.setDefaultActivation (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setDefaultActivation (value);
+         }
       }
       else if ("default_fiber_length".equals(name)) {
-         comp.setDefaultFiberLength (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setDefaultFiberLength (value);
+         }
       }
       // In Thelen2003Muscle
       else if ("FmaxTendonStrain".equals(name)) {
-         comp.setFmaxTendonStrain (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setFmaxTendonStrain (value);
+         }
       }
       else if ("FmaxMuscleStrain".equals(name)) {
-         comp.setFmaxMuscleStrain (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setFmaxMuscleStrain (value);
+         }
       } 
       else if ("KshapeActive".equals(name)) {
-         comp.setKshapeActive (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setKshapeActive (value);
+         }
       }
       else if ("KshapePassive".equals(name)) {
-         comp.setKshapePassive (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setKshapePassive (value);
+         }
       }
       else if ("Af".equals(name)) {
-         comp.setAf (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setAf (value);
+         }
       }
       else if ("Flen".equals(name)) {
-         comp.setFlen (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setFlen (value);
+         }
       }
       else if ("fv_linear_extrap_threshold".equals(name)) {
-         comp.setFvLinearExtrapThreshold (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setFvLinearExtrapThreshold (value);
+         }
       }
       else if ("maximum_pennation_angle".equals(name)) {
-         comp.setMaximumPennationAngle (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setMaximumPennationAngle (value);
+         }
       }
       else if ("activation_time_constant".equals(name)) {
-         comp.setActivationTimeConstant (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setActivationTimeConstant (value);
+         }
       }
       else if ("deactivation_time_constant".equals(name)) {
-         comp.setDeactivationTimeConstant (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setDeactivationTimeConstant (value);
+         }
       }
       else if ("minimum_activation".equals(name)) { 
-         comp.setMinimumActivation (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setMinimumActivation (value);
+         }
       }
       // In deprecated Thelen2003Muscle
       else if ("Vmax".equals(name)) {
-         comp.setVmax (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setVmax (value);
+         }
       }
       else if ("Vmax0".equals(name)) {
-         comp.setVmax0 (parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setVmax0 (value);
+         }
       }
       else if ("damping".equals(name)) {
-         comp.setDamping(parseDoubleValue (child));
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setDamping(value);
+         }
       }
       else {
          success = super.parseChild (comp, child);

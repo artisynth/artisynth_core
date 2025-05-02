@@ -235,7 +235,11 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       myQ = new MatrixNd (6, 6);
       myQRD = new QRDecomposition();
 
-      updateConstraints(new RigidTransform3d());
+      RigidTransform3d TGD = new RigidTransform3d();
+      VectorNd coords = new VectorNd(numc);
+      doGetCoords (coords);     
+      coordinatesToTCD (TGD, coords);
+      updateConstraints(TGD);
       // automatically set LINEAR/ROTARY flags based on whether the wrench
       // constraint at the 0 position has a larger v or m component.
       for (int i=0; i<numConstraints(); i++) {

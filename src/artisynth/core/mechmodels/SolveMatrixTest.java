@@ -90,21 +90,29 @@ public class SolveMatrixTest {
       sys.getActivePosState (q0);
       sys.updateForces (0);
       getActiveForces (f0, sys);
-      //System.out.println ("f0=  " + f0.toString("%16.6f"));
+      //System.out.println ("f0=  " + f0.toString("%16.8f"));
 
       // the aux state code is necessary to handle situations involving
       // state-bearing force effectors like viscous materials
       sys.advanceAuxState (0, h);
 
       for (int i=0; i<myVsize; i++) {
+         sys.setState (savestate);
+         sys.setActiveVelState (u0);
          // increment position by a small amount
          uimp.setZero();
          uimp.set (i, 1);
          applyActiveImpulse (sys, q0, uimp, h);
 
+         // Finalize advance added to update wrapping strands, if present.
+         // However, wrapping strand updates seem to not converge well for very
+         // small displacements, and so the resulting numerical differentiation
+         // is not useful.
+         // sys.recursivelyFinalizeAdvance (null, 0, h, 0, 0);
+
          sys.updateForces (h);
          getActiveForces (f, sys);
-         //System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
+         //System.out.println ("f["+i+"]=" + f.toString("%16.8f"));
          f.sub (f0);
          f.scale (1/h);
          //System.out.println ("df=" + f);

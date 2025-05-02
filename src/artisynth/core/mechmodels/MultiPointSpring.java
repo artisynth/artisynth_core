@@ -30,22 +30,13 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
+import artisynth.core.driver.Main;
 import maspack.geometry.GeometryTransformer;
 import maspack.geometry.LineSegment;
 import maspack.geometry.OBB;
 import maspack.geometry.DistanceGrid;
 import maspack.geometry.PolygonalMesh;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.ImproperStateException;
-import maspack.matrix.Matrix;
 import maspack.matrix.*;
-import maspack.matrix.Matrix3dBase;
-import maspack.matrix.MatrixBlock;
-import maspack.matrix.MatrixBlockBase;
-import maspack.matrix.Point3d;
-import maspack.matrix.SparseNumberedBlockMatrix;
-import maspack.matrix.Vector3d;
-import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -122,6 +113,10 @@ public class MultiPointSpring extends PointSpringBase
    implements ScalableUnits, TransformableGeometry,
               CopyableComponent, RequiresPrePostAdvance,
               HasSlaveObjects {
+
+   private final static double INF = Double.POSITIVE_INFINITY;
+
+   public boolean myDebug = false;
 
    public static boolean myDrawWrapPoints = true;
    protected boolean myUpdateContactsP = true;
@@ -992,7 +987,7 @@ public class MultiPointSpring extends PointSpringBase
     *
     * <p>The range indicated by {@code pntIdx0} and {@code pntIdx1} may lie
     * partly or completely outside the range of actual points. The range will
-    * also remain fixed even if points are subseqently added or removed from
+    * also remain fixed even if points are subsequently added or removed from
     * the spring.
     * 
     * @param wrappable wrappable to add
@@ -1047,6 +1042,19 @@ public class MultiPointSpring extends PointSpringBase
     */
    public int numWrappables() {
       return myWrappables.size();
+   }
+
+   /**
+    * Returns a list of the wrappables specified in this spring.
+    * 
+    * @return wrappables in this spring
+    */
+   public ArrayList<Wrappable> getWrappables() {
+      ArrayList<Wrappable> list = new ArrayList<>(numWrappables());
+      for (WrappableSpec ws : myWrappables) {
+         list.add (ws.myWrappable);
+      }
+      return list;
    }
 
    /**
@@ -1120,6 +1128,7 @@ public class MultiPointSpring extends PointSpringBase
    
    protected void removeWrappableFromContacts (int widx) {
       // XXX check this
+      System.out.println ("removeWrappableFromContacts " + widx);
       if (mySegments != null) {
          for (Segment seg : mySegments) {
             if (seg instanceof WrapSegment) {
@@ -1128,6 +1137,55 @@ public class MultiPointSpring extends PointSpringBase
          }
       }     
    }
+
+   protected ArrayList<int[]> reindexContactInfo (int[] wrappableReindexMap) {
+      ArrayList<int[]> savedContactInfo = new ArrayList<>();
+      if (mySegments != null) {
+         for (Segment seg : mySegments) {
+            if (seg instanceof WrapSegment) {
+               savedContactInfo.add (
+                  ((WrapSegment)seg).reindexContactInfo (wrappableReindexMap));
+            }
+         }
+      }     
+      return savedContactInfo;
+   }
+
+   protected void restoreContactInfo (ArrayList<int[]> savedContactInfo) {
+      if (mySegments != null) {
+         int wsegi = 0;
+         for (Segment seg : mySegments) {
+            if (seg instanceof WrapSegment) {
+               ((WrapSegment)seg).restoreContactInfo (
+                  savedContactInfo.get(wsegi++));
+            }
+         }
+      }     
+   }
+   
+   protected ArrayList<int[]> reindexWrappableSegmentRanges (
+      int[] removedSegmentIdxs) {
+      ArrayList<int[]> savedRanges = new ArrayList<>();
+      if (myWrappables != null) {
+         for (WrappableSpec spec : myWrappables) {
+            savedRanges.add (
+               spec.reindexSegmentRanges (removedSegmentIdxs));
+          }
+      }         
+      return savedRanges;
+   }
+
+   protected void restoreWrappableSegmentRanges (ArrayList<int[]> savedRanges) {
+      if (myWrappables != null) {
+         int widx = 0;
+         for (int[] rng : savedRanges) {
+            if (rng != null) {
+               myWrappables.get(widx).setPointIndices (rng[0], rng[1]);
+            }
+            widx++;
+         }
+      }
+   }     
 
    /**
     * Remove from this spring a wrappable which is applied to all segments.
@@ -1189,12 +1247,26 @@ public class MultiPointSpring extends PointSpringBase
 
    /* === segment query and control === */
 
+   // /**
+   //  * Returns a list of the segment specifications in this spring. These
+   //  * are for reference only and should not be modified.
+   //  * 
+   //  * @return list of segment specifications
+   //  */
+   // public ArrayList<SegmentSpec> getSegmentSpecs() {
+   //    ArrayList<SegmentSpec> list = new ArrayList<>();
+   //    list.addAll (mySegmentSpecs);
+   //    return list;
+   // }
+   
    /**
-    * Returns the segment indexed by {@code segIdx} in this spring. This is the
-    * segment that lies between points {@code idx} and {@code idx}+1.
+    * Returns the segment specification indexed by {@code segIdx} in this 
+    * spring. This is the segment that lies between points {@code idx} and 
+    * {@code idx}+1. The return specification is for reference only and
+    * should not be modified.
     * 
-    * @param segIdx index of the segment
-    * @return the {@code idx}-th segment
+    * @param segIdx index of the segment specification
+    * @return the {@code idx}-th segment spec
     */
    public SegmentSpec getSegmentSpec(int segIdx) {
       return mySegmentSpecs.get(segIdx);
@@ -1536,13 +1608,13 @@ public class MultiPointSpring extends PointSpringBase
    private void initializeSegments() {
       // make sure the that the number of solve block corresponds to 
       // the number of points
-      int nump = numPoints();
-      if (nump != myNumBlks) {
-         mySolveBlkNums = new int[nump*nump];
-         myNumBlks = nump;
+      int numBlks = numPoints()+numWrappables();
+      if (numBlks != myNumBlks) {
+         mySolveBlkNums = new int[numBlks*numBlks];
+         myNumBlks = numBlks;
       }
       ArrayList<Segment> segs = new ArrayList<>(numSegmentSpecs());
-      if (nump > 1) {
+      if (numPoints() > 1) {
          if (mySegmentSpecs.get(0).isPointConditional()) {
             throw new IllegalStateException (
                "First point in MultiPointSpring must not be conditional");
@@ -1551,11 +1623,11 @@ public class MultiPointSpring extends PointSpringBase
             throw new IllegalStateException (
                "Last point in MultiPointSpring must not be conditional");
          }
-         int i0 = 0;
+         int iprev = 0;
          for (int i=1; i<mySegmentSpecs.size(); i++) {
             SegmentSpec spec = mySegmentSpecs.get(i);
             if (spec.isPointActive()) {
-               int numk = findNumSegmentKnots (i0, i);
+               int numk = findNumSegmentKnots (iprev, i);
                Segment seg;
                if (numk > 0) {
                   seg = createWrapSegment (numk);
@@ -1563,18 +1635,20 @@ public class MultiPointSpring extends PointSpringBase
                else {
                   seg = new Segment();
                }
-               seg.setPassive (isSegmentPassive (i0, i));
-               seg.mySpecIdx = i0;
-               seg.setPntB (mySegmentSpecs.get(i0).myPntB);
+               seg.setPassive (isSegmentPassive (iprev, i));
+               seg.mySpecIdx = iprev;
+               seg.setPntB (mySegmentSpecs.get(iprev).myPntB);
+               seg.myBlockIdxB = iprev;
                seg.myPntA = mySegmentSpecs.get(i).myPntB;
+               seg.myBlockIdxA = i;
                if (numk > 0) {
                   WrapSegment wseg = (WrapSegment)seg;
                   ArrayList<Point3d> ipnts =
-                     getInitialSegmentPoints (i0, i);
+                     getInitialSegmentPoints (iprev, i);
                   wseg.initializeStrand (ipnts);
                }
                segs.add (seg);
-               i0 = i;
+               iprev = i;
             }
          }
       }
@@ -1591,6 +1665,7 @@ public class MultiPointSpring extends PointSpringBase
                "specIdx "+sidx+" is out of bounds");
          }
          seg.setPntB (mySegmentSpecs.get(sidx).myPntB);
+         seg.myBlockIdxB = sidx;
          int nidx;
          if (k+1 < seglist.size()) {
             nidx = seglist.get(k+1).mySpecIdx;
@@ -1603,13 +1678,14 @@ public class MultiPointSpring extends PointSpringBase
             nidx = mySegmentSpecs.size()-1;
          }
          seg.myPntA = mySegmentSpecs.get(nidx).myPntB;
+         seg.myBlockIdxA = nidx;
       }
    }
 
    /**
     * Returns the segment list, initializing it on demand.
     */
-   ArrayList<Segment> getSegments() {
+   public ArrayList<Segment> getSegments() {
       if (mySegments == null) {
          initializeSegments();
       }
@@ -1617,10 +1693,10 @@ public class MultiPointSpring extends PointSpringBase
    }
    
    private void allocateSolveBlocks() {
-      int nump = numPoints();
-      if (nump != myNumBlks) {
-         mySolveBlkNums = new int[nump*nump];
-         myNumBlks = nump;
+      int numBlks = numPoints()+numWrappables();
+      if (numBlks != myNumBlks) {
+         mySolveBlkNums = new int[numBlks*numBlks];
+         myNumBlks = numBlks;
       }
    }
    
@@ -1632,8 +1708,8 @@ public class MultiPointSpring extends PointSpringBase
     */
    protected void updateSegs (boolean updateWrapSegs) {
       // XXX finish
-      int nump = numPoints();
-      myNumBlks = nump;
+      int numBlks = numPoints()+numWrappables();
+      myNumBlks = numBlks;
       mySolveBlkNums = new int[myNumBlks*myNumBlks];
 //      updateSegs (getSegments(), updateWrapSegs);
    }
@@ -1875,7 +1951,9 @@ public class MultiPointSpring extends PointSpringBase
                }
                seg.mySpecIdx = nidx0;
                seg.setPntB (mySegmentSpecs.get(nidx0).myPntB);
+               seg.myBlockIdxB = nidx0;
                seg.myPntA = mySegmentSpecs.get(nidx1).myPntB;
+               seg.myBlockIdxA = nidx1;
                seg.setPassive (isSegmentPassive (nidx0, nidx1));
             }
          }
@@ -1892,7 +1970,9 @@ public class MultiPointSpring extends PointSpringBase
             }
             seg.mySpecIdx = nidx0;
             seg.setPntB (mySegmentSpecs.get(nidx0).myPntB);
+            seg.myBlockIdxB = nidx0;
             seg.myPntA = mySegmentSpecs.get(nidx1).myPntB;
+            seg.myBlockIdxA = nidx1;
             seg.setPassive (isSegmentPassive (nidx0, nidx1));
          } 
          if (numk > 0) {
@@ -2793,12 +2873,31 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
+    * Returns a mapping from old to new wrappable indices.
+    */
+   private int[] getWrappableReindexMap (int[] removedIdxs) {
+      // map length equals previous number of wrappables
+      int numRemoved = removedIdxs.length;
+      int[] map = new int[numRemoved+numWrappables()];
+      int ridx = 0;
+      for (int i=0; i<map.length; i++) {
+         if (ridx < numRemoved && i == removedIdxs[ridx]) {
+            map[i] = -1;
+            ridx++;
+         }
+         else {
+            map[i] = i-ridx;
+         }
+      }
+      return map;
+   }
+
+   /**
     * {@inheritDoc}
     */
    @Override
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
       super.updateReferences (undo, undoInfo);
-
       if (undo) {
          Object obj = undoInfo.removeFirst();
          if (obj != NULL_OBJ) {
@@ -2807,13 +2906,22 @@ public class MultiPointSpring extends PointSpringBase
          }
          obj = undoInfo.removeFirst();
          if (obj != NULL_OBJ) {
+            restoreContactInfo ((ArrayList<int[]>)obj);
+         }
+         obj = undoInfo.removeFirst();
+         if (obj != NULL_OBJ) {
             ((ListRemove<SegmentSpec>)obj).undo();
+            myStateVersion++;
             allocateSolveBlocks();
+         }
+         obj = undoInfo.removeFirst();
+         if (obj != NULL_OBJ) {
+            restoreWrappableSegmentRanges ((ArrayList<int[]>)obj);
          }
       }
       else {
          // remove soft references which aren't in the hierarchy any more:
-         DynamicIntArray removedWrappableIndices = new DynamicIntArray();
+         //DynamicIntArray removedWrappableIndices = new DynamicIntArray();
          ListRemove<WrappableSpec> wrappableRemove = null;
          for (int i=0; i<myWrappables.size(); i++) {
             if (!ComponentUtils.areConnected (
@@ -2821,12 +2929,14 @@ public class MultiPointSpring extends PointSpringBase
                if (wrappableRemove == null) {
                   wrappableRemove = new ListRemove<WrappableSpec>(myWrappables);
                }
-               removedWrappableIndices.add (i);
+               //removedWrappableIndices.add (i);
                wrappableRemove.requestRemove(i);
             }
          }
+         int[] wrappableReindexMap = null;
          if (wrappableRemove != null) {
             wrappableRemove.remove();
+            wrappableReindexMap = wrappableRemove.getReindexMap();
             undoInfo.addLast (wrappableRemove);
             maybeInvalidateMaxWrapDisplacement();
          }
@@ -2844,21 +2954,29 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
          if (specRemove != null) {
-            specRemove.remove();
+            int[] removedSpecIdxs = specRemove.remove();
+            undoInfo.addLast (NULL_OBJ); // saved contact info not needed 
             undoInfo.addLast (specRemove);
+            undoInfo.addLast (reindexWrappableSegmentRanges(removedSpecIdxs));
             myRenderObjValidP = false;
             mySegments = null;
+            myStateVersion++;
             initializeSegments();
             allocateSolveBlocks();
-            // remove render object
          }
          else {
-            for (int i=0; i<removedWrappableIndices.size(); i++) {
-               removeWrappableFromContacts (removedWrappableIndices.get(i));
+            if (wrappableReindexMap != null) {
+               undoInfo.addLast (reindexContactInfo (wrappableReindexMap));
             }
-            updateWrapSegments(myMaxWrapIterations);
-            undoInfo.addLast (NULL_OBJ);
+            else {
+               undoInfo.addLast (NULL_OBJ); // saved contact info not needed
+            }
+            undoInfo.addLast (NULL_OBJ); // spec remove info not needed
+            undoInfo.addLast (NULL_OBJ); // saved wrap segment ranges not needed
          }         
+         if (specRemove != null || wrappableRemove != null) {
+            updateWrapSegments(myMaxWrapIterations);
+         }
       }
    }
    /* === length methods === */
@@ -3091,6 +3209,17 @@ public class MultiPointSpring extends PointSpringBase
    public boolean hasState() {
       return hasWrappableSegments() || hasConditionalPoints() || super.hasState();
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int getStateVersion() {
+      int version = myStateVersion;
+      if (myStateMat != null) {
+         version += myStateMat.getStateVersion();
+      }
+      return version;
+   }
 
    /**
     * {@inheritDoc}
@@ -3127,7 +3256,9 @@ public class MultiPointSpring extends PointSpringBase
          seg.setPassive (passive);
          seg.mySpecIdx = sidx;
          seg.setPntB (mySegmentSpecs.get(sidx).myPntB);
+         seg.myBlockIdxB = sidx;
          seg.myPntA = mySegmentSpecs.get(eidx).myPntB;
+         seg.myBlockIdxA = eidx;
          segs.add (seg);
       }
       mySegments = segs;
@@ -3262,6 +3393,9 @@ public class MultiPointSpring extends PointSpringBase
       double dldt = getActiveLengthDot();
 
       double F = computeF (len, dldt);
+      // if (F != 0) {
+      //    System.out.printf ("  %s: %g\n", getName(), F);
+      // }
       ArrayList<Segment> segs = getSegments();
       for (int i=0; i<segs.size(); i++) {
          Segment seg = segs.get(i);
@@ -3277,56 +3411,133 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
+    * Returns the solve index for a Wrappable. This is obtained by assuming
+    * that the wrappable is an instance of a RigidBody, and returning the
+    * body's solve index. If the wrappabel is not a RigidBody, -1 is returned,
+    * indicating no solve index.
+    */
+   private int getWrappableSolveIndex (int widx) {
+      Wrappable wrapobj = getWrappable(widx);
+      if (wrapobj instanceof RigidBody) {
+         return ((RigidBody)wrapobj).getSolveIndex();
+      }
+      else {
+         return -1;
+      }
+   }
+
+   /**
     * {@inheritDoc}
     */
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
       // TODO: FINISH - currently adds solve blocks only for the points
       int nump = numPoints();
-      if (nump != myNumBlks) {
+      int numw = numWrappables();
+      int numBlks = nump+numw;
+      if (numBlks != myNumBlks) {
          allocateSolveBlocks();
       }
-      if (nump > 1) {
-         for (int i=0; i<nump; i++) {
-            int bi = getPoint(i).getSolveIndex();
-            for (int j=0; j<nump; j++) {
-               int bj = getPoint(j).getSolveIndex();
+      int rowSize, colSize, bi, bj;
+      if (numBlks > 1) {
+         for (int i=0; i<numBlks; i++) {
+            if (i < nump) {
+               bi = getPoint(i).getSolveIndex();
+               rowSize = 3;
+            }
+            else {
+               bi = getWrappableSolveIndex(i-nump);
+               rowSize = 6;
+            }
+            for (int j=0; j<numBlks; j++) {
+               if (j < nump) {
+                  bj = getPoint(j).getSolveIndex();
+                  colSize = 3;
+               }
+               else {
+                  bj = getWrappableSolveIndex(j-nump);
+                  colSize = 6;
+               }
                MatrixBlock blk = null;
                if (bi != -1 && bj != -1) {
                   blk = M.getBlock (bi, bj);
                   if (blk == null) {
-                     blk = MatrixBlockBase.alloc (3, 3);
+                     blk = MatrixBlockBase.alloc (rowSize, colSize);
                      M.addBlock (bi, bj, blk);
                   }
                }
                if (blk != null) {
-                  mySolveBlkNums[i*nump+j] = blk.getBlockNumber();
+                  mySolveBlkNums[i*numBlks+j] = blk.getBlockNumber();
                }
                else {
-                  mySolveBlkNums[i*nump+j] = -1;
+                  mySolveBlkNums[i*numBlks+j] = -1;
                }
             }
          }
       }
    }
 
-   /**
-    * Adds {@code s * X} to the block of {@code M} indexed by
-    * {@code bi} and {@code bj}.
-    */
-   private void addToBlock (
+   private void applyBlock (
       SparseNumberedBlockMatrix M, int bi, int bj, Matrix3dBase X, double s) {
+      applyBlock (M, bi, bj, null, null, X, s);
+   }
+
+   /**
+    * Applys {@code s * X} to the block of {@code M} indexed by {@code bi} and
+    * {@code bj}. {@code Ji} and {@code Jj} are used to map {@code s X} onto
+    * the block in cases where the block is not 3 x 3. Letting {@code B}
+    * denote the block, this is done as follows:
+    * <pre>
+    * B = s X                // B is 3 x 3
+    * B = s Ji^T X           // B is 6 x 3
+    * B = s X Jj             // B is 3 x 6
+    * B = s Ji^T X Jj        // B is 6 x 6
+    * </pre>
+    */
+   private void applyBlock (
+      SparseNumberedBlockMatrix M, int bi, int bj, 
+      Matrix3x6 Ji, Matrix3x6 Jj, Matrix3dBase X, double s) {
+
+      boolean Jenabled = true;
 
       int blkNum = mySolveBlkNums[bi*myNumBlks+bj];
+      int nump = numPoints();
+      MatrixBlock blk = M.getBlockByNumber (blkNum);
+
       if (blkNum != -1) {
-         MatrixBlock blk =  M.getBlockByNumber (blkNum);
-         blk.scaledAdd (s, X);
+         if (Ji == null) {
+            if (Jj == null) {
+               // blk is 3 x 3
+               blk.scaledAdd (s, X);
+            }
+            else {
+               // blk is 3 x 6
+               Matrix3d Xs = new Matrix3d(X);
+               Xs.scale (s);
+               if (Jenabled) blk.mulAdd (Xs, Jj);
+            }
+         }
+         else {
+            if (Jj == null) {
+               // blk is 6 x 3
+               Matrix3d Xs = new Matrix3d(X);
+               Xs.scale (s);
+               if (Jenabled) blk.mulTransposeLeftAdd (Ji, Xs);
+            }
+            else {
+               // blk is 6 x 6
+               Matrix3x6 XsJj = new Matrix3x6();
+               MatrixMulAdd.mulAdd3x6 (XsJj, X, Jj);
+               XsJj.scale (s);
+               if (Jenabled) blk.mulTransposeLeftAdd (Ji, XsJj);
+            }
+         }
       }
    }
 
    /**
     * {@inheritDoc}
     */
-   public void addPosJacobian (SparseNumberedBlockMatrix M, double s) {
+   public void addPosJacobianOld (SparseNumberedBlockMatrix M, double s) {
       // TODO: FINISH. currently computes Jacobian only for the points
 
       Matrix3d X = new Matrix3d();
@@ -3344,28 +3555,46 @@ public class MultiPointSpring extends PointSpringBase
          for (int i=0; i<numSegs; i++) {
             Segment seg_i = segs.get(i);
             Vector3d uvecB_i, uvecA_i;
+            int iA = seg_i.myBlockIdxA;
+            int iB = seg_i.myBlockIdxB;
+            // if (iA != indexOfPoint(seg_i.myPntA)) {
+            //    System.out.printf (
+            //       "ERROR: iA=%d, expected %d\n", iA, indexOfPoint(seg_i.myPntA));
+            // }
+            // if (iB != indexOfPoint(seg_i.myPntB)) {
+            //    System.out.printf (
+            //       "ERROR: iB=%d, expected %d\n", iB, indexOfPoint(seg_i.myPntB));
+            // }
+            // if (iA != i+1) {
+            //    System.out.printf ("iA=%d, i+1=%d numSegs=%d\n", iA, i+1, numSegs);
+            // }
+            // if (iB != i) {
+            //    System.out.printf ("iB=%d, i=%d\n", iB, i);
+            // }
             if (seg_i.hasSubSegments()) {
-               Segment sub;
-               sub = seg_i.firstSubSegment();
-               if (F != 0 && sub.myLength != 0) { // avoid NaN
-                  X.scale (F/sub.myLength, sub.myP);
-                  addToBlock (M, i, i, X, -s);
+               SubSegment sub0 = seg_i.firstSubSegment();
+               SubSegment subL = seg_i.lastSubSegment();
+               for (SubSegment sub = sub0; sub != null; sub = sub.getNext()) {
+                  if (F != 0 && sub.myLength != 0) { // avoid NaN
+                     X.scale (F/sub.myLength, sub.myP);
+                     if (sub == sub0) {
+                        applyBlock (M, iB, iB, X, -s);
+                     }
+                     if (sub == subL) {
+                        applyBlock (M, iA, iA, X, -s);
+                     }
+                  }
                }
-               uvecB_i = sub.myUvec;
-               sub = seg_i.lastSubSegment();
-               if (F != 0 && sub.myLength != 0) { // avoid NaN
-                  X.scale (F/sub.myLength, sub.myP);
-                  addToBlock (M, i+1, i+1, X, -s);
-               }
-               uvecA_i = sub.myUvec;
+               uvecB_i = sub0.myUvec;
+               uvecA_i = subL.myUvec;
             }
             else {
                if (F != 0 && seg_i.myLength != 0) { // avoid NaN
                   X.scale (F/seg_i.myLength, seg_i.myP);
-                  addToBlock (M, i, i, X, -s);
-                  addToBlock (M, i+1, i, X, s);
-                  addToBlock (M, i, i+1, X, s);
-                  addToBlock (M, i+1, i+1, X, -s);
+                  applyBlock (M, iB, iB, X, -s);
+                  applyBlock (M, iA, iB, X, s);
+                  applyBlock (M, iB, iA, X, s);
+                  applyBlock (M, iA, iA, X, -s);
                }
                uvecB_i = seg_i.myUvec;
                uvecA_i = seg_i.myUvec;
@@ -3373,20 +3602,241 @@ public class MultiPointSpring extends PointSpringBase
             for (int j=0; j<numSegs; j++) {
                Segment seg_j = segs.get(j);
                Vector3d dFdxB_j, dFdxA_j; 
+               int jA = seg_j.myBlockIdxA;
+               int jB = seg_j.myBlockIdxB;
+
                if (seg_j.hasSubSegments()) {
-                  dFdxB_j = seg_j.firstSubSegment().mydFdxB;
+                  dFdxB_j = new Vector3d(seg_j.firstSubSegment().mydFdxA);
+                  dFdxB_j.negate();
                   dFdxA_j = seg_j.lastSubSegment().mydFdxA;
                }
                else {
-                  dFdxB_j = seg_j.mydFdxB;
+                  dFdxB_j = new Vector3d(seg_j.mydFdxA);
+                  dFdxB_j.negate();
                   dFdxA_j = seg_j.mydFdxA;
                }
                X.outerProduct (uvecB_i, dFdxB_j);
-               addToBlock (M, i, j, X, s);
-               addToBlock (M, i+1, j, X, -s);
+               applyBlock (M, iB, jB, X, s);
+               applyBlock (M, iA, jB, X, -s);
                X.outerProduct (uvecA_i, dFdxA_j);
-               addToBlock (M, i, j+1, X, s);
-               addToBlock (M, i+1, j+1, X, -s);
+               applyBlock (M, iB, jA, X, s);
+               applyBlock (M, iA, jA, X, -s);
+            }
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addPosJacobian (SparseNumberedBlockMatrix M, double s) {
+      // TODO: FINISH. currently computes Jacobian only for the points
+      Matrix3d X = new Matrix3d();
+      ArrayList<Segment> segs = getSegments();
+      int numSegs = segs.size();
+      if (numSegs > 0) {
+         double l = getActiveLength();
+         double ldot = getActiveLengthDot();
+         double F = computeF (l, ldot);
+         double dFdl = computeDFdl (l, ldot);
+         double dFdldot = computeDFdldot (l, ldot);
+         updateP();
+         updateDfdx (dFdl, dFdldot);
+
+         //F = 0;
+         for (int i=0; i<numSegs; i++) {
+            Segment seg_i = segs.get(i);
+            if (seg_i.hasSubSegments()) {
+               SubSegment sub0 = seg_i.firstSubSegment();
+               for (SubSegment subseg=sub0; subseg!=null; subseg=subseg.myNext) {
+                  addSegmentPosBlocks (M, subseg, /*F*/F, s);
+               }
+            }
+            else {
+               addSegmentPosBlocks (M, seg_i, /*F*/F, s);
+            }
+         }
+      }
+      //checkMatrix (M);
+   }
+
+   /**
+    * For testing: check properties of Jacobian matrices.
+    */
+   void checkMatrix(SparseNumberedBlockMatrix S) {
+      int nump = numPoints();
+      int numw = numWrappables();
+      int numb = nump+numw;
+      int size = 3*nump + 6*numw;
+      MatrixNd M = new MatrixNd (size, size);
+      int i = 0;
+      for (int bi=0; bi<numb; bi++) {
+         int j = 0;
+         for (int bj=0; bj<numb; bj++) {
+            MatrixBlock blk = S.getBlockByNumber (mySolveBlkNums[bi*numb+bj]);
+            M.setSubMatrix (i, j, blk);
+            j += (bj < nump ? 3 : 6);
+         }
+         i += (bi < nump ? 3 : 6);
+      }
+      EigenDecomposition eig = 
+         new EigenDecomposition (M, EigenDecomposition.SYMMETRIC);
+      double minEig = eig.getEigReal().minElement();
+      double maxEig = eig.getEigReal().maxElement();
+      if (minEig < -1e-8) {
+         int num = 0;
+         for (i=0; i<M.rowSize(); i++) {
+            if (eig.getEigReal().get(i) < -1e-8) {
+               num++;
+            }
+         }
+         System.out.printf (
+            " %s matrix BAD minEig %g maxEig %g, num=%d, size %d\n",
+            getName(), minEig, maxEig, num, M.rowSize());
+         if ("ADM".equals (getName())) {
+            System.out.println ("M=\n" + M.toString("%13.8f"));
+         }
+      }
+      
+      // if (M.isSymmetric(1e-10)) {
+      //    System.out.println ("symmetric OK");
+      // }
+      // else {
+      //    System.out.println ("NOT symmetric");
+      // }
+   }
+
+   public void addSegmentPosBlocks (
+      SparseNumberedBlockMatrix M, Segment seg_i, double F, double s) {
+
+      ArrayList<Segment> segs = getSegments();
+      int numSegs = segs.size();
+      
+      Matrix3d X = new Matrix3d();
+      int idxA_i = seg_i.myBlockIdxA;
+      int idxB_i = seg_i.myBlockIdxB;
+      Matrix3x6 JA_i = seg_i.getJA();
+      Matrix3x6 JB_i = seg_i.getJB();
+      Vector3d nrmA = seg_i.getNrmlA();
+      Vector3d nrmB = seg_i.getNrmlB();
+
+      if (F != 0 && seg_i.myLength != 0) { // avoid NaN
+         if (nrmA != null) {
+            if (nrmB == null) {
+               X.outerProduct (nrmA, nrmA);
+            }
+            else {
+               // Both normals present. Average and scale by the 
+               // cosine between them
+               Vector3d nrmAvg = new Vector3d();
+               nrmAvg.add (nrmA, nrmB);
+               nrmAvg.normalize();
+               X.outerProduct (nrmAvg, nrmAvg);
+               X.scale (nrmA.dot(nrmB)); // cosine between normals
+            }
+         }
+         else if (nrmB != null) {
+            X.outerProduct (nrmB, nrmB);
+         }
+         else {
+            X.set (seg_i.myP);
+         }
+         X.scale (F/seg_i.myLength);
+         applyBlock (M, idxB_i, idxB_i, JB_i, JB_i, X, -s);
+         applyBlock (M, idxA_i, idxB_i, JA_i, JB_i, X, s);
+         applyBlock (M, idxB_i, idxA_i, JB_i, JA_i, X, s);
+         applyBlock (M, idxA_i, idxA_i, JA_i, JA_i, X, -s);
+      }
+      Vector3d uvec = seg_i.myUvec;
+
+      // add DFdx blocks
+      for (int j=0; j<numSegs; j++) {
+         Segment seg_j = segs.get(j);
+         if (seg_j.isPassive()) {
+            continue;
+         }
+         if (seg_j.hasSubSegments()) {
+            SubSegment sub0 = seg_j.firstSubSegment();
+            for (SubSegment subseg=sub0; subseg!=null; subseg=subseg.myNext) {
+               int idxA_j = subseg.myBlockIdxA;
+               int idxB_j = subseg.myBlockIdxB;
+               Matrix3x6 JA_j = subseg.getJA();
+               Matrix3x6 JB_j = subseg.getJB();
+               X.outerProduct (uvec, subseg.mydFdxA);
+               applyBlock (M, idxB_i, idxB_j, JB_i, JB_j, X, -s);
+               applyBlock (M, idxA_i, idxB_j, JA_i, JB_j, X, s);
+               X.outerProduct (uvec, subseg.mydFdxA);
+               applyBlock (M, idxB_i, idxA_j, JB_i, JA_j, X, s);
+               applyBlock (M, idxA_i, idxA_j, JA_i, JA_j, X, -s);
+            }
+         }
+         else {
+            int idxA_j = seg_j.myBlockIdxA;
+            int idxB_j = seg_j.myBlockIdxB;
+            Matrix3x6 JA_j = seg_j.getJA();
+            Matrix3x6 JB_j = seg_j.getJB();
+            X.outerProduct (uvec, seg_j.mydFdxA);
+            applyBlock (M, idxB_i, idxB_j, JB_i, JB_j, X, -s);
+            applyBlock (M, idxA_i, idxB_j, JA_i, JB_j, X, s);
+            X.outerProduct (uvec, seg_j.mydFdxA);
+            applyBlock (M, idxB_i, idxA_j, JB_i, JA_j, X, s);
+            applyBlock (M, idxA_i, idxA_j, JA_i, JA_j, X, -s);
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addVelJacobianOld (SparseNumberedBlockMatrix M, double s) {
+      // TODO: FINISH. currently computes Jacobian only for the points
+      Matrix3d X = new Matrix3d();
+      ArrayList<Segment> segs = getSegments();
+      int numSegs = segs.size();
+      if (numSegs > 0) {
+         double l = getActiveLength();
+         double ldot = getActiveLengthDot();
+         double dFdldot = computeDFdldot (l, ldot);
+         for (int i=0; i<numSegs; i++) {
+            Segment seg_i = segs.get(i);
+            int idxA_i = seg_i.myBlockIdxA;
+            int idxB_i = seg_i.myBlockIdxB;
+            Vector3d uvecB_i, uvecA_i;
+            if (seg_i.hasSubSegments()) {
+               uvecB_i = seg_i.firstSubSegment().myUvec;
+               uvecA_i = seg_i.lastSubSegment().myUvec;
+            }
+            else {
+               uvecB_i = seg_i.myUvec;
+               uvecA_i = seg_i.myUvec;
+            }
+            for (int j=0; j<numSegs; j++) {
+               Segment seg_j = segs.get(j);
+               int idxA_j = seg_j.myBlockIdxA;
+               int idxB_j = seg_j.myBlockIdxB;
+               Vector3d uvecB_j, uvecA_j;
+               if (!seg_j.isPassive()) {
+                  if (seg_j.hasSubSegments()) {
+                     uvecB_j = seg_j.firstSubSegment().myUvec;
+                     uvecA_j = seg_j.lastSubSegment().myUvec;
+                  }
+                  else {
+                     uvecB_j = seg_j.myUvec;
+                     uvecA_j = seg_j.myUvec;
+                  }
+                  X.outerProduct (uvecB_i, uvecB_j);
+                  applyBlock (M, idxB_i, idxB_j, X, -s*dFdldot);
+                  if (uvecB_j != uvecA_j) {
+                     X.outerProduct (uvecB_i, uvecA_j);
+                  }
+                  applyBlock (M, idxB_i, idxA_j, X, s*dFdldot);                  
+                  X.outerProduct (uvecA_i, uvecB_j);
+                  applyBlock (M, idxA_i, idxB_j, X, s*dFdldot);
+                  if (uvecB_j != uvecA_j) {
+                     X.outerProduct (uvecA_i, uvecA_j);
+                  }
+                  applyBlock (M, idxA_i, idxA_j, X, -s*dFdldot);
+               }
             }
          }
       }
@@ -3406,41 +3856,65 @@ public class MultiPointSpring extends PointSpringBase
          double dFdldot = computeDFdldot (l, ldot);
          for (int i=0; i<numSegs; i++) {
             Segment seg_i = segs.get(i);
-            Vector3d uvecB_i, uvecA_i;
             if (seg_i.hasSubSegments()) {
-               uvecB_i = seg_i.firstSubSegment().myUvec;
-               uvecA_i = seg_i.lastSubSegment().myUvec;
-            }
-            else {
-               uvecB_i = seg_i.myUvec;
-               uvecA_i = seg_i.myUvec;
-            }
-            for (int j=0; j<numSegs; j++) {
-               Segment seg_j = segs.get(j);
-               Vector3d uvecB_j, uvecA_j;
-               if (!seg_j.isPassive()) {
-                  if (seg_j.hasSubSegments()) {
-                     uvecB_j = seg_j.firstSubSegment().myUvec;
-                     uvecA_j = seg_j.lastSubSegment().myUvec;
-                  }
-                  else {
-                     uvecB_j = seg_j.myUvec;
-                     uvecA_j = seg_j.myUvec;
-                  }
-                  X.outerProduct (uvecB_i, uvecB_j);
-                  addToBlock (M, i, j, X, -s*dFdldot);
-                  if (uvecB_j != uvecA_j) {
-                     X.outerProduct (uvecB_i, uvecA_j);
-                  }
-                  addToBlock (M, i, j+1, X, s*dFdldot);                  
-                  X.outerProduct (uvecA_i, uvecB_j);
-                  addToBlock (M, i+1, j, X, s*dFdldot);
-                  if (uvecB_j != uvecA_j) {
-                     X.outerProduct (uvecA_i, uvecA_j);
-                  }
-                  addToBlock (M, i+1, j+1, X, -s*dFdldot);
+               SubSegment sub0 = seg_i.firstSubSegment();
+               for (SubSegment subseg=sub0; subseg!=null; subseg=subseg.myNext) {
+                  addSegmentVelBlocks (M, subseg, dFdldot, s);
                }
             }
+            else {
+               addSegmentVelBlocks (M, seg_i, dFdldot, s);
+            }
+         }
+      }
+   }
+
+   public void addSegmentVelBlocks (
+      SparseNumberedBlockMatrix M, Segment seg_i, double dFdldot, double s) {
+
+      ArrayList<Segment> segs = getSegments();
+      int numSegs = segs.size();
+
+      Matrix3d X = new Matrix3d();
+      int idxA_i = seg_i.myBlockIdxA;
+      int idxB_i = seg_i.myBlockIdxB;
+      Matrix3x6 JA_i = seg_i.getJA();
+      Matrix3x6 JB_i = seg_i.getJB();
+
+      Vector3d uvec = seg_i.myUvec;
+
+      // add DFdx blocks
+      for (int j=0; j<numSegs; j++) {
+         Segment seg_j = segs.get(j);
+         if (seg_j.isPassive()) {
+            continue;
+         }
+         if (seg_j.hasSubSegments()) {
+            SubSegment sub0 = seg_j.firstSubSegment();
+            for (SubSegment subseg=sub0; subseg!=null; subseg=subseg.myNext) {
+               int idxA_j = subseg.myBlockIdxA;
+               int idxB_j = subseg.myBlockIdxB;
+               Matrix3x6 JA_j = subseg.getJA();
+               Matrix3x6 JB_j = subseg.getJB();
+               X.outerProduct (uvec, subseg.myUvec);
+               applyBlock (M, idxB_i, idxB_j, JB_i, JB_j, X, -s*dFdldot);
+               applyBlock (M, idxA_i, idxB_j, JA_i, JB_j, X, s*dFdldot);
+               X.outerProduct (uvec, subseg.myUvec);
+               applyBlock (M, idxB_i, idxA_j, JB_i, JA_j, X, s*dFdldot);
+               applyBlock (M, idxA_i, idxA_j, JA_i, JA_j, X, -s*dFdldot);
+            }
+         }
+         else {
+            int idxA_j = seg_j.myBlockIdxA;
+            int idxB_j = seg_j.myBlockIdxB;
+            Matrix3x6 JA_j = seg_j.getJA();
+            Matrix3x6 JB_j = seg_j.getJB();
+            X.outerProduct (uvec, seg_j.myUvec);
+            applyBlock (M, idxB_i, idxB_j, JB_i, JB_j, X, -s*dFdldot);
+            applyBlock (M, idxA_i, idxB_j, JA_i, JB_j, X, s*dFdldot);
+            X.outerProduct (uvec, seg_j.myUvec);
+            applyBlock (M, idxB_i, idxA_j, JB_i, JA_j, X, s*dFdldot);
+            applyBlock (M, idxA_i, idxA_j, JA_i, JA_j, X, -s*dFdldot);
          }
       }
    }
@@ -3695,8 +4169,35 @@ public class MultiPointSpring extends PointSpringBase
 
       WrappableSpec (Wrappable w, int pntIdx0, int pntIdx1) {
          myWrappable = w;
+         setPointIndices (pntIdx0, pntIdx1);
+      }
+      
+      void setPointIndices (int pntIdx0, int pntIdx1) {
          myPntIdx0 = pntIdx0;
          myPntIdx1 = pntIdx1;
+      }
+      
+      int[] reindexSegmentRanges (int[] removedSegmentIdxs) {
+         if (myPntIdx0 == -1 && myPntIdx1 == -1) {
+            return null;
+         }
+         else {
+            int idx0 = myPntIdx0;
+            int idx1 = myPntIdx1;
+            int[] saved = new int[] { idx0, idx1 };
+            for (int ridx : removedSegmentIdxs) {
+               if (ridx < myPntIdx0) {
+                  idx0--;
+                  idx1--;
+               }
+               else if (ridx < myPntIdx1) {
+                  idx1--;
+               }
+            }
+            myPntIdx0 = idx0;
+            myPntIdx1 = idx1;
+            return saved;
+         }
       }
   }
 
@@ -3915,9 +4416,15 @@ public class MultiPointSpring extends PointSpringBase
       // as we traverse the segments in point order
       public Point myPntB; 
       public Point myPntA; 
+      // myBlockIdxA and myBlockIdxB are the indices into the solve block
+      // number table mySolveBlkNums for points A and B. If the point is a via
+      // point, then the index will be the index into the via point list.
+      // Otherwise, if the point is a wrappable contact point, the index will
+      // be the index of the wrappable, plus the number of points.
+      int myBlockIdxA;     // index into SolveBlkNums for point A
+      int myBlockIdxB;     // index into SolveBlkNums for point B
       int mySpecIdx;       // index into the segment specs
 
-      Vector3d mydFdxB;    // derivative of tension force F wrt point B
       Vector3d mydFdxA;    // derivative of tension force F wrt point A
 
       Vector3d myUvec;     // unit vector in direction of segment
@@ -3927,7 +4434,6 @@ public class MultiPointSpring extends PointSpringBase
       protected Segment() {
          myP = new Matrix3d();
          myUvec = new Vector3d();
-         mydFdxB = new Vector3d();
          mydFdxA = new Vector3d();
       }
 
@@ -3938,6 +4444,22 @@ public class MultiPointSpring extends PointSpringBase
 
       public Point getPntB() {
          return myPntB;
+      }
+
+      Matrix3x6 getJA() {
+         return null;
+      }
+
+      Matrix3x6 getJB() {
+         return null;
+      }
+
+      Vector3d getNrmlA() {
+         return null;
+      }
+
+      Vector3d getNrmlB() {
+         return null;
       }
 
       /**
@@ -4006,10 +4528,8 @@ public class MultiPointSpring extends PointSpringBase
                y.scale (dFdldot/myLength);
                mydFdxA.add (y);  
             }
-            mydFdxB.negate (mydFdxA);
          }
          else {
-            mydFdxB.setZero();
             mydFdxA.setZero();
          }
       }
@@ -4107,7 +4627,6 @@ public class MultiPointSpring extends PointSpringBase
             throw new InternalErrorException (
                "cannot clone MultiPointSpring.Segment");
          }
-         seg.mydFdxB = new Vector3d(mydFdxB);
          seg.mydFdxA = new Vector3d(mydFdxA);
          seg.myUvec = new Vector3d(myUvec);
          seg.myP = new Matrix3d(myP);
@@ -4127,10 +4646,18 @@ public class MultiPointSpring extends PointSpringBase
       // MultiPointSpring, or the A/B points of a wrappable. In the latter
       // case, an attachment is assigned to transmit the sub-segment forces to
       // the wrappable.
-      public Wrappable myWrappableB; // possible wrappable associated with B
-      public Wrappable myWrappableA; // possible wrappable associated with A
+      int myWrappableIdxB; // index of possible wrappable associated with B   
+      int myWrappableIdxA; // index of possible wrappable associated with A
       PointAttachment myAttachmentB; // possible attachment for B
       PointAttachment myAttachmentA; // possible attachment for A
+      // The JB and JA matrices project wrappable velocities onto the
+      // direction of the contact normal for points B and A
+      // parallel to the contact normal      
+      Matrix3x6 myJB; // project wrappable velocity to contact normal for B
+      Matrix3x6 myJA; // project wrappable velocity to contact normal for A
+      Vector3d myNrmB; // normal at point B, if in contact with wrappble
+      Vector3d myNrmA; // normal at point A, if in contact with wrappble
+
 
       // index of first contacting knot on next wrappable A, or numKnots if the
       // subsegment ends at the WrapSegment's final point
@@ -4144,6 +4671,24 @@ public class MultiPointSpring extends PointSpringBase
 
       SubSegment() {
          super();
+         myWrappableIdxB = -1;
+         myWrappableIdxA = -1;
+      }
+
+      Matrix3x6 getJB() {
+         return myWrappableIdxB != -1 ? myJB : null;
+      }
+
+      Matrix3x6 getJA() {
+         return myWrappableIdxA != -1 ? myJA : null;
+      }
+      
+      Vector3d getNrmlB() {
+         return myWrappableIdxB != -1 ? myNrmB : null;
+      }
+
+      Vector3d getNrmlA() {
+         return myWrappableIdxA != -1 ? myNrmA : null;
       }
 
       /**
@@ -4197,13 +4742,15 @@ public class MultiPointSpring extends PointSpringBase
        */
       public SubSegment clone() {
          SubSegment seg = (SubSegment)super.clone();
-         if (myWrappableB != null && myAttachmentB != null) {
+         if (myWrappableIdxB != -1 && myAttachmentB != null) {
             seg.myPntB = new Point (myPntB.getPosition());
-            seg.myAttachmentB = myWrappableB.createPointAttachment (myPntB);
+            seg.myAttachmentB =
+               getWrappable(myWrappableIdxB).createPointAttachment (myPntB);
          }
-         if (myWrappableA != null && myAttachmentA != null) {
+         if (myWrappableIdxA != -1 && myAttachmentA != null) {
             seg.myPntA = new Point (myPntA.getPosition());
-            seg.myAttachmentA = myWrappableA.createPointAttachment (myPntA);
+            seg.myAttachmentA =
+               getWrappable(myWrappableIdxA).createPointAttachment (myPntA);
          }
          return seg;
       }
@@ -4225,6 +4772,37 @@ public class MultiPointSpring extends PointSpringBase
        */
       public int getKb() {
          return myKb;
+      }
+      
+      /**
+       * Compute a J matrix for this subsegment. This projects the velocity
+       * of a wrappable onto the normal dirction for either the A or B
+       * contact.
+       */
+      void computeJMatrix (
+         Matrix3x6 J, Point pnt, Vector3d nrm, Wrappable wrappable) {
+         
+//         Matrix3d N = new Matrix3d(); // normal project matrix
+//         N.outerProduct (nrm, nrm);
+//         J.setSubMatrix00 (N);
+//         // r is the displacement from pnt to the wrappable origin. We use this
+//         // direction so that the second block of J becomes N [ r ].
+//         Vector3d r = new Vector3d(); 
+//         r.sub (wrappable.getPose().p, pnt.getPosition());
+//         N.crossProduct (N, r);
+//         J.setSubMatrix03 (N);
+         
+         // set first block to identity
+         J.m00 = 1;
+         J.m11 = 1;
+         J.m22 = 1;
+         // r is the displacement from pnt to the wrappable origin. We use this
+         // direction so that the second block of J becomes [ r ].
+         Vector3d r = new Vector3d(); 
+         r.sub (wrappable.getPose().p, pnt.getPosition());
+         Matrix3d X = new Matrix3d();
+         X.setSkewSymmetric (r);
+         J.setSubMatrix03 (X);
       }
    }
 
@@ -5271,6 +5849,54 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
       
+      private boolean containsIndex (int[] indices, int idx) {
+         for (int i=0; i<indices.length; i++) {
+            if (indices[i] == idx) {
+               return true;
+            }
+         }
+         return false;
+      }
+
+      /**
+       * Called when one or more wrappables are removed to reindex the
+       * associated contact info.
+       */
+      int[] reindexContactInfo (int[] wrappableReindexMap) {
+         int[] savedInfo = new int[numKnots()];
+         int k = 0;
+         boolean wasReindexed = false;
+         for (WrapKnot knot : myKnots) {
+            int widx = knot.getWrappableIdx();
+            savedInfo[k] = widx;
+            if (widx != -1 && wrappableReindexMap[widx] != widx) {
+               knot.setWrappableIdx (wrappableReindexMap[widx]);
+               wasReindexed = true;
+            }
+            k++;
+         }
+         if (wasReindexed) {
+            updateContactGroups();
+            return savedInfo;
+         }
+         else {
+            return null;
+         }
+      }
+      
+      /**
+       * Called to restore contact info when wrappables are un-removed.
+       */
+      void restoreContactInfo (int[] savedInfo) {
+         if (savedInfo != null) {
+            int k = 0;
+            for (WrapKnot knot : myKnots) {
+               knot.setWrappableIdx (savedInfo[k++]);
+            }
+            updateContactGroups();
+         }
+      }
+      
       /**
        * Called when all wrappables are removed from this spring. Sets the 
        * contract group id and wrappable index for all knots to be -1.
@@ -6143,8 +6769,8 @@ public class MultiPointSpring extends PointSpringBase
 
       /**
        * Creates a subsegment between two knots indexed by kb and ka. The
-       * information is stored in <code>sugseg</code>, unless
-       * <code>sugseg</code> is <code>null</code>, in which case a new
+       * information is stored in <code>subseg</code>, unless
+       * <code>subseg</code> is <code>null</code>, in which case a new
        * subsegment object is created and addded.
        *
        *<p> kb is the index of the last knot contacting the previous wrappable,
@@ -6162,32 +6788,42 @@ public class MultiPointSpring extends PointSpringBase
       private SubSegment addOrUpdateSubSegment (
          int ka, int kb, SubSegment subseg) {
 
+         int wrappableIdxA = -1;
          Wrappable wrappableA = null;
          if (ka >= 0 && ka < myNumKnots) {
-            wrappableA = myKnots[ka].getWrappable();
+            wrappableIdxA = myKnots[ka].getWrappableIdx();
+            if (wrappableIdxA != -1) {
+               wrappableA = getWrappable(wrappableIdxA);
+            }
+            //wrappableA = myKnots[ka].getWrappable();
          }
+         int wrappableIdxB = -1;
          Wrappable wrappableB = null;
          if (kb >= 0 && kb < myNumKnots) {
-            wrappableB = myKnots[kb].getWrappable();
+            wrappableIdxB = myKnots[kb].getWrappableIdx();
+            if (wrappableIdxB != -1) {
+               wrappableB = getWrappable(wrappableIdxB);
+            }
          }
 
          Vector3d sideNrm = new Vector3d();
-         Vector3d nrml = new Vector3d();
+         Vector3d nrmlA = null;
          Point3d tanA = null;
          if (wrappableA != null) {
+            nrmlA = new Vector3d();
             tanA = new Point3d();
             Point3d pb = getKnotPos (kb);
             Point3d pprev = getKnotPos (ka-1);
             Point3d pa = getKnotPos (ka);
             Point3d pnext = getKnotPos (ka+1);
-            wrappableA.penetrationDistance (nrml, null, pa);
+            wrappableA.penetrationDistance (nrmlA, null, pa);
             double lam0 = LineSegment.projectionParameter (pb, pnext, pprev);
             if (lam0 <= 0.0 || lam0 >= 1.0) {
                // shouldn't happen - probably a glitch in the knot convergence
                tanA.set (pa);
             }
             else {
-               computeSideNormal (sideNrm, pb, pa, pnext, nrml);
+               computeSideNormal (sideNrm, pb, pa, pnext, nrmlA);
                wrappableA.surfaceTangent (
                   tanA, pb, pa, lam0, sideNrm);
                if (tanA.equals (pa)) {
@@ -6195,21 +6831,23 @@ public class MultiPointSpring extends PointSpringBase
                }
             }
          }
+         Vector3d nrmlB = null;
          Point3d tanB = null;
          if (wrappableB != null) {
+            nrmlB = new Vector3d();
             tanB = new Point3d();
             Point3d pa = getKnotPos (ka);
             Point3d pprev = getKnotPos (kb+1);
             Point3d pb = getKnotPos (kb);
             Point3d pnext = getKnotPos (kb-1);
-            wrappableB.penetrationDistance (nrml, null, pb);
+            wrappableB.penetrationDistance (nrmlB, null, pb);
             double lam0 = LineSegment.projectionParameter (pa, pnext, pprev);
             if (lam0 <= 0.0 || lam0 >= 1.0) {
                // shouldn't happen - probably a glitch in the knot convergence
                tanB.set (pb);
             }
             else {
-               computeSideNormal (sideNrm, pa, pb, pnext, nrml);
+               computeSideNormal (sideNrm, pa, pb, pnext, nrmlB);
                wrappableB.surfaceTangent (
                   tanB, pa, pb, lam0, sideNrm);
                if (tanB.equals (pb)) {
@@ -6224,34 +6862,56 @@ public class MultiPointSpring extends PointSpringBase
          }
          if (wrappableB == null) {
             subseg.myPntB = myPntB;
+            subseg.myBlockIdxB = myBlockIdxB;
             subseg.myAttachmentB = null;
-            subseg.myWrappableB = null;
+            subseg.myWrappableIdxB = -1;
+            subseg.myJB = null;
+            subseg.myNrmB = null;
          }
-         else if (subseg.myWrappableB != wrappableB) {
-            subseg.myPntB = new Point(tanB);
-            subseg.myAttachmentB =
+         else { 
+            if (subseg.myWrappableIdxB != wrappableIdxB) {
+               subseg.myPntB = new Point(tanB);
+               subseg.myAttachmentB =
                wrappableB.createPointAttachment (subseg.myPntB);
-            subseg.myWrappableB = wrappableB;            
-         }
-         else {
-            subseg.myPntB.setPosition (tanB);
-            subseg.myAttachmentB.updateAttachment();
+               subseg.myWrappableIdxB = wrappableIdxB;
+               subseg.myBlockIdxB = wrappableIdxB + numPoints();
+               subseg.myJB = new Matrix3x6();
+               subseg.myNrmB = new Vector3d();
+            }
+            else {
+               subseg.myPntB.setPosition (tanB);
+               subseg.myAttachmentB.updateAttachment();
+            }
+            subseg.myNrmB.set (nrmlB);
+            subseg.computeJMatrix (
+               subseg.myJB, subseg.myPntB, nrmlB, wrappableB);
          }
 
          if (wrappableA == null) {
             subseg.myPntA = myPntA;
+            subseg.myBlockIdxA = myBlockIdxA;
             subseg.myAttachmentA = null;
-            subseg.myWrappableA = null;
-         }
-         else if (subseg.myWrappableA != wrappableA) {
-            subseg.myPntA = new Point(tanA);
-            subseg.myAttachmentA =
-               wrappableA.createPointAttachment (subseg.myPntA);
-            subseg.myWrappableA = wrappableA;
+            subseg.myWrappableIdxA = -1;
+            subseg.myJA = null;
+            subseg.myNrmA = null;
          }
          else {
-            subseg.myPntA.setPosition (tanA);
-            subseg.myAttachmentA.updateAttachment();
+            if (subseg.myWrappableIdxA != wrappableIdxA) {
+               subseg.myPntA = new Point(tanA);
+               subseg.myAttachmentA =
+               wrappableA.createPointAttachment (subseg.myPntA);
+               subseg.myWrappableIdxA = wrappableIdxA;
+               subseg.myBlockIdxA = wrappableIdxA + numPoints();
+               subseg.myJA = new Matrix3x6();
+               subseg.myNrmA = new Vector3d();
+            }
+            else {
+               subseg.myPntA.setPosition (tanA);
+               subseg.myAttachmentA.updateAttachment();
+            }
+            subseg.myNrmA.set (nrmlA);
+            subseg.computeJMatrix (
+               subseg.myJA, subseg.myPntA, nrmlA, wrappableA);           
          }
          subseg.myKa = ka;
          subseg.myKb = kb;
@@ -6527,6 +7187,42 @@ public class MultiPointSpring extends PointSpringBase
          }
 
          return seg;
+      }
+   }
+
+   /**
+    * For debugging.
+    */
+   public void printSegments(String msg) {
+      int i = 0;
+      if (msg != null) {
+         System.out.println (msg);
+      }
+      for (Segment seg : mySegments) {
+         System.out.print (" seg "+i+": ");
+         if (seg instanceof WrapSegment) {
+            System.out.print (((WrapSegment)seg).numKnots());
+         }
+         System.out.println ("");
+         i++;
+      }
+   }
+
+   /**
+    * For debugging.
+    */
+   public void printSegmentSpecs(String msg) {
+      int i = 0;
+      if (msg != null) {
+         System.out.println (msg);
+      }
+      for (SegmentSpec spec : mySegmentSpecs) {
+         System.out.print (" spec "+i+": " + spec);
+         if (spec.getNumKnots() > 0) {
+            System.out.print (" " + spec.getNumKnots() + " knots");
+         }
+         System.out.println ("");
+         i++;
       }
    }
 

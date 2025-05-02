@@ -32,20 +32,48 @@ public class Millard2012EquilibriumMuscleFactory extends MuscleBaseFactory<Milla
       String name = getNodeName (child);
       
       if ("fiber_damping".equals (name)) {
-         comp.setFiberDamping (parseDoubleValue (child));
-      } else if ("default_activation".equals (name)) {
-         comp.setDefaultActivation (parseDoubleValue (child));
-      } else if ("default_fiber_length".equals(name)) {
-         comp.setDefaultFiberLength (parseDoubleValue (child));
-      } else if ("activation_time_constant".equals(name)) {
-         comp.setActivationTimeConstant (parseDoubleValue (child));
-      } else if ("deactivation_time_constant".equals(name)) {
-         comp.setDeactivationTimeConstant (parseDoubleValue (child));
-      } else if ("minimum_activation".equals(name)) {
-         comp.setMinimumActivation (parseDoubleValue (child));
-      } else if ("maximum_pennation_angle".equals(name)) {
-         comp.setMaximumPennationAngle (parseDoubleValue (child));
-      } else if ("ActiveForceLengthCurve".equals(name)) {
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setFiberDamping (value);
+         }
+      }
+      else if ("default_activation".equals (name)) {
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setDefaultActivation (value);
+         }
+      }
+      else if ("default_fiber_length".equals(name)) {
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setDefaultFiberLength (value);
+         }
+      }
+      else if ("activation_time_constant".equals(name)) {
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setActivationTimeConstant (value);
+         }
+      }
+      else if ("deactivation_time_constant".equals(name)) {
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setDeactivationTimeConstant (value);
+         }
+      }
+      else if ("minimum_activation".equals(name)) {
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setMinimumActivation (value);
+         }
+      }
+      else if ("maximum_pennation_angle".equals(name)) {
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.setMaximumPennationAngle (value);
+         }
+      }
+      else if ("ActiveForceLengthCurve".equals(name)) {
          ActiveForceLengthCurveFactory cf = new ActiveForceLengthCurveFactory();
          if (cf != null) {
             comp.activeForceLengthCurve = cf.parse(child);
@@ -53,7 +81,8 @@ public class Millard2012EquilibriumMuscleFactory extends MuscleBaseFactory<Milla
          else {
             success = false;
          }
-      } else if ("ForceVelocityCurve".equals(name)) {
+      }
+      else if ("ForceVelocityCurve".equals(name)) {
          ForceVelocityCurveFactory cf = new ForceVelocityCurveFactory();
          if (cf != null) {
             comp.forceVelocityCurve = cf.parse(child);
@@ -61,7 +90,8 @@ public class Millard2012EquilibriumMuscleFactory extends MuscleBaseFactory<Milla
          else {
             success = false;
          }
-      } else if ("FiberForceLengthCurve".equals(name)) {
+      }
+      else if ("FiberForceLengthCurve".equals(name)) {
          FiberForceLengthCurveFactory cf = new FiberForceLengthCurveFactory();
          if (cf != null) {
             comp.fiberForceLengthCurve = cf.parse(child);
@@ -69,7 +99,8 @@ public class Millard2012EquilibriumMuscleFactory extends MuscleBaseFactory<Milla
          else {
             success = false;
          }
-      } else if ("TendonForceLengthCurve".equals(name)) {
+      }
+      else if ("TendonForceLengthCurve".equals(name)) {
          TendonForceLengthCurveFactory cf = new TendonForceLengthCurveFactory();
          if (cf != null) {
             comp.tendonForceLengthCurve = cf.parse(child);
@@ -77,7 +108,8 @@ public class Millard2012EquilibriumMuscleFactory extends MuscleBaseFactory<Milla
          else {
             success = false;
          }
-      } else {
+      }
+      else {
          success = super.parseChild (comp, child);
       }
       

@@ -22,28 +22,52 @@ public class ForceVelocityCurveFactory
       String name = getNodeName (child);
 
       if ("concentric_slope_at_vmax".equals(name)) {
-         comp.concentricSlopeAtVmax = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.concentricSlopeAtVmax = value;
+         }
       }
       else if ("concentric_slope_near_vmax".equals(name)) {
-         comp.concentricSlopeNearVmax = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.concentricSlopeNearVmax = value;
+         }
       }
       else if ("isometric_slope".equals(name)) {
-         comp.isometricSlope = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.isometricSlope = value;
+         }
       }
       else if ("eccentric_slope_at_vmax".equals(name)) {
-         comp.eccentricSlopeAtVmax = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.eccentricSlopeAtVmax = value;
+         }
       }
       else if ("eccentric_slope_near_vmax".equals(name)) {
-         comp.eccentricSlopeNearVmax = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.eccentricSlopeNearVmax = value;
+         }
       }
       else if ("max_eccentric_velocity_force_multiplier".equals(name)) {
-         comp.maxEccentricVelocityForceMultiplier = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.maxEccentricVelocityForceMultiplier = value;
+         }
       }
       else if ("concentric_curviness".equals(name)) {
-         comp.concentricCurviness = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.concentricCurviness = value;
+         }
       }
       else if ("eccentric_curviness".equals(name)) {
-         comp.eccentricCurviness = parseDoubleValue(child);
+         Double value = parseDoubleValueIfPresent(child);
+         if (value != null) {
+            comp.eccentricCurviness = value;
+         }
       }
       else {
          success = super.parseChild (comp, child);

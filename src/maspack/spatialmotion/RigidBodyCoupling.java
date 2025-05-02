@@ -1552,6 +1552,18 @@ public abstract class RigidBodyCoupling implements Cloneable {
       }
       return copy;
    }
+   
+   /**
+    * Used for debugging
+    */
+   protected boolean hasCoordinate (String name) {
+      for (CoordinateInfo cinfo : myCoordinates) {
+         if (cinfo.name != null && cinfo.name.equals(name)) {
+            return true;
+         }
+      }
+      return false;
+   }
 
    public static void main (String[] args) {
       System.out.println (getDistance (1, -INF, INF));

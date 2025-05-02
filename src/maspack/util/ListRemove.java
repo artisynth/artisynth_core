@@ -41,10 +41,12 @@ public class ListRemove<C> {
    protected List<C> myList;
    protected ArrayList<C> myRemoved;
    protected int[] myIndices;
+   protected int myOrigSize; // size of the list before remove() is called
 
    public ListRemove (List<C> list) {
       myList = list;
       myIndices = new int[myList.size()];
+      myOrigSize = myList.size();
       myState = State.OPEN;
    }
 
@@ -97,7 +99,11 @@ public class ListRemove<C> {
       return compact;      
    }
 
-   public void remove() {
+   /**
+    * Performs the remove operation and returns the indices of 
+    * the objects that were removed.
+    */
+   public int[] remove() {
       if (myState == State.EXECUTED) {
          throw new IllegalStateException (
             "Remove has already been called");
@@ -110,7 +116,7 @@ public class ListRemove<C> {
       myIndices = compactIndices (myIndices);
       myRemoved = new ArrayList<C>(myIndices.length);
       if (myIndices.length == 0) {
-         return;
+         return new int[0];
       }
       if (myList instanceof ArrayList<?>) {
          int k = 0;
@@ -145,6 +151,7 @@ public class ListRemove<C> {
             }
          }
       }
+      return Arrays.copyOf (myIndices, myIndices.length);
    }
 
    public boolean undo() {
@@ -194,5 +201,30 @@ public class ListRemove<C> {
       }
       return true;
    }
-
+   
+   /**
+    * Returns a mapping from old to new indices. Must be called after
+    * {@link #remove} has been called. In the map, old indices that
+    * have been removed are assigned -1.
+    */
+   public int[] getReindexMap () {
+      if (myState != State.EXECUTED) {
+         throw new IllegalStateException (
+            "Remove has not yet been called");
+      }     
+      // map length equals previous number of wrappables
+      int numRemoved = myIndices.length;
+      int[] map = new int[numRemoved+myOrigSize];
+      int ridx = 0;
+      for (int i=0; i<map.length; i++) {
+         if (ridx < numRemoved && i == myIndices[ridx]) {
+            map[i] = -1;
+            ridx++;
+         }
+         else {
+            map[i] = i-ridx;
+         }
+      }
+      return map;
+   }
 }

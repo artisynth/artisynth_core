@@ -122,6 +122,12 @@ public class MultiSpringDemo extends RootModel {
       // myLdot1 = ldot;
 
       StepAdjustment sa = super.advance (t0, t1, flags);
+
+      MechModel mech = (MechModel)findComponent ("models/mechMod");
+      // SolveMatrixTest tester = new SolveMatrixTest();
+      // System.out.println (
+      //    "error=" + tester.testStiffness (mech, 1e-8));//"%12.3f"));
+
       return sa;
    }
 

@@ -1,5 +1,6 @@
 package artisynth.core.materials;
 
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
@@ -20,10 +21,13 @@ import maspack.spatialmotion.Wrench;
  * of n = 1 results in a standard linear relationship {@code f = K d}.
  *
  * <p> Stiffnesses and exponents can be specified for each of the six
- * translational and rotational directions. For translational motions, one can
- * also specify a deadband {@code b}, such that the displacement {@code d}
- * applied to the force law is determined from the true displacement {@code dt}
- * by
+ * translational and rotational directions. Rotational displacements, and the
+ * resulting forces, are computed with respect to the x-y-z rotation angles of
+ * the rotational displacement matrix, as computed using {@link
+ * RotationMatrix3d.getXyz}. For both translational and rotational
+ * displacements, it is possible to specify a deadband {@code b}, such that the
+ * displacement {@code d} applied to the force law is determined from the true
+ * displacement {@code dt} by
  * <pre>
  * d = sgn(dt) max(0, |dt|-b)
  * </pre>
@@ -38,6 +42,8 @@ public class PowerFrameMaterial extends FrameMaterial {
    protected Vector3d myRotK = new Vector3d();
    protected Vector3i myRotExps = new Vector3i(1,1,1);
    protected Vector3d myRotD = new Vector3d();
+   protected Vector3d myUpperRotDeadband = new Vector3d();
+   protected Vector3d myLowerRotDeadband = new Vector3d();
 
    public static PropertyList myProps =
       new PropertyList (PowerFrameMaterial.class, FrameMaterial.class);
@@ -63,6 +69,14 @@ public class PowerFrameMaterial extends FrameMaterial {
       myProps.add (
          "rotaryExponents",
          "exponents for rotational forces", Vector3i.ONES, "[1,3]");
+      myProps.add (
+         "upperRotaryDeadband",
+         "upper positive limits to the rotation force deadband (radians)",
+         Vector3d.ZERO, "[0,inf]");
+      myProps.add (
+         "lowerRotaryDeadband",
+         "lower negative limits to the rotation force deadband (radians)",
+         Vector3d.ZERO, "[-inf,0]");
       myProps.add (
          "rotaryDamping", "rotational damping", Vector3d.ZERO);
    }   
@@ -108,27 +122,6 @@ public class PowerFrameMaterial extends FrameMaterial {
          }
          myExps.set (i, n);
       }
-   }
-
-   // public Range getExponentsRange() {
-   //    return new NumericIntervalRange (
-   //       new IntegerInterval(0,3), /*allowEmpty*/false);
-   // }
-
-   public Vector3d getDamping() {
-      return myD;
-   }
-
-   public void setDamping (double d) {
-      myD.set (d, d, d);
-   }
-
-   public void setDamping (double dx, double dy, double dz) {
-      myD.set (dx, dy, dz);
-   }
-
-   public void setDamping (Vector3d dvec) {
-      myD.set (dvec);
    }
 
    public Vector3d getUpperDeadband () {
@@ -179,6 +172,22 @@ public class PowerFrameMaterial extends FrameMaterial {
       setLowerDeadband (-dbx, -dby, -dbz);
    }
 
+   public Vector3d getDamping() {
+      return myD;
+   }
+
+   public void setDamping (double d) {
+      myD.set (d, d, d);
+   }
+
+   public void setDamping (double dx, double dy, double dz) {
+      myD.set (dx, dy, dz);
+   }
+
+   public void setDamping (Vector3d dvec) {
+      myD.set (dvec);
+   }
+
    public Vector3d getRotaryStiffness() {
       return myRotK;
    }
@@ -218,10 +227,53 @@ public class PowerFrameMaterial extends FrameMaterial {
       }
    }
 
-   // public Range getRotaryExponentsRange() {
-   //    return new NumericIntervalRange (
-   //       new IntegerInterval(0,3), /*allowEmpty*/false);
-   // }
+   public Vector3d getUpperRotaryDeadband () {
+      return myUpperRotDeadband;
+   }
+
+   public void setUpperRotaryDeadband (double db) {
+      setUpperRotaryDeadband (db, db, db);
+   }
+
+   public void setUpperRotaryDeadband (double dbx, double dby, double dbz) {
+      dbx = Math.max (dbx, 0);
+      dby = Math.max (dby, 0);
+      dbz = Math.max (dbz, 0);
+      myUpperRotDeadband.set (dbx, dby, dbz);
+   }
+
+   public void setUpperRotaryDeadband (Vector3d dbvec) {
+      setUpperRotaryDeadband (dbvec.x, dbvec.y, dbvec.z);
+   }
+
+   public Vector3d getLowerRotaryDeadband () {
+      return myLowerRotDeadband;
+   }
+
+   public void setLowerRotaryDeadband (double db) {
+      setLowerRotaryDeadband (db, db, db);
+   }
+
+   public void setLowerRotaryDeadband (double dbx, double dby, double dbz) {
+      dbx = Math.min (dbx, 0);
+      dby = Math.min (dby, 0);
+      dbz = Math.min (dbz, 0);
+      myLowerRotDeadband.set (dbx, dby, dbz);
+   }
+
+   public void setLowerRotaryDeadband (Vector3d dbvec) {
+      setLowerRotaryDeadband (dbvec.x, dbvec.y, dbvec.z);
+   }
+
+   public void setRotaryDeadband (double db) {
+      setUpperRotaryDeadband (db);
+      setLowerRotaryDeadband (-db);
+   }
+
+   public void setRotaryDeadband (double dbx, double dby, double dbz) {
+      setUpperRotaryDeadband (dbx, dby, dbz);
+      setLowerRotaryDeadband (-dbx, -dby, -dbz);
+   }
 
    public Vector3d getRotaryDamping() {
       return myRotD;
@@ -271,6 +323,15 @@ public class PowerFrameMaterial extends FrameMaterial {
       del.z = applyDeadband (p.z, myLowerDeadband.z, myUpperDeadband.z);
    }
 
+   private void applyRotDeadband (double[] angs) {
+      angs[0] = applyDeadband (
+         angs[0], myLowerRotDeadband.x, myUpperRotDeadband.x);
+      angs[1] = applyDeadband (
+         angs[1], myLowerRotDeadband.y, myUpperRotDeadband.y);
+      angs[2] = applyDeadband (
+         angs[2], myLowerRotDeadband.z, myUpperRotDeadband.z);
+   }
+
    private double evalPower (double dx, int exp) {
       if (dx == 0) {
          return 0;
@@ -308,23 +369,45 @@ public class PowerFrameMaterial extends FrameMaterial {
       Wrench wr, RigidTransform3d X21, Twist vel21, 
       RigidTransform3d initialX21) {
 
+      // translational forces
       Vector3d del = new Vector3d();
       applyDeadband (del, X21.p);
-
-      // use these matrix entries as small angle approximations to 
-      // the rotations about x, y, and z
-      double sx =  X21.R.m21;
-      double sy = -X21.R.m20;
-      double sz =  X21.R.m10;
 
       wr.f.x = myK.x*evalPower (del.x, myExps.x);
       wr.f.y = myK.y*evalPower (del.y, myExps.y);
       wr.f.z = myK.z*evalPower (del.z, myExps.z);
 
-      wr.m.x = myRotK.x*evalPower (sx, myRotExps.x);
-      wr.m.y = myRotK.y*evalPower (sy, myRotExps.y);
-      wr.m.z = myRotK.z*evalPower (sz, myRotExps.z);
+      // get the x-y-z angles for computing the rotational forces
+      RotationMatrix3d R = X21.R;
+      double[] angs = new double[3];
+      R.getXyz (angs);
+      double cx = Math.cos(angs[0]);
+      double sx = Math.sin(angs[0]);
+      double cy = Math.cos(angs[1]);
+      double sy = Math.sin(angs[1]);
+      if (Math.abs(cy) < 1e-6) {
+         // handle singularity
+         cy = (cy > 0 ? 1e-6 : -1e-6);
+      }
+      // apply deadband
+      applyRotDeadband (angs);
 
+      // matrix Hinv maps angular velocity to x-y-z angle speeds
+      double hi21 = -sx/cy;
+      double hi22 = cx/cy;
+      Matrix3d Hinv = new Matrix3d();
+      Hinv.set (1, -sy*hi21, -sy*hi22, 0, cx, sx, 0, hi21, hi22);
+
+      // compute generalized force f in angle space
+      Vector3d f = new Vector3d();
+      f.x = myRotK.x*evalPower (angs[0], myRotExps.x);
+      f.y = myRotK.y*evalPower (angs[1], myRotExps.y);
+      f.z = myRotK.z*evalPower (angs[2], myRotExps.z);
+      // map f to frame moment using transpose of Hinv
+      Hinv.mulTranspose (wr.m, f);
+
+      // damping forces - currently computing using angular velocity
+      // instead of angle speeds
       Vector3d v = vel21.v;
       Vector3d w = vel21.w;
 
@@ -342,34 +425,63 @@ public class PowerFrameMaterial extends FrameMaterial {
       RigidTransform3d initialX21, boolean symmetric) {
 
       Jq.setZero();
+      
+      // translational stiffness
 
-      RotationMatrix3d R = X21.R;
       Vector3d del = new Vector3d();
       applyDeadband (del, X21.p);
-
-      // use these matrix entries as small angle approximations to 
-      // the rotations about x, y, and z
-      double sx =  R.m21;
-      double sy = -R.m20;
-      double sz =  R.m10;
-
       Jq.m00 = myK.x*evalDeriv (del.x, myExps.x);
       Jq.m11 = myK.y*evalDeriv (del.y, myExps.y);
       Jq.m22 = myK.z*evalDeriv (del.z, myExps.z);
 
-      double rkx = myRotK.x*evalDeriv (sx, myRotExps.x);
-      double rky = myRotK.y*evalDeriv (sy, myRotExps.y);
-      double rkz = myRotK.z*evalDeriv (sz, myRotExps.z);
-
-      Jq.m33 = rkx*R.m11;
-      Jq.m44 = rky*R.m00;
-      Jq.m55 = rkz*R.m00;
-
-      if (!symmetric) {
-         Jq.m34 = -rkx*R.m01;
-         Jq.m43 = -rky*R.m10;
-         Jq.m53 = -rkz*R.m20;
+      // get the x-y-z angles for computing the rotational forces
+      RotationMatrix3d R = X21.R;
+      double[] angs = new double[3];
+      R.getXyz (angs);
+      double cx = Math.cos(angs[0]);
+      double sx = Math.sin(angs[0]);
+      double cy = Math.cos(angs[1]);
+      double sy = Math.sin(angs[1]);
+      double ty;
+      if (Math.abs(cy) < 1e-6) {
+         // handle singularity
+         cy = (cy > 0 ? 1e-6 : -1e-6);
       }
+      ty = sy/cy;
+      // apply deadband
+      applyRotDeadband (angs);
+
+      // matrix Hinv maps angular velocity to x-y-z angle speeds
+      double hi21 = -sx/cy;
+      double hi22 = cx/cy;
+      Matrix3d Hinv = new Matrix3d();
+      Hinv.set (1, -sy*hi21, -sy*hi22, 0, cx, sx, 0, hi21, hi22);
+
+      // compute generalized force f in angle space
+      Vector3d f = new Vector3d();
+      f.x = myRotK.x*evalPower (angs[0], myRotExps.x);
+      f.y = myRotK.y*evalPower (angs[1], myRotExps.y);
+      f.z = myRotK.z*evalPower (angs[2], myRotExps.z);
+      // compute generalized force derivatives in angle space
+      Vector3d fderivs = new Vector3d();
+      fderivs.x = myRotK.x*evalDeriv (angs[0], myRotExps.x);
+      fderivs.y = myRotK.y*evalDeriv (angs[1], myRotExps.y);
+      fderivs.z = myRotK.z*evalDeriv (angs[2], myRotExps.z);
+
+      // compute rotary stiffness from f, fderivs, and Hinv:
+      Matrix3d Jr = new Matrix3d();
+      Jr.transpose (Hinv);
+      Jr.mulCols (fderivs);
+      if (!symmetric) {
+         // add force dependent terms
+         Jr.m10 += cx*ty*f.x - sx*f.y - cx*f.z/cy;
+         Jr.m11 += (1+ty*ty)*sx*f.x - sx*ty*f.z/cy;
+         Jr.m20 += sx*ty*f.x + cx*f.y - sx*f.z/cy;
+         Jr.m21 += -(1+ty*ty)*cx*f.x + cx*ty*f.z/cy;
+      }
+      Jr.mul (Hinv);
+
+      Jq.setSubMatrix (3, 3, Jr);
    }
 
    public void computeDFdu (
@@ -399,6 +511,8 @@ public class PowerFrameMaterial extends FrameMaterial {
           !myD.equals (lm.myD) ||
           !myRotK.equals (lm.myRotK) ||
           !myRotExps.equals (lm.myRotExps) ||
+          !myUpperRotDeadband.equals (lm.myUpperRotDeadband) ||
+          !myLowerRotDeadband.equals (lm.myLowerRotDeadband) ||
           !myRotD.equals (lm.myRotD)) {
          return false;
       }
@@ -415,6 +529,8 @@ public class PowerFrameMaterial extends FrameMaterial {
       mat.myLowerDeadband = new Vector3d (myLowerDeadband);
       mat.myRotK = new Vector3d (myRotK);
       mat.myRotExps = new Vector3i (myRotExps);
+      mat.myUpperRotDeadband = new Vector3d (myUpperRotDeadband);
+      mat.myLowerRotDeadband = new Vector3d (myLowerRotDeadband);
       mat.myD = new Vector3d (myD);
       mat.myRotD = new Vector3d (myRotD);
       return mat;

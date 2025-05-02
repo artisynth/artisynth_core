@@ -63,7 +63,7 @@ public class IKToyMuscleArm extends ToyMuscleArm {
       angProbe.setActive (true);
 
       // Create a probe to track the positions of all the markers. These
-      // positions can then be copited into the inverse kinematics probes.
+      // positions can then be copied into the inverse kinematics probes.
       PositionOutputProbe mkrOuts = new PositionOutputProbe (
          "marker outputs", allMkrs, /*rotrep*/null, /*fileName*/null, 0, 3, 0.02);
       addOutputProbe (mkrOuts);
@@ -72,8 +72,8 @@ public class IKToyMuscleArm extends ToyMuscleArm {
       // Create two inverse kinematic probes: one controlled by 3 markers and
       // the other controlled by 7 markers. Both probes are initially disabled.
 
-      // The 3 marker probe is not initialized with data, so it's marker
-      // positions are simple set to their initial postions. Data can be copied
+      // The 3 marker probe is not initialized with data, so its marker
+      // positions are simply set to their initial postions. Data can be copied
       // from other marker probes after the program is run
       IKProbe iktop;
       iktop = new IKProbe (
@@ -93,7 +93,7 @@ public class IKToyMuscleArm extends ToyMuscleArm {
       ikall.setBodiesNonDynamicIfActive (true);
       ikall.setActive (false);
 
-      // Create an IKSolver for the 7 marker set, and use it create a
+      // Create an IKSolver for the 7 marker set, and use it to create a
       // PositionInputProbe controlling the body positions. This is done by
       // doing a stand-alone IK solve using frame marker data contained in the
       // probe data file "data/ikall.txt".

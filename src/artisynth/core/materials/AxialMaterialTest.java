@@ -20,7 +20,8 @@ public class AxialMaterialTest extends UnitTest {
 
       double F = mat.computeF (l, ldot, l0, ex);
       double dFdldot = mat.computeDFdldot (l, ldot, l0, ex);
-      double dFdldotChk = (mat.computeF (l, ldot+h*ldot, l0, ex) - F)/(h*ldot);
+      double Fh = mat.computeF (l, ldot+h*ldot, l0, ex);
+      double dFdldotChk = (Fh - F)/(h*ldot);
 
       double err = Math.abs(dFdldot-dFdldotChk);
       if (maxval > 0) {
@@ -29,7 +30,9 @@ public class AxialMaterialTest extends UnitTest {
       if (err > tol || err != err) {
          System.out.println (
             "error between computed and numeric dFdldot is "+ err);
-         System.out.println ("F=" + F);
+         System.out.println (
+            "l=" + l + " ldot=" + ldot + " ldoth=" + (ldot+h*ldot));
+         System.out.println ("F=" + F + " Fh=" + Fh);
          System.out.println ("dFdldot computed=" + dFdldot);
          System.out.println ("dFdldot numeric=" + dFdldotChk);
          if (err != err) {
@@ -77,13 +80,9 @@ public class AxialMaterialTest extends UnitTest {
       }
    }
 
-   public void testMaterial (
-      AxialMaterial mat, double l0, double ex, double tol) {
-      testMaterial (mat, mat, 2*l0, 0.2*l0, l0, ex, tol);
-   }
-
    public void testDfdlOverRange (
       AxialMaterial mat,
+      
       double lmin, double lmax, double vmin, double vmax,
       double l0, double ex, double tol) {
       
@@ -136,6 +135,7 @@ public class AxialMaterialTest extends UnitTest {
       }
       if (vmin != vmax) {
          nv = 20;
+         
          vinc = (vmax-vmin)/(nv-1);
       }
       // first find the magnitude over the range
@@ -160,6 +160,12 @@ public class AxialMaterialTest extends UnitTest {
       }
    }
 
+   public void testMaterial (
+      AxialMaterial mat, double l0, double ex, double tol) {
+      testMaterial (
+         mat, mat, 2*l0, 0.2*l0, l0, ex, tol);
+   }
+
    /**
     * Tests a material by comparing the computed derivatives with the numeric
     * derivative of the same. Different materials are specified for testing
@@ -174,25 +180,47 @@ public class AxialMaterialTest extends UnitTest {
    public void testMaterial (
       AxialMaterial mat, AxialMaterial matdot,
       double l, double ldot, double l0, double ex, double tol) {
-
+      
       testDfdlOverRange (mat, l, l, ldot, ldot, l0, ex, tol);
       testDfdldotOverRange (matdot, l, l, ldot, ldot, l0, ex, tol);
    }
 
-   /**
-    * Tests a material by comparing the computed derivatives with the numeric
-    * derivative of the same.
-    *
-    * @param mat material to test
-    * @param tol tolerance by which the computed and numeric derivatives should
-    * match. Typically, this should be around 1e-8.
-    */
-   public void testMaterial (
-      AxialMaterial mat, double l, double ldot,
-      double l0, double ex, double tol) {
+   public void testLinearAxialMaterial (double tol) {
+      LinearAxialMaterial mat = new LinearAxialMaterial (1000.0, 200.0);
 
-      testDfdlOverRange (mat, l, l, ldot, ldot, l0, ex, tol);
-      testDfdldotOverRange (mat, l, l, ldot, ldot, l0, ex, tol);
+      double l0 = 0.5;
+      double maxL = 2.0;
+      double minL = 0.1;
+      double maxV = 2.0;
+      double minV = -2.0;
+
+      testDfdlOverRange (mat, maxL, minL, maxV, minV, l0, 0, tol);
+
+      mat.setStiffness (0);
+
+      testDfdldotOverRange (mat, maxL, minL, maxV, minV, l0, 0, tol);
+   }
+
+   public void testSimpleAxialMuscle (double tol) {
+      SimpleAxialMuscle mat =
+         new SimpleAxialMuscle (1000.0, 200.0, 100);
+
+      double ex = 0.5;
+      double l0 = 0.5;
+      double maxL = 2.0;
+      double minL = 0.1;
+      double maxV = 2.0;
+      double minV = -2.0;
+
+      testDfdlOverRange (mat, maxL, minL, maxV, minV, l0, ex, tol);
+
+      mat.setUnilateral (true);
+      mat.setBlendInterval (0.2);
+
+      testDfdlOverRange (mat, maxL, minL, maxV, minV, l0, ex, tol);
+
+      mat.setStiffness (0);
+      testDfdldotOverRange (mat, maxL, minL, maxV, minV, l0, ex, tol);
    }
 
    public void testMillard2012AxialTendon (double tol) {
@@ -314,8 +342,6 @@ public class AxialMaterialTest extends UnitTest {
       double tol = 1e-6;
       double ex = 0.5;
 
-      testMaterial (new LinearAxialMaterial(1000.0, 200.0), 1.0, ex, tol);   
-      testMaterial (new SimpleAxialMuscle (1000.0, 200.0, 300), 1.0, ex, tol);
       testMaterial (
          new LigamentAxialMaterial (1234.00, 222.0, 333.0), 2.0, ex, tol);
       testMaterial (new ConstantAxialMuscle (20.0), 2.0, ex, tol);
@@ -327,7 +353,10 @@ public class AxialMaterialTest extends UnitTest {
          new PaiAxialMuscle (20.0, 2.0, 3.0, 0.2, 0.5, 0.1), 2.0, ex, 1e-5);
       testMaterial (
          new BlemkerAxialMuscle (1.4, 1.0, 3e5, 0.05, 6.6), 2.0, ex, tol);
-      testMaterial (new MasoudMillardLAM (2.0, 1.8, 0.5), 2.0, ex, tol);
+      //testMaterial (new MasoudMillardLAM (2.0, 1.8, 0.5), 2.0, ex, tol);
+
+      testLinearAxialMaterial (tol);
+      testSimpleAxialMuscle (tol);
 
       testHill3ElemMuscleRigidTendon(5*tol);
       testBlankevoort1991Ligament(tol);

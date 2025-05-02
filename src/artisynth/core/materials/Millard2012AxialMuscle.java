@@ -1,3 +1,34 @@
+/**
+ * Copyright (c) 2025, by the Authors: John E Lloyd (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+/* -------------------------------------------------------------------------- *
+ *                                                                            *
+ * Portions of this code were adapted from the OpenSim classes                *
+ * SmoothSegmentedFunctionFactory and SegmentedQuinticBezierToolkit, written  *
+ * by Matthew Millard and distributed under the following copywrite:          *
+ *                                                                            *
+ * The OpenSim API is a toolkit for musculoskeletal modeling and simulation.  *
+ * See http://opensim.stanford.edu and the NOTICE file for more information.  *
+ * OpenSim is developed at Stanford University and supported by the US        *
+ * National Institutes of Health (U54 GM072970, R24 HD065690) and by DARPA    *
+ * through the Warrior Web program.                                           *
+ *                                                                            *
+ * Copyright (c) 2005-2017 Stanford University and the Authors                *
+ * Author(s): Matthew Millard                                                 *
+ *                                                                            *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
+ * not use this file except in compliance with the License. You may obtain a  *
+ * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         *
+ *                                                                            *
+ * Unless required by applicable law or agreed to in writing, software        *
+ * distributed under the License is distributed on an "AS IS" BASIS,          *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   *
+ * See the License for the specific language governing permissions and        *
+ * limitations under the License.                                             *
+ * -------------------------------------------------------------------------- */
 package artisynth.core.materials;
 
 import java.io.*;
@@ -212,8 +243,6 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       return myDefaultTendonForceLengthCurve;
    }
 
-
-
    public double getMaxPennationAngle() {
       return myMaxPennationAngle;
    }
@@ -358,6 +387,11 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       }
    }
 
+   /**
+    * Creates an active force length curve with specified parameters.  Adapted
+    * from code by Matthew Millard in the OpenSim class
+    * SmoothSegmentedFunctionFactory.
+    */
    public static CubicHermiteSpline1d createActiveForceLengthCurve (
       double minActiveNormFiberLength,
       double transitionNormFiberLength,
@@ -503,6 +537,11 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       }
    }
 
+   /**
+    * Creates a force velocity curve with specified parameters.  Adapted
+    * from code by Matthew Millard in the OpenSim class
+    * SmoothSegmentedFunctionFactory.
+    */
    public static CubicHermiteSpline1d createForceVelocityCurve (
       double concentricSlopeAtVmax,
       double concentricSlopeNearVmax,
@@ -600,6 +639,11 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       return curve;
    }
 
+   /**
+    * Creates a tendon force length curve with specified parameters.  Adapted
+    * from code by Matthew Millard in the OpenSim class
+    * SmoothSegmentedFunctionFactory.
+    */
    public static CubicHermiteSpline1d createTendonForceLengthCurve (
       double strainAtOneNormForce,
       double stiffnessAtOneNormForce,
@@ -608,19 +652,95 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
 
       if (strainAtOneNormForce <= 0) {
          throw new IllegalArgumentException (
-            "strainAtOneNormForce must be > 0");
+            "strainAtOneNormForce is " +strainAtOneNormForce+"; must be > 0");
       }
       if (stiffnessAtOneNormForce <= 1/strainAtOneNormForce) {
          throw new IllegalArgumentException (
-            "stiffnessAtOneNormForce must be > 1/strainAtOneNormForce");
+            "stiffnessAtOneNormForce (" + stiffnessAtOneNormForce +
+            ") must be > 1/strainAtOneNormForce (" + 1/strainAtOneNormForce +")");
       }
       if (normForceAtToeEnd <= 0 || normForceAtToeEnd >= 1) {
          throw new IllegalArgumentException (
-            "normForceAtToeEnd must be in the range (0,1)");
+            "normForceAtToeEnd (" +normForceAtToeEnd + 
+            ") must be in the range (0,1)");
       }
       if (curviness < 0 || curviness > 1) {
          throw new IllegalArgumentException (
-            "curviness must be in the range [0,1]");
+            "curviness ("+curviness+") must be in the range [0,1]");
+      }
+
+      double eIso = strainAtOneNormForce;
+      double kIso = stiffnessAtOneNormForce;
+      double fToe = normForceAtToeEnd;
+
+      // In the original Millard code, the curve is defined by two quintic
+      // Bezier segments, between the points [x0,xToeCtrl] and [xToeCtrl,xToe].
+      // We have found that it is sufficient to define these segments using
+      // cubic Hermite splines. For completeness, we also add an additional
+      // linear segment, with slope kIso, between [xToe,xIso].
+
+      // start point
+      double x0 = 1.0;
+      double y0 = 0;
+      double dydx0 = 0;
+
+      // final ISO point
+      double xIso = 1.0 + eIso;
+      double yIso = 1.0;
+
+      // point where the curved section becomes linear
+      double yToe = fToe;
+      double xToe = (yToe-1)/kIso + xIso;
+
+      //To limit the 2nd derivative of the toe region the line it tends to
+      //has to intersect the x axis to the right of the origin
+      double xFoot = 1.0+(xToe-1.0)/10.0;
+      double yFoot = 0;
+
+      //Compute the location of the corner formed by the average slope of the
+      //toe and the slope of the linear section
+      double yToeMid = yToe*0.5;
+      double xToeMid = (yToeMid-yIso)/kIso + xIso;
+      double dydxToeMid = (yToeMid-yFoot)/(xToeMid-xFoot);
+
+      //Compute the location of the control point to the left of the corner
+      double xToeCtrl = xFoot + 0.5*(xToeMid-xFoot); 
+      double yToeCtrl = yFoot + dydxToeMid*(xToeCtrl-xFoot);
+
+      // create curve and add segments.
+      CubicHermiteSpline1d curve = new CubicHermiteSpline1d();
+
+      curve.addKnot (x0, y0, dydx0);
+      curve.addKnot (xToeCtrl, yToeCtrl, dydxToeMid);
+      curve.addKnot (xToe, yToe, kIso);
+      curve.addKnot (xIso, yIso, kIso);
+      
+      return curve;
+   }
+
+   public static CubicHermiteSpline1d createTendonForceLengthCurveOld (
+      double strainAtOneNormForce,
+      double stiffnessAtOneNormForce,
+      double normForceAtToeEnd,
+      double curviness) {
+
+      if (strainAtOneNormForce <= 0) {
+         throw new IllegalArgumentException (
+            "strainAtOneNormForce is " +strainAtOneNormForce+"; must be > 0");
+      }
+      if (stiffnessAtOneNormForce <= 1/strainAtOneNormForce) {
+         throw new IllegalArgumentException (
+            "stiffnessAtOneNormForce (" + stiffnessAtOneNormForce +
+            ") must be > 1/strainAtOneNormForce (" + 1/strainAtOneNormForce +")");
+      }
+      if (normForceAtToeEnd <= 0 || normForceAtToeEnd >= 1) {
+         throw new IllegalArgumentException (
+            "normForceAtToeEnd (" +normForceAtToeEnd + 
+            ") must be in the range (0,1)");
+      }
+      if (curviness < 0 || curviness > 1) {
+         throw new IllegalArgumentException (
+            "curviness ("+curviness+") must be in the range [0,1]");
       }
 
       double eIso = strainAtOneNormForce;
@@ -641,7 +761,12 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       
       return curve;
    }
-      
+
+   /**
+    * Creates a passive force length curve with specified parameters.  Adapted
+    * from code by Matthew Millard in the OpenSim class
+    * SmoothSegmentedFunctionFactory.
+    */
    public static CubicHermiteSpline1d createPassiveForceLengthCurve (
       double strainAtZeroForce,
       double strainAtOneNormForce,
@@ -651,24 +776,27 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
 
       if (strainAtZeroForce >= strainAtOneNormForce) {
          throw new IllegalArgumentException (
-            "strainAtZeroForce must be < strainAtOneNormForce");
+            "strainAtZeroForce ("+strainAtZeroForce+
+            ") must be < strainAtOneNormForce ("+strainAtOneNormForce+")");
       }
       if (stiffnessAtOneNormForce <= 1/(strainAtOneNormForce-strainAtZeroForce)) {
          throw new IllegalArgumentException (
-            "stiffnessAtOneNormForce must be > "+
-            "1/(strainAtOneNormForce-strainAtZeroForce)");
+            "stiffnessAtOneNormForce ("+stiffnessAtOneNormForce+
+            ") must be > 1/(strainAtOneNormForce-strainAtZeroForce) ("+
+            1/(strainAtOneNormForce-strainAtZeroForce) + ")");
       }
       if (stiffnessAtLowForce <= 0) {
          throw new IllegalArgumentException (
-            "stiffnessAtLowForce must be > 0");
+            "stiffnessAtLowForce ("+stiffnessAtLowForce+") must be > 0");
       }
       if (stiffnessAtLowForce >= stiffnessAtOneNormForce) {
          throw new IllegalArgumentException (
-            "stiffnessAtLowForce must be < stiffnessAtOneNormForce");
+            "stiffnessAtLowForce ("+stiffnessAtLowForce+
+            ") must be < stiffnessAtOneNormForce ("+stiffnessAtOneNormForce+")");
       }
       if (curviness < 0 || curviness > 1) {
          throw new IllegalArgumentException (
-            "curviness must be in the range [0,1]");
+            "curviness ("+curviness+") must be in the range [0,1]");
       }
       
       double eZero = strainAtZeroForce;
@@ -676,23 +804,237 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       double kLow = stiffnessAtLowForce;
       double kIso = stiffnessAtOneNormForce;
 
-      CubicHermiteSpline1d curve = new CubicHermiteSpline1d();
-
       // start point
       double xStart = 1.0 + eZero;
-      curve.addKnot (xStart, 0.0, 0.0);
 
       // ISO point
       double xIso = 1.0 + eIso;
-      curve.addKnot (xIso, 1.0, stiffnessAtOneNormForce);
+      double yIso = 1.0;
 
       // intermediate knot between start and ISO
       double deltaX = Math.min(0.1*(1.0/kIso), 0.1*(xIso-xStart));
       double xLow = xStart + deltaX;
       double xfoot = xStart + 0.5*(xLow-xStart);
-      curve.addKnot (xStart + deltaX, kLow*(xLow-xfoot), kLow);
+      
+      double yLow = kLow*(xLow-xfoot);
+
+      ArrayList<Point2d> cpnts = new ArrayList<>();
+
+      //Compute the Quintic Bezier control points
+      double c = 0.1 + 0.8*curviness; // scale curviness
+      cpnts.addAll (
+         calcQuinticBezierCornerControlPoints(
+            xStart, /*yStart*/0, 0, xLow, yLow, kLow,c));
+    
+      cpnts.addAll (
+         calcQuinticBezierCornerControlPoints(
+            xLow, yLow, kLow, xIso, yIso, kIso, c));     
+
+      // create cubic curve with segments corresponding to the two quintic
+      // segments:
+      CubicHermiteSpline1d curve = new CubicHermiteSpline1d();
+      Knot knot0 = curve.addKnot (xStart, 0.0, 0.0);
+      Knot knot1 = curve.addKnot (xIso, 1.0, stiffnessAtOneNormForce);
+      Knot knot2 = curve.addKnot (xLow, yLow, kLow);
+
+      // add extra knots into the cubic segment at the point of greatest
+      // error with respect to the the quintic segment:
+      for (int seg=0; seg<2; seg++) {
+         Knot knotA = (seg==0 ? knot0 : knot1);
+         // find u and point with max error wrt quintic segment
+         int nsamps = 20; 
+         double uMaxErr = 0;
+         double maxErr = -1;
+         Point2d qMaxErr = null;
+         for (int i=1; i<=nsamps; i++) {
+            double u = i/(double)(nsamps+1);
+            Point2d q =
+               calcQuinticBezierCurveVal (u, cpnts, seg);
+            double erry = curve.eval (q.x);
+            double err = Math.abs(q.y - curve.eval (q.x));
+            if (err > maxErr) {
+               maxErr = err;
+               qMaxErr = q;
+               uMaxErr = u;
+            }
+         }
+         // find dydx at point of max error, and use this to insert and
+         // additional knot within the segment:
+         double dydx = calcQuinticBezierCurveDydx (
+            uMaxErr, cpnts, seg);
+         Knot knotB = curve.addKnot (qMaxErr.x, qMaxErr.y, dydx);
+         // check that the two new segments do not contain inflexion points
+         if (curve.segmentContainsInflexion (knotA) ||
+             curve.segmentContainsInflexion (knotB)) {
+            System.out.println (
+               "WARNING: computed passive force length curve contains inflexion");
+         }
+      }
       
       return curve;
+   }
+
+   // Quintic bezier curve methods found in the OpenSim class
+   // SegmentedQuinticBezierToolkit:
+
+   /**
+    * Calculates control points for a quintic bezier segment with specified
+    * boundary conditions and curviness. Code by Matthew Millard.
+    */
+   static List<Point2d> calcQuinticBezierCornerControlPoints (
+      double x0, double y0, double dydx0,
+      double x1, double y1, double dydx1, double curviness) {
+
+      double EPS = 1e-16;
+
+      ArrayList<Point2d> pnts = new ArrayList<>(6);      
+
+      //1. Calculate the location where the two lines intersect
+      // (x-x0)*dydx0 + y0 = (x-x1)*dydx1 + y1
+      //   x*(dydx0-dydx1) = y1-y0-x1*dydx1+x0*dydx0
+      //                 x = (y1-y0-x1*dydx1+x0*dydx0)/(dydx0-dydx1);
+
+      double xC = 0;
+      double yC = 0;
+      double rootEPS = Math.sqrt(EPS);
+      if(Math.abs(dydx0-dydx1) > rootEPS) {
+         xC = (y1-y0-x1*dydx1+x0*dydx0)/(dydx0-dydx1);    
+      }
+      else {
+         xC = (x1+x0)/2;
+      }
+
+      yC = (xC-x1)*dydx1 + y1;
+      //Check to make sure that the inputs are consistent with a corner, and will
+      //not produce an 's' shaped section. To check this we compute the sides of
+      //a triangle that is formed by the two points that the user entered, and 
+      //also the intersection of the 2 lines the user entered. If the distance
+      //between the two points the user entered is larger than the distance from
+      //either point to the intersection location, this function will generate a
+      //'C' shaped curve. If this is not true, an 'S' shaped curve will result, 
+      //and this function should not be used.
+
+      double xCx0 = (xC-x0);
+      double yCy0 = (yC-y0);
+      double xCx1 = (xC-x1);
+      double yCy1 = (yC-y1);
+      double x0x1 = (x1-x0);
+      double y0y1 = (y1-y0);
+
+      double a = xCx0*xCx0 + yCy0*yCy0;
+      double b = xCx1*xCx1 + yCy1*yCy1;
+      double c = x0x1*x0x1 + y0y1*y0y1;
+
+      if (! ((c > a) && (c > b))) {
+         //This error message needs to be better.
+         throw new IllegalArgumentException (
+            "The intersection point for the two lines defined by the input "+
+            "parameters must be consistent with a C shaped corner.");
+      }
+      
+      //Start point
+      pnts.add (new Point2d(x0, y0));
+    
+      //Original code - leads to 2 localized corners
+
+      Point2d pnt = new Point2d (x0+curviness*(xC-x0), y0+curviness*(yC-y0));
+      pnts.add (pnt);
+      pnts.add (new Point2d(pnt));
+      pnt = new Point2d (x1+curviness*(xC-x1), y1+curviness*(yC-y1));
+      pnts.add (pnt);
+      pnts.add (new Point2d(pnt));
+      
+      //End point
+      pnts.add (new Point2d(x1, y1));
+
+      return pnts;
+   }
+
+   /**
+    * Calculates the point value for a parmeter value u on a quintic bezier
+    * segment. The segment is specified by 6 control points within the list
+    * {@code cpnts}, starting at the index {@code segNum*6}. Code by Matthew
+    * Millard.
+    */
+   static Point2d calcQuinticBezierCurveVal(
+      double u, List<Point2d> cpnts, int segNum) {
+      if (u < 0 || u > 1) {
+         throw new IllegalArgumentException (
+            "argument u is "+u+"; must be between 0.0 and 1.0");
+      }
+      int k = segNum*6;
+      if (cpnts.size() - k < 6) {
+         throw new IllegalArgumentException (
+            "cpnts must have at least 6 points beyond segNum*6");
+      }
+
+      //Compute the Bezier point
+
+      double u5 = 1;
+      double u4 = u;
+      double u3 = u4*u;
+      double u2 = u3*u;
+      double u1 = u2*u;
+      double u0 = u1*u;
+
+      //See lines 1-6 of MuscleCurveCodeOpt_20120210
+      double t2 = u1 * 0.5e1;
+      double t3 = u2 * 0.10e2;
+      double t4 = u3 * 0.10e2;
+      double t5 = u4 * 0.5e1;
+      double t9 = u0 * 0.5e1;
+      double t10 = u1 * 0.20e2;
+      double t11 = u2 * 0.30e2;
+      double t15 = u0 * 0.10e2;
+      Point2d pnt = new Point2d();
+      pnt.scale (u0*(-0.1e1) + t2 - t3 + t4 - t5 + u5*0.1e1, cpnts.get(k++));
+      pnt.scaledAdd (t9 - t10 + t11 + u3 * (-0.20e2) + t5, cpnts.get(k++));
+      pnt.scaledAdd (-t15 + u1 * 0.30e2 - t11 + t4, cpnts.get(k++));
+      pnt.scaledAdd (t15 - t10 + t3, cpnts.get(k++));
+      pnt.scaledAdd (-t9 + t2, cpnts.get(k++));
+      pnt.scaledAdd (u0*0.1e1, cpnts.get(k++));
+      return pnt;
+   }
+
+   /**
+    * Calculates the dydx value for a parmeter value u on a quintic bezier
+    * segment. The segment is specified by 6 control points within the list
+    * {@code cpnts}, starting at the index {@code segNum*6}. Code by Matthew
+    * Millard.
+    */
+   static double calcQuinticBezierCurveDydx (
+      double u, List<Point2d> cpnts, int segNum) {
+
+      if (u < 0 || u > 1) {
+         throw new IllegalArgumentException (
+            "argument u is "+u+"; must be between 0.0 and 1.0");
+      }
+      int k = segNum*6;
+      if (cpnts.size() - k < 6) {
+         throw new IllegalArgumentException (
+            "cpnts must have at least 6 points beyond segNum*6");
+      }
+
+      double t1 = u*u;//u ^ 2;
+      double t2 = t1*t1;//t1 ^ 2;
+      double t4 = t1 * u;
+      double t5 = t4 * 0.20e2;
+      double t6 = t1 * 0.30e2;
+      double t7 = u * 0.20e2;
+      double t10 = t2 * 0.25e2;
+      double t11 = t4 * 0.80e2;
+      double t12 = t1 * 0.90e2;
+      double t16 = t2 * 0.50e2;
+      Point2d du = new Point2d();
+      du.scale (t2 * (-0.5e1) + t5 - t6 + t7 - 0.5e1, cpnts.get(k++));
+      du.scaledAdd (t10 - t11 + t12 + u * (-0.40e2) + 0.5e1, cpnts.get(k++));
+      du.scaledAdd (-t16 + t4 * 0.120e3 - t12 + t7, cpnts.get(k++));
+      du.scaledAdd (t16 - t11 + t6, cpnts.get(k++));
+      du.scaledAdd (-t10 + t5, cpnts.get(k++));
+      du.scaledAdd (t2 * 0.5e1, cpnts.get(k++));
+
+      // dydx = dydu/dxdu;
+      return du.y/du.x;
    }
 
    // Serialization methods
@@ -770,14 +1112,93 @@ public class Millard2012AxialMuscle extends EquilibriumAxialMuscle {
       return mat;
    }
 
+   /**
+    * Compute the (very approximate) equivalent SimpleAxialMuscle material, and
+    * returns the corresponding rest length. The {@code stiffness} property for
+    * the SimpleAxialMuscle is set to the equivalent serial stiffness of the
+    * passive and tendon forces (as determined from their final linear
+    * behavior). The {@code unilateral} property is also set to {@code true}
+    * and the {@code blendInterval} is set to an appropriate value.
+    *
+    * <p>This can provide a useful alternative material when the Millard model
+    * is unstable.
+    */
+   public double getSimpleMuscle (SimpleAxialMuscle linmat) {
+      // linear portions of the passive and tendon curves are defined
+      // by their last knots.
+      Knot lastKnotP = myPassiveForceLengthCurve.getLastKnot();
+      Knot lastKnotT = myTendonForceLengthCurve.getLastKnot();
+
+      double maxF = getMaxIsoForce();
+      double lopt = getOptFibreLength();
+      double T = getTendonSlackLength();
+      double Vmax = getMaxContractionVelocity();
+      double H = myHeight;
+      double cos = Math.cos(getOptPennationAngle());
+
+      double l0 = cos*lopt + T; // rest length
+      double tau = lastKnotP.getX() - 1; // transition region
+
+      double Kp = lastKnotP.getDy(); // max normalized passive stiffness
+      double Kt = lastKnotT.getDy(); // max normalized tendon stiffness
+
+      // convert Kp to a passive stiffness Km:
+      double Km = sqr(cos)*Kp/lopt; 
+      // remove length normalization on Kt:
+      Kt = Kt/T;
+
+      double Ke = maxF*(Km*Kt)/(Km+Kt); // effective non-normalized stiffness
+      linmat.setStiffness (Ke);
+      linmat.setUnilateral (true);
+      linmat.setMaxForce (maxF);
+      linmat.setBlendInterval (tau);
+
+      linmat.setDamping (0); //maxF*sqr(cos)*getFibreDamping()/(lopt*Vmax));
+
+      return l0;
+   }
+
+
    public static void main (String[] args) throws IOException {
 
       Millard2012AxialMuscle m = new Millard2012AxialMuscle();
 
-      m.writeActiveForceLengthCurve ("MillardAFLC.txt", 0, 2, 400, "%g");
-      m.writePassiveForceLengthCurve ("MillardPFLC.txt", 0, 2, 400, "%g");
-      m.writeTendonForceLengthCurve ("MillardTFLC.txt", 0.9, 1.1, 100, "%g");
-      m.writeForceVelocityCurve ("MillardFVC.txt", 1, -1, 1, 400, "%g");
+      // m.writeActiveForceLengthCurve ("MillardAFLC.txt", 0, 2, 400, "%g");
+      // m.writePassiveForceLengthCurve ("MillardPFLC.txt", 0, 2, 400, "%g");
+      // m.writeTendonForceLengthCurve ("MillardTFLC.txt", 0.9, 1.1, 100, "%g");
+      // m.writeForceVelocityCurve ("MillardFVC.txt", 1, -1, 1, 400, "%g");
+
+      CubicHermiteSpline1d pflc0 =
+         createPassiveForceLengthCurve (0, 0.7, 0.2, 2.85714, 0.75);
+
+      CubicHermiteSpline1d pflcx =
+         createPassiveForceLengthCurve (0, 0.6405, 0.0751000, 6.31630, 0.75);
+
+      CubicHermiteSpline1d tflcA =
+         createTendonForceLengthCurve (0.0330000, 37.3920, 0.225500, 0.75);
+
+      CubicHermiteSpline1d tflcB =
+         createTendonForceLengthCurve (0.0490000, 28.0612, 0.666667, 0.75);
+
+      try {
+         PrintWriter pw = new PrintWriter (new FileWriter ("pflcx.txt"));
+         pflcx.write (pw, new NumberFormat("%g"), null);
+         pw.close();
+
+         pw = new PrintWriter (new FileWriter ("pflc0.txt"));
+         pflc0.write (pw, new NumberFormat("%g"), null);
+         pw.close();
+
+         pw = new PrintWriter (new FileWriter ("tflcA.txt"));
+         tflcA.write (pw, new NumberFormat("%g"), null);
+         pw.close();
+
+         pw = new PrintWriter (new FileWriter ("tflcB.txt"));
+         tflcB.write (pw, new NumberFormat("%g"), null);
+         pw.close();
+      }
+      catch (Exception e) {
+      }
    }
 
 }

@@ -229,9 +229,8 @@ public class PointFrameAttachment extends PointAttachment {
       throws IOException {
 
       super.writeItems (pw, fmt, ancestor);
-      pw.print ("frame=");
-      pw.println (ComponentUtils.getWritePathName (
-                     ancestor, myFrame));
+      String framePath = ComponentUtils.getWritePathName (ancestor, myFrame);
+      pw.print ("frame=" + framePath);
       pw.print ("loc=");
       myLoc.write (pw, fmt, /*withBrackets=*/true);
       pw.println ("");

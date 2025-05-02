@@ -20,7 +20,7 @@ public class ScanTest {
 
    public static boolean showOutput = false;
 
-   static String getClassTag (ModelComponent mc) {
+   static String getClassTag (PostScannable mc) {
       String classTag;
       if (mc instanceof ParameterizedClass &&
           ((ParameterizedClass)mc).hasParameterizedType()) {
@@ -38,8 +38,8 @@ public class ScanTest {
     * scanning it, writing it again, and making sure that the second write
     * output equals the first.
     */
-   public static ModelComponent testScanAndWrite (
-      ModelComponent mc, CompositeComponent ref, String fmtStr) {
+   public static PostScannable testScanAndWrite (
+      PostScannable mc, CompositeComponent ref, String fmtStr) {
 
       NumberFormat fmt;
       if (fmtStr == null) {
@@ -71,12 +71,12 @@ public class ScanTest {
       ReaderTokenizer rtok = new ReaderTokenizer (new StringReader (str1));
       Deque<ScanToken> tokens = new ArrayDeque<ScanToken>();
       rtok.wordChars ("./$");
-      ModelComponent nc = null;
+      PostScannable nc = null;
       // create a new model component
       try {
          ClassInfo<?> classInfo =
-            ScanWriteUtils.scanClassInfo (rtok, ModelComponent.class);
-         nc = (ModelComponent)ScanWriteUtils.newComponent (
+            ScanWriteUtils.scanClassInfo (rtok, PostScannable.class);
+         nc = (PostScannable)ScanWriteUtils.newComponent (
             rtok, classInfo, /*warnOnly=*/false);      
          // if (mc instanceof ParameterizedClass) {
          //    Class<?> ptype = ((ParameterizedClass)mc).getParameterType();
@@ -90,9 +90,8 @@ public class ScanTest {
       catch (Exception e) {
          System.out.println (str1);
          throw new TestException (
-            "unable to create new instance of "+mc.getClass());
+            "unable to create new instance of "+mc.getClass(), e);
       }
-
       try {
          nc.scan (rtok, tokens);
          nc.postscan (tokens, ref);

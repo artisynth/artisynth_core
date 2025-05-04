@@ -225,6 +225,45 @@ public abstract class RigidBodyCoupling implements Cloneable {
             limitConstraint.setUnilateral (!locked);
          }
       }
+
+      public double getLimitCompliance() {
+         if (limitConstraint != null) {
+            return limitConstraint.compliance;
+         }
+         else {
+            return 0;
+         }
+      }
+
+      public void setLimitCompliance (double c) {
+         if (limitConstraint != null) {
+            limitConstraint.compliance = c;
+         }
+      }
+
+      public double getLimitDamping() {
+         if (limitConstraint != null) {
+            return limitConstraint.damping;
+         }
+         else {
+            return 0;
+         }
+      }
+
+      public void setLimitDamping (double d) {
+         if (limitConstraint != null) {
+            limitConstraint.damping = d;
+         }
+      }
+      
+      public double getLimitForce() {
+         if (limitConstraint != null) {
+            return limitConstraint.multiplier;
+         }
+         else {
+            return 0;
+         }         
+      }
    }      
 
    protected RigidBodyCoupling() {
@@ -1436,8 +1475,62 @@ public abstract class RigidBodyCoupling implements Cloneable {
          }
       }
       return -1;
-   } 
+   }
 
+   /**
+    * Sets the range limit compliance for the {@code idx}-th coordinate
+    * supported by this coupling.
+    *
+    * @param idx index of the coordinate
+    * @param c compliance
+    */
+   public void setRangeLimitCompliance (int idx, double c) {
+      myCoordinates.get(idx).setLimitCompliance (c);
+   }
+
+   /**
+    * Queries the range limit compliance for the {@code idx}-th coordinate
+    * supported by this coupling.
+    *
+    * @param idx index of the coordinate
+    * @return compliance
+    */
+   public double getRangeLimitCompliance (int idx) {
+      return myCoordinates.get(idx).getLimitCompliance();
+   }
+
+   /**
+    * Sets the range limit damping for the {@code idx}-th coordinate
+    * supported by this coupling.
+    *
+    * @param idx index of the coordinate
+    * @param d damping
+    */
+   public void setRangeLimitDamping (int idx, double d) {
+      myCoordinates.get(idx).setLimitDamping (d);
+   }
+
+   /**
+    * Queries the range limit damping for the {@code idx}-th coordinate
+    * supported by this coupling.
+    *
+    * @param idx index of the coordinate
+    * @return damping
+    */
+   public double getRangeLimitDamping (int idx) {
+      return myCoordinates.get(idx).getLimitDamping();
+   }
+   
+   /**
+    * Queries the current force, if any, currently being used to enforce range
+    * limits for the {@code idx}-th coordinate supported by this coupling.
+    *
+    * @param idx index of the coordinate
+    * @return current range limit force
+    */
+   public double getRangeLimitForce (int idx) {
+      return myCoordinates.get(idx).getLimitForce();
+   }
    /**
     * Returns the wrench used to apply forces to the {@code idx}-ith coordinate 
     * supported by the coupling, or {@code null} if the coordinate does not 

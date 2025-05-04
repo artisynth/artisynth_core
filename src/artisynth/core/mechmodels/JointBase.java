@@ -272,6 +272,78 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
+    * Sets the compliance and damping ({@code c} and {@code d}) for the
+    * unilateral constraint used to enforce the range limits of coordinate
+    * {@code idx}. If {@code c <= 0}, then compliance and damping are both set
+    * to 0. Otherwise, the compliance is set to {@code c} and the damping is
+    * set to either {@code d} (if {@code d >= 0}), or {@code |d|} times an
+    * estimate of the critical damping (if {@code d < 0}).
+    *
+    * @param idx coordinate index
+    * @param c compliance value
+    * @param d damping value
+    */
+   public void setRangeLimitCompliance (int idx, double c, double d) {
+      checkCoordinateIndex (idx);
+      if (c <= 0) {
+         d = 0;
+      }
+      else if (d < 0) {
+         // estimate d to try and ensure critcal damping
+         double estMass;
+         if (getCoordinateMotionType(idx) == MotionType.LINEAR) {
+            estMass = getAverageBodyMass();
+         }
+         else {
+            estMass = getAverageRevoluteInertia();
+         }
+         double cd = 2*Math.sqrt(estMass/c); // crtical damping estimate
+         d = Math.abs(d)*cd;
+      }
+      myCoupling.setRangeLimitCompliance (idx, c);
+      myCoupling.setRangeLimitDamping (idx, d);
+   }
+
+   /**
+    * Returns the compliance for the unilateral constraint used to enforce the
+    * range limits of coordinate {@code idx}.
+    *
+    * @param idx coordinate index
+    * @return range limit compliance for coordinate {@code idx}
+    */
+   public double getRangeLimitCompliance (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getRangeLimitCompliance (idx);
+   }
+
+   /**
+    * Returns the damping for the unilateral constraint used to enforce the
+    * range limits of coordinate {@code idx}.
+    *
+    * @param idx coordinate index
+    * @return range limit damping for coordinate {@code idx}
+    */
+   public double getRangeLimitDamping (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getRangeLimitDamping (idx);
+   }
+   
+   /**
+    * Returns the current force, if any, being used to enforce the range limits
+    * of coordinate {@code idx}. The force units will be appropriate to that
+    * of the coordinate {@link MotionType} (e.g., translational force units 
+    * for {@link MotionType.LINEAR}, moment units for 
+    * {@link MotionType.ROTARY}).
+    *
+    * @param idx coordinate index
+    * @return range limit force for coordinate {@code idx}
+    */
+   public double getRangeLimitForce (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getRangeLimitForce (idx);
+   }
+
+   /**
     * Returns the number of coordinates, if any, associated with this joint. If
     * coordinates are not supported, this method returns 0.
     *

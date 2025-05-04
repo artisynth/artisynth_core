@@ -274,6 +274,18 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    }
 
    /**
+    * Covenience method that returns the optimial muscle length, defined as
+    * <pre>
+    * cos (optPennationAngle) * optFibreLength
+    * </pre>
+    *
+    * @return optimial muscle length
+    */
+   public double getOptMuscleLength() {
+      return Math.cos (myOptPennationAngle) * myOptFibreLength;
+   }
+
+   /**
     * @deprecated Use {@link #hasRigidTendon} instead.
     */
    public boolean getIgnoreTendonCompliance () {
@@ -453,7 +465,6 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          double Vmax = myMaxContractionVelocity;
          double lo = myOptFibreLength;
 
-
          double lf; // fibre length
          double ca; // cos(alpha)
          if (H == 0) {
@@ -470,7 +481,8 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          if (vm != 0) {
             vn = vm*ca/(lo*Vmax); 
          }
-         return ca*(computePassiveForceLength(ln) + myDamping*vn);
+         return myMaxIsoForce*(
+            ca*(computePassiveForceLength(ln) + myDamping*vn));
       }
    }
 

@@ -34,6 +34,7 @@ public class OpenSimParser {
    OpenSimDocument myDocument;
    File myGeometryPath;
    ModelComponentMap myComponentMap;
+   public static boolean myIgnoreFrameGeometry = true;
    public static boolean myFrameGeometryVisible = false;
 
    /**
@@ -104,6 +105,14 @@ public class OpenSimParser {
 
    public void setFrameGeometryVisible (boolean enable) {
       myFrameGeometryVisible = enable;
+   }
+
+   public boolean getIgnoreFrameGeometry() {
+      return myIgnoreFrameGeometry;
+   }
+
+   public void setIgnoreGeometryVisible (boolean ignore) {
+      myIgnoreFrameGeometry = ignore;
    }
 
    /**

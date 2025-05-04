@@ -16,7 +16,8 @@ public abstract class FrameMaterial extends MaterialBase {
       RotAxisFrameMaterial.class,                                              
       HeuerOffLinFM.class, 
       NonlinearlyStiffFrameMaterial.class,
-      OffsetLinearFrameMaterial.class
+      OffsetLinearFrameMaterial.class,
+      FunctionFrameMaterial.class
    };
 
    public static Class<?>[] getSubClasses() {

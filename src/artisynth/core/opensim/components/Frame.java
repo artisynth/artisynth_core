@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.RigidMeshComp;
+import artisynth.core.opensim.OpenSimParser;
 import maspack.geometry.MeshBase;
 import maspack.matrix.Point3d;
 import maspack.render.RenderProps;
@@ -79,7 +80,7 @@ public class Frame extends HasVisibleObjectOrAppearance implements ModelComponen
       }
       
       // OpenSim 4 FrameGeometry
-      if (frameGeometry != null) {
+      if (frameGeometry != null && !OpenSimParser.myIgnoreFrameGeometry) {
          RigidMeshComp fg = frameGeometry.createComponent (geometryPath, componentMap);
          if (fg != null) {
             rb.addMeshComp (fg);

@@ -24,7 +24,7 @@ import maspack.spatialmotion.Wrench;
  * translational and rotational directions. Rotational displacements, and the
  * resulting forces, are computed with respect to the x-y-z rotation angles of
  * the rotational displacement matrix, as computed using {@link
- * RotationMatrix3d.getXyz}. For both translational and rotational
+ * RotationMatrix3d#getXyz}. For both translational and rotational
  * displacements, it is possible to specify a deadband {@code b}, such that the
  * displacement {@code d} applied to the force law is determined from the true
  * displacement {@code dt} by

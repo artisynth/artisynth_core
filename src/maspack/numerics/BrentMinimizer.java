@@ -84,8 +84,8 @@ public class BrentMinimizer {
 
    /**
     * Finds a local minimum of a function within an interval {@code [a,b]}.
-    * This is a static convenience wrapper for {@link
-    * #findMinimum(Function1x1,double,,double,double)}.
+    * This is a static convenience wrapper for
+    * {@link #findMinimum(Function1x1,double,double,double)}.
     *
     * @param func function to evaluate
     * @param a left interval end point

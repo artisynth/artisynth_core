@@ -554,8 +554,6 @@ public class FastDoubleParser {
      * <dd><i>[WhiteSpace] FloatingPointLiteral [WhiteSpace]</i></dd>
      * </dl>
      * </blockquote>
-     * See {@link JavaDoubleParser} for the grammar of
-     * {@code FloatingPointLiteral}.
      *
      * @param str a string containing a {@code FloatingPointLiteralWithWhiteSpace}
      * @param offset start offset of {@code FloatingPointLiteralWithWhiteSpace}

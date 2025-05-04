@@ -165,7 +165,7 @@ public class IKProbe extends NumericControlProbe {
     * Sets the least-squares search strategy for the IK solve steps.
     * 
     * #see #getSearchStrategy
-    * @param IK search strategy
+    * @param strat IK search strategy
     */
    public void setSearchStrategy (SearchStrategy strat) {
       mySolver.setSearchStrategy(strat);

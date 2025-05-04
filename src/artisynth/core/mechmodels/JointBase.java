@@ -332,8 +332,8 @@ public abstract class JointBase extends BodyConnector  {
     * Returns the current force, if any, being used to enforce the range limits
     * of coordinate {@code idx}. The force units will be appropriate to that
     * of the coordinate {@link MotionType} (e.g., translational force units 
-    * for {@link MotionType.LINEAR}, moment units for 
-    * {@link MotionType.ROTARY}).
+    * for {@link MotionType#LINEAR}, moment units for 
+    * {@link MotionType#ROTARY}).
     *
     * @param idx coordinate index
     * @return range limit force for coordinate {@code idx}

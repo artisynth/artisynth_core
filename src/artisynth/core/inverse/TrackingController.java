@@ -408,9 +408,9 @@ public class TrackingController extends ControllerBase
     * Sets the rotation representation used by {@link #createProbes(RootModel)}
     * and {@link #createProbesAndPanel(RootModel)} for creating position input
     * or output probes. The default value is {@link
-    * RotationRep.AXIS_ANGLE_DEG}.
+    * RotationRep#AXIS_ANGLE_DEG}.
     *
-    * @param h new output probe update interval
+    * @param rep new rotation representation
     */
    public void setPositionProbeRotRep (RotationRep rep) {
       myPositionProbeRotRep = rep;

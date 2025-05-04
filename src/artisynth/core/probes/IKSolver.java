@@ -523,7 +523,7 @@ public class IKSolver implements PostScannable {
     * Sets the least-squares search strategy for each solve step.
     * 
     * #see #getSearchStrategy
-    * @param search strategy
+    * @param strat search strategy
     */
    public void setSearchStrategy (SearchStrategy strat) {
       mySearchStrategy = strat;

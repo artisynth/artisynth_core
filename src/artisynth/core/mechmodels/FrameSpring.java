@@ -219,7 +219,7 @@ public class FrameSpring extends Spring
     * the material. The value is currently {@code false}, but this will likely
     * be changed to {@code true} in the future.
     *
-    * @param if {@code true}, any rest pose will be automatically
+    * @param enable if {@code true}, any rest pose will be automatically
     * applied
     */
    public void setApplyRestPose (boolean enable) {
@@ -228,7 +228,7 @@ public class FrameSpring extends Spring
    
    /**
     * Queries whether or not this spring automatically applies the
-    * rest pose. See {@link #applyRestPose}.
+    * rest pose. See {@link #setApplyRestPose}.
     *
     * @return {@code true} if this spring applies the rest pose
     */

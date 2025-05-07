@@ -1029,6 +1029,44 @@ public class MeshCurve extends RenderableCompositeBase {
    }
    
    @Override
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (myMeshComp != null) {
+         CompositeComponent gparent = ComponentUtils.getGrandParent(this);
+         if (gparent != myMeshComp) {
+            // curve is not a child of the mesh and needs to be registered as
+            // an external curve
+            if (ComponentUtils.areConnectedVia (this, myMeshComp, hcomp)) {
+               myMeshComp.addExternalCurve (this);
+            }
+         }
+      }
+   }
+
+   @Override
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      super.disconnectFromHierarchy(hcomp);
+      if (myMeshComp != null) {
+         CompositeComponent gparent = ComponentUtils.getGrandParent(this);
+         if (gparent != myMeshComp) {
+            // curve is not a child of the mesh; deregister external curve
+            if (ComponentUtils.areConnectedVia (this, myMeshComp, hcomp)) {
+               myMeshComp.removeExternalCurve (this);
+            }
+         }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void getHardReferences (List<ModelComponent> refs) {
+      if (ComponentUtils.getGrandParent(this) != myMeshComp) {
+         refs.add (myMeshComp);
+      }
+   }
+
+   @Override
    public MeshCurve copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       MeshCurve curve = (MeshCurve)super.copy (flags, copyMap);

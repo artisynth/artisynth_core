@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.Map;
 import java.util.List;
+import java.util.LinkedList;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
@@ -58,6 +59,7 @@ public class MeshComponent extends RenderableCompositeBase
 
    protected PointList<MeshMarker> myMarkers = null;
    protected RenderableComponentList<MeshCurve> myCurves = null;
+   protected LinkedList<MeshCurve> myExternalCurves = null;
 
    public static boolean DEFAULT_SELECTABLE = true;
    protected boolean mySelectable = DEFAULT_SELECTABLE;
@@ -508,6 +510,34 @@ public class MeshComponent extends RenderableCompositeBase
       myCurves.removeAll();
    }
 
+   /*-- management of external mesh curves that are not children of this mesh --*/
+
+   /**
+    * Called by external MeshCurves when they connect to the component
+    * hierarchy, to ensure that they get updated when this mesh changes.
+    */
+   public void addExternalCurve (MeshCurve curve) {
+      if (myExternalCurves == null) {
+         myExternalCurves = new LinkedList<>();
+      }
+      myExternalCurves.add (curve);
+   }
+
+   /**
+    * Called by external MeshCurves when they disconnect from the component
+    * hierarchy, so that they not longer get updated when this mesh changes.
+    */
+   public boolean removeExternalCurve (MeshCurve curve) {
+      if (myExternalCurves == null) {
+         return false;
+      }
+      boolean removed = myExternalCurves.remove (curve);
+      if (myExternalCurves.size() == 0) {
+         myExternalCurves = null;
+      }
+      return removed;
+   }
+
    /* --- transform geometry --- */
 
    public void transformGeometry (AffineTransform3dBase X) {
@@ -536,6 +566,11 @@ public class MeshComponent extends RenderableCompositeBase
          }
          for (MeshCurve mc : myCurves) {
             mc.updateMarkerPositions();
+         }
+         if (myExternalCurves != null) {
+            for (MeshCurve mc : myExternalCurves) {
+               mc.updateMarkerPositions();
+            }
          }
       }
    }
@@ -581,7 +616,7 @@ public class MeshComponent extends RenderableCompositeBase
       }     
       return meshes;
    } 
-   
+
    public MeshComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       MeshComponent comp = (MeshComponent)super.copy (flags, copyMap);

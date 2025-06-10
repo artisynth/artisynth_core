@@ -26,9 +26,9 @@ import artisynth.core.util.*;
  * Base class for implementing constraints between two connectable bodies, or
  * between a single connectable body and ground.
  */
-public abstract class BodyConnector extends RenderableComponentBase
+public abstract class BodyConnector extends RenderableConstrainerBase
    implements ScalableUnits, TransformableGeometry, HasNumericState,
-              Constrainer, HasCoordinateFrame {
+              BodyConstrainer, HasCoordinateFrame {
               
    public static boolean debug = false;
    
@@ -90,7 +90,7 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    public static PropertyList myProps =
       new PropertyList (
-         BodyConnector.class, RenderableComponentBase.class);
+         BodyConnector.class, RenderableConstrainerBase.class);
 
    // transform from C to G (equal to the error transform TERR)
    RigidTransform3d myTCG = new RigidTransform3d();
@@ -845,7 +845,14 @@ public abstract class BodyConnector extends RenderableComponentBase
       return myBodyB;
    }
    
-   protected ConnectableBody getOtherBody (ConnectableBody body) {
+   /**
+    * If this connector is attached to {@code body}, returns the
+    * other body, if any, that is attached to this connector.
+    * 
+    * @param body body to check against
+    * @return other body attached to this connector, or {@code null}d
+    */
+   public ConnectableBody getOtherBody (ConnectableBody body) {
       if (body == myBodyA) {
          return myBodyB;
       }
@@ -1254,15 +1261,15 @@ public abstract class BodyConnector extends RenderableComponentBase
    /**
     * {@inheritDoc}
     */
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
       if (myAttachmentA != null) {
          for (DynamicComponent c : myAttachmentA.getMasters()) {
-            list.add (c);
+            comps.add (c);
          }
       }
       if (myAttachmentB != null) {
          for (DynamicComponent c : myAttachmentB.getMasters()) {
-            list.add (c);
+            comps.add (c);
          }
       }
    }
@@ -1433,11 +1440,6 @@ public abstract class BodyConnector extends RenderableComponentBase
          updateBodyStates (0, false);
          myBilaterals.clear();
          getBilateralConstraints (myBilaterals);
-         
-         System.out.println ("dg= " + dg.toString("%12.8f"));
-         System.out.println ("chk=" + chk.toString ("%12.8f"));
-
-         System.out.println ("");
       }
    }
 
@@ -2618,13 +2620,63 @@ public abstract class BodyConnector extends RenderableComponentBase
       myAdjustBodyAExplicitP = set;
    }
 
-   protected boolean containsGround (ArrayList<ConnectableBody> bodies) {
+   protected boolean containsGround (Collection<ConnectableBody> bodies) {
       for (ConnectableBody body : bodies) {
          if (body.isGrounded()) {
             return true;
          }
       }
       return false;
+   }
+
+   /**
+    * Returns true if this connector is part of a kinematic loop involving the
+    * bodies it connects and other constrainers within a given MechModel.  If
+    * the connector is part of a kinematic loop, then changes to its
+    * configuration will necessitate a global solve among all the bodies and
+    * constraints involved in the loop in order to ensure that all body poses
+    * are in the correct postion. Otherwise, if the connector is not part of a
+    * loop, then configuration changes can be handled by simply reorienting the
+    * attached bodies on either side of the connector.
+    * 
+    * @param mech MechModel containing the connector
+    * @return {@code true} if connector is part of a kinematic loop
+    */
+   public boolean withinLoop (MechModel mech) {
+      LinkedList<Constrainer> allConstraints = new LinkedList<>();
+      LinkedHashSet<ConnectableBody> bodiesA = new LinkedHashSet<>();
+      LinkedHashSet<ConnectableBody> bodiesB = new LinkedHashSet<>();
+
+      mech.getConstrainers (allConstraints, /*level*/0);
+
+      boolean AIsFree = findConnectedBodies (myBodyA, this, bodiesA);
+      if (myBodyB != null) {
+         boolean BIsFree = findConnectedBodies (myBodyB, this, bodiesB);
+
+         HashSet<ConnectableBody> bodySetA = new HashSet<>();
+         bodySetA.addAll (bodiesA);
+         for (ConnectableBody bodB : bodiesB) {
+            if (bodySetA.contains (bodB)) {
+               return true;
+            }
+         }
+         HashSet<DynamicComponent> connected = new HashSet<>();
+         for (Constrainer c : allConstraints) {
+            // only care about c if it is not a BodyConnector; otherwise it
+            // will be found by findAttachedBodies.
+            if (!(c instanceof BodyConnector)) {
+               connected.clear();
+               c.getConstrainedComponents (connected);
+               if (connected.contains (myBodyA) && connected.contains (myBodyB)) {
+                  return true;
+               }
+            }
+         }
+         return !AIsFree && !BIsFree;
+      }
+      else {
+         return !AIsFree;
+      }
    }
 
    protected void adjustPoses (RigidTransform3d TGD) {
@@ -2659,7 +2711,6 @@ public abstract class BodyConnector extends RenderableComponentBase
             moveBodyA = bodiesA.size() <= bodiesB.size();
          }
       }
-      
       if (moveBodyA) {
          RigidTransform3d TCWnew = new RigidTransform3d();
          TCWnew.mul (TDW, TGD);
@@ -2785,7 +2836,36 @@ public abstract class BodyConnector extends RenderableComponentBase
       boolean allFree = recursivelyFindAttachedBodies (
          body, bodies, visited);
       return allFree;
-   }   
+   }
+
+   public static boolean findConnectedBodies (
+      ConnectableBody body, BodyConnector bcon0, 
+      HashSet<ConnectableBody> bodies) {
+
+      LinkedList<ConnectableBody> queue = new LinkedList<>();
+      queue.offer (body);
+      boolean isFree = true;
+      while (!queue.isEmpty()) {
+         ConnectableBody b = queue.poll();
+         bodies.add (b);
+         for (BodyConnector bcon : b.getConnectors()) {
+            if (bcon != bcon0) {
+               ConnectableBody bodyA = bcon.getBodyA();
+               if (!bodies.contains(bodyA)) {
+                  queue.offer (bodyA);
+               }
+               ConnectableBody bodyB = bcon.getBodyB();
+               if (bodyB != null && !bodies.contains(bodyB)) {
+                  queue.offer (bodyB);
+               }
+               else if (bodyB == null) {
+                  isFree = false;
+               }
+            }
+         }
+      }
+      return isFree;
+   }
    
    /**
     * Returns the {@code Frame} attachment which attaches connector frame C to the

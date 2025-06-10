@@ -8,6 +8,7 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	AxialSpringTest \
+	BodyConnectorTest \
 	CollisionHandlerTableTest \
 	CollisionManagerTest \
         EBBeamBodyTest \

@@ -304,10 +304,9 @@ public interface Constrainer {
    
    /**
     * Collected all the dynamic components constrained by this constrainer.
-    * Not currently used.
     * 
-    * @param list list to which constrained components should be appended
+    * @param comps set to which constrained components should be added
     */
-   public void getConstrainedComponents (List<DynamicComponent> list);
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps);
    
 }

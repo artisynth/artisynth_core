@@ -161,6 +161,16 @@ public class SparseBlockSignature {
           myData.length != sig.myData.length) {
          return false;
       }
+      for (int bi=0; bi<=myNumBlockRows; bi++) {
+         if (myRowOffsets[bi] != sig.myRowOffsets[bi]) {
+            return false;
+         }
+      }      
+      for (int bj=0; bj<=myNumBlockCols; bj++) {
+         if (myColOffsets[bj] != sig.myColOffsets[bj]) {
+            return false;
+         }
+      }      
       for (int i=0; i<myData.length; i++) {
          if (myData[i] != sig.myData[i]) {
             return false;

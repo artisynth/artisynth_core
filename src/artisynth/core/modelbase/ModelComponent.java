@@ -23,6 +23,29 @@ public interface ModelComponent
    extends HasProperties, HierarchyNode, PostScannable {
    
    /**
+    * Describes how file paths associated with a component should be saved in a
+    * .art file.
+    */
+   public enum FilePathSaveType {
+      /**
+       * Save path relative to the working folder.
+       */
+      RELATIVE,
+
+      /**
+       * Save absolute path name.
+       */
+      ABSOLUTE,
+
+      /**
+       * If possible, save resource inline (avoiding file references
+       * altogether). Otherwise, save path relative to the
+       * working folder.
+       */
+      INLINE
+   }
+
+   /**
     * Controls the visibility of this component in the navigation panel.
     */
    public enum NavpanelVisibility {

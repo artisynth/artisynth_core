@@ -96,7 +96,7 @@ public abstract class ConstrainerBase
 
    public abstract double updateConstraints (double t, int flags);
    
-   public abstract void getConstrainedComponents (List<DynamicComponent> list);
+   public abstract void getConstrainedComponents (HashSet<DynamicComponent> comps);
    
    public void getState (DataBuffer data) {
       //data.zput (myBaseIdx);

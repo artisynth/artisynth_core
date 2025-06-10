@@ -10,16 +10,23 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Set;
 
 import artisynth.core.mechmodels.BodyConnector;
+import artisynth.core.mechmodels.BodyConstrainer;
+import artisynth.core.mechmodels.Constrainer;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystem;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.StaticRigidBodySolver;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
@@ -33,7 +40,6 @@ import maspack.function.FunctionValuePair;
 import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
 import maspack.matrix.CholeskyDecomposition;
-import maspack.matrix.EigenDecomposition;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
@@ -46,6 +52,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.RotationRep;
 import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseBlockSignature;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
@@ -53,8 +60,8 @@ import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
 import maspack.numerics.BrentMinimizer;
 import maspack.solvers.KKTSolver;
-import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.RigidBodyConstraint.MotionType;
+import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.util.FunctionTimer;
 import maspack.util.IndentingPrintWriter;
@@ -73,32 +80,7 @@ import maspack.util.ReaderTokenizer;
  * Note: this class is still under development to improve the convergence rate
  * of its solve method.
  */
-public class IKSolver implements PostScannable {
-
-   private static final double LM_DAMPING_MIN = 0.1;
-   private static final double LM_DAMPING_MAX = 100;
-
-   // gain factor for the constraint penalty function
-   private static final double CPENALTY_GAIN = 100;
-
-   private static final double DOUBLE_PREC = 1e-16;
-   private static final double INF = Double.POSITIVE_INFINITY;
-   // If true, use the derivative of J in constructing the main mass block.
-   // Results in a non-symmetric solve matrix. Set to false by default since we
-   // have not yet seen that this improves convergence and sometimes makes the
-   // simulation unstable.
-   private static final boolean myUseJDerivative = false;
-
-   private static final boolean myScaleLmDamping = true;
-
-   // If true, add a second order term to the displacement computed in the
-   // Levenberg Marquardt search strategy. As currently implemented, this does
-   // not appear to work and actually increases the required number of
-   // interations.
-   private static final boolean myUseLMAcceleration = false;
-
-   public boolean debug = false; // turns on debugging messages
-   public boolean debugMask = false; // masks debug messages internally
+public class IKSolver extends StaticRigidBodySolver implements PostScannable {
 
    /**
     * Describes the search strategy used to help ensure convergence of
@@ -127,10 +109,9 @@ public class IKSolver implements PostScannable {
    /**
     * Information about the rigid bodies associated with this solve
     */
-   protected class BodyInfo {
-      RigidBody myBody; // rigid body
+   protected class BodyMarkerInfo {
+      RigidBody myBody;
       ArrayList<MarkerInfo> myMarkerInfo; // markers (if any) attached to the body
-      int mySolveIndex; // body solve index with respect to the MechModel
 
       // marker stiffness matrix in body coordinates. Mathematically equivalent
       // to a point-mass based inertia:
@@ -140,9 +121,14 @@ public class IKSolver implements PostScannable {
       // factorAndSolve() method:
       CholeskyDecomposition myChol;
 
-      BodyInfo (RigidBody body, ArrayList<MarkerInfo> minfos) {
+      BodyMarkerInfo (RigidBody body, ArrayList<MarkerInfo> minfos) {
          myBody = body;
-         myMarkerInfo = minfos;
+         if (minfos == null) {
+            myMarkerInfo = new ArrayList<>();
+         }
+         else {
+            myMarkerInfo = minfos;
+         }
       }
 
       void updateJTWJMatrix (double avgWeight) {
@@ -283,7 +269,35 @@ public class IKSolver implements PostScannable {
       }
    }
 
+   /* --- parameters and attributes specific to IK solves --- */
+
+   private static final double LM_DAMPING_MIN = 0.1;
+   private static final double LM_DAMPING_MAX = 100;
+
+   // gain factor for the constraint penalty function
+   private static final double CPENALTY_GAIN = 100;
+
+   // If true, use the derivative of J in constructing the main mass block.
+   // Results in a non-symmetric solve matrix. Set to false by default since we
+   // have not yet seen that this improves convergence and sometimes makes the
+   // simulation unstable.
+   private static final boolean myUseJDerivative = false;
+
+   private static final boolean myScaleLmDamping = true;
+
+   // If true, add a second order term to the displacement computed in the
+   // Levenberg Marquardt search strategy. As currently implemented, this does
+   // not appear to work and actually increases the required number of
+   // interations.
+   private static final boolean myUseLMAcceleration = false;
+
+   public boolean debug = false; // turns on debugging messages
+   public boolean debugMask = false; // masks debug messages internally
+
    // computation control properties
+
+   // static final boolean DEFAULT_FIX_GROUNDED_BODIES = true;
+   // boolean myFixGroundedBodies = DEFAULT_FIX_GROUNDED_BODIES;
 
    static final double DEFAULT_MASS_REGULARIZATION = 0.001;
    double myMassRegularization = DEFAULT_MASS_REGULARIZATION;
@@ -303,59 +317,19 @@ public class IKSolver implements PostScannable {
    // damping factor to resist changes in body positions. Currently unused.
    static final double DEFAULT_DAMPING = 0.0;
    double myDamping = DEFAULT_DAMPING;
-   
-   private double myModelSize = -1; // characteristic size of the model
 
-   // fundamental components
-   MechModel myMech;                   // model containing the markers and bodies
    // markers to be tracked, together with their weights
+   ArrayList<BodyMarkerInfo> myBodyMarkerInfo;  
    ArrayList<MarkerInfo> myMarkerInfo;  
    int myNumMarkers; // store separately in case this is needed during scan
-
-   // component information obtained from the fundamental components
-   ArrayList<BodyInfo> myBodyInfo; // all bodies associated with the markers
-   ArrayList<BodyInfo> mySortedBodyInfo; // body info sorted by solve index
-   ArrayList<BodyConnector> myConnectors; // all body-contraining connectors
-   int[] myBodyVelSizes;          // velocity vector size for each body
-   int myTotalVelSize;            // velocity vector size for all bodies
-   NumericState myModelState;     // place to save and restore MechModel state
 
    static int myTotalNumIterations;
 
    int myNumIterations;           // cummulative iteration count
    int myNumSolves;               // cummulative solve count
 
-   // solveIndexMap maps body.getSolveIndex() to the index of the body within
-   // this solver. Allows us to use MechModel methods for building the
-   // constraint matrices.
-   int[] mySolveIndexMap;
-
-   // matrices and vectors used in the inverse kinematic computation
-   SparseNumberedBlockMatrix mySolveMatrix;
-   boolean myAnalyze = true; // if true, KKTSolver needs to perform analyze step
    VectorNd myF = new VectorNd(); // force vector
    VectorNd myFZero = new VectorNd(); // zero force vector (for pos correction)
-
-   // bilateral constraint info
-   SparseBlockMatrix myGT;
-   int myGsize = -1;
-   VectorNi myGsizes = new VectorNi();
-   private ConstraintInfo[] myGInfo = new ConstraintInfo[0];
-   VectorNd myRg = new VectorNd();
-   VectorNd myBg = new VectorNd();
-   VectorNd myLam = new VectorNd();
-
-   // unilateral constraint info
-   SparseBlockMatrix myNT;
-   int myNsize = -1;
-   VectorNi myNsizes = new VectorNi();
-   private ConstraintInfo[] myNInfo = new ConstraintInfo[0];   
-   VectorNd myRn = new VectorNd();
-   VectorNd myBn = new VectorNd();
-   VectorNd myThe = new VectorNd();
-
-   // KKT system solver used for the computations
-   KKTSolver myKKTSolver;
 
    // Variables used by the solver
    VectorNd myQPrev = new VectorNd();  // previous body positions
@@ -443,6 +417,28 @@ public class IKSolver implements PostScannable {
    public IKSolver (IKSolver solver) {
       this (solver.getMechModel(), solver.getMarkers());
    }
+
+   // /**
+   //  * Queries whether grounded bodies are fixed.
+   //  *
+   //  * @see #setFixGroundedBodies
+   //  * @return {@code true} if grounded bodies are fixed
+   //  */
+   // public boolean getFixGroundedBodies() {
+   //    return myFixGroundedBodies;
+   // }
+
+   // /**
+   //  * Set whether grounded bodies should be fixed. If {@code true}, then the
+   //  * solver will not change the pose of any body which is not attached to any
+   //  * marker and whose '{@code grounded}' property is set to {@code true}.
+   //  *
+   //  * @see #getFixGroundedBodies
+   //  * @param enable if {@code true}, grounded bodies are fixed
+   //  */
+   // public void setFixGroundedBodies (boolean enable) {
+   //    myFixGroundedBodies = enable;
+   // }
 
    /**
     * Queries the mass regulaization coefficient for this solver.
@@ -545,26 +541,14 @@ public class IKSolver implements PostScannable {
    }
 
    /**
-    * Finds body and connector information if necessary.
+    * Override setPosState to update marker positions.
     */
-   private void updateBodiesAndConnectors() {
-      if (myBodyInfo == null) {
-         findBodiesAndConnectors();
-      }
-   }
-
-   private class BodyInfoComparator implements Comparator<BodyInfo> {
-      public int compare (BodyInfo info0, BodyInfo info1) {
-         int idx0 = info0.myBody.getSolveIndex();
-         int idx1 = info1.myBody.getSolveIndex();
-         if (idx0 < idx1) {
-            return -1;
-         }
-         else if (idx0 == idx1) {
-            return 0;
-         }
-         else {
-            return 1;
+   protected void setPosState (VectorNd q) {
+      super.setPosState (q);
+      for (BodyInfo binfo : mySortedBodyInfo) {
+         BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
+         for (MarkerInfo minfo : bminfo.myMarkerInfo) {
+            minfo.myMarker.updatePosState();
          }
       }
    }
@@ -572,7 +556,7 @@ public class IKSolver implements PostScannable {
    /**
     * Finds body and connector information.
     */
-   private void findBodiesAndConnectors () {
+   protected void findBodiesAndConnectors () {
       LinkedHashMap<RigidBody,ArrayList<MarkerInfo>> bodyMarkerMap =
          new LinkedHashMap<>();
 
@@ -612,102 +596,22 @@ public class IKSolver implements PostScannable {
       // find all connectors attached to the frames. Find additional bodies
       // that are attached via connectors. Stop the search at bodies whose
       // {@code grounded} property is {@code true}.
-      LinkedHashSet<BodyConnector> connectors = new LinkedHashSet<>();
-      ArrayDeque<RigidBody> bodyQueue = new ArrayDeque<>();
-      bodyQueue.addAll (bodyMarkerMap.keySet());
-      while (!bodyQueue.isEmpty()) {
-         RigidBody body = bodyQueue.remove();
-         if (body.getConnectors() != null) {
-            for (BodyConnector bcon : body.getConnectors()) {
-               if (!connectors.contains(bcon) &&
-                   // ensure connector is part of the component hierarchy -
-                   // won't be if connector was created but not added to model:
-                   ComponentUtils.isAncestorOf (myMech, bcon) &&
-                   bcon.isEnabled()) {
-                  RigidBody cbody;
-                  connectors.add (bcon);
-                  if (!(bcon.getBodyA() instanceof RigidBody)) {
-                     throw new IllegalStateException (
-                        "Connector " + pathName(bcon) +
-                        " attached to non-rigid body " +
-                        pathName(bcon.getBodyA()));
-                  }
-                  cbody = (RigidBody)bcon.getBodyA();
-                  if (!cbody.isGrounded() && 
-                      bodyMarkerMap.get(cbody) == null) {
-                     bodyMarkerMap.put(cbody, new ArrayList<>());
-                     bodyQueue.add (cbody);
-                  }
-                  if (bcon.getBodyB() != null) {
-                     if (!(bcon.getBodyB() instanceof RigidBody)) {
-                        throw new IllegalStateException (
-                           "Connector " + pathName(bcon) +
-                           " attached to non-rigid body " +
-                           pathName(bcon.getBodyB()));
-                     }
-                     cbody = (RigidBody)bcon.getBodyB();
-                     if (!cbody.isGrounded() &&
-                         bodyMarkerMap.get(cbody) == null) {
-                        bodyMarkerMap.put(cbody, new ArrayList<>());
-                        bodyQueue.add (cbody);
-                     }
-                  }
-               }
-            }
-         }
-      }
-      // store connector information
-      myConnectors = new ArrayList<>();
-      myConnectors.addAll (connectors);
+      LinkedHashSet<BodyConstrainer> constrainerSet = new LinkedHashSet<>();
+      LinkedHashSet<RigidBody> bodySet = new LinkedHashSet<>();
+      bodySet.addAll (bodyMarkerMap.keySet());
+      findBodiesAndConstrainers (
+         bodySet, constrainerSet, /*excludeGrounded*/true);
 
-      // store information about each body
-      myBodyInfo = new ArrayList<>();
-      myTotalVelSize = 0;
-      for (RigidBody body : bodyMarkerMap.keySet()) {
-         myTotalVelSize += body.getVelStateSize();
-         BodyInfo binfo = new BodyInfo (body, bodyMarkerMap.get(body));
-         // precompute the JTWJ matrix in body coordinates
-         binfo.updateJTWJMatrix (avgWeight);
-         myBodyInfo.add (binfo);
-      }
-      myModelSize = findModelSize();
-      mySolveMatrix = createSolveMatrix();
-   }
-
-   /**
-    * Creates a solve matrix. This is a block diagonal matrix with a 6 x 6
-    * entry for each body.
-    */
-   private SparseNumberedBlockMatrix createSolveMatrix() {
-      SparseNumberedBlockMatrix S = new SparseNumberedBlockMatrix();
-      for (int i=0; i<numBodies(); i++) {
-         SpatialInertia blk = new SpatialInertia();
-         S.addBlock (i, i, blk);
-      }
-      return S;
-   }
-
-   /**
-    * Finds a characteristic size for the model. Used to determine
-    * convergence tolerances.
-    */
-   private double findModelSize() {
-      Point3d min = new Point3d (INF, INF, INF);
-      Point3d max = new Point3d (-INF, -INF, -INF);
+      myBodyMarkerInfo = new ArrayList<>();
       for (BodyInfo binfo : myBodyInfo) {
-         binfo.myBody.updateBounds (min, max);
+         RigidBody body = binfo.myBody;
+         BodyMarkerInfo minfo =
+            new BodyMarkerInfo (body, bodyMarkerMap.get(body));
+         // precompute the JTWJ matrix in body coordinates
+         minfo.updateJTWJMatrix (avgWeight);
+         myBodyMarkerInfo.add (minfo);
       }
-      for (MarkerInfo minfo : myMarkerInfo) {
-         minfo.myMarker.updateBounds (min, max);
-      }
-      double diag = max.distance(min);
-      if (diag == 0) {
-         // paranoid - just in case
-         return 1.0;
-      }
-      else {
-         return diag/2;
-      }
+
    }
 
    /**
@@ -720,8 +624,8 @@ public class IKSolver implements PostScannable {
       Vector3d targ = new Vector3d();
       Vector3d disp = new Vector3d(); // required marker displacements
       double energy = 0;
-      for (BodyInfo binfo : myBodyInfo) {
-         for (MarkerInfo minfo : binfo.myMarkerInfo) {
+      for (BodyMarkerInfo bminfo : myBodyMarkerInfo) {
+         for (MarkerInfo minfo : bminfo.myMarkerInfo) {
             mtargs.getSubVector (3*minfo.myIdx, targ);
             disp.sub (targ, minfo.myMarker.getPosition());
             disps.setSubVector (3*minfo.myIdx, disp);
@@ -753,11 +657,12 @@ public class IKSolver implements PostScannable {
       Twist dq = new Twist();
       Twist cb = new Twist();
       for (BodyInfo binfo : mySortedBodyInfo) {
+         BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
          RigidBody body = binfo.myBody;
          RotationMatrix3d R = body.getPose().R; // rotates body coords to world
          myDq.getSubVector (6*bidx, dq);
          cb.setZero();
-         for (MarkerInfo minfo : binfo.myMarkerInfo) {
+         for (MarkerInfo minfo : bminfo.myMarkerInfo) {
             locw.transform (R, minfo.myMarker.getLocation());
             myDisps.getSubVector (3*minfo.myIdx, disp);
             mtargs.getSubVector (3*minfo.myIdx, targ);
@@ -806,11 +711,12 @@ public class IKSolver implements PostScannable {
       JT.set(2, 2, 1);
       int bidx = 0; // body index
       for (BodyInfo binfo : mySortedBodyInfo) {
+         BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
          RigidBody body = binfo.myBody;
          RotationMatrix3d R = body.getPose().R; // rotates body coords to world
          myDq.getSubVector (6*bidx, dq);
          cb.setZero();
-         for (MarkerInfo minfo : binfo.myMarkerInfo) {
+         for (MarkerInfo minfo : bminfo.myMarkerInfo) {
             locw.transform (R, minfo.myMarker.getLocation());
             XP.setSkewSymmetric (locw);
             JT.setSubMatrix (3, 0, XP);
@@ -844,8 +750,8 @@ public class IKSolver implements PostScannable {
       Vector3d targ = new Vector3d();
       Vector3d disp = new Vector3d(); // required marker displacements
       double energy = 0;
-      for (BodyInfo binfo : myBodyInfo) {
-         for (MarkerInfo minfo : binfo.myMarkerInfo) {
+      for (BodyMarkerInfo bminfo : myBodyMarkerInfo) {
+         for (MarkerInfo minfo : bminfo.myMarkerInfo) {
             mtargs.getSubVector (3*minfo.myIdx, targ);
             disp.sub (targ, minfo.myMarker.getPosition());
             energy += disp.dot(disp)*minfo.myWeight;
@@ -862,7 +768,7 @@ public class IKSolver implements PostScannable {
       for (int idx=0; idx<myGsize; idx++) {
          ConstraintInfo ginfo = myGInfo[idx];
          if (ginfo.motionType == MotionType.ROTARY) {
-            sum += sqr(ginfo.dist*myModelSize);
+            sum += sqr(ginfo.dist*getModelSize());
          }
          else {
             sum += sqr(ginfo.dist);
@@ -871,7 +777,7 @@ public class IKSolver implements PostScannable {
       for (int idx=0; idx<myNsize; idx++) {
          ConstraintInfo ninfo = myNInfo[idx];
          if (ninfo.motionType == MotionType.ROTARY) {
-            sum += sqr(ninfo.dist*myModelSize);
+            sum += sqr(ninfo.dist*getModelSize());
          }
          else {
             sum += sqr(ninfo.dist);
@@ -925,15 +831,17 @@ public class IKSolver implements PostScannable {
    }
 
    /**
-    * Updates the system solve matrix {@code S}.
+    * Updates the system solve matrix {@code S}. This overrides the default
+    * behaviour to set each bodies 6 x 6 block to the stiffness matrix
+    * associated with the energy minimization.
     */
-   private void updateSolveMatrix (SparseNumberedBlockMatrix S) {
-      
+   protected void updateSolveMatrix (SparseNumberedBlockMatrix S) {
       int bidx = 0; // body index
       for (BodyInfo binfo : mySortedBodyInfo) {
+         BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
          RigidBody body = binfo.myBody;
          SpatialInertia blk = (SpatialInertia)S.getBlock (bidx, bidx);
-         binfo.myJTWJ.getRotated (blk, body.getPose().R);
+         bminfo.myJTWJ.getRotated (blk, body.getPose().R);
          bidx++;
       }
    }
@@ -952,10 +860,11 @@ public class IKSolver implements PostScannable {
       int bidx = 0; // body index
       Matrix6d D = new Matrix6d();
       for (BodyInfo binfo : mySortedBodyInfo) {
+         BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
          RigidBody body = binfo.myBody;
          SpatialInertia blk = (SpatialInertia)S.getBlock (bidx, bidx);
          RotationMatrix3d R = body.getPose().R; // rotates body coords to world
-         binfo.myJTWJ.getRotated (blk, R);
+         bminfo.myJTWJ.getRotated (blk, R);
          if (myDamping != 0) {
             D.scale (myDamping, blk);
             blk.add (D);
@@ -964,7 +873,7 @@ public class IKSolver implements PostScannable {
             addLMDampingTerm (blk, lmDamping);
          }
          cb.setZero();
-         for (MarkerInfo minfo : binfo.myMarkerInfo) {
+         for (MarkerInfo minfo : bminfo.myMarkerInfo) {
             locw.transform (R, minfo.myMarker.getLocation());
             disps.getSubVector (3*minfo.myIdx, disp);
             disp.scale (minfo.myWeight);
@@ -988,255 +897,10 @@ public class IKSolver implements PostScannable {
    }
 
    /**
-    * Collects the transposed bilateral constraint matrix {@code GT} and its
-    * right hand side {@code dg}.
-    */
-   private int getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg) {
-
-      if (GT.numBlockRows() != 0 || GT.numBlockCols() != 0) {
-         throw new IllegalStateException (
-            "On entry, GT should be empty with zero size");
-      }
-      getBilateralConstraintInfo();
-
-      GT.setColCapacity (myGsizes.size());
-      GT.addRows (myBodyVelSizes, myBodyVelSizes.length);
-      if (dg != null) {
-         dg.setSize (myGsize);
-      }
-      int idx = 0;
-      for (BodyConnector bcon : myConnectors) {
-         idx = bcon.addBilateralConstraints (GT, dg, idx, mySolveIndexMap);
-      }      
-      // XXX not sure if we need to reduce any attachments ...
-      // for (DynamicAttachment a : getAttachments()) {
-      //    myAttachmentWorker.reduceConstraints (a, GT, dg, false);
-      // }
-      // need this for now - would be good to get rid of it:
-      GT.setVerticallyLinked (true);
-      return myGsize;
-   }
-
-   /**
-    * Collects the current bilateral constraint information. This consists of
-    * {@code myGsizes}, {@code myBg}, {@code myRg}, and {@code myGInfo}.
-    * {@code myLam} is also resized.
-    */
-   private void getBilateralConstraintInfo () {
-      myMech.updateForceComponentList();
-      myMech.updateDynamicComponentLists();
-      myGsizes.setSize(0);
-      for (BodyConnector bcon : myConnectors) {
-         bcon.getBilateralSizes (myGsizes);
-      }
-      myGsize = myGsizes.sum();
-      myBg.setSize (myGsize);
-      myRg.setSize (myGsize);
-      myLam.setSize (myGsize);
-      if (myGsize > 0) {
-         ensureGInfoCapacity (myGsize);
-         int idx = 0;
-         for (BodyConnector bcon : myConnectors) {
-            idx = bcon.getBilateralInfo (myGInfo, idx);
-         }
-         for (idx=0; idx<myGsize; idx++) {
-            myBg.set (idx, -myGInfo[idx].dist);
-            // XXX not exactly sure what Rg should be set to if compliance !=
-            // 0, but we need to set it in case compliance is used to handle
-            // constraint redundancy
-            myRg.set (idx, myGInfo[idx].compliance);
-         }
-      }
-   }
-   
-   /**
-    * Collects the transposed unilateral constraint matrix {@code NT} and its
-    * right hand side {@code dn}.
-    */
-   private int getUnilateralConstraints (SparseBlockMatrix NT, VectorNd dn) {
-
-      if (NT.numBlockRows() != 0 || NT.numBlockCols() != 0) {
-         throw new IllegalStateException (
-            "On entry, NT should be empty with zero size");
-      }
-      getUnilateralConstraintInfo();
-
-      NT.setColCapacity (myNsizes.size());
-      NT.addRows (myBodyVelSizes, myBodyVelSizes.length);
-      if (dn != null) {
-         dn.setSize (myNsize);
-      }
-      int idx = 0;
-      for (BodyConnector bcon : myConnectors) {
-         idx = bcon.addUnilateralConstraints (NT, dn, idx, mySolveIndexMap);
-      }
-      // XXX not sure if we need to reduce any attachments ...
-      // for (DynamicAttachment a : getAttachments()) {
-      //    myAttachmentWorker.reduceConstraints (a, NT, dn, false);
-      // }
-      // need this for now - would be good to get rid of it:
-      NT.setVerticallyLinked (true);
-      return myNsize;
-   }
-
-   /**
-    * Collects the current unilateral constraint information. This consists of
-    * {@code myNsizes}, {@code myBn}, {@code myRn}, and {@code myNInfo}.
-    * {@code myThe} is also resized.
-    */
-   private void getUnilateralConstraintInfo () {   
-      myMech.updateForceComponentList();
-      //myMech.myUnilateralSizes.setSize (0);
-      myNsizes.setSize(0);
-      for (BodyConnector bcon : myConnectors) {
-         bcon.getUnilateralSizes (myNsizes);
-      }
-      myNsize = myNsizes.sum();
-      myBn.setSize (myNsize);
-      myRn.setSize (myNsize);
-      myThe.setSize (myNsize);
-      if (myNsize > 0) {
-         ensureNInfoCapacity (myNsize);
-         int idx = 0;
-         for (BodyConnector bcon : myConnectors) {
-            idx = bcon.getUnilateralInfo (myNInfo, idx);
-         }
-         for (idx=0; idx<myNsize; idx++) {
-            myBn.set (idx, -myNInfo[idx].dist);
-            // XXX not exactly sure what Rn should be set to if compliance !=
-            // 0, but we need to set it in case compliance is used to handle
-            // constraint redundancy
-            myRn.set (idx, myNInfo[idx].compliance);
-         }
-      }
-   }
-
-   /**
-    * Expand GInfo array to length {@code cap}.
-    */
-   private void ensureGInfoCapacity (int cap) {
-      if (myGInfo.length < cap) {
-         int oldcap = myGInfo.length;
-         myGInfo = Arrays.copyOf (myGInfo, cap);
-         for (int i=oldcap; i<cap; i++) {
-            myGInfo[i] = new MechSystem.ConstraintInfo();
-         }
-      }
-   }
-
-   /**
-    * Expand NInfo array to length {@code cap}.
-    */
-   private void ensureNInfoCapacity (int cap) {
-      if (myNInfo.length < cap) {
-         int oldcap = myNInfo.length;
-         myNInfo = Arrays.copyOf (myNInfo, cap);
-         for (int i=oldcap; i<cap; i++) {
-            myNInfo[i] = new MechSystem.ConstraintInfo();
-         }
-      }
-   }
-
-   /**
-    * Update bilateral and unilateral constraint information and constraint
-    * matrices.
-    */
-   private void updateConstraints () {
-      for (BodyConnector bcon : myConnectors) {
-         bcon.updateConstraints (/*time*/0, /*flags*/0);
-      }
-      myGT = new SparseBlockMatrix ();
-      getBilateralConstraints (myGT, null);
-      myNT = new SparseBlockMatrix ();
-      getUnilateralConstraints (myNT, null);
-   }
-
-   /**
-    * Update bilateral and unilateral constraint information, without the
-    * constraint matrices.
-    */
-   private void updateConstraintInfo () {
-      for (BodyConnector bcon : myConnectors) {
-         bcon.updateConstraints (/*time*/0, /*flags*/0);
-      }
-      getBilateralConstraintInfo();
-      getUnilateralConstraintInfo();
-   }
-
-   /**
-    * Update the solve index map. This maps each body's solve index (as
-    * allocated by the MechModel and returned by its {@code getSolveIndex()}
-    * method) into the body's index within this solver. This allows as to
-    * create bilateral and unilateral constraint matrices whose block row
-    * indices correspond to the body indices with the solver. Since solve
-    * indices may change within the MechModel, it is necessary to check the
-    * index map before each solve step and rebuild it if necessary.
-    */
-   private void updateSolveIndexMap (MechModel mech) {
-      // calling numActiveComponents ensures solve indices are updated
-      int numc = mech.numActiveComponents() + mech.numParametricComponents();
-      if (mySolveIndexMap != null) {
-         // check if solve index map is still valid
-         for (BodyInfo binfo : myBodyInfo) {
-            if (binfo.mySolveIndex != binfo.myBody.getSolveIndex()) {
-               // not valid
-               mySolveIndexMap = null;
-               break;
-            }
-         }
-      }
-      if (mySolveIndexMap == null) {
-         mySortedBodyInfo = new ArrayList<>();
-         mySortedBodyInfo.addAll (myBodyInfo);
-         Collections.sort (mySortedBodyInfo, new BodyInfoComparator());
-         int[] map = new int[numc];
-         for (int i=0; i<numc; i++) {
-            map[i] = -1;
-         }
-         int index = 0;
-         myBodyVelSizes = new int[numBodies()];
-         for (BodyInfo binfo : mySortedBodyInfo) {
-            int solveIndex = binfo.myBody.getSolveIndex();
-            map[solveIndex] = index;
-            binfo.mySolveIndex = solveIndex;
-            myBodyVelSizes[index] = binfo.myBody.getVelStateSize();
-            index++;
-         }
-         mySolveIndexMap = map;
-      }
-   }
-
-   /**
     * Convenience method to get the path name for a component.
     */
    private String pathName (ModelComponent comp) {
       return ComponentUtils.getPathName (comp);
-   }
-
-   /**
-    * Collects the current body position state into the vector {@code q}.
-    */
-   private void getPosState (VectorNd q) {
-      q.setSize (7*numBodies());
-      double[] qbuf = q.getBuffer();
-      int idx = 0;
-      for (BodyInfo binfo : mySortedBodyInfo) {
-         idx = binfo.myBody.getPosState (qbuf, idx);
-      }
-   }
-
-   /**
-    * Sets the body position state from the vector {@code q}.
-    */
-   private void setPosState (VectorNd q) {
-      double[] qbuf = q.getBuffer();
-      int idx = 0;
-      for (BodyInfo binfo : mySortedBodyInfo) {
-         idx = binfo.myBody.setPosState (qbuf, idx);
-         for (MarkerInfo minfo : binfo.myMarkerInfo) {
-            minfo.myMarker.updatePosState();
-         }
-      }
    }
 
    /**
@@ -1270,36 +934,6 @@ public class IKSolver implements PostScannable {
    }
 
    /**
-    * Changes the body position state stored in {@code q} by applying a
-    * differential increment {@code dq} multiplied by a step size {@code
-    * h}. Note that {@code q} and {@code dq} have different sizes, since
-    * rotations are stored as quaternions in the former while angular
-    * velocities are 3-vectors in the latter.
-    */
-   private void addPosImpulse (VectorNd q, VectorNd dq, double h) {
-      double[] qbuf = q.getBuffer();
-      double[] dbuf = dq.getBuffer();
-      int qidx = 0;
-      int didx = 0;
-      for (BodyInfo binfo : mySortedBodyInfo) {
-         RigidBody body = binfo.myBody;
-         body.addPosImpulse (qbuf, qidx, h, dbuf, didx);
-         qidx += body.getPosStateSize();
-         didx += body.getVelStateSize();
-      }
-   }
-
-   /**
-    * Changes the body positions by applying a differential increment {@code
-    * dq} to the position state.
-    */
-   private void updatePosState (VectorNd q, VectorNd dq, double scale) {
-      VectorNd qnew = new VectorNd (q);
-      addPosImpulse (qnew, dq, scale);
-      setPosState (qnew);
-   }
-
-   /**
     * Calls {@link #updatePosState} and then calls {@link
     * #projectToConstraints} to ensure constraint compliance.
     */
@@ -1320,20 +954,6 @@ public class IKSolver implements PostScannable {
    }
 
    /**
-    * Returns the bodies associated with this IKSolver.
-    *
-    * @return bodies associated with this solver
-    */
-   public ArrayList<RigidBody> getBodies() {
-      ArrayList<RigidBody> bodies = new ArrayList<>();
-      updateBodiesAndConnectors();
-      for (BodyInfo binfo : myBodyInfo) {
-         bodies.add (binfo.myBody);
-      }
-      return bodies;
-   }
-
-   /**
     * Returns the bodies associated with this IKSolver which have markers
     * attached to them.
     *
@@ -1343,34 +963,12 @@ public class IKSolver implements PostScannable {
       ArrayList<RigidBody> bodies = new ArrayList<>();
       updateBodiesAndConnectors();
       for (BodyInfo binfo : myBodyInfo) {
-         if (binfo.myMarkerInfo.size() > 0) {
+         BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
+         if (bminfo.myMarkerInfo.size() > 0) {
             bodies.add (binfo.myBody);
          }
       }
       return bodies;
-   }
-
-   /**
-    * Queries the number of rigid bodies associated with this solver.
-    *
-    * @return number of bodies associated with this solver
-    */
-   public int numBodies() {
-      updateBodiesAndConnectors();
-      return myBodyInfo.size();
-   }
-
-   /**
-    * Sets the {@code dynamic} property of all the bodies associated
-    * with this solver.
-    *
-    * @param dynamic setting for each body's {@code dynamic} property
-    */
-   public void setBodiesDynamic (boolean dynamic) {
-      updateBodiesAndConnectors();
-      for (BodyInfo binfo : myBodyInfo) {
-         binfo.myBody.setDynamic (dynamic);
-      }
    }
 
    /**
@@ -1435,53 +1033,10 @@ public class IKSolver implements PostScannable {
       }
       double avgWeight = sum/numMarkers();
       if (myBodyInfo != null) {
-         for (BodyInfo binfo : myBodyInfo) {
-            binfo.updateJTWJMatrix(avgWeight);
+         for (BodyMarkerInfo bminfo : myBodyMarkerInfo) {
+            bminfo.updateJTWJMatrix(avgWeight);
          }
       }
-   }
-
-   /**
-    * Returns the MechModel associated with this IKSolver.
-    *
-    * @return MechModel associated with this solver
-    */
-   public MechModel getMechModel() {
-      return myMech;
-   }
-
-   /**
-
-    * Returns the connectors associated with this IKSolver.
-    *
-    * @return connectors associated with this solver
-    */
-   public ArrayList<BodyConnector> getConnectors() {
-      ArrayList<BodyConnector> connectors = new ArrayList<>();
-      updateBodiesAndConnectors();
-      connectors.addAll (myConnectors);
-      return connectors;
-   }
-
-   private double sqr (double x) {
-      return x*x;
-   }
-
-   /**
-    * Compute a norm for dq that is normalized for the size of the model.
-    */
-   private double computeDqNorm (VectorNd dq) {
-      double sum = 0;
-      for (int i=0; i<dq.size(); i++) {
-         if ((i/3)%2 == 0) {
-            // weight translations for model size
-            sum += sqr(dq.get(i)/myModelSize);
-         }
-         else {
-            sum += sqr(dq.get(i));
-         }
-      }
-      return Math.sqrt(sum/dq.size());
    }
 
    /**
@@ -1489,7 +1044,7 @@ public class IKSolver implements PostScannable {
     */
    private double computeDqDot (VectorNd dq0, VectorNd dq1) {
       double dot = 0;
-      double weight = sqr(1/myModelSize);
+      double weight = sqr(1/getModelSize());
       for (int i=0; i<dq0.size(); i++) {
          double prod = dq0.get(i)*dq1.get(i);
          if ((i/3)%2 == 0) {
@@ -1526,24 +1081,24 @@ public class IKSolver implements PostScannable {
       return maxAng;
    }
 
-   /**
-    * Performs a single linearized position update to project the current body
-    * positions to the constraints.
-    */
-   private VectorNd projectToConstraints () {
-      int velSize = myTotalVelSize;
+   // /**
+   //  * Performs a single linearized position update to project the current body
+   //  * positions to the constraints.
+   //  */
+   // private VectorNd projectToConstraints () {
+   //    int velSize = myTotalVelSize;
 
-      VectorNd dq = new VectorNd (velSize);
-      VectorNd q = new VectorNd (7*numBodies());
-      getPosState (q);
+   //    VectorNd dq = new VectorNd (velSize);
+   //    VectorNd q = new VectorNd (7*numBodies());
+   //    getPosState (q);
 
-      updateSolveMatrix (mySolveMatrix);
-      updateConstraints ();
-      myKKTSolver.factor (mySolveMatrix, velSize, myGT, myRg, myNT, myRn);
-      myKKTSolver.solve (dq, myLam, myThe, myFZero, myBg, myBn);     
-      updatePosState (q, dq, 1.0);
-      return dq;
-   }
+   //    updateSolveMatrix (mySolveMatrix);
+   //    updateConstraints ();
+   //    myKKTSolver.factor (mySolveMatrix, velSize, myGT, myRg, myNT, myRn);
+   //    myKKTSolver.solve (dq, myLam, myThe, myFZero, myBg, myBn);     
+   //    updatePosState (q, dq, 1.0);
+   //    return dq;
+   // }
 
    /**
     * Used for debugging. Write the energy along a search direction out to a
@@ -1607,6 +1162,9 @@ public class IKSolver implements PostScannable {
       updateSolveMatrix (mySolveMatrix, myF, /*delDq*/null, lmDamping, myDisps);
       updateConstraints ();
 
+      if (hasGTStructureChanged()) {
+         myAnalyze = true;
+      }
       if (myAnalyze) {
          int matrixType =
             myUseJDerivative ? Matrix.INDEFINITE : Matrix.SYMMETRIC;
@@ -1685,6 +1243,7 @@ public class IKSolver implements PostScannable {
       }
       while (!converged && icnt < myMaxIterations);               
       projectToConstraints();
+      updateAttachmentPosStates(); // update frame markers, etc.
       if (debug) {
          System.out.printf ("Done. e0=%g efinal=%g\n", energy0, myEnergyPrev);
       }
@@ -1763,30 +1322,6 @@ public class IKSolver implements PostScannable {
          converged = true;
       }
       else {
-         // weights: 23, e=0.0176916
-         // no weights: 15
-         // if (delE > 0 || dqratio > 0.75 || (icnt > 3 && dqCos < 0)) {
-         //    increaseLMDamping (10, 0.01, 1000);
-         // }
-         // else {
-         //    decreaseLMDamping (0.2, 0.01);
-         // }
-
-         // WITHOUT projection after each step:
-         // weights: 103, dq=0.0007, e=0.0176135 - reached at 58
-         //   between 58 and 103: DelE=-2.87648e-08 DelQ=0.000472
-         // no weights: 21, e=0.00461302 - reached at 10
-         // if (delE > 0 || (icnt > 3 && dqCos < 0)) {
-         //    increaseLMDamping (10, 0.1, 1000);
-         // }
-         // else {
-         //    decreaseLMDamping (0.1, 0.1);
-         // }
-
-         // WITHOUT projection after each step:
-         // weights: 96, dq=0.0007, e=0.0176135 - reached at 57
-         //   between 58 and 103: DelE=-2.87648e-08 DelQ=0.000472
-         // no weights: 20, e=0.00461302 - reached at 10
          if ((1-dqCos)*energy > myEnergyPrev || (icnt > 3 && dqCos < 0)) {
             //rejectStep = true;
             increaseLMDamping (10, 0.1, 1000);
@@ -1794,59 +1329,6 @@ public class IKSolver implements PostScannable {
          else {
             decreaseLMDamping (0.1, 0.1);
          }
-
-         // WITHOUT projection after each step:
-         // weights: 103, dq=0.0007, e=0.0176135 - reached at 58
-         //   between 58 and 103: DelE=-2.87648e-08 DelQ=0.000472
-         // no weights: 21, e=0.00461302 - reached at 10
-         //
-         // WITH projection after each step:
-         // weights: 89, dq=0.0002, e=0.0176135 - reached at 56
-         //   between 56 and 89: DelE=-2.51207e-08 DelQ=0.000264114
-         // no weights: 21, e=0.00461302 - reached at 10
-         // if (delE > 0 || (icnt > 3 && dqCos < 0)) {
-         //    increaseLMDamping (10, 0.1, 100);
-         // }
-         // else {
-         //    decreaseLMDamping (0.1, 0.1);
-         // }
-
-         // with projection after each step:
-         // weights: -1, 0.000301, e=0.0176163
-         // no weights: 8, e=0.00461318
-         // if (delE > 0 || (icnt > 3 && dqCos < 0)) {
-         //    increaseLMDamping (100, 0.1, 1000);
-         // }
-         // else {
-         //    decreaseLMDamping (0.01, 0.1);
-         // }
-
-         // weights: -1, 0.00022, e=0.0176156
-         // no weights: 17, e=0.0046132
-         // if (delE > 0 || (icnt > 3 && dqCos < 0)) {
-         //    increaseLMDamping (10, 0.1, 1000);
-         // }
-         // else {
-         //    decreaseLMDamping (0.1, 0.1);
-         // }
-
-         // weights: -1, 0.0003, e=0.0176163
-         // // no weights: 8, e=0.00461318
-         // if (delE > 0 || (icnt > 3 && dqCos < 0)) {
-         //    increaseLMDamping (100, 0.1, 1000);
-         // }
-         // else {
-         //    decreaseLMDamping (0.01, 0.1);
-         // }
-
-         // weights: -1, 0.0003, e=0.0176163
-         // no weights: 8, e=0.00461318
-         // if (delE > 0 || (icnt > 3 && dqCos < 0)) {
-         //    increaseLMDamping (10, 1.0, 1000);
-         // }
-         // else {
-         //    decreaseLMDamping (0.1, 1.0);
-         // }
          if (!rejectStep) {
             computeDisplacements (myDisps, mtargs);
          }
@@ -2089,8 +1571,9 @@ public class IKSolver implements PostScannable {
                   bd.getSubVector (mySolveMatrix.getBlockRowOffset(bi), sub);
                }               
                BodyInfo binfo = mySortedBodyInfo.get(bi);
+               BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
                cblk.getColumn (cidx, col);
-               binfo.solve (sol, col);
+               bminfo.solve (sol, col);
                MatrixBlock rblk = myGT.firstBlockInRow (bi);
                while (rblk != null) {
                   int i = myGT.getBlockColOffset (rblk.getBlockCol());
@@ -2130,31 +1613,12 @@ public class IKSolver implements PostScannable {
       }
       for (int bi=0; bi<numBodies(); bi++) {
          BodyInfo binfo = mySortedBodyInfo.get(bi);
+         BodyMarkerInfo bminfo = myBodyMarkerInfo.get (binfo.myIndex);
          int i = mySolveMatrix.getBlockRowOffset (bi);
          bx.getSubVector (i, sub);
-         binfo.solve (sub, sub);
+         bminfo.solve (sub, sub);
          dq.setSubVector (i, sub);
       }
-   }
-
-   /**
-    * Saves the current state of the MechModel. This allows the MechModel state
-    * to be restored after one or more solve steps.
-    */
-   public void saveModelState() {
-      myModelState = new NumericState();
-      myMech.getState (myModelState);
-   }
-
-   /**
-    * Restores the state of the MechModel.
-    */
-   public void restoreModelState() {
-      if (myModelState == null) {
-         throw new IllegalStateException (
-            "saveMechState() not previously called");
-      }
-      myMech.setState (myModelState);      
    }
 
    /**
@@ -2220,8 +1684,8 @@ public class IKSolver implements PostScannable {
       }
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
-      if (myModelSize != -1) {
-         pw.println ("modelSize=" + fmt.format(myModelSize));
+      if (getModelSize() != -1) {
+         pw.println ("modelSize=" + fmt.format(getModelSize()));
       }
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
@@ -2235,7 +1699,7 @@ public class IKSolver implements PostScannable {
       if (tokens == null) {
          tokens = new ArrayDeque<> ();
       }
-      myModelSize = -1;
+      setModelSize (-1);
       rtok.scanToken ('[');
       tokens.offer (ScanToken.BEGIN);
       while (rtok.nextToken() != ']') {
@@ -2247,7 +1711,7 @@ public class IKSolver implements PostScannable {
                ScanWriteUtils.scanComponentsAndWeights (rtok, tokens);
          }
          else if (ScanWriteUtils.scanAttributeName (rtok, "modelSize")) {
-            myModelSize = rtok.scanNumber();
+            setModelSize (rtok.scanNumber());
          }
          else {
             throw new IOException (
@@ -2357,6 +1821,7 @@ public class IKSolver implements PostScannable {
       }
       return S;
    }
+
 
    /* --- methods for creating probes with IK solutions --- */
 
@@ -2645,3 +2110,4 @@ public class IKSolver implements PostScannable {
       return 0;
    }
 }
+

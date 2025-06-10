@@ -4,9 +4,10 @@ import java.io.File;
 
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ComponentList;
+import artisynth.core.mechmodels.ConstrainerBase;
 
 public class ConstraintSet extends SetBase<ConstraintBase> 
-   implements ModelComponentGenerator<ComponentList<ModelComponent>> {
+   implements ModelComponentGenerator<ComponentList<ConstrainerBase>> {
    
    @Override
    public ConstraintSet clone () {
@@ -14,14 +15,15 @@ public class ConstraintSet extends SetBase<ConstraintBase>
    }
 
    @Override
-   public ComponentList<ModelComponent> createComponent (
+   public ComponentList<ConstrainerBase> createComponent (
       File geometryPath, ModelComponentMap componentMap) {
 
       String name = getName ();
       if (name == null) {
          name = "constraintset";
       }
-      ComponentList<ModelComponent> constraints = new ComponentList<> (ModelComponent.class, name);
+      ComponentList<ConstrainerBase> constraints = 
+         new ComponentList<> (ConstrainerBase.class, name);
       
       for (ConstraintBase constraint : objects()) {
          
@@ -29,7 +31,7 @@ public class ConstraintSet extends SetBase<ConstraintBase>
          if (fc == null) {
             System.err.println ("Failed to create constraint " + constraint.getName ());
          } else {
-            constraints.add (fc);
+            constraints.add ((ConstrainerBase)fc);
          }
          
       }

@@ -331,9 +331,9 @@ public abstract class ParticleConstraintBase extends RenderableConstrainerBase
       return myParticleInfo.get(idx).myEngagedP;
    }
    
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
       for (int i=0; i<myParticleInfo.size(); i++) {
-         list.add (myParticleInfo.get(i).myPart);
+         comps.add (myParticleInfo.get(i).myPart);
       }
    }
    

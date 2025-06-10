@@ -5,7 +5,73 @@ import maspack.util.*;
 
 public class SparseBlockSignatureTest extends UnitTest {
 
+   SparseBlockMatrix createRandomSizedBlockMatrix (
+      int numBlkRows, int numBlkCols) {
+
+      int[] blkRowSizes = new int[numBlkRows];
+      int[] blkColSizes;
+      for (int bi=0; bi<numBlkRows; bi++) {
+         blkRowSizes[bi] = RandomGenerator.nextDouble() > 0.8 ? 6 : 3;
+      }
+      if (numBlkRows == numBlkCols) {
+         blkColSizes = blkRowSizes;
+      }
+      else {
+         blkColSizes = new int[numBlkCols];
+         for (int bi=0; bi<numBlkCols; bi++) {
+            blkColSizes[bi] = RandomGenerator.nextDouble() > 0.8 ? 6 : 3;
+         }
+      }
+      return new SparseBlockMatrix (blkRowSizes, blkColSizes);
+   }
+
+   int[] createRandomBlockIndices (
+      int numBlkRows, int numBlkCols, int maxBlksPerRow) {
+      DynamicIntArray blockIdxs = new DynamicIntArray();
+      for (int bi=0; bi<numBlkRows; bi++) {
+         int numBlks =
+            RandomGenerator.nextInt (0, Math.min(numBlkCols, maxBlksPerRow));
+         boolean[] marked = new boolean[numBlkCols];
+         int k = 0;
+         do {
+            int bj = RandomGenerator.nextInt(0, numBlkCols-1);
+            if (!marked[bj]) {
+               marked[bj] = true;
+               k++;
+            }
+         }
+         while (k < numBlks);
+         for (int bj=0; bj<marked.length; bj++) {
+            if (marked[bj]) {
+               blockIdxs.add (bi);
+               blockIdxs.add (bj);
+            }
+         }
+      }
+      return blockIdxs.getArray();
+   }
+
+   private void addRandomBlocks (SparseBlockMatrix S, int[] blkIdxs) {
+      for (int i=0; i<blkIdxs.length/2; i++) {
+         int bi = blkIdxs[2*i+0];
+         int bj = blkIdxs[2*i+1];
+         MatrixBlock blk = MatrixBlockBase.alloc (
+            S.getBlockRowSize(bi), S.getBlockColSize(bj));
+         S.addBlock (bi, bj, blk);
+      }
+   }
+
    SparseBlockMatrix createRandomBlockMatrix (
+      int numBlkRows, int numBlkCols, int maxBlksPerRow) {
+
+      SparseBlockMatrix S = createRandomSizedBlockMatrix(numBlkRows, numBlkCols);
+      int[] blkIdxs = createRandomBlockIndices (
+         numBlkRows, numBlkCols, maxBlksPerRow);
+      addRandomBlocks (S, blkIdxs);
+      return S;
+   }
+
+   SparseBlockMatrix createRandomBlockMatrixOld (
       int numBlkRows, int numBlkCols, int maxBlksPerRow) {
       
       int[] blkRowSizes = new int[numBlkRows];
@@ -94,6 +160,7 @@ public class SparseBlockSignatureTest extends UnitTest {
       testPrevIdxsSpecial();
       testPrevIdxsGeneral();
       testGeneral();
+      testWithSameBlockPattern();
    }
          
    public void testGeneral() {
@@ -138,6 +205,49 @@ public class SparseBlockSignatureTest extends UnitTest {
 
          int[] order = sig.getOrderedEntries();
          sig.verifyLexicalMergeSort (order);
+      }
+   }
+
+   public void testWithSameBlockPattern() {
+      int ntests = 100;
+      for (int i=0; i<ntests; i++) {
+         int maxSize = 100;
+         int nrows = RandomGenerator.nextInt (1, maxSize);
+         int ncols = RandomGenerator.nextInt (1, maxSize);
+         SparseBlockMatrix S0 =
+            createRandomSizedBlockMatrix (nrows, ncols);
+         SparseBlockMatrix S1;
+         if (i%2 == 0) {
+            // sizes will be equal
+            S1 = S0.clone();
+         }
+         else {
+            // sizes will likely not be equal
+            S1 = createRandomSizedBlockMatrix (nrows, ncols);
+         }
+         int[] blockIdxs = createRandomBlockIndices (nrows, ncols, maxSize/2);
+         addRandomBlocks (S0, blockIdxs);
+         addRandomBlocks (S1, blockIdxs);
+         boolean sizesEqual = true;
+         for (int bi=0; bi<nrows; bi++) {
+            if (S0.getBlockRowSize(bi)!= S1.getBlockRowSize(bi)) {
+               sizesEqual = false;
+               break;
+            }
+         }
+         if (sizesEqual) {
+            for (int bj=0; bj<ncols; bj++) {
+               if (S0.getBlockColSize(bj) != S1.getBlockColSize(bj)) {
+                  sizesEqual = false;
+                  break;
+               }
+            }
+         }
+         SparseBlockSignature sig0 = S0.getSignature();
+         SparseBlockSignature sig1 = S1.getSignature();
+         checkEquals ("sig0.equals(S1)", sig0.equals(S1), sizesEqual);        
+         checkEquals ("sig1.equals(S0)", sig1.equals(S0), sizesEqual);        
+         checkEquals ("sig0.equals(sig1)", sig0.equals(sig1), sizesEqual);        
       }
    }
 

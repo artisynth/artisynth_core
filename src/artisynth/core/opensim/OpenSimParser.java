@@ -198,8 +198,8 @@ public class OpenSimParser {
    /**
     * Return the list of constraints.
     */
-   public ComponentList<ModelComponent> getConstraintSet(MechModel mech) {
-      return (ComponentList<ModelComponent>)mech.get ("constraintset"); 
+   public ComponentList<ConstrainerBase> getConstraintSet(MechModel mech) {
+      return (ComponentList<ConstrainerBase>)mech.get ("constraintset"); 
    }
 
    public void zeroExcitations(MechModel mech) {

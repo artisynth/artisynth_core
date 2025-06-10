@@ -31,7 +31,7 @@ public abstract class RenderableConstrainerBase
          "renderProps", "render properties", defaultRenderProps(null));
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public PropertyInfoList getAllPropertyInfo() {
       return myProps;
    }
 

@@ -17,14 +17,22 @@ public class ComponentTest extends UnitTest {
       }
    }
 
-   private class TestComp extends ModelComponentBase {
+   static class TestComp extends ModelComponentBase {
+
+      public TestComp () {
+      }
+
       TestComp (String name) {
          super();
          setName (name);
       }
    }
 
-   private class TestList extends ComponentList<TestComp> {
+   static class TestList extends ComponentList<TestComp> {
+      public TestList (Class<TestComp> type) {
+         super (type, null);
+      }
+
       TestList (String name) {
          super (TestComp.class, name);
       }
@@ -510,6 +518,37 @@ public class ComponentTest extends UnitTest {
 
    }
 
+   void testListScanWrite (int[] numbers) {
+      TestList list0 = new TestList ("list", "l");      
+      for (int i=0; i<numbers.length; i++) {
+         TestComp comp = new TestComp("comp"+i);
+         list0.add (comp);
+         comp.setNumber (numbers[i]);
+      }
+      TestList list1 = (TestList)ScanTest.testScanAndWrite (list0, null, "%g");
+      for (int i=0; i<numbers.length; i++) {
+         TestComp comp = list1.get(i);
+         checkEquals ("scanned comp "+i+" name", comp.getName(), "comp"+i);
+         checkEquals ("scanned comp "+i+" number", comp.getNumber(), numbers[i]);
+      }
+   }
+
+   /**
+    * This test makes sure that we can write/scan any arrangment of component
+    * numbers.
+    */
+   void testComponentListScanWrite () {
+      testListScanWrite (new int[] {0, 1, 2, 3, 4, 5, 6}); 
+      testListScanWrite (new int[] {1, 2, 3, 4, 5, 6, 7}); 
+      testListScanWrite (new int[] {0, 1, 2, 10, 11, 14, 15});
+      testListScanWrite (new int[] {0, 1, 6, 3, 4, 5, 2, 7, 8, 9, 10, 11}); 
+      for (int i=0; i<10; i++) {
+         testListScanWrite (RandomGenerator.randomSequence (0, 9, 10));
+         testListScanWrite (RandomGenerator.randomSequence (10, 19, 10));
+         testListScanWrite (RandomGenerator.randomSequence (10, 29, 10));
+      }
+   }
+
    public void test() {
 
       ModelComponent comp = new TestComp("foo");
@@ -525,6 +564,7 @@ public class ComponentTest extends UnitTest {
 
       testComponentLists();
       testAreConnectedVia();
+      testComponentListScanWrite();
    }
 
    public static void main (String[] args) {

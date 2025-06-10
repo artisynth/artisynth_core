@@ -4863,9 +4863,9 @@ PointAttachable, ConnectableBody {
       return maxpen;
    }
 
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
       if (getHardIncompMethod() != IncompMethod.OFF) {
-         list.addAll (myNodes);
+         comps.addAll (myNodes);
       }
    }
 

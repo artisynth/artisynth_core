@@ -188,11 +188,14 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       return 0;
    }
    
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
       if (myElement != null) {
          for (FemNode n : myElement.getNodes()) {
-            list.add (n);
+            comps.add (n);
          }
+      }
+      if (myFrame != null) {
+         comps.add (myFrame);
       }
    }
    

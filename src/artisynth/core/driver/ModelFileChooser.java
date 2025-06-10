@@ -12,7 +12,9 @@ import javax.swing.border.EtchedBorder;
 
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.gui.widgets.PanelFileChooser;
+import artisynth.core.modelbase.ModelComponent.FilePathSaveType;
 import maspack.widgets.BooleanSelector;
+import maspack.widgets.EnumSelector;
 import maspack.widgets.PropertyPanel;
 import maspack.util.GenericFileFilter;
 
@@ -27,6 +29,7 @@ public class ModelFileChooser extends PanelFileChooser {
    GenericFileFilter myArtFilter;
    BooleanSelector mySaveWayPointData;
    BooleanSelector myCoreCompsOnly;
+   EnumSelector myFilePathSaveType;
 
    protected void addSaveWayPointData (boolean saveWayPointData) {
       mySaveWayPointData =
@@ -40,6 +43,12 @@ public class ModelFileChooser extends PanelFileChooser {
             "Core components only:", coreCompsOnly);
    }
 
+   protected void addFilePathSaveType (FilePathSaveType type) {
+      myFilePathSaveType =
+         new EnumSelector (
+            "File path save type:", type, FilePathSaveType.values());
+   }
+
    public ModelFileChooser (File modelFile) {
       build (modelFile);
    }
@@ -48,6 +57,13 @@ public class ModelFileChooser extends PanelFileChooser {
       File modelFile, boolean coreCompsOnly) {
 
       addCoreCompsOnly (coreCompsOnly);
+      build (modelFile);
+   }
+
+   public ModelFileChooser (
+      File modelFile, FilePathSaveType type) {
+
+      addFilePathSaveType (type);
       build (modelFile);
    }
 
@@ -75,7 +91,9 @@ public class ModelFileChooser extends PanelFileChooser {
       if (modelFile == null || myArtFilter.fileExtensionMatches (modelFile)) {
          setFileFilter (myArtFilter);
       }
-      if (mySaveWayPointData != null || myCoreCompsOnly != null) {
+      if (mySaveWayPointData != null ||
+          myCoreCompsOnly != null ||
+          myFilePathSaveType != null) {
          PropertyPanel panel = createPropertyPanel();
 
          if (mySaveWayPointData != null) {
@@ -83,6 +101,9 @@ public class ModelFileChooser extends PanelFileChooser {
          }
          if (myCoreCompsOnly != null) {
             panel.addWidget (myCoreCompsOnly);
+         }
+         if (myFilePathSaveType != null) {
+            panel.addWidget (myFilePathSaveType);
          }
       }
    }
@@ -114,6 +135,27 @@ public class ModelFileChooser extends PanelFileChooser {
    public void setCoreCompsOnly (boolean enable) {
       if (myCoreCompsOnly != null) {
          myCoreCompsOnly.setValue(enable);
+      }
+   }
+
+   public FilePathSaveType getFilePathSaveType() {
+      if (myFilePathSaveType != null) {
+         return (FilePathSaveType)myFilePathSaveType.getValue();
+      }
+      else {
+         return FilePathSaveType.ABSOLUTE;
+      }
+   }      
+
+   public void setFilePathSaveType (FilePathSaveType type) {
+      if (myFilePathSaveType != null) {
+         myFilePathSaveType.setValue(type);
+      }
+   }
+
+   public void setFilePathSaveTypeEnabled (boolean enable) {
+      if (myFilePathSaveType != null) {
+         myFilePathSaveType.setEnabledAll (enable);
       }
    }
 

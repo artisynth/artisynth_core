@@ -82,6 +82,10 @@ public abstract class PointSpringBase extends Spring
    public PointSpringBase (String name) {
       super (name);
    }
+   
+   public abstract int numPoints();
+   
+   public abstract Point getPoint (int idx);
 
    public static AxialMaterial createDefaultMaterial() {
       // allow null materials

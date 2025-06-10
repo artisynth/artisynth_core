@@ -59,14 +59,14 @@ public class JointCoordinateHandle {
    }
 
    public double getValue() {
-      return myJoint.getCoordinateValue (myIdx);
+      return myJoint.getCoordinate (myIdx);
    }
 
    public void setValue (double value) {
       myJoint.setCoordinate (myIdx, value);
    }
 
-   public Range getValueRange() {
+   public DoubleInterval getValueRange() {
       return myJoint.getCoordinateRange(myIdx);
    }
    

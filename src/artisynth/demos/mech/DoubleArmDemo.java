@@ -124,34 +124,33 @@ public class DoubleArmDemo extends RootModel {
            return;
        }
        
-       HingeJoint j = new HingeJoint();
-       j.setName("elbow");
+       HingeJoint elbow = new HingeJoint();
+       elbow.setName("elbow");
        RigidTransform3d TCA = new RigidTransform3d();
        TCA.p.z = -len/2;
        TCA.R.setAxisAngle(1,0,0,Math.PI/2);
        RigidTransform3d TCW = new RigidTransform3d();
        TCW.R.setAxisAngle(1,0,0,Math.PI/2);
 
-       j.setBodies (lowerArm, TCA, null, TCW);
-       j.setShaftLength(len/3);
-       RenderProps.setFaceColor (j, Color.BLUE);
-       model.addBodyConnector(j);
+       elbow.setBodies (lowerArm, TCA, null, TCW);
+       elbow.setShaftLength(len/3);
+       RenderProps.setFaceColor (elbow, Color.BLUE);
+       model.addBodyConnector(elbow);
        upperArm.setDynamic(false);
        
        // add joint between lower and third
-       j =new HingeJoint();
-       j.setName("wrist");
+       HingeJoint wrist =new HingeJoint();
+       wrist.setName("wrist");
        TCA = new RigidTransform3d();
        TCA.p.z = -len/2;
        TCA.R.setAxisAngle(1,0,0,Math.PI/2);
        TCW = new RigidTransform3d();
        TCW.p.z =len/2;
        TCW.R.setAxisAngle(1,0,0,Math.PI/2);
-       j.setBodies(thirdArm, TCA, lowerArm, TCW);
-       j.setShaftLength(len/3);
-       RenderProps.setFaceColor (j, Color.BLUE);
-       model.addBodyConnector(j);
-       
+       wrist.setBodies(thirdArm, TCA, lowerArm, TCW);
+       wrist.setShaftLength(len/3);
+       RenderProps.setFaceColor (wrist, Color.BLUE);
+       model.addBodyConnector(wrist);
    }
    
    public void addMuscles()

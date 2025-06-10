@@ -2833,6 +2833,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
          args = new String[0];
       }
 
+      String osname = System.getProperty("os.name");
+      if (osname.contains ("Linux")) {
+         UIManager.getLookAndFeelDefaults().put(
+            "Label.font", new Font("Arial", Font.BOLD, 12));
+         UIManager.getLookAndFeelDefaults().put(
+            "TabbedPane.font", new Font("Arial", Font.BOLD, 12));
+         UIManager.getLookAndFeelDefaults().put(
+           "Button.font", new Font("Arial", Font.BOLD, 12));
+      }
+      
       initStatics();
       
       ArgParser parser = new ArgParser ("java artisynth.core.driver.Main", false);

@@ -6,8 +6,12 @@ import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.HingeJoint;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.*;
 import maspack.util.*;
+import maspack.geometry.*;
+import maspack.function.*;
 import maspack.interpolation.*;
+import maspack.interpolation.Interpolation.Order;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 
@@ -15,6 +19,10 @@ public class IKSolverTest extends UnitTest {
 
    private static final double RTOD = 180/Math.PI;
    private static final double DTOR = Math.PI/180;
+
+   // dimensions for the four-bar test case
+   double BAR_LEN = 1.0;
+   double BAR_WIDTH = 0.25;
 
    boolean useJointLimits = true;
 
@@ -132,7 +140,106 @@ public class IKSolverTest extends UnitTest {
       }
       return mech;
    }
-   
+
+   private RigidBody createFourBarLink (
+      MechModel mech, String name, 
+      double depth, double x, double z, double deg) {
+      int nslices = 20; // num slices on the rounded mesh ends
+      PolygonalMesh mesh =
+         MeshFactory.createRoundedBox (BAR_LEN, BAR_WIDTH, depth, nslices);
+      RigidBody body = RigidBody.createFromMesh (
+         name, mesh, /*density=*/1000.0, /*scale=*/1.0);
+      body.setPose (new RigidTransform3d (x, 0, z, 0, Math.toRadians(deg), 0));
+      mech.addRigidBody (body);
+      return body;
+   }
+
+   private MechModel createFourBarMech (int numMkrs) {
+      MechModel mech = new MechModel ("mech");
+      
+      ArrayList<RigidBody> bars = new ArrayList<>();
+      bars.add (createFourBarLink (mech, "link0", 0.2, -0.5,  0.0, 0));
+      bars.add (createFourBarLink (mech, "link1", 0.3,  0.0,  0.5, 90));
+      bars.add (createFourBarLink (mech, "link2", 0.2,  0.5,  0.0, 180));
+      bars.add (createFourBarLink (mech, "link3", 0.3,  0.0, -0.5, 270));
+      // ground the left bar
+      bars.get(0).setGrounded (true);
+
+      // connect the bars using four hinge joints
+      HingeJoint[] joints = new HingeJoint[4];
+      for (int j=0;j<4; j++) {
+         // easier to locate the link using TCA and TDB since we know where frames
+         // C and D are with respect the link0 and link1
+         RigidTransform3d TCA = new RigidTransform3d (0, 0, 0.5, 0, 0, Math.PI/2);
+         RigidTransform3d TDB = new RigidTransform3d (0, 0,-0.5, 0, 0, Math.PI/2);
+         HingeJoint joint =
+            new HingeJoint (bars.get(j), TCA, bars.get((j+1)%4), TDB);
+         joint.setName ("joint"+j);
+         mech.addBodyConnector (joint);
+         joints[j] = joint;
+      }
+      // Set uniform compliance and damping for all bilateral constraints,
+      // which are the first 5 constraints of each joint
+      VectorNd compliance = new VectorNd(5);
+      VectorNd damping = new VectorNd(5);
+      for (int i=0; i<5; i++) {
+         compliance.set (i, 0.0000001);
+         damping.set (i, 0);
+      }
+      for (int i=0; i<joints.length; i++) {
+         joints[i].setCompliance (compliance);
+         joints[i].setDamping (damping);
+      }
+
+      // Add markers, starting at bar 1 and wrapping around to bar 0
+      ArrayList<FrameMarker> mkrs = new ArrayList<>();
+      for (int i=0; i<numMkrs; i++) {
+         RigidBody bar = bars.get((i+1)%4);
+         mkrs.add (mech.addFrameMarker (bar, new Point3d(-BAR_WIDTH/2, 0, 0)));
+      }
+      return mech;
+   }
+
+   /**
+    * For the four-bar example, compute up to four marker positions as a
+    * function of the angle of bar 1 with respect to the horizontal. Markers
+    * 0-3 are attached to bars 1,2,3,0.
+    */
+   VectorNd computeFourBarMarkerPositions (double theta, int numMarkers) {
+      VectorNd mpos = new VectorNd(3*numMarkers);
+      double s = Math.sin (theta);
+      double c = Math.cos (theta);
+      
+      Point3d pos = new Point3d();
+      // marker 0 is attached to bar 1
+      double x = c*BAR_LEN/2-s*BAR_WIDTH/2 - BAR_LEN/2;
+      double z = s*BAR_LEN/2+c*BAR_WIDTH/2 + BAR_LEN/2;
+      pos.set (x, 0, z);
+      if (numMarkers > 0) {
+         mpos.setSubVector (0, pos);
+      }
+      // marker 2 is attached to bar 3 and offset in z by -BAR_LEN
+      x = c*BAR_LEN/2+s*BAR_WIDTH/2 - BAR_LEN/2;
+      z = s*BAR_LEN/2-c*BAR_WIDTH/2 - BAR_LEN/2;
+      pos.set (x, 0, z);
+      if (numMarkers > 2) {
+         mpos.setSubVector (6, pos);
+      }
+      // marker 1 is attached to bar 2
+      x = c*BAR_LEN+BAR_WIDTH/2 - BAR_LEN/2;
+      z = s*BAR_LEN;
+      pos.set (x, 0, z);
+      if (numMarkers > 1) {
+         mpos.setSubVector (3, pos);
+      }
+      // marker 3 is fixed since bar 0 is fixed:
+      pos.set (-(BAR_LEN+BAR_WIDTH)/2, 0, 0);
+      if (numMarkers > 3) {
+         mpos.setSubVector (9, pos);
+      }
+      return mpos;
+   }
+
    private VectorNd packTargetVector (Collection<Point3d> pnts) {
       VectorNd mtargs = new VectorNd (3*pnts.size());
       int j=0;
@@ -242,6 +349,7 @@ public class IKSolverTest extends UnitTest {
       myNumSolves += solver.numSolves();
    }
 
+
    public void testTwoLinkWithZeroLink0Inertia () {
       testTwoLink (
          2, /*bodyCoordsAtCom*/true, /*zeroLink0Inertia*/true,
@@ -321,6 +429,131 @@ public class IKSolverTest extends UnitTest {
          }
          VectorNd msolve = collectMarkerPositions (mkrs, /*noise*/0);
          //checkEquals ("solved markers", msolve, mtargs, 1e-7);
+      }
+      myNumIters += solver.numIterations();
+      myNumSolves += solver.numSolves();
+   }
+
+   public void testTwoLinkWithJointCoupling (
+      int numMkrs, boolean bodyCoordsAtCom) {
+      MechModel mech = createTwoLinkMech(bodyCoordsAtCom);
+
+      ArrayList<FrameMarker> mkrs = new ArrayList<>();
+      for (int i=0; i<numMkrs; i++) {
+         mkrs.add (mech.frameMarkers().get(i));
+      }
+      HingeJoint joint0 = (HingeJoint)mech.bodyConnectors().get(0);
+      HingeJoint joint1 = (HingeJoint)mech.bodyConnectors().get(1);
+      if (useJointLimits) {
+         joint0.setThetaRange (-60, 60);
+         joint1.setThetaRange (-90, 90);
+      }
+
+      // add a coordinate coupling between the two joints to enforce
+      // theta1 = scale*theta0;
+      double scale = 1.5;
+      ArrayList<JointCoordinateHandle> coords = new ArrayList<>();
+      coords.add (new JointCoordinateHandle (joint1, 0));
+      coords.add (new JointCoordinateHandle (joint0, 0));
+      JointCoordinateCoupling coupling =
+         new JointCoordinateCoupling (coords, new LinearFunction1x1 (scale, 0));
+      mech.addConstrainer (coupling);
+
+      // trajectory specified with angles
+      NumericList testAngs = new NumericList(1);
+      testAngs.setInterpolationOrder (Order.Linear);
+      System.out.println (
+         "interpolation=" + testAngs.getInterpolation().getOrder());
+      testAngs.add (0,   0);
+      testAngs.add (0.5, -59);
+      testAngs.add (1,   59);
+      testAngs.add (2,   0);
+
+      IKSolver solver = new IKSolver (mech, mkrs);
+      
+      double tend = testAngs.getLast().t;
+      int nintervals = 10;
+      VectorNd angs = new VectorNd(2);
+      // solve inverse kinematics for each of the joint angles
+      for (int k=0; k<=nintervals; k++) {
+         double t = k*tend/nintervals;
+         testAngs.interpolate (angs, t);
+
+         double savedTheta0 = joint0.getTheta();
+         double savedTheta1 = joint1.getTheta();
+         double theta0 = angs.get(0);
+         joint0.setTheta (theta0);
+         joint1.setTheta (scale*theta0);
+         VectorNd mtargs = collectMarkerPositions (mkrs, /*noise*/0);
+         joint0.setTheta (savedTheta0);
+         joint1.setTheta (savedTheta1);
+         int niter = solver.solve (mtargs);
+         System.out.printf (
+            "niter=%d t=%g\n", niter, t);
+         if (niter == -1) {
+            System.out.println ("niter=" + niter);
+            throw new TestException (
+               "Solver did not converge, t=" + t);
+         }
+         VectorNd msolve = collectMarkerPositions (mkrs, /*noise*/0);
+         checkEquals ("solved markers", msolve, mtargs, 1e-7);
+      }
+      // solve each of the joint angles again, only using targets that are
+      // infeasbile
+      for (int k=0; k<=nintervals; k++) {
+         double t = k*tend/nintervals;
+         testAngs.interpolate (angs, t);
+
+         double savedTheta0 = joint0.getTheta();
+         double savedTheta1 = joint1.getTheta();
+         double theta0 = angs.get(0);
+         joint0.setTheta (theta0);
+         // change scale for theta1 to make target infeasible
+         joint1.setTheta (1.1*scale*theta0); 
+         VectorNd mtargs = collectMarkerPositions (mkrs, /*noise*/0);
+         joint0.setTheta (savedTheta0);
+         joint1.setTheta (savedTheta1);
+         int niter = solver.solve (mtargs);
+         System.out.printf (
+            "infeasible niter=%d t=%g\n", niter, t);
+         if (niter == -1) {
+            System.out.println ("niter=" + niter);
+            throw new TestException (
+               "Solver did not converge, t=" + t);
+         }
+         theta0 = joint0.getTheta();
+         // check that joint angles are scaled correctly
+         checkEquals ("theta1", joint1.getTheta(), theta0*scale, 1e-6);
+      }
+
+      myNumIters += solver.numIterations();
+      myNumSolves += solver.numSolves();
+   }
+
+   public void testFourBar (int numMkrs) {
+      
+      MechModel mech = createFourBarMech (numMkrs);
+
+      ArrayList<FrameMarker> mkrs = new ArrayList<>();
+      for (int i=0; i<numMkrs; i++) {
+         mkrs.add (mech.frameMarkers().get(i));
+      }
+      IKSolver solver = new IKSolver (mech, mkrs); 
+      // four-bar is a one-dof system. We define its configuration by the angle
+      // that the top-most link 1 makes with with horizontal.
+      double[] testAngs = new double[] {
+         20, 45, 15, 0, -15, -45 // test angles in degrees
+      };
+      System.out.println ("test four bar: " + numMkrs);
+      RigidBody link0 = mech.rigidBodies().get(0);
+      for (int k=0; k<testAngs.length; k++) {
+         VectorNd mtargs = computeFourBarMarkerPositions (
+            DTOR*testAngs[k], numMkrs);
+         int niter = solver.solve (mtargs);
+         //System.out.println ("niter=" + niter);
+         VectorNd msolve = collectMarkerPositions (mkrs, /*noise*/0);
+         checkEquals ("solved markers", msolve, mtargs, 1e-7);
+         System.out.println (" " + link0.getPosition());
       }
       myNumIters += solver.numIterations();
       myNumSolves += solver.numSolves();
@@ -476,6 +709,19 @@ public class IKSolverTest extends UnitTest {
       testTwoLinkWithNoise (9, bodyCoordsAtCom);
       System.out.printf (
          "iters with offset body coords, noise: %g\n", avgNumIters());
+
+      bodyCoordsAtCom = true;
+      clearSolveCounts();
+      testTwoLinkWithJointCoupling (2, bodyCoordsAtCom);
+      testTwoLinkWithJointCoupling (5, bodyCoordsAtCom);
+      testTwoLinkWithJointCoupling (9, bodyCoordsAtCom);
+      System.out.printf (
+         "iters with joint coupling: %g\n", avgNumIters());
+
+      testFourBar (1);
+      testFourBar (2);
+      testFourBar (3);
+      testFourBar (4);
 
       testBuildJTJMatrix();
 

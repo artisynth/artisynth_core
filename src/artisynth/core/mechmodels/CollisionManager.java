@@ -3231,7 +3231,7 @@ public class CollisionManager extends RenderableCompositeBase
       }      
    }
    
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
       // STUB - not currently used
    }
 

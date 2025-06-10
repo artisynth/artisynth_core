@@ -1059,12 +1059,6 @@ public class CollisionHandler extends RenderableConstrainerBase
       }
    }
    
-   public void getConstrainedComponents (List<DynamicComponent> list) {
-      HashSet<DynamicComponent> set = new HashSet<DynamicComponent>();
-      getConstrainedComponents (set);
-      list.addAll (set);
-   }
-   
    /**
     * Return the bilaterals in an order such that those whose vertices
     * are associated with collidable0 are returned first, and those

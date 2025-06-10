@@ -13,8 +13,6 @@ import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 
 import java.io.PrintWriter;
 import java.io.IOException;
-import java.util.Deque;
-import java.util.ArrayList;
 
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
@@ -25,7 +23,8 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
 import maspack.function.FunctionUtils;
 
-public class JointCoordinateCoupling extends ConstrainerBase {
+public class JointCoordinateCoupling
+   extends ConstrainerBase implements BodyConstrainer {
 
    private final static double RTOD = 180.0/Math.PI;
    private final static double DTOR = Math.PI/180.0;
@@ -112,9 +111,20 @@ public class JointCoordinateCoupling extends ConstrainerBase {
    public ArrayList<JointCoordinateHandle> getCoordinateHandles() {
       return myCoords;
    }
-      
+
+   /**
+    * {@inheritDoc}
+    */
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
+      return addBilateralConstraints (GT, dg, numb, /*solveIndexMap*/null);
+   }
+      
+   /**
+    * {@inheritDoc}
+    */
+   public int addBilateralConstraints (
+      SparseBlockMatrix GT, VectorNd dg, int numb, int[] solveIndexMap) {
       myCouplingFunction.evalDeriv (myFxnDeriv, getICoordValues());
 
       Matrix6x1 GC = new Matrix6x1();
@@ -124,10 +134,10 @@ public class JointCoordinateCoupling extends ConstrainerBase {
       artisynth.core.mechmodels.JointBase joint = myCoords.get(0).getJoint();
       joint.computeConstraintMatrixA (GC, wr, 1);
       joint.addMasterBlocks (
-         GT, bj, GC, joint.getFrameAttachmentA(), /*solveIndexMap*/null);
+         GT, bj, GC, joint.getFrameAttachmentA(), solveIndexMap);
       joint.computeConstraintMatrixB (GC, wr, -1);
       joint.addMasterBlocks (
-         GT, bj, GC, joint.getFrameAttachmentB(), /*solveIndexMap*/null);
+         GT, bj, GC, joint.getFrameAttachmentB(), solveIndexMap);
 
       for (int i=1; i<myCoords.size(); i++) {
          JointCoordinateHandle ch = myCoords.get(i);
@@ -136,10 +146,10 @@ public class JointCoordinateCoupling extends ConstrainerBase {
          double s = myScaleFactor*myFxnDeriv.get(i-1);
          joint.computeConstraintMatrixA (GC, wr, -s);
          joint.addMasterBlocks (
-            GT, bj, GC, joint.getFrameAttachmentA(), /*solveIndexMap*/null);
+            GT, bj, GC, joint.getFrameAttachmentA(), solveIndexMap);
          joint.computeConstraintMatrixB (GC, wr, s);
          joint.addMasterBlocks (
-            GT, bj, GC, joint.getFrameAttachmentB(), /*solveIndexMap*/null);
+            GT, bj, GC, joint.getFrameAttachmentB(), solveIndexMap);
       }
       if (dg != null) {
          dg.set (numb, 0);
@@ -169,7 +179,15 @@ public class JointCoordinateCoupling extends ConstrainerBase {
       lam.set (idx++, myLambda);
       return idx;
    }
-   
+
+   /**
+    * {@inheritDoc}
+    */
+   public int addUnilateralConstraints (
+      SparseBlockMatrix NT, VectorNd dn, int numu, int[] solveIndexMap) {
+      return numu;
+   }
+      
    public void zeroForces() {
       myLambda = 0;
    }
@@ -180,9 +198,9 @@ public class JointCoordinateCoupling extends ConstrainerBase {
       return 0;
    }
    
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
       for (JointCoordinateHandle ch : myCoords) {
-         ch.getJoint().getConstrainedComponents (list);
+         ch.getJoint().getConstrainedComponents (comps);
       }
    }
 

@@ -688,6 +688,9 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
          if (comp != null) {
             tokens.offer (new ObjectToken (comp, rtok.lineno()));
             comp.scan (rtok, tokens);
+            if (compNumber == -1) {
+               compNumber = myScanCnt;
+            }
             initComponent (comp, compNumber, size());
             super.add (comp);
             myScanCnt++;

@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -1649,7 +1650,7 @@ public abstract class FemModel extends MechSystemBase
       return -1;
    }
    
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
    }
    
    // method declarations to implement ForceEffector

@@ -9,7 +9,7 @@ package artisynth.core.mechmodels;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.List;
+import java.util.HashSet;
 import java.io.*;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
@@ -276,9 +276,9 @@ public class LinearPointConstraint extends ConstrainerBase {
       return 0;
    }
 
-   public void getConstrainedComponents (List<DynamicComponent> list) {
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
       for (int i=0; i<myPoints.size(); i++) {
-         list.add (myPoints.get(i));
+         comps.add (myPoints.get(i));
       }
    }
 

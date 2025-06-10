@@ -106,8 +106,8 @@ public class SimpleCoordinateCoupler extends ConstrainerBase {
       return 0;
    }
    
-   public void getConstrainedComponents (List<DynamicComponent> list) {
-      myJoint0.getConstrainedComponents (list);
-      myJoint1.getConstrainedComponents (list);
+   public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
+      myJoint0.getConstrainedComponents (comps);
+      myJoint1.getConstrainedComponents (comps);
    }
 }

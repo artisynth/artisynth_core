@@ -35,6 +35,7 @@ import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.GeometryTransformer;
@@ -254,14 +255,22 @@ public class DicomViewer extends Frame
    private void setImage (
       String imagePath, Pattern filePattern, boolean checkSubdirs) {
       DicomImage im = null;
+      File file = new File (imagePath);
+      if (!file.isAbsolute()) {
+         file = new File (ArtisynthPath.getWorkingDir(), imagePath);
+      }
+      if (!file.canRead()) {
+         throw new RuntimeException (
+            "Dicmom image file '" + file + "' not found or unreadable");
+      }
       try {
          DicomReader rs = new DicomReader();
-         im = rs.read(im, imagePath, filePattern, checkSubdirs);
+         im = rs.read(im, file.toString(), filePattern, checkSubdirs);
       } catch (IOException ioe) {
          throw new RuntimeException(ioe);
       } catch(Exception e) {
          throw new RuntimeException(
-            "Failed to read dicom images in " + imagePath, e);
+            "Failed to read dicom images in " + file, e);
       }
       if (im == null) {
          throw new RuntimeException("No image data loaded");
@@ -1626,6 +1635,12 @@ public class DicomViewer extends Frame
 
       return ccomp;
    }
-
-
+   
+   public String getImagePath() {
+      return myImagePath;
+   }
+   
+   public void setImagePath (String path) {
+      myImagePath = path;
+   }
 }

@@ -589,7 +589,9 @@ public class DicomPlaneViewer extends TexturePlaneBase {
       }
       else if (scanAttributeName (rtok, "imageMesh")) {
          myMeshInfo.scan (rtok);  
-         getImageMesh().setMeshToWorld (getPose());
+         if (getImageMesh() != null) {
+            getImageMesh().setMeshToWorld (getPose());
+         }
          return true;
       }
       else if (ScanWriteUtils.scanAndStorePropertyValue (

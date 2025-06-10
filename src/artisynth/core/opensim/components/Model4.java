@@ -9,6 +9,7 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.BodyConnector;
+import artisynth.core.mechmodels.ConstrainerBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.ComponentList;
@@ -164,7 +165,7 @@ public class Model4 extends ModelBase {
       
       // constrainers
       ConstraintSet constraintSet = this.getConstraintSet ();
-      ComponentList<ModelComponent> constraints =
+      ComponentList<ConstrainerBase> constraints =
          constraintSet.createComponent(geometryPath, componentMap);
       mech.add (constraints);
       

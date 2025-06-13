@@ -4,6 +4,7 @@ import java.io.File;
 
 import artisynth.core.mechmodels.FrameFrameAttachment;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.WrapComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.matrix.RigidTransform3d;
 
@@ -28,7 +29,8 @@ public class Ground extends PhysicalFrame {
       // add wrapping surfaces
       WrapObjectSet wrapBodies = getWrapObjectSet ();
       if (wrapBodies != null) {
-         RenderableComponentList<RigidBody> wrapComponents = wrapBodies.createComponent(geometryPath, componentMap);
+         RenderableComponentList<WrapComponent> wrapComponents = 
+            wrapBodies.createComponent(geometryPath, componentMap);
          rb.add(wrapComponents);
          
          // attach wrappables to this frame

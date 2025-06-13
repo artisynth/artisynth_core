@@ -80,6 +80,9 @@ public class CustomJoint extends JointBase {
          // two coordinates: x and theta
          addCoordinate (-1, 1, 0, getConstraint(4));
          addCoordinate (-2*Math.PI, 2*Math.PI, 0, getConstraint(5));
+         
+         // twist for coordinate theta does not change, so set it here:
+         setCoordinateTwist (/*thetaIdx*/1, new Twist (0, 0, 0, 0, 0, 1));
       }
 
       @Override
@@ -94,17 +97,18 @@ public class CustomJoint extends JointBase {
          cons.setWrenchG (s, c, 0, 0, 0, 0);
          // derivative term:
          double dotTheta = velGD.w.z;
-         //cinfo.distance = cinfo.wrenchC.dot (errC);
          cons.setDotWrenchG (c*dotTheta, -s*dotTheta, 0, 0, 0, 0);
          
-         // update x limit constraint if necessary
+         // update x limit constraint since this non-constant
          cons = getConstraint(4);
-         if (cons.getEngaged() != 0) {
-            // constraint wrench along x, transformed to C, is (-c, s, 0)
-            cons.setWrenchG (c, -s, 0, 0, 0, 0);
-            cons.setDotWrenchG (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
-         }
-         // theta limit constraint is constant; no need to do anything
+         // constraint wrench along x, transformed to C, is (-c, s, 0)
+         cons.setWrenchG (c, -s, 0, 0, 0, 0);
+         cons.setDotWrenchG (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
+
+         // update x twist (which in this case has the same values as wrenchG)
+         setCoordinateTwist (/*xIdx*/0, new Twist (c, -s, 0, 0, 0, 0));
+
+         // theta limit constraint and twist is constant; no need to do anything
       }
 
       @Override

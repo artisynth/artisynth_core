@@ -57,7 +57,7 @@ public class JointConditionalMarker extends FrameMarker
    }
    
    public boolean isPointActive() {
-      boolean active = myRange.withinRange (myCoord.getValue());
+      boolean active = myRange.withinRange (myCoord.getStoredValue());
       if (myInvisibleIfInactive) {
          myRenderProps.setVisible (active);
       }

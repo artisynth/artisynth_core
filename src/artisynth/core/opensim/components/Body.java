@@ -4,13 +4,14 @@ import java.io.File;
 
 import artisynth.core.mechmodels.FrameFrameAttachment;
 import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.mechmodels.WrapComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SymmetricMatrix3d;
 
-public class Body extends PhysicalFrame implements ModelComponentGenerator<RigidBody> {
+public class Body extends PhysicalFrame implements 
+   ModelComponentGenerator<RigidBody> {
 
    private double mass;
    private Point3d mass_center;
@@ -193,8 +194,9 @@ public class Body extends PhysicalFrame implements ModelComponentGenerator<Rigid
                joint.createComponent(geometryPath, componentMap);
             if (jb != null) {
                // connect joint within body
-               RenderableComponentList<ModelComponent> j = 
-                  new RenderableComponentList<>(ModelComponent.class, "joint");
+               RenderableComponentList<artisynth.core.mechmodels.JointBase> j = 
+                  new RenderableComponentList<>(
+                  artisynth.core.mechmodels.JointBase.class, "joint");
                rb.add (j);
                j.add (jb);
                componentMap.put (joint, jb);
@@ -237,7 +239,8 @@ public class Body extends PhysicalFrame implements ModelComponentGenerator<Rigid
       // add wrapping surfaces
       WrapObjectSet wrapBodies = getWrapObjectSet ();
       if (wrapBodies != null) {
-         RenderableComponentList<RigidBody> wrapComponents = wrapBodies.createComponent(geometryPath, componentMap);
+         RenderableComponentList<WrapComponent> wrapComponents = 
+            wrapBodies.createComponent(geometryPath, componentMap);
          rb.add(wrapComponents);
          
          // attach wrappables to this frame

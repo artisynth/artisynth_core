@@ -142,4 +142,28 @@ public interface CompositeComponent
     * to references.
     */
    public boolean hierarchyContainsReferences();
+
+   /**
+    * Recursively find all components under this CompositeComponent that are of
+    * a prescribed type.
+    *
+    * @param list list used to collect the components
+    * @param type type of the components being sought
+    */
+   public default <T> void recursivelyFind (List<T> list, Class<T> type) {
+      // check all the children of comp:
+      for (int i=0; i<numComponents(); i++) {
+         ModelComponent c = get (i);
+         // add the component to the list if it is of the desired type
+         if (type.isAssignableFrom(c.getClass())) {
+            T t = type.cast(c);      // checked cast
+            list.add (t);
+         }
+         // sometimes a component can be a of type T
+         // with subcomponents also of type T
+         if (c instanceof CompositeComponent) {
+            ((CompositeComponent)c).recursivelyFind (list, type);
+         }
+      }
+   }
 }

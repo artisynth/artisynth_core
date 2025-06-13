@@ -1469,7 +1469,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
       }
    }
 
-   private void setMatrixColumn (MatrixNd M, int j, Wrench wr) {
+   protected void setMatrixColumn (MatrixNd M, int j, Wrench wr) {
       double[] buf = M.getBuffer();
       int w = M.getBufferWidth();
       buf[0*w+j] = wr.f.x;
@@ -1478,6 +1478,17 @@ public abstract class BodyConnector extends RenderableConstrainerBase
       buf[3*w+j] = wr.m.x;
       buf[4*w+j] = wr.m.y;
       buf[5*w+j] = wr.m.z;
+   }
+
+   protected void setMatrixColumn (MatrixNd M, int j, Twist tw) {
+      double[] buf = M.getBuffer();
+      int w = M.getBufferWidth();
+      buf[0*w+j] = tw.v.x;
+      buf[1*w+j] = tw.v.y;
+      buf[2*w+j] = tw.v.z;
+      buf[3*w+j] = tw.w.x;
+      buf[4*w+j] = tw.w.y;
+      buf[5*w+j] = tw.w.z;
    }
 
    protected MatrixNdBlock getConstraintMatrix (

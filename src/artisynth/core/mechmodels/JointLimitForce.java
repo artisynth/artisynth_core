@@ -328,7 +328,7 @@ public class JointLimitForce extends ModelComponentBase
     * {@inheritDoc}
     */
    public void applyForces (double t) {
-      double val = myCoord.getValue();
+      double val = myCoord.getStoredValue();
       double f = 0;
 
       if (val >= myUpperLimit) {
@@ -378,7 +378,7 @@ public class JointLimitForce extends ModelComponentBase
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
       if (myLowerDamping != 0 || myUpperDamping != 0) {
          double damping;
-         double val = myCoord.getValue();
+         double val = myCoord.getStoredValue();
          if (myUpperDamping != 0 && val >= myUpperLimit) {
             double del = val-myUpperLimit;
             damping = myUpperDamping;

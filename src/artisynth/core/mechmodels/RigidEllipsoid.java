@@ -10,7 +10,7 @@ import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
-public class RigidEllipsoid extends RigidBody implements Wrappable {
+public class RigidEllipsoid extends RigidBody implements WrapComponent {
    
    // lengths of the principal semi-axes of the ellipsoid
    Vector3d mySemiAxisLengths;

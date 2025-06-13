@@ -5,29 +5,32 @@ import java.io.File;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 
-public class JointSet extends SetBase<JointBase> {
+public class JointSet extends SetBase<JointBase> 
+   implements ModelComponentGenerator<
+      RenderableComponentList<artisynth.core.mechmodels.JointBase>> {
 
    @Override
    public JointSet clone () {
       return (JointSet)super.clone ();
    }
 
-   public RenderableComponentList<ModelComponent> createComponent (
-      File geometryPath, ModelComponentMap componentMap) {
+   public RenderableComponentList<artisynth.core.mechmodels.JointBase>
+      createComponent (File geometryPath, ModelComponentMap componentMap) {
 
       // create set of joints connecting bodies
       String name = getName();
       if (name == null) {
          name = "jointset";
       }
-      RenderableComponentList<ModelComponent> joints = 
-         new RenderableComponentList<> (ModelComponent.class, name);
+      RenderableComponentList<artisynth.core.mechmodels.JointBase> joints = 
+         new RenderableComponentList<> (
+            artisynth.core.mechmodels.JointBase.class, name);
       
       // add all joints
       for (JointBase joint : objects()) {
          
-         // create rigid body
-         ModelComponent jb = 
+         // create joint
+         artisynth.core.mechmodels.JointBase jb = 
             joint.createComponent(geometryPath, componentMap);
          if (jb == null) {
             System.err.println ("Failed to parse joint " + joint.getName ());

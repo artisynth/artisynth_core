@@ -9,7 +9,7 @@ import maspack.matrix.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
-public class RigidTorus extends RigidBody implements Wrappable {
+public class RigidTorus extends RigidBody implements WrapComponent {
 
    public boolean myDebug = false;
    

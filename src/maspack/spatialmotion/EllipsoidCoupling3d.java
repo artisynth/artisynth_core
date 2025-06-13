@@ -335,11 +335,14 @@ public class EllipsoidCoupling3d extends RigidBodyCoupling {
          }
       }
       
-      // set joint coordinate wrenches from myG
+      // set joint coordinate wrenches from myG and twists from columns of C
+      Twist tw = new Twist();
       for (int j=0; j<numc; j++) {
          RigidBodyConstraint con = myCoordinates.get (j).limitConstraint;
          con.wrenchG.set (myG[j]);
          con.dotWrenchG.setZero ();
+         C.getColumn (j, tw);
+         setCoordinateTwist (j, tw);
       }      
       // non-coordinate constraints are given by the orthogonal complement
       // of H, which is given by the last numc-6 columns of Q

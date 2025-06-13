@@ -93,6 +93,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       // unilateral constraint for enforcing limits:
       public RigidBodyConstraint limitConstraint;
 
+      Twist twistG;             // mobility of the coordinate in frame G
       public int infoFlags;     // information flags. Reserved for future use
 
       CoordinateInfo () {
@@ -120,6 +121,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          if (cons != null) {
             cons.flags |= LIMIT;
          }
+         twistG = new Twist();
       }
 
       public boolean hasRestrictedRange() {
@@ -263,6 +265,14 @@ public abstract class RigidBodyCoupling implements Cloneable {
          else {
             return 0;
          }         
+      }
+
+      public void setTwistG (Twist tw) {
+         twistG.set (tw);
+      }
+
+      public Twist getTwistG() {
+         return twistG;
       }
    }      
 
@@ -608,6 +618,23 @@ public abstract class RigidBodyCoupling implements Cloneable {
       return numb;
    }
 
+   /**
+    * Collects the twists for the coordinates in this coupling, if any, by
+    * appending them to the list {@code twists}. The collected twists are in
+    * frame G and should not be modified.
+    *
+    * @param twists collects the coordinate twists
+    * @return number of coordinate constraints
+    */
+   public int getCoordinateTwists (ArrayList<Twist> twists) {
+      int numc = 0;
+      for (CoordinateInfo cinfo : myCoordinates) {
+         twists.add (cinfo.twistG);
+         numc++;
+      }
+      return numc;
+   }
+
    private int setBilateralForces (double[] buf, double s, int idx) {
       myBilateralWrenchG.setZero();
       for (RigidBodyConstraint cons : myConstraints) {
@@ -932,6 +959,8 @@ public abstract class RigidBodyCoupling implements Cloneable {
     *   <li>Updating the values of all non-constant constraint wrenches,
     *   along with their derivatives;
     *
+    *   <li>Updating the values of all non-constant coordinate twists.
+    *
     *   <li>If {@code updateEngaged} is {@code true}, updating the {@code
     *   engaged} and {@code distance} attributes for all unilateral constraints
     *   not associated with a joint limit.
@@ -1140,6 +1169,18 @@ public abstract class RigidBodyCoupling implements Cloneable {
       CoordinateInfo cinfo = new CoordinateInfo(name, min, max, flags, cons);
       myCoordinates.add (cinfo);
       return cinfo;
+   }
+
+   /**
+    * Sets the mobility twist, in frame G, for a given coordinate. Called
+    * inside {@link #updateConstraints}. If the twist is not time varying, this
+    * method can instead be called once inside {@link #initializeConstraints}.
+    *
+    * @param idx coordinate index
+    * @param twistG mobility twist in frame G
+    */
+   protected void setCoordinateTwist (int idx, Twist twistG) {
+      myCoordinates.get(idx).setTwistG (twistG);
    }
 
    /**

@@ -31,9 +31,9 @@ public class JointBasedMovingMarker extends FrameMarker
 
    public void updateMarkerLocation() {
       Point3d loc = new Point3d();
-      loc.x = myFxns[0].eval (myCoords[0].getValue());
-      loc.y = myFxns[1].eval (myCoords[1].getValue());
-      loc.z = myFxns[2].eval (myCoords[2].getValue());
+      loc.x = myFxns[0].eval (myCoords[0].getStoredValue());
+      loc.y = myFxns[1].eval (myCoords[1].getStoredValue());
+      loc.z = myFxns[2].eval (myCoords[2].getStoredValue());
       setLocation (loc);
    }
 

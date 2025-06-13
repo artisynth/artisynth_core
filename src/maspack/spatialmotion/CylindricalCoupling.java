@@ -31,6 +31,7 @@ public class CylindricalCoupling extends RigidBodyCoupling {
 
    public void setThetaClockwise (boolean enable) {
       myThetaSign = (enable ? -1 : 1);
+      initializeConstraintInfo();
    }
 
    public boolean isThetaClockwise () {
@@ -51,15 +52,22 @@ public class CylindricalCoupling extends RigidBodyCoupling {
    }
 
    public void initializeConstraints () {
+      if (myThetaSign == 0) {
+         // not yet set because we are in superclass constructor
+         myThetaSign = -1;
+      }
       addConstraint (BILATERAL|LINEAR, new Wrench(1, 0, 0, 0, 0, 0));
       addConstraint (BILATERAL|LINEAR, new Wrench(0, 1, 0, 0, 0, 0));
       addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 1, 0, 0));
       addConstraint (BILATERAL|ROTARY, new Wrench(0, 0, 0, 0, 1, 0));
       addConstraint (LINEAR, new Wrench (0, 0, 1, 0, 0, 0));
-      addConstraint (ROTARY, new Wrench (0, 0, 0, 0, 0, 1));
+      addConstraint (ROTARY, new Wrench (0, 0, 0, 0, 0, myThetaSign));
 
       addCoordinate ("z", -INF, INF, 0, getConstraint(4));
       addCoordinate ("theta", -INF, INF, 0, getConstraint(5));
+
+      setCoordinateTwist (Z_IDX, new Twist(0, 0, 1, 0, 0, 0));
+      setCoordinateTwist (THETA_IDX, new Twist(0, 0, 0, 0, 0, myThetaSign));
    }
 
    @Override

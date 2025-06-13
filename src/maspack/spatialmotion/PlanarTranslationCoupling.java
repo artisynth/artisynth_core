@@ -46,6 +46,9 @@ public class PlanarTranslationCoupling extends RigidBodyCoupling {
 
       addCoordinate ("x", -INF, INF, 0, getConstraint(4));
       addCoordinate ("y", -INF, INF, 0, getConstraint(5));
+
+      setCoordinateTwist (0, new Twist(1, 0, 0, 0, 0, 0));
+      setCoordinateTwist (1, new Twist(0, 1, 0, 0, 0, 0));
    }
 
    @Override

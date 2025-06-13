@@ -48,6 +48,8 @@ public class FullPlanarCoupling extends RigidBodyCoupling {
       addCoordinate ("x", -INF, INF, 0, getConstraint(3));
       addCoordinate ("y", -INF, INF, 0, getConstraint(4));
       addCoordinate ("theta", -INF, INF, 0, getConstraint(5));
+
+      setCoordinateTwist (2, new Twist (0, 0, 0, 0, 0, 1));
   }
 
    @Override
@@ -62,20 +64,23 @@ public class FullPlanarCoupling extends RigidBodyCoupling {
       double c = TGD.R.m00;
       double dotTheta = -wDC.z; // negate because wDC in C      
 
-      // update x limit constraint if necessary
+      // update x limit constraint and twist
+      Twist tw = new Twist();
       RigidBodyConstraint xcons = myCoordinates.get(X_IDX).limitConstraint;
-      if (xcons.engaged != 0) {
-         // constraint wrench along x, transformed to C, is (c, -s, 0)
-         xcons.wrenchG.set (c, -s, 0, 0, 0, 0);
-         xcons.dotWrenchG.set (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
-      }
-      // update y limit constraint if necessary
+      // constraint wrench along x, transformed to C, is (c, -s, 0)
+      xcons.wrenchG.set (c, -s, 0, 0, 0, 0);
+      xcons.dotWrenchG.set (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
+      tw.v.set (c, -s, 0);
+      setCoordinateTwist (0, tw);
+
+      // update y limit constraint and twist
       RigidBodyConstraint ycons = myCoordinates.get(Y_IDX).limitConstraint;
-      if (ycons.engaged != 0) {
-         // constraint wrench along y, transformed to C, is (s, c, 0)
-         ycons.wrenchG.set (s, c, 0, 0, 0, 0);
-         ycons.dotWrenchG.set (c*dotTheta, -s*dotTheta, 0, 0, 0, 0);
-      }
+      // constraint wrench along y, transformed to C, is (s, c, 0)
+      ycons.wrenchG.set (s, c, 0, 0, 0, 0);
+      ycons.dotWrenchG.set (c*dotTheta, -s*dotTheta, 0, 0, 0, 0);
+      tw.v.set (s, c, 0);
+      setCoordinateTwist (1, tw);
+
       // theta limit constraint is constant, so no need to update
    }
  

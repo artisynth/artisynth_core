@@ -2,10 +2,11 @@ package artisynth.core.opensim.components;
 
 import java.io.File;
 
-import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.WrapComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 
-public class WrapObjectSet extends SetBase<WrapObject> implements ModelComponentGenerator<RenderableComponentList<RigidBody>> {
+public class WrapObjectSet extends SetBase<WrapObject> 
+   implements ModelComponentGenerator<RenderableComponentList<WrapComponent>> {
 
    @Override
    public WrapObjectSet clone () {
@@ -13,17 +14,19 @@ public class WrapObjectSet extends SetBase<WrapObject> implements ModelComponent
    }
    
    @Override
-   public RenderableComponentList<RigidBody> createComponent (
+   public RenderableComponentList<WrapComponent> createComponent (
       File geometryPath, ModelComponentMap componentMap) {
      
       String name = getName();
       if (name == null) {
          name = "wrapobjectset";
       }
-      RenderableComponentList<RigidBody> wraps = new RenderableComponentList<> (RigidBody.class, name);
+      RenderableComponentList<WrapComponent> wraps =
+         new RenderableComponentList<> (WrapComponent.class, name);
       
       for (WrapObject wo : objects()) {
-         RigidBody wrappable = (RigidBody)wo.createComponent (geometryPath, componentMap);
+         WrapComponent wrappable = 
+            wo.createComponent (geometryPath, componentMap);
          wraps.add (wrappable);
       }
       

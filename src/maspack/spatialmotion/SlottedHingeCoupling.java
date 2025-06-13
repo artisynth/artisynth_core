@@ -49,6 +49,8 @@ public class SlottedHingeCoupling extends RigidBodyCoupling {
 
       addCoordinate ("x", -INF, INF, 0, getConstraint(4));
       addCoordinate ("theta", -INF, INF, 0, getConstraint(5));
+
+      setCoordinateTwist (THETA_IDX, new Twist (0, 0, 0, 0, 0, 1));
    }
 
    @Override
@@ -69,14 +71,16 @@ public class SlottedHingeCoupling extends RigidBodyCoupling {
       double dotTheta = -wDC.z; // negate because wDC in C
       cinfo.dotWrenchG.set (c*dotTheta, -s*dotTheta, 0, 0, 0, 0);
 
-      // update x limit constraint if necessary
+      // update x limit constraint and twist
+      Twist tw = new Twist();
       RigidBodyConstraint xcons = myCoordinates.get(X_IDX).limitConstraint;
-      if (xcons.engaged != 0) {
-         // constraint wrench along x, transformed to C, is (-c, s, 0)
-         xcons.wrenchG.set (c, -s, 0, 0, 0, 0);
-         xcons.dotWrenchG.set (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
-      }
-      // theta limit is constant
+      // constraint wrench along x, transformed to C, is (-c, s, 0)
+      xcons.wrenchG.set (c, -s, 0, 0, 0, 0);
+      xcons.dotWrenchG.set (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
+      tw.v.set (c, -s, 0);
+      setCoordinateTwist (X_IDX, tw);
+
+      // theta limit constraint is constant
    }
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {

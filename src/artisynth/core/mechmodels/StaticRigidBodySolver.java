@@ -83,7 +83,7 @@ public abstract class StaticRigidBodySolver {
    // solveIndexMap maps body.getSolveIndex() to the index of the body within
    // this solver. Allows us to use MechModel methods for building the
    // constraint matrices.
-   int[] mySolveIndexMap;
+   protected int[] mySolveIndexMap;
 
    // matrices and vectors used in the constraint-based solve
    protected SparseNumberedBlockMatrix mySolveMatrix;

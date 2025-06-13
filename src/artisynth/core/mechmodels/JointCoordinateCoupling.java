@@ -89,7 +89,7 @@ public class JointCoordinateCoupling
 
    private VectorNd getICoordValues() {
       for (int i=1; i<myCoords.size(); i++) {
-         myICoords.set (i-1, myCoords.get(i).getValue());
+         myICoords.set (i-1, myCoords.get(i).getStoredValue());
       }
       return myICoords;
    }
@@ -159,7 +159,7 @@ public class JointCoordinateCoupling
 
    public int getBilateralInfo (ConstraintInfo[] ginfo, int idx) {
       ConstraintInfo gi = ginfo[idx];
-      double coord0 = myCoords.get(0).getValue();
+      double coord0 = myCoords.get(0).getStoredValue();
       double fval = myScaleFactor*myCouplingFunction.eval (getICoordValues());
       //System.out.printf ("dist=%g\n", RTOD*(coord0-fval));
       gi.dist = (coord0-fval);

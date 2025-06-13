@@ -7,6 +7,7 @@ PACKAGE_NAME = maspack.spatialmotion
 PACKAGE_JAVA_FILES = 
 
 JAVA_TEST_PROGRAMS = \
+	RigidBodyCouplingTest \
 	SpatialInertiaTest \
 	GimbalCouplingTest \
 	EllipsoidCouplingTest \

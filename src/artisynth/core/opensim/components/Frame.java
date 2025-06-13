@@ -9,6 +9,7 @@ import artisynth.core.opensim.OpenSimParser;
 import maspack.geometry.MeshBase;
 import maspack.matrix.Point3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.AxisDrawStyle;
 
 public class Frame extends HasVisibleObjectOrAppearance implements ModelComponentGenerator<RigidBody> {
 
@@ -56,6 +57,8 @@ public class Frame extends HasVisibleObjectOrAppearance implements ModelComponen
       File geometryPath, ModelComponentMap componentMap) {
       
       RigidBody rb = new RigidBody(getName ());
+      rb.setAxisLength (0.1);
+      rb.setAxisDrawStyle (AxisDrawStyle.OFF);
       componentMap.put (this, rb);   // needs to be up-front so we can find it in the geometry/joint
       
       // OpenSim 3 VisibleObject

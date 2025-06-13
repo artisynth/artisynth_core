@@ -60,6 +60,8 @@ public class HingeCoupling extends RigidBodyCoupling {
       addConstraint (ROTARY, new Wrench (0, 0, 0, 0, 0, myThetaSign));
 
       addCoordinate ("theta", -INF, INF, 0, getConstraint(5));
+
+      setCoordinateTwist (THETA_IDX, new Twist (0, 0, 0, 0, 0, myThetaSign));
    }
 
    @Override

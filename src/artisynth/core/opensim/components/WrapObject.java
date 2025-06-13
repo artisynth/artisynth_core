@@ -2,7 +2,7 @@ package artisynth.core.opensim.components;
 
 import java.io.File;
 
-import artisynth.core.mechmodels.Wrappable;
+import artisynth.core.mechmodels.WrapComponent;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 
@@ -83,6 +83,7 @@ public abstract class WrapObject extends HasVisibleObjectOrAppearance {
       return wo;
    }
    
-   public abstract Wrappable createComponent(File geometryPath, ModelComponentMap componentMap);
+   public abstract WrapComponent createComponent(
+      File geometryPath, ModelComponentMap componentMap);
 
 }

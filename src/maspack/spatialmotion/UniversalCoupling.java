@@ -372,48 +372,56 @@ public class UniversalCoupling extends RigidBodyCoupling {
          transformDtoG (cinfo.wrenchG.m, cinfo.dotWrenchG.m, TGD.R, velGD.w);
       }
 
-      // enforce roll limits
+      // set roll limit constraint and twist
+      Twist tw = new Twist();
       cinfo = rollCoord.limitConstraint;
-      if (cinfo.engaged != 0) {
-         if (myAxes == AxisSet.ZY) {
-            cinfo.wrenchG.set (0, 0, 0, myTa*sr, -myTa*cr, 1);
-            cinfo.dotWrenchG.set (0, 0, 0, myTa*cr*dotr, myTa*sr*dotr, 0);
-         }
-         else { // axes == AxisSet.XY
-            cinfo.wrenchG.set (0, 0, 0, 1, -myTa*cr, -myTa*sr);
-            cinfo.dotWrenchG.set (0, 0, 0, 0, myTa*sr*dotr, -myTa*cr*dotr);
-         }
-         if (getUseRDC()) {
-            // negate wrenches
-            cinfo.wrenchG.negate();
-            cinfo.dotWrenchG.negate();
-         }
-         else {
-            // transform from D to C
-            transformDtoG (cinfo.wrenchG.m, cinfo.dotWrenchG.m, TGD.R, velGD.w);
-         }
+      if (myAxes == AxisSet.ZY) {
+         cinfo.wrenchG.set (0, 0, 0, myTa*sr, -myTa*cr, 1);
+         cinfo.dotWrenchG.set (0, 0, 0, myTa*cr*dotr, myTa*sr*dotr, 0);
+         tw.w.set (0, 0, 1);
       }
-      // enforce pitch limits
+      else { // axes == AxisSet.XY
+         cinfo.wrenchG.set (0, 0, 0, 1, -myTa*cr, -myTa*sr);
+         cinfo.dotWrenchG.set (0, 0, 0, 0, myTa*sr*dotr, -myTa*cr*dotr);
+         tw.w.set (1, 0, 0);
+      }
+      if (getUseRDC()) {
+         // negate wrench and twist
+         cinfo.wrenchG.negate();
+         cinfo.dotWrenchG.negate();
+         tw.negate();
+      }
+      else {
+         // transform from D to C
+         transformDtoG (cinfo.wrenchG.m, cinfo.dotWrenchG.m, TGD.R, velGD.w);
+         tw.inverseTransform (TGD.R);
+      }
+      setCoordinateTwist (ROLL_IDX, tw);
+
+      // set pitch limit constraint and twist
       cinfo = pitchCoord.limitConstraint;
-      if (cinfo.engaged != 0) {
-         if (myAxes == AxisSet.ZY) {
-            cinfo.wrenchG.set (0, 0, 0, -sr/myCa, cr/myCa, 0);
-            cinfo.dotWrenchG.set (0, 0, 0, -cr/myCa*dotr, -sr/myCa*dotr, 0);
-         }
-         else { // axes == AxisSet.XY
-            cinfo.wrenchG.set (0, 0, 0, 0, cr/myCa, sr/myCa);
-            cinfo.dotWrenchG.set (0, 0, 0, 0, -sr/myCa*dotr, cr/myCa*dotr);
-         }
-         if (getUseRDC()) {
-            // negate wrenches
-            cinfo.wrenchG.negate();
-            cinfo.dotWrenchG.negate();
-         }
-         else {
-            // transform from D to C
-            transformDtoG (cinfo.wrenchG.m, cinfo.dotWrenchG.m, TGD.R, velGD.w);
-         }
+      if (myAxes == AxisSet.ZY) {
+         cinfo.wrenchG.set (0, 0, 0, -sr/myCa, cr/myCa, 0);
+         cinfo.dotWrenchG.set (0, 0, 0, -cr/myCa*dotr, -sr/myCa*dotr, 0);
+         tw.w.set (-sr*myCa, cr*myCa, mySa);
       }
+      else { // axes == AxisSet.XY
+         cinfo.wrenchG.set (0, 0, 0, 0, cr/myCa, sr/myCa);
+         cinfo.dotWrenchG.set (0, 0, 0, 0, -sr/myCa*dotr, cr/myCa*dotr);
+         tw.w.set (mySa, myCa*cr, myCa*sr);
+      }
+      if (getUseRDC()) {
+         // negate wrench and twist
+         cinfo.wrenchG.negate();
+         cinfo.dotWrenchG.negate();
+         tw.negate();
+      }
+      else {
+         // transform from D to C
+         transformDtoG (cinfo.wrenchG.m, cinfo.dotWrenchG.m, TGD.R, velGD.w);
+         tw.inverseTransform (TGD.R);
+      }
+      setCoordinateTwist (PITCH_IDX, tw);
    }
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {

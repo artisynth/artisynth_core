@@ -98,24 +98,29 @@ public class FreeCoupling extends RigidBodyCoupling {
       RigidBodyConstraint ycons = myCoordinates.get(Y_IDX).limitConstraint;
       RigidBodyConstraint zcons = myCoordinates.get(Z_IDX).limitConstraint;
 
-      if (xcons.engaged != 0) {
-         xcons.wrenchG.set (1, 0, 0, 0, 0, 0);
-         xcons.dotWrenchG.setZero();
-         transformDtoG (
-            xcons.wrenchG.f, xcons.dotWrenchG.f, TGD.R, velGD.w);         
-      }
-      if (ycons.engaged != 0) {
-         ycons.wrenchG.set (0, 1, 0, 0, 0, 0);
-         ycons.dotWrenchG.setZero();
-         transformDtoG (
-            ycons.wrenchG.f, ycons.dotWrenchG.f, TGD.R, velGD.w);         
-      }
-      if (zcons.engaged != 0) {
-         zcons.wrenchG.set (0, 0, 1, 0, 0, 0);
-         zcons.dotWrenchG.setZero();
-         transformDtoG (
-            zcons.wrenchG.f, zcons.dotWrenchG.f, TGD.R, velGD.w);         
-      }
+      // update translation motion constraints and coordinate twists.
+      // In this case, twists will have the same values as the wrenches. 
+      Twist tw = new Twist();
+      xcons.wrenchG.set (1, 0, 0, 0, 0, 0);
+      xcons.dotWrenchG.setZero();
+      transformDtoG (
+         xcons.wrenchG.f, xcons.dotWrenchG.f, TGD.R, velGD.w);         
+      tw.v.set (xcons.wrenchG.f);
+      setCoordinateTwist (X_IDX, tw);
+
+      ycons.wrenchG.set (0, 1, 0, 0, 0, 0);
+      ycons.dotWrenchG.setZero();
+      transformDtoG (
+         ycons.wrenchG.f, ycons.dotWrenchG.f, TGD.R, velGD.w);         
+      tw.v.set (ycons.wrenchG.f);
+      setCoordinateTwist (Y_IDX, tw);
+
+      zcons.wrenchG.set (0, 0, 1, 0, 0, 0);
+      zcons.dotWrenchG.setZero();
+      transformDtoG (
+         zcons.wrenchG.f, zcons.dotWrenchG.f, TGD.R, velGD.w);         
+      tw.v.set (zcons.wrenchG.f);
+      setCoordinateTwist (Z_IDX, tw);
 
       // for rotational limits, use the code from GimbalCoupling
       CoordinateInfo[] coordInfo = new CoordinateInfo[] {
@@ -128,68 +133,6 @@ public class FreeCoupling extends RigidBodyCoupling {
       // FreeCoupling) can use it too      
       GimbalCoupling.updateRpyLimitConstraints (
          this, TGD, velGD, coordInfo, myAxes, false);
-
-      // // see if rotational constraints are engaged:
-      // if (rcons.engaged != 0 || pcons.engaged != 0 || wcons.engaged != 0) {
-
-      //    Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
-         
-      //    double roll = myCoordinates.get(ROLL_IDX).getValue();
-      //    double pitch = myCoordinates.get(PITCH_IDX).getValue();
-
-      //    double cr = Math.cos(roll);
-      //    double sr = Math.sin(roll);
-      //    double cp = Math.cos(pitch);
-      //    double sp = Math.sin(pitch);
-
-      //    double denom = cp;
-      //    // keep the derivative from getting too large near
-      //    // the singularity at cp = 0
-      //    if (Math.abs(denom) < 0.0001) {
-      //       denom = (denom >= 0 ? 0.0001 : -0.0001);
-      //    }
-      //    double tp = sp / denom;
-         
-      //    Vector3d wvel = new Vector3d(); // angular velocity in angle frame
-      //    wvel.negate (wDC);
-      //    wvel.transform (TGD.R);
-
-      //    double dotp = sr * wvel.z + cr * wvel.y;
-      //    double doty = (cr * wvel.z - sr * wvel.y) / denom;
-      //    double dotr = wvel.x - sp * doty;
-
-      //    // update roll limit constraint if necessary
-      //    if (rcons.engaged != 0) {
-      //       rcons.wrenchG.set (0, 0, 0, 1, sp*sr/denom, -sp*cr/denom);
-      //       rcons.dotWrenchG.f.setZero();
-      //       double tt = (1 + tp * tp);
-      //       rcons.dotWrenchG.m.set(
-      //          0, (cr*tp*dotr+tt*sr*dotp), (sr*tp*dotr-tt*cr*dotp));
-      //       // checkDeriv ("roll", rcons, conR);
-      //       // transform from D to C
-      //       transformDtoG (
-      //          rcons.wrenchG.m, rcons.dotWrenchG.m, TGD.R, velGD.w);
-      //    }
-      //    // update pitch limit constraint if necessary
-      //    if (pcons.engaged != 0) {
-      //       pcons.wrenchG.set(0, 0, 0, 0, cr, sr);
-      //       pcons.dotWrenchG.f.setZero();
-      //       pcons.dotWrenchG.m.set(0, -sr*dotr, cr*dotr);
-      //       // transform from D to C
-      //       transformDtoG (
-      //          pcons.wrenchG.m, pcons.dotWrenchG.m, TGD.R, velGD.w);
-      //    }
-      //    // update yaw limit constraint if necessary
-      //    if (wcons.engaged != 0) {
-      //       wcons.wrenchG.set(0, 0, 0, 0, -sr/denom, cr/denom);
-      //       wcons.dotWrenchG.f.setZero();
-      //       wcons.dotWrenchG.m.set(
-      //          0, -(cr*dotr+sr*tp*dotp)/denom, (-sr*dotr+cr*tp*dotp)/denom);
-      //       // transform from D to C
-      //       transformDtoG (
-      //          wcons.wrenchG.m, wcons.dotWrenchG.m, TGD.R, velGD.w);
-      //    }
-      // }
    }
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {

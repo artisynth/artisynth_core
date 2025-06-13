@@ -118,6 +118,20 @@ public class FixedAxisCoupling extends RigidBodyCoupling {
       RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
       Twist velGD, boolean updateEngaged) {
 
+      // update translation motion twists.
+      Twist tw = new Twist();
+      tw.set (1, 0, 0, 0, 0, 0);
+      tw.inverseTransform (TGD.R);
+      setCoordinateTwist (X_IDX, tw);
+
+      tw.set (0, 1, 0, 0, 0, 0);
+      tw.inverseTransform (TGD.R);
+      setCoordinateTwist (Y_IDX, tw);
+
+      tw.set (0, 0, 1, 0, 0, 0);
+      tw.inverseTransform (TGD.R);
+      setCoordinateTwist (Z_IDX, tw);
+
       double roll = myCoordinates.get(ROLL_IDX).getValue();
       double cr = Math.cos(roll);
       double sr = Math.sin(roll);
@@ -135,6 +149,16 @@ public class FixedAxisCoupling extends RigidBodyCoupling {
       cinfo.dotWrenchG.set (0, 0, 0, -sr*dotr, cr*dotr, 0);
       // transform from D to C
       transformDtoG (cinfo.wrenchG.m, cinfo.dotWrenchG.m, TGD.R, velGD.w);
+
+      // set roll twist
+      tw.set (0, 0, 0, 0, 0, 1);
+      tw.inverseTransform (TGD.R);
+      setCoordinateTwist (ROLL_IDX, tw);
+
+      // set pitch twist
+      tw.set (0, 0, 0, -sr, cr, 0);
+      tw.inverseTransform (TGD.R);
+      setCoordinateTwist (PITCH_IDX, tw);
    }
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {

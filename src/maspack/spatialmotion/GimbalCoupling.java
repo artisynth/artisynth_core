@@ -268,120 +268,127 @@ public class GimbalCoupling extends RigidBodyCoupling {
       RigidBodyConstraint pcons = coordInfo[1].limitConstraint;
       RigidBodyConstraint ycons = coordInfo[2].limitConstraint;
       
-      // only need to do anything if one or more constraints are engaged:
-      if (rcons.engaged != 0 || pcons.engaged != 0 || ycons.engaged != 0) {
-
-         Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
+      Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
          
-         double roll = coordInfo[0].getValue();
-         double pitch = coordInfo[1].getValue();
+      double roll = coordInfo[0].getValue();
+      double pitch = coordInfo[1].getValue();
 
-         double cr = Math.cos(roll);
-         double sr = Math.sin(roll);
-         double cp = Math.cos(pitch);
-         double sp = Math.sin(pitch);
+      double cr = Math.cos(roll);
+      double sr = Math.sin(roll);
+      double cp = Math.cos(pitch);
+      double sp = Math.sin(pitch);
 
-         double denom = cp;
-         // keep the derivative from getting too large near
-         // the singularity at cp = 0
-         if (Math.abs(denom) < 0.0001) {
-            denom = (denom >= 0 ? 0.0001 : -0.0001);
-         }
-         double tp = sp / denom;
-         
-         Vector3d wvel = new Vector3d(); // angular velocity in angle frame
-         if (useRDC) {
-            wvel.set (wDC);
-         }
-         else {
-            wvel.negate (wDC);
-            wvel.transform (TGD.R);
-         }
-         double dotp, doty, dotr;
-         if (axes == AxisSet.XYZ) {
-            dotp = sr * wvel.z + cr * wvel.y;
-            doty = (cr * wvel.z - sr * wvel.y) / denom;
-            dotr = wvel.x - sp * doty;
-         }
-         else {
-            dotp = -sr * wvel.x + cr * wvel.y;
-            doty = (cr * wvel.x + sr * wvel.y) / denom;
-            dotr = wvel.z + sp * doty;
-         }
-
-         // update roll limit constraint if necessary
-         if (rcons.engaged != 0) {
-            double tt = (1 + tp * tp);
-            if (axes == AxisSet.XYZ) {
-               rcons.wrenchG.set (0, 0, 0, 1, sp*sr/denom, -sp*cr/denom);
-               rcons.dotWrenchG.m.set(
-                  0, (cr*tp*dotr+tt*sr*dotp), (sr*tp*dotr-tt*cr*dotp));
-            }
-            else {
-               rcons.wrenchG.set (0, 0, 0, sp*cr/denom, sp*sr/denom, 1);
-               rcons.dotWrenchG.m.set(
-                  (-sr*tp*dotr+tt*cr*dotp), (cr*tp*dotr+tt*sr*dotp), 0);
-            }
-            rcons.dotWrenchG.f.setZero();
-            if (useRDC) {
-               // negate wrenches
-               rcons.wrenchG.negate();
-               rcons.dotWrenchG.negate();
-            }
-            else {
-               // transform from D to C
-               coupling.transformDtoG (
-                  rcons.wrenchG.m, rcons.dotWrenchG.m, TGD.R, velGD.w);
-            }
-         }
-         // update pitch limit constraint if necessary
-         if (pcons.engaged != 0) {
-            if (axes == AxisSet.XYZ) {
-               pcons.wrenchG.set(0, 0, 0, 0, cr, sr);
-               pcons.dotWrenchG.m.set(0, -sr*dotr, cr*dotr);
-            }
-            else {
-               pcons.wrenchG.set(0, 0, 0, -sr, cr, 0);
-               pcons.dotWrenchG.m.set(-cr*dotr, -sr*dotr, 0);
-            }
-            pcons.dotWrenchG.f.setZero();
-            if (useRDC) {
-               // negate wrenches
-               pcons.wrenchG.negate();
-               pcons.dotWrenchG.negate();
-            }
-            else {
-               // transform from D to C
-               coupling.transformDtoG (
-                  pcons.wrenchG.m, pcons.dotWrenchG.m, TGD.R, velGD.w);
-            }
-         }
-         // update yaw limit constraint if necessary
-         if (ycons.engaged != 0) {
-            if (axes == AxisSet.XYZ) {
-               ycons.wrenchG.set(0, 0, 0, 0, -sr/denom, cr/denom);
-               ycons.dotWrenchG.m.set(
-                  0, -(cr*dotr+sr*tp*dotp)/denom, (-sr*dotr+cr*tp*dotp)/denom);
-            }
-            else {
-               ycons.wrenchG.set(0, 0, 0, cr/denom, sr/denom, 0);
-               ycons.dotWrenchG.m.set(
-                  (-sr*dotr+cr*tp*dotp)/denom, (cr*dotr+sr*tp*dotp)/denom, 0);
-            }
-            ycons.dotWrenchG.f.setZero();
-            if (useRDC) {
-               // negate wrenches
-               ycons.wrenchG.negate();
-               ycons.dotWrenchG.negate();
-            }
-            else {
-               // transform from D to C
-               coupling.transformDtoG (
-                  ycons.wrenchG.m, ycons.dotWrenchG.m, TGD.R, velGD.w);
-            }
-         }
+      double denom = cp;
+      // keep the derivative from getting too large near
+      // the singularity at cp = 0
+      if (Math.abs(denom) < 0.0001) {
+         denom = (denom >= 0 ? 0.0001 : -0.0001);
       }
-      
+      double tp = sp / denom;
+         
+      Vector3d wvel = new Vector3d(); // angular velocity in angle frame
+      if (useRDC) {
+         wvel.set (wDC);
+      }
+      else {
+         wvel.negate (wDC);
+         wvel.transform (TGD.R);
+      }
+      double dotp, doty, dotr;
+      if (axes == AxisSet.XYZ) {
+         dotp = sr * wvel.z + cr * wvel.y;
+         doty = (cr * wvel.z - sr * wvel.y) / denom;
+         dotr = wvel.x - sp * doty;
+      }
+      else {
+         dotp = -sr * wvel.x + cr * wvel.y;
+         doty = (cr * wvel.x + sr * wvel.y) / denom;
+         dotr = wvel.z + sp * doty;
+      }
+
+      Twist tw = new Twist();
+      // update roll limit constraint and twist
+      double tt = (1 + tp * tp);
+      if (axes == AxisSet.XYZ) {
+         rcons.wrenchG.set (0, 0, 0, 1, sp*sr/denom, -sp*cr/denom);
+         rcons.dotWrenchG.m.set(
+            0, (cr*tp*dotr+tt*sr*dotp), (sr*tp*dotr-tt*cr*dotp));
+         tw.w.set (1, 0, 0);
+      }
+      else {
+         rcons.wrenchG.set (0, 0, 0, sp*cr/denom, sp*sr/denom, 1);
+         rcons.dotWrenchG.m.set(
+            (-sr*tp*dotr+tt*cr*dotp), (cr*tp*dotr+tt*sr*dotp), 0);
+         tw.w.set (0, 0, 1);
+      }
+      rcons.dotWrenchG.f.setZero();
+      if (useRDC) {
+         // negate wrench and twist
+         rcons.wrenchG.negate();
+         rcons.dotWrenchG.negate();
+         tw.negate();
+      }
+      else {
+         // transform from D to C
+         coupling.transformDtoG (
+            rcons.wrenchG.m, rcons.dotWrenchG.m, TGD.R, velGD.w);
+         tw.inverseTransform (TGD.R);
+      }
+      coordInfo[0].setTwistG (tw);
+
+      // update pitch limit constraint and twist
+      if (axes == AxisSet.XYZ) {
+         pcons.wrenchG.set(0, 0, 0, 0, cr, sr);
+         pcons.dotWrenchG.m.set(0, -sr*dotr, cr*dotr);
+         tw.w.set (0, cr, sr);            
+      }
+      else {
+         pcons.wrenchG.set(0, 0, 0, -sr, cr, 0);
+         pcons.dotWrenchG.m.set(-cr*dotr, -sr*dotr, 0);
+         tw.w.set (-sr, cr, 0);
+      }
+      pcons.dotWrenchG.f.setZero();
+      if (useRDC) {
+         // negate wrench and twist
+         pcons.wrenchG.negate();
+         pcons.dotWrenchG.negate();
+         tw.negate();
+      }
+      else {
+         // transform from D to C
+         coupling.transformDtoG (
+            pcons.wrenchG.m, pcons.dotWrenchG.m, TGD.R, velGD.w);
+         tw.inverseTransform (TGD.R);
+      }
+      coordInfo[1].setTwistG (tw);
+
+      // update yaw limit constraint and twist
+      if (axes == AxisSet.XYZ) {
+         ycons.wrenchG.set(0, 0, 0, 0, -sr/denom, cr/denom);
+         ycons.dotWrenchG.m.set(
+            0, -(cr*dotr+sr*tp*dotp)/denom, (-sr*dotr+cr*tp*dotp)/denom);
+         tw.w.set (sp, -cp*sr, cp*cr);            
+      }
+      else {
+         ycons.wrenchG.set(0, 0, 0, cr/denom, sr/denom, 0);
+         ycons.dotWrenchG.m.set(
+            (-sr*dotr+cr*tp*dotp)/denom, (cr*dotr+sr*tp*dotp)/denom, 0);
+         tw.w.set (cr*cp, sr*cp, -sp);
+      }
+      ycons.dotWrenchG.f.setZero();
+      if (useRDC) {
+         // negate wrench and twist
+         ycons.wrenchG.negate();
+         ycons.dotWrenchG.negate();
+         tw.negate();
+      }
+      else {
+         // transform from D to C
+         coupling.transformDtoG (
+            ycons.wrenchG.m, ycons.dotWrenchG.m, TGD.R, velGD.w);
+         tw.inverseTransform (TGD.R);
+      }
+      coordInfo[2].setTwistG (tw);
    }
 
    @Override
@@ -396,134 +403,6 @@ public class GimbalCoupling extends RigidBodyCoupling {
       // FreeCoupling) can use it too      
       updateRpyLimitConstraints (
          this, TGD, velGD, coordInfo, myAxes, getUseRDC());
-   }
-
-   public void updateConstraintsOld(
-      RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
-      Twist velGD, boolean updateEngaged) {
-
-      CoordinateInfo rcoord = myCoordinates.get(ROLL_IDX);
-      CoordinateInfo pcoord = myCoordinates.get(PITCH_IDX);
-      CoordinateInfo ycoord = myCoordinates.get(YAW_IDX);
-
-      // constraints for enforcing limits:
-      RigidBodyConstraint rcons = rcoord.limitConstraint;
-      RigidBodyConstraint pcons = pcoord.limitConstraint;
-      RigidBodyConstraint ycons = ycoord.limitConstraint;
-      
-      // only need to do anything if one or more constraints are engaged:
-      if (rcons.engaged != 0 || pcons.engaged != 0 || ycons.engaged != 0) {
-
-         Vector3d wDC = new Vector3d(); // FINISH: angular vel D wrt C, in C
-         
-         double roll = rcoord.getValue();
-         double pitch = pcoord.getValue();
-
-         double cr = Math.cos(roll);
-         double sr = Math.sin(roll);
-         double cp = Math.cos(pitch);
-         double sp = Math.sin(pitch);
-
-         double denom = cp;
-         // keep the derivative from getting too large near
-         // the singularity at cp = 0
-         if (Math.abs(denom) < 0.0001) {
-            denom = (denom >= 0 ? 0.0001 : -0.0001);
-         }
-         double tp = sp / denom;
-         
-         Vector3d wvel = new Vector3d(); // angular velocity in angle frame
-         if (getUseRDC()) {
-            wvel.set (wDC);
-         }
-         else {
-            wvel.negate (wDC);
-            wvel.transform (TGD.R);
-         }
-         double dotp, doty, dotr;
-         if (myAxes == AxisSet.XYZ) {
-            dotp = sr * wvel.z + cr * wvel.y;
-            doty = (cr * wvel.z - sr * wvel.y) / denom;
-            dotr = wvel.x - sp * doty;
-         }
-         else {
-            dotp = -sr * wvel.x + cr * wvel.y;
-            doty = (cr * wvel.x + sr * wvel.y) / denom;
-            dotr = wvel.z + sp * doty;
-         }
-
-         // update roll limit constraint if necessary
-         if (rcons.engaged != 0) {
-            double tt = (1 + tp * tp);
-            if (myAxes == AxisSet.XYZ) {
-               rcons.wrenchG.set (0, 0, 0, 1, sp*sr/denom, -sp*cr/denom);
-               rcons.dotWrenchG.m.set(
-                  0, (cr*tp*dotr+tt*sr*dotp), (sr*tp*dotr-tt*cr*dotp));
-            }
-            else {
-               rcons.wrenchG.set (0, 0, 0, sp*cr/denom, sp*sr/denom, 1);
-               rcons.dotWrenchG.m.set(
-                  (-sr*tp*dotr+tt*cr*dotp), (cr*tp*dotr+tt*sr*dotp), 0);
-            }
-            rcons.dotWrenchG.f.setZero();
-            if (getUseRDC()) {
-               // negate wrenches
-               rcons.wrenchG.negate();
-               rcons.dotWrenchG.negate();
-            }
-            else {
-               // transform from D to C
-               transformDtoG (
-                  rcons.wrenchG.m, rcons.dotWrenchG.m, TGD.R, velGD.w);
-            }
-         }
-         // update pitch limit constraint if necessary
-         if (pcons.engaged != 0) {
-            if (myAxes == AxisSet.XYZ) {
-               pcons.wrenchG.set(0, 0, 0, 0, cr, sr);
-               pcons.dotWrenchG.m.set(0, -sr*dotr, cr*dotr);
-            }
-            else {
-               pcons.wrenchG.set(0, 0, 0, -sr, cr, 0);
-               pcons.dotWrenchG.m.set(-cr*dotr, -sr*dotr, 0);
-            }
-            pcons.dotWrenchG.f.setZero();
-            if (getUseRDC()) {
-               // negate wrenches
-               pcons.wrenchG.negate();
-               pcons.dotWrenchG.negate();
-            }
-            else {
-               // transform from D to C
-               transformDtoG (
-                  pcons.wrenchG.m, pcons.dotWrenchG.m, TGD.R, velGD.w);
-            }
-         }
-         // update yaw limit constraint if necessary
-         if (ycons.engaged != 0) {
-            if (myAxes == AxisSet.XYZ) {
-               ycons.wrenchG.set(0, 0, 0, 0, -sr/denom, cr/denom);
-               ycons.dotWrenchG.m.set(
-                  0, -(cr*dotr+sr*tp*dotp)/denom, (-sr*dotr+cr*tp*dotp)/denom);
-            }
-            else {
-               ycons.wrenchG.set(0, 0, 0, cr/denom, sr/denom, 0);
-               ycons.dotWrenchG.m.set(
-                  (-sr*dotr+cr*tp*dotp)/denom, (cr*dotr+sr*tp*dotp)/denom, 0);
-            }
-            ycons.dotWrenchG.f.setZero();
-            if (getUseRDC()) {
-               // negate wrenches
-               ycons.wrenchG.negate();
-               ycons.dotWrenchG.negate();
-            }
-            else {
-               // transform from D to C
-               transformDtoG (
-                  ycons.wrenchG.m, ycons.dotWrenchG.m, TGD.R, velGD.w);
-            }
-         }
-      }
    }
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {

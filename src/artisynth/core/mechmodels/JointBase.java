@@ -10,17 +10,13 @@ import java.awt.Color;
 import java.util.*;
 import java.io.*;
 
-import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.VectorNd;
-import maspack.matrix.SparseNumberedBlockMatrix;
-import maspack.matrix.MatrixBlock;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.spatialmotion.Wrench;
+import maspack.spatialmotion.Twist;
+import maspack.spatialmotion.RigidBodyConstraint;
 import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.render.Renderer.AxisDrawStyle;
 
@@ -387,6 +383,9 @@ public abstract class JointBase extends BodyConnector  {
     * Returns the {@code idx}-th coordinate value for this joint. If the joint 
     * is connected to other bodies, the value is inferred from the current TCD
     * transform.  Otherwise, it is obtained from a stored internal value.
+    * 
+    * <p>Unlike {@link #getCoordinateValue(int)}, this method causes
+    * the coordinate value to be recomputed.
     *
     * @param idx index of the coordinate
     * @return the coordinate value
@@ -404,7 +403,10 @@ public abstract class JointBase extends BodyConnector  {
 
    /**
     * Returns the current stored value of the {@code idx}-th coordinate for 
-    * this joint.
+    * this joint. 
+    * 
+    * <p>Unlike {@link getCoordinate(int)}, this method will not
+    * cause the coordinate value to be recomputed.
     *
     * @param idx index of the coordinate
     * @return the coordinate value
@@ -501,7 +503,58 @@ public abstract class JointBase extends BodyConnector  {
          myAttachmentB.applyForce (wrX);
       }
    }
+   
+   protected MatrixNdBlock getMobilityMatrix (
+      ArrayList<Twist> twists, RigidTransform3d TXwG, double s) {
 
+      int nc = twists.size();
+      Twist ttmp = new Twist();
+      MatrixNdBlock GC = new MatrixNdBlock (6, nc);
+      for (int j=0; j<nc; j++) {      
+         ttmp.inverseTransform (TXwG, twists.get(j));
+         if (s != 1) {
+            ttmp.scale (s);
+         }
+         setMatrixColumn (GC, j, ttmp);
+      }
+      return GC;
+   }
+
+   /**
+    * Adds columns to the matrix {@code M} corresponding to the mobilities of
+    * the coordinates of this joint. The resulting matrix maps coordinate
+    * velocities onto velocities of the bodies to which the joint is attached.
+    *
+    * <p>The number of mobilities added equals the number of coordinates, and
+    * so the column size of {@code M} increases by that amount.
+    *
+    * @param M mobiliy matrix to add to
+    * @param colSize current column size of M
+    * @param solveIndexMap if non-{@code null}, maps the solve indices of the
+    * constrained components onto the block-row indices of {@code M}.
+    * @return updated column size of M
+    */
+   public int addCoordinateMobilities (
+      SparseBlockMatrix M, int colSize, int[] solveIndexMap) {
+
+      int nc = numCoordinates();
+      if (nc > 0) {
+         ArrayList<Twist> twists = new ArrayList<>();
+         getCoordinateTwists (twists);
+         MatrixNdBlock MC;
+         int bj = M.numBlockCols();
+         MC = getMobilityMatrix (twists, myTCwG, 1);
+         addMasterBlocks (M, bj, MC, myAttachmentA, solveIndexMap);
+         MC = getMobilityMatrix (twists, myTDwG, -1);
+         addMasterBlocks (M, bj, MC, myAttachmentB, solveIndexMap);
+      }
+      return colSize + nc;
+   }
+   
+   protected int getCoordinateTwists (ArrayList<Twist> twists) {
+      return myCoupling.getCoordinateTwists (twists);
+   }
+   
    private void addSolveBlocks (
       SparseNumberedBlockMatrix M, DynamicComponent ci, DynamicComponent cj) {
       int bi = ci.getSolveIndex();

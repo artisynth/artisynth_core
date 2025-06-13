@@ -13,7 +13,7 @@ import maspack.render.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
-public class RigidMesh extends RigidBody implements Wrappable {
+public class RigidMesh extends RigidBody implements WrapComponent {
 
    BVFeatureQuery myQuery = new BVFeatureQuery();
    NagataInterpolator myNagata = new NagataInterpolator();

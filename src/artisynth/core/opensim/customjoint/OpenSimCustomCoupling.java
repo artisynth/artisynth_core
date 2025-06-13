@@ -303,13 +303,18 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
          myG[j].inverseTransform (TGD.R);
       }
 
-      // normalize and use them to set corresponding limit constraints
+      // Normalize and use them to set corresponding limit constraints.
+      // Also set coordinate twists from the columns of H.
       Wrench wr = new Wrench(); 
+      Twist tw = new Twist(); 
       for (int j=0; j<numc; j++) {
          CoordinateInfo cinfo = getCoordinateInfo(j);
          if (cinfo.limitConstraint != null) {
             cinfo.limitConstraint.setWrenchG (myG[j]);
          }
+         myH.getColumn (j, tw);
+         tw.inverseTransform (TGD.R);
+         setCoordinateTwist (j, tw);
       }
       if (numc < 6) {
          // non-coordinate constraints are given by the orthogonal complement

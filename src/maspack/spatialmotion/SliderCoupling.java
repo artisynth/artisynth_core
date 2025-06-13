@@ -47,6 +47,7 @@ public class SliderCoupling extends RigidBodyCoupling {
       addConstraint (LINEAR, new Wrench (0, 0, 1, 0, 0, 0));
 
       addCoordinate ("z", -INF, INF, 0, getConstraint(5));
+      setCoordinateTwist (Z_IDX, new Twist (0, 0, 1, 0, 0, 0));
    }
 
    @Override

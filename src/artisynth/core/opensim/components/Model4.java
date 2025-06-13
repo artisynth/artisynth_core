@@ -103,7 +103,7 @@ public class Model4 extends ModelBase {
       
       // joints
       JointSet jointSet = this.getJointSet ();
-      RenderableComponentList<ModelComponent> joints =
+      RenderableComponentList<artisynth.core.mechmodels.JointBase> joints =
          jointSet.createComponent(geometryPath, componentMap);
       mech.add (joints);
       

@@ -172,9 +172,9 @@ public class OpenSimSpine extends RootModel {
       @SuppressWarnings("unchecked")
       RenderableComponentList<ModelComponent> forceset =
          (RenderableComponentList<ModelComponent>)mech.get ("forceset");
-      RenderProps.setLineColor (forceset, Color.RED.darker ());
-      RenderProps.setLineColor (forceset, Color.RED.darker ().darker ());
-      RenderProps.setShading (forceset, Shading.SMOOTH);
+      //RenderProps.setLineColor (forceset, Color.RED.darker ());
+      //RenderProps.setLineColor (forceset, Color.RED.darker ().darker ());
+      //RenderProps.setShading (forceset, Shading.SMOOTH);
 
       for (RigidBody rb : bodies) {
          for (RigidMeshComp rmc : rb.getMeshComps ()) {
@@ -188,8 +188,8 @@ public class OpenSimSpine extends RootModel {
             (RenderableComponent)force, PropertyMode.Inherited);
       }
 
-      RenderProps.setLineStyle (forceset, LineStyle.SPINDLE);
-      RenderProps.setLineRadius (forceset, 0.0015);
+      //RenderProps.setLineStyle (forceset, LineStyle.SPINDLE);
+      //RenderProps.setLineRadius (forceset, 0.0015);
 
       addVertabraBodyCentres (mech);
 

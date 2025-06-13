@@ -24,6 +24,8 @@ import artisynth.core.opensim.customjoint.OpenSimCustomJoint;
 
 /**
  * Handle for accessing values and operations specific to a joint coordinate.
+ * Its methods map onto corresponding JointBase methods involving a specific
+ * coordinate index.
  */
 public class JointCoordinateHandle {
 
@@ -66,6 +68,10 @@ public class JointCoordinateHandle {
       myJoint.setCoordinate (myIdx, value);
    }
 
+   public double getStoredValue() {
+      return myJoint.getCoordinateValue (myIdx);
+   }
+
    public DoubleInterval getValueRange() {
       return myJoint.getCoordinateRange(myIdx);
    }
@@ -77,7 +83,15 @@ public class JointCoordinateHandle {
       }
       return value;
    }
-
+ 
+   public double getStoredValueDeg() {
+      double value = getStoredValue();
+      if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
+         value *= RTOD;
+      }
+      return value;
+   }
+ 
    public void setValueDeg(double value) {
       myJoint.setCoordinateDeg (myIdx, value);
    }

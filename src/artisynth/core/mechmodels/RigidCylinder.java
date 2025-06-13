@@ -10,7 +10,7 @@ import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
-public class RigidCylinder extends RigidBody implements Wrappable {
+public class RigidCylinder extends RigidBody implements WrapComponent {
    
    double myRadius = 1.0;
 

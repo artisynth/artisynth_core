@@ -31,7 +31,7 @@ public class Joint extends OpenSimObject implements ModelComponentGenerator<Mode
    }
 
    @Override
-   public ModelComponent createComponent (
+   public artisynth.core.mechmodels.JointBase createComponent (
       File geometryPath, ModelComponentMap componentMap) {
      
       JointBase joint = getJoint ();

@@ -12,12 +12,13 @@ import maspack.properties.*;
 import maspack.interpolation.*;
 
 /**
- * Probe for specifying the positions and poses of a set of Point, Frame, and
- * FixedMeshBody components. Velocity information is attached to each
- * components's {@code velocity} property and is specified in world
- * coordinates. For components with orientation (Frame and FixedMeshBody), the
- * velocity will be a 6-vector (Twist) giving both translational and angular
- * velocity.
+ * Probe for specifying the velocities of a set of Point or Frame
+ * components. Velocity information is specified in world coordinates and is
+ * attached to either the component's {@code velocity} or {@code
+ * targetVelocity} property, depending on availability and the setting of the
+ * constructor's {@code useTargetProps} argument. For components with orientation
+ * (i.e., Frame), the velocity will be a 6-vector (Twist) giving both
+ * translational and angular velocity.
  */
 public class VelocityInputProbe extends NumericInputProbe {
 
@@ -30,79 +31,91 @@ public class VelocityInputProbe extends NumericInputProbe {
    }
 
    /**
-    * Constructs a VelocityInputProbe for a single Point, Frame, or FixedMeshBody,
-    * as specified by {@code comp}. Data must be added after the constructor is
-    * called.
+    * Constructs a VelocityInputProbe for a single Point or Frame as specified
+    * by {@code comp}. Data must be added after the constructor is called.
     *
     * @param name if non-null, gives the name of the probe
-    * @param comp specifies the Point, Frame, or FixedMeshBody
+    * @param comp specifies the Point or Frame
+    * @param useTargetProps if {@code true}, causes the probe to bind to the
+    * component's {@code targetVelocity} property (if available), instead of
+    * {@code velocity}
     * @param startTime start time of the probe
     * @param stopTime stop time of the probe
     */
    public VelocityInputProbe (
-      String name, ModelComponent comp, double startTime, double stopTime) {
+      String name, ModelComponent comp, 
+      boolean useTargetProps, double startTime, double stopTime) {
       setModelFromComponent (comp);
       setInputProperties (
-         findVelocityProps(new ModelComponent[] { comp }));
+         findVelocityProps(new ModelComponent[] { comp }, false));
       initFromStartStopTime (name, startTime, stopTime);
    }
 
    /**
-    * Constructs a VelocityInputProbe for a list of Point, Frame, or FixedMeshBody
-    * components specified by {@code comps}. Data must be added after the
-    * constructor is called.
+    * Constructs a VelocityInputProbe for a list of Point or Frame components
+    * specified by {@code comps}. Data must be added after the constructor is
+    * called.
     * 
     * @param name if non-null, gives the name of the probe
-    * @param comps specifies the Point, Frame, or FixedMeshBody components
+    * @param comps specifies the Point or Frame components
+    * @param useTargetProps if {@code true}, causes the probe to bind to the
+    * component's {@code targetVelocity} property (if available), instead of
+    * {@code velocity}
     * @param startTime start time of the probe
     * @param stopTime stop time of the probe
     */
    public VelocityInputProbe (
       String name, Collection<? extends ModelComponent> comps,
-      double startTime, double stopTime) {
+      boolean useTargetProps, double startTime, double stopTime) {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
       setModelFromComponent (carray[0]);
-      setInputProperties (findVelocityProps (carray));
+      setInputProperties (findVelocityProps (carray, false));
       initFromStartStopTime (name, startTime, stopTime);
    }
 
    /**
-    * Constructs a VelocityInputProbe for a single Point, Frame, or FixedMeshBody,
+    * Constructs a VelocityInputProbe for a single Point or Frame,
     * as specified by {@code comp}. Probe data, plus its interpolation method
     * and start and stop times, are specified in a probe file.
     * 
     * @param name if non-null, gives the name of the probe
-    * @param comp specifies the Point, Frame, or FixedMeshBody
+    * @param comp specifies the Point or Frame
+    * @param useTargetProps if {@code true}, causes the probe to bind to the
+    * component's {@code targetVelocity} property (if available), instead of
+    * {@code velocity}
     * @param filePath path name of the probe data file
     * @throws IOException if a file I/O error occurs
     */
-   public VelocityInputProbe (String name, ModelComponent comp, String filePath)
-      throws IOException {
+   public VelocityInputProbe (String name, ModelComponent comp, 
+      boolean useTargetProps, String filePath) throws IOException {
       setModelFromComponent (comp);
       setInputProperties (
          findVelocityProps(
-            new ModelComponent[] { comp }));
+            new ModelComponent[] { comp }, false));
       initFromFile (name, filePath);
    }
 
    /**
-    * Constructs a VelocityInputProbe for a list of Point, Frame, or FixedMeshBody
+    * Constructs a VelocityInputProbe for a list of Point or Frame
     * components specified by {@code comps}. Probe data, plus its interpolation
     * method and start and stop times, are specified in a probe file.
     * 
     * @param name if non-null, gives the name of the probe
-    * @param comps specifies the Point, Frame, or FixedMeshBody components
+    * @param comps specifies the Point or Frame components
+    * @param useTargetProps if {@code true}, causes the probe to bind to the
+    * component's {@code targetVelocity} property (if available), instead of
+    * {@code velocity}
     * @param filePath path name of the probe data file
     * @throws IOException if a file I/O error occurs
     */
    public VelocityInputProbe (
-      String name, Collection<? extends ModelComponent> comps, String filePath)
-      throws IOException {
+      String name, Collection<? extends ModelComponent> comps, 
+      boolean useTargetProps, String filePath) throws IOException {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
       setModelFromComponent (carray[0]);
-      setInputProperties (findVelocityProps (carray));
+      setInputProperties (findVelocityProps (carray, false));
       initFromFile (name, filePath);
    }
 
@@ -118,9 +131,8 @@ public class VelocityInputProbe extends NumericInputProbe {
     * PositionOutputProbe} or {@code PositionOutputProbe}, the source probe
     * must reference the {@code position} properties of {@link Point}
     * components, or the {@code position} and {@code orientation} properties of
-    * the frame-based components {@link Frame} or {@link FixedMeshBody}. For
-    * frame-based components, the {@code orientation} property must be
-    * associated with rotational subvectors.
+    * {@link Frame} components. For frame-based components, the {@code
+    * orientation} property must be associated with rotational subvectors.
     *
     * @param name if non-null, gives the name of the probe
     * @param source PositionInputProbe or PositionOutputProbe containing
@@ -135,30 +147,6 @@ public class VelocityInputProbe extends NumericInputProbe {
       return create (name, comps, source, interval, /*useInterpolation*/false);
    }
 
-   // /**
-   //  * Creates a VelocityInputProbe for a list of components specified by {@code
-   //  * comps} by numerically differentiating the position data in a source
-   //  * probe. The components must be instances of Point, Frame, or
-   //  * FixedMeshBody, and the source probe must have a vector size and rotation
-   //  * subvector structure, if appropriate, that is compatible with a position
-   //  * probe for the component list. The differentation is done by estimating
-   //  * the (linear) derivative at the mid point between each knot, and then
-   //  * interpolating these values between the mid points.
-   //  *
-   //  * @param name if non-null, gives the name of the probe
-   //  * @param comps specifies the Point, Frame, or FixedMeshBody components
-   //  * @param source PositionInputProbe or PositionOutputProbe containing
-   //  * the position data to differentiate
-   //  * @param interval knot time spacing interval, or {@code -1} if knot times
-   //  * should be determined from the source probe
-   //  * @return created velocity probe
-   //  */
-   // public static VelocityInputProbe createNumeric (
-   //    String name, Collection<? extends ModelComponent> comps,
-   //    NumericProbeBase source, double interval) {
-   //    return create (name, comps, source, interval, /*useInterpolation*/false);
-   // }
-
    /**
     * Creates a VelocityInputProbe by differentiating the position data in a
     * source probe. The source probe must be either a {@link
@@ -171,9 +159,8 @@ public class VelocityInputProbe extends NumericInputProbe {
     * {@code PositionOutputProbe} or {@code PositionOutputProbe}, the source
     * probe must reference the {@code position} properties of {@link Point}
     * components, or the {@code position} and {@code orientation} properties of
-    * the frame-based components {@link Frame} or {@link FixedMeshBody}. For
-    * frame-based components, the {@code orientation} property must be
-    * associated with rotational subvectors.
+    * the {@link Frame} components. For frame-based components, the {@code
+    * orientation} property must be associated with rotational subvectors.
     *
     * @param name if non-null, gives the name of the probe
     * @param source PositionInputProbe or PositionOutputProbe containing
@@ -187,30 +174,6 @@ public class VelocityInputProbe extends NumericInputProbe {
       ArrayList<ModelComponent> comps = extractSourcePositionComps (source);
       return create (name, comps, source, interval, /*useInterpolation*/true);
    }
-
-   // /**
-   //  * Creates a VelocityInputProbe for a list of components specified by {@code
-   //  * comps} by numerically differentiating the position data in a source
-   //  * probe. The components must be instances of Point, Frame, or
-   //  * FixedMeshBody, and the source probe must have a vector size and rotation
-   //  * subvector structure, if appropriate,that is compatible with a position
-   //  * probe for the component list. The differentiation is performed on the
-   //  * function defined by the source probe's interpolation method, as returned
-   //  * by by {@link #getInterpolation}.
-   //  *
-   //  * @param name if non-null, gives the name of the probe
-   //  * @param comps specifies the Point, Frame, or FixedMeshBody components
-   //  * @param source PositionInputProbe or PositionOutputProbe containing
-   //  * the position data to differentiate
-   //  * @param iinterval knot time spacing interval, or {@code -1} if knot
-   //  * times should be determined from the source probe
-   //  * @return created velocity probe
-   //  */
-   // public static VelocityInputProbe createInterpolated (
-   //    String name, Collection<? extends ModelComponent> comps,
-   //    NumericProbeBase source, double interval) {
-   //    return create (name, comps, source, interval, /*useInterpolation*/true);
-   // }
 
    protected static ArrayList<ModelComponent> extractSourcePositionComps (
       NumericProbeBase source) {
@@ -234,7 +197,7 @@ public class VelocityInputProbe extends NumericInputProbe {
             comps.add ((ModelComponent)host);
             off += 3;
          }
-         else if (host instanceof Frame || host instanceof FixedMeshBody) {
+         else if (host instanceof Frame) {
             // frame-based components must be connected to their 'position' and
             // 'orientation' properties, in succession, and the 'orientation'
             // property must be associated with a rotation subvector at the
@@ -275,7 +238,7 @@ public class VelocityInputProbe extends NumericInputProbe {
       double startTime = source.getStartTime();
       double stopTime = source.getStopTime();
       VelocityInputProbe vprobe = new VelocityInputProbe (
-         name, comps, startTime, stopTime);
+         name, comps, false, startTime, stopTime);
       //checkVectorStructure (comps, source);
       double scale = source.getScale();
       vprobe.setScale (scale);
@@ -330,5 +293,16 @@ public class VelocityInputProbe extends NumericInputProbe {
    public void transformData (AffineTransform3dBase X) {
       getNumericList().transformVectorData (X);
    }
+
+   /**
+    * Returns a list of the position components associated with this probe, in
+    * the order that they appear in the probe's data.
+    *
+    * @return list of components associated with this probe
+    */
+   public ArrayList<ModelComponent> getPositionComponents() {
+      return getPositionCompsForVelocity();
+   }
+
 
 }

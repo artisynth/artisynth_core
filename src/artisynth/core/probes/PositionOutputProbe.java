@@ -24,6 +24,14 @@ import maspack.interpolation.*;
  */
 public class PositionOutputProbe extends NumericOutputProbe {
 
+   HashMap<ModelComponent,Integer> myCompOffsetMap = null;
+
+   private void updateCompOffsetMap() {
+      if (myCompOffsetMap == null) {
+         myCompOffsetMap = getPositionCompOffsetMap ();
+      }
+   }
+
    /**
     * No-args constructor needed for scanning.
     */
@@ -37,7 +45,8 @@ public class PositionOutputProbe extends NumericOutputProbe {
     * 
     * @param name if non-null, gives the name of the probe
     * @param comp specifies the Point, Frame, or FixedMeshBody
-    * @param rotRep rotation representation
+    * @param rotRep rotation representation. Can be null if {@code comp}
+    * is a Point.
     * @param startTime start time of the probe
     * @param stopTime stop time of the probe
     */
@@ -56,13 +65,14 @@ public class PositionOutputProbe extends NumericOutputProbe {
     *
     * @param name if non-null, gives the name of the probe
     * @param comps specifies the Point, Frame, or FixedMeshBody components
-    * @param rotRep rotation representation
+    * @param rotRep rotation representation. Can be null if all of the components
+    * are points.
     * @param startTime start time of the probe
     * @param stopTime stop time of the probe
     */
    public PositionOutputProbe (
-      String name, Collection<? extends ModelComponent> comps, RotationRep rotRep,
-      double startTime, double stopTime) {
+      String name, Collection<? extends ModelComponent> comps, 
+      RotationRep rotRep, double startTime, double stopTime) {
       this (name, comps, rotRep, /*fileName*/null,
             startTime, stopTime, /*interval*/-1);
    }
@@ -73,7 +83,8 @@ public class PositionOutputProbe extends NumericOutputProbe {
     * 
     * @param name if non-null, gives the name of the probe
     * @param comp specifies the Point, Frame, or FixedMeshBody
-    * @param rotRep rotation representation
+    * @param rotRep rotation representation. Can be null if {@code comp}
+    * is a Point.
     * @param fileName if non-null, specifies the attached file to which probe
     * data can be saved
     * @param startTime start time of the probe
@@ -86,7 +97,7 @@ public class PositionOutputProbe extends NumericOutputProbe {
       String fileName, double startTime, double stopTime, double interval) {
       setOutputProperties (
          findPositionPropsAndOffsets(
-            new ModelComponent[] { comp }, rotRep));
+            new ModelComponent[] { comp }, rotRep, /*targetProps*/false));
       if (fileName != null) {
          setAttachedFileName (fileName);
       }
@@ -104,7 +115,8 @@ public class PositionOutputProbe extends NumericOutputProbe {
     *
     * @param name if non-null, gives the name of the probe
     * @param comps specifies the Point, Frame, or FixedMeshBody components
-    * @param rotRep rotation representation
+    * @param rotRep rotation representation. Can be null if all of the components
+    * are points.
     * @param fileName if non-null, specifies the attached file to which probe
     * data can be saved
     * @param startTime start time of the probe
@@ -117,7 +129,8 @@ public class PositionOutputProbe extends NumericOutputProbe {
       String fileName, double startTime, double stopTime, double interval) {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
-      setOutputProperties (findPositionPropsAndOffsets (carray, rotRep));
+      setOutputProperties (
+         findPositionPropsAndOffsets (carray, rotRep, /*targetProps*/false));
       if (name != null) {
          setName (name);
       }
@@ -137,6 +150,19 @@ public class PositionOutputProbe extends NumericOutputProbe {
     */
    public void transformData (AffineTransform3dBase X) {
       getNumericList().transformPositionData (X);
+   }
+
+   /**
+    * Returns a list of the position components associated with this probe, in
+    * the order that they appear in the probe's data.
+    *
+    * @return list of components associated with this probe
+    */
+   public ArrayList<ModelComponent> getPositionComponents() {
+      ArrayList<ModelComponent> comps = new ArrayList<>();
+      updateCompOffsetMap();
+      comps.addAll (myCompOffsetMap.keySet());
+      return comps;
    }
       
 }

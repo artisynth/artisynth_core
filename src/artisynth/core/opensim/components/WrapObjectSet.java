@@ -34,5 +34,16 @@ public class WrapObjectSet extends SetBase<WrapObject>
       
       return wraps;
    }
-   
+
+   public void addComponents (
+      RenderableComponentList<WrapComponent> wraps,
+      File geometryPath, ModelComponentMap componentMap) {
+      
+      for (WrapObject wo : objects()) {
+         WrapComponent wrappable = 
+            wo.createComponent (geometryPath, componentMap);
+         wraps.add (wrappable);
+      }
+      componentMap.put (this, wraps);
+   }
 }

@@ -2,6 +2,8 @@ package artisynth.core.probes;
 
 import java.io.*;
 import java.util.*;
+
+import artisynth.core.mechmodels.Point;
 import maspack.util.*;
 import maspack.matrix.*;
 
@@ -9,6 +11,8 @@ import maspack.matrix.*;
  * Reads a TRC (Track-Row-Column) marker data file. This file format is defined
  * by the Motion Analysis Corporation and described in the appendix of the
  * manual for their EVaRT software.
+ *
+ * <p>Once read, marker data is exposed via a MarkerMotionData structure.
  */
 public class TRCReader {
    
@@ -29,34 +33,116 @@ public class TRCReader {
 
    protected MarkerMotionData myMotionData = new MarkerMotionData();
 
+   /**
+    * Creates a TRCReader for an specified input stream.
+    *
+    * @param is inout stream for reading the TRC data
+    */
+   public TRCReader (InputStream is) {
+      myIstream = is;
+   }
+
+   /**
+    * Creates a TRCReader for the indicated file.
+    *
+    * @param file TRC file to be read
+    */
+   public TRCReader (File file) throws IOException {
+      this (new FileInputStream (file));
+      myFile = file;
+   }
+
+   /**
+    * Creates a TRCReader for the indicated file path.
+    *
+    * @param filePath path name of the TRC file to be read
+    */
+   public TRCReader (String filePath) throws IOException {
+      this (new File(filePath));
+   }
+
    public MarkerMotionData getMotionData() {
       return myMotionData;
    }
 
+   /**
+    * Returns the number of frames in the TRC data, or 0 if {@link #readData}
+    * has not yet been called.
+    *
+    * @return number of frames read
+    */
    public int getNumFrames() {
       return myMotionData.numFrames();
    }
-   
+
+   /**
+    * Returns the number of markers in the TRC data, or 0 if {@link #readData}
+    * has not yet been called.
+    *
+    * @return number of markers
+    */
    public int getNumMarkers() {
       return myMotionData.numMarkers();
    }
 
+   /**
+    * Returns a list of the marker labels in the TRC data, or an empty list if
+    * {@link #readData} has not yet been called.
+    *
+    * @return list of marker labels
+    */
    public ArrayList<String> getMarkerLabels() {
       return myMotionData.getMarkerLabels();
    }
 
-   public double getFrameTime (int num) {
-      return myMotionData.getFrameTime (num);
+   /**
+    * Returns the time of the {@code fidx}-th frame in the TRC data. Note that
+    * {@code fidx} is 0-based, and so will be one less than the corresponding
+    * frame number in the data. An exception will be thrown if if {@link
+    * #readData} has not yet been called.
+    *
+    * @return frame time at index {@code fidx}
+    */
+   public double getFrameTime (int fidx) {
+      return myMotionData.getFrameTime (fidx);
    }
 
-   public Vector3d getMarkerPosition (int num, int mkr) {
-      return myMotionData.getMarkerPosition (num, mkr);
+   /**
+    * Returns the position of the {@code midx}-th marker in the {@code fidx}-th
+    * frame of the TRC data. Note that {@code midx} and {@code fidx} are both
+    * 0-based, and so {@code fidx} will be one less than the corresponding
+    * frame number in the data. An exception will be thrown if {@link
+    * #readData} has not yet been called.
+    *
+    * @return position of marker {@code idx} in frame {@code fidx}. Should not
+    * be modified.
+    */
+   public Vector3d getMarkerPosition (int fidx, int midx) {
+      return myMotionData.getMarkerPosition (fidx, midx);
    }
 
-   public Vector3d getMarkerPosition (int num, String label) {
-      return myMotionData.getMarkerPosition (num, label);
+   /**
+    * Returns the position of the named marker in the {@code fidx}-th frame of
+    * the TRC data. Note that {@code fidx} is 0-based, and so will be one less
+    * than the corresponding frame number in the data. {@code null} will be
+    * returned if the marker is not found or {@link #readData} has not yet been
+    * called,
+    *
+    * @return position of marker {@code idx} in frame {@code fidx}. Should not
+    * be modified.
+    */
+   public Vector3d getMarkerPosition (int fidx, String label) {
+      return myMotionData.getMarkerPosition (fidx, label);
    }
 
+   /**
+    * Returns the index of the indicated marker in the TRC data. -1 will be
+    * returned if the marker is not found or {@link #readData} has not yet been
+    * called.
+    *
+    * @param label name of the desired marker
+    * @return index of the marker within the data
+    */
    public int getMarkerIndex (String label) {
       return myMotionData.getMarkerIndex (label);
    }
@@ -69,21 +155,12 @@ public class TRCReader {
       }
    }
 
-   public TRCReader (InputStream is) {
-      myIstream = is;
-   }
-
-   public TRCReader (File file) throws IOException {
-      this (new FileInputStream (file));
-      myFile = file;
-   }
-
    protected void scanFileHeader (BufferedReader reader) throws IOException {
       String line = reader.readLine();
       String[] toks = line.split ("\t");
       if (toks.length < 2) {
          throw new IOException (
-"Line 1: expecting a tab-delimited file header with at least 2 entries");
+            "Line 1: expecting a tab-delimited file header with at least 2 entries");
       }
       myFileTypeLabel = toks[0];
       myFileTypeNumber = scanInt (toks[1], 1, 2);
@@ -224,16 +301,35 @@ public class TRCReader {
       }
    }
 
+   /**
+    * Reads the TRC data from the file or input stream. Must be called after
+    * the reader is created in order actually read in the data.
+    */
    public void readData() throws IOException {
-      BufferedReader reader =
-         new BufferedReader (new InputStreamReader (myIstream));
-      scanFileHeader (reader);
-      ReaderTokenizer rtok = new ReaderTokenizer (reader);
-      rtok.eolIsSignificant (true);
-      int numFrames = scanDataHeader (reader);
-      scanPositionData (reader, numFrames);
+      try {
+         BufferedReader reader =
+            new BufferedReader (new InputStreamReader (myIstream));
+         scanFileHeader (reader);
+         ReaderTokenizer rtok = new ReaderTokenizer (reader);
+         rtok.eolIsSignificant (true);
+         int numFrames = scanDataHeader (reader);
+         scanPositionData (reader, numFrames);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (myFile != null) {
+            myIstream.close();
+         }
+      }
    }
 
+   /**
+    * If the reader was created with an input stream instead of a file, closes
+    * the input stream. (Streams created for files are closed automatically
+    * inside {@link readData}.
+    */
    public void close() {
       closeQuietly(myIstream);
    }
@@ -265,5 +361,98 @@ public class TRCReader {
          e.printStackTrace(); 
       }
    }
-  
+
+   /**
+    * Constructs a PositionInputProbe for the specified points based on the TRC
+    * data. All of the points must have names that match one of the marker
+    * labels in the data; if this is not true, an exception will be thrown.  If
+    * the first TRC frame does not have a time of 0, this initial time will be
+    * subtracted from the time for the probe data (so that the probe data will
+    * begin at time 0).
+    * 
+    * @param name if non-null, gives the name of the probe
+    * @param targetProps TODO
+    * @param startTime start time of the probe
+    * @param stopTime stop time of the probe
+    * @param comps specifies the point components
+    */
+   public PositionInputProbe createInputProbeFromLabels (
+      String name, Collection<? extends Point> points, 
+      boolean targetProps, double startTime, double stopTime) {
+
+      int[] midxs = new int[points.size()];
+      // find the indices of the points in the data
+      int i = 0;
+      for (Point point : points) {
+         String pname = point.getName();
+         if (pname == null) {
+            throw new IllegalArgumentException (
+               ""+i+"-th point is unnamed and so cannot be located");
+         }
+         int midx = getMarkerIndex (pname);
+         if (midx == -1) {
+            throw new IllegalArgumentException (
+               "point "+pname+" not found in the TRC data");
+         }
+         midxs[i++] = midx;
+      }
+      // create the probe and add the data
+      PositionInputProbe probe = new PositionInputProbe (
+         name, points, /*rotRep*/null, false, startTime, stopTime);
+      addProbeData (probe, midxs);
+      return probe;
+   }
+
+   /**
+    * Constructs a PositionInputProbe for the specified points based on the TRC
+    * data. The data for each of the {@code n} points is taken from the data
+    * for the first {@code n} markers, regardless of their labels.  The number
+    * of markers in the TRC data must therefore equal or exceed {@code n}.  If
+    * the first TRC frame does not have a time of 0, this initial time will be
+    * subtracted from the time for the probe data (so that the probe data will
+    * begin at time 0).
+    * 
+    * @param name if non-null, gives the name of the probe
+    * @param targetProps TODO
+    * @param startTime start time of the probe
+    * @param stopTime stop time of the probe
+    * @param comps specifies the point components
+    */
+   public PositionInputProbe createInputProbe (
+      String name, Collection<? extends Point> points, 
+      boolean targetProps, double startTime, double stopTime) {
+
+      if (points.size() > getNumMarkers()) {
+         throw new IllegalArgumentException (
+            "TRC data has only "+getNumMarkers()+" markers; "+
+            "insufficient for "+points.size()+" points");
+      }
+      int[] midxs = new int[points.size()];
+      for (int i=0; i<points.size(); i++) {
+         midxs[i] = i;
+      }
+      // create the probe and add the data
+      PositionInputProbe probe = new PositionInputProbe (
+         name, points, /*rotRep*/null, false, startTime, stopTime);
+      addProbeData (probe, midxs);
+      return probe;
+   }
+
+   private void addProbeData (PositionInputProbe probe, int[] midxs) {
+      probe.clearData();
+      if (getNumFrames() > 0) {
+         double t0 = getFrameTime (0);
+         int npnts = midxs.length;
+         for (int fidx=0; fidx<getNumFrames(); fidx++) {
+            VectorNd vec = new VectorNd(3*npnts);
+            for (int i=0; i<npnts; i++) {
+               int midx = midxs[i];
+               Vector3d pos = getMarkerPosition (fidx, midx);
+               vec.setSubVector (3*i, pos);
+            }
+            probe.addData (getFrameTime(fidx)-t0, vec);
+         }
+      }
+   }
 }
+      

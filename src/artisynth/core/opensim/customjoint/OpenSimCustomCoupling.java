@@ -1,10 +1,13 @@
 package artisynth.core.opensim.customjoint;
 
+import java.io.*;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 import artisynth.core.opensim.components.Coordinate;
 import artisynth.core.opensim.components.FunctionBase;
 import artisynth.core.opensim.components.TransformAxis;
+import artisynth.core.modelbase.ScanWriteUtils;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNi;
 import maspack.matrix.QRDecomposition;
@@ -17,16 +20,20 @@ import maspack.spatialmotion.RigidBodyCoupling;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import maspack.util.InternalErrorException;
-import maspack.util.DataBuffer;
+import maspack.util.*;
+import maspack.function.*;
 
 /**
  * OpenSim Custom Joint coupling
  * - According to forums and documentation, OpenSim uses INTRINSIC rotations
  * - Translation is performed after rotation
  */
-public class OpenSimCustomCoupling extends RigidBodyCoupling {
+public class OpenSimCustomCoupling
+   extends RigidBodyCoupling implements Scannable {
 
-   protected Coordinate[] myCoords;
+   private static final double INF = Double.POSITIVE_INFINITY;
+
+   protected Coordinate[] myCoords; // only used by initializeConstraints()
    protected TAxis[] myRotAxes;
    protected TAxis[] myTransAxes;
 
@@ -51,13 +58,25 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
    // coordinates to those specifically used for the axis function.
    public static class TAxis {
       TransformAxis myInfo;
-
+      Vector3d myAxis;
+      Diff1FunctionNx1 myFunction;
       VectorNd myCvals; // local coordinate values
       VectorNd myDvals; // local derivative values
       int[] myCidxs; // local coordinate indices
 
+      /**
+       * No-args constructor needed for scan/write.
+       */
+      public TAxis() {
+      }
+
       public TAxis (TransformAxis info, HashMap<String,Integer> cmap) {
          myInfo = info;
+         myAxis = info.getAxis();
+         FunctionBase func = info.getFunction();
+         if (func != null) {
+            myFunction = func.getFunction();
+         }
          String[] coordsNames = info.getCoordinates ();
          int len = 0;
          if (coordsNames != null) {
@@ -80,13 +99,12 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
        * Apply translation for a translation axis
        */
       public void applyTranslation (Vector3d p, VectorNd coords) {
-         FunctionBase func = myInfo.getFunction();
-         if (func != null) {
+         if (myFunction != null) {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            double tval = func.eval(myCvals);
-            p.scaledAdd (tval, myInfo.getAxis());
+            double tval = myFunction.eval(myCvals);
+            p.scaledAdd (tval, myAxis);
          }
       }     
 
@@ -95,13 +113,12 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
        * mobility vectors.
        */
       public void addToHv (MatrixNd H, VectorNd coords) {
-         FunctionBase func = myInfo.getFunction();
-         if (func != null) {
+         if (myFunction != null) {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            func.evalDeriv (myDvals, myCvals);
-            Vector3d uaxis = myInfo.getAxis();
+            myFunction.evalDeriv (myDvals, myCvals);
+            Vector3d uaxis = myAxis;
             for (int i=0; i<myDvals.size(); i++) {
                double dval = myDvals.get(i);
                int j = myCidxs[i];
@@ -116,12 +133,11 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
        * Apply rotation for a rotation axis
        */
       public void applyRotation (RotationMatrix3d R, VectorNd coords) {
-         FunctionBase func = myInfo.getFunction();
-         if (func != null) {
+         if (myFunction != null) {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            R.mulAxisAngle (myInfo.getAxis(), func.eval(myCvals));
+            R.mulAxisAngle (myAxis, myFunction.eval(myCvals));
          }
       }         
 
@@ -132,14 +148,13 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       public void addToHw (
          MatrixNd H, RotationMatrix3d R, VectorNd coords, boolean last) {
 
-         FunctionBase func = myInfo.getFunction();
-         if (func != null) {
+         if (myFunction != null) {
             for (int i=0; i<myCvals.size(); i++) {
                myCvals.set (i, coords.get(myCidxs[i]));
             }
-            func.evalDeriv (myDvals, myCvals);
+            myFunction.evalDeriv (myDvals, myCvals);
             Vector3d uaxis = new Vector3d();
-            uaxis.transform (R, myInfo.getAxis());
+            uaxis.transform (R, myAxis);
             for (int i=0; i<myDvals.size(); i++) {
                double dval = myDvals.get(i);
                int j = myCidxs[i];
@@ -148,18 +163,68 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
                H.add (5, j, dval*uaxis.z);
             }
             if (!last) {
-               R.mulAxisAngle (myInfo.getAxis(), func.eval(myCvals));
+               R.mulAxisAngle (myAxis, myFunction.eval(myCvals));
             }
          }
       }
 
       public Vector3d getAxis() {
-         return myInfo.getAxis();
+         return myAxis;
+      }
+
+      private void scanAttributeName (
+         ReaderTokenizer rtok, String name) throws IOException {
+         rtok.scanWord (name);
+         rtok.scanToken ('=');
+      }
+
+      public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+         rtok.scanToken ('[');
+         scanAttributeName (rtok, "coordIdxs");
+         rtok.scanToken ('[');
+         DynamicIntArray idxs = new DynamicIntArray();
+         while (rtok.nextToken() != ']') {
+            if (!rtok.tokenIsInteger()) {
+               throw new IOException ("coordinate index expected, "+rtok);
+            }
+            idxs.add ((int)rtok.lval);
+         }
+         myCidxs = idxs.getArray();
+         scanAttributeName (rtok, "axis");
+         myAxis = new Vector3d();
+         myAxis.scan (rtok);
+         scanAttributeName (rtok, "function");
+         myFunction = FunctionUtils.scan (rtok, Diff1FunctionNx1.class);
+         rtok.scanToken (']');
+
+         int nc = myCidxs.length;
+         myCvals = new VectorNd (nc);
+         myDvals = new VectorNd (nc);
+      }
+
+      public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+         throws IOException {
+
+         IndentingPrintWriter.printOpening (pw, "[ ");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         pw.println ("coordIdxs=[" + new VectorNi(myCidxs) + "]");
+         pw.print ("axis=");
+         myAxis.write (pw, fmt, /*withBrackets=*/true);
+         pw.println ("");
+         pw.print ("function=");
+         FunctionUtils.write (pw, myFunction, fmt);
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
       }
    }
    
-   public OpenSimCustomCoupling (TransformAxis[] axes, Coordinate[] coords) {
+    /**
+     * No-args constructor needed for scan/write.
+     */
+   public OpenSimCustomCoupling () {
+   }
 
+   public OpenSimCustomCoupling (TransformAxis[] axes, Coordinate[] coords) {
       myCoords = new Coordinate[coords.length];
       HashMap<String,Integer> cmap = new HashMap<>();
       for (int i=0; i<coords.length; i++) {
@@ -237,7 +302,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
 
       RigidTransform3d TGD = new RigidTransform3d();
       VectorNd coords = new VectorNd(numc);
-      doGetCoords (coords);     
+      doGetCoords (coords);  
       coordinatesToTCD (TGD, coords);
       updateConstraints(TGD);
       // automatically set LINEAR/ROTARY flags based on whether the wrench
@@ -407,7 +472,7 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       R.set(TCD.R);
       doGetRpy(rpy, R);
       coords.set(0, rpy[0]);
-      coords.set(1, rpy[1]);
+      coords.set(1, rpy[1]);         
       coords.set(2, rpy[2]);
    }
 
@@ -498,4 +563,119 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
       return myG[idx];
    }
 
+   private void setCoordForWriting (
+      Coordinate coord, CoordinateInfo cinfo) {
+
+      coord.setName (cinfo.getName());
+      coord.setDefaultValue (cinfo.getValue());
+      coord.setLocked (cinfo.isLocked());      
+      Range range = cinfo.getRange();
+      coord.setRange (cinfo.getRange());
+      if (cinfo.hasRestrictedRange()) {
+         coord.setClamped (true);
+      }
+      switch (cinfo.getMotionType()) {
+         case LINEAR: {
+            coord.setMotionType (Coordinate.MotionType.TRANSLATIONAL);
+            break;
+         }
+         case COUPLED: {
+            coord.setMotionType (Coordinate.MotionType.COUPLED);
+            break;
+         }
+         default: {
+            coord.setMotionType (Coordinate.MotionType.ROTATIONAL);
+            break;
+         }
+      }
+   }
+   
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      rtok.scanToken ('[');
+
+      while (rtok.nextToken() != ']') {
+         if (ScanWriteUtils.scanAttributeName (rtok, "coordinates")) {
+            ArrayList<Coordinate> clist = new ArrayList<>();
+            rtok.scanToken ('[');
+            while (rtok.nextToken() != ']') {
+               rtok.pushBack();
+               Coordinate coord = new Coordinate();
+               coord.scan (rtok, ref);
+               clist.add (coord);
+            }
+            myCoords = clist.toArray(new Coordinate[0]);
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "axes")) {
+            ArrayList<TAxis> alist = new ArrayList<>();
+            rtok.scanToken ('[');
+            while (rtok.nextToken() != ']') {
+               rtok.pushBack();
+               TAxis taxis = new TAxis();
+               taxis.scan (rtok, ref);
+               alist.add (taxis);
+            }
+            if (alist.size() != 6) {
+               throw new IOException (
+                  "Expecting 6 axis definitions, got " +
+                  alist.size() + ", line "+rtok.lineno());
+            }
+            myRotAxes = new TAxis[3];
+            for (int i=0; i<3; i++) {
+               myRotAxes[i] = alist.get(i);
+            }
+            myTransAxes = new TAxis[3];
+            for (int i=0; i<3; i++) {
+               myTransAxes[i] = alist.get(i+3);
+            }
+         }
+         else {
+            throw new IOException (
+               "Expected attrubute name, got " + rtok);
+         }
+      }
+      if (myCoords == null) {
+         throw new IOException (
+            "No coordinates specified, line " + rtok.lineno());
+      }
+      if (myRotAxes == null) {
+         throw new IOException (
+            "No axes specified, line " + rtok.lineno());
+      }
+      initializeConstraintInfo();      
+   }
+
+   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+      throws IOException {
+
+      pw.println ("[ ");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      pw.println ("coordinates=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      Coordinate coord = new Coordinate();
+      for (int i=0; i<numCoordinates(); i++) {
+         CoordinateInfo cinfo = getCoordinateInfo(i);
+         setCoordForWriting (coord, cinfo);
+         coord.write (pw, fmt, ref);
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+      pw.println ("axes=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      for (int i=0; i<myRotAxes.length; i++) {
+         myRotAxes[i].write (pw, fmt, ref);
+      }
+      for (int i=0; i<myTransAxes.length; i++) {
+         myTransAxes[i].write (pw, fmt, ref);
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+   }
+
+   public boolean isWritable() {
+      return true;
+
+
+   }
 }

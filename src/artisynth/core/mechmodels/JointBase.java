@@ -403,6 +403,25 @@ public abstract class JointBase extends BodyConnector  {
 
    /**
     * Returns the current stored value of the {@code idx}-th coordinate for 
+    * this joint. If the coordinate motion type is {@link MotionType#ROTARY},
+    * then the value is returned in degrees.
+    * 
+    * <p>Unlike {@link getCoordinateDeg(int)}, this method will not
+    * cause the coordinate value to be recomputed.
+    *
+    * @param idx index of the coordinate
+    * @return the coordinate value
+    */
+   public double getCoordinateValueDeg (int idx) {
+      double value = getCoordinateValue(idx);
+      if (getCoordinateMotionType(idx) == MotionType.ROTARY) {
+         value *= RTOD;
+      }
+      return value;
+   }
+
+   /**
+    * Returns the current stored value of the {@code idx}-th coordinate for 
     * this joint. 
     * 
     * <p>Unlike {@link getCoordinate(int)}, this method will not

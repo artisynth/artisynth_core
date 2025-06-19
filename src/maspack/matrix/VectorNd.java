@@ -535,7 +535,8 @@ public class VectorNd extends VectorBase
       int v1size = v1.size();
       if (size < off + v1size) {
          throw new ImproperSizeException (
-            "vector not large enough for sub-vector");
+            "vector size "+size+" not large enough for sub-vector size "
+            + v1size + " at offset "+off);
       }
       if (v1 instanceof VectorNd) {
          double[] v1buf = ((VectorNd)v1).buf;
@@ -565,7 +566,8 @@ public class VectorNd extends VectorBase
       int v1size = v1.size();
       if (size < off + v1size) {
          throw new ImproperSizeException (
-            "vector not large enough for sub-vector");
+            "vector size "+size+" not large enough for sub-vector size "
+            + v1size + " at offset "+off);
       }
       if (v1 instanceof VectorNd) {
          double[] v1buf = ((VectorNd)v1).buf;

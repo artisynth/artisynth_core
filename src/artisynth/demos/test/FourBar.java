@@ -48,18 +48,20 @@ public class FourBar extends RootModel {
       // Note: the compliance vector has 6 DOF, even though the revolute joints
       // normally have only 5 constrained DOFs.  The sixth DOF is for the
       // unilateral constraint associated with joint limits.
-      VectorNd vec = new VectorNd(6);
-      for (int i=0; i<5; i++) {
-         // constrained translational DOFs ...
-         vec.set (0, c);
-         vec.set (1, c);
-         vec.set (2, c);
-         // constrained rotational DOFs ...
-         vec.set (3, c);
-         vec.set (4, c);
-      }
-      for (int i=0; i<4; i++) {
-         myJoints[i].setCompliance (vec);
+      if (myJoints != null) {
+         VectorNd vec = new VectorNd(6);
+         for (int i=0; i<5; i++) {
+            // constrained translational DOFs ...
+            vec.set (0, c);
+            vec.set (1, c);
+            vec.set (2, c);
+            // constrained rotational DOFs ...
+            vec.set (3, c);
+            vec.set (4, c);
+         }
+         for (int i=0; i<4; i++) {
+            myJoints[i].setCompliance (vec);
+         }
       }
    }
 
@@ -71,18 +73,20 @@ public class FourBar extends RootModel {
 
       myDamping = d;
       // See comments in setCompliance() about why vec has a size of 6
-      VectorNd vec = new VectorNd(6);
-      for (int i=0; i<5; i++) {
-         // constrained translational DOFs ...
-         vec.set (0, d);
-         vec.set (1, d);
-         vec.set (2, d);
-         // constrained rotational DOFs ...
-         vec.set (3, d);
-         vec.set (4, d);
-      }
-      for (int i=0; i<4; i++) {
-         myJoints[i].setDamping (vec);
+      if (myJoints != null) {
+         VectorNd vec = new VectorNd(6);
+         for (int i=0; i<5; i++) {
+            // constrained translational DOFs ...
+            vec.set (0, d);
+            vec.set (1, d);
+            vec.set (2, d);
+            // constrained rotational DOFs ...
+            vec.set (3, d);
+            vec.set (4, d);
+         }
+         for (int i=0; i<4; i++) {
+            myJoints[i].setDamping (vec);
+         }
       }
    }
 
@@ -163,5 +167,16 @@ public class FourBar extends RootModel {
 
       addControlPanel();
    }
+
+   public void postscanInitialize() {
+      MechModel mech = (MechModel)models().get("mech");
+      myJoints = new RevoluteJoint[4];
+      for (int i=0; i<4; i++) {
+         myJoints[i] = (RevoluteJoint)mech.bodyConnectors().get(i);
+      }
+      setCompliance (getCompliance());
+      setDamping (getDamping());
+   }
+
 
 }

@@ -1,10 +1,16 @@
 package artisynth.core.opensim.customjoint;
 
 import java.awt.Color;
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.util.Deque;
 import java.util.ArrayList;
 
 import artisynth.core.mechmodels.JointBase;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.util.ScanToken;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.opensim.components.Coordinate;
 import artisynth.core.opensim.components.CoordinateSet;
 import artisynth.core.opensim.components.CustomJoint;
@@ -21,6 +27,8 @@ import maspack.render.Renderer.*;
 import maspack.render.*;
 import maspack.spatialmotion.*;
 import maspack.spatialmotion.RigidBodyConstraint.MotionType;
+import maspack.util.ReaderTokenizer;
+import maspack.util.NumberFormat;
 
 public class OpenSimCustomJoint extends JointBase {
 
@@ -29,7 +37,7 @@ public class OpenSimCustomJoint extends JointBase {
 
    public static AxisDrawStyle DEFAULT_DRAW_TRANS_AXES = AxisDrawStyle.OFF;
    private AxisDrawStyle myDrawTransAxes = DEFAULT_DRAW_TRANS_AXES;
-   
+
    // used to double buffer rotation axis directions for rendering:
    Vector3d[] myRenderRotAxes;
 
@@ -57,6 +65,7 @@ public class OpenSimCustomJoint extends JointBase {
    public PropertyInfoList getAllPropertyInfo() {
       if (myLocalProps == null) {
          myLocalProps = new LocalPropertyList (myProps);
+         myLocalProps.setWriteLocalProps (false);
       }
       return myLocalProps;
    }
@@ -64,6 +73,9 @@ public class OpenSimCustomJoint extends JointBase {
    protected void setDefaultValues() {
       super.setDefaultValues();
       //setRenderProps(defaultRenderProps(null));
+   }
+
+   public OpenSimCustomJoint() {
    }
    
    public OpenSimCustomJoint(CustomJoint cj) {
@@ -121,9 +133,9 @@ public class OpenSimCustomJoint extends JointBase {
 
    private void addCoordinateProperties (Coordinate[] coords) {
       String degMethods =
-         "getCoordinateDeg setCoordinateDeg getCoordinateRangeDeg";
+         "getCoordinateValueDeg setCoordinateDeg getCoordinateRangeDeg";
       String regMethods =
-         "getCoordinate setCoordinate getCoordinateRange";
+         "getCoordinateValue setCoordinate getCoordinateRange";
 
       for (int i=0; i<coords.length; i++) {
          Coordinate c = coords[i];
@@ -301,5 +313,33 @@ public class OpenSimCustomJoint extends JointBase {
    public double updateConstraints (double t, int flags) {
       return super.updateConstraints (t, flags);
    }   
+
+
+   /* --- I/O methods */
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      pw.print ("coupling=");
+      ((OpenSimCustomCoupling)myCoupling).write (pw, fmt, ancestor);
+      super.writeItems (pw, fmt, ancestor);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "coupling")) {
+         OpenSimCustomCoupling coupling = new OpenSimCustomCoupling();
+         coupling.scan (rtok, tokens);
+         setCoupling (coupling);
+         addCoordinateProperties (coupling.myCoords);
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
    
 }

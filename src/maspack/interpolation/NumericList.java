@@ -1064,11 +1064,31 @@ public class NumericList
       }
    }
 
-   private void getAngularVelocity (
+   static void getAngularVelocity (
       Vector3d w, Quaternion q0, Quaternion q1, double h) {
       Quaternion qd = new Quaternion();
       qd.mulInverseLeft (q0, q1);
       qd.log (w);
+      w.scale (2/h);
+      // transform velocity into global coordinates
+      q0.transform (w, w);
+   }
+
+   /**
+    * Get angular velocity from three quaternions instead of two, to make sure
+    * that the velocity from q0 to q2 is consistent with the velocities from q0
+    * to q1 and q1 to q2. This is necessary in case the default "route" from q0
+    * to q2 is different than the route q0-q1-q2.
+    */
+   static void getAngularVelocity (
+      Vector3d w, Quaternion q0, Quaternion q1, Quaternion q2, double h) {
+      Vector3d wtmp= new Vector3d();
+      Quaternion qd = new Quaternion();
+      qd.mulInverseLeft (q0, q1);
+      qd.log (w);
+      qd.mulInverseLeft (q1, q2);
+      qd.log (wtmp);
+      w.add (wtmp);
       w.scale (2/h);
       // transform velocity into global coordinates
       q0.transform (w, w);
@@ -1262,14 +1282,14 @@ public class NumericList
       getRotation (q1, next.v);
       if (prevprev != null) {
          getRotation (qr, prevprev.v);
-         getAngularVelocity (w0, qr, q1, next.t-prevprev.t);
+         getAngularVelocity (w0, qr, q0, q1, next.t-prevprev.t);
       }
       else {
          getAngularVelocity (w0, q0, q1, next.t-prev.t);
       }
       if (nextnext != null) {
          getRotation (qr, nextnext.v);
-         getAngularVelocity (w1, q0, qr, nextnext.t-prev.t);
+         getAngularVelocity (w1, q0, q1, qr, nextnext.t-prev.t);
       }
       else {
          getAngularVelocity (w1, q0, q1, next.t-prev.t);
@@ -1297,14 +1317,14 @@ public class NumericList
       getRotation (q1, next.v);
       if (prevprev != null) {
          getRotation (qr, prevprev.v);
-         getAngularVelocity (w0, qr, q1, next.t-prevprev.t);
+         getAngularVelocity (w0, qr, q0, q1, next.t-prevprev.t);
       }
       else {
          getAngularVelocity (w0, q0, q1, next.t-prev.t);
       }
       if (nextnext != null) {
          getRotation (qr, nextnext.v);
-         getAngularVelocity (w1, q0, qr, nextnext.t-prev.t);
+         getAngularVelocity (w1, q0, q1, qr, nextnext.t-prev.t);
       }
       else {
          getAngularVelocity (w1, q0, q1, next.t-prev.t);
@@ -1562,14 +1582,15 @@ public class NumericList
                //rvec.getQuaternion (q1, nbuf);
                qr.set (ppbuf, off, myRotationRep, /*scale*/1);
                //rvec.getQuaternion (qr, ppbuf);
-               getAngularVelocity (w0, qr, q1, hp);
+               getAngularVelocity (w0, qr, q0, q1, hp);
                qr.set (nnbuf, off, myRotationRep, /*scale*/1);
                //rvec.getQuaternion (qr, nnbuf);
-               getAngularVelocity (w1, q0, qr, hn);
+               getAngularVelocity (w1, q0, q1, qr, hn);
 
                Quaternion.sphericalHermiteGlobal (
                   qr, null, q0, w0, q1, w1, s, h);
                qr.get (vbuf, rbuf, off, myRotationRep, /*scale*/1);
+
                //rvec.setRotation (vbuf, rbuf, qr);
                i += myRotationRep.size();
                if (++k < numRotationSubvecs()) {
@@ -1653,10 +1674,10 @@ public class NumericList
                //rvec.getQuaternion (q1, nbuf);
                qr.set (ppbuf, off, myRotationRep, /*scale*/1);
                //rvec.getQuaternion (qr, ppbuf);
-               getAngularVelocity (w0, qr, q1, hp);
+               getAngularVelocity (w0, qr, q0, q1, hp);
                qr.set (nnbuf, off, myRotationRep, /*scale*/1);
                //rvec.getQuaternion (qr, nnbuf);
-               getAngularVelocity (w1, q0, qr, hn);
+               getAngularVelocity (w1, q0, q1, qr, hn);
 
                Quaternion.sphericalHermiteGlobal (
                   qr, wr, q0, w0, q1, w1, s, h);

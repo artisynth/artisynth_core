@@ -13,6 +13,7 @@ public class LocalPropertyList implements PropertyInfoList {
    PropertyList myClassProps;
    LinkedHashMap<String,PropertyInfo> myLocalProps;
    boolean myHasNoLocalInheritableP = true;
+   boolean myWriteLocalProps = true;
 
    class MyIterator implements Iterator<PropertyInfo> {
 
@@ -157,6 +158,26 @@ public class LocalPropertyList implements PropertyInfoList {
    }
    
    /**
+    * Queries whether or not local props are written when calling {@link
+    * #writeNonDefaultProps}.
+    * 
+    * @return {@code true} if local props are written
+    */
+   public boolean getWriteLocalProps() {
+      return myWriteLocalProps;
+   }
+   
+   /**
+    * Sets whether or not to write local props when calling {@link
+    * #writeNonDefaultProps}.
+    * 
+    * @param enable if {@code true}, enables writing of local props.
+    */
+   public void setWriteLocalProps (boolean enable) {
+      myWriteLocalProps = enable;
+   }
+   
+   /**
     * Writes properties in this list whose current values differ from their
     * default values to a PrintWriter. This allows the conservation of space
     * within persistent storage. Otherwise, the behaviour of this method is
@@ -189,10 +210,12 @@ public class LocalPropertyList implements PropertyInfoList {
          wroteSomething = myClassProps.writeNonDefaultProps (
             host, pw, fmt, ref);
       }
-      for (PropertyInfo desc : myLocalProps.values()) {
-         if (desc.getAutoWrite()) {
-            boolean wrote = desc.writeIfNonDefault (host, pw, fmt, ref);
-            wroteSomething |= wrote;
+      if (myWriteLocalProps) {
+         for (PropertyInfo desc : myLocalProps.values()) {
+            if (desc.getAutoWrite()) {
+               boolean wrote = desc.writeIfNonDefault (host, pw, fmt, ref);
+               wroteSomething |= wrote;
+            }
          }
       }
       return wroteSomething;

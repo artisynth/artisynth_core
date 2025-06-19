@@ -171,10 +171,11 @@ public class Body extends PhysicalFrame implements
    }
 
    @Override
-   public RigidBody createComponent (
+   public RigidBodyOsim createComponent (
       File geometryPath, ModelComponentMap componentMap) {
       
-      RigidBody rb = super.createComponent (geometryPath, componentMap);
+      RigidBodyOsim rb =
+         (RigidBodyOsim)super.createComponent (geometryPath, componentMap);
       componentMap.put (this, rb);   // needs to be up-front so we can find it in the joint
       
       // add joint
@@ -186,7 +187,8 @@ public class Body extends PhysicalFrame implements
          // get parent and child bodies
          JointBase joint = jointHolder.getJoint ();
          if (joint != null) {
-            Body parentBody = componentMap.findObjectByName (Body.class, joint.getParentBody ());
+            Body parentBody = componentMap.findObjectByName (
+               Body.class, joint.getParentBody ());
             RigidBody parentRB = (RigidBody)componentMap.get (parentBody);
             
             // create and add joint
@@ -194,11 +196,7 @@ public class Body extends PhysicalFrame implements
                joint.createComponent(geometryPath, componentMap);
             if (jb != null) {
                // connect joint within body
-               RenderableComponentList<artisynth.core.mechmodels.JointBase> j = 
-                  new RenderableComponentList<>(
-                  artisynth.core.mechmodels.JointBase.class, "joint");
-               rb.add (j);
-               j.add (jb);
+               rb.myJoint.add (jb);
                componentMap.put (joint, jb);
             } else {
                // can this happen?
@@ -239,23 +237,26 @@ public class Body extends PhysicalFrame implements
       // add wrapping surfaces
       WrapObjectSet wrapBodies = getWrapObjectSet ();
       if (wrapBodies != null) {
-         RenderableComponentList<WrapComponent> wrapComponents = 
-            wrapBodies.createComponent(geometryPath, componentMap);
-         rb.add(wrapComponents);
+         // RenderableComponentList<WrapComponent> wrapComponents = 
+         //    wrapBodies.createComponent(geometryPath, componentMap);
+         // rb.add(wrapComponents);
+         wrapBodies.addComponents (
+            rb.myWrapComponents, geometryPath, componentMap);
          
          // attach wrappables to this frame
-         RenderableComponentList<FrameFrameAttachment> wrapAttachments = new RenderableComponentList<> (FrameFrameAttachment.class, "wrapobjectset_attachments");
+         //RenderableComponentList<FrameFrameAttachment> wrapAttachments = new RenderableComponentList<> (FrameFrameAttachment.class, "wrapobjectset_attachments");
          for (WrapObject wo : wrapBodies) {
             RigidTransform3d trans = wo.getTransform ();
             // set initial pose
-            artisynth.core.mechmodels.Frame wrap = (artisynth.core.mechmodels.Frame)componentMap.get (wo);
+            artisynth.core.mechmodels.Frame wrap =
+               (artisynth.core.mechmodels.Frame)componentMap.get (wo);
             wrap.setPose (trans);
             wrap.transformPose (rb.getPose ());
             
             FrameFrameAttachment ffa = new FrameFrameAttachment (wrap, rb, trans);
-            wrapAttachments.add (ffa);
+            rb.myWrapAttachments.add (ffa);
          }
-         rb.add(wrapAttachments);
+         //rb.add(wrapAttachments);
       }
       
       // set mass and inertia last so not affected by geometries

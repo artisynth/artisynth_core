@@ -15,11 +15,15 @@ public class MarkerMotionData {
    protected DynamicDoubleArray myFrameTimes;
    protected ArrayList<ArrayList<Point3d>> myMarkerData;
 
+   /**
+    * Creates an empty MarkerMotionData structure.
+    */
    public MarkerMotionData() {
       myMarkerLabels = new ArrayList<>();
       myFrameTimes = new DynamicDoubleArray();
       myMarkerData = new ArrayList<>();
    }
+
 
    public void setMarkerLabels (Collection<String> labels) {
       myMarkerLabels.clear();
@@ -47,29 +51,28 @@ public class MarkerMotionData {
       myMarkerData.add (pnts);      
    }
 
-   public ArrayList<Point3d> getMarkerPositions (int frameNum) {
-      if (frameNum >= numFrames()) {
+   public ArrayList<Point3d> getMarkerPositions (int frameIdx) {
+      if (frameIdx >= numFrames()) {
          throw new IllegalArgumentException (
-            "Frame number "+frameNum+" not in the range 0 to "+(numFrames()-1));
+            "Frame number "+frameIdx+" not in the range 0 to "+(numFrames()-1));
       }
-      return myMarkerData.get(frameNum);
+      return myMarkerData.get(frameIdx);
    }
 
-   public Point3d getMarkerPosition (int frameNum, int mkrIdx) {
+   public Point3d getMarkerPosition (int frameIdx, int mkrIdx) {
       if (mkrIdx >= numMarkers()) {
          throw new IllegalArgumentException (
             "Marker index "+mkrIdx+" not in the range 0 to "+(numMarkers()-1));
       }
-      return getMarkerPositions(frameNum).get(mkrIdx);
+      return getMarkerPositions(frameIdx).get(mkrIdx);
    }
 
-   public Vector3d getMarkerPosition (int frameNum, String label) {
+   public Vector3d getMarkerPosition (int frameIdx, String label) {
       int mkrIdx = getMarkerIndex (label);
       if (mkrIdx == -1) {
-         throw new IllegalArgumentException (
-            "Unknown marker label '"+label+"'");
+         return null;
       }
-      return getMarkerPosition (frameNum, mkrIdx);
+      return getMarkerPosition (frameIdx, mkrIdx);
    }
 
    public double getFrameTime (int num) {

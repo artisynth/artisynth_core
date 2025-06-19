@@ -9,18 +9,20 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.InternalErrorException;
+import maspack.matrix.VectorNd;
 
 public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
 
    double myScale;
    Diff1Function1x1 myFxn;
+   boolean myFxnConstant = false;
    
    public ScaledDiff1Function1x1() {
    }
 
    public ScaledDiff1Function1x1 (double s, Diff1Function1x1 fxn) {
       myScale = s;
-      myFxn = fxn;
+      setFunction (fxn);
    }
    
    public double getScale() {
@@ -37,6 +39,9 @@ public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
    
    public void setFunction (Diff1Function1x1 fxn) {
       myFxn = fxn;
+      if (fxn instanceof ConstantFunction1x1) {
+         myFxnConstant = true;
+      }
    }
 
    public int inputSize() {
@@ -45,6 +50,19 @@ public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
    
    public double eval (double x) {
       return myScale*myFxn.eval (x);
+   }
+
+   /**
+    * Override this here in case function is called with a zero-sized vector
+    * {@code in} and the underlying function is constant.
+    */
+   public double eval (VectorNd in) {
+      if (myFxnConstant) {
+         return myScale*myFxn.eval(0);
+      }
+      else {
+         return myScale*myFxn.eval (in.get(0));
+      }
    }
 
    /**
@@ -58,6 +76,41 @@ public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
       return value;
    }
 
+   /**
+    * Override this here in case function is called with zero-sized vectors
+    * {@code in} and/or {@code deriv} and the underlying function is constant.
+    */
+   public double eval (VectorNd deriv, VectorNd in) {
+      if (myFxnConstant) {
+         double d = 0;
+         if (deriv != null) {
+            if (deriv.size() != 1) {
+               deriv.setSize (1);
+            }
+            deriv.set (0, d);
+         }
+         return d;
+      }
+      else {
+         return super.eval (deriv, in);
+      }
+   }
+
+   /**
+    * Override this here in case function is called with zero-sized vectors
+    * {@code in} and/or {@code deriv} and the underlying function is constant.
+    */
+   public void evalDeriv (VectorNd deriv, VectorNd in) {
+      if (myFxnConstant) {
+         if (deriv.size() > 0) {
+            deriv.set (0, 0);
+         }
+      }
+      else {
+         super.evalDeriv (deriv, in);
+      }
+   }
+
    public boolean isWritable() {
       return true;
    }
@@ -65,6 +118,7 @@ public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       myFxn = null;
       myScale = 0;
+      myFxnConstant = false;
       rtok.scanToken ('[');
       while (rtok.nextToken() != ']') {
          if (rtok.tokenIsWord ("scale")) {
@@ -73,14 +127,13 @@ public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
          }
          else if (rtok.tokenIsWord ("function")) {
             rtok.scanToken ('=');
-            myFxn = FunctionUtils.scan (rtok, Diff1Function1x1.class);
+            setFunction (FunctionUtils.scan (rtok, Diff1Function1x1.class));
          }
          else {
             throw new IOException (
                "Unexpect token or attribute name: " + rtok);
          }
       }
-      rtok.scanToken (']');
    }
 
    public void write (
@@ -99,7 +152,7 @@ public class ScaledDiff1Function1x1 extends Diff1Function1x1Base {
       ScaledDiff1Function1x1 fxn = (ScaledDiff1Function1x1)super.clone();
       if (myFxn instanceof Clonable) {
          try {
-            fxn.myFxn = (Diff1Function1x1)((Clonable)myFxn).clone();
+            setFunction ((Diff1Function1x1)((Clonable)myFxn).clone());
          }
          catch (Exception e) {
             throw new InternalErrorException ("Can't clone " + getClass());

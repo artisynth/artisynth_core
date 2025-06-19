@@ -60,6 +60,10 @@ public class JointCoordinateHandle {
       return myIdx;
    }
 
+   public String getName() {
+      return myJoint.getCoordinateName (myIdx);
+   }
+
    public double getValue() {
       return myJoint.getCoordinate (myIdx);
    }
@@ -85,18 +89,14 @@ public class JointCoordinateHandle {
    }
  
    public double getStoredValueDeg() {
-      double value = getStoredValue();
-      if (myJoint.getCoordinateMotionType(myIdx) == MotionType.ROTARY) {
-         value *= RTOD;
-      }
-      return value;
+      return myJoint.getCoordinateValueDeg (myIdx);
    }
  
    public void setValueDeg(double value) {
       myJoint.setCoordinateDeg (myIdx, value);
    }
 
-   public Range getValueRangeDeg() {
+   public DoubleInterval getValueRangeDeg() {
       return myJoint.getCoordinateRangeDeg(myIdx);
    }
 
@@ -136,14 +136,14 @@ public class JointCoordinateHandle {
       return myJoint.getCoupling().getCoordinateWrench (myIdx);
    }
 
-   protected void write (PrintWriter pw, CompositeComponent ancestor)
+   public void write (PrintWriter pw, CompositeComponent ancestor)
       throws IOException {
       
       String jointPath = ComponentUtils.getWritePathName (ancestor, myJoint);
       pw.println ("[ "+myIdx+" "+jointPath+"]");
    }
 
-   protected void scan (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   public void scan (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.scanToken ('[');
@@ -154,7 +154,7 @@ public class JointCoordinateHandle {
       rtok.scanToken (']');
    }
 
-   protected void postscan (
+   public void postscan (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       
       myJoint = ScanWriteUtils.postscanReference (

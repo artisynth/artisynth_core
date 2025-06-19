@@ -251,6 +251,35 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    public double getOptPennationAngle() {
       return myOptPennationAngle;
    }
+   
+   /**
+    * Queries the height of the muscle, as determined by the
+    * optimum pennation angle and optimum fibre length.  
+    * 
+    * @return height of the muscle
+    */
+   public double getHeight() {
+      return myHeight;
+   }
+   
+   /**
+    * Computes the current pennation angle from the current
+    * muscle length.
+    * 
+    * @return current pennation angle
+    */
+   public double getPennationAngle() {
+      double H = myHeight;
+      double lm = getMuscleLength();
+      double ca; // cos(alpha)
+      if (H == 0) {
+         ca = 1.0;
+      }
+      else {
+         ca = lm/Math.sqrt (H*H + lm*lm);
+      }
+      return Math.acos (ca);
+   }
 
    public void setOptPennationAngle (double ang) {
       myOptPennationAngle = ang;

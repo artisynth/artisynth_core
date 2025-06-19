@@ -7,6 +7,7 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	WayPointProbeTest \
+	TRCReaderWriterTest \
 	IKSolverTest
 
 default: build

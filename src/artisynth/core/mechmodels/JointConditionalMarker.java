@@ -3,8 +3,10 @@ package artisynth.core.mechmodels;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
+import java.util.List;
 
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 import maspack.matrix.Point3d;
@@ -82,6 +84,15 @@ public class JointConditionalMarker extends FrameMarker
       this (coord, range);
       myFrameAttachment.setLocation (loc);
       setFrame (frame);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void getHardReferences (List<ModelComponent> refs) {
+      if (myCoord != null) {
+         refs.add (myCoord.getJoint());
+      }
    }
 
    /* --- begin I/O methods --- */

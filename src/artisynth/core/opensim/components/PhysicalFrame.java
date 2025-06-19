@@ -37,10 +37,9 @@ public class PhysicalFrame extends Frame {
    public RigidBody createComponent (
       File geometryPath, ModelComponentMap componentMap) {
       
-     RigidBody rb  = super.createComponent (geometryPath, componentMap);
+     RigidBody rb = super.createComponent (geometryPath, componentMap);
      
      return rb;
    }
    
 }
- 

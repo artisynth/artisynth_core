@@ -44,6 +44,16 @@ public class OpenSimSpine extends RootModel {
    }
 
    public void build (String[] args) throws IOException {
+
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-noFrameSprings")) {
+            useFrameSprings = false;
+         }
+         else {
+            System.out.println (
+               "WARNING: unknown option '"+args[i]+"', ignoring");
+         }
+      }
       
       MechModel mech = new MechModel ("mech");
       addModel (mech);
@@ -77,85 +87,91 @@ public class OpenSimSpine extends RootModel {
       ComponentList<RigidBody> bodies =
          (ComponentList<RigidBody>)mech.get("bodyset");
       {
-         // remove gnd-sacrum joint
-         RigidBody sacrum = bodies.get ("sacrum");
-         @SuppressWarnings("unchecked")
-         RenderableComponentList<JointBase> joint =
-            (RenderableComponentList<JointBase>)sacrum.get("joint");
-         sacrum.remove(joint);
+         // remove ground and associated joint
+         RigidBody ground = parser.getGround();
+         System.out.println ("ground=" + ground);
+         ComponentUtils.deleteComponentAndDependencies (ground);
 
-         // remove ground altogether
-         RigidBody ground = bodies.get ("ground");
-         if (ground != null) {
-            bodies.remove(ground);
-         }
+         // RigidBody sacrum = bodies.get ("sacrum");
+         // @SuppressWarnings("unchecked")
+         // RenderableComponentList<JointBase> joint =
+         //    (RenderableComponentList<JointBase>)sacrum.get("joint");
+         // sacrum.remove(joint);
+
+         // // remove ground altogether
+         // RigidBody ground = bodies.get ("ground");
+         // if (ground != null) {
+         //    bodies.remove(ground);
+         // }
       }
 
       // replace spine joints with framesprings
          
-      ArrayList<FrameSpring> toAdd = new ArrayList<>();
+
       if (useFrameSprings) {
-         for (RigidBody rb : bodies) {
+         ArrayList<FrameSpring> toAdd = new ArrayList<>();
+         List<JointBase> joints = parser.getJoints();
+         ArrayList<JointBase> toRemove = new ArrayList<>();
+         for (JointBase joint : joints) {
+            if (joint instanceof OpenSimCustomJoint) {
+               toRemove.add (joint);
+               FrameSpring fs = new FrameSpring (joint.getName ());
 
-            ArrayList<JointBase> toRemove = new ArrayList<>();
+               FrameFrameAttachment fa =
+                  (FrameFrameAttachment)joint.getFrameAttachmentA ();
+               FrameFrameAttachment fb =
+                  (FrameFrameAttachment)joint.getFrameAttachmentB ();
 
-            @SuppressWarnings("unchecked")
-               // RenderableComponentList<RenderableComponentList<JointBase>> joints =
-               //    (RenderableComponentList<RenderableComponentList<JointBase>>)rb.get("joint");
-               // if (joints != null) {
-               //    for (RenderableComponentList<JointBase> list : joints) {
-               //       for (JointBase bc : list) {
-               //          if (bc instanceof OpenSimCustomJoint) {
-               //             OpenSimCustomJoint j = (OpenSimCustomJoint)bc;
-               //             toRemove.add (j);
-               //             FrameSpring fs = new FrameSpring (j.getName ());
-
-               //             FrameFrameAttachment fa =
-               //                (FrameFrameAttachment)j.getFrameAttachmentA ();
-               //             FrameFrameAttachment fb =
-               //                (FrameFrameAttachment)j.getFrameAttachmentB ();
-
-               //             fs.setFrames (
-               //                fa.getMaster(), fa.getTFM(), fb.getMaster(), fb.getTFM());
-               //             fs.setMaterial (
-               //                new LinearFrameMaterial (100000, 1000, 0, 0));
-               //             fs.setName (j.getName ());
-               //             toAdd.add (fs);
-               //          }
-               //       }
-               //    }
-               RenderableComponentList<JointBase> joints =
-               (RenderableComponentList<JointBase>)rb.get("joint");
-            if (joints != null) {
-               for (JointBase bc : joints) {
-                  if (bc instanceof OpenSimCustomJoint) {
-                     OpenSimCustomJoint j = (OpenSimCustomJoint)bc;
-                     toRemove.add (j);
-                     FrameSpring fs = new FrameSpring (j.getName ());
-
-                     FrameFrameAttachment fa =
-                        (FrameFrameAttachment)j.getFrameAttachmentA ();
-                     FrameFrameAttachment fb =
-                        (FrameFrameAttachment)j.getFrameAttachmentB ();
-
-                     fs.setFrames (
-                        fa.getMaster(), fa.getTFM(), fb.getMaster(), fb.getTFM());
-                     fs.setMaterial (
-                        new LinearFrameMaterial (100000, 1000, 0, 0));
-                     fs.setName (j.getName ());
-                     toAdd.add (fs);
-                  }
-               }
-               for (JointBase joint : toRemove) {
-                  joints.remove (joint);
-               }
+               fs.setFrames (
+                  fa.getMaster(), fa.getTFM(), fb.getMaster(), fb.getTFM());
+               fs.setMaterial (
+                  new LinearFrameMaterial (100000, 1000, 0, 0));
+               fs.setName (joint.getName ());
+               toAdd.add (fs);
             }
          }
+         ComponentUtils.deleteComponentsAndDependencies (toRemove);
+         for (FrameSpring fs : toAdd) {
+            mech.addFrameSpring (fs);
+         }
+         // for (RigidBody rb : bodies) {
+
+
+
+         //    @SuppressWarnings("unchecked")
+         //       RenderableComponentList<JointBase> joints =
+         //       (RenderableComponentList<JointBase>)rb.get("joint");
+         //    if (joints != null) {
+         //       for (JointBase bc : joints) {
+         //          if (bc instanceof OpenSimCustomJoint &&
+         //              (bc.getName().equals ("Abdjnt") ||
+         //               bc.getName().equals ("L5_S1_IVDjnt"))) {
+         //             OpenSimCustomJoint j = (OpenSimCustomJoint)bc;
+         //             toRemove.add (j);
+         //             FrameSpring fs = new FrameSpring (j.getName ());
+
+         //             FrameFrameAttachment fa =
+         //                (FrameFrameAttachment)j.getFrameAttachmentA ();
+         //             FrameFrameAttachment fb =
+         //                (FrameFrameAttachment)j.getFrameAttachmentB ();
+
+         //             fs.setFrames (
+         //                fa.getMaster(), fa.getTFM(), fb.getMaster(), fb.getTFM());
+         //             fs.setMaterial (
+         //                new LinearFrameMaterial (100000, 1000, 0, 0));
+         //             fs.setName (j.getName ());
+         //             toAdd.add (fs);
+         //          }
+         //       }
+         //       System.out.println ("removing " + toRemove.size());
+         //       ComponentUtils.deleteComponentsAndDependencies (toRemove);
+         //       // for (JointBase joint : toRemove) {
+         //       //    ComponentUtils.deleteComponentAndDependencies (joint);
+         //       // }
+         //    }
+         // }
       }
       
-      for (FrameSpring fs : toAdd) {
-         mech.addFrameSpring (fs);
-      }
 
       // remove gravity
       mech.setGravity (Vector3d.ZERO);

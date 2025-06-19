@@ -35,6 +35,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.probes.NumericInputProbe;
+import artisynth.core.probes.PositionInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.probes.PositionInputProbe;
 import artisynth.core.probes.PositionOutputProbe;
@@ -949,7 +950,8 @@ public class InverseManager {
       if (usePositionProbes && pid == ProbeID.TARGET_POSITIONS) {
          RotationRep rotRep = tcon.getPositionProbeRotRep();
          PositionInputProbe probe = new PositionInputProbe (
-            pid.getName(), tcon.getMotionTargets(), rotRep, startTime, stopTime);
+            pid.getName(), tcon.getMotionTargets(), rotRep, 
+            /*targetProps*/false, startTime, stopTime);
          if (filePath != null) {
             probe.setAttachedFileName(filePath);
             maybeLoadDataFromFile (probe);

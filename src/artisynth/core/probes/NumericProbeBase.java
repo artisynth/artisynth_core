@@ -19,6 +19,7 @@ import maspack.interpolation.NumericListKnot;
 import maspack.matrix.VectorNd;
 import maspack.matrix.RotationRep;
 import maspack.properties.GenericPropertyHandle;
+import maspack.properties.HasProperties;
 import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
@@ -1251,19 +1252,34 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
     * build a PositionInputProbe and PositionOutputProbe.
     */
    protected Property[] findPositionPropsAndOffsets (
-      ModelComponent[] carray, RotationRep rotRep) {
+      ModelComponent[] carray, RotationRep rotRep, boolean targetProps) {
       ArrayList<Property> props = new ArrayList<>();
       DynamicIntArray offsets = new DynamicIntArray();
       int off = 0;
       for (ModelComponent comp : carray) {
          if (comp instanceof Point) {
-            props.add (((Point)comp).getProperty ("position"));
+            if (targetProps) {
+               props.add (((Point)comp).getProperty ("targetPosition"));
+            }
+            else {
+               props.add (((Point)comp).getProperty ("position"));
+            }
             off += 3;
          }
          else if (comp instanceof Frame) {
-            props.add (((Frame)comp).getProperty ("position"));
+            if (targetProps) {
+               props.add (((Frame)comp).getProperty ("targetPosition"));
+            }
+            else {
+               props.add (((Frame)comp).getProperty ("position"));               
+            }
             off += 3;
-            props.add (((Frame)comp).getProperty ("orientation"));
+            if (targetProps) {
+               props.add (((Frame)comp).getProperty ("targetOrientation"));
+            }
+            else {
+               props.add (((Frame)comp).getProperty ("orientation"));
+            }
             offsets.add (off);
             if (rotRep == null) {
                throw new IllegalArgumentException (
@@ -1299,14 +1315,16 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
     * Find the velocity properties needed to build a VelocityInputProbe and
     * VelocityOutputProbe.
     */
-   protected Property[] findVelocityProps (ModelComponent[] carray) {
+   protected Property[] findVelocityProps (
+      ModelComponent[] carray, boolean targetProps) {
       ArrayList<Property> props = new ArrayList<>();
+      String propName = (targetProps ? "targetVelocity" : "velocity");
       for (ModelComponent comp : carray) {
          if (comp instanceof Point) {
-            props.add (((Point)comp).getProperty ("velocity"));
+            props.add (((Point)comp).getProperty (propName));
          }
          else if (comp instanceof Frame) {
-            props.add (((Frame)comp).getProperty ("velocity"));
+            props.add (((Frame)comp).getProperty (propName));
          }
          else {
             throw new IllegalArgumentException (
@@ -1315,6 +1333,92 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
          }
       }
       return props.toArray(new Property[0]);
+   }
+
+   /**
+    * Creates a map from position components (i.e., frame or point components)
+    * to their offsets within the data vector for a PositionInputProbe or
+    * PositionOutputProbe.
+    */
+   protected HashMap<ModelComponent,Integer> getPositionCompOffsetMap() {
+      LinkedHashMap<ModelComponent,Integer> map = new LinkedHashMap<>();
+      int offset = 0;
+      Object[] propsOrDimens = getPropsOrDimens();
+      for (int pidx=0; pidx<propsOrDimens.length; pidx++) {
+         Object obj = propsOrDimens[pidx];
+         if (obj instanceof Property) {
+            HasProperties host = ((Property)obj).getHost();
+            if (host instanceof Point) {
+               map.put ((ModelComponent)host, offset);
+               offset += 3;
+            }
+            else if (host instanceof Frame ||
+                     host instanceof FixedMeshBody) {
+               map.put ((ModelComponent)host, offset);
+               if (myRotationRep == null) { 
+                  throw new IllegalStateException (
+                     "probe contains frame data but rotation rep is null");
+               }
+               // for frames, the *next* property should be the orientation
+               // property with the same host. Check this and skip ahead:
+               pidx++;
+               if (pidx >= propsOrDimens.length ||
+                   !(propsOrDimens[pidx] instanceof Property) ||
+                   ((Property)propsOrDimens[pidx]).getHost() != host) {
+                  throw new IllegalStateException (
+                     "probe does not contain sequential position and "+
+                     "orientation properties for frame");
+               }
+               offset += 3 + myRotationRep.size();
+            }
+         }
+      }
+      if (offset != getVsize()) {
+         throw new IllegalStateException (
+            "probe data size "+getVsize()+" inconsistent with expected size "+
+            offset+" for all position components");
+      }
+      return map;
+   }
+
+   /**
+    * Creates a list of position components within a VelocityInputProbe or
+    * VelocityOutputProbe.
+    */
+   protected ArrayList<ModelComponent> getPositionCompsForVelocity() {
+      ArrayList<ModelComponent> list = new ArrayList<>();
+      Object[] propsOrDimens = getPropsOrDimens();
+      int offset = 0;
+      for (int pidx=0; pidx<propsOrDimens.length; pidx++) {
+         Object obj = propsOrDimens[pidx];
+         if (obj instanceof Property) {
+            HasProperties host = ((Property)obj).getHost();
+            if (host instanceof Point) {
+               list.add ((ModelComponent)host);
+               offset += 3;
+            }
+            else if (host instanceof Frame) {
+               list.add ((ModelComponent)host);
+               offset += 6;
+            }
+         }
+      }
+      if (offset != getVsize()) {
+         throw new IllegalStateException (
+            "probe data size "+getVsize()+" inconsistent with expected size "+
+            offset+" for all velocity components");
+      }
+      return list;
+   }
+
+   protected NumericListKnot findOrAddKnot (double t) {
+      NumericListKnot knot = myNumericList.findKnotClosest (t);
+      if (knot == null || knot.t != t) {
+         knot = new NumericListKnot (myVsize);
+         knot.t = t;
+         myNumericList.add (knot);
+      }
+      return knot;      
    }
 
    /**

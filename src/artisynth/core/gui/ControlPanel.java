@@ -43,6 +43,7 @@ import maspack.widgets.ButtonMasks;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.LabeledComponentBase;
 import maspack.widgets.LabeledControl;
+import maspack.widgets.NumericFieldSlider;
 import maspack.widgets.OptionPanel;
 import maspack.widgets.PropertyFrame;
 import maspack.widgets.PropertyPanel;
@@ -511,6 +512,10 @@ public class ControlPanel extends ModelComponentBase
       if (!(comp instanceof LabeledComponentBase)) {
          pw.println (aliasOrName + " [ ]");
       }
+      else if (comp instanceof CoordinateWidget) {
+         pw.println (aliasOrName);
+         ((CoordinateWidget)comp).write (pw, fmt, ancestor);
+      }
       else {
          LabeledComponentBase widget = (LabeledComponentBase)comp;
          pw.println (aliasOrName);
@@ -566,12 +571,9 @@ public class ControlPanel extends ModelComponentBase
       return false;
    }
 
-   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
       throws IOException {
-      CompositeComponent ancestor =
-         ComponentUtils.castRefToAncestor (ref);
-      pw.print ("[ ");
-      IndentingPrintWriter.addIndentation (pw, 2);
       getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       String optionsStr = null;
       if (myFrame != null) {
@@ -594,6 +596,14 @@ public class ControlPanel extends ModelComponentBase
             writeWidget (pw, widget, fmt, ancestor);
          }
       }
+   }
+
+   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+      throws IOException {
+      CompositeComponent ancestor = ComponentUtils.castRefToAncestor (ref);
+      IndentingPrintWriter.printOpening (pw, "[ ");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      writeItems (pw, fmt, ancestor);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
    }
@@ -618,54 +628,60 @@ public class ControlPanel extends ModelComponentBase
          rtok.scanToken (']');
          tokens.offer (new StringToken ("widget", rtok.lineno()));
          tokens.offer (new ObjectToken(comp));
-         return;
       }
-      LabeledComponentBase widget = (LabeledComponentBase)comp;
-      widget.setScanning (true);
-      rtok.scanToken ('[');
-      String propPath = null; // one property path specified
-      String[] propPaths = null; // multiple property paths specified
-      while (rtok.nextToken() != ']') {
-         if (scanAttributeName (rtok, "property")) {
-            // widget controls property in one host
-            propPath = rtok.scanQuotedString ('"');
-         }
-         else if (scanAttributeName (rtok, "properties")) {
-            // widget controls same property in multiple hosts
-            rtok.scanToken ('[');
-            ArrayList<String> paths = new ArrayList<>();
-            while (rtok.nextToken() != ']') {
-               if (!rtok.tokenIsQuotedString ('"')) {
-                  throw new IOException (
-                     "Expected property path, got " + rtok);
-               }
-               paths.add (rtok.sval);
-            }
-            propPaths = paths.toArray(new String[0]);
-         }
-         else if (rtok.tokenIsWord()) {
-            String fieldName = rtok.sval;               
-            if (!ScanWriteUtils.scanProperty (rtok, widget, tokens)) {
-               System.out.println (
-                  "Warning: internal widget property '" + fieldName +
-                  "' not found for " + widget + "; ignoring");
-               widget = null;
-               break;
-            }
-         }
-         else {
-            throw new IOException ("Unexpected token: " + rtok);
-         }
-      }
-      if (widget != null) {
+      else if (comp instanceof CoordinateWidget) {
          tokens.offer (new StringToken ("widget", rtok.lineno()));
-         if (propPath != null) {
-            tokens.offer (new StringToken (propPath, rtok.lineno()));
+         tokens.offer (new ObjectToken(comp));
+         ((CoordinateWidget)comp).scan (rtok, tokens);
+      }
+      else {
+         LabeledComponentBase widget = (LabeledComponentBase)comp;
+         widget.setScanning (true);
+         rtok.scanToken ('[');
+         String propPath = null; // one property path specified
+         String[] propPaths = null; // multiple property paths specified
+         while (rtok.nextToken() != ']') {
+            if (scanAttributeName (rtok, "property")) {
+               // widget controls property in one host
+               propPath = rtok.scanQuotedString ('"');
+            }
+            else if (scanAttributeName (rtok, "properties")) {
+               // widget controls same property in multiple hosts
+               rtok.scanToken ('[');
+               ArrayList<String> paths = new ArrayList<>();
+               while (rtok.nextToken() != ']') {
+                  if (!rtok.tokenIsQuotedString ('"')) {
+                     throw new IOException (
+                        "Expected property path, got " + rtok);
+                  }
+                  paths.add (rtok.sval);
+               }
+               propPaths = paths.toArray(new String[0]);
+            }
+            else if (rtok.tokenIsWord()) {
+               String fieldName = rtok.sval;               
+               if (!ScanWriteUtils.scanProperty (rtok, widget, tokens)) {
+                  System.out.println (
+                     "Warning: internal widget property '" + fieldName +
+                     "' not found for " + widget + "; ignoring");
+                  widget = null;
+                  break;
+               }
+            }
+            else {
+               throw new IOException ("Unexpected token: " + rtok);
+            }
          }
-         else if (propPaths != null) {
-            tokens.offer (new ObjectToken (propPaths, rtok.lineno()));
+         if (widget != null) {
+            tokens.offer (new StringToken ("widget", rtok.lineno()));
+            if (propPath != null) {
+               tokens.offer (new StringToken (propPath, rtok.lineno()));
+            }
+            else if (propPaths != null) {
+               tokens.offer (new ObjectToken (propPaths, rtok.lineno()));
+            }
+            tokens.offer (new ObjectToken (widget, rtok.lineno()));
          }
-         tokens.offer (new ObjectToken (widget, rtok.lineno()));
       }
    }
 
@@ -696,7 +712,11 @@ public class ControlPanel extends ModelComponentBase
          throw new IOException (
             "Expecting ObjectToken containing widget");
       }
-      if (comp instanceof LabeledComponentBase) {
+      if (comp instanceof CoordinateWidget) {
+         ((CoordinateWidget)comp).postscan (tokens, ancestor);
+         addWidget (comp);
+      }
+      else if (comp instanceof LabeledComponentBase) {
          Property property = null;
          LabeledComponentBase widget = (LabeledComponentBase)comp;
          // mask valueChangeListeners because otherwise setting properties
@@ -747,7 +767,18 @@ public class ControlPanel extends ModelComponentBase
          // widget's value, and we shouldn't do this until all the widget
          // properties (such as the range) are initialized
          if (widget != null && property != null) {
-            PropertyWidget.finishWidget (widget, property);
+            if (widget instanceof NumericFieldSlider) {
+               // for sliders, disable auto ranging so that we are sure to
+               // restore the correct range
+               NumericFieldSlider slider = (NumericFieldSlider)widget;
+               boolean savedAutoRanging = slider.getAutoRangingEnabled();
+               slider.setAutoRangingEnabled (false);
+               PropertyWidget.finishWidget (widget, property);
+               slider.setAutoRangingEnabled (savedAutoRanging);
+            }
+            else {
+               PropertyWidget.finishWidget (widget, property);
+            }
             myPanel.processPropertyWidget (property, widget);
          }
          if (widget != null) {
@@ -867,9 +898,12 @@ public class ControlPanel extends ModelComponentBase
          return false;
       }
       if (!PropertyUtils.isConnectedToHierarchy (prop)) {
-         System.out.println ("not connected");
          return true;
       }
+      return isStale (comp);
+   }
+
+   private boolean isStale (ModelComponent comp) {
       RootModel myroot = RootModel.getRoot (this);
       // John Lloyd Aug 12 2015
       // myroot might be null if this method is called while this panel is
@@ -877,11 +911,10 @@ public class ControlPanel extends ModelComponentBase
       // ComponentLists before their parent is set. So if myroot is null,
       // we don't bother with the stale check
       if (myroot != null && RootModel.getRoot(comp) != myroot) {
-         System.out.println ("not in root");
          return true;
       }
       return false;
-   }
+   }      
 
    public boolean removeStalePropertyWidgets() {
 
@@ -891,10 +924,19 @@ public class ControlPanel extends ModelComponentBase
          if (myPanel.getWidget(i) instanceof LabeledComponentBase) {
             LabeledComponentBase widget =
                (LabeledComponentBase)myPanel.getWidget(i);
-            Property prop = myPanel.getWidgetProperty (widget);
-            if (prop != null && !(prop instanceof EditingProperty)) {
-               if (isStale (prop)) {
-                  removeList.add (widget);
+            if (widget instanceof CoordinateWidget) {
+               CoordinateWidget cwidget = (CoordinateWidget)widget;
+               ModelComponent joint = cwidget.getHandle().getJoint();
+               if (joint == null || isStale(joint)) {
+                  removeList.add (widget);                  
+               }
+            }
+            else {
+               Property prop = myPanel.getWidgetProperty (widget);
+               if (prop != null && !(prop instanceof EditingProperty)) {
+                  if (isStale (prop)) {
+                     removeList.add (widget);
+                  }
                }
             }
          }
@@ -905,6 +947,7 @@ public class ControlPanel extends ModelComponentBase
             //myWidgetPropMap.remove (widget);
          }
          if (myFrame != null) {
+            notifyWidgetsChanged();
             myFrame.pack();
          }
          return true;
@@ -988,28 +1031,39 @@ public class ControlPanel extends ModelComponentBase
          if (myPanel.getWidget(i) instanceof LabeledComponentBase) {
             LabeledComponentBase widget =
                (LabeledComponentBase)myPanel.getWidget(i);
-            Property prop = myPanel.getWidgetProperty (widget);
-            if (prop instanceof GenericPropertyHandle) {
-               // standard property associated with a single component
-               ModelComponent comp =
-                  ComponentUtils.getPropertyComponent (prop);
-               if (comp != null && !ComponentUtils.isAncestorOf (comp, this)) {
-                  myrefs.add (comp);
+            if (widget instanceof CoordinateWidget) {
+               CoordinateWidget cwidget = (CoordinateWidget)widget;
+               ModelComponent joint = cwidget.getHandle().getJoint();
+               if (joint != null) {
+                  myrefs.add (joint);
                }
             }
-            else if (prop instanceof EditingProperty) {
-               // EditingProperty associated with multiple components
-               HostList hostList = ((EditingProperty)prop).getHostList();
-               for (HasProperties host : hostList) {
+            else {
+               Property prop = myPanel.getWidgetProperty (widget);
+               if (prop instanceof GenericPropertyHandle) {
+                  // standard property associated with a single component
                   ModelComponent comp =
-                     ComponentUtils.getPropertyComponent (host);
-                  if (comp != null && !ComponentUtils.isAncestorOf (comp, this)) {
+                     ComponentUtils.getPropertyComponent (prop);
+                  if (comp != null &&
+                      !ComponentUtils.isAncestorOf (comp, this)) {
                      myrefs.add (comp);
                   }
                }
-            }
+               else if (prop instanceof EditingProperty) {
+                  // EditingProperty associated with multiple components
+                  HostList hostList = ((EditingProperty)prop).getHostList();
+                  for (HasProperties host : hostList) {
+                     ModelComponent comp =
+                        ComponentUtils.getPropertyComponent (host);
+                     if (comp != null &&
+                         !ComponentUtils.isAncestorOf (comp, this)) {
+                        myrefs.add (comp);
+                     }
+                  }
+               }
             // XXX - other cases?
-      }
+            }
+         }
       }
       refs.addAll (myrefs);
    }
@@ -1073,7 +1127,13 @@ public class ControlPanel extends ModelComponentBase
          // check next for widgets that need to be restored
          while ((obj=undoInfo.removeFirst()) != NULL_OBJ) {
             WidgetRemoveInfo info = (WidgetRemoveInfo)obj;
-            myPanel.addPropertyWidget (info.myProp, info.myComp, info.myIdx);
+            if (info.myProp != null) {
+               myPanel.addPropertyWidget (info.myProp, info.myComp, info.myIdx);
+            }
+            else {
+               // will be a CoordinateWidget
+               myPanel.addWidget (info.myComp, info.myIdx);
+            }
             changed = true;
          }
       }
@@ -1085,11 +1145,19 @@ public class ControlPanel extends ModelComponentBase
             Component widget = myPanel.getWidget(i);
             Property prop = getWidgetProperty (widget);
             boolean removeWidget = false;
-            if (prop instanceof GenericPropertyHandle) {
+            if (widget instanceof CoordinateWidget) {
+               CoordinateWidget cwidget = (CoordinateWidget)widget;
+               ModelComponent comp = cwidget.getHandle().getJoint();
+               if (comp != null && !ComponentUtils.areConnected (this, comp)) {
+                  removeWidget = true;
+               }
+            }
+            else if (prop instanceof GenericPropertyHandle) {
                // standard property associated with a single host. If the
                // host's component has been removed, removed the widget.
                ModelComponent comp = ComponentUtils.getPropertyComponent (prop);
-               if (comp != null && !ComponentUtils.areConnected (this, comp)) {
+               if (comp != null &&
+                   !ComponentUtils.areConnected (this, comp)) {
                   removeWidget = true;
                }
             }
@@ -1102,7 +1170,8 @@ public class ControlPanel extends ModelComponentBase
                for (HasProperties host : hostList) {
                   ModelComponent comp =
                      ComponentUtils.getPropertyComponent (host);
-                  if (comp == null || ComponentUtils.areConnected (this, comp)) {
+                  if (comp == null ||
+                      ComponentUtils.areConnected (this, comp)) {
                      curHostList.addHost (host);
                   }
                }
@@ -1131,11 +1200,12 @@ public class ControlPanel extends ModelComponentBase
          for (WidgetRemoveInfo info : removeList) {
             myPanel.removeWidget (info.myComp);
          }
-         undoInfo.addLast (NULL_OBJ); // terminator for restore info 
+         undoInfo.addLast (NULL_OBJ); // terminator for widget host info 
          undoInfo.addAll (removeList);
          undoInfo.addLast (NULL_OBJ);
       }
       if (changed && myFrame != null) {
+         notifyWidgetsChanged();
          myFrame.pack();
       }
    }
@@ -1161,5 +1231,6 @@ public class ControlPanel extends ModelComponentBase
       }
    }
 
-
+   protected void notifyWidgetsChanged() {
+   }
 }

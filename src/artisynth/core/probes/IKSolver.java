@@ -1917,7 +1917,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       throws IOException {
 
       PositionInputProbe targProbe = new PositionInputProbe (
-         null, getMarkers(), /*rotRep*/null, targDataFilePath);
+         null, getMarkers(), /*rotRep*/null, false, targDataFilePath);
 
       return createBodyPoseProbe (name, targProbe, rotRep, interval);
    }
@@ -1960,7 +1960,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
 
       ArrayList<RigidBody> bodies = getBodies();
       PositionInputProbe newProbe = new PositionInputProbe (
-         name, bodies, rotRep, startTime, stopTime);
+         name, bodies, rotRep, false, startTime, stopTime);
       newProbe.setScale (scale);
       solveForProbeData (
          newProbe, targProbe, new BodyPoseCollector(bodies, rotRep), interval);
@@ -1996,7 +1996,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       throws IOException {
 
       PositionInputProbe targProbe = new PositionInputProbe (
-         null, getMarkers(), /*rotRep*/null, targDataFilePath);
+         null, getMarkers(), /*rotRep*/null, false, targDataFilePath);
 
       return createMarkerPositionProbe (name, targProbe, interval);
    }
@@ -2038,7 +2038,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
 
       ArrayList<FrameMarker> mkrs = getMarkers();
       PositionInputProbe newProbe = new PositionInputProbe (
-         name, mkrs, /*rotRep*/null, startTime, stopTime);
+         name, mkrs, /*rotRep*/null, false, startTime, stopTime);
       newProbe.setScale (scale);
       solveForProbeData (
          newProbe, targProbe, new MarkerPositionCollector(mkrs), interval);

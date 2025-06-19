@@ -76,7 +76,7 @@ public class VelocityOutputProbe extends NumericOutputProbe {
       String name, ModelComponent comp, String fileName,
       double startTime, double stopTime, double interval) {
       setOutputProperties (
-         findVelocityProps (new ModelComponent[] { comp }));
+         findVelocityProps (new ModelComponent[] { comp }, false));
       if (fileName != null) {
          setAttachedFileName (fileName);
       }
@@ -106,7 +106,7 @@ public class VelocityOutputProbe extends NumericOutputProbe {
       double startTime, double stopTime, double interval) {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
-      setOutputProperties (findVelocityProps (carray));
+      setOutputProperties (findVelocityProps (carray, false));
       if (fileName != null) {
          setAttachedFileName (fileName);
       }
@@ -127,5 +127,14 @@ public class VelocityOutputProbe extends NumericOutputProbe {
       getNumericList().transformVectorData (X);
    }
 
+   /**
+    * Returns a list of the position components associated with this probe, in
+    * the order that they appear in the probe's data.
+    *
+    * @return list of components associated with this probe
+    */
+   public ArrayList<ModelComponent> getPositionComponents() {
+      return getPositionCompsForVelocity();
+   }
 }
 

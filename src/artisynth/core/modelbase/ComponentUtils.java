@@ -134,7 +134,7 @@ public class ComponentUtils {
          }
          else {
             System.out.println (
-               "Warrning: reference loop deletected for component " +
+               "Warrning: reference loop detected for component " +
                getDiagnosticName(comp));
          }
       }      
@@ -216,7 +216,6 @@ public class ComponentUtils {
     */
    public static void deleteComponentsAndDependencies (
       List<? extends ModelComponent> comps) {
-
       LinkedList<ModelComponent> update = new LinkedList<ModelComponent>();
       LinkedList<ModelComponent> delete =
          findDependentComponents (update, comps);   
@@ -247,6 +246,11 @@ public class ComponentUtils {
    public static LinkedList<ModelComponent> findDependentComponents (
       List<ModelComponent> update, List<? extends ModelComponent> comps) {
 
+      LinkedList<ModelComponent> depend = new LinkedList<ModelComponent>();
+      if (comps.size() == 0) {
+         return depend;
+      }
+
       // find the common reference-containing ancestor for all components,
       // to give us a starting point to build the dependency map.
       ModelComponent acomp = findCommonAncestor (comps);
@@ -262,20 +266,18 @@ public class ComponentUtils {
          buildDependencyMap (ancestor);
       
       HashSet<ModelComponent> softDeps = new LinkedHashSet<ModelComponent>();
-
-      LinkedList<ModelComponent> delete = new LinkedList<ModelComponent>();
       for (ModelComponent c : comps) {
-         recursivelyAddDependenices (delete, softDeps, c, depMap);
+         recursivelyAddDependenices (depend, softDeps, c, depMap);
       }
-      // Now prune descendants: remove any component from both 'delete' and 
-      // 'softDeps' which has an ancestor in 'delete'. We use the fact that
-      // all components in 'delete' are marked at this point.
+      // Now prune descendants: remove any component from both 'depend' and 
+      // 'softDeps' which has an ancestor in 'depend'. We use the fact that
+      // all components in 'depend' are marked at this point.
       for (ModelComponent c : softDeps){
          if (!ancestorIsMarked(c)) {
             update.add (c);
          }
       }
-      Iterator<ModelComponent> it = delete.iterator();
+      Iterator<ModelComponent> it = depend.iterator();
       while (it.hasNext()) {
          ModelComponent c = it.next();
          if (ancestorIsMarked(c)) {
@@ -283,11 +285,11 @@ public class ComponentUtils {
             it.remove();
          }
       }
-      for (ModelComponent c : delete) {
+      for (ModelComponent c : depend) {
          c.setMarked (false);
       }
       
-      // Need to rearrange the delete list so that all components with the same
+      // Need to rearrange the depend list so that all components with the same
       // parents are grouped together. This greatly improves the efficiency of
       // the resulting operation.
       //
@@ -301,7 +303,7 @@ public class ComponentUtils {
       ModelComponent currentParent = null;
       LinkedList<ModelComponent> listForParent = null;
       ModelComponent root = null;
-      for (ModelComponent c : delete) {
+      for (ModelComponent c : depend) {
          ModelComponent parent = c.getParent();
          if (parent == null) {
             if (root == null) {
@@ -325,14 +327,14 @@ public class ComponentUtils {
             listForParent.add (c);
          }
       }
-      delete.clear();
+      depend.clear();
       if (root != null){
-         delete.add (root);
+         depend.add (root);
       }
       for (LinkedList<ModelComponent> l : parentMap.values()) {
-         delete.addAll (l);
+         depend.addAll (l);
       }
-      return delete;
+      return depend;
    }
 
    public static LinkedList<MutableCompositeComponent<?>> removeComponents (

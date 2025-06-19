@@ -21,20 +21,23 @@ public class Ground extends PhysicalFrame {
    }
 
    @Override
-   public RigidBody createComponent (
+   public RigidBodyOsim createComponent (
       File geometryPath, ModelComponentMap componentMap) {
       
-      RigidBody rb = super.createComponent (geometryPath, componentMap);
+      RigidBodyOsim rb =
+         (RigidBodyOsim)super.createComponent (geometryPath, componentMap);
 
       // add wrapping surfaces
       WrapObjectSet wrapBodies = getWrapObjectSet ();
       if (wrapBodies != null) {
-         RenderableComponentList<WrapComponent> wrapComponents = 
-            wrapBodies.createComponent(geometryPath, componentMap);
-         rb.add(wrapComponents);
-         
+         // RenderableComponentList<WrapComponent> wrapComponents = 
+         //    wrapBodies.createComponent(geometryPath, componentMap);
+         // rb.add(wrapComponents);
+         wrapBodies.addComponents (
+            rb.myWrapComponents, geometryPath, componentMap);
+        
          // attach wrappables to this frame
-         RenderableComponentList<FrameFrameAttachment> wrapAttachments = new RenderableComponentList<> (FrameFrameAttachment.class, "wrapobjectset_attachments");
+         //RenderableComponentList<FrameFrameAttachment> wrapAttachments = new RenderableComponentList<> (FrameFrameAttachment.class, "wrapobjectset_attachments");
          for (WrapObject wo : wrapBodies) {
             RigidTransform3d trans = wo.getTransform ();
             // set initial pose
@@ -43,9 +46,9 @@ public class Ground extends PhysicalFrame {
             wrap.transformPose (rb.getPose ());
             
             FrameFrameAttachment ffa = new FrameFrameAttachment (wrap, rb, trans);
-            wrapAttachments.add (ffa);
+            rb.myWrapAttachments.add (ffa);
          }
-         rb.add(wrapAttachments);
+         //rb.add(wrapAttachments);
       }
      
       rb.setDynamic (false);  // fixed in space

@@ -12,6 +12,7 @@ import java.io.PrintWriter;
 import maspack.util.DoubleHolder;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.matrix.VectorNd;
 
 public class ConstantFunction1x1 extends Diff1Function1x1Base {
 
@@ -36,11 +37,46 @@ public class ConstantFunction1x1 extends Diff1Function1x1Base {
       return c;
    }
 
+   /**
+    * Override this here in case function is called zero-sized vector {@code
+    * in.}
+    */
+   public double eval (VectorNd in) {
+      return c;
+   }
+
    public double eval (DoubleHolder deriv, double in) {
       if (deriv != null) {
          deriv.value = 0;
       }
       return 0;
+   }
+
+   /**
+    * Override this here in case function is called with a zero-sized vector
+    * {@code in}.
+    */
+   public double eval (VectorNd deriv, VectorNd in) {
+      if (deriv != null) {
+         if (deriv.size() != 1) {
+            deriv.setSize (1);
+         }
+         deriv.set (0, 0);
+         return 0;
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * Override this here in case function is called with a zero-sized vectors
+    * {@code in} and/or {@code deriv}.
+    */
+   public void evalDeriv (VectorNd deriv, VectorNd in) {
+      if (deriv.size() > 0) {
+         deriv.set (0, 0);
+      }
    }
 
    public boolean equals (ConstantFunction1x1 fxn) {

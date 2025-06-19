@@ -129,10 +129,10 @@ public abstract class RigidBodyCoupling implements Cloneable {
                  maxValue != Double.POSITIVE_INFINITY);        
       }
 
-      //      public void setNearestAngle (double ang) {
-      //         value = findNearestAngle (value, ang);
-      //      }
-      
+      public DoubleInterval getRange() {
+         return new DoubleInterval (minValue, maxValue);
+      }
+
       public double nearestAngle (double ang) {
          return findNearestAngle (value, ang);
       }
@@ -1351,7 +1351,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
 
    private void doSetCoords (VectorNd vec) {
       for (int i=0; i<vec.size(); i++) {
-         myCoordinates.get(i).value = vec.get(i);
+         myCoordinates.get(i).setValue (vec.get(i));
       }
       myCoordValueCnt++;
    }      
@@ -1398,7 +1398,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          // TGD contains the initial TCD
          projectAndUpdateCoordinates (TGD, /*TCD=*/TGD);
       }    
-      myCoordinates.get(idx).value = value; //setValue (value);
+      myCoordinates.get(idx).setValue (value); //setValue (value);
       myCoordValueCnt++;
       VectorNd coords = new VectorNd (numCoordinates());
       doGetCoords (coords);

@@ -79,6 +79,7 @@ public class JointBasedMovingMarker extends FrameMarker
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
+      updateMarkerLocation(); // help ensure write/scan numeric repeatability
       pw.print ("coordinates=");
       JointCoordinateHandle.writeHandles (pw, myCoords, ancestor);
       pw.println ("functions=[");

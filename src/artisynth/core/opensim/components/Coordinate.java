@@ -1,8 +1,12 @@
 package artisynth.core.opensim.components;
 
-import maspack.util.DoubleInterval;
+import java.io.*;
+import artisynth.core.modelbase.ScanWriteUtils;
+import maspack.util.*;
 
-public class Coordinate extends OpenSimObject {
+public class Coordinate extends OpenSimObject implements Scannable {
+
+   private static final double INF = Double.POSITIVE_INFINITY;
 
    private MotionType motion_type;
    private double default_value;
@@ -142,6 +146,68 @@ public class Coordinate extends OpenSimObject {
       out.setPrescribed (prescribed);
       
       return out;
+   }
+
+   private boolean scanAttributeName (
+      ReaderTokenizer rtok, String name) throws IOException {
+      return ScanWriteUtils.scanAttributeName (rtok, name);
+   }
+
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      rtok.scanToken ('[');
+      while (rtok.nextToken() != ']') {
+         if (scanAttributeName (rtok, "name")) {
+            setName (rtok.scanQuotedString ('"'));
+         }
+         else if (scanAttributeName (rtok, "motion_type")) {
+            motion_type = rtok.scanEnum (MotionType.class);
+         }
+         else if (scanAttributeName (rtok, "default_value")) {
+            default_value = rtok.scanNumber();
+         }
+         else if (scanAttributeName (rtok, "range")) {
+            range.scan (rtok, ref);
+         }
+         else if (scanAttributeName (rtok, "clamped")) {
+            clamped = rtok.scanBoolean();
+         }
+         else if (scanAttributeName (rtok, "locked")) {
+            locked = rtok.scanBoolean();
+         }
+         else {
+            throw new IOException (
+               "Expecting attribute name, got "+rtok);
+         }
+      }
+   }
+
+   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+      throws IOException {
+
+      pw.println ("[ name=\"" + getName() + "\"");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      if (motion_type != MotionType.ROTATIONAL) {
+         pw.println ("motion_type=" + motion_type);
+      }
+      if (default_value != 0) {
+         pw.println ("default_value=" + fmt.format(default_value));
+      }
+      if (!range.equals (new DoubleInterval(-INF, INF))) {
+         pw.print ("range=");
+         range.write (pw, fmt, ref);
+      }
+      if (clamped) {
+         pw.println ("clamped=" + clamped);
+      }
+      if (locked) {
+         pw.println ("locked=" + locked);
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+   }
+
+   public boolean isWritable() {
+      return true;
    }
    
 }

@@ -56,7 +56,7 @@ public class Frame extends HasVisibleObjectOrAppearance implements ModelComponen
    public RigidBody createComponent (
       File geometryPath, ModelComponentMap componentMap) {
       
-      RigidBody rb = new RigidBody(getName ());
+      RigidBodyOsim rb = new RigidBodyOsim(getName ());
       rb.setAxisLength (0.1);
       rb.setAxisDrawStyle (AxisDrawStyle.OFF);
       componentMap.put (this, rb);   // needs to be up-front so we can find it in the geometry/joint

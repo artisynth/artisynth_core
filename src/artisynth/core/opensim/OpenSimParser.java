@@ -19,6 +19,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.gui.ControlPanel;
+import artisynth.core.gui.CoordinatePanel;
 import artisynth.core.opensim.components.ModelBase;
 import artisynth.core.opensim.components.ModelComponentMap;
 import artisynth.core.opensim.components.OpenSimDocument;
@@ -290,13 +291,22 @@ public class OpenSimParser {
 
    /**
     * Returns the top-level {@code "ground"} rigid body contained in the
-    * MecModel associated with this parser.
+    * MecModel associated with this parser. For OpenSim 4 models, this returns
+    * separate ground component. For OpenSim 3, the bodyset is searched for a
+    * component named {@code "ground"}.
     *
     * @return "ground" component, or {@code null} if not present.
     */
    public RigidBody getGround() {
       checkForMechModel();
-      return (RigidBody)myMech.get ("ground"); 
+      RigidBody ground = (RigidBody)myMech.get ("ground"); 
+      if (ground == null) {
+         RenderableComponentList<RigidBody> bodyset = getBodySet();
+         if (bodyset != null) {
+            return bodyset.get("ground");
+         }
+      }         
+      return null;
    }
 
    /**
@@ -441,9 +451,8 @@ public class OpenSimParser {
    }
 
    /**
-    * Returns a list of all the joint components located beneath the {@code
-    * "jointset"} (OpenSim 4 models) or beneath the {@code "bodyset"} (OpenSim
-    * 3 models). 
+    * Returns a list of all the joints located beneath the {@code "jointset"}
+    * (OpenSim 4 models) or beneath the {@code "bodyset"} (OpenSim 3 models).
     *
     * @return "jointset" component, or {@code null} if not present.
     */
@@ -747,6 +756,60 @@ public class OpenSimParser {
             panel.addWidget (muscle.getName(), muscle, "excitation");
          }
       }
+      return panel;
+   }
+
+   /**
+    * Creates a panel to control the coordinates of all the joints located
+    * beneath the {@code "jointset"} (OpenSim 4 models) or beneath the {@code
+    * "bodyset"} (OpenSim 3 models).
+    *
+    * @return created panel
+    */
+   public CoordinatePanel createCoordinatePanel() {
+      return createCoordinatePanel (getJoints());
+   }
+
+   /**
+    * Creates a panel to control the coordinates of the specified joints.
+    * 
+    * @param joints joint for which coordinate controls should be created
+    * @return created panel
+    */
+   public CoordinatePanel createCoordinatePanel(Collection<JointBase> joints) {
+      CoordinatePanel panel = new CoordinatePanel();
+      panel.setName ("coordinates");
+      for (JointBase joint : joints) {
+         panel.addCoordinateWidgets (joint);
+      }
+      panel.setMechModel (myMech);
+      return panel;
+   }
+
+   /**
+    * Creates a panel to control the named coordinates of the joints located
+    * beneath the {@code "jointset"} (OpenSim 4 models) or beneath the {@code
+    * "bodyset"} (OpenSim 3 models).
+    *
+    * @param coordNames names of the coordinates for which controls should be
+    * created
+    * @return created panel
+    */
+   public CoordinatePanel createCoordinatePanel (String[] coordNames) {
+      HashSet<String> nameSet = new HashSet<>();
+      for (String name : coordNames) {
+         nameSet.add (name);
+      }
+      CoordinatePanel panel = new CoordinatePanel();
+      panel.setName ("coordinates");
+      for (JointBase joint : getJoints()) {
+         for (int idx=0; idx<joint.numCoordinates(); idx++) {
+            if (nameSet.contains(joint.getCoordinateName(idx))) {
+               panel.addCoordinateWidget (joint, idx);
+            }
+         }
+      }
+      panel.setMechModel (myMech);
       return panel;
    }
 

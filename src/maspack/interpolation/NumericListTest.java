@@ -323,13 +323,13 @@ class NumericListTest extends UnitTest {
                   computeVelocities (vtrans0, rotVels0, prev, next, list);
                }
                else {
-                  computeVelocities (vtrans0, rotVels0, pprev, next, list);
+                  computeVelocities (vtrans0, rotVels0, pprev, prev, next, list);
                }
                if (nnext == null) {
                   computeVelocities (vtrans1, rotVels1, prev, next, list);
                }
                else {
-                  computeVelocities (vtrans1, rotVels1, prev, nnext, list);
+                  computeVelocities (vtrans1, rotVels1, prev, next, nnext, list);
                }
             }
             unpackRotationAndTransTerms (ptrans0, quats0, prev.v, list);
@@ -504,6 +504,32 @@ class NumericListTest extends UnitTest {
       tvel.scale (1/h);
       for (int k=0; k<numRots; k++) {
          quats0[k].sphericalVelocity (rotVels[k], quats1[k], h);
+      }
+   }
+
+   // compute velocity from knot0 to knot2, but for rotations make sure the
+   // route goes through knot1.
+   void computeVelocities (
+      VectorNd tvel, Vector3d[] rotVels, 
+      NumericListKnot knot0, NumericListKnot knot1,
+      NumericListKnot knot2, NumericList list) {
+      
+      int numRots = rotVels.length;
+      VectorNd ptran0 = new VectorNd(tvel.size());
+      VectorNd ptran1 = new VectorNd(tvel.size());
+      VectorNd ptran2 = new VectorNd(tvel.size());
+      Quaternion[] quats0 = allocQuats(numRots);
+      Quaternion[] quats1 = allocQuats(numRots);
+      Quaternion[] quats2 = allocQuats(numRots);
+      unpackRotationAndTransTerms (ptran0, quats0, knot0.v, list);
+      unpackRotationAndTransTerms (ptran1, quats1, knot1.v, list);
+      unpackRotationAndTransTerms (ptran2, quats2, knot2.v, list);
+      double h = knot2.t - knot0.t;
+      tvel.sub (ptran2, ptran0);
+      tvel.scale (1/h);
+      for (int k=0; k<numRots; k++) {
+         NumericList.getAngularVelocity (
+            rotVels[k], quats0[k], quats1[k], quats2[k], h);
       }
    }
 

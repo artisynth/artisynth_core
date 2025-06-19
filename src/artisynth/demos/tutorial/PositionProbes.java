@@ -1,5 +1,6 @@
 package artisynth.demos.tutorial;
 
+import java.io.IOException;
 import java.awt.Color;
 import java.util.ArrayList;
 
@@ -12,11 +13,13 @@ import artisynth.core.probes.PositionInputProbe;
 import artisynth.core.probes.PositionOutputProbe;
 import artisynth.core.probes.VelocityInputProbe;
 import artisynth.core.probes.VelocityOutputProbe;
+import artisynth.core.probes.TracingProbe;
 import artisynth.core.workspace.RootModel;
 import maspack.interpolation.Interpolation;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationRep;
+import maspack.geometry.PolygonalMesh;
 import maspack.render.RenderProps;
 
 /**
@@ -24,49 +27,49 @@ import maspack.render.RenderProps;
  */
 public class PositionProbes extends RootModel {
 
-   public static boolean omitFromMenu = true;
+   private static final double PI = Math.PI;
+   private double startTime = 0;
+   private double stopTime = 2;
 
-   public void build (String[] args) {
+   public void build (String[] args) throws IOException {
       MechModel mech = new MechModel ("mech");
       addModel (mech);
 
-      // Create three non-dynamic componentw to control the positions of: two
-      // boxes and a point.
-      RigidBody box1 =
-         RigidBody.createBox ("box1", 2, 1, 0.5, /*density=*/1000);
-      box1.setDynamic (false);
-      box1.setPose (new RigidTransform3d (1.5, 0, 0));
-      mech.addRigidBody (box1);
+      // Create a rigid body and a point to control the positions of.
+      PolygonalMesh mesh = new PolygonalMesh (
+         getSourceRelativePath ("data/BlenderMonkey.obj"));
+      RigidBody monkey = RigidBody.createFromMesh (
+         "monkey", mesh, /*density*/1000.0, /*scale*/1);
+      monkey.setDynamic (false);
+      mech.addRigidBody (monkey);
 
-      RigidBody box2 =
-         RigidBody.createBox ("box2", 0.75, 0.75, 0.75, /*density=*/1000);
-      box2.setDynamic (false);
-      box2.setPose (new RigidTransform3d (-.75, 0, 0));
-      mech.addRigidBody (box2);
+      Point point = new Point ("point", new Point3d(0, 0, 3));
+      mech.addPoint (point);
 
-      Point pnt = new Point ("pnt", new Point3d(0, 0, 1));
-      mech.addPoint (pnt);
+      
 
       // Make a list of these components for creating the probes.
       ArrayList<ModelComponent> comps = new ArrayList<>();
-      comps.add (pnt);
-      comps.add (box1);
-      comps.add (box2);
+      comps.add (point);
+      comps.add (monkey);
 
-      // Create a PositionInputProbe to control the component positions.  Body
-      // poses are specified using 3 position values and 3 ZYX angles in
-      // degrees (since the RotationRep is ZYX_DEG),
+      // Create a PositionInputProbe to control the component positions. Since
+      // the RotationRep will be ZYX, body poses are specified using 3 position
+      // values and 3 ZYX angles in radians
       PositionInputProbe pip = new PositionInputProbe (
-         "target positions", comps, RotationRep.ZYX_DEG, 0, 2);
+         "target positions", comps, RotationRep.ZYX, 
+         /*useTargetProps*/false, startTime, stopTime);
+      
       pip.setData (new double[] {
-      /*  time  pnt pos     box1 pos/orientation       box2 pos/orientation */
-          0.0,  0, 0, 1,    1.5,  0, 0,  0, 0, 0,      -0.75, 0, 0,  0, 0, 0,
-          0.5,  1, 0, 1.5,  2.0,  0, .5, 90, 45, 0,    -1.0,  0, -1, 10, 20, 30,
-          1.0,  0, 0, 1.5,  1.5,  0, 0,  0,  10, 20,   -0.5,  0, 0,  -40, 0, 45,
-          1.5, -1, 0, 2,    0.5,-.5, 0, -90, 45, -30,  -0.75, -.5, 1, 20, -20, 30,
-          2.0,  0, 0, 1,    1.5,  0, 0,  0, 0, 0,      -0.75, 0, 0,  0, 0, 0
+      /*  time  point pos       monkey pos & rotation */
+          0.0,    0, 0, 3.0,    0.0, 0.0, 0.0,  0, 0, 0,
+          0.5, -1.5, 0, 1.5,    1.5, 0.0, 1.5,  0, PI/2, 0,
+          1.0,    0, 0, 0,      0.0, 0.0, 3.0,  0, PI, 0,
+          1.5,  1.5, 0, 1.5,   -1.5, 0.0, 1.5,  0, 3*PI/2, 0,
+          2.0,    0, 0, 3.0,    0.0, 0.0, 0.0,  0, 0, 0,
          }, NumericProbeBase.EXPLICIT_TIME);         
-      // use cubic interpolation since the knot points are sparse
+      // since the knot points are sparse, use cubic interpolation to get a
+      // smoother motion
       pip.setInterpolationOrder (Interpolation.Order.Cubic);
       addInputProbe (pip);
 
@@ -77,15 +80,27 @@ public class PositionProbes extends RootModel {
 
       // Create a PositionOutputProbe to record the component positions
       PositionOutputProbe pop = new PositionOutputProbe (
-         "tracked positions", comps, RotationRep.ZYX_DEG, 0, 2);
+         "tracked positions", comps, RotationRep.ZYX, startTime, stopTime);
       addOutputProbe (pop);
 
       // Create a VelocityOutputProbe to record the component velocities
       VelocityOutputProbe vop = new VelocityOutputProbe (
-         "tracked velocities", comps, 0, 2);
+         "tracked velocities", comps, startTime, stopTime);
       addOutputProbe (vop);
 
-      RenderProps.setSphericalPoints (mech, 0.05, Color.RED);
+      // add a tracing probe to view the path of the point in CYAN
+      TracingProbe tprobe =
+         addTracingProbe (point, "position", startTime, stopTime);
+      tprobe.setName ("point tracing");
+      RenderProps.setLineColor (tprobe, Color.CYAN);
+
+      // Add a traci
+
+      // render properties:
+      // point drawn as a large red sphere
+      RenderProps.setSphericalPoints (mech, 0.2, Color.RED);
+      // set color for monkey
+      RenderProps.setFaceColor (mech, new Color(1f, 1f, 0.6f));
    }
 
 }

@@ -52,15 +52,19 @@ public class LinearFunction extends FunctionBase {
          switch (coefficients.length) {
             case 0: {
                myFxn = new ConstantFunction1x1 (0);
+               break;
             }
             case 1: {
                myFxn = new ConstantFunction1x1 (coefficients[0]);
+               break;
             }
             case 2: {
-               myFxn = new LinearFunction1x1 (coefficients[1], coefficients[0]);
+               myFxn = new LinearFunction1x1 (coefficients[0], coefficients[1]);
+               break;
             }
             default: {
                myFxn = new LinearFunctionNx1 (coefficients);
+               break;
             }
          }
       }

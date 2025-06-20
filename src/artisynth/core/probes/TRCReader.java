@@ -362,82 +362,6 @@ public class TRCReader {
       }
    }
 
-   /**
-    * Constructs a PositionInputProbe for the specified points based on the TRC
-    * data. All of the points must have names that match one of the marker
-    * labels in the data; if this is not true, an exception will be thrown.  If
-    * the first TRC frame does not have a time of 0, this initial time will be
-    * subtracted from the time for the probe data (so that the probe data will
-    * begin at time 0).
-    * 
-    * @param name if non-null, gives the name of the probe
-    * @param targetProps TODO
-    * @param startTime start time of the probe
-    * @param stopTime stop time of the probe
-    * @param comps specifies the point components
-    */
-   public PositionInputProbe createInputProbeFromLabels (
-      String name, Collection<? extends Point> points, 
-      boolean targetProps, double startTime, double stopTime) {
-
-      int[] midxs = new int[points.size()];
-      // find the indices of the points in the data
-      int i = 0;
-      for (Point point : points) {
-         String pname = point.getName();
-         if (pname == null) {
-            throw new IllegalArgumentException (
-               ""+i+"-th point is unnamed and so cannot be located");
-         }
-         int midx = getMarkerIndex (pname);
-         if (midx == -1) {
-            throw new IllegalArgumentException (
-               "point "+pname+" not found in the TRC data");
-         }
-         midxs[i++] = midx;
-      }
-      // create the probe and add the data
-      PositionInputProbe probe = new PositionInputProbe (
-         name, points, /*rotRep*/null, false, startTime, stopTime);
-      addProbeData (probe, midxs);
-      return probe;
-   }
-
-   /**
-    * Constructs a PositionInputProbe for the specified points based on the TRC
-    * data. The data for each of the {@code n} points is taken from the data
-    * for the first {@code n} markers, regardless of their labels.  The number
-    * of markers in the TRC data must therefore equal or exceed {@code n}.  If
-    * the first TRC frame does not have a time of 0, this initial time will be
-    * subtracted from the time for the probe data (so that the probe data will
-    * begin at time 0).
-    * 
-    * @param name if non-null, gives the name of the probe
-    * @param targetProps TODO
-    * @param startTime start time of the probe
-    * @param stopTime stop time of the probe
-    * @param comps specifies the point components
-    */
-   public PositionInputProbe createInputProbe (
-      String name, Collection<? extends Point> points, 
-      boolean targetProps, double startTime, double stopTime) {
-
-      if (points.size() > getNumMarkers()) {
-         throw new IllegalArgumentException (
-            "TRC data has only "+getNumMarkers()+" markers; "+
-            "insufficient for "+points.size()+" points");
-      }
-      int[] midxs = new int[points.size()];
-      for (int i=0; i<points.size(); i++) {
-         midxs[i] = i;
-      }
-      // create the probe and add the data
-      PositionInputProbe probe = new PositionInputProbe (
-         name, points, /*rotRep*/null, false, startTime, stopTime);
-      addProbeData (probe, midxs);
-      return probe;
-   }
-
    private void addProbeData (PositionInputProbe probe, int[] midxs) {
       probe.clearData();
       if (getNumFrames() > 0) {
@@ -454,5 +378,168 @@ public class TRCReader {
          }
       }
    }
+
+   /**
+    * Constructs a PositionInputProbe for the specified points based on the TRC
+    * data. The argument {@code labels} gives the labels of the TRC marker data
+    * that should be used for each point; if {@code labels} is {@code null},
+    * then each point's name is used instead. If the specified label (or point
+    * name) is not found in the TRC data, an exception is thrown.
+    *
+    * <p>If the first TRC frame does not have a time of 0, this initial time
+    * will be subtracted from the time for the probe data (so that the probe
+    * data will begin at time 0).
+    * 
+    * @param name if non-null, gives the name of the probe
+    * @param points points to be controlled by the probe
+    * @param labels if non-{@code null}, gives labels of the TRC marker data
+    * that should be used for the points.
+    * @param useTargetProps if {@code true}, causes the probe to
+    * bind to the point's {@code targetPosition} property instead of {@code
+    * position}
+    * @param startTime start time of the probe
+    * @param stopTime stop time of the probe
+    */
+   public PositionInputProbe createInputProbeFromLabels (
+      String name, Collection<? extends Point> points, List<String> labels,
+      boolean useTargetProps, double startTime, double stopTime) {
+
+      if (labels != null) {
+         if (points.size() != labels.size()) {
+            throw new IllegalArgumentException (
+               "points and labels have different sizes: " + points.size() +
+               " vs. " + labels.size());
+         }
+      }
+      int[] midxs = new int[points.size()];
+      // find the indices of the points in the data
+      int i = 0;
+      for (Point point : points) {
+         String label;
+         if (labels != null) {
+            label = labels.get(i);
+            if (label == null) {
+               throw new IllegalArgumentException (
+                  ""+i+"-th label is null");
+            }
+         }
+         else {
+            label = point.getName();
+            if (label == null) {
+               throw new IllegalArgumentException (
+                  ""+i+"-th point is unnamed and so cannot be located");
+            }
+         }
+         int midx = getMarkerIndex (label);
+         if (midx == -1) {
+            throw new IllegalArgumentException (
+               "label "+label+" for "+i+"-th point not found in the TRC data");
+         }
+         midxs[i++] = midx;
+      }
+      // create the probe and add the data
+      PositionInputProbe probe = new PositionInputProbe (
+         name, points, /*rotRep*/null, useTargetProps, startTime, stopTime);
+      addProbeData (probe, midxs);
+      return probe;
+   }
+
+   /**
+    * Constructs a PositionInputProbe for the specified points based on the TRC
+    * data. The data for each of the {@code n} points is taken from the data
+    * for the first {@code n} markers, regardless of their labels.  The number
+    * of markers in the TRC data must therefore equal or exceed {@code n}.  If
+    * the first TRC frame does not have a time of 0, this initial time will be
+    * subtracted from the time for the probe data (so that the probe data will
+    * begin at time 0).
+    * 
+    * @param name if non-null, gives the name of the probe
+    * @param points points to be controlled by the probe
+    * @param useTargetProps if {@code true}, causes the probe to
+    * bind to the point's {@code targetPosition} property instead of {@code
+    * position}
+    * @param startTime start time of the probe
+    * @param stopTime stop time of the probe
+    */
+   public PositionInputProbe createInputProbe (
+      String name, Collection<? extends Point> points,
+      boolean useTargetProps, double startTime, double stopTime) {
+
+      if (points.size() > getNumMarkers()) {
+         throw new IllegalArgumentException (
+            "TRC data has only "+getNumMarkers()+" markers; "+
+            "insufficient for "+points.size()+" points");
+      }
+      int[] midxs = new int[points.size()];
+      for (int i=0; i<points.size(); i++) {
+         midxs[i] = i;
+      }
+      // create the probe and add the data
+      PositionInputProbe probe = new PositionInputProbe (
+         name, points, /*rotRep*/null, useTargetProps, startTime, stopTime);
+      addProbeData (probe, midxs);
+      return probe;
+   }
+
+   /**
+    * Constructs a PositionInputProbe for the specified points based on data in
+    * the supplied TRC file. The start time is set to 0 and the stop time is
+    * inferred from the TRC data. Otherwise the probe is constructed in the
+    * same manner as described for {@link
+    * #createInputProbeFromLabels(String,Collection,List,boolean,double,double)}.
+    *
+    * @param name if non-null, gives the name of the probe
+    * @param points points to be controlled by the probe
+    * @param labels if non-{@code null}, gives labels of the TRC marker data
+    * that should be used for the points.
+    * @param trcFile TRC file providing the probe data.
+    * @param useTargetProps if {@code true}, causes the probe to
+    * bind to the point's {@code targetPosition} property instead of {@code
+    * position}
+    */
+   public static PositionInputProbe createInputProbeFromLabels (
+      String name, Collection<? extends Point> points, List<String> labels,
+      File trcFile, boolean useTargetProps) throws IOException {
+      
+      TRCReader reader = new TRCReader (trcFile);
+      reader.readData();
+      double duration = 0;
+      int numf = reader.getNumFrames();
+      if (numf > 1) {
+         duration = reader.getFrameTime(numf-1) - reader.getFrameTime(0);
+      }
+      return reader.createInputProbeFromLabels (
+         name, points, labels, useTargetProps, /*start*/0, /*stop*/duration);
+   }
+
+   /**
+    * Constructs a PositionInputProbe for the specified points based on data in
+    * the supplied TRC file.  The start time is set to 0 and the stop time is
+    * inferred from the TRC data. Otherwise the probe is constructed in the
+    * same manner as described for {@link
+    * #createInputProbe(String,Collection,boolean,double,double)}.
+    * 
+    * @param name if non-null, gives the name of the probe
+    * @param points points to be controlled by the probe
+    * @param trcFile TRC file providing the probe data.
+    * @param useTargetProps if {@code true}, causes the probe to
+    * bind to the point's {@code targetPosition} property instead of {@code
+    * position}
+    */
+   public static PositionInputProbe createInputProbe (
+      String name, Collection<? extends Point> points, File trcFile,
+      boolean useTargetProps) throws IOException {
+      
+      TRCReader reader = new TRCReader (trcFile);
+      reader.readData();
+      double duration = 0;
+      int numf = reader.getNumFrames();
+      if (numf > 1) {
+         duration = reader.getFrameTime(numf-1) - reader.getFrameTime(0);
+      }
+      return reader.createInputProbe (
+         name, points, useTargetProps, /*start*/0, /*stop*/duration);
+   }
+
 }
       

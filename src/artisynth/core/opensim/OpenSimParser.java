@@ -75,7 +75,7 @@ public class OpenSimParser {
     * Creates a new OpenSim parser for a specified OpenSim (.osim) file and
     * geometry folder. Constructing the parser does not load the model; that
     * must be done after by {@link #createModel} or {@link
-    * #createModel(MechModel}).
+    * #createModel(MechModel)}.
     * 
     * @param osimFile OpenSim file to parse
     * @param geometryPath path to the folder containing the OpenSim geometry
@@ -87,7 +87,7 @@ public class OpenSimParser {
    /**
     * Creates a new OpenSim parser for a specified OpenSim (.osim) file.
     * Constructing the parser does not load the model; that must be done after
-    * by {@link #createModel} or {@link #createModel(MechModel}). For model
+    * by {@link #createModel} or {@link #createModel(MechModel)}). For model
     * loading to succeed, a geometry folder will most likely need to be
     * specified first using {@link #setGeometryPath}.
     * 
@@ -131,7 +131,7 @@ public class OpenSimParser {
 
    /**
     * Sets the geometry path to be used in subsequent calls to {@link
-    * #createModel} or {@link #createModel(MechModel}).
+    * #createModel} or {@link #createModel(MechModel)}).
     *
     * @param geometryPath path to the folder containing the OpenSim geometry
     */
@@ -246,7 +246,7 @@ public class OpenSimParser {
    /**
     * Returns the {@code MechModel} either most recently populated or created
     * by {@link #createModel(MechModel)} or {@link #createModel()}, or set
-    * using {@link #setModelModel}.
+    * using {@link #setMechModel}.
     *
     * @return most recently populated or set model
     */
@@ -547,7 +547,7 @@ public class OpenSimParser {
     * contained in the MecModel associated with this parser. Note: the
     * components in this list are sometimes composite components that contain
     * the actual ForceComponent as a descendent. To obtain an explicit
-    * list of the force components, use {@link #getForceCompnents}.
+    * list of the force components, use {@link #getForceComponents}.
     *
     * @return "forceset" component, or {@code null} if not present.
     */
@@ -622,8 +622,6 @@ public class OpenSimParser {
     * Convenience method to zero the excitations of all muscle
     * components located beneath the {@code "forceset"}. This is
     * useful when a newly loaded model contains small bias excitations.
-    * 
-    * @param mech
     */
    public void zeroMuscleExcitations() {
       for (PointSpringBase psb : getMusclesAndSprings()) {

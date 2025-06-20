@@ -53,9 +53,9 @@ public interface BodyConstrainer extends Constrainer {
     * 
     * @param NT matrix to which the bilateral force contraint matrix
     * is appended.
-    * @param dg if non-{@code null}, returns the velocity constraint time
+    * @param dn if non-{@code null}, returns the velocity constraint time
     * derivative
-    * @param numb starting index for time derivative in {@code dg}
+    * @param numu starting index for time derivative in {@code dg}
     * @param solveIndexMap if non-{@code null}, maps the solve indices of the
     * constrained components onto the block-row indices of {@code NT}.
     * @return updated value of {@code numb}

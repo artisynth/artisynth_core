@@ -1098,6 +1098,7 @@ public class NumericProbePanel extends JPanel
       if (list != null) {
          int maxXPixels = segNums.length;
          NumericListKnot prevKnot = null;
+         boolean prevKnotAheadOfX = true;
          VectorNd yvec = new VectorNd (list.getVectorSize());
 
          // Create line plot
@@ -1108,9 +1109,16 @@ public class NumericProbePanel extends JPanel
             double x = xform.pixelToXvalue ((int)xpixel);
             if (linearInterp) {
                NumericListKnot nextKnot = list.findKnotAtOrBefore (x, prevKnot);
-               if (nextKnot != prevKnot) {
+               // XXX if any x lies before the first knot, nextKnot will not
+               // change as x crosses the first knot, and so we need to
+               // indepedently detect that crossing in order to boost the
+               // segment number properly. We do this by looing at when
+               // 'knotAheadOfX' changes.
+               boolean knotAheadOfX = (nextKnot.t > x);
+               if (nextKnot != prevKnot || (knotAheadOfX |= prevKnotAheadOfX)) {
                   segNum++;
                }
+               prevKnotAheadOfX = knotAheadOfX;
                segNums[i] = segNum;
             }
             else {

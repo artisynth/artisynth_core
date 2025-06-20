@@ -20,7 +20,7 @@ public class TRCWriter {
 
    File myFile;
    DynamicIntArray myOffsets;
-   LinkedList<String> myPointNames;
+   LinkedList<String> myMarkerLabels;
    String myUnitsStr = "mm";
    NumberFormat myFmt = null;
 
@@ -90,12 +90,23 @@ public class TRCWriter {
    }
 
    /**
-    * Writes the file based on the contents of a position input probe.
+    * Writes the file based on the contents of a position input probe.  The
+    * marker data is provided by the position data of each point associated
+    * with the probe.
     *
-    * @param probe
-    */
-   public void writeData (NumericProbeBase probe) throws IOException {
-      extractPointData (probe);
+    * <p>The marker count and data rate is inferred from the probe. If {@code
+    * labels} is non-{@code null}, it provides labels for the marker data
+    * within the file and should have a length equal to the number of
+    * points. Otherwise, if {@code labels} is {@code null}, marker labels are
+    * inferred from the point names and/or numbers.
+    *
+    * @param probe probe containing the marker data
+    * @param labels if non-{@code null}, provides labels for the TRC
+    * markers
+   */
+   public void writeData (
+      NumericProbeBase probe, List<String> labels) throws IOException {
+      extractPointData (probe, labels);
       PrintWriter pw = null;
       try {
          pw = new PrintWriter (new BufferedWriter (new FileWriter(myFile)));
@@ -112,12 +123,14 @@ public class TRCWriter {
       }
    }
 
-   private void extractPointData (NumericProbeBase probe) {
-      myPointNames = new LinkedList<>();
+   private void extractPointData (NumericProbeBase probe, List<String> labels) {
+      myMarkerLabels = new LinkedList<>();
       myOffsets = new DynamicIntArray();
       int offset = 0;
       boolean hasOtherData = false;
       boolean hasUnnamedPoints = false;
+      boolean notEnoughLabels = false;
+      boolean hasNullLabels = false;
       for (Object obj : probe.getPropsOrDimens()) {
          Point point = null;
          int dimen = 0;
@@ -141,12 +154,29 @@ public class TRCWriter {
             hasOtherData = true;
          }
          else {
-            String name = point.getName();
-            if (name == null) {
-               name = "MKR"+(myPointNames.size()+1);
-               hasUnnamedPoints = true;
+            String label = null;
+            int pidx = myMarkerLabels.size();
+            if (labels != null) {
+               if (pidx >= labels.size()) {
+                  notEnoughLabels = true;
+               }
+               else if (labels.get(pidx) == null) {
+                  hasNullLabels = true;
+               }
+               else {
+                  label = labels.get(pidx);
+               }
             }
-            myPointNames.add (name);
+            else {
+               label = point.getName();
+               if (label == null) {
+                  hasUnnamedPoints = true;
+               }
+            }
+            if (label == null) {
+               label = "MKR"+(pidx+1);
+            }
+            myMarkerLabels.add (label);
             myOffsets.add (offset);
          }
          offset += dimen;
@@ -158,7 +188,17 @@ public class TRCWriter {
       if (hasUnnamedPoints) {
          System.out.println (
             "WARNING, TrcWriter: some points are unnamed; "+
-            "names will be assigned by number");
+            "labels will be assigned by number");
+      }
+      if (hasNullLabels) {
+         System.out.println (
+            "WARNING, TrcWriter: some labels are null; " +
+            "missing labels will be assigned by number");
+      }
+      if (notEnoughLabels) {
+         System.out.println (
+            "WARNING, TrcWriter: not enough labels;" +
+            "missing labels will be assigned by number");
       }
    }
 
@@ -182,12 +222,13 @@ public class TRCWriter {
       return new NumberFormat ("%"+ntotal+"."+nfrac+"f");
    }
    
-   private void writeHeaders (PrintWriter pw, NumericProbeBase probe) {
+   private void writeHeaders (
+      PrintWriter pw, NumericProbeBase probe) {
       NumericList nlist = probe.getNumericList();
 
       // find the number of frames and data rate from the numeric list:
       int numFrames = nlist.getNumKnots();
-      int numMarkers = myPointNames.size();
+      int numMarkers = myMarkerLabels.size();
       int dataRate = 60;
       if (numFrames > 1) {
          double time = nlist.getKnot(numFrames-1).t - nlist.getKnot(0).t;
@@ -203,7 +244,7 @@ public class TRCWriter {
          dataRate, dataRate, numFrames, numMarkers, myUnitsStr,
          dataRate, 1, numFrames);
       pw.printf ("Frame#\tTime");
-      for (String name : myPointNames) {
+      for (String name : myMarkerLabels) {
          pw.printf ("\t%s\t\t", name);
       }
       pw.printf ("\n");
@@ -223,7 +264,7 @@ public class TRCWriter {
          fmt = getDefaultFormat (probe);
       }
       // extract and write the data from the numeric list
-      int numMarkers = myPointNames.size();
+      int numMarkers = myMarkerLabels.size();
       for (int k=0; k<nlist.getNumKnots(); k++) {
          NumericListKnot knot = nlist.getKnot(k);
          pw.printf ("%d\t%s", k+1, fmt.format(knot.t));
@@ -240,30 +281,38 @@ public class TRCWriter {
 
    /**
     * Writes a TRC file based on the contents of a given numeric probe, which
-    * is assumed to contain point position data. The marker count, names, and
-    * data rate is inferred from the probe.
+    * is assumed to contain point position data. The marker count, labels and
+    * data rate is inferred from the probe and the {@code labels} argument, as
+    * described for {@link #writeData}.
     *
     * @param file TRC file to be created
     * @param probe numeric probe containing the data
+    * @param labels if non-{@code null}, provides labels for the TRC
+    * markers
     */
-   public static void write (File file, NumericProbeBase probe)
+   public static void write (
+      File file, NumericProbeBase probe, List<String> labels)
       throws IOException {
       TRCWriter writer = new TRCWriter(file);
-      writer.writeData (probe);
+      writer.writeData (probe, labels);
    }
 
    /**
     * Writes a TRC file based on the contents of a given numeric probe, which
-    * is assumed to contain point position data. The marker count, names, and
-    * data rate is inferred from the probe.
+    * is assumed to contain point position data. The marker count, labels and
+    * data rate is inferred from the probe and the {@code labels} argument, as
+    * described for {@link #writeData}.
     *
     * @param filepath path name of the TRC file to be created
     * @param probe numeric probe containing the data
+    * @param labels if non-{@code null}, provides labels for the TRC
+    * markers
     */
-   public static void write (String filepath, NumericProbeBase probe)
+   public static void write (
+      String filepath, NumericProbeBase probe, List<String> labels)
       throws IOException {
       TRCWriter writer = new TRCWriter(filepath);
-      writer.writeData (probe);
+      writer.writeData (probe, labels);
    }
 }
      

@@ -66,22 +66,36 @@ public class TRCReader {
    }
 
    /**
+    * @deprecated Use {@link #numFrames} instead.
+    */
+   public int getNumFrames() {
+      return numFrames();
+   }
+   
+   /**
     * Returns the number of frames in the TRC data, or 0 if {@link #readData}
     * has not yet been called.
     *
     * @return number of frames read
-    */
-   public int getNumFrames() {
+    */   
+   public int numFrames() {
       return myMotionData.numFrames();
    }
 
+   /**
+    * @deprecated Use {@link #numMarkers} instead.
+    */
+   public int getNumMarkers() {
+      return numMarkers();
+   }
+   
    /**
     * Returns the number of markers in the TRC data, or 0 if {@link #readData}
     * has not yet been called.
     *
     * @return number of markers
     */
-   public int getNumMarkers() {
+   public int numMarkers() {
       return myMotionData.numMarkers();
    }
 

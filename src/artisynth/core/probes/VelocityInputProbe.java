@@ -37,7 +37,7 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param name if non-null, gives the name of the probe
     * @param comp specifies the Point or Frame
     * @param useTargetProps if {@code true}, causes the probe to bind to the
-    * component's {@code targetVelocity} property (if available), instead of
+    * component's {@code targetVelocity} property instead of
     * {@code velocity}
     * @param startTime start time of the probe
     * @param stopTime stop time of the probe
@@ -59,7 +59,7 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param name if non-null, gives the name of the probe
     * @param comps specifies the Point or Frame components
     * @param useTargetProps if {@code true}, causes the probe to bind to the
-    * component's {@code targetVelocity} property (if available), instead of
+    * component's {@code targetVelocity} property instead of
     * {@code velocity}
     * @param startTime start time of the probe
     * @param stopTime stop time of the probe
@@ -82,7 +82,7 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param name if non-null, gives the name of the probe
     * @param comp specifies the Point or Frame
     * @param useTargetProps if {@code true}, causes the probe to bind to the
-    * component's {@code targetVelocity} property (if available), instead of
+    * component's {@code targetVelocity} property instead of
     * {@code velocity}
     * @param filePath path name of the probe data file
     * @throws IOException if a file I/O error occurs
@@ -104,7 +104,7 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param name if non-null, gives the name of the probe
     * @param comps specifies the Point or Frame components
     * @param useTargetProps if {@code true}, causes the probe to bind to the
-    * component's {@code targetVelocity} property (if available), instead of
+    * component's {@code targetVelocity} property instead of
     * {@code velocity}
     * @param filePath path name of the probe data file
     * @throws IOException if a file I/O error occurs
@@ -137,14 +137,28 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param name if non-null, gives the name of the probe
     * @param source PositionInputProbe or PositionOutputProbe containing
     * the position data to differentiate
+    * @param useTargetProps if {@code true}, causes the probe to bind to the
+    * component's {@code targetVelocity} property instead of
     * @param interval knot time spacing interval, or {@code -1} if knot
     * times should be determined from the source probe
     * @return created velocity probe
     */
    public static VelocityInputProbe createNumeric (
-      String name, NumericProbeBase source, double interval) {
+      String name, NumericProbeBase source,
+      boolean useTargetProps, double interval) {
       ArrayList<ModelComponent> comps = extractSourcePositionComps (source);
-      return create (name, comps, source, interval, /*useInterpolation*/false);
+      return create (
+         name, comps, source, useTargetProps, interval,/*useInterpolation*/false);
+   }
+
+   /**
+    * @deprecated Use {@link
+    * #createNumeric(String,NumericProbeBase,boolean,double)} instead.  This
+    * method calls that method with {@code useTargetProps} set to {@code false},
+    */
+   public static VelocityInputProbe createNumeric (
+      String name, NumericProbeBase source, double interval) {
+      return createNumeric (name, source, /*targetProps*/false, interval);
    }
 
    /**
@@ -165,14 +179,28 @@ public class VelocityInputProbe extends NumericInputProbe {
     * @param name if non-null, gives the name of the probe
     * @param source PositionInputProbe or PositionOutputProbe containing
     * the position data to differentiate
+    * @param useTargetProps if {@code true}, causes the probe to bind to the
+    * component's {@code targetVelocity} property instead of
     * @param interval knot time spacing interval, or {@code -1} if knot
     * times should be determined from the source probe
     * @return created velocity probe
     */
    public static VelocityInputProbe createInterpolated (
-      String name, NumericProbeBase source, double interval) {
+      String name, NumericProbeBase source,
+      boolean useTargetProps, double interval) {
       ArrayList<ModelComponent> comps = extractSourcePositionComps (source);
-      return create (name, comps, source, interval, /*useInterpolation*/true);
+      return create (
+         name, comps, source, useTargetProps, interval, /*useInterpolation*/true);
+   }
+
+   /**
+    * @deprecated Use {@link
+    * #createInterpolated(String,NumericProbeBase,boolean,double)} instead.  This
+    * method calls that method with {@code useTargetProps} set to {@code false},
+    */
+   public static VelocityInputProbe createInterpolated (
+      String name, NumericProbeBase source, double interval) {
+      return createInterpolated (name, source, /*targetProps*/false, interval);
    }
 
    protected static ArrayList<ModelComponent> extractSourcePositionComps (
@@ -233,12 +261,13 @@ public class VelocityInputProbe extends NumericInputProbe {
 
    protected static VelocityInputProbe create (
       String name, Collection<? extends ModelComponent> comps,
-      NumericProbeBase source, double interval, boolean interpolated) {
+      NumericProbeBase source, boolean useTargetProps,
+      double interval, boolean interpolated) {
 
       double startTime = source.getStartTime();
       double stopTime = source.getStopTime();
       VelocityInputProbe vprobe = new VelocityInputProbe (
-         name, comps, false, startTime, stopTime);
+         name, comps, useTargetProps, startTime, stopTime);
       //checkVectorStructure (comps, source);
       double scale = source.getScale();
       vprobe.setScale (scale);

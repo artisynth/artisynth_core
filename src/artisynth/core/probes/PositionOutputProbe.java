@@ -13,14 +13,14 @@ import maspack.interpolation.*;
 
 /**
  * Probe for recording the positions and poses of a set of Point, Frame, and
- * FixedMeshBody components. Translational position information is read from the
- * component's {@code position} property. For components with orientation
+ * FixedMeshBody components. Translational position information is read from
+ * the component's {@code position} property. For components with orientation
  * (Frame and FixedMeshBody), the rotation information is read from the
  * components's {@code orientation} property, but is represented within the
  * probe data in a manner specifed by a {@link RotationRep} object, using
- * either 3 or 4 numbers. Rotation information is interpolated as curves on the
- * surface of SO(3), as originally described by Ken Shoemake in his SIGGRAPH
- * 1985 paper "Animating Rotation with Quaternion Curves".
+ * either 3 or 4 numbers. Rotation information is interpolated as curves on
+ * SO(3), as originally described by Ken Shoemake in his SIGGRAPH 1985 paper
+ * "Animating Rotation with Quaternion Curves".
  */
 public class PositionOutputProbe extends NumericOutputProbe {
 

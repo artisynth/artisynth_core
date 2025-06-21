@@ -16,15 +16,15 @@ import maspack.interpolation.*;
  * Probe for specifying the positions and poses of a set of Point, Frame, and
  * FixedMeshBody components. Translational position information is attached to
  * either the component's {@code position} or {@code targetPosition} property,
- * depending on availability and the value of the {@code useTargetProps} argument
- * in the probe's constructor. For components with orientation (Frame and
- * FixedMeshBody), the rotation information is likewise attached to the either
- * the components's {@code orientation} or {@code targetOrientation}
+ * depending on availability and the value of the {@code useTargetProps}
+ * argument in the probe's constructor. For components with orientation (Frame
+ * and FixedMeshBody), the rotation information is likewise attached to the
+ * either the components's {@code orientation} or {@code targetOrientation}
  * property. However, within the probe data, the orientation is represented in
  * a manner specifed by a {@link RotationRep} object, using either 3 or 4
- * numbers. Rotation information is interpolated as curves on the surface of
- * SO(3), as originally described by Ken Shoemake in his SIGGRAPH 1985 paper
- * "Animating Rotation with Quaternion Curves".
+ * numbers. Rotation information is interpolated as curves on SO(3), as
+ * originally described by Ken Shoemake in his SIGGRAPH 1985 paper "Animating
+ * Rotation with Quaternion Curves".
  */
 public class PositionInputProbe extends NumericInputProbe {
 
@@ -200,13 +200,15 @@ public class PositionInputProbe extends NumericInputProbe {
     * created. Otherwise, the existing is overwritten at the location
     * corresponding to the frame.
     *
-    * @param frame frame for which the data should be set
+    * @param frame frame-based component (either {@link Frame} or {@link
+    * FixedMeshBody}) for which the data should be set.
     * @param time time at which the data should be set
     * @param TFW transform from frame to world, specifying the position, or
     * pose, of the frame. This will be turned into internal data based on the
     * setting of {@link #getRotationRep}.
     */
-   public void setFrameData (Frame frame, double time, RigidTransform3d TFW) {
+   public void setFrameData (
+      ModelComponent frame, double time, RigidTransform3d TFW) {
       updateCompOffsetMap();
       Integer off = myCompOffsetMap.get(frame);
       if (off == null) {

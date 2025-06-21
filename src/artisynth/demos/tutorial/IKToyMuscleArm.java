@@ -1,12 +1,13 @@
 package artisynth.demos.tutorial;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.probes.IKProbe;
 import artisynth.core.probes.IKSolver;
+import artisynth.core.probes.*;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.PositionInputProbe;
 import artisynth.core.probes.PositionOutputProbe;
@@ -26,6 +27,12 @@ public class IKToyMuscleArm extends ToyMuscleArm {
       // Set the base to be ground - useful when setting the link positions
       // using joint angles.
       myMech.rigidBodies().get("base").setGrounded (true);
+
+      // Give the markers names based on their component number. We do this so
+      // we can identify them in the TRC file.
+      for (FrameMarker mkr : myMech.frameMarkers()) {
+         mkr.setName ("mkr" + mkr.getNumber());
+      }
 
       // For inverse kinematics, use either 3 markers on the top link (link1)
       // or 7 markers on both links.
@@ -99,8 +106,8 @@ public class IKToyMuscleArm extends ToyMuscleArm {
       // probe data file "data/ikall.txt".
       IKSolver iksolver = new IKSolver (myMech, allMkrs, /*wgts*/null);
       PositionInputProbe posprobe = iksolver.createBodyPoseProbe (
-         "ik position inputs", fileName, RotationRep.QUATERNION,
-         /*interval=*/0.05);
+         "ik position inputs", fileName, RotationRep.QUATERNION, 
+         /*targetProps*/false, /*interval=*/0.05);
       posprobe.setInterpolationOrder (Order.Cubic);
       posprobe.setActive (false);
       addInputProbe (posprobe);         

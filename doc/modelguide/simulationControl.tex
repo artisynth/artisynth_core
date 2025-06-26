@@ -2623,14 +2623,15 @@ extends the model {\tt MultiJointedArm}, previously described in
 Section \ref{MultiJointedArm:sec}. Then it reads TRC data defining target
 trajectories for the markers attached to the arm, with the intention of moving
 the arm. While a standard way to make marker data move an articulated structure
-is to employ an inverse kinematic solver (Section \ref{XXX}), this example
-uses a simpler solution. For each marker, a target point is defined and
-attached to it by means of a spring. The target points (which are non-dynamic)
-are then moved by means of a {\tt PositionInputProbe} created from the TRC
-data. As they move, they drag the markers (and the attached bodies) around by
-means of the resulting spring forces. It can be shown that the resulting rest
-position of the system is identical to that of the inverse kinematic solver of
-Section \ref{XXX} (assuming equal marker weights).
+is to employ an inverse kinematic solver (Section \ref{InverseKinematics:sec}),
+this example uses a simpler solution. For each marker, a target point is
+defined and attached to it by means of a spring. The target points (which are
+non-dynamic) are then moved by means of a {\tt PositionInputProbe} created from
+the TRC data. As they move, they drag the markers (and the attached bodies)
+around by means of the resulting spring forces. It can be shown that the
+resulting rest position of the system is identical to that of the inverse
+kinematic solver of Section \ref{InverseKinematicsSolver:sec} (assuming equal
+marker weights).
 
 Tracking accuracy increases with spring stiffness (although very high
 stiffnesses may cause stability issues). To illustrate this relationship, a

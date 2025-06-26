@@ -67,7 +67,7 @@ public class MarkerMotionData {
       return getMarkerPositions(frameIdx).get(mkrIdx);
    }
 
-   public Vector3d getMarkerPosition (int frameIdx, String label) {
+   public Point3d getMarkerPosition (int frameIdx, String label) {
       int mkrIdx = getMarkerIndex (label);
       if (mkrIdx == -1) {
          return null;

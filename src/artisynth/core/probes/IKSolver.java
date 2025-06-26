@@ -60,6 +60,7 @@ import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
 import maspack.numerics.BrentMinimizer;
 import maspack.solvers.KKTSolver;
+import maspack.solvers.PardisoSolver;
 import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
@@ -348,6 +349,12 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
    public IKSolver () {
       myMarkerInfo = new ArrayList<>();
       myKKTSolver = new KKTSolver();
+      // XXX hack. Lower perturbed pivot threshold from 10^-8 to 10^-11, to
+      // reduce spurious instances of perturbed pivots. Should find a better
+      // way to address this.
+      if (myKKTSolver.getMatrixSolver() instanceof PardisoSolver) {
+         ((PardisoSolver)myKKTSolver.getMatrixSolver()).setPivotPerturbation(11);
+      }
    }
 
    /**
@@ -1193,6 +1200,8 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
     *
     * @param mtargs target positions for each marker. Should have a size {@code
     * >= 3*numMarkers()}.
+    * @return the number of iterations required for the solve, or -1
+    * if the solver did not converge to the requested tolerance.
     */
    public int solve (VectorNd mtargs) {
       
@@ -2117,10 +2126,11 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
 
          double tend = (stopTime-startTime)/scale;
          double tinc = interval/scale;
-         double ttol = 100*DOUBLE_PREC*(stopTime-startTime);
+         double ttol = 1e-12*(stopTime-startTime);
 
          double tloc = 0;
          while (tloc <= tend) {
+            boolean debug = (tloc > 3.97);
             nlist.interpolate (mpos, tloc);
             int niter = solve (mpos);
             if (niter != -1) {
@@ -2128,13 +2138,15 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
             }
             debugMask = true;
             last = collector.addData (newProbe, tloc, last);
-            // make sure we include the end point while avoiding very small
-            // knot spacings
-            if (tloc < tend && tloc+tinc > tend-ttol) {
-               tloc = tend;
+            if (tloc == tend) {
+               break;
             }
             else {
                tloc += tinc;
+               // snap to tend to avoid very small knot spacings
+               if (tloc >= tend-ttol) {
+                  tloc = tend;
+               }
             }
          }
       }

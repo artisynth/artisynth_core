@@ -1768,7 +1768,7 @@ The muscle force is in turn produced by a {\it fibre force} $f_f$
 acting at an {\it pennation angle} $\phi$ with respect to the
 principal muscle direction, such that
 %
- \begin{equation*}
+\begin{equation*}
 f_m = \cos(\phi) f_f (l_f, v_f),
 \end{equation*}
 %
@@ -3222,6 +3222,7 @@ initial lengths may be, resulting in a different applied forces and
 physical behavior.
 
 \section{General component arrangements}
+\label{GeneralComponentArrangements:sec}
 
 As discussed in Section \ref{MechModel:sec} and elsewhere, a {\tt
 MechModel} provides a number of predefined child components for
@@ -3973,8 +3974,8 @@ class CustomCoupling extends RigidBodyCoupling {
       ...
    }
 
-   // Update the constraint wrenches, and maybe the engaged
-   // and distance settings for some unilateral constraints.
+   // Update the constraint wrenches, coordinate twists, and maybe the 
+   // engaged and distance settings for some unilateral constraints.
    public void updateConstraints (
       RigidTransform3d TGD, RigidTransform3d TCD, Twist errC,
       Twist velGD, boolean updateEngaged) {
@@ -4059,15 +4060,29 @@ methods:
      double min, double max, int flags, RigidBodyConstraint limCon)
 \end{lstlisting}
 %
-Each creates a new {\tt CoordinateInfo} object (which is an inner
-class of \javaclass[maspack.spatialmotion]{RigidBodyCoupling}), and
-adds it to the coupling's coordinate list. In the second method, {\tt
-min} and {\tt max} give the initial range limits, and {\tt limCon}, if
-non-{\tt null}, specifies a unilateral constraint (previously created
-using {\tt addConstraint}) for enforcing the limits and causes that
-constraint's {\tt LIMIT} to be set.  The argument {\tt flags} is
-reserved for future use and should be set to 0. If not specified, the
-default coordinate limits are $(-\inf, \inf)$.
+Each creates a new {\tt CoordinateInfo} object (which is an inner class
+of \javaclass[maspack.spatialmotion]{RigidBodyCoupling}), and adds it to the
+coupling's coordinate list. In the second method, {\tt min} and {\tt max} give
+the initial range limits, and {\tt limCon}, if non-{\tt null}, specifies a
+constraint (previously created using {\tt addConstraint}) that is parallel to
+the twist associated with the coordinate's motion and which can be used for
+enforcing the limits. Specifying a non-{\tt null} {\tt limCon} will cause the
+constraint's {\tt LIMIT} flag to be set.  The argument {\tt flags} is reserved
+for future use and should be set to 0. If not specified, the default coordinate
+limits are $(-\inf, \inf)$.
+
+Each coordinate is associated with a {\tt twist} value which describes the
+instantaneous spatial velocity imparted by that coordinate in frame G.  The
+twist value for each coordinate must be specified by the coupling, using the
+method
+\begin{lstlisting}[]
+  void setCoordinateTwist (int cidx, Twist twistG);
+\end{lstlisting}
+where {\tt cidx} is the coordinate index and {\tt twistG} is the current value
+of the twist expressed in coordinate frame G.  If the twist has a constant
+value, {\tt setCoordinateTwist()} may be called once in {\tt
+initializeConstraints()}. Otherwise, it must be called in {\tt
+updateConstraints()}.
 
 The implementation of {\tt initializeConstraints()} for a coupling
 that implements a hinge type joint might look like this:
@@ -4082,6 +4097,9 @@ public void initializeConstraints () {
    addConstraint (ROTARY, new Wrench (0, 0, 0, 0, 0, 1));
 
    addCoordinate (-Math.PI, Math.PI, 0, getConstraint(5));
+
+   // coordinate twist is constant, so set it here
+   setCoordinatTwist (/*cidx*/0, new Twist (0, 0, 0, 0, 0, 1));
 }
 \end{lstlisting}
 %
@@ -4199,11 +4217,17 @@ for:
 \begin{itemize}
 
 \item Updating the values of all non-constant constraint wrenches,
-along with their derivatives;
+including the limit constraints for joint coordinates, along with their
+derivatives.
+
+\item Updating the coordinate twists for couplings with joint coordinates,
+using the method {\tt setCoordinateTwist()} described above. (For twists that
+are constant, {\tt setCoordinateTwist()} can be called in {\tt
+initializeConstraints()} instead.)
 
 \item If {\tt updateEngaged} is {\tt true}, updating the {\sf engaged}
-and {\sf distance} attributes for all unilateral constraints not
-associated with a coordinate limit.
+and {\sf distance} attributes for all unilateral constraints not associated
+with a coordinate limit.
 
 \end{itemize}
 
@@ -4226,7 +4250,7 @@ G with respect to D, as seen in G; this is needed to compute wrench
 derivatives.
 
 \item {\tt updateEngaged}, which requests the updating of unilateral
-{\sf engaged} and {\sf distance} attributes as describe above.
+{\sf engaged} and {\sf distance} attributes as described above.
 
 \end{itemize}
 
@@ -4286,7 +4310,7 @@ limit wrench $\N_l$ must have a magnitude such that
 \end{equation}
 %
 As mentioned above, if {\tt updateEngaged} is {\tt true}, the {\sf
-engaged} and {\sf distance} attributes for unilateral constraints not
+engaged} and {\sf distance} attributes for unilateral constraints {\it not}
 associated with coordinate limits must be updated.  These correspond
 to $E_l$ and $d_l$ in Section \ref{JointConstraints:sec}, and are
 contained in the constraint's
@@ -4391,19 +4415,21 @@ $\theta$), with $\T_{CD}$ related to the coordinates by
    
       addCoordinate (-1, 1, 0, getConstraint(4)); // x
       addCoordinate (-2*Math.PI, 2*Math.PI, 0, getConstraint(5)); // theta
+
+      setCoordinateTwist (/*thetaIdx*/1, new Twist (0, 0, 0, 0, 0, 1));
    }
 \end{lstlisting}
 %
-Six constraints are added using {\tt addConstraint()}: two linear
-bilaterals to restrict translation along the $y$ and $z$ axes of D, two
-rotary bilaterals to restrict rotation about the $x$ and $y$ axes of D,
-and two unilaterals to enforce limits on $x$ and $\theta$. Four of the
-constraints are constant in frame G, and so are initialized with a
-wrench value. The other two are not constant in G and so will need to
-be updated in {\tt updateConstraints()}. The coordinates for
-$x$ and $\theta$ are added at the end, using {\tt addCoordinate()},
-with default joint limits and a reference to the constraint that will
-enforce the limit.
+Six constraints are added using {\tt addConstraint()}: two linear bilaterals to
+restrict translation along the $y$ and $z$ axes of D, two rotary bilaterals to
+restrict rotation about the $x$ and $y$ axes of D, and two unilaterals to
+enforce limits on $x$ and $\theta$. Four of the constraints are constant in
+frame G, and so are initialized with a wrench value. The other two are not
+constant in G and so will need to be updated in {\tt updateConstraints()}. The
+coordinates for $x$ and $\theta$ are added at the end, using {\tt
+addCoordinate()}, with default joint limits and a reference to the constraint
+that will enforce the limit. The twist for $\theta$ is constant and so it is
+initialized here as well.
 
 The implementations for {\tt coordinatesToTCD()} and {\tt
 TCDToCoordinates()} simply use (\ref{SlottedHingeTCD:eqn}) to
@@ -4478,14 +4504,16 @@ follows:
       double dotTheta = velGD.w.z;
       cons.setDotWrenchG (c*dotTheta, -s*dotTheta, 0, 0, 0, 0);
       
-      // update x limit constraint if necessary
+      // update constraint for x motion, since this is also non-constant
       cons = getConstraint(4);
-      if (cons.getEngaged() != 0) {
-         // constraint wrench along x, transformed to G, is (-c, s, 0)
-         cons.setWrenchG (c, -s, 0, 0, 0, 0);
-         cons.setDotWrenchG (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
-      }
-      // theta limit constraint is constant; no need to do anything
+      // constraint wrench along x, transformed to G, is (-c, s, 0)
+      cons.setWrenchG (c, -s, 0, 0, 0, 0);
+      cons.setDotWrenchG (-s*dotTheta, -c*dotTheta, 0, 0, 0, 0);
+
+      // update x twist (which in this case has the same values as wrenchG)
+      setCoordinateTwist (/*xIdx*/0, new Twist (c, -s, 0, 0, 0, 0));
+
+      // theta limit constraint and twist is constant; no need to do anything
    }
 \end{lstlisting}
 %
@@ -4508,10 +4536,15 @@ constraint's {\tt setWrenchG()} and {\tt setDotWrenchG()} methods.
 
 The other non-constant constraint is the limit constraint for the $x$
 coordinate, which is the $x$ axis of D as seen in G. This is updated
-similarly, although we only need to do so if the limit constraint is
-engaged. Since all unilateral constraints are coordinate limits, there
-is no need to update their {\sf distance} or {\sf engaged} attributes
-as this is done automatically by the system.
+similarly. Since all unilateral constraints are coordinate limits, there is no
+need to update their {\sf distance} or {\sf engaged} attributes as this is done
+automatically by the system.
+
+Finally, we use {\tt setCoordinateTwist()} to update the twist for the $x$
+coordinate, which is the spatial velocity imparted by a change in $x$ as seen
+in frame G. Although this twist has the constant value $(1, 0, 0, 0, 0, 0)$ in
+frame D, it varies in frame G according to the transform from $D$ to $G$.  In
+this particular example, is has the same values as the $x$ limit constraint.
 
 \ifdefined\maindoc
 \else

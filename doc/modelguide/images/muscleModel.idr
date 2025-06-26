@@ -2,7 +2,7 @@
 %%Creator: idraw
 %%DocumentFonts: Symbol Helvetica-Oblique
 %%Pages: 1
-%%BoundingBox: 45 278 456 541
+%%BoundingBox: 45 278 456 543
 %%EndComments
 
 %%BeginIdrawPrologue
@@ -1344,7 +1344,7 @@ Begin %I Pict
 %I f u
 %I p u
 %I t
-[ 1 0 0 1 217 -194 ] concat
+[ 1 0 0 1 215 -274 ] concat
 
 Begin %I Text
 %I cfg Black
@@ -1382,56 +1382,6 @@ Helvetica-Oblique 18 SetF
 %I
 [
 (f  \(l  \))
-] Text
-End
-
-End %I eop
-
-Begin %I Pict
-%I b u
-%I cfg u
-%I cbg u
-%I f u
-%I p u
-%I t
-[ 1 0 0 1 -161.5 -145 ] concat
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-o-normal--14-*
-Helvetica-Oblique 14 SetF
-%I t
-[ 1 0 0 1 364 854.5 ] concat
-%I
-[
-(m)
-] Text
-End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-o-normal--14-*
-Helvetica-Oblique 14 SetF
-%I t
-[ 1 0 0 1 384 853.5 ] concat
-%I
-[
-(m)
-] Text
-End
-
-Begin %I Text
-%I cfg Black
-0 0 0 SetCFg
-%I f -*-helvetica-medium-o-normal--18-*
-Helvetica-Oblique 18 SetF
-%I t
-[ 1 0 0 1 356 862.5 ] concat
-%I
-[
-(f   \(l   \))
 ] Text
 End
 
@@ -1844,10 +1794,10 @@ End
 Begin %I Text
 %I cfg Black
 0 0 0 SetCFg
-%I f -*-helvetica-medium-o-normal--18-*
-Helvetica-Oblique 18 SetF
+%I f -*-helvetica-medium-o-normal--24-*
+Helvetica-Oblique 24 SetF
 %I t
-[ 1 0 0 1 64 545 ] concat
+[ 1 0 0 1 64 551 ] concat
 %I
 [
 (H)
@@ -1882,6 +1832,58 @@ none SetP %I p n
 %I
 55 621 55 173 Line
 %I 2
+End
+
+Begin %I Text
+%I cfg Black
+0 0 0 SetCFg
+%I f -*-helvetica-medium-o-normal--24-*
+Helvetica-Oblique 24 SetF
+%I t
+[ 1 0 0 1 228.5 720.5 ] concat
+%I
+[
+( l)
+] Text
+End
+
+Begin %I Text
+%I cfg Black
+0 0 0 SetCFg
+%I f -*-helvetica-medium-o-normal--18-*
+Helvetica-Oblique 18 SetF
+%I t
+[ 1 0 0 1 240.5 711.5 ] concat
+%I
+[
+(m)
+] Text
+End
+
+Begin %I Text
+%I cfg Black
+0 0 0 SetCFg
+%I f -*-helvetica-medium-o-normal--24-*
+Helvetica-Oblique 24 SetF
+%I t
+[ 1 0 0 1 463.5 717.5 ] concat
+%I
+[
+( l)
+] Text
+End
+
+Begin %I Text
+%I cfg Black
+0 0 0 SetCFg
+%I f -*-helvetica-medium-o-normal--18-*
+Helvetica-Oblique 18 SetF
+%I t
+[ 1 0 0 1 476.5 709.5 ] concat
+%I
+[
+(t)
+] Text
 End
 
 End %I eop

@@ -370,7 +370,7 @@ for specifying the target positions or forces.
 
 \item Create input probes or controllers to specify the desired
 trajectories for the sources added in Step 3. Trajectories are specified by
-using probes or controllers to set the appropriate target properties of the
+using probes or controllers to set the appropriate properties of the
 target objects returned by the {\tt addXXXTarget()} methods.  Likewise, output
 probes or monitors can be created to record the excitations and the tracked
 positions or forces of the sources.
@@ -381,6 +381,14 @@ an L2 regularization term, added using the controller's
 {addL2RegularizationTerm()} method. Regularization attempts to minimize the norm
 of the excitation values and is needed to resolve redundancy if the excitation
 set has more degrees of freedom that the target space.
+
+\begin{sideblock}
+For historical reasons, the {\it target position} and {\it target velocity}
+properties described in Section \ref{targetPositions:sec} are {\it not} used by
+the tracking controller for target components; therefore, probes controlling
+target positions and velocities should be bound to the {\it position} and {\it
+velocity} properties.
+\end{sideblock}
 
 \item Set controller configuration parameters.
 
@@ -488,9 +496,9 @@ excitations. The first, {\tt targetprobe}, is an input probe attached to the
 specifies three knot points with a time step of 0.5. Interpolation is set to
 cubic (line 78) for greater smoothness. The second, {\tt exprobe}, is a probe
 that records all the excitations computed by the controller (lines 82-85).  It
-is created by the utility method {\tt createOutputProbe()} supplied by
-the \javaclass[\inverse]{InverseManager} class
-(Section \ref{InverseManagerProbes:sec}).
+is created by the utility method {\tt createOutputProbe()} supplied by the
+\javaclass[\inverse]{InverseManager} class (Section
+\ref{InverseManagerProbes:sec}).
 
 To run this example, select {\sf All demos > tutorial > InverseParticle} from
 the {\sf Models} menu. The model should load and initially appear as in
@@ -737,11 +745,17 @@ Both {\tt TargetPoint} and {\tt TargetFrame}, together with the source
 components {\tt Point} and {\tt Frame}, are instances of
 \javaclass[\mech]{MotionTargetComponent}.
 
-As simulation proceeds, the desired trajectory position $\x_t$ for each
-source component is specified by setting the target component's {\sf position}
+As simulation proceeds, the desired trajectory position $\x_t$ for each source
+component is specified by setting the target component's {\sf position}
 property (or {\sf position}, {\sf orientation} and/or {\sf pose} properties for
-frame targets).  As described elsewhere, this can be done using either probes
+frame targets). As described elsewhere, this can be done using either probes
 or other controller objects.
+
+\begin{sideblock}
+For historical reasons, the {\it target position} and {\it target velocity}
+properties described in Section \ref{targetPositions:sec} are {\it not} used by
+the tracking controller for target components.
+\end{sideblock}
 
 Likewise, a corresponding velocity trajectory $\v_t$ can also be specified by
 setting the {\sf velocity} property of the target object.  If this is not set,
@@ -1359,7 +1373,7 @@ static forces (i.e., forces that are not velocity dependent, such as damping)
 are considered.  However, the third {\tt addForceEffectorTarget()} method
 allows this to be explicitly specified.
 
-\iflatexml\else\clearpage\fi
+%\iflatexml\else\clearpage\fi
 
 Lists of all the force effector source components and their associated targets
 can be obtained using the methods:
@@ -2087,11 +2101,12 @@ which includes the following identifiers:
 
 \item[{\tt TARGET\_POSITIONS}]\mbox{}
 
-An input probe which provides a trajectory $\x_t(t)$ for all motion
-targets. Its input values are attached to the {\sf position} property (3 values)
-of each point target and the {\sf position} and {\sf orientation} properties of
-each frame target (7 values), in the order the targets appear in the
-controller.
+A \javaclass[\probes]{PositionInputProbe} (Section \ref{PositionProbes:sec})
+which provides a trajectory $\x_t(t)$ for all motion targets. Its input values
+are attached to the {\sf position} property of each point target and the {\sf
+position} and {\sf orientation} properties of each frame target, in the order
+the targets appear in the controller. The rotation representation is given by
+the {\sf positionProbeRotRep} property of the controller.
 
 \item[{\tt INPUT\_EXCITATIONS}]\mbox{}
 
@@ -2102,15 +2117,19 @@ from a given excitation input.
 
 \item[{\tt TRACKED\_POSITIONS}]\mbox{}
 
-An output probe which records the positions of all motion targets as they are
-set by the controller. Its output values are extracted from the same component
-properties used by {\tt TARGET\_POSITIONS}.
+A \javaclass[\probes]{PositionOutputProbe} which records the positions of all
+motion targets as they are set by the controller. Its output values are
+extracted from the same component properties used by {\tt TARGET\_POSITIONS},
+and its rotation representation is given by the {\sf positionProbeRotRep}
+property of the controller.
 
 \item[{\tt SOURCE\_POSITIONS}]\mbox{}
 
-An output probe which records that actual position trajectory $\x(t)$ followed
-by all motion sources. Its output values are extracted from the same component
-properties used by {\tt TARGET\_POSITIONS}.
+A \javaclass[\probes]{PositionOutputProbe} which records the actual position
+trajectory $\x(t)$ followed by all motion sources. Its output values are
+extracted from the same component properties used by {\tt TARGET\_POSITIONS},
+and its rotation representation is given by the {\sf positionProbeRotRep}
+property of the controller.
 
 \item[{\tt INPUT\_EXCITATIONS}]\mbox{}
 
@@ -2136,14 +2155,14 @@ following (static) {\tt InverseManager} methods:
 %
 \methodentry
 {\inverse.InverseManager.createInputProbe()}%
-{NumericInputProbe createInputProbe (TrackingController tcon\brh
+{NumericInputProbe createInputProbe (TrackingController tcon,\brh
 ProbeID pid, String filePath, double start, double stop)}%
 {Create input probe specified by {\tt pid}.}%
 %
 \methodspace{0.5em}%
 \methodentry
 {\inverse.InverseManager.createOutputProbe()}%
-{NumericOutputProbe createOutputProbe (TrackingController tcon\brh
+{NumericOutputProbe createOutputProbe (TrackingController tcon,\brh
 ProbeID pid, String filePath, double start, double stop, \brh double interval)}%
 {Create output probe specified by {\tt pid}.}%
 %
@@ -2186,6 +2205,16 @@ could be created using
 For both these method calls, the source and target components ({\tt myFrame}
 and {\tt target} in the example) are automatically located within the tracking
 controller.
+
+If the created probe is a {\tt PositionInputProbe} or {\tt
+PositionOutputProbe}, and one needs access to the features of that type, a cast
+will be necessary, e.g.:
+%
+\begin{lstlisting}[]
+      PositionOutputProbe trackedProbe = 
+         (PositionInputProbe)InverseManager.createOutputProbe ( ... );
+\end{lstlisting}
+%
 
 \begin{sideblock}
 One reason to create a {\tt TRACKED\_POSITIONS} probe, instead of comparing
@@ -2240,19 +2269,37 @@ initialized to 0 and the probe is deactivated.
 {\tt InverseManager} also supplies methods to locate and adjust the probes that
 it has created:
 %
-\begin{methodtable}{0.65}{0.35}
+\begin{methodtable}{0.50}{0.50}
 \midline
 %
 \methodentry
 {\inverse.InverseManager.findInputProbe()}%
-{NumericInputProbe findInputProbe (RootModel root, ProbeID pid)}%
+{NumericInputProbe findInputProbe (\brh
+RootModel root, ProbeID pid)}%
 {Find specified input probe.}%
 %
+\methodspace{0.5em}%
+\methodentry
+{\inverse.InverseManager.findPositionInputProbe()}%
+{PositionInputProbe findPositionInputProbe (\brh
+RootModel root, ProbeID pid)}%
+{Find input probe, restricted to PositionInputProbes.}%
+%
+\methodspace{0.5em}%
 \methodentry
 {\inverse.InverseManager.findOutputProbe()}%
-{NumericOutputProbe findOutputProbe (RootModel root, ProbeID pid)}%
+{NumericOutputProbe findOutputProbe (\brh
+RootModel root, ProbeID pid)}%
 {Find specified output probe.}%
 %
+\methodspace{0.5em}%
+\methodentry
+{\inverse.InverseManager.findPositionOutputProbe()}%
+{PositionOutputProbe findPositionOutputProbe (\brh
+RootModel root, ProbeID pid)}%
+{Find output probe, restricted to PositionOutputProbes.}%
+%
+\methodspace{0.5em}%
 \methodentry
 {\inverse.InverseManager.findProbe()}%
 {Probe findProbe (RootModel root, ProbeID pid)}%
@@ -2485,6 +2532,607 @@ to the application code:
 %\brh
 \midline
 \end{methodtable}
+
+\section{Inverse kinematics}
+
+ArtiSynth supplies an inverse kinematic solver, \javaclass[\probes]{IKSolver},
+that can be used to compute the configuration of an articulated structure of
+rigid bodies given the positions of markers attached to those bodies.  A
+primary use of this solver is to transform a marker trajectory, which may not
+fit the model well due to noise or registration issues, into one that is
+kinematically feasible given the joint constraints on the bodies. This can be
+an important preconditioning step for inverse dynamic simulation, as the
+resulting excitations do not then need to expend effort on infeasible
+targets.
+
+\subsection{Inverse kinematics solver}
+
+An {\tt IKSolver} is created with the following constructors:
+%
+\begin{methodtable}{0.8}{0.2}
+%
+\methodentry
+{\probes.IKSolver.IKSolver(,)}%
+{IKSolver (MechModel mech, Collection<FrameMarker> mkrs)}%
+{\ }%
+%
+\methodentry
+{\probes.IKSolver.IKSolver(,,)}%
+{IKSolver (MechModel mech, Collection<FrameMarker> mkrs, VectorNd weights)}%
+{\ }%
+%
+\end{methodtable}
+%
+{\tt mech} is the {\tt MechModel} containing the bodies and constraints, {\tt
+mkrs} is a list of frame markers attached to the bodies, and {\tt weights} is
+an optional set of marker weight values. If not specified, markers are assumed
+to have a weight of 1.
+
+The solver finds all the rigid bodies attached to the specified markers,
+together with all body connectors (Section \ref{CreatingJoints:sec})
+constraining the motion of those bodies, plus any additional bodies connected
+to the arrangement via connectors. 
+
+\begin{sideblock}
+The solver does {\it not} account for the following:
+\begin{enumerate}
+
+\item Non-rigid bodies, such as FEM models, that might be attached
+to some of the connectors;
+
+\item Contact constraints.
+
+\end{enumerate}
+\end{sideblock}
+
+After the solver is created, the resulting component configuration can be
+queried with the following methods:
+%
+\begin{methodtable}{0.45}{0.55}
+\midline
+%
+\methodentry
+{\mech.StaticRigidBodySolver.getMechModel()}%
+{MechModel getMechModel()}%
+{Returns the MechModel.}%
+%
+\methodentry
+{\probes.IKSolver.numMarkers()}%
+{int numMarkers()}%
+{Returns the number of markers.}%
+%
+\methodentry
+{\probes.IKSolver.getMarkers()}%
+{ArrayList<FrameMarker> getMarkers()}%
+{Returns the markers.}%
+%
+\methodentry
+{\probes.IKSolver.getMarkerWeights()}%
+{VectorNd getMarkerWeights()}%
+{Returns the marker weights.}%
+%
+\methodentry
+{\probes.IKSolver.setMarkerWeights()}%
+{void setMarkerWeights(VectorNd wgts)}%
+{Sets the marker weights.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\mech.StaticRigidBodySolver.numBodies()}%
+{int numBodies()}%
+{Returns the number of connected bodies.}%
+%
+\methodentry
+{\mech.StaticRigidBodySolver.getBodies()}%
+{ArrayList<RigidBody> getBodies()}%
+{Returns the connected bodies.}%
+%
+\methodentry
+{\mech.StaticRigidBodySolver.getBodyPoses()}%
+{ArrayList<RigidTransform3d> getBodyPoses()}%
+{Returns the poses of the connected bodies.}%
+%
+\methodentry
+{\probes.IKSolver.getBodiesWithMarkers()}%
+{ArrayList<RigidBody> getBodies()}%
+{Returns the bodies attached to markers.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\mech.StaticRigidBodySolver.getConstrainers()}%
+{ArrayList<BodyConstrainer> getConstrainers()}%
+{Returns all constrainers and connectors linking the bodies.}%
+%
+\midline
+\end{methodtable}
+%
+
+The application can then use the method
+%
+\begin{methodtable}{0.5}{0.5}
+\methodentry
+{\probes.IKSolver.solve()}%
+{int solve (VectorNd mtargs)}%
+{\ }%
+%
+\end{methodtable}
+%
+to set the body poses (and hence marker positions) so as to minimize the error
+between the marker target positions specified by {\tt mtargs} and the feasible
+marker positions.  {\tt mtargs} supplies the target positions as a composite
+vector of size $3 \times m$, where $m$ is the value returned by {\tt
+numMarkers()}, and the method returns either the number of iterations required
+for the solve, or {\tt -1} if the solve did not convergence to the required
+tolerance.
+
+\begin{sideblock}
+When using the {\tt IKSolver}, it is sometimes necessary to explicitly identify
+some bodies as being ``grounded'', in the sense that they should not be moved
+by the solver. This can be done by setting the {\sf grounded} property of the
+body to {\tt true}. (In a dynamic simulation, grounded bodies are often those
+whose {\sf dynamic} property is {\tt false}. However, this property is not
+meaningful in the context of an IK solve, and so the {\sf grounded} property
+substitutes for this.)
+\end{sideblock}
+
+\begin{sideblock}
+Since {\tt solve()} modifies the positions of the bodies associated with the
+solver, it changes the state of the {\tt MechModel}. In order to leave the {\tt
+MechModel} state unchanged, an application can call the solver methods {\tt
+saveModelState()} and {\tt restoreModelState()} before and after the use of
+{\tt solve()}.
+\end{sideblock}
+
+An as example, the following code processes a trajectory of marker positions by
+calling {\tt solve()} in a loop:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   List<FrameMarker> markers;
+   int nframes; // number of frames in the trajectory
+
+   ...
+   IKSolver solver = new IKSolver (mech, markers);
+   VectorNd mtargs = new VectorNd (3*markers.size());
+   solver.saveModelState(); // save the MechModel state
+   for (int i=0; i<nframes; i++) {
+      ... initialize mtargs for the frame ...
+      solver.solve (mtargs);
+      ArrayList<RigidTransform3d> poses = solver.getBodyPoses();
+      ... do something with the poses ...
+   }
+   solver.restoreModelState(); // restore the MechModel state
+\end{lstlisting}
+%
+
+{\tt IKSolver} exports a number of methods related to the solution process:
+%
+\begin{methodtable}{0.45}{0.55}
+\midline
+%
+\methodentry
+{\probes.IKSolver.getConvergenceTol()}%
+{double getConvergenceTol()}%
+{Returns the convergence tolerance.}%
+%
+\methodentry
+{\probes.IKSolver.setConvergenceTol()}%
+{void setConvergenceTol (double tol)}%
+{Sets the convergence tolerance.}%
+%
+\methodentry
+{\probes.IKSolver.getMaxIterations()}%
+{int getMaxIterations()}%
+{Returns the maximum number of solve iterations.}%
+%
+\methodentry
+{\probes.IKSolver.setMaxIterations()}%
+{void setMaxIterations (int maxi)}%
+{Sets the maximum number of solve iterations.}%
+%
+\methodentry
+{\mech.StaticRigidBodySolver.saveModelState()}%
+{void saveModelState()}%
+{Saves the MechModel state internally.}%
+%
+\methodentry
+{\mech.StaticRigidBodySolver.restoreModelState()}%
+{void restoreModelState()}%
+{Restores MechModel state to that saved internally.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+The default values for the convergence tolerance and maximum number of
+iterations are $10^{-6}$ and 30.
+
+\subsection{Creating probes with IKSolver}
+
+{\tt IKSolver} supplies the following methods that use its {\tt solve()} method
+to convert probes of target marker positions into {\tt PositionInputProbe}s of
+feasible markers positions or body poses:
+%
+\begin{methodtable}{0.9}{0.1}
+\midline
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.IKSolver.createMarkerPositionProbe(,NumericProbeBase,,)}%
+{PositionInputProbe createMarkerPositionProbe (%
+String name, NumericProbeBase targProbe,\brh
+boolean useTargetProps, double interval)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.IKSolver.createMarkerPositionProbe(,String,,)}%
+{PositionInputProbe createMarkerPositionProbe (%
+String name, String targDataFilePath,\brh
+boolean useTargetProps, double interval)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.IKSolver.createBodyPoseProbe(,NumericProbeBase,,,)}%
+{PositionInputProbe createBodyPoseProbe (%
+String name, NumericProbeBase targProbe,\brh
+RotationRep rotRep, boolean useTargetProps, double interval)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.IKSolver.createBodyPoseProbe(,String,,,)}%
+{PositionInputProbe createBodyPoseProbe (%
+String name, String targDataFilePath,\brh
+RotationRep rotRep, boolean useTargetProps, double interval)}%
+{\ }%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+In these methods, {\tt name} is an optional probe name, {\tt targProbe} is a
+probe containing the target positions for the markers, {\tt targDataFilePath}
+is a path to a probe file (Section \ref{DataFileFormat:sec}) containing target
+position data, {\tt useTargetProps} specifies whether the probe should be bound
+to target properties (Section \ref{PositionProbes:sec}), {\tt rotRep} is an
+instance of \javaclass[maspack.matrix]{RotationRep}, which indicates how
+rotations should be represented (Section \ref{PositionProbes:sec}), and {\tt
+interval} is the time spacing between knots in the created probe.  The created
+probe's start and stop time is taken from the input probe.
+
+\begin{sideblock}
+These probe creation methods take care to save and restore the {\tt MechModel}
+state.
+\end{sideblock}
+
+\begin{sideblock}
+The only restriction on the {\tt targProbe} used by these methods is that its
+data vector size is $3 \times m$, where $m$ is the number of markers associated
+with the solver.
+\end{sideblock}
+
+These methods transform target marker data into position probes for either
+markers or body poses that are kinematically feasible.  In the following
+example, a {\tt TRCReader} (Section \ref{TRCReader:sec}) is used to create a
+marker probe from a TRC file and transform it into a feasible marker position
+probe:
+%
+\begin{lstlisting}[]
+include artisynth.probes.TRCReader;
+include artisynth.probes.IKSolver;
+
+   ...
+   MechModel mech;
+   File trcFile;
+   List<FrameMarker> mkrs;
+
+   ...
+   // Create a probe from the TRC file
+   PositionInputProbe rawProbe =
+      TRCReader.createInputProbe (
+         "raw targets", mkrs, trcFile, /*targetProps*/false);
+   // Use an IKSolver to transform this into a feasible target probe
+   IKSolver solver = new IKSolver (mech, mkrs);
+   PositionInputProbe feasibleProbe =
+      solver.createMarkerPositionProbe (
+         "feasible targets", rawProbe, /*targetProps*/false, /*interval*/0.01);
+\end{lstlisting}
+%
+
+\subsection{Using IKSolver in a simulation context}
+
+Much of the discussion above entails using {\tt IKSolver} in a stand-alone
+manner (perhaps in a model's {\tt build()} method) that is independent of an
+actual simulation. However, there may be situations in which one wishes to use
+the solver to update body and marker positions as a simulation progresses.
+
+One way to do this would be to define a {\tt Controller}
+(Section \ref{ControllersAndMonitors:sec}) that calls the {\tt solve()} method
+inside its {\tt apply()} method. Marker targets would have to be supplied to
+solver in some way, and it would necessary to ensure that the bodies being
+controlled by the solver have their {\sf dynamic} property set to {\tt false}.
+{\tt IKSolver} supplies some convenience methods to manage this:
+
+%
+\begin{methodtable}{0.5}{0.5}
+%
+\methodentry
+{\mech.StaticRigidBodySolver.setBodiesDynamic()}%}%
+{void setBodiesDynamic (boolean dynamic)}%
+{Sets dynamic property for all bodies.}%
+%
+\methodentry
+{\mech.StaticRigidBodySolver.resetBodiesDynamic()}%
+{void resetBodiesDynamic()}%
+{Resets dynamic property for bodies to their initial state.}%
+%
+\end{methodtable}
+%
+
+Another way to use {\tt IKSolver} in a simulation is to use an
+\javaclass[\probes]{IKProbe}, which embeds an {\tt IKSolver}
+inside a\pdfbreak 
+{\tt NumericControlProbe}. An {\tt IKProbe} can be created with the
+following constructors:
+%
+\begin{methodtable}{0.9}{0.1}
+%
+\methodentry
+{\probes.IKProbe.IKProbe(,,,,)}%
+{IKProbe (String name, MechModel mech, Collection<FrameMarker> mkrs,\brh
+VectorNd wgts, String fileName)}%
+{\ }%
+%
+\methodentry
+{\probes.IKProbe.IKProbe(,,,,,)}%
+{IKProbe (String name, MechModel mech, Collection<FrameMarker> mkrs,\brh
+VectorNd wgts, double startTime, double stopTime)}%
+{\ }%
+%
+\end{methodtable}
+%
+where {\tt name} is an optional probe name, {\tt fileName} is a probe file
+containing probe data, {\tt startTime} and {\tt stopTime} set the probe's start
+and stop times, and the other arguments mirror those of the {\tt IKSolver}
+constructors ({\tt wgts} can be {\tt null} if not needed).
+
+If the second constructor is used, the probe is created with only two data
+points at its start and end (reflecting the current marker positions), and so
+the actual trajectory data must be added. One way to do this would be to use
+one of the probe's {\tt addData()} methods:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   List<FrameMarker> markers;
+   int nframes; // number of frames in the trajectory
+
+   ...
+   IKProbe ikprobe = new IKProbe (
+      "inverseK", mech, markers, /*wgts*/null, /*start*/0.0, /*stop*/5.0);
+   VectorNd mtargs = new VectorNd (3*markers.size());
+   for (int i=0; i<nframes; i++) {
+      double t;
+      ... initialize t and mtargs for the frame ...
+      ikprobe.addData (t, mtargs);
+   }
+   // bodies must be non-dynamic when solver is applied:
+   ikprobe.setBodiesDynamic (false);
+   addInputProbe (ikprobe); // add probe to the root model
+\end{lstlisting}
+%
+The method {\tt setBodiesDynamic()} is one of several {\tt IKSolver} methods
+that are passed on by {\tt IKProbe}, including {\tt resetBodiesDynamic()}, {\tt
+set/getConvergenceTol()}, {\tt set/getMaxIterations()}, {\tt numMarkers()}, and
+{\tt getMarkers()}. {\tt IKProbe} also maintains the property {\sf
+bodiesNonDynamicIfActive}, which ensures that the probe automatically calls {\tt
+setBodiesDynamic(false)} when it becomes active and {\tt resetBodiesDynamic()}
+when it becomes inactive.
+
+Another way to set {\tt IKProbe} data is to simply copy it from another probe
+using {\tt setValues()}, as described in Section \ref{probeDataInCode:sec}.
+For example:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   List<FrameMarker> markers;
+   PositionInputProbe targetProbe;
+
+   ...
+   IKProbe ikprobe = new IKProbe (
+      "inverseK", mech, markers, /*wgts*/null, /*start*/0.0, /*stop*/5.0);
+   // copy data from the target probe
+   ikprobe.setValues (targetProbe, /*useAbsoluteTime*/false);
+   // bodies must be non-dynamic when solver is applied:
+   ikprobe.setBodiesDynamic (false);
+   addInputProbe (ikprobe); // add probe to the root model
+\end{lstlisting}
+%
+
+\subsection{Example: moving MultiJointedArm with an IKProbe}
+
+\begin{figure}[ht]
+\begin{center}
+   \iflatexml 
+      \includegraphics[]{images/IKMultiJointedArm} 
+   \else 
+      \includegraphics[width=3.75in]{images/IKMultiJointedArm} \fi
+\end{center}
+\caption{{\tt IKMultiJointedArm} at the end of its inverse kinematic motion.}
+\label{IKMultiJointedArm:fig}
+\end{figure}
+
+The example model {\tt artisynth.demos.tutorial.IKMultiJointedArm} shows how to
+move the {\tt MultiJointedArm} model (Section \ref{MultiJointedArm:sec}) using
+an {\tt IKProbe} and marker target data read from a TRC file. This is
+essentially the same demo as {\tt TRCMultiJointedArm} (Section
+\ref{TRCMultiJointedArm:sec}), except that it uses inverse kinematics instead
+of a crude physical simulation in which the markers are connected to the target
+points by springs. The source code for the {\tt build()} method is shown below:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-13}}
+\lstinputlisting[firstline=1,lastline=28]{../../src/artisynth/demos/tutorial/IKMultiJointedArm.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=15,lastline=42]{../../src/artisynth/demos/tutorial/IKMultiJointedArm.java}
+\fi
+\lstset{numbers=none}
+%
+Since the model extends {\tt MultiJointedArm}, {\tt build()} first calls {\tt
+super.build()} to create that model. Next, as in {\tt TRCMultiJointedArm}, a
+TRC file containing the marker trajectories is read (lines 5-7).  Next, an {\tt
+IKProbe} is created to control the markers, with its start and stop times
+determined directly from the TRC frame times (lines 10-16).
+
+To illustrate a different way of setting probe data, the marker positions for
+each frame are extracted directly from the TRC reader and added to the probe
+using {\tt addData(t,vec)} (lines 19-24).  The probe's {\sf
+bodiesNonDynamicIfActive} property is also set (line 27) to ensure that the
+rigid bodies are set non-dynamic when the probe is active.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+IKMultiJointedArm} from the {\sf Models} menu.
+
+\subsection{Example: controlling ToyMuscleArm with inverse kinematics}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+   \includegraphics[]{images/IKInverseMuscleArm0}&
+   \includegraphics[]{images/IKInverseMuscleArm1}\\
+\else
+   \includegraphics[width=2.5in]{images/IKInverseMuscleArm0}&
+   \includegraphics[width=2.5in]{images/IKInverseMuscleArm1}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: {\tt IKInverseMuscleArm}, with target positions (cyan)
+filtered via inverse kinematics. Right: same model with unfiltered targets, and
+the misregistration between the targets and their markers plainly visible.}
+\label{IKInverseMuscleArm:fig}
+\end{figure}
+
+The final example in this chapter also involves using the tracking controller
+to move {\tt ToyMuscleArm}. Several marker targets are used, driven by data
+read from a TRC file, an {\tt IKSolver} transforms the data into a feasible
+trajectory, and the data is used to create velocity targets that when combined
+with PD control reduce the tracking error. The model is
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.IKInverseMuscleArm
+\end{verbatim}
+%
+and its class definition, excluding {\tt include} statements, is shown below:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-31}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/IKInverseMuscleArm.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=33]{../../src/artisynth/demos/tutorial/IKInverseMuscleArm.java}
+\fi
+\lstset{numbers=none}
+%
+The {\tt build()} method starts by setting up a tracking controller in the same
+manner as for {\tt InverseMuscleArm} (Section \ref{InverseMuscleArm:sec})
+(lines 10-21). Next, the {\tt base} body is marked as ``ground'' by setting its
+{\sf grounded} property (line 23); this is necessary to prevent the {\tt IKSolver}
+from moving it.
+
+This example tracks three markers with component numbers 8, 0, and 2.  These
+are collected into the list {\tt markers} and added to the controller as
+targets (lines 23-39). A target position probe containing the marker
+trajectory, and attached to the tracking controller target points, is then
+created directly from the TRC file (lines 44-49). Since this file contains data
+for {\it all} the markers, we specify the markers we want using the label
+list {\tt mkrLabels} which was created from their numbers.
+
+To filter the marker data (which for this example has been deliberately
+misregistered), an {\tt IKSolver} is created and used to create an input probe
+containing a feasible trajectory (lines 52-55). The data from this probe is
+then used to overwrite that of the target position probe (line 56). After this
+is done, the target position probe is differentiated to create a target
+velocity probe (lines 59-62). To take advantage of this velocity information,
+the controller is configured to use PD control (lines 65-68) with constants
+that were tuned manually. Lastly, an output probe is created to record the
+excitations, and another is created to observe both the target and actual
+position of the distal marker (which appears first in {\tt markers}).
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/IKInverseMuscleArmTimeline}
+\else
+ \includegraphics[width=4in]{images/IKInverseMuscleArmTimeline}
+\fi
+\end{center}
+\caption{Timeline of {\tt IKInverseMuscleArm}, with the target position and
+velocity probes expanded, showing the marker trajectories and the velocities
+that were determined by differentiating them.}
+\label{IKInverseMuscleArmTimeline:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+  \includegraphics[]{images/IKInverseMuscleArmEx0}&
+  \includegraphics[]{images/IKInverseMuscleArmEx1}\\
+\else
+  \includegraphics[width=3.25in]{images/IKInverseMuscleArmEx0}&
+  \includegraphics[width=3.25in]{images/IKInverseMuscleArmEx1}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: excitations produced by {\tt IKInverseMuscleArm} with
+the marker trajectory filtered through inverse kinematics. Right:
+excitations produced when there is no filtering, and the model
+needs to expend effort accommodating the misregistration.}
+\label{IKInverseMuscleArmEx:fig}
+\end{figure}
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+IKInverseMuscleArm} from the {\sf Models} menu. A view of the timeline, showing
+the four probes, is given in Figure \ref{IKInverseMuscleArmTimeline:fig}.
+Figure \ref{IKInverseMuscleArmEx:fig} (left) shows the resulting excitations,
+while Figure \ref{IKInverseMuscleArmEx:fig} (right) shows the different
+excitations produced if the target trajectory is left unfiltered. (To run with
+an unfiltered trajectory, comment out line 56. The model with then appear as in
+Figure \ref{IKInverseMuscleArm:fig}, right). Finally, Figure
+\ref{IKInverseMuscleArmTracking:fig} shows two outputs of the ``distal
+tracking'' probe, the left one with velocity information available to the
+controller, and the right one with it removed (which can be done interactively
+by making the target velocity probe inactive).  Without velocity information,
+the marker lags the target by a noticeable amount.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+  \includegraphics[]{images/IKInverseMuscleArmTracking0}&
+  \includegraphics[]{images/IKInverseMuscleArmTracking1}\\
+\else
+  \includegraphics[width=3.25in]{images/IKInverseMuscleArmTracking0}&
+  \includegraphics[width=3.25in]{images/IKInverseMuscleArmTracking1}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: target and actual trajectories of the distal marker
+when velocity information is supplied to the tracking controller.
+Right: same trajectory pair when the controller is deprived
+of velocity information by deactivating the target velocity probe.
+The resulting lag in the tracking is clearly visible.}
+\label{IKInverseMuscleArmTracking:fig}
+\end{figure}
 
 \section{Caveats and limitations}
 

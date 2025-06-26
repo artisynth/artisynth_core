@@ -92,13 +92,17 @@ public class TRCWriter {
    /**
     * Writes the file based on the contents of a position input probe.  The
     * marker data is provided by the position data of each point associated
-    * with the probe.
+    * with the probe. "position data" is any property that has a dimension
+    * of three and the name {@code "position"} or {@code "targetPosition"}.
+    * Also, each point may be associated with only one such property.
     *
     * <p>The marker count and data rate is inferred from the probe. If {@code
     * labels} is non-{@code null}, it provides labels for the marker data
     * within the file and should have a length equal to the number of
-    * points. Otherwise, if {@code labels} is {@code null}, marker labels are
-    * inferred from the point names and/or numbers.
+    * points. Otherwise, if {@code labels} is {@code null}, labels are
+    * determined from the names of the points, or when these are {@code null},
+    * by appending {@code "mkr"} to $k+1$, where $k$ is the zero-based index of
+    * the marker.
     *
     * @param probe probe containing the marker data
     * @param labels if non-{@code null}, provides labels for the TRC
@@ -126,6 +130,7 @@ public class TRCWriter {
    private void extractPointData (NumericProbeBase probe, List<String> labels) {
       myMarkerLabels = new LinkedList<>();
       myOffsets = new DynamicIntArray();
+      HashSet<Point> pointsSeen = new HashSet<>();
       int offset = 0;
       boolean hasOtherData = false;
       boolean hasUnnamedPoints = false;
@@ -138,8 +143,15 @@ public class TRCWriter {
             Property prop = (Property)obj;
             HasProperties host = prop.getHost();
             dimen = prop.getInfo().getDimension();
-            if (host instanceof Point && dimen == 3) {
+            if (host instanceof Point && dimen == 3 &&
+                (prop.getName().equals ("position") ||
+                 prop.getName().equals ("targetPosition"))) {
                point = (Point)host;
+               if (pointsSeen.contains(point)) {
+                  throw new IllegalArgumentException (
+                     "Point "+point+" associated with more than one property");
+               }
+               pointsSeen.add (point);
             }
          }
          else if (obj instanceof Integer) {
@@ -174,7 +186,7 @@ public class TRCWriter {
                }
             }
             if (label == null) {
-               label = "MKR"+(pidx+1);
+               label = "mkr"+(pidx+1);
             }
             myMarkerLabels.add (label);
             myOffsets.add (offset);

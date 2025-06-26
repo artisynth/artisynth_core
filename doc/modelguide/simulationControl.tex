@@ -660,14 +660,41 @@ Typical actions for a monitor include observing or recording
 the motion profiles or constraint forces that arise
 from the simulation.
 
-When setting the position and/or velocity of a dynamic component that
-has been set to be parametric (Section \ref{DynamicVsParametric:sec}),
-a controller should not set its position or velocity directly, but
-should instead set its {\it target position} and/or {\it target
-velocity}, since this allows the solver to properly interpolate the
-position and velocity during the time step. The methods to set or
-query target positions and velocities for
-\javaclass[artisynth.core.mechmodels]{Point}-based components are
+\subsubsection{Target positions and velocities}
+\label{targetPositions:sec}
+
+When setting the position and/or velocity of a dynamic component that has been
+set to be parametric (Section \ref{DynamicVsParametric:sec}), a controller can
+opt to set its position and/or velocity directly. However, it is often preferable
+to instead set the component's {\it target position} and/or {\it target
+velocity}, since this allows the solver to properly interpolate the position
+and velocity during the time step. 
+
+Whereas setting a position has no effect on velocity and vice versa, setting
+target positions and velocities {\it does} account for the coupling between the
+two. Specifically,
+
+\begin{itemize}
+
+\item If a target position is set and the target velocity is {\it not} set,
+then during simulation the component's position will be set to the target
+position and its velocity will be determined by {\it differentiating} the
+target position (albeit with a one-step time lag).
+
+\item If a target velocity is set and the target position is {\it not} set,
+then during simulation the component's velocity will be set to the target
+velocity and its position will be set by {\it integrating} the target velocity.
+
+\item If {\it both} target position and target velocity are set (which is not
+commonly done), then during simulation both with be used to update the
+component's position and velocity.
+	
+\end{itemize}
+
+For \javaclass[artisynth.core.mechmodels]{Point}-based components,
+target positions and velocities are exported as the properties {\sf
+targetPosition} and {\sf targetVelocity}, with the accessors:
+%
 % method table
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
@@ -677,8 +704,9 @@ query target positions and velocities for
   Vector3d getTargetVelocity ();      // read-only
 \end{lstlisting}
 %
-while for
-\javaclass[artisynth.core.mechmodels]{Frame}-based components they are
+For \javaclass[artisynth.core.mechmodels]{Frame}-based components, target
+positions and velocities are exported as the properties {\sf targetPosition},
+{\sf targetOrientation} and {\sf targetVelocity}, with the accessors:
 % method table
 \begin{lstlisting}[]
   setTargetPosition (Point3d pos);
@@ -786,7 +814,7 @@ by choosing {\sf File > Set working folder ...}.
 \begin{sideblock}
 If not explicitly set within the application, the working folder will default
 to a system dependent setting, which may be the user's home folder, or the
-working folder of the process used to launch ArtiSyntn.
+working folder of the process used to launch Artisynth.
 \end{sideblock}
 
 Details about the timeline display can be found in
@@ -799,10 +827,10 @@ output probes}, which are applied at the end of the step after the
 monitors.
 
 While applications are free to construct any type of probe by
-subclassing either \javaclass[artisynth.core.probes]{InputProbe} or
-\javaclass[artisynth.core.probes]{OutputProbe}, most applications
-utilize either \javaclass[artisynth.core.probes]{NumericInputProbe} or
-\javaclass[artisynth.core.probes]{NumericOutputProbe}, which
+subclassing either \javaclass[\probes]{InputProbe} or
+\javaclass[\probes]{OutputProbe}, most applications
+utilize either \javaclass[\probes]{NumericInputProbe} or
+\javaclass[\probes]{NumericOutputProbe}, which
 explicitly implement streams of numeric data which are connected to
 properties of various model components.  The remainder of this section
 will focus on numeric probes.
@@ -897,7 +925,7 @@ a value is numeric can be tested using\pdfbreak
 By default, the total number of scalar and vector values associated
 with all the properties should equal the size of the interpolated
 vector (as returned by
-\javamethod*[artisynth.core.probes.NumericProbeBase]{getVsize()}).
+\javamethod*[\probes.NumericProbeBase]{getVsize()}).
 However, it is possible to establish more complex mappings between the
 property values and the interpolated vector. These mappings are beyond
 the scope of this document, but are discussed in the sections ``General
@@ -913,7 +941,7 @@ section ``Adding and Editing Numeric Probes'' in the
 
 Numeric probes have a number of constructors and methods that make it
 relatively easy to create instances of them in code. For 
-\javaclass[artisynth.core.probes]{NumericInputProbe}, there
+\javaclass[\probes]{NumericInputProbe}, there
 is the constructor
 % method table
 \begin{lstlisting}[]
@@ -940,27 +968,33 @@ which binds the probe to multiple properties specified relative to
 the sum of the sizes of the scalar or vector values associated with
 these properties.
 
-For \javaclass[artisynth.core.probes]{NumericOutputProbe}, one may use
+For \javaclass[\probes]{NumericOutputProbe}, one may use
 the constructor
 % method table
 \begin{lstlisting}[]
-   NumericOutputProbe (ModelComponent c, String propPath, String filePath, double sample);
+   NumericOutputProbe (ModelComponent c, String propPath, String filePath, double interval);
 \end{lstlisting}
 %
 which creates a {\tt NumericOutputProbe}, binds it to the property
 {\tt propPath} located relative to {\tt c}, and then attaches it to
-the file indicated by {\tt filePath}. The argument {\tt sample}
-indicates the {\it sample time} associated with the probe, in seconds;
+the file indicated by {\tt filePath}. The argument {\tt interval}
+indicates the {\it update interval} associated with the probe, in seconds;
 a value of 0.01 means that data will be added to the probe every 0.01
-seconds.  If {\tt sample} is specified as -1, then the sample time
-will default to the maximum step size associated with the root model.
-
+seconds.  If {\tt interval} is specified as -1, then the update interval
+will default to the simulation step size. This interval can
+also be accessed after the probe is created using
+% method table
+\begin{lstlisting}[]
+   int getUpdateInterval()              // returns the update interval
+   void setUpdateInterval(int sec)      // sets the update interval (seconds)
+\end{lstlisting}[]
+%
 To create an output probe attached to multiple properties, one may use the
 constructor
 % method table
 \begin{lstlisting}[]
    NumericOutputProbe (
-      ModelComponent c, String propPaths[], String filePath, double sample);
+      ModelComponent c, String propPaths[], String filePath, double interval);
 \end{lstlisting}
 %
 
@@ -1015,7 +1049,7 @@ Similarly, {\tt createOutputProbe()} creates a new output probe which
 is bound to the {\tt velocity} property for the component {\tt
 particles/0} located relative to {\tt mech}, is attached to the file {\tt
 simpleMuscleMkrVel.txt} located in the application model source
-directory, and is assigned a sample time of 0.01 seconds. This probe is
+directory, and is assigned an update interval of 0.01 seconds. This probe is
 then named {\tt "FrameMarker Velocity"} and added to the root model.
 
 The {\tt build()} method calls {\tt super.build()} to create
@@ -1143,14 +1177,15 @@ Linear 3 1.0
 \end{lstlisting}
 %
 
-\subsection{Adding probe data in-line}
+\subsection{Adding input probe data in code}
+\label{probeDataInCode:sec}
 
 It is also possible to specify input probe data directly in code,
 instead of reading it from a file. For this, one would use the
 constructor
 % method table
 \begin{lstlisting}[]
-   NumericInputProbe (ModelComponent c, String propPath, double t0, double t1);
+   NumericInputProbe (ModelComponent c, String propPath, double t0, double t1)
 \end{lstlisting}
 %
 which creates a {\tt NumericInputProbe} with the specified property
@@ -1158,7 +1193,7 @@ and with start and stop times indicated by {\tt t0} and {\tt t1}.
 Data can then be added to this probe using the method
 % method table
 \begin{lstlisting}[]
-   addData (double[] data, double timeStep);
+   addData (double[] data, double timeStep)
 \end{lstlisting}
 %
 where {\tt data} is an array of knot point data. This contains the
@@ -1200,76 +1235,839 @@ Linear} unless explicitly specified using\pdfbreak
 \end{lstlisting}
 %
 
-\subsection{Smoothing probe data}
-\label{SmoothingProbeData:sec}
+Data can also be added incrementally, using the method
+%
+\begin{lstlisting}[]
+   probe.addData (double t, VectorNd values)
+\end{lstlisting}
+%
+which adds a data knot the specified {\tt values} at time {\tt t}; {\tt values}
+should have a size equal to the probe's vector size. For example, the
+array-based example above could instead by implemented as
+\begin{lstlisting}[]
+      NumericInputProbe p1probe =
+         new NumericInputProbe (
+            mech, "particles/p1:targetPosition", 0, 5);
+      p1probe.addData (0.0, new VectorNd (0.0, 0.0, 0.0));
+      p1probe.addData (1.0, new VectorNd (0.5, 0.0, 0.5));
+      p1probe.addData (2.0, new VectorNd (0.0, 0.0, 1.0));
+      p1probe.addData (3.0, new VectorNd (-0.5, 0.0, 0.5));
+      p1probe.addData (4.0, new VectorNd (0.0, 0.0, 0.0));
+\end{lstlisting}
 
-Numeric probe data can also be smoothed, which is convenient for
-removing noise from either input or output data. Different smoothing
-methods are available; at the time of this writing, they include:
+When an input probe is created {\it without} data specified in its constructor
+(e.g., by means of a probe data file), then it automatically adds knot points
+at its start and end times, with values set from the current values of its
+bound properties. Applying such a probe, without adding additional data, will
+thus leave the values of its properties unchanged.
+
+The {\tt addData()} methods described above do not remove existing knot points
+(although they will overwrite knots that exist at the same times). In
+order to {\tt replace} all data, one can first call the method
+%
+\begin{lstlisting}[]
+   probe.clearData()
+\end{lstlisting}
+%
+which removes all knot points. Probes with no knots assign 0 to all their
+property values.  Data can subsequently be added using the {\tt addData()}
+methods. Alternatively, one can call 
+% method table
+\begin{lstlisting}[]
+   setData (double[] data, double timeStep)
+\end{lstlisting}
+%
+which behaves identically to the {\tt addData(double[],timeStep)} method
+except that it first removes all existing data.
+
+Another convenient way to add data to a probe is to simply copy it from another
+probe, using the method
+% method table
+\begin{lstlisting}[]
+   setValues (NumericProbeBase src, boolean useAbsoluteTime)
+\end{lstlisting}
+%
+All knot points and values are copied from {\tt src}, which can be any numeric
+probe (input or output), with the only restriction being that its vector size
+must equal or exceed that of the calling probe (extra values are ignored).  If
+{\tt useAbsoluteTime} is {\tt true}, time values are mapped between the probes
+using absolute time; otherwise, probe relative time is used.  When using this
+method, care should be taken to ensure that the there will be knot points to
+cover the start and stop times of the calling probe.
+
+\subsubsection{Extending data to the start and end}
+
+By explicitly using the {\tt clearData()} or {\tt setData()} methods, it is
+possible to create an input probe for which data is missing at its start and/or
+stop times. The behavior in that case is determined by the probe's {\sf
+extendData} property: if the property is set to {\tt true}, then data values
+between the start time and the first knot, or the last knot and the stop time,
+are set to the values of the first and last knot, respectively.  Otherwise,
+these data values are set to zero.
+
+As with all properties, {\sf extendData} can be set and queried in code using
+the accessors
+% method table
+\begin{lstlisting}[]
+   boolean getExtendData()
+   void setExtendData (boolean enable)
+\end{lstlisting}
+%
+The default value of {\sf extendData} is {\tt true}.  As mentioned above,
+probes with no data set their data values uniformly to 0.
+
+\subsection{Tracing probes}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/shoulderTracing}
+\else
+ \includegraphics[width=3in]{images/shoulderTracing}
+\fi
+\end{center}
+\caption{Tracing probes used to show the desired target (cyan)
+and actual (gold) trajectories of some marker points attached near the elbow of
+an ArtiSynth shoulder model undergoing an inverse simulation.}
+\label{shoulderTracing:fig}
+\end{figure}
+
+It is often useful to follow the path or evolution of a position or vector
+quantity as it evolves in time during a simulation. For example, one may wish
+to trace out the path of some points, as per Figure \ref{shoulderTracing:fig},
+which traces the actual and desired paths of some marker points during an
+inverse simulation of the type described in
+Chapter \ref{InverseSimulation:sec}.
+
+ArtiSynth supplies \javaclass[\probes]{TracingProbe}s that can be used for this
+purpose.  A tracing probe can be attached to any component that implements the
+interface
+\javaclass[\mbase]{Traceable}, for any of the properties that
+are exported by its 
+\javamethod[\mbase.Traceable]{getTraceables()} method.
+At present, {\tt Traceable} is implemented for the following components:
 
 \begin{description}
 
-\item[Moving average] \mbox{}
+\item[\protect{\javaclass[\mech]{Point}}]\mbox{}
 
-Applies a mean average filter across the knots, using a moving window
-whose size is specified by the {\sf window size} field. The window is
-centered on each knot, and is reduced in size near the end knots to
-ensure a symmetric fit. The end knot values are not changed.  The
-window size must be odd and the {\sf window size} field enforces this.
+Traceable properties are {\sf point} and {\sf force}.
 
-\item[Savitzky Golay] \mbox{}
+\item[\protect{\javaclass[\mech]{Frame}}]\mbox{}
 
-Applies Savitzky-Golay smoothing across the knots, using a moving
-window of size $w$.  Savitzky-Golay smoothing works by fitting the
-data values in the window to a polynomial of a specified degree $d$, and
-using this to recompute the value in the middle of the window.  The
-polynomial is also used to interpolate the first and last $w/2$
-values, since it is not possible to center the window on these.
-
-The window size $w$ and the polynomial degree $d$ are specified by the
-{\sf window size} and {\sf polynomial degree} fields. $w$ must be odd,
-and must also be larger than $d$, and the fields enforce these
-constraints.
+Traceable properties are {\sf transforce} and {\sf moment}.
 
 \end{description}
 
-These operations may be applied with the following numeric probe
-methods:
+%\begin{center}
+%\begin{tabular}{ll}
+%\hline
+%Component & tracable properties\\
+%\hline
+%\javaclass[\mech]{Point} & {\sf position}, {\sf force}\\
+%\javaclass[\mech]{Frame} & {\sf transforec}, {\sf moment}\\
+%\hline
+%\end{tabular}
+%\end{center}
 
+Tracing probes are easily created using the {\tt RootModel} method
+%
+\begin{methodtable}{0.95}{0.05}
+%
+\methodentry
+{artisynth.core.workspace.RootModel.addTracingProbe()}%
+{TracingProbe addTracingProbe (Traceable comp, String propName,
+double startTime, double stopTime)}%
+{\ }%
+%
+\end{methodtable}
+%
+which produces a tracing probe of specified duration for the indicated
+component and property name pair. During simulation, the probe will record the
+desired property at the rate defined by its {\sf updateInterval}, and also
+render it in the viewer. In cases where the probe renders all its stored values
+(as with {\tt PointTracingProbe}s, described below), the interval at which this
+occurs can be controlled by its {\sf renderInterval} property, accessed
+in code via
 %
 \begin{methodtable}{0.5}{0.5}
+%
+\methodentry
+{\probes.TracingProbe.getRenderInterval()}%
+{double getRenderInterval()}%
+{Return the render interval}%
+%
+\methodentry
+{\probes.TracingProbe.getRenderInterval()}%
+{void setRenderInterval(double interval)}%
+{Set the render interval (seconds)}%
+%
+\end{methodtable}
+%
+Specifying a render interval of -1 (the default) will cause
+the render interval to equal the update interval.
+
+Two types of tracing probes are currently implemented:
+
+\begin{description}
+
+\item[\protect{\javaclass[\probes]{PointTracingProbe}}]\mbox{}
+
+Created for point properties, this renders the path of the point position over
+the duration of the probe, either as a continuous curve (if the probe's {\sf
+pointTracing} property is {\tt false}, the default setting), or as discrete
+points. The appearance of the rendering is controlled by subproperties of the
+probe's render properties, using {\sf lineStyle}, {\sf lineRadius}, {\sf
+lineWidth} and {\sf lineColor} (for continuous curves) or {\sf pointStyle},
+{\sf pointRadius}, {\sf pointSize} and {\sf pointColor} (for points).
+
+\item[\protect{\javaclass[\probes]{VectorTracingProbe}}]\mbox{}
+
+Created for vector properties, this renders the vector quantity at the current
+simulation time as a line segment anchored at the current position of the
+component. The length of the line segment is controlled by the probe's {\sf
+lengthScaling} property, and other aspects of the appearance are controlled by
+the subproperties {\sf lineStyle}, {\sf lineRadius}, {\sf lineWidth} and {\sf
+lineColor} of the probe's render properties. Vector tracing is mostly used to
+visual instantaneous forces.
+
+\end{description}
+
+The following code fragment attaches a tracing probe to the last frame marker
+of the {\tt MultiJointedArm} example of Section \ref{MultiJointedArm:sec}:
+%
+\begin{lstlisting}[]
+import artisynth.core.probes.TracingProbe;
+   ...
+   FrameMarker mkr = myMech.frameMarkers().get(/*mkrIndex*/4);
+   TracingProbe tprobe = addTracingProbe (mkr, "position", 0.0, 2.0);
+   tprobe.setName ("marker trace");
+   RenderProps.setLineColor (tprobe, Color.ORANGE);
+\end{lstlisting}
+%
+with the results shown in Figure \ref{PointLineTracing:fig} (left).  To instead
+render the output as points, and with a coarser render interval of 0.02, one
+could modify the probe properties using
+%
+\begin{lstlisting}[]
+import artisynth.core.probes.PointTracingProbe;
+   ...
+   ((PointTracingProbe)tprobe).setPointTracing (true);
+   tprobe.setRenderInterval (0.02); // display points 0.02 sec apart
+   RenderProps.setSphericalPoints(tprobe, 0.01, Color.GREEN);
+\end{lstlisting}
+%
+with the results shown in Figure \ref{PointLineTracing:fig} (right).
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+ \includegraphics[]{images/LineTracing}
+ \includegraphics[]{images/PointTracing}
+\else
+ \includegraphics[width=2.5in]{images/LineTracing}
+ \includegraphics[width=2.5in]{images/PointTracing}
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: tracing applied to the distal marker of
+{\tt MultiJointedArm}. Right: same trace, with
+{\sf pointTracing} enabled.}
+\label{PointLineTracing:fig}
+\end{figure}
+
+\begin{sideblock}
+Tracing probes can also be created and edited interactively,
+as described in the section ``Point Tracing'' of the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+\end{sideblock}
+
+\subsection{Position probes}
+\label{PositionProbes:sec}
+
+Applications often find it useful to parametrically control the position of
+point or frame-based components, which include
+\javaclass[\mech]{Point},
+\javaclass[\mech]{Frame},
+\javaclass[\mech]{FixedMeshBody}.
+and their subclasses
+(e.g., \javaclass[\mech]{Particle},
+\javaclass[\mech]{RigidBody},
+and
+\javaclass[\fem]{FemNode3d}).
+This can be done by setting either the components' {\sf position} or {\sf
+targetPosition} properties, and (for frame-based components) their {\sf
+orientation} or {\sf targetOrientation} properties. As described
+in Section \ref{targetPositions:sec}, setting {\sf
+targetPosition} and {\sf targetOrientation} is often preferable as this will
+automatically update the component's velocity, and so provide more information
+to the integrator, whereas setting {\sf position} and {\sf orientation} will
+leave the velocity unchanged.
+
+\begin{sideblock}
+When controlling the position and/or velocity of dynamic components, which
+include {\tt Point} and {\tt Frame}, it is important to ensure that their {\sf
+dynamic} property is set to {\tt false} and that they are
+unattached. Otherwise, the dynamic simulation will override any attempt at
+setting their position or velocity.
+\end{sideblock}
+
+For frame-based components, the {\sf orientation} and {\sf targetOrientation}
+properties describe their spatial orientation using an instance of
+\javaclass[maspack.matrix]{AxisAngle}, which represents
+a single rotation $\theta$ about a specific axis $\u$ in world coordinates (any
+3D rotation can be expressed this way). However, when using this in a probe to
+control or observe a frame-based component's pose over time, a couple
+of issues arise:
+
+\begin{itemize}
+
+\item There are other rotation representations that may be more
+useful or easier to specify, such as z-y-x or x-y-z rotations,
+in either radians or degrees.
+
+\item Whatever rotation representation is used, care must be taken
+when interpolating it between knot points. Rotations cannot be treated as
+vectors and interpolation must instead take the form of curves on the 3D
+rotation group $SO(3)$. The details are beyond the scope of this document but
+were initially described by Shoemake \cite{shoemake1985animating}.
+
+\end{itemize}
+
+To address these issues, ArtiSynth supplies
+\javaclass[\probes]{PositionInputProbe} and
+\javaclass[\probes]{PositionOutputProbe}, which can be used to control or
+observe the position of one or more points or frame-based components, while
+offering a variety of rotation representations and handling rotation
+interpolation correctly. In particular, {\tt PositionInputProbe}s
+allow an application to supply key-frame animation control poses for
+frame-based components.
+
+{\tt PositionInputProbe}s can be created with the constructors
+%
+\begin{methodtable}{0.9}{0.1}
 \midline
 %
 \methodentry
-{artisynth.core.probes.NumericProbeBase.smoothWithMovingAverage()}%
-{void smoothWithMovingAverage (double winSize)}%
-{Moving average smoothing over a specified window.}%
+{\probes.PositionInputProbe.PositionInputProbe(String,ModelComponent,,,double)}%
+{PositionInputProbe (String name, ModelComponent comp, RotationRep rotRep,\brh
+boolean useTargetProps, double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.PositionInputProbe.PositionInputProbe(String,Collection,,,,double)}%
+{PositionInputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+RotationRep rotRep, 
+boolean useTargetProps, double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.PositionInputProbe.PositionInputProbe(String,ModelComponent,,,String)}%
+{PositionInputProbe (String name, ModelComponent comp, RotationRep rotRep,\brh
+boolean useTargetProps, String filePath)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.PositionInputProbe.PositionInputProbe(String,Collection,,,String)}%
+{PositionInputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+RotationRep rotRep, boolean useTargetProps, String filePath)}%
+{\ }%
+%%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+In the above, {\tt name} is the probe name (optional, can be {\tt null}), and
+{\tt comp} and {\tt comps} refer to the component(s) to be assigned to the
+probe; as indicated above, these must be instances of {\tt Point}, {\tt Frame},
+or {\tt FixedMeshBody}. {\tt rotRep} is an instance of 
+\javaclass[maspack.matrix]{RotationRep}, which indicates 
+how rotations should be represented, as described further below.  The argument
+{\tt useTargetProps}, if {\tt true}, specifies that the probe should be
+attached to the {\sf targetPosition} and (for frames) {\sf targetOrientation}
+properties, vs. the {\sf position} and {\sf orientation} properties (if {\tt
+false}). {\tt startTime} and {\tt stopTime} give the probe's start and stop
+times, while {\tt filePath} specifies a probe file from which to read in the
+probe's basic parameters and data, per Section \ref{DataFileFormat:sec}.  Probes
+constructed without a file need to have data added, as per Section
+\ref{probeDataInCode:sec}.
+
+As indicated by the constructors, {\tt NumericInputProbe}s can control multiple
+point and frame-based components, and this arrangement affects the size and
+composition of the data vector. Each point component requires 3 numbers
+specifying position, while each frame components requires $3 + r$ numbers
+specifying position and orientation, where $r$ is the size of the of the
+rotation representation. Although the {\tt orientation} and {\tt
+targetOrientation} properties describe rotation using an
+\javaclass[maspack.matrix]{AxisAngle}, this will be converted
+into knot point data based on the assigned {\tt RotationRep}, with $r$ equal to
+either 3 or 4. The total $m$ of the data vector is then
+%
+\begin{equation*}
+m = 3 n_p + (3 + r) n_f
+\end{equation*}
+%
+where $n_p$ is the number of points and $n_f$ is the number of frames.
+
+\javaclass[maspack.matrix]{RotationRep} provides a variety of ways
+to specify the rotation and applications can choose the most suitable:
+
+\begin{description}
+
+\item[ZYX]\mbox{}
+
+Successive rotations, in radians, about the $z-y-x$ axes; $r = 3$.
+
+\item[ZYX\_DEG]\mbox{}
+
+Successive rotations, in degrees, about the $z-y-x$ axes; $r = 3$.
+
+\item[XYZ]\mbox{}
+
+Successive rotations, in radians, about the $x-y-z$ axes; $r = 3$.
+
+\item[XYZ\_DEG]\mbox{}
+
+Successive rotations, in degrees, about the $x-y-z$ axes; $r = 3$.
+
+\item[AXIS\_ANGLE]\mbox{}
+
+Axis-angle representation ($u$, $\theta$), with the $\theta$ given in
+radians; $r = 4$. The axis $u$ does not need to be normalized.
+
+\item[AXIS\_ANGLE\_DEG]\mbox{}
+
+Axis-angle representation ($u$, $\theta$), with the $\theta$ given in
+degrees; $r = 4$. The axis $u$ does not need to be normalized.
+
+\item[QUATERNION]\mbox{}
+
+Unit quaternion; $r = 4$.
+
+\end{description}
+
+As a possibly more convenient alternative to the methods of
+Section \ref{probeDataInCode:sec}, and to avoid having to explicitly pack the
+position and orientation information into the probe's knot data, {\tt
+PositionInputProbe}s also supply the following methods to set the knot data for
+individual components being controlled by the probe:
+
+%
+\begin{methodtable}{0.7}{0.3}
+\midline
 %
 \methodentry
-{artisynth.core.probes.NumericProbeBase.smoothWithSavitzkyGolay()}%
-{void smoothWithSavitzkyGolay (\brh double winSize, int deg)}%
-{Savitzky Golay smoothing with specified window and degree.}%
+{\probes.PositionInputProbe.setPointData()}%
+{setPointData (Point point, double time, Vector3d pos)}%
+{Set point position at a given time.}%
+%
+\methodentry
+{\probes.PositionInputProbe.setPointData()}%
+{setPointData (ModelComponent frame, double time,\brh RigidTransform3d TFW)}%
+{Set frame position/orientation at a given time.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+Each of these methods writes only the portion of the knot point at the
+indicated time that corresponds to the specified component; other portions are
+left unchanged or initialized to 0. For frames, {\tt TFW} gives the pose
+(position/orientation) in the form of the transform from frame to world
+coordinates, and the orientation is transformed into knot point data according
+the the probe's rotation representation.
+
+\javaclass[\probes]{PositionOutputProbe}s can be created
+with constructors analogous to {\tt PositionInputProbe}:
+%
+\begin{methodtable}{0.9}{0.1}
+\midline
+%
+\methodentry
+{\probes.PositionOutputProbe.PositionOutputProbe(,ModelComponent,,,double)}%
+{PositionOutputProbe (String name, ModelComponent comp, RotationRep rotRep,\brh
+double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.PositionOutputProbe.PositionOutputProbe(,Collection,,,double)}%
+{PositionOutputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+RotationRep rotRep, 
+double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.PositionOutputProbe.PositionOutputProbe(,ModelComponent,,,,,)}%
+{PositionOutputProbe (String name, ModelComponent comp, RotationRep rotRep,\brh
+String filePath, double startTime, double stopTime, double interval)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.PositionOutputProbe.PositionOutputProbe(,Collection,,,,,)}%
+{PositionOutputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+RotationRep rotRep, String filePath, double startTime, double stopTime, 
+double interval)}%
+{\ }%
+%%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+The knot data format is the same as for {\tt PositionInputProbe}s, with
+rotations represented according to the setting of {\tt rotRep}.  There is no
+{\tt useTargetProps} argument because {\tt PositionOutputProbe}s bind only to
+the {\sf position} and {\sf orientation} properties. If present, the {\tt
+filePath} and {\tt interval} arguments specify an attached file name for saving
+probe data and the update interval in seconds. Setting {\tt interval} to -1
+causes updating to occur at the simulation update rate, and this is the default
+for constructors without an {\tt interval} argument.
+
+
+\subsection{Velocity probes}
+
+As with positions, applications may sometimes need to parametrically control or
+observe the velocity of point or frame-based components, which include
+\javaclass[\mech]{Point}, \javaclass[\mech]{Frame},
+and their subclasses (but not {\tt FixedMeshBody}, as this is not a dynamic
+component and so does not maintain a velocity).  This can be done by setting
+either the components' {\sf velocity} or {\sf targetVelocity} properties, with
+the latter sometimes preferable as it will automatically update the component's
+position, whereas setting {\sf velocity} will not. For frame-based components,
+{\sf velocity} and {\sf targetVelocity} are described by a
+6-DOF \javaclass[maspack.spatialmotion]{Twist} component that contains both
+translational and angular velocities. Unlike with finite rotations, there is
+only one representation for angular velocity (as a vector with units of
+radians/sec) and there are no interpolation issues.
+
+When the position of a component is being controlled it is typically not
+necessary to also supply velocity information. This is especially true for
+position probes bound to {\sf targetPosition} and {\sf targetOrientation}
+properties, since these update velocity information automatically. However, for
+position probes bound to {\sf position} and {\sf orientation}, it can be
+sometimes be useful to use a velocity probe to also supply velocities.  One
+example of this is when components are being tracked by inverse simulation
+(Chapter
+\cite{InverseSimulation:sec}), as this extra information this can reduce
+tracking error and lag.
+
+ArtiSynth provides 
+\javaclass[\probes]{VelocityInputProbe} and
+\javaclass[\probes]{VelocityOutputProbe}
+to controller or monitor the velocities of one or more point or frame-based
+components. The constructors for these are:
+%
+\begin{methodtable}{0.9}{0.1}
+\midline
+%
+\methodentry
+{\probes.VelocityInputProbe.VelocityInputProbe(String,ModelComponent,,double)}%
+{VelocityInputProbe (String name, ModelComponent comp, 
+boolean useTargetProps,\brh double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.VelocityInputProbe.VelocityInputProbe(String,Collection,,,double)}%
+{VelocityInputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+boolean useTargetProps, double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.VelocityInputProbe.VelocityInputProbe(String,ModelComponent,,String)}%
+{VelocityInputProbe (String name, ModelComponent comp,
+boolean useTargetProps,\brh String filePath)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.VelocityInputProbe.VelocityInputProbe(String,Collection,,String)}%
+{VelocityInputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+boolean useTargetProps, String filePath)}%
+{\ }%
+\methodspace{1.05em}%
+%%
+\methodentry
+{\probes.VelocityOutputProbe.VelocityOutputProbe(,ModelComponent,,double)}%
+{VelocityOutputProbe (String name, ModelComponent comp,\brh
+double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.VelocityOutputProbe.VelocityOutputProbe(,Collection,,double)}%
+{VelocityOutputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+double startTime, double stopTime)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.VelocityOutputProbe.VelocityOutputProbe(,ModelComponent,,,,)}%
+{VelocityOutputProbe (String name, ModelComponent comp,
+String filePath,\brh double startTime, double stopTime, double interval)}%
+{\ }%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.VelocityOutputProbe.VelocityOutputProbe(,Collection,,,,)}%
+{VelocityOutputProbe (String name, Collection<? extends ModelComponent> comps,\brh
+String filePath, double startTime, double stopTime, 
+double interval)}%
+{\ }%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+For all of these, the arguments are completely analogous to those for the
+constructors of {\tt PositionInputProbe} and {\tt PositionOutputProbe}, with
+the argument {\tt rotRep} absent because it is not needed, and with {\tt
+useTargetProps} specifying whether the probe should be attached to the {\sf
+targetVelocity} or {\tt velocity} properties.
+
+If a position probe (either input or output) exists for a given collection of
+components, it is possible to automatically create a {\tt VelocityInputProbe}
+for the same set of components, using one of the following static methods:
+%
+\begin{methodtable}{0.65}{0.35}
+\midline
+%
+\methodentry
+{\probes.VelocityInputProbe.createNumeric()}%
+{VelocityInputProbe VelocityInputProbe.createNumeric (String name,\brh 
+NumericProbeBase source, double interval)}%
+{Create by numeric differentiation.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.VelocityInputProbe.createInterpolated()}%
+{VelocityInputProbe VelocityInputProbe.createInterpolated (String name,\brh 
+NumericProbeBase source, double interval)}%
+{Create by interpolation.}%
 %
 \midline
 \end{methodtable}
 %
+Both take an optional probe {\tt name} and {\tt source} probe. The update {\tt
+interval} gives the time interval between the created knot points, with -1
+causing this to be taken from the source. The first method creates the probe by
+numeric differentiation of the source's position data and should be used only
+when the source's data is dense, while the second method finds the derivative
+from the {\it interpolation method} of the source probe (as described by {\tt
+getInterpolationOrder()}) and is better suited when the source data is sparse
+(although the resulting velocity will not be continuous unless the
+interpolation order is greater than linear).
+
+The following code fragments creates a position probe and then uses this to
+generate a velocity probe:
+%
+\begin{lstlisting}[]
+   PositionInputProbe posProbe;
+   VelocityInputProbe velProve;
+   String bodyFilePath;
+   RigidBody body; 
+   ...
+   boolean useTargetProps = true;
+   posProbe = new PositionInputProbe (
+      "body position", body, RotationRep.XYZ, useTargetProps, bodyFilePath);
+   velProbe = VelocityInputProbe.createNumeric (
+      "body velocity", posProbe, /*interval*/-1);
+\end{lstlisting}
+%
+
+\subsection{Example: controlling a point and frame}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+  \includegraphics[]{images/PositionProbes0}&
+  \includegraphics[]{images/PositionProbes1}\\
+\else
+  \includegraphics[height=2.5in]{images/PositionProbes0}&
+  \includegraphics[height=2.5in]{images/PositionProbes1}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: {\tt PositionProbes} when first loaded. Right: model running,
+showing the point and monkey orbiting around each other and the particle
+trace in cyan.}
+\label{PositionProbes:fig}
+\end{figure}
+
+A model demonstrating position and velocity probes is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.PositionProbes
+\end{verbatim}
+%
+It creates a point and a rigid body (using the Blender monkey mesh), sets both
+to be non-dynamic, uses position and velocity probes to control their
+positions, and uses {\tt PositionOutputProbe} and {\tt VelocityOutputProbe} to
+monitor the resulting positions and velocities. The model class definition,
+excluding the include directives, is shown here:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-26}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/PositionProbes.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=28]{../../src/artisynth/demos/tutorial/PositionProbes.java}
+\fi
+\lstset{numbers=none}
+%
+The {\tt build()} creates a {\tt MechModel} and then adds to it a rigid body
+(created from the Blender monkey mesh) and a particle (lines 8-19).  Both
+components are made non-dynamic to allow their positions and velocities to be
+controlled, and references to them are placed a list used to create the probes
+(lines 21-24).
+
+A {\tt PositionInputProbe} for controlling the positions is created at lines
+26-44, using a rotation representation of {\tt RotationRep.ZYX} (successive
+rotations about the z-y-x axes, in radians). For this example, the {\tt
+useTargetProps} is set to {\tt false} (so that the probe binds to {\sf
+position} and {\sf orientation}), because we are going to be specifying
+velocities explicitly using another probe. Data for the probe is set using {\tt
+setData()}, with the point and monkey positions/poses specified, in order, for
+times 0, 0.5, 1.0, 1.5 and 2. As per the rotation specification, poses for the
+monkey are given by 3 positions and 3 z-y-x rotations. Because the data is
+sparse, the probe's interpolation order is set to {\tt Cubic} to generate
+smooth motions.
+
+A {\tt VelocityInputProbe} is created by differentiated the position probe
+(lines 47-49); {\tt createInterpolated()} is used because the position data is
+sparse and so numeric differentiation would yield bad results.
+
+Finally, output probes to track both the resulting positions and velocities,
+together with a tracing probe to render the point's path in cyan, are created
+at lines 51-65. When creating the {\tt PositionOutputProbe}, we use the same
+rotation representation {\tt RotationRep.ZYX} as for the input probe, but this
+is not necessary. For example, if one were to instead specify {\tt
+RotationRep.QUATERNION}, then the frame orientations would be specified as
+quaternions.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+PositionProbes} from the {\sf Models} menu. When run, both the point and monkey
+will orbit around each other, with the point path being displayed by the tracing
+probe (Figure \ref{PositionProbes:fig}, right).
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+\iflatexml
+  \includegraphics[]{images/PositionInputProbeData}&
+  \includegraphics[]{images/PositionOutputProbeData}\\
+\else
+  \includegraphics[width=3.25in]{images/PositionInputProbeData}&
+  \includegraphics[width=3.25in]{images/PositionOutputProbeData}\\
+\fi
+\end{tabular}
+\end{center}
+\caption{Left: plot of the {\tt PositionInputProbe} data,
+showing a discontinuity at $t = 1.75$ for monkey's $y$ axis rotation data.
+Right: plot of the {\tt PositionOutputProbe} data shows the continuity
+of the actual trajectory.}
+\label{PositionIOProbes:fig}
+\end{figure}
+
+Several things about this demo should be noted:
+
+\begin{itemize}
+
+\item The use of {\tt setData()} in creating the position probe could 
+be replaced by
+\javamethod[\probes.PositionInputProbe]{setPointData()} and
+\javamethod[\probes.PositionInputProbe]{setFrameData()}, as per
+%
+\begin{lstlisting}[]
+  pip.setPointData (point, 0.5, new Point3d(-1.5,0,1.5)); 
+  pip.setPointData (point, 1.0, new Point3d(0,0,0)); 
+  pip.setPointData (point, 1.5, new Point3d(1.5,0,1.5));
+
+  pip.setFrameData (monkey, 0.5, new RigidTransform3d(1.5,0,1.5, 0,PI/2,0));
+  pip.setFrameData (monkey, 1.0, new RigidTransform3d(0.0,0,3.0, 0,PI,0));
+  pip.setFrameData (monkey, 1.5, new RigidTransform3d(-1.5,0,1.5, 0,3*PI/2,0));
+\end{lstlisting}
+%
+Here, we can omit data for times 0 and 2 (at the probe's start and end) because
+the motion begins and ends at the components' initial positions, for which data
+was automatically added when the probe was created. (Likewise, data for times 0
+and 2 could be omitted in the original code if {\tt addData()} was used instead
+of {\tt setData()}).
+
+\item Position probes handle angle wrapping correctly.
+In the position input probe, the y-axis rotation for the monkey goes
+from $3 \pi/2$ to $0$ between $t = 1.5$ and $t = 2$.  However, by generating
+``minimal distance'' motions, interpolation proceeds as though the final angle
+was specified as $2 \pi$, allowing the circular motion to complete instead of
+backtracking (although in the display plot, there is an apparent discontinuity
+at $t = 1.75$; see Figure \ref{PositionIOProbes:fig}, left).  Likewise, in
+position output probes, as data is added, the rotation representation is
+chosen to be as near as possible to the previous, so that in the
+example the recorded $y$ rotation does indeed arrive at $2 \pi$ instead of $0$
+(Figure \ref{PositionIOProbes:fig}, right).
+
+\item Since {\tt useTargetProps} is set to {\tt false} in the example,
+the velocity input probe is needed to set the component velocities; if this
+probe is made inactive (either in code or interactively in the timeline), then
+while the bodies will still move, no velocities will be set and the data in the
+velocity output probe will be uniformly 0.
+
+Alternatively, if {\tt useTargetProps} is set to {\tt true}, then the input
+probes will be bound to {\sf targetPosition}, {\sf targetOrientation}, and {\sf
+targetVelocity}, and both positions and velocities will be set for the
+components if {\it either} input probe is active. Reflecting the description in
+Section \ref{targetPositions:sec}:
+
+\begin{itemize}
+
+\item If the position input probe is {\it active} and the velocity input probe
+is {\it inactive}, then the velocities will be determined by {\it
+differentiating} the target position inputs (albeit with a one-step time lag).
+
+\item If the position input probe is {\it inactive} and the velocity input probe
+is {\it active}, then the positions will be determined by {\it integrating} the
+target velocity inputs. Note that in this case, when the probes terminate, the
+components will continue moving with their last specified velocity.
+
+\item If {\it both} the position and velocity input probes are active,
+then both the target position and velocity information will be used to update
+the component positions and velocities.
+	
+\end{itemize}
+
+This provides a useful example of how target properties work.
+
+\end{itemize}
 
 \subsection{Numeric monitor probes}
 \label{NumericMonitorProbes:sec}
 
-In some cases, it may be useful for an application to deploy an output
-probe in which the data, instead of being collected from various
-component properties, is generated by a function within the probe
-itself. This ability is provided by a
-\javaclass[artisynth.core.probes]{NumericMonitorProbe}, which generates
+In some cases, it may be useful for an application to deploy an output probe in
+which the data, instead of being collected from various component properties,
+is generated by a function within the probe itself. This ability is provided by
+a
+\javaclass[\probes]{NumericMonitorProbe}, which generates
 data using its  \javamethodAlt{%
-artisynth.core.probes.NumericMonitorProbe.generateData()}%
+\probes.NumericMonitorProbe.generateData()}%
 {generateData(vec,t,trel)}
 method. This evaluates a vector-valued function of time at
 either the absolute time {\tt t} or the probe-relative time {\tt trel}
 and stores the result in the vector {\tt vec}, whose size equals the
 vector size of the probe (as returned by
-\javamethod[artisynth.core.probes.NumericProbeBase]{getVsize()}).  The
+\javamethod[\probes.NumericProbeBase]{getVsize()}).  The
 probe-relative time {\tt trel} is determined by
 %
 \begin{equation}
@@ -1278,8 +2076,8 @@ probe-relative time {\tt trel} is determined by
 %
 where {\tt tstart} and {\tt scale} are the probe's start time
 and scale factors as returned by
-\javamethod[artisynth.core.probes.Probe]{getStartTime()} and
-\javamethod[artisynth.core.probes.Probe]{getScale()}.
+\javamethod[\probes.Probe]{getStartTime()} and
+\javamethod[\probes.Probe]{getScale()}.
 
 As described further below, applications have several ways to control
 how a {\tt NumericMonitorProbe} creates data:
@@ -1287,17 +2085,17 @@ how a {\tt NumericMonitorProbe} creates data:
 \begin{itemize}
 
 \item Provide the probe with a
-\javaclass[artisynth.core.probes]{DataFunction} using the
-\javamethodAlt{artisynth.core.probes.NumericDataFunctionProbe.setDataFunction()}%
+\javaclass[\probes]{DataFunction} using the
+\javamethodAlt{\probes.NumericDataFunctionProbe.setDataFunction()}%
 {setDataFunction(func)} method;
 
 \item Override the \javamethodAlt{%
-artisynth.core.probes.NumericMonitorProbe.generateData()}%
+\probes.NumericMonitorProbe.generateData()}%
 {generateData(vec,t,trel)}
 method;
 
 \item Override the \javamethodAlt{%
-artisynth.core.probes.NumericMonitorProbe.apply(double)}{apply(t)}
+\probes.NumericMonitorProbe.apply(double)}{apply(t)}
 method.
 
 \end{itemize}
@@ -1308,7 +2106,7 @@ Monitor}, with one of the main differences being that the data
 generated by a {\tt NumericMonitorProbe} can be automatically displayed
 in the ArtiSynth GUI or written to a file.
 
-The \javaclass[artisynth.core.probes]{DataFunction} interface
+The \javaclass[\probes]{DataFunction} interface
 declares an {\tt eval()} method,
 %
 \begin{verbatim}
@@ -1319,7 +2117,7 @@ that for
 {\tt NumericMonitorProbe}s
 evaluates a vector-valued function of time,
 where the arguments take the same role as for the monitor's \javamethodAlt{%
-artisynth.core.probes.NumericMonitorProbe.generateData()}%
+\probes.NumericMonitorProbe.generateData()}%
 {generateData()}
 method. Applications can declare an appropriate {\tt DataFunction} and
 set or query it within the probe using the methods
@@ -1367,7 +2165,7 @@ In this example, the {\tt DataFunction} is implemented using the class
 method. This means that the resulting probe will also be duplicatable
 within the GUI. Alternatively, one could implement {\tt
 SinCosFunction} by extending
-\javaclass[artisynth.core.probes]{DataFunctionBase}, which implements
+\javaclass[\probes]{DataFunctionBase}, which implements
 {\tt Clonable} by default. Probes containing {\tt DataFunction}s
 which are {\it not} {\tt Clonable} will not be duplicatable.
 
@@ -1390,9 +2188,9 @@ and cosine waves.}
 As an alternative to supplying a {\tt DataFunction} to a generic {\tt
 NumericMonitorProbe}, an application can instead subclass {\tt
 NumericMonitorProbe} and override either its \javamethodAlt{%
-artisynth.core.probes.NumericMonitorProbe.generateData()}%
+\probes.NumericMonitorProbe.generateData()}%
 {generateData(vec,t,trel)} or \javamethodAlt{%
-artisynth.core.probes.NumericMonitorProbe.apply(double)}{apply(t)}
+\probes.NumericMonitorProbe.apply(double)}{apply(t)}
 methods. As an example of the former, one could create a subclass as
 follows:
 %
@@ -1424,15 +2222,15 @@ In other cases, it may be useful for an application to deploy an input
 probe which takes numeric data, and instead of using it to modify
 various component properties, instead calls an internal method to
 directly modify the simulation in any way desired.  This ability is
-provided by a \javaclass[artisynth.core.probes]{NumericControlProbe},
+provided by a \javaclass[\probes]{NumericControlProbe},
 which applies its numeric data using its \javamethodAlt{%
-artisynth.core.probes.NumericControlProbe.applyData()}%
+\probes.NumericControlProbe.applyData()}%
 {applyData(vec,t,trel)} method. This receives the numeric input data
 via the vector {\tt vec} and uses it to modify the simulation for
 either the absolute time {\tt t} or probe-relative time {\tt
 trel}. The size of {\tt vec} equals the vector size of the probe (as
 returned by
-\javamethod[artisynth.core.probes.NumericProbeBase]{getVsize()}), and
+\javamethod[\probes.NumericProbeBase]{getVsize()}), and
 the probe-relative time {\tt trel} is determined as described in
 Section \ref{NumericMonitorProbes:sec}.
 
@@ -1444,17 +2242,17 @@ how they apply their data:
 \begin{itemize}
 
 \item Provide the probe with a 
-\javaclass[artisynth.core.probes]{DataFunction} using the
-\javamethodAlt{artisynth.core.probes.NumericDataFunctionProbe.setDataFunction()}%
+\javaclass[\probes]{DataFunction} using the
+\javamethodAlt{\probes.NumericDataFunctionProbe.setDataFunction()}%
 {setDataFunction(func)} method;
 
 \item Override the \javamethodAlt{%
-artisynth.core.probes.NumericControlProbe.applyData()}%
+\probes.NumericControlProbe.applyData()}%
 {applyData(vec,t,trel)}
 method;
 
 \item Override the \javamethodAlt{%
-artisynth.core.probes.NumericControlProbe.apply(double)}{apply(t)}
+\probes.NumericControlProbe.apply(double)}{apply(t)}
 method.
 
 \end{itemize}
@@ -1465,7 +2263,7 @@ this sense a {\tt NumericControlProbe} can be used similarly to a
 numeric data used can be automatically displayed in the ArtiSynth GUI
 or read from a file.
 
-The \javaclass[artisynth.core.probes]{DataFunction} interface
+The \javaclass[\probes]{DataFunction} interface
 declares an {\tt eval()} method,
 %
 \begin{verbatim}
@@ -1475,7 +2273,7 @@ declares an {\tt eval()} method,
 that for 
 {\tt NumericControlProbe}s applies the numeric data, 
 where the arguments take the same role as for the monitor's \javamethodAlt{%
-artisynth.core.probes.NumericControlProbe.applyData()}%
+\probes.NumericControlProbe.applyData()}%
 {applyData()}
 method. Applications can declare an appropriate {\tt DataFunction} and
 set or query it within the probe using the methods
@@ -1506,6 +2304,19 @@ the probe using {\tt setDataFunction()}. The latter constructor
 creates the probe and reads in both the data and timing information
 from the specified file.
 
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/spinControlProbe}
+\else
+ \includegraphics[width=4.5in]{images/spinControlProbe}
+\fi
+\end{center}
+\caption{Screen shot of the {\tt SpinControlDemo}, showing the
+numeric data in the timeline.}
+\label{spinControlProbe:fig}
+\end{figure}
+
 A complete example
 of this is defined in
 %
@@ -1527,26 +2338,364 @@ the GUI, as described in Section \ref{NumericMonitorProbes:sec}.  A
 single channel of data is used to control the orientation angle of the
 box about $z$, as shown in Figure \ref{spinControlProbe:fig}.
 
-\begin{figure}[ht]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/spinControlProbe}
-\else
- \includegraphics[width=4.5in]{images/spinControlProbe}
-\fi
-\end{center}
-\caption{Screen shot of the {\tt SpinControlDemo}, showing the
-numeric data in the timeline.}
-\label{spinControlProbe:fig}
-\end{figure}
-
 Alternatively, an application can subclass {\tt NumericControlProbe}
 and override either its \javamethodAlt{%
-artisynth.core.probes.NumericControlProbe.applyData()}%
+\probes.NumericControlProbe.applyData()}%
 {applyData(vec,t,trel)} or \javamethodAlt{%
-artisynth.core.probes.NumericControlProbe.apply(double)}{apply(t)}
+\probes.NumericControlProbe.apply(double)}{apply(t)}
 methods, as described for {\tt NumericMonitorProbe}s (Section
 \ref{NumericMonitorProbes:sec}).
+
+\section{Working with TRC data}
+
+The TRC data format was originally developed by Motion Analysis Corporation to
+describe marker position data acquired during motion capture. An overview of
+the format is provided as part of the
+\href{https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53089972/Marker+.trc+Files}{OpenSim
+documentation}.
+
+ArtiSynth supplies a simple reader and writer for TRC data, with the reader
+able to create probes directly from TRC files and the writer able to write
+files directly from probes.
+
+\begin{sideblock}
+It is assumed the TRC data is tab delimited; files that do not use tabs to
+separate their data will not be readable. There may also be other limitations of
+which we are unaware.
+\end{sideblock}
+
+\subsection{TRC reader}
+\label{TRCReader:sec}
+
+\javaclass[\probes]{TRCReader} allows one to read TRC data from a file using
+the simple code fragment
+%
+\begin{lstlisting}[]
+import artisynth.core.probes.TRCReader;
+...
+
+  File trcFile;
+  ...
+  TRCReader reader = new TRCReader (trcFile);
+  reader.readData();
+\end{lstlisting}
+%
+A constructor also exists that accepts a string file name argument.
+
+\begin{sideblock}
+Both the constructors and the {\tt readData()} method throw an {\tt
+IOException}, which must either be handled in a {\tt try/catch} block or thrown
+by the calling method.
+\end{sideblock}
+
+Once the data has been read, it may be queried with the following methods:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\probes.TRCReader.numFrames()}%
+{int numFrames()}%
+{Return the number of frames.}%
+%
+\methodentry
+{\probes.TRCReader.getFrameTime()}%
+{double getFrameTime (int fidx)}%
+{Return time of the fidx-th frame.}%
+%
+\methodentry
+{\probes.TRCReader.numMarkers()}%
+{int numMarkers()}%
+{Return the number of markers.}%
+%
+\methodentry
+{\probes.TRCReader.getMarkerLabels()}%
+{ArrayList<String> getMarkerLabels()}%
+{Return all the marker labels.}%
+%
+\methodentry
+{\probes.TRCReader.getMarkerIndex()}%
+{int getMarkerIndex (String label)}%
+{Return index of the labeled marker.}%
+%
+\methodentry
+{\probes.TRCReader.getMarkerPositions(int)}%
+{ArrayList<Point3d> getMarkerPositions (int fidx)}%
+{Return all marker positions at frame fidx.}%
+%
+\methodentry
+{\probes.TRCReader.getMarkerPositions(VectorNd,int)}%
+{void getMarkerPositions (VectorNd mpos, int fidx)}%
+{Return all marker positions at frame fidx into mpos.}%
+%
+\methodentry
+{\probes.TRCReader.getMarkerPosition(int,int)}%
+{Point3d getMarkerPosition (int fidx, int midx)}%
+{Return position of midx-th marker at frame fidx.}%
+%
+\methodentry
+{\probes.TRCReader.getMarkerPosition(int,String)}%
+{Point3d getMarkerPosition (int fidx, String label)}%
+{Return position of labeled marker at frame fidx.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+Both the frame and marker indices in the above methods are 0-based.
+
+{\tt TRCReader} also supplies the following methods for
+creating {\tt PositionInputProbe}s directly from the data:
+%
+\begin{methodtable}{0.9}{0.1}
+%\midline
+%
+\methodentry
+{\probes.TRCReader.createInputProbe(,,,,)}%
+{PositionInputProbe createInputProbe (String name, 
+Collection<? extends Point> points,\brh
+boolean useTargetProps, double startTime, double stopTime)}%
+{\ }%
+\methodspace{0.5em}%
+%
+\methodentry
+{\probes.TRCReader.createInputProbeUsingLabels(,,,,)}%
+{PositionInputProbe createInputProbeUsingLabels (String name, 
+Collection<? extends Point> points,\brh
+List<String> labels, boolean useTargetProps, double startTime, double stopTime)}%
+{\ }%
+%
+%\midline
+\end{methodtable}
+%
+For these, {\tt name} is the probe name (optional, can be {\tt null}), {\tt
+points} are the points to which the probe should be attached, {\tt
+useTargetProps} indicates if the {\sf targetPosition} or {\sf position}
+properties should be bound, {\tt startTime} and {\tt stopTime} give the
+start and stop times, and {\tt labels}, if present, gives a list of the marker
+labels that should be used for each point; otherwise, points are assigned to
+marker data in order.
+
+As a convenience, the following static methods are also supplied:
+
+\begin{methodtable}{0.9}{0.1}
+%\midline
+%
+\methodentry
+{\probes.TRCReader.createInputProbe(,,,)}%
+{PositionInputProbe createInputProbe (String name, 
+Collection<? extends Point> points,\brh
+File trcFile, boolean useTargetProps)}%
+{\ }%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\probes.TRCReader.createInputProbeUsingLabels(,,,,)}%
+{PositionInputProbe createInputProbeUsingLabels (String name, 
+Collection<? extends Point> points,\brh
+List<String> labels, File trcFile, boolean useTargetProps)}%
+{\ }%
+%
+%\midline
+\end{methodtable}
+%
+These read the data directly from the supplied TRC file, assigning the probe a
+start time of 0 and a stop time determined from the last frame time.
+
+\subsection{TRC writer}
+\label{TRCWriter:sec}
+
+\javaclass[\probes]{TRCWriter} allows an application to write a TRC file
+directly from the data in a numeric probe, using a code fragment such as
+%
+\begin{lstlisting}[]
+import artisynth.core.probes.TRCWriter;
+...
+
+  File trcFile;
+  NumericProbeBase probe;
+
+  ...
+  TRCWriter writer = new TRCWriter (trcFile);
+  reader.writeData (probe, /*labels*/null);
+\end{lstlisting}
+%
+A constructor also exists that accepts a string file name argument.
+
+The full signature for {\tt writeData()} is
+%
+\begin{methodtable}{0.7}{0.3}
+%
+\methodentry
+{\probes.TRCWriter.writeData()}%
+{void writeData (NumericProbeBase probe, List<String> labels)}%
+{\ }%
+%
+\end{methodtable}
+%
+where {\tt probe} is any type of probe associated with {\sf position} or {\sf
+targetPosition} properties for a set of \javaclass[\mech]{Point} components.
+The {\tt labels} argument is an optional list of marker labels that should be
+assigned to the data for each point. If this is not supplied, labels are
+assigned automatically, either from the point names, or when these are null, by
+prepending {\tt "mkr"} to the marker index.
+
+\begin{sideblock}
+The {\tt writeData()} method throws an {\tt IOException}, which must either be
+handled in a {\tt try/catch} block or thrown by the calling method.
+\end{sideblock}
+
+{\tt TRCWriter} also supplies a few methods that can be used
+to format the data before it is written:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\probes.TRCWriter.getNumberFormat()}%
+{String getNumberFormat()}%
+{Return the format string for float data.}%
+%
+\methodentry
+{\probes.TRCWriter.setNumberFormat()}%
+{void setNumberFormat (String fmtStr)}%
+{Set the format string for float data.}%
+%
+\methodentry
+{\probes.TRCWriter.getUnitsString()}%
+{String getUnitsString()}%
+{Return the string used to represent units.}%
+%
+\methodentry
+{\probes.TRCWriter.setUnitsString()}%
+{void setUnitsString (String str)}%
+{Set the string used to represent units.}%
+%
+\midline
+\end{methodtable}
+%
+
+For convenience, the following static methods are also provided:
+%
+\begin{methodtable}{0.7}{0.3}
+%
+\methodentry
+{\probes.TRCWriter.write(File,,)}%
+{void write (File file, NumericProbeBase probe, List<String> labels)}%
+{\ }%
+\methodspace{0.5em}%
+%
+\methodentry
+{\probes.TRCWriter.write(String,,)}%
+{void write (String fileName, NumericProbeBase probe, List<String> labels)}%
+{\ }%
+%
+\end{methodtable}
+
+\subsection{Example: moving MultiJointedArm with TRC data}
+\label{TRCMultiJointedArm:sec}
+
+\begin{figure}[t]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/TRCMultiJointedArm}
+\else
+ \includegraphics[width=4in]{images/TRCMultiJointedArm}
+\fi
+\end{center}
+\caption{{\tt TRCMultiJointedArm}, overlaid with the tracking stiffness
+control panel. The tracking stiffness itself is set low enough that
+the springs (red) between the target points (cyan) and markers (white)
+are visible.}
+\label{TRCMultiJointedArm:fig}
+\end{figure}
+
+The example model
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.TRCMultiJointedArm
+\end{verbatim}
+%
+illustrates several features that have been introduced in this chapter.  It
+extends the model {\tt MultiJointedArm}, previously described in
+Section \ref{MultiJointedArm:sec}. Then it reads TRC data defining target
+trajectories for the markers attached to the arm, with the intention of moving
+the arm. While a standard way to make marker data move an articulated structure
+is to employ an inverse kinematic solver (Section \ref{XXX}), this example
+uses a simpler solution. For each marker, a target point is defined and
+attached to it by means of a spring. The target points (which are non-dynamic)
+are then moved by means of a {\tt PositionInputProbe} created from the TRC
+data. As they move, they drag the markers (and the attached bodies) around by
+means of the resulting spring forces. It can be shown that the resulting rest
+position of the system is identical to that of the inverse kinematic solver of
+Section \ref{XXX} (assuming equal marker weights).
+
+Tracking accuracy increases with spring stiffness (although very high
+stiffnesses may cause stability issues). To illustrate this relationship, a
+control panel is created that allows the user to adjust the spring stiffness
+interactively. To be able to control the stiffness of one spring with a single
+parameter, a custom model property, called {\sf trackingStiffness}, is created
+per the description of Section \ref{CustomProperties:sec}, to control the
+stiffness values for all the springs.
+
+The model's class definition, excluding include directives, is given in
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-21}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/TRCMultiJointedArm.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=23]{../../src/artisynth/demos/tutorial/TRCMultiJointedArm.java}
+\fi
+\lstset{numbers=none}
+%
+The first parts of the code define the {\sf trackingStiffness} property, by
+first creating a local static property list ({\tt myProps}) that inherits from
+the parent class {\tt MultiJointedArm.class} (lines 9-10). A static block adds
+the property definition (lines 12-16), and the new list is made visible by a
+local implementation of {\tt getAllPropertyInfo()} (lines 18-20).  Get/set
+accessors are then defined for the property (lines 22-36). The property value
+is kept in the member variable {\tt myTrackingStiffness}, but when it is set
+the stiffness is updated for all springs stored in the {\tt MechModel}'s axial
+spring list.
+
+The {\tt build()} method starts by calling {\tt super.build()} to create the
+original {\tt MultiJointedArm} model (line 39), after which a reference to the
+created {\tt MechModel} will be stored in the inherited member {\tt myMech}.
+Then for each model marker, a target point is created, together with a
+connecting axial spring (lines 41-50). For simplicity, the targets and springs
+are stored in the {\tt MechModel}'s default {\tt points} and {\tt axialSprings}
+lists, but they could be stored in custom containers, as per
+Section \ref{GeneralComponentArrangements:sec}.
+
+Next, TRC marker data is read from the file {\tt "data/multiJointMkrs.trc"}
+located relative to the model's source folder, using the {\tt TRCReader}
+described in Section \ref{TRCReader:sec}. This is used to create a {\tt
+PositionInputProbe} attached to the target points (which are located under {\tt
+myMech.points()}) (lines 57-60). Lastly, a control panel is created to allow
+adjustment of the tracking stiffness, and some render properties are set.
+
+The last part of the class definition overrides the method {\tt
+postscanInitialize()}, which is called in place of the {\tt build()} method
+when a model is read from an ArtiSynth {\tt .art} file. This method should
+initialize any class members which are unknown to the component hierarchy and
+would normally be set in the {\tt build()} method.  In this case, it is
+necessary to initialize {\tt myMech}, which is needed by {\tt
+setTrackingStiffness()} and would otherwise not be set.  Models which are not
+intended to be saved to {\tt .art} files do not need to override {\tt
+postscanInitialize()}.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+TRCMultiJointedArm} from the {\sf Models} menu. The demo will appear, together
+with the control panel (shown overlaid in Figure
+\ref{TRCMultiJointedArm:fig}). When the model is run, the target points will be
+moved under the control of their position probe, dragging the markers along via
+the attached springs. Increasing/decreasing the spring stiffness will
+decrease/increase the tracking error.
 
 \section{Application-Defined Menu Items}
 \label{MenuItems:sec}
@@ -1648,8 +2797,64 @@ example above might look like this:
 \end{lstlisting}
 %
 
+\subsection{Smoothing probe data}
+\label{SmoothingProbeData:sec}
+
+Numeric probe data can also be smoothed, which is convenient for removing noise
+from either input or output data. Different smoothing methods are available; at
+the time of this writing, they include:
+
+\begin{description}
+
+\item[Moving average] \mbox{}
+
+Applies a mean average filter across the knots, using a moving window
+whose size is specified by the {\sf window size} field. The window is
+centered on each knot, and is reduced in size near the end knots to
+ensure a symmetric fit. The end knot values are not changed.  The
+window size must be odd and the {\sf window size} field enforces this.
+
+\item[Savitzky Golay] \mbox{}
+
+Applies Savitzky-Golay smoothing across the knots, using a moving
+window of size $w$.  Savitzky-Golay smoothing works by fitting the
+data values in the window to a polynomial of a specified degree $d$, and
+using this to recompute the value in the middle of the window.  The
+polynomial is also used to interpolate the first and last $w/2$
+values, since it is not possible to center the window on these.
+
+The window size $w$ and the polynomial degree $d$ are specified by the
+{\sf window size} and {\sf polynomial degree} fields. $w$ must be odd,
+and must also be larger than $d$, and the fields enforce these
+constraints.
+
+\end{description}
+
+These operations may be applied with the following numeric probe
+methods:
+
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\probes.NumericProbeBase.smoothWithMovingAverage()}%
+{void smoothWithMovingAverage (double winSize)}%
+{Moving average smoothing over a specified window.}%
+%
+\methodentry
+{\probes.NumericProbeBase.smoothWithSavitzkyGolay()}%
+{void smoothWithSavitzkyGolay (\brh double winSize, int deg)}%
+{Savitzky Golay smoothing with specified window and degree.}%
+%
+\midline
+\end{methodtable}
+%
+
 %
 \ifdefined\maindoc
 \else
 \end{document}
 \fi
+
+XXX talk about target positions

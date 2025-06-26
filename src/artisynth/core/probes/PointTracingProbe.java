@@ -63,38 +63,45 @@ public class PointTracingProbe extends TracingProbe {
          newProps.setLineColor (pointColor);
       }
       newProps.setLineWidth (3);
+      newProps.setPointSize (3);
       setRenderProps (newProps);
    }
 
    private class VertexIterator implements Iterator<float[]> {
-      double myTime = 0;
+      double myTime;
       double myStep;
-      double myEndTime;
-      NumericListKnot myKnot = null;
+      NumericListKnot myKnot;
+
       VectorNd myVec = new VectorNd (3);
       double[] myBuf = myVec.getBuffer();
       float[] myVtx = new float[3];
 
       public boolean hasNext() {
-         return (myTime <= myEndTime);
+         return (myKnot != null);
       }
 
       public float[] next() {
-         if (myTime > myEndTime) {
+         if (myKnot == null) {
             throw new NoSuchElementException();
          }
-         myKnot =
-            myNumericList.interpolate (
-               myVec, myTime, getInterpolation(), myKnot);
+         if (myStep <= 0) {
+            myVec.set (myKnot.v);
+            myKnot = myKnot.getNext();
+         }
+         else {
+            NumericListKnot last =
+               myNumericList.interpolate (
+                  myVec, myTime, getInterpolation(), myKnot);
+            myTime += myStep;
+            myKnot = myNumericList.findKnotAtOrBefore (myTime, last);
+            if (myKnot.getNext() == null &&
+                myTime > myKnot.t) {
+               myKnot = null;
+            }
+         }
          myVtx[0] = (float)myBuf[0];
          myVtx[1] = (float)myBuf[1];
          myVtx[2] = (float)myBuf[2];
-         if (myTime < myEndTime) {
-            myTime = Math.min (myTime + myStep, myEndTime);
-         }
-         else {
-            myTime = myEndTime + 1;
-         }
          return myVtx;
       }
 
@@ -102,22 +109,25 @@ public class PointTracingProbe extends TracingProbe {
          throw new UnsupportedOperationException();
       }
 
-      VertexIterator (double step, double tend) {
+      VertexIterator (double step) {
+         myKnot = myNumericList.getKnot(0);
+         myTime = 0;
          myStep = step;
-         myEndTime = tend;
       }
    }
 
    private class VertexIterable implements Iterable<float[]> {
-      double myEndTime;
 
-      VertexIterable (double endTime) {
-         myEndTime = endTime;
+      VertexIterable () {
       }
 
       public Iterator<float[]> iterator() {
-         double step = myTraceInterval / myScale;
-         return new VertexIterator (step, myEndTime);
+         double interval = myRenderInterval;
+         if (interval <= 0) {
+            interval = getUpdateInterval();
+         }
+         double step = myRenderInterval/myScale;
+         return new VertexIterator (step);
       }
    }
 
@@ -157,7 +167,7 @@ public class PointTracingProbe extends TracingProbe {
          return;
       }
       double tend = myNumericList.getLast().t;
-      VertexIterable vi = new VertexIterable (tend);
+      VertexIterable vi = new VertexIterable ();
       if (myPointTracing) {
          for (float[] vtx : vi) {
             renderer.drawPoint (myRenderProps, vtx, isSelected());

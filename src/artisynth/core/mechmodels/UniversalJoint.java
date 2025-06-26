@@ -24,6 +24,7 @@ import maspack.render.Renderer.LineStyle;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
+import maspack.geometry.PolygonalMesh;
 import maspack.spatialmotion.UniversalCoupling;
 import maspack.util.DoubleInterval;
 import maspack.util.NumberFormat;
@@ -60,6 +61,12 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
 
    private static boolean DEFAULT_ROLL_LOCKED = false;
    private static boolean DEFAULT_PITCH_LOCKED = false;
+
+   // mesh for rendering mesh geometry
+   private PolygonalMesh myRenderMesh;
+   // internal reference rendering mesh (just in case mesh is set between
+   // prerender() and render()).
+   private PolygonalMesh myRenderMeshRender;
 
    /**
     * Specifies whether the roll-pitch-yaw angles of this joint describe
@@ -505,6 +512,32 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
       myJointRadius = r;
    }
 
+   /**
+    * Sets a polygonal mesh that can also be used for rendering. If present,
+    * the mesh is rendered in a frame that corresponds to D, rotated by the
+    * roll angle.
+    *
+    * @param mesh mesh to use as a render mesh. The mesh is copied internally.
+    * Setting {@code mesh} to {@code null} will clear any existing mesh.
+    */
+   public void setRenderMesh (PolygonalMesh mesh) {
+      if (mesh == null) {
+         myRenderMesh = null;
+      }
+      else {
+         myRenderMesh = mesh.clone();
+      }
+   }
+
+  /**
+    * Returns the rendering mesh, if any. See {@link #setRenderMesh}.
+    *
+    * @return rendering mesh
+    */
+   public PolygonalMesh getRenderMesh() {
+      return myRenderMesh;
+   }
+
    /* --- begin Renderable implementation --- */
 
    private void computeRollAxisEndPoints (Point3d p0, Point3d p1, double slen) {
@@ -572,6 +605,28 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
          Vector3d center = getCurrentTDW().p;
          RenderableUtils.updateSphereBounds (pmin, pmax, center, rad);
       }
+      if (myRenderMesh != null) {
+         updateRenderMeshPose();
+         myRenderMesh.updateBounds (pmin, pmax);
+      }
+   }
+
+   private void updateRenderMeshPose() {
+      // render mesh in coordinate frame D, rotated about z by roll
+      RigidTransform3d TMW = new RigidTransform3d (myRenderFrameD);
+      TMW.R.mulRotZ (Math.toRadians(getRoll()));
+      myRenderMesh.XMeshToWorld.set (TMW);
+   }
+
+   @Override
+   public void prerender (RenderList list) {
+      super.prerender (list);
+      PolygonalMesh mesh = myRenderMesh;
+      if (mesh != null) {
+         updateRenderMeshPose();
+         mesh.prerender (myRenderProps);
+      }
+      myRenderMeshRender = mesh;
    }
 
    public void render (Renderer renderer, int flags) {
@@ -580,6 +635,11 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
       float[] coords0 = 
          new float[] { (float)center.x, (float)center.y, (float)center.z };
 
+      PolygonalMesh mesh = myRenderMeshRender;
+      if (mesh != null) {
+         flags |= isSelected() ? Renderer.HIGHLIGHT : 0;
+         mesh.render (renderer, myRenderProps, flags);
+      }
       if (myJointRadius < 0) {
          // legacy rendering as a point
          renderer.drawPoint (myRenderProps, coords0, isSelected());
@@ -632,6 +692,14 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
       if (getAxes() != AxisSet.ZY) {
          pw.print ("axes=" + getAxes());
       }
+      if (myRenderMesh != null) {
+         pw.println ("renderMesh=[");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         myRenderMesh.write (pw, fmt, /*zeroIndexed=*/false);
+         pw.println ("EOF");
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
       super.writeItems (pw, fmt, ancestor);
    }
 
@@ -642,6 +710,13 @@ public class UniversalJoint extends JointBase implements CopyableComponent {
       if (scanAttributeName (rtok, "axes")) {
          setAxes (rtok.scanEnum (AxisSet.class));
          return true;
+      }
+      else if (scanAttributeName (rtok, "renderMesh")) {
+         rtok.scanToken ('[');
+         myRenderMesh = new PolygonalMesh();
+         myRenderMesh.read (rtok, false);
+         rtok.scanToken (']');
+         return true;         
       }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);

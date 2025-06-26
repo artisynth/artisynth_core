@@ -67,10 +67,10 @@ TransformableGeometry, ScalableUnits {
    protected PointSpringList<MultiPointSpring> myMultiPointSprings;
    protected ComponentList<FrameSpring> myFrameSprings;
    protected ComponentList<ForceComponent> myForceEffectors;
-   protected ComponentList<RigidBody> myRigidBodies;
+   protected RenderableComponentList<RigidBody> myRigidBodies;
    protected ComponentList<Frame> myFrames;
    protected ComponentList<MeshComponent> myMeshBodies;
-   protected ComponentList<BodyConnector> myConnectors;
+   protected RenderableComponentList<BodyConnector> myConnectors;
    protected ComponentList<ConstrainerBase> myConstrainers;
    protected PointList<FrameMarker> myFrameMarkers;
    protected CollisionManager myCollisionManager;
@@ -248,7 +248,8 @@ TransformableGeometry, ScalableUnits {
          new ComponentList<ForceComponent> (
             ForceComponent.class, "forceEffectors", "f");
       myRigidBodies =
-         new ComponentList<RigidBody> (RigidBody.class, "rigidBodies", "r");
+         new RenderableComponentList<RigidBody> (
+            RigidBody.class, "rigidBodies", "r");
       myFrames =
          new ComponentList<Frame> (Frame.class, "frames", "fr");
       myMeshBodies =
@@ -259,7 +260,7 @@ TransformableGeometry, ScalableUnits {
       myFrameMarkers.setPointDamping (0);
 
       myConnectors =
-         new ComponentList<BodyConnector> (
+         new RenderableComponentList<BodyConnector> (
             BodyConnector.class, "bodyConnectors", "c");
       myConstrainers =
          new RenderableComponentList<ConstrainerBase> (
@@ -1416,7 +1417,7 @@ TransformableGeometry, ScalableUnits {
       return myFieldList;
    }
 
-   public ComponentList<RigidBody> rigidBodies() {
+   public RenderableComponentList<RigidBody> rigidBodies() {
       return myRigidBodies;
    }
 
@@ -1540,7 +1541,7 @@ TransformableGeometry, ScalableUnits {
 
    /* ----- Rigid Body Constraints ------ */
 
-   public ComponentList<BodyConnector> bodyConnectors() {
+   public RenderableComponentList<BodyConnector> bodyConnectors() {
       return myConnectors;
    }
 

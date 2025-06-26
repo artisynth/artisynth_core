@@ -26,10 +26,10 @@ import maspack.render.RenderProps;
  * Simple demo that illustrates the use of position and velocity probes.
  */
 public class PositionProbes extends RootModel {
-
-   private static final double PI = Math.PI;
-   private double startTime = 0;
-   private double stopTime = 2;
+   private static final double PI = Math.PI;  // simplify the code
+   private double startTime = 0;           // probe start times
+   private double stopTime = 2;            // probe stop times
+   private boolean useTargetProps = true;  // bind input probes to target props
 
    public void build (String[] args) throws IOException {
       MechModel mech = new MechModel ("mech");
@@ -42,11 +42,8 @@ public class PositionProbes extends RootModel {
          "monkey", mesh, /*density*/1000.0, /*scale*/1);
       monkey.setDynamic (false);
       mech.addRigidBody (monkey);
-
       Point point = new Point ("point", new Point3d(0, 0, 3));
       mech.addPoint (point);
-
-      
 
       // Make a list of these components for creating the probes.
       ArrayList<ModelComponent> comps = new ArrayList<>();
@@ -58,7 +55,7 @@ public class PositionProbes extends RootModel {
       // values and 3 ZYX angles in radians
       PositionInputProbe pip = new PositionInputProbe (
          "target positions", comps, RotationRep.ZYX, 
-         /*useTargetProps*/false, startTime, stopTime);
+         useTargetProps, startTime, stopTime);
       
       pip.setData (new double[] {
       /*  time  point pos       monkey pos & rotation */
@@ -75,7 +72,7 @@ public class PositionProbes extends RootModel {
 
       // Create a VelocityInputProbe by differentiating the position probe.
       VelocityInputProbe vip = VelocityInputProbe.createInterpolated (
-         "target velocities", pip, 0.02);
+         "target velocities", pip, useTargetProps, 0.02);
       addInputProbe (vip);
 
       // Create a PositionOutputProbe to record the component positions
@@ -94,10 +91,8 @@ public class PositionProbes extends RootModel {
       tprobe.setName ("point tracing");
       RenderProps.setLineColor (tprobe, Color.CYAN);
 
-      // Add a traci
-
       // render properties:
-      // point drawn as a large red sphere
+      // draw point as a large red sphere; set color for the monkey
       RenderProps.setSphericalPoints (mech, 0.2, Color.RED);
       // set color for monkey
       RenderProps.setFaceColor (mech, new Color(1f, 1f, 0.6f));

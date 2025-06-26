@@ -1276,6 +1276,239 @@ Running the model (Section \ref{LoadingAndRunning:sec}) will cause the
 rigid body to fall and swing about under gravity, with the right ball
 ({\tt ball1}) not falling as far because it has less density.
 
+\section{Mesh components}
+\label{MeshComponents:sec}
+
+ArtiSynth models frequently incorporate 3D mesh geometry, as defined
+by the geometry classes \javaclass[maspack.geometry]{PolygonalMesh},
+\javaclass[maspack.geometry]{PolylineMesh}, and
+\javaclass[maspack.geometry]{PointMesh} described in Section
+\ref{Meshes:sec}. Within a model, these basic classes are typically
+enclosed within container components that are subclasses of
+\javaclass[artisynth.core.mechmodels]{MeshComponent}. Commonly
+used instances of these include
+
+\begin{description}
+
+\item[\protect{\javaclass[\mech]{RigidMeshComp}}]\mbox{}
+
+Introduced in Section \ref{rigidBodyMultipleMeshes:sec}, these contain
+the mesh geometry for rigid bodies, and are stored in a rigid body
+subcomponent list named {\tt meshes}. Their mesh vertex positions
+are fixed with respect to their body's coordinate frame.
+
+\item[\protect{\javaclass[\fem]{FemMeshComp}}]\mbox{}
+
+Contain mesh geometry associated with finite element models (Chapter
+\ref{FEMModels:sec}), including surfaces meshes and embedded mesh
+geometry, and are stored in a subcomponent list of the FEM model
+named {\tt meshes}. Their mesh vertex positions change as the FEM model
+deforms.
+
+\item[\protect{\javaclass[\fem]{SkinMeshBody}}]\mbox{}
+
+Described in detail in Chapter \ref{skinning:sec}, these describe
+``skin'' geometry that encloses both rigid bodies and/or FEM models.
+Their mesh vertex positions change as the underlying bodies move and
+deform. Skinning meshes may be placed anywhere, but are typically
+stored in the {\tt meshBodies} component list of a {\tt MechModel}.
+
+\item[\protect{\javaclass[\mech]{FixedMeshBody}}]\mbox{}
+
+Described further below, these store arbitrary mesh geometry
+(polygonal, polyline, and point) and provide (like rigid bodies) a
+rigid coordinate frame that allows the mesh to be positioned and
+oriented arbitrarily. As their name suggests, their mesh vertex
+positions are fixed with respect to this coordinate frame. Fixed body
+meshes may be placed anywhere, but are typically stored in the {\tt
+meshBodies} component list of a {\tt MechModel}.
+
+\end{description}
+
+\subsection{Fixed mesh bodies}
+\label{FixedMeshBodies:sec}
+
+As mentioned above, \javaclass[\mech]{FixedMeshBody} can be used for
+placing arbitrary mesh geometry within an ArtiSynth model.  These mesh
+bodies are non-dynamic: they do not interact or collide with other
+model components, and they function primarily as 3D graphical
+objects. They can be created from primary mesh components using
+constructors such as:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech .FixedMeshBody.FixedMeshBody(MeshBase)}%
+{FixedMeshBody (MeshBase mesh)}%
+{Create an unnamed body containing a specified mesh.}%
+%
+\methodentry
+{\mech .FixedMeshBody.FixedMeshBody(String,MeshBase)}%
+{FixedMeshBody (String name, MeshBase mesh)}%
+{Create a named body containing a specified mesh.}%
+%
+\midline
+\end{methodtable}
+%
+It should be noted that the primary meshes are not copied and are
+instead stored by reference, and so any subsequent changes to them
+will be reflected in the mesh body. As with rigid bodies, fixed mesh
+bodies contain a coordinate frame, or {\it pose}, that describes the
+position and orientation of the body with respect to world
+coordinates. Methods to control the pose include:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech .FixedMeshBody.getPose()}%
+{RigidTransform3d getPose()}%
+{Returns the pose of the body (with respect to world).}%
+%
+\methodentry
+{\mech .FixedMeshBody.setPose()}%
+{void setPose (RigidTransform3d XFrameToWorld)}%
+{Sets the pose of the body.}%
+\methodspace{0.5em}
+%
+\methodentry
+{\mech .FixedMeshBody.getPosition()}%
+{Point3d getPosition()}%
+{Returns the body position (pose translation component).}%
+%
+\methodentry
+{\mech .FixedMeshBody.setPosition()}%
+{void setPosition (Point3d pos)}%
+{Sets the body position.}%
+\methodspace{0.5em}
+%
+\methodentry
+{\mech .FixedMeshBody.getOrientation()}%
+{AxisAngle getOrientation()}%
+{Returns the body orientation (pose rotation component).}%
+%
+\methodentry
+{\mech .FixedMeshBody.setOrientation()}%
+{void setOrientation (AxisAngle axisAng)}%
+{Sets the body orientation.}%
+%
+\midline
+\end{methodtable}
+%
+Once created, a canonical place for storing mesh bodies is the {\tt
+MechModel} component list {\tt meshBodies}. Methods for
+maintaining this list include:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry{\mech .MechModel.meshBodies()}%
+{ComponentListView<MeshComponent> meshBodies()}%
+{Returns the {\tt meshBodies} list.}%
+%
+\methodentry{\mech .MechModel.addMeshBody()}%
+{void addMeshBody (MeshComponent mcomp)}%
+{Adds {\tt mcomp} to {\tt meshBodies}.}%
+%
+\methodentry{\mech .MechModel.removeMeshBody()}%
+{boolean removeMeshBody (MeshComponent mcomp)}%
+{Removes {\tt mcomp} from {\tt meshBodies}.}%
+%
+\methodentry{\mech .MechModel.clearMeshBodies()}%
+{void clearMeshBodies()}%
+{Clears the {\tt meshBodies} list.}%
+%
+\midline
+\end{methodtable}
+%
+Meshes used for instantiating fixed mesh bodies are typically read
+from files (Section \ref{MeshFileIO:sec}), but can also be created
+using factory methods (Section \ref{MeshCreation:sec}).  As an
+example, the following code fragment creates a torus mesh using a
+factory method, set its pose, and then adds it to a {\tt MechModel}:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   ...
+   PolygonalMesh mesh = MeshFactory.createTorus (
+      /*rmajor=*/1.0, /*rminor=*/0.2, /*nmajor=*/32, /*nminor=*/10);
+   FixedMeshBody mbody = new FixedMeshBody ("torus", mesh);
+   mbody.setPose (
+      new RigidTransform3d (/*xyz=*/0,0,0, /*rpy=*/0,0,Math.toRadians(90)));
+   mech.addMeshBody (mbody);
+\end{lstlisting}
+%
+
+Rendering of mesh bodies is controlled using the same properties
+described in Section \ref{rigidBodyRendering:sec} for rigid bodies,
+including the {\sf renderProps} subproperties {\sf faceColor}, {\sf
+shading}, {\sf alpha}, {\sf faceStyle}, and {\sf drawEdges}, and the
+properties {\sf axisLength} and {\sf axisDrawStyle} for displaying a
+body's coordinate frame.
+
+\subsection{Example: adding mesh bodies to MechModel}
+\label{FixedMeshesExample:sec}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/FixedMeshes}
+\else
+ \includegraphics[width=3.75in]{images/FixedMeshes}
+\fi
+\end{center}
+\caption{FixedMeshes model loaded into ArtiSynth.}
+\label{FixedMeshes:fig}
+\end{figure}
+
+An simple application that creates a pair of fixed meshes and adds
+them to a {\tt MechModel} is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.FixedMeshes
+\end{verbatim}
+%
+The {\tt build()} method for this is shown below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-18}}
+\lstinputlisting[firstline=1,lastline=42]{../../src/artisynth/demos/tutorial/FixedMeshes.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=20,lastline=61]{../../src/artisynth/demos/tutorial/FixedMeshes.java}
+\fi
+\lstset{numbers=none}
+%
+After creating a {\tt MechModel} (lines 3-4), a torus shaped mesh is
+imported from the file {\tt data/torus\_9\_24.obj} (lines 8-16). As
+described in Section \ref{PathFinder:sec}, the {\tt RootModel} method
+{\tt getSourceRelativePath()} is used to locate this file relative to
+the model's source folder. The file path is used in the {\tt
+PolygonalMesh} constructor, which is enclosed within a {\tt try/catch}
+block to handle possible I/O exceptions. Once imported, the mesh is
+used to instantiate a {\tt FixedMeshBody} named {\tt "torus"} which is
+added to the {\tt MechModel} (lines 18-19).
+
+Another mesh, representing a square, is created with a factory method
+and used to instantiate a mesh body named {\tt "square"} (lines
+22-26). The factory method specifies both the size and triangle
+density of the mesh in the $x$-$y$ plane. Once created, the square's
+pose is set to a 90 degree rotation about the $x$ axis and a
+translation of 0.5 along $y$ (lines 28-29).
+
+Rendering properties are set at lines 33-41. The torus is made pale
+green by setting it face color; the coordinate frame for the square is
+made visible as solid arrows using the {\tt axisLength} and {\tt
+axisDrawStyle} properties; and the square is made blue gray, with its
+edges made visible and drawn using a darker color, and its face style
+set to {\tt FRONT\_AND\_BACK} so that it's visible from either side.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+FixedMeshes} from the {\sf Models} menu. The model should load and
+initially appear as in Figure \ref{FixedMeshes:fig}.
+
 \section{Joints and connectors}
 \label{JointsAndConnectors:sec}
 
@@ -2883,12 +3116,25 @@ where
 The value and ranges for $\theta$ and $\phi$ are exported by the
 properties {\sf roll}, {\sf pitch}, {\sf rollRange} and {\sf
 pitchRange}, and the coordinate indices are defined by the constants
-{\tt ROLL\_IDX} and {\tt PITCH\_IDX}.  For rendering, the properties
-{\sf shaftLength} and {\sf shaftRadius} control the size of shafts
-drawn about the roll and pitch axes, while {\sf jointRadius} specifies
-the radius of a ball drawn around the origin of D; both are drawn
-using the {\sf faceColor} rendering property. A demo is provided by
-{\tt artisynth.demos.mech.UniversalJointDemo}.
+{\tt ROLL\_IDX} and {\tt PITCH\_IDX}.  
+
+For rendering, the properties {\sf shaftLength} and {\sf shaftRadius} control
+the size of shafts drawn about the roll and pitch axes, while {\sf jointRadius}
+specifies the radius of a ball drawn around the origin of D; both are drawn
+using the {\sf faceColor} rendering property. It is also
+possible to add a rendering mesh, using the methods:
+% method table
+\begin{lstlisting}[]
+  void setRenderMesh (PolygonalMesh mesh)
+  PolygonalMesh getRenderMesh()
+\end{lstlisting}
+%
+If present, the rendering mesh is rendered in the intermediate
+frame between D and C, i.e., D rotated about $z$ by $\theta$.
+Rendering is controlled by the face rendering properties (
+{\sf faceStyle}, {\sf faceColor}, etc.).
+
+A demo is provided by {\tt artisynth.demos.mech.UniversalJointDemo}.
 
 \subsection{Skewed universal joint}
 
@@ -3795,6 +4041,83 @@ rendering properties.
 
 \end{itemize}
 
+\subsection{Example: multijointed arm}
+
+\label{MultiJointedArm:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{cc}
+ \iflatexml
+   \includegraphics[]{images/MultiJointedArmInit}&
+   \includegraphics[]{images/MultiJointedArm}\\
+ \else
+   \includegraphics[height=2.5in]{images/MultiJointedArmInit}&
+   \includegraphics[height=2.5in]{images/MultiJointedArm}\\
+ \fi
+\end{tabular}
+\end{center}
+\caption{{\tt MultiJointedArm} as initially assembled in code (left),
+and after repositioning by moving the joint angles (right).}
+\label{MultiJointedArm:fig}
+\end{figure}
+
+The example model
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.MultiJointedArm
+\end{verbatim}
+%
+shows two links connected by universal and hinge joints to form a 3 DOF
+robot-like arm. The model class definition, excluding the include directives,
+is shown here:
+%
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-23}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/MultiJointedArm.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=25]{../../src/artisynth/demos/tutorial/MultiJointedArm.java}
+\fi
+\lstset{numbers=none}
+%
+Line 3 uses {\tt getSourceRelativePath()} to locate the geometry folder
+relative to the model's source folder and lines 4-5 define some constants.  The
+{\tt build()} method begins by creating and adding a {\tt MechModel},
+specifying a standard inertial damping of 1, as well as a rotary damping value
+to reduce spinning of the first joint about the $z$ axis. The class member
+variable {\tt myMech} is used to store a reference to the {\tt MechModel} so
+that it is available to subclasses.
+
+A {\tt FixedMeshBody} is used to illustrate a mounting plate (lines 15-21);
+this is purely decorative and has no dynamic purpose. The links and joints are
+then created and assembled in the configuration shown in
+Figure \ref{MultiJointedArm:fig} (left). The first link, {\tt link0}, is
+created from a rounded-box mesh, and then repositioned to align vertically
+along the $z$ axis under the mounting plate (lines 23-31).  The link is then
+attached to ground, just below the mounting plate, using a 2 DOF universal
+joint (lines 33-42), with a rendering mesh added to illustrate a mounting
+bracket and a range limit of $\pm 240^\circ$ set on the roll angle. (Note that
+similar physics could be achieved with two hinge joints and an additional
+link.) The second link, {\tt link1}, is then also created from a rounded-box
+mesh and repositioned vertically along the $z$ axis under {\tt link0} (lines
+41-52), to which it is attached using a hinge joint (lines 54-60).
+
+After the linkage has been assembled, some marker points are added to the
+links (lines 62-67), and the linkage is repositioned by setting some of the
+joint coordinates (lines 70-72) to assume the configuration shown in
+Figure \ref{MultiJointedArm:fig} (right). Finally, some
+additional render properties are set (lines 73-78).
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+MultiJointedArm} from the {\sf Models} menu. The model should load and
+initially appear as in Figure \ref{MultiJointedArm:fig}.  Running the model
+will cause the links to fall under gravity.  Forces can also be interactively
+applied using the pull tool (see the section ``Pull Manipulation'' in the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
+
 \section{Frame springs}
 \label{FrameSprings:sec}
 
@@ -4630,239 +4953,6 @@ and initially appear as in Figure \ref{ParticleAttachment:fig}.  The
 frame attached to {\tt bodyA} is visible in the lower right corner.
 Running the model (Section \ref{LoadingAndRunning:sec}) will cause
 both bodies to fall and swing about the joint under gravity.
-
-\section{Mesh components}
-\label{MeshComponents:sec}
-
-ArtiSynth models frequently incorporate 3D mesh geometry, as defined
-by the geometry classes \javaclass[maspack.geometry]{PolygonalMesh},
-\javaclass[maspack.geometry]{PolylineMesh}, and
-\javaclass[maspack.geometry]{PointMesh} described in Section
-\ref{Meshes:sec}. Within a model, these basic classes are typically
-enclosed within container components that are subclasses of
-\javaclass[artisynth.core.mechmodels]{MeshComponent}. Commonly
-used instances of these include
-
-\begin{description}
-
-\item[\protect{\javaclass[\mech]{RigidMeshComp}}]\mbox{}
-
-Introduced in Section \ref{rigidBodyMultipleMeshes:sec}, these contain
-the mesh geometry for rigid bodies, and are stored in a rigid body
-subcomponent list named {\tt meshes}. Their mesh vertex positions
-are fixed with respect to their body's coordinate frame.
-
-\item[\protect{\javaclass[\fem]{FemMeshComp}}]\mbox{}
-
-Contain mesh geometry associated with finite element models (Chapter
-\ref{FEMModels:sec}), including surfaces meshes and embedded mesh
-geometry, and are stored in a subcomponent list of the FEM model
-named {\tt meshes}. Their mesh vertex positions change as the FEM model
-deforms.
-
-\item[\protect{\javaclass[\fem]{SkinMeshBody}}]\mbox{}
-
-Described in detail in Chapter \ref{skinning:sec}, these describe
-``skin'' geometry that encloses both rigid bodies and/or FEM models.
-Their mesh vertex positions change as the underlying bodies move and
-deform. Skinning meshes may be placed anywhere, but are typically
-stored in the {\tt meshBodies} component list of a {\tt MechModel}.
-
-\item[\protect{\javaclass[\mech]{FixedMeshBody}}]\mbox{}
-
-Described further below, these store arbitrary mesh geometry
-(polygonal, polyline, and point) and provide (like rigid bodies) a
-rigid coordinate frame that allows the mesh to be positioned and
-oriented arbitrarily. As their name suggests, their mesh vertex
-positions are fixed with respect to this coordinate frame. Fixed body
-meshes may be placed anywhere, but are typically stored in the {\tt
-meshBodies} component list of a {\tt MechModel}.
-
-\end{description}
-
-\subsection{Fixed mesh bodies}
-\label{FixedMeshBodies:sec}
-
-As mentioned above, \javaclass[\mech]{FixedMeshBody} can be used for
-placing arbitrary mesh geometry within an ArtiSynth model.  These mesh
-bodies are non-dynamic: they do not interact or collide with other
-model components, and they function primarily as 3D graphical
-objects. They can be created from primary mesh components using
-constructors such as:
-%
-\begin{methodtable}{0.5}{0.5}
-\midline
-%
-\methodentry
-{\mech .FixedMeshBody.FixedMeshBody(MeshBase)}%
-{FixedMeshBody (MeshBase mesh)}%
-{Create an unnamed body containing a specified mesh.}%
-%
-\methodentry
-{\mech .FixedMeshBody.FixedMeshBody(String,MeshBase)}%
-{FixedMeshBody (String name, MeshBase mesh)}%
-{Create a named body containing a specified mesh.}%
-%
-\midline
-\end{methodtable}
-%
-It should be noted that the primary meshes are not copied and are
-instead stored by reference, and so any subsequent changes to them
-will be reflected in the mesh body. As with rigid bodies, fixed mesh
-bodies contain a coordinate frame, or {\it pose}, that describes the
-position and orientation of the body with respect to world
-coordinates. Methods to control the pose include:
-%
-\begin{methodtable}{0.5}{0.5}
-\midline
-%
-\methodentry
-{\mech .FixedMeshBody.getPose()}%
-{RigidTransform3d getPose()}%
-{Returns the pose of the body (with respect to world).}%
-%
-\methodentry
-{\mech .FixedMeshBody.setPose()}%
-{void setPose (RigidTransform3d XFrameToWorld)}%
-{Sets the pose of the body.}%
-\methodspace{0.5em}
-%
-\methodentry
-{\mech .FixedMeshBody.getPosition()}%
-{Point3d getPosition()}%
-{Returns the body position (pose translation component).}%
-%
-\methodentry
-{\mech .FixedMeshBody.setPosition()}%
-{void setPosition (Point3d pos)}%
-{Sets the body position.}%
-\methodspace{0.5em}
-%
-\methodentry
-{\mech .FixedMeshBody.getOrientation()}%
-{AxisAngle getOrientation()}%
-{Returns the body orientation (pose rotation component).}%
-%
-\methodentry
-{\mech .FixedMeshBody.setOrientation()}%
-{void setOrientation (AxisAngle axisAng)}%
-{Sets the body orientation.}%
-%
-\midline
-\end{methodtable}
-%
-Once created, a canonical place for storing mesh bodies is the {\tt
-MechModel} component list {\tt meshBodies}. Methods for
-maintaining this list include:
-%
-\begin{methodtable}{0.5}{0.5}
-\midline
-%
-\methodentry{\mech .MechModel.meshBodies()}%
-{ComponentListView<MeshComponent> meshBodies()}%
-{Returns the {\tt meshBodies} list.}%
-%
-\methodentry{\mech .MechModel.addMeshBody()}%
-{void addMeshBody (MeshComponent mcomp)}%
-{Adds {\tt mcomp} to {\tt meshBodies}.}%
-%
-\methodentry{\mech .MechModel.removeMeshBody()}%
-{boolean removeMeshBody (MeshComponent mcomp)}%
-{Removes {\tt mcomp} from {\tt meshBodies}.}%
-%
-\methodentry{\mech .MechModel.clearMeshBodies()}%
-{void clearMeshBodies()}%
-{Clears the {\tt meshBodies} list.}%
-%
-\midline
-\end{methodtable}
-%
-Meshes used for instantiating fixed mesh bodies are typically read
-from files (Section \ref{MeshFileIO:sec}), but can also be created
-using factory methods (Section \ref{MeshCreation:sec}).  As an
-example, the following code fragment creates a torus mesh using a
-factory method, set its pose, and then adds it to a {\tt MechModel}:
-%
-\begin{lstlisting}[]
-   MechModel mech;
-   ...
-   PolygonalMesh mesh = MeshFactory.createTorus (
-      /*rmajor=*/1.0, /*rminor=*/0.2, /*nmajor=*/32, /*nminor=*/10);
-   FixedMeshBody mbody = new FixedMeshBody ("torus", mesh);
-   mbody.setPose (
-      new RigidTransform3d (/*xyz=*/0,0,0, /*rpy=*/0,0,Math.toRadians(90)));
-   mech.addMeshBody (mbody);
-\end{lstlisting}
-%
-
-Rendering of mesh bodies is controlled using the same properties
-described in Section \ref{rigidBodyRendering:sec} for rigid bodies,
-including the {\sf renderProps} subproperties {\sf faceColor}, {\sf
-shading}, {\sf alpha}, {\sf faceStyle}, and {\sf drawEdges}, and the
-properties {\sf axisLength} and {\sf axisDrawStyle} for displaying a
-body's coordinate frame.
-
-\subsection{Example: adding mesh bodies to MechModel}
-\label{FixedMeshesExample:sec}
-
-\begin{figure}[h]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/FixedMeshes}
-\else
- \includegraphics[width=3.75in]{images/FixedMeshes}
-\fi
-\end{center}
-\caption{FixedMeshes model loaded into ArtiSynth.}
-\label{FixedMeshes:fig}
-\end{figure}
-
-An simple application that creates a pair of fixed meshes and adds
-them to a {\tt MechModel} is defined in
-%
-\begin{verbatim}
-  artisynth.demos.tutorial.FixedMeshes
-\end{verbatim}
-%
-The {\tt build()} method for this is shown below:
-\lstset{numbers=left}
-\iflatexml
-%% Hack: latexml lstinputlisting doesn't handle firstline correctly
-\lstset{firstnumber={-18}}
-\lstinputlisting[firstline=1,lastline=42]{../../src/artisynth/demos/tutorial/FixedMeshes.java}
-\lstset{firstnumber={1}}
-\else
-\lstinputlisting[firstline=20,lastline=61]{../../src/artisynth/demos/tutorial/FixedMeshes.java}
-\fi
-\lstset{numbers=none}
-%
-After creating a {\tt MechModel} (lines 3-4), a torus shaped mesh is
-imported from the file {\tt data/torus\_9\_24.obj} (lines 8-16). As
-described in Section \ref{PathFinder:sec}, the {\tt RootModel} method
-{\tt getSourceRelativePath()} is used to locate this file relative to
-the model's source folder. The file path is used in the {\tt
-PolygonalMesh} constructor, which is enclosed within a {\tt try/catch}
-block to handle possible I/O exceptions. Once imported, the mesh is
-used to instantiate a {\tt FixedMeshBody} named {\tt "torus"} which is
-added to the {\tt MechModel} (lines 18-19).
-
-Another mesh, representing a square, is created with a factory method
-and used to instantiate a mesh body named {\tt "square"} (lines
-22-26). The factory method specifies both the size and triangle
-density of the mesh in the $x$-$y$ plane. Once created, the square's
-pose is set to a 90 degree rotation about the $x$ axis and a
-translation of 0.5 along $y$ (lines 28-29).
-
-Rendering properties are set at lines 33-41. The torus is made pale
-green by setting it face color; the coordinate frame for the square is
-made visible as solid arrows using the {\tt axisLength} and {\tt
-axisDrawStyle} properties; and the square is made blue gray, with its
-edges made visible and drawn using a darker color, and its face style
-set to {\tt FRONT\_AND\_BACK} so that it's visible from either side.
-
-To run this example in ArtiSynth, select {\sf All demos > tutorial >
-FixedMeshes} from the {\sf Models} menu. The model should load and
-initially appear as in Figure \ref{FixedMeshes:fig}.
 
 \ifdefined\maindoc
 \else

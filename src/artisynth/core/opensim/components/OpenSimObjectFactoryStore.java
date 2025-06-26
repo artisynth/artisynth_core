@@ -148,7 +148,9 @@ public class OpenSimObjectFactoryStore {
          }
       }
       
-      Logger.getSystemLogger ().warn ("Cannot find factory for " + elem.getNodeName ());
+      Logger.getSystemLogger ().warn (
+         "WARNING: unimplemented OpenSim component " +
+         elem.getNodeName() + ", ignoring");
       
       return null;      
    }

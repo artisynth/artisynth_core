@@ -65,7 +65,7 @@ public class OpenSimObject implements Clonable {
          }
       } 
       if (path == null){
-         System.err.println ("Cannot determine path for " + getName ());
+         System.err.println ("WARNING: cannot determine path for " + getName ());
       }
       return path;
    }

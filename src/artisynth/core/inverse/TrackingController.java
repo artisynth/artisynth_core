@@ -254,6 +254,11 @@ public class TrackingController extends ControllerBase
          "configExcitationColoring",
          "configure white-to-red excitation coloring where applicable",
          DEFAULT_CONFIG_EXCITATION_COLORING);
+      myProps.add(
+         "positionProbeRotRep",
+         "rotation representation for position probes created by the "+
+         "inverse manager",
+         DEFAULT_POSITION_PROBE_ROT_REP);
    }
 
    /**

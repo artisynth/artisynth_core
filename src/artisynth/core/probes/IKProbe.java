@@ -172,29 +172,29 @@ public class IKProbe extends NumericControlProbe {
    }
 
    /**
-    * Queries whether the {@code dynamic} property of the bodies associated
-    * with this probe is set {@code false/true} depending on whether the probe
-    * is active/inactive.
+    * Queries the {@code bodiesNonDynamicIfActive} property of this
+    * probe. See {@link #setBodiesNonDynamicIfActive} for details.
     *
-    * @return {@code true} if bodies are set non-dynamic/dynamic depending
-    * on if the probe is active/inactive
+    * @return {@code true} if {@code bodiesNonDynamicIfActive} is enabled.
     */
    public boolean getBodiesNonDynamicIfActive () {
       return myBodiesNonDynamicIfActive;
    }
 
    /**
-    * Sets whether the {@code dynamic} property of the bodies associated with
-    * this probe is set {@code false/true} depending on whether the probe is
-    * active/inactive.
+    * Sets the {@code bodiesNonDynamicIfActive} property of this probe.
+    * If true, then the {@code dynamic} property of the bodies associated 
+    * with this probe is set {@code false} when the probe is active. When
+    * the probe transitions to being inactive, {@link #resetBodiesDynamic}
+    * is called.
     * 
-    * @param enable if {@code true}, ensures bodies are set non-dynamic/dynamic
-    * depending on if the probe is active/inactive
+    * @param enable new value for the {@code bodiesNonDynamicIfActive} 
+    * property of this probe
     */
    public void setBodiesNonDynamicIfActive (boolean enable) {
       if (enable != myBodiesNonDynamicIfActive) {
-         if (enable && !isScanning()) {
-            setBodiesDynamic (!isActive());
+         if (enable && !isScanning() && isActive()) {
+            setBodiesDynamic (false);
          }
          myBodiesNonDynamicIfActive = enable;
       }
@@ -211,9 +211,17 @@ public class IKProbe extends NumericControlProbe {
 
    @Override
    public void setActive (boolean enable) {
+      boolean activityChanged = (enable != isActive());
       super.setActive (enable);
       if (myBodiesNonDynamicIfActive) {
-         setBodiesDynamic (!isActive());
+         if (activityChanged) {
+            if (enable) {
+               setBodiesDynamic (false);
+            }
+            else {
+               resetBodiesDynamic();
+            }
+         }
       }
    }
 
@@ -233,6 +241,14 @@ public class IKProbe extends NumericControlProbe {
     */
    public void setBodiesDynamic (boolean dynamic) {
       mySolver.setBodiesDynamic (dynamic);
+   }
+
+   /**
+    * Restore the {@code dynamic} property setting of all the bodies associated
+    * with this probe to their value at initialization.
+    */
+   public void resetBodiesDynamic() {
+      mySolver.resetBodiesDynamic(); 
    }
 
    public boolean isSettable() {

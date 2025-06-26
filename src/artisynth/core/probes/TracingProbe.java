@@ -20,14 +20,17 @@ import java.util.*;
 public abstract class TracingProbe extends NumericOutputProbe implements
 RenderableComponent {
    protected RenderProps myRenderProps;
-   protected double myTraceInterval = 0.05;
+   public static final double DEFAULT_RENDER_INTERVAL = -1;
+   protected double myRenderInterval = -1;
 
    public static PropertyList myProps =
       new PropertyList (TracingProbe.class, NumericOutputProbe.class);
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
-      myProps.add ("renderInterval", "time between trace points", 20);
+      myProps.add ("renderProps", "render properties", null);
+      myProps.add (
+         "renderInterval", "for path tracing, time between trace points", 
+         DEFAULT_RENDER_INTERVAL);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -35,11 +38,11 @@ RenderableComponent {
    }
 
    public double getRenderInterval() {
-      return myTraceInterval;
+      return myRenderInterval;
    }
 
    public void setRenderInterval (double h) {
-      myTraceInterval = h;
+      myRenderInterval = h;
    }
 
    public TracingProbe() {

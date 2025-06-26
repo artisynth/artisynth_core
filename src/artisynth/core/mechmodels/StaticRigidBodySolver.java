@@ -162,7 +162,20 @@ public abstract class StaticRigidBodySolver {
       }
       return bodies;
    }
-
+   
+   /**
+    * Returns the poses of all the bodies associated with this solver. This 
+    * includes all the bodies, not just those needed to initialize the solver.
+    */
+   public ArrayList<RigidTransform3d> getBodyPoses() {
+      updateBodiesAndConnectors();
+      ArrayList<RigidTransform3d> poses = new ArrayList<>();
+      for (BodyInfo binfo : getBodyInfo()) {
+         poses.add (new RigidTransform3d(binfo.myBody.getPose()));
+      }
+      return poses;
+   }
+   
    /**
     * Returns the MechModel associated with this solver.
     *
@@ -643,8 +656,6 @@ public abstract class StaticRigidBodySolver {
          if (myAnalyze) {
             int matrixType = Matrix.SYMMETRIC;
             myKKTSolver.analyze (mySolveMatrix, velSize, myGT, myRg, matrixType);
-            System.out.println (
-               "M="+mySolveMatrix.getSize()+" G="+myGT.getSize());
             myAnalyze = false;
          }     
          myKKTSolver.factor (mySolveMatrix, velSize, myGT, myRg, myNT, myRn);

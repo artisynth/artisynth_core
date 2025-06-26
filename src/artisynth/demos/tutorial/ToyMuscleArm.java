@@ -104,7 +104,7 @@ public class ToyMuscleArm extends RootModel {
       addModel (myMech);
 
       // create base body
-      PolygonalMesh mesh = new PolygonalMesh (geodir+"flangedBase.obj");
+      PolygonalMesh mesh = new PolygonalMesh (geodir+"bracketedBase.obj");
       RigidBody base = RigidBody.createFromMesh ("base", mesh, density, 1.0);
       base.setDynamic (false);
       myMech.addRigidBody (base);

@@ -147,10 +147,11 @@ wrappable objects as desired.
 Points can be added, queried, and removed using the methods
 %
 \begin{lstlisting}[]
-   void addPoint (Point pnt)
-   Point getPoint (int idx)
-   int numPoints()
-   boolean removePoint (Point pnt)
+   void addPoint (Point pnt)	       // add a point
+   void addPoint (int idx, Point pnt)  // add a point at index idx
+   Point getPoint (int idx)            // get the idx-th point
+   int numPoints()                     // return the number of points
+   boolean removePoint (Point pnt)     // remove a point
 \end{lstlisting}
 %
 As with \javaclass[\mech]{AxialSpring}, there must

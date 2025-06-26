@@ -131,7 +131,7 @@ public class TRCReader {
     * @return position of marker {@code idx} in frame {@code fidx}. Should not
     * be modified.
     */
-   public Vector3d getMarkerPosition (int fidx, int midx) {
+   public Point3d getMarkerPosition (int fidx, int midx) {
       return myMotionData.getMarkerPosition (fidx, midx);
    }
 
@@ -140,13 +140,48 @@ public class TRCReader {
     * the TRC data. Note that {@code fidx} is 0-based, and so will be one less
     * than the corresponding frame number in the data. {@code null} will be
     * returned if the marker is not found or {@link #readData} has not yet been
-    * called,
+    * called.
     *
     * @return position of marker {@code idx} in frame {@code fidx}. Should not
     * be modified.
     */
-   public Vector3d getMarkerPosition (int fidx, String label) {
+   public Point3d getMarkerPosition (int fidx, String label) {
       return myMotionData.getMarkerPosition (fidx, label);
+   }
+
+   /**
+    * Returns all the marker positions in the {@code fidx}-th frame of
+    * the TRC data. Note that {@code fidx} is 0-based, and so will be one less
+    * than the corresponding frame number in the data. An exception will be
+    * thrown if {@link #readData} has not yet been called.
+    *
+    * @return all marker positions for frame {@code fidx}. Should not
+    * be modified.
+    */
+   public ArrayList<Point3d> getMarkerPositions (int fidx) {
+      return myMotionData.getMarkerPositions (fidx);
+   }
+
+   /**
+    * Returns all the marker positions in the {@code fidx}-th frame of the TRC
+    * data, loading the data into the composite vector {@code mpos}.  If
+    * necessary, {@code mpos} will be resized to 3 m, where m is the number of
+    * markers. Note that {@code fidx} is 0-based, and so will be one less than
+    * the corresponding frame number in the data. An exception will be thrown
+    * if {@link #readData} has not yet been called.
+    *
+    * @param mpos returns all marker positions for frame {@code fidx}. Is
+    * resized if necessary.
+    */
+   public void getMarkerPositions (VectorNd mpos, int fidx) {
+      ArrayList<Point3d> positions = getMarkerPositions(fidx);
+      int m = numMarkers();
+      if (mpos.size() != 3*m) {
+         mpos.setSize (3*m);
+      }
+      for (int i=0; i<m; i++) {
+         mpos.setSubVector (i*3, positions.get(i));
+      }
    }
 
    /**
@@ -414,7 +449,7 @@ public class TRCReader {
     * @param startTime start time of the probe
     * @param stopTime stop time of the probe
     */
-   public PositionInputProbe createInputProbeFromLabels (
+   public PositionInputProbe createInputProbeUsingLabels (
       String name, Collection<? extends Point> points, List<String> labels,
       boolean useTargetProps, double startTime, double stopTime) {
 
@@ -500,7 +535,7 @@ public class TRCReader {
     * the supplied TRC file. The start time is set to 0 and the stop time is
     * inferred from the TRC data. Otherwise the probe is constructed in the
     * same manner as described for {@link
-    * #createInputProbeFromLabels(String,Collection,List,boolean,double,double)}.
+    * #createInputProbeUsingLabels(String,Collection,List,boolean,double,double)}.
     *
     * @param name if non-null, gives the name of the probe
     * @param points points to be controlled by the probe
@@ -522,7 +557,7 @@ public class TRCReader {
       if (numf > 1) {
          duration = reader.getFrameTime(numf-1) - reader.getFrameTime(0);
       }
-      return reader.createInputProbeFromLabels (
+      return reader.createInputProbeUsingLabels (
          name, points, labels, useTargetProps, /*start*/0, /*stop*/duration);
    }
 

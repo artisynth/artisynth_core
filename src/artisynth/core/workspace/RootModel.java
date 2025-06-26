@@ -1051,8 +1051,8 @@ public class RootModel extends RenderableModelBase
     * 
     * @param traceable
     * component to be traced
-    * @param traceName
-    * name of the trace
+    * @param propName
+    * name of the property to trace
     * @param startTime
     * start time (seconds)
     * @param stopTime
@@ -1060,12 +1060,11 @@ public class RootModel extends RenderableModelBase
     * @return created tracing probe
     */
    public TracingProbe addTracingProbe (
-      Traceable traceable, String traceName, double startTime, double stopTime) {
-      TracingProbe probe = TracingProbe.create (traceable, traceName);
+      Traceable traceable, String propName, double startTime, double stopTime) {
+      TracingProbe probe = TracingProbe.create (traceable, propName);
       probe.setStartTime (startTime);
       probe.setStopTime (stopTime);
       probe.setUpdateInterval (getMaxStepSize());
-      probe.setRenderInterval (0.05);
       addOutputProbe (probe);
       return probe;
    }

@@ -47,7 +47,7 @@ public class VelocityInputProbe extends NumericInputProbe {
       boolean useTargetProps, double startTime, double stopTime) {
       setModelFromComponent (comp);
       setInputProperties (
-         findVelocityProps(new ModelComponent[] { comp }, false));
+         findVelocityProps(new ModelComponent[] { comp }, useTargetProps));
       initFromStartStopTime (name, startTime, stopTime);
    }
 
@@ -70,7 +70,7 @@ public class VelocityInputProbe extends NumericInputProbe {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
       setModelFromComponent (carray[0]);
-      setInputProperties (findVelocityProps (carray, false));
+      setInputProperties (findVelocityProps (carray, useTargetProps));
       initFromStartStopTime (name, startTime, stopTime);
    }
 
@@ -92,7 +92,7 @@ public class VelocityInputProbe extends NumericInputProbe {
       setModelFromComponent (comp);
       setInputProperties (
          findVelocityProps(
-            new ModelComponent[] { comp }, false));
+            new ModelComponent[] { comp }, useTargetProps));
       initFromFile (name, filePath);
    }
 
@@ -115,7 +115,7 @@ public class VelocityInputProbe extends NumericInputProbe {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
       setModelFromComponent (carray[0]);
-      setInputProperties (findVelocityProps (carray, false));
+      setInputProperties (findVelocityProps (carray, useTargetProps));
       initFromFile (name, filePath);
    }
 
@@ -148,7 +148,8 @@ public class VelocityInputProbe extends NumericInputProbe {
       boolean useTargetProps, double interval) {
       ArrayList<ModelComponent> comps = extractSourcePositionComps (source);
       return create (
-         name, comps, source, useTargetProps, interval,/*useInterpolation*/false);
+         name, comps, source, useTargetProps, interval,
+         /*useInterpolation*/false);
    }
 
    /**
@@ -190,7 +191,8 @@ public class VelocityInputProbe extends NumericInputProbe {
       boolean useTargetProps, double interval) {
       ArrayList<ModelComponent> comps = extractSourcePositionComps (source);
       return create (
-         name, comps, source, useTargetProps, interval, /*useInterpolation*/true);
+         name, comps, source, useTargetProps, interval, 
+         /*useInterpolation*/true);
    }
 
    /**
@@ -216,9 +218,10 @@ public class VelocityInputProbe extends NumericInputProbe {
          Property prop = source.myPropList.get(i);
          HasProperties host = prop.getHost();
          if (host instanceof Point) {
-            // point components must be connected to their 'position'
-            // properties
-            if (!prop.getName().equals ("position")) {
+            // point components must be connected to their 'position' or
+            // 'targetPosition' properties
+            if (!prop.getName().equals ("position") &&
+                !prop.getName().equals ("targetPosition")) {
                throw new IllegalArgumentException (
                   "source probe references Point property '"+prop.getName()+"'");
             }
@@ -230,13 +233,19 @@ public class VelocityInputProbe extends NumericInputProbe {
             // 'orientation' properties, in succession, and the 'orientation'
             // property must be associated with a rotation subvector at the
             // correct offset.
-            if (!prop.getName().equals ("position") ||
+            boolean propsValid = true;
+            if ((!prop.getName().equals ("position") &&
+                 !prop.getName().equals ("targetPosition")) ||
+                // ensure there's another prop attached to same host
                 (++i >= source.myPropList.size()) ||
                 ((prop=source.myPropList.get(i)).getHost() != host) ||
-                (!prop.getName().equals ("orientation"))) {
+                // ensure other prop accesses orientation or targetOrientation
+                (!prop.getName().equals ("orientation") &&
+                 !prop.getName().equals ("targetOrientation"))) {
               throw new IllegalArgumentException (
-                 "source probe does not reference successive 'position' and "+
-                 "'orientation' properties for frame-based component");
+                 "source probe does not reference successive 'position' (or "+
+                 "'targetPosition') and 'orientation' (or 'targetOrientation') " +
+                 "properties for frame-based component");
             }
             off += 3;
             if (rotRep == null || rotSubvecOffs == null ||
@@ -290,7 +299,7 @@ public class VelocityInputProbe extends NumericInputProbe {
       else {
          double tend = (stopTime-startTime)/scale;
          double tinc = interval/scale;
-         double ttol = 100*DOUBLE_PREC*(stopTime-startTime);
+         double ttol = 1e-12*(stopTime-startTime);
 
          double tloc = 0;
          while (tloc <= tend) {
@@ -301,13 +310,15 @@ public class VelocityInputProbe extends NumericInputProbe {
                nlist.numericalDeriv (vel, tloc);
             }
             vprobe.addData (tloc, vel);
-            // make sure we include the end point while avoiding very small
-            // knot spacings
-            if (tloc < tend && tloc+tinc > tend-ttol) {
-               tloc = tend;
+            if (tloc == tend) {
+               break;
             }
             else {
                tloc += tinc;
+               // snap to tend to avoid very small knot spacings
+               if (tloc >= tend-ttol) {
+                  tloc = tend;
+               }
             }
          }
       }

@@ -1732,6 +1732,24 @@ public class KKTSolver {
       return myMatrixSolver;
    }
 
+   /**
+    * If possible, returns the number of pivot perturbations that were required
+    * during the last recent numeric factorization (i.e., during the last
+    * <code>factor()</code> call). Pivot perturbation generally indicates a
+    * singular, or very nearly singular, matrix. If the matrix solver does not
+    * support pivot perturbation, -1 is returned.
+    *
+    * @return number of pivot perturbations, or -1 if not supported
+    */   
+   public int numPerturbedPivots() {
+      if (myPardiso != null) {
+         return myPardiso.getNumPerturbedPivots();
+      }
+      else {
+         return -1;
+      }
+   }
+
    public void initialize() {
       // reset hybrid solve stats
       myDirectTimeMsec = 0;

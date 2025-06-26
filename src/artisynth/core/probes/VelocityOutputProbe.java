@@ -76,7 +76,8 @@ public class VelocityOutputProbe extends NumericOutputProbe {
       String name, ModelComponent comp, String fileName,
       double startTime, double stopTime, double interval) {
       setOutputProperties (
-         findVelocityProps (new ModelComponent[] { comp }, false));
+         findVelocityProps (
+            new ModelComponent[] { comp }, /*targetProps*/false));
       if (fileName != null) {
          setAttachedFileName (fileName);
       }
@@ -106,7 +107,7 @@ public class VelocityOutputProbe extends NumericOutputProbe {
       double startTime, double stopTime, double interval) {
       ModelComponent[] carray =
          comps.toArray(new ModelComponent[0]);
-      setOutputProperties (findVelocityProps (carray, false));
+      setOutputProperties (findVelocityProps (carray, /*targetProps*/false));
       if (fileName != null) {
          setAttachedFileName (fileName);
       }

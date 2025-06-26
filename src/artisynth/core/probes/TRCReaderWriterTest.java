@@ -40,7 +40,7 @@ public class TRCReaderWriterTest extends UnitTest {
          "probe0,1 list equal", probesEqual (probe0, probe1), true);
 
       PositionInputProbe probe2 =
-         reader.createInputProbeFromLabels (
+         reader.createInputProbeUsingLabels (
             "probe2", points, /*labels*/null, false, start, stop);
       checkEquals (
          "probe0,2 list equal", probesEqual (probe0, probe2), true);
@@ -53,7 +53,7 @@ public class TRCReaderWriterTest extends UnitTest {
             }
          }
          PositionInputProbe probe3 =
-            reader.createInputProbeFromLabels (
+            reader.createInputProbeUsingLabels (
                "probe3", subpnts, /*labels*/null, false, start, stop);
 
          writer.writeData (probe3, null);

@@ -1,4 +1,4 @@
-package artisynth.demos.tutorial;
+package artisynth.demos.opensim;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +40,7 @@ public class OpenSimFemHumerus extends OpenSimArm26 {
       // create a FEM model for the humerus, based on a TetGen construction of
       // a higher resolution surface mesh
       PolygonalMesh mesh = new PolygonalMesh (
-         getSourceRelativePath ("data/humerus_rv_highres.obj"));
+         getSourceRelativePath ("osim/Geometry/humerus_rv_highres.obj"));
       FemModel3d fem = FemFactory.createFromMesh (
          null, mesh, /*quality*/2);
       fem.setMaterial (new LinearMaterial (1e9, 0.49));

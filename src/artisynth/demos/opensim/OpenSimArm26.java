@@ -1,4 +1,4 @@
-package artisynth.demos.tutorial;
+package artisynth.demos.opensim;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,10 +25,10 @@ public class OpenSimArm26 extends RootModel {
       myMech = new MechModel ("mech");
       addModel (myMech);
 
-      // model files are located relative to the OpenSimParser source:
-      String osimDir = PathFinder.findSourceDir (OpenSimParser.class);
-      File osimFile = new File (osimDir + "/osim/arm26_v4.osim"); // V4 version
-      File osimGeom = new File (osimDir + "/geometry1");
+      // model files are located relative the source of this model
+      String osimDir = getSourceRelativePath("osim/");
+      File osimFile = new File (osimDir + "arm26_v4.osim"); // V4 version
+      File osimGeom = new File (osimDir + "Geometry");
       // create the parser and build the model
       myParser = new OpenSimParser (osimFile, osimGeom);
       myParser.createModel (myMech);

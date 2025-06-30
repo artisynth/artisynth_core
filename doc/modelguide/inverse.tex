@@ -1114,7 +1114,7 @@ createOutputProbe()} supplied by the
 \javaclass[\inverse]{InverseManager} class 
 (lines 49-52, Section \ref{InverseManagerProbes:sec}). The tracing probes
 are created by the {\tt RootModel} method
-\javamethod[artisynth.core.workspace.RootModel]{addTracingProbe()} (lines
+\javamethod*[artisynth.core.workspace.RootModel]{addTracingProbe(,,,)} (lines
 56-62), and two are created: one to trace the desired target by recording the
 {\sf position} property of {\tt target}, and another to trace the actual
 tracked (source) position by recording the {\sf position} property of {\tt
@@ -1720,28 +1720,28 @@ forces and/or moments on a given point or frame:
 \midline
 %
 \methodentry
-{\inverse .PointExciter.createPointExciters()}%
+{\inverse.PointExciter.createPointExciters(,,,)}%
 {ArrayList<PointExciter> createPointExciters (MechModel mech,\brh
 Point point, double maxForce, boolean createNames)}%
 {Create three exciters to control all forces on a point.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse .FrameExciter.createFrameExciters()}%
+{\inverse.FrameExciter.createFrameExciters(,,,,)}%
 {ArrayList<FrameExciter> createFrameExciters (\brh MechModel mech,
 Frame frame, double maxForce, \brh double maxMoment, boolean createNames)}%
 {Create six exciters to control all forces \& and moments on a frame.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse .FrameExciter.createForceExciters()}%
+{\inverse.FrameExciter.createForceExciters(,,,)}%
 {ArrayList<FrameExciter> createForceExciters (MechModel mech,\brh
 Frame frame, double maxForce, boolean createNames)}%
 {Create three exciters to control all forces on a frame.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse .FrameExciter.createMomentExciters()}%
+{\inverse.FrameExciter.createMomentExciters(,,,)}%
 {ArrayList<FrameExciter> createMomentExciters (\brh MechModel mech,
 Frame frame, \brh double maxMoment, boolean createNames)}%
 {Create three exciters to control all moments on a frame.}%
@@ -2154,14 +2154,14 @@ following (static) {\tt InverseManager} methods:
 \midline
 %
 \methodentry
-{\inverse.InverseManager.createInputProbe()}%
+{\inverse.InverseManager.createInputProbe(,,,,)}%
 {NumericInputProbe createInputProbe (TrackingController tcon,\brh
 ProbeID pid, String filePath, double start, double stop)}%
 {Create input probe specified by {\tt pid}.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse.InverseManager.createOutputProbe()}%
+{\inverse.InverseManager.createOutputProbe(,,,,,)}%
 {NumericOutputProbe createOutputProbe (TrackingController tcon,\brh
 ProbeID pid, String filePath, double start, double stop, \brh double interval)}%
 {Create output probe specified by {\tt pid}.}%
@@ -2232,14 +2232,14 @@ set of default probes to the root model:
 \midline
 %
 \methodentry
-{\inverse.InverseManager.addProbes()}%
+{\inverse.InverseManager.addProbes(,,,)}%
 {void addProbes (RootModel root, TrackingController tcon,\brh
 double duration, double interval)}%
 {Add default probes to {\tt root}.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse.InverseManager.resetProbes()}%
+{\inverse.InverseManager.resetProbes(,,,)}%
 {void resetProbes (RootModel root, TrackingController tcon,\brh
 double duration, double interval)}%
 {Clear probes and add default probes to {\tt root}.}%
@@ -2273,49 +2273,49 @@ it has created:
 \midline
 %
 \methodentry
-{\inverse.InverseManager.findInputProbe()}%
+{\inverse.InverseManager.findInputProbe(,)}%
 {NumericInputProbe findInputProbe (\brh
 RootModel root, ProbeID pid)}%
 {Find specified input probe.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse.InverseManager.findPositionInputProbe()}%
+{\inverse.InverseManager.findPositionInputProbe(,)}%
 {PositionInputProbe findPositionInputProbe (\brh
 RootModel root, ProbeID pid)}%
 {Find input probe, restricted to PositionInputProbes.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse.InverseManager.findOutputProbe()}%
+{\inverse.InverseManager.findOutputProbe(,)}%
 {NumericOutputProbe findOutputProbe (\brh
 RootModel root, ProbeID pid)}%
 {Find specified output probe.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse.InverseManager.findPositionOutputProbe()}%
+{\inverse.InverseManager.findPositionOutputProbe(,)}%
 {PositionOutputProbe findPositionOutputProbe (\brh
 RootModel root, ProbeID pid)}%
 {Find output probe, restricted to PositionOutputProbes.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse.InverseManager.findProbe()}%
+{\inverse.InverseManager.findProbe(,)}%
 {Probe findProbe (RootModel root, ProbeID pid)}%
 {Find specified input or output probe.}%
 %
 \methodspace{0.5em}%
 %
 \methodentry
-{\inverse.InverseManager.setInputProbeData()}%
+{\inverse.InverseManager.setInputProbeData(,,,)}%
 {boolean setInputProbeData (RootModel root, \brh ProbeID pid,
 double[] data, double timeStep)}%
 {Set input probe data.}%
 %
 \methodspace{0.5em}%
 \methodentry
-{\inverse.InverseManager.setProbeFileName()}%
+{\inverse.InverseManager.setProbeFileName(,,)}%
 {boolean setProbeFileName (RootModel root, \brh ProbeID pid,
 String filePath)}%
 {Set probe file path.}%
@@ -2484,7 +2484,7 @@ control panels:
 {Create inverse control panel for {\tt tcon}.}%
 %
 \methodentry
-{\inverse.InverseManager.addInversePanel()}%
+{\inverse.InverseManager.addInversePanel(,)}%
 {ControlPanel createInversePanel (RootModel root, \brh TrackingController tcon)}%
 {Create and add inverse control panel to {\tt root}.}%
 %

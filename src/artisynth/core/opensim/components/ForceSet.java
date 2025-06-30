@@ -26,7 +26,8 @@ public class ForceSet extends SetBase<ForceBase> implements ModelComponentGenera
          
          ModelComponent fc = force.createComponent(geometryPath, componentMap);
          if (fc == null) {
-            System.err.println ("Failed to create force " + force.getName ());
+            System.err.println (
+               "OpenSimParser: failed to create force " + force.getName ());
          } else {
             forces.add (fc);
          }

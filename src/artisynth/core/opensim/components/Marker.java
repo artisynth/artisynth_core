@@ -97,7 +97,8 @@ public class Marker extends HasVisibleObjectOrAppearance
       RigidBody rb = (RigidBody)componentMap.get (body);
       if (rb == null) {
          System.err.println (
-            "Failed to find marker body " + bodyOrSocketParentFrame);
+            "OpenSimParser: failed to find marker body " +
+            bodyOrSocketParentFrame);
          return null;
       }
 

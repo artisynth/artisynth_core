@@ -618,7 +618,7 @@ The mesh should then be read from this file (Section
 relevant components. For example, the application can read in a mesh
 containing texture coordinates and then use it to create a {\tt
 RigidBody} via the method
-\javamethod*[artisynth.core.mechmodels]{RigidBody.createFromMesh()}.
+\javamethod*[artisynth.core.mechmodels]{RigidBody.createFromMesh(,,,)}.
 
 \item Use a simple mesh object with predefined
 texture coordinates. The class \javaclass[maspack.geometry]{MeshFactory}
@@ -638,7 +638,7 @@ the south pole) and $(\pi,0)$ (at the north pole). Source images can
 be relatively easy to find for objects with canonical coordinates.
 
 \item Compute custom texture coordinates and set them within the mesh
-using \javamethod*[maspack.geometry.MeshBase]{setTextureCoords()}.
+using \javamethod*[maspack.geometry.MeshBase]{setTextureCoords(,)}.
 
 \end{itemize}
 
@@ -733,8 +733,8 @@ rendering is relatively easy to do, as described in this section.
 All renderable ArtiSynth components implement
 the \javaclass[maspack.render]{IsRenderable} interface, which
 contains the methods
-\javamethod[maspack.render.IsRenderable]{prerender()} and
-\javamethod[maspack.render.IsRenderable]{render()}.
+\javamethod*[maspack.render.IsRenderable]{prerender()} and
+\javamethod*[maspack.render.IsRenderable]{render(,)}.
 As its name implies, {\tt prerender()} is called prior to rendering
 and is discussed in Section \ref{PrerenderMethod:sec}.  The {\tt
 render()} method, discussed here, performs the actual rendering. It
@@ -748,7 +748,7 @@ where the
 \javaclass[maspack.render]{Renderer} 
 supplies a large set of methods for performing the rendering, and {\tt
 flags} is described in the
-\javamethodAlt{maspack.render.IsRenderable.render()}{API documentation}.
+\javamethodAlt{maspack.render.IsRenderable.render(,)}{API documentation}.
 The methods supplied by the renderer include ones for drawing simple
 primitives such as points, lines, and triangles; simple 3D shapes such
 as cubes, cones, cylinders and spheres; and text components.
@@ -2933,7 +2933,7 @@ The \javaclass[artisynth.core.femmodels]{FemGeometryTransformer}
 class is derived from the
 class \javaclass[maspack.geometry]{DeformationTransformer}, which uses
 the single method
-\javaclass[maspack.geometry.DeformationTransformer]{getDeformation()} to
+\javamethod*[maspack.geometry.DeformationTransformer]{getDeformation(,,)} to
 obtain deformation field information at a specified reference position:
 % method table
 \begin{lstlisting}[]
@@ -2977,7 +2977,7 @@ application and can provide deformations that are globally smooth (as
 opposed to piecewise smooth).  It should be relatively easy for an
 application to create its own subclass of {\tt DeformationTransformer}
 to implement the deformation of choice by overriding the single
-\javaclass[maspack.geometry.DeformationTransformer]{getDeformation()}
+\javamethod*[maspack.geometry.DeformationTransformer]{getDeformation(,,)}
 method.
 
 \subsection{Example: the FemModelDeformer class}
@@ -3126,7 +3126,7 @@ As indicated above, the management of transforming the geometry for one
 or more components is handled by the
 \javaclass[artisynth.core.modelbase]{TransformGeometryContext} class.
 The transform operations themselves are carried out by this class's
-\javamethod[artisynth.core.modelbase.TransformGeometryContext]{apply()} 
+\javamethod*[artisynth.core.modelbase.TransformGeometryContext]{apply(,)} 
 method, which (a) assembles all the components that need
 to be transformed, (b) performs the actual transform operations,
 (c) invokes any required updating actions on other components,
@@ -3147,7 +3147,7 @@ must also supply the methods
 %
 The first method,
 \javamethodAlt{%
-artisynth.core.modelbase.TransformableGeometry.addTransformableDependencies()}%
+artisynth.core.modelbase.TransformableGeometry.addTransformableDependencies(,)}%
 {addTransformableDependencies(context,flags)}, 
 is called in step (a) to add to the context any additional components
 which should be transformed along with this component. This includes

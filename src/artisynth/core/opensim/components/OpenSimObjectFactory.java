@@ -114,8 +114,9 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
          try {
             defaultInstance = instanceClass.newInstance ();
          } catch (Exception e) {
-            Logger.getSystemLogger ().warn ("Failed to create new instance of class " 
-            + instanceClass.getName ());
+            Logger.getSystemLogger ().warn (
+               "OpenSimParser: failed to instantiate class " 
+               + instanceClass.getName ());
             Logger.getSystemLogger ().warn (e);
 
          }
@@ -185,8 +186,9 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
          Attr attribute = (Attr)(attributes.item (i));
          boolean asuccess = parseAttribute (comp, attribute);
          if (!asuccess) {
-            Logger.getSystemLogger ().warn ("Failed to parse attribute '" + getNodeName(attribute) 
-            + "' for " + comp.getClass ().getName ());
+            Logger.getSystemLogger ().warn (
+               "OpenSimParser: failed to parse attribute '" + 
+               getNodeName(attribute) + "' for " + comp.getClass ().getName ());
             success = false;
          }
       }
@@ -211,8 +213,9 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
          if (child.getNodeType () == Node.ELEMENT_NODE) {
             boolean csuccess = parseChild (comp, (Element)child);
             if (!csuccess) {
-               Logger.getSystemLogger ().warn ("Failed to parse subelement '" + getNodeName(child) 
-               + "' for " + comp.getClass ().getName ());
+               Logger.getSystemLogger ().warn (
+                  "OpenSimParser: failed to parse subelement '" + 
+                  getNodeName(child) + "' for " + comp.getClass().getName ());
             }
          }
 

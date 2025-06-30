@@ -37,8 +37,9 @@ public class PiecewiseLinearFunctionFactory extends OpenSimObjectFactory<Piecewi
                // pass up
                boolean csuccess = parseChild (comp, celem);
                if (!csuccess) {
-                  Logger.getSystemLogger ().info ("Failed to parse subelement '" + getNodeName(child) 
-                     + "' for " + comp.getClass ().getName ());
+                  Logger.getSystemLogger ().info (
+                     "OpenSimParser: failed to parse subelement '" +
+                     getNodeName(child) + "' for " + comp.getClass().getName());
                   success = false;
                }
             }

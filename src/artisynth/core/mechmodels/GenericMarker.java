@@ -2,14 +2,23 @@ package artisynth.core.mechmodels;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Deque;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils.ClassInfo;
+import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.util.ScanToken;
+import artisynth.core.util.StringToken;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.Point3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.properties.PropertyList;
+import maspack.util.ReaderTokenizer;
+import maspack.util.NumberFormat;
 
 public class GenericMarker extends Marker {
 
@@ -21,7 +30,13 @@ public class GenericMarker extends Marker {
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
-   
+
+   /**
+    * No-args constructor needed for scan/write.
+    */
+   public GenericMarker() {
+   }
+
    public GenericMarker(Point3d pnt) {
       this.setPosition (pnt);
       myPointAttachment = null;
@@ -98,32 +113,71 @@ public class GenericMarker extends Marker {
       //updateAttachment ();
    }
 
-   @Override
-   public void connectToHierarchy (CompositeComponent hcomp) {
-      super.connectToHierarchy (hcomp);
-      if (hcomp == getParent()) {
-         DynamicComponent masters[] = myPointAttachment.getMasters();
-         if (masters != null) {
-            for (DynamicComponent master : masters) {
-               master.addMasterAttachment (myPointAttachment);
-            }
-         }
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "attachment")) {
+         ClassInfo<?> classInfo =
+            ScanWriteUtils.scanClassInfo (rtok, PointAttachment.class);
+         myPointAttachment = (PointAttachment)ScanWriteUtils.newComponent (
+            rtok, classInfo, /*warnOnly=*/false);      
+         tokens.offer (new StringToken ("attachment", rtok.lineno()));
+         myPointAttachment.scan (rtok, tokens);
+         return true;
       }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   protected boolean postscanItem (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (postscanAttributeName (tokens, "attachment")) {
+         myPointAttachment.postscan (tokens, ancestor);
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
    }
    
-   @Override
-   public void disconnectFromHierarchy(CompositeComponent hcomp) {
-      super.disconnectFromHierarchy(hcomp);
-      if (hcomp == getParent()) {
-         DynamicComponent masters[] = myPointAttachment.getMasters();
-         if (masters != null) {
-            for (DynamicComponent master : masters) {
-               master.removeMasterAttachment (myPointAttachment);
-            }
-         }
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      super.writeItems (pw, fmt, ancestor);
+      if (myPointAttachment != null) {
+         pw.print ("attachment="+ScanWriteUtils.getClassTag(myPointAttachment));
+         myPointAttachment.write (pw, fmt, ancestor);
       }
    }
 
+
+//   @Override
+//   public void connectToHierarchy (CompositeComponent hcomp) {
+//      super.connectToHierarchy (hcomp);
+//      if (hcomp == getParent()) {
+//         DynamicComponent masters[] = myPointAttachment.getMasters();
+//         if (masters != null) {
+//            for (DynamicComponent master : masters) {
+//               master.addMasterAttachment (myPointAttachment);
+//            }
+//         }
+//      }
+//   }
+//   
+//   @Override
+//   public void disconnectFromHierarchy (CompositeComponent hcomp) {
+//      super.disconnectFromHierarchy(hcomp);
+//      System.out.println (
+//         "disconnecting " + getName() + " from " + hcomp.getName());
+//      if (hcomp == getParent()) {
+//         DynamicComponent masters[] = myPointAttachment.getMasters();
+//         if (masters != null) {
+//            for (DynamicComponent master : masters) {
+//               master.removeMasterAttachment (myPointAttachment);
+//            }
+//         }
+//      }
+//   }
 
    /**
     * {@inheritDoc}

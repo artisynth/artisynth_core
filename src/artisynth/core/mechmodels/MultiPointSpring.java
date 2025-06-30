@@ -853,7 +853,7 @@ public class MultiPointSpring extends PointSpringBase
    }
 
 
-   /* === methods for adding points === */
+   /* === methods for managing points === */
 
    /**
     * Adds a point to this spring at a specified index. This will also add a
@@ -888,10 +888,7 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Returns the {@code idx}-th point in this spring.
-    * 
-    * @param idx point index
-    * @return the {@code idx}-th point
+    * {@inheritDoc}
     */
    public Point getPoint (int idx) {
       if (idx < 0 || idx >= numPoints()) {
@@ -902,20 +899,14 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Queries the number of points in this spring.
-    * 
-    * @return number of points in the spring
+    * {@inheritDoc}
     */
    public int numPoints() {
       return mySegmentSpecs.size();
    }
 
    /**
-    * Returns the index of a specified point in this spring, or -1 if the
-    * point is not present.
-    *
-    * @param pnt point whose index is desired
-    * @return index of the point, or -1 if not present
+    * {@inheritDoc}
     */
    public int indexOfPoint (Point pnt) {
       for (int i=0; i<mySegmentSpecs.size(); i++) {
@@ -925,15 +916,6 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
       return -1;
-   }
-
-   /**
-    * Queries whether this spring contains a specified points.
-    *
-    * @return {@code true} if the spring contains the point
-    */
-   public boolean containsPoint (Point pnt) {
-      return indexOfPoint (pnt) != -1;
    }
 
    /**
@@ -954,6 +936,23 @@ public class MultiPointSpring extends PointSpringBase
       }
       else {
          return false;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * All aspects of the segment defined by this point are preserved.
+    */
+   public void setPoint (int idx, Point pnt) {
+      int nump = mySegmentSpecs.size();
+      if (idx >= nump) {
+         throw new ArrayIndexOutOfBoundsException (
+            "specified index "+idx+" exceeds number of points "+nump);
+      }
+      mySegmentSpecs.get(idx).setPntB (pnt);
+      if (invalidateSegments()) {
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       }
    }
 
@@ -1141,11 +1140,19 @@ public class MultiPointSpring extends PointSpringBase
    protected ArrayList<int[]> reindexContactInfo (int[] wrappableReindexMap) {
       ArrayList<int[]> savedContactInfo = new ArrayList<>();
       if (mySegments != null) {
+         boolean contactChanged = false;
          for (Segment seg : mySegments) {
             if (seg instanceof WrapSegment) {
-               savedContactInfo.add (
-                  ((WrapSegment)seg).reindexContactInfo (wrappableReindexMap));
+               int[] cinfo = ((WrapSegment)seg).reindexContactInfo (
+                  wrappableReindexMap);
+               if (cinfo != null) {
+                  contactChanged = true;
+               }
+               savedContactInfo.add (cinfo);
             }
+         }
+         if (contactChanged) {
+            myStateVersion++;
          }
       }     
       return savedContactInfo;
@@ -1153,12 +1160,19 @@ public class MultiPointSpring extends PointSpringBase
 
    protected void restoreContactInfo (ArrayList<int[]> savedContactInfo) {
       if (mySegments != null) {
+         boolean contactChanged = false;
          int wsegi = 0;
          for (Segment seg : mySegments) {
             if (seg instanceof WrapSegment) {
-               ((WrapSegment)seg).restoreContactInfo (
-                  savedContactInfo.get(wsegi++));
+               int[] cinfo = savedContactInfo.get(wsegi++);
+               if (cinfo != null) {
+                  contactChanged = true;
+               }
+               ((WrapSegment)seg).restoreContactInfo (cinfo);
             }
+         }
+         if (contactChanged) {
+            myStateVersion++;
          }
       }     
    }
@@ -2873,26 +2887,6 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Returns a mapping from old to new wrappable indices.
-    */
-   private int[] getWrappableReindexMap (int[] removedIdxs) {
-      // map length equals previous number of wrappables
-      int numRemoved = removedIdxs.length;
-      int[] map = new int[numRemoved+numWrappables()];
-      int ridx = 0;
-      for (int i=0; i<map.length; i++) {
-         if (ridx < numRemoved && i == removedIdxs[ridx]) {
-            map[i] = -1;
-            ridx++;
-         }
-         else {
-            map[i] = i-ridx;
-         }
-      }
-      return map;
-   }
-
-   /**
     * {@inheritDoc}
     */
    @Override
@@ -2954,6 +2948,7 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
          if (specRemove != null) {
+            // one or more points were removed
             int[] removedSpecIdxs = specRemove.remove();
             undoInfo.addLast (NULL_OBJ); // saved contact info not needed 
             undoInfo.addLast (specRemove);
@@ -6986,6 +6981,7 @@ public class MultiPointSpring extends PointSpringBase
          data.dput (myLastPntA);
          data.dput (myLastPntB);
          data.zput (myNumKnots);
+         int ncontact = 0;
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
             data.dput (knot.myPos);
@@ -6993,6 +6989,9 @@ public class MultiPointSpring extends PointSpringBase
             data.dput (knot.myDist);
             data.dput (knot.myPrevDist);
             data.zput (knot.myWrappableIdx);
+            if (knot.myWrappableIdx != -1) {
+               ncontact++;                     
+            }
             data.zput (knot.myPrevWrappableIdx);
          }
          data.dput (myLength);

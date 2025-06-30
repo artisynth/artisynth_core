@@ -292,16 +292,12 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       }
 
       mySize = newSize;
-      boolean stateless = true;
       // now finish the connecting the components:
       PropTreeCell inheritedVals = null;
       Class currentClass = null;
       for (int i=0; i<ncomps; i++) {
          ModelComponent comp = comps[i];
          ComponentUtils.recursivelyConnect (comp, myComp);
-         if (comp.hasState()) {
-            stateless = false;
-         }
          if (currentClass != comp.getClass()) {
             // inheritedVals contains information about inherited values for a
             // specific class that can be reused with updating inherited
@@ -314,7 +310,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
             PropertyUtils.updateInheritedProperties (comp, inheritedVals);
          }
       }
-      notifyStructureChanged (myComp, !stateless);
+      notifyStructureChanged (myComp, !isStateless (comps, ncomps));
    }
 
    /**

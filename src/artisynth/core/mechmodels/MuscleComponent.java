@@ -4,6 +4,10 @@ import java.awt.Color;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.materials.AxialMaterial;
 
+/**
+ * Composite interface describing force effectors that are also renderable
+ * components and admit excitation.
+ */
 public interface MuscleComponent
    extends ExcitationComponent, ForceEffector, RenderableComponent {
 

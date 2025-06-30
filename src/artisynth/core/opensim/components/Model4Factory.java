@@ -63,13 +63,14 @@ public class Model4Factory extends ModelFactoryBase<Model4> {
             success = false;
          }
       } else if ("ControllerSet".equals(name)) {
-         System.out.println ("Model4Factory: ignoring ControllerSet");
+         System.out.println ("OpenSimParser: ignoring ControllerSet");
       // } else if ("ConstraintSet".equals(name)) {
       //    System.out.println ("Model4Factory: ignoring ConstraintSet");
       } else if ("ProbeSet".equals(name)) {
-         System.out.println ("Model4Factory: ignoring ProbeSet");
+         System.out.println ("OpenSimParser: ignoring ProbeSet");
       } else if ("ContactGeometrySet".equals(name)) {
-         System.out.println ("Model4Factory: ignoring ContactGeometrySet");
+         System.out.println (
+            "OpenSimParser: ignoring ContactGeometrySet");
       } else {
          success = super.parseChild (comp, child);
       }

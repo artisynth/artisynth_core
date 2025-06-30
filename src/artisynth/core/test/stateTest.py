@@ -259,6 +259,13 @@ testState (S, 2.0, 10, "artisynth.demos.tutorial.ContactForceMonitor")
 testState (A, 2.0, 10, "artisynth.demos.tutorial.JointedBallCollide")
 testState (A, 0.5, 5, "artisynth.demos.tutorial.VariableElasticContact")
 testState (A, 0.5, 5, "artisynth.demos.tutorial.ElasticFoundationContact")
+testState (D, 1.0, 5, "artisynth.demos.tutorial.IKMultiJointedArm");
+testState (D, 1.0, 5, "artisynth.demos.tutorial.IKInverseMuscleArm");
+testState (D, 1.0, 5, "artisynth.demos.tutorial.TRCMultiJointedArm");
+testState (D, 1.0, 5, "artisynth.demos.tutorial.PositionProbes");
+testState (D, 1.0, 5, "artisynth.demos.tutorial.MultiJointedArm");
+testState (D, 1.0, 5, "artisynth.demos.tutorial.OpenSimArm26");
+testState (D, 1.0, 5, "artisynth.demos.tutorial.OpenSimFemHumerus");
 
 testState (S, 1.0, 10, "artisynth.demos.test.EquilibriumMuscleTest")
 testState (S, 1.0, 10, "artisynth.demos.test.EquilibriumMuscleTest", "-thelen")

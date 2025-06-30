@@ -17,7 +17,6 @@
 
 \chapter{Contact and Collision}
 \label{ContactAndCollision:sec}
-
 ArtiSynth supports contact and collisions between various collidable
 bodies, including rigid bodies and FEM models, through a collision
 handling mechanism build into {\tt MechModel}. Collisions are disabled
@@ -2598,7 +2597,8 @@ it will be set to -1.
 
 For option (A), {\tt ContactForceBehavior} provides the convenience
 method
-\javamethodAlt{artisynth.core.materials.ContactForceBehavior.computeContactArea()}%
+\javamethodAlt{%
+artisynth.core.materials.ContactForceBehavior.computeContactArea(,,)}%
 {computeContactArea(cpnt0,cpnt1,nrml)}, which estimates the local
 contact area given the contact points and normal. If the above example
 of {\tt computeResponse()} is modified so that the stiffness parameter
@@ -3037,9 +3037,9 @@ similar to those for behaviors,
 \end{lstlisting}
 %
 where
-\javamethod*[artisynth.core.mechmodels.MechModel]{getCollisionResponse()}
+\javamethod*[artisynth.core.mechmodels.MechModel]{getCollisionResponse(,)}
 and
-\javamethod*[artisynth.core.mechmodels.MechModel]{clearCollisionResponse()}
+\javamethod*[artisynth.core.mechmodels.MechModel]{clearCollisionResponse(,)}
 respectively return and clear response components that have been
 previously set using one of the {\tt setCollisionResponse()} methods.
 

@@ -438,7 +438,7 @@ which is listed below:
 The differences from {\tt ParticleSpring} begin
 at line 9. Instead of creating a second particle, a rigid body is
 created using the factory method
-\javamethod*[artisynth.core.mechmodels]{RigidBody.createBox()}, which
+\javamethod*[artisynth.core.mechmodels]{RigidBody.createBox(,,,,)}, which
 takes x, y, z widths and a (uniform) density and creates a box-shaped
 rigid body complete with surface mesh and appropriate mass and
 inertia. As the box is initially centered at the origin, moving it
@@ -1256,7 +1256,7 @@ adjust density and/or render properties.
 Lines 27-34 create a simple linear spring, connected to a fixed point
 {\tt p0} and a marker {\tt mkr}. The marker is created and attached to
 the body by the {\tt MechModel} method
-\javamethod*[\mech.MechModel]{addFrameMarkerWorld()}, which places the
+\javamethod*[\mech.MechModel]{addFrameMarkerWorld(,)}, which places the
 marker at a known position in world coordinates.  The spring is
 created using an \javaclass[\mech]{AxialSpring} constructor that
 accepts a name, along with stiffness, damping, and rest length
@@ -1756,19 +1756,18 @@ which provides support for coordinates.  Some of the commonly used
 joints and connectors are described in Section
 \ref{JointTypes:sec}.
 
-An application creates a joint by constructing it and adding it to a
-{\tt MechModel}. Many joints have constructors of the form
+An application creates a joint by constructing it and adding it to a {\tt
+MechModel}. For this, two things need to be specified:
 %
-\begin{lstlisting}[]
-  XXXJoint (bodyA, bodyB, TDW)
-\end{lstlisting}
+\begin{enumerate}
+\item The bodies A and B being connected;
+
+\item The initial locations of the C and D frames.	
+\end{enumerate}
 %
-which specifies the bodies A and B which the joint connects,
-along with the transform $\T_{DW}$ giving the pose of the joint base
-frame D in world coordinates. The constructor then assumes that the
-joint is in the zero state, so that C and D are the same and
-$\T_{CD} = \I$ and $\T_{CW} = \T_{DW}$, and then computes
-$\T_{CA}$ and $\T_{DB}$ from
+For the second item, it is often more convenient to specify C and D in world
+coordinates, i.e., as $\T_{CW}$ and $\T_{DW}$, and then determine $\T_{CA}$ and
+$\T_{DB}$ from
 %
 \begin{align}
 \T_{CA} & = \T_{AW}^{-1} \; \T_{CW} \\
@@ -1776,6 +1775,26 @@ $\T_{CA}$ and $\T_{DB}$ from
 \end{align}
 %
 where $\T_{AW}$ and $\T_{BW}$ are the current poses of A and B.
+
+Many joints have constructors of the form
+%
+\begin{lstlisting}[]
+  XXXJoint (bodyA, bodyB, TDW)
+\end{lstlisting}
+%
+which specifies {\it only} $\T_{DW}$ and the bodies A and B. The constructor
+then computes $\T_{CW}$ from
+%
+\begin{equation}
+\T_{CW} = \T_{BW} \T_{CD},
+\label{initialTCW:eqn}
+\end{equation}
+%
+where $\T_{CD}$ is the joint's initial $\T_{CD}$ value returned by
+\javamethod*[\mech.BodyConnector]{getCurrentTCD()}. For joints
+with coordinates, the initial $\T_{CD}$ is determined from the initial
+coordinate values (which are usually 0). Typically (but not always), the
+initial $\T_{CD}$ is also the identity, so that $\T_{CW} = \T_{DW}$.
 
 After the joint is created, it should be added to the system's {\tt
 MechModel} using
@@ -1793,23 +1812,6 @@ shown in the following code fragment:
    mech.addBodyConnector (joint);
 \end{lstlisting}
 %
-It is also possible to create a joint using its default
-constructor and attach it to the bodies
-afterward, using the method 
-\javamethodAlt{%
-artisynth.core.mechmodels.BodyConnector.setBodies(,,)}
-{setBodies(bodyA,bodyB,TDW)}, as in the following:
-%
-\begin{lstlisting}[]
-   HingeJoint joint = new HingeJoint ();
-   joint.setBodies (bodyA, bodyB, TDW);
-   mech.addBodyConnector (joint);
-\end{lstlisting}
-%
-One reason for doing this is that it allows the joint transform
-$\T_{CD}$ to be modified (by setting coordinate values) {\it before}
-{\tt setBodies()} is called; this is discussed further in
-Section \ref{workingWithCoordinates:sec}.
 
 Joints usually offer a number of other constructors that let its world
 location and body relationships to be specified in different
@@ -1876,9 +1878,10 @@ that specifies origin of D and aligns its orientation with the world.
 Users should consult the source code or API documentation for specific
 joints to see what special constructors may be available.
 
-Finally, it is possible to use joints to connect a single body to
-ground (by convention, this is the A body). Most joints provide a
-constructor of the form
+It is also possible to use a joint to connect a single body to ``ground''
+(i.e., the world frame). When this is done, the body in question is always {\tt
+bodyA}, and {\tt bodyB} is {\tt null}. Most joints provide a constructor of the
+form
 %
 \begin{lstlisting}[]
   XXXJoint (bodyA, TDW)
@@ -1887,6 +1890,108 @@ constructor of the form
 which allows this to be done explicitly. Alternatively, most joint
 constructors which supply body B will allow this to be specified as
 {\tt null}, so that body A will be connected to ground by default.
+
+\begin{sideblock}
+When using joints to build an articulated structure, the usual convention is
+for {\tt bodyA} to be on the distal, or ``outer'', side of the joint and for
+{\tt bodyB} to be on the proximal, or ``inner side.
+\end{sideblock}
+
+Finally, it is also possible to create a joint using its default constructor
+and attach it to the bodies {\it afterward}, using the various {\tt setBodies()}
+methods:
+%
+\begin{methodtable}{0.67}{0.33}
+\midline
+%
+\methodentry
+{\mech.BodyConnector.setBodies(ConnectableBody,ConnectableBody,)}%
+{void setBodies (ConnectableBody bodyA, ConnectableBody bodyB,\brh
+RigidTransform3d TDW)}%
+{Set A and B given TDW.}%
+%
+\methodentry
+{\mech.BodyConnector.setBodies(ConnectableBody,ConnectableBody,,)}%
+{void setBodies (ConnectableBody bodyA, ConnectableBody bodyB,\brh
+RigidTransform3d TCW, RigidTransform3d TDW)}%
+{Set A and B given TCW and TDW.}%
+%
+\methodentry
+{\mech.BodyConnector.setBodies(RigidBody,,,)}%
+{void setBodies (RigidBody bodyA, RigidTransform3d TCA,\brh
+RigidBody bodyB, RigidTransform3d TDB)}%
+{Set A and B given TCA and TDB.}%
+%
+\methodentry
+{\mech.BodyConnector.setBodies(ConnectableBody,FrameAttachment,,)}%
+{void setBodies (ConnectableBody bodyA, FrameAttachment attachmentA,\brh
+ConnectableBody bodyB, FrameAttachment attachmentB)}%
+{Set A and B with custom attachments.}%
+\methodspace{0.5em}%
+\methodentry
+{\mech.BodyConnector.setBodyA(ConnectableBody,RigidTransform3d)}%
+{void setBodyA (ConnectableBody bodyA, RigidTransform3d TCW)}%
+{Set A given TCW.}%
+%
+\methodentry
+{\mech.BodyConnector.setBodyA(ConnectableBody,FrameAttachment)}%
+{void setBodyA (ConnectableBody bodyA, FrameAttachment attachmentA)}%
+{Set A with custom attacment.}%
+%
+\methodentry
+{\mech.BodyConnector.setBodyB(ConnectableBody,RigidTransform3d)}%
+{void setBodyB (ConnectableBody bodyB, RigidTransform3d TDW)}%
+{Set B given TDW.}%
+%
+\methodentry
+{\mech.BodyConnector.setBodyB(ConnectableBody,FrameAttachment)}%
+{void setBodyB (ConnectableBody bodyB, FrameAttachment attachmentB)}%
+{Set B with custom attachment.}%
+%
+%\brh
+\midline
+\end{methodtable}
+%
+As with the constructors, {\tt TDW} and {\tt TCW} give the locations of D and C
+in world coordinates, and if {\tt TCW} is needed but not specified, it is
+computed per equation (\ref{initialTCW:eqn}). {\tt bodyB} can also be given as
+{\tt null}, which will cause body A to be attached to ground.  The methods
+specifying {\tt FrameAttachment}s allow for situations where special attachment
+types are needed, such as when connecting joints to finite element models
+(Section \ref{FEMJoints:sec}).  The {\tt setBodyA()} and {\tt setBodyB()}
+methods connect body A (or body B) while leaving body B (or body A) alone, and
+are useful when it is necessary to set (or reset) only one body connection.
+
+The following example creates a {\tt HingeJoint} using {\tt setBodies()}:
+%
+\begin{lstlisting}[]
+   RigidTransform3d TDW;
+   ConnectableBody bodyA, bodyB;
+   ...
+   HingeJoint joint = new HingeJoint();
+   joint.setBodies (bodyA, bodyB, TDW);
+   mech.addBodyConnector (joint);
+\end{lstlisting}
+%
+A more complicated, but exactly equivalent, version using {\tt setBodyA()} and
+{\tt setBodyB()} is given by
+%
+\begin{lstlisting}[]
+   RigidTransform3d TCD = new RigidTransform3d();
+   RigidTransform3d TCW = new RigidTransform3d();
+
+   HingeJoint joint = new HingeJoint();
+   joint.getCurrentTCD (TCD);
+   TCW.mul (TDW, TCD);
+   joint.setBodyA (bodyA, TCW);
+   joint.setBodyB (bodyB, TDW);
+   mech.addBodyConnector (joint);
+\end{lstlisting}
+%
+One reason for using {\tt setBodies()} is that it allows the joint transform
+$\T_{CD}$ to be modified (by setting coordinate values) {\it before} {\tt
+setBodies()} is called; this is discussed further in
+Section \ref{workingWithCoordinates:sec}.
 
 \subsection{Working with coordinates}
 \label{workingWithCoordinates:sec}
@@ -2172,10 +2277,10 @@ and {\tt rotaryDamping} properties (Section
 
 Each of the two rigid bodies are created from a mesh and a density.
 The meshes themselves are created using the factory methods
-\javamethod*[maspack.geometry]{MeshFactory.createRoundedBox()} and
-\javamethod*[maspack.geometry]{MeshFactory.createRoundedCylinder()}
+\javamethod*[maspack.geometry]{MeshFactory.createRoundedBox(,,,)} and
+\javamethod*[maspack.geometry]{MeshFactory.createRoundedCylinder(,,,,)}
 (lines 13 and 22), and then
-\javamethod*[artisynth.core.mechmodels]{RigidBody.createFromMesh()} is
+\javamethod*[artisynth.core.mechmodels]{RigidBody.createFromMesh(,,,)} is
 used to turn these into rigid bodies with a density of 0.2 (lines 17
 and 25). The pose of the two bodies is set using {\tt
 RigidTransform3d} objects created with x, y, z translation and
@@ -4307,7 +4412,7 @@ added, and the name of the bone. Surface meshes for the bones are
 located in {\tt .obj} files located in the directory {\tt
 ../mech/geometry} relative to the source directory for the model
 itself.
-\javamethod*[maspack.util]{PathFinder.getSourceRelativePath()}
+\javamethod*[maspack.util]{PathFinder.getSourceRelativePath(,)}
 is used to find a proper path to this directory (see Section
 \ref{PathFinder:sec}) given the model class type ({\tt
 LumbarFrameSpring.class}), and this is stored in the static string

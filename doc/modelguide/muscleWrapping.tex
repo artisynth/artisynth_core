@@ -146,13 +146,54 @@ wrappable objects as desired.
 
 Points can be added, queried, and removed using the methods
 %
-\begin{lstlisting}[]
-   void addPoint (Point pnt)	       // add a point
-   void addPoint (int idx, Point pnt)  // add a point at index idx
-   Point getPoint (int idx)            // get the idx-th point
-   int numPoints()                     // return the number of points
-   boolean removePoint (Point pnt)     // remove a point
-\end{lstlisting}
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech.MultiPointSpring.addPoint()}%
+{void addPoint (Point pnt)}%
+{Add a point.}%
+%
+\methodentry
+{\mech.MultiPointSpring.addPoint(,)}%
+{void addPoint (int idx, Point pnt)}%
+{Add (insert) a point at index idx.}%
+%
+\methodentry
+{\mech.MultiPointSpring.getPoint()}%
+{Point getPoint (int idx)}%
+{Get the idx-th point.}%
+%
+\methodentry
+{\mech.MultiPointSpring.indexOfPoint()}%
+{int indexOfPoint (Point pnt)}%
+{Returns the index of a point.}%
+%
+\methodentry
+{\mech.MultiPointSpring.numPoints()}%
+{int numPoints()}%
+{Return the number of points.}%
+%
+\methodentry
+{\mech.MultiPointSpring.setPoint(,)}%
+{void setPoint (int idx, Point pnt)}%
+{Replaces a point at index idx.}%
+%
+\methodentry
+{\mech.MultiPointSpring.removePoint()}%
+{boolean removePoint (Point pnt)}%
+{Remove a point.}%
+%
+\methodentry
+{\mech.MultiPointSpring.clearPoints()}%
+{void clearPoints ()}%
+{Removes all points.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
 %
 As with \javaclass[\mech]{AxialSpring}, there must
 be at least two points anchoring the beginning and end of the

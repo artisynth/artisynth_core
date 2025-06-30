@@ -681,6 +681,7 @@ public abstract class MechSystemBase extends RenderableModelBase
     * debugging only. Must not be modified.
     */
    public ArrayList<DynamicComponent> getDynamicComponents() {
+      updateDynamicComponentLists();
       return myDynamicComponents;
    }
 
@@ -768,6 +769,15 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
+   /**
+    * Returns a list of the force effectors in this model. Used for
+    * debugging only. Must not be modified.
+    */
+   public ArrayList<ForceEffector> getForceEffectors() {
+      updateForceComponentList();
+      return myForceEffectors;
+   }
+   
    public void updateForceComponentList() {
       // Build new constrainer and force effector lists if necessary.
       // Create using temporary lists just in case clearCachedData() gets

@@ -149,8 +149,7 @@ public class OpenSimObjectFactoryStore {
       }
       
       Logger.getSystemLogger ().warn (
-         "WARNING: unimplemented OpenSim component " +
-         elem.getNodeName() + ", ignoring");
+         "OpenSimParser: unimplemented component " + elem.getNodeName());
       
       return null;      
    }

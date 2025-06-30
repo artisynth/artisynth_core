@@ -113,7 +113,7 @@ public class PointConstraint extends ConstraintBase {
       RigidBody body = (RigidBody)componentMap.get (frame);
       if (body == null) {
          System.out.printf (
-            "PointConstraint '%s': failed to find body %d '%s'\n", 
+            "OpenSimParser, PointConstraint '%s': failed to find body %d '%s'\n", 
             getName(), num, bodyOrSocketParentFrame);
          return null;
       }     

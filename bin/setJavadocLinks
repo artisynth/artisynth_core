@@ -224,12 +224,13 @@ sub fixMethodRef {
     }
     $argexp =~ s/([\.\[\]])/\\\1/g;
     if ($java8) {
-        $argexp =~ s/,/.*-.*/g;
+        $argexp =~ s/,/[^-]*-[^-]*/g;
+        $argexp = "^[^-]*" . $argexp . "[^-]*\$";
     }
     else {
-        $argexp =~ s/,/.*,.*/g;
+        $argexp =~ s/,/[^,]*,[^,]*/g;
+        $argexp = "^[^,]*" . $argexp . "[^,]*\$";
     }
-    $argexp = ".*" . $argexp . ".*";
 
     # find the candiate argument sets for the current method name
     $argListsRef = $methodTable{$methodName};

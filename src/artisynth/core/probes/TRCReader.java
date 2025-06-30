@@ -546,7 +546,7 @@ public class TRCReader {
     * bind to the point's {@code targetPosition} property instead of {@code
     * position}
     */
-   public static PositionInputProbe createInputProbeFromLabels (
+   public static PositionInputProbe createInputProbeUsingLabels (
       String name, Collection<? extends Point> points, List<String> labels,
       File trcFile, boolean useTargetProps) throws IOException {
       

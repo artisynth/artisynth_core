@@ -75,7 +75,7 @@ public class IKInverseMuscleArm extends ToyMuscleArm {
       // create a probe from TRC data to drive the points
       File trcFile = new File(getSourceRelativePath("data/offMarkers.trc"));
       PositionInputProbe targetPos =
-          TRCReader.createInputProbeFromLabels (
+          TRCReader.createInputProbeUsingLabels (
              "target positions", tcon.getTargetPoints(),
              mkrLabels, trcFile, /*targetProps*/false);
       addInputProbe (targetPos);

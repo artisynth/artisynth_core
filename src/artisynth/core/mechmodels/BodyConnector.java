@@ -1788,19 +1788,18 @@ public abstract class BodyConnector extends RenderableConstrainerBase
    public void setBodies (
       RigidBody bodyA, RigidTransform3d TCA,
       RigidBody bodyB, RigidTransform3d TDB) {
-
-      setBodies (bodyA, createAttachmentWithTSM (bodyA, TCA), 
-                 bodyB, createAttachmentWithTSM (bodyB, TDB));
+      setBodyA (bodyA, createAttachmentWithTSM (bodyA, TCA));
+      setBodyB (bodyB, createAttachmentWithTSM (bodyB, TDB));
    }
 
    /**
     * Attaches two connectable bodies, {@code bodyA} and {@code bodyB}, to this
     * connector, using explicitly specified {@code Frame} attachments to attach
-    * the connector frames C and D to the coordinate frames A and B of the two
-    * bodies. This method is intended for situations in which applications wish
-    * to implement a body connector using custom {@code Frame} attachments. The
-    * poses of C and D after this method is called depend entirely on the
-    * configuration of the supplied attachments. 
+    * the connector frames C and D to the two bodies. This method is intended
+    * for situations in which applications wish to implement a body connector
+    * using custom {@code Frame} attachments. The poses of C and D after this
+    * method is called depend entirely on the configuration of the supplied
+    * attachments.
     *
     * <p>{@code bodyB} may be specified as {@code null}, in which case this
     * connector will attach {@code bodyA} to ground and {@code attachmentB}
@@ -1808,21 +1807,16 @@ public abstract class BodyConnector extends RenderableConstrainerBase
     *
     * @param bodyA first body to attach
     * @param attachmentA {@code Frame} attachment connecting connector
-    * frame C to body frame A
+    * frame C to body A
     * @param bodyB second body to attach (or {@code null})
     * @param attachmentB {@code Frame} attachment connecting connector
-    * frame D to body frame B (or world)
+    * frame D to body B (or world)
     */
    public void setBodies (
       ConnectableBody bodyA, FrameAttachment attachmentA, 
       ConnectableBody bodyB, FrameAttachment attachmentB) {
-
-      disconnectBodies();
-      myBodyA = bodyA;
-      myAttachmentA = attachmentA;
-      myBodyB = bodyB;
-      myAttachmentB = attachmentB;
-      connectBodies();
+      setBodyA (bodyA, attachmentA);
+      setBodyB (bodyB, attachmentB);
    }
 
    /**
@@ -1834,6 +1828,8 @@ public abstract class BodyConnector extends RenderableConstrainerBase
     * TCD will then be determined by its joint coordinates, if any. Typically,
     * if the joint coordinates have 0 values, TCD will be the identity and
     * C and D will be coincident, but this is not necessarily the case.
+    * For example, the C and D frames of an {@link EllipsoidJoint} are 
+    * <i>never</i> coincident.
     *
     * <p>{@code bodyB} may be specified as {@code null}, in which case this
     * connector will attach {@code bodyA} to ground.
@@ -1848,7 +1844,8 @@ public abstract class BodyConnector extends RenderableConstrainerBase
       getCurrentTCD (TCD);
       RigidTransform3d TCW = new RigidTransform3d();
       TCW.mul (TDW, TCD);
-      setBodies (bodyA, bodyB, TCW, TDW);
+      setBodyA (bodyA, TCW);
+      setBodyB (bodyB, TDW);
    }
 
    /**
@@ -1868,11 +1865,84 @@ public abstract class BodyConnector extends RenderableConstrainerBase
    public void setBodies (
       ConnectableBody bodyA, ConnectableBody bodyB,
       RigidTransform3d TCW, RigidTransform3d TDW) {
-
-      setBodies (bodyA, createAttachment (bodyA, TCW), 
-                 bodyB, createAttachment (bodyB, TDW));
+      setBodyA (bodyA, TCW);
+      setBodyB (bodyB, TDW);
    }
 
+   /**
+    * Attaches the connectable {@code bodyA} to this connector, with the
+    * location of frame C given by {@code TCW}, which gives the transform from
+    * C to world coordinates. If the connector has a B body, its configuration
+    * is unaffected.
+    *
+    * @param bodyA A body to attach; must not be {@code null}
+    * @param TCW initial transform from connector frames C to world
+    */
+   public void setBodyA (ConnectableBody bodyA, RigidTransform3d TCW) {
+      setBodyA (bodyA, createAttachment (bodyA, TCW));
+   }
+   
+   /**
+    * Attaches the connectable {@code bodyA} to this connector, using an
+    * explicitly specified {@code Frame} attachment to attach the connector
+    * frame C to body A. This method is intended for situations in which
+    * applications wish to implement a body connector using custom {@code
+    * Frame} attachments. The pose of C after this method is called depends
+    * entirely on the configuration of the supplied attachment.  If the
+    * connector has a B body, its configuration is unaffected.
+    *
+    * @param bodyA A body to attach; must not be {@code null}
+    * @param attachmentA {@code Frame} attachment connecting connector
+    * frame C to body A
+    */
+   public void setBodyA (ConnectableBody bodyA, FrameAttachment attachmentA) {
+      if (bodyA == null) {
+         throw new IllegalArgumentException ("bodyA must not be null");
+      }
+      disconnectBodyA();
+      myBodyA = bodyA;
+      myAttachmentA = attachmentA;
+      connectBodyA();
+   }
+   
+   /**
+    * Attaches the connectable {@code bodyB} to this connector, with the
+    * location of frame D given by {@code TDW}, which gives the transform from
+    * D to world coordinates. The configuation of the A body is unaffected.
+    * 
+    * <p>{@code bodyB} may be specified as {@code null}, in which case body A
+    * will subsequently be attached to ground.
+    *
+    * @param bodyB B body to attach
+    * @param TDW initial transform from connector frames D to world
+    */
+   public void setBodyB (ConnectableBody bodyB, RigidTransform3d TDW) {
+      setBodyB (bodyB, createAttachment (bodyB, TDW));
+   }
+
+   /**
+    * Attaches the connectable {@code bodyB} to this connector, using an
+    * explicitly specified {@code Frame} attachment to attach the connector
+    * frame D to body B. This method is intended for situations in which
+    * applications wish to implement a body connector using custom {@code
+    * Frame} attachments. The pose of D after this method is called depends
+    * entirely on the configuration of the supplied attachment. The
+    * configuation of the A body is unaffected.
+    *
+    * <p>{@code bodyB} may be specified as {@code null}, in which case {@code
+    * attachmentB} should attach D to world.
+    *
+    * @param bodyB B body to attach
+    * @param attachmentB {@code Frame} attachment connecting connector frame D
+    * to body B
+    */
+   public void setBodyB (ConnectableBody bodyB, FrameAttachment attachmentB) {
+      disconnectBodyB();
+      myBodyB = bodyB;
+      myAttachmentB = attachmentB;
+      connectBodyB();
+   }
+   
    /**
     * Returns the current pose of the D frame, in world coordinates.
     * 
@@ -2455,27 +2525,57 @@ public abstract class BodyConnector extends RenderableConstrainerBase
    }
 
    protected void connectBodies() { 
-      
+      connectBodyA();
+      connectBodyB();
+   }
+ 
+   protected boolean connectBodyA() {
       if (myBodyA != null && !myBodyA.containsConnector (this)) {
          myBodyA.addConnector (this);
          connectAttachmentMasters (myAttachmentA.getMasters());        
+         return true;
       }
-      if (myBodyB != null && !myBodyB.containsConnector (this)) {
-         myBodyB.addConnector (this);
-         connectAttachmentMasters (myAttachmentB.getMasters());        
+      else {
+         return false;
+      }
+   }
+  
+   protected boolean disconnectBodyA() {
+      if (myBodyA != null && myBodyA.containsConnector (this)) {
+         myBodyA.removeConnector (this);
+         disconnectAttachmentMasters (myAttachmentA.getMasters());
+         return true;
+      }      
+      else {
+         return false;
       }
    }
    
-   protected void disconnectBodies () {
-      
-      if (myBodyA != null && myBodyA.containsConnector (this)) {
-         myBodyA.removeConnector (this);
-         disconnectAttachmentMasters (myAttachmentA.getMasters());        
+   protected boolean connectBodyB() {
+      if (myBodyB != null && !myBodyB.containsConnector (this)) {
+         myBodyB.addConnector (this);
+         connectAttachmentMasters (myAttachmentB.getMasters());        
+         return true;
       }
+      else {
+         return false;
+      }
+   }
+  
+   protected boolean disconnectBodyB() {
       if (myBodyB != null && myBodyB.containsConnector (this)) {
          myBodyB.removeConnector (this);
-         disconnectAttachmentMasters (myAttachmentB.getMasters());        
+         disconnectAttachmentMasters (myAttachmentB.getMasters());
+         return true;
       }
+      else {
+         return false;         
+      }
+   }
+
+   protected void disconnectBodies () {
+      disconnectBodyA();
+      disconnectBodyB();
    }
 
    /**

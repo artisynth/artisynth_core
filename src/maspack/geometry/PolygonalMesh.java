@@ -2693,6 +2693,7 @@ public class PolygonalMesh extends MeshBase {
          colorList = new ArrayList<int[]>(myNumTriangles+estNewFaces);
       }
 
+      int problemFaceIdx = -1;
       for (int i=0; i<myFaces.size(); i++) {
          Face face = myFaces.get(i);
          int numEdges = face.numEdges();
@@ -2820,16 +2821,15 @@ public class PolygonalMesh extends MeshBase {
                            chordIdxs[1] = earIdx;
                            chordIdxs[0] = (j-2+idxs.length) % idxs.length;
                            break;
+
                         }
                      }
-
                      vtxPrev = vtx;
                      vtx = vtxNext;
                   }
 
                   if (earIdx < 0) {
-                     System.err.println("Error: I can't figure out how" +
-                        " to split this non-convex face (Index: " + face.getIndex() + ")");
+                     problemFaceIdx = face.getIndex();
                      earIdx = 0;
                      chordIdxs[0] = idxs.length-1;
                      chordIdxs[1] = 0;
@@ -2870,6 +2870,12 @@ public class PolygonalMesh extends MeshBase {
                newColorIndices.add (cidxs);
             }
          }
+      }
+
+      if (problemFaceIdx >= 0) {
+         System.err.println(
+            "Warning, PolygonalMesh: trouble triangulating some faces, " +
+            "starting at face index " + problemFaceIdx);
       }
 
       myFaces = faceList;
@@ -3723,6 +3729,9 @@ public class PolygonalMesh extends MeshBase {
    public double distanceToPoint (Point3d nearPnt, Point3d pnt) {
       if (!isTriangular()) {
          throw new IllegalArgumentException ("mesh is not triangular");
+      }
+      if (nearPnt == null) {
+         nearPnt = new Point3d();
       }
       BVFeatureQuery query = new BVFeatureQuery();
       if (query.nearestFaceToPoint (

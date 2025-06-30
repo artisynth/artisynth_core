@@ -65,11 +65,11 @@ TransformableGeometry, ScalableUnits {
    protected PointList<Point> myPoints;
    protected AxialSpringList<AxialSpring> myAxialSprings;
    protected PointSpringList<MultiPointSpring> myMultiPointSprings;
-   protected ComponentList<FrameSpring> myFrameSprings;
+   protected RenderableComponentList<FrameSpring> myFrameSprings;
    protected ComponentList<ForceComponent> myForceEffectors;
    protected RenderableComponentList<RigidBody> myRigidBodies;
-   protected ComponentList<Frame> myFrames;
-   protected ComponentList<MeshComponent> myMeshBodies;
+   protected RenderableComponentList<Frame> myFrames;
+   protected RenderableComponentList<MeshComponent> myMeshBodies;
    protected RenderableComponentList<BodyConnector> myConnectors;
    protected ComponentList<ConstrainerBase> myConstrainers;
    protected PointList<FrameMarker> myFrameMarkers;
@@ -242,7 +242,7 @@ TransformableGeometry, ScalableUnits {
          new PointSpringList<MultiPointSpring> (
             MultiPointSpring.class, "multiPointSprings", "ms");
       myFrameSprings =
-         new ComponentList<FrameSpring> (
+         new RenderableComponentList<FrameSpring> (
             FrameSpring.class, "frameSprings", "fs");
       myForceEffectors = 
          new ComponentList<ForceComponent> (
@@ -251,9 +251,9 @@ TransformableGeometry, ScalableUnits {
          new RenderableComponentList<RigidBody> (
             RigidBody.class, "rigidBodies", "r");
       myFrames =
-         new ComponentList<Frame> (Frame.class, "frames", "fr");
+         new RenderableComponentList<Frame> (Frame.class, "frames", "fr");
       myMeshBodies =
-         new ComponentList<MeshComponent> (
+         new RenderableComponentList<MeshComponent> (
             MeshComponent.class, "meshBodies", "mb");
       myFrameMarkers =
          new PointList<FrameMarker> (FrameMarker.class, "frameMarkers", "k");
@@ -1186,7 +1186,7 @@ TransformableGeometry, ScalableUnits {
       return myMultiPointSprings;
    }
 
-   public ComponentListView<FrameSpring> frameSprings() {
+   public RenderableComponentList<FrameSpring> frameSprings() {
       return myFrameSprings;
    }
 
@@ -1433,7 +1433,7 @@ TransformableGeometry, ScalableUnits {
       myRigidBodies.removeAll();
    }
 
-   public ComponentListView<Frame> frames() {
+   public RenderableComponentList<Frame> frames() {
       return myFrames;
    }
 
@@ -1454,7 +1454,7 @@ TransformableGeometry, ScalableUnits {
     *
     * @return mesh component list
     */
-   public ComponentListView<MeshComponent> meshBodies() {
+   public RenderableComponentList<MeshComponent> meshBodies() {
       return myMeshBodies;
    }
 
@@ -2342,7 +2342,7 @@ TransformableGeometry, ScalableUnits {
    protected void clearCachedData (ComponentChangeEvent e) {
       super.clearCachedData(e);
       mySolveMatrix = null;
-      myDynamicComponents = null;
+      //myDynamicComponents = null; // cleared in super
       myLocalDynamicComps = null;
       myLocalInitComps = null;
       myLocalPrePostAdvanceComps = null;
@@ -2373,11 +2373,24 @@ TransformableGeometry, ScalableUnits {
       if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) { 
          handleGeometryChange ((GeometryChangeEvent)e);
       }
-      else { // invalidate everything for now
-         clearCachedData (e);
-      }
+      // June 27, 2025: Moved cache clearing into notifyParentOfChange(), so it
+      // will also happen if we change an immediate child of model.
+      // else {
+      //    clearCachedData (e);
+      // }
       notifyParentOfChange (e);
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void notifyParentOfChange (ComponentChangeEvent e) {
+      if (myCollisionManager != null) {
+         // only clear cache if built - e.g., collisionManager initialized
+         clearCachedData (e);
+      }      
+      super.notifyParentOfChange (e);
+   }  
 
    /**
     * {@inheritDoc}

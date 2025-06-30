@@ -70,15 +70,9 @@ public class Frame extends HasVisibleObjectOrAppearance implements ModelComponen
          for (MeshBase mesh : meshList) {
             rb.addMesh (mesh);
          }
-         
+
          if (vo.getShowAxes ()) {
-            // estimate from bounds
-            Point3d pmin = new Point3d(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
-            Point3d pmax = new Point3d(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY);
-            rb.updateBounds (pmin, pmax);
-            
-            double len = pmin.distance (pmax)/4;
-            rb.setAxisLength (len);
+            rb.setAxisDrawStyle (AxisDrawStyle.LINE);
          }
       }
       

@@ -436,7 +436,7 @@ the following methods:
   clearNormals();                           // clear all normals and indices
 \end{lstlisting}
 %
-The method \javamethod[\mgeo.MeshBase]{setNormals()} takes
+The method \javamethod*[\mgeo.MeshBase]{setNormals(,)} takes
 two arguments: a set of normal vectors ({\tt nrmls}), along with a set
 of index values ({\tt indices}) that map these normals onto the
 vertices of each of the mesh's geometric features. Often, there will
@@ -693,7 +693,7 @@ specified either directly or using their indices.
 \subsection{Vertex and feature coloring}
 \label{vertexAndFeatureColoring:sec}
 
-The method \javamethod[\mgeo.MeshBase]{setColors()} makes
+The method \javamethod*[\mgeo.MeshBase]{setColors(,)} makes
 it possible to assign any desired coloring scheme to a mesh. However,
 it does require that the user explicitly reset the color information
 whenever new features are added.

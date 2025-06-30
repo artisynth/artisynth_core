@@ -76,6 +76,7 @@ public class AxialSpring extends PointSpringBase
       return myPnt1;
    }
    
+   
    public void setPoints(Point p1, Point p2) {
       setFirstPoint(p1);
       setSecondPoint(p2);
@@ -96,10 +97,17 @@ public class AxialSpring extends PointSpringBase
       mySeg.pnt1 = pnt;
    }
    
+
+   /**
+    * {@inheritDoc}
+    */
    public int numPoints() {
       return 2;
    }
    
+   /**
+    * {@inheritDoc}
+    */
    public Point getPoint (int idx) {
       switch (idx) {
          case 0:
@@ -111,6 +119,39 @@ public class AxialSpring extends PointSpringBase
                "index is "+idx+"; must be 0 or 1");
       }
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void setPoint (int idx, Point pnt) {
+      switch (idx) {
+         case 0:
+            setFirstPoint (pnt);
+            break;
+         case 1:
+            setSecondPoint (pnt);
+            break;
+         default:
+            throw new IndexOutOfBoundsException (
+               "index is "+idx+"; must be 0 or 1");
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int indexOfPoint (Point pnt) {
+      if (pnt == myPnt0) {
+         return 0;
+      }
+      else if (pnt == myPnt1) {
+         return 1;
+      }
+      else {
+         return -1;
+      }
+   }
+
    @Override
    public double setRestLengthFromPoints() {
       double l = 0;

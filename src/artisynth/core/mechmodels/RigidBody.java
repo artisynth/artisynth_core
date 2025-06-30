@@ -72,9 +72,8 @@ import maspack.util.NumberFormat;
 import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
 
-public class RigidBody extends Frame 
-   implements CollidableBody, HasSurfaceMesh,
-              ConnectableBody, CompositeComponent, Wrappable {
+public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh, 
+   ConnectableBody, CompositeComponent, Wrappable {
 
    protected SpatialInertia mySpatialInertia;
    protected SpatialInertia myEffectiveInertia;
@@ -1628,24 +1627,9 @@ public class RigidBody extends Frame
       return comp;
    }
 
-   /**
-    * Returns an array of all FrameMarkers currently associated with this rigid
-    * body.
-    * 
-    * @return list of all frame markers
-    */
-   public FrameMarker[] getFrameMarkers() {
-      LinkedList<FrameMarker> list = new LinkedList<FrameMarker>();
-      if (myMasterAttachments != null) {
-         for (DynamicAttachment a : myMasterAttachments) {
-            if (a.getSlave() instanceof FrameMarker) {
-               list.add ((FrameMarker)a.getSlave());
-            }
-         }
-      }
-      return list.toArray (new FrameMarker[0]);
-   }
+   /* --- connectable body --- */
 
+   @Override
    public void addConnector (BodyConnector c) {
       if (myConnectors == null) {
          myConnectors = new ArrayList<BodyConnector>();
@@ -1653,6 +1637,7 @@ public class RigidBody extends Frame
       myConnectors.add (c);
    }
 
+   @Override
    public void removeConnector (BodyConnector c) {
       if (myConnectors == null || !myConnectors.remove (c)) {
          throw new InternalErrorException ("connector not found");
@@ -1662,14 +1647,17 @@ public class RigidBody extends Frame
       }
    }
    
+   @Override
    public boolean containsConnector (BodyConnector c) {
       return (myConnectors != null && myConnectors.contains(c)); 
    }
 
+   @Override
    public List<BodyConnector> getConnectors() {
       return myConnectors;
    }
-   
+
+   @Override
    public boolean isFreeBody() {
       return !isParametric();
    }

@@ -30,6 +30,9 @@ import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
 
+/**
+ * Implements an OpenSim custom joint.
+ */
 public class OpenSimCustomJoint extends JointBase {
 
    public static AxisDrawStyle DEFAULT_DRAW_ROT_AXES = AxisDrawStyle.OFF;

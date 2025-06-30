@@ -82,10 +82,48 @@ public abstract class PointSpringBase extends Spring
    public PointSpringBase (String name) {
       super (name);
    }
-   
+
+   /**
+    * Queries the number of points in this spring.
+    * 
+    * @return number of points in the spring
+    */
    public abstract int numPoints();
-   
+
+   /**
+    * Returns the {@code idx}-th point in this spring.
+    * 
+    * @param idx point index
+    * @return the {@code idx}-th point
+    */
    public abstract Point getPoint (int idx);
+   
+   /**
+    * Sets a point at a particular index. The index must be {@code <
+    * numPoints()}. 
+    *
+    * @param idx specifies point position
+    * @param pnt replacement point
+    */
+   public abstract void setPoint (int idx, Point pnt);
+
+   /**
+    * Returns the index of a specified point in this spring, or -1 if the
+    * point is not present.
+    *
+    * @param pnt point whose index is desired
+    * @return index of the point, or -1 if not present
+    */  
+   public abstract int indexOfPoint (Point pnt);
+
+   /**
+    * Queries whether this spring contains a specified point.
+    *
+    * @return {@code true} if the spring contains the point
+    */
+   public boolean containsPoint (Point pnt) {
+      return indexOfPoint (pnt) != -1;
+   }
 
    public static AxialMaterial createDefaultMaterial() {
       // allow null materials

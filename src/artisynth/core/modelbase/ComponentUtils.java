@@ -215,7 +215,7 @@ public class ComponentUtils {
     * @param comps list of components to delete.
     */
    public static void deleteComponentsAndDependencies (
-      List<? extends ModelComponent> comps) {
+      Collection<? extends ModelComponent> comps) {
       LinkedList<ModelComponent> update = new LinkedList<ModelComponent>();
       LinkedList<ModelComponent> delete =
          findDependentComponents (update, comps);   
@@ -244,7 +244,7 @@ public class ComponentUtils {
    // the same order that they should be deleted.
    //
    public static LinkedList<ModelComponent> findDependentComponents (
-      List<ModelComponent> update, List<? extends ModelComponent> comps) {
+      List<ModelComponent> update, Collection<? extends ModelComponent> comps) {
 
       LinkedList<ModelComponent> depend = new LinkedList<ModelComponent>();
       if (comps.size() == 0) {
@@ -752,7 +752,7 @@ public class ComponentUtils {
     * If there is no common ancestor, returns null.
     */
    public static ModelComponent findCommonAncestor (
-      List<? extends ModelComponent>comps) {
+      Collection<? extends ModelComponent>comps) {
       boolean first = true;
       ModelComponent ancestor = null;
       for (ModelComponent c : comps) {

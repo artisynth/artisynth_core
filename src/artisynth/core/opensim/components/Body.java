@@ -232,6 +232,13 @@ public class Body extends PhysicalFrame implements
                jb.updateAttachments();
             }
          }
+         else {
+            // probably ground - make it so if named ground or if mass is 0
+            if (getMass() == 0 || "ground".equalsIgnoreCase (getName())) {
+               rb.setGrounded (true);
+               rb.setDynamic (false);
+            }
+         }
       }
          
       // add wrapping surfaces

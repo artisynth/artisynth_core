@@ -16,6 +16,7 @@ public class OpenSimTest extends RootModel {
    String modelName = "osim/arm26_v4.osim";
    //String modelName = "osim/arm26.osim";
    File osimFile = ArtisynthPath.getSrcRelativeFile (this, modelName);   
+   File osimGeometry = ArtisynthPath.getSrcRelativeFile (this, "geometry1");   
  
    @Override
    public void build (String[] args) throws IOException {
@@ -24,7 +25,8 @@ public class OpenSimTest extends RootModel {
       RenderProps.setShading(this, Shading.SMOOTH);
       
       MechModel mech = new MechModel("mech");
-      OpenSimParser parser = new OpenSimParser (osimFile);
+      OpenSimParser parser = 
+         new OpenSimParser (osimFile, osimGeometry);
       
       parser.createModel (mech);
       addModel(mech);

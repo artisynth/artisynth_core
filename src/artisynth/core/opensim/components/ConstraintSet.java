@@ -29,7 +29,9 @@ public class ConstraintSet extends SetBase<ConstraintBase>
          
          ModelComponent fc = constraint.createComponent(geometryPath, componentMap);
          if (fc == null) {
-            System.err.println ("Failed to create constraint " + constraint.getName ());
+            System.err.println (
+               "OpenSimParser: failed to create constraint " +
+               constraint.getName ());
          } else {
             constraints.add ((ConstrainerBase)fc);
          }

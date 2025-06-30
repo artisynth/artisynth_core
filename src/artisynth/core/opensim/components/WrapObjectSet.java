@@ -27,6 +27,7 @@ public class WrapObjectSet extends SetBase<WrapObject>
       for (WrapObject wo : objects()) {
          WrapComponent wrappable = 
             wo.createComponent (geometryPath, componentMap);
+         wo.setAxisVisibility (wrappable);
          wraps.add (wrappable);
       }
       
@@ -42,6 +43,7 @@ public class WrapObjectSet extends SetBase<WrapObject>
       for (WrapObject wo : objects()) {
          WrapComponent wrappable = 
             wo.createComponent (geometryPath, componentMap);
+         wo.setAxisVisibility (wrappable);
          wraps.add (wrappable);
       }
       componentMap.put (this, wraps);

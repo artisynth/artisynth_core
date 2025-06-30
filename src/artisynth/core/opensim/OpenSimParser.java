@@ -25,6 +25,7 @@ import artisynth.core.opensim.components.ModelComponentMap;
 import artisynth.core.opensim.components.OpenSimDocument;
 import artisynth.core.opensim.components.OpenSimObjectFactory;
 import artisynth.core.opensim.components.OpenSimObjectFactoryStore;
+import artisynth.core.opensim.components.RigidBodyOsim;
 import maspack.render.*;
 import maspack.render.Renderer.*;
 
@@ -36,18 +37,15 @@ import maspack.render.Renderer.*;
  * supplied by this parser. Not all OpenSim components are implemented, but
  * those that are include most of the commonly used components found in {@code
  * "bodyset"}, {@code "jointset"}, {@code "forceset"}, {@code "constraintset"},
- * and {@code "markers"}.
+ * and {@code "markersset"}.
  */
 public class OpenSimParser {
-   
-   public static final File DEFAULT_GEOMETRY_PATH =
-      ArtisynthPath.getSrcRelativeFile (OpenSimParser.class, "geometry1/");
 
    Document myDOM; //The Document Object Model is stored here.
    File myOsimFile;
    OpenSimObjectFactoryStore myFactories;
    OpenSimDocument myDocument;
-   File myGeometryPath;
+   File myGeometryDir;
    MechModel myMech; // most recently parsed (or set) MechModel
    ModelComponentMap myComponentMap;
    public static boolean myIgnoreFrameGeometry = true;
@@ -56,19 +54,23 @@ public class OpenSimParser {
    /**
     * Creates a new parser
     * @param file file to parse
-    * @param geometryPath path to search for geometries
+    * @param geometryPath folder to search for geometries
     * @param factories factory storage for generating OpenSim objects from file
     */
    public OpenSimParser (
       File file, File geometryPath, OpenSimObjectFactoryStore factories) {
       myDOM = null;
+      if (!file.canRead()) {
+         throw new IllegalArgumentException (
+            "OpenSimFile " + file + " does not exist or is unreadable"); 
+      }
       myOsimFile = file;
       if (factories == null) {
          factories = new OpenSimObjectFactoryStore ();
       }
       myFactories = factories;
       myDocument = null;
-      myGeometryPath = geometryPath;
+      setGeometryPath (geometryPath);
    }
 
    /**
@@ -78,7 +80,7 @@ public class OpenSimParser {
     * #createModel(MechModel)}.
     * 
     * @param osimFile OpenSim file to parse
-    * @param geometryPath path to the folder containing the OpenSim geometry
+    * @param geometryPath folder containing the OpenSim geometry
     */
    public OpenSimParser (File osimFile, File geometryPath) {
       this(osimFile, geometryPath, null);
@@ -107,7 +109,6 @@ public class OpenSimParser {
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
       try {
-
          // Using factory get an instance of document builder
          DocumentBuilder db = dbf.newDocumentBuilder();
 
@@ -130,22 +131,28 @@ public class OpenSimParser {
    }
 
    /**
-    * Sets the geometry path to be used in subsequent calls to {@link
+    * Sets the geometry folder to be used in subsequent calls to {@link
     * #createModel} or {@link #createModel(MechModel)}).
     *
-    * @param geometryPath path to the folder containing the OpenSim geometry
+    * @param geometryPath folder containing the OpenSim geometry
     */
    public void setGeometryPath (File geometryPath) {
-      myGeometryPath = geometryPath;
+      myGeometryDir = geometryPath;
    }
-   
+    
    /**
-    * Returns the geometry path currently used by this parser.
-    *
-    * @return path to the folder containing the OpenSim geometry
+    * @deprecated Use {@link #getGeometryFolder} instead.
     */
    public File getGeometryPath() {
-      return myGeometryPath;
+      return myGeometryDir;
+   }
+
+   /**
+    * Returns the primary geometry folder currently used by this parser.
+    * @return path to primary geometry folder
+    */
+   public File getGeometryFolder() {
+      return myGeometryDir;
    }
 
    public boolean getFrameGeometryVisible() {
@@ -182,12 +189,17 @@ public class OpenSimParser {
       ModelBase model = myDocument.getModel ();
       myComponentMap = new ModelComponentMap ();
       
-      File geometryPath = myGeometryPath;
-      if (geometryPath == null) {
-         geometryPath = DEFAULT_GEOMETRY_PATH;
+      File geometryDir = myGeometryDir;
+      if (geometryDir == null) {
+         geometryDir = new File(myOsimFile.getParentFile(), "Geometry");
+         if (!geometryDir.exists() || !geometryDir.isDirectory()) {
+            throw new IllegalStateException (
+               "Geometry folder " + geometryDir + 
+               " does not exist or is not a folder");
+         }
       }
       
-      mech = model.createModel (mech, geometryPath, myComponentMap);
+      mech = model.createModel (mech, geometryDir, myComponentMap);
       myMech = mech;
       setAppropriateDefaults();
       return mech;
@@ -214,7 +226,10 @@ public class OpenSimParser {
       for (WrapComponent wobj : getWrapObjects()) {
          wobj.setAxisLength (0.2*msize);
       }
-      PointList<FrameMarker> markerset = getMarkerSet();
+      for (JointBase joint : getJoints()) {
+         joint.setAxisLength (0.2*msize);
+      }
+      PointList<Marker> markerset = getMarkerSet();
       if (markerset != null) {
          RenderProps.setSphericalPoints (
             markerset, 0.008*msize, Color.PINK.darker());
@@ -694,9 +709,9 @@ public class OpenSimParser {
     *
     * @return "markerset" component, or {@code null} if not present.
     */
-   public PointList<FrameMarker> getMarkerSet() {
+   public PointList<Marker> getMarkerSet() {
       checkForMechModel();
-      return (PointList<FrameMarker>)myMech.get("markerset"); 
+      return (PointList<Marker>)myMech.get("markerset"); 
    }
 
    /**
@@ -705,8 +720,8 @@ public class OpenSimParser {
     * @param name name of the marker
     * @return marker, or {@code null} if not found
     */
-   public FrameMarker findMarker (String name) {
-      PointList<FrameMarker> markerset = getMarkerSet();
+   public Marker findMarker (String name) {
+      PointList<Marker> markerset = getMarkerSet();
       if (markerset != null) {
          return markerset.get(name);
       }
@@ -822,6 +837,105 @@ public class OpenSimParser {
             ((MultiPointMuscle)spr).updateWrapSegments();
          }
       }
+   }
+
+   /**
+    * Remove a wrap object and its associated attachment from their positions
+    * in the OpenSim component hierarchy. This method should only be called if
+    * the wrap object will still be used but attached to another body. If
+    * the wrap object is no longer needed, then one should instread call
+    * <pre>
+    *    ComponentUtils.deleteComponentAndDependencies (wobj)
+    * </pre>
+    * which will remove the wrap object <i>and</i> also delete any references
+    * that are being made to it by {@link MultiPointSpring} objects.
+    * 
+    * <p>After this method is called, the wrap object should be added back to
+    * the MechModel in a suitable location, and a new attachment for it must
+    * also be created and added.
+    *
+    * @param wobj wrap object to remove from the hierarchy.
+    */
+   public void removeWrapObject (WrapComponent wobj) {
+      CompositeComponent gparent= ComponentUtils.getGrandParent(wobj);
+      if (gparent instanceof RigidBodyOsim) {
+         RigidBodyOsim rbo = (RigidBodyOsim)gparent;
+         rbo.detachWrapComponent (wobj);
+      }
+   }
+
+   /**
+    * Replace a muscle path point in the OpenSim component hierarchy with a new
+    * point that is created by attaching to the specified body or frame in the
+    * same location. The new point is given the same name as the previous
+    * point.  The point itself is assumed to be an instance of {@link Marker}
+    * since this is always true for this parser's implementation of OpenSim
+    * path points.
+    *
+    * <p>This method performs various checks to ensure that the point is
+    * located in the expected place within the OpenSim component hierarchy, If
+    * it is not, then an exception is thrown.
+    *
+    * @param muscle muscle or axial spring whose point should be reassigned.
+    * @param pnt path point to replace
+    * @param body to connect the new path point to
+    */
+   public void replaceMusclePoint (
+      PointSpringBase muscle, Marker pnt, PointAttachable body) {
+
+      int pidx = muscle.indexOfPoint (pnt);
+      if (pidx == -1) {
+         throw new IllegalArgumentException (
+            "muscle does not contain specified point");         
+      }
+      CompositeComponent parent = muscle.getParent();
+      if (!(parent instanceof RenderableComponentList)) {
+         throw new IllegalArgumentException (
+            "muscle does not appear in the OpenSim component hierarchy");         
+      }
+      RenderableComponentList<ModelComponent> mcontainer =
+         (RenderableComponentList)parent;
+      if (!(mcontainer.get(0) instanceof PointList)) {
+         throw new IllegalArgumentException (
+            "muscle does not appear in the OpenSim component hierarchy");         
+      }
+      PointList markerList = (PointList)mcontainer.get(0);
+      int midx = markerList.indexOf (pnt);
+      if (midx == -1) {
+         throw new IllegalArgumentException (
+            "point does not appear in the OpenSim component hierarchy");         
+      }
+      
+      GenericMarker newPnt = new GenericMarker (pnt.getPosition());
+      newPnt.setAttached (body.createPointAttachment (newPnt));
+      newPnt.setName (pnt.getName());
+      muscle.setPoint (pidx, newPnt);
+      markerList.set (midx, newPnt);
+   }
+
+   /**
+    * Replace a marker in the OpenSim component hierarchy with a new marker
+    * that is created by attaching to the specified body or frame in the same
+    * location. The new point is given the same name as the previous point.
+    *
+    * <p>This method checks to ensure that the point is located within the
+    * marker set in the OpenSim component hierarchy, If it is not, then an
+    * exception is thrown. It also assumes that nothing is connected to the
+    * marker; if it is, that application must handle this.
+    *
+    * @param mkr marker point to replace
+    * @param body to connect the new marker to
+    */
+   public void replaceMarker (Marker mkr, PointAttachable body) {
+      int midx = getMarkerSet().indexOf (mkr);
+      if (midx == -1) {
+         throw new IllegalArgumentException (
+            "marker is not located with the marker set");         
+      }
+      GenericMarker newMkr = new GenericMarker (mkr.getPosition());
+      newMkr.setAttached (body.createPointAttachment (newMkr));
+      newMkr.setName (mkr.getName());
+      getMarkerSet().set (midx, newMkr);
    }
    
 }

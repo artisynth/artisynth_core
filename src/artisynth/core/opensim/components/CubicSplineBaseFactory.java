@@ -33,7 +33,9 @@ public abstract class CubicSplineBaseFactory<C extends NaturalCubicSpline> exten
                // pass up
                boolean csuccess = parseChild (comp, celem);
                if (!csuccess) {
-                  Logger.getSystemLogger ().info ("Failed to parse subelement '" + getNodeName(child) 
+                  Logger.getSystemLogger().info (
+                     "OpenSimParser: failed to parse subelement '" +
+                     getNodeName(child) 
                      + "' for " + comp.getClass ().getName ());
                   success = false;
                }

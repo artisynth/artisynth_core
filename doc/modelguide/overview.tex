@@ -154,7 +154,7 @@ output.
 ArtiSynth simulation proceeds by advancing all of the root model's
 top-level models through a sequence of time steps. Every time
 step is achieved by calling each model's 
-\javamethod*[artisynth.core.modelbase.Model]{advance()} method:
+\javamethod*[artisynth.core.modelbase.Model]{advance(,,)} method:
 \begin{lstlisting}[]
   public StepAdjustment advance (double t0, double t1) {
      ... perform simulation ...
@@ -168,7 +168,7 @@ too large and that the advance should be redone with a smaller step
 size. 
 
 The root model has it's own
-\javamethod*[artisynth.core.workspace.RootModel]{advance()}, which in
+\javamethod*[artisynth.core.workspace.RootModel]{advance(,,)}, which in
 turn calls the advance method for all of the top-level models, in
 sequence. The advance of each model is surrounded by the application
 of whatever 

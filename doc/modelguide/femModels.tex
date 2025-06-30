@@ -809,7 +809,7 @@ try {
 mech.addModel(tongue);
 \end{lstlisting}
 The method
-\javamethod[maspack.util]{PathFinder.getSourceRelativePath()}
+\javamethod*[maspack.util]{PathFinder.getSourceRelativePath(,)}
 is used to find a path within the ArtiSynth source tree that is
 relative to the current model's source file (Section
 \ref{PathFinder:sec}). Note the try-catch block.  Most of these
@@ -1411,12 +1411,12 @@ counterintuitive.
 The {\tt FemModel3d} element and node queries can be used in a variety
 of ways.
 
-\javamethod[artisynth.core.femmodels.FemModel3d]{findNearestNodes()}
+\javamethod*[artisynth.core.femmodels.FemModel3d]{findNearestNodes(,)}
 can be used to find all nodes within a certain distance of a point, as
 part of the process of making nodal-based attachments
 (Section \ref{sec:fem:nodalAttachments}).
 
-\javamethod[artisynth.core.femmodels.FemModel3d]{findNearestNode()}
+\javamethod*[artisynth.core.femmodels.FemModel3d]{findNearestNode(,)}
 is used in the FemMuscleBeam example
 (Section \ref{FemMuscleBeams:sec}) to determine if a desired muscle
 point is near enough to a node to use that node directly, or if a
@@ -1640,7 +1640,7 @@ supplies static methods for writing number files:
 {Writes the numbers of {\tt nodes} to {\tt file}.}%
 %
 \methodentry
-{\fem.NodeNumberWriter.write(File,,)}%
+{\fem.NodeNumberWriter.write(File,,,)}%
 {static void write(\brh File file,
   Collection<FemNode3d> nodes, \brh int maxCols, int flags)}%
 {Writes the numbers of {\tt nodes} to {\tt file}, using
@@ -2244,14 +2244,12 @@ joints have a constructor of the form
   JointType (bodyA, bodyB, TDW);
 \end{lstlisting}
 %
-that creates a joint connecting {\tt bodyA} to {\tt bodyB}, with the
-initial pose of the D frame given (in world coordinates) by {\tt TDW}.
-The same body and transform settings can be made on an existing joint
-using the method \javamethodAlt{%
-artisynth.core.mechmodels.BodyConnector.setBodies(ConnectableBody,,)}%
-{setBodies(bodyA, bodyB, TDW)}.  For these constructors and methods,
-it is possible to specify FEM models for {\tt bodyA} and/or {\tt
-bodyB}. Internally, the joint then creates a {\tt
+that creates a joint connecting {\tt bodyA} to {\tt bodyB}, with the initial
+pose of the D frame given (in world coordinates) by {\tt TDW}.  The same body
+and transform settings can be made on an existing joint using the {\tt
+setBodies()} methods also described in Section \ref{CreatingJoints:sec}.  For
+these constructors and methods, it is possible to specify FEM models for {\tt
+bodyA} and/or {\tt bodyB}. Internally, the joint then creates a {\tt
 FrameFem3dAttachment} to connect frame C and/or D of the joint (See
 Figure \ref{jointExample:fig}) to the corresponding FEM model.
 
@@ -2260,6 +2258,34 @@ associated $\T_{CA}$ or $\T_{DB}$ transforms (since there is no fixed
 frame within an FEM to define such transforms).  Methods or
 constructors which utilize $\T_{CA}$ or $\T_{DB}$ can therefore
 not be used with FEM models.
+
+Sometimes, the default {\tt FrameFem3dAttachment} attachment created by the
+joint constructor (or the {\tt setBodies()} method) is not suitable, because
+the attachment's support must be distributed across a node set that is either
+larger, or distributed differently. In that case, one may create a custom
+\javaclass[artisynth.core.femmodels]{FrameFem3dAttachment}
+using a specified set of nodes (and weights, if needed), as described in
+Section \ref{sec:fem:frameattachments}. This can then be used to connect the
+joint to the FEM via one of the {\tt setBodies()} or {\tt setBodyA/B()} methods
+that accepts custom {\tt FrameConnector}s:
+%
+\begin{lstlisting}[]
+   // connect a FEM as the A body for a hinge joint
+   FemModel3d fem;
+   HingeJoint hinge;
+   ...
+   RigidTransform3d TCW = ... // compute C frame location in world coordinates
+   FemNode3d[] nodes = ... // determine necessary nodes
+   double[] weights = ...  // determine necessary weights
+
+   // create attachment (no explicit frame is required for joints)
+   FrameFem3dAttachment attachment = new FrameFem3dAttachment();
+   attachment.setFromNodes (TCW, nodes, weights);
+   hinge.setBodyA (fem, attachment);   
+\end{lstlisting}
+%
+Note that when being used as a joint connector, {\tt FrameFem3dAttachment} does
+{\it not} need to be associated with an actual frame component.
 
 \subsection{Example: two FEM beams connected by a joint}
 
@@ -3883,7 +3909,7 @@ $\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility &
 {Create with default properties.}%
 %
 \methodentry
-{\mats.FungOrthotropicMaterial.FungOrthotropicMaterial(,,)}%
+{\mats.FungOrthotropicMaterial.FungOrthotropicMaterial(,,,,,,,,,,)}%
 {FungOrthotropicMaterial (double mu1, double mu2, double mu3, \brh
 double lam11, double lam22, double lam33, double lam12, \brh
 double lam23, double lam31, double C, double kappa)}
@@ -3937,12 +3963,12 @@ $\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility &
 {Create with default properties.}%
 %
 \methodentry
-{\mats.YeohMaterial.YeohMaterial(,,)}%
+{\mats.YeohMaterial.YeohMaterial(,,,)}%
 {YeohMaterial (double C1, double C2, double C3, double kappa)}%
 {Create three term material with $C_1$, $C_2$, $C_3$, $\kappa$.}%
 %
 \methodentry
-{\mats.YeohMaterial.YeohMaterial(,,,,)}%
+{\mats.YeohMaterial.YeohMaterial(,,,,,)}%
 {YeohMaterial (double C1, double C2, double C3, double C4, \brh 
 double C5, double kappa)}%
 {Create five term material with $C_1$, ..., $C_5$, $\kappa$.}%
@@ -4827,7 +4853,7 @@ gray points one pixel wide, and so are not highly visible. To increase
 their visibility, and make them easier to select in the viewer, one
 can make them appear as spheres of a specified radius and color.  In
 code, this can be done using the
-\javamethodAlt{maspack.render.RenderProps.setSphericalPoints()}%
+\javamethodAlt{maspack.render.RenderProps.setSphericalPoints(,,)}%
 {RenderProps.setSphericalPoints()} method, as in this example,
 %
 \begin{lstlisting}[]
@@ -4903,7 +4929,7 @@ within the FEM model. To restrict this to the elements only, one can
 specify {\tt fem.getElements()} (and/or {\tt fem.getShellElements()})
 to the {\tt set} methods. The fragment above is illustrated in
 Figure \ref{femElemRender:fig} (left) for a model created with a call to
-\javamethod[\fem]{FemFactory.createHexTorus()}.
+\javamethod*[\fem]{FemFactory.createHexTorus(,,,,,,)}.
 
 \begin{figure}[h]
 \begin{center}

@@ -10,7 +10,7 @@ import artisynth.core.mechmodels.*;
 public class RigidBodyOsim extends RigidBody {
    
    protected RenderableComponentList<WrapComponent> myWrapComponents;
-   protected RenderableComponentList<FrameFrameAttachment> myWrapAttachments;
+   protected RenderableComponentList<FrameAttachment> myWrapAttachments;
    protected RenderableComponentList<artisynth.core.mechmodels.JointBase> myJoint;
 
    public RigidBodyOsim() {
@@ -30,7 +30,7 @@ public class RigidBodyOsim extends RigidBody {
 
       myWrapAttachments =
          new RenderableComponentList<> (
-            FrameFrameAttachment.class, "wrapobjectset_attachments");
+            FrameAttachment.class, "wrapobjectset_attachments");
 
       myJoint =
          new RenderableComponentList<>(
@@ -41,5 +41,29 @@ public class RigidBodyOsim extends RigidBody {
       add (myJoint);
    }
 
+   void addWrapComponent (WrapComponent wcomp) {
+      myWrapComponents.add (wcomp);
+   }
 
+   public boolean detachWrapComponent (WrapComponent wcomp) {
+      if (myWrapComponents.contains (wcomp)) {
+         RigidBody wbody = (RigidBody)wcomp;
+         myWrapAttachments.remove (wbody.getAttachment());
+         myWrapComponents.remove (wcomp);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   void addWrapAttachment (FrameAttachment fattach) {
+      myWrapAttachments.add (fattach);
+   }
+
+   boolean detachWrapComponent (FrameAttachment fattach) {
+      return myWrapComponents.remove (fattach);
+   }
 }
+
+

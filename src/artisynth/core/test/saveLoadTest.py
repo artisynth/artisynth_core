@@ -158,11 +158,12 @@ testSaveLoad ("artisynth.demos.tutorial.SlidingFem")
 testSaveLoad ("artisynth.demos.tutorial.FemSelfCollide")
 testSaveLoad ("artisynth.demos.tutorial.ScalarFieldVisualization")
 testSaveLoad ("artisynth.demos.tutorial.FemCutPlaneDemo")
+testSaveLoad ("artisynth.demos.tutorial.ToyMuscleArm")
+testSaveLoad ("artisynth.demos.tutorial.IKToyMuscleArm")
 testSaveLoad ("artisynth.demos.tutorial.InverseParticle")
 testSaveLoad ("artisynth.demos.tutorial.InverseSpringForce")
 testSaveLoad ("artisynth.demos.tutorial.InverseMuscleArm")
 testSaveLoad ("artisynth.demos.tutorial.InverseFrameExciterArm")
-testSaveLoad ("artisynth.demos.tutorial.InverseMuscleArm")
 
 testSaveLoad ("artisynth.demos.test.OneBasedNumbering")
 testSaveLoad ("artisynth.demos.test.ReflectedBodies")
@@ -179,6 +180,7 @@ testSaveLoad ("artisynth.demos.test.ActuatedSkinning")
 testSaveLoad ("artisynth.demos.test.ActuatedSkinning", "-dq")
 testSaveLoad ("artisynth.demos.test.PointPlaneForceTest")
 testSaveLoad ("artisynth.demos.test.PointPlaneForceTest", "-quadratic")
+testSaveLoad ("artisynth.demos.test.MeshCurveTest")
 
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
@@ -193,11 +195,18 @@ testSaveLoad ("artisynth.demos.tutorial.ContactForceMonitorSavable")
 testSaveLoad ("artisynth.demos.tutorial.JointedBallCollide")
 testSaveLoad ("artisynth.demos.tutorial.VariableElasticContact")
 testSaveLoad ("artisynth.demos.tutorial.ElasticFoundationContact")
+testSaveLoad ("artisynth.demos.tutorial.IKMultiJointedArm");
+testSaveLoad ("artisynth.demos.tutorial.IKInverseMuscleArm");
+testSaveLoad ("artisynth.demos.tutorial.TRCMultiJointedArm");
+testSaveLoad ("artisynth.demos.tutorial.PositionProbes");
+testSaveLoad ("artisynth.demos.tutorial.MultiJointedArm");
 
 testSaveLoad ("artisynth.demos.test.EquilibriumMuscleTest")
 testSaveLoad ("artisynth.demos.test.EquilibriumMuscleTest", "-thelen")
 testSaveLoad ("artisynth.demos.tutorial.ControlPanelDemo")
 testSaveLoad ("artisynth.demos.tutorial.EquilibriumMuscleDemo")
+testSaveLoad ("artisynth.demos.tutorial.OpenSimArm26")
+testSaveLoad ("artisynth.demos.tutorial.OpenSimFemHumerus")
 
 main.maskFocusStealing (False)
 if main.getMainFrame() == None:

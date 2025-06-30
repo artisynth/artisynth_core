@@ -4,6 +4,7 @@ import java.io.File;
 
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.Marker;
 import artisynth.core.mechmodels.MultiPointSpring;
 import artisynth.core.mechmodels.PointSpringBase;
 import artisynth.core.mechmodels.PointList;
@@ -79,8 +80,7 @@ public abstract class ForceSpringBase extends ForceBase {
       if (mname != null) {
          pathname = mname + "_path";
       }
-      PointList<FrameMarker> markers =
-         new PointList<>(FrameMarker.class, pathname);
+      PointList<Marker> markers = new PointList<>(Marker.class, pathname);
       ff.add (markers);
       
       // create markers from path points
@@ -98,7 +98,8 @@ public abstract class ForceSpringBase extends ForceBase {
          }
          RigidBody rb = (RigidBody)componentMap.get (body);
          if (rb == null) {
-            System.err.println("Failed to find body " + bodyOrSocketParentFrame);
+            System.err.println(
+               "OpenSimParser: failed to find body " + bodyOrSocketParentFrame);
             return null;
          }
          
@@ -106,7 +107,7 @@ public abstract class ForceSpringBase extends ForceBase {
          if (name != null) {
             int idx = 0;
             String pname = name;
-            FrameMarker marker = markers.get (name);
+            Marker marker = markers.get (name);
             while (marker != null) {
                ++idx;
                pname = name + idx;               
@@ -171,7 +172,6 @@ public abstract class ForceSpringBase extends ForceBase {
                   pntIdx1--; // zero indiced
                }
                mps.addWrappable (wrappable, pntIdx0, pntIdx1);
-               System.out.println (mps.getName() + " " + wrappable.getName());
             }
          }
          mps.setDrawABPoints (true);
@@ -182,7 +182,7 @@ public abstract class ForceSpringBase extends ForceBase {
          for (int i=0; i<markers.size(); ++i) {
             // add wrap segment if wrappables are present and frame markers are
             // on different bodies or are movable
-            FrameMarker mi = markers.get(i);
+            FrameMarker mi = (FrameMarker)markers.get(i);
             if (mi instanceof JointBasedMovingMarker) {
                ((JointBasedMovingMarker)mi).updateMarkerLocation();
                JointBasedMovingMarker mm = (JointBasedMovingMarker)mi;

@@ -1264,6 +1264,24 @@ public class Frame extends DynamicComponentBase
       return comp;
    }
 
+   /**
+    * Returns an array of all FrameMarkers currently associated with this rigid
+    * body.
+    * 
+    * @return list of all frame markers
+    */
+   public FrameMarker[] getFrameMarkers() {
+      LinkedList<FrameMarker> list = new LinkedList<FrameMarker>();
+      if (myMasterAttachments != null) {
+         for (DynamicAttachment a : myMasterAttachments) {
+            if (a.getSlave() instanceof FrameMarker) {
+               list.add ((FrameMarker)a.getSlave());
+            }
+         }
+      }
+      return list.toArray (new FrameMarker[0]);
+   }
+
    public void setBodyVelocity (Twist v) {
       myState.setBodyVelocity (v);
       updateVelState();

@@ -3,7 +3,9 @@ package artisynth.core.opensim.components;
 import java.io.File;
 
 import artisynth.core.mechmodels.WrapComponent;
+import artisynth.core.mechmodels.RigidBody;
 import maspack.matrix.Point3d;
+import maspack.render.Renderer.AxisDrawStyle;
 import maspack.matrix.RigidTransform3d;
 
 public abstract class WrapObject extends HasVisibleObjectOrAppearance {
@@ -81,6 +83,19 @@ public abstract class WrapObject extends HasVisibleObjectOrAppearance {
       wo.setQuadrant (quadrant);
       
       return wo;
+   }
+
+   void setAxisVisibility (WrapComponent wcomp) {
+      if (wcomp instanceof RigidBody) {
+         RigidBody body = (RigidBody)wcomp;
+         body.setAxisDrawStyle (AxisDrawStyle.OFF); // default
+         VisibleObject vo = getVisibleObject ();
+         if (vo != null) { // OpenSim 3
+            if (vo.getShowAxes ()) {
+               body.setAxisDrawStyle (AxisDrawStyle.LINE);
+            }
+         }
+      }      
    }
    
    public abstract WrapComponent createComponent(

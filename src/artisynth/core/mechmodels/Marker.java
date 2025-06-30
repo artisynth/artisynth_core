@@ -57,6 +57,7 @@ public abstract class Marker extends Point
          DynamicAttachmentBase.removeConnectedMasterRefs (this, hcomp);
       }            
    }
+   
    public void connectAttachment (DynamicComponent dcomp) {
       // should we check to see if dcomp is a known master attachment?
       dcomp.addMasterAttachment (getAttachment());

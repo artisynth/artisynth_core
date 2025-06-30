@@ -149,6 +149,7 @@ public class CoordinatePanel extends ControlPanel
             ((CoordinateWidget)e.getSource()).getHandle();
          handle.setValueDeg ((Double)e.getValue());
          if (myMech != null) {
+            myMech.updatePosState();
             updateWrapPaths();
          }
       }

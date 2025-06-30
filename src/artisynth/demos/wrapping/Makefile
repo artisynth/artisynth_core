@@ -1,5 +1,5 @@
 ROOT_DIR = ../../../..
-PACKAGE_NAME = artisynth.wrapping.wrapping
+PACKAGE_NAME = artisynth.demos.wrapping
 
 JAVA_SUBDIRS =
 

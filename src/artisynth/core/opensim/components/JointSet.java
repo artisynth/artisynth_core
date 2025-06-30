@@ -33,7 +33,8 @@ public class JointSet extends SetBase<JointBase>
          artisynth.core.mechmodels.JointBase jb = 
             joint.createComponent(geometryPath, componentMap);
          if (jb == null) {
-            System.err.println ("Failed to parse joint " + joint.getName ());
+            System.err.println (
+               "OpenSimParser: failed to parse joint " + joint.getName ());
          } else { 
             componentMap.put (joint, jb);
             joints.add (jb);

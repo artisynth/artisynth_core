@@ -4,7 +4,7 @@ import java.awt.Color;
 import java.io.File;
 import java.util.HashMap;
 
-import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.Marker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.PointList;
@@ -171,7 +171,7 @@ public class Model4 extends ModelBase {
       
       // markers
       MarkerSet markerSet = this.getMarkerSet ();
-      PointList<FrameMarker> markers =
+      PointList<Marker> markers =
          markerSet.createComponent(geometryPath, componentMap);
       mech.add (markers);
       

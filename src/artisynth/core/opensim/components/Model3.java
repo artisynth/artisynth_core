@@ -7,6 +7,7 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.Marker;
 import artisynth.core.mechmodels.ConstrainerBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -52,7 +53,7 @@ public class Model3 extends ModelBase {
 
       // markers
       MarkerSet markerSet = this.getMarkerSet ();
-      PointList<FrameMarker> markers =
+      PointList<Marker> markers =
          markerSet.createComponent(geometryPath, componentMap);
       mech.add (markers);
       

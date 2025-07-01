@@ -9,7 +9,8 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 
 public class MarkerSet extends SetBase<Marker>
-   implements ModelComponentGenerator<PointList<FrameMarker>>{
+   implements ModelComponentGenerator<
+      PointList<artisynth.core.mechmodels.Marker>>{
    
    @Override
    public MarkerSet clone () {
@@ -17,7 +18,7 @@ public class MarkerSet extends SetBase<Marker>
    }
 
    @Override
-   public PointList<FrameMarker> createComponent (
+   public PointList<artisynth.core.mechmodels.Marker> createComponent (
       File geometryPath, ModelComponentMap componentMap) {
 
 
@@ -25,12 +26,14 @@ public class MarkerSet extends SetBase<Marker>
       if (name == null) {
          name = "markerset";
       }
-      PointList<FrameMarker> markers = new PointList<> (FrameMarker.class, name);
+      PointList<artisynth.core.mechmodels.Marker> markers =
+         new PointList<> (artisynth.core.mechmodels.Marker.class, name);
       
       // add all markers
       for (Marker marker : objects()) {
          // create markers
-         FrameMarker m = marker.createComponent(geometryPath, componentMap);
+         artisynth.core.mechmodels.Marker m =
+            marker.createComponent(geometryPath, componentMap);
          if (m != null) {
             markers.add (m);
          }

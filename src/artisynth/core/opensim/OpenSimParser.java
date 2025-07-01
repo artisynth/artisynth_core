@@ -87,11 +87,12 @@ public class OpenSimParser {
    }
 
    /**
-    * Creates a new OpenSim parser for a specified OpenSim (.osim) file.
-    * Constructing the parser does not load the model; that must be done after
-    * by {@link #createModel} or {@link #createModel(MechModel)}). For model
-    * loading to succeed, a geometry folder will most likely need to be
-    * specified first using {@link #setGeometryPath}.
+    * Creates a new OpenSim parser for a specified OpenSim ({@code .osim})
+    * file.  Constructing the parser does not load the model; that must be done
+    * after by {@link #createModel} or {@link #createModel(MechModel)}). If not
+    * otherwise specified by {@link #setGeometryPath}, the parser will try to
+    * locate the geometry in either {\tt "Geometry"} or {\tt "geometry"} in the
+    * same folder as the {\tt .osim} file.
     * 
     * @param osimFile OpenSim file to parse
     */
@@ -137,6 +138,11 @@ public class OpenSimParser {
     * @param geometryPath folder containing the OpenSim geometry
     */
    public void setGeometryPath (File geometryPath) {
+      if (!geometryPath.exists() || !geometryPath.isDirectory()) {
+         throw new IllegalArgumentException (
+            "Specified geometry folder " + geometryPath +
+            " does not exist or is not a folder");
+      }
       myGeometryDir = geometryPath;
    }
     
@@ -191,14 +197,20 @@ public class OpenSimParser {
       
       File geometryDir = myGeometryDir;
       if (geometryDir == null) {
-         geometryDir = new File(myOsimFile.getParentFile(), "Geometry");
-         if (!geometryDir.exists() || !geometryDir.isDirectory()) {
+         String[] geodirNames = new String[] { "Geometry", "geometry" };
+         for (String dname : geodirNames) {
+            File dir = new File(myOsimFile.getParentFile(), dname);
+            if (dir.exists() && dir.isDirectory()) {
+               geometryDir = dir;
+               break;
+            }
+         }
+         if (geometryDir == null) {
             throw new IllegalStateException (
-               "Geometry folder " + geometryDir + 
-               " does not exist or is not a folder");
+               "Can't locate geometry folder 'Geometry' or 'geometry' in "+
+               " .osim folder " + myOsimFile.getParentFile());
          }
       }
-      
       mech = model.createModel (mech, geometryDir, myComponentMap);
       myMech = mech;
       setAppropriateDefaults();

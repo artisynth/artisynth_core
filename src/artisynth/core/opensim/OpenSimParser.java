@@ -54,7 +54,7 @@ public class OpenSimParser {
    /**
     * Creates a new parser
     * @param file file to parse
-    * @param geometryPath folder to search for geometries
+    * @param geometryPath if non-{@code null}, folder to search for geometries
     * @param factories factory storage for generating OpenSim objects from file
     */
    public OpenSimParser (
@@ -70,7 +70,9 @@ public class OpenSimParser {
       }
       myFactories = factories;
       myDocument = null;
-      setGeometryPath (geometryPath);
+      if (geometryPath != null) {
+         setGeometryPath (geometryPath);
+      }
    }
 
    /**

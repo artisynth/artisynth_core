@@ -6,6 +6,7 @@ import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.mechmodels.MultiPointMuscle;
 import artisynth.core.mechmodels.MultiPointSpring;
 import artisynth.core.mechmodels.Muscle;
+import artisynth.core.opensim.OpenSimParser;
 
 public abstract class MuscleBase extends ForceSpringBase {
    
@@ -151,7 +152,13 @@ public abstract class MuscleBase extends ForceSpringBase {
    @Override
    protected MultiPointMuscle createDefaultMultiSpring (String name) {
       //MultiPointMuscle mpm = new OpenSimMultiMuscle (name);
-      MultiPointMuscle mpm = new MultiPointMuscle (name);
+      MultiPointMuscle mpm;
+      if (OpenSimParser.getMusclesContainPathPoints()) {
+         mpm = new MultiPointMuscleOsim (name);
+      }
+      else {
+         mpm = new MultiPointMuscle (name);
+      }
       mpm.setExcitation (getDefaultActivation());
       return mpm;
    }

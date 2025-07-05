@@ -13,6 +13,7 @@ import artisynth.core.mechmodels.Wrappable;
 import artisynth.core.mechmodels.*;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.opensim.OpenSimParser;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
@@ -50,7 +51,12 @@ public abstract class ForceSpringBase extends ForceBase {
    
    protected MultiPointSpring createDefaultMultiSpring (String name) {
       //return new OpenSimMultiSpring (name);
-      return new MultiPointSpring (name);
+      if (OpenSimParser.getMusclesContainPathPoints()) {
+         return new MultiPointMuscleOsim (name);
+      }
+      else {
+         return new MultiPointSpring (name);         
+      }
    }
    
    protected AxialSpring createDefaultSpring (String name) {
@@ -61,9 +67,20 @@ public abstract class ForceSpringBase extends ForceBase {
       double d = p0.getPosition ().distance (p1.getPosition ());
       return (int)Math.round (d/0.002); // XXX set density automatically
    }
-   
+
    @Override
    public ModelComponent createComponent (
+      File geometryPath, ModelComponentMap componentMap) {
+      
+      if (OpenSimParser.getMusclesContainPathPoints()) {
+         return createComponentWithOsimMuscles (geometryPath, componentMap);
+      }
+      else {
+         return createComponentLegacy (geometryPath, componentMap);
+      }
+   }
+   
+   public ModelComponent createComponentLegacy (
       File geometryPath, ModelComponentMap componentMap) {
      
       GeometryPath path = getGeometryPath ();
@@ -237,6 +254,143 @@ public abstract class ForceSpringBase extends ForceBase {
       spr.setRenderProps (createRenderProps());
      
       return ff;
+   }
+
+   public ModelComponent createComponentWithOsimMuscles (
+      File geometryPath, ModelComponentMap componentMap) {
+     
+      GeometryPath path = getGeometryPath ();
+      PathPointSet pps = path.getPathPointSet ();
+      
+      RenderProps grprops = path.createRenderProps (); // geometry render props
+    
+      String mname = getName();
+      MultiPointMuscleOsim mps =
+         (MultiPointMuscleOsim)createDefaultMultiSpring (getName());
+      componentMap.put (this, mps);
+
+      PointList<Marker> markers = mps.getPathPoints();
+      
+      // create markers from path points
+      for (PathPoint pp : pps) {
+         String bodyOrSocketParentFrame = pp.getBodyOrSocketParentFrame ();
+         Point3d loc = pp.getLocation ();
+         String name = pp.getName ();
+         
+         // get rigid body
+         PhysicalFrame body = componentMap.findObjectByPathOrName (
+            Body.class, this, bodyOrSocketParentFrame);
+         if (body == null) { // try ground
+            body = componentMap.findObjectByPathOrName (
+               Ground.class, this, bodyOrSocketParentFrame);
+         }
+         RigidBody rb = (RigidBody)componentMap.get (body);
+         if (rb == null) {
+            System.err.println(
+               "OpenSimParser: failed to find body " + bodyOrSocketParentFrame);
+            return null;
+         }
+         
+         // make sure marker name is unique
+         if (name != null) {
+            int idx = 0;
+            String pname = name;
+            Marker marker = markers.get (name);
+            while (marker != null) {
+               ++idx;
+               pname = name + idx;               
+               marker = markers.get (pname);
+            }
+            name = pname;
+         }
+         
+         // add frame marker
+         FrameMarker fm = null;
+         if (pp instanceof MovingPathPoint) {
+            MovingPathPoint mpp = (MovingPathPoint)pp;
+            //fm = MovingFrameMarker.create (name, mpp, mpp, componentMap);
+            fm = mpp.createComponent (geometryPath, componentMap);
+            fm.setName (name);
+         }
+         else if (pp instanceof ConditionalPathPoint) {
+            ConditionalPathPoint cpp = (ConditionalPathPoint)pp;
+            //fm = ConditionalFrameMarker.create (name, cpp, this, componentMap);
+            fm = cpp.createComponent (geometryPath, componentMap);
+            fm.setName (name);
+            if (fm != null) {
+               fm.setLocation (loc);
+            }
+         }
+         if (fm == null) {
+            fm = new FrameMarker (name);
+            fm.setLocation (loc);
+         }
+         fm.setFrame (rb);
+         
+         markers.add (fm);
+      }
+
+      // get wrap path, if any
+      PathWrapSet wrapPath = path.getPathWrapSet ();
+      if (useMuscleComponents && wrapPath != null && wrapPath.size() == 0) {
+         // will force using Muscle if no wrap path and only two markers
+         wrapPath = null;
+      }
+
+      // add wrappables, if any
+      if (wrapPath != null) {
+         for (PathWrap pw : wrapPath) {
+            String wrapObject = pw.getWrapObject ();
+            WrapObject wo = componentMap.findObjectByName (
+               WrapObject.class, wrapObject);
+            RigidBody wrappable = (RigidBody)componentMap.get (wo);
+            int pntIdx0 = (int)pw.range.getLowerBound();
+            int pntIdx1 = (int)pw.range.getUpperBound();
+            if (pntIdx0 != -1) {
+               pntIdx0--; // zero indiced
+            }
+            if (pntIdx1 != -1) {
+               pntIdx1--; // zero indiced
+            }
+            mps.addWrappable (wrappable, pntIdx0, pntIdx1);
+         }
+      }
+      mps.setDrawABPoints (true);
+      mps.setDrawKnots (false);
+
+      // add markers to multipoint spring
+      FrameMarker mprev = null;
+      for (int i=0; i<markers.size(); ++i) {
+         // add wrap segment if wrappables are present and frame markers are
+         // on different bodies or are movable
+         FrameMarker mi = (FrameMarker)markers.get(i);
+         if (mi instanceof JointBasedMovingMarker) {
+            ((JointBasedMovingMarker)mi).updateMarkerLocation();
+            JointBasedMovingMarker mm = (JointBasedMovingMarker)mi;
+         }
+         if (mps.numWrappables() > 0 && mprev != null &&
+             (mprev.getFrame () != mi.getFrame() ||
+              mi instanceof JointBasedMovingMarker)) {
+            int numknots = getNumWrapPoints(mprev, mi);
+            Point3d[] initialPnts = computeInitialPoints (
+               mprev.getPosition(), mi.getPosition(), mps, i, numknots);
+            mps.setSegmentWrappable (numknots, initialPnts);
+         }
+         mps.addPoint (mi);
+         mprev = mi;
+      }
+      //mps.updateStructure();
+      if (wrapPath != null) {
+         mps.updateWrapSegments();
+      }
+      
+      mps.setRestLengthFromPoints ();
+      mps.setMaterial (createMaterial ());
+      
+      markers.setRenderProps (grprops);
+      mps.setRenderProps (createRenderProps());
+     
+      return mps;
    }
 
    /**

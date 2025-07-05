@@ -41,7 +41,9 @@ FLC_SOURCES = \
 	images/MillardAFLC.txt \
 	images/MillardPFLC.txt \
 	images/MillardTFLC.txt \
-	images/MillardFVC.txt
+	images/MillardFVC.txt \
+	images/makeMuscleCurvePlots \
+	images/makePowerFramePlots
 
 # target files for force length curves created using GNU plot
 FLC_TARGETS = \
@@ -56,10 +58,15 @@ FLC_TARGETS = \
 	images/MillardAFLC.eps \
 	images/MillardPFLC.eps \
 	images/MillardTFLC.eps \
-	images/MillardFVC.eps
+	images/MillardFVC.eps \
+	images/PowerFrame1.eps \
+	images/PowerFrame2.eps \
+	images/PowerFrame3.eps
 
 $(FLC_TARGETS) &: $(FLC_SOURCES)
-	cd images; gnuplot -c makeMuscleCurvePlots
+	cd images; \
+	gnuplot -c makeMuscleCurvePlots; \
+	gnuplot -c makePowerFramePlots
 
 default: pdf html
 

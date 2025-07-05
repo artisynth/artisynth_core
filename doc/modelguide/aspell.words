@@ -1,4 +1,4 @@
-personal_ws-1.1 en 2293 
+personal_ws-1.1 en 2317 
 ABPointColor
 AJL
 ANSYS
@@ -82,6 +82,8 @@ ControlPanel
 ControlPanelDemo
 ControllerBase
 CoordinateInfo
+CoordinatePanel
+CoordinateWidget
 Courant
 Criscione
 CustomCoupling
@@ -114,6 +116,7 @@ DicomTest
 DicomTestImageMagick
 DicomViewer
 DistanceGridComp
+DoubleFieldSlider
 DoubleInterval
 DynamicAttachment
 DynamicComponent
@@ -403,6 +406,7 @@ PosStabilization
 PositionInputProbe
 PositionOutputProbe
 PositionProbes
+PowerFrameMaterial
 PrismaticJoint
 ProbeID
 PropMaps
@@ -539,6 +543,7 @@ TRCReader
 TRCWriter
 TRI
 TSE
+Tait
 TalusBone
 TalusWrapping
 TargetFrame
@@ -638,6 +643,8 @@ addConstraint
 addControlPanel
 addController
 addCoordinate
+addCoordinateWidget
+addCoordinateWidgets
 addCutPlane
 addData
 addElement
@@ -712,6 +719,8 @@ attachFrame
 attachMuscle
 attachPoint
 attachPointsToMesh
+attachmentA
+attachmentB
 awt
 awtcomp
 axialSprings
@@ -783,6 +792,7 @@ clearVertexConnections
 clipToGrid
 clonable
 cmd
+cname
 codebase
 colA
 colB
@@ -913,6 +923,7 @@ dcm
 dcmPattern
 dcp
 deadband
+deadbands
 defaultThickness
 defaultValue
 deformable
@@ -1134,6 +1145,7 @@ getCoordinateInfo
 getCoordinateRange
 getCoordinateRangeDeg
 getCoordinates
+getCurrentTCD
 getCutPlanes
 getDamping
 getDampingTerm
@@ -1483,8 +1495,12 @@ locw
 longitudeRange
 lopt
 lossless
+lowerDeadband
+lowerRotaryDeadband
 lp
+lr
 lrest
+lt
 macosInstallation
 marginFraction
 maspack
@@ -1809,6 +1825,7 @@ rollAxis
 rollRange
 rotRep
 rotaryDamping
+rotaryExponents
 rotaryLimitTol
 rotaryStiffness
 rotateZDirection
@@ -1839,6 +1856,8 @@ setBasePose
 setBaseWeight
 setBodies
 setBodiesDynamic
+setBodyA
+setBodyB
 setBounds
 setBoxVisible
 setBumpMap
@@ -2189,6 +2208,7 @@ txt
 ty
 tz
 uiguide
+ujoint
 un
 unactuated
 uncheck
@@ -2209,6 +2229,9 @@ updateLabels
 updateStressAndStiffness
 updateWrapPath
 updateWrapSegments
+upperDeadband
+upperRotaryDeadband
+ur
 url
 useAbsoluteTime
 useAllElements
@@ -2221,6 +2244,7 @@ usePDControl
 useRestPos
 useTargetProps
 useTimestepScaling
+ut
 util
 uv
 vec

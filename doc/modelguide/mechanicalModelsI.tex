@@ -219,6 +219,7 @@ $\partial f(l, \dot l, a) / \partial \dot l \equiv 0$; i.e., if it is
 always equals to 0.
 
 \subsection{Damping parameters}
+\label{BodyDamping:sec}
 
 Mechanical models usually contain damping forces in addition to
 spring-type restorative forces. Damping generates forces that reduce
@@ -1936,7 +1937,7 @@ ConnectableBody bodyB, FrameAttachment attachmentB)}%
 \methodentry
 {\mech.BodyConnector.setBodyA(ConnectableBody,FrameAttachment)}%
 {void setBodyA (ConnectableBody bodyA, FrameAttachment attachmentA)}%
-{Set A with custom attacment.}%
+{Set A with custom attachment.}%
 %
 \methodentry
 {\mech.BodyConnector.setBodyB(ConnectableBody,RigidTransform3d)}%
@@ -4146,20 +4147,14 @@ rendering properties.
 
 \end{itemize}
 
-\subsection{Example: multijointed arm}
+\subsection{Example: A multijointed arm}
 
 \label{MultiJointedArm:sec}
 
 \begin{figure}[ht]
 \begin{center}
 \begin{tabular}{cc}
- \iflatexml
-   \includegraphics[]{images/MultiJointedArmInit}&
-   \includegraphics[]{images/MultiJointedArm}\\
- \else
-   \includegraphics[height=2.5in]{images/MultiJointedArmInit}&
-   \includegraphics[height=2.5in]{images/MultiJointedArm}\\
- \fi
+ \iflatexml \includegraphics[]{images/MultiJointedArmInit}& \includegraphics[]{images/MultiJointedArm}\\ \else \includegraphics[height=2.5in]{images/MultiJointedArmInit}& \includegraphics[height=2.5in]{images/MultiJointedArm}\\ \fi
 \end{tabular}
 \end{center}
 \caption{{\tt MultiJointedArm} as initially assembled in code (left),
@@ -4289,6 +4284,25 @@ joint. As with joints, C and D generally do not coincide with the body
 frames, and are instead offset from them by fixed transforms $\T_{CA}$
 and $\T_{DB}$ (Figure \ref{frameSpringBodies:fig}).
 
+\begin{sideblock}
+
+For historical reasons, the default behavior for frame springs is to base the
+restoring forces on $\T_{DC}$ and $\hat\v_{DC}$, as per (\ref{ftauC:eqn}).
+However, it may be more convenient to instead use $\T_{CD}$ and $\hat\v_{CD}$
+and compute the force $\f_D$ and moment $\Btau_D$ acting on frame D:
+%
+\begin{align}
+\f_D & = \f_{k} (\T_{CD}) + \f_{d} (\hat\v_{CD}) \notag \\
+\Btau_D & = \Btau_{k} (\T_{CD}) + \Btau_{d} (\hat\v_{CD}).
+\label{ftauD:eqn}
+\end{align}
+%
+For example, using $\T_{CD}$ is consistent with the usual coordinate frame
+conventions for joints, and so may be preferable when a spring is being used as
+a ``soft'' replacement for a joint.  To use $\T_{CD}$ instead of $\T_{DC}$, the
+application should set the spring's {\sf useTranformDC} property to {\tt false}.
+\end{sideblock}
+
 \subsection{Frame materials}
 
 The restoring forces (\ref{ftauC:eqn}) generated in a frame spring
@@ -4309,7 +4323,7 @@ in which the restoring forces are determined from
 \end{align*}
 %
 where $\hat\Bthe_{DC}$ gives the small angle approximation of the
-rotational components of $\X_{DC}$ with respect to the $x$, $y$, and
+rotational components of $\T_{DC}$ with respect to the $x$, $y$, and
 $z$ axes, and
 %
 \begin{gather*}
@@ -4333,6 +4347,112 @@ different axes will result in anisotropic behavior.
 
 Other frame materials offering nonlinear behavior may be defined in
 {\tt artisynth.core.materials}.
+
+\subsubsection{PowerFrameMaterial}
+
+An useful alternative to {\tt LinearFrameMaterial} 
+is \javaclass[\mats]{PowerFrameMaterial}, which computes restoring forces along
+each of the translational and rotational directions according to a power law of
+the form
+%
+\begin{equation}
+f = k \, \text{sgn} (x) |x|^n
+\label{powerForce:eqn}
+\end{equation}
+%
+where $k$ is a stiffness, $x$ is displacement, and $n$ is an exponent
+in the range $n \in \{1,2,3\}$. It is also possible to specify both upper and
+lower deadbands, $b_u$ and $b_l$, such that if $x_t$ is the true
+displacement, $x$ is computed according to
+%
+\begin{equation}
+x = \begin{cases}
+x_t - b_l & x_t < b_l, \\
+x_t - b_u & x_t > b_u, \\
+0 & \text{otherwise} 
+\end{cases}.
+\label{powerDeadbands:eqn}
+\end{equation}
+%
+{\tt PowerFrameMaterial} effects the same damping behavior as {\tt
+LinearFrameMaterial}.
+
+If rotational deadbands are specified, the rotational displacement may be large
+enough that the the small angle approximation used for {\tt
+LinearFrameMaterial} no longer applies. Therefore, rotational displacements are
+computed as the three x-y-z Tait-Bryan angles of $\R_{DC}$.  The use of
+these finite displacement angles introduces a coupling such that if $\Btau$ is
+the nominal moment produced by applying (\ref{powerForce:eqn}) and
+(\ref{powerDeadbands:eqn}) to each of the
+three rotational angles, the actual resulting moment $\Btau_C$ is
+%
+\begin{equation}
+\Btau_C = \matl
+1 & 0 & 0 \\
+\frac{s_y s_x}{c_y} & c_x & -\frac{s_x}{c_y} \\
+-\frac{s_y c_x}{c_y} & s_x & \frac{c_x}{c_y}
+\matr
+\,
+\Btau,
+\label{rotForceCoupling:eqn}
+\end{equation}
+%
+where $s_x$, $c_x$, $s_y$, $c_y$ are the sines and cosines of the x and y
+rotations. The coupling is associated with the non-commutativity of rotations and
+the fact that the x-y-z angles have a singularity when the y rotation
+approaches $\pm \pi/2$. This appears as the division by $c_y$ in
+(\ref{rotForceCoupling:eqn}), and so care should be taken to avoid such
+orientations.
+
+The parameters controlling the behavior of {\tt PowerFrameMaterial} can be set
+independently for each of the six translational and rotational displacements,
+using the following properties, each of which is described by a three-vector:
+%
+\begin{center}
+\begin{tabular}{|l|l|l|} \hline
+ & Property & Description \\
+\hline
+$\k_t$ & {\sf stiffness} & translational stiffness \\
+$\n_t$ & {\sf exponents} & translational exponents \\
+$\b_{ut}$ & {\sf upperDeadband} & upper deadband for translations \\
+$\b_{lt}$ & {\sf lowerDeadband} & lower deadband for translations \\
+$\d_t$ & {\sf damping} & translational damping \\
+$\k_r$ & {\sf rotaryStiffness} & rotational stiffness \\
+$\n_r$ & {\sf rotaryExponents} & rotational exponents \\
+$\b_{ur}$ & {\sf upperRotaryDeadband} & upper deadband for rotations \\
+$\b_{lr}$ & {\sf lowerRotaryDeadband} & lower deadband for rotations \\
+$\d_r$ & {\sf rotaryDamping} & rotational damping \\
+\hline
+\end{tabular}
+\end{center}
+Each of these has a default value of $\mathbf{0}$, except for the exponents,
+which have a default value of $(\mathbf{1}$.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{ccc}
+   \includegraphics[width=2in]{images/PowerFrame1}&
+   \includegraphics[width=2in]{images/PowerFrame2}&
+   \includegraphics[width=2in]{images/PowerFrame3}
+\end{tabular}
+\end{center}
+\caption{Example force-displacement curves produced by {\tt PowerFrameMaterial}.
+Left: linear behavior with $k=20$, $n=1$, $b_l=-0.5$, and $b_u=0.25$;
+middle: quadratic behavior with $k=20$, $n=2$, and $b_l= b_u=0$;
+right: cubic behavior with $k=80$, $n=3$, $b_l=0$, and $b_u=0.5$.}
+\label{PowerFrameMaterial:fig}
+\end{figure}
+
+If used with exponents of 1 and no deadbands, {\tt PowerFrameMaterial} behaves
+like {\tt LinearFrameMaterial} with finite rotation displacements.  Otherwise,
+Figure \ref{PowerFrameMaterial:fig} illustrates some of the force-displacement
+curves that can be produced. Using a power $n > 1$ (rightmost panels) has the
+advantage of producing a curve that is differentiable.  However, the forces
+grow more slowly for smaller displacements; a cubic force (right panel) almost
+behaves as if it has a small deadband, even with $b_l = b_u = 0$.
+
+An important application of {\tt PowerFrameMaterial} is creating one-sided
+force behaviors by setting $b_l$ or $b_u$ to sufficiently low or high values.
 
 \subsection{Creating frame springs}
 \label{CreatingFrameSprings:sec}

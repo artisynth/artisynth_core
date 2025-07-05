@@ -1978,16 +1978,18 @@ TransformableGeometry, ScalableUnits {
          else if (c instanceof HasNumericStateComponents) {
             ((HasNumericStateComponents)c).getNumericStateComponents(list);
          }
-         else if (c instanceof CompositeComponent) {
-            recursivelyGetAuxStateComponents (
-               (CompositeComponent)c, list, level);
-         }
-         else if (c instanceof HasNumericState) {
-            if (!(c instanceof DynamicComponent) &&
-                  ((HasNumericState)c).hasState()) {
-               // this will include inactive RigidBodyConnecters;
-               // that should be OK
-               list.add ((HasNumericState)c);
+         else {
+            if (c instanceof HasNumericState) {
+               if (!(c instanceof DynamicComponent) &&
+                     ((HasNumericState)c).hasState()) {
+                  // this will include inactive RigidBodyConnecters;
+                  // that should be OK
+                  list.add ((HasNumericState)c);
+               }
+            }
+            if (c instanceof CompositeComponent) {
+               recursivelyGetAuxStateComponents (
+                  (CompositeComponent)c, list, level);
             }
          }
       }

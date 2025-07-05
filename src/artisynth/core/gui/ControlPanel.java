@@ -69,6 +69,10 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 import artisynth.core.util.ObjectToken;
 
+/**
+ * Provides a graphic panel containing widgets for editing properties and
+ * performing other forms of model interaction.
+ */
 public class ControlPanel extends ModelComponentBase
    implements PropertyWindow, ActionListener {
 

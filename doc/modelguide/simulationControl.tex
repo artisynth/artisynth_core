@@ -561,19 +561,147 @@ panel will now contain an additional widget for the property {\tt
 boxVisible} as shown in Figure \ref{boxVisiblePanel:fig}. Toggling
 this property will make the box visible or invisible in the viewer.
 
+\subsection{Coordinate panels}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/CoordinatePanel}
+\else
+ \includegraphics[width=3.5in]{images/CoordinatePanel}
+\fi
+\end{center}
+\caption{Coordinate panel added to the model {\tt MultiJointedArm}.}
+\label{CoordinatePanel:fig}
+\end{figure}
+
+A special subclass of {\tt ControlPanel} is a 
+\javaclass[\gui]{CoordinatePanel}, which supports the addition
+of widgets for controlling joint coordinate values. A {\tt CoordinatePanel}
+is associated with the 
+\javaclass[\mech]{MechModel} containing the coordinates' joints.
+When a coordinate value changes, the {\tt
+MechModel} is used to update other model components that may be affected, such
+as the wrap paths for
+\javaclass[\mech]{MultiPointSpring}s and the locations of attached
+components.
+
+\begin{sideblock}
+At present, {\tt CoordinatePanel}s does {\it not} take into account couplings
+between coordinate values that may be induced by kinematic loops with the
+model. This will be remedied in the future.
+\end{sideblock}
+
+A {\tt CoordinatePanel} may be created with the constructor
+%
+\begin{methodtable}{0.5}{0.5}
+%
+\methodentry
+{\gui.CoordinatePanel.CoordinatePanel(String,MechModel)}%
+{CoordinatePanel (String name, MechModel mech)}%
+{\ }%
+%
+\end{methodtable}
+%
+which assigns it a name and {\tt MechModel}. Coordinate widgets may
+then be added using the methods
+%
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(JointBase,String)}%
+{CoordinateWidget addCoordinateWidget (JointBase joint, String cname)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(String,JointBase,String)}%
+{CoordinateWidget addCoordinateWidget (%
+String label, JointBase joint, String cname)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(JointBase,int)}%
+{CoordinateWidget addCoordinateWidget (JointBase joint, int cidx)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(String,JointBase,int)}%
+{CoordinateWidget addCoordinateWidget (%
+String label, JointBase joint, int cidx)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(JointBase,int,double,double)}%
+{CoordinateWidget addCoordinateWidget (%
+JointBase joint, int cidx, double min, double max)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(String,JointBase,int,double,double)}%
+{CoordinateWidget addCoordinateWidget (%
+String label, JointBase joint, int cidx, double min, double max)}%
+{\ }%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidgets(JointBase)}%
+{CoordinateWidget addCoordinateWidgets (JointBase joint)}%
+{\ }%
+%
+%\brh
+\midline
+\end{methodtable}
+%
+where {\tt joint} specifies the joint containing the coordinate and {\tt cname}
+or {\tt cidx} give either its name or index.  If present, {\tt label} specifies
+the widget label (which otherwise takes the coordinate's name) and {\tt min}
+and {\tt max} give the widget's value range (which is otherwise inferred from
+the coordinate itself). The last method, {\tt addCoordinateWidgets()} adds
+widgets for every coordinate within the specified joint.
+
+These methods return 
+\javaclass[\gui]{CoordinateWidget}, which is a subclass of
+\javaclass[maspack.widgets]{DoubleFieldSlider}. Other types of
+widgets may be added to a {\tt CoordinatePanel} using the {\tt addWidget()}
+methods inherited from {\tt ControlPanel}.
+
+\begin{sideblock}
+{\tt CoordinatePanel} widgets represent their values for revolute coordinates
+in degrees.
+\end{sideblock}
+
+When added to the example {\tt MultiJointedArm} (Section
+\ref{MultiJointedArm:sec}), the following code fragment
+creates the coordinate panel shown in Figure \ref{CoordinatePanel:fig}:
+
+%
+\begin{lstlisting}[]
+import artisynth.core.gui.CoordinatePanel;
+...
+      CoordinatePanel panel = new CoordinatePanel ("coordinates", myMech);
+      panel.addCoordinateWidgets (ujoint);
+      panel.addCoordinateWidgets (hinge);
+      addControlPanel (panel);
+\end{lstlisting}
+%
+
+
+
 % SimpleMuscleWithProperties
 
 \section{Controllers and monitors}
 \label{ControllersAndMonitors:sec}
 
-Application models can define custom {\it controllers} and {\it
-monitors} to control input values and monitor output values as a
-simulation progresses. Controllers are called every time step
-immediately before the {\tt advance()} method, and monitors are called
-immediately after (Section \ref{ModelAdvancement:sec}).  An example of
-controller usage is provided by ArtiSynth's inverse modeling feature,
-which uses an internal controller to estimate the actuation signals
-required to follow a specified motion trajectory.
+Application models can define custom {\it controllers} and {\it monitors} to
+control input values and monitor output values as a simulation
+progresses. Controllers are called every time step immediately before the {\tt
+advance()} method, and monitors are called immediately after
+(Section \ref{ModelAdvancement:sec}).  An example of controller usage is
+provided by ArtiSynth's inverse modeling feature, which uses an internal
+controller to estimate the actuation signals required to follow a specified
+motion trajectory.
 
 More precise details about controllers and monitors and how they
 interact with model advancement are given in the

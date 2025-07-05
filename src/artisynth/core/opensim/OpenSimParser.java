@@ -20,6 +20,8 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.CoordinatePanel;
+import artisynth.core.opensim.components.ForceSpringBase;
+import artisynth.core.opensim.components.MultiPointMuscleOsim;
 import artisynth.core.opensim.components.ModelBase;
 import artisynth.core.opensim.components.ModelComponentMap;
 import artisynth.core.opensim.components.OpenSimDocument;
@@ -40,6 +42,9 @@ import maspack.render.Renderer.*;
  * and {@code "markersset"}.
  */
 public class OpenSimParser {
+
+   // use a custom muscle component that contain the path point list.
+   private static boolean myMusclesContainPathPoints = true;
 
    Document myDOM; //The Document Object Model is stored here.
    File myOsimFile;
@@ -105,6 +110,23 @@ public class OpenSimParser {
    public void load() {
       parseOSimFile(); // get DOM
       parseDocument(); // create model
+   }
+
+   /**
+    * Enable/disable using a custom muscle component that contain the path
+    * point list as a child component. This default is {@code true}, but can be
+    * set to false for backward compatibility.
+    */
+   static public void setMusclesContainPathPoints(boolean enable) {
+      myMusclesContainPathPoints = enable;
+   }
+
+   /**
+    * Queries the use of a custom muscle component that contain the path point
+    * list. See {@link #setMusclesContainPathPoints}.
+    */
+   static public boolean getMusclesContainPathPoints() {
+      return myMusclesContainPathPoints;
    }
 
    private void parseOSimFile() {
@@ -446,6 +468,28 @@ public class OpenSimParser {
    public void setWrapObjectsVisible (boolean visible) {
       for (WrapComponent wo : getWrapObjects()) {
          RenderProps.setVisible (wo, visible);
+      }
+   }
+
+   /**
+    * Convenience method to set the visibility of the coordinate frames of all
+    * wrap objects objects attached to the rigid bodies located under the
+    * "bodyset". The visibility is controlled by the enumerated type {@link
+    * AxisDrawStyle}.
+    *
+    * @param style draw style for the coordinate frame
+    * @param axisLength if {@code > 0}, sets the length of the coordinate
+    * frames. Otherwise, the length is unchanged.
+    */
+   public void setWrapObjectFramesVisible (
+      AxisDrawStyle style, double axisLength) {
+
+      for (WrapComponent wo : getWrapObjects()) {
+         RigidBody rb = (RigidBody)wo;
+         rb.setAxisDrawStyle (style);
+         if (axisLength != -1) {
+            rb.setAxisLength (axisLength);
+         }
       }
    }
 
@@ -804,12 +848,10 @@ public class OpenSimParser {
     * @return created panel
     */
    public CoordinatePanel createCoordinatePanel(Collection<JointBase> joints) {
-      CoordinatePanel panel = new CoordinatePanel();
-      panel.setName ("coordinates");
+      CoordinatePanel panel = new CoordinatePanel("coordinates", myMech);
       for (JointBase joint : joints) {
          panel.addCoordinateWidgets (joint);
       }
-      panel.setMechModel (myMech);
       return panel;
    }
 
@@ -827,8 +869,7 @@ public class OpenSimParser {
       for (String name : coordNames) {
          nameSet.add (name);
       }
-      CoordinatePanel panel = new CoordinatePanel();
-      panel.setName ("coordinates");
+      CoordinatePanel panel = new CoordinatePanel("coordinates", myMech);
       for (JointBase joint : getJoints()) {
          for (int idx=0; idx<joint.numCoordinates(); idx++) {
             if (nameSet.contains(joint.getCoordinateName(idx))) {
@@ -836,7 +877,6 @@ public class OpenSimParser {
             }
          }
       }
-      panel.setMechModel (myMech);
       return panel;
    }
 
@@ -902,29 +942,49 @@ public class OpenSimParser {
          throw new IllegalArgumentException (
             "muscle does not contain specified point");         
       }
-      CompositeComponent parent = muscle.getParent();
-      if (!(parent instanceof RenderableComponentList)) {
-         throw new IllegalArgumentException (
-            "muscle does not appear in the OpenSim component hierarchy");         
+      if (myMusclesContainPathPoints) {
+         if (!(muscle instanceof MultiPointMuscleOsim)) {
+            throw new IllegalArgumentException (
+               "muscle does not appear to have been created by OpenSim import");
+         }
+         MultiPointMuscleOsim mpso = (MultiPointMuscleOsim)muscle;
+         PointList<Marker> markerList = mpso.getPathPoints();
+         int midx = markerList.indexOf (pnt);
+         if (midx == -1) {
+            throw new IllegalArgumentException (
+               "point does not appear in the OpenSim component hierarchy");
+         }
+         GenericMarker newPnt = new GenericMarker (pnt.getPosition());
+         newPnt.setAttached (body.createPointAttachment (newPnt));
+         newPnt.setName (pnt.getName());
+         muscle.setPoint (pidx, newPnt);
+         markerList.set (midx, newPnt);
       }
-      RenderableComponentList<ModelComponent> mcontainer =
-         (RenderableComponentList)parent;
-      if (!(mcontainer.get(0) instanceof PointList)) {
-         throw new IllegalArgumentException (
-            "muscle does not appear in the OpenSim component hierarchy");         
+      else {
+         // old way - muscle and path both contained in a parent list
+         CompositeComponent parent = muscle.getParent();
+         if (!(parent instanceof RenderableComponentList)) {
+            throw new IllegalArgumentException (
+               "muscle does not appear in the OpenSim component hierarchy");
+         }
+         RenderableComponentList<ModelComponent> mcontainer =
+            (RenderableComponentList)parent;
+         if (!(mcontainer.get(0) instanceof PointList)) {
+            throw new IllegalArgumentException (
+               "muscle does not appear in the OpenSim component hierarchy");
+         }
+         PointList markerList = (PointList)mcontainer.get(0);
+         int midx = markerList.indexOf (pnt);
+         if (midx == -1) {
+            throw new IllegalArgumentException (
+               "point does not appear in the OpenSim component hierarchy");
+         }
+         GenericMarker newPnt = new GenericMarker (pnt.getPosition());
+         newPnt.setAttached (body.createPointAttachment (newPnt));
+         newPnt.setName (pnt.getName());
+         muscle.setPoint (pidx, newPnt);
+         markerList.set (midx, newPnt);
       }
-      PointList markerList = (PointList)mcontainer.get(0);
-      int midx = markerList.indexOf (pnt);
-      if (midx == -1) {
-         throw new IllegalArgumentException (
-            "point does not appear in the OpenSim component hierarchy");         
-      }
-      
-      GenericMarker newPnt = new GenericMarker (pnt.getPosition());
-      newPnt.setAttached (body.createPointAttachment (newPnt));
-      newPnt.setName (pnt.getName());
-      muscle.setPoint (pidx, newPnt);
-      markerList.set (midx, newPnt);
    }
 
    /**

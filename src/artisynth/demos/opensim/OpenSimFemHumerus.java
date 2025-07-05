@@ -1,26 +1,33 @@
 package artisynth.demos.opensim;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
 import java.awt.Color;
+import java.io.IOException;
+import java.util.ArrayList;
 
-import artisynth.core.mechmodels.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.opensim.OpenSimParser;
-import artisynth.core.workspace.RootModel;
-import artisynth.core.gui.*;
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.render.*;
-import maspack.util.PathFinder;
-import maspack.geometry.*;
-
-import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.mechmodels.*;
-import artisynth.core.materials.*;
-import artisynth.core.femmodels.*;
+import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemNode3d;
+import artisynth.core.femmodels.FrameFem3dAttachment;
+import artisynth.core.materials.LinearMaterial;
+import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.FrameAttachment;
+import artisynth.core.mechmodels.FrameFrameAttachment;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.JointBase;
+import artisynth.core.mechmodels.Marker;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.PointAttachable;
+import artisynth.core.mechmodels.PointSpringBase;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.WrapComponent;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Line;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
+import maspack.util.DoubleInterval;
 
 /**
  * Modified version of OpenSimArm26 that replaces the humerus with an FEM

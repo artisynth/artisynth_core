@@ -15,6 +15,10 @@ import artisynth.core.mechmodels.*;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 
+/**
+ * Subclass of {@link DoubleFieldSlider} used to adjust the values of a joint
+ * coordinate.
+ */
 public class CoordinateWidget extends DoubleFieldSlider
    implements ValueChangeListener, PostScannable {
 
@@ -67,6 +71,9 @@ public class CoordinateWidget extends DoubleFieldSlider
    private void initialize (String label, JointBase joint, int idx) {
       if (label == null) {
          label = joint.getCoordinateName (idx);
+      }
+      if (label == null) {
+         label = "coordinate "+idx;
       }
       setLabelText (label);
       myHandle = new JointCoordinateHandle (joint, idx);

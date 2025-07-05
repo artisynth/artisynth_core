@@ -764,28 +764,36 @@ must be created.  Readers capable of reading FEM models implement the
 interface \javaclass[artisynth.core.femmodels]{FemReader}, which has the
 method
 \begin{lstlisting}[]
-readFem( FemModel3d fem )   // populates the FEM based on file contents
+readFem (FemModel3d fem)   // populates the FEM based on file contents
 \end{lstlisting}
 Additionally, many {\tt FemReader} classes have static methods to handle
 the loading of files for convenience.
 
 \begin{table}[ht]
-	\centering
-	\caption{Supported FEM geometry files \label{tbl:fem:fileformats}}
-	\begin{tabular}{llll}
-		\hline\hline
-		Format & File extensions & Reader & Writer\\
-		\hline
-		ANSYS & .node, .elem & \javaclass[artisynth.core.femmodels]{AnsysReader} & \javaclass[artisynth.core.femmodels]{AnsysWriter}\\
-		TetGen & .node, .ele & \javaclass[artisynth.core.femmodels]{TetGenReader} & \javaclass[artisynth.core.femmodels]{TetGenWriter}\\
-		Abaqus & .inp & \javaclass[artisynth.core.femmodels]{AbaqusReader} & \javaclass[artisynth.core.femmodels]{AbaqusWriter}\\
-		VTK (ASCII) & .vtk & \javaclass[artisynth.core.femmodels]{VtkAsciiReader} & \multicolumn{1}{c}{--}\\
-		\hline
-	\end{tabular}
+\centering
+\caption{Supported FEM geometry files \label{tbl:fem:fileformats}}
+\begin{tabular}{llll}
+\hline\hline
+Format & File extensions & Reader & Writer\\
+\hline
+ANSYS & .node, .elem & 
+\javaclass[\fem]{AnsysReader} & \javaclass[\fem]{AnsysWriter}\\
+ANSYS & .cdb & 
+\javaclass[\fem]{AnsysCdbReader} & \javaclass[\fem]{AnsysCdbWriter}\\
+TetGen & .node, .ele & 
+\javaclass[\fem]{TetGenReader} & \javaclass[\fem]{TetGenWriter}\\
+Abaqus & .inp & 
+\javaclass[\fem]{AbaqusReader} & \javaclass[\fem]{AbaqusWriter}\\
+Gmsh & .msh & 
+\javaclass[\fem]{GmshReader} & \javaclass[\fem]{GmshWriter}\\
+VTK (ASCII) & .vtk & 
+\javaclass[\fem]{VtkAsciiReader} & \multicolumn{1}{c}{--}\\
+\hline
+\end{tabular}
 \end{table}
 
 The following code snippet demonstrates how to load a model using the
-\javaclass[artisynth.core.femmodels]{AnsysReader}.
+\javaclass[\fem]{AnsysReader}.
 \begin{lstlisting}[]
 // Create FEM
 FemModel3d tongue = new FemModel3d("tongue");
@@ -812,8 +820,58 @@ The method
 \javamethod*[maspack.util]{PathFinder.getSourceRelativePath(,)}
 is used to find a path within the ArtiSynth source tree that is
 relative to the current model's source file (Section
-\ref{PathFinder:sec}). Note the try-catch block.  Most of these
-readers throw an {\tt IOException} if the read fails.
+\ref{PathFinder:sec}). Note the try-catch block. Most of
+these readers throw an {\tt IOException} if the read fails,
+and this must either be caught or thrown by the calling method.
+
+As a different example, the following example creates a {\tt GmshReader} and
+uses it to read in a model:
+%
+\begin{lstlisting}[]
+String fileName = PathFinder.getSourceRelativePath (
+   this, "geometry/femmesh.gmsh");
+
+GmshReader reader = new GmshReader (fileName);
+FemModel3d fem = reader.readFem (/*fem*/null);
+\end{lstlisting}
+%
+In this case, we create an actual reader instance instead of using one of the
+{\tt static} methods, and the {\tt IOException} is assumed to be handled
+outside the code fragment. Because the {\tt fem} argument to {\tt readFem()} is
+{\tt null}, the reader creates a FEM model and returns it. The application must
+then set other properties for the FEM, such as the material and rendering
+properties.
+
+One reason to create an actual reader instance is that it may provide access to
+various options related to the read. For example, both {\tt GmshReader} and
+{\tt AnsysCdbReader} supply the following:
+%
+\begin{lstlisting}[]
+// controls how nodes and elements are numbered
+void setNumbering (Numbering numbering)
+Numbering getNumbering()
+
+// default type for shell elements when this can't be inferred
+void setShellType (ShellType type)
+ShellType getShellType()
+
+// default shell thickness when this can't be inferred
+void setShellThickness (double thickness)
+double getShellThickness()
+
+// controls whether to check element orientation and fix if possible
+void setCheckOrientation (boolean enable)
+boolean getCheckOrientation() 
+
+// enables or disables warning messages
+void setSuppressWarnings(boolean enable)
+boolean getSuppressWarnings()
+
+// scaling for input geometry
+void setScaling (Vector3d scaling)
+Vector3d getScaling()
+\end{lstlisting}
+%
 
 \subsection{Generating from surfaces}
 
@@ -827,7 +885,7 @@ calling TetGen directly is \javaclass[maspack.geometry]{TetgenTessellator}.
 The tessellator has several advanced options, allowing for the computation of 
 convex hulls, and for adding points to a volumetric mesh.  For simply creating
 an FEM from a surface, there is a convenience routine within 
-\javaclass[artisynth.core.femmodels]{FemFactory} that handles both mesh 
+\javaclass[\fem]{FemFactory} that handles both mesh 
 generation and constructing a {\tt FemModel3d}:
 \begin{lstlisting}[]
 // Create an FEM from a manifold mesh with a given quality
@@ -873,7 +931,7 @@ then some elements will be inverted.
 \subsection{Building elements in code}
 
 A finite element model's structure can also be manually constructed in code.  
-\javaclass[artisynth.core.femmodels]{FemModel3d} has the methods:
+\javaclass[\fem]{FemModel3d} has the methods:
 \begin{lstlisting}[]
 addNode ( FemNode3d );       // add a node to the model
 addElement ( FemElement3d )  // add an element to the model
@@ -881,7 +939,7 @@ addElement ( FemElement3d )  // add an element to the model
 For an element to successfully be added, all its nodes must already have
 been added to the model.  Nodes can be constructed from a 3D location, and
 elements from an array of nodes.  A convenience routine is available in
-\javaclass[artisynth.core.femmodels]{FemElement3d} that automatically creates
+\javaclass[\fem]{FemElement3d} that automatically creates
 the appropriate element type given the number of nodes (Table 
 \ref{tbl:fem:elements}):
 \begin{lstlisting}[]
@@ -893,7 +951,7 @@ ArtiSynth uses a clockwise convention with respect to the outward
 normal for the first face, followed by the opposite node(s).  To determine the
 correct ordering for a particular element, check the coordinates returned by 
 the function 
-\javamethod*[artisynth.core.femmodels]{FemElement3dBase.getNodeCoords()}.
+\javamethod*[\fem]{FemElement3dBase.getNodeCoords()}.
 This returns the concatenated coordinate list for an ``ideal'' element of
 the given type.
 
@@ -937,7 +995,7 @@ or for interactions such as collisions
 physical properties; its motion is entirely governed by the FEM model 
 that contains it.  
 
-All FEM geometries are of type \javaclass[artisynth.core.femmodels]{FemMeshComp}, 
+All FEM geometries are of type \javaclass[\fem]{FemMeshComp}, 
 which stores a reference to a mesh object (Section \ref{Meshes:sec}), as well
 as attachment information that links vertices of the mesh to points within
 the FEM.  The attachments enforce the shape function interpolation in Equation
@@ -1028,7 +1086,7 @@ attachment classes are listed in Table \ref{tbl:fem:pointattachments}.
 		\hline
 		\javaclass[artisynth.core.mechmodels]{PointParticleAttachment} & Attaches one ``point'' to one ``particle''\\
 		\javaclass[artisynth.core.mechmodels]{PointFrameAttachment} & Attaches one ``point'' to one ``frame''\\
-		\javaclass[artisynth.core.femmodels]{PointFem3dAttachment} &  Attaches one ``point'' to a linear combination of FEM nodes\\
+		\javaclass[\fem]{PointFem3dAttachment} &  Attaches one ``point'' to a linear combination of FEM nodes\\
 		\hline
 	\end{tabular}
 \end{table}
@@ -1052,7 +1110,7 @@ Section \ref{sec:fem:frameattachments}.
 \subsection{Connecting nodes to rigid bodies or particles}
 
 Since
-\javaclass[artisynth.core.femmodels]{FemNode3d} is a subclass of
+\javaclass[\fem]{FemNode3d} is a subclass of
 \javaclass[artisynth.core.mechmodels]{Particle}, the same methods
 described in Section \ref{sec:mech:pointattachments} for attaching 
 particles to other particles and frames are available. For example, 
@@ -1122,7 +1180,7 @@ simple point-to-node attachments.  Instead, we use a different
 mechanism that allows us to attach a point to an arbitrary location
 within an FEM model. This is done using an attachment component of
 type
-\javaclass[artisynth.core.femmodels]{PointFem3dAttachment}, which
+\javaclass[\fem]{PointFem3dAttachment}, which
 implements an attachment where the position $\p$ and velocity $\u$ of the
 attached point is determined by a weighted sum of the positions $\x_k$ 
 and velocities $\u_k$ of selected fem nodes:
@@ -1222,11 +1280,11 @@ This example can be found in
 {\tt FemBeam}, adding a finite element sphere and coupling them together.
 The sphere is created and added on lines 18--28.  It is read from
 TetGen-generated files using the 
-\javaclass[artisynth.core.femmodels]{TetGenReader} class.  The model is then
+\javaclass[\fem]{TetGenReader} class.  The model is then
 scaled to match the dimensions of the current model, and transformed to the
 right side of the beam.  To create attachments, the code first checks for 
 any nodes that belong to the sphere that fall inside the beam using the
-\javamethod[artisynth.core.femmodels]{FemModel3d.findContainingElement(Point3d)}
+\javamethod[\fem]{FemModel3d.findContainingElement(Point3d)}
 method (line 36), which returns the containing element if the point is inside
 the model, or {\tt null} if the point is outside.  Internally, this spatial 
 search uses a bounding volume hierarchy for efficiency (see 
@@ -1291,7 +1349,7 @@ of a rigid body, we could use the code fragment:
 %
 If we want to check only nodes that lie on the FEM surface, then we
 can filter them using the {\tt FemModel3d}
-method \javamethod[artisynth.core.femmodels.FemModel3d]{isSurfaceNode()}:
+method \javamethod[\fem.FemModel3d]{isSurfaceNode()}:
 %
 \begin{lstlisting}[]
    for (FemNode3d n : fem.getNodes()) {
@@ -1379,10 +1437,10 @@ provides a number of query methods:
 All the above queries are based on the FEM model's {\it current} nodal
 positions.  The method\\
 \javamethodAlt%
-{artisynth.core.femmodels.FemModel3d.findNearestElement(Point3d,Point3d,ElementFilter)}%
+{\fem.FemModel3d.findNearestElement(Point3d,Point3d,ElementFilter)}%
 {findNearestElement(near,pnt,filter)} allows the application to
 specify
-a \javaclass[artisynth.core.femmodels]{FemModel\$ElementFilter} to
+a \javaclass[\fem]{FemModel\$ElementFilter} to
 restrict the elements that are searched.
 
 The argument {\tt near} that appears in some of the queries is an
@@ -1411,12 +1469,12 @@ counterintuitive.
 The {\tt FemModel3d} element and node queries can be used in a variety
 of ways.
 
-\javamethod*[artisynth.core.femmodels.FemModel3d]{findNearestNodes(,)}
+\javamethod*[\fem.FemModel3d]{findNearestNodes(,)}
 can be used to find all nodes within a certain distance of a point, as
 part of the process of making nodal-based attachments
 (Section \ref{sec:fem:nodalAttachments}).
 
-\javamethod*[artisynth.core.femmodels.FemModel3d]{findNearestNode(,)}
+\javamethod*[\fem.FemModel3d]{findNearestNode(,)}
 is used in the FemMuscleBeam example
 (Section \ref{FemMuscleBeams:sec}) to determine if a desired muscle
 point is near enough to a node to use that node directly, or if a
@@ -1565,7 +1623,7 @@ formats are all valid:
 
 Once node numbers have been identified in the viewer and saved in a
 file, they can be read by the {\tt build()} method using
-a \javaclass[artisynth.core.femmodels]{NodeNumberReader}.  For
+a \javaclass[\fem]{NodeNumberReader}.  For
 convenience, this class supplies two static methods for extracting the
 FEM nodes specified by the numbers in a file:
 %
@@ -1624,7 +1682,7 @@ code.
 
 If desired, one can also determine a set of nodes in code, and then
 write their numbers to a file using the
-class \javaclass[artisynth.core.femmodels]{NodeNumberWriter}, which
+class \javaclass[\fem]{NodeNumberWriter}, which
 supplies static methods for writing number files:
 %
 \begin{methodtable}[4pt]{0.45}{0.55}
@@ -1762,7 +1820,7 @@ where {\tt nodes} and {\tt weights} are arrays of {\tt FemNode} and
 {\tt double}, respectively. It is up to the application to determine
 these.
 
-\javaclass[artisynth.core.femmodels]{PointFem3dAttachment} provides
+\javaclass[\fem]{PointFem3dAttachment} provides
 several methods for explicitly specifying nodes and weights. The
 signatures for these include:
 \begin{lstlisting}[]
@@ -1945,7 +2003,7 @@ provide anchor points for attaching springs and forces to a point inside
 an element, but can also be used for graphical purposes.
 
 FEM markers are implemented by the class
-\javaclass[artisynth.core.femmodels]{FemMarker}, which
+\javaclass[\fem]{FemMarker}, which
 is a subclass of
 \javaclass[artisynth.core.mechmodels]{Point}.
 They are essentially massless points that contain their own attachment
@@ -2066,9 +2124,9 @@ containing or nearest element.  The loaded model is shown in Figure
 
 It is also possible to attach frame components, including rigid
 bodies, directly to FEM models, using the attachment component
-\javaclass[artisynth.core.femmodels]{FrameFem3dAttachment}.
+\javaclass[\fem]{FrameFem3dAttachment}.
 Analogously to
-\javaclass[artisynth.core.femmodels]{PointFem3dAttachment}, the
+\javaclass[\fem]{PointFem3dAttachment}, the
 attachment is implemented by connecting the frame to a set of FEM
 nodes, and attachments can be either element-based or nodal-based.  The
 frame's origin is computed in the same way as for point attachments,
@@ -2126,7 +2184,7 @@ determine the frame's orientation, which may produce slightly
 asymmetric results if the frame's origin is located particularly close
 to a specific node.
 
-\javaclass[artisynth.core.femmodels]{FrameFem3dAttachment} provides
+\javaclass[\fem]{FrameFem3dAttachment} provides
 several methods for explicitly specifying nodes and weights. The
 signatures for these include:
 \begin{lstlisting}[]
@@ -2263,7 +2321,7 @@ Sometimes, the default {\tt FrameFem3dAttachment} attachment created by the
 joint constructor (or the {\tt setBodies()} method) is not suitable, because
 the attachment's support must be distributed across a node set that is either
 larger, or distributed differently. In that case, one may create a custom
-\javaclass[artisynth.core.femmodels]{FrameFem3dAttachment}
+\javaclass[\fem]{FrameFem3dAttachment}
 using a specified set of nodes (and weights, if needed), as described in
 Section \ref{sec:fem:frameattachments}. This can then be used to connect the
 joint to the FEM via one of the {\tt setBodies()} or {\tt setBodyA/B()} methods
@@ -2619,7 +2677,7 @@ material needs to be used, and any properties which are not bound can
 be adjusted interactively or online. Fields and their bindings are described in detail in Chapter \ref{sec:fields}.
 
 \item {\bf Adding augmenting material behaviors using 
-\javaclass[artisynth.core.femmodels]{MaterialBundle}s}.  A material
+\javaclass[\fem]{MaterialBundle}s}.  A material
 bundle may be specified either for all elements, or for a subset of
 them, and each provides one material (via its own {\sf material}
 property) whose behavior is {\it added} to that of the indicated
@@ -2630,7 +2688,7 @@ elements to \javaclass[artisynth.core.materials]{NullMaterial}, so
 that {\it only} the augmenting material(s) are applied.
 
 \item {\bf Adding muscle behaviors using 
-\javaclass[artisynth.core.femmodels]{MuscleBundle}s}. This
+\javaclass[\fem]{MuscleBundle}s}. This
 is analogous to using {\tt MaterialBundles}, except that {\tt
 MuscleBundles} are restricted to using an instance of
 a \javaclass[artisynth.core.materials]{MuscleMaterial}, and include
@@ -2644,7 +2702,7 @@ Section \ref{sec:fem:muscle}.
 
 The remainder of this section will discuss {\tt MaterialBundles}.
 
-Adding a \javaclass[artisynth.core.femmodels]{MaterialBundle} to
+Adding a \javaclass[\fem]{MaterialBundle} to
 an FEM model is illustrated by the following code fragment:
 %
 \begin{lstlisting}[]
@@ -2841,8 +2899,8 @@ In this section, both types will be described.
 \label{FemMuscleModel:sec}
 
 The main class for FEM-based muscles is 
-\javaclass[artisynth.core.femmodels]{FemMuscleModel}, a subclass 
-of \javaclass[artisynth.core.femmodels]{FemModel3d}.  It differs from a basic
+\javaclass[\fem]{FemMuscleModel}, a subclass 
+of \javaclass[\fem]{FemModel3d}.  It differs from a basic
 FEM model in that it has the new property
 \begin{center}
 	\begin{tabular}{|ll|}
@@ -2874,7 +2932,7 @@ In addition to this property,
 
 Muscle bundles allow for a muscle to be partitioned into separate groupings
 of fibres/elements, where each bundle can be activated independently.  They 
-are implemented in the class \javaclass[artisynth.core.femmodels]{MuscleBundle}.
+are implemented in the class \javaclass[\fem]{MuscleBundle}.
 Bundles have three key properties:
 \begin{center}
 	\begin{tabular}{|ll|}
@@ -2981,7 +3039,7 @@ terms to account for muscle-specific properties.  This is a continuous
 representation within the model.  
 
 The basic building block for a material-based muscle bundle is a 
-\javaclass[artisynth.core.femmodels]{MuscleElementDesc}.  This object contains
+\javaclass[\fem]{MuscleElementDesc}.  This object contains
 a reference to a {\tt FemElement3d}, a {\tt MuscleMaterial}, and either a
 single direction or set of directions that specify the direction of 
 contraction.  If a single direction is specified, then it is assumed the
@@ -5028,7 +5086,7 @@ faces and dark blue edges (Figure \ref{femSurfaceRender:fig}, left):
 \begin{lstlisting}[]
 import java.awt.Color;
 import maspack.render.RenderProps;
-import artisynth.core.femmodels.FemModel.SurfaceRender;
+import \fem.FemModel.SurfaceRender;
    ...
 
    FemModel3d fem;
@@ -5076,7 +5134,7 @@ edges as dark blue:
 \begin{lstlisting}[]
 import java.awt.Color;
 import maspack.render.RenderProps;
-import artisynth.core.femmodels.FemModel.SurfaceRender;
+import \fem.FemModel.SurfaceRender;
    ...
 
   FemModel3d fem;
@@ -5333,7 +5391,7 @@ strain values to be visualized on the cross section of the model with
 the plane.
 
 Cut plane components are implemented by
-\javaclass[artisynth.core.femmodels]{FemCutPlane} and can be created
+\javaclass[\fem]{FemCutPlane} and can be created
 with the following constructors:
 %
 \begin{methodtable}{0.46}{0.54}

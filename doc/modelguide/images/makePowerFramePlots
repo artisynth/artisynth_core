@@ -1,0 +1,27 @@
+# script to generate plots illustrating possible force - displacement curve
+# for PowerFrameMaterial. This script can be run with the command
+#
+# > gnuplot -c makePowerFramePlots
+
+set term postscript eps color font 'Helvetica,24' size 4,3.5
+set xrange [-1:1]
+set yrange [-10:10]
+set xzeroaxis
+set yzeroaxis
+set style line 1 lt rgb "red" lw 3
+set style line 2 lt rgb "dark-green" lw 3
+set style line 3 lt rgb "blue" lw 3
+
+set output "PowerFrame1.eps"
+set xlabel "displacement"
+#set ylabel "force"
+plot x < -0.5 ? 20*(x+0.5) : (x > 0.25 ? 20*(x-0.25) : 0) notitle with lines ls 1
+
+#unset ylabel
+set output "PowerFrame2.eps"
+set xlabel "displacement"
+plot x < 0 ? -20*x*x : 20*x*x notitle with lines ls 1
+
+set output "PowerFrame3.eps"
+set xlabel "displacement"
+plot x < 0 ? 80*(x**3) : (x > 0.5 ? 80*((x-0.5)**3) : 0) notitle with lines ls 1

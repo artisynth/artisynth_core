@@ -41,6 +41,7 @@ import maspack.properties.*;
 import maspack.util.*;
 import maspack.widgets.*;
 import maspack.widgets.GuiUtils;
+import maspack.widgets.DoubleFieldSlider;
 import maspack.widgets.LabeledComponentBase;
 import maspack.widgets.LabeledControl;
 import maspack.widgets.NumericFieldSlider;
@@ -72,7 +73,14 @@ import artisynth.core.util.ObjectToken;
 
 /**
  * A subclass of {@link ControlPanel} with support for widgets that control
- * joint coordinate values.
+ * joint coordinate values. These widgets are instances of {@link
+ * CoordinateWidget}, which are subclassed of {@link DoubleFieldSlider}.
+ *
+ * <p>A CoordinatePanel is associated with a MechModel, which is assumed to
+ * contain the joints whose coordinates are represented by the panel.  When
+ * coordinate values are changed through the panel, the MechModel is asked to
+ * update various components, including the wrap paths for {@link
+ * MultiPointSpring}s and the positions of attached components.
  */
 public class CoordinatePanel extends ControlPanel
    implements ValueChangeListener {
@@ -83,49 +91,100 @@ public class CoordinatePanel extends ControlPanel
    ArrayList<MultiPointSpring> myMultiPointSprings;
 
    public CoordinatePanel() {
-      this (null);
+      this (null, null);
    }
 
-   public CoordinatePanel (String name) {
+   /**
+    * Creates a CoordinatePanel with a specified name and {@link MechModel}.
+    *
+    * @param name name of the panel
+    * @param mech {@code MechModel} associated with the panel
+    */
+   public CoordinatePanel (String name, MechModel mech) {
       super (name, null);
+      setMechModel (mech);
    }
 
-   public CoordinatePanel (String name, String options) {
+   /**
+    * Creates a CoordinatePanel with a specified name, {@link MechModel}, and
+    * options.
+    *
+    * @param name name of the panel
+    * @param mech {@code MechModel} associated with the panel
+    * @param options options for the panel
+    */
+   public CoordinatePanel (String name, MechModel mech, String options) {
       super (name, options);
+      setMechModel (mech);
    }
 
+   /**
+    * Queries the {@link MechModel} associated with this panel.
+    *
+    * @return MechModel associated with this panel
+    */
    public MechModel getMechModel() {
       return myMech;
    }
 
+   /**
+    * Sets the {@link MechModel} associated with this panel.
+    *
+    * @param mech MechModel to associate with this panel
+    */
    public void setMechModel (MechModel mech) {
       myMech = mech;
    }
 
+   /**
+    * Creates and adds a widget to this panel for the named coordinate of a
+    * specified joint. The widget's label is set to the coordinate name.
+    *
+    * @param joint joint containing the coordinate
+    * @param cname name of the coordinate
+    * @return created widget
+    */
    public CoordinateWidget addCoordinateWidget (
-      JointBase joint, String coordName) {
-      int coordIdx = joint.getCoordinateIndex (coordName);
-      if (coordIdx == -1) {
+      JointBase joint, String cname) {
+      int cidx = joint.getCoordinateIndex (cname);
+      if (cidx == -1) {
          throw new IllegalArgumentException (
-            "Coordinate name "+coordName+" not found in joint");
+            "Coordinate name "+cname+" not found in joint");
       }
-      return addCoordinateWidget (null, joint, coordIdx);
+      return addCoordinateWidget (null, joint, cidx);
    }
 
-
+   /**
+    * Creates and adds a widget to this panel for the named coordinate of a
+    * specified joint.
+    *
+    * @param label widget label 
+    * @param joint joint containing the coordinate
+    * @param cname name of the coordinate
+    * @return created widget
+    */
    public CoordinateWidget addCoordinateWidget (
-      String label, JointBase joint, String coordName) {
-      int coordIdx = joint.getCoordinateIndex (coordName);
-      if (coordIdx == -1) {
+      String label, JointBase joint, String cname) {
+      int cidx = joint.getCoordinateIndex (cname);
+      if (cidx == -1) {
          throw new IllegalArgumentException (
-            "Coordinate name "+coordName+" not found in joint");
+            "Coordinate name "+cname+" not found in joint");
       }
-      return addCoordinateWidget (label, joint, coordIdx);
+      return addCoordinateWidget (label, joint, cidx);
    }
 
+   /**
+    * Creates and adds a widget to this panel for the {@code cidx}-th
+    * coordinate of a specified joint.
+    *
+    * @param label widget label 
+    * @param joint joint containing the coordinate
+    * @param cidx coordinate index
+    * @return created widget
+    */
    public CoordinateWidget addCoordinateWidget (
-      String label, JointBase joint, int coordIdx) {  
-      CoordinateWidget widget = new CoordinateWidget (label, joint, coordIdx);
+      String label, JointBase joint, int cidx) {  
+      CoordinateWidget widget = new CoordinateWidget (label, joint, cidx);
       widget.clearValueChangeListeners();
       widget.addValueChangeListener (this);
       addWidget (widget);
@@ -133,14 +192,86 @@ public class CoordinatePanel extends ControlPanel
       return widget;
    }
 
-   public CoordinateWidget addCoordinateWidget (JointBase joint, int coordIdx) {  
-      return addCoordinateWidget (null, joint, coordIdx);
+   /**
+    * Creates and adds a widget to this panel for the {@code cidx}-th
+    * coordinate of a specified joint. The widget's label is set to the
+    * coordinate name.
+    *
+    * @param joint joint containing the coordinate
+    * @param cidx coordinate index
+    * @return created widget
+    */
+   public CoordinateWidget addCoordinateWidget (JointBase joint, int cidx) {  
+      return addCoordinateWidget (null, joint, cidx);
    }
 
-   public void addCoordinateWidgets (JointBase joint) {
+   /**
+    * Creates and adds a widget to this panel for the {@code cidx}-th
+    * coordinate of a specified joint.
+    *
+    * @param label widget label 
+    * @param joint joint containing the coordinate
+    * @param cidx coordinate index
+    * @param min minimum widget value
+    * @param max maximum widget value
+    * @return created widget
+    */
+   public CoordinateWidget addCoordinateWidget (
+      String label, JointBase joint, int cidx, double min, double max) {
+      CoordinateWidget widget =
+         new CoordinateWidget (label, joint, cidx, min, max);
+      widget.clearValueChangeListeners();
+      widget.addValueChangeListener (this);
+      addWidget (widget);
+      notifyWidgetsChanged();
+      return widget;
+   }
+
+   /**
+    * Creates and adds a widget to this panel for the {@code cidx}-th
+    * coordinate of a specified joint. The widget's label is set to the
+    * coordinate name.
+    *
+    * @param joint joint containing the coordinate
+    * @param cidx coordinate index
+    * @param min minimum widget value
+    * @param max maximum widget value
+    * @return created widget
+    */
+   public CoordinateWidget addCoordinateWidget (
+      JointBase joint, int cidx, double min, double max) {
+      return addCoordinateWidget (null, joint, cidx, min, max);
+   }
+
+   /**
+    * Creates and adds widgets to this panel for all the coordinate of a
+    * specified joint. The widget labels are set from the coordinate names.
+    *
+    * @param joint joint containing the coordinates
+    * @return list of the created widgets
+    */
+   public List<CoordinateWidget> addCoordinateWidgets (JointBase joint) {
+      ArrayList<CoordinateWidget> cwidgets = new ArrayList<>();
       for (int idx=0; idx<joint.numCoordinates(); idx++) {
-         addCoordinateWidget (null, joint, idx);
+         cwidgets.add (addCoordinateWidget (null, joint, idx));
       }
+      return cwidgets;
+   }
+
+   /**
+    * Returns a list of all the coordinate widgets currently in this panel.
+    *
+    * @return list of all coordinate widgets
+    */
+   public List<CoordinateWidget> getCoordinateWidgets() {
+      ArrayList<CoordinateWidget> cwidgets = new ArrayList<>();
+      for (int k=0; k<myPanel.numWidgets(); k++) {
+         Component w = myPanel.getWidget(k);
+         if (w instanceof CoordinateWidget) {
+            cwidgets.add ((CoordinateWidget)w);
+         }
+      }
+      return cwidgets;
    }
 
    public void valueChange (ValueChangeEvent e) {

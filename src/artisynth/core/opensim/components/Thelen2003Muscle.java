@@ -190,6 +190,7 @@ public class Thelen2003Muscle extends MuscleBase {
 
       mat.setMaxContractionVelocity (max_contraction_velocity);
       mat.setRigidTendon (ignore_tendon_compliance);
+      mat.setComputeLmDotFromLDot (true);
 
       mat.setFmaxTendonStrain (FmaxTendonStrain);
       mat.setFmaxMuscleStrain (FmaxMuscleStrain);

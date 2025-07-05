@@ -160,17 +160,10 @@ public class ExcitationResponse
 
       myController.updateConstraints(t1);
       myController.updateForces(t1, fp, ex);
-      // String msg = (incremental ? "INCREMENTAL" : "STANDARD");
-      // msg += (useFactorSolveForIncremental ? " FACTOR" : " NO_FACTOR");
-      // System.out.println (msg);
-      // System.out.println ("fpA="+ fp.toString ("%12.8f"));
       myMechSysSolver.addMassForces(fp, t0);
-      // System.out.println ("fmA="+ fp.toString ("%12.8f"));
-      // System.out.println ("Mv= "+ Mv.toString ("%12.8f"));
       
       // bf = M v + h fp
       bf.scaledAdd(h, fp, Mv);
-      //System.out.println ("bfA="+ bf.toString ("%12.8f"));
       
       int solveFlags = MechSystemSolver.NO_SYS_UPDATE;
       

@@ -969,6 +969,8 @@ public class TrackingController extends ControllerBase
 
       VectorNd savedForces = new VectorNd();
       myMech.getForces (savedForces);
+      ComponentState saveState = myMech.createState (null);
+      myMech.getState (saveState);
 
       updateCostTerms (t0, t1);
 
@@ -1002,6 +1004,7 @@ public class TrackingController extends ControllerBase
       // System.out.println (
       //    "t1=" + t1 + " excitations=" + myExcitations.toString("%8.5f"));
 
+      myMech.setState (saveState);
       setExcitations(myExcitations, 0);
       myMech.setForces (savedForces);
    }

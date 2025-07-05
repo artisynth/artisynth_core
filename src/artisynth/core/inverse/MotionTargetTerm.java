@@ -199,7 +199,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       }
       else {
          updateSourceVelocity (mySourceVel);
-         //System.out.println (" perr=  " + myPosError.toString("%12.8f"));         
          if (usePDControl) { 
             updateVelocityError (myVelError);
             //myTrackingVel.scale (1.0, mySourceVel);
@@ -762,12 +761,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          myHv.setColumn (j, Hv_j);
       }
       
-
-      //System.out.println (" vel0=  " + v0.toString ("%12.8f"));
-      //System.out.println (" trkVel=" + myTrackingVel.toString ("%12.8f"));
       myVbar.sub (myTrackingVel, v0);
-      //System.out.println (" vbar=  " + myVbar.toString ("%12.8f"));
-
       if (controller.getDebug ()) {
          System.out.println (
             "(MotionTargetTerm)");

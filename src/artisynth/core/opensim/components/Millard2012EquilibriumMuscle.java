@@ -108,6 +108,7 @@ public class Millard2012EquilibriumMuscle extends MuscleBase {
 
       mat.setMaxContractionVelocity (max_contraction_velocity);
       mat.setRigidTendon (ignore_tendon_compliance);
+      mat.setComputeLmDotFromLDot (true);
 
       mat.setFibreDamping (fiber_damping);
       mat.setMaxPennationAngle (maximum_pennation_angle);

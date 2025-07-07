@@ -112,6 +112,9 @@ public class ComponentUtils {
       ModelComponent comp, HashMap<ModelComponent,Dependencies> depMap) {
       
       if (!comp.isMarked()) {
+         comp.setMarked (true);
+         delete.add (comp);
+         softDeps.remove (comp);
          Dependencies deps = getDependencies (comp, depMap);
          if (deps != null) {
             if (deps.myHard != null) {
@@ -127,16 +130,16 @@ public class ComponentUtils {
                }
             }
          }
-         if (!comp.isMarked()) {
-            comp.setMarked (true);
-            delete.add (comp);
-            softDeps.remove (comp);
-         }
-         else {
-            System.out.println (
-               "Warrning: reference loop detected for component " +
-               getDiagnosticName(comp));
-         }
+//         if (!comp.isMarked()) {
+//            comp.setMarked (true);
+//            delete.add (comp);
+//            softDeps.remove (comp);
+//         }
+//         else {
+//            System.out.println (
+//               "Warrning: reference loop detected for component " +
+//               getDiagnosticName(comp));
+//         }
       }      
    }
 

@@ -996,6 +996,9 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          myLength = data.dget();
          myMuscleLength = data.dget();
          myMuscleLengthPrev = data.dget();
+         // XXX. Need to store Dt and Dm in case computeLmDotFromLdot is true.
+         myDt = data.dget();
+         myDm = data.dget();
          myH = data.dget();
          myMuscleLengthValid = data.zgetBool(); // XXX need this?
          myLengthValid = data.zgetBool(); // XXX need this?
@@ -1007,6 +1010,9 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
          data.dput(myLength);
          data.dput(myMuscleLength);
          data.dput(myMuscleLengthPrev);
+         // XXX. Need to store Dt and Dm in case computeLmDotFromLdot is true.
+         data.dput(myDt);
+         data.dput(myDm);
          data.dput(myH);
          data.zputBool (myMuscleLengthValid); // XXX need this?
          data.zputBool (myLengthValid); // XXX need this?

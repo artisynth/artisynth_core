@@ -47,9 +47,8 @@ public class OpenSimFemHumerus extends OpenSimArm26 {
       // create a FEM model for the humerus, based on a TetGen construction of
       // a higher resolution surface mesh
       PolygonalMesh mesh = new PolygonalMesh (
-         getSourceRelativePath ("osim/Geometry/humerus_rv_highres.obj"));
-      FemModel3d fem = FemFactory.createFromMesh (
-         null, mesh, /*quality*/2);
+         getSourceRelativePath ("geometry/humerus_rv_highres.obj"));
+      FemModel3d fem = FemFactory.createFromMesh (null, mesh, /*quality*/2);
       fem.setMaterial (new LinearMaterial (1e9, 0.49));
       fem.setParticleDamping (1.0);
       // match the density to the original humerus
@@ -57,7 +56,7 @@ public class OpenSimFemHumerus extends OpenSimArm26 {
       fem.setName ("humerus");
       // transform the model to match current humerus pose
       fem.transformGeometry (humerus.getPose());
-      // enable surface rending, turn off element rendering, change color
+      // enable surface rending, turn off element rendering, set colors
       fem.setSurfaceRendering (SurfaceRender.Shaded);
       RenderProps.setVisible (fem.getElements(), false);
       RenderProps.setDrawEdges (fem, true);
@@ -76,26 +75,26 @@ public class OpenSimFemHumerus extends OpenSimArm26 {
       elbow.setCoordinateRange (0, new DoubleInterval(0, Math.PI));
 
       // Attach three frames to top, middle, and bottom of the humerus FEM.
-      // These will serve as attacment frames for the wrap objects, or for
+      // These will serve as anchor frames for the wrap objects, or for
       // humerus-based muscle points that are not origins or insertions.
-      Frame[] femFrames = new Frame[3];
+      Frame[] anchorFrames = new Frame[3];
       // use shoulder joint frame for the top frame
       RigidTransform3d TFW = new RigidTransform3d (shoulder.getCurrentTDW());
-      femFrames[0] = addFemFrame (myMech, fem, "top", TFW);
+      anchorFrames[0] = addFemFrame (myMech, fem, "top", TFW);
       TFW.mulXyz (0, -0.14, -0.005);
-      femFrames[1] = addFemFrame (myMech, fem, "mid", TFW);
+      anchorFrames[1] = addFemFrame (myMech, fem, "mid", TFW);
       // use elbow joint frame for the bottom frame
-      femFrames[2] = addFemFrame (myMech, fem, "bot", elbow.getCurrentTDW());
+      anchorFrames[2] = addFemFrame (myMech, fem, "bot", elbow.getCurrentTDW());
 
       // reattach each humerus wrap object to the nearest FEM frame
       for (WrapComponent wobj : myParser.getWrapObjects()) {
          // remove object and it's attachment from OpenSim hierarchy
          myParser.removeWrapObject(wobj);
-         RigidBody wbody = (RigidBody)wobj;
+         RigidBody wbody = (RigidBody)wobj; // wobj is also a RigidBody
          // place it in the default 'rigidBodies' container, and create an
          // attachment for it
          myMech.addRigidBody (wbody);
-         Frame frame = nearestFrame (femFrames, wbody.getPose().p);
+         Frame frame = nearestFrame (anchorFrames, wbody.getPose().p);
          myMech.addAttachment (new FrameFrameAttachment (wbody, frame));
       }
 
@@ -114,16 +113,16 @@ public class OpenSimFemHumerus extends OpenSimArm26 {
                }
                else {
                   // attach to the nearest frame
-                  attachBody = nearestFrame (femFrames, mkr.getPosition());
+                  attachBody = nearestFrame (anchorFrames, mkr.getPosition());
                }
                // replace the old point with a new one attached to 'attachBody'
-               myParser.replaceMusclePoint (muscle, mkr, attachBody);
+               myParser.replacePathPoint (muscle, mkr, attachBody);
             }
          }
       }
       // reassign epicondyle marker to the lowest FEM frame
       Marker mkr = myParser.findMarker ("r_humerus_epicondyle");
-      myParser.replaceMarker (mkr, femFrames[2]);
+      myParser.replaceMarker (mkr, anchorFrames[2]);
       // remove the humerus, which is now attached to nothing
       myParser.getBodySet().remove (humerus);
    }
@@ -131,11 +130,11 @@ public class OpenSimFemHumerus extends OpenSimArm26 {
    /**
     * Find the frame whose origin is nearest to a given point or vector.
     */
-   Frame nearestFrame (Frame[] frames, Vector3d vec) {
+   Frame nearestFrame (Frame[] frames, Vector3d pos) {
       Frame nearest = null;
       double minDist = Double.POSITIVE_INFINITY;
       for (Frame frame : frames) {
-         double dist = frame.getPose().p.distance(vec);
+         double dist = frame.getPose().p.distance(pos);
          if (dist < minDist) {
             nearest = frame;
             minDist = dist;
@@ -171,7 +170,6 @@ public class OpenSimFemHumerus extends OpenSimArm26 {
     */
    private Frame addFemFrame (
       MechModel mech, FemModel3d fem, String name, RigidTransform3d TFW) {
-
       Frame frame = new Frame ();      
       frame.setName (name);
       frame.setAxisLength (0.05); // make the axes of the frame visible

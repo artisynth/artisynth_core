@@ -301,16 +301,18 @@ to the spring, using the methods
 \end{lstlisting}
 %
 These make {\it wrappable} the next segment to be created (i.e., the segment
-between the most recently added point and the next point to be added),
-with {\tt numKnots} specifying the number of {\it knots} that should
-be used to implement the wrapping. Knots are points that divide the
-wrappable segment into a piecewise linear curve, and are used to
-check for collisions with the wrapping surfaces
-(Figure \ref{cylinderWrappingKnots:fig}).  The argument {\tt
-initialPoints} used by the second method is an optional argument
-which, if non-null, can be used to specify intermediate guide points
-to give the segment an initial path around around any obstacles (for
-more details, see Section \ref{wrappingInit:sec}).
+between the most recently added point and the next point to be added), with
+{\tt numKnots} specifying the number of {\it knots} that should be used to
+implement the wrapping. Knots are points that divide the wrappable segment into
+a piecewise linear curve, and are used to check for collisions with the
+wrapping surfaces (Figure \ref{cylinderWrappingKnots:fig}).  If {\tt numKnots}
+is specified as $\le 0$, then the number of knots is computed automatically by
+multiplying the initial length of the segment by the spring's {\it wrap knot
+density} returned by \javamethod[\mech.MultiPointSpring]{getWrapKnotDensity()}.
+The argument {\tt initialPoints} used by the second method is an optional
+argument which, if non-null, can be used to specify initializing guide points
+that give the segment an initial path around around any obstacles (for more
+details, see Section \ref{wrappingInit:sec}).
 
 Each wrappable segment will be capable of colliding with any of the
 wrappable obstacles that are known to the spring.  Wrappables can be
@@ -359,8 +361,45 @@ spring construction, using the method
    void setSegmentWrappable (int segIdx, int numKnots, Point3d[] initialPoints)
 \end{lstlisting}
 %
-where {\tt segIdx} identifies the segment between points ${\tt segIdx}$
-and ${\tt segIdx}+1$.
+where {\tt segIdx} identifies the segment between points ${\tt segIdx}$ and
+${\tt segIdx}+1$. Several other methods can be used to modify or query the
+number of knot points and/or initializing ppints after a segment has been
+constructed:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech.MultiPointSpring.getNumKnots()}%
+{int getNumKnots (segIdx)}%
+{Returns specified number of knots for segment segIdx.}%
+%
+\methodentry
+{\mech.MultiPointSpring.setNumKnots(,)}%
+{int setNumKnots (int segIdx, int numKnots)}%
+{Set specified number of knots for segment segIdx.}%
+%
+\methodentry
+{\mech.MultiPointSpring.numKnots()}%
+{int numKnots (int segIdx)}%
+{Returns actual number of knots for segment segIdx.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\mech.MultiPointSpring.getInitializingPoints()}%
+{Point3d[] getInitializingPoints (int segIdx)}%
+{Returns initializing points for segment segIdx.}%
+%
+\methodentry
+{\mech.MultiPointSpring.setInitializingPoints(,)}%
+{void setInitializingPoints (int segIdx,\brh Point3d[] initialPoints)}%
+{Sets initializing points for segment segIdx.}%
+%
+\midline
+\end{methodtable}
+%
+{\tt updateWrapSegments()} should be called after any of the above {\tt set}
+methods.
 
 How many knots should be specified for a wrappable segment? Enough so
 that the resulting piecewise-linear approximation to the wrapping
@@ -457,7 +496,7 @@ artisynth.demos.tutorial.CylinderWrapping}.  It consists of a
 segments on either side of the point made wrappable. Two analytic
 wrappables are used: a fixed {\tt RigidCylinder}, and a moving {\tt
 RigidEllipsoid} attached to the end of the spring. The code, excluding
-include directives, is given below: 
+{\tt import} directives, is given below: 
 
 \lstset{numbers=left} 
 \iflatexml
@@ -940,7 +979,7 @@ A more complex example of wrapping, combined with multiple joints and
 point-to-point muscles, is given by \pdfbreak {\tt
 artisynth.demos.tutorial.ToyMuscleArm}, which depicts a two-link ``arm'',
 connected by hinge joints, with opposing muscles controlling the poses of
-each link. The code, with include directives excluded, is given below:
+each link. The code, with {\tt import} directives excluded, is given below:
 \lstset{numbers=left} 
 \iflatexml
 %% Hack: latexml lstinputlisting doesn't handle firstline correctly

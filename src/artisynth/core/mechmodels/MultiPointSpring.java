@@ -1261,6 +1261,19 @@ public class MultiPointSpring extends PointSpringBase
 
    /* === segment query and control === */
 
+   private static Point3d[] copyPoints (Vector3d[] pnts) {
+      if (pnts == null) {
+         return null;
+      }
+      else {
+         Point3d[] copy = new Point3d[pnts.length];
+         for (int k=0; k<copy.length; k++) {
+            copy[k] = new Point3d(pnts[k]);
+         }        
+         return copy;
+      }
+   }
+
    // /**
    //  * Returns a list of the segment specifications in this spring. These
    //  * are for reference only and should not be modified.
@@ -1298,11 +1311,13 @@ public class MultiPointSpring extends PointSpringBase
 
    /**
     * Sets the current spring segment (the one following the most recently
-    * added point) to be wrappable, with a specified number of knots.  The
-    * initial path for the segment is taken to be a straight line between its
-    * end points.
+    * added point) to be wrappable, with a specified number of knots {@code
+    * numk}.  If {@code numk <= 0}, then the number of knots is computed from
+    * the initial length of the path times the spring's knot point density, as
+    * returned by {@link #getWrapKnotDensity}. The initial path for the
+    * segment is taken to be a straight line between its end points.
     * 
-    * @param numk number of knots to be used in the segment
+    * @param numk if {@code > 0}, number of knots to be used in the segment
     */
    public void setSegmentWrappable (int numk) {
       setSegmentWrappable (numk, null);
@@ -1310,17 +1325,23 @@ public class MultiPointSpring extends PointSpringBase
 
    /**
     * Sets the current spring segment (the one following the most recently
-    * added point) to be wrappable, with a specified number of knots and
-    * initialization points.
+    * added point) to be wrappable, with a specified number of knots {@code
+    * numk} and initializing points {@code initialPnts}. If {@code numk <= 0},
+    * then the number of knots is computed from the initial length of the path
+    * times the spring's knot point density, as returned by {@link
+    * #getWrapKnotDensity}. If {@code initialPnts} is {@code null}, then no
+    * initializing points are specified.
     *
-    * <p>The initialization points are described by {@code initialPnts} and are
-    * used to specify the wrap path for the segment: the knots are distributed
-    * along the piecewise-linear path defined by the segment end points on each
-    * end and the initialization points in between. The path is then ``pulled
-    * taught'' while wrapping around any intermediate obstacles.
+    * <p>The initializing points are used to specify the wrap path for the
+    * segment: the knots are distributed along the piecewise-linear path
+    * defined by the segment end points on each end and the initializing points
+    * in between. The path is then ``pulled taught'' while wrapping around any
+    * intermediate obstacles. Initializing points help define how a path should
+    * wrap around obstacles that would otherwise intersect a straight line
+    * path.
     * 
-    * @param numk number of knots to be used in the segment
-    * @param initialPnts initialization points
+    * @param numk if {@code > 0}, the number of knots to be used in the segment
+    * @param initialPnts if not {@code null}, the initializing points
     */
    public void setSegmentWrappable (int numk, Point3d[] initialPnts) {
       if (mySegmentSpecs.size() == 0) {
@@ -1333,13 +1354,13 @@ public class MultiPointSpring extends PointSpringBase
 
    /**
     * Sets the segment indexed by {@code segIdx} to be wrappable, with a
-    * specified number of knots and set of initialization points. See {@link
+    * specified number of knots and set of initializing points. See {@link
     * #setSegmentWrappable(int,Point3d[])} for a description of how the
-    * initialization points are used.
+    * arguments work.
     * 
     * @param segIdx index of the segment
-    * @param numk number of knots to be used in the segment
-    * @param initialPnts initialization points
+    * @param numk if {@code > 0}, number of knots to be used in the segment
+    * @param initialPnts if not {@code null}, the initializing points
     */
    public void setSegmentWrappable (
       int segIdx, int numk, Point3d[] initialPnts) {
@@ -1353,10 +1374,15 @@ public class MultiPointSpring extends PointSpringBase
 
    /**
     * Sets all segments in this spring to be wrappable with a specified number
-    * of knots. The initial path for each segment is taken to be a straight
+    * of knots {@code numk}. If {@code numk <= 0}, then the number of knots is
+    * computed from the initial length of the path times the spring's knot
+    * point density, as returned by {@link #getWrapKnotDensity}.
+    *
+    * The initial path for each segment is taken to be a straight
     * line between its end points.
     * 
-    * @param numk number of knots to be used in each segment
+    * @param numk if {@code > 0}, the number of knots to be used for each
+    * segment
     */
    public void setAllSegmentsWrappable (int numk) {
       if (mySegmentSpecs.size() == 0) {
@@ -1368,7 +1394,117 @@ public class MultiPointSpring extends PointSpringBase
       }
       invalidateSegments();
    }   
-         
+
+   /**
+    * Queries whether the segment indexed by {@code segIdx} is wrappable.
+    *
+    * @return {@code true} if the segment is wrappable.
+    */
+   public boolean isSegmentWrappable (int segIdx) {
+      if (segIdx >= mySegmentSpecs.size()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" does not exist");
+      }
+      return mySegmentSpecs.get(segIdx).isWrappable();
+   }
+
+   /**
+    * Queries the specified number of knots for the wrap segment indexed by
+    * {@code segIdx}. A returned value {@code <= 0} indicates that the segment
+    * is either not wrappable, or the number of knots will be computed from the
+    * initial length of the path times the spring's knot point density, as
+    * returned by {@link #getWrapKnotDensity}.
+    *
+    * <p>The <i>actual</i> number of knots assigned to a segment can be queried
+    * from {@link #numKnots(int)}.
+    * 
+    * @param segIdx index of the segment
+    * @return specified number of knots
+    * @throws IndexOutOfBoundsException if the segment is not defined
+    */
+   public int getNumKnots (int segIdx) {
+      if (segIdx >= mySegmentSpecs.size()) {
+         throw new IndexOutOfBoundsException (
+            "Segment "+segIdx+" does not exist");
+      }
+      if (mySegmentSpecs.get(segIdx).isWrappable()) {
+         return mySegmentSpecs.get(segIdx).getNumKnots();
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * Sets the number of knots in the wrap segment indexed by {@code segIdx}.
+    * 
+    * @param segIdx index of the segment
+    * @param numk number of knots in the segment
+    * @throws IndexOutOfBoundsException if the segment is not defined
+    * @throws IllegalArgumentException if the segment is not wrappable
+    */
+   public void setNumKnots (int segIdx, int numk) {
+      if (segIdx >= mySegmentSpecs.size()) {
+         throw new IndexOutOfBoundsException (
+            "Segment "+segIdx+" does not exist");
+      }
+      if (!mySegmentSpecs.get(segIdx).isWrappable()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" is not wrappable");
+      }
+      mySegmentSpecs.get(segIdx).setNumKnots (numk);
+      invalidateSegments();
+   }
+
+   /**
+    * Queries the points, if any, used to initialize the path for the wrap
+    * segment indexed by {@code segIdx}. See {@link
+    * #setSegmentWrappable(int,Point3d[])} for a description of how the
+    * initializing points are used. Returns {@code null} if there are no
+    * initializing points or if the segment is not wrappable.
+    * 
+    * @param segIdx index of the segment
+    * @return path initializing points, or {@code null}
+    * @throws IndexOutOfBoundsException if the segment is not defined
+    */
+   public Point3d[] getInitializingPoints (int segIdx) {
+      if (segIdx >= mySegmentSpecs.size()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" does not exist");
+      }
+      if (mySegmentSpecs.get(segIdx).isWrappable()) {
+         return mySegmentSpecs.get(segIdx).getInitialPoints();
+      }
+      else {
+         return null;
+      }
+   }
+
+   /**
+    * Sets the points used to initialize the wrap path for the wrap segment
+    * indexed by {@code segIdx}. See {@link
+    * #setSegmentWrappable(int,Point3d[])} for a description of how the
+    * initializing points are used. A value of {@code null} will remove any
+    * initializing points.
+    *
+    * @param segIdx index of the segment
+    * @param initialPnts new initializing points for the segment
+    * @throws IndexOutOfBoundsException if the segment is not defined
+    * @throws IllegalArgumentException if the segment is not wrappable
+    */
+   public void setInitializingPoints (int segIdx, Point3d[] initialPnts) {
+      if (segIdx >= mySegmentSpecs.size()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" does not exist");
+      }
+      if (!mySegmentSpecs.get(segIdx).isWrappable()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" is not wrappable");
+      }
+      mySegmentSpecs.get(segIdx).setInitialPoints (initialPnts);
+      invalidateSegments();
+   }
+
    protected void doSetSegmentWrappable (
       int segIdx, int numk, Point3d[] initialPnts) {
 
@@ -1378,7 +1514,7 @@ public class MultiPointSpring extends PointSpringBase
 //      if (numk > 0) {
 //         spec.setNumKnotsExplicit (true);
 //      }
-      spec.myInitialPnts = initialPnts;
+      spec.setInitialPoints (initialPnts);
    }
 
 //   public boolean clearAllWrapableSegments () {
@@ -1416,13 +1552,7 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Initializes the wrap path for the wrappable segment indexed by {@code
-    * segIdx}, using a specified set of initialization points. See {@link
-    * #setSegmentWrappable(int,Point3d[])} for a description of how the
-    * initialization points are used.
-    * 
-    * @param segIdx index of the segment
-    * @param initialPnts initialization points
+    * @deprecated Use {@link #setInitializingPoints} instead.
     */
    public void initializeSegment (int segIdx, Point3d[] initialPnts) {
       // XXX do something with this
@@ -1433,7 +1563,7 @@ public class MultiPointSpring extends PointSpringBase
       SegmentSpec spec = mySegmentSpecs.get (segIdx);
       if (spec.isWrappable()) {
          if (mySegments == null) {
-            spec.myInitialPnts = initialPnts;
+            spec.setInitialPoints (initialPnts);
          }
          else {
             // XXX finish
@@ -1525,11 +1655,12 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    /**
-    * Queries the number of knots in the current segment indexed by 
-    * {@code segIdx}. Returns 0 if the segment is not wrappable.
+    * Queries the number of knots in the segment indexed by {@code
+    * segIdx}. Returns 0 if the segment is not wrappable.
     * 
-    * @param segIdx index of the current segment
+    * @param segIdx index of the segment
     * @return number of knots in the segment
+    * @throws IndexOutOfBoundsException if the segment is not defined
     */
    public int numKnots (int segIdx) {
       ArrayList<Segment> segs = getSegments();
@@ -4321,10 +4452,7 @@ public class MultiPointSpring extends PointSpringBase
          }
          else if (ScanWriteUtils.scanAttributeName (rtok, "initialPoints")) {
             Vector3d[] list = ScanWriteUtils.scanVector3dList (rtok);
-            myInitialPnts = new Point3d[list.length];
-            for (int i=0; i<list.length; i++) {
-               myInitialPnts[i] = new Point3d (list[i]);
-            }
+            setInitialPoints (list);
             return true;
          }
          rtok.pushBack();
@@ -4377,6 +4505,10 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
 
+      public void setInitialPoints (Vector3d[] pnts) {
+         myInitialPnts = copyPoints (pnts);
+      }
+      
       public SegmentSpec clone() {
          SegmentSpec spec;
          try {
@@ -4387,10 +4519,7 @@ public class MultiPointSpring extends PointSpringBase
                "cannot clone MultiPointSpring.Segment");
          }
          if (myInitialPnts != null) {
-            spec.myInitialPnts = new Point3d[myInitialPnts.length];
-            for (int k=0; k<myInitialPnts.length; k++) {
-               spec.myInitialPnts[k] = new Point3d(myInitialPnts[k]);
-            }
+            spec.setInitialPoints (myInitialPnts);
          }
          return spec;
       }
@@ -4937,7 +5066,7 @@ public class MultiPointSpring extends PointSpringBase
        * Constructs a new WrapSegment with a specified number of knots
        * and an (optional) set of initial points given by {@code initialPnts}.
        * See {@link #setSegmentWrappable(int,Point3d[])} for a description of 
-       * how the initialization points are used.
+       * how the initializing points are used.
        */
       protected WrapSegment (int numk, Point3d[] initialPnts) {
          super();
@@ -5059,7 +5188,7 @@ public class MultiPointSpring extends PointSpringBase
       /**
        * Initialize the knots in the strand so that they are distributed evenly
        * along the piecewise-linear path specified by the start and end points
-       * and any initialization points that may have been specified.
+       * and any initializing points that may have been specified.
        */      
       public void initializeStrand (Point3d[] initialPnts) {
          
@@ -5089,7 +5218,7 @@ public class MultiPointSpring extends PointSpringBase
             lens[i] = pnts.get(i+1).distance (pnts.get(i));
             length += lens[i];
          }
-         if (myNumKnots == 0) {
+         if (myNumKnots <= 0) {
             // compute the knots from the knot density
             setNumKnots((int)Math.max (1, myWrapKnotDensity*length));            
          }

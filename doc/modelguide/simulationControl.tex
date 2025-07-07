@@ -147,7 +147,7 @@ An application model showing a control panel is defined in
 This model simply extends {\tt SimpleMuscle} (Section
 \ref{SimpleMuscleExample:sec}) to provide a control panel for
 adjusting gravity, the mass and color of the box, and the muscle
-excitation. The class definition, excluding {\tt include} statements,
+excitation. The class definition, excluding {\tt import} statements,
 is shown below:
 %
 \lstset{numbers=left}
@@ -285,7 +285,7 @@ muscles and with collisions enabled
 (Chapter \ref{ContactAndCollision:sec}), whose dynamic behavior can be
 adjusted using the control panel. Selected rendering properties can
 also be changed using the panel.  The class definition, excluding {\tt
-include} statements, is shown below:
+import} statements, is shown below:
 %
 \lstset{numbers=left} 
 \iflatexml
@@ -487,7 +487,7 @@ An model illustrating the exporting of properties is defined in
 This model extends {\tt SimpleMuscleWithPanel} (Section
 \ref{SimpleMuscleExample:sec}) to provide a custom property
 {\tt boxVisible} that is added to the control panel.
-The class definition, excluding {\tt include} statements,
+The class definition, excluding {\tt import} statements,
 is shown below:
 %
 \lstset{numbers=left}
@@ -562,6 +562,7 @@ boxVisible} as shown in Figure \ref{boxVisiblePanel:fig}. Toggling
 this property will make the box visible or invisible in the viewer.
 
 \subsection{Coordinate panels}
+\label{CoordinatePanels:sec}
 
 \begin{figure}[ht]
 \begin{center}
@@ -2043,7 +2044,7 @@ It creates a point and a rigid body (using the Blender monkey mesh), sets both
 to be non-dynamic, uses position and velocity probes to control their
 positions, and uses {\tt PositionOutputProbe} and {\tt VelocityOutputProbe} to
 monitor the resulting positions and velocities. The model class definition,
-excluding the include directives, is shown here:
+excluding the {\tt import} directives, is shown here:
 %
 \lstset{numbers=left}
 \iflatexml
@@ -2475,6 +2476,7 @@ methods, as described for {\tt NumericMonitorProbe}s (Section
 \ref{NumericMonitorProbes:sec}).
 
 \section{Working with TRC data}
+\label{TRCData:sec}
 
 The TRC data format was originally developed by Motion Analysis Corporation to
 describe marker position data acquired during motion capture. An overview of
@@ -2769,7 +2771,7 @@ parameter, a custom model property, called {\sf trackingStiffness}, is created
 per the description of Section \ref{CustomProperties:sec}, to control the
 stiffness values for all the springs.
 
-The model's class definition, excluding include directives, is given in
+The model's class definition, excluding {\tt import} directives, is given in
 %
 \lstset{numbers=left}
 \iflatexml

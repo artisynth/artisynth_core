@@ -42,10 +42,10 @@ rendering information and possibly give the viewer additional objects
 to render by placing them on the
 \javaclass[maspack.render]{RenderList} (Section
 \ref{prerenderingAndRendering:sec}).
-\javamethodAlt{maspack.render.IsRenderable.render()}{render()} is the
+\javamethodAlt{maspack.render.IsRenderable.render(,)}{render()} is the
 main method by which an object renders itself, using the functionality
 provided by the supplied \javaclass[maspack.render]{Renderer}.
-\javamethodAlt{maspack.render.IsRenderable.updateBounds()}%
+\javamethodAlt{maspack.render.IsRenderable.updateBounds(,)}%
 {updateBounds()} provides bounds information for the renderable's
 spatial extent (which the viewer can use to auto-size the rendering
 volume); \javaclass[maspack.matrix]{Vector3d} describes a 3-vector and
@@ -198,7 +198,7 @@ are visible into a {\it render list};
 
 \item {\it repainting:} All components in the render list
 are redrawn using their
-\javamethod[maspack.render.IsRenderable]{render()} method;
+\javamethod*[maspack.render.IsRenderable]{render(,)} method;
 
 \end{enumerate}
 
@@ -719,7 +719,7 @@ For convenience, the viewer can also automatically determine
 appropriate values for the {\tt center} and {\tt eye} positions, and
 then fit a suitable viewing frustum around the scene. This is done
 using the renderables'
-\javamethod[maspack.render.IsRenderable]{updateBounds()} method to
+\javamethod*[maspack.render.IsRenderable]{updateBounds(,)} method to
 estimate a scene center and radius, along with the current value of
 the {\tt up} vector to orient the eye frame. The auto-fitting
 methods are:
@@ -2009,9 +2009,9 @@ setting
 \X_{MW} := \X_{MW} \, \X.
 \end{equation*}
 %
-\javamethodAlt{maspack.render.Renderer.translateModelMatrix()}%
+\javamethodAlt{maspack.render.Renderer.translateModelMatrix(,,)}%
 {translateModelMatrix(tx,ty,tz)} and
-\javamethodAlt{maspack.render.Renderer.rotateModelMatrix()}%
+\javamethodAlt{maspack.render.Renderer.rotateModelMatrix(,,)}%
 {rotateModelMatrix(zdeg,ydeg,xdeg)} translate or rotate the model
 frame by post-multiplying the model matrix by a rigid transform
 describing either a translation ({\tt tx}, {\tt ty}, {\tt tz}), or
@@ -2795,7 +2795,7 @@ and {\tt mySerif}.  Note that setting up fonts in general may be
 system specific.  Three different blocks of text are then drawn within
 the {\tt render()} method, with different colors, positions and
 orientations. The last block consists of multiple lines, with
-\javamethod[maspack.render.Renderer]{getTextBounds()} used to obtain
+\javamethod*[maspack.render.Renderer]{getTextBounds(,,)} used to obtain
 the text bounds necessary to center each line.
 
 \begin{sideblock}
@@ -4696,7 +4696,7 @@ Unless the component manages its own selection behavior
 (as described in Section \ref{managingOwnSelectionSec}), 
 \javamethod[maspack.render.IsSelectable]{numSelectionQueriesNeeded()} 
 should return -1
-and \javamethod[maspack.render.IsSelectable]{getSelection()} should do nothing.
+and \javamethod*[maspack.render.IsSelectable]{getSelection(,)} should do nothing.
 
 Whether or not a viewer supports selection can be queried
 by the method
@@ -4995,7 +4995,7 @@ manage their own selection? This can be detected if a component's {\tt
 numSelectionQueriesNeeded()} method return a non-negative value.  In
 that case, {\tt Foo} can let the component manage its selection by
 calling its {\tt render()} method, surrounded with calls to
-\javamethod[maspack.render.Renderer]{beginSubSelection()} and
+\javamethod*[maspack.render.Renderer]{beginSubSelection(,)} and
 \javamethod[maspack.render.Renderer]{endSubSelection()}, instead of
 \javamethod[maspack.render.Renderer]{beginSelectionQuery(int)} and 
 \javamethod[maspack.render.Renderer]{endSelectionQuery()}, as in
@@ -5135,7 +5135,7 @@ Information about the selected components is returned by
 which provides an
 array (of length {\tt numSelectedQueries()}) of object lists for
 each selected query. Each object list is the result of the call to
-\javamethod[maspack.render.IsSelectable]{getSelection()} for that 
+\javamethod*[maspack.render.IsSelectable]{getSelection(,)} for that 
 selection query. As
 indicated in Section \ref{managingOwnSelectionSec}, each object list
 typically contains a single selected component, but may contain other

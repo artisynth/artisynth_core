@@ -4169,7 +4169,7 @@ The example model
 \end{verbatim}
 %
 shows two links connected by universal and hinge joints to form a 3 DOF
-robot-like arm. The model class definition, excluding the include directives,
+robot-like arm. The model class definition, excluding the {\tt import} directives,
 is shown here:
 %
 \lstset{numbers=left}
@@ -4226,6 +4226,7 @@ frame spring}, which is a six dimensional spring that generates
 restoring forces and moments between coordinate frames.
 
 \subsection{Frame spring coordinate frames}
+\label{FrameSpringCoordinateFrames:sec}
 
 \begin{figure}[ht]
 \begin{center}
@@ -4300,7 +4301,7 @@ and compute the force $\f_D$ and moment $\Btau_D$ acting on frame D:
 For example, using $\T_{CD}$ is consistent with the usual coordinate frame
 conventions for joints, and so may be preferable when a spring is being used as
 a ``soft'' replacement for a joint.  To use $\T_{CD}$ instead of $\T_{DC}$, the
-application should set the spring's {\sf useTranformDC} property to {\tt false}.
+application should set the spring's {\sf useTransformDC} property to {\tt false}.
 \end{sideblock}
 
 \subsection{Frame materials}
@@ -4349,6 +4350,7 @@ Other frame materials offering nonlinear behavior may be defined in
 {\tt artisynth.core.materials}.
 
 \subsubsection{PowerFrameMaterial}
+\label{PowerFrameMaterial:sec}
 
 An useful alternative to {\tt LinearFrameMaterial} 
 is \javaclass[\mats]{PowerFrameMaterial}, which computes restoring forces along

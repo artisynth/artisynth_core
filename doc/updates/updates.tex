@@ -52,6 +52,18 @@
 
 \begin{document}
 
+\def\mech{artisynth.core.mechmodels}
+\def\renderables{artisynth.core.renderables}
+\def\mbase{artisynth.core.modelbase}
+\def\probes{artisynth.core.probes}
+\def\gui{artisynth.core.gui}
+\def\fem{artisynth.core.femmodels}
+\def\mats{artisynth.core.materials}
+\def\fields{artisynth.core.fields}
+\def\inverse{artisynth.core.inverse}
+\def\osim{artisynth.core.opensim}
+\def\mgeo{maspack.geometry}
+
 \iflatexml
 \else
 \maketitle
@@ -73,6 +85,150 @@
 
 % Apr 15, 2023: Refactoring and adding stiction compliance to implicit
 %  friction integration
+
+\section*{Jul 8, 2025}
+
+ArtiSynth 3.9 has been released and is available on the website.  (Note however
+that releases are more of a benchmark, and we generally recommend using the
+latest version from GitHub.)
+
+\subsection{OpenSim importer}
+
+The OpenSim importer is now officially released. Applications can employ
+\javaclass[\osim]{OpenSimParser} to import OpenSim models and use them as a
+basis for ArtiSynth model development. Details are given in the new chapter
+``Importing OpenSim Models'' of the \artisynthManual{modelguide}{Modeling
+Guide}.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/OpenSimFemHumerus}
+\else
+ \includegraphics[width=3.75in]{../modelguide/images/OpenSimFemHumerus}
+\fi
+\end{center}
+
+\subsection{Mesh curves and markers}
+
+New classes \javaclass[\renderables]{MeshMarker} and
+\javaclass[\renderables]{MeshCurve} have been added to allow points and curves
+to be placed on mesh surfaces, either in code, or interactively by selecting a
+mesh and choosing {\sf Add mesh curve ...} from the context menu.
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/meshCurves}
+\else
+ \includegraphics[width=3.75in]{images/meshCurves}
+\fi
+\end{center}
+%
+
+\subsection{Inverse kinematics solver}
+
+An inverse kinematics solver has been added, in the form of the class
+\javaclass[\probes]{IKSolver}, which solves for the pose trajectories of
+articulated bodies given a sequence of marker data. Details are given in the
+section ``Inverse kinematics'' of the ``Inverse Simulation Control'' chapter of
+the \artisynthManual{modelguide}{Modeling Guide}. 
+
+One important application of {\tt IKSolver} is the preconditioning of marker
+motion data prior to being used to control an inverse dynamic simulation.
+
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/IKSolver}
+\else
+ \includegraphics[width=2.5in]{images/IKSolver}
+\fi
+\end{center}
+%
+
+\subsection{Coordinate panels}
+
+A new {\tt ControlPanel} subclass, \javaclass[\gui]{CoordinatePanel}, is now
+provided that allows joint coordinates to be updated while automatically
+updating wrapping surfaces and attachments within the containing {\tt
+MechModel}.  Details are given in the section ``Coordinate panels'' of the
+``Inverse Simulation Control'' chapter of the
+\artisynthManual{modelguide}{Modeling Guide}.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/CoordinatePanel}
+\else
+ \includegraphics[width=3.5in]{../modelguide/images/CoordinatePanel}
+\fi
+\end{center}
+
+\subsection{PowerFrameMaterial}
+
+A new frame spring material,
+\javaclass[\mats]{PowerFrameMaterial}, has been added
+that can effect anisotropic, nonlinear and deadbanded frame spring
+restoring forces. Details are found in the section
+``PowerFrameMaterial'' of the ``Mechanical Models I''
+chapter of the  \artisynthManual{modelguide}{Modeling Guide}. 
+
+\begin{center}
+\begin{tabular}{ccc}
+   \includegraphics[width=2in]{../modelguide/images/PowerFrame1}&
+   \includegraphics[width=2in]{../modelguide/images/PowerFrame2}&
+   \includegraphics[width=2in]{../modelguide/images/PowerFrame3}
+\end{tabular}
+\end{center}
+
+\subsection{Position and velocity probes}
+
+New probe classes
+\javaclass[\probes]{PositionInputProbe},
+\javaclass[\probes]{PositionOutputProbe},
+\javaclass[\probes]{VelocityInputProbe},
+and
+\javaclass[\probes]{VelocityOutputProbe}
+%
+have been added to specifically support position and velocity data for
+collections of points and rigid bodies. Details are given in the sections
+``Position probes'' and ``Velocity probes'' of the ``Simulation Control''
+chapter of the \artisynthManual{modelguide}{Modeling Guide}.
+
+A key feature of position probes is the correct interpolation of rotations,
+particularly from sparse data, allowing applications to implement keyframe
+animation:
+%
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/PositionProbes1}
+\else
+ \includegraphics[width=2.5in]{../modelguide/images/PositionProbes1}
+\fi
+\end{center}
+%
+
+\subsection{Readers and writers for TRC data}
+
+The TRC reader class \javaclass[\probes]{TRCReader} has been enhanced, and
+supplemented with the TRC writer \javaclass[\probes]{TRCWriter}.
+
+One new feature is that a {\tt TRCReader} can now create 
+input probes directly from TRC data. See the section
+``Working with TRC data'' in the ``Simulation Control''
+chapter of the \artisynthManual{modelguide}{Modeling Guide}.
+
+\subsection{FEM readers and writers for Gmsh and Ansys CDB formats}
+
+New classes
+\javaclass[\fem]{GmshReader}, 
+\javaclass[\fem]{GmshWriter}, 
+\javaclass[\fem]{AnsysCdbReader}, 
+and
+\javaclass[\fem]{AnsysCdbWriter}
+have been added for reading and writing FEM model geometry
+from and to the {\tt Gmsh} and Ansys {\tt .cdb} file formats.
+See the section ``{Loading external FEM meshes''
+in the ``Finite Element Models'' chapter of the 
+\artisynthManual{modelguide}{Modeling Guide}.
 
 \section*{Jul 22, 2024}
 
@@ -344,7 +500,7 @@ However, it also means that existing subclasses of {\tt
 RenderableComponentBase} should no longer export their own version of
 {\sf renderProps}. If you have defined such a subclass, and it exports
 {\sf renderProps}, such as through a static declaration like the
-followng,
+following,
 %
 \begin{lstlisting}[]
   static {
@@ -2581,13 +2737,13 @@ mesh should be treated as collidable.
 
 \subsection*{addFrameMarkerWorld() added to MechModel}
 
-A new method, \javamethodAlt{\mech.MechModel.addFrameMarkerWorld()}{%
+A new method, \javamethodAlt{\mech.MechModel.addFrameMarkerWorld(,)}{%
 addFrameMarkerWorld(frame,pos)}, has been added to
 \javaclass[\mech]{MechModel}. This creates a
 \javaclass[\mech]{FrameMarker}, attaches it to {\tt frame}
 at the position {\tt pos} in world coordinates, adds it to the {\tt
 MechModel}, and returns it.  It differs from the existing method
-\javamethodAlt{\mech.MechModel.addFrameMarker(FrameMarker,Point3d)}{%
+\javamethodAlt{\mech.MechModel.addFrameMarker(Frame,Point3d)}{%
 addFrameMarker(frame,loc)} in that the latter places the marker at the
 location {\tt loc} in {\it frame} coordinates.
 
@@ -3743,7 +3899,7 @@ area of the the penetration region. This quantity is computed on
 demand and then cached.
 
 \begin{sideblock}
-Note that the above only pertains to collisons preformed with AJL
+Note that the above only pertains to collisions preformed with AJL
 collisions.  AJL collisions are not enabled in ArtiSynth by default
 (although we are working toward changing this). For the moment, AJL
 collisions are enabled using either the command line option {\tt
@@ -3784,7 +3940,7 @@ List<EdgeEdgeContact> getEdgeEdgeContacts()      // edge-edge contacts
 %
 
 Finally, when {\bf not} using AJL collisions, it is possible to
-retreive the individual triangle-triangle intersections between the
+retrieve the individual triangle-triangle intersections between the
 meshes:
 %
 \begin{lstlisting}[]
@@ -3885,7 +4041,7 @@ Previously, renderable components drew themselves by overriding their
 Under the new interface, {\tt GLRenderer} has been replaced by {\tt
 Renderer}, and {\it all} draw operations now proceed through the
 renderer; GL is no longer used or needed. The renderer's 
-functionality has been significantly enhanced to accomodate this.
+functionality has been significantly enhanced to accommodate this.
 For example, the code sample above could
 be now be written as
 %
@@ -4557,7 +4713,7 @@ obscured by the clipping plane.
 
 \javaclass[artisynth.core.gui]{ControlPanel}s have been updated to
 take advantage of the
-\javamethod*[artisynth.core.modelbase.ModelComponent]{updateReferences()}
+\javamethod*[artisynth.core.modelbase.ModelComponent]{updateReferences(,)}
 method in \javaclass[artisynth.core.modelbase]{ModelComponent} to
 update themselves appropriately if any components associated with
 their widgets are deleted.
@@ -5404,7 +5560,7 @@ deleted (after user confirmation).
 {\tt Soft} references are those that can be removed from a component.
 When one or more of a component's soft references are deleted, the
 system will call the component's (new)
-\javamethod[artisynth.core.modelbase.ModelComponent]{updateReferences()}
+\javamethod[artisynth.core.modelbase.ModelComponent]{updateReferences(,)}
 method to remove the references and update the component's internals
 as required. {\tt updateReferences()} also contains support for undo
 operations; more details are given in the {\tt Component References}

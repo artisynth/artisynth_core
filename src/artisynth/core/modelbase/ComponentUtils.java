@@ -92,6 +92,9 @@ public class ComponentUtils {
       }
    }
 
+   /**
+    * Get the dependencies of {@code c} and all of its descendants.
+    */
    protected static Dependencies getDependencies (
       ModelComponent c, HashMap<ModelComponent,Dependencies> depMap) {
 
@@ -115,14 +118,18 @@ public class ComponentUtils {
          comp.setMarked (true);
          delete.add (comp);
          softDeps.remove (comp);
+         // get the dependencies of this component and its descendants
          Dependencies deps = getDependencies (comp, depMap);
          if (deps != null) {
             if (deps.myHard != null) {
+               // hard dependencies will also be deleted, so need to add
+               // *their* dependenices too
                for (ModelComponent c : deps.myHard) {
                   recursivelyAddDependenices (delete, softDeps, c, depMap);
                }
             }
             if (deps.mySoft != null) {
+               // add soft dependencies to the list
                for (ModelComponent c : deps.mySoft) {
                   if (!c.isMarked()) {
                      softDeps.add (c);

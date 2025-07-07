@@ -269,7 +269,7 @@ The distinction between hard and soft references is used by the system
 when components in the hierarchy are deleted. A component that holds a
 hard reference to a deleted component is generally deleted as well.
 However, when only soft references are deleted, then the
-\javamethod[\mbase.ModelComponent]{updateReferences()}
+\javamethod*[\mbase.ModelComponent]{updateReferences(,)}
 method of the referring component is called to update the component's
 internal structures. {\tt updateReferences()} should also store
 information about the update, to allow the update to be undone in case
@@ -313,7 +313,7 @@ of soft references, and store information needed to undo this later:
    }
 \end{lstlisting}
 When updating, the method uses
-\javamethod[\mbase]{ComponentUtils.areConnected()} 
+\javamethod*[\mbase]{ComponentUtils.areConnected(,)} 
 to determine which soft
 references have been deleted from the hierarchy.  A {\tt ListRemove}
 object is used to assemble the remove requests and then perform the
@@ -1018,10 +1018,10 @@ convenient to use the adaptive stepping provided by {\tt RootModel}.
 
 ArtiSynth model components have the ability to save and restore
 themselves from persistent storage. They do this by implementing the
-\javamethod[maspack.util.Scannable]{write()} and 
-\javamethod[maspack.util.Scannable]{scan()} methods of
+\javamethod*[maspack.util.Scannable]{write(,,)} and 
+\javamethod*[maspack.util.Scannable]{scan(,)} methods of
 \javaclass{maspack.util.Scannable}, and the 
-\javamethod[\mbase.PostScannable]{postscan()}
+\javamethod*[\mbase.PostScannable]{postscan(,)}
 method of \javaclass[\mbase]{ModelComponent}:
 
 \begin{lstlisting}[]
@@ -1045,7 +1045,7 @@ described in detail. A summary of the key points is given in Section
 
 \subsection{Writing components}
 
-The \javamethod[maspack.util.Scannable]{write()} method writes
+The \javamethod*[maspack.util.Scannable]{write(,,)} method writes
 information about the component to a {\tt PrintWriter}, using
 \javaclass[maspack.util]{NumberFormat} to format floating point
 numbers where appropriate. The {\tt ref} argument is used to provide
@@ -1187,7 +1187,7 @@ the component's {\tt write()} method through the {\tt ref} argument, and is cast
 explicitly to {\tt CompositeComponent} and passed to {\tt
 writeItems()} as the {\tt ancestor} argument.  A component can
 then use
-\javamethod[\mbase]{ComponentUtils.getWritePathName()}
+\javamethod*[\mbase]{ComponentUtils.getWritePathName(,)}
 to obtain the path name of each reference with respect to the
 ancestor, and write this to the output.
 
@@ -1281,7 +1281,7 @@ an instance of
 \javaclass[\mbase]{ComponentListImpl}
 (Section \ref{CompositeComponentBaseSec}), then the
 above can be written using the latter's
-\javamethod[\mbase.ComponentListImpl]{writeComponentsByName()}
+\javamethod*[\mbase.ComponentListImpl]{writeComponentsByName(,,)}
 method, which writes each child, using its component name as an attribute name:
 \begin{lstlisting}[]
    ComponentListImpl myComponents; 
@@ -1346,7 +1346,7 @@ if the composite component has been implemented internally using
 an instance of 
 \javaclass[\mbase]{ComponentListImpl},
 then one can use the latter's
-\javamethod[\mbase.ComponentListImpl]{writeComponents()}
+\javamethod*[\mbase.ComponentListImpl]{writeComponents(,,)}
 method to automatically write out all the components, along with the necessary
 class information:
 \begin{lstlisting}[]
@@ -1384,7 +1384,7 @@ to the output.
 \subsection{Scanning components}
 \label{scanningComponentsSec}
 
-The \javamethod[maspack.util.Scannable]{scan()} method reads the
+The \javamethod*[maspack.util.Scannable]{scan(,)} method reads the
 component in from a token stream provided by a
 \javaclass[maspack.util]{ReaderTokenizer}. This translates the input
 into a stream of tokens, including words, numbers, and special token
@@ -1441,7 +1441,7 @@ code for reading property values and looks something like this:
 
       rtok.nextToken();
       // if attribute name is a property name, scan that property:
-      if (ScanWriteUtils.scanProperty (rtok, this)) {
+      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
          return true;
       }
       rtok.pushBack();
@@ -1449,7 +1449,7 @@ code for reading property values and looks something like this:
    }
 \end{lstlisting}
 The method begins by getting the next token and then calling
-\javamethod[\mbase]{ScanWriteUtils.scanProperty()}
+\javamethod*[\mbase]{ScanWriteUtils.scanProperty(,,)}
 to see if the token is a word matching the name of one of the
 component's properties. If so, then {\tt scanProperty()} scans and
 sets the property value and returns {\tt true}, and {\tt scanItem()}
@@ -1648,7 +1648,7 @@ which allows this to be compressed into
       }
 \end{lstlisting}
 One may also use
-\javamethod[\mbase]{ScanWriteUtils.scanAndStoreReference()}
+\javamethod*[\mbase]{ScanWriteUtils.scanAndStoreReference(,,)}
 for the same purpose.
 The {\tt scanItem()} method for a two-point spring can then be written as:
 \begin{lstlisting}[]
@@ -1712,7 +1712,7 @@ via the convenience method {\tt scanAndStoreReferences()}:
       }
 \end{lstlisting}
 One may also use
-\javamethod[\mbase]{ScanWriteUtils.scanAndStoreReferences()}
+\javamethod*[\mbase]{ScanWriteUtils.scanAndStoreReferences(,,)}
 for the same purpose.
 
 \subsubsection{Scanning child components}
@@ -1756,8 +1756,8 @@ composite component has been implemented internally using an instance
 of \javaclass[\mbase]{ComponentListImpl} (Section
 \ref{CompositeComponentBaseSec}), then the above can be written more
 succinctly using the latter's
-\javamethod[\mbase.ComponentListImpl]%
-{scanAndStoreComponentByName()}
+\javamethod*[\mbase.ComponentListImpl]%
+{scanAndStoreComponentByName(,)}
 method:
 \begin{lstlisting}[]
    ComponentListImpl myComponents; 
@@ -1786,7 +1786,7 @@ has been implemented internally using an instance of
 \javaclass[\mbase]{ComponentListImpl}, then one can
 use the latter's methods 
 \javamethod[\mbase.ComponentListImpl]{scanBegin()},
-\javamethod[\mbase.ComponentListImpl]{scanAndStoreComponent()},
+\javamethod*[\mbase.ComponentListImpl]{scanAndStoreComponent(,)},
 and \javamethod[\mbase.ComponentListImpl]{scanEnd()}
 to handle the scanning.
 
@@ -1823,7 +1823,7 @@ the {\tt super} method to avoid confusing attribute names with class
 information.
 
 \begin{sideblock}
-\javamethod[\mbase.ComponentListImpl]{scanAndStoreComponent()}
+\javamethod*[\mbase.ComponentListImpl]{scanAndStoreComponent(,)}
 will not create a new component if a {\it fixed} component (Section
 \ref{CompositeComponentBaseSec}) of the appropriate class already
 exists at the current list position. Instead, the existing component
@@ -1863,7 +1863,7 @@ looks something like this:
       tokens.poll(); // consume the END token
    }   
 \end{lstlisting}
-\javamethod[\mbase.ScanWriteUtils]{postscanBeginToken()}
+\javamethod*[\mbase.ScanWriteUtils]{postscanBeginToken(,)}
 gets the next token on the queue, checks that it is a {\tt BEGIN}
 token, and throws an exception if this is not the case.  Then the
 method simply calls {\tt postScanItem()}, which does the actual token
@@ -1898,15 +1898,15 @@ a number of methods for token processing, including:
 \end{lstlisting}
 {\tt ModelComponentBase} also makes convenience wrappers for these
 directly available within the class.
-\javamethod[\mbase.ScanWriteUtils]{postscanAttributeName()}
+\javamethod*[\mbase.ScanWriteUtils]{postscanAttributeName(,)}
 checks if the next token in the queue is a {\tt StringToken} matching
 {\tt name}, and if it is, consumes that token and returns {\tt true}.
-\javamethod[\mbase.ScanWriteUtils]{postscanReference()}
+\javamethod*[\mbase.ScanWriteUtils]{postscanReference(Deque,,)}
 checks that the next token is a {\tt StringToken} containing a path
 reference, finds the component referenced by that path relative to
 {\tt ancestor}, checks that it is an instance of {\tt clazz}, and
 returns it.
-\javamethod[\mbase.ScanWriteUtils]{postscanReferences()}
+\javamethod*[\mbase.ScanWriteUtils]{postscanReferences(,,,)}
 obtains a set of component references described by a sequence of {\tt
 StringTokens} located between {\tt BEGIN} and {\tt END} tokens, and
 returns the referenced components in an array.  These methods will
@@ -1948,7 +1948,7 @@ Finally, for composite components, it is necessary to call {\tt postscan()} for
 each of their children. For composites implemented using
 \javaclass[\mbase]{ComponentListImpl},
 this can be done by calling the latter's
-\javamethod[\mbase.ComponentListImpl]{postscanComponent()}
+\javamethod*[\mbase.ComponentListImpl]{postscanComponent(,)}
 method. For both 
 {\tt CompositeComponent} and {\tt MutableCompositeComponent}
 implementations, the corresponding code looks like this:
@@ -1983,8 +1983,8 @@ Deferring the settting of property values until the post-scan step can
 be done by saving the scanned property values in the token queue, and
 then actually setting the properties during the post-scan. Two
 convenience methods,
-\javamethod[\mbase]{ScanWriteUtils.scanAndStorePropertyValue()} and
-\javamethod[\mbase]{ScanWriteUtils.postscanPropertyValue()} allow
+\javamethod*[\mbase]{ScanWriteUtils.scanAndStorePropertyValue(,,,)} and
+\javamethod*[\mbase]{ScanWriteUtils.postscanPropertyValue(,)} allow
 this to be done fairly easily:
 \begin{lstlisting}[]
    public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -2005,7 +2005,7 @@ this to be done fairly easily:
    public boolean postscanItem (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      if (ScanWriteUtils.postscanPropertyValues (tokens, this, deferredProps)) {
+      if (ScanWriteUtils.postscanPropertyValue (tokens, this, deferredProps)) {
          return true;
       }
       else {
@@ -2049,7 +2049,7 @@ queue as the {\tt ref} argument, and then call {\tt postscan()}:
       comp.postscan (tokens, ancestor);
 \end{lstlisting}
 For convenience, the above code fragment is encapsulated into the
-method \javamethod[\mbase]{ScanWriteUtils.scanfull()}.
+method \javamethod*[\mbase]{ScanWriteUtils.scanfull(,,)}.
 
 If we are scanning an entire hierarchy from scratch, then {\tt comp}
 will be the root component of the hierarchy and {\tt ancestor} will
@@ -2166,7 +2166,7 @@ because the token queue is not normally written out in any place where it can
 be inspected. To help with this, once can use
 \javamethod[\mbase]{ScanWriteUtils.setTokenPrinting()}
 to enable the token queue produced by
-\javamethod[\mbase]{ScanWriteUtils.scanfull()} to be
+\javamethod*[\mbase]{ScanWriteUtils.scanfull(,,)} to be
 printed to the standard output. It is also possible to print a token
 queue directly using 
 \javamethod[\mbase]{ScanWriteUtils.printTokens()}.
@@ -2180,9 +2180,9 @@ as follows:
 \begin{enumerate}
 
 \item Writing and scanning are done using the component's
-\javamethod[maspack.util.Scannable]{write()},
-\javamethod[maspack.util.Scannable]{scan()},
-\javamethod[\mbase.PostScannable]{postscan()}
+\javamethod*[maspack.util.Scannable]{write(,,)},
+\javamethod*[maspack.util.Scannable]{scan(,)},
+\javamethod*[\mbase.PostScannable]{postscan(,)}
 methods.  These methods usually employ {\tt writeItems()}, {\tt
 scanItem()}, and {\tt postscanItem()} to handle the writing and
 scanning of individual attributes and child components.
@@ -2218,7 +2218,7 @@ and {\tt postscanComponent()}.
 a token queue and then calling both {\tt scan()} and
 {\tt postscan()} for the top-level component.
 This can be done using the convenience method
-\javamethod[\mbase]{ScanWriteUtils.scanfull()}.
+\javamethod*[\mbase]{ScanWriteUtils.scanfull(,,)}.
 
 \item The utility class
 \javaclass[\mbase]{ScanWriteUtils} contains a large

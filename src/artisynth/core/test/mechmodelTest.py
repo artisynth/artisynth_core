@@ -743,6 +743,30 @@ run()
 waitForStop()
 reset()
 
+loadModel ("artisynth.demos.opensim.OpenSimArm26")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("OpenSimArm26");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.opensim.OpenSimFemElbow")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("OpenSimFemElbow");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.opensim.OpenSimFemHumerus")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("OpenSimFemHumerus");
+run()
+waitForStop()
+reset()
+
 main.maskFocusStealing (False)
 if main.getMainFrame() == None:
    main.quit()

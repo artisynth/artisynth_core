@@ -19,6 +19,7 @@ SOURCES = \
 	muscleWrapping.tex \
 	inverse.tex \
 	skinning.tex \
+	opensim.tex \
         dicom.tex \
 	appendix.tex \
 	../texinputs/artisynthDoc.tex

@@ -662,6 +662,22 @@ public class OpenSimParser {
    }
 
    /**
+    * Returns a list of the all the muscle components located beneath the
+    * {@code "forceset"}. If the forceset is not present, an empty list is
+    * returned.
+    * 
+    * @return list of muscles in the "forceset"
+    */
+   public ArrayList<MuscleComponent> getMuscles() {
+      ArrayList<MuscleComponent> list = new ArrayList<>();
+      RenderableComponentList<ModelComponent> forceset = getForceSet();
+      if (forceset != null) {
+         forceset.recursivelyFind (list, MuscleComponent.class);
+      }
+      return list;
+   }
+
+   /**
     * Finds a specific force component by name.
     *
     * @param name name of the force component
@@ -680,12 +696,27 @@ public class OpenSimParser {
     * Finds a specific muscle or line-based spring by name.
     *
     * @param name name of the muscle/spring
-    * @return muscle/spring, or {@code null} if not found
+    * @return the muscle/spring, or {@code null} if not found
     */
    public PointSpringBase findMuscleOrSpring (String name) {
       for (PointSpringBase psb : getMusclesAndSprings()) {
          if (name.equals (psb.getName())) {
             return psb;
+         }
+      }
+      return null;
+   }
+
+   /**
+    * Finds a specific muscle by name.
+    *
+    * @param name name of the muscle
+    * @return the muscle, or {@code null} if not found
+    */
+   public MuscleComponent findMuscle (String name) {
+      for (MuscleComponent mus : getMuscles()) {
+         if (name.equals (mus.getName())) {
+            return mus;
          }
       }
       return null;
@@ -798,11 +829,8 @@ public class OpenSimParser {
    public ControlPanel createExcitationPanel() {
       ControlPanel panel = new ControlPanel();
       panel.setName ("excitations");
-      for (PointSpringBase psb : getMusclesAndSprings()) {
-         if (psb instanceof MuscleComponent) {
-            MuscleComponent muscle = (MuscleComponent)psb;
-            panel.addWidget (muscle.getName(), muscle, "excitation");
-         }
+      for (MuscleComponent muscle : getMuscles()) {
+         panel.addWidget (muscle.getName(), muscle, "excitation");
       }
       return panel;
    }
@@ -821,11 +849,8 @@ public class OpenSimParser {
       }
       ControlPanel panel = new ControlPanel();
       panel.setName ("excitations");
-      for (PointSpringBase psb : getMusclesAndSprings()) {
-         if (psb instanceof MuscleComponent && nameSet.contains(psb.getName())) {
-            MuscleComponent muscle = (MuscleComponent)psb;
-            panel.addWidget (muscle.getName(), muscle, "excitation");
-         }
+      for (MuscleComponent muscle : getMuscles()) {
+         panel.addWidget (muscle.getName(), muscle, "excitation");
       }
       return panel;
    }
@@ -881,11 +906,11 @@ public class OpenSimParser {
    }
 
    /**
-    * Update wrap paths for all muscles. This can be called after one or more
-    * components are repositioned, in order to ensure that the wrap paths
-    * remain consistent.
+    * Update wrap paths for all muscles and springs. This can be called after
+    * one or more components are repositioned, in order to ensure that the wrap
+    * paths remain consistent.
     */
-   public void updateMusclePaths() {
+   public void updateWrapPaths() {
       for (PointSpringBase spr : getMusclesAndSprings()) {
          if (spr instanceof MultiPointMuscle) {
             ((MultiPointMuscle)spr).updateWrapSegments();
@@ -919,7 +944,7 @@ public class OpenSimParser {
    }
 
    /**
-    * Replace a muscle path point in the OpenSim component hierarchy with a new
+    * Replace a path point in the OpenSim component hierarchy with a new
     * point that is created by attaching to the specified body or frame in the
     * same location. The new point is given the same name as the previous
     * point.  The point itself is assumed to be an instance of {@link Marker}
@@ -933,10 +958,12 @@ public class OpenSimParser {
     * @param muscle muscle or axial spring whose point should be reassigned.
     * @param pnt path point to replace
     * @param body to connect the new path point to
+    * @return returns the new point
     */
-   public void replaceMusclePoint (
+   public Marker replacePathPoint (
       PointSpringBase muscle, Marker pnt, PointAttachable body) {
 
+      GenericMarker newPnt;
       int pidx = muscle.indexOfPoint (pnt);
       if (pidx == -1) {
          throw new IllegalArgumentException (
@@ -954,7 +981,7 @@ public class OpenSimParser {
             throw new IllegalArgumentException (
                "point does not appear in the OpenSim component hierarchy");
          }
-         GenericMarker newPnt = new GenericMarker (pnt.getPosition());
+         newPnt = new GenericMarker (pnt.getPosition());
          newPnt.setAttached (body.createPointAttachment (newPnt));
          newPnt.setName (pnt.getName());
          muscle.setPoint (pidx, newPnt);
@@ -979,12 +1006,13 @@ public class OpenSimParser {
             throw new IllegalArgumentException (
                "point does not appear in the OpenSim component hierarchy");
          }
-         GenericMarker newPnt = new GenericMarker (pnt.getPosition());
+         newPnt = new GenericMarker (pnt.getPosition());
          newPnt.setAttached (body.createPointAttachment (newPnt));
          newPnt.setName (pnt.getName());
          muscle.setPoint (pidx, newPnt);
          markerList.set (midx, newPnt);
       }
+      return newPnt;
    }
 
    /**
@@ -999,8 +1027,9 @@ public class OpenSimParser {
     *
     * @param mkr marker point to replace
     * @param body to connect the new marker to
+    * @return the new marker
     */
-   public void replaceMarker (Marker mkr, PointAttachable body) {
+   public Marker replaceMarker (Marker mkr, PointAttachable body) {
       int midx = getMarkerSet().indexOf (mkr);
       if (midx == -1) {
          throw new IllegalArgumentException (
@@ -1010,6 +1039,7 @@ public class OpenSimParser {
       newMkr.setAttached (body.createPointAttachment (newMkr));
       newMkr.setName (mkr.getName());
       getMarkerSet().set (midx, newMkr);
+      return newMkr;
    }
    
 }

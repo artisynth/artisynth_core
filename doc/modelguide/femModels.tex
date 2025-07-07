@@ -1567,6 +1567,7 @@ arbitrary; any angle larger than 0 (within machine precision) would also
 work.
 
 \subsection{Selecting nodes in the viewer}
+\label{SelectingNodesInViewer:sec}
 
 Often, it is most convenient to select nodes in the ArtiSynth viewer.
 For this, a node selection tool is available
@@ -2325,7 +2326,7 @@ larger, or distributed differently. In that case, one may create a custom
 using a specified set of nodes (and weights, if needed), as described in
 Section \ref{sec:fem:frameattachments}. This can then be used to connect the
 joint to the FEM via one of the {\tt setBodies()} or {\tt setBodyA/B()} methods
-that accepts custom {\tt FrameConnector}s:
+that accepts custom {\tt FrameAttachment}s:
 %
 \begin{lstlisting}[]
    // connect a FEM as the A body for a hinge joint
@@ -3121,7 +3122,7 @@ A simple example showing an FEM with material-based muscles is given by {\tt
 artisynth.demos.tutorial.ToyMuscleFem}. It consists of a hex-element beam, with
 12 muscles added in groups along its length, allowing it to flex in the x-z
 plane. A frame object is also attached to the right end. The code for the
-model, without the package and include directives, is listed below:
+model, without the package and {\tt import} directives, is listed below:
 %
 \lstset{numbers=left}
 \iflatexml

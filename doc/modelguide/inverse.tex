@@ -445,7 +445,7 @@ particle. The model consists of a single dynamic particle, initially located at
 the origin, attached to a set of 16 point-to-point muscles arranged radially
 around it. A tracking controller is created to control the excitations of these
 muscles so as to enable the particle to follow a trajectory specified by a
-probe. The code for the model, without the package and include directives, is
+probe. The code for the model, without the package and {\tt import} directives, is
 listed below:
 %
 \lstset{numbers=left}
@@ -3031,7 +3031,7 @@ with PD control reduce the tracking error. The model is
   artisynth.demos.tutorial.IKInverseMuscleArm
 \end{verbatim}
 %
-and its class definition, excluding {\tt include} statements, is shown below:
+and its class definition, excluding {\tt import} statements, is shown below:
 %
 \lstset{numbers=left}
 \iflatexml

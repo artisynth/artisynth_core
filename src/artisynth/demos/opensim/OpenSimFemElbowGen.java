@@ -16,6 +16,8 @@ import maspack.matrix.RigidTransform3d;
  */
 public class OpenSimFemElbowGen extends OpenSimArm26 {
 
+   public static boolean omitFromMenu = true;
+
    double frameAttachDist = 0.005;
 
    ArrayList<FemNode3d> findRadialNodes (FemModel3d fem, double rdist) {

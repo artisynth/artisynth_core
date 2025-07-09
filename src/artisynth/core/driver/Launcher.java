@@ -8,6 +8,7 @@ package artisynth.core.driver;
 
 import java.util.*;
 import java.io.*;
+import java.nio.file.Files;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.lang.reflect.Method;
@@ -43,6 +44,29 @@ public class Launcher {
       this (DEFAULT_MAIN_CLASS_NAME);
    }
    
+   private void maybeSetConfigFolder (String dirname) {
+      File dir = new File(dirname);
+      if (!dir.exists()) {
+         try {
+            Files.createDirectories (dir.toPath());
+            System.out.println ("Created new config folder "+dir);
+         }
+         catch (IOException e) {
+            System.out.println (
+               "WARNING: could not creating config folder "+dir+": "+e);
+            dir = null;
+         }
+      }
+      else if (!dir.isDirectory()) {
+         System.out.println (
+            "WARNING: configFolder "+dir+" is not valid folder; ignoring");
+         dir = null;
+      }
+      if (dir != null) {
+         ArtisynthPath.setConfigFolder (dir);
+      }
+   }
+
    public Object launch (String[] args) {
 
       boolean updateLibs = false;
@@ -59,6 +83,13 @@ public class Launcher {
                      "Error: option '"+args[i]+"' needs an additional argument");
                }
                classpath = args[++i];
+            }
+            else if (args[i].equals ("-configFolder")) {
+               if (i == args.length-1) {
+                  System.err.println (
+                     "Error: option '"+args[i]+"' needs an additional argument");
+               }
+               maybeSetConfigFolder (args[++i]);
             }
             else {
                mainArgs.add (args[i]);

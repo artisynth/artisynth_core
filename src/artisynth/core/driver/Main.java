@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.file.Files;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -3148,11 +3149,23 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       if (configFolder.value != null) {
          File dir = new File(configFolder.value);
-         if (!dir.isDirectory()) {
+         if (!dir.exists()) {
+            try {
+               Files.createDirectories (dir.toPath());
+               System.out.println ("Created new config folder "+dir);
+            }
+            catch (IOException e) {
+               System.out.println (
+                  "WARNING: could not creating config folder "+dir+": "+e);
+               dir = null;
+            }
+         }
+         else if (!dir.isDirectory()) {
             System.out.println (
                "WARNING: configFolder "+dir+" is not valid folder; ignoring");
+            dir = null;
          }
-         else {
+         if (dir != null) {
             ArtisynthPath.setConfigFolder (dir);
          }
       }

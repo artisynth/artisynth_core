@@ -27,6 +27,8 @@ import maspack.properties.*;
  */
 public class InverseMuscleFemGen extends ToyMuscleFem {
 
+   public static boolean omitFromMenu = true;
+
    protected String dataDir = PathFinder.getSourceRelativePath (this, "data/");   
 
    public void build (String[] args) throws IOException {

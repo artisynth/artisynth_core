@@ -25,6 +25,8 @@ import maspack.util.*;
  */
 public class IKInverseMuscleArmGen extends ToyMuscleArm {
 
+   public static boolean omitFromMenu = true;
+
    public final double startTime = 0;
    public final double stopTime = 4;
 

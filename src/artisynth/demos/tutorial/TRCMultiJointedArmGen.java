@@ -29,6 +29,9 @@ import maspack.util.PathFinder;
  * Generate marker data for the TRCMultiJointedArm demo.
  */
 public class TRCMultiJointedArmGen extends MultiJointedArm {
+
+   public static boolean omitFromMenu = true;
+
    protected String geodir = PathFinder.getSourceRelativePath (this, "data/");
 
    public double startTime = 0;

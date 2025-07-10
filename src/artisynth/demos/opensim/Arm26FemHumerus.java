@@ -33,7 +33,7 @@ import maspack.util.DoubleInterval;
  * Modified version of OpenSimArm26 that replaces the humerus with an FEM
  * model, modifying the joints, wrap objects and muscle points accordingly.
  */
-public class OpenSimFemHumerus extends OpenSimArm26 {
+public class Arm26FemHumerus extends OpenSimArm26 {
 
    double frameAttachDist = 0.005;
 

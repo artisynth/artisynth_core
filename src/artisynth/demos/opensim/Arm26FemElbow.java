@@ -25,7 +25,7 @@ import maspack.render.RenderProps;
  * Modified version of OpenSimArm26 that replaces the elbow with a toy FE
  * contact model.
  */
-public class OpenSimFemElbow extends OpenSimArm26 {
+public class Arm26FemElbow extends OpenSimArm26 {
    /**
     * Helper method to set material and render properties fo a FEM.
     */

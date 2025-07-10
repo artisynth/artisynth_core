@@ -14,10 +14,12 @@ ArtiSynth provides an \javaclass[\osim]{OpenSimParser} class that can be used
 to import parts of an OpenSim model (\cite{delp2007opensim}; versions 3 or 4),
 translating the components into their ArtiSynth equivalents and arranging them
 inside a {\tt MechModel}. The OpenSim component hierarchy is preserved, and the
-resulting MechModel components can be queried using methods supplied by
-the parser. Not all OpenSim components are implemented, but those that are
-include most of the commonly used components found in {\tt "bodyset"}, {\tt
+resulting MechModel components can be queried using methods supplied by the
+parser. Not all OpenSim components are implemented, but those that are include
+most of the commonly used components found in {\tt "bodyset"}, {\tt
 "jointset"}, {\tt "forceset"}, {\tt "constraintset"}, and {\tt "markerset"}.
+Implemented muscles include {\tt Thelen2003Muscle} and {\tt
+Millard2012EquilibriumMuscle}.
 
 By using this parser, applications may leverage the large existing corpus of
 OpenSim models as a starting point for ArtiSynth models. As usual, model
@@ -211,6 +213,18 @@ points. Each path point is implemented as a {\tt FrameMarker} attached to one
 of the bodies in the body set. Figure
 \ref{Arm26Hierarchy2:fig} shows the navigation panel with the muscle {\tt
 TRIlong} selected and also expanded to show the path points.
+
+Currently supported OpenSim muscles include {\tt Thelen2003Muscle} and {\tt
+Millard2012EquilibriumMuscle}, which are implemented using the {\tt
+MultiPointMuscle} materials
+\javaclass[\mats]{Thelen2003AxialMuscle} and 
+\javaclass[\mats]{Millard2012AxialMuscle} 
+(Section \ref{EquilibriumMuscleMaterials:sec}).
+All other OpenSim muscles are implemented as a generic
+instance of
+\javaclass[\mats]{ConstantAxialMuscle}
+(Section \ref{sec:mechii:musclematerials}) whose {\sf maxForce} property is set
+to the specified {\tt max\_isometric\_force}.
 
 \subsection{Constraint set}
 
@@ -516,13 +530,29 @@ either far too small, or stiffness and damping values that are far too high.
 
 After checking the quiescent behavior, use a muscle excitation panel to check
 that the model reacts as expected (and remains stable) when different muscles
-are excited. If there are difficulties, one may wish to adjust the muscle
-material parameters. A useful debugging technique can be to temporarily replace
+are excited. In some cases, it may be desirable to adjust the muscle
+parameters. For example, the rest lengths for a muscle implemented using {\tt
+Millard2012AxialMuscle} could be adjusted as follows:
+%
+\begin{lstlisting}[]
+import artisynth.core.materials.Millard2012AxialMuscle;
+  ...
+  double optl, tslack; // new opt fibre length and tendon slack length values
+  ...
+  // find problematic muscle
+  MultiPointSpring spr = (MultiPointSpring)myParser.findMuscle ("BIClong");
+  Millard2012AxialMuscle mmat = (Millard2012AxialMuscle)spr.getMaterial();
+  // adjust the material
+  mmat.setOptFibreLength (optl);
+  mmat.setTendonSlackLength (tslack);
+\end{lstlisting}
+%
+Another useful debugging technique can be to temporarily replace
 the muscle material for problematic muscles with an instance of
 \javaclass[\mats]{SimpleAxialMuscle} (Section \ref{SimpleAxialMuscle:sec}):
 %
 \begin{lstlisting}[]
-  // find problematic muscle
+  // replace material for problematic muscle
   MultiPointSpring spr = (MultiPointSpring)myParser.findMuscle ("BIClong");
   spr.setMaterial (new SimpleAxialMuscle (
      /*stiffness*/0, /*damping*/0, /*maxForce*/100));
@@ -885,31 +915,31 @@ original. Similarly, {\tt replaceMarker()} replaces the marker {\tt mkr} within
 the marker set with a new marker attached to the specified {\tt body}.
 
 \subsection{Example: replacing the elbow joint with a contact FEM model}
-\label{OpenSimFemElbow:sec}
+\label{Arm26FemElbow:sec}
 
 \begin{figure}[ht]
 \begin{center}
    \iflatexml 
-      \includegraphics[]{images/OpenSimFemElbow} 
+      \includegraphics[]{images/Arm26FemElbow} 
    \else 
-      \includegraphics[width=3.75in]{images/OpenSimFemElbow} 
+      \includegraphics[width=3.75in]{images/Arm26FemElbow} 
    \fi
 \end{center}
-\caption{{\tt OpenSimFemElbow} model, showing a closeup of the
+\caption{{\tt Arm26FemElbow} model, showing a closeup of the
 toy FEM model used to emulate the elbow, with the humerus displayed as a
 wireframe for greater visibility.}
-\label{OpenSimFemElbow:fig}
+\label{Arm26FemElbow:fig}
 \end{figure}
 
 The model 
 \begin{verbatim}
-  artisynth.demos.opensim.OpenSimFemElbow
+  artisynth.demos.opensim.Arm26FemElbow
 \end{verbatim}
 presents a modified version of {\tt OpenSimArm26} in which the elbow joint has
 been removed and replaced with a (very simple) contact model involving two
 nested FEM cylinders simulating cartilage layers, with the outer layer
 attached to the lower arm and the inner one attached to the humerus (Figure
-\ref{OpenSimFemElbow:fig}). Additional stability is supplied by a
+\ref{Arm26FemElbow:fig}). Additional stability is supplied by a
 \javaclass[\mech]{FrameSpring}, located where the elbow joint was, that
 prevents sliding and limits rotation along and about the joint axis. The class
 definition, excluding {\tt import} statements, is shown below:
@@ -918,10 +948,10 @@ definition, excluding {\tt import} statements, is shown below:
 \iflatexml
 %% Hack: latexml lstinputlisting doesn't handle firstline correctly
 \lstset{firstnumber={-26}}
-\lstinputlisting[firstline=1]{../../src/artisynth/demos/opensim/OpenSimFemElbow.java}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/opensim/Arm26FemElbow.java}
 \lstset{firstnumber={1}}
 \else
-\lstinputlisting[firstline=28]{../../src/artisynth/demos/opensim/OpenSimFemElbow.java}
+\lstinputlisting[firstline=28]{../../src/artisynth/demos/opensim/Arm26FemElbow.java}
 \fi
 \lstset{numbers=none}
 In the {\tt build()} method, {\tt super.build()} is first called to create the
@@ -976,7 +1006,7 @@ forces, the bias excitations present in the OpenSim model are also removed
 "TRI"} is made invisible (line 96).
 
 To run this example in ArtiSynth, select {\sf All demos > opensim >
-OpenSimFemElbow} from the {\sf Models} menu.
+Arm26FemElbow} from the {\sf Models} menu.
 
 \begin{sideblock}
 It is possible to make this model go unstable, usually with an ``inverted
@@ -985,29 +1015,29 @@ the pull controller or the excitation panel.
 \end{sideblock}
 
 \subsection{Example: replacing the humerus with a FEM model}
-\label{OpenSimFemHumerus:sec}
+\label{Arm26FemHumerus:sec}
 
 \begin{figure}[ht]
 \begin{center}
    \iflatexml 
-      \includegraphics[]{images/OpenSimFemHumerus} 
+      \includegraphics[]{images/Arm26FemHumerus} 
    \else 
-      \includegraphics[width=3.75in]{images/OpenSimFemHumerus} 
+      \includegraphics[width=3.75in]{images/Arm26FemHumerus} 
    \fi
 \end{center}
-\caption{{\tt OpenSimFemHumerus} model, showing the FEM humerus
+\caption{{\tt Arm26FemHumerus} model, showing the FEM humerus
 and the three coordinate frames embedded into its top, middle and bottom.}
-\label{OpenSimFemHumerus:fig}
+\label{Arm26FemHumerus:fig}
 \end{figure}
 
 The model 
 \begin{verbatim}
-  artisynth.demos.opensim.OpenSimFemHumerus
+  artisynth.demos.opensim.Arm26FemHumerus
 \end{verbatim}
 presents a modified version of {\tt OpenSimArm26} in which the humerus has been
 replaced with an FEM model, with the joints, wrap objects, and muscle path
 points transferred from the humerus body to the FEM model
-(Figure \ref{OpenSimFemHumerus:fig}). Most of this transfer is based on
+(Figure \ref{Arm26FemHumerus:fig}). Most of this transfer is based on
 three \javaclass[\mech]{Frame} objects that are attached to the top, middle and
 center of the FEM model, using the methods described in Section
 \ref{sec:fem:frameattachments}. These frames serve as anchors for attaching the
@@ -1018,18 +1048,18 @@ the FEM model via the frames, which are given a large number of supporting
 nodes so that the resulting stresses are distributed across a reasonable number
 of elements.
 
-The {\tt build()} method for {\tt OpenSimFemHumerus} makes use of the following
+The {\tt build()} method for {\tt Arm26FemHumerus} makes use of the following
 helper methods:
 %
 \lstset{numbers=left} 
 \iflatexml
 %% Hack: latexml lstinputlisting doesn't handle firstline correctly
 %\lstset{firstnumber={-25}}
-\lstinputlisting[firstline=131,lastline=180]{../../src/artisynth/demos/opensim/OpenSimFemHumerus.java}
+\lstinputlisting[firstline=131,lastline=180]{../../src/artisynth/demos/opensim/Arm26FemHumerus.java}
 %\lstset{firstnumber={1}}
 \else
 \lstset{firstnumber={131}}
-\lstinputlisting[firstline=131,lastline=180]{../../src/artisynth/demos/opensim/OpenSimFemHumerus.java}
+\lstinputlisting[firstline=131,lastline=180]{../../src/artisynth/demos/opensim/Arm26FemHumerus.java}
 \lstset{firstnumber={1}}
 \fi
 \lstset{numbers=none}
@@ -1053,11 +1083,11 @@ The {\tt build()} method itself is listed below:
 \iflatexml
 %% Hack: latexml lstinputlisting doesn't handle firstline correctly
 %\lstset{firstnumber={-25}}
-\lstinputlisting[firstline=40,lastline=128]{../../src/artisynth/demos/opensim/OpenSimFemHumerus.java}
+\lstinputlisting[firstline=40,lastline=128]{../../src/artisynth/demos/opensim/Arm26FemHumerus.java}
 %\lstset{firstnumber={1}}
 \else
 \lstset{firstnumber={40}}
-\lstinputlisting[firstline=40,lastline=128]{../../src/artisynth/demos/opensim/OpenSimFemHumerus.java}
+\lstinputlisting[firstline=40,lastline=128]{../../src/artisynth/demos/opensim/Arm26FemHumerus.java}
 \lstset{firstnumber={1}}
 \fi
 \lstset{numbers=none}
@@ -1113,7 +1143,7 @@ the {\tt ComponentUtils} method {\tt deleteComponentAndDependencies()} since
 all dependencies have been removed by the preceding steps.
 
 To run this example in ArtiSynth, select {\sf All demos > opensim >
-OpenSimFemHumerus} from the {\sf Models} menu.
+Arm26FemHumerus} from the {\sf Models} menu.
 
 \ifdefined\maindoc
 \else

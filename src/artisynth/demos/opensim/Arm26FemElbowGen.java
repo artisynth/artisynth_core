@@ -10,11 +10,12 @@ import artisynth.core.femmodels.GmshWriter;
 import artisynth.core.femmodels.NodeNumberWriter;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.geometry.io.*;
 
 /**
  * Generates the data for OpenSimFemElbow.
  */
-public class OpenSimFemElbowGen extends OpenSimArm26 {
+public class Arm26FemElbowGen extends OpenSimArm26 {
 
    public static boolean omitFromMenu = true;
 
@@ -49,11 +50,12 @@ public class OpenSimFemElbowGen extends OpenSimArm26 {
       double lenH = 0.04;
       double lenL = 0.045;
 
+      // create FEM geometry
+
       FemModel3d femH = FemFactory.createHexTube (
          null, lenH, rinnerH, routerH, /*nt*/20, /*nl*/10, /*nr*/2);
       ArrayList<FemNode3d> nodesH = findRadialNodes (femH, rinnerH);
       femH.transformGeometry (new RigidTransform3d (0, 0, 0.005));
-
       NodeNumberWriter.write (datadir+"innerCartAttach.txt", nodesH);
       GmshWriter.write (datadir+"innerCart.gmsh", femH);
 
@@ -64,5 +66,21 @@ public class OpenSimFemElbowGen extends OpenSimArm26 {
 
       NodeNumberWriter.write (datadir+"outerCartAttach.txt", nodesL);
       GmshWriter.write (datadir+"outerCart.gmsh", femL);
+
+      // create mesh geometry for EFC. Use FEM factories to create the tubes
+      // (with higher res), and then export surface meshes
+
+      rinnerH = 0.0050;
+      routerL = 0.015;
+
+      femH = FemFactory.createHexTube (
+         null, lenH, rinnerH, routerH, /*nt*/30, /*nl*/15, /*nr*/2);
+      femH.transformGeometry (new RigidTransform3d (0, 0, 0.005));
+      WavefrontWriter.writeMesh (datadir+"innerCart.obj", femH.getSurfaceMesh());
+
+      femL = FemFactory.createHexTube (
+         null, lenL, rinnerL, routerL, /*nt=*/31, /*nl*/17, /*nr*/2);
+      femL.transformGeometry (new RigidTransform3d (0, 0, 0.005));
+      WavefrontWriter.writeMesh (datadir+"outerCart.obj", femL.getSurfaceMesh());
    }
 }

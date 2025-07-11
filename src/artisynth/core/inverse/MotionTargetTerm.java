@@ -32,6 +32,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderable;
 import maspack.spatialmotion.Twist;
 
 /**
@@ -78,6 +79,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    protected RenderProps sourceRenderProps;
 
    protected PointList<TargetPoint> myTargetPoints;
+   protected double myTargetsPointRadius = -1;
    protected ReferenceListBase<Point,SourcePointReference> mySourcePoints;
    protected RenderableComponentList<TargetFrame> myTargetFrames;
    protected ReferenceListBase<Frame,SourceFrameReference> mySourceFrames;
@@ -166,6 +168,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
 
    public void setTargetsPointRadius (double rad) {
+      myTargetsPointRadius = rad;
       RenderProps.setPointRadius (myTargetPoints, rad);
    }
    
@@ -590,7 +593,12 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          RenderProps.setSphericalPoints (
             tpnt, source.getRenderProps ().getPointRadius (), Color.CYAN);
       }
-
+      if (myTargetsPointRadius < 0 && source.getParent() instanceof Renderable) {
+         RenderProps props = ((Renderable)source.getParent()).getRenderProps();
+         if (props != null) {
+            setTargetsPointRadius (props.getPointRadius());
+         }
+      }
       return tpnt;
    }
    

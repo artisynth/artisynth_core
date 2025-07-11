@@ -1179,7 +1179,7 @@ public class GridPlane implements HasProperties {
       else {
          numDivisions = (int)Math.round(10.0/k);
       }
-      double majorSize = numDivisions*minorSize;     
+      double majorSize = numDivisions*minorSize;
       return new GridResolution (majorSize, numDivisions);
    }
 
@@ -1215,11 +1215,16 @@ public class GridPlane implements HasProperties {
             if (myUseWorldOrigin) {
                // May need to change position to accommodate new resolution.
                RigidTransform3d TGWnew = getAlignedPose(XGridToWorldTarget);
+               // compute the resolution that this new pose will create -
+               // make sure it doesn't change
                double dpp = computeFocalPoint (null, TGWnew, renderer);
-               GridResolution resx = updateResolution (dpp);
-               if (resx.equals (res)) {
+               GridResolution newres = updateResolution (dpp);
+               if (newres.equals (res)) {
                   myResolution.set (res);
-                  setGridToWorld (XGridToWorldTarget);
+                  setGridToWorld (TGWnew);
+               }
+               else {
+                  // cycle prevented
                }
             }
             else {

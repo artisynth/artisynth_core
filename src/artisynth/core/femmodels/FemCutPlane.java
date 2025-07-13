@@ -443,7 +443,7 @@ public class FemCutPlane extends Frame implements FemMesh {
    protected void updatePlotRangeIfAuto() {
       if (mySurfaceRendering.usesStressOrStrain()) {
          FemModel3d fem = getFem();
-         if (myStressPlotRanging == Ranging.Auto) {
+         if (fem != null && myStressPlotRanging == Ranging.Auto) {
             if (fem.getSurfaceRendering() == mySurfaceRendering &&
                 fem.getStressPlotRanging() == Ranging.Auto) {
                doSetStressPlotRange (fem.getStressPlotRange());

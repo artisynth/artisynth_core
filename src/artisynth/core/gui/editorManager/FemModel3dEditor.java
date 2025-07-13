@@ -12,10 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
 
+import maspack.matrix.*;
+import maspack.matrix.RigidTransform3d;
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLViewer;
+import maspack.render.RenderableUtils;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.FemElement;
+import artisynth.core.femmodels.FemCutPlane;
 import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemElement3d;
@@ -44,6 +48,9 @@ public class FemModel3dEditor extends EditorBase {
          FemModel3d model = (FemModel3d)selection.get (0);
          actions.add (this, "Select nodes ...");
          actions.add (this, "Add FemMarkers ...", EXCLUSIVE);
+         if (model.numCutPlanes() == 0) {
+            actions.add (this, "Add cut plane");
+         }
          actions.add (this, "Rebuild surface mesh");
          actions.add (this, "Add new surface mesh");
          actions.add (this, "Save surface mesh ...");
@@ -78,6 +85,9 @@ public class FemModel3dEditor extends EditorBase {
                Fem3dMarkerAgent agent = new Fem3dMarkerAgent (myMain, model);
                agent.show (popupBounds);
             }
+         }
+         else if (actionCommand == "Add cut plane") {
+            addCutPlane (model);
          }
          else if (actionCommand == "Rebuild surface mesh") {
             rebuildSurfaceMesh (model);
@@ -155,6 +165,22 @@ public class FemModel3dEditor extends EditorBase {
    private void rebuildSurfaceMesh (FemModel3d model) {
       GLViewer v = myMain.getViewer();
       model.createSurfaceMesh (new ClippedElementFilter (v.getClipPlanes()));
+   }
+
+   private void addCutPlane (FemModel3d model) {
+      // create and add a cut plane centered on the FEM and with a normal
+      // parallel to the default viewer eye position
+      Point3d max = new Point3d();
+      Point3d min = new Point3d();
+      RenderableUtils.getBounds (model, min, max);
+      RigidTransform3d TPW = new RigidTransform3d();
+      TPW.p.combine (0.5, min, 0.5, max);
+      GLViewer v = myMain.getViewer();
+      Vector3d zdir = v.getAxialView().getDirection(2);
+      TPW.R.setZDirection (zdir);
+      FemCutPlane cplane = new FemCutPlane (TPW);
+      cplane.setSurfaceRendering (SurfaceRender.Stress);
+      model.addCutPlane (cplane);
    }
 
    private void addNewSurfaceMesh (FemModel3d model) {

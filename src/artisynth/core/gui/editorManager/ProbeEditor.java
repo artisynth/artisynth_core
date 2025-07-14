@@ -125,14 +125,14 @@ public class ProbeEditor extends EditorBase {
          if (selection.size() == 1) {
             actions.add (this, "Load data from ...");
          }
-         if (allHaveExportFiles) {
+         if (allNumeric && allHaveExportFiles) {
             actions.add (this, "Export data");
          }
-         if (selection.size() == 1) {
+         if (allNumeric && selection.size() == 1) {
             actions.add (this, "Export data as ...");
          }
-         if (selection.size() == 1) {
-            actions.add (this, "Import overlay ...");
+         if (allNumeric && selection.size() == 1) {
+            actions.add (this, "Import data ...");
          }
          if (allNumeric && myMain.hasMatlabConnection()) {
             actions.add (this, "Save to MATLAB");
@@ -204,8 +204,9 @@ public class ProbeEditor extends EditorBase {
          else if (actionCommand.equals ("Export data as ...")) {
             exportAs ((Probe)selection.get(0), myMain.getMainFrame());
          }
-         else if (actionCommand.equals ("Import overlay ...")) {
-            importOverlay ((Probe)selection.get(0), myMain.getMainFrame());
+         else if (actionCommand.equals ("Import data ...")) {
+            importData ((Probe)selection.get(0), myMain.getMainFrame());
+            myMain.rerender();
          }
          else if (actionCommand.equals ("Save to MATLAB")) {
             MatlabInterface mi = myMain.getMatlabConnection();
@@ -437,7 +438,7 @@ public class ProbeEditor extends EditorBase {
          }
          else {
             try {
-               probe.export (file, props);
+               probe.exportData (file, props);
             }
             catch (Exception e) {
                showError (win, "Error exporting", probe, e);
@@ -469,7 +470,7 @@ public class ProbeEditor extends EditorBase {
             return;
          }
          try {
-            probe.export (file, props);
+            probe.exportData (file, props);
             probe.setExportFileName (Probe.getPathFromFile(file));
          }
          catch (Exception e) {
@@ -479,9 +480,9 @@ public class ProbeEditor extends EditorBase {
       }
    }
 
-   static public void importOverlay (Probe probe, Window win) {
-      ProbeImportChooser chooser = new ProbeImportChooser (probe);
-      if (chooser.showDialog (win, "Import overlay data") ==
+   static public void importData (Probe probe, Window win) {
+      ProbeImportChooser chooser = new ProbeImportChooser (probe, -1);
+      if (chooser.showDialog (win, "Import data") ==
           JFileChooser.APPROVE_OPTION) {
          String oldPath = probe.getImportFileName();
          File file = chooser.getSelectedFile();
@@ -491,7 +492,11 @@ public class ProbeEditor extends EditorBase {
             file = new File (file.getAbsolutePath()+"."+ext);
          }
          try {
-            probe.importData (file, /*explicitTime=*/false, /*overlay=*/true);
+            double timeStep = chooser.getTimeStep();
+            if (chooser.getTimeDataIncluded()) {
+               timeStep = -1;
+            }
+            probe.importData (file, timeStep);
             probe.setImportFileName (Probe.getPathFromFile(file));
          }
          catch (Exception e) {

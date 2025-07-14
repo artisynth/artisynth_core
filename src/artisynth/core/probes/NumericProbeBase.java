@@ -73,7 +73,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    protected int[] myRotationSubvecOffsets;
    protected PlotTraceManager myPlotTraceManager;
 
-   protected static ImportExportFileInfo[] myExportFileInfo =
+   protected static ImportExportFileInfo[] myImportExportFileInfo =
       new ImportExportFileInfo[] {
       new ImportExportFileInfo ("CSV format", "csv"),
       new ImportExportFileInfo ("Text format", "txt")
@@ -226,13 +226,26 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       myRotationSubvecOffsets = Arrays.copyOf (offs, offs.length);
    }
 
+   
+   
    protected void createNumericList () {
-      if (myRotationRep != null && myRotationSubvecOffsets != null) {
-         myNumericList = 
+      // create a new list if necessaty
+      if (myNumericList == null ||
+          myNumericList.getVectorSize() != myVsize ||
+          myNumericList.getRotationRep() != myRotationRep ||
+          (myRotationSubvecOffsets != null &&
+           !Arrays.equals (myRotationSubvecOffsets, 
+              myNumericList.getRotationSubvecOffsets()))) {
+         if (myRotationRep != null && myRotationSubvecOffsets != null) {
+            myNumericList = 
             new NumericList (myVsize, myRotationRep, myRotationSubvecOffsets); 
+         }
+         else {
+            myNumericList = new NumericList (myVsize);
+         }
       }
       else {
-         myNumericList = new NumericList (myVsize);
+         myNumericList.clear(); // just clear the existing list
       }
       myNumericList.setInterpolation (myInterpolation);
    }
@@ -1154,30 +1167,133 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    }
 
    /**
+    * Returns true if the specified string has the same name as a
+    * Interpolation.Order enum.
+    */
+   private boolean hasOrderValue (String str) {
+      for (Order order : Order.values()) {
+         if (str.equalsIgnoreCase (order.toString())) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   /**
     * Still being implemented
     */
-   public void importText (
-      File file, boolean explicitTime, boolean overlay, char separator)
+   public void importText (File file, double timeStep, char separator)
       throws IOException  {
 
       ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer(file);
-      DynamicDoubleArray darray = new DynamicDoubleArray();
+      ArrayList<NumericListKnot> newKnots = new ArrayList<>();
+      int overCnt = 0; // num lines with more numbers than expected
       try {
          rtok.eolIsSignificant(true);
          while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
             rtok.pushBack();
-            darray.clear();
+            NumericListKnot knot = new NumericListKnot (getVsize());
+            int ncnt = 0; // number of numbers parsed
+            int j = 0; // index for next v entry
             if (separator == ' ') {
+               // txt file
                while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
-                  darray.add (rtok.nval);
+                  if (ncnt == 0 && timeStep <= 0) {
+                     knot.t = rtok.nval;
+                  }
+                  else if (j == getVsize()) {
+                     rtok.skipLine();
+                     overCnt++;
+                     break;
+                  }
+                  else {
+                     knot.v.set (j++, rtok.nval);
+                  }
+                  ncnt++;
                }
-               if (rtok.ttype !=  ReaderTokenizer.TT_EOF &&
-                   rtok.ttype !=  ReaderTokenizer.TT_EOL) {
-                  throw new IOException ("Unexpected token: " + rtok);
+               if (rtok.ttype != ReaderTokenizer.TT_EOF &&
+                   rtok.ttype != ReaderTokenizer.TT_EOL) {
+                  if (newKnots.size() == 1 && ncnt == 0 && rtok.tokenIsWord() &&
+                      hasOrderValue (rtok.sval)) {
+                     throw new IOException (
+                        "Unexpected token '" + rtok.sval + "' starting line 2: "+
+                        "suspect this may be a probe data file?");
+                  }
+                  else {
+                     throw new IOException ("Unexpected token: " + rtok);
+                  }
                }
             }
             else if (separator == ',') {
+               // csv file
+               boolean numberExpected = true;
+               while (rtok.nextToken() != ReaderTokenizer.TT_EOL) {
+                  if (rtok.ttype == ReaderTokenizer.TT_EOF) {
+                     break;
+                  }
+                  else if (rtok.ttype == ',') {
+                     if (numberExpected) {
+                        ncnt++; j++;
+                     }
+                     numberExpected = true;
+                  }
+                  else if (rtok.tokenIsNumber()) {
+                     if (!numberExpected) {
+                        throw new IOException (
+                           "Number not separated by ',' near column" + ncnt +
+                           ", line: " + rtok.lineno());
+                     }
+                     if (ncnt == 0 && timeStep <= 0) {
+                        knot.t = rtok.nval;
+                     }
+                     else if (j == getVsize()) {
+                        rtok.skipLine();
+                        overCnt++;
+                        break;
+                     }
+                     else {
+                        knot.v.set (j++, rtok.nval);
+                     } 
+                     numberExpected = false;
+                     ncnt++;
+                  }
+                  else {
+                     throw new IOException ("Unexpected token: " + rtok);
+                  }
+               }
+               if (rtok.ttype != ReaderTokenizer.TT_EOF &&
+                   rtok.ttype != ReaderTokenizer.TT_EOL) {
+                  throw new IOException ("Unexpected token: " + rtok);
+               }
             }
+            if (ncnt == 0 && timeStep > 0 && getVsize() > 0) {
+               // ignore blank lines
+               continue;
+            }
+            if (j < getVsize()) {
+               if (separator == ' ' && newKnots.size() == 0 &&
+                   rtok.ttype == ReaderTokenizer.TT_EOL) {
+                  // see if this might be a probe data file.
+                  if (rtok.nextToken() == ReaderTokenizer.TT_WORD &&
+                      hasOrderValue (rtok.sval)) {
+                     throw new IOException (
+                        "Unexpected token '" + rtok.sval + "' starting line 2: "+
+                        "suspect this may be a probe data file?");
+                  }
+               }
+               throw new IOException (
+                  "Insufficient data at line "+(rtok.lineno()-1));
+            }
+            if (timeStep > 0) {
+               knot.t = newKnots.size()*timeStep;
+            }
+            else if (newKnots.size() > 0) {
+               if (knot.t <= newKnots.get(newKnots.size()-1).t) {
+                  throw new IOException (
+                     "Time values not in ascending order, line "+rtok.lineno());
+               }
+            }
+            newKnots.add (knot);
          }
       }
       catch (Exception e) {
@@ -1191,10 +1307,23 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       finally {
          rtok.close();
       }
+      if (overCnt > 0) {
+         System.out.println (
+            "WARNING: " + overCnt +
+            " lines in import file have more numbers than expected; ignoring");
+      }
+      myNumericList.clear();
+      for (NumericListKnot knot : newKnots) {
+         myNumericList.add (knot);
+      }
    }
 
    public ImportExportFileInfo[] getExportFileInfo() {
-      return myExportFileInfo;
+      return myImportExportFileInfo;
+   }
+
+   public ImportExportFileInfo[] getImportFileInfo() {
+      return myImportExportFileInfo;
    }
 
    public ExportProps getExportProps (String ext) {
@@ -1206,7 +1335,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       }
    }
 
-   public void export (File file, ExportProps props)
+   public void exportData (File file, ExportProps props)
       throws IOException {
       String name = file.getName();
       if (ArtisynthPath.getFileExtension(file).equals ("csv")) {
@@ -1233,14 +1362,14 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    /**
     * Still being implemented
     */
-   public void importData (File file, boolean explicitTime, boolean overlay) 
+   public void importData (File file, double stepSize) 
       throws IOException {
       String name = file.getName();
       if (ArtisynthPath.getFileExtension(file).equals ("csv")) {
-         importText (file, explicitTime, overlay, ',');
+         importText (file, stepSize, ',');
       }
       else if (ArtisynthPath.getFileExtension(file).equals ("txt")) {
-         importText (file, explicitTime, overlay, ' ');
+         importText (file, stepSize, ' ');
       }
       else {
          throw new IOException ("Unrecognized type for file "+name);

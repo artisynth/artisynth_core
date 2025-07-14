@@ -206,8 +206,8 @@ testSaveLoad ("artisynth.demos.test.EquilibriumMuscleTest", "-thelen")
 testSaveLoad ("artisynth.demos.tutorial.ControlPanelDemo")
 testSaveLoad ("artisynth.demos.tutorial.EquilibriumMuscleDemo")
 testSaveLoad ("artisynth.demos.opensim.OpenSimArm26")
-testSaveLoad ("artisynth.demos.opensim.OpenSimFemHumerus")
-testSaveLoad ("artisynth.demos.opensim.OpenSimFemElbow")
+testSaveLoad ("artisynth.demos.opensim.Arm26FemHumerus")
+testSaveLoad ("artisynth.demos.opensim.Arm26FemElbow")
 
 main.maskFocusStealing (False)
 if main.getMainFrame() == None:

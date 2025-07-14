@@ -921,17 +921,13 @@ public class ProbeInfo implements Clonable, ActionListener {
       myExportAsItem.addActionListener (this);
       myExportAsItem.setActionCommand ("Export data as");
 
-      // JMenuItem myImportItem = new JMenuItem ("Import");
-      // myImportItem.addActionListener (this);
-      // myImportItem.setActionCommand ("Import");
+      JMenuItem myImportItem = new JMenuItem ("Import data ...");
+      myImportItem.addActionListener (this);
+      myImportItem.setActionCommand ("Import data");
 
       // JMenuItem myImportAsItem = new JMenuItem ("Import as ...");
       // myImportAsItem.addActionListener (this);
       // myImportAsItem.setActionCommand ("Import as");
-
-      JMenuItem myImportAsItem = new JMenuItem ("Import overlay ...");
-      myImportAsItem.addActionListener (this);
-      myImportAsItem.setActionCommand ("Import overlay");
 
       JMenuItem myClearItem = new JMenuItem ("Clear");
       myClearItem.addActionListener (this);
@@ -993,6 +989,9 @@ public class ProbeInfo implements Clonable, ActionListener {
       if (getProbe().getExportFileInfo().length > 0) {
          popupMenu.add (myExportItem);
          popupMenu.add (myExportAsItem);
+         if (getProbe() instanceof NumericProbeBase) {
+            popupMenu.add (myImportItem);
+         }
          popupMenu.addSeparator();
       }
 
@@ -1189,8 +1188,8 @@ public class ProbeInfo implements Clonable, ActionListener {
       else if (nameOfAction == "Export data as") {
          ProbeEditor.exportAs (myProbe, myController);
       }
-      else if (nameOfAction == "Import overlay") {
-         ProbeEditor.importOverlay (myProbe, myController);
+      else if (nameOfAction == "Import data") {
+         ProbeEditor.importData (myProbe, myController);
       }
       else if (nameOfAction == "Set") {
          setProbe();

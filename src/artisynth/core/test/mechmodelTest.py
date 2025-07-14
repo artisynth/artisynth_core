@@ -751,18 +751,18 @@ run()
 waitForStop()
 reset()
 
-loadModel ("artisynth.demos.opensim.OpenSimFemElbow")
+loadModel ("artisynth.demos.opensim.Arm26FemElbow")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
-mech.writePrintStateHeader ("OpenSimFemElbow");
+mech.writePrintStateHeader ("Arm26FemElbow");
 run()
 waitForStop()
 reset()
 
-loadModel ("artisynth.demos.opensim.OpenSimFemHumerus")
+loadModel ("artisynth.demos.opensim.Arm26FemHumerus")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
-mech.writePrintStateHeader ("OpenSimFemHumerus");
+mech.writePrintStateHeader ("Arm26FemHumerus");
 run()
 waitForStop()
 reset()

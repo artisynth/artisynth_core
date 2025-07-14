@@ -265,7 +265,7 @@ testState (D, 1.0, 5, "artisynth.demos.tutorial.TRCMultiJointedArm");
 testState (D, 1.0, 5, "artisynth.demos.tutorial.PositionProbes");
 testState (D, 1.0, 5, "artisynth.demos.tutorial.MultiJointedArm");
 testState (D, 1.0, 5, "artisynth.demos.opensim.OpenSimArm26");
-testState (D, 1.0, 5, "artisynth.demos.opensim.OpenSimFemHumerus");
+testState (D, 1.0, 5, "artisynth.demos.opensim.Arm26FemHumerus");
 testState (D, 1.0, 5, "artisynth.demos.opensim.OpenSimElbow");
 
 testState (S, 1.0, 10, "artisynth.demos.test.EquilibriumMuscleTest")

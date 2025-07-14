@@ -58,14 +58,14 @@ public class ProbeExportChooser extends PanelFileChooser
       }
    }
 
-   private File replaceFileExtension (File file, String ext) {
+   private File stripFileExtension (File file) {
       String pathName = file.getAbsolutePath();
       int dotIndex = pathName.lastIndexOf(".");
       if (dotIndex == -1) {
-         return new File(pathName + "." + ext);
+         return file;
       }
       else {
-         return new File(pathName.substring(0, dotIndex) + "." + ext);
+         return new File(pathName.substring(0, dotIndex));
       }
    }
 
@@ -114,19 +114,19 @@ public class ProbeExportChooser extends PanelFileChooser
    public ProbeExportChooser (Probe probe) {
       
       File file = probe.getExportFile();
+      String currentExt = null;
       ImportExportFileInfo[] fileInfo = probe.getExportFileInfo();
       myProbe = probe;
 
       if (file == null) {
-         if (probe.getAttachedFile() != null) {
-            file = replaceFileExtension (
-               probe.getAttachedFile(), fileInfo[0].getExt());
-         }
+         file = probe.getAttachedFile();
       }
       if (file == null) {
          setCurrentDirectory (ArtisynthPath.getWorkingDir());
       }
       else {
+         currentExt = ArtisynthPath.getFileExtension(file);
+         file = stripFileExtension (file);
          setCurrentDirectory (file);
          setSelectedFile (file);
       }
@@ -141,9 +141,8 @@ public class ProbeExportChooser extends PanelFileChooser
             info.getDescription() + " (*." + info.getExt() + ")";
          ExtensionFileFilter filter =
             new ExtensionFileFilter (description, info.getExt());
-         if (file != null &&
-             ArtisynthPath.getFileExtension(file).equalsIgnoreCase (
-                info.getExt())){
+         if (file != null && currentExt != null &&
+             currentExt.equalsIgnoreCase (info.getExt())){
             myCurrentFilter = filter;
          }
          addChoosableFileFilter (filter);

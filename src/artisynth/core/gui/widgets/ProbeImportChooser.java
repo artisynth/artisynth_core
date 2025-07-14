@@ -25,25 +25,22 @@ import maspack.widgets.*;
 import maspack.properties.*;
 
 /**
- * Chooses the file to export a numeric probe, with extra fields to select the
- * format and whether or not time data should be saved.
+ * Chooses the file to import a numeric probe, with extra fields to specify the
+ * time step.
  */
 public class ProbeImportChooser extends PanelFileChooser
-   implements ActionListener, PropertyChangeListener {
+   implements ActionListener, PropertyChangeListener, ValueChangeListener {
 
    private static final long serialVersionUID = 1L;
 
-   BooleanSelector myContainsTimeData;
+   BooleanSelector myTimeDataIncluded;
+   DoubleField myTimeStep;
 
    ExtensionFileFilter myCurrentFilter;
    Probe myProbe;
-   ArrayList<LabeledControl> myControls = new ArrayList<>();
-   ArrayList<Object> mySavedValues = new ArrayList<>();
 
    public void actionPerformed (ActionEvent e) {
-      if (e.getActionCommand().equals(JFileChooser.CANCEL_SELECTION)) {
-         restorePropertyValues();
-      }
+      // nothing to do right now
    }
 
    public void propertyChange(PropertyChangeEvent evt) {
@@ -54,81 +51,86 @@ public class ProbeImportChooser extends PanelFileChooser
             newFilter = (ExtensionFileFilter)getFileFilter();
          }
          if (myCurrentFilter != newFilter) {
-            updatePropPanel (newFilter.getExtensions()[0]);
             myCurrentFilter = newFilter;
          }
       }
    }
 
-   private File replaceFileExtension (File file, String ext) {
+   public void valueChange (ValueChangeEvent evt) {
+      if (evt.getSource() == myTimeDataIncluded) {
+         myTimeStep.setEnabledAll (!myTimeDataIncluded.getBooleanValue());
+      }
+      else if (evt.getSource() == myTimeStep) {
+         double step = myTimeStep.getDoubleValue();
+         if (step < 0) {
+            myTimeStep.maskValueChangeListeners (true);
+            myTimeDataIncluded.maskValueChangeListeners (true);
+            myTimeStep.setValue (0.01);
+            myTimeDataIncluded.setValue (true);
+            myTimeDataIncluded.maskValueChangeListeners (false);
+            myTimeStep.maskValueChangeListeners (false);
+            myTimeStep.setEnabledAll (false);
+         }
+      }
+   }
+
+   private File stripFileExtension (File file) {
       String pathName = file.getAbsolutePath();
       int dotIndex = pathName.lastIndexOf(".");
       if (dotIndex == -1) {
-         return new File(pathName + "." + ext);
+         return file;
       }
       else {
-         return new File(pathName.substring(0, dotIndex) + "." + ext);
+         return new File(pathName.substring(0, dotIndex));
       }
    }
 
-   protected void restorePropertyValues() {
-      for (int i=0; i<myControls.size(); i++) {
-         myControls.get(i).setValue (mySavedValues.get(i));
+   public double getTimeStep() {
+      if (myTimeStep != null) {
+         return myTimeStep.getDoubleValue();
+      }
+      else {
+         return -1;
       }
    }
 
-   private void updatePropPanel (String extension) {
-      if (panelIsSupported()) {
-         restorePropertyValues();
-         myControls.clear();
-         mySavedValues.clear();
-         ExportProps props = myProbe.getExportProps (extension);
-         if (props != null) {
-            PropertyPanel panel = getPropertyPanel();
-            if (panel == null) {
-               panel = createPropertyPanel();
-            }
-            else {
-               panel.removeAllWidgets();
-            }
-            for (PropertyInfo info : props.getAllPropertyInfo()) {
-               Property prop = props.getProperty (info.getName());
-               LabeledComponentBase widget = panel.addWidget (prop);
-               if (widget != null) {
-                  widget.setLabelText (info.getDescription()+": ");
-                  if (widget instanceof LabeledControl) {
-                     LabeledControl control = (LabeledControl)widget;
-                     myControls.add (control);
-                     mySavedValues.add (control.getValue());
-                  }
-               }
-            }
-         }
-         else {
-            removePropertyPanel();
-         }
-         validate();
-         repaint();
-         GuiUtils.repackComponentWindow (this);
+   public void setTimeStep (double step) {
+      if (myTimeStep != null) {
+         myTimeStep.setValue (step);
       }
    }
 
-   public ProbeImportChooser (Probe probe) {
+   public boolean getTimeDataIncluded() {
+      if (myTimeDataIncluded != null) {
+         return myTimeDataIncluded.getBooleanValue();
+      }
+      else {
+         return false;
+      }
+   }
+
+   public void setTimeDataIncluded (boolean included) {
+      if (myTimeDataIncluded != null) {
+         myTimeDataIncluded.setValue (included);
+      }
+   }
+
+   public ProbeImportChooser (Probe probe, double timeStep) {
       
-      File file = probe.getExportFile();
-      ImportExportFileInfo[] fileInfo = probe.getExportFileInfo();
+      File file = probe.getImportFile();
+      String currentExt = null;
+      ImportExportFileInfo[] fileInfo = probe.getImportFileInfo();
       myProbe = probe;
 
       if (file == null) {
-         if (probe.getAttachedFile() != null) {
-            file = replaceFileExtension (
-               probe.getAttachedFile(), fileInfo[0].getExt());
-         }
+         file = probe.getAttachedFile();
       }
       if (file == null) {
          setCurrentDirectory (ArtisynthPath.getWorkingDir());
       }
       else {
+         currentExt = ArtisynthPath.getFileExtension(file);
+         file = stripFileExtension (file);
          setCurrentDirectory (file);
          setSelectedFile (file);
       }
@@ -143,9 +145,8 @@ public class ProbeImportChooser extends PanelFileChooser
             info.getDescription() + " (*." + info.getExt() + ")";
          ExtensionFileFilter filter =
             new ExtensionFileFilter (description, info.getExt());
-         if (file != null &&
-             ArtisynthPath.getFileExtension(file).equalsIgnoreCase (
-                info.getExt())){
+         if (file != null && currentExt != null &&
+             currentExt.equalsIgnoreCase (info.getExt())){
             myCurrentFilter = filter;
          }
          addChoosableFileFilter (filter);
@@ -156,7 +157,18 @@ public class ProbeImportChooser extends PanelFileChooser
       else {
          myCurrentFilter = (ExtensionFileFilter)getFileFilter();
       }
-      updatePropPanel (myCurrentFilter.getExtensions()[0]);
+
+      myTimeDataIncluded =
+         new BooleanSelector ("Time data included:", timeStep <= 0);
+      myTimeDataIncluded.addValueChangeListener (this);
+      myTimeStep = 
+         new DoubleField ("Time step:", timeStep <= 0 ? 0.01 : timeStep);
+      myTimeStep.addValueChangeListener (this);
+      myTimeStep.setEnabledAll (timeStep > 0);
+
+      PropertyPanel panel = createPropertyPanel();
+      panel.addWidget (myTimeDataIncluded);
+      panel.addWidget (myTimeStep);
    }
 
    public String getSelectedExt() {
@@ -168,17 +180,17 @@ public class ProbeImportChooser extends PanelFileChooser
       }
    }
    
-   public void showUnsupportedExtensionError (Component comp, String ext) {
-      StringBuilder msg = new StringBuilder();
-      msg.append ("File extension type '."+ext+"' is unsupported\n");
-      msg.append ("Please use one of: ");
-      ImportExportFileInfo[] fileInfo = myProbe.getExportFileInfo();
-      for (int i=0; i<fileInfo.length; i++) {
-         msg.append ("."+fileInfo[i].getExt());
-         if (i<fileInfo.length-1) {
-            msg.append (", ");
-         }
-      }
-      GuiUtils.showError (comp, msg.toString());
-   }
+   // public void showUnsupportedExtensionError (Component comp, String ext) {
+   //    StringBuilder msg = new StringBuilder();
+   //    msg.append ("File extension type '."+ext+"' is unsupported\n");
+   //    msg.append ("Please use one of: ");
+   //    ImportExportFileInfo[] fileInfo = myProbe.getExportFileInfo();
+   //    for (int i=0; i<fileInfo.length; i++) {
+   //       msg.append ("."+fileInfo[i].getExt());
+   //       if (i<fileInfo.length-1) {
+   //          msg.append (", ");
+   //       }
+   //    }
+   //    GuiUtils.showError (comp, msg.toString());
+   // }
 }

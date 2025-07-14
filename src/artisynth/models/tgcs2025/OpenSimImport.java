@@ -17,32 +17,34 @@ import maspack.util.PathFinder;
  */
 public class OpenSimImport extends RootModel {
 
-   // Store MechModel and parser references for use by subclasses
+   //// Store MechModel and parser references for use by subclasses
    MechModel myMech;
    OpenSimParser myParser;
 
    public void build (String[] args) throws IOException {
-      // create mech model to contain the model
+      //// create mech model to contain the model
       myMech = new MechModel ("mech");
       addModel (myMech);
 
-      // model files are located relative the source of this model
+      //// model files are located relative the source of this model
       String osimDir = PathFinder.getSourceRelativePath(
          OpenSimArm26.class, "osim/");
-      File osimFile = new File (osimDir + "arm26_v4.osim"); // V4 version
-      // create the parser and build the model. Geometry is located
-      // in parent folder of the .osim file.
+      File osimFile = new File (osimDir + "arm26_v4.osim"); //// V4 version
+      //// create the parser and build the model. Geometry is located
+      //// in parent folder of the .osim file.
       myParser = new OpenSimParser (osimFile);
       myParser.createModel (myMech);
       
-      // set view orientation so that Y is up
-      setDefaultViewOrientation (AxisAlignedRotation.X_Y);
-      // set basic damping factor for rigid bodies
-      myMech.setInertialDamping (1.0);
-      // create panels to control coordinates and excitations
-      ControlPanel panel = myParser.createCoordinatePanel();
-      addControlPanel (panel);
-      panel = myParser.createExcitationPanel();
-      addControlPanel (panel);
+      //// set view orientation so that Y is up
+      // setDefaultViewOrientation (AxisAlignedRotation.X_Y);
+      //// set basic damping factor for rigid bodies
+      // myMech.setInertialDamping (1.0);
+      //// make wrap objects invisible
+      // myParser.setWrapObjectsVisible (false);
+      //// create panels to control coordinates and excitations
+      // ControlPanel panel = myParser.createCoordinatePanel();
+      // addControlPanel (panel);
+      // panel = myParser.createExcitationPanel();
+      // addControlPanel (panel);
    }
 }

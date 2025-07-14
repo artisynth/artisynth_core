@@ -22,6 +22,10 @@ public class TextExportProps implements Probe.ExportProps {
 
    public TextExportProps() {
    }
+   
+   public TextExportProps (TextExportProps props) {
+      set (props);
+   }
 
    public Property getProperty (String name) {
       return PropertyList.getProperty (name, this);
@@ -54,5 +58,10 @@ public class TextExportProps implements Probe.ExportProps {
 
    public void setIncludeTime (boolean includeTime) {
       myIncludeTime = includeTime;
+   }
+   
+   public void set (TextExportProps props) {
+      setIncludeTime (props.getIncludeTime());
+      setFormatStr (props.getFormatStr());
    }
 }

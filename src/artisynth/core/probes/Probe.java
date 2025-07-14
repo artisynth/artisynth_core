@@ -113,14 +113,14 @@ public abstract class Probe extends ModelAgentBase {
       return new ImportExportFileInfo[0];
    }
 
-   public void export (File file, ExportProps props)
+   public void exportData (File file, ExportProps props)
       throws IOException {
    }
 
    /**
     * Still being implemented
     */
-   public void importData (File file, boolean explicitTime, boolean overlay)
+   public void importData (File file, double timeStep)
       throws IOException {
    }
 

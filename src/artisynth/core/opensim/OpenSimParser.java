@@ -850,7 +850,9 @@ public class OpenSimParser {
       ControlPanel panel = new ControlPanel();
       panel.setName ("excitations");
       for (MuscleComponent muscle : getMuscles()) {
-         panel.addWidget (muscle.getName(), muscle, "excitation");
+         if (nameSet.contains (muscle.getName())) {
+            panel.addWidget (muscle.getName(), muscle, "excitation");
+         }
       }
       return panel;
    }

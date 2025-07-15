@@ -96,6 +96,35 @@ public class NumericProbeTest extends UnitTest {
                throw new TestException (
                   "imported probe != exported probe, time excluded, ext=" + ext);
             }
+            // test extension-specific methods
+            if (ext.equals ("csv")) {
+               probe0.exportCsvData (testFile);
+               probe1.importCsvData (testFile, -1);
+               if (!probeDataEqual (probe0, probe1)) {
+                  throw new TestException (
+                     "imported probe != exported probe, CSV, time included");
+               }
+               probe0.exportCsvData (testFile, "%g", /*timeIncluded*/false);
+               probe1.importCsvData (testFile, timeStep);
+               if (!probeDataEqual (probe0, probe1)) {
+                  throw new TestException (
+                     "imported probe != exported probe, CSV, time excluded");
+               }
+            }
+            else {
+               probe0.exportTextData (testFile);
+               probe1.importTextData (testFile, -1);
+               if (!probeDataEqual (probe0, probe1)) {
+                  throw new TestException (
+                     "imported probe != exported probe, text, time included");
+               }
+               probe0.exportTextData (testFile, "%g", /*timeIncluded*/false);
+               probe1.importTextData (testFile, timeStep);
+               if (!probeDataEqual (probe0, probe1)) {
+                  throw new TestException (
+                     "imported probe != exported probe, text, time excluded");
+               }
+            }
          }
       }
       catch (IOException e) {

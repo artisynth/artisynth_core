@@ -1409,21 +1409,6 @@ methods. Alternatively, one can call
 which behaves identically to the {\tt addData(double[],timeStep)} method
 except that it first removes all existing data.
 
-Another convenient way to add data to a probe is to simply copy it from another
-probe, using the method
-% method table
-\begin{lstlisting}[]
-   setValues (NumericProbeBase src, boolean useAbsoluteTime)
-\end{lstlisting}
-%
-All knot points and values are copied from {\tt src}, which can be any numeric
-probe (input or output), with the only restriction being that its vector size
-must equal or exceed that of the calling probe (extra values are ignored).  If
-{\tt useAbsoluteTime} is {\tt true}, time values are mapped between the probes
-using absolute time; otherwise, probe relative time is used.  When using this
-method, care should be taken to ensure that the there will be knot points to
-cover the start and stop times of the calling probe.
-
 \subsubsection{Extending data to the start and end}
 
 By explicitly using the {\tt clearData()} or {\tt setData()} methods, it is
@@ -1444,6 +1429,105 @@ the accessors
 %
 The default value of {\sf extendData} is {\tt true}.  As mentioned above,
 probes with no data set their data values uniformly to 0.
+
+\subsection{Setting data from text or CSV files and other probes}
+
+Applications can import/export data from/to text and CSV files.  For both
+formats, the file is assumed to contain one line per time value, with numbers
+separated by either whitespace (for text) or a comma character (for CSV). Time
+values may or may not be included; if $n$ is the probe's vector size, each line
+will have $n+1$ values in the former case and $n$ in the latter.  As an
+example, a text file including time values for a probe with $n = 3$ and four
+time values might look like
+%
+\begin{lstlisting}[]
+ 0.0 2.45e-8 3.4 6.5 7.6
+ 1.5 6.8 9.7 3.1
+ 2.0 19.8 12.4 6.0e-5
+ 3.0 17.1 2.5 7.55
+\end{lstlisting}
+%
+while an equivalent CSV file could look like
+%
+\begin{lstlisting}[]
+ 0.0, 2.45e-8, 3.4, 6.5, 7.6
+ 1.5, 6.8, 9.7, 3.1
+ 2.0, 19.8, 12.4, 6.0e-5
+ 3.0, 17.1, 2.5, 7.55
+\end{lstlisting}
+%
+Importing and exporting can be done by the following methods:
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\probes.NumericProbeBase.importTextData(,)}%
+{void importTextData (File file, double timeStep)}%
+{Import from a text file.}%
+%
+\methodentry
+{\probes.NumericProbeBase.exportTextData()}%
+{void exportTextData (File file)}%
+{Export to a text file.}%
+%
+\methodentry
+{\probes.NumericProbeBase.exportTextData(,,)}%
+{void exportTextData (File file, String fmtStr, boolean includeTime)}%
+{Export to a text file.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.NumericProbeBase.importCsvData(,)}%
+{void importCsvData (File file, double timeStep)}%
+{Import from a CSV file.}%
+%
+\methodentry
+{\probes.NumericProbeBase.exportCsvData()}%
+{void exportCsvData (File file)}%
+{Export to a CSV file.}%
+%
+\methodentry
+{\probes.NumericProbeBase.exportCsvData(,,)}%
+{void exportCsvData (File file, String fmtStr, boolean includeTime)}%
+{Export to a CSV file.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\probes.NumericProbeBase.importData(,)}%
+{void importData (File file, double timeStep)}%
+{Infer text or CSV from file suffix.}%
+%
+\midline
+\end{methodtable}
+%
+The {\tt timeStep} argument to the import methods indicates whether the file
+includes time values: if it is $\le 0$, time values should be included;
+otherwise, time values are computed from {\tt k*timeStep}, where {\tt k} is the
+the line number starting at 0. The arguments {\tt fmtStr} and {\tt includeTime}
+for some of the export methods specify a C-style numeric format string
+(see \javaclass[maspack.util]{NumberFormat}) and whether or not time values
+should be included; the defaults are {\tt "\%g"} (full general precision) and
+{\tt true}.
+
+It is also possible to copy data from one probe to another, using the method
+%
+\begin{methodtable}{0.6}{0.4}
+%
+\methodentry
+{\probes.NumericProbeBase.setData(,)}%
+{void setData (NumericProbeBase src, boolean useAbsoluteTime)}%
+{\ }%
+%
+\end{methodtable}
+%
+All knot points and values are copied from {\tt src}, which can be any numeric
+probe (input or output), with the only restriction being that its vector size
+must equal or exceed that of the calling probe (extra values are ignored).  If
+{\tt useAbsoluteTime} is {\tt true}, time values are mapped between the probes
+using absolute time; otherwise, probe relative time is used.  When using this
+method, care should be taken to ensure that the there will be knot points to
+cover the start and stop times of the calling probe.
 
 \subsection{Tracing probes}
 

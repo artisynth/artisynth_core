@@ -112,24 +112,14 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    }
 
    /** 
-    * Returns the values of this probe as a two dimensional array of
-    * doubles. This facilitates reading the values into a matlab array.  The
-    * array is arranged so that each knot point corresponds to a row, the first
-    * column gives the time values, and the remaining columns give the knot
-    * point values.
-    * 
-    * @return Values of this numeric probe
+    * @deprecated Use {@link #getData()} instead.
     */   
    public double[][] getValues() {
       return myNumericList.getValues();
    }
 
    /** 
-    * Sets the values of this numeric probe from a two dimensional array of
-    * doubles. This facilitates settings the values from a matlab array.  The
-    * arrangement of the array is described in {@link #getValues}.
-    * 
-    * @param vals Values used to set this numeric probe
+    * @deprecated Use {@link #setData(double[][])} instead.
     */  
    public void setValues(double[][] vals) {
       myNumericList.setValues (vals);
@@ -137,14 +127,7 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    }
 
    /** 
-    * Sets the values of this numeric probe from the values of another numeric
-    * probe {@code src}. The vector size of the source probe must be greater
-    * than or equal to that of this probe; extra values in the source probe are
-    * ignored.
-    *
-    * @param src source probe to copy data from
-    * @param useAbsoluteTime if {@code true}, time values are mapped between
-    * the probes using absolute time; otherwise, probe relative time is used
+    * @deprecated Use {@link #setData(NumericProbeBase,boolean)} instead.
     */  
    public void setValues (NumericProbeBase src, boolean useAbsoluteTime) {
       if (src.getVsize() < getVsize()) {
@@ -160,6 +143,173 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       }
       myNumericList.setValues (src.myNumericList, tscale, toffset);
       updateDisplays();
+   }
+
+   /** 
+    * Returns the data of this probe as a two dimensional array of
+    * doubles. This facilitates reading the data into a matlab array.  The
+    * array is arranged so that each knot point corresponds to a row, the first
+    * column gives the time values, and the remaining columns give the knot
+    * point values.
+    * 
+    * @return data values of this numeric probe
+    */   
+   public double[][] getData() {
+      return myNumericList.getValues();
+   }
+
+   /** 
+    * Sets the data of this numeric probe from a two dimensional array of
+    * doubles. This facilitates setting the data from a matlab array.  The
+    * arrangement of the array is described in {@link #getData}.
+    * 
+    * @param vals data values used to set this numeric probe
+    */  
+   public void setData (double[][] vals) {
+      myNumericList.setValues (vals);
+      updateDisplays();
+   }
+
+   /** 
+    * Sets the data of this numeric probe from the data of another numeric
+    * probe {@code src}. All current probe data is removed. The vector size of
+    * the source probe must be greater than or equal to that of this probe;
+    * extra data in the source probe is ignored. The scaling, start and stop
+    * times, and interpolation method of this probe are unchanged.
+    *
+    * @param src source probe to copy data from
+    * @param useAbsoluteTime if {@code true}, time values are mapped between
+    * the probes using absolute time; otherwise, probe relative time is used
+    */  
+   public void setData (NumericProbeBase src, boolean useAbsoluteTime) {
+      if (src.getVsize() < getVsize()) {
+         throw new IllegalArgumentException (
+            "source probe vector size " + src.getVsize() +
+            " less then destination size " + getVsize());
+      }
+      double tscale = 1.0;
+      double toffset = 0.0;
+      if (useAbsoluteTime) {
+         tscale = src.getScale()/getScale();
+         toffset = (src.getStartTime()-getStartTime())/getScale();
+      }
+      myNumericList.setValues (src.myNumericList, tscale, toffset);
+      updateDisplays();
+   }
+
+   /**
+    * Imports the data values in this probe from a text file. All current probe
+    * data is removed. Data values are assumed to be arranged one line per time
+    * value and separated by a white space. Time values should be included at
+    * the start of each line if {@code timeStep <= 0}; otherwise, time values
+    * are computed from {@code timeStep*k} where {@code k} is the line number
+    * starting at 0. An example with time values included for a probe with
+    * vector size 3 is
+    * <pre>
+    * 0.0 2.45e-8 3.4 6.5 7.6
+    * 1.5 6.8 9.7 3.1
+    * 2.0 19.8 12.4 6.0e-5
+    * </pre>
+    * An exception is thrown if a line has insufficient values. If a line has
+    * more numbers than necessary the extra values are ignored.  The scaling,
+    * start and stop times, and interpolation method of this probe are
+    * unchanged.
+    *
+    * @param file file to import the data from
+    * @param timeStep if {@code > 0}, specifies the time step between data;
+    * otherwise, time data is assumed to be included in the file
+    */
+   public void importTextData (File file, double timeStep) throws IOException {
+      importText (file, timeStep, ' ');
+   }
+
+   /**
+    * Exports the data values in this probe to a text file.  One line is used
+    * per time value, with numbers written in a full precision general format
+    * separated by a single space {@code ' '} character. The time value is
+    * included at the start of the line, resulting in {@code vsize+1} numbers
+    * per line, where {@code vsize} is the value returned by {@link
+    * #getVsize()}.
+    *
+    * @param file file to write the data to
+    */
+   public void exportTextData (File file) throws IOException {
+      exportTextData (file, "%g", /*includeTime*/true);
+   }
+
+   /**
+    * Exports the data values in this probe to a text file. One line is used
+    * per time value, with numbers separated by a single space {@code ' '}
+    * character. The number format is specified by a {@code printf()}-style
+    * format string {@code fmtStr}, and time values are included at the start
+    * of each line if {@code includeTime} is {@code true}.
+    *
+    * @param file file to write the data to
+    * @param fmtStr numeric format string as described for {@link
+    * NumberFormat}; examples are {@code "%g"} (general with full precision),
+    * {@code "%8.3f"}, etc.
+    * @param includeTime if {@code true}, time values are included
+    */
+   public void exportTextData (File file, String fmtStr, boolean includeTime) 
+      throws IOException {
+      writeText (file, fmtStr, " ", includeTime);
+   }
+
+   /**
+    * Imports the data values in this probe from a CSV file. All current probe
+    * data is removed. Data values are assumed to be arranged one line per time
+    * value and separated by a {@code ','} character. Time values should be
+    * included at the start of each line if {@code timeStep <= 0}; otherwise,
+    * time values are computed from {@code timeStep*k} where {@code k} is the
+    * line number starting at 0. An example with time values included for a
+    * probe with vector size 3 is
+    * <pre>
+    * 0.0, 3.4, 6.5, 7.6
+    * 1.5, 6.8, 9.7, 3.1
+    * 2.0, 19.8, 12.4, 0.6
+    * </pre>
+    * An exception is thrown if a line has insufficient values. If a line has
+    * more numbers than necessary the extra values are ignored.  The scaling,
+    * start and stop times, and interpolation method of this probe are
+    * unchanged.
+    *
+    * @param file file to import the data from
+    * @param timeStep if {@code > 0}, specifies the time step between data;
+    * otherwise, time data is assumed to be included in the file
+    */
+   public void importCsvData (File file, double timeStep) throws IOException {
+      importText (file, timeStep, ',');
+   }
+
+   /**
+    * Exports the data values in this probe to a CSV file.  One line
+    * is used per time value, with numbers written in a full precision general
+    * format separated by a {@code ','} character. The time value is included
+    * at the start of the line, resulting in {@code vsize+1} numbers per line,
+    * where {@code vsize} is the value returned by {@link #getVsize()}.
+    *
+    * @param file file to write the data to
+    */
+   public void exportCsvData (File file) throws IOException {
+      exportCsvData (file, "%g", /*includeTime*/true);
+   }
+
+   /**
+    * Exports the data values in this probe to a CSV file. One line is
+    * used per time value, with numbers separated by a {@code ','}
+    * character. The number format is specified by a {@code printf()}-style
+    * format string {@code fmtStr}, and time values are included at the start
+    * of each line if {@code includeTime} is {@code true}.
+    *
+    * @param file file to write the data to
+    * @param fmtStr numeric format string as described for {@link
+    * NumberFormat}; examples are {@code "%g"} (general with full precision),
+    * {@code "%8.3f"}, etc.
+    * @param includeTime if {@code true}, time values are included
+    */
+   public void exportCsvData (File file, String fmtStr, boolean includeTime)
+      throws IOException {
+      writeText (file, fmtStr, ", ", includeTime);
    }
 
    public abstract void apply (double t);
@@ -1360,16 +1510,23 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
    }
 
    /**
-    * Still being implemented
+    * Imports the data values in this probe from either a text or CSV file,
+    * depending on the file extension ({@code .txt} for text; {@code .csv} for
+    * CSV). See {@link importTextData} and {@link importCsvData} for details.
+    *
+    * @param file file to import the data from
+    * @param timeStep if {@code > 0}, specifies the time step between data;
+    * otherwise, time data is assumed to be included in the file
     */
-   public void importData (File file, double stepSize) 
+   public void importData (File file, double timeStep) 
       throws IOException {
       String name = file.getName();
-      if (ArtisynthPath.getFileExtension(file).equals ("csv")) {
-         importText (file, stepSize, ',');
+      String ext = ArtisynthPath.getFileExtension(file);
+      if ("csv".equalsIgnoreCase (ext)) {
+         importText (file, timeStep, ',');
       }
-      else if (ArtisynthPath.getFileExtension(file).equals ("txt")) {
-         importText (file, stepSize, ' ');
+      else if ("txt".equalsIgnoreCase (ext)) {
+         importText (file, timeStep, ' ');
       }
       else {
          throw new IOException ("Unrecognized type for file "+name);

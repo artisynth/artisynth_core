@@ -3711,6 +3711,7 @@ from the ArtiSynth {\sf File} menu, or by clicking on the timeline's
 {\sf save} button (C in Figure \ref{timelineFig}).
 
 \subsection{Exporting numeric probe data}
+\label{ExportingNumericData:sec}
 
 The data associated with a numeric probe can also be exported to
 either a CSV file ({\tt *.csv}) or a regular text file ({\tt *.txt}).
@@ -3764,11 +3765,57 @@ the documentation for \javaclass{maspack.util.NumberFormat}.
 
 \item[include time data]\mbox{}
 
-A Boolean value which if {\tt true} indicates that time data should be
+A boolean value which if {\tt true} indicates that time data should be
 included along with the numeric values. Not including time data may be
 appropriate when the data is spaced at a known time interval.
 
 \end{description}
+
+\subsection{Importing numeric probe data}
+
+Numeric probe data can also be imported from either a CSV file ({\tt *.csv}) or
+a regular text file ({\tt *.txt}) with formats as described in Section
+\ref{ExportingNumericData:sec}. The supplied data should match the probe's
+vector size.
+
+To import a probe's data, first select the probe (either within the
+navigation panel or by left-clicking on its timeline display bar), and
+then right-click and choose {\sf ``Import data ...''}  from the
+resulting pull-down menu.
+
+This brings up a dialog (Figure \ref{importProbeDialog:fig}) that
+allows the user to specify the file and the following import
+parameters:
+
+\begin{description}
+
+\item[Time data included]\mbox{}
+
+A boolean value which if {\tt true} indicates that time values are included
+within the file.
+
+\item[Time step]\mbox{}
+
+When time values are not included in the file, this specifies a time step $h$
+used to calculate time values from $t = k h$, where $k$ is the line number
+starting at 0.
+
+\end{description}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/importProbeDialog}
+\else
+\includegraphics[width=.6\textwidth]{images/importProbeDialog}
+\fi
+\end{center}
+\caption{The import probe data dialog.}%
+\label{importProbeDialog:fig}
+\end{figure}
+
+Importing data clears all previous probe data. The scaling, start and stop times,
+and interpolation methods are not affected.
 
 \subsection{Saving and loading all probes}
 \label{savingAndLoadingProbesSec}

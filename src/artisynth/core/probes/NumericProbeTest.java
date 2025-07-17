@@ -132,7 +132,7 @@ public class NumericProbeTest extends UnitTest {
       }
       finally {
          if (testFile != null) {
-            //testFile.delete();
+            testFile.delete();
          }
       }
    }

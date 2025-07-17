@@ -20,26 +20,56 @@ import maspack.render.RenderProps;
  */
 public class ToyFemSpine extends ToySpine {
 
+   public void build (String[] args) throws IOException {
+      super.build (args);
+
+      // remove all frame springs and body connectors
+      myMech.frameSprings().clear();
+      myMech.bodyConnectors().clear();
+
+      // create the FE models for the discs
+      FemModel3d disc32 = addFem ("disc32");
+      FemModel3d disc43 = addFem ("disc43");
+      FemModel3d disc54 = addFem ("disc54");
+
+//      // attach the FEM models to the bodies
+//      double tol = 1e-4;
+//      attachFemToBody (disc32, myCerv2, tol);
+//      attachFemToBody (disc32, myCerv3, tol);
+//      attachFemToBody (disc43, myCerv3, tol);
+//      attachFemToBody (disc43, myCerv4, tol);
+//      attachFemToBody (disc54, myCerv4, tol);
+//      attachFemToBody (disc54, myCerv5, tol);
+
+//      // boost the muscle forces so we can still move the model!
+//      ((SimpleAxialMuscle)myMuscleL.getMaterial()).setMaxForce (100);
+//      ((SimpleAxialMuscle)myMuscleR.getMaterial()).setMaxForce (100);
+   }
+
    /**
     * creates a FEM model of a disc by applying Tetgen to surface mesh
     * geometry.
     */
    FemModel3d addFem (String name) throws IOException {
-      //// surface mesh path is inferred from the disc name
+      // surface mesh path is inferred from the disc name
       PolygonalMesh surface = new PolygonalMesh (geodir + name + ".obj");
-      FemModel3d fem = FemFactory.createFromMesh (null, surface, /*quality*/2);
-      //// set material (value is lower than used in studies)
+      FemModel3d fem = new FemModel3d (name);
+      FemFactory.createFromMesh (fem, surface, /*quality*/2);
+      // set material (value is lower than used in studies)
       fem.setMaterial (
          new MooneyRivlinMaterial (
             120000.0, 5000.0, 0, 0, 0, /*kappa*/1.5e7));
-      //// rendering properties: render surface mesh blue-gray, element lines
-      //// light blue, and nodes as small light blue spheres
-      fem.setSurfaceRendering (SurfaceRender.Shaded);
-      RenderProps.setFaceColor (fem, new Color (0.8f, 0.8f, 1f));
-      RenderProps.setLineColor (fem, new Color (0.6f, 0.6f, 1f));
-      RenderProps.setSphericalPoints (
-         fem.getNodes(), 0.0002, new Color (0.6f, 0.6f, 1f));
-      myMech.addModel (fem); //// add FEM to MechModel
+      fem.setDensity (myDensity);
+      myMech.addModel (fem); // add FEM to MechModel
+      
+//      // rendering properties: render surface mesh blue-gray, element lines
+//      // light blue, and nodes as small light blue spheres
+//      fem.setSurfaceRendering (SurfaceRender.Shaded);
+//      RenderProps.setFaceColor (fem, new Color (0.8f, 0.8f, 1f));
+//      RenderProps.setLineColor (fem, new Color (0.6f, 0.6f, 1f));
+//      RenderProps.setSphericalPoints (
+//         fem.getNodes(), 0.0002, new Color (0.6f, 0.6f, 1f));
+
       return fem;
    }
 
@@ -59,29 +89,4 @@ public class ToyFemSpine extends ToySpine {
       }
    }
 
-   public void build (String[] args) throws IOException {
-      super.build (args);
-
-      //// remove all frame springs and body connectors
-      myMech.frameSprings().clear();
-      myMech.bodyConnectors().clear();
-
-      //// create the FE models for the discs
-      FemModel3d disc32 = addFem ("disc32");
-      FemModel3d disc43 = addFem ("disc43");
-      FemModel3d disc54 = addFem ("disc54");
-
-      //// attach the FEM models to the bodies
-      // double tol = 1e-4;
-      // attachFemToBody (disc32, myCerv2, tol);
-      // attachFemToBody (disc32, myCerv3, tol);
-      // attachFemToBody (disc43, myCerv3, tol);
-      // attachFemToBody (disc43, myCerv4, tol);
-      // attachFemToBody (disc54, myCerv4, tol);
-      // attachFemToBody (disc54, myCerv5, tol);
-
-      //// boost the muscle forces so we can still move the model!
-      // ((SimpleAxialMuscle)myMuscleL.getMaterial()).setMaxForce (100);
-      // ((SimpleAxialMuscle)myMuscleR.getMaterial()).setMaxForce (100);
-   }
 }

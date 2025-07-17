@@ -15,7 +15,7 @@ def dorun() :
     #sys.stdin.readline() # uncommet for single stepping 
 
 # Adjust certain solver settings to ensure repeatable results:
-MechSystemSolver.myDefaultHybridSolveP = False
+# MechSystemSolver.myDefaultHybridSolveP = False
 MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
 FemModel3d.noIncompressStiffnessDamping = False
 SurfaceMeshCollider.useAjlCollision = False

@@ -394,6 +394,28 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
       myMuscleLengthPrev = l;
    }
 
+   public double getNormalizedFibreVelocity() {
+      double lm = myMuscleLength;
+      double vm = myMuscleVel;
+      double H = myHeight;
+      double Vmax = myMaxContractionVelocity;
+      double lo = myOptFibreLength;
+      double ca; // cos(alpha)
+      if (H == 0) {
+         ca = 1.0;
+      }
+      else {
+         double lf = Math.sqrt (H*H + lm*lm);
+         ca = lm/lf;
+      }
+      // normalized muscle velocity:
+      double vn = 0;
+      if (vm != 0) {
+         vn = vm*ca/(lo*Vmax); 
+      }
+      return vn;
+   }
+
    // Compute methods
 
    protected double sqr (double x) {

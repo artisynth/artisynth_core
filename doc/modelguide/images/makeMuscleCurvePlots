@@ -45,10 +45,12 @@ set output "ThelenPFLC.eps"
 plot "ThelenPFLC.txt" notitle with lines ls 2
 set output "ThelenTFLC.eps"
 set xrange [.9:1.1]
+set xlabel "normalized tendon length"
 plot "ThelenTFLC.txt" notitle with lines ls 2
 set xrange [-1:1]
 set yrange [0:1.5]
 set output "ThelenFVC.eps"
+set xlabel "normalized muscle velocity"
 plot "ThelenFVC_1.txt" notitle with lines ls 4, "ThelenFVC_h.txt" notitle with lines ls 5
 
 # Millard muscle
@@ -56,15 +58,18 @@ plot "ThelenFVC_1.txt" notitle with lines ls 4, "ThelenFVC_h.txt" notitle with l
 set xrange [0:2]
 set yrange [0:1.2]
 set output "MillardAFLC.eps"
+set xlabel "normalized muscle length"
 plot "MillardAFLC.txt" notitle with lines ls 1
 set output "MillardPFLC.eps"
 plot "MillardPFLC.txt" notitle with lines ls 2
 set output "MillardTFLC.eps"
 set xrange [.9:1.1]
+set xlabel "normalized tendon length"
 plot "MillardTFLC.txt" notitle with lines ls 2
 set xrange [-1:1]
 set yrange [0:1.5]
 set output "MillardFVC.eps"
+set xlabel "normalized muscle velocity"
 plot "MillardFVC.txt" notitle with lines ls 4
 
 

@@ -992,40 +992,45 @@ each link. The code, with {\tt import} directives excluded, is given below:
 \lstset{numbers=none}
 
 Within the {\tt build()} method, the mech model is created in the usual way and
-inertial damping is set to 1.0 (lines 75-77). Next, the rigid bodies depicting
-the base and links are created (lines 80-95). All bodies are created from
+inertial damping is set to 1.0 (lines 73-75). Next, the rigid bodies depicting
+the base and links are created (lines 78-93). All bodies are created from
 meshes, with the base being made non-dynamic and the poses of the links set so
 that they line up vertically in their start position
 (Figure \ref{ToyMuscleArm:fig}, left). A massless cylinder is created to
 provide a wrapping surface around the second hinge joint and attached to link1
-(lines 98-102). 
+(lines 96-109). 
 
 Hinge joints (Section \ref{HingeJoint:sec}) are then added between the base and
-link0 and link0 and link1 (lines 105-106), using the convenience method {\tt
-addHingeJoint()} (lines 60-72). This method creates a hinge joint at a prescribed
+link0 and link0 and link1 (lines 103-104), using the convenience method {\tt
+addHingeJoint()} (lines 58-70). This method creates a hinge joint at a prescribed
 position in the x-z plane, uses it to connect two bodies, sets the range for
 the joint angle {\sf theta}, and sets properties to render the shaft in blue.
 
 Next, point-to-point muscles are placed on opposite sides of each link (lines
-108-113). For link0, two {\tt Muscle} components are used, added with the
-method {\tt addMuscle()} (lines 18-30); this method creates a muscle connecting
+106-111). For link0, two {\tt Muscle} components are used, added with the
+method {\tt addMuscle()} (lines 18-29); this method creates a muscle connecting
 two bodies, using frame markers whose positions are specified in world
 coordinates in the x-z plane, and a {\tt SimpleMuscleMaterial}
 (Section \ref{SimpleAxialMuscle:sec}) with prescribed stiffness and maximum
 active force. For link1, {\tt MultiPointMuscle} components are used instead so
 that they can be wrapped around the wrapping cylinder. These muscles are created
-with the method {\tt addWrappedMuscle()} (lines 36-53), which creates a
+with the method {\tt addWrappedMuscle()} (lines 35-51), which creates a
 multipoint muscle connecting two bodies, using a single wrappable segment
 between two frame markers (also specified in the x-z plane). After the muscle
 is placed, its {\tt updateWrapSegments()} method is called to ``shrink wrap''
-it around the cylinder. Both the methods {\tt addMuscle()} and {\tt
-addWrappedMuscle()} set the rest length of each configured muscle to its
-current length (lines 28 and 50) to ensure that it will not exert passive
-tension in its initial configuration.
+it around the cylinder.
 
-A marker is attached to the tip on link1 at lines 140-141, and then a control
-panel is created to allow runtime adjustment of the four muscle excitation
-values (lines 144-149). Finally, render properties are set at lines 153-157.
+A marker is attached to the tip on link1 at lines 114-115, and then the links
+are repositioned, by setting the joint angles, so that the arm is not initially
+upright and will hence move when first run (lines 119-120). After
+repositioning, all wrap paths are updated by calling the {\tt MechModel} method
+{\tt updateWrapSegments()} (line 121), and the rest lengths for all muscles are
+set to their current lengths so that they will not initially exert passive
+tension (lines 124-127).
+
+A control panel is created to allow runtime adjustment of the four muscle
+excitation values (lines 130-135), and render properties are set at lines
+139-143.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 ToyMuscleArm} from the {\sf Models} menu. The loaded model will appear as in

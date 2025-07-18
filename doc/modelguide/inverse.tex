@@ -1084,27 +1084,18 @@ as shown in the code below:
 
 As mentioned above, this model extends {\tt ToyMuscleArm} (line 1), and so
 calls {\tt super.build(args)} in the {\tt build()} method to create all the
-components of {\tt ToyMuscleArm}. Once this is done, the link positions are
-adjusted by setting the hinge joint angles (lines 8-9); this is done to move
-the arm away from the kinematic singularity at full extension and thus make it
-easier for the tip to follow a prescribed path. After the links are moved, the
-all wrap paths are updated by calling the {\tt MechModel} method {\tt
-updateWrapPath()} (line 10).
-
-A tracking controller is then created (lines 13-14), and every {\tt
-Muscle} and {\tt MultiPointMuscle} is added to it as an exciter (lines 17-24).
-When iterating through the muscles, their rest lengths are reinitialized to
-their current lengths (which changed when the links were repositioned) to
-ensure that passive muscle forces are zero in the initial position.
+components of {\tt ToyMuscleArm}. A tracking controller is then created (lines
+7-8), and every {\tt Muscle} and {\tt MultiPointMuscle} is added to it as an
+exciter (lines 10-15).
 
 Next, the marker at the tip of link1 (referenced by the inherited attribute
-{\tt myTipMkr}) is added to the controller as a motion source (line 27) and
+{\tt myTipMkr}) is added to the controller as a motion source (line 18) and
 the returned target object is stored in {\tt target}.  An L2 regularization
-term is added to the controller with weight 0.01 (line 29), and an input probe
+term is added to the controller with weight 0.01 (line 20), and an input probe
 is created to provide the marker trajectory by setting the target's {\tt
-position} property (lines 31-46). The probe has a duration of 5 seconds, and
+position} property (lines 22-37). The probe has a duration of 5 seconds, and
 the trajectory is a closed path, specified by 5 cubically interpolated knot
-points (line 43), that lie in the x-z plane and start at and return to the
+points (line 36), that lie in the x-z plane and start at and return to the
 marker's initial position {\tt x0}, {\tt z0}.
 
 Probes are created to record the computed excitations and trace the
@@ -1112,20 +1103,20 @@ desired and actual trajectories in the viewer. The first, {\tt
 exprobe}, is created by the utility method {\tt
 createOutputProbe()} supplied by the
 \javaclass[\inverse]{InverseManager} class 
-(lines 49-52, Section \ref{InverseManagerProbes:sec}). The tracing probes
+(lines 40-43, Section \ref{InverseManagerProbes:sec}). The tracing probes
 are created by the {\tt RootModel} method
 \javamethod*[artisynth.core.workspace.RootModel]{addTracingProbe(,,,)} (lines
-56-62), and two are created: one to trace the desired target by recording the
+47-53), and two are created: one to trace the desired target by recording the
 {\sf position} property of {\tt target}, and another to trace the actual
 tracked (source) position by recording the {\sf position} property of {\tt
 myTipMkr}. The line colors of these are set to cyan and red, respectively,
 which specifies their display color in the viewer.
 
 Lastly, an {\it inverse control panel} (Section \ref{InverseControlPanel:sec})
-is created to manage controller properties (line 65), and some settings are
+is created to manage controller properties (line 56), and some settings are
 made to allow for probe management by the 
 \javaclass[\inverse]{InverseManager} class, as discussed
-in Section \ref{InverseManagerProbes:sec} (lines 67-70); this includes setting
+in Section \ref{InverseManagerProbes:sec} (lines 58-61); this includes setting
 the default probe duration to {\tt stopTime} and the working folder to {\tt
 inverseMuscleArm} located under the source folder.
 
@@ -1785,19 +1776,17 @@ from {\tt InverseMuscleArm:sec} are listed below:
 \lstset{numbers=left}
 \iflatexml
 %% Hack: latexml lstinputlisting doesn't handle firstline correctly
-\lstinputlisting[firstline=48,lastline=64]{../../src/artisynth/demos/tutorial/InverseFrameExciterArm.java}
+\lstinputlisting[firstline=43,lastline=51]{../../src/artisynth/demos/tutorial/InverseFrameExciterArm.java}
 \else
-\lstset{firstnumber={48}}
-\lstinputlisting[firstline=48,lastline=64]{../../src/artisynth/demos/tutorial/InverseFrameExciterArm.java}
+\lstset{firstnumber={43}}
+\lstinputlisting[firstline=43,lastline=51]{../../src/artisynth/demos/tutorial/InverseFrameExciterArm.java}
 \lstset{firstnumber={1}}
 \fi
 \lstset{numbers=none}
 %
-After the controller is created (lines 48-49), the muscle rest lengths are
-reset, as they are for {\tt InverseMuscleArm}, but they are {\it not} added to
-controller as exciters. Instead, four frame exciters are created to generate
-translational forces on each link in the x-z plane, up to a maximum force of
-200 (lines 61-64). These exciters are created using the method {\tt
+After the controller is created (lines 43-44), four frame exciters are created
+to generate translational forces on each link in the x-z plane, up to a maximum
+force of 200 (lines 61-64). These exciters are created using the method {\tt
 addFrameExciter()} (lines 32-37), which creates the exciter and adds it to the
 {\tt MechModel} and to the controller's exciter list.
 
@@ -3046,25 +3035,25 @@ and its class definition, excluding {\tt import} statements, is shown below:
 %
 The {\tt build()} method starts by setting up a tracking controller in the same
 manner as for {\tt InverseMuscleArm} (Section \ref{InverseMuscleArm:sec})
-(lines 10-21). Next, the {\tt base} body is marked as ``ground'' by setting its
-{\sf grounded} property (line 23); this is necessary to prevent the {\tt IKSolver}
+(lines 10-18). Next, the {\tt base} body is marked as ``ground'' by setting its
+{\sf grounded} property (line 20); this is necessary to prevent the {\tt IKSolver}
 from moving it.
 
 This example tracks three markers with component numbers 8, 0, and 2.  These
 are collected into the list {\tt markers} and added to the controller as
-targets (lines 23-39). A target position probe containing the marker
+targets (lines 20-36). A target position probe containing the marker
 trajectory, and attached to the tracking controller target points, is then
-created directly from the TRC file (lines 44-49). Since this file contains data
+created directly from the TRC file (lines 41-46). Since this file contains data
 for {\it all} the markers, we specify the markers we want using the label
 list {\tt mkrLabels} which was created from their numbers.
 
 To filter the marker data (which for this example has been deliberately
 misregistered), an {\tt IKSolver} is created and used to create an input probe
-containing a feasible trajectory (lines 52-55). The data from this probe is
-then used to overwrite that of the target position probe (line 56). After this
+containing a feasible trajectory (lines 49-51). The data from this probe is
+then used to overwrite that of the target position probe (line 53). After this
 is done, the target position probe is differentiated to create a target
-velocity probe (lines 59-62). To take advantage of this velocity information,
-the controller is configured to use PD control (lines 65-68) with constants
+velocity probe (lines 56-59). To take advantage of this velocity information,
+the controller is configured to use PD control (lines 62-65) with constants
 that were tuned manually. Lastly, an output probe is created to record the
 excitations, and another is created to observe both the target and actual
 position of the distal marker (which appears first in {\tt markers}).
@@ -3108,7 +3097,7 @@ the four probes, is given in Figure \ref{IKInverseMuscleArmTimeline:fig}.
 Figure \ref{IKInverseMuscleArmEx:fig} (left) shows the resulting excitations,
 while Figure \ref{IKInverseMuscleArmEx:fig} (right) shows the different
 excitations produced if the target trajectory is left unfiltered. (To run with
-an unfiltered trajectory, comment out line 56. The model with then appear as in
+an unfiltered trajectory, comment out line 53. The model with then appear as in
 Figure \ref{IKInverseMuscleArm:fig}, right). Finally, Figure
 \ref{IKInverseMuscleArmTracking:fig} shows two outputs of the ``distal
 tracking'' probe, the left one with velocity information available to the

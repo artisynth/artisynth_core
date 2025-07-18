@@ -29,23 +29,14 @@ public class InverseMuscleArm extends ToyMuscleArm {
    public void build (String[] args) throws IOException {
       super.build(args); // create ToyMuscleArm
 
-      // move the model into a non-singular position so it can track a target
-      // trajectory more easily
-      myHinge0.setTheta (-20);
-      myHinge1.setTheta (38.4);
-      myMech.updateWrapSegments(); // update muscle wrapping for new config
-      
-      // Create a tracking controller
+      // create a tracking controller
       TrackingController tcon = new TrackingController (myMech, "tcon");
       addController (tcon);
-      // For each muscle, reinitialize its rest length for the new
-      // configuration and add it to the controller as an exciter
+      // add each muscle to the controller as an exciter
       for (AxialSpring spr : myMech.axialSprings()) {
-         spr.setRestLength (spr.getLength());
          tcon.addExciter ((Muscle)spr);
       }
       for (MultiPointSpring spr : myMech.multiPointSprings()) {
-         spr.setRestLength (spr.getLength());
          tcon.addExciter ((MultiPointMuscle)spr);
       }
 

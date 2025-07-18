@@ -52,7 +52,6 @@ public class ToyMuscleArm extends RootModel {
       muscle.setMaterial (
          new SimpleAxialMuscle (stiffness, /*damping=*/0, /*fmax=*/1000));
       myMech.attachAxialSpring (l0, l1, muscle);
-      muscle.setRestLength (muscle.getLength()); // init rest length
       return muscle;
    }
 
@@ -74,7 +73,6 @@ public class ToyMuscleArm extends RootModel {
       muscle.addPoint (l1);
       muscle.addWrappable (wrapBody);
       muscle.updateWrapSegments(); // shrink wrap to current wrappable
-      muscle.setRestLength (muscle.getLength()); // init rest length
       myMech.addMultiPointSpring (muscle);
       return muscle;
    }
@@ -142,6 +140,18 @@ public class ToyMuscleArm extends RootModel {
       // add a marker at the tip
       myTipMkr = myMech.addFrameMarkerWorld (
          myLink1, new Point3d(0.0, 0.0, 1.25));
+
+      // reposition the model using the joint angles to move it into a
+      // non-upright position so it will move when first run
+      myHinge0.setTheta (-20);
+      myHinge1.setTheta (38.4);
+      myMech.updateWrapSegments(); // update muscle wrapping for new config
+
+      // set muscle rest lengths to their initial lengths
+      muscleL0.setRestLength (muscleL0.getLength());
+      muscleR0.setRestLength (muscleR0.getLength());
+      muscleL1.setRestLength (muscleL1.getLength());
+      muscleR1.setRestLength (muscleR1.getLength());
 
       // add a control panel for muscle excitations
       ControlPanel panel = new ControlPanel ();

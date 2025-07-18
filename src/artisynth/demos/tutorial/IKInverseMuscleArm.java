@@ -41,14 +41,11 @@ public class IKInverseMuscleArm extends ToyMuscleArm {
       // create a tracking controller
       TrackingController tcon = new TrackingController (myMech, "tcon");
       addController (tcon);
-      // for each muscle, reinitialize its rest length for the new
-      // configuration and add it to the controller as an exciter
+      // add each muscle to the controller as an exciter
       for (AxialSpring spr : myMech.axialSprings()) {
-         spr.setRestLength (spr.getLength());
          tcon.addExciter ((Muscle)spr);
       }
       for (MultiPointSpring spr : myMech.multiPointSprings()) {
-         spr.setRestLength (spr.getLength());
          tcon.addExciter ((MultiPointMuscle)spr);
       }
       // set the base to be ground - useful when using the IK solver

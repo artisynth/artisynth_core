@@ -103,7 +103,7 @@ public class IKInverseMuscleArmGen extends ToyMuscleArm {
       angProbe.setName ("angle inputs");
       angProbe.setData (
          new double[] {
-            0, 0, 0,
+            0, -20, 38.4,
             1.0, 0, -45,
             2, 0, 45,
             3, 45, -45,

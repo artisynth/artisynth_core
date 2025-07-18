@@ -39,22 +39,9 @@ public class InverseFrameExciterArm extends ToyMuscleArm {
    public void build (String[] args) throws IOException {
       super.build(args); // create ToyMuscleArm
 
-      // move the model into a non-singular position so it can track a target
-      // trajectory more easily
-      myHinge0.setTheta (-20);
-      myHinge1.setTheta (38.4);
-      myMech.updateWrapSegments(); // update muscle wrapping for new config
       // Create a tracking controller
       TrackingController tcon = new TrackingController (myMech, "tcon");
       addController (tcon);
-      // For each muscle, reinitialize its rest length for the new
-      // configuration
-      for (AxialSpring spr : myMech.axialSprings()) {
-         spr.setRestLength (spr.getLength());
-      }
-      for (MultiPointSpring spr : myMech.multiPointSprings()) {
-         spr.setRestLength (spr.getLength());
-      }
       
       // For each link, add two frame exciters to give the controller access to
       // translational forces in the x-z plane

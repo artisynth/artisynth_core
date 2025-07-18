@@ -21,8 +21,6 @@ import maspack.properties.*;
 
 public class EmbeddedDemo extends EmbeddedHeart {
 
-   public static boolean omitFromMenu = true;
-
    public void build (String[] args) throws IOException {
       super.build (args);
 
@@ -47,8 +45,6 @@ public class EmbeddedDemo extends EmbeddedHeart {
 
       RenderProps.setVisible (embeddedHeart, false);
       RenderProps.setVisible (plate, false);
-      //RenderProps.setLineWidth (heart, 2);
-      //RenderProps.setLineWidth (heart.getMuscleBundles(), 3);
 
       // turn off probe
       getInputProbes().get(0).setActive (false);

@@ -58,6 +58,8 @@ public class ToySpine extends RootModel {
 //      myCerv5 = addBody ("cerv5");
 //      // set the mesh color for the entire MechModel
 //      RenderProps.setFaceColor (myMech, new Color (1f, 1f, 0.8f));
+//      // render all points in the MechModel as white spheres
+//      RenderProps.setSphericalPoints (myMech, 0.001, Color.WHITE);
 
 //      // create attachments between the bodies
 //      attachBodies ("32", myCerv3, myCerv2);
@@ -76,8 +78,6 @@ public class ToySpine extends RootModel {
 //      myMech.addPoint (pntR);
 //      FrameMarker mkrR = myMech.addFrameMarkerWorld (
 //         myCerv5, new Point3d(0.0, -0.0262, -0.0416));
-//      // render all points in the MechModel as white spheres
-//      RenderProps.setSphericalPoints (myMech, 0.001, Color.WHITE);
 
 //      // add point-to-point muscles between the points and markers
 //      myMuscleL = new Muscle ();

@@ -1,6 +1,8 @@
 "Hex 3d Block" artisynth.demos.fem.Hex3dBlock
 "Spring Net" artisynth.demos.tutorial.NetDemo
 "Newtons Cradle" artisynth.demos.mech.NewtonsCradle
+"Toy Muscle Arm" artisynth.demos.tutorial.ToyMuscleArm
+"Embedded Demo" artisynth.demos.fem.EmbeddedDemo
 "Puppet Demo" artisynth.demos.mech.PuppetDemo
 "Elastic Contact" artisynth.demos.tutorial.ElasticFoundationContact
 "Hex Frame" artisynth.demos.fem.HexFrame
@@ -17,16 +19,16 @@
 "Inverse Hydrostat" artisynth.demos.inverse.HydrostatInvDemo
 "Torus Wrapping" artisynth.demos.wrapping.TorusWrapTest
 "Phalanx Wrapping" artisynth.demos.tutorial.PhalanxWrapping
-"Embedded Surface" artisynth.demos.fem.EmbeddedSurface
 "Embedded Surface Collide" artisynth.demos.fem.EmbeddedSurfaceCollide
 "Lumbar FEM Disk" artisynth.demos.tutorial.LumbarFEMDisk
 "Lumbar FrameSpring" artisynth.demos.tutorial.LumbarFrameSpring
 "Material Bundle" artisynth.demos.tutorial.MaterialBundleDemo
 "RigidBodyCollision" artisynth.demos.mech.RigidBodyCollision
-"Multi-Point Muscle" artisynth.demos.mech.MultiMuscleDemo
 "RigidBody Skinning" artisynth.demos.mech.SkinDemo
-"FEM Plane Collide" artisynth.demos.fem.FemPlaneCollide
 "FEM Skinning" artisynth.demos.fem.FemSkinDemo
+#"Embedded Surface" artisynth.demos.fem.EmbeddedSurface
+#"FEM Plane Collide" artisynth.demos.fem.FemPlaneCollide
+#"Multi-Point Muscle" artisynth.demos.mech.MultiMuscleDemo
 #"Contact Pressure Render" artisynth.demos.tutorial.ContactPressureRender
 #"Toy Muscle Arm" artisynth.demos.tutorial.ToyMuscleArm
 #"Toy Muscle Fem" artisynth.demos.tutorial.ToyMuscleFem

@@ -21,7 +21,7 @@ CompositeComponent {
 
    /**
     * Adds a set of components to this MutableCompositeComponent. This routine is
-    * intended to provide greater efficiency for adding a large number of
+    * intended to provide greater efficiency than adding a large number of
     * components at one time. If the argument <code>indices</code> is not
     * null, it specified the index locations at which the components should be
     * added. It is up to the caller to insure that the specified index values
@@ -48,10 +48,11 @@ CompositeComponent {
    public boolean remove (Object comp);
 
    /**
-    * Removes a set of components from this MutableCompositeComponent. This routine is
-    * intended to provide greater efficiency for adding a large number of
-    * components at one time. If the argument <code>indices</code> is not
-    * null, it is used to return the indices where the components were located.
+    * Removes a set of components from this MutableCompositeComponent. This
+    * routine is intended to provide greater efficiency than removing a large
+    * number of components at one time. If the argument <code>indices</code> is
+    * not null, it is used to return the indices where the components were
+    * located.
     * 
     * @param comps
     * components to be removed

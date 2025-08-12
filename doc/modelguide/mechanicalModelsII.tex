@@ -3266,6 +3266,7 @@ update whatever internal structures are needed to run the
 simulation.
 
 \subsection{Container components}
+\label{ContainerComponents:sec}
 
 The generic class \javaclass[artisynth.core.modelbase]{ComponentList}
 can be used as a container for model components of a specific type.
@@ -3345,6 +3346,7 @@ hierarchies. Generally either\pdfbreak
 best suited to implement hierarchical groupings.
 
 \subsection{Example: a net formed from balls and springs}
+\label{NetDemo:sec}
 
 \begin{figure}[ht]
 \begin{center}
@@ -3507,7 +3509,7 @@ by default because they are empty.
 \iflatexml
  \includegraphics[]{images/NetDemoNav}
 \else
- \includegraphics[width=2.25in]{images/NetDemoNav}
+ \includegraphics[width=2in]{images/NetDemoNav}
 \fi
 \end{center}
 \caption{NetDemo components displayed in the ArtiSynth navigation panel.}
@@ -3523,6 +3525,214 @@ RootModel} and {\tt FemModel}. However, at the present time,
 components added to such containers won't do anything, other than be
 rendered in the viewer if they are
 \javaclass[maspack.render]{Renderable}.
+
+\subsection{Reference lists for grouping components}
+
+It is sometimes useful to create groupings of model components in a manner that
+is both independent of their primary location within the model component
+hierarchy and also represented in the component hierarchy.  However, it is {\it
+not} possible to do this using the
+\javaclass[\mbase]{ComponentList}
+described in Section \ref{ContainerComponents:sec}, since model components may
+only belong on one {\tt ComponentList} (or more generally,
+one \javaclass[\mbase]{CompositeComponent}) at a time.
+
+Instead, one can use a
+\javaclass[\mbase]{ReferenceList}, which contains
+{\it references} to a set of components of a particular type.  Reference lists
+can be created with the constructors
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mbase.ReferenceList.ReferenceList()}%
+{ReferenceList()}%
+{Create an unnamed list.}%
+%
+\methodentry
+{\mbase.ReferenceList.ReferenceList(String)}%
+{ReferenceList(String name)}%
+{Create a named list.}%
+%
+\midline
+\end{methodtable}
+%
+Their definition is parameterized by the type of model component that they are
+intended to reference. For example, a reference list for components of type
+{\tt MeshComponent} can be created and populated using the code fragment
+%
+\begin{lstlisting}[]
+import artisynth.core.modelbase.ReferenceList;
+import artisynth.core.mechmodels.MeshComponent;
+...
+
+   ArrayList<MeshComponent> meshes; // meshes to add to the reference list
+   ...
+   ReferenceList<MeshComponent> meshRefs = new ReferenceList<> ("meshes");
+   for (MeshComponent mc : meshes) {
+      meshRefs.addReference (mc);
+   }
+\end{lstlisting}
+%
+To create a list that can accept any type of model component, simply
+parameterize it using 
+\javaclass[\mbase]{ModelComponent}:
+%
+\begin{lstlisting}[]
+   ReferenceList<ModelComponent> anyRefs = new ReferenceList<> ("components");
+\end{lstlisting}
+%
+Reference lists can be managed using the following methods, where {\tt C} is
+the list's component type:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mbase.ReferenceListBase.addReference()}%
+{ReferenceComp addReference (C comp)}%
+{Add a reference for {\tt comp}.}%
+%
+\methodentry
+{\mbase.ReferenceListBase.addReferences()}%
+{void addReference (Collection<C> comps)}%
+{Add references for each component in {\tt comps}.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\mbase.ReferenceListBase.numReferences()}%
+{int numReferences()}%
+{Get the number of references.}%
+%
+\methodentry
+{\mbase.ReferenceListBase.getReference()}%
+{C getReference (int idx)}%
+{Get the idx-th referenced component.}%
+%
+\methodentry
+{\mbase.ReferenceListBase.getReferences()}%
+{void getReferences (Collection<C> comps)}%
+{Gets all referenced components.}%
+%
+\methodentry
+{\mbase.ReferenceListBase.containsReference()}%
+{boolean containsReference (C comp)}%
+{Check if {\tt comp} is referenced.}%
+%
+\methodentry
+{\mbase.ReferenceListBase.indexOfReference()}%
+{int indexOfReference (C comp)}%
+{Get the index of the reference to {\tt comp}.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\mbase.ReferenceListBase.removeReference()}%
+{boolean removeReference (C comp)}%
+{Remove first reference to {\tt comp}.}%
+%
+\methodentry
+{\mbase.ReferenceListBase.removeReferences()}%
+{boolean removeReferences (Collection<C> comps)}%
+{Remove all references to the components in {\tt comps}.}%
+%
+\methodentry
+{\mbase.ReferenceListBase.removeAllReferences()}%
+{void removeAllReferences ()}%
+{Remove all references.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+Internally, reference lists are implemented as component lists containing 
+collections of
+\javaclass[\mbase]{ReferenceComp} components that encapsulate each
+component reference.  (The {\tt addReference()} method returns the {\tt
+ReferenceComp} that it creates for the added reference).
+
+\begin{sideblock}
+Unlike with component lists, a reference list may contain multiple references
+to the same component.
+\end{sideblock}
+
+\begin{sideblock}
+An application's code base is of coarse free to create arbitrary collections of
+components using Java arrays or the various {\tt Collection} classes defined in
+{\tt java.util}. As indicated above, the purpose of a reference list is to
+incorporate such a collection into the component hierarchy, where it can be
+accessed from the navigation panel and will persist if the model is saved and
+reloaded.
+\end{sideblock}
+
+\subsection{Example: reference lists in NetDemo}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/NetDemoWithRefs}
+\else
+ \includegraphics[width=4.5in]{images/NetDemoWithRefs}
+\fi
+\end{center}
+\caption{NetDemoWithRefs model with navigation panel open and
+several of the referenced green springs selected.}
+\label{NetDemoWithRefs:fig}
+\end{figure}
+
+An extension to the {\tt NetDemo} example of Section \ref{NetDemo:sec}
+that creates reference lists for subsets of the green and blue springs
+is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.NetDemoWithRefs
+\end{verbatim}
+%
+The {\tt build()} method is shown below:
+%
+\lstset{numbers=left}
+\begin{lstlisting}[]
+   public void build (String[] args) {
+      super.build (args); // build superclass model NetDemo
+
+      // create reference lists for both the green and blue springs
+      // in the middle of the net and add these to the model
+      ReferenceList<AxialSpring> greenMid = 
+         new ReferenceList<> ("middleGreenSprings");
+      ReferenceList<AxialSpring> blueMid = 
+         new ReferenceList<> ("middleBlueSprings");
+      for (int i=0; i<8; i++) {
+         greenMid.addReference (greenSprings.get(32+i));
+      }
+      for (int i=0; i<8; i++) {
+         blueMid.addReference (blueSprings.get(32+i));
+      }
+      mech.add (greenMid);
+      mech.add (blueMid);
+   }
+\end{lstlisting}
+\lstset{numbers=none}
+%
+Since the model is a subclass of {\tt NetDemo}, the {\tt build()} method begins
+by creating the components of {\tt NetDemo} with a call to {\tt super.build()}
+(line 2). Reference lists are then created to hold the green and blue springs
+located in the middle of the net (lines 8-15). Each of these spring sets is
+defined by indices $32, \ldots 39$ with respect to the primary lists {\tt
+greenSprings} and {\tt blueSprings}. The lists are then added to the {\tt
+MechModel} as direct subcomponents (lines 16-17).
+
+Within the navigation panel, each component of a reference list is displayed as
+%
+\begin{verbatim}
+ -> path/to/reference
+\end{verbatim}
+%
+so that the referenced components are easy to locate. Selecting a reference in
+the panel selects the referenced component. Figure
+\ref{NetDemoWithRefs:fig} shows {\tt NetDemoWithRefs} with
+the navigation panel expanded to show the references for {\tt
+middleGreenSprings} and three of the springs selected.
 
 \section{Custom Joints}
 

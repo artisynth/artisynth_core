@@ -2081,7 +2081,7 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
             break;
          }
       }
-      return singular;
+      return !singular;
    }
 
    /**

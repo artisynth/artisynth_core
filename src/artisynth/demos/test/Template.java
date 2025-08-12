@@ -6,6 +6,7 @@ import java.util.*;
 
 import artisynth.core.workspace.*;
 import artisynth.core.mechmodels.*;
+import artisynth.core.gui.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.femmodels.*;
 import artisynth.core.materials.*;
@@ -21,6 +22,17 @@ import maspack.properties.*;
 public class Template extends RootModel {
 
    public static boolean omitFromMenu = true;
+
+   public static PropertyList myProps =
+      new PropertyList (Template.class, RootModel.class);
+
+   static {
+      //myProps.add ("attachment * *", "point constraint enabled", false);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
 
    public void build (String[] args) {
       MechModel mech = new MechModel ("mech");

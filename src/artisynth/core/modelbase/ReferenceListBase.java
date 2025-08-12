@@ -7,10 +7,16 @@
 package artisynth.core.modelbase;
 
 import java.util.Collection;
+import java.util.HashSet;
 
 import maspack.properties.PropertyList;
 import maspack.util.InternalErrorException;
+import maspack.util.DynamicIntArray;
 
+/**
+ * Base class for reference lists that can be used to create compnent groupings
+ * that are visible to the component hierarchy.
+ */
 public class ReferenceListBase<C extends ModelComponent,R extends ReferenceComp<C>> 
    extends ComponentList<R> {
 
@@ -47,46 +53,97 @@ public class ReferenceListBase<C extends ModelComponent,R extends ReferenceComp<
       }
    }
 
-   public R addReference (C ref) {
+   /**
+    * Adds a component reference to this list.
+    *
+    * @param comp component to be referenced
+    */
+   public R addReference (C comp) {
       R rc = newReferenceComp();
-      rc.setReference (ref);
+      rc.setReference (comp);
       add (rc);
       return rc;
    }
 
-   public void addReferences (Collection<C> refs) {
-      for (C c : refs) {
+   /**
+    * Adds multiple component references to this list.
+    *
+    * @param comps components to be referenced
+    */
+   public void addReferences (Collection<C> comps) {
+      for (C c : comps) {
          R rc = newReferenceComp();
          rc.setReference (c);
          add (rc);
       }
    }
 
+   /**
+    * Returns the {@code idx}-th referenced component in this list.
+    *
+    * @param idx index of the reference
+    * @return referenced component
+    */
    public C getReference (int idx) {
       return get(idx).getReference();
    }
 
-   public boolean containsReference (C ref) {
-      return indexOfReference(ref) != -1;
+   /**
+    * Get all the referenced components in this list.
+    *
+    * @param comps collects all the referenced components.
+    */
+   public void getReferences (Collection<C> comps) {
+      for (int i=0; i<size(); i++) {
+         comps.add (getReference(i));
+      }
    }
 
-   public int indexOfReference (C ref) {
+   /**
+    * Queries the number of references in this list. This is
+    * simply the size of the list.
+    *
+    * @return number of references in the list
+    */
+   public int numReferences () {
+      return size();
+   }
+
+   /**
+    * Checks if this list contains a reference to a specified component.
+    *
+    * @param comp component to check
+    * @return {@code true} if a reference is present
+    */
+   public boolean containsReference (C comp) {
+      return indexOfReference(comp) != -1;
+   }
+
+   /**
+    * Returns the index of the first occurance of a referenced component in
+    * this list, or -1 no reference is present.
+    *
+    * @param comp component whose index is requested
+    * @return index of the reference, or -1 if no reference is present
+    */
+   public int indexOfReference (C comp) {
       for (int i=0; i<size(); i++) {
-         if (get(i).getReference() == ref) {
+         if (get(i).getReference() == comp) {
             return i;
          }
       }
       return -1;
    }         
 
-   public void getReferences (Collection<C> col) {
-      for (int i=0; i<size(); i++) {
-         col.add (getReference(i));
-      }
-   }
-
-   public boolean removeReference (C ref) {
-      int idx = indexOfReference (ref);
+   /**
+    * Remove the first reference to a specified component from this list.
+    *
+    * @param comp component whose reference is to be removed
+    * @return {@code false} if this list did not contain a reference to
+    * {@code comp}
+    */
+   public boolean removeReference (C comp) {
+      int idx = indexOfReference (comp);
       if (idx != -1) {
          remove (idx);
          return true;
@@ -96,14 +153,40 @@ public class ReferenceListBase<C extends ModelComponent,R extends ReferenceComp<
       }
    }
 
-   public boolean removeReferences (Collection<C> refs) {
+   /**
+    * Removes alls references to the specified components from this list.
+    *
+    * @param comps components whose references are to be removed
+    * @return {@code false} if this list did not contain a reference to any of
+    * the specified components
+    */
+   public boolean removeReferences (Collection<C> comps) {
       boolean removed = false;
-      for (C c : refs) {
-         if (remove (c)) {
-            removed = true;
+
+      DynamicIntArray removeIdxs = new DynamicIntArray();
+      HashSet<C> removeSet = new HashSet<>(comps);
+      for (int i=0; i<size(); i++) {
+         if (removeSet.contains (get(i).getReference())) {
+            removeIdxs.add (i);
          }
       }
-      return removed;
+      if (removeIdxs.size() > 0) {
+         for (int k=removeIdxs.size()-1; k>=0; k--) {
+            remove (removeIdxs.get(k));
+         }
+         return true;
+      }
+      else {
+         return false;
+      }
    }
+
+   /**
+    * Remove all references from this list.
+    */
+   public void removeAllReferences() {
+      removeAll();
+   }
+
 
 }

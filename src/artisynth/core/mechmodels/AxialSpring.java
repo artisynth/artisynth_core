@@ -162,6 +162,10 @@ public class AxialSpring extends PointSpringBase
       return l;
    }
 
+   private boolean hasEndPoints() {
+      return mySeg.pnt0 != null && mySeg.pnt1 != null;
+   }
+
    /**
     * Computes the force acting on the first point. The force acting on the
     * second point is the negative of this force.
@@ -170,13 +174,15 @@ public class AxialSpring extends PointSpringBase
     * returns the computed force acting on the first point
     */
    public void computeForce (Vector3d f) {
-      mySeg.updateU();
-      if (mySeg.len == 0) {
-         f.setZero();
-         return;
+      if (hasEndPoints()) {
+         mySeg.updateU();
+         if (mySeg.len == 0) {
+            f.setZero();
+            return;
+         }
+         double F = computeF (mySeg.len, mySeg.getLengthDot());
+         f.scale (F, mySeg.uvec);
       }
-      double F = computeF (mySeg.len, mySeg.getLengthDot());
-      f.scale (F, mySeg.uvec);
    }
 
    public void applyForces (double t) {
@@ -267,16 +273,31 @@ public class AxialSpring extends PointSpringBase
    }
 
    public Vector3d getDir() {
-      mySeg.updateU();
-      return mySeg.uvec;
+      if (hasEndPoints()) {
+         mySeg.updateU();
+         return mySeg.uvec;
+      }
+      else {
+         return new Vector3d();
+      }
    }
 
    public double getLength() {
-      return mySeg.updateU();
+      if (hasEndPoints()) {
+         return mySeg.updateU();
+      }
+      else {
+         return 0;
+      }
    }
 
    public double getLengthDot() {
-      return mySeg.getLengthDot();
+      if (hasEndPoints()) {
+         return mySeg.getLengthDot();
+      }
+      else {
+         return 0;
+      }
    }
 
    /**
@@ -288,6 +309,9 @@ public class AxialSpring extends PointSpringBase
     * matrix in which to return the result
     */
    public void computeForcePositionJacobian (Matrix3d M) {
+      if (!hasEndPoints()) {
+         return;
+      }
       double l = getLength();
       double ldot = getLengthDot();
       double F = computeF (l, ldot);
@@ -306,6 +330,9 @@ public class AxialSpring extends PointSpringBase
     * matrix in which to return the result
     */
    public void computeForceVelocityJacobian (Matrix3d M) {
+      if (!hasEndPoints()) {
+         return;
+      }
       double l = getLength();
       double ldot = getLengthDot();
       double dFdldot = computeDFdldot (l, ldot);
@@ -313,10 +340,16 @@ public class AxialSpring extends PointSpringBase
    }
 
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
+      if (!hasEndPoints()) {
+         return;
+      }
       mySeg.addSolveBlocks (M);
    }
 
    public void addPosJacobian (SparseNumberedBlockMatrix M, double s) {
+      if (!hasEndPoints()) {
+         return;
+      }
       Matrix3d Tmp = new Matrix3d();
       double l = getLength();
       double ldot = getLengthDot();
@@ -327,6 +360,9 @@ public class AxialSpring extends PointSpringBase
    }
 
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
+      if (!hasEndPoints()) {
+         return;
+      }
       Matrix3d Tmp = new Matrix3d();
       double l = getLength();
       double ldot = getLengthDot();
@@ -341,6 +377,9 @@ public class AxialSpring extends PointSpringBase
    }
    
    public void getForce (VectorNd minf, boolean staticOnly) {
+      if (!hasEndPoints()) {
+         return;
+      }
       double l = mySeg.updateU();
       double ldot = staticOnly ? 0.0 : mySeg.getLengthDot();
       double F = computeF (l, ldot, 0);
@@ -350,6 +389,9 @@ public class AxialSpring extends PointSpringBase
 
    public int addForcePosJacobian (
       SparseBlockMatrix J, double h, boolean staticOnly, int bi) {
+      if (!hasEndPoints()) {
+         return bi;
+      }
       double l = getLength();
       double ldot = 0;
       if (!staticOnly) {
@@ -364,6 +406,9 @@ public class AxialSpring extends PointSpringBase
    
    public int addForceVelJacobian (
       SparseBlockMatrix J, double h, int bi) {
+      if (!hasEndPoints()) {
+         return bi;
+      }
       double l = getLength();
       double ldot = mySeg.getLengthDot();
       double dFdldot = computeDFdldot (l, ldot, 0);

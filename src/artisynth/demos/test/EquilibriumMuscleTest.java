@@ -16,12 +16,14 @@ import artisynth.core.gui.*;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.geometry.*;
+import maspack.interpolation.*;
 import maspack.render.*;
 import maspack.render.Renderer.*;
 import maspack.properties.*;
 
 public class EquilibriumMuscleTest extends RootModel {
 
+   private double INF = Double.POSITIVE_INFINITY;
    private double DTOR = Math.PI/180;
 
    public static boolean omitFromMenu = true;
@@ -32,6 +34,8 @@ public class EquilibriumMuscleTest extends RootModel {
    Particle myPM;
    Muscle myMus0;
    Muscle myMus1;
+
+   double myRunTime = -1;
 
    private boolean myUseForce = true;
    private boolean myUseMillard = true;
@@ -44,26 +48,29 @@ public class EquilibriumMuscleTest extends RootModel {
    private double myLength0;
    
    private double myPennationAngleDeg = 20.0;
-   private double myFibreDamping = 0; //0.1;
+   private double myFibreDamping = 0.0;
    private double myMaxIsoForce = 10.0;
    private boolean myIgnoreForceVel = false;
-   private boolean myComputeLmDotFromLDot = false;
+   private boolean myComputeLmDotFromLDot = true;
    private double myTendonSlackLength = 0.5;
    private double myOptFibreLength = 0.5;
 
-   private double myExcitation = 0;
+   private double myExcitation = 1;
    private double mySpringPos = 0;
 
    public class LengthController extends ControllerBase {
 
       public void apply (double t0, double t1) {
          double speed = myUseMillard ? 1.0 : 0.8;
+         speed *= 2/myRunTime;
          double xvel = speed;
          double h = t1-t0;
-         if (t1 <= 0.75) {
+         double tmid = 0.75/2*myRunTime;
+         double tmax = 2*tmid;
+         if (t1 <= tmid) {
             xvel = speed;
          }
-         else if (t1 <= 1.5) {
+         else if (t1 <= tmax) {
             xvel = -speed;
          }
          else {
@@ -90,7 +97,7 @@ public class EquilibriumMuscleTest extends RootModel {
          "springPos", "x position of spring control points", 0);
       myProps.add (
          "computeLmDotFromLDot",
-         "whether to compute lmdot from ldot in equilibirbrium muscle", false);
+         "whether to compute lmdot from ldot in equilibirbrium muscle", true);
       myProps.add ("length", "overall length of the spring", 0);
       myProps.addReadOnly ("force0", "force for first muscle");
       myProps.addReadOnly ("force1", "force for second muscle");
@@ -109,10 +116,48 @@ public class EquilibriumMuscleTest extends RootModel {
    public void build (String[] args) {
       MechModel mech = new MechModel ("mech");
       addModel (mech);
-
+      
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-force")) {
             myUseForce = true;
+         }
+         else if (args[i].equals ("-runTime")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -runTime needs another argument");
+            }
+            myRunTime = Double.valueOf(args[i]);
+         }
+         else if (args[i].equals ("-penAngle")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -penAngle needs another argument");
+            }
+            myPennationAngleDeg = Double.valueOf(args[i]);
+         }
+         else if (args[i].equals ("-tendonRatio")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -tendonRatio needs another argument");
+            }
+            double ratio = Double.valueOf(args[i]);
+            myTendonSlackLength = ratio;
+            myOptFibreLength = 1-ratio;
+         }
+         else if (args[i].equals ("-stepSize")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -stepSize needs another argument");
+            }
+            double stepSize = Double.valueOf(args[i]);
+            setMaxStepSize (stepSize);
+         }
+         else if (args[i].equals ("-damping")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: Option -damping needs another argument");
+            }
+            myFibreDamping = Double.valueOf(args[i]);
          }
          else if (args[i].equals ("-length")) {
             myUseForce = false;
@@ -126,9 +171,20 @@ public class EquilibriumMuscleTest extends RootModel {
          else {
             System.out.println (
                "WARNING: unrecognized option '"+args[i]+"'");
-            System.out.println (
-               "Options are '-force', '-length', '-millard', '-thelen'");
+            System.out.println ("Options are:");
+            System.out.println (" -force");
+            System.out.println (" -length");
+            System.out.println (" -millard");
+            System.out.println (" -thelen");
+            System.out.println (" -runTime <time>");
+            System.out.println (" -tendonRatio <ratio>");
+            System.out.println (" -penAngle <degrees>");
+            System.out.println (" -damping <d>");
+            System.out.println (" -stepSize <sec>");
          }
+      }
+      if (myRunTime == -1) {
+         myRunTime = myUseForce ? 6 : 2;
       }
 
       mech.setGravity (0, 0, 0);
@@ -161,7 +217,7 @@ public class EquilibriumMuscleTest extends RootModel {
       mech.addParticle (myPE0);
 
       myMus0 = new Muscle("mus0");
-      AxialSpring lig = new AxialSpring();
+      Muscle lig = new Muscle();
 
       EquilibriumAxialMuscle mat0;
       EquilibriumAxialMuscle mat1;
@@ -178,7 +234,7 @@ public class EquilibriumMuscleTest extends RootModel {
       }
 
       mat0.setOptPennationAngle (Math.toRadians(myPennationAngleDeg));
-      mat0.setOptFibreLength(0.5);
+      mat0.setOptFibreLength (myOptFibreLength);
       mat0.setRigidTendon (true);
       mat0.setFibreDamping (myFibreDamping);
       mat0.setIgnoreForceVelocity (myIgnoreForceVel);
@@ -186,7 +242,7 @@ public class EquilibriumMuscleTest extends RootModel {
       mat0.setMaxIsoForce(10.0);
       myMus0.setMaterial (mat0);
       tmat.setMaxIsoForce(10.0);
-      tmat.setTendonSlackLength(0.5);
+      tmat.setTendonSlackLength(myTendonSlackLength);
       lig.setMaterial (tmat);
 
       mech.attachAxialSpring (p0, myPM, myMus0);
@@ -225,11 +281,12 @@ public class EquilibriumMuscleTest extends RootModel {
       }
       
       mat1.setOptPennationAngle (Math.toRadians(myPennationAngleDeg));
-      mat1.setOptFibreLength(0.5);
+      mat1.setOptFibreLength(myOptFibreLength);
       mat1.setFibreDamping (myFibreDamping);
       mat1.setIgnoreForceVelocity (myIgnoreForceVel);
-      mat1.setTendonSlackLength(0.5);
+      mat1.setTendonSlackLength(myTendonSlackLength);
       mat1.setMaxIsoForce(10.0);
+      mat1.setComputeLmDotFromLDot (myComputeLmDotFromLDot);
       //mat1.setMuscleLength (lm0);
       myMus1.setMaterial (mat1);
 
@@ -290,9 +347,11 @@ public class EquilibriumMuscleTest extends RootModel {
 
    NumericInputProbe addExcitationProbe () {
       NumericInputProbe probe =
-         new NumericInputProbe(this, "excitation", 0, 6);
+         new NumericInputProbe(this, "excitation", 0, myRunTime);
+      probe.setName ("excitation");
+      double te = myRunTime;
       probe.addData (
-         new double[] { 0, 0,  1, 1,  5, 1,  6, 0 },
+         new double[] { 0, 0,  te/6, 1,  te*5/6, 1,  te, 0 },
          NumericInputProbe.EXPLICIT_TIME);
       addInputProbe (probe);
       return probe;
@@ -300,11 +359,14 @@ public class EquilibriumMuscleTest extends RootModel {
 
    NumericInputProbe addSpringProbe () {
       NumericInputProbe probe =
-         new NumericInputProbe(this, "springPos", 0, 6);
+         new NumericInputProbe(this, "springPos", 0, myRunTime);
+      probe.setName ("spring position");
       double x0 = getSpringPos();
       double delx = myUseMillard ? 0.8 : 0.6;
+      double te = myRunTime;
       probe.addData (
-         new double[] { 0,x0, 1,x0, 1.5,1, 3,x0+delx, 4.5,1, 5,x0, 6,x0 },
+         new double[] { 0,x0, te/6,x0, te*1.5/6,1, te/2,x0+delx,
+                        3*te/4,1, 5*te/6,x0, te,x0 },
          NumericInputProbe.EXPLICIT_TIME);
       addInputProbe (probe);
       return probe;
@@ -327,15 +389,20 @@ public class EquilibriumMuscleTest extends RootModel {
       if (myUseForce) {
          addExcitationProbe();
          addSpringProbe();
-         t1 = 6;
       }
-      else {
-         t1 = 2;
-      }
-      addOutputProbe ("force 0", "force0", t1);
-      addOutputProbe ("force 1", "force1", t1);
-      addOutputProbe ("muscle length 0", "muscleLen0", t1);
-      addOutputProbe ("muscle length 1", "muscleLen1", t1);
+      addOutputProbe ("force 0", "force0", myRunTime);
+      addOutputProbe ("force 1", "force1", myRunTime);
+      addOutputProbe ("muscle length 0", "muscleLen0", myRunTime);
+      addOutputProbe ("muscle length 1", "muscleLen1", myRunTime);
+
+      Property prop0 = myMus0.getProperty ("forceNorm");
+      Property prop1 = myMus1.getProperty ("forceNorm");
+
+      NumericOutputProbe probe =
+         new NumericOutputProbe (new Property[] { prop0, prop1 }, -1);
+      probe.setStopTime (myRunTime);
+      probe.setName ("computed forces");
+      addOutputProbe (probe);
    }
    
    public void setIgnoreForceVelocity (boolean enable) {
@@ -492,11 +559,73 @@ public class EquilibriumMuscleTest extends RootModel {
       }
    }
 
+   public void render (Renderer r, int flags) {
+      super.render (r, flags);
+      double len = getMuscleLen1();
+      if (len != 0) {
+         Point3d pe1 = new Point3d (len, 0, -0.5);
+         r.setColor (Color.CYAN);
+         r.drawSphere (pe1, 0.03);
+      }
+   }
+
+   public double[] computeRelError() {
+      NumericOutputProbe force0 =
+         (NumericOutputProbe)getOutputProbes().get("force 0");
+      NumericOutputProbe force1 =
+         (NumericOutputProbe)getOutputProbes().get("force 1");
+      NumericList nlist0 = force0.getNumericList();
+      NumericList nlist1 = force1.getNumericList();
+      VectorNd refvals = new VectorNd(1);
+      double maxf = nlist0.getMaxValues().get(0);
+      double maxerr = 0;
+      double avgerr = 0;
+      for (int k=0; k<nlist1.getNumKnots(); k++) {
+         NumericListKnot knot = nlist1.getKnot(k);
+         nlist0.interpolate(refvals, knot.t);
+         double fref = refvals.get(0);
+         double f = knot.v.get(0);
+         double relerr = Math.abs((f-fref)/maxf);
+         if (relerr > maxerr) {
+            maxerr = relerr;
+         }
+         avgerr += relerr;
+      }
+      avgerr /= nlist1.getNumKnots();
+      return new double[] { maxerr, avgerr };
+   }
+
+   double myVnMin, myVnMax;
+
    public StepAdjustment advance (double t0, double t1, int flags) {
       if (t0 == 0) {
+         myVnMin = INF;
+         myVnMax = -INF;
          setExcitation (getExcitation());
       }
-      return super.advance (t0, t1, flags);
+      StepAdjustment sa = super.advance (t0, t1, flags);
+      EquilibriumAxialMuscle mat1 =
+         (EquilibriumAxialMuscle)myMus1.getMaterial();
+
+      double vn = mat1.getNormalizedFibreVelocity();
+      if (vn < myVnMin) {
+         myVnMin = vn;
+      }
+      if (vn > myVnMax) {
+         myVnMax = vn;
+      }
+      if (t1 == myRunTime) {
+         double maxAvgErr[] = computeRelError();
+         System.out.printf (
+            "RES: tratio=%4.2f ang=%04.1f time=%3.1f %s step=%5.3f "+
+            "vnrange=[ %6.3f %5.3f ] maxerr: %7.5f avgerr: %7.5f\n",
+            myTendonSlackLength, myPennationAngleDeg, myRunTime, 
+            (myUseMillard ? "Millard" : "Thelen_"),
+            getMaxStepSize(),
+            myVnMin, myVnMax,
+            maxAvgErr[0], maxAvgErr[1]);
+      }
+      return sa;
    }
 
 }

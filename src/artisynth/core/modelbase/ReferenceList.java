@@ -10,13 +10,25 @@ import java.util.Collection;
 
 import maspack.properties.PropertyList;
 
+/**
+ * Contains a list of references to other model components. Used to create
+ * compnent groupings that are visible to the component hierarchy.
+ */
 public class ReferenceList<C extends ModelComponent> 
    extends ReferenceListBase<C,ReferenceComp<C>> {
 
+   /**
+    * Creates an empty, unnamed reference list.
+    */
    public ReferenceList() {
       this (null);
    }
 
+   /**
+    * Creates an empty reference list with a specified name.
+    *
+    * @param name name of the list
+    */
    public ReferenceList (String name) {
       super ((Class)ReferenceComp.class, name);
    }

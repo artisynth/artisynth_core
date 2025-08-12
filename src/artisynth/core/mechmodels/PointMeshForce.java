@@ -29,8 +29,10 @@ import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.RenderList;
+import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.*;
 import maspack.util.*;
 
 /**
@@ -40,6 +42,10 @@ import maspack.util.*;
  */
 public class PointMeshForce extends RenderableComponentBase
    implements ForceComponent {
+
+   // rendering data
+   RenderObject myRob;
+   private static int FORCE_GRP = 0;
 
    /**
     * Information and compute functions for each point that may contact the
@@ -153,6 +159,12 @@ public class PointMeshForce extends RenderableComponentBase
    public static boolean DEFAULT_ENABLED = true;
    protected boolean myEnabledP = DEFAULT_ENABLED;
 
+   static boolean DEFAULT_DRAW_FORCES = false;
+   boolean myDrawForces = DEFAULT_DRAW_FORCES;
+
+   static double DEFAULT_FORCE_LEN_SCALE = 1.0;
+   private double myForceLenScale = DEFAULT_FORCE_LEN_SCALE;
+
    public static PropertyList myProps =
       new PropertyList (
          PointMeshForce.class, RenderableComponentBase.class);
@@ -170,6 +182,13 @@ public class PointMeshForce extends RenderableComponentBase
          "forceType", "formula by which force is computed", DEFAULT_FORCE_TYPE);
       myProps.add (
          "enabled", "enables/disables forces", DEFAULT_ENABLED);
+      myProps.add (
+         "drawForces",
+         "draw forces at each point", DEFAULT_DRAW_FORCES);
+      myProps.add (
+         "forceLenScale",
+         "length scale to be used when drawing forces",
+         DEFAULT_FORCE_LEN_SCALE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -305,6 +324,8 @@ public class PointMeshForce extends RenderableComponentBase
       myPointInfo.clear();
    }
 
+   // --- property accessors ---
+
    /**
     * Queries whether the point-mesh interactions are unilateral.  See {@link
     * #setUnilateral}.
@@ -413,6 +434,56 @@ public class PointMeshForce extends RenderableComponentBase
          myEnabledP = enabled;
       }
    }
+
+   /**
+    * Queries whether or not point force rendering is enabled. See
+    * {@link #setDrawForces}.
+    *
+    * @return {@code true} if point force rendering is enabled.
+    */
+   public boolean getDrawForces() {
+      return myDrawForces;
+   }
+
+   /**
+    * Sets whether or not point force rendering is enabled.  If enabled, the
+    * force on each point is rendered using a line segment drawn from the point
+    * in direction of the force. The length of each line segment is given by
+    * the force magnitude times the value returned by {@link
+    * #getForceLenScale}, and other render properties are controlled by the
+    * generic line render properties associated with this component.
+    *
+    * @param enable if {@code true}, enables point force rendering.
+    */
+   public void setDrawForces (boolean enable) {
+      if (myDrawForces != enable) {
+         myDrawForces = enable;
+      }
+   }
+
+   /**
+    * Returns the force length scale factor for this component. See {@link
+    * #setForceLenScale}.
+    *
+    * @return force length scale
+    */
+   public double getForceLenScale() {
+      return myForceLenScale;
+   }
+
+   /**
+    * Sets the force length scale factor for this component. If point force
+    * rendering is enabled, the length of the line segement representing each
+    * point force is given by the force magnitude times the force length scale.
+    *
+    * @param scale force length scale
+    */
+   public void setForceLenScale (double scale) {
+      if (scale != myForceLenScale) {
+         myForceLenScale = scale;
+      }
+   }
+
 
    // ----- ForceEffector interface ------
 
@@ -565,18 +636,88 @@ public class PointMeshForce extends RenderableComponentBase
       // nothing to do at the moment
    }
 
+   private void addForceLineSeg (
+      RenderObject ro, Point3d p0, Vector3d scaledForce) {
+
+      if (!scaledForce.equals(Vector3d.ZERO)) {
+         Point3d p1 = new Point3d(p0);
+         p1.add (scaledForce);
+         int v0idx = ro.vertex ((float)p0.x, (float)p0.y, (float)p0.z);
+         int v1idx = ro.vertex ((float)p1.x, (float)p1.y, (float)p1.z);
+         ro.addLine (v0idx, v1idx);
+      }
+   }
+
    /**
     * {@inheritDoc}
     */
    public void prerender (RenderList list) {
       super.prerender (list);
+
+      RenderObject ro = new RenderObject();
+      ro.createLineGroup();     // forces
+
+      double forceScale = getForceLenScale();
+      if (getDrawForces()) {
+         ro.lineGroup (FORCE_GRP);
+         Vector3d scaledForce = new Vector3d();
+         for (PointInfo pinfo : myPointInfo) {
+            pinfo.computeForce (scaledForce);
+            scaledForce.scale (forceScale);
+            addForceLineSeg (ro, pinfo.myPoint.getPosition(), scaledForce);
+         }
+      }
+      myRob = ro;
+   }
+
+   private void drawLines (
+      Renderer renderer, RenderObject ro, RenderProps props, int width) {
+
+      Shading savedShading = renderer.setLineShading (props);
+      LineStyle style = props.getLineStyle();
+      switch (style) {
+         case LINE: {
+            if (width > 0) {
+               //renderer.setLightingEnabled (false);
+               //renderer.setColor (props.getLineColorArray(), /*highlight=*/false);
+               renderer.drawLines (ro, LineStyle.LINE, width);
+               //renderer.setLightingEnabled (true);
+            }
+            break;
+         }
+            // do we need to handle the solid line case?
+         case SPINDLE:
+         case SOLID_ARROW:
+         case CYLINDER: {
+            double rad = props.getLineRadius();
+            if (rad > 0) {
+               //Shading savedShading = renderer.getShadeModel();
+               //renderer.setLineLighting (props, /*highlight=*/false);
+               renderer.drawLines (ro, style, rad);
+               //renderer.setShadeModel(savedShading);
+            }
+            break;
+         }
+      }
+      renderer.setShading(savedShading);
    }
 
    /**
     * {@inheritDoc}
     */
    public void render (Renderer renderer, int flags) {
-      // nothing to do at the moment
+      RenderObject ro = myRob;
+            
+      if (ro == null) {
+         // XXX paranoid
+         return;
+      }
+      RenderProps props = getRenderProps();
+      if (ro.numLines(FORCE_GRP) > 0) {
+         ro.lineGroup (FORCE_GRP);
+         renderer.setEdgeColoring (props, /*highlight=*/false);
+         drawLines (renderer, ro, props, props.getEdgeWidth());
+      }
    }
    
    // public void scaleMass (double s) {

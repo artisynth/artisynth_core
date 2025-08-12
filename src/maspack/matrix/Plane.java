@@ -400,6 +400,27 @@ public class Plane implements java.io.Serializable {
    }
 
    /**
+    * Finds the point formed by the intersection of three planes.
+    *
+    * @param pnt intersection point
+    * @param plane0 first plane to intersect
+    * @param plane1 second plane to intersect
+    * @param plane2 third plane to intersect
+    * @return <code>true</code> if the planes intersect at a point or
+    * <code>false</code> if they do not.
+    */
+   public static boolean intersectPlanes (
+      Point3d pnt, Plane plane0, Plane plane1, Plane plane2) {
+      Matrix3d N = new Matrix3d();
+      N.setRow (0, plane0.normal);
+      N.setRow (1, plane1.normal);
+      N.setRow (2, plane2.normal);
+      Vector3d offs =
+         new Vector3d (plane0.offset, plane1.offset, plane2.offset);
+      return N.solve (pnt, offs);
+   }
+
+   /**
     * Returns a String representation of this Plane, consisting of the x, y, and
     * z components of the normal, followed by the offset.
     * 

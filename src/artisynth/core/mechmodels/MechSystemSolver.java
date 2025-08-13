@@ -1038,10 +1038,10 @@ public class MechSystemSolver {
       S.add (myMass, nactive, nactive);
    }
 
-   public void addMassForces (VectorNd f, double t) {
+   public void addScaledMassForces (VectorNd f, double s, double t) {
       updateStateSizes();
       updateMassMatrix (t);
-      f.add (myMassForces);
+      f.scaledAdd (s, myMassForces);
    }
 
    /** 

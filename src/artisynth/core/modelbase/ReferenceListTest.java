@@ -3,19 +3,9 @@ package artisynth.core.modelbase;
 import java.util.*;
 import maspack.util.*;
 import maspack.matrix.*;
+import artisynth.core.modelbase.ComponentTest.TestComp;
 
 public class ReferenceListTest extends UnitTest {
-
-   static class TestComp extends ModelComponentBase {
-
-      public TestComp () {
-      }
-
-      TestComp (String name) {
-         super();
-         setName (name);
-      }
-   }
 
    String contentString (TestComp[] comps) {
       StringBuilder sb = new StringBuilder();

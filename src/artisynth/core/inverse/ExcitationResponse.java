@@ -39,7 +39,8 @@ import maspack.util.NumberFormat;
 public class ExcitationResponse
 {
    public static final boolean DEFAULT_NORMALIZE = false;
-   boolean useFactorSolveForIncremental = true;
+   boolean refactorForIncremental =
+      TrackingController.DEFAULT_REFACTOR_FOR_INCREMENTAL;
 
    boolean debug = false;
    public static boolean debugHu = false;
@@ -160,10 +161,11 @@ public class ExcitationResponse
 
       myController.updateConstraints(t1);
       myController.updateForces(t1, fp, ex);
-      myMechSysSolver.addMassForces(fp, t0);
+      //myMechSysSolver.addScaledMassForces(fp, 1, t0);
       
-      // bf = M v + h fp
+      // bf = M v + h (fp + fmass)
       bf.scaledAdd(h, fp, Mv);
+      myMechSysSolver.addScaledMassForces(bf, h, t0);
       
       int solveFlags = MechSystemSolver.NO_SYS_UPDATE;
       
@@ -181,11 +183,12 @@ public class ExcitationResponse
          myMechSysSolver.KKTFactorAndSolve(
             u0, null, bf, /*tmp=*/ftmp, curVel, h, solveFlags);
       }
-      SparseBlockMatrix S = myMechSysSolver.getSolveMatrix();
-      //System.out.println ("MA=\n"+S.getBlock(0,0).toString ("%12.8f"));
+ 
+      VectorNd bf0 = incremental ? new VectorNd (bf) : null;
 
       lam0.set (myMechSysSolver.getLambda ());
       // where e_j is elementary unit vector
+
       for (int j = 0; j < exSize; j++) {
          double dex = deltaEx;
          if (incremental) {
@@ -208,22 +211,24 @@ public class ExcitationResponse
          // XXX scale fa by excitation weight??
          
          if (incremental) {
-            if (useFactorSolveForIncremental) {
-               myMechSysSolver.addMassForces(fa, t0);
+            if (refactorForIncremental) {
+               //myMechSysSolver.addScaledMassForces(fa, 1, t0);
                bf.scaledAdd(h, fa, Mv);
+               myMechSysSolver.addScaledMassForces(bf, h, t0);
             }
             else {
-               bf.sub (fa, fp);
-               bf.scale (h);
+               bf.scaledAdd (h, fa, bf0);
+               bf.scaledAdd (-h, fp);
             }
          }
          else {
             bf.sub (fa, fp);
             bf.scale (h);
          }
-         
+
          if (myController.getUseKKTFactorization() || 
-             (incremental && useFactorSolveForIncremental)) {        
+             (incremental && refactorForIncremental)) {        
+
             if (useTrapezoidal) {
                // use Trapezoidal integration
                myMechSysSolver.KKTFactorAndSolve (
@@ -252,9 +257,9 @@ public class ExcitationResponse
             // System.out.println ("bf"+j+"=" + bf.toString("%12.8f"));
             // System.out.println ("Hu"+j+"=" + HuCols[j].toString("%12.4f"));
             if (incremental) {
-               //HuCols[j].sub (u0);
+               HuCols[j].sub (u0);
                HuCols[j].scale (1/dex);
-               //HlamCols[j].sub (lam0);  
+               HlamCols[j].sub (lam0);  
                HlamCols[j].scale (1/dex);  
             }            
          }

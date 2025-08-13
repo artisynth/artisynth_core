@@ -148,6 +148,8 @@ public class TrackingController extends ControllerBase
    private static boolean DEFAULT_COMPUTE_INCREMENTALLY = false;
    private boolean myComputeIncrementally = DEFAULT_COMPUTE_INCREMENTALLY;
    
+   static boolean DEFAULT_REFACTOR_FOR_INCREMENTAL = true;
+   
    private static boolean DEFAULT_CONFIG_EXCITATION_COLORING = true;
    private boolean myConfigExcitationColoring = 
       DEFAULT_CONFIG_EXCITATION_COLORING;
@@ -246,6 +248,10 @@ public class TrackingController extends ControllerBase
          "computeIncrementally",
          "compute excitations incrementally at each time step",
          DEFAULT_COMPUTE_INCREMENTALLY);
+      myProps.add(
+         "refactorForIncremental",
+         "refactor the solve matrix when computing incremental excitations",
+         DEFAULT_REFACTOR_FOR_INCREMENTAL);
       myProps.add(
          "motionTargetAsConstraint",
          "handles the motion target as a constraint",
@@ -475,7 +481,7 @@ public class TrackingController extends ControllerBase
 
    /**
     * Enables incremental computation. If enabled, then excitations are
-    * computed incrementatlly (as opposed to holistically) at each time step.
+    * computed incrementally (as opposed to holistically) at each time step.
     * The various QPTerms used by the controller should adjust their
     * contributions to the quadratic program to reflect an incemental
     * computation instead of a holistic one.  Incremental computation is
@@ -487,6 +493,31 @@ public class TrackingController extends ControllerBase
       if (myComputeIncrementally != enable) {
          myComputeIncrementally = enable;
       }
+   }
+
+   /**
+    * For incremental computation, queries whether or not the solve matrix is
+    * refactored when computing each excitation response, as described in
+    * {@link #setRefactorForIncremental(boolean)}.
+    * 
+    * @return {@code true} if the solve matrix is refactored for each
+    * excitation response.
+    */
+   public boolean getRefactorForIncremental () {
+      return myExcitationResponse.refactorForIncremental;
+   }
+
+   /**
+    * For incremental computation, specifies whether or not the solve matrix
+    * should be refactored when computing each excitation response. Refactoring
+    * may give more accurate solutions, but at an increased computation cost
+    * that is proportional to the number of exciters.
+    * 
+    * @param enable if {@code true}, the solve matrix will be refactored for
+    * each excitation response.
+    */
+   public void setRefactorForIncremental (boolean enable) {
+      myExcitationResponse.refactorForIncremental = enable;
    }
 
    public boolean getMotionTargetAsConstraint () {

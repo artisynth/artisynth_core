@@ -86,6 +86,24 @@
 % Apr 15, 2023: Refactoring and adding stiction compliance to implicit
 %  friction integration
 
+\section*{Aug 15, 2025}
+
+New support has been added for constrained Delaunay triangulations, based on
+the external Poly2Tri package. This means that several {\tt .jar} files have
+been added to the external libraries.
+
+After updating from GitHub, it will be necessary to update the libraries in
+order to download these {\tt .jar} files and enable compilation.  This can be
+done by either running ArtiSynth itself, or by running the command {\tt
+updateArtisynthLibs}, as described in both the main installation guide and the
+update log entry for Jul 20, 2024.
+
+Eclipse users who have changed {\tt artisynth\_core/.classpath} (perhaps to add
+external libraries of their own) may encounter a conflict error when
+updating. This can be resolved by moving the {\tt .classpath} file to a
+temporary location, updating, and then editing the updated file to reintroduce
+the local changes.
+
 \section*{Jul 8, 2025}
 
 ArtiSynth 3.9 has been released and is available on the website.  (Note however

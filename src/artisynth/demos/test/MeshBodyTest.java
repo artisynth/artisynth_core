@@ -15,7 +15,7 @@ import maspack.interpolation.Interpolation;
 import maspack.geometry.io.*;
 import maspack.matrix.*;
 import maspack.render.*;
-import maspack.util.PathFinder;
+import maspack.util.*;
 import maspack.render.Renderer.Shading;
 import maspack.properties.*;
 
@@ -236,14 +236,37 @@ public class MeshBodyTest extends RootModel {
          mesh.triangulate();
       }
 
-      if (true) {
+      if (false) {
          mesh = MeshFactory.createQuadDisk (1.0, 4, 30);
       }
 
+      // if (false) {
+      //    double ext = Math.toRadians(10);
+      //    mesh = MeshFactory. createToroidalSection (
+      //       1.0, 0.4, -ext, Math.PI/2, 32, 32, true, true);
+
+      //    for (int i=0; i<1; i++) {
+      //       mesh = MeshFactory.subdivideSplitFlip (mesh, 0.1);
+      //    }
+      // }
+
+      if (false) {
+         RandomGenerator.setSeed (0x1234);
+         ArrayList<Vector2d> pnts = new ArrayList<>();
+         int npts = 12;
+         for (int i=0; i<npts; i++) {
+            Vector2d vec = new Vector2d();
+            vec.setRandom();
+            pnts.add (vec);
+         }
+         //mesh = DelaunayTriangulator.createMesh (pnts);
+         mesh = DelaunayTriangulator.createMesh (pnts, new int[] {0, 1, 1, 2});
+      }
+
       if (true) {
-         double ext = Math.toRadians(10);
-         mesh = MeshFactory. createToroidalSection (
-            1.0, 0.4, -ext, Math.PI/2, 32, 32, true, true);
+         //mesh = MeshFactory.createQuadBox (1.0, 2.0, 3.0);
+         mesh = MeshFactory.createQuadRectangle (1.85, 3.0, 1, 1);
+         mesh = MeshFactory.triangulateIsotropically (mesh, 0.5);
       }
       
       if (false) {

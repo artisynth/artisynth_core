@@ -4789,6 +4789,24 @@ Default value 1.0.
 
 \end{itemize}
 
+The forces acting on each point can also be rendered in the viewer by setting
+the following additional properties:
+
+\begin{itemize}
+
+\item {\sf drawForces}: A boolean value, which if {\tt true}
+causes the force on each point to be rendered using a line segment drawn from
+the point in the direction of the force. The length of each line segment is
+given by the force magnitude times the value of the {\sf forceLenScale}
+property. Other render properties are controlled by the component's generic
+line rendering properties.
+
+\item {\sf forceLenScale}: A double value, which if {\sf drawForces} is 
+{\tt true}, is multiplied by the magnitude of each point force to determine the
+length of the rendered line segment.
+
+\end{itemize}
+
 These properties can be set either interactively in the GUI, or in code using
 their accessor methods.
 

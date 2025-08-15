@@ -19,6 +19,7 @@ JAVA_TEST_PROGRAMS = \
 	ConvexPolygonIntersectorTest \
 	DeformationTransformerTest \
 	DelaunayInterpolatorTest \
+	DelaunayTriangulatorTest \
 	DistanceGridTest \
 	FaceTest \
 	GeometryUtilsTest \

@@ -54,6 +54,9 @@ matconsolectl-4.4.4.jar
 gdcm.jar
 flatlaf-1.5.jar
 gpcj-2.2.0-full.jar
+slf4j-simple-1.7.25.jar
+slf4j-api-1.7.25.jar
+poly2tri-core-0.1.1-SNAPSHOT.jar
 #
 # JOGL native libraries are bundled into jar files that are extracted
 # into and loaded from a temporary directory:

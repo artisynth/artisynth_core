@@ -1,6 +1,6 @@
 ArtiSynth is freely available under the 2-clause BSD license:
 
-Copyright (c) 2014, by the Authors indicated in the source files.  All
+Copyright (c) 2014-2025, by the Authors indicated in the source files.  All
 rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================
-The ArtiSynth distribution contains a copy of TetGen, released underthe following license:
+
+The ArtiSynth distribution contains a copy of TetGen, released underthe
+following license:
 
 Copyright (C) 2002--2011
 Hang Si
@@ -47,9 +49,11 @@ ArtiSynth code that depends on the TetGen interface class
 
 is bound by the terms of the TetGen license.
 ======================================================================
+
 The ArtiSynth distribution contains binary copies of JOGL, available
 under the following license terms:
 
+----------------------------------------------------------------------
 Copyright 2010 JogAmp Community. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,6 +80,7 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================
+
 The ArtiSynth distribution contains a copy of matlabcontrol,
 https://code.google.com/p/matlabcontrol, which allows access to
 matlab from Java. 
@@ -83,12 +88,14 @@ matlab from Java.
 matlabcontrol is released under the the New BSD Licence: 
 http://opensource.org/licenses/BSD-3-Clause
 ======================================================================
+
 Some utility packages in maspack contain source code from, or
 derived from, the Apache Commons, released under the Apache License,
 Version 2.0. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
 ======================================================================
+
 The ArtiSynth distribution contains a copy of GPCJ2 (General Polygon
 Clipper for Java), developed by from GPCJ by Christian Lutz:
 
@@ -102,7 +109,7 @@ Bridenbecker and extended by David Legland
 http://web.archive.org/web/20090213122910/http://www.seisw.com/GPCJ/GPCJ.html
 
 The original License for GPC is as follows:
--------------------------------------------------------------------
+----------------------------------------------------------------------
 The SEI Software Open Source License, Version 1.0
 
 Copyright (c) 2004, Solution Engineering, Inc.
@@ -137,12 +144,13 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-----------------------------------------------------------------------
+======================================================================
 
 ArtiSynth also contains code from Werner Randelshofer's FastDoubleParser package,
 which is a Java port of Daniel Lemire's fast_float project. It can parse of
 double precision numbers up to 4 times faster than Double.parseDouble().
 
+----------------------------------------------------------------------
 Licensing: MIT License
 
 Copyright (c) 2024 Werner Randelshofer, Switzerland.
@@ -180,13 +188,13 @@ https://github.com/fastfloat/fast_float
 https://github.com/fastfloat/fast_float/blob/cc1e01e9eee74128e48d51488a6b1df4a767a810/LICENSE-MIT
 (The file 'thirdparty-LICENSE' is included in the sources and classes Jar files
 that are released by this project - as is required by that license.)
-
 ======================================================================
 
 Parts of the ArtiSynth Millard2012AxialMuscle class are adapted from code
 written by Matthew Millard as part of the OpenSim project, distributed under
 the following copywrite:
 
+----------------------------------------------------------------------
 The OpenSim API is a toolkit for musculoskeletal modeling and simulation.
 See http://opensim.stanford.edu and the NOTICE file for more information.
 OpenSim is developed at Stanford University and supported by the US
@@ -205,5 +213,43 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+======================================================================
 
+The ArtiSynth distribution contains a .jar file of the constrained Delaunay
+triangulation utility Poly2Tri, otherwise available from
+
+https://github.com/orbisgis/poly2tri.java
+
+and released under the following BSD 3-Clause license:
+
+----------------------------------------------------------------------
+Poly2Tri
+Copyright (c) 2009-2010, Poly2Tri Contributors
+http://code.google.com/p/poly2tri/
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+* Neither the name of Poly2Tri nor the names of its contributors may be
+  used to endorse or promote products derived from this software without specific
+  prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================

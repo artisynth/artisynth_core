@@ -1,4 +1,4 @@
-personal_ws-1.1 en 2461 
+personal_ws-1.1 en 2482 
 ABPointColor
 AJL
 ANSYS
@@ -360,6 +360,7 @@ MyWeighting
 NearestPoint
 NeoHookeanMaterial
 NetDemo
+NetDemoWithRefs
 Newmark
 NodeNumberReader
 NodeNumberWriter
@@ -455,6 +456,9 @@ RGBA
 RGBRGB
 RadialMuscle
 RainbowColorMap
+ReferenceComp
+ReferenceList
+ReferenceListBase
 RegularizationTerm
 RegularizationWeight
 Reinbolt
@@ -723,6 +727,8 @@ addParticle
 addPoint
 addPointTarget
 addProbes
+addReference
+addReferences
 addRenderMeshComp
 addRenderable
 addRigidBody
@@ -747,6 +753,7 @@ ang
 angDeg
 anisotropic
 anisotropy
+anyRefs
 applyData
 applyScaling
 args
@@ -779,6 +786,7 @@ bilaterals
 bindable
 biomechanical
 biomechanics
+blueMid
 blueSprings
 bodA
 bodB
@@ -887,6 +895,7 @@ contactArea
 contactForceLenScale
 contactNormalLen
 contactStiffness
+containsReference
 contol
 coordNames
 coordValues
@@ -1373,6 +1382,8 @@ getPropX
 getPropXXX
 getProperty
 getReduceContraints
+getReference
+getReferences
 getRenderCoords
 getRenderFrame
 getRenderInterval
@@ -1465,6 +1476,7 @@ getZRange
 gimbal
 gmsh
 grayscale
+greenMid
 greenSprings
 grey
 gridField
@@ -1499,6 +1511,7 @@ includeTime
 incompressibility
 incompressible
 incrementing
+indexOfReference
 indexOffs
 inertiaMethod
 inertialDamping
@@ -1638,6 +1651,7 @@ maxf
 maxh
 maxn
 mbody
+mc
 mcomp
 mech
 mechA
@@ -1649,6 +1663,9 @@ meshFile
 meshFileName
 meshFilePath
 meshName
+meshRefs
+middleBlueSprings
+middleGreenSprings
 midx
 minBendAng
 minThicknessRatio
@@ -1767,6 +1784,7 @@ numMotionTargets
 numMuscles
 numNormals
 numPoints
+numReferences
 numRenderMeshComps
 numTextureCoords
 numUnilateralConstraints
@@ -1886,6 +1904,7 @@ regionArea
 regularizer
 relpath
 remoteSourceName
+removeAllReferences
 removeCutPlane
 removeElement
 removeExcitationDamping
@@ -1897,6 +1916,8 @@ removeMeshBody
 removeMeshComp
 removeMotionTarget
 removePoint
+removeReference
+removeReferences
 removeRenderMeshComp
 removeRenderable
 removeTarget

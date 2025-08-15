@@ -291,6 +291,10 @@ public class CollisionManager extends RenderableCompositeBase
    static VertexPenetrations defaultVertexPenetrations = VertexPenetrations.AUTO;
    VertexPenetrations myVertexPenetrations = defaultVertexPenetrations;
    PropertyMode myVertexPenetrationsMode = PropertyMode.Inherited;
+   
+   static boolean DEFAULT_SMOOTH_VERTEX_CONTACTS = false;
+   boolean mySmoothVertexContacts = DEFAULT_SMOOTH_VERTEX_CONTACTS;
+   PropertyMode mySmoothVertexContactsMode = PropertyMode.Inherited;
 
    // rigidRegionTol and rigidPointTol are both computed automatically
    // at the first initialize() if their values are not -1:
@@ -405,6 +409,10 @@ public class CollisionManager extends RenderableCompositeBase
          "whether vertex penetrations are calculated for the first, second" +
          " or both collidables",
          defaultVertexPenetrations);
+      myProps.addInheritable (
+         "smoothVertexContacts:Inherited",
+         "if possible, apply smoothing to vertex-based contacts",
+         DEFAULT_SMOOTH_VERTEX_CONTACTS);
       myProps.addInheritable (
          "bilateralVertexContact:Inherited",
          "allow bilateral constraints for vertex-based contacts", 
@@ -591,6 +599,8 @@ public class CollisionManager extends RenderableCompositeBase
       myReduceConstraintsMode = PropertyMode.Inherited;
       myVertexPenetrations = defaultVertexPenetrations;
       myVertexPenetrationsMode = PropertyMode.Inherited;
+      mySmoothVertexContacts = DEFAULT_SMOOTH_VERTEX_CONTACTS;
+      mySmoothVertexContactsMode = PropertyMode.Inherited;
       myDrawIntersectionContours = defaultDrawIntersectionContours;
       myDrawIntersectionContoursMode = PropertyMode.Inherited;
       myDrawIntersectionFaces = defaultDrawIntersectionFaces;
@@ -908,6 +918,47 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getVertexPenetrationsMode() {
       return myVertexPenetrationsMode;
+   }
+
+   /** 
+    * Queries if smoothing is enabled for vertex penetration contact. See
+    * {@link #setSmoothVertexContacts} for details.
+    * 
+    * @return {@code true} if smoothing is enabled
+    */
+   public boolean getSmoothVertexContacts() {
+      return mySmoothVertexContacts;
+   }
+
+   /** 
+    * Sets whether smoothing is enabled for vertex penetration contact.  This
+    * is an experimental property that, when possible, tries to smooth the
+    * normal and contact depth information for vertex penetration contacts.  At
+    * present, this is done by applying Nagata quadratic patch interpolation to
+    * the face nearest the contact. Because an opposing face is required, it
+    * does not work when the collider type is {@link
+    * ColliderType#SIGNED_DISTANCE SIGNED_DISTANCE}. The default value is
+    * {@code false}.
+    * 
+    * @param enable if {@code true}, enables smoothing
+    */
+   public void setSmoothVertexContacts (boolean enable) {
+      mySmoothVertexContacts = enable;
+      mySmoothVertexContactsMode =
+         PropertyUtils.propagateValue (
+            this, "smoothVertexContacts",
+            mySmoothVertexContacts, mySmoothVertexContactsMode);
+
+   }
+
+   public void setSmoothVertexContactsMode (PropertyMode mode) {
+      mySmoothVertexContactsMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "smoothVertexContacts", mySmoothVertexContactsMode, mode);
+   }
+
+   public PropertyMode getSmoothVertexContactsMode() {
+      return mySmoothVertexContactsMode;
    }
 
    /** 

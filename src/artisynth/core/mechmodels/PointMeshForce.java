@@ -448,8 +448,8 @@ public class PointMeshForce extends RenderableComponentBase
    /**
     * Sets whether or not point force rendering is enabled.  If enabled, the
     * force on each point is rendered using a line segment drawn from the point
-    * in direction of the force. The length of each line segment is given by
-    * the force magnitude times the value returned by {@link
+    * in the direction of the force. The length of each line segment is given
+    * by the force magnitude times the value returned by {@link
     * #getForceLenScale}, and other render properties are controlled by the
     * generic line render properties associated with this component.
     *

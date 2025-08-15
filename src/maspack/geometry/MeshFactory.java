@@ -11,18 +11,22 @@ import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.PriorityQueue;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Point2d;
 import maspack.matrix.Vector3i;
 import maspack.util.InternalErrorException;
 import maspack.util.DynamicIntArray;
 import maspack.geometry.Face.FaceFilter;
+import maspack.geometry.DelaunayTriangulator.Triangle;
 import quickhull3d.QuickHull3D;
 
 /**
@@ -32,6 +36,7 @@ public class MeshFactory {
 
    private static final double EPS = 1e-15;
    public static boolean DEFAULT_ADD_NORMALS = false;
+   public static double INF = Double.POSITIVE_INFINITY;
    
    /**
     * Used by some factory methods to specify the face type
@@ -1669,6 +1674,79 @@ public class MeshFactory {
       }
       return mesh;
    }
+
+   // private static class EdgeLengthCompare implements Comparator<HalfEdge> {
+   //    public int compare (HalfEdge he0, HalfEdge he1) {
+   //       double len0 = he0.length();
+   //       double len1 = he1.length();
+   //       return (len0 > len1 ? -1 : (len0 == len1 ? 0 : 1));
+   //    }
+   // }
+
+   // public static PolygonalMesh subdivideSplitFlip (
+   //    PolygonalMesh orig, double maxLen) {
+
+   //    PolygonalMesh mesh = new PolygonalMesh();
+
+   //    // add all the original vertices
+   //    for (Vertex3d vtx : orig.getVertices()) {
+   //       mesh.addVertex (vtx.getPosition());
+   //    }
+   //    ArrayList<HalfEdge> edges = new ArrayList<>();
+   //    for (Face face : orig.getFaces()) {
+   //       HalfEdge he0 = face.firstHalfEdge();
+   //       HalfEdge he = he0;
+   //       do {
+   //          if (he.isPrimary()) {
+   //             edges.add (he);
+   //          }
+   //          he = he.getNext();
+   //       }
+   //       while (he != he0);
+   //    }
+   //    // sort the edges by decreasing length
+   //    Collections.sort (edges, new EdgeLengthCompare());
+
+   //    HalfEdge[] splitFaces = new HalfEdge[orig.numFaces()];
+   //    for (HalfEdge he : edges) {
+   //       if (he.length() <= maxLen) {
+   //          break;
+   //       }
+   //       // ignore if either adjacent face is already split
+   //       Face face0 = he.getFace();
+   //       Face face1 = he.getOppositeFace();
+   //       if ((splitFaces[face0.getIndex()] != null) ||
+   //           (face1 != null && splitFaces[face1.getIndex()] != null)) {
+   //          continue;
+   //       }
+         
+   //       splitFaces[face0.getIndex()] = he;
+   //       Point3d pmid = new Point3d();
+   //       Vertex3d v0 = he.getTail();
+   //       Vertex3d v1 = he.getHead();
+   //       pmid.add (v0.getPosition(), v1.getPosition());
+   //       pmid.scale (0.5);
+   //       int vidx0 = v0.getIndex();
+   //       int vidx1 = v1.getIndex();
+   //       int vidx2 = he.getNext().getHead().getIndex();
+   //       int vidx4 = mesh.addVertex (pmid).getIndex();
+   //       mesh.addFace (vidx4, vidx1, vidx2);
+   //       mesh.addFace (vidx4, vidx2, vidx0);
+   //       if (face1 != null) {
+   //          splitFaces[face1.getIndex()] = he;
+   //          int vidx3 = he.opposite.getNext().getHead().getIndex();
+   //          mesh.addFace (vidx4, vidx0, vidx3);
+   //          mesh.addFace (vidx4, vidx3, vidx1);
+   //       }
+   //    }
+   //    // add any remaining faces that were not split
+   //    for (int i=0; i<orig.numFaces(); i++) {
+   //       if (splitFaces[i] == null) {
+   //          mesh.addFace (orig.getFace(i).getVertexIndices());
+   //       }
+   //    }
+   //    return mesh;
+   // }
 
    /**
     * Creates a quad-based box mesh, with a specified mesh resolution in
@@ -4616,6 +4694,172 @@ public class MeshFactory {
       }
       hull.triangulate();
       return hull;
+   }
+
+   /**
+    * Creates a convex hull from a set of points. The resulting
+    * hull is <i>not</i> triangulated.
+    *
+    * @param points points from which to build the convex hull
+    * @return convex hull mesh
+    */
+   public static PolygonalMesh createConvexHull (List<Point3d> points) {
+      quickhull3d.Point3d[] pnts = new quickhull3d.Point3d[points.size()];
+      for (int i=0; i<pnts.length; i++) {
+         Point3d pos = points.get(i);
+         pnts[i] = new quickhull3d.Point3d(pos.x, pos.y, pos.z);
+      }
+      QuickHull3D chull = new QuickHull3D();
+      chull.build (pnts);
+      PolygonalMesh hull = new PolygonalMesh();
+      for (quickhull3d.Point3d pnt : chull.getVertices()) {
+         hull.addVertex (pnt.x, pnt.y, pnt.z);
+      }
+      for (int[] faceIdxs : chull.getFaces()) {
+         hull.addFace (faceIdxs);
+      }
+      return hull;
+   }
+
+   /**
+    * Triangulates the faces of a given mesh isotropically, adding additional
+    * vertices and applying constrained Delaunay triangulation to try and
+    * achieve a well-conditioned triangulation in which edge lengths are close
+    * to {@code edgeLen}.
+    *
+    * <p>This method assumes that the faces of the original mesh are convex.
+    * It also works best if the original mesh is not triangulated.
+    *
+    * @param mesh mesh to triangulate
+    * @param edgeLen desired edge length
+    * @return triangulated mesh
+    */
+   public static PolygonalMesh triangulateIsotropically (
+      PolygonalMesh mesh, double edgeLen) {
+      PolygonalMesh newmesh = new PolygonalMesh();
+      for (Vertex3d vtx : mesh.getVertices()) {
+         newmesh.addVertex (vtx.getPosition());
+      }
+      VertexMap vmap = new VertexMap(edgeLen*0.1);
+      for (Face face : mesh.getFaces()) {
+         triangulateFace (newmesh, face, edgeLen, vmap);
+      }
+      return newmesh;
+   }
+
+   private static Point2d create2dPoint (Vertex3d vtx, RigidTransform3d TFW) {
+      Point3d pface = new Point3d();
+      pface.inverseTransform (TFW, vtx.getPosition());
+      return new Point2d (pface.x, pface.y);
+   }
+
+   private static void triangulateFace (
+      PolygonalMesh mesh, Face face, double edgeLen, VertexMap vmap) {
+
+      // start by finding the longest half edge
+      HalfEdge he0 = face.firstHalfEdge();
+      HalfEdge he = he0;
+      HalfEdge heMax = null;
+      double maxLen = -INF;
+      int nedges = 0;
+      do {
+         double len = he.length();
+         if (len > maxLen) {
+            maxLen = len;
+            heMax = he;
+         }
+         he = he.getNext();
+         nedges++;
+      }
+      while (he != he0);
+
+      // set up a coordinate system with the longest edge as the x axis
+      RigidTransform3d TFW = new RigidTransform3d();
+      Vector3d uvec = new Vector3d();
+      heMax.computeEdgeUnitVec (uvec);
+      TFW.p.set (heMax.getTail().getPosition());
+      TFW.R.setZXDirections (face.getNormal(), uvec);
+
+      DynamicIntArray faceToMeshVertexMap = new DynamicIntArray();
+
+      ArrayList<Point2d> facePoints = new ArrayList<>();
+      // points on the 2d convex hull for the face
+      Point2d[] hullpnts = new Point2d[nedges];
+      he = he0;
+      int k = 0;
+      do {
+         Point2d head2d = create2dPoint (he.getHead(), TFW);
+         Point2d tail2d = create2dPoint (he.getTail(), TFW);
+         hullpnts[k++] = tail2d;
+         facePoints.add (tail2d);
+         faceToMeshVertexMap.add (he.getTail().getIndex());
+         double len = head2d.distance (tail2d);
+         int nextra = (int)Math.round (len/edgeLen)-1;
+         if (nextra > 0) {
+            // add extra points along the edge
+            for (int i=1; i<=nextra; i++) {
+               double s = (double)i/(nextra+1);
+               Point2d extra2d = new Point2d();
+               extra2d.combine (1-s, tail2d, s, head2d);
+               Vertex3d vtx = vmap.getOrCreate (
+                  mesh, extra2d.x, extra2d.y, 0, TFW);
+               facePoints.add (extra2d);
+               faceToMeshVertexMap.add (vtx.getIndex());
+            }
+         }
+         he = he.getNext();
+      }
+      while (he != he0);     
+
+      // create 2d convex hull polygon and find x, y bounds for it
+      ConvexPolygon2d cpoly = new ConvexPolygon2d (hullpnts);
+      Point2d min = new Point2d();
+      Point2d max = new Point2d();
+      cpoly.getBounds (min, max);
+
+      // create the indices for the constraint edges. These are just all the
+      // line segments on the boundary, which at this point in the code are
+      // made up from the facePoints in order.
+      int numEdges = facePoints.size();
+      int[] constraints = new int[2*numEdges];
+      for (int i=0; i<numEdges; i++) {
+         int inext = i<numEdges-1 ? i+1 : 0;
+         constraints[2*i+0] = i;
+         constraints[2*i+1] = inext;
+      }
+
+      // create the grid points
+      double xinc = edgeLen;
+      double yinc = Math.sqrt(3)/2*edgeLen;
+      // margin is distance that grid points must be from the boundary. The
+      // remesh_isotropic_planar package uses 0.3*edgeLen.
+      double margin = 0.4*edgeLen; 
+
+      boolean offset = true;
+      for (double y = min.y+yinc; y < max.y; y += yinc) {
+         for (double x = min.x + (offset ? xinc/2 : 0); x < max.x; x += xinc) {
+            Point2d pgrid2d = new Point2d (x, y);
+            if (cpoly.distance (pgrid2d) >= margin &&
+                cpoly.pointIsInside (pgrid2d) == 1) {
+               Point3d pgrid = new Point3d (pgrid2d.x, pgrid2d.y, 0);
+               pgrid.transform (TFW);
+               Vertex3d vtx = mesh.addVertex (pgrid);
+               facePoints.add (pgrid2d);
+               faceToMeshVertexMap.add (vtx.getIndex());
+            }
+         }
+         offset = !offset;
+      }
+      List<Triangle> tris =
+         DelaunayTriangulator.triangulate (facePoints, constraints);
+      for (Triangle tri : tris) {
+         int[] vidxs = new int[3];
+         for (int vi=0; vi<3; vi++) {
+            vidxs[vi] = faceToMeshVertexMap.get(tri.getPointIndex(vi));
+         }
+         mesh.addFace (vidxs);
+      }
+      
    }
 
    /**

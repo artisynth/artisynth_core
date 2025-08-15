@@ -29,6 +29,9 @@ import maspack.render.Renderer.Shading;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
+/**
+ * Implements a simple, closed polygon in 2D.
+ */
 public class Polygon2d implements Renderable, Iterable<Vertex2d> {
    Vertex2d firstVertex;
 
@@ -152,7 +155,8 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
     * convex and {@code pnt} is outside it.
     *
     * @param nearPnt if non-null, returns the point nearest to {@code pnt}
-    * @param pnt point for which the nearest distance is sought
+    * @param pnt point for which the nearest edge is sought
+    * @return starting vertex for the nearest edge
     */
    public Vertex2d nearestEdge (Point2d nearPnt, Point2d pnt) {
       double dmin = Double.POSITIVE_INFINITY;
@@ -160,6 +164,12 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       Vertex2d vtx = firstVertex;
       Point2d edgePnt = new Point2d();
       if (vtx != null) {
+         if (vtx.next == null) {
+            if (nearPnt != null) {
+               nearPnt.set (vtx.pnt);
+            }
+            return vtx;
+         }
          do {
             nearestPointOnEdge (edgePnt, vtx, pnt);
             double d = edgePnt.distance (pnt);
@@ -175,6 +185,23 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
          while (vtx != firstVertex);
       }
       return nearVtx;
+   }
+
+   /**
+    * Finds the distance of this polygon to a given point, defined
+    * as the minimum of the distances from the point to each edge.
+    * If the polygon has no vertices, then 0 is returned.
+    *
+    * @param pnt point for which the nearest distance is sought
+    */
+   public double distance (Point2d pnt) {
+      Point2d nearPnt = new Point2d();
+      if (nearestEdge (nearPnt, pnt) != null) {
+         return nearPnt.distance (pnt);
+      }
+      else {
+         return 0;
+      }
    }
 
    /**

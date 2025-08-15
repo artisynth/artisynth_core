@@ -35,6 +35,7 @@ import maspack.collision.PenetratingPoint;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.Face;
+import maspack.geometry.NagataInterpolator;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
@@ -106,6 +107,8 @@ public class CollisionHandler extends RenderableConstrainerBase
    // Set of vertices on collidable1 which are attached to colliable0
    HashSet<Vertex3d> myAttachedVertices1 = null;
    boolean myAttachedVerticesValid = false;
+
+   NagataInterpolator myNagata = null;
 
    // rendering
    
@@ -543,12 +546,40 @@ public class CollisionHandler extends RenderableConstrainerBase
       ContactConstraint cons, PenetratingPoint cpp,
       CollidableBody collidable0, CollidableBody collidable1) {
 
+      PolygonalMesh mesh1 = collidable1.getCollisionMesh();
+      if (myBehavior.getSmoothVertexContacts() &&
+          mesh1.numNormals() == mesh1.numVertices()) {
+         if (myNagata == null) {
+            myNagata = new NagataInterpolator();
+         }
+         int[] vidxs = cpp.face.getVertexIndices();
+         myNagata.setFace (
+            cpp.face,
+            mesh1.getNormal(vidxs[0]), 
+            mesh1.getNormal(vidxs[1]), 
+            mesh1.getNormal(vidxs[2]));
+         double zeta = cpp.coords.y;
+         double eta = zeta + cpp.coords.x;
+
+         myNagata.interpolateNormal (cons.myNormal, eta, zeta);
+         Point3d npnt = new Point3d();
+         myNagata.interpolateVertex (npnt, eta, zeta);
+
+         cons.myContactArea = cpp.getContactArea();
+         cons.assignMasters (collidable0, collidable1);
+
+         Vector3d disp = new Vector3d();
+         disp.sub(cons.myCpnt0.getPosition(), npnt);
+         double dist = Math.min(disp.dot(cons.myNormal), 0);
+         return dist;
+      }
+
       // compute normal from the opposing face
       cpp.face.computeNormal (cons.myNormal);
-      PolygonalMesh mesh = collidable1.getCollisionMesh();
+
       // convert to world coordinates if necessary
-      if (!mesh.meshToWorldIsIdentity()) {
-         cons.myNormal.transform (mesh.getMeshToWorld());
+      if (!mesh1.meshToWorldIsIdentity()) {
+         cons.myNormal.transform (mesh1.getMeshToWorld());
       }
       cons.myContactArea = cpp.getContactArea();
       cons.assignMasters (collidable0, collidable1);
@@ -862,19 +893,19 @@ public class CollisionHandler extends RenderableConstrainerBase
          CollidableBody col1 = myCollidable1;
          ArrayList<PenetratingPoint> pnts0 = info.getPenetratingPoints(0);
          ArrayList<PenetratingPoint> pnts1 = info.getPenetratingPoints(1);
-          if (!usingTwoWayContact()) {
-             // see if we need to swap the body for which vertex penetrations 
-             // should be computed
-             VertexPenetrations vpen = myBehavior.getVertexPenetrations();
-             if (((vpen == VertexPenetrations.SECOND_COLLIDABLE) ||
-                  (vpen == VertexPenetrations.AUTO &&
-                   isRigid(myCollidable0) && !isRigid(myCollidable1)))) {
-                col0 = myCollidable1;
-                col1 = myCollidable0;
-                pnts0 = info.getPenetratingPoints(1);
-                pnts1 = info.getPenetratingPoints(0);              
-             }                
-          }
+         if (!usingTwoWayContact()) {
+            // see if we need to swap the body for which vertex penetrations 
+            // should be computed
+            VertexPenetrations vpen = myBehavior.getVertexPenetrations();
+            if (((vpen == VertexPenetrations.SECOND_COLLIDABLE) ||
+                 (vpen == VertexPenetrations.AUTO &&
+                  isRigid(myCollidable0) && !isRigid(myCollidable1)))) {
+               col0 = myCollidable1;
+               col1 = myCollidable0;
+               pnts0 = info.getPenetratingPoints(1);
+               pnts1 = info.getPenetratingPoints(0);              
+            }                
+         }
          maxpen = computeVertexPenetrationConstraints (pnts0,col0,col1);
          if (usingTwoWayContact()) {
             double pen = computeVertexPenetrationConstraints (pnts1,col1,col0);
@@ -1667,7 +1698,7 @@ public class CollisionHandler extends RenderableConstrainerBase
 
    /**
     * Create map between vertices and contact forces for the collision meshes
-    * of the collidale indexed by {@code num}.
+    * of the collidable indexed by {@code num}.
     */
    private void createVertexForceMap (
       Map<Vertex3d,Vector3d> forceMap, int num) {

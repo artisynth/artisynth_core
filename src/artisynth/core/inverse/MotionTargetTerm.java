@@ -772,13 +772,15 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       myVbar.sub (myTrackingVel, v0);
       if (controller.getDebug ()) {
          System.out.println (
-            "(MotionTargetTerm)");
+            "(MotionTargetTerm) " + t1);
          System.out.println (
-            "\tmyTargetVel: " + myTrackingVel.toString ("%.3f"));
+            "\tmyTargetVel: " + myTrackingVel.toString ("%.6f"));
          System.out.println (
-            "\tV0: " + v0.toString ("%.3f"));
+            "\tu0: " + u0.toString ("%.6f"));
          System.out.println (
-            "\tvbar: " + myVbar.toString ("%.3f"));
+            "\tV0: " + v0.toString ("%.6f"));
+         System.out.println (
+            "\tvbar: " + myVbar.toString ("%.6f"));
       }
 
       if (controller.getNormalizeCostTerms()) {
@@ -813,6 +815,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          if (reportHvRank) {
             System.out.println (
                "Hv size=" + myHv.getSize() + " rank=" + svd.rank(1e-10));
+            System.out.println ("Hv\n" + myHv.toString("%10.6f"));
          }
          if (getType() == QPConstraintTerm.Type.EQUALITY) {
             int rank = svd.rank(1e-10);

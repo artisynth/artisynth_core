@@ -980,43 +980,6 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
-   /**
-    * Removes a set of faces from this mesh, as indicated by a collection.
-    *
-    * @param faces Collection of faces to remove
-    */
-   public ArrayList<Integer> removeFacesX (Collection<Face> faces) {
-      LinkedHashSet<Face> deleteFaces = new LinkedHashSet<>();
-      deleteFaces.addAll (faces);
-      ArrayList<Integer> deleteIdxs = new ArrayList<>();
-      
-      if (deleteFaces.size() > 0) {
-         ArrayList<Face> newFaceList =
-            new ArrayList<Face>(myFaces.size()-deleteFaces.size());
-         int k = 0;
-         for (int i=0; i<myFaces.size(); i++) {
-            Face f = myFaces.get(i);
-            if (deleteFaces.contains(f)) {
-               deleteIdxs.add (f.getIndex());
-               f.disconnect();
-               k++;
-            }
-            else {
-               f.setIndex (newFaceList.size());
-               newFaceList.add (f);
-            }
-         }
-         myFaces = newFaceList;
-         myTriQuadCountsValid = false;
-         adjustAttributesForRemovedFeatures (deleteIdxs);
-         notifyStructureChanged();
-         return deleteIdxs;
-      }
-      else {
-         return null;
-      }
-   }
-
    public void clearFaces() {
       for (Face f : myFaces) {
          f.disconnect();
@@ -1574,39 +1537,24 @@ public class PolygonalMesh extends MeshBase {
       return modified;
    }
 
-
-   private void addFaceVertices (HashMap<Vertex3d,Integer> vertices, Face face) {
-      HalfEdge he0 = face.firstHalfEdge();
-      HalfEdge he = he0;
-      do {
-         vertices.put (he.head, he.head.getIndex());
-         he = he.getNext();
-      }
-      while (he != he0);      
-   }
-
    private void collectConnectedComponents (
-      HashMap<Vertex3d,Integer> vertices, HashSet<Face> faces, Face face) {
+      HashMap<Vertex3d,Integer> vertices, HashSet<Face> faces,
+      Vertex3d startVertex) {
 
-      LinkedList<Face> queue = new LinkedList<Face>();
-
-      faces.add (face);
-      addFaceVertices (vertices, face);
-      queue.offer (face);
+      LinkedList<Vertex3d> queue = new LinkedList<>();
+      queue.offer (startVertex);
+      vertices.put (startVertex, startVertex.getIndex());
       while (!queue.isEmpty()) {
-         Face f = queue.poll();
-         HalfEdge he0 = f.firstHalfEdge();
-         HalfEdge he = he0;
-         do {
-            Face opface = (he.opposite != null ? he.opposite.face : null);
-            if (opface != null && !faces.contains (opface)) {
-               faces.add (opface);
-               addFaceVertices (vertices, opface);
-               queue.offer (opface);
+         Vertex3d vtx = queue.poll();
+         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+         while (it.hasNext()) {
+            HalfEdge he = it.next();
+            faces.add (he.getFace());
+            if (vertices.get (he.getTail()) == null) {
+               queue.offer (he.getTail());
+               vertices.put (he.getTail(), he.getTail().getIndex());
             }
-            he = he.getNext();
          }
-         while (he != he0);
       }
    }
 
@@ -1635,20 +1583,29 @@ public class PolygonalMesh extends MeshBase {
 
    private void partitionConnectedComponents (
       ArrayList<HashMap<Vertex3d,Integer>> vertexMaps, 
-      ArrayList<HashSet<Face>> faceSets) {
+      ArrayList<HashSet<Face>> faceSets,
+      Collection<Vertex3d> isolatedVertices) {
 
-      boolean[] faceIsMarked = new boolean [numFaces()];
+      boolean[] vertexIsMarked = new boolean [numVertices()];
 
-      for (int i=0; i<myFaces.size(); i++) {
-         if (!faceIsMarked[i]) {
-            HashMap<Vertex3d,Integer> vertices = new HashMap<Vertex3d,Integer>();
-            HashSet<Face> faces = new HashSet<Face>();
-            collectConnectedComponents (vertices, faces, myFaces.get(i));
-            for (Face f : faces) {
-               faceIsMarked[f.getIndex()] = true;
+      for (int i=0; i<myVertices.size(); i++) {
+         if (!vertexIsMarked[i]) {
+            HashMap<Vertex3d,Integer> vertices =
+               new LinkedHashMap<Vertex3d,Integer>();
+            HashSet<Face> faces = new LinkedHashSet<Face>();
+            collectConnectedComponents (vertices, faces, myVertices.get(i));
+            if (faces.size() > 0) {
+               for (Vertex3d v : vertices.keySet()) {
+                  vertexIsMarked[v.getIndex()] = true;
+               }
+               faceSets.add (faces);
+               vertexMaps.add (vertices);
             }
-            faceSets.add (faces);
-            vertexMaps.add (vertices);
+            else {
+               // vertex was isolated; add to isolatedVertices
+               isolatedVertices.add (myVertices.get(i));
+               vertexIsMarked[i] = true;
+            }
          }
       }
    }
@@ -1659,8 +1616,9 @@ public class PolygonalMesh extends MeshBase {
          new ArrayList<HashMap<Vertex3d,Integer>>();
       ArrayList<HashSet<Face>> faceSets =
          new ArrayList<HashSet<Face>>();
+      ArrayList<Vertex3d> isolatedVerts = new ArrayList<>();
 
-      partitionConnectedComponents (vertexMaps, faceSets);
+      partitionConnectedComponents (vertexMaps, faceSets, isolatedVerts);
 
       if (faceSets.size() > 1) {
          int maxfaces = 0;
@@ -1690,25 +1648,51 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
-   private class CompareNumVerticesHiToLo implements Comparator<MeshBase> {
+   private class CompareNumFacesHiToLo implements Comparator<PolygonalMesh> {
       
       @Override
-      public int compare(MeshBase m0, MeshBase m1) {
-         int numv0 = m0.numVertices();
-         int numv1 = m1.numVertices();
-         return numv0 > numv1 ? -1 : (numv0 == numv1 ? 0 : 1);
+      public int compare(PolygonalMesh m0, PolygonalMesh m1) {
+         int numf0 = m0.numFaces();
+         int numf1 = m1.numFaces();
+         return numf0 > numf1 ? -1 : (numf0 == numf1 ? 0 : 1);
       }
    }
 
+   public boolean debug = false;
+
+   private class VertexIndexComparator implements Comparator<Vertex3d> {
+      public int compare (Vertex3d v0, Vertex3d v1) {
+         int idx0 = v0.getIndex();
+         int idx1 = v1.getIndex();
+         return idx0 < idx1 ? -1 : (idx0 > idx1 ? 1 : 0);
+      }
+   }
+
+   private class FaceIndexComparator implements Comparator<Face> {
+      public int compare (Face v0, Face v1) {
+         int idx0 = v0.getIndex();
+         int idx1 = v1.getIndex();
+         return idx0 < idx1 ? -1 : (idx0 > idx1 ? 1 : 0);
+      }
+   }
 
    /**
     * Copies this mesh into a set of connected meshes and returns these as an
-    * array. If this mesh is already fully connected, no meshes are produced
-    * and <code>null</code> is returned. At present, the copied meshes do not
-    * preserve face normal or texture information.
+    * array. The returned meshes are sorted, high to low, by the number of
+    * faces. Isolated vertices, if any, are returned in a single mesh at the
+    * end. At present, the copied meshes do not preserve face normal or texture
+    * information.
     *
-    * <p>The returned meshes are sorted, high to low, by the number of
-    * vertices.
+    * No partitioning is performed and {@code null} is returned if:
+    *
+    * <ol>
+    *
+    * <li>The mesh has no faces and 0 or more (isolated) vertices.
+    *
+    * <li>All faces are connected in some way via half edges and there
+    * are no isolated vertices.
+    * 
+    * </ol>
     */
    public PolygonalMesh[] partitionIntoConnectedMeshes() {
 
@@ -1716,24 +1700,42 @@ public class PolygonalMesh extends MeshBase {
          new ArrayList<HashMap<Vertex3d,Integer>>();
       ArrayList<HashSet<Face>> faceSets =
          new ArrayList<HashSet<Face>>();
+      ArrayList<Vertex3d> isolatedVerts = new ArrayList<>();
 
-      partitionConnectedComponents (vertexMaps, faceSets);
+      partitionConnectedComponents (vertexMaps, faceSets, isolatedVerts);
 
-      int numMeshes = faceSets.size();
-      if (numMeshes == 1) {
+      if (faceSets.size() == 0 ||
+          (faceSets.size() == 1 && isolatedVerts.size() == 0)) {
          return null;
       }
-      ArrayList<PolygonalMesh> meshes = new ArrayList<>(numMeshes);
-      for (int i=0; i<numMeshes; i++) {
-         PolygonalMesh mesh = new PolygonalMesh();
-         int idx = 0;
+      
+      assert (faceSets.size() == vertexMaps.size());
 
+      // The partition is equal to the orginal mesh if there are
+      // no faces sets
+      // face set and no isolated vertices, 
+      ArrayList<PolygonalMesh> meshes = new ArrayList<>();
+      ArrayList<Vertex3d> isolatedVtxs = new ArrayList<>();
+      for (int i=0; i<faceSets.size(); i++) {
          HashMap<Vertex3d,Integer> vmap = vertexMaps.get(i);
-         for (Vertex3d vtx : vmap.keySet()) {
+         PolygonalMesh mesh = new PolygonalMesh();
+
+         // when creating the partioned meshes, sort the vertices and faces by
+         // their indices in ascending order. This will help keep the
+         // vertex/face ordering as close as possible to the original mesh.
+         ArrayList<Vertex3d> sortedVerts = new ArrayList<>();
+         sortedVerts.addAll (vmap.keySet());
+         Collections.sort (sortedVerts, new VertexIndexComparator());
+         vmap.clear();
+         int idx = 0;
+         for (Vertex3d vtx : sortedVerts) {
             mesh.addVertex (vtx.pnt);
             vmap.put (vtx, idx++);
          }
-         for (Face face : faceSets.get(i)) {
+         ArrayList<Face> sortedFaces = new ArrayList<>();
+         sortedFaces.addAll (faceSets.get(i));
+         Collections.sort (sortedFaces, new FaceIndexComparator());
+         for (Face face : sortedFaces) {
             Vertex3d[] faceVtxs = face.getVertices();
             int[] idxs = new int[faceVtxs.length];
             for (int j=0; j<faceVtxs.length; j++) {
@@ -1744,7 +1746,15 @@ public class PolygonalMesh extends MeshBase {
          mesh.setMeshToWorld (XMeshToWorld);
          meshes.add (mesh);
       }
-      Collections.sort (meshes, new CompareNumVerticesHiToLo());
+      Collections.sort (meshes, new CompareNumFacesHiToLo());
+      if (isolatedVerts.size() > 0) {
+         Collections.sort (isolatedVerts, new VertexIndexComparator());
+         PolygonalMesh mesh = new PolygonalMesh();
+         for (Vertex3d vtx : isolatedVerts) {
+            mesh.addVertex (vtx.pnt);
+         }
+         meshes.add (mesh);
+      }
       return meshes.toArray (new PolygonalMesh[0]);
    }
 

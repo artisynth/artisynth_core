@@ -254,7 +254,7 @@ public class QuadraticUtilsTest extends UnitTest {
       }
    }      
 
-   private double sqr (double x) {
+   private static final double sqr (double x) {
       return x*x;
    }
 
@@ -382,6 +382,85 @@ public class QuadraticUtilsTest extends UnitTest {
          throw new TestException (
             "distance is "+d+", expected "+dchk);
       }
+   }
+
+   void testIntersectLineEllipsoid (double a, double b, double c) {
+      Point3d p0 = new Point3d();
+      Point3d p1 = new Point3d();
+      int ntests = 20;
+
+      for (int i=0; i<ntests; i++) {
+         p0.setRandom();
+         p0.scale (5);
+         p1.setRandom();
+         p1.scale (5);
+         double[] locs = new double[2];
+         int n = QuadraticUtils.intersectLineEllipsoid (locs, p0, p1, a, b, c);
+         for (int k=0; k<n; k++) {
+            Point3d p = new Point3d();
+            p.combine (1-locs[k], p0, locs[k], p1);
+            // check that p is on the ellipsoid
+            double chk = sqr(p.x/a) + sqr(p.y/b) + sqr(p.z/c);
+            checkEquals (
+               "ellipsoid equation at intersection point", chk, 1.0, 1e-10);
+         }
+      }
+   }
+
+   void testIntersectLineCylinder () {
+      Point3d p0 = new Point3d();
+      Point3d p1 = new Point3d();
+      int ntests = 20;
+      double r = 1.7;
+
+      for (int i=0; i<ntests; i++) {
+         p0.setRandom();
+         p0.scale (5);
+         p1.setRandom();
+         p1.scale (5);
+         double[] locs = new double[2];
+         int n = QuadraticUtils.intersectLineCylinder (locs, p0, p1, r);
+         for (int k=0; k<n; k++) {
+            Point3d p = new Point3d();
+            p.combine (1-locs[k], p0, locs[k], p1);
+            // check that p is on the cylinder
+            double chk = sqr(p.x) + sqr(p.y);
+            checkEquals (
+               "cylinder equation at intersection point", chk, sqr(r), 1e-10);
+         }
+      }
+   }
+
+   void testIntersectLineSphere () {
+      Point3d p0 = new Point3d();
+      Point3d p1 = new Point3d();
+      int ntests = 20;
+      double r = 1.7;
+
+      for (int i=0; i<ntests; i++) {
+         p0.setRandom();
+         p0.scale (5);
+         p1.setRandom();
+         p1.scale (5);
+         double[] locs = new double[2];
+         int n = QuadraticUtils.intersectLineSphere (locs, p0, p1, r);
+         for (int k=0; k<n; k++) {
+            Point3d p = new Point3d();
+            p.combine (1-locs[k], p0, locs[k], p1);
+            // check that p is on the sphere
+            double chk = p.normSquared();
+            checkEquals (
+               "sphere equation at intersection point", chk, sqr(r), 1e-10);
+         }
+      }
+   }
+
+   /**
+    * Test intersectLineEllipsoid()
+    */
+   public void testIntersectLineEllipsoid () {
+      testIntersectLineEllipsoid (1.0, 2.0, 3.0);
+      testIntersectLineEllipsoid (4.0, 0.4, 5.0);
    }
 
    /**
@@ -709,6 +788,9 @@ public class QuadraticUtilsTest extends UnitTest {
       testEllipsoidSurfaceTangent ();
       testEllipseDistance ();
       testEllipsoidDistance ();
+      testIntersectLineEllipsoid ();
+      testIntersectLineCylinder ();
+      testIntersectLineSphere ();
    }
 
    public static void main (String[] args) {

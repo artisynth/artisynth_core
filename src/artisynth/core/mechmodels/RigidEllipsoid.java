@@ -10,6 +10,11 @@ import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
+/**
+ * Special rigid body class that implements a wrappable ellipsoid. In body
+ * coordinates, the ellipsoid is centered on the origin with its primary axes
+ * aligned with the x, y, and z axes.
+ */
 public class RigidEllipsoid extends RigidBody implements WrapComponent {
    
    // lengths of the principal semi-axes of the ellipsoid
@@ -318,5 +323,33 @@ public class RigidEllipsoid extends RigidBody implements WrapComponent {
       }
       super.transformGeometry (gtr, context, flags);
    }
+
+   /**
+    * Find the locations, if any, at which a line defined the two points {@code
+    * p0} and {@code p1} intersects this ellipoid. The points are given in
+    * world coordinates, and the locations are given in terms of the parameter
+    * s, defined such that points on the line are given by
+    * <pre>
+    * p = (1-s) p0 + s p1
+    * </pre>
+    * The method returns {@code true} if there is an intersection, and {@code
+    * false} otherwise. The locations themselves are stored in {@code locs}.
+    */
+   public boolean intersectLine (
+      double[] locs, Point3d p0, Point3d p1) {
+
+      Point3d p0loc = new Point3d();
+      p0loc.inverseTransform (getPose(), p0);
+      Point3d p1loc = new Point3d();
+      p1loc.inverseTransform (getPose(), p1);
+      int nlocs = QuadraticUtils.intersectLineEllipsoid (
+         locs, p0loc, p1loc,
+         mySemiAxisLengths.x, mySemiAxisLengths.y, mySemiAxisLengths.z);
+      if (nlocs == 1) {
+         locs[1] = locs[0];
+      }
+      return nlocs > 0;      
+   }
+   
 
 }

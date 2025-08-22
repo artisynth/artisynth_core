@@ -9,6 +9,11 @@ import maspack.matrix.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
+/**
+ * Special rigid body class that implements a wrappable torus. In body
+ * coordinates, the torus is centered on the origin with its primary axis
+ * aligned with the z axis.
+ */
 public class RigidTorus extends RigidBody implements WrapComponent {
 
    public boolean myDebug = false;

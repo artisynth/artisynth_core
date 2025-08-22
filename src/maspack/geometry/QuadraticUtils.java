@@ -8,6 +8,7 @@ package maspack.geometry;
 
 import maspack.util.RandomGenerator;
 import maspack.util.QuarticSolver;
+import maspack.util.QuadraticSolver;
 import maspack.util.IntHolder;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
@@ -1117,5 +1118,89 @@ public class QuadraticUtils {
       return dist;
 
    }
+
+   /**
+    * Find the locations at which a line defined the two points {@code p0} and
+    * {@code p1} intersects an ellipsoid. The locations are given in terms of
+    * the parameter s, defined such that points on the line are given by
+    * <pre>
+    * p = (1-s) p0 + s p1
+    * </pre>
+    * The method returns the number of intersection locations, and the
+    * locations themselves are stored in {@code locs}.
+    *
+    * <p> 
+    * The ellispoid is centered on the origin, with its principal axes aligned
+    * with the x, y, and z axes and semi-axis lengths given by {@code a},
+    * {@code b} and {@code c}.
+    */
+   public static int intersectLineEllipsoid (
+      double[] locs, Point3d p0, Point3d p1, double a, double b, double c) {
+
+      Vector3d d = new Vector3d();
+      d.sub (p1, p0);
+
+      // find the coefficients for the quadratic equation
+      // a1 s^2 + a2 s + a3 - 1 = 0
+      double a1 = sqr(d.x/a) + sqr(d.y/b) + sqr(d.z/c);
+      double a2 = 2*(d.x*p0.x/sqr(a) + d.y*p0.y/sqr(b) + d.z*p0.z/sqr(c));
+      double a3 = sqr(p0.x/a) + sqr(p0.y/b) + sqr(p0.z/c) - 1;
+      return QuadraticSolver.getRoots (locs, a1, a2, a3);
+   }
+
+   /**
+    * Find the locations at which a line defined the two points {@code p0} and
+    * {@code p1} intersects a sphere. The locations are given in terms of
+    * the parameter s, defined such that points on the line are given by
+    * <pre>
+    * p = (1-s) p0 + s p1
+    * </pre>
+    * The method returns the number of intersection locations, and the
+    * locations themselves are stored in {@code locs}.
+    *
+    * <p> The sphere is centered on the origin, and its radius is given by
+    * {@code r}.
+    */
+   public static int intersectLineSphere (
+      double[] locs, Point3d p0, Point3d p1, double r) {
+
+      Vector3d d = new Vector3d();
+      d.sub (p1, p0);
+
+      // find the coefficients for the quadratic equation
+      // a1 s^2 + a2 s + a3 - 1 = 0
+      double a1 = d.normSquared();
+      double a2 = 2*(d.dot(p0));
+      double a3 = p0.normSquared() - sqr(r);
+      return QuadraticSolver.getRoots (locs, a1, a2, a3);
+   }
+
+   /**
+    * Find the locations at which a line defined the two points {@code p0} and
+    * {@code p1} intersects a cylinder. The locations are given in terms of
+    * the parameter s, defined such that points on the line are given by
+    * <pre>
+    * p = (1-s) p0 + s p1
+    * </pre>
+    * The method returns the number of intersection locations, and the
+    * locations themselves are stored in {@code locs}.
+    *
+    * <p>The cylinder in centered on the origin, with its axis aligned with the
+    * z axes, and its radius is given by {@code r}.
+    */
+   public static int intersectLineCylinder (
+      double[] locs, Point3d p0, Point3d p1, double r) {
+
+      Vector3d d = new Vector3d();
+      d.sub (p1, p0);
+
+      // find the coefficients for the quadratic equation
+      // a1 s^2 + a2 s + a3 - 1 = 0
+      double a1 = sqr(d.x) + sqr(d.y);
+      double a2 = 2*(d.x*p0.x + d.y*p0.y);
+      double a3 = sqr(p0.x) + sqr(p0.y) - sqr(r);
+      return QuadraticSolver.getRoots (locs, a1, a2, a3);
+   }
+
 
 }

@@ -1751,15 +1751,16 @@ public class RootModel extends RenderableModelBase
    private double nextProbeEvent (List<Probe> probes, double t0) {
       double te = Double.MAX_VALUE;
       for (Probe p : probes) {
-         
-         double ta = p.nextEventTime (t0);
-         if (ta != -1 && ta < te) {
-            if (debugNextAdvanceTime) {
-               System.out.println (
-                  "NextAdvanceTime: probe reducing te to " + ta +
-                  ", " + p.getName() + " " + p);
+         if (p.isActive()) {
+            double ta = p.nextEventTime (t0);
+            if (ta != -1 && ta < te) {
+               if (debugNextAdvanceTime) {
+                  System.out.println (
+                     "NextAdvanceTime: probe reducing te to " + ta +
+                     ", " + p.getName() + " " + p);
+               }
+               te = ta;
             }
-            te = ta;
          }
       }
       return te;

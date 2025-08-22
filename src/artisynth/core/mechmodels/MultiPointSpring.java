@@ -6891,6 +6891,15 @@ public class MultiPointSpring extends PointSpringBase
          sideNrm.scale (1/mag);
       }
 
+      String getCompName (String tag, String name) {
+         if (name != null) {
+            return " " + tag + "=" + name;
+         }
+         else {
+            return "";
+         }
+      }
+
       /**
        * Creates a subsegment between two knots indexed by kb and ka. The
        * information is stored in <code>subseg</code>, unless
@@ -6951,7 +6960,10 @@ public class MultiPointSpring extends PointSpringBase
                wrappableA.surfaceTangent (
                   tanA, pb, pa, lam0, sideNrm);
                if (tanA.equals (pa)) {
-                  System.out.println ("surfaceTanA " + getName());
+                  System.out.printf (
+                     "problem computing surfaceTanA%s%s\n",
+                     getCompName("muscle", getName()),
+                     getCompName("wrappable", wrappableA.getName()));
                }
             }
          }
@@ -6975,7 +6987,10 @@ public class MultiPointSpring extends PointSpringBase
                wrappableB.surfaceTangent (
                   tanB, pa, pb, lam0, sideNrm);
                if (tanB.equals (pb)) {
-                  System.out.println ("surfaceTanB " + getName());
+                  System.out.printf (
+                     "problem computing surfaceTanB%s%s\n",
+                     getCompName("muscle", getName()),
+                     getCompName("wrappable", wrappableB.getName()));
                }
             }
          }

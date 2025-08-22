@@ -1,5 +1,6 @@
 package artisynth.core.opensim.components;
 
+import java.util.ArrayList;
 import java.io.File;
 
 import artisynth.core.materials.AxialMaterial;
@@ -17,10 +18,12 @@ import artisynth.core.opensim.OpenSimParser;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
+import maspack.util.InternalErrorException;
 
 public abstract class ForceSpringBase extends ForceBase {
 
    public static boolean useMuscleComponents = false;
+   public static boolean useOldWrapPathInitialization = false;
    
    // Stores points through which actuator passes
    private GeometryPath geometryPath; 
@@ -400,7 +403,7 @@ public abstract class ForceSpringBase extends ForceBase {
     * reduces or eliminates the penetration. If the segment does not penetrate
     * any of the wrappables, return null.
     */
-   Point3d[] computeInitialPoints (
+   Point3d[] computeInitialPointsOld (
       Point3d p0, Point3d p1, MultiPointSpring mps, int segIdx, int numknots) {
 
       Vector3d u = new Vector3d(); // direction vector from p0 to p1
@@ -420,13 +423,14 @@ public abstract class ForceSpringBase extends ForceBase {
       Vector3d mindNrml = new Vector3d();
       Point3d mindPos = new Point3d();
       for (int k=0; k<numknots; k++) {
-         p.scaledAdd ((k+1)/(numknots+1.0), u, p0);
+         double s = (k+1)/(numknots+1.0);
+         p.combine (1-s, p0, s, p1);
          for (int i=0; i<mps.numWrappables(); i++) {
             Wrappable wrappable = mps.getWrappable(i);
             int[] pntIdxs = mps.getWrappableRange(i);
             // check if this wrappable actually applies to this segment
             if (pntIdxs[0] == -1 ||
-                (pntIdxs[0] <= segIdx && segIdx < pntIdxs[1])) {
+                (pntIdxs[0] < segIdx && segIdx <= pntIdxs[1])) {
                double d = wrappable.penetrationDistance (nrml, null, p);
                if (d < 0) {
                   if (wrappable instanceof RigidTorus) {
@@ -453,6 +457,181 @@ public abstract class ForceSpringBase extends ForceBase {
       else {
          return null;
       }
+   }
+
+   /**
+    * If an interection location range overlaps the interval [0,1], return the
+    * location in [0,1] that (likely) corresponds to the deepest point of
+    * intersection.  Otherwise, return -1.
+    */
+   private double findDeepestIsectLocation (double[] srng) {
+      if (srng[0] < 1 && srng[1] > 0) {
+         // overlap. find deepest intersection location on the interval
+         if (srng[0] > 0 || srng[1] < 1) {
+            // proper overlap - return midpoint
+            return (srng[0] + srng[1])/2;
+         }
+         else if (srng[0] > 0) {
+            return srng[1];
+         }
+         else if (srng[1] < 1) {
+            return srng[0];
+         }
+         else {
+            // really shouldn't happen - just return midpoint
+            return 0.5;
+         }
+      }
+      return -1;
+   }
+
+   /**
+    * Checks if a wrap segment intersects a given wrappable, and if it does,
+    * returns an initializing point to help the segment avoid the wrappable.
+    */
+   private InitializingPoint wrappableIntersectsSegment (
+      Point3d p0, Point3d p1, int numknots, Wrappable wrappable) {
+
+      // Line segment is parameterized by s, such that points on the segment
+      // are given by p = (1-s)*p0 + s*p1. Method works by finding the interval
+      // srng = [s0, s1] over which s intersects the wrappable. If this
+      // interval overlaps [0, 1], then we find the value of s that likely
+      // gives the deepest penetration that we care about, and use that to
+      // compute the initializing point.
+
+      double[] srng = new double[2];
+      boolean intersects = false;
+
+      if (wrappable instanceof RigidTorus) {
+         Point3d ps = new Point3d();
+         for (int k=0; k<=numknots+1; k++) {
+            double s = k/(numknots+1.0);
+            ps.combine (1-s, p0, s, p1);
+            if (wrappable.penetrationDistance (null, null, ps) < 0) {
+               if (!intersects) {
+                  // first intersect point
+                  srng[0] = s;
+               }
+               srng[1] = s;
+               intersects = true;
+            }
+         }
+         if (intersects) {
+            double s = findDeepestIsectLocation (srng);
+            // use the center of the torus as the initialize point
+            return new InitializingPoint (wrappable.getPose().p, s);
+         }
+      }
+      else {
+         if (wrappable instanceof RigidSphere) {
+            intersects = ((RigidSphere)wrappable).intersectLine (srng, p0, p1);
+         }
+         else if (wrappable instanceof RigidCylinder) {
+            intersects = ((RigidCylinder)wrappable).intersectLine (srng, p0, p1);
+         }
+         else if (wrappable instanceof RigidEllipsoid) {
+            intersects = ((RigidEllipsoid)wrappable).intersectLine (srng, p0, p1);
+         }
+         if (intersects) {
+            // Line defined by the segment intersects the wrappable.  Find the
+            // s value likely associated with deepest penetration point.
+            double s = findDeepestIsectLocation (srng);
+            if (s != -1) {
+               Vector3d nrml = new Vector3d();
+               Point3d ps = new Point3d();
+               ps.combine (1-s, p0, s, p1);
+               double d = wrappable.penetrationDistance (nrml, null, ps);
+               if (d <= 0) {
+                  ps.scaledAdd (-d, nrml);
+                  return new InitializingPoint (ps, s);
+               }
+               else {
+                  throw new InternalErrorException (
+                     "penetration distance is "+d+"; should be negative");
+               }
+            }
+         }
+      }
+      return null;
+   }
+
+   /**
+    * Stores an initializing point for a wrap segment, together with its
+    * parametric location s along the segment.
+    */
+   private class InitializingPoint {
+      
+      Point3d pnt; // location of the point
+      double s;    // place along the line segment, in the range [0,1]
+
+      InitializingPoint (Vector3d pnt, double s) {
+         this.s = s;
+         this.pnt = new Point3d(pnt);
+      }
+   }
+
+   /**
+    * Test a wrap segment to see if its initial straight line between p0 and p1
+    * penetrates any of the wrappables. If it does, return some initialization
+    * points to insert between p0 and p1 to create a piecewise linear path that
+    * reduces or eliminates the penetration. If the segment does not penetrate
+    * any of the wrappables, return null.
+    *
+    * <p>At present, one initializing point is computed for each wrappable that
+    * the wrap segment intersects. No attempt is made to ensure that the
+    * piecewise linear curve formed from the initial points does not itself
+    * interset the wrappables; it is assumed that the wrap segment collision
+    * detection will resolve this correctly.
+    */
+   Point3d[] computeInitialPoints (
+      Point3d p0, Point3d p1, MultiPointSpring mps, int segIdx, int numknots) {
+
+      if (useOldWrapPathInitialization) {
+         return computeInitialPointsOld (p0, p1, mps, segIdx, numknots);
+      }
+
+      Point3d[] ipnts = null; // no initialization points by default
+
+      boolean printInitPoints = false;
+      // For each wrappable that the line segment p0-p1 intersects, add an
+      // initialization point to help avoid the wrappable.
+      ArrayList<InitializingPoint> ipoints = new ArrayList<>();
+      for (int wi=0; wi<mps.numWrappables(); wi++) {
+         // check if the wrappable actually applies to this segment
+         int[] pntIdxs = mps.getWrappableRange(wi);
+         if (pntIdxs[0] == -1 ||
+             (pntIdxs[0] < segIdx && segIdx <= pntIdxs[1])) {
+            Wrappable wrappable = mps.getWrappable(wi);
+            // get initializing point if wrappable intersects segment
+            InitializingPoint ipnt =
+               wrappableIntersectsSegment (p0, p1, numknots, wrappable);
+            if (ipnt != null) {
+               // add the initializing point at location ordered by its s value
+               if (printInitPoints) {
+                  System.out.printf (
+                     "spring %s, adding initial point for %s at s=%g\n",
+                     mps.getName(), ((RigidBody)wrappable).getName(), ipnt.s);
+               }
+               int i;
+               for (i=0; i<ipoints.size(); i++) {
+                  if (ipnt.s < ipoints.get(i).s) {
+                     ipoints.add (i, ipnt);
+                     break;
+                  }
+               }
+               if (i == ipoints.size()) {
+                  ipoints.add (ipnt);
+               }
+            }
+         }
+      }
+      if (ipoints.size() > 0) {
+         ipnts = new Point3d[ipoints.size()];
+         for (int i=0; i<ipoints.size(); i++) {
+            ipnts[i] = ipoints.get(i).pnt;
+         }
+      }
+      return ipnts;
    }
 
 }

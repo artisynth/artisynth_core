@@ -958,6 +958,70 @@ public class PolygonalMeshTest extends MeshTestBase {
       }
    }
 
+   void testPartitioning() {
+      PolygonalMesh mesh = new PolygonalMesh();
+      PolygonalMesh box0 = MeshFactory.createBox (1, 1, 1, false);
+      //box0.clearHardEdges();
+      PolygonalMesh box1 = MeshFactory.createBox (1, 1, 1, false);
+      //box1.clearHardEdges();
+
+      mesh.addMesh (box0);
+      mesh.addMesh (box1);
+
+      PolygonalMesh[] parts = mesh.partitionIntoConnectedMeshes();
+      checkEquals ("number of partioned meshes", parts.length, 2);
+      try {
+         parts[0].write ("parts0.obj");
+         box0.write ("box0.obj");
+      }
+      catch (Exception e) {
+      }
+      checkEquals (
+         "partiton 0 equals box0", box0.epsilonEquals (parts[0], 0), true);
+      checkEquals (
+         "partiton 1 equals box1", box1.epsilonEquals (parts[1], 0), true);
+      
+      PolygonalMesh boxplus = box0.clone();
+      Vertex3d extraVert0 = boxplus.addVertex (-2, -3, 4);
+      Vertex3d extraVert1 = boxplus.addVertex (-7,  3, 4);
+      parts = boxplus.partitionIntoConnectedMeshes();
+      PolygonalMesh isolatedVerts = new PolygonalMesh();
+      isolatedVerts.addVertex (extraVert0.getPosition());
+      isolatedVerts.addVertex (extraVert1.getPosition());
+      checkEquals ("number of partioned meshes", parts.length, 2);
+      checkEquals (
+         "partiton 0 equals box0", box0.epsilonEquals (parts[0], 0), true);
+      checkEquals (
+         "partiton 1 equals isolatedVerts",
+         isolatedVerts.epsilonEquals (parts[1], 0), true);
+
+      // partitioning isolated verts only should yield no partition
+      parts = isolatedVerts.partitionIntoConnectedMeshes();
+      checkEquals ("isolated vertex partition==null", parts==null, true);
+
+      // try with some "thinly" connected and non-manifold examples
+      Vertex3d[] vtxs = new Vertex3d[5];
+      vtxs[0] = new Vertex3d (0, 0, 0);
+      vtxs[1] = new Vertex3d (1, 1, 0);
+      vtxs[2] = new Vertex3d (-1, 1, 0);
+      vtxs[3] = new Vertex3d (-1, -1, 0);
+      vtxs[4] = new Vertex3d (1, -1, 0);
+
+      mesh = new PolygonalMesh();
+      for (Vertex3d vtx : vtxs) {
+         mesh.addVertex (vtx);
+      }
+      mesh.addFace (0, 1, 2);
+      mesh.addFace (0, 3, 4);
+
+      parts = isolatedVerts.partitionIntoConnectedMeshes();
+      checkEquals ("thinly connected mesh partition==null", parts==null, true);
+
+      mesh.addFace (0, 2, 1);
+      parts = isolatedVerts.partitionIntoConnectedMeshes();
+      checkEquals ("nonmanifold mesh partition==null", parts==null, true);
+   }
+
    public void test() throws TestException, IOException {
       squareTest();
       mergeTest();      
@@ -972,6 +1036,7 @@ public class PolygonalMeshTest extends MeshTestBase {
       hardEdgeNormalTest();
       testIncidentHedgeSorting();
       testMergeCoplanarFaces();
+      testPartitioning();
    }
 
    public static void main (String[] args) {

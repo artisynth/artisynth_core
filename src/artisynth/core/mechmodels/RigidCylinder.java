@@ -10,6 +10,11 @@ import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
+/**
+ * Special rigid body class that implements a wrappable cylinder. In body
+ * coordinates, the cylinder is centered on the origin with its primary axes
+ * aligned with the z axis.
+ */
 public class RigidCylinder extends RigidBody implements WrapComponent {
    
    double myRadius = 1.0;
@@ -215,5 +220,32 @@ public class RigidCylinder extends RigidBody implements WrapComponent {
       }
       super.transformGeometry (gtr, context, flags);
    }
+
+   /**
+    * Find the locations, if any, at which a line defined the two points {@code
+    * p0} and {@code p1} intersects this cylinder. The points are given in
+    * world coordinates, and the locations are given in terms of the parameter
+    * s, defined such that points on the line are given by
+    * <pre>
+    * p = (1-s) p0 + s p1
+    * </pre>
+    * The method returns {@code true} if there is an intersection, and {@code
+    * false} otherwise. The locations themselves are stored in {@code locs}.
+    */
+   public boolean intersectLine (
+      double[] locs, Point3d p0, Point3d p1) {
+
+      Point3d p0loc = new Point3d();
+      p0loc.inverseTransform (getPose(), p0);
+      Point3d p1loc = new Point3d();
+      p1loc.inverseTransform (getPose(), p1);
+      int nlocs = QuadraticUtils.intersectLineCylinder (
+         locs, p0loc, p1loc, myRadius);
+      if (nlocs == 1) {
+         locs[1] = locs[0];
+      }
+      return nlocs > 0;      
+   }
+   
 
 }

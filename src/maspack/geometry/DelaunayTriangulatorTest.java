@@ -1,6 +1,7 @@
 package maspack.geometry;
 
 import java.util.*;
+import java.io.*;
 
 import org.poly2tri.*;
 import org.poly2tri.triangulation.sets.PointSet;
@@ -91,7 +92,32 @@ public class DelaunayTriangulatorTest extends UnitTest {
       
    }
 
+   void testSpecial () {
+      String testMesh = new String (
+         "v 50.0 -19.543867324914398 -1.6843395484340036\n" + 
+         "v 50.0 -19.543867324914398 -1.2863937450861025\n" +
+         "v 50.0 50.0 20.019651191951322\n" +
+         "v 50.0 50.0 6.877441051663269\n" +
+         "v -24.969411340923003 -50.0 -24.631323616784517\n" +
+         "v -24.969411340923 -50.0 -0.052460553185065845\n" +
+         "v -24.96941134092301 50.0 30.58438171141594\n" +
+         "v -24.969411340923013 50.0 -12.319985565801591\n" +
+         "f 6 7 3 2\n" +
+         "f 8 7 6 5\n" +
+         "f 4 8 5 1\n");
+
+      PolygonalMesh mesh = new PolygonalMesh();
+      try {
+         mesh.read (new StringReader (testMesh), /*zeroIndexed*/false);
+      }
+      catch (IOException e) {
+         System.out.println ("ERROR: can't create mesh from string");
+      }
+      mesh = MeshFactory.triangulateIsotropically (mesh, 20);
+   }
+
    public void test() {
+      testSpecial();
       for (int numc=0; numc<3; numc++) {
          // can't spec more than 2 constraints because otherwise they may
          // cross, given how the test code constructs then by simply creating a

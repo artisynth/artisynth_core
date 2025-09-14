@@ -187,7 +187,7 @@ public class DelaunayTriangulator {
     * <p>As indicated in the documentation for Poly2Tri, points should be
     * unique within machine precision.
     * 
-    * @param pnts points to compute the triangulation for
+    * @param points points to compute the triangulation for
     * @return list of triangles
     */
    public static List<Triangle> triangulate (List<? extends Vector2d> points) {
@@ -213,7 +213,7 @@ public class DelaunayTriangulator {
     * constraints constitute a valid constraint set (e.g., no check is made to
     * ensure that constraint edges do not cross eah other).
     * 
-    * @param pnts points to compute the triangulation for
+    * @param points points to compute the triangulation for
     * @param constraints if non-null, specifices indices of the points defining
     * the constrained edges
     * @return list of triangles
@@ -267,7 +267,7 @@ public class DelaunayTriangulator {
     * <p>As indicated in the documentation for Poly2Tri, points should be
     * unique within machine precision.
     * 
-    * @param pnts points to compute the triangulation for
+    * @param points points to compute the triangulation for
     * @return mesh created from the triangulation
     */
    public static PolygonalMesh createMesh (List<? extends Vector2d> points) {
@@ -286,7 +286,7 @@ public class DelaunayTriangulator {
     * constraints constitute a valid constraint set (e.g., no check is made to
     * ensure that constraint edges do not cross eah other).
     * 
-    * @param pnts points to compute the triangulation for
+    * @param points points to compute the triangulation for
     * @param constraints if non-null, specifices indices of the points defining
     * the constrained edges
     * @return mesh created from the triangulation

@@ -22,6 +22,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Point2d;
+import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3i;
 import maspack.util.InternalErrorException;
 import maspack.util.DynamicIntArray;
@@ -4849,6 +4850,16 @@ public class MeshFactory {
             }
          }
          offset = !offset;
+      }
+      // XXX have to perturb the vertices because the Delaunay triangulator is
+      // not robust. Fortunately, this is easy to do, and the triangulation
+      // indices can be applied to the original 3d vertices.
+      Vector2d perturb = new Vector2d();
+      double tol = max.distance(min)*1e-8;
+      for (Point2d p2 : facePoints) {
+         perturb.setRandom();
+         perturb.scale (tol);
+         p2.add (perturb);
       }
       List<Triangle> tris =
          DelaunayTriangulator.triangulate (facePoints, constraints);

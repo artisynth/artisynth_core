@@ -970,12 +970,6 @@ public class PolygonalMeshTest extends MeshTestBase {
 
       PolygonalMesh[] parts = mesh.partitionIntoConnectedMeshes();
       checkEquals ("number of partioned meshes", parts.length, 2);
-      try {
-         parts[0].write ("parts0.obj");
-         box0.write ("box0.obj");
-      }
-      catch (Exception e) {
-      }
       checkEquals (
          "partiton 0 equals box0", box0.epsilonEquals (parts[0], 0), true);
       checkEquals (

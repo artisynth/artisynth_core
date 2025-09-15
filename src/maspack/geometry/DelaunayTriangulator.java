@@ -138,7 +138,6 @@ public class DelaunayTriangulator {
       public int getIndex() {
          return myIndex;
       }
-      
    }
 
    static class IndexedPoint extends TPoint {

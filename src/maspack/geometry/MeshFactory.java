@@ -4754,7 +4754,18 @@ public class MeshFactory {
       return new Point2d (pface.x, pface.y);
    }
 
-   private static void triangulateFace (
+   /**
+    * Triangulates a face using constrained Delaunay triangulation.  To keep
+    * the edges of the generated triangles close to the requested edge length,
+    * extra points are inserted both along the face edges and also within
+    * the face interior.
+    *
+    * <p>Because the Delaunay triangulator does not appear to be highlly
+    * robust, the input points to the (2D) triangulation are randomly perturbed
+    * by a small amount, and the resulting triangulation is applied to the
+    * original input points.
+    */
+   static void triangulateFace (
       PolygonalMesh mesh, Face face, double edgeLen, VertexMap vmap) {
 
       // start by finding the longest half edge
@@ -4774,7 +4785,9 @@ public class MeshFactory {
       }
       while (he != he0);
 
-      // set up a coordinate system with the longest edge as the x axis
+      // Find a coordinate frame F such that the face lies in the x-y plane and
+      // the x axis lies along the longest edge. The (2D) triangulation is then
+      // done in the x-y plane of F.
       RigidTransform3d TFW = new RigidTransform3d();
       Vector3d uvec = new Vector3d();
       heMax.computeEdgeUnitVec (uvec);
@@ -4783,25 +4796,55 @@ public class MeshFactory {
 
       DynamicIntArray faceToMeshVertexMap = new DynamicIntArray();
 
-      ArrayList<Point2d> facePoints = new ArrayList<>();
-      // points on the 2d convex hull for the face
-      Point2d[] hullpnts = new Point2d[nedges];
+      // map the face vertices into the 2D coordinate system
+      Point2d[] vtxpnts2d = new Point2d[nedges];
       he = he0;
-      int k = 0;
-      do {
+      for (int k=0; k<nedges; k++) {
+         vtxpnts2d[k] = create2dPoint (he.getTail(), TFW);
+         he = he.getNext();
+      }
+
+      // find the 2d convex hull of the vertices and find x, y bounds for it
+      ConvexPolygon2d cpoly = new ConvexPolygon2d (vtxpnts2d);
+      Point2d min = new Point2d();
+      Point2d max = new Point2d();
+      cpoly.getBounds (min, max);
+
+      // use the x, y bounds to determine the vertex perturbation distance
+      double pdist = max.distance(min)*1e-8;
+
+      // facePoints is the list of all points that will be used for the
+      // triangulation
+      ArrayList<Point2d> facePoints = new ArrayList<>();
+
+      // collect triangulation points along edges. This includes the vertex
+      // points, plus extra points added along the edges to help satify the
+      // desired edge length.
+      he = he0;
+      for (int k=0; k<nedges; k++) {
          Point2d head2d = create2dPoint (he.getHead(), TFW);
-         Point2d tail2d = create2dPoint (he.getTail(), TFW);
-         hullpnts[k++] = tail2d;
+         Point2d tail2d = vtxpnts2d[k];
          facePoints.add (tail2d);
          faceToMeshVertexMap.add (he.getTail().getIndex());
          double len = head2d.distance (tail2d);
          int nextra = (int)Math.round (len/edgeLen)-1;
          if (nextra > 0) {
-            // add extra points along the edge
+            // Add extra points along the edge. To help with triangulation
+            // robustness, perturb these points along an parabolic arc the
+            // bulges away from the edge along the outward normal perpendicular
+            // to the (counter-clockwise) edge direction. We do this instead of
+            // a random perturbation to ensure that the edge points remain
+            // convex.
+            Vector2d uvec2d = new Vector2d(); // edge direction vector
+            uvec2d.sub (head2d, tail2d); 
+            uvec2d.norm();
+            Vector2d nrml = new Vector2d(uvec2d.y, -uvec2d.x); // outward normal
             for (int i=1; i<=nextra; i++) {
                double s = (double)i/(nextra+1);
                Point2d extra2d = new Point2d();
                extra2d.combine (1-s, tail2d, s, head2d);
+               // add perturbation:
+               extra2d.scaledAdd (4*s*(1-s)*pdist, nrml);
                Vertex3d vtx = vmap.getOrCreate (
                   mesh, extra2d.x, extra2d.y, 0, TFW);
                facePoints.add (extra2d);
@@ -4810,13 +4853,6 @@ public class MeshFactory {
          }
          he = he.getNext();
       }
-      while (he != he0);     
-
-      // create 2d convex hull polygon and find x, y bounds for it
-      ConvexPolygon2d cpoly = new ConvexPolygon2d (hullpnts);
-      Point2d min = new Point2d();
-      Point2d max = new Point2d();
-      cpoly.getBounds (min, max);
 
       // create the indices for the constraint edges. These are just all the
       // line segments on the boundary, which at this point in the code are
@@ -4829,13 +4865,15 @@ public class MeshFactory {
          constraints[2*i+1] = inext;
       }
 
-      // create the grid points
+      int nedge = facePoints.size();
+
+      // add interior grid points in a hexahedral arrangement
       double xinc = edgeLen;
       double yinc = Math.sqrt(3)/2*edgeLen;
       // margin is distance that grid points must be from the boundary. The
       // remesh_isotropic_planar package uses 0.3*edgeLen.
       double margin = 0.4*edgeLen; 
-
+      Vector2d perturb = new Vector2d(); // perturbation vector
       boolean offset = true;
       for (double y = min.y+yinc; y < max.y; y += yinc) {
          for (double x = min.x + (offset ? xinc/2 : 0); x < max.x; x += xinc) {
@@ -4845,21 +4883,14 @@ public class MeshFactory {
                Point3d pgrid = new Point3d (pgrid2d.x, pgrid2d.y, 0);
                pgrid.transform (TFW);
                Vertex3d vtx = mesh.addVertex (pgrid);
+               // randomly perturb the interior points by pdist
+               perturb.setRandom (-pdist, pdist);
+               pgrid2d.add (perturb);
                facePoints.add (pgrid2d);
                faceToMeshVertexMap.add (vtx.getIndex());
             }
          }
          offset = !offset;
-      }
-      // XXX have to perturb the vertices because the Delaunay triangulator is
-      // not robust. Fortunately, this is easy to do, and the triangulation
-      // indices can be applied to the original 3d vertices.
-      Vector2d perturb = new Vector2d();
-      double tol = max.distance(min)*1e-8;
-      for (Point2d p2 : facePoints) {
-         perturb.setRandom();
-         perturb.scale (tol);
-         p2.add (perturb);
       }
       List<Triangle> tris =
          DelaunayTriangulator.triangulate (facePoints, constraints);
@@ -4870,7 +4901,6 @@ public class MeshFactory {
          }
          mesh.addFace (vidxs);
       }
-      
    }
 
    /**

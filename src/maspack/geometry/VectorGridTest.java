@@ -1,6 +1,7 @@
 package maspack.geometry;
 
 import java.io.FileWriter;
+import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -167,6 +168,7 @@ public class VectorGridTest extends InterpolatingGridTestBase {
           throw new TestException (
             "I/O error during write: "+e.getMessage());        
       }
+      new File ("grid.txt").delete();
    }
 
    public void test() {

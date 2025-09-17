@@ -1245,6 +1245,10 @@ public class TrackingController extends ControllerBase
          myExciters.get(idx).setExcitationBounds (
             new DoubleInterval (lower, upper));
       }
+      else {
+         throw new IllegalArgumentException (
+            "Excitation component not known to the controller");
+      }
    }
    
    /** 
@@ -1257,6 +1261,40 @@ public class TrackingController extends ControllerBase
       int idx = myExciters.indexOfReference (ex);
       if (idx != -1) {
          return myExciters.get(idx).getExcitationBounds();
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Excitation component not known to the controller");
+      }
+   }
+
+   /** 
+    * Sets the regularization weight for a specific excitation component.
+    *
+    * @param ex excitation component to set weight for
+    * @param weight regularization weight
+    */
+   public void setExcitationWeight (ExcitationComponent ex, double weight) {
+      int idx = myExciters.indexOfReference (ex);
+      if (idx != -1) {
+         myExciters.get(idx).setWeight (weight);
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Excitation component not known to the controller");
+      }
+   }
+   
+   /** 
+    * Queries the regularization weight for a specific excitation component.
+    *
+    * @param ex excitation component to request weight for
+    * @return regularization weight
+    */   
+   public double getExcitationWeight (ExcitationComponent ex) {
+      int idx = myExciters.indexOfReference (ex);
+      if (idx != -1) {
+         return myExciters.get(idx).getWeight();
       }
       else {
          throw new IllegalArgumentException (

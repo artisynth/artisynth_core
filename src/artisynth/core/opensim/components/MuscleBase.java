@@ -165,7 +165,9 @@ public abstract class MuscleBase extends ForceSpringBase {
 
    @Override   
    protected Muscle createDefaultSpring (String name) {
-      return new Muscle (name);
+      Muscle mus = new Muscle();
+      mus.setExcitation (getDefaultActivation());
+      return mus;
    }
    
 }

@@ -286,14 +286,20 @@ public class MechModelEditor extends EditorBase {
             }
          }
          else if (actionCommand == "Compute distance") {
-            System.out.printf ("distance = %g\n", pointB.distance (pointA));
+            String result =
+               String.format ("distance: %.8g", pointB.distance (pointA));
+            System.out.println (result);
+            GuiUtils.showResult (myMain.getMainFrame(), result);
          }
       }
       else if (containsDoubleSelection (selection, VertexComponent.class)) {
          VertexComponent vtxB = (VertexComponent)selection.get (0);
          VertexComponent vtxA = (VertexComponent)selection.get (1);
          if (actionCommand == "Compute distance") {
-            System.out.printf ("distance = %g\n", vtxB.distance (vtxA));
+            String result =
+               String.format ("distance: %.8g", vtxB.distance (vtxA));
+            System.out.println (result);
+            GuiUtils.showResult (myMain.getMainFrame(), result);
          }
       }
       else {

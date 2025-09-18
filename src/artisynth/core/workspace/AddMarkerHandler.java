@@ -11,6 +11,7 @@ import artisynth.core.mechmodels.HasSurfaceMesh;
 import artisynth.core.mechmodels.IsMarkable;
 import artisynth.core.mechmodels.Marker;
 import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointAttachment;
@@ -54,6 +55,34 @@ public class AddMarkerHandler {
       return nearestDistance != Double.POSITIVE_INFINITY;
    }
 
+   /**
+    * Intersects a MeshComponent with its mesh if the mesh is a 
+    * PolygonalMesh.
+    * 
+    * @param nearest nearest point on the mesh
+    * @param comp mesh component to intersect
+    * @param ray ray to intersect with
+    * @return true if intersects
+    */
+   private boolean computeRayIntersection (
+      Point3d nearest, MeshComponent comp, Line ray) {
+      
+      if (!(comp.getMesh() instanceof PolygonalMesh)) {
+         return false;
+      }
+      
+      PolygonalMesh mesh = (PolygonalMesh)comp.getMesh();
+      Point3d pos = BVFeatureQuery.nearestPointAlongRay (
+            mesh, ray.getOrigin(), ray.getDirection());
+      if (pos != null) {
+         nearest.set (pos);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
    private Point3d computeMarkPosition (ModelComponent comp, Line ray) {
      
       Point3d out = null;
@@ -69,6 +98,12 @@ public class AddMarkerHandler {
       else if (comp instanceof Frame) {
          Frame frame = (Frame)comp;
          out = new Point3d(frame.getPose().p);    
+      }
+      else if (comp instanceof MeshComponent) {
+         Point3d isect = new Point3d();
+         if (computeRayIntersection (isect, (MeshComponent)comp, ray)) {
+            out = isect;
+         }
       }
       
       return out;
@@ -147,7 +182,11 @@ public class AddMarkerHandler {
                      markers.add (marker);
                   }
                }
-            } else {
+            } else if (comp instanceof MeshComponent) {
+               MeshComponent mcomp = (MeshComponent)comp;
+               mcomp.addMeshMarker (isect);
+            }   
+            else {
                System.err.println("ERROR: cannot add marker to component " + comp.toString ());
             }
          }

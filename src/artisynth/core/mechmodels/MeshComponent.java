@@ -13,9 +13,11 @@ import java.util.Map;
 import java.util.List;
 import java.util.LinkedList;
 
+import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.matrix.Line;
 import maspack.matrix.Point3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
@@ -562,7 +564,7 @@ public class MeshComponent extends RenderableCompositeBase
       if (!isScanning()) {
          // if scanning, markers and curves may not exist yet
          for (MeshMarker mm : myMarkers) {
-            mm.updatePosition();
+            mm.updateState();
          }
          for (MeshCurve mc : myCurves) {
             mc.updateMarkerPositions();
@@ -639,5 +641,37 @@ public class MeshComponent extends RenderableCompositeBase
       
       return comp;
    }
+
+   /**
+    * Queries whether this MeshComponent intersects a ray. For an intersection
+    * to occur, the mesh itself must be a {@link PolygonalMesh}. If {@code
+    * nearest} is non-{@code null}, it is used to return the nearest
+    * intersection point if it exists.
+    * 
+    * @param nearest if non-{@code null}, returns the nearest intersect point
+    * @param ray ray to intersect the mesh
+    * @return true if the mesh is a {@code PolygonalMesh} and an intersection
+    * exists
+    */
+   public boolean computeRayIntersection (Point3d nearest, Line ray) {
+      
+      if (!(getMesh() instanceof PolygonalMesh)) {
+         return false;
+      }
+      
+      PolygonalMesh mesh = (PolygonalMesh)getMesh();
+      Point3d pos = BVFeatureQuery.nearestPointAlongRay (
+            mesh, ray.getOrigin(), ray.getDirection());
+      if (pos != null) {
+         if (nearest != null) {
+            nearest.set (pos);
+         }
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
    
 }

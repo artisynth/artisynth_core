@@ -55,34 +55,6 @@ public class AddMarkerHandler {
       return nearestDistance != Double.POSITIVE_INFINITY;
    }
 
-   /**
-    * Intersects a MeshComponent with its mesh if the mesh is a 
-    * PolygonalMesh.
-    * 
-    * @param nearest nearest point on the mesh
-    * @param comp mesh component to intersect
-    * @param ray ray to intersect with
-    * @return true if intersects
-    */
-   private boolean computeRayIntersection (
-      Point3d nearest, MeshComponent comp, Line ray) {
-      
-      if (!(comp.getMesh() instanceof PolygonalMesh)) {
-         return false;
-      }
-      
-      PolygonalMesh mesh = (PolygonalMesh)comp.getMesh();
-      Point3d pos = BVFeatureQuery.nearestPointAlongRay (
-            mesh, ray.getOrigin(), ray.getDirection());
-      if (pos != null) {
-         nearest.set (pos);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-
    private Point3d computeMarkPosition (ModelComponent comp, Line ray) {
      
       Point3d out = null;
@@ -101,7 +73,7 @@ public class AddMarkerHandler {
       }
       else if (comp instanceof MeshComponent) {
          Point3d isect = new Point3d();
-         if (computeRayIntersection (isect, (MeshComponent)comp, ray)) {
+         if (((MeshComponent)comp).computeRayIntersection (isect, ray)) {
             out = isect;
          }
       }
@@ -126,7 +98,7 @@ public class AddMarkerHandler {
       if (comp instanceof IsMarkable) {
          IsMarkable markable = (IsMarkable)comp;
          marker = markable.createMarker (ray);
-         if (!markable.addMarker (marker)) {
+         if (marker != null && !markable.addMarker (marker)) {
             // put into a root list of markers
             PointList<Marker> markers = getDefaultMarkerList ();
             if (markers != null) {

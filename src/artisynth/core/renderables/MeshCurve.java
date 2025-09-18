@@ -167,7 +167,7 @@ public class MeshCurve extends RenderableCompositeBase {
       myLocalPoints = new ArrayList<>();
       myArcLengths = new DynamicDoubleArray();
       myLocalNormals = new ArrayList<>();
-      myMarkers = new PointList (MeshMarker.class, "markers");
+      myMarkers = new PointList<> (MeshMarker.class, "markers");
       myRenderFrame = new RigidTransform3d();
       myRob = null;
       myIntervalPointIndices = null;
@@ -333,7 +333,7 @@ public class MeshCurve extends RenderableCompositeBase {
 
    public void updateMarkerPositions() {
       for (MeshMarker mm : myMarkers) {
-         mm.updatePosition();
+         mm.updateState();
       }
       myCurveValid = false;
    }

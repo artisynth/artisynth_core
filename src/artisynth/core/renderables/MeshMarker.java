@@ -21,7 +21,7 @@ import java.util.*;
 
 import artisynth.core.util.*;
 
-public class MeshMarker extends Point implements HasCoordinateFrame {
+public class MeshMarker extends Marker implements HasCoordinateFrame {
 
    protected MeshComponent myMeshComp = null;
    protected int myFaceIdx;
@@ -80,7 +80,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       myMeshComp = mcomp;
       myFaceIdx = faceIdx;
       myCoords.set (s1, s2);
-      updatePosition();
+      updateState();
    }
 
    public MeshMarker (MeshComponent mcomp, Point3d pos) {
@@ -152,7 +152,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
 
    public void setCoords (Vector2d coords) {
       myCoords.set (coords);
-      updatePosition();
+      updateState();
    }
 
    public int getFaceIndex() {
@@ -196,10 +196,10 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       else {
          myFaceIdx = face.getIndex();
       }
-      updatePosition();
+      updateState();
    }
 
-   public void updatePosition() {
+   public void updateState() {
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          if (myFaceIdx >= mesh.numFaces()) {
@@ -267,7 +267,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       if (postscanAttributeName (tokens, "meshComp")) {
          myMeshComp = 
             postscanReference (tokens, MeshComponent.class, ancestor);
-         updatePosition();
+         updateState();
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -324,7 +324,7 @@ public class MeshMarker extends Point implements HasCoordinateFrame {
       }
       m.myFaceIdx = myFaceIdx;
       m.myCoords = new Vector2d (myCoords);
-      m.updatePosition();
+      m.updateState();
       m.myPntIdx = -1;
       return m;
    }

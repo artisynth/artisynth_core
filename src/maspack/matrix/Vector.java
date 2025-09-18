@@ -6,12 +6,15 @@
  */
 package maspack.matrix;
 
+import java.util.Collection;
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import maspack.util.Clonable;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.InternalErrorException;
+import maspack.util.MD5Checksum;
 
 /**
  * General interface for vectors. It provides methods for setting and getting
@@ -319,4 +322,33 @@ public interface Vector extends Clonable {
     */
    public String toString (NumberFormat fmt);
 
+   /**
+    * Comoutes an MD5 checksum for this Vector. Can be used to determine if two
+    * vectors are (most likely) different.
+    *
+    * @return MD5 checksum, as a string
+    */
+   public default String computeMD5Checksum() {
+      MD5Checksum md5= new MD5Checksum();
+      md5.update (size());
+      for (int i=0; i<size(); i++) {
+         md5.update (get(i));
+      }
+      return md5.toString();
+   }
+   
+   /**
+    * Computes an MD5 checksum for a collection of Vectors. Can be used to 
+    * determine if two sets of Vectors are are (most likely) different.
+    *
+    * @param vecs vectors to compute the checksum for
+    * @return MD5 checksum, as a string
+    */
+   public static String computeMD5Checksum (Collection<Vector> vecs) {
+      MD5Checksum md5 = new MD5Checksum();
+      for (Vector v : vecs) {
+         md5.update (v);
+      }
+      return md5.toString();      
+   }
 }

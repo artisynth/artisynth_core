@@ -6,11 +6,13 @@
  */
 package maspack.matrix;
 
+import java.util.Collection;
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.MD5Checksum;
 
 /**
  * General interface for matrices. It specifies methods which allow one to set
@@ -1271,5 +1273,40 @@ public interface Matrix extends LinearTransformNd {
     * @throws IllegalStateException if the matrix structure is inconsistent.
     */
    public void checkConsistency();
+
+   /**
+    * Computes an MD5 checksum for this Matrix. Can be used to determine if two
+    * matrices are (most likely) different.
+    *
+    * @return MD5 checksum, as a string
+    */
+   public default String computeMD5Checksum() {
+      MD5Checksum md5= new MD5Checksum();
+      md5.update (rowSize());
+      md5.update (colSize());
+      for (int i=0; i<rowSize(); i++) {
+         for (int j=0; j<colSize(); j++) {
+            md5.update (get(i,j));
+         }
+      }      
+      md5.update (this);
+      return md5.toString();
+   }
+   
+   /**
+    * Computes an MD5 checksum for a collection of Matrices. Can be used to 
+    * determine if two sets of matrices are are (most likely) different.
+    *
+    * @param mats matrices to compute the checksum for
+    * @return MD5 checksum, as a string
+    */   
+   public static String computeMD5Checksum (Collection<Matrix> mats) {
+      MD5Checksum md5 = new MD5Checksum();
+      for (Matrix m : mats) {
+         md5.update (m);
+      }
+      return md5.toString();      
+   }
+
 
 }

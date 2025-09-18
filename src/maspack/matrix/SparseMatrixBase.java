@@ -10,6 +10,7 @@ import java.io.*;
 import java.util.*;
 
 import maspack.util.NumberFormat;
+import maspack.util.MD5Checksum;
 
 /**
  * Base implementation of {@link maspack.matrix.Matrix Matrix}.
@@ -328,6 +329,59 @@ public abstract class SparseMatrixBase extends MatrixBase
          System.out.println ("Error writing matrix to file "+ fileName + ":");
          System.out.println (e);
       }
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>The implementation bases the checksum on the indices and values
+    * returned by the matrix's {@code getCRSIndices()} and {@code
+    * getCRSValues()} methods.
+    *
+    * @return MD5 checksum, as a string
+    */
+   public String computeMD5Checksum() {
+      return computeMD5Checksum (Partition.Full, rowSize(), colSize());
+   }
+
+   /**
+    * Returns an MD5 checksum for a specified partition of a principal
+    * sub-matrix of this matrix delimited by the first <code>numRows</code>
+    * rows and the first <code>numCols</code> columns. Can be used to determine
+    * if two such partitions are (most likely) different.
+    *
+    * <p>The implementation bases the checksum on the indices and values
+    * returned by the matrix's {@code getCRSIndices()} and {@code
+    * getCRSValues()} methods.
+    *
+    * @param part
+    * matrix parition to be examined
+    * @param numRows
+    * number of rows delimiting the sub-matrix
+    * @param numCols
+    * number of columns delimiting the sub-matrix
+    * @return MD5 checksum, as a string
+    */
+   public String computeMD5Checksum (Partition part, int numRows, int numCols) {
+      int nnz = numNonZeroVals(part, numRows, numCols);
+      int[] rowOffs = new int[numRows+1];
+      int[] colIdxs = new int[nnz];
+      double[] vals = new double[nnz];
+      getCRSIndices (colIdxs, rowOffs, part, numRows, numCols);
+      getCRSValues (vals, part, numRows, numCols);
+
+      MD5Checksum md5 = new MD5Checksum();
+      md5.update (numRows);
+      md5.update (numCols);
+      md5.update (nnz);
+      for (int i=0; i<rowOffs.length; i++) {
+         md5.update (rowOffs[i]);
+      }
+      for (int k=0; k<nnz; k++) {
+         md5.update (colIdxs[k]);
+         md5.update (vals[k]);
+      }
+      return md5.toString();
    }
 
    // /**

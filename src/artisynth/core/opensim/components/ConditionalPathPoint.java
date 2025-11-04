@@ -53,7 +53,7 @@ public class ConditionalPathPoint extends PathPoint {
    public ConditionalPathPoint clone () {
       ConditionalPathPoint cpp = (ConditionalPathPoint)super.clone ();
       if (range != null) {
-         cpp.setRange (range.clone ());
+         cpp.range = range.clone();
       }
       cpp.setCoordinate (coordinate);
       return cpp;

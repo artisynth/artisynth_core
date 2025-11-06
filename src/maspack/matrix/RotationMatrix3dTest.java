@@ -76,6 +76,7 @@ class RotationMatrix3dTest extends MatrixTest {
       AxisAngle axisAng = new AxisAngle();
       Quaternion quat = new Quaternion();
       double[] angs = new double[3];
+      double[] singAngs = new double[3];
 
       saveResult (RR);
       MX.set (R1);
@@ -91,8 +92,37 @@ class RotationMatrix3dTest extends MatrixTest {
 
       saveResult (RR);
       MX.set (R1);
-      R1.getXyz (angs);
-      RR.setXyz (angs);
+      R1.getZyzAngles (angs);
+      RR.setZyzAngles (angs);
+      checkAndRestoreResult (RR, EPSILON);
+
+      saveResult (RR);
+      MX.set (R1);
+      R1.getYxyAngles (angs);
+      RR.setYxyAngles (angs);
+      checkAndRestoreResult (RR, EPSILON);
+
+      RotationMatrix3d RS = new RotationMatrix3d();
+      angs[0] = 0;
+      angs[1] = 0;
+      RS.setZyzAngles (angs);
+      RS.getZyzAngles (singAngs);
+      checkEquals ("singular z-y-z angles", singAngs, angs, EPSILON);
+
+      RS.setYxyAngles (angs);
+      RS.getYxyAngles (singAngs);
+      checkEquals ("singular y-x-y angles", singAngs, angs, EPSILON);
+
+      saveResult (RR);
+      MX.set (R1);
+      R1.getXyzAngles (angs);
+      RR.setXyzAngles (angs);
+      checkAndRestoreResult (RR, EPSILON);
+
+      saveResult (RR);
+      MX.set (R1);
+      R1.getZyxAngles (angs);
+      RR.setZyxAngles (angs);
       checkAndRestoreResult (RR, EPSILON);
 
       saveResult (RR);
@@ -499,13 +529,13 @@ class RotationMatrix3dTest extends MatrixTest {
          rpy.set(2, RandomGenerator.nextDouble(-4*Math.PI, 4*Math.PI));
          R.setRpy (rpy.getBuffer());      
 
-         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, 1.0);
+         R.getZyxAngles (out.getBuffer(), rpy.getBuffer(), 0, 1.0);
          if (!out.epsilonEquals (rpy, 1e-14)) {
             throw new TestException (
                "set/getRpy, extended range: got "+out+", expected\n" + rpy);
          }
          rpy.scale (RTOD);
-         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, RTOD);
+         R.getZyxAngles (out.getBuffer(), rpy.getBuffer(), 0, RTOD);
          if (!out.epsilonEquals (rpy, RTOD*1e-14)) {
             throw new TestException (
                "set/getRpy, scale ext. range: got "+out+", expected\n" + rpy);
@@ -519,13 +549,13 @@ class RotationMatrix3dTest extends MatrixTest {
          rpy.set(2, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
          R.setRpy (rpy.getBuffer());      
 
-         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, 1.0);
+         R.getZyxAngles (out.getBuffer(), rpy.getBuffer(), 0, 1.0);
          if (!out.epsilonEquals (rpy, 1e-14)) {
             throw new TestException (
                "set/getRpy, singularites: got "+out+", expected\n" + rpy);
          }
          rpy.scale (RTOD);
-         R.getRpy (out.getBuffer(), rpy.getBuffer(), 0, RTOD);
+         R.getZyxAngles (out.getBuffer(), rpy.getBuffer(), 0, RTOD);
          if (!out.epsilonEquals (rpy, RTOD*1e-14)) {
             throw new TestException (
                "set/getRpy, scale singularities: got "+out+", expected\n" + rpy);
@@ -578,13 +608,13 @@ class RotationMatrix3dTest extends MatrixTest {
          xyz.set(2, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
          R.setXyz (xyz.getBuffer());      
 
-         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, 1.0);
+         R.getXyzAngles (out.getBuffer(), xyz.getBuffer(), 0, 1.0);
          if (!out.epsilonEquals (xyz, 1e-14)) {
             throw new TestException (
                "set/getXyz, extended range: got "+out+", expected\n" + xyz);
          }
          xyz.scale (RTOD);
-         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, RTOD);
+         R.getXyzAngles (out.getBuffer(), xyz.getBuffer(), 0, RTOD);
          if (!out.epsilonEquals (xyz, RTOD*1e-14)) {
             throw new TestException (
                "set/getXyz, scaled ext. range: got "+out+", expected\n" + xyz);
@@ -598,13 +628,13 @@ class RotationMatrix3dTest extends MatrixTest {
          xyz.set(2, RandomGenerator.nextDouble(-2*Math.PI, 2*Math.PI));
          R.setXyz (xyz.getBuffer());      
 
-         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, 1.0);
+         R.getXyzAngles (out.getBuffer(), xyz.getBuffer(), 0, 1.0);
          if (!out.epsilonEquals (xyz, 1e-14)) {
             throw new TestException (
                "set/getXyz, singularites: got "+out+", expected\n" + xyz);
          }
          xyz.scale (RTOD);
-         R.getXyz (out.getBuffer(), xyz.getBuffer(), 0, RTOD);
+         R.getXyzAngles (out.getBuffer(), xyz.getBuffer(), 0, RTOD);
          if (!out.epsilonEquals (xyz, RTOD*1e-14)) {
             throw new TestException (
                "set/getXyz, scaled singularities: got "+out+", expected\n" + xyz);

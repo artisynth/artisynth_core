@@ -1678,7 +1678,7 @@ public class Quaternion extends VectorBase {
     */
    public void getRotXyz (double[] angs, int off) {
       RotationMatrix3d R = new RotationMatrix3d(this);
-      R.getXyz (angs, /*ref*/null, off, 1.0);
+      R.getXyzAngles (angs, /*ref*/null, off, 1.0);
    }
 
    /**
@@ -1707,7 +1707,7 @@ public class Quaternion extends VectorBase {
     */
    public void getRotZyx (double[] angs, int off) {
       RotationMatrix3d R = new RotationMatrix3d(this);
-      R.getRpy (angs, /*ref=*/null, off, 1.0);
+      R.getZyxAngles (angs, /*ref=*/null, off, 1.0);
    }
 
    public void set(AxisAngle axisAng) {
@@ -2048,7 +2048,7 @@ public class Quaternion extends VectorBase {
             // no break
          case ZYX: {
             RotationMatrix3d R = new RotationMatrix3d(this);
-            R.getRpy (vals, refs, off, s);
+            R.getZyxAngles (vals, refs, off, s);
             break;
          }
          case XYZ_DEG:
@@ -2056,7 +2056,7 @@ public class Quaternion extends VectorBase {
             // no break
          case XYZ: {
             RotationMatrix3d R = new RotationMatrix3d(this);
-            R.getXyz (vals, refs, off, s);
+            R.getXyzAngles (vals, refs, off, s);
             break;
          }
          case AXIS_ANGLE_DEG: {

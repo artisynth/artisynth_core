@@ -556,7 +556,7 @@ public class AxisAngle implements Clonable {
          }
          case ZYX: {
             RotationMatrix3d R = new RotationMatrix3d(this);
-            R.getRpy (vals, refs, off, s);
+            R.getZyxAngles (vals, refs, off, s);
             break;
          }
          case XYZ_DEG: {
@@ -565,7 +565,7 @@ public class AxisAngle implements Clonable {
          }
          case XYZ: {
             RotationMatrix3d R = new RotationMatrix3d(this);
-            R.getXyz (vals, refs, off, s);
+            R.getXyzAngles (vals, refs, off, s);
             break;
          }
          case AXIS_ANGLE_DEG: {

@@ -1280,48 +1280,20 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Sets this rotation to one produced by roll-pitch-yaw angles. The
-    * coordinate frame corresponding to these angles is produced by a rotation
-    * of roll about the z axis, followed by a rotation of pitch about the new y
-    * axis, and finally a rotation of yaw about the new x axis.
-    * 
-    * @param roll
-    * first angle (radians)
-    * @param pitch
-    * second angle (radians)
-    * @param yaw
-    * third angle (radians)
-    * @see #getRpy
+    * Sets this rotation to one produced by the Z-Y-X Tait-Bryan angles,
+    * sometimes known as the roll-pitch-yaw angles.
+    *
+    * @deprecated Use {@link #setZyxAngles(double,double,double)} instead.
     */
-   public void setRpy (double roll, double pitch, double yaw) {
-      double sroll, spitch, syaw, croll, cpitch, cyaw;
-
-      sroll = Math.sin (roll);
-      croll = Math.cos (roll);
-      spitch = Math.sin (pitch);
-      cpitch = Math.cos (pitch);
-      syaw = Math.sin (yaw);
-      cyaw = Math.cos (yaw);
-
-      m00 = croll * cpitch;
-      m10 = sroll * cpitch;
-      m20 = -spitch;
-
-      m01 = croll * spitch * syaw - sroll * cyaw;
-      m11 = sroll * spitch * syaw + croll * cyaw;
-      m21 = cpitch * syaw;
-
-      m02 = croll * spitch * cyaw + sroll * syaw;
-      m12 = sroll * spitch * cyaw - croll * syaw;
-      m22 = cpitch * cyaw;
+   public void setRpy (double rz, double ry, double rx) {
+      setZyxAngles (rz, ry, rx);
    }
 
    /**
-    * Sets this rotation to one produced by roll-pitch-yaw angles.
-    * 
-    * @param angs
-    * contains the angles (roll, pitch, and yaw, in that order) in radians.
-    * @see #setRpy(double,double,double)
+    * Sets this rotation to one produced by the Z-Y-X Tait-Bryan angles,
+    * sometimes known as the roll-pitch-yaw angles.
+    *
+    * @deprecated Use {@link #setZyxAngles(double[])} instead.
     */
    public void setRpy (double[] angs) {
       setRpy (angs[0], angs[1], angs[2]);
@@ -1329,33 +1301,103 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Post-multiplies this rotation by an implicit second rotation expressed by
-    * roll-pitch-yaw angles, and places the result in this rotation.
+    * the Z-Y-X Tait-Bryan angles, as described for {@link
+    * #setZyxAngles(double,double,double)}, and places the result in this
+    * rotation. The name {@code mulRpy} is due to these angles also being known
+    * as roll-pitch-yaw angles.
     * 
-    * @param roll
-    * first angle (radians)
-    * @param pitch
-    * second angle (radians)
-    * @param yaw
-    * third angle (radians)
+    * @param rz
+    * first rotation about the z axis (radians)
+    * @param ry
+    * second rotation about the subsequent y axis (radians)
+    * @param rx
+    * third rotation about the subsequent x axis (radians)
     */
-   public void mulRpy (double roll, double pitch, double yaw) {
+   public void mulRpy (double rz, double ry, double rx) {
       RotationMatrix3d Tmp = new RotationMatrix3d();
-      Tmp.setRpy (roll, pitch, yaw);
+      Tmp.setZyxAngles (rz, ry, rx);
       mul (Tmp);
    }
 
    /**
-    * Gets the roll-pitch-yaw angles corresponding to this rotation. Solution
-    * uniqueness is guaranteed by constraining roll and yaw to the range {@code
-    * [-pi, pi]} and pitch to the range {@code [-pi/2, pi/2]}.
-    * 
-    * @param angs
-    * returns the angles (roll, pitch, and yaw, in that order) in radians.
-    * @see #setRpy(double,double,double)
+    * Computes the Z-Y-X Tait-Bryan angles, also known as roll-pitch-yaw angles,
+    * corresponding to this rotation.
+    *
+    * @deprecated Use {@link #getZyxAngles(double[])} instead.
     */
    public void getRpy (double[] angs) {
-      getRpy (angs, /*refs=*/null, 0, 1.0);
+      getZyxAngles (angs, /*refs=*/null, 0, 1.0);
+   }
 
+   /**
+    * Sets this rotation to one produced by the Z-Y-X Tait-Bryan angles. The
+    * final orientation corresponds to a sequence of intrinsic rotations,
+    * starting with a rotation {@code rz} about the z axis, followed by a
+    * rotation {@code ry} about the subsequent y axis, and finally a rotation
+    * {@code rx} about the subsequent x axis. This is <i>also</i> equivalent to
+    * a sequence of extrinsic rotations of {@code rx}, {@code ry} and {@code
+    * rz} about the base x, y, and z axes.
+    * 
+    * @param rz
+    * first rotation about the z axis (radians)
+    * @param ry
+    * second rotation about the subsequent y axis (radians)
+    * @param rx
+    * third rotation about the subsequent x axis (radians)
+    * @see #getZyxAngles
+    */
+   public void setZyxAngles (double rz, double ry, double rx) {
+      double sz, sy, sx, cz, cy, cx;
+
+      sz = Math.sin (rz);
+      cz = Math.cos (rz);
+      sy = Math.sin (ry);
+      cy = Math.cos (ry);
+      sx = Math.sin (rx);
+      cx = Math.cos (rx);
+
+      m00 = cz * cy;
+      m10 = sz * cy;
+      m20 = -sy;
+
+      m01 = cz * sy * sx - sz * cx;
+      m11 = sz * sy * sx + cz * cx;
+      m21 = cy * sx;
+
+      m02 = cz * sy * cx + sz * sx;
+      m12 = sz * sy * cx - cz * sx;
+      m22 = cy * cx;
+   }
+
+   /**
+    * Sets this rotation to one produced by the Z-Y-X Tait-Bryan angles,
+    * as described for {@link #setZyxAngles(double,double,double)}.
+    * 
+    * @param angs contains the {@code rz}, {@code ry} and {@code rx}
+    * angles (in radians)
+    * @see #setZyxAngles(double,double,double)
+    */
+   public void setZyxAngles (double[] angs) {
+      setZyxAngles (angs[0], angs[1], angs[2]);
+   }
+
+   /**
+    * Computes the Z-Y-X Tait-Bryan angles corresponding to this rotation, as
+    * described for {@link #setZyxAngles(double,double,double)}. Note that there
+    * are two possible solutions corresponding to {@code cos(ry) > 0} and
+    * {@code cos(ry) < 0}; this method chooses {@code cos(ry) > 0} and
+    * {@code ry} is thus constrained to the range {@code [-pi/2, pi/2]}.  The
+    * solution branches meet at a singularity where {@code cos(ry) = 0} and
+    * {@code rz} and {@code rx} are not uniquely defined. Therefore, if
+    * {@code cos(ry)} is within machine precision of 0, {@code rz} is set
+    * to 0 and {@code rx} is computed accordingly.
+    * 
+    * @param angs returns the {@code rz}, {@code ry} and {@code rx} angles
+    * (in radians)
+    * @see #setZyxAngles(double,double,double)
+    */
+   public void getZyxAngles (double[] angs) {
+      getZyxAngles (angs, /*refs=*/null, 0, 1.0);
    }
 
    private void setNearestAngSolution (
@@ -1426,17 +1468,20 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Gets the roll-pitch-yaw angles corresponding to this rotation. If {@code
+    * Computes the Z-Y-X Tait-Bryan angles corresponding to this rotation, as
+    * described for {@link #setZyxAngles(double,double,double)}. If {@code
     * refs} is non-null, it contains reference angles which are used to resolve
     * redundancies by finding the solution nearest to the reference angles.
     * Solution redundancies include the two primary solutions with {@code
     * cos(pitch) > 0} and {@code cos(pitch) < 0}, plus the angular redundancies
     * formed by adding {@code 2 n pi} to any angle. If {@code refs} is null,
     * a unique solution is found by constraining roll and yaw to the range {@code
-    * [-pi, pi]} and pitch to the range {@code [-pi/2, pi/2]}.
+    * [-pi, pi]} and pitch to the range {@code [-pi/2, pi/2]}, as described
+    * for {@link #getZyxAngles(double[])}.
     * 
     * @param angs
-    * returns the angles (roll, pitch, and yaw, in that order) in radians.
+    * returns returns the {@code rz}, {@code ry} and {@code rx} angles
+    * (in radians)
     * @param refs
     * if non-null, specifies the reference angles
     * @param off offset within {@code angs} and {@code refs} where the angles
@@ -1444,9 +1489,9 @@ public class RotationMatrix3d extends Matrix3dBase {
     * @param angScale if not 1.0, indicates a scale factor for the output
     * and reference angles. In particular, this can be used to convert
     * output angles into degrees.
-    * @see #setRpy(double,double,double)
+    * @see #setZyxAngles(double,double,double)
     */
-   public void getRpy (
+   public void getZyxAngles (
       double[] angs, double[] refs, int off, double angScale) {
       if (Math.abs (m00) < EPSILON && Math.abs (m10) < EPSILON) {
          double rz, ry, rx;
@@ -1496,22 +1541,63 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Sets this rotation to one produced by a sequence of intrinsic rotations
-    * about the x-y-z axes. More specifically, the rotation is produced by a
-    * rotation {@code rx} about the x axis, followed by a rotation {@code ry}
-    * about the new y axis, and finally a rotation {@code rz} about the new z
-    * axis.
-    * 
-    * @param rx
-    * first rotation about x (radians)
-    * @param ry
-    * second rotation about y (radians)
-    * @param rz
-    * third rotation about z (radians)
-    * @see #getXyz
+    * @deprecated Use {@link #setXyzAngles(double,double,double)} instead.
     */
    public void setXyz (double rx, double ry, double rz) {
+      setXyzAngles (rx, ry, rz);
+   }
 
+   /**
+    * @deprecated Use {@link #setXyzAngles(double[])} instead.
+    */
+   public void setXyz (double[] angs) {
+      setXyzAngles (angs);
+   }
+
+   /**
+    * Post-multiplies this rotation by an implicit second rotation expressed by
+    * the X-Y-Z Tait-Bryan angles, as described for {@link
+    * #setXyzAngles(double,double,double)}, and places the result in this
+    * rotation.
+    * 
+    * @param rx
+    * first rotation about the x axis (radians)
+    * @param ry
+    * second rotation about the subsequent y axis (radians)
+    * @param rz
+    * third rotation about the subsequent z axis (radians)
+    */
+   public void mulXyz (double rx, double ry, double rz) {
+      RotationMatrix3d Tmp = new RotationMatrix3d();
+      Tmp.setXyz (rx, ry, rz);
+      mul (Tmp);
+   }
+
+   /**
+    * @deprecated Use {@link #getXyzAngles(double[])} instead.
+    */
+   public void getXyz (double[] angs) {
+      getXyzAngles (angs, /*ref*/null, 0, 1.0);
+   }
+
+   /**
+    * Sets this rotation to one produced by the X-Y-Z Tait-Bryan angles. The
+    * final orientation corresponds to sequence of intrinsic rotations,
+    * starting with a rotation {@code rx} about the x axis, followed by a
+    * rotation {@code ry} about the subsequent y axis, and finally a rotation
+    * {@code rz} about the subsequent z axis. This is <i>also</i> equivalent to
+    * a sequence of extrinsic rotations of {@code rz}, {@code ry} and {@code
+    * rx} about the base z, y, and x axes.
+    * 
+    * @param rx
+    * first rotation about the x axis (radians)
+    * @param ry
+    * second rotation about the subsequent y axis (radians)
+    * @param rz
+    * third rotation about the subsequent z axis (radians)
+    * @see #getXyzAngles
+    */
+   public void setXyzAngles (double rx, double ry, double rz) {
       double sr = Math.sin (rx);
       double cr = Math.cos (rx);
       double sp = Math.sin (ry);
@@ -1533,68 +1619,59 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Sets this rotation to one produced by a sequence of successive rotations
-    * about the x-y-z axes.
+    * Sets this rotation to one produced by the X-Y-Z Tait-Bryan angles,
+    * as described for {@link #setXyzAngles(double,double,double)}.
     * 
-    * @param angs
-    * contains the angles (rx, ry, and rz, in that order) in radians.
-    * @see #setXyz(double,double,double)
+    * @param angs contains the {@code rx}, {@code ry} and {@code rz}
+    * angles (in radians)
+    * @see #setXyzAngles(double,double,double)
     */
-   public void setXyz (double[] angs) {
+   public void setXyzAngles (double[] angs) {
       setXyz (angs[0], angs[1], angs[2]);
    }
 
    /**
-    * Post-multiplies this rotation by an implicit second rotation expressed by
-    * a sequence of intrinsic rotations about the x-y-z axes.
+    * Computes the X-Y-Z Tait-Bryan angles corresponding to this rotation, as
+    * described for {@link #setXyzAngles(double,double,double)}. Note that there
+    * are two possible solutions corresponding to {@code cos(ry) > 0} and
+    * {@code cos(ry) < 0}; this method chooses {@code cos(ry) > 0} and
+    * {@code ry} is thus constrained to the range {@code [-pi/2, pi/2]}.  The
+    * solution branches meet at a singularity where {@code cos(ry) = 0} and
+    * {@code rx} and {@code rz} are not uniquely defined. Therefore, if
+    * {@code cos(ry)} is within machine precision of 0, {@code rx} is set
+    * to 0 and {@code rz} is computed accordingly.
     * 
-    * @param rx
-    * first rotation about x (radians)
-    * @param ry
-    * second rotation about y (radians)
-    * @param rz
-    * third rotation about z (radians)
-    * @see #setXyz(double,double,double)
+    * @param angs returns the {@code rx}, {@code ry} and {@code rz} angles
+    * (in radians)
+    * @see #setXyzAngles(double,double,double)
     */
-   public void mulXyz (double rx, double ry, double rz) {
-      RotationMatrix3d Tmp = new RotationMatrix3d();
-      Tmp.setXyz (rx, ry, rz);
-      mul (Tmp);
+   public void getXyzAngles (double[] angs) {
+      getXyzAngles (angs, /*ref*/null, 0, 1.0);
    }
 
    /**
-    * Gets the x-y-z rotation angles (rx, ry, rz) corresponding to this
-    * rotation.  This is the inverse of {@link
-    * #setXyz(double,double,double)}. Solution uniqueness is guaranteed by
-    * constraining rx and rz to the range {@code [-pi, pi]} and the ry to
-    * {@code [-pi/2, pi/2]}.
-    * 
-    * @param angs returns rx, ry and rz in radians.
-    */
-   public void getXyz (double[] angs) {
-      getXyz (angs, /*ref*/null, 0, 1.0);
-   }
-
-   /**
-    * Gets the x-y-z rotation angles (rx, ry, rz) corresponding to this
-    * rotation. If {@code refs} is non-null, it contains reference angles which
-    * are used to resolve redundancies by finding the solution nearest to the
-    * reference angles.  Solution redundancies include the two primary
-    * solutions with {@code cos(ry) > 0} and {@code cos(ry) < 0}, plus the
-    * angular redundancies formed by adding {@code 2 n pi} to any angle. If
-    * {@code refs} is null, a unique solution is found by constraining rx and
-    * rz to the range {@code [-pi, pi]} and the ry to {@code [-pi/2, pi/2]}.
+    * Computes the X-Y-Z Tait-Bryan angles corresponding to this rotation, as
+    * described for {@link #setXyzAngles(double,double,double)}. If {@code refs}
+    * is non-null, it contains reference angles which are used to resolve
+    * redundancies by finding the solution nearest to the reference angles.
+    * Solution redundancies include the two primary solutions with {@code
+    * cos(ry) > 0} and {@code cos(ry) < 0}, plus the angular redundancies
+    * formed by adding {@code 2 n pi} to any angle. If {@code refs} is null, a
+    * unique solution is found by constraining rx and rz to the range {@code
+    * [-pi, pi]} and the ry to {@code [-pi/2, pi/2]}, as described
+    * for {@link #getXyzAngles(double[])}.
     * 
     * @param angs
-    * returns rx, ry, and rz in radians.
+    * returns returns the {@code rx}, {@code ry} and {@code rz} angles
+    * (in radians)
     * @param off offset within {@code angs} and {@code refs} where the angles
     * are be stored
     * @param angScale if not 1, indicates a scale factor for the output
     * and reference angles. In particular, this can be used to convert output
     * angles into degrees.
-    * @see #setXyz(double,double,double)
+    * @see #setXyzAngles(double,double,double)
     */
-   public void getXyz (
+   public void getXyzAngles (
       double[] angs, double[] refs, int off, double angScale) {
 
       if (Math.abs(m12) < EPSILON && Math.abs(m22) < EPSILON) {
@@ -1645,24 +1722,63 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Sets this rotation to one produced by Euler angles. The coordinate frame
-    * corresponding to Euler angles is produced by a rotation of phi about the z
-    * axis, followed by a rotation of theta about the new y axis, and finally a
-    * rotation of psi about the new z axis.
-    * 
-    * @param phi
-    * first Euler angle (radians)
-    * @param theta
-    * second Euler angle (radians)
-    * @param psi
-    * third Euler angle (radians)
-    * @see #getEuler
+    * @deprecated Use {@link #setZyzAngles(double,double,double)} instead.
     */
    public void setEuler (double phi, double theta, double psi) {
-      /*
-       * Set the rotational component as specified by the input Euler angles.
-       */
+      setZyzAngles (phi, theta, psi);
+   }
 
+   /**
+    * @deprecated Use {@link #setZyzAngles(double[])} instead.
+    */
+   public void setEuler (double[] angs) {
+      setZyzAngles (angs[0], angs[1], angs[2]);
+   }
+
+   /**
+    * Post-multiplies this rotation by an implicit second rotation described by
+    * Z-Y-Z Euler angles (as described for {@link
+    * #setZyzAngles(double,double,double)}, and places the result in this
+    * rotation.
+    * 
+    * @param phi
+    * first rotation about the z axis (radians)
+    * @param theta
+    * second rotation about the subsequent y axis (radians)
+    * @param psi
+    * third rotation about the subsequent z axis (radians)
+    */
+   public void mulEuler (double phi, double theta, double psi) {
+      RotationMatrix3d Tmp = new RotationMatrix3d();
+      Tmp.setZyzAngles (phi, theta, psi);
+      mul (Tmp);
+   }
+
+   /**
+    * @deprecated Use {@link #getZyzAngles(double[])} instead.
+    */
+   public void getEuler (double[] angs) {
+      getZyzAngles (angs);
+   }
+
+   /**
+    * Sets this rotation to one produced by the Z-Y-Z Euler angles. The final
+    * orientation corresponds to a sequence of intrinsic rotations, starting
+    * with a rotation {@code phi} about the z axis, followed by a rotation
+    * {@code theta} about the subsequent y axis, and finally a rotation {@code
+    * psi} about the subsequent z axis. This is <i>also</i> equivalent to a
+    * sequence of extrinsic rotations of {@code psi}, {@code theta} and {@code
+    * phi} about the base z, y and z axes.
+    * 
+    * @param phi
+    * first rotation about the z axis (radians)
+    * @param theta
+    * second rotation about the subsequent y axis (radians)
+    * @param psi
+    * third rotation about the subsequent z axis (radians)
+    * @see #getZyzAngles
+    */
+   public void setZyzAngles (double phi, double theta, double psi) {
       double sphi, sthe, spsi, cphi, cthe, cpsi;
 
       sphi = Math.sin (phi);
@@ -1686,32 +1802,133 @@ public class RotationMatrix3d extends Matrix3dBase {
    }
 
    /**
-    * Sets this rotation to one produced by Euler angles.
+    * Sets this rotation to one produced by the Z-Y-Z Euler angles, as
+    * described for {@link #setZyzAngles(double,double,double)}.
     * 
-    * @param angs
-    * contains the Euler angles (phi, theta, and psi, in that order) in radians.
-    * @see #setEuler(double,double,double)
+    * @param angs contains the {@code phi}, {@code theta} and {@code psi}
+    * angles (in radians)
+    * @see #setZyzAngles(double,double,double)
     */
-   public void setEuler (double[] angs) {
-      setEuler (angs[0], angs[1], angs[2]);
+   public void setZyzAngles (double[] angs) {
+      setZyzAngles (angs[0], angs[1], angs[2]);
    }
 
    /**
-    * Post-multiplies this rotation by an implicit second rotation described by
-    * Euler angles, and places the result in this rotation.
+    * Computes the Z-Y-Z Euler angles corresponding to this rotation, as
+    * described for {@link #setZyzAngles(double,double,double)}. Note that there
+    * are two possible solutions corresponding to {@code sin(theta) > 0} and
+    * {@code sin(theta) < 0}; this method chooses {@code sin(theta) > 0} and
+    * {@code theta} is thus constrained to the range {@code [0, pi]}.  The
+    * solution branches meet at a singularity where {@code sin(theta) = 0} and
+    * {@code phi} and {@code psi} are not uniquely defined. Therefore, if
+    * {@code sin(theta)} is within machine precision of 0, {@code phi} is set
+    * to 0 and {@code psi} is computed accordingly.
+    * 
+    * @param angs returns the {@code phi}, {@code theta} and {@code psi} angles
+    * (in radians)
+    * @see #setZyzAngles(double,double,double)
+    */
+   public void getZyzAngles (double[] angs) {
+      double sphi, cphi, p;
+
+      if (Math.abs (m12) > EPSILON || Math.abs (m02) > EPSILON) {
+         angs[0] = (p = Math.atan2 (m12, m02));
+         sphi = Math.sin (p);
+         cphi = Math.cos (p);
+         angs[1] = Math.atan2 (cphi * m02 + sphi * m12, m22);
+         angs[2] =
+            Math.atan2 (-sphi * m00 + cphi * m10, -sphi * m01 + cphi * m11);
+      }
+      else {
+         angs[0] = 0.;
+         angs[1] = Math.atan2 (m02, m22);
+         angs[2] = Math.atan2 (m10, m11);
+      }
+   }
+
+   /**
+    * Sets this rotation to one produced by the Y-X-Y Euler angles. The final
+    * orientation corresponds to a sequence of intrinsic rotations, starting
+    * with a rotation {@code phi} about the y axis, followed by a rotation
+    * {@code theta} about the subsequent x axis, and finally a rotation {@code
+    * psi} about the subsequent y axis. This is <i>also</i> equivalent to a
+    * sequence of extrinsic rotations of {@code psi}, {@code theta} and {@code
+    * phi} about the base y, x and y axes.
     * 
     * @param phi
-    * first Euler angle (radians)
+    * first rotation about the y axis (radians)
     * @param theta
-    * second Euler angle (radians)
+    * second rotation about the subsequent x axis (radians)
     * @param psi
-    * third Euler angle (radians)
-    * @see #setEuler(double,double,double)
+    * third rotation about the subsequent y axis (radians)
+    * @see #getYxyAngles
     */
-   public void mulEuler (double phi, double theta, double psi) {
-      RotationMatrix3d Tmp = new RotationMatrix3d();
-      Tmp.setEuler (phi, theta, psi);
-      mul (Tmp);
+   public void setYxyAngles (double phi, double theta, double psi) {
+      double sphi, sthe, spsi, cphi, cthe, cpsi;
+
+      sphi = Math.sin (phi);
+      cphi = Math.cos (phi);
+      sthe = Math.sin (theta);
+      cthe = Math.cos (theta);
+      spsi = Math.sin (psi);
+      cpsi = Math.cos (psi);
+
+      m00 = -sphi * cthe * spsi + cphi * cpsi;
+      m10 = sthe * spsi;
+      m20 = -cphi * cthe * spsi - sphi * cpsi;
+
+      m01 = sphi * sthe;
+      m11 = cthe;
+      m21 = cphi * sthe;
+      
+      m02 = sphi * cthe * cpsi + cphi * spsi;
+      m12 = -sthe * cpsi;
+      m22 = cphi * cthe * cpsi - sphi * spsi;
+   }
+
+   /**
+    * Sets this rotation to one produced by the Y-X-Y Euler angles, as
+    * described for {@link #setYxyAngles(double,double,double)}.
+    * 
+    * @param angs contains the {@code phi}, {@code theta} and {@code psi}
+    * angles (in radians)
+    * @see #setYxyAngles(double,double,double)
+    */
+   public void setYxyAngles (double[] angs) {
+      setYxyAngles (angs[0], angs[1], angs[2]);
+   }
+
+   /**
+    * Computes the Y-X-Y Euler angles corresponding to this rotation, as
+    * described for {@link #setYxyAngles(double,double,double)}. Note that there
+    * are two possible solutions corresponding to {@code sin(theta) > 0} and
+    * {@code sin(theta) < 0}; this method chooses {@code sin(theta) > 0} and
+    * {@code theta} is thus constrained to the range {@code [0, pi]}.  The
+    * solution branches meet at a singularity where {@code sin(theta) = 0} and
+    * {@code phi} and {@code psi} are not uniquely defined. Therefore, if
+    * {@code sin(theta)} is within machine precision of 0, {@code phi} is set
+    * to 0 and {@code psi} is computed accordingly.
+    * 
+    * @param angs returns the {@code phi}, {@code theta} and {@code psi} angles
+    * (in radians)
+    * @see #setYxyAngles(double,double,double)
+    */
+   public void getYxyAngles (double[] angs) {
+      double sphi, cphi, p;
+
+      if (Math.abs (m01) > EPSILON || Math.abs (m21) > EPSILON) {
+         angs[0] = (p = Math.atan2 (m01, m21));
+         sphi = Math.sin (p);
+         cphi = Math.cos (p);
+         angs[1] = Math.atan2 (cphi * m21 + sphi * m01, m11);
+         angs[2] =
+            Math.atan2 (-sphi * m22 + cphi * m02, -sphi * m20 + cphi * m00);
+      }
+      else {
+         angs[0] = 0.0;
+         angs[1] = Math.atan2 (m21, m11);
+         angs[2] = Math.atan2 (m02, m00);
+      }
    }
 
    /**
@@ -1733,34 +1950,6 @@ public class RotationMatrix3d extends Matrix3dBase {
       axisAng.angle *= s;
       RD.setAxisAngle (axisAng);
       mul (R0, RD);
-   }
-
-   /**
-    * Gets the Euler angles corresponding to this rotation.
-    * 
-    * @param angs
-    * returns the Euler angles (phi, theta, and psi, in that order) in radians.
-    * @see #setEuler(double,double,double)
-    */
-   public void getEuler (double[] angs) {
-      /*
-       * Return the Euler angles associated with the rotational component.
-       */
-      double sphi, cphi, p;
-
-      if (Math.abs (m12) > EPSILON || Math.abs (m02) > EPSILON) {
-         angs[0] = (p = Math.atan2 (m12, m02));
-         sphi = Math.sin (p);
-         cphi = Math.cos (p);
-         angs[1] = Math.atan2 (cphi * m02 + sphi * m12, m22);
-         angs[2] =
-            Math.atan2 (-sphi * m00 + cphi * m10, -sphi * m01 + cphi * m11);
-      }
-      else {
-         angs[0] = 0.;
-         angs[1] = Math.atan2 (m02, m22);
-         angs[2] = Math.atan2 (m10, m11);
-      }
    }
 
    /**

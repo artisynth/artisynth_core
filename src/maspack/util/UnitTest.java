@@ -57,6 +57,15 @@ public class UnitTest {
       }
    }
 
+   public void checkEquals (String msg, double[] result, double[] check) {
+      checkEquals (msg, new VectorNd(result), new VectorNd(check));
+   }
+
+   public void checkEquals (
+      String msg, double[] result, double[] check, double eps) {
+      checkEquals (msg, new VectorNd(result), new VectorNd(check), eps);
+   }
+
    public void checkNormedEquals (
       String msg, Vector result, Vector check, double tol) {
       double eps = tol*(result.norm()+check.norm())/2;

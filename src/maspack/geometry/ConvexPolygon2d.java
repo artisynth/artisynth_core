@@ -23,6 +23,10 @@ public class ConvexPolygon2d extends Polygon2d {
       set (pnts, pnts.length);
    }
 
+   public ConvexPolygon2d (Collection<Point2d> pnts) {
+      set (pnts.toArray(new Point2d[0]), pnts.size());
+   }
+
    public double area() {
       if (numVertices() < 3) {
          return 0;
@@ -229,6 +233,8 @@ public class ConvexPolygon2d extends Polygon2d {
    }
 
 
+
+
    /**
     * Computes a 2D convex hull for a set of input points, using the Monotone
     * Chain algorithm, by A. M. Andrew, 1979 (which is a variation on the
@@ -291,4 +297,40 @@ public class ConvexPolygon2d extends Polygon2d {
       }
    }
 
+   /**
+    * Intersects the convex polygon with a line defined by p0 + s u.  Returns
+    * null if there is no intersection, and otherwise returns [smin, smax],
+    * giving the minimum and maximum values of s associated with the
+    * intersection.
+    *
+    * @param p0 origin point for the line
+    * @param u direction of the line
+    * @return intersection interval, or null
+    */
+   public double[] intersectLine (Point2d p0, Vector2d u) {
+      double smin = INF;
+      double smax = -INF;
+      Vertex2d vtx = firstVertex;
+      do {
+         double s = intersectLine (null, vtx, p0, u);
+         if (s != INF) {
+            if (s < smin) {
+               smin = s;
+            }
+            if (s > smax) {
+               smax = s;
+            }
+         }
+         vtx = vtx.getNext();
+      }
+      while (vtx != firstVertex);
+      if (smin == INF) {
+         return null;
+      }
+      else {
+         return new double[] {smin, smax};
+      }
+   }
+
 }
+

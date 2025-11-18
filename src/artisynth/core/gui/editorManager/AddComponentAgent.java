@@ -423,7 +423,7 @@ ValueChangeListener {
    /**
     * Removes any installed location listener from the viewers.
     */
-   void uninstallLocationListener() {
+   protected void uninstallLocationListener() {
       if (myLocationListener != null) {
          myViewerManager.setCursor (Cursor.getDefaultCursor());
          myViewerManager.removeMouseListener (myLocationListener);

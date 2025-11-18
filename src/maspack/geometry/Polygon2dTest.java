@@ -8,6 +8,8 @@ import maspack.util.*;
 
 public class Polygon2dTest extends UnitTest {
 
+   static final double INF = Double.POSITIVE_INFINITY;
+
    protected Point2d[] doubleToPoint2d (double[] coords) {
       int nump = coords.length/2;
       Point2d[] pnts = new Point2d[nump];
@@ -249,6 +251,136 @@ public class Polygon2dTest extends UnitTest {
       testComputeAreaIntegrals (0,0, 2,0, 1,1, -1,1, -1,2, -2,2, -2,2);
    }
 
+   public void testIntersectRay() {
+      double[] xycoords = new double[] {
+         0.0,0.0, 1.0,0.0, 1.0,1.0 };
+      Polygon2d poly = new Polygon2d (xycoords);
+
+      double EPS = 1e-10;
+
+      Vertex2d vtx = poly.getFirstVertex();
+      Point2d pi = new Point2d ();
+      Point2d p2 = new Point2d (0.5, -0.5);
+      Vector2d u = new Vector2d (0, 0.5+EPS);
+      double s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect", pi, new Point2d(0.5, 0), 2*EPS);
+
+      u.negate();
+      s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect null", s==INF, true);
+      s = poly.intersectLine (pi, vtx, p2, u);
+      checkEquals ("line intersect null", s==INF, false);
+      checkEquals ("line intersect", pi, new Point2d(0.5, 0), 2*EPS);
+
+
+      u.set (0.0, 0.5-EPS);
+      s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect", pi, new Point2d(0.5, 0), 2*EPS);
+
+      u.negate();
+      s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect null", s==INF, true);
+      s = poly.intersectLine (pi, vtx, p2, u);
+      checkEquals ("line intersect null", s==INF, false);
+      checkEquals ("line intersect", pi, new Point2d(0.5, 0), 2*EPS);
+
+      u.set (1-EPS, 1);
+      poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect", pi, new Point2d(1.0, 0), 2*EPS);
+
+      u.negate();
+      s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect null", s==INF, true);
+      s = poly.intersectLine (pi, vtx, p2, u);
+      checkEquals ("line intersect null", s==INF, false);
+      checkEquals ("line intersect", pi, new Point2d(1.0, 0), 2*EPS);
+
+      u.set (1+EPS, 1);
+      s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect null", s==INF, true);
+
+      u.set (-1+EPS, 1);
+      poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect", pi, new Point2d(0, 0), 2*EPS);
+
+      u.negate();
+      s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect null", s==INF, true);
+      s = poly.intersectLine (pi, vtx, p2, u);
+      checkEquals ("line intersect null", s==INF, false);
+      checkEquals ("line intersect", pi, new Point2d(0, 0), 2*EPS);
+
+      u.set (-1-EPS, 1);
+      s = poly.intersectRay (pi, vtx, p2, u);
+      checkEquals ("ray intersect null", s==INF, true);
+   }
+
+   void testCpolyLineIntersect (
+      ConvexPolygon2d cpoly, Point2d p0, Vector2d u, double... svals) {
+
+      Vector2d schk = svals.length==0 ? null : new Vector2d(svals[0], svals[1]);
+
+      double[] srng = cpoly.intersectLine (p0, u);
+      Vector2d svec = srng==null ? null : new Vector2d(srng[0], srng[1]);
+
+      if (svec==null) {
+         if (schk != null) {
+            throw new TestException ("No range found, expected " + schk);
+         }
+      }
+      else {
+         if (schk == null) {
+            throw new TestException ("Found range "+svec+"; expected none");
+         }
+         checkEquals ("Intersection range", svec, schk, 1e-8);
+         Vector2d uneg = new Vector2d (u);
+         uneg.negate();
+         schk.set (-schk.y, -schk.x);
+         srng = cpoly.intersectLine (p0, uneg);
+         if (srng == null) {
+            throw new TestException ("No range found, expected " + schk);
+         }
+         svec.set (srng[0], srng[1]);
+         checkEquals ("Intersection range", svec, schk, 1e-8);         
+      }
+   }
+
+   void testConvexPolyLineIntersect() {
+      ConvexPolygon2d cpoly = new ConvexPolygon2d (
+         new double[] { 0.0,0.0, 0.5,0.0, 1.0,1.0, 0.0,1.0 });
+
+      Point2d p0 = new Point2d();
+      Vector2d u = new Vector2d();
+
+      double EPS = 1e-10;
+
+      p0.set (0.5, -0.5);
+      u.set (0.0, 1);
+      testCpolyLineIntersect (cpoly, p0, u, 0.5, 1.5);
+
+      u.set (1.0, 0.0);
+      testCpolyLineIntersect (cpoly, p0, u);
+
+      u.set (-0.5+EPS, 0.5);
+      testCpolyLineIntersect (cpoly, p0, u, 1.0, 1.0);
+
+      u.set (-0.5-EPS, 0.5);
+      testCpolyLineIntersect (cpoly, p0, u);
+
+      u.set (1.0, 1.0);
+      testCpolyLineIntersect (cpoly, p0, u);
+
+      u.set (-0.25, 0.5);
+      testCpolyLineIntersect (cpoly, p0, u, 1.0, 2.0);
+
+      p0.set (0.5, 0.5);
+      u.set (1.0, 0);
+      testCpolyLineIntersect (cpoly, p0, u, -0.5, 0.25);
+
+      u.set (1.0, 1.0);
+      testCpolyLineIntersect (cpoly, p0, u, -0.5, 0.5);
+   }
+
    public void test() {
       RandomGenerator.setSeed (0x1234);
       //testSpecial();
@@ -256,6 +388,8 @@ public class Polygon2dTest extends UnitTest {
       testConvexHull();
       testNearestEdge();
       testComputeAreaIntegrals();
+      testIntersectRay();
+      testConvexPolyLineIntersect();
    }
 
    public static void main (String[] args) {

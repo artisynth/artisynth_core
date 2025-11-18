@@ -35,64 +35,34 @@ import maspack.util.ReaderTokenizer;
 public class Polygon2d implements Renderable, Iterable<Vertex2d> {
    Vertex2d firstVertex;
 
+   protected static final double INF = Double.POSITIVE_INFINITY;
+
    RenderProps myRenderProps = new PointLineRenderProps();
 
-   private class VertexIterator implements ListIterator {
-      Vertex2d next;
-      Vertex2d prev;
-      int index;
+   private class VertexIterator implements Iterator {
+      Vertex2d myNext;
 
       VertexIterator() {
-         next = firstVertex;
-         prev = null;
-         index = -1;
-      }
-
-      public void add (Object obj) throws UnsupportedOperationException {
-         throw new UnsupportedOperationException();
+         myNext = firstVertex;
       }
 
       public boolean hasNext() {
-         return next != null;
-      }
-
-      public boolean hasPrevious() {
-         return prev != null;
+         return myNext != null;
       }
 
       public Object next() throws NoSuchElementException {
-         if (next == null) {
+         if (myNext == null) {
             throw new NoSuchElementException();
          }
-         index++;
-         prev = next;
-         next = next.next;
-         return prev;
-      }
-
-      public Object previous() throws NoSuchElementException {
-         if (prev == null) {
-            throw new NoSuchElementException();
+         Vertex2d next = myNext;
+         myNext = myNext.next;
+         if (myNext == firstVertex) {
+            myNext = null;
          }
-         index--;
-         next = prev;
-         prev = prev.prev;
          return next;
       }
 
-      public int previousIndex() {
-         return index;
-      }
-
-      public int nextIndex() {
-         return index + 1;
-      }
-
       public void remove() throws UnsupportedOperationException {
-         throw new UnsupportedOperationException();
-      }
-
-      public void set (Object obj) throws UnsupportedOperationException {
          throw new UnsupportedOperationException();
       }
    }
@@ -101,7 +71,7 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       firstVertex = null;
    }
 
-   public ListIterator getVertices() {
+   public Iterator getVertices() {
       return new VertexIterator();
    }
 
@@ -220,8 +190,8 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       Point2d edgePnt = new Point2d();
       if (vtx != null) {
          do {
-            Point2d isect = intersectRay (vtx, p, u);
-            if (isect != null) {
+            Point2d isect = new Point2d();
+            if (intersectRay (isect, vtx, p, u) != INF) {
                double d = isect.distance (p);
                if (d < dmin) {
                   dmin = d;
@@ -239,7 +209,9 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
     * Intersect a line segment (p0, p1) defined by a vertex with a ray (p2, s
     * u).
     */
-   private Point2d intersectRay (Vertex2d vtx, Point2d p2, Vector2d u) {
+   protected double intersectRay (
+      Point2d isect, Vertex2d vtx, Point2d p2, Vector2d u) {
+
       Point2d p0 = vtx.pnt;
       Point2d p1 = vtx.next.pnt;
 
@@ -256,16 +228,83 @@ public class Polygon2d implements Renderable, Iterable<Vertex2d> {
       // t = numt/denom and u = numu/denom.
       if (denom == 0) {
          // segments are parallel
-         return null;
+         return INF;
       }
       if (numt*denom < 0 || numu*denom < 0 ||
           Math.abs(numt) > Math.abs(denom)) {
          // intersection does not lie on both segments
-         return null;
+         return INF;
       }
-      Point2d isect = new Point2d();
-      isect.scaledAdd (numt/denom, u01, p0);
-      return isect;      
+      if (isect != null) {
+         isect.scaledAdd (numt/denom, u01, p0);
+      }
+      return numu/denom;
+   }      
+
+   /**
+    * Intersect a line segment (p0, p1) defined by a vertex with a line
+    * defined ray (p2, s u).
+    */
+   protected double intersectLine (
+      Point2d isect, Vertex2d vtx, Point2d p2, Vector2d u) {
+
+      Point2d p0 = vtx.pnt;
+      Point2d p1 = vtx.next.pnt;
+
+      Vector2d u01 = new Vector2d();
+      Vector2d u23 = u;
+      Vector2d u02 = new Vector2d();
+      u01.sub (p1, p0);
+      u02.sub (p2, p0);
+
+      double denom = u01.cross(u23);
+      double numt = u02.cross(u23);
+      double numu = u02.cross(u01);
+
+      // t = numt/denom and u = numu/denom.
+      if (denom == 0) {
+         // segments are parallel
+         return INF;
+      }
+      if (numt*denom < 0 || Math.abs(numt) > Math.abs(denom)) {
+         // intersection does not lie on the (p0, p1) segment
+         return INF;
+      }
+      if (isect != null) {
+         isect.scaledAdd (numt/denom, u01, p0);
+      }
+      return numu/denom;
+   }      
+
+   /**
+    * Intersect a line segment (p0, p1) defined by a vertex with a ray (p2, s
+    * u).
+    */
+   protected double intersectRay (Vertex2d vtx, Point2d p2, Vector2d u) {
+      Point2d p0 = vtx.pnt;
+      Point2d p1 = vtx.next.pnt;
+
+      Vector2d u01 = new Vector2d();
+      Vector2d u23 = u;
+      Vector2d u02 = new Vector2d();
+      u01.sub (p1, p0);
+      u02.sub (p2, p0);
+
+      double denom = u01.cross(u23);
+      double numt = u02.cross(u23);
+      double numu = u02.cross(u01);
+
+      // t = numt/denom and u = numu/denom.
+      if (denom == 0) {
+         // segments are parallel
+         return INF;
+      }
+      if (numt*denom < 0 || numu*denom < 0 ||
+          Math.abs(numt) > Math.abs(denom)) {
+         // intersection does not lie on both segments
+         return INF;
+      }
+      return numt/denom;
    }      
 
    public int numVertices() {

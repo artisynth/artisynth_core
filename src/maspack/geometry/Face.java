@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
@@ -942,6 +943,25 @@ public class Face extends Feature implements Boundable {
       return;// time;
    }
 
+   /**
+    * Returns the plane (in mesh local coordinates) associated with this face,
+    * defined by the first vertex and the normal.
+    *
+    * @return plane, in mesh local coordinates
+    */
+   public Plane getPlane() {
+      return new Plane (getNormal(), he0.head.pnt);
+   }
+
+   /**
+    * Returns the plane (in world coordinates) associated with this face,
+    * defined by the first vertex and the normal.
+    *
+    * @return plane, in world coordinates
+    */
+   public Plane getWorldPlane() {
+      return new Plane (getWorldNormal(), he0.head.getWorldPoint());
+   }
 
    /**
     * Computes the (signed) distance of a point from the plane corresponding to

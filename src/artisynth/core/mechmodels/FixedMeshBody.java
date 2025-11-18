@@ -33,10 +33,10 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
-import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.modelbase.HasPoseComponent;
 import artisynth.core.util.ScanToken;
 
-public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
+public class FixedMeshBody extends MeshComponent implements HasPoseComponent {
 
    // use a FrameState to store the position even though we ignore velocity
    FrameState myState = new FrameState();

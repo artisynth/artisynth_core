@@ -541,7 +541,6 @@ public class CollisionHandler extends RenderableConstrainerBase
          myLastUnilateralData.size() > 0);
    }
 
-   
    double setVertexFace (
       ContactConstraint cons, PenetratingPoint cpp,
       CollidableBody collidable0, CollidableBody collidable1) {
@@ -564,6 +563,12 @@ public class CollisionHandler extends RenderableConstrainerBase
          myNagata.interpolateNormal (cons.myNormal, eta, zeta);
          Point3d npnt = new Point3d();
          myNagata.interpolateVertex (npnt, eta, zeta);
+
+         // convert to world coordinates if necessary
+         if (!mesh1.meshToWorldIsIdentity()) {
+            cons.myNormal.transform (mesh1.getMeshToWorld());
+            npnt.transform (mesh1.getMeshToWorld());
+         }
 
          cons.myContactArea = cpp.getContactArea();
          cons.assignMasters (collidable0, collidable1);

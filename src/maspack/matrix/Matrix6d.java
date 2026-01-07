@@ -396,6 +396,20 @@ public class Matrix6d extends Matrix6dBase implements VectorObject<Matrix6d> {
    }
 
    /**
+    * Adds s to the diagonal elements of this matrix.
+    *
+    * @param s value to add to the diagonal
+    */
+   public void addDiagonal (double s) {
+      m00 += s;
+      m11 += s;
+      m22 += s;
+      m33 += s;
+      m44 += s;
+      m55 += s;
+   }
+
+   /**
     * Applies a rotational transformation R to this matrix, in place.
     * Equivalent to
     * {@link #transform(maspack.matrix.RotationMatrix3d,maspack.matrix.Matrix6d) transform(R,M)}

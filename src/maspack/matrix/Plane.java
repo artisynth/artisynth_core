@@ -248,6 +248,10 @@ public class Plane implements java.io.Serializable {
       offset /= 3;
    }
    
+   /**
+    * Flip the orientation of this plane, but leave its spatial location
+    * unchanged.
+    */
    public void flip() {
       normal.negate();
       offset = -offset;

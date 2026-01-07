@@ -18,6 +18,9 @@ import java.util.Arrays;
 public class KKTSolver {
 
    private SparseSolverId mySolverType = SparseSolverId.Pardiso;
+   private boolean myUseMurty = false;
+
+   public boolean debug = false;
 
    public static boolean computeResidualMG = false;
    // when building an LCP matrix, use solves with multiple right sides:
@@ -43,6 +46,7 @@ public class KKTSolver {
    boolean myLastSolveWasIterative = false;
 
    DantzigLCPSolver myDantzig = new DantzigLCPSolver();
+   MurtyLCPSolver myMurty = new MurtyLCPSolver();
 
    int myNumVals = 0;
    int[] myColIdxs = new int[0];
@@ -876,9 +880,11 @@ public class KKTSolver {
       }
       initializeState (state);
 
-      //System.out.println ("LCP M=[\n" + myLcpM + "]");
-      //System.out.println ("Q=" + myQ);
-      DantzigLCPSolver.Status status;
+      if (debug) {
+         System.out.println ("LCP M=[\n" + myLcpM + "]");
+         System.out.println ("Q=" + myQ);
+      }
+      LCPSolver.Status status;
       // MurtyLCPSolver murty = new MurtyLCPSolver();
       //murty.setBlockPivoting(true);
       // status = murty.solve (myZ, myLcpM, myQ, myZState);
@@ -897,6 +903,11 @@ public class KKTSolver {
          timer.start();
       }
       status = myDantzig.solve (myZ, myLcpState, myLcpM, myQ);
+      if (debug) {
+         System.out.println ("status=" + status);
+         System.out.println ("myZ=" + myZ);
+      }
+      
       if (myQPTestCaseFile != null && myNT.colSize() >= myMaxN) {
          timer.stop();
          writeLcpAsQP (myQPTestCaseFile, myLcpM, myQ, myZ);
@@ -915,7 +926,7 @@ public class KKTSolver {
       // System.out.println ("M=\n" + myLcpM);
       // System.out.println ("q=\n" + myQ);
       // System.out.println ("z=\n" + myZ);
-      if (status != DantzigLCPSolver.Status.SOLVED) {
+      if (status != LCPSolver.Status.SOLVED) {
          switch (status) {
             case NO_SOLUTION: {
                return Status.NO_SOLUTION;
@@ -1531,6 +1542,18 @@ public class KKTSolver {
       pw.flush();
    }
 
+   public void writeLinearProblem (
+      String fileName, VectorNd bf, VectorNd bg) {
+      try {
+         PrintWriter pw =
+            new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         printLinearProblem (pw, bf, bg, "%g", /*omitDiagonal*/false);
+      }
+      catch (IOException e) {
+         System.out.println ("Error writing file "+fileName+": "+e);
+      }
+   }
+
    public void printValues (
       PrintStream ps, String fmtStr, double[] vals, int[] rowOffs,
       int[] colIdxs, int size, int numVals) {
@@ -1678,6 +1701,17 @@ public class KKTSolver {
    private void timerStop (String msg) {
       timer.stop();
       System.out.println (msg + " " + timer.result(1));
+   }
+
+   public double conditionNumber (
+      SparseBlockMatrix M, int sizeM, SparseBlockMatrix GT, VectorNd Rg) {
+
+      getCRSValues (M, sizeM, myNumVals, GT, Rg);
+      int nrows = sizeM+GT.colSize();
+      MatrixNd A = new MatrixNd (nrows, nrows);
+      A.setCRSValues (myVals, myColIdxs, myRowOffs, myNumVals, nrows, myPartitionM);
+      SVDecomposition svd = new SVDecomposition(A);
+      return svd.condition();
    }
 
    private void factorMG (

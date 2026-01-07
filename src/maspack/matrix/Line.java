@@ -205,6 +205,71 @@ public class Line {
    }
    
    /**
+    * Returns the distance of this line to a line segment.
+    * 
+    * @param p0 first point of the line segment
+    * @param p1 second point of the line segment
+    * @return distance to the segment
+    */
+   public double distanceToSegment (Point3d nearPoint, Point3d p0, Point3d p1) {
+      Vector3d u1 = myU; // break out u1 for clarity      
+      Vector3d u2 = new Vector3d();
+      u2.sub (p1, p0);
+
+      double len = u2.norm();
+      if (len == 0) {
+         // p0 and p1 are the same
+         return distance (p0);
+      }
+      u2.scale (1/len);
+
+      Vector3d tmp = new Vector3d();
+      tmp.cross (u1, u2);
+      double denom = tmp.normSquared();
+      if (denom < 100 * DOUBLE_PREC) {
+         // lines are parallel, project segments's origin
+         // onto this line
+         tmp.sub (p0, myP);
+         double lam1 = tmp.dot (myU);
+         tmp.scaledAdd (lam1, myU, myP);
+         return tmp.distance (p0);
+      }
+      else {
+         tmp.sub (myP, p0);
+         double k1 = -u1.dot (tmp);
+         double k2 = u2.dot (tmp);
+         double dotU = u1.dot (u2);
+         double lam1 = (k1 + dotU * k2) / denom;
+         double lam2 = (dotU * k1 + k2) / denom;
+         // intersection on segment is p0 + lam2 * u2. First check if the
+         // nearest point is actually off the segment.
+         if (lam2 < 0) {
+            if (nearPoint != null) {
+               nearPoint.set (p0);
+            }
+            return distance (p0);
+         }
+         else if (lam2 > len) {
+            if (nearPoint != null) {
+               nearPoint.set (p1);
+            }
+            return distance (p1);
+         }
+         else {
+            // nearest point is on the segment. Find the closest point on this
+            // line and then subtract the closest point on the segment.
+            tmp.scaledAdd (lam1, u1, myP); // closest point on this line
+            tmp.sub (p0);
+            tmp.scaledAdd (-lam2, u2, tmp);
+            if (nearPoint != null) {
+               nearPoint.scaledAdd (lam2, u2, p0);
+            }
+            return tmp.norm();
+         }
+      }
+   }
+   
+   /**
     * Returns the perpendicular distance of this line to another line.
     * 
     * @param line

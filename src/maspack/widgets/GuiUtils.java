@@ -740,10 +740,14 @@ public class GuiUtils {
       return indexOfMenuComponent (parent, comp) != -1;
    }
 
+   public static void setBoldItalicFont (JComponent jcomp) {
+      Font font = jcomp.getFont();
+      jcomp.setFont (new Font (font.getName(), Font.BOLD|Font.ITALIC, font.getSize()));
+   }
+
    public static void setItalicFont (JComponent jcomp) {
       Font font = jcomp.getFont();
       jcomp.setFont (new Font (font.getName(), Font.ITALIC, font.getSize()));
-
    }
 
    public static void repackComponentWindow (Component c) {

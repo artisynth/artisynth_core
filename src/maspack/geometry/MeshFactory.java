@@ -57,7 +57,7 @@ public class MeshFactory {
       ALT_TRI
    }
 
-   private static class GriddedPoint {
+   public static class GriddedPoint {
 
       long x;
       long y;

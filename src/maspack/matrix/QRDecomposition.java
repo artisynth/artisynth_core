@@ -40,8 +40,8 @@ package maspack.matrix;
  * storage space.
  */
 public class QRDecomposition {
-   int nrows;
-   int ncols;
+   int myNumRows;
+   int myNumCols;
    MatrixNd QR;
    private double[] vec = new double[0];
    private double[] wec = new double[0];
@@ -71,8 +71,8 @@ public class QRDecomposition {
     * Creates an uninitialized QRDecomposition.
     */
    public QRDecomposition() {
-      nrows = 0;
-      ncols = 0;
+      myNumRows = 0;
+      myNumCols = 0;
       QR = new MatrixNd (0, 0);
    }
 
@@ -88,8 +88,8 @@ public class QRDecomposition {
          factoredInPlaceP = false;
       }
       QR.set (M);
-      nrows = M.rowSize();
-      ncols = M.colSize();
+      myNumRows = M.rowSize();
+      myNumCols = M.colSize();
       doFactor();
    }
 
@@ -100,8 +100,8 @@ public class QRDecomposition {
     */
    public void factorInPlace (MatrixNd M) {
       QR = M;
-      nrows = M.rowSize();
-      ncols = M.colSize();
+      myNumRows = M.rowSize();
+      myNumCols = M.colSize();
       doFactor();
       factoredInPlaceP = true;
    }
@@ -174,13 +174,13 @@ public class QRDecomposition {
    }
    
    private void doFactor() {
-      int maxd = Math.max (nrows, ncols);
+      int maxd = Math.max (myNumRows, myNumCols);
       if (vec.length < maxd) {
          vec = new double[maxd];
          wec = new double[maxd];
       }
 
-      int columnLimit = (nrows > ncols ? ncols : nrows - 1);
+      int columnLimit = (myNumRows > myNumCols ? myNumCols : myNumRows - 1);
       beta = new double[columnLimit];
       for (int j = 0; j < columnLimit; j++) {
          beta[j] = rowHouseReduce (QR, j, j, vec, wec);
@@ -210,36 +210,47 @@ public class QRDecomposition {
    public void factorWithPivoting (Matrix M) {
       QR.set (M);
 
-      nrows = M.rowSize();
-      ncols = M.colSize();
-      int maxd = Math.max (nrows, ncols);
+      myNumRows = M.rowSize();
+      myNumCols = M.colSize();
+      int maxd = Math.max (myNumRows, myNumCols);
       if (vec.length < maxd) {
          vec = new double[maxd];
          wec = new double[maxd];
       }
-      if (piv.length < ncols) {
-         piv = new int[ncols];
+      if (piv.length < myNumCols) {
+         piv = new int[myNumCols];
       }
-      if (colMagSqr.length < ncols) {
-         colMagSqr = new double[ncols];
+      if (colMagSqr.length < myNumCols) {
+         colMagSqr = new double[myNumCols];
       }
 
       // compute magnitude squared for each column, and
       // find the maximum value and associated column
       //
-      for (int j = 0; j < ncols; j++) {
+      for (int j = 0; j < myNumCols; j++) {
          int Qbase = QR.base + j;
          double magSqr = 0;
-         for (int i = 0; i < nrows; i++) {
+         for (int i = 0; i < myNumRows; i++) {
             double elem = QR.buf[i * QR.width + Qbase];
             magSqr += elem * elem;
          }
          colMagSqr[j] = magSqr;
          piv[j] = j;
       }
-      int pivotCol = getPivotCol (colMagSqr, 0, ncols);
+      int pivotCol = getPivotCol (colMagSqr, 0, myNumCols);
+      if (pivotCol == myNumCols) {
+         // the matrix is zero. Set everything to zero and return; this
+         // will ensure that R is 0 and Q is the identity.         
+         for (int i = 0; i < myNumRows; i++) {
+            for (int k = 0; k < myNumCols; k++) {
+               QR.buf[i * QR.width + QR.base + k] = 0;
+            }
+         }
+         state = State.SET_WITH_PIVOTING;
+         return;
+      }
 
-      int columnLimit = (nrows > ncols ? ncols : nrows - 1);
+      int columnLimit = (myNumRows > myNumCols ? myNumCols : myNumRows - 1);
       beta = new double[columnLimit];
       for (int j = 0; j < columnLimit; j++) {
          piv[j] = pivotCol;
@@ -252,7 +263,7 @@ public class QRDecomposition {
 
          beta[j] = rowHouseReduce (QR, j, j, vec, wec);
          // update colMagSqr
-         for (int k = j + 1; k < ncols; k++) {
+         for (int k = j + 1; k < myNumCols; k++) {
             // Previous version updated colMagSqr this way:
             // 
             // double QR_jk = QR.buf[j * QR.width + QR.base + k];
@@ -261,19 +272,20 @@ public class QRDecomposition {
             // However, this can cause colMagSqr to become 0 when the remainder
             // of the column is small, and so instead we recompute colMaxSqr
             // from scratch.
+
             double magSqr = 0;
             int Qbase = QR.base + k;
-            for (int i = j + 1; i < nrows; i++) {
+            for (int i = j + 1; i < myNumRows; i++) {
                double elem = QR.buf[i * QR.width + Qbase];
                magSqr += elem * elem;
             }
             colMagSqr[k] = magSqr;
          }
-         pivotCol = getPivotCol (colMagSqr, j + 1, ncols);
-         if (pivotCol == ncols) { // zero entries from j+1 on of QR, to remove
+         pivotCol = getPivotCol (colMagSqr, j + 1, myNumCols);
+         if (pivotCol == myNumCols) { // zero entries from j+1 on of QR, to remove
                                     // round off error
-            for (int i = j + 1; i < nrows; i++) {
-               for (int k = j + 1; k < ncols; k++) {
+            for (int i = j + 1; i < myNumRows; i++) {
+               for (int k = j + 1; k < myNumCols; k++) {
                   QR.buf[i * QR.width + QR.base + k] = 0;
                }
             }
@@ -296,6 +308,22 @@ public class QRDecomposition {
       return R;
    }
 
+
+   /**
+    * Returns the upper left (0,0) entry of the R matrix. Can be useful for
+    * assessing the magnitude of the decomposed matrix.
+    * 
+    * @return upper left entry of the R matrix
+    * @throws ImproperStateException
+    * if this QRDecomposition is uninitialized
+    */
+   public double getR00() {
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      return QR.buf[QR.base];
+   }
+
    /**
     * Returns the Q matrix associated with this QR decomposition.
     *
@@ -307,6 +335,65 @@ public class QRDecomposition {
       MatrixNd Q = new MatrixNd();
       get (Q, null, null);
       return Q;
+   }
+   
+   /**
+    * Returns the permutation matrix P associated with this QR decomposition.
+    * If the decomposition was not formed with {@link #factorWithPivoting}),
+    * then P is the identity matrix.
+    *
+    * @return P matrix
+    * @throws ImproperStateException
+    * if this QRDecomposition is uninitialized
+    */
+   public MatrixNd getP() {
+      MatrixNd P = new MatrixNd (myNumCols, myNumCols);
+      int[] cperm = getColumnPermutation();
+      for (int j=0; j<myNumCols; j++) {
+         P.set (cperm[j], j, 1.0);
+      }
+      return P;
+   }
+   
+   /**
+    * Returns the submatrix of Q corresponding to its first {@code numc}
+    * columns.
+    *
+    * @param numc number of columns
+    * @return Q submatrix
+    * @throws ImproperStateException
+    * if this QRDecomposition is uninitialized
+    */
+   public MatrixNd getQ (int numc) {
+      int maxc = Math.min (myNumRows, myNumCols);
+      if (numc > maxc) {
+         throw new IllegalArgumentException (
+            numc + " columns of Q requested, but Q only has " + maxc);
+      }
+      MatrixNd Q = new MatrixNd(myNumRows, numc);      
+      Q.setIdentity();
+      preMulQ (Q, Q);
+      return Q;
+   }
+
+   /**
+    * Returns the indices {@code cperm} of the column permutation matrix P, 
+    * such that j-th column of M P is given by column {@code cperm[j]}
+    * of M. If the factorization was not performed with pivoting,
+    * the P is the identity matrix, and {@code cperm} will be
+    * simply {@code [ 0 1 2 ... ]}.
+    *
+    * <p>P can be reconstructed from {@code cperm} by setting each of its
+    * {@code j} columns so that row {@code cperm[j]} is 1.
+    *
+    * @return column permutation indices
+    * @throws ImproperStateException
+    * if this QRDecomposition is uninitialized
+    */  
+   public int[] getColumnPermutation() {
+      int[] cperm = new int[myNumCols];
+      get (null, null, cperm);
+      return cperm;
    }
 
    /**
@@ -348,7 +435,7 @@ public class QRDecomposition {
     * returns the upper triangular matrix
     * @param cperm
     * returns the indices of the column permutation matrix P, such that j-th
-    * column of M P is given by column <code>perm[j]</code> of M.
+    * column of M P is given by column <code>cperm[j]</code> of M.
     * @throws ImproperStateException
     * if this QRDecomposition is uninitialized
     * @throws ImproperSizeException
@@ -359,37 +446,37 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      int mind = Math.min (nrows, ncols);
+      int mind = Math.min (myNumRows, myNumCols);
 
       if (Q != null) {
-         if (Q.nrows != nrows || Q.ncols < mind || Q.ncols > nrows) {
+         if (Q.nrows != myNumRows || Q.ncols < mind || Q.ncols > myNumRows) {
             if (Q.isFixedSize()) {
                throw new ImproperSizeException ("Incompatible dimensions");
             }
             else if (Q.ncols < mind) {
-               Q.resetSize (nrows, mind);
+               Q.resetSize (myNumRows, mind);
             }
             else {
-               Q.resetSize (nrows, nrows);
+               Q.resetSize (myNumRows, myNumRows);
             }
          }
          Q.setIdentity();
          preMulQ (Q, Q);
       }
       if (R != null) {
-         if (R.ncols != ncols || R.nrows < mind || R.nrows > nrows) {
+         if (R.ncols != myNumCols || R.nrows < mind || R.nrows > myNumRows) {
             if (R.isFixedSize()) {
                throw new ImproperSizeException ("Incompatible dimensions");
             }
             else if (R.nrows < mind) {
-               R.resetSize (mind, ncols);
+               R.resetSize (mind, myNumCols);
             }
             else {
-               R.resetSize (nrows, ncols);
+               R.resetSize (myNumRows, myNumCols);
             }
          }
          for (int i = 0; i < R.nrows; i++) {
-            for (int j = 0; j < ncols; j++) {
+            for (int j = 0; j < myNumCols; j++) {
                int Rbase = i * R.width + R.base;
                int Qbase = i * QR.width + QR.base;
                if (j >= i) {
@@ -402,11 +489,11 @@ public class QRDecomposition {
          }
       }
       if (cperm != null) {
-         for (int j = 0; j < ncols; j++) {
+         for (int j = 0; j < myNumCols; j++) {
             cperm[j] = j;
          }
          if (state == State.SET_WITH_PIVOTING) {
-            for (int j = 0; j < ncols; j++) {
+            for (int j = 0; j < myNumCols; j++) {
                int k = piv[j];
                if (k != j) {
                   int tmp = cperm[k];
@@ -445,38 +532,38 @@ public class QRDecomposition {
 
    private boolean doSolve (double[] sol) {
       // compute sol' = Q^T sol
-      int lastCol = (nrows > ncols ? ncols - 1 : Math.min(ncols,nrows) - 2);
+      int lastCol = (myNumRows > myNumCols ? myNumCols - 1 : Math.min(myNumCols,myNumRows) - 2);
       for (int j = 0; j <= lastCol; j++) {
          vec[0] = 1;
          int Qbase = j * QR.width + j + QR.base;
-         for (int k = 1; k < nrows - j; k++) {
+         for (int k = 1; k < myNumRows - j; k++) {
             vec[k] = QR.buf[k * QR.width + Qbase];
          }
-         rowHouseMulVec (sol, j, vec, nrows - j, beta[j]);
+         rowHouseMulVec (sol, j, vec, myNumRows - j, beta[j]);
       }
       return doSolveR (sol);
    }
 
-   private boolean doLeftSolve (double[] sol) {
-      boolean nonSingular = doLeftSolveR (sol);
+   private boolean doLeftSolve (double[] sol, int ncols) {
+      boolean nonSingular = doLeftSolveR (sol, ncols);
 
       // compute sol' = Q sol
 
-      if (nrows > ncols) {
+      if (myNumRows > ncols) {
          // clear trailing part of sol, since sol' is larger than sol and
          // otherwise trailing trash will get folded into the solution
-         for (int i=ncols; i<nrows; i++) {
+         for (int i=ncols; i<myNumRows; i++) {
             sol[i] = 0;
          }
       }
-      int lastCol = (nrows > ncols ? ncols - 1 : Math.min(ncols,nrows) - 2);
+      int lastCol = (myNumRows > ncols ? ncols - 1 : Math.min(ncols,myNumRows) - 2);
       for (int j = lastCol; j >= 0; j--) {
          vec[0] = 1;
          int Qbase = j * QR.width + j + QR.base;
-         for (int k = 1; k < nrows - j; k++) {
+         for (int k = 1; k < myNumRows - j; k++) {
             vec[k] = QR.buf[k * QR.width + Qbase];
          }
-         rowHouseMulVec (sol, j, vec, nrows - j, beta[j]);
+         rowHouseMulVec (sol, j, vec, myNumRows - j, beta[j]);
       }
       return nonSingular;
    }
@@ -487,7 +574,7 @@ public class QRDecomposition {
    private boolean doSolveR (double[] sol) {
       boolean nonSingular = true;
 
-      int nr = Math.min(ncols,nrows);
+      int nr = Math.min(myNumCols,myNumRows);
       for (int i = nr - 1; i >= 0; i--) {
          int Qbase = i * QR.width + QR.base;
          double sum = sol[i];
@@ -501,14 +588,14 @@ public class QRDecomposition {
          sol[i] = sum / d;
       }
       // if nrows < ncols, pad remainder of sol with 0
-      for (int i = nr; i < ncols; i++) {
+      for (int i = nr; i < myNumCols; i++) {
          sol[i] = 0;
       }
 
       // if the decomposition contains a permutation, apply
       // that in reverse order
       if (state == State.SET_WITH_PIVOTING) {
-         for (int i = ncols - 1; i >= 0; i--) {
+         for (int i = myNumCols - 1; i >= 0; i--) {
             if (piv[i] != i) {
                double tmp = sol[piv[i]];
                sol[piv[i]] = sol[i];
@@ -522,7 +609,7 @@ public class QRDecomposition {
    /**
     * Solve x R = sol by back substitution
     */
-   private boolean doLeftSolveR (double[] sol) {
+   private boolean doLeftSolveR (double[] sol, int ncols) {
       boolean nonSingular = true;
 
       // if the decomposition contains a permutation, apply
@@ -582,15 +669,15 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (b.size() != nrows) {
+      if (b.size() != myNumRows) {
          throw new ImproperSizeException ("improper size for b");
       }
-      if (x.size() != ncols) {
+      if (x.size() != myNumCols) {
          if (x.isFixedSize()) {
             throw new ImproperSizeException ("improper size for x");
          }
          else {
-            x.setSize (ncols);
+            x.setSize (myNumCols);
          }
       }
       b.get (wec);
@@ -630,15 +717,15 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (B.rowSize() != nrows) {
+      if (B.rowSize() != myNumRows) {
          throw new ImproperSizeException ("improper size for B");
       }
-      if (X.colSize() != B.colSize() || X.rowSize() != ncols) {
+      if (X.colSize() != B.colSize() || X.rowSize() != myNumCols) {
          if (X.isFixedSize()) {
             throw new ImproperSizeException ("improper size for X");
          }
          else {
-            X.setSize (ncols, B.colSize());
+            X.setSize (myNumCols, B.colSize());
          }
       }
       for (int k = 0; k < B.colSize(); k++) {
@@ -681,22 +768,85 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (nrows < ncols) {
+      if (myNumRows < myNumCols) {
          throw new ImproperStateException ("M has fewer rows than columns");
       }
-      if (b.size() != ncols) {
+      if (b.size() != myNumCols) {
          throw new ImproperSizeException ("improper size for b");
       }
-      if (x.size() != nrows) {
+      if (x.size() != myNumRows) {
          if (x.isFixedSize()) {
             throw new ImproperSizeException ("improper size for x");
          }
          else {
-            x.setSize (nrows);
+            x.setSize (myNumRows);
          }
       }
       b.get (wec);
-      nonSingular = doLeftSolve (wec);
+      nonSingular = doLeftSolve (wec, myNumCols);
+      x.set (wec, 0);
+      return nonSingular;
+   }
+
+   /**
+    * Computes a left solution to the linear equation <br>x M = b<br> using
+    * only the first {@code ncols} columns of the R matrix. M is the decomposed
+    * matrix and x and b are row vectors, and {@code ncols} must be {@code <=}
+    * the minimum dimension of M. If the decomposition was performed with
+    * pivoting (using {@link #factorWithPivoting}), then the rank of {@code M}
+    * can be found (using {@link #rank} or {@link #absRank}) and used to
+    * determine {@code ncols}, thus allowing solutions of rank-deficient
+    * systems.
+    *
+    * <p>The size of {@code b} should equal the number of columns of M {@code
+    * n}. If {@code ncols < n}, and the decomposition was performed without
+    * pivoting, then only the first {@code n} entries are used. Otherwise, if
+    * the decomposition was performed with pivoting, then only the entries with
+    * indices corresponding to the first {@code n} values of {@code cperm[]}
+    * are used, where {@code cperm[]} is the array returned by {@link
+    * #getColumnPermutation}.
+    *
+    * <p>Unlike with {@link #leftSolve(Vector,Vector)}, it is not necessary for
+    * the number of rows in M to equal or exceed the number of columns.
+    * 
+    * @param x
+    * unknown vector to solve for
+    * @param b
+    * constant vector
+    * @param ncols
+    * number of columns of R to use in the solution
+    * @return false if the first {@code ncols} of M do not have full rank
+    * (within working precision)
+    * @throws ImproperStateException
+    * if this decomposition has not been initialized with pivoting
+    * @throws ImproperSizeException
+    * if the size of b is not equal to the number of columns of M,
+    * or if x does not have a size compatible with M and cannot be
+    * resized.
+    */
+   public boolean leftSolve (Vector x, Vector b, int ncols) 
+      throws ImproperStateException, ImproperSizeException {
+
+      if (b.size() != myNumCols) {
+         throw new ImproperSizeException (
+            "b.size " + b.size() +
+            " != the number of original matrix columns " + myNumCols);
+      }
+      int mind = Math.min(this.myNumCols,myNumRows);
+      if (ncols > mind) {
+         throw new IllegalArgumentException (
+            "ncols="+ncols+" exceeds the minimum dimension of M ("+mind+")");
+      }
+      if (x.size() != myNumRows) {
+         if (x.isFixedSize()) {
+            throw new ImproperSizeException ("improper size for x");
+         }
+         else {
+            x.setSize (myNumRows);
+         }
+      }
+      b.get (wec);
+      boolean nonSingular = doLeftSolve (wec, ncols);
       x.set (wec, 0);
       return nonSingular;
    }
@@ -731,23 +881,23 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (nrows < ncols) {
+      if (myNumRows < myNumCols) {
          throw new ImproperStateException ("M has fewer rows than columns");
       }
-      if (B.colSize() != ncols) {
+      if (B.colSize() != myNumCols) {
          throw new ImproperSizeException ("improper size for B");
       }
-      if (X.rowSize() != B.rowSize() || X.colSize() != nrows) {
+      if (X.rowSize() != B.rowSize() || X.colSize() != myNumRows) {
          if (X.isFixedSize()) {
             throw new ImproperSizeException ("improper size for X");
          }
          else {
-            X.setSize (B.rowSize(), nrows);
+            X.setSize (B.rowSize(), myNumRows);
          }
       }
       for (int k = 0; k < B.rowSize(); k++) {
          B.getRow (k, wec);
-         if (!doLeftSolve (wec)) {
+         if (!doLeftSolve (wec, myNumCols)) {
             nonSingular = false;
          }
          X.setRow (k, wec);
@@ -791,15 +941,15 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (b.size() != Math.min(nrows,ncols)) {
+      if (b.size() != Math.min(myNumRows,myNumCols)) {
          throw new ImproperSizeException ("improper size for b");
       }
-      if (x.size() != ncols) {
+      if (x.size() != myNumCols) {
          if (x.isFixedSize()) {
             throw new ImproperSizeException ("improper size for x");
          }
          else {
-            x.setSize (ncols);
+            x.setSize (myNumCols);
          }
       }
       b.get (wec);
@@ -844,15 +994,15 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (B.rowSize() != Math.min(nrows,ncols)) {
+      if (B.rowSize() != Math.min(myNumRows,myNumCols)) {
          throw new ImproperSizeException ("improper size for B");
       }
-      if (X.colSize() != B.colSize() || X.rowSize() != ncols) {
+      if (X.colSize() != B.colSize() || X.rowSize() != myNumCols) {
          if (X.isFixedSize()) {
             throw new ImproperSizeException ("improper size for X");
          }
          else {
-            X.setSize (ncols, B.colSize());
+            X.setSize (myNumCols, B.colSize());
          }
       }
       for (int k = 0; k < B.colSize(); k++) {
@@ -868,7 +1018,7 @@ public class QRDecomposition {
    /**
     * Computes a left solution to the linear equation
     * <pre>
-    * x R P^T = b
+    * x R = b P
     * </pre>
     * where R is the upper triangular matrix associated with this decomposition,
     * P is the permutation matrix (which is the identity unless the
@@ -899,22 +1049,91 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (nrows < ncols) {
+      if (myNumRows < myNumCols) {
          throw new ImproperStateException ("M has fewer rows than columns");
       }
-      if (b.size() != ncols) {
+      if (b.size() != myNumCols) {
          throw new ImproperSizeException ("improper size for b");
+      }
+      if (x.size() != myNumCols) {
+         if (x.isFixedSize()) {
+            throw new ImproperSizeException ("improper size for x");
+         }
+         else {
+            x.setSize (myNumCols);
+         }
+      }
+      b.get (wec);
+      nonSingular = doLeftSolveR (wec, myNumCols);
+      x.set (wec, 0);
+      return nonSingular;
+   }
+
+   /**
+    * Computes a left solution to the linear equation
+    * <pre>
+    * x Rsub = b Psub
+    * </pre>
+    * where {@code Rsub} is the top-left {@code ncols X ncols} submatrix of R,
+    * {@code Psub} is formed from the first {@code ncols} of the permutation
+    * matrix P, and {@code x} and {@code b} are row vectors. {@code P} is the
+    * identity unless the decomposition was formed with {@link
+    * #factorWithPivoting}).
+    *
+    * <p>Unlike with {@link #leftSolveR(Vector,Vector)}, it is not necessary
+    * for the number of rows in M to equal or exceed the number of columns.
+    * However, {@code ncols} must be {@code <=} the minimum matrix dimension.
+    * Often, {@code ncols} will be set to the rank of R (which is also the rank
+    * of the original matrix), which can be found (using {@link #rank} or
+    * {@link #absRank})
+    * 
+    * <p>{@code b} should have a size equal to the number of original matrix
+    * columns, although only the values of {@code b} whose indices are given by
+    * the first {@code ncols} entries of the column permutation {@code cperm[]}
+    * (returned by {@link #getColumnPermutation}) will be used.  {@code x}
+    * should have a size of {@code ncols} or be resizable.
+    * 
+    * @param x
+    * unknown vector to solve for
+    * @param b
+    * constant vector
+    * @param ncols
+    * size of the Rsub submatrix 
+    * @return false if Rsub is singular (within working precision)
+    * @throws ImproperStateException
+    * if this decomposition is uninitialized
+    * @throws ImproperSizeException if {@code ncols} exceeds the minimum
+    * dimension of the original matrix M, if b does not have a size equal to
+    * the original number of matrix columns, or if x does not have size {@code
+    * ncols} and cannot be resized.
+    */
+   public boolean leftSolveR (Vector x, Vector b, int ncols)
+      throws ImproperStateException, ImproperSizeException {
+      boolean nonSingular = true;
+
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      int mind = Math.min (myNumRows, myNumCols);
+      if (ncols > mind) {
+         throw new ImproperSizeException (
+            "ncols "+ncols+" exceeds minimum matrix dimension "+mind);
+      }
+      if (b.size() != myNumCols) {
+         throw new ImproperSizeException (
+            "b size "+b.size()+" != original matrix column size "+myNumCols);
       }
       if (x.size() != ncols) {
          if (x.isFixedSize()) {
-            throw new ImproperSizeException ("improper size for x");
+            throw new ImproperSizeException (
+               "(fixed) x size "+x.size()+" != ncols "+ncols);
          }
          else {
             x.setSize (ncols);
          }
       }
       b.get (wec);
-      nonSingular = doLeftSolveR (wec);
+      nonSingular = doLeftSolveR (wec, ncols);
       x.set (wec, 0);
       return nonSingular;
    }
@@ -954,15 +1173,91 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (nrows < ncols) {
+      if (myNumRows < myNumCols) {
          throw new ImproperStateException ("M has fewer rows than columns");
       }
-      if (B.colSize() != ncols) {
+      if (B.colSize() != myNumCols) {
          throw new ImproperSizeException ("improper size for B");
+      }
+      if (X.rowSize() != B.rowSize() || X.colSize() != myNumCols) {
+         if (X.isFixedSize()) {
+            throw new ImproperSizeException ("improper size for X");
+         }
+         else {
+            X.setSize (B.rowSize(), myNumCols);
+         }
+      }
+      for (int i = 0; i < B.rowSize(); i++) {
+         B.getRow (i, wec);
+         if (!doLeftSolveR (wec, myNumCols)) {
+            nonSingular = false;
+         }
+         X.setRow (i, wec);
+      }
+      return nonSingular;
+   }
+
+   /**
+    * Computes a left solution to the linear equation
+    * <pre>
+    * X Rsub = B Psub
+    * </pre>
+    * where {@code Rsub} is the top-left {@code ncols X ncols} submatrix of R,
+    * {@code Psub} is formed from the first {@code ncols} of the permutation
+    * matrix P, and {@code X} and {@code B} are matrics. {@code P} is the
+    * identity unless the decomposition was formed with {@link
+    * #factorWithPivoting}).
+    *
+    * <p>Unlike with {@link #leftSolveR(Vector,Vector)}, it is not necessary
+    * for the number of rows in M to equal or exceed the number of columns.
+    * However, {@code ncols} must be {@code <=} the minimum matrix dimension.
+    * Often, {@code ncols} will be set to the rank of R (which is also the rank
+    * of the original matrix), which can be found (using {@link #rank} or
+    * {@link #absRank})
+    * 
+    * <p>The number of columns of B should equal the number of columns of the
+    * original matrix, although only the columns of {@code B} whose indices are
+    * given by the first {@code ncols} entries of the column permutation {@code
+    * cperm[]} (returned by {@link #getColumnPermutation}) will be used.
+    * {@code X} should either be resizable or should have {@code ncols} columns
+    * and the same number of rows as {@code X}.
+    * 
+    * @param X
+    * unknown matrix solve for
+    * @param B
+    * constant matrix
+    * @param ncols
+    * size of the R submatrix 
+    * @return false if Rsub is singular (within working precision)
+    * @throws ImproperStateException
+    * if this decomposition is uninitialized
+    * @throws ImproperSizeException if {@code ncols} exceeds the minimum
+    * dimension of the original matrix M, if B does not have the same column
+    * size as the original matrix, or if X is not resizable and does not have
+    * {@code ncols} columns and a row size equal to X.
+    */
+   public boolean leftSolveR (DenseMatrix X, Matrix B, int ncols)
+      throws ImproperStateException, ImproperSizeException {
+
+      boolean nonSingular = true;
+
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      int mind = Math.min (myNumRows, myNumCols);
+      if (ncols > mind) {
+         throw new ImproperSizeException (
+            "ncols "+ncols+" exceeds minimum matrix dimension "+mind);
+      }
+      if (B.colSize() != myNumCols) {
+         throw new ImproperSizeException (
+            "B column size "+B.colSize()+" != ncols "+myNumCols);
       }
       if (X.rowSize() != B.rowSize() || X.colSize() != ncols) {
          if (X.isFixedSize()) {
-            throw new ImproperSizeException ("improper size for X");
+            throw new ImproperSizeException (
+               "(fixed) X size is " + X.getSize() +
+               "; should be " + X.rowSize() + "x" + ncols);
          }
          else {
             X.setSize (B.rowSize(), ncols);
@@ -970,7 +1265,7 @@ public class QRDecomposition {
       }
       for (int i = 0; i < B.rowSize(); i++) {
          B.getRow (i, wec);
-         if (!doLeftSolveR (wec)) {
+         if (!doLeftSolveR (wec, ncols)) {
             nonSingular = false;
          }
          X.setRow (i, wec);
@@ -994,7 +1289,7 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      int nr = Math.min(nrows,ncols); // number of rows in R
+      int nr = Math.min(myNumRows,myNumCols); // number of rows in R
 
       int i, j;
 
@@ -1077,12 +1372,12 @@ public class QRDecomposition {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
       double detR = 1.0;
-      for (int i = 0; i < Math.min (ncols, nrows); i++) {
+      for (int i = 0; i < Math.min (myNumCols, myNumRows); i++) {
          detR *= QR.buf[i * QR.width + i + QR.base];
       }
       // determinant of Q is -1^p, where p is the number of non-zero HouseHolder
       // transformations
-      int nhouse = (nrows > ncols ? ncols : nrows - 1);
+      int nhouse = (myNumRows > myNumCols ? myNumCols : myNumRows - 1);
       int p = nhouse;
       for (int j=0; j<nhouse; j++) {
          if (beta[j] == 0) {
@@ -1094,7 +1389,7 @@ public class QRDecomposition {
       if (state == State.SET_WITH_PIVOTING) { // apply the sign of the
                                                 // permutation
          int permSign = 1;
-         for (int i = 0; i < ncols; i++) {
+         for (int i = 0; i < myNumCols; i++) {
             if (piv[i] != i) {
                permSign = -permSign;
             }
@@ -1123,20 +1418,20 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (nrows != ncols) {
+      if (myNumRows != myNumCols) {
          throw new ImproperSizeException ("Original matrix not square");
       }
-      if (X.rowSize() != ncols || X.colSize() != ncols) {
+      if (X.rowSize() != myNumCols || X.colSize() != myNumCols) {
          if (X.isFixedSize()) {
             throw new ImproperSizeException ("Incompatible dimensions");
          }
          else {
-            X.setSize (ncols, ncols);
+            X.setSize (myNumCols, myNumCols);
          }
       }
       boolean nonSingular = true;
-      for (int j = 0; j < ncols; j++) {
-         for (int i = 0; i < ncols; i++) {
+      for (int j = 0; j < myNumCols; j++) {
+         for (int i = 0; i < myNumCols; i++) {
             wec[i] = (i == j ? 1 : 0);
          }
          if (!doSolve (wec)) {
@@ -1147,6 +1442,13 @@ public class QRDecomposition {
       return nonSingular;
    }
 
+   /**
+    * Assess rank of the decomposed matrix using a tolerance relative to the
+    * maximum absolute value of the R matrix diagonal.
+    *
+    * @param tol relative tolerance
+    * @return assessed rank
+    */
    public int rank (double tol) {
       if (state != State.SET_WITH_PIVOTING) {
          throw new ImproperStateException (
@@ -1154,8 +1456,30 @@ public class QRDecomposition {
       }
       int rank = 0;
       double R00 = Math.abs (QR.buf[QR.base]);
-      for (int i = 0; i < Math.min (ncols, nrows); i++) {
+      for (int i = 0; i < Math.min (myNumCols, myNumRows); i++) {
          if (Math.abs (QR.buf[i * QR.width + i + QR.base]) <= R00 * tol) {
+            break;
+         }
+         rank++;
+      }
+      return rank;
+   }
+
+   /**
+    * Assess rank of the decomposed matrix using an absolute tolerance on the
+    * values of the R matrix diagonal.
+    *
+    * @param tol absolute tolerance
+    * @return assessed rank
+    */
+   public int absRank (double tol) {
+      if (state != State.SET_WITH_PIVOTING) {
+         throw new ImproperStateException (
+            "Decomposition must be initialized with pivoting");
+      }
+      int rank = 0;
+      for (int i = 0; i < Math.min (myNumCols, myNumRows); i++) {
+         if (Math.abs (QR.buf[i * QR.width + i + QR.base]) <= tol) {
             break;
          }
          rank++;
@@ -1323,9 +1647,9 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (M1.rowSize() != nrows) {
+      if (M1.rowSize() != myNumRows) {
          throw new IllegalArgumentException (
-            "M1 has "+M1.rowSize()+" rows; should have "+nrows);
+            "M1 has "+M1.rowSize()+" rows; should have "+myNumRows);
       }
       if (MR != M1) {
          MR.set (M1);
@@ -1335,7 +1659,7 @@ public class QRDecomposition {
          w = new double[M1.colSize()];
       }
       for (int k=beta.length-1; k>=0; k--) {
-         loadHouseVector (vec, nrows, k);
+         loadHouseVector (vec, myNumRows, k);
          housePreMul (MR, k, beta[k], vec, w);
       }
    }
@@ -1357,9 +1681,9 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (M1.rowSize() != nrows) {
+      if (M1.rowSize() != myNumRows) {
          throw new IllegalArgumentException (
-            "M1 has "+M1.rowSize()+" rows; should have "+nrows);
+            "M1 has "+M1.rowSize()+" rows; should have "+myNumRows);
       }
       if (MR != M1) {
          MR.set (M1);
@@ -1369,7 +1693,7 @@ public class QRDecomposition {
          w = new double[M1.colSize()];
       }
       for (int k=0; k<beta.length; k++) {
-         loadHouseVector (vec, nrows, k);
+         loadHouseVector (vec, myNumRows, k);
          housePreMul (MR, k, beta[k], vec, w);
       }
    }
@@ -1391,9 +1715,9 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (M1.colSize() != nrows) {
+      if (M1.colSize() != myNumRows) {
          throw new IllegalArgumentException (
-            "M1 has "+M1.colSize()+" cols; should have "+nrows);
+            "M1 has "+M1.colSize()+" cols; should have "+myNumRows);
       }
       if (MR != M1) {
          MR.set (M1);
@@ -1403,7 +1727,7 @@ public class QRDecomposition {
          w = new double[M1.rowSize()];
       }
       for (int k=0; k<beta.length; k++) {
-         loadHouseVector (vec, nrows, k);
+         loadHouseVector (vec, myNumRows, k);
          housePostMul (MR, k, beta[k], vec, w);
       }
    }
@@ -1425,9 +1749,9 @@ public class QRDecomposition {
       if (state == State.UNSET) {
          throw new ImproperStateException ("Uninitialized decomposition");
       }
-      if (M1.colSize() != nrows) {
+      if (M1.colSize() != myNumRows) {
          throw new IllegalArgumentException (
-            "M1 has "+M1.colSize()+" cols; should have "+nrows);
+            "M1 has "+M1.colSize()+" cols; should have "+myNumRows);
       }
       if (MR != M1) {
          MR.set (M1);
@@ -1437,7 +1761,7 @@ public class QRDecomposition {
          w = new double[M1.rowSize()];
       }
       for (int k=beta.length-1; k>=0; k--) {
-         loadHouseVector (vec, nrows, k);
+         loadHouseVector (vec, myNumRows, k);
          housePostMul (MR, k, beta[k], vec, w);
       }
    }

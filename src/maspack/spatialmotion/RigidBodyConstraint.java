@@ -16,12 +16,27 @@ import maspack.matrix.Vector3d;
 public class RigidBodyConstraint {
    
    /**
-    * Describes the type of motion restricted by this constraint.
+    * Describes the type of motion associated with a constraint.
     */
    public enum MotionType {
-      LINEAR,   // translational motion
-      ROTARY,   // rotary motion
-      COUPLED,  // combined translational and rotary motion
+      /**
+       * Linear translational motion
+       */
+      LINEAR,
+      
+      /**
+       * Rotational motion
+       */
+      ROTARY, 
+      
+      /**
+       * Combined translational and rotary motion
+       */
+      COUPLED,
+      
+      /**
+       * Motion type is undefined or unknown
+       */
       UNDEFINED // motion type is undefined
    }
    /** 
@@ -194,6 +209,10 @@ public class RigidBodyConstraint {
 
    public boolean isLinear() {
       return (flags & LINEAR) != 0;
+   }
+   
+   public boolean isLimit() {
+      return (flags & LIMIT) != 0;
    }
    
    public MotionType getMotionType() {

@@ -781,9 +781,9 @@ public class MatrixNd extends DenseMatrixBase
    }
 
    /**
-    * Sets a submatrix of this matrix. The first row and column of the submatrix
-    * are given by <code>baseRow</code> and <code>baseCol</code>, and the
-    * new values are given by the matrix <code>Msrc</code>. The size of the
+    * Sets a submatrix of this matrix. The first row and column of the
+    * submatrix are given by <code>baseRow</code> and <code>baseCol</code>, and
+    * the new values are given by the matrix <code>Msrc</code>. The size of the
     * submatrix is determined by the dimensions of <code>Msrc</code>.
     * 
     * @param baseRow
@@ -813,9 +813,9 @@ public class MatrixNd extends DenseMatrixBase
    /**
     * Sets a submatrix of this matrix. The row and column indices of the
     * submatrix are specified by <code>rows</code> and the <code>cols</code>,
-    * respectively, and the new values are given by the matrix <code>Msrc</code>.
-    * The size of the submatrix is determined by the existing dimensions of
-    * <code>Msrc</code>.
+    * respectively, and the new values are given by the matrix
+    * <code>Msrc</code>.  The size of the submatrix is determined by the
+    * existing dimensions of <code>Msrc</code>.
     * 
     * @param rows
     * row indices of the submatrix
@@ -865,6 +865,73 @@ public class MatrixNd extends DenseMatrixBase
       }
       if (Msrc == this) {
          set (dbuf);
+      }
+   }
+
+   /**
+    * Sets this matrix to a column-based submatrix of {@code Msrc}, based on
+    * column indices specified by the first {@code ncols} entries of
+    * <code>cols</code>.
+    * 
+    * @param Msrc matrix from which columns are extracted
+    * @param cols indices of the columns to extract from {@code Msrc}
+    * @param ncols number of columns to extract
+    * @throws ArrayIndexOutOfBoundsException if any of the indices in
+    * {@code cols} exceed {@code Msrc.colSize()-1}
+    * @throws IllegalArgumentException
+    * if {@code ncols} exceeds {@code cols.length}
+    */
+   public void setColumnSubMatrix (Matrix Msrc, int[] cols, int ncols) {
+      if (ncols > cols.length) {
+         throw new IllegalArgumentException (
+            "ncols="+ncols+" exceeds cols.length=" + cols.length);
+      }
+      if (Msrc == this) {
+         Msrc = new MatrixNd (Msrc);
+      }
+      setSize (Msrc.rowSize(), ncols);
+      VectorNd col = new VectorNd();
+      for (int j=0; j<ncols; j++) {
+         if (cols[j] >= Msrc.colSize()) {
+            throw new ArrayIndexOutOfBoundsException (
+               "cols[" + j + "]=" + cols[j] +
+               " imcompatible with Msrc column size " + Msrc.colSize());
+         }
+         Msrc.getColumn (cols[j], col);
+         setColumn (j, col);
+      }
+   }
+
+   /**
+    * Sets this matrix to a row-based submatrix of {@code Msrc}, based on row
+    * indices specified by the first {@code nrows} entries of <code>rows</code>.
+    * 
+    * @param Msrc matrix from which rows are extracted
+    * @param rows indices of the rows to extract from {@code Msrc}
+    * @param nrows number of columns to extract
+    * @throws ArrayIndexOutOfBoundsException if any of the indices in
+    * {@code rows} exceed {@code Msrc.rowSize()-1}
+    * @throws IllegalArgumentException
+    * if {@code nrows} exceeds {@code rows.length}
+    */
+   public void setRowSubMatrix (Matrix Msrc, int[] rows, int nrows) {
+      if (nrows > rows.length) {
+         throw new IllegalArgumentException (
+            "nrows="+nrows+" exceeds rows.length=" + rows.length);
+      }
+      if (Msrc == this) {
+         Msrc = new MatrixNd (Msrc);
+      }
+      setSize (nrows, Msrc.colSize());
+      VectorNd row = new VectorNd();
+      for (int i=0; i<nrows; i++) {
+         if (rows[i] >= Msrc.rowSize()) {
+            throw new ArrayIndexOutOfBoundsException (
+               "rows[" + i + "]=" + rows[i] +
+               " imcompatible with Msrc row size " + Msrc.rowSize());
+         }
+         Msrc.getRow (rows[i], row);
+         setRow (i, row);
       }
    }
 
@@ -1037,6 +1104,20 @@ public class MatrixNd extends DenseMatrixBase
          }
          idx += width;
       }
+   }
+
+   /**
+    * Returns the diagonal elements of this matrix.
+    * 
+    * @return diagonal elements
+    */
+   public VectorNd getDiagonal () {
+      int mind = Math.min (nrows, ncols);
+      VectorNd diag = new VectorNd (mind);
+      for (int i=0; i<mind; i++) {
+         diag.set (i, get (i, i));
+      }
+      return diag;
    }
 
    /**

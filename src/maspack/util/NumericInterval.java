@@ -151,7 +151,7 @@ public abstract class NumericInterval extends RangeBase {
    }
 
    /** 
-    * Returns the upper bound minus the lower bound of this NumericRange
+    * Returns the upper bound minus the lower bound of this NumericRange.
     * 
     * @return range interval for this range
     */
@@ -719,5 +719,11 @@ public abstract class NumericInterval extends RangeBase {
    public void scale (double s) {
       myUpper *= s;
       myLower *= s;
+   }
+
+   public static void main (String[] args) {
+      System.out.println ("inf - 10: " + (INF-10));
+      System.out.println ("10 - -inf: " + (10-(-INF)));
+      System.out.println ("inf - -inf: " + (INF-(-INF)));
    }
 }

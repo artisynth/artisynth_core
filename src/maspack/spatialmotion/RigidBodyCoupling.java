@@ -85,6 +85,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
    protected class CoordinateInfo {
 
       private double value;      // current coordinate value
+      private double lockedValue; // locked value
       private double speed;      // current coordinate speed
       private double maxValue;   // maximum value
       private double minValue;   // minimum value
@@ -141,12 +142,17 @@ public abstract class RigidBodyCoupling implements Cloneable {
          value = val;
       }
       
+      public void setLockedValue (double val) {
+         lockedValue = val;
+      }
+      
       public double getValue() {
          return value;
       }
       
       public void clipAndSetValue (double val) {
          value = clipToRange (val);
+         lockedValue = value;
          if (limitConstraint != null && limitConstraint.isUnilateral()) {
             limitConstraint.resetEngaged = true;
          }
@@ -219,6 +225,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       public void setLocked(boolean locked) {
          if (locked) {
             setFlag (LOCKED);
+            lockedValue = value;
          }
          else {
             clearFlag (LOCKED);
@@ -228,6 +235,15 @@ public abstract class RigidBodyCoupling implements Cloneable {
          }
       }
 
+      public int getEngagement() {
+         if (limitConstraint != null && !isLocked()) {
+            return limitConstraint.engaged;
+         }
+         else {
+            return 0;
+         }
+      }
+      
       public double getLimitCompliance() {
          if (limitConstraint != null) {
             return limitConstraint.compliance;
@@ -558,16 +574,22 @@ public abstract class RigidBodyCoupling implements Cloneable {
       if (numCoordinates() > 0) {
          for (CoordinateInfo coord : myCoordinates) {
             RigidBodyConstraint cons = coord.limitConstraint;
-            if (cons != null && cons.isUnilateral()) {
-               if (updateEngaged) {
-                  coord.updateLimitEngaged(velGD);
-                  cons.resetEngaged = false;
-               }
-               if (cons.engaged != 0) {
-                  cons.distance = coord.distanceToLimit();
+            if (cons != null) {
+               if (cons.isUnilateral()) {
+                  if (updateEngaged) {
+                     coord.updateLimitEngaged(velGD);
+                     cons.resetEngaged = false;
+                  }
+                  if (cons.engaged != 0) {
+                     cons.distance = coord.distanceToLimit();
+                  }
+                  else {
+                     cons.distance = 0;
+                  }
                }
                else {
-                  cons.distance = 0;
+                  // constraint being used for coordinate locking
+                  cons.distance = coord.value - coord.lockedValue;
                }
             }
          }
@@ -576,7 +598,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       updateConstraints (TGD, TCD, myErr, velGD, updateEngaged);
       for (RigidBodyConstraint cons : myConstraints) {
          // compute distance information for bilateral constraints
-         if (cons.isBilateral()) {
+         if (cons.isBilateral() && !cons.isLimit()) {
             cons.distance = cons.wrenchG.dot (myErr);
          }
       }
@@ -1397,8 +1419,10 @@ public abstract class RigidBodyCoupling implements Cloneable {
       if (TGD != null) {
          // TGD contains the initial TCD
          projectAndUpdateCoordinates (TGD, /*TCD=*/TGD);
-      }    
-      myCoordinates.get(idx).setValue (value); //setValue (value);
+      }
+      CoordinateInfo cinfo = myCoordinates.get(idx);
+      cinfo.setValue (value);
+      cinfo.setLockedValue (value);
       myCoordValueCnt++;
       VectorNd coords = new VectorNd (numCoordinates());
       doGetCoords (coords);
@@ -1443,7 +1467,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          invalidateConstraintCounts();
       }
    }
-   
+
    /**
     * Queries whether the {@code idx}-th coordinate is locked.
     * 
@@ -1452,6 +1476,41 @@ public abstract class RigidBodyCoupling implements Cloneable {
     */
    public boolean isCoordinateLocked (int idx) {
       return myCoordinates.get(idx).isLocked();
+   }
+
+   /**
+    * Queries the engagement of the limit constraint for the {@code idx}-th 
+    * coordinate.
+    * 
+    * @param idx coordinate index
+    * @return {@code true} if the limit constraint is engaged
+    */
+   public int getCoordinateLimitEngagement (int idx) {
+      return myCoordinates.get(idx).getEngagement();
+   }
+
+   /**
+    * Queries the locked value for the {@code idx}-th coordinate. This
+    * is the value that the coordinate is set at if it is locked.
+    *
+    * @param idx coordinate index
+    * @return locked coordinate value
+    */
+   public double getCoordinateLockedValue (int idx) {
+      return myCoordinates.get(idx).lockedValue;
+   }
+
+   /**
+    * Sets the locked value for the {@code idx}-th coordinate.  By default, the
+    * locked value is set to the coordinate's current value when it is
+    * locked. In some special cases, it may be desirable to change this
+    * afterwards.
+    *
+    * @param idx coordinate index
+    * @param value new locked value
+    */
+   public void setCoordinateLockedValue (int idx, double value) {
+      myCoordinates.get(idx).lockedValue = value;
    }
    
    /**
@@ -1573,7 +1632,8 @@ public abstract class RigidBodyCoupling implements Cloneable {
       return myCoordinates.get(idx).getLimitForce();
    }
    /**
-    * Returns the wrench used to apply forces to the {@code idx}-ith coordinate 
+    * Returns the wrench used to apply the generalized force associated
+    * with the {@code idx}-ith coordinate 
     * supported by the coupling, or {@code null} if the coordinate does not 
     * have a limit constraint.
     * 
@@ -1683,6 +1743,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
          dest.minValue = src.minValue;
          dest.maxValue = src.maxValue;
          dest.value = src.value;
+         dest.lockedValue = src.lockedValue;
       }
       return copy;
    }

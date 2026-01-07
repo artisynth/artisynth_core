@@ -360,6 +360,17 @@ public class PropertyWidget {
       }
    }
 
+   public static void attachProperty (
+      LabeledComponentBase widget, Property prop) {
+
+      if (widget instanceof LabeledControl) {
+         LabeledControl ctrl = (LabeledControl)widget;
+         removeOldListeners (ctrl);
+         ctrl.addValueChangeListener (new PropChangeListener (prop));
+      }
+      finishWidget (widget, prop);
+   }
+
    /** 
     * Removes any listeners that may have been added to a
     * widget as a result of its being associated with an earlier property.

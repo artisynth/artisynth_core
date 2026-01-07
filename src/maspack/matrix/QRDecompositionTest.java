@@ -11,10 +11,12 @@ import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
+import maspack.util.UnitTest;
 
-class QRDecompositionTest {
+class QRDecompositionTest extends UnitTest {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 100 * DOUBLE_PREC;
+   private static double INF = Double.POSITIVE_INFINITY;
 
    QRDecomposition qr = new QRDecomposition();
 
@@ -73,6 +75,9 @@ class QRDecompositionTest {
       for (int i=0; i<Math.min(nrows,ncols); i++) {
          M1.set (i, i, rand.nextDouble()-0.5);
       }
+      testDecomposition (M1);
+      // test with zero
+      M1.setZero();
       testDecomposition (M1);
    }
 
@@ -140,11 +145,34 @@ class QRDecompositionTest {
          
       }
 
-      // if (nrows < ncols) {
-      //    return;
-      // }
-
       double condEst = qr.conditionEstimate();
+      if (condEst == INF) {
+         // The matrix is zero, so solve tests are not meaningfull.  Check that
+         // Q is the identity, R is zero, and the permutation is 0, 1, 2 ...
+         MatrixNd QfullChk = new MatrixNd (m, m);
+         QfullChk.setIdentity();
+         MatrixNd QChk = new MatrixNd (m, mind);
+         QChk.setIdentity();
+         
+         checkEquals ("Q for zero matrix", qr.getQ(), QChk);
+         MatrixNd Qfull = new MatrixNd (m, m);
+         qr.get (Qfull, null, null);
+         checkEquals ("full Q for zero matrix", Qfull, QfullChk);
+
+         MatrixNd RChk = new MatrixNd (mind,n);
+         checkEquals ("R for zero matrix", qr.getR(), RChk);
+         if (usePivoting) {
+            VectorNi permChk = new VectorNi(n);
+            for (int j=0; j<n; j++) {
+               permChk.set (j, j);
+            }
+            checkEquals (
+               "col permutation for zero matrix", 
+               new VectorNi(qr.getColumnPermutation()),
+               permChk);
+         }
+         return;
+      }
 
       // used for computing desired minimum norm solution
       MatrixNd MTM = new MatrixNd (n, n);
@@ -165,11 +193,6 @@ class QRDecompositionTest {
       catch (Exception e) {
          eActual = e;
       }
-      // if (m < n) {
-      //    MatrixTest.checkExceptions (eActual, new ImproperSizeException (
-      //       "M has fewer rows than columns"));
-      // }
-      // else {
       MatrixTest.checkExceptions (eActual, null);
 
       if (m <= n) {
@@ -216,12 +239,6 @@ class QRDecompositionTest {
       catch (Exception e) {
          eActual = e;
       }
-      // if (m < n) {
-      //    MatrixTest.checkExceptions (eActual, new ImproperSizeException (
-      //       "M has fewer rows than columns"));
-      // }
-      // else {
-
       MatrixTest.checkExceptions (eActual, null);
       qr.solve (X, B);
       MX.mul (M1, X);
@@ -330,9 +347,9 @@ class QRDecompositionTest {
          qr.leftSolveR (x, b);
          xR.mulTranspose (R, x);
          if (!xR.epsilonEquals (bperm, EPSILON * condEst)) {
-            throw new TestException ("leftSolveR failed:\n" + "xR="
-            + xR.toString ("%9.4f") + "\n" + "bperm="
-            + bperm.toString ("%9.4f"));
+            throw new TestException (
+               "leftSolveR failed:\n" + "xR=" + xR.toString ("%9.4f") +
+               "\n" + "bperm=" + bperm.toString ("%9.4f"));
          }
 
          // check left R matrix solve
@@ -345,9 +362,40 @@ class QRDecompositionTest {
          qr.leftSolveR (X, BT);
          XR.mul (X, R);
          if (!XR.epsilonEquals (BP, EPSILON * condEst)) {
-            throw new TestException ("leftSolveR failed:\n" + "XR=\n"
-            + XR.toString ("%9.4f") + "BP=\n" + BP.toString ("%9.4f"));
+            throw new TestException (
+               "leftSolveR failed:\n" + "XR=\n" + XR.toString ("%9.4f") +
+               "BP=\n" + BP.toString ("%9.4f"));
          }
+         if (n > 1) {
+            // check with fewer columns 
+
+            int nc = n-1;
+            //b.setSize (nc);
+            xR.setSize (nc);
+            bperm.setSize (nc);
+            MatrixNd Rsub = new MatrixNd(R);
+            Rsub.setSize (nc, nc);
+
+
+            qr.leftSolveR (x, b, nc);
+            xR.mulTranspose (Rsub, x);
+            if (!xR.epsilonEquals (bperm, EPSILON * condEst)) {
+               throw new TestException (
+                  "leftSolveR w/ncols failed:\n" + "xR=" + xR.toString ("%9.4f") +
+                  "\n" + "bperm=" + bperm.toString ("%9.4f"));
+            }
+
+            //BT.setSize (BT.rowSize(), nc);
+            BP.setSize (BP.rowSize(), nc);
+            qr.leftSolveR (X, BT, nc);
+            XR.mul (X, Rsub);
+            if (!XR.epsilonEquals (BP, EPSILON * condEst)) {
+               throw new TestException (
+                  "leftSolveR w/ncols failed:\n" + "XR=\n" +
+                  XR.toString ("%9.4f") + "BP=\n" + BP.toString ("%9.4f"));
+            }
+         }
+
       }
 
       // check determinant
@@ -404,8 +452,105 @@ class QRDecompositionTest {
             + MI.toString ("%9.4f") + "M1=\n" + M1.toString ("%9.4f"));
          }
       }
-   }
 
+      if (usePivoting) {
+         // check rank constrained leftSolve 
+         VectorNd brow = new VectorNd (ncols);
+         brow.setRandom();
+         VectorNd xrow = new VectorNd ();
+         VectorNd xM = new VectorNd ();
+         double rankTol = 1e-10;
+         int rank = qr.rank (rankTol);
+         qr.leftSolve (xrow, brow, rank);
+         MatrixNd Qreduced = qr.getQ (rank);
+         MatrixNd Rreduced = qr.getR();
+         Rreduced.setSize (rank, rank);
+         MatrixNd QRreduced = new MatrixNd();
+         QRreduced.mul (Qreduced, Rreduced);
+         VectorNd bperm = new VectorNd(brow);
+         bperm.permute (cperm);
+         bperm.setSize (rank);
+         xM.mulTranspose (QRreduced, xrow);
+         if (!xM.epsilonEquals (bperm, EPSILON * condEst)) {
+            System.out.println ("M size=" + M1.getSize());
+            throw new TestException (
+               "left rank constrained solution failed:\n" + "   xM="
+               + xM.toString ("%9.4f") + "\nbperm=" + bperm.toString ("%9.4f"));
+         }
+         if (M1.colSize() > 1 && M1.rowSize() > 1) {
+            // make M1 rank deficient
+            SVDecomposition svd = new SVDecomposition(M1);
+            VectorNd sig = new VectorNd (svd.getS());
+            // zero some of the sig values
+            int nz = RandomGenerator.nextInt (1, sig.size()-1);
+            for (int i=sig.size()-1; i>=sig.size()-nz; i--) {
+               sig.set (i, 0);
+            }
+            M1.set (svd.getU());
+            M1.mulDiagonalRight (sig);
+            M1.mulTransposeRight (M1, svd.getV());
+            qr.factorWithPivoting (M1);
+
+            rank = qr.rank (rankTol);
+            // make sure R is ordered properly
+            MatrixNd RR = qr.getR();
+            for (int j=1; j<Math.min(M1.colSize(),M1.rowSize()); j++) {
+               if ((RR.get(j-1,j-1) - RR.get(j,j)) < -1e15) {
+                  System.out.println ("R=\n" + RR.toString ("%10.7f"));
+                  throw new TestException (
+                     "R matrix incorrectly ordered");
+               }
+            }
+            rank = qr.rank (rankTol);
+            cperm = qr.getColumnPermutation();
+            qr.leftSolve (xrow, brow, rank);
+            Qreduced = qr.getQ (rank);
+            Rreduced = qr.getR();
+            Rreduced.setSize (rank, rank);
+
+            QRreduced = new MatrixNd();
+            QRreduced.mul (Qreduced, Rreduced);
+            bperm = new VectorNd(brow);
+            bperm.permute (qr.getColumnPermutation());
+            bperm.setSize (rank);
+            xM.setSize (rank);
+            xM.mulTranspose (QRreduced, xrow);
+            if (!xM.epsilonEquals (bperm, EPSILON * condEst)) {
+               throw new TestException (
+                  "left rank constrained solution failed:\n" + "   xM="
+                  + xM.toString ("%9.4f") + "\nbperm=" +
+                  bperm.toString ("%9.4f"));
+            }
+
+            qr.leftSolveR (xrow, brow, rank);
+            VectorNd xR = new VectorNd();
+            xR.mulTranspose (Rreduced, xrow);
+            if (!xR.epsilonEquals (bperm, EPSILON * condEst)) {
+               throw new TestException (
+                  "left rank constrained solution w/ncols failed:\n" + "   xR="
+                  + xR.toString ("%9.4f") + "\nbperm=" +
+                  bperm.toString ("%9.4f"));
+            }
+
+            MatrixNd Bperm = new MatrixNd (3, n);
+            MatrixNd B1 = new MatrixNd (3, n);
+
+            B1.setRandom();
+            Bperm.set (B1);
+            Bperm.permuteColumns (cperm);
+            Bperm.setSize (Bperm.rowSize(), rank);
+            qr.leftSolveR (X, B1, rank);
+            MatrixNd XR = new MatrixNd();
+            XR.mul (X, Rreduced);
+            if (!XR.epsilonEquals (Bperm, EPSILON * condEst)) {
+               throw new TestException (
+                  "left rank constrained solution w/ncols failed:\n" + "XR=\n"
+                  + XR.toString ("%9.4f") + "Bperm=\n" +
+                  Bperm.toString ("%9.4f"));
+            }
+         }
+      }
+   }
 
    protected void checkMatrix (
       String msg, MatrixNd MR, MatrixNd Mchk, MatrixNd M) {
@@ -419,7 +564,7 @@ class QRDecompositionTest {
 
    protected void testPreMulQ (QRDecomposition qr, MatrixNd M) {
       
-      MatrixNd Q = new MatrixNd (qr.nrows, qr.ncols);
+      MatrixNd Q = new MatrixNd (qr.myNumRows, qr.myNumCols);
       qr.get (Q, null);
 
       MatrixNd M1 = new MatrixNd (Q.rowSize(), Q.colSize());
@@ -432,7 +577,7 @@ class QRDecompositionTest {
       qr.preMulQ (MR, MR);
       checkMatrix ("testPreMulQ failed", MR, Q, M);
 
-      Q = new MatrixNd (qr.nrows, qr.nrows);
+      Q = new MatrixNd (qr.myNumRows, qr.myNumRows);
       qr.get (Q, null);      
       MatrixNd MX = new MatrixNd (Q.rowSize(), Q.colSize()+2);
       MX.setRandom();
@@ -445,7 +590,7 @@ class QRDecompositionTest {
    protected void testPreMulQTranspose (
       QRDecomposition qr, MatrixNd M) {
 
-      MatrixNd QT = new MatrixNd (qr.nrows, qr.nrows);
+      MatrixNd QT = new MatrixNd (qr.myNumRows, qr.myNumRows);
       qr.get (QT, null);
       QT.transpose();
 
@@ -459,7 +604,7 @@ class QRDecompositionTest {
       qr.preMulQTranspose (MR, MR);
       checkMatrix ("testPreMulQTranpose failed", MR, QT, M);
 
-      MatrixNd MX = new MatrixNd (qr.nrows, qr.ncols+2);
+      MatrixNd MX = new MatrixNd (qr.myNumRows, qr.myNumCols+2);
       MX.setRandom();
       MatrixNd Mchk =  new MatrixNd();
       Mchk.mul (QT, MX);
@@ -469,7 +614,7 @@ class QRDecompositionTest {
 
    protected void testPostMulQ (QRDecomposition qr, MatrixNd M) {
 
-      MatrixNd Q = new MatrixNd (qr.nrows, qr.nrows);
+      MatrixNd Q = new MatrixNd (qr.myNumRows, qr.myNumRows);
       qr.get (Q, null);
 
       MatrixNd M1 = new MatrixNd (Q.rowSize(), Q.colSize());
@@ -482,7 +627,7 @@ class QRDecompositionTest {
       qr.postMulQ (MR, MR);
       checkMatrix ("testPostMulQ failed", MR, Q, M);
 
-      MatrixNd MX = new MatrixNd (qr.ncols+2, qr.nrows);
+      MatrixNd MX = new MatrixNd (qr.myNumCols+2, qr.myNumRows);
       MX.setRandom();
       MatrixNd Mchk =  new MatrixNd();
       Mchk.mul (MX, Q);
@@ -493,7 +638,7 @@ class QRDecompositionTest {
    protected void testPostMulQTranspose (
       QRDecomposition qr, MatrixNd M) {
 
-      MatrixNd QT = new MatrixNd (qr.nrows, qr.ncols);
+      MatrixNd QT = new MatrixNd (qr.myNumRows, qr.myNumCols);
       qr.get (QT, null);
       QT.transpose();
 
@@ -507,10 +652,10 @@ class QRDecompositionTest {
       qr.postMulQTranspose (MR, MR);
       checkMatrix ("testPostMulQTranpose failed", MR, QT, M);
 
-      QT = new MatrixNd (qr.nrows, qr.nrows);
+      QT = new MatrixNd (qr.myNumRows, qr.myNumRows);
       qr.get (QT, null);      
       QT.transpose();
-      MatrixNd MX = new MatrixNd (qr.ncols+2, qr.nrows);
+      MatrixNd MX = new MatrixNd (qr.myNumCols+2, qr.myNumRows);
       MX.setRandom();
       MatrixNd Mchk =  new MatrixNd();
       Mchk.mul (MX, QT);
@@ -540,7 +685,7 @@ class QRDecompositionTest {
       testDecomposition (2, 3);
       testDecomposition (1, 3);
 
-      // special case that gave some trouble because 
+      // special case that gave some trouble
       MatrixNd H = new MatrixNd(6,6);
       H.set (0, 3, 1);
       H.set (1, 4, 1);
@@ -551,6 +696,40 @@ class QRDecompositionTest {
       H.set (5, 2, -0.000000003205000);
 
       testDecomposition (H);
+   }
+
+   void testSpecial() {
+      double[] vals = new double[] {
+-0.007910678987498442, 4.982996185814992E-10, -0.007910678987498424, 0.015821357476697245, 
+1.263283252575368E-11, -2.6055228139052163E-11, 1.2632868854896859E-11, 7.895267584016228E-13, 
+0.060087571545670494, -4.33910249397762E-9, 0.06008757154567044, -0.12017513875223843, 
+2.7037178882033367E-12, -5.576184334087363E-12, 2.7035653317133644E-12, 1.689011141706614E-13, 
+ 0.48484850128627077, -3.499805576942516E-8, 0.4848485012862708, -0.969696967574486, 
+// -2.099358712703328E-12, 4.3298907028653894E-12, -2.0993592303077874E-12, -1.3117275985427345E-13, 
+// 0.007910679060304907, -6.484944525819714E-10, 0.007910679060305226, -0.015821357472115678, 
+// 1.3849983862342824E-11, -2.856591137542923E-11, 1.3850245524438594E-11, 8.656819886478093E-13, 
+// -0.060087571561343374, 4.371663933633307E-9, -0.060087571561343096, 0.12017513875102252, 
+// 2.7036168222527025E-12, -5.576121426258073E-12, 2.7035470765985258E-12, 1.6895752740684462E-13, 
+// 1.749977768250588E-8, 4.855560398198122E-11, 1.7499777626994728E-8, -3.5048110771235264E-8, 
+// -2.0995281350246004E-12, 4.3298743782473145E-12, -2.09918114497621E-12, -1.3116509824650441E-13, 
+// 0.007910679058786577, -6.453256037181054E-10, 0.007910679058786611, -0.01582135747224758, 
+// 1.2632841880449165E-11, -2.6055228887696784E-11, 1.2632861922092132E-11, 7.895250851554882E-13, 
+// -0.060087571549677206, 4.347593604570044E-9, -0.06008757154967732, 0.1201751387517609, 
+// 2.7035283251623695E-12, -5.5761151355825754E-12, 2.7036191768818E-12, 1.6896763353840678E-13, 
+// -1.754683554011649E-8, 4.855738033882062E-11, -1.7546835262560734E-8, 3.50451134223384E-8, 
+// -2.0994307426982353E-12, 4.329901886952912E-12, -2.0993036473192335E-12, -1.311674969354428E-13, 
+// -0.007910678985949795, 4.951307749218037E-10, -0.007910678985949715, 0.01582135747676874, 
+// 1.3850019584710997E-11, -2.856588500192645E-11, 1.385022153745668E-11, 8.656438797587688E-13, 
+// 0.06008757153377513, -4.315032053892054E-9, 0.06008757153377532, -0.12017513875251841, 
+// 2.7036237908811823E-12, -5.576161944466623E-12, 2.7034683082583925E-12, 1.6906984532704777E-13, 
+// -0.4848485013333286, 3.5095168424148504E-8, -0.4848485013333287, 0.9696969675714888, 
+// -2.09927748225735E-12, 4.329897099274799E-12, -2.099317928859166E-12, -1.3130168815828362E-13
+      };
+      MatrixNd M = new MatrixNd (vals.length/4, 4);
+      M.set(vals);
+      QRDecomposition qrd = new QRDecomposition();
+      qrd.factorWithPivoting (M);
+      System.out.println ("R=\n" + qrd.getR().toString("%10.7f"));
    }
 
    public static void main (String[] args) {
@@ -572,6 +751,7 @@ class QRDecompositionTest {
          tester.timingTests();
       }
       else {
+         //tester.testSpecial();
          tester.execute();
       }
 

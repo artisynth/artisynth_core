@@ -36,6 +36,11 @@ public class JointConditionalMarker extends FrameMarker
       myProps.add (
          "invisibleIfInactive",
          "controls if the marker should be made invisible if inactive", true);
+      myProps.add (
+         "range", "coordinate range over which marker is active", null);
+      myProps.addReadOnly (
+         "pointActive isPointActive", 
+         "true if the coordinate is with the range");
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -64,6 +69,18 @@ public class JointConditionalMarker extends FrameMarker
          myRenderProps.setVisible (active);
       }
       return active;
+   }
+   
+   public DoubleInterval getRange() {
+      return myRange;
+   }
+   
+   public JointCoordinateHandle getCoordinate() {
+      return new JointCoordinateHandle (myCoord);
+   }
+   
+   public void setRange (DoubleInterval range) {
+      myRange = new DoubleInterval (range);
    }
 
    public JointConditionalMarker () {
@@ -103,8 +120,8 @@ public class JointConditionalMarker extends FrameMarker
 
       pw.print ("coordinate=");
       myCoord.write (pw, ancestor);
-      pw.println ("range=");
-      myRange.write (pw, fmt, ancestor);
+//      pw.println ("range=");
+//      myRange.write (pw, fmt, ancestor);
       super.writeItems (pw, fmt, ancestor);
    }
 
@@ -118,11 +135,11 @@ public class JointConditionalMarker extends FrameMarker
          myCoord.scan (rtok, tokens);
          return true;
       }
-      else if (scanAttributeName (rtok, "range")) {
-         myRange = new DoubleInterval();
-         myRange.scan (rtok, null);
-         return true;
-      }
+//      else if (scanAttributeName (rtok, "range")) {
+//         myRange = new DoubleInterval();
+//         myRange.scan (rtok, null);
+//         return true;
+//      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }

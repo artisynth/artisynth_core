@@ -51,7 +51,7 @@ import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.mechmodels.DynamicComponent;
-import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.modelbase.HasPoseComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.StructureChangeEvent;
@@ -63,7 +63,7 @@ import artisynth.core.util.ScalableUnits;
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
               Traceable, MotionTargetComponent, CopyableComponent,
-              HasCoordinateFrame, CollidableDynamicComponent,
+              HasPoseComponent, CollidableDynamicComponent,
               PointAttachable, FrameAttachable, ContactMaster {
 
    public static boolean dynamicVelInWorldCoords = true;

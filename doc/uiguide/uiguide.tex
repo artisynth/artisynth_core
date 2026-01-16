@@ -2420,10 +2420,25 @@ attached to the root model, the controller attempts to estimate an
 appropriate spring stiffness based on the overall mass and dimensions
 of the first underlying {\tt MechModel}.
 
-If necessary, the pull tool's stiffness setting can also be adjusted
-manually by selecting {\sf PullController > properties} in the {\sf
-Settings} menu.  Render properties for the pull controller can be set
-from this menu also.
+If necessary, the pull tool's stiffness and rendering properties can be
+adjusted. To do this, right click on tool's button and choose {\sf
+``Edit properites ...''}. Properties include:
+
+\begin{description}
+
+\item[renderColor] \mbox{}
+
+Color of the point and arrow rendered by the tool.
+
+\item[radiusRatio] \mbox{}
+
+Radius of the point, as a fraction of the screen width.
+
+\item[stiffess] \mbox{}
+
+Stiffness of the spring.
+
+\end{description}
 
 \subsection{Marker tool}
 \label{MarkerTool}
@@ -2495,6 +2510,65 @@ pointRadius} (or {\sf pointSize}) are set appropriately.
 
 Once created, markers can be removed by selecting them and choosing
 {\sf Delete} from the context menu.
+
+\subsection{Measurement tool}
+\label{MeasurementTool}
+
+\vspace{\parskip}
+\iflatexml
+\phantom{.}\includegraphics[]{images/measurementTool}
+\else
+\includegraphics[width=.33in]{images/measurementTool}
+\fi
+{\sf Measurement tool:}\\
+Measures distance between two points selected in the viewer.
+
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/meaursingDistance}
+\else
+\includegraphics[width=0.6\textwidth]{images/measuringDistance}
+\fi
+\end{center}
+\caption{Measuring the distance between two points in a simple
+model of two vertebrae.}%
+\label{Measurement:fig}
+\end{figure}
+
+Selecting the {\it measurement} tool allows a user to measure distances between
+model features. A cross-hair cursor is enabled, with which the user selects two
+point locations in the viewer. When the second location is selected, the
+distance is displayed in the lower right corner of the viewer (Figure
+\ref{Measurement:fig}).
+
+Once two locations are selected, subsequent selection moves the second
+location, making it easy to find distances between the first location and
+different second locations. Double clicking will clear all locations and allow
+the first location to be reselected.
+
+\begin{sideblock}
+Locations that can currently be selected by the measurement tool include
+points, frames, and any point on a surface mesh. Locations on point-to-point
+springs cannot currently be selected but we expect this to implemented soon.
+\end{sideblock}
+
+The measurement tool's rendering properties can be
+adjusted. To do this, right click on the tool's button and choose {\sf
+``Edit properites ...''}. Properties include:
+
+\begin{description}
+
+\item[renderColor] \mbox{}
+
+Color of the points and line between them.
+
+\item[radiusRatio] \mbox{}
+
+Radius of the points, as a fraction of the screen width.
+
+\end{description}
 
 \section{Editing Properties}
 

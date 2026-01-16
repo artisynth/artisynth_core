@@ -40,6 +40,12 @@ implements SelectionListener, MouseInputListener {
    private double myRootRadius = 0; // current root model default radius
    private Main myMain;
 
+   private static Color DEFAULT_RENDER_COLOR = Color.BLUE;
+   private Color myRenderColor = DEFAULT_RENDER_COLOR;
+
+   private static double DEFAULT_RADIUS_RATIO = 0.008;
+   private double myRadiusRatio = DEFAULT_RADIUS_RATIO;
+
    private double myStiffness = DEFAULT_STIFFNESS;
    private boolean myStiffnessExplicitlySetP = false;
 
@@ -69,14 +75,23 @@ implements SelectionListener, MouseInputListener {
       new PropertyList (PullController.class, ControllerBase.class);
 
    static {
+      myProps.remove ("startTime");
+      myProps.remove ("stopTime");
+      myProps.remove ("active");
       myProps.add (
-         "renderProps", "render properties", createDefaultRenderProps());
+         "renderColor", "color for points and the line between them", 
+         DEFAULT_RENDER_COLOR);
+      myProps.add (
+         "radiusRatio", "point radius as a fraction of screen width", 
+         DEFAULT_RADIUS_RATIO);
       myProps.add ("stiffness", "spring stiffness", DEFAULT_STIFFNESS);
    }   
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
+
+   /* ---- property accessors ---- */
 
    public double getStiffness() {
       return myStiffness;
@@ -92,6 +107,24 @@ implements SelectionListener, MouseInputListener {
       myStiffness = k;
    }
 
+   public Color getRenderColor() {
+      return myRenderColor;
+   }
+
+   public void setRenderColor (Color color) {
+      myRenderColor = color;
+   }
+
+   public double getRadiusRatio() {
+      return myRadiusRatio;
+   }
+
+   public void setRadiusRatio (double ratio) {
+      myRadiusRatio = ratio;
+   }
+
+   /* ---- end property accessors ---- */
+
    public PullController (SelectionManager selManager) {
       myMain = Main.getMain();
       myRenderProps = createDefaultRenderProps();
@@ -100,15 +133,17 @@ implements SelectionListener, MouseInputListener {
    }
 
    private double searchForExplicitPointRadius (ModelComponent comp) {
-      while (comp != null) {
-         if (comp instanceof Renderable) {
-            RenderProps props = ((Renderable)comp).getRenderProps();
-            if (props != null &&
-                props.getPointRadiusMode() == PropertyMode.Explicit) {
-               return props.getPointRadius();
+      if (comp instanceof Point) {
+         while (comp != null) {
+            if (comp instanceof Renderable) {
+               RenderProps props = ((Renderable)comp).getRenderProps();
+               if (props != null &&
+                   props.getPointRadiusMode() == PropertyMode.Explicit) {
+                  return props.getPointRadius();
+               }
             }
+            comp = comp.getParent();
          }
-         comp = comp.getParent();
       }
       return 0;
    }      
@@ -334,33 +369,24 @@ implements SelectionListener, MouseInputListener {
    public void render (Renderer renderer, int flags) {
 
       if (myComponent != null) {
+         Point3d renderPos = new Point3d (myPoint.myRenderCoords);
+         double distPerPixel = renderer.distancePerPixel (renderPos);
+         double defaultRadius =
+            renderer.getScreenWidth()*myRadiusRatio*distPerPixel;
+         renderer.setColor (myRenderColor);
          if (myPullPos != null || myHasPersistentComponent) {
-            // render the pull point with a slightly larger radius
-            // than any underlying point so we can see it
-            double saveRadius = myRenderProps.getPointRadius();
-            PropertyMode saveRadiusMode = myRenderProps.getPointRadiusMode();
-
-            if (saveRadius <= myPointRenderRadius) {
-               myRenderProps.setPointRadius (1.05*myPointRenderRadius);
-            }
-            renderer.drawPoint (
-               myRenderProps, myPoint.myRenderCoords, false);
-            if (saveRadius <= myPointRenderRadius) {
-               if (saveRadiusMode == PropertyMode.Inherited) {
-                  myRenderProps.setPointRadiusMode (saveRadiusMode);
-               }
-               else {
-                  myRenderProps.setPointRadius (saveRadius);
-               }
-            }
+            // increase point radius by one pixel to ensure visibility
+            double radius = Math.max (
+               defaultRadius, myPointRenderRadius + distPerPixel);
+            renderer.drawSphere (renderPos, radius);
          }
          if (myPullPos != null) {
             float[] pullCoords = new float[3];
             pullCoords[0] = (float)myPullPos.x;
             pullCoords[1] = (float)myPullPos.y;
             pullCoords[2] = (float)myPullPos.z;
-            renderer.drawLine (
-               myRenderProps, myPoint.myRenderCoords, pullCoords, false);
+            renderer.drawArrow (
+               renderPos, myPullPos, 0.5*defaultRadius, false);
          }
       }
    }
@@ -371,11 +397,6 @@ implements SelectionListener, MouseInputListener {
 
    public static RenderProps createDefaultRenderProps() {
       RenderProps props = new PointLineRenderProps();
-      props.setLineWidth (2);
-      props.setLineColor (Color.BLUE);
-      props.setPointStyle (PointStyle.POINT);
-      props.setPointSize (2);
-      props.setPointColor (Color.BLUE);
       return props;
    }   
 
@@ -436,12 +457,6 @@ implements SelectionListener, MouseInputListener {
     */
    public void setRootModelDefaults (RootModel root) {
       double radius = RenderableUtils.getRadius (root);
-      if (radius > 0) {
-         myRenderProps.setPointStyle (PointStyle.SPHERE);
-         myRenderProps.setPointRadius (0.02*radius);
-         myRenderProps.setLineRadius (0.01*radius);
-         myRenderProps.setLineStyle (LineStyle.SOLID_ARROW);
-      }
       myRootRadius = radius;
       myStiffnessExplicitlySetP = false;
    }

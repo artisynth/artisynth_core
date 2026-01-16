@@ -4,6 +4,7 @@ import java.io.File;
 
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ComponentList;
+import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.mechmodels.ConstrainerBase;
 
 public class ConstraintSet extends SetBase<ConstraintBase> 
@@ -15,15 +16,15 @@ public class ConstraintSet extends SetBase<ConstraintBase>
    }
 
    @Override
-   public ComponentList<ConstrainerBase> createComponent (
+   public RenderableComponentList<ConstrainerBase> createComponent (
       File geometryPath, ModelComponentMap componentMap) {
 
       String name = getName ();
       if (name == null) {
          name = "constraintset";
       }
-      ComponentList<ConstrainerBase> constraints = 
-         new ComponentList<> (ConstrainerBase.class, name);
+      RenderableComponentList<ConstrainerBase> constraints = 
+         new RenderableComponentList<> (ConstrainerBase.class, name);
       
       for (ConstraintBase constraint : objects()) {
          

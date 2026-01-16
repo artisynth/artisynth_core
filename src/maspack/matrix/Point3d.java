@@ -87,6 +87,16 @@ public class Point3d extends Vector3d {
    /**
     * Creates a Point3d with the supplied element values.
     * 
+    * @param values
+    * element values
+    */
+   public Point3d (float[] values) {
+      set (values[0], values[1], values[2]);
+   }
+
+   /**
+    * Creates a Point3d with the supplied element values.
+    * 
     * @param x
     * first element
     * @param y

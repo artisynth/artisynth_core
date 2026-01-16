@@ -354,10 +354,10 @@ public class OpenSimParser {
       if (ground == null) {
          RenderableComponentList<RigidBody> bodyset = getBodySet();
          if (bodyset != null) {
-            return bodyset.get("ground");
+            ground = bodyset.get("ground");
          }
       }         
-      return null;
+      return ground;
    }
 
    /**
@@ -977,7 +977,7 @@ public class OpenSimParser {
                "muscle does not appear to have been created by OpenSim import");
          }
          MultiPointMuscleOsim mpso = (MultiPointMuscleOsim)muscle;
-         PointList<Marker> markerList = mpso.getPathPoints();
+         PointList<Point> markerList = mpso.getPathPoints();
          int midx = markerList.indexOf (pnt);
          if (midx == -1) {
             throw new IllegalArgumentException (

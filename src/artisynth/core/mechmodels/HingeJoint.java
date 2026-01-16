@@ -58,7 +58,7 @@ public class HingeJoint extends JointBase implements CopyableComponent {
    static {
       myProps.add ("theta", "joint angle (degrees)", 0, "1E %8.3f [-360,360]");
       myProps.add (
-         "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f 1E");
+         "thetaRange", "range for theta", DEFAULT_THETA_RANGE, "%8.3f");
       myProps.add (
          "thetaLocked isThetaLocked",
          "set whether theta is locked", DEFAULT_THETA_LOCKED);

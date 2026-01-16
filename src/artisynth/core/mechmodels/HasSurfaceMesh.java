@@ -1,5 +1,6 @@
 package artisynth.core.mechmodels;
 
+import artisynth.core.modelbase.RenderableComponent;
 import maspack.geometry.PolygonalMesh;
 
 /**
@@ -7,7 +8,7 @@ import maspack.geometry.PolygonalMesh;
  * 
  * @author lloyd
  */
-public interface HasSurfaceMesh {
+public interface HasSurfaceMesh extends RenderableComponent {
    
    /**
     * Returns the surface mesh associated with this component, or

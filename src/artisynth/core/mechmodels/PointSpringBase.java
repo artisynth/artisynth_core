@@ -8,7 +8,9 @@ package artisynth.core.mechmodels;
 
 import java.util.LinkedList;
 import java.util.Map;
+import java.awt.Color;
 
+import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.Matrix1x3;
@@ -20,9 +22,11 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.DataBuffer;
+import maspack.properties.PropertyMode;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.LinearAxialMaterial;
@@ -41,6 +45,15 @@ import artisynth.core.util.ScalableUnits;
  */
 public abstract class PointSpringBase extends Spring
    implements RenderableComponent, ScalableUnits, HasNumericState {
+
+   // saved line color and style properties for when the spring is being
+   // rendered using disabled versions of these properties as returned by
+   // getDisabledLineColor() and getDisabledLineStyle()
+   private Color mySavedLineColor = null;
+   private LineStyle mySavedLineStyle = null;
+
+   public static final boolean DEFAULT_ENABLED = true;
+   protected boolean myEnabledP = DEFAULT_ENABLED;
 
    public static boolean myIgnoreCoriolisInJacobian = true;
    public static boolean useMaterial = true;
@@ -62,6 +75,10 @@ public abstract class PointSpringBase extends Spring
 //      myProps.add ("stiffness * *", "linear spring stiffness", 0);
 //      myProps.add ("damping * *", "linear spring damping", 0);
       myProps.add (
+         "enabled isEnabled",
+         "enables or disables the force producing ability of this spring",
+         DEFAULT_ENABLED);
+      myProps.add (
          "restLength", "rest length of the spring", DEFAULT_REST_LENGTH);
       myProps.addReadOnly ("length *", "current spring length");
       myProps.addReadOnly ("lengthDot *", "current spring length time derivative");
@@ -82,6 +99,50 @@ public abstract class PointSpringBase extends Spring
    public PointSpringBase (String name) {
       super (name);
    }
+
+   /* ---- property accessors ---- */
+
+   /**
+    * Queries whether this spring is enabled.
+    *
+    * @return {@code true} if this spring is enabled
+    */
+   public boolean isEnabled() {
+      return myEnabledP;
+   }
+
+   /**
+    * Sets whether or not this spring is enabled. A disabled spring
+    * produces no force.
+    *
+    * @param enabled if {@code true}, enables this spring
+    */
+   public void setEnabled (boolean enabled) {
+      if (myEnabledP != enabled) {
+	 myEnabledP = enabled;
+         updateLineRenderProps (enabled);
+      }
+   }
+
+   public abstract double getLength();
+   
+   public abstract double getLengthDot();
+   
+   /**
+    * Sets the rest length of the spring from the current point locations
+    * @return the new rest length
+    */
+   public abstract double setRestLengthFromPoints();
+   
+   public double getRestLength() {
+      return myRestLength;
+   }
+
+   public void setRestLength (double l) {
+      myRestLength = l;
+   }
+
+   /* ---- point management ---- */
 
    /**
     * Queries the number of points in this spring.
@@ -202,25 +263,41 @@ public abstract class PointSpringBase extends Spring
       }
    }
 
-   public abstract double getLength();
-   
-   public abstract double getLengthDot();
-   
-   /**
-    * Sets the rest length of the spring from the current point locations
-    * @return the new rest length
-    */
-   public abstract double setRestLengthFromPoints();
-   
-   public double getRestLength() {
-      return myRestLength;
-   }
-
-   public void setRestLength (double l) {
-      myRestLength = l;
-   }
-
    /* ======== Renderable implementation ======= */
+
+   private void updateLineRenderProps(boolean enabled) {
+      if (enabled) {
+	 if (mySavedLineColor == null) {
+	    RenderProps.setLineColorMode(this, PropertyMode.Inherited);
+         }
+	 else {
+	    RenderProps.setLineColor(this, mySavedLineColor);
+         }
+	 if (mySavedLineStyle == null) {
+	    RenderProps.setLineStyleMode(this, PropertyMode.Inherited);
+         }
+	 else {
+	    RenderProps.setLineStyle(this, mySavedLineStyle);
+         }
+      }
+      else {
+         RenderProps props = getRenderProps();
+         if (getDisabledLineColor() != null) {
+            if (props != null &&
+                props.getLineColorMode() == PropertyMode.Explicit) {
+               mySavedLineColor = props.getLineColor();
+            }
+            RenderProps.setLineColor(this, getDisabledLineColor());
+         }
+         if (getDisabledLineStyle() != null) {
+            if (props != null && 
+                props.getLineStyleMode() == PropertyMode.Explicit) {
+               mySavedLineStyle = props.getLineStyle();
+            }
+            RenderProps.setLineStyle(this, getDisabledLineStyle());
+         }
+      }
+   }
 
    protected RenderProps myRenderProps;
 
@@ -267,20 +344,57 @@ public abstract class PointSpringBase extends Spring
    /* ======== End renderable implementation ======= */
 
    /**
+    * Can be overridden by subclasses to provide a line color to be used for
+    * rendering this spring when it is disabled. If the method returns {@code
+    * null} (the default behavior), then the line color is not changed when the
+    * spring is disabled.
+    *
+    * @return line color for disabled springs, or {@code null}
+    */
+   protected Color getDisabledLineColor() {
+      return null;
+   }
+
+   /**
+    * Can be overridden by subclasses to provide a line style to be used for
+    * rendering this spring when it is disabled. If the method returns {@code
+    * null} (the default behavior), then the line style is not changed when the
+    * spring is disabled.
+    *
+    * @return line style for disabled springs, or {@code null}
+    */
+   protected LineStyle getDisabledLineStyle() {
+      return null;
+   }
+
+   /**
+    * Overridden by subclasses to supply a net excitation for computing the
+    * spring force.
+    */
+   protected double getNetExcitation() {
+      return 0;
+   }
+
+   /**
     * Computes the tension F acting along the unit vector from the first to the
-    * second particle.
+    * second particle. The tension is based on the spring length {@code l} and
+    * its derivative {@code ldot}, the {@code restLength} property, and the net
+    * excitation returned by {@link #getNetExcitation()} for subclasses such as
+    * {@link Muscle} which override that method.
     *
     * @param l spring length
     * @param ldot spring length derivative
     * @return force tension
     */
    public double computeF (double l, double ldot) {
-      return computeF (l, ldot, 0);
+      return computeF (l, ldot, getNetExcitation());
    }
 
    /**
     * Computes the tension F acting along the unit vector from the first to the
-    * second particle.
+    * second particle. The tension is based on the spring length {@code l} and
+    * its derivative {@code ldot}, the {@code restLength} property, and a
+    * supplied excitation {@code ex}.
     *
     * @param l spring length
     * @param ldot spring length derivative
@@ -289,7 +403,7 @@ public abstract class PointSpringBase extends Spring
     */
    public double computeF (double l, double ldot, double ex) {
       AxialMaterial mat = getEffectiveMaterial();
-      if (mat != null) {
+      if (myEnabledP && mat != null) {
          return mat.computeF (l, ldot, myRestLength, ex);
       }
       else {
@@ -300,18 +414,25 @@ public abstract class PointSpringBase extends Spring
    /**
     * Computes the derivative of the tension F (acting along the unit vector
     * from the first to the second particle) with respect to spring length.
+    * The tension is based on the spring length {@code l} and its derivative
+    * {@code ldot}, the {@code restLength} property, and the net excitation
+    * returned by {@link #getNetExcitation()} for subclasses such as {@link
+    * Muscle} which override that method.
     * 
     * @param l spring length
     * @param ldot spring length derivative
     * @return force tension derivative with respect to length
     */
    public double computeDFdl (double l, double ldot) {
-      return computeDFdl (l, ldot, 0);
+      return computeDFdl (l, ldot, getNetExcitation());
    }
 
    /**
     * Computes the derivative of the tension F (acting along the unit vector
     * from the first to the second particle) with respect to spring length.
+    * The tension is based on the spring length {@code l} and its derivative
+    * {@code ldot}, the {@code restLength} property, and a supplied excitation
+    * {@code ex}.
     * 
     * @param l spring length
     * @param ldot spring length derivative
@@ -320,7 +441,7 @@ public abstract class PointSpringBase extends Spring
     */
    public double computeDFdl (double l, double ldot, double ex) {
       AxialMaterial mat = getEffectiveMaterial();
-      if (mat != null) {
+      if (myEnabledP && mat != null) {
          return mat.computeDFdl (l, ldot, myRestLength, ex);
       }
       else {
@@ -330,21 +451,26 @@ public abstract class PointSpringBase extends Spring
 
    /**
     * Computes the derivative of the tension F (acting along the unit vector
-    * from the first to the second particle)with respect to the time derivative
-    * of spring length.
+    * from the first to the second particle) with respect to the time
+    * derivative of spring length. The tension is based on the spring length
+    * {@code l} and its derivative {@code ldot}, the {@code restLength}
+    * property, and the net excitation returned by {@link #getNetExcitation()}
+    * for subclasses such as {@link Muscle} which override that method.
     * 
     * @param l spring length
     * @param ldot spring length derivative
     * @return force tension derivative with respect to length time derivative
     */
    public double computeDFdldot (double l, double ldot) {
-      return computeDFdldot (l, ldot, 0);
+      return computeDFdldot (l, ldot, getNetExcitation());
    }
 
    /**
     * Computes the derivative of the tension F (acting along the unit vector
     * from the first to the second particle)with respect to the time derivative
-    * of spring length.
+    * of spring length. The tension is based on the spring length {@code l} and
+    * its derivative {@code ldot}, the {@code restLength} property, and a
+    * supplied excitation {@code ex}.
     * 
     * @param l spring length
     * @param ldot spring length derivative
@@ -353,8 +479,24 @@ public abstract class PointSpringBase extends Spring
     */
    public double computeDFdldot (double l, double ldot, double ex) {
       AxialMaterial mat = getEffectiveMaterial();
-      if (mat != null) {
+      if (myEnabledP && mat != null) {
          return mat.computeDFdldot (l, ldot, myRestLength, ex);
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getJacobianType() {
+      AxialMaterial mat = getEffectiveMaterial();
+      if (mat == null || !myEnabledP) {
+         return Matrix.SPD;
+      }
+      else if (myIgnoreCoriolisInJacobian || mat.isDFdldotZero()) {
+         return Matrix.SYMMETRIC;
       }
       else {
          return 0;

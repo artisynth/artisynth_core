@@ -21,6 +21,11 @@ public class AddComponentsCommand implements Command {
       String name, LinkedList<ModelComponent> comps, 
       LinkedList<MutableCompositeComponent<?>> parents) {
       myName = name;
+      if (comps.size() != parents.size()) {
+         throw new IllegalArgumentException (
+            "'comps' and 'parents' have different sizes (" +
+            comps.size() + " and " + parents.size() + ")");
+      }
       myComponents = comps;
       myParents = parents;
    }
@@ -35,6 +40,18 @@ public class AddComponentsCommand implements Command {
          myComponents.add (c);
          myParents.add (parent);
       }
+   }
+
+   public AddComponentsCommand (
+      String name, LinkedList<? extends ModelComponent> comps, int[] indices,
+      MutableCompositeComponent<?> parent) {
+      this (name, comps, parent);
+      if (comps.size() != indices.length) {
+         throw new IllegalArgumentException (
+            "'comps' and 'indices' have different sizes (" +
+            comps.size() + " and " + indices.length);
+      }
+      myIndices = Arrays.copyOf (indices, indices.length);
    }
 
    public AddComponentsCommand (

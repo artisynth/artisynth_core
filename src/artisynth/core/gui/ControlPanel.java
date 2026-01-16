@@ -86,12 +86,16 @@ public class ControlPanel extends ModelComponentBase
    private static boolean DEFAULT_SCROLLABLE = true;
    private boolean myScrollableP = DEFAULT_SCROLLABLE;
 
+   protected void rerender() {
+      RootModel rootModel = RootModel.getRoot (ControlPanel.this);
+      if (rootModel != null) {
+         rootModel.rerender();
+      }
+   }
+
    private class InternalRerenderListener implements ValueChangeListener {
       public void valueChange (ValueChangeEvent e) {
-         RootModel rootModel = RootModel.getRoot (ControlPanel.this);
-         if (rootModel != null) {
-            rootModel.rerender();
-         }
+         rerender();
       }
    }
 

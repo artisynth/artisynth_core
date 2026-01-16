@@ -582,7 +582,25 @@ the following methods:
 An exciter's weight forms its corresponding entry in the diagonal matrix $\W_a$
 used by the quadratic program ((\ref{regularizedQP:eqn} and
 (\ref{fullQP:eqn})), with a smaller weight allowing the exciter to assume
-greater prominence in the solution.
+greater prominence in the solution. Exciter weights can be managed with the
+following methods:
+%
+\begin{methodtable}{0.58}{0.42}
+\midline
+%
+\methodentry
+{\inverse.TrackingController.getExcitationWeight(ExcitationComponent)}%
+{double getExcitationWeight (ExcitationComponent ex)}%
+{Returns the weight for exciter {\tt ex}.}%
+%
+\methodentry
+{\inverse.TrackingController.setExcitationWeight(ExcitationComponent,double)}%
+{void setExcitationWeight (ExcitationComponent ex, double w)}%
+{Sets the weight for exciter {\tt ex}.}% 
+%
+\midline
+\end{methodtable}
+%
 
 By default, the computed excitations are bounded by the interval $[0,1]$, as
 indicated in Section \ref{GeneratingExcitations:sec}. However, these bounds can
@@ -2544,21 +2562,23 @@ An {\tt IKSolver} is created with the following constructors:
 %
 \methodentry
 {\probes.IKSolver.IKSolver(,)}%
-{IKSolver (MechModel mech, Collection<FrameMarker> mkrs)}%
+{IKSolver (MechModel mech, Collection<? extends Marker> mkrs)}%
 {\ }%
 %
 \methodentry
 {\probes.IKSolver.IKSolver(,,)}%
-{IKSolver (MechModel mech, Collection<FrameMarker> mkrs, VectorNd weights)}%
+{IKSolver (MechModel mech, Collection<? extends Marker> mkrs, VectorNd weights)}%
 {\ }%
 %
 \end{methodtable}
 %
 {\tt mech} is the {\tt MechModel} containing the bodies and constraints, {\tt
-mkrs} is a list of frame markers attached to the bodies, and {\tt weights} is
-an optional set of marker weight values. If not specified, markers are assumed
-to have a weight of 1.
-
+mkrs} is a list of markers, and {\tt weights} is an optional set of marker
+weight values. If {\tt weights} is not specified, markers are assumed to have a
+weight of 1. Each marker is assumed to be either
+a \javaclass[\mech]{FrameMarker} or \javaclass[\mech]{GenericMarker} that is
+attached to a \javaclass[\mech]{RigidBody}; other marker types will cause an
+exception to be thrown.
 The solver finds all the rigid bodies attached to the specified markers,
 together with all body connectors (Section \ref{CreatingJoints:sec})
 constraining the motion of those bodies, plus any additional bodies connected
@@ -2594,7 +2614,7 @@ queried with the following methods:
 %
 \methodentry
 {\probes.IKSolver.getMarkers()}%
-{ArrayList<FrameMarker> getMarkers()}%
+{ArrayList<Marker> getMarkers()}%
 {Returns the markers.}%
 %
 \methodentry
@@ -2874,13 +2894,13 @@ following constructors:
 %
 \methodentry
 {\probes.IKProbe.IKProbe(,,,,)}%
-{IKProbe (String name, MechModel mech, Collection<FrameMarker> mkrs,\brh
+{IKProbe (String name, MechModel mech, Collection<? extends Marker> mkrs,\brh
 VectorNd wgts, String fileName)}%
 {\ }%
 %
 \methodentry
 {\probes.IKProbe.IKProbe(,,,,,)}%
-{IKProbe (String name, MechModel mech, Collection<FrameMarker> mkrs,\brh
+{IKProbe (String name, MechModel mech, Collection<? extends Marker> mkrs,\brh
 VectorNd wgts, double startTime, double stopTime)}%
 {\ }%
 %

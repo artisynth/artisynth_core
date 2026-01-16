@@ -386,6 +386,9 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
             if (coord.getClamped ()) {
                joint.setCoordinateRange (i, coord.getRange ());
             }
+            if (coord.getName() != null) {
+               joint.setCoordinateName (i, coord.getName());
+            }
          }
          // make sure body A (the child) moves when we set the coordinates
          joint.setAlwaysAdjustBodyA (true);

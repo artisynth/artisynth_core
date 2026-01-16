@@ -53,6 +53,7 @@ import javax.swing.plaf.basic.DefaultMenuLayout;
 
 import artisynth.core.driver.ModelScriptHistory.ModelScriptHistoryInfo;
 import artisynth.core.driver.ModelScriptInfo.InfoType;
+import artisynth.core.driver.Main.SelectionMode;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.ExtClassPathEditor;
 import artisynth.core.gui.editorManager.Command;
@@ -160,7 +161,7 @@ ModelScriptActionListener {
 
    // protected JMenu myScriptMenu;
 
-   protected JToolBar modeSelectionToolbar = null;
+   protected SelectionToolbar modeSelectionToolbar = null;
    protected JPanel toolbarPanel;
    protected GridDisplay myGridDisplay;
    protected ViewerToolBar myViewerToolBar;
@@ -176,8 +177,6 @@ ModelScriptActionListener {
 
    private boolean isToolbarVisible = true;
 
-   private RenderPropsDialog myPullControllerRenderPropsDialog;
-   private PropertyDialog myPullControllerPropertyDialog;
    private MouseSettingsDialog myMouseSettingsDialog;
    private SettingsDialog myViewerSettingsDialog;
    private SettingsDialog mySimulationSettingsDialog;
@@ -1325,49 +1324,6 @@ ModelScriptActionListener {
       }
    }
 
-   private void showPullControllerPropertyDialog() {
-      if (myPullControllerPropertyDialog == null) {
-         PullController pc = myMain.getPullController();
-         PropertyPanel panel = new PropertyPanel();
-         PropertyDialog dialog =
-         new PropertyDialog("PullController properties", panel, "OK");
-         dialog.addWidget(pc, "stiffness");
-         dialog.locateRight(myMain.getFrame());
-         //dialog.setSynchronizeObject(myMain.getRootModel());
-         dialog.addWindowListener(new WindowAdapter() {
-            public void windowClosed(WindowEvent e) {
-               myPullControllerPropertyDialog = null;
-            }
-         });
-         myMain.registerWindow(dialog);
-         myPullControllerPropertyDialog = dialog;
-         dialog.pack();
-         dialog.setVisible(true);
-      }
-   }
-
-   private void showPullControllerRenderPropsDialog() {
-      if (myPullControllerRenderPropsDialog == null) {
-         PullController pc = myMain.getPullController();
-         LinkedList<HasProperties> list = new LinkedList<HasProperties>();
-         list.add(pc);
-         RenderPropsDialog dialog =
-         new RenderPropsDialog("Edit render properties", list);
-         dialog.locateRight(myMain.getFrame());
-         //dialog.setSynchronizeObject(myMain.getRootModel());
-         dialog.setTitle("RenderProps for PullController");
-         dialog.addWindowListener(new WindowAdapter() {
-            public void windowClosed(WindowEvent e) {
-               myPullControllerRenderPropsDialog = null;
-            }
-         });
-         myMain.registerWindow(dialog);
-         myPullControllerRenderPropsDialog = dialog;
-         dialog.pack();
-         dialog.setVisible(true);
-      }
-   }
-
    private void doLoadModelSafely(ModelScriptInfo mi) {
 //      // Collect as much possible space before loading another model
 //      if (myMain.getScheduler().isPlaying()) {
@@ -1696,12 +1652,6 @@ ModelScriptActionListener {
       else if (cmd.equals("Mouse ...")) {
          openMouseSettingsDialog();
       }
-      else if (cmd.equals("PullController properties ...")) {
-         showPullControllerPropertyDialog();
-      }
-      else if (cmd.equals("PullController render props ...")) {
-         showPullControllerRenderPropsDialog();
-      }
       //
       // View menu
       //
@@ -1965,6 +1915,11 @@ ModelScriptActionListener {
 
    private void createModeSelectionToolbar() {
       modeSelectionToolbar = new SelectionToolbar(myMain);
+      // XXX property hosts should not be set here!!!
+      modeSelectionToolbar.setModePropertyHost (
+         SelectionMode.Pull, myMain.getPullController());
+      modeSelectionToolbar.setModePropertyHost (
+         SelectionMode.Measure, myMain.getMeasurementTool());
    }
 
    public void attachModeSelectionToolbar(JPanel panel) {
@@ -2258,17 +2213,6 @@ ModelScriptActionListener {
          menu, "Startup model ...", null,
          "Edit the model (if any) which is loaded at startup");
       item.setEnabled (!isWindowOpen (myStartupModelEditor));
-
-      JMenu submenu = new JMenu("PullController");
-      menu.add(submenu);
-
-      item = addMenuItem(
-         submenu, "properties ...", "PullController properties ...");
-      item.setEnabled(myPullControllerPropertyDialog == null);
-
-      item = addMenuItem(
-         submenu, "render props ...", "PullController render props ...");
-      item.setEnabled(myPullControllerRenderPropsDialog == null);
 
       ViewerManager vm = myMain.getViewerManager();
       if (vm.getSelectionHighlightStyle() == HighlightStyle.COLOR) {

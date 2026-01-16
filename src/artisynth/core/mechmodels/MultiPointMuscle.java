@@ -43,12 +43,13 @@ public class MultiPointMuscle extends MultiPointSpring
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;
 
-   // muscle type determines force-length characteristics
-   protected boolean enabled = true;
-   private static final Color disabledLineColor = Color.LIGHT_GRAY;
-   private static final LineStyle disabledLineStyle = LineStyle.LINE;
-   private Color enabledLineColor = null;
-   private LineStyle enabledLineStyle = null;
+   protected Color getDisabledLineColor() {
+      return Color.LIGHT_GRAY;
+   }
+   
+   protected LineStyle getDisabledLineStyle() {
+      return LineStyle.LINE;
+   }
    
    protected double myExcitation; // default = 0.0;
 
@@ -160,7 +161,6 @@ public class MultiPointMuscle extends MultiPointSpring
    }
 
    static {
-      myProps.add ("enabled isEnabled *", "muscle is enabled", true);
       myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1]");
       myProps.addReadOnly (
          "netExcitation", "total excitation including excitation sources");
@@ -362,29 +362,13 @@ public class MultiPointMuscle extends MultiPointSpring
 
    /**
     * Computes the force magnitude acting along the unit vector from the first
-    * to the second particle.
-    * 
-`    * @return force magnitude
-    */
-   public double computeF (double l, double ldot) {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-         return mat.computeF (l, ldot, myRestLength, getNetExcitation());
-      }
-      else {
-         return 0;
-      }
-   }
-   
-   /**
-    * Computes the force magnitude acting along the unit vector from the first
     * to the second particle with zero excitation.
     * 
     * @return force magnitude
     */
    public double computePassiveF (double l, double ldot) {
       AxialMaterial mat = getEffectiveMaterial();
-      if (!enabled) {
+      if (!myEnabledP) {
          return 0;
       }
       if (mat instanceof EquilibriumAxialMuscle) {
@@ -399,43 +383,6 @@ public class MultiPointMuscle extends MultiPointSpring
          return 0;
       }
    }
-
-   /**
-    * Computes the derivative of spring force magnitude (acting along the unit
-    * vector from the first to the second particle) with respect to spring
-    * length.
-    * 
-    * @return force magnitude derivative with respect to length
-    */
-   public double computeDFdl (double l, double ldot) {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-         return mat.computeDFdl (l, ldot, myRestLength, getNetExcitation());
-      }
-      else {
-         return 0;
-      }
-   }
-
-
-
-   /**
-    * Computes the derivative of spring force magnitude (acting along the unit
-    * vector from the first to the second particle)with respect to the time
-    * derivative of spring length.
-    * 
-    * @return force magnitude derivative with respect to length time derivative
-    */
-   public double computeDFdldot (double l, double ldot) {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-         return mat.computeDFdldot (l, ldot, myRestLength, getNetExcitation());
-      }
-      else {
-         return 0;
-      }
-   }
-
 
    /**
     * sets the opt length to current muscle length and max length with the
@@ -482,49 +429,6 @@ public class MultiPointMuscle extends MultiPointSpring
       super.scaleMass (s);
 //      forceScaling *= s;
    }
-
-   public int getJacobianType() {
-      return Matrix.SYMMETRIC;
-   }
-
-   public boolean isEnabled() {
-      return enabled;
-   }
-
-   public void setEnabled (boolean enabled) {
-      if (this.enabled != enabled) {
-	 this.enabled = enabled;
-	 updateLineRenderProps(enabled);
-      }
-   }
-   
-   private void updateLineRenderProps(boolean enabled) {
-      if (enabled) {
-	 if (enabledLineColor == null)
-	    RenderProps.setLineColorMode(this, PropertyMode.Inherited);
-	 else
-	    RenderProps.setLineColor(this, enabledLineColor);
-	 
-	 if (enabledLineStyle == null) 
-	    RenderProps.setLineStyleMode(this, PropertyMode.Inherited);
-	 else
-	    RenderProps.setLineStyle(this, enabledLineStyle);	 
-      }
-      else {
-	 if (getRenderProps() != null && 
-	     getRenderProps().getLineColorMode() == PropertyMode.Explicit)
-	    enabledLineColor = getRenderProps().getLineColor();
-	 
-	 if (getRenderProps() != null && 
-	     getRenderProps().getLineStyleMode() == PropertyMode.Explicit) 
-	    enabledLineStyle = getRenderProps().getLineStyle();
-	 
-	 RenderProps.setLineColor(this, disabledLineColor);
-	 RenderProps.setLineStyle(this, disabledLineStyle);
-      }
-	 
-   }
-
 
 //   public double getMaxForce() {
 //      if (myMaterial instanceof AxialMuscleMaterial) {

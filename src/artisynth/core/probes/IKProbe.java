@@ -58,7 +58,7 @@ public class IKProbe extends NumericControlProbe {
    }
 
    public IKProbe (
-      String name, MechModel mech, Collection<FrameMarker> mkrs,
+      String name, MechModel mech, Collection<? extends Marker> mkrs,
       VectorNd wgts, double startTime, double stopTime) {
       mySolver = new IKSolver (mech, mkrs, wgts);
       if (name != null) {
@@ -72,7 +72,7 @@ public class IKProbe extends NumericControlProbe {
    }
 
    public IKProbe (
-      String name, MechModel mech, Collection<FrameMarker> mkrs,
+      String name, MechModel mech, Collection<? extends Marker> mkrs,
       VectorNd wgts, String fileName) throws IOException {
       if (fileName == null) {
          throw new IllegalArgumentException ("null fileName");
@@ -258,7 +258,7 @@ public class IKProbe extends NumericControlProbe {
    private VectorNd getCurrentMarkerValues() {
       VectorNd vals = new VectorNd (3*mySolver.numMarkers());
       int k = 0;
-      for (FrameMarker mkr : mySolver.getMarkers()) {
+      for (Marker mkr : mySolver.getMarkers()) {
          vals.setSubVector (k*3, mkr.getPosition());
          k++;
       }
@@ -318,7 +318,7 @@ public class IKProbe extends NumericControlProbe {
     *
     * @return markers used by this probe
     */
-   public ArrayList<FrameMarker> getMarkers() {
+   public ArrayList<Marker> getMarkers() {
       return mySolver.getMarkers();
    }
 
@@ -335,7 +335,7 @@ public class IKProbe extends NumericControlProbe {
    protected Object[] getPropsOrDimens () {
       Object[] props = new Object[mySolver.numMarkers()];
       int k = 0;
-      for (FrameMarker mkr : getMarkers()) {
+      for (Marker mkr : getMarkers()) {
          props[k++] = mkr.getProperty ("position");
       }
       return props;

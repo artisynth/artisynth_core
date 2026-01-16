@@ -1,5 +1,8 @@
 package artisynth.core.mechmodels;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +24,10 @@ import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.NumericState;
+import artisynth.core.util.ArtisynthIO;
 import maspack.matrix.*;
+import maspack.render.RenderableUtils;
+import maspack.util.*;
 import maspack.matrix.Point3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseBlockSignature;
@@ -30,12 +36,15 @@ import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
 import maspack.solvers.KKTSolver;
 import maspack.spatialmotion.SpatialInertia;
+import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 
 /**
  * Base for classes that perform static constraint-based solves on a set of
  * rigid bodies contained within a MechModel.
  */
 public abstract class StaticRigidBodySolver {
+
+   public boolean debug;
 
    /**
     * Information about the rigid bodies associated with this solve
@@ -75,6 +84,7 @@ public abstract class StaticRigidBodySolver {
    protected ArrayList<BodyInfo> mySortedBodyInfo; // bodies sorted by solve index
    // constrainers acting on bodies:
    protected ArrayList<BodyConstrainer> myConstrainers; 
+   protected ArrayList<JointCoordinateHandle> myCoordHandles; 
    protected int[] myBodyVelSizes;   // velocity vector size for each body
    protected int myTotalVelSize;     // velocity vector size for all active bodies
    protected int myTotalPosSize;     // position vector size for all active bodies
@@ -108,12 +118,148 @@ public abstract class StaticRigidBodySolver {
    protected VectorNd myRn = new VectorNd();
    protected VectorNd myBn = new VectorNd();
    protected VectorNd myThe = new VectorNd();
+   protected double myPenetrationTol = -1;
 
    // KKT system solver used for the computations
    protected KKTSolver myKKTSolver;
 
    private double myModelSize = -1; // characteristic size of the model
    private boolean myGroundedP;     // at least one body is connected to ground
+
+   /* --- parameters and attributes for different solution methods --- */
+
+   // Scale Levenburg Marquart damping factor by the matrix diagonal
+   protected static final boolean myScaleLmDamping = true;
+   protected double myLmDamping;  // Levenberg Marquardt damping paramater
+   
+   /**
+    * Queries the explicit penetration tolerance that can be set for unilateral
+    * constraints. A value of -1 indicates thet no explicit tolerance is set.
+    * 
+    * @return explicit penetration tolerance, or -1
+    */
+   protected double getPenetrationTolerance() {
+      return myPenetrationTol;
+   }
+   
+   /**
+    * Sets an explicit penetration tolerance to use for unilateral constraints.
+    * A negative value removes any explicit penetration tolerance. If an
+    * explicit tolerance is not set, the solver uses the tolerances specified
+    * by the body constrainers.
+    * 
+    * @param tol if {@code >= 0}, specifies an explicit penetration tolerance
+    */
+   protected void setPenetrationTolerance (double tol) {
+      myPenetrationTol = (tol < 0 ? -1 : tol);
+   }
+   
+   /**
+    * Increases the damping factor for the Levenberg Marquardt strategy.
+    */
+   protected void increaseLMDamping (double s, double min, double max) {
+      double lmd = myLmDamping;
+      double lmdnew;
+      if (lmd == 0) {
+         lmdnew = min;
+      }
+      else {
+         lmdnew = Math.min (max, s*lmd);
+      }
+      if (debug && lmdnew != lmd) {
+         System.out.printf ("      LMD UP %g\n", lmdnew);
+      }
+      myLmDamping = lmdnew;
+   }
+
+   /**
+    * Decreases the damping factor for the Levenberg Marquardt strategy.
+    */
+   protected void decreaseLMDamping (double s, double min) {
+      double lmd = myLmDamping;
+      double lmdnew = s*lmd;
+      if (lmdnew < min) {
+         lmdnew = 0;
+      }
+      if (debug && lmdnew != lmd) {
+         System.out.printf ("      LMD DOWN %g\n", lmdnew);
+      }
+      myLmDamping = lmdnew;
+   }
+
+   /**
+    * Compute a dot product for dq that is weighted model size
+    */
+   protected double computeDqDot (VectorNd dq0, VectorNd dq1) {
+      double dot = 0;
+      double weight = sqr(1/getModelSize());
+      for (int i=0; i<dq0.size(); i++) {
+         double prod = dq0.get(i)*dq1.get(i);
+         if ((i/3)%2 == 0) {
+            // translation components - apply weighting
+            prod *= weight;
+         }
+         dot += prod;
+      }
+      return dot;
+   }
+
+   /**
+    * Compute the average 'cosine' between two dq vectors
+    */
+   protected double computeDqCos (VectorNd dq0, VectorNd dq1) {
+      double dot = computeDqDot (dq0, dq1);
+      double norm0 = computeDqNorm(dq0);
+      double norm1 = computeDqNorm(dq1);
+      if (norm0 != 0 && norm1 != 0) {
+         // also have to divide by dq.size since each norm is itself divided by
+         // sqrt(dq.size()) to try and it independent of the vector size
+         return dot/(norm0*norm1*dq0.size());
+      }
+      else {
+         return 0;
+      }
+   }
+
+   /**
+    * Compute the maximum angle deviation in dq.
+    */
+   protected double computeDqAng (VectorNd dq) {
+      double maxAng = 0;
+      for (int i=0; i<dq.size(); i++) {
+         if ((i/3)%2 != 0) {
+            // angular data
+            double ang = dq.get(i);
+            if (ang > maxAng) {
+               maxAng = ang;
+            }
+         }
+      }
+      return maxAng;
+   }
+
+   /**
+    * Adds the Levenberg Marquardt scaling term to a specific block of the
+    * Hessian.
+    */
+   protected void addLMDampingTerm (Matrix6dBlock blk, double lambda) {
+      if (myScaleLmDamping) {
+         blk.m00 += lambda*blk.m00;
+         blk.m11 += lambda*blk.m11;
+         blk.m22 += lambda*blk.m22;
+         blk.m33 += lambda*blk.m33;
+         blk.m44 += lambda*blk.m44;
+         blk.m55 += lambda*blk.m55;
+      }
+      else {
+         blk.m00 += lambda;
+         blk.m11 += lambda;
+         blk.m22 += lambda;
+         blk.m33 += lambda;
+         blk.m44 += lambda;
+         blk.m55 += lambda;
+      }
+   }
 
    protected double sqr (double x) {
       return x*x;
@@ -199,6 +345,20 @@ public abstract class StaticRigidBodySolver {
    }
 
    /**
+    * Returns the coordinate handles for all the joints used by this solver.
+    * Joints have the same ordering as they do in the list returned by {@link
+    * #getConstrainers}.
+    *
+    * @return coordinate handles for joint associated with this solver
+    */
+   public ArrayList<JointCoordinateHandle> getCoordinateHandles() {
+      updateBodiesAndConnectors();
+      ArrayList<JointCoordinateHandle> handles = new ArrayList<>();
+      handles.addAll (myCoordHandles);
+      return handles;
+   }
+
+   /**
     * Returns a characteristic size for the model. Used to determine
     * convergence tolerances.
     */
@@ -223,19 +383,7 @@ public abstract class StaticRigidBodySolver {
     * convergence tolerances.
     */
    protected double computeModelSize() {
-      Point3d min = new Point3d (INF, INF, INF);
-      Point3d max = new Point3d (-INF, -INF, -INF);
-      for (BodyInfo binfo : getBodyInfo()) {
-         binfo.myBody.updateBounds (min, max);
-      }
-      double diag = max.distance(min);
-      if (diag == 0) {
-         // paranoid - just in case
-         return 1.0;
-      }
-      else {
-         return diag/2;
-      }
+      return RenderableUtils.getRadius (myMech);
    }
 
    /**
@@ -282,7 +430,7 @@ public abstract class StaticRigidBodySolver {
    protected SparseNumberedBlockMatrix createSolveMatrix() {
       SparseNumberedBlockMatrix S = new SparseNumberedBlockMatrix();
       for (int i=0; i<numBodies(); i++) {
-         SpatialInertia blk = new SpatialInertia();
+         Matrix6dBlock blk = new Matrix6dBlock();
          S.addBlock (i, i, blk);
       }
       return S;
@@ -391,6 +539,11 @@ public abstract class StaticRigidBodySolver {
       for (BodyConstrainer bcon : myConstrainers) {
          idx = bcon.addUnilateralConstraints (NT, dn, idx, mySolveIndexMap);
       }
+      if (myNT.colSize() != myNsize) {
+         throw new InternalErrorException (
+            "NT.colSize "+myNT.colSize()+" != expected Nsize "+myNsize);
+      }
+      
       // XXX not sure if we need to reduce any attachments ...
       // for (DynamicAttachment a : getAttachments()) {
       //    myAttachmentWorker.reduceConstraints (a, NT, dn, false);
@@ -412,6 +565,9 @@ public abstract class StaticRigidBodySolver {
       for (BodyConstrainer bcon : myConstrainers) {
          bcon.getUnilateralSizes (myNsizes);
       }
+      if (debug) {
+         System.out.println ("myNsizes=" + myNsizes);
+      }
       myNsize = myNsizes.sum();
       myBn.setSize (myNsize);
       myRn.setSize (myNsize);
@@ -419,8 +575,26 @@ public abstract class StaticRigidBodySolver {
       if (myNsize > 0) {
          ensureNInfoCapacity (myNsize);
          int idx = 0;
+         boolean addTol = (myPenetrationTol < 0);
          for (BodyConstrainer bcon : myConstrainers) {
-            idx = bcon.getUnilateralInfo (myNInfo, idx);
+            idx = bcon.getUnilateralInfo (myNInfo, idx, addTol);
+         }
+         if (myPenetrationTol > 0) {
+            for (idx=0; idx<myNsize; idx++) {
+               ConstraintInfo ni = myNInfo[idx];
+               if (ni.dist < 0) {
+                  double tol = 0;
+                  if (ni.motionType == MotionType.ROTARY) {
+                     tol = 2*Math.PI*myPenetrationTol;
+                  }
+                  else {
+                     tol = myPenetrationTol*getModelSize();
+                  }
+                  if (ni.dist >= -tol) {
+                     ni.dist = 0;
+                  }
+               }
+            }
          }
          for (idx=0; idx<myNsize; idx++) {
             myBn.set (idx, -myNInfo[idx].dist);
@@ -775,23 +949,44 @@ public abstract class StaticRigidBodySolver {
          }
       }
 
+      setBodiesAndConstrainers (bodySet, constrainerSet);
+
+      setModelSize (-1);
+      mySolveMatrix = createSolveMatrix();
+   }
+
+   public void setBodiesAndConstrainers (
+      Collection<RigidBody> bodies, 
+      Collection<? extends BodyConstrainer> constrainers) {
       // store constrainer information
+      
       myConstrainers = new ArrayList<>();
-      myConstrainers.addAll (constrainerSet);
+      myConstrainers.addAll (constrainers);
+
+      // collect joint handles
+      myCoordHandles = new ArrayList<>();
+      for (BodyConstrainer bcon : myConstrainers) {
+         if (bcon instanceof JointBase) {
+            JointBase joint = (JointBase)bcon;
+            for (int idx=0; idx<joint.numCoordinates(); idx++) {
+               myCoordHandles.add (new JointCoordinateHandle (joint, idx));
+            }
+         }
+      }
 
       // store information about each body
       myBodyInfo = new ArrayList<>();
       int idx = 0;
-      for (RigidBody body : bodySet) {
+      for (RigidBody body : bodies) {
          BodyInfo binfo = new BodyInfo (body);
          binfo.myIndex = idx++;
          binfo.myDynamic = body.isDynamic();
          myBodyInfo.add (binfo);
       }
       setModelSize (-1);
-      mySolveMatrix = createSolveMatrix();
+      mySolveMatrix = createSolveMatrix();      
    }
-
+      
    /**
     * Sets the {@code dynamic} property of all the bodies associated
     * with this solver.
@@ -834,5 +1029,4 @@ public abstract class StaticRigidBodySolver {
          binfo.myBody.updateAttachmentPosStates();
       }
    }
-
 }

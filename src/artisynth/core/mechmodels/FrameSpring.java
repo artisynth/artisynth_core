@@ -91,6 +91,9 @@ public class FrameSpring extends Spring
    protected RigidTransform3d myRenderFrame = new RigidTransform3d();
    protected float[] myRenderPnt1 = new float[3];
    protected float[] myRenderPnt2 = new float[3];
+
+   public static final boolean DEFAULT_ENABLED = true;
+   protected boolean myEnabledP = DEFAULT_ENABLED;
    
    protected static final boolean DEFAULT_DRAW_FRAME_D = true;
    protected boolean myDrawFrameD = DEFAULT_DRAW_FRAME_D;
@@ -120,6 +123,10 @@ public class FrameSpring extends Spring
 
    static {
       myProps.add ("renderProps * *", "renderer properties", null);
+      myProps.add (
+         "enabled isEnabled",
+         "enables or disables the force producing ability of this spring",
+         DEFAULT_ENABLED);
       myProps.add ("attachFrameA * *", "attachment for FrameA",
                    RigidTransform3d.IDENTITY);
       myProps.add ("attachFrameB * *", "attachment for FrameB",
@@ -175,6 +182,29 @@ public class FrameSpring extends Spring
       super (name);
       setRenderProps (createRenderProps());
       setMaterial (mat);
+   }
+
+    /* ---- property accessors ---- */
+
+   /**
+    * Queries whether this spring is enabled.
+    *
+    * @return {@code true} if this spring is enabled
+    */
+   public boolean isEnabled() {
+      return myEnabledP;
+   }
+
+   /**
+    * Sets whether or not this spring is enabled. A disabled spring
+    * produces no force.
+    *
+    * @param enabled if {@code true}, enables this spring
+    */
+   public void setEnabled (boolean enabled) {
+      if (myEnabledP != enabled) {
+	 myEnabledP = enabled;
+      }
    }
 
    public double getAxisLength() {
@@ -616,14 +646,20 @@ public class FrameSpring extends Spring
 
       FrameMaterial mat = myMaterial;
 
-      if (mat != null) { // just in case implementation allows null material ...
+      if (myEnabledP && mat != null) {
          computeRelativeDisplacements();
          mat.computeF (myF, myTD, myVel20, myRestPose);
+      }
+      else {
+         myF.setZero();
       }
    }
     
    public void applyForces (double t) {
       computeForces();
+      if (!myEnabledP) {
+         return;
+      }
 
       Wrench fA = new Wrench();
       Wrench fB = new Wrench();
@@ -877,7 +913,7 @@ public class FrameSpring extends Spring
    public void addPosJacobianWorld (SparseNumberedBlockMatrix M, double s) {
 
       FrameMaterial mat = myMaterial;
-      if (mat == null) {
+      if (!myEnabledP || mat == null) {
          // just in case implementation allows null material ...
          return;
       }
@@ -1104,7 +1140,7 @@ public class FrameSpring extends Spring
    public void addVelJacobianWorld (SparseNumberedBlockMatrix M, double s) {
 
       FrameMaterial mat = myMaterial;
-      if (mat == null) {
+      if (!myEnabledP || mat == null) {
          // just in case implementation allows null material ...
          return;
       }
@@ -1244,7 +1280,7 @@ public class FrameSpring extends Spring
    public void getForce (VectorNd minf, boolean staticOnly) {
       minf.setSize (6);
       FrameMaterial mat = myMaterial;
-      if (mat != null) { // just in case implementation allows null material ...
+      if (myEnabledP && mat != null) {
          computeRelativeDisplacements();
          if (!staticOnly) {
             mat.computeF (myF, myTD, myVel20, myRestPose);
@@ -1295,7 +1331,7 @@ public class FrameSpring extends Spring
       Matrix6dBlock blk01 = getOrCreateBlock (J, myFrameB, bi);
       FrameMaterial mat = myMaterial;
       double sd = staticOnly ? 0.0 : h;
-      if (mat != null) {
+      if (myEnabledP && mat != null) {
          // just in case implementation allows null material ...
          computePosJacobianWorld (
             mat, h, sd, blk00, blk01, null, null, /*symmetric=*/false);
@@ -1309,7 +1345,7 @@ public class FrameSpring extends Spring
       Matrix6dBlock blk00 = getOrCreateBlock (J, myFrameA, bi);
       Matrix6dBlock blk01 = getOrCreateBlock (J, myFrameB, bi);
       FrameMaterial mat = myMaterial;
-      if (mat != null) {
+      if (myEnabledP && mat != null) {
          computeVelJacobianWorld (mat, h, blk00, blk01, null, null);
       }
       return bi++;
@@ -1484,7 +1520,10 @@ public class FrameSpring extends Spring
    }
 
    public int getJacobianType() {
-      if (mySymmetricJacobian) {
+      if (!myEnabledP) {
+         return Matrix.SPD;
+      }
+      else if (mySymmetricJacobian) {
          return Matrix.SYMMETRIC;
       }
       else {

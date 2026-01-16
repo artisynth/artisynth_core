@@ -20,11 +20,11 @@ CompositeComponent {
    public boolean add (C comp);
 
    /**
-    * Adds a set of components to this MutableCompositeComponent. This routine is
-    * intended to provide greater efficiency than adding a large number of
+    * Adds a set of components to this MutableCompositeComponent. This routine
+    * is intended to provide greater efficiency than adding a large number of
     * components at one time. If the argument <code>indices</code> is not
-    * null, it specified the index locations at which the components should be
-    * added. It is up to the caller to insure that the specified index values
+    * null, it specifies the index locations at which the components should be
+    * added. It is up to the caller to ensure that the specified index values
     * make sense; in particular, they must not exceed the final size of the
     * component and no two specified indices can be the same.
     * 
@@ -38,8 +38,8 @@ CompositeComponent {
    public void addComponents (ModelComponent[] comps, int[] indices, int num);
 
    /**
-    * Removes a component from this MutableCompositeComponent, returning true if the
-    * componet was in fact found and removed.
+    * Removes a component from this MutableCompositeComponent, returning true
+    * if the component was in fact found and removed.
     * 
     * @param comp
     * component to be added

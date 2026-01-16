@@ -375,6 +375,48 @@ public class TRCReader {
    }
 
    /**
+    * Reads the TRC data from the file or input stream, and scales the marker
+    * positions by {@code scale}. Must be called after the reader is created in
+    * order actually read in the data.
+    *
+    * @param scale scale factor for the marker positions
+    */
+   public void readData (double scale) throws IOException {
+      readData();
+      scaleMarkerPositions (scale);
+   }
+
+   /**
+    * Uniformly scale the marker positions that have been read. This is most
+    * commonly used to change units (e.g., from mm to meters).
+    *
+    * @param s scale factor
+    */
+   public void scaleMarkerPositions (double s) {
+      myMotionData.scaleMarkerPositions (s);
+   }
+
+   /**
+    * Transform the marker positions that have been read.
+    *
+    * @param X rigid or affine transform to apply to the marker positions
+    */
+   public void transformMarkerPositions (AffineTransform3dBase X) {
+      myMotionData.transformMarkerPositions (X);
+   }
+
+   /**
+    * Transform the frame times that have been read, such that the new frame
+    * times are given by {@code s t + b}.
+    *
+    * @param s scale factor
+    * @param b offset
+    */
+   public void transformFrameTimes (double s, double b) {
+      myMotionData.transformFrameTimes (s, b);      
+   }
+
+   /**
     * If the reader was created with an input stream instead of a file, closes
     * the input stream. (Streams created for files are closed automatically
     * inside {@link readData}.

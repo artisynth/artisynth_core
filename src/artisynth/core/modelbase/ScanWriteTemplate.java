@@ -9,6 +9,7 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import maspack.matrix.Vector3d;
+import maspack.matrix.RigidTransform3d;
 import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
 
@@ -19,6 +20,7 @@ import maspack.util.NumberFormat;
 public class ScanWriteTemplate extends ModelComponentBase {
 
    ModelComponent myRefComp;
+   RigidTransform3d myTBW;
    ArrayList<RenderableComponent> myRenderables;
    Vector3d myVec = new Vector3d();
    double myScalar = 0;
@@ -39,6 +41,8 @@ public class ScanWriteTemplate extends ModelComponentBase {
          pw.println (
             "refComp="+ComponentUtils.getWritePathName (ancestor,myRefComp));
       }
+      int transFormat = RigidTransform3d.MATRIX_3X4_STRING;
+      pw.println ("TBW=" + myTBW.toString (fmt, transFormat));
       pw.print ("renderables=");
       ScanWriteUtils.writeBracketedReferences (pw, myRenderables, ancestor);
       pw.print ("vec=");
@@ -58,6 +62,10 @@ public class ScanWriteTemplate extends ModelComponentBase {
       }
       else if (ScanWriteUtils.scanAndStoreReferences (
                   rtok, "renderables", tokens) != -1) {
+         return true;
+      }
+      else if (scanAttributeName (rtok, "TBW")) {
+         myTBW.scan (rtok);
          return true;
       }
       else if (scanAttributeName (rtok, "vec")) {

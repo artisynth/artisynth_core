@@ -141,24 +141,6 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
       return myPrototypeMap;
    }
 
-   // void installLocationListener()
-   // {
-   // super.installLocationListener();
-   // myViewerManager.setSelectionEnabled (true);
-   // mySelectionManager.setMaximumSelections (1);
-   // installSelectionFilter (new BodyFilter());
-   // }
-
-   // void uninstallLocationListener()
-   // {
-   // if (myLocationListener != null)
-   // {
-   // mySelectionManager.setMaximumSelections (-1);
-   // uninstallSelectionFilter();
-   // super.uninstallLocationListener();
-   // }
-   // }
-
    private Point3d rayIntersectsBody (
       RigidBody body, MouseRayEvent rayEvent, DoubleHolder minDist) {
       if (body.getSurfaceMesh() != null) {
@@ -204,14 +186,6 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
          nearestIntersection.inverseTransform (nearestBody.getPose());
          createAndAddMarker (nearestIntersection, nearestBody);
       }
-      // if (myBody.getMesh() != null)
-      // {
-      // Point3d isectPoint =
-      // EditorUtils.intersectWithMesh(myBody.getMesh(), rayEvent);
-      // if (isectPoint != null)
-      // { createAndAddMarker (isectPoint, myBody);
-      // }
-      // }
    }
 
    protected void createAndAddMarker (Point3d pnt, Frame frame) {
@@ -233,24 +207,3 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
    }
 
 }
-
-// class FrameMarkerList extends ComponentListWidget<FrameMarker>
-// {
-// FrameMarkerList (
-// ComponentListView<FrameMarker> list, CompositeComponent ancestor)
-// {
-// super (list, ancestor);
-// }
-
-// @Override
-// protected String getName (
-// FrameMarker comp, CompositeComponent ancestor)
-// {
-// Point pointA = comp.getFirstPoint();
-// Point pointB = comp.getSecondPoint();
-// return
-// CompositeUtils.getPathName(ancestor, pointA) + " - " +
-// CompositeUtils.getPathName(ancestor, pointB);
-// }
-// }
-

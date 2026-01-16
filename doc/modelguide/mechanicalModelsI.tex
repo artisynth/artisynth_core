@@ -2016,7 +2016,7 @@ queried or set using the following methods:
   getCoordinates (VectorNd coords)      // get all coordinates values
 
   setCoordinate (int idx, double value) // set coordinate value with index idx
-  setCoordinates (VectorNd values)      // set all coordinates values
+  setCoordinates (VectorNd values)      // set all coordinate values
 \end{lstlisting}
 %
 
@@ -2047,6 +2047,13 @@ particularly in GUI applications, the properties and methods for
 controlling specific angular coordinates generally use degrees instead
 of radians.
 
+\begin{sideblock}
+It is recommended to call {\tt setCoordinate} methods only {\it after} a joint
+has been added to its {\tt MechModel}, in order to ensure that other bodies in
+its articulated structure, together with any muscle wrap paths
+(Chapter \ref{multipointSpringIntro:sec}), are updated appropriately.
+\end{sideblock}
+
 As discussed in Section \ref{JointCoordinates:sec}, unlike in some
 multibody simulation systems (such as OpenSim), joint coordinates are
 {\it not} fundamental quantities that describe system state. As such,
@@ -2059,6 +2066,13 @@ However, if this is done during simulation, and particularly if one or
 both of the bodies connected to the joint are moving dynamically, the
 results will be unpredictable and will likely conflict with the
 simulation.
+
+\begin{sideblock}
+Coordinate setting is discussed in greater detail in Section
+\ref{SettingCoordinates:sec}, along with the
+\javaclass[\mech]{CoordinateSetter} class that can be 
+used to set coordinate values across several joints simultaneously.
+\end{sideblock}
 
 If a joint has been created with its default constructor and not yet
 attached to any bodies, then setting joint values will simply set the
@@ -2311,6 +2325,94 @@ RigidBodyJoint} from the {\sf Models} menu. The model should load and
 initially appear as in Figure \ref{RigidBodyJoint:fig}.  Running the
 model (Section \ref{LoadingAndRunning:sec}) will cause {\tt bodyA} to
 fall and swing under gravity.
+
+\subsection{Joint coordinate handles}
+\label{JointCoordinateHandles:sec}
+
+The class \javaclass[\mech]{JointCoordinateHandle} is a convenience class that
+encapsulates access to a single coordinate by containing both its joint and
+index within that joint. It can be easily constructed as follows,
+%
+\begin{lstlisting}[]
+   JointBase joint; // joint containing the coordinate
+   int idx;  // coordinate index within the joint
+   ...
+   JointCoordinateHandle handle = new JointCoordinateHandle (joint, idx);
+\end{lstlisting}
+%
+add offers a number of methods to directly access coordinate properties:
+
+%
+\begin{methodtable}{0.42}{0.58}
+\midline
+%
+\methodentry
+{\mech.JointCoordinateHandle.getValue()}%
+{double getValue()}%
+{Returns the value (in radians for rotary coordinates).}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.getValueDeg()}%
+{double getValueDeg()}%
+{Returns the value (in degrees for rotary coordinates).}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.getName()}%
+{String getName()}%
+{Queries the coordinate's name.}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.getJoint()}%
+{JointBase getJoint()}%
+{Returns the coordinate's joint.}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.getIndex()}%
+{int getIndex()}%
+{Queries the coordinate's index within the joint.}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.getMotionType()}%
+{MotionType getMotionType()}%
+{Queries the coordinate's motion type.}%
+%
+\methodspace{0.5em}%
+\methodentry
+{\mech.JointCoordinateHandle.getValueRange()}%
+{DoubleInterval getValueRange()}%
+{Returns the range (in radians for rotary coordinates).}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.setValueRange()}%
+{void setValueRange(DoubleInterval range)}%
+{Sets the range (in radians for rotary coordinates).}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.getValueRangeDeg()}%
+{DoubleInterval getValueRangeDeg()}%
+{Returns the coordinate's range (in degrees for rotary coordinates).}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.setValueRangeDeg()}%
+{void setValueRangeDeg(DoubleInterval range)}%
+{Sets the range (in degrees for rotary coordinates).}%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.isLocked()}%
+{boolean isLocked()}%
+{Queries whether the coordinate is locked.}%
+%
+\methodentry
+{\mech.JointCoordinateHandle.setLocked(boolean)}%
+{void setLocked (boolean locked)}%
+{Sets whether the coordinate is locked.}%
+%
+%\brh
+\midline
+\end{methodtable}
+%
 
 \subsection{Constraint forces}
 
@@ -4217,6 +4319,306 @@ initially appear as in Figure \ref{MultiJointedArm:fig}.  Running the model
 will cause the links to fall under gravity.  Forces can also be interactively
 applied using the pull tool (see the section ``Pull Manipulation'' in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
+
+\section{Setting joint coordinates}
+\label{SettingCoordinates:sec}
+
+As mentioned above, joint coordinate values are not fundamental representations
+of system state as they are in some other multibody systems, such as OpenSim.
+This means that they need to be inferred from the relative poses of the bodies
+connected by their joints. It also means that when setting the values for one
+or more coordinates, the poses of the surrounding bodies must be updated.  In
+addition, it usually necessary to also update the wrap paths of any
+\javaclass[\mech]{MultiPointSpring} or
+\javaclass[\mech]{MultiPointMuscle} components attached to the bodies.
+This functionality is provided by the
+\javaclass[\mech]{CoordinateSetter} class.
+
+\subsection{Using the CoordinateSetter}
+
+A {\tt CoordinateSetter} is associated with a {\tt MechModel} and can be
+created as follows:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   ...
+   CoordinateSetter csetter = new CoordinateSetter(mech);
+\end{lstlisting}
+%
+A {\tt MechModel} also maintains its own coordinate setter, which can be
+obtained as follows:
+%
+\begin{lstlisting}[]
+   CoordinateSetter csetter = mech.getCoordinateSetter();
+\end{lstlisting}
+%
+Once instantiated or obtained, the setter can be used to set coordinate values
+while ensuring that surrounding body poses and spring/muscle wrap surfaces are
+updated appropriately. It also handles situations involving closed kinematic
+chains where not all coordinate values are independent.  Coordinate values can
+be set individually via the following methods:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech.CoordinateSetter.setCoordinate(,)}%
+{SetStatus setCoordinate (\brh JointCoordinateHandle handle, double value)}%
+{Set coordinate described by {\tt handle} to {\tt value} 
+(in radians for rotary coordinates).}%
+%
+\methodentry
+{\mech.CoordinateSetter.setCoordinate(,)}%
+{SetStatus setCoordinate (\brh JointBase joint, int cidx, double value)}%
+{Set coordinate described by {\tt joint} and {\tt cidx} 
+to {\tt value} (in radians for rotary coordinates).}%
+%
+\methodentry
+{\mech.CoordinateSetter.setCoordinateDeg(,)}%
+{SetStatus setCoordinateDeg (\brh JointCoordinateHandle handle, double value)}%
+{Set coordinate to described by {\tt handle} {\tt value} 
+(in degrees for rotary coordinates).}%
+%
+\methodentry
+{\mech.CoordinateSetter.setCoordinateDeg(,)}%
+{SetStatus setCoordinateDeg (\brh JointBase joint, int cidx, double value)}%
+{Set coordinate described by {\tt joint} and {\tt cidx} to {\tt value} 
+(in degrees for rotary coordinates).}%
+%
+\midline
+\end{methodtable}
+%
+Coordinates can be specified using either
+a \javaclass[\mech]{JointCoordinateHandle} {\tt handle}
+(Section \ref{JointCoordinateHandles:sec}), or their joint and its index within
+it.  Each method returns a \javaclass[\mech]{CoordinateSetter\$SetStatus} to
+indicate the success of the operation. For open kinematic chains, coordinate
+setting always succeeds, but within a closed kinematic chain
+(Section \ref{closedChains:sec}) not all coordinates are independent and
+therefore some set operations may fail.  All set requests are clipped to the
+coordinate's range, if applicable.
+
+Several coordinates can also be set simultaneously, using
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech.CoordinateSetter.request(,)}%
+{void request (\brh JointCoordinateHandle handle, double value)}%
+{Queue request to set coordinate described by {\tt handle} to {\tt value}
+(in radians for rotary coordinates).}%
+%
+\methodentry
+{\mech.CoordinateSetter.request(,)}%
+{void request (\brh JointBase joint, int cidx, double value)}%
+{Queue request to set coordinate described by {\tt joint} and {\tt cidx}
+to {\tt value} (in radians for rotary coordinates).}%
+%
+\methodentry
+{\mech.CoordinateSetter.requestDeg(,)}%
+{void requestDeg (\brh JointCoordinateHandle handle, double value)}%
+{Queue request to set coordinate described by {\tt handle} to {\tt value}
+(in degrees for rotary coordinates).}%
+%
+\methodentry
+{\mech.CoordinateSetter.requestDeg(,)}%
+{void requestDeg (\brh JointBase joint, int cidx, double value)}%
+{Queue request to set coordinate described by {\tt joint} and {\tt cidx}
+to {\tt value} (in degrees for rotary coordinates).}%
+%
+\methodentry
+{\mech.CoordinateSetter.setCoordinates()}%
+{SetStatus setCoordinates()}%
+{Apply all set requests.}%
+%
+\methodentry
+{\mech.CoordinateSetter.clearRequests()}%
+{void clearRequests()}%
+{Clear all outstanding set requests.}%
+%
+\midline
+\end{methodtable}
+%
+The {\tt request()} methods queue specific coordinate set requests, and then
+{\tt setCoordinates()} attempts to satisfy them all simultaneously, returning
+a \javaclass[\mech]{CoordinateSetter\$SetStatus} to indicate its success.
+
+As an example, the following code could be used to set coordinates at the end
+of the {\tt build()} method for the multijointed arm example of
+Section \ref{MultiJointedArm:sec}:
+%
+\begin{lstlisting}[]
+import artisynth.core.mechmodels.CoordinateSetter;
+import artisynth.core.mechmodels.JointCoordinateHandle;
+
+   ...
+
+   CoordinateSetter csetter = new CoordinateSetter (myMech);
+
+   // set coordinates individually
+   csetter.setCoordinateDeg (ujoint, /*idx*/0, 90.0); // set roll to 90 degrees
+   csetter.setCoordinateDeg (ujoint, /*idx*/1, 50.0); // set pitch to 50 degrees
+
+   // set theta on the hinge joint in radians
+   csetter.setCoordinate (hinge, /*idx*/0, Math.PI);
+
+   // set all coordinates at once, using JointCoordinateHandles
+   csetter.requestDeg (new JointCoordinateHandle (ujoint, 0), 80.0);
+   csetter.requestDeg (new JointCoordinateHandle (ujoint, 1), 45.0);
+   csetter.requestDeg (new JointCoordinateHandle (hinge, 0), 0.0);
+   csetter.setCoordinates();
+\end{lstlisting}
+%
+
+\begin{sideblock}
+Joint coordinates can also be set interactively in the GUI
+using a {\it coordinate panel} (Section
+\ref{CoordinatePanel:sec}), and the \javaclass[\gui]{CoordinatePanel}
+class provides access to its underlying {\tt CoordinateSetter} and convenience
+wrappers for some of its methods.
+\end{sideblock}
+
+\subsection{Coordinates in closed kinematic chains}
+\label{closedChains:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/openKinematicChain}
+\else
+ \includegraphics[width=3.75in]{images/openKinematicChain}
+\fi
+\end{center}
+\caption{Open chain kinematic structure made of tubular
+bodies connected by two DOF universal joints (axes shown in dark blue). All
+joint coordinates can be set arbitrarily.}
+\label{openKinematicChain:fig}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/closedKinematicChain}
+\else
+ \includegraphics[width=3.75in]{images/closedKinematicChain}
+\fi
+\end{center}
+\caption{Kinematic structure containing a closed chain. Adding one more
+body and two more universal joints to the structure of
+Figure \ref{openKinematicChain:fig} creates a kinematic loop involving four
+bodies (light green) and four joints (yellow).}
+\label{closedKinematicChain:fig}
+\end{figure}
+
+Coordinates can be assigned arbitrarily for any joint which is part of an open
+kinematic chain forming a linear or tree-shaped structure (Figure
+\ref{openKinematicChain:fig}). However, this is {\it not} true for closed 
+kinematic chains, in which joints (and possibly other constraints) connect a
+set of bodies into a loop (Figure \ref{closedKinematicChain:fig}).
+Closed chains also present challenges for simulation, as discussed in
+Section \ref{FourBar:sec}.
+
+The formation of kinematic loops reduces the number of degrees of freedom and
+reduces the number of joint coordinates which can be set independently, in a
+manner that depends on the joints and connection topology. For the joints in
+the loop of Figure \ref{closedKinematicChain:fig}, only two of the eight
+coordinates can be set independently. It is possible (and typical) for a
+kinematic loop to be embedded within a kinematic structure that is otherwise
+open, and this is true in Figure \ref{closedKinematicChain:fig}, where the
+non-loop joints (shown in dark blue) can still be positioned arbitrarily.
+
+When using a {\tt CoordinateSetter} to set several coordinates at once within a
+kinmatic loop, the request will only partially succeed if the number of
+coordinates being set exceeds the number of independent coordinates. Requests
+may also fail if some of the dependent coordinates encounter a range limit. For
+example, the four bar linkage of Section \ref{FourBar:sec} has four joints but
+only one degree of freedom, and so trying to set more than one coordinate will
+fail, which can be verified by checking the status object returned by {\tt
+setCoordinates()}:
+%
+\begin{lstlisting}[]
+import artisynth.core.mechmodels.CoordinateSetter;
+import artisynth.core.mechmodels.CoordinateSetter.SetStatus;
+import artisynth.core.mechmodels.JointCoordinateHandle;
+
+   ...
+
+   CoordinateSetter csetter = new CoordinateSetter (mech);
+
+   // try to set two coordinates
+   csetter.requestDeg (new JointCoordinateHandle (joints[0], 0), 70.0);
+   csetter.requestDeg (new JointCoordinateHandle (joints[1], 0), 80.0);
+   SetStatus status = csetter.setCoordinates();
+   // print number of free joints that were set as requested:
+   System.out.println ("num set: " + status.numFree());
+\end{lstlisting}
+%
+In general, set requests result in a coordinate either being {\it free} (and
+therefore set to the requested value), {\it dependent} (on other coordinate
+values), or {\it limited} (independent but limited because of singularities or
+dependent coordinate joint limits). Also, very occasionally, if the linkage is
+near a kinematic singularity, the solver may fail to converge and no
+coordinates will be set exactly as requested.
+
+\javaclassAlt{\mech.CoordinateSetter\$SetStatus}{SetStatus} supplies a number
+of methods to query coordinate set status, including:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.numCoordinates()}%
+{int numCoordinates()}%
+{Number of coordinates requested to be set.}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.getCoordinates()}%
+{List<JointCoordinateHandle> getCoordinates()}%
+{Query the coordinates requested to be set.}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.converged()}%
+{boolean converged()}%
+{Queries if the solve converged.}%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.numFree()}%
+{int numFree()}%
+{Number of coordinates that are free.}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.isFree()}%
+{boolean isFree (JointCoordinateHandle handle)}%
+{Queries if a coordinate is free.}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.numLimited()}%
+{int numFree()}%
+{Number of coordinates that are limited.}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.isLimited()}%
+{boolean isLimited (JointCoordinateHandle handle)}%
+{Queries if a coordinate is limited.}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.numDependent()}%
+{int numDependent()}%
+{Number of coordinates that are dependent.}%
+%
+\methodentry
+{\mech.CoordinateSetter\$SetStatus.isDependent()}%
+{boolean isDependent (JointCoordinateHandle handle)}%
+{Queries if a coordinate is dependent.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
 
 \section{Frame springs}
 \label{FrameSprings:sec}

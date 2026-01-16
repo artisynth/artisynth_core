@@ -165,7 +165,7 @@ public class Model4 extends ModelBase {
       
       // constrainers
       ConstraintSet constraintSet = this.getConstraintSet ();
-      ComponentList<ConstrainerBase> constraints =
+      RenderableComponentList<ConstrainerBase> constraints =
          constraintSet.createComponent(geometryPath, componentMap);
       mech.add (constraints);
       

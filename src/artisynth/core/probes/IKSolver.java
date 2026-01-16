@@ -21,11 +21,14 @@ import artisynth.core.mechmodels.BodyConstrainer;
 import artisynth.core.mechmodels.Constrainer;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.Marker;
 import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.GenericMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystem;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.PointFrameAttachment;
 import artisynth.core.mechmodels.StaticRigidBodySolver;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -43,6 +46,7 @@ import maspack.matrix.CholeskyDecomposition;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
+import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
@@ -150,7 +154,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
             VectorNd wgts = new VectorNd (myMarkerInfo.size());
             int i = 0;
             for (MarkerInfo minfo : myMarkerInfo) {
-               pnts.add (minfo.myMarker.getLocation());
+               pnts.add (minfo.getLocation());
                wgts.set (i++, minfo.myWeight);
             }
             myJTWJ = IKSolver.buildJTWJMatrix (
@@ -259,14 +263,39 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
     * Information about a marker and its weight
     */
    protected class MarkerInfo {
-      FrameMarker myMarker;
+      Marker myMarker;
+      PointFrameAttachment myAttachment;
       double myWeight;
       int myIdx; // index within the original list of markers
 
-      MarkerInfo (FrameMarker mkr, double w, int idx) {
+      MarkerInfo (Marker mkr, double w, int idx) {
          myMarker = mkr;
+         if (mkr.getAttachment() instanceof PointFrameAttachment) {
+            myAttachment = (PointFrameAttachment)mkr.getAttachment();
+         }
+         if (myAttachment == null ||
+             !(myAttachment.getFrame() instanceof RigidBody)) {
+            throw new IllegalArgumentException (
+               "Marker does not connect a point to a rigid body");
+         }
          myWeight = w;
          myIdx = idx;
+      }
+
+      Point3d getLocation() {
+         return myAttachment.getLocation();
+      }
+
+      Point3d getPosition() {
+         return myMarker.getPosition();
+      }
+
+      void updatePosState() {
+         myMarker.updatePosState();
+      }
+
+      Frame getFrame() {
+         return myAttachment.getFrame();
       }
    }
 
@@ -283,8 +312,6 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
    // have not yet seen that this improves convergence and sometimes makes the
    // simulation unstable.
    private static final boolean myUseJDerivative = false;
-
-   private static final boolean myScaleLmDamping = true;
 
    // If true, add a second order term to the displacement computed in the
    // Levenberg Marquardt search strategy. As currently implemented, this does
@@ -341,8 +368,6 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
    double myCPenaltyPrev;      // previous constraint energy value
    double myDqnormPrev;                // norm of myDqPrev
 
-   double myLmDamping;                 // Levenberg Marquardt damping paramater
-
    /**
     * Creates an empty IKSolver.
     */
@@ -359,30 +384,35 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
 
    /**
     * Creates an IKSolver for a set of markers contained within a prescribed
-    * {@code MechModel}. All markers are assumed to have a weight of 1. The
-    * rigid bodies and connectors are determined automatically from the
-    * markers. The frames associated with each marker must be a rigid body, and
-    * the set of all such bodies is known as the <i>marker bodies</i>. The
-    * bodies whose positions are updating by the solver includes the marker
-    * bodies, plus any other rigid bodies bodies connected to them via {@code
-    * BodyConnector}s, up to and excluding any rigid body whose {@code
-    * grounded} property is set to {@code true}.
+    * {@code MechModel}. It is assumed that each marker is either a {@link
+    * FrameMarker} or a {@link GenericMarker} that connects to a rigid body;
+    * otherwise an exception will be thrown. All markers are assumed to have a
+    * weight of 1. It is assumed that each marker is either a The rigid bodies
+    * and connectors are determined automatically from the markers. The frames
+    * associated with each marker must be a rigid body, and the set of all such
+    * bodies is known as the <i>marker bodies</i>. The bodies whose positions
+    * are updating by the solver includes the marker bodies, plus any other
+    * rigid bodies bodies connected to them via {@code BodyConnector}s, up to
+    * and excluding any rigid body whose {@code grounded} property is set to
+    * {@code true}.
     * 
     * @param mech MechModel containing the markers and bodies
     * @param mkrs markers determining which bodies will be controlled
     */
-   public IKSolver (MechModel mech, Collection<FrameMarker> mkrs) {
+   public IKSolver (MechModel mech, Collection<? extends Marker> mkrs) {
       this (mech, mkrs, /*weights*/null);
    }
 
    /**
     * Creates an IKSolver for a set of markers contained within a prescribed
-    * {@code MechModel}. Markers weights can be specified by the optional
-    * vector {@code weights}. The rigid bodies and connectors are determined
-    * automatically from the markers. The frames associated with each marker
-    * must be a rigid body, and the set of all such bodies is known as the
-    * <i>marker bodies</i>. The bodies whose positions are updating by the
-    * solver includes the marker bodies, plus any other rigid bodies bodies
+    * {@code MechModel}. It is assumed that each marker is either a {@link
+    * FrameMarker} or a {@link GenericMarker} that connects to a rigid body;
+    * otherwise an exception will be thrown. Markers weights can be specified
+    * by the optional vector {@code weights}. The rigid bodies and connectors
+    * are determined automatically from the markers. The frames associated with
+    * each marker must be a rigid body, and the set of all such bodies is known
+    * as the <i>marker bodies</i>. The bodies whose positions are updating by
+    * the solver includes the marker bodies, plus any other rigid bodies bodies
     * connected to them via {@code BodyConnector}s, up to and excluding any
     * rigid body whose {@code grounded} property is set to {@code true}.
     * 
@@ -391,7 +421,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
     * @param weights if non-{@code null}, specifies weights for the markers
     */
    public IKSolver (
-      MechModel mech, Collection<FrameMarker> mkrs, VectorNd weights) {
+      MechModel mech, Collection<? extends Marker> mkrs, VectorNd weights) {
       this();
       if (mkrs.size() == 0) {
          throw new IllegalArgumentException (
@@ -408,7 +438,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
             " incompatible with number of markers "+mkrs.size());
       }
       int idx = 0;
-      for (FrameMarker mkr : mkrs) {
+      for (Marker mkr : mkrs) {
          myMarkerInfo.add (new MarkerInfo (mkr, weights.get(idx), idx));
          idx++;
       }
@@ -555,7 +585,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       for (BodyInfo binfo : mySortedBodyInfo) {
          BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
          for (MarkerInfo minfo : bminfo.myMarkerInfo) {
-            minfo.myMarker.updatePosState();
+            minfo.updatePosState();
          }
       }
    }
@@ -573,7 +603,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       }
       double avgWeight = 0;
       for (MarkerInfo minfo : myMarkerInfo) {
-         FrameMarker mkr = minfo.myMarker;
+         Marker mkr = minfo.myMarker;
          String name = mkr.getName();
          if (name == null) {
             name = Integer.toString(minfo.myIdx);
@@ -582,11 +612,11 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
             throw new IllegalStateException (
                "Marker '"+name+"' not found in the MechModel");
          }
-         if (!(mkr.getFrame() instanceof RigidBody)) {
+         if (!(minfo.getFrame() instanceof RigidBody)) {
             throw new IllegalStateException (
                "Marker '"+name+"' not attached to a rigid body");
          }
-         RigidBody body = (RigidBody)mkr.getFrame();
+         RigidBody body = (RigidBody)minfo.getFrame();
          if (body.getVelStateSize() != 6) {
             throw new IllegalStateException (
                "Marker '"+name+"' attached to a body with more than 6 DOF");
@@ -634,7 +664,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       for (BodyMarkerInfo bminfo : myBodyMarkerInfo) {
          for (MarkerInfo minfo : bminfo.myMarkerInfo) {
             mtargs.getSubVector (3*minfo.myIdx, targ);
-            disp.sub (targ, minfo.myMarker.getPosition());
+            disp.sub (targ, minfo.getPosition());
             disps.setSubVector (3*minfo.myIdx, disp);
             energy += disp.dot(disp)*minfo.myWeight;
          }
@@ -670,10 +700,10 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
          myDq.getSubVector (6*bidx, dq);
          cb.setZero();
          for (MarkerInfo minfo : bminfo.myMarkerInfo) {
-            locw.transform (R, minfo.myMarker.getLocation());
+            locw.transform (R, minfo.getLocation());
             myDisps.getSubVector (3*minfo.myIdx, disp);
             mtargs.getSubVector (3*minfo.myIdx, targ);
-            dely.sub (targ, minfo.myMarker.getPosition());
+            dely.sub (targ, minfo.getPosition());
             dely.sub (disp);
             dely.scale (1/h);
 
@@ -724,13 +754,13 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
          myDq.getSubVector (6*bidx, dq);
          cb.setZero();
          for (MarkerInfo minfo : bminfo.myMarkerInfo) {
-            locw.transform (R, minfo.myMarker.getLocation());
+            locw.transform (R, minfo.getLocation());
             XP.setSkewSymmetric (locw);
             JT.setSubMatrix (3, 0, XP);
 
             // compute dely
             mtargs.getSubVector (3*minfo.myIdx, targ);
-            newy.sub (targ, minfo.myMarker.getPosition());
+            newy.sub (targ, minfo.getPosition());
             myDisps.getSubVector (3*minfo.myIdx, oldy);
             dely.sub (newy, oldy);
             dely.scale (1/h);
@@ -760,7 +790,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       for (BodyMarkerInfo bminfo : myBodyMarkerInfo) {
          for (MarkerInfo minfo : bminfo.myMarkerInfo) {
             mtargs.getSubVector (3*minfo.myIdx, targ);
-            disp.sub (targ, minfo.myMarker.getPosition());
+            disp.sub (targ, minfo.getPosition());
             energy += disp.dot(disp)*minfo.myWeight;
          }
       }
@@ -800,7 +830,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
     * @param r marker position relative to body, rotated to world coordinated
     * @param y weighted displacement to the marker target position
     */
-   private void addHj (SpatialInertia blk, Vector3d r, Vector3d y) {
+   private void addHj (Matrix6dBlock blk, Vector3d r, Vector3d y) {
       blk.m33 += (r.y*y.y + r.z*y.z);
       blk.m44 += (r.x*y.x + r.z*y.z);
       blk.m55 += (r.x*y.x + r.y*y.y);
@@ -815,29 +845,6 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
    }
 
    /**
-    * Adds the Levenberg Marquardt scaling term to a specific block of the
-    * Hessian.
-    */
-   private void addLMDampingTerm (SpatialInertia blk, double lambda) {
-      if (myScaleLmDamping) {
-         blk.m00 += lambda*blk.m00;
-         blk.m11 += lambda*blk.m11;
-         blk.m22 += lambda*blk.m22;
-         blk.m33 += lambda*blk.m33;
-         blk.m44 += lambda*blk.m44;
-         blk.m55 += lambda*blk.m55;
-      }
-      else {
-         blk.m00 += lambda;
-         blk.m11 += lambda;
-         blk.m22 += lambda;
-         blk.m33 += lambda;
-         blk.m44 += lambda;
-         blk.m55 += lambda;
-      }
-   }
-
-   /**
     * Updates the system solve matrix {@code S}. This overrides the default
     * behaviour to set each bodies 6 x 6 block to the stiffness matrix
     * associated with the energy minimization.
@@ -847,7 +854,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       for (BodyInfo binfo : mySortedBodyInfo) {
          BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
          RigidBody body = binfo.myBody;
-         SpatialInertia blk = (SpatialInertia)S.getBlock (bidx, bidx);
+         Matrix6dBlock blk = (Matrix6dBlock)S.getBlock (bidx, bidx);
          bminfo.myJTWJ.getRotated (blk, body.getPose().R);
          bidx++;
       }
@@ -869,7 +876,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       for (BodyInfo binfo : mySortedBodyInfo) {
          BodyMarkerInfo bminfo = myBodyMarkerInfo.get(binfo.myIndex);
          RigidBody body = binfo.myBody;
-         SpatialInertia blk = (SpatialInertia)S.getBlock (bidx, bidx);
+         Matrix6dBlock blk = (Matrix6dBlock)S.getBlock (bidx, bidx);
          RotationMatrix3d R = body.getPose().R; // rotates body coords to world
          bminfo.myJTWJ.getRotated (blk, R);
          if (myDamping != 0) {
@@ -881,7 +888,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
          }
          cb.setZero();
          for (MarkerInfo minfo : bminfo.myMarkerInfo) {
-            locw.transform (R, minfo.myMarker.getLocation());
+            locw.transform (R, minfo.getLocation());
             disps.getSubVector (3*minfo.myIdx, disp);
             disp.scale (minfo.myWeight);
             cb.v.add (disp);
@@ -983,8 +990,8 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
     *
     * @return markers used by this solver
     */
-   public ArrayList<FrameMarker> getMarkers() {
-      ArrayList<FrameMarker> markers = new ArrayList<>();
+   public ArrayList<Marker> getMarkers() {
+      ArrayList<Marker> markers = new ArrayList<>();
       for (MarkerInfo minfo : myMarkerInfo) {
          markers.add (minfo.myMarker);
       }
@@ -1047,67 +1054,6 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
    }
 
    /**
-    * Compute a dot product for dq that is weighted model size
-    */
-   private double computeDqDot (VectorNd dq0, VectorNd dq1) {
-      double dot = 0;
-      double weight = sqr(1/getModelSize());
-      for (int i=0; i<dq0.size(); i++) {
-         double prod = dq0.get(i)*dq1.get(i);
-         if ((i/3)%2 == 0) {
-            // translation components - apply weighting
-            prod *= weight;
-         }
-         dot += prod;
-      }
-      return dot;
-   }
-
-   /**
-    * Compute the average 'cosine' between two dq vectors
-    */
-   private double computeDqCos (VectorNd dq0, VectorNd dq1) {
-      double dot = computeDqDot (dq0, dq1);
-      return dot/(computeDqNorm(dq0)*computeDqNorm(dq1));
-   }
-
-   /**
-    * Compute the maximum angle deviation in dq.
-    */
-   private double computeDqAng (VectorNd dq) {
-      double maxAng = 0;
-      for (int i=0; i<dq.size(); i++) {
-         if ((i/3)%2 != 0) {
-            // angular data
-            double ang = dq.get(i);
-            if (ang > maxAng) {
-               maxAng = ang;
-            }
-         }
-      }
-      return maxAng;
-   }
-
-   // /**
-   //  * Performs a single linearized position update to project the current body
-   //  * positions to the constraints.
-   //  */
-   // private VectorNd projectToConstraints () {
-   //    int velSize = myTotalVelSize;
-
-   //    VectorNd dq = new VectorNd (velSize);
-   //    VectorNd q = new VectorNd (7*numBodies());
-   //    getPosState (q);
-
-   //    updateSolveMatrix (mySolveMatrix);
-   //    updateConstraints ();
-   //    myKKTSolver.factor (mySolveMatrix, velSize, myGT, myRg, myNT, myRn);
-   //    myKKTSolver.solve (dq, myLam, myThe, myFZero, myBg, myBn);     
-   //    updatePosState (q, dq, 1.0);
-   //    return dq;
-   // }
-
-   /**
     * Used for debugging. Write the energy along a search direction out to a
     * file.
     */
@@ -1124,39 +1070,6 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       catch (IOException e) {
          e.printStackTrace(); 
       }
-   }
-
-   /**
-    * Increases the damping factor for the Levenberg Marquardt strategy.
-    */
-   private void increaseLMDamping (double s, double min, double max) {
-      double lmd = myLmDamping;
-      double lmdnew;
-      if (lmd == 0) {
-         lmdnew = min;
-      }
-      else {
-         lmdnew = Math.min (max, s*lmd);
-      }
-      if (debug && lmdnew != lmd) {
-         System.out.printf ("      LMD UP %g\n", lmdnew);
-      }
-      myLmDamping = lmdnew;
-   }
-
-   /**
-    * Decreases the damping factor for the Levenberg Marquardt strategy.
-    */
-   private void decreaseLMDamping (double s, double min) {
-      double lmd = myLmDamping;
-      double lmdnew = s*lmd;
-      if (lmdnew < min) {
-         lmdnew = 0;
-      }
-      if (debug && lmdnew != lmd) {
-         System.out.printf ("      LMD DOWN %g\n", lmdnew);
-      }
-      myLmDamping = lmdnew;
    }
 
    /**
@@ -1313,9 +1226,10 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
          
       if (debug) {
          System.out.printf (
-            "   icnt=%d delE=%g dqnorm=%g deriv=%g %s%s\n", 
+            "   icnt=%d delE=%g dqnorm=%g deriv=%g damping=%g %s%s\n", 
             icnt, 
             delE, dqnorm, -myDq.dot(myF),
+            myLmDamping,
             dqDotPrev < 0 ? "NEG_DQ " : "",
             delE > 0 ? "E_INC " : "");
       }
@@ -1743,8 +1657,8 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
                tokens, MechModel.class, ancestor);
          }
          else if (ScanWriteUtils.postscanAttributeName (tokens, "markers")) {
-            FrameMarker[] mkrs = ScanWriteUtils.postscanReferences (
-            tokens, FrameMarker.class, ancestor);
+            Marker[] mkrs = ScanWriteUtils.postscanReferences (
+            tokens, Marker.class, ancestor);
             double[] weights = (double[])tokens.poll().value();
             myMarkerInfo.clear();
             for (int i=0; i<mkrs.length; i++) {
@@ -1849,9 +1763,9 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
     * Collects marker positions and stores them an input probe.
     */
    private class MarkerPositionCollector extends DataCollector {
-      ArrayList<FrameMarker> myMarkers;
+      ArrayList<? extends Marker> myMarkers;
 
-      MarkerPositionCollector (ArrayList<FrameMarker> markers) {
+      MarkerPositionCollector (ArrayList<? extends Marker> markers) {
          myMarkers = markers;
          myVec = new VectorNd(3*markers.size());
       }
@@ -1859,7 +1773,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       public NumericListKnot addData (
          NumericInputProbe probe, double t, NumericListKnot last) {
          int k = 0;
-         for (FrameMarker mkr : myMarkers) {
+         for (Marker mkr : myMarkers) {
             myVec.setSubVector (3*k, mkr.getPosition());
             k++;
          }
@@ -2074,7 +1988,7 @@ public class IKSolver extends StaticRigidBodySolver implements PostScannable {
       double stopTime = targProbe.getStopTime();
       double scale = targProbe.getScale();
 
-      ArrayList<FrameMarker> mkrs = getMarkers();
+      ArrayList<Marker> mkrs = getMarkers();
       PositionInputProbe newProbe = new PositionInputProbe (
          name, mkrs, /*rotRep*/null, useTargetProps, startTime, stopTime);
       newProbe.setScale (scale);

@@ -23,6 +23,7 @@ public class SolveMatrixTest {
    MatrixNd myD;
    MatrixNd myDnumeric;
    boolean myUseYPRStiffness = false;
+   boolean myUpdateConstraints = false;
 
    public boolean getYPRStiffness() {
       return myUseYPRStiffness;
@@ -30,6 +31,14 @@ public class SolveMatrixTest {
 
    public void setYPRStiffness (boolean enable) {
       myUseYPRStiffness = enable;
+   }
+
+   public boolean getUpdateConstraints() {
+      return myUpdateConstraints;
+   }
+
+   public void setUpdateConstraints (boolean enable) {
+      myUpdateConstraints = enable;
    }
 
    public double testStiffness (MechSystemBase sys, double h) {
@@ -88,6 +97,10 @@ public class SolveMatrixTest {
 
       // build numeric stiffness matrix
       sys.getActivePosState (q0);
+      if (myUpdateConstraints) {
+         sys.updateConstraints (
+            h, /*stepAdjust*/null, MechSystem.UPDATE_CONTACTS);
+      }
       sys.updateForces (0);
       getActiveForces (f0, sys);
       //System.out.println ("f0=  " + f0.toString("%16.8f"));
@@ -110,12 +123,16 @@ public class SolveMatrixTest {
          // is not useful.
          // sys.recursivelyFinalizeAdvance (null, 0, h, 0, 0);
 
+         if (myUpdateConstraints) {
+            sys.updateConstraints (
+               h, /*stepAdjust*/null, MechSystem.UPDATE_CONTACTS);
+         }
          sys.updateForces (h);
          getActiveForces (f, sys);
          //System.out.println ("f["+i+"]=" + f.toString("%16.8f"));
          f.sub (f0);
          f.scale (1/h);
-         //System.out.println ("df=" + f);
+         //System.out.println ("df=" + f + " h=" + h);
          myKnumeric.setColumn (i, f);
       }
       sys.setActivePosState (q0);
@@ -164,8 +181,12 @@ public class SolveMatrixTest {
          MatrixNd ET = new MatrixNd ();
          ET.transpose (E);
          E.sub (ET);
+         double symErr = E.infinityNorm();
+         if (norm != 0) {
+            symErr /= norm;
+         }
          System.out.println (
-            "SymErr=" + E.infinityNorm()/norm + "\n" + E.toString (fmt));
+            "SymErr=" + symErr + "\n" + E.toString (fmt));
       }
       
       if (sys instanceof MechModel) {
@@ -174,7 +195,11 @@ public class SolveMatrixTest {
       PointSpringBase.myIgnoreCoriolisInJacobian = saveIgnoreCoriolis;
       FrameSpring.mySymmetricJacobian = saveSymmetricJacobian;
 
-      return getKerror().infinityNorm()/norm;
+      double err = getKerror().infinityNorm();
+      if (norm != 0) {
+         err /= norm;
+      }
+      return err;
    }
 
    public double testDamping (
@@ -200,9 +225,13 @@ public class SolveMatrixTest {
       sys.setActiveVelState (u0);
 
       // build numeric damping matrix
+      if (myUpdateConstraints) {
+         sys.updateConstraints (
+            h, /*stepAdjust*/null, MechSystem.UPDATE_CONTACTS);
+      }
       sys.updateForces (0);
       getActiveForces (f0, sys);
-      //System.out.println ("f0=  " + f0.toString("%16.6f"));
+      // System.out.println ("f0=  " + f0.toString("%16.6f"));
 
       // the aux state code is necessary to handle situations involving
       // state-bearing force effectors like viscous materials
@@ -214,9 +243,13 @@ public class SolveMatrixTest {
          u.add (i, h);
          sys.setActiveVelState (u);
 
+         if (myUpdateConstraints) {
+            sys.updateConstraints (
+               h, /*stepAdjust*/null, MechSystem.UPDATE_CONTACTS);
+         }
          sys.updateForces (h);
          getActiveForces (f, sys);
-         //System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
+         // System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
          f.sub (f0);
          f.scale (1/h);
          //System.out.println ("df=" + f);
@@ -249,13 +282,21 @@ public class SolveMatrixTest {
          MatrixNd ET = new MatrixNd ();
          ET.transpose (E);
          E.sub (ET);
+         double symErr = E.infinityNorm();
+         if (norm != 0) {
+            symErr /= norm;
+         }
          System.out.println (
-            "SymErr=" + E.infinityNorm()/norm + "\n" + E.toString (fmt));
+            "SymErr=" + symErr + "\n" + E.toString (fmt));
       }
       PointSpringBase.myIgnoreCoriolisInJacobian = saveIgnoreCoriolis;
       FrameSpring.mySymmetricJacobian = saveSymmetricJacobian;
 
-      return getDerror().infinityNorm()/norm;
+      double err = getDerror().infinityNorm();
+      if (norm != 0) {
+         err /= norm;
+      }
+      return err;
    }
 
    private double symmetryError (MatrixNd M) {

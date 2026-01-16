@@ -287,10 +287,10 @@ public class OpenSimCustomCoupling
             cinfo = addCoordinate (
                c.getName(), -INF, INF, 0, getConstraint(bidx++));
          }
+         cinfo.setValue (c.getDefaultValue());
          if (c.getLocked()) {
             cinfo.setLocked (true);
-         }
-         cinfo.setValue (c.getDefaultValue());
+         }       
       }
       myH = new MatrixNd (6, numc);
       myG = new Wrench[numc];
@@ -466,16 +466,36 @@ public class OpenSimCustomCoupling
    }
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {
-      double[] rpy = new double[3];
-      RotationMatrix3d R = new RotationMatrix3d();
 
-      R.set(TCD.R);
-      doGetRpy(rpy, R);
-      coords.set(0, rpy[0]);
-      coords.set(1, rpy[1]);         
-      coords.set(2, rpy[2]);
+      RigidTransform3d TGD = new  RigidTransform3d();      
+      int numc = numCoordinates();
+      coords.setSize (numc);
+      doGetCoords (coords);
+      coordinatesToTCD (TGD, coords);
+
+      // find differential displacement del from TGD to TCD:
+      Twist del = new Twist();
+      RigidTransform3d TDEL = new RigidTransform3d ();
+      TDEL.mulInverseLeft (TGD, TCD);
+      del.set (TDEL);
+
+      // make sure QR decomposition is updated
+      if (myUpdateConstraintCnt != myCoordValueCnt) {
+         updateConstraints(TGD);
+      }
+      VectorNd delq = new VectorNd(numc);
+      boolean changed = false;
+      for (int j=0; j<numc; j++) {
+         double dq = myG[j].dot (del);
+         if (dq != 0) {
+            delq.set (j, dq);
+            changed = true;
+         }
+      }
+      if (changed) {
+         coords.add (delq);
+      }
    }
-
 
    @Override
    public void projectToConstraints(
@@ -514,15 +534,15 @@ public class OpenSimCustomCoupling
       VectorNd delq = new VectorNd(numc);
       boolean changed = false;
       for (int j=0; j<numc; j++) {
-         if (isCoordinateLocked(j)) {
-            delq.set (j, 0);
-         }
-         else {
-            double dq = myG[j].dot (del);
-            if (dq != 0) {
-               delq.set (j, dq);
-               changed = true;
-            }
+//       John Lloyd, Oct 2025: if coordinate is locked, need to update
+//       value anyway so we can compare is against the locked distance
+//       if (isCoordinateLocked(j)) {
+//          delq.set (j, 0);
+//       }
+         double dq = myG[j].dot (del);
+         if (dq != 0) {
+            delq.set (j, dq);
+            changed = true;
          }
       }
       if (changed) {

@@ -27,26 +27,61 @@ public class CoordinateWidget extends DoubleFieldSlider
    private static final double RTOD = 180/Math.PI;
 
    JointCoordinateHandle myHandle;
+   boolean myUseDegrees = true;
 
-   DoubleInterval findSliderRange (JointCoordinateHandle handle) {
-      DoubleInterval range = new DoubleInterval(handle.getValueRangeDeg());
-      double lower = range.getLowerBound();
-      double upper = range.getUpperBound();
-      if (lower == -INF || upper == INF) {
-         MotionType mtype = handle.getMotionType();
-         double limit = (mtype==MotionType.ROTARY ? 180 : 1);
-         if (upper == INF && lower == -INF) {
-            range.setUpperBound (limit);
-            range.setLowerBound (-limit);
-         }
-         else if (upper == INF) {
-            range.setUpperBound (lower+limit);
+   DoubleInterval getCoordRange() {
+      if (myUseDegrees) {
+         return new DoubleInterval(myHandle.getValueRangeDeg());
+      }
+      else {
+         return new DoubleInterval(myHandle.getValueRange());
+      }
+   }
+
+   boolean getUseDegrees() {
+      return myUseDegrees;
+   }
+
+   void setUseDegrees (boolean enable) {
+      if (myUseDegrees != enable) {
+         myUseDegrees = enable;
+         if (enable) {
+            setRange (getCoordRange());
+            setSliderRange (findSliderRange (myHandle));
+            updateValue();
          }
          else {
-            range.setLowerBound (upper-limit);
+            updateValue();
+            setRange (getCoordRange());
+            setSliderRange (findSliderRange (myHandle));
          }
       }
-      return range;
+   }
+
+   DoubleInterval findSliderRange (JointCoordinateHandle handle) {
+      MotionType mtype = handle.getMotionType();
+      double limit;
+      if (mtype == MotionType.ROTARY) {
+         limit = myUseDegrees ? 360 : 2*Math.PI;
+      }
+      else {
+         limit = 1; // fix
+      }
+      DoubleInterval range = getCoordRange();
+      double lower = range.getLowerBound();
+      double upper = range.getUpperBound();
+      if (lower == -INF) {
+         lower = -limit;
+      }
+      if (upper == INF) {
+         upper = limit;
+      }
+      if (upper-lower > 2*limit) {
+         double mid = (upper+lower)/2;
+         upper = mid + limit;
+         lower = mid - limit;
+      }
+      return new DoubleInterval (lower, upper);
    }
 
    /**
@@ -59,6 +94,7 @@ public class CoordinateWidget extends DoubleFieldSlider
       super();
       initialize (label, joint, idx);
       setSliderRange (findSliderRange (myHandle));
+      updateValue();
    }
 
    public CoordinateWidget (
@@ -66,6 +102,35 @@ public class CoordinateWidget extends DoubleFieldSlider
       super();
       initialize (label, joint, idx);
       setSliderRange (min, max);
+      updateValue();
+   }
+
+   public CoordinateWidget (String label, JointCoordinateHandle handle) {
+      this (label, handle, /*useDegrees*/true);
+   }
+
+   CoordinateWidget (
+      String label, JointCoordinateHandle handle, boolean useDegrees) {
+      super();
+      myUseDegrees = useDegrees;
+      initialize (label, handle);
+      setSliderRange (findSliderRange (myHandle));
+      updateValue();
+   }
+
+   public CoordinateWidget (
+      String label, JointCoordinateHandle handle, double min, double max) {
+      this (label, handle, min, max, /*useDegrees*/true);
+   }
+
+   CoordinateWidget (
+      String label, JointCoordinateHandle handle,
+      double min, double max, boolean useDegrees) {
+      super();
+      myUseDegrees = useDegrees;
+      initialize (label, handle);
+      setSliderRange (min, max);
+      updateValue();
    }
 
    private void initialize (String label, JointBase joint, int idx) {
@@ -77,12 +142,30 @@ public class CoordinateWidget extends DoubleFieldSlider
       }
       setLabelText (label);
       myHandle = new JointCoordinateHandle (joint, idx);
-      setRange (myHandle.getValueRangeDeg());
+      setRange (getCoordRange());
+      addValueChangeListener (this);
+   }
+
+   private void initialize (String label, JointCoordinateHandle handle) {
+      if (label == null) {
+         label = handle.getJoint().getCoordinateName (handle.getIndex());
+      }
+      if (label == null) {
+         label = "coordinate " + handle.getIndex();
+      }
+      setLabelText (label);
+      myHandle = new JointCoordinateHandle (handle);
+      setRange (getCoordRange());
       addValueChangeListener (this);
    }
 
    public void valueChange (ValueChangeEvent e) {
-      myHandle.setValueDeg ((Double)e.getValue());
+      if (myUseDegrees) {
+         myHandle.setValueDeg ((Double)e.getValue());
+      }
+      else {
+         myHandle.setValue ((Double)e.getValue());
+      }
    }
 
    public void updateValue() {
@@ -90,7 +173,12 @@ public class CoordinateWidget extends DoubleFieldSlider
       // disabel auto-ranging because we don't want the slider to adjust its
       // range if there is a slight difference between the set and get values.
       setAutoRangingEnabled (false);
-      setValue (myHandle.getStoredValueDeg());
+      if (myUseDegrees) {
+         setValue (myHandle.getValueDeg());
+      }
+      else {
+         setValue (myHandle.getValue());
+      }
       setAutoRangingEnabled (true);
       maskValueChangeListeners (false);
    }
@@ -112,6 +200,9 @@ public class CoordinateWidget extends DoubleFieldSlider
             myHandle = new JointCoordinateHandle();
             tokens.offer (new StringToken ("handle"));
             myHandle.scan (rtok, tokens);
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "useDegrees")) {
+            myUseDegrees = rtok.scanBoolean();
          }
          else if (rtok.tokenIsWord()) {
             String fieldName = rtok.sval;               
@@ -137,6 +228,9 @@ public class CoordinateWidget extends DoubleFieldSlider
       if (myHandle != null) {
          pw.print ("handle=");
          myHandle.write (pw, ancestor);
+      }
+      if (!myUseDegrees) {
+         pw.println ("useDegrees=false");
       }
       getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       IndentingPrintWriter.addIndentation (pw, -2);

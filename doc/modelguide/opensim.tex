@@ -209,7 +209,7 @@ CoordinateLimitForces are realized using \javaclass[\mech]{FrameSpring} and
 implemented using a special implementation of
 \javaclass[\mech]{MultiPointMuscle} that contains a child
 component named {\tt "pathpoints"} that in turn contains all the muscle's path
-points. Each path point is implemented as a {\tt FrameMarker} attached to one
+points. Each path point is usually a {\tt FrameMarker} attached to one
 of the bodies in the body set. Figure
 \ref{Arm26Hierarchy2:fig} shows the navigation panel with the muscle {\tt
 TRIlong} selected and also expanded to show the path points.
@@ -287,14 +287,15 @@ the visibility and coordinate frame rendering of bodies and wrap objects:
 \methodentry
 {\osim.OpenSimParser.setWrapObjectsVisible()}%
 {void setWrapObjectsVisible (boolean visible)}%
-{Set overall visibility of wrap objects.}%
+{Set visibility of all wrap objects.}%
 %
 \midline
 \end{methodtable}
 %
-A method is supplied to control the collective visibility of wrap objects since
-they are distributed among the bodies. (The collective visibility of
-bodies, joints, forces, etc. can be controlled by setting the visibility of
+The last method is supplied to control the collective visibility of all wrap
+objects since they are distributed among the bodies and can be
+tediuous to access individually. (The collective visibility
+of bodies, joints, forces, etc. can be controlled by setting the visibility of
 the containers {\tt "bodyset"}, {\tt "jointset"}, {\tt "forceset"}, etc.)
 
 Placing the following code at the end of the {\tt OpenSimArm26} example
@@ -307,6 +308,32 @@ import maspack.render.Renderer.AxisDrawStyle;
    myParser.setBodyFramesVisible (AxisDrawStyle.ARROW, 0.12);
 \end{lstlisting}
 %
+Wrap object visibility for individual muscles can also be controlled using
+\javaclass[\mech]{MultiPointSpring} methods:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech.MultiPointSpring.hasVisibleWrappables()}%
+{boolean hasVisibleWrappables()}%
+{Has wrappables that are currently visible.}%
+%
+\methodentry
+{\mech.MultiPointSpring.hasInvisibleWrappables()}%
+{boolean hasInvisibleWrappables()}%
+{Has wrappables that are currently {\it not} visible.}%
+%
+\methodentry
+{\mech.MultiPointSpring.setWrappablesVisible()}%
+{void setWrappablesVisible (boolean visible)}%
+{Set the springs's wrappables to be visible or invisible.}%
+%
+\midline
+\end{methodtable}
+%
+For information on how to find individual muscles within the model, see Section
+\ref{OpenSimFindingComponents:sec}.
 
 For observing the behavior of joints, it is often useful to display the axes
 of their C and D coordinates frames. As described in Section
@@ -467,6 +494,12 @@ the muscle forces.
 wrapping appears correct. Issues that can sometimes arise include the path
 failing to pass through small torus wrap objects, or not wrapping smoothly
 around cylinders with radii due to insufficient knots in the wrap path.
+
+\begin{sideblock}
+If a muscle contains wrap objects, they can be made visible or invisible within
+the GUI by selecting the muscle and then choosing {\sf Show wrappbles} or {\sf
+Hide wrappbles} from the context menu.
+\end{sideblock}
 
 Wrap path issues can usually be fixed by resetting the initialization points
 and/or number of knots for the problematic wrap segments, using the methods

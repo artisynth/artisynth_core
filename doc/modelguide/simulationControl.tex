@@ -371,6 +371,276 @@ excitation}'' and ``{\tt spheres color}'' widgets, since their
 individual values differ.
 \end{sideblock}
 
+\subsection{Coordinate panels}
+\label{CoordinatePanels:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/CoordinatePanel}
+\else
+ \includegraphics[width=3.5in]{images/CoordinatePanel}
+\fi
+\end{center}
+\caption{Coordinate panel added to the model {\tt MultiJointedArm}.}
+\label{CoordinatePanel:fig}
+\end{figure}
+
+A special subclass of {\tt ControlPanel} is a 
+\javaclass[\gui]{CoordinatePanel}, which supports the addition
+of widgets for controlling joint coordinate values. A {\tt CoordinatePanel}
+is associated with the 
+\javaclass[\mech]{MechModel} containing the coordinates' joints.
+When a coordinate value changes, the {\tt
+MechModel} is used to update other model components that may be affected, such
+as the wrap paths for
+\javaclass[\mech]{MultiPointSpring}s and the locations of attached
+components.
+
+\begin{sideblock}
+At present, {\tt CoordinatePanel}s does {\it not} take into account couplings
+between coordinate values that may be induced by kinematic loops with the
+model. This will be remedied in the future.
+\end{sideblock}
+
+A {\tt CoordinatePanel} may be created with the constructor
+%
+\begin{methodtable}{0.5}{0.5}
+%
+\methodentry
+{\gui.CoordinatePanel.CoordinatePanel(String,MechModel)}%
+{CoordinatePanel (String name, MechModel mech)}%
+{\ }%
+%
+\end{methodtable}
+%
+which assigns it a name and {\tt MechModel}. Coordinate widgets may
+then be added using a variety of methods:
+%
+\begin{methodtable}{0.99}{0.01}
+\midline
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(JointBase,String)}%
+{CoordinateWidget addCoordinateWidget (JointBase joint, String cname)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(JointBase,int)}%
+{CoordinateWidget addCoordinateWidget (JointBase joint, int cidx)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(String,JointBase,int)}%
+{CoordinateWidget addCoordinateWidget (String label, JointBase joint, int cidx)}%
+{\ }%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(JointCoordinateHandle)}%
+{CoordinateWidget addCoordinateWidget (%
+JointCoordinateHandle handle)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(String,JointCoordinateHandle)}%
+{CoordinateWidget addCoordinateWidget (%
+String label, JointCoordinateHandle handle)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(JointCoordinateHandle,double,double)}%
+{CoordinateWidget addCoordinateWidget (%
+JointCoordinateHandle handle, double min, double max)}%
+{\ }%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidget(String,JointCoordinateHandle,double,double)}%
+{CoordinateWidget addCoordinateWidget (%
+String label, JointCoordinateHandle handle, double min, double max)}%
+{\ }%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\gui.CoordinatePanel.addCoordinateWidgets(JointBase)}%
+{CoordinateWidget addCoordinateWidgets (JointBase joint)}%
+{\ }%
+%
+%\brh
+\midline
+\end{methodtable}
+%
+The first three methods create a coordinate widget for a given {\tt joint},
+with the coordinate itself specified by either its name ({\tt cname}) or index
+({\tt cidx}). For the third method, the widget's label can be set explicitly;
+if {\tt label} is {\tt null}, or unspecified as in the other methods, then a
+label is generated from the coordinate's name.  The next four methods specify
+the coordinate using a \javaclass[\mech]{JointCoordinateHandle}, which
+encapsulates both a coordinate's joint and index information and can be
+constructed easily as follows:
+%
+\begin{lstlisting}[]
+   JointCoordinateHandle handle = new JointCoordinateHandle (joint, cidx);
+\end{lstlisting}
+%
+Some of these methods also allow the widget's value range to be explicitly set
+via the arguments {\tt min} and {\tt max}.  The final method, {\tt
+addCoordinateWidgets()} adds widgets for every coordinate within the specified
+joint.
+
+These methods return 
+\javaclass[\gui]{CoordinateWidget}, which is a subclass of
+\javaclass[maspack.widgets]{DoubleFieldSlider}. Other types of
+widgets may be added to a {\tt CoordinatePanel} using the {\tt addWidget()}
+methods inherited from {\tt ControlPanel}.
+
+\begin{sideblock}
+{\tt CoordinatePanel} widgets represent their values for revolute coordinates
+in degrees.
+\end{sideblock}
+
+When added to the example {\tt MultiJointedArm} (Section
+\ref{MultiJointedArm:sec}), the following code fragment
+creates the coordinate panel shown in Figure \ref{CoordinatePanel:fig}:
+
+%
+\begin{lstlisting}[]
+import artisynth.core.gui.CoordinatePanel;
+...
+      CoordinatePanel panel = new CoordinatePanel ("coordinates", myMech);
+      panel.addCoordinateWidgets (ujoint);
+      panel.addCoordinateWidgets (hinge);
+      addControlPanel (panel);
+\end{lstlisting}
+%
+\subsubsection{Panel settings}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/CoordinatePanelSettings}
+\else
+ \includegraphics[width=3.5in]{images/CoordinatePanelSettings}
+\fi
+\end{center}
+\caption{Coordinate panel with a settings panel added at the bottom.}
+\label{controlPanelSettings:fig}
+\end{figure}
+
+Once a coordinate panel is created, an application can use the method
+\javamethod[\gui.CoordinatePanel]{addSettingsPanel()} to add
+a subpanel that controls the panel's behavior:
+%
+\begin{lstlisting}[]
+      CoordinatePanel panel = new CoordinatePanel ("coordinates", myMech);
+
+      ... add coordinate widgets ...
+
+      panel.addSettingsPanel();
+      addControlPanel (panel);
+\end{lstlisting}
+%
+The panel, shown in Figure \ref{controlPanelSettings:fig}, controls
+the following behavior settings:
+
+\begin{itemize}
+
+\item {\it Degrees:} Sets whether values for rotary coordinates
+are expressed in degrees. The default setting is {\tt true}.
+
+\item {\it Multiset:} If {\tt true}, changing the widget
+values does not change the underlying coordinates until the panel's {\sf Set}
+button is clicked, at which point all change requests are applied at once. This
+allows multiple coordinate values to be set simultaneously.
+		
+\end{itemize}
+
+The degrees setting can also be controlled in code using the methods
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\gui.CoordinatePanel.getUseDegrees()}%
+{boolean getUseDegrees()}%
+{Queries use of degrees for rotary coordinates.}%
+%
+\methodentry
+{\gui.CoordinatePanel.setUseDegrees(boolean)}%
+{void setUseDegrees (boolean enable)}%
+{Sets use of degrees for rotary coordinates.}%
+%
+\midline
+\end{methodtable}
+%
+
+\subsubsection{Coordinate setting methods}
+
+For convenience, \javaclass[\gui]{CoordinatePanel} offers access to its
+underlying
+\javaclass[\mech]{CoordinateSetter}, together with wrapper methods to
+set or get coordinate values based on the widget label:
+
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\gui.CoordinatePanel.getCoordinateSetter()}%
+{CoordinateSetter getCoordinateSetter()}%
+{Get the underlying coordinate setter.}%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\gui.CoordinatePanel.getCoordinate(String)}%
+{double getCoordinate (String label)}%
+{Get value by widget label (radians for rotary coords).}%
+%
+\methodentry
+{\gui.CoordinatePanel.setCoordinate(,)}%
+{SetStatus setCoordinate (String label, double val)}%
+{Set value by widget label (radians for rotary coords).}%
+%
+\methodentry
+{\gui.CoordinatePanel.getCoordinateDeg()}%
+{double getCoordinateDeg (String label)}%
+{Get value by widget label (degrees for rotary coords).}%
+%
+\methodentry
+{\gui.CoordinatePanel.setCoordinateDeg(,)}%
+{SetStatus setCoordinateDeg (String label, double val)}%
+{Set value by widget label (degrees for rotary coords).}%
+%
+\methodspace{0.5em}%
+%
+\methodentry
+{\gui.CoordinatePanel.setRequest(,)}%
+{void setRequest (String label, double val)}%
+{Request set by widget label (radians for rotary coords).}%
+%
+\methodentry
+{\gui.CoordinatePanel.setRequestDeg(,)}%
+{void setRequest (String label, double val)}%
+{Request set by widget label (degrees for rotary coords).}%
+%
+\methodentry
+{\gui.CoordinatePanel.setCoordinates()}%
+{SetStatus setCoordinates ()}%
+{Apply all set requests.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+
+For more information on setting coordinate values and the meaning
+of the return value \javaclassAlt{\mech.CoordinateSetter\$SetStatus}{SetStatus},
+see Section \ref{SettingCoordinates:sec}.
+
 \section{Custom properties}
 \label{CustomProperties:sec}
 
@@ -561,132 +831,6 @@ panel will now contain an additional widget for the property {\tt
 boxVisible} as shown in Figure \ref{boxVisiblePanel:fig}. Toggling
 this property will make the box visible or invisible in the viewer.
 
-\subsection{Coordinate panels}
-\label{CoordinatePanels:sec}
-
-\begin{figure}[ht]
-\begin{center}
-\iflatexml
- \includegraphics[]{images/CoordinatePanel}
-\else
- \includegraphics[width=3.5in]{images/CoordinatePanel}
-\fi
-\end{center}
-\caption{Coordinate panel added to the model {\tt MultiJointedArm}.}
-\label{CoordinatePanel:fig}
-\end{figure}
-
-A special subclass of {\tt ControlPanel} is a 
-\javaclass[\gui]{CoordinatePanel}, which supports the addition
-of widgets for controlling joint coordinate values. A {\tt CoordinatePanel}
-is associated with the 
-\javaclass[\mech]{MechModel} containing the coordinates' joints.
-When a coordinate value changes, the {\tt
-MechModel} is used to update other model components that may be affected, such
-as the wrap paths for
-\javaclass[\mech]{MultiPointSpring}s and the locations of attached
-components.
-
-\begin{sideblock}
-At present, {\tt CoordinatePanel}s does {\it not} take into account couplings
-between coordinate values that may be induced by kinematic loops with the
-model. This will be remedied in the future.
-\end{sideblock}
-
-A {\tt CoordinatePanel} may be created with the constructor
-%
-\begin{methodtable}{0.5}{0.5}
-%
-\methodentry
-{\gui.CoordinatePanel.CoordinatePanel(String,MechModel)}%
-{CoordinatePanel (String name, MechModel mech)}%
-{\ }%
-%
-\end{methodtable}
-%
-which assigns it a name and {\tt MechModel}. Coordinate widgets may
-then be added using the methods
-%
-\begin{methodtable}{0.95}{0.05}
-\midline
-%
-\methodentry
-{\gui.CoordinatePanel.addCoordinateWidget(JointBase,String)}%
-{CoordinateWidget addCoordinateWidget (JointBase joint, String cname)}%
-{\ }%
-%
-\methodentry
-{\gui.CoordinatePanel.addCoordinateWidget(String,JointBase,String)}%
-{CoordinateWidget addCoordinateWidget (%
-String label, JointBase joint, String cname)}%
-{\ }%
-%
-\methodentry
-{\gui.CoordinatePanel.addCoordinateWidget(JointBase,int)}%
-{CoordinateWidget addCoordinateWidget (JointBase joint, int cidx)}%
-{\ }%
-%
-\methodentry
-{\gui.CoordinatePanel.addCoordinateWidget(String,JointBase,int)}%
-{CoordinateWidget addCoordinateWidget (%
-String label, JointBase joint, int cidx)}%
-{\ }%
-%
-\methodentry
-{\gui.CoordinatePanel.addCoordinateWidget(JointBase,int,double,double)}%
-{CoordinateWidget addCoordinateWidget (%
-JointBase joint, int cidx, double min, double max)}%
-{\ }%
-%
-\methodentry
-{\gui.CoordinatePanel.addCoordinateWidget(String,JointBase,int,double,double)}%
-{CoordinateWidget addCoordinateWidget (%
-String label, JointBase joint, int cidx, double min, double max)}%
-{\ }%
-%
-\methodspace{0.5em}%
-%
-\methodentry
-{\gui.CoordinatePanel.addCoordinateWidgets(JointBase)}%
-{CoordinateWidget addCoordinateWidgets (JointBase joint)}%
-{\ }%
-%
-%\brh
-\midline
-\end{methodtable}
-%
-where {\tt joint} specifies the joint containing the coordinate and {\tt cname}
-or {\tt cidx} give either its name or index.  If present, {\tt label} specifies
-the widget label (which otherwise takes the coordinate's name) and {\tt min}
-and {\tt max} give the widget's value range (which is otherwise inferred from
-the coordinate itself). The last method, {\tt addCoordinateWidgets()} adds
-widgets for every coordinate within the specified joint.
-
-These methods return 
-\javaclass[\gui]{CoordinateWidget}, which is a subclass of
-\javaclass[maspack.widgets]{DoubleFieldSlider}. Other types of
-widgets may be added to a {\tt CoordinatePanel} using the {\tt addWidget()}
-methods inherited from {\tt ControlPanel}.
-
-\begin{sideblock}
-{\tt CoordinatePanel} widgets represent their values for revolute coordinates
-in degrees.
-\end{sideblock}
-
-When added to the example {\tt MultiJointedArm} (Section
-\ref{MultiJointedArm:sec}), the following code fragment
-creates the coordinate panel shown in Figure \ref{CoordinatePanel:fig}:
-
-%
-\begin{lstlisting}[]
-import artisynth.core.gui.CoordinatePanel;
-...
-      CoordinatePanel panel = new CoordinatePanel ("coordinates", myMech);
-      panel.addCoordinateWidgets (ujoint);
-      panel.addCoordinateWidgets (hinge);
-      addControlPanel (panel);
-\end{lstlisting}
-%
 
 
 
@@ -2594,7 +2738,7 @@ import artisynth.core.probes.TRCReader;
   reader.readData();
 \end{lstlisting}
 %
-A constructor also exists that accepts a string file name argument.
+Another constructor also exists that accepts a string file name argument.
 
 \begin{sideblock}
 Both the constructors and the {\tt readData()} method throw an {\tt
@@ -2604,7 +2748,7 @@ by the calling method.
 
 Once the data has been read, it may be queried with the following methods:
 %
-\begin{methodtable}{0.5}{0.5}
+\begin{methodtable}{0.54}{0.46}
 \midline
 %
 \methodentry
@@ -2659,11 +2803,36 @@ Once the data has been read, it may be queried with the following methods:
 %
 Both the frame and marker indices in the above methods are 0-based.
 
+Once read, marker positions and frame times may be transformed, which may be
+useful for adjusting coordinate frames or units:
+%
+\begin{methodtable}{0.54}{0.46}
+\midline
+%
+\methodentry
+{\probes.TRCReader.scaleMarkerPositions()}%
+{void scaleMarkerPositions (double s)}%
+{Scale marker positions by {\tt s}.}%
+%
+\methodentry
+{\probes.TRCReader.transformMarkerPositions()}%
+{void transformMarkerPositions (AffineTransform3dBase X)}%
+{Apply the transform {\tt X} to the marker positions.}%
+%
+\methodentry
+{\probes.TRCReader.transformFrameTimes(double,double)}%
+{void scaleMarkerPositions (double s, double b)}%
+{Transform frame times $t$ according to $t' = s t + b$.}%
+%
+\midline
+\end{methodtable}
+%
+
 {\tt TRCReader} also supplies the following methods for
 creating {\tt PositionInputProbe}s directly from the data:
 %
 \begin{methodtable}{0.9}{0.1}
-%\midline
+\midline
 %
 \methodentry
 {\probes.TRCReader.createInputProbe(,,,,)}%
@@ -2680,7 +2849,7 @@ Collection<? extends Point> points,\brh
 List<String> labels, boolean useTargetProps, double startTime, double stopTime)}%
 {\ }%
 %
-%\midline
+\midline
 \end{methodtable}
 %
 For these, {\tt name} is the probe name (optional, can be {\tt null}), {\tt

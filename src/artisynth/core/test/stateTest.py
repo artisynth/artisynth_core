@@ -138,6 +138,7 @@ testState (A, 1.3, 10,"artisynth.demos.mech.ConditionalMarkerDemo")
 testState (A, 1.3, 10,"artisynth.demos.mech.ConditionalMarkerDemo", "-wrapping")
 testState (A, 1.0, 10,"artisynth.demos.mech.CoordinateCouplingDemo")
 testState (A, 1.0, 10,"artisynth.demos.mech.JointLimitDemo")
+testState (A, 1.0, 10,"artisynth.demos.mech.JointLimitDemo", "-excitation", "0.4")
 
 testState (S, 1.0,  5,"artisynth.demos.fem.ArticulatedFem")
 testState (D, 1.0,  5,"artisynth.demos.fem.AttachDemo")

@@ -38,7 +38,7 @@ public class Model3 extends ModelBase {
       RenderableComponentList<RigidBody> bodies =
          bodySet.createComponent(geometryPath, componentMap);
       mech.add (bodies);
-      
+
       // force effectors
       ForceSet forceSet = this.getForceSet ();
       RenderableComponentList<ModelComponent> forces =
@@ -47,7 +47,7 @@ public class Model3 extends ModelBase {
       
       // constrainers
       ConstraintSet constraintSet = this.getConstraintSet ();
-      ComponentList<ConstrainerBase> constraints =
+      RenderableComponentList<ConstrainerBase> constraints =
          constraintSet.createComponent(geometryPath, componentMap);
       mech.add (constraints);
 

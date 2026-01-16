@@ -59,6 +59,7 @@ public class EditorManager {
       myEditors.add (new TrackingControllerEditor (myMain, this));
       myEditors.add (new IsRenderableEditor (myMain, this));
       myEditors.add (new ProbeEditor (myMain, this));
+      myEditors.add (new MultiPointSpringEditor (myMain, this));
       // myEditors.add(Muscle.class, new MuscleEditor(myMain));
    }
    

@@ -54,6 +54,9 @@ public class JointLimitForce extends ModelComponentBase
    
    JointCoordinateHandle myCoord;
 
+   public static final boolean DEFAULT_ENABLED = true;
+   protected boolean myEnabledP = DEFAULT_ENABLED;
+
    public static final double DEFAULT_LIMIT = INF;
    public static final double DEFAULT_STIFFNESS = 0;
    public static final double DEFAULT_DAMPING = 0;
@@ -73,6 +76,10 @@ public class JointLimitForce extends ModelComponentBase
       new PropertyList (JointLimitForce.class, ModelComponentBase.class);
 
    static {
+      myProps.add (
+         "enabled isEnabled",
+         "enables or disables the force producing ability of this limit force",
+         DEFAULT_ENABLED);
       myProps.add (
          "upperLimit",
          "coordinate upper limit",
@@ -109,6 +116,29 @@ public class JointLimitForce extends ModelComponentBase
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
+   }
+
+   /* ---- property accessors ---- */
+
+   /**
+    * Queries whether this limit force is enabled.
+    *
+    * @return {@code true} if this limit force is enabled
+    */
+   public boolean isEnabled() {
+      return myEnabledP;
+   }
+
+   /**
+    * Sets whether or not this limit force is enabled. A disabled limit force
+    * produces no force.
+    *
+    * @param enabled if {@code true}, enables this limit force
+    */
+   public void setEnabled (boolean enabled) {
+      if (myEnabledP != enabled) {
+	 myEnabledP = enabled;
+      }
    }
 
    /**
@@ -278,6 +308,16 @@ public class JointLimitForce extends ModelComponentBase
    }
 
    /**
+    * Returns the handle for the coordinate/joint pair used by this
+    * JointActuator. Should not be modified.
+    *
+    * @return coordinate handle
+    */
+   public JointCoordinateHandle getCoordinateHandle() {
+      return myCoord;
+   }
+
+   /**
     * Set all the upper limit parameters.
     *
     * @param ul upper limit
@@ -296,7 +336,7 @@ public class JointLimitForce extends ModelComponentBase
    /**
     * Set all the lower limit parameters.
     *
-    * @param ll upper limit
+    * @param ll lower limit
     * @param k stiffness
     * @param d damping factor
     * @param tau transition region size
@@ -324,11 +364,34 @@ public class JointLimitForce extends ModelComponentBase
       }
    }
 
+   private double getLimitStiffness (double del, double k, double trans) {
+      if (trans > 0 && del < trans) {
+         double a = k/trans;
+         return a*del;
+      }
+      else {
+         return k;
+      }
+   }
+
    /**
     * {@inheritDoc}
     */
    public void applyForces (double t) {
-      double val = myCoord.getStoredValue();
+      double f = computeForce();
+      if (f != 0) {
+         myCoord.applyForce (f);
+      }
+   }
+
+   /**
+    * Computes the coordinate force based on the current coordinate value.
+    */
+   public double computeForce () {
+      if (!myEnabledP) {
+         return 0;
+      }
+      double val = myCoord.getStoredValue();      
       double f = 0;
 
       if (val >= myUpperLimit) {
@@ -341,7 +404,6 @@ public class JointLimitForce extends ModelComponentBase
             }
             f -= damping*myCoord.getSpeed();
          }
-         myCoord.applyForce (f);
       }
       else if (val <= myLowerLimit) {
          double del = myLowerLimit-val;
@@ -353,30 +415,50 @@ public class JointLimitForce extends ModelComponentBase
             }
             f -= damping*myCoord.getSpeed();
          }
-         myCoord.applyForce (f);
       }
+      return f;
    }
 
    /**
     * {@inheritDoc}
     */
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
-      if (myLowerDamping != 0 || myUpperDamping != 0) {
-         myCoord.addSolveBlocks (M);
-      }
+      boolean hasNonZeroForce =
+         (myLowerStiffness != 0 || myLowerDamping != 0 ||
+          myUpperStiffness != 0 || myUpperDamping != 0);
+      // if (myEnabledP && hasNonZeroForce) {
+      //    myCoord.addSolveBlocks (M);
+      // }
+      myCoord.addSolveBlocks (M);
    }
 
    /**
     * {@inheritDoc}
     */
    public void addPosJacobian (SparseNumberedBlockMatrix M, double s) {
+      if (myEnabledP && (myLowerStiffness != 0 || myUpperStiffness != 0)) {
+         double stiffness;
+         double val = myCoord.getStoredValue();
+         if (myUpperStiffness != 0 && val >= myUpperLimit) {
+            double del = val-myUpperLimit;
+            stiffness = getLimitStiffness (
+               del, myUpperStiffness, myUpperTransition);
+            myCoord.addForceJacobian (M, -s*stiffness);
+         }
+         else if (myLowerStiffness != 0 && val <= myLowerLimit) {
+            double del = myLowerLimit-val;
+            stiffness = getLimitStiffness (
+               del, myLowerStiffness, myLowerTransition);
+            myCoord.addForceJacobian (M, -s*stiffness);
+         }
+      }
    }
 
    /**
     * {@inheritDoc}
     */
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
-      if (myLowerDamping != 0 || myUpperDamping != 0) {
+      if (myEnabledP && (myLowerDamping != 0 || myUpperDamping != 0)) {
          double damping;
          double val = myCoord.getStoredValue();
          if (myUpperDamping != 0 && val >= myUpperLimit) {
@@ -387,7 +469,7 @@ public class JointLimitForce extends ModelComponentBase
             }
             // // scale to natural coords since Jacobian is in regular coords
             // damping *= myCoord.getNatScale();
-            myCoord.addVelJacobian (M, -s*damping);
+            myCoord.addForceJacobian (M, -s*damping);
          }
          else if (myLowerDamping != 0 && val <= myLowerLimit) {
             double del = myLowerLimit-val;
@@ -397,7 +479,7 @@ public class JointLimitForce extends ModelComponentBase
             }
             // // scale to natural coords since Jacobian is in regular coords
             // damping *= myCoord.getNatScale();
-            myCoord.addVelJacobian (M, -s*damping);
+            myCoord.addForceJacobian (M, -s*damping);
          }
       }
    }
@@ -406,7 +488,7 @@ public class JointLimitForce extends ModelComponentBase
     * {@inheritDoc}
     */
    public int getJacobianType() {
-      return Matrix.SYMMETRIC;
+      return myEnabledP ? Matrix.SYMMETRIC : Matrix.SPD;
    }
 
    /* --- begin I/O methods --- */

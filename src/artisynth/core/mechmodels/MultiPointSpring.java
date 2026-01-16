@@ -21,6 +21,8 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.HasNumericState;
+import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.mechmodels.HasSlaveObjects;
 import artisynth.core.modelbase.HasNumericStateComponents;
 import artisynth.core.modelbase.ModelComponent;
@@ -4045,19 +4047,19 @@ public class MultiPointSpring extends PointSpringBase
       }
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public int getJacobianType() {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (numPassiveSegments() == 0 &&
-          (myIgnoreCoriolisInJacobian || mat.isDFdldotZero())) {
-         return Matrix.SYMMETRIC;
-      }
-      else {
-         return 0;
-      }
-   }
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public int getJacobianType() {
+   //    AxialMaterial mat = getEffectiveMaterial();
+   //    if (numPassiveSegments() == 0 &&
+   //        (myIgnoreCoriolisInJacobian || mat.isDFdldotZero())) {
+   //       return Matrix.SYMMETRIC;
+   //    }
+   //    else {
+   //       return 0;
+   //    }
+   // }
    
    /* === inner classes for knot and segments === */
 
@@ -7366,6 +7368,59 @@ public class MultiPointSpring extends PointSpringBase
          }
          System.out.println ("");
          i++;
+      }
+   }
+
+   /**
+    * Returns {@code true} if this spring references wrappables which are both
+    * renderable and currently visible.
+    *
+    * @return {@code true} if one or more of this spring's wrappables is
+    * visible
+    */
+   public boolean hasVisibleWrappables() {
+      for (WrappableSpec ws : myWrappables) {
+         if (ws.myWrappable instanceof RenderableComponent) {
+            if (RenderableComponentBase.isVisible(
+                  (RenderableComponent)ws.myWrappable)) {
+               return true;
+            }
+         }
+      }
+      return false;
+   }
+
+   /**
+    * Returns {@code true} if this spring references wrappables which are both
+    * renderable and currently invisible.
+    *
+    * @return {@code true} if one or more of this spring's wrappables is
+    * invisible
+    */
+   public boolean hasInvisibleWrappables() {
+      for (WrappableSpec ws : myWrappables) {
+         if (ws.myWrappable instanceof RenderableComponent) {
+            if (!RenderableComponentBase.isVisible(
+                  (RenderableComponent)ws.myWrappable)) {
+               return true;
+            }
+         }
+      }
+      return false;
+   }
+
+   /**
+    * Sets all renderable wrappables referenced by this spring to be visible or
+    * invisible.
+    *
+    * @param visible if {@code true}, sets all wrappables to be visible.
+    */
+   public void setWrappablesVisible (boolean visible) {
+      for (WrappableSpec ws : myWrappables) {
+         if (ws.myWrappable instanceof RenderableComponent) {
+            RenderableComponentBase.setVisible (
+               (RenderableComponent)ws.myWrappable, visible);
+         }
       }
    }
 

@@ -1027,32 +1027,43 @@ public class ComponentUtils {
    public static <T extends ModelComponent> T loadComponent (
       File file, CompositeComponent ancestor, Class<T> expectedType)
       throws IOException {
-      ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);
-      rtok.nextToken();
-      if (!rtok.tokenIsWord()) {
-         throw new IOException ("component class name or alias expected, got "
-         + rtok);
-      }
-      Class<?> cls = ClassAliases.resolveClass (rtok.sval);
-      if (cls == null) {
-         throw new IOException ("no class found corresponding to " + rtok.sval);
-      }
-      if (expectedType != null && !expectedType.isAssignableFrom (cls)) {
-         throw new IOException ("file contains an instance of " + cls
-         + " instead of " + expectedType);
-      }
-      T comp;
+      ReaderTokenizer rtok = null;
       try {
-         comp = (T)cls.newInstance();
+         rtok = ArtisynthIO.newReaderTokenizer (file);
+         rtok.nextToken();
+         if (!rtok.tokenIsWord()) {
+            throw new IOException ("component class name or alias expected, got "
+                                   + rtok);
+         }
+         Class<?> cls = ClassAliases.resolveClass (rtok.sval);
+         if (cls == null) {
+            throw new IOException ("no class found corresponding to "+rtok.sval);
+         }
+         if (expectedType != null && !expectedType.isAssignableFrom (cls)) {
+            throw new IOException ("file contains an instance of " + cls
+                                   + " instead of " + expectedType);
+         }
+         T comp;
+         try {
+            comp = (T)cls.newInstance();
+         }
+         catch (Exception e) {
+            throw new IOException ("cannot create instance of " + cls);
+         }
+         if (ancestor == null && comp instanceof CompositeComponent) {
+            ancestor = (CompositeComponent)comp;
+         }
+         ScanWriteUtils.scanfull (rtok, comp, ancestor);
+         return comp;
       }
-      catch (Exception e) {
-         throw new IOException ("cannot create instance of " + cls);
+      catch (IOException e) {
+         throw e;
       }
-      if (ancestor == null && comp instanceof CompositeComponent) {
-         ancestor = (CompositeComponent)comp;
+      finally {
+         if (rtok != null) {
+            rtok.close();
+         }
       }
-      ScanWriteUtils.scanfull (rtok, comp, ancestor);
-      return comp;
    }
 
    public static <T extends ModelComponent> T loadComponent (

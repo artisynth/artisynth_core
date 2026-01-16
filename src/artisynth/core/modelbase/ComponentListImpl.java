@@ -165,7 +165,6 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    }
    
    private boolean doAdd (C comp, int number) {
-      // assume here that super.add always returns true
       initComponent (comp, number, size());
       super.add (comp);
       try {
@@ -219,9 +218,6 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       return true;
    }
 
-   /**
-    * Returns true if the added components are stateless
-    */
    public void addComponents (
       ModelComponent[] comps, int[] indices, int ncomps) {
 
@@ -348,9 +344,6 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       return comp;
    }
 
-   /**
-    * Returns true if the added components are stateless
-    */
    public void removeComponents (
       ModelComponent[] comps, int[] indices, int ncomps) {
 
@@ -376,8 +369,6 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
                   "some components specified for removal are marked");
             }
             ComponentUtils.recursivelyDisconnect (c, myComp);
-            //myComponentMap.unmapComponent (c);
-            //clearComponent ((C)c);
             c.setMarked (true);
             // save numbers since we will use the number field to temporarily
             // store indices
@@ -426,7 +417,6 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       notifyStructureChanged (myComp, !isStateless(comps, ncomps));
    }
 
-   // returns true if stateless
    public void removeAll() {
       modCount++;
       boolean stateless = isStateless (myArray, mySize);
@@ -459,6 +449,37 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       else {
          return false;
       }
+   }
+
+   public void reorderComponents (int[] indices) {
+      if (indices.length != size()) {
+         throw new IllegalArgumentException (
+            "indices.length " + indices.length +
+            " does not equals component list size " + size());
+      }
+      int maxIdx = size()-1;
+      C[] reordered = createArray (size());
+      boolean[] marked = new boolean[size()];
+      // check that indices are within bounds and not repeating
+      for (int i=0; i<size(); i++) {
+         int idx = indices[i];
+         if (idx < 0 || idx > maxIdx) {
+            throw new IllegalArgumentException (
+               "index " + idx + " not in range [0, " + maxIdx + "]");
+         }
+         if (marked[idx]) {
+            throw new IllegalArgumentException (
+               "repeated index " + idx);
+         }
+         reordered[i] = myArray[idx];
+      }
+      modCount++;
+      for (int i=0; i<size(); i++) {
+         C c = reordered[i];
+         myArray[i] = c;
+         myComponentMap.resetIndex (c, i);
+      }
+      notifyStructureChanged (myComp, !isStateless(reordered, size()));
    }
 
    private void clearComponent (C comp) {      
@@ -604,7 +625,6 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       myScanCnt = 0;
    }
 
-   // returns true if stateless
    public void scanEnd() {
       if (myScanCnt > 0) {
          // new components were created and added

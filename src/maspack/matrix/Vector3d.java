@@ -150,6 +150,16 @@ public class Vector3d extends VectorBase
    }
 
    /**
+    * Creates a 3-vector with the supplied element values.
+    * 
+    * @param values
+    * element values
+    */
+   public Vector3d (float[] values) {
+      set (values[0], values[1], values[2]);
+   }
+
+   /**
     * Returns the size of this vector (which is always 3)
     * 
     * @return 3
@@ -303,6 +313,23 @@ public class Vector3d extends VectorBase
     * array from which values are copied
     */
    public void set (double[] values) {
+      if (values.length < 3) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have a length of at least 3");
+      } 
+      x = values[0];
+      y = values[1];
+      z = values[2];
+   }
+
+   /**
+    * Sets the elements of this vector from an array of floats. The array
+    * must have a length of at least 3.
+    * 
+    * @param values
+    * array from which values are copied
+    */
+   public void set (float[] values) {
       if (values.length < 3) {
          throw new IllegalArgumentException (
             "argument 'values' must have a length of at least 3");

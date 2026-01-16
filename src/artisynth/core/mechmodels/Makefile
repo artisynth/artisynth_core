@@ -11,9 +11,12 @@ JAVA_TEST_PROGRAMS = \
 	BodyConnectorTest \
 	CollisionHandlerTableTest \
 	CollisionManagerTest \
+	CoordinateSetterTest \
         EBBeamBodyTest \
 	FrameSpringTest \
 	FrameTargetTest \
+	JointLimitForceTest \
+	KinematicTreeTest \
 	MultiPointSpringTest \
 	PointFrameAttachmentTest \
 	PointParticleAttachmentTest \

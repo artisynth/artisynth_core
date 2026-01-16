@@ -234,6 +234,11 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       addComponents (new ModelComponent[] { comp }, new int[] { idx }, 1);
    }
 
+   public void addFixed (C comp, int idx) {
+      comp.setFixed (true);
+      addComponents (new ModelComponent[] { comp }, new int[] { idx }, 1);
+   }
+
    void checkComponentNumber (int num) {
       if (getOneBasedNumbering() && num == 0) {
          throw new IllegalArgumentException (
@@ -246,8 +251,6 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    public boolean addNumbered (C comp, int number) {
       checkComponentNumber (number);
       return myComponents.addNumbered (comp, number);
-      //notifyStructureChanged (this, !comp.hasState());
-      //return status;
    }
    
    public C set (int idx, C comp) {
@@ -263,8 +266,6 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
     * {@inheritDoc}
     */
    public void addComponents (ModelComponent[] comps, int[] indices, int ncomps) {
-      //boolean stateless = myComponents.addComponents (comps, indices, ncomps);
-      //notifyStructureChanged (this, stateless);
       myComponents.addComponents (comps, indices, ncomps);
    }
 
@@ -273,20 +274,10 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
     */
    public boolean remove (Object obj) {
       return myComponents.remove (obj);
-      // if (myComponents.remove (obj)) {
-      //    notifyStructureChanged (this, !((ModelComponent)obj).hasState());
-      //    return true;
-      // }
-      // else {
-      //    return false;
-      // }
    }
 
    public C remove (int idx) {
       return myComponents.remove (idx);
-      // C comp = myComponents.remove (idx);
-      // notifyStructureChanged (this, !comp.hasState());
-      //return comp;
    }
 
    /**
@@ -294,16 +285,15 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
     */
    public void removeComponents (
       ModelComponent[] comps, int[] indices, int ncomps) {
-      // boolean stateless =
-      //    myComponents.removeComponents (comps, indices, ncomps);
-      // notifyStructureChanged (this, stateless);
       myComponents.removeComponents (comps, indices, ncomps);
    }
 
    public void removeAll () {
-      // boolean stateless = myComponents.removeAll();
-      // notifyStructureChanged (this, stateless);
       myComponents.removeAll();
+   }
+
+   public void reorderComponents (int[] indices) {
+      myComponents.reorderComponents (indices);
    }
 
    public boolean retainAll (Collection<?> c) {
@@ -466,8 +456,6 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
          ancestor = this;
       }
       super.postscan (tokens, ancestor);
-      // boolean stateless = myComponents.scanEnd();
-      // notifyStructureChanged (this, stateless);
       myComponents.scanEnd();
    }
 

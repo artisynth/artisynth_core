@@ -1008,7 +1008,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
          if (nc != myBilaterals.size()) {
             throw new InternalErrorException (
                "nc=" + nc + " bilaterals.size()=" + myBilaterals.size());
-         }         
+         }
          for (int j=0; j<nc; j++) {
             RigidBodyConstraint bc = myBilaterals.get (j);
             ConstraintInfo gi = ginfo[idx];
@@ -1016,6 +1016,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
             gi.compliance = bc.getCompliance();
             gi.damping = bc.getDamping();
             gi.force = 0;
+            gi.coordLimit = bc.isLimit();
             gi.motionType = bc.getMotionType();
             idx++;
          }
@@ -1099,6 +1100,14 @@ public abstract class BodyConnector extends RenderableConstrainerBase
     * {@inheritDoc}
     */
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx) {
+      return getUnilateralInfo (ninfo, idx, /*addTolerance*/true);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int getUnilateralInfo (
+      ConstraintInfo[] ninfo, int idx, boolean addTolerance) {
 
       int nc = (myUnilaterals != null ? myUnilaterals.size() : 0);
 
@@ -1106,8 +1115,11 @@ public abstract class BodyConnector extends RenderableConstrainerBase
          for (int j = 0; j < nc; j++) {
             RigidBodyConstraint uc = myUnilaterals.get (j);
             ConstraintInfo ni = ninfo[idx];
-            double tol = uc.isLinear() ? 
-               getPenetrationTol() : getRotaryLimitTol();
+            double tol = 0;
+            if (addTolerance) {
+               tol = uc.isLinear() ? 
+                  getPenetrationTol() : getRotaryLimitTol();
+            }
             //tol = getPenetrationTol();
             if (uc.getDistance() < -tol) {
                ni.dist = uc.getDistance() + tol;
@@ -1118,6 +1130,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
             ni.compliance = uc.getCompliance();
             ni.damping = uc.getDamping();
             ni.force = 0;
+            ni.coordLimit = uc.isLimit();
             ni.motionType = uc.getMotionType();
             idx++;
          }
@@ -1253,6 +1266,11 @@ public abstract class BodyConnector extends RenderableConstrainerBase
          else {
             updateUnilateralConstraints (
                myUnilaterals, 0, myUnilaterals.size());
+         }
+      }
+      else {
+         if (myUnilaterals != null) {
+            myUnilaterals.clear();
          }
       }
       return maxpen;
@@ -2034,6 +2052,64 @@ public abstract class BodyConnector extends RenderableConstrainerBase
    public void setCurrentTCW (RigidTransform3d TCW) {
       updateAttachment (myAttachmentA, TCW);
    }
+   
+   /**
+    * Returns the current error between frames C and G (the ideal position of
+    * frame C with no error). This is returned as a transform from frame C to
+    * G.
+    *
+    * @param TCG returns transform from frame C to G
+    */
+   public void getCurrentTCError (RigidTransform3d TCG) {
+      RigidTransform3d TCW = new RigidTransform3d();
+      RigidTransform3d TDW = new RigidTransform3d();
+
+      myAttachmentA.updatePosStates();
+      myAttachmentB.updatePosStates();
+
+      myAttachmentA.getCurrentTFW (TCW);
+      myAttachmentB.getCurrentTFW (TDW);
+
+      if (hasTranslation() && myBodyB.isDeformable()) {
+         if (myAttachmentBG == null) {
+            myAttachmentBG = myBodyB.createFrameAttachment (null, TCW);
+         }
+         else {
+            myAttachmentBG.setCurrentTFW (TCW);
+         }
+         RigidTransform3d TCW0 = new RigidTransform3d();
+         RigidTransform3d TDW0 = new RigidTransform3d();
+         RigidTransform3d TCD0 = new RigidTransform3d();
+         RigidTransform3d TGD0 = new RigidTransform3d();
+         myAttachmentB.getUndeformedTFW (TDW0);
+         myAttachmentBG.getUndeformedTFW (TCW0);
+         TCD0.mulInverseLeft (TDW0, TCW0);
+         myCoupling.projectAndUpdateCoordinates (TGD0, TCD0);
+         TCG.mulInverseLeft (TGD0, TCD0);
+      }
+      else {
+         RigidTransform3d TCD = new RigidTransform3d();
+         RigidTransform3d TGD = new RigidTransform3d();
+         TCD.mulInverseLeft (TDW, TCW);
+         myCoupling.projectAndUpdateCoordinates (TGD, TCD);
+         TCG.mulInverseLeft (TGD, TCD);
+      }
+   }
+
+   /**
+    * Returns the current error between frames C and G (the ideal position of
+    * frame C with no error). This is returned as a twist denoting the small
+    * displacement transform from frame C to G.
+    *
+    * @return error from frame C to G
+    */
+   public Twist getCurrentTCError() {
+      RigidTransform3d TGD = new RigidTransform3d();
+      getCurrentTCError (TGD);
+      Twist err = new Twist();
+      err.set (TGD);
+      return err;
+   }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
@@ -2687,7 +2763,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
 //      }
 //   }
 //
-   private void transformPoseAndUpdateConnectorAttachments (
+   static public void transformPoseAndUpdateConnectorAttachments (
       ConnectableBody body,  RigidTransform3d T) {
       body.transformPose (T);
       for (BodyConnector c : body.getConnectors()) {
@@ -3004,6 +3080,13 @@ public abstract class BodyConnector extends RenderableConstrainerBase
    public RigidBodyConstraint getConstraint (int idx) {
       return myCoupling.getConstraint (idx);
    }
+   
+   /**
+    * Returns the bodies connected by this connector.
+    */
+   public ConnectableBody[] getBodies() {
+      return new ConnectableBody[] { myBodyA, myBodyB };
+   }
 
    /* --- begin Renderable implementation --- */
    
@@ -3091,7 +3174,11 @@ public abstract class BodyConnector extends RenderableConstrainerBase
     * Normally this is done in sync with the simulation.
     */
    public void updateAttachments() {
-      myAttachmentA.updatePosStates();
-      myAttachmentB.updatePosStates();     
+      if (myAttachmentA != null) {
+         myAttachmentA.updatePosStates();
+      }
+      if (myAttachmentB != null) {
+         myAttachmentB.updatePosStates();
+      }
    }
 }

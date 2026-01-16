@@ -47,6 +47,7 @@ public interface MechSystem {
       public double compliance;// inverse stiffness; 0 implies rigid constraint
       public double damping;   // damping; only used if compliance > 0
       public double force;     // used for computing non-linear compliance
+      public boolean coordLimit; // is limit constraint for a joint coordinate
       
       // motionType: for some constraint types, indicates the type
       // of motion associated with this constraint; otherwise is null

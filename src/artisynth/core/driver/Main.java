@@ -104,6 +104,7 @@ import artisynth.core.util.MatlabInterface;
 import artisynth.core.workspace.AddMarkerTool;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.PullController;
+import artisynth.core.workspace.MeasurementTool;
 import artisynth.core.workspace.RenderProbe;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.workspace.Workspace;
@@ -285,7 +286,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       Transrotate,
       Pull,
       AddComponent, 
-      AddMarker
+      AddMarker,
+      Measure
    }
 
    public enum LookAndFeel {
@@ -978,6 +980,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          //myFrame.getGLPanel().setSize (myViewerWidth, myViewerHeight);
 
          myPullController = new PullController (mySelectionManager);
+         myMeasurementTool = new MeasurementTool (mySelectionManager);
          myAddMarkerHandler = new AddMarkerTool (mySelectionManager);
 
          if (myUseRootModelManager && myRootModelManager.hasCache()) {
@@ -1956,7 +1959,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          rootModel.detach (this);
          rootModel.removeComponentChangeListener (this);
          rootModel.setMainViewer (null); // just for completeness
-         rootModel.removeController (myPullController); // 
+         rootModel.removeController (myPullController);
+         rootModel.removeRenderable (myMeasurementTool);
          rootModel.dispose();
       }
       if (myAddMarkerHandler != null) {
@@ -2160,6 +2164,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
             myPullController.setRootModelDefaults (newRoot);
             newRoot.addController (
                myPullController, findMechSystem(newRoot));
+         }
+         else if (mySelectionMode == SelectionMode.Measure) {
+            // add measurement tool, before nav panel is update            
+            myMeasurementTool.clear();
+            myMeasurementTool.setRootModelDefaults (newRoot);
+            newRoot.addRenderable (myMeasurementTool);
          }
 
          if (!SwingUtilities.isEventDispatchThread()) {
@@ -3978,6 +3988,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myPullController;
    }
 
+   private MeasurementTool myMeasurementTool;
+
+   public MeasurementTool getMeasurementTool() {
+      return myMeasurementTool;
+   }
+
    private AddMarkerTool myAddMarkerHandler;
    
    AddMarkerTool getAddMarkerHandler() {
@@ -3999,7 +4015,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
          // NOTE: If we setSelectionEnabled(false) then marker points can only be
          // added to previously selected rigid bodies, if we do not then a marker
          // point will be added to whichever rigid body is clicked on
-         if (selectionMode == SelectionMode.AddComponent) {
+         if (selectionMode == SelectionMode.AddComponent ||
+             selectionMode == SelectionMode.Measure) {
             myViewerManager.setCursor (
                Cursor.getPredefinedCursor (Cursor.CROSSHAIR_CURSOR));
             // myViewerManager.setSelectionEnabled(false);
@@ -4029,6 +4046,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
             //myViewerManager.removeRenderable (myPullController);
             myViewerManager.removeMouseListener (myPullController);
          }
+         else if (mySelectionMode == SelectionMode.Measure) {
+            // switching out of a Measure selection ...
+            myViewerManager.setSelectOnPress (false);
+            myViewerManager.setSelectionHighlightStyle (HighlightStyle.COLOR);
+            RootModel root = getRootModel();
+            if (root != null) {
+               root.removeRenderable (myMeasurementTool);
+            }
+            mySelectionManager.removeSelectionListener (myMeasurementTool);
+            myViewerManager.removeMouseListener (myMeasurementTool);
+         }
 
          if (selectionMode == SelectionMode.Pull) {
             // switching into a Pull selection ...
@@ -4041,6 +4069,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
             if (root != null) {
                myPullController.setRootModelDefaults (root);
                root.addController (myPullController, findMechSystem(root));
+            }
+         }
+         else if (selectionMode == SelectionMode.Measure) {
+            // switching into a Measure selection ...
+            myViewerManager.setSelectOnPress (true);
+            myViewerManager.setSelectionHighlightStyle (HighlightStyle.NONE);
+            myViewerManager.addMouseListener (myMeasurementTool);
+            //myViewerManager.addRenderable (myMeasurementTool);
+            mySelectionManager.clearSelections();
+            mySelectionManager.addSelectionListener (myMeasurementTool);
+            RootModel root = getRootModel();
+            if (root != null) {
+               myMeasurementTool.setRootModelDefaults (root);
+               root.addRenderable (myMeasurementTool);
             }
          }
          else if (selectionMode == SelectionMode.AddMarker) {
@@ -4062,7 +4104,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (myMenuBarHandler.modeSelectionToolbar != null) {
             SelectionToolbar toolbar =
                (SelectionToolbar)myMenuBarHandler.modeSelectionToolbar;
-          toolbar.setSelectionButtons();
+           toolbar.setSelectionButtons(selectionMode);
          }
 
          if (myWorkspace != null) {
@@ -4085,7 +4127,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       public void selectionChanged (SelectionEvent e) {
 
-         if (mySelectionMode != SelectionMode.Pull) {
+         if (mySelectionMode != SelectionMode.Pull &&
+             mySelectionMode != SelectionMode.Measure) {
             setDragger();
          }
       }
@@ -4564,7 +4607,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (mySelectionMode != SelectionMode.Select &&
           mySelectionMode != SelectionMode.EllipticSelect &&
           mySelectionMode != SelectionMode.AddMarker &&
-          mySelectionMode != SelectionMode.Pull) {
+          mySelectionMode != SelectionMode.Pull &&
+          mySelectionMode != SelectionMode.Measure) {
          Point3d pmin = new Point3d (inf, inf, inf);
          Point3d pmax = new Point3d (-inf, -inf, -inf);
 

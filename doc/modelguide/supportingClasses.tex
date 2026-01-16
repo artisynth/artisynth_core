@@ -97,8 +97,15 @@ used methods are:
    RotationMatrix3d(u, angle); // create and set using an axis-angle
 
    setAxisAngle (u, ang);      // set using an axis-angle
-   setRpy (roll, pitch, yaw);  // set using roll-pitch-yaw angles
-   setEuler (phi, theta, psi); // set using Euler angles
+   setZyxAngles (rz, ry, rx);  // set using Z-Y-X Tait-Bryan angles
+   setXyzAngles (rx, ry, rz);  // set using X-Y-Z Tait-Bryan angles
+   setZyzAngles (phi, theta, psi); // set using Z-Y-Z Euler angles
+
+   getAxisAngle (axisAng)      // extract the corresponding axis-angle
+   getZyxAngles (angles)       // extract the Z-Y-X Tait-Bryan angles
+   getXyzAngles (angles)       // extract the X-Y-Z Tait-Bryan angles
+   getZyzAngles (angles)       // extract the Z-Y-Z Euler angles
+
    invert ();                  // invert this rotation
    mul (R)                     // post multiply this rotation by R
    mul (R1, R2);               // set this rotation to R1*R2

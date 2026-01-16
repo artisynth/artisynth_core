@@ -28,6 +28,8 @@ import artisynth.core.util.*;
  */
 public abstract class JointBase extends BodyConnector  {
 
+   public static boolean useCoordinateSetter = true;
+
    protected static final double INF = Double.POSITIVE_INFINITY;
 
    protected static final double RTOD = 180.0/Math.PI; 
@@ -445,6 +447,18 @@ public abstract class JointBase extends BodyConnector  {
       checkCoordinateIndex (idx);
       return myCoupling.getCoordinateSpeed (idx);
    }
+
+   /**
+    * Returns the limit engagement status of the {@code idx}-th coordinate for
+    * this joint.
+    *
+    * @param idx index of the coordinate
+    * @return coordinate engagement
+    */
+   public int getCoordinateLimitEngagement (int idx) {
+      checkCoordinateIndex (idx);
+      return myCoupling.getCoordinateLimitEngagement (idx);
+   }
    
    /**
     * Returns the motion type of the {@code idx}-th coordinate for this joint.
@@ -522,7 +536,7 @@ public abstract class JointBase extends BodyConnector  {
          myAttachmentB.applyForce (wrX);
       }
    }
-   
+
    protected MatrixNdBlock getMobilityMatrix (
       ArrayList<Twist> twists, RigidTransform3d TXwG, double s) {
 
@@ -548,13 +562,11 @@ public abstract class JointBase extends BodyConnector  {
     * so the column size of {@code M} increases by that amount.
     *
     * @param M mobiliy matrix to add to
-    * @param colSize current column size of M
     * @param solveIndexMap if non-{@code null}, maps the solve indices of the
     * constrained components onto the block-row indices of {@code M}.
-    * @return updated column size of M
     */
-   public int addCoordinateMobilities (
-      SparseBlockMatrix M, int colSize, int[] solveIndexMap) {
+   public void addCoordinateMobilities (
+      SparseBlockMatrix M, int[] solveIndexMap) {
 
       int nc = numCoordinates();
       if (nc > 0) {
@@ -567,11 +579,75 @@ public abstract class JointBase extends BodyConnector  {
          MC = getMobilityMatrix (twists, myTDwG, -1);
          addMasterBlocks (M, bj, MC, myAttachmentB, solveIndexMap);
       }
-      return colSize + nc;
    }
    
    protected int getCoordinateTwists (ArrayList<Twist> twists) {
       return myCoupling.getCoordinateTwists (twists);
+   }
+   
+   protected void getCoordinateWrenches (ArrayList<Wrench> wrenches) {
+      int numc = numCoordinates();
+      for (int idx=0; idx<numc; idx++) {
+         wrenches.add (myCoupling.getCoordinateWrench (idx));
+      }
+   }
+
+   public MatrixNd checkCoordinateTwists() {
+      int numc = numCoordinates();
+      ArrayList<Wrench> wrenches = new ArrayList<>();
+      getCoordinateWrenches (wrenches);
+      ArrayList<Twist> twists = new ArrayList<>();
+      getCoordinateTwists (twists);
+      MatrixNd A = new MatrixNd (numc, numc);
+      for (int i=0; i<numc; i++) {
+         for (int j=0; j<numc; j++) {
+            A.set (i, j, wrenches.get(i).dot(twists.get(j)));
+         }
+      }
+      return A;
+   }
+  
+   protected MatrixNdBlock getWrenchMatrix (
+      ArrayList<Wrench> wrenches, RigidTransform3d TXwG, double s) {
+
+      int nc = wrenches.size();
+      Wrench wtmp = new Wrench();
+      MatrixNdBlock GC = new MatrixNdBlock (6, nc);
+      for (int j=0; j<nc; j++) {      
+         wtmp.inverseTransform (TXwG, wrenches.get(j));
+         if (s != 1) {
+            wtmp.scale (s);
+         }
+         setMatrixColumn (GC, j, wtmp);
+      }
+      return GC;
+   }
+
+   /**
+    * Adds columns to the matrix {@code M} corresponding to the coordinate
+    * wrenches of this joint. The resulting matrix maps the velocities of the
+    * bodies connected to the joint onto coordinate velocities.
+    *
+    * <p>The wrenches added equals the number of coordinates, and so the column
+    * size of {@code M} increases by that amount.
+    *
+    * @param M matrix to add coordinate wrenches to
+    * @param solveIndexMap if non-{@code null}, maps the solve indices of the
+    * constrained components onto the block-row indices of {@code M}.
+    */
+   public void addCoordinateWrenches (
+      SparseBlockMatrix M, int[] solveIndexMap) {
+
+      if (numCoordinates() > 0) {
+         ArrayList<Wrench> wrenches = new ArrayList<>();
+         getCoordinateWrenches (wrenches);
+         MatrixNdBlock MC;
+         int bj = M.numBlockCols();
+         MC = getWrenchMatrix (wrenches, myTCwG, 1);
+         addMasterBlocks (M, bj, MC, myAttachmentA, solveIndexMap);
+         MC = getWrenchMatrix (wrenches, myTDwG, -1);
+         addMasterBlocks (M, bj, MC, myAttachmentB, solveIndexMap);
+      }
    }
    
    private void addSolveBlocks (
@@ -588,6 +664,13 @@ public abstract class JointBase extends BodyConnector  {
       }
    }
 
+   /**
+    * Used internally to add blocks to a system solve matrix that are
+    * associated with a coordinate's generalized force.
+    * 
+    * @param M system solve matrix
+    * @param idx index of the coordinate
+    */
    public void addCoordinateSolveBlocks (SparseNumberedBlockMatrix M, int idx) {
       checkCoordinateIndex (idx);
       Wrench wrG = myCoupling.getCoordinateWrench (idx);
@@ -677,7 +760,16 @@ public abstract class JointBase extends BodyConnector  {
       }
    }
 
-   public void addCoordinateVelJacobian (SparseNumberedBlockMatrix M, int idx, double s) {
+   /**
+    * Used internally to add a term to the system solve matrix corresponding
+    * to a coordinate's generalized force.
+    * 
+    * @param M system solve matrix
+    * @param idx index of the coordinate
+    * @param s force scale factor
+    */
+   public void addCoordinateForceJacobian (
+      SparseNumberedBlockMatrix M, int idx, double s) {
       checkCoordinateIndex (idx);
       //s = 0;
       Wrench wrG = myCoupling.getCoordinateWrench (idx);
@@ -745,6 +837,17 @@ public abstract class JointBase extends BodyConnector  {
          }
       }
    }
+
+   private void scaleRotaryCoords (VectorNd coords, double s) {
+      int numc = numCoordinates();
+      if (numc > 0) {
+         for (int idx=0; idx<numc; idx++) {
+            if (getCoordinateMotionType(idx) == MotionType.ROTARY) {
+               coords.set (idx, s*coords.get(idx));
+            }
+         }
+      }
+   }
       
    /**
     * Returns the current coordinates, if any, for this joint. Coordinates are
@@ -770,6 +873,20 @@ public abstract class JointBase extends BodyConnector  {
    }
 
    /**
+    * Returns the current coordinates, if any, for this joint. This method
+    * functions identically to {@link #getCoordinates(VectorNd)}, except that
+    * for coordinates whose motion type is {@link MotionType#ROTARY}, the value
+    * are returned in degrees.
+    *
+    * @param coords returns the coordinate values (in degrees for rotary
+    * coordinates)
+    */
+   public void getCoordinatesDeg (VectorNd coords) {
+      getCoordinates (coords);
+      scaleRotaryCoords (coords, RTOD);
+   }
+
+   /**
     * Returns the coordinate values currently stored for this joint.
     * These are the values that have been most recently set or
     * computed, but may be independent of the current TCD transform.
@@ -784,6 +901,20 @@ public abstract class JointBase extends BodyConnector  {
          coords.setSize (numc);
          myCoupling.getCoordinates (coords, /*TCD=*/null);
       }
+   }
+
+   /**
+    * Returns the coordinate values currently stored for this joint.  This
+    * method functions identically to {@link #getStoredCoordinates(VectorNd)},
+    * except that for coordinates whose motion type is {@link
+    * MotionType#ROTARY}, the value are returned in degrees.
+    *
+    * @param coords returns the stored coordinate values (in degrees for rotary
+    * coordinates)
+    */
+   public void getStoredCoordinatesDeg (VectorNd coords) {
+      getStoredCoordinates (coords);
+      scaleRotaryCoords (coords, RTOD);
    }
 
    /**
@@ -813,6 +944,30 @@ public abstract class JointBase extends BodyConnector  {
     * @param value new coordinate value
     */
    public void setCoordinate (int idx, double value) {
+      setCoordinate (idx, value, /*updateAdjacent*/true);
+   }
+
+   private CoordinateSetter findCoordinateSetter() {
+      MechModel mech = MechModel.topMechModel (this);
+      if (useCoordinateSetter && mech != null) {
+         return mech.getCoordinateSetter();
+      }
+      else {
+         return null;
+      }
+   }
+
+   /**
+    * Sets the {@code idx}-th coordinate for this joint. If {@code
+    * updateAdjacent} is {@code true} and the joint is connected to other
+    * bodies, update their poses appropriately.
+    *
+    * @param idx index of the coordinate  
+    * @param value new coordinate value
+    * @param updateAdjacent if {@code true}, update the poses of adjacent
+    * bodies if possible
+    */
+   public void setCoordinate (int idx, double value, boolean updateAdjacent) {
       int numc = numCoordinates();
       if (idx < 0 || idx >= numc) {
          throw new IndexOutOfBoundsException (
@@ -823,11 +978,23 @@ public abstract class JointBase extends BodyConnector  {
          TGD = new RigidTransform3d();
          getCurrentTCD (TGD);
       }
-      myCoupling.setCoordinateValue (idx, value, TGD);
-      if (TGD != null) {
-         // if we are connected to the hierarchy, adjust the poses of the
-          // attached bodies appropriately.
-         adjustPoses (TGD);
+      if (updateAdjacent && TGD != null) {
+         // try using a coordinate setter to ensure kinematic chain is updated
+         CoordinateSetter csetter = findCoordinateSetter();
+         if (csetter != null) {
+            csetter.setCoordinate (
+               new JointCoordinateHandle (this, idx), value);
+         }
+         else {
+            // no coordinate setter (probably because joint is not yet
+            // connected to the MechModel) so adjust poses the old way
+            myCoupling.setCoordinateValue (idx, value, TGD);            
+            adjustPoses (TGD);             
+         }
+      }
+      else {
+         // set coordinate and do not adjust neighbouring bodies
+         myCoupling.setCoordinateValue (idx, value, TGD);
       }
    }
 
@@ -856,19 +1023,93 @@ public abstract class JointBase extends BodyConnector  {
     * @param coords new coordinate values
     */
    public void setCoordinates (VectorNd coords) {
+      setCoordinates (coords, /*updateAdjacent*/true);
+      // int numc = numCoordinates();
+      // if (coords.size() < numc) {
+      //    throw new IllegalArgumentException (
+      //       "coords size"+coords.size()+" less the number of coordinates "+numc);
+      // }
+      // if (numc > 0) {
+      //    RigidTransform3d TGD = null;
+      //    if (attachmentsInitialized()) {
+      //       TGD = new RigidTransform3d();
+      //    }
+      //    myCoupling.setCoordinateValues (coords, TGD);
+      //    if (TGD != null) {
+      //       // if we are connected to the hierarchy, adjust the poses of the
+      //       // attached bodies appropriately.
+      //       adjustPoses (TGD);
+      //    }
+      // } 
+      
+   }
+
+   /**
+    * Sets the current coordinates, if any, for this joint. If coordinates are
+    * not supported, this method does nothing. Otherwise, {@code coords}
+    * supplies the coordinates and should have a length {@code >=} {@link
+    * #numCoordinates}. If {@code
+    * updateAdjacent} is {@code true} and the joint is connected to other
+    * bodies, update their poses appropriately.
+    *
+    * @param coords new coordinate values
+    * @param updateAdjacent if {@code true}, update the poses of adjacent
+    * bodies if possible
+    */
+   public void setCoordinates (VectorNd coords, boolean updateAdjacent) {
       int numc = numCoordinates();
+      if (coords.size() < numc) {
+         throw new IllegalArgumentException (
+            "coords size"+coords.size()+" less the number of coordinates "+numc);
+      }
       if (numc > 0) {
          RigidTransform3d TGD = null;
          if (attachmentsInitialized()) {
             TGD = new RigidTransform3d();
          }
-         myCoupling.setCoordinateValues (coords, TGD);
-         if (TGD != null) {
-            // if we are connected to the hierarchy, adjust the poses of the
-            // attached bodies appropriately.
-            adjustPoses (TGD);
+         if (updateAdjacent && TGD != null) {
+            // try using a coordinate setter to ensure kinematic chain is updated
+            CoordinateSetter csetter = findCoordinateSetter();
+            if (csetter != null) {
+               csetter.clearRequests(); // paranoid
+               for (int idx=0; idx<numc; idx++) {
+                  csetter.request (
+                     new JointCoordinateHandle (this, idx), coords.get(idx));
+               }
+               csetter.setCoordinates();
+            }
+            else {
+               // no coordinate setter (probably because joint is not yet
+               // connected to the MechModel) so adjust poses the old way
+               myCoupling.setCoordinateValues (coords, TGD);
+               adjustPoses (TGD);             
+            }
          }
-      }        
+         else {
+            // set coordinate and do not adjust neighbouring bodies
+            myCoupling.setCoordinateValues (coords, TGD);
+         }
+      }
+  
+   }
+
+   /**
+    * Sets the current coordinates, if any, for this joint. This method
+    * functions identically to {@link #setCoordinates(VectorNd)}, except that
+    * for coordinates whose motion type is {@link MotionType#ROTARY}, the
+    * values are specified in degrees.
+    *
+    * @param coords new coordinate values (in degrees for rotary coordinates)
+    */
+   public void setCoordinatesDeg (VectorNd coords) {
+      int numc = numCoordinates();
+      if (coords.size() < numc) {
+         throw new IllegalArgumentException (
+            "coords size"+coords.size()+" less the number of coordinates "+numc);
+      }
+      coords = new VectorNd (coords);
+      scaleRotaryCoords (coords, DTOR);
+      setCoordinates (coords);
    }
 
    /**
@@ -896,7 +1137,10 @@ public abstract class JointBase extends BodyConnector  {
       checkCoordinateIndex (idx);
       if (locked != isCoordinateLocked(idx)) {
          myCoupling.setCoordinateLocked (idx, locked);
-         myStateVersion++;
+         // Lloyd, Oct 2025. Don;t change state version since we still want
+         // original coordinates values, etc. restored when reseting.
+         // WayPoints will still be invalidated.
+         // myStateVersion++;
          notifyParentOfChange (new DynamicActivityChangeEvent(this));
       }
    }

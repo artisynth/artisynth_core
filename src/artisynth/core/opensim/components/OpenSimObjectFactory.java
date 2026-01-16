@@ -284,7 +284,15 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
       String text = parseTextValue (elem);
       double value = 0;
       if (text != null) {
-         value = Double.parseDouble(text);
+         if (text.equalsIgnoreCase ("-inf")) {
+            value = Double.NEGATIVE_INFINITY;
+         }
+         else if (text.equalsIgnoreCase ("inf")) {
+            value = Double.POSITIVE_INFINITY;
+         }
+         else {
+            value = Double.parseDouble(text);
+         }
       }
       return value;
    }

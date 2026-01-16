@@ -800,6 +800,17 @@ public abstract class MechSystemBase extends RenderableModelBase
          myForceEffectors = newForceEffectors;
       }
    }
+   
+   /**
+    * Returns the internal list of all constrainers in the MechSystemBase.
+    * Must not be modified.
+    * 
+    * @return internal constrainer list
+    */
+   public List<Constrainer> getAllConstrainers() {
+      updateForceComponentList();
+      return myConstrainers;
+   }
 
    protected void updateAuxStateComponentList() {
       if (myAuxStateComponents == null) {

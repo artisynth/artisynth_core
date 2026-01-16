@@ -19,31 +19,31 @@ public class PinJoint extends JointBase {
       RigidBody parent, RigidTransform3d TJP, 
       RigidBody child, RigidTransform3d TJC) {
 
-      HingeJoint rj = new HingeJoint (child, TJC, parent, TJP);
-      
-      // get coordinate and set values
-      ArrayList<Coordinate> cs = getCoordinateArray ();
-      if (cs != null && cs.size () > 0) {
+      HingeJoint joint = new HingeJoint (child, TJC, parent, TJP);
+
+      setCoordinateRangesAndValues (joint);
+      // // get coordinate and set values
+      // ArrayList<Coordinate> cs = getCoordinateArray ();
+      // if (cs != null && cs.size () > 0) {
          
-         // find first rotational coordinate
-         Coordinate coord = cs.get (0);
-         for (Coordinate c : cs) {
-            if (c.getMotionType () == MotionType.ROTATIONAL) {
-               coord = c;
-               break;
-            }
-         }
+      //    // find first rotational coordinate
+      //    Coordinate coord = cs.get (0);
+      //    for (Coordinate c : cs) {
+      //       if (c.getMotionType () == MotionType.ROTATIONAL) {
+      //          coord = c;
+      //          break;
+      //       }
+      //    }
          
-         // set angle and bounds
-         if (coord.getClamped ()) {
-            rj.setThetaRange (coord.getRange ());
-         }
-         rj.setTheta (coord.getDefaultValue ());
-      }
-      
-      rj.setName (getName());
-      
-      return rj;
+      //    // set angle and bounds
+      //    if (coord.getClamped ()) {
+      //       rj.setThetaRange (coord.getRange ());
+      //    }
+      //    rj.setCoordinateName (0, coord.getName());
+      //    rj.setTheta (coord.getDefaultValue ());
+      // }
+      joint.setName (getName());
+      return joint;
    }
    
 }

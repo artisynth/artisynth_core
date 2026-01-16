@@ -396,7 +396,19 @@ public class CompareStateFiles {
    double myMaxPosErrTime = 0;
    String myMaxPosErrDescription = null;
 
-   ErrorDesc findMaxError (ArrayList<ErrorDesc> edescs) {
+   ErrorDesc findMaxAbsError (ArrayList<ErrorDesc> edescs) {
+      ErrorDesc maxdesc = null;
+      double maxerr = 0;
+      for (ErrorDesc ed : edescs) {
+         if (maxdesc == null || ed.err > maxerr) {
+            maxdesc = ed;
+            maxerr = ed.err;
+         }
+      }
+      return maxdesc;
+   }
+
+   ErrorDesc findMaxRelError (ArrayList<ErrorDesc> edescs) {
       ErrorDesc maxdesc = null;
       double maxerr = 0;
       for (ErrorDesc ed : edescs) {
@@ -492,15 +504,15 @@ public class CompareStateFiles {
          }
 
          if (showLevel > 1) {
-            ErrorDesc maxVelErr = findMaxError (vdescs);
-            ErrorDesc maxPosErr = findMaxError (pdescs);
-            double verr = maxVelErr.normalizedError();
-            String vmsg = " verr=" + fmt.format(verr);
+            ErrorDesc maxVelErr = findMaxAbsError (vdescs);
+            ErrorDesc maxPosErr = findMaxAbsError (pdescs);
+            double verr = maxVelErr.err;
+            String vmsg = " absVerr=" + fmt.format(verr);
             if (verr != 0) {
                vmsg += " (comp "+comps.indexOf (maxVelErr.comp)+")";
             }
-            double perr = maxPosErr.normalizedError();
-            String pmsg = " perr=" + fmt.format(perr);
+            double perr = maxPosErr.err;
+            String pmsg = " absPerr=" + fmt.format(perr);
             if (perr != 0) {
                pmsg += " (comp "+comps.indexOf (maxPosErr.comp)+")";
             }
@@ -517,8 +529,8 @@ public class CompareStateFiles {
             System.out.println ("Warning: first file ended prematurely");
          }    
       }
-      ErrorDesc maxVelErr = findMaxError (vdescs);
-      ErrorDesc maxPosErr = findMaxError (pdescs);
+      ErrorDesc maxVelErr = findMaxRelError (vdescs);
+      ErrorDesc maxPosErr = findMaxRelError (pdescs);
 
       if (showLevel > 0) {
          System.out.println (description + ":");

@@ -7,42 +7,135 @@
 package artisynth.core.driver;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.ArrayList;
+import java.awt.event.*;
+import java.util.*;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JToolBar;
+import javax.swing.*;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 
 import maspack.util.InternalErrorException;
 import maspack.widgets.ButtonCreator;
+import maspack.widgets.ButtonMasks;
 import maspack.widgets.GuiUtils;
-import maspack.widgets.ThinBevelBorder;
+import maspack.widgets.*;
+import maspack.properties.*;
 import artisynth.core.gui.Displayable;
 import artisynth.core.driver.Main.SelectionMode;
 
-
 public class SelectionToolbar extends JToolBar implements ActionListener {
-   private JButton selectButton;
-   private JButton ellipticSelectButton;
-   private JButton scaleButton;
-   private JButton translateButton;
-   private JButton transrotateButton;
-   private JButton rotateButton;
-   private JButton constrainedTranslateButton;
-   private JButton pullButton;
-   // private JButton articulatedTransformButton;
-   // private ImageIcon articulatedTransformsEnabledIcon;
-   // private ImageIcon articulatedTransformsDisabledIcon;
-   private JButton addMarkerButton;
-   private Main main;
+
+   private class ButtonInfo {
+      JButton myButton;
+      PropertyDialog myPropDialog;
+      HasProperties myPropHost;
+      SelectionMode myMode;
+      
+      ButtonInfo (SelectionMode mode, JButton button) {
+         myMode = mode;
+         myButton = button;
+      }
+
+      void showPropertyDialog() {
+         if (myPropHost == null) {
+            return;
+         }
+         if (myPropDialog == null) {
+            PropertyPanel panel = new PropertyPanel();
+            String[] excludeProps = new String[] {
+               "name", "navpanelVisibility", "renderProps" };
+            myPropDialog =
+               new PropertyDialog (
+                  myMode + " properties", myPropHost, excludeProps, "OK");
+            myPropDialog.pack();
+         }
+         myPropDialog.locateRight(myMain.getFrame());
+         //dialog.setSynchronizeObject(myMain.getRootModel());
+         // dialog.addWindowListener(new WindowAdapter() {
+         //    public void windowClosed(WindowEvent e) {
+         //       myPullControllerPropertyDialog = null;
+         //    }
+         // });
+         if (!myPropDialog.isVisible()) {
+            myMain.registerWindow (myPropDialog);
+            myPropDialog.setVisible(true);
+         }
+      }
+   }
+
+   ArrayList<ButtonInfo> myButtons = new ArrayList<>();
+   ButtonInfo myLastSelectedButton = null;
+
+   private Main myMain;
    private ThinBevelBorder thinBevelBorder;
    private BevelBorder bevelBorder;
    private Border border;
    private Color background;
+   
+   private HashMap<SelectionMode,HasProperties> myModeHostMap;
+
+   private MouseAdapter myMouseAdapter;
+
+   private class LocalMouseAdapter extends MouseAdapter {
+
+      @Override
+      public void mousePressed (MouseEvent e) {
+         if (e.getModifiersEx() == ButtonMasks.getContextMenuMask()) {
+            maybeShowContextPopup(e);
+         }
+      }
+   }
+
+   private void maybeShowContextPopup (MouseEvent e) {
+      if (e.getSource() instanceof JButton) {
+         JButton button = (JButton)e.getSource();
+         ButtonInfo binfo = getButtonInfo (button);
+         if (binfo == null) {
+            throw new UnsupportedOperationException (
+               "Unknown button " + button.getText());
+         }
+         if (binfo.myPropHost != null) {
+            myLastSelectedButton = binfo;
+            JPopupMenu popup = new JPopupMenu();
+            JMenuItem item = new JMenuItem ("Edit properties ...");
+            item.addActionListener (this);
+            popup.add (item);
+            popup.setLightWeightPopupEnabled (false);
+            popup.show (e.getComponent(), e.getX(), e.getY());
+         }
+      }
+   }
+
+   private String uncapitalize (String str) {
+      if (str == null || str.isEmpty()) {
+        return str;
+      }
+      return str.substring(0, 1).toLowerCase() + str.substring(1);
+   }
+
+   private JButton createButton (
+      SelectionMode mode, String iconFileName, String toolTipText) {
+
+      String modeName = uncapitalize (mode.toString());
+      ImageIcon icon = null;
+      if (iconFileName != null) {
+         icon = GuiUtils.loadIcon (
+            Displayable.class, "icon/"+iconFileName);
+      }
+      if (icon != null) {
+         icon.setDescription (modeName);
+      }
+      JButton button =
+         ButtonCreator.createIconicButton (
+            icon, modeName + "mode", toolTipText, ButtonCreator.BUTTON_ENABLED,
+            true, this);
+      button.addMouseListener (myMouseAdapter);
+      add (button);
+      myButtons.add (new ButtonInfo (mode, button));
+      return button;
+   }
 
    private JButton createButton (
       String modeName, String iconFileName, String toolTipText) {
@@ -59,6 +152,7 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
          ButtonCreator.createIconicButton (
             icon, modeName + "mode", toolTipText, ButtonCreator.BUTTON_ENABLED,
             true, this);
+      button.addMouseListener (myMouseAdapter);
       add (button);
       return button;
    }
@@ -66,34 +160,40 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
    public SelectionToolbar (Main m) {
       super ("Edit mode selection toolbar");
 
-      main = m;
-      selectButton = createButton (
-         "select", "ToolSelectLarge.png",
+      myButtons = new ArrayList<>();
+      myModeHostMap = new HashMap();
+      myMouseAdapter = new LocalMouseAdapter();
+      myMain = m;
+      JButton selectButton = createButton (
+         SelectionMode.Select, "ToolSelectLarge.png",
          "select components");
-      ellipticSelectButton = createButton (
-         "ellipticSelect", "ToolEllipticSelectLarge.png",
+      createButton (
+         SelectionMode.EllipticSelect, "ToolEllipticSelectLarge.png",
          "elliptical component selection");
-      translateButton = createButton (
-         "translate", "ToolMoveLarge.png",
+      createButton (
+         SelectionMode.Translate, "ToolMoveLarge.png",
          "select and translate components");
-      rotateButton = createButton (
-         "rotate", "ToolRotateLarge.png",
+      createButton (
+         SelectionMode.Rotate, "ToolRotateLarge.png",
          "select and rotate components");
-      transrotateButton = createButton (
-         "transrotate", "ToolTransrotateLarge.png",
+      createButton (
+         SelectionMode.Transrotate, "ToolTransrotateLarge.png",
          "select and translate/rotate components");
-      constrainedTranslateButton = createButton (
-         "constrainedTranslate", "ToolConstrainedMove.png",
+      createButton (
+         SelectionMode.ConstrainedTranslate, "ToolConstrainedMove.png",
          "select and translate mesh constrained components");
-      scaleButton = createButton (
-         "scale", "ToolScaleLarge.png",
+      createButton (
+         SelectionMode.Scale, "ToolScaleLarge.png",
          "select and scale components");
-      addMarkerButton = createButton(
-         "addMarker", "ToolAddMarkerLarge.png", 
+      createButton(
+         SelectionMode.AddMarker, "ToolAddMarkerLarge.png", 
          "add marker to component");
-      pullButton = createButton (
-         "pull", "ToolPullLarge.png",
+      createButton (
+         SelectionMode.Pull, "ToolPullLarge.png",
          "select and pull components");
+      createButton (
+         SelectionMode.Measure, "ToolMeasureLarge.png",
+         "measure distances");
       // articulatedTransformButton = createButton (
       //    "articulatedTransform", "ArticulatedTransformsEnabled.png",
       //    "enable ");
@@ -133,101 +233,68 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
    //    }
    // }
 
+   public void setModePropertyHost (
+      SelectionMode mode, HasProperties host) {
 
-   public void actionPerformed (ActionEvent e) {
-      // set the newly selected item
-      if (e.getSource() == selectButton)
-         main.setSelectionMode (Main.SelectionMode.Select);
-      else if (e.getSource() == ellipticSelectButton)
-         main.setSelectionMode (Main.SelectionMode.EllipticSelect);
-      else if (e.getSource() == scaleButton)
-         main.setSelectionMode (Main.SelectionMode.Scale);
-      else if (e.getSource() == translateButton)
-         main.setSelectionMode (Main.SelectionMode.Translate);
-      else if (e.getSource() == transrotateButton)
-         main.setSelectionMode (Main.SelectionMode.Transrotate);
-      else if (e.getSource() == rotateButton)
-         main.setSelectionMode (Main.SelectionMode.Rotate);
-      else if (e.getSource() == constrainedTranslateButton)
-         main.setSelectionMode (Main.SelectionMode.ConstrainedTranslate);
-      else if (e.getSource () == addMarkerButton)
-         main.setSelectionMode (Main.SelectionMode.AddMarker);
-      else if (e.getSource() == pullButton)
-         main.setSelectionMode (Main.SelectionMode.Pull);
+      ButtonInfo binfo = getButtonInfo (mode);
+      binfo.myPropHost = host;
+      binfo.myPropDialog = null;
    }
 
-   public void setSelectionButtons() {
-      // create an array of all the selection buttons
-      ArrayList<JButton> selectionButtons = new ArrayList<JButton>();
+   public void actionPerformed (ActionEvent e) {
+      // set the selection mode
 
-      selectionButtons.add (selectButton);
-      selectionButtons.add (ellipticSelectButton);
-      selectionButtons.add (scaleButton);
-      selectionButtons.add (transrotateButton);
-      selectionButtons.add (translateButton);
-      selectionButtons.add (rotateButton);
-      selectionButtons.add (constrainedTranslateButton);
-      selectionButtons.add (addMarkerButton);
-      selectionButtons.add (pullButton);
-      //selectionButtons.add (articulatedTransformButton);
-
-      // get the button that is currently selected
-      SelectionMode mode = main.getSelectionMode();
-      JButton selectedButton = null;
-
-      switch (mode) {
-         case Select: {
-            selectedButton = selectButton;
-            break;
+      if (e.getSource() instanceof JButton) {
+         JButton button = (JButton)e.getSource();
+         ButtonInfo binfo = getButtonInfo (button);
+         if (binfo == null) {
+            throw new UnsupportedOperationException (
+               "Unknown button " + button.getText());
          }
-         case EllipticSelect: {
-            selectedButton = ellipticSelectButton;
-            break;
-         }
-         case Scale: {
-            selectedButton = scaleButton;
-            break;
-         }
-         case Translate: {
-            selectedButton = translateButton;
-            break;
-         }
-         case Transrotate: {
-            selectedButton = transrotateButton;
-            break;
-         }
-         case Rotate: {
-            selectedButton = rotateButton;
-            break;
-         }
-         case ConstrainedTranslate: {
-            selectedButton = constrainedTranslateButton;
-            break;
-         }
-         case AddMarker: {
-            selectedButton = addMarkerButton;
-            break;
-         }
-         case Pull: {
-            selectedButton = pullButton;
-            break;
-         }
-         default: {
-            throw new InternalErrorException ("unimplemented mode " + mode);
+         myMain.setSelectionMode (binfo.myMode);
+      }
+      else if (e.getSource() instanceof JMenuItem) {
+         String cmd = e.getActionCommand();
+         if (cmd.equals ("Edit properties ...")) {
+            if (myLastSelectedButton != null) {
+               myLastSelectedButton.showPropertyDialog();
+            }
          }
       }
+   }
 
-      // remove the button that is currently selected from the array list
-      selectionButtons.remove (selectedButton);
+   private ButtonInfo getButtonInfo (SelectionMode mode) {
+      for (ButtonInfo binfo : myButtons) {
+         if (binfo.myMode == mode) {
+            return binfo;
+         }
+      }
+      throw new InternalErrorException ("unimplemented mode " + mode);
+   }      
+
+   private ButtonInfo getButtonInfo (JButton button) {
+      for (ButtonInfo binfo : myButtons) {
+         if (binfo.myButton == button) {
+            return binfo;
+         }
+      }
+      return null;
+   }      
+
+   void setSelectionButtons (SelectionMode mode) {
+      JButton selectedButton = getButtonInfo (mode).myButton;
 
       // set the decoration on the selected button
       selectedButton.setBorder (bevelBorder);
       selectedButton.setBackground (Color.LIGHT_GRAY);
 
       // set the decoration on the unselected buttons
-      for (JButton b : selectionButtons) {
-         b.setBorder (border);
-         b.setBackground (background);
+      for (ButtonInfo binfo : myButtons) {
+         JButton button = binfo.myButton;
+         if (button != selectedButton) {
+            button.setBorder (border);
+            button.setBackground (background);
+         }
       }
    }
 }

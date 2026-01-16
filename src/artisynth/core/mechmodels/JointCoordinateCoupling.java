@@ -32,6 +32,7 @@ public class JointCoordinateCoupling
    Diff1FunctionNx1 myCouplingFunction;
    ArrayList<JointCoordinateHandle> myCoords;
    double myScaleFactor = 1;
+   ConnectableBody[] myBodies;
 
    VectorNd myICoords;
    VectorNd myFxnDeriv;
@@ -54,6 +55,10 @@ public class JointCoordinateCoupling
 
    void setFunction (Diff1FunctionNx1 fxn) {
       myCouplingFunction = fxn; // XXX clone this?      
+   }
+
+   public Diff1FunctionNx1 getFunction() {
+      return myCouplingFunction;
    }
 
    void setCoordinates (List<JointCoordinateHandle> coords) {
@@ -188,6 +193,14 @@ public class JointCoordinateCoupling
       return numu;
    }
       
+   /**
+    * {@inheritDoc}
+    */
+   public int getUnilateralInfo (
+      ConstraintInfo[] ninfo, int idx, boolean addTolerance) {
+      return idx;
+   }
+
    public void zeroForces() {
       myLambda = 0;
    }
@@ -203,6 +216,27 @@ public class JointCoordinateCoupling
          ch.getJoint().getConstrainedComponents (comps);
       }
    }
+   
+   public ConnectableBody[] getBodies() {
+      if (myBodies == null) {
+         // cache the body list so we don't have to recompute it every time
+         HashSet<ConnectableBody> bodies = new HashSet<>();
+         for (JointCoordinateHandle jch : myCoords) {
+            bodies.add (jch.getJoint().getBodyA());
+            bodies.add (jch.getJoint().getBodyB());
+         }
+         myBodies = bodies.toArray(new ConnectableBody[0]);
+      }
+      return myBodies;
+   }
+
+   /* --- references --- */
+
+   public void getHardReferences (List<ModelComponent> refs) {
+      for (JointCoordinateHandle jch : myCoords) {
+         refs.add (jch.getJoint());
+      }
+   }         
 
    /* --- begin I/O methods --- */
 

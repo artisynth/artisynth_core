@@ -1,4 +1,3 @@
-
 /**
  * Copyright (c) 2014, by the Authors: John Lloyd (UBC), Tracy Wilkinson (UBC) and
  * ArtiSynth Team Members
@@ -11,6 +10,7 @@ package artisynth.core.gui.editorManager;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
@@ -18,16 +18,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.Map;
 
-import javax.swing.Box;
+import javax.swing.*;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingConstants;
 import javax.swing.event.MouseInputAdapter;
 
+import maspack.geometry.BVFeatureQuery;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshBase;
+import maspack.matrix.Point3d;
 import maspack.properties.EditingProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.HostList;
@@ -40,7 +48,10 @@ import maspack.render.Renderer.*;
 import maspack.render.RenderProps;
 import maspack.render.Viewer;
 import maspack.render.GL.GLViewer;
+import maspack.util.DoubleHolder;
+import maspack.util.DynamicIntArray;
 import maspack.util.InternalErrorException;
+import maspack.util.PathFinder;
 import maspack.widgets.ExpandablePropertyPanel;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.PropertyPanel;
@@ -50,14 +61,19 @@ import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
 import artisynth.core.driver.Main;
 import artisynth.core.driver.ViewerManager;
+import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.selectionManager.SelectionListener;
-import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.mechmodels.HasSurfaceMesh;
+import artisynth.core.mechmodels.MeshComponent;
+import artisynth.core.modelbase.*;
 import artisynth.core.modelbase.ComponentChangeListener;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 
 /**
@@ -91,6 +107,24 @@ ValueChangeListener {
    private final int EXCLUDE_PROP = 1;
    private final int BASIC_PROP = 2;
 
+   protected JButton myUpButton;
+   protected JButton myDownButton;
+   protected JButton myDeleteButton;
+
+   static ImageIcon myUpIcon;
+   static ImageIcon myDownIcon;
+   static ImageIcon myDeleteIcon;
+
+   protected void initializeIcons() {
+      if (myUpIcon == null) {
+         String iconDir = PathFinder.getSourceRelativePath (
+            ControlPanel.class, "icon/");
+
+         myUpIcon = GuiUtils.loadIcon (iconDir + "moveUpArrow.png");
+         myDownIcon = GuiUtils.loadIcon (iconDir + "moveDownArrow.png");
+         myDeleteIcon = GuiUtils.loadIcon (iconDir + "xcross.png");
+      }
+   }
 
    private class PropName {
       String myName;
@@ -389,16 +423,65 @@ ValueChangeListener {
     * ComponentList which contains the components being added by this agent.
     */
    protected void createComponentList (
-      String labelText, ComponentListWidget<?> list) {
+      String labelText, ComponentListWidget<?> list, boolean addReorderPanel) {
       myComponentList = list;
       myComponentList.update();
       myListScroller = new JScrollPane (myComponentList.getJList());
       myListScroller.setPreferredSize (new Dimension (280, 150));
       myListScroller.setMinimumSize (new Dimension (280, 150));
       JLabel label = new JLabel (labelText);
-      GuiUtils.setItalicFont (label);
-      addToContentPane (label);
+      GuiUtils.setBoldItalicFont (label);
+      if (addReorderPanel) {
+         addToContentPane (createReorderButtons (label));
+      }
+      else {
+         addToContentPane (label);
+      }
       addToContentPane (myListScroller);
+   }
+
+   protected void createComponentList (
+      String labelText, ComponentListWidget<?> list) {
+      createComponentList (labelText, list, /*addReorderPanel*/false);
+   }
+
+   private JButton createIconButton (
+      JPanel panel, ImageIcon icon, String cmd, String toolTip) {
+      JButton button = new JButton (icon);
+      button.setActionCommand (cmd);
+      if (toolTip != null) {
+         button.setToolTipText (toolTip);
+      }
+      button.addActionListener (this);
+      button.setEnabled (false);  
+      button.setHorizontalAlignment (SwingConstants.LEFT);
+      button.setMargin (new Insets (1, 2, 1, 2));
+      panel.add (button);
+      panel.add (Box.createRigidArea (new Dimension(2, 0)));
+      return button;
+   }
+
+   private JPanel createReorderButtons (JLabel label) { 
+      JPanel buttonPanel = new JPanel();
+      buttonPanel.setLayout (new BoxLayout (buttonPanel, BoxLayout.LINE_AXIS));
+
+      initializeIcons();
+
+      buttonPanel.add (label);
+      buttonPanel.add (Box.createHorizontalGlue());
+
+      myUpButton = createIconButton (
+         buttonPanel, myUpIcon, "Up", "Shift the selected items up");
+      myDownButton = createIconButton (
+         buttonPanel, myDownIcon, "Down", "Shift the selected items down");
+      myDeleteButton = createIconButton (
+         buttonPanel, myDeleteIcon, "Delete", "Delete the selected items");
+
+      buttonPanel.setAlignmentX (Component.RIGHT_ALIGNMENT);
+      Dimension size = buttonPanel.getPreferredSize();
+      buttonPanel.setMaximumSize (new Dimension (Short.MAX_VALUE, size.height));
+
+      return buttonPanel;
    }
 
    protected void createComponentList (ComponentListWidget<?> list) {
@@ -432,7 +515,44 @@ ValueChangeListener {
       }
    }
 
+   private int[] findSelectedIndices() {
+      DynamicIntArray selected = new DynamicIntArray();
+      for (int i=0; i<myContainer.size(); i++) {
+         if (myContainer.get(i).isSelected()) {
+            selected.add (i);
+         }
+      }
+      return selected.toArray();
+   }
+
+   private int[] findUnselectedIndices() {
+      DynamicIntArray unselected = new DynamicIntArray();
+      for (int i=0; i<myContainer.size(); i++) {
+         if (!myContainer.get(i).isSelected()) {
+            unselected.add (i);
+         }
+      }
+      return unselected.toArray();
+   }
+
+   private void updateReorderButtons() {
+      int[] selected = findSelectedIndices();
+
+      boolean hasUpSelection = 
+         (selected.length > 0 && selected[0] > 0);
+      boolean hasDownSelection =
+         (selected.length > 0 &&
+          selected[selected.length-1] < myContainer.size()-1);
+
+      myUpButton.setEnabled (hasUpSelection);
+      myDownButton.setEnabled (hasDownSelection);
+      myDeleteButton.setEnabled (selected.length > 0);
+   }
+
    public void selectionChanged (SelectionEvent e) {
+      if (myUpButton != null) {
+         updateReorderButtons();
+      }
    }
 
    /**
@@ -561,6 +681,15 @@ ValueChangeListener {
          resetState();
          myMain.rerender();
       }
+      else if (cmd.equals ("Up")) {
+         shiftSelected (-1);
+      }
+      else if (cmd.equals ("Down")) {
+         shiftSelected (1);
+      }
+      else if (cmd.equals ("Delete")) {
+         deleteSelected();
+      }
       else if (cmd.equals ("Configure Properties")) {
          JOptionPane.showOptionDialog (
             myContentPane, myPropertyPanel, "Default Properties", 
@@ -570,6 +699,100 @@ ValueChangeListener {
       else {
          super.actionPerformed (e);
       }
+   }
+
+   /**
+    * Shift selected components within the container by inc.
+    */
+   private void shiftSelected (int inc) {
+      int[] selected = findSelectedIndices();
+      int[] unselected = findUnselectedIndices();
+      if (inc != 1 && inc != -1) {
+         throw new InternalErrorException (
+            "increment should only be 1 or -1");
+      }
+      if ((inc == -1 && selected[0] == 0) ||
+          (inc == 1 && selected[selected.length-1] == myContainer.size()-1)) {
+         // paranoid - shouldn't happen
+         return;
+      }
+      int[] reorderIdxs = new int[myContainer.size()];
+      for (int i=0; i<reorderIdxs.length; i++) {
+         reorderIdxs[i] = -1;
+      }
+      for (int i=0; i<selected.length; i++) {
+         reorderIdxs[selected[i]+inc] = selected[i];
+      }
+      int k = 0; 
+      for (int i=0; i<reorderIdxs.length; i++) {
+         if (reorderIdxs[i] == -1) {
+            reorderIdxs[i] = unselected[k++];
+         }
+      }
+      // save selected components so we can reselect them
+      LinkedList<ModelComponent> selectedComps = new LinkedList<>();
+      for (int idx : selected) {
+         selectedComps.add (myContainer.get(idx));
+      }
+      ReorderComponentsCommand cmd =
+         new ReorderComponentsCommand ("reorder", myContainer, reorderIdxs);
+      myUndoManager.saveStateAndExecute (cmd);
+      // reselect components because the ComponentListWidget will unselect them
+      mySelectionManager.addSelected (selectedComps);
+   }
+
+   /**
+    * Shift selected components from the container.
+    */
+   private void deleteSelected() {
+      int[] selected = findSelectedIndices();
+      HashSet<ModelComponent> selection = new HashSet<>();
+      for (int i=0; i<selected.length; i++) {
+         selection.add (myContainer.get(selected[i]));
+      }
+      LinkedList<ModelComponent> update = new LinkedList<ModelComponent>();
+      LinkedList<ModelComponent> delete =
+         ComponentUtils.findDependentComponents (update, selection);
+         
+      if (delete.size() > selection.size()) {
+         // first, see if we can actually delete:
+         if (!ComponentUtils.componentsAreDeletable (
+            delete, /*ignoreEditable=*/true)) {
+            GuiUtils.showNotice (
+               myMain.getFrame(), 
+               "Selection refers to additional components that can't be deleted");
+            return;
+         }
+         else {
+            boolean needConfirmation = false;
+            ArrayList<ModelComponent> dependents = new ArrayList<>();
+            for (ModelComponent c : delete) {
+               if (!selection.contains(c)) {
+                  needConfirmation = true;
+                  dependents.add (c);
+               }
+            }
+            if (needConfirmation) {
+               JOptionPane confirmDialog =
+                  new JOptionPane (
+                     "Dependent components will be deleted also. Proceed?",
+                     JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_OPTION);
+               JDialog dialog =
+                  confirmDialog.createDialog (
+                     myMain.getFrame(), "confirm deletion");
+               dialog.setVisible (true);
+               if ((confirmDialog.getValue() == null) ||
+                   (confirmDialog.getValue().equals (JOptionPane.NO_OPTION))) {
+                  return;
+               }
+            }
+         }
+      }
+      mySelectionManager.clearSelections();
+      @SuppressWarnings("unchecked")
+      RemoveComponentsCommand cmd =
+         new RemoveComponentsCommand ("delete", delete, update);
+      myUndoManager.saveStateAndExecute (cmd);
    }
 
    /**
@@ -713,4 +936,51 @@ ValueChangeListener {
          }
       }
    }
+
+   /**
+    * Checks if a viewer ray intersects any visible model components in a
+    * list. If it does, and if the nearest intersection distance is less than
+    * {@code minDist}, uodates {@code minDist} with the new intersection
+    * values, sets {@code isectPnt} to the value of the intersection point, and
+    * returns the intersected component. Otherwise, returns {@code null}.
+    */
+   protected RenderableComponent findIntersectingBody (
+      Point3d isectPnt,
+      DoubleHolder minDist, 
+      ComponentList<? extends RenderableComponent> comps,
+      MouseRayEvent rayEvent) {
+
+      RenderableComponent nearestComp = null;
+      for (RenderableComponent comp : comps) {
+         if (RenderableComponentBase.isVisible (comp)) {
+            PolygonalMesh pmesh = null;
+            if (comp instanceof HasSurfaceMesh) {
+               pmesh = ((HasSurfaceMesh)comp).getSurfaceMesh();
+            }
+            else if (comp instanceof MeshComponent) {
+               MeshBase mesh = ((MeshComponent)comp).getMesh();
+               if (mesh instanceof PolygonalMesh) {
+                  pmesh = (PolygonalMesh)mesh;
+               }
+            }
+            if (pmesh != null) {
+               Point3d ipnt = BVFeatureQuery.nearestPointAlongRay (
+                  pmesh, rayEvent.getRay().getOrigin(),
+                  rayEvent.getRay().getDirection());
+               if (ipnt != null) {
+                  double d = ipnt.distance (rayEvent.getRay().getOrigin());
+                  if (d < minDist.value) {
+                     minDist.value = d;
+                     if (isectPnt != null) {
+                        isectPnt.set (ipnt);
+                     }
+                     nearestComp = comp;
+                  }
+               }
+            }
+         }
+      }
+      return nearestComp;
+   }
+         
 }

@@ -272,7 +272,7 @@ public abstract class ForceSpringBase extends ForceBase {
          (MultiPointMuscleOsim)createDefaultMultiSpring (getName());
       componentMap.put (this, mps);
 
-      PointList<Marker> markers = mps.getPathPoints();
+      PointList<Point> points = mps.getPathPoints();
       
       // create markers from path points
       for (PathPoint pp : pps) {
@@ -298,11 +298,11 @@ public abstract class ForceSpringBase extends ForceBase {
          if (name != null) {
             int idx = 0;
             String pname = name;
-            Marker marker = markers.get (name);
+            Point marker = points.get (name);
             while (marker != null) {
                ++idx;
                pname = name + idx;               
-               marker = markers.get (pname);
+               marker = points.get (pname);
             }
             name = pname;
          }
@@ -330,7 +330,7 @@ public abstract class ForceSpringBase extends ForceBase {
          }
          fm.setFrame (rb);
          
-         markers.add (fm);
+         mps.addPathPoint (fm);
       }
 
       // get wrap path, if any
@@ -363,10 +363,10 @@ public abstract class ForceSpringBase extends ForceBase {
 
       // add markers to multipoint spring
       FrameMarker mprev = null;
-      for (int i=0; i<markers.size(); ++i) {
+      for (int i=0; i<points.size(); ++i) {
          // add wrap segment if wrappables are present and frame markers are
          // on different bodies or are movable
-         FrameMarker mi = (FrameMarker)markers.get(i);
+         FrameMarker mi = (FrameMarker)points.get(i);
          if (mi instanceof JointBasedMovingMarker) {
             ((JointBasedMovingMarker)mi).updateMarkerLocation();
             JointBasedMovingMarker mm = (JointBasedMovingMarker)mi;
@@ -390,7 +390,7 @@ public abstract class ForceSpringBase extends ForceBase {
       mps.setRestLengthFromPoints ();
       mps.setMaterial (createMaterial ());
       
-      markers.setRenderProps (grprops);
+      points.setRenderProps (grprops);
       mps.setRenderProps (createRenderProps());
      
       return mps;

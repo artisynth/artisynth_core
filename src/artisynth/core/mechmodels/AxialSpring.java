@@ -418,16 +418,6 @@ public class AxialSpring extends PointSpringBase
    
    /* --- End ForceTargetComponent interface --- */
    
-   public int getJacobianType() {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (myIgnoreCoriolisInJacobian || mat.isDFdldotZero()) {
-         return Matrix.SYMMETRIC;
-      }
-      else {
-         return 0;
-      }
-   }
-
    /**
     * {@inheritDoc}
     */

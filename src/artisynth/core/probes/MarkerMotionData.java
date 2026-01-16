@@ -99,4 +99,28 @@ public class MarkerMotionData {
       return myMarkerLabels.indexOf (label);
    }
 
+   public void scaleMarkerPositions (double s) {
+      for (int num=0; num<numFrames(); num++) {
+         ArrayList<Point3d> mkrs = myMarkerData.get(num);
+         for (int k=0; k<numMarkers(); k++) {
+            mkrs.get(k).scale (s);
+         }
+      }
+   }
+
+   public void transformMarkerPositions (AffineTransform3dBase X) {
+      for (int num=0; num<numFrames(); num++) {
+         ArrayList<Point3d> mkrs = myMarkerData.get(num);
+         for (int k=0; k<numMarkers(); k++) {
+            mkrs.get(k).transform (X);
+         }
+      }
+   }
+
+   public void transformFrameTimes (double s, double b) {
+      for (int num=0; num<numFrames(); num++) {
+         myFrameTimes.set (num, s*myFrameTimes.get(num) + b);
+      }
+   }
+
 }

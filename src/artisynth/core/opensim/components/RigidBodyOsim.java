@@ -64,6 +64,15 @@ public class RigidBodyOsim extends RigidBody {
    boolean detachWrapComponent (FrameAttachment fattach) {
       return myWrapComponents.remove (fattach);
    }
+
+   public artisynth.core.mechmodels.JointBase getJoint() {
+      if (myJoint.size() > 0) {
+         return myJoint.get(0);
+      }
+      else {
+         return null;
+      }
+   }
 }
 
 

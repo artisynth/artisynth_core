@@ -50,11 +50,13 @@ public class Muscle extends AxialSpring
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;
 
-   protected boolean enabled = true;
-   private static final Color disabledLineColor = Color.LIGHT_GRAY;
-   private static final LineStyle disabledLineStyle = LineStyle.LINE;
-   private Color enabledLineColor = null;
-   private LineStyle enabledLineStyle = null;
+   protected Color getDisabledLineColor() {
+      return Color.LIGHT_GRAY;
+   }
+   
+   protected LineStyle getDisabledLineStyle() {
+      return LineStyle.LINE;
+   }
    
    protected double myExcitation; // default = 0.0;
 
@@ -132,7 +134,6 @@ public class Muscle extends AxialSpring
    }
 
    static {
-      myProps.add ("enabled isEnabled *", "muscle is enabled", true);
       myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1]");
       myProps.addReadOnly (
          "netExcitation", "total excitation including excitation sources");
@@ -339,21 +340,7 @@ public class Muscle extends AxialSpring
       return net;
    }
 
-   /**
-    * {@inheritDoc}
-    * 
-    * <p> The computation includes the effect of the net excitation acting on
-    * this Muscle.
-    *
-    * @param l {@inheritDoc}
-    * @param ldot {@inheritDoc}
-    * @return {@inheritDoc} 
-    */
-   public double computeF (double l, double ldot) {
-      return computeF (l, ldot, getNetExcitation());
-   }
-   
-   /**
+    /**
     * Computes the passive tension F acting along the unit vector from the
     * first to the second particle.
     * 
@@ -363,6 +350,9 @@ public class Muscle extends AxialSpring
     */
    public double computePassiveF (double l, double ldot) {
       AxialMaterial mat = getEffectiveMaterial();
+      if (!myEnabledP) {
+         return 0;
+      }
       if (mat instanceof EquilibriumAxialMuscle) {
          EquilibriumAxialMuscle emat = (EquilibriumAxialMuscle)mat;
          return emat.computePassiveF (
@@ -375,45 +365,6 @@ public class Muscle extends AxialSpring
          return 0;
       }
    }
-
-   /**
-    * {@inheritDoc}
-    * 
-    * @param l {@inheritDoc}
-    * @param ldot {@inheritDoc}
-    * @return {@inheritDoc} 
-    */
-   public double computeDFdl (double l, double ldot) {
-      return computeDFdl (l, ldot, getNetExcitation());
-   }
-
-   /**
-    * {@inheritDoc}
-    *
-    * <p> The computation includes the effect of the net excitation acting on
-    * this Muscle.
-    * 
-    * @param l {@inheritDoc}
-    * @param ldot {@inheritDoc}
-    * @return {@inheritDoc} 
-    */
-   public double computeDFdldot (double l, double ldot) {
-      return computeDFdldot (l, ldot, getNetExcitation());
-   }
-
-
-   // /**
-   //  * Used by the ForceTargetComponent interface to obtain the force being
-   //  * controlled. Override here to include excitation.
-   //  */
-   // public void getForce (VectorNd minf, boolean staticOnly) {
-   //    double l = mySeg.updateU();
-   //    double ldot = staticOnly ? 0.0 : mySeg.getLengthDot();
-   //    double F = computeF (l, ldot, getNetExcitation());
-   //    minf.setSize (1);
-   //    minf.set (0, F);
-   // }  
-   
 
    /**
     * sets the opt length to current muscle length and max length with the
@@ -498,10 +449,6 @@ public class Muscle extends AxialSpring
       + " )");
    }
 
-   public int getJacobianType() {
-      return Matrix.SYMMETRIC;
-   }
-
 //   public MuscleType getMuscleType() {
 //      return myType;
 //   }
@@ -509,17 +456,6 @@ public class Muscle extends AxialSpring
 //   public void setMuscleType (MuscleType muscleType) {
 //      myType = muscleType;
 //   }
-
-   public boolean isEnabled() {
-      return enabled;
-   }
-
-   public void setEnabled (boolean enabled) {
-      if (this.enabled != enabled) {
-	 this.enabled = enabled;
-	 updateLineRenderProps(enabled);
-      }
-   }
 
   // PropertyChangeListener interface:
 
@@ -530,33 +466,6 @@ public class Muscle extends AxialSpring
             notifyParentOfChange (new MaterialChangeEvent (this, mce));  
          }
       }     
-   }
-
-   private void updateLineRenderProps(boolean enabled) {
-      if (enabled) {
-	 if (enabledLineColor == null)
-	    RenderProps.setLineColorMode(this, PropertyMode.Inherited);
-	 else
-	    RenderProps.setLineColor(this, enabledLineColor);
-	 
-	 if (enabledLineStyle == null) 
-	    RenderProps.setLineStyleMode(this, PropertyMode.Inherited);
-	 else
-	    RenderProps.setLineStyle(this, enabledLineStyle);	 
-      }
-      else {
-	 if (getRenderProps() != null && 
-	     getRenderProps().getLineColorMode() == PropertyMode.Explicit)
-	    enabledLineColor = getRenderProps().getLineColor();
-	 
-	 if (getRenderProps() != null && 
-	     getRenderProps().getLineStyleMode() == PropertyMode.Explicit) 
-	    enabledLineStyle = getRenderProps().getLineStyle();
-	 
-	 RenderProps.setLineColor(this, disabledLineColor);
-	 RenderProps.setLineStyle(this, disabledLineStyle);
-      }
-	 
    }
 
    public void getSoftReferences (List<ModelComponent> refs) {
@@ -632,5 +541,8 @@ public class Muscle extends AxialSpring
    }
    
    /* --- End HasNumericState overrides --- */
+
+   public void setEnabled (boolean enabled) {
+   }
 
 }

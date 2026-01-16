@@ -10,6 +10,7 @@ import artisynth.core.modelbase.*;
 import artisynth.core.femmodels.*;
 import artisynth.core.materials.*;
 import artisynth.core.probes.*;
+import artisynth.core.gui.*;
 
 import maspack.util.*;
 import maspack.matrix.*;
@@ -25,6 +26,25 @@ public class JointLimitDemo extends RootModel {
    public static final double RTOD = 180/Math.PI;
 
    public void build (String[] args) {
+      double excitation = 0;
+
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-excitation")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "ERROR: option -excitation needs another argument");
+               continue;
+            }
+            excitation = Double.valueOf(args[i]);
+         }
+         else {
+            System.out.println (
+               "WARNING: unrecognized option '"+args[i]+"'");
+            System.out.println ("Options are:");
+            System.out.println (" -excitation <value>");
+         }
+      }
+
       MechModel mech = new MechModel ("mech");
       addModel (mech);
 
@@ -51,6 +71,7 @@ public class JointLimitDemo extends RootModel {
          new JointCoordinateHandle (joint0, 0);
       JointLimitForce jlf = new JointLimitForce ("jlf", handle);
       jlf.setLower (DTOR*0, RTOD*100, RTOD*0.5, DTOR*10);
+      jlf.setUpper (DTOR*180, RTOD*100, RTOD*0.5, DTOR*10);
       mech.addForceEffector (jlf);
       // handles.add (new JointCoordinateHandle (joint1, 0));
       // handles.add (new JointCoordinateHandle (joint0, 0));
@@ -59,11 +80,20 @@ public class JointLimitDemo extends RootModel {
       //    new JointJointLimit (handles, fxn);
       // mech.addConstrainer (jcc);
 
+      JointActuator actuator = new JointActuator (
+         null, joint0, 0, /*forceScale*/40);
+      mech.addForceEffector (actuator);
+      actuator.setExcitation (excitation);
+
        // set rendering properties
       joint0.setShaftLength (0.5*size); // draw shaft
       joint0.setShaftRadius (0.05*size);
       RenderProps.setFaceColor (joint0, Color.BLUE); // set colors
       RenderProps.setFaceColor (link0, new Color (0.5f, 1f, 1f));    
+
+      ControlPanel panel = new ControlPanel();
+      panel.addWidget ("actuatorExcitation", actuator, "excitation", 0, 1);
+      addControlPanel (panel);
    }
 
 }

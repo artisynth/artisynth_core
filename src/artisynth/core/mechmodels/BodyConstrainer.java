@@ -21,9 +21,10 @@ import maspack.spatialmotion.FrictionInfo;
  * Subclass of Constrainer that applies constraints to rigid bodies and frames
  * and implements versions of {@code addBilateralConstraints} and {@code
  * addUnilateralConstraints} that permit block indices to be reassigned
- * via a solve index map.
+ * via a solve index map, and a version of {@code getUnilateralInfo} that
+ * controls whether or not deadbands are applied.
  */
-public interface BodyConstrainer extends Constrainer {
+public interface BodyConstrainer extends Constrainer, ModelComponent {
    
    /**
     * Implementation of {@link
@@ -62,4 +63,28 @@ public interface BodyConstrainer extends Constrainer {
     */
    public int addUnilateralConstraints (
       SparseBlockMatrix NT, VectorNd dn, int numu, int[] solveIndexMap);
+   
+   /**
+    * Implementation of {@link
+    * Constrainer#getUnilateralInfo(ConstraintInfo[],int)} that
+    * controls whether or not penetration tolerances are added to penetration
+    * distances.
+    *
+    * @param ninfo returns the constraint information
+    * @param idx starting location in {@code ninfo} for returning constraint
+    * @param addTolerance if {@code true}, adds any specified penetration
+    * tolerance to the penetration distance
+    * @return updated value of {@code idx}
+    */
+   public int getUnilateralInfo (
+      ConstraintInfo[] ninfo, int idx, boolean addTolerance);
+   
+   /**
+    * Returns a list of the bodies constrained by this constrainer.
+    * If the constrainer connects one or more of the bodies to ground,
+    * then {@code null} should be included in the list.
+    *  
+    * @return list of constrained bodies. Should not be modified.
+    */
+   public ConnectableBody[] getBodies();
 }

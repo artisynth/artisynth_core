@@ -1,18 +1,19 @@
 package artisynth.core.opensim.components;
 
-import java.io.*;
+import java.io.File;
 import java.util.ArrayList;
 
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.mechmodels.*;
-import maspack.util.DoubleInterval;
+import artisynth.core.mechmodels.JointCoordinateCoupling;
+import artisynth.core.mechmodels.JointCoordinateHandle;
+import maspack.function.Diff1FunctionNx1;
+import maspack.interpolation.CubicHermiteSpline1d;
 
 public class CoordinateCouplerConstraint extends ConstraintBase {
 
    FunctionBase coupled_coordinates_function;
    String dependent_coordinate_name;
    String[] independent_coordinate_names;
-   double scale_factor;
+   double scale_factor = 1.0;
    
    public FunctionBase getCoupledCoordinatesFunction () {
       return coupled_coordinates_function;
@@ -69,9 +70,10 @@ public class CoordinateCouplerConstraint extends ConstraintBase {
          }
          coords.add (ch);
       }
+      Diff1FunctionNx1 fxn =
+         (CubicHermiteSpline1d)getCoupledCoordinatesFunction().getFunction();
       JointCoordinateCoupling jcc =
-         new JointCoordinateCoupling (
-            getName(), coords, getCoupledCoordinatesFunction().getFunction());
+         new JointCoordinateCoupling (getName(), coords, fxn);
       jcc.setScaleFactor (getScaleFactor());
       return jcc;
    }

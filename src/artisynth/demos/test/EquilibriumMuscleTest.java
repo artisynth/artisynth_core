@@ -125,6 +125,7 @@ public class EquilibriumMuscleTest extends RootModel {
             if (++i == args.length) {
                System.out.println (
                   "ERROR: Option -runTime needs another argument");
+               continue;
             }
             myRunTime = Double.valueOf(args[i]);
          }
@@ -132,6 +133,7 @@ public class EquilibriumMuscleTest extends RootModel {
             if (++i == args.length) {
                System.out.println (
                   "ERROR: Option -penAngle needs another argument");
+               continue;
             }
             myPennationAngleDeg = Double.valueOf(args[i]);
          }
@@ -139,6 +141,7 @@ public class EquilibriumMuscleTest extends RootModel {
             if (++i == args.length) {
                System.out.println (
                   "ERROR: Option -tendonRatio needs another argument");
+               continue;
             }
             double ratio = Double.valueOf(args[i]);
             myTendonSlackLength = ratio;
@@ -148,6 +151,7 @@ public class EquilibriumMuscleTest extends RootModel {
             if (++i == args.length) {
                System.out.println (
                   "ERROR: Option -stepSize needs another argument");
+               continue;
             }
             double stepSize = Double.valueOf(args[i]);
             setMaxStepSize (stepSize);
@@ -156,6 +160,7 @@ public class EquilibriumMuscleTest extends RootModel {
             if (++i == args.length) {
                System.out.println (
                   "ERROR: Option -damping needs another argument");
+               continue;
             }
             myFibreDamping = Double.valueOf(args[i]);
          }

@@ -20,12 +20,12 @@ public class MultiPointMuscleOsim extends MultiPointMuscle
 
    protected ComponentListImpl<ModelComponent> myComponents;
    protected NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
-   protected PointList<Marker> myPathPoints = null;
+   protected PointList<Point> myPathPoints = null;
 
    protected void initializeChildComponents() {
       myComponents = 
          new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
-      myPathPoints = new PointList<Marker>(Marker.class, "pathpoints");
+      myPathPoints = new PointList<Point>(Point.class, "pathpoints");
 
       add (myPathPoints);
    }
@@ -42,8 +42,20 @@ public class MultiPointMuscleOsim extends MultiPointMuscle
    
    /* --- Path point management --- */
 
-   public PointList<Marker> getPathPoints() {
+   public PointList<Point> getPathPoints() {
       return myPathPoints;
+   }
+
+   public void addPathPoint (Point point) {
+      myPathPoints.add (point);
+   }
+
+   public boolean removePathPoint (Point point) {
+      return myPathPoints.remove (point);
+   }
+
+   public int numPathPoints () {
+      return myPathPoints.size();
    }
 
    /* --- Composite component --- */

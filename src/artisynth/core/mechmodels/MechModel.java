@@ -46,6 +46,7 @@ import artisynth.core.modelbase.GeometryChangeEvent;
 import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.HasNumericStateComponents;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.NumericState;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StepAdjustment;
@@ -96,6 +97,7 @@ TransformableGeometry, ScalableUnits {
    protected PropertyMode myInertialDampingMode = PropertyMode.Inherited;
 
    protected ComponentList<MechSystemModel> myModels;
+   protected CoordinateSetter myCoordinateSetter;
 
    protected ComponentList<DynamicAttachmentComp> myAttachments;
    SparseNumberedBlockMatrix mySolveMatrix;
@@ -1112,8 +1114,26 @@ TransformableGeometry, ScalableUnits {
       cm.setStictionCreep (sc);
    }
 
+   /**
+    * Returns the collision manager for this MechModel.
+    *
+    * @return model collision manager
+    */
    public CollisionManager getCollisionManager() {
       return myCollisionManager;
+   }
+
+   /**
+    * Returns the coordinate setter for this MechModel, allocating it on
+    * demand.
+    *
+    * @return model coordinate setter
+    */
+   public CoordinateSetter getCoordinateSetter() {
+      if (myCoordinateSetter == null) {
+         myCoordinateSetter = new CoordinateSetter (this);
+      }
+      return myCoordinateSetter;
    }
 
    public Integrator getIntegrator() {
@@ -2389,7 +2409,14 @@ TransformableGeometry, ScalableUnits {
    public void notifyParentOfChange (ComponentChangeEvent e) {
       if (myCollisionManager != null) {
          // only clear cache if built - e.g., collisionManager initialized
-         clearCachedData (e);
+         if (e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED &&
+             e.getComponent() instanceof JointBase) {
+            // event is coming from JointBase.setCoordinateLocked(), so no need
+            // to clear cache
+         }
+         else {
+            clearCachedData (e);
+         }
       }      
       super.notifyParentOfChange (e);
    }  
@@ -2666,6 +2693,28 @@ TransformableGeometry, ScalableUnits {
       YPRStiffnessUtils.convertStiffnessToYPR (K, f, comps);
       //System.out.println ("after YPR, symmetric=" + K.isSymmetric(1e-4));
       return K;
+   }
+
+   /**
+    * Writes the state of this MechModel to a file. Used for debugging.
+    */
+   public void writeState (String filename) throws IOException {
+      NumericState state = new NumericState();
+      getState (state);
+      PrintWriter pw = ArtisynthIO.newIndentingPrintWriter (filename);
+      state.write (pw, new NumberFormat("%g"), this);
+      pw.close();
+   }
+
+   /**
+    * Reads the state of this MechModel from a file. Used for debugging.
+    */
+   public void readState (String filename) throws IOException {
+      NumericState state = new NumericState();
+      ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (filename);
+      state.scan (rtok, this);
+      rtok.close();
+      setState (state);
    }
 
 

@@ -70,7 +70,7 @@ $outfileName = "-";
 $postscript = 0;
 
 sub printUsageAndExit {
-    print "Usage: fixJavadocLinks [--jdocDir <dir>] [--jdocUrl <url>]\n";
+    print "Usage: setJavadocLinks [--jdocDir <dir>] [--jdocUrl <url>]\n";
     print "       [--docBase <url>] [--out <outfile>] [--postscript] <infile>\n";
     exit 1;
 }
@@ -207,8 +207,11 @@ sub fixMethodRef {
     my $methodName = $_[1];
     my $methodArgs = $_[2];
 
+    # this appears instead of a dollar sign in postscript output:
+    $className =~ s/\\\\protect\\040\\\\T1\\\\textdollar\\040/\$/g;
     my $classFile = $className;
     $classFile =~ s/\./\//g;
+    $classFile =~ s/\$/\./g;
     $classFile = $classFile . ".html";
     # create an expression for matching the current argument string
     # againts the arguments found in the javadoc file

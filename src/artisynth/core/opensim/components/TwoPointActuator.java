@@ -16,6 +16,9 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 import artisynth.core.util.ScalableUnits;
 
+/**
+ * Custom ArtiSynth force effector to implement OpenSim's PointToPointActuator.
+ */
 public class TwoPointActuator extends RenderableCompositeBase
    implements  ExcitationComponent, ForceComponent, HasNumericState,
                ScalableUnits {

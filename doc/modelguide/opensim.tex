@@ -205,8 +205,14 @@ particular, with a muscle.}
 The force set is implemented as a {\tt RenderableComponentList<ModelComponent>}
 containing all the supported force effectors. Bushings and
 CoordinateLimitForces are realized using \javaclass[\mech]{FrameSpring} and
-\javaclass[\mech]{JointLimitForce}. Muscles and point-to-point springs are
-implemented using a special implementation of
+\javaclass[\mech]{JointLimitForce}. 
+CoordinateActuators are implemented using
+\javaclass[\mech]{JointActuator}, while
+PointToPointActuator is implemented using a
+custom component
+\javaclass[\osim.components]{TwoPointActuator}.
+Muscles and point-to-point springs are implemented using a special
+implementation of
 \javaclass[\mech]{MultiPointMuscle} that contains a child
 component named {\tt "pathpoints"} that in turn contains all the muscle's path
 points. Each path point is usually a {\tt FrameMarker} attached to one
@@ -294,7 +300,7 @@ the visibility and coordinate frame rendering of bodies and wrap objects:
 %
 The last method is supplied to control the collective visibility of all wrap
 objects since they are distributed among the bodies and can be
-tediuous to access individually. (The collective visibility
+tedious to access individually. (The collective visibility
 of bodies, joints, forces, etc. can be controlled by setting the visibility of
 the containers {\tt "bodyset"}, {\tt "jointset"}, {\tt "forceset"}, etc.)
 
@@ -327,7 +333,7 @@ Wrap object visibility for individual muscles can also be controlled using
 \methodentry
 {\mech.MultiPointSpring.setWrappablesVisible()}%
 {void setWrappablesVisible (boolean visible)}%
-{Set the springs's wrappables to be visible or invisible.}%
+{Set the spring's wrappables to be visible or invisible.}%
 %
 \midline
 \end{methodtable}
@@ -497,8 +503,8 @@ around cylinders with radii due to insufficient knots in the wrap path.
 
 \begin{sideblock}
 If a muscle contains wrap objects, they can be made visible or invisible within
-the GUI by selecting the muscle and then choosing {\sf Show wrappbles} or {\sf
-Hide wrappbles} from the context menu.
+the GUI by selecting the muscle and then choosing {\sf Show wrappables} or {\sf
+Hide wrappables} from the context menu.
 \end{sideblock}
 
 Wrap path issues can usually be fixed by resetting the initialization points

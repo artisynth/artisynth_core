@@ -318,9 +318,8 @@ public class OpenSimCustomCoupling
          }
       }
    }
-   
-   private void updateConstraints (RigidTransform3d TGD) {
 
+   private void updateConstraints (RigidTransform3d TGD) {
       int numc = numCoordinates();
       VectorNd coords = new VectorNd(numc);
       doGetCoords (coords);
@@ -408,61 +407,6 @@ public class OpenSimCustomCoupling
 
       // constraints are computed purely from the coordinates.
       updateConstraints(TGD);
-   }
-
-
-   private void doGetRpy (double[] rpy, RotationMatrix3d RDC) {
-
-      Vector3d ang1 = new Vector3d();
-      Vector3d ang2 = new Vector3d();
-      Vector3d ang3 = new Vector3d();
-
-      CoordinateInfo rcoord = myCoordinates.get(0); 
-      CoordinateInfo pcoord = myCoordinates.get(1);
-      CoordinateInfo ycoord = myCoordinates.get(2);
-
-      ang1.x = rcoord.getValue(); // roll
-      ang1.y = pcoord.getValue(); // pitch
-      ang1.z = ycoord.getValue(); // yaw
-      
-      double[] rpyTrimmed = new double[3];
-      rpyTrimmed[0] = rcoord.clipToRange (ang1.x);
-      rpyTrimmed[1] = pcoord.clipToRange (ang1.y);
-      rpyTrimmed[2] = ycoord.clipToRange (ang1.z);
-
-      
-      RDC.getRpy(rpy);
-
-      ang2.set (rpy);
-
-      // // adjust so that all angles as close as possible to mid-range
-      // if (applyEuler) {
-      //    // adjust so that all angles as close as possible to original angles
-      //    EulerFilter.filter(rpyTrimmed, rpy, 1e-2, rpy);
-      //    //       EulerFilter.filter(midRange, rpy, EPSILON, rpy);
-      // } else {
-         rpy[0] = findNearestAngle (ang1.x, rpy[0]);
-         rpy[1] = findNearestAngle (ang1.y, rpy[1]);
-         rpy[2] = findNearestAngle (ang1.z, rpy[2]);
-         //}
-      
-      if (Math.abs(rpy[0]-ang1.x) > Math.PI/2 ) {
-         System.out.println (
-            "SphericalRpyCoupling: roll more that PI/2 from previous value");
-      }
-      ang3.set (rpy);
-
-      Vector3d diff = new Vector3d();
-      diff.sub (ang3, ang1);
-      if (diff.norm() > Math.PI/4) {
-         ang1.scale (RTOD);
-         System.out.println ("deg1=" + ang1.toString ("%10.5f"));
-         ang2.scale (RTOD);
-         System.out.println ("deg2=" + ang2.toString ("%10.5f"));
-         ang3.scale (RTOD);
-         System.out.println ("deg3=" + ang3.toString ("%10.5f"));
-         System.out.println ("");
-      }
    }
 
    public void TCDToCoordinates (VectorNd coords, RigidTransform3d TCD) {

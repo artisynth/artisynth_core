@@ -116,42 +116,6 @@ public class KinematicTree {
       }
 
       /**
-       * Returns true if the node's body is the 'B' body for all
-       * body connectors attached to it.
-       */
-      boolean allConnectorsAreOutward() {
-         for (BodyConnector bcon : myBody.getConnectors()) {
-            if (bcon.getBodyA() == myBody) {
-               return false;
-            }
-         }
-         return true;
-      }
-
-      /**
-       * Returns the number of body connectors that are attached to
-       * the node's body.
-       */
-      int numConnectors() {
-         return myBody.getConnectors().size();
-      }
-
-      /**
-       * Returns the number of "outward" connectors attached to the body,
-       * defined as a body connector for which the body is the connector's B
-       * body.
-       */
-      int numOutwardConnectors() {
-         int num = 0;
-         for (BodyConnector bcon : myBody.getConnectors()) {
-            if (bcon.getBodyA() != myBody) {
-               num++;
-            }
-         }
-         return num;
-      }
-
-      /**
        * Returns a string respresentation of the node for testing and
        * debugging.
        */
@@ -266,12 +230,13 @@ public class KinematicTree {
     */
    static int outwardConnectorSurplus (ConnectableBody cbod) {
       int numOutward = 0;
-      for (BodyConnector bcon : cbod.getConnectors()) {
+      List<BodyConnector> connectors = getBodyConnectors(cbod);
+      for (BodyConnector bcon : connectors) {
          if (bcon.getBodyA() != cbod) {
             numOutward++;
          }
       }
-      return 2*numOutward - cbod.getConnectors().size();
+      return 2*numOutward - connectors.size();
    }
 
    /**
@@ -723,6 +688,22 @@ public class KinematicTree {
    }
 
    /**
+    * Obtain the body connectors attached to a body, but include only those
+    * which have bilateral constraints.
+    */
+   static List<BodyConnector> getBodyConnectors (ConnectableBody body) {
+      ArrayList<BodyConnector> connectors = new ArrayList<>();
+      if (body.getConnectors() != null) {
+         for (BodyConnector bcon : body.getConnectors()) {
+            if (bcon.numBilateralConstraints() > 0) {
+               connectors.add (bcon);
+            }
+         }
+      }
+      return connectors;
+   }
+
+   /**
     * Create an empty kinematic tree.
     */
    public KinematicTree () {
@@ -817,10 +798,11 @@ public class KinematicTree {
             bodyInfoMap.put (body, groundInfo);
          }
          else {
-            binfo = new BodyInfo(body, body.getConnectors());
+            List<BodyConnector> connectors= getBodyConnectors(body); 
+            binfo = new BodyInfo(body, connectors);
             bodyInfoMap.put (body, binfo);
-            if (body.getConnectors() != null) {
-               for (BodyConnector bcon : body.getConnectors()) {
+            if (connectors.size() > 0) {
+               for (BodyConnector bcon : connectors) {
                   ConnectableBody cbod = bcon.getOtherBody (body);
                   if (cbod != null) {
                      if (bodyInfoMap.get(cbod) == null) {
@@ -888,10 +870,7 @@ public class KinematicTree {
     *
     * <li>The minumum numbered non-dynamic body
     *
-    * <li>A body whose external connectors are all oriented outward (so that
-    * the 'B' bodies are all in the node); amoung these, we choose the one with
-    * the maximum number of external connectors and then the minimum body
-    * number.
+    * <li>The minimum numbered body
     * 
     * </ol>
     */
@@ -903,6 +882,7 @@ public class KinematicTree {
       int nonDynamicNum = -1;
       int maxOutward = -1;
       int minOutwardBodyNum = -1;
+      int minBodyNum = -1;
       ConnectableBody bestBody = null;
       JointNode bestNode = null;
 
@@ -930,33 +910,37 @@ public class KinematicTree {
                nonDynamicNum = body.getNumber();
             }
          }
-         else if (markedGroundNum == -1 && nonDynamicNum == -1) {
-            IntHolder surplus = new IntHolder();
-            ConnectableBody bod = jnode.findMostOutwardConnectedBody (surplus);
-            if (maxOutward == -1 ||
-                 (maxOutward < surplus.value ||
-                    (maxOutward == surplus.value &&
-                     bod.getNumber() < minOutwardBodyNum))) { 
+         // For now, don't look for "most outward connected" body - too
+         // complicated. Just look for the body with the minimum number.
+         // 
+         // else if (markedGroundNum == -1 && nonDynamicNum == -1) {
+         //    IntHolder surplus = new IntHolder();
+         //    ConnectableBody bod = jnode.findMostOutwardConnectedBody (surplus);
+         //    if (maxOutward == -1 ||
+         //         (maxOutward < surplus.value ||
+         //            (maxOutward == surplus.value &&
+         //             bod.getNumber() < minOutwardBodyNum))) { 
+         //       bestNode = jnode;
+         //       bestBody = bod;
+         //       maxOutward = surplus.value;
+         //       minOutwardBodyNum = bod.getNumber();
+         //    }
+         // }
+         else if (markedGroundNum == -1 &&
+                  nonDynamicNum == -1 && maxOutward == -1) {
+            ConnectableBody bod = jnode.findMinNumberedBody ();
+            if (minBodyNum == -1 || bod.getNumber() < minBodyNum) {
                bestNode = jnode;
                bestBody = bod;
-               maxOutward = surplus.value;
-               minOutwardBodyNum = bod.getNumber();
+               minBodyNum = bod.getNumber();
             }
          }
       }
-      // if root still not found, that means there are no body nodes, or bodies
-      // which are ground, marked as ground, or non-dynamic. Search the
-      // (single) joint node for the body with the lowest number.
       if (bestBody == null) {
-         if (jointNodes.size() != 1) {
-            throw new InternalErrorException (
-               "Number of joint nodes is " +
-               jointNodes.size() + " but no body nodes");
-         }
-         bestNode = jointNodes.get(0);
-         bestBody = bestNode.findMinNumberedBody();
+         throw new InternalErrorException (
+            "Number of joint nodes is " +
+            jointNodes.size() + " but no body nodes");
       }
-      //System.out.println (" found " + bestBody.getName());
       BodyInfo binfo = bodies.get (bestBody);
       if (binfo.myBodyNode == null) {
          // create body node
@@ -1110,8 +1094,11 @@ public class KinematicTree {
       
       ArrayList<BodyConstrainer> list = new ArrayList<>();
       for (Constrainer c : extraConstrainers) {
-         if (c instanceof BodyConstrainer && !(c instanceof BodyConnector)) {
-            list.add ((BodyConstrainer)c);
+         if (c instanceof BodyConstrainer) {
+            BodyConstrainer bcon = (BodyConstrainer)c;
+            if (!(bcon instanceof BodyConnector)) {
+               list.add (bcon);
+            }
          }
       }
       return list;

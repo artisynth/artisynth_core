@@ -240,6 +240,15 @@ inherited from an ancestor component (B).}
 \label{controlPanel:fig}
 \end{figure}
 
+\begin{sideblock}
+Double-clicking (using the left mouse button) on the label of a control panel
+widget will cause the component hosting that widget's property to be selected.
+The path of the selected component will appear in the selection display
+beneath the viewer (Section \ref{selectionDisplaySec}), and a context menu can
+be invoked for the component by right-clicking (or equivalent) within the
+viewer itself.
+\end{sideblock}
+
 As described in Section \ref{CompositeInheritableProperties:sec}, some
 properties are {\it inheritable}, meaning that their values can either
 be set explicitly within their host component, or inherited from the
@@ -515,6 +524,17 @@ import artisynth.core.gui.CoordinatePanel;
       addControlPanel (panel);
 \end{lstlisting}
 %
+\begin{sideblock}
+Double-clicking (using the left mouse button) on the label of a coordinate
+widget will cause the joint associated with that coordinate to be selected.
+The joint's component path will appear in the selection display beneath the
+viewer, and a context menu can be invoked by right-clicking (or equivalent)
+within the viewer itself. Choosing {\sf ``Edit properties ...''}  from the
+context menu will create a property dialog for the joint, allowing other
+coordinate properities, such as its range and whether or not it is locked, to
+be set.
+\end{sideblock}
+
 \subsubsection{Panel settings}
 
 \begin{figure}[ht]

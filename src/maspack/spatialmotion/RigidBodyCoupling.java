@@ -944,6 +944,9 @@ public abstract class RigidBodyCoupling implements Cloneable {
    public void projectAndUpdateCoordinates (
       RigidTransform3d TGD, RigidTransform3d TCD) {
       projectToConstraints (TGD, TCD, myCoordValues);
+      if (debug) {
+         System.out.println ("set coords " + myCoordValues);
+      }      
       doSetCoords (myCoordValues);
    }
    
@@ -1088,6 +1091,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       if (numCoordinates() > 0) {
          for (int i=0; i<myCoordinates.size(); i++) {
             data.dput (myCoordinates.get(i).value);
+            data.dput (myCoordinates.get(i).lockedValue);
             data.dput (myCoordinates.get(i).speed);
          }
       }
@@ -1113,6 +1117,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       if (numCoordinates() > 0) {
          for (int i=0; i<myCoordinates.size(); i++) {
             myCoordinates.get(i).value = data.dget();
+            myCoordinates.get(i).lockedValue = data.dget();
             myCoordinates.get(i).speed = data.dget();
          }
          myCoordValueCnt++;
@@ -1371,7 +1376,7 @@ public abstract class RigidBodyCoupling implements Cloneable {
       }
    }      
 
-   private void doSetCoords (VectorNd vec) {
+   protected void doSetCoords (VectorNd vec) {
       for (int i=0; i<vec.size(); i++) {
          myCoordinates.get(i).setValue (vec.get(i));
       }

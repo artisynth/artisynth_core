@@ -1537,7 +1537,7 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
    }
 
    public void scaleMass (double s) {
-      mySpatialInertia.scaleMass (s);
+      //mySpatialInertia.scaleMass (s);
       for (RigidMeshComp mc : myMeshList) {
          mc.scaleMass(s);
       }

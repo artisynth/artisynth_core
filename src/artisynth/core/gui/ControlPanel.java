@@ -177,12 +177,17 @@ public class ControlPanel extends ModelComponentBase
    private class MouseListener extends MouseAdapter {
 
       private ModelComponent getPropertyComponent (LabeledComponentBase widget) {
-         Property prop = PropertyWidget.getProperty (widget);
-         if (prop != null && prop.getHost() instanceof ModelComponent) {
-            return (ModelComponent)prop.getHost();
+         if (widget instanceof CoordinateWidget) {
+            return ((CoordinateWidget)widget).getHandle().getJoint();
          }
          else {
-            return null;
+            Property prop = PropertyWidget.getProperty (widget);
+            if (prop != null && prop.getHost() instanceof ModelComponent) {
+               return (ModelComponent)prop.getHost();
+            }
+            else {
+               return null;
+            }
          }
       }
 
@@ -193,7 +198,6 @@ public class ControlPanel extends ModelComponentBase
             if (comp instanceof LabeledComponentBase) {
                ModelComponent c =
                   getPropertyComponent ((LabeledComponentBase)comp);
-               System.out.println ("c=" + c);
                if (c != null) {
                   SelectionManager selManager =
                      Main.getMain().getSelectionManager();

@@ -30,7 +30,7 @@ public abstract class BodyConnector extends RenderableConstrainerBase
    implements ScalableUnits, TransformableGeometry, HasNumericState,
               BodyConstrainer, HasCoordinateFrame {
               
-   public static boolean debug = false;
+   public boolean debug = false;
    
    protected ConnectableBody myBodyA;
    protected ConnectableBody myBodyB;

@@ -19,7 +19,7 @@ public class FemGeometryTransformer extends DeformationTransformer {
     * Set a maximum distance {@code maxd} (in the rest configuration) beyond
     * which the deformation field is not applied.  Specifically, no deformation
     * is applied at points whose rest distance from the FEM position exceeds
-    * {@code maxd}. A negative value implies to maximum distance is in
+    * {@code maxd}. A negative value implies no maximum distance is in
     * effect. The default value is -1.
     *
     * @param maxd maximum rest distance
@@ -58,7 +58,7 @@ public class FemGeometryTransformer extends DeformationTransformer {
       Point3d rpos = new Point3d(r);
       Point3d loc = new Point3d();
       FemElement3dBase restElem = myRestFem.findNearestElement (loc, rpos);
-      if (loc.distance (rpos) <= myMaxDistance) {
+      if (myMaxDistance == -1 || loc.distance (rpos) <= myMaxDistance) {
          Vector3d coords = new Vector3d();
          if (!restElem.getNaturalCoordinates (coords, rpos)) {
             //System.out.println ("warning...");

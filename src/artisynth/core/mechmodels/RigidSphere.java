@@ -75,7 +75,7 @@ public class RigidSphere extends RigidBody implements WrapComponent {
       return xprod >= 0 ? 1 : -1;
    }
 
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pr, Point3d p0, Point3d p1, double lam, Vector3d sideNrm) {
 
       RigidTransform3d XBW = new RigidTransform3d();
@@ -123,6 +123,7 @@ public class RigidSphere extends RigidBody implements WrapComponent {
          t0loc.set (t1loc);
       }
       pr.transform (XBW, t0loc);
+      return true;
    }
 
    public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {

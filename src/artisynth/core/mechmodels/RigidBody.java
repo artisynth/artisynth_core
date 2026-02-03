@@ -2024,9 +2024,9 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
    /**
     * {@inheritDoc}
     */
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
-      myDistanceGridComp.surfaceTangent (pr, pa, p1, lam0, sideNrm);
+      return myDistanceGridComp.surfaceTangent (pr, pa, p1, lam0, sideNrm);
    }
 
    /**

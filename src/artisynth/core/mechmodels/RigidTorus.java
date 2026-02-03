@@ -208,7 +208,7 @@ public class RigidTorus extends RigidBody implements WrapComponent {
       return dpc.dot(n) + r*dn.dot(n) + dn.dot(p);
    }
 
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
 
       // Surface tangent calculation works as follows. For a given point p on
@@ -236,7 +236,7 @@ public class RigidTorus extends RigidBody implements WrapComponent {
       double d = penetrationDistance (nrm, null, pa);
       if (d < 0) {
          pr.scaledAdd (-d, nrm, pa);
-         return;
+         return true;
       }
       // convert pa and p1 to local coordinates
       Point3d paLoc = new Point3d(pa);
@@ -338,12 +338,13 @@ public class RigidTorus extends RigidBody implements WrapComponent {
          // Shouldn't happen
          System.out.println ("NOT bracketed " + flo + " " + fhi);
          pr.set (p1);
-         return;
+         return false;
       }
       pr.scaledAdd (lam, del, paLoc);
       d = penetrationDistanceLoc (nrm, null, pr, 1000);
       pr.scaledAdd (-d, nrm);
       pr.transform (getPose());
+      return true;
    }
 
    private double penetrationDistanceLoc (

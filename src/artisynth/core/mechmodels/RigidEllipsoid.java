@@ -127,7 +127,7 @@ public class RigidEllipsoid extends RigidBody implements WrapComponent {
       return super.scanItem (rtok, tokens);
    }
 
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
 
       double a = mySemiAxisLengths.x;
@@ -149,6 +149,7 @@ public class RigidEllipsoid extends RigidBody implements WrapComponent {
       QuadraticUtils.ellipsoidSurfaceTangentInPlane (
          pr, loca, loc1, nrmLoc, a, b, c);
       pr.transform (getPose());
+      return true;
    }
 
    private final double sqr (double x) {

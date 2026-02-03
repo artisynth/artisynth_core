@@ -13,9 +13,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import artisynth.core.mechmodels.RigidBody.UpdateInertiaAction;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryAction;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
@@ -574,6 +576,10 @@ public class RigidMeshComp extends DynamicMeshComponent
          }
          if (context.contains (body)) {
             myMeshInfo.transformGeometryAndPose (gtr, constrainer);
+            // XXX still have to update meshToWorld because body pose may be
+            // not exactly equal gtr.transform(TBW) because of numeric error
+            // due to orientation being converted to and from a quaternion
+            context.addAction (new UpdatePoseAction(this));
          }
          else {
             myMeshInfo.transformGeometry (gtr, constrainer);
@@ -592,6 +598,36 @@ public class RigidMeshComp extends DynamicMeshComponent
             // do nothing - shouldn't transform
          }
       }
+   }
+
+   /**
+    * Action to update the pose of a RigidMeshComp whose pose is tied to a
+    * rigid body. This is required when both the mesh component and the body
+    * are transformed, since the resulting body pose may differ very slightly
+    * from that computed for the mesh component, due to the body orientation
+    * being internally converted to quaternions and back.
+    */
+   protected static class UpdatePoseAction implements TransformGeometryAction {
+
+      RigidMeshComp myComp;
+
+      UpdatePoseAction (RigidMeshComp comp) {
+         myComp = comp;
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         myComp.setMeshToWorld (myComp.getRigidBody().getPose());
+      }
+      
+      public int hashCode() {
+         return myComp.hashCode();
+      }
+
+      public boolean equals (Object obj) {
+         return (obj instanceof UpdatePoseAction &&
+                 ((UpdatePoseAction)obj).myComp == myComp);
+      }     
    }
 
    public void connectToHierarchy(CompositeComponent hcomp) {

@@ -29,8 +29,10 @@ public interface Wrappable extends PointAttachable {
     * @param sideNrm a normalized vector perpendicular to the plane defined by
     * <code>pa</code>, <code>p1</code> and <code>pt</code>.  Can be used
     * to help compute <code>pt</code>
+    * @return TODO
+    * @return {@code false} if there is a problem computing the tangent
     */
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pt, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm);
 
    /**

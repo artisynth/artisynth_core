@@ -494,7 +494,7 @@ public class RigidMesh extends RigidBody implements WrapComponent {
 
    boolean writeTanProblem = false;
 
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
 
       PolygonalMesh mesh = getSurfaceMesh();
@@ -523,7 +523,7 @@ public class RigidMesh extends RigidBody implements WrapComponent {
                // pr will already be set to either p0 or the nearest
                // surface poin ps
             }
-            return;
+            return found;
          }
          
          BVFeatureQuery bvq = new BVFeatureQuery();
@@ -534,7 +534,7 @@ public class RigidMesh extends RigidBody implements WrapComponent {
             dir.normalize();
             Point3d near = bvq.nearestPointAlongRay (mesh, pa, dir);
             pr.set (near);
-            return;
+            return true;
          }
 
          Point3d p1Loc = new Point3d(p1);
@@ -549,7 +549,7 @@ public class RigidMesh extends RigidBody implements WrapComponent {
             if (!mesh.meshToWorldIsIdentity()) {
                pr.transform (mesh.getMeshToWorld());
             }
-            return;
+            return true;
          }
          Face face = bvq.nearestFaceToPoint (pr, null, mesh, p1);
          if (!mesh.meshToWorldIsIdentity()) {
@@ -598,6 +598,7 @@ public class RigidMesh extends RigidBody implements WrapComponent {
          if (!mesh.meshToWorldIsIdentity()) {
             pr.transform (mesh.getMeshToWorld());
          }
+         return true;
       }
       else {
          if (mesh != null) {
@@ -609,6 +610,7 @@ public class RigidMesh extends RigidBody implements WrapComponent {
          else {
             pr.setZero();
          }
+         return true;
       }
    }
 

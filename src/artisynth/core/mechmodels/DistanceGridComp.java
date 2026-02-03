@@ -12,12 +12,13 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.GridCompBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.*;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.DistanceGrid;
 import maspack.geometry.DistanceGridSurfCalc;
 import maspack.geometry.Feature;
 import maspack.geometry.InterpolatingGridBase;
-import maspack.geometry.PolygonalMesh;
+import maspack.geometry.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -530,7 +531,7 @@ public class DistanceGridComp extends GridCompBase {
 
    /* --- Wrappble support --- */
 
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
 
       DistanceGrid grid = getGrid();
@@ -539,7 +540,7 @@ public class DistanceGridComp extends GridCompBase {
          // won't report any collisions and consequently this method won't be
          // called. Set pr to p1 as the best guess.
          pr.set (p1);         
-         return;
+         return false;
       }
       boolean found = grid.findQuadSurfaceTangent (pr, p1, pa, sideNrm);
       if (!found || writeTanProblem) {
@@ -562,6 +563,7 @@ public class DistanceGridComp extends GridCompBase {
          // pr will already be set to either p0 or the nearest
          // surface poin ps
       }
+      return found;
    }
 
    public double penetrationDistance (Vector3d nrm, Matrix3d Dnrm, Point3d p0) {
@@ -681,4 +683,51 @@ public class DistanceGridComp extends GridCompBase {
       return super.postscanItem (tokens, ancestor);
    }
    
+   /* ---- TransformableGeometry ---- */
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      super.transformGeometry (gtr, context, flags);
+
+      ModelComponent parent = getParent();
+      if (parent instanceof Frame && context.contains ((Frame)parent)) {
+         // Have to reupdate localToWorld because frame pose may be not exactly
+         // equal gtr.transform(TFW) because of numeric error due to
+         // orientation being converted to and from a quaternion
+         context.addAction (new UpdatePoseAction(this));
+      }
+   }
+
+   /**
+    * Action to update the pose of a distance grid whose pose is tied to a
+    * frame. This is required when both the grid and the frame are transformed,
+    * since the resulting frame pose may differ very slightly from that
+    * computed for the grid, due to frame orientations being internally
+    * converted to quaternions and back.
+    */
+   protected static class UpdatePoseAction implements TransformGeometryAction {
+
+      DistanceGridComp myComp;
+
+      UpdatePoseAction (DistanceGridComp comp) {
+         myComp = comp;
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         if (myComp.getParent() instanceof Frame) {
+            myComp.setLocalToWorld (((Frame)myComp.getParent()).getPose());
+         }
+      }
+      
+      public int hashCode() {
+         return myComp.hashCode();
+      }
+
+      public boolean equals (Object obj) {
+         return (obj instanceof UpdatePoseAction &&
+                 ((UpdatePoseAction)obj).myComp == myComp);
+      }     
+   }
+
 }      

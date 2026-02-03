@@ -114,7 +114,7 @@ public class RigidCylinder extends RigidBody implements WrapComponent {
       return xprod >= 0 ? 1 : -1;
    }
 
-   public void surfaceTangent (
+   public boolean surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam, Vector3d sideNrm) {
 
       // transform p0 and p1 into local coordinates
@@ -151,6 +151,7 @@ public class RigidCylinder extends RigidBody implements WrapComponent {
       double l = LineSegment.projectionParameter (paloc, p1loc, t0loc);
       t0loc.z = (1-l)*za + l*z1;
       pr.transform (getPose(), t0loc);
+      return true;
    }
 
 

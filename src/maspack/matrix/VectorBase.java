@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 import maspack.util.ReaderTokenizer;
 
@@ -460,19 +462,47 @@ public abstract class VectorBase implements Vector {
       return buf.toString();
    }
 
-   public void writeToFile (String fileName, String fmtStr) {
+   public void writeToFile (String fileName, String fmtStr, boolean useBrackets) {
       NumberFormat fmt = new NumberFormat (fmtStr);
+      PrintWriter pw = null;
       try {
-         PrintWriter pw =
-            new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         pw = new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         if (useBrackets) {
+            pw.println ("[");
+         }
          for (int i=0; i<size(); i++) {
             pw.println (fmt.format(get(i)));
          }
-         pw.close();
+         if (useBrackets) {
+            pw.println ("]");
+         }
       }
       catch (Exception e) {
          System.out.println ("Error writing vector to file "+ fileName + ":");
          System.out.println (e);
+      }
+      finally {
+         if (pw != null) {
+            pw.close();
+         }
+      }
+   }
+
+   public void scanFromFile (String fileName) {
+      ReaderTokenizer rtok = null;
+      try {
+         rtok = new ReaderTokenizer (
+            new BufferedReader (new FileReader (fileName)));
+         scan (rtok);
+      }
+      catch (Exception e) {
+         System.out.println ("Error scanning vector from file "+ fileName + ":");
+         System.out.println (e);
+      }
+      finally {
+         if (rtok != null) {
+            rtok.close();
+         }
       }
    }
 
@@ -510,32 +540,33 @@ public abstract class VectorBase implements Vector {
     * {@inheritDoc}
     */
    public void scan (ReaderTokenizer rtok) throws IOException {
+      int endToken = ReaderTokenizer.TT_EOF;
       if (rtok.nextToken() == '[') {
-         if (isFixedSize()) {
-            for (int i = 0; i < size(); i++) {
-               set (i, rtok.scanNumber());
-            }
-            rtok.scanToken (']');
-         }
-         else {
-            ArrayList<Double> valueList = new ArrayList<>(64);
-            while (rtok.nextToken() != ']') {
-               rtok.pushBack();
-               valueList.add (Double.valueOf (rtok.scanNumber()));
-            }
-            if (valueList.size() != size()) {
-               setSize (valueList.size());
-            }
-            Iterator<Double> it = valueList.iterator();
-            for (int i = 0; i < size(); i++) {
-               set (i, it.next().doubleValue());
-            }
-         }
+         endToken = ']';
       }
       else {
          rtok.pushBack();
+      }
+      if (isFixedSize()) {
          for (int i = 0; i < size(); i++) {
             set (i, rtok.scanNumber());
+         }
+         if (endToken == ']') {
+            rtok.scanToken (']');
+         }
+      }
+      else {
+         ArrayList<Double> valueList = new ArrayList<>(64);
+         while (rtok.nextToken() != endToken) {
+            rtok.pushBack();
+            valueList.add (Double.valueOf (rtok.scanNumber()));
+         }
+         if (valueList.size() != size()) {
+            setSize (valueList.size());
+         }
+         Iterator<Double> it = valueList.iterator();
+         for (int i = 0; i < size(); i++) {
+            set (i, it.next().doubleValue());
          }
       }
    }

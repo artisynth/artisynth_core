@@ -2076,6 +2076,7 @@ public class RotationMatrix3d extends Matrix3dBase {
          RotationMatrix3d Tmp = new RotationMatrix3d();
          Tmp.setAxisAngle (axis, ang);
          mul (Tmp, this);
+         normalize();
       }
    }
 

@@ -150,6 +150,10 @@ public abstract class RigidBodyCoupling implements Cloneable {
          return value;
       }
       
+      public double getLockedValue () {
+         return lockedValue;
+      }
+      
       public void clipAndSetValue (double val) {
          value = clipToRange (val);
          lockedValue = value;

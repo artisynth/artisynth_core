@@ -48,6 +48,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public static boolean mySaveForcesAsState = true;
    public static boolean myParametricsInSystemMatrix = true;
+   public static boolean myPrepareAdvanceInPreadvance = true;
    //public static boolean myZeroForcesInPreadvance = true;
 
    protected int myStructureVersion = 0;
@@ -1204,6 +1205,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       //timer.stop();
       //System.out.println ("preadvance=" + timer.result(1));
+      if (myPrepareAdvanceInPreadvance) {
+         recursivelyPrepareAdvance (t0, t1, flags, /*level*/0);
+      }
       return null;
    }
 
@@ -1235,7 +1239,9 @@ public abstract class MechSystemBase extends RenderableModelBase
          if (t0 == 0 && myPrintState != null) {
             printState (myPrintState, 0);
          }
-         recursivelyPrepareAdvance (t0, t1, flags, 0);
+         if (!myPrepareAdvanceInPreadvance) {
+            recursivelyPrepareAdvance (t0, t1, flags, 0);
+         }
          // Force solver to perform an analyze step on its bilateral constraint
          // matrices if state is volatile, the bilateral constraint structure
          // is not constant, and t0 != 0. This is to ensure precise numeric

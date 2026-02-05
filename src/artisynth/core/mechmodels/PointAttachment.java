@@ -101,8 +101,8 @@ public abstract class PointAttachment extends DynamicAttachmentBase
       super.writeItems (pw, fmt, ancestor);
       if (myPoint != null) {
          pw.print ("point=");
-         pw.println (ComponentUtils.getWritePathName (
-                        ancestor, myPoint));
+         String path = ComponentUtils.getWritePathName (ancestor, myPoint);
+         pw.println (path);
       }
    }
 

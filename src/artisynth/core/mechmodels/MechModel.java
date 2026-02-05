@@ -1363,7 +1363,8 @@ TransformableGeometry, ScalableUnits {
       updateForceComponentList();
       for (ForceEffector fe : super.myForceEffectors) {
          if (fe instanceof MultiPointSpring) {
-            ((MultiPointSpring)fe).updateWrapSegments();
+            MultiPointSpring ms = (MultiPointSpring)fe;
+            ms.updateWrapSegments (ms.getMaxWrapIterations());
          }
       }
    }
@@ -2717,6 +2718,226 @@ TransformableGeometry, ScalableUnits {
       setState (state);
    }
 
+   /**
+    * Returns a list of all the points in this model.  Used for testing and
+    * debugging.
+    */
+   private ArrayList<Point> getAllPoints() {
+      ArrayList<Point> points = new ArrayList<>();
+      ComponentUtils.recursivelyFindComponents (Point.class, this, points);
+      return points;
+   }
+
+   /**
+    * Returns a list of all the dynamic components in this model.  Used for
+    * testing and debugging.
+    */
+   public ArrayList<DynamicComponent> getAllDynamicComponents() {
+      ArrayList<DynamicComponent> comps = new ArrayList<>();      
+      if (useAllDynamicComps) {
+         updateDynamicComponentLists();
+         comps.addAll (myAllDynamicComponents);
+      }
+      else {
+         ComponentUtils.recursivelyFindComponents (
+            DynamicComponent.class, this, comps);
+      }
+      return comps;
+   }
+
+   /**
+    * Returns a vector of the positions of all the dynamic components in this
+    * model.  Used for testing and debugging.
+    */
+   public VectorNd getAllPositions() {
+      ArrayList<DynamicComponent> comps = getAllDynamicComponents();
+      int psize = 0;
+      for (DynamicComponent c : comps) {
+         psize += c.getPosStateSize();
+      }
+      VectorNd pos = new VectorNd(psize);
+      double[] buf = pos.getBuffer();
+      int idx = 0;
+      for (DynamicComponent c : comps) {
+         idx = c.getPosState (buf, idx);
+      }
+      return pos;
+   }
+
+   /**
+    * Returns a vector of the velocities of all the dynamic components in this
+    * model.  Used for testing and debugging.
+    */
+   public VectorNd getAllVelocities() {
+      ArrayList<DynamicComponent> comps = getAllDynamicComponents();
+      int vsize = 0;
+      for (DynamicComponent c : comps) {
+         vsize += c.getVelStateSize();
+      }
+      VectorNd vel = new VectorNd(vsize);
+      double[] buf = vel.getBuffer();
+      int idx = 0;
+      for (DynamicComponent c : comps) {
+         idx = c.getVelState (buf, idx);
+      }
+      return vel;
+   }
+
+   /**
+    * Returns a vector of the forces of all the dynamic components in this
+    * model.  Used for testing and debugging.
+    */
+   public VectorNd getAllForces() {
+      ArrayList<DynamicComponent> comps = getAllDynamicComponents();
+      int vsize = 0;
+      for (DynamicComponent c : comps) {
+         vsize += c.getVelStateSize();
+      }
+      VectorNd forces = new VectorNd(vsize);
+      double[] buf = forces.getBuffer();
+      int idx = 0;
+      for (DynamicComponent c : comps) {
+         idx = c.getForce (buf, idx);
+      }
+      return forces;
+   }
+
+   /**
+    * Checks the positions of all the dynamic components in this model against
+    * a set of reference positions, and prints out the components which
+    * differ. Used for testing and debugging.
+    */
+   public void checkAllPositions (
+      String msg, VectorNd posvec, boolean printDiffs) {
+      ArrayList<DynamicComponent> comps = getAllDynamicComponents();
+      boolean msgPrinted = false;
+      int idx = 0;
+      for (DynamicComponent c : comps) {
+         int psize = c.getPosStateSize();
+         VectorNd pos = new VectorNd (psize);
+         VectorNd chk = new VectorNd (psize);
+         c.getPosState (pos.getBuffer(), 0);
+         if (idx + psize > posvec.size()) {
+            if (!msgPrinted) {
+               System.out.println (msg);
+               msgPrinted = true;
+            }
+            System.out.println (
+               " check vector ended before " + ComponentUtils.getPathName (c));
+            break;
+         }
+         posvec.getSubVector (idx, chk);
+         if (!pos.equals (chk)) {
+            if (!msgPrinted) {
+               System.out.println (msg);
+               msgPrinted = true;
+            }
+            System.out.println (" " + ComponentUtils.getPathName (c));
+            if (printDiffs) {
+               System.out.println ("  pos=" + pos);
+               System.out.println ("  chk=" + chk);
+            }
+         }
+         idx += psize;
+      }
+   }
+
+   /**
+    * Checks the velocities of all the dynamic components in this model against
+    * a set of reference positions, and prints out the components which
+    * differ. Used for testing and debugging.
+    */
+   public void checkAllVelocities (
+      String msg, VectorNd velvec, boolean printDiffs) {
+      ArrayList<DynamicComponent> comps = getAllDynamicComponents();
+      boolean msgPrinted = false;
+      int idx = 0;
+      for (DynamicComponent c : comps) {
+         int vsize = c.getVelStateSize();
+         VectorNd vel = new VectorNd (vsize);
+         VectorNd chk = new VectorNd (vsize);
+         c.getVelState (vel.getBuffer(), 0);
+         if (idx + vsize > velvec.size()) {
+            if (!msgPrinted) {
+               System.out.println (msg);
+               msgPrinted = true;
+            }
+            System.out.println (
+               " check vector ended before " + ComponentUtils.getPathName (c));
+            break;
+         }
+         velvec.getSubVector (idx, chk);
+         if (!vel.equals (chk)) {
+            if (!msgPrinted) {
+               System.out.println (msg);
+               msgPrinted = true;
+            }
+            System.out.println (" " + ComponentUtils.getPathName (c));
+            if (printDiffs) {
+               System.out.println ("  vel=" + vel);
+               System.out.println ("  chk=" + chk);
+            }
+         }
+         idx += vsize;
+      }
+   }
+
+   /**
+    * Checks the forces of all the dynamic components in this model against
+    * a set of reference forces, and prints out the components which
+    * differ. Used for testing and debugging.
+    */
+   public void checkAllForces (
+      String msg, VectorNd forcevec, boolean printDiffs) {
+      ArrayList<DynamicComponent> comps = getAllDynamicComponents();
+      boolean msgPrinted = false;
+      int idx = 0;
+      for (DynamicComponent c : comps) {
+         int vsize = c.getVelStateSize();
+         VectorNd force = new VectorNd (vsize);
+         VectorNd check = new VectorNd (vsize);
+         c.getForce (force.getBuffer(), 0);
+         if (idx + vsize > forcevec.size()) {
+            if (!msgPrinted) {
+               System.out.println (msg);
+               msgPrinted = true;
+            }
+            System.out.println (
+               " check vector ended before " + ComponentUtils.getPathName (c));
+            break;
+         }
+         forcevec.getSubVector (idx, check);
+         if (!force.equals (check)) {
+            if (!msgPrinted) {
+               System.out.println (msg);
+               msgPrinted = true;
+            }
+            System.out.println (" " + ComponentUtils.getPathName (c));
+            if (printDiffs) {
+               System.out.println ("  force=" + force);
+               System.out.println ("  check=" + check);
+            }
+         }
+         idx += vsize;
+      }
+   }
+
+   /**
+    * Prints the tensions in all the point-to-point muscles in this model. Used
+    * for testing and debugging.
+    */
+   public void printPointSpringInfo (String msg) {
+      if (msg != null) {
+         System.out.println (msg);
+      }
+      ArrayList<PointSpringBase> sprs = new ArrayList<>();
+      ComponentUtils.recursivelyFindComponents (
+         PointSpringBase.class, this, sprs);
+      for (PointSpringBase spr : sprs) {
+         System.out.printf (
+            "     %20s %s\n", spr.getName(), spr.getInfo());
+      }
+   }
 
 }
 

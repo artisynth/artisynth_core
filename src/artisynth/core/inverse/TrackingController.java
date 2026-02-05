@@ -96,6 +96,17 @@ import maspack.util.ReaderTokenizer;
 public class TrackingController extends ControllerBase
    implements CompositeComponent, RenderableComponent {
 
+   // save/restore all MechModel state before/after the excitation computation
+   private static boolean saveAllState = true;
+
+   public static boolean getSaveAllState() {
+      return saveAllState;
+   }
+
+   public static void setSaveAllState (boolean enable) {
+      saveAllState = enable;
+   }
+
    // ========= property attributes =========
 
    public static boolean DEFAULT_ENABLED = true;
@@ -201,8 +212,6 @@ public class TrackingController extends ControllerBase
    protected VectorNd prevExcitations = new VectorNd(); 
    // initial, in case non-zero start (again, for damping)
    protected VectorNd initExcitations = new VectorNd();  
-
-
 
    // ========== Begin property definitions and methods ==========
 
@@ -1000,8 +1009,13 @@ public class TrackingController extends ControllerBase
 
       VectorNd savedForces = new VectorNd();
       myMech.getForces (savedForces);
-      //ComponentState saveState = myMech.createState (null);
-      //myMech.getState (saveState);
+      //((MechModel)myMech).printMuscleInfo ("tracking controller");
+
+      ComponentState saveState = null;
+      if (saveAllState) {
+         saveState = myMech.createState (null);
+         myMech.getState (saveState);
+      }
 
       updateCostTerms (t0, t1);
 
@@ -1019,7 +1033,6 @@ public class TrackingController extends ControllerBase
       // solve for the excitations, given the cost and constraint terms
       VectorNd x = myQPSolver.solve (costs, constraints, numExciters(), t0, t1);
       if (myComputeIncrementally) {
-
          // VectorNd deltaActivations = myCostFunction.solve (t0, t1);
          // myExcitations.add (deltaActivations);
          myExcitations.add (x);
@@ -1035,7 +1048,9 @@ public class TrackingController extends ControllerBase
       // System.out.println (
       //    "t1=" + t1 + " excitations=" + myExcitations.toString("%8.5f"));
 
-      //myMech.setState (saveState);
+      if (saveAllState) {
+         myMech.setState (saveState);
+      }
       setExcitations(myExcitations, 0);
       myMech.setForces (savedForces);
    }

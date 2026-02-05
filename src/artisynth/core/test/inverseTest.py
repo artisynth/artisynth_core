@@ -135,6 +135,14 @@ mech.writePrintStateHeader ("InverseMuscleFem ConstrainedBackwardEuler");
 run()
 waitForStop()
 
+loadModel ("artisynth.demos.opensim.InverseArm26")
+mech = setModelOpts (1, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("InverseArm26 ConstrainedBackwardEuler");
+run()
+waitForStop()
+
 main.maskFocusStealing (False)
 if main.getMainFrame() == None:
    main.quit()

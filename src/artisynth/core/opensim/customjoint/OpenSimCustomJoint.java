@@ -29,6 +29,7 @@ import maspack.spatialmotion.*;
 import maspack.spatialmotion.RigidBodyConstraint.MotionType;
 import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
+import maspack.util.DoubleInterval;
 
 /**
  * Implements an OpenSim custom joint.
@@ -161,6 +162,16 @@ public class OpenSimCustomJoint extends JointBase {
          myLocalProps.add (
             c.getName() + "_locked", lockMethods, i,
             "whether or not joint is locked", false);
+      }
+
+      DoubleInterval defaultRange = new DoubleInterval ("[-inf,inf])");
+      String rangeMethods =
+         "getCoordinateRangeDeg setCoordinateRangeDeg";
+      for (int i=0; i<coords.length; i++) {
+         Coordinate c = coords[i];
+         myLocalProps.add (
+            c.getName() + "_range", rangeMethods, i,
+            "joint coordinate range", defaultRange);
       }
    }
 

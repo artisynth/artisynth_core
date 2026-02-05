@@ -75,6 +75,11 @@ public class MechSystemSolver {
    public boolean profileWholeSolve = false;
    public boolean profileConstrainedBE = false;
    public boolean profileImplicitFriction = false;
+   public boolean printChecksums = false;
+   public boolean printPosChecksum = false;
+   public boolean printVelChecksum = false;
+   public boolean printGTChecksum = false;
+   public boolean printMassChecksum = false;
    // always updating friction causes inverseMassMatrix updates
    public boolean alwaysProjectFriction = true;
 
@@ -389,6 +394,9 @@ public class MechSystemSolver {
          myMassForces = new VectorNd (myMass.rowSize());
          myMassConstantP = mySys.buildMassMatrix (myMass);
          mySys.getMassMatrix (myMass, myMassForces, t);
+         if (printMassChecksum) {
+            printDiagonalChecksums ("update mass:", myMass, myActiveVelSize);
+         }
          myMassVersion = version;
          myMassTime = t;
       }
@@ -689,6 +697,11 @@ public class MechSystemSolver {
       setParametricTargets (1, t1-t0);
    }
 
+   public void advanceAuxComponentState (double t0, double t1) {
+      updateStateSizes();
+      singleStepAuxComponents (t0, t1);
+   }
+   
    private void singleStepAuxComponents (double t0, double t1) {
       mySys.advanceAuxState (t0, t1);
       if (myAuxVarSize > 0) {
@@ -1406,7 +1419,6 @@ public class MechSystemSolver {
                Rbuf[i] = 0;
             }
             gbuf[i] -= dotscale*gdot[i];
-            //System.out.println ("gbuf=" + gbuf[i]);
          }      
       }
    }
@@ -1642,6 +1654,16 @@ public class MechSystemSolver {
       double dotscale = (a0 != 0 ? -a0 : h);
       setBilateralOffsets (h, dotscale);
 
+      if (printChecksums && myGsize > 0) {
+         System.out.println (
+            "GT=  " + myGT.computeMD5Checksum() + " " + myGT.getSize());
+         if (printGTChecksum) {
+            printBlockChecksums (null, myGT);
+         }
+         System.out.println ("Rg=  " + myRg.computeMD5Checksum());
+         System.out.println ("bg=  " + myBg.computeMD5Checksum());
+      }
+
       //updateUnilateralConstraintMatrix ();
 
       if (myNsize > 0) {
@@ -1659,6 +1681,12 @@ public class MechSystemSolver {
       
       // a0 is assumed to be negative, which moves myNdot over to the rhs
       setUnilateralOffsets (h, dotscale);
+
+      if (printChecksums && myGsize > 0) {
+         System.out.println ("NT=  " + myNT.computeMD5Checksum());
+         System.out.println ("Rn=  " + myRn.computeMD5Checksum());
+         System.out.println ("bn=  " + myBn.computeMD5Checksum());
+      }
 
       // get these in case we are doing hybrid solves and they are needed to
       // help with a warm start
@@ -1704,6 +1732,10 @@ public class MechSystemSolver {
          if (vel0 != null) {
             // set vel to vel0 in case the solver needs a warm start
             vel.set (vel0);
+         }
+         if (printChecksums) {
+            System.out.println ("S=   "+S.computeMD5Checksum());
+            System.out.println ("f=   "+bf.computeMD5Checksum() + " " + velSize);
          }
          if (profileKKTSolveTime|profileImplicitFriction) {
             System.out.printf (
@@ -1865,7 +1897,7 @@ public class MechSystemSolver {
    }
 
    /**
-    * Populates bg with the unilateral constraint deviation, delta_n
+    * Populates bn with the unilateral constraint deviation, delta_n
     * Assumes constaints and active position are updated
     * @param bg
     */
@@ -2717,7 +2749,9 @@ public class MechSystemSolver {
       VectorNd q = new VectorNd (myActivePosSize);
       VectorNd u = new VectorNd (myActiveVelSize);
       StepAdjustment stepAdjust = new StepAdjustment();
-
+      if (printChecksums || printPosChecksum) {
+         System.out.println ("project position constraints:");
+      }
       mySys.updateConstraints (
          t, stepAdjust, /*flags=*/MechSystem.COMPUTE_CONTACTS);
       mySys.getActivePosState (q);
@@ -2727,7 +2761,10 @@ public class MechSystemSolver {
       //    t, stepAdjust, /*flags=*/MechSystem.UPDATE_CONTACTS);
 
       // need to force an update of the mass matrix, since a subsequent
-      // call to updateMassMatrix(t) wouldn't work.
+      // call to updateMassMatrix(t) wouldn't work
+      if (printPosChecksum) {
+         printPosChecksum ("pos0=");
+      }
 
       updateMassMatrix (-1);
    }
@@ -2790,6 +2827,15 @@ public class MechSystemSolver {
          myConSolver.analyze (myMass, velSize, myGT, myRg, Matrix.SPD);
          myConMassVersion = myMassVersion;
          myConGTVersion = getGTVersion();
+      }
+      if (printChecksums) {
+         System.out.println ("M=   "+myMass.computeMD5Checksum());
+         System.out.println ("GT=  "+myGT.computeMD5Checksum());
+         // if (printGTChecksum) {
+         //    printBlockChecksums (null, myGT);
+         // }
+         System.out.println ("Rg=  "+myRg.computeMD5Checksum());
+         System.out.println ("bg=  "+myBg.computeMD5Checksum());
       }
       myConSolver.factor (myMass, velSize, myGT, myRg, myNT, myRn);
       myConSolver.solve (vel, myLam, myThe, myBf, myBg, myBn);
@@ -3101,11 +3147,61 @@ public class MechSystemSolver {
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
    }
 
+   private void printPosChecksum(String msg) {
+      VectorNd pos = ((MechModel)mySys).getAllPositions();
+      System.out.println (msg + pos.computeMD5Checksum());
+   }
+
+   private void printVelChecksum(String msg) {
+      VectorNd vel = ((MechModel)mySys).getAllVelocities();
+      System.out.println (msg + vel.computeMD5Checksum());
+   }
+
+   private void printBlockChecksums (String msg, SparseBlockMatrix M) {
+      if (msg != null) {
+         System.out.println (msg);
+      }
+      for (int bj=0; bj<M.numBlockCols(); bj++) {
+         for (int bi=0; bi<M.numBlockRows(); bi++) {
+            MatrixBlock blk = M.getBlock (bi, bj);
+            if (blk != null) {
+               System.out.printf (
+                  "      %2d %2d %s\n", bi, bj, blk.computeMD5Checksum());
+            }
+         }
+      }
+   }
+
+   private void printDiagonalChecksums (
+      String msg, SparseBlockMatrix M, int rowSize) {
+      int maxbi = M.getBlockRow (rowSize-1);
+      if (maxbi == -1) {
+         return;
+      }
+      for (int bi=0; bi<M.numBlockRows(); bi++) {
+         MatrixBlock blk = M.getBlock (bi, bi);
+         if (blk != null) {
+            System.out.printf (
+               "      %2d %2d %s\n", bi, bi, blk.computeMD5Checksum());
+         }
+      }
+   }
+
    public void constrainedBackwardEuler (
       double t0, double t1, StepAdjustment stepAdjust) {
 
       double h = t1 - t0;
 
+      if (printChecksums || printPosChecksum || printVelChecksum) {
+         System.out.println ("constrainedBackwardEuler:");
+         if (printPosChecksum) {
+            printPosChecksum ("pos0=");
+         }
+         if (printVelChecksum) {
+            printVelChecksum ("vel0=");
+         }
+      }
+      
       updateImplicitSolveStateSizes();
 
       singleStepAuxComponents (t0, t1);
@@ -3134,12 +3230,16 @@ public class MechSystemSolver {
       mySys.getActiveVelState (myU);
       mulActiveInertias (myB, myU);
       // b += h f 
+
       mySys.getActiveForces (myF);
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
 
       updateConstraintMatrices (h, usingImplicitFriction());
-      
+
+      if (printChecksums) {
+         System.out.println ("velocity solve:");
+      }
       int solveFlags = 0;
       KKTFactorAndSolve (
          myUtmp, myFparC, myB, /*tmp=*/myF, myU, h, solveFlags);
@@ -3164,7 +3264,13 @@ public class MechSystemSolver {
       if (!usingImplicitFriction() && 
           updateFrictionConstraints (h, /*prune=*/true)) {
          projectFrictionConstraints (myUtmp, t0, h);
+         if (printVelChecksum) {
+            printVelChecksum ("vel1=");
+         }
          mySys.setActiveVelState (myUtmp);
+      }
+      if (printVelChecksum) {
+         printVelChecksum ("vel2=");
       }
       if (profileConstrainedBE) {
          timer.stop();
@@ -3173,6 +3279,7 @@ public class MechSystemSolver {
 
       // update positions: q += h u
       mySys.getActivePosState (myQ);
+
       mySys.addActivePosImpulse (myQ, h, myUtmp);
 
       if (profileConstrainedBE) {
@@ -3180,18 +3287,28 @@ public class MechSystemSolver {
       }
       mySys.setActivePosState (myQ);
 
+      if (printPosChecksum) {
+         printPosChecksum ("pos1=");
+      }
+
       if (profileConstrainedBE) {
          timer.stop();
          System.out.println ("  setActivePos " + timer.result(1));
          timer.start();
       }
       // apply position correction using updated constraints and contact
+      if (printChecksums || printPosChecksum) {
+         System.out.println ("position correction:");
+      }
+
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      if (printPosChecksum) {
+         printPosChecksum ("pos2=");
+      }
       if (profileConstrainedBE) {
          timer.stop();
          System.out.println ("  posCorrection=" + timer.result(1));
       }
-
       //checkStiffnessMatrix();
    }
 

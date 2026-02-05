@@ -224,6 +224,12 @@ public class MultiPointMuscleOsim extends MultiPointMuscle
       myComponents.scanEnd();
    }
 
+   @Override
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addTransformableDescendants (this, flags);
+   }
+
    // public void getState (DataBuffer data) {
    //    System.out.println ("getState");
    //    super.getState (data);

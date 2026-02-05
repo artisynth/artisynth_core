@@ -252,6 +252,9 @@ public class OpenSimCustomCoupling
       initializeConstraintInfo();
    }
 
+   /**
+    * Wiil be called from initializeConstraintInfo().
+    */
    @Override
    public void initializeConstraints() {
 
@@ -287,10 +290,25 @@ public class OpenSimCustomCoupling
             cinfo = addCoordinate (
                c.getName(), -INF, INF, 0, getConstraint(bidx++));
          }
-         cinfo.setValue (c.getDefaultValue());
+         double value;
+         if (c.isCurrentValueSet()) {
+            // coupling is being read from .art file
+            value = c.getCurrentValue();
+         }
+         else {
+            // coupling is being created from osim file
+            value = c.getDefaultValue();
+         }
+         cinfo.setValue (value);
          if (c.getLocked()) {
             cinfo.setLocked (true);
-         }       
+            if (c.isLockedValueSet()) {
+               // coupling is being read from .art file.
+               // XXX have to call this after setLocked() because setLocked()
+               // will set lockedValue to the current value.
+               cinfo.setLockedValue (c.getLockedValue());
+            }
+         }
       }
       myH = new MatrixNd (6, numc);
       myG = new Wrench[numc];
@@ -531,7 +549,8 @@ public class OpenSimCustomCoupling
       Coordinate coord, CoordinateInfo cinfo) {
 
       coord.setName (cinfo.getName());
-      coord.setDefaultValue (cinfo.getValue());
+      coord.setCurrentValue (cinfo.getValue());
+      coord.setLockedValue (cinfo.getLockedValue());
       coord.setLocked (cinfo.isLocked());      
       Range range = cinfo.getRange();
       coord.setRange (cinfo.getRange());

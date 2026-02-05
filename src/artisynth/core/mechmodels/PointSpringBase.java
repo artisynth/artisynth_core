@@ -1035,4 +1035,12 @@ public abstract class PointSpringBase extends Spring
       return comp;
    }   
 
+   /**
+    * Returns information about this spring, such as it length and force.  Used
+    * for testing and debugging.
+    */
+   public String getInfo() {
+      return String.format ("l=%s", getLength());
+   }
+
 }

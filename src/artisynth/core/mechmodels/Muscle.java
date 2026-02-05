@@ -545,4 +545,10 @@ public class Muscle extends AxialSpring
    public void setEnabled (boolean enabled) {
    }
 
+   public String getInfo() {
+      return String.format (
+         "F=%s l=%s ex=%s", getForceNorm(), getLength(), getExcitation());
+   }
+
+
 }

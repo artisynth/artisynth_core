@@ -762,7 +762,7 @@ public class CoordinateSetter {
    private void updateWrapPaths() {
       if (myMultiSprings != null) {
          for (MultiPointSpring spr : myMultiSprings) {
-            spr.updateWrapSegments();
+            spr.updateWrapSegments (spr.getMaxWrapIterations());
          }
       }
       else if (myMech != null) {

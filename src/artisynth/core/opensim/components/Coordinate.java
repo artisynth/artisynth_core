@@ -17,6 +17,12 @@ public class Coordinate extends OpenSimObject implements Scannable {
    FunctionBase prescribed_function;
    boolean prescribed;
    boolean is_free_to_satisfy_constraints;
+
+   // current and locked value fields are used only in scan/write
+   private double current_value;
+   private boolean current_value_set;
+   private double locked_value;
+   private boolean locked_value_set;
    
    public static enum MotionType {
       TRANSLATIONAL,
@@ -54,6 +60,32 @@ public class Coordinate extends OpenSimObject implements Scannable {
    
    public double getDefaultValue() {
       return default_value;
+   }
+   
+   public void setCurrentValue(double val) {
+      current_value = val;
+      current_value_set = true;
+   }
+   
+   public boolean isCurrentValueSet () {
+      return current_value_set;
+   }
+   
+   public double getCurrentValue() {
+      return current_value;
+   }
+   
+   public void setLockedValue(double val) {
+      locked_value = val;
+      locked_value_set = true;
+   }
+   
+   public boolean isLockedValueSet () {
+      return locked_value_set;
+   }
+   
+   public double getLockedValue() {
+      return locked_value;
    }
    
    public void setDefaultSpeedValue(double val) {
@@ -162,8 +194,11 @@ public class Coordinate extends OpenSimObject implements Scannable {
          else if (scanAttributeName (rtok, "motion_type")) {
             motion_type = rtok.scanEnum (MotionType.class);
          }
-         else if (scanAttributeName (rtok, "default_value")) {
-            default_value = rtok.scanNumber();
+         else if (scanAttributeName (rtok, "current_value")) {
+            setCurrentValue (rtok.scanNumber());
+         }
+         else if (scanAttributeName (rtok, "locked_value")) {
+            setLockedValue (rtok.scanNumber());
          }
          else if (scanAttributeName (rtok, "range")) {
             range.scan (rtok, ref);
@@ -189,9 +224,7 @@ public class Coordinate extends OpenSimObject implements Scannable {
       if (motion_type != MotionType.ROTATIONAL) {
          pw.println ("motion_type=" + motion_type);
       }
-      if (default_value != 0) {
-         pw.println ("default_value=" + fmt.format(default_value));
-      }
+      pw.println ("current_value=" + fmt.format(current_value));
       if (!range.equals (new DoubleInterval(-INF, INF))) {
          pw.print ("range=");
          range.write (pw, fmt, ref);
@@ -201,6 +234,7 @@ public class Coordinate extends OpenSimObject implements Scannable {
       }
       if (locked) {
          pw.println ("locked=" + locked);
+         pw.println ("locked_value=" + fmt.format(locked_value));
       }
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");

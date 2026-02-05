@@ -4,6 +4,7 @@ import java.io.File;
 
 import artisynth.core.mechmodels.FrameFrameAttachment;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.RigidBody.InertiaMethod;
 import artisynth.core.mechmodels.WrapComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.matrix.RigidTransform3d;
@@ -53,6 +54,7 @@ public class Ground extends PhysicalFrame {
      
       rb.setDynamic (false);  // fixed in space
       rb.setGrounded (true);  // set grounded property too (used by IKSolvers)
+      rb.setInertiaMethod (InertiaMethod.EXPLICIT);
 
       return rb;
    }

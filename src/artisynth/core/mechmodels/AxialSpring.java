@@ -185,6 +185,15 @@ public class AxialSpring extends PointSpringBase
       }
    }
 
+   public double getForceNorm() {
+      if (hasEndPoints()) {
+         return computeF (mySeg.len, mySeg.getLengthDot());
+      }
+      else {
+         return 0;
+      }
+   }
+
    public void applyForces (double t) {
       Vector3d tmp = new Vector3d();
       computeForce (tmp);
@@ -495,4 +504,10 @@ public class AxialSpring extends PointSpringBase
 //         myPnt1.removeBackReference (this);
 //      }
 //   }
+
+   public String getInfo() {
+      return String.format (
+         "F=%s l=%s", getForceNorm(), getLength());
+   }
+
 }

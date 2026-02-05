@@ -635,4 +635,10 @@ public class MultiPointMuscle extends MultiPointSpring
    
    /* --- End HasNumericState overrides --- */
 
+   public String getInfo() {
+      return String.format (
+         "F=%s l=%s ldot=%s nw=%d e=%s",
+         getForceNorm(), getLength(), getLengthDot(), numWrappables(), getExcitation());
+   }
+
 }

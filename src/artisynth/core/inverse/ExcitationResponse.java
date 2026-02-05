@@ -147,7 +147,9 @@ public class ExcitationResponse
       myController.getExcitations(curEx, 0);
       
       VectorNd Mv = new VectorNd (velSize);
-      myMechSysSolver.updateStateSizes();
+
+      //myMechSysSolver.updateStateSizes();
+      myMechSysSolver.advanceAuxComponentState (t0, t1); //will update state sizes
       myMechSysSolver.updateMassMatrix(t0);
       myMechSysSolver.mulActiveInertias(Mv, curVel);
 
@@ -162,7 +164,7 @@ public class ExcitationResponse
       myController.updateConstraints(t1);
       myController.updateForces(t1, fp, ex);
       //myMechSysSolver.addScaledMassForces(fp, 1, t0);
-      
+
       // bf = M v + h (fp + fmass)
       bf.scaledAdd(h, fp, Mv);
       myMechSysSolver.addScaledMassForces(bf, h, t0);

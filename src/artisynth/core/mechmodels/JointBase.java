@@ -1136,6 +1136,13 @@ public abstract class JointBase extends BodyConnector  {
    public void setCoordinateLocked (int idx, boolean locked) {
       checkCoordinateIndex (idx);
       if (locked != isCoordinateLocked(idx)) {
+         if (attachmentsInitialized()) {
+            // make sure coordinates are updated, since these are
+            // needed to properly set the lockedValue.
+            RigidTransform3d TGD = new RigidTransform3d();
+            getCurrentTCD (TGD);
+            myCoupling.projectAndUpdateCoordinates (TGD, /*TCD=*/TGD);
+         }        
          myCoupling.setCoordinateLocked (idx, locked);
          // Lloyd, Oct 2025. Don;t change state version since we still want
          // original coordinates values, etc. restored when reseting.

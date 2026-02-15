@@ -1195,6 +1195,25 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       try {
          ArrayList<IntersectionContour> contours = 
             smi.findContours (mesh0, mesh1);
+         
+         if (contours.size() > 0) {
+            // check that each intersection point matches its current
+            // position (which is computed wrt feature coordinates).
+            for (IntersectionContour contour : contours) {
+               for (IntersectionPoint mip : contour) {
+                  Point3d chk = mip.getCurrentPosition();
+                  double eps = Math.max (1e-11*mip.norm(), 1e-14);
+                  if (!chk.epsilonEquals (mip, eps)) {
+                     System.out.println ("MIP=" + mip.toString("%18.12f"));
+                     System.out.println ("CHK=" + chk.toString("%18.12f"));
+                     chk.sub(mip);
+                     System.out.println ("err=" + chk.norm());
+                     throw new TestException (
+                        "Contour point differs from computed current position");
+                  }
+               }
+            }
+         }
 
          if (contours.size() > 0 && checkIntersectionMesh) {
             cinfo = smi.findRegions (RegionType.INSIDE, RegionType.INSIDE);

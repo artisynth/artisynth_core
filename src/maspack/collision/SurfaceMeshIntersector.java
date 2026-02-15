@@ -4705,6 +4705,9 @@ public class SurfaceMeshIntersector {
          mip.edge = he;
          mip.face = face;
          mip.intersectionCode = intersects;
+         if (edgeOnMesh0) {
+            mip.intersectionCode |= IntersectionPoint.FACE_ON_MESH1;
+         }
          return true;     
       }
    }

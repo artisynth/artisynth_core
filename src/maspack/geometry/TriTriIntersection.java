@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.util.DataBuffer;
-import maspack.util.UnitTest;
 
 /**
  * A generic representation of an intersection between two triangles.
@@ -18,6 +17,8 @@ public class TriTriIntersection {
    public Face face0;
    public Face face1;
    public Point3d[] points;
+   double p0s, p0t; // barycentric coordinates for points[0] wrt face0
+   double p1s, p1t; // barycentric coordinates for points[1] wrt face0
 
 //   /**
 //    * The two faces.
@@ -33,13 +34,51 @@ public class TriTriIntersection {
    }
    
    /**
-    * The two faces.
+    * Initialize with faces and intersection points.
     */
-   public TriTriIntersection (Face f0, Face f1,
-      Point3d[] _points) {
+   public TriTriIntersection (
+      Face f0, Face f1, Point3d[] _points) {
       face0 = f0;
       face1 = f1;
       points = _points;
+   }
+
+   /**
+    * Initialize with faces, intersection points, and point coordinates.
+    */
+   public TriTriIntersection (
+      Face f0, Face f1, Point3d[] _points, double[] coords) {
+      face0 = f0;
+      face1 = f1;
+      points = _points;
+      p0s = coords[0];
+      p0t = coords[1];
+      p1s = coords[2];
+      p1t = coords[3];     
+   }
+
+   /**
+    * Returns the stored barycentric coordinates of the {@code idx}-th point.
+    * It is assumed that {@code points} has been initialized; otherwise, {@code
+    * null} is returned.
+    * 
+    * @return barcentric coordinates of point {@code idx}
+    */
+   public Vector2d getPointCoords (int idx) {
+      if (points == null) {
+         return null;
+      }
+      double s, t;
+      if (idx == 0) {
+         return new Vector2d (p0s, p0t);
+      }
+      else if (idx == 1) {
+         return new Vector2d (p1s, p1t);
+      }
+      else {
+         throw new IllegalArgumentException (
+            "point idx must be either 0 or 1");
+      }
    }
 
    public Vector2d[] getFace0Coords() {
@@ -60,6 +99,49 @@ public class TriTriIntersection {
          face1.computeCoords(points[i], faceCoords[i]);
       }
       return faceCoords;
+   }
+   
+   /**
+    * Computes the current position of the {@code idx}-th point, in world
+    * coordinates, using its barycentric coordinates with respect to
+    * face0. This accounts for any possible displacement of the mesh vertices
+    * since the intersection point was first computed.  It is assumed that
+    * {@code points} has been initialized; otherwise, {@code null} is returned.
+    * 
+    * @return current position of point {@code idx}
+    */
+   public Point3d getCurrentPosition (int idx) {
+      if (points == null) {
+         return null;
+      }
+      double s, t;
+      if (idx == 0) {
+         s = p0s;
+         t = p0t;
+      }
+      else if (idx == 1) {
+         s = p1s;
+         t = p1t;
+      }
+      else {
+         throw new IllegalArgumentException (
+            "point idx must be either 0 or 1");
+      }
+
+      HalfEdge he = face0.firstHalfEdge();
+      Point3d p0 = he.getHead().getPosition();
+      he = he.getNext();
+      Point3d p1 = he.getHead().getPosition();
+      he = he.getNext();
+      Point3d p2 = he.getHead().getPosition();
+      Point3d pos = new Point3d();
+      pos.combine (s, p1, t, p2);
+      pos.scaledAdd (1-s-t, p0);
+      PolygonalMesh mesh = face0.getMesh();
+      if (mesh != null && !mesh.meshToWorldIsIdentity()) {
+         pos.transform (mesh.getMeshToWorld());
+      }
+      return pos;
    }
    
    public int numPoints() {

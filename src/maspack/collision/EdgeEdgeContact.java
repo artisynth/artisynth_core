@@ -47,6 +47,31 @@ public class EdgeEdgeContact {
    static double insideLim = 0.25;
    
    /**
+    * Returns the current position of the {@code idx}-th point, in world 
+    * coordinates, based on its edge coordinate. This handles situations where 
+    * the mesh vertices have moved since point was first determined.
+    * 
+    * @return current value of the {@code idx}-th point
+    */
+   public Point3d getCurrentPosition (int idx) {
+      HalfEdge edge;
+      if (idx == 0) {
+         edge = edge0;
+      }
+      else if (idx == 1) {
+         edge = edge1;
+      }
+      else {
+         throw new IllegalArgumentException ("idx must be either 0 or 1");
+      }
+      Point3d pos = new Point3d();
+      Point3d pt = edge.getTail().getWorldPoint();
+      Point3d ph = edge.getHead().getWorldPoint();
+      pos.combine (1-s0, pt, s0, ph);
+      return pos;
+   }
+   
+   /**
     * Returns the average area associated with this contact, or -1
     * if this information is not available.
     * 

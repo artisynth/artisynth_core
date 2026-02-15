@@ -62,6 +62,26 @@ public class ContactPoint implements MeshFieldPoint {
    }
 
    /**
+    * Returns the current position of this contact point, based on the vertex
+    * positions. If there are no vertices, the original position is returned.
+    *
+    * @return current point position.
+    */
+   public Point3d getCurrentPosition() {
+      Point3d pos = new Point3d();
+      if (myVtxs == null) {
+         pos.set (myPoint);
+      }
+      else {
+         for (int i=0; i<myVtxs.length; i++) {
+            pos.scaledAdd (
+               myWgts[i], myVtxs[i].getWorldPoint());
+         }
+      }
+      return pos;
+   }
+
+   /**
     * Returns the mesh vertices associated with this contact, if any. If there
     * are no vertices, the returned array with have a length of 0.
     *

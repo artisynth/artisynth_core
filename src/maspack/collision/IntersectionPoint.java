@@ -12,7 +12,7 @@ public class IntersectionPoint extends Point3d {
 
    private static final long serialVersionUID = 1L;
 
-   private static final int FACE_ON_MESH1 = 0x40000000;
+   protected static final int FACE_ON_MESH1 = 0x40000000;
 
    static final IntersectionPoint COINCIDENT = new IntersectionPoint();
 
@@ -20,6 +20,7 @@ public class IntersectionPoint extends Point3d {
    int contourIndex = -1; // index giving the position along the contour
    public Face face;
    public HalfEdge edge;
+   double s, t; // feature coordinates. See setFeatureCoordinates()
    IntersectionPoint primaryCoincident;
 
    public int intersectionCode; // code for intersection that created this point
@@ -117,6 +118,50 @@ public class IntersectionPoint extends Point3d {
          }
       }
       return null;
+   }
+   
+   /**
+    * Computes the current position of this point, in world coordinates, using
+    * the feature coordinates to interpolate with respect to either the edge (
+    * if FACE_ON_MESH1 is true) or the face. This accommodates any 
+    * possible displacement of the mesh vertices since the intersection point
+    * was first computed.
+    * 
+    * @return current point position
+    */
+   public Point3d getCurrentPosition() {
+      Point3d pos = new Point3d();
+      if ((intersectionCode & FACE_ON_MESH1) != 0) {
+         // edge interpolation
+         Point3d pt = edge.getTail().getWorldPoint();
+         Point3d ph = edge.getHead().getWorldPoint();
+         pos.combine (1-s, pt, s, ph);
+      }
+      else {
+         // face interpolation
+         HalfEdge he = face.firstHalfEdge();
+         Point3d p0 = he.getTail().getWorldPoint();
+         Point3d p1 = he.getHead().getWorldPoint();
+         he = he.getNext();
+         Point3d p2 = he.getHead().getWorldPoint();
+         pos.combine (s, p1, t, p2);
+         pos.scaledAdd (1-s-t, p0);
+      }
+      return pos;
+   }
+   
+   /**
+    * Sets the feature coordinates defining the point wrt either
+    * the edge or the face. If FACE_ON_MESH1 is true, then (only) s is
+    * used to interpolate the point between the tail and head of the edge.
+    * Otherwise, s and t are barycentric coordinates of the point wrt the
+    * face, such that the point's value is (1-s-t) p0 + s p1 + t p2, 
+    * where p0, p1 and p2 are the face vertices, starting with the tail
+    * of the first half edge.
+    */   
+   public void setFeatureCoordinates (double s, double t) {
+      this.s = s;
+      this.t = t;
    }
    
    /**
@@ -325,11 +370,7 @@ public class IntersectionPoint extends Point3d {
    void getState (
       DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
       
-      int code = intersectionCode;
-      if (edge.head.getMesh() == mesh0) {
-         code |= FACE_ON_MESH1;
-      }
-      data.zput (code);
+      data.zput (intersectionCode);
       data.zput (face.getIndex());
       data.zput (edge.getIndex());
       if (primaryCoincident == null) {
@@ -341,13 +382,17 @@ public class IntersectionPoint extends Point3d {
       else {
          data.zput (primaryCoincident.contourIndex);
       }
-      data.dput (this);      
+      data.dput (this);
+      data.dput (s);
+      data.dput (t);
    }
 
    void setState (DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
       data.dget (this);
-      int code = data.zget();
-      if ((code & FACE_ON_MESH1) != 0) {
+      s = data.dget();
+      t = data.dget();
+      intersectionCode = data.zget();
+      if ((intersectionCode & FACE_ON_MESH1) != 0) {
          face = mesh1.getFace (data.zget());
          edge = mesh0.getHalfEdge (data.zget());
       }
@@ -355,7 +400,6 @@ public class IntersectionPoint extends Point3d {
          face = mesh0.getFace (data.zget());
          edge = mesh1.getHalfEdge (data.zget());
       }
-      intersectionCode = (code & ~FACE_ON_MESH1);
       int pcidx = data.zget();
       if (pcidx == -2) {
          primaryCoincident = IntersectionPoint.COINCIDENT;

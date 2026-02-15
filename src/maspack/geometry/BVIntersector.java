@@ -252,7 +252,9 @@ public class BVIntersector {
 
       Boundable[] elems1 = node1.getElements();
       Boundable[] elems2 = node2.getElements();
-
+      // space for barycentric coordinates of intersection points:
+      double[] coords = new double[4];
+      
       for (int k0 = 0; k0 < elems1.length; k0++) {
 
          if (elems1[k0] instanceof Face) {
@@ -278,12 +280,12 @@ public class BVIntersector {
 
                   Point3d[] points =
                      myTriIntersector.intersectTriangleTriangle (
-                        p0, p1, p2, myP0, myP1, myP2);
+                        p0, p1, p2, myP0, myP1, myP2, coords);
                   if (points != null) {
                      // intersections are now in coords of first mesh
-                     intersections.add (
-                        new TriTriIntersection (
-                           face0, face1, points));
+                     TriTriIntersection ti = new TriTriIntersection (
+                        face0, face1, points, coords);
+                     intersections.add (ti);
                   }
                }
             }

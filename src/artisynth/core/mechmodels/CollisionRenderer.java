@@ -89,7 +89,7 @@ public class CollisionRenderer {
       RenderObject ro, ContactData cc, Vector3d dir, double scale) {
 
       if (scale != 0 && !dir.equals(Vector3d.ZERO)) {
-         Point3d p0 = cc.myCpnt0.getPosition();
+         Point3d p0 = cc.myCpnt0.getCurrentPosition();
          Point3d p1 = new Point3d(p0);
 
          if (cc.myPnt0OnCollidable1) {
@@ -110,7 +110,7 @@ public class CollisionRenderer {
    private void maybeAddVertexFaceNormal (
       RenderObject ro, ContactData cc, double normalLen) {
 
-      addLineSeg (ro, cc.myCpnt0.getPosition(), cc.myNormal, normalLen);
+      addLineSeg (ro, cc.myCpnt0.getCurrentPosition(), cc.myNormal, normalLen);
    }
 
    protected void findInsideFaces (
@@ -284,8 +284,7 @@ public class CollisionRenderer {
             for (IntersectionContour contour : cinfo.getContours()) {
                int vidx0 = ro.numVertices();
                for (IntersectionPoint p : contour) {
-                  ro.addVertex (
-                     ro.addPosition ((float)p.x, (float)p.y, (float)p.z));
+                  ro.addVertex (ro.addPosition (p.getCurrentPosition()));
                }
                int vidx1 = ro.numVertices()-1;
                ro.addLineLoop (vidx0, vidx1);
@@ -294,7 +293,8 @@ public class CollisionRenderer {
          else if (cinfo.getIntersections() != null){
             // use intersections to render lines
             for (TriTriIntersection tsect : cinfo.getIntersections()) {
-               addLineSeg (ro, tsect.points[0], tsect.points[1]);
+               addLineSeg (
+                  ro, tsect.getCurrentPosition(0), tsect.getCurrentPosition(1));
             }
          }
       }
@@ -303,8 +303,8 @@ public class CollisionRenderer {
          
          if (cinfo.getIntersections() != null) {
             for (TriTriIntersection tsect : cinfo.getIntersections()) {
-               for (Point3d pnt : tsect.points) {
-                  addPoint (ro, pnt);
+               for (int i=0; i<tsect.points.length; i++) {
+                  addPoint (ro, tsect.getCurrentPosition(i));
                }
             }
          }
@@ -325,8 +325,8 @@ public class CollisionRenderer {
              CollisionBehavior.Method.VERTEX_EDGE_PENETRATION) {
             if (cinfo.getEdgeEdgeContacts() != null) {
                for (EdgeEdgeContact eec : cinfo.getEdgeEdgeContacts()) {
-                  addPoint (ro, eec.point0);
-                  addPoint (ro, eec.point1);
+                  addPoint (ro, eec.getCurrentPosition(0));
+                  addPoint (ro, eec.getCurrentPosition(1));
                }
             }
          }

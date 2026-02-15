@@ -115,7 +115,7 @@ public class BVTreeTest {
                   v2.transform (X21, he.head.pnt);
                   
                   if (ti.intersectTriangleTriangle (
-                         p0, p1, p2, v0, v1, v2) != null) {
+                         p0, p1, p2, v0, v1, v2, null) != null) {
                      return true;
                   }
                }

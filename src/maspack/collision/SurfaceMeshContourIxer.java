@@ -455,6 +455,9 @@ public class SurfaceMeshContourIxer {
          mip.face = face;
          //mip.edgeOnMesh0 = edgeOnMesh0;
          mip.intersectionCode = res;
+         if (edgeOnMesh0) {
+            mip.intersectionCode |= IntersectionPoint.FACE_ON_MESH1;
+         }
          //mip.headInsideFace = ((res & RobustPreds.S0_OUTSIDE) != 0);
          //mip.degeneracies = (res & RobustPreds.DEGENERACY_MASK);
          return true;

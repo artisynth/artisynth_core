@@ -20,8 +20,9 @@ import maspack.util.FunctionTimer;
 import maspack.util.PathFinder;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
+import maspack.util.UnitTest;
 
-public class BVIntersectorTest {
+public class BVIntersectorTest extends UnitTest {
 
    PolygonalMesh myComplexMesh1;
 
@@ -155,6 +156,8 @@ public class BVIntersectorTest {
 
       ArrayList<TriTriIntersection> intersections =
          new ArrayList<TriTriIntersection>();
+
+      double[] coords = new double[4];
       
       for (Face face1 : mesh1.getFaces()) {
 
@@ -177,15 +180,15 @@ public class BVIntersectorTest {
 
             Point3d[] points =
                intersector.intersectTriangleTriangle (
-                  p0, p1, p2, q0, q1, q2);
+                  p0, p1, p2, q0, q1, q2, coords);
             if (points != null) {
+               TriTriIntersection ti = new TriTriIntersection (
+                  face1, face2, points, coords);
                // map intersection points to world coords
                for (int k=0; k<points.length; k++) {
                   points[k].transform (mesh1.getMeshToWorld());
                }
-               intersections.add (
-                  new TriTriIntersection (
-                     face1, face2, points));
+               intersections.add (ti);
             }
          }
       }            
@@ -410,6 +413,15 @@ public class BVIntersectorTest {
       ArrayList<TriTriIntersection> bruteForceIntersections =
          intersectAllFaces (mesh1, mesh2);
 
+      // check barycentric coordinates on faces by checking points computed
+      // from them
+      for (TriTriIntersection ti : bruteForceIntersections) {
+         Point3d p0 = ti.getCurrentPosition(0);
+         Point3d p1 = ti.getCurrentPosition(1);
+         checkEquals ("currentPoint 0", p0, ti.points[0], 1e-13);
+         checkEquals ("currentPoint 1", p1, ti.points[1], 1e-13);
+      }
+      
       ArrayList<TriTriIntersection> leafIntersections =
          intersectLeafNodes (bvh1, bvh2, X21, intersector);
 

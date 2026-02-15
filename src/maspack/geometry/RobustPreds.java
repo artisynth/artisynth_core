@@ -6,11 +6,10 @@
  */
 package maspack.geometry;
 
-import java.util.HashSet;
+import maspack.collision.IntersectionPoint;
 import maspack.fileutil.NativeLibraryManager;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.util.InternalErrorException;
 
 /**
  * A set of utility methods for robust intersection queries involving line
@@ -362,7 +361,7 @@ public class RobustPreds {
     * intersection if there is
     */
    public static int intersectEdgeTriangle (
-      Point3d ipnt, HalfEdge edge, Face face, double maxlen,
+      IntersectionPoint ipnt, HalfEdge edge, Face face, double maxlen,
       boolean edgeOnMesh0, boolean worldCoords) {
 
       if (!nativeSupportLoaded) {
@@ -395,7 +394,23 @@ public class RobustPreds {
 
       int res = -1;
       if (maxlen > 0) {
-         res = intersectSegmentTriangleFast (ipnt, pt, ph, p0, p1, p2, maxlen);
+         double[] coords = new double[3];
+         res = intersectSegmentTriangleFast (
+            coords, pt, ph, p0, p1, p2, maxlen);
+         if (res > 0) {
+            // There was an intersection. Compute ipnt from its edge 
+            // coordinates and set its internal coordinates for whichever
+            // feature (edge or face) is associated with mesh0.
+            ipnt.combine (1-coords[0], pt, coords[0], ph);
+            if (edgeOnMesh0) {
+               // edge interpolation
+               ipnt.setFeatureCoordinates (coords[0], 0);
+            }
+            else {
+               // face interpolation
+               ipnt.setFeatureCoordinates (coords[1], coords[2]);
+            }
+         }        
       }
       if (res == -1) {
          // collect edge-face indices and call robust pred
@@ -420,6 +435,29 @@ public class RobustPreds {
          }
          res = intersectSegmentTriangle (
             ipnt, it, pt, ih, ph, i0, p0, i1, p1, i2, p2);
+         if (res > 0) {
+            // There was an intersection. Compute the appropriate interpolation
+            // parameters:
+            if (edgeOnMesh0) {
+               // edge interpolation parameter
+               Vector3d uvec = new Vector3d();
+               uvec.sub (ph, pt);
+               double mag = uvec.norm();
+               if (mag == 0) {
+                  ipnt.setFeatureCoordinates (0, 0);
+               }
+               else {
+                  Vector3d dvec = new Vector3d();
+                  dvec.sub (ipnt, pt);
+                  ipnt.setFeatureCoordinates (dvec.norm()/mag, 0);
+               }
+            }
+            else {
+               // barycentric coordinates for face
+               double[] coords = computeBarycentricCoords (p0, p1, p2, ipnt);
+               ipnt.setFeatureCoordinates (coords[0], coords[1]);
+            }
+         }
       }
       return res;
    }
@@ -496,7 +534,14 @@ public class RobustPreds {
 
       int res = -1;
       if (maxlen > 0) {
-         res = intersectSegmentTriangleFast (ipnt, pt, ph, p0, p1, p2, maxlen);
+         double[] coords = new double[3];
+         res = intersectSegmentTriangleFast (
+            coords, pt, ph, p0, p1, p2, maxlen);
+         if (res > 0) {
+            // There was an intersection. Compute ipnt from its edge 
+            // coordinate.
+            ipnt.combine (1-coords[0], pt, coords[0], ph);
+         }
       }
       if (res == -1) {
          // collect segment-face and call robust pred
@@ -507,7 +552,7 @@ public class RobustPreds {
          int i2 = v2.getIndex()+2;
          res = intersectSegmentTriangle (
             ipnt, it, pt, ih, ph, i0, p0, i1, p1, i2, p2);
-      }      
+      }
       return res;
    }
 
@@ -635,9 +680,13 @@ public class RobustPreds {
     * triangle (in a counterclockwise sense). If there is an intersection, and
     * <code>ipnt</code> is non-<code>null</code>, then the intersection point
     * is computed and returned in <code>ipnt</code>.
-    *
-    * @param ipnt if non-<code>null</code> and if the segment and face
-    * intersect, returns the intersection point
+    * 
+    * @param coords if non-<code>null</code> and the segment and face
+    * intersect, returns the point coordinates with respect to both the edge
+    * and the face. This includes the s coordinate in range [0,1] that
+    * describes the point position along the edge (with 0 corresponding to the
+    * tail), and two barycentric coordinates b1 and b2 such that the point is
+    * given by (1-b1-b2)*p0 + b1*p1 + b2*p2.
     * @param pt tail point of the line segment
     * @param ph head point of the line segment
     * @param p0 first face vertex point
@@ -646,11 +695,12 @@ public class RobustPreds {
     * @param maxlen maximum length used to determine if the computation can be
     * done using double precision arithmetic. Should be {@code >=} the length
     * of the segment and any of the face edges.
-    * @return code 0 if there is no intersection; flags describing the
+    * @return -1 if intersection cannot be determined using double precision
+    * arithmetic; 0 if there is no intersection; flags describing the
     * intersection if there is
     */
    public static int intersectSegmentTriangleFast (
-      Point3d ipnt, Point3d pt, Point3d ph,
+      double[] coords, Point3d pt, Point3d ph,
       Point3d p0, Point3d p1, Point3d p2, double maxlen) {
 
       // course upper error bound for orient3d. This only works if maxlen is >=
@@ -728,12 +778,12 @@ public class RobustPreds {
          return 0;
       }
       double s = Math.abs(t)/(Math.abs(t)+Math.abs(h));
-      if (ipnt != null) {
-         ipnt.combine (1-s, pt, s, ph);
+      if (coords != null) {
+         coords[0] = s;
+         double sum = b0 + b1 + b2;
+         coords[1] = b1/sum;
+         coords[2] = b2/sum;
       }
-      // pnt.combine (b0, p0, b1, p1);
-      // pnt.scaledAdd (b2, p2);
-      // pnt.scale (1/(b0 + b1 + b2));
       int rcode = RobustPreds.INTERSECTS;
       if (coordSign == -1) {
          rcode |= RobustPreds.TAIL_OUTSIDE;
@@ -798,5 +848,43 @@ public class RobustPreds {
       return rc;
    }
 
+   /**
+    * Compute the barycentric coordinates (s, t) of px wrt the vertices p0, p1,
+    * p2, such that px = (1-s-t)*p0 + s*p1 + t*p2.
+    */
+   static double[] computeBarycentricCoords (
+      Point3d p0, Point3d p1, Point3d p2, Point3d px) {
+
+      Vector3d v1 = new Vector3d();
+      Vector3d v2 = new Vector3d();
+      Vector3d vx = new Vector3d();
+      v1.sub (p1, p0);
+      v2.sub (p2, p0);
+      vx.sub (px, p0);
+      Vector3d nrm = new Vector3d();
+      nrm.cross (v1, v2);
+      double[] coords = new double[2];
+      switch (nrm.maxAbsIndex()) {
+         case 0: {
+            // calculate in y-z plane
+            coords[0] = ( v2.z*vx.y - v2.y*vx.z)/nrm.x;
+            coords[1] = (-v1.z*vx.y + v1.y*vx.z)/nrm.x;
+            break;
+         }
+         case 1: {
+            // calculate in z-x plabe
+            coords[0] = ( v2.x*vx.z - v2.z*vx.x)/nrm.y;
+            coords[1] = (-v1.x*vx.z + v1.z*vx.x)/nrm.y;
+            break;
+         }
+         default: { // will be 2
+            // calculate in x-y plabe
+            coords[0] = ( v2.y*vx.x - v2.x*vx.y)/nrm.z;
+            coords[1] = (-v1.y*vx.x + v1.x*vx.y)/nrm.z;
+            break;
+         }
+      }
+      return coords;
+   }
   
 }

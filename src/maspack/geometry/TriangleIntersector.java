@@ -366,10 +366,14 @@ public class TriangleIntersector {
 
    public Point3d[] intersectTriangleTriangle (
       Vector3d p1, Vector3d q1, Vector3d r1, Vector3d p2, Vector3d q2,
-      Vector3d r2) {
+      Vector3d r2, double[] coords) {
       // MeshCollider.cm.primInts++;
       // Compute distance signs of p1, q1 and r1
       // to the plane of triangle(p2,q2,r2)
+
+      Vector3d vec1 = new Vector3d();
+      Vector3d vec2 = new Vector3d();
+      Vector3d nrm1 = new Vector3d();
 
       v1.sub (p2, r2);
       v2.sub (q2, r2);
@@ -396,16 +400,16 @@ public class TriangleIntersector {
       // Compute distance signs of p2, q2 and r2
       // to the plane of triangle(p1,q1,r1)
 
-      v1.sub (q1, p1);
-      v2.sub (r1, p1);
-      N1.cross (v1, v2);
+      vec1.sub (q1, p1);
+      vec2.sub (r1, p1);
+      nrm1.cross (vec1, vec2);
 
       v1.sub (p2, r1);
-      dp2 = v1.dot (N1);
+      dp2 = v1.dot (nrm1);
       v1.sub (q2, r1);
-      dq2 = v1.dot (N1);
+      dq2 = v1.dot (nrm1);
       v1.sub (r2, r1);
-      dr2 = v1.dot (N1);
+      dr2 = v1.dot (nrm1);
 
       // //epsilon test
       // if(dp2 < epsilon && -dp2 < epsilon)
@@ -423,50 +427,100 @@ public class TriangleIntersector {
 
       // Permutation in a canonical form of T1's vertices
 
+      Point3d[] pnts;
       if (dp1 > 0.0) {
          if (dq1 > 0.0)
-            return TRI_TRI_INTER_3D (r1, p1, q1, p2, r2, q2, dp2, dr2, dq2);
+            pnts = TRI_TRI_INTER_3D (r1, p1, q1, p2, r2, q2, dp2, dr2, dq2);
          else if (dr1 > 0.0)
-            return TRI_TRI_INTER_3D (q1, r1, p1, p2, r2, q2, dp2, dr2, dq2);
+            pnts = TRI_TRI_INTER_3D (q1, r1, p1, p2, r2, q2, dp2, dr2, dq2);
 
          else
-            return TRI_TRI_INTER_3D (p1, q1, r1, p2, q2, r2, dp2, dq2, dr2);
+            pnts = TRI_TRI_INTER_3D (p1, q1, r1, p2, q2, r2, dp2, dq2, dr2);
       }
       else if (dp1 < 0.0) {
          if (dq1 < 0.0)
-            return TRI_TRI_INTER_3D (r1, p1, q1, p2, q2, r2, dp2, dq2, dr2);
+            pnts = TRI_TRI_INTER_3D (r1, p1, q1, p2, q2, r2, dp2, dq2, dr2);
          else if (dr1 < 0.0)
-            return TRI_TRI_INTER_3D (q1, r1, p1, p2, q2, r2, dp2, dq2, dr2);
+            pnts = TRI_TRI_INTER_3D (q1, r1, p1, p2, q2, r2, dp2, dq2, dr2);
          else
-            return TRI_TRI_INTER_3D (p1, q1, r1, p2, r2, q2, dp2, dr2, dq2);
+            pnts = TRI_TRI_INTER_3D (p1, q1, r1, p2, r2, q2, dp2, dr2, dq2);
       }
       else {
          if (dq1 < 0.0) {
             if (dr1 >= 0.0)
-               return TRI_TRI_INTER_3D (q1, r1, p1, p2, r2, q2, dp2, dr2, dq2);
+               pnts = TRI_TRI_INTER_3D (q1, r1, p1, p2, r2, q2, dp2, dr2, dq2);
             else
-               return TRI_TRI_INTER_3D (p1, q1, r1, p2, q2, r2, dp2, dq2, dr2);
+               pnts = TRI_TRI_INTER_3D (p1, q1, r1, p2, q2, r2, dp2, dq2, dr2);
          }
          else if (dq1 > 0.0) {
             if (dr1 > 0.0)
-               return TRI_TRI_INTER_3D (p1, q1, r1, p2, r2, q2, dp2, dr2, dq2);
+               pnts = TRI_TRI_INTER_3D (p1, q1, r1, p2, r2, q2, dp2, dr2, dq2);
             else
-               return TRI_TRI_INTER_3D (q1, r1, p1, p2, q2, r2, dp2, dq2, dr2);
+               pnts = TRI_TRI_INTER_3D (q1, r1, p1, p2, q2, r2, dp2, dq2, dr2);
          }
          else {
             if (dr1 > 0.0)
-               return TRI_TRI_INTER_3D (r1, p1, q1, p2, q2, r2, dp2, dq2, dr2);
+               pnts = TRI_TRI_INTER_3D (r1, p1, q1, p2, q2, r2, dp2, dq2, dr2);
             else if (dr1 < 0.0)
-               return TRI_TRI_INTER_3D (r1, p1, q1, p2, r2, q2, dp2, dr2, dq2);
+               pnts = TRI_TRI_INTER_3D (r1, p1, q1, p2, r2, q2, dp2, dr2, dq2);
             else {
                // triangles are co-planar
 
                // coplanar.value = 1;
-               return null;// coplanar_tri_tri3d (p1, q1, r1, p2, q2, r2, N1,
+               pnts = null;// coplanar_tri_tri3d (p1, q1, r1, p2, q2, r2, N1,
                            // N2);
             }
          }
       }
+      if (coords != null && pnts != null) {
+         // compute barycentric coordinates of the points wrt first triangle.
+         // for faster computatation, we can do this in the plane associated
+         // with the largest component of the nrm1.
+         Vector3d vp = new Vector3d();
+         double vpx, vpy, vpz;
+         switch (nrm1.maxAbsIndex()) {
+            case 0: {
+               // calculate in y-z plane
+               double denom = nrm1.x;
+               vpy = pnts[0].y - p1.y;
+               vpz = pnts[0].z - p1.z;
+               coords[0] = ( vec2.z*vpy - vec2.y*vpz)/denom;
+               coords[1] = (-vec1.z*vpy + vec1.y*vpz)/denom;
+               vpy = pnts[1].y - p1.y;
+               vpz = pnts[1].z - p1.z;
+               coords[2] = ( vec2.z*vpy - vec2.y*vpz)/denom;
+               coords[3] = (-vec1.z*vpy + vec1.y*vpz)/denom;
+               break;
+            }
+            case 1: {
+               // calculate in z-x plabe
+               double denom = nrm1.y;
+               vpz = pnts[0].z - p1.z;
+               vpx = pnts[0].x - p1.x;
+               coords[0] = ( vec2.x*vpz - vec2.z*vpx)/denom;
+               coords[1] = (-vec1.x*vpz + vec1.z*vpx)/denom;
+               vpz = pnts[1].z - p1.z;
+               vpx = pnts[1].x - p1.x;
+               coords[2] = ( vec2.x*vpz - vec2.z*vpx)/denom;
+               coords[3] = (-vec1.x*vpz + vec1.z*vpx)/denom;
+               break;
+            }
+            default: { // will be 2
+               // calculate in x-y plabe
+               double denom = nrm1.z;
+               vpx = pnts[0].x - p1.x;
+               vpy = pnts[0].y - p1.y;
+               coords[0] = ( vec2.y*vpx - vec2.x*vpy)/denom;
+               coords[1] = (-vec1.y*vpx + vec1.x*vpy)/denom;
+               vpx = pnts[1].x - p1.x;
+               vpy = pnts[1].y - p1.y;
+               coords[2] = ( vec2.y*vpx - vec2.x*vpy)/denom;
+               coords[3] = (-vec1.y*vpx + vec1.x*vpy)/denom;
+               break;
+            }
+         }
+      }
+      return pnts;
    };
 
    /*

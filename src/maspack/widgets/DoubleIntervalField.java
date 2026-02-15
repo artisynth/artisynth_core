@@ -34,7 +34,7 @@ public class DoubleIntervalField extends LabeledMultiTextField {
     * text for the control label
     */
    public DoubleIntervalField (String labelText) {
-      super (labelText, new String[] { "min:", "max:" }, 6);
+      super (labelText, new String[] { "min:", "max:" }, 10);
       setHorizontalAlignment (JTextField.RIGHT);
       setFormat ("%.6g");
       updateDisplay();

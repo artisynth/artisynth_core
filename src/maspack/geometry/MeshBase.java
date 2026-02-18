@@ -51,6 +51,8 @@ import maspack.geometry.io.GenericMeshReader;
  */
 public abstract class MeshBase implements Renderable, Cloneable {
 
+   public boolean debug = false;
+   
    private static double INF = Double.POSITIVE_INFINITY;
    
    public RigidTransform3d XMeshToWorld = new RigidTransform3d();
@@ -1733,7 +1735,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mesh.setColorsFixed (isColorsFixed());
       mesh.setTextureCoordsFixed (isTextureCoordsFixed ());
       mesh.setColorInterpolation (getColorInterpolation());
-      mesh.setRenderBuffered (isRenderBuffered());
+      // can't call setRenderBuffered() because that might try to compute
+      // normals, which may fail since subclass clone() hasn't be called yet
+      mesh.myRenderBufferedP = myRenderBufferedP;
 
       mesh.myLocalMinCoords = new Point3d();
       mesh.myLocalMaxCoords = new Point3d();

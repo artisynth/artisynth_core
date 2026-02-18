@@ -1658,8 +1658,6 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
-   public boolean debug = false;
-
    private class VertexIndexComparator implements Comparator<Vertex3d> {
       public int compare (Vertex3d v0, Vertex3d v1) {
          int idx0 = v0.getIndex();

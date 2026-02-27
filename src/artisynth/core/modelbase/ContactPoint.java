@@ -69,7 +69,7 @@ public class ContactPoint implements MeshFieldPoint {
     */
    public Point3d getCurrentPosition() {
       Point3d pos = new Point3d();
-      if (myVtxs == null) {
+      if (myVtxs.length == 0) {
          pos.set (myPoint);
       }
       else {

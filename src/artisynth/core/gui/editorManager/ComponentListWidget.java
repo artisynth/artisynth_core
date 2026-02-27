@@ -64,6 +64,20 @@ AbstractListModel implements SelectionListener, ListSelectionListener {
       }
       myJList.addListSelectionListener (this);
    }
+   
+   /**
+    * Sets the component list and associated ancestor which this widget 
+    * provides a view. A list value of null will clear the display list 
+    * and no widgets will be displayed.
+    * 
+    * @param list new component list
+    */
+   public void setComponentList (
+      ListView<E> list, CompositeComponent ancestor) {
+      myListView = list;
+      myAncestor = ancestor;
+      update();
+   }
 
    /**
     * Returns the ancestor component associated with this component list.
@@ -139,8 +153,10 @@ AbstractListModel implements SelectionListener, ListSelectionListener {
          fireIntervalRemoved (this, 0, myLocalList.size() - 1);
       }
       myLocalList.clear();
-      for (int i = 0; i < myListView.size(); i++) {
-         myLocalList.add (myListView.get (i));
+      if (myListView != null) {
+         for (int i = 0; i < myListView.size(); i++) {
+            myLocalList.add (myListView.get (i));
+         }
       }
       int savedSelectionMode = myJList.getSelectionMode();
       myJList.setSelectionMode (ListSelectionModel.SINGLE_SELECTION);
@@ -198,6 +214,9 @@ AbstractListModel implements SelectionListener, ListSelectionListener {
    }
 
    public void selectionChanged (SelectionEvent e) {
+      if (myListView == null) {
+         return;
+      }
       for (ModelComponent c : e.getRemovedComponents()) {
          if (myListView.contains (c)) {
             int idx = myLocalList.indexOf (c);

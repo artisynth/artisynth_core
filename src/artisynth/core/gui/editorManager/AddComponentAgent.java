@@ -111,9 +111,9 @@ ValueChangeListener {
    protected JButton myDownButton;
    protected JButton myDeleteButton;
 
-   static ImageIcon myUpIcon;
-   static ImageIcon myDownIcon;
-   static ImageIcon myDeleteIcon;
+   protected static ImageIcon myUpIcon;
+   protected static ImageIcon myDownIcon;
+   protected static ImageIcon myDeleteIcon;
 
    protected void initializeIcons() {
       if (myUpIcon == null) {
@@ -445,7 +445,7 @@ ValueChangeListener {
       createComponentList (labelText, list, /*addReorderPanel*/false);
    }
 
-   private JButton createIconButton (
+   protected JButton createIconButton (
       JPanel panel, ImageIcon icon, String cmd, String toolTip) {
       JButton button = new JButton (icon);
       button.setActionCommand (cmd);

@@ -22,9 +22,49 @@ import artisynth.core.util.*;
 /**
  * Component for representing a curve on the surface of a mesh.
  */
-public class MeshCurve extends RenderableCompositeBase {
+public class MeshCurve extends RenderableCompositeBase
+   implements IsLineComponent, LineIntersectable {
 
    public static final double INF = Double.POSITIVE_INFINITY;
+
+   /**
+    * Defines a position at a specified location on a mesh curve.
+    */
+   protected class MeshCurvePosition implements HasPosition {
+      private MeshCurve myCurve; // curve containing the position
+      private double myR0; // point location on curve when position created
+      private int myNumPoints0; // number of curve points when position created
+
+
+      /**
+       * Creates a MeshCurvePosition.
+       *  
+       * @param curve mesh curve containing the position
+       * @param r location of the curve with respect to the points
+       */
+      public MeshCurvePosition (MeshCurve curve, double r) {
+         myCurve = curve;
+         myR0 = r;
+         myNumPoints0 = curve.numPoints();
+      }
+
+      /**
+       * {@inheritDoc}
+       */
+      public Point3d getPosition() {
+         int nump = myCurve.numPoints();
+         double r = myR0;
+         if (nump != myNumPoints0) {
+            // scale r to conform to new number of points
+            r = (myR0*nump)/myNumPoints0;
+         }
+         // compute the interpolated position
+         Point3d pos = new Point3d();
+         myCurve.findPointAtLocation (pos, r);
+         return pos;
+      }
+   }  
+   
    
    protected MeshComponent myMeshComp = null;
    protected PointList<MeshMarker> myMarkers;
@@ -662,13 +702,14 @@ public class MeshCurve extends RenderableCompositeBase {
     * where {@code k} is the index of a curve point (as returned by {@link
     * #getPoints()}), and {@code s} is a scalar parameter that specifies the
     * location along the interval between curve points {@code k} and {@code
-    * k+1}. If the curve is open, {@code r} must lie in the range {@code [0,
-    * npnts-1]}, where {@code numpts} is the number of curve points. If the
-    * polyline is closed, then {@code r} is reduced, using the modulo function,
-    * to the range {@code [0, numpts)}.
+    * k+1}. If the curve is open, {then {@code r} is clamped so as to not 
+    * exceed {@code npts-1}, where {@code npts} is the number of curve points.
+    * If the polyline is closed, then {@code r} is reduced, using the modulo 
+    * function, to the range {@code [0, npts)}.
     *
     * @param pr returns the located point, in world coordinates
     * @param r specifies the location on the curve
+    * @throws IllegalArgumentException if {@code r} is negative
     */
    public void findPointAtLocation (Point3d pr, double r) {
       updateCurveIfNecessary();      
@@ -1085,6 +1126,58 @@ public class MeshCurve extends RenderableCompositeBase {
       curve.myCurveValid = false;
       return curve;
    }
+   
+   /* ---- LineIntersectable implementation ---- */
+
+   /**
+    * {@InheritDoc}
+    */
+   public MeshCurvePosition nearestPointToLine (Line line) {
+
+      updateCurveIfNecessary();
+      if (numPoints() == 0) {
+         return null;
+      }
+      if (!getMesh().meshToWorldIsIdentity()) {
+         // transform line to local coordinates if necessary
+         line = new Line(line);
+         line.inverseTransform (getMesh().getMeshToWorld());
+      }
+
+      // find the nearest curve point to the line.
+      int nearIdx0 = -1;
+      double nearDist = INF;
+      for (int k=0; k<numPoints(); k++) {
+         Point3d p = myLocalPoints.get(k);
+         double d = line.distance(p);
+         if (d < nearDist) {
+            nearDist = d; 
+            nearIdx0 = k;
+         }
+      }
+      // now check the segments adjacent to the nearest curve point and find
+      // the one which is nearest to the line
+      nearDist = INF;
+      double loc = 0; // location of the nearest segment
+      DoubleHolder segParam = new DoubleHolder();
+      if (nearIdx0 > 0) {
+         double d = line.distanceToSegment (
+            segParam, myLocalPoints.get(nearIdx0-1), myLocalPoints.get(nearIdx0));
+         if (d < nearDist) {
+            nearDist = d;
+            loc = nearIdx0-1+segParam.value;
+         }
+      }
+      if (nearIdx0 < numPoints()-1) {
+         double d = line.distanceToSegment (
+            segParam, myLocalPoints.get(nearIdx0), myLocalPoints.get(nearIdx0+1));
+         if (d < nearDist) {
+            nearDist = d;
+            loc = nearIdx0+segParam.value;
+         }
+      }
+      return new MeshCurvePosition (this, loc);
+   }      
 
 }
       

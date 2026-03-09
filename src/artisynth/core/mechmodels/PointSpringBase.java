@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.awt.Color;
 
+import maspack.matrix.Line;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.MatrixBlock;
@@ -20,12 +21,14 @@ import maspack.matrix.MatrixBlockBase;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.DataBuffer;
+import maspack.util.DoubleHolder;
 import maspack.properties.PropertyMode;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.AxialMuscleMaterial;
@@ -35,7 +38,9 @@ import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.HasNumericState;
+import artisynth.core.modelbase.IsLineComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.HasPosition;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.util.ScalableUnits;
@@ -44,7 +49,8 @@ import artisynth.core.util.ScalableUnits;
  * Base class for springs based on two or more points
  */
 public abstract class PointSpringBase extends Spring
-   implements RenderableComponent, ScalableUnits, HasNumericState {
+   implements RenderableComponent, ScalableUnits,
+              HasNumericState, IsLineComponent {
 
    // saved line color and style properties for when the spring is being
    // rendered using disabled versions of these properties as returned by
@@ -502,6 +508,39 @@ public abstract class PointSpringBase extends Spring
          return 0;
       }
    }
+   
+   /**
+    * Defines a point located at a specified fraction along a segment between 
+    * two Point components.
+    */
+   protected class SegmentPoint implements HasPosition {
+      private Point myPnt0;
+      private Point myPnt1;
+      double myS;
+
+      /**
+       * Creates a SegmentPoint located between points {@code pnt0}
+       * and {@code pnt1}.
+       *  
+       * @param pnt0 first point on the segment
+       * @param pnt1 second point on the segment
+       * @param s fraction along the segment
+       */
+      public SegmentPoint (Point pnt0, Point pnt1, double s) {
+         myPnt0 = pnt0;
+         myPnt1 = pnt1;
+         myS = s;
+      }
+
+      /**
+       * {@inheritDoc}
+       */
+      public Point3d getPosition() {
+         Point3d pos = new Point3d();
+         pos.combine (1-myS, myPnt0.getPosition(), myS, myPnt1.getPosition());
+         return pos;
+      }
+   }
 
    protected class SegmentData {
       public Point pnt0;
@@ -848,6 +887,28 @@ public abstract class PointSpringBase extends Spring
             return;
          }
          T.scale (-dFdldot, uvec);
+      }
+      
+      /** 
+       * Computes the point on the segment which is closest
+       * to the specified line. The distance from the line to the segment is
+       * returned in {@code dist}, and the point is returned as a
+       * SegmentPoint object.
+       * 
+       * @param dist returns the distance from the line to the segment
+       * @param ray ray to which the nearest point is computed
+       * @return the point on the segment nearest to the ray
+       */
+      protected SegmentPoint nearestPointToLine (
+         DoubleHolder dist, Line ray) {
+         
+         DoubleHolder segParam = new DoubleHolder();
+         double d = ray.distanceToSegment (
+            segParam, pnt0.getPosition(), pnt1.getPosition());
+         if (dist != null) {
+            dist.value = d;
+         }
+         return new SegmentPoint (pnt0, pnt1, segParam.value);
       }
    }
 

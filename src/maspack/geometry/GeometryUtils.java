@@ -318,14 +318,16 @@ public class GeometryUtils {
     * where {@code k} is the index of a polyline vertex, and {@code s} is a
     * scalar parameter in the range [0,1] that specifies the location along the
     * interval between vertices {@code k} and {@code k+1}. If the polyline is
-    * open, {@code r} must lie in the range {@code [0, numv-1]}, where {@code
-    * numv} is the number of vertices. If the polyline is closed, then {@code
-    * r} is reduced, using the modulo function, to the range {@code [0, numv)}.
+    * open, then {@code r} is clamped so as to not exceed {@code numv-1}, 
+    * where {@code numv} is the number of vertices. If the polyline is closed, 
+    * then {@code r} is reduced, using the modulo function, to the range 
+    * {@code [0, numv)}.
     *
     * @param r specifies the location on the polyline
     * @param vtxs list of vertices defining the polyline 
     * @param closed {@code true} if the polyline is closed
     * @return located point
+    * @throws IllegalArgumentException if {@code r} is negative.
     */
    static public Point3d getPointAt (
       double r, List<Point3d> vtxs, boolean closed) {
@@ -335,10 +337,7 @@ public class GeometryUtils {
          throw new IllegalArgumentException ("r must not be negative");
       }
       if (!closed) {
-         if (r > numv-1) {
-            throw new IllegalArgumentException (
-               "r must be in the range [0, "+(numv-1)+"]");
-         }
+         r = Math.min (r, numv-1);
       }
       else {
          r = (r%numv);

@@ -14,6 +14,7 @@ import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.HasPosition;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.StructureChangeEvent;
@@ -44,7 +45,7 @@ import maspack.util.DataBuffer;
 public class Point extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits,
               DynamicComponent, Traceable, MotionTargetComponent, 
-              CopyableComponent, CollidableDynamicComponent {
+              CopyableComponent, CollidableDynamicComponent, HasPosition {
 
    protected PointState myState = new PointState();
    protected PointTarget myTarget = null;

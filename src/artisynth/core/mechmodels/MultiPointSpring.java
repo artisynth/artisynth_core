@@ -25,6 +25,8 @@ import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.mechmodels.HasSlaveObjects;
 import artisynth.core.modelbase.HasNumericStateComponents;
+import artisynth.core.modelbase.HasPosition;
+import artisynth.core.modelbase.LineIntersectable;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.TransformGeometryContext;
@@ -114,7 +116,7 @@ import maspack.util.ReaderTokenizer;
 public class MultiPointSpring extends PointSpringBase
    implements ScalableUnits, TransformableGeometry,
               CopyableComponent, RequiresPrePostAdvance,
-              HasSlaveObjects {
+              HasSlaveObjects, LineIntersectable {
 
    private final static double INF = Double.POSITIVE_INFINITY;
 
@@ -4684,6 +4686,28 @@ public class MultiPointSpring extends PointSpringBase
          seg.myP = new Matrix3d(myP);
          return seg;
       }
+      
+      /** 
+       * Computes the point on the segment which is closest
+       * to the specified line. The distance from the line to the segment is
+       * returned in {@code dist}, and the point is returned as a
+       * SegmentPoint object.
+       * 
+       * @param dist returns the distance from the line to the segment
+       * @param line line to which the nearest point is computed
+       * @return the point on the segment nearest to the line
+       */
+      protected HasPosition nearestPointToLine (
+         DoubleHolder dist, Line line) {
+         
+         DoubleHolder segParam = new DoubleHolder();
+         double d = line.distanceToSegment (
+            segParam, myPntB.getPosition(), myPntA.getPosition());
+         if (dist != null) {
+            dist.value = d;
+         }
+         return new SegmentPoint (myPntB, myPntA, segParam.value);
+      }
    }
 
    /**
@@ -4965,6 +4989,49 @@ public class MultiPointSpring extends PointSpringBase
       public double eval (DoubleHolder dfds, double s);
    }
 
+   /**
+    * Defines a point located at a specified fraction between 
+    * two knots on a wrap segment.
+    */
+   protected class WrapSegmentPoint implements HasPosition {
+      private WrapSegment mySeg;
+      private int myKnotIdx0;
+      private int myKnotIdx1;
+      double myS;
+
+      /**
+       * Creates a WrapSegmentPoint located between knots at indices
+       * {@code idx0} and {@code idx1}.
+       *  
+       * @param seg wrap segment on which this point is located
+       * @param idx0 index of the first knot
+       * @param idx1 index of the second knot
+       * @param s fraction along the segment
+       */
+      public WrapSegmentPoint (WrapSegment seg, int idx0, int idx1, double s) {
+         mySeg = seg;
+         myKnotIdx0 = idx0;
+         myKnotIdx1 = idx1;
+         myS = s;
+      }
+
+      /**
+       * {@inheritDoc}
+       */
+      public Point3d getPosition() {
+         int numk = mySeg.numKnots();
+         // find the knot points. Clip the indices to be within the range of 
+         // the knot list, just in case the number of knot points changed
+         // since the point was created.
+         WrapKnot knot0 = mySeg.myKnots[Math.min (myKnotIdx0, numk-1)];
+         WrapKnot knot1 = mySeg.myKnots[Math.min (myKnotIdx1, numk-1)];
+         // compute the interpolated position
+         Point3d pos = new Point3d();
+         pos.combine (1-myS, knot0.myPos, myS, knot1.myPos);
+         return pos;
+      }
+   }  
+   
    /**
     * Implements a wrappable segment. This is done by dividing the segment into
     * a fixed number of "knots", which are attracted to each other and out of
@@ -7446,6 +7513,54 @@ public class MultiPointSpring extends PointSpringBase
 
          return seg;
       }
+      
+      /**
+       * Implementation of Segment.nearestPointToLine for a wrappable segment.
+       * The nearest point is located between knot points.
+       */
+      protected WrapSegmentPoint nearestPointToLine (
+         DoubleHolder dist, Line line) {
+         
+         // find the nearest knot point to the line.
+         int nearKnot0 = -1;
+         double nearDist = Double.POSITIVE_INFINITY;
+         for (int k=0; k<myNumKnots; k++) {
+            Point3d p = myKnots[k].myPos;
+            double d = line.distance(p);
+            if (d < nearDist) {
+               nearDist = d; 
+               nearKnot0 = k;
+            }
+         }
+         // now check the segments adjacent to the nearest knot and find
+         // the one which is nearest to the line
+         nearDist = Double.POSITIVE_INFINITY;
+         int nearKnot1 = -1; // other knot on the nearest segment
+         double nearS = 0; // param along the nearest segment
+         DoubleHolder segParam = new DoubleHolder();
+         if (nearKnot0 > 0) {
+            double d = line.distanceToSegment (
+               segParam, myKnots[nearKnot0-1].myPos, myKnots[nearKnot0].myPos);
+            if (d < nearDist) {
+               nearDist = d;
+               nearS = segParam.value;
+               nearKnot1 = nearKnot0-1;
+            }
+         }
+         if (nearKnot0 < myNumKnots-1) {
+            double d = line.distanceToSegment (
+               segParam, myKnots[nearKnot0].myPos, myKnots[nearKnot0+1].myPos);
+            if (d < nearDist) {
+               nearDist = d;
+               nearS = segParam.value;
+               nearKnot1 = nearKnot0;
+            }
+         }
+         if (dist != null) {
+            dist.value = nearDist;
+         }
+         return new WrapSegmentPoint (this, nearKnot0, nearKnot1, nearS);
+      }    
    }
 
    /**
@@ -7599,5 +7714,36 @@ public class MultiPointSpring extends PointSpringBase
       }
       return allknots.computeMD5Checksum();
    }
+   
+   /* ---- LineIntersectable implementation ---- */
+   
+   /**
+    * Returns the point on this spring which is nearest to the specified line. 
+    * The point is described by a {@link HasPosition} object which is attached
+    * to the spring and will move with it. If the spring does not yet have
+    * any segments, then {@code null} is returned.
+    *  
+    * @param line line to which nearest point is to be computed
+    * @return nearest point to the line
+    */
+   public HasPosition nearestPointToLine (Line line) {
+      if (numSegments() > 0) {
+         HasPosition nearestPos = null;
+         double nearestDist = Double.POSITIVE_INFINITY;
+         for (Segment seg : getSegments()) {
+            DoubleHolder dist = new DoubleHolder();
+            HasPosition pos = seg.nearestPointToLine (dist, line);
+            if (dist.value < nearestDist) {
+               nearestDist = dist.value;
+               nearestPos = pos;
+            }
+         }
+         return nearestPos;
+      }
+      else {
+         return null;
+      }
+   }
+ 
 
 }

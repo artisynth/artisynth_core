@@ -13,6 +13,7 @@ JAVA_TEST_PROGRAMS = \
 	CholeskyDecompositionTest \
 	DualQuaternionTest \
 	EigenDecompositionTest \
+	LineTest \
 	LUDecompositionTest \
 	Matrix1x1Test \
 	Matrix1x3Test \

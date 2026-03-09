@@ -6,24 +6,39 @@
  */
 package artisynth.core.mechmodels;
 
-import maspack.geometry.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.util.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
+
+import artisynth.core.materials.LinearAxialMaterial;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.HasPosition;
+import artisynth.core.modelbase.LineIntersectable;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
+import maspack.matrix.Line;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.properties.PropertyList;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
 import maspack.util.ClassAliases;
-import maspack.matrix.*;
-import artisynth.core.util.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.materials.*;
-
-import java.io.*;
-
-import maspack.render.*;
-
-import java.util.*;
+import maspack.util.DoubleHolder;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 public class AxialSpring extends PointSpringBase
-   implements ScalableUnits, CopyableComponent, ForceTargetComponent {
+   implements ScalableUnits, CopyableComponent, ForceTargetComponent, 
+              LineIntersectable {
    protected Point myPnt0;
    protected Point myPnt1;
    protected SegmentData mySeg = new SegmentData (null, null);
@@ -508,6 +523,27 @@ public class AxialSpring extends PointSpringBase
    public String getInfo() {
       return String.format (
          "F=%s l=%s", getForceNorm(), getLength());
+   }
+   
+   /* ---- LineIntersectable implementation ---- */
+   
+   /**
+    * Returns the point on this spring which is nearest to the specified line. 
+    * The point is described by a {@link HasPosition} object which is attached
+    * to the spring and will move with it. If the spring does not have end 
+    * points, then <code>null</code> is returned.
+    *  
+    * @param line line to which nearest point is to be computed
+    * @return nearest point to the line
+    */
+   public SegmentPoint nearestPointToLine (Line line) {
+      if (hasEndPoints()) {
+         mySeg.updateU();
+         return mySeg.nearestPointToLine ((DoubleHolder)null, line);
+      }
+      else {
+         return null;
+      }
    }
 
 }

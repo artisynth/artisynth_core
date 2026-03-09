@@ -207,11 +207,34 @@ public class Line {
    /**
     * Returns the distance of this line to a line segment.
     * 
+    * @param nearPoint if non-null, returns the nearest point on the segment
     * @param p0 first point of the line segment
     * @param p1 second point of the line segment
     * @return distance to the segment
     */
    public double distanceToSegment (Point3d nearPoint, Point3d p0, Point3d p1) {
+      DoubleHolder segParam = null;
+      if (nearPoint != null) {
+         segParam = new DoubleHolder();
+      }
+      double dist = distanceToSegment (segParam, p0, p1);
+      if (nearPoint != null) {
+         nearPoint.combine (1-segParam.value, p0, segParam.value, p1);
+      }
+      return dist;
+   }
+
+   /**
+    * Returns the distance of this line to a line segment.
+    * 
+    * @param segParam if non-null, returns value of the parameter s, in the range
+    * {@code [0,1]}, the describes the nearest point on the segment.
+    * @param p0 first point of the line segment
+    * @param p1 second point of the line segment
+    * @return distance to the segment
+    */
+   public double distanceToSegment (
+      DoubleHolder segParam, Point3d p0, Point3d p1) {
       Vector3d u1 = myU; // break out u1 for clarity      
       Vector3d u2 = new Vector3d();
       u2.sub (p1, p0);
@@ -219,6 +242,9 @@ public class Line {
       double len = u2.norm();
       if (len == 0) {
          // p0 and p1 are the same
+         if (segParam != null) {
+            segParam.value = 0;
+         }
          return distance (p0);
       }
       u2.scale (1/len);
@@ -226,13 +252,17 @@ public class Line {
       Vector3d tmp = new Vector3d();
       tmp.cross (u1, u2);
       double denom = tmp.normSquared();
+      double dist;
+      double s;// segment parameter values
+
       if (denom < 100 * DOUBLE_PREC) {
          // lines are parallel, project segments's origin
          // onto this line
          tmp.sub (p0, myP);
          double lam1 = tmp.dot (myU);
          tmp.scaledAdd (lam1, myU, myP);
-         return tmp.distance (p0);
+         s = 0;
+         dist = tmp.distance (p0);
       }
       else {
          tmp.sub (myP, p0);
@@ -244,16 +274,12 @@ public class Line {
          // intersection on segment is p0 + lam2 * u2. First check if the
          // nearest point is actually off the segment.
          if (lam2 < 0) {
-            if (nearPoint != null) {
-               nearPoint.set (p0);
-            }
-            return distance (p0);
+            dist = distance (p0);
+            s = 0;
          }
          else if (lam2 > len) {
-            if (nearPoint != null) {
-               nearPoint.set (p1);
-            }
-            return distance (p1);
+            dist = distance (p1);
+            s = 1;
          }
          else {
             // nearest point is on the segment. Find the closest point on this
@@ -261,12 +287,14 @@ public class Line {
             tmp.scaledAdd (lam1, u1, myP); // closest point on this line
             tmp.sub (p0);
             tmp.scaledAdd (-lam2, u2, tmp);
-            if (nearPoint != null) {
-               nearPoint.scaledAdd (lam2, u2, p0);
-            }
-            return tmp.norm();
+            dist = tmp.norm();
+            s = lam2/len;
          }
       }
+      if (segParam != null) {
+         segParam.value = s;
+      }
+      return dist;
    }
    
    /**
@@ -471,6 +499,20 @@ public class Line {
       if (bracketted) {
          rtok.scanToken (']');
       }
+   }
+
+   /**
+    * Sets the origin and direction of this line to random values, with the
+    * origin values lying in the range -0.5 (inclusive) to 0.5 (exclusive).
+    */
+   public void setRandom() {
+      myP.setRandom();
+      myU.setRandom();
+      while (myU.norm() > 0.5) {
+         // make sure myU.norm() <= 0.5 to force spherical distribution
+         myU.setRandom();
+      }
+      myU.normalize();
    }
 
 }

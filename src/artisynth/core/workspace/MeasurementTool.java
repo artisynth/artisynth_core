@@ -15,6 +15,7 @@ import javax.swing.event.MouseInputListener;
 
 import artisynth.core.mechmodels.*;
 import artisynth.core.modelbase.*;
+import artisynth.core.renderables.*;
 import artisynth.core.driver.Main;
 import artisynth.core.driver.ViewerManager;
 import artisynth.core.gui.selectionManager.SelectionEvent;
@@ -47,16 +48,56 @@ implements SelectionListener, MouseInputListener {
    boolean textOnTop = false;
    boolean textOnRight = true;
 
-   private class PointData {
-      ModelComponent myComp;
+   private class FrameBasedPoint implements HasPosition {
+      HasPoseComponent myComp;
+      Point3d myLoc;
+
+      FrameBasedPoint (Point3d pos, HasPoseComponent comp) {
+         RigidTransform3d TCW = comp.getPose();
+         myLoc = new Point3d();
+         myLoc.inverseTransform (TCW, pos);
+         myComp = comp;
+      }
+
+      public Point3d getPosition() {
+         RigidTransform3d TCW = myComp.getPose();
+         Point3d pos = new Point3d();
+         pos.transform (TCW, myLoc);
+         return pos;
+      }
+   }
+
+   private class AttachedPoint implements HasPosition {
       Point myPoint;
       PointAttachment myAttachment;
-      double myRenderRadius;
 
-      PointData (ModelComponent comp, Point point, PointAttachment pa) {
-         myComp = comp;
-         myPoint = point;
-         myAttachment = pa;
+      AttachedPoint (Point3d pos, PointAttachable comp) {
+         myPoint = new Point(pos);
+         myAttachment = comp.createPointAttachment (myPoint);
+      }
+
+      public Point3d getPosition() {
+         myAttachment.updatePosStates();
+         return myPoint.getPosition();
+      }
+   }
+
+   /**
+    * Manages information about points created by the tool.
+    */
+   private class PointData {
+      HasPosition myPosObj;   // used to get the point's current position
+      Point3d myRenderPos;    // rendering position for the point
+      double myRenderRadius;  // radius which the point should be rendered with
+
+      PointData (HasPosition desc, double rad) {
+         myPosObj = desc;
+         myRenderPos = new Point3d();
+         myRenderRadius = rad;
+      }
+
+      void updateRenderPosition() {
+         myRenderPos.set (myPosObj.getPosition());
       }
    }
 
@@ -112,14 +153,39 @@ implements SelectionListener, MouseInputListener {
       setName ("measurementTool");
    }
 
+   /**
+    * If necessary, returns a render radius for a point associated with a
+    * given component that is large enough to allow the point to be seen.
+    * If the default point render radius is large enough, return 0.
+    */
    private double searchForExplicitPointRadius (ModelComponent comp) {
       if (comp instanceof Point) {
          while (comp != null) {
             if (comp instanceof Renderable) {
                RenderProps props = ((Renderable)comp).getRenderProps();
-               if (props != null &&
-                   props.getPointRadiusMode() == PropertyMode.Explicit) {
-                  return props.getPointRadius();
+               if (props != null) {
+                  if (props.getPointStyle() != PointStyle.POINT) {
+                     // point is being rendered as a solid object, so radius must
+                     // be >= the point radius.
+                     return props.getPointRadius();
+                  }
+                  break;
+               }
+            }
+            comp = comp.getParent();
+         }
+      }
+      else if (comp instanceof IsLineComponent) {
+         while (comp != null) {
+            if (comp instanceof Renderable) {
+               RenderProps props = ((Renderable)comp).getRenderProps();
+               if (props != null) {
+                  if (props.getLineStyle() != LineStyle.LINE) {
+                     // line is being rendered as a solid object, so radius must
+                     // be > the line radius.
+                     return 1.3*props.getLineRadius();
+                  }
+                  break;
                }
             }
             comp = comp.getParent();
@@ -127,23 +193,6 @@ implements SelectionListener, MouseInputListener {
       }
       return 0;
    }      
-
-   private double getRenderRadius (ModelComponent comp) {
-      if (comp instanceof Renderable) {
-         RenderProps props = ((Renderable)comp).getRenderProps();
-         if (props == null) {
-            if (comp.getParent() instanceof Renderable) {
-               props = ((Renderable)comp.getParent()).getRenderProps();
-            }
-         }
-         if (props != null) {
-            if (props.getPointStyle() == PointStyle.SPHERE) {
-               return props.getPointRadius();
-            }
-         }
-      }
-      return 0;
-   }
 
    int numPoints() {
       return myPointData.size();
@@ -187,34 +236,34 @@ implements SelectionListener, MouseInputListener {
 
    private PointData initializeComponent (
       ModelComponent comp, MouseRayEvent rev) {
-      PointData pdata = null;
-
-      if (comp instanceof PointAttachable && comp instanceof HasSurfaceMesh) {
+      HasPosition ppos = null;
+      
+      if (comp instanceof LineIntersectable) {
+         ppos = ((LineIntersectable)comp).nearestPointToLine (rev.getRay());
+      }
+      else if (comp instanceof HasSurfaceMesh) {
          Point3d isect = new Point3d();
-         if (computeRayIntersection (isect, (HasSurfaceMesh)comp, rev.getRay())) {
-            Point pnt = new Point (isect);
-            PointAttachment pa =
-               ((PointAttachable)comp).createPointAttachment (pnt);
-            if (pa != null) {
-               pdata = new PointData (comp, pnt, pa);
+         if (computeRayIntersection (
+                isect, (HasSurfaceMesh)comp, rev.getRay())) {
+            if (comp instanceof PointAttachable) {
+               ppos = 
+                  new AttachedPoint (isect, (PointAttachable)comp);
+            }
+            else if (comp instanceof HasPoseComponent) {
+               ppos = new FrameBasedPoint (isect, (HasPoseComponent)comp);
             }
          }
       }
-      else if (comp instanceof Point) {
-         pdata = new PointData (comp, (Point)comp, null);
+      else if (comp instanceof HasPosition) {
+         ppos = (HasPosition)comp;
       }
-      else if (comp instanceof Frame) {
-         Frame frame = (Frame)comp;
-         Point3d pos = new Point3d(frame.getPose().p);
-         Point pnt = new Point(pos);
-         PointAttachment pa = 
-            ((PointAttachable)comp).createPointAttachment (pnt);
-         pdata = new PointData (comp, pnt, pa);
+      if (ppos != null) {
+         double radius = searchForExplicitPointRadius (comp);
+         return new PointData (ppos, radius);
       }
-      if (pdata != null) {
-         pdata.myRenderRadius = searchForExplicitPointRadius (pdata.myComp);
+      else {
+         return null;
       }
-      return pdata;      
    }
 
    public synchronized void selectionChanged (SelectionEvent e) {
@@ -282,15 +331,13 @@ implements SelectionListener, MouseInputListener {
       PointData[] renderData = null;
       if (numPoints() > 0) {
          for (PointData pdata : myPointData) {
-            if (pdata.myAttachment != null) {
-               pdata.myAttachment.updatePosStates();
-               pdata.myPoint.prerender (list);
-            }
+            pdata.updateRenderPosition();
          }
          renderData = myPointData.toArray (new PointData[0]);
          if (renderData.length == 2) {
             myRenderText = String.format (
-               "%g", renderData[0].myPoint.distance (renderData[1].myPoint));
+               "%g", renderData[0].myRenderPos.distance (
+                  renderData[1].myRenderPos));
          }
       }
       myRenderData = renderData;
@@ -304,17 +351,18 @@ implements SelectionListener, MouseInputListener {
             r.getScreenWidth()*myRadiusRatio*distPerPixel;
          r.setColor (myRenderColor);
          for (PointData pdata : myRenderData) {
-            Point3d renderPos = new Point3d (pdata.myPoint.myRenderCoords);
+            Point3d renderPos = pdata.myRenderPos;
             // increase point radius by one pixel to ensure visibility
             double radius = Math.max (
-               defaultRadius, pdata.myRenderRadius+r.distancePerPixel(renderPos));
+               defaultRadius,
+               pdata.myRenderRadius+r.distancePerPixel(renderPos));
             r.drawSphere (renderPos, radius);
          }
          if (myRenderData.length == 2) {
             // render a line between the two points
 
-            float[] p0 = myRenderData[0].myPoint.myRenderCoords;
-            float[] p1 = myRenderData[1].myPoint.myRenderCoords;
+            Point3d p0 = myRenderData[0].myRenderPos;
+            Point3d p1 = myRenderData[1].myRenderPos;
             r.setColor (myRenderColor);
             r.drawCylinder (p0, p1, 0.5*defaultRadius, /*capped*/false);
 

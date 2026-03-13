@@ -79,7 +79,10 @@ public class EmbeddedEmbeddedCollide extends RootModel {
       sphereComp.setCollidable (Collidability.ALL);
       bowlComp.setCollidable (Collidability.ALL);
 
-      mech.setCollisionBehavior (sphereComp, bowlComp, true, friction);
+      CollisionBehavior behav =
+         mech.setCollisionBehavior (sphereComp, bowlComp, true, friction);
+      behav.setCompliance (1e-5);
+      
       //mech.getCollisionManager().setReduceConstraints(true);
 
       RenderProps.setLineColor (mech, Color.BLUE);

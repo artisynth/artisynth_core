@@ -1,3 +1,22 @@
+Mar 13, 2026
+------------
+
+Installed Visual Studio Community 2026 with workload "Desktop development with
+C++".
+
+Upgraded to MKL to oneAPI, version 2025.3, which was installed under 'Program
+Files (x86)\Intel\oneAPI'. Libraries were unchanged, but library folders are
+now mkl\2025.3\lib and compiler\2025.3\{lib,bin} (for libiomp5md.lib and
+libiomp5md.dll). NMakfile was also updated to remove old 32-bit definitions.
+Pardiso version was renamed to PardisoJNI.2025.3.
+
+Compilation was run under terminal "x64 Native Tools Command Prompt", using
+
+> nmake /F NMakefile
+
+which worked once JAVA_HOME was updated. The resulting library file size
+decreased from 103 Mbytes to 81 Mbytes.
+
 Mar 4, 2021
 -----------
 

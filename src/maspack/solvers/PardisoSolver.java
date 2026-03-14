@@ -453,12 +453,11 @@ public class PardisoSolver implements DirectSolver {
       myVals = new double[0];
       myColIdxs = new int[0];
       myRowOffs = new int[0];
-      if (myDefaultNumThreads > 0) {
-         // create the handle because earlier JNI implementations of
-         // setNumThreads required this internally
-         myHandle = doInit();
-         setNumThreads (myDefaultNumThreads);
-      }
+
+      // create the handle here because earlier JNI implementations of
+      // setNumThreads required this internally:
+      myHandle = doInit();
+      setNumThreads (myDefaultNumThreads);
    }
 
    void initialize () {

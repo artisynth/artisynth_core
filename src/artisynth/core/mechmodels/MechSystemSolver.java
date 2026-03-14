@@ -39,6 +39,7 @@ import maspack.solvers.DirectSolver;
 import maspack.solvers.IterativeSolver;
 import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.solvers.KKTSolver;
+import maspack.solvers.DirectSolver;
 import maspack.solvers.PardisoSolver;
 import maspack.solvers.UmfpackSolver;
 import maspack.solvers.LCPSolver;
@@ -1179,7 +1180,8 @@ public class MechSystemSolver {
    private static PrintWriter myLogWriter;
 
    static FunctionTimer timerX = new FunctionTimer();
-   static boolean solveModePrinted = false;
+   static String solveModeMessage = "";
+   boolean solveModeChecked = false;
 
    protected void updateSolveMatrixStructure () {
       // assumes that updateStateSizes() has been called
@@ -1502,6 +1504,22 @@ public class MechSystemSolver {
 
    FunctionTimer myMurtySolverTimer = new FunctionTimer();
 
+   private String getSolveModeMessage() {
+      StringBuilder sb = new StringBuilder();
+      sb.append (myHybridSolveP ? "hybrid solves" : "direct solves");
+      if (mySys.getSolveMatrixType() == Matrix.INDEFINITE) {
+         sb.append (", unsymmetric matrix");
+      }
+      else {
+         sb.append (", symmetric matrix");
+      }
+      DirectSolver matsolver = myKKTSolver.getMatrixSolver();
+      if (matsolver instanceof PardisoSolver) {
+         sb.append (", num threads="+((PardisoSolver)matsolver).getNumThreads());
+      }
+      return sb.toString();
+   }
+
    /** 
     * Solves a KKT system in which the Jacobian augmented M matrix and
     * and force vectors are given by
@@ -1707,16 +1725,14 @@ public class MechSystemSolver {
          timerStop ("    KKT solve: update constraints", myKKTTimer);
       }     
 
-      if (!solveModePrinted) {
-         String msg = (myHybridSolveP ? "hybrid solves" : "direct solves");
-         if (mySys.getSolveMatrixType() == Matrix.INDEFINITE) {
-            msg += ", unsymmetric matrix";
+      
+      if (!solveModeChecked) {
+         String msg = getSolveModeMessage();
+         if (!msg.equals (solveModeMessage)) {
+            System.out.println (msg);
+            solveModeMessage = msg;
          }
-         else {
-            msg += ", symmetric matrix";
-         }
-         System.out.println (msg);
-         solveModePrinted = true;
+         solveModeChecked = true;
       }            
 
       if (crsWriter == null && crsFileName != null) {
@@ -1984,16 +2000,13 @@ public class MechSystemSolver {
       mySys.getBilateralForces (myLam);
       mySys.getUnilateralForces (myThe);
 
-      if (!solveModePrinted) {
-         String msg = (myHybridSolveP ? "hybrid solves" : "direct solves");
-         if (mySys.getSolveMatrixType() == Matrix.INDEFINITE) {
-            msg += ", unsymmetric matrix";
+      if (!solveModeChecked) {
+         String msg = getSolveModeMessage();
+         if (!msg.equals (solveModeMessage)) {
+            System.out.println (msg);
+            solveModeMessage = msg;
          }
-         else {
-            msg += ", symmetric matrix";
-         }
-         System.out.println (msg);
-         solveModePrinted = true;
+         solveModeChecked = true;
       }            
 
       if (crsWriter == null && crsFileName != null) {

@@ -1513,7 +1513,13 @@ public class MechSystemSolver {
       else {
          sb.append (", symmetric matrix");
       }
-      DirectSolver matsolver = myKKTSolver.getMatrixSolver();
+      DirectSolver matsolver = null
+      if (myMurtySolver != null) {
+         matsolver = myMurtySolver.getSolver();
+      }
+      else if (myKKTSolver != null) {
+         matsolver = myKKTSolver.getMatrixSolver();
+      }
       if (matsolver instanceof PardisoSolver) {
          sb.append (", num threads="+((PardisoSolver)matsolver).getNumThreads());
       }

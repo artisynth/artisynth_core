@@ -2883,9 +2883,29 @@ TransformableGeometry, ScalableUnits {
    }
 
    /**
-    * Checks the forces of all the dynamic components in this model against
-    * a set of reference forces, and prints out the components which
-    * differ. Used for testing and debugging.
+    * Checks the forces of all the dynamic components in this model against a
+    * set of reference forces, and prints out the components which differ. Used
+    * for testing and debugging. An example that compares forces with at time 0
+    * inside MechSystemSolver.constrainedBackwardEuler() looks like this:
+    *
+    * <pre> 
+    * VectorNd myF0;
+    *
+    * constrainedBackwardEuler (
+    *    double t0, double t1, StepAdjustment stepAdjust) {
+    *
+    *    ...
+    *
+    *    if (t0 == 0) {
+    *       if (myF0 == null) {
+    *          myF0 = ((MechModel)mySys).getAllForces();
+    *       }
+    *       else {
+    *          ((MechModel)mySys).checkAllForces ("force check", myF0, true);
+    *       }
+    *    }
+    * }
+    * </pre>
     */
    public void checkAllForces (
       String msg, VectorNd forcevec, boolean printDiffs) {

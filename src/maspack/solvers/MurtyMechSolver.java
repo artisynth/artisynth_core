@@ -577,6 +577,11 @@ public class MurtyMechSolver {
       myMatrixSolver = solver;
    }
 
+   public DirectSolver getSolver() {
+      initializeSolverIfNecessary();
+      return myMatrixSolver;
+   }
+
    void initializeSolverIfNecessary() {
       if (myMatrixSolver == null) {
          setSolverType (SparseSolverId.Pardiso);

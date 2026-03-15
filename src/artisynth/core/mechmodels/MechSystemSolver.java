@@ -1513,7 +1513,7 @@ public class MechSystemSolver {
       else {
          sb.append (", symmetric matrix");
       }
-      DirectSolver matsolver = null
+      DirectSolver matsolver = null;
       if (myMurtySolver != null) {
          matsolver = myMurtySolver.getSolver();
       }

@@ -1,11 +1,13 @@
 ROOT_DIR = ../../../..
-PACKAGE_NAME = artisynth.demos.test
+PACKAGE_NAME = artisynth.core.modeltest
 
 JAVA_SUBDIRS =
 
 PACKAGE_JAVA_FILES =
 
-JAVA_TEST_PROGRAMS =
+JAVA_TEST_PROGRAMS = \
+	TransformGeometryTest \
+	AttachmentReferenceTest
 
 default: build
 

@@ -1,4 +1,4 @@
-package artisynth.demos.test;
+package artisynth.core.modeltest;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;

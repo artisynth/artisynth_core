@@ -7,7 +7,7 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	TransformGeometryTest \
-	AttachmentReferenceTest
+	AttachmentTest
 
 default: build
 

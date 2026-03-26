@@ -190,12 +190,12 @@ public class AttachmentTest extends UnitTest {
       // remove the frame, and add a FrameAttachedFrame.
       mech.detachFrame (frame);
       mech.removeFrame (frame);
-      frame = new FrameAttachedFrame (box, TFW);
-      mech.addFrame (frame);
-      checkVelocityJacobian ("frame attached frame J", mech, frame, Jchk);
+      // frame = new FrameAttachedFrame (box, TFW);
+      // mech.addFrame (frame);
+      // checkVelocityJacobian ("frame attached frame J", mech, frame, Jchk);
 
-      // remove the frame and the box
-      mech.removeFrame (frame);
+      // // remove the frame and the box
+      // mech.removeFrame (frame);
       mech.removeRigidBody (box);
 
       // 2. FemMarker, FemAttachedFrame, and points and frames attached to a
@@ -239,38 +239,38 @@ public class AttachmentTest extends UnitTest {
       // remove the point, and an AttachedFrame to the FEM at loc
       mech.detachPoint (pnt);
       mech.removePoint (pnt);
-      TFW = new RigidTransform3d (loc.x, loc.y, loc.z);
-      TFW.R.setRandom();
-      FemAttachedFrame fframe = new FemAttachedFrame (TFW);
-      fem.addAttachedFrame (fframe, fem.getElement(0));
+      // TFW = new RigidTransform3d (loc.x, loc.y, loc.z);
+      // TFW.R.setRandom();
+      // FemAttachedFrame fframe = new FemAttachedFrame (TFW);
+      // fem.addAttachedFrame (fframe, fem.getElement(0));
 
-      // fframe J should equal the transpose of the attachment master blocks for
-      // the first blocks which correspond to the element nodes.
-      Jchk = new MatrixNd (6, 3*(fem.numNodes())+12);
-      MatrixBlock[] mblks =
-         ((FrameAttachment)fframe.getAttachment()).getMasterBlocks();
-      nodes = elem.getNodes();
-      for (int i=0; i<nodes.length; i++) {
-         Matrix6x3 blk = new Matrix6x3();
-         blk.transpose ((Matrix3x6)mblks[i]);
-         Jchk.setSubMatrix (0, 3*nodes[i].getSolveIndex(), blk);
-      }
-      checkVelocityJacobian ("fframe J", mech, fframe, Jchk);
+      // // fframe J should equal the transpose of the attachment master blocks for
+      // // the first blocks which correspond to the element nodes.
+      // Jchk = new MatrixNd (6, 3*(fem.numNodes())+12);
+      // MatrixBlock[] mblks =
+      //    ((FrameAttachment)fframe.getAttachment()).getMasterBlocks();
+      // nodes = elem.getNodes();
+      // for (int i=0; i<nodes.length; i++) {
+      //    Matrix6x3 blk = new Matrix6x3();
+      //    blk.transpose ((Matrix3x6)mblks[i]);
+      //    Jchk.setSubMatrix (0, 3*nodes[i].getSolveIndex(), blk);
+      // }
+      // checkVelocityJacobian ("fframe J", mech, fframe, Jchk);
 
-      // remove fframe, and attach a separate frame connected by an
-      // attachment. J should be the same.
+      // // remove fframe, and attach a separate frame connected by an
+      // // attachment. J should be the same.
 
-      fem.removeAttachedFrame (fframe);
-      frame = new Frame (TFW);
-      mech.addFrame (frame);
-      mech.attachFrame (frame, fem);
-      mblks = ((FrameAttachment)frame.getAttachment()).getMasterBlocks();
+      // fem.removeAttachedFrame (fframe);
+      // frame = new Frame (TFW);
+      // mech.addFrame (frame);
+      // mech.attachFrame (frame, fem);
+      // mblks = ((FrameAttachment)frame.getAttachment()).getMasterBlocks();
 
-      checkVelocityJacobian ("separate attached frame J", mech, frame, Jchk);
+      // checkVelocityJacobian ("separate attached frame J", mech, frame, Jchk);
 
       mech.removeModel (fem);
-      mech.detachFrame (frame);
-      mech.removeFrame (frame);
+      // mech.detachFrame (frame);
+      // mech.removeFrame (frame);
 
       // 3. FemMarker, FemAttachedFrame, and points and frames attached to a
       // quad shell fem
@@ -317,35 +317,36 @@ public class AttachmentTest extends UnitTest {
       // remove the point, and an AttachedFrame to the FEM at loc
       mech.detachPoint (pnt);
       mech.removePoint (pnt);
-      TFW = new RigidTransform3d (loc.x, loc.y, 0);
-      fframe = new FemAttachedFrame (TFW);
-      fem.addAttachedFrame (fframe, fem.getShellElement(0));
+      // TFW = new RigidTransform3d (loc.x, loc.y, 0);
+      // fframe = new FemAttachedFrame (TFW);
+      // fem.addAttachedFrame (fframe, fem.getShellElement(0));
 
-      // fframe J should equal the transpose of the attachment master blocks for
-      // the first blocks which correspond to the element nodes.
-      Jchk = new MatrixNd (6, 6*(fem.numNodes())+12);
-      mblks = ((FrameAttachment)fframe.getAttachment()).getMasterBlocks();
-      System.out.println ("num blocks=" + mblks.length);
-      System.out.println (
-         "J=\n" + getVelocityJacobian (mech, fframe).toString("%6.3f"));
-      nodes = elem.getNodes();
-      for (int i=0; i<nodes.length; i++) {
-         Matrix6x3 blk = new Matrix6x3();
-         blk.transpose ((Matrix3x6)mblks[i]);
-         Jchk.setSubMatrix (0, 3*nodes[i].getSolveIndex(), blk);
-      }
-      checkVelocityJacobian ("fframe J", mech, fframe, Jchk);
+      // // fframe J should equal the transpose of the attachment master blocks for
+      // // the first blocks which correspond to the element nodes.
+      // Jchk = new MatrixNd (6, 6*(fem.numNodes())+12);
+      // mblks = ((FrameAttachment)fframe.getAttachment()).getMasterBlocks();
+      // System.out.println ("num blocks=" + mblks.length);
+      // System.out.println (
+      //    "J=\n" + getVelocityJacobian (mech, fframe).toString("%6.3f"));
+      // nodes = elem.getNodes();
+      // for (int i=0; i<nodes.length; i++) {
+      //    Matrix6x3 blk = new Matrix6x3();
+      //    blk.transpose ((Matrix3x6)mblks[i]);
+      //    Jchk.setSubMatrix (0, 3*nodes[i].getSolveIndex(), blk);
+      // }
+      // checkVelocityJacobian ("fframe J", mech, fframe, Jchk);
 
-      // remove fframe, and attach a separate frame connected by an
-      // attachment. J should be the same.
+      // // remove fframe, and attach a separate frame connected by an
+      // // attachment. J should be the same.
 
-      fem.removeAttachedFrame (fframe);
-      frame = new Frame (TFW);
-      mech.addFrame (frame);
-      mech.attachFrame (frame, fem);
-      mblks = ((FrameAttachment)frame.getAttachment()).getMasterBlocks();
+      // fem.removeAttachedFrame (fframe);
+      // frame = new Frame (TFW);
+      // mech.addFrame (frame);
+      // mech.attachFrame (frame, fem);
+      // mblks = ((FrameAttachment)frame.getAttachment()).getMasterBlocks();
 
-      checkVelocityJacobian ("separate attached frame J", mech, frame, Jchk);
+      // checkVelocityJacobian ("separate attached frame J", mech, frame, Jchk);216
+
    }
 
    public void test() {

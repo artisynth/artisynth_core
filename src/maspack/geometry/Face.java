@@ -806,7 +806,7 @@ public class Face extends Feature implements Boundable {
       return nearestPointTriangle (pn, pa, pb, pc, p1);
    }
 
-   private int nearestPointTriangle (
+   static int nearestPointTriangle (
       Point3d pn, Point3d pa, Point3d pb, Point3d pc, Point3d p1) {
       //long time = System.nanoTime();
 

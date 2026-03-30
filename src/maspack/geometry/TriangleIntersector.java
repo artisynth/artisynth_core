@@ -1139,15 +1139,17 @@ public class TriangleIntersector {
 
       if (fS + fT <= fDet) {
          if (fS < (double)0.0) {
-            if (fT < (double)0.0) // region 4
-            {
+            if (fT < (double)0.0) {
+               // region 4
                if (fB0 < (double)0.0) {
                   fT = (double)0.0;
                   if (-fB0 >= fA00) {
                      fS = (double)1.0;
+                     // minimum at vertex 1
                      fSqrDistance = fA00 + ((double)2.0) * fB0 + fC;
                   }
                   else {
+                     // minimum on edge (0,1)
                      fS = -fB0 / fA00;
                      fSqrDistance = fB0 * fS + fC;
                   }
@@ -1155,56 +1157,63 @@ public class TriangleIntersector {
                else {
                   fS = (double)0.0;
                   if (fB1 >= (double)0.0) {
+                     // minimum at vertex 0
                      fT = (double)0.0;
                      fSqrDistance = fC;
                   }
                   else if (-fB1 >= fA11) {
+                     // minimum at vertex 2
                      fT = (double)1.0;
                      fSqrDistance = fA11 + ((double)2.0) * fB1 + fC;
                   }
                   else {
+                     // minimum on edge (0,2)
                      fT = -fB1 / fA11;
                      fSqrDistance = fB1 * fT + fC;
                   }
                }
             }
-            else
-            // region 3
-            {
+            else {
+               // region 3
                fS = (double)0.0;
                if (fB1 >= (double)0.0) {
+                  // minimum at vertex 0
                   fT = (double)0.0;
                   fSqrDistance = fC;
                }
                else if (-fB1 >= fA11) {
+                  // minimum at vertex 2
                   fT = (double)1.0;
                   fSqrDistance = fA11 + ((double)2.0) * fB1 + fC;
                }
                else {
+                  // minimum on edge (0,2)
                   fT = -fB1 / fA11;
                   fSqrDistance = fB1 * fT + fC;
                }
             }
          }
-         else if (fT < (double)0.0) // region 5
-         {
+         else if (fT < (double)0.0) {
+            // region 5
             fT = (double)0.0;
             if (fB0 >= (double)0.0) {
+               // minimum at vertex 0
                fS = (double)0.0;
                fSqrDistance = fC;
             }
             else if (-fB0 >= fA00) {
+               // minimum at vertex 1
                fS = (double)1.0;
                fSqrDistance = fA00 + ((double)2.0) * fB0 + fC;
             }
             else {
+               // minimum on edge (0,1)
                fS = -fB0 / fA00;
                fSqrDistance = fB0 * fS + fC;
             }
          }
-         else
-         // region 0
-         {
+         else {
+            // region 0
             // minimum at interior point
             double fInvDet = ((double)1.0) / fDet;
             fS *= fInvDet;
@@ -1217,19 +1226,21 @@ public class TriangleIntersector {
       else {
          double fTmp0, fTmp1, fNumer, fDenom;
 
-         if (fS < (double)0.0) // region 2
-         {
+         if (fS < (double)0.0) {
+            // region 2
             fTmp0 = fA01 + fB0;
             fTmp1 = fA11 + fB1;
             if (fTmp1 > fTmp0) {
                fNumer = fTmp1 - fTmp0;
                fDenom = fA00 - 2.0f * fA01 + fA11;
                if (fNumer >= fDenom) {
+                  // minimum at vertex 1
                   fS = (double)1.0;
                   fT = (double)0.0;
                   fSqrDistance = fA00 + ((double)2.0) * fB0 + fC;
                }
                else {
+                  // minimum on edge (1,2)
                   fS = fNumer / fDenom;
                   fT = (double)1.0 - fS;
                   fSqrDistance =
@@ -1240,32 +1251,37 @@ public class TriangleIntersector {
             else {
                fS = (double)0.0;
                if (fTmp1 <= (double)0.0) {
+                  // minimum at vertex 2
                   fT = (double)1.0;
                   fSqrDistance = fA11 + ((double)2.0) * fB1 + fC;
                }
                else if (fB1 >= (double)0.0) {
+                  // minimum at vertex 0
                   fT = (double)0.0;
                   fSqrDistance = fC;
                }
                else {
+                  // minimum on edge (0,2)
                   fT = -fB1 / fA11;
                   fSqrDistance = fB1 * fT + fC;
                }
             }
          }
-         else if (fT < (double)0.0) // region 6
-         {
+         else if (fT < (double)0.0) {
+            // region 6
             fTmp0 = fA01 + fB1;
             fTmp1 = fA00 + fB0;
             if (fTmp1 > fTmp0) {
                fNumer = fTmp1 - fTmp0;
                fDenom = fA00 - ((double)2.0) * fA01 + fA11;
                if (fNumer >= fDenom) {
+                  // minimum at vertex 2
                   fT = (double)1.0;
                   fS = (double)0.0;
                   fSqrDistance = fA11 + ((double)2.0) * fB1 + fC;
                }
                else {
+                  // minimum on edge (1,2)
                   fT = fNumer / fDenom;
                   fS = (double)1.0 - fT;
                   fSqrDistance =
@@ -1276,24 +1292,27 @@ public class TriangleIntersector {
             else {
                fT = (double)0.0;
                if (fTmp1 <= (double)0.0) {
+                  // minimum at vertex 1
                   fS = (double)1.0;
                   fSqrDistance = fA00 + ((double)2.0) * fB0 + fC;
                }
                else if (fB0 >= (double)0.0) {
+                  // minimum at vertex 0
                   fS = (double)0.0;
                   fSqrDistance = fC;
                }
                else {
+                  // minimum on edge (0,1)
                   fS = -fB0 / fA00;
                   fSqrDistance = fB0 * fS + fC;
                }
             }
          }
-         else
-         // region 1
-         {
+         else {
+            // region 1
             fNumer = fA11 + fB1 - fA01 - fB0;
             if (fNumer <= (double)0.0) {
+               // minimum at vertex 2
                fS = (double)0.0;
                fT = (double)1.0;
                fSqrDistance = fA11 + ((double)2.0) * fB1 + fC;
@@ -1301,11 +1320,13 @@ public class TriangleIntersector {
             else {
                fDenom = fA00 - 2.0f * fA01 + fA11;
                if (fNumer >= fDenom) {
+                  // minimum at vertex 1
                   fS = (double)1.0;
                   fT = (double)0.0;
                   fSqrDistance = fA00 + ((double)2.0) * fB0 + fC;
                }
                else {
+                  // minimum on edge (1,2)
                   fS = fNumer / fDenom;
                   fT = (double)1.0 - fS;
                   fSqrDistance =
@@ -1342,6 +1363,96 @@ public class TriangleIntersector {
          return 0;
       else
          return Math.sqrt (fSqrDistance);
+   }
+
+   public enum NearestFeature {
+      VERTEX_0,
+      VERTEX_1,
+      VERTEX_2,
+      EDGE_01,
+      EDGE_02,
+      EDGE_12,
+      FACE
+   };
+
+   public NearestFeature closestPoint (
+      Point3d near, Point3d v0, Point3d v1, Point3d v2, Point3d p, Vector2d uv) {
+
+      kDiff.sub (p, v0);
+      kEdge0.sub (v1, v0);
+      kEdge1.sub (v2, v0);
+
+      double d1 = kEdge0.dot(kDiff);
+      double d2 = kEdge1.dot(kDiff);
+      if (d1 <= 0.0 && d2 <= 0.0) {
+         near.set (v0); //#1
+         if (uv != null) {
+            uv.set (0.0, 0.0);
+         }
+         return NearestFeature.VERTEX_0;
+      }
+      Vector3d kDiff1 = new Vector3d();
+      kDiff1.sub (p, v1);
+      double d3 = kEdge0.dot(kDiff1);
+      double d4 = kEdge1.dot(kDiff1);
+      if (d3 >= 0.0 && d4 <= d3) {
+         near.set (v1); //#2
+         if (uv != null) {
+            uv.set (1.0, 0.0);
+         }
+         return NearestFeature.VERTEX_1;
+      }
+      
+      Vector3d kDiff2 = new Vector3d();
+      kDiff2.sub (p, v2);
+      double d5 = kEdge0.dot(kDiff2);
+      double d6 = kEdge1.dot(kDiff2);
+      if (d6 >= 0.0 && d5 <= d6) {
+         near.set (v2); //#3
+         if (uv != null) {
+            uv.set (0.0, 1.0);
+         }
+         return NearestFeature.VERTEX_2;
+      }
+
+      double vc = d1 * d4 - d3 * d2;
+      if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
+         double v = d1 / (d1 - d3);
+         near.scaledAdd (v, kEdge0, v0); //#4
+         if (uv != null) {
+            uv.set (v, 0.0);
+         }
+         return NearestFeature.EDGE_01;
+      }
+    
+      double vb = d5 * d2 - d1 * d6;
+      if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
+         double v = d2 / (d2 - d6);
+         near.scaledAdd (v, kEdge1, v0); //#5
+         if (uv != null) {
+            uv.set (0.0, v);
+         }
+         return NearestFeature.EDGE_02;
+      }
+      double va = d3 * d6 - d5 * d4;
+      if (va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0) {
+         double v = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+         near.combine (1-v, v1, v, v2); //#6
+         if (uv != null) {
+            uv.set (1-v, v);
+         }
+         return NearestFeature.EDGE_12;
+      }
+
+      double denom = 1.f / (va + vb + vc);
+      double v = vb * denom;
+      double w = vc * denom;
+      near.combine (v, kEdge0, w, kEdge1);
+      near.add (v0); //#0   
+      if (uv != null) {
+         uv.set (v, w);
+      }
+      return NearestFeature.FACE;
    }
 
    Point3d lp = new Point3d();

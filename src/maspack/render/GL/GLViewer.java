@@ -933,9 +933,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    public void repaint() {
-      
-      // System.out.println ("GLViewer repaint() called, selectTrigger = " + selectTrigger); 
-      
+
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
       }

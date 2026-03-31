@@ -152,7 +152,7 @@ public class RootModel extends RenderableModelBase
    public static String DEFAULT_MODEL_TITLE = null;
    private String myModelTitle = DEFAULT_MODEL_TITLE;
 
-   AxisAngle myDefaultViewOrientation = 
+   protected AxisAngle myDefaultViewOrientation = 
       new AxisAngle (DEFAULT_VIEW_ORIENTATION);
    
    GLViewer myMainViewer;
@@ -861,7 +861,7 @@ public class RootModel extends RenderableModelBase
     * @return default rotational transform from eye to world coordinates
     */
    public AxisAngle getDefaultViewOrientation() {
-      return myDefaultViewOrientation;
+      return new AxisAngle(myDefaultViewOrientation);
    }
 
    /**

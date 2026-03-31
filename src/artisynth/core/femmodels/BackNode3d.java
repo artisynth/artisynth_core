@@ -569,26 +569,40 @@ public class BackNode3d extends DynamicComponentBase
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
+
+      // check that the next token is a word; if not, call push it back
+      // and call the super method.
       rtok.nextToken();
-      if (scanAttributeName (rtok, "position")) {
+      if (rtok.ttype != ReaderTokenizer.TT_WORD) {
+         rtok.pushBack();
+         return super.scanItem (rtok, tokens);
+      }
+
+      String name = rtok.sval;
+      if (name.equals("position")) {
+         rtok.scanToken ('=');
          myPos.scan (rtok);
          myPosValidP = true;
          return true;
       }
-      else if (scanAttributeName (rtok, "velocity")) {
+      else if (name.equals("velocity")) {
+         rtok.scanToken ('=');
          myVel.scan (rtok);
          return true;
       }
-      else if (scanAttributeName (rtok, "rest")) {
+      else if (name.equals("rest")) {
+         rtok.scanToken ('=');
          myRest.scan (rtok);
          setFlag (FemNode3d.REST_POSITION_SCANNED);
          myRestValidP = true;
          return true;
       }
-      else if (scanAttributeName (rtok, "restExplicit")) {
+      else if (name.equals("restExplicit")) {
+         rtok.scanToken ('=');
          myRestExplicitP = rtok.scanBoolean();
          return true;
       }
+
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }

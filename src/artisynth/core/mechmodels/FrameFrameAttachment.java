@@ -65,6 +65,10 @@ public class FrameFrameAttachment extends FrameAttachment {
    public RigidTransform3d getTFM() {
       return myTFM;
    }
+   
+   public void setTFM (RigidTransform3d TFM) {
+      myTFM.set (TFM);
+   }
 
    protected void setMaster (Frame master) {
       removeBackRefsIfConnected();

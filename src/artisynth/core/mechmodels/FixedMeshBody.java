@@ -15,6 +15,7 @@ import java.util.*;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.GeometryTransformer;
+import maspack.geometry.PolygonalMesh;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
@@ -36,7 +37,8 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.modelbase.HasPoseComponent;
 import artisynth.core.util.ScanToken;
 
-public class FixedMeshBody extends MeshComponent implements HasPoseComponent {
+public class FixedMeshBody extends MeshComponent
+   implements HasPoseComponent, HasSurfaceMesh {
 
    // use a FrameState to store the position even though we ignore velocity
    FrameState myState = new FrameState();
@@ -392,6 +394,25 @@ public class FixedMeshBody extends MeshComponent implements HasPoseComponent {
       setPose (TBWnew);  
       notifyParentOfChange (
          new StructureChangeEvent (this, /*stateChanged=*/true));
+   }
+
+   /* --- HasSurfaceMesh --- */
+
+   public PolygonalMesh getSurfaceMesh() {
+      if (getMesh() instanceof PolygonalMesh) {
+         return (PolygonalMesh)getMesh();
+      }
+      else {
+         return null;
+      }
+   }
+   
+   public int numSurfaceMeshes() {
+      return getSurfaceMesh() != null ? 1 : 0;
+   }
+   
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
    }
 
 }

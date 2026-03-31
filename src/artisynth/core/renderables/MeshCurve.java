@@ -1130,7 +1130,7 @@ public class MeshCurve extends RenderableCompositeBase
    /* ---- LineIntersectable implementation ---- */
 
    /**
-    * {@InheritDoc}
+    * {@inheritDoc}
     */
    public MeshCurvePosition nearestPointToLine (Line line) {
 

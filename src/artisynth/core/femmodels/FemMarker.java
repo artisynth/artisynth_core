@@ -75,6 +75,13 @@ public class FemMarker extends Marker {
 //   public boolean hasState() {
 //      return false;
 //   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public PointFem3dAttachment getAttachment() {
+      return myNodeAttachment;
+   }
 
    public VectorNd getCoordinates() {
       return myNodeAttachment.getCoordinates();

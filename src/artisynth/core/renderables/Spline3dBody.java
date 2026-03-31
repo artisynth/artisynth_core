@@ -299,7 +299,7 @@ public class Spline3dBody extends RenderableComponentBase
    /* --- LineIntersectable implementation --- */
    
    /**
-    * {@InheritDoc}
+    * {@inheritDoc}
     */
    public SplineBodyPosition nearestPointToLine (Line line) {
 

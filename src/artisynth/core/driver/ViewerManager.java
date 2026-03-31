@@ -667,7 +667,6 @@ public class ViewerManager extends SettingsBase {
    }
 
    public void render() {
-      // System.out.println("vm_render");
       myRenderList = buildRenderList();
       for (Viewer v : myViewers) {
          v.setExternalRenderList (myRenderList);

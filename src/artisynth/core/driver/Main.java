@@ -2592,7 +2592,37 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myWorkspace.rerender();
       }
    }
-
+   
+   /**
+    * wait for any pending rerender request to finish
+    */
+   public void waitForRerender() {
+      if (myFrame != null && myWorkspace != null) {
+         myWorkspace.waitForRerender();
+      }
+   }
+   
+   /**
+    * Sets whether or not rerendering is masked.
+    */
+   public void setRerenderMasked (boolean masked) {
+      if (myWorkspace != null) {
+         myWorkspace.setRerenderMasked (masked);
+      }
+   }
+    
+   /**
+    * Returns whether or not rerendering is masked.
+    */
+   public boolean isRerenderMasked() {
+      if (myWorkspace != null) {
+         return myWorkspace.isRerenderMasked();
+      }
+      else {
+         return false;
+      }
+   }
+   
    /**
     * update all widgets
     */
@@ -3914,8 +3944,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
             else if (propName.equals ("defaultViewOrientation")) {
                if (myViewerManager != null) {
-                  myViewerManager.resetViewers (
-                     getDefaultAxialView(getRootModel()));
+                  SwingUtilities.invokeLater (
+                     ()-> myViewerManager.resetViewers (
+                        getDefaultAxialView(getRootModel())));
                }
             }
             else if (propName.equals ("modelTitle")) {

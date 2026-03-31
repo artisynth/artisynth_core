@@ -57,6 +57,7 @@ public class Workspace {
    private UpdateAction myRequestedUpdateAction = null;
    private static boolean useNewProbeFileFormat = false;
    private RerenderListener myRerenderListener = new RerenderListener();
+   private boolean myRerenderMaskedP = false;
 
    public Workspace (Main main) {
       myRoot = new RootModel (null);
@@ -161,8 +162,10 @@ public class Workspace {
    }
 
    public synchronized void rerender() {
-      myRenderRequested = true;
-      requestUpdateAction ();
+      if (!myRerenderMaskedP) {
+         myRenderRequested = true;
+         requestUpdateAction ();
+      }
    }
    
    public void waitForRerender() {
@@ -174,6 +177,14 @@ public class Workspace {
            // ignore
         }
       }
+   }
+   
+   public void setRerenderMasked (boolean masked) {
+      myRerenderMaskedP = masked;
+   }
+   
+   public boolean isRerenderMasked() {
+      return myRerenderMaskedP;
    }
 
    public synchronized void rewidgetUpdate() {

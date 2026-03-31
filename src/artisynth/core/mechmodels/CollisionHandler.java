@@ -893,11 +893,13 @@ public class CollisionHandler extends RenderableConstrainerBase
       double maxpen = 0;
       clearContactActivity();
       
+      ArrayList<PenetratingPoint> pnts0 = null;
+      ArrayList<PenetratingPoint> pnts1 = null;
       if (info != null) {
          CollidableBody col0 = myCollidable0;
          CollidableBody col1 = myCollidable1;
-         ArrayList<PenetratingPoint> pnts0 = info.getPenetratingPoints(0);
-         ArrayList<PenetratingPoint> pnts1 = info.getPenetratingPoints(1);
+         int col0Idx = 0;
+         int col1Idx = 1;         
          if (!usingTwoWayContact()) {
             // see if we need to swap the body for which vertex penetrations 
             // should be computed
@@ -907,12 +909,14 @@ public class CollisionHandler extends RenderableConstrainerBase
                   isRigid(myCollidable0) && !isRigid(myCollidable1)))) {
                col0 = myCollidable1;
                col1 = myCollidable0;
-               pnts0 = info.getPenetratingPoints(1);
-               pnts1 = info.getPenetratingPoints(0);              
+               col0Idx = 1;
+               col1Idx = 0;
             }                
          }
+         pnts0 = info.getPenetratingPoints(col0Idx);
          maxpen = computeVertexPenetrationConstraints (pnts0,col0,col1);
          if (usingTwoWayContact()) {
+            pnts1 = info.getPenetratingPoints(col1Idx);
             double pen = computeVertexPenetrationConstraints (pnts1,col1,col0);
             if (pen > maxpen) {
                maxpen = pen;

@@ -6,6 +6,12 @@
  */
 package artisynth.core.mechmodels;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +19,7 @@ import java.util.HashSet;
 
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AxisAngle;
+import maspack.matrix.Line;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix3d;
@@ -46,28 +53,40 @@ import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
 import maspack.util.DataBuffer;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.properties.HierarchyNode;
 
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
+import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ContactPoint;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.mechmodels.DynamicComponent;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ComponentListImpl;
+import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.HasPoseComponent;
 import artisynth.core.modelbase.HasPosition;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.Traceable;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
 
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
               Traceable, MotionTargetComponent, CopyableComponent,
               HasPoseComponent, HasPosition, CollidableDynamicComponent,
-              PointAttachable, FrameAttachable, ContactMaster {
+              PointAttachable, FrameAttachable, ContactMaster,
+              CompositeComponent, IsMarkable {
 
    public static boolean dynamicVelInWorldCoords = true;
+
+   protected static final Vector3d zeroVect = new Vector3d();
 
    protected FrameState myState = new FrameState();
    protected FrameTarget myTarget = null;
@@ -90,6 +109,12 @@ public class Frame extends DynamicComponentBase
    protected PropertyMode myFrameDampingMode = PropertyMode.Inherited;
    protected double myRotaryDamping = 0;
    protected PropertyMode myRotaryDampingMode = PropertyMode.Inherited;
+
+   // attributes for CompositeComponent
+   protected ComponentListImpl<ModelComponent> myComponents;
+   protected NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
+
+   protected PointList<FrameMarker> myMarkers; // markers attached to the frame
 
    public static PropertyList myProps =
       new PropertyList (Frame.class, DynamicComponentBase.class);
@@ -152,17 +177,17 @@ public class Frame extends DynamicComponentBase
       myExternalForce = new Wrench();
       myRenderFrame = new RigidTransform3d();
       mySolveBlockValidP = false;
-      //initializeChildComponents();
+      initializeChildComponents();
    }
 
-   // protected void initializeChildComponents() {
-   //    myComponents = 
-   //       new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
-   //    myMeshList =
-   //       new MeshComponentList<RigidMeshComp>(
-   //          RigidMeshComp.class, "meshes", "msh");
-   //    add(myMeshList);
-   // }
+   protected void initializeChildComponents() {
+      myComponents = 
+         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+
+      myMarkers =
+         new PointList<FrameMarker>(FrameMarker.class, "markers");
+      add (myMarkers);
+   }
 
    public Frame (RigidTransform3d X) {
       this();
@@ -488,81 +513,6 @@ public class Frame extends DynamicComponentBase
        blk.m42 = -lxw;
     }
 
-//    /**
-//     * Computes a force Jacobian for a point attached to this frame. If the
-//     * velocity state size (vsize) of this frame is 6, then G should be an
-//     * instance of Matrix6x3Block. Otherwise, it should be an instance of
-//     * MatrixNdBlock with a size of vsize x 3.
-//     * 
-//     * The Jacobian takes the following form for the 6x3 matrix case:
-//     * <pre>
-//     * [     I       ]
-//     * [             ]
-//     * [ [ RF loc ]  ]
-//     * </pre>
-//     * where RF is the frame orientation matrix, loc is the location of the
-//     * point in frame coordinates, and [ x ] denotes the 3x3 skew-symmetric
-//     * cross product matrix.
-//     *
-//     * @param GT returns the force Jacobian
-//     * @param loc location of the point, relative to the frame
-//     */
-//    // 1 ref
-//     public void computeLocalPointForceJacobian (MatrixBlock GT, Vector3d loc) {
-//        Matrix6x3Block blk;
-//        try {
-//           blk = (Matrix6x3Block)GT;
-//        }
-//        catch (ClassCastException e) {
-//           throw new IllegalArgumentException (
-//              "GT is not an instance of Matrix6x3Block, is "+GT.getClass());
-//        }       
-//
-//        Vector3d locw = new Vector3d();
-//        locw.transform (getPose().R, loc);
-//        double x = locw.x;
-//        double y = locw.y;
-//        double z = locw.z;
-//
-//        blk.m00 = 1;
-//        blk.m01 = 0;
-//        blk.m02 = 0;
-//        blk.m10 = 0;
-//        blk.m11 = 1;
-//        blk.m12 = 0;
-//        blk.m20 = 0;
-//        blk.m21 = 0;
-//        blk.m22 = 1;
-//
-//        blk.m30 = 0;
-//        blk.m31 = -z;
-//        blk.m32 = y;
-//        blk.m40 = z;
-//        blk.m41 = 0;
-//        blk.m42 = -x;           
-//        blk.m50 = -y;
-//        blk.m51 = x;
-//        blk.m52 = 0;
-//     }
-
-//   /**
-//    * Computes the velocity, in world coordinates, of a point attached to this
-//    * frame.
-//    * 
-//    * @param vel
-//    * returns the point velocity
-//    * @param loc
-//    * position of the point, in body coordinates
-//    * @param frameVel
-//    * velocity of the frame, in rotated world coordinates
-//    */
-//   // 1 ref
-//   public void computePointVelocity (Vector3d vel, Point3d loc, Twist frameVel) {
-//      // use vel to store loc transformed into world coords
-//      vel.transform (myState.XFrameToWorld.R, loc);
-//      vel.crossAdd (frameVel.w, vel, frameVel.v);
-//   }
-
    /**
     * Computes the velocity derivative of a point attached to this frame
     * that is due to the current velocity of the frame.
@@ -580,21 +530,6 @@ public class Frame extends DynamicComponentBase
       cor.cross (tw.w, cor);
       cor.cross (tw.w, cor);      
    }
-
-//   /**
-//    * Subtracts from <code>wr</code> the wrench arising from applying a force
-//    * <code>f</code> on a point <code>loc</code>.
-//    *
-//    * @param wr wrench from which force is subtracted (world coordinates
-//    * @param loc location of the point (body coordinates)
-//    * @param f force acting on the point (world coordinates)
-//    */
-//   public void subPointForce (Wrench wr, Point3d loc, Vector3d f) {
-//      // transform position to world coordinates
-//      myTmpPos.transform (myState.XFrameToWorld.R, loc);
-//      wr.f.sub (f);
-//      wr.m.crossAdd (f, myTmpPos, wr.m);
-//   }
 
    /**
     * Adds to <code>wr</code> the wrench arising from applying a force
@@ -637,28 +572,6 @@ public class Frame extends DynamicComponentBase
       myForce.m.crossAdd (locw, wr.f, myForce.m);
    }
    
-//   /**
-//    * Subtracts from this body's forces the wrench arising from applying a force
-//    * <code>f</code> on a point <code>loc</code>.
-//    *
-//    * @param loc location of the point (body coordinates)
-//    * @param f force applied to the point (world coordinates)
-//    */
-//   public void subPointForce (Point3d loc, Vector3d f) {
-//      subPointForce (myForce, loc, f);
-//   }
-
-//   /**
-//    * Adds to this body's external forces the wrench arising from
-//    * applying a force <code>f</code> on a point <code>loc</code>.
-//    *
-//    * @param loc location of the point (body coordinates)
-//    * @param f force applied to the point (world coordinates)
-//    */
-//   public void addExternalPointForce (Point3d loc, Vector3d f) {
-//      addPointForce (myExternalForce, loc, f);
-//   }
-
    /**
     * Computes the wrench (in body coordinates) produced by applying a
     * force at a particular point.
@@ -672,19 +585,6 @@ public class Frame extends DynamicComponentBase
       wr.f.inverseTransform (myState.XFrameToWorld.R, f);
       wr.m.cross (p, wr.f);
    }
-
-//   /**
-//    * Computes the wrench (in body coordinates) produced by applying a
-//    * force at a particular point.
-//    *
-//    * @param wr returns the wrench in body coordinates
-//    * @param f applied force at the point (world coordinates)
-//    * @param p location of the point on the body (body coordinates)
-//    */
-//   public void computeAppliedWrench (Matrix6x1 wr, Vector3d f, Vector3d p) {
-//      myBodyForce.f.inverseTransform (myState.XFrameToWorld.R, f);
-//      wr.setWrench (myBodyForce.f, p);
-//   }
 
    public void resetTargets() {
       if (myTarget != null) {
@@ -933,10 +833,14 @@ public class Frame extends DynamicComponentBase
 
    public void prerender (RenderList list) {
       myRenderFrame.set (myState.XFrameToWorld);
+      list.addIfVisible (myMarkers);
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myState.pos.updateBounds (pmin, pmax);
+      for (FrameMarker mkr : myMarkers) {
+         mkr.updateBounds(pmin, pmax);
+      }
    }
 
    public void render (Renderer renderer, int flags) {
@@ -964,7 +868,8 @@ public class Frame extends DynamicComponentBase
    
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags) {
-      super.addTransformableDependencies (context, flags);
+      context.addTransformableDescendants (this, flags);
+      //super.addTransformableDependencies (context, flags);
    }
 
    public void scaleDistance (double s) {
@@ -974,6 +879,7 @@ public class Frame extends DynamicComponentBase
          myRenderProps.scaleDistance (s);
       }
       myRotaryDamping *= (s * s);
+      myMarkers.scaleDistance (s);
    }
 
    public void zeroExternalForces() {
@@ -1030,10 +936,6 @@ public class Frame extends DynamicComponentBase
       myFrameDamping *= s;
       myRotaryDamping *= s;
    }
-
-//   public FrameBlock getSolveBlock() {
-//      return mySolveBlock;
-//   }
 
    public MatrixBlock createMassBlock() {
       return new Matrix6dBlock();
@@ -1252,6 +1154,10 @@ public class Frame extends DynamicComponentBase
    public Frame copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       Frame comp = (Frame)super.copy (flags, copyMap);
+      
+      comp.initializeChildComponents();
+      comp.setNavpanelDisplay (getNavpanelDisplay());
+
       comp.myState = new FrameState();
       comp.myForce = new Wrench();
       comp.myExternalForce = new Wrench();
@@ -1266,8 +1172,9 @@ public class Frame extends DynamicComponentBase
    }
 
    /**
-    * Returns an array of all FrameMarkers currently associated with this rigid
-    * body.
+    * Returns an array of all FrameMarkers currently associated with this
+    * frame, including those contained in the {@code markers} list and those
+    * external to the frame.
     * 
     * @return list of all frame markers
     */
@@ -1622,7 +1529,341 @@ public class Frame extends DynamicComponentBase
       return 0;
    }
 
-   /* --- end ContactMaster implementation --- */
+   /* --- I/O methods --- */
 
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      myComponents.scanBegin();
+      myState.vel.setZero();
+      super.scan (rtok, ref);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
+         return true;
+      }
+      else if (scanAttributeName (rtok, "pose")) {
+         RigidTransform3d X = new RigidTransform3d();
+         X.scan (rtok);
+         myState.setPose (X);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "position")) {
+         Point3d pos = new Point3d();
+         pos.scan (rtok);
+         setPosition (pos);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "rotation")) {
+         Quaternion q = new Quaternion();
+         q.scan (rtok);
+         setRotation (q);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "vel")) {
+         rtok.scanToken ('[');
+         myState.vel.scan (rtok);
+         rtok.scanToken (']');
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) 
+         throws IOException {
+
+      if (myComponents.postscanComponent (tokens, ancestor)) {
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+
+   @Override
+   public void postscan (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      super.postscan (tokens, ancestor);
+      setScanning (true); // set true again after super.postscan() set to false
+      myComponents.scanEnd();
+      updatePosState();
+      setScanning (false);
+   }
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
+      pw.println ("position=[ " + myState.getPosition().toString (fmt) + "]");
+      pw.println ("rotation=[ " + myState.getRotation().toString (fmt) + "]");
+      // pw.println ("pose=" + myState.XFrameToWorld.toString (
+      //    fmt, RigidTransform3d.AXIS_ANGLE_STRING));
+      if (!myState.vel.v.equals (zeroVect) || !myState.vel.w.equals (zeroVect)) {
+         pw.print ("vel=[ ");
+         pw.print (myState.vel.toString (fmt));
+         pw.println (" ]");
+      }
+      myComponents.writeComponentsByName (pw, fmt, ancestor);
+   }
+
+   /* ==== CompositeComponent implementation ==== */
+
+   public void updateNameMap (
+      String newName, String oldName, ModelComponent comp) {
+      myComponents.updateNameMap (newName, oldName, comp);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent findComponent (String path) {
+      return ComponentUtils.findComponent (this, path);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent get (String nameOrNumber) {
+      return myComponents.get (nameOrNumber);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent get (int idx) {
+      return myComponents.get (idx);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent getByNumber (int num) {
+      return myComponents.getByNumber (num);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getNumberLimit() {
+      return myComponents.getNumberLimit();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int indexOf (ModelComponent comp) {
+      return myComponents.indexOf (comp);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numComponents() {
+      return myComponents.size();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void componentChanged (ComponentChangeEvent e) {
+      myComponents.componentChanged (e);
+      notifyParentOfChange (e);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public NavpanelDisplay getNavpanelDisplay() {
+      return myDisplayMode;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean hierarchyContainsReferences() {
+      return false;
+   }
+
+   /* ==== marker support === */
+
+   public FrameMarker createMarker(Point3d pnt) {
+      FrameMarker marker = new FrameMarker();
+      marker.setFrame (this);
+      marker.setWorldLocation (pnt);
+      return marker;
+   }
+   
+   public boolean canAddMarker (Marker mkr) {
+      if (mkr instanceof FrameMarker) {
+         return true;
+      }
+      return false;
+   }
+
+   /**
+    * Returns the list of FrameMarkers associated with this frame.
+    * 
+    * @return frame marker list
+    */
+   public PointList<? extends FrameMarker> getMarkers() {
+      return myMarkers;
+   }
+   
+   public boolean addMarker (Marker mkr) {
+      if (mkr instanceof FrameMarker) {
+         addMarker ((FrameMarker)mkr);
+         return true;
+      }
+      return false;
+   }
+      
+   /**
+    * Adds a FrameMarker to this Frame's {@code markers} list.
+    * The marker's frame will be set to this frame.
+    * 
+    * @param mkr marker to add
+    */
+   public void addMarker (FrameMarker mkr) {
+      if (mkr.getFrame() != this) {
+         mkr.setFrame (this);
+      }
+      myMarkers.add (mkr);
+   }
+   
+   /**
+    * Creates a FrameMarker attached to this frame and adds it to the frame's
+    * {@code markers} list. The marker's position in world coordinates is 
+    * given by {@code pos}.
+    * 
+    * @param pos initial position of the marker in world coordinates
+    * @return created marker
+    */
+   public FrameMarker addMarkerWorld (Point3d pos) {
+      FrameMarker mkr = new FrameMarker ();
+      mkr.setFrame (this);
+      mkr.setWorldLocation (pos);
+      myMarkers.add (mkr);
+      return mkr;
+   }
+   
+   /**
+    * Creates a FrameMarker attached to this frame and adds it to the frame's
+    * {@code markers} list. The markers location relative to the frame is 
+    * given by [@code loc}.
+    * 
+    * @param loc location of the marker relative to this frame
+    * @return created marker
+    */
+   public FrameMarker addMarker (Point3d loc) {
+      FrameMarker mkr = new FrameMarker ();
+      mkr.setFrame (this);
+      mkr.setLocation (loc);
+      myMarkers.add (mkr);
+      return mkr;
+   }
+   
+   /**
+    * Creates a FrameMarker attached to this frame and adds it to the frame's
+    * {@code markers} list. If the frame is an instance of {@link 
+    * HasSurfaceMesh}, the marker's position is determined the nearest
+    * intersection of the specified ray and the mesh, with {@code null} being 
+    * returned if there is no intersection. Otherwise, the marker's position is
+    * set to the frame's origin.
+    * 
+    * @param ray to line intersect with the frame's surface mesh to determine
+    * the marker location
+    * @return created marker, or {@code null} if there is no mesh-ray
+    * intersection
+    */
+   public Marker createMarker (Line ray) { 
+      Point3d pos = null;
+      FrameMarker mkr = null;
+      if (this instanceof HasSurfaceMesh) {
+         Point3d isect = new Point3d();
+         if (((HasSurfaceMesh)this).computeRayIntersection (isect, ray)) {
+            pos = isect;
+         }
+      }
+      else {
+         pos = new Point3d(getPose().p);
+      } 
+      if (pos != null) {
+         mkr = new FrameMarker();
+         mkr.setFrame (this);
+         mkr.setWorldLocation (pos);
+      }
+      return mkr;
+   }
+   
+   public boolean removeMarker (FrameMarker mkr) {
+      return myMarkers.remove (mkr);
+   }
+   
+   public void clearMarkers() {
+      myMarkers.removeAll();
+   }
+   
+//   /**
+//    * Returns the FrameMarkers associated with this frame.
+//    *
+//    * @return frame's marker list
+//    */
+//   public PointList<FrameMarker> getMarkers () {
+//      return myMarkers;
+//   }
+
+   /* ==== composite component support ==== */
+
+   public void add (ModelComponent comp) {
+      myComponents.add (comp);
+   }
+
+   public boolean remove (ModelComponent comp) {
+      return myComponents.remove (comp);
+   }
+
+   protected void notifyStructureChanged (Object comp) {
+      notifyStructureChanged (comp, /*stateIsChanged=*/true);
+   }
+
+   protected void notifyStructureChanged (Object comp, boolean stateIsChanged) {
+      if (comp instanceof CompositeComponent) {
+         notifyParentOfChange (
+            new StructureChangeEvent ((CompositeComponent)comp,stateIsChanged));
+      }
+      else if (!stateIsChanged) {
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent);
+      }
+      else {
+         notifyParentOfChange (
+            StructureChangeEvent.defaultEvent);
+      }
+   }
+
+   /**
+    * Sets the display mode for this component. This controls
+    * how the component is displayed in a navigation panel. The default
+    * setting is <code>NORMAL</code>.
+    *
+    * @param mode new display mode
+    */
+   public void setNavpanelDisplay (NavpanelDisplay mode) {
+      myDisplayMode = mode;
+   }
+
+   /* ==== Overrides of HierarchyNode to expose children ==== */
+
+   public Iterator<? extends HierarchyNode> getChildren() {
+      return myComponents.iterator();
+   }
+
+   public boolean hasChildren() {
+      // hasChildren() might be called in the super() constructor, from the
+      // property progagation code, before myComponents has been instantiated
+      return myComponents != null && myComponents.size() > 0;
+   }
 
 }

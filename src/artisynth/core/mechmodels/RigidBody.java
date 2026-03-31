@@ -73,7 +73,7 @@ import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
 
 public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh, 
-   ConnectableBody, CompositeComponent, Wrappable {
+   ConnectableBody, Wrappable {
 
    protected SpatialInertia mySpatialInertia;
    protected SpatialInertia myEffectiveInertia;
@@ -92,8 +92,6 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
 
    static final boolean useExternalAttachments = false;
 
-   private static final Vector3d zeroVect = new Vector3d();
-   
    /* Indicates how inertia is determined for a RigidBody */
    public enum InertiaMethod {
       /**
@@ -146,8 +144,6 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
 
    //double myGridMargin = 0.1;
 
-   protected ComponentListImpl<ModelComponent> myComponents;
-   protected NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
    protected MeshComponentList<RigidMeshComp> myMeshList = null;
    protected ArrayList<MeshComponent> myCollisionMeshes = new ArrayList<>();
    protected PolygonalMesh myCompoundCollisionMesh;
@@ -1228,12 +1224,11 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
    }
 
    protected void initializeChildComponents() {
-      myComponents = 
-         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+      super.initializeChildComponents();
+
       myMeshList =
          new MeshComponentList<RigidMeshComp>(
             RigidMeshComp.class, "meshes", "msh");
-
       myDistanceGridComp = createDistanceGridComp();
 
       add (myMeshList);
@@ -1254,8 +1249,6 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
    }
 
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
-      myComponents.scanBegin();
-      myState.vel.setZero();
       super.scan (rtok, ref);
       updateCollisionMeshes();
    }
@@ -1264,42 +1257,34 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
       throws IOException {
 
       rtok.nextToken();
-      // if (ScanWriteUtils.scanProperty (rtok, this)) {
+      // if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
       //    return true;
       // }
-      if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
-         return true;
-      }
-      // else if (scanAttributeName (rtok, "mesh")) {
-      //    myMeshInfo.scan (rtok);  
-      //    setMeshFromInfo();
+      // else if (scanAttributeName (rtok, "pose")) {
+      //    RigidTransform3d X = new RigidTransform3d();
+      //    X.scan (rtok);
+      //    myState.setPose (X);
       //    return true;
       // }
-      else if (scanAttributeName (rtok, "pose")) {
-         RigidTransform3d X = new RigidTransform3d();
-         X.scan (rtok);
-         myState.setPose (X);
-         return true;
-      }
-      else if (scanAttributeName (rtok, "position")) {
-         Point3d pos = new Point3d();
-         pos.scan (rtok);
-         setPosition (pos);
-         return true;
-      }
-      else if (scanAttributeName (rtok, "rotation")) {
-         Quaternion q = new Quaternion();
-         q.scan (rtok);
-         setRotation (q);
-         return true;
-      }
-      else if (scanAttributeName (rtok, "vel")) {
-         rtok.scanToken ('[');
-         myState.vel.scan (rtok);
-         rtok.scanToken (']');
-         return true;
-      }
-      else if (scanAttributeName (rtok, "inertia")) {
+      // else if (scanAttributeName (rtok, "position")) {
+      //    Point3d pos = new Point3d();
+      //    pos.scan (rtok);
+      //    setPosition (pos);
+      //    return true;
+      // }
+      // else if (scanAttributeName (rtok, "rotation")) {
+      //    Quaternion q = new Quaternion();
+      //    q.scan (rtok);
+      //    setRotation (q);
+      //    return true;
+      // }
+      // else if (scanAttributeName (rtok, "vel")) {
+      //    rtok.scanToken ('[');
+      //    myState.vel.scan (rtok);
+      //    rtok.scanToken (']');
+      //    return true;
+      // }
+      if (scanAttributeName (rtok, "inertia")) {
          SpatialInertia M = new SpatialInertia();
          M.scan (rtok);
          setInertia (M);           
@@ -1319,27 +1304,27 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
       return super.scanItem (rtok, tokens);
    }
 
-   protected boolean postscanItem (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) 
-         throws IOException {
+   // protected boolean postscanItem (
+   //    Deque<ScanToken> tokens, CompositeComponent ancestor) 
+   //       throws IOException {
 
-      if (myComponents.postscanComponent (tokens, ancestor)) {
-         return true;
-      }
-      return super.postscanItem (tokens, ancestor);
-   }
+   //    if (myComponents.postscanComponent (tokens, ancestor)) {
+   //       return true;
+   //    }
+   //    return super.postscanItem (tokens, ancestor);
+   // }
 
    @Override
    public void postscan (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       super.postscan (tokens, ancestor);
-      setScanning (true); // set true again after super.postscan() set to false
-      myComponents.scanEnd();
-      updatePosState();
+      // setScanning (true); // set true again after super.postscan() set to false
+      // myComponents.scanEnd();
+      // updatePosState();
       if (myInertiaMethod != InertiaMethod.EXPLICIT) {
          updateInertiaFromMeshes();
       }
-      setScanning (false);
+      //setScanning (false);
    }
 
    protected void writeItems (
@@ -1379,10 +1364,10 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
       myComponents.writeComponentsByName (pw, fmt, ancestor);
    }
 
-   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
-      throws IOException {
-      dowrite (pw, fmt, ref);
-   }
+   // public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+   //    throws IOException {
+   //    dowrite (pw, fmt, ref);
+   // }
 
 
    /* ======== Renderable implementation ======= */
@@ -1403,6 +1388,9 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
       }
       else {
          myState.pos.updateBounds (pmin, pmax);
+      }
+      for (FrameMarker mkr : myMarkers) {
+         mkr.updateBounds(pmin, pmax);
       }
       for (RigidMeshComp mc : myMeshList) {
          mc.updateBounds(pmin, pmax);
@@ -1447,10 +1435,12 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
       myRenderMesh = renderMesh;
       list.addIfVisible (myDistanceGridComp);
       // check for other renderable components:
-      for (int idx=2; idx<numComponents(); idx++) {
+      for (int idx=0; idx<numComponents(); idx++) {
          ModelComponent comp = get(idx);
-         if (comp instanceof RenderableComponent) {
-            list.addIfVisible ((RenderableComponent)comp);
+         if (comp != myDistanceGridComp && comp != myMeshList) {
+            if (comp instanceof RenderableComponent) {
+               list.addIfVisible ((RenderableComponent)comp);
+            }
          }
       }
    }
@@ -1495,12 +1485,12 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
       }     
    }
 
-   public void addTransformableDependencies (
-      TransformGeometryContext context, int flags) {
-      context.addTransformableDescendants (this, flags);
-      //context.addAll (myMeshList);
-      //context.add (myDistanceGridComp);
-   }
+   // public void addTransformableDependencies (
+   //    TransformGeometryContext context, int flags) {
+   //    context.addTransformableDescendants (this, flags);
+   //    //context.addAll (myMeshList);
+   //    //context.add (myDistanceGridComp);
+   // }
 
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
@@ -2102,74 +2092,9 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
          myGridSurfaceRendering = enable;
       }
    }
-   
-   /* --- Composite component --- */
 
-   public void updateNameMap (
-      String newName, String oldName, ModelComponent comp) {
-      myComponents.updateNameMap (newName, oldName, comp);
-   }
+   /* --- CompositeComponent overides --- */
 
-   /**
-    * {@inheritDoc}
-    */
-   public ModelComponent findComponent (String path) {
-      return ComponentUtils.findComponent (this, path);
-   }
-
-   public void add (ModelComponent comp) {
-      myComponents.add (comp);
-   }
-
-   public boolean remove (ModelComponent comp) {
-      return myComponents.remove (comp);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public ModelComponent get (String nameOrNumber) {
-      return myComponents.get (nameOrNumber);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public ModelComponent get (int idx) {
-      return myComponents.get (idx);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public ModelComponent getByNumber (int num) {
-      return myComponents.getByNumber (num);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int getNumberLimit() {
-      return myComponents.getNumberLimit();
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int indexOf (ModelComponent comp) {
-      return myComponents.indexOf (comp);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int numComponents() {
-      return myComponents.size();
-   }
-
-   /**
-    * {@inheritDoc}
-    */
    public void componentChanged (ComponentChangeEvent e) {
       myComponents.componentChanged (e);
       if (e.getComponent() == myMeshList) {
@@ -2183,48 +2108,4 @@ public class RigidBody extends Frame implements CollidableBody, HasSurfaceMesh,
       notifyParentOfChange (e);
    }
 
-   protected void notifyStructureChanged (Object comp) {
-      if (comp instanceof CompositeComponent) {
-         notifyParentOfChange (new StructureChangeEvent (
-            (CompositeComponent)comp));
-      }
-      else {
-         notifyParentOfChange (StructureChangeEvent.defaultEvent);
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public NavpanelDisplay getNavpanelDisplay() {
-      return myDisplayMode;
-   }
-
-   /**
-    * Sets the display mode for this component. This controls
-    * how the component is displayed in a navigation panel. The default
-    * setting is <code>NORMAL</code>.
-    *
-    * @param mode new display mode
-    */
-   public void setDisplayMode (NavpanelDisplay mode) {
-      myDisplayMode = mode;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean hierarchyContainsReferences() {
-      return false;
-   }
-
-   public Iterator<? extends HierarchyNode> getChildren() {
-      return myComponents.iterator();
-   }
-
-   public boolean hasChildren() {
-      return myComponents != null && myComponents.size() > 0;
-   }
-   
-   
 }

@@ -220,7 +220,27 @@ public class FrameFem3dAttachment extends FrameAttachment {
       }
       return hasFullRank (myGNX);
    }
-
+   
+   /**
+    * Queries whether this attachment is currently connected to a given
+    * FE model.
+    * 
+    * @param fem FE model to check
+    * @return {@code true} if attachment is connected to {@code fem} 
+    */
+   public boolean isConnectedToFem (FemModel fem) {
+      if (myNodes == null || myNodes.length == 0) {
+         return false;
+      }
+      PointList<? extends FemNode> femNodes = fem.getNodes();
+      for (FemNode node : myNodes) {
+         if (!femNodes.contains(node)) {
+            return false;
+         }
+      }
+      return true;
+   }
+   
    public FemElement3dBase getElement() {
       return myElement;
    }
@@ -296,16 +316,16 @@ public class FrameFem3dAttachment extends FrameAttachment {
       return status;
    }
 
-   public boolean setFromElement (RigidTransform3d T, FemElement3dBase elem) {
+   public boolean setFromElement (RigidTransform3d TFW, FemElement3dBase elem) {
       Vector3d coords = new Vector3d();
       boolean converged = 
-         elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) >= 0;
+         elem.getNaturalCoordinates (coords, new Point3d(TFW.p), 1000) >= 0;
 
       myCoords.set (coords);
       doSetFromElement (elem, coords, /*maybeConnected=*/true);
 
       updateDeformationGradient();
-      myRFD.mulInverseLeft (myPolard.getR(), T.R);
+      myRFD.mulInverseLeft (myPolard.getR(), TFW.R);
       return converged;
    }
    
@@ -564,7 +584,9 @@ public class FrameFem3dAttachment extends FrameAttachment {
    @Override
    public void updateAttachment() {
       if (myFrame != null) {
-         setCurrentTFW (myFrame.getPose());
+         if (!setCurrentTFW (myFrame.getPose())) {
+            updatePosStates(); // call this anyway to update the master blocks
+         }
       }
    }
    

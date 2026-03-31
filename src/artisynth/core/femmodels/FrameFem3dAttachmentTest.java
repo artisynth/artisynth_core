@@ -20,7 +20,7 @@ import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
 /**
- * Class to attach a frame to a FEM and it's coordinate frame.
+ * Unit test for FrameFem3dAttachment. Not yet completed.
  */
 public class FrameFem3dAttachmentTest extends UnitTest {
 

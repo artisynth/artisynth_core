@@ -39,6 +39,7 @@ import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.LinearPointConstraint;
 import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -99,6 +100,26 @@ public class PointFem3dAttachment
       return null;
    }
 
+   /**
+    * Queries whether this attachment is currently connected to a given
+    * FE model.
+    * 
+    * @param fem FE model to check
+    * @return {@code true} if attachment is connected to {@code fem} 
+    */
+   public boolean isConnectedToFem (FemModel fem) {
+      if (myNodes == null || myNodes.length == 0) {
+         return false;
+      }
+      PointList<? extends FemNode> femNodes = fem.getNodes();
+      for (FemNode node : myNodes) {
+         if (!femNodes.contains(node)) {
+            return false;
+         }
+      }
+      return true;
+   }
+   
    public FemElement getElement() {
       return myElement;
    }

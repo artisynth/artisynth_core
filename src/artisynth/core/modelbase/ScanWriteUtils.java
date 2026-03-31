@@ -697,6 +697,7 @@ public class ScanWriteUtils {
          comp.connectToHierarchy (comp.getParent());
       }
       catch (Exception e) {
+         e.printStackTrace(); 
          throw new IOException (
             "Cannot connect component to hierarchy: " + 
             ComponentUtils.getPathName(comp));

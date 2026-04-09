@@ -5917,6 +5917,64 @@ public class FemFactory {
       return model;
    }
 
+   
+   /**
+    * Creates a shell-based FEM model made of hex elements by extruding a
+    * surface mesh along the normal direction of its faces, with varying thickness 
+    * values. Double [] thicknesses defines the thickness at each vertex of the original surface mesh. 
+    * The surface mesh must be composed of quads.  
+    */
+   
+   public static FemModel3d createHexExtrusionVar(
+      FemModel3d model, 
+      int n, double [] thicknesses, double zOffset, PolygonalMesh surface) {
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
+      }
+      if (!surface.isQuad()) {
+         throw new IllegalArgumentException (
+            "Hex extrusion requires a quad mesh");
+      }
+
+      for (Vertex3d v : surface.getVertices()) {
+         model.addNode(new FemNode3d(v.pnt));
+      }
+
+      Point3d newpnt = new Point3d();
+      Vector3d nrm = new Vector3d();
+      for (int i = 0; i < n; i++) { 
+         int vIndex = 0;
+         for (Vertex3d v : surface.getVertices()) {
+            v.computeNormal(nrm);
+            double d = thicknesses[vIndex]; // Using vertex index
+            newpnt.scaledAdd((i + 1) * d + zOffset, nrm, v.pnt);
+            model.addNode(new FemNode3d(newpnt));
+            vIndex++;
+         }
+
+         for (Face f : surface.getFaces()) {
+            FemNode3d[] nodes = new FemNode3d[8];
+            int cnt = 0;
+
+            for (Integer idx : f.getVertexIndices()) {
+               nodes[cnt++] =
+                  model.getNode(idx + (i + 1) * surface.numVertices());
+            }
+            for (Integer idx : f.getVertexIndices()) {
+               nodes[cnt++] = model.getNode(idx + i * surface.numVertices());
+            }
+
+            HexElement e = new HexElement(nodes);
+            model.addElement(e);
+         }
+      }
+      return model;
+   }
+
+   
    /**
     * Creates a shell-based FEM model made of wedge elements by extruding a
     * surface mesh along the normal direction of its faces.  The surface mesh

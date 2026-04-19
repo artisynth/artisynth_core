@@ -13,7 +13,7 @@ set modelArgsFound=false
 
 set JAVA=java
 if DEFINED JAVA_HOME (
-	set JAVA=%JAVA_HOME%\bin\java
+	set JAVA="%JAVA_HOME%\bin\java"
 )
 
 for %%G IN (%*) DO (

@@ -1,5 +1,6 @@
 ArtiSynth: Combined MultiBody/FEM Simulation
 --------------------------------------------
+[<img src="https://www.artisynth.org/uploads/Main/ArtiSynthSplashSmall.png">](https://www.artisynth.org)
 
 This is the core distribution of ArtiSynth, a 3D mechanical modeling
 system that supports the combined simulation of multibody and finite
@@ -24,6 +25,8 @@ you clone from Github, are available at
 
 Other documentation on how to use the system and build models is
 available at [www.artisynth.org/doc](https://www.artisynth.org/doc).
+
+List of publications in which ArtiSynth was used: [www.artisynth.org/Main/Publications](https://www.artisynth.org/Main/Publications)
 
 --------------------------------------------------------------------
 

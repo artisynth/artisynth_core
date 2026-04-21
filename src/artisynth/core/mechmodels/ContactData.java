@@ -147,7 +147,7 @@ public class ContactData {
     * Returns the normal associated with this contact. The
     * normal has unit length and is directed from the first contact point 
     * (returned by {@link #getContactPoint0}), and directed toward the second
-    * contact point (returned by {@link #getContactPoint0}).
+    * contact point (returned by {@link #getContactPoint1}).
     * 
     * @return contact normal. Should not be modified.
     */

@@ -60,11 +60,23 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new TransverseLinearMaterial with default parameter values.
+    */
    public TransverseLinearMaterial () {
       this (DEFAULT_YOUNGS_MODULUS, DEFAULT_SHEAR_MODULUS,
             DEFAULT_POISSONS_RATIO, LinearMaterial.DEFAULT_COROTATED);
    }
 
+   /**
+    * Creates a new TransverseLinearMaterial with the specified Young's moduli,
+    * shear modulus, Poisson's ratios, and corotated flag.
+    *
+    * @param E radial and axial Young's moduli
+    * @param G radial-to-axial shear modulus
+    * @param nu radial and axial Poisson's ratios
+    * @param corotated if {@code true}, use the corotated linear formulation
+    */
    public TransverseLinearMaterial (
       Vector2d E, double G, Vector2d nu, boolean corotated) {
       super(corotated);

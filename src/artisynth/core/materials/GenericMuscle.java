@@ -63,10 +63,21 @@ public class GenericMuscle extends MuscleMaterial {
    // lam = lamOpt, at the expense of slightly negative forces for lam < lamOpt
    protected static boolean myZeroForceBelowLamOptP = false;
 
+   /**
+    * Creates a new GenericMuscle with default parameter values.
+    */
    public GenericMuscle() {
       super();
    }
 
+   /**
+    * Creates a new GenericMuscle with the specified material parameters.
+    *
+    * @param maxLambda maximum stretch ratio at which active force is generated
+    * @param maxStress maximum isometric stress
+    * @param expStressCoeff exponential stress coefficient (P1)
+    * @param uncrimpingFactor uncrimping factor (P2)
+    */
    public GenericMuscle (
       double maxLambda, double maxStress, double expStressCoeff,
       double uncrimpingFactor) {

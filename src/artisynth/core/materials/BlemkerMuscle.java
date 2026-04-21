@@ -57,10 +57,22 @@ public class BlemkerMuscle extends MuscleMaterial {
    // lam = lamOpt, at the expense of slightly negative forces for lam < lamOpt
    protected static boolean myZeroForceBelowLamOptP = true;
 
+   /**
+    * Creates a new BlemkerMuscle with default parameter values.
+    */
    public BlemkerMuscle() {
       super();
    }
 
+   /**
+    * Creates a new BlemkerMuscle with the specified material parameters.
+    *
+    * @param maxLam maximum stretch ratio at which active force is generated
+    * @param optLam optimal fibre stretch ratio
+    * @param maxStress maximum isometric stress
+    * @param expStress exponential stress coefficient (P1)
+    * @param uncrimp uncrimping factor (P2)
+    */
    public BlemkerMuscle (
       double maxLam, double optLam, double maxStress, double expStress,
       double uncrimp) {

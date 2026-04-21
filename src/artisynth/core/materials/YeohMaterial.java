@@ -59,11 +59,23 @@ public class YeohMaterial extends IncompressibleMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new YeohMaterial with default parameter values.
+    */
    public YeohMaterial (){
       myB = new SymmetricMatrix3d();
       myTmp = new SymmetricMatrix3d();
    }
 
+   /**
+    * Creates a new YeohMaterial with the specified material coefficients and
+    * bulk modulus (3-term form).
+    *
+    * @param c1 C1 coefficient
+    * @param c2 C2 coefficient
+    * @param c3 C3 coefficient
+    * @param kappa bulk modulus
+    */
    public YeohMaterial (
       double c1, double c2, double c3, double kappa) {
       this();
@@ -73,6 +85,17 @@ public class YeohMaterial extends IncompressibleMaterialBase {
       setBulkModulus (kappa);
    }
 
+   /**
+    * Creates a new YeohMaterial with the specified material coefficients and
+    * bulk modulus (5-term form).
+    *
+    * @param c1 C1 coefficient
+    * @param c2 C2 coefficient
+    * @param c3 C3 coefficient
+    * @param c4 C4 coefficient
+    * @param c5 C5 coefficient
+    * @param kappa bulk modulus
+    */
    public YeohMaterial (
       double c1, double c2, double c3,
       double c4, double c5, double kappa) {

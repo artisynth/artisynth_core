@@ -96,12 +96,24 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new OgdenMaterial with default parameter values.
+    */
    public OgdenMaterial () {
       myB   = new SymmetricMatrix3d();
       myB2  = new SymmetricMatrix3d();
       myTmp = new SymmetricMatrix3d();
    }
-   
+
+   /**
+    * Creates a new OgdenMaterial with the specified shear moduli, exponents,
+    * and bulk modulus. Arrays {@code mu} and {@code alpha} should each have
+    * at least 6 elements.
+    *
+    * @param mu shear moduli (up to 6 terms)
+    * @param alpha exponents (up to 6 terms)
+    * @param kappa bulk modulus
+    */
    public OgdenMaterial (double[] mu, double[] alpha, double kappa) {
       this();
       setMu1 (mu[0]);

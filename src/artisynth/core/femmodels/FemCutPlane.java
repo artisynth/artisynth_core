@@ -125,24 +125,46 @@ public class FemCutPlane extends Frame implements FemMesh {
       return myProps;
    }
 
+   /**
+    * Creates a new FemCutPlane with default resolution and pose.
+    */
    public FemCutPlane () {
       setColorInterpolation (ColorInterpolation.HSV);
    }
 
+   /**
+    * Creates a new FemCutPlane with the specified world pose and default
+    * resolution.
+    *
+    * @param TPW transform from the plane to world coordinates
+    */
    public FemCutPlane (RigidTransform3d TPW) {
       this();
-      setPose (TPW);      
+      setPose (TPW);
    }
 
+   /**
+    * Creates a new FemCutPlane with the specified grid resolution and default
+    * pose.
+    *
+    * @param res grid resolution in units of distance
+    */
    public FemCutPlane (double res) {
       this();
       setResolution(res);
    }
 
+   /**
+    * Creates a new FemCutPlane with the specified grid resolution and world
+    * pose.
+    *
+    * @param res grid resolution in units of distance
+    * @param TPW transform from the plane to world coordinates
+    */
    public FemCutPlane (double res, RigidTransform3d TPW) {
       this();
       setResolution(res);
-      setPose (TPW);      
+      setPose (TPW);
    }
 
    public FemModel3d getFem() {

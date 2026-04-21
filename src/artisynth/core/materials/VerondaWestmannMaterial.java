@@ -34,9 +34,20 @@ public class VerondaWestmannMaterial extends IncompressibleMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new VerondaWestmannMaterial with default parameter values.
+    */
    public VerondaWestmannMaterial (){
    }
 
+   /**
+    * Creates a new VerondaWestmannMaterial with the specified material
+    * coefficients and bulk modulus.
+    *
+    * @param c1 C1 coefficient
+    * @param c2 C2 coefficient
+    * @param kappa bulk modulus
+    */
    public VerondaWestmannMaterial (double c1, double c2, double kappa) {
       setC1 (c1);
       setC2 (c2);

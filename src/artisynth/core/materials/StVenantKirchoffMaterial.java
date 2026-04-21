@@ -43,11 +43,21 @@ public class StVenantKirchoffMaterial extends FemMaterial {
       return myProps;
    }
 
+   /**
+    * Creates a new StVenantKirchoffMaterial with default parameter values.
+    */
    public StVenantKirchoffMaterial (){
       myB = new SymmetricMatrix3d();
       myB2 = new SymmetricMatrix3d();
    }
 
+   /**
+    * Creates a new StVenantKirchoffMaterial with the specified Young's modulus
+    * and Poisson's ratio.
+    *
+    * @param E Young's modulus
+    * @param nu Poisson's ratio
+    */
    public StVenantKirchoffMaterial (double E, double nu) {
       this();
       setYoungsModulus (E);

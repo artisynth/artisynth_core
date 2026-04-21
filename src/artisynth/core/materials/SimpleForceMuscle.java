@@ -37,10 +37,19 @@ public class SimpleForceMuscle extends MuscleMaterial {
    protected static boolean myZeroForceBelowLamOptP = false;
    protected static boolean myZeroForceBelowNegativeJ = true;
 
+   /**
+    * Creates a new SimpleForceMuscle with default parameter values.
+    */
    public SimpleForceMuscle() {
       super();
    }
 
+   /**
+    * Creates a new SimpleForceMuscle with the specified maximum isometric
+    * stress.
+    *
+    * @param maxStress maximum isometric stress
+    */
    public SimpleForceMuscle (double maxStress) {
       this();
       setMaxStress (maxStress);

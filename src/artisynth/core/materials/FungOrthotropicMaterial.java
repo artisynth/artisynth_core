@@ -89,11 +89,30 @@ public class FungOrthotropicMaterial extends IncompressibleMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new FungOrthotropicMaterial with default parameter values.
+    */
    public FungOrthotropicMaterial () {
    }
 
+   /**
+    * Creates a new FungOrthotropicMaterial with the specified shear moduli,
+    * coupling coefficients, exponential coefficient, and bulk modulus.
+    *
+    * @param mu1 shear modulus mu1
+    * @param mu2 shear modulus mu2
+    * @param mu3 shear modulus mu3
+    * @param l11 coupling coefficient lambda11
+    * @param l22 coupling coefficient lambda22
+    * @param l33 coupling coefficient lambda33
+    * @param l12 coupling coefficient lambda12
+    * @param l23 coupling coefficient lambda23
+    * @param l31 coupling coefficient lambda31
+    * @param C exponential stress coefficient
+    * @param kappa bulk modulus
+    */
    public FungOrthotropicMaterial (
-      double mu1, double mu2, double mu3, double l11, double l22, 
+      double mu1, double mu2, double mu3, double l11, double l22,
       double l33, double l12, double l23, double l31, double C, double kappa) {
       this();
       setMu1 (mu1);

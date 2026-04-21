@@ -10,10 +10,18 @@ import maspack.util.InternalErrorException;
 
 public class IncompressibleMaterial extends IncompressibleMaterialBase {
 
+   /**
+    * Creates a new IncompressibleMaterial with default parameter values.
+    */
    public IncompressibleMaterial() {
       super();
    }
-   
+
+   /**
+    * Creates a new IncompressibleMaterial with the specified bulk modulus.
+    *
+    * @param kappa bulk modulus
+    */
    public IncompressibleMaterial (double kappa) {
       this();
       setBulkModulus (kappa);

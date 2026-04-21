@@ -36,14 +36,32 @@ public class LinearMaterial extends LinearMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new LinearMaterial with default parameter values.
+    */
    public LinearMaterial (){
       this(DEFAULT_E, DEFAULT_NU, DEFAULT_COROTATED);
    }
 
+   /**
+    * Creates a new LinearMaterial with the specified Young's modulus and
+    * Poisson's ratio. Corotated formulation is used by default.
+    *
+    * @param E Young's modulus
+    * @param nu Poisson's ratio
+    */
    public LinearMaterial (double E, double nu) {
       this (E, nu, /*corotated=*/true);
    }
 
+   /**
+    * Creates a new LinearMaterial with the specified Young's modulus,
+    * Poisson's ratio, and corotated flag.
+    *
+    * @param E Young's modulus
+    * @param nu Poisson's ratio
+    * @param corotated if {@code true}, use the corotated linear formulation
+    */
    public LinearMaterial (double E, double nu, boolean corotated) {
       setYoungsModulus (E);
       setPoissonsRatio (nu);

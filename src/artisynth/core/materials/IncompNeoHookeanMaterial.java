@@ -30,10 +30,20 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new IncompNeoHookeanMaterial with default parameter values.
+    */
    public IncompNeoHookeanMaterial (){
       myB = new SymmetricMatrix3d();
    }
 
+   /**
+    * Creates a new IncompNeoHookeanMaterial with the specified shear modulus
+    * and bulk modulus.
+    *
+    * @param G shear modulus
+    * @param kappa bulk modulus
+    */
    public IncompNeoHookeanMaterial (double G, double kappa) {
       myB = new SymmetricMatrix3d();
       setShearModulus (G);

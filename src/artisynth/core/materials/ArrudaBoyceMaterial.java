@@ -39,9 +39,20 @@ public class ArrudaBoyceMaterial extends IncompressibleMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new ArrudaBoyceMaterial with default parameter values.
+    */
    public ArrudaBoyceMaterial (){
    }
 
+   /**
+    * Creates a new ArrudaBoyceMaterial with the specified shear modulus,
+    * maximum stretch, and bulk modulus.
+    *
+    * @param mu initial shear modulus
+    * @param lmax maximum chain stretch
+    * @param kappa bulk modulus
+    */
    public ArrudaBoyceMaterial (double mu, double lmax, double kappa) {
       setMu (mu);
       setLambdaMax (lmax);

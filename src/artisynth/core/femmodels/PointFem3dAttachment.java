@@ -154,23 +154,51 @@ public class PointFem3dAttachment
       return null;
    }
 
+   /**
+    * Sets this attachment to a weighted combination of the specified nodes.
+    *
+    * @param nodes nodes to attach to
+    * @param weights weight for each node
+    */
    public void setFromNodes (
       Collection<? extends FemNode> nodes, VectorNd weights) {
       setFromNodes (
          nodes.toArray(new FemNode[0]), weights.getBuffer());
    }
-   
+
+   /**
+    * Sets this attachment to the specified nodes using inverse-distance
+    * weighting based on {@code pos}.
+    *
+    * @param pos reference position used for computing inverse-distance weights
+    * @param nodes nodes to attach to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
    public boolean setFromNodes (
       Point3d pos, Collection<? extends FemNode> nodes) {
       return setFromNodes (pos, nodes.toArray(new FemNode[0]));
    }
 
+   /**
+    * Sets this attachment to a weighted combination of the specified nodes.
+    *
+    * @param nodes nodes to attach to
+    * @param weights weight for each node
+    */
    public void setFromNodes (FemNode[] nodes, double[] weights) {
       dosetNodes (nodes, weights);
       myElement = null;
       myNatCoords = null;
    }
 
+   /**
+    * Sets this attachment to the specified nodes using inverse-distance
+    * weighting based on {@code pos}.
+    *
+    * @param pos reference position used for computing inverse-distance weights
+    * @param nodes nodes to attach to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
    public boolean setFromNodes (Point3d pos, FemNode[] nodes) {
       ArrayList<Vector3d> support = new ArrayList<Vector3d>(nodes.length);
       for (int i=0; i<nodes.length; i++) {

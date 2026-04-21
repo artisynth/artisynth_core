@@ -59,6 +59,10 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
       return D;
    }
 
+   /**
+    * Creates a new AnisotropicLinearMaterial with default (isotropic)
+    * parameter values.
+    */
    public AnisotropicLinearMaterial () {
       this(LinearMaterial.DEFAULT_E, LinearMaterial.DEFAULT_NU, LinearMaterial.DEFAULT_COROTATED);
    }
@@ -72,10 +76,23 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
       setStiffnessTensor(createIsotropicStiffness(E, nu));
    }
 
+   /**
+    * Creates a new AnisotropicLinearMaterial with the specified stiffness
+    * tensor. Corotated formulation is used by default.
+    *
+    * @param C 6x6 Voigt stiffness tensor
+    */
    public AnisotropicLinearMaterial (Matrix6dBase C) {
       this(C, DEFAULT_COROTATED);
    }
 
+   /**
+    * Creates a new AnisotropicLinearMaterial with the specified stiffness
+    * tensor and corotated flag.
+    *
+    * @param C 6x6 Voigt stiffness tensor
+    * @param corotated if {@code true}, use the corotated linear formulation
+    */
    public AnisotropicLinearMaterial (Matrix6dBase C, boolean corotated) {
       this.myC = new Matrix6d(C);
       setCorotated(corotated);

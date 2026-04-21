@@ -75,12 +75,26 @@ public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
       return myProps;
    }
 
+   /**
+    * Creates a new MooneyRivlinMaterial with default parameter values.
+    */
    public MooneyRivlinMaterial (){
       myB = new SymmetricMatrix3d();
       myB2 = new SymmetricMatrix3d();
       myTmp = new SymmetricMatrix3d();
    }
 
+   /**
+    * Creates a new MooneyRivlinMaterial with the specified material parameters
+    * and bulk modulus.
+    *
+    * @param c10 C10 parameter
+    * @param c01 C01 parameter
+    * @param c11 C11 parameter
+    * @param c20 C20 parameter
+    * @param c02 C02 parameter
+    * @param kappa bulk modulus
+    */
    public MooneyRivlinMaterial (
       double c10, double c01, double c11, double c20, double c02,
       double kappa) {

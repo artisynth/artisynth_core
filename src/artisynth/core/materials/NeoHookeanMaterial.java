@@ -36,11 +36,21 @@ public class NeoHookeanMaterial extends FemMaterial {
       return myProps;
    }
 
+   /**
+    * Creates a new NeoHookeanMaterial with default parameter values.
+    */
    public NeoHookeanMaterial (){
       myB = new SymmetricMatrix3d();
       //myB2 = new SymmetricMatrix3d();
    }
-   
+
+   /**
+    * Creates a new NeoHookeanMaterial with the specified Young's modulus and
+    * Poisson's ratio.
+    *
+    * @param E Young's modulus
+    * @param nu Poisson's ratio
+    */
    public NeoHookeanMaterial(double E, double nu) {
       this();
       setYoungsModulus(E);

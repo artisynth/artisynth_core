@@ -444,6 +444,11 @@ public abstract class FemModel extends MechSystemBase
       return new LinearMaterial();
    }
 
+   /**
+    * Returns the material used by this FEM model.
+    *
+    * @return FEM material
+    */
    public FemMaterial getMaterial() {
       return myMaterial;
    }
@@ -457,6 +462,11 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
+   /**
+    * Sets the material used by this FEM model.
+    *
+    * @param mat new FEM material (must not be {@code null})
+    */
    public <T extends FemMaterial> void setMaterial (T mat) {
       if (mat == null) {
          throw new IllegalArgumentException (
@@ -658,10 +668,22 @@ public abstract class FemModel extends MechSystemBase
 
    /* -------- damping stuff --------- */
 
+   /**
+    * Sets the Rayleigh damping coefficient associated with the FEM's mass
+    * (also known as particle damping).
+    *
+    * @param d mass damping coefficient
+    */
    public void setParticleDamping (double d) {
       myMassDamping = d;
    }
 
+   /**
+    * Returns the Rayleigh damping coefficient associated with the FEM's mass
+    * (also known as particle damping).
+    *
+    * @return mass damping coefficient
+    */
    public double getParticleDamping() {
       return myMassDamping;
    }
@@ -716,6 +738,11 @@ public abstract class FemModel extends MechSystemBase
    
    protected abstract void updateStressAndStiffness();
 
+   /**
+    * Sets the density of this FEM model.
+    *
+    * @param p density value
+    */
    public synchronized void setDensity (double p) {
       myDensity = p;
       myDensityMode =
@@ -724,6 +751,11 @@ public abstract class FemModel extends MechSystemBase
       invalidateStressAndStiffness();
    }
 
+   /**
+    * Returns the density of this FEM model.
+    *
+    * @return density value
+    */
    public double getDensity() {
       return myDensity;
    }
@@ -755,6 +787,15 @@ public abstract class FemModel extends MechSystemBase
       myMarkers.add (mkr);
    }
    
+   /**
+    * Attaches marker {@code mkr} to the specified element and adds it to this
+    * model's {@code markers} container. The attachment weights are computed
+    * from the marker's current position using natural coordinates within the
+    * element.
+    *
+    * @param mkr marker to add
+    * @param elem element to attach the marker to
+    */
    public void addMarker (FemMarker mkr, FemElement elem) {
       if (!ModelComponentBase.recursivelyContains (this, elem)) {
          throw new IllegalArgumentException (
@@ -763,7 +804,7 @@ public abstract class FemModel extends MechSystemBase
       mkr.setFromElement (elem);
       myMarkers.add (mkr);
    }
-   
+
    public void addMarker (FemMarker mkr, FemElement elem, int markerId) {
       if (!ModelComponentBase.recursivelyContains (this, elem)) {
          throw new IllegalArgumentException (
@@ -773,6 +814,14 @@ public abstract class FemModel extends MechSystemBase
       myMarkers.addNumbered (mkr, markerId);
    }
 
+   /**
+    * Attaches marker {@code mkr} to a weighted combination of nodes and adds
+    * it to this model's {@code markers} container.
+    *
+    * @param mkr marker to add
+    * @param nodes nodes to attach the marker to
+    * @param weights weight for each node
+    */
    public void addMarker (
       FemMarker mkr,
       Collection<? extends FemNode> nodes, VectorNd weights) {
@@ -780,23 +829,53 @@ public abstract class FemModel extends MechSystemBase
       myMarkers.add (mkr);
    }
 
+   /**
+    * Attaches marker {@code mkr} to a weighted combination of nodes and adds
+    * it to this model's {@code markers} container.
+    *
+    * @param mkr marker to add
+    * @param nodes nodes to attach the marker to
+    * @param weights weight for each node
+    */
    public void addMarker (FemMarker mkr, FemNode[] nodes, double[] weights) {
       mkr.setFromNodes (nodes, weights);
       myMarkers.add (mkr);
    }
 
+   /**
+    * Attaches marker {@code mkr} to the specified nodes using inverse-distance
+    * weighting and adds it to this model's {@code markers} container.
+    *
+    * @param mkr marker to add
+    * @param nodes nodes to attach the marker to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
    public boolean addMarker (FemMarker mkr, Collection<? extends FemNode> nodes) {
       boolean status = mkr.setFromNodes (nodes);
       myMarkers.add (mkr);
       return status;
    }
 
+   /**
+    * Attaches marker {@code mkr} to the specified nodes using inverse-distance
+    * weighting and adds it to this model's {@code markers} container.
+    *
+    * @param mkr marker to add
+    * @param nodes nodes to attach the marker to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
    public boolean addMarker (FemMarker mkr, FemNode[] nodes) {
       boolean status = mkr.setFromNodes (nodes);
       myMarkers.add (mkr);
       return status;
    }
 
+   /**
+    * Removes a marker from this model's {@code markers} container.
+    *
+    * @param mkr marker to remove
+    * @return {@code true} if the marker was present and was removed
+    */
    public boolean removeMarker (FemMarker mkr) {
       if (myMarkers.remove (mkr)) {
          return true;
@@ -806,6 +885,18 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
+   /**
+    * Removes all markers from this model's {@code markers} container.
+    */
+   public void clearMarkers () {
+      myMarkers.removeAll();
+   }
+
+   /**
+    * Returns this model's {@code markers} container.
+    *
+    * @return markers container
+    */
    public RenderableComponentList<FemMarker> markers() {
       return myMarkers;
    }

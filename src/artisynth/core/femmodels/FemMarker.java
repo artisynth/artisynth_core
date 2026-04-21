@@ -102,6 +102,13 @@ public class FemMarker extends Marker {
       return myNodeAttachment.addTargetJacobian (J, bi);
    }
 
+   /**
+    * Attaches this marker to the specified FEM element. The attachment weights
+    * are computed from the marker's current position using natural coordinates
+    * within the element.
+    *
+    * @param elem element to attach the marker to
+    */
    public void setFromElement (FemElement elem) {
       if (elem != null) {
          myNodeAttachment.setFromElement (getPosition(), elem);
@@ -112,29 +119,55 @@ public class FemMarker extends Marker {
          // not sure what to do here ... is elem ever null?
       }
    }
-   
+
    private void finishSet() {
       myNodeAttachment.updateAttachment();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);      
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
+   /**
+    * Attaches this marker to the nearest element in the specified FEM model,
+    * projecting the marker's position onto the model surface if it lies
+    * outside.
+    *
+    * @param fem FEM model to attach to
+    */
    public void setFromFem (FemModel3d fem) {
       myNodeAttachment.setFromFem (getPosition(), fem);
       finishSet();
    }
 
+   /**
+    * Attaches this marker to a weighted combination of the specified nodes.
+    *
+    * @param nodes nodes to attach the marker to
+    * @param weights weight for each node
+    */
    public void setFromNodes (
       Collection<? extends FemNode> nodes, VectorNd weights) {
       myNodeAttachment.setFromNodes (nodes, weights);
       finishSet();
    }
 
+   /**
+    * Attaches this marker to a weighted combination of the specified nodes.
+    *
+    * @param nodes nodes to attach the marker to
+    * @param weights weight for each node
+    */
    public void setFromNodes (
       FemNode[] nodes, double[] weights) {
       myNodeAttachment.setFromNodes (nodes, weights);
       finishSet();
    }
 
+   /**
+    * Attaches this marker to the specified nodes using inverse-distance
+    * weighting based on the marker's current position.
+    *
+    * @param nodes nodes to attach the marker to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
    public boolean setFromNodes (
       Collection<? extends FemNode> nodes) {
       boolean status = myNodeAttachment.setFromNodes (getPosition(), nodes);
@@ -142,6 +175,13 @@ public class FemMarker extends Marker {
       return status;
    }
 
+   /**
+    * Attaches this marker to the specified nodes using inverse-distance
+    * weighting based on the marker's current position.
+    *
+    * @param nodes nodes to attach the marker to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
    public boolean setFromNodes (FemNode[] nodes) {
       boolean status = myNodeAttachment.setFromNodes (getPosition(), nodes);
       finishSet();

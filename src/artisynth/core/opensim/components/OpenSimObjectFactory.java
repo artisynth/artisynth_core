@@ -213,9 +213,13 @@ public abstract class OpenSimObjectFactory<E extends OpenSimObject> {
          if (child.getNodeType () == Node.ELEMENT_NODE) {
             boolean csuccess = parseChild (comp, (Element)child);
             if (!csuccess) {
-               Logger.getSystemLogger ().warn (
+               String warning = 
                   "OpenSimParser: failed to parse subelement '" + 
-                  getNodeName(child) + "' for " + comp.getClass().getName ());
+                  getNodeName(child) + "' for " + comp.getClass().getName();
+               if (comp.getName() != null) {
+                  warning += " '"+comp.getName()+"'";
+               }
+               Logger.getSystemLogger ().warn (warning);
             }
          }
 

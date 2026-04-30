@@ -70,8 +70,7 @@ public class CoordinateCouplerConstraint extends ConstraintBase {
          }
          coords.add (ch);
       }
-      Diff1FunctionNx1 fxn =
-         (CubicHermiteSpline1d)getCoupledCoordinatesFunction().getFunction();
+      Diff1FunctionNx1 fxn = getCoupledCoordinatesFunction().getFunction();
       JointCoordinateCoupling jcc =
          new JointCoordinateCoupling (getName(), coords, fxn);
       jcc.setScaleFactor (getScaleFactor());

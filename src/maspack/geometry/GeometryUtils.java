@@ -34,31 +34,12 @@ public class GeometryUtils {
 
    /**
     * Finds the point on a polyline that is a specified distance {@code dist}
-    * from a prescribed point {@code p0}, within machine precision. The
-    * polyline is specified by a list of vertices {@code vtxs}. Point locations
-    * on the polyline are described by a non-negative parameter {@code r},
-    * which takes the form
-    * <pre>
-    * r = k + s
-    * </pre>
-    * where {@code k} is the index of a polyline vertex, and {@code s} is
-    * a scalar parameter in the range [0,1] that specifies the location along
-    * the interval between vertices {@code k} and {@code k+1}. If the
-    * polyline is open, the search for the distance point begins at a location
-    * specified by {@code r0} and locations before {@code r0} are ignored. If
-    * the polyline is closed, {@code r0} is ignored.
-    *
-    * <p>If found, the method will return the point's location parameter {@code
-    * r}, as well as the point's value in the optional parameter {@code pr} if
-    * it is not {@code null}. If the point is not found, the method will return
-    * -1.
-    *
-    * <p>It is assumed that no two adjacent vertices on the polyline are
-    * identical within machine precision. If they are, an exception will be
-    * thrown.
+    * from a prescribed point {@code p0}, within machine precision. Equivalent
+    * to calling {@link #findPointAtDistance(Point3d,List,boolean,Point3d,
+    * double,double,boolean)} with {@code reverse} set to {@code false}.
     *
     * @param pr if not {@code null}, returns the distance point, if found
-    * @param vtxs list of vertices defining the polyline 
+    * @param vtxs list of vertices defining the polyline
     * @param closed {@code true} if the polyline is closed
     * @param p0 point with respect to which distance should be determined
     * @param dist desired distance from {@code p0}
@@ -72,6 +53,51 @@ public class GeometryUtils {
    static public double findPointAtDistance (
       Point3d pr, List<Point3d> vtxs, boolean closed,
       Point3d p0, double dist, double r0) {
+      return findPointAtDistance (pr, vtxs, closed, p0, dist, r0, false);
+   }
+
+   /**
+    * Finds the point on a polyline that is a specified distance {@code dist}
+    * from a prescribed point {@code p0}, within machine precision. The
+    * polyline is specified by a list of vertices {@code vtxs}. Point locations
+    * on the polyline are described by a non-negative location parameter {@code
+    * r}, which takes the form described in the documentation for {@link
+    * #getPointAt}. If the polyline is open, the search for the distance point
+    * begins at a location specified by {@code r0}. By default, the search
+    * proceeds forward (toward larger {@code r}) and locations before {@code
+    * r0} are ignored. If {@code reverse} is {@code true}, the search instead
+    * proceeds backward (toward smaller {@code r}) and locations after {@code
+    * r0} are ignored; if the search reaches the beginning of the polyline
+    * without finding a point at distance {@code dist} from {@code p0}, -1 is
+    * returned. If the polyline is closed, {@code r0} and {@code reverse} are
+    * both ignored.
+    *
+    * <p>If found, the method will return the point's location parameter {@code
+    * r}, as well as the point's value in the optional parameter {@code pr} if
+    * it is not {@code null}. If the point is not found, the method will return
+    * -1.
+    *
+    * <p>It is assumed that no two adjacent vertices on the polyline are
+    * identical within machine precision. If they are, an exception will be
+    * thrown.
+    *
+    * @param pr if not {@code null}, returns the distance point, if found
+    * @param vtxs list of vertices defining the polyline
+    * @param closed {@code true} if the polyline is closed
+    * @param p0 point with respect to which distance should be determined
+    * @param dist desired distance from {@code p0}
+    * @param r0 for open polylines, a non-negative scalar giving the location
+    * on the polyline where the search should start. This should be a
+    * non-negative scalar whose value is less than or equal to the number of
+    * polyline intervals, which will be {@code vtxs.size()-1}.
+    * @param reverse if {@code true} and the polyline is open, search
+    * backward from {@code r0} instead of forward
+    * @return location of the distance point on the polyline, if
+    * found, or -1.
+    */
+   static public double findPointAtDistanceOld (
+      Point3d pr, List<Point3d> vtxs, boolean closed,
+      Point3d p0, double dist, double r0, boolean reverse) {
 
       double tol = EPS*getCharacteristicLength(vtxs);
 
@@ -102,9 +128,21 @@ public class GeometryUtils {
             return -1;
          }
       }
+      else if (reverse && !closed) {
+         // Implement reverse search by performing a forward search on the
+         // reversed polyline, then transforming the result. With vtxs
+         // reversed, a forward search starting at (numi - r0) traverses the
+         // original polyline backward from r0.
+         List<Point3d> rvtxs = new ArrayList<>(vtxs);
+         Collections.reverse (rvtxs);
+         double rr = findPointAtDistance (
+            pr, rvtxs, /*closed*/false, p0, dist, numi - r0, /*reverse*/false);
+         return rr == -1 ? -1 : numi - rr;
+      }
       else {
          int k0 = (int)r0;
          double s0 = r0 - k0;
+
          Vector3d vecBA = new Vector3d();
          Vector3d vecA0 = new Vector3d();
          Point3d ps = new Point3d();
@@ -179,6 +217,226 @@ public class GeometryUtils {
                return vtxs.size()-1;
             }
          }
+         return -1;
+      }
+   }
+
+   static public double findPointAtDistance (
+      Point3d pr, List<Point3d> vtxs, boolean closed,
+      Point3d p0, double dist, double r0, boolean reverse) {
+
+      double tol = EPS*getCharacteristicLength(vtxs);
+
+      int numi = (closed ? vtxs.size() : vtxs.size()-1); // number of intervals
+      if (!closed) {
+         if (r0 < 0) {
+            throw new IllegalArgumentException ("r0 must not be negative");
+         }
+         else if (r0 > numi) {
+            throw new IllegalArgumentException (
+               "r0 exceeds the number of polyline intervals");
+         }
+      }
+      else {
+         r0 = 0;
+      }
+      if (vtxs.size() == 0) {
+         return -1;
+      }
+      else if (vtxs.size() == 1) {
+         if (vtxs.get(0).distance (p0) == dist) {
+            if (pr != null) {
+               pr.set (vtxs.get(0));
+            }
+            return 0;
+         }
+         else {
+            return -1;
+         }
+      }
+      else if (reverse && !closed) {
+         // Implement reverse search by performing a forward search on the
+         // reversed polyline, then transforming the result. With vtxs
+         // reversed, a forward search starting at (numi - r0) traverses the
+         // original polyline backward from r0.
+         List<Point3d> rvtxs = new ArrayList<>(vtxs);
+         Collections.reverse (rvtxs);
+         double rr = findPointAtDistance (
+            pr, rvtxs, /*closed*/false, p0, dist, numi - r0, /*reverse*/false);
+         return rr == -1 ? -1 : numi - rr;
+      }
+      else {
+         int k0 = (int)r0;
+         double s0 = r0 - k0;
+
+         Vector3d vecBA = new Vector3d();
+         Vector3d vecA0 = new Vector3d();
+         Point3d ps = new Point3d();
+         int kmax = closed ? vtxs.size()-1 : vtxs.size()-2;
+         for (int ka=k0; ka<=kmax; ka++) {
+            int kb = (ka+1)%vtxs.size();
+            double r = findPointAtDistance (
+               vtxs, closed, ka+s0, kb, p0, dist, tol);
+            if (r != -1) {
+               if (pr != null) {
+                  pr.set (getPointAt (r, vtxs, closed));
+               }
+               return r;
+            }
+            s0 = 0;
+         }
+         if (!closed) {
+            Point3d pb = vtxs.get(vtxs.size()-1);
+            if (Math.abs(pb.distance(p0)-dist) <= tol) {
+               if (pr != null) {
+                  pr.set (pb);
+               }
+               return vtxs.size()-1;
+            }
+         }
+         return -1;
+      }
+   }
+
+   /**
+    * Finds the point, if any, within a segment on a polyline that is a
+    * specified distance {@code dist} from a prescribed point {@code p0},
+    * within a tolerance {@code tol}. The segment is defined by two point location
+    * parameters {@code ra} and {@code rb}, which take the form described in
+    * the documentation for {@link #getPointAt}. Their values are restricted as
+    * follows: {@code rb} should be an integer (and therefore corresponds to a
+    * polyline vertex), while {@code ra} should correspond to a location
+    * between this vertex and the vertex immediately preceeding or following
+    * it.
+    *
+    * <p>If found, the method will return the point's location parameter {@code
+    * r}; otherwise, -1 will be returned.
+    *
+    * @param vtxs list of vertices defining the polyline
+    * @param closed true if the curve is closed
+    * @param ra location parameter giving the segment start point
+    * @param rb location parameter giving the segment end point
+    * @param p0 point with respect to which distance should be determined
+    * @param dist desired distance from {@code p0}
+    * @param tol tolerance for computing the point
+    * @return location of the distance point on the segment, if
+    * found, or -1.
+    */
+   static public double findPointAtDistance (
+      List<Point3d> vtxs, boolean closed, double ra, double rb, Point3d p0,
+      double dist, double tol) {
+
+      int numv = vtxs.size();
+      int kb = (int)rb;
+      if (kb != rb || kb < 0 || kb >= numv) {
+         throw new IllegalArgumentException (
+            "rb=" + rb + " does not correspond to a polyline vertex " +
+            "in the range [0,"+(numv-1)+"]");
+      }
+      int ka;
+      double s0;
+      boolean reverse = false;
+      if (ra == rb) {
+         // degenerate case
+         if (Math.abs(vtxs.get(kb).distance(p0)-dist) <= tol) {
+            return rb;
+         }
+         else {
+            return -1;
+         }
+      }
+      else if (ra < rb) {
+         ka = (int)ra;
+         if (closed && ((int)ra == 0 && kb == numv-1)) {
+            ka = 0;            
+            s0 = 1 - ra + kb;         
+            reverse = true;
+         }
+         else {
+            if (ka < 0 || ka != kb-1) {
+               throw new IllegalArgumentException (
+                  "ra=" + ra + " does not correspond to the vertex preceding " +
+                  "rb=" + rb);
+            }
+            s0 = ra - ka;
+         }
+      }
+      else { // ra > rb
+         if (closed && ((int)ra == numv-1 && kb == 0)) {
+            ka = (int)ra;            
+            s0 = ra - ka;
+         }
+         else {
+            ka = (int)Math.ceil(ra);
+            if (ka >= numv || ka != kb+1) {
+               throw new IllegalArgumentException (
+                  "ra=" + ra + " does not correspond to the vertex following " +
+                  "rb=" + rb);
+            }
+            s0 = 1 - ra + kb;         
+            reverse = true;
+         }
+      }
+      Point3d pa = vtxs.get(ka);
+      Point3d pb = vtxs.get(kb);
+      // check first point
+      Point3d ps = new Point3d();
+      Point3d pstart;
+      if (s0 > 0) {
+         ps.combine (1-s0, pa, s0, pb);
+         pstart = ps;
+      }
+      else {
+         pstart = pa;
+      }
+      double s = -1;
+      if (Math.abs(pstart.distance(p0)-dist) <= tol) {
+         s = s0;
+      }
+      else {
+         // point may lie in the interval ka, kb.  Defining equation is quadratic.
+         if (debug) System.out.printf ("checking %d %d s0=%g\n", ka, kb, s0);
+         Vector3d vecBA = new Vector3d();
+         Vector3d vecA0 = new Vector3d();
+         vecBA.sub (pb, pa);
+         vecA0.sub (pa, p0);
+         double a = vecBA.dot(vecBA);
+         if (a == 0) {
+            throw new IllegalArgumentException (
+               "Polyline points at " + ka + " and " + kb +
+               " are identical within machine precision");
+         }
+         double b = 2*vecBA.dot(vecA0);
+         double c = vecA0.dot(vecA0) - dist*dist;
+         double[] roots = new double[2];
+         int numr = QuadraticSolver.getRoots (roots, a, b, c, s0, 1);
+         if (debug) System.out.println ("numr=" + numr);
+         if (numr > 0) {
+            // take the first root, regardless
+            s = roots[0];
+         }
+         else {
+            // Might be close to a multiple root solution. See if the
+            // quadratic has a minimum in the interval, and if it does, if
+            // the distance at that minimum is within tolerance.
+            double sm = -b/(2*a);
+            if (sm >= s0 && sm <= 1) {
+               ps.combine (1-sm, pa, sm, pb);
+               if (Math.abs(ps.distance(p0)-dist) <= tol) {
+                  s = sm;
+               }
+            }
+         }
+      }
+      if (s != -1) {
+         if (reverse) {
+            return kb + (1-s);
+         }
+         else {
+            return ka + s;
+         }
+      }
+      else {
          return -1;
       }
    }
@@ -311,7 +569,8 @@ public class GeometryUtils {
    /**
     * Gets a point at a specific location on a polyline. The polyline is
     * specified by a list of vertices {@code vtxs}, and the point location is
-    * described by a non-negative parameter {@code r}, which takes the form
+    * described by a non-negative location parameter {@code r}, which
+    * takes the form
     * <pre>
     * r = k + s
     * </pre>
@@ -355,4 +614,5 @@ public class GeometryUtils {
       }
       return pr;
    }
+
 }

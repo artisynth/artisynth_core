@@ -15,6 +15,12 @@ public class GeometryUtilsTest extends UnitTest {
    void testFindPointAtDistance (
       ArrayList<Point3d> vtxs, boolean closed, double p0x, double p0z,
       double dist, double r0, double rchk) {
+      testFindPointAtDistance (vtxs, closed, p0x, p0z, dist, r0, false, rchk);
+   }
+
+   void testFindPointAtDistance (
+      ArrayList<Point3d> vtxs, boolean closed, double p0x, double p0z,
+      double dist, double r0, boolean reverse, double rchk) {
 
       double eps = 1e-7;
 
@@ -32,9 +38,9 @@ public class GeometryUtilsTest extends UnitTest {
          }
          Point3d p0 = new Point3d(p0x, 0, p0z);
          p0.transform (T);
-         
+
          double r = GeometryUtils.findPointAtDistance (
-            pr, xpnts, closed, p0, dist, r0);
+            pr, xpnts, closed, p0, dist, r0, reverse);
          checkEquals ("findPointAtDistance result", r, rchk, eps);
          if (r != -1) {
             int ka = (int)r;
@@ -48,6 +54,23 @@ public class GeometryUtilsTest extends UnitTest {
                pchk.combine (1-s, xpnts.get(ka), s, xpnts.get(kb));
             }
             checkEquals ("findPointAtDistance pr", pr, pchk, eps);
+         }
+         if (!reverse && !closed) {
+            double tol = EPS*GeometryUtils.getCharacteristicLength (vtxs);
+            for (int k=0; k < xpnts.size()-1; k++) {
+               int ka = (int)r;
+               if (ka == k) {
+                  // check findPointAtDistance in both directions
+                  double rx = GeometryUtils.findPointAtDistance (
+                     xpnts, closed, r, ka+1, p0, dist, tol);
+                  checkEquals ("findPointAtDistance rx", rx, rchk, eps);
+                  // try reverse
+                  double rrev = Math.min(r+EPS, Math.ceil(r));
+                  rx = GeometryUtils.findPointAtDistance (
+                     xpnts, closed, rrev, ka, p0, dist, tol);
+                  checkEquals ("findPointAtDistance rev, rx", rx, rchk, eps);
+               }
+            }
          }
       }
    }
@@ -135,7 +158,32 @@ public class GeometryUtilsTest extends UnitTest {
       testFindPointAtDistance (vtxs, false, x0, z0, sqrt(10.25), 1.6, -1);
       testFindPointAtDistance (vtxs, false, x0, z0, sqrt(20), 2.9, 3.0);
       testFindPointAtDistance (vtxs, false, x0, z0, sqrt(20), 3.0, 3.0);
-      
+
+      // test reverse search on open polyline, starting from the end
+      boolean rev = true;
+      testFindPointAtDistance (vtxs, false, x0, z0, 2, 3, rev, 0.0);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(5), 3, rev, 0.5);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(4.25), 3, rev, 0.25);
+      testFindPointAtDistance (vtxs, false, x0, z0, 2*sqrt(2), 3, rev, 1.0);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(10.25), 3, rev, 1.5);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(20), 3, rev, 3.0);
+      testFindPointAtDistance (vtxs, false, x0, z0, 10, 3, rev, -1);
+      testFindPointAtDistance (vtxs, false, x0, z0, 0, 3, rev, -1);
+
+      // test reverse search with intermediate starting points
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(5), 1, rev, 0.5);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(5), 0.6, rev, 0.5);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(5), 0.5, rev, 0.5);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(5), 0.49, rev, -1);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(4.25), 1, rev, 0.25);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(4.25), 0.25, rev, 0.25);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(4.25), 0.24, rev, -1);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(10.25), 2, rev, 1.5);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(10.25), 1.5, rev, 1.5);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(10.25), 1.4, rev, -1);
+      testFindPointAtDistance (vtxs, false, x0, z0, 2, 0, rev, 0.0);
+      testFindPointAtDistance (vtxs, false, x0, z0, sqrt(20), 0, rev, -1);
+
       // test with a closed loop
       vtxs.clear();
       vtxs.add (new Point3d (-1, 0, 0));
@@ -152,6 +200,11 @@ public class GeometryUtilsTest extends UnitTest {
       testFindPointAtDistance (vtxs, true, /*x0*/0, /*z0*/1.5, 0.5, 0, 2.0);
       testFindPointAtDistance (vtxs, true, /*x0*/-0.5, /*z0*/1.5, sqrt(2)/2, 0, 2.0);
       testFindPointAtDistance (vtxs, true, /*x0*/-1, /*z0*/1, sqrt(2)/2, 0, 2.5);
+
+      // for closed polylines, reverse should be ignored (same as forward)
+      testFindPointAtDistance (vtxs, true, /*x0*/0, /*z0*/-1, 1, 0, rev, 0.5);
+      testFindPointAtDistance (vtxs, true, /*x0*/0, /*z0*/-1, sqrt(2), 0, rev, 0.0);
+      testFindPointAtDistance (vtxs, true, /*x0*/0, /*z0*/-1, 3, 0, rev, -1);
    }
 
    void testNearestPoint() {

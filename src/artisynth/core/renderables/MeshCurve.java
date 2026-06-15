@@ -565,24 +565,9 @@ public class MeshCurve extends RenderableCompositeBase
 
    /**
     * Finds the point on this curve that is a specified distance {@code dist}
-    * from a prescribed point {@code p0}, within machine precision.  The method
-    * also returns the location of the point. Point locations on the curve are
-    * described by a non-negative parameter {@code r}, which takes the form
-    * <pre>
-    * r = k + s
-    * </pre>
-    * where {@code k} is the index of a curve point (as returned by {@link
-    * #getPoints()}), and {@code s} is a scalar parameter in the range [0,1]
-    * that specifies the location along the interval between curve points
-    * {@code k} and {@code k+1}. If the curve is open, the search for the
-    * distance point begins at a location specified by {@code r0} and locations
-    * before {@code r0} are ignored. If the curve is closed, {@code r0} is
-    * ignored.
-    *
-    * <p>If found, the method will return the point's location parameter {@code
-    * r}, as well as the point's value in the optional parameter {@code pr} if
-    * it is not {@code null}. If the point is not found, the method will return
-    * -1.
+    * from a prescribed point {@code p0}, within machine precision. Equivalent
+    * to calling {@link #findPointAtDistance(Point3d,Point3d,double,double,
+    * boolean)} with {@code reverse} set to {@code false}.
     *
     * @param pr if not {@code null}, returns the distance point, if found
     * @param p0 point with respect to which distance should be determined
@@ -596,12 +581,55 @@ public class MeshCurve extends RenderableCompositeBase
     */
    public double findPointAtDistance (
       Point3d pr, Point3d p0, double dist, double r0) {
+      return findPointAtDistance (pr, p0, dist, r0, false);
+   }
 
-      updateCurveIfNecessary();      
+   /**
+    * Finds the point on this curve that is a specified distance {@code dist}
+    * from a prescribed point {@code p0}, within machine precision.  The method
+    * also returns the location of the point. Point locations on the curve are
+    * described by a non-negative parameter {@code r}, which takes the form
+    * <pre>
+    * r = k + s
+    * </pre>
+    * where {@code k} is the index of a curve point (as returned by {@link
+    * #getPoints()}), and {@code s} is a scalar parameter in the range [0,1]
+    * that specifies the location along the interval between curve points
+    * {@code k} and {@code k+1}. If the curve is open, the search for the
+    * distance point begins at a location specified by {@code r0}. By default,
+    * the search proceeds forward (toward larger {@code r}) and locations
+    * before {@code r0} are ignored. If {@code reverse} is {@code true}, the
+    * search instead proceeds backward (toward smaller {@code r}) and
+    * locations after {@code r0} are ignored; if the search reaches the
+    * beginning of the curve without finding a point at distance {@code dist}
+    * from {@code p0}, -1 is returned. If the curve is closed, {@code r0} and
+    * {@code reverse} are both ignored.
+    *
+    * <p>If found, the method will return the point's location parameter {@code
+    * r}, as well as the point's value in the optional parameter {@code pr} if
+    * it is not {@code null}. If the point is not found, the method will return
+    * -1.
+    *
+    * @param pr if not {@code null}, returns the distance point, if found
+    * @param p0 point with respect to which distance should be determined
+    * @param dist desired distance from {@code p0}
+    * @param r0 for open curves, a non-negative scalar giving the location on
+    * the curve where the search should start. This should be a non-negative
+    * scalar whose value is less than or equal to the number of curve points
+    * (as returned by {@link #numPoints()}).
+    * @param reverse if {@code true} and the curve is open, search backward
+    * from {@code r0} instead of forward
+    * @return location of the distance point on the polyline, if
+    * found, or -1.
+    */
+   public double findPointAtDistance (
+      Point3d pr, Point3d p0, double dist, double r0, boolean reverse) {
+
+      updateCurveIfNecessary();
       Point3d p0loc = new Point3d(p0);
       transformToMesh (p0loc);
       double r = GeometryUtils.findPointAtDistance (
-         pr, myLocalPoints, isClosed(), p0loc, dist, r0);
+         pr, myLocalPoints, isClosed(), p0loc, dist, r0, reverse);
       if (pr != null) {
          transformToWorld (pr);
       }

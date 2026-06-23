@@ -83,7 +83,7 @@ public class FrameMarkerAgent extends AddComponentAgent<FrameMarker> {
             else {
                targetName = "a rigid body";
             }
-            myInstructionBox.setText ("Pick location on "+targetName);
+            setInstructions ("Pick location on "+targetName);
             installLocationListener();
             break;
          }

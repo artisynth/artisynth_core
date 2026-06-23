@@ -4,13 +4,15 @@
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
- */package artisynth.core.gui.editorManager;
+ */
+package artisynth.core.gui.editorManager;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.Cursor;
+import java.awt.Insets;
 import java.awt.event.*;
 import java.util.*;
 
@@ -46,6 +48,7 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
 
    private static HashMap<Class,ModelComponent> myPrototypeMap;
    private static RootModel myLastRootModel = null;
+   private JButton myReversePointsButton;
 
    /**
     * Controls marker editing actions in the GUI.
@@ -84,6 +87,38 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
     */
    protected void initializePrototype (
       ModelComponent comp, ComponentList<?> container, Class type) {
+   }
+
+
+   /**
+    * Creates a vertically oriented button
+    */
+   public static JButton createVerticalButton (
+      String name, String toolTip, ActionListener listener) {
+      JButton button = new JButton (name);
+      button.addActionListener (listener);
+      if (toolTip != null) {
+         button.setToolTipText (toolTip);
+      }
+      button.setAlignmentX (Component.LEFT_ALIGNMENT);
+      Dimension size = button.getPreferredSize();
+      button.setMaximumSize (new Dimension (Short.MAX_VALUE, size.height));
+      button.setHorizontalAlignment (SwingConstants.LEFT);
+      button.setMargin (new Insets (5, 10, 5, 10));
+      return button;
+   }
+
+   protected void createReverseButton() {
+
+      JButton button = createVerticalButton (
+         "Reverse points", "Reverse the point order in this curve", this);
+
+      GuiUtils.setFixedSize (button, button.getPreferredSize());
+      addWidget (Box.createVerticalStrut(5));
+      addWidget (button);
+      addWidget (Box.createVerticalStrut(5));
+
+      myReversePointsButton = button;
    }
 
    protected void createMarkerActionSelector() {
@@ -210,6 +245,8 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
          "Existing markers:", new ComponentListWidget<MeshMarker> (
             myMarkerList, myCurve));
 
+      createReverseButton();
+
       createMarkerActionSelector();
       addCurvePropertyPanel();
       createInstructionBox();
@@ -320,6 +357,20 @@ public class MeshCurveAgent extends AddComponentAgent<MeshMarker> {
 
    protected boolean isContextValid() {
       return (ComponentUtils.withinHierarchy (myCurve, myMain.getRootModel()));
+   }
+
+   @Override
+   public void actionPerformed(ActionEvent e) {
+      super.actionPerformed (e);
+      if (e.getSource() == myReversePointsButton && myCurve != null) {
+         ArrayList<MeshMarker> mkrs = new ArrayList<>();
+         mkrs.addAll (myCurve.getMarkers());
+         Collections.reverse (mkrs);
+         myCurve.clearMarkers();
+         for (MeshMarker mkr : mkrs) {
+            myCurve.addMarker (mkr.getPosition());
+         }
+      }
    }
 
 }

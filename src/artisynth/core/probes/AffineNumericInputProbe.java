@@ -161,6 +161,9 @@ public class AffineNumericInputProbe extends NumericInputProbe {
       return timeOffset;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public void apply(double t) {
       double tloc = (t - getStartTime() - timeOffset) / myScale;

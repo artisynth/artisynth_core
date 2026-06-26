@@ -429,10 +429,10 @@ public class NumericInputProbe extends NumericProbeBase
    }
 
    /**
-    * Interpolate data to specified time and set related properties values.
+    * Interpolate data to specified time and set the associated property values.
     * 
     * @param t
-    * current time
+    * probe apply time
     */
    public void apply (double t) {
       double tloc = (t-getStartTime()) / myScale;

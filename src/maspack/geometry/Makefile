@@ -28,6 +28,7 @@ JAVA_TEST_PROGRAMS = \
 	MeshRayIntersectionTest \
 	MeshUtilitiesTest \
 	NagataInterpolatorTest \
+	PlaneDerivTest \
 	Polygon2dTest \
 	Polygon3dTest \
 	Polygon3dCalcTest \

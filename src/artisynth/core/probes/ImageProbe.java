@@ -57,7 +57,10 @@ public class ImageProbe extends InputProbe {
       setImage (0);
 
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */   
    @Override
    public void apply (double t) {
       super.apply (t);

@@ -327,7 +327,7 @@ public abstract class Probe extends ModelAgentBase {
    }
 
    /**
-    * Called at time {@code t} to apply this probe
+    * Called to apply this probe for a specific simulation time {@code t}.
     * 
     * @param t time at which probe is being applied
     */

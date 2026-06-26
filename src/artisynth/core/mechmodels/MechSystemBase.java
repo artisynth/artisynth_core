@@ -1194,6 +1194,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public StepAdjustment preadvance (double t0, double t1, int flags) {
       //advanceAuxState (t0, t1);
       // zero forces
@@ -1220,6 +1223,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public StepAdjustment advance (double t0, double t1, int flags) {
 
       myInsideAdvanceP = true;

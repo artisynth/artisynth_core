@@ -86,7 +86,10 @@ TransformableGeometry {
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */   
    @Override
    public void apply (double t) {
       super.apply (t);

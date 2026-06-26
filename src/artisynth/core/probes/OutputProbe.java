@@ -14,6 +14,9 @@ public class OutputProbe extends Probe {
       setActive (true);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void apply (double t) {
    }
 }

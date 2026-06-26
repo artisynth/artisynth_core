@@ -81,6 +81,7 @@ import artisynth.core.renderables.IsRenderableHolder;
 import artisynth.core.util.*;
 
 import artisynth.core.mechmodels.PointSpringBase;
+import artisynth.core.mechmodels.MechModel;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.PaiAxialMuscle;
@@ -88,8 +89,11 @@ import artisynth.core.materials.PeckAxialMuscle;;
 
 /**
  * RootModel is the top-most model of an ArtiSynth model hierarchy. It contains
- * a list of models, plus a number of other workspace components such as
- * probes, controller, monitors, and control panels.
+ * a list of one or more models (usually {@link MechModel}s), plus a number of
+ * instrumentation components such as probes, controllers, monitors, and
+ * control panels.
+ *
+ * <p>The {@link #advance} method of the root model calls the advance
  */
 public class RootModel extends RenderableModelBase
    implements Disposable {
@@ -535,9 +539,29 @@ public class RootModel extends RenderableModelBase
       return myFocusableP;
    }
 
+   /**
+    * Overridden by applications to populate the model with the necessary
+    * simulation components (particles, rigid bodies, FE models, force
+    * effectors, constrainers, etc., usually contained under one or more {@link
+    * MechModel}s) and instrumentation components (probes, controllers,
+    * monitors, and control panels). The {@code build()} method is called only
+    * when ArtiSynth loads the application directly from the class. It is
+    * <i>not</i> called when the application is loaded from a {@code .art}
+    * file.
+    *
+    * @param args command line arguments that can be optionally specified to
+    * adjust how the model is created
+    */
    public void build (String[] args) throws IOException {
    }
 
+   /**
+    * Overridden by applications to initialize internal references and make any
+    * other adjustments that are needed after an application model is read from
+    * a {@code .art} file. This method is <i>not</i> called when ArtiSynth
+    * loads the application directly from the class (i.e., if the {@link
+    * #build} method is called).
+    */
    public void postscanInitialize () throws IOException {
    }
 
@@ -1683,6 +1707,9 @@ public class RootModel extends RenderableModelBase
       return state;      
    }
    
+   /**
+    * Advances this model forward by a single time step. This is done by ...
+    */
    public StepAdjustment advance (
       double t0, double t1, int flags) {
 

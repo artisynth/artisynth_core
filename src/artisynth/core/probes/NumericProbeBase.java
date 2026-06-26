@@ -312,6 +312,9 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       writeText (file, fmtStr, ", ", includeTime);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public abstract void apply (double t);
 
    public boolean isDisplayable() {

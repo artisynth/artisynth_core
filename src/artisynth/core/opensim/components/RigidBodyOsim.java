@@ -86,11 +86,11 @@ public class RigidBodyOsim extends RigidBody {
       }
    }
 
-   public void addWrapAttachment (FrameAttachment fattach) {
+   void addWrapAttachment (FrameAttachment fattach) {
       myWrapAttachments.add (fattach);
    }
 
-   public boolean removeWrapAttachment (FrameAttachment fattach) {
+   boolean removeWrapAttachment (FrameAttachment fattach) {
       return myWrapAttachments.remove (fattach);
    }
 
@@ -102,7 +102,7 @@ public class RigidBodyOsim extends RigidBody {
       return myWrapComponents;
    }
 
-   public RenderableComponentList<FrameAttachment> getWrapAttachments() {
+   RenderableComponentList<FrameAttachment> getWrapAttachments() {
       return myWrapAttachments;
    }
 

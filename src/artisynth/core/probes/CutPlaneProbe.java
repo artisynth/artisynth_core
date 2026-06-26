@@ -202,6 +202,9 @@ public abstract class CutPlaneProbe extends OutputProbe
       updateMeshDisplay();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public synchronized void apply(double t) {
       updateMeshDisplay();

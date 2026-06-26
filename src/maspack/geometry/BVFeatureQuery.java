@@ -161,7 +161,10 @@ public class BVFeatureQuery {
    public static double distanceToMesh (
       Point3d nearPnt, PolygonalMesh mesh, Point3d pnt) {
       BVFeatureQuery query = new BVFeatureQuery();
-      if (nearPnt == null) {
+      if (pnt == nearPnt) {
+         pnt = new Point3d(pnt);
+      }
+      else if (nearPnt == null) {
          nearPnt = new Point3d();
       }
       if (query.nearestFaceToPoint (

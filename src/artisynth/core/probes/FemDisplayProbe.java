@@ -809,6 +809,9 @@ public class FemDisplayProbe extends CutPlaneProbe {
       updatePosState();
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public synchronized void apply(double t) {
       updatePosState();

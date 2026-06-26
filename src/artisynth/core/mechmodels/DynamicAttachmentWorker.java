@@ -398,6 +398,11 @@ public class DynamicAttachmentWorker {
                a.getSlave().getMasterAttachments();
             if (masterAttachments != null) {
                for (DynamicAttachment b : masterAttachments) {
+                  Integer cnt = attachedMasterCnts.get (b);
+                  if (cnt == null) {
+                     throw new InternalErrorException (
+                        "attachment " + b + " not present in input list");
+                  }
                   int attachedMasterCnt = attachedMasterCnts.get (b);
                   attachedMasterCnt--;
                   if (attachedMasterCnt == 0) {

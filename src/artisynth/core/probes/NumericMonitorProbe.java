@@ -233,6 +233,13 @@ public class NumericMonitorProbe extends NumericDataFunctionProbe {
       return propsOrDimens;
    }
 
+   /**
+    * Generate data and set the probe's numeric values for the specified time.
+    * Any data following this time is cleared.
+    * 
+    * @param t
+    * probe apply time
+    */
    public void apply (double t) {
       // XXX don't we want to apply scaling here too?
       double trel = (t-getStartTime())/myScale;

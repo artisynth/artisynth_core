@@ -221,6 +221,20 @@ public class NumericOutputProbe extends NumericProbeBase
    }
 
    /**
+    * Writes information about this probe to be written to its attached file,
+    * catching any IOExceptions internally.
+    */
+   public void saveAndCatch() {
+      try {
+         save();
+      }
+      catch (IOException e) {
+         System.out.println (
+            "WARNING: error saving probe file "+getAttachedFile()+":\n"+e);
+      }
+   }
+
+   /**
     * When called (perhaps by the Artsynth timeline), causes information about
     * this probe to be loaded from the attached file.
     */
@@ -249,6 +263,13 @@ public class NumericOutputProbe extends NumericProbeBase
       }
    }
 
+   /**
+    * Collect data from the probe's properties and use it to set the numeric
+    * values for the specified time. Any data following this time is cleared.    * control operation.
+    * 
+    * @param t
+    * probe apply time
+    */
    public void apply (double t) {
       if (myPropList == null) {
          throw new ImproperStateException ("probe not initialized");

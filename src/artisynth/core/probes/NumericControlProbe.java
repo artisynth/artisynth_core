@@ -505,10 +505,11 @@ public class NumericControlProbe extends NumericDataFunctionProbe {
    }
 
    /**
-    * Interpolate data to specified time and set related properties values.
+    * Interpolate data to specified time and use it to perform the appropriate
+    * control operation.
     * 
     * @param t
-    * current time
+    * probe apply time
     */
    public void apply (double t) {
       double trel = (t-getStartTime()) / myScale;

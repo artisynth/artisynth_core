@@ -24,7 +24,10 @@ public class InputProbe extends Probe {
       setUpdateInterval (-1);
       setActive (true);
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */   
    public void apply (double t) {
    }
 

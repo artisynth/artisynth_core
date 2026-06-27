@@ -33,6 +33,7 @@ import artisynth.core.mechmodels.DynamicAttachmentComp;
 import artisynth.core.mechmodels.DynamicAttachmentWorker;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.HasAttachments;
 import artisynth.core.mechmodels.HasSurfaceMesh;
 import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MeshComponent;
@@ -135,6 +136,7 @@ PointAttachable, ConnectableBody {
    protected boolean myFrameRelativeP;
    public static boolean useFrameRelativeCouplingMasses = false;
    protected boolean profileStressAndStiffness = false;
+   protected boolean attachFrameToAllNodes = true;
 
    protected PointList<FemNode3d> myNodes;
    protected ArrayList<BodyConnector> myConnectors;
@@ -250,6 +252,7 @@ PointAttachable, ConnectableBody {
    protected MeshComponentList<FemMeshComp> myMeshList;
    protected RenderableComponentList<FemCutPlane> myCutPlanes;
    protected ComponentList<FieldComponent> myFieldList;
+   protected RenderableComponentList<FemAttachedFrame> myAttachedFrames;
 
    HashMap<FemElement3d,int[]> ansysElemProps = new HashMap<FemElement3d,int[]>();
 
@@ -702,6 +705,8 @@ PointAttachable, ConnectableBody {
          FemCutPlane.class, "cutPlanes", "cpl");
       myFieldList =  new ComponentList<FieldComponent>(
          FieldComponent.class, "fields", "fld");
+      myAttachedFrames = new RenderableComponentList<FemAttachedFrame>(
+         FemAttachedFrame.class, "attachedFrames", "af");
 
       addFixed(myFrame);
       addFixed(myNodes);
@@ -713,6 +718,7 @@ PointAttachable, ConnectableBody {
       addFixed(myCutPlanes);
       addFixed(myFieldList);
       super.initializeChildComponents();
+      addFixed(myAttachedFrames);
    }
 
    public void addAuxMaterialBundle(AuxMaterialBundle bundle) {
@@ -928,6 +934,11 @@ PointAttachable, ConnectableBody {
       return myElements.getByNumber(num);
    }
 
+   /**
+    * Returns the list of volumetric elements in this model.
+    *
+    * @return volumetric element list
+    */
    public FemElement3dList<FemElement3d> getElements() {
       return myElements;
    }
@@ -1000,6 +1011,11 @@ PointAttachable, ConnectableBody {
       return myShellElements.getByNumber(num);
    }
 
+   /**
+    * Returns the list of shell elements in this model.
+    *
+    * @return shell element list
+    */
    public FemElement3dList<ShellElement3d> getShellElements() {
       return myShellElements;
    }
@@ -1053,10 +1069,9 @@ PointAttachable, ConnectableBody {
    /* --- Marker Methods --- */
 
    /**
-    * Adds a marker to this FemModel. If the marker has not already been
-    * set (i.e., if no nodes or elements have been assigned to it), then
-    * it is attached to the nearest element in the model. This is either
-    * the containing element, or the nearest element on the model's surface.
+    * Adds a marker to this FemModel. If the marker is not currently
+    * attached to this model, then it is attached to either the nearest 
+    * containing element, or the nearest element on the model's surface.
     * 
     * @param mkr
     * marker point to add to the model
@@ -1066,7 +1081,7 @@ PointAttachable, ConnectableBody {
          throw new IllegalStateException (
             "Can't add marker to a FEM with no elements");
       }
-      if (mkr.getAttachment().numMasters() == 0) {
+      if (!mkr.getAttachment().isConnectedToFem(this)) {
          FemElement3dBase elem = findElementForMarker (
             mkr, mkr.getPosition(), /*project=*/true);
          addMarker(mkr, elem);
@@ -1075,20 +1090,7 @@ PointAttachable, ConnectableBody {
          super.addMarker (mkr);
       }
    }
-
-   /**
-    * Creates and adds a marker to this FemModel. The element to which it
-    * belongs is determined automatically. If the marker's current position
-    * does not lie within the model, it is projected onto the model's surface.
-    * 
-    * @param pos
-    * position to place a marker in the model
-    * @return created marker
-    */
-   public FemMarker addMarker (Point3d pos) {
-      return addMarker(pos, true);
-   }
-
+   
    private FemElement3dBase findElementForMarker (
       FemMarker mkr, Point3d pos, boolean project) {
       Point3d newLoc = new Point3d();
@@ -1107,18 +1109,31 @@ PointAttachable, ConnectableBody {
       }
       return elem;
    }
-   
+
    /**
-    * Creates and adds a marker to this FemModel. The element to which it
-    * belongs is determined automatically. If the marker's current position
+    * Creates and adds a marker to this FemModel at a specified position . The
+    * element to which it belongs is determined automatically. If the position
+    * does not lie within the model, it is projected onto the model's surface.
+    * 
+    * @param pos
+    * initial position for the marker
+    * @return created marker
+    */
+   public FemMarker addMarker (Point3d pos) {
+      return addMarker(pos, true);
+   }
+
+   /**
+    * Creates and adds a marker to this FemModel at a specified position. The
+    * element to which it belongs is determined automatically. If the position
     * does not lie within the model and {@code project == true}, it will be
     * projected onto the model's surface.
     * 
     * @param pos
-    * position to place a marker in the model
+    * initial position for the marker
     * @param project
-    * if true and pnt is outside the model, projects to the nearest element.
-    * Otherwise, uses the original position.
+    * if true and {@code pos} is outside the model, it is projected to the
+    * model's surface.
     * @return created marker
     */
    public FemMarker addMarker (Point3d pos, boolean project) {
@@ -1240,6 +1255,18 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   /**
+    * Returns the nearest element to {@code pnt} that satisfies {@code filter},
+    * or {@code null} if no such element exists. The nearest point on the element
+    * to {@code pnt} is returned in {@code loc}. If {@code pnt} is contained
+    * within an element, that element is returned and {@code loc} is set to
+    * {@code pnt}.
+    *
+    * @param loc returns the nearest point on the element to {@code pnt}
+    * @param pnt point to query
+    * @param filter filter to restrict which elements are considered
+    * @return nearest element satisfying {@code filter}, or {@code null}
+    */
    public FemElement3dBase findNearestElement (
       Point3d loc, Point3d pnt, ElementFilter filter) {
       FemElement3dBase e = null;
@@ -1500,10 +1527,20 @@ PointAttachable, ConnectableBody {
       return myCutPlanes;
    }
 
+   /**
+    * Returns the number of cut planes in this model.
+    *
+    * @return number of cut planes
+    */
    public int numCutPlanes() {
       return myCutPlanes.size();
    }
 
+   /**
+    * Adds a cut plane to this model.
+    *
+    * @param cutPlane cut plane to add
+    */
    public void addCutPlane (FemCutPlane cutPlane) {
       if (cutPlane.getParent() == myCutPlanes) {
          throw new IllegalArgumentException (
@@ -1512,10 +1549,19 @@ PointAttachable, ConnectableBody {
       myCutPlanes.add (cutPlane);
    }
 
+   /**
+    * Removes a cut plane from this model.
+    *
+    * @param cutPlane cut plane to remove
+    * @return {@code true} if the cut plane was present and was removed
+    */
    public boolean removeCutPlane (FemCutPlane cutPlane) {
       return myCutPlanes.remove(cutPlane);
    }
 
+   /**
+    * Removes all cut planes from this model.
+    */
    public void clearCutPlanes() {
       for (int i=myCutPlanes.size()-1; i>0; i--) {
          myCutPlanes.remove (i);
@@ -1552,6 +1598,194 @@ PointAttachable, ConnectableBody {
       for (int i=myFieldList.size()-1; i>0; i--) {
          myFieldList.remove (i);
       }
+   }
+
+   /* --- AttachedFrame Methods --- */
+
+   /**
+    * Adds an {@link FemAttachedFrame} to this FemModel. If the frame is not 
+    * currently attached to this model, then it is attached to either the 
+    * nearest containing element, or the nearest element on the model's surface.
+    * 
+    * @param frm
+    * attached frame to add to the model
+    */
+   public void addAttachedFrame (FemAttachedFrame frm) {
+      if (numAllElements() == 0) {
+         throw new IllegalStateException (
+            "Can't add frame to a FEM with no elements");
+      }
+      if (!frm.getAttachment().isConnectedToFem(this)) {
+         FemElement3dBase elem = findElementForAttachedFrame (
+            frm, frm.getPose(), /*project=*/true);
+         addAttachedFrame (frm, elem);
+      }
+      else {
+         myAttachedFrames.add (frm);
+      }
+   }
+   
+   private FemElement3dBase findElementForAttachedFrame (
+      FemAttachedFrame frm, RigidTransform3d TFW, boolean project) {
+      Point3d newLoc = new Point3d();
+      FemElement3dBase elem = findNearestElement (newLoc, new Point3d(TFW.p));
+      if (elem != null) {
+         if (project) {
+            frm.setPose (TFW);
+         } 
+         else {
+            frm.setPose (TFW);
+         }
+      }
+      else {
+         throw new InternalErrorException (
+            "Unable to find nearest element to point " + TFW.p);
+      }
+      return elem;
+   }
+
+   /**
+    * Creates and adds a FemAttachedFrame to this FemModel at a specified
+    * pose {@code TFW}. The element to which it belongs is determined
+    * automatically. If the position of {@code TFW} does not lie within the
+    * model, it is projected onto the model's surface.
+    * 
+    * @param TFW
+    * initial pose (position and orientation) for the attached frame
+    * @return created attached frame
+    */
+   public FemAttachedFrame addAttachedFrame (RigidTransform3d TFW) {
+      return addAttachedFrame (TFW, true);
+   }
+
+   /**
+    * Creates and adds a FemAttachedFrame to this FemModel at a specified pose
+    * {@code TFW}. The element to which it belongs is determined
+    * automatically. If the position of {@code TFW} does not lie within the
+    * model and {@code project == true}, it will be projected onto the model's
+    * surface.
+    * 
+    * @param TFW
+    * initial pose (position and orientation) for the attached frame
+    * @param project
+    * if true and the position of {@code TFW} is outside the model, it is
+    * projected to the model's surface.
+    * @return created attached frame
+    */
+   public FemAttachedFrame addAttachedFrame (
+      RigidTransform3d TFW, boolean project) {
+      if (numAllElements() == 0) {
+         throw new IllegalStateException (
+            "Can't add attached frame to a FEM with no elements");
+      }
+      FemAttachedFrame frm = new FemAttachedFrame(TFW);
+      FemElement3dBase elem = findElementForAttachedFrame (frm, TFW, project);
+      addAttachedFrame (frm, elem);
+      return frm;
+   }
+   
+   /**
+    * Adds an attached frame to this FemModel3d and attaches it to the
+    * specified element. The element must belong to this model.
+    *
+    * @param frm attached frame to add
+    * @param elem element to attach the frame to
+    * @throws IllegalArgumentException if {@code elem} is not contained
+    * within this model
+    */
+   public void addAttachedFrame (FemAttachedFrame frm, FemElement3dBase elem) {
+      if (!ModelComponentBase.recursivelyContains (this, elem)) {
+         throw new IllegalArgumentException (
+            "element not contained within model");
+      }
+      frm.setFromElement (elem);
+      myAttachedFrames.add (frm);
+   }
+
+   /**
+    * Adds an attached frame to this FemModel3d and attaches it to a weighted
+    * combination of the specified nodes.
+    *
+    * @param frm attached frame to add
+    * @param nodes nodes to attach the frame to
+    * @param weights weights for each node
+    */
+   public void addAttachedFrame (
+      FemAttachedFrame frm,
+      Collection<? extends FemNode3d> nodes, VectorNd weights) {
+      frm.setFromNodes (new ArrayList<>(nodes), weights);
+      myAttachedFrames.add (frm);
+   }
+
+   /**
+    * Adds an attached frame to this FemModel3d and attaches it to a weighted
+    * combination of the specified nodes.
+    *
+    * @param frm attached frame to add
+    * @param nodes nodes to attach the frame to
+    * @param weights weights for each node
+    */
+   public void addAttachedFrame (
+      FemAttachedFrame frm, FemNode3d[] nodes, double[] weights) {
+      frm.setFromNodes (nodes, weights);
+      myAttachedFrames.add (frm);
+   }
+
+   /**
+    * Adds an attached frame to this FemModel3d and attaches it to the
+    * specified nodes using inverse-distance weighting based on the frame's
+    * current pose.
+    *
+    * @param frm attached frame to add
+    * @param nodes nodes to attach the frame to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
+   public boolean addAttachedFrame (
+      FemAttachedFrame frm, Collection<? extends FemNode3d> nodes) {
+      boolean status = frm.setFromNodes (new ArrayList<>(nodes));
+      myAttachedFrames.add (frm);
+      return status;
+   }
+
+   /**
+    * Adds an attached frame to this FemModel3d and attaches it to the
+    * specified nodes using inverse-distance weighting based on the frame's
+    * current pose.
+    *
+    * @param frm attached frame to add
+    * @param nodes nodes to attach the frame to
+    * @return {@code false} if the weighting computation did not fully converge
+    */
+   public boolean addAttachedFrame (FemAttachedFrame frm, FemNode3d[] nodes) {
+      boolean status = frm.setFromNodes (nodes);
+      myAttachedFrames.add (frm);
+      return status;
+   }
+
+   /**
+    * Removes an attached frame from this FemModel3d.
+    *
+    * @param frm attached frame to remove
+    * @return {@code true} if the frame was found and removed
+    */
+   public boolean removeAttachedFrame (FemAttachedFrame frm) {
+      return myAttachedFrames.remove (frm);
+   }
+
+   /**
+    * Returns the list of attached frames in this FemModel3d.
+    *
+    * @return list of attached frames
+    */
+   public RenderableComponentList<FemAttachedFrame> getAttachedFrames() {
+      return myAttachedFrames;
+   }
+
+   /**
+    * Removes all attached frames from this FemModel3d.
+    */
+   public void clearAttachedFrames() {
+      myAttachedFrames.clear();
    }
 
    /* --- Surface Methods --- */
@@ -1826,6 +2060,7 @@ PointAttachable, ConnectableBody {
       }
       context.addAll (myNodes);
       context.addAll (myMarkers);
+      context.addAll (myAttachedFrames);
       context.addAll (myMeshList);
       context.addAll (myCutPlanes);
       context.addAll (myAuxiliaryMaterialList);
@@ -5154,6 +5389,7 @@ PointAttachable, ConnectableBody {
       list.addIfVisible(myElements);
       list.addIfVisible(myShellElements);
       list.addIfVisible(myMarkers);
+      list.addIfVisible(myAttachedFrames);
 
       // build surface mesh if needed
       if (myAutoGenerateSurface && !mySurfaceMeshValid) {
@@ -5192,6 +5428,14 @@ PointAttachable, ConnectableBody {
             }
          }
          renderer.endDraw ();
+      }
+   }
+
+   @Override   
+   public void applyForces (double t) {
+      super.applyForces (t);
+      if (myFrameRelativeP) {
+         myFrame.applyForces (t);
       }
    }
 
@@ -5408,6 +5652,12 @@ PointAttachable, ConnectableBody {
          fem.myMarkers.addNumbered(newm, m.getNumber());
          fem.myMarkers.setRenderProps(myMarkers.getRenderProps());
       }
+      for (FemAttachedFrame f : myAttachedFrames) {
+         FemAttachedFrame newf = f.copy(flags, copyMap);
+         newf.setName(f.getName());
+         fem.myAttachedFrames.addNumbered(newf, f.getNumber());
+         fem.myAttachedFrames.setRenderProps(myAttachedFrames.getRenderProps());
+      }
       for (DynamicAttachmentComp a : myAttachments) {
          DynamicAttachmentComp newa = a.copy(flags, copyMap);
          newa.setName(a.getName());
@@ -5606,14 +5856,28 @@ PointAttachable, ConnectableBody {
             throw new IllegalStateException (
                "Can't attach frame to a FEM with no elements");
          }
-         RigidTransform3d TX = new RigidTransform3d(TRW);
-         Point3d pos = new Point3d(TRW.p);
-         Point3d newLoc = new Point3d();
-         FemElement3dBase elem = findNearestElement (newLoc, pos);
-         TX.p.set (newLoc);
-
-         myFrame.setPose (TX);
-         myFrameConstraint = new FrameFem3dConstraint (myFrame, elem);
+         if (attachFrameToAllNodes) {
+            VectorNd weights = new VectorNd (numNodes());
+            // weights nodes by normalized mass
+            int i = 0;
+            for (FemNode3d n : getNodes()) {
+               weights.set (i++, n.getMass());
+            }
+            weights.scale (1/weights.sum());
+            myFrame.setPose (TRW); // only rotational part will be kept
+            myFrameConstraint =
+               new FrameFem3dConstraint (myFrame, getNodes(), weights);
+         }
+         else {
+            RigidTransform3d TX = new RigidTransform3d(TRW);
+            Point3d pos = new Point3d(TRW.p);
+            Point3d newLoc = new Point3d();
+            FemElement3dBase elem = findNearestElement (newLoc, pos);
+            TX.p.set (newLoc);
+            
+            myFrame.setPose (TX);
+            myFrameConstraint = new FrameFem3dConstraint (myFrame, elem);
+         }
       }
    }
 
@@ -5633,7 +5897,10 @@ PointAttachable, ConnectableBody {
       }
       for (int i=0; i<myMarkers.size(); i++) {
          attached.add (myMarkers.get(i));
-      }    
+      }
+      for (int i=0; i<myAttachedFrames.size(); i++) {
+         attached.add (myAttachedFrames.get(i));
+      }
 
       if (myFrameRelativeP) {
          // XXX not yet supported for shell models
@@ -5653,6 +5920,19 @@ PointAttachable, ConnectableBody {
       }
    }
    
+   protected void recursivelyGetDynamicComps (
+      CompositeComponent comp, List<DynamicComponent> list) {
+      for (int i=0; i<comp.numComponents(); i++) {
+         ModelComponent c = comp.get (i);
+         if (c instanceof DynamicComponent) {
+            list.add ((DynamicComponent)c);
+         }
+         if (c instanceof CompositeComponent) {
+            recursivelyGetDynamicComps ((CompositeComponent)c, list);
+         }
+      }
+   }
+
    public void getDynamicComponents (List<DynamicComponent> comps) {
       for (FemNode3d n : getNodes()) {
          comps.add (n);
@@ -5661,6 +5941,7 @@ PointAttachable, ConnectableBody {
          }
       }
       comps.addAll (myMarkers);
+      recursivelyGetDynamicComps (myAttachedFrames, comps);
       comps.add (myFrame);
       if (myFrameRelativeP) {
          // XXX not yet supported for shell models
@@ -6020,11 +6301,34 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   @Override
+   protected void updateLocalAttachmentPos() {
+      super.updateLocalAttachmentPos();
+      for (FemAttachedFrame frm : myAttachedFrames) {
+         frm.myNodeAttachment.updatePosStates();
+      }
+   }
+
+   protected void recursivelyGetAttachments (
+      CompositeComponent comp, List<DynamicAttachment> list) {
+      for (int i=0; i<comp.numComponents(); i++) {
+         ModelComponent c = comp.get (i);
+         if (c instanceof HasAttachments) {
+            ((HasAttachments)c).getAttachments (list);
+         }
+         if (c instanceof CompositeComponent) {
+            recursivelyGetAttachments ((CompositeComponent)c, list);
+         }
+      }
+   }
+
    public void getAttachments (List<DynamicAttachment> list, int level) {
       super.getAttachments (list, level);
-      if (myFrameRelativeP) {
-         for (FemNode3d n : myNodes) {
-            list.add (n.getFrameAttachment());
+      recursivelyGetAttachments (myAttachedFrames, list);
+      for (FemNode3d n : myNodes) {
+         DynamicAttachment fa = n.getFrameAttachment();            
+         if (fa != null) {
+            list.add (fa);
          }
       }
    }

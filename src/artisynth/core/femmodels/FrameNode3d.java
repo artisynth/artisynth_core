@@ -20,6 +20,7 @@ public class FrameNode3d extends DynamicComponentBase {
    Vector3d myForce = new Vector3d();
    Frame myFrame;
    double myEffectiveMass = 0;
+   boolean myAutoAttach = true;
    
    public static PropertyList myProps =
    new PropertyList (FrameNode3d.class, DynamicComponentBase.class);
@@ -32,15 +33,34 @@ public class FrameNode3d extends DynamicComponentBase {
       return myProps;
    }   
    
-   FrameNode3d (FemNode3d node, Frame frame) {
+   public FrameNode3d (FemNode3d node, Frame frame) {
       myNode = node;
       myFrame = frame;      
       myPos.inverseTransform (myFrame.getPose(), node.getPosition());
       myVel.inverseTransform (myFrame.getPose(), node.getVelocity());
+      setDynamic (true);
    }
 
    public Frame getFrame() {
       return myFrame;
+   }
+
+   /**
+    * Sets whether this frame node should automatically create an
+    * attachment between it and its associated node. Applications
+    * should set this to false if they want to control the attachment 
+    * themselves.
+    */
+   public void setAutoAttach (boolean enable) {
+      myAutoAttach = enable;
+   }
+   
+   public boolean getAutoAttach() {
+      return myAutoAttach;
+   }
+   
+   public FemNode3d getNode() {
+      return myNode;
    }
 
    public Point3d getPosition() {

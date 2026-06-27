@@ -1237,6 +1237,11 @@ public class FemNode3d extends FemNode implements Boundable {
 
    /* --- FrameFemNode --- */
 
+   /**
+    * Returns the nominal attachment for this node. This is any attachment that
+    * is not associated with the presence of a frame node, which we test for by
+    * seeing if the attachment is also a model component.
+    */
    private DynamicAttachment getRegularAttachment() {
       DynamicAttachment at = getAttachment();
       if (at != null && at instanceof ModelComponent) {
@@ -1247,18 +1252,23 @@ public class FemNode3d extends FemNode implements Boundable {
       }
    }
 
+   /**
+    * Updates the frame attachment of this node with respect to the possible
+    * presence of a frameNode and other attachments.
+    */
    private void updateFrameAttachment() {
       DynamicAttachment current = myFrameAttachment;
       if (myFrameNode == null) {
-         // then clear any attachment
+         // remove any attachment frame attachment
          if (current != null) {
             current.removeBackRefs();
             myFrameAttachment = null;
          }
       }
-      else {
+      else if (myFrameNode.getAutoAttach()) {
          if (!isDynamic() || getRegularAttachment() != null) {
-            // need to attach frameNode to this node
+            // node is not nominally active: it is either non-dynamic or has a
+            // "regular" attachment, so attach the frame node to the node.
             if (!(current instanceof FrameNodeNodeAttachment) ||
                 ((FrameNodeNodeAttachment)current).myFrameNode != myFrameNode) {
                System.out.println ("adding frameNode to node attachment");
@@ -1275,7 +1285,7 @@ public class FemNode3d extends FemNode implements Boundable {
             }
          }
          else {
-            // need to attach this node to frameNode
+            // node is nominally active. Attach it to the frameNode.
             if (!(current instanceof NodeFrameNodeAttachment) ||
                 ((NodeFrameNodeAttachment)current).myFrameNode != myFrameNode) {
                System.out.println ("adding node to frameNode attachment");
@@ -1345,7 +1355,14 @@ public class FemNode3d extends FemNode implements Boundable {
 
    public int getLocalSolveIndex() {
       if (myFrameNode != null) {
-         return myFrameNode.getSolveIndex();
+         // XXX XXX XXX
+         int idx = myFrameNode.getSolveIndex();
+         if (idx == -1) {
+            return getSolveIndex();
+         }
+         else {
+            return idx;
+         }
       }
       else {
          return getSolveIndex();

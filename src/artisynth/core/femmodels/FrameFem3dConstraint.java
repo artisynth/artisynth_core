@@ -27,19 +27,24 @@ public class FrameFem3dConstraint extends ConstrainerBase {
    //private FemElement myElement;
 
    private FemElement3dBase myElement;
+   private FemNode3d[] myNodes;
+   private double[] myWeights;
    private IntegrationPoint3d myIpnt;
    private IntegrationData3d myData;
+
    private RotationMatrix3d myRC;
    private Frame myFrame;
 
    private Vector3d[] myGNX;
-   private Matrix3x6Block[] myMasterBlocks;
+   private boolean myUseProcrustes = false;
 
    // B = (tr(P)I - P) R0^T, where P is the symmetric part of the
    // polar decomposition of F
    private Matrix3d myInvB = new Matrix3d();
    private Matrix3d myDotB = new Matrix3d();
    private Twist myErr = new Twist();
+   // polar decomposition of the current deformation gradient
+   private PolarDecomposition3d myPolard = new PolarDecomposition3d();
 
    private double[] myLam = new double[6];
 
@@ -61,13 +66,11 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       Matrix3d NxBinv = new Matrix3d();
 
       int bf = myFrame.getSolveIndex();
-      FemNode3d[] nodes = myElement.getNodes();
-      VectorNd N = myIpnt.getShapeWeights();
-      for (int i=0; i<nodes.length; i++) {
-         int bk = nodes[i].getLocalSolveIndex();
+      for (int i=0; i<myNodes.length; i++) {
+         int bk = myNodes[i].getLocalSolveIndex();
          if (bk != -1) {
             Matrix3x6Block blk = new Matrix3x6Block();
-            double Ni = N.get(i);
+            double Ni = myWeights[i];
             blk.m00 = Ni;
             blk.m11 = Ni;
             blk.m22 = Ni;
@@ -75,7 +78,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
             NxBinv.crossProduct (myGNX[i], myInvB);
             NxBinv.scale (-1);
             NxBinv.mulTransposeLeft (myRC, NxBinv);
-            dgw.mulTransposeAdd (NxBinv, nodes[i].getLocalVelocity(), dgw);
+            dgw.mulTransposeAdd (NxBinv, myNodes[i].getLocalVelocity(), dgw);
 
             NxBinv.mul (myRC);
             blk.setSubMatrix03 (NxBinv);
@@ -98,7 +101,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
          
          dg.set (numb+3, dgw.x);
          dg.set (numb+4, dgw.y);
-         dg.set (numb+6, dgw.z);
+         dg.set (numb+5, dgw.z);
       }
       numb += 6;
       return numb;
@@ -153,24 +156,44 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       B.m22 += tr;
    }
 
+   private void updateDeformationGradient() {
+      if (myElement == null || myUseProcrustes) {
+         Matrix3d F = new Matrix3d();
+         Vector3d pos = new Vector3d();
+         for (int i=0; i<myNodes.length; i++) {
+            pos.scaledAdd (myWeights[i], myNodes[i].getPosition());
+         }
+         for (int i=0; i<myNodes.length; i++) {
+            Vector3d udef = new Vector3d();
+            Vector3d gNX = myGNX[i];
+            // XXX we should be able to use node positions directly without
+            // subtracting pos
+            udef.sub (myNodes[i].getPosition(), pos);
+            F.addOuterProduct (
+               udef.x, udef.y, udef.z, gNX.x, gNX.y, gNX.z);
+         }
+         myPolard.factor (F);         
+      }
+      else {
+         Matrix3d F = new Matrix3d();
+         myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
+         myPolard.factor (F);
+      }
+   }
+
    public double updateConstraints (double t, int flags) {
       // update P
       Matrix3d B = new Matrix3d();
       Matrix3d H = new Matrix3d();
-      VectorNd N = myIpnt.getShapeWeights();
-      FemNode3d[] nodes = myElement.getNodes();
-      Matrix3d F = new Matrix3d();
-      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
-      PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (F);
-      polard.getH(H);
+      updateDeformationGradient();
+      myPolard.getH(H);
       computeB (B, H);
       myInvB.invert (B);
 
       // update dot P
       Matrix3d dF = new Matrix3d();
-      for (int i=0; i<nodes.length; i++) {
-         dF.addOuterProduct (nodes[i].getLocalVelocity(), myGNX[i]);
+      for (int i=0; i<myNodes.length; i++) {
+         dF.addOuterProduct (myNodes[i].getLocalVelocity(), myGNX[i]);
       }
       //dF.mulTransposeLeft (myRC, dF);
       // dot P is the symmetric part of dF
@@ -189,8 +212,8 @@ public class FrameFem3dConstraint extends ConstrainerBase {
    }
    
    public void getConstrainedComponents (HashSet<DynamicComponent> comps) {
-      if (myElement != null) {
-         for (FemNode n : myElement.getNodes()) {
+      if (myNodes != null) {
+         for (FemNode n : myNodes) {
             comps.add (n);
          }
       }
@@ -198,68 +221,122 @@ public class FrameFem3dConstraint extends ConstrainerBase {
          comps.add (myFrame);
       }
    }
+
+   private boolean hasFullRank (Vector3d[] vecs) {
+      MatrixNd VT = new MatrixNd (vecs.length, 3);
+      double[] vals = new double[3];
+      for (int i=0; i<vecs.length; i++) {
+         vecs[i].get(vals);
+         VT.setRow (i, vals);
+      }
+      SVDecomposition svd = new SVDecomposition();
+      svd.factor (VT);
+      return svd.condition() < 1e12;      
+   }
    
-   private void computeBlocks (Matrix3d invJ0, RotationMatrix3d R0) {
-
-      VectorNd N = myIpnt.getShapeWeights();
+   private void initializeGNX (Matrix3d invJ0) {
       Vector3d[] GNs = myIpnt.GNs;
-
       myGNX = new Vector3d[GNs.length];
-      //myOmegaBlocks = new Matrix3x3Block[GNs.length];
-      //myVBlocks = new Matrix3x3Block[GNs.length];
-      myMasterBlocks = new Matrix3x6Block[GNs.length];
       for (int i=0; i<GNs.length; i++) {
-         //Matrix3x3Block blk = new Matrix3x3Block();
          myGNX[i] = new Vector3d();
          invJ0.mulTranspose (myGNX[i], GNs[i]);
-
-         Matrix3x6Block blkm = new Matrix3x6Block();
-         blkm.m00 = N.get(i);
-         blkm.m11 = N.get(i);
-         blkm.m22 = N.get(i);
-         myMasterBlocks[i] = blkm;
       }
+   }
+
+   private boolean initializeGNX (FemNode3d[] nodes, double[] weights) {
+      myGNX = new Vector3d[nodes.length];
+      Vector3d restPos = new Vector3d();
+      for (int i=0; i<nodes.length; i++) {
+         restPos.scaledAdd (weights[i], nodes[i].getRestPosition());
+      }
+      for (int i=0; i<nodes.length; i++) {
+         Vector3d u = new Vector3d();
+         u.sub (nodes[i].getRestPosition(), restPos);
+         u.scale (weights[i]);
+         myGNX[i] = u;
+      }
+      return hasFullRank (myGNX);
    }
 
    public FemElement3dBase getElement() {
       return myElement;
    }
 
-   public void setFromElement (RigidTransform3d T, FemElement3dBase elem) {
+   private FemModel3d getFemModel (ModelComponentBase comp) {
+      ModelComponent gparent = comp.getGrandParent();
+      if (gparent instanceof FemModel3d) {
+         return (FemModel3d)gparent;
+      }
+      return null;
+   }
+
+   public void setFromElement (RigidTransform3d TFW, FemElement3dBase elem) {
       Vector3d coords = new Vector3d();
-      if (elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) < 0) {
+      if (elem.getNaturalCoordinates (coords, new Point3d(TFW.p), 1000) < 0) {
          throw new NumericalException (
-            "Can't find natural coords for "+T.p+" in element "+elem.getNumber());
+            "Can't find natural coords for " +
+            TFW.p + " in element " + elem.getNumber());
       }
       myIpnt = IntegrationPoint3d.create (
          elem, coords.x, coords.y, coords.z, 1.0);
       myData = new IntegrationData3d();
       myData.computeInverseRestJacobian (myIpnt, elem.getNodes());
 
-      Matrix3d F = new Matrix3d();
-      myIpnt.computeGradient (F, elem.getNodes(), myData.myInvJ0);
-      PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (F);  
-      myRC.mulInverseLeft (polard.getR(), T.R);
-
-      //computeBlocks (myData.myInvJ0, myRC);
-      computeBlocks (myData.myInvJ0, RotationMatrix3d.IDENTITY);
+      VectorNd N = myIpnt.getShapeWeights();
+      myWeights = Arrays.copyOf (N.getBuffer(), N.size());
+      myNodes = Arrays.copyOf (elem.getNodes(), elem.numNodes());
 
       myElement = elem;
+      initializeGNX (myData.myInvJ0);
+
+      updateDeformationGradient();
+      myRC.mulInverseLeft (myPolard.getR(), TFW.R);
+   }
+
+   public void setFromNodes (
+      RigidTransform3d TFW, Collection<FemNode3d> nodes, VectorNd weights) {
+
+      int nnodes = nodes.size();
+      if (nnodes != weights.size()) {
+         throw new IllegalArgumentException (
+            "'nodes' and 'weights' have different sizes: " +
+            nnodes + " and " + weights.size());
+      }
+      myWeights = new double[nnodes];
+      weights.get (myWeights);
+      myNodes = nodes.toArray (new FemNode3d[0]);
+      FemModel3d femodel = null;
+      for (int i=0; i<nnodes; i++) {
+         FemModel3d fem = getFemModel (myNodes[i]);
+         if (fem == null) {
+            throw new IllegalArgumentException (
+               "Node "+i+" does not belong to a FEM model");
+         }
+         if (femodel == null) {
+            femodel = fem;
+         }
+         else if (femodel != fem)  {
+            throw new IllegalArgumentException (
+               "Nodes do not all belong to a common FEM model");
+         }
+      }
+      myIpnt = null;
+      myData = null;
+      myElement = null;
+
+      boolean status = initializeGNX (myNodes, myWeights);
+      //initMasterBlocks (weights);
+      updateDeformationGradient();
+      myRC.mulInverseLeft (myPolard.getR(), TFW.R);
    }
 
    public void computeFrame (RigidTransform3d T) {
       T.setIdentity();
-      VectorNd N = myIpnt.getShapeWeights();
-      FemNode3d[] nodes = myElement.getNodes();
-      Matrix3d F = new Matrix3d();
-      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
-      for (int i=0; i<nodes.length; i++) {
-         T.p.scaledAdd (N.get(i), nodes[i].getLocalPosition());
+      for (int i=0; i<myNodes.length; i++) {
+         T.p.scaledAdd (myWeights[i], myNodes[i].getLocalPosition());
       }
-      PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (F);
-      T.R.mul (polard.getR(), myRC);
+      updateDeformationGradient();
+      T.R.mul (myPolard.getR(), myRC);
    }
 
    /**
@@ -268,26 +345,20 @@ public class FrameFem3dConstraint extends ConstrainerBase {
    public void computeVelocity (Twist vel) {
 
       Matrix3d B = new Matrix3d();
-      VectorNd N = myIpnt.getShapeWeights();
-      FemNode3d[] nodes = myElement.getNodes();
-
       vel.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         vel.v.scaledAdd (N.get(i), nodes[i].getVelocity());
+      for (int i=0; i<myNodes.length; i++) {
+         vel.v.scaledAdd (myWeights[i], myNodes[i].getVelocity());
       }
-      Matrix3d F = new Matrix3d();
-      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
-      PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (F);
+      updateDeformationGradient();
       Matrix3d H = new Matrix3d();
-      polard.getH(H);
+      myPolard.getH(H);
       computeB (B, H);
       myInvB.invert (B);
 
       RotationMatrix3d R = myFrame.getPose().R;
       Vector3d vloc = new Vector3d();
-      for (int i=0; i<nodes.length; i++) {
-         vloc.inverseTransform (R, nodes[i].getVelocity());
+      for (int i=0; i<myNodes.length; i++) {
+         vloc.inverseTransform (R, myNodes[i].getVelocity());
          vloc.transform (myRC);
          vel.w.crossAdd (myGNX[i], vloc, vel.w);
       }
@@ -302,25 +373,19 @@ public class FrameFem3dConstraint extends ConstrainerBase {
    public void computeFrameRelativeVelocity (Twist vel) {
 
       Matrix3d B = new Matrix3d();
-      VectorNd N = myIpnt.getShapeWeights();
-      FemNode3d[] nodes = myElement.getNodes();
-
       vel.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         vel.v.scaledAdd (N.get(i), nodes[i].getLocalVelocity());
+      for (int i=0; i<myNodes.length; i++) {
+         vel.v.scaledAdd (myWeights[i], myNodes[i].getLocalVelocity());
       }
-      Matrix3d F = new Matrix3d();
-      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
-      PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (F);
+      updateDeformationGradient();
       Matrix3d H = new Matrix3d();
-      polard.getH(H);
+      myPolard.getH(H);
       computeB (B, H);
       myInvB.invert (B);
 
       Vector3d vloc = new Vector3d();
-      for (int i=0; i<nodes.length; i++) {
-         vloc.transform (myRC, nodes[i].getLocalVelocity());
+      for (int i=0; i<myNodes.length; i++) {
+         vloc.transform (myRC, myNodes[i].getLocalVelocity());
          vel.w.crossAdd (myGNX[i], vloc, vel.w);
       }
       myInvB.mul (vel.w, vel.w);
@@ -344,5 +409,12 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       this();
       myFrame = frame;
       setFromElement (frame.getPose(), elem);
+   }
+
+   public FrameFem3dConstraint (
+      Frame frame, Collection<FemNode3d> nodes, VectorNd weights) {
+      this();
+      myFrame = frame;
+      setFromNodes (frame.getPose(), nodes, weights);
    }
 }

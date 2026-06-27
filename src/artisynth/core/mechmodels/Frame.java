@@ -115,6 +115,7 @@ public class Frame extends DynamicComponentBase
    protected NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
 
    protected PointList<FrameMarker> myMarkers; // markers attached to the frame
+   protected RenderableComponentList<FrameAttachedFrame> myAttachedFrames; // frames attached to this frame
 
    public static PropertyList myProps =
       new PropertyList (Frame.class, DynamicComponentBase.class);
@@ -187,6 +188,10 @@ public class Frame extends DynamicComponentBase
       myMarkers =
          new PointList<FrameMarker>(FrameMarker.class, "markers");
       add (myMarkers);
+      myAttachedFrames =
+         new RenderableComponentList<FrameAttachedFrame>(
+            FrameAttachedFrame.class, "attachedFrames");
+      add (myAttachedFrames);
    }
 
    public Frame (RigidTransform3d X) {
@@ -834,12 +839,16 @@ public class Frame extends DynamicComponentBase
    public void prerender (RenderList list) {
       myRenderFrame.set (myState.XFrameToWorld);
       list.addIfVisible (myMarkers);
+      list.addIfVisible (myAttachedFrames);
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myState.pos.updateBounds (pmin, pmax);
       for (FrameMarker mkr : myMarkers) {
          mkr.updateBounds(pmin, pmax);
+      }
+      for (FrameAttachedFrame frm : myAttachedFrames) {
+         frm.updateBounds(pmin, pmax);
       }
    }
 
@@ -880,6 +889,9 @@ public class Frame extends DynamicComponentBase
       }
       myRotaryDamping *= (s * s);
       myMarkers.scaleDistance (s);
+      for (FrameAttachedFrame frm : myAttachedFrames) {
+         frm.scaleDistance (s);
+      }
    }
 
    public void zeroExternalForces() {
@@ -1813,6 +1825,81 @@ public class Frame extends DynamicComponentBase
 //   public PointList<FrameMarker> getMarkers () {
 //      return myMarkers;
 //   }
+
+   /* ==== attached frame support ==== */
+
+   /**
+    * Returns the list of FrameAttachedFrames associated with this frame.
+    *
+    * @return attached frame list
+    */
+   public RenderableComponentList<FrameAttachedFrame> getAttachedFrames() {
+      return myAttachedFrames;
+   }
+
+   /**
+    * Adds a FrameAttachedFrame to this Frame's {@code attachedFrames} list.
+    * The attached frame's master frame will be set to this frame.
+    *
+    * @param frm attached frame to add
+    */
+   public void addAttachedFrame (FrameAttachedFrame frm) {
+      if (frm.getFrame() != this) {
+         frm.setFrame (this);
+      }
+      myAttachedFrames.add (frm);
+   }
+
+   /**
+    * Creates a FrameAttachedFrame attached to this frame and adds it to the
+    * frame's {@code attachedFrames} list. The attached frame's pose in world
+    * coordinates is given by {@code TFW}.
+    *
+    * @param TFW initial pose of the attached frame in world coordinates
+    * @return created attached frame
+    */
+   public FrameAttachedFrame addAttachedFrameWorld (RigidTransform3d TFW) {
+      FrameAttachedFrame frm = new FrameAttachedFrame();
+      frm.setPose (TFW);
+      frm.setFrame (this);
+      myAttachedFrames.add (frm);
+      return frm;
+   }
+
+   /**
+    * Creates a FrameAttachedFrame attached to this frame and adds it to the
+    * frame's {@code attachedFrames} list. The attached frame's pose relative
+    * to this frame is given by {@code TFM}.
+    *
+    * @param TFM transform from the attached frame to this frame
+    * @return created attached frame
+    */
+   public FrameAttachedFrame addAttachedFrame (RigidTransform3d TFM) {
+      FrameAttachedFrame frm = new FrameAttachedFrame();
+      frm.setFrame (this);
+      frm.setTFM (TFM);
+      myAttachedFrames.add (frm);
+      return frm;
+   }
+
+   /**
+    * Removes a FrameAttachedFrame from this Frame's {@code attachedFrames}
+    * list.
+    *
+    * @param frm attached frame to remove
+    * @return {@code true} if the frame was present and removed
+    */
+   public boolean removeAttachedFrame (FrameAttachedFrame frm) {
+      return myAttachedFrames.remove (frm);
+   }
+
+   /**
+    * Removes all FrameAttachedFrames from this Frame's {@code attachedFrames}
+    * list.
+    */
+   public void clearAttachedFrames() {
+      myAttachedFrames.removeAll();
+   }
 
    /* ==== composite component support ==== */
 

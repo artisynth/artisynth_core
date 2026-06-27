@@ -55,6 +55,17 @@ import artisynth.core.modelbase.TransformGeometryAction;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.*;
 
+/**
+ * Primary model component used for creating mechanical systems in ArtiSynth.
+ * Contains particles, rigid bodies, frames, markers, springs, muscles,
+ * constraints, visualization objects, attachments, constraints, FE models, and
+ * (possible) other {@code MechModel}s. Collision behaviors are managed by the
+ * model's collision manager.
+ *
+ * <p>The {@link #advance} method of the top-level {@code MechModel} is used to
+ * advance the mechanical system forward in time using integrator specified by
+ * the {@code integrator} property.
+ */
 public class MechModel extends MechSystemBase implements
 TransformableGeometry, ScalableUnits {
 
@@ -1166,52 +1177,78 @@ TransformableGeometry, ScalableUnits {
       return 0;
    }
 
+   /* ==== default Particle container ==== */
+
+   /**
+    * Returns this model's default container for particles.
+    *
+    * @return default particle container
+    */
    public PointList<Particle> particles() {
       return myParticles;
    }
 
+   /**
+    * Adds a particle to this model's particle container.
+    *
+    * @param p particle to add
+    */
    public void addParticle (Particle p) {
       myParticles.add (p);
    }
 
-   public void removeParticle (Particle p) {
-      myParticles.remove (p);
+   /**
+    * Removes a particle from this model's particle container.
+    *
+    * @param p particle to remove
+    * {@code true} if the component was present and actually removed
+    */
+   public boolean removeParticle (Particle p) {
+      return myParticles.remove (p);
    }
 
+   /**
+    * Removes all particles from this model's particle container.
+    */
    public void clearParticles() {
       myParticles.removeAll();
    }
 
+   /* ==== default Point container ==== */
+
+   /**
+    * Returns this model's default container for points.
+    *
+    * @return default point container
+    */
    public PointList<Point> points() {
       return myPoints;
    }
 
+   /**
+    * Adds a point to this model's point container.
+    *
+    * @param p point to add
+    */
    public void addPoint (Point p) {
       myPoints.add (p);
    }
 
-   public void removePoint (Point p) {
-      myPoints.remove (p);
+   /**
+    * Removes a point from this model's point container.
+    *
+    * @param p point to remove
+    * @return {@code true} if the point was present and actually removed
+    */
+   public boolean removePoint (Point p) {
+      return myPoints.remove (p);
    }
 
+   /**
+    * Removes all points from this model's point container.
+    */
    public void clearPoints() {
       myPoints.removeAll();
-   }
-
-   public RenderableComponentList<AxialSpring> axialSprings() {
-      return myAxialSprings;
-   }
-
-   public RenderableComponentList<MultiPointSpring> multiPointSprings() {
-      return myMultiPointSprings;
-   }
-
-   public RenderableComponentList<FrameSpring> frameSprings() {
-      return myFrameSprings;
-   }
-
-   public ComponentListView<ForceComponent> forceEffectors() {
-      return myForceEffectors;
    }
 
    public double getPointDamping() {
@@ -1324,34 +1361,92 @@ TransformableGeometry, ScalableUnits {
             this, "gravity", myGravityMode, mode);
    }
 
-   /* ------ axial spring stuff ------- */
+   /* ==== default AxialSpring container ==== */
 
+   /**
+    * Returns this model's default container for axial springs.
+    *
+    * @return default axial spring container
+    */
+   public RenderableComponentList<AxialSpring> axialSprings() {
+      return myAxialSprings;
+   }
+
+   /**
+    * Adds an axial spring to this model's axial spring container.
+    *
+    * @param s axial spring to add
+    */
    public void addAxialSpring (AxialSpring s) {
       myAxialSprings.add (s);
    }
 
+   /**
+    * Removes an axial spring from this model's axial spring container.
+    *
+    * @param s axial spring to remove
+    * @return {@code true} if the spring was present and actually removed
+    */
+   public boolean removeAxialSpring (AxialSpring s) {
+      return myAxialSprings.remove (s);
+   }
+
+   /**
+    * Removes all axial springs from this model's axial spring container.
+    */
+   public void clearAxialSprings() {
+      myAxialSprings.removeAll();
+   }
+
+   /**
+    * Sets the end points of an axial spring and adds it to this model's
+    * axial spring container.
+    *
+    * @param pnt0 first end point of the spring
+    * @param pnt1 second end point of the spring
+    * @param s axial spring to attach and add
+    */
    public void attachAxialSpring (Point pnt0, Point pnt1, AxialSpring s) {
       s.setFirstPoint (pnt0);
       s.setSecondPoint (pnt1);
       myAxialSprings.add (s);
    }
 
-   public void removeAxialSpring (AxialSpring s) {
-      myAxialSprings.remove (s);
+   /* ==== default MultiPointSpring container ==== */
+
+   /**
+    * Returns this model's default container for multi-point springs.
+    *
+    * @return default multi-point spring container
+    */
+   public RenderableComponentList<MultiPointSpring> multiPointSprings() {
+      return myMultiPointSprings;
    }
 
-   public void clearAxialSprings() {
-      myAxialSprings.removeAll();
-   }
-
+   /**
+    * Adds a multi-point spring to this model's multi-point spring container.
+    *
+    * @param s multi-point spring to add
+    */
    public void addMultiPointSpring (MultiPointSpring s) {
       myMultiPointSprings.add (s);
    }
 
-   public void removeMultiPointSpring (MultiPointSpring s) {
-      myMultiPointSprings.remove (s);
+   /**
+    * Removes a multi-point spring from this model's multi-point spring
+    * container.
+    *
+    * @param s multi-point spring to remove
+    * @return {@code true} if the spring was present and actually removed
+    */
+   public boolean removeMultiPointSpring (MultiPointSpring s) {
+      return myMultiPointSprings.remove (s);
    }
 
+   /**
+    * Removes all multi-point springs from this model's multi-point spring
+    * container.
+    */
    public void clearMultiPointSprings() {
       myMultiPointSprings.removeAll();
    }
@@ -1369,53 +1464,148 @@ TransformableGeometry, ScalableUnits {
       }
    }
 
+   /* ==== default FrameSpring container ==== */
+
+   /**
+    * Returns this model's default container for frame springs.
+    *
+    * @return default frame spring container
+    */
+   public RenderableComponentList<FrameSpring> frameSprings() {
+      return myFrameSprings;
+   }
+
+   /**
+    * Adds a frame spring to this model's frame spring container.
+    *
+    * @param s frame spring to add
+    */
    public void addFrameSpring (FrameSpring s) {
       myFrameSprings.add (s);
    }
 
+   /**
+    * Removes a frame spring from this model's frame spring container.
+    *
+    * @param s frame spring to remove
+    * @return {@code true} if the spring was present and actually removed
+    */
+   public boolean removeFrameSpring (FrameSpring s) {
+      return myFrameSprings.remove (s);
+   }
+
+   /**
+    * Removes all frame springs from this model's frame spring container.
+    */
+   public void clearFrameSprings() {
+      myFrameSprings.removeAll();
+   }
+
+   /**
+    * Sets the end frames of a frame spring and adds it to this model's
+    * frame spring container.
+    *
+    * @param frameA first end frame of the spring
+    * @param frameB second end frame of the spring
+    * @param s frame spring to attach and add
+    */
    public void attachFrameSpring (Frame frameA, Frame frameB, FrameSpring s) {
       s.setFrameA (frameA);
       s.setFrameB (frameB);
       myFrameSprings.add (s);
    }
 
-   public void removeFrameSpring (FrameSpring s) {
-      myFrameSprings.remove (s);
+   /* ==== default ForceEffector container ==== */
+
+   /**
+    * Returns this model's default container for force effectors.
+    *
+    * @return default force effector container
+    */
+   public ComponentListView<ForceComponent> forceEffectors() {
+      return myForceEffectors;
    }
 
-   public void clearFrameSprings() {
-      myFrameSprings.removeAll();
-   }
-
+   /**
+    * Adds a force effector to this model's force effector container.
+    *
+    * @param fe force effector to add
+    */
    public void addForceEffector (ForceComponent fe) {
       myForceEffectors.add (fe);
    }
 
-   public void removeForceEffector (ForceEffector fe) {
-      myForceEffectors.remove (fe);
+   /**
+    * Removes a force effector from this model's force effector container.
+    *
+    * @param fe force effector to remove
+    * @return {@code true} if the effector was present and actually removed
+    */
+   public boolean removeForceEffector (ForceEffector fe) {
+      return myForceEffectors.remove (fe);
    }
 
+   /**
+    * Removes all force effectors from this model's force effector container.
+    */
    public void clearForceEffectors() {
       myForceEffectors.removeAll();
    }
 
+   /* ==== default MuscleExciter container ==== */
+
+   /**
+    * Returns this model's default container for muscle exciters.
+    *
+    * @return default muscle exciter container
+    */
+   public ComponentList<MuscleExciter> getMuscleExciters() {
+      return myExciterList;
+   }
+
+   /**
+    * Adds a muscle exciter to this model's muscle exciter container.
+    *
+    * @param mex muscle exciter to add
+    */
    public void addMuscleExciter (MuscleExciter mex) {
       // XXX check to see if existing targets are contained ...
       myExciterList.add (mex);
    }
 
+   /**
+    * Removes a muscle exciter from this model's muscle exciter container.
+    *
+    * @param mex muscle exciter to remove
+    * @return {@code true} if the exciter was present and actually removed
+    */
    public boolean removeMuscleExciter (MuscleExciter mex) {
       return myExciterList.remove (mex);
    }
 
-   public ComponentList<MuscleExciter> getMuscleExciters() {
-      return myExciterList;
-   }
-
+   /**
+    * Removes all muscle exciters from this model's muscle exciter container.
+    */
    public void clearMuscleExciters () {
       myExciterList.removeAll();
    }
 
+   /* ==== default Field container ==== */
+
+   /**
+    * Returns this model's default container for field components.
+    *
+    * @return default field component container
+    */
+   public ComponentList<FieldComponent> getFields() {
+      return myFieldList;
+   }
+
+   /**
+    * Adds a field component to this model's field component container.
+    *
+    * @param fcomp field component to add
+    */
    public void addField (FieldComponent fcomp) {
       if (fcomp.getParent() == myFieldList) {
          throw new IllegalArgumentException (
@@ -1424,51 +1614,100 @@ TransformableGeometry, ScalableUnits {
       myFieldList.add (fcomp);
    }
 
+   /**
+    * Removes a field component from this model's field component container.
+    *
+    * @param fcomp field component to remove
+    * @return {@code true} if the component was present and actually removed
+    */
    public boolean removeField (FieldComponent fcomp) {
       return myFieldList.remove (fcomp);
    }
 
+   /**
+    * Removes all field components from this model's field component container.
+    */
    public void clearFields () {
       for (int i=myFieldList.size()-1; i>0; i--) {
          myFieldList.remove (i);
       }
    }
 
-   public ComponentList<FieldComponent> getFields() {
-      return myFieldList;
-   }
+   /* ==== default RigidBody container ==== */
 
+   /**
+    * Returns this model's default container for rigid bodies.
+    *
+    * @return default rigid body container
+    */
    public RenderableComponentList<RigidBody> rigidBodies() {
       return myRigidBodies;
    }
 
+   /**
+    * Adds a rigid body to this model's rigid body container.
+    *
+    * @param rb rigid body to add
+    */
    public void addRigidBody (RigidBody rb) {
       myRigidBodies.add (rb);
    }
 
-   public void removeRigidBody (RigidBody rb) {
-      myRigidBodies.remove (rb);
+   /**
+    * Removes a rigid body from this model's rigid body container.
+    *
+    * @param rb rigid body to remove
+    * @return {@code true} if the body was present and actually removed
+    */
+   public boolean removeRigidBody (RigidBody rb) {
+      return myRigidBodies.remove (rb);
    }
 
+   /**
+    * Removes all rigid bodies from this model's rigid body container.
+    */
    public void clearRigidBodies() {
       myRigidBodies.removeAll();
    }
 
+   /* ==== default Frame container ==== */
+
+   /**
+    * Returns this model's default container for frames.
+    *
+    * @return default frame container
+    */
    public RenderableComponentList<Frame> frames() {
       return myFrames;
    }
 
+   /**
+    * Adds a frame to this model's frame container.
+    *
+    * @param rb frame to add
+    */
    public void addFrame (Frame rb) {
       myFrames.add (rb);
    }
 
-   public void removeFrame (Frame rb) {
-      myFrames.remove (rb);
+   /**
+    * Removes a frame from this model's frame container.
+    *
+    * @param rb frame to remove
+    * @return {@code true} if the frame was present and actually removed
+    */
+   public boolean removeFrame (Frame rb) {
+      return myFrames.remove (rb);
    }
 
+   /**
+    * Removes all frames from this model's frame container.
+    */
    public void clearFrames() {
       myFrames.removeAll();
    }
+
+   /* ==== default MeshComponent container ==== */
 
    /**
     * Returns the list used to store mesh component in this model.
@@ -1505,6 +1744,52 @@ TransformableGeometry, ScalableUnits {
       myMeshBodies.removeAll();
    }
 
+   /* ==== default FrameMarker container ==== */
+
+   /**
+    * Returns this model's default container for frame markers.
+    *
+    * @return default frame marker container
+    */
+   public PointList<FrameMarker> frameMarkers() {
+      return myFrameMarkers;
+   }
+
+   /**
+    * Adds a frame marker to this model's frame marker container.
+    *
+    * @param mkr frame marker to add
+    */
+   public void addFrameMarker (FrameMarker mkr) {
+      myFrameMarkers.add (mkr);
+   }
+
+   /**
+    * Removes a frame marker from this model's frame marker container.
+    *
+    * @param mkr frame marker to remove
+    * @return {@code true} if the marker was present and actually removed
+    */
+   public boolean removeFrameMarker (FrameMarker mkr) {
+      return myFrameMarkers.remove (mkr);
+   }
+
+   /**
+    * Removes all frame markers from this model's frame marker container.
+    */
+   public void clearFrameMarkers() {
+      myFrameMarkers.removeAll();
+   }
+
+   /**
+    * Sets the frame and location of a frame marker and adds it to this
+    * model's frame marker container.
+    *
+    * @param mkr frame marker to attach and add
+    * @param frame frame to attach the marker to
+    * @param loc marker location in frame coordinates, or {@code null} to
+    * leave the location unchanged
+    */
    public void addFrameMarker (FrameMarker mkr, Frame frame, Point3d loc) {
       mkr.setFrame (frame);
       if (loc != null) {
@@ -1544,90 +1829,151 @@ TransformableGeometry, ScalableUnits {
       return mkr;
    }
 
-   public void addFrameMarker (FrameMarker mkr) {
-      myFrameMarkers.add (mkr);
-   }
+   /* ==== default BodyConnector container (rigid body constraints) ==== */
 
-   public void removeFrameMarker (FrameMarker mkr) {
-      myFrameMarkers.remove (mkr);
-   }
-
-   public void clearFrameMarkers() {
-      myFrameMarkers.removeAll();
-   }
-
-   public PointList<FrameMarker> frameMarkers() {
-      return myFrameMarkers;
-   }
-
-   /* ----- Rigid Body Constraints ------ */
-
+   /**
+    * Returns this model's default container for body connectors.
+    *
+    * @return default body connector container
+    */
    public RenderableComponentList<BodyConnector> bodyConnectors() {
       return myConnectors;
    }
 
+   /**
+    * Adds a body connector to this model's body connector container.
+    *
+    * @param c body connector to add
+    */
    public void addBodyConnector (BodyConnector c) {
       myConnectors.add (c);
    }
 
-   public void removeBodyConnector (BodyConnector c) {
-      myConnectors.remove (c);
+   /**
+    * Removes a body connector from this model's body connector container.
+    *
+    * @param c body connector to remove
+    * @return {@code true} if the connector was present and actually removed
+    */
+   public boolean removeBodyConnector (BodyConnector c) {
+      return myConnectors.remove (c);
    }
 
+   /**
+    * Removes all body connectors from this model's body connector container.
+    */
    public void clearBodyConnectors() {
       myConnectors.removeAll();
    }
 
-   /* ----- Particle Constraints ------ */
+   /* ==== default Constrainer container ==== */
 
+   /**
+    * Returns this model's default container for constrainers.
+    *
+    * @return default constrainer container
+    */
    public ComponentListView<ConstrainerBase> constrainers() {
       return myConstrainers;
    }
 
+   /**
+    * Adds a constrainer to this model's constrainer container.
+    *
+    * @param c constrainer to add
+    */
    public void addConstrainer (ConstrainerBase c) {
       myConstrainers.add (c);
    }
 
-   public void removeConstrainer (ConstrainerBase c) {
-      myConstrainers.remove (c);
+   /**
+    * Removes a constrainer from this model's constrainer container.
+    *
+    * @param c constrainer to remove
+    * @return {@code true} if the constrainer was present and actually removed
+    */
+   public boolean removeConstrainer (ConstrainerBase c) {
+      return myConstrainers.remove (c);
    }
 
+   /**
+    * Removes all constrainers from this model's constrainer container.
+    */
    public void clearConstrainers() {
       myConstrainers.removeAll();
    }
 
-   /* ----- Renderables ------ */
+   /* ==== default Renderable container ==== */
 
+   /**
+    * Returns this model's default container for renderable components.
+    *
+    * @return default renderable container
+    */
    public ComponentList<RenderableComponent> renderables() {
       return myRenderables;
    }
 
+   /**
+    * Adds a renderable component to this model's renderable container.
+    *
+    * @param rb renderable component to add
+    */
    public void addRenderable (RenderableComponent rb) {
       myRenderables.add (rb);
    }
 
+   /**
+    * Removes a renderable component from this model's renderable container.
+    *
+    * @param rb renderable component to remove
+    * @return {@code true} if the component was present and actually removed
+    */
    public boolean removeRenderable (RenderableComponent rb) {
       return myRenderables.remove (rb);
    }
 
+   /**
+    * Removes all renderable components from this model's renderable container.
+    */
    public void clearRenderables() {
       myRenderables.removeAll();
    }
 
-   /* ----- Sub models ------ */
+   /* ==== default model and FE model container ==== */
 
+   /**
+    * Returns this model's default container for sub-models (which includes FE
+    * models).
+    *
+    * @return default sub-model container
+    */
    public ComponentListView<MechSystemModel> models() {
       return myModels;
    }
 
+   /**
+    * Adds a sub-model to this model's sub-model container.
+    *
+    * @param m sub-model to add
+    */
    public void addModel (MechSystemModel m) {
       myModels.add (m);
    }
 
+   /**
+    * Removes a sub-model from this model's sub-model container.
+    *
+    * @param m sub-model to remove
+    * @return {@code true} if the model was present and actually removed
+    */
    public boolean removeModel (MechSystemModel m) {
       return myModels.remove (m);
    }
 
+   /**
+    * Removes all sub-models from this model's sub-model container.
+    */
    public void clearModels() {
       myModels.removeAll();
    }
@@ -1750,14 +2096,16 @@ TransformableGeometry, ScalableUnits {
          if (c instanceof MechSystemModel) {
             ((MechSystemModel)c).getAttachments (list, level+1);
          }
-         else if (c instanceof HasAttachments) {
-            ((HasAttachments)c).getAttachments (list);
-         }
-         else if (c instanceof DynamicAttachment) {
-            list.add ((DynamicAttachment)c);
-         }
-         else if (c instanceof CompositeComponent) {
-            recursivelyGetAttachments ((CompositeComponent)c, list, level);
+         else {
+            if (c instanceof HasAttachments) {
+               ((HasAttachments)c).getAttachments (list);
+            }
+            else if (c instanceof DynamicAttachment) {
+               list.add ((DynamicAttachment)c);
+            }
+            if (c instanceof CompositeComponent) {
+               recursivelyGetAttachments ((CompositeComponent)c, list, level);
+            }
          }
       }
    }
@@ -1774,16 +2122,18 @@ TransformableGeometry, ScalableUnits {
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
          if (c instanceof MechSystemModel) {
-            // ignore, we onyl want local attachments
+            // ignore, we only want local attachments
          }
-         else if (c instanceof HasAttachments) {
-            ((HasAttachments)c).getAttachments (list);
-         }
-         else if (c instanceof DynamicAttachment) {
-            list.add ((DynamicAttachment)c);
-         }
-         else if (c instanceof CompositeComponent) {
-            recursivelyGetLocalAttachments ((CompositeComponent)c, list);
+         else {
+            if (c instanceof HasAttachments) {
+               ((HasAttachments)c).getAttachments (list);
+            }
+            else if (c instanceof DynamicAttachment) {
+               list.add ((DynamicAttachment)c);
+            }
+            if (c instanceof CompositeComponent) {
+               recursivelyGetLocalAttachments ((CompositeComponent)c, list);
+            }
          }
       }
    }
@@ -2041,6 +2391,9 @@ TransformableGeometry, ScalableUnits {
       return (type1 & type2);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public StepAdjustment preadvance (double t0, double t1, int flags) {
       if (t0 == 0) {
          mySolver.projectPosConstraints (0);

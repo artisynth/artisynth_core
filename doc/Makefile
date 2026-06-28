@@ -25,6 +25,10 @@ JAVADOC_XOPTS = -Xdoclint:all,-missing  # For Java 8 - relax missing tag warning
 
 all:	javadocs PDF HTML INFOCENTER
 
+# list of classes for which we want the javadocs to show protected methods:
+PROTECTED_METHOD_CLASSES = \
+	artisynth/core/mechmodels/DynamicComponentBase.java
+
 # build the javadocs
 javadocs:
         # clear any existing javadoc directory
@@ -35,6 +39,12 @@ javadocs:
 		-windowtitle "Artisynth API documentation" \
 		-J-Xms500m -J-Xmx500m -encoding UTF-8 $(JAVADOC_XOPTS) \
 		`$(FIND_PACKAGES) -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`
+	# special generation to show protected methods in certain classes
+	javadoc -classpath "$(ROOT_DIR)/classes:$(ROOT_DIR)/lib/*"\
+		-author -d javadocs \
+		-windowtitle "Artisynth API documentation" \
+		-encoding UTF-8 $(JAVADOC_XOPTS) \
+		$(addprefix $(ROOT_DIR)/src/, $(PROTECTED_METHOD_CLASSES))
 
 #
 # Recursively call make into a set of subdirectories.

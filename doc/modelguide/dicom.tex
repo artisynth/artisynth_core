@@ -67,7 +67,7 @@ blog by Roni Zaharia:
 \url{http://dicomiseasy.blogspot.ca/}
 \end{quote}
 
-Each DICOM file contains a number of concatenated attributes (a.k.a.~elements), one of which defines the embedded binary image pixel data.  The other attributes act as meta-data, which can contain identity information of the subject, equipment settings when the image was acquired, spatial and temporal properties of the acquisition, voxel spacings, etc\ldots.  The image data typically represents one or more 2D images, concatenated, representing slices (or `frames') of a 3D volume whose locations are described by 13.5
+Each DICOM file contains a number of concatenated attributes (a.k.a.~elements), one of which defines the embedded binary image pixel data.  The other attributes act as meta-data, which can contain identity information of the subject, equipment settings when the image was acquired, spatial and temporal properties of the acquisition, voxel spacings, etc\ldots.  The image data typically represents one or more 2D images, concatenated, representing slices (or `frames') of a 3D volume whose locations are described by
 the meta-data.  This image data can be a set of raw pixel values, or can be encoded using almost any image-encoding scheme (e.g.~JPEG, TIFF, PNG).  For medical applications, the image data is typically either raw or compressed using a lossless encoding technique.  Complete DICOM acquisitions are typically separated into multiple files, each defining one or few frames.  The frames can then be assembled into 3D image `stacks' based on the meta-information, and converted into a form appropriate for display.
 
 \begin{table}[ht]
@@ -127,7 +127,7 @@ This layout is depicted in Figure \ref{fig:dicom:attribute}.  A list of importan
       Spacing between slices & DS & 0x0018 & 0x0088\\[0.5em]
       Study ID & SH & 0x0020 & 0x0010\\
       Series number & IS & 0x0020 & 0x0011\\
-      Aquisition number & IS & 0x0020 & 0x0012\\
+      Acquisition number & IS & 0x0020 & 0x0012\\
       Image number & IS & 0x0020 & 0x0013\\
       Image position patient & DS & 0x0020 & 0x0032\\
       Image orientation patient & DS & 0x0020 & 0x0037\\
@@ -240,7 +240,7 @@ for extracting and converting between pixel types as the \code{DicomPixelBuffer}
 
 \subsection{\texttt{DicomImage}}
 
-An complete DICOM acquisition typically consists of multiple slices forming a 3D image stack,
+A complete DICOM acquisition typically consists of multiple slices forming a 3D image stack,
 and potentially contains multiple 3D stacks to form a dynamic 3D+time image.  The collection
 of \code{DicomSlice}s are thus assembled into a \javaclass[maspack.image.dicom]{DicomImage}, 
 which keeps track of the spatial and temporal positions.
@@ -455,7 +455,7 @@ Each property has a corresponding \code{getXxx(...)} and \code{setXxx(...)} meth
 adjust the settings in code.  They can also be modified directly in the ArtiSynth GUI.  The
 last property, the \code{pixelConverter} allows for shifting and scaling intensity values for display.  
 By default a set of intensity `windows' are loaded directly from the DICOM file.
-Each window has a name, and defines a center and width used for linearly scale the intensity range.  
+Each window has a name, and defines a center and width used to linearly scale the intensity range.
 In addition to the windows extracted from the DICOM, two new windows are added: 
 \texttt{FULL\_DYNAMIC}, corresponding to the entire intensity range of the image; and \texttt{CUSTOM},
 which allows for custom specification of the window center and width properties.
@@ -482,7 +482,7 @@ can be retrieved from the viewer using the \code{getImage()} method.
 \section{DICOM example}
 
 Some examples of DICOM use can be found in
-the \texttt{artisynth.core.demos.dicom} package. The model {\tt
+the \texttt{artisynth.demos.dicom} package. The model {\tt
 DicomTest} loads a partial image of a heart, which is initially
 downloaded from the ArtiSynth website:
 %
@@ -504,7 +504,7 @@ initially appear as in Figure \ref{fig:dicom:demo}.
    \centering
    \setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
    \includegraphics[width=\imglength]{images/dicom_demo}
-   \caption{DICOM viewer image from \code{DicomTest}}.
+   \caption{DICOM viewer image from \code{DicomTest}.}
    \label{fig:dicom:demo}
 \end{figure}
 

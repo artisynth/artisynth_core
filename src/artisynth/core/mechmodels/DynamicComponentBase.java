@@ -26,10 +26,22 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
    // Activity myActivity;
    protected int mySolveIdx = -1;
 
+   /**
+    * {@inheritDoc}
+    */
    public DynamicAttachment getAttachment() {
       return myAttachment;
    }
 
+   /**
+    * Sets the {@code dynamic} property for this component. If the property
+    * value is {@code true}, the component's position/velocity state will
+    * evolve in time in response to forces. Typically, this method is made
+    * publicly available only for components which contain mass, since force
+    * response is ill-defined for components which don't.
+    *
+    * @param dynamic setting for the {@code dynamic} property
+    */
    protected void setDynamic (boolean dynamic) {
       if (myDynamicP != dynamic) {
          myDynamicP = dynamic;
@@ -37,10 +49,16 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
       }    
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean isDynamic() {
       return myDynamicP;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void setAttached (DynamicAttachment attachment) {
       if (myAttachment != attachment) {
          myAttachment = attachment;
@@ -54,6 +72,9 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean isActive() {
 //       if (MechModel.myAttachmentsAsConstraints) {
 //          return myDynamicP; 
@@ -63,6 +84,9 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
          //      }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean isAttached() {
       return myAttachment != null;
    }
@@ -71,10 +95,16 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
 //      return myDynamicP || myAttachment != null;
 //   }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean isParametric() {
       return !myDynamicP && myAttachment == null;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public boolean isControllable() {
       if (isActive()) {
          return true;

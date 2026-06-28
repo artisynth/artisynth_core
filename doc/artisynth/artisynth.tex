@@ -292,22 +292,22 @@ of soft references, and store information needed to undo this later:
       }
       else {
          // remove soft references which aren't in the hierarchy any more:
-	 ListRemove<ModelComponent> remove = null;
+         ListRemove<ModelComponent> remove = null;
          for (int i=0; i<mySoftRefs.size(); i++) {
             if (!ComponentUtils.areConnected (this, mySoftRefs.get(i)) {
-	       // reference isn't in the hierarchy; request its removal
-	       if (remove == null) {
+               // reference isn't in the hierarchy; request its removal
+               if (remove == null) {
                   remove = new ListRemove<ModelComponent>(mySoftRefs);
                }
-	       remove.requestRemove (i);
+               remove.requestRemove (i);
             }
          }
          if (remove != null) {
             remove.remove();
-	    undoInfo.addLast (remove);
+            undoInfo.addLast (remove);
          }
          else {
-	    undoInfo.addLast (ModelComponentBase.NULL_OBJ);
+            undoInfo.addLast (ModelComponentBase.NULL_OBJ);
          }               
       }
    }
@@ -825,6 +825,7 @@ method:
   while (simulating) {
      t1 = getNextAdvanceTime (t0);
      rootModel.advance (t0, t1);
+     t0 = t1;
   }
 \end{lstlisting}
 
@@ -858,7 +859,7 @@ form of a loop:
      ta = t0;
      while (ta < t1) {
         tb = getNextAdvanceTime (model, ta, t1);
-	model.preadvance (ta, tb);
+        model.preadvance (ta, tb);
         applyInputProbes (model, tb);
         applyControllers (model, ta, tb);
         model.advance (ta, tb);
@@ -949,8 +950,8 @@ When adaptive stepping is enabled, the inner loop of the
         tb = getNextAdvanceTime (model, ta, s);
         model.getState (state);
         do {
-	   s = GET_SCALING (model.preadvance (ta, tb));
-	   if (s >= 1) {
+           s = GET_SCALING (model.preadvance (ta, tb));
+           if (s >= 1) {
               applyInputProbes (model, tb);
               applyControllers (model, ta, tb);
               s = GET_SCALING (model.advance (ta, tb));
@@ -1484,14 +1485,14 @@ scanItem()} to scan additional attribute information. For example:
      rtok.nextToken();
      if (rtok.ttype == ReaderTokenizer.TT_WORD) {
         if (rtok.sval.equals ("attributeXXX") {
-	   rtok.scanToken ('=');
-	   ... scan information for attribute XXX ...
+           rtok.scanToken ('=');
+           ... scan information for attribute XXX ...
            return true;
         }
      }
      rtok.pushBack();
      return super.scanItem (rtok, tokens);
-  }	
+  }     
 \end{lstlisting}
 First, the method gets the next token. Then it checks if its type
 ({\tt ttype}) corresponds to a {\tt WORD} token and if the word's string
@@ -1508,7 +1509,7 @@ which allows the code fragment
 \begin{lstlisting}[]
      if (rtok.ttype == ReaderTokenizer.TT_WORD) {        
         if (rtok.sval.equals ("attributeXXX") {
-	   rtok.scanToken ('=');
+           rtok.scanToken ('=');
 \end{lstlisting}
 to be replaced with
 \begin{lstlisting}[]
@@ -1538,7 +1539,7 @@ Employing this in a larger example, we have
      }
      rtok.pushBack();
      return super.scanItem (rtok, tokens);
-  }	
+  }     
 \end{lstlisting}
 Here, if any of the attribute names 
 {\tt name}, {\tt position}, {\tt mass}, or {\tt dynamic} are matched,
@@ -1634,9 +1635,9 @@ looks like
 \begin{lstlisting}[]
       if (scanAttributeName (rtok, "point0")) {
          String refpath = rtok.scanWordOrQuotedString ('"');
-	 tokens.offer (new StringToken ("point0"));
-	 tokens.offer (new StringToken (refpath));
-	 return true;
+         tokens.offer (new StringToken ("point0"));
+         tokens.offer (new StringToken (refpath));
+         return true;
       }
 \end{lstlisting}
 Most implementations of {\tt ModelComponent}
@@ -1644,7 +1645,7 @@ provide the convenience method {\tt scanAndStoreReference (rtok, name, tokens)}
 which allows this to be compressed into
 \begin{lstlisting}[]
       if (scanAndStoreReference (rtok, "point0", tokens)) {
-	 return true;
+         return true;
       }
 \end{lstlisting}
 One may also use
@@ -1693,11 +1694,11 @@ That can be done by a code sequence that looks like
          tokens.offer (new StringToken ("points"));
          tokens.offer (ScanToken.BEGIN);
          while (rtok.nextToken() != ']') {
-	    if (rtok.tokenIsWordOrQuotedString ()) {
-	       tokens.offer (rtok.sval);
+            if (rtok.tokenIsWordOrQuotedString ()) {
+               tokens.offer (rtok.sval);
             }
             else {
-	       throw new IOException ("Error: reference path expected");
+               throw new IOException ("Error: reference path expected");
             }
          }
          tokens.offer (ScanToken.END);
@@ -1708,7 +1709,7 @@ and which is available in most ModelComponent implementations
 via the convenience method {\tt scanAndStoreReferences()}:
 \begin{lstlisting}[]
       if (scanAndStoreReferences (rtok, "point", tokens)) {
-	 return true;
+         return true;
       }
 \end{lstlisting}
 One may also use
@@ -2113,34 +2114,34 @@ should arranged in a structure similiar to that used
 for the file itself:
 \begin{lstlisting}[]
   componentTokens
-	BEGIN itemTokens* END
+        BEGIN itemTokens* END
 
   itemTokens
-	componentSpecTokens
-	attributePairTokens
+        componentSpecTokens
+        attributePairTokens
 
   attributePairTokens
-	NAME valueTokens
+        NAME valueTokens
 
   componentSpecTokens
         COMPONENT componentTokens
         componentTokens
 
   valueTokens
-	componentSpecTokens
-	listTokens
-	literalTokens
+        componentSpecTokens
+        listTokens
+        literalTokens
 
   listTokens
-	BEGIN <listItemTokens>* END
+        BEGIN <listItemTokens>* END
 
   listItemTokens
-	valueTokens
-	attributePairTokens
+        valueTokens
+        attributePairTokens
 
   literalTokens
-	STRING
-	OBJECT
+        STRING
+        OBJECT
 \end{lstlisting}
 Here, {\tt BEGIN} and {\tt END} are {\tt
 ScanToken.BEGIN} and {\tt ScanToken.END}, {\tt NAME} is a

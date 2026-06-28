@@ -24,6 +24,16 @@ in Figure \ref{fig:fem:masseter}.
 maxilla. \label{fig:fem:masseter}} 
 \end{figure}
 
+Most of the ArtiSynth components described here are
+contained in the packages
+%
+\begin{verbatim}
+artisynth.core.modelbase
+artisynth.core.femmodels
+artisynth.core.materials
+\end{verbatim}
+%
+
 \section{Overview}
 \label{sec:fem:overview}
 
@@ -228,7 +238,7 @@ Subcomponents of \javaclass[artisynth.core.femmodels]{FemModel3d}.
 \subsubsection{Nodes}
 \ifLaTeXML{\newline}
 
-The set of nodes belong to a finite element model can be obtained by the method
+The set of nodes belonging to a finite element model can be obtained by the method
 %
 \begin{methodtable}{0.5}{0.5}
 \midline
@@ -591,7 +601,7 @@ that is parallel to the element's surface normal, and has a constant
 length equal to the element's {\sf defaultThickness} property. This
 gives the element a virtual volume, which (as with regular elements)
 is used to determine 3D strains and to compute the element's mass from
-it's density.
+its density.
 
 \subsubsection{Meshes}
 \ifLaTeXML{\newline}
@@ -956,7 +966,7 @@ This returns the concatenated coordinate list for an ``ideal'' element of
 the given type.
 
 \subsection{Example: a simple beam model}
-\label{sec:fem:example:fembeam}
+\label{FemBeam:sec}
 
 \begin{figure}[ht]
 	\centering
@@ -1114,7 +1124,7 @@ Since
 \javaclass[artisynth.core.mechmodels]{Particle}, the same methods
 described in Section \ref{sec:mech:pointattachments} for attaching 
 particles to other particles and frames are available. For example, 
-we can attach an FEM node to a rigid body using a
+we can attach an FEM node to a rigid body using
 either a statement of the form
 %
 \begin{lstlisting}[]
@@ -1135,7 +1145,7 @@ One can also attach the nodes of one FEM model to the nodes of another
 using statements like
 %
 \begin{lstlisting}[]
-   mech.addAttachment (new PointParticle (node1, node2));
+   mech.addAttachment (new PointParticleAttachment (node1, node2));
 \end{lstlisting}
 %
 or
@@ -1161,7 +1171,7 @@ The following model demonstrates attaching an FEM beam to a rigid block.
 \lstinputlisting{../../src/artisynth/demos/tutorial/FemBeamWithBlock.java}
 \lstset{numbers=none}
 This model extends the {\tt FemBeam} example of Section 
-\ref{sec:fem:example:fembeam}.  The {\tt build()} method then creates 
+\ref{FemBeam:sec}.  The {\tt build()} method then creates 
 and adds a {\tt RigidBody} block (lines 18--20).  On line 21, the block
 is repositioned to the side of the beam to prepare for the attachment.
 On lines 24--28, all right-most nodes of the beam are then set to be attached
@@ -1221,11 +1231,11 @@ First, a {\tt PointFem3dAttachment} is created for the point {\tt
 pnt}. Next, {\tt setFromElement()} is used to determine the nodal
 weights within the element {\tt elem} for the specified position
 (which in this case is simply the point's current position).  To do
-this, it computes the ``natural coordinates'' coordinates of the
+this, it computes the ``natural coordinates'' of the
 position within the element. For this to be guaranteed to work, the
 position should be on or inside the element. If natural coordinates
 cannot be found, the method will return {\tt false} and the nearest
-estimates coordinates will be used instead. However, it is
+estimated coordinates will be used instead. However, it is
 sometimes possible to find natural coordinates outside a given element
 as long as the shape functions are well-defined. Finally, the
 attachment is added to the model.
@@ -1305,7 +1315,7 @@ As in that example, finding the nodes to attach can often be done
 using geometric queries. For example, we often select nodes based on
 how close they are to the other body we wish to attach to.
 
-Various prolixity queries are available for this task. To find the
+Various proximity queries are available for this task. To find the
 distance of a point to a polygonal mesh, we can use the
 following \javaclass[maspack.geometry]{PolygonalMesh} methods,
 %
@@ -1457,7 +1467,7 @@ element. Otherwise, the point is outside the element, and if no
 element filters were used in the query, outside the FEM model itself.
 
 \begin{sideblock}
-Typically, it is preferred attach a point to an element only if it
+Typically, it is preferred to attach a point to an element only if it
 lies on or inside an element. However, it is possible to attach points
 outside an element as long as the system is able to determine
 appropriate element ``coordinates'' for that point (which it may not
@@ -1774,7 +1784,7 @@ replaces the {\tt FrameSpring}:
 
 The simplified FEM model representing the ``disk'' is created at lines
 57-61, using a torus-shaped model created by {\tt FemFactory}.  It is
-then repositioning using {\tt transformGeometry()} (
+then repositioned using {\tt transformGeometry()} (
 Section \ref{TransformingGeometry:sec}) to place it between the
 vertebrae (line 64-66).  After the FEM model is positioned, we find
 which nodes are within a distance {\tt tol} of each vertebral surface
@@ -1783,7 +1793,7 @@ and attach them to the appropriate body (lines 69-81).
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 LumbarFEMDisk} from the {\sf Models} menu. The model should load and
 initially appear as in Figure \ref{LumbarFEMDisk:fig}.  The
-behavior is best seem by running the model and using the pull
+behavior is best seen by running the model and using the pull
 controller to exert forces on the upper vertebra.
 
 \subsection{Nodal-based attachments}
@@ -1824,12 +1834,31 @@ these.
 \javaclass[\fem]{PointFem3dAttachment} provides
 several methods for explicitly specifying nodes and weights. The
 signatures for these include:
-\begin{lstlisting}[]
-  void setFromNodes (FemNode[] nodes, double[] weights)
-  void setFromNodes (Collection<FemNode> nodes, VectorNd weights)
-  boolean setFromNodes (Point3d pos, FemNode[] nodes)
-  boolean setFromNodes (Point3d pos, Collection<FemNode> nodes)
-\end{lstlisting}
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\fem.PointFem3dAttachment.setFromNodes(FemNode:A,double:A)}%
+{void setFromNodes (FemNode[] nodes, double[] weights)}%
+{\ }%
+%
+\methodentry
+{\fem.PointFem3dAttachment.setFromNodes(Collection,VectorNd)}%
+{void setFromNodes (Collection<FemNode> nodes, VectorNd weights)}%
+{\ }%
+%
+\methodentry
+{\fem.PointFem3dAttachment.setFromNodes(Point3d,FemNode:A)}%
+{boolean setFromNodes (Point3d pos, FemNode[] nodes)}%
+{\ }%
+%
+\methodentry
+{\fem.PointFem3dAttachment.setFromNodes(Point3d,Collection)}%
+{boolean setFromNodes (Point3d pos, Collection<FemNode> nodes)}%
+{\ }%
+%
+\midline
+\end{methodtable}
 The last two methods determine the weights automatically, using an
 inverse-distance-based calculation in which each weight $\alpha_k$
 is initially computed as
@@ -1920,7 +1949,7 @@ can be found in the actual source file.
       FemModel3d fem2 = addFem (mech,  0.0, 0.0, -0.25);
 
       // reconstruct the FEM surface meshes so that they show only elements on
-      // the positive side of the x-y plane. Also, set surface rendering to
+      // the positive side of the x-z plane. Also, set surface rendering to
       // show strain values.
       fem1.createSurfaceMesh (new MyFilter());
       fem1.setSurfaceRendering (SurfaceRender.Strain);
@@ -1962,10 +1991,10 @@ can be found in the actual source file.
 \lstset{numbers=none}
 The {\tt build()} method begins by creating a {\tt MechModel} and then
 adding to it two FEM beams (created using the auxiliary method {\tt
-addFem()}. Rendering of each FEM model's surface is then set up to
+addFem()}). Rendering of each FEM model's surface is then set up to
 show strain values ({\tt setSurfaceRendering()}, lines 41 and 43).
 The surface meshes themselves are also redefined to exclude the
-frontmost elements, allowing the strain values to be displayed closer
+frontmost elements, allowing the strain values to be displayed closer to the
 model centers. This redefinition is done using calls to {\tt
 createSurfaceMesh()} (lines 40, 41) with a custom {\tt ElementFilter}
 defined at lines 3-12.
@@ -1984,7 +2013,7 @@ the method associated with equation (\ref{invDistWeights:eqn}).
 
 Finally, the springs are created (auxiliary method {\tt addSpring()},
 lines 66-67), the nodes associated for each attachment are set to
-render as white spheres ({\tt setAttachedNodesWhites()}, lines 70-71),
+render as white spheres ({\tt setAttachedNodesWhite()}, lines 70-71),
 and the particles are set to render as green spheres.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
@@ -2012,7 +2041,7 @@ component, so when creating and adding a marker there is no need to
 create a separate attachment component.
 
 Within the component hierarchy, FEM markers are typically stored in
-the {\tt markers} list of their associated FEM model. They can
+the {\tt markers} container of their associated FEM model. They can
 be created and added using a code fragment of the form
 %
 \begin{lstlisting}[]
@@ -2048,15 +2077,42 @@ associated with the attachment, as described in Section
 \end{lstlisting}
 %
 There are a variety of methods available to set the attachment, mirroring
-those available in the underlying base class {\tt PointFem3dAttachment}:
-\begin{lstlisting}[]
-  void setFromFem (FemModel3d fem)
-  boolean setFromElement (FemElement3d elem)
-  void setFromNodes (FemNode[] nodes, double[] weights)
-  void setFromNodes (Collection<FemNode> nodes, VectorNd weights)
-  boolean setFromNodes (FemNode[] nodes)
-  boolean setFromNodes (Collection<FemNode> nodes)
-\end{lstlisting}
+those available in the implementing class {\tt PointFem3dAttachment}:
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\fem.FemMarker.setFromFem(FemModel3d)}%
+{void setFromFem (FemModel3d fem)}%
+{\ }%
+%
+\methodentry
+{\fem.FemMarker.setFromElement(FemElement)}%
+{boolean setFromElement (FemElement3d elem)}%
+{\ }%
+%
+\methodentry
+{\fem.FemMarker.setFromNodes(FemNode:A,double:A)}%
+{void setFromNodes (FemNode[] nodes, double[] weights)}%
+{\ }%
+%
+\methodentry
+{\fem.FemMarker.setFromNodes(Collection,VectorNd)}%
+{void setFromNodes (Collection<FemNode> nodes, VectorNd weights)}%
+{\ }%
+%
+\methodentry
+{\fem.FemMarker.setFromNodes(FemNode:A)}%
+{boolean setFromNodes (FemNode[] nodes)}%
+{\ }%
+%
+\methodentry
+{\fem.FemMarker.setFromNodes(Collection)}%
+{boolean setFromNodes (Collection<FemNode> nodes)}%
+{\ }%
+%
+\midline
+\end{methodtable}
 The last two methods compute nodal weights automatically, as described
 in Section \ref{sec:fem:nodalAttachments}, based on the marker's
 currently assigned position. If the supplied nodes do not provide
@@ -2065,13 +2121,36 @@ sufficient support, then the methods return {\tt false}.
 Another set of convenience methods are supplied by {\tt FemModel3d},
 which combine these with the {\tt addMarker()} call:
 %
-\begin{lstlisting}[]
-  void addMarker (FemMarker mkr, FemElement3d elem)
-  void addMarker (FemMarker mkr, FemNode[] nodes, double[] weights)
-  void addMarker (FemMarker mkr, Collection<FemNode> nodes, VectorNd weights)
-  boolean addMarker (FemMarker mkr, FemNode[] nodes)
-  boolean addMarker (FemMarker mkr, Collection<FemNode> nodes)
-\end{lstlisting}
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\fem.FemModel.addMarker(FemMarker,FemElement)}%
+{void addMarker (FemMarker mkr, FemElement3d elem)}%
+{\ }%
+%
+\methodentry
+{\fem.FemModel.addMarker(FemMarker,FemNode:A,double:A)}%
+{void addMarker (FemMarker mkr, FemNode[] nodes, double[] weights)}%
+{\ }%
+%
+\methodentry
+{\fem.FemModel.addMarker(FemMarker,Collection,VectorNd)}%
+{void addMarker (FemMarker mkr, Collection<FemNode> nodes, VectorNd weights)}%
+{\ }%
+%
+\methodentry
+{\fem.FemModel.addMarker(FemMarker,FemNode:A)}%
+{boolean addMarker (FemMarker mkr, FemNode[] nodes)}%
+{\ }%
+%
+\methodentry
+{\fem.FemModel.addMarker(FemMarker,Collection)}%
+{boolean addMarker (FemMarker mkr, Collection<FemNode> nodes)}%
+{\ }%
+%
+\midline
+\end{methodtable}
 %
 For example, one can do
 %
@@ -2081,19 +2160,44 @@ For example, one can do
 \end{lstlisting}
 %
 
-Markers are often used to track movement within an FEM model.
-For that, one can examine their positions and velocities,
-as with any other particles, using the methods
+{\tt FemModel3d} also provides the following additional methods to add markers
+and manage its {\tt marker} container:
 %
-\begin{lstlisting}[]
-  Point3d getPosition();     // returns the current position
-  Vector3d getVelocity();     // returns the current velocity
-\end{lstlisting}
+\begin{methodtable}{0.42}{0.58}
+\midline
 %
-The return values from these methods should not be
-modified. Alternatively, when a 3D force $\f$ is applied to the
-marker, it is distributed to the attached nodes according to the nodal
-weights, as described in Equation \eqref{pointFemForces:eqn}.
+\methodentry
+{\fem.FemModel3d.addMarker(Point3d)}%
+{void addMarker (Point3d pos)}%
+{Adds a marker at {\tt pos} (in world coords).}%
+%
+\methodentry
+{\fem.FemModel3d.addMarker(Point3d,boolean)}%
+{void addMarker (Point3d pos, boolean project)}%
+{Adds a marker; projects to FEM if outside and {\tt project} is {\tt true}.}%
+%
+\methodentry
+{\fem.FemModel.removeMarker(FemMarker)}%
+{boolean removeMarker (FemMarker mkr)}%
+{Remove the marker {\tt mkr}; return {\tt true} if it was present.}%
+%
+\methodentry
+{\fem.FemModel.clearMarkers()}%
+{void clearMarkers ()}%
+{Remove all markers.}%
+%
+\methodentry
+{\fem.FemModel.markers()}%
+{PointList<FemMarker> markers()}%
+{Return the {\tt markers} container.}%
+%
+\midline
+\end{methodtable}
+
+
+\javaclass[\fem]{FemMarker} is a subclass of \javaclass[\mech]{Point},
+and so has the same accessors for querying position and velocity and setting
+forces as described in Section \ref{Points:sec}.
 
 \subsection{Example: attaching an FEM beam to a muscle}
 
@@ -2254,7 +2358,7 @@ using nodal and element-based attachments. The build method is shown below:
 
       mech.attachFrame (frame, fem); // attach using element-based attachment
 
-      // attach the box to the FEM, using all the nodes of elements 31 and 32
+      // attach the box to the FEM, using all the nodes of elements 22 and 31
       HashSet<FemNode3d> nodes = collectNodes (fem, new int[] { 22, 31 });
       FrameFem3dAttachment attachment = new FrameFem3dAttachment(box);
       attachment.setFromNodes (box.getPose(), nodes);
@@ -2285,6 +2389,197 @@ be applied to the attached block and frame using the
 pull tool, causing the FEM model to deform 
 (see the section ``Pull Manipulation'' in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
+
+\subsection{Attached frames}
+
+A \javaclass[\fem]{FemAttachedFrame} is an {\tt AttachedFrame} that is
+connected to a \javaclass[\fem]{FemModel3d}, analogous to
+\javaclass[\mech]{FrameAttachedFrame} components that are connected to {\tt
+Frame}s (Section \ref{frameAttachedFrames:sec}). The attachment is
+element-based: the frame's position and orientation track a weighted
+combination of the surrounding FEM nodes, using natural coordinates within the
+enclosing (or nearest) element. The frame therefore moves and changes
+orientation as the FE model deforms.
+
+{\tt FemAttachedFrame} objects can be created using the constructors
+%
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\fem.FemAttachedFrame.FemAttachedFrame()}%
+{FemAttachedFrame ()}%
+{\ }%
+%
+\methodentry
+{\fem.FemAttachedFrame.FemAttachedFrame(RigidTransform3d)}%
+{FemAttachedFrame (RigidTransform3d TFW)}%
+{\ }%
+%
+\methodentry
+{\fem.FemAttachedFrame.FemAttachedFrame(FemElement3dBase,RigidTransform3d)}%
+{FemAttachedFrame (FemElement3dBase elem, RigidTransform3d TFW)}%
+{\ }%
+%
+\midline
+\end{methodtable}
+%
+where {\tt FemAttachedFrame()} creates a default frame with no attachment, {\tt
+FemAttachedFrame(TFW)} sets the initial world pose to {\tt TFW}, and {\tt
+FemAttachedFrame(elem,TFW)} also attaches the frame to the specified
+element. Once created, the nature of the FE attachment can be set or changed
+using
+%
+\begin{methodtable}[\smallskipamount]{0.52}{0.48}
+\midline
+%
+\methodentry
+{\fem.FemAttachedFrame.setFromFem(FemModel3d)}%
+{void setFromFem (FemModel3d fem)}%
+{Attaches to the nearest element in {\tt fem}.}%
+%
+\methodentry
+{\fem.FemAttachedFrame.setFromElement(FemElement3dBase)}%
+{void setFromElement (FemElement3dBase elem)}%
+{Attaches to {\tt elem} using natural coordinates computed from the
+frame's current pose.}%
+%
+\methodentry
+{\fem.FemAttachedFrame.setFromNodes(Collection,VectorNd)}%
+{boolean setFromNodes (\brh Collection<FemNode3d> nodes, VectorNd weights)}%
+{Attaches to the specified nodes using the given weights.}%
+%
+\methodentry
+{\fem.FemAttachedFrame.setFromNodes(FemNode3d:A,double:A)}%
+{boolean setFromNodes (\brh FemNode3d[] nodes, double[] weights)}%
+{Attaches to the specified nodes using the given weights.}%
+%
+\methodentry
+{\fem.FemAttachedFrame.setFromNodes(Collection)}%
+{boolean setFromNodes (Collection<FemNode3d> nodes)}%
+{Attaches to the specified nodes using inverse-distance weighting based
+on the frame's current pose.}%
+%
+\methodentry
+{\fem.FemAttachedFrame.setFromNodes(FemNode3d:A)}%
+{boolean setFromNodes (FemNode3d[] nodes)}%
+{Attaches to the specified nodes using inverse-distance weighting based
+on the frame's current pose.}%
+%
+\midline
+\end{methodtable}
+%
+The {\tt setFromNodes()} methods mirror those available for {\tt FemMarker}
+(Section \ref{sec:fem:nodalAttachments}): the first two take explicit weights,
+while the last two determine weights automatically using inverse-distance
+weighting as described by equation (\ref{invDistWeights:eqn}).
+
+Once created, the attached frame must be added to the {\tt MechModel}
+hierarchy. One choice is to add them directly to the FE model to
+which they are attached. Each {\tt FemModel3d} maintains an {\tt
+attachedFrames} container, which may be managed using the
+following {\tt FemModel3d} methods:
+%
+\begin{methodtable}[\smallskipamount]{0.52}{0.48}
+\midline
+%
+\methodentry
+{\fem.FemModel3d.addAttachedFrame(FemAttachedFrame)}%
+{void addAttachedFrame (FemAttachedFrame frm)}%
+{Adds an existing frame, attaching it to the nearest element if not
+already attached to this model.}%
+%
+\methodentry
+{\fem.FemModel3d.addAttachedFrame(FemAttachedFrame,FemElement3dBase)}%
+{void addAttachedFrame (\brh FemAttachedFrame frm, FemElement3dBase elem)}%
+{Adds an existing frame, attaching it to the specified element.}%
+%
+\methodentry
+{\fem.FemModel3d.addAttachedFrame(RigidTransform3d)}%
+{FemAttachedFrame addAttachedFrame (\brh RigidTransform3d TFW)}%
+{Creates a new {\tt FemAttachedFrame} located at world pose $\T_{FW}$
+and attaches it to the nearest element.}%
+%
+\methodentry
+{\fem.FemModel3d.removeAttachedFrame(FemAttachedFrame)}%
+{boolean removeAttachedFrame (FemAttachedFrame frm)}%
+{Removes {\tt frm} from the list; returns {\tt true} if present.}%
+%
+\methodentry
+{\fem.FemModel3d.clearAttachedFrames()}%
+{void clearAttachedFrames ()}%
+{Removes all frames from the {\tt attachedFrames} list.}%
+%
+\methodentry
+{\fem.FemModel3d.getAttachedFrames()}%
+{RenderableComponentList<FemAttachedFrame>\brh getAttachedFrames ()}%
+{Returns the {\tt attachedFrames} sub-list.}%
+%
+\midline
+\end{methodtable}
+%
+
+Alternatively, attached frames can be added to the {\tt MechModel}'s {\tt
+frames} container, which is managed using the {\tt MechModel} methods
+%
+\begin{methodtable}{0.52}{0.48}
+\midline
+%
+\methodentry
+{\mech.MechModel.addFrame()}%
+{void addFrame (Frame frame)}%
+{Adds frame {\tt frame} to the container.}%
+%
+\methodentry
+{\mech.MechModel.removeFrame()}%
+{boolean removeFrame (Frame frame)}%
+{Removes frame {\tt frame} from the container.}%
+%
+\methodentry
+{\mech.MechModel.clearFrames()}%
+{void clearFrames()}%
+{Removes all frames.}%
+%
+\methodentry
+{\mech.MechModel.frames()}%
+{RenderableComponentList<Frame> frames()}%
+{Returns the {\tt frames} container.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+
+\subsection{Example: attached frames for an FE model}
+\label{FemAttachedFrames:sec}
+
+\begin{figure}[ht]
+   \centering
+   \setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+   \includegraphics[width=\imglength]{images/FemAttachedFrames}
+   \caption{FemAttachedFrames model loaded into ArtiSynth.}
+   \label{fig:fem:femAttachedFrames}
+\end{figure}
+
+The following model demonstrates how to add {\tt FemAttachedFrame}s to an
+FEM beam:
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/FemAttachedFrames.java}
+\lstset{numbers=none}
+This example can be found in {\tt artisynth.demos.tutorial.FemAttachedFrames}.
+It extends {\tt FemBeam} (Section \ref{FemBeam:sec}), adding five evenly-spaced
+{\tt FemAttachedFrame}s along the beam's local $x$-axis (lines 20--27). Each
+frame is positioned at a world-coordinate pose computed from the beam's length,
+and added to the FEM model using {\tt fem.addAttachedFrame(TFW)}, which
+automatically finds and attaches to the nearest element. The frames are
+rendered as solid arrow triads with an axis length of 0.12. Finally, the FEM
+surface is made semi-transparent (line 29) so the embedded frames are visible.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+FemAttachedFrames} from the {\sf Models} menu. The model should load and
+initially appear as in Figure \ref{fig:fem:femAttachedFrames}. Running the
+model will cause the beam to fall under gravity, with all attached frames
+moving and rotating to track the deformation of the beam.
 
 \subsection{Adding joints to FEM models}
 \label{FEMJoints:sec}
@@ -2399,7 +2694,7 @@ joint. The build method is shown below:
    }
 \end{lstlisting}
 \lstset{numbers=none} Lines 3-16 create a {\tt MechModel} and
-populates it with two FEM beams, {\tt fem1} and {\tt fem2}, using an
+populate it with two FEM beams, {\tt fem1} and {\tt fem2}, using an
 auxiliary method {\tt addFem()} defined in the model source file.  The
 leftmost nodes of {\tt fem1} are set fixed. A {\tt
 SlottedRevoluteJoint} is then created to interconnect {\tt fem1} and
@@ -2409,7 +2704,7 @@ properties.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 JointedFemBeams} from the {\sf Models} menu. Running the model will
-cause it drop and flex under gravity, as shown in 
+cause it to drop and flex under gravity, as shown in Figure
 \ref{fig:fem:jointFemBeams}. Forces can interactively
 be applied to the beams using
 the pull tool
@@ -2758,7 +3053,7 @@ The element composition of a bundle can be controlled by the methods
   void clearElements()                        // removes all elements
 
   int numElements()                           // gets the number of elements
-  FemElment3dBase getElement (int idx)        // gets the idx-th element 
+  FemElement3dBase getElement (int idx)        // gets the idx-th element 
 \end{lstlisting}
 %
 
@@ -2786,8 +3081,8 @@ After a bundle has been created, it is possible to get or set
 its {\sf material} property using the methods
 %
 \begin{lstlisting}[]
-  FemMateral getMaterial()                  // get the material
-  FemMateral setMaterial (FemMaterial mat)  // set the material
+  FemMaterial getMaterial()                  // get the material
+  FemMaterial setMaterial (FemMaterial mat)  // set the material
 \end{lstlisting}
 %
 Again, because materials are copied internally, any modification to a
@@ -2798,7 +3093,7 @@ or modify the {\it copied} material which can be obtained by calling
 {\tt getMaterial()} or by storing the value returned by {\tt
 setMaterial()}.
 
-Finally, a {\tt MuscleBundle} is a renderable component. Setting its
+Finally, a {\tt MaterialBundle} is a renderable component. Setting its
 {\sf elementWidgetSize} property to a value greater than zero will
 cause the rendering of all its elements, using a solid widget
 representation of each at a scale controlled by {\sf elementWidgetSize}:
@@ -2833,7 +3128,7 @@ It consists of a simple thin hexahedral sheet in which a material
 bundle is used to stiffen elements close to the x-axis,
 creating a stiff ``spine''. While the same effect could be achieved by
 simply setting a different material property for the ``spine''
-elements, it does provide a good example of muscle bundle usage.
+elements, it does provide a good example of material bundle usage.
 %
 The model's {\tt build} method is given below:
 \lstset{numbers=left}
@@ -2853,7 +3148,7 @@ along each axis. Its material is set to a linear material with a
 Young's modulus of $10000$. The leftmost nodes are then fixed (lines
 11-16).
 
-Next, a {\tt MuscleBundle} is added and used to apply an additional
+Next, a {\tt MaterialBundle} is added and used to apply an additional
 material to the elements near the x axis (lines 19-29). It is given a
 neo-hookean material with a much higher stiffness, and the ``spine''
 elements for it are selected by finding those whose centroids 
@@ -3008,8 +3303,8 @@ Point3d[] fibrePoints = ...   //create a sequential list of points
 
 // Add fibres
 Point pPrev = fem.addMarker(fibrePoints[0]);    // create an FEM marker
-for (int i=1; i<=fibrePoints.length; i++) {
-   Point pNext = fem.addMarker(fibrePoint[i]);
+for (int i=1; i<fibrePoints.length; i++) {
+   Point pNext = fem.addMarker(fibrePoints[i]);
 
    // Create fibre material
    double l0 = pNext.distance(pPrev);           // rest length
@@ -3241,7 +3536,7 @@ from the small deformation Cauchy strain $\Beps$,
 %
 where $\mathcal{D}$ is the {\it elasticity tensor}.
 Both the stress and
-strain are symmetric $3 \time 3$ matrices,
+strain are symmetric $3 \times 3$ matrices,
 %
 \begin{equation}
 \Bsig = \matl 
@@ -3310,7 +3605,7 @@ removed from $\F$ using a polar decomposition
 \label{polardF:eqn}
 \end{equation}
 %
-where $\R$ is a (right-handed) rotation matrix and $\P$ is symmetric
+where $\R$ is a (right-handed) rotation matrix and $\P$ is a symmetric
 matrix. $\P$ is then used to compute the Cauchy strain:
 %
 \begin{equation}
@@ -3621,7 +3916,7 @@ W(\E) = \frac{\lambda}{2} \tr(\E)^2 + \mu \tr(\E^2),
 where the Lam\'e parameters $\lambda$ and $\mu$ are
 derived from Young's modulus $E$ and Poisson's ratio $\nu$
 according to (\ref{LameParameters:eqn}).
-From this definition it follows that the second Piola-Kirchoff stress
+From this definition it follows that the second Piola-Kirchhoff stress
 tensor is given by
 %
 \begin{equation}
@@ -3921,7 +4216,7 @@ but can be specified on a per-element basis using the element method
    FemModel3d fem;
    ...
    for (FemElement3d elem : fem.getElements()) {
-      ... computer R as required for the element ...
+      ... compute R as required for the element ...
       elem.setFrame (R);
    }
 \end{lstlisting}
@@ -4099,7 +4394,7 @@ is an incompressible isotropic material that implements the
 Veronda-Westmann model \cite{veronda1970mechanical}. 
 Its strain energy density is given by
 %
-\begin{equation}\W(\bar\C, J) = 
+\begin{equation}W(\bar\C, J) = 
 C_1 \left( e^{C_2 (\bar I_1-3)}-1 \right) - \frac{C_1 C_2}{2} (\bar I_2-3) + U(\kappa, J),
 \end{equation}
 %
@@ -4136,7 +4431,7 @@ $\kappa$ & {\sf bulkModulus} & bulk modulus for incompressibility &
 \methodentry
 {\mats.VerondaWestmannMaterial.VerondaWestmannMaterial(double,double,double)}%
 {VerondaWestmannMaterial (double C1, double C2, double kappa)}%
-{Create with specified $\C_1$, $C_2$, and $\kappa$.}%
+{Create with specified $C_1$, $C_2$, and $\kappa$.}%
 %
 %\midline
 \end{methodtable}
@@ -5094,7 +5389,7 @@ import \fem.FemModel.SurfaceRender;
    ...
 
    fem.setSurfaceRendering (SurfaceRender.Shaded);
-   RenderProps.setFaceColor (fem, new Color (0.7f. 0.7f, 1f));
+   RenderProps.setFaceColor (fem, new Color (0.7f, 0.7f, 1f));
    RenderProps.setDrawEdges (fem, true);
    RenderProps.setEdgeColor (fem, Color.BLUE);
 \end{lstlisting}
@@ -5112,11 +5407,11 @@ Value & Description\\
 {\tt None} & mesh is not rendered\\
 {\tt Shaded} & rendered as a mesh using the standard rendering properties\\
 {\tt Stress} & color map of the von Mises stress\\
-{\tt Strain} & color map the von Mises strain\\
+{\tt Strain} & color map of the von Mises strain\\
 {\tt MAPStress} & color map of the maximum absolute value principal stress\\
 {\tt MAPStrain} & color map of the maximum absolute value principal strain\\
 {\tt MaxShearStress} & color map of the maximum shear stress\\
-{\tt MaxStearStrain} & color map of the maximum sheer strain\\
+{\tt MaxShearStrain} & color map of the maximum shear strain\\
 {\tt EnergyDensity} & color map of the strain energy density\\
 \hline
 \end{tabular}
@@ -5219,7 +5514,7 @@ relative to the size of the element.
 If {\sf directionRenderLen} $> 0$, this property specifics {\it
 where} the fibre directions should be rendered within muscle bundle
 elements. The value {\tt ELEMENT} causes a single direction to be
-rendered at the element center, while {\tt INTEGRATION\_POINTS} causes
+rendered at the element center, while {\tt INTEGRATION\_POINT} causes
 directions to be rendered at each of the element's integration points.
 
 \item[elementWidgetSize]\mbox{}
@@ -5260,7 +5555,7 @@ FEM beam, one at the top and the other at the bottom
 By default, {\sf directionRenderType} is set to {\tt ELEMENT} and so
 directions are drawn at the element centers. Setting {\sf
 directionRenderType} to {\tt INTEGRATION\_POINT} causes the directions
-to be drawn at each integration points
+to be drawn at each integration point
 (Figure \ref{FemMuscleRender1:fig}, right), which is useful when
 directions are specified at integration points
 (Section \ref{sec:fem:materialmuscle}).
@@ -5411,7 +5706,7 @@ with the following constructors:
 \methodentry
 {\fem.FemCutPlane.FemCutPlane(RigidTransform3d)}
 {FemCutPlane (RigidTransform3d TPW)}%
-{Creates a cut plane with pose {\tt TPW} a specified grid resolution.}%
+{Creates a cut plane with pose {\tt TPW}.}%
 %
 \methodentry
 {\fem.FemCutPlane.FemCutPlane(double,RigidTransform3d)}
@@ -5556,7 +5851,7 @@ Cut planes are illustrated by the application model defined in
 %
 which creates a simple FEM model in the shape of a half-torus, and
 then adds a cut plane to render its internal stresses. Its {\tt
-build()} method is give below:
+build()} method is given below:
 %
 \lstset{numbers=left} 
 \iflatexml

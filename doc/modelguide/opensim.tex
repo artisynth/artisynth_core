@@ -33,7 +33,7 @@ the following steps:
 
 \item Understand the component hierarchy that realizes the model.
 
-\item Adjust the visualization and if tune parameters if needed so the model is
+\item Adjust the visualization and tune parameters if needed so the model is
 stable under forward simulation.
 
 \item Edit the model by removing unneeded components and/or adding
@@ -53,7 +53,7 @@ To import an OpenSim model, an application uses the class
 %
 \methodentry
 {\osim.OpenSimParser.OpenSimParser(,)}% 
-{OpenSimParser (File osimFile, File geometryDir)}% 
+{OpenSimParser (File osimFile, File geometryPath)}% 
 {\ }%
 %
 \end{methodtable}
@@ -91,7 +91,7 @@ The listing below shows a complete example given in
   artisynth.demos.opensim.OpenSimArm26
 \end{verbatim}
 which imports the Arm26 model by Reinbolt, Seth, Habib, and Hamner, and based
-on an earlier model Kate Holzbaur.
+on an earlier model by Kate Holzbaur.
 %
 \lstset{numbers=left}
 \lstinputlisting{../../src/artisynth/demos/opensim/OpenSimArm26.java}
@@ -118,7 +118,7 @@ OpenSimParser: ignoring ProbeSet
 \end{verbatim}
 
 After calling {\tt createModel()}, the {\tt build()} method changes the view
-orientation, sets damping for the rigid bodies. and creates control panels to
+orientation, sets damping for the rigid bodies, and creates control panels to
 adjust the excitations and joint coordinates. These are actions described
 further in Section \ref{inspectingAndTuning:sec}.
 
@@ -265,7 +265,7 @@ ArtiSynth makes an attempt to preserve the visualization characteristics of the
 original OpenSim model, but this is not guaranteed. The rendering and appearance
 of all components can be customized, either interactively (as described under
 ``Editing Properties'' in the \artisynthManual{uiguide}{ArtiSynth User
-Interface Guide}), or in code, as discussed in Section \ref{RenderProperties:sec}
+Interface Guide}), or in code, as discussed in Section \ref{RenderProperties:sec}.
 
 The ``frame geometry'' associated with OpenSim bodies is not explicitly
 supported, because ArtiSynth rigid bodies and frames already have a
@@ -342,7 +342,7 @@ For information on how to find individual muscles within the model, see Section
 \ref{OpenSimFindingComponents:sec}.
 
 For observing the behavior of joints, it is often useful to display the axes
-of their C and D coordinates frames. As described in Section
+of their C and D coordinate frames. As described in Section
 (\ref{RenderingJoints:sec}), this can be controlled by the joint properties
 {\sf drawFrameC}, {\sf drawFrameD}, and {\sf axisLength}, which can be set
 either in code or interactively (by selecting the joint and choosing {\sf Edit
@@ -362,7 +362,7 @@ import maspack.matrix.AxisAlignedRotation
 \end{lstlisting}
 %
 
-\subsection{Interactive contol panels}
+\subsection{Interactive control panels}
 \label{OpenSimPanels:sec}
 
 As discussed in Section \ref{ControlPanels:sec}, applications can create {\it
@@ -467,7 +467,7 @@ sometimes {\sf rotaryDamping} specifically) for these bodies. Alternatively,
 one may wish to reduce the simulation step size, from the default of 0.01 sec
 down to values around 0.001 or possibly lower. This can be interactively
 adjusted in the GUI, and once a suitable value is found, set in code using the
-root model's {\tt setMaxStepSizeMethod()}:
+root model's {\tt setMaxStepSize()}:
 %
 \begin{lstlisting}[]
    setMaxStepSize (0.001);
@@ -518,7 +518,7 @@ code might fix wrapping for a certain segment:
   int segIdx = 1;   // index of problematic segment
   Point3d xpnt;     // extra point to help initialize the wrap path
   ...
-  spr.setNumKnots (segIdx, 30); // increase number of knots to 40
+  spr.setNumKnots (segIdx, 30); // increase number of knots to 30
   spr.setInitializingPoints (   // reset initializing points
      segIdx, new Point3d[] { xpnt } ); 
   spr.updateWrapSegments();
@@ -618,11 +618,11 @@ Locating the OpenSim components can done in several ways.  First, as with all
 ArtiSynth models, any component that is a descendant of a container component
 can be found by specifying its path name with respect to the container, using
 \javamethod[\mbase.CompositeComponent]{findComponent()} method. For example,
-the {\tt MultiPointMuscle} {\tt TRIlong} seen Figure \ref{Arm26Hierarchy2:fig}
+the {\tt MultiPointMuscle} {\tt TRIlong} seen in Figure \ref{Arm26Hierarchy2:fig}
 could be obtained using
 %
 \begin{lstlisting}[]
-import artisynth.core.mechmodel.MultiPointMuscle;
+import artisynth.core.mechmodels.MultiPointMuscle;
 ...
 
    MultiPointMuscle muscle = (MultiPointMuscle)mech.findComponent (
@@ -809,9 +809,9 @@ getForceComponents()}.
 \label{OpenSimRemoving:sec}
 
 For component removal, most container classes supply {\tt remove()} methods
-that allow this to be done directly. However, care must be be taken that other
+that allow this to be done directly. However, care must be taken that other
 model components either do not have a hard dependency on those being removed,
-or that the dependent components are be removed as well.  For example, any
+or that the dependent components are removed as well.  For example, any
 muscle component has a hard dependency on the frame markers that serve as its
 origin and insertion points, so removing either of these markers necessitates
 removing the muscle as well. The easiest way to ensure the removal of
@@ -853,7 +853,7 @@ take care of {\it soft} dependencies, by which some components adjust
 themselves if certain components are deleted. For example, a {\tt
 MultiPointMuscle} has a soft dependency on any wrap object that it references:
 if the wrap object is removed, the muscle deletes its internal
-reference to the object and update its wrap path.
+reference to the object and updates its wrap path.
 
 \begin{sideblock}
 Use of these methods is equivalent to invoking the {\tt Delete} operation from
@@ -1105,12 +1105,12 @@ helper methods:
 
 {\tt nearestFrame()} finds the frame whose origin is nearest to a given
 position vector. {\tt createFrameAttachment()} creates a {\tt
-FrameFem3dAttacment} (Section \ref{sec:fem:frameattachments}) for a frame
+FrameFem3dAttachment} (Section \ref{sec:fem:frameattachments}) for a frame
 located at the pose described by {\tt TFW} and supported by a set of nodes that
 are within a prescribed distance of the frame's $z$ axis.  This choice of
 supporting nodes is based on the fact that much of the force in this model
 involves moments about the $z$ axis, but other choices are possible.  The
-critical point is to choose enough nodes so that stresses induced frame forces
+critical point is to choose enough nodes so that stresses induced by frame forces
 are distributed reasonably well within the model. The method {\tt
 addFemFrame()} creates a \javaclass[\mech]{Frame} object initially located at
 {\tt TFW}, gives it a {\tt name}, and attaches it to a FEM model using an
@@ -1156,7 +1156,7 @@ returned by the joint methods {\tt getCurrentTCW()} and {\tt getCurrentTDW()}.
 
 At lines 81-88, {\tt addFemFrame()} is used to create and attach three
 anchoring frames to the top, middle and bottom of the FEM model. The top and
-bottom frames are located the C and D frames of the shoulder and elbow joints,
+bottom frames are located at the C and D frames of the shoulder and elbow joints,
 while the middle frame is placed at an offset from the C frame. All wrap
 objects connected to the humerus body are reconnected to one of these frames
 (lines 91-100). For each wrap object, the parser's {\tt removeWrapObject()}
@@ -1171,7 +1171,7 @@ all path points as {\tt FrameMarker}s, each point can be cast to a {\tt
 FrameMarker} and inspected to see if its frame is the original humerus body. If
 it is, the point must be replaced with a new marker attached to the FEM model.
 If the point is either the first or last path point, then it is an origin or
-insertion and so is near enough to the FEM model than it can be attached
+insertion and so is near enough to the FEM model that it can be attached
 directly. Otherwise, it is attached to the nearest anchor frame. Point
 replacement is performed by the parser's {\tt replacePathPoint()} method.
 

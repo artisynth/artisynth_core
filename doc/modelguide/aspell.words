@@ -1,4 +1,4 @@
-personal_ws-1.1 en 2482 
+personal_ws-1.1 en 2599 
 ABPointColor
 AJL
 ANSYS
@@ -25,6 +25,7 @@ ArrudaBoyceMaterial
 ArtiSynth
 ArtiSynth's
 ArtisynthPath
+AttachedFrame
 AttachmentComponent
 AxialLigament
 AxialMaterial
@@ -75,6 +76,7 @@ CompositeComponent
 ConnectableBody
 ConstantAxialMuscle
 ConstrainedBackwardEuler
+ConstrainedForwardEuler
 Constrainer
 ConstrainerBase
 ConstraintInfo
@@ -90,11 +92,13 @@ ControlPanel
 ControlPanelDemo
 ControllerBase
 ControllerSet
+CoordinateActuators
 CoordinateCouplerConstraint
 CoordinateInfo
 CoordinateLimitForce
 CoordinateLimitForces
 CoordinatePanel
+CoordinateSetter
 CoordinateWidget
 Courant
 Criscione
@@ -130,6 +134,7 @@ DicomViewer
 DistanceGridComp
 DoubleFieldSlider
 DoubleInterval
+DynamicAgent
 DynamicAttachment
 DynamicComponent
 EFC
@@ -148,7 +153,10 @@ Excitations
 FEBio
 FEM's
 FEMs
+FW
 FZ
+FemAttachedFrame
+FemAttachedFrames
 FemBeam
 FemBeamColored
 FemBeamWithBlock
@@ -157,6 +165,7 @@ FemBeamWithMuscle
 FemCollisions
 FemCutPlane
 FemCutPlaneDemo
+FemElbow
 FemElement
 FemElementType
 FemElment
@@ -164,6 +173,7 @@ FemEmbeddedSphere
 FemFactory
 FemFieldPoint
 FemGeometryTransformer
+FemHumerus
 FemMarker
 FemMateral
 FemMaterial
@@ -192,6 +202,7 @@ ForceTargetComponent
 ForwardEuler
 FourBarLinkage
 FrameAttachable
+FrameAttachedFrame
 FrameAttachment
 FrameAttachments
 FrameBodyAttachment
@@ -212,6 +223,7 @@ GC
 GIF
 GLVersion
 GaussianWeighting
+GenericMarker
 GenericMeshReader
 GenericMeshWriter
 GenericMuscle
@@ -272,9 +284,11 @@ JSeparator
 Javadoc
 JawHyoidModel
 JetColorMap
+JointActuator
 JointBase
 JointCoordinateCoupling
 JointCoordinateHandle
+JointCoordinateHandles
 JointLimitForce
 JointType
 JointedBallCollide
@@ -300,6 +314,7 @@ LinearElasticContact
 LinearFrameMaterial
 LinearMaterial
 LinearMaterialBase
+Linearizing
 LinkedHashSet
 LinkedList
 ListView
@@ -326,6 +341,7 @@ MatrixNdVertexField
 MaxShearStrain
 MaxShearStress
 MaxStearStrain
+MechModel's
 MechModels
 MechSystemSolver
 MeshBase
@@ -342,10 +358,12 @@ MonitorBase
 MooneyRivlinMaterial
 MotionTargetComponent
 MotionTargetTerm
+MotionType
 MultiJointedArm
 MultiPoint
 MultiPointMuscle
 MultiPointSpring
+Multiset
 MuscleBundle
 MuscleBundles
 MuscleComponent
@@ -429,6 +447,7 @@ PointSkinAttachment
 PointSkinAttacment
 PointSpringBase
 PointSpringList
+PointToPointActuator
 PointTracingProbe
 PolygonalMesh
 PolyhedralMesh
@@ -467,6 +486,7 @@ RenderableComponent
 RenderableComponentBase
 RenderableComponentList
 RevoluteJoint
+RigidBodyAttachedFrames
 RigidBodyConstraint
 RigidBodyCoupling
 RigidBodyJoint
@@ -512,6 +532,7 @@ ScalarRange
 ScalarSubElemField
 ScalarVertexField
 SegmentedPlanarConnector
+SetStatus
 ShellElement
 ShellQuadElement
 ShellTriElement
@@ -570,6 +591,7 @@ TCL
 TCW
 TDB
 TDW
+TFM
 TFW
 TG
 TGD
@@ -607,6 +629,7 @@ TrackingTarget
 TransformGeometryContext
 TransformableGeometry
 TransverseLinearMaterial
+TwoPointActuator
 TypeX
 UI
 UID
@@ -676,6 +699,8 @@ accessors
 acosh
 actionPerformed
 adaptively
+addAttachedFrame
+addAttachedFrameWorld
 addAttachment
 addAxialSpring
 addBody
@@ -697,6 +722,7 @@ addFem
 addFemFrame
 addFibre
 addField
+addForce
 addForceEffectorTarget
 addForceProbe
 addFrame
@@ -711,6 +737,8 @@ addInputProbe
 addInversePanel
 addL
 addMarker
+addMarkerToMesh
+addMarkerWorld
 addMasterBody
 addMaterialBundle
 addMesh
@@ -732,6 +760,7 @@ addReferences
 addRenderMeshComp
 addRenderable
 addRigidBody
+addSettingsPanel
 addSourceRootPath
 addSphere
 addSpring
@@ -761,10 +790,12 @@ artisynth
 artisynthProjects
 ascii
 atan
+attachAxialSpring
 attachFrame
 attachMuscle
 attachPoint
 attachPointsToMesh
+attachedFrames
 attachmentA
 attachmentB
 awt
@@ -792,6 +823,7 @@ bodA
 bodB
 bodiesNonDynamicIfActive
 bodyA
+bodyA's
 bodyB
 bodyFilePath
 bodyMesh
@@ -820,6 +852,8 @@ classname
 classpath
 clearAllPoints
 clearAllValues
+clearAttachedFrames
+clearAxialSprings
 clearCollisionBehavior
 clearCollisionBehaviors
 clearCollisionResponse
@@ -829,13 +863,18 @@ clearCutPlanes
 clearData
 clearElements
 clearExciters
+clearFrameMarkers
+clearFrames
 clearHardEdges
 clearMarkers
 clearMeshBodies
 clearMeshComps
 clearNormals
+clearParticles
+clearPoints
 clearRenderMeshComps
 clearRenderables
+clearRequests
 clearTextureCoords
 clearValue
 clearVertexConnections
@@ -889,6 +928,7 @@ computeVertexConnections
 computeVolume
 computeWeights
 configExcitationColoring
+constrainer
 constrainers
 constraintset
 contactArea
@@ -897,6 +937,7 @@ contactNormalLen
 contactStiffness
 containsReference
 contol
+controlPanels
 coordNames
 coordValues
 coordinatesToTCD
@@ -963,6 +1004,7 @@ createSurfaceMesh
 createTorus
 createVertexIndices
 createVolumetricSurface
+csetter
 cubically
 curPos
 customjoint
@@ -1005,6 +1047,7 @@ dilational
 dir
 directionRenderLen
 directionRenderType
+directionality
 dirs
 discretization
 discretized
@@ -1030,6 +1073,7 @@ drawContactNormals
 drawCylinder
 drawEdges
 drawEllipsoid
+drawForces
 drawFrameC
 drawFrameD
 drawFrictionForces
@@ -1151,18 +1195,24 @@ forceBehavior
 forceEffector
 forceEffectorTerm
 forceEffectors
+forceLenScale
 forceNorm
 forceScaling
 forceTargets
 forceType
 forceset
 fp
+frameAtCenter
+frameAtTip
 frameB
 frameBlending
 frameDamping
+frameMarkers
+frameSprings
 framerule
 framexleftmargin
 fres
+frm
 frontmost
 func
 fvLinearExtrapThreshold
@@ -1179,7 +1229,9 @@ getAllIntegrationPoints
 getAllPropertyInfo
 getAttachPointsToMesh
 getAttachedFileName
+getAttachedFrames
 getAttachment
+getAxisAngle
 getAxisDrawStyle
 getAxisLength
 getBasePose
@@ -1226,9 +1278,11 @@ getContactImpulses
 getContactPressures
 getConvergenceTol
 getCoordinate
+getCoordinateDeg
 getCoordinateInfo
 getCoordinateRange
 getCoordinateRangeDeg
+getCoordinateSetter
 getCoordinates
 getCurrentTCD
 getCurrentTCW
@@ -1259,10 +1313,12 @@ getEngaged
 getExcitation
 getExcitationBounds
 getExcitationDampingWeight
+getExcitationWeight
 getExcitations
 getExciter
 getExciters
 getExtendData
+getExternalForce
 getFace
 getFaces
 getFeatureColor
@@ -1299,6 +1355,7 @@ getIntValue
 getIntegrationPoints
 getInterpolationOrder
 getIntersection
+getJoint
 getJointSet
 getJoints
 getKey
@@ -1338,6 +1395,7 @@ getMotionSources
 getMotionTargetTerm
 getMotionTargetTermWeight
 getMotionTargets
+getMotionType
 getMultiDecimalValue
 getMultiIntValue
 getMultiStringValue
@@ -1346,6 +1404,7 @@ getMuscleWrapObjects
 getMuscles
 getMusclesAndSprings
 getName
+getNextAdvanceTime
 getNodeCoords
 getNodes
 getNormal
@@ -1420,6 +1479,8 @@ getSuppressWarnings
 getSurfaceMesh
 getSurfaceMeshComp
 getSurfaceRendering
+getTFM
+getTFW
 getTag
 getTargetFrames
 getTargetOrientation
@@ -1442,9 +1503,13 @@ getUnilateralForcesInC
 getUnion
 getUnitsString
 getUpdateInterval
+getUseDegrees
 getUseImplicitFriction
 getVR
 getValue
+getValueDeg
+getValueRange
+getValueRangeDeg
 getVectorValue
 getVelocity
 getVertex
@@ -1464,6 +1529,7 @@ getWeight
 getWeightingFunction
 getWeights
 getWorkingFolder
+getWrapKnotDensity
 getWrapObjects
 getWrappable
 getWrenchG
@@ -1471,8 +1537,11 @@ getWriteNormals
 getXXX
 getXXXField
 getXxx
+getXyzAngles
 getZ
 getZRange
+getZyxAngles
+getZyzAngles
 gimbal
 gmsh
 grayscale
@@ -1488,8 +1557,10 @@ hasDirector
 hasDistanceGrid
 hasExplicitNormals
 hasHardEdge
+hasInvisibleWrappables
 hasMass
 hasMasterBody
+hasVisibleWrappables
 hexahedra
 hexahedral
 hipBody
@@ -1511,6 +1582,7 @@ includeTime
 incompressibility
 incompressible
 incrementing
+indexOfPoint
 indexOfReference
 indexOffs
 inertiaMethod
@@ -1545,8 +1617,11 @@ isCollidable
 isCompound
 isDFdldotZero
 isDeformable
+isDependent
 isDynamic
+isFree
 isInside
+isLimited
 isLocked
 isNumeric
 isParametric
@@ -1559,6 +1634,7 @@ isValueSet
 isZLocked
 isosurface
 isosurfaces
+iterable
 iteratively
 jitter
 jittering
@@ -1675,6 +1751,7 @@ misregistration
 mkr
 mkrLabels
 mkrs
+mmat
 modelbase
 moduli
 motionTerm
@@ -1688,6 +1765,7 @@ mulInverseRight
 mulLeftInverse
 mulXyz
 multiJointMkrs
+multiPointSprings
 multibody
 multijointed
 multipoint
@@ -1768,15 +1846,18 @@ numColors
 numConstraints
 numCoordinates
 numCutPlanes
+numDependent
 numElements
 numEngagedUnilateralConstraints
 numExciters
 numFaces
 numForceEffectorTargets
 numFrames
+numFree
 numHardEdges
 numIntegrationPoints
 numKnots
+numLimited
 numMarkers
 numMasterBodies
 numMeshComps
@@ -1809,6 +1890,7 @@ optLambda
 optLength
 optPenAng
 optPennationAngle
+optl
 originD
 orthonormal
 orthotropic
@@ -1865,10 +1947,12 @@ pos
 posProbe
 positionProbeRotRep
 postscanInitialize
+pre
 preadvance
 precomputation
 precomputed
 prepending
+preprocess
 prerender
 printStackTrace
 printf
@@ -1905,16 +1989,21 @@ regularizer
 relpath
 remoteSourceName
 removeAllReferences
+removeAttachedFrame
+removeAxialSpring
 removeCutPlane
 removeElement
 removeExcitationDamping
 removeFace
 removeForceEffectorTarget
+removeFrame
+removeFrameMarker
 removeL
 removeMarker
 removeMeshBody
 removeMeshComp
 removeMotionTarget
+removeParticle
 removePoint
 removeReference
 removeReferences
@@ -1938,8 +2027,10 @@ renderer's
 renderingCollidable
 replaceMarker
 replaceMusclePoint
+replacePathPoint
 repositioned
 repositioning
+requestDeg
 resave
 resetBodiesDynamic
 resetModel
@@ -1963,6 +2054,7 @@ rminor
 rng
 rollAxis
 rollRange
+rootModel
 rotRep
 rotaryDamping
 rotaryExponents
@@ -1975,8 +2067,12 @@ rpy
 rulecolor
 rulesepcolor
 runtime
+rx
+ry
+rz
 saveModelState
 scaleDistance
+scaleMarkerPositions
 scaleMass
 scaledAdd
 scapulothoracic
@@ -2023,6 +2119,7 @@ setConsoleProgressPrinting
 setConvergenceTol
 setCoordinatTwist
 setCoordinate
+setCoordinateDeg
 setCoordinateRange
 setCoordinateRangeDeg
 setCoordinateTwist
@@ -2053,8 +2150,10 @@ setEuler
 setExcitation
 setExcitationBounds
 setExcitationDamping
+setExcitationWeight
 setExcitations
 setExtendData
+setExternalForce
 setFaceColor
 setFaceStyle
 setFeatureColoringEnabled
@@ -2122,10 +2221,12 @@ setNormals
 setNumKnots
 setNumberFormat
 setNumbering
+setOptFibreLength
 setOrientation
 setParticleDamping
 setPenetrationTol
 setPlaneSize
+setPoint
 setPointColor
 setPointDamping
 setPointData
@@ -2145,6 +2246,8 @@ setRenderInterval
 setRenderMesh
 setRenderProps
 setRenderRange
+setRequest
+setRequestDeg
 setResolution
 setRestDirector
 setRestPosition
@@ -2173,12 +2276,15 @@ setSubWeights
 setSuppressWarnings
 setSurfaceMesh
 setSurfaceRendering
+setTFM
+setTFW
 setTargetOrientation
 setTargetPose
 setTargetPosition
 setTargetRenderProps
 setTargetVelocity
 setTargetsPointRadius
+setTendonSlackLength
 setTextureCoords
 setTheta
 setThetaLocked
@@ -2188,8 +2294,12 @@ setTrackingStiffness
 setUnitsString
 setUpdateInterval
 setUseAllElements
+setUseDegrees
 setUseImplicitFriction
+setUseTransformDC
 setValue
+setValueRange
+setValueRangeDeg
 setValues
 setVelocity
 setVertexBasePosition
@@ -2204,6 +2314,7 @@ setWeightingFunction
 setWorkingFolder
 setWrapObjectFramesVisible
 setWrapObjectsVisible
+setWrappablesVisible
 setWrenchG
 setWriteNormals
 setXXX
@@ -2211,10 +2322,13 @@ setXXXColor
 setXXXEnabled
 setXXXField
 setXxx
+setXyzAngles
 setYoungsModulusField
 setZ
 setZLocked
 setZRange
+setZyxAngles
+setZyzAngles
 sgn
 shaftLength
 shaftRadius
@@ -2283,6 +2397,7 @@ sublist
 submenu
 submenus
 submeshes
+subpanel
 subportion
 subproperties
 subproperty
@@ -2345,7 +2460,9 @@ trackingProbe
 trackingStiffness
 tradeoffs
 transforce
+transformFrameTimes
 transformGeometry
+transformMarkerPositions
 transitionStrain
 translateToCenterOfVolume
 translational

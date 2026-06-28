@@ -8,21 +8,188 @@
 \chapter{Mechanical Models I}
 \label{MechModelsI:sec}
 
-This section details how to build basic multibody-type mechanical
-models consisting of particles, springs, rigid bodies, joints, and
-other constraints.
+This section details how to build basic multibody-type mechanical models
+consisting of particles, springs, rigid bodies, joints, and other
+constraints. Most of the ArtiSynth components described here are
+contained in the packages
+%
+\begin{verbatim}
+artisynth.core.modelbase
+artisynth.core.mechmodels
+artisynth.core.materials
+\end{verbatim}
+%
 
-\section{Springs and particles}
+\section{Points, particles, and springs}
 \label{ParticlesAndSprings:sec}
 
-The most basic type of mechanical model consists simply of particles
-connected together by axial springs.  Particles are implemented by the
-class \javaclass[artisynth.core.mechmodels]{Particle}, which is a
-dynamic component containing a three-dimensional position state, a
-corresponding velocity state, and a mass. It is an instance of the
-more general base class \javaclass[artisynth.core.mechmodels]{Point},
-which is used to also implement spatial points such as {\tt markers}
-which do not have a mass.
+One of the most basic types of mechanical model consists simply of springs
+acting on points or particles.
+
+\subsection{Points}
+\label{Points:sec}
+
+Points and particles are both instances of the class
+\javaclass[artisynth.core.mechmodels]{Point}, and are dynamic
+components containing a three-dimensional position state and a corresponding
+velocity state. Subclasses of {\tt Point} include 
+\javaclass[artisynth.core.mechmodels]{Particle} (discussed below),
+as well as {\it markers} (such as
+\javaclass[\mech]{FrameMarker} and \javaclass[\fem]{FemMarker}),
+which are massless point markers that can be attached to rigid bodies and FE
+models. The position and velocity state can be accessed by the following
+methods:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+% 
+\methodentry
+{\mech.Point.getPosition()}%
+{Point3d getPosition()}%
+{Returns the point's position.}%
+%
+\methodentry
+{\mech.Point.setPosition(Point3d)}%
+{void setPosition (Point3d pos)}%
+{Sets the point's position.}%
+%
+\methodentry
+{\mech.Point.getVelocity()}%
+{Vector3d getVelocity()}%
+{Returns the point's velocity.}%
+%
+\methodentry
+{\mech.Point.setVelocity(Vector3d)}%
+{void setVelocity (Vector3d vel)}%
+{Sets the point's velocity.}%
+%
+\midline
+\end{methodtable}
+
+Points also maintain forces, which cause them and/or other
+dynamic components in the system to move. Force accessors include:
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+% 
+\methodentry
+{\mech.Point.getForce()}%
+{Vector3d getForce()}%
+{Returns the net force on the point.}%
+%
+\methodentry
+{\mech.Point.addForce()}%
+{Vector3d addForce(Vector3d f)}%
+{Adds {\tt f} to the point's net force.}%
+%
+\methodentry
+{\mech.Point.getExternalForce()}%
+{Vector3d getExternalForce()}%
+{Returns the external force acting on the point.}%
+%
+\methodentry
+{\mech.Point.setExternalForce(Vector3d)}%
+{void setExternalForce (Vector3d f)}%
+{Sets the external force acting on the point to {\tt f}.}%
+%
+\midline
+\end{methodtable}
+
+{\it External forces} are forces explicitly set by the application; once set,
+they will remain the same until {\tt setExternalForce()} is called again. {\it
+Net forces} are the sum of the external forces plus all other forces arising
+from gravity, damping, springs, FE elements, etc. Net forces are zeroed and
+recomputed at the start of each simulation step. Applications (and custom
+defined force effectors in particular) can add to the net force using {\tt
+addForce()}.
+
+\subsection{Particles}
+
+Particles, implemented by
+\javaclass[artisynth.core.mechmodels]{Particle}, are
+points that contain mass and hence can move and respond to forces
+independently. A subclass of {\tt Particle} is
+\javaclass[\fem]{FemNode3d}, which describes the nodes
+of an FE model (Chapter \ref{FEMModels:sec}).
+
+Several constructors are available to create particles, including
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+% 
+\methodentry
+{\mech.Particle.Particle(double)}%
+{Particle (double mass)}%
+{Create a particle with specified mass.}%
+%
+\methodentry
+{\mech.Particle.Particle(double,Point3d)}%
+{Particle (double mass, Point3d pos)}%
+{Create a particle at a specified position.}%
+%
+\methodentry
+{\mech.Particle.Particle(,,,)}%
+{Particle (double mass, double x, double y, double z)}%
+{Create a particle at a specified position.}%
+%
+\methodentry
+{\mech.Particle.Particle(,,,,)}%
+{Particle (String name, double mass, double x, double y, double z)}%
+{Create a named particle.}%
+%
+\midline
+\end{methodtable}
+%
+
+Once created, a particle should be added to the {\tt MechModel}.  The standard
+way is to add it to the model's {\tt particles} container, as illustrated by
+the following code fragment:
+%
+\begin{lstlisting}[]
+import artisynth.core.mechmodels.Particle;
+import maspack.matrix.Point3d;
+...
+   MechModel mech; 
+   ...
+
+   double mass = 0.1;
+   Particle p = new Particle (mass, new Point3d (2.0, 0.0, 1.0));
+   mech.addParticle (p);
+\end{lstlisting}
+%
+
+The {\tt particles} container can be managed by the following {\tt MechModel}
+methods:
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.MechModel.addParticle()}%
+{void addParticle (Particle p)}%
+{Adds particle {\tt p} to the container.}%
+%
+\methodentry
+{\mech.MechModel.removeParticle()}%
+{boolean removeParticle (Particle p)}%
+{Removes particle {\tt p} from the container.}%
+%
+\methodentry
+{\mech.MechModel.clearParticles()}%
+{void clearParticles()}%
+{Removes all particles.}%
+%
+\methodentry
+{\mech.MechModel.particles()}%
+{PointList<Particle> particles()}%
+{Returns the {\tt particles} container.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+If desired, applications can also place particles in custom containers
+(Section \ref{GeneralComponentArrangements:sec}).
 
 \subsection{Axial springs and materials}
 \label{AxialSprings:sec}
@@ -34,6 +201,13 @@ force effector} component that exerts equal and opposite forces on the
 two points, along the line separating them, with a magnitude $f$ that
 is a function $f(l, \dot l)$ of the distance $l$ between the points,
 and the distance derivative $\dot l$.
+
+\begin{sideblock}
+Axial springs connect only two points, but the more
+complex \javaclass[\mech]{MultiPointSpring} described in
+Chapter \ref{multipointSpringIntro:sec} can be used for more complex paths that
+contain via points and obstacle wrapping.
+\end{sideblock}
 
 Each axial spring is associated with an {\it axial material},
 implemented by a subclass of
@@ -56,6 +230,130 @@ artisynth.core.materials}. Setting or querying a spring's material
 may be done with the methods {\tt setMaterial()} and {\tt
 getMaterial()}.
 
+\subsection{Axial spring components}
+
+Constructors that create an \javaclass[\mech]{AxialSpring} include:
+%
+\begin{methodtable}{0.55}{0.45}
+\midline
+% 
+\methodentry
+{\mech.AxialSpring.AxialSpring(double,double,double)}%
+{AxialSpring (double k, double d, double l0)}%
+{Create a spring with a linear material.}%
+%
+\methodentry
+{\mech.AxialSpring.AxialSpring(String,double,double,double)}%
+{AxialSpring (String name, double k, double d, double l0)}%
+{Create a named spring with a linear material.}%
+%
+\methodentry
+{\mech.AxialSpring.AxialSpring(String,double)}%
+{AxialSpring (String name, double l0)}%
+{Create a named spring with specified rest length.}%
+%
+\methodentry
+{\mech.AxialSpring.AxialSpring(String,double)}%
+{AxialSpring (String name)}%
+{Create a named spring.}%
+%
+\midline
+\end{methodtable}
+%
+All of these create springs with linear axial material, with the parameters
+{\tt k}, {\tt d}, and {\tt l0} specifying stiffness, damping, and rest
+length. If not specified, these have default value of $1$, $0$ and $0$.
+
+If a different axial material is needed (Section \ref{AxialMaterials:sec}), the
+following methods can be used to query and set the material:
+%
+\begin{methodtable}{0.55}{0.45}
+\midline
+% 
+\methodentry
+{\mech.PointSpringBase.getMaterial()}%
+{AxialMaterial getMaterial()}%
+{Returns the current material.}%
+%
+\methodentry
+{\mech.PointSpringBase.setMaterial(AxialMaterial)}%
+{void setMaterial (AxialMaterial mat)}%
+{Sets the current material.}%
+%
+\midline
+\end{methodtable}
+%
+
+Once created, an axial spring must be connected to its points and
+added to the {\tt MechModel}. The following methods can
+be used to connect the points:
+%
+\begin{methodtable}{0.55}{0.45}
+\midline
+% 
+\methodentry
+{\mech.AxialSpring.setPoints(,)}%
+{void setPoints (Point p0, Point p1)}%
+{Attaches the spring to points {\tt p0} and {\tt p1}.}%
+%
+\methodentry
+{\mech.AxialSpring.setPoints(,,)}%
+{void setPoints (Point p0, Point p1, double l0)}%
+{Attaches {\tt p0} and {\tt p1} and sets the rest length.}%
+%
+\midline
+\end{methodtable}
+%
+The standard way to add a spring to the {\tt MechModel} is
+to use the model's {\tt axialSprings} container, which is
+managed using the following {\tt MechModel} methods:
+%
+\begin{methodtable}{0.55}{0.45}
+\midline
+%
+\methodentry
+{\mech.MechModel.addAxialSpring()}%
+{void addAxialSpring (AxialSpring spr)}%
+{Adds spring {\tt spr} to the container.}%
+%
+\methodentry
+{\mech.MechModel.removeAxialSpring()}%
+{boolean removeAxialSpring (AxialSpring spr)}%
+{Removes spring {\tt spr} from the container.}%
+%
+\methodentry
+{\mech.MechModel.clearAxialSprings()}%
+{void clearAxialSprings()}%
+{Removes all springs.}%
+%
+\methodentry
+{\mech.MechModel.axialSprings()}%
+{RenderableComponentList<AxialSpring> axialSprings()}%
+{Returns the {\tt axialSprings} container.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+If desired, applications can also place springs in custom containers
+(Section \ref{GeneralComponentArrangements:sec}).
+
+{\tt MechModel} also supplies a convenience method to both connect the points
+and add the spring to the model (the points themselves must still be added
+separately):
+%
+\begin{methodtable}{0.54}{0.46}
+\midline
+%
+\methodentry
+{\mech.MechModel.attachAxialSpring(,,)}%
+{void attachAxialSpring (Point p0, Point p1, AxialSpring spr)}%
+{Attaches {\tt spr} to {\tt p0} and {\tt p1}
+and adds it to the model.}%
+%
+\midline
+\end{methodtable}
+
 \subsection{Example: a simple particle-spring model}
 \label{ParticleSpringExample:sec}
 
@@ -71,7 +369,7 @@ getMaterial()}.
 \label{ParticleSpring:fig}
 \end{figure}
 
-An complete application model that implements a simple particle-spring
+A complete application model that implements a simple particle-spring
 model is given below. 
 \lstset{numbers=left}
 \lstinputlisting{../../src/artisynth/demos/tutorial/ParticleSpring.java}
@@ -106,7 +404,7 @@ of $(0, 0, -9.8)$. However, for this example, we want the first
 particle to remain fixed in place, so we set it to be {\it
 non-dynamic} (line 34), meaning that the physical simulation will not
 update its position in response to forces (Section
-\ref{DynamicVsParametric:sec}).
+\ref{ParametricAndAttached:sec}).
 
 The remaining calls control aspects of how the model is graphically
 rendered.  {\tt setBounds()} (line 37) increases the model's
@@ -124,99 +422,6 @@ ParticleSpring} from the {\sf Models} menu. The model should load and
 initially appear as in Figure \ref{ParticleSpring:fig}.  Running
 the model (Section \ref{LoadingAndRunning:sec}) will
 cause the second particle to fall and swing about under gravity.
-
-\subsection{Dynamic, parametric, and attached components}
-\label{DynamicVsParametric:sec}
-
-By default, a dynamic component is advanced through time in response
-to the forces applied to it. However, it is also possible to set a
-dynamic component's {\tt dynamic} property to {\tt false}, so that it
-does not respond to force inputs.  As shown in the example above, this
-can be done using the method
-{\tt setDynamic()}:
-%
-\begin{verbatim}
-  comp.setDynamic (false);
-\end{verbatim}
-%
-The method
-\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isDynamic()}
-can be used to query the {\tt dynamic} property.
-
-Dynamic components can also be {\it attached} to other dynamic
-components (as mentioned in Section \ref{PhysicsSimulation:sec}) so
-that their positions and velocities are controlled by the {\it master}
-components that they are attached to.  To attach a dynamic component,
-one creates an {\tt AttachmentComponent} specifying the attachment
-connection and adds it to the {\tt MechModel}, as described in Section
-\ref{Attachments:sec}.  The method
-\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isAttached()}
-can be used to determine if a component is attached, and if it is,
-\javamethod*[artisynth.core.mechmodels.DynamicAgent]{getAttachment()}
-can be used to find the corresponding {\tt AttachmentComponent}.
-
-Overall, a dynamic component can be in one of three states:
-
-\begin{description}
-
-\item[active]\mbox{}
-
-Component is dynamic and unattached. The method
-\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isActive()}
-returns {\tt true}. The component will move in response to forces.
-
-\item[parametric]\mbox{}
-
-Component is not dynamic, and is unattached. 
-The method
-\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isParametric()}
-returns {\tt true}.
-The component will either remain
-fixed, or will move around in response to external inputs specifying
-the component's position and/or velocity. One way to supply such
-inputs is to use controllers or input probes, as described in
-Section \ref{SimulationControl:sec}.
-
-\item[attached]\mbox{}
-
-Component is attached. The method
-\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isAttached()}
-returns {\tt true}. The component will move so as to follow the other
-master component(s) to which it is attached.
-
-\end{description}
-
-\subsection{Custom axial materials}
-\label{CustomAxialMaterials:sec}
-
-Application authors may create their
-own axial materials by subclassing 
-\javaclass[artisynth.core.materials]{AxialMaterial}
-and overriding the functions
-% method table
-\begin{lstlisting}[]
-  double computeF (l, ldot, l0, excitation);
-  double computeDFdl (l, ldot, l0, excitation);
-  double computeDFdldot (l, ldot, l0, excitation);
-  boolean isDFdldotZero ();
-\end{lstlisting}
-%
-where {\tt excitation} is an additional {\it excitation} signal $a$, which
-is used to implement active springs and which in particular is used to
-implement axial muscles (Section \ref{PointToPointMuscles:sec}), for
-which $a$ is usually in the range $[0, 1]$.
-
-The first three methods should return the values of 
-%
-\begin{equation}
-f (l, \dot l, a), \quad
-\frac{\partial f(l, \dot l, a)}{\partial l}, \quad \text{and} \quad
-\frac{\partial f(l, \dot l, a)}{\partial \dot l},
-\end{equation}
-%
-respectively, while the last method should return {\tt true} if
-$\partial f(l, \dot l, a) / \partial \dot l \equiv 0$; i.e., if it is
-always equals to 0.
 
 \subsection{Damping parameters}
 \label{BodyDamping:sec}
@@ -263,6 +468,66 @@ property is {\it inherited} (Section
 explicitly, it inherits the nearest explicitly set value in an
 ancestor component.
 
+
+\subsection{Axial materials}
+\label{AxialMaterials:sec}
+
+As indicated above, different materials can be supplied to an axial spring in
+addition to the default linear material. Most of these are related to modeling
+muscles, tendons and ligaments and are presented in detail in
+Section \ref{PointToPointMuscles:sec}.
+
+Application authors may also create their own custom axial materials by
+subclassing
+\javaclass[artisynth.core.materials]{AxialMaterial}
+and overriding the functions
+%
+\begin{methodtable}{0.7}{0.3}
+\midline
+%
+\methodentry
+{\mats.AxialMaterial.computeF(,,,)}%
+{double computeF (double l, double ldot, double l0, double excitation)}%
+{Computes tension $f$.}%
+%
+\methodentry
+{\mats.AxialMaterial.computeDFdl(,,,)}%
+{double computeDFdl (double l, double ldot, double l0, double excitation)}%
+{Computes $\partial f/\partial l$.}%
+%
+\methodentry
+{\mats.AxialMaterial.computeDFdldot(,,,)}%
+{double computeDFdldot (double l, double ldot, double l0, double excitation)}%
+{Computes $\partial f/\partial \dot l$.}%
+%
+\methodentry
+{\mats.AxialMaterial.isDFdldotZero()}%
+{boolean isDFdldotZero()}%
+{Returns {\tt true} if $\partial f/\partial \dot l \equiv 0$.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+%
+where {\tt l} and {\tt l0} are the muscle length and rest length, {\tt ldot} is
+$\dot l$, and {\tt excitation} is an additional {\it excitation} signal $a$,
+which is usually in the range $[0, 1]$ and is used to implement active springs
+and in particular is used to implement the muscle materials of
+Section \ref{PointToPointMuscles:sec}.
+
+The first three methods should return the values of 
+%
+\begin{equation}
+f (l, \dot l, a), \quad
+\frac{\partial f(l, \dot l, a)}{\partial l}, \quad \text{and} \quad
+\frac{\partial f(l, \dot l, a)}{\partial \dot l},
+\end{equation}
+%
+respectively, while the last method should return {\tt true} if
+$\partial f(l, \dot l, a) / \partial \dot l \equiv 0$; i.e., it is
+always 0.
+
 \section{Rigid bodies}
 
 Rigid bodies are implemented in ArtiSynth by the class
@@ -300,23 +565,35 @@ points attached to dynamic components in the model. Markers are used
 for graphical display, implementing attachments, and transmitting
 forces back onto the underlying dynamic components.
 
-A {\it frame marker} is a marker that can be attached to a
-\javaclass[artisynth.core.mechmodels]{Frame}, and most commonly to a
-\javaclass[artisynth.core.mechmodels]{RigidBody} (Figure
-\ref{frameMarker:fig}). They are frequently used to provide the
-anchor points for attaching springs and, more generally, applying
-forces to the body.
+{\it Frame markers} are markers that can be attached to a
+\javaclass[artisynth.core.mechmodels]{Frame} (which includes
+\javaclass[artisynth.core.mechmodels]{RigidBody} as a 
+subclass), as illustrated in Figure
+\ref{frameMarker:fig}. They are frequently used to provide the
+anchor points for attaching springs and, more generally, applying forces to the
+body.
 
 Frame markers are implemented by the class
 \javaclass[artisynth.core.mechmodels]{FrameMarker}, which
 is a subclass of
 \javaclass[artisynth.core.mechmodels]{Point}.
 The methods
-% method table
-\begin{lstlisting}[]
-  Point3d getLocation();
-  void setLocation (Point3d r);
-\end{lstlisting}
+%
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\mech.FrameMarker.getLocation()}%
+{Point3d getLocation ()}%
+{\ }%
+%
+\methodentry
+{\mech.FrameMarker.setLocation(Point3d)}%
+{void setLocation (Point3d r)}%
+{\ }%
+%
+\midline
+\end{methodtable}
 %
 get and set the marker's location $\r$ with respect to the frame's
 coordinate system. When a 3D force $\f$ is applied to the marker, it
@@ -329,49 +606,163 @@ generates a spatial force $\hat\f$ (Section
 %
 
 Frame markers can be created using a variety of constructors, including
-% method table
-\begin{lstlisting}[]
-  FrameMarker ();
-  FrameMarker (String name);
-  FrameMarker (Frame frame, Point3d loc);
-\end{lstlisting}
 %
-where {\tt FrameMarker()} creates an empty marker, {\tt
-FrameMarker(name)} creates an empty marker with a name, and {\tt
-FrameMarker(frame,loc)} creates an unnamed marker attached to {\tt
-frame} at the location {\tt loc} with respect to the frame's
-coordinates. Once created, a marker's frame can be set and queried
-with
-% method table
-\begin{lstlisting}[]
-  void setFrame (Frame frame);
-  Frame getFrame (); 
-\end{lstlisting}
+\begin{methodtable}{0.95}{0.05}
+\midline
 %
-A frame marker can be added to a \javaclass[\mech]{MechModel} with the
-{\tt MechModel} methods
-% method table
-\begin{lstlisting}[]
-  void addFrameMarker (FrameMarker mkr);
-  void addFrameMarker (FrameMarker mkr, Frame frame, Point3d loc);
-\end{lstlisting}
+\methodentry
+{\mech.FrameMarker.FrameMarker()}%
+{FrameMarker ()}%
+{\ }%
 %
-where {\tt addFrameMarker(mkr,frame,loc)} also sets the frame and the
-marker's location with respect to it. 
+\methodentry
+{\mech.FrameMarker.FrameMarker(String)}%
+{FrameMarker (String name)}%
+{\ }%
+%
+\methodentry
+{\mech.FrameMarker.FrameMarker(Frame,Point3d)}%
+{FrameMarker (Frame frame, Point3d loc)}%
+{\ }%
+%
+\midline
+\end{methodtable}
+%
+where {\tt FrameMarker()} creates an empty marker, {\tt FrameMarker(name)}
+creates an empty marker with a name, and {\tt FrameMarker(frame,loc)} creates
+an unnamed marker attached to {\tt frame} at the location {\tt loc} with
+respect to the frame's coordinates. A marker's frame can also be queried and
+set with the methods
+%
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\mech.FrameMarker.setFrame(Frame)}%
+{void setFrame (Frame frame)}%
+{\ }%
+%
+\methodentry
+{\mech.FrameMarker.getFrame()}%
+{Frame getFrame ()}%
+{\ }%
+%
+\midline
+\end{methodtable}
+%
+
+Once created, a frame marker must be added to the MechModel. This can be
+done by adding it to the MechModel's {\tt frameMarkers} container, which is
+managed using the following {\tt MechModel} methods:
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.MechModel.addFrameMarker(FrameMarker)}%
+{void addFrameMarker (FrameMarker m)}%
+{Adds marker {\tt m} to the container.}%
+%
+\methodentry
+{\mech.MechModel.addFrameMarker(FrameMarker,Frame,Point3d)}%
+{void addFrameMarker (FrameMarker m, Frame frame, Point3d loc)}%
+{Adds {\tt m} and sets its frame and location.}%
+%
+\methodentry
+{\mech.MechModel.removeFrameMarker(FrameMarker)}%
+{boolean removeFrameMarker (FrameMarker m)}%
+{Removes marker {\tt m} from the container.}%
+%
+\methodentry
+{\mech.MechModel.clearFrameMarkers()}%
+{void clearFrameMarkers()}%
+{Removes all markers.}%
+%
+\methodentry
+{\mech.MechModel.frameMarkers()}%
+{PointList<FrameMarker> frameMarkers()}%
+{Returns the {\tt frameMarkers} container.}%
+%
+\midline
+\end{methodtable}
+%
 
 {\tt MechModel} also supplies convenience methods to create a
 marker, attach it to a frame, and add it to the model:
-% method table
-\begin{lstlisting}[]
-  FrameMarker addFrameMarker (Frame frame, Point3d loc);
-  FrameMarker addFrameMarkerWorld (Frame frame, Point3d locw);
-\end{lstlisting}
 %
-Both methods return the created marker. 
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.MechModel.addFrameMarker(Frame,Point3d)}%
+{FrameMarker addFrameMarker (Frame frame, Point3d loc)}%
+{Creates a marker at a frame-relative location.}%
+%
+\methodentry
+{\mech.MechModel.addFrameMarkerWorld(Frame,Point3d)}%
+{FrameMarker addFrameMarkerWorld (Frame frame, Point3d locw)}%
+{Creates a marker at a world location.}%
+%
+\midline
+\end{methodtable}
+%
+Both methods return the created marker.
 The first, {\tt addFrameMarker(frame,loc)}, places it at the
 location {\tt loc} with respect to the frame, while {\tt
 addFrameMarkerWorld(frame,pos)} places it at {\tt pos} with respect to
 {\it world} coordinates.
+
+Alternatively, frame markers can also be added directly to the frame or rigid
+body to which they are attached. Each frame contains a {\tt markers} container
+subcomponent, and markers can be added to this using the following {\tt
+Frame} methods:
+%
+\begin{methodtable}{0.42}{0.58}
+\midline
+%
+\methodentry
+{\mech.Frame.addMarker(FrameMarker)}%
+{void addMarker (FrameMarker mkr)}%
+{Adds an existing marker to the frame.}%
+%
+\methodentry
+{\mech.Frame.addMarker(Point3d)}%
+{FrameMarker addMarker (Point3d loc)}%
+{Creates a marker at location {\tt loc} with respect
+to frame coords.}%
+%
+\methodentry
+{\mech.Frame.addMarkerWorld(Point3d)}%
+{FrameMarker addMarkerWorld (Point3d pos)}%
+{Creates a marker at position {\tt pos} given in world
+coordinates.}%
+%
+\midline
+\end{methodtable}
+%
+A frame's {\tt markers}
+container can be accessed, and markers can be removed, using
+%
+\begin{methodtable}{0.45}{0.55}
+\midline
+%
+\methodentry
+{\mech.Frame.getMarkers()}%
+{PointList<? extends FrameMarker> getMarkers ()}%
+{Returns the frame's {\tt markers} list.}%
+%
+\methodentry
+{\mech.Frame.removeMarker(FrameMarker)}%
+{boolean removeMarker (FrameMarker mkr)}%
+{Removes a marker from the {\tt markers} list.}%
+%
+\methodentry
+{\mech.Frame.clearMarkers()}%
+{void clearMarkers ()}%
+{Removes all markers from the {\tt markers} list.}%
+%
+\midline
+\end{methodtable}
 
 \subsection{Example: a simple rigid body-spring model}
 \label{RigidBodySpringExample:sec}
@@ -475,7 +866,7 @@ Some of these include:
 \end{lstlisting}
 %
 The bodies do not need to be named; if no name is desired, then {\tt
-name} and can be specified as {\tt null}.
+name} can be specified as {\tt null}.
 
 In addition, there are also
 factory methods for creating a rigid body directly from a mesh:
@@ -559,7 +950,7 @@ coordinates:
 %
 
 During simulation, unless a rigid body has been set to be {\it
-parametric} (Section \ref{DynamicVsParametric:sec}), its pose and
+parametric} (Section \ref{ParametricAndAttached:sec}), its pose and
 velocity are updated in response to forces, so setting the pose or
 velocity generally makes sense only for setting initial conditions.
 On the other hand, if a rigid body is parametric, then it is possible
@@ -618,7 +1009,7 @@ In practice, it is often more convenient to simply specify a mass or a
 density, and then use the geometry of the surface mesh (and possibly
 other meshes, Section \ref{rigidBodyMultipleMeshes:sec}) to compute
 the remaining inertial values. How a rigid body's inertia is computed
-is determined by its {\sf inertiaMethod} property, which can be one
+is determined by its {\sf inertiaMethod} property, which can be one of:
 
 \begin{description}
 
@@ -655,7 +1046,7 @@ The {\sf inertiaMethod} property can be set and queried using
 \end{lstlisting}
 %
 and its default value is {\tt DENSITY}. Explicitly setting the
-inertia using one of {\tt setInertia()} methods described above will
+inertia using one of the {\tt setInertia()} methods described above will
 set {\tt inertiaMethod} to {\tt EXPLICIT}. The method
 % method table
 \begin{lstlisting}[]
@@ -717,7 +1108,7 @@ effects. For instance, since the body's spatial velocity is defined
 with respect to the frame origin and not the COM, if the two are not
 coincident, then a purely angular body velocity will cause the COM to
 translate. The body's spatial inertia also becomes more complicated,
-with non-zero 3 x 3 blocks in the lower left and upper right
+with non-zero $3 \times 3$ blocks in the lower left and upper right
 (Section \ref{SpatialInertia:sec}), which can have a small effect on
 computational accuracy. Finally, manipulating a body's pose in the
 ArtiSynth UI (as described in the section ``Model Manipulation'' in
@@ -941,7 +1332,7 @@ import maspack.render.Renderer.*;
 \end{lstlisting}
 %
 Finally, the right image shows the body rendered as a wire
-frame, which can by done by setting {\sf faceStyle} to {\tt NONE}
+frame, which can be done by setting {\sf faceStyle} to {\tt NONE}
 and {\sf drawEdges} to {\tt true}:
 \begin{lstlisting}[]
   RenderProps.setFaceStyle (hip, FaceStyle.NONE);
@@ -1005,7 +1396,7 @@ Axes are rendered as solid red-green-blue arrows.
 \end{description}
 %
 
-As with the rendering proprieties, the {\sf axisLength} and {\sf
+As with the rendering properties, the {\sf axisLength} and {\sf
 axisDrawStyle} properties can be managed either interactively in the
 GUI (by selecting the body, right clicking and choosing {\sf Edit
 properties ...}), or in code, using the following methods:
@@ -1463,7 +1854,7 @@ body's coordinate frame.
 \label{FixedMeshes:fig}
 \end{figure}
 
-An simple application that creates a pair of fixed meshes and adds
+A simple application that creates a pair of fixed meshes and adds
 them to a {\tt MechModel} is defined in
 %
 \begin{verbatim}
@@ -1500,7 +1891,7 @@ pose is set to a 90 degree rotation about the $x$ axis and a
 translation of 0.5 along $y$ (lines 28-29).
 
 Rendering properties are set at lines 33-41. The torus is made pale
-green by setting it face color; the coordinate frame for the square is
+green by setting its face color; the coordinate frame for the square is
 made visible as solid arrows using the {\tt axisLength} and {\tt
 axisDrawStyle} properties; and the square is made blue gray, with its
 edges made visible and drawn using a darker color, and its face style
@@ -1630,14 +2021,14 @@ restrictions imposed by the joints are then enforced by a set of
 linearized constraint relationships
 %
 \begin{equation}
-\G(\q) \u = \g, \qquad \N(\q) \u \ge \n
+\G(\q) \u = \b_g, \qquad \N(\q) \u \ge \b_n
 \label{constraints2:eqn}
 \end{equation}
 %
 that restrict the body velocities $\u$ computed at each simulation
-step, usually by solving an MLCP like (\ref{KKTvelocity:eqn}). As
+step, usually by solving an MLCP like (\ref{MLCPBackward:eqn}). As
 explained in Section \ref{PhysicsSimulation:sec}, the right side
-vectors $\g$ and $\n$ in (\ref{constraints2:eqn}) contain time
+vectors $\b_g$ and $\b_n$ in (\ref{constraints2:eqn}) contain time
 derivative terms, which for simplicity much of the following
 presentation will assume to be 0.
 
@@ -1741,7 +2132,7 @@ describes the joint error, we sometimes refer to it as $\T_{err}
 \end{center}
 \caption{2D schematic showing the joint frames D and C, along with
 the intermediate frame G that accounts for numeric error
-and complaint motion.}
+and compliant motion.}
 \label{jointFrames:fig}
 \end{figure}
 
@@ -1895,7 +2286,7 @@ constructors which supply body B will allow this to be specified as
 \begin{sideblock}
 When using joints to build an articulated structure, the usual convention is
 for {\tt bodyA} to be on the distal, or ``outer'', side of the joint and for
-{\tt bodyB} to be on the proximal, or ``inner side.
+{\tt bodyB} to be on the proximal, or ``inner'', side.
 \end{sideblock}
 
 Finally, it is also possible to create a joint using its default constructor
@@ -2082,7 +2473,7 @@ corresponding to a particular set of joint coordinates:
 %
 \begin{lstlisting}[]
   RigidTransform3d TDW; // known location for D frame
-  double z, theta; // desired initial coordinate values
+  double z, thetaDeg; // desired initial coordinate values
   ...
   CylindricalJoint joint = new CylindricalJoint();
   joint.setZ (z);
@@ -2340,7 +2731,7 @@ index within that joint. It can be easily constructed as follows,
    JointCoordinateHandle handle = new JointCoordinateHandle (joint, idx);
 \end{lstlisting}
 %
-add offers a number of methods to directly access coordinate properties:
+and offers a number of methods to directly access coordinate properties:
 
 %
 \begin{methodtable}{0.42}{0.58}
@@ -2429,7 +2820,7 @@ Here, $\f_g$ and $\f_n$ are spatial forces (or {\it wrenches}, Section
 \ref{SpatialVelocitiesAndForces:sec}) acting in the joint coordinate
 frame C, and $\Blam_J$ and $\Bthe_J$ are the Lagrange multipliers
 computed as part of the mechanical system solve (see
-(\ref{KKTvelocity:eqn}) and (\ref{impulsesToForces:eqn})).  The sizes
+(\ref{MLCPBackward:eqn}) and (\ref{impulsesToForces:eqn})).  The sizes
 of $\Blam_J$ and $\Bthe_J$ equal the number of bilateral and {\it
 engaged} unilateral constraints in the joint; these numbers can be
 queried for a particular joint using the methods
@@ -2525,7 +2916,7 @@ regularize} a system of joint constraints that would otherwise be
 overconstrained, as illustrated in Section \ref{FourBar:sec}.
 
 To describe compliance precisely, consider the bilateral constraint
-portion of the MLCP in (\ref{KKTvelocity:eqn}), which solves for the
+portion of the MLCP in (\ref{MLCPBackward:eqn}), which solves for the
 updated system velocities $\u^{k+1}$ at each time step:
 %
 \begin{equation}
@@ -2539,16 +2930,16 @@ updated system velocities $\u^{k+1}$ at each time step:
 \matr
 =
 \matl
-\M \u^{k} - h \hat\f^{k} \\
+\b_f \\
 0
 \matr.
 \label{KKThard:eqn}
 \end{equation}
 %
-Here $\G$ is the system's bilateral constraint matrix, $\tilde\Blam$
-denotes the constraint impulses (from which the constraint forces
-$\Blam$ can be determined by $\Blam = \tilde\Blam/h$), and for
-simplicity we have assumed that $\G$ is constant and so the $\g$ term
+Here $\G$ is the system's bilateral constraint matrix, $\tilde\Blam$ denotes
+the constraint impulses (from which the constraint forces $\Blam$ can be
+determined by $\Blam = \tilde\Blam/h$), the regularization term $\R_g$ is zero,
+and for simplicity we have assumed that $\G$ is constant and so the $\b_g$ offset
 on the lower right side is $0$.
 
 Solving (\ref{KKThard:eqn}) results in constraint forces that satisfy
@@ -2592,7 +2983,7 @@ a revised form of (\ref{KKThard:eqn}),
 \begin{equation}
 \matl
 \hat\M^{k} & -\G^{T} \\
-\G & 2 \C /h^2 
+\G & \R_g
 \matr
 \matl
 \u^{k+1} \\
@@ -2600,14 +2991,19 @@ a revised form of (\ref{KKThard:eqn}),
 \matr
 =
 \matl
-\M \u^{k} - h \hat\f^{k} \\
-- 2 \Bphi^k/h
+\b_f \\
+\b_g 
 \matr,
 \label{KKTsoft:eqn}
 \end{equation}
 %
-in the which the zeros in the matrix and right hand side have been
-replaced by compliance terms.
+in which $\R_g$ and $\b_g$ contain compliance terms defined by
+%
+\begin{equation*}
+\R_g \equiv 2 \C /h^2, \quad \b_g \equiv - 2 \Bphi^k/h.
+\end{equation*}
+%
+
 The resulting constraint behavior is different from that of
 (\ref{KKThard:eqn}) in two important ways:
 
@@ -2618,11 +3014,10 @@ limited by restoring spring constants given by the reciprocals of the
 diagonal entries of $\C$.
 
 \item If $\C$ has no zero diagonal entries, then the system
-(\ref{KKTsoft:eqn}) is {\it regularized} by the $2 \C/h^2$ term in the
-lower right matrix block. This means that the matrix is always
-non-singular, even if $\G$ is rank deficient, and so compliance offers
-a way to handle overconstrained models, as discussed further in
-Section \ref{FourBar:sec}.
+(\ref{KKTsoft:eqn}) is {\it regularized} by the $\R_g$.  This means that the
+system matrix is always non-singular, even if $\G$ is rank deficient, and so
+compliance offers a way to handle overconstrained models, as discussed further
+in Section \ref{FourBar:sec}.
 
 \end{enumerate}
 
@@ -2655,7 +3050,7 @@ and can be queried and set using the methods
   void setCompliance (VectorNd compliance)
 
   VectorNd getDamping()
-  void setCompliance (VectorNd damping)
+  void setDamping (VectorNd damping)
 \end{lstlisting}
 %
 The vectors supplied to the above {\tt set} methods contain the
@@ -2680,18 +3075,18 @@ to act along its direction, decide how much displacement $\delta q$
 then set the compliance $C_i$ to the associated inverse stiffness:
 %
 \begin{equation}
-C_k = \delta q/f.
+C_i = \delta q/f.
 \end{equation}
 %
-Once $C_k$ is determined, the damping $D_k$ can be estimated based on
+Once $C_i$ is determined, the damping $D_i$ can be estimated based on
 the desired damping ratio $\zeta$, using the formula
 %
 \begin{equation}
-D_k = 2 \zeta \sqrt{M/C_k}
+D_i = 2 \zeta \sqrt{M/C_i}
 \label{constraintDamping:eqn}
 \end{equation}
 %
-where $M$ is total mass of the bodies attached to the joint.
+where $M$ is the total mass of the bodies attached to the joint.
 Typically, the desired damping will be close to critical damping, for
 which $\zeta = 1$.
 
@@ -2747,7 +3142,7 @@ adding a small amount of compliance to the
 constraints. (Overconstraining is not a problem with unilateral
 constraints $\N$, because of the way they are handled by the solver.)
 
-One possible symptom of an overconstrained system is a error message
+One possible symptom of an overconstrained system is an error message
 in the application's terminal output, such as
 %
 \begin{verbatim}
@@ -2764,7 +3159,7 @@ connected by hinge joints at the corners. One link is usually
 connected to ground, and so the remaining three links together have 18
 DOF, while the four hinge joints together remove 20 DOF,
 overconstraining the system. However, the constraints are redundant in
-such as way that the linkage still actually has 1 DOF.
+such a way that the linkage still actually has 1 DOF.
 
 \begin{figure}[ht]
 \begin{center}
@@ -2819,7 +3214,7 @@ locates the joint at the top end of {\tt link0}, at $(0, 0, 0.5)$,
 with the $z$ axis parallel to the body's $y$ axis, while $\T_{DB}$
 similarly locates the joint at the bottom of {\tt link1}.  After the
 joint is created and added to the {\tt MechModel}, its render
-properties are set so that its axis drawn as a blue cylinder.
+properties are set so that its axis is drawn as a blue cylinder.
 
 The {\tt build()} method itself begins by creating a {\tt MechModel}
 and setting damping parameters for the rigid bodies (lines
@@ -2881,10 +3276,10 @@ the GUI, or in code using accessor methods supplied by the joint:
   double getAxisLength()
 
   void setDrawFrameC (AxisDrawStyle style)
-  (AxisDrawStyle getDrawFrameC()
+  AxisDrawStyle getDrawFrameC()
 
   void setDrawFrameD (AxisDrawStyle style)
-  (AxisDrawStyle getDrawFrameD()
+  AxisDrawStyle getDrawFrameD()
 \end{lstlisting}
 %
 
@@ -3009,7 +3404,7 @@ Index & type/name & description \\
 2 & bilateral & restricts translation along $z$ \\
 3 & bilateral & restricts rotation about $x$ \\
 4 & bilateral & restricts rotation about $y$ \\
-5 & unilataral & enforces limits on $\theta$ \\
+5 & unilateral & enforces limits on $\theta$ \\
 \hline
 \hline
 0 & $\theta$ & counter-clockwise rotation of $C$ about the $z$ axis \\
@@ -3082,7 +3477,7 @@ Index & type/name & description \\
 2 & bilateral & restricts rotation about $x$ \\
 3 & bilateral & restricts rotation about $y$ \\
 4 & bilateral & restricts rotation about $z$ \\
-5 & unilataral & enforces limits on the $z$ coordinate \\
+5 & unilateral & enforces limits on the $z$ coordinate \\
 \hline
 \hline
 0 & $z$ & translation of $C$ along the $z$ axis \\
@@ -3156,8 +3551,8 @@ Index & type/name & description \\
 1 & bilateral & restricts translation along $y$ \\
 2 & bilateral & restricts rotation about $x$ \\
 3 & bilateral & restricts rotation about $y$ \\
-4 & unilataral & enforces limits on the $z$ coordinate \\
-5 & unilataral & enforces limits on the $\theta$ coordinate \\
+4 & unilateral & enforces limits on the $z$ coordinate \\
+5 & unilateral & enforces limits on the $\theta$ coordinate \\
 \hline
 \hline
 0 & $z$ & translation of $C$ along the $z$ axis \\
@@ -3241,8 +3636,8 @@ Index & type/name & description \\
 1 & bilateral & restricts translation along $z$ \\
 2 & bilateral & restricts rotation about $x$ \\
 3 & bilateral & restricts rotation about $y$ \\
-4 & unilataral & enforces limits on the $x$ coordinate \\
-5 & unilataral & enforces limits on the $\theta$ coordinate \\
+4 & unilateral & enforces limits on the $x$ coordinate \\
+5 & unilateral & enforces limits on the $\theta$ coordinate \\
 \hline
 \hline
 0 & $x$ & translation of $C$ along the $x$ axis \\
@@ -3282,8 +3677,8 @@ Index & type/name & description \\
 1 & bilateral & restricts translation along $y$ \\
 2 & bilateral & restricts translation along $z$ \\
 3 & bilateral & restricts rotation about the final $x$ axis of C \\
-4 & unilataral & enforces limits on the roll coordinate \\
-5 & unilataral & enforces limits on the pitch coordinate \\
+4 & unilateral & enforces limits on the roll coordinate \\
+5 & unilateral & enforces limits on the pitch coordinate \\
 \hline
 \hline
 0 & $\theta$ (roll) & first rotation of $C$ about the $z$ axis of D \\
@@ -3375,7 +3770,7 @@ angle of $30^\circ$.}
 \end{figure}
 
 The constraints and the coordinates are the same as for the universal
-joint, although the relationship between $\T_{CD}$ is now more complicated.
+joint, although the expression for $\T_{CD}$ is now more complicated.
 With $\Cr$, $\Sr$, $\Cp$, and $\Sp$ defined as for the universal
 joint, $\T_{CD}$ is given by
 %
@@ -3408,17 +3803,17 @@ described in Section \ref{CreatingJoints:sec}, with an additional
 argument at the end indicating the skew angle:
 % method table
 \begin{lstlisting}[]
-  SkewedUniveralJoint (bodyA, TCA, bodyB, TCB, skewAngle)
+  SkewedUniversalJoint (bodyA, TCA, bodyB, TCB, skewAngle)
 
-  SkewedUniveralJoint (bodyA, bodyB, TDW, skewAngle)
+  SkewedUniversalJoint (bodyA, bodyB, TDW, skewAngle)
 
-  SkewedUniveralJoint (bodyA, bodyB, TCW, TDW, skewAngle)
+  SkewedUniversalJoint (bodyA, bodyB, TCW, TDW, skewAngle)
 \end{lstlisting}
 %
 In addition, the constructor
 % method table
 \begin{lstlisting}[]
-  SkewedUniveralJoint (bodyA, bodyB, originD, rollAxis, pitchAxis)
+  SkewedUniversalJoint (bodyA, bodyB, originD, rollAxis, pitchAxis)
 \end{lstlisting}
 %
 creates a skewed universal joint specifying the origin of frame D
@@ -3502,8 +3897,8 @@ is immune to {\it gimbal lock}, in which a degree of freedom is lost
 when $\phi = \pm \pi/2$. However, the coordinate values themselves are
 not immune to this singularity, and neither are the unilateral
 constraints which enforce limits on their values. Therefore, if
-coordinate limits are implemented, the joint should be deployed so as try
-and avoid pitch values near $\pm \pi/2$.
+coordinate limits are implemented, the joint should be deployed so as to
+avoid pitch values near $\pm \pi/2$.
 \end{sideblock}
 
 \begin{table}[h]
@@ -3515,9 +3910,9 @@ Index & type/name & description \\
 0 & bilateral & restricts translation along $x$ \\
 1 & bilateral & restricts translation along $y$ \\
 2 & bilateral & restricts translation along $z$ \\
-3 & unilataral & enforces limits on the roll coordinate \\
-4 & unilataral & enforces limits on the pitch coordinate \\
-5 & unilataral & enforces limits on the yaw coordinate \\
+3 & unilateral & enforces limits on the roll coordinate \\
+4 & unilateral & enforces limits on the pitch coordinate \\
+5 & unilateral & enforces limits on the yaw coordinate \\
 \hline
 \hline
 0 & $\theta$ (roll) & first rotation of $C$ about the $z$ axis of D \\
@@ -3621,7 +4016,7 @@ Index & type/name & description \\
 0 & bilateral & restricts translation along $x$ \\
 1 & bilateral & restricts translation along $y$ \\
 2 & bilateral & restricts translation along $z$ \\
-3 & unilataral & enforces either the ``tilt'' or ``rotation'' limits\\
+3 & unilateral & enforces either the ``tilt'' or ``rotation'' limits\\
 \hline
 \end{tabular}
 \caption{Constraints for the spherical joint.}
@@ -3708,9 +4103,9 @@ Index & type/name & description \\
 0 & bilateral & restricts translation along $z$ \\
 1 & bilateral & restricts rotation about $x$ \\
 2 & bilateral & restricts rotation about $y$ \\
-3 & unilataral & enforces limits on the $x$ coordinate \\
-3 & unilataral & enforces limits on the $y$ coordinate \\
-5 & unilataral & enforces limits on the $\theta$ coordinate \\
+3 & unilateral & enforces limits on the $x$ coordinate \\
+4 & unilateral & enforces limits on the $y$ coordinate \\
+5 & unilateral & enforces limits on the $\theta$ coordinate \\
 \hline
 \hline
 0 & $x$ & translation of $C$ along the $x$ axis of D \\
@@ -3751,8 +4146,8 @@ Index & type/name & description \\
 1 & bilateral & restricts rotation about $x$ \\
 2 & bilateral & restricts rotation about $y$ \\
 3 & bilateral & restricts rotation about $z$ \\
-4 & unilataral & enforces limits on the $x$ coordinate \\
-5 & unilataral & enforces limits on the $y$ coordinate \\
+4 & unilateral & enforces limits on the $x$ coordinate \\
+5 & unilateral & enforces limits on the $y$ coordinate \\
 \hline
 \hline
 0 & $x$ & translation of $C$ along the $x$ axis of D \\
@@ -3868,8 +4263,8 @@ Index & type/name & description \\
 1 & bilateral & restricts C to the ellipsoid surface and limits rotation \\
 2 & unilateral & enforces limits on the $\psi$ coordinate \\
 3 & unilateral & enforces limits on the $\gamma$ coordinate \\
-4 & unilataral & enforces limits on the $\theta$ coordinate \\
-5 & unilataral & enforces limits on the $\phi$ coordinate \\
+4 & unilateral & enforces limits on the $\theta$ coordinate \\
+5 & unilateral & enforces limits on the $\phi$ coordinate \\
 \hline
 \hline
 0 & $\psi$ & longitude angle for origin of S (and C) on the ellipsoid \\
@@ -4004,7 +4399,7 @@ parallel to the ellipsoid surface normal.
 
 \begin{sideblock}
 In OpenSim, the axes of the C frame of both the ellipsoid and
-scapulothoracic joints are oriented differently that those of the
+scapulothoracic joints are oriented differently than those of the
 ArtiSynth joint: they are rotated by $-\pi/2$ about $z$, so that the
 $x$ and $y$ axes correspond to the $-y$ and $x$ axes of the ArtiSynth
 joint.
@@ -4127,7 +4522,7 @@ Constructors for the {\tt PlanarConnector} include
 
   PlanarConnector (bodyA, pCA, TDW)
 
-  PlanarConnector (bodyA, bodyA, TDW)
+  PlanarConnector (bodyA, bodyB, TDW)
 \end{lstlisting}
 %
 where {\tt pCA} gives the connection point of body A {\it with respect
@@ -4209,7 +4604,7 @@ those used for {\tt PlanarConnector},
 
   SegmentedPlanarConnector (bodyA, pCA, TDW, segs)
 
-  SegmentedPlanarConnector (bodyA, bodyA, TDW, segs)
+  SegmentedPlanarConnector (bodyA, bodyB, TDW, segs)
 \end{lstlisting}
 %
 where {\tt segs} is an additional argument of type {\tt double[]}
@@ -4217,7 +4612,7 @@ giving the 2D coordinates defining the segments in the $x$-$z$ plane.
 
 \subsection{Legacy Joints}
 
-ArtiSynth maintains three legacy joint for compatibility with earlier
+ArtiSynth maintains three legacy joints for compatibility with earlier
 software:
 
 \begin{itemize}
@@ -4328,7 +4723,7 @@ of system state as they are in some other multibody systems, such as OpenSim.
 This means that they need to be inferred from the relative poses of the bodies
 connected by their joints. It also means that when setting the values for one
 or more coordinates, the poses of the surrounding bodies must be updated.  In
-addition, it usually necessary to also update the wrap paths of any
+addition, it is usually necessary to also update the wrap paths of any
 \javaclass[\mech]{MultiPointSpring} or
 \javaclass[\mech]{MultiPointMuscle} components attached to the bodies.
 This functionality is provided by the
@@ -4754,7 +5149,7 @@ Other frame materials offering nonlinear behavior may be defined in
 \subsubsection{PowerFrameMaterial}
 \label{PowerFrameMaterial:sec}
 
-An useful alternative to {\tt LinearFrameMaterial} 
+A useful alternative to {\tt LinearFrameMaterial} 
 is \javaclass[\mats]{PowerFrameMaterial}, which computes restoring forces along
 each of the translational and rotational directions according to a power law of
 the form
@@ -4782,7 +5177,7 @@ x_t - b_u & x_t > b_u, \\
 LinearFrameMaterial}.
 
 If rotational deadbands are specified, the rotational displacement may be large
-enough that the the small angle approximation used for {\tt
+enough that the small angle approximation used for {\tt
 LinearFrameMaterial} no longer applies. Therefore, rotational displacements are
 computed as the three x-y-z Tait-Bryan angles of $\R_{DC}$.  The use of
 these finite displacement angles introduces a coupling such that if $\Btau$ is
@@ -4830,7 +5225,7 @@ $\d_r$ & {\sf rotaryDamping} & rotational damping \\
 \end{tabular}
 \end{center}
 Each of these has a default value of $\mathbf{0}$, except for the exponents,
-which have a default value of $(\mathbf{1}$.
+which have a default value of $\mathbf{1}$.
 
 \begin{figure}[ht]
 \begin{center}
@@ -4879,7 +5274,7 @@ The material is set using
 \javamethod*[artisynth.core.mechmodels.FrameSpring]{setMaterial()}.
 The example above uses a {\tt LinearFrameMaterial}, created with a
 constructor that sets $\k_t$, $\k_r$, $\d_t$, and $\d_r$ to uniform
-Isotropic values specified by {\tt kt}, {\tt kr}, {\tt dt}, and {\tt
+isotropic values specified by {\tt kt}, {\tt kr}, {\tt dt}, and {\tt
 dr}. 
 
 The bodies and transforms can be set in the same manner as for joints
@@ -5059,7 +5454,7 @@ computed force will be 0 whenever $d > 0$:
 \begin{equation*}
 \f = 
 \begin{cases}
-f (d, \dot d) d & d \le 0 \\
+f (d, \dot d) \, \n & d \le 0 \\
 0 & d > 0
 \end{cases}
 \end{equation*}
@@ -5121,9 +5516,9 @@ plane specified by either a {\tt Plane} object or by its normal and center.
 %
 These create {\tt PointMeshForce} for a mesh contained within a
 \javaclass[\mech]{MeshComponent} (Section \ref{MeshComponents:sec}).
-The mesh must a polygonal mesh composed of triangles.
+The mesh must be a polygonal mesh composed of triangles.
 
-The points associated with a {\tt PointMeshForce} are added to after
+The points associated with a {\tt PointMeshForce} are added after
 creation. The following methods are used to manage the point set:
 %
 \begin{methodtable}{0.6}{0.4}
@@ -5364,10 +5759,10 @@ following {\tt MechModel} method:
 %
 This attaches a point {\tt p1} to any component which implements the
 interface \javaclass[artisynth.core.mechmodels]{PointAttachable},
-indicating that it is capable creating an attachment to a
+indicating that it is capable of creating an attachment to a
 point. Components that implement {\tt PointAttachable} currently
 include rigid bodies, particles, and finite element models. The
-attachment is created based on the the current position of the point
+attachment is created based on the current position of the point
 and component in question.  For attaching a point to a rigid body,
 another method may be used:
 % method table
@@ -5381,7 +5776,7 @@ Section \ref{sec:fem:nodeattachments}.
 
 Once a point is attached, it
 will be in the {\it attached} state, as described in Section
-\ref{DynamicVsParametric:sec}.  Attachments can be removed by
+\ref{ParametricAndAttached:sec}.  Attachments can be removed by
 calling
 % method table
 \begin{lstlisting}[]
@@ -5517,14 +5912,14 @@ interface \javaclass[artisynth.core.mechmodels]{FrameAttachable},
 indicating that it is capable of creating an attachment to a
 frame. Components that implement {\tt FrameAttachable} currently
 include frames, rigid bodies, and finite element models.  For the
-first method, the attachment is created based on the the current
+first method, the attachment is created based on the current
 position of the frame and component in question. For the second
 method, the attachment is created so that the initial pose of the frame
 (in world coordinates) is described by {\tt TFW}.
 
 Once a frame is attached, it
 will be in the {\it attached} state, as described in Section
-\ref{DynamicVsParametric:sec}.  Frame attachments can be removed by
+\ref{ParametricAndAttached:sec}.  Frame attachments can be removed by
 calling
 % method table
 \begin{lstlisting}[]
@@ -5600,6 +5995,250 @@ and initially appear as in Figure \ref{ParticleAttachment:fig}.  The
 frame attached to {\tt bodyA} is visible in the lower right corner.
 Running the model (Section \ref{LoadingAndRunning:sec}) will cause
 both bodies to fall and swing about the joint under gravity.
+
+\section{Attached frames}
+\label{attachedFrames:sec}
+
+In the same sense that a \javaclass[\mech]{Marker} is a point attached to
+another dynamic component, an \javaclass[\mech]{AttachedFrame} is a
+coordinate frame attached to a dynamic component.
+
+\subsection{Frame attached frames}
+\label{frameAttachedFrames:sec}
+
+A \javaclass[\mech]{FrameAttachedFrame} is an {\tt AttachedFrame} that is
+rigidly connected to a master \javaclass[\mech]{Frame} (which includes
+\javaclass[\mech]{RigidBody} as a subclass), in the same way that a {\tt
+FrameMarker} is a point attached to a {\tt Frame}. Once attached, the {\tt
+FrameAttachedFrame} moves rigidly with its master frame. The relative pose of
+the attached frame with respect to its master is described by the transform
+$\T_{FM}$, referred to in the code examples as {\tt TFM}.
+
+{\tt FrameAttachedFrame} objects can be created using a variety of
+constructors, including
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\mech.FrameAttachedFrame.FrameAttachedFrame()}%
+{FrameAttachedFrame ()}%
+{\ }%
+%
+\methodentry
+{\mech.FrameAttachedFrame.FrameAttachedFrame(String)}%
+{FrameAttachedFrame (String name)}%
+{\ }%
+%
+\methodentry
+{\mech.FrameAttachedFrame.FrameAttachedFrame(RigidTransform3d)}%
+{FrameAttachedFrame (RigidTransform3d TFW)}%
+{\ }%
+%
+\methodentry
+{\mech.FrameAttachedFrame.FrameAttachedFrame(Frame,RigidTransform3d)}%
+{FrameAttachedFrame (Frame frame, RigidTransform3d TFW)}%
+{\ }%
+%
+\midline
+\end{methodtable}
+%
+where {\tt FrameAttachedFrame()} creates a default frame with no master
+assigned, {\tt FrameAttachedFrame(name)} adds a name, and {\tt
+FrameAttachedFrame(TFW)} initializes the world pose to {\tt TFW}. The
+last constructor also attaches the frame to {\tt frame}, with $\T_{FM}$
+computed from the two frames' current world poses. After construction,
+the master frame can be set and queried using
+\begin{methodtable}{0.95}{0.05}
+\midline
+%
+\methodentry
+{\mech.FrameAttachedFrame.setFrame(Frame)}%
+{void setFrame (Frame frame)}%
+{\ }%
+%
+\methodentry
+{\mech.FrameAttachedFrame.getFrame()}%
+{Frame getFrame ()}%
+{\ }%
+%
+\midline
+\end{methodtable}
+%
+where {\tt setFrame(frame)} computes $\T_{FM}$ from the attached frame's
+current world pose and the master's world pose. The transform $\T_{FM}$ and
+the world pose $\T_{FW}$ can also be set and queried directly:
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.FrameAttachedFrame.getTFM()}%
+{RigidTransform3d getTFM ()}%
+{Returns $\T_{FM}$.}%
+%
+\methodentry
+{\mech.FrameAttachedFrame.setTFM(RigidTransform3d)}%
+{void setTFM (RigidTransform3d TFM)}%
+{Sets $\T_{FM}$ and updates $\T_{FW}$.}%
+%
+\methodentry
+{\mech.FrameAttachedFrame.setTFW(RigidTransform3d)}%
+{void setTFW (RigidTransform3d TFW)}%
+{Sets $\T_{FW}$ and updates $\T_{FM}$ accordingly.}%
+%
+\midline
+\end{methodtable}
+Note there is no need for a {\tt getTFW()} method because that is the same as
+the frame's {\tt getPose()} method, whereas {\tt setTFW()} differs from {\tt
+setPose(TFW)} because the former updates $\T_{FM}$ to accommodate the new value
+of $\T_{FW}$, while the latter does not and so the frame will revert back to
+the pose imparted by the master.
+
+Created {\tt FrameAttachedFrame} objects must be added to the {\tt MechModel}.
+One way to do this is to add them to the model's {\tt frames} container, which
+is managed using the {\tt MechModel} methods:
+%
+\begin{methodtable}{0.6}{0.4}
+\midline
+%
+\methodentry
+{\mech.MechModel.addFrame(Frame)}%
+{void addFrame (Frame frame)}%
+{Adds frame {\tt frame} to the container.}%
+%
+\methodentry
+{\mech.MechModel.removeFrame(Frame)}%
+{boolean removeFrame (Frame frame)}%
+{Removes frame {\tt frame} from the container.}%
+%
+\methodentry
+{\mech.MechModel.clearFrames()}%
+{void clearFrames()}%
+{Removes all frames.}%
+%
+\methodentry
+{\mech.MechModel.frames()}%
+{RenderableComponentList<Frame> frames()}%
+{Returns the {\tt frames} container.}%
+%
+%\methodspace{0.5em}%
+%\brh
+\midline
+\end{methodtable}
+
+{\tt FrameAttachedFrame} objects can be added directly to a {\tt Frame}
+component, which maintains an {\tt attachedFrames} container as
+a subcomponent. Attached frames can be added to this list using
+%
+\begin{methodtable}{0.5}{0.5}
+\midline
+%
+\methodentry
+{\mech.Frame.addAttachedFrame(FrameAttachedFrame)}%
+{void addAttachedFrame (FrameAttachedFrame frm)}%
+{Adds an existing {\tt FrameAttachedFrame} to a frame, 
+setting its master to {\tt frame} if necessary.}%
+%
+\methodentry
+{\mech.Frame.addAttachedFrame(RigidTransform3d)}%
+{FrameAttachedFrame addAttachedFrame (\brh RigidTransform3d TFM)}%
+{Creates a {\tt FrameAttachedFrame} at pose $\T_{FM}$
+with respect to frame coordinates.}%
+%
+\methodentry
+{\mech.Frame.addAttachedFrameWorld(RigidTransform3d)}%
+{FrameAttachedFrame addAttachedFrameWorld (\brh RigidTransform3d TFW)}%
+{Creates a {\tt FrameAttachedFrame} at pose $\T_{FW}$
+with respect to world coordinates.}%
+%
+\midline
+\end{methodtable}
+%
+The {\tt attachedFrames} container can be accessed and frames removed using
+%
+\begin{methodtable}{0.52}{0.48}
+\midline
+%
+\methodentry
+{\mech.Frame.getAttachedFrames()}%
+{RenderableComponentList<FrameAttachedFrame>\brh getAttachedFrames ()}%
+{Returns the frame's {\tt attachedFrames} container.}%
+%
+\methodentry
+{\mech.Frame.removeAttachedFrame(FrameAttachedFrame)}%
+{boolean removeAttachedFrame (\brh FrameAttachedFrame frm)}%
+{Removes {\tt frm} from the container; returns {\tt true} if it was present.}%
+%
+\methodentry
+{\mech.Frame.clearAttachedFrames()}%
+{void clearAttachedFrames ()}%
+{Removes all frames from the container.}%
+%
+\midline
+\end{methodtable}
+
+\subsection{Example: attached frames for a rigid body}
+\label{RigidBodyAttachedFrames:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+  \includegraphics[]{images/RigidBodyAttachedFrames}
+\else
+  \includegraphics[width=3.75in]{images/RigidBodyAttachedFrames}
+\fi
+\end{center}
+\caption{RigidBodyAttachedFrames model loaded into ArtiSynth.}
+\label{RigidBodyAttachedFrames:fig}
+\end{figure}
+
+A model demonstrating the attachment of frames to a rigid body is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.RigidBodyAttachedFrames
+\end{verbatim}
+%
+This subclasses {\tt RigidBodyJoint} (Section \ref{RigidBodyJoint:sec}) and
+extends its {\tt build()} method to add two {\tt FrameAttachedFrame}s to {\tt
+bodyA}, one specified via $\T_{FM}$ and one via the world pose $\T_{FW}$:
+%
+\lstset{numbers=left}
+\begin{lstlisting}[]
+   public void build (String[] args) {
+
+      // build the base scene (two rigid bodies + hinge joint)
+      super.build (args);
+
+      // Add a FrameAttachedFrame via TFM: positioned at the tip of bodyA
+      // along its local x-axis (half of lenx2 from the body origin).
+      RigidTransform3d TFM1 = new RigidTransform3d (lenx2/2, 0, 0);
+      FrameAttachedFrame frm1 = bodyA.addAttachedFrame (TFM1);
+      frm1.setName ("frameAtTip");
+      frm1.setAxisLength (4.0);
+      frm1.setAxisDrawStyle (AxisDrawStyle.ARROW);
+
+      // Add a FrameAttachedFrame via TFW: placed in world coordinates at the
+      // center of bodyA's current world pose.
+      RigidTransform3d TFW = new RigidTransform3d (bodyA.getPose());
+      FrameAttachedFrame frm2 = bodyA.addAttachedFrameWorld (TFW);
+      frm2.setName ("frameAtCenter");
+      frm2.setAxisLength (4.0);
+      frm2.setAxisDrawStyle (AxisDrawStyle.ARROW);
+   }
+\end{lstlisting}
+\lstset{numbers=none}
+%
+The first attached frame, {\tt frameAtTip}, is created using {\tt
+addAttachedFrame(TFM)}, with $\T_{FM}$ placing it at the tip of {\tt bodyA}
+along its local $x$-axis. The second, {\tt frameAtCenter}, is created using
+{\tt addAttachedFrameWorld(TFW)}, with its world pose set to match the
+current pose of {\tt bodyA}, so it sits at the body's origin. Both frames
+are rendered as solid arrow triads ({\tt AxisDrawStyle.ARROW}).
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+RigidBodyAttachedFrames} from the {\sf Models} menu. The model should load
+and initially appear as in Figure \ref{RigidBodyAttachedFrames:fig}. Running
+the model will cause {\tt bodyA} to swing under gravity, with both attached
+frames moving rigidly with it.
 
 \ifdefined\maindoc
 \else

@@ -196,7 +196,7 @@ motion excitation response matrix. To best follow the trajectory, we
 can compute $\a$ to minimize the quadratic cost function
 %
 \begin{equation}
-\phi_m(\a) \equiv \frac{1}{2} \| \v_* - \v^{k+1} \| = 
+\phi_m(\a) \equiv \frac{1}{2} \| \v_* - \v^{k+1} \|^2 = 
 \frac{1}{2} \| \bar\v - \H_m \a \|^2, \quad
 \bar\v \equiv \v_* - \v_0.
 \label{MotionCostTerm:eqn}
@@ -250,9 +250,9 @@ $\f_e$ at the end of step $k+1$ are linearly related to $\a$ via
 \f_e^{k+1} = \f_{e0} + \H_e \a
 \end{equation*}
 %
-where $\f_{t0}$ is the force with zero excitations and $\H_e$ is
+where $\f_{e0}$ is the force with zero excitations and $\H_e$ is
 the force excitation response matrix. The force trajectory can
-then be tracking by minimizing
+then be tracked by minimizing
 %
 \begin{equation}
 \phi_e(\a) \equiv \frac{1}{2} \| \W_e (\bar\f_e - \H_e \a) \|^2, \quad
@@ -293,7 +293,7 @@ a weight (e.g., $w_m$, $w_e$, and $w_a$ for the motion, force and
 regularization terms), so that the QP takes a form such as
 %
 \begin{gather}
-\min_{\a} \; w_m \phi_m(\a) + w_e \phi_f (\a) + \frac{w_a}{2} \a^T \W_a \a \notag \\
+\min_{\a} \; w_m \phi_m(\a) + w_e \phi_e (\a) + \frac{w_a}{2} \a^T \W_a \a \notag \\
 \text{subject to} \quad 0 \le \a \le {\bf 1}.
 \label{fullQP:eqn}
 \end{gather}
@@ -312,7 +312,7 @@ and the quadratic program can be reformulated in terms of excitation {\it
 changes} $\Delta \a$; for example,
 %
 \begin{gather}
-\min_{\Delta\a} \; w_m \phi_m(\Delta\a) + w_e \phi_f (\Delta\a) + 
+\min_{\Delta\a} \; w_m \phi_m(\Delta\a) + w_e \phi_e (\Delta\a) + 
 \frac{w_a}{2} \Delta\a^T \W_a \Delta\a + \a_0^T \W_a \Delta\a \notag \\
 \text{subject to} \quad -\a_0 \le \Delta\a \le {\bf 1-\a_0}.
 \label{incrementalQP:eqn}
@@ -380,7 +380,7 @@ an L2 regularization term, added using the controller's
 \javamethodAlt{\inverse.TrackingController.addL2RegularizationTerm()}%
 {addL2RegularizationTerm()} method. Regularization attempts to minimize the norm
 of the excitation values and is needed to resolve redundancy if the excitation
-set has more degrees of freedom that the target space.
+set has more degrees of freedom than the target space.
 
 \begin{sideblock}
 For historical reasons, the {\it target position} and {\it target velocity}
@@ -433,7 +433,7 @@ excitations for {\tt InverseParticle}.}
 \label{InverseParticleProbes:fig}
 \end{figure}
 
-An simple example illustrating the steps of
+A simple example illustrating the steps of
 Section \ref{SettingUpController:sec} is given by
 %
 \begin{verbatim}
@@ -472,7 +472,7 @@ with a passive stiffness, damping and maximum force (at excitation 1) defined
 by {\tt muscleStiffness}, {\tt muscleDamping}, and {\tt muscleFmax} (lines
 4-6). Each muscle's {\sf excitationColor} and {\sf maxColoredExcitation}
 property is set so that its color transitions to red as its excitation value
-varies from $0$ to $0.5$ (lines 28-29, Section \ref{ExcitationColoring:sec})),
+varies from $0$ to $0.5$ (lines 28-29, Section \ref{ExcitationColoring:sec}),
 and its rest length is initialized to its current length (line 30).
 
 After the model components have been built, a {\tt TrackingController} is
@@ -580,7 +580,7 @@ the following methods:
 %
 
 An exciter's weight forms its corresponding entry in the diagonal matrix $\W_a$
-used by the quadratic program ((\ref{regularizedQP:eqn} and
+used by the quadratic program ((\ref{regularizedQP:eqn}) and
 (\ref{fullQP:eqn})), with a smaller weight allowing the exciter to assume
 greater prominence in the solution. Exciter weights can be managed with the
 following methods:
@@ -778,7 +778,7 @@ the tracking controller for target components.
 Likewise, a corresponding velocity trajectory $\v_t$ can also be specified by
 setting the {\sf velocity} property of the target object.  If this is not set,
 $\v_t$ defaults to 0, which will introduce a small lag into the tracking
-behavior. If $\v_t$ {\it is} set, care should be taken the ensure that it is
+behavior. If $\v_t$ {\it is} set, care should be taken to ensure that it is
 consistent with the actual time derivative of $\x_t$.
 
 \begin{sideblock}
@@ -991,7 +991,7 @@ which will return {\tt null} if regularization is not being applied.
 Because the L2 regularizer tries to reduce the excitations $\a$, its use will
 reduce the controller's tracking accuracy. Therefore, the regularizer is often
 employed with a weight value $w_a$ well below 1.0, with values around 0.1 or
-0.01 being common. The best weight choice will of coarse depend on the
+0.01 being common. The best weight choice will of course depend on the
 application.
 
 \subsubsection{Excitation damping}
@@ -1157,7 +1157,7 @@ inverseMuscleArm} located under the source folder.
 \caption{{\tt InverseMuscleArm} run with L2 regularization weights of 0.1
 (left) and 10 (right). Traces of the desired and actual trajectories are shown
 in cyan and red, respectively, and computed excitation values are shown in
-graphs below.  A regularization weight of 10results in a larger tracking
+graphs below.  A regularization weight of 10 results in a larger tracking
 error.}
 \label{InverseMuscleArmL2:fig}
 \end{figure}
@@ -1184,7 +1184,7 @@ configExcitationColoring} to {\tt false}.
 \end{sideblock}
 
 To illustrate how the L2 regularization weight can affect the tracking error,
-\ref{InverseMuscleArmL2:fig} (right) shows the model run with a regularization
+Figure \ref{InverseMuscleArmL2:fig} (right) shows the model run with a regularization
 weight of 10 instead of 0.1. The tracking error is now visible, with the red
 source trace probe clearly distinct from the cyan target trace. The computed
 muscle excitations are also noticeably different.
@@ -1287,7 +1287,7 @@ the {\sf Models} menu. The model should load and initially appear as in Figure
 the controller will compute excitations to move the attached frame along the
 specified position/orientation trajectory, reaching the final pose shown in
 Figure \ref{InverseMuscleFem:fig} (right). The target and actual source
-trajectories for the frame's position (i.e., its origin) is shown in Figure
+trajectories for the frame's position (i.e., its origin) are shown in Figure
 \ref{InverseMuscleFemProbes:fig}, together with the computed excitations.
 
 \subsection{Force effector targets}
@@ -1515,7 +1515,7 @@ the tracking controller is created, as shown below:
 %
 After the tracking controller is created (lines 18-19), the last two muscles
 are added to it as exciters (lines 21-23). The first muscle is then added as
-the force effector sources using {\tt addForceEffectorTarget()} (lines 26-28),
+the force effector source using {\tt addForceEffectorTarget()} (lines 26-28),
 which returns a {\tt target} object. (The first muscle will be unactuated and
 so will behave as a passive spring.) Since the number of exciters exceeds the
 degrees-of-freedom of the target space, an L2-regularization term is added
@@ -1531,7 +1531,7 @@ output probe to record target and tracked tensions, and an output probe to
 record the computed excitations. The first, {\tt targetprobe}, is attached to
 the {\sf targetForce} property of the {\tt target} component and runs from time
 0 to 1 (lines 41-48). Its data is specified in code using {\tt addData()},
-which specifies three knot points with a time step of 0.5. Interpolation set to
+which specifies three knot points with a time step of 0.5. Interpolation is set to
 cubic (line 47) for greater smoothness. The second probe, {\tt trackingProbe},
 records both the target and source tension from the {\sf targetForce} property
 of {\tt target} and the {\sf forceNorm} property of the passive spring (lines
@@ -1556,7 +1556,7 @@ To run this example, select {\sf All demos > tutorial > InverseSpringForce}
 from the {\sf Models} menu. The model should load and initially appear as in
 Figure \ref{InverseSpringForce:fig} (left). When run, the controller computes
 excitations to generate the requested tension in the passive spring; this
-causes the center particle to be pulled down (Figure \ref{InverseParticle:fig},
+causes the center particle to be pulled down (Figure \ref{InverseSpringForce:fig},
 right). Both the target-source and computed excitation probes are shown in
 Figure \ref{InverseSpringForceProbes:fig}. 
 
@@ -1583,7 +1583,7 @@ priority of the target within the tracking computation; the {\sf subWeights}
 vector has a size equal to the number of degrees of freedom (DOF) in the target
 (3 for points and 6 for frames), 
 and permits fine-grained weighting for each of
-the targets DOFs. The product of the weight with each subweight produces the
+the target's DOFs. The product of the weight with each subweight produces the
 entries for the diagonal weighting matrix that appears in the various cost
 terms for motion and force tracking (e.g., $\W_m$ for the motion tracking cost
 function $\phi_m(\a)$ in (\ref{motionCostTerm:eqn}) and $\W_e$ for the force
@@ -1592,7 +1592,7 @@ effector cost function $\phi_e(\a)$ in (\ref{forceEffectorCostTerm:eqn})). Targe
 weights of 0 effectively disable tracking.
 
 Target components vary depending on the source component whose position or
-force is being tracking, but each implements the interface
+force is being tracked, but each implements the interface
 \javaclass[\inverse]{TrackingTarget}, which supplies
 the following methods for controlling the weights and subweights and querying
 the target's source component:
@@ -1739,7 +1739,7 @@ Point point, double maxForce, boolean createNames)}%
 {\inverse.FrameExciter.createFrameExciters(,,,,)}%
 {ArrayList<FrameExciter> createFrameExciters (\brh MechModel mech,
 Frame frame, double maxForce, \brh double maxMoment, boolean createNames)}%
-{Create six exciters to control all forces \& and moments on a frame.}%
+{Create six exciters to control all forces and moments on a frame.}%
 %
 \methodspace{0.5em}%
 \methodentry
@@ -1761,7 +1761,7 @@ Frame frame, \brh double maxMoment, boolean createNames)}%
 \end{methodtable}
 %
 If the (optional) {\tt mech} argument in these methods is
-is non-{\tt null}, the exciters are added to
+non-{\tt null}, the exciters are added to
 the {\tt MechModel}'s {\tt forceEffectors} list.
 If the argument {\tt createNames} is {\tt true},
 and the point or frame itself has a non-{\tt null} name,
@@ -1775,9 +1775,9 @@ The {\tt InverseMuscleArm} example of Section
 frame exciters in place of its muscles, allowing link forces
 to be controlled directly to make the marker follow
 the specified path. The modified model is
-{\tt artisynth.demos.tutorial.InverseFrameExcitereArm},
+{\tt artisynth.demos.tutorial.InverseFrameExciterArm},
 and the sections of code where it differs
-from {\tt InverseMuscleArm:sec} are listed below:
+from {\tt InverseMuscleArm} are listed below:
 %
 \lstset{numbers=left}
 \iflatexml
@@ -1925,7 +1925,7 @@ by selecting the relevant component in the navigation panel and choosing {\sf
 "Edit properties ..."} from the context menu. The properties can also be set
 in code, using the accessor methods supplied by their host component.  These
 methods will usually be named {\tt getXxx()} and {\tt setXxx()} for
-property {\sf xxx}.Properties of the tracking controller itself include:
+property {\sf xxx}. Properties of the tracking controller itself include:
 
 \begin{description}
 
@@ -1938,7 +1938,7 @@ turns the controller off. Default value is {\tt true}.
 
 Controls whether or not the cost terms are normalized. Normalizing the terms
 helps ensure that their weights (e.g., $w_m$, $w_e$, and $w_a$ in
-(\ref{fullQP:eqn}) more accurately control the tradeoffs between terms.
+(\ref{fullQP:eqn})) more accurately control the tradeoffs between terms.
 Default value is {\tt true}.
 
 \item[computeIncrementally]\mbox{}
@@ -1980,7 +1980,7 @@ default to the simulation step size.
 \item[useKKTFactorization]\mbox{}
 
 Uses a more computationally expensive but possibly more accurate method to
-compute the excitation response matrices matrices such as $\H_m$ and $\H_e$
+compute the excitation response matrices such as $\H_m$ and $\H_e$
 (Section \ref{GeneratingExcitations:sec}). Default value is {\tt false}.
 
 \item[maxExcitationJump]\mbox{}
@@ -1995,7 +1995,7 @@ terms by the simulation time step. Default value is {\tt false}.
 
 \item[debug]\mbox{}
 
-Enabled debugging messages. Default value is {\tt false}.
+Enables debugging messages. Default value is {\tt false}.
 
 \end{description}
 
@@ -2138,7 +2138,7 @@ extracted from the same component properties used by {\tt TARGET\_POSITIONS},
 and its rotation representation is given by the {\sf positionProbeRotRep}
 property of the controller.
 
-\item[{\tt INPUT\_EXCITATIONS}]\mbox{}
+\item[{\tt COMPUTED\_EXCITATIONS}]\mbox{}
 
 An output probe which records the computed excitation values for all the
 controller's exciters, in the order they appear in the controller.
@@ -2219,7 +2219,7 @@ will be necessary, e.g.:
 %
 \begin{lstlisting}[]
       PositionOutputProbe trackedProbe = 
-         (PositionInputProbe)InverseManager.createOutputProbe ( ... );
+         (PositionOutputProbe)InverseManager.createOutputProbe ( ... );
 \end{lstlisting}
 %
 
@@ -2399,12 +2399,12 @@ controller and enable the input excitations:
 %
 This will cause the simulation to run ``open loop'' in response to the
 excitations. However, because the input excitations are slightly different than
-those that were computed by the controller, there is a now a considerable
+those that were computed by the controller, there is now a considerable
 tracking error (Figure \ref{InverseMuscleArmError:fig}, left). 
 
 After the open loop run, one can save the resulting {\tt SOURCE\_POSITIONS}
 probe, which will write the file \pdfbreak 
-{\tt "target\_positions.txt''} into the
+{\tt "source\_positions.txt''} into the
 working folder. This can then be used to generate a new target trajectory, by
 copying it to {\tt "target\_positions.txt"}. If the model is reloaded, the new
 trajectory will now appear in the {\tt TARGET\_POSITIONS} probe
@@ -2428,7 +2428,7 @@ performance of the tracking controller.
    \fi
 \end{tabular}
 \end{center}
-\caption{Left: {\tt InverseMuscleFem} when run open loop with excitations
+\caption{Left: {\tt InverseMuscleArm} when run open loop with excitations
 loaded from {\tt "input\_excitations.txt"}. Right: model run
 with inverse simulation, using new targets generated by the
 open loop run.}
@@ -2465,7 +2465,7 @@ panel in their {\tt build()} method, as the {\tt InverseMuscleArm} example
 %
 The panel is automatically configured to display the properties of the cost
 terms with which the controller is currently configured. Figure
-\ref{InverseControlPanel:fig} shows the panel for {\tt InverseManager}.
+\ref{InverseControlPanel:fig} shows the panel for {\tt InverseMuscleArm}.
 
 \begin{figure}[ht]
 \begin{center}
@@ -2479,7 +2479,7 @@ terms with which the controller is currently configured. Figure
 \label{InverseControlPanel:fig}
 \end{figure}
 
-The following methods are supplied by {\tt InverseManager()} to manage inverse
+The following methods are supplied by {\tt InverseManager} to manage inverse
 control panels:
 %
 \begin{methodtable}{0.6}{0.4}
@@ -2492,7 +2492,7 @@ control panels:
 %
 \methodentry
 {\inverse.InverseManager.addInversePanel(,)}%
-{ControlPanel createInversePanel (RootModel root, \brh TrackingController tcon)}%
+{ControlPanel addInversePanel (RootModel root, \brh TrackingController tcon)}%
 {Create and add inverse control panel to {\tt root}.}%
 %
 \methodentry
@@ -2673,7 +2673,7 @@ between the marker target positions specified by {\tt mtargs} and the feasible
 marker positions.  {\tt mtargs} supplies the target positions as a composite
 vector of size $3 \times m$, where $m$ is the value returned by {\tt
 numMarkers()}, and the method returns either the number of iterations required
-for the solve, or {\tt -1} if the solve did not convergence to the required
+for the solve, or {\tt -1} if the solve did not converge to the required
 tolerance.
 
 \begin{sideblock}
@@ -2694,7 +2694,7 @@ saveModelState()} and {\tt restoreModelState()} before and after the use of
 {\tt solve()}.
 \end{sideblock}
 
-An as example, the following code processes a trajectory of marker positions by
+As an example, the following code processes a trajectory of marker positions by
 calling {\tt solve()} in a loop:
 %
 \begin{lstlisting}[]
@@ -2863,8 +2863,8 @@ the solver to update body and marker positions as a simulation progresses.
 
 One way to do this would be to define a {\tt Controller}
 (Section \ref{ControllersAndMonitors:sec}) that calls the {\tt solve()} method
-inside its {\tt apply()} method. Marker targets would have to be supplied to
-solver in some way, and it would necessary to ensure that the bodies being
+inside its {\tt apply()} method. Marker targets would have to be supplied to the
+solver in some way, and it would be necessary to ensure that the bodies being
 controlled by the solver have their {\sf dynamic} property set to {\tt false}.
 {\tt IKSolver} supplies some convenience methods to manage this:
 
@@ -3117,7 +3117,7 @@ the four probes, is given in Figure \ref{IKInverseMuscleArmTimeline:fig}.
 Figure \ref{IKInverseMuscleArmEx:fig} (left) shows the resulting excitations,
 while Figure \ref{IKInverseMuscleArmEx:fig} (right) shows the different
 excitations produced if the target trajectory is left unfiltered. (To run with
-an unfiltered trajectory, comment out line 53. The model with then appear as in
+an unfiltered trajectory, comment out line 53. The model will then appear as in
 Figure \ref{IKInverseMuscleArm:fig}, right). Finally, Figure
 \ref{IKInverseMuscleArmTracking:fig} shows two outputs of the ``distal
 tracking'' probe, the left one with velocity information available to the
@@ -3181,14 +3181,14 @@ and \ref{ContactRegularization:sec}), since this has the same effect as making
 the constraint force-based.
 
 \item Prescribed motion trajectories may need to be sufficiently
-smooth the avoid large transient excitations, particularly at the start and end
+smooth to avoid large transient excitations, particularly at the start and end
 of motions when velocities transition from and to 0. Transient effects are
 often more pronounced for models where inertial effects are high.  Cubic
 interpolation is useful for creating smoother trajectories, particularly with a
 limited number of data points. It may also be necessary to explicitly smooth an
 input trajectory with additional points.
 
-In the {\tt InverseMuscleArm} example, there is a noticeably transient at the
+In the {\tt InverseMuscleArm} example, there is a noticeable transient at the
 start (Figure \ref{InverseMuscleArmL2:fig}, left). Increasing the L2
 regularization weight reduces the transient amplitude but spreads it out over a
 longer time (Figure \ref{InverseMuscleArmL2:fig}, right), at the expense of

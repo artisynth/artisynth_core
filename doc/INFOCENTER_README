@@ -58,10 +58,8 @@ InfoCenter, one could do
 > sudo -u www-data bin/restartInfoCenter
 
 By default, the InfoCenter is started automatically whenever the
-ArtiSynth webserver reboots. This is achieved by the following line in
-/etc/rc.local:
-
-sudo -u www-data /var/www/artisynth.org/bin/startInfoCenter
+ArtiSynth webserver reboots. This is achieved by configuring systemctl
+as described below under "Ensuring the InfoCenter starts on reboot".
 
 It is not always necessary to restart the InfoCenter. The HTML files
 that the InfoCenter uses are located under the html directory, and
@@ -113,3 +111,34 @@ https://www.artisynth.org/manuals/nav/X, where X is the number of the
 document in the order given by helpData.xml.
 
 4) Restart the InfoCenter.
+
+Ensuring the InfoCenter starts on reboot
+----------------------------------------
+
+1) Create the file /etc/systemd/system/eclipse-infocenter.service with the
+following contents:
+
+[Unit]
+Description=Eclipse Infocenter Service
+After=network.target
+
+[Service]
+Type=forking
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www
+ExecStart=/var/www/artisynth.org/bin/restartInfoCenter
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+2) Register and Enable the Service:
+
+sudo systemctl daemon-reload
+sudo systemctl enable eclipse-infocenter.service
+sudo systemctl start eclipse-infocenter.service
+
+3) Verify that it is running:
+
+sudo systemctl status eclipse-infocenter.service

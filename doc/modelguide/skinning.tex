@@ -138,7 +138,7 @@ bodies $j$ which are frames.  The connection function $f_k()$ is then
 given by
 %
 \begin{equation}
-\f_k (\hat\q_k) = \tilde\q_k \p_0 \tilde\q_k^{-1} - \p_0,
+f_k (\hat\q_k) = \tilde\q_k \p_0 \tilde\q_k^{-1} - \p_0,
 \end{equation}
 %
 where we note that a dual quaternion multiplied by a position vector
@@ -165,7 +165,7 @@ weighting factors $w_j$ and generalized coordinates $\hat\q_j$.
 Iterative blending relies on two parameters: a blend tolerance, and a
 maximum number of blend steps, both of which are controlled by the
 SkinMeshBody properties {\sf DQBlendTolerance} and {\sf
-DQMaxBlendSteps}, which have default values of $1^{-8}$ and $3$.
+DQMaxBlendSteps}, which have default values of $10^{-8}$ and $3$.
 
 \begin{sideblock}
 Iterative dual quaternion blending is not completely supported in
@@ -197,13 +197,13 @@ where $n$ is the number of nodes and $\alpha_j$ represent the
 (constant) nodal coordinates. As the element moves and deforms, the
 element point $\p_e$ moves with the nodal positions $\x_j$ according
 to the same relationship, while the offset vector $\d$ rotates
-according to $\d = \R_E d_0$, where $\R_E$ is the rotation of the
+according to $\d = \R_E \d_0$, where $\R_E$ is the rotation of the
 element's coordinate frame $E$ with respect to its initial
 orientation.  The connection function $f_k()$ then takes the form
 %
 \begin{equation}
 f_k (\x_0, \ldots, \x_{n-1}) =
-\sum_{j=0}^{n-1} \alpha_j \x_j + \R_E d_0.
+\sum_{j=0}^{n-1} \alpha_j \x_j + \R_E \d_0.
 \label{pelement:eqn}
 \end{equation}
 %
@@ -427,7 +427,7 @@ fatter and less prone to creasing (Figure
 \label{skinWeighting:sec}
 
 As described above, the default method for computing skin connection
-weights is inverse-square weighting (equations \ref{inverseSquareWeights:eqn})
+weights is inverse-square weighting (equations \ref{inverseSquareWeights:eqn}
 and \ref{normalizeWeights:eqn}). However, applications can specify
 alternatives to this. The method
 %
@@ -440,7 +440,7 @@ scheme, with {\tt sigma} specifying the standard deviation $\sigma$.
 Raw weights $w^*_k$ are then computed according to
 %
 \begin{equation*}
-w_i = \text{exp} \left( -\frac{(d_k - d_\text{min})^2}{2 \sigma^2} \right),
+w^*_k = \text{exp} \left( -\frac{(d_k - d_\text{min})^2}{2 \sigma^2} \right),
 \end{equation*}
 %
 and then normalized to form $w_k$.
@@ -465,7 +465,7 @@ Subclasses must implement the function
 %
 in which the weights for each master body are computed and returned in
 {\tt weights}. {\tt pos} gives the initial position of the vertex (or
-attached point) being skinning, while {\tt nearestPnts} provides
+attached point) being skinned, while {\tt nearestPnts} provides
 information about the distance from {\tt pos} to each of the master
 bodies, using an array of
 \javaclass[artisynth.core.femmodels]{SkinMeshBody\$NearestPoint}
@@ -494,7 +494,6 @@ weighting.
 
 As an example, imagine an application wishes to compute weights
 according to an inverse-cubic weighting function, such that
-to
 %
 \begin{equation*}
 w_k^* = \frac{d_\text{min}^3}{d_k^3}.
@@ -607,7 +606,7 @@ For comparison, it should be noted that the code fragment
    }
 \end{lstlisting}
 in which weights are {\it not} explicitly specified, is
-is equivalent to calling {\tt computeAllVertexConnections()}.
+equivalent to calling {\tt computeAllVertexConnections()}.
 
 If necessary, after vertex connections have been computed, they can
 also be cleared, using the method
@@ -738,7 +737,7 @@ fragment:
 
   // ... initialize ...
 
-  PointSkinAttacment a = skinBody.createPointAttachment(pnt);
+  PointSkinAttachment a = skinBody.createPointAttachment(pnt);
   mech.addAttachment (a);
 \end{lstlisting}
 %
@@ -782,7 +781,7 @@ the \javaclass[artisynth.core.femmodels]{FemFactory} method {\tt
 createHexTube()} and transforming the result by rotating it by 90
 degrees about the $y$ axis (lines 10-14). Two rigid body blocks are
 then created (lines 16-26) and attached to the ends of the FEM model
-by finding and attaching the left and rightmost nodes (lines 28-24).
+by finding and attaching the left and rightmost nodes (lines 28-34).
 The model is anchored to ground by setting the left block to be
 non-dynamic (line 21).
 
@@ -918,7 +917,7 @@ DUAL\_QUATERNION\_LINEAR} instead of the default {\tt LINEAR}.
 
 \item When the master bodies include FEM models which undergo large
 deformations, crimping artifacts may arise if the skin mesh has a
-higher resolution that the FEM model (Figure
+higher resolution than the FEM model (Figure
 \ref{FemSkinResAll:fig}). This is because each mesh vertex is
 connected to the coordinate frame of a single FEM element, and for
 reasons of computational efficiency the influence of these coordinate
@@ -954,7 +953,7 @@ bodies.
 
 Collisions involving {\tt SkinMeshBody} frequently suffer from the
 problem of being overconstrained (Section
-\ref{OverconstrainedContact:sec}), whereby the the number of contacts
+\ref{OverconstrainedContact:sec}), whereby the number of contacts
 exceeds the number of master body DOFs available to handle the
 collision. This may occur if the skin body contains only rigid bodies,
 or if the mesh resolution exceeds the resolution of the FEM master
@@ -1001,7 +1000,7 @@ The code for the demo is given below:
 \lstset{numbers=none}
 
 The model subclasses {\tt AllBodySkinning}, using the superclass {\tt
-build()} method within its own {\tt build{}} method to create the
+build()} method within its own {\tt build()} method to create the
 original model (line 12). It then obtains references to the {\tt
 MechModel}, {\tt SkinMeshBody}, and leftmost block, using their names
 to find them in various component lists (lines 14-17).  (If the

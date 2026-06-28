@@ -258,6 +258,7 @@
 \else
 \setlength{\methodtablewidth}{0.94\textwidth}
 \fi
+
 % horizontal space added at end of call to \methodentry
 \newlength{\methodskip}
 \setlength{\methodskip}{0pt}
@@ -267,19 +268,17 @@
 \setlength{\methodsiglength}{0.5\methodtablewidth}
 \setlength{\methodcomlength}{0.5\methodtablewidth}
 
-% command to add a method to a method table:
-% arg #1: package and signature for finding URL
-% arg #2: anchor text
-% arg #3: comment describing the method
-\newcommand{\methodentry}[3]{%
-\javamethodAlt{#1}{\parbox[t]{\methodsiglength}{#2}}&
-{\parbox[t]{\methodcomlength}{#3}}\\%
-\noalign{\vspace{\methodskip}}}
-
 % methodtable environment takes two arguments, both scale factors for
 % methodtablewidth:
-% arg #1: width of the method signature column
-% arg #2: width of the method comment column
+% 
+% arg #1: width of the method signature column, in percent
+% arg #2: width of the method comment column, in percent
+%
+% arg #1 and arg %2 should sum to 1. Typical default values are 0.5 and 0.5, or
+% 0.6 and 0.4 if more space is needed for the method signature column needs to
+% be longer. In some cases, if a lot of space is needed by the signature
+% column, comments are left blank and #1 and #2 are set to something like 0.95
+% and 0.05.
 \newenvironment{methodtable}[3][0pt]{%
 \begingroup
 \setlength{\topskip}{0pt}
@@ -302,21 +301,54 @@
 \fi
 \endgroup}
 
-% commands for added top, mid and bottom lines in the table.
-% uses booktabs for PDF, regular hline for HTML
+% command called within the methodtable environment to add a method to a method
+% table:
+%
+% arg #1: package and method signature. This should be the full package name,
+% method name and signature.
+% arg #2: anchor text
+% arg #3: short comment describing the method
+%
+% Typical usage looks likes this:
+%
+% \begin{methodtable}{0.5}{0.5}
+% \midline
+% \methodentry{artisynth.core.fields.ScalarVertexField.isValueSet(Vertex3d)}%
+% {boolean isValueSet(Vertex3d vtx)}%
+% {query if value set for vertex and add components here there and everywhere}
+% \methodentry{artisynth.core.fields.ScalarVertexField.clearValue(Vertex3d)}%
+% {void clearValue(Vertex3d vtx)}%
+% {unset value for vertex {\tt vtx}}
+% \methodentry{artisynth.core.fields.ScalarVertexField.clearAllValues()}%
+% {void clearAllValues()}%
+% {unset values for all vertices}
+% \midline
+% \end{methodtable}
+%
+\newcommand{\methodentry}[3]{%
+\javamethodAlt{#1}{\parbox[t]{\methodsiglength}{#2}}&
+{\parbox[t]{\methodcomlength}{#3}}\\%
+\noalign{\vspace{\methodskip}}}
+
+% adds a top line within a methodtable environment
 \newcommand{\topline}{\iflatexml\hline\else\toprule\fi}
+% adds a middle line within a methodtable environment
 \newcommand{\midline}{\iflatexml\hline\else\midrule\fi}
+% adds a bottom line within a methodtable environment
 \newcommand{\botline}{\iflatexml\hline\else\bottomrule\fi}
 \newcommand{\blankline}{%
 \multicolumn{2}{l}{\iflatexml{@SPACE}\else\phantom{M}\fi}\\}%
-% add vertical space within a two colum method environment
+% add a vertical space within a methodtable environment
 \newcommand{\methodspace}[1]{%
 \iflatexml
 \multicolumn{2}{l}{@VERTSPACE[#1]}\\
 \else
 \noalign{\vspace{#1}}%
 \fi}%
-% break a line and add an indentation of 1em
+
+% break a line and add an indentation of 1em, within either the anchor text or
+% comment section (arguments #2 or #3) of a \methodentry call. This is used to
+% improve the visual appearance of the table.
 \newcommand{\brh}{\\\phantom{M}}
 
 \makeatother

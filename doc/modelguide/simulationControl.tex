@@ -235,7 +235,7 @@ user while the model is either stationary or running.
 Each of the property widgets consists of a text label followed by a
 field displaying the property's value. A and B identify the icons for
 the inheritable properties {\sf gravity} and {\sf faceColor},
-indicating whether their values have has been explicitly set (A) or
+indicating whether their values have been explicitly set (A) or
 inherited from an ancestor component (B).}
 \label{controlPanel:fig}
 \end{figure}
@@ -244,9 +244,10 @@ inherited from an ancestor component (B).}
 Double-clicking (using the left mouse button) on the label of a control panel
 widget will cause the component hosting that widget's property to be selected.
 The path of the selected component will appear in the selection display
-beneath the viewer (Section \ref{selectionDisplaySec}), and a context menu can
-be invoked for the component by right-clicking (or equivalent) within the
-viewer itself.
+beneath the viewer (see the section ``Selection display'' in the 
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}),
+and a context menu can be invoked for the component by right-clicking (or
+equivalent) within the viewer itself.
 \end{sideblock}
 
 As described in Section \ref{CompositeInheritableProperties:sec}, some
@@ -328,7 +329,7 @@ properties. These include the {\sf excitation} and material {\sf
 stiffness} for all muscles (lines 71 and 75); the {\sf
 inertialDamping}, rendering {\sf visibility} and {\sf faceColor} for
 all spheres (lines 77, 79, and 81); and the rendering {\sf pointColor}
-for all markers (lines 85). The panel also allows muscle excitations
+for all markers (line 85). The panel also allows muscle excitations
 and sphere face colors to be set individually (lines 72-74 and 82-84).
 Some of the {\tt addWidget()} calls explicitly set the label text for
 their widgets. For example, those controlling individual muscle
@@ -407,8 +408,8 @@ as the wrap paths for
 components.
 
 \begin{sideblock}
-At present, {\tt CoordinatePanel}s does {\it not} take into account couplings
-between coordinate values that may be induced by kinematic loops with the
+At present, {\tt CoordinatePanel}s do {\it not} take into account couplings
+between coordinate values that may be induced by kinematic loops within the
 model. This will be remedied in the future.
 \end{sideblock}
 
@@ -531,7 +532,7 @@ The joint's component path will appear in the selection display beneath the
 viewer, and a context menu can be invoked by right-clicking (or equivalent)
 within the viewer itself. Choosing {\sf ``Edit properties ...''}  from the
 context menu will create a property dialog for the joint, allowing other
-coordinate properities, such as its range and whether or not it is locked, to
+coordinate properties, such as its range and whether or not it is locked, to
 be set.
 \end{sideblock}
 
@@ -643,7 +644,7 @@ set or get coordinate values based on the widget label:
 %
 \methodentry
 {\gui.CoordinatePanel.setRequestDeg(,)}%
-{void setRequest (String label, double val)}%
+{void setRequestDeg (String label, double val)}%
 {Request set by widget label (degrees for rotary coords).}%
 %
 \methodentry
@@ -665,7 +666,7 @@ see Section \ref{SettingCoordinates:sec}.
 \label{CustomProperties:sec}
 
 Because of the usefulness of properties in creating control panels and
-probes (Sections \ref{ControlPanels:sec}) and Section
+probes (Sections \ref{ControlPanels:sec} and
 \ref{Probes:sec}), model developers may wish to add their own
 properties, either to the root model, or to a custom component.
 
@@ -870,13 +871,14 @@ motion trajectory.
 
 More precise details about controllers and monitors and how they
 interact with model advancement are given in the
+``Advancing Models in Time'' section of the
 \artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
 \subsection{Implementation}
 \label{ControllerImplementation:sec}
 
-Applications may declare whatever controllers or monitors they require
-and then add them to the root model using the methods
+Applications may declare whatever controllers or monitors they require and then
+add them to the root model using the methods
 \javamethod*[artisynth.core.workspace.RootModel]{addController()} and
 \javamethod*[artisynth.core.workspace.RootModel]{addMonitor()}.
 They can be any type of
@@ -948,7 +950,7 @@ they should implement the relevant methods from the
 
 Typical actions for a controller include setting input forces or
 excitation values on components, or specifying the motion trajectory
-of parametric components (Section \ref{DynamicVsParametric:sec}).
+of parametric components (Section \ref{ParametricAndAttached:sec}).
 Typical actions for a monitor include observing or recording
 the motion profiles or constraint forces that arise
 from the simulation.
@@ -957,7 +959,7 @@ from the simulation.
 \label{targetPositions:sec}
 
 When setting the position and/or velocity of a dynamic component that has been
-set to be parametric (Section \ref{DynamicVsParametric:sec}), a controller can
+set to be parametric (Section \ref{ParametricAndAttached:sec}), a controller can
 opt to set its position and/or velocity directly. However, it is often preferable
 to instead set the component's {\it target position} and/or {\it target
 velocity}, since this allows the solver to properly interpolate the position
@@ -1114,13 +1116,15 @@ Details about the timeline display can be found in
 the section ``The Timeline'' in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
 
-There are two types of probe: {\it input probes}, which are applied at
-the beginning of each simulation step before the controllers, and {\it
-output probes}, which are applied at the end of the step after the
-monitors.
+There are two types of probe: {\it input probes}, which are applied at the
+beginning of each simulation step before the controllers, and {\it output
+probes}, which are applied at the end of the step after the monitors. This is
+described in Section \ref{ModelAdvancement:sec}, and in even further detail in
+the ``Advancing Models in Time'' section of the
+\artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
-While applications are free to construct any type of probe by
-subclassing either \javaclass[\probes]{InputProbe} or
+While applications are free to construct any type of probe by subclassing
+either \javaclass[\probes]{InputProbe} or
 \javaclass[\probes]{OutputProbe}, most applications
 utilize either \javaclass[\probes]{NumericInputProbe} or
 \javaclass[\probes]{NumericOutputProbe}, which
@@ -1278,9 +1282,9 @@ will default to the simulation step size. This interval can
 also be accessed after the probe is created using
 % method table
 \begin{lstlisting}[]
-   int getUpdateInterval()              // returns the update interval
-   void setUpdateInterval(int sec)      // sets the update interval (seconds)
-\end{lstlisting}[]
+   double getUpdateInterval()           // returns the update interval
+   void setUpdateInterval(double sec)   // sets the update interval (seconds)
+\end{lstlisting}
 %
 To create an output probe attached to multiple properties, one may use the
 constructor
@@ -1340,7 +1344,7 @@ Position"} (line 18) and added to the root model (line 19).
 
 Similarly, {\tt createOutputProbe()} creates a new output probe which
 is bound to the {\tt velocity} property for the component {\tt
-particles/0} located relative to {\tt mech}, is attached to the file {\tt
+frameMarkers/0} located relative to {\tt mech}, is attached to the file {\tt
 simpleMuscleMkrVel.txt} located in the application model source
 directory, and is assigned an update interval of 0.01 seconds. This probe is
 then named {\tt "FrameMarker Velocity"} and added to the root model.
@@ -1775,7 +1779,7 @@ in code via
 {Return the render interval}%
 %
 \methodentry
-{\probes.TracingProbe.getRenderInterval()}%
+{\probes.TracingProbe.setRenderInterval(double)}%
 {void setRenderInterval(double interval)}%
 {Set the render interval (seconds)}%
 %
@@ -1806,7 +1810,7 @@ component. The length of the line segment is controlled by the probe's {\sf
 lengthScaling} property, and other aspects of the appearance are controlled by
 the subproperties {\sf lineStyle}, {\sf lineRadius}, {\sf lineWidth} and {\sf
 lineColor} of the probe's render properties. Vector tracing is mostly used to
-visual instantaneous forces.
+visualize instantaneous forces.
 
 \end{description}
 
@@ -1867,7 +1871,7 @@ Applications often find it useful to parametrically control the position of
 point or frame-based components, which include
 \javaclass[\mech]{Point},
 \javaclass[\mech]{Frame},
-\javaclass[\mech]{FixedMeshBody}.
+\javaclass[\mech]{FixedMeshBody},
 and their subclasses
 (e.g., \javaclass[\mech]{Particle},
 \javaclass[\mech]{RigidBody},
@@ -1974,16 +1978,16 @@ probe's basic parameters and data, per Section \ref{DataFileFormat:sec}.  Probes
 constructed without a file need to have data added, as per Section
 \ref{probeDataInCode:sec}.
 
-As indicated by the constructors, {\tt NumericInputProbe}s can control multiple
+As indicated by the constructors, {\tt PositionInputProbe}s can control multiple
 point and frame-based components, and this arrangement affects the size and
 composition of the data vector. Each point component requires 3 numbers
-specifying position, while each frame components requires $3 + r$ numbers
-specifying position and orientation, where $r$ is the size of the of the
+specifying position, while each frame component requires $3 + r$ numbers
+specifying position and orientation, where $r$ is the size of the
 rotation representation. Although the {\tt orientation} and {\tt
 targetOrientation} properties describe rotation using an
 \javaclass[maspack.matrix]{AxisAngle}, this will be converted
 into knot point data based on the assigned {\tt RotationRep}, with $r$ equal to
-either 3 or 4. The total $m$ of the data vector is then
+either 3 or 4. The total size $m$ of the data vector is then
 %
 \begin{equation*}
 m = 3 n_p + (3 + r) n_f
@@ -2058,7 +2062,7 @@ indicated time that corresponds to the specified component; other portions are
 left unchanged or initialized to 0. For frames, {\tt TFW} gives the pose
 (position/orientation) in the form of the transform from frame to world
 coordinates, and the orientation is transformed into knot point data according
-the the probe's rotation representation.
+to the probe's rotation representation.
 
 \javaclass[\probes]{PositionOutputProbe}s can be created
 with constructors analogous to {\tt PositionInputProbe}:
@@ -2140,7 +2144,7 @@ tracking error and lag.
 ArtiSynth provides 
 \javaclass[\probes]{VelocityInputProbe} and
 \javaclass[\probes]{VelocityOutputProbe}
-to controller or monitor the velocities of one or more point or frame-based
+to control or monitor the velocities of one or more point or frame-based
 components. The constructors for these are:
 %
 \begin{methodtable}{0.9}{0.1}
@@ -2250,7 +2254,7 @@ generate a velocity probe:
 %
 \begin{lstlisting}[]
    PositionInputProbe posProbe;
-   VelocityInputProbe velProve;
+   VelocityInputProbe velProbe;
    String bodyFilePath;
    RigidBody body; 
    ...
@@ -2308,7 +2312,7 @@ excluding the {\tt import} directives, is shown here:
 The {\tt build()} creates a {\tt MechModel} and then adds to it a rigid body
 (created from the Blender monkey mesh) and a particle (lines 8-19).  Both
 components are made non-dynamic to allow their positions and velocities to be
-controlled, and references to them are placed a list used to create the probes
+controlled, and references to them are placed in a list used to create the probes
 (lines 21-24).
 
 A {\tt PositionInputProbe} for controlling the positions is created at lines
@@ -2323,7 +2327,7 @@ monkey are given by 3 positions and 3 z-y-x rotations. Because the data is
 sparse, the probe's interpolation order is set to {\tt Cubic} to generate
 smooth motions.
 
-A {\tt VelocityInputProbe} is created by differentiated the position probe
+A {\tt VelocityInputProbe} is created by differentiating the position probe
 (lines 47-49); {\tt createInterpolated()} is used because the position data is
 sparse and so numeric differentiation would yield bad results.
 
@@ -2841,7 +2845,7 @@ useful for adjusting coordinate frames or units:
 %
 \methodentry
 {\probes.TRCReader.transformFrameTimes(double,double)}%
-{void scaleMarkerPositions (double s, double b)}%
+{void transformFrameTimes (double s, double b)}%
 {Transform frame times $t$ according to $t' = s t + b$.}%
 %
 \midline
@@ -2922,7 +2926,7 @@ import artisynth.core.probes.TRCWriter;
 
   ...
   TRCWriter writer = new TRCWriter (trcFile);
-  reader.writeData (probe, /*labels*/null);
+  writer.writeData (probe, /*labels*/null);
 \end{lstlisting}
 %
 A constructor also exists that accepts a string file name argument.
@@ -3135,7 +3139,7 @@ top-level components.
 
 \javamethod*[artisynth.core.modelbase.HasMenuItems]{getMenuItems()}
 will be called each time the {\sf Application} menu is selected, so the
-menu itself is created on demand and can be varied to suite the
+menu itself is created on demand and can be varied to suit the
 current system state. In general, it should return items that are
 capable of being displayed inside a Swing {\tt JMenu}; other items
 will be ignored. The most typical item is a Swing {\tt JMenuItem}.  The
@@ -3260,5 +3264,3 @@ methods:
 \else
 \end{document}
 \fi
-
-XXX talk about target positions

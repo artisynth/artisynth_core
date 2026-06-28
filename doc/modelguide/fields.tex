@@ -74,7 +74,7 @@ At present, three types of fields are implemented:
 The most basic type of field, in which the values are specified at the
 vertices of a regular Cartesian grid and then interpolated between
 vertices. As discussed further in Section \ref{sec:gridFields}, there
-are two main types grid field component:
+are two main types of grid field component:
 \javaclass[artisynth.core.fields]{ScalarGridField} and
 \javaclassAlt{artisynth.core.fields.VectorGridField}{VectorGridField<T>}.
 
@@ -308,7 +308,7 @@ in order to create a simple distance field:
    ScalarGridField field = new ScalarGridField (grid);
 
    // iterate through all the vertices and set the value for each to its
-   // distance from the origin, as given by the norm of it's position
+   // distance from the origin, as given by the norm of its position
    for (int vi=0; vi<grid.numVertices(); vi++) {
       Vector3d vpos = grid.getVertexCoords (vi);
       grid.setVertexValue (vi, vpos.norm()); 
@@ -375,7 +375,7 @@ FEM mesh. They can be created with constructors such as
 
   // vector fields (with vector type parameterized by T):
   VectorNodalField (Class<T> type, FemModel3d fem)
-  VectorNodalField (Class<T> type, (FemModel3d fem, T defaultValue)
+  VectorNodalField (Class<T> type, FemModel3d fem, T defaultValue)
   VectorNodalField (String name, Class<T> type, FemModel3d fem, T defaultValue)
 \end{lstlisting}
 %
@@ -385,7 +385,7 @@ the \javaclass{maspack.matrix.VectorObject} type is parameterized by
 {\tt T}, and {\tt type} gives its actual class type (e.g., {\tt
 Vector3d.class}).
 
-Once the grid has been created, values can be queried and set at the
+Once the field has been created, values can be queried and set at the
 nodes using methods such as
 %
 \begin{lstlisting}[]
@@ -407,7 +407,7 @@ nodes using methods such as
 %
 Here {\tt nodeNum} refers to an FEM node's {\it number} (which can be
 obtained using {\tt node.getNumber()}). Numbers are used instead of
-indices to identity FEM nodes and elements because they are guaranteed
+indices to identify FEM nodes and elements because they are guaranteed
 to be {\it persistent} in case of mesh editing, and will remain
 unchanged as long as the node or element is not removed from the FEM
 model. Note that values don't need to be set at all nodes, and set
@@ -460,7 +460,7 @@ finds the containing (or nearest) element for $\p$, and then returns
 the value for that element.
 
 \begin{sideblock}
-Because values are assume to be constant within each element, element
+Because values are assumed to be constant within each element, element
 fields are inherently discontinuous across element boundaries.
 \end{sideblock}
 
@@ -475,7 +475,7 @@ for nodal fields:
 
   // vector fields (with vector type parameterized by T):
   VectorElementField (Class<T> type, FemModel3d fem)
-  VectorElementField (Class<T> type, (FemModel3d fem, T defaultValue)
+  VectorElementField (Class<T> type, FemModel3d fem, T defaultValue)
   VectorElementField (String name, Class<T> type, FemModel3d fem, T defaultValue)
 \end{lstlisting}
 %
@@ -552,7 +552,7 @@ Constructors are similar to those for element fields:
 
   // vector fields:
   VectorSubElemField (Class<T> type, FemModel3d fem)
-  VectorSubElemField (Class<T> type, (FemModel3d fem, T defaultValue)
+  VectorSubElemField (Class<T> type, FemModel3d fem, T defaultValue)
   VectorSubElemField (String name, Class<T> type, FemModel3d fem, T defaultValue)
 \end{lstlisting}
 %
@@ -563,12 +563,12 @@ point:
 \begin{lstlisting}[]
   // scalar fields:
   void setValue (FemElement3dBase e, int k, double value) // set value for point
-  double getValue (int elemNum, int k)               // get value for point
-  double getElementValue (FemElement3dBase e, int k) // get value for volume point
+  double getValue (FemElement3dBase e, int k)        // get value for point
+  double getElementValue (int elemNum, int k)        // get value for volume point
   double getShellElementValue (int elemNum, int k)   // get value for shell point
 
   // vector fields:
-  void setValue (FemElement3dBase e, T value, int k) // set value for point
+  void setValue (FemElement3dBase e, int k, T value) // set value for point
   T getValue (FemElement3dBase e, int k)             // get value for point
   T getElementValue (int elemNum, int k)             // get value for volume point
   T getShellElementValue (int elemNum, int k)        // get value for shell point
@@ -643,14 +643,14 @@ and {\tt numAllIntegrationPoints()}.
 \section{Mesh fields}
 \label{sec:meshFields}
 
-A mesh field specifies scalar or vector values for the features of an
-FEM mesh. These can be either the vertices (vertex fields) or faces
+A mesh field specifies scalar or vector values for the features of a triangular
+mesh. These can be either the vertices (vertex fields) or faces
 (face fields). Mesh fields have been introduced in particular to allow
 properties of contact force behaviors
 (Section \ref{ContactForceBehavior:sec}), such as 
 \javaclass[artisynth.core.materials]{LinearElasticContact},
 to vary over the contact mesh. Mesh fields can currently be defined
-only for triangular polyhedral meshes.
+only for triangular polygonal meshes.
 
 To evaluate {\tt getValue(p)} at an arbitrary point $\p$, the field
 finds the mesh face nearest to $\p$, and then either interpolates the
@@ -691,7 +691,7 @@ vertices of a mesh. They can be created with constructors such as
 
   // vector fields (with vector type parameterized by T):
   VectorVertexField (Class<T> type, MeshComponent mcomp)
-  VectorVertexField (Class<T> type, (MeshComponent mcomp, T defaultValue)
+  VectorVertexField (Class<T> type, MeshComponent mcomp, T defaultValue)
   VectorVertexField (String name, Class<T> type, MeshComponent mcomp, T defaultValue)
 \end{lstlisting}
 %
@@ -829,7 +829,7 @@ finds the containing (or nearest) face for $\p$, and then returns the
 value for that face.
 
 \begin{sideblock}
-Because values are assume to be constant within each face, face fields
+Because values are assumed to be constant within each face, face fields
 are inherently discontinuous across face boundaries.
 \end{sideblock}
 
@@ -844,7 +844,7 @@ for vertex fields:
 
   // vector fields (with vector type parameterized by T):
   VectorFaceField (Class<T> type, MeshComponent mcomp)
-  VectorFaceField (Class<T> type, (MeshComponent mcomp, T defaultValue)
+  VectorFaceField (Class<T> type, MeshComponent mcomp, T defaultValue)
   VectorFaceField (String name, Class<T> type, MeshComponent mcomp, T defaultValue)
 \end{lstlisting}
 %
@@ -989,7 +989,7 @@ field. Constructors for these include
 \begin{lstlisting}[]
   VectorNdGrid (int VecSize, Vector3d widths, Vector3i res)
   MatrixNdGrid (
-    int rowSize int colSize, Vector3d widths, Vector3i res, RigidTransform3d TCL)
+    int rowSize, int colSize, Vector3d widths, Vector3i res, RigidTransform3d TCL)
 \end{lstlisting}
 %
 
@@ -1098,7 +1098,7 @@ like \javaclass[artisynth.core.materials]{LinearElasticContact} have
 access to a \javaclass[artisynth.core.modelbase]{MeshFieldPoint}
 object that describes the contact point position as a weighted sum of
 mesh vertex positions, which can then be used to rapidly evaluate
-evaluate values within vertex or face mesh fields.  However, all
+values within vertex or face mesh fields.  However, all
 fields, regardless of type, implement methods for determining values
 at both {\tt FemFieldPoint}s and {\tt MeshFieldPoint}s:
 %
@@ -1128,7 +1128,7 @@ material, it is best to use a nodal field if the FEM model is using
 nodal-based soft incompressibility (i.e., the model's {\sf
 softIncompMethod} property is set to either {\tt NODAL} or {\tt AUTO};
 Section \ref{SoftIncomp:sec}). That's because soft nodal
-incompressibility require evaluating the bulk modulus property at
+incompressibility requires evaluating the bulk modulus property at
 nodes instead of integration points, which is much easier to do with a
 nodal-based field.
 
@@ -1286,7 +1286,7 @@ tutorial > RadialMuscle} from the {\sf Models} menu.  When it is first
 run, it falls around the edges under gravity (Figure
 \ref{RadialMuscle:fig}, top). Applying an excitation causes a radial
 contraction which pulls the edges upward and, if high enough, causes
-then to buckle (Figure \ref{RadialMuscle:fig}, bottom).
+them to buckle (Figure \ref{RadialMuscle:fig}, bottom).
 
 % TODO: show how to compute nodal and sub-element fields
 
@@ -1462,7 +1462,7 @@ Vector field rendering is controlled by the following properties:
 \item[renderScale]\mbox{}
 
 A double which scales the vector field value to determine the length
-of the drawn line segment. The default value is 0, implying the no
+of the drawn line segment. The default value is 0, implying that no
 vectors are drawn.
 
 \item[renderProps]\mbox{}
@@ -1495,7 +1495,7 @@ is set to {\tt null}), the {\sf lineColor} subproperty is used instead.
 Grid components also have a {\sf renderGrid} property which can be set
 to {\tt false} to disable rendering of the grid.
 
-For {\tt VectorGridField}, when rendering the grid and {\it and}
+For {\tt VectorGridField}, when rendering the grid {\it and}
 visualizing the vectors, one can make them different colors by using
 the {\sf edgeColor} subproperty of {\sf renderProps} to set the grid
 color:
@@ -1603,7 +1603,7 @@ render mesh for a {\tt ScalarGridField}:
    // create a square mesh, with size 1.0 x 1.0 and resolution 20 x 20, and
    // use it to instantiate a FixedMeshBody which is added to the MechModel:
    PolygonalMesh mesh = MeshFactory.createPlane (1.0, 1.0, 20, 20);
-   FixedMeshComp mcomp = new FixedMeshComp (mesh);
+   FixedMeshBody mcomp = new FixedMeshBody (mesh);
    mech.addMeshBody (mcomp);
 
    // set the mesh component invisible and add it to the field as a render mesh

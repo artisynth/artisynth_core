@@ -41,7 +41,7 @@ directions of the rotated axes $\x'$, $\y'$, and $\z'$ of B with
 respect to A.
 
 $\R_{BA}$ is an {\it orthogonal} matrix, meaning that
-its columns are both perpendicular and mutually
+its columns are both of unit length and mutually
 orthogonal, so that
 %
 \begin{equation}
@@ -65,9 +65,9 @@ having 9 numbers, the matrix only has 3 degrees of freedom.
 Now, assume we have a 3D vector $\v$, and consider its coordinates
 with respect to both frames A and B.  Where necessary, we use a
 preceding superscript to indicate the coordinate frame with respect to
-which a quantity is described, so that ${}^A\v$ and ${}^B\v$ and
+which a quantity is described, so that ${}^A\v$ and ${}^B\v$
 denote $\v$ with respect to frames A and B, respectively.  Given the
-definition of $\R_{AB}$ given above, it is fairly straightforward to
+definition of $\R_{BA}$ given above, it is fairly straightforward to
 show that
 %
 \begin{equation}
@@ -135,9 +135,9 @@ basic rotations about x, y, and z are:
 %
 
 Next, we consider transform composition. Suppose we have three
-coordinate frames, A, B, and C, whose orientation are related to each other by
+coordinate frames, A, B, and C, whose orientations are related to each other by
 $\R_{BA}$, $\R_{CB}$, and $\R_{CA}$ (Figure
-\ref{transformsABC:fig}).  If we know $\R_{BA}$ and $\R_{CA}$,
+\ref{rotationsABC:fig}).  If we know $\R_{BA}$ and $\R_{CA}$,
 then we can determine $\R_{CB}$ from
 %
 \begin{equation}
@@ -385,7 +385,7 @@ frame A.}
 \end{figure}
 
 Expressed in terms of homogeneous coordinates,
-the affine transform $\X_{AB}$ takes the form
+the affine transform $\X_{BA}$ takes the form
 %
 \begin{equation}
 \X_{BA} = \matl \A_{BA} & \p_{BA} \\ 0 & 1 \matr

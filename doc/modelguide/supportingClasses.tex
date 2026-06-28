@@ -83,7 +83,7 @@ and \javaclass[maspack.matrix]{Matrix3d}:
 \section{Rotations and transformations}
 \label{RigidTransform3d:sec}
 
-{\tt maspack.matrix} contains a number classes that implement rotation
+{\tt maspack.matrix} contains a number of classes that implement rotation
 matrices, rigid transforms, and affine transforms. 
 
 Rotations (Section \ref{Rotations:sec}) are commonly described using a
@@ -361,7 +361,7 @@ meshes include:
 % method table
 \begin{lstlisting}[]
   MeshFactory.createSphere (radius, nslices, nlevels);
-  MeshFactory.createIcosahedralSphere (radius, divisons);
+  MeshFactory.createIcosahedralSphere (radius, divisions);
   MeshFactory.createBox (widthx, widthy, widthz);
   MeshFactory.createCylinder (radius, height, nslices);
   MeshFactory.createPrism (double[] xycoords, height);
@@ -379,7 +379,7 @@ one could do:
 %
 \begin{lstlisting}[]
   // create a box centered at the origin with widths 10, 20, 30:
-  PolygonalMesh box = MeshFactory.createBox (10, 20, 20);
+  PolygonalMesh box = MeshFactory.createBox (10, 20, 30);
 
   // move the origin to 5, 6, 7 and rotate using roll-pitch-yaw
   // angles 0, 0, 45 degrees:
@@ -995,7 +995,7 @@ where {\tt enable} should be one of the following values:
 \begin{description}
 \item[ 0] normals will {\it never} be written;
 \item[ 1] normals will {\it always} be written;
-\item[-1] normals will written according to the default behavior 
+\item[-1] normals will be written according to the default behavior
 described above.
 \end{description}
 
@@ -1038,8 +1038,8 @@ are implemented by the following methods of {\tt SurfaceMeshIntersector}:
   findDifference10 (mesh0, mesh1);  // volume1 - volume0 
 \end{lstlisting}
 %
-Each takes two {\tt PolyhedralMesh} objects, {\tt mesh0} and {\tt
-mesh1}, and creates and returns another {\tt PolyhedralMesh} which
+Each takes two {\tt PolygonalMesh} objects, {\tt mesh0} and {\tt
+mesh1}, and creates and returns another {\tt PolygonalMesh} which
 represents the boundary surface of the requested operation. If the
 result of the operation is {\tt null}, the returned mesh will be empty.
 
@@ -1049,13 +1049,13 @@ from two balls and a cylinder:
 \begin{lstlisting}[]
   // first create two ball meshes and a bar mesh
   double radius = 1.0;
-  int division = 1; // number of divisons for icosahedral sphere
+  int division = 1; // number of divisions for icosahedral sphere
   PolygonalMesh ball0 = MeshFactory.createIcosahedralSphere (radius, division);
   ball0.transform (new RigidTransform3d (0, -2*radius, 0));
   PolygonalMesh ball1 = MeshFactory.createIcosahedralSphere (radius, division);
   ball1.transform (new RigidTransform3d (0, 2*radius, 0));
   PolygonalMesh bar = MeshFactory.createCylinder (
-     radius/2, radius*4, /*ns=*/32, /*nr=*/1, /*nh*/10);
+     radius/2, radius*4, /*ns=*/32, /*nr=*/1, /*nh=*/10);
   bar.transform (new RigidTransform3d (0, 0, 0, 0, 0, Math.PI/2));
 
   // use a SurfaceMeshIntersector to create a CSG union of these meshes
@@ -1070,8 +1070,9 @@ The balls and cylinder are created using the
 and
 \javamethod*[\mgeo.MeshFactory]{createCylinder(double,double,int,int,int)},
 where the latter takes arguments {\tt ns}, {\tt nr}, and {\tt nh}
-giving the number of slices along the circumference, end-cap radius,
-and length. The final resulting mesh is shown in Figure
+giving the number of slices along the circumference, the number of
+radial segments on each end cap, and the number of height segments
+along the length. The final resulting mesh is shown in Figure
 \ref{dumbbellMeshUnion:fig}.
 
 %\section{Geometric Queries}
@@ -1220,7 +1221,7 @@ or the entire list can be set using
 \javamethodAlt{maspack.util.PathFinder.setSourceRootPaths()}%
 {setSourceRootPaths(paths)}.
 
-At preset, source directories will not be found if the reference class
+At present, source directories will not be found if the reference class
 is contained in a jar file.
 
 \section{Reading and caching remote files}

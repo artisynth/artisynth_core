@@ -98,9 +98,9 @@ public interface DynamicAgent extends HasNumericState {
    public boolean removeConstrainer (Constrainer c);
    
    /**
-    * Returns true if this component is dynamic. If a component is unattached,
-    * then its state is determined by forces if it is dynamic, or
-    * parametrically if it is non-dynamic.
+    * Queries the value of the {@code dynamic} property for this component.  If
+    * a component is unattached, then its position/velocity state is determined
+    * by forces if it is dynamic, or parametrically if it is non-dynamic.
     * 
     * @return true if this component is dynamic
     */

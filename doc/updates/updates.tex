@@ -85,6 +85,100 @@
 
 % Apr 15, 2023: Refactoring and adding stiction compliance to implicit
 %  friction integration
+\section*{Jun 29, 2026}
+
+\subsection{Measurement tool}
+
+A new {\it measurement tool} has been added to the GUI toolbar, allowing users
+to interactively measure the distance between two locations selected in the
+viewer. Selectable locations include points, frames, and any point on a surface
+mesh. The tool is described in the section ``Measurement tool'' of the
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/MeasurementTool}
+\else
+ \includegraphics[width=3.75in]{images/MeasurementTool}
+\fi
+\end{center}
+
+\subsection{Attached frame components}
+
+New components \javaclass[\mech]{FrameAttachedFrame} and
+\javaclass[\fem]{FemAttachedFrame} have been added, providing a coordinate
+frame that is attached to, and moves with, a master \javaclass[\mech]{Frame}
+(or rigid body) or \javaclass[\fem]{FemModel3d}. These are the frame-based
+analogue of markers, and are described in the new sections ``Attached frames''
+of the ``Mechanical Models I'' and ``Finite Element Models'' chapters of the
+\artisynthManual{modelguide}{Modeling Guide}.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/FemAttachedFrames}
+\else
+ \includegraphics[width=3.75in]{../modelguide/images/FemAttachedFrames}
+\fi
+\end{center}
+
+\subsection{Joint and point actuators}
+
+Several new actuator components have been added that can be driven directly by
+controllers or the inverse tracking controller.  \javaclass[\mech]{JointActuator}
+applies a force or moment along a joint coordinate, while the OpenSim importer
+now supports OpenSim's {\tt CoordinateActuator} and {\tt PointToPointActuator}
+(the latter realized by the new
+\javaclass[\osim.components]{TwoPointActuator}).
+
+\subsection{Setting joint coordinates in kinematic chains}
+
+Joint coordinate values can now be set robustly even within closed kinematic
+loops, using the new \javaclass[\mech]{CoordinateSetter}. When coordinates are
+set, the poses of the surrounding bodies, together with any muscle wrap paths
+and attachments, are updated automatically. Details are given in the section
+``Setting joint coordinates'' of the ``Mechanical Models II'' chapter of the
+\artisynthManual{modelguide}{Modeling Guide}.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/closedKinematicChain}
+\else
+ \includegraphics[width=3.75in]{../modelguide/images/closedKinematicChain}
+\fi
+\end{center}
+
+\subsection{Improved contact visualization}
+
+Rendering of contact points, intersection contours, normals, and forces has
+been improved so that these artifacts now track their evolving locations on the
+underlying collision meshes, defined parametrically with respect to the mesh
+edges and faces. This produces smoother and more accurate visualization of
+collisions as the contacting bodies move.
+
+\begin{center}
+\iflatexml
+ \includegraphics[]{../modelguide/images/BallPlateCollide}
+\else
+ \includegraphics[width=3.25in]{../modelguide/images/BallPlateCollide}
+\fi
+\end{center}
+
+\subsection{Reproducible state and inverse excitations}
+
+Significant work has gone into improving binary repeatability when saving and
+restoring simulation state. In particular, the excitations computed by the
+\javaclass[\inverse]{TrackingController} now regenerate the identical motion
+when supplied directly back to the model as input excitations, making it easier
+to validate and reuse inverse-simulation results.
+
+\subsection{Clearer rotation-angle methods}
+
+\javaclass[maspack.matrix]{RotationMatrix3d} now provides the clearly named
+methods {\tt set/getZyxAngles()}, {\tt set/getXyzAngles()}, and {\tt
+set/getZyzAngles()} as replacements for the older {\tt setRpy()}, {\tt
+setXyz()}, and {\tt setEuler()} methods, along with new {\tt set/getYxyAngles()}
+methods. These make it less error-prone to specify and extract rotations using
+a particular angle convention.
 
 \section*{Aug 15, 2025}
 
@@ -244,7 +338,7 @@ and
 \javaclass[\fem]{AnsysCdbWriter}
 have been added for reading and writing FEM model geometry
 from and to the {\tt Gmsh} and Ansys {\tt .cdb} file formats.
-See the section ``{Loading external FEM meshes''
+See the section ``Loading external FEM meshes''
 in the ``Finite Element Models'' chapter of the 
 \artisynthManual{modelguide}{Modeling Guide}.
 

@@ -2963,6 +2963,11 @@ public class MurtyMechSolver {
             //    myContactSolveP ? 'C' : 'F', k, myIterationCnt-icnt0);
          }
          adjustStateForEqualBounds();
+         if (false) {
+            System.out.printf (
+               "murty n=%d npivs=%d niters=%d\n", 
+               mySizeND, myPivotCnt, myIterationCnt);
+         }
       }
       else {
          extractMGSolution (vel, lam);

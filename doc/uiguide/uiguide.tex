@@ -2906,8 +2906,11 @@ Figure \ref{timelineFig}.
 \fi
 \end{center}
 \caption{The timeline panel, containing: (A) zoom controls, (B) play
-controls, (C) save button, (D) time cursor, (E) toolbar, (F) waypoint
-track, (G) input track, (H) output track.}%
+controls, (C) stop button, 
+(D) save button, (E) simulation time, 
+(F) time cursor, (G) real elapsed tine, 
+(H) toolbar, (I) waypoint
+track, (J) input track(s), (k) output track(s).}%
 \label{timelineFig}
 \end{figure}
 
@@ -2923,17 +2926,22 @@ Shrinks or expands the timescale.
 
 Starts, pauses, or resets the simulation.
 
+\item[Stop button]\mbox{}
+
+Stops the simulation as well as any running Jython scripts.
+
 \item[Save button]\mbox{}
 
 Saves the data for all output probes with attached files.
 
-\item[Time box]\mbox{}
+\item[Simulation time]\mbox{}
 
 Shows the current simulation time.
 
-\item[Time step box]\mbox{}
+\item[Real elapsed time]\mbox{}
 
-Shows the length of time associated with a ``single step'' command.
+Shows the elapsed real time since the start of the simulation.
+Used to gauge computation speed.
 
 \end{description}
 
@@ -2978,8 +2986,9 @@ Takes the place of the play button and pauses the simulation.\\
 \includegraphics[width=.33in]{images/singleStep}
 \fi
 & Single-step: &
-Advances the simulation by a single step, specified in the
-time step box.\\
+Advances the simulation by a single step, whose size
+is specified by the main viewer step size control 
+(Figure \ref{PlayControlsFig}).\\
 \iflatexml
 \includegraphics{images/fastForward}
 \else
@@ -3000,7 +3009,8 @@ Jython commands and scripts (Section \ref{JythonScripting:sec}).
 
 \subsubsection{Tracks}
 
-The timeline proper is divided into a number of tracks. At the top is
+The timeline proper is divided into a number of tracks
+(I-K in Figure \ref{timelineFig}). At the top is
 the {\it waypoint track}, which is used to arrange waypoints and
 breakpoints. Below that are a variable number of {\it input} and {\it
 output} tracks, which are used respectively for arranging the input
@@ -3782,7 +3792,7 @@ absolute path name otherwise.
 In addition, data can be saved for {\it all} output probes that have
 attached files by either selecting {\sf ``Save output probe data''}
 from the ArtiSynth {\sf File} menu, or by clicking on the timeline's
-{\sf save} button (C in Figure \ref{timelineFig}).
+{\sf save} button (D in Figure \ref{timelineFig}).
 
 \subsection{Exporting numeric probe data}
 \label{ExportingNumericData:sec}

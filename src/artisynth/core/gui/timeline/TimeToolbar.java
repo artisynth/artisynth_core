@@ -16,8 +16,10 @@ import javax.swing.SwingConstants;
 
 import maspack.util.NumberFormat;
 import maspack.widgets.ButtonCreator;
+import maspack.widgets.DoubleField;
 import artisynth.core.driver.GenericKeyHandler;
 import artisynth.core.driver.Main;
+import artisynth.core.driver.Scheduler;
 import artisynth.core.workspace.RootModel;
 
 public class TimeToolbar extends JToolBar {
@@ -25,8 +27,9 @@ public class TimeToolbar extends JToolBar {
    
    //private JPanel timestepPanel;
    private JLabel timeLabel;
+   private DoubleField simtimeDisplay;
+   private DoubleField realtimeDisplay;
    private TimelineController parent;
-   //private JTextField timestepTextField;
 
    private JButton zoomInButton;
    private JButton zoomOutButton;
@@ -39,49 +42,26 @@ public class TimeToolbar extends JToolBar {
 
    private double myStepTime = 0;
 
-   // // updates the stepTime into the timestep field
-   // void updateStepTime () {
-   //    double newStep = parent.myScheduler.getStepTime();
-   //    if (newStep != myStepTime) {
-   //       getTimestepTextField().setText (Double.toString (newStep*1000));
-   //       myStepTime = newStep;
-   //    }
-   // }
-
    double getStepTime () {
       return myStepTime;
    }      
 
    private void createTimeToolbar (TimelineController parent) {
       this.parent = parent;
-      //timestepPanel = new JPanel();
       
-      JPanel timeDisplay = new JPanel();
-      timeDisplay.setLayout (new BoxLayout (timeDisplay, BoxLayout.X_AXIS));
-      timeDisplay.setOpaque (false);
-      timeDisplay.setFont (GuiStorage.TOOLBAR_FONT);
-      
-      timeLabel = new JLabel();
-      timeLabel.setBackground (Color.WHITE);
-      timeLabel.setOpaque (true);
-      timeLabel.setBorder (BorderFactory.createLineBorder (Color.LIGHT_GRAY));
-      timeLabel.setHorizontalAlignment (SwingConstants.RIGHT);
-      timeLabel.setFont (GuiStorage.TOOLBAR_FONT);
-      
-      JLabel textLabel = new JLabel ("Current Time: ");
-      textLabel.setFont (GuiStorage.TOOLBAR_FONT);
-      timeDisplay.add (textLabel);
-      timeDisplay.add (timeLabel);
+      simtimeDisplay = new DoubleField("time:", 0, "%9.5f");
+      String tip = "current simulated time";
+      simtimeDisplay.setToolTipText(tip);
+      simtimeDisplay.getTextField().setToolTipText(tip);
+      simtimeDisplay.setColumns(7);
 
-      Dimension frameDimension = new Dimension (80, 15);
-      timeLabel.setSize (frameDimension);
-      timeLabel.setMinimumSize (frameDimension);
-      timeLabel.setMaximumSize (frameDimension);
-      timeLabel.setPreferredSize (frameDimension);
-      
+      realtimeDisplay = new DoubleField("real time:", 0, "%9.2f");
+      tip = "real elapsed time during simulation";
+      realtimeDisplay.setToolTipText(tip);
+      realtimeDisplay.getTextField().setToolTipText(tip);
+      realtimeDisplay.setColumns(7);
+
       updateTimeDisplay (0);
-      
-      //timestepTextField = new JTextField();
       
       zoomInButton = makeButton (
          GuiStorage.ZOOM_IN_ICON,
@@ -126,30 +106,22 @@ public class TimeToolbar extends JToolBar {
 
       addSeparator();
 
-      // add (makeButton(GuiStorage.SET_ICON, "Set"));
-      // addSeparator();
-
       add (makeButton (GuiStorage.SAVE_ALL_PROBES_ICON,
                        "Save output probe data", "Save output probe data"));
 
-      //timestepInitialization();
-
       // add appropriate spaces
-      addSeparator (new Dimension (20, 0));
+      addSeparator (new Dimension (10, 0));
 
-      add (timeDisplay);
-      // addSeparator (new Dimension (20, 0));
-      // add (timestepPanel);
+      add (simtimeDisplay);
+
+      addSeparator (new Dimension (10, 0));
+      add (realtimeDisplay);
    }
 
    public TimeToolbar (TimelineController parent) {
       super();
       createTimeToolbar (parent);
    }
-
-   // public JTextField getTimestepTextField() {
-   //    return timestepTextField;
-   // }
 
    public JButton makeButton (ImageIcon icon, String command, String toolTip) {
       JButton button = new JButton (icon);
@@ -167,34 +139,6 @@ public class TimeToolbar extends JToolBar {
       button.addKeyListener (keyHandler);
       return button;
    }
-
-   // private void timestepInitialization() {
-   //    Dimension fieldSize = new Dimension (48, 19);
-   //    timestepTextField.setSize (fieldSize);
-   //    timestepTextField.setMinimumSize (fieldSize);
-   //    timestepTextField.setMaximumSize (fieldSize);
-   //    timestepTextField.setPreferredSize (fieldSize);
-   //    timestepTextField.setHorizontalAlignment (SwingConstants.RIGHT);
-   //    timestepTextField.setFont (GuiStorage.TOOLBAR_FONT);
-   //    timestepTextField.setBorder (
-   //       BorderFactory.createLineBorder (Color.LIGHT_GRAY));
-
-   //    timestepTextField.getDocument().addDocumentListener (
-   //       new TimestepListener());
-
-   //    timestepPanel.setLayout (new BoxLayout (timestepPanel, BoxLayout.X_AXIS));
-   //    timestepPanel.setOpaque (false);
-   //    timestepPanel.setFont (GuiStorage.TOOLBAR_FONT);
-
-   //    JLabel TimeStepLabel = new JLabel ("Time Step: ");
-   //    JLabel msecLabel = new JLabel ("msec");
-   //    TimeStepLabel.setFont (GuiStorage.TOOLBAR_FONT);
-   //    msecLabel.setFont (GuiStorage.TOOLBAR_FONT);
-
-   //    timestepPanel.add (TimeStepLabel);
-   //    timestepPanel.add (timestepTextField);
-   //    timestepPanel.add (msecLabel);
-   // }
 
    private void refreshToolbar(RootModel root) {
       boolean timeIsZero = (parent.myScheduler.getTime() == 0);
@@ -221,7 +165,15 @@ public class TimeToolbar extends JToolBar {
    NumberFormat timefmt = new NumberFormat ("%9.6f");
 
    public void updateTimeDisplay (double t) {
-      timeLabel.setText (timefmt.format(t));
+      Scheduler scheduler = parent.myScheduler;
+      if (scheduler != null) {
+         simtimeDisplay.setValue (scheduler.getTime());
+         realtimeDisplay.setValue (scheduler.getRealElapsedTime());
+      }
+      else {
+         simtimeDisplay.setValue (0);
+         realtimeDisplay.setValue (0);
+      }
    }
 
    public void updateToolbarState (RootModel root) {      
@@ -253,36 +205,6 @@ public class TimeToolbar extends JToolBar {
          zoomInButton.setEnabled (enabled);
       }
    }
-
-   // //====================================================
-   // // TimestepListener class
-   // //====================================================
-
-   // public class TimestepListener implements DocumentListener {
-   //    public void insertUpdate (DocumentEvent e) {
-   //       String input = getTimestepTextField().getText().trim();
-   //       double newStepTime;
-   //       try { // input in milli-sec
-   //          newStepTime = 0.001 * Double.parseDouble (input);
-   //          myStepTime = newStepTime;
-   //          parent.setStepTime (newStepTime);
-   //       }
-   //       catch (NumberFormatException exception) {}
-   //    }
-
-   //    public void removeUpdate (DocumentEvent e) {
-   //       String input = getTimestepTextField().getText().trim();
-   //       double newStepTime;
-   //       try { // input in milli-sec
-   //          newStepTime = 0.001 * Double.parseDouble (input);
-   //          myStepTime = newStepTime;
-   //          parent.setStepTime (newStepTime);
-   //       }
-   //       catch (NumberFormatException exception) {}
-   //    }
-
-   //    public void changedUpdate (DocumentEvent e) {}
-   // }
    
    //========================================================
    // TimelineButtonListener class

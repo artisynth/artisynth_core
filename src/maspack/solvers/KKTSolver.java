@@ -45,7 +45,7 @@ public class KKTSolver {
    boolean myIndices1Based = false;
    boolean myLastSolveWasIterative = false;
 
-   DantzigLCPSolver myDantzig = new DantzigLCPSolver();
+   DantzigLCPSolver myDantzig;
    MurtyLCPSolver myMurty = new MurtyLCPSolver();
 
    int myNumVals = 0;
@@ -69,6 +69,9 @@ public class KKTSolver {
 
    // if myDT != null, used zbasic, along with hi, lo, and W.
    VectorNi myLcpState = new VectorNi();
+   // Controls whether the LCP/BLCP solves are warm-started from the 'state'
+   // passed to the solve() methods. Enabled by default.
+   boolean myWarmStartLCPs = false;
    VectorNd myLo = new VectorNd();
    VectorNd myHi = new VectorNd();
    VectorNd myW = new VectorNd();
@@ -120,6 +123,8 @@ public class KKTSolver {
          }
       }
       mySolverType = solverType;
+      myDantzig = new DantzigLCPSolver();
+      myDantzig.setWarmStartEnabled (myWarmStartLCPs);
    }
 
    public KKTSolver() {
@@ -855,6 +860,34 @@ public class KKTSolver {
       return new VectorNi (myLcpState);
    }
 
+   /**
+    * Enables or disables warm starting of the internal LCP/BLCP solves. When
+    * enabled (the default), each contact solve is seeded with the basis
+    * supplied in the {@code state} argument to the {@code solve} methods
+    * (typically the solution from the previous time step), which can greatly
+    * reduce the number of pivots when the active constraint set changes slowly.
+    * When disabled, each solve starts cold. Has no effect when {@code state} is
+    * {@code null}, since solves are always cold in that case.
+    *
+    * @param enable if {@code true}, enables LCP warm starting
+    */
+   public void setWarmStartLCPs (boolean enable) {
+      myWarmStartLCPs = enable;
+      // The Dantzig solver only warm starts when its own warm-start flag is
+      // enabled; keep it in sync so that a seeded state actually takes effect.
+      myDantzig.setWarmStartEnabled (enable);
+   }
+
+   /**
+    * Queries whether warm starting of the internal LCP/BLCP solves is enabled.
+    * See {@link #setLCPWarmStarting}.
+    *
+    * @return {@code true} if LCP warm starting is enabled
+    */
+   public boolean getWarmStartLCPs() {
+      return myWarmStartLCPs;
+   }
+
    static int myMaxN = 0;
 
    private Status solveLCP (
@@ -877,6 +910,9 @@ public class KKTSolver {
       double[] qbuf = myQ.getBuffer();
       for (int i = 0; i < myNumN; i++) {
          qbuf[i] -= bn.get(i);
+      }
+      if (!myWarmStartLCPs) {
+         state = null;
       }
       initializeState (state);
 
@@ -997,14 +1033,15 @@ public class KKTSolver {
    }
 
    private void initializeState (VectorNi state) {
-      if (state != null) {
+      if (state != null && myWarmStartLCPs) {
          for (int i=0; i<myQ.size(); i++) {
             myLcpState.set (i, state.get(i));
          }
       }
       else {
+         // no warm start: begin the solve from a cold (all non-basic) state
          LCPSolver.clearState (myLcpState);
-      }      
+      }
    }
 
    FunctionTimer myMurtyTimer = new FunctionTimer();
@@ -1056,7 +1093,10 @@ public class KKTSolver {
       LCPSolver.Status status;
       MurtyLCPSolver murty = new MurtyLCPSolver();
       murty.setBlockPivoting(true);
-      LCPSolver.clearState (myLcpState);
+      // Note: myLcpState has been seeded by initializeState(state) above and is
+      // deliberately NOT cleared here, so that a non-null 'state' warm-starts
+      // the (warm) Dantzig solve below. (A clearState() call here was leftover
+      // from an earlier Murty experiment and defeated warm starting.)
       //System.out.println (
       //   "sizeG=" + myNumG + " sizeN=" + myNumN + " sizeD=" + myNumD);
       myMurtyTimer.restart();

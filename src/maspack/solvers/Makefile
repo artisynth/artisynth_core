@@ -5,7 +5,7 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	KKTSolverTest \
-	KellerLCPSolverTest \
+	SimpleLCPSolverTest \
 	LemkeContactSolverTest \
 	DantzigLCPSolverTest \
 	DantzigQPSolverTest \

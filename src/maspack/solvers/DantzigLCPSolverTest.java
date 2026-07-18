@@ -662,8 +662,146 @@ public class DantzigLCPSolverTest extends LCPSolverTestBase {
       }
    }
 
+   /**
+    * Solve an LCP cold (from an all-lower state), and confirm that:
+    *
+    * <ul>
+    *   <li> re-solving from the exact solution state takes zero pivots;
+    *   <li> re-solving from a randomly corrupted state still produces a valid
+    *        solution.
+    * </ul>
+    *
+    * <p>Assumes warm starting has been enabled on {@code mySolver}.
+    */
+   private void checkWarmLCP (MatrixNd M, VectorNd q) {
+      int size = q.size();
+      VectorNd z = new VectorNd (size);
+      VectorNi state = new VectorNi (size);
+
+      LCPSolver.clearState (state);
+      Status status = mySolver.solve (z, state, M, q);
+      if (status != Status.SOLVED) {
+         return; // problem may have no solution for this solver; skip
+      }
+      checkLCPSolution (z, M, q, state, mySolver.getLastSolveTol());
+
+      // exact warm start should take no pivots
+      VectorNi solnState = new VectorNi (state);
+      VectorNd z0 = new VectorNd (z);
+      status = mySolver.solve (z, state, M, q);
+      check ("exact warm start failed", status == Status.SOLVED);
+      check ("exact warm start required pivots",
+             mySolver.getPivotCount() == 0 && mySolver.getIterationCount() <= 1);
+      check ("exact warm start changed state", state.equals (solnState));
+      if (!z.epsilonEquals (z0, 1e-8*(z0.norm()+1))) {
+         throw new TestException ("exact warm start changed z");
+      }
+
+      // warm start from a corrupted state should still yield a valid solution
+      for (int trial = 0; trial < 5; trial++) {
+         VectorNi badState = new VectorNi (solnState);
+         int nflip = 1 + myRandom.nextInt (Math.max (1, size/3));
+         for (int k = 0; k < nflip; k++) {
+            int i = myRandom.nextInt (size);
+            badState.set (
+               i, badState.get(i) == LCPSolver.Z_VAR ?
+               LCPSolver.W_VAR_LOWER : LCPSolver.Z_VAR);
+         }
+         VectorNd zc = new VectorNd (size);
+         status = mySolver.solve (zc, badState, M, q);
+         check ("corrupted warm start failed", status == Status.SOLVED);
+         checkLCPSolution (zc, M, q, badState, mySolver.getLastSolveTol());
+         if (!zc.epsilonEquals (z0, 1e-6*(z0.norm()+1))) {
+            throw new TestException (
+               "corrupted warm start produced a different solution");
+         }
+      }
+   }
+
+   /**
+    * As {@link #checkWarmLCP}, but for a BLCP.
+    */
+   private void checkWarmBLCP (
+      MatrixNd M, VectorNd q, VectorNd lo, VectorNd hi, int nub) {
+      int size = q.size();
+      VectorNd z = new VectorNd (size);
+      VectorNd w = new VectorNd (size);
+      VectorNi state = new VectorNi (size);
+
+      LCPSolver.clearState (state);
+      Status status = mySolver.solve (z, w, state, M, q, lo, hi, nub);
+      if (status != Status.SOLVED) {
+         return;
+      }
+      double tol = Math.max (mySolver.getLastSolveTol(), 1e-9);
+      checkBLCPSolution (z, w, M, q, lo, hi, nub, state, 1e-7);
+
+      VectorNi solnState = new VectorNi (state);
+      VectorNd z0 = new VectorNd (z);
+
+      status = mySolver.solve (z, w, state, M, q, lo, hi, nub);
+      check ("exact warm start failed", status == Status.SOLVED);
+      check ("exact warm start required pivots",
+             mySolver.getPivotCount() == 0 && mySolver.getIterationCount() <= 1);
+      check ("exact warm start changed state", state.equals (solnState));
+
+      for (int trial = 0; trial < 5; trial++) {
+         VectorNi badState = new VectorNi (solnState);
+         int nflip = 1 + myRandom.nextInt (Math.max (1, size/3));
+         for (int k = 0; k < nflip; k++) {
+            int i = nub + myRandom.nextInt (Math.max (1, size-nub));
+            if (i >= size) {
+               continue;
+            }
+            // flip to a different, legal state
+            int s = badState.get(i);
+            if (s == LCPSolver.Z_VAR) {
+               s = (lo.get(i) == -INF ?
+                    LCPSolver.W_VAR_UPPER : LCPSolver.W_VAR_LOWER);
+            }
+            else {
+               s = LCPSolver.Z_VAR;
+            }
+            badState.set (i, s);
+         }
+         VectorNd zc = new VectorNd (size);
+         VectorNd wc = new VectorNd (size);
+         status = mySolver.solve (zc, wc, badState, M, q, lo, hi, nub);
+         check ("corrupted warm start failed", status == Status.SOLVED);
+         checkBLCPSolution (zc, wc, M, q, lo, hi, nub, badState, 1e-7);
+      }
+   }
+
+   /**
+    * Run a collection of random warm-start tests on both LCP and BLCP problems.
+    * Assumes warm starting has been enabled on {@code mySolver}.
+    */
+   public void warmStartTests (int ntests, int size) {
+      MatrixNd M = new MatrixNd (size, size);
+      VectorNd q = new VectorNd (size);
+      VectorNd x = new VectorNd (size);
+      VectorNd lo = new VectorNd (size);
+      VectorNd hi = new VectorNd (size);
+
+      // plain LCP
+      for (int i = 0; i < ntests; i++) {
+         M.setRandom();
+         x.setRandom();
+         q.mul (M, x);
+         M.mulTransposeRight (M, M);
+         checkWarmLCP (M, q);
+      }
+      // BLCP
+      for (int i = 0; i < ntests; i++) {
+         int nub = (i < ntests/2 ? 0 : myRandom.nextInt (size/2));
+         setRandomBounds (lo, hi, nub, size);
+         createRandomBLCP (M, q, lo, hi, nub, size, /*semiDefinite=*/false);
+         checkWarmBLCP (M, q, lo, hi, nub);
+      }
+   }
+
    public void execute() {
-      
+
       simpleContactTests(/*regularize=*/false);
       int npegTests = 100;
       clearPivotCount();
@@ -729,6 +867,17 @@ public class DantzigLCPSolverTest extends LCPSolverTestBase {
          testSolver (
             null, null, null, M, q, lo1, hi1, 3, 15, Status.SOLVED);
       }
+
+      // ---- warm start tests ----
+      // Enable warm starting and verify that seeded solves are recognized: an
+      // exact restart completes in zero pivots, and a corrupted restart still
+      // yields a valid solution. As with MurtyLCPSolverTest, the random warm
+      // tests are restricted to the positive-definite case; warm starting on
+      // realistic semi-definite problems is exercised by the peg-in-hole tests.
+      mySolver.setWarmStartEnabled (true);
+      warmStartTests (2000, 20);
+      warmStartTests (500, 50);
+      mySolver.setWarmStartEnabled (false);
 
       // System.out.println ("average time, matrix size of 50: " +
       // timer.result(2*numRandomTests) +

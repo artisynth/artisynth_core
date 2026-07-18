@@ -135,6 +135,10 @@ public class Scheduler {
       Workspace myWorkspace;
       LinkedList<Runnable> myActions;
 
+      // variables to track real elapsed time while simulation is running
+      double realElapsedTime; // real elapsed time, in sec
+      long lastRealTimeUpdate; // last real time, in msec
+
       private void doinitialize (double endTime) {
          myStopReq = false;
          myAlive = true;
@@ -191,7 +195,16 @@ public class Scheduler {
          long simElapsedMsec = (long)(timeScale*1000*(myTime-startTime));
          realStartMsec = System.currentTimeMillis() - simElapsedMsec;
       }
-
+      
+      double updateRealElapsedTime() {
+         if (myAlive) {
+            long currentMsec = System.currentTimeMillis();
+            realElapsedTime += (currentMsec - lastRealTimeUpdate)/1000.0;
+            lastRealTimeUpdate = currentMsec;            
+         }
+         return realElapsedTime;
+      }
+      
       void doadvance (double t0sec, double t1sec, int flags) {
          
          RootModel rootModel = getRootModel();
@@ -249,6 +262,11 @@ public class Scheduler {
          startTime = myTime;
          lastYieldMsec = realStartMsec;
          RootModel root = getRootModel();
+         
+         if (startTime == 0) {
+            realElapsedTime = 0;
+         }
+         lastRealTimeUpdate = realStartMsec;
 
          root.setStopRequest (false);
          if (timePlay) {
@@ -298,6 +316,7 @@ public class Scheduler {
                if (myStopping) {
                   myStopReq = false;
                   myStopping = false;
+                  updateRealElapsedTime();
                   myAlive = false;
                }
             }
@@ -487,6 +506,9 @@ public class Scheduler {
       }
       updateInitialStateIfNecessary();
       myTime = TimeBase.round(way.getTime());
+      if (myTime == 0 && myPlayer != null) {
+         myPlayer.realElapsedTime = 0;
+      }
       if (setStateBeforeInit) {
          getWorkspace().getRootModel().setState (way.getState());
          getWorkspace().initialize (myTime);
@@ -503,6 +525,15 @@ public class Scheduler {
    public double getTime() {
       return myTime;
    }
+   
+   public double getRealElapsedTime() {
+      if (myPlayer != null) {
+         return myPlayer.updateRealElapsedTime();
+      }
+      else {
+         return 0;
+      }
+   }
 
    /**
     * Moves to the previous waypoint, if available.
@@ -511,10 +542,14 @@ public class Scheduler {
    public boolean rewind() {
       WayPoint way = getWayPoints().getValidBefore (getTime());
       if (way != null) {
-         setTime (way);
-         getWorkspace().rerender();
-         fireListeners (Action.Rewind);
-         return true;
+         if (way.getTime() == 0) {
+            reset (way);
+         }
+         else {
+            setTime (way);
+            getWorkspace().rerender();
+            fireListeners (Action.Rewind);
+         }
       }
       return false;
    }

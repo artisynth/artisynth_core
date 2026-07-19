@@ -10,13 +10,13 @@ import maspack.matrix.*;
 import maspack.util.*;
 import java.util.Random;
 
-public class KellerLCPSolverTest extends LCPSolverTestBase {
+public class SimpleLCPSolverTest extends LCPSolverTestBase {
 
-   private KellerLCPSolver mySolver;
+   private SimpleLCPSolver mySolver;
 
-   public KellerLCPSolverTest() {
+   public SimpleLCPSolverTest() {
       super();
-      mySolver = new KellerLCPSolver();
+      mySolver = new SimpleLCPSolver();
    }
 
    public void execute() {
@@ -34,7 +34,7 @@ public class KellerLCPSolverTest extends LCPSolverTestBase {
    }
 
    public static void main (String[] args) {
-      KellerLCPSolverTest tester = new KellerLCPSolverTest();
+      SimpleLCPSolverTest tester = new SimpleLCPSolverTest();
 
       tester.parseArgs (args);
       if (tester.isTimingRequested()) {

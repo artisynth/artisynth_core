@@ -11,13 +11,40 @@ import maspack.util.*;
 
 /**
  * Solves linear complementarity problems (LCPs) for symmetric positive
- * semi-definite (SPSD) matrices using Kellers's method. Details on Keller's
- * method can be found in Claude Lacoursiere's Ph.D. thesis. <i>Ghosts and
- * Machines: Regularized Variational Methods for Interactive Simulations of
- * Multibodies with Dry Frictional Contact</i>, as well as ``Algorithms for
- * Linear Complementarity Problems'', by Joaquim Judice (1994).
+ * semi-definite (SPSD) matrices using the <i>simple</i> principal pivoting
+ * method.
+ *
+ * <p>This class was formerly named {@code KellerLCPSolver}, but the algorithm
+ * it implements is <i>not</i> Keller's general (symmetric) principal pivoting
+ * method. It is in fact the same simple principal pivoting method implemented
+ * by {@link DantzigLCPSolver}: at each major cycle the most infeasible variable
+ * is chosen as the driving variable and a minimum-ratio test drives it to
+ * feasibility using single (1x1) principal pivots. This corresponds to
+ * Algorithm 4.2.11 ("Dantzig; van de Panne and Whinston") in <i>The Linear
+ * Complementarity Problem</i> by Cottle, Pang, and Stone.
+ *
+ * <p>Keller's method proper (E. Keller, "The general quadratic optimization
+ * problem", Mathematical Programming 5, 1973; Algorithm 4.3.2 in Cottle, Pang
+ * and Stone) additionally employs 2x2 block principal pivots and a negative
+ * lower-bound device in order to robustly handle zero-diagonal degeneracies in
+ * matrices that are only positive semi-definite or (row) sufficient. Those
+ * features are <i>not</i> implemented here; on such a degeneracy this solver
+ * simply reports {@link Status#NO_SOLUTION}. For nondegenerate SPSD problems,
+ * Keller's method and the simple method implemented here produce identical
+ * pivot sequences.
+ *
+ * <p>Compared with {@link DantzigLCPSolver}, this class performs dense explicit
+ * tableau pivots (recomputing the pivoted matrix at each step), solves only
+ * unbounded LCPs (not BLCPs), and does not support warm starting. It is
+ * therefore best regarded as a simple reference implementation, and {@link
+ * DantzigLCPSolver} should be preferred for performance.
+ *
+ * <p>Further background can be found in Claude Lacoursiere's Ph.D. thesis,
+ * <i>Ghosts and Machines: Regularized Variational Methods for Interactive
+ * Simulations of Multibodies with Dry Frictional Contact</i> (2007), and in
+ * "Algorithms for Linear Complementarity Problems" by Joaquim Judice (1994).
  */
-public class KellerLCPSolver implements LCPSolver {
+public class SimpleLCPSolver implements LCPSolver {
    
    protected double[] myMbuf;
    protected double[] myQbuf;
@@ -54,9 +81,9 @@ public class KellerLCPSolver implements LCPSolver {
    }
 
    /**
-    * Creates a new Keller solver.
+    * Creates a new simple LCP solver.
     */
-   public KellerLCPSolver() {
+   public SimpleLCPSolver() {
       myMbuf = new double[0];
       myQbuf = new double[0];
       myRbuf = new double[0];

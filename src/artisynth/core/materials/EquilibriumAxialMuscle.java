@@ -1017,9 +1017,10 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    }
 
    public void setState (DataBuffer data) {
+      // for completeness, store length and muscleLength for rigid tendons
+      myLength = data.dget();
+      myMuscleLength = data.dget();
       if (!myRigidTendonP) {
-         myLength = data.dget();
-         myMuscleLength = data.dget();
          myMuscleLengthPrev = data.dget();
          // XXX. Need to store Dt and Dm in case computeLmDotFromLdot is true.
          myDt = data.dget();
@@ -1031,9 +1032,10 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
    }
 
    public void getState (DataBuffer data) {
+      // for completeness, store length and muscleLength for rigid tendons
+      data.dput(myLength);
+      data.dput(myMuscleLength);
       if (!myRigidTendonP) {
-         data.dput(myLength);
-         data.dput(myMuscleLength);
          data.dput(myMuscleLengthPrev);
          // XXX. Need to store Dt and Dm in case computeLmDotFromLdot is true.
          data.dput(myDt);

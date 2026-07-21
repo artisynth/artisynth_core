@@ -453,6 +453,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
 
          double lm = l-myTendonSlackLength; // lm = cos(alpha)*lf
          myMuscleLength = lm;
+         myLength = l; // not needed for computation, but added for completeness
 
          double lf; // fibre length
          double ca; // cos(alpha)
@@ -872,6 +873,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
 
          double lm = l-myTendonSlackLength; // lm = cos(alpha)*lf
          myMuscleLength = lm;
+         myLength = l; // not needed for computation, but added for completeness
 
          double lf; // fibre length
          double ca; // cos(alpha)
@@ -953,6 +955,7 @@ public abstract class EquilibriumAxialMuscle extends AxialMuscleMaterialBase
 
          double lm = l-myTendonSlackLength; // lm = cos(alpha)*lf
          myMuscleLength = lm;
+         myLength = l; // not needed for computation, but added for completeness
 
          double lf; // fibre length
          double ca; // cos(alpha)

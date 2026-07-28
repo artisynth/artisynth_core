@@ -179,16 +179,15 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          }
       }
       
+      if (oneSelectedIsInvisible) {
+         addMenuItem ("Set visible");
+      }
+
+      if (oneSelectedIsVisible) {
+         addMenuItem ("Set invisible");
+      }
+
       if (!minimal) {
-         
-         if (oneSelectedIsInvisible) {
-            addMenuItem ("Set visible");
-         }
-
-         if (oneSelectedIsVisible) {
-            addMenuItem ("Set invisible");
-         }
-
          if (allSelectedAreTraceable) {
             if (selection.size() - tracingCnt > 0) {
                addMenuItem ("Enable tracing");

@@ -40,6 +40,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    HashSet<Object> viewers;
    
    GLResourceList<GLResource> resources;
+   GLDeferredDeleteQueue deferredDeletes;
    HashMap<TextureContent, GLTexture> textureMap;
    
    GLTextureLoader textureLoader;
@@ -101,6 +102,11 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       garbageman = new GLGarbageCollector ();
       garbagebin = new GLGarbageBin<> ();
       resources = new GLResourceList<> ();
+      // route unreferenced shared resources through a deferred-delete queue so
+      // the actual GL deletes happen on a render thread rather than on the
+      // background collector thread (gated by GLDeferredDeleteQueue.enabled)
+      deferredDeletes = new GLDeferredDeleteQueue ();
+      resources.setDeferredDeleteQueue (deferredDeletes);
       garbageman.addSource (garbagebin);
       garbageman.addSource (resources);
       garbageman.addSource (textureLoader);
@@ -419,6 +425,23 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    
    public void runGarbageCollection(GL gl) {
       garbageman.collect(gl);
+   }
+
+   /**
+    * Disposes any shared resources that a background sweep has queued for
+    * deferred deletion. Must be called from a viewer's render thread, with a
+    * live GL context current, so that the GL deletes happen on the render
+    * context instead of the background collector thread. A no-op when the
+    * deferred-delete queue is disabled or empty.
+    *
+    * @param gl the calling render thread's context
+    * @return the number of resources disposed
+    */
+   public int drainDeferredDeletes(GL gl) {
+      if (deferredDeletes != null) {
+         return deferredDeletes.drain (gl);
+      }
+      return 0;
    }
    
    /**

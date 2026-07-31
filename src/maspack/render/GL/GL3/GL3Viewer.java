@@ -429,7 +429,10 @@ public class GL3Viewer extends GLViewer {
          }
          // for non-timed garbage collection
          myGLResources.maybeRunGarbageCollection (gl);
-         
+         // perform any deferred GL deletes here, on this render thread's
+         // context, rather than on the background collector thread
+         myGLResources.drainDeferredDeletes (gl);
+
       } catch (Exception e) {
          e.printStackTrace ();
       }

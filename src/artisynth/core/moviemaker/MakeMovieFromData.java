@@ -44,23 +44,26 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
 
       String fileInfo = dataPath + "/info.txt";
       
-      BufferedReader in = new BufferedReader (new FileReader (fileInfo));
-      
-      String line = in.readLine ();
-      nFrames = Integer.parseInt (line.substring (line.lastIndexOf (' ') + 1));
-      line = in.readLine ();
-      width = Integer.parseInt (line.substring (line.lastIndexOf (' ') + 1));
-      line = in.readLine ();
-      height = Integer.parseInt (line.substring (line.lastIndexOf (' ') + 1));
-      line = in.readLine ();
-      frameRate = Double.parseDouble (line.substring(line.lastIndexOf (' ') + 1));
+      try (BufferedReader in = new BufferedReader (new FileReader (fileInfo))) {
+         String line = in.readLine ();
+         nFrames = Integer.parseInt (line.substring (line.lastIndexOf(' ')+1));
+         line = in.readLine ();
+         width = Integer.parseInt (line.substring (line.lastIndexOf(' ')+1));
+         line = in.readLine ();
+         height = Integer.parseInt (line.substring (line.lastIndexOf(' ')+1));
+         line = in.readLine ();
+         frameRate = Double.parseDouble (line.substring(line.lastIndexOf(' ')+1));
+      }
+      catch (IOException e) {
+         myMovieMaker.println ("Cannot read info file '"+fileInfo+"'");
+         return false;
+      }
       
       myMovieMaker = maker;  // used for logging messages
 
       MediaLocator oml;
       if ((oml = createMediaLocator("file:"+dataPath + "/" + fileName)) == null) {
          myMovieMaker.println ("Cannot build media locator from: " + fileName);
-         in.close();
          return false;
       }
       myMovieMaker.println ("output file = " + fileName);
@@ -70,7 +73,6 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
          inputFiles.addElement (frameFileNames[i]);
       }
       boolean status = doIt (width, height, (int) frameRate, inputFiles, oml);
-      in.close();
       return status;
    }
 

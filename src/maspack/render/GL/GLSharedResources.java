@@ -428,6 +428,15 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    }
 
    /**
+    * Returns the shared deferred-delete queue, into which resources can be
+    * enqueued (off the render thread) for GL deletion later on a render thread
+    * via {@link #drainDeferredDeletes(GL)}.
+    */
+   public GLDeferredDeleteQueue getDeferredDeleteQueue() {
+      return deferredDeletes;
+   }
+
+   /**
     * Disposes any shared resources that a background sweep has queued for
     * deferred deletion. Must be called from a viewer's render thread, with a
     * live GL context current, so that the GL deletes happen on the render

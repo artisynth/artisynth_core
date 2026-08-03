@@ -27,7 +27,8 @@ public class GL3SharedResources extends GLSharedResources {
          vertexAttributes.getTexcoord ());
       
       primManager = new GL3SharedPrimitiveManager(primFactory);
-      groManager = new GL3SharedRenderObjectManager (vertexAttributes);
+      groManager = new GL3SharedRenderObjectManager (
+         vertexAttributes, getDeferredDeleteQueue ());
       viaManager = new GL3SharedVertexIndexArrayManager ();
       
       addGarbageSource (primManager);

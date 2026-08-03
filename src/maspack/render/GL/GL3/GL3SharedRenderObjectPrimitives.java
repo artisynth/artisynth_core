@@ -36,7 +36,7 @@ public class GL3SharedRenderObjectPrimitives
    AttributeInfo[] linesInfo;
    AttributeInfo[] trianglesInfo;
 
-   IndexBufferObject ibo;
+   volatile IndexBufferObject ibo;
 
    protected GL3SharedRenderObjectPrimitives(RenderObject r,
       VertexBufferObject staticVBO, VertexBufferObject dynamicVBO,
@@ -108,11 +108,14 @@ public class GL3SharedRenderObjectPrimitives
    }
    
    @Override
-   public void dispose (GL3 gl) {
+   public synchronized void dispose (GL3 gl) {
+      // synchronized + null-guard so the index buffer is released exactly once
+      // even if the render thread and the background garbage collector race to
+      // dispose this shared object (see GL3SharedRenderObjectBase.dispose)
       super.dispose (gl);
-      
+
       if (ibo != null) {
-         ibo.releaseDispose (gl);
+         ibo.releaseDisposeDeferred (gl, deferredDeletes);
          ibo = null;
       }
    }

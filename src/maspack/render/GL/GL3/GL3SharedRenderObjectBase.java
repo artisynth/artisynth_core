@@ -3,6 +3,7 @@ package maspack.render.GL.GL3;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL3;
 
+import maspack.render.GL.GLDeferredDeleteQueue;
 import maspack.render.RenderObject;
 import maspack.render.RenderObject.RenderObjectIdentifier;
 import maspack.render.RenderObject.RenderObjectVersion;
@@ -51,7 +52,13 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
    // track version numbers so we can detect what has changed since last use
    RenderObjectVersion lastVersionInfo;
    
-   protected VertexBufferObject[] vbos;
+   // volatile so that isValid()/isDisposed() on the render thread see a
+   // consistent view when dispose() nulls this from another thread
+   protected volatile VertexBufferObject[] vbos;
+
+   // if set, the shared VBOs are deleted via this queue (on a render thread)
+   // rather than inline on whatever thread runs dispose()
+   protected GLDeferredDeleteQueue deferredDeletes;
    
    protected GL3SharedRenderObjectBase(RenderObjectIdentifier roId, 
       GL3VertexAttributeInfo posAttribute, GL3VertexAttributeInfo nrmAttribute, 
@@ -366,18 +373,33 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
       clearVertices(gl);
    }
    
-   public void dispose(GL3 gl) {
-      clearAll(gl);
-      
-      // clear shared VBOs
+   public synchronized void dispose(GL3 gl) {
+      // Dispose the shared VBOs exactly once. This object can be disposed from
+      // two independent authorities: the viewer render thread (via a wrapper's
+      // releaseDispose when its reference count hits zero) and the background
+      // garbage-collector thread (via GL3SharedRenderObjectManager.garbage(),
+      // which calls dispose() directly). Without the synchronized+guard, both
+      // could pass the vbos != null check before either nulls it, releasing
+      // each VBO twice and underflowing its reference count (the "didn't
+      // properly keep track of releases" message).
       if (vbos != null) {
+         clearAll(gl);
          for (BufferObject vbo : vbos) {
             if (vbo != null) {
-               vbo.releaseDispose(gl);
+               vbo.releaseDisposeDeferred(gl, deferredDeletes);
             }
          }
          vbos = null;
       }
+   }
+
+   /**
+    * Installs the queue used to defer the GL deletion of this object's buffers
+    * to a render thread. Null (the default) means the buffers are deleted
+    * inline when this object is disposed.
+    */
+   public void setDeferredDeleteQueue (GLDeferredDeleteQueue queue) {
+      this.deferredDeletes = queue;
    }
    
    @Override

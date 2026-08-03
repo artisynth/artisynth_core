@@ -26,6 +26,29 @@ public abstract class GLResourceBase extends ReferenceCountedBase
       }
       return false;
    }
+
+   /**
+    * Like {@link #releaseDispose(GL)}, but when the reference count reaches zero
+    * the actual GL delete is deferred: instead of disposing inline (on whatever
+    * thread happens to make the final release, possibly the background garbage
+    * collector), the resource is enqueued on {@code queue} to be disposed later
+    * on a render thread. Falls back to the inline {@link #releaseDispose(GL)}
+    * when {@code queue} is null or deferred deletion is disabled.
+    *
+    * @return true if this call released the final reference (whether disposed
+    * inline or enqueued for deferred disposal)
+    */
+   public boolean releaseDisposeDeferred (GL gl, GLDeferredDeleteQueue queue) {
+      if (queue == null || !GLDeferredDeleteQueue.enabled) {
+         return releaseDispose (gl);
+      }
+      long r = releaseAndCount();
+      if (r == 0) {
+         queue.enqueue (this);
+         return true;
+      }
+      return false;
+   }
    
    public abstract boolean isDisposed();
       

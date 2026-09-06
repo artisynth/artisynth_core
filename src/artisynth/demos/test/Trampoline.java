@@ -6,6 +6,7 @@ import java.util.*;
 
 import artisynth.core.workspace.*;
 import artisynth.core.mechmodels.*;
+import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.materials.*;
 import artisynth.core.femmodels.*;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
@@ -38,7 +39,8 @@ public class Trampoline extends RootModel {
       mech.addModel (fem2);
 
       fem2.transformGeometry (new RigidTransform3d (0, 0, 0.5));
-      mech.setDefaultCollisionBehavior (true, 0.0);
+      CollisionBehavior cb = mech.setCollisionBehavior (fem2, fem1, true, 0.0);
+      cb.setColliderType (ColliderType.AJL_CONTOUR);
 
       for (FemNode3d n : fem1.getNodes()) {
          Point3d pos = n.getPosition();

@@ -43,7 +43,7 @@ public class DampingTerm extends QPCostTermBase {
                   trace += controller.myExciters.get(i).getWeight();
                }
                if (trace != 0) {
-                  s = myWeight/trace;
+                  s /= trace;
                }              
             }
             if (!controller.getComputeIncrementally()) {

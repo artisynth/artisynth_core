@@ -12,6 +12,8 @@ import java.util.*;
 
 import maspack.properties.PropertyList;
 import maspack.util.*;
+import maspack.matrix.MatrixNd;
+import maspack.matrix.VectorNd;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -21,6 +23,14 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.util.*;
 
+/**
+ * Excitation component that applies excitations to a number of <i>target</i>
+ * excitation components, where the excitation applied to each target is given
+ * by this component's excitation times a target-specific weight.
+ *
+ * <p>One of the main uses of this component is the implementation of muscle
+ * synergies.
+ */
 public class MuscleExciter extends ModelComponentBase implements
 ExcitationComponent, HasNumericState {
    protected double myExcitation; // default = 0.0;
@@ -423,4 +433,42 @@ ExcitationComponent, HasNumericState {
    }
    
    /* --- End HasNumericState implementation --- */   
+
+   /**
+    * Creates an array of muscle exciters from a list of excitation components
+    * and a weighting matrix {@code W}. The size of {@code W} is {@code numc X
+    * nume}, where {@code numc} is the number of excitation components and
+    * {@code nume} is the desired number of exciters. Each exciter forms its
+    * target set from the excitation components, with the weights taken from
+    * the corresponding column of {@code W}, and with components having a
+    * weight of {@code 0} excluded.
+    *
+    * @param ecomps excitation components used to create the exciters
+    * @param W matrix whose columns give the target weights for each exciter
+    * @return array of created exciters, with the number of exciters given by
+    * the column size of {@code W}
+    */
+   public static MuscleExciter[] createExciters (
+      List<ExcitationComponent> ecomps, MatrixNd W) {
+
+      int numc = ecomps.size();
+      int nume = W.colSize();
+      if (numc != W.rowSize()) {
+         throw new IllegalArgumentException (
+            "numbers of exciters "+numc+" != row size "+W.rowSize()+" of W");
+      }
+      MuscleExciter[] exciters = new MuscleExciter[nume];
+      VectorNd wcol = new VectorNd(numc);                                      
+      for (int j=0; j<nume; j++) {
+         MuscleExciter ex = new MuscleExciter();
+         W.getColumn (j, wcol);
+         for (int i=0; i<numc; i++) {
+            if (wcol.get(i) != 0) {
+               ex.addTarget (ecomps.get(i), wcol.get(i));
+            }
+         }
+         exciters[j] = ex;
+      }
+      return exciters;
+   }
 }

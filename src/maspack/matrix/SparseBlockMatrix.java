@@ -1487,7 +1487,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
     * Gets the compressed row storage (CRS) indices for a principal sub-matrix
     * of this matrix delimited by the first <code>numRows</code> rows and the
     * first <code>numCols</code> columns. The sub-matrix must be
-    * block-aligned. Indices are 0-based and the sub-matrix is traversed in
+    * block-aligned. Indices are 1-based and the sub-matrix is traversed in
     * row-major order.
     * 
     * @param colIdxs
@@ -3271,6 +3271,36 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
          }
       }
       return true;
+   }
+
+   /**
+    * Write the contents of the first {@code numRows} rows and {@code numCols}
+    * columns of this matrix to a {@code PrintWriter}, using CRS format.
+    *
+    * @param pw PrintWriter to write the matrix to
+    * @param fmt format for floating point values
+    * @param part matrix partition specifying which part should be written
+    * @param numRows maximum number of rows to write
+    * @param numCols maximum number of columns to write
+    */
+   public void writeCRS (
+      PrintWriter pw, NumberFormat fmt, Partition part,
+      int numRows, int numCols) throws IOException {
+
+      int nnz = numNonZeroVals (part, numRows, numCols);
+      VectorNi rowOffs = new VectorNi(numRows+1);
+      VectorNi colIdxs = new VectorNi(nnz);
+      VectorNd values = new VectorNd(nnz);
+      getCRSIndices (
+         colIdxs.getBuffer(), rowOffs.getBuffer(), part, numRows, numCols);
+      NumberFormat ifmt = new NumberFormat ("%d");
+      getCRSValues (values.getBuffer(), part, numRows, numCols);
+      rowOffs.write (pw, ifmt);
+      pw.println ("");
+      colIdxs.write (pw, ifmt);
+      pw.println ("");
+      values.write (pw, fmt);
+      pw.println ("");
    }
 
    protected void disposeBlock (MatrixBlock blk) {

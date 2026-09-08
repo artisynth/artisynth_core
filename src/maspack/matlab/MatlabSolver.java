@@ -24,6 +24,8 @@ public class MatlabSolver implements DirectSolver
    private MatlabInterface matlab;
 
    Matrix matrix = null;
+   // UNSET, ANALYZED and FACTORED are inherited from DirectSolver
+   private int myState = UNSET;
    int A = 0;
    int[] factorization = new int[] { 0 };
    int numVals, subsetSize;
@@ -114,9 +116,11 @@ public class MatlabSolver implements DirectSolver
 	 matlab.setSparseIndices(rowIdxs, colIdxs);
       }
       catch (Exception e)
-      { throw new IllegalArgumentException(
+      { myState = UNSET;
+        throw new IllegalArgumentException(
 	       "Matrix indices could not be set");
       }
+      myState = ANALYZED;
       
       if (debug)
       {
@@ -160,9 +164,11 @@ public class MatlabSolver implements DirectSolver
 		 }
 	 } catch (Exception e)
 	 {
+	    myState = ANALYZED;
 	    throw new IllegalArgumentException(
 		     "Matrix could not be factored");
 	 }
+	 myState = FACTORED;
       }
    }
    
@@ -199,12 +205,6 @@ public class MatlabSolver implements DirectSolver
    public void solve(VectorNd x, VectorNd b)
    {
       solve(x.getBuffer(), b.getBuffer());
-   }
-
-   public void autoFactorAndSolve (VectorNd x, VectorNd b, int tolExp)
-   {
-     factor();
-     solve(x.getBuffer(), b.getBuffer());
    }
 
    double[] myX;
@@ -381,9 +381,62 @@ public class MatlabSolver implements DirectSolver
    /**
     * {@inheritDoc}
     */
-   public boolean hasAutoIterativeSolving()
+   public boolean hasIterativeSolves()
     { 
       return false;
+    }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Not supported by this solver; matrices must be supplied as
+    * {@link maspack.matrix.Matrix Matrix} objects.
+    */
+   public void analyze (
+      double[] vals, int[] colIdxs, int[] rowOffs, int size, int type)
+    {
+      throw new UnsupportedOperationException (
+         "MatlabSolver does not support analysis from CRS data");
+    }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Not supported by this solver; use {@link #factor()} instead.
+    */
+   public void factor (double[] vals)
+    {
+      throw new UnsupportedOperationException (
+         "MatlabSolver does not support factoring from supplied values");
+    }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getState()
+    {
+      return myState;
+    }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>This solver does not record error messages, so <code>null</code> is
+    * always returned.
+    */
+   public String getErrorMessage()
+    {
+      return null;
+    }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>This solver does not report this quantity, so -1 is returned.
+    */
+   public long getNumNonZerosInFactors()
+    {
+      return -1;
     }
 
    public void dispose()
@@ -392,6 +445,7 @@ public class MatlabSolver implements DirectSolver
        { free();
          matlab = null;
        }
+      myState = UNSET;
     }
 
 }

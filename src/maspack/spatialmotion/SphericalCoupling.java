@@ -241,8 +241,9 @@ public class SphericalCoupling extends RigidBodyCoupling {
       if (TGD != null) {
          // on entry, TGD is set to TCD. It is then projected to TGD
          projectAndUpdateCoordinates (TGD, TGD);
-         double s = Math.hypot (TGD.R.m12, TGD.R.m02);
-         double c = TGD.R.m22;
+         RotationMatrix3d R = TGD.R;
+         double s = Math.sqrt (R.m12*R.m12 + R.m02*R.m02);
+         double c = R.m22;
          return Math.atan2 (s, c);
       }
       else {

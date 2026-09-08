@@ -1714,7 +1714,8 @@ public abstract class BodyConnector extends RenderableConstrainerBase
                   else if (dim == 1) {
                      idxs[1] = c.getSolveIndex();
                      mu = (mu + c.getFriction())/2;
-                     lam = Math.hypot (lam, c.getMultiplier());
+                     double mul = c.getMultiplier();
+                     lam = Math.sqrt (lam*lam + mul*mul);
                   }
                }
             }

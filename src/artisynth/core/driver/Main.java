@@ -2959,7 +2959,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-disableHybridSolves %v #disable hybrid linear solves",
          disableHybridSolves);
       parser.addOption (
-         "-matrixSolver %s{Pardiso,Umfpack} #default matrix solver",
+         "-matrixSolver %s{Pardiso,Mumps} #default matrix solver",
          matrixSolver);
       parser.addOption (
          "-numSolverThreads %d #number of threads to use for linear solver",

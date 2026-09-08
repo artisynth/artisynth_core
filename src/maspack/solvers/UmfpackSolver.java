@@ -182,8 +182,26 @@ public class UmfpackSolver implements DirectSolver {
       if (status != UMFPACK_OK) {
          matrix = null;
          freeSymbolic();
+         myState = UNSET;
+         myErrMsg = "Umfpack symbolic factorization failed, status=" + status;
          throw new IllegalArgumentException ("Matrix could not be set");
       }
+      myState = ANALYZED;
+      myErrMsg = null;
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>This method is not supported by Umfpack, which requires its matrix
+    * structure to be supplied in compressed column storage (CCS) format using
+    * {@link #analyze(int[],int[],int,int) analyze(colOffs,rowIdxs,size,numVals)}.
+    */
+   public void analyze (
+      double[] vals, int[] colIdxs, int[] rowOffs, int size, int type) {
+      throw new UnsupportedOperationException (
+         "Umfpack does not support analysis from CRS data; use "+
+         "analyze (colOffs, rowIdxs, size, numVals) instead");
    }
 
    public int analyze (int[] colOffs, int[] rowIdxs, int size, int numVals) {
@@ -203,17 +221,45 @@ public class UmfpackSolver implements DirectSolver {
             size, size, myColOffs, myRowIdxs, null, symbolic, null, null);
       if (status != UMFPACK_OK) {
          freeSymbolic();
+         myState = UNSET;
+         myErrMsg = "Umfpack symbolic factorization failed, status=" + status;
+      }
+      else {
+         myState = ANALYZED;
+         myErrMsg = null;
       }
       return status;
    }
 
-   public int factor (double[] vals) {
+   /**
+    * {@inheritDoc}
+    *
+    * <p>The values must be ordered to match the compressed column storage
+    * (CCS) structure supplied to {@link #analyze(int[],int[],int,int)
+    * analyze(colOffs,rowIdxs,size,numVals)}.
+    */
+   public void factor (double[] vals) {
       freeNumeric();
       for (int i = 0; i < myVals.length; i++) {
          myVals[i] = vals[i];
       }
-      return umfpack_di_numeric (
+      int status = umfpack_di_numeric (
          myColOffs, myRowIdxs, myVals, symbolic, numeric, null, null);
+      checkNumericStatus (status);
+   }
+
+   private void checkNumericStatus (int status) {
+      if (status < 0) {
+         myState = ANALYZED;
+         myErrMsg = "Umfpack numeric factorization failed, status=" + status;
+         throw new NumericalException ("Matrix could not be factored");
+      }
+      if (status == UMFPACK_WARNING_singular_matrix) {
+         System.out.println (
+            "Umfpack: Matrix is near singular, solve could fail");
+      }
+      myState = FACTORED;
+      myErrMsg = null;
    }
 
    public void factor() {
@@ -227,12 +273,7 @@ public class UmfpackSolver implements DirectSolver {
          int status =
             umfpack_di_numeric (
                myColOffs, myRowIdxs, myVals, symbolic, numeric, null, null);
-         if (status < 0) {
-            throw new IllegalArgumentException ("Matrix could not be factored");
-         }
-         else if (status == UMFPACK_WARNING_singular_matrix) {
-            System.out.println ("Matrix is near singular, solve could fail");
-         }
+         checkNumericStatus (status);
       }
    }
 
@@ -247,16 +288,36 @@ public class UmfpackSolver implements DirectSolver {
          x.getBuffer(), b.getBuffer(), numeric, null, null);
    }
 
-   public void autoFactorAndSolve (VectorNd x, VectorNd b, int tolExp) {
-      factor();
-      solve (x, b);
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Umfpack does not support iterative solving.
+    */
+   public boolean hasIterativeSolves() {
+      return false;
    }
 
    /**
     * {@inheritDoc}
     */
-   public boolean hasAutoIterativeSolving() {
-      return false;
+   public int getState() {
+      return myState;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public String getErrorMessage() {
+      return myErrMsg;
+   }
+
+   /**
+    * {@inheritDoc}
+    *
+    * <p>Umfpack does not report this quantity, so -1 is returned.
+    */
+   public long getNumNonZerosInFactors() {
+      return -1;
    }
 
    public void solve (double[] x, double[] b) {
@@ -265,6 +326,10 @@ public class UmfpackSolver implements DirectSolver {
    }
 
    Matrix matrix = null;
+
+   // UNSET, ANALYZED and FACTORED are inherited from DirectSolver
+   private int myState = UNSET;
+   private String myErrMsg = null;
 
    int subsetSize, numVals;
 
@@ -322,5 +387,7 @@ public class UmfpackSolver implements DirectSolver {
 
    public void dispose() {
       free();
+      myState = UNSET;
+      matrix = null;
    }
 }

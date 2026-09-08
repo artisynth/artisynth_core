@@ -99,19 +99,9 @@ import java.util.*;
  * associated with <code>iterativeSolve()</code> exceeds a certain threshold.
  * After refactorization, the time required by <code>iterativeSolve()</code>
  * should be reduced since the next set of matrix values will again
- * (presumably) be close to those associated with the factorization.  This
- * functionality is provided by the <code>autoFactorAndSolve()</code> methods:
- * <pre>
- *    solver.analyze (M, M.rowSize(), Matrix.SYMMETRIC); // symbolic factorization
- *    solver.factor();          // numeric factorization
- *    while (computing) {
- *       ... update matrix values and right-hand side b ...;
- *       // automatically choose between iterative and direct solving
- *       solver.autoFactorAndSolve (x, b);
- *    }
- * </pre>
+ * (presumably) be close to those associated with the factorization.
  */
-public class PardisoSolver implements DirectSolver {
+public class PardisoSolver extends DirectSolverBase {
 
    public static boolean printThreadInfo = true;
    
@@ -182,7 +172,6 @@ public class PardisoSolver implements DirectSolver {
    private static final int INIT_OK = 2;
 
    static int myInitStatus = INIT_UNKNOWN;
-   static int myDefaultNumThreads = -1;
    public static boolean DEFAULT_SHOW_PERTURBED_PIVOTS = true;
    static boolean myShowPerturbedPivots = DEFAULT_SHOW_PERTURBED_PIVOTS;
    
@@ -341,70 +330,6 @@ public class PardisoSolver implements DirectSolver {
 
    private native void doExit (int code);
 
-   private long myHandle;
-
-   private int mySize;
-
-   private int myNumVals;
-
-   /**
-    * Indicates that no matrix is currently set for this solver.
-    */
-   public static final int UNSET = 0;
-
-   /**
-    * Indicates that a matrix has been set and analyzed for this solver.
-    */
-   public static final int ANALYZED = 1;
-
-   /**
-    * Indicates that a matrix has been set, analyzed, and numerically factored
-    * for this solver.
-    */
-   public static final int FACTORED = 2;
-
-   private static final int RET_OK = 0;
-
-   private int myState = UNSET;
-
-   private String myErrMsg = null;
-
-   private double[] myVals;
-
-   private int[] myColIdxs;
-
-   private int[] myRowOffs;
-
-   // private int myNumBlkRows;
-   // private int myNumBlkCols;
-   private int myType;
-
-   private Matrix myMatrix;
-
-   // timing information for decided when to use iterative vs. direct solves
-   private double myLastIterativeTimeMsec;
-
-   private int myDirectCnt = 0;
-
-   private double myDirectTimeMsec;
-
-   private boolean myDirectIterativeDebug = false;
-
-   private void setState (int state) {
-      myState = state;
-      myDirectCnt = 0;
-   }
-
-   /**
-    * Returns the current stateface for this solver. Possible states are
-    * {@link #UNSET UNSET}, {@link #ANALYZED ANALYZED}, and
-    * {@link #FACTORED FACTORED}.
-    *
-    * @return state for this solver.
-    */
-   public int getState() {
-      return myState;
-   }
 
    /**
     * Attempts to load the native libraries needed for Pardiso.
@@ -460,9 +385,6 @@ public class PardisoSolver implements DirectSolver {
       setNumThreads (myDefaultNumThreads);
    }
 
-   void initialize () {
-      myHandle = doInit();
-   }
 
    int checkInitialization() {
       if (myHandle == 0) {
@@ -517,318 +439,8 @@ public class PardisoSolver implements DirectSolver {
       }
    }
 
-   private void allocateBufferSpace (int size, int numVals) {      
-      if (myVals.length < numVals) {
-         myVals = new double[numVals];
-         myColIdxs = new int[numVals];
-      }
-      if (myRowOffs.length < size+1) {
-         myRowOffs = new int[size+1];
-      }
-   }
-
-   private Partition getPartition (int type) {
-      if ((type & Matrix.SYMMETRIC) != 0) {
-         return Partition.UpperTriangular;
-      }
-      else {
-         return Partition.Full;
-      }
-   }
-
-   /**
-    * Sets the matrix associated with this solver and performs
-    * symbolic analysis on it. The matrix is assumed to be square.
-    * After calling this method, the solver's state is set to
-    * {@link #ANALYZED ANALYZED}.
-    *
-    * <p> 
-    * Normally the matrix is simply supplied by the argument <code>M</code>,
-    * unless the <code>size</code> arugment is less than <code>M.rowSize()</code>,
-    * in which case the matrix is taken to be the top-left diagonal sub-matrix
-    * of the indicated size. This solver retains a pointer to <code>M</code>
-    * until the next call to {@link #analyze analyze()} or
-    * {@link #analyzeAndFactor analyzeAndFactor()}.
-    *
-    * <p>The type of the matrix is given by <code>type</code>:
-    *
-    * <dl>
-    * <dt>Matrix.INDEFINITE</dt>
-    * <dd>will produce a general permuted L U decomposition;
-    * <dt>Matrix.SYMMETRIC</dt>
-    * <dd>will produce an L D L^T decomposition;
-    * <dt>Matrix.SPD</dt>
-    * <dd>will produce a Cholesky L L^T decomposition;
-    * </dl>
-    *
-    * @param M supples the matrix to be analyzed
-    * @param size size of the matrix to be analyzed
-    * @param type type of the matrix to be analyzed
-    * @throws IllegalArgumentException if the matrix is not square or if
-    * <code>size</code> is out of bounds
-    * @throws NumericalException if the matrix cannot be analyzed for numeric
-    * reasons.
-    */
-   public synchronized void analyze (Matrix M, int size, int type) {
-      int numVals;
-
-      if (M.rowSize() != M.colSize()) {
-         throw new IllegalArgumentException ("Matrix is not square");
-      }
-      int origSize = M.rowSize();
-      if (size < 0 || size > origSize) {
-         throw new IllegalArgumentException ("Requested size " + size
-         + " is out of bounds");
-      }
-      Partition part = getPartition (type);
-      numVals = M.numNonZeroVals (Partition.Full, size, size);
-
-      if (part == Partition.UpperTriangular) {
-         numVals -= (numVals - size) / 2;
-      }
-      allocateBufferSpace (size, numVals);
-      M.getCRSIndices (myColIdxs, myRowOffs, part, size, size);
-      M.getCRSValues (myVals, part, size, size);
-
-      // // add 1 to indices, since Pardiso indices are 1-based
-      // for (int i = 0; i < numVals; i++) {
-      //    myColIdxs[i]++;
-      // }
-      // for (int i = 0; i < size; i++) {
-      //    myRowOffs[i]++;
-      // }
-
-      myType = type;
-      myMatrix = M;
-      if ((type & Matrix.SYMMETRIC) != 0) {
-         if ((type & Matrix.POSITIVE_DEFINITE) != 0) {
-            setSPDMatrix (myVals, myRowOffs, myColIdxs, size, numVals);
-         }
-         else {
-            setSymmetricMatrix (myVals, myRowOffs, myColIdxs, size, numVals);
-         }
-      }
-      else {
-         setMatrix (myVals, myRowOffs, myColIdxs, size, numVals);
-      }//
-      if (myState == UNSET) {
-         throw new NumericalException (
-            "Pardiso: unable to analyze matrix: "+myErrMsg);
-      }
-   }
-
-   /**
-    * Performs a numeric factorization of the matrix associated with this
-    * solver, using the current numeric values contained within
-    * the matrix that was supplied by a previous call to 
-    * {@link #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or
-    * {@link #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)}.
-    * After calling this method, the solver's state is set to
-    * {@link #FACTORED FACTORED}.
-    *
-    * @throws ImproperStateException if not preceded by a call to
-    * {@link #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or
-    * {@link #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)}
-    * @throws NumericalException if the matrix cannot be factored for numeric
-    * reasons.
-    */
-   public void factor() {
-      if (myMatrix == null) {
-         throw new ImproperStateException (
-            "analyze(Matrix) or analyzeAndFactor(Matrix) not previously called");
-      }
-      Partition part = getPartition (myType);
-      myMatrix.getCRSValues (myVals, part, mySize, mySize);
-      factor (myVals);
-   }
-
-   /**
-    * Performs a numeric factorization of the most recently analyzed matrix
-    * solver using the supplied numeric values.  After calling this method, the
-    * solver's state is set to {@link #FACTORED FACTORED}.
-    *
-    * @param vals non-zero matrix element values
-    * @throws ImproperStateException if this solver's state is
-    * {@link #UNSET UNSET} or if the number of supplied values is
-    * less that the number of non-zero elements in the analyzed matrix.
-    * @throws NumericalException if the matrix cannot be factored for numeric
-    * reasons.
-    */
-   public synchronized void factor (double[] vals) {
-      if (myState == UNSET) {
-         throw new IllegalStateException ("No matrix currently set");
-      }
-      else if (vals.length < myNumVals) {
-         throw new IllegalArgumentException ("Not enough values: vals.length="
-         + vals.length + ", expected number is " + myNumVals);
-      }
-      //System.out.println ("factor "+Thread.currentThread());
-      int rcode = doFactorMatrix (myHandle, vals);
-      if (rcode == RET_OK) {
-         setState (FACTORED);
-         myErrMsg = null;
-      }
-      else {
-         myErrMsg = getErrorMessage (rcode);
-         throw new NumericalException (
-            "Pardiso: unable to factor matrix: "+myErrMsg);
-      }
-      int nump = getNumPerturbedPivots();
-      if (nump > 0 && myShowPerturbedPivots) {
-         System.out.println ("Pardiso: num perturbed pivots=" + nump);
-      }
-   }
 
 
-   /**
-    * Convenience method that sets the matrix associated with this solver,
-    * performs symbolic analysis on it, and factors it. The matrix is assumed
-    * to be square and have a type of <code>Matrix.INDEFINITE</code>, meaning
-    * that Pardiso will produce an L U factorization.  After calling this
-    * method, the solver's state is set to {@link #ANALYZED
-    * ANALYZED}.
-    *
-    * @throws NumericalException if the matrix cannot be analyzed or factored
-    * for numeric reasons.
-    */
-   public void analyzeAndFactor (Matrix M) {
-      analyze (M, M.rowSize(), 0);
-      factor();
-   }
-
-   /**
-    * Calls {@link #factor()} and {@link #solve(double[],double[])} together,
-    * or, if <code>tolExp</code> is positive, automatically determines
-    * when to call
-    * {@link #iterativeSolve(maspack.matrix.VectorNd,maspack.matrix.VectorNd,int)}
-    * with the specific <code>tolExp</code>instead,
-    * depending on whether the matrix is factored and if it is estimated
-    * that <code>iterativeSolve</code> will save time.
-    * It is assumed that a matrix was supplied to the solver using a previous
-    * call to
-    * {@link #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or
-    * {@link #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)}.
-    *
-    * @param x returns the solution value
-    * @param b supplies the right-hand side
-    * @param tolExp if positive, enables iterative solving and provides
-    * the exponent of the stopping criterion
-    * @throws IllegalArgumentException if the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size, or if
-    * <code>topExp</code> is negative.
-    * @throws ImproperStateException if not preceded by a call to
-    * {@link #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or
-    * {@link #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)}
-    * @throws NumericalException if the matrix cannot be factored for numeric
-    * reasons
-    */
-   public void autoFactorAndSolve (VectorNd x, VectorNd b, int tolExp) {
-      checkSolveArgs (x, b, 1);
-      autoFactorAndSolve (x.getBuffer(), b.getBuffer(), tolExp);
-   }
-
-   /**
-    * Implementation of
-    * {@link #autoFactorAndSolve(maspack.matrix.VectorNd,maspack.matrix.VectorNd,int)}
-    * that uses <code>double[]</code> objects
-    * to store to the result and right-hand side.
-    *
-    * @param x returns the solution value
-    * @param b supplies the right-hand side
-    * @param tolExp if positive, enables iterative solving and provides
-    * the exponent of the stopping criterion
-    * @throws IllegalArgumentException if the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size, or if
-    * <code>topExp</code> is negative.
-    * @throws ImproperStateException if not preceded by a call to
-    * {@link #analyze(maspack.matrix.Matrix,int,int) analyze(Matrix,int,int)} or
-    * {@link #analyzeAndFactor(maspack.matrix.Matrix) analyzeAndFactor(Matrix)}
-    * @throws NumericalException if the matrix cannot be factored for numeric
-    * reasons
-    */
-   public void autoFactorAndSolve (double[] x, double[] b, int tolExp) {
-      long t0, t1;
-
-      if (myMatrix == null) {
-         throw new ImproperStateException (
-            "analyze(Matrix) or analyzeAndFactor(Matrix) not previously called");
-      }
-      NumberFormat fmt = new NumberFormat ("%8.3f");
-      boolean tryIterativeSolve = true;
-      /*
-       * iterative solving disabled for WinXP
-       */
-      if (!System.getProperty ("os.name").equals ("Windows XP")) {
-         tryIterativeSolve = false;
-      }
-      if (tryIterativeSolve) {
-         if (tolExp <= 0 || myDirectCnt == 0 ||
-             myLastIterativeTimeMsec >= (0.5 * myDirectTimeMsec / myDirectCnt)) {
-            tryIterativeSolve = false;
-         }
-      }
-
-      int iterCode = 0;
-      double iterTimeMsec = 0;
-      if (tryIterativeSolve) {
-         // try iterative solve
-
-         t0 = System.nanoTime();
-         iterCode = iterativeSolve (x, b, tolExp);
-         t1 = System.nanoTime();
-         if (iterCode > 0) {
-            myLastIterativeTimeMsec = (t1 - t0) * 1e-6;
-            if (myDirectIterativeDebug) {
-               System.out.println (
-                  "iterative solve: " + iterCode + ", "
-                  + fmt.format (myLastIterativeTimeMsec) + " msec");
-            }
-         }
-         else {
-            String errMsg = getErrorMessage (-iterCode%10 - 20);
-            System.out.println (
-               "PardisoSolver.factorAndSolve: iteration failed ("+errMsg+
-               "), using direct solve");
-            tryIterativeSolve = false;
-         }
-      }
-
-      if (!tryIterativeSolve) {
-         // do the proper factor and solve
-         t0 = System.nanoTime();
-
-         int savedFactorCnt = myDirectCnt; // myDirectCnt is cleared in factor
-         factor();
-         solve (x, b);
-         t1 = System.nanoTime();
-         myDirectCnt = savedFactorCnt + 1;
-         myDirectTimeMsec += (t1 - t0) * 1e-6;
-         myLastIterativeTimeMsec = 0;
-         if (myDirectIterativeDebug) {
-            System.out.println ("direct solve: "
-            + fmt.format ((t1 - t0) * 1e-6) + " msec");
-         }
-         myState = FACTORED;
-      }
-   }
-
-   private void checkSetArgs (
-      double[] vals, int rowIdxs[], int[] colIdxs, int size, int numVals) {
-      if (vals.length < numVals) {
-         throw new IllegalArgumentException ("Not enough values: vals.length="
-         + vals.length + ", numVals=" + numVals);
-      }
-      if (colIdxs.length < numVals) {
-         throw new IllegalArgumentException (
-            "Not enough column indices: colIdxs.length=" + colIdxs.length
-            + ", numVals=" + numVals);
-      }
-      if (rowIdxs.length < size) {
-         throw new IllegalArgumentException (
-            "Not enough row start indices: rowIdxs.length=" + rowIdxs.length
-            + ", size=" + size);
-      }
-   }
 
    /**
     * Enables/disables the "num perturbed pivots" message (which usually
@@ -849,73 +461,7 @@ public class PardisoSolver implements DirectSolver {
       return myShowPerturbedPivots;
    }
 
-   /**
-    * Sets the default number of threads that Pardiso is assigned when a
-    * <code>PardisoSolver</code> is created. The results are undefined if this
-    * number exceeds the maximum number of threads available on the
-    * system. Setting <code>num</code> to a value {@code <=} 0 will reset the
-    * number of threads to the default used by OpenMP, which is typically the
-    * value stored in the environment variable <code>OMP_NUM_THREADS</code>.
-    *
-    * @param num default number of threads to use
-    * @see #getDefaultNumThreads
-    */
-   public static void setDefaultNumThreads (int num) {
-      if (myDefaultNumThreads != num) {
-         System.out.println ("Pardiso: setting max threads to " + num);
-         myDefaultNumThreads = num;
-      }
-   }
 
-   /**
-    * Returns the default number of threads that Pardiso is assigned when a
-    * <code>PardisoSolver</code> is created.
-    *
-    * @see #setDefaultNumThreads
-    */
-   public static int getDefaultNumThreads () {
-      return myDefaultNumThreads;
-   }
-
-   /**
-    * Sets the number of threads that Pardiso should use. The results are
-    * undefined if this number exceeds the maximum number of threads available
-    * on the system. Setting <code>num</code> to a value {@code <=} 0 will
-    * reset the number of threads to the default used by OpenMP, which is
-    * typically the value stored in the environment variable
-    * <code>OMP_NUM_THREADS</code>.
-    *
-    * <p><b>Note:</b> under the MKL version of Pardiso, changes to the thread
-    * number are applied globally to all instances of Pardiso running in the
-    * same process. Therefore, this method is of limited utility and does not
-    * allow different numbers of threads to be used by different PardisoSolver
-    * instances. Moreover, the thread number should not be changed in between
-    * the analyze, factor and solve phases.
-    *
-    * @param num number of threads to use
-    * @see #getNumThreads
-    */
-   public synchronized void setNumThreads (int num) {
-      if (myHandle == 0) {
-         initialize();
-      }
-      doSetNumThreads (myHandle, num);
-   }
-
-   /**
-    * Returns the number of threads that Pardiso should use. By default, this
-    * is the default number used by OpenMP, which is typically the value stored
-    * in the environment variable <code>OMP_NUM_THREADS</code>.
-    *
-    * @return number of threads Pardio should use
-    * @see #setNumThreads
-    */
-   public synchronized int getNumThreads () {
-      if (myHandle == 0) {
-         initialize();
-      }
-      return doGetNumThreads (myHandle);
-   }
 
    /**
     * Sets the maximum number of iterative refinement steps that Pardiso should
@@ -1241,7 +787,7 @@ public class PardisoSolver implements DirectSolver {
     *
     * @return number non-zero elements in the factorization.
     */
-   public synchronized int getNumNonZerosInFactors () {
+   public synchronized long getNumNonZerosInFactors () {
       if (myHandle == 0) {
          initialize();
       }
@@ -1347,269 +893,9 @@ public class PardisoSolver implements DirectSolver {
       return doGetFactorSolveMemoryUsage (myHandle);
    }
 
-   /**
-    * Sets the matrix associated with this solver and performs
-    * symbolic analysis on it. The matrix is assumed to be square.
-    * After calling this method, the solver's state is set to
-    * {@link #ANALYZED ANALYZED}.
-    *
-    * <p> The matrix structure and its initial values are described using a
-    * compressed row storage (CRS) format. See {@link
-    * maspack.matrix.Matrix#setCRSValues Matrix.setCRSValues()} for a detailed
-    * description of this format. The matrix type is the same as that supplied
-    * to {@link #analyze(maspack.matrix.Matrix,int,int)
-    * analyze(Matrix,int,int)}.  It is not possible to call {@link #factor()
-    * factor()} after calling this version of <code>analyze</code> because it
-    * does not supply a matrix that can be used to obtain values from.
-    *
-    * @param vals values of the non-zero matrix elements. These may be used to
-    * assist the symbolic factorization, but will not used in any actual
-    * numeric factorization.
-    * @param colIdxs 1-based column indices of the non-zero matrix elements.
-    * @param rowOffs 1-based row start offsets into <code>vals</code> and
-    * <code>colIdxs</code>, corresponding to CRS format.
-    * @param size size of the matrix to be analyzed
-    * @param type type of the matrix to be analyzed
-    * @throws IllegalArgumentException if the CRS data structures
-    * are inconsistent.
-    * @throws NumericalException if the matrix cannot be analyzed for numeric
-    * reasons.
-    */
-   public synchronized void analyze (
-      double[] vals, int colIdxs[], int rowOffs[], int size, int type) {
-      
-      if (myHandle == 0) {
-         initialize();
-      }
-      int numVals = rowOffs[size]-1;
-      checkSetArgs (vals, rowOffs, colIdxs, size, numVals);
- 
-      myType = type;
-      myMatrix = null;
-      if ((type & Matrix.SYMMETRIC) != 0) {
-         if ((type & Matrix.POSITIVE_DEFINITE) != 0) {
-            setSPDMatrix (vals, rowOffs, colIdxs, size, numVals);
-         }
-         else {
-            setSymmetricMatrix (vals, rowOffs, colIdxs, size, numVals);
-         }
-      }
-      else {
-         setMatrix (vals, rowOffs, colIdxs, size, numVals);
-      }//
-      if (myState == UNSET) {
-         throw new NumericalException (
-            "Pardiso: unable to analyze matrix: "+myErrMsg);
-      }
-   }
    
-   void setSymmetricMatrix (
-      double[] vals, int rowOffs[], int[] colIdxs, int size, int numVals) {
-      // System.out.println ("set symmetric:");
-      // for (int k=0; k<numVals; k++)
-      // { System.out.println (" " + colIdxs[k] + " " + vals[k]);
-      // }
-      // for (int i=0; i<size; i++)
-      // { System.out.println (" " + rowIdxs[i]);
-      // }
-      if (myHandle == 0) {
-         initialize();
-      }
-      //System.out.println ("setSymmetric "+Thread.currentThread());
-      checkSetArgs (vals, rowOffs, colIdxs, size, numVals);
-      int rcode =
-         doSetSymmetricMatrix (myHandle, vals, rowOffs, colIdxs, size, numVals);
-      if (rcode == RET_OK) {
-         setState (ANALYZED);
-         mySize = size;
-         myNumVals = numVals;
-         myErrMsg = null;
-      }
-      else {
-         setState (UNSET);
-         myErrMsg = getErrorMessage (rcode);
-      }
-   }
 
-   void setSPDMatrix (
-      double[] vals, int rowIdxs[], int[] colIdxs, int size, int numVals) {
 
-      if (myHandle == 0) {
-         initialize();
-      }
-      //System.out.println ("setSPD "+Thread.currentThread());
-      checkSetArgs (vals, rowIdxs, colIdxs, size, numVals);
-      int rcode =
-         doSetSPDMatrix (myHandle, vals, rowIdxs, colIdxs, size, numVals);
-      if (rcode == RET_OK) {
-         setState (ANALYZED);
-         mySize = size;
-         myNumVals = numVals;
-         myErrMsg = null;
-      }
-      else {
-         setState (UNSET);
-         myErrMsg = getErrorMessage (rcode);
-      }
-   }
-
-   void setMatrix (
-      double[] vals, int rowIdxs[], int[] colIdxs, int size, int numVals) {
-
-      if (myHandle == 0) {
-         initialize();
-      }
-      //System.out.println ("setMatrix "+Thread.currentThread());
-      checkSetArgs (vals, rowIdxs, colIdxs, size, numVals);
-      int rcode = doSetMatrix (myHandle, vals, rowIdxs, colIdxs, size, numVals);
-      if (rcode == RET_OK) {
-         setState (ANALYZED);
-         mySize = size;
-         myNumVals = numVals;
-         myErrMsg = null;
-      }
-      else {
-         setState (UNSET);
-         myErrMsg = getErrorMessage (rcode);
-      }
-   }
-
-   private void checkFactored () {
-      if (myState != FACTORED) {
-         throw new IllegalStateException ("Matrix is not factored");
-      }
-   }
-
-   private void checkSolveArgs (double[] x, double[] b, int nrhs) {
-      if (x.length < nrhs*mySize) {
-         throw new IllegalArgumentException (
-            "x is too small: length="+x.length+", expected size is " + nrhs*mySize);
-      }
-      else if (b.length < nrhs*mySize) {
-         throw new IllegalArgumentException (
-            "b is too small: length="+b.length+", expected size is " + nrhs*mySize);
-      }
-   }
-
-   private void checkSolveArgs (VectorNd x, VectorNd b, int nrhs) {
-      if (x.size() < nrhs*mySize) {
-         throw new IllegalArgumentException (
-            "x is too small: size="+x.size()+", expected size is " + nrhs*mySize);
-      }
-      else if (b.size() < nrhs*mySize) {
-         throw new IllegalArgumentException (
-            "b is too small: size="+b.size()+", expected size is " + nrhs*mySize);
-      }
-   }
-
-   /**
-    * Solves the matrix associated with this solver for x, given a
-    * specific right-hand side b. It is assumed that the matrix
-    * has been factored and that this solver's state is
-    * {@link #FACTORED FACTORED}.
-    *
-    * @param x returns the solution value
-    * @param b supplies the right-hand side
-    * @throws IllegalStateException if this solver's state is not
-    * {@link #FACTORED FACTORED}
-    * @throws IllegalArgumentException if the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size.
-    */
-   public synchronized void solve (VectorNd x, VectorNd b) {
-      checkFactored();
-      checkSolveArgs (x, b, 1);
-      int rcode = doSolve (myHandle, x.getBuffer(), b.getBuffer());
-   }
-
-   /**
-    * Solves the matrix associated with this solver for x, given a
-    * specific right-hand side b. It is assumed that the matrix
-    * has been factored and that this solver's state is
-    * {@link #FACTORED FACTORED}.
-    *
-    * @param x returns the solution value
-    * @param b supplies the right-hand side
-    * @throws IllegalStateException if this solver's state is not
-    * {@link #FACTORED FACTORED}
-    * @throws IllegalArgumentException if the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size.
-    */
-   public synchronized void solve (double[] x, double[] b) {
-      checkFactored();
-      checkSolveArgs (x, b, 1);
-      int rcode = doSolve (myHandle, x, b);
-   }
-
-   /**
-    * Solves the matrix associated with this solver for a set of vectors X,
-    * given a set of right-hand sides B. The number of right-hand sides is
-    * given by {@code nrhs}. Both {@code X} and {@code B} should be stored in
-    * the column major ordering used by FORTRAN. It is assumed that the matrix
-    * has been factored and that this solver's state is
-    * {@link #FACTORED FACTORED}.
-    *
-    * @param X returns the solutions in column major order
-    * @param B supplies the right-hand sides in column major order
-    * @param nrhs number of right-hand sides to solve for
-    * @throws IllegalStateException if this solver's state is not
-    * {@link #FACTORED FACTORED}
-    * @throws IllegalArgumentException if the dimensions of <code>X</code> or
-    * <code>B</code> are incompatible with the matrix size and {@code rhs}.
-    */
-   public synchronized void solve (double[] X, double[] B, int nrhs) {
-      checkFactored();
-      checkSolveArgs (X, B, nrhs);
-      int rcode = doSolve (myHandle, X, B, nrhs);
-   }
-
-   /**
-    * Computes the norm of the residual
-    * <pre>
-    *   M x - b
-    * </pre>
-    * for a given values of M, x, and b. The values of <code>M</code>
-    * are given in compressed row storage (CRS) format. 
-    *
-    * @param rowOffs matrix row offsets (CRS format)
-    * @param colIdxs non-zero element column indices (CRS format)
-    * @param vals non-zero element value (CRS format)
-    * @param size size of the matrix
-    * @param x supplies the solution value
-    * @param b supplies the right-hand side
-    * @param symmetric if <code>true</code>, assumes that the arguments
-    * define only the upper triangular portion of a symmetric matrix.
-    * @throws IllegalArgumentException if the dimensions of <code>x</code> or
-    * <code>b</code> are incompatible with the matrix size.
-    */
-   public double residual (
-      int[] rowOffs, int[] colIdxs, double[] vals, int size,
-      double[] x, double[] b, boolean symmetric) {
-
-      if (x.length < size) {
-         throw new IllegalArgumentException ("x is too small: x.length="
-         + x.length + ", expected size is " + size);
-      }
-      else if (b.length < size) {
-         throw new IllegalArgumentException ("b is too small: b.length="
-         + b.length + ", expected size is " + size);
-      }
-      double[] check = new double[size];
-      for (int i=0; i<size; i++) {
-         int end = rowOffs[i+1]-1;
-         for (int k=rowOffs[i]-1; k<end; k++) {
-            int j = colIdxs[k]-1;
-            check[i] += vals[k]*x[j];
-            if (symmetric && i != j) {
-               check[j] += vals[k]*x[i];
-            }
-         }
-      }
-      double sum = 0;
-      for (int i=0; i<size; i++) {
-         sum += (check[i]-b[i])*(check[i]-b[i]);
-      }
-      return Math.sqrt(sum);
-   }
 
    /**
     * Implementation of
@@ -1737,24 +1023,17 @@ public class PardisoSolver implements DirectSolver {
    }
 
    /**
-    * Releases the native resources used by this solver.
+    * {@inheritDoc}
     */
-   public void dispose() {
-      long handle = myHandle;
-      if (handle != 0) {
-         myHandle = 0;         
-         doRelease (handle);
-      }
+   public boolean hasMultipleRhsSolves() {
+      return supportsMultipleRhs;
    }
 
-   public void finalize() {
-      dispose();
-   }
 
    /**
     * {@inheritDoc}
     */
-   public boolean hasAutoIterativeSolving() {
+   public boolean hasIterativeSolves() {
       /*
        * iterative solving disabled for WinXP
        */
@@ -1907,17 +1186,6 @@ public class PardisoSolver implements DirectSolver {
       }
    }
 
-   /**
-    * Returns a message describing the reason for failure of
-    * the most recent call to any of the <code>analyze()</code>,
-    * <code>factor()</code>, or <code>iterativeSolve()</code> methods,
-    * or <code>null</code> if the method succeeded.
-    *
-    * @return most recent error message, if any
-    */
-   public String getErrorMessage() {
-      return myErrMsg;
-   }
 
    /**
     * This method is a hook that gives us access to _exit(), which is
@@ -1929,4 +1197,69 @@ public class PardisoSolver implements DirectSolver {
    public void systemExit (int code) {
       doExit (code);
    }
+
+   // ------------------------------------------------------------------
+   // hook methods required by DirectSolverBase
+   // ------------------------------------------------------------------
+
+   protected String getSolverName() {
+      return "Pardiso";
+   }
+
+   protected long createSolverHandle() {
+      return doInit();
+   }
+
+   protected void releaseSolverHandle (long handle) {
+      doRelease (handle);
+   }
+
+   protected int setMatrixNative (
+      double[] vals, int[] rowOffs, int[] colIdxs,
+      int size, int numVals, int type) {
+
+      if ((type & Matrix.SYMMETRIC) != 0) {
+         if ((type & Matrix.POSITIVE_DEFINITE) != 0) {
+            return doSetSPDMatrix (
+               myHandle, vals, rowOffs, colIdxs, size, numVals);
+         }
+         else {
+            return doSetSymmetricMatrix (
+               myHandle, vals, rowOffs, colIdxs, size, numVals);
+         }
+      }
+      else {
+         return doSetMatrix (myHandle, vals, rowOffs, colIdxs, size, numVals);
+      }
+   }
+
+   protected int factorMatrixNative (double[] vals) {
+      return doFactorMatrix (myHandle, vals);
+   }
+
+   protected int solveNative (double[] x, double[] b, int nrhs) {
+      if (nrhs == 1) {
+         return doSolve (myHandle, x, b);
+      }
+      else {
+         return doSolve (myHandle, x, b, nrhs);
+      }
+   }
+
+   protected String errorMessage (int rcode) {
+      return getErrorMessage (rcode);
+   }
+
+   protected boolean showPerturbedPivots() {
+      return myShowPerturbedPivots;
+   }
+
+   protected int setNumThreadsNative (int num) {
+      return doSetNumThreads (myHandle, num);
+   }
+
+   protected int getNumThreadsNative() {
+      return doGetNumThreads (myHandle);
+   }
+
 }

@@ -76,7 +76,7 @@ public class FrictionInfo {
       else {
          double val0 = Math.min(lam.get(contactIdx0), 0);
          double val1 = Math.min(lam.get(contactIdx1), 0);
-         return mu*Math.hypot (val0, val1);
+         return mu*Math.sqrt (val0*val0 + val1*val1);
       }
    }
 

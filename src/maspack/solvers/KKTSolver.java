@@ -39,8 +39,8 @@ public class KKTSolver {
    SparseBlockMatrix myDT;
    SparseBlockMatrix myM;
    SparseBlockMatrix myGT;
-   UmfpackSolver myUmfpack;
-   PardisoSolver myPardiso;
+   UmfpackSolver myUmfpack;   // set only if the solver is Umfpack, which
+                              // needs its matrix in CCS format
    DirectSolver myMatrixSolver;
    boolean myIndices1Based = false;
    boolean myLastSolveWasIterative = false;
@@ -106,21 +106,16 @@ public class KKTSolver {
    };
 
    public KKTSolver (SparseSolverId solverType) {
-      switch (solverType) {
-         case Pardiso: {
-            myPardiso = new PardisoSolver();
-            myMatrixSolver = myPardiso;
-            break;
-         }
-         case Umfpack: {
-            myUmfpack = new UmfpackSolver();
-            myMatrixSolver = myUmfpack;
-            break;
-         }
-         default: {
-            throw new IllegalArgumentException (
-               "Solver type " + solverType + " not supported");
-         }
+      DirectSolver solver = solverType.createDirectSolver();
+      if (solver == null) {
+         throw new IllegalArgumentException (
+            "Solver type " + solverType + " not supported");
+      }
+      myMatrixSolver = solver;
+      if (solver instanceof UmfpackSolver) {
+         // Umfpack needs its matrix structure in CCS format, which is not
+         // part of the DirectSolver interface
+         myUmfpack = (UmfpackSolver)solver;
       }
       mySolverType = solverType;
       myDantzig = new DantzigLCPSolver();
@@ -216,18 +211,19 @@ public class KKTSolver {
          }
          myIndices1Based = true;
          if ((myTypeM & Matrix.SYMMETRIC) != 0) {
-            // even if myTypeM is SPD, the KKT system won't be, so
-            // we need a symmetric solve regardless
-            myPardiso.analyze (
-               myVals, myColIdxs, myRowOffs, sizeMG, Matrix.SYMMETRIC);
+            // if there are constraints, the KKT system is indefinite even if
+            // the matrix itself is SPD
+            int type = (numG == 0 ? myTypeM : Matrix.SYMMETRIC);
+            myMatrixSolver.analyze (
+               myVals, myColIdxs, myRowOffs, sizeMG, type);
          }
          else {
-            myPardiso.analyze (
+            myMatrixSolver.analyze (
                myVals, myColIdxs, myRowOffs, sizeMG, Matrix.INDEFINITE);
          }
-         if (myPardiso.getState() == PardisoSolver.UNSET) {
+         if (myMatrixSolver.getState() == DirectSolver.UNSET) {
             throw new NumericalException (
-               "Pardiso: unable to analyze matrix: "+myPardiso.getErrorMessage());
+               "Unable to analyze matrix: "+myMatrixSolver.getErrorMessage());
          }
       }
       myMDiagonalP = (M instanceof VectorNd);
@@ -707,10 +703,23 @@ public class KKTSolver {
             "size of vel and/or bm incompatible with factored M size of "
             + mySizeM);
       }
-      if (lam.size() != myNumG || bg.size() != myNumG) {
+      if ((lam == null) != (bg == null)) {
          throw new IllegalArgumentException (
-            "size of lam and/or bg incompatible with factored GT size of "
-            + myNumG);
+            "'lam' and 'bg' must both be null or non-null");
+      }
+      if (lam != null) {
+         if (lam.size() != myNumG) {
+            throw new IllegalArgumentException (
+               "'lam' size "+lam.size()+" incompatible with GT size " + myNumG);
+         }
+         else if (bg.size() != myNumG) {
+            throw new IllegalArgumentException (
+               "'bg' size "+bg.size()+" incompatible with GT size " + myNumG);
+         }
+      }
+      else if (myNumG > 0) {
+         throw new IllegalArgumentException (
+            "'lam' and 'bg' are null but GT size is " + myNumG);
       }
       int iterStatus = 0;
       myNumN = 0;
@@ -718,7 +727,8 @@ public class KKTSolver {
       myNumD = 0;
       myDT = null;
 
-      if (myPardiso != null && myDirectCnt > 0 &&
+      if (myMatrixSolver != null && myMatrixSolver.hasIterativeSolves() &&
+          myDirectCnt > 0 &&
           (myIterativeCnt == 0 || myIterativeCnt+1 < estimateOptimalCount())) {
          long t0 = System.nanoTime();
          getCRSValues (M, sizeM, myNumVals, GT, Rg);
@@ -736,7 +746,8 @@ public class KKTSolver {
             xbuf[i + mySizeM] = bbuf[i];
          }
 
-         iterStatus = myPardiso.iterativeSolve (myVals, ybuf, xbuf, tolExp);
+         iterStatus =
+            myMatrixSolver.iterativeSolve (myVals, ybuf, xbuf, tolExp);
 
          if (iterStatus > 0) {
             bbuf = vel.getBuffer();
@@ -787,18 +798,27 @@ public class KKTSolver {
             "size of vel and/or bm incompatible with factored M size of "
             + mySizeM);
       }
-      if (lam.size() != myNumG || bg.size() != myNumG) {
-         throw new IllegalArgumentException ("Bad dimensions: lam size="
-         + lam.size() + ", bg size=" + bg.size() + ", factored GT size="
-         + myNumG);
+      if ((lam == null) != (bg == null)) {
+         throw new IllegalArgumentException (
+            "'lam' and 'bg' must both be null or non-null");
+      }
+      if (lam != null) {
+         if (lam.size() != myNumG) {
+            throw new IllegalArgumentException (
+               "'lam' size "+lam.size()+" incompatible with GT size " + myNumG);
+         }
+         else if (bg.size() != myNumG) {
+            throw new IllegalArgumentException (
+               "'bg' size "+bg.size()+" incompatible with GT size " + myNumG);
+         }
+      }      
+      else if (myNumG > 0) {
+         throw new IllegalArgumentException (
+            "'lam' and 'bg' are null but GT size is " + myNumG);
       }
       if ((the == null) != (bn == null)) {
          throw new IllegalArgumentException (
             "'the' and 'bn' must both be null or non-null");
-      }
-      if ((phi == null) != (flim == null)) {
-         throw new IllegalArgumentException (
-            "'phi' and 'flim' must both be null or non-null");
       }
       if (the != null) {
          if (the.size() != myNumN) {
@@ -809,6 +829,14 @@ public class KKTSolver {
             throw new IllegalArgumentException (
                "'bn' size "+bn.size()+" incompatible with NT size " + myNumN);
          }
+      }
+      else if (myNumN > 0) {
+         throw new IllegalArgumentException (
+            "'the' and 'bn' are null but NT size is " + myNumN);
+      }
+      if ((phi == null) != (flim == null)) {
+         throw new IllegalArgumentException (
+            "'phi' and 'flim' must both be null or non-null");
       }
       if (phi != null) {
          if (the == null) {
@@ -823,6 +851,10 @@ public class KKTSolver {
             throw new IllegalArgumentException (
                "'flim' size "+flim.size()+" incompatible with DT size " + myNumD);
          }
+      }
+      else if (myNumD > 0) {
+         throw new IllegalArgumentException (
+            "'phi' and 'flim' are null but DT size is " + myNumD);
       }
       if (state != null) {
          if (state.size() < myNumN + myNumD) {
@@ -880,7 +912,7 @@ public class KKTSolver {
 
    /**
     * Queries whether warm starting of the internal LCP/BLCP solves is enabled.
-    * See {@link #setLCPWarmStarting}.
+    * See {@link #setWarmStartLCPs}.
     *
     * @return {@code true} if LCP warm starting is enabled
     */
@@ -1329,7 +1361,8 @@ public class KKTSolver {
       myHi.setSize (n);
       myLo.setSize (n);
 
-      if (myPardiso != null && useBlockSolves) {
+      if (myMatrixSolver != null &&
+          myMatrixSolver.hasMultipleRhsSolves() && useBlockSolves) {
          MatrixNd ND = new MatrixNd();
          getDenseND (ND, NT, DT);
          solveMG (ND.getBuffer(), ND.getBuffer(), n);
@@ -1655,11 +1688,11 @@ public class KKTSolver {
     * 
     * This requires negating the value of lam from the original solve
     */
-   public void solveMG (VectorNd x, VectorNd b) {
+   private void solveMG (VectorNd x, VectorNd b) {
       myMatrixSolver.solve (x, b);
       if (computeResidualMG) {
          double res = 
-            myPardiso.residual (
+            DirectSolver.residual (
                myRowOffs, myColIdxs, myVals, mySizeM+myNumG, 
                x.getBuffer(), b.getBuffer(),(myTypeM & Matrix.SYMMETRIC) != 0);
          System.out.println ("solveRes=" + res + " size="+(mySizeM+myNumG));
@@ -1671,12 +1704,12 @@ public class KKTSolver {
       }
    }
 
-   public void solveMG (double[] Xbuf, double[] Bbuf, int nrhs) {
-      if (myPardiso != null) {
+   private void solveMG (double[] Xbuf, double[] Bbuf, int nrhs) {
+      if (myMatrixSolver != null && myMatrixSolver.hasMultipleRhsSolves()) {
          int w = mySizeM+myNumG;
          // NOTE: solve arguments with multiple right hand sides are stored in
          // column major form
-         myPardiso.solve (Xbuf, Bbuf, nrhs);
+         myMatrixSolver.solve (Xbuf, Bbuf, nrhs);
          // negate lam.
          for (int i=0; i<nrhs; i++) {
             for (int j=mySizeM; j<w; j++) {
@@ -1686,7 +1719,7 @@ public class KKTSolver {
       }
       else {
          throw new UnsupportedOperationException (
-            "solve for multiple rhs only supported for Pardiso");
+            "solve for multiple rhs not supported by this solver");
       }
    }
 
@@ -1708,7 +1741,7 @@ public class KKTSolver {
     * 
     * This requires negating the value of lam from the original solve
     */
-   public void solveMG (VectorNd xm, VectorNd xg, VectorNd bm, VectorNd bg) {
+   private void solveMG (VectorNd xm, VectorNd xg, VectorNd bm, VectorNd bg) {
       double[] bbuf;
       double[] xbuf = myMGx.getBuffer();
       double[] ybuf = myMGy.getBuffer();
@@ -1717,18 +1750,22 @@ public class KKTSolver {
       for (int i = 0; i < mySizeM; i++) {
          xbuf[i] = bbuf[i];
       }
-      bbuf = bg.getBuffer();
-      for (int i = 0; i < myNumG; i++) {
-         xbuf[i + mySizeM] = bbuf[i];
+      if (myNumG > 0) {
+         bbuf = bg.getBuffer();
+         for (int i = 0; i < myNumG; i++) {
+            xbuf[i + mySizeM] = bbuf[i];
+         }
       }
       myMatrixSolver.solve (myMGy, myMGx);
       bbuf = xm.getBuffer();
       for (int i = 0; i < mySizeM; i++) {
          bbuf[i] = ybuf[i];
       }
-      bbuf = xg.getBuffer();
-      for (int i = 0; i < myNumG; i++) {
-         bbuf[i] = -ybuf[i + mySizeM];
+      if (myNumG > 0) {
+         bbuf = xg.getBuffer();
+         for (int i = 0; i < myNumG; i++) {
+            bbuf[i] = -ybuf[i + mySizeM];
+         }
       }
    }
 
@@ -1759,21 +1796,16 @@ public class KKTSolver {
       getCRSValues (M, sizeM, myNumVals, GT, Rg);
       if (mySolverType == SparseSolverId.Umfpack) {
          loadUmfpackValues (mySizeM + myNumG, myNumVals);
-         int status = myUmfpack.factor (myUmfpackVals);
-         if (status < 0) {
-            throw new NumericalException ("Unable to factor matrix");
-         }
-         else if (status == UmfpackSolver.UMFPACK_WARNING_singular_matrix) {
-            System.out.println (
-               "Umfpack: Matrix is near singular, solve could fail");
-         }
+         // factor() throws a NumericalException if the factorization fails
+         myMatrixSolver.factor (myUmfpackVals);
       }
       else {
-         myPardiso.factor (myVals);
-         if (myPardiso.getState() != PardisoSolver.FACTORED) {
+         myMatrixSolver.factor (myVals);
+         if (myMatrixSolver.getState() != DirectSolver.FACTORED) {
             throw new NumericalException (
-               "Pardiso: unable to factor matrix: size="+(mySizeM+myNumG)+
-               ", nnz=" + myNumVals + ", error=" + myPardiso.getErrorMessage());
+               "Unable to factor matrix: size="+(mySizeM+myNumG)+
+               ", nnz=" + myNumVals + ", error=" +
+               myMatrixSolver.getErrorMessage());
          }
       }
       myNumN = 0;
@@ -1781,8 +1813,8 @@ public class KKTSolver {
       myDT = null;
    }
 
-   public int getNumNonZerosInFactors() {
-      return myPardiso.getNumNonZerosInFactors();
+   public long getNumNonZerosInFactors() {
+      return myMatrixSolver.getNumNonZerosInFactors();
    }
 
    public boolean lastSolveWasIterative() {
@@ -1793,7 +1825,6 @@ public class KKTSolver {
       if (myMatrixSolver != null) {
          myMatrixSolver.dispose();
          myMatrixSolver = null;
-         myPardiso = null;
          myUmfpack = null;
       }
    }
@@ -1816,8 +1847,8 @@ public class KKTSolver {
     * @return number of pivot perturbations, or -1 if not supported
     */   
    public int numPerturbedPivots() {
-      if (myPardiso != null) {
-         return myPardiso.getNumPerturbedPivots();
+      if (myMatrixSolver != null) {
+         return myMatrixSolver.getNumPerturbedPivots();
       }
       else {
          return -1;

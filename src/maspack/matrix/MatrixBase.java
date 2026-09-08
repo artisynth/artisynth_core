@@ -7,6 +7,9 @@
 package maspack.matrix;
 
 import java.io.BufferedWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -14,6 +17,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Random;
 
+import maspack.util.DynamicDoubleArray;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.RandomGenerator;
@@ -793,20 +797,45 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
          scanMatrixMarket (rtok); 
       }
       else if (rtok.ttype == ReaderTokenizer.TT_NUMBER) {
+         int lineno0 = rtok.lineno();
+         int lineno = lineno0;
+         DynamicDoubleArray values = new DynamicDoubleArray();
+         values.add (rtok.nval);
+         while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
+            values.add (rtok.nval);
+            lineno = rtok.lineno();
+         }
          rtok.pushBack();
          int nvals = rowSize()*colSize();
-         int[] indices = new int[2*nvals];
-         double[] values = new double[nvals];
-         int k = 0;
-         for (int i = 0; i < rowSize(); i++) {
-            for (int j = 0; j < colSize(); j++) {
-               values[k] = rtok.scanNumber();
-               indices[k*2  ] = i;
-               indices[k*2+1] = j;
-               k++;
+         if (nvals != values.size()) {
+            if (isFixedSize()) {
+               throw new IOException (
+                  values.size()+" values read for matrix of size "+getSize());
             }
+            // try to infer number of rows from line numbers
+            int nrows = lineno-lineno0+1;
+            int ncols = values.size()/nrows;
+            if (ncols*nrows != values.size()) {
+               throw new IOException (
+                  "can't infer matrix size: num values read ("+values.size()+
+                  ") not divisble by the number of lines ("+nrows+")");
+            }
+            setSize (nrows, ncols);
+            nvals = values.size();
          }
-         set (values, indices, nvals);
+         //System.out.println ("here");
+         //scanDenseInput (rtok);
+        int[] indices = new int[2*nvals];
+        //double[] values = new double[nvals];
+        int k = 0;
+        for (int i = 0; i < rowSize(); i++) {
+           for (int j = 0; j < colSize(); j++) {
+              indices[k*2  ] = i;
+              indices[k*2+1] = j;
+              k++;
+           }
+        }
+        set (values.getArray(), indices, nvals);
       }
       else {
          throw new IOException ("Unrecognized token at file start: "+rtok);
@@ -815,7 +844,37 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       rtok.parseNumbers (parseNumbersSave);
       rtok.setCharSettings (ochars, typesSave);
    }
-
+   
+   
+   /**
+    * Convenience method for scanning a matrix from a file. The file is 
+    * assumed to contain a matrix in the format that can be parsed
+    * by {@link #scan(ReaderTokenizer)}. If the file does not exist
+    * or cannot otherwise be read, the method returns {@code false}.
+    */
+   public boolean scanFromFile (String fileName) {
+      File file = new File(fileName);
+      if (!file.canRead()) {
+         return false;
+      }
+      ReaderTokenizer rtok = null;
+      try {
+         rtok = 
+            new ReaderTokenizer(new BufferedReader(new FileReader(file)));
+         scan(rtok);
+         return true;
+      }
+      catch (IOException e) {
+         e.printStackTrace(); 
+         return false;
+      }
+      finally {
+         if (rtok != null) {
+            rtok.close();
+         }
+      }
+   }
+   
    private void scanDenseInput (ReaderTokenizer rtok) throws IOException {
       LinkedList<Double> valueList = new LinkedList<Double>();
       int numRows = 0;

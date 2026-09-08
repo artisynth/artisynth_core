@@ -9,6 +9,111 @@ import maspack.util.*;
 import maspack.solvers.LCPSolver.Status;
 import maspack.spatialmotion.FrictionInfo;
 
+/**
+ * Solves a bounded mixed linear complementarity problem (MLCP) for a system
+ * arising from velocity solves for mechanical systems including bilateral
+ * constraints (e.g. joints, kinematic coupling), unilateral constraints
+ * (contact, joint limits), and contact friction. The system itself takes the
+ * following form:
+ * <pre>
+ * [ M  G^T N^T D^T ] [ vel ]    [ bm ]     [ 0  ]
+ * [ G   Rg  0   0  ] [ lam ] -  [ bg ]  =  [ 0  ]
+ * [ N   0   Rn  0  ] [ the ]    [ bn ]     [ wn ]
+ * [ D   0   0   Rd ] [ phi ]    [ bd ]     [ wd ]
+ * </pre>
+ * The unilateral constraints are subject to the 
+ * complementarity condition
+ * <pre>
+ * the {@code >=} 0, wn {@code >=} 0, the^T wn = 0
+ * </pre>
+ * where {@code wn} is a free variable whose elements are non-zero only when
+ * the corresponding unilateral constraints are not active.
+ *
+ * <p>
+ * Likewise, the friction constraints are subject
+ * to the following bounded complementarity conditions which implement "box
+ * friction":
+ * <pre>
+ * phi_i = phiMax_i {@code =>} wd_i {@code <=} 0
+ * phi_i = -phiMax_i {@code =>} wd_i {@code >=} 0
+ * -phiMax_i {@code <} phi_i {@code <} phiMax_i {@code =>} wd_i {@code = 0}
+ * </pre>
+ * where {@code phiMax} gives the maximum friction forces
+ * and {@code wd} is a free variable whose elements are 0 when
+ * the corresponding friction constraint is in a stiction state.
+ *
+ * <p>
+ * For contact situations, each friction constraint {@code i} is typically
+ * associated with a unilateral contact constraint {@code j}, for which
+ * {@code phiMax_i} is ideally determined from
+ * <pre>
+ * phiMax_i = mu_i the_j
+ * </pre>
+ * where {@code mu_i} is the constraint's coefficient of friction.
+ * However, since {@code the_j} is a simulation output, the solver must
+ * estimate {@code the_j} either from its previous solve value or by performing
+ * additional internal iterations.
+ *
+ * <p>Sometimes, it is acceptable to speed up contact simulation by treating
+ * the contact constraints as <i>bilateral</i> during each solve and then
+ * deactivating the contact <i>between</i> solve steps whenever the computed
+ * constraint force {@code lam_j} is negative. For such cases, the friction
+ * constraint is associated with a bilateral constraint {@code j} and
+ * {@code phiMax_i} is determined from
+ * <pre>
+ * phiMax_i = mu_i max(0, lam_j)
+ * </pre>
+ * Finally, a friction constraint may be formally associated with
+ * a bilateral constraint (e.g., a particle constrained to a surface),
+ * and so in such cases {@code phiMax_i} is determined from
+ * <pre>
+ * phiMax_i = mu_i |lam_j|
+ * </pre> As with friction associated with unilateral constraints, the
+ * solver must estimate {@code lam_j} either from its previous solve value or
+ * by performing additional internal iterations.
+ *
+ *<p>Other terms in the MLCP are defined as follows:
+ * <dl>
+ *   <dt>M</dt>
+ *   <dd>mass matrix, typically augmented with stiffness and damping terms
+ *   to support implicit integration</dd>
+ *   <dt>vel</dt>
+ *   <dd>velocity vector (output)</dd>
+ *   <dt>bm</dt>
+ *   <dd>offset vector including force inputs
+ *   and mass times the current velocity</dd>
+ *   <dt>G</dt>
+ *   <dd>bilateral constraint matrix</dd>
+ *   <dt>Rg</dt>
+ *   <dd>diagonal bilateral regularization term (may be 0)</dd>
+ *   <dt>bg</dt>
+ *   <dd>bilateral constraint offsets</dd>
+ *   <dt>lam</dt>
+ *   <dd>bilateral constraint force impulses (output)</dd>
+ *   <dt>N</dt>
+ *   <dd>unilateral constraint matrix</dd>
+ *   <dt>Rn</dt>
+ *   <dd>diagonal unilateral regularization term (may be 0)</dd>
+ *   <dt>bn</dt>
+ *   <dd>unilateral constraint offsets</dd>
+ *   <dt>the</dt>
+ *   <dd>unilateral constraint force impulses (output)</dd>
+ *   <dt>wn</dt>
+ *   <dd>unilateral free variable, whose elements are non-zero only when
+ *   the corresponding unilateral constraint is inactive</dd>
+ *   <dt>D</dt>
+ *   <dd>friction constraint matrix</dd>
+ *   <dt>Rd</dt>
+ *   <dd>diagonal friction regularization term (may be 0)</dd>
+ *   <dt>bd</dt>
+ *   <dd>friction constraint offsets</dd>
+ *   <dt>phi</dt>
+ *   <dd>friction force impulses (output)</dd>
+ *   <dt>wd</dt>
+ *   <dd>friction free variable, whose elements are 0 when the corresponding
+ *   friction constraint is in a stiction state</dd>
+ * </dl>
+ */
 public class MurtyMechSolver {
 
    public boolean debug = false;
@@ -304,10 +409,8 @@ public class MurtyMechSolver {
    protected int mySolveCnt;         // number of solves of A for last solve
 
    // sparse solver used to solve the A system
-   private SparseSolverId mySolverType = SparseSolverId.Pardiso;
    DirectSolver myMatrixSolver;      // current sparse solver
-   UmfpackSolver myUmfpack;          // Umfpack solver, if used
-   PardisoSolver myPardiso;          // Pardiso solver, if used
+
    int mySavedMaxRefinementSteps;    // saved value of Pardiso refinement steps
    boolean myAMatrixFactored;        // A matrix factored and ready for solution
    
@@ -414,6 +517,17 @@ public class MurtyMechSolver {
 
    int[] myARowOffs;
    int[] myAColIdxs;
+
+   // optional stream for printing solve input/output information
+   private PrintWriter mySolveWriter = null;
+
+   public PrintWriter getSolveWriter() {
+      return mySolveWriter;
+   }
+
+   public void setSolveWriter (PrintWriter pw) {
+      mySolveWriter = pw;
+   }
 
    public int getDebug() {
       return myDebug;
@@ -543,37 +657,15 @@ public class MurtyMechSolver {
    }
 
    public void setSolverType (SparseSolverId solverType) {
-      switch (solverType) {
-         case Pardiso: {
-            myPardiso = new PardisoSolver();
-            myMatrixSolver = myPardiso;
-            break;
-         }
-         case Umfpack: {
-            myUmfpack = new UmfpackSolver();
-            myMatrixSolver = myUmfpack;
-            break;
-         }
-         default: {
-            throw new IllegalArgumentException (
-               "Solver type " + solverType + " not supported");
-         }
+      DirectSolver solver = solverType.createDirectSolver();
+      if (solver == null) {
+         throw new IllegalArgumentException (
+            "Solver type " + solverType + " not supported");
       }
-      mySolverType = solverType;
+      myMatrixSolver = solver;
    }
 
    public void setSolver (DirectSolver solver) {
-      if (solver instanceof PardisoSolver) {
-         myPardiso = (PardisoSolver)solver;
-         mySolverType = SparseSolverId.Pardiso;
-      }
-      else if (solver instanceof UmfpackSolver) {
-         myUmfpack = (UmfpackSolver)solver;
-         mySolverType = SparseSolverId.Umfpack;
-      }
-      else {
-         throw new UnsupportedOperationException ("Unsupported solver "+solver);
-      }
       myMatrixSolver = solver;
    }
 
@@ -884,36 +976,29 @@ public class MurtyMechSolver {
    }
 
    private void analyzeA (int[] colIdxs) {
-      if (mySolverType == SparseSolverId.Pardiso) {
-         int[] rowOffs = Arrays.copyOf (myRowOffsA, mySizeA+1);
-         for (int i=0; i<rowOffs.length; i++) {
-            rowOffs[i]++;
-         }
-         for (int i=0; i<colIdxs.length; i++) {
-            colIdxs[i]++;
-         }
-         myAColIdxs = colIdxs;
-         myARowOffs = rowOffs;
-         //getAValues (null, true);
-         myAnalyzeTimer.restart();
-         myPardiso.analyze (
-            myValuesA, colIdxs, rowOffs, mySizeA, Matrix.SYMMETRIC);
-         if (myPardiso.getState() == PardisoSolver.UNSET) {
-            throw new NumericalException (
-               "Pardiso: unable to analyze matrix: " +
-               myPardiso.getErrorMessage());
-         }
-         myAnalyzeTimer.stop();
-         //getAValues (null, false);
-         myTotalAnalyzeCnt++;
-         myHybridCnt = 0;
-         myAvgDirectTime = 0;
-         myAMatrixFactored = false;
+      int[] rowOffs = Arrays.copyOf (myRowOffsA, mySizeA+1);
+      for (int i=0; i<rowOffs.length; i++) {
+         rowOffs[i]++;
       }
-      else {
-         throw new UnsupportedOperationException (
-            "Solver " + mySolverType + " is not supported");
+      for (int i=0; i<colIdxs.length; i++) {
+         colIdxs[i]++;
       }
+      myAColIdxs = colIdxs;
+      myARowOffs = rowOffs;
+      //getAValues (null, true);
+      myAnalyzeTimer.restart();
+      myMatrixSolver.analyze (
+         myValuesA, colIdxs, rowOffs, mySizeA, Matrix.SYMMETRIC);
+      if (myMatrixSolver.getState() == DirectSolver.UNSET) {
+         throw new NumericalException (
+            "Unable to analyze matrix: " + myMatrixSolver.getErrorMessage());
+      }
+      myAnalyzeTimer.stop();
+      //getAValues (null, false);
+      myTotalAnalyzeCnt++;
+      myHybridCnt = 0;
+      myAvgDirectTime = 0;
+      myAMatrixFactored = false;
    }
 
    public MatrixNd getA() {
@@ -951,55 +1036,43 @@ public class MurtyMechSolver {
    }
 
    private void factorA () {
-      if (mySolverType == SparseSolverId.Pardiso) {
-         myFactorTimer.restart();
-         myPardiso.factor (myValuesA);
-         if (myPardiso.getState() != PardisoSolver.FACTORED) {
-            throw new NumericalException (
-               "Pardiso: unable to factor matrix: size="+mySizeA+", nnz=" +
-               myNumValsA + ", error=" + myPardiso.getErrorMessage());
-         }
-         myFactorTimer.stop();
-         myTotalFactorCnt++;
-         myAMatrixFactored = true;
+      myFactorTimer.restart();
+      myMatrixSolver.factor (myValuesA);
+      if (myMatrixSolver.getState() != DirectSolver.FACTORED) {
+         throw new NumericalException (
+            "Unable to factor matrix: size="+mySizeA+", nnz=" +
+            myNumValsA + ", error=" + myMatrixSolver.getErrorMessage());
       }
-      else {
-         throw new UnsupportedOperationException (
-            "Solver " + mySolverType + " is not supported");
-      }
+      myFactorTimer.stop();
+      myTotalFactorCnt++;
+      myAMatrixFactored = true;
    }
 
    private void solveA (VectorNd y, VectorNd x) {
-      if (mySolverType == SparseSolverId.Pardiso) {
-         mySolveTimer.restart();
-         myPardiso.solve (y, x);
-         mySolveTimer.stop();
-         mySolveCnt++;
-         myTotalSolveCnt++;
-      }
-      else {
-         throw new UnsupportedOperationException (
-            "Solver " + mySolverType + " is not supported");
-      }
+      mySolveTimer.restart();
+      myMatrixSolver.solve (y, x);
+      mySolveTimer.stop();
+      mySolveCnt++;
+      myTotalSolveCnt++;
    }
 
    private void solveA (MatrixNd Y, MatrixNd X) {
-      if (mySolverType == SparseSolverId.Pardiso) {
-         mySolveTimer.restart();
-         int nrows= Y.rowSize(); 
-         myPardiso.solve (Y.getBuffer(), X.getBuffer(), nrows);
-         mySolveTimer.stop();
-         mySolveCnt += nrows;
-         myTotalSolveCnt += nrows;
-      }
-      else {
+      if (!myMatrixSolver.hasMultipleRhsSolves()) {
          throw new UnsupportedOperationException (
-            "Solver " + mySolverType + " is not supported");
+            "Solver " + myMatrixSolver.getClass().getSimpleName() +
+            " does not support multiple right hand sides");
       }
+      mySolveTimer.restart();
+      int nrows= Y.rowSize();
+      myMatrixSolver.solve (Y.getBuffer(), X.getBuffer(), nrows);
+      mySolveTimer.stop();
+      mySolveCnt += nrows;
+      myTotalSolveCnt += nrows;
    }
 
    private boolean canDoHybridSolve() {
-      if (myHybridSolves && myPardiso != null &&
+      if (myHybridSolves && myMatrixSolver != null &&
+          myMatrixSolver.hasIterativeSolves() &&
           mySizeND == 0 && myAvgDirectTime > 0) {
          return (myAvgHybridTime < myHybridRatio*myAvgDirectTime);
       }
@@ -1018,7 +1091,7 @@ public class MurtyMechSolver {
 
    boolean hybridSolveA() {
       myTimer.start();
-      int status = myPardiso.iterativeSolve (
+      int status = myMatrixSolver.iterativeSolve (
          myValuesA, myY.getBuffer(), myB.getBuffer(), myHybridSolveTol);
       myTimer.stop();
       if (status > 0 && !myFakeHybridFail) {
@@ -1390,13 +1463,17 @@ public class MurtyMechSolver {
 //      return n;
 //   }
 
-   protected void updateAndSolveA (VectorNi stateN, VectorNi stateD) {
+   boolean updateAndSolveA (VectorNi stateN, VectorNi stateD) {
       initializeSolverIfNecessary();
+
+      boolean rebuiltA = false;
 
       ArrayList<Pivot> pivots = new ArrayList<>();
       int[] colIdxs = rebuildOrUpdateA (pivots, stateN, stateD);
-      
-      checkConsistency();
+
+      if (debug) {
+         checkConsistency();
+      }
       buildRhs();
       // getAValues (null, /*forAnalyze=*/false); 
 
@@ -1412,6 +1489,7 @@ public class MurtyMechSolver {
          if (colIdxs != null) {
             getAValues (null, /*forAnalyze=*/true); 
             analyzeA (colIdxs);
+            rebuiltA = true;
          }
          if (!valuesUpdated) {
             getAValues (null, /*forAnalyze=*/false); 
@@ -1456,6 +1534,7 @@ public class MurtyMechSolver {
          // }
          applyBlockPivots (pivots);
       }
+      return rebuiltA;
    }
 
    /**
@@ -2015,7 +2094,7 @@ public class MurtyMechSolver {
 
       int numJ = numJRows();
       VectorNd psi = new VectorNd (numJ);
-      
+
       if (numJ > 0) {
          myX.setZero();
          VectorNd tmp = new VectorNd (numJ);
@@ -2825,7 +2904,7 @@ public class MurtyMechSolver {
                return Status.NO_SOLUTION;
             }
             else if (ninf < ninfMin) {
-               ninfMin = npiv;
+               ninfMin = ninf;
                blockPivotIterLimit = myIterationCnt + p;
             }
             else if (myIterationCnt > blockPivotIterLimit) {
@@ -2905,6 +2984,14 @@ public class MurtyMechSolver {
       SparseBlockMatrix DT, VectorNd Rd, VectorNd bd, VectorNi stateD,
       ArrayList<FrictionInfo> finfo, int frictionIters, int flags) {
 
+      VectorNd lamIn = null;
+      VectorNd theIn = null;
+
+      if (mySolveWriter != null) {
+         lamIn = new VectorNd (lam);
+         theIn = new VectorNd (the);
+      }
+            
       mySolveCnt = 0;
       myIterationCnt = 0;
       myPivotCnt = 0;
@@ -2936,8 +3023,8 @@ public class MurtyMechSolver {
 
       myTol = myDefaultTol;
 
-      mySavedMaxRefinementSteps = myPardiso.getMaxRefinementSteps();
-      myPardiso.setMaxRefinementSteps(0);
+      mySavedMaxRefinementSteps = myMatrixSolver.getMaxRefinementSteps();
+      myMatrixSolver.setMaxRefinementSteps(0);
 
       updateAndSolveA (stateN, stateD);
       myNTActivityFrozen = ((flags & NT_INACTIVE) != 0);
@@ -2972,7 +3059,21 @@ public class MurtyMechSolver {
       else {
          extractMGSolution (vel, lam);
       }
-      myPardiso.setMaxRefinementSteps(mySavedMaxRefinementSteps);
+
+      if (mySolveWriter != null) {
+         try {
+            writeSolveInfo (
+               mySolveWriter, status, vel, lamIn, lam, theIn, the, phi, M, sizeM,
+               bm, versionM, GT, Rg, bg, NT, Rn, bn, stateN, DT, Rd, bd, stateD,
+               finfo, frictionIters, flags);
+         }
+         catch (Exception e) {
+            mySolveWriter.close();
+            mySolveWriter = null;
+         }
+      }
+
+      myMatrixSolver.setMaxRefinementSteps(mySavedMaxRefinementSteps);
       myNTActivityFrozen = false;
       getStateN (stateN);
       getStateD (stateD);
@@ -3026,8 +3127,8 @@ public class MurtyMechSolver {
 
       setFrictionLimits (flim);
 
-      mySavedMaxRefinementSteps = myPardiso.getMaxRefinementSteps();
-      myPardiso.setMaxRefinementSteps(0);
+      mySavedMaxRefinementSteps = myMatrixSolver.getMaxRefinementSteps();
+      myMatrixSolver.setMaxRefinementSteps(0);
       
       myTol = myDefaultTol;
 
@@ -3044,7 +3145,7 @@ public class MurtyMechSolver {
          extractMGSolution (vel, lam);      
       }
       
-      myPardiso.setMaxRefinementSteps(mySavedMaxRefinementSteps);
+      myMatrixSolver.setMaxRefinementSteps(mySavedMaxRefinementSteps);
       myNTActivityFrozen = false;
       getStateN (stateN);
       getStateD (stateD);
@@ -3052,6 +3153,172 @@ public class MurtyMechSolver {
          System.out.println (status);
       }
       return status;
+   }
+
+   /**
+    * Writes out a solve problem and its solution. This typically corresponds
+    * to a specific simulation time step or iteration within a time step. The
+    * output begins with a line of the form
+    * <p>
+    * {@code STEP: Msize=}<i>xx</i> {@code Mtype=}<i>xx</i>
+    * {@code Mversion=}<i>xx</i>
+    * {@code Gsize=}<i>xx</i> {@code Nsize=}<i>xx</i> {@code Dsize=}<i>xx</i> <br>
+    * where {@code Msize} is the size of the (square) {@code M} matrix;
+    * {@code Mtype} is either {@code UNSYM}, {@code SYM}, or {@code SPD}
+    * depending on whether {@code M} is unsymmetric, symmetric indefinite,
+    * or symmetric positive definite;
+    * {@code Mversion} is a version number for {@code M} (which
+    * if different from that of a previous solve indicates that
+    * {@code M}'s sparsity structure has changed);
+    * {@code Gsize} is the number of rows in the bilateral constraint
+    * matrix {@code G};
+    * {@code Nsize} is the number of rows in the unilateral constraint
+    * matrix {@code N}; and
+    * {@code Dsize} is the number of rows in the friction constraint
+    * matrix {@code D}.
+    *
+    * <p>
+    * This is followed by: 
+    * <p>
+    * {@code M:}<br>
+    * <i>matrix M in 1-based compressed row storage (CRS) form
+    * (upper triangular part only if M is symmetric)</i><br>
+    * {@code bm:} <i>force offset vector</i><br>
+    * {@code vel_output:} <i>output velocity vector</i>
+    *
+    * <p>
+    * If {@code Gsize > 0}, this is followed by
+    * <p>
+    * {@code GT:}<br>
+    * <i>bilateral constraint matrix G^T in 1-based CRS form</i><br>
+    * {@code Rg:} <i>bilateral regularization term (as a vector)</i><br>
+    * {@code bg:} <i>bilateral offset vector</i><br>
+    * {@code lam_input:} <i>input bilateral impulse vector</i><br>
+    * {@code lam_output:} <i>output bilateral impulse vector</i>
+    *
+    * <p>
+    * If {@code Nsize > 0}, this is followed by
+    * <p>
+    * {@code NT:}<br>
+    * <i>unilateral constraint matrix N^T in 1-based CRS form</i><br>
+    * {@code Rn:} <i>unilateral regularization term (as a vector)</i><br>
+    * {@code bn:} <i>unilateral offset vector</i><br>
+    * {@code the_input:} <i>input unilateral impulse vector
+    * (for warm starting)</i><br>
+    * {@code the_output:} <i>output unilateral impulse vector</i><br>
+    * {@code stateN_input:} <i>input unilateral solve state
+    * (for warm starting)</i><br>
+    * {@code stateN_output:} <i>output unilateral solve state</i>
+    *
+    * <p> 
+    * If {@code Dsize > 0}, this is followed by
+    * <p>
+    * {@code DT:}<br>
+    * <i>friction constraint matrix D^T in 1-based CRS form</i><br>
+    * {@code Rd:} <i>friction regularization term (as a vector)</i><br>
+    * {@code bd:} <i>friction offset vector</i><br>
+    * {@code mu:} <i>friction coefficient vector</i><br>
+    * {@code phi_output:} <i>output friction impulse vector</i><br>
+    * {@code stateD_input:} <i>input friction solve state
+    * (for warm starting)</i><br>
+    * {@code stateD_output:} <i>output friction solve state</i>
+    *
+    * <p>
+    * Matrices in compressed row storage (CRS) form are
+    * represented using three lines of data:
+    * <p>
+    * <i>row offsets</i><br>
+    * <i>column indices</i><br>
+    * <i>non-zero values</i>
+    * <p>
+    * where <i>row offsets</i> is a vector of length {@code rowSize()+1}
+    * giving the (1-based) offsets into the list of non-zero values
+    * corresponding to the first non-zero element in each row, with the last
+    * entry containing the total number of non-zero values plus one
+    * ({@code nnz+1}); <i>column indices</i> is a vector of length {@code nnz}
+    * giving the (1-based) column indices of each non-zero value, in increasing
+    * row order; and <i>non-zero values</i> is a vector of length {@code nnz}
+    * giving the non-zero values in increasing row order.
+    *
+    * <p>Vectors are represented as space-separated lists of floating point
+    * values on a single line.
+    *
+    * <p>Solve states are represented as space-separated lists of integers on a
+    * single line. Each integer is in the set {@code {0, 1, 2}}, where 0 or 1
+    * means that a constraint is inactive with its impulse value at the lower
+    * or upper bound, respectively, and 2 means that a constraint is
+    * active. Unilateral constraints correspond to an LCP problem whose
+    * impulses have a lower bound of 0 and no upper bound, and so state values
+    * can only be 0 or 2.  Friction constraints correspond to a BLCP problem
+    * and so state values can be 0, 1, or 2.
+    */
+   public void writeSolveInfo (
+      PrintWriter pw, Status status, 
+      VectorNd vel, VectorNd lamIn, VectorNd lam, VectorNd theIn, VectorNd the,
+      VectorNd phi, SparseBlockMatrix M, int sizeM, VectorNd bm, int versionM, 
+      SparseBlockMatrix GT, VectorNd Rg, VectorNd bg, 
+      SparseBlockMatrix NT, VectorNd Rn, VectorNd bn, VectorNi stateN,
+      SparseBlockMatrix DT, VectorNd Rd, VectorNd bd, VectorNi stateD,
+      ArrayList<FrictionInfo> finfo, int frictionIters, int flags)
+      throws IOException {
+
+      int vsize = vel.size();
+      pw.printf (
+         "STEP: Msize=%d Mtype=%s Mversion=%d Gsize=%d Nsize=%d Dsize=%d\n",
+         vsize, "SYM", versionM, mySizeG, mySizeN, mySizeD);
+      pw.println ("M:");
+      NumberFormat fmt = new NumberFormat ("%g");
+      M.writeCRS (pw, fmt, Partition.UpperTriangular, vsize, vsize);
+      pw.print ("bm: ");
+      bm.write (pw, fmt);
+      pw.println ("");
+      pw.print ("vel_output: ");
+      vel.write (pw, fmt);
+      pw.println ("");
+      if (mySizeG > 0) {
+         pw.println ("GT:");
+         GT.writeCRS (pw, fmt, Partition.Full, vsize, mySizeG);
+         pw.println ("Rg: " + Rg.toString (fmt));
+         pw.println ("bg: " + bg.toString (fmt));
+         pw.println ("lam_input: " + lamIn.toString (fmt));
+         pw.println ("lam_output: " + lam.toString (fmt));
+      }
+      if (mySizeN > 0) {
+         pw.println ("NT:");
+         NT.writeCRS (pw, fmt, Partition.Full, vsize, mySizeN);
+         pw.println ("Rn: " + Rn.toString (fmt));
+         pw.println ("bn: " + bn.toString (fmt));
+         pw.println ("the_input: " + theIn.toString (fmt));
+         pw.println ("the_output: " + the.toString (fmt));
+         pw.println ("stateN_input: " + stateN.toString ("%d"));
+         VectorNi stateNOut = new VectorNi (mySizeN);
+         getStateN (stateNOut);
+         pw.println ("stateN_output: " + stateNOut.toString ("%d"));
+      }
+      if (mySizeD > 0) {
+         pw.println ("DT:");
+         DT.writeCRS (pw, fmt, Partition.Full, vsize, mySizeD);
+         pw.println ("Rd: " + Rd.toString (fmt));
+         pw.println ("bd: " + bd.toString (fmt));
+         VectorNd mu = new VectorNd (mySizeD);
+         int k = 0;
+         for (FrictionInfo info : finfo) {
+            for (int i=0; i<info.blockSize; i++) {
+               mu.set (k++, info.mu);
+            }
+         }
+         if (k != mySizeD) {
+            throw new InternalErrorException (
+               "FrictionInfo block sizes do not sum to mySizeD");
+         }
+         pw.println ("mu: " + mu.toString (fmt));
+         pw.println ("phi_output: " + phi.toString (fmt));
+         pw.println ("stateD_input: " + stateD.toString ("%d"));
+         VectorNi stateDOut = new VectorNi (mySizeD);
+         getStateD (stateDOut);
+         pw.println ("stateD_output: " + stateDOut.toString ("%d"));
+      }
+      pw.flush();
    }
 
    public void resolveMG (
@@ -3146,8 +3413,6 @@ public class MurtyMechSolver {
       if (myMatrixSolver != null) {
          myMatrixSolver.dispose();
          myMatrixSolver = null;
-         myPardiso = null;
-         myUmfpack = null;
       }
    }
 
@@ -3262,22 +3527,6 @@ public class MurtyMechSolver {
                "aconsD["+i+"]="+myAConsD[i]+", expected "+aconsDChk[i]);
          }
       }
-   }
-
-   AConstraintData[] getAconsD() {
-      int maxi = -1;
-      for (AConstraintData acons : myAConsData) {
-         if (acons.myCol > maxi) {
-            maxi = acons.myCol;
-         }
-      }
-      AConstraintData[] aconsD = new AConstraintData[maxi+1];
-      for (AConstraintData acons : myAConsData) {
-         if (acons.myCol > maxi) {
-            aconsD[acons.myCol] = acons;
-         }
-      }
-      return aconsD;
    }
 
    public String getAConsString () {

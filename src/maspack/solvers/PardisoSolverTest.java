@@ -17,23 +17,12 @@ import java.util.*;
 import java.awt.event.*;
 import javax.swing.*;
 
-public class PardisoSolverTest implements ActionListener {
+public class PardisoSolverTest extends DirectSolverTestBase
+   implements ActionListener {
 
    private int myMatrixType = Matrix.INDEFINITE;
    private Partition myPartition = Partition.Full;
-   private boolean verbose = false;
 
-   private static double EPS = 1e-13;
-
-   // Increments the values of an integer array. We need this because
-   // CRS indices were originally zero-based
-   private static int[] incIndices(int[] idxs) {
-      int[] newIdxs = new int[idxs.length];
-      for (int i=0; i<idxs.length; i++) {
-	 newIdxs[i] = idxs[i]+1;
-      }
-      return newIdxs;
-   }
 
    public String getMatrixType (int code) {
       switch (code) {
@@ -63,6 +52,7 @@ public class PardisoSolverTest implements ActionListener {
       }
    }
 
+
    private Random myRandom = new Random (0x1234);
 
    public void perturbSymmetricMatrix (SparseMatrixNd S, double eps) {
@@ -85,7 +75,12 @@ public class PardisoSolverTest implements ActionListener {
 
    private class TestThread extends Thread {
       public void run() {
-         dotest();
+         try {
+            dotest();
+         }
+         catch (IOException e) {
+            e.printStackTrace();
+         }
       }
    }
 
@@ -331,10 +326,12 @@ public class PardisoSolverTest implements ActionListener {
          solver.getMaxRefinementSteps()==defaultMaxRefinement,
          "solver.getMaxRefinementSteps()==defaultMaxRefinement");
 
+      boolean defaultMatrixChecking = solver.getMatrixChecking();
       solver.setMatrixChecking (true);
       TestSupport.doassert (
          solver.getMatrixChecking(),
          "solver.getMatrixChecking()");
+      solver.setMatrixChecking (defaultMatrixChecking);
 
       solver.setMessageLevel (1);
       TestSupport.doassert (
@@ -383,67 +380,87 @@ public class PardisoSolverTest implements ActionListener {
          "solver.getUse2x2Pivoting()==default2x2Pivoting");
    }      
 
-   private String toString (String fmtStr, double[] x) {
-      NumberFormat fmt = new NumberFormat (fmtStr);
-      StringBuilder sbuild = new StringBuilder();
-      for (int i=0; i<x.length; i++) {
-         sbuild.append (fmt.format (x[i]) + " ");
-      }
-      return sbuild.toString();
+
+
+
+   protected DirectSolver createSolver() {
+      return new PardisoSolver();
    }
 
-   private void checkSolution (double[] x, double[] chk) {
-      for (int i=0; i<x.length; i++) {
-         if (Math.abs(x[i]-chk[i]) > EPS) {
-            throw new TestException (
-               "Incorrect solution:\nGot:\n" +
-               toString("%18.13f", x) +
-               "\nExpected:\n" +
-               toString("%18.13f", chk));
+   protected boolean setShowPerturbedPivots (boolean enable) {
+      boolean prev = PardisoSolver.getShowPerturbedPivots();
+      PardisoSolver.setShowPerturbedPivots (enable);
+      return prev;
+   }
+
+   /**
+    * Tests that a matrix which is not positive definite, but which is
+    * declared SPD, fails to factor and reports the offending row.
+    */
+   public void testSPDFailure() {
+      PardisoSolver solver = new PardisoSolver();
+      boolean showPivots = setShowPerturbedPivots (false);
+      double[] npdVals = new double[] { 4, 1, 4, 1, 4, 1, 4, 1, -4 };
+      int[] npdCols = incIndices (new int[] { 0, 1, 1, 2, 2, 3, 3, 4, 4 });
+      int[] npdRows = incIndices (new int[] { 0, 2, 4, 6, 8, 9 });
+      solver.analyze (npdVals, npdCols, npdRows, 5, Matrix.SPD);
+      try {
+         solver.factor (npdVals);
+         throw new TestException (
+            "factoring a non-positive-definite SPD matrix did not throw "+
+            "an exception");
+      }
+      catch (NumericalException e) {
+         check ("error message is set", solver.getErrorMessage() != null);
+         checkEquals ("getSPDZeroPivot()", solver.getSPDZeroPivot(), 5);
+         if (verbose) {
+            System.out.println ("expected error: " + e.getMessage());
          }
       }
-   }               
+      solver.dispose();
+      PardisoSolver.setShowPerturbedPivots (showPivots);
+   }
 
-   public void dotest () {
 
+   /**
+    * Tests the capabilities which Pardiso reports.
+    */
+   public void testCapabilities() {
       PardisoSolver solver = new PardisoSolver();
-      int i;
+      check ("hasIterativeSolves()", solver.hasIterativeSolves());
+      checkEquals (
+         "hasMultipleRhsSolves()", solver.hasMultipleRhsSolves(),
+         PardisoSolver.supportsMultipleRhs);
+      solver.dispose();
+   }
 
-      // set test symmetric matrix:
-      // M = [3 1 2 0 0
-      // 1 0 1 2 0
-      // 2 1 4 1 0
-      // 0 2 1 0 6
-      // 0 0 0 6 2]
-      NumberFormat fmt = new NumberFormat ("%10.5f");
-      double[] vals3 = new double[] { 3, 1, 2, 0, 1, 2, 4, 1, 0, 6, 2 };
-      int[] rows3 = incIndices (new int[] { 0, 3, 6, 8, 10, 11 });
-      int[] cols3 = incIndices (new int[] { 0, 1, 2, 1, 2, 3, 2, 3, 3, 4, 4 });
-      double[] b3 = new double[] { 1, 2, 3, 4, 5 };
-      double[] x3 = new double[5];
-      MatrixNd M = new MatrixNd (5, 5);
-      M.setCRSValues (vals3, cols3, rows3, 11, 5, Partition.UpperTriangular);
-      solver.analyze (M, 5, Matrix.SYMMETRIC);
-      // solver.analyze (M, 5, Matrix.SYMMETRIC);
+   /**
+    * Tests the statistics which Pardiso reports for a larger factorization.
+    */
+   public void testStatistics() throws IOException {
+      PardisoSolver solver = new PardisoSolver();
 
-      //int[] rows3_1 = incIndices (rows3);
-      //int[] cols3_1 = incIndices (cols3);
-      // solver.setSymmetricMatrix (vals3, rows3_1, cols3_1, 5, 11);
-      // solver.factorMatrix(vals3);
+      SparseMatrixNd S = loadTestMatrix();
+      int size = S.rowSize();
+      VectorNd b = new VectorNd (size);
+      VectorNd x = new VectorNd (size);
+      b.setAll (1.0);
+
+      solver.analyze (S, size, Matrix.SYMMETRIC);
       solver.factor();
+      solver.solve (x, b);
 
-      TestSupport.doassert (
-         solver.getNumNegEigenvalues()==2, "getNumNegEigenvalues()==2");
-      TestSupport.doassert (
-         solver.getNumPosEigenvalues()==3, "getNumPosEigenvalues()==3");
-      TestSupport.doassert (
-         solver.getNumPerturbedPivots()==0, "getNumPerturbedPivots()==0");
-      TestSupport.doassert (
-         solver.getSPDZeroPivot()==0, "getSPDZeroPivot()==0");
-
-      testParameterAccessMethods (solver);
-
+      check ("getNumNonZerosInFactors() > 0",
+             solver.getNumNonZerosInFactors() > 0);
+      check ("getPeakAnalysisMemoryUsage() > 0",
+             solver.getPeakAnalysisMemoryUsage() > 0);
+      check ("getAnalysisMemoryUsage() > 0",
+             solver.getAnalysisMemoryUsage() > 0);
+      check ("getFactorSolveMemoryUsage() > 0",
+             solver.getFactorSolveMemoryUsage() > 0);
       if (verbose) {
+         System.out.println (
+            "nnz in factors=" + solver.getNumNonZerosInFactors());
          System.out.println (
             "peak analysis memory=" + solver.getPeakAnalysisMemoryUsage());
          System.out.println (
@@ -451,241 +468,25 @@ public class PardisoSolverTest implements ActionListener {
          System.out.println (
             "factor solve memory=" + solver.getFactorSolveMemoryUsage());
       }
-      
-      solver.solve (x3, b3);
-      if (verbose) {
-         System.out.println ("Sparse symmetric:");
-         for (i = 0; i < 5; i++) {
-            System.out.println (fmt.format (x3[i]));
-         }
-      }
-      double[] x3chk = new double[] {
-         0.111111111111111,
-         -0.88888888888888,
-         0.777777777777777,
-         0.555555555555555,
-         0.833333333333333
-      };
+      solver.dispose();
+   }
 
-      checkSolution (x3, x3chk);
+   public void dotest () throws IOException {
+      testBasics();
+      testSPDFailure();
+      testCapabilities();
+      testStatistics();
 
-      // check with multiple rhs:
+      // the parameter access methods are tested on a factored solver
+      PardisoSolver solver = new PardisoSolver();
+      solver.analyze (symVals, symColIdxs, symRowOffs, 5, Matrix.SYMMETRIC);
+      solver.factor (symVals);
+      testParameterAccessMethods (solver);
+      solver.dispose();
+   }
 
-      int nrhs = 3;
-      MatrixNd B = new MatrixNd (nrhs, 5);
-      MatrixNd X = new MatrixNd (nrhs, 5);
-      MatrixNd Xchk = new MatrixNd (nrhs, 5);
-      VectorNd b = new VectorNd (b3);
-      VectorNd xchk = new VectorNd (x3chk);
-      for (i=0; i<nrhs; i++) {
-         B.setRow (i, b);
-         Xchk.setRow (i, xchk);
-         b.scale (2);
-         xchk.scale (2);
-      }
-      solver.solve (X.getBuffer(), B.getBuffer(), nrhs);
-      if (!X.epsilonEquals (Xchk, EPS)) {
-         System.out.println ("X=\n" + X);
-         System.out.println ("Xchk=\n" + Xchk);
-         throw new TestException ("solve with multiple rhs failed");
-      }
-
-      // Now change matrix but keep topology:
-      // M = [3 1 2 0 0
-      // 1 10 1 2 0
-      // 2 1 4 1 0
-      // 0 2 1 10 5
-      // 0 0 0 5 2]
-      double[] vals4 = { 3, 1, 2, 10, 1, 2, 4, 1, 10, 5, 2 };
-      M.setCRSValues (vals4, cols3, rows3, 11, 5, Partition.UpperTriangular);
-      // solver.factorMatrix(vals4);
-      solver.factor();
-      solver.solve (x3, b3);
-      if (verbose) {
-         System.out.println ("Sparse symmetric, different values:");
-         for (i = 0; i < 5; i++) {
-            System.out.println (fmt.format (x3[i]));
-         }
-      }
-      checkSolution (
-         x3,
-         new double[] {
-            0.6032064128257,
-            -0.4368737474950,
-            -0.1863727454910,
-            2.9759519038076,
-            -4.9398797595190
-         });
-      
-      // Now test factor and solve
-      // M = [5 1 2 0 0
-      // 1 12 1 2 0
-      // 2 1 4 1 0
-      // 0 2 1 9 5
-      // 0 0 0 5 2]
-      double[] vals5 = { 5, 1, 2, 12, 1, 2, 4, 1, 9, 5, 2 };
-      M.setCRSValues (vals5, cols3, rows3, 11, 5, Partition.UpperTriangular);
-      solver.autoFactorAndSolve (x3, b3, 0);
-      if (verbose) {
-         System.out.println ("Sparse symmetric, factor and solve:");
-         for (i = 0; i < 5; i++) {
-            System.out.println (fmt.format (x3[i]));
-         }
-      }
-      checkSolution (
-         x3,
-         new double[] {
-            0.1966035271065,
-            -0.2482037883736,
-            0.1325930764206,
-            2.3246244284781,
-            -3.3115610711953
-         });
-
-      double[] vals = new double[] { 1, 2, 3, 0, 4, 0, 5, 0, 6 };
-      int[] rows = incIndices (new int[] { 0, 3, 6, 10 });
-      int[] cols = incIndices (new int[] { 0, 1, 2, 0, 1, 2, 0, 1, 2 });
-      //int[] rows_1 = incIndices (rows);
-      //int[] cols_1 = incIndices (cols);
-      double x[] = new double[3];
-      double[] b1 = new double[] { 1, 2, 3 };
-
-      M = new MatrixNd(3,3);
-      M.setCRSValues (vals, cols, rows, 9, 3, Partition.Full);
-      solver.analyze (M, 3, 0);
-      solver.factor();
-      TestSupport.doassert (
-         solver.getNumNegEigenvalues()==-1, "getNumNegEigenvalues()==-1");
-      TestSupport.doassert (
-         solver.getNumPosEigenvalues()==-1, "getNumPosEigenvalues()==-1");
-
-      // solver.setMatrix (vals, rows_1, cols_1, 3, 9);
-      // solver.factorMatrix();
-      solver.solve (x, b1);
-      if (verbose) {
-         System.out.println ("Dense unsymmetric:");
-         for (i=0; i<3; i++)
-            { System.out.println (fmt.format(x[i]));
-            }
-      }
-      checkSolution (x, new double[] { 1, 0.5, -1/3.0 });
-
-      double[] b2 = new double[] { 4, 5, 6 };
-
-      solver.solve (x, b2);
-      if (verbose) {
-         System.out.println ("Dense unsymmetric, second solution:");
-         for (i=0; i<3; i++) {
-            System.out.println (fmt.format(x[i]));
-         }
-      }
-      checkSolution (x, new double[] { 1, 1.25, 1/6.0 });
-
-      // double[] vals2 = new double[]
-      // { 26, 2, 33, 20, 6, 45 };
-      // int[] rows2 = new int[]
-      // { 0, 3, 5
-      // };
-      // int[] cols2 = new int[]
-      // { 0, 1, 2, 1, 2, 2
-      // };
-      // M.setCRSValues (vals2, cols2, rows2,
-      // 6, 3, Partition.UpperTriangular);
-      // int[] rows2_1 = incIndices(rows2);
-      // int[] cols2_1 = incIndices(cols2);
-
-      // solver.analyze (M, 3, Matrix.SYMMETRIC);
-      // solver.factor();
-      // // solver.setSymmetricMatrix (vals2, rows2_1, cols2_1, 3, 6);
-      // // solver.factorMatrix();
-      // solver.solve (x, b1);
-      // System.out.println ("Dense symmetric:");
-      // for (i=0; i<3; i++)
-      // { System.out.println (fmt.format(x[i]));
-      // }
-
-      FunctionTimer timer = new FunctionTimer();
-      SparseMatrixNd S = new SparseMatrixNd (2529, 2529);
-      try {
-         ReaderTokenizer rtok =
-            new ReaderTokenizer (
-               new BufferedReader (
-                  new FileReader (
-                     PathFinder.getSourceRelativePath (
-                        this, "testMatrix.mat"))));
-         S.scan (rtok);
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-      }
-
-      int size = S.rowSize();
-      if (verbose) {
-         System.out.println ("scanned solve matrix, size=" + size);
-         System.out.println ("number of non-zeros: " + S.numNonZeroVals());
-      }
-      VectorNd bvec = new VectorNd (size);
-      VectorNd xvec = new VectorNd (size);
-      VectorNd check = new VectorNd (size);
-      for (i = 0; i < size; i++) {
-         bvec.set (i, 1);
-      }
-
-      // norm is the Euclidean norm of all non-zero elements
-      int numElements = S.numExplicitElements();
-      double[] values = new double[numElements];
-      S.getExplicitElements (values);
-      double norm = 0;
-      for (int k = 0; k < numElements; k++) {
-         norm += values[k] * values[k];
-      }
-      norm = Math.sqrt (norm / numElements);
-      // System.out.println ("norm=" + norm);
-
-      solver.analyze (S, size, Matrix.SYMMETRIC);
-
-      int cnt = 10;
-      timer.start();
-      for (int k = 0; k < cnt; k++) {
-         solver.factor();
-         solver.solve (xvec, bvec);
-      }
-      timer.stop();
-      if (verbose) {
-         System.out.println (" separate factor and solve time: "
-                             + timer.result (cnt));
-      }
-      S.mul (check, xvec);
-      check.sub (bvec);
-      if (verbose) {
-         System.out.println ("reg error=" + check.infinityNorm());
-      }
-      double regTol = 1e-10;
-      if (check.infinityNorm() > regTol) {
-         throw new TestException ("large matrix error exceeds " + regTol);
-      }
-
-      perturbSymmetricMatrix (S, norm / 10000);
-
-      timer.start();
-      // solver.factor();
-      // solver.solve (xvec, bvec);
-      int iterCnt = solver.iterativeSolve (xvec, bvec, 10);
-      timer.stop();
-      if (verbose) {
-         System.out.println ("iterative solve: " + iterCnt);
-         System.out.println ("iterative factor and solve time: "
-                             + timer.result (1));
-      }
-      S.mul (check, xvec);
-      check.sub (bvec);
-      if (verbose) {
-         System.out.println ("CG error=" + check.infinityNorm());
-      }
-      double CGtol = 1e-9;
-      if (check.infinityNorm() > CGtol) {
-         throw new TestException ("CG error exceeds " + CGtol);
-      }
+   public void test() throws IOException {
+      dotest();
    }
 
    private static void printUsage () {

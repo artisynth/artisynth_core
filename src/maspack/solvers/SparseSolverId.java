@@ -12,6 +12,13 @@ public enum SparseSolverId {
    Pardiso (true, Matrix.INDEFINITE),
 
    /**
+    * MUMPS (MUltifrontal Massively Parallel sparse direct Solver), developed
+    * by CERFACS, CNRS, ENS Lyon, INP Toulouse, Inria, Mumps Technologies and
+    * the University of Bordeaux.
+    */
+   Mumps (true, Matrix.INDEFINITE),
+
+   /**
     * Umfpack, from SuiteSparse, developed by Tim Davis et al.
     */
    Umfpack (true, Matrix.INDEFINITE),
@@ -77,6 +84,9 @@ public enum SparseSolverId {
       switch (this) {
          case Pardiso: {
             return new PardisoSolver();
+         }
+         case Mumps: {
+            return new MumpsSolver();
          }
          case Umfpack: {
             return new UmfpackSolver();

@@ -10,9 +10,11 @@ JAVA_TEST_PROGRAMS = \
 	DantzigLCPSolverTest \
 	DantzigQPSolverTest \
 	PardisoSolverTest \
+	MumpsSolverTest \
 	MurtyLCPSolverTest \
 	CGSolverTest \
-	TriDiagonalSolverTest
+	TriDiagonalSolverTest \
+	NMFactorizationTest
         # MurtySparseContactSolverTest \
         # CRSolverTest    CRSolver seems to not work
         # DantzigQPSolverTest

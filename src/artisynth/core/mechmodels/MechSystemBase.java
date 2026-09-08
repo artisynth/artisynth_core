@@ -126,6 +126,10 @@ public abstract class MechSystemBase extends RenderableModelBase
       DEFAULT_USE_IMPLICIT_FRICTION;
    protected boolean myUseImplicitFriction = myDefaultUseImplicitFriction;
 
+   public static boolean DEFAULT_WARM_START_LCPS = false;
+   protected static boolean myDefaultWarmStartLCPs = DEFAULT_WARM_START_LCPS;
+   protected boolean myWarmStartLCPs = myDefaultWarmStartLCPs;
+
    protected boolean myInsideAdvanceP = false;
    protected double myAvgSolveTime;
    protected StepAdjustment myStepAdjust;
@@ -246,6 +250,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       myProps.add (
          "useImplicitFriction", "combine friction with implicit integration",
          DEFAULT_USE_IMPLICIT_FRICTION);
+      myProps.add (
+         "warmStartLCPs", "use warm starting for LCPs when possible",
+         DEFAULT_WARM_START_LCPS);
          
 
    }
@@ -281,6 +288,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       setMatrixSolver (myDefaultMatrixSolver);
       setIntegrator (DEFAULT_INTEGRATOR);
       setUseImplicitFriction (DEFAULT_USE_IMPLICIT_FRICTION);
+      setWarmStartLCPs (DEFAULT_WARM_START_LCPS);
    }
 
    public boolean getDynamicsEnabled() {
@@ -302,6 +310,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          mySolver.setIntegrator (getIntegrator());
          mySolver.setMatrixSolver (getMatrixSolver());
          mySolver.setUseImplicitFriction (getUseImplicitFriction());
+         mySolver.setWarmStartLCPs (getWarmStartLCPs());
       }
    }
 
@@ -1666,7 +1675,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       return new EnumRange<SparseSolverId>(
          SparseSolverId.class, new SparseSolverId[] {
             SparseSolverId.Pardiso,
-            SparseSolverId.Umfpack });
+            SparseSolverId.Mumps });
    }
 
    public void setIntegrator (Integrator integrator) {
@@ -1696,6 +1705,25 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public static void setDefaultUseImplicitFriction (boolean enable) {
       myDefaultUseImplicitFriction = enable;
+   }
+
+   public boolean getWarmStartLCPs () {
+      return myWarmStartLCPs;
+   }
+
+   public void setWarmStartLCPs (boolean enable) {
+      myWarmStartLCPs = enable;
+      if (mySolver != null) {
+         mySolver.setWarmStartLCPs (enable);
+      }
+   }
+
+   public static boolean getDefaultWarmStartLCPs () {
+      return myDefaultWarmStartLCPs;
+   }
+
+   public static void setDefaultWarmStartLCPs (boolean enable) {
+      myDefaultWarmStartLCPs = enable;
    }
 
    public Integrator getIntegrator () {

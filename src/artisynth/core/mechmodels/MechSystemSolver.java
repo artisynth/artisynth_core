@@ -8,13 +8,12 @@ package artisynth.core.mechmodels;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import maspack.spatialmotion.FrictionInfo;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StepAdjustment;
-import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthIO;
 import maspack.function.Function1x1;
 import maspack.matrix.EigenDecomposition;
@@ -22,34 +21,31 @@ import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix3x1;
 import maspack.matrix.Matrix3x2;
+import maspack.matrix.Matrix6dBase;
 import maspack.matrix.Matrix6x1;
 import maspack.matrix.Matrix6x2;
-import maspack.matrix.Matrix6dBase;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
-import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseBlockSignature;
 import maspack.matrix.SparseNumberedBlockMatrix;
-import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
+import maspack.numerics.BrentRootSolver;
+import maspack.numerics.GoldenSectionSearch;
 import maspack.solvers.CGSolver;
 import maspack.solvers.DirectSolver;
 import maspack.solvers.IterativeSolver;
 import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.solvers.KKTSolver;
-import maspack.solvers.DirectSolver;
-import maspack.solvers.PardisoSolver;
-import maspack.solvers.UmfpackSolver;
 import maspack.solvers.LCPSolver;
-import maspack.solvers.SparseSolverId;
 import maspack.solvers.MurtyMechSolver;
-import maspack.numerics.BrentRootSolver;
-import maspack.numerics.GoldenSectionSearch;
+import maspack.solvers.PardisoSolver;
+import maspack.solvers.SparseSolverId;
+import maspack.solvers.UmfpackSolver;
 import maspack.spatialmotion.FrictionInfo;
-import maspack.util.FunctionTimer;
 import maspack.util.DataBuffer;
+import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 
@@ -58,7 +54,6 @@ import maspack.util.NumberFormat;
  */
 public class MechSystemSolver {
    MechSystem mySys;
-   RigidBodySolver myRBSolver;
 
    /**
     * Flag for KKTSolverFactorAndSolve methods: do not update the system with
@@ -86,6 +81,7 @@ public class MechSystemSolver {
 
    public boolean myMurtyVelSolveRebuild = false;
    public boolean myUseImplicitFriction = false;
+   public boolean myWarmStartLCPs = false;
    
    public static boolean useFictitousJacobianForces = true;
    // always do an analysis phase before KKTsolves. Only used for testing
@@ -144,11 +140,6 @@ public class MechSystemSolver {
    private int myNumFrictionEntries = 0;
    private int myFullDSize = 0;
 
-   protected PardisoSolver pardiso;
-   protected UmfpackSolver umfpack;
-   protected DirectSolver myDirectSolver;
-   protected IterativeSolver myIterativeSolver;
-
    // auxiliary vectors for integrators
 
    private VectorNd myQ = new VectorNd (0); // active position
@@ -189,7 +180,7 @@ public class MechSystemSolver {
 
    // solver analysis versions
 
-   private int myRegSolveMatrixVersion = -1;
+   private int mySPDSolveMatrixVersion = -1;
    private int myKKTSolveMatrixVersion = -1;
    private int myKKTGTVersion = -1;
    private int myConMassVersion = -1;
@@ -329,6 +320,23 @@ public class MechSystemSolver {
       myUseImplicitFriction = enable;
    }
    
+   public boolean getWarmStartLCPs () {
+      return myWarmStartLCPs;
+   }
+
+   public void setWarmStartLCPs (boolean enable) {
+      myWarmStartLCPs = enable;
+      if (myKKTSolver != null) {
+         myKKTSolver.setWarmStartLCPs (enable);
+      }
+      if (myConSolver != null) {
+         myConSolver.setWarmStartLCPs (enable);
+      }
+      if (myStaticSolver != null) {
+         myStaticSolver.setWarmStartLCPs (enable);
+      }
+   }
+   
    public boolean usingImplicitFriction() {
       return (myUseImplicitFriction && 
               (myIntegrator == Integrator.ConstrainedBackwardEuler ||
@@ -344,12 +352,18 @@ public class MechSystemSolver {
       myFrictionIters = num;
    }
 
-   PardisoSolver myPardisoSolver;
-   UmfpackSolver myUmfpackSolver;
    KKTSolver myKKTSolver;
+   KKTSolver mySPDSolver; // for solves without constraints in backwardEuler
    KKTSolver myConSolver;
    KKTSolver myStaticSolver;
    MurtyMechSolver myMurtySolver;
+   RigidBodySolver myRBSolver;
+
+   // Persistent LCP basis used to warm-start the KKTSolver-based normal-contact
+   // solve (KKTSolve) across time steps. When verifyKKTWarmState is set, each
+   // warm solve is cross-checked against a cold re-solve.
+   VectorNi myKKTLcpState = new VectorNi();
+   public static boolean verifyKKTWarmState = false;
 
    private SparseSolverId myMatrixSolver = SparseSolverId.Pardiso;
    Integrator myIntegrator = Integrator.SymplecticEuler;
@@ -557,13 +571,6 @@ public class MechSystemSolver {
       }
    }
 
-   public void setIterativeSolver (IterativeSolver solver) {
-      solver.setMaxIterations (myMaxIterations);
-      solver.setToleranceType (myTolType);
-      solver.setTolerance (myTol);
-      myIterativeSolver = solver;
-   }
-
    public Integrator getIntegrator() {
       return myIntegrator;
    }
@@ -574,9 +581,6 @@ public class MechSystemSolver {
 
    public void setTolerance (double tol) {
       myTol = tol;
-      if (myIterativeSolver != null) {
-         myIterativeSolver.setTolerance (tol);
-      }
    }
 
    public ToleranceType getToleranceType() {
@@ -585,16 +589,10 @@ public class MechSystemSolver {
 
    public void setToleranceType (ToleranceType type) {
       myTolType = type;
-      if (myIterativeSolver != null) {
-         myIterativeSolver.setToleranceType (type);
-      }
    }
 
    public void setMaxIterations (int max) {
       myMaxIterations = max;
-      if (myIterativeSolver != null) {
-         myIterativeSolver.setMaxIterations (max);
-      }
    }
 
    public int getMaxIterations() {
@@ -605,6 +603,7 @@ public class MechSystemSolver {
       if (solver != myMatrixSolver) {
          switch (solver) {
             case Pardiso: 
+            case Mumps:
             case Umfpack: {
                break;
             }
@@ -614,9 +613,10 @@ public class MechSystemSolver {
             }
          }
          mySolveMatrix = null;
-         //myKKTSolveMatrix = null;
          myMatrixSolver = solver;
-         disposeSolvers(); // remove existing solvers
+         // remove existing solvers so that they will be recreated with the 
+         // new solver type:
+         disposeSolvers();
       }
    }
 
@@ -626,42 +626,6 @@ public class MechSystemSolver {
 
    public PosStabilization getStabilization () {
       return myStabilization;
-   }
-
-   /** 
-    * Make sure that the current solver matches the one specified by
-    * myMatrixSolver.
-    */   
-   private void updateSolver () {
-      switch (myMatrixSolver) {
-         case Pardiso: {
-            if (myPardisoSolver == null) {
-               myPardisoSolver = new PardisoSolver();
-            }
-            myDirectSolver = myPardisoSolver;
-            myUseDirectSolver = true;
-            break;
-         }
-         case Umfpack: {
-            if (myUmfpackSolver == null) {
-               myUmfpackSolver = new UmfpackSolver();
-            }
-            myDirectSolver = myUmfpackSolver;
-            myUseDirectSolver = true;
-            break;
-         }
-         case ConjugateGradient: {
-            if (!(myIterativeSolver instanceof CGSolver)) {
-               setIterativeSolver (new CGSolver());
-            }
-            myUseDirectSolver = false;
-            break;
-         }
-         default: {
-            throw new InternalErrorException (
-               "Unknown solver " + myMatrixSolver);
-         }
-      }
    }
 
    public SparseSolverId getMatrixSolver() {
@@ -691,6 +655,7 @@ public class MechSystemSolver {
       setIntegrator (solver.getIntegrator());
       setMatrixSolver (solver.getMatrixSolver());
       setUseImplicitFriction (solver.getUseImplicitFriction());
+      setWarmStartLCPs (solver.getWarmStartLCPs());
    }
 
    public void nonDynamicSolve (double t0, double t1, StepAdjustment stepAdjust) {
@@ -1028,16 +993,6 @@ public class MechSystemSolver {
 
    // end timing code for solver
 
-   private void doDirectSolve (VectorNd x, SparseBlockMatrix M, VectorNd b) {
-      if (myHybridSolveP && myDirectSolver.hasAutoIterativeSolving()) {
-         myDirectSolver.autoFactorAndSolve (x, b, myHybridSolveTol);
-      }
-      else {
-         myDirectSolver.factor();
-         myDirectSolver.solve (x, b);
-      }
-   }
-
    public void mulActiveInertias (VectorNd b, VectorNd v) {
       //assumes that updateMassMatrix() has been called
       updateStateSizes();
@@ -1087,8 +1042,6 @@ public class MechSystemSolver {
    }
 
    public void backwardEuler (double t0, double t1, StepAdjustment stepAdjust) {
-      updateSolver();
-
       boolean analyze = myAlwaysAnalyze;
 
       double h = t1 - t0;
@@ -1136,31 +1089,29 @@ public class MechSystemSolver {
 
       //mySolveMatrix.writeToFileCRS ("solveMat_foo.txt", "%g");
 
-      if (mySolveMatrixVersion != myRegSolveMatrixVersion) {
+      if (mySolveMatrixVersion != mySPDSolveMatrixVersion) {
          analyze = true;
       }
-      if (analyze) {
-         myRegSolveMatrixVersion = mySolveMatrixVersion;
-         int matrixType = mySys.getSolveMatrixType();
-         if (vsize != 0) {
-            if (myUseDirectSolver) {
-               myDirectSolver.analyze (
-                  mySolveMatrix, vsize, matrixType);
-            }
-            else {
-               if (!myIterativeSolver.isCompatible (matrixType)) {
-                  throw new UnsupportedOperationException (
-                     "Matrix cannot be solved by the chosen iterative solver");
-               }
-            }
-         }
+      // create KKT solver if necessary
+      if (mySPDSolver == null) {
+         mySPDSolver = new KKTSolver(myMatrixSolver);
       }
       if (vsize != 0) {
-         if (myUseDirectSolver) {
-            doDirectSolve (myU, mySolveMatrix, myB);
+         if (analyze) {
+            mySPDSolveMatrixVersion = mySolveMatrixVersion;
+            int matrixType = mySys.getSolveMatrixType();
+            mySPDSolver.analyze (
+               mySolveMatrix, vsize, /*GT*/null, /*Rg*/null, matrixType);
+         }
+         if (myHybridSolveP && !analyze) {
+            mySPDSolver.factorAndSolve (
+               mySolveMatrix, vsize, /*GT*/null, /*Rg*/null,
+               myU, /*lam*/null, myB, /*bg*/null, myHybridSolveTol);
          }
          else {
-            myIterativeSolver.solve (myU, mySolveMatrix, myB);
+            mySPDSolver.factor (
+               mySolveMatrix, vsize, /*GT*/null, /*Rg*/null);
+            mySPDSolver.solve (myU, /*lam*/null, myB, /*bg*/null);
          }
       }
 
@@ -1489,7 +1440,7 @@ public class MechSystemSolver {
             (cs.getAvgAnalyzeTime()*cs.getTotalAnalyzeCount() +
              cs.getAvgFactorTime()*cs.getTotalFactorCount())/myKKTCnt;
          System.out.printf (
-            "Contact solver: analyze/factor=%g solve=%g "+
+            "Contact solver: analyze/factor=%g (usec), solve=%g (usec) "+
             "nsolves=%g analyzeCnt=%d\n",
             analyzeFactorTime,
             cs.getAvgSolveTime(),
@@ -1497,7 +1448,7 @@ public class MechSystemSolver {
             cs.getTotalAnalyzeCount());
          System.out.println (
             "Total solve time (usec): " +
-            myMurtySolverTimer.getTimeUsec()/myKKTCnt);
+            myMurtySolverTimer.getTimeUsec()/myKKTCnt + " kktCnt=" + myKKTCnt);
          
       }
    }
@@ -1648,6 +1599,7 @@ public class MechSystemSolver {
       else {
          if (myKKTSolver == null) {
             myKKTSolver = new KKTSolver(myMatrixSolver);
+            myKKTSolver.setWarmStartLCPs (getWarmStartLCPs());
          }
       }
       
@@ -1743,7 +1695,7 @@ public class MechSystemSolver {
 
       if (crsWriter == null && crsFileName != null) {
          try {
-            crsWriter = ArtisynthIO.newIndentingPrintWriter (crsFileName);
+            setCrsWriter (ArtisynthIO.newIndentingPrintWriter (crsFileName));
          }
          catch (Exception e) {
             crsFileName = null;
@@ -1794,7 +1746,7 @@ public class MechSystemSolver {
                timerStop ("    KKT solve: contact solve", myKKTTimer);
             }
             myMurtySolverTimer.stop();
-            //showContactSolverTiming();
+            showContactSolverTiming();
          }
          else {
             if (analyze) {
@@ -1822,7 +1774,7 @@ public class MechSystemSolver {
                   timerStart (myKKTTimer);
                }
                myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
-               myKKTSolver.solve (vel, myLam, myThe, bf, myBg, myBn);
+               kktSolveWarm (vel, myLam, myThe, bf);
                if (profileKKTSolveTime|profileImplicitFriction) {
                   timerStop ("    KKT solve: factor and solve", myKKTTimer);
                }
@@ -1872,7 +1824,7 @@ public class MechSystemSolver {
             }
             catch (Exception e) {
                e.printStackTrace(); 
-               crsWriter = null;
+               setCrsWriter (null);
                crsFileName = null;
             }
          }
@@ -1985,6 +1937,7 @@ public class MechSystemSolver {
       
       if (myStaticSolver == null) {
          myStaticSolver = new KKTSolver(myMatrixSolver);
+         myStaticSolver.setWarmStartLCPs (getWarmStartLCPs());
       }
 
       updateConstraintMatrices (0, false);
@@ -2017,7 +1970,7 @@ public class MechSystemSolver {
 
       if (crsWriter == null && crsFileName != null) {
          try {
-            crsWriter = ArtisynthIO.newIndentingPrintWriter (crsFileName);
+            setCrsWriter (ArtisynthIO.newIndentingPrintWriter (crsFileName));
          }
          catch (Exception e) {
             crsFileName = null;
@@ -2062,7 +2015,7 @@ public class MechSystemSolver {
             }
             catch (Exception e) {
                e.printStackTrace(); 
-               crsWriter = null;
+               setCrsWriter (null);
                crsFileName = null;
             }
          }
@@ -2081,7 +2034,14 @@ public class MechSystemSolver {
          crsWriter.close();
       }
       crsFileName = name;
-      crsWriter = null;
+      setCrsWriter (null);
+   }
+
+   protected void setCrsWriter (PrintWriter pw) {
+      crsWriter = pw;
+      if (myMurtySolver != null) {
+         myMurtySolver.setSolveWriter (pw);
+      }
    }
 
    public static void setLogWriter(PrintWriter writer) {
@@ -2209,8 +2169,46 @@ public class MechSystemSolver {
             myMurtySolver.resolveMG (vel, lam, bf, myBg);
          }
          else {
-            myKKTSolver.solve (vel, lam, the, bf, myBg, myBn);
+            kktSolveWarm (vel, lam, the, bf);
          }
+      }
+   }
+
+   // Warm-started KKT solve for the normal-contact (frictionless) LCP. Seeds
+   // the LCP basis from the state each unilateral constraint remembered last
+   // step, solves via the state-carrying KKTSolver overload, and persists the
+   // solved basis back so it seeds the next step. The state is fetched
+   // per-constraint, so it is already aligned to the current NT ordering and
+   // contacts that are new this step default to inactive; no explicit remap is
+   // needed. Assumes the KKT system has already been factored. Shared by the
+   // main velocity solve, the stiffness position correction, and (via
+   // KKTSolve) inverse excitation response.
+   private void kktSolveWarm (
+      VectorNd vel, VectorNd lam, VectorNd the, VectorNd bf) {
+      int sizeN = (myNT != null ? myNT.colSize() : 0);
+      myKKTLcpState.setSize (sizeN);
+      mySys.getUnilateralState (myKKTLcpState, 0);
+      myKKTSolver.solve (vel, lam, the, bf, myBg, myBn, myKKTLcpState);
+      if (verifyKKTWarmState) {
+         verifyKKTWarmSolve (vel, bf);
+      }
+      mySys.setUnilateralState (myKKTLcpState, 0);
+   }
+
+   // Debug check for the warm-started KKTSolve: re-solve the (already factored)
+   // system cold, with no warm-start state, and confirm that the warm-started
+   // velocity agrees. This verifies that warm starting has not altered the
+   // solution (e.g. via a misaligned or corrupt seed). Enabled by setting
+   // verifyKKTWarmState.
+   private void verifyKKTWarmSolve (VectorNd vel, VectorNd bf) {
+      VectorNd velChk = new VectorNd (vel.size());
+      VectorNd lamChk = new VectorNd (myGT.colSize());
+      VectorNd theChk = new VectorNd (myNT != null ? myNT.colSize() : 0);
+      myKKTSolver.solve (velChk, lamChk, theChk, bf, myBg, myBn); // cold solve
+      double err = velChk.distance (vel);
+      if (err > 1e-8*(1 + vel.norm())) {
+         throw new IllegalStateException (
+            "KKTSolve warm-start velocity differs from cold solve by " + err);
       }
    }
 
@@ -2605,6 +2603,7 @@ public class MechSystemSolver {
       }            
       if (myConSolver == null) {
          myConSolver = new KKTSolver(myMatrixSolver);
+         myConSolver.setWarmStartLCPs (getWarmStartLCPs());
       }
       updateConstraintMatrices (h, false);
       if (myGsize == 0 && myNsize == 0) {
@@ -2691,6 +2690,7 @@ public class MechSystemSolver {
       }            
       if (myConSolver == null) {
          myConSolver = new KKTSolver(myMatrixSolver);
+         myConSolver.setWarmStartLCPs (getWarmStartLCPs());
       }
       updateConstraintMatrices (h, false);
 
@@ -2945,6 +2945,7 @@ public class MechSystemSolver {
       addActiveMassMatrix (mySys, S);
       if (myKKTSolver == null) {
          myKKTSolver = new KKTSolver(myMatrixSolver);
+         myKKTSolver.setWarmStartLCPs (getWarmStartLCPs());
          analyze = true;
       }
       if (myKKTGTVersion != getGTVersion()) {
@@ -2961,7 +2962,7 @@ public class MechSystemSolver {
       }
       else {
          myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
-         myKKTSolver.solve (vel, myLam, myThe, myBf, myBg, myBn);
+         kktSolveWarm (vel, myLam, myThe, myBf);
       }
       if (computeKKTResidual) {
          double res = myKKTSolver.residual (
@@ -3017,6 +3018,7 @@ public class MechSystemSolver {
       }            
       if (myConSolver == null) {
          myConSolver = new KKTSolver(myMatrixSolver);
+         myConSolver.setWarmStartLCPs (getWarmStartLCPs());
       }
       updateConstraintMatrices (0, false);
 
@@ -3137,6 +3139,7 @@ public class MechSystemSolver {
       mulActiveInertias (myB, myU);
       // b += h f 
       mySys.getActiveForces (myF);
+      //System.out.println ("fi=" + myF.toString ("%10.5f"));
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
 
@@ -3259,6 +3262,9 @@ public class MechSystemSolver {
       if (printChecksums) {
          System.out.println ("velocity solve:");
       }
+      // System.out.println (
+      //    "vsize=" + myActiveVelSize + " G=" + myGsize + " N=" + myNsize);
+
       int solveFlags = 0;
       KKTFactorAndSolve (
          myUtmp, myFparC, myB, /*tmp=*/myF, myU, h, solveFlags);
@@ -4069,7 +4075,7 @@ public class MechSystemSolver {
     * solve, for any matrix components involving bilateral constraints
     */
    protected void forceBilateralAnalysis() {
-      //myRegSolveMatrixVersion = -1;
+      //mySPDSolveMatrixVersion = -1;
       //myKKTSolveMatrixVersion = -1;
       myKKTGTVersion = -1;
       //myConMassVersion = -1;
@@ -4096,7 +4102,7 @@ public class MechSystemSolver {
       myGTSystemVersion = -1;
       myNTSystemVersion = -1;
       mySolveMatrixVersion = -1;
-      myRegSolveMatrixVersion = -1;
+      mySPDSolveMatrixVersion = -1;
       myKKTSolveMatrixVersion = -1;      
       if (myRBSolver != null) {
          myRBSolver.resetBilateralVersion();
@@ -4111,10 +4117,6 @@ public class MechSystemSolver {
    }
     
    private void disposeSolvers() {
-      if (myPardisoSolver != null) {
-         myPardisoSolver.dispose();
-         myPardisoSolver = null;
-      }
       if (myKKTSolver != null) {
          myKKTSolver.dispose();
          myKKTSolver = null;
@@ -4130,10 +4132,10 @@ public class MechSystemSolver {
       if (myConSolver != null) {
          myConSolver.dispose();
          myConSolver = null;
-      }
-      if (myUmfpackSolver != null) {
-         myUmfpackSolver.dispose();
-         myUmfpackSolver = null;
+      }      
+      if (mySPDSolver != null) {
+         mySPDSolver.dispose();
+         mySPDSolver = null;
       }
       if (myRBSolver != null) {
          myRBSolver.dispose();
@@ -4173,6 +4175,7 @@ public class MechSystemSolver {
    private void initMurtySolverIfNecessary() {
       if (myMurtySolver == null) {
          myMurtySolver = new MurtyMechSolver();
+         myMurtySolver.setSolveWriter (crsWriter);
          myMurtySolver.setHybridSolves (myHybridSolveP);
       }
    }

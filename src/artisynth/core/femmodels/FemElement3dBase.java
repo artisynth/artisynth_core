@@ -1015,6 +1015,37 @@ public abstract class FemElement3dBase extends FemElement
    }
    
    /**
+    * Creates a nodal extrapolation matrix from a reduced basis of p
+    * functions, where p is the number of integration points. {@code Phi} is
+    * the p X p matrix whose (k,a) entry is the value of basis function a at
+    * integration point k, and {@code Psi} is the n X p matrix whose (i,a)
+    * entry is the value of basis function a at node i. The result
+    *
+    * <pre>
+    *   E = Psi inv(Phi)
+    * </pre>
+    *
+    * reproduces any field in the span of the basis, and hence constant
+    * fields if the basis is a partition of unity. This must be used instead
+    * of {@link #createNodalExtrapolationMatrix()} when there are fewer
+    * integration points than nodes: the pseudo-inverse then returns the
+    * minimum norm solution of an under-determined system, which does not
+    * reproduce constant fields.
+    *
+    * @param Phi basis functions evaluated at the integration points
+    * @param Psi basis functions evaluated at the nodes
+    * @return nodal extrapolation matrix
+    */
+   protected MatrixNd createNodalExtrapolationMatrix (
+      MatrixNd Phi, MatrixNd Psi) {
+      MatrixNd Pinv = new MatrixNd (Phi.rowSize(), Phi.colSize());
+      Pinv.invert (Phi);
+      MatrixNd E = new MatrixNd ();
+      E.mul (Psi, Pinv);
+      return E;
+   }
+
+   /**
     * Creates a nodal extrapolation matrix by computing the inverse (
     * or pseudo-inverse) of the matrix whose 
     * 

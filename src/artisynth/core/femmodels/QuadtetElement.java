@@ -269,7 +269,20 @@ public class QuadtetElement extends FemElement3d {
 
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+         // 4 quadrature points for 10 nodes: extrapolate linearly from the
+         // inner tet whose vertices are the quadrature points, with
+         // barycentric coordinates s_j = beta + (alpha-beta) delta_jk.
+         double d = alpha - beta;
+         double[] ncoords = getNodeCoords();
+         Vector3d[] lcoords = new Vector3d[numNodes()];
+         for (int i=0; i<lcoords.length; i++) {
+            lcoords[i] = new Vector3d (
+               (ncoords[i*3  ] - beta)/d,
+               (ncoords[i*3+1] - beta)/d,
+               (ncoords[i*3+2] - beta)/d);
+         }
+         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix (
+            lcoords, numIntegrationPoints(), new TetElement());
       }
       return myNodalExtrapolationMatrix;         
    }

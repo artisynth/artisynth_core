@@ -214,9 +214,52 @@ public class QuadwedgeElement extends FemElement3d {
 
    private static MatrixNd myNodalExtrapolationMatrix = null;
 
+   /**
+    * Reduced extrapolation basis: product of the 3 linear triangle
+    * coordinates with the 3 Lagrange polynomials in r associated with the
+    * quadrature values -q, +q and 0 (in myIntegrationCoords order).
+    */
+   private static double computeExtrapolationBasis (
+      int a, double s1, double s2, double r) {
+      double q = Math.sqrt(3/5.0);
+      double L;
+      switch (a%3) {
+         case 0: L = 1-s1-s2; break;
+         case 1: L = s1; break;
+         default: L = s2; break;
+      }
+      double R;
+      switch (a/3) {
+         case 0: R = r*(r-q)/(2*q*q); break;   // 1 at r=-q
+         case 1: R = r*(r+q)/(2*q*q); break;   // 1 at r=+q
+         default: R = (q*q-r*r)/(q*q); break;  // 1 at r=0
+      }
+      return L*R;
+   }
+
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+         // 9 quadrature points for 15 nodes: use a reduced basis
+         int p = numIntegrationPoints();
+         int n = numNodes();
+         double[] icoords = getIntegrationCoords();
+         double[] ncoords = getNodeCoords();
+         MatrixNd Phi = new MatrixNd (p, p);
+         for (int k=0; k<p; k++) {
+            for (int a=0; a<p; a++) {
+               Phi.set (k, a, computeExtrapolationBasis (
+                  a, icoords[k*4], icoords[k*4+1], icoords[k*4+2]));
+            }
+         }
+         MatrixNd Psi = new MatrixNd (n, p);
+         for (int i=0; i<n; i++) {
+            for (int a=0; a<p; a++) {
+               Psi.set (i, a, computeExtrapolationBasis (
+                  a, ncoords[i*3], ncoords[i*3+1], ncoords[i*3+2]));
+            }
+         }
+         myNodalExtrapolationMatrix =
+            createNodalExtrapolationMatrix (Phi, Psi);
       }
       return myNodalExtrapolationMatrix;         
    }

@@ -211,7 +211,29 @@ public class QuadpyramidElement extends FemElement3d {
 
    public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
-         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+         // 5 quadrature points for 13 nodes: use the linear pyramid shape
+         // functions as a reduced basis
+         int p = numIntegrationPoints();
+         int n = numNodes();
+         double[] icoords = getIntegrationCoords();
+         double[] ncoords = getNodeCoords();
+         Vector3d c = new Vector3d();
+         MatrixNd Phi = new MatrixNd (p, p);
+         for (int k=0; k<p; k++) {
+            c.set (icoords[k*4], icoords[k*4+1], icoords[k*4+2]);
+            for (int a=0; a<p; a++) {
+               Phi.set (k, a, computeLinearPyramidN (a, c));
+            }
+         }
+         MatrixNd Psi = new MatrixNd (n, p);
+         for (int i=0; i<n; i++) {
+            c.set (ncoords[i*3], ncoords[i*3+1], ncoords[i*3+2]);
+            for (int a=0; a<p; a++) {
+               Psi.set (i, a, computeLinearPyramidN (a, c));
+            }
+         }
+         myNodalExtrapolationMatrix =
+            createNodalExtrapolationMatrix (Phi, Psi);
       }
       return myNodalExtrapolationMatrix;         
    }

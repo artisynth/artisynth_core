@@ -142,11 +142,37 @@ public class FemElement3dBaseTest extends UnitTest {
       checkEquals ("extrapolation/shape matrix product", P, I, 1e-10);      
    }
 
+   /**
+    * Checks that a matrix which maps integration point values onto nodal
+    * values reproduces a constant field, i.e. that each of its rows sums to
+    * one. Without this, uniform stress or strain within an element is
+    * reported at the nodes with the wrong magnitude (and possibly the wrong
+    * sign).
+    */
+   void testConstantReproduction (
+      String name, FemElement3dBase elem, MatrixNd E) {
+      for (int i=0; i<E.rowSize(); i++) {
+         double sum = 0;
+         for (int k=0; k<E.colSize(); k++) {
+            sum += E.get (i, k);
+         }
+         if (Math.abs (sum-1) > 1e-10) {
+            throw new TestException (
+               name + " for " + elem.getClass().getSimpleName() +
+               ": row " + i + " sums to " + sum + ", expected 1");
+         }
+      }
+   }
+
    public void test() {
       testContainsEdge();
       testContainsFace();
       for (FemElement3dBase e : myElements) {
          testNodalExtrapolationMatrix (e);
+         testConstantReproduction (
+            "nodal extrapolation matrix", e, e.getNodalExtrapolationMatrix());
+         testConstantReproduction (
+            "nodal averaging matrix", e, e.getNodalAveragingMatrix());
       }
    }
 

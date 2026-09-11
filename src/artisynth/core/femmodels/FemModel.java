@@ -1361,7 +1361,7 @@ public abstract class FemModel extends MechSystemBase
          setComputeNodalStress (true);
       }
       if (m.usesStrain()) {
-         setComputeNodalStress (true);
+         setComputeNodalStrain (true);
       }
       if (m.usesEnergy()) {
          setComputeNodalEnergyDensity (true);
@@ -1375,7 +1375,7 @@ public abstract class FemModel extends MechSystemBase
     */
    public void clearComputeNodalStressStrain () {
       setComputeNodalStress (false);
-      setComputeNodalStress (false);
+      setComputeNodalStrain (false);
       setComputeNodalEnergyDensity (false);
    }
 

@@ -164,9 +164,57 @@ public class FemElement3dBaseTest extends UnitTest {
       }
    }
 
+   /**
+    * Checks that integration points and extrapolation matrices set on one hex
+    * element do not leak into other hex elements, and that the nodal averaging
+    * matrix has as many columns as there are integration points.
+    */
+   void testHexIntegrationPoints() {
+      FemNode3d[] n = myNodes.toArray (new FemNode3d[0]);
+      HexElement hexA =
+         new HexElement (n[0], n[3], n[4], n[1], n[9], n[12], n[13], n[10]);
+      HexElement hexB =
+         new HexElement (n[1], n[4], n[5], n[2], n[10], n[13], n[14], n[11]);
+      MatrixNd NX27 = new MatrixNd (HexElement.NODAL_EXTRAPOLATION_27);
+      IntegrationPoint3d[] ipnts27 = FemElement3dBase.createIntegrationPoints (
+         new HexElement(), HexElement.INTEGRATION_COORDS_GAUSS_27);
+      hexB.setIntegrationPoints (ipnts27, HexElement.NODAL_EXTRAPOLATION_27);
+
+      checkEquals ("hexA numIntegrationPoints", hexA.numIntegrationPoints(), 8);
+      checkEquals (
+         "hexB numIntegrationPoints", hexB.numIntegrationPoints(), 27);
+      checkEquals (
+         "hexA extrapolation columns",
+         hexA.getNodalExtrapolationMatrix().colSize(), 8);
+      checkEquals (
+         "hexB extrapolation columns",
+         hexB.getNodalExtrapolationMatrix().colSize(), 27);
+      checkEquals (
+         "hexA averaging columns",
+         hexA.getNodalAveragingMatrix().colSize(), 8);
+      checkEquals (
+         "hexB averaging columns",
+         hexB.getNodalAveragingMatrix().colSize(), 27);
+      checkEquals (
+         "NODAL_EXTRAPOLATION_27 unchanged",
+         HexElement.NODAL_EXTRAPOLATION_27, NX27, 0);
+      testConstantReproduction (
+         "nodal averaging matrix (27 points)", hexB,
+         hexB.getNodalAveragingMatrix());
+      try {
+         hexA.setIntegrationPoints (ipnts27, HexElement.NODAL_EXTRAPOLATION_8);
+         throw new TestException (
+            "setIntegrationPoints accepted a matrix of the wrong size");
+      }
+      catch (IllegalArgumentException e) {
+         // expected
+      }
+   }
+
    public void test() {
       testContainsEdge();
       testContainsFace();
+      testHexIntegrationPoints();
       for (FemElement3dBase e : myElements) {
          testNodalExtrapolationMatrix (e);
          testConstantReproduction (

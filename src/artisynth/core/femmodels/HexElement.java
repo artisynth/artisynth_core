@@ -35,6 +35,9 @@ public class HexElement extends FemElement3d {
    
    private IntegrationPoint3d[] myIntegrationPoints = null;
    private boolean myIPointsMapToNodes = true;
+   // extrapolation matrix for element-specific integration points; null
+   // means the default matrix for the default integration points is used
+   private MatrixNd myNodalExtrapolationMatrix = null;
    
    /**
     * {@inheritDoc}
@@ -49,13 +52,23 @@ public class HexElement extends FemElement3d {
 
    public void setIntegrationPoints (
       IntegrationPoint3d[] ipnts, MatrixNd nodalExtrapMat) {
-      myIPointsMapToNodes = mapIPointsToNodes (ipnts, nodalExtrapMat, myNodes);
-      setIntegrationPoints (ipnts, nodalExtrapMat, myIPointsMapToNodes);
+      // copy the matrix first, since mapIPointsToNodes may permute its
+      // columns and the caller may have supplied a shared constant
+      MatrixNd mat = new MatrixNd (nodalExtrapMat);
+      boolean mapToNodes = mapIPointsToNodes (ipnts, mat, myNodes);
+      setIntegrationPoints (ipnts, mat, mapToNodes);
    }
    
    public void setIntegrationPoints (
       IntegrationPoint3d[] ipnts,  MatrixNd nodalExtrapMat, 
       boolean mapToNodes) {
+      if (nodalExtrapMat.rowSize() != numNodes() ||
+          nodalExtrapMat.colSize() != ipnts.length) {
+         throw new IllegalArgumentException (
+            "nodalExtrapMat must be " + numNodes() + " X " + ipnts.length +
+            "; is " + nodalExtrapMat.rowSize() + " X " +
+            nodalExtrapMat.colSize());
+      }
       myIntegrationPoints = ipnts;
       myIPointsMapToNodes = mapToNodes;
       myNodalExtrapolationMatrix = new MatrixNd (nodalExtrapMat);
@@ -227,27 +240,44 @@ public class HexElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private static MatrixNd myNodalExtrapolationMatrix = null;
-   private static MatrixNd myNodalAveragingMatrix = null;
+   // matrices for the default 8 integration points, shared by all elements
+   private static MatrixNd myDefaultNodalExtrapolationMatrix = null;
+   private static MatrixNd myDefaultNodalAveragingMatrix = null;
    
+   /**
+    * Sets the nodal averaging matrix used by all hex elements whose 8
+    * integration points map onto the nodes. The default is the identity.
+    *
+    * @param NX new default nodal averaging matrix
+    */
    public static void setNodalAveragingMatrix (MatrixNd NX) {
-      myNodalAveragingMatrix = new MatrixNd(NX);
+      myDefaultNodalAveragingMatrix = new MatrixNd(NX);
    }
    
    public MatrixNd getNodalAveragingMatrix() {
-      if (myNodalAveragingMatrix == null) {
-         // For now, just use integration point values at corresponding nodes
-         myNodalAveragingMatrix = new MatrixNd (8, 8);
-         myNodalAveragingMatrix.setIdentity();
+      if (myIPointsMapToNodes && numIntegrationPoints() == numNodes()) {
+         if (myDefaultNodalAveragingMatrix == null) {
+            // just use integration point values at corresponding nodes
+            myDefaultNodalAveragingMatrix = new MatrixNd (8, 8);
+            myDefaultNodalAveragingMatrix.setIdentity();
+         }
+         return myDefaultNodalAveragingMatrix;
       }
-      return myNodalAveragingMatrix;
+      else {
+         // element-specific integration points: use the matrix supplied
+         // with them, which must have the right number of columns
+         return getNodalExtrapolationMatrix();
+      }
    }
 
    public MatrixNd getNodalExtrapolationMatrix() {
-      if (myNodalExtrapolationMatrix == null) {
-         myNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+      if (myNodalExtrapolationMatrix != null) {
+         return myNodalExtrapolationMatrix;
       }
-      return myNodalExtrapolationMatrix;         
+      if (myDefaultNodalExtrapolationMatrix == null) {
+         myDefaultNodalExtrapolationMatrix = createNodalExtrapolationMatrix();
+      }
+      return myDefaultNodalExtrapolationMatrix;         
    }
 
    public double getN (int i, Vector3d coords) {
@@ -1116,7 +1146,7 @@ public class HexElement extends FemElement3d {
          minDist = Double.MAX_VALUE;
          closest = i;
          for (int j=i; j<nIPnts; j++) {
-            ipnts[i].computePosition(pos, nodes);
+            ipnts[j].computePosition(pos, nodes);
             dist = pos.distance(nodes[i].getPosition());
             if (dist<minDist) {
                closest = j;

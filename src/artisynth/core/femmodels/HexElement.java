@@ -50,18 +50,70 @@ public class HexElement extends FemElement3d {
       return myDefaultIntegrationPoints;
    }
 
+   /**
+    * Sets element-specific integration points, along with the matrix that
+    * extrapolates values at those points to the nodes. If there are at least
+    * as many points as nodes, the points are ordered so that the first
+    * {@code numNodes()} of them are closest to the corresponding nodes. If
+    * this requires reordering, the element uses reordered copies of the
+    * points (numbered by position) and the matrix, leaving {@code ipnts} and
+    * {@code nodalExtrapMat} unchanged so that they can be shared among
+    * elements.
+    *
+    * @param ipnts integration points
+    * @param nodalExtrapMat {@code numNodes()} X {@code ipnts.length}
+    * extrapolation matrix
+    */
    public void setIntegrationPoints (
       IntegrationPoint3d[] ipnts, MatrixNd nodalExtrapMat) {
-      // copy the matrix first, since mapIPointsToNodes may permute its
-      // columns and the caller may have supplied a shared constant
-      MatrixNd mat = new MatrixNd (nodalExtrapMat);
-      boolean mapToNodes = mapIPointsToNodes (ipnts, mat, myNodes);
-      setIntegrationPoints (ipnts, mat, mapToNodes);
+      checkNodalExtrapolationMatrixSize (ipnts, nodalExtrapMat);
+      int[] order = computeIPointsToNodesOrder (ipnts);
+      if (order == null) {
+         setIntegrationPoints (ipnts, nodalExtrapMat, false);
+         return;
+      }
+      int numi = ipnts.length;
+      boolean reordered = false;
+      for (int k=0; k<numi; k++) {
+         if (order[k] != k) {
+            reordered = true;
+            break;
+         }
+      }
+      if (!reordered) {
+         setIntegrationPoints (ipnts, nodalExtrapMat, true);
+      }
+      else {
+         HexElement sampleElem = new HexElement();
+         IntegrationPoint3d[] pnts = new IntegrationPoint3d[numi];
+         MatrixNd mat = new MatrixNd (numNodes(), numi);
+         for (int k=0; k<numi; k++) {
+            IntegrationPoint3d src = ipnts[order[k]];
+            Vector3d c = src.getCoords();
+            pnts[k] = IntegrationPoint3d.create (
+               sampleElem, c.x, c.y, c.z, src.getWeight());
+            pnts[k].setNumber (k);
+            for (int i=0; i<numNodes(); i++) {
+               mat.set (i, k, nodalExtrapMat.get (i, order[k]));
+            }
+         }
+         setIntegrationPoints (pnts, mat, true);
+      }
    }
-   
+
    public void setIntegrationPoints (
-      IntegrationPoint3d[] ipnts,  MatrixNd nodalExtrapMat, 
+      IntegrationPoint3d[] ipnts,  MatrixNd nodalExtrapMat,
       boolean mapToNodes) {
+      checkNodalExtrapolationMatrixSize (ipnts, nodalExtrapMat);
+      myIntegrationPoints = ipnts;
+      myIPointsMapToNodes = mapToNodes;
+      myNodalExtrapolationMatrix = new MatrixNd (nodalExtrapMat);
+      myIntegrationData = null;
+      //clearState();  // trigger re-creating integration data
+   }
+
+   private void checkNodalExtrapolationMatrixSize (
+      IntegrationPoint3d[] ipnts, MatrixNd nodalExtrapMat) {
       if (nodalExtrapMat.rowSize() != numNodes() ||
           nodalExtrapMat.colSize() != ipnts.length) {
          throw new IllegalArgumentException (
@@ -69,11 +121,50 @@ public class HexElement extends FemElement3d {
             "; is " + nodalExtrapMat.rowSize() + " X " +
             nodalExtrapMat.colSize());
       }
-      myIntegrationPoints = ipnts;
-      myIPointsMapToNodes = mapToNodes;
-      myNodalExtrapolationMatrix = new MatrixNd (nodalExtrapMat);
-      myIntegrationData = null;
-      //clearState();  // trigger re-creating integration data
+   }
+
+   /**
+    * Computes an ordering of integration points such that the first
+    * {@code numNodes()} points are closest to the corresponding nodes, using
+    * the same greedy search as {@link #mapICoordsToNodes}. Distances are
+    * measured in natural coordinates, so the ordering is the same for all
+    * elements. Entry k of the returned array gives the index within {@code
+    * ipnts} of the k-th ordered point.
+    *
+    * @param ipnts integration points to order
+    * @return point ordering, or {@code null} if there are fewer points than
+    * nodes
+    */
+   private static int[] computeIPointsToNodesOrder (
+      IntegrationPoint3d[] ipnts) {
+      int nNodes = myNodeCoords.length/3;
+      int nIPnts = ipnts.length;
+      if (nIPnts < nNodes) {
+         return null;
+      }
+      int[] order = new int[nIPnts];
+      for (int k=0; k<nIPnts; k++) {
+         order[k] = k;
+      }
+      for (int i=0; i<nNodes; i++) {
+         double minDist = Double.MAX_VALUE;
+         int closest = i;
+         for (int j=i; j<nIPnts; j++) {
+            Vector3d c = ipnts[order[j]].getCoords();
+            double dx = c.x-myNodeCoords[i*3];
+            double dy = c.y-myNodeCoords[i*3+1];
+            double dz = c.z-myNodeCoords[i*3+2];
+            double dist = dx*dx+dy*dy+dz*dz;
+            if (dist<minDist) {
+               closest = j;
+               minDist = dist;
+            }
+         }
+         int tmp = order[closest];
+         order[closest] = order[i];
+         order[i] = tmp;
+      }
+      return order;
    }
    
    public IntegrationPoint3d[] getIntegrationPoints() {
@@ -1159,6 +1250,9 @@ public class HexElement extends FemElement3d {
             tmp = ipnts[closest];
             ipnts[closest] = ipnts[i];
             ipnts[i] = tmp;
+            // keep point numbers consistent with their positions
+            ipnts[i].setNumber (i);
+            ipnts[closest].setNumber (closest);
             for (int j=0; j<nNodes; j++) {
                tmpd = nodalInterp.get (j, closest);
                nodalInterp.set (j, closest, nodalInterp.get (j, i));

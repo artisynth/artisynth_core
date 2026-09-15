@@ -211,10 +211,85 @@ public class FemElement3dBaseTest extends UnitTest {
       }
    }
 
+   void checkPointsUnchanged (
+      String name, IntegrationPoint3d[] ipnts, IntegrationPoint3d[] orig) {
+      for (int k=0; k<ipnts.length; k++) {
+         if (ipnts[k] != orig[k] || ipnts[k].getNumber() != k) {
+            throw new TestException (
+               name + ": supplied integration points were modified");
+         }
+      }
+   }
+
+   /**
+    * Checks that hex integration points which are not ordered to align with
+    * the nodes can be shared among elements: each element should use points
+    * that are aligned with the nodes and numbered by position, while the
+    * supplied points and matrix are left unchanged.
+    */
+   void testHexReorderedIntegrationPoints() {
+      FemNode3d[] n = myNodes.toArray (new FemNode3d[0]);
+      HexElement hexA =
+         new HexElement (n[0], n[3], n[4], n[1], n[9], n[12], n[13], n[10]);
+      HexElement hexB =
+         new HexElement (n[1], n[4], n[5], n[2], n[10], n[13], n[14], n[11]);
+      // reverse the default coordinates so they do not align with the nodes
+      double[] g = HexElement.INTEGRATION_COORDS_GAUSS_8;
+      double[] r = new double[g.length];
+      for (int k=0; k<8; k++) {
+         for (int l=0; l<4; l++) {
+            r[k*4+l] = g[(7-k)*4+l];
+         }
+      }
+      IntegrationPoint3d[] ipnts =
+         FemElement3dBase.createIntegrationPoints (new HexElement(), r);
+      IntegrationPoint3d[] orig = Arrays.copyOf (ipnts, ipnts.length);
+      // extrapolation matrix for the reversed points
+      MatrixNd N = new MatrixNd (8, 8);
+      for (int k=0; k<8; k++) {
+         for (int i=0; i<8; i++) {
+            N.set (k, i, hexA.getN (i, ipnts[k].getCoords()));
+         }
+      }
+      MatrixNd E = new MatrixNd (8, 8);
+      E.invert (N);
+      MatrixNd Eorig = new MatrixNd (E);
+
+      hexA.setIntegrationPoints (ipnts, E);
+      hexB.setIntegrationPoints (ipnts, E);
+      checkPointsUnchanged ("reordered hex points", ipnts, orig);
+      checkEquals ("reordered hex matrix unchanged", E, Eorig, 0);
+      for (HexElement hex : new HexElement[] { hexA, hexB }) {
+         checkEquals (
+            "reordered hex maps to nodes",
+            hex.integrationPointsMapToNodes(), true);
+         testNodalExtrapolationMatrix (hex);
+         IntegrationPoint3d[] pnts = hex.getIntegrationPoints();
+         for (int k=0; k<8; k++) {
+            checkEquals ("reordered hex point number", pnts[k].getNumber(), k);
+            // point k should be closest to node k
+            checkEquals (
+               "reordered hex point alignment",
+               pnts[k].getShapeWeights().maxIndex(), k);
+         }
+      }
+      // wrong size matrix should be rejected without modifying the points
+      try {
+         hexA.setIntegrationPoints (ipnts, HexElement.NODAL_EXTRAPOLATION_27);
+         throw new TestException (
+            "setIntegrationPoints accepted a matrix of the wrong size");
+      }
+      catch (IllegalArgumentException e) {
+         // expected
+      }
+      checkPointsUnchanged ("rejected hex points", ipnts, orig);
+   }
+
    public void test() {
       testContainsEdge();
       testContainsFace();
       testHexIntegrationPoints();
+      testHexReorderedIntegrationPoints();
       for (FemElement3dBase e : myElements) {
          testNodalExtrapolationMatrix (e);
          testConstantReproduction (

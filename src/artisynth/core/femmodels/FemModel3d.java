@@ -2776,7 +2776,7 @@ PointAttachable, ConnectableBody {
             double pv = imat.getEffectivePressure(K, detJ) * dV;
             for (int i = 0; i < npvals; i++) {
                pbuf[i] += H[i] * pv;
-               jbuf[i] += H[i] * detJ;
+               jbuf[i] += H[i] * detJ * dV;
             }
             if (imat.getBulkPotential() != BulkPotential.QUADRATIC) {
                double mod = imat.getEffectiveModulus(K, detJ);

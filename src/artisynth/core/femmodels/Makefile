@@ -10,6 +10,7 @@ default: build
 JAVA_TEST_PROGRAMS = \
 	DirectorFrameAttachmentTest \
 	FemElement3dBaseTest \
+	FemIncompElementTest \
 	FrameFem3dAttachmentTest \
 	FrameNodeNodeAttachmentTest \
 	NaturalCoordsComputeTest \

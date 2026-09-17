@@ -233,14 +233,22 @@ public abstract class FemElement3d extends FemElement3dBase {
       else {
          IntegrationPoint3d[] ipnts = getIntegrationPoints(); 
          MatrixNd M = new MatrixNd (npvals, npvals);
+         double wsum = 0;
          for (int k=0; k<ipnts.length; k++) {
             double[] H = ipnts[k].getPressureWeights().getBuffer();
+            double w = ipnts[k].getWeight();
+            wsum += w;
             for (int i=0; i<npvals; i++) {
                for (int j=0; j<npvals; j++) {
-                  M.add (i, j, H[i]*H[j]);
+                  M.add (i, j, H[i]*H[j]*w);
                }
             }
          }
+         // M is now the pressure mass matrix on the reference element,
+         // normalized by its volume, so that a constant field projects
+         // onto itself once the volume-weighted sums are divided by the
+         // rest volume
+         M.scale (1/wsum);
          M.invert();
          if (npvals == 2) {
             return new Matrix2d (M);

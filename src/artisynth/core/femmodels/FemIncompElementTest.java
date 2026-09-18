@@ -3,22 +3,33 @@ package artisynth.core.femmodels;
 import artisynth.core.femmodels.FemModel.IncompMethod;
 import artisynth.core.materials.IncompressibleMaterialBase.BulkPotential;
 import artisynth.core.materials.YeohMaterial;
+import artisynth.core.mechmodels.SolveMatrixTest;
 import maspack.matrix.Point3d;
+import maspack.util.TestException;
 import maspack.util.UnitTest;
 
 /**
- * Checks element-wise and full soft incompressibility on a single element
- * under a homogeneous deformation: the nodal mean stress must equal the
- * material pressure and the nodal energy density must equal the analytic
- * strain energy density, for every 3D element type. This catches the
- * wrong pressure weight normalization for elements with more than one
+ * Checks soft incompressibility on a single element under a homogeneous
+ * deformation, for every 3D element type and every soft incompressibility
+ * method. Under a homogeneous deformation the pressure field is constant, so
+ * the nodal mean stress must equal the analytic material pressure and the
+ * nodal energy density must equal the analytic strain energy density,
+ * regardless of how the pressure is projected onto the element. This catches
+ * the wrong pressure weight normalization for elements with more than one
  * pressure value per element (QuadhexElement, QuadwedgeElement).
+ *
+ * <p>The stiffness matrix is also checked against a numeric Jacobian of the
+ * nodal forces, since the pressure weight matrix enters the tangent (via
+ * Rinv) as well as the stress.
  */
 public class FemIncompElementTest extends UnitTest {
 
    static final double C1 = 50e6;
    static final double C2 = 10e6;
    static final double K = 100*C1;
+   // relative tolerance for the numeric stiffness check; correct
+   // configurations come in below 2e-7
+   static final double STIFFNESS_TOL = 1e-5;
 
    FemElement3d createElement (String type, FemModel3d fem) {
       FemElement3d proto;
@@ -48,7 +59,8 @@ public class FemIncompElementTest extends UnitTest {
          case "wedge": return new WedgeElement (nodes);
          case "quadwedge": return new QuadwedgeElement (nodes);
          case "pyramid": return new PyramidElement (nodes);
-         default: return new QuadpyramidElement (nodes);
+         case "quadpyramid": return new QuadpyramidElement (nodes);
+         default: throw new IllegalArgumentException (type);
       }
    }
 
@@ -99,6 +111,11 @@ public class FemIncompElementTest extends UnitTest {
          checkEquals (
             name + ": nodal energy density", n.getEnergyDensity(), Wchk, tol);
       }
+      double kerr = new SolveMatrixTest().testStiffness (fem, 1e-8);
+      if (kerr > STIFFNESS_TOL) {
+         throw new TestException (
+            name + ": stiffness error " + kerr + ", tol=" + STIFFNESS_TOL);
+      }
    }
 
    public void test() {
@@ -112,6 +129,7 @@ public class FemIncompElementTest extends UnitTest {
          for (double[] s : stretches) {
             for (BulkPotential pot : BulkPotential.values()) {
                testElement (type, IncompMethod.ELEMENT, pot, s);
+               testElement (type, IncompMethod.NODAL, pot, s);
                testElement (type, IncompMethod.FULL, pot, s);
             }
          }

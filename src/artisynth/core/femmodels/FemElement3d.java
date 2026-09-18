@@ -199,9 +199,27 @@ public abstract class FemElement3d extends FemElement3dBase {
 
    /**
     * Returns the pressure weight matrix for this element. The pressure
-    * weight matrix is given by the inverse of the integral of
-    * H^T H, where H is the row vector formed from the pressure
-    * shape functions.
+    * weight matrix is the inverse of the <i>volume-normalized</i> integral
+    * of H^T H over the reference element, where H is the row vector formed
+    * from the pressure shape functions:
+    *
+    * <pre>
+    *    W = (1/V0 int H^T H dV0)^-1
+    * </pre>
+    *
+    * where V0 is the reference volume. The normalization means that W does
+    * not scale with element size, and so callers must supply the remaining
+    * 1/V0 themselves: the L2 projection of a scalar field f onto the
+    * pressure shape functions is
+    *
+    * <pre>
+    *    p = (1/V0) W b,    b_i = int H_i f dV0
+    * </pre>
+    *
+    * as done in {@code FemModel3d.computePressuresAndRinv()}. Overriding
+    * methods must follow the same convention; returning an unnormalized
+    * inverse instead will make the projected pressures wrong by a factor of
+    * V0.
     *
     * <p>By default, this method returns a pressure weight matrix for the case
     * where there is only one pressure value. Such matrices always have a
@@ -222,6 +240,12 @@ public abstract class FemElement3d extends FemElement3dBase {
    /**
     * Creates a pressure weight matrix for an element. Intended for
     * use when overriding of {@link #getPressureWeightMatrix}.
+    *
+    * <p>The matrix is evaluated using this element's current integration
+    * points, which makes it consistent with the quadrature used elsewhere
+    * for the element but also dependent on it. Callers which cache the
+    * result in a static field (as the quadratic elements do) must therefore
+    * use the same integration rule for all instances of the element type.
     */
    protected Matrix createPressureWeightMatrix () {
       int npvals = numPressureVals();
@@ -247,7 +271,10 @@ public abstract class FemElement3d extends FemElement3dBase {
          // M is now the pressure mass matrix on the reference element,
          // normalized by its volume, so that a constant field projects
          // onto itself once the volume-weighted sums are divided by the
-         // rest volume
+         // rest volume. wsum is the quadrature estimate of the reference
+         // volume; using it (rather than the analytic volume) keeps M
+         // consistent with the quadrature, which is what makes a
+         // quadrature-sampled constant field project exactly onto itself.
          M.scale (1/wsum);
          M.invert();
          if (npvals == 2) {

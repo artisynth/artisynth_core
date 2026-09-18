@@ -3626,16 +3626,25 @@ PointAttachable, ConnectableBody {
                break;
             }
             case NODAL: {
+               // avgDetF must track pressure: it supplies the bulk potential
+               // when the strain energy density is evaluated, and a value of
+               // 0 there would make that term K/2 (quadratic) or infinite
+               // (logarithmic). A ratio of 1 pairs with a zero pressure.
+               avgDetF = 1;
                if (e instanceof TetElement) {
                   // use the average pressure for all nodes
                   pressure = 0;
+                  avgDetF = 0;
                   for (int i = 0; i < nodes.length; i++) {
                      pressure += nodes[i].myPressure;
+                     avgDetF += nodalDetF (nodes[i]);
                   }
                   pressure /= nodes.length;
+                  avgDetF /= nodes.length;
                }
                else if (e.integrationPointsMapToNodes()) {
                   pressure = nodes[k].myPressure;
+                  avgDetF = nodalDetF (nodes[k]);
                }
                else if (e.integrationPointsInterpolateToNodes()){
                   // interpolate using shape function
@@ -3643,6 +3652,7 @@ PointAttachable, ConnectableBody {
                   // XXX map to nearest node
                   int maxIdx = N.maxIndex ();
                   pressure = nodes[maxIdx].myPressure;
+                  avgDetF = nodalDetF (nodes[maxIdx]);
                }
                break;
             }
@@ -3722,8 +3732,10 @@ PointAttachable, ConnectableBody {
                   p = pressure;
                }
                else if (softIncomp == IncompMethod.FULL) {
-                  double dV = dt.getDetJ0() * pt.getWeight();
-                  kp = imat.getEffectiveModulus(K, detJ / dt.getDetJ0()) * dV;
+                  double Jl = detJ / dt.getDetJ0();
+                  // dJ/du_i = J GNx_i, so the dilational term is weighted by
+                  // J^2 dV0, which equals J dv
+                  kp = imat.getEffectiveModulus(K, Jl) * Jl * dv;
                   p = pressure;
                }
 
@@ -4492,6 +4504,22 @@ PointAttachable, ConnectableBody {
 
    private boolean volumeIsControllable(FemNode3d node) {
       return node.isActiveLocal();
+   }
+
+   /**
+    * Returns the volume ratio detF associated with a node for nodal
+    * incompressibility, formed from the same volumes used by
+    * {@link #updateNodalPressures} to set the nodal pressure. Nodes whose
+    * volume is not controllable have zero pressure, and so are given a ratio
+    * of 1 to keep the bulk potential consistent with that.
+    */
+   private double nodalDetF (FemNode3d node) {
+      if (volumeIsControllable (node)) {
+         return node.myVolume / node.myRestVolume;
+      }
+      else {
+         return 1;
+      }
    }
 
    private boolean hasControllableNodes(FemElement3d elem) {

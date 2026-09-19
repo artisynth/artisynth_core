@@ -1,5 +1,7 @@
 package artisynth.core.materials;
 
+import java.util.Arrays;
+
 import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
@@ -8,6 +10,7 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.util.ArraySupport;
 
 public class OgdenMaterial extends IncompressibleMaterialBase {
 
@@ -147,22 +150,22 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
 
    public synchronized void setMu3 (double mu) {
       myMu[2] = mu;
-      myMu2Mode =
-         PropertyUtils.propagateValue (this, "Mu2", myMu[2], myMu2Mode);
+      myMu3Mode =
+         PropertyUtils.propagateValue (this, "Mu3", myMu[2], myMu3Mode);
       notifyHostOfPropertyChange();
    }
 
    public synchronized void setMu4 (double mu) {
       myMu[3] = mu;
-      myMu2Mode =
-         PropertyUtils.propagateValue (this, "Mu2", myMu[3], myMu2Mode);
+      myMu4Mode =
+         PropertyUtils.propagateValue (this, "Mu4", myMu[3], myMu4Mode);
       notifyHostOfPropertyChange();
    }
 
    public synchronized void setMu5 (double mu) {
       myMu[4] = mu;
-      myMu2Mode =
-         PropertyUtils.propagateValue (this, "Mu2", myMu[4], myMu2Mode);
+      myMu5Mode =
+         PropertyUtils.propagateValue (this, "Mu5", myMu[4], myMu5Mode);
       notifyHostOfPropertyChange();
    }
 
@@ -715,9 +718,9 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
       if (!(mat instanceof OgdenMaterial)) {
          return false;
       }
-      OgdenMaterial stvk = (OgdenMaterial)mat;
-      if (myMu != stvk.myMu ||
-          myAlpha != stvk.myAlpha) {
+      OgdenMaterial ogden = (OgdenMaterial)mat;
+      if (!ArraySupport.equals (myMu, ogden.myMu) ||
+          !ArraySupport.equals (myAlpha, ogden.myAlpha)) {
          return false;
       }
       else {
@@ -727,7 +730,11 @@ public class OgdenMaterial extends IncompressibleMaterialBase {
 
    public OgdenMaterial clone() {
       OgdenMaterial mat = (OgdenMaterial)super.clone();
+      mat.myMu = Arrays.copyOf (myMu, myMu.length);
+      mat.myAlpha = Arrays.copyOf (myAlpha, myAlpha.length);
       mat.myB = new SymmetricMatrix3d();
+      mat.myB2 = new SymmetricMatrix3d();
+      mat.myTmp = new SymmetricMatrix3d();
       return mat;
    }
 
